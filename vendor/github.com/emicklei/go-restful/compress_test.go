@@ -94,7 +94,6 @@ func TestGzipDecompressRequestBody(t *testing.T) {
 	httpRequest.Header.Set("Content-Encoding", "gzip")
 	req.Request = httpRequest
 
-	doCacheReadEntityBytes = false
 	doc := make(map[string]interface{})
 	req.ReadEntity(&doc)
 
@@ -117,7 +116,6 @@ func TestZlibDecompressRequestBody(t *testing.T) {
 	httpRequest.Header.Set("Content-Encoding", "deflate")
 	req.Request = httpRequest
 
-	doCacheReadEntityBytes = false
 	doc := make(map[string]interface{})
 	req.ReadEntity(&doc)
 

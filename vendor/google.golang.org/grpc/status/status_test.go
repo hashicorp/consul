@@ -19,11 +19,17 @@
 package status
 
 import (
+	"errors"
+	"fmt"
 	"reflect"
 	"testing"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	apb "github.com/golang/protobuf/ptypes/any"
+	dpb "github.com/golang/protobuf/ptypes/duration"
+	cpb "google.golang.org/genproto/googleapis/rpc/code"
+	epb "google.golang.org/genproto/googleapis/rpc/errdetails"
 	spb "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc/codes"
 )
@@ -111,4 +117,145 @@ func TestFromErrorOK(t *testing.T) {
 	if !ok || s.Code() != code || s.Message() != message || s.Err() != nil {
 		t.Fatalf("FromError(nil) = %v, %v; want <Code()=%s, Message()=%q, Err=nil>, true", s, ok, code, message)
 	}
+}
+
+func TestStatus_ErrorDetails(t *testing.T) {
+	tests := []struct {
+		code    codes.Code
+		details []proto.Message
+	}{
+		{
+			code:    codes.NotFound,
+			details: nil,
+		},
+		{
+			code: codes.NotFound,
+			details: []proto.Message{
+				&epb.ResourceInfo{
+					ResourceType: "book",
+					ResourceName: "projects/1234/books/5678",
+					Owner:        "User",
+				},
+			},
+		},
+		{
+			code: codes.Internal,
+			details: []proto.Message{
+				&epb.DebugInfo{
+					StackEntries: []string{
+						"first stack",
+						"second stack",
+					},
+				},
+			},
+		},
+		{
+			code: codes.Unavailable,
+			details: []proto.Message{
+				&epb.RetryInfo{
+					RetryDelay: &dpb.Duration{Seconds: 60},
+				},
+				&epb.ResourceInfo{
+					ResourceType: "book",
+					ResourceName: "projects/1234/books/5678",
+					Owner:        "User",
+				},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		s, err := New(tc.code, "").WithDetails(tc.details...)
+		if err != nil {
+			t.Fatalf("(%v).WithDetails(%+v) failed: %v", str(s), tc.details, err)
+		}
+		details := s.Details()
+		for i := range details {
+			if !proto.Equal(details[i].(proto.Message), tc.details[i]) {
+				t.Fatalf("(%v).Details()[%d] = %+v, want %+v", str(s), i, details[i], tc.details[i])
+			}
+		}
+	}
+}
+
+func TestStatus_WithDetails_Fail(t *testing.T) {
+	tests := []*Status{
+		nil,
+		FromProto(nil),
+		New(codes.OK, ""),
+	}
+	for _, s := range tests {
+		if s, err := s.WithDetails(); err == nil || s != nil {
+			t.Fatalf("(%v).WithDetails(%+v) = %v, %v; want nil, non-nil", str(s), []proto.Message{}, s, err)
+		}
+	}
+}
+
+func TestStatus_ErrorDetails_Fail(t *testing.T) {
+	tests := []struct {
+		s *Status
+		i []interface{}
+	}{
+		{
+			nil,
+			nil,
+		},
+		{
+			FromProto(nil),
+			nil,
+		},
+		{
+			New(codes.OK, ""),
+			[]interface{}{},
+		},
+		{
+			FromProto(&spb.Status{
+				Code: int32(cpb.Code_CANCELLED),
+				Details: []*apb.Any{
+					{
+						TypeUrl: "",
+						Value:   []byte{},
+					},
+					mustMarshalAny(&epb.ResourceInfo{
+						ResourceType: "book",
+						ResourceName: "projects/1234/books/5678",
+						Owner:        "User",
+					}),
+				},
+			}),
+			[]interface{}{
+				errors.New(`message type url "" is invalid`),
+				&epb.ResourceInfo{
+					ResourceType: "book",
+					ResourceName: "projects/1234/books/5678",
+					Owner:        "User",
+				},
+			},
+		},
+	}
+	for _, tc := range tests {
+		got := tc.s.Details()
+		if !reflect.DeepEqual(got, tc.i) {
+			t.Errorf("(%v).Details() = %+v, want %+v", str(tc.s), got, tc.i)
+		}
+	}
+}
+
+func str(s *Status) string {
+	if s == nil {
+		return "nil"
+	}
+	if s.s == nil {
+		return "<Code=OK>"
+	}
+	return fmt.Sprintf("<Code=%v, Message=%q, Details=%+v>", codes.Code(s.s.GetCode()), s.s.GetMessage(), s.s.GetDetails())
+}
+
+// mustMarshalAny converts a protobuf message to an any.
+func mustMarshalAny(msg proto.Message) *apb.Any {
+	any, err := ptypes.MarshalAny(msg)
+	if err != nil {
+		panic(fmt.Sprintf("ptypes.MarshalAny(%+v) failed: %v", msg, err))
+	}
+	return any
 }

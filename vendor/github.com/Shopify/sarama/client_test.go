@@ -188,12 +188,12 @@ func TestClientMetadata(t *testing.T) {
 	replicas, err = client.Replicas("my_topic", 0)
 	if err != nil {
 		t.Error(err)
-	} else if replicas[0] != 1 {
-		t.Error("Incorrect (or unsorted) replica")
-	} else if replicas[1] != 3 {
-		t.Error("Incorrect (or unsorted) replica")
+	} else if replicas[0] != 3 {
+		t.Error("Incorrect (or sorted) replica")
+	} else if replicas[1] != 1 {
+		t.Error("Incorrect (or sorted) replica")
 	} else if replicas[2] != 5 {
-		t.Error("Incorrect (or unsorted) replica")
+		t.Error("Incorrect (or sorted) replica")
 	}
 
 	isr, err = client.InSyncReplicas("my_topic", 0)
@@ -201,10 +201,10 @@ func TestClientMetadata(t *testing.T) {
 		t.Error(err)
 	} else if len(isr) != 2 {
 		t.Error("Client returned incorrect ISRs for partition:", isr)
-	} else if isr[0] != 1 {
-		t.Error("Incorrect (or unsorted) ISR:", isr)
-	} else if isr[1] != 5 {
-		t.Error("Incorrect (or unsorted) ISR:", isr)
+	} else if isr[0] != 5 {
+		t.Error("Incorrect (or sorted) ISR:", isr)
+	} else if isr[1] != 1 {
+		t.Error("Incorrect (or sorted) ISR:", isr)
 	}
 
 	leader.Close()

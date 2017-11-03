@@ -16,10 +16,8 @@ type Writer struct {
 	data     []byte      // data to be compressed, only used when dealing with block dependency as we need 64Kb to work with
 	window   []byte      // last 64KB of decompressed data (block dependency) + blockMaxSize buffer
 
-	zbCompressBuf     []byte // buffer for compressing lz4 blocks
-	writeSizeBuf      []byte // four-byte slice for writing checksums and sizes in writeblock
-	hashTable         []hashEntry
-	currentGeneration uint
+	zbCompressBuf []byte // buffer for compressing lz4 blocks
+	writeSizeBuf  []byte // four-byte slice for writing checksums and sizes in writeblock
 }
 
 // NewWriter returns a new LZ4 frame encoder.
@@ -33,7 +31,6 @@ func NewWriter(dst io.Writer) *Writer {
 		Header: Header{
 			BlockMaxSize: 4 << 20,
 		},
-		hashTable:    make([]hashEntry, hashTableSize),
 		writeSizeBuf: make([]byte, 4),
 	}
 }
@@ -245,11 +242,7 @@ func (z *Writer) compressBlock(zb block) block {
 	if z.HighCompression {
 		n, err = CompressBlockHC(zb.data, zbuf, zb.offset)
 	} else {
-		n, err = compressGenerationalBlock(zb.data, zbuf, zb.offset, z.currentGeneration, z.hashTable)
-		z.currentGeneration++
-		if z.currentGeneration == 0 { // wrapped around, reset table
-			z.hashTable = make([]hashEntry, hashTableSize)
-		}
+		n, err = CompressBlock(zb.data, zbuf, zb.offset)
 	}
 
 	// compressible and compressed size smaller than decompressed: ok!
@@ -257,6 +250,7 @@ func (z *Writer) compressBlock(zb block) block {
 		zb.compressed = true
 		zb.zdata = zbuf[:n]
 	} else {
+		zb.compressed = false
 		zb.zdata = zb.data[zb.offset:]
 	}
 

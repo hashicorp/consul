@@ -3,7 +3,6 @@ package lz4
 import (
 	"encoding/binary"
 	"errors"
-	"unsafe"
 )
 
 // block represents a frame data block.
@@ -111,11 +110,6 @@ func UncompressBlock(src, dst []byte, di int) (int, error) {
 	}
 }
 
-type hashEntry struct {
-	generation uint
-	value      int
-}
-
 // CompressBlock compresses the source buffer starting at soffet into the destination one.
 // This is the fast version of LZ4 compression and also the default one.
 //
@@ -123,27 +117,6 @@ type hashEntry struct {
 //
 // An error is returned if the destination buffer is too small.
 func CompressBlock(src, dst []byte, soffset int) (int, error) {
-	var hashTable [hashTableSize]hashEntry
-	return compressGenerationalBlock(src, dst, soffset, 0, hashTable[:])
-}
-
-// getUint32 is a despicably evil function (well, for Go!) that takes advantage
-// of the machine's byte order to save some operations. This may look
-// inefficient but it is significantly faster on littleEndian machines,
-// which include x84, amd64, and some ARM processors.
-func getUint32(b []byte) uint32 {
-	_ = b[3]
-	if isLittleEndian {
-		return *(*uint32)(unsafe.Pointer(&b))
-	}
-
-	return uint32(b[0]) |
-		uint32(b[1])<<8 |
-		uint32(b[2])<<16 |
-		uint32(b[3])<<24
-}
-
-func compressGenerationalBlock(src, dst []byte, soffset int, generation uint, hashTable []hashEntry) (int, error) {
 	sn, dn := len(src)-mfLimit, len(dst)
 	if sn <= 0 || dn == 0 || soffset >= sn {
 		return 0, nil
@@ -152,28 +125,26 @@ func compressGenerationalBlock(src, dst []byte, soffset int, generation uint, ha
 
 	// fast scan strategy:
 	// we only need a hash table to store the last sequences (4 bytes)
+	var hashTable [1 << hashLog]int
 	var hashShift = uint((minMatch * 8) - hashLog)
 
 	// Initialise the hash table with the first 64Kb of the input buffer
 	// (used when compressing dependent blocks)
 	for si < soffset {
-		h := getUint32(src[si:]) * hasher >> hashShift
+		h := binary.LittleEndian.Uint32(src[si:]) * hasher >> hashShift
 		si++
-		hashTable[h] = hashEntry{generation, si}
+		hashTable[h] = si
 	}
 
 	anchor := si
 	fma := 1 << skipStrength
 	for si < sn-minMatch {
 		// hash the next 4 bytes (sequence)...
-		h := getUint32(src[si:]) * hasher >> hashShift
-		if hashTable[h].generation != generation {
-			hashTable[h] = hashEntry{generation, 0}
-		}
+		h := binary.LittleEndian.Uint32(src[si:]) * hasher >> hashShift
 		// -1 to separate existing entries from new ones
-		ref := hashTable[h].value - 1
+		ref := hashTable[h] - 1
 		// ...and store the position of the hash in the hash table (+1 to compensate the -1 upon saving)
-		hashTable[h].value = si + 1
+		hashTable[h] = si + 1
 		// no need to check the last 3 bytes in the first literal 4 bytes as
 		// this guarantees that the next match, if any, is compressed with
 		// a lower size, since to have some compression we must have:

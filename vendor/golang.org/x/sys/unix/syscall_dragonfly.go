@@ -125,6 +125,11 @@ func Getfsstat(buf []Statfs_t, flags int) (n int, err error) {
 	return
 }
 
+func setattrlistTimes(path string, times []Timespec, flags int) error {
+	// used on Darwin for UtimesNano
+	return ENOSYS
+}
+
 /*
  * Exposed directly
  */
@@ -257,7 +262,6 @@ func Getfsstat(buf []Statfs_t, flags int) (n int, err error) {
 // Searchfs
 // Delete
 // Copyfile
-// Poll
 // Watchevent
 // Waitevent
 // Modwatch
@@ -403,7 +407,6 @@ func Getfsstat(buf []Statfs_t, flags int) (n int, err error) {
 // Pread_nocancel
 // Pwrite_nocancel
 // Waitid_nocancel
-// Poll_nocancel
 // Msgsnd_nocancel
 // Msgrcv_nocancel
 // Sem_wait_nocancel

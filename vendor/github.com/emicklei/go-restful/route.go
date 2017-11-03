@@ -13,6 +13,11 @@ import (
 // RouteFunction declares the signature of a function that can be bound to a Route.
 type RouteFunction func(*Request, *Response)
 
+// RouteSelectionConditionFunction declares the signature of a function that
+// can be used to add extra conditional logic when selecting whether the route
+// matches the HTTP request.
+type RouteSelectionConditionFunction func(httpRequest *http.Request) bool
+
 // Route binds a HTTP Method,Path,Consumes combination to a RouteFunction.
 type Route struct {
 	Method   string
@@ -21,6 +26,7 @@ type Route struct {
 	Path     string // webservice root path + described path
 	Function RouteFunction
 	Filters  []FilterFunction
+	If       []RouteSelectionConditionFunction
 
 	// cached values for dispatching
 	relativePath string
@@ -34,6 +40,9 @@ type Route struct {
 	ParameterDocs           []*Parameter
 	ResponseErrors          map[int]ResponseError
 	ReadSample, WriteSample interface{} // structs that model an example request or response payload
+
+	// Extra information used to store custom information about the route.
+	Metadata map[string]interface{}
 }
 
 // Initialize for Route
@@ -97,7 +106,7 @@ func (r Route) matchesContentType(mimeTypes string) bool {
 	}
 
 	if len(mimeTypes) == 0 {
-		// idempotent methods with (most-likely or garanteed) empty content match missing Content-Type
+		// idempotent methods with (most-likely or guaranteed) empty content match missing Content-Type
 		m := r.Method
 		if m == "GET" || m == "HEAD" || m == "OPTIONS" || m == "DELETE" || m == "TRACE" {
 			return true

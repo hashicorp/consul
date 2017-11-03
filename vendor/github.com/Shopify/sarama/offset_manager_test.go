@@ -204,6 +204,70 @@ func TestPartitionOffsetManagerNextOffset(t *testing.T) {
 	safeClose(t, testClient)
 }
 
+func TestPartitionOffsetManagerResetOffset(t *testing.T) {
+	om, testClient, broker, coordinator := initOffsetManager(t)
+	pom := initPartitionOffsetManager(t, om, coordinator, 5, "original_meta")
+
+	ocResponse := new(OffsetCommitResponse)
+	ocResponse.AddError("my_topic", 0, ErrNoError)
+	coordinator.Returns(ocResponse)
+
+	expected := int64(1)
+	pom.ResetOffset(expected, "modified_meta")
+	actual, meta := pom.NextOffset()
+
+	if actual != expected {
+		t.Errorf("Expected offset %v. Actual: %v", expected, actual)
+	}
+	if meta != "modified_meta" {
+		t.Errorf("Expected metadata \"modified_meta\". Actual: %q", meta)
+	}
+
+	safeClose(t, pom)
+	safeClose(t, om)
+	safeClose(t, testClient)
+	broker.Close()
+	coordinator.Close()
+}
+
+func TestPartitionOffsetManagerResetOffsetWithRetention(t *testing.T) {
+	om, testClient, broker, coordinator := initOffsetManager(t)
+	testClient.Config().Consumer.Offsets.Retention = time.Hour
+
+	pom := initPartitionOffsetManager(t, om, coordinator, 5, "original_meta")
+
+	ocResponse := new(OffsetCommitResponse)
+	ocResponse.AddError("my_topic", 0, ErrNoError)
+	handler := func(req *request) (res encoder) {
+		if req.body.version() != 2 {
+			t.Errorf("Expected to be using version 2. Actual: %v", req.body.version())
+		}
+		offsetCommitRequest := req.body.(*OffsetCommitRequest)
+		if offsetCommitRequest.RetentionTime != (60 * 60 * 1000) {
+			t.Errorf("Expected an hour retention time. Actual: %v", offsetCommitRequest.RetentionTime)
+		}
+		return ocResponse
+	}
+	coordinator.setHandler(handler)
+
+	expected := int64(1)
+	pom.ResetOffset(expected, "modified_meta")
+	actual, meta := pom.NextOffset()
+
+	if actual != expected {
+		t.Errorf("Expected offset %v. Actual: %v", expected, actual)
+	}
+	if meta != "modified_meta" {
+		t.Errorf("Expected metadata \"modified_meta\". Actual: %q", meta)
+	}
+
+	safeClose(t, pom)
+	safeClose(t, om)
+	safeClose(t, testClient)
+	broker.Close()
+	coordinator.Close()
+}
+
 func TestPartitionOffsetManagerMarkOffset(t *testing.T) {
 	om, testClient, broker, coordinator := initOffsetManager(t)
 	pom := initPartitionOffsetManager(t, om, coordinator, 5, "original_meta")

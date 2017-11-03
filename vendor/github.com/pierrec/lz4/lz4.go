@@ -20,7 +20,6 @@ package lz4
 import (
 	"hash"
 	"sync"
-	"unsafe"
 
 	"github.com/pierrec/xxHash/xxHash32"
 )
@@ -63,18 +62,6 @@ func init() {
 	for i, v := range bsMapID {
 		bsMapValue[v] = i
 	}
-}
-
-var isLittleEndian = getIsLittleEndian()
-
-func getIsLittleEndian() (ret bool) {
-	var i int = 0x1
-	bs := (*[1]byte)(unsafe.Pointer(&i))
-	if bs[0] == 0 {
-		return false
-	}
-
-	return true
 }
 
 // Header describes the various flags that can be set on a Writer or obtained from a Reader.

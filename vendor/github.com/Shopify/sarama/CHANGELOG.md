@@ -1,5 +1,34 @@
 # Changelog
 
+#### Version 1.13.0 (2017-10-04)
+
+New Features:
+ - Support for FetchRequest version 3
+   ([#905](https://github.com/Shopify/sarama/pull/905)).
+ - Permit setting version on mock FetchResponses
+   ([#939](https://github.com/Shopify/sarama/pull/939)).
+ - Add a configuration option to support storing only minimal metadata for
+   extremely large clusters
+   ([#937](https://github.com/Shopify/sarama/pull/937)).
+ - Add `PartitionOffsetManager.ResetOffset` for backtracking tracked offsets
+   ([#932](https://github.com/Shopify/sarama/pull/932)).
+
+Improvements:
+ - Provide the block-level timestamp when consuming compressed messages
+   ([#885](https://github.com/Shopify/sarama/issues/885)).
+ - `Client.Replicas` and `Client.InSyncReplicas` now respect the order returned
+   by the broker, which can be meaningful
+   ([#930](https://github.com/Shopify/sarama/pull/930)).
+ - Use a `Ticker` to reduce consumer timer overhead at the cost of higher
+   variance in the actual timeout
+   ([#933](https://github.com/Shopify/sarama/pull/933)).
+
+Bug Fixes:
+ - Gracefully handle messages with negative timestamps
+   ([#907](https://github.com/Shopify/sarama/pull/907)).
+ - Raise a proper error when encountering an unknown message version
+   ([#940](https://github.com/Shopify/sarama/pull/940)).
+
 #### Version 1.12.0 (2017-05-08)
 
 New Features:

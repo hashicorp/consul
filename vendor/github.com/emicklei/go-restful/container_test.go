@@ -59,3 +59,25 @@ func TestContainer_HandleWithFilter(t *testing.T) {
 		t.Errorf("handler added by calling HandleWithFilter wasn't called")
 	}
 }
+
+func TestContainerAddAndRemove(t *testing.T) {
+	ws1 := new(WebService).Path("/")
+	ws2 := new(WebService).Path("/users")
+	wc := NewContainer()
+	wc.Add(ws1)
+	wc.Add(ws2)
+	wc.Remove(ws2)
+	if len(wc.webServices) != 1 {
+		t.Errorf("expected one webservices")
+	}
+	if !wc.isRegisteredOnRoot {
+		t.Errorf("expected on root registered")
+	}
+	wc.Remove(ws1)
+	if len(wc.webServices) > 0 {
+		t.Errorf("expected zero webservices")
+	}
+	if wc.isRegisteredOnRoot {
+		t.Errorf("expected not on root registered")
+	}
+}

@@ -803,6 +803,48 @@ func TestConsumerOffsetOutOfRange(t *testing.T) {
 	broker0.Close()
 }
 
+func TestConsumerExpiryTicker(t *testing.T) {
+	// Given
+	broker0 := NewMockBroker(t, 0)
+	fetchResponse1 := &FetchResponse{}
+	for i := 1; i <= 8; i++ {
+		fetchResponse1.AddMessage("my_topic", 0, nil, testMsg, int64(i))
+	}
+	broker0.SetHandlerByMap(map[string]MockResponse{
+		"MetadataRequest": NewMockMetadataResponse(t).
+			SetBroker(broker0.Addr(), broker0.BrokerID()).
+			SetLeader("my_topic", 0, broker0.BrokerID()),
+		"OffsetRequest": NewMockOffsetResponse(t).
+			SetOffset("my_topic", 0, OffsetNewest, 1234).
+			SetOffset("my_topic", 0, OffsetOldest, 1),
+		"FetchRequest": NewMockSequence(fetchResponse1),
+	})
+
+	config := NewConfig()
+	config.ChannelBufferSize = 0
+	config.Consumer.MaxProcessingTime = 10 * time.Millisecond
+	master, err := NewConsumer([]string{broker0.Addr()}, config)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// When
+	consumer, err := master.ConsumePartition("my_topic", 0, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Then: messages with offsets 1 through 8 are read
+	for i := 1; i <= 8; i++ {
+		assertMessageOffset(t, <-consumer.Messages(), int64(i))
+		time.Sleep(2 * time.Millisecond)
+	}
+
+	safeClose(t, consumer)
+	safeClose(t, master)
+	broker0.Close()
+}
+
 func assertMessageOffset(t *testing.T, msg *ConsumerMessage, expectedOffset int64) {
 	if msg.Offset != expectedOffset {
 		t.Errorf("Incorrect message offset: expected=%d, actual=%d", expectedOffset, msg.Offset)

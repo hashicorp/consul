@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"math/big"
+	"os"
 	"reflect"
 	"testing"
 
@@ -261,6 +262,25 @@ func TestBlock(t *testing.T) {
 	}
 }
 
+func TestBlockCompression(t *testing.T) {
+	input := make([]byte, 64*1024)
+
+	for i := 0; i < 64*1024; i += 1 {
+		input[i] = byte(i & 0x1)
+	}
+	output := make([]byte, 64*1024)
+
+	c, err := lz4.CompressBlock(input, output, 0)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if c == 0 {
+		t.Fatal("cannot compress compressible data")
+	}
+}
+
 func BenchmarkUncompressBlock(b *testing.B) {
 	d := make([]byte, len(lorem))
 	z := make([]byte, len(lorem))
@@ -395,57 +415,60 @@ func TestReset(t *testing.T) {
 func TestFrame(t *testing.T) {
 	for _, tdata := range testDataItems {
 		data := tdata.data
-		// test various options
-		for _, headerItem := range testHeaderItems {
-			tag := tdata.label + ": " + headerItem.label
-			rw := bytes.NewBuffer(nil)
+		t.Run(tdata.label, func(t *testing.T) {
+			t.Parallel()
+			// test various options
+			for _, headerItem := range testHeaderItems {
+				tag := tdata.label + ": " + headerItem.label
+				rw := bytes.NewBuffer(nil)
 
-			// Set all options to non default values and compress
-			w := lz4.NewWriter(rw)
-			w.Header = headerItem.header
+				// Set all options to non default values and compress
+				w := lz4.NewWriter(rw)
+				w.Header = headerItem.header
 
-			n, err := w.Write(data)
-			if err != nil {
-				t.Errorf("%s: Write(): unexpected error: %v", tag, err)
-				t.FailNow()
-			}
-			if n != len(data) {
-				t.Errorf("%s: Write(): expected %d bytes written, got %d", tag, len(data), n)
-				t.FailNow()
-			}
-			if err = w.Close(); err != nil {
-				t.Errorf("%s: Close(): unexpected error: %v", tag, err)
-				t.FailNow()
-			}
+				n, err := w.Write(data)
+				if err != nil {
+					t.Errorf("%s: Write(): unexpected error: %v", tag, err)
+					t.FailNow()
+				}
+				if n != len(data) {
+					t.Errorf("%s: Write(): expected %d bytes written, got %d", tag, len(data), n)
+					t.FailNow()
+				}
+				if err = w.Close(); err != nil {
+					t.Errorf("%s: Close(): unexpected error: %v", tag, err)
+					t.FailNow()
+				}
 
-			// Decompress
-			r := lz4.NewReader(rw)
-			n, err = r.Read(nil)
-			if err != nil {
-				t.Errorf("%s: Read(): unexpected error: %v", tag, err)
-				t.FailNow()
-			}
-			if n != 0 {
-				t.Errorf("%s: Read(): expected 0 bytes read, got %d", tag, n)
-			}
+				// Decompress
+				r := lz4.NewReader(rw)
+				n, err = r.Read(nil)
+				if err != nil {
+					t.Errorf("%s: Read(): unexpected error: %v", tag, err)
+					t.FailNow()
+				}
+				if n != 0 {
+					t.Errorf("%s: Read(): expected 0 bytes read, got %d", tag, n)
+				}
 
-			buf := make([]byte, len(data))
-			n, err = r.Read(buf)
-			if err != nil && err != io.EOF {
-				t.Errorf("%s: Read(): unexpected error: %v", tag, err)
-				t.FailNow()
-			}
-			if n != len(data) {
-				t.Errorf("%s: Read(): expected %d bytes read, got %d", tag, len(data), n)
-			}
-			buf = buf[:n]
-			if !bytes.Equal(buf, data) {
-				t.Errorf("%s: decompress(compress(data)) != data (%d/%d)", tag, len(buf), len(data))
-				t.FailNow()
-			}
+				buf := make([]byte, len(data))
+				n, err = r.Read(buf)
+				if err != nil && err != io.EOF {
+					t.Errorf("%s: Read(): unexpected error: %v", tag, err)
+					t.FailNow()
+				}
+				if n != len(data) {
+					t.Errorf("%s: Read(): expected %d bytes read, got %d", tag, len(data), n)
+				}
+				buf = buf[:n]
+				if !bytes.Equal(buf, data) {
+					t.Errorf("%s: decompress(compress(data)) != data (%d/%d)", tag, len(buf), len(data))
+					t.FailNow()
+				}
 
-			compareHeaders(w.Header, r.Header, t)
-		}
+				compareHeaders(w.Header, r.Header, t)
+			}
+		})
 	}
 }
 
@@ -454,76 +477,82 @@ func TestReadFromWriteTo(t *testing.T) {
 	for _, tdata := range testDataItems {
 		data := tdata.data
 
-		// test various options
-		for _, headerItem := range testHeaderItems {
-			tag := "ReadFromWriteTo: " + tdata.label + ": " + headerItem.label
-			dbuf := bytes.NewBuffer(data)
+		t.Run(tdata.label, func(t *testing.T) {
+			t.Parallel()
+			// test various options
+			for _, headerItem := range testHeaderItems {
+				tag := "ReadFromWriteTo: " + tdata.label + ": " + headerItem.label
+				dbuf := bytes.NewBuffer(data)
 
-			zbuf := bytes.NewBuffer(nil)
-			w := lz4.NewWriter(zbuf)
-			w.Header = headerItem.header
-			if _, err := w.ReadFrom(dbuf); err != nil {
-				t.Errorf("%s: unexpected error: %s", tag, err)
-				t.FailNow()
-			}
+				zbuf := bytes.NewBuffer(nil)
+				w := lz4.NewWriter(zbuf)
+				w.Header = headerItem.header
+				if _, err := w.ReadFrom(dbuf); err != nil {
+					t.Errorf("%s: unexpected error: %s", tag, err)
+					t.FailNow()
+				}
 
-			if err := w.Close(); err != nil {
-				t.Errorf("%s: unexpected error: %s", tag, err)
-				t.FailNow()
-			}
+				if err := w.Close(); err != nil {
+					t.Errorf("%s: unexpected error: %s", tag, err)
+					t.FailNow()
+				}
 
-			buf := bytes.NewBuffer(nil)
-			r := lz4.NewReader(zbuf)
-			if _, err := r.WriteTo(buf); err != nil {
-				t.Errorf("%s: unexpected error: %s", tag, err)
-				t.FailNow()
-			}
+				buf := bytes.NewBuffer(nil)
+				r := lz4.NewReader(zbuf)
+				if _, err := r.WriteTo(buf); err != nil {
+					t.Errorf("%s: unexpected error: %s", tag, err)
+					t.FailNow()
+				}
 
-			if !bytes.Equal(buf.Bytes(), data) {
-				t.Errorf("%s: decompress(compress(data)) != data (%d/%d)", tag, buf.Len(), len(data))
-				t.FailNow()
+				if !bytes.Equal(buf.Bytes(), data) {
+					t.Errorf("%s: decompress(compress(data)) != data (%d/%d)", tag, buf.Len(), len(data))
+					t.FailNow()
+				}
 			}
-		}
+		})
 	}
 }
 
 // TestCopy will use io.Copy and avoid using Reader.WriteTo() and Writer.ReadFrom().
 func TestCopy(t *testing.T) {
-	w := lz4.NewWriter(nil)
-	r := lz4.NewReader(nil)
 	for _, tdata := range testDataItems {
 		data := tdata.data
+		t.Run(tdata.label, func(t *testing.T) {
+			t.Parallel()
 
-		// test various options
-		for _, headerItem := range testHeaderItems {
-			tag := "io.Copy: " + tdata.label + ": " + headerItem.label
-			dbuf := &testBuffer{bytes.NewBuffer(data)}
+			w := lz4.NewWriter(nil)
+			r := lz4.NewReader(nil)
+			// test various options
+			for _, headerItem := range testHeaderItems {
+				tag := "io.Copy: " + tdata.label + ": " + headerItem.label
+				dbuf := &testBuffer{bytes.NewBuffer(data)}
 
-			zbuf := bytes.NewBuffer(nil)
-			w.Reset(zbuf)
-			w.Header = headerItem.header
-			if _, err := io.Copy(w, dbuf); err != nil {
-				t.Errorf("%s: unexpected error: %s", tag, err)
-				t.FailNow()
+				zbuf := bytes.NewBuffer(nil)
+				w.Reset(zbuf)
+				w.Header = headerItem.header
+				if _, err := io.Copy(w, dbuf); err != nil {
+					t.Errorf("%s: unexpected error: %s", tag, err)
+					t.FailNow()
+				}
+
+				if err := w.Close(); err != nil {
+					t.Errorf("%s: unexpected error: %s", tag, err)
+					t.FailNow()
+				}
+
+				buf := &testBuffer{bytes.NewBuffer(nil)}
+				r.Reset(zbuf)
+				if _, err := io.Copy(buf, r); err != nil {
+					t.Errorf("%s: unexpected error: %s", tag, err)
+					t.FailNow()
+				}
+
+				if !bytes.Equal(buf.Bytes(), data) {
+					t.Errorf("%s: decompress(compress(data)) != data (%d/%d)", tag, buf.Len(), len(data))
+					t.FailNow()
+				}
 			}
-
-			if err := w.Close(); err != nil {
-				t.Errorf("%s: unexpected error: %s", tag, err)
-				t.FailNow()
-			}
-
-			buf := &testBuffer{bytes.NewBuffer(nil)}
-			r.Reset(zbuf)
-			if _, err := io.Copy(buf, r); err != nil {
-				t.Errorf("%s: unexpected error: %s", tag, err)
-				t.FailNow()
-			}
-
-			if !bytes.Equal(buf.Bytes(), data) {
-				t.Errorf("%s: decompress(compress(data)) != data (%d/%d)", tag, buf.Len(), len(data))
-				t.FailNow()
-			}
-		}
+		})
 	}
 }
 
@@ -643,4 +672,27 @@ func writeReadChunked(t *testing.T, in []byte, chunkSize int) []byte {
 		t.FailNow()
 	}
 	return out
+}
+
+func TestMultiBlockWrite(t *testing.T) {
+	f, err := os.Open("testdata/207326ba-36f8-11e7-954a-aca46ba8ca73.png")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	zbuf := bytes.NewBuffer(nil)
+	zw := lz4.NewWriter(zbuf)
+	if _, err := io.Copy(zw, f); err != nil {
+		t.Fatal(err)
+	}
+	if err := zw.Flush(); err != nil {
+		t.Fatal(err)
+	}
+
+	buf := bytes.NewBuffer(nil)
+	zr := lz4.NewReader(zbuf)
+	if _, err := io.Copy(buf, zr); err != nil {
+		t.Fatal(err)
+	}
 }

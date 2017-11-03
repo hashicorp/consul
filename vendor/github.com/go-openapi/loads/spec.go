@@ -186,7 +186,7 @@ func (d *Document) Expanded(options ...*spec.ExpandOptions) (*Document, error) {
 
 	var expandOptions *spec.ExpandOptions
 	if len(options) > 0 {
-		expandOptions = options[1]
+		expandOptions = options[0]
 	} else {
 		expandOptions = &spec.ExpandOptions{
 			RelativeBase: filepath.Dir(d.specFilePath),

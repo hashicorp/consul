@@ -32,6 +32,19 @@ func TestLoadsYAMLContent(t *testing.T) {
 	}
 }
 
+// for issue 11
+func TestRegressionExpand(t *testing.T) {
+	swaggerFile := "fixtures/yaml/swagger/1/2/3/4/swagger.yaml"
+	document, err := Spec(swaggerFile)
+	assert.NoError(t, err)
+	assert.NotNil(t, document)
+	d, err := document.Expanded()
+	assert.NoError(t, err)
+	assert.NotNil(t, d)
+	b, _ := d.Spec().MarshalJSON()
+	assert.JSONEq(t, expectedExpanded, string(b))
+}
+
 func TestFailsInvalidJSON(t *testing.T) {
 	_, err := Analyzed(json.RawMessage([]byte("{]")), "")
 
@@ -497,5 +510,134 @@ const PetStore20 = `{
       "name": "X-API-KEY"
     }
   }
+}
+`
+
+const expectedExpanded = `
+{  
+   "produces":[  
+      "application/json",
+      "plain/text"
+   ],
+   "schemes":[  
+      "https",
+      "http"
+   ],
+   "swagger":"2.0",
+   "info":{  
+      "description":"Something",
+      "title":"Something",
+      "contact":{  
+         "name":"Somebody",
+         "url":"https://url.com",
+         "email":"email@url.com"
+      },
+      "version":"v1"
+   },
+   "host":"security.sonusnet.com",
+   "basePath":"/api",
+   "paths":{  
+      "/whatnot":{  
+         "get":{  
+            "description":"Get something",
+            "responses":{  
+               "200":{  
+                  "description":"The something",
+                  "schema":{  
+                     "description":"A collection of service events",
+                     "type":"object",
+                     "properties":{  
+                        "page":{  
+                           "description":"A description of a paged result",
+                           "type":"object",
+                           "properties":{  
+                              "page":{  
+                                 "description":"the page that was requested",
+                                 "type":"integer"
+                              },
+                              "page_items":{  
+                                 "description":"the number of items per page requested",
+                                 "type":"integer"
+                              },
+                              "pages":{  
+                                 "description":"the total number of pages available",
+                                 "type":"integer"
+                              },
+                              "total_items":{  
+                                 "description":"the total number of items available",
+                                 "type":"integer",
+                                 "format":"int64"
+                              }
+                           }
+                        },
+                        "something":{  
+                           "description":"Something",
+                           "type":"object",
+                           "properties":{  
+                              "p1":{  
+                                 "description":"A string",
+                                 "type":"string"
+                              },
+                              "p2":{  
+                                 "description":"An integer",
+                                 "type":"integer"
+                              }
+                           }
+                        }
+                     }
+                  }
+               },
+               "500":{  
+                  "description":"Oops"
+               }
+            }
+         }
+      }
+   },
+   "definitions":{  
+      "Something":{  
+         "description":"A collection of service events",
+         "type":"object",
+         "properties":{  
+            "page":{  
+               "description":"A description of a paged result",
+               "type":"object",
+               "properties":{  
+                  "page":{  
+                     "description":"the page that was requested",
+                     "type":"integer"
+                  },
+                  "page_items":{  
+                     "description":"the number of items per page requested",
+                     "type":"integer"
+                  },
+                  "pages":{  
+                     "description":"the total number of pages available",
+                     "type":"integer"
+                  },
+                  "total_items":{  
+                     "description":"the total number of items available",
+                     "type":"integer",
+                     "format":"int64"
+                  }
+               }
+            },
+            "something":{  
+               "description":"Something",
+               "type":"object",
+               "properties":{  
+                  "p1":{  
+                     "description":"A string",
+                     "type":"string"
+                  },
+                  "p2":{  
+                     "description":"An integer",
+                     "type":"integer"
+                  }
+               }
+            }
+         }
+      }
+   }
 }
 `

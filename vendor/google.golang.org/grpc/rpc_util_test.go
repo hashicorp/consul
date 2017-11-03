@@ -104,14 +104,15 @@ func TestEncode(t *testing.T) {
 		msg proto.Message
 		cp  Compressor
 		// outputs
-		b   []byte
-		err error
+		hdr  []byte
+		data []byte
+		err  error
 	}{
-		{nil, nil, []byte{0, 0, 0, 0, 0}, nil},
+		{nil, nil, []byte{0, 0, 0, 0, 0}, []byte{}, nil},
 	} {
-		b, err := encode(protoCodec{}, test.msg, nil, nil, nil)
-		if err != test.err || !bytes.Equal(b, test.b) {
-			t.Fatalf("encode(_, _, %v, _) = %v, %v\nwant %v, %v", test.cp, b, err, test.b, test.err)
+		hdr, data, err := encode(protoCodec{}, test.msg, nil, nil, nil)
+		if err != test.err || !bytes.Equal(hdr, test.hdr) || !bytes.Equal(data, test.data) {
+			t.Fatalf("encode(_, _, %v, _) = %v, %v, %v\nwant %v, %v, %v", test.cp, hdr, data, err, test.hdr, test.data, test.err)
 		}
 	}
 }
@@ -164,8 +165,8 @@ func TestToRPCErr(t *testing.T) {
 // bytes.
 func bmEncode(b *testing.B, mSize int) {
 	msg := &perfpb.Buffer{Body: make([]byte, mSize)}
-	encoded, _ := encode(protoCodec{}, msg, nil, nil, nil)
-	encodedSz := int64(len(encoded))
+	encodeHdr, encodeData, _ := encode(protoCodec{}, msg, nil, nil, nil)
+	encodedSz := int64(len(encodeHdr) + len(encodeData))
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

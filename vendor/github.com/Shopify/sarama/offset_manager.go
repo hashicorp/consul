@@ -151,6 +151,13 @@ type PartitionOffsetManager interface {
 	// message twice, and your processing should ideally be idempotent.
 	MarkOffset(offset int64, metadata string)
 
+	// ResetOffset resets to the provided offset, alongside a metadata string that
+	// represents the state of the partition consumer at that point in time. Reset
+	// acts as a counterpart to MarkOffset, the difference being that it allows to
+	// reset an offset to an earlier or smaller value, where MarkOffset only
+	// allows incrementing the offset. cf MarkOffset for more details.
+	ResetOffset(offset int64, metadata string)
+
 	// Errors returns a read channel of errors that occur during offset management, if
 	// enabled. By default, errors are logged and not returned over this channel. If
 	// you want to implement any custom error handling, set your config's
@@ -323,6 +330,17 @@ func (pom *partitionOffsetManager) MarkOffset(offset int64, metadata string) {
 	defer pom.lock.Unlock()
 
 	if offset > pom.offset {
+		pom.offset = offset
+		pom.metadata = metadata
+		pom.dirty = true
+	}
+}
+
+func (pom *partitionOffsetManager) ResetOffset(offset int64, metadata string) {
+	pom.lock.Lock()
+	defer pom.lock.Unlock()
+
+	if offset <= pom.offset {
 		pom.offset = offset
 		pom.metadata = metadata
 		pom.dirty = true

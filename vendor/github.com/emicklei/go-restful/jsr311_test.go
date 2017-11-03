@@ -2,6 +2,7 @@ package restful
 
 import (
 	"io"
+	"net/http"
 	"sort"
 	"testing"
 )
@@ -206,6 +207,44 @@ func TestSortableRouteCandidates(t *testing.T) {
 	last := fixture.candidates[len(fixture.candidates)-1]
 	if last.matchesCount != 0 && last.literalCount != 0 && last.nonDefaultCount != 0 {
 		t.Fatal("expected r1")
+	}
+}
+
+func TestDetectRouteReturns404IfNoRoutePassesConditions(t *testing.T) {
+	called := false
+	shouldNotBeCalledButWas := false
+
+	routes := []Route{
+		new(RouteBuilder).To(dummy).
+			If(func(req *http.Request) bool { return false }).
+			Build(),
+
+		// check that condition functions are called in order
+		new(RouteBuilder).
+			To(dummy).
+			If(func(req *http.Request) bool { return true }).
+			If(func(req *http.Request) bool { called = true; return false }).
+			Build(),
+
+		// check that condition functions short circuit
+		new(RouteBuilder).
+			To(dummy).
+			If(func(req *http.Request) bool { return false }).
+			If(func(req *http.Request) bool { shouldNotBeCalledButWas = true; return false }).
+			Build(),
+	}
+
+	_, err := RouterJSR311{}.detectRoute(routes, (*http.Request)(nil))
+	if se := err.(ServiceError); se.Code != 404 {
+		t.Fatalf("expected 404, got %d", se.Code)
+	}
+
+	if !called {
+		t.Fatal("expected condition function to get called, but it wasn't")
+	}
+
+	if shouldNotBeCalledButWas {
+		t.Fatal("expected condition function to not be called, but it was")
 	}
 }
 

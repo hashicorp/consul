@@ -32,6 +32,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/test/leakcheck"
 	"google.golang.org/grpc/transport"
 )
 
@@ -104,18 +105,19 @@ func (h *testStreamHandler) handleStream(t *testing.T, s *transport.Stream) {
 		}
 	}
 	// send a response back to end the stream.
-	reply, err := encode(testCodec{}, &expectedResponse, nil, nil, nil)
+	hdr, data, err := encode(testCodec{}, &expectedResponse, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to encode the response: %v", err)
 		return
 	}
-	h.t.Write(s, reply, &transport.Options{})
+	h.t.Write(s, hdr, data, &transport.Options{})
 	h.t.WriteStatus(s, status.New(codes.OK, ""))
 }
 
 type server struct {
 	lis        net.Listener
 	port       string
+	addr       string
 	startedErr chan error // sent nil or an error after server starts
 	mu         sync.Mutex
 	conns      map[transport.ServerTransport]bool
@@ -137,7 +139,8 @@ func (s *server) start(t *testing.T, port int, maxStreams uint32) {
 		s.startedErr <- fmt.Errorf("failed to listen: %v", err)
 		return
 	}
-	_, p, err := net.SplitHostPort(s.lis.Addr().String())
+	s.addr = s.lis.Addr().String()
+	_, p, err := net.SplitHostPort(s.addr)
 	if err != nil {
 		s.startedErr <- fmt.Errorf("failed to parse listener address: %v", err)
 		return
@@ -211,6 +214,7 @@ func setUp(t *testing.T, port int, maxStreams uint32) (*server, *ClientConn) {
 }
 
 func TestInvoke(t *testing.T) {
+	defer leakcheck.Check(t)
 	server, cc := setUp(t, 0, math.MaxUint32)
 	var reply string
 	if err := Invoke(context.Background(), "/foo/bar", &expectedRequest, &reply, cc); err != nil || reply != expectedResponse {
@@ -221,6 +225,7 @@ func TestInvoke(t *testing.T) {
 }
 
 func TestInvokeLargeErr(t *testing.T) {
+	defer leakcheck.Check(t)
 	server, cc := setUp(t, 0, math.MaxUint32)
 	var reply string
 	req := "hello"
@@ -237,6 +242,7 @@ func TestInvokeLargeErr(t *testing.T) {
 
 // TestInvokeErrorSpecialChars checks that error messages don't get mangled.
 func TestInvokeErrorSpecialChars(t *testing.T) {
+	defer leakcheck.Check(t)
 	server, cc := setUp(t, 0, math.MaxUint32)
 	var reply string
 	req := "weird error"
@@ -253,6 +259,7 @@ func TestInvokeErrorSpecialChars(t *testing.T) {
 
 // TestInvokeCancel checks that an Invoke with a canceled context is not sent.
 func TestInvokeCancel(t *testing.T) {
+	defer leakcheck.Check(t)
 	server, cc := setUp(t, 0, math.MaxUint32)
 	var reply string
 	req := "canceled"
@@ -271,6 +278,7 @@ func TestInvokeCancel(t *testing.T) {
 // TestInvokeCancelClosedNonFail checks that a canceled non-failfast RPC
 // on a closed client will terminate.
 func TestInvokeCancelClosedNonFailFast(t *testing.T) {
+	defer leakcheck.Check(t)
 	server, cc := setUp(t, 0, math.MaxUint32)
 	var reply string
 	cc.Close()

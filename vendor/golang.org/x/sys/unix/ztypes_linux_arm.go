@@ -429,7 +429,7 @@ const (
 	IFLA_LINKINFO       = 0x12
 	IFLA_NET_NS_PID     = 0x13
 	IFLA_IFALIAS        = 0x14
-	IFLA_MAX            = 0x2b
+	IFLA_MAX            = 0x2c
 	RT_SCOPE_UNIVERSE   = 0x0
 	RT_SCOPE_SITE       = 0xc8
 	RT_SCOPE_LINK       = 0xfd
@@ -609,12 +609,12 @@ type Sysinfo_t struct {
 }
 
 type Utsname struct {
-	Sysname    [65]uint8
-	Nodename   [65]uint8
-	Release    [65]uint8
-	Version    [65]uint8
-	Machine    [65]uint8
-	Domainname [65]uint8
+	Sysname    [65]byte
+	Nodename   [65]byte
+	Release    [65]byte
+	Version    [65]byte
+	Machine    [65]byte
+	Domainname [65]byte
 }
 
 type Ustat_t struct {
@@ -661,8 +661,6 @@ type Sigset_t struct {
 const RNDGETENTCNT = 0x80045200
 
 const PERF_IOC_FLAG_GROUP = 0x1
-
-const _SC_PAGESIZE = 0x1e
 
 type Termios struct {
 	Iflag  uint32
@@ -748,4 +746,37 @@ const (
 	TASKSTATS_CMD_ATTR_TGID               = 0x2
 	TASKSTATS_CMD_ATTR_REGISTER_CPUMASK   = 0x3
 	TASKSTATS_CMD_ATTR_DEREGISTER_CPUMASK = 0x4
+)
+
+type Genlmsghdr struct {
+	Cmd      uint8
+	Version  uint8
+	Reserved uint16
+}
+
+const (
+	CTRL_CMD_UNSPEC            = 0x0
+	CTRL_CMD_NEWFAMILY         = 0x1
+	CTRL_CMD_DELFAMILY         = 0x2
+	CTRL_CMD_GETFAMILY         = 0x3
+	CTRL_CMD_NEWOPS            = 0x4
+	CTRL_CMD_DELOPS            = 0x5
+	CTRL_CMD_GETOPS            = 0x6
+	CTRL_CMD_NEWMCAST_GRP      = 0x7
+	CTRL_CMD_DELMCAST_GRP      = 0x8
+	CTRL_CMD_GETMCAST_GRP      = 0x9
+	CTRL_ATTR_UNSPEC           = 0x0
+	CTRL_ATTR_FAMILY_ID        = 0x1
+	CTRL_ATTR_FAMILY_NAME      = 0x2
+	CTRL_ATTR_VERSION          = 0x3
+	CTRL_ATTR_HDRSIZE          = 0x4
+	CTRL_ATTR_MAXATTR          = 0x5
+	CTRL_ATTR_OPS              = 0x6
+	CTRL_ATTR_MCAST_GROUPS     = 0x7
+	CTRL_ATTR_OP_UNSPEC        = 0x0
+	CTRL_ATTR_OP_ID            = 0x1
+	CTRL_ATTR_OP_FLAGS         = 0x2
+	CTRL_ATTR_MCAST_GRP_UNSPEC = 0x0
+	CTRL_ATTR_MCAST_GRP_NAME   = 0x1
+	CTRL_ATTR_MCAST_GRP_ID     = 0x2
 )

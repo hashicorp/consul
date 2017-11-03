@@ -2,6 +2,7 @@ package restful
 
 import (
 	"testing"
+	"time"
 )
 
 func TestRouteBuilder_PathParameter(t *testing.T) {
@@ -41,7 +42,7 @@ func TestRouteBuilder(t *testing.T) {
 	json := "application/json"
 	b := new(RouteBuilder)
 	b.To(dummy)
-	b.Path("/routes").Method("HEAD").Consumes(json).Produces(json)
+	b.Path("/routes").Method("HEAD").Consumes(json).Produces(json).Metadata("test", "test-value").DefaultReturns("default", time.Now())
 	r := b.Build()
 	if r.Path != "/routes" {
 		t.Error("path invalid")
@@ -54,5 +55,22 @@ func TestRouteBuilder(t *testing.T) {
 	}
 	if r.Operation != "dummy" {
 		t.Error("Operation not set")
+	}
+	if r.Metadata["test"] != "test-value" {
+		t.Errorf("Metadata not set")
+	}
+	if _, ok := r.ResponseErrors[0]; !ok {
+		t.Fatal("expected default response")
+	}
+}
+
+func TestAnonymousFuncNaming(t *testing.T) {
+	f1 := func() {}
+	f2 := func() {}
+	if got, want := nameOfFunction(f1), "func1"; got != want {
+		t.Errorf("got %v want %v", got, want)
+	}
+	if got, want := nameOfFunction(f2), "func2"; got != want {
+		t.Errorf("got %v want %v", got, want)
 	}
 }

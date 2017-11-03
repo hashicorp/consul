@@ -23,6 +23,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"google.golang.org/grpc/test/leakcheck"
 )
 
 type emptyServiceServer interface{}
@@ -30,6 +32,7 @@ type emptyServiceServer interface{}
 type testServer struct{}
 
 func TestStopBeforeServe(t *testing.T) {
+	defer leakcheck.Check(t)
 	lis, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
 		t.Fatalf("failed to create listener: %v", err)
@@ -51,6 +54,7 @@ func TestStopBeforeServe(t *testing.T) {
 }
 
 func TestGetServiceInfo(t *testing.T) {
+	defer leakcheck.Check(t)
 	testSd := ServiceDesc{
 		ServiceName: "grpc.testing.EmptyService",
 		HandlerType: (*emptyServiceServer)(nil),

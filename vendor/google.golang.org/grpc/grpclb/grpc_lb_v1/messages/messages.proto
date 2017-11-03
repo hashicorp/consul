@@ -15,6 +15,7 @@
 syntax = "proto3";
 
 package grpc.lb.v1;
+option go_package = "messages";
 
 message Duration {
   // Signed seconds of the span of time. Must be from -315,576,000,000
@@ -31,7 +32,6 @@ message Duration {
 }
 
 message Timestamp {
-
   // Represents seconds of UTC time since Unix epoch
   // 1970-01-01T00:00:00Z. Must be from 0001-01-01T00:00:00Z to
   // 9999-12-31T23:59:59Z inclusive.
@@ -42,12 +42,6 @@ message Timestamp {
   // that count forward in time. Must be from 0 to 999,999,999
   // inclusive.
   int32 nanos = 2;
-}
-
-service LoadBalancer {
-  // Bidirectional rpc to get a list of servers.
-  rpc BalanceLoad(stream LoadBalanceRequest)
-      returns (stream LoadBalanceResponse);
 }
 
 message LoadBalanceRequest {
@@ -127,11 +121,8 @@ message ServerList {
   // unless instructed otherwise via the client_config.
   repeated Server servers = 1;
 
-  // Indicates the amount of time that the client should consider this server
-  // list as valid. It may be considered stale after waiting this interval of
-  // time after receiving the list. If the interval is not positive, the
-  // client can assume the list is valid until the next list is received.
-  Duration expiration_interval = 3;
+  // Was google.protobuf.Duration expiration_interval.
+  reserved 3;
 }
 
 // Contains server information. When none of the [drop_for_*] fields are true,

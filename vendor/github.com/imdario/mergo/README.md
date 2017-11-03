@@ -30,7 +30,7 @@ If you were using Mergo **before** April 6th 2015, please check your project wor
 ### Mergo in the wild
 
 - [docker/docker](https://github.com/docker/docker/)
-- [GoogleCloudPlatform/kubernetes](https://github.com/GoogleCloudPlatform/kubernetes)
+- [kubernetes/kubernetes](https://github.com/kubernetes/kubernetes)
 - [imdario/zas](https://github.com/imdario/zas)
 - [soniah/dnsmadeeasy](https://github.com/soniah/dnsmadeeasy)
 - [EagerIO/Stout](https://github.com/EagerIO/Stout)
@@ -50,6 +50,7 @@ If you were using Mergo **before** April 6th 2015, please check your project wor
 - [thoas/picfit](https://github.com/thoas/picfit)
 - [mantasmatelis/whooplist-server](https://github.com/mantasmatelis/whooplist-server)
 - [jnuthong/item_search](https://github.com/jnuthong/item_search)
+- [Iris Web Framework](https://github.com/kataras/iris)
 
 ## Installation
 
@@ -64,15 +65,27 @@ If you were using Mergo **before** April 6th 2015, please check your project wor
 
 You can only merge same-type structs with exported fields initialized as zero value of their type and same-types maps. Mergo won't merge unexported (private) fields but will do recursively any exported one. Also maps will be merged recursively except for structs inside maps (because they are not addressable using Go reflection).
 
-    if err := mergo.Merge(&dst, src); err != nil {
-        // ...
-    }
+```go
+if err := mergo.Merge(&dst, src); err != nil {
+    // ...
+}
+```
+
+Also, you can merge overwriting values using MergeWithOverwrite.
+
+```go
+if err := mergo.MergeWithOverwrite(&dst, src); err != nil {
+    // ...
+}
+```
 
 Additionally, you can map a map[string]interface{} to a struct (and otherwise, from struct to map), following the same restrictions as in Merge(). Keys are capitalized to find each corresponding exported field.
 
-    if err := mergo.Map(&dst, srcMap); err != nil {
-        // ...
-    }
+```go
+if err := mergo.Map(&dst, srcMap); err != nil {
+    // ...
+}
+```
 
 Warning: if you map a struct to map, it won't do it recursively. Don't expect Mergo to map struct members of your struct as map[string]interface{}. They will be just assigned as values.
 
@@ -96,11 +109,11 @@ type Foo struct {
 func main() {
 	src := Foo{
 		A: "one",
+		B: 2,
 	}
 
 	dest := Foo{
 		A: "two",
-		B: 2,
 	}
 
 	mergo.Merge(&dest, src)

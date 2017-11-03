@@ -2,6 +2,7 @@ package sarama
 
 import (
 	"encoding/binary"
+	"fmt"
 	"hash/crc32"
 )
 
@@ -27,8 +28,9 @@ func (c *crc32Field) run(curOffset int, buf []byte) error {
 func (c *crc32Field) check(curOffset int, buf []byte) error {
 	crc := crc32.ChecksumIEEE(buf[c.startOffset+4 : curOffset])
 
-	if crc != binary.BigEndian.Uint32(buf[c.startOffset:]) {
-		return PacketDecodingError{"CRC didn't match"}
+	expected := binary.BigEndian.Uint32(buf[c.startOffset:])
+	if crc != expected {
+		return PacketDecodingError{fmt.Sprintf("CRC didn't match expected %#x got %#x", expected, crc)}
 	}
 
 	return nil

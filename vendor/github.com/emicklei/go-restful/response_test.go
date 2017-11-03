@@ -10,7 +10,7 @@ import (
 
 func TestWriteHeader(t *testing.T) {
 	httpWriter := httptest.NewRecorder()
-	resp := Response{httpWriter, "*/*", []string{"*/*"}, 0, 0, true, nil}
+	resp := Response{ResponseWriter: httpWriter, requestAccept: "*/*", routeProduces: []string{"*/*"}, prettyPrint: true}
 	resp.WriteHeader(123)
 	if resp.StatusCode() != 123 {
 		t.Errorf("Unexpected status code:%d", resp.StatusCode())
@@ -19,7 +19,7 @@ func TestWriteHeader(t *testing.T) {
 
 func TestNoWriteHeader(t *testing.T) {
 	httpWriter := httptest.NewRecorder()
-	resp := Response{httpWriter, "*/*", []string{"*/*"}, 0, 0, true, nil}
+	resp := Response{ResponseWriter: httpWriter, requestAccept: "*/*", routeProduces: []string{"*/*"}, prettyPrint: true}
 	if resp.StatusCode() != http.StatusOK {
 		t.Errorf("Unexpected status code:%d", resp.StatusCode())
 	}
@@ -32,7 +32,7 @@ type food struct {
 // go test -v -test.run TestMeasureContentLengthXml ...restful
 func TestMeasureContentLengthXml(t *testing.T) {
 	httpWriter := httptest.NewRecorder()
-	resp := Response{httpWriter, "*/*", []string{"*/*"}, 0, 0, true, nil}
+	resp := Response{ResponseWriter: httpWriter, requestAccept: "*/*", routeProduces: []string{"*/*"}, prettyPrint: true}
 	resp.WriteAsXml(food{"apple"})
 	if resp.ContentLength() != 76 {
 		t.Errorf("Incorrect measured length:%d", resp.ContentLength())
@@ -42,7 +42,7 @@ func TestMeasureContentLengthXml(t *testing.T) {
 // go test -v -test.run TestMeasureContentLengthJson ...restful
 func TestMeasureContentLengthJson(t *testing.T) {
 	httpWriter := httptest.NewRecorder()
-	resp := Response{httpWriter, "*/*", []string{"*/*"}, 0, 0, true, nil}
+	resp := Response{ResponseWriter: httpWriter, requestAccept: "*/*", routeProduces: []string{"*/*"}, prettyPrint: true}
 	resp.WriteAsJson(food{"apple"})
 	if resp.ContentLength() != 22 {
 		t.Errorf("Incorrect measured length:%d", resp.ContentLength())
@@ -52,7 +52,7 @@ func TestMeasureContentLengthJson(t *testing.T) {
 // go test -v -test.run TestMeasureContentLengthJsonNotPretty ...restful
 func TestMeasureContentLengthJsonNotPretty(t *testing.T) {
 	httpWriter := httptest.NewRecorder()
-	resp := Response{httpWriter, "*/*", []string{"*/*"}, 0, 0, false, nil}
+	resp := Response{ResponseWriter: httpWriter, requestAccept: "*/*", routeProduces: []string{"*/*"}}
 	resp.WriteAsJson(food{"apple"})
 	if resp.ContentLength() != 17 { // 16+1 using the Encoder directly yields another /n
 		t.Errorf("Incorrect measured length:%d", resp.ContentLength())
@@ -62,7 +62,7 @@ func TestMeasureContentLengthJsonNotPretty(t *testing.T) {
 // go test -v -test.run TestMeasureContentLengthWriteErrorString ...restful
 func TestMeasureContentLengthWriteErrorString(t *testing.T) {
 	httpWriter := httptest.NewRecorder()
-	resp := Response{httpWriter, "*/*", []string{"*/*"}, 0, 0, true, nil}
+	resp := Response{ResponseWriter: httpWriter, requestAccept: "*/*", routeProduces: []string{"*/*"}, prettyPrint: true}
 	resp.WriteErrorString(404, "Invalid")
 	if resp.ContentLength() != len("Invalid") {
 		t.Errorf("Incorrect measured length:%d", resp.ContentLength())
@@ -80,7 +80,7 @@ func TestStatusIsPassedToResponse(t *testing.T) {
 		{write: 400, read: 400},
 	} {
 		httpWriter := httptest.NewRecorder()
-		resp := Response{httpWriter, "*/*", []string{"*/*"}, 0, 0, true, nil}
+		resp := Response{ResponseWriter: httpWriter, requestAccept: "*/*", routeProduces: []string{"*/*"}, prettyPrint: true}
 		resp.WriteHeader(each.write)
 		if got, want := httpWriter.Code, each.read; got != want {
 			t.Errorf("got %v want %v", got, want)
@@ -91,11 +91,11 @@ func TestStatusIsPassedToResponse(t *testing.T) {
 // go test -v -test.run TestStatusCreatedAndContentTypeJson_Issue54 ...restful
 func TestStatusCreatedAndContentTypeJson_Issue54(t *testing.T) {
 	httpWriter := httptest.NewRecorder()
-	resp := Response{httpWriter, "application/json", []string{"application/json"}, 0, 0, true, nil}
+	resp := Response{ResponseWriter: httpWriter, requestAccept: "application/json", routeProduces: []string{"application/json"}, prettyPrint: true}
 	resp.WriteHeader(201)
 	resp.WriteAsJson(food{"Juicy"})
 	if httpWriter.HeaderMap.Get("Content-Type") != "application/json" {
-		t.Errorf("Expected content type json but got:%d", httpWriter.HeaderMap.Get("Content-Type"))
+		t.Errorf("Expected content type json but got:%s", httpWriter.HeaderMap.Get("Content-Type"))
 	}
 	if httpWriter.Code != 201 {
 		t.Errorf("Expected status 201 but got:%d", httpWriter.Code)
@@ -113,7 +113,7 @@ func (e errorOnWriteRecorder) Write(bytes []byte) (int, error) {
 // go test -v -test.run TestLastWriteErrorCaught ...restful
 func TestLastWriteErrorCaught(t *testing.T) {
 	httpWriter := errorOnWriteRecorder{httptest.NewRecorder()}
-	resp := Response{httpWriter, "application/json", []string{"application/json"}, 0, 0, true, nil}
+	resp := Response{ResponseWriter: httpWriter, requestAccept: "application/json", routeProduces: []string{"application/json"}, prettyPrint: true}
 	err := resp.WriteAsJson(food{"Juicy"})
 	if err.Error() != "fail" {
 		t.Errorf("Unexpected error message:%v", err)
@@ -124,7 +124,7 @@ func TestLastWriteErrorCaught(t *testing.T) {
 func TestAcceptStarStar_Issue83(t *testing.T) {
 	httpWriter := httptest.NewRecorder()
 	//								Accept									Produces
-	resp := Response{httpWriter, "application/bogus,*/*;q=0.8", []string{"application/json"}, 0, 0, true, nil}
+	resp := Response{ResponseWriter: httpWriter, requestAccept: "application/bogus,*/*;q=0.8", routeProduces: []string{"application/json"}, prettyPrint: true}
 	resp.WriteEntity(food{"Juicy"})
 	ct := httpWriter.Header().Get("Content-Type")
 	if "application/json" != ct {
@@ -136,7 +136,7 @@ func TestAcceptStarStar_Issue83(t *testing.T) {
 func TestAcceptSkipStarStar_Issue83(t *testing.T) {
 	httpWriter := httptest.NewRecorder()
 	//								Accept									Produces
-	resp := Response{httpWriter, " application/xml ,*/* ; q=0.8", []string{"application/json", "application/xml"}, 0, 0, true, nil}
+	resp := Response{ResponseWriter: httpWriter, requestAccept: " application/xml ,*/* ; q=0.8", routeProduces: []string{"application/json", "application/xml"}, prettyPrint: true}
 	resp.WriteEntity(food{"Juicy"})
 	ct := httpWriter.Header().Get("Content-Type")
 	if "application/xml" != ct {
@@ -148,7 +148,7 @@ func TestAcceptSkipStarStar_Issue83(t *testing.T) {
 func TestAcceptXmlBeforeStarStar_Issue83(t *testing.T) {
 	httpWriter := httptest.NewRecorder()
 	//								Accept									Produces
-	resp := Response{httpWriter, "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", []string{"application/json"}, 0, 0, true, nil}
+	resp := Response{ResponseWriter: httpWriter, requestAccept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", routeProduces: []string{"application/json"}, prettyPrint: true}
 	resp.WriteEntity(food{"Juicy"})
 	ct := httpWriter.Header().Get("Content-Type")
 	if "application/json" != ct {
@@ -159,7 +159,7 @@ func TestAcceptXmlBeforeStarStar_Issue83(t *testing.T) {
 // go test -v -test.run TestWriteHeaderNoContent_Issue124 ...restful
 func TestWriteHeaderNoContent_Issue124(t *testing.T) {
 	httpWriter := httptest.NewRecorder()
-	resp := Response{httpWriter, "text/plain", []string{"text/plain"}, 0, 0, true, nil}
+	resp := Response{ResponseWriter: httpWriter, requestAccept: "text/plain", routeProduces: []string{"text/plain"}, prettyPrint: true}
 	resp.WriteHeader(http.StatusNoContent)
 	if httpWriter.Code != http.StatusNoContent {
 		t.Errorf("got %d want %d", httpWriter.Code, http.StatusNoContent)
@@ -169,7 +169,7 @@ func TestWriteHeaderNoContent_Issue124(t *testing.T) {
 // go test -v -test.run TestStatusCreatedAndContentTypeJson_Issue163 ...restful
 func TestStatusCreatedAndContentTypeJson_Issue163(t *testing.T) {
 	httpWriter := httptest.NewRecorder()
-	resp := Response{httpWriter, "application/json", []string{"application/json"}, 0, 0, true, nil}
+	resp := Response{ResponseWriter: httpWriter, requestAccept: "application/json", routeProduces: []string{"application/json"}, prettyPrint: true}
 	resp.WriteHeader(http.StatusNotModified)
 	if httpWriter.Code != http.StatusNotModified {
 		t.Errorf("Got %d want %d", httpWriter.Code, http.StatusNotModified)
@@ -178,7 +178,7 @@ func TestStatusCreatedAndContentTypeJson_Issue163(t *testing.T) {
 
 func TestWriteHeaderAndEntity_Issue235(t *testing.T) {
 	httpWriter := httptest.NewRecorder()
-	resp := Response{httpWriter, "application/json", []string{"application/json"}, 0, 0, true, nil}
+	resp := Response{ResponseWriter: httpWriter, requestAccept: "application/json", routeProduces: []string{"application/json"}, prettyPrint: true}
 	var pong = struct {
 		Foo string `json:"foo"`
 	}{Foo: "123"}
@@ -194,9 +194,18 @@ func TestWriteHeaderAndEntity_Issue235(t *testing.T) {
 	}
 }
 
-func TestWriteEntityNotAcceptable(t *testing.T) {
+func TestWriteEntityNoAcceptMatchWithProduces(t *testing.T) {
 	httpWriter := httptest.NewRecorder()
-	resp := Response{httpWriter, "application/bogus", []string{"application/json"}, 0, 0, true, nil}
+	resp := Response{ResponseWriter: httpWriter, requestAccept: "application/bogus", routeProduces: []string{"application/json"}, prettyPrint: true}
+	resp.WriteEntity("done")
+	if httpWriter.Code != http.StatusOK {
+		t.Errorf("got %d want %d", httpWriter.Code, http.StatusOK)
+	}
+}
+
+func TestWriteEntityNoAcceptMatchNoProduces(t *testing.T) {
+	httpWriter := httptest.NewRecorder()
+	resp := Response{ResponseWriter: httpWriter, requestAccept: "application/bogus", routeProduces: []string{}, prettyPrint: true}
 	resp.WriteEntity("done")
 	if httpWriter.Code != http.StatusNotAcceptable {
 		t.Errorf("got %d want %d", httpWriter.Code, http.StatusNotAcceptable)

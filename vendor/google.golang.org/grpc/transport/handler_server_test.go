@@ -26,10 +26,14 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/proto"
+	dpb "github.com/golang/protobuf/ptypes/duration"
 	"golang.org/x/net/context"
+	epb "google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -199,6 +203,7 @@ func TestHandlerTransport_NewServerHandlerTransport(t *testing.T) {
 					"user-agent": {"x/y a/b"},
 					"meta-foo":   {"foo-val"},
 				}
+
 				if !reflect.DeepEqual(ht.headerMD, want) {
 					return fmt.Errorf("metdata = %#v; want %#v", ht.headerMD, want)
 				}
@@ -294,7 +299,7 @@ func TestHandlerTransport_HandleStreams(t *testing.T) {
 	wantHeader := http.Header{
 		"Date":         nil,
 		"Content-Type": {"application/grpc"},
-		"Trailer":      {"Grpc-Status", "Grpc-Message"},
+		"Trailer":      {"Grpc-Status", "Grpc-Message", "Grpc-Status-Details-Bin"},
 		"Grpc-Status":  {"0"},
 	}
 	if !reflect.DeepEqual(st.rw.HeaderMap, wantHeader) {
@@ -314,6 +319,7 @@ func TestHandlerTransport_HandleStreams_InvalidArgument(t *testing.T) {
 
 func handleStreamCloseBodyTest(t *testing.T, statusCode codes.Code, msg string) {
 	st := newHandleStreamTest(t)
+
 	handleStream := func(s *Stream) {
 		st.ht.WriteStatus(s, status.New(statusCode, msg))
 	}
@@ -324,10 +330,11 @@ func handleStreamCloseBodyTest(t *testing.T, statusCode codes.Code, msg string) 
 	wantHeader := http.Header{
 		"Date":         nil,
 		"Content-Type": {"application/grpc"},
-		"Trailer":      {"Grpc-Status", "Grpc-Message"},
+		"Trailer":      {"Grpc-Status", "Grpc-Message", "Grpc-Status-Details-Bin"},
 		"Grpc-Status":  {fmt.Sprint(uint32(statusCode))},
 		"Grpc-Message": {encodeGrpcMessage(msg)},
 	}
+
 	if !reflect.DeepEqual(st.rw.HeaderMap, wantHeader) {
 		t.Errorf("Header+Trailer mismatch.\n got: %#v\nwant: %#v", st.rw.HeaderMap, wantHeader)
 	}
@@ -375,11 +382,81 @@ func TestHandlerTransport_HandleStreams_Timeout(t *testing.T) {
 	wantHeader := http.Header{
 		"Date":         nil,
 		"Content-Type": {"application/grpc"},
-		"Trailer":      {"Grpc-Status", "Grpc-Message"},
+		"Trailer":      {"Grpc-Status", "Grpc-Message", "Grpc-Status-Details-Bin"},
 		"Grpc-Status":  {"4"},
 		"Grpc-Message": {encodeGrpcMessage("too slow")},
 	}
 	if !reflect.DeepEqual(rw.HeaderMap, wantHeader) {
 		t.Errorf("Header+Trailer Map mismatch.\n got: %#v\nwant: %#v", rw.HeaderMap, wantHeader)
+	}
+}
+
+func TestHandlerTransport_HandleStreams_MultiWriteStatus(t *testing.T) {
+	st := newHandleStreamTest(t)
+	handleStream := func(s *Stream) {
+		if want := "/service/foo.bar"; s.method != want {
+			t.Errorf("stream method = %q; want %q", s.method, want)
+		}
+		st.bodyw.Close() // no body
+
+		var wg sync.WaitGroup
+		wg.Add(5)
+		for i := 0; i < 5; i++ {
+			go func() {
+				defer wg.Done()
+				st.ht.WriteStatus(s, status.New(codes.OK, ""))
+			}()
+		}
+		wg.Wait()
+	}
+	st.ht.HandleStreams(
+		func(s *Stream) { go handleStream(s) },
+		func(ctx context.Context, method string) context.Context { return ctx },
+	)
+}
+
+func TestHandlerTransport_HandleStreams_ErrDetails(t *testing.T) {
+	errDetails := []proto.Message{
+		&epb.RetryInfo{
+			RetryDelay: &dpb.Duration{Seconds: 60},
+		},
+		&epb.ResourceInfo{
+			ResourceType: "foo bar",
+			ResourceName: "service.foo.bar",
+			Owner:        "User",
+		},
+	}
+
+	statusCode := codes.ResourceExhausted
+	msg := "you are being throttled"
+	st, err := status.New(statusCode, msg).WithDetails(errDetails...)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	stBytes, err := proto.Marshal(st.Proto())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	hst := newHandleStreamTest(t)
+	handleStream := func(s *Stream) {
+		hst.ht.WriteStatus(s, st)
+	}
+	hst.ht.HandleStreams(
+		func(s *Stream) { go handleStream(s) },
+		func(ctx context.Context, method string) context.Context { return ctx },
+	)
+	wantHeader := http.Header{
+		"Date":                    nil,
+		"Content-Type":            {"application/grpc"},
+		"Trailer":                 {"Grpc-Status", "Grpc-Message", "Grpc-Status-Details-Bin"},
+		"Grpc-Status":             {fmt.Sprint(uint32(statusCode))},
+		"Grpc-Message":            {encodeGrpcMessage(msg)},
+		"Grpc-Status-Details-Bin": {encodeBinHeader(stBytes)},
+	}
+
+	if !reflect.DeepEqual(hst.rw.HeaderMap, wantHeader) {
+		t.Errorf("Header+Trailer mismatch.\n got: %#v\nwant: %#v", hst.rw.HeaderMap, wantHeader)
 	}
 }
