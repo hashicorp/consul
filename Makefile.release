@@ -136,10 +136,10 @@ docker-build: tar
 docker-upload:
 	@echo Pushing: $(VERSION)
 	for arch in $(LINUX_ARCH); do \
-	    docker push $(DOCKER_IMAGE_NAME):coredns-$$arch \;
+	    docker push $(DOCKER_IMAGE_NAME):coredns-$$arch ;\
 	done
-	manifest-tool push from-args --platforms linux/amd64,linux/arm,linux/arm64,linux/ppc64,linux/s390x --template $(DOCKER_IMAGE_NAME):coredns-ARCH --target $(DOCKER_IMAGE_NAME):$(VERSION)
-	manifest-tool push from-args --platforms linux/amd64,linux/arm,linux/arm64,linux/ppc64,linux/s390x --template $(DOCKER_IMAGE_NAME):coredns-ARCH --target $(DOCKER_IMAGE_NAME):latest
+	manifest-tool push from-args --platforms linux/amd64,linux/arm,linux/arm64,linux/ppc64le,linux/s390x --template $(DOCKER_IMAGE_NAME):coredns-ARCH --target $(DOCKER_IMAGE_NAME):$(VERSION)
+	manifest-tool push from-args --platforms linux/amd64,linux/arm,linux/arm64,linux/ppc64le,linux/s390x --template $(DOCKER_IMAGE_NAME):coredns-ARCH --target $(DOCKER_IMAGE_NAME):latest
 
 .PHONY: clean
 clean:
