@@ -15,7 +15,7 @@
 #
 # git log --pretty=format:'%an' v001..master | sort -u (where v001 is the
 # previous release, obviously you'll need to adjust this)
-# 
+#
 # Steps:
 #
 # * Get an access token: https://help.github.com/articles/creating-an-access-token-for-command-line-use/
@@ -38,11 +38,11 @@
 # Github.
 
 ifeq (, $(shell which gh-release))
-     $(error "No gh-release in $$PATH, install with `go get github.com/progrium/gh-release`")
+    $(error "No gh-release in $$PATH, install with: go get github.com/progrium/gh-release")
 endif
 
 ifeq (, $(shell which manifest-tool))
-     $(error "No manifest-tool in $$PATH, install with `go get github.com/estesp/manifest-tool")
+    $(error "No manifest-tool in $$PATH, install with: go get github.com/estesp/manifest-tool")
 endif
 
 NAME:=coredns
@@ -73,19 +73,22 @@ commit:
 .PHONY: build
 build:
 	@echo Cleaning old builds
-	rm -rf build && mkdir build
+	@rm -rf build && mkdir build
 	@echo Building: darwin $(VERSION)
-	mkdir -p build/darwin/amd64 && $(MAKE) coredns BINARY=build/darwin/amd64/$(NAME) SYSTEM="GOOS=darwin GOARCH=amd64" CHECKS=""
+	mkdir -p build/darwin/amd64 && $(MAKE) coredns BINARY=build/darwin/amd64/$(NAME) SYSTEM="GOOS=darwin GOARCH=amd64" CHECKS="" VERBOSE=""
+	@echo Building: windows $(VERSION)
+	mkdir -p build/windows/amd64 && $(MAKE) coredns BINARY=build/windows/amd64/$(NAME) SYSTEM="GOOS=windows GOARCH=amd64" CHECKS="" VERBOSE=""
+	@echo Building: linux/$(LINUX_ARCH)  $(VERSION) ;\
 	for arch in $(LINUX_ARCH); do \
-	    @echo Building: linux/$$arch  $(VERSION) ;\
-	    mkdir -p build/linux/amd64  && $(MAKE) coredns BINARY=build/linux/$$arch/$(NAME) SYSTEM="GOOS=linux GOARCH=$$arch" CHECKS="" ;\
+	    mkdir -p build/linux/amd64  && $(MAKE) coredns BINARY=build/linux/$$arch/$(NAME) SYSTEM="GOOS=linux GOARCH=$$arch" CHECKS="" VERBOSE="" ;\
 	done
 
 .PHONY: tar
 tar:
 	@echo Cleaning old releases
-	rm -rf release && mkdir release
+	@rm -rf release && mkdir release
 	tar -zcf release/$(NAME)_$(VERSION)_darwin_amd64.tgz -C build/darwin/amd64 $(NAME)
+	tar -zcf release/$(NAME)_$(VERSION)_windows_amd64.tgz -C build/windows/amd64 $(NAME)
 	for arch in $(LINUX_ARCH); do \
 	    tar -zcf release/$(NAME)_$(VERSION)_linux_$$arch.tgz -C build/linux/$$arch $(NAME) ;\
 	done

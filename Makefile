@@ -3,23 +3,24 @@ GITCOMMIT:=$(shell git describe --dirty --always)
 BINARY:=coredns
 SYSTEM:=
 CHECKS:=check godeps
+VERBOSE:=-v
 
 all: coredns
 
 .PHONY: coredns
 coredns: $(CHECKS)
-	CGO_ENABLED=0 $(SYSTEM) go build -v -ldflags="-s -w -X github.com/coredns/coredns/coremain.gitCommit=$(GITCOMMIT)" -o $(BINARY)
+	CGO_ENABLED=0 $(SYSTEM) go build $(VERBOSE) -ldflags="-s -w -X github.com/coredns/coredns/coremain.gitCommit=$(GITCOMMIT)" -o $(BINARY)
 
 .PHONY: check
 check: linter core/zplugin.go core/dnsserver/zdirectives.go godeps
 
 .PHONY: test
 test: check
-	go test -race -v ./test ./plugin/...
+	go test -race $(VERBOSE) ./test ./plugin/...
 
 .PHONY: testk8s
 testk8s: check
-	go test -race -v -tags=k8s -run 'TestKubernetes' ./test ./plugin/kubernetes/...
+	go test -race $(VERBOSE) -tags=k8s -run 'TestKubernetes' ./test ./plugin/kubernetes/...
 
 .PHONY: godeps
 godeps:
