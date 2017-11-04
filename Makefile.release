@@ -36,6 +36,9 @@
 #
 # Docker push should happen after you make the new release and uploaded it to
 # Github.
+EMPTY :=
+SPACE := $(EMPTY) $(EMPTY)
+COMMA := $(EMPTY),$(EMPTY)
 
 ifeq (, $(shell which gh-release))
     $(error "No gh-release in $$PATH, install with: go get github.com/progrium/gh-release")
@@ -51,7 +54,8 @@ GITHUB:=coredns
 DOCKER:=coredns
 DOCKER_IMAGE_NAME:=$(DOCKER)/$(NAME)
 GITCOMMIT:=$(shell git describe --dirty --always)
-LINUX_ARCH=amd64 arm arm64 ppc64le s390x
+LINUX_ARCH:=amd64 arm arm64 ppc64le s390x
+PLATFORMS:=$(subst $(SPACE),$(COMMA),$(foreach arch,$(LINUX_ARCH),linux/$(arch)))
 
 all:
 	@echo Use the 'release' target to start a release
@@ -138,8 +142,8 @@ docker-upload:
 	for arch in $(LINUX_ARCH); do \
 	    docker push $(DOCKER_IMAGE_NAME):coredns-$$arch ;\
 	done
-	manifest-tool push from-args --platforms linux/amd64,linux/arm,linux/arm64,linux/ppc64le,linux/s390x --template $(DOCKER_IMAGE_NAME):coredns-ARCH --target $(DOCKER_IMAGE_NAME):$(VERSION)
-	manifest-tool push from-args --platforms linux/amd64,linux/arm,linux/arm64,linux/ppc64le,linux/s390x --template $(DOCKER_IMAGE_NAME):coredns-ARCH --target $(DOCKER_IMAGE_NAME):latest
+	manifest-tool push from-args --platforms $(PLATFORMS) --template $(DOCKER_IMAGE_NAME):coredns-ARCH --target $(DOCKER_IMAGE_NAME):$(VERSION)
+	manifest-tool push from-args --platforms $(PLATFORMS) --template $(DOCKER_IMAGE_NAME):coredns-ARCH --target $(DOCKER_IMAGE_NAME):latest
 
 .PHONY: clean
 clean:
