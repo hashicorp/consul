@@ -178,7 +178,7 @@ func TestGetrlimit(t *testing.T) {
 }
 
 func TestSelect(t *testing.T) {
-	_, err := unix.Select(0, nil, nil, nil, &unix.Timeval{0, 0})
+	_, err := unix.Select(0, nil, nil, nil, &unix.Timeval{Sec: 0, Usec: 0})
 	if err != nil {
 		t.Fatalf("Select: %v", err)
 	}

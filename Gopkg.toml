@@ -16,3 +16,15 @@ ignored = [
 [[constraint]]
     name = "github.com/openzipkin/zipkin-go-opentracing"
     version = "v0.2.3"
+
+[[override]]
+    name = "github.com/ugorji/go"
+    revision = "8c0409fcbb70099c748d71f714529204975f6c3f"
+
+# client-go 4.0.0 uses apimachinery 1fd2e63a9a370677308a42f24fd40c86438afddf (see Godep.json)
+[[constraint]]
+  name = "k8s.io/client-go"
+  version = "v4.0.0"
+[[override]]
+    name = "k8s.io/apimachinery"
+    revision = "1fd2e63a9a370677308a42f24fd40c86438afddf"

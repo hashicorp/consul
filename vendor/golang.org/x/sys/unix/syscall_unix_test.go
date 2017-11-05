@@ -138,6 +138,9 @@ func TestPassFD(t *testing.T) {
 		uc.Close()
 	})
 	_, oobn, _, _, err := uc.ReadMsgUnix(buf, oob)
+	if err != nil {
+		t.Fatalf("ReadMsgUnix: %v", err)
+	}
 	closeUnix.Stop()
 
 	scms, err := unix.ParseSocketControlMessage(oob[:oobn])
@@ -335,6 +338,9 @@ func TestDup(t *testing.T) {
 		t.Fatalf("Write to dup2 fd failed: %v", err)
 	}
 	_, err = unix.Seek(f, 0, 0)
+	if err != nil {
+		t.Fatalf("Seek failed: %v", err)
+	}
 	_, err = unix.Read(f, b2)
 	if err != nil {
 		t.Fatalf("Read back failed: %v", err)
