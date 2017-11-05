@@ -158,7 +158,7 @@ func (c *DockerClient) CreateExec(containerID string, cmd []string) (string, err
 }
 
 func (c *DockerClient) StartExec(containerID, execID string) (*circbuf.Buffer, error) {
-	data := struct{ Detach, Tty bool }{Detach: false, Tty: false}
+	data := struct{ Detach, Tty bool }{Detach: false, Tty: true}
 	uri := fmt.Sprintf("/exec/%s/start", execID)
 	b, code, err := c.call("POST", uri, data)
 	switch {
