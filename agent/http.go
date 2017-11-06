@@ -31,24 +31,12 @@ func (e MethodNotAllowedError) Error() string {
 // HTTPServer provides an HTTP api for an agent.
 type HTTPServer struct {
 	*http.Server
+	ln        net.Listener
 	agent     *Agent
 	blacklist *Blacklist
 
 	// proto is filled by the agent to "http" or "https".
 	proto string
-	addr  net.Addr
-}
-
-func NewHTTPServer(addr net.Addr, a *Agent) *HTTPServer {
-	s := &HTTPServer{
-		Server:    &http.Server{Addr: addr.String()},
-		agent:     a,
-		blacklist: NewBlacklist(a.config.HTTPBlockEndpoints),
-		addr:      addr,
-	}
-
-	s.Server.Handler = s.handler(a.config.EnableDebug)
-	return s
 }
 
 // handler is used to attach our handlers to the mux
