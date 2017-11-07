@@ -19,9 +19,11 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/go-cleanhttp"
+	"golang.org/x/net/http2"
 )
 
 func TestHTTPServer_UnixSocket(t *testing.T) {
@@ -119,6 +121,86 @@ func TestHTTPServer_UnixSocket_FileExists(t *testing.T) {
 	}
 	if fi.Mode()&os.ModeSocket == 0 {
 		t.Fatalf("expected socket to replace file")
+	}
+}
+
+func TestHTTPServer_H2(t *testing.T) {
+	t.Parallel()
+
+	// Fire up an agent with TLS enabled.
+	a := &TestAgent{
+		Name:   t.Name(),
+		UseTLS: true,
+		HCL: `
+			key_file = "../test/client_certs/server.key"
+			cert_file = "../test/client_certs/server.crt"
+			ca_file = "../test/client_certs/rootca.crt"
+		`,
+	}
+	a.Start()
+	defer a.Shutdown()
+
+	// Make an HTTP/2-enabled client, using the API helpers to set
+	// up TLS to be as normal as possible for Consul.
+	tlscfg := &api.TLSConfig{
+		Address:  "consul.test",
+		KeyFile:  "../test/client_certs/client.key",
+		CertFile: "../test/client_certs/client.crt",
+		CAFile:   "../test/client_certs/rootca.crt",
+	}
+	tlsccfg, err := api.SetupTLSConfig(tlscfg)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	transport := api.DefaultConfig().Transport
+	transport.TLSClientConfig = tlsccfg
+	if err := http2.ConfigureTransport(transport); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	hc := &http.Client{
+		Transport: transport,
+	}
+
+	// Hook a handler that echoes back the protocol.
+	handler := func(resp http.ResponseWriter, req *http.Request) {
+		resp.WriteHeader(http.StatusOK)
+		fmt.Fprint(resp, req.Proto)
+	}
+	mux, ok := a.srv.Handler.(*http.ServeMux)
+	if !ok {
+		t.Fatalf("handler is not expected type")
+	}
+	mux.HandleFunc("/echo", handler)
+
+	// Call it and make sure we see HTTP/2.
+	url := fmt.Sprintf("https://%s/echo", a.srv.ln.Addr().String())
+	resp, err := hc.Get(url)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !bytes.Equal(body, []byte("HTTP/2.0")) {
+		t.Fatalf("bad: %v", body)
+	}
+
+	// This doesn't have a closed-loop way to verify HTTP/2 support for
+	// some other endpoint, but configure an API client and make a call
+	// just as a sanity check.
+	cfg := &api.Config{
+		Address:    a.srv.ln.Addr().String(),
+		Scheme:     "https",
+		HttpClient: hc,
+	}
+	client, err := api.NewClient(cfg)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, err := client.Agent().Self(); err != nil {
+		t.Fatalf("err: %v", err)
 	}
 }
 
