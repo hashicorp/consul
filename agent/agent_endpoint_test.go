@@ -243,14 +243,14 @@ func TestAgent_Metrics_ACLDeny(t *testing.T) {
 
 	t.Run("no token", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/agent/metrics", nil)
-		if _, err := a.srv.AgentSelf(nil, req); !acl.IsErrPermissionDenied(err) {
+		if _, err := a.srv.AgentMetrics(nil, req); !acl.IsErrPermissionDenied(err) {
 			t.Fatalf("err: %v", err)
 		}
 	})
 
 	t.Run("agent master token", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/agent/metrics?token=towel", nil)
-		if _, err := a.srv.AgentSelf(nil, req); err != nil {
+		if _, err := a.srv.AgentMetrics(nil, req); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	})
@@ -258,7 +258,7 @@ func TestAgent_Metrics_ACLDeny(t *testing.T) {
 	t.Run("read-only token", func(t *testing.T) {
 		ro := makeReadOnlyAgentACL(t, a.srv)
 		req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/agent/metrics?token=%s", ro), nil)
-		if _, err := a.srv.AgentSelf(nil, req); err != nil {
+		if _, err := a.srv.AgentMetrics(nil, req); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	})

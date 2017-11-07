@@ -144,7 +144,7 @@ func (a *TestAgent) Start() *TestAgent {
 		agent.LogOutput = logOutput
 		agent.LogWriter = a.LogWriter
 		agent.logger = log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
-		agent.MemSink = &metrics.InmemSink{}
+		agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
 
 		// we need the err var in the next exit condition
 		if err := agent.Start(); err == nil {
