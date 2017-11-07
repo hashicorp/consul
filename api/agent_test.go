@@ -37,13 +37,11 @@ func TestAPI_AgentMetrics(t *testing.T) {
 	defer s.Stop()
 
 	agent := c.Agent()
-
-	metrics, err := agent.Metrics()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
 	retry.Run(t, func(r *retry.R) {
+		metrics, err := agent.Metrics()
+		if err != nil {
+			r.Fatalf("err: %v", err)
+		}
 		for _, g := range metrics.Gauges {
 			if g.Name == "consul.runtime.alloc_bytes" {
 				return
