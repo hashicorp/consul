@@ -93,7 +93,15 @@
 		{"path":"github.com/tonnerre/golang-text","checksumSHA1":"t24KnvC9jRxiANVhpw2pqFpmEu8=","revision":"048ed3d792f7104850acbc8cfc01e5a6070f4c04","revisionTime":"2013-09-25T19:58:46Z"},
 		{"path":"golang.org/x/net/context","checksumSHA1":"9jjO5GjLa0XF/nfWihF02RoH4qc=","revision":"075e191f18186a8ff2becaf64478e30f4545cdad","revisionTime":"2016-08-05T06:12:51Z"},
 		{"path":"golang.org/x/net/context/ctxhttp","checksumSHA1":"WHc3uByvGaMcnSoI21fhzYgbOgg=","revision":"075e191f18186a8ff2becaf64478e30f4545cdad","revisionTime":"2016-08-05T06:12:51Z"},
+		{"path":"golang.org/x/net/http2","checksumSHA1":"aaproqDPgHPV5s7lKzClAdCaDKQ=","revision":"01c190206fbdffa42f334f4b2bf2220f50e64920","revisionTime":"2017-11-02T18:53:09Z"},
+		{"path":"golang.org/x/net/http2/hpack","checksumSHA1":"ezWhc7n/FtqkLDQKeU2JbW+80tE=","revision":"01c190206fbdffa42f334f4b2bf2220f50e64920","revisionTime":"2017-11-02T18:53:09Z"},
+		{"path":"golang.org/x/net/idna","checksumSHA1":"RcrB7tgYS/GMW4QrwVdMOTNqIU8=","revision":"01c190206fbdffa42f334f4b2bf2220f50e64920","revisionTime":"2017-11-02T18:53:09Z"},
+		{"path":"golang.org/x/net/lex/httplex","checksumSHA1":"3xyuaSNmClqG4YWC7g0isQIbUTc=","revision":"01c190206fbdffa42f334f4b2bf2220f50e64920","revisionTime":"2017-11-02T18:53:09Z"},
 		{"path":"golang.org/x/sys/unix","checksumSHA1":"vlicYp+fe4ECQ+5QqpAk36VRA3s=","revision":"cd2c276457edda6df7fb04895d3fd6a6add42926","revisionTime":"2017-07-17T10:05:24Z"},
+		{"path":"golang.org/x/text/secure/bidirule","checksumSHA1":"tltivJ/uj/lqLk05IqGfCv2F/E8=","revision":"88f656faf3f37f690df1a32515b479415e1a6769","revisionTime":"2017-10-26T07:52:28Z"},
+		{"path":"golang.org/x/text/transform","checksumSHA1":"ziMb9+ANGRJSSIuxYdRbA+cDRBQ=","revision":"88f656faf3f37f690df1a32515b479415e1a6769","revisionTime":"2017-10-26T07:52:28Z"},
+		{"path":"golang.org/x/text/unicode/bidi","checksumSHA1":"tk+lpF2CDV7e5RwwRY5ZTCGrd9o=","revision":"88f656faf3f37f690df1a32515b479415e1a6769","revisionTime":"2017-10-26T07:52:28Z"},
+		{"path":"golang.org/x/text/unicode/norm","checksumSHA1":"BwRNKgzIMUxk56OScxyr43BV6IE=","revision":"88f656faf3f37f690df1a32515b479415e1a6769","revisionTime":"2017-10-26T07:52:28Z"},
 		{"path":"golang.org/x/time/rate","checksumSHA1":"vGfePfr0+weQUeTM/71mu+LCFuE=","revision":"8be79e1e0910c292df4e79c241bb7e8f7e725959","revisionTime":"2017-04-24T23:28:54Z"}
 	],
 	"rootPath": "github.com/hashicorp/consul"
