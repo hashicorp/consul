@@ -292,15 +292,15 @@ func (c *CheckTTL) SetStatus(status, output string) {
 // The check is critical if the response code is anything else
 // or if the request returns an error
 type CheckHTTP struct {
-	Notify        CheckNotifier
-	CheckID       types.CheckID
-	HTTP          string
-	Header        map[string][]string
-	Method        string
-	Interval      time.Duration
-	Timeout       time.Duration
-	Logger        *log.Logger
-	TLSSkipVerify bool
+	Notify          CheckNotifier
+	CheckID         types.CheckID
+	HTTP            string
+	Header          map[string][]string
+	Method          string
+	Interval        time.Duration
+	Timeout         time.Duration
+	Logger          *log.Logger
+	TLSClientConfig *tls.Config
 
 	httpClient *http.Client
 	stop       bool
@@ -320,14 +320,8 @@ func (c *CheckHTTP) Start() {
 		trans := cleanhttp.DefaultTransport()
 		trans.DisableKeepAlives = true
 
-		// Skip SSL certificate verification if TLSSkipVerify is true
-		if trans.TLSClientConfig == nil {
-			trans.TLSClientConfig = &tls.Config{
-				InsecureSkipVerify: c.TLSSkipVerify,
-			}
-		} else {
-			trans.TLSClientConfig.InsecureSkipVerify = c.TLSSkipVerify
-		}
+		// Take on the supplied TLS client config.
+		trans.TLSClientConfig = c.TLSClientConfig
 
 		// Create the HTTP client.
 		c.httpClient = &http.Client{

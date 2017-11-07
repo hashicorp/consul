@@ -368,23 +368,6 @@ func TestCheckHTTP_disablesKeepAlives(t *testing.T) {
 	}
 }
 
-func TestCheckHTTP_TLSSkipVerify_defaultFalse(t *testing.T) {
-	t.Parallel()
-	check := &CheckHTTP{
-		CheckID:  "foo",
-		HTTP:     "https://foo.bar/baz",
-		Interval: 10 * time.Second,
-		Logger:   log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
-	}
-
-	check.Start()
-	defer check.Stop()
-
-	if check.httpClient.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify {
-		t.Fatalf("should default to false")
-	}
-}
-
 func largeBodyHandler(code int) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Body larger than 4k limit
@@ -394,31 +377,36 @@ func largeBodyHandler(code int) http.Handler {
 	})
 }
 
-func TestCheckHTTP_TLSSkipVerify_true_pass(t *testing.T) {
+func TestCheckHTTP_TLS_SkipVerify(t *testing.T) {
 	t.Parallel()
 	server := httptest.NewTLSServer(largeBodyHandler(200))
 	defer server.Close()
 
-	notif := mock.NewNotify()
+	tlsConfig := &api.TLSConfig{
+		InsecureSkipVerify: true,
+	}
+	tlsClientConfig, err := api.SetupTLSConfig(tlsConfig)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
+	notif := mock.NewNotify()
 	check := &CheckHTTP{
-		Notify:        notif,
-		CheckID:       types.CheckID("skipverify_true"),
-		HTTP:          server.URL,
-		Interval:      25 * time.Millisecond,
-		Logger:        log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
-		TLSSkipVerify: true,
+		Notify:          notif,
+		CheckID:         types.CheckID("skipverify_true"),
+		HTTP:            server.URL,
+		Interval:        25 * time.Millisecond,
+		Logger:          log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
+		TLSClientConfig: tlsClientConfig,
 	}
 
 	check.Start()
 	defer check.Stop()
 
-	// give check some time to execute
-	time.Sleep(200 * time.Millisecond)
-
 	if !check.httpClient.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify {
 		t.Fatalf("should be true")
 	}
+
 	retry.Run(t, func(r *retry.R) {
 		if got, want := notif.State("skipverify_true"), api.HealthPassing; got != want {
 			r.Fatalf("got state %q want %q", got, want)
@@ -426,56 +414,33 @@ func TestCheckHTTP_TLSSkipVerify_true_pass(t *testing.T) {
 	})
 }
 
-func TestCheckHTTP_TLSSkipVerify_true_fail(t *testing.T) {
-	t.Parallel()
-	server := httptest.NewTLSServer(largeBodyHandler(500))
-	defer server.Close()
-
-	notif := mock.NewNotify()
-
-	check := &CheckHTTP{
-		Notify:        notif,
-		CheckID:       types.CheckID("skipverify_true"),
-		HTTP:          server.URL,
-		Interval:      5 * time.Millisecond,
-		Logger:        log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
-		TLSSkipVerify: true,
-	}
-	check.Start()
-	defer check.Stop()
-
-	if !check.httpClient.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify {
-		t.Fatalf("should be true")
-	}
-	retry.Run(t, func(r *retry.R) {
-		if got, want := notif.State("skipverify_true"), api.HealthCritical; got != want {
-			r.Fatalf("got state %q want %q", got, want)
-		}
-	})
-}
-
-func TestCheckHTTP_TLSSkipVerify_false(t *testing.T) {
+func TestCheckHTTP_TLS_BadVerify(t *testing.T) {
 	t.Parallel()
 	server := httptest.NewTLSServer(largeBodyHandler(200))
 	defer server.Close()
 
-	notif := mock.NewNotify()
+	tlsClientConfig, err := api.SetupTLSConfig(&api.TLSConfig{})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
+	notif := mock.NewNotify()
 	check := &CheckHTTP{
-		Notify:        notif,
-		CheckID:       types.CheckID("skipverify_false"),
-		HTTP:          server.URL,
-		Interval:      100 * time.Millisecond,
-		Logger:        log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
-		TLSSkipVerify: false,
+		Notify:          notif,
+		CheckID:         types.CheckID("skipverify_false"),
+		HTTP:            server.URL,
+		Interval:        100 * time.Millisecond,
+		Logger:          log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
+		TLSClientConfig: tlsClientConfig,
 	}
 
 	check.Start()
 	defer check.Stop()
 
 	if check.httpClient.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify {
-		t.Fatalf("should be false")
+		t.Fatalf("should default to false")
 	}
+
 	retry.Run(t, func(r *retry.R) {
 		// This should fail due to an invalid SSL cert
 		if got, want := notif.State("skipverify_false"), api.HealthCritical; got != want {

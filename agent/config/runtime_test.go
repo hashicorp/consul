@@ -2234,6 +2234,7 @@ func TestFullConfig(t *testing.T) {
 				"udp_answer_limit": 29909
 			},
 			"enable_acl_replication": true,
+			"enable_agent_tls_for_checks": true,
 			"enable_debug": true,
 			"enable_script_checks": true,
 			"enable_syslog": true,
@@ -2668,6 +2669,7 @@ func TestFullConfig(t *testing.T) {
 				udp_answer_limit = 29909
 			}
 			enable_acl_replication = true
+			enable_agent_tls_for_checks = true
 			enable_debug = true
 			enable_script_checks = true
 			enable_syslog = true
@@ -3238,6 +3240,7 @@ func TestFullConfig(t *testing.T) {
 		DisableUpdateCheck:        true,
 		DiscardCheckOutput:        true,
 		EnableACLReplication:      true,
+		EnableAgentTLSForChecks:   true,
 		EnableDebug:               true,
 		EnableScriptChecks:        true,
 		EnableSyslog:              true,
@@ -3915,6 +3918,7 @@ func TestSanitize(t *testing.T) {
     "DisableUpdateCheck": false,
     "DiscardCheckOutput": false,
     "EnableACLReplication": false,
+    "EnableAgentTLSForChecks": false,
     "EnableDebug": false,
     "EnableScriptChecks": false,
     "EnableSyslog": false,

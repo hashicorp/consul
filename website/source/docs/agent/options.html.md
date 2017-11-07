@@ -954,6 +954,11 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   and then introduce the token using the [agent token API](/api/agent.html#update-acl-tokens) on each server.
   See [`acl_replication_token`](#acl_replication_token) for more details.
 
+* <a name="enable_agent_tls_for_checks"></a><a href="#enable_agent_tls_for_checks">`enable_agent_tls_for_checks`</a>
+  When set, uses a subset of the agent's TLS configuration (`key_file`, `cert_file`, `ca_file`, `ca_path`, and
+  `server_name`) to set up the HTTP client for HTTP health checks. This allows services requiring 2-way TLS to
+  be checked using the agent's credentials. This was added in Consul 1.0.1 and defaults to false.
+
 * <a name="enable_debug"></a><a href="#enable_debug">`enable_debug`</a> When set, enables some
   additional debugging features. Currently, this is only used to set the runtime profiling HTTP endpoints.
 
