@@ -65,6 +65,10 @@ type TestAgent struct {
 	// Key is the optional encryption key for the LAN and WAN keyring.
 	Key string
 
+	// UseTLS, if true, will disable the HTTP port and enable the HTTPS
+	// one.
+	UseTLS bool
+
 	// dns is a reference to the first started DNS endpoint.
 	// It is valid after Start().
 	dns *DNSServer
@@ -117,7 +121,7 @@ func (a *TestAgent) Start() *TestAgent {
 		a.Config = TestConfig(
 			config.Source{Name: a.Name, Format: "hcl", Data: a.HCL},
 			config.Source{Name: a.Name + ".data_dir", Format: "hcl", Data: hclDataDir},
-			randomPortsSource(),
+			randomPortsSource(a.UseTLS),
 		)
 
 		// write the keyring
@@ -284,8 +288,13 @@ func (a *TestAgent) consulConfig() *consul.Config {
 // chance of port conflicts for concurrently executed test binaries.
 // Instead of relying on one set of ports to be sufficient we retry
 // starting the agent with different ports on port conflict.
-func randomPortsSource() config.Source {
-	ports := freeport.Get(5)
+func randomPortsSource(tls bool) config.Source {
+	ports := freeport.Get(6)
+	if tls {
+		ports[1] = -1
+	} else {
+		ports[2] = -1
+	}
 	return config.Source{
 		Name:   "ports",
 		Format: "hcl",
@@ -293,10 +302,10 @@ func randomPortsSource() config.Source {
 			ports = {
 				dns = ` + strconv.Itoa(ports[0]) + `
 				http = ` + strconv.Itoa(ports[1]) + `
-				https = -1
-				serf_lan = ` + strconv.Itoa(ports[2]) + `
-				serf_wan = ` + strconv.Itoa(ports[3]) + `
-				server = ` + strconv.Itoa(ports[4]) + `
+				https = ` + strconv.Itoa(ports[2]) + `
+				serf_lan = ` + strconv.Itoa(ports[3]) + `
+				serf_wan = ` + strconv.Itoa(ports[4]) + `
+				server = ` + strconv.Itoa(ports[5]) + `
 			}
 		`,
 	}

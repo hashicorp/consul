@@ -39,6 +39,7 @@ import (
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 	"github.com/shirou/gopsutil/host"
+	"golang.org/x/net/http2"
 )
 
 const (
@@ -455,7 +456,8 @@ func (a *Agent) listenHTTP() ([]*HTTPServer, error) {
 
 			srv := &HTTPServer{
 				Server: &http.Server{
-					Addr: l.Addr().String(),
+					Addr:      l.Addr().String(),
+					TLSConfig: tlscfg,
 				},
 				ln:        l,
 				agent:     a,
@@ -463,6 +465,16 @@ func (a *Agent) listenHTTP() ([]*HTTPServer, error) {
 				proto:     proto,
 			}
 			srv.Server.Handler = srv.handler(a.config.EnableDebug)
+
+			// This will enable upgrading connections to HTTP/2 as
+			// part of TLS negotiation.
+			if proto == "https" {
+				err = http2.ConfigureServer(srv.Server, nil)
+				if err != nil {
+					return err
+				}
+			}
+
 			servers = append(servers, srv)
 		}
 		return nil
