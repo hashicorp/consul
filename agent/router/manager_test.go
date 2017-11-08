@@ -13,17 +13,38 @@ import (
 	"github.com/hashicorp/consul/agent/router"
 )
 
-type fauxConnPool struct {
-	// failPct between 0.0 and 1.0 == pct of time a Ping should fail
-	failPct float64
+type fauxAddr struct {
+	addr string
 }
 
-func (cp *fauxConnPool) Ping(string, net.Addr, int, bool) (bool, error) {
+func (a *fauxAddr) Network() string {
+	return "faux"
+}
+
+func (a *fauxAddr) String() string {
+	return a.addr
+}
+
+type fauxConnPool struct {
+	// failPct between 0.0 and 1.0 == pct of time a Ping should fail.
+	failPct float64
+
+	// failAddr fail whenever we see this address.
+	failAddr net.Addr
+}
+
+func (cp *fauxConnPool) Ping(dc string, addr net.Addr, version int, useTLS bool) (bool, error) {
 	var success bool
+
 	successProb := rand.Float64()
 	if successProb > cp.failPct {
 		success = true
 	}
+
+	if cp.failAddr != nil && addr.String() == cp.failAddr.String() {
+		success = false
+	}
+
 	return success, nil
 }
 
@@ -45,6 +66,13 @@ func testManagerFailProb(failPct float64) (m *router.Manager) {
 	logger := log.New(os.Stderr, "", log.LstdFlags)
 	shutdownCh := make(chan struct{})
 	m = router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failPct: failPct})
+	return m
+}
+
+func testManagerFailAddr(failAddr net.Addr) (m *router.Manager) {
+	logger := log.New(os.Stderr, "", log.LstdFlags)
+	shutdownCh := make(chan struct{})
+	m = router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failAddr: failAddr})
 	return m
 }
 
@@ -279,6 +307,31 @@ func TestServers_RebalanceServers(t *testing.T) {
 	// being flaky.
 	if len(uniques) < int(maxServers*uniquePassRate) {
 		t.Fatalf("unique shuffle ratio too low: %d/%d", len(uniques), maxServers)
+	}
+}
+
+func TestServers_RebalanceServers_AvoidFailed(t *testing.T) {
+	// Do a large number of rebalances with one failed server in the
+	// list and make sure we never have that one selected afterwards.
+	// This was added when fixing #3463, when we were just doing the
+	// shuffle and not actually cycling servers. We do a large number
+	// of trials with a small number of servers to try to make sure
+	// the shuffle alone won't give the right answer.
+	servers := []*metadata.Server{
+		&metadata.Server{Name: "s1", Addr: &fauxAddr{"s1"}},
+		&metadata.Server{Name: "s2", Addr: &fauxAddr{"s2"}},
+		&metadata.Server{Name: "s3", Addr: &fauxAddr{"s3"}},
+	}
+	for i := 0; i < 100; i++ {
+		m := testManagerFailAddr(&fauxAddr{"s2"})
+		for _, s := range servers {
+			m.AddServer(s)
+		}
+
+		m.RebalanceServers()
+		if front := m.FindServer().Name; front == "s2" {
+			t.Fatalf("should have avoided the failed server")
+		}
 	}
 }
 
