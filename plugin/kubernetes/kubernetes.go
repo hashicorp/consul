@@ -28,19 +28,20 @@ import (
 
 // Kubernetes implements a plugin that connects to a Kubernetes cluster.
 type Kubernetes struct {
-	Next          plugin.Handler
-	Zones         []string
-	Proxy         proxy.Proxy // Proxy for looking up names during the resolution process
-	APIServerList []string
-	APIProxy      *apiProxy
-	APICertAuth   string
-	APIClientCert string
-	APIClientKey  string
-	APIConn       dnsController
-	Namespaces    map[string]bool
-	podMode       string
-	Fallthrough   bool
-	ttl           uint32
+	Next             plugin.Handler
+	Zones            []string
+	Proxy            proxy.Proxy // Proxy for looking up names during the resolution process
+	APIServerList    []string
+	APIProxy         *apiProxy
+	APICertAuth      string
+	APIClientCert    string
+	APIClientKey     string
+	APIConn          dnsController
+	Namespaces       map[string]bool
+	podMode          string
+	endpointNameMode bool
+	Fallthrough      bool
+	ttl              uint32
 
 	primaryZoneIndex   int
 	interfaceAddrsFunc func() net.IP
@@ -276,9 +277,12 @@ func (k *Kubernetes) Records(state request.Request, exact bool) ([]msg.Service, 
 	return services, err
 }
 
-func endpointHostname(addr api.EndpointAddress) string {
+func endpointHostname(addr api.EndpointAddress, endpointNameMode bool) string {
 	if addr.Hostname != "" {
 		return strings.ToLower(addr.Hostname)
+	}
+	if endpointNameMode && addr.TargetRef != nil && addr.TargetRef.Name != "" {
+		return addr.TargetRef.Name
 	}
 	if strings.Contains(addr.IP, ".") {
 		return strings.Replace(addr.IP, ".", "-", -1)
@@ -375,7 +379,7 @@ func (k *Kubernetes) findServices(r recordRequest, zone string) (services []msg.
 						// See comments in parse.go parseRequest about the endpoint handling.
 
 						if r.endpoint != "" {
-							if !match(r.endpoint, endpointHostname(addr)) {
+							if !match(r.endpoint, endpointHostname(addr, k.endpointNameMode)) {
 								continue
 							}
 						}
@@ -385,7 +389,7 @@ func (k *Kubernetes) findServices(r recordRequest, zone string) (services []msg.
 								continue
 							}
 							s := msg.Service{Host: addr.IP, Port: int(p.Port), TTL: k.ttl}
-							s.Key = strings.Join([]string{zonePath, Svc, svc.Namespace, svc.Name, endpointHostname(addr)}, "/")
+							s.Key = strings.Join([]string{zonePath, Svc, svc.Namespace, svc.Name, endpointHostname(addr, k.endpointNameMode)}, "/")
 
 							err = nil
 

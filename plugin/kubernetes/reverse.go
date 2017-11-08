@@ -42,7 +42,7 @@ func (k *Kubernetes) serviceRecordForIP(ip, name string) []msg.Service {
 		for _, eps := range ep.Subsets {
 			for _, addr := range eps.Addresses {
 				if addr.IP == ip {
-					domain := strings.Join([]string{endpointHostname(addr), ep.ObjectMeta.Name, ep.ObjectMeta.Namespace, Svc, k.primaryZone()}, ".")
+					domain := strings.Join([]string{endpointHostname(addr, k.endpointNameMode), ep.ObjectMeta.Name, ep.ObjectMeta.Namespace, Svc, k.primaryZone()}, ".")
 					return []msg.Service{{Host: domain}}
 				}
 			}

@@ -34,15 +34,21 @@ func TestWildcard(t *testing.T) {
 
 func TestEndpointHostname(t *testing.T) {
 	var tests = []struct {
-		ip       string
-		hostname string
-		expected string
+		ip               string
+		hostname         string
+		expected         string
+		podName          string
+		endpointNameMode bool
 	}{
-		{"10.11.12.13", "", "10-11-12-13"},
-		{"10.11.12.13", "epname", "epname"},
+		{"10.11.12.13", "", "10-11-12-13", "", false},
+		{"10.11.12.13", "epname", "epname", "", false},
+		{"10.11.12.13", "", "10-11-12-13", "hello-abcde", false},
+		{"10.11.12.13", "epname", "epname", "hello-abcde", false},
+		{"10.11.12.13", "epname", "epname", "hello-abcde", true},
+		{"10.11.12.13", "", "hello-abcde", "hello-abcde", true},
 	}
 	for _, test := range tests {
-		result := endpointHostname(api.EndpointAddress{IP: test.ip, Hostname: test.hostname})
+		result := endpointHostname(api.EndpointAddress{IP: test.ip, Hostname: test.hostname, TargetRef: &api.ObjectReference{Name: test.podName}}, test.endpointNameMode)
 		if result != test.expected {
 			t.Errorf("Expected endpoint name for (ip:%v hostname:%v) to be '%v', but got '%v'", test.ip, test.hostname, test.expected, result)
 		}

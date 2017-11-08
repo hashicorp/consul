@@ -31,6 +31,7 @@ kubernetes [ZONES...] {
     namespaces NAMESPACE...
     labels EXPRESSION
     pods POD-MODE
+    endpoint_pod_names
     upstream ADDRESS...
     ttl TTL
     fallthrough
@@ -65,6 +66,16 @@ kubernetes [ZONES...] {
      option requires substantially more memory than in insecure mode, since it will maintain a watch
      on all pods.
 
+* `endpoint_pod_names` Use the pod name of the pod targeted by the endpoint as 
+   the endpoint name in A records, e.g.
+   `endpoint-name.my-service.namespace.svc.cluster.local. in A 1.2.3.4`
+   By default, the endpoint-name name selection is as follows: Use the hostname 
+   of the endpoint, or if hostname is not set, use the dashed form of the endpoint
+   ip address (e.g. `1-2-3-4.my-service.namespace.svc.cluster.local.`)
+   If this directive is included, then name selection for endpoints changes as
+   follows: Use the hostname of the endpoint, or if hostname is not set, use the
+   pod name of the pod targeted by the endpoint. If there is no pod targeted by 
+   the endpoint, use the dashed ip address form.
 * `upstream` **ADDRESS [ADDRESS...]** defines the upstream resolvers used for resolving services
   that point to external hosts (External Services).  **ADDRESS** can be an ip, an ip:port, or a path
   to a file structured like resolv.conf.

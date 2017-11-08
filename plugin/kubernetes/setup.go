@@ -104,6 +104,13 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, dnsControlOpts, error) {
 
 		for c.NextBlock() {
 			switch c.Val() {
+			case "endpoint_pod_names":
+				args := c.RemainingArgs()
+				if len(args) > 0 {
+					return nil, opts, c.ArgErr()
+				}
+				k8s.endpointNameMode = true
+				continue
 			case "pods":
 				args := c.RemainingArgs()
 				if len(args) == 1 {
