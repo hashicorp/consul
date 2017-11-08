@@ -315,8 +315,7 @@ func (m *Manager) RebalanceServers() {
 			break
 		}
 		m.logger.Printf(`[DEBUG] manager: pinging server "%s" failed: %s`, srv, err)
-
-		l.cycleServer()
+		l.servers = l.cycleServer()
 	}
 
 	// If no healthy servers were found, sleep and wait for Serf to make
