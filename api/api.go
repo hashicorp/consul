@@ -377,12 +377,14 @@ func SetupTLSConfig(tlsConfig *TLSConfig) (*tls.Config, error) {
 		tlsClientConfig.Certificates = []tls.Certificate{tlsCert}
 	}
 
-	rootConfig := &rootcerts.Config{
-		CAFile: tlsConfig.CAFile,
-		CAPath: tlsConfig.CAPath,
-	}
-	if err := rootcerts.ConfigureTLS(tlsClientConfig, rootConfig); err != nil {
-		return nil, err
+	if tlsConfig.CAFile != "" || tlsConfig.CAPath != "" {
+		rootConfig := &rootcerts.Config{
+			CAFile: tlsConfig.CAFile,
+			CAPath: tlsConfig.CAPath,
+		}
+		if err := rootcerts.ConfigureTLS(tlsClientConfig, rootConfig); err != nil {
+			return nil, err
+		}
 	}
 
 	return tlsClientConfig, nil

@@ -677,6 +677,13 @@ type RuntimeConfig struct {
 	// todo(fs): rename to ACLEnableReplication
 	EnableACLReplication bool
 
+	// EnableAgentTLSForChecks is used to apply the agent's TLS settings in
+	// order to configure the HTTP client used for health checks. Enabling
+	// this allows HTTP checks to present a client certificate and verify
+	// the server using the same TLS configuration as the agent (CA, cert,
+	// and key).
+	EnableAgentTLSForChecks bool
+
 	// EnableDebug is used to enable various debugging features.
 	//
 	// hcl: enable_debug = (true|false)

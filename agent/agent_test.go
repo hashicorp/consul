@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -17,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/types"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/pascaldekloe/goe/verify"
@@ -790,6 +793,112 @@ func TestAgent_RemoveCheck(t *testing.T) {
 	// Ensure a TTL is setup
 	if _, ok := a.checkMonitors["mem"]; ok {
 		t.Fatalf("have mem monitor")
+	}
+}
+
+func TestAgent_HTTPCheck_TLSSkipVerify(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "GOOD")
+	})
+	server := httptest.NewTLSServer(handler)
+	defer server.Close()
+
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	health := &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "tls",
+		Name:    "tls check",
+		Status:  api.HealthCritical,
+	}
+	chk := &structs.CheckType{
+		HTTP:          server.URL,
+		Interval:      20 * time.Millisecond,
+		TLSSkipVerify: true,
+	}
+
+	err := a.AddCheck(health, chk, false, "")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		status := a.State.Checks()["tls"]
+		if status.Status != api.HealthPassing {
+			r.Fatalf("bad: %v", status.Status)
+		}
+		if !strings.Contains(status.Output, "GOOD") {
+			r.Fatalf("bad: %v", status.Output)
+		}
+	})
+
+}
+
+func TestAgent_HTTPCheck_EnableAgentTLSForChecks(t *testing.T) {
+	t.Parallel()
+
+	run := func(t *testing.T, ca string) {
+		a := &TestAgent{
+			Name:   t.Name(),
+			UseTLS: true,
+			HCL: `
+				enable_agent_tls_for_checks = true
+
+				verify_incoming = true
+				server_name = "consul.test"
+				key_file = "../test/client_certs/server.key"
+				cert_file = "../test/client_certs/server.crt"
+			` + ca,
+		}
+		a.Start()
+		defer a.Shutdown()
+
+		health := &structs.HealthCheck{
+			Node:    "foo",
+			CheckID: "tls",
+			Name:    "tls check",
+			Status:  api.HealthCritical,
+		}
+
+		url := fmt.Sprintf("https://%s/v1/agent/self", a.srv.ln.Addr().String())
+		chk := &structs.CheckType{
+			HTTP:     url,
+			Interval: 20 * time.Millisecond,
+		}
+
+		err := a.AddCheck(health, chk, false, "")
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		retry.Run(t, func(r *retry.R) {
+			status := a.State.Checks()["tls"]
+			if status.Status != api.HealthPassing {
+				r.Fatalf("bad: %v", status.Status)
+			}
+			if !strings.Contains(status.Output, "200 OK") {
+				r.Fatalf("bad: %v", status.Output)
+			}
+		})
+	}
+
+	// We need to test both methods of passing the CA info to ensure that
+	// we propagate all the fields correctly. All the other fields are
+	// covered by the HCL in the test run function.
+	tests := []struct {
+		desc   string
+		config string
+	}{
+		{"ca_file", `ca_file = "../test/client_certs/rootca.crt"`},
+		{"ca_path", `ca_path = "../test/client_certs/path"`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			run(t, tt.config)
+		})
 	}
 }
 

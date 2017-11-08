@@ -1716,16 +1716,33 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				chkType.Interval = checks.MinInterval
 			}
 
+			// We re-use the API client's TLS structure since it
+			// closely aligns with Consul's internal configuration.
+			tlsConfig := &api.TLSConfig{
+				InsecureSkipVerify: chkType.TLSSkipVerify,
+			}
+			if a.config.EnableAgentTLSForChecks {
+				tlsConfig.Address = a.config.ServerName
+				tlsConfig.KeyFile = a.config.KeyFile
+				tlsConfig.CertFile = a.config.CertFile
+				tlsConfig.CAFile = a.config.CAFile
+				tlsConfig.CAPath = a.config.CAPath
+			}
+			tlsClientConfig, err := api.SetupTLSConfig(tlsConfig)
+			if err != nil {
+				return fmt.Errorf("Failed to set up TLS: %v", err)
+			}
+
 			http := &checks.CheckHTTP{
-				Notify:        a.State,
-				CheckID:       check.CheckID,
-				HTTP:          chkType.HTTP,
-				Header:        chkType.Header,
-				Method:        chkType.Method,
-				Interval:      chkType.Interval,
-				Timeout:       chkType.Timeout,
-				Logger:        a.logger,
-				TLSSkipVerify: chkType.TLSSkipVerify,
+				Notify:          a.State,
+				CheckID:         check.CheckID,
+				HTTP:            chkType.HTTP,
+				Header:          chkType.Header,
+				Method:          chkType.Method,
+				Interval:        chkType.Interval,
+				Timeout:         chkType.Timeout,
+				Logger:          a.logger,
+				TLSClientConfig: tlsClientConfig,
 			}
 			http.Start()
 			a.checkHTTPs[check.CheckID] = http
