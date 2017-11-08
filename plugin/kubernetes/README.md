@@ -46,7 +46,7 @@ kubernetes [ZONES...] {
    will automatically perform a healthcheck and proxy to the healthy k8s API endpoint.
 * `tls` **CERT** **KEY** **CACERT** are the TLS cert, key and the CA cert file names for remote k8s connection.
    This option is ignored if connecting in-cluster (i.e. endpoint is not specified).
-* `namespaces` **NAMESPACE [NAMESPACE...]**, exposed only the k8s namespaces listed.
+* `namespaces` **NAMESPACE [NAMESPACE...]**, only exposes the k8s namespaces listed.
    If this option is omitted all namespaces are exposed
 * `labels` **EXPRESSION** only exposes the records for Kubernetes objects that match this label selector.
    The label selector syntax is described in the
@@ -66,18 +66,18 @@ kubernetes [ZONES...] {
      option requires substantially more memory than in insecure mode, since it will maintain a watch
      on all pods.
 
-* `endpoint_pod_names` Use the pod name of the pod targeted by the endpoint as 
+* `endpoint_pod_names` uses the pod name of the pod targeted by the endpoint as 
    the endpoint name in A records, e.g.
    `endpoint-name.my-service.namespace.svc.cluster.local. in A 1.2.3.4`
    By default, the endpoint-name name selection is as follows: Use the hostname 
    of the endpoint, or if hostname is not set, use the dashed form of the endpoint
-   ip address (e.g. `1-2-3-4.my-service.namespace.svc.cluster.local.`)
+   IP address (e.g. `1-2-3-4.my-service.namespace.svc.cluster.local.`)
    If this directive is included, then name selection for endpoints changes as
    follows: Use the hostname of the endpoint, or if hostname is not set, use the
    pod name of the pod targeted by the endpoint. If there is no pod targeted by 
-   the endpoint, use the dashed ip address form.
+   the endpoint, use the dashed IP address form.
 * `upstream` **ADDRESS [ADDRESS...]** defines the upstream resolvers used for resolving services
-  that point to external hosts (External Services).  **ADDRESS** can be an ip, an ip:port, or a path
+  that point to external hosts (External Services).  **ADDRESS** can be an IP, an IP:port, or a path
   to a file structured like resolv.conf.
 * `ttl` allows you to set a custom TTL for responses. The default (and allowed minimum) is to use
   5 seconds, the maximum is capped at 3600 seconds.
