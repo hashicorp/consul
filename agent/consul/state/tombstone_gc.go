@@ -97,6 +97,7 @@ func (t *TombstoneGC) SetEnabled(enabled bool) {
 // deleted, and that their GC should be scheduled.
 func (t *TombstoneGC) Hint(index uint64) {
 	expires := t.nextExpires()
+	fmt.Printf("XXX %d expires %s\n", index, expires)
 
 	t.Lock()
 	defer t.Unlock()
