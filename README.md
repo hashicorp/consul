@@ -6,6 +6,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/coredns/coredns)](https://goreportcard.com/report/coredns/coredns)
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bhttps%3A%2F%2Fgithub.com%2Fcoredns%2Fcoredns.svg?type=shield)](https://app.fossa.io/projects/git%2Bhttps%3A%2F%2Fgithub.com%2Fcoredns%2Fcoredns?ref=badge_shield)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/1250/badge)](https://bestpractices.coreinfrastructure.org/projects/1250)
+[![Sourcegraph](https://sourcegraph.com/github.com/coredns/coredns/-/badge.svg)](https://sourcegraph.com/github.com/coredns/coredns?badge)
 
 CoreDNS (written in Go) chains [plugins](https://coredns.io/plugins). Each plugin performs a DNS
 function.
