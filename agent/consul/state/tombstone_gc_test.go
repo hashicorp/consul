@@ -23,8 +23,8 @@ func TestTombstoneGC_invalid(t *testing.T) {
 }
 
 func TestTombstoneGC(t *testing.T) {
-	ttl := 20 * time.Millisecond
-	gran := 5 * time.Millisecond
+	ttl := 200 * time.Millisecond
+	gran := 50 * time.Millisecond
 	gc, err := NewTombstoneGC(ttl, gran)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -99,6 +99,6 @@ func TestTombstoneGC_Expire(t *testing.T) {
 	select {
 	case <-gc.ExpireCh():
 		t.Fatalf("should be reset")
-	case <-time.After(20 * time.Millisecond):
+	case <-time.After(ttl * 2):
 	}
 }
