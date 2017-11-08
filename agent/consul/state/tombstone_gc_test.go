@@ -38,7 +38,7 @@ func TestTombstoneGC(t *testing.T) {
 	start := time.Now()
 	gc.Hint(100)
 
-	time.Sleep(2 * gran)
+	time.Sleep(2*gran + gran/3)
 	start2 := time.Now()
 	gc.Hint(120)
 	gc.Hint(125)
