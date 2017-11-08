@@ -15,7 +15,10 @@ ignored = [
 
 [[constraint]]
     name = "github.com/openzipkin/zipkin-go-opentracing"
-    version = "v0.2.3"
+    revision = "45e90b00710a4c34a1a7d8a78d90f9b010b0bd4d"
+[[override]]
+    name = "github.com/apache/thrift"
+    revision = "4f77ab8e296d64c57e6ea1c6e3f0f152bc7d6a3a"
 
 [[override]]
     name = "github.com/ugorji/go"
@@ -23,8 +26,8 @@ ignored = [
 
 # client-go 4.0.0 uses apimachinery 1fd2e63a9a370677308a42f24fd40c86438afddf (see Godep.json)
 [[constraint]]
-  name = "k8s.io/client-go"
-  version = "v4.0.0"
+    name = "k8s.io/client-go"
+    version = "v4.0.0"
 [[override]]
     name = "k8s.io/apimachinery"
     revision = "1fd2e63a9a370677308a42f24fd40c86438afddf"

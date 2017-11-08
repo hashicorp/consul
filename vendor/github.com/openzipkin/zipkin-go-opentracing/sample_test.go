@@ -13,21 +13,21 @@ func TestBoundarySampler(t *testing.T) {
 		rate float64
 	}
 	for input, want := range map[triple]bool{
-		triple{123, 456, 1.0}:    true,
-		triple{123, 456, 999}:    true,
-		triple{123, 456, 0.0}:    false,
-		triple{123, 456, -42}:    false,
-		triple{1229998, 0, 0.01}: false,
-		triple{1229999, 0, 0.01}: false,
-		triple{1230000, 0, 0.01}: true,
-		triple{1230001, 0, 0.01}: true,
-		triple{1230098, 0, 0.01}: true,
-		triple{1230099, 0, 0.01}: true,
-		triple{1230100, 0, 0.01}: false,
-		triple{1230101, 0, 0.01}: false,
-		triple{1, 9999999, 0.01}: false,
-		triple{999, 0, 0.99}:     true,
-		triple{9999, 0, 0.99}:    false,
+		{123, 456, 1.0}:    true,
+		{123, 456, 999}:    true,
+		{123, 456, 0.0}:    false,
+		{123, 456, -42}:    false,
+		{1229998, 0, 0.01}: false,
+		{1229999, 0, 0.01}: false,
+		{1230000, 0, 0.01}: true,
+		{1230001, 0, 0.01}: true,
+		{1230098, 0, 0.01}: true,
+		{1230099, 0, 0.01}: true,
+		{1230100, 0, 0.01}: false,
+		{1230101, 0, 0.01}: false,
+		{1, 9999999, 0.01}: false,
+		{999, 0, 0.99}:     true,
+		{9999, 0, 0.99}:    false,
 	} {
 		sampler := zipkin.NewBoundarySampler(input.rate, input.salt)
 		if have := sampler(input.id); want != have {

@@ -25,7 +25,7 @@ import (
 
 func TestTApplicationException(t *testing.T) {
 	exc := NewTApplicationException(UNKNOWN_APPLICATION_EXCEPTION, "")
-	if exc.Error() != "" {
+	if exc.Error() != defaultApplicationExceptionMessage[UNKNOWN_APPLICATION_EXCEPTION] {
 		t.Fatalf("Expected empty string for exception but found '%s'", exc.Error())
 	}
 	if exc.TypeId() != UNKNOWN_APPLICATION_EXCEPTION {

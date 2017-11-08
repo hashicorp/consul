@@ -31,3 +31,32 @@ func TestZlibTransport(t *testing.T) {
 	}
 	TransportTest(t, trans, trans)
 }
+
+type DummyTransportFactory struct{}
+
+func (p *DummyTransportFactory) GetTransport(trans TTransport) (TTransport, error) {
+	return NewTMemoryBuffer(), nil
+}
+
+func TestZlibFactoryTransportWithFactory(t *testing.T) {
+	factory := NewTZlibTransportFactoryWithFactory(
+		zlib.BestCompression,
+		&DummyTransportFactory{},
+	)
+	buffer := NewTMemoryBuffer()
+	trans, err := factory.GetTransport(buffer)
+	if err != nil {
+		t.Fatal(err)
+	}
+	TransportTest(t, trans, trans)
+}
+
+func TestZlibFactoryTransportWithoutFactory(t *testing.T) {
+	factory := NewTZlibTransportFactoryWithFactory(zlib.BestCompression, nil)
+	buffer := NewTMemoryBuffer()
+	trans, err := factory.GetTransport(buffer)
+	if err != nil {
+		t.Fatal(err)
+	}
+	TransportTest(t, trans, trans)
+}

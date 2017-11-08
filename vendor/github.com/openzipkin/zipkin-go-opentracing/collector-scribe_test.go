@@ -1,6 +1,7 @@
 package zipkintracer
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"math/rand"
@@ -11,8 +12,8 @@ import (
 
 	"github.com/apache/thrift/lib/go/thrift"
 
-	"github.com/openzipkin/zipkin-go-opentracing/_thrift/gen-go/scribe"
-	"github.com/openzipkin/zipkin-go-opentracing/_thrift/gen-go/zipkincore"
+	"github.com/openzipkin/zipkin-go-opentracing/thrift/gen-go/scribe"
+	"github.com/openzipkin/zipkin-go-opentracing/thrift/gen-go/zipkincore"
 )
 
 func TestScribeCollector(t *testing.T) {
@@ -143,7 +144,7 @@ func newScribeHandler(t *testing.T) *scribeHandler {
 	return &scribeHandler{t: t}
 }
 
-func (h *scribeHandler) Log(messages []*scribe.LogEntry) (scribe.ResultCode, error) {
+func (h *scribeHandler) Log(ctx context.Context, messages []*scribe.LogEntry) (scribe.ResultCode, error) {
 	h.Lock()
 	defer h.Unlock()
 	for _, m := range messages {

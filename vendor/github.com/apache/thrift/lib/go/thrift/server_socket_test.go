@@ -41,6 +41,16 @@ func TestSocketIsntListeningAfterInterrupt(t *testing.T) {
 	}
 }
 
+func TestSocketConcurrency(t *testing.T) {
+	host := "127.0.0.1"
+	port := 9090
+	addr := fmt.Sprintf("%s:%d", host, port)
+
+	socket := CreateServerSocket(t, addr)
+	go func() { socket.Listen() }()
+	go func() { socket.Interrupt() }()
+}
+
 func CreateServerSocket(t *testing.T, addr string) *TServerSocket {
 	socket, err := NewTServerSocket(addr)
 	if err != nil {

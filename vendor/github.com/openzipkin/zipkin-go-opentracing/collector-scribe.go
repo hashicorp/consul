@@ -1,6 +1,7 @@
 package zipkintracer
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"net"
@@ -9,8 +10,8 @@ import (
 
 	"github.com/apache/thrift/lib/go/thrift"
 
-	"github.com/openzipkin/zipkin-go-opentracing/_thrift/gen-go/scribe"
-	"github.com/openzipkin/zipkin-go-opentracing/_thrift/gen-go/zipkincore"
+	"github.com/openzipkin/zipkin-go-opentracing/thrift/gen-go/scribe"
+	"github.com/openzipkin/zipkin-go-opentracing/thrift/gen-go/zipkincore"
 )
 
 const defaultScribeCategory = "zipkin"
@@ -198,7 +199,7 @@ func (c *ScribeCollector) send() error {
 			return err
 		}
 	}
-	if rc, err := c.client.Log(sendBatch); err != nil {
+	if rc, err := c.client.Log(context.Background(), sendBatch); err != nil {
 		c.client = nil
 		_ = c.logger.Log("err", fmt.Sprintf("during Log: %v", err))
 		return err

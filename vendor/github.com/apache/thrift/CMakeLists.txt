@@ -17,7 +17,14 @@
 # under the License.
 #
 
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.1)
+
+# CMake 3.1 supports C++ standards selection with CMAKE_CXX_STANDARD
+# If you need CMake 3.1+ for Ubuntu 14.04, try
+#   https://launchpad.net/~george-edison55/+archive/ubuntu/cmake-3.x
+# If you need CMake 3.1+ for debian "jessie", get it from jessie-backports
+# Otherwise
+#   http://cmake.org
 
 project("Apache Thrift")
 

@@ -8,7 +8,7 @@ import (
 
 	"github.com/apache/thrift/lib/go/thrift"
 
-	"github.com/openzipkin/zipkin-go-opentracing/_thrift/gen-go/zipkincore"
+	"github.com/openzipkin/zipkin-go-opentracing/thrift/gen-go/zipkincore"
 )
 
 // Default timeout for http request in seconds
@@ -180,7 +180,7 @@ func (c *HTTPCollector) append(span *zipkincore.Span) (newBatchSize int) {
 	c.batch = append(c.batch, span)
 	if len(c.batch) > c.maxBacklog {
 		dispose := len(c.batch) - c.maxBacklog
-		c.logger.Log("Backlog too long, disposing spans.", "count", dispose)
+		c.logger.Log("msg", "backlog too long, disposing spans.", "count", dispose)
 		c.batch = c.batch[dispose:]
 	}
 	newBatchSize = len(c.batch)
@@ -214,9 +214,15 @@ func (c *HTTPCollector) send() error {
 	if c.reqCallback != nil {
 		c.reqCallback(req)
 	}
-	if _, err = c.client.Do(req); err != nil {
+	resp, err := c.client.Do(req)
+	if err != nil {
 		c.logger.Log("err", err.Error())
 		return err
+	}
+	resp.Body.Close()
+	// non 2xx code
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		c.logger.Log("err", "HTTP POST span failed", "code", resp.Status)
 	}
 
 	// Remove sent spans from the batch

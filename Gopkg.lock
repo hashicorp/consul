@@ -22,8 +22,7 @@
 [[projects]]
   name = "github.com/apache/thrift"
   packages = ["lib/go/thrift"]
-  revision = "b2a4d4ae21c789b689dd162deb819665567f481c"
-  version = "0.10.0"
+  revision = "4f77ab8e296d64c57e6ea1c6e3f0f152bc7d6a3a"
 
 [[projects]]
   name = "github.com/asaskevich/govalidator"
@@ -149,7 +148,7 @@
   branch = "master"
   name = "github.com/go-openapi/spec"
   packages = ["."]
-  revision = "84b5bee7bcb76f3d17bcbaf421bac44bd5709ca6"
+  revision = "a4fa9574c7aa73b2fc54e251eb9524d0482bb592"
 
 [[projects]]
   branch = "master"
@@ -197,7 +196,7 @@
   branch = "master"
   name = "github.com/grpc-ecosystem/grpc-opentracing"
   packages = ["go/otgrpc"]
-  revision = "a570af39704b9f3d4bb530d83192a99ea6337d5a"
+  revision = "01f8541d537215b2867e2745a1eb85c58c7c6b81"
 
 [[projects]]
   branch = "master"
@@ -233,7 +232,7 @@
   branch = "master"
   name = "github.com/mailru/easyjson"
   packages = ["buffer","jlexer","jwriter"]
-  revision = "4d347d79dea0067c945f374f990601decb08abb5"
+  revision = "5f62e4f3afa2f576dc86531b7df4d966b19ef8f8"
 
 [[projects]]
   name = "github.com/matttproud/golang_protobuf_extensions"
@@ -248,6 +247,12 @@
   revision = "06020f85339e21b2478f756a78e295255ffa4d6a"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/opentracing-contrib/go-observer"
+  packages = ["."]
+  revision = "a52f2342449246d5bcc273e65cbdcfa5f7d6c63c"
+
+[[projects]]
   name = "github.com/opentracing/opentracing-go"
   packages = [".","ext","log"]
   revision = "1949ddbfd147afd4d964a9f00b24eb291e0e7c38"
@@ -255,9 +260,8 @@
 
 [[projects]]
   name = "github.com/openzipkin/zipkin-go-opentracing"
-  packages = [".","_thrift/gen-go/scribe","_thrift/gen-go/zipkincore","flag","types","wire"]
-  revision = "d88c90182f3fb514be54a1c7adc11a04d41c7da9"
-  version = "v0.2.4"
+  packages = [".","flag","thrift/gen-go/scribe","thrift/gen-go/zipkincore","types","wire"]
+  revision = "45e90b00710a4c34a1a7d8a78d90f9b010b0bd4d"
 
 [[projects]]
   name = "github.com/pierrec/lz4"
@@ -316,13 +320,13 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  revision = "bd6f299fb381e4c3393d1c4b1f0b94f5e77650c8"
+  revision = "6a293f2d4b14b8e6d3f0539e383f6d0d30fce3fd"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix","windows"]
-  revision = "4fe5d7925040acd225bf9c7cee65e82d07f06bff"
+  revision = "75813c647272dd855bda156405bf844a5414f5bf"
 
 [[projects]]
   branch = "master"
@@ -374,6 +378,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9e6593b26c8f9a3841e988e46627fa440748742be455c2523b66b01501796ca4"
+  inputs-digest = "c7279ef091bb11a42d1421f51e53d761113ea23d9e9b993823605883da0f80ff"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -1,0 +1,10 @@
+dependencies:
+  override:
+    - sudo rm -rf /home/ubuntu/.go_workspace/src/github.com/openzipkin
+    - mkdir -p /home/ubuntu/.go_workspace/src/github.com/openzipkin
+    - mv /home/ubuntu/zipkin-go-opentracing /home/ubuntu/.go_workspace/src/github.com/openzipkin
+    - ln -s /home/ubuntu/.go_workspace/src/github.com/openzipkin/zipkin-go-opentracing /home/ubuntu/zipkin-go-opentracing
+    - go get -u -t -v github.com/openzipkin/zipkin-go-opentracing/...
+test:
+  override:
+    - make test bench

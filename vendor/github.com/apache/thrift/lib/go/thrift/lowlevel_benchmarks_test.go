@@ -36,7 +36,10 @@ var tfv = []TTransportFactory{
 }
 
 func BenchmarkBinaryBool_0(b *testing.B) {
-	trans := tfv[0].GetTransport(nil)
+	trans, err := tfv[0].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := binaryProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteBool(b, p, trans)
@@ -44,7 +47,10 @@ func BenchmarkBinaryBool_0(b *testing.B) {
 }
 
 func BenchmarkBinaryByte_0(b *testing.B) {
-	trans := tfv[0].GetTransport(nil)
+	trans, err := tfv[0].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := binaryProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteByte(b, p, trans)
@@ -52,7 +58,10 @@ func BenchmarkBinaryByte_0(b *testing.B) {
 }
 
 func BenchmarkBinaryI16_0(b *testing.B) {
-	trans := tfv[0].GetTransport(nil)
+	trans, err := tfv[0].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := binaryProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteI16(b, p, trans)
@@ -60,35 +69,50 @@ func BenchmarkBinaryI16_0(b *testing.B) {
 }
 
 func BenchmarkBinaryI32_0(b *testing.B) {
-	trans := tfv[0].GetTransport(nil)
+	trans, err := tfv[0].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := binaryProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteI32(b, p, trans)
 	}
 }
 func BenchmarkBinaryI64_0(b *testing.B) {
-	trans := tfv[0].GetTransport(nil)
+	trans, err := tfv[0].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := binaryProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteI64(b, p, trans)
 	}
 }
 func BenchmarkBinaryDouble_0(b *testing.B) {
-	trans := tfv[0].GetTransport(nil)
+	trans, err := tfv[0].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := binaryProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteDouble(b, p, trans)
 	}
 }
 func BenchmarkBinaryString_0(b *testing.B) {
-	trans := tfv[0].GetTransport(nil)
+	trans, err := tfv[0].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := binaryProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteString(b, p, trans)
 	}
 }
 func BenchmarkBinaryBinary_0(b *testing.B) {
-	trans := tfv[0].GetTransport(nil)
+	trans, err := tfv[0].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := binaryProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteBinary(b, p, trans)
@@ -96,7 +120,10 @@ func BenchmarkBinaryBinary_0(b *testing.B) {
 }
 
 func BenchmarkBinaryBool_1(b *testing.B) {
-	trans := tfv[1].GetTransport(nil)
+	trans, err := tfv[1].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := binaryProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteBool(b, p, trans)
@@ -104,7 +131,10 @@ func BenchmarkBinaryBool_1(b *testing.B) {
 }
 
 func BenchmarkBinaryByte_1(b *testing.B) {
-	trans := tfv[1].GetTransport(nil)
+	trans, err := tfv[1].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := binaryProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteByte(b, p, trans)
@@ -112,7 +142,10 @@ func BenchmarkBinaryByte_1(b *testing.B) {
 }
 
 func BenchmarkBinaryI16_1(b *testing.B) {
-	trans := tfv[1].GetTransport(nil)
+	trans, err := tfv[1].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := binaryProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteI16(b, p, trans)
@@ -120,35 +153,50 @@ func BenchmarkBinaryI16_1(b *testing.B) {
 }
 
 func BenchmarkBinaryI32_1(b *testing.B) {
-	trans := tfv[1].GetTransport(nil)
+	trans, err := tfv[1].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := binaryProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteI32(b, p, trans)
 	}
 }
 func BenchmarkBinaryI64_1(b *testing.B) {
-	trans := tfv[1].GetTransport(nil)
+	trans, err := tfv[1].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := binaryProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteI64(b, p, trans)
 	}
 }
 func BenchmarkBinaryDouble_1(b *testing.B) {
-	trans := tfv[1].GetTransport(nil)
+	trans, err := tfv[1].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := binaryProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteDouble(b, p, trans)
 	}
 }
 func BenchmarkBinaryString_1(b *testing.B) {
-	trans := tfv[1].GetTransport(nil)
+	trans, err := tfv[1].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := binaryProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteString(b, p, trans)
 	}
 }
 func BenchmarkBinaryBinary_1(b *testing.B) {
-	trans := tfv[1].GetTransport(nil)
+	trans, err := tfv[1].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := binaryProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteBinary(b, p, trans)
@@ -156,7 +204,10 @@ func BenchmarkBinaryBinary_1(b *testing.B) {
 }
 
 func BenchmarkBinaryBool_2(b *testing.B) {
-	trans := tfv[2].GetTransport(nil)
+	trans, err := tfv[2].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := binaryProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteBool(b, p, trans)
@@ -164,7 +215,10 @@ func BenchmarkBinaryBool_2(b *testing.B) {
 }
 
 func BenchmarkBinaryByte_2(b *testing.B) {
-	trans := tfv[2].GetTransport(nil)
+	trans, err := tfv[2].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := binaryProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteByte(b, p, trans)
@@ -172,7 +226,10 @@ func BenchmarkBinaryByte_2(b *testing.B) {
 }
 
 func BenchmarkBinaryI16_2(b *testing.B) {
-	trans := tfv[2].GetTransport(nil)
+	trans, err := tfv[2].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := binaryProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteI16(b, p, trans)
@@ -180,35 +237,50 @@ func BenchmarkBinaryI16_2(b *testing.B) {
 }
 
 func BenchmarkBinaryI32_2(b *testing.B) {
-	trans := tfv[2].GetTransport(nil)
+	trans, err := tfv[2].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := binaryProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteI32(b, p, trans)
 	}
 }
 func BenchmarkBinaryI64_2(b *testing.B) {
-	trans := tfv[2].GetTransport(nil)
+	trans, err := tfv[2].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := binaryProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteI64(b, p, trans)
 	}
 }
 func BenchmarkBinaryDouble_2(b *testing.B) {
-	trans := tfv[2].GetTransport(nil)
+	trans, err := tfv[2].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := binaryProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteDouble(b, p, trans)
 	}
 }
 func BenchmarkBinaryString_2(b *testing.B) {
-	trans := tfv[2].GetTransport(nil)
+	trans, err := tfv[2].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := binaryProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteString(b, p, trans)
 	}
 }
 func BenchmarkBinaryBinary_2(b *testing.B) {
-	trans := tfv[2].GetTransport(nil)
+	trans, err := tfv[2].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := binaryProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteBinary(b, p, trans)
@@ -216,7 +288,10 @@ func BenchmarkBinaryBinary_2(b *testing.B) {
 }
 
 func BenchmarkCompactBool_0(b *testing.B) {
-	trans := tfv[0].GetTransport(nil)
+	trans, err := tfv[0].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := compactProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteBool(b, p, trans)
@@ -224,7 +299,10 @@ func BenchmarkCompactBool_0(b *testing.B) {
 }
 
 func BenchmarkCompactByte_0(b *testing.B) {
-	trans := tfv[0].GetTransport(nil)
+	trans, err := tfv[0].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := compactProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteByte(b, p, trans)
@@ -232,7 +310,10 @@ func BenchmarkCompactByte_0(b *testing.B) {
 }
 
 func BenchmarkCompactI16_0(b *testing.B) {
-	trans := tfv[0].GetTransport(nil)
+	trans, err := tfv[0].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := compactProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteI16(b, p, trans)
@@ -240,35 +321,50 @@ func BenchmarkCompactI16_0(b *testing.B) {
 }
 
 func BenchmarkCompactI32_0(b *testing.B) {
-	trans := tfv[0].GetTransport(nil)
+	trans, err := tfv[0].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := compactProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteI32(b, p, trans)
 	}
 }
 func BenchmarkCompactI64_0(b *testing.B) {
-	trans := tfv[0].GetTransport(nil)
+	trans, err := tfv[0].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := compactProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteI64(b, p, trans)
 	}
 }
 func BenchmarkCompactDouble0(b *testing.B) {
-	trans := tfv[0].GetTransport(nil)
+	trans, err := tfv[0].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := compactProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteDouble(b, p, trans)
 	}
 }
 func BenchmarkCompactString0(b *testing.B) {
-	trans := tfv[0].GetTransport(nil)
+	trans, err := tfv[0].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := compactProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteString(b, p, trans)
 	}
 }
 func BenchmarkCompactBinary0(b *testing.B) {
-	trans := tfv[0].GetTransport(nil)
+	trans, err := tfv[0].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := compactProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteBinary(b, p, trans)
@@ -276,7 +372,10 @@ func BenchmarkCompactBinary0(b *testing.B) {
 }
 
 func BenchmarkCompactBool_1(b *testing.B) {
-	trans := tfv[1].GetTransport(nil)
+	trans, err := tfv[1].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := compactProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteBool(b, p, trans)
@@ -284,7 +383,10 @@ func BenchmarkCompactBool_1(b *testing.B) {
 }
 
 func BenchmarkCompactByte_1(b *testing.B) {
-	trans := tfv[1].GetTransport(nil)
+	trans, err := tfv[1].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := compactProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteByte(b, p, trans)
@@ -292,7 +394,10 @@ func BenchmarkCompactByte_1(b *testing.B) {
 }
 
 func BenchmarkCompactI16_1(b *testing.B) {
-	trans := tfv[1].GetTransport(nil)
+	trans, err := tfv[1].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := compactProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteI16(b, p, trans)
@@ -300,35 +405,50 @@ func BenchmarkCompactI16_1(b *testing.B) {
 }
 
 func BenchmarkCompactI32_1(b *testing.B) {
-	trans := tfv[1].GetTransport(nil)
+	trans, err := tfv[1].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := compactProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteI32(b, p, trans)
 	}
 }
 func BenchmarkCompactI64_1(b *testing.B) {
-	trans := tfv[1].GetTransport(nil)
+	trans, err := tfv[1].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := compactProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteI64(b, p, trans)
 	}
 }
 func BenchmarkCompactDouble1(b *testing.B) {
-	trans := tfv[1].GetTransport(nil)
+	trans, err := tfv[1].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := compactProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteDouble(b, p, trans)
 	}
 }
 func BenchmarkCompactString1(b *testing.B) {
-	trans := tfv[1].GetTransport(nil)
+	trans, err := tfv[1].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := compactProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteString(b, p, trans)
 	}
 }
 func BenchmarkCompactBinary1(b *testing.B) {
-	trans := tfv[1].GetTransport(nil)
+	trans, err := tfv[1].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := compactProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteBinary(b, p, trans)
@@ -336,7 +456,10 @@ func BenchmarkCompactBinary1(b *testing.B) {
 }
 
 func BenchmarkCompactBool_2(b *testing.B) {
-	trans := tfv[2].GetTransport(nil)
+	trans, err := tfv[2].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := compactProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteBool(b, p, trans)
@@ -344,7 +467,10 @@ func BenchmarkCompactBool_2(b *testing.B) {
 }
 
 func BenchmarkCompactByte_2(b *testing.B) {
-	trans := tfv[2].GetTransport(nil)
+	trans, err := tfv[2].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := compactProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteByte(b, p, trans)
@@ -352,7 +478,10 @@ func BenchmarkCompactByte_2(b *testing.B) {
 }
 
 func BenchmarkCompactI16_2(b *testing.B) {
-	trans := tfv[2].GetTransport(nil)
+	trans, err := tfv[2].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := compactProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteI16(b, p, trans)
@@ -360,35 +489,50 @@ func BenchmarkCompactI16_2(b *testing.B) {
 }
 
 func BenchmarkCompactI32_2(b *testing.B) {
-	trans := tfv[2].GetTransport(nil)
+	trans, err := tfv[2].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := compactProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteI32(b, p, trans)
 	}
 }
 func BenchmarkCompactI64_2(b *testing.B) {
-	trans := tfv[2].GetTransport(nil)
+	trans, err := tfv[2].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := compactProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteI64(b, p, trans)
 	}
 }
 func BenchmarkCompactDouble2(b *testing.B) {
-	trans := tfv[2].GetTransport(nil)
+	trans, err := tfv[2].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := compactProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteDouble(b, p, trans)
 	}
 }
 func BenchmarkCompactString2(b *testing.B) {
-	trans := tfv[2].GetTransport(nil)
+	trans, err := tfv[2].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := compactProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteString(b, p, trans)
 	}
 }
 func BenchmarkCompactBinary2(b *testing.B) {
-	trans := tfv[2].GetTransport(nil)
+	trans, err := tfv[2].GetTransport(nil)
+	if err != nil {
+		b.Fatal(err)
+	}
 	p := compactProtoF.GetProtocol(trans)
 	for i := 0; i < b.N; i++ {
 		ReadWriteBinary(b, p, trans)

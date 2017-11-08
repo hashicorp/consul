@@ -123,55 +123,91 @@ func ReadWriteProtocolTest(t *testing.T, protocolFactory TProtocolFactory) {
 		NewTHttpPostClientTransportFactory("http://" + addr.String()),
 	}
 	for _, tf := range transports {
-		trans := tf.GetTransport(nil)
+		trans, err := tf.GetTransport(nil)
+		if err != nil {
+			t.Error(err)
+			continue
+		}
 		p := protocolFactory.GetProtocol(trans)
 		ReadWriteBool(t, p, trans)
 		trans.Close()
 	}
 	for _, tf := range transports {
-		trans := tf.GetTransport(nil)
+		trans, err := tf.GetTransport(nil)
+		if err != nil {
+			t.Error(err)
+			continue
+		}
 		p := protocolFactory.GetProtocol(trans)
 		ReadWriteByte(t, p, trans)
 		trans.Close()
 	}
 	for _, tf := range transports {
-		trans := tf.GetTransport(nil)
+		trans, err := tf.GetTransport(nil)
+		if err != nil {
+			t.Error(err)
+			continue
+		}
 		p := protocolFactory.GetProtocol(trans)
 		ReadWriteI16(t, p, trans)
 		trans.Close()
 	}
 	for _, tf := range transports {
-		trans := tf.GetTransport(nil)
+		trans, err := tf.GetTransport(nil)
+		if err != nil {
+			t.Error(err)
+			continue
+		}
 		p := protocolFactory.GetProtocol(trans)
 		ReadWriteI32(t, p, trans)
 		trans.Close()
 	}
 	for _, tf := range transports {
-		trans := tf.GetTransport(nil)
+		trans, err := tf.GetTransport(nil)
+		if err != nil {
+			t.Error(err)
+			continue
+		}
 		p := protocolFactory.GetProtocol(trans)
 		ReadWriteI64(t, p, trans)
 		trans.Close()
 	}
 	for _, tf := range transports {
-		trans := tf.GetTransport(nil)
+		trans, err := tf.GetTransport(nil)
+		if err != nil {
+			t.Error(err)
+			continue
+		}
 		p := protocolFactory.GetProtocol(trans)
 		ReadWriteDouble(t, p, trans)
 		trans.Close()
 	}
 	for _, tf := range transports {
-		trans := tf.GetTransport(nil)
+		trans, err := tf.GetTransport(nil)
+		if err != nil {
+			t.Error(err)
+			continue
+		}
 		p := protocolFactory.GetProtocol(trans)
 		ReadWriteString(t, p, trans)
 		trans.Close()
 	}
 	for _, tf := range transports {
-		trans := tf.GetTransport(nil)
+		trans, err := tf.GetTransport(nil)
+		if err != nil {
+			t.Error(err)
+			continue
+		}
 		p := protocolFactory.GetProtocol(trans)
 		ReadWriteBinary(t, p, trans)
 		trans.Close()
 	}
 	for _, tf := range transports {
-		trans := tf.GetTransport(nil)
+		trans, err := tf.GetTransport(nil)
+		if err != nil {
+			t.Error(err)
+			continue
+		}
 		p := protocolFactory.GetProtocol(trans)
 		ReadWriteI64(t, p, trans)
 		ReadWriteDouble(t, p, trans)

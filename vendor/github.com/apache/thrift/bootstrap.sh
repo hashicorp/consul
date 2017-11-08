@@ -46,9 +46,12 @@ if [ "$AUTOMAKE_VERSION" \< "1.13" ]; then
   exit 1
 fi
 
+set -e
 autoscan
 $LIBTOOLIZE --copy --automake
 aclocal -I ./aclocal
 autoheader
+sed '/undef VERSION/d' config.hin > config.hin2
+mv config.hin2 config.hin
 autoconf
 automake --copy --add-missing --foreign

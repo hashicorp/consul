@@ -421,6 +421,7 @@ ccflags="$@"
 		$2 ~ /^SECCOMP_MODE_/ ||
 		$2 ~ /^SPLICE_/ ||
 		$2 ~ /^(VM|VMADDR)_/ ||
+		$2 ~ /^IOCTL_VM_SOCKETS_/ ||
 		$2 ~ /^(TASKSTATS|TS)_/ ||
 		$2 ~ /^GENL_/ ||
 		$2 ~ /^UTIME_/ ||

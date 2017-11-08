@@ -6,7 +6,7 @@
     "type": "git",
     "url": "https://git-wip-us.apache.org/repos/asf/thrift.git"
   },
-  "version": "0.10.0",
+  "version": "1.0.0-dev",
   "author": {
     "name": "Apache Thrift Developers",
     "email": "dev@thrift.apache.org",
@@ -32,20 +32,24 @@
   },
   "main": "./lib/nodejs/lib/thrift",
   "engines": {
-    "node": ">= 0.2.4"
+    "node": ">= 4.1.0"
   },
   "dependencies": {
-    "node-int64": "~0.3.0",
-    "q": "1.0.x",
-    "ws": "~0.4.32"
+    "node-int64": "^0.4.0",
+    "q": "^1.5.0",
+    "ws": ">= 2.2.3"
   },
   "devDependencies": {
-    "buffer-equals": "^1.0.3",
-    "commander": "2.1.x",
-    "connect": "2.7.x",
-    "istanbul": "^0.3.5",
-    "run-browser": "^2.0.1",
-    "tape": "~3.5.0"
+    "buffer-equals": "^1.0.4",
+    "commander": "^2.11.0",
+    "connect": "^3.6.4",
+    "istanbul": "^0.4.5",
+    "jsdoc": ">=3.5.5",
+    "minimatch": "^3.0.4",
+    "phantomjs-prebuilt": "^2.1.7",
+    "run-browser": "^2.0.2",
+    "tape": "^4.8.0",
+    "utf-8-validate": "^3.0.0"
   },
   "scripts": {
     "cover": "lib/nodejs/test/testAll.sh COVER",

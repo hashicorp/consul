@@ -1,6 +1,6 @@
 syntax = "proto3";
 package zipkintracer_go.wire;
-option go_package = "wire";
+option go_package = "github.com/openzipkin/zipkin-go-opentracing/wire";
 
 message TracerState {
   fixed64 trace_id = 1;

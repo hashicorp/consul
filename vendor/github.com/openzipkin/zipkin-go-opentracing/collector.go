@@ -3,7 +3,7 @@ package zipkintracer
 import (
 	"strings"
 
-	"github.com/openzipkin/zipkin-go-opentracing/_thrift/gen-go/zipkincore"
+	"github.com/openzipkin/zipkin-go-opentracing/thrift/gen-go/zipkincore"
 )
 
 // Collector represents a Zipkin trace collector, which is probably a set of

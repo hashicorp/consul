@@ -598,7 +598,7 @@ func (p *MyTestStruct) writeField11(oprot TProtocol) (err error) {
 	if err := oprot.WriteSetBegin(STRING, len(p.StringSet)); err != nil {
 		return PrependError("error writing set begin: ", err)
 	}
-	for v, _ := range p.StringSet {
+	for v := range p.StringSet {
 		if err := oprot.WriteString(string(v)); err != nil {
 			return PrependError(fmt.Sprintf("%T. (0) field write error: ", p), err)
 		}

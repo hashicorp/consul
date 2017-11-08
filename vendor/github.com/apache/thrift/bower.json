@@ -1,6 +1,5 @@
 {
   "name": "thrift",
-  "version": "0.10.0",
   "homepage": "https://git-wip-us.apache.org/repos/asf/thrift.git",
   "authors": [
     "Apache Thrift <dev@thrift.apache.org>"

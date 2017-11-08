@@ -43,7 +43,7 @@ dist-hook:
 	find $(distdir) -type d \( -iname ".svn" -or -iname ".git" \) | xargs rm -rf
 
 print-version:
-	@echo $(VERSION)
+	@echo $(PACKAGE_VERSION)
 
 .PHONY: precross cross
 precross-%: all
@@ -54,7 +54,7 @@ empty :=
 space := $(empty) $(empty)
 comma := ,
 
-CROSS_LANGS = @MAYBE_CPP@ @MAYBE_C_GLIB@ @MAYBE_D@ @MAYBE_JAVA@ @MAYBE_CSHARP@ @MAYBE_PYTHON@ @MAYBE_PY3@ @MAYBE_RUBY@ @MAYBE_HASKELL@ @MAYBE_PERL@ @MAYBE_PHP@ @MAYBE_GO@ @MAYBE_NODEJS@ @MAYBE_DART@ @MAYBE_ERLANG@ @MAYBE_LUA@
+CROSS_LANGS = @MAYBE_CPP@ @MAYBE_C_GLIB@ @MAYBE_D@ @MAYBE_JAVA@ @MAYBE_CSHARP@ @MAYBE_PYTHON@ @MAYBE_PY3@ @MAYBE_RUBY@ @MAYBE_HASKELL@ @MAYBE_PERL@ @MAYBE_PHP@ @MAYBE_GO@ @MAYBE_NODEJS@ @MAYBE_DART@ @MAYBE_ERLANG@ @MAYBE_LUA@ @MAYBE_RS@ @MAYBE_DOTNETCORE@
 CROSS_LANGS_COMMA_SEPARATED = $(subst $(space),$(comma),$(CROSS_LANGS))
 
 if WITH_PY3
@@ -123,7 +123,7 @@ EXTRA_DIST = \
 	doap.rdf \
 	package.json \
 	sonar-project.properties \
-	Dockerfile \
+	LANGUAGES.md \
 	LICENSE \
 	CHANGES \
 	NOTICE \

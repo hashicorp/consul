@@ -228,6 +228,8 @@ type BpfTimeval C.struct_bpf_timeval
 
 type Termios C.struct_termios
 
+type Winsize C.struct_winsize
+
 // fchmodat-like syscalls.
 
 const (
