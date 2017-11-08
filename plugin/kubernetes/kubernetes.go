@@ -77,7 +77,6 @@ var (
 	errNoItems        = errors.New("no items found")
 	errNsNotExposed   = errors.New("namespace is not exposed")
 	errInvalidRequest = errors.New("invalid query name")
-	errPodsDisabled   = errors.New("pod records disabled")
 )
 
 // Services implements the ServiceBackend interface.
@@ -295,7 +294,7 @@ func endpointHostname(addr api.EndpointAddress, endpointNameMode bool) string {
 
 func (k *Kubernetes) findPods(r recordRequest, zone string) (pods []msg.Service, err error) {
 	if k.podMode == podModeDisabled {
-		return nil, errPodsDisabled
+		return nil, errNoItems
 	}
 
 	namespace := r.namespace

@@ -14,7 +14,6 @@ var podModeDisabledCases = []test.Case{
 	{
 		Qname: "10-240-0-1.podns.pod.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeNameError,
-		Error: errPodsDisabled,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	300	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1499347823 7200 1800 86400 60"),
 		},
@@ -22,7 +21,6 @@ var podModeDisabledCases = []test.Case{
 	{
 		Qname: "172-0-0-2.podns.pod.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeNameError,
-		Error: errPodsDisabled,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	300	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1499347823 7200 1800 86400 60"),
 		},
@@ -44,7 +42,7 @@ func TestServeDNSModeDisabled(t *testing.T) {
 
 		_, err := k.ServeDNS(ctx, w, r)
 		if err != tc.Error {
-			t.Errorf("Test %d expected no error, got %v", i, err)
+			t.Errorf("Test %d got unexpected error %v", i, err)
 			return
 		}
 		if tc.Error != nil {
