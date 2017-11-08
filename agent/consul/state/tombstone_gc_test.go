@@ -23,8 +23,8 @@ func TestTombstoneGC_invalid(t *testing.T) {
 }
 
 func TestTombstoneGC(t *testing.T) {
-	ttl := 500 * time.Millisecond
-	gran := 200 * time.Millisecond
+	ttl := 20 * time.Millisecond
+	gran := 5 * time.Millisecond
 	gc, err := NewTombstoneGC(ttl, gran)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -37,11 +37,6 @@ func TestTombstoneGC(t *testing.T) {
 
 	start := time.Now()
 	gc.Hint(100)
-
-	time.Sleep(2*gran + gran/3)
-	start2 := time.Now()
-	gc.Hint(120)
-	gc.Hint(125)
 
 	if !gc.PendingExpiration() {
 		t.Fatalf("should be pending")
@@ -59,6 +54,14 @@ func TestTombstoneGC(t *testing.T) {
 
 	case <-time.After(ttl * 2):
 		t.Fatalf("should get expiration")
+	}
+
+	start2 := time.Now()
+	gc.Hint(120)
+	gc.Hint(125)
+
+	if !gc.PendingExpiration() {
+		t.Fatalf("should be pending")
 	}
 
 	select {
