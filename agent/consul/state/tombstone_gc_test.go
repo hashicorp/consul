@@ -23,8 +23,8 @@ func TestTombstoneGC_invalid(t *testing.T) {
 }
 
 func TestTombstoneGC(t *testing.T) {
-	ttl := 200 * time.Millisecond
-	gran := 50 * time.Millisecond
+	ttl := 500 * time.Millisecond
+	gran := 100 * time.Millisecond
 	gc, err := NewTombstoneGC(ttl, gran)
 	if err != nil {
 		t.Fatalf("err: %v", err)
