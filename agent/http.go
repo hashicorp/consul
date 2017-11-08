@@ -67,7 +67,8 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 		wrapper := func(resp http.ResponseWriter, req *http.Request) {
 			start := time.Now()
 			handler(resp, req)
-			key := append([]string{"consul", "http", req.Method}, parts...)
+			key := append([]string{"http", req.Method}, parts...)
+			metrics.MeasureSince(append([]string{"consul"}, key...), start)
 			metrics.MeasureSince(key, start)
 		}
 		mux.HandleFunc(pattern, wrapper)
