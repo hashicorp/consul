@@ -73,7 +73,6 @@ test: other-consul dev-build vet
 	@grep -A1 -- '--- SKIP:' test.log || true
 	@grep -A1 -- '--- FAIL:' test.log || true
 	@grep '^FAIL' test.log || true
-	@test "$$TRAVIS" == "true" && cat test.log || true
 	@if [ "$$(cat exit-code)" == "0" ] ; then echo "PASS" ; exit 0 ; else exit 1 ; fi
 
 test-race:
