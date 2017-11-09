@@ -513,6 +513,9 @@ func TestCheckTCPPassing(t *testing.T) {
 	expectTCPStatus(t, tcpServer.Addr().String(), api.HealthPassing)
 	tcpServer.Close()
 
+	if os.Getenv("TRAVIS") == "true" {
+		t.Skip("IPV6 not supported on travis-ci")
+	}
 	tcpServer = mockTCPServer(`tcp6`)
 	expectTCPStatus(t, tcpServer.Addr().String(), api.HealthPassing)
 	tcpServer.Close()
