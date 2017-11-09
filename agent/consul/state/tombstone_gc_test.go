@@ -1,6 +1,7 @@
 package state
 
 import (
+	"os"
 	"testing"
 	"time"
 )
@@ -23,6 +24,10 @@ func TestTombstoneGC_invalid(t *testing.T) {
 }
 
 func TestTombstoneGC(t *testing.T) {
+	if os.Getenv("TRAVIS") == "true" {
+		t.Skip("GC test is flaky on travis-ci (see #3670)")
+	}
+
 	ttl := 20 * time.Millisecond
 	gran := 5 * time.Millisecond
 	gc, err := NewTombstoneGC(ttl, gran)
