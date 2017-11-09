@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib/freeport"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/raft"
@@ -146,7 +147,7 @@ func TestOperator_RaftRemovePeerByAddress(t *testing.T) {
 	// Try to remove a peer that's not there.
 	arg := structs.RaftRemovePeerRequest{
 		Datacenter: "dc1",
-		Address:    raft.ServerAddress(fmt.Sprintf("127.0.0.1:%d", getPort())),
+		Address:    raft.ServerAddress(fmt.Sprintf("127.0.0.1:%d", freeport.Get(1)[0])),
 	}
 	var reply struct{}
 	err := msgpackrpc.CallWithCodec(codec, "Operator.RaftRemovePeerByAddress", &arg, &reply)
@@ -274,7 +275,7 @@ func TestOperator_RaftRemovePeerByID(t *testing.T) {
 
 	// Add it manually to Raft.
 	{
-		future := s1.raft.AddVoter(arg.ID, raft.ServerAddress(fmt.Sprintf("127.0.0.1:%d", getPort())), 0, 0)
+		future := s1.raft.AddVoter(arg.ID, raft.ServerAddress(fmt.Sprintf("127.0.0.1:%d", freeport.Get(1)[0])), 0, 0)
 		if err := future.Error(); err != nil {
 			t.Fatalf("err: %v", err)
 		}

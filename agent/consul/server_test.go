@@ -3,7 +3,6 @@ package consul
 import (
 	"fmt"
 	"log"
-	"math/rand"
 	"net"
 	"os"
 	"strings"
@@ -20,10 +19,6 @@ import (
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-uuid"
 )
-
-func getPort() int {
-	return 1030 + int(rand.Int31n(64400))
-}
 
 func configureTLS(config *Config) {
 	config.CAFile = "../../test/ca/root.cer"
