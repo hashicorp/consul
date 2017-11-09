@@ -3,7 +3,7 @@
 FEATURES:
 
 * **New Auto Join Cloud Providers:** Retry join support was added for Aliyun (Alibaba Cloud), Digital Ocean, OpenStack, and Scaleway. Instance metadata can be used with these to make it easy to form Consul clusters. [[GH-3634](https://github.com/hashicorp/consul/issues/3634)]
-* **HTTP/2 Support:** If TLS is enabled on a Consul agent, it will automatically negotiate to use HTTP/2 for suitably configured clients accessing the client API. This allows clients to multiplex multiple requests over the same TCP connection, such as multiple blocking queries. [[GH-3657](https://github.com/hashicorp/consul/issues/3657)]
+* **HTTP/2 Support:** If TLS is enabled on a Consul agent it will automatically negotiate to use HTTP/2 for suitably configured clients accessing the client API. This allows clients to multiplex requests over the same TCP connection, such as multiple, simultaneous blocking queries. [[GH-3657](https://github.com/hashicorp/consul/issues/3657)]
 
 IMPROVEMENTS:
 
