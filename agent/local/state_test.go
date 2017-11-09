@@ -1114,8 +1114,17 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 			}
 		}
 	}
-	// Wait for a deferred update
-	retry.Run(t, func(r *retry.R) {
+	// Wait for a deferred update. TODO (slackpad) This isn't a great test
+	// because we might be stuck in the random stagger from the full sync
+	// after the leader election (~3 seconds) so it's easy to exceed the
+	// default retry timeout here. Extending this makes the test a little
+	// less flaky, but this isn't very clean for this first deferred update
+	// since the full sync might pick it up, not the timer trigger. The
+	// good news is that the later update below should be well past the full
+	// sync so we are getting some coverage. We should rethink this a bit and
+	// rework the deferred update stuff to be more testable.
+	timer := &retry.Timer{Timeout: 6 * time.Second, Wait: 100 * time.Millisecond}
+	retry.RunWith(timer, t, func(r *retry.R) {
 		if err := a.RPC("Health.NodeChecks", &req, &checks); err != nil {
 			r.Fatal(err)
 		}
