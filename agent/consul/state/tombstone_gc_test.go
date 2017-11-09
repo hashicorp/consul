@@ -1,6 +1,7 @@
 package state
 
 import (
+	"os"
 	"testing"
 	"time"
 )
@@ -23,8 +24,12 @@ func TestTombstoneGC_invalid(t *testing.T) {
 }
 
 func TestTombstoneGC(t *testing.T) {
-	ttl := 200 * time.Millisecond
-	gran := 50 * time.Millisecond
+	if os.Getenv("TRAVIS") == "true" {
+		t.Skip("GC test is flaky on travis-ci (see #3670)")
+	}
+
+	ttl := 20 * time.Millisecond
+	gran := 5 * time.Millisecond
 	gc, err := NewTombstoneGC(ttl, gran)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -55,12 +60,6 @@ func TestTombstoneGC(t *testing.T) {
 	case <-time.After(ttl * 2):
 		t.Fatalf("should get expiration")
 	}
-
-	// At this point we know we are very close to a TTL bucket
-	// so we sleep a small fraction of the bucket size in order
-	// to hit the case we desire for the next section where we
-	// hint twice into the same bucket and see them coalesce.
-	time.Sleep(gran / 5)
 
 	start2 := time.Now()
 	gc.Hint(120)
