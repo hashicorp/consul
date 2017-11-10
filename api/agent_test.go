@@ -37,7 +37,8 @@ func TestAPI_AgentMetrics(t *testing.T) {
 	defer s.Stop()
 
 	agent := c.Agent()
-	retry.Run(t, func(r *retry.R) {
+	timer := &retry.Timer{Timeout: 10 * time.Second, Wait: 500 * time.Millisecond}
+	retry.RunWith(timer, t, func(r *retry.R) {
 		metrics, err := agent.Metrics()
 		if err != nil {
 			r.Fatalf("err: %v", err)
