@@ -234,6 +234,12 @@ type Config struct {
 	VerifyServerHostname        *bool                    `json:"verify_server_hostname,omitempty" hcl:"verify_server_hostname" mapstructure:"verify_server_hostname"`
 	Watches                     []map[string]interface{} `json:"watches,omitempty" hcl:"watches" mapstructure:"watches"`
 
+	// This isn't used by Consul but we've documented a feature where users
+	// can deploy their snapshot agent configs alongside their Consul configs
+	// so we have a placeholder here so it can be parsed but this doesn't
+	// manifest itself in any way inside the runtime config.
+	SnapshotAgent map[string]interface{} `json:"snapshot_agent,omitempty" hcl:"snapshot_agent" mapstructure:"snapshot_agent"`
+
 	// non-user configurable values
 	ACLDisabledTTL             *string  `json:"acl_disabled_ttl,omitempty" hcl:"acl_disabled_ttl" mapstructure:"acl_disabled_ttl"`
 	AEInterval                 *string  `json:"ae_interval,omitempty" hcl:"ae_interval" mapstructure:"ae_interval"`

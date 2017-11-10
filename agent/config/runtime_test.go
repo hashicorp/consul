@@ -1194,6 +1194,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		// ------------------------------------------------------------
 		// transformations
 		//
+
 		{
 			desc: "raft performance scaling",
 			args: []string{`-data-dir=` + dataDir},
@@ -1919,6 +1920,21 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 						},
 					},
 				}
+				rt.DataDir = dataDir
+			},
+		},
+		{
+			desc: "ignore snapshot_agent sub-object",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{
+				`{ "snapshot_agent": { "dont": "care" } }`,
+			},
+			hcl: []string{
+				`snapshot_agent = { dont = "care" }`,
+			},
+			patch: func(rt *RuntimeConfig) {
 				rt.DataDir = dataDir
 			},
 		},
