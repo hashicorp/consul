@@ -1,3 +1,5 @@
+// +build fuzz
+
 package file
 
 import (

@@ -25,7 +25,7 @@ echo:
 
 .PHONY: $(PLUGINS)
 $(PLUGINS): echo
-	go-fuzz-build $(REPO)/$(@)
+	go-fuzz-build -tags fuzz $(REPO)/$(@)
 	go-fuzz -bin=./$(@)-fuzz.zip -workdir=fuzz/$(@)
 
 .PHONY: clean
