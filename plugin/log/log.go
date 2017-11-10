@@ -70,11 +70,10 @@ func (l Logger) Name() string { return "log" }
 
 // Rule configures the logging plugin.
 type Rule struct {
-	NameScope  string
-	Class      response.Class
-	OutputFile string
-	Format     string
-	Log        *log.Logger
+	NameScope string
+	Class     response.Class
+	Format    string
+	Log       *log.Logger
 }
 
 const (

@@ -15,80 +15,65 @@ func TestLogParse(t *testing.T) {
 		expectedLogRules []Rule
 	}{
 		{`log`, false, []Rule{{
-			NameScope:  ".",
-			OutputFile: DefaultLogFilename,
-			Format:     DefaultLogFormat,
+			NameScope: ".",
+			Format:    DefaultLogFormat,
 		}}},
-		{`log log.txt`, false, []Rule{{
-			NameScope:  ".",
-			OutputFile: "log.txt",
-			Format:     DefaultLogFormat,
-		}}},
-		{`log example.org log.txt`, false, []Rule{{
-			NameScope:  "example.org.",
-			OutputFile: "log.txt",
-			Format:     DefaultLogFormat,
+		{`log example.org stdout`, false, []Rule{{
+			NameScope: "example.org.",
+			Format:    DefaultLogFormat,
 		}}},
 		{`log example.org. stdout`, false, []Rule{{
-			NameScope:  "example.org.",
-			OutputFile: "stdout",
-			Format:     DefaultLogFormat,
+			NameScope: "example.org.",
+			Format:    DefaultLogFormat,
 		}}},
-		{`log example.org log.txt {common}`, false, []Rule{{
-			NameScope:  "example.org.",
-			OutputFile: "log.txt",
-			Format:     CommonLogFormat,
+		{`log example.org stdout {common}`, false, []Rule{{
+			NameScope: "example.org.",
+			Format:    CommonLogFormat,
 		}}},
-		{`log example.org accesslog.txt {combined}`, false, []Rule{{
-			NameScope:  "example.org.",
-			OutputFile: "accesslog.txt",
-			Format:     CombinedLogFormat,
+		{`log example.org stdout {combined}`, false, []Rule{{
+			NameScope: "example.org.",
+			Format:    CombinedLogFormat,
 		}}},
-		{`log example.org. log.txt
-		log example.net accesslog.txt {combined}`, false, []Rule{{
-			NameScope:  "example.org.",
-			OutputFile: "log.txt",
-			Format:     DefaultLogFormat,
+		{`log example.org. stdout
+		log example.net stdout {combined}`, false, []Rule{{
+			NameScope: "example.org.",
+			Format:    DefaultLogFormat,
 		}, {
-			NameScope:  "example.net.",
-			OutputFile: "accesslog.txt",
-			Format:     CombinedLogFormat,
+			NameScope: "example.net.",
+			Format:    CombinedLogFormat,
 		}}},
 		{`log example.org stdout {host}
-			  log example.org log.txt {when}`, false, []Rule{{
-			NameScope:  "example.org.",
-			OutputFile: "stdout",
-			Format:     "{host}",
+			  log example.org stdout {when}`, false, []Rule{{
+			NameScope: "example.org.",
+			Format:    "{host}",
 		}, {
-			NameScope:  "example.org.",
-			OutputFile: "log.txt",
-			Format:     "{when}",
+			NameScope: "example.org.",
+			Format:    "{when}",
 		}}},
 
-		{`log example.org log.txt {
+		{`log example.org stdout {
 				class all
 			}`, false, []Rule{{
-			NameScope:  "example.org.",
-			OutputFile: "log.txt",
-			Format:     CommonLogFormat,
-			Class:      response.All,
+			NameScope: "example.org.",
+			Format:    CommonLogFormat,
+			Class:     response.All,
 		}}},
-		{`log example.org log.txt {
+		{`log example.org stdout {
 			class denial
 		}`, false, []Rule{{
-			NameScope:  "example.org.",
-			OutputFile: "log.txt",
-			Format:     CommonLogFormat,
-			Class:      response.Denial,
+			NameScope: "example.org.",
+			Format:    CommonLogFormat,
+			Class:     response.Denial,
 		}}},
 		{`log {
 			class denial
 		}`, false, []Rule{{
-			NameScope:  ".",
-			OutputFile: DefaultLogFilename,
-			Format:     CommonLogFormat,
-			Class:      response.Denial,
+			NameScope: ".",
+			Format:    CommonLogFormat,
+			Class:     response.Denial,
 		}}},
+
+		{`log log.txt`, true, nil},
 	}
 	for i, test := range tests {
 		c := caddy.NewTestController("dns", test.inputLogRules)
@@ -108,11 +93,6 @@ func TestLogParse(t *testing.T) {
 			if actualLogRule.NameScope != test.expectedLogRules[j].NameScope {
 				t.Errorf("Test %d expected %dth LogRule NameScope to be  %s  , but got %s",
 					i, j, test.expectedLogRules[j].NameScope, actualLogRule.NameScope)
-			}
-
-			if actualLogRule.OutputFile != test.expectedLogRules[j].OutputFile {
-				t.Errorf("Test %d expected %dth LogRule OutputFile to be  %s  , but got %s",
-					i, j, test.expectedLogRules[j].OutputFile, actualLogRule.OutputFile)
 			}
 
 			if actualLogRule.Format != test.expectedLogRules[j].Format {
