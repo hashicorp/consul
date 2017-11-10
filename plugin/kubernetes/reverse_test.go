@@ -14,16 +14,19 @@ import (
 
 type APIConnReverseTest struct{}
 
-func (APIConnReverseTest) HasSynced() bool                       { return true }
-func (APIConnReverseTest) Run()                                  { return }
-func (APIConnReverseTest) Stop() error                           { return nil }
-func (APIConnReverseTest) PodIndex(string) []*api.Pod            { return nil }
-func (APIConnReverseTest) SvcIndex(string) []*api.Service        { return nil }
-func (APIConnReverseTest) SvcIndexReverse(string) []*api.Service { return nil }
-func (APIConnReverseTest) EpIndex(string) []*api.Endpoints       { return nil }
-func (APIConnReverseTest) EndpointsList() []*api.Endpoints       { return nil }
+func (APIConnReverseTest) HasSynced() bool                 { return true }
+func (APIConnReverseTest) Run()                            { return }
+func (APIConnReverseTest) Stop() error                     { return nil }
+func (APIConnReverseTest) PodIndex(string) []*api.Pod      { return nil }
+func (APIConnReverseTest) SvcIndex(string) []*api.Service  { return nil }
+func (APIConnReverseTest) EpIndex(string) []*api.Endpoints { return nil }
+func (APIConnReverseTest) EndpointsList() []*api.Endpoints { return nil }
+func (APIConnReverseTest) ServiceList() []*api.Service     { return nil }
 
-func (APIConnReverseTest) ServiceList() []*api.Service {
+func (APIConnReverseTest) SvcIndexReverse(ip string) []*api.Service {
+	if ip != "192.168.1.100" {
+		return nil
+	}
 	svcs := []*api.Service{
 		{
 			ObjectMeta: meta.ObjectMeta{
@@ -43,7 +46,10 @@ func (APIConnReverseTest) ServiceList() []*api.Service {
 	return svcs
 }
 
-func (APIConnReverseTest) EpIndexReverse(string) []*api.Endpoints {
+func (APIConnReverseTest) EpIndexReverse(ip string) []*api.Endpoints {
+	if ip != "10.0.0.100" {
+		return nil
+	}
 	eps := []*api.Endpoints{
 		{
 			Subsets: []api.EndpointSubset{
@@ -82,7 +88,7 @@ func (APIConnReverseTest) GetNodeByName(name string) (*api.Node, error) {
 
 func TestReverse(t *testing.T) {
 
-	k := New([]string{"cluster.local.", "0.10.in-addr.arpa."})
+	k := New([]string{"cluster.local.", "0.10.in-addr.arpa.", "168.192.in-addr.arpa."})
 	k.APIConn = &APIConnReverseTest{}
 
 	tests := []test.Case{
@@ -91,6 +97,13 @@ func TestReverse(t *testing.T) {
 			Rcode: dns.RcodeSuccess,
 			Answer: []dns.RR{
 				test.PTR("100.0.0.10.in-addr.arpa.      303    IN      PTR       ep1a.svc1.testns.svc.cluster.local."),
+			},
+		},
+		{
+			Qname: "100.1.168.192.in-addr.arpa.", Qtype: dns.TypePTR,
+			Rcode: dns.RcodeSuccess,
+			Answer: []dns.RR{
+				test.PTR("100.1.168.192.in-addr.arpa.      303    IN      PTR       svc1.testns.svc.cluster.local."),
 			},
 		},
 		{
