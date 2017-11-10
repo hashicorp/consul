@@ -16,6 +16,7 @@ IMPROVEMENTS:
 * agent: The agent now warns when there are extra unparsed command line arguments and refuses to start. [[GH-3397](https://github.com/hashicorp/consul/issues/3397)]
 * agent: Updated go-sockaddr library to get CoreOS route detection fixes and the new `mask` functionality. [[GH-3633](https://github.com/hashicorp/consul/issues/3633)]
 * agent: Added a new [`enable_agent_tls_for_checks`](https://www.consul.io/docs/agent/options.html#enable_agent_tls_for_checks) configuration option that allows HTTP health checks for services requiring 2-way TLS to be checked using the agent's credentials. [[GH-3364](https://github.com/hashicorp/consul/issues/3364)]
+* agent: Made logging of health check status more uniform and moved log entries with full check output from DEBUG to TRACE level for less noise. [[GH-3683](https://github.com/hashicorp/consul/issues/3683)]
 * build: Consul is now built with Go 1.9.2. [[GH-3663](https://github.com/hashicorp/consul/issues/3663)]
 
 BUG FIXES:
