@@ -103,16 +103,13 @@ func (c *CheckMonitor) check() {
 	// Create the command
 	var cmd *osexec.Cmd
 	var err error
-	var cmdDisplay string
 	if len(c.ScriptArgs) > 0 {
-		cmdDisplay = fmt.Sprintf("%v", c.ScriptArgs)
 		cmd, err = exec.Subprocess(c.ScriptArgs)
 	} else {
-		cmdDisplay = c.Script
 		cmd, err = exec.Script(c.Script)
 	}
 	if err != nil {
-		c.Logger.Printf("[ERR] agent: failed to setup invoke '%s': %s", cmdDisplay, err)
+		c.Logger.Printf("[ERR] agent: Check %q failed to setup: %s", c.CheckID, err)
 		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
 		return
 	}
@@ -129,14 +126,13 @@ func (c *CheckMonitor) check() {
 			outputStr = fmt.Sprintf("Captured %d of %d bytes\n...\n%s",
 				output.Size(), output.TotalWritten(), outputStr)
 		}
-		c.Logger.Printf("[DEBUG] agent: Check '%s' script '%s' output: %s",
-			c.CheckID, cmdDisplay, outputStr)
+		c.Logger.Printf("[TRACE] agent: Check %q output: %s", c.CheckID, outputStr)
 		return outputStr
 	}
 
 	// Start the check
 	if err := cmd.Start(); err != nil {
-		c.Logger.Printf("[ERR] agent: failed to invoke '%s': %s", cmdDisplay, err)
+		c.Logger.Printf("[ERR] agent: Check %q failed to invoke: %s", c.CheckID, err)
 		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
 		return
 	}
@@ -154,11 +150,11 @@ func (c *CheckMonitor) check() {
 	select {
 	case <-time.After(timeout):
 		if err := exec.KillCommandSubtree(cmd); err != nil {
-			c.Logger.Printf("[WARN] Failed to kill check '%s' after timeout: %v", cmdDisplay, err)
+			c.Logger.Printf("[WARN] Check %q failed to kill after timeout: %s", c.CheckID, err)
 		}
 
 		msg := fmt.Sprintf("Timed out (%s) running check", timeout.String())
-		c.Logger.Printf("[WARN] %s '%s'", msg, cmdDisplay)
+		c.Logger.Printf("[WARN] Check %q: %s", c.CheckID, msg)
 
 		outputStr := truncateAndLogOutput()
 		if len(outputStr) > 0 {
@@ -178,7 +174,7 @@ func (c *CheckMonitor) check() {
 	// Check if the check passed
 	outputStr := truncateAndLogOutput()
 	if err == nil {
-		c.Logger.Printf("[DEBUG] agent: Check '%v' is passing", c.CheckID)
+		c.Logger.Printf("[DEBUG] agent: Check %q is passing", c.CheckID)
 		c.Notify.UpdateCheck(c.CheckID, api.HealthPassing, outputStr)
 		return
 	}
@@ -189,7 +185,7 @@ func (c *CheckMonitor) check() {
 		if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
 			code := status.ExitStatus()
 			if code == 1 {
-				c.Logger.Printf("[WARN] agent: Check '%v' is now warning", c.CheckID)
+				c.Logger.Printf("[WARN] agent: Check %q is now warning", c.CheckID)
 				c.Notify.UpdateCheck(c.CheckID, api.HealthWarning, outputStr)
 				return
 			}
@@ -197,7 +193,7 @@ func (c *CheckMonitor) check() {
 	}
 
 	// Set the health as critical
-	c.Logger.Printf("[WARN] agent: Check '%v' is now critical", c.CheckID)
+	c.Logger.Printf("[WARN] agent: Check %q is now critical", c.CheckID)
 	c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, outputStr)
 }
 
@@ -247,7 +243,7 @@ func (c *CheckTTL) run() {
 	for {
 		select {
 		case <-c.timer.C:
-			c.Logger.Printf("[WARN] agent: Check '%v' missed TTL, is now critical",
+			c.Logger.Printf("[WARN] agent: Check %q missed TTL, is now critical",
 				c.CheckID)
 			c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, c.getExpiredOutput())
 
@@ -273,8 +269,7 @@ func (c *CheckTTL) getExpiredOutput() string {
 // SetStatus is used to update the status of the check,
 // and to renew the TTL. If expired, TTL is restarted.
 func (c *CheckTTL) SetStatus(status, output string) {
-	c.Logger.Printf("[DEBUG] agent: Check '%v' status is now %v",
-		c.CheckID, status)
+	c.Logger.Printf("[DEBUG] agent: Check %q status is now %s", c.CheckID, status)
 	c.Notify.UpdateCheck(c.CheckID, status, output)
 
 	// Store the last output so we can retain it if the TTL expires.
@@ -358,7 +353,6 @@ func (c *CheckHTTP) Stop() {
 func (c *CheckHTTP) run() {
 	// Get the randomized initial pause time
 	initialPauseTime := lib.RandomStagger(c.Interval)
-	c.Logger.Printf("[DEBUG] agent: pausing %v before first HTTP request of %s", initialPauseTime, c.HTTP)
 	next := time.After(initialPauseTime)
 	for {
 		select {
@@ -380,7 +374,7 @@ func (c *CheckHTTP) check() {
 
 	req, err := http.NewRequest(method, c.HTTP, nil)
 	if err != nil {
-		c.Logger.Printf("[WARN] agent: http request failed '%s': %s", c.HTTP, err)
+		c.Logger.Printf("[WARN] agent: Check %q HTTP request failed: %s", c.CheckID, err)
 		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
 		return
 	}
@@ -405,7 +399,7 @@ func (c *CheckHTTP) check() {
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		c.Logger.Printf("[WARN] agent: http request failed '%s': %s", c.HTTP, err)
+		c.Logger.Printf("[WARN] agent: Check %q HTTP request failed: %s", c.CheckID, err)
 		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
 		return
 	}
@@ -414,7 +408,7 @@ func (c *CheckHTTP) check() {
 	// Read the response into a circular buffer to limit the size
 	output, _ := circbuf.NewBuffer(BufSize)
 	if _, err := io.Copy(output, resp.Body); err != nil {
-		c.Logger.Printf("[WARN] agent: Check '%v': Get error while reading body: %s", c.CheckID, err)
+		c.Logger.Printf("[WARN] agent: Check %q error while reading body: %s", c.CheckID, err)
 	}
 
 	// Format the response body
@@ -422,19 +416,19 @@ func (c *CheckHTTP) check() {
 
 	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
 		// PASSING (2xx)
-		c.Logger.Printf("[DEBUG] agent: Check '%v' is passing", c.CheckID)
+		c.Logger.Printf("[DEBUG] agent: Check %q is passing", c.CheckID)
 		c.Notify.UpdateCheck(c.CheckID, api.HealthPassing, result)
 
 	} else if resp.StatusCode == 429 {
 		// WARNING
 		// 429 Too Many Requests (RFC 6585)
 		// The user has sent too many requests in a given amount of time.
-		c.Logger.Printf("[WARN] agent: Check '%v' is now warning", c.CheckID)
+		c.Logger.Printf("[WARN] agent: Check %q is now warning", c.CheckID)
 		c.Notify.UpdateCheck(c.CheckID, api.HealthWarning, result)
 
 	} else {
 		// CRITICAL
-		c.Logger.Printf("[WARN] agent: Check '%v' is now critical", c.CheckID)
+		c.Logger.Printf("[WARN] agent: Check %q is now critical", c.CheckID)
 		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, result)
 	}
 }
@@ -496,7 +490,6 @@ func (c *CheckTCP) Stop() {
 func (c *CheckTCP) run() {
 	// Get the randomized initial pause time
 	initialPauseTime := lib.RandomStagger(c.Interval)
-	c.Logger.Printf("[DEBUG] agent: pausing %v before first socket connection of %s", initialPauseTime, c.TCP)
 	next := time.After(initialPauseTime)
 	for {
 		select {
@@ -513,12 +506,12 @@ func (c *CheckTCP) run() {
 func (c *CheckTCP) check() {
 	conn, err := c.dialer.Dial(`tcp`, c.TCP)
 	if err != nil {
-		c.Logger.Printf("[WARN] agent: socket connection failed '%s': %s", c.TCP, err)
+		c.Logger.Printf("[WARN] agent: Check %q socket connection failed: %s", c.CheckID, err)
 		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
 		return
 	}
 	conn.Close()
-	c.Logger.Printf("[DEBUG] agent: Check '%v' is passing", c.CheckID)
+	c.Logger.Printf("[DEBUG] agent: Check %q is passing", c.CheckID)
 	c.Notify.UpdateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("TCP connect %s: Success", c.TCP))
 }
 
@@ -585,7 +578,7 @@ func (c *CheckDocker) check() {
 	var out string
 	status, b, err := c.doCheck()
 	if err != nil {
-		c.Logger.Printf("[DEBUG] agent: Check '%s': %s", c.CheckID, err)
+		c.Logger.Printf("[DEBUG] agent: Check %q: %s", c.CheckID, err)
 		out = err.Error()
 	} else {
 		// out is already limited to CheckBufSize since we're getting a
@@ -595,11 +588,11 @@ func (c *CheckDocker) check() {
 		if int(b.TotalWritten()) > len(out) {
 			out = fmt.Sprintf("Captured %d of %d bytes\n...\n%s", len(out), b.TotalWritten(), out)
 		}
-		c.Logger.Printf("[DEBUG] agent: Check '%s' script '%s' output: %s", c.CheckID, c.Script, out)
+		c.Logger.Printf("[TRACE] agent: Check %q output: %s", c.CheckID, out)
 	}
 
 	if status == api.HealthCritical {
-		c.Logger.Printf("[WARN] agent: Check '%v' is now critical", c.CheckID)
+		c.Logger.Printf("[WARN] agent: Check %q is now critical", c.CheckID)
 	}
 
 	c.Notify.UpdateCheck(c.CheckID, status, out)
@@ -632,10 +625,10 @@ func (c *CheckDocker) doCheck() (string, *circbuf.Buffer, error) {
 	case 0:
 		return api.HealthPassing, buf, nil
 	case 1:
-		c.Logger.Printf("[DEBUG] Check failed with exit code: %d", exitCode)
+		c.Logger.Printf("[DEBUG] Check %q failed with exit code: %d", c.CheckID, exitCode)
 		return api.HealthWarning, buf, nil
 	default:
-		c.Logger.Printf("[DEBUG] Check failed with exit code: %d", exitCode)
+		c.Logger.Printf("[DEBUG] Check %q failed with exit code: %d", c.CheckID, exitCode)
 		return api.HealthCritical, buf, nil
 	}
 }
