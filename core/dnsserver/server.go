@@ -179,8 +179,8 @@ func (s *Server) Address() string { return s.Addr }
 // defined in the request so that the correct zone
 // (configuration and plugin stack) will handle the request.
 func (s *Server) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) {
-	// our dns library protects us against really invalid packets, we can still
-	// get semi valid packets. Drop them here.
+	// The default dns.Mux checks the question section size, but we have our
+	// own mux here. Check if we have a question section. If not drop them here.
 	if r == nil || len(r.Question) == 0 {
 		DefaultErrorFunc(w, r, dns.RcodeServerFailure)
 		return
