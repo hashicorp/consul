@@ -131,10 +131,7 @@ func NewClientLogger(config *Config, logger *log.Logger) (*Client, error) {
 		shutdownCh: make(chan struct{}),
 	}
 
-	// Start lan event handlers before lan Serf setup to prevent deadlock
-	go c.lanEventHandler()
-
-	// Initialize the lan Serf
+	// Initialize the LAN Serf
 	c.serf, err = c.setupSerf(config.SerfLANConfig,
 		c.eventCh, serfLANSnapshot)
 	if err != nil {
@@ -145,6 +142,10 @@ func NewClientLogger(config *Config, logger *log.Logger) (*Client, error) {
 	// Start maintenance task for servers
 	c.routers = router.New(c.logger, c.shutdownCh, c.serf, c.connPool)
 	go c.routers.Start()
+
+	// Start LAN event handlers after the router is complete since the event
+	// handlers depend on the router and the router depends on Serf.
+	go c.lanEventHandler()
 
 	return c, nil
 }
