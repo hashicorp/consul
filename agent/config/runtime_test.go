@@ -362,6 +362,21 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
+			desc: "-config-format disabled, skip unknown files",
+			args: []string{
+				`-data-dir=` + dataDir,
+				`-config-dir`, filepath.Join(dataDir, "conf"),
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.Datacenter = "a"
+				rt.DataDir = dataDir
+			},
+			pre: func() {
+				writeFile(filepath.Join(dataDir, "conf", "valid.json"), []byte(`{"datacenter":"a"}`))
+				writeFile(filepath.Join(dataDir, "conf", "invalid.skip"), []byte(`NOPE`))
+			},
+		},
+		{
 			desc: "-config-format=json",
 			args: []string{
 				`-data-dir=` + dataDir,
