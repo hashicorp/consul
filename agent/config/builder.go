@@ -231,6 +231,17 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		src.Format = FormatFrom(src.Name)
 		if configFormat != "" {
 			src.Format = configFormat
+		} else {
+			// If they haven't forced things to a specific format,
+			// then skip anything we don't understand, which is the
+			// behavior before we added the -config-format option.
+			switch src.Format {
+			case "json", "hcl":
+				// OK
+			default:
+				// SKIP
+				continue
+			}
 		}
 		if src.Format == "" {
 			return RuntimeConfig{}, fmt.Errorf(`config: Missing or invalid file extension for %q. Please use ".json" or ".hcl".`, src.Name)
