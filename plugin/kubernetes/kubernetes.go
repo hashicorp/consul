@@ -222,6 +222,9 @@ func (k *Kubernetes) getClientConfig() (*rest.Config, error) {
 	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
 
 	cc, err := clientConfig.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
 	cc.ContentType = "application/vnd.kubernetes.protobuf"
 	return cc, err
 
