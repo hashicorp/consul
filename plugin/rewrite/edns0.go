@@ -194,7 +194,7 @@ func (rule *edns0VariableRule) ipToWire(family int, ipAddr string) ([]byte, erro
 	case 2:
 		return net.ParseIP(ipAddr).To16(), nil
 	}
-	return nil, fmt.Errorf("Invalid IP address family (i.e. version) %d", family)
+	return nil, fmt.Errorf("invalid IP address family (i.e. version) %d", family)
 }
 
 // uint16ToWire writes unit16 to wire/binary format
@@ -266,7 +266,7 @@ func (rule *edns0VariableRule) ruleData(w dns.ResponseWriter, r *dns.Msg) ([]byt
 		return rule.portToWire(port)
 	}
 
-	return nil, fmt.Errorf("Unable to extract data for variable %s", rule.variable)
+	return nil, fmt.Errorf("unable to extract data for variable %s", rule.variable)
 }
 
 // Rewrite will alter the request EDNS0 local options with specified variables
