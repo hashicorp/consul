@@ -55,6 +55,9 @@ func (APIConnTest) EpIndexReverse(string) []*api.Endpoints {
 }
 
 func (APIConnTest) GetNodeByName(name string) (*api.Node, error) { return &api.Node{}, nil }
+func (APIConnTest) GetNamespaceByName(name string) (*api.Namespace, error) {
+	return &api.Namespace{}, nil
+}
 
 func TestNsAddr(t *testing.T) {
 

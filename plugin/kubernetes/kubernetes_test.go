@@ -332,6 +332,14 @@ func (APIConnServiceTest) GetNodeByName(name string) (*api.Node, error) {
 	}, nil
 }
 
+func (APIConnServiceTest) GetNamespaceByName(name string) (*api.Namespace, error) {
+	return &api.Namespace{
+		ObjectMeta: meta.ObjectMeta{
+			Name: name,
+		},
+	}, nil
+}
+
 func TestServices(t *testing.T) {
 
 	k := New([]string{"interwebs.test."})

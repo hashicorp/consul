@@ -36,6 +36,7 @@ type dnsController interface {
 	EndpointsList() []*api.Endpoints
 
 	GetNodeByName(string) (*api.Node, error)
+	GetNamespaceByName(string) (*api.Namespace, error)
 
 	Run()
 	HasSynced() bool
@@ -388,10 +389,24 @@ func (dns *dnsControl) EndpointsList() (eps []*api.Endpoints) {
 	return eps
 }
 
+// GetNodeByName return the node by name. If nothing is found an error is
+// returned. This query causes a roundtrip to the k8s API server, so use
+// sparingly. Currently this is only used for Federation.
 func (dns *dnsControl) GetNodeByName(name string) (*api.Node, error) {
 	v1node, err := dns.client.Nodes().Get(name, meta.GetOptions{})
 	if err != nil {
 		return &api.Node{}, err
 	}
 	return v1node, nil
+}
+
+// GetNamespaceByName returns the namespace by name. If nothing is found an
+// error is returned. This query causes a roundtrip to the k8s API server, so
+// use sparingly.
+func (dns *dnsControl) GetNamespaceByName(name string) (*api.Namespace, error) {
+	v1ns, err := dns.client.Namespaces().Get(name, meta.GetOptions{})
+	if err != nil {
+		return &api.Namespace{}, err
+	}
+	return v1ns, nil
 }

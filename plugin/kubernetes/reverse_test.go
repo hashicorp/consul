@@ -86,6 +86,14 @@ func (APIConnReverseTest) GetNodeByName(name string) (*api.Node, error) {
 	}, nil
 }
 
+func (APIConnReverseTest) GetNamespaceByName(name string) (*api.Namespace, error) {
+	return &api.Namespace{
+		ObjectMeta: meta.ObjectMeta{
+			Name: name,
+		},
+	}, nil
+}
+
 func TestReverse(t *testing.T) {
 
 	k := New([]string{"cluster.local.", "0.10.in-addr.arpa.", "168.192.in-addr.arpa."})
