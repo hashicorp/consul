@@ -1,7 +1,6 @@
 package log
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -55,32 +54,21 @@ func logParse(c *caddy.Controller) ([]Rule, error) {
 				Format:    DefaultLogFormat,
 			})
 		} else if len(args) == 1 {
-			// Only an output file specified, can only be *stdout*
-			if args[0] != "stdout" {
-				return nil, fmt.Errorf("only stdout is allowed: %s", args[0])
-			}
 			rules = append(rules, Rule{
-				NameScope: ".",
+				NameScope: dns.Fqdn(args[0]),
 				Format:    DefaultLogFormat,
 			})
 		} else {
-			// Name scope, output file (stdout), and maybe a format specified
-
+			// Name scope, and maybe a format specified
 			format := DefaultLogFormat
 
-			if len(args) > 2 {
-				switch args[2] {
-				case "{common}":
-					format = CommonLogFormat
-				case "{combined}":
-					format = CombinedLogFormat
-				default:
-					format = args[2]
-				}
-			}
-
-			if args[1] != "stdout" {
-				return nil, fmt.Errorf("only stdout is allowed: %s", args[1])
+			switch args[1] {
+			case "{common}":
+				format = CommonLogFormat
+			case "{combined}":
+				format = CombinedLogFormat
+			default:
+				format = args[1]
 			}
 
 			rules = append(rules, Rule{

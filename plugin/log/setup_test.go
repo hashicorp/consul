@@ -18,32 +18,28 @@ func TestLogParse(t *testing.T) {
 			NameScope: ".",
 			Format:    DefaultLogFormat,
 		}}},
-		{`log example.org stdout`, false, []Rule{{
+		{`log example.org`, false, []Rule{{
 			NameScope: "example.org.",
 			Format:    DefaultLogFormat,
 		}}},
-		{`log example.org. stdout`, false, []Rule{{
-			NameScope: "example.org.",
-			Format:    DefaultLogFormat,
-		}}},
-		{`log example.org stdout {common}`, false, []Rule{{
+		{`log example.org. {common}`, false, []Rule{{
 			NameScope: "example.org.",
 			Format:    CommonLogFormat,
 		}}},
-		{`log example.org stdout {combined}`, false, []Rule{{
+		{`log example.org {combined}`, false, []Rule{{
 			NameScope: "example.org.",
 			Format:    CombinedLogFormat,
 		}}},
-		{`log example.org. stdout
-		log example.net stdout {combined}`, false, []Rule{{
+		{`log example.org.
+		log example.net {combined}`, false, []Rule{{
 			NameScope: "example.org.",
 			Format:    DefaultLogFormat,
 		}, {
 			NameScope: "example.net.",
 			Format:    CombinedLogFormat,
 		}}},
-		{`log example.org stdout {host}
-			  log example.org stdout {when}`, false, []Rule{{
+		{`log example.org {host}
+			  log example.org {when}`, false, []Rule{{
 			NameScope: "example.org.",
 			Format:    "{host}",
 		}, {
@@ -51,14 +47,14 @@ func TestLogParse(t *testing.T) {
 			Format:    "{when}",
 		}}},
 
-		{`log example.org stdout {
+		{`log example.org {
 				class all
 			}`, false, []Rule{{
 			NameScope: "example.org.",
 			Format:    CommonLogFormat,
 			Class:     response.All,
 		}}},
-		{`log example.org stdout {
+		{`log example.org {
 			class denial
 		}`, false, []Rule{{
 			NameScope: "example.org.",
@@ -72,17 +68,16 @@ func TestLogParse(t *testing.T) {
 			Format:    CommonLogFormat,
 			Class:     response.Denial,
 		}}},
-
-		{`log log.txt`, true, nil},
 	}
 	for i, test := range tests {
 		c := caddy.NewTestController("dns", test.inputLogRules)
 		actualLogRules, err := logParse(c)
 
 		if err == nil && test.shouldErr {
-			t.Errorf("Test %d didn't error, but it should have", i)
+			t.Errorf("Test %d with input '%s' didn't error, but it should have", i, test.inputLogRules)
 		} else if err != nil && !test.shouldErr {
-			t.Errorf("Test %d errored, but it shouldn't have; got '%v'", i, err)
+			t.Errorf("Test %d with input '%s' errored, but it shouldn't have; got '%v'",
+				i, test.inputLogRules, err)
 		}
 		if len(actualLogRules) != len(test.expectedLogRules) {
 			t.Fatalf("Test %d expected %d no of Log rules, but got %d ",
@@ -91,13 +86,13 @@ func TestLogParse(t *testing.T) {
 		for j, actualLogRule := range actualLogRules {
 
 			if actualLogRule.NameScope != test.expectedLogRules[j].NameScope {
-				t.Errorf("Test %d expected %dth LogRule NameScope to be  %s  , but got %s",
-					i, j, test.expectedLogRules[j].NameScope, actualLogRule.NameScope)
+				t.Errorf("Test %d expected %dth LogRule NameScope for '%s' to be  %s  , but got %s",
+					i, j, test.inputLogRules, test.expectedLogRules[j].NameScope, actualLogRule.NameScope)
 			}
 
 			if actualLogRule.Format != test.expectedLogRules[j].Format {
-				t.Errorf("Test %d expected %dth LogRule Format to be  %s  , but got %s",
-					i, j, test.expectedLogRules[j].Format, actualLogRule.Format)
+				t.Errorf("Test %d expected %dth LogRule Format for '%s' to be  %s  , but got %s",
+					i, j, test.inputLogRules, test.expectedLogRules[j].Format, actualLogRule.Format)
 			}
 
 			if actualLogRule.Class != test.expectedLogRules[j].Class {
