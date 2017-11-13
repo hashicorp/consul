@@ -1,5 +1,22 @@
 # Changelog
 
+#### Version 1.14.0 (2017-11-13)
+
+New Features:
+ - Add support for the new Kafka 0.11 record-batch format, including the wire
+   protocol and the necessary behavioural changes in the producer and consumer.
+   Transactions and idempotency are not yet supported, but producing and
+   consuming should work with all the existing bells and whistles (batching,
+   compression, etc) as well as the new custom headers. Thanks to Vlad Hanciuta
+   of Arista Networks for this work. Part of
+   ([#901](https://github.com/Shopify/sarama/issues/901)).
+
+Bug Fixes:
+ - Fix encoding of ProduceResponse versions in test
+   ([#970](https://github.com/Shopify/sarama/pull/970)).
+ - Return partial replicas list when we have it
+   ([#975](https://github.com/Shopify/sarama/pull/975)).
+
 #### Version 1.13.0 (2017-10-04)
 
 New Features:

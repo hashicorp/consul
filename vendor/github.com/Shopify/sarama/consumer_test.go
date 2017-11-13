@@ -379,86 +379,118 @@ func TestConsumerShutsDownOutOfRange(t *testing.T) {
 // requested, then such messages are ignored.
 func TestConsumerExtraOffsets(t *testing.T) {
 	// Given
-	broker0 := NewMockBroker(t, 0)
-	fetchResponse1 := &FetchResponse{}
-	fetchResponse1.AddMessage("my_topic", 0, nil, testMsg, 1)
-	fetchResponse1.AddMessage("my_topic", 0, nil, testMsg, 2)
-	fetchResponse1.AddMessage("my_topic", 0, nil, testMsg, 3)
-	fetchResponse1.AddMessage("my_topic", 0, nil, testMsg, 4)
-	fetchResponse2 := &FetchResponse{}
-	fetchResponse2.AddError("my_topic", 0, ErrNoError)
-	broker0.SetHandlerByMap(map[string]MockResponse{
-		"MetadataRequest": NewMockMetadataResponse(t).
-			SetBroker(broker0.Addr(), broker0.BrokerID()).
-			SetLeader("my_topic", 0, broker0.BrokerID()),
-		"OffsetRequest": NewMockOffsetResponse(t).
-			SetOffset("my_topic", 0, OffsetNewest, 1234).
-			SetOffset("my_topic", 0, OffsetOldest, 0),
-		"FetchRequest": NewMockSequence(fetchResponse1, fetchResponse2),
-	})
+	legacyFetchResponse := &FetchResponse{}
+	legacyFetchResponse.AddMessage("my_topic", 0, nil, testMsg, 1)
+	legacyFetchResponse.AddMessage("my_topic", 0, nil, testMsg, 2)
+	legacyFetchResponse.AddMessage("my_topic", 0, nil, testMsg, 3)
+	legacyFetchResponse.AddMessage("my_topic", 0, nil, testMsg, 4)
+	newFetchResponse := &FetchResponse{Version: 4}
+	newFetchResponse.AddRecord("my_topic", 0, nil, testMsg, 1)
+	newFetchResponse.AddRecord("my_topic", 0, nil, testMsg, 2)
+	newFetchResponse.AddRecord("my_topic", 0, nil, testMsg, 3)
+	newFetchResponse.AddRecord("my_topic", 0, nil, testMsg, 4)
+	newFetchResponse.SetLastStableOffset("my_topic", 0, 4)
+	for _, fetchResponse1 := range []*FetchResponse{legacyFetchResponse, newFetchResponse} {
+		var offsetResponseVersion int16
+		cfg := NewConfig()
+		if fetchResponse1.Version >= 4 {
+			cfg.Version = V0_11_0_0
+			offsetResponseVersion = 1
+		}
 
-	master, err := NewConsumer([]string{broker0.Addr()}, nil)
-	if err != nil {
-		t.Fatal(err)
+		broker0 := NewMockBroker(t, 0)
+		fetchResponse2 := &FetchResponse{}
+		fetchResponse2.Version = fetchResponse1.Version
+		fetchResponse2.AddError("my_topic", 0, ErrNoError)
+		broker0.SetHandlerByMap(map[string]MockResponse{
+			"MetadataRequest": NewMockMetadataResponse(t).
+				SetBroker(broker0.Addr(), broker0.BrokerID()).
+				SetLeader("my_topic", 0, broker0.BrokerID()),
+			"OffsetRequest": NewMockOffsetResponse(t).
+				SetVersion(offsetResponseVersion).
+				SetOffset("my_topic", 0, OffsetNewest, 1234).
+				SetOffset("my_topic", 0, OffsetOldest, 0),
+			"FetchRequest": NewMockSequence(fetchResponse1, fetchResponse2),
+		})
+
+		master, err := NewConsumer([]string{broker0.Addr()}, cfg)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// When
+		consumer, err := master.ConsumePartition("my_topic", 0, 3)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Then: messages with offsets 1 and 2 are not returned even though they
+		// are present in the response.
+		assertMessageOffset(t, <-consumer.Messages(), 3)
+		assertMessageOffset(t, <-consumer.Messages(), 4)
+
+		safeClose(t, consumer)
+		safeClose(t, master)
+		broker0.Close()
 	}
-
-	// When
-	consumer, err := master.ConsumePartition("my_topic", 0, 3)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Then: messages with offsets 1 and 2 are not returned even though they
-	// are present in the response.
-	assertMessageOffset(t, <-consumer.Messages(), 3)
-	assertMessageOffset(t, <-consumer.Messages(), 4)
-
-	safeClose(t, consumer)
-	safeClose(t, master)
-	broker0.Close()
 }
 
 // It is fine if offsets of fetched messages are not sequential (although
 // strictly increasing!).
 func TestConsumerNonSequentialOffsets(t *testing.T) {
 	// Given
-	broker0 := NewMockBroker(t, 0)
-	fetchResponse1 := &FetchResponse{}
-	fetchResponse1.AddMessage("my_topic", 0, nil, testMsg, 5)
-	fetchResponse1.AddMessage("my_topic", 0, nil, testMsg, 7)
-	fetchResponse1.AddMessage("my_topic", 0, nil, testMsg, 11)
-	fetchResponse2 := &FetchResponse{}
-	fetchResponse2.AddError("my_topic", 0, ErrNoError)
-	broker0.SetHandlerByMap(map[string]MockResponse{
-		"MetadataRequest": NewMockMetadataResponse(t).
-			SetBroker(broker0.Addr(), broker0.BrokerID()).
-			SetLeader("my_topic", 0, broker0.BrokerID()),
-		"OffsetRequest": NewMockOffsetResponse(t).
-			SetOffset("my_topic", 0, OffsetNewest, 1234).
-			SetOffset("my_topic", 0, OffsetOldest, 0),
-		"FetchRequest": NewMockSequence(fetchResponse1, fetchResponse2),
-	})
+	legacyFetchResponse := &FetchResponse{}
+	legacyFetchResponse.AddMessage("my_topic", 0, nil, testMsg, 5)
+	legacyFetchResponse.AddMessage("my_topic", 0, nil, testMsg, 7)
+	legacyFetchResponse.AddMessage("my_topic", 0, nil, testMsg, 11)
+	newFetchResponse := &FetchResponse{Version: 4}
+	newFetchResponse.AddRecord("my_topic", 0, nil, testMsg, 5)
+	newFetchResponse.AddRecord("my_topic", 0, nil, testMsg, 7)
+	newFetchResponse.AddRecord("my_topic", 0, nil, testMsg, 11)
+	newFetchResponse.SetLastStableOffset("my_topic", 0, 11)
+	for _, fetchResponse1 := range []*FetchResponse{legacyFetchResponse, newFetchResponse} {
+		var offsetResponseVersion int16
+		cfg := NewConfig()
+		if fetchResponse1.Version >= 4 {
+			cfg.Version = V0_11_0_0
+			offsetResponseVersion = 1
+		}
 
-	master, err := NewConsumer([]string{broker0.Addr()}, nil)
-	if err != nil {
-		t.Fatal(err)
+		broker0 := NewMockBroker(t, 0)
+		fetchResponse2 := &FetchResponse{Version: fetchResponse1.Version}
+		fetchResponse2.AddError("my_topic", 0, ErrNoError)
+		broker0.SetHandlerByMap(map[string]MockResponse{
+			"MetadataRequest": NewMockMetadataResponse(t).
+				SetBroker(broker0.Addr(), broker0.BrokerID()).
+				SetLeader("my_topic", 0, broker0.BrokerID()),
+			"OffsetRequest": NewMockOffsetResponse(t).
+				SetVersion(offsetResponseVersion).
+				SetOffset("my_topic", 0, OffsetNewest, 1234).
+				SetOffset("my_topic", 0, OffsetOldest, 0),
+			"FetchRequest": NewMockSequence(fetchResponse1, fetchResponse2),
+		})
+
+		master, err := NewConsumer([]string{broker0.Addr()}, cfg)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// When
+		consumer, err := master.ConsumePartition("my_topic", 0, 3)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Then: messages with offsets 1 and 2 are not returned even though they
+		// are present in the response.
+		assertMessageOffset(t, <-consumer.Messages(), 5)
+		assertMessageOffset(t, <-consumer.Messages(), 7)
+		assertMessageOffset(t, <-consumer.Messages(), 11)
+
+		safeClose(t, consumer)
+		safeClose(t, master)
+		broker0.Close()
 	}
-
-	// When
-	consumer, err := master.ConsumePartition("my_topic", 0, 3)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Then: messages with offsets 1 and 2 are not returned even though they
-	// are present in the response.
-	assertMessageOffset(t, <-consumer.Messages(), 5)
-	assertMessageOffset(t, <-consumer.Messages(), 7)
-	assertMessageOffset(t, <-consumer.Messages(), 11)
-
-	safeClose(t, consumer)
-	safeClose(t, master)
-	broker0.Close()
 }
 
 // If leadership for a partition is changing then consumer resolves the new

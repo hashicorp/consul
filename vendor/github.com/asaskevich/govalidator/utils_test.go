@@ -269,6 +269,7 @@ func TestCamelCaseToUnderscore(t *testing.T) {
 		{"MyFunc", "my_func"},
 		{"ABC", "a_b_c"},
 		{"1B", "1_b"},
+		{"foo_bar", "foo_bar"},
 	}
 	for _, test := range tests {
 		actual := CamelCaseToUnderscore(test.param)

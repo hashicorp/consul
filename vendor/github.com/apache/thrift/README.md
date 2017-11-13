@@ -1,7 +1,7 @@
 Apache Thrift
 =============
 
-Last Modified: 2014-03-16
+Last Modified: 2017--10
 
 License
 =======
@@ -171,3 +171,8 @@ To run the cross-language test suite, please run:
 This will run a set of tests that use different language clients and
 servers.
 
+Development
+===========
+
+To build the same way Travis CI builds the project you should use docker.
+We have [comprehensive building instructions for docker](build/docker/README.md).

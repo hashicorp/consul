@@ -13,12 +13,9 @@ ignored = [
     "golang.org/x/net/trace",
 ]
 
-[[constraint]]
-    name = "github.com/openzipkin/zipkin-go-opentracing"
-    revision = "45e90b00710a4c34a1a7d8a78d90f9b010b0bd4d"
 [[override]]
     name = "github.com/apache/thrift"
-    revision = "4f77ab8e296d64c57e6ea1c6e3f0f152bc7d6a3a"
+    branch = "master"
 
 [[override]]
     name = "github.com/ugorji/go"

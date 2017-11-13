@@ -6,6 +6,14 @@ Thank you for your interest in contributing to the Apache Thrift project!  Infor
  * [Get involved!](http://www.apache.org/foundation/getinvolved.html)
  * [Legal aspects on Submission of Contributions (Patches)](http://www.apache.org/licenses/LICENSE-2.0.html#contributions)
 
+## If you want to build the project locally ##
+
+For Windows systems, see our detailed instructions on the [CMake README](/build/cmake/README.md).
+
+For Windows Native C++ builds, see our detailed instructions on the [WinCPP README](/build/wincpp/README.md).
+
+For unix systems, see our detailed instructions on the [Docker README](/build/docker/README.md).
+
 ## If you want to review open issues... ##
 
  1. Review the [GitHub Pull Request Backlog](https://github.com/apache/thrift/pulls).  Code reviews are open to all.

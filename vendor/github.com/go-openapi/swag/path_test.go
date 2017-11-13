@@ -17,8 +17,8 @@ package swag
 import (
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"path"
+	"path/filepath"
 	"runtime"
 	"testing"
 
@@ -75,7 +75,7 @@ func TestFindPackage(t *testing.T) {
 		os.RemoveAll(pth2)
 	}()
 
-	searchPath := pth + string(filepath.ListSeparator)  + pth2
+	searchPath := pth + string(filepath.ListSeparator) + pth2
 	// finds package when real name mentioned
 	pkg := FindInSearchPath(searchPath, "foo/bar")
 	assert.NotEmpty(t, pkg)

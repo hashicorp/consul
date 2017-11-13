@@ -15,10 +15,10 @@ func TestErrorsToString(t *testing.T) {
 		expected string
 	}{
 		{Errors{}, ""},
-		{Errors{fmt.Errorf("Error 1")}, "Error 1;"},
-		{Errors{fmt.Errorf("Error 1"), fmt.Errorf("Error 2")}, "Error 1;Error 2;"},
-		{Errors{customErr, fmt.Errorf("Error 2")}, "Custom Error Name: stdlib error;Error 2;"},
-		{Errors{fmt.Errorf("Error 123"), customErrWithCustomErrorMessage}, "Error 123;Bad stuff happened;"},
+		{Errors{fmt.Errorf("Error 1")}, "Error 1"},
+		{Errors{fmt.Errorf("Error 1"), fmt.Errorf("Error 2")}, "Error 1;Error 2"},
+		{Errors{customErr, fmt.Errorf("Error 2")}, "Custom Error Name: stdlib error;Error 2"},
+		{Errors{fmt.Errorf("Error 123"), customErrWithCustomErrorMessage}, "Error 123;Bad stuff happened"},
 	}
 	for _, test := range tests {
 		actual := test.param1.Error()

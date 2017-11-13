@@ -16,19 +16,20 @@
 [[projects]]
   name = "github.com/Shopify/sarama"
   packages = ["."]
-  revision = "bbdbe644099b7fdc8327d5cc69c030945188b2e9"
-  version = "v1.13.0"
+  revision = "240fd146ce68bcafb034cc5dc977229ffbafa8ea"
+  version = "v1.14.0"
 
 [[projects]]
+  branch = "master"
   name = "github.com/apache/thrift"
   packages = ["lib/go/thrift"]
-  revision = "4f77ab8e296d64c57e6ea1c6e3f0f152bc7d6a3a"
+  revision = "95d5fb3a1e38125b9eabcbe9cda1a6c7bbe3e93d"
 
 [[projects]]
   name = "github.com/asaskevich/govalidator"
   packages = ["."]
-  revision = "73945b6115bfbbcc57d89b7316e28109364124e1"
-  version = "v7"
+  revision = "521b25f4b05fd26bec69d9dedeb8f9c9a83939a8"
+  version = "v8"
 
 [[projects]]
   branch = "master"
@@ -160,7 +161,7 @@
   branch = "master"
   name = "github.com/go-openapi/swag"
   packages = ["."]
-  revision = "f3f9494671f93fcff853e3c6e9e948b3eb71e590"
+  revision = "cf0bdb963811675a4d7e74901cefc7411a1df939"
 
 [[projects]]
   name = "github.com/gogo/protobuf"
@@ -262,6 +263,7 @@
   name = "github.com/openzipkin/zipkin-go-opentracing"
   packages = [".","flag","thrift/gen-go/scribe","thrift/gen-go/zipkincore","types","wire"]
   revision = "45e90b00710a4c34a1a7d8a78d90f9b010b0bd4d"
+  version = "v0.3.2"
 
 [[projects]]
   name = "github.com/pierrec/lz4"
@@ -326,7 +328,7 @@
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix","windows"]
-  revision = "75813c647272dd855bda156405bf844a5414f5bf"
+  revision = "1e2299c37cc91a509f1b12369872d27be0ce98a6"
 
 [[projects]]
   branch = "master"
@@ -378,6 +380,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c7279ef091bb11a42d1421f51e53d761113ea23d9e9b993823605883da0f80ff"
+  inputs-digest = "be9300a30414c93aa44756868a7906a0a295b0910a662880741bcfac58b7b679"
   solver-name = "gps-cdcl"
   solver-version = 1

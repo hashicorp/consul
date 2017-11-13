@@ -31,4 +31,7 @@ script:
 - make errcheck
 - make fmt
 
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
+
 sudo: false

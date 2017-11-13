@@ -9,11 +9,15 @@ type packetDecoder interface {
 	getInt16() (int16, error)
 	getInt32() (int32, error)
 	getInt64() (int64, error)
+	getVarint() (int64, error)
 	getArrayLength() (int, error)
 
 	// Collections
 	getBytes() ([]byte, error)
+	getVarintBytes() ([]byte, error)
+	getRawBytes(length int) ([]byte, error)
 	getString() (string, error)
+	getNullableString() (*string, error)
 	getInt32Array() ([]int32, error)
 	getInt64Array() ([]int64, error)
 	getStringArray() ([]string, error)
@@ -42,4 +46,13 @@ type pushDecoder interface {
 	// SaveOffset is guaranteed to have been called first. The implementation should read ReserveLength() bytes
 	// of data from the saved offset, and verify it based on the data between the saved offset and curOffset.
 	check(curOffset int, buf []byte) error
+}
+
+// dynamicPushDecoder extends the interface of pushDecoder for uses cases where the length of the
+// fields itself is unknown until its value was decoded (for instance varint encoded length
+// fields).
+// During push, dynamicPushDecoder.decode() method will be called instead of reserveLength()
+type dynamicPushDecoder interface {
+	pushDecoder
+	decoder
 }

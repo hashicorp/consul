@@ -1,6 +1,7 @@
 package sarama
 
 import (
+	"encoding/binary"
 	"fmt"
 	"sync"
 	"time"
@@ -119,6 +120,10 @@ type ProducerMessage struct {
 	// StringEncoder and ByteEncoder.
 	Value Encoder
 
+	// The headers are key-value pairs that are transparently passed
+	// by Kafka between producers and consumers.
+	Headers []RecordHeader
+
 	// This field is used to hold arbitrary data you wish to include so it
 	// will be available when receiving on the Successes and Errors channels.
 	// Sarama completely ignores this field and is only to be used for
@@ -146,8 +151,16 @@ type ProducerMessage struct {
 
 const producerMessageOverhead = 26 // the metadata overhead of CRC, flags, etc.
 
-func (m *ProducerMessage) byteSize() int {
-	size := producerMessageOverhead
+func (m *ProducerMessage) byteSize(version int) int {
+	var size int
+	if version >= 2 {
+		size = maximumRecordOverhead
+		for _, h := range m.Headers {
+			size += len(h.Key) + len(h.Value) + 2*binary.MaxVarintLen32
+		}
+	} else {
+		size = producerMessageOverhead
+	}
 	if m.Key != nil {
 		size += m.Key.Length()
 	}
@@ -254,7 +267,11 @@ func (p *asyncProducer) dispatcher() {
 			p.inFlight.Add(1)
 		}
 
-		if msg.byteSize() > p.conf.Producer.MaxMessageBytes {
+		version := 1
+		if p.conf.Version.IsAtLeast(V0_11_0_0) {
+			version = 2
+		}
+		if msg.byteSize(version) > p.conf.Producer.MaxMessageBytes {
 			p.returnError(msg, ErrMessageSizeTooLarge)
 			continue
 		}
