@@ -16,6 +16,13 @@ a 503. *health* periodically (1s) polls plugin that exports health information. 
 plugin signals that it is unhealthy, the server will go unhealthy too. Each plugin that
 supports health checks has a section "Health" in their README.
 
+## Plugins
+
+The following plugins report health to the health plugin:
+
+* erratic
+* kubernetes
+
 ## Examples
 
 Run another health endpoint on http://localhost:8091.

@@ -38,5 +38,7 @@ func (h *health) poll() {
 }
 
 // Plugins that implements the Healther interface.
-// TODO(miek): none yet.
-var healthers = map[string]bool{}
+var healthers = map[string]bool{
+	"erratic":    true,
+	"kubernetes": true,
+}

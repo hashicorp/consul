@@ -25,6 +25,10 @@ erratic {
 * `delay`: delay 1 per **AMOUNT** of queries for **DURATION**, the default for **AMOUNT** is 2 and
   the default for **DURATION** is 100ms.
 
+## Health
+
+This plugin implements dynamic health checking. For every dropped query it turns unhealthy.
+
 ## Examples
 
 ~~~ corefile

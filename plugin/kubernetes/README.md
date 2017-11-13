@@ -85,6 +85,11 @@ kubernetes [ZONES...] {
   what the response will be. However, if you specify this option, the query will instead be passed
   on down the plugin chain, which can include another plugin to handle the query.
 
+## Health
+
+This plugin implements dynamic health checking. Currently this is limited to reporting healthy when
+the API has synced.
+
 ## Examples
 
 Handle all queries in the `cluster.local` zone. Connect to Kubernetes in-cluster. Also handle all

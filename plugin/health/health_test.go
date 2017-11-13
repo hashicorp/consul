@@ -1,7 +1,14 @@
 package health
 
-// TODO(miek): enable again if plugin gets health check.
-/*
+import (
+	"fmt"
+	"io/ioutil"
+	"net/http"
+	"testing"
+
+	"github.com/coredns/coredns/plugin/erratic"
+)
+
 func TestHealth(t *testing.T) {
 	h := health{Addr: ":0"}
 	h.h = append(h.h, &erratic.Erratic{})
@@ -14,7 +21,7 @@ func TestHealth(t *testing.T) {
 	// Reconstruct the http address based on the port allocated by operating system.
 	address := fmt.Sprintf("http://%s%s", h.ln.Addr().String(), path)
 
-	// Norhing set should be unhealthy
+	// Nothing set should return unhealthy
 	response, err := http.Get(address)
 	if err != nil {
 		t.Fatalf("Unable to query %s: %v", address, err)
@@ -24,8 +31,7 @@ func TestHealth(t *testing.T) {
 	}
 	response.Body.Close()
 
-	// Make healthy
-	h.Poll()
+	h.poll()
 
 	response, err = http.Get(address)
 	if err != nil {
@@ -44,4 +50,3 @@ func TestHealth(t *testing.T) {
 		t.Errorf("Invalid response body: expecting 'OK', got '%s'", string(content))
 	}
 }
-*/
