@@ -182,3 +182,11 @@ func (APIConnFederationTest) GetNodeByName(name string) (*api.Node, error) {
 		},
 	}, nil
 }
+
+func (APIConnFederationTest) GetNamespaceByName(name string) (*api.Namespace, error) {
+	return &api.Namespace{
+		ObjectMeta: meta.ObjectMeta{
+			Name: name,
+		},
+	}, nil
+}
