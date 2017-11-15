@@ -104,14 +104,14 @@ func TestReverse(t *testing.T) {
 			Qname: "100.0.0.10.in-addr.arpa.", Qtype: dns.TypePTR,
 			Rcode: dns.RcodeSuccess,
 			Answer: []dns.RR{
-				test.PTR("100.0.0.10.in-addr.arpa.      303    IN      PTR       ep1a.svc1.testns.svc.cluster.local."),
+				test.PTR("100.0.0.10.in-addr.arpa.      5    IN      PTR       ep1a.svc1.testns.svc.cluster.local."),
 			},
 		},
 		{
 			Qname: "100.1.168.192.in-addr.arpa.", Qtype: dns.TypePTR,
 			Rcode: dns.RcodeSuccess,
 			Answer: []dns.RR{
-				test.PTR("100.1.168.192.in-addr.arpa.      303    IN      PTR       svc1.testns.svc.cluster.local."),
+				test.PTR("100.1.168.192.in-addr.arpa.     5     IN      PTR       svc1.testns.svc.cluster.local."),
 			},
 		},
 		{

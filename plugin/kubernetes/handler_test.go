@@ -32,29 +32,29 @@ var dnsTestCases = []test.Case{
 	{
 		Qname: "svc1.testns.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode: dns.RcodeSuccess,
-		Answer: []dns.RR{test.SRV("svc1.testns.svc.cluster.local.	303	IN	SRV	0 100 80 svc1.testns.svc.cluster.local.")},
-		Extra: []dns.RR{test.A("svc1.testns.svc.cluster.local.  303       IN      A       10.0.0.1")},
+		Answer: []dns.RR{test.SRV("svc1.testns.svc.cluster.local.	5	IN	SRV	0 100 80 svc1.testns.svc.cluster.local.")},
+		Extra: []dns.RR{test.A("svc1.testns.svc.cluster.local.  5       IN      A       10.0.0.1")},
 	},
 	// SRV Service (wildcard)
 	{
 		Qname: "svc1.*.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode: dns.RcodeSuccess,
-		Answer: []dns.RR{test.SRV("svc1.*.svc.cluster.local.	303	IN	SRV	0 100 80 svc1.testns.svc.cluster.local.")},
-		Extra: []dns.RR{test.A("svc1.testns.svc.cluster.local.  303       IN      A       10.0.0.1")},
+		Answer: []dns.RR{test.SRV("svc1.*.svc.cluster.local.	5	IN	SRV	0 100 80 svc1.testns.svc.cluster.local.")},
+		Extra: []dns.RR{test.A("svc1.testns.svc.cluster.local.  5       IN      A       10.0.0.1")},
 	},
 	// SRV Service (wildcards)
 	{
 		Qname: "*.any.svc1.*.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode: dns.RcodeSuccess,
-		Answer: []dns.RR{test.SRV("*.any.svc1.*.svc.cluster.local.	303	IN	SRV	0 100 80 svc1.testns.svc.cluster.local.")},
-		Extra: []dns.RR{test.A("svc1.testns.svc.cluster.local.  303       IN      A       10.0.0.1")},
+		Answer: []dns.RR{test.SRV("*.any.svc1.*.svc.cluster.local.	5	IN	SRV	0 100 80 svc1.testns.svc.cluster.local.")},
+		Extra: []dns.RR{test.A("svc1.testns.svc.cluster.local.  5       IN      A       10.0.0.1")},
 	},
 	// A Service (wildcards)
 	{
 		Qname: "*.any.svc1.*.svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.A("*.any.svc1.*.svc.cluster.local.  303       IN      A       10.0.0.1"),
+			test.A("*.any.svc1.*.svc.cluster.local.  5       IN      A       10.0.0.1"),
 		},
 	},
 	// SRV Service Not udp/tcp
@@ -70,10 +70,10 @@ var dnsTestCases = []test.Case{
 		Qname: "_http._tcp.svc1.testns.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.SRV("_http._tcp.svc1.testns.svc.cluster.local.	303	IN	SRV	0 100 80 svc1.testns.svc.cluster.local."),
+			test.SRV("_http._tcp.svc1.testns.svc.cluster.local.	5	IN	SRV	0 100 80 svc1.testns.svc.cluster.local."),
 		},
 		Extra: []dns.RR{
-			test.A("svc1.testns.svc.cluster.local.	303	IN	A	10.0.0.1"),
+			test.A("svc1.testns.svc.cluster.local.	5	IN	A	10.0.0.1"),
 		},
 	},
 	// A Service (Headless)
@@ -81,8 +81,8 @@ var dnsTestCases = []test.Case{
 		Qname: "hdls1.testns.svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.A("hdls1.testns.svc.cluster.local.	303	IN	A	172.0.0.2"),
-			test.A("hdls1.testns.svc.cluster.local.	303	IN	A	172.0.0.3"),
+			test.A("hdls1.testns.svc.cluster.local.	5	IN	A	172.0.0.2"),
+			test.A("hdls1.testns.svc.cluster.local.	5	IN	A	172.0.0.3"),
 		},
 	},
 	// SRV Service (Headless)
@@ -90,16 +90,16 @@ var dnsTestCases = []test.Case{
 		Qname: "_http._tcp.hdls1.testns.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.SRV("_http._tcp.hdls1.testns.svc.cluster.local.	303	IN	SRV	0 25 80 172-0-0-2.hdls1.testns.svc.cluster.local."),
-			test.SRV("_http._tcp.hdls1.testns.svc.cluster.local.	303	IN	SRV	0 25 80 172-0-0-3.hdls1.testns.svc.cluster.local."),
-			test.SRV("_http._tcp.hdls1.testns.svc.cluster.local.	303	IN	SRV	0 25 80 5678-abcd--1.hdls1.testns.svc.cluster.local."),
-			test.SRV("_http._tcp.hdls1.testns.svc.cluster.local.	303	IN	SRV	0 25 80 5678-abcd--2.hdls1.testns.svc.cluster.local."),
+			test.SRV("_http._tcp.hdls1.testns.svc.cluster.local.	5	IN	SRV	0 25 80 172-0-0-2.hdls1.testns.svc.cluster.local."),
+			test.SRV("_http._tcp.hdls1.testns.svc.cluster.local.	5	IN	SRV	0 25 80 172-0-0-3.hdls1.testns.svc.cluster.local."),
+			test.SRV("_http._tcp.hdls1.testns.svc.cluster.local.	5	IN	SRV	0 25 80 5678-abcd--1.hdls1.testns.svc.cluster.local."),
+			test.SRV("_http._tcp.hdls1.testns.svc.cluster.local.	5	IN	SRV	0 25 80 5678-abcd--2.hdls1.testns.svc.cluster.local."),
 		},
 		Extra: []dns.RR{
-			test.A("172-0-0-2.hdls1.testns.svc.cluster.local.	303	IN	A	172.0.0.2"),
-			test.A("172-0-0-3.hdls1.testns.svc.cluster.local.	303	IN	A	172.0.0.3"),
-			test.AAAA("5678-abcd--1.hdls1.testns.svc.cluster.local.	303	IN	AAAA	5678:abcd::1"),
-			test.AAAA("5678-abcd--2.hdls1.testns.svc.cluster.local.	303	IN	AAAA	5678:abcd::2"),
+			test.A("172-0-0-2.hdls1.testns.svc.cluster.local.	5	IN	A	172.0.0.2"),
+			test.A("172-0-0-3.hdls1.testns.svc.cluster.local.	5	IN	A	172.0.0.3"),
+			test.AAAA("5678-abcd--1.hdls1.testns.svc.cluster.local.	5	IN	AAAA	5678:abcd::1"),
+			test.AAAA("5678-abcd--2.hdls1.testns.svc.cluster.local.	5	IN	AAAA	5678:abcd::2"),
 		},
 	},
 	// CNAME External
@@ -107,7 +107,7 @@ var dnsTestCases = []test.Case{
 		Qname: "external.testns.svc.cluster.local.", Qtype: dns.TypeCNAME,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.CNAME("external.testns.svc.cluster.local.	303	IN	CNAME	ext.interwebs.test."),
+			test.CNAME("external.testns.svc.cluster.local.	5	IN	CNAME	ext.interwebs.test."),
 		},
 	},
 	// AAAA Service (with an existing A record, but no AAAA record)
@@ -171,8 +171,8 @@ var dnsTestCases = []test.Case{
 		Qname: "hdls1.testns.svc.cluster.local.", Qtype: dns.TypeAAAA,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.AAAA("hdls1.testns.svc.cluster.local.	303	IN	AAAA	5678:abcd::1"),
-			test.AAAA("hdls1.testns.svc.cluster.local.	303	IN	AAAA	5678:abcd::2"),
+			test.AAAA("hdls1.testns.svc.cluster.local.	5	IN	AAAA	5678:abcd::1"),
+			test.AAAA("hdls1.testns.svc.cluster.local.	5	IN	AAAA	5678:abcd::2"),
 		},
 	},
 	// AAAA Endpoint
@@ -180,7 +180,7 @@ var dnsTestCases = []test.Case{
 		Qname: "5678-abcd--1.hdls1.testns.svc.cluster.local.", Qtype: dns.TypeAAAA,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.AAAA("5678-abcd--1.hdls1.testns.svc.cluster.local.	303	IN	AAAA	5678:abcd::1"),
+			test.AAAA("5678-abcd--1.hdls1.testns.svc.cluster.local.	5	IN	AAAA	5678:abcd::1"),
 		},
 	},
 }
