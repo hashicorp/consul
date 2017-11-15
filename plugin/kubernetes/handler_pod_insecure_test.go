@@ -15,14 +15,14 @@ var podModeInsecureCases = []test.Case{
 		Qname: "10-240-0-1.podns.pod.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.A("10-240-0-1.podns.pod.cluster.local.	0	IN	A	10.240.0.1"),
+			test.A("10-240-0-1.podns.pod.cluster.local.	5	IN	A	10.240.0.1"),
 		},
 	},
 	{
 		Qname: "172-0-0-2.podns.pod.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.A("172-0-0-2.podns.pod.cluster.local.	0	IN	A	172.0.0.2"),
+			test.A("172-0-0-2.podns.pod.cluster.local.	5	IN	A	172.0.0.2"),
 		},
 	},
 }

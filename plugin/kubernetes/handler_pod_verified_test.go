@@ -15,7 +15,7 @@ var podModeVerifiedCases = []test.Case{
 		Qname: "10-240-0-1.podns.pod.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.A("10-240-0-1.podns.pod.cluster.local.	0	IN	A	10.240.0.1"),
+			test.A("10-240-0-1.podns.pod.cluster.local.	5	IN	A	10.240.0.1"),
 		},
 	},
 	{
