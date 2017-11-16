@@ -84,7 +84,7 @@ build:
 	mkdir -p build/windows/amd64 && $(MAKE) coredns BINARY=build/windows/amd64/$(NAME) SYSTEM="GOOS=windows GOARCH=amd64" CHECKS="" VERBOSE=""
 	@echo Building: linux/$(LINUX_ARCH)  $(VERSION) ;\
 	for arch in $(LINUX_ARCH); do \
-	    mkdir -p build/linux/amd64  && $(MAKE) coredns BINARY=build/linux/$$arch/$(NAME) SYSTEM="GOOS=linux GOARCH=$$arch" CHECKS="" VERBOSE="" ;\
+	    mkdir -p build/linux/$$arch  && $(MAKE) coredns BINARY=build/linux/$$arch/$(NAME) SYSTEM="GOOS=linux GOARCH=$$arch" CHECKS="" VERBOSE="" ;\
 	done
 
 .PHONY: tar
