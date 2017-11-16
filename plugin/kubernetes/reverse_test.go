@@ -47,7 +47,10 @@ func (APIConnReverseTest) SvcIndexReverse(ip string) []*api.Service {
 }
 
 func (APIConnReverseTest) EpIndexReverse(ip string) []*api.Endpoints {
-	if ip != "10.0.0.100" {
+	switch ip {
+	case "10.0.0.100":
+	case "1234:abcd::1":
+	default:
 		return nil
 	}
 	eps := []*api.Endpoints{
@@ -58,6 +61,10 @@ func (APIConnReverseTest) EpIndexReverse(ip string) []*api.Endpoints {
 						{
 							IP:       "10.0.0.100",
 							Hostname: "ep1a",
+						},
+						{
+							IP:       "1234:abcd::1",
+							Hostname: "ep1b",
 						},
 					},
 					Ports: []api.EndpointPort{
@@ -96,7 +103,7 @@ func (APIConnReverseTest) GetNamespaceByName(name string) (*api.Namespace, error
 
 func TestReverse(t *testing.T) {
 
-	k := New([]string{"cluster.local.", "0.10.in-addr.arpa.", "168.192.in-addr.arpa."})
+	k := New([]string{"cluster.local.", "0.10.in-addr.arpa.", "168.192.in-addr.arpa.", "0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.d.c.b.a.4.3.2.1.ip6.arpa."})
 	k.APIConn = &APIConnReverseTest{}
 
 	tests := []test.Case{
@@ -112,6 +119,13 @@ func TestReverse(t *testing.T) {
 			Rcode: dns.RcodeSuccess,
 			Answer: []dns.RR{
 				test.PTR("100.1.168.192.in-addr.arpa.     5     IN      PTR       svc1.testns.svc.cluster.local."),
+			},
+		},
+		{ // A PTR record query for an existing ipv6 endpoint should return a record
+			Qname: "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.d.c.b.a.4.3.2.1.ip6.arpa.", Qtype: dns.TypePTR,
+			Rcode: dns.RcodeSuccess,
+			Answer: []dns.RR{
+				test.PTR("1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.d.c.b.a.4.3.2.1.ip6.arpa. 5 IN PTR ep1b.svc1.testns.svc.cluster.local."),
 			},
 		},
 		{
