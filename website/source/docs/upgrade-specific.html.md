@@ -14,6 +14,14 @@ details provided for their upgrades as a result of new features or changed
 behavior. This page is used to document those details separately from the
 standard upgrade flow.
 
+## Consul 1.0.1
+
+#### Carefully Check and Remove Stale Servers During Rolling Upgrades
+
+Consul 1.0 (and earlier versions of Consul when running with [Raft protocol 3](/docs/agent/options.html#_raft_protocol) had an issue where performing rolling updates of Consul servers could result in an outage from old servers remaining in the cluster. [Autopilot](/docs/guides/autopilot.html) would normally remove old servers when new ones come online, but it was also waiting to promote servers to voters in pairs to maintain an odd quorum size. The pairwise promotion feature was removed so that servers become voters as soon as they are stable, allowing Autopilot to remove old servers in a safer way.
+
+When upgrading from Consul 1.0, you may need to manually [force-leave](/docs/commands/force-leave.html) old servers as part of a rolling update to Consul 1.0.1.
+
 ## Consul 1.0
 
 Consul 1.0 has several important breaking changes that are documented here. Please be sure to read over all the details here before upgrading.
