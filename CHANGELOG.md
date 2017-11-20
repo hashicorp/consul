@@ -1,3 +1,11 @@
+## 1.0.2 (UNRELEASED)
+
+FEATURES:
+
+IMPROVEMENTS:
+
+BUG FIXES:
+
 ## 1.0.1 (November 20, 2017)
 
 FEATURES:
