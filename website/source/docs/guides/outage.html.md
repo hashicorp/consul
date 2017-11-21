@@ -66,7 +66,7 @@ In Consul 0.7 and later, you can use the [`consul operator`](/docs/commands/oper
 command to inspect the Raft configuration:
 
 ```
-$ consul operator raft -list-peers
+$ consul operator raft list-peers
 Node     ID              Address         State     Voter
 alice    10.0.1.8:8300   10.0.1.8:8300   follower  true
 bob      10.0.1.6:8300   10.0.1.6:8300   leader    true
