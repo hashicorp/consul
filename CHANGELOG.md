@@ -6,6 +6,8 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* agent: Updated memberlist to pull in a fix for negative RTT measurements and their associated log messages about rejected coordinates. [[GH-3704](https://github.com/hashicorp/consul/issues/3704)]
+
 ## 1.0.1 (November 20, 2017)
 
 FEATURES:
