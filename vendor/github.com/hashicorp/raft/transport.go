@@ -35,20 +35,20 @@ type Transport interface {
 
 	// AppendEntriesPipeline returns an interface that can be used to pipeline
 	// AppendEntries requests.
-	AppendEntriesPipeline(target ServerAddress) (AppendPipeline, error)
+	AppendEntriesPipeline(id ServerID, target ServerAddress) (AppendPipeline, error)
 
 	// AppendEntries sends the appropriate RPC to the target node.
-	AppendEntries(target ServerAddress, args *AppendEntriesRequest, resp *AppendEntriesResponse) error
+	AppendEntries(id ServerID, target ServerAddress, args *AppendEntriesRequest, resp *AppendEntriesResponse) error
 
 	// RequestVote sends the appropriate RPC to the target node.
-	RequestVote(target ServerAddress, args *RequestVoteRequest, resp *RequestVoteResponse) error
+	RequestVote(id ServerID, target ServerAddress, args *RequestVoteRequest, resp *RequestVoteResponse) error
 
 	// InstallSnapshot is used to push a snapshot down to a follower. The data is read from
 	// the ReadCloser and streamed to the client.
-	InstallSnapshot(target ServerAddress, args *InstallSnapshotRequest, resp *InstallSnapshotResponse, data io.Reader) error
+	InstallSnapshot(id ServerID, target ServerAddress, args *InstallSnapshotRequest, resp *InstallSnapshotResponse, data io.Reader) error
 
 	// EncodePeer is used to serialize a peer's address.
-	EncodePeer(ServerAddress) []byte
+	EncodePeer(id ServerID, addr ServerAddress) []byte
 
 	// DecodePeer is used to deserialize a peer's address.
 	DecodePeer([]byte) ServerAddress

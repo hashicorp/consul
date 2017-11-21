@@ -7,7 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func makeTestACL(t *testing.T, srv *HTTPServer) string {
@@ -28,6 +29,50 @@ func makeTestACL(t *testing.T, srv *HTTPServer) string {
 	}
 	aclResp := obj.(aclCreateResponse)
 	return aclResp.ID
+}
+
+func TestACL_Bootstrap(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), TestACLConfig()+`
+		acl_master_token = ""
+	`)
+	defer a.Shutdown()
+
+	tests := []struct {
+		name   string
+		method string
+		code   int
+		token  bool
+	}{
+		{"bootstrap", "PUT", http.StatusOK, true},
+		{"not again", "PUT", http.StatusForbidden, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp := httptest.NewRecorder()
+			req, _ := http.NewRequest(tt.method, "/v1/acl/bootstrap", nil)
+			out, err := a.srv.ACLBootstrap(resp, req)
+			if err != nil {
+				t.Fatalf("err: %v", err)
+			}
+			if got, want := resp.Code, tt.code; got != want {
+				t.Fatalf("got %d want %d", got, want)
+			}
+			if tt.token {
+				wrap, ok := out.(aclCreateResponse)
+				if !ok {
+					t.Fatalf("bad: %T", out)
+				}
+				if len(wrap.ID) != len("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx") {
+					t.Fatalf("bad: %v", wrap)
+				}
+			} else {
+				if out != nil {
+					t.Fatalf("bad: %T", out)
+				}
+			}
+		})
+	}
 }
 
 func TestACL_Update(t *testing.T) {
@@ -124,8 +169,15 @@ func TestACL_Clone(t *testing.T) {
 
 	id := makeTestACL(t, a.srv)
 
-	req, _ := http.NewRequest("PUT", "/v1/acl/clone/"+id+"?token=root", nil)
+	req, _ := http.NewRequest("PUT", "/v1/acl/clone/"+id, nil)
 	resp := httptest.NewRecorder()
+	_, err := a.srv.ACLClone(resp, req)
+	if !acl.IsErrPermissionDenied(err) {
+		t.Fatalf("err: %v", err)
+	}
+
+	req, _ = http.NewRequest("PUT", "/v1/acl/clone/"+id+"?token=root", nil)
+	resp = httptest.NewRecorder()
 	obj, err := a.srv.ACLClone(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -225,7 +277,7 @@ func TestACL_List(t *testing.T) {
 
 func TestACLReplicationStatus(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), TestACLConfig())
 	defer a.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/v1/acl/replication", nil)

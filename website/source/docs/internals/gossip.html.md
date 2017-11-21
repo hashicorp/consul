@@ -54,5 +54,10 @@ telemetry, and simply causing the overall cluster to waste CPU and network
 resources diagnosing a failure that may not truly exist.
 
 Lifeguard completely resolves this issue with novel enhancements to SWIM.
-Please see the [Serf's gossip protocol guide](https://www.serf.io/docs/internals/gossip.html#lifeguard)
-section on Lifeguard for more details.
+
+For more details about Lifeguard, please see the
+[Making Gossip More Robust with Lifeguard](https://www.hashicorp.com/blog/making-gossip-more-robust-with-lifeguard/)
+blog post, which provides a high level overview of the HashiCorp Research paper
+[Lifeguard : SWIM-ing with Situational Awareness](https://arxiv.org/abs/1707.00788). The
+[Serf gossip protocol guide](https://www.serf.io/docs/internals/gossip.html#lifeguard)
+also provides some lower-level details about the gossip protocol and Lifeguard.

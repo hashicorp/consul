@@ -15,13 +15,14 @@ import (
 	"strings"
 	"time"
 
+	metrics "github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib/freeport"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testutil/retry"
-	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/consul/version"
 	uuid "github.com/hashicorp/go-uuid"
 )
 
@@ -40,12 +41,14 @@ type TestAgent struct {
 	// Name is an optional name of the agent.
 	Name string
 
+	HCL string
+
 	// Config is the agent configuration. If Config is nil then
 	// TestConfig() is used. If Config.DataDir is set then it is
 	// the callers responsibility to clean up the data directory.
 	// Otherwise, a temporary data directory is created and removed
 	// when Shutdown() is called.
-	Config *Config
+	Config *config.RuntimeConfig
 
 	// LogOutput is the sink for the logs. If nil, logs are written
 	// to os.Stderr.
@@ -62,9 +65,9 @@ type TestAgent struct {
 	// Key is the optional encryption key for the LAN and WAN keyring.
 	Key string
 
-	// NoInitialSync determines whether an anti-entropy run
-	// will be scheduled after the agent started.
-	NoInitialSync bool
+	// UseTLS, if true, will disable the HTTP port and enable the HTTPS
+	// one.
+	UseTLS bool
 
 	// dns is a reference to the first started DNS endpoint.
 	// It is valid after Start().
@@ -83,8 +86,8 @@ type TestAgent struct {
 // configuration. It panics if the agent could not be started. The
 // caller should call Shutdown() to stop the agent and remove temporary
 // directories.
-func NewTestAgent(name string, c *Config) *TestAgent {
-	a := &TestAgent{Name: name, Config: c}
+func NewTestAgent(name string, hcl string) *TestAgent {
+	a := &TestAgent{Name: name, HCL: hcl}
 	a.Start()
 	return a
 }
@@ -99,13 +102,8 @@ func (a *TestAgent) Start() *TestAgent {
 	if a.Agent != nil {
 		panic("TestAgent already started")
 	}
-	if a.Config == nil {
-		a.Config = TestConfig()
-	}
-	if a.Config.DNSRecursor != "" {
-		a.Config.DNSRecursors = append(a.Config.DNSRecursors, a.Config.DNSRecursor)
-	}
-	if a.Config.DataDir == "" {
+	var hclDataDir string
+	if a.DataDir == "" {
 		name := "agent"
 		if a.Name != "" {
 			name = a.Name + "-agent"
@@ -115,13 +113,16 @@ func (a *TestAgent) Start() *TestAgent {
 		if err != nil {
 			panic(fmt.Sprintf("Error creating data dir %s: %s", filepath.Join(TempDir, name), err))
 		}
-		a.DataDir = d
-		a.Config.DataDir = d
+		hclDataDir = `data_dir = "` + d + `"`
 	}
-	id := UniqueID()
+	id := NodeID()
 
 	for i := 10; i >= 0; i-- {
-		pickRandomPorts(a.Config)
+		a.Config = TestConfig(
+			config.Source{Name: a.Name, Format: "hcl", Data: a.HCL},
+			config.Source{Name: a.Name + ".data_dir", Format: "hcl", Data: hclDataDir},
+			randomPortsSource(a.UseTLS),
+		)
 
 		// write the keyring
 		if a.Key != "" {
@@ -146,7 +147,8 @@ func (a *TestAgent) Start() *TestAgent {
 		}
 		agent.LogOutput = logOutput
 		agent.LogWriter = a.LogWriter
-		agent.logger = log.New(logOutput, a.Name+" - ", log.LstdFlags)
+		agent.logger = log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
+		agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
 
 		// we need the err var in the next exit condition
 		if err := agent.Start(); err == nil {
@@ -173,16 +175,16 @@ func (a *TestAgent) Start() *TestAgent {
 			}
 		}
 	}
-	if !a.NoInitialSync {
-		a.Agent.StartSync()
-	}
+
+	// Start the anti-entropy syncer
+	a.Agent.StartSync()
 
 	var out structs.IndexedNodes
 	retry.Run(&panicFailer{}, func(r *retry.R) {
 		if len(a.httpServers) == 0 {
 			r.Fatal(a.Name, "waiting for server")
 		}
-		if a.Config.Bootstrap && a.Config.Server {
+		if a.Config.Bootstrap && a.Config.ServerMode {
 			// Ensure we have a leader and a node registration.
 			args := &structs.DCSpecificRequest{
 				Datacenter: a.Config.Datacenter,
@@ -198,7 +200,7 @@ func (a *TestAgent) Start() *TestAgent {
 				r.Fatal(a.Name, "No leader")
 			}
 			if out.Index == 0 {
-				r.Fatal(a.Name, "Consul index is 0")
+				r.Fatal(a.Name, ": Consul index is 0")
 			}
 		} else {
 			req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
@@ -217,15 +219,26 @@ func (a *TestAgent) Start() *TestAgent {
 // Shutdown stops the agent and removes the data directory if it is
 // managed by the test agent.
 func (a *TestAgent) Shutdown() error {
+	/* Removed this because it was breaking persistence tests where we would
+	persist a service and load it through a new agent with the same data-dir.
+	Not sure if we still need this for other things, everywhere we manually make
+	a data dir we already do 'defer os.RemoveAll()'
 	defer func() {
 		if a.DataDir != "" {
 			os.RemoveAll(a.DataDir)
 		}
-	}()
+	}()*/
 
 	// shutdown agent before endpoints
 	defer a.Agent.ShutdownEndpoints()
 	return a.Agent.ShutdownAgent()
+}
+
+func (a *TestAgent) DNSAddr() string {
+	if a.dns == nil {
+		return ""
+	}
+	return a.dns.Addr
 }
 
 func (a *TestAgent) HTTPAddr() string {
@@ -233,6 +246,13 @@ func (a *TestAgent) HTTPAddr() string {
 		return ""
 	}
 	return a.srv.Addr
+}
+
+func (a *TestAgent) SegmentAddr(name string) string {
+	if server, ok := a.Agent.delegate.(*consul.Server); ok {
+		return server.LANSegmentAddr(name)
+	}
+	return ""
 }
 
 func (a *TestAgent) Client() *api.Client {
@@ -245,26 +265,19 @@ func (a *TestAgent) Client() *api.Client {
 	return c
 }
 
+// DNSDisableCompression disables compression for all started DNS servers.
+func (a *TestAgent) DNSDisableCompression(b bool) {
+	for _, srv := range a.dnsServers {
+		srv.disableCompression.Store(b)
+	}
+}
+
 func (a *TestAgent) consulConfig() *consul.Config {
 	c, err := a.Agent.consulConfig()
 	if err != nil {
 		panic(err)
 	}
 	return c
-}
-
-func UniqueID() string {
-	id := strconv.FormatUint(rand.Uint64(), 36)
-	for len(id) < 16 {
-		id += " "
-	}
-	return id
-}
-
-// TenPorts returns the first port number of a block of
-// ten random ports.
-func TenPorts() int {
-	return 1030 + int(rand.Int31n(6440))*10
 }
 
 // pickRandomPorts selects random ports from fixed size random blocks of
@@ -275,70 +288,87 @@ func TenPorts() int {
 // chance of port conflicts for concurrently executed test binaries.
 // Instead of relying on one set of ports to be sufficient we retry
 // starting the agent with different ports on port conflict.
-func pickRandomPorts(c *Config) {
-	port := TenPorts()
-	c.Ports.DNS = port + 1
-	c.Ports.HTTP = port + 2
-	// when we enable HTTPS then we need to fix finding the
-	// "first" HTTP server since that might be HTTPS server
-	// c.Ports.HTTPS = port + 3
-	c.Ports.SerfLan = port + 4
-	c.Ports.SerfWan = port + 5
-	c.Ports.Server = port + 6
+func randomPortsSource(tls bool) config.Source {
+	ports := freeport.Get(6)
+	if tls {
+		ports[1] = -1
+	} else {
+		ports[2] = -1
+	}
+	return config.Source{
+		Name:   "ports",
+		Format: "hcl",
+		Data: `
+			ports = {
+				dns = ` + strconv.Itoa(ports[0]) + `
+				http = ` + strconv.Itoa(ports[1]) + `
+				https = ` + strconv.Itoa(ports[2]) + `
+				serf_lan = ` + strconv.Itoa(ports[3]) + `
+				serf_wan = ` + strconv.Itoa(ports[4]) + `
+				server = ` + strconv.Itoa(ports[5]) + `
+			}
+		`,
+	}
+}
+
+func NodeID() string {
+	id, err := uuid.GenerateUUID()
+	if err != nil {
+		panic(err)
+	}
+	return id
 }
 
 // TestConfig returns a unique default configuration for testing an
 // agent.
-func TestConfig() *Config {
-	nodeID, err := uuid.GenerateUUID()
-	if err != nil {
-		panic(err)
+func TestConfig(sources ...config.Source) *config.RuntimeConfig {
+	nodeID := NodeID()
+	testsrc := config.Source{
+		Name:   "test",
+		Format: "hcl",
+		Data: `
+			bind_addr = "127.0.0.1"
+			advertise_addr = "127.0.0.1"
+			datacenter = "dc1"
+			bootstrap = true
+			server = true
+			node_id = "` + nodeID + `"
+			node_name = "Node ` + nodeID + `"
+			performance {
+				raft_multiplier = 1
+			}
+		`,
 	}
 
-	cfg := DefaultConfig()
+	b, err := config.NewBuilder(config.Flags{})
+	if err != nil {
+		panic("NewBuilder failed: " + err.Error())
+	}
+	b.Head = append(b.Head, testsrc)
+	b.Tail = append(b.Tail, config.DefaultConsulSource(), config.DevConsulSource())
+	b.Tail = append(b.Tail, sources...)
 
-	cfg.Version = version.Version
-	cfg.VersionPrerelease = "c.d"
+	cfg, err := b.BuildAndValidate()
+	if err != nil {
+		panic("Error building config: " + err.Error())
+	}
 
-	cfg.NodeID = types.NodeID(nodeID)
-	cfg.NodeName = "Node " + nodeID
-	cfg.BindAddr = "127.0.0.1"
-	cfg.AdvertiseAddr = "127.0.0.1"
-	cfg.Datacenter = "dc1"
-	cfg.Bootstrap = true
-	cfg.Server = true
+	for _, w := range b.Warnings {
+		fmt.Println("WARNING:", w)
+	}
 
-	ccfg := consul.DefaultConfig()
-	cfg.ConsulConfig = ccfg
-
-	ccfg.SerfLANConfig.MemberlistConfig.SuspicionMult = 3
-	ccfg.SerfLANConfig.MemberlistConfig.ProbeTimeout = 100 * time.Millisecond
-	ccfg.SerfLANConfig.MemberlistConfig.ProbeInterval = 100 * time.Millisecond
-	ccfg.SerfLANConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
-
-	ccfg.SerfWANConfig.MemberlistConfig.SuspicionMult = 3
-	ccfg.SerfWANConfig.MemberlistConfig.ProbeTimeout = 100 * time.Millisecond
-	ccfg.SerfWANConfig.MemberlistConfig.ProbeInterval = 100 * time.Millisecond
-	ccfg.SerfWANConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
-
-	ccfg.RaftConfig.LeaderLeaseTimeout = 20 * time.Millisecond
-	ccfg.RaftConfig.HeartbeatTimeout = 40 * time.Millisecond
-	ccfg.RaftConfig.ElectionTimeout = 40 * time.Millisecond
-
-	ccfg.CoordinateUpdatePeriod = 100 * time.Millisecond
-	ccfg.ServerHealthInterval = 10 * time.Millisecond
-	return cfg
+	return &cfg
 }
 
 // TestACLConfig returns a default configuration for testing an agent
 // with ACLs.
-func TestACLConfig() *Config {
-	cfg := TestConfig()
-	cfg.ACLDatacenter = cfg.Datacenter
-	cfg.ACLDefaultPolicy = "deny"
-	cfg.ACLMasterToken = "root"
-	cfg.ACLAgentToken = "root"
-	cfg.ACLAgentMasterToken = "towel"
-	cfg.ACLEnforceVersion8 = Bool(true)
-	return cfg
+func TestACLConfig() string {
+	return `
+		acl_datacenter = "dc1"
+		acl_default_policy = "deny"
+		acl_master_token = "root"
+		acl_agent_token = "root"
+		acl_agent_master_token = "towel"
+		acl_enforce_version_8 = true
+	`
 }

@@ -4,27 +4,23 @@ import (
 	"fmt"
 	"net"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/agent/consul/agent"
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 )
 
 const (
-	SerfCheckID           types.CheckID = "serfHealth"
-	SerfCheckName                       = "Serf Health Status"
-	SerfCheckAliveOutput                = "Agent alive and reachable"
-	SerfCheckFailedOutput               = "Agent not live or unreachable"
-	ConsulServiceID                     = "consul"
-	ConsulServiceName                   = "consul"
-	newLeaderEvent                      = "consul:new-leader"
+	newLeaderEvent      = "consul:new-leader"
+	barrierWriteTimeout = 2 * time.Minute
 )
 
 // monitorLeadership is used to monitor if we acquire or lose our role
@@ -35,27 +31,41 @@ func (s *Server) monitorLeadership() {
 	// leaderCh, which is only notified best-effort. Doing this ensures
 	// that we get all notifications in order, which is required for
 	// cleanup and to ensure we never run multiple leader loops.
-	leaderCh := s.leaderCh
+	raftNotifyCh := s.raftNotifyCh
 
-	var wg sync.WaitGroup
-	var stopCh chan struct{}
+	var weAreLeaderCh chan struct{}
+	var leaderLoop sync.WaitGroup
 	for {
 		select {
-		case isLeader := <-leaderCh:
-			if isLeader {
-				stopCh = make(chan struct{})
-				wg.Add(1)
-				go func() {
-					s.leaderLoop(stopCh)
-					wg.Done()
-				}()
+		case isLeader := <-raftNotifyCh:
+			switch {
+			case isLeader:
+				if weAreLeaderCh != nil {
+					s.logger.Printf("[ERR] consul: attempted to start the leader loop while running")
+					continue
+				}
+
+				weAreLeaderCh = make(chan struct{})
+				leaderLoop.Add(1)
+				go func(ch chan struct{}) {
+					defer leaderLoop.Done()
+					s.leaderLoop(ch)
+				}(weAreLeaderCh)
 				s.logger.Printf("[INFO] consul: cluster leadership acquired")
-			} else if stopCh != nil {
-				close(stopCh)
-				stopCh = nil
-				wg.Wait()
+
+			default:
+				if weAreLeaderCh == nil {
+					s.logger.Printf("[ERR] consul: attempted to stop the leader loop while not running")
+					continue
+				}
+
+				s.logger.Printf("[DEBUG] consul: shutting down leader loop")
+				close(weAreLeaderCh)
+				leaderLoop.Wait()
+				weAreLeaderCh = nil
 				s.logger.Printf("[INFO] consul: cluster leadership lost")
 			}
+
 		case <-s.shutdownCh:
 			return
 		}
@@ -67,8 +77,10 @@ func (s *Server) monitorLeadership() {
 func (s *Server) leaderLoop(stopCh chan struct{}) {
 	// Fire a user event indicating a new leader
 	payload := []byte(s.config.NodeName)
-	if err := s.serfLAN.UserEvent(newLeaderEvent, payload, false); err != nil {
-		s.logger.Printf("[WARN] consul: failed to broadcast new leader event: %v", err)
+	for name, segment := range s.LANSegments() {
+		if err := segment.UserEvent(newLeaderEvent, payload, false); err != nil {
+			s.logger.Printf("[WARN] consul: failed to broadcast new leader event on segment %q: %v", name, err)
+		}
 	}
 
 	// Reconcile channel is only used once initial reconcile
@@ -96,12 +108,13 @@ RECONCILE:
 
 	// Apply a raft barrier to ensure our FSM is caught up
 	start := time.Now()
-	barrier := s.raft.Barrier(0)
+	barrier := s.raft.Barrier(barrierWriteTimeout)
 	if err := barrier.Error(); err != nil {
 		s.logger.Printf("[ERR] consul: failed to wait for barrier: %v", err)
 		goto WAIT
 	}
 	metrics.MeasureSince([]string{"consul", "leader", "barrier"}, start)
+	metrics.MeasureSince([]string{"leader", "barrier"}, start)
 
 	// Check if we need to handle initial leadership actions
 	if !establishedLeader {
@@ -110,7 +123,11 @@ RECONCILE:
 			goto WAIT
 		}
 		establishedLeader = true
-		defer s.revokeLeadership()
+		defer func() {
+			if err := s.revokeLeadership(); err != nil {
+				s.logger.Printf("[ERR] consul: failed to revoke leadership: %v", err)
+			}
+		}()
 	}
 
 	// Reconcile any missing data
@@ -124,6 +141,15 @@ RECONCILE:
 	reconcileCh = s.reconcileCh
 
 WAIT:
+	// Poll the stop channel to give it priority so we don't waste time
+	// trying to perform the other operations if we have been asked to shut
+	// down.
+	select {
+	case <-stopCh:
+		return
+	default:
+	}
+
 	// Periodically reconcile as long as we are the leader,
 	// or when Serf events arrive
 	for {
@@ -149,19 +175,18 @@ WAIT:
 // previously inflight transactions have been committed and that our
 // state is up-to-date.
 func (s *Server) establishLeadership() error {
+	// This will create the anonymous token and master token (if that is
+	// configured).
+	if err := s.initializeACL(); err != nil {
+		return err
+	}
+
 	// Hint the tombstone expiration timer. When we freshly establish leadership
 	// we become the authoritative timer, and so we need to start the clock
 	// on any pending GC events.
 	s.tombstoneGC.SetEnabled(true)
 	lastIndex := s.raft.LastIndex()
 	s.tombstoneGC.Hint(lastIndex)
-	s.logger.Printf("[DEBUG] consul: reset tombstone GC to index %d", lastIndex)
-
-	// Setup ACLs if we are the leader and need to
-	if err := s.initializeACL(); err != nil {
-		s.logger.Printf("[ERR] consul: ACL initialization failed: %v", err)
-		return err
-	}
 
 	// Setup the session timers. This is done both when starting up or when
 	// a leader fail over happens. Since the timers are maintained by the leader
@@ -173,18 +198,12 @@ func (s *Server) establishLeadership() error {
 	// are available to be initialized. Otherwise initialization may use stale
 	// data.
 	if err := s.initializeSessionTimers(); err != nil {
-		s.logger.Printf("[ERR] consul: Session Timers initialization failed: %v",
-			err)
 		return err
 	}
 
-	// Setup autopilot config if we need to
 	s.getOrCreateAutopilotConfig()
-
 	s.startAutopilot()
-
 	s.setConsistentReadReady()
-
 	return nil
 }
 
@@ -197,38 +216,33 @@ func (s *Server) revokeLeadership() error {
 	// Clear the session timers on either shutdown or step down, since we
 	// are no longer responsible for session expirations.
 	if err := s.clearAllSessionTimers(); err != nil {
-		s.logger.Printf("[ERR] consul: Clearing session timers failed: %v", err)
 		return err
 	}
 
 	s.resetConsistentReadReady()
-
 	s.stopAutopilot()
-
 	return nil
 }
 
 // initializeACL is used to setup the ACLs if we are the leader
 // and need to do this.
 func (s *Server) initializeACL() error {
-	// Bail if not configured or we are not authoritative
+	// Bail if not configured or we are not authoritative.
 	authDC := s.config.ACLDatacenter
 	if len(authDC) == 0 || authDC != s.config.Datacenter {
 		return nil
 	}
 
-	// Purge the cache, since it could've changed while we
-	// were not the leader
+	// Purge the cache, since it could've changed while we were not the
+	// leader.
 	s.aclAuthCache.Purge()
 
-	// Look for the anonymous token
+	// Create anonymous token if missing.
 	state := s.fsm.State()
 	_, acl, err := state.ACLGet(nil, anonymousToken)
 	if err != nil {
 		return fmt.Errorf("failed to get anonymous token: %v", err)
 	}
-
-	// Create anonymous token if missing
 	if acl == nil {
 		req := structs.ACLRequest{
 			Datacenter: authDC,
@@ -245,33 +259,69 @@ func (s *Server) initializeACL() error {
 		}
 	}
 
-	// Check for configured master token
-	master := s.config.ACLMasterToken
-	if len(master) == 0 {
-		return nil
-	}
-
-	// Look for the master token
-	_, acl, err = state.ACLGet(nil, master)
-	if err != nil {
-		return fmt.Errorf("failed to get master token: %v", err)
-	}
-	if acl == nil {
-		req := structs.ACLRequest{
-			Datacenter: authDC,
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				ID:   master,
-				Name: "Master Token",
-				Type: structs.ACLTypeManagement,
-			},
-		}
-		_, err := s.raftApply(structs.ACLRequestType, &req)
+	// Check for configured master token.
+	if master := s.config.ACLMasterToken; len(master) > 0 {
+		_, acl, err = state.ACLGet(nil, master)
 		if err != nil {
-			return fmt.Errorf("failed to create master token: %v", err)
+			return fmt.Errorf("failed to get master token: %v", err)
 		}
-
+		if acl == nil {
+			req := structs.ACLRequest{
+				Datacenter: authDC,
+				Op:         structs.ACLSet,
+				ACL: structs.ACL{
+					ID:   master,
+					Name: "Master Token",
+					Type: structs.ACLTypeManagement,
+				},
+			}
+			_, err := s.raftApply(structs.ACLRequestType, &req)
+			if err != nil {
+				return fmt.Errorf("failed to create master token: %v", err)
+			}
+			s.logger.Printf("[INFO] consul: Created ACL master token from configuration")
+		}
 	}
+
+	// Check to see if we need to initialize the ACL bootstrap info. This
+	// needs a Consul version check since it introduces a new Raft operation
+	// that'll produce an error on older servers, and it also makes a piece
+	// of state in the state store that will cause problems with older
+	// servers consuming snapshots, so we have to wait to create it.
+	var minVersion = version.Must(version.NewVersion("0.9.1"))
+	if ServersMeetMinimumVersion(s.LANMembers(), minVersion) {
+		bs, err := state.ACLGetBootstrap()
+		if err != nil {
+			return fmt.Errorf("failed looking for ACL bootstrap info: %v", err)
+		}
+		if bs == nil {
+			req := structs.ACLRequest{
+				Datacenter: authDC,
+				Op:         structs.ACLBootstrapInit,
+			}
+			resp, err := s.raftApply(structs.ACLRequestType, &req)
+			if err != nil {
+				return fmt.Errorf("failed to initialize ACL bootstrap: %v", err)
+			}
+			switch v := resp.(type) {
+			case error:
+				return fmt.Errorf("failed to initialize ACL bootstrap: %v", v)
+
+			case bool:
+				if v {
+					s.logger.Printf("[INFO] consul: ACL bootstrap enabled")
+				} else {
+					s.logger.Printf("[INFO] consul: ACL bootstrap disabled, existing management tokens found")
+				}
+
+			default:
+				return fmt.Errorf("unexpected response trying to initialize ACL bootstrap: %T", v)
+			}
+		}
+	} else {
+		s.logger.Printf("[WARN] consul: Can't initialize ACL bootstrap until all servers are >= %s", minVersion.String())
+	}
+
 	return nil
 }
 
@@ -302,29 +352,9 @@ func (s *Server) getOrCreateAutopilotConfig() (*structs.AutopilotConfig, bool) {
 	return config, true
 }
 
-// reconcile is used to reconcile the differences between Serf
-// membership and what is reflected in our strongly consistent store.
-// Mainly we need to ensure all live nodes are registered, all failed
-// nodes are marked as such, and all left nodes are de-registered.
-func (s *Server) reconcile() (err error) {
-	defer metrics.MeasureSince([]string{"consul", "leader", "reconcile"}, time.Now())
-	members := s.serfLAN.Members()
-	knownMembers := make(map[string]struct{})
-	for _, member := range members {
-		if err := s.reconcileMember(member); err != nil {
-			return err
-		}
-		knownMembers[member.Name] = struct{}{}
-	}
-
-	// Reconcile any members that have been reaped while we were not the leader
-	return s.reconcileReaped(knownMembers)
-}
-
 // reconcileReaped is used to reconcile nodes that have failed and been reaped
-// from Serf but remain in the catalog. This is done by looking for SerfCheckID
-// in a critical state that does not correspond to a known Serf member. We generate
-// a "reap" event to cause the node to be cleaned up.
+// from Serf but remain in the catalog. This is done by looking for unknown nodes with serfHealth checks registered.
+// We generate a "reap" event to cause the node to be cleaned up.
 func (s *Server) reconcileReaped(known map[string]struct{}) error {
 	state := s.fsm.State()
 	_, checks, err := state.ChecksInState(nil, api.HealthAny)
@@ -333,13 +363,42 @@ func (s *Server) reconcileReaped(known map[string]struct{}) error {
 	}
 	for _, check := range checks {
 		// Ignore any non serf checks
-		if check.CheckID != SerfCheckID {
+		if check.CheckID != structs.SerfCheckID {
 			continue
 		}
 
 		// Check if this node is "known" by serf
 		if _, ok := known[check.Node]; ok {
 			continue
+		}
+
+		// Get the node services, look for ConsulServiceID
+		_, services, err := state.NodeServices(nil, check.Node)
+		if err != nil {
+			return err
+		}
+		serverPort := 0
+		serverAddr := ""
+		serverID := ""
+
+	CHECKS:
+		for _, service := range services.Services {
+			if service.ID == structs.ConsulServiceID {
+				_, node, err := state.GetNode(check.Node)
+				if err != nil {
+					s.logger.Printf("[ERR] consul: Unable to look up node with name %q: %v", check.Node, err)
+					continue CHECKS
+				}
+
+				serverAddr = node.Address
+				serverPort = service.Port
+				lookupAddr := net.JoinHostPort(serverAddr, strconv.Itoa(serverPort))
+				svr := s.serverLookup.Server(raft.ServerAddress(lookupAddr))
+				if svr != nil {
+					serverID = svr.ID
+				}
+				break
+			}
 		}
 
 		// Create a fake member
@@ -351,23 +410,12 @@ func (s *Server) reconcileReaped(known map[string]struct{}) error {
 			},
 		}
 
-		// Get the node services, look for ConsulServiceID
-		_, services, err := state.NodeServices(nil, check.Node)
-		if err != nil {
-			return err
-		}
-		serverPort := 0
-		for _, service := range services.Services {
-			if service.ID == ConsulServiceID {
-				serverPort = service.Port
-				break
-			}
-		}
-
 		// Create the appropriate tags if this was a server node
 		if serverPort > 0 {
 			member.Tags["role"] = "consul"
 			member.Tags["port"] = strconv.FormatUint(uint64(serverPort), 10)
+			member.Tags["id"] = serverID
+			member.Addr = net.ParseIP(serverAddr)
 		}
 
 		// Attempt to reap this member
@@ -387,6 +435,7 @@ func (s *Server) reconcileMember(member serf.Member) error {
 		return nil
 	}
 	defer metrics.MeasureSince([]string{"consul", "leader", "reconcileMember"}, time.Now())
+	defer metrics.MeasureSince([]string{"leader", "reconcileMember"}, time.Now())
 	var err error
 	switch member.Status {
 	case serf.StatusAlive:
@@ -403,10 +452,9 @@ func (s *Server) reconcileMember(member serf.Member) error {
 			member, err)
 
 		// Permission denied should not bubble up
-		if strings.Contains(err.Error(), permissionDenied) {
+		if acl.IsErrPermissionDenied(err) {
 			return nil
 		}
-		return err
 	}
 	return nil
 }
@@ -416,7 +464,9 @@ func (s *Server) shouldHandleMember(member serf.Member) bool {
 	if valid, dc := isConsulNode(member); valid && dc == s.config.Datacenter {
 		return true
 	}
-	if valid, parts := agent.IsConsulServer(member); valid && parts.Datacenter == s.config.Datacenter {
+	if valid, parts := metadata.IsConsulServer(member); valid &&
+		parts.Segment == "" &&
+		parts.Datacenter == s.config.Datacenter {
 		return true
 	}
 	return false
@@ -427,10 +477,10 @@ func (s *Server) shouldHandleMember(member serf.Member) bool {
 func (s *Server) handleAliveMember(member serf.Member) error {
 	// Register consul service if a server
 	var service *structs.NodeService
-	if valid, parts := agent.IsConsulServer(member); valid {
+	if valid, parts := metadata.IsConsulServer(member); valid {
 		service = &structs.NodeService{
-			ID:      ConsulServiceID,
-			Service: ConsulServiceName,
+			ID:      structs.ConsulServiceID,
+			Service: structs.ConsulServiceName,
 			Port:    parts.Port,
 		}
 
@@ -472,7 +522,7 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 			return err
 		}
 		for _, check := range checks {
-			if check.CheckID == SerfCheckID && check.Status == api.HealthPassing {
+			if check.CheckID == structs.SerfCheckID && check.Status == api.HealthPassing {
 				return nil
 			}
 		}
@@ -489,10 +539,10 @@ AFTER_CHECK:
 		Service:    service,
 		Check: &structs.HealthCheck{
 			Node:    member.Name,
-			CheckID: SerfCheckID,
-			Name:    SerfCheckName,
+			CheckID: structs.SerfCheckID,
+			Name:    structs.SerfCheckName,
 			Status:  api.HealthPassing,
-			Output:  SerfCheckAliveOutput,
+			Output:  structs.SerfCheckAliveOutput,
 		},
 
 		// If there's existing information about the node, do not
@@ -519,7 +569,7 @@ func (s *Server) handleFailedMember(member serf.Member) error {
 			return err
 		}
 		for _, check := range checks {
-			if check.CheckID == SerfCheckID && check.Status == api.HealthCritical {
+			if check.CheckID == structs.SerfCheckID && check.Status == api.HealthCritical {
 				return nil
 			}
 		}
@@ -534,10 +584,10 @@ func (s *Server) handleFailedMember(member serf.Member) error {
 		Address:    member.Addr.String(),
 		Check: &structs.HealthCheck{
 			Node:    member.Name,
-			CheckID: SerfCheckID,
-			Name:    SerfCheckName,
+			CheckID: structs.SerfCheckID,
+			Name:    structs.SerfCheckName,
 			Status:  api.HealthCritical,
-			Output:  SerfCheckFailedOutput,
+			Output:  structs.SerfCheckFailedOutput,
 		},
 
 		// If there's existing information about the node, do not
@@ -571,7 +621,7 @@ func (s *Server) handleDeregisterMember(reason string, member serf.Member) error
 	}
 
 	// Remove from Raft peers if this was a server
-	if valid, parts := agent.IsConsulServer(member); valid {
+	if valid, parts := metadata.IsConsulServer(member); valid {
 		if err := s.removeConsulServer(member, parts.Port); err != nil {
 			return err
 		}
@@ -598,17 +648,12 @@ func (s *Server) handleDeregisterMember(reason string, member serf.Member) error
 }
 
 // joinConsulServer is used to try to join another consul server
-func (s *Server) joinConsulServer(m serf.Member, parts *agent.Server) error {
-	// Do not join ourself
-	if m.Name == s.config.NodeName {
-		return nil
-	}
-
+func (s *Server) joinConsulServer(m serf.Member, parts *metadata.Server) error {
 	// Check for possibility of multiple bootstrap nodes
 	if parts.Bootstrap {
 		members := s.serfLAN.Members()
 		for _, member := range members {
-			valid, p := agent.IsConsulServer(member)
+			valid, p := metadata.IsConsulServer(member)
 			if valid && member.Name != m.Name && p.Bootstrap {
 				s.logger.Printf("[ERR] consul: '%v' and '%v' are both in bootstrap mode. Only one node should be in bootstrap mode, not adding Raft peer.", m.Name, member.Name)
 				return nil
@@ -616,20 +661,28 @@ func (s *Server) joinConsulServer(m serf.Member, parts *agent.Server) error {
 		}
 	}
 
-	addr := (&net.TCPAddr{IP: m.Addr, Port: parts.Port}).String()
-
-	minRaftProtocol, err := ServerMinRaftProtocol(s.serfLAN.Members())
-	if err != nil {
+	// Processing ourselves could result in trying to remove ourselves to
+	// fix up our address, which would make us step down. This is only
+	// safe to attempt if there are multiple servers available.
+	configFuture := s.raft.GetConfiguration()
+	if err := configFuture.Error(); err != nil {
+		s.logger.Printf("[ERR] consul: failed to get raft configuration: %v", err)
 		return err
+	}
+	if m.Name == s.config.NodeName {
+		if l := len(configFuture.Configuration().Servers); l < 3 {
+			s.logger.Printf("[DEBUG] consul: Skipping self join check for %q since the cluster is too small", m.Name)
+			return nil
+		}
 	}
 
 	// See if it's already in the configuration. It's harmless to re-add it
 	// but we want to avoid doing that if possible to prevent useless Raft
 	// log entries. If the address is the same but the ID changed, remove the
 	// old server before adding the new one.
-	configFuture := s.raft.GetConfiguration()
-	if err := configFuture.Error(); err != nil {
-		s.logger.Printf("[ERR] consul: failed to get raft configuration: %v", err)
+	addr := (&net.TCPAddr{IP: m.Addr, Port: parts.Port}).String()
+	minRaftProtocol, err := ServerMinRaftProtocol(s.serfLAN.Members())
+	if err != nil {
 		return err
 	}
 	for _, server := range configFuture.Configuration().Servers {
@@ -708,7 +761,7 @@ func (s *Server) removeConsulServer(m serf.Member, port int) error {
 		return err
 	}
 
-	_, parts := agent.IsConsulServer(m)
+	_, parts := metadata.IsConsulServer(m)
 
 	// Pick which remove API to use based on how the server was added.
 	for _, server := range configFuture.Configuration().Servers {
@@ -746,6 +799,7 @@ func (s *Server) removeConsulServer(m serf.Member, port int) error {
 // to avoid blocking.
 func (s *Server) reapTombstones(index uint64) {
 	defer metrics.MeasureSince([]string{"consul", "leader", "reapTombstones"}, time.Now())
+	defer metrics.MeasureSince([]string{"leader", "reapTombstones"}, time.Now())
 	req := structs.TombstoneRequest{
 		Datacenter: s.config.Datacenter,
 		Op:         structs.TombstoneReap,

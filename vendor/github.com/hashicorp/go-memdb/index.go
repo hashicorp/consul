@@ -1,6 +1,7 @@
 package memdb
 
 import (
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"reflect"
@@ -247,6 +248,79 @@ func (s *StringMapFieldIndex) FromArgs(args ...interface{}) ([]byte, error) {
 	}
 
 	return []byte(key), nil
+}
+
+// UintFieldIndex is used to extract a uint field from an object using
+// reflection and builds an index on that field.
+type UintFieldIndex struct {
+	Field string
+}
+
+func (u *UintFieldIndex) FromObject(obj interface{}) (bool, []byte, error) {
+	v := reflect.ValueOf(obj)
+	v = reflect.Indirect(v) // Dereference the pointer if any
+
+	fv := v.FieldByName(u.Field)
+	if !fv.IsValid() {
+		return false, nil,
+			fmt.Errorf("field '%s' for %#v is invalid", u.Field, obj)
+	}
+
+	// Check the type
+	k := fv.Kind()
+	size, ok := IsUintType(k)
+	if !ok {
+		return false, nil, fmt.Errorf("field %q is of type %v; want a uint", u.Field, k)
+	}
+
+	// Get the value and encode it
+	val := fv.Uint()
+	buf := make([]byte, size)
+	binary.PutUvarint(buf, val)
+
+	return true, buf, nil
+}
+
+func (u *UintFieldIndex) FromArgs(args ...interface{}) ([]byte, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("must provide only a single argument")
+	}
+
+	v := reflect.ValueOf(args[0])
+	if !v.IsValid() {
+		return nil, fmt.Errorf("%#v is invalid", args[0])
+	}
+
+	k := v.Kind()
+	size, ok := IsUintType(k)
+	if !ok {
+		return nil, fmt.Errorf("arg is of type %v; want a uint", k)
+	}
+
+	val := v.Uint()
+	buf := make([]byte, size)
+	binary.PutUvarint(buf, val)
+
+	return buf, nil
+}
+
+// IsUintType returns whether the passed type is a type of uint and the number
+// of bytes needed to encode the type.
+func IsUintType(k reflect.Kind) (size int, okay bool) {
+	switch k {
+	case reflect.Uint:
+		return binary.MaxVarintLen64, true
+	case reflect.Uint8:
+		return 2, true
+	case reflect.Uint16:
+		return binary.MaxVarintLen16, true
+	case reflect.Uint32:
+		return binary.MaxVarintLen32, true
+	case reflect.Uint64:
+		return binary.MaxVarintLen64, true
+	default:
+		return 0, false
+	}
 }
 
 // UUIDFieldIndex is used to extract a field from an object

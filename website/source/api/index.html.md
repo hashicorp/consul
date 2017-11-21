@@ -32,6 +32,8 @@ by using the `X-Consul-Token` request header or the `token` query string
 parameter. The request header takes precedence over the default token, and
 the query string parameter takes precedence over everything.
 
+For more details about ACLs, please see the [ACL Guide](/docs/guides/acl.html).
+
 ## Authentication
 
 When authentication is enabled, a Consul token should be provided to API

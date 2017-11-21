@@ -1,4 +1,4 @@
-output "first_consule_node_address" {
+output "first_consul_node_address" {
   value = "${digitalocean_droplet.consul.0.ipv4_address}"
 }
 

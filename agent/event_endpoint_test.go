@@ -2,20 +2,21 @@ package agent
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testutil/retry"
 )
 
 func TestEventFire(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	body := bytes.NewBuffer([]byte("test"))
@@ -54,9 +55,9 @@ func TestEventFire(t *testing.T) {
 
 func TestEventFire_token(t *testing.T) {
 	t.Parallel()
-	cfg := TestACLConfig()
-	cfg.ACLDefaultPolicy = "deny"
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), TestACLConfig()+`
+		acl_default_policy = "deny"
+	`)
 	defer a.Shutdown()
 
 	// Create an ACL token
@@ -96,14 +97,14 @@ func TestEventFire_token(t *testing.T) {
 		// Check the result
 		body := resp.Body.String()
 		if c.allowed {
-			if strings.Contains(body, permissionDenied) {
+			if acl.IsErrPermissionDenied(errors.New(body)) {
 				t.Fatalf("bad: %s", body)
 			}
 			if resp.Code != 200 {
 				t.Fatalf("bad: %d", resp.Code)
 			}
 		} else {
-			if !strings.Contains(body, permissionDenied) {
+			if !acl.IsErrPermissionDenied(errors.New(body)) {
 				t.Fatalf("bad: %s", body)
 			}
 			if resp.Code != 403 {
@@ -115,7 +116,7 @@ func TestEventFire_token(t *testing.T) {
 
 func TestEventList(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	p := &UserEvent{Name: "test"}
@@ -147,7 +148,7 @@ func TestEventList(t *testing.T) {
 
 func TestEventList_Filter(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	p := &UserEvent{Name: "test"}
@@ -234,7 +235,7 @@ func TestEventList_ACLFilter(t *testing.T) {
 
 func TestEventList_Blocking(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	p := &UserEvent{Name: "test"}
@@ -285,7 +286,7 @@ func TestEventList_Blocking(t *testing.T) {
 
 func TestEventList_EventBufOrder(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Fire some events in a non-sequential order

@@ -29,6 +29,7 @@ func stateStoreSchema() *memdb.DBSchema {
 		sessionsTableSchema,
 		sessionChecksTableSchema,
 		aclsTableSchema,
+		aclsBootstrapTableSchema,
 		coordinatesTableSchema,
 		preparedQueriesTableSchema,
 		autopilotConfigTableSchema,
@@ -363,25 +364,6 @@ func sessionChecksTableSchema() *memdb.TableSchema {
 	}
 }
 
-// aclsTableSchema returns a new table schema used for
-// storing ACL information.
-func aclsTableSchema() *memdb.TableSchema {
-	return &memdb.TableSchema{
-		Name: "acls",
-		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
-				Name:         "id",
-				AllowMissing: false,
-				Unique:       true,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "ID",
-					Lowercase: false,
-				},
-			},
-		},
-	}
-}
-
 // coordinatesTableSchema returns a new table schema used for storing
 // network coordinates.
 func coordinatesTableSchema() *memdb.TableSchema {
@@ -392,6 +374,26 @@ func coordinatesTableSchema() *memdb.TableSchema {
 				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
+				Indexer: &memdb.CompoundIndex{
+					// AllowMissing is required since we allow
+					// Segment to be an empty string.
+					AllowMissing: true,
+					Indexes: []memdb.Indexer{
+						&memdb.StringFieldIndex{
+							Field:     "Node",
+							Lowercase: true,
+						},
+						&memdb.StringFieldIndex{
+							Field:     "Segment",
+							Lowercase: true,
+						},
+					},
+				},
+			},
+			"node": &memdb.IndexSchema{
+				Name:         "node",
+				AllowMissing: false,
+				Unique:       false,
 				Indexer: &memdb.StringFieldIndex{
 					Field:     "Node",
 					Lowercase: true,

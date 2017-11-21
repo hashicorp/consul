@@ -5,14 +5,15 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
+	osexec "os/exec"
 	"path"
 	"strconv"
 	"sync"
 	"syscall"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/exec"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 )
 
@@ -49,6 +50,7 @@ type remoteExecEvent struct {
 // It is stored in the KV store
 type remoteExecSpec struct {
 	Command string
+	Args    []string
 	Script  []byte
 	Wait    time.Duration
 }
@@ -160,7 +162,13 @@ func (a *Agent) handleRemoteExec(msg *UserEvent) {
 
 	// Create the exec.Cmd
 	a.logger.Printf("[INFO] agent: remote exec '%s'", script)
-	cmd, err := ExecScript(script)
+	var cmd *osexec.Cmd
+	var err error
+	if len(spec.Args) > 0 {
+		cmd, err = exec.Subprocess(spec.Args)
+	} else {
+		cmd, err = exec.Script(script)
+	}
 	if err != nil {
 		a.logger.Printf("[DEBUG] agent: failed to start remote exec: %v", err)
 		exitCode = 255
@@ -178,8 +186,7 @@ func (a *Agent) handleRemoteExec(msg *UserEvent) {
 	cmd.Stderr = writer
 
 	// Start execution
-	err = cmd.Start()
-	if err != nil {
+	if err := cmd.Start(); err != nil {
 		a.logger.Printf("[DEBUG] agent: failed to start remote exec: %v", err)
 		exitCode = 255
 		return
@@ -197,7 +204,7 @@ func (a *Agent) handleRemoteExec(msg *UserEvent) {
 		}
 
 		// Try to determine the exit code
-		if exitErr, ok := err.(*exec.ExitError); ok {
+		if exitErr, ok := err.(*osexec.ExitError); ok {
 			if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
 				exitCh <- status.ExitStatus()
 				return
@@ -243,7 +250,7 @@ func (a *Agent) remoteExecGetSpec(event *remoteExecEvent, spec *remoteExecSpec) 
 			AllowStale: true, // Stale read for scale! Retry on failure.
 		},
 	}
-	get.Token = a.config.ACLToken
+	get.Token = a.tokens.AgentToken()
 	var out structs.IndexedDirEntries
 QUERY:
 	if err := a.RPC("KVS.Get", &get, &out); err != nil {
@@ -310,7 +317,7 @@ func (a *Agent) remoteExecWriteKey(event *remoteExecEvent, suffix string, val []
 			Session: event.Session,
 		},
 	}
-	write.Token = a.config.ACLToken
+	write.Token = a.tokens.AgentToken()
 	var success bool
 	if err := a.RPC("KVS.Apply", &write, &success); err != nil {
 		return err

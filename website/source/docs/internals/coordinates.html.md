@@ -37,7 +37,8 @@ Network coordinates manifest in several ways inside Consul:
   on the network round trip time from a given node using a "?near=" parameter.
 
 * [Prepared queries](/api/query.html) can automatically fail over services 
-  to other Consul datacenters based on network round trip times.
+  to other Consul datacenters based on network round trip times. See the
+  [Geo Failover](/docs/guides/geo-failover.html) for some examples.
 
 * The [Coordinate endpoint](/api/coordinate.html) exposes raw network
   coordinates for use in other applications.

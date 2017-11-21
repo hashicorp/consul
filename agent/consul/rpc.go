@@ -9,12 +9,12 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/agent/consul/agent"
 	"github.com/hashicorp/consul/agent/consul/state"
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/go-memdb"
+	memdb "github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/yamux"
@@ -46,10 +46,10 @@ const (
 )
 
 // listen is used to listen for incoming RPC connections
-func (s *Server) listen() {
+func (s *Server) listen(listener net.Listener) {
 	for {
 		// Accept a connection
-		conn, err := s.rpcListener.Accept()
+		conn, err := listener.Accept()
 		if err != nil {
 			if s.shutdown {
 				return
@@ -60,6 +60,7 @@ func (s *Server) listen() {
 
 		go s.handleConn(conn, false)
 		metrics.IncrCounter([]string{"consul", "rpc", "accept_conn"}, 1)
+		metrics.IncrCounter([]string{"rpc", "accept_conn"}, 1)
 	}
 }
 
@@ -97,6 +98,7 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 
 	case pool.RPCRaft:
 		metrics.IncrCounter([]string{"consul", "rpc", "raft_handoff"}, 1)
+		metrics.IncrCounter([]string{"rpc", "raft_handoff"}, 1)
 		s.raftLayer.Handoff(conn)
 
 	case pool.RPCTLS:
@@ -155,10 +157,12 @@ func (s *Server) handleConsulConn(conn net.Conn) {
 			if err != io.EOF && !strings.Contains(err.Error(), "closed") {
 				s.logger.Printf("[ERR] consul.rpc: RPC error: %v %s", err, logConn(conn))
 				metrics.IncrCounter([]string{"consul", "rpc", "request_error"}, 1)
+				metrics.IncrCounter([]string{"rpc", "request_error"}, 1)
 			}
 			return
 		}
 		metrics.IncrCounter([]string{"consul", "rpc", "request"}, 1)
+		metrics.IncrCounter([]string{"rpc", "request"}, 1)
 	}
 }
 
@@ -171,6 +175,24 @@ func (s *Server) handleSnapshotConn(conn net.Conn) {
 			s.logger.Printf("[ERR] consul.rpc: Snapshot RPC error: %v %s", err, logConn(conn))
 		}
 	}()
+}
+
+// canRetry returns true if the given situation is safe for a retry.
+func canRetry(args interface{}, err error) bool {
+	// No leader errors are always safe to retry since no state could have
+	// been changed.
+	if structs.IsErrNoLeader(err) {
+		return true
+	}
+
+	// Reads are safe to retry for stream errors, such as if a server was
+	// being shut down.
+	info, ok := args.(structs.RPCInfo)
+	if ok && info.IsRead() && lib.IsErrEOF(err) {
+		return true
+	}
+
+	return false
 }
 
 // forward is used to forward to a remote DC or to forward to the local leader
@@ -191,8 +213,15 @@ func (s *Server) forward(method string, info structs.RPCInfo, args interface{}, 
 	}
 
 CHECK_LEADER:
+	// Fail fast if we are in the process of leaving
+	select {
+	case <-s.leaveCh:
+		return true, structs.ErrNoLeader
+	default:
+	}
+
 	// Find the leader
-	isLeader, remoteServer := s.getLeader()
+	isLeader, leader := s.getLeader()
 
 	// Handle the case we are the leader
 	if isLeader {
@@ -200,32 +229,39 @@ CHECK_LEADER:
 	}
 
 	// Handle the case of a known leader
-	if remoteServer != nil {
-		err := s.forwardLeader(remoteServer, method, args, reply)
-		return true, err
+	rpcErr := structs.ErrNoLeader
+	if leader != nil {
+		rpcErr = s.connPool.RPC(s.config.Datacenter, leader.Addr,
+			leader.Version, method, leader.UseTLS, args, reply)
+		if rpcErr != nil && canRetry(info, rpcErr) {
+			goto RETRY
+		}
+		return true, rpcErr
 	}
 
+RETRY:
 	// Gate the request until there is a leader
 	if firstCheck.IsZero() {
 		firstCheck = time.Now()
 	}
-	if time.Now().Sub(firstCheck) < s.config.RPCHoldTimeout {
+	if time.Since(firstCheck) < s.config.RPCHoldTimeout {
 		jitter := lib.RandomStagger(s.config.RPCHoldTimeout / jitterFraction)
 		select {
 		case <-time.After(jitter):
 			goto CHECK_LEADER
+		case <-s.leaveCh:
 		case <-s.shutdownCh:
 		}
 	}
 
 	// No leader found and hold time exceeded
-	return true, structs.ErrNoLeader
+	return true, rpcErr
 }
 
 // getLeader returns if the current node is the leader, and if not then it
 // returns the leader which is potentially nil if the cluster has not yet
 // elected a leader.
-func (s *Server) getLeader() (bool, *agent.Server) {
+func (s *Server) getLeader() (bool, *metadata.Server) {
 	// Check if we are the leader
 	if s.IsLeader() {
 		return true, nil
@@ -238,21 +274,10 @@ func (s *Server) getLeader() (bool, *agent.Server) {
 	}
 
 	// Lookup the server
-	s.localLock.RLock()
-	server := s.localConsuls[leader]
-	s.localLock.RUnlock()
+	server := s.serverLookup.Server(leader)
 
 	// Server could be nil
 	return false, server
-}
-
-// forwardLeader is used to forward an RPC call to the leader, or fail if no leader
-func (s *Server) forwardLeader(server *agent.Server, method string, args interface{}, reply interface{}) error {
-	// Handle a missing server
-	if server == nil {
-		return structs.ErrNoLeader
-	}
-	return s.connPool.RPC(s.config.Datacenter, server.Addr, server.Version, method, server.UseTLS, args, reply)
 }
 
 // forwardDC is used to forward an RPC call to a remote DC, or fail if no servers
@@ -263,7 +288,10 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 		return structs.ErrNoDCPath
 	}
 
-	metrics.IncrCounter([]string{"consul", "rpc", "cross-dc", dc}, 1)
+	metrics.IncrCounterWithLabels([]string{"consul", "rpc", "cross-dc"}, 1,
+		[]metrics.Label{{Name: "datacenter", Value: dc}})
+	metrics.IncrCounterWithLabels([]string{"rpc", "cross-dc"}, 1,
+		[]metrics.Label{{Name: "datacenter", Value: dc}})
 	if err := s.connPool.RPC(dc, server.Addr, server.Version, method, server.UseTLS, args, reply); err != nil {
 		manager.NotifyFailedServer(server)
 		s.logger.Printf("[ERR] consul: RPC failed to server %s in DC %q: %v", server.Addr, dc, err)
@@ -373,6 +401,7 @@ RUN_QUERY:
 
 	// Run the query.
 	metrics.IncrCounter([]string{"consul", "rpc", "query"}, 1)
+	metrics.IncrCounter([]string{"rpc", "query"}, 1)
 
 	// Operate on a consistent set of state. This makes sure that the
 	// abandon channel goes with the state that the caller is using to
@@ -414,7 +443,7 @@ func (s *Server) setQueryMeta(m *structs.QueryMeta) {
 		m.LastContact = 0
 		m.KnownLeader = true
 	} else {
-		m.LastContact = time.Now().Sub(s.raft.LastContact())
+		m.LastContact = time.Since(s.raft.LastContact())
 		m.KnownLeader = (s.raft.Leader() != "")
 	}
 }
@@ -423,6 +452,7 @@ func (s *Server) setQueryMeta(m *structs.QueryMeta) {
 // read. This is done by verifying leadership before the read.
 func (s *Server) consistentRead() error {
 	defer metrics.MeasureSince([]string{"consul", "rpc", "consistentRead"}, time.Now())
+	defer metrics.MeasureSince([]string{"rpc", "consistentRead"}, time.Now())
 	future := s.raft.VerifyLeader()
 	if err := future.Error(); err != nil {
 		return err //fail fast if leader verification fails

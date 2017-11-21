@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestSnapshot(t *testing.T) {
+func TestAPI_Snapshot(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -80,7 +80,7 @@ func TestSnapshot(t *testing.T) {
 	}
 }
 
-func TestSnapshot_Options(t *testing.T) {
+func TestAPI_Snapshot_Options(t *testing.T) {
 	t.Parallel()
 	c, s := makeACLClient(t)
 	defer s.Stop()

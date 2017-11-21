@@ -42,7 +42,7 @@ https://www.consul.io/docs
 ## Developing Consul
 
 If you wish to work on Consul itself, you'll first need [Go](https://golang.org)
-installed (version 1.8+ is _required_). Make sure you have Go properly installed,
+installed (version 1.9+ is _required_). Make sure you have Go properly installed,
 including setting up your [GOPATH](https://golang.org/doc/code.html#GOPATH).
 
 Next, clone this repository into `$GOPATH/src/github.com/hashicorp/consul` and
@@ -67,4 +67,5 @@ format the code according to Go standards.
 ## Vendoring
 
 Consul currently uses [govendor](https://github.com/kardianos/govendor) for
-vendoring.
+vendoring and [vendorfmt](https://github.com/magiconair/vendorfmt) for formatting
+`vendor.json` to a more merge-friendly "one line per package" format.

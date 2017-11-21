@@ -31,7 +31,7 @@ func TestStaticACL(t *testing.T) {
 	}
 
 	manage := ManageAll()
-	if _, ok := none.(*StaticACL); !ok {
+	if _, ok := manage.(*StaticACL); !ok {
 		t.Fatalf("expected static")
 	}
 
@@ -56,7 +56,7 @@ func TestStaticACL(t *testing.T) {
 	if !all.KeyRead("foobar") {
 		t.Fatalf("should allow")
 	}
-	if !all.KeyWrite("foobar") {
+	if !all.KeyWrite("foobar", nil) {
 		t.Fatalf("should allow")
 	}
 	if !all.KeyringRead() {
@@ -68,7 +68,7 @@ func TestStaticACL(t *testing.T) {
 	if !all.NodeRead("foobar") {
 		t.Fatalf("should allow")
 	}
-	if !all.NodeWrite("foobar") {
+	if !all.NodeWrite("foobar", nil) {
 		t.Fatalf("should allow")
 	}
 	if !all.OperatorRead() {
@@ -86,7 +86,7 @@ func TestStaticACL(t *testing.T) {
 	if !all.ServiceRead("foobar") {
 		t.Fatalf("should allow")
 	}
-	if !all.ServiceWrite("foobar") {
+	if !all.ServiceWrite("foobar", nil) {
 		t.Fatalf("should allow")
 	}
 	if !all.SessionRead("foobar") {
@@ -126,7 +126,7 @@ func TestStaticACL(t *testing.T) {
 	if none.KeyRead("foobar") {
 		t.Fatalf("should not allow")
 	}
-	if none.KeyWrite("foobar") {
+	if none.KeyWrite("foobar", nil) {
 		t.Fatalf("should not allow")
 	}
 	if none.KeyringRead() {
@@ -138,7 +138,7 @@ func TestStaticACL(t *testing.T) {
 	if none.NodeRead("foobar") {
 		t.Fatalf("should not allow")
 	}
-	if none.NodeWrite("foobar") {
+	if none.NodeWrite("foobar", nil) {
 		t.Fatalf("should not allow")
 	}
 	if none.OperatorRead() {
@@ -156,7 +156,7 @@ func TestStaticACL(t *testing.T) {
 	if none.ServiceRead("foobar") {
 		t.Fatalf("should not allow")
 	}
-	if none.ServiceWrite("foobar") {
+	if none.ServiceWrite("foobar", nil) {
 		t.Fatalf("should not allow")
 	}
 	if none.SessionRead("foobar") {
@@ -190,7 +190,7 @@ func TestStaticACL(t *testing.T) {
 	if !manage.KeyRead("foobar") {
 		t.Fatalf("should allow")
 	}
-	if !manage.KeyWrite("foobar") {
+	if !manage.KeyWrite("foobar", nil) {
 		t.Fatalf("should allow")
 	}
 	if !manage.KeyringRead() {
@@ -202,7 +202,7 @@ func TestStaticACL(t *testing.T) {
 	if !manage.NodeRead("foobar") {
 		t.Fatalf("should allow")
 	}
-	if !manage.NodeWrite("foobar") {
+	if !manage.NodeWrite("foobar", nil) {
 		t.Fatalf("should allow")
 	}
 	if !manage.OperatorRead() {
@@ -220,7 +220,7 @@ func TestStaticACL(t *testing.T) {
 	if !manage.ServiceRead("foobar") {
 		t.Fatalf("should allow")
 	}
-	if !manage.ServiceWrite("foobar") {
+	if !manage.ServiceWrite("foobar", nil) {
 		t.Fatalf("should allow")
 	}
 	if !manage.SessionRead("foobar") {
@@ -268,6 +268,10 @@ func TestPolicyACL(t *testing.T) {
 				Prefix: "zip/",
 				Policy: PolicyRead,
 			},
+			&KeyPolicy{
+				Prefix: "zap/",
+				Policy: PolicyList,
+			},
 		},
 		PreparedQueries: []*PreparedQueryPolicy{
 			&PreparedQueryPolicy{
@@ -306,7 +310,7 @@ func TestPolicyACL(t *testing.T) {
 			},
 		},
 	}
-	acl, err := New(all, policy)
+	acl, err := New(all, policy, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -316,21 +320,23 @@ func TestPolicyACL(t *testing.T) {
 		read        bool
 		write       bool
 		writePrefix bool
+		list        bool
 	}
 	cases := []keycase{
-		{"other", true, true, true},
-		{"foo/test", true, true, true},
-		{"foo/priv/test", false, false, false},
-		{"bar/any", false, false, false},
-		{"zip/test", true, false, false},
-		{"foo/", true, true, false},
-		{"", true, true, false},
+		{"other", true, true, true, true},
+		{"foo/test", true, true, true, true},
+		{"foo/priv/test", false, false, false, false},
+		{"bar/any", false, false, false, false},
+		{"zip/test", true, false, false, false},
+		{"foo/", true, true, false, true},
+		{"", true, true, false, true},
+		{"zap/test", true, false, false, true},
 	}
 	for _, c := range cases {
 		if c.read != acl.KeyRead(c.inp) {
 			t.Fatalf("Read fail: %#v", c)
 		}
-		if c.write != acl.KeyWrite(c.inp) {
+		if c.write != acl.KeyWrite(c.inp, nil) {
 			t.Fatalf("Write fail: %#v", c)
 		}
 		if c.writePrefix != acl.KeyWritePrefix(c.inp) {
@@ -357,7 +363,7 @@ func TestPolicyACL(t *testing.T) {
 		if c.read != acl.ServiceRead(c.inp) {
 			t.Fatalf("Read fail: %#v", c)
 		}
-		if c.write != acl.ServiceWrite(c.inp) {
+		if c.write != acl.ServiceWrite(c.inp, nil) {
 			t.Fatalf("Write fail: %#v", c)
 		}
 	}
@@ -444,7 +450,7 @@ func TestPolicyACL_Parent(t *testing.T) {
 			},
 		},
 	}
-	root, err := New(deny, policyRoot)
+	root, err := New(deny, policyRoot, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -477,7 +483,7 @@ func TestPolicyACL_Parent(t *testing.T) {
 			},
 		},
 	}
-	acl, err := New(root, policy)
+	acl, err := New(root, policy, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -499,7 +505,7 @@ func TestPolicyACL_Parent(t *testing.T) {
 		if c.read != acl.KeyRead(c.inp) {
 			t.Fatalf("Read fail: %#v", c)
 		}
-		if c.write != acl.KeyWrite(c.inp) {
+		if c.write != acl.KeyWrite(c.inp, nil) {
 			t.Fatalf("Write fail: %#v", c)
 		}
 		if c.writePrefix != acl.KeyWritePrefix(c.inp) {
@@ -523,7 +529,7 @@ func TestPolicyACL_Parent(t *testing.T) {
 		if c.read != acl.ServiceRead(c.inp) {
 			t.Fatalf("Read fail: %#v", c)
 		}
-		if c.write != acl.ServiceWrite(c.inp) {
+		if c.write != acl.ServiceWrite(c.inp, nil) {
 			t.Fatalf("Write fail: %#v", c)
 		}
 	}
@@ -585,7 +591,7 @@ func TestPolicyACL_Agent(t *testing.T) {
 			},
 		},
 	}
-	root, err := New(deny, policyRoot)
+	root, err := New(deny, policyRoot, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -610,7 +616,7 @@ func TestPolicyACL_Agent(t *testing.T) {
 			},
 		},
 	}
-	acl, err := New(root, policy)
+	acl, err := New(root, policy, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -659,7 +665,7 @@ func TestPolicyACL_Keyring(t *testing.T) {
 		{PolicyDeny, false, false},
 	}
 	for _, c := range cases {
-		acl, err := New(DenyAll(), &Policy{Keyring: c.inp})
+		acl, err := New(DenyAll(), &Policy{Keyring: c.inp}, nil)
 		if err != nil {
 			t.Fatalf("bad: %s", err)
 		}
@@ -685,7 +691,7 @@ func TestPolicyACL_Operator(t *testing.T) {
 		{PolicyDeny, false, false},
 	}
 	for _, c := range cases {
-		acl, err := New(DenyAll(), &Policy{Operator: c.inp})
+		acl, err := New(DenyAll(), &Policy{Operator: c.inp}, nil)
 		if err != nil {
 			t.Fatalf("bad: %s", err)
 		}
@@ -720,7 +726,7 @@ func TestPolicyACL_Node(t *testing.T) {
 			},
 		},
 	}
-	root, err := New(deny, policyRoot)
+	root, err := New(deny, policyRoot, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -745,7 +751,7 @@ func TestPolicyACL_Node(t *testing.T) {
 			},
 		},
 	}
-	acl, err := New(root, policy)
+	acl, err := New(root, policy, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -775,7 +781,7 @@ func TestPolicyACL_Node(t *testing.T) {
 		if c.read != acl.NodeRead(c.inp) {
 			t.Fatalf("Read fail: %#v", c)
 		}
-		if c.write != acl.NodeWrite(c.inp) {
+		if c.write != acl.NodeWrite(c.inp, nil) {
 			t.Fatalf("Write fail: %#v", c)
 		}
 	}
@@ -803,7 +809,7 @@ func TestPolicyACL_Session(t *testing.T) {
 			},
 		},
 	}
-	root, err := New(deny, policyRoot)
+	root, err := New(deny, policyRoot, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -828,7 +834,7 @@ func TestPolicyACL_Session(t *testing.T) {
 			},
 		},
 	}
-	acl, err := New(root, policy)
+	acl, err := New(root, policy, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

@@ -6,15 +6,15 @@ import (
 )
 
 // delta defines the time band a test run should complete in.
-var delta = 10 * time.Millisecond
+var delta = 25 * time.Millisecond
 
 func TestRetryer(t *testing.T) {
 	tests := []struct {
 		desc string
 		r    Retryer
 	}{
-		{"counter", &Counter{Count: 3, Wait: 10 * time.Millisecond}},
-		{"timer", &Timer{Timeout: 20 * time.Millisecond, Wait: 10 * time.Millisecond}},
+		{"counter", &Counter{Count: 3, Wait: 100 * time.Millisecond}},
+		{"timer", &Timer{Timeout: 200 * time.Millisecond, Wait: 100 * time.Millisecond}},
 	}
 
 	for _, tt := range tests {
@@ -35,7 +35,7 @@ func TestRetryer(t *testing.T) {
 			// since the first iteration happens immediately
 			// the retryer waits only twice for three iterations.
 			// order of events: (true, (wait) true, (wait) true, false)
-			if got, want := dur, 20*time.Millisecond; got < (want-delta) || got > (want+delta) {
+			if got, want := dur, 200*time.Millisecond; got < (want-delta) || got > (want+delta) {
 				t.Fatalf("loop took %v want %v (+/- %v)", got, want, delta)
 			}
 		})

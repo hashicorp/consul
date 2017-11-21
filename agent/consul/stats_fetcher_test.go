@@ -6,12 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul/agent"
+	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
 )
 
 func TestStatsFetcher(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerDCExpect(t, "dc1", 3)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -33,9 +34,9 @@ func TestStatsFetcher(t *testing.T) {
 		t.Fatalf("bad len: %d", len(members))
 	}
 
-	var servers []*agent.Server
+	var servers []*metadata.Server
 	for _, member := range members {
-		ok, server := agent.IsConsulServer(member)
+		ok, server := metadata.IsConsulServer(member)
 		if !ok {
 			t.Fatalf("bad: %#v", member)
 		}
@@ -91,12 +92,4 @@ func TestStatsFetcher(t *testing.T) {
 			}
 		}
 	}()
-
-	// Do a fetch with a canceled context and make sure we bail right away.
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	cancel()
-	stats := s1.statsFetcher.Fetch(ctx, servers)
-	if len(stats) != 0 {
-		t.Fatalf("bad: %#v", stats)
-	}
 }

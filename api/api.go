@@ -106,9 +106,25 @@ type QueryOptions struct {
 	// a value from 0 to 5 (inclusive).
 	RelayFactor uint8
 
-	// Context (optional) is passed through to the underlying http request layer, can be used
-	// to set timeouts and deadlines as well as to cancel requests
-	Context context.Context
+	// ctx is an optional context pass through to the underlying HTTP
+	// request layer. Use Context() and WithContext() to manage this.
+	ctx context.Context
+}
+
+func (o *QueryOptions) Context() context.Context {
+	if o != nil && o.ctx != nil {
+		return o.ctx
+	}
+	return context.Background()
+}
+
+func (o *QueryOptions) WithContext(ctx context.Context) *QueryOptions {
+	o2 := new(QueryOptions)
+	if o != nil {
+		*o2 = *o
+	}
+	o2.ctx = ctx
+	return o2
 }
 
 // WriteOptions are used to parameterize a write
@@ -125,6 +141,26 @@ type WriteOptions struct {
 	// relayed back to the sender through N other random nodes. Must be
 	// a value from 0 to 5 (inclusive).
 	RelayFactor uint8
+
+	// ctx is an optional context pass through to the underlying HTTP
+	// request layer. Use Context() and WithContext() to manage this.
+	ctx context.Context
+}
+
+func (o *WriteOptions) Context() context.Context {
+	if o != nil && o.ctx != nil {
+		return o.ctx
+	}
+	return context.Background()
+}
+
+func (o *WriteOptions) WithContext(ctx context.Context) *WriteOptions {
+	o2 := new(WriteOptions)
+	if o != nil {
+		*o2 = *o
+	}
+	o2.ctx = ctx
+	return o2
 }
 
 // QueryMeta is used to return meta data about a query
@@ -341,12 +377,14 @@ func SetupTLSConfig(tlsConfig *TLSConfig) (*tls.Config, error) {
 		tlsClientConfig.Certificates = []tls.Certificate{tlsCert}
 	}
 
-	rootConfig := &rootcerts.Config{
-		CAFile: tlsConfig.CAFile,
-		CAPath: tlsConfig.CAPath,
-	}
-	if err := rootcerts.ConfigureTLS(tlsClientConfig, rootConfig); err != nil {
-		return nil, err
+	if tlsConfig.CAFile != "" || tlsConfig.CAPath != "" {
+		rootConfig := &rootcerts.Config{
+			CAFile: tlsConfig.CAFile,
+			CAPath: tlsConfig.CAPath,
+		}
+		if err := rootcerts.ConfigureTLS(tlsClientConfig, rootConfig); err != nil {
+			return nil, err
+		}
 	}
 
 	return tlsClientConfig, nil
@@ -410,6 +448,7 @@ func NewClient(config *Config) (*Client, error) {
 	if len(parts) == 2 {
 		switch parts[0] {
 		case "http":
+			config.Scheme = "http"
 		case "https":
 			config.Scheme = "https"
 		case "unix":
@@ -426,10 +465,11 @@ func NewClient(config *Config) (*Client, error) {
 		config.Address = parts[1]
 	}
 
-	client := &Client{
-		config: *config,
+	if config.Token == "" {
+		config.Token = defConfig.Token
 	}
-	return client, nil
+
+	return &Client{config: *config}, nil
 }
 
 // NewHttpClient returns an http client configured with the given Transport and TLS
@@ -438,6 +478,14 @@ func NewHttpClient(transport *http.Transport, tlsConf TLSConfig) (*http.Client, 
 	client := &http.Client{
 		Transport: transport,
 	}
+
+	// TODO (slackpad) - Once we get some run time on the HTTP/2 support we
+	// should turn it on by default if TLS is enabled. We would basically
+	// just need to call http2.ConfigureTransport(transport) here. We also
+	// don't want to introduce another external dependency on
+	// golang.org/x/net/http2 at this time. For a complete recipe for how
+	// to enable HTTP/2 support on a transport suitable for the API client
+	// library see agent/http_test.go:TestHTTPServer_H2.
 
 	if transport.TLSClientConfig == nil {
 		tlsClientConfig, err := SetupTLSConfig(&tlsConf)
@@ -499,7 +547,7 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 	if q.RelayFactor != 0 {
 		r.params.Set("relay-factor", strconv.Itoa(int(q.RelayFactor)))
 	}
-	r.ctx = q.Context
+	r.ctx = q.ctx
 }
 
 // durToMsec converts a duration to a millisecond specified string. If the
@@ -517,11 +565,18 @@ func durToMsec(dur time.Duration) string {
 // serverError is a string we look for to detect 500 errors.
 const serverError = "Unexpected response code: 500"
 
-// IsServerError returns true for 500 errors from the Consul servers, these are
-// usually retryable at a later time.
-func IsServerError(err error) bool {
+// IsRetryableError returns true for 500 errors from the Consul servers, and
+// network connection errors. These are usually retryable at a later time.
+// This applies to reads but NOT to writes. This may return true for errors
+// on writes that may have still gone through, so do not use this to retry
+// any write operations.
+func IsRetryableError(err error) bool {
 	if err == nil {
 		return false
+	}
+
+	if _, ok := err.(net.Error); ok {
+		return true
 	}
 
 	// TODO (slackpad) - Make a real error type here instead of using
@@ -544,6 +599,7 @@ func (r *request) setWriteOptions(q *WriteOptions) {
 	if q.RelayFactor != 0 {
 		r.params.Set("relay-factor", strconv.Itoa(int(q.RelayFactor)))
 	}
+	r.ctx = q.ctx
 }
 
 // toHTTP converts the request to an HTTP request
@@ -615,7 +671,7 @@ func (c *Client) doRequest(r *request) (time.Duration, *http.Response, error) {
 	}
 	start := time.Now()
 	resp, err := c.config.HttpClient.Do(req)
-	diff := time.Now().Sub(start)
+	diff := time.Since(start)
 	return diff, resp, err
 }
 

@@ -1,0 +1,14 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{"checksumSHA1":"ZT+e2iMSXAsKCuJ3BNYpOzDaSmk=","path":"github.com/Azure/azure-sdk-for-go/arm/network","revision":"7696a9f8be6a9e03b2074b4c88eee5ed3c4f0599","revisionTime":"2017-06-10T21:46:25Z"},
+		{"checksumSHA1":"U2+FgaMOPEFg/yHLD5RbiXI1cq4=","path":"github.com/Azure/go-autorest/autorest","revision":"7696a9f8be6a9e03b2074b4c88eee5ed3c4f0599","revisionTime":"2017-06-10T21:46:25Z"},
+		{"checksumSHA1":"ghrnc4vZv6q8zzeakZnrS8CGFhE=","path":"github.com/Azure/go-autorest/autorest/azure","revision":"7696a9f8be6a9e03b2074b4c88eee5ed3c4f0599","revisionTime":"2017-06-10T21:46:25Z"},
+		{"checksumSHA1":"QapQRLZlewQkaHFgQ3ktePbyh6k=","path":"github.com/Azure/go-autorest/autorest/date","revision":"7696a9f8be6a9e03b2074b4c88eee5ed3c4f0599","revisionTime":"2017-06-10T21:46:25Z"},
+		{"checksumSHA1":"Ev8qCsbFjDlMlX0N2tYAhYQFpUc=","path":"github.com/Azure/go-autorest/autorest/to","revision":"7696a9f8be6a9e03b2074b4c88eee5ed3c4f0599","revisionTime":"2017-06-10T21:46:25Z"},
+		{"checksumSHA1":"oBixceM+55gdk47iff8DSEIh3po=","path":"github.com/Azure/go-autorest/autorest/validation","revision":"7696a9f8be6a9e03b2074b4c88eee5ed3c4f0599","revisionTime":"2017-06-10T21:46:25Z"},
+		{"checksumSHA1":"2Fy1Y6Z3lRRX1891WF/+HT4XS2I=","path":"github.com/dgrijalva/jwt-go","revision":"7696a9f8be6a9e03b2074b4c88eee5ed3c4f0599","revisionTime":"2017-06-10T21:46:25Z"}
+	],
+	"rootPath": "github.com/hashicorp/go-discover/azure"
+}

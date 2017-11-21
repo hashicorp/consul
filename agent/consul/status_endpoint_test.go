@@ -13,7 +13,7 @@ import (
 )
 
 func rpcClient(t *testing.T, s *Server) rpc.ClientCodec {
-	addr := s.config.RPCAddr
+	addr := s.config.RPCAdvertise
 	conn, err := net.DialTimeout("tcp", addr.String(), time.Second)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -25,6 +25,7 @@ func rpcClient(t *testing.T, s *Server) rpc.ClientCodec {
 }
 
 func TestStatusLeader(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -51,6 +52,7 @@ func TestStatusLeader(t *testing.T) {
 }
 
 func TestStatusPeers(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()

@@ -42,6 +42,7 @@ Subcommands:
     join       Join Consul servers into an existing network area
     list       List network areas
     members    Display Consul server members present in network areas
+    update     Update the configuration of a network area
 ```
 
 If ACLs are enabled, the client will need to supply an ACL Token with `operator`
@@ -66,6 +67,9 @@ where the area was created, and the peer datacenter. This is required.
 
 * `-retry-join=<value>` Specifies the address of a Consul server to join to, such as an IP
 or hostname with an optional port number. This is optional and can be specified multiple times.
+
+* `-use-tls=<value>` Specifies whether gossip over this area should be encrypted with
+TLS if possible. Must be either `true` or `false`.
 
 The output looks like this, displaying the ID of the newly-created network area:
 
@@ -214,5 +218,36 @@ spoken by the node.
 `RTT` is an estimated network round trip time from the server answering the query
 to the given server, in a human-readable format. This is computed using
 [network coordinates](/docs/internals/coordinates.html).
+
+The return code will indicate success or failure.
+
+## update
+
+This command updates the configuration of network area.
+
+Usage: `consul operator area update [options]`
+
+#### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
+
+#### Command Options
+
+* `-id=<value>` - Looks up the area to operate on by its ID. This can be given
+instead of a peer datacenter.
+
+* `-peer-datacenter=<value>` - Declares the peer Consul datacenter that will make up the other
+side of this network area. Network areas always involve a pair of datacenters: the datacenter
+where the area was created, and the peer datacenter. This is required.
+
+* `-use-tls=<value>` Specifies whether gossip over this area should be encrypted with
+TLS if possible. Must be either `true` or `false`.
+
+The output looks like this:
+
+```
+Updated area "d2872ec5-68ea-b862-b75d-0bee99aca100"
+```
 
 The return code will indicate success or failure.

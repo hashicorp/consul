@@ -43,15 +43,17 @@ App.Router.map(function() {
 
     // Shows a page explaining that ACLs haven't been set-up
     this.route("aclsdisabled", { path: "/aclsdisabled" });
-    // Shows a page explaining that the ACL key being used isn't
+
+    // Shows a page explaining that the ACL token being used isn't
     // authorized
     this.route("unauthorized", { path: "/unauthorized" });
-
-    this.resource("settings", { path: "/settings" });
   });
 
   // Shows a datacenter picker. If you only have one
   // it just redirects you through.
   this.route("index", { path: "/" });
+
+  // The settings page is global.
+  this.resource("settings", { path: "/settings" });
 });
 

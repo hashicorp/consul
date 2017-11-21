@@ -7,24 +7,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/testutil"
+	"github.com/pascaldekloe/goe/verify"
 )
-
-func TestAEScale(t *testing.T) {
-	t.Parallel()
-	intv := time.Minute
-	if v := aeScale(intv, 100); v != intv {
-		t.Fatalf("Bad: %v", v)
-	}
-	if v := aeScale(intv, 200); v != 2*intv {
-		t.Fatalf("Bad: %v", v)
-	}
-	if v := aeScale(intv, 1000); v != 4*intv {
-		t.Fatalf("Bad: %v", v)
-	}
-	if v := aeScale(intv, 10000); v != 8*intv {
-		t.Fatalf("Bad: %v", v)
-	}
-}
 
 func TestStringHash(t *testing.T) {
 	t.Parallel()
@@ -46,22 +30,22 @@ func TestSetFilePermissions(t *testing.T) {
 	defer os.Remove(path)
 
 	// Bad UID fails
-	if err := setFilePermissions(path, UnixSocketPermissions{Usr: "%"}); err == nil {
+	if err := setFilePermissions(path, "%", "", ""); err == nil {
 		t.Fatalf("should fail")
 	}
 
 	// Bad GID fails
-	if err := setFilePermissions(path, UnixSocketPermissions{Grp: "%"}); err == nil {
+	if err := setFilePermissions(path, "", "%", ""); err == nil {
 		t.Fatalf("should fail")
 	}
 
 	// Bad mode fails
-	if err := setFilePermissions(path, UnixSocketPermissions{Perms: "%"}); err == nil {
+	if err := setFilePermissions(path, "", "", "%"); err == nil {
 		t.Fatalf("should fail")
 	}
 
 	// Allows omitting user/group/mode
-	if err := setFilePermissions(path, UnixSocketPermissions{}); err != nil {
+	if err := setFilePermissions(path, "", "", ""); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -69,7 +53,7 @@ func TestSetFilePermissions(t *testing.T) {
 	if err := os.Chmod(path, 0700); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if err := setFilePermissions(path, UnixSocketPermissions{}); err != nil {
+	if err := setFilePermissions(path, "", "", ""); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	fi, err := os.Stat(path)
@@ -81,7 +65,7 @@ func TestSetFilePermissions(t *testing.T) {
 	}
 
 	// Changes mode if given
-	if err := setFilePermissions(path, UnixSocketPermissions{Perms: "0777"}); err != nil {
+	if err := setFilePermissions(path, "", "", "0777"); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	fi, err = os.Stat(path)
@@ -91,4 +75,47 @@ func TestSetFilePermissions(t *testing.T) {
 	if fi.Mode().String() != "-rwxrwxrwx" {
 		t.Fatalf("bad: %s", fi.Mode())
 	}
+}
+
+func TestDurationFixer(t *testing.T) {
+	obj := map[string]interface{}{
+		"key1": []map[string]interface{}{
+			{
+				"subkey1": "10s",
+			},
+			{
+				"subkey2": "5d",
+			},
+		},
+		"key2": map[string]interface{}{
+			"subkey3": "30s",
+			"subkey4": "20m",
+		},
+		"key3": "11s",
+		"key4": "49h",
+	}
+	expected := map[string]interface{}{
+		"key1": []map[string]interface{}{
+			{
+				"subkey1": 10 * time.Second,
+			},
+			{
+				"subkey2": "5d",
+			},
+		},
+		"key2": map[string]interface{}{
+			"subkey3": "30s",
+			"subkey4": 20 * time.Minute,
+		},
+		"key3": "11s",
+		"key4": 49 * time.Hour,
+	}
+
+	fixer := NewDurationFixer("key4", "subkey1", "subkey4")
+	if err := fixer.FixupDurations(obj); err != nil {
+		t.Fatal(err)
+	}
+
+	// Ensure we only processed the intended fieldnames
+	verify.Values(t, "", obj, expected)
 }

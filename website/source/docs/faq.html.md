@@ -25,15 +25,16 @@ Hosted Consul Enterprise in Atlas was officially deprecated on March 7th,
 
 There are strong alternatives available and they are listed below.
 
-For users on AWS the [-retry-join-ec2 configuration options](/docs/agent/options.html#_retry_join_ec2_tag_key) allow bootstrapping by automatically discovering AWS instances with a given tag key/value at startup.
+For users on supported cloud platform the
+[-retry-join](/docs/agent/options.html#_retry_join) option allows bootstrapping
+by automatically discovering instances with a given tag key/value at startup. 
 
-For users on GCE the [-retry-join-gce configuration options](/docs/agent/options.html#_retry_join_gce_tag_value) allow bootstrapping by automatically discovering instances on Google Compute Engine by tag value at startup.
+For users on other cloud platforms [-join and retry-join
+functionality](/docs/agent/options.html#_join) can be used to join clusters by
+ip address or hostname.
 
-For users on Azure the [-retry-join-azure configuration options](/docs/agent/options.html#_retry_join_azure_tag_name) allow bootstrapping by automatically discovering Azure instances with a given tag name/value at startup.
-
-For users not on AWS, GCE or Azure the native [-join and retry-join functionality](/docs/agent/options.html#_join) can be used.
-
-Other features of Consul Enterprise, such as the UI and Alerts also have suitable open source alternatives.
+Other features of Consul Enterprise, such as the UI and Alerts also have
+suitable open source alternatives.
 
 For replacing the UI, we recommend the [free UI packaged as part of Consul open source](https://www.consul.io/docs/agent/options.html#_ui). A live demo can be access at [https://demo.consul.io/ui/](https://demo.consul.io/ui/).
 
@@ -115,3 +116,14 @@ HTTP 413 status will be returned to any client that attempts to store more
 than that limit in a value. It should be noted that the Consul key/value store
 is not designed to be used as a general purpose database. See
 [Server Performance](/docs/guides/performance.html) for more details.
+
+## Q: What data is replicated between Consul datacenters?
+
+In general, data is not replicated between different Consul datacenters. When a
+request is made for a resource in another datacenter, the local Consul servers forward
+an RPC request to the remote Consul servers for that resource and return the results.
+If the remote datacenter is not available, then those resources will also not be
+available, but that won't otherwise affect the local datacenter. There are some special
+situations where a limited subset of data can be replicated, such as with Consul's built-in
+[ACL replication](/docs/guides/acl.html#outages-and-acl-replication) capability, or
+external tools like [consul-replicate](https://github.com/hashicorp/consul-replicate).

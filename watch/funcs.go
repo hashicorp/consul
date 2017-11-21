@@ -234,6 +234,6 @@ func eventWatch(params map[string]interface{}) (WatcherFunc, error) {
 func makeQueryOptionsWithContext(p *Plan, stale bool) consulapi.QueryOptions {
 	ctx, cancel := context.WithCancel(context.Background())
 	p.cancelFunc = cancel
-	opts := consulapi.QueryOptions{AllowStale: stale, WaitIndex: p.lastIndex, Context: ctx}
-	return opts
+	opts := consulapi.QueryOptions{AllowStale: stale, WaitIndex: p.lastIndex}
+	return *opts.WithContext(ctx)
 }

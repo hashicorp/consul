@@ -1,13 +1,13 @@
 language: go
 
 go:
-  - 1.8.3
+  - 1.x
 
 branches:
   only:
     - master
 
 script:
-  - make test vet
+  - make test
 
 sudo: false

@@ -6,8 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul"
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -28,10 +27,8 @@ type sessionCreateResponse struct {
 
 // SessionCreate is used to create a new session
 func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	// Mandate a PUT request
 	if req.Method != "PUT" {
-		resp.WriteHeader(405)
-		return nil, nil
+		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
 	}
 
 	// Default the session to our node + serf check + release session invalidate behavior
@@ -39,7 +36,7 @@ func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) 
 		Op: structs.SessionCreate,
 		Session: structs.Session{
 			Node:      s.agent.config.NodeName,
-			Checks:    []types.CheckID{consul.SerfCheckID},
+			Checks:    []types.CheckID{structs.SerfCheckID},
 			LockDelay: 15 * time.Second,
 			Behavior:  structs.SessionKeysRelease,
 			TTL:       "",
@@ -51,7 +48,7 @@ func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) 
 	// Handle optional request body
 	if req.ContentLength > 0 {
 		if err := decodeBody(req, &args.Session, FixupLockDelay); err != nil {
-			resp.WriteHeader(400)
+			resp.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(resp, "Request decode failed: %v", err)
 			return nil, nil
 		}
@@ -108,10 +105,8 @@ func FixupLockDelay(raw interface{}) error {
 
 // SessionDestroy is used to destroy an existing session
 func (s *HTTPServer) SessionDestroy(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	// Mandate a PUT request
 	if req.Method != "PUT" {
-		resp.WriteHeader(405)
-		return nil, nil
+		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
 	}
 
 	args := structs.SessionRequest{
@@ -123,7 +118,7 @@ func (s *HTTPServer) SessionDestroy(resp http.ResponseWriter, req *http.Request)
 	// Pull out the session id
 	args.Session.ID = strings.TrimPrefix(req.URL.Path, "/v1/session/destroy/")
 	if args.Session.ID == "" {
-		resp.WriteHeader(400)
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing session")
 		return nil, nil
 	}
@@ -137,10 +132,8 @@ func (s *HTTPServer) SessionDestroy(resp http.ResponseWriter, req *http.Request)
 
 // SessionRenew is used to renew the TTL on an existing TTL session
 func (s *HTTPServer) SessionRenew(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	// Mandate a PUT request
 	if req.Method != "PUT" {
-		resp.WriteHeader(405)
-		return nil, nil
+		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
 	}
 
 	args := structs.SessionSpecificRequest{}
@@ -151,7 +144,7 @@ func (s *HTTPServer) SessionRenew(resp http.ResponseWriter, req *http.Request) (
 	// Pull out the session id
 	args.Session = strings.TrimPrefix(req.URL.Path, "/v1/session/renew/")
 	if args.Session == "" {
-		resp.WriteHeader(400)
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing session")
 		return nil, nil
 	}
@@ -160,7 +153,7 @@ func (s *HTTPServer) SessionRenew(resp http.ResponseWriter, req *http.Request) (
 	if err := s.agent.RPC("Session.Renew", &args, &out); err != nil {
 		return nil, err
 	} else if out.Sessions == nil {
-		resp.WriteHeader(404)
+		resp.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(resp, "Session id '%s' not found", args.Session)
 		return nil, nil
 	}
@@ -170,6 +163,10 @@ func (s *HTTPServer) SessionRenew(resp http.ResponseWriter, req *http.Request) (
 
 // SessionGet is used to get info for a particular session
 func (s *HTTPServer) SessionGet(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "GET" {
+		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+	}
+
 	args := structs.SessionSpecificRequest{}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
@@ -178,7 +175,7 @@ func (s *HTTPServer) SessionGet(resp http.ResponseWriter, req *http.Request) (in
 	// Pull out the session id
 	args.Session = strings.TrimPrefix(req.URL.Path, "/v1/session/info/")
 	if args.Session == "" {
-		resp.WriteHeader(400)
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing session")
 		return nil, nil
 	}
@@ -198,6 +195,10 @@ func (s *HTTPServer) SessionGet(resp http.ResponseWriter, req *http.Request) (in
 
 // SessionList is used to list all the sessions
 func (s *HTTPServer) SessionList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "GET" {
+		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+	}
+
 	args := structs.DCSpecificRequest{}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
@@ -218,6 +219,10 @@ func (s *HTTPServer) SessionList(resp http.ResponseWriter, req *http.Request) (i
 
 // SessionsForNode returns all the nodes belonging to a node
 func (s *HTTPServer) SessionsForNode(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "GET" {
+		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+	}
+
 	args := structs.NodeSpecificRequest{}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
@@ -226,7 +231,7 @@ func (s *HTTPServer) SessionsForNode(resp http.ResponseWriter, req *http.Request
 	// Pull out the node name
 	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/session/node/")
 	if args.Node == "" {
-		resp.WriteHeader(400)
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing node name")
 		return nil, nil
 	}

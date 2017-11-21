@@ -18,7 +18,7 @@ is _**highly**_ discouraged as data loss is inevitable in a failure scenario.
 
 All other agents run in client mode. A client is a very lightweight
 process that registers services, runs health checks, and forwards queries to
-servers. The agent must be run on every node that is part of the cluster.
+servers. The agent must be running on every node that is part of the cluster.
 
 For more detail on bootstrapping a datacenter, see
 [this guide](/docs/guides/bootstrapping.html).

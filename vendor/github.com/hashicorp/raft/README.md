@@ -3,7 +3,7 @@ raft [![Build Status](https://travis-ci.org/hashicorp/raft.png)](https://travis-
 
 raft is a [Go](http://www.golang.org) library that manages a replicated
 log and can be used with an FSM to manage replicated state machines. It
-is library for providing [consensus](http://en.wikipedia.org/wiki/Consensus_(computer_science)).
+is a library for providing [consensus](http://en.wikipedia.org/wiki/Consensus_(computer_science)).
 
 The use cases for such a library are far-reaching as replicated state
 machines are a key component of many distributed systems. They enable
@@ -31,6 +31,24 @@ for the `LogStore` and `StableStore`.
 A pure Go backend using [BoltDB](https://github.com/boltdb/bolt) is also available called
 [raft-boltdb](https://github.com/hashicorp/raft-boltdb). It can also be used as a `LogStore`
 and `StableStore`.
+
+## Tagged Releases
+
+As of September 2017, Hashicorp will start using tags for this library to clearly indicate
+major version updates. We recommend you vendor your application's dependency on this library.
+
+* v0.1.0 is the original stable version of the library that was in master and has been maintained
+with no breaking API changes. This was in use by Consul prior to version 0.7.0.
+
+* v1.0.0 takes the changes that were staged in the library-v2-stage-one branch. This version
+manages server identities using a UUID, so introduces some breaking API changes. It also versions
+the Raft protocol, and requires some special steps when interoperating with Raft servers running
+older versions of the library (see the detailed comment in config.go about version compatibility).
+You can reference https://github.com/hashicorp/consul/pull/2222 for an idea of what was required
+to port Consul to these new interfaces.
+
+    This version includes some new features as well, including non voting servers, a new address
+    provider abstraction in the transport layer, and more resilient snapshots.
 
 ## Protocol
 

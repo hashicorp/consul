@@ -8,13 +8,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
 func TestTxn_CheckNotExists(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -66,6 +68,7 @@ func TestTxn_CheckNotExists(t *testing.T) {
 }
 
 func TestTxn_Apply(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -152,6 +155,7 @@ func TestTxn_Apply(t *testing.T) {
 }
 
 func TestTxn_Apply_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -159,8 +163,6 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	codec := rpcClient(t, s1)
-	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -187,7 +189,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
-		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
+		if err := s1.RPC("ACL.Apply", &arg, &id); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -299,7 +301,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 		},
 	}
 	var out structs.TxnResponse
-	if err := msgpackrpc.CallWithCodec(codec, "Txn.Apply", &arg, &out); err != nil {
+	if err := s1.RPC("Txn.Apply", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -313,7 +315,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 		default:
 			expected.Errors = append(expected.Errors, &structs.TxnError{
 				OpIndex: i,
-				What:    errPermissionDenied.Error(),
+				What:    acl.ErrPermissionDenied.Error(),
 			})
 		}
 	}
@@ -323,6 +325,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 }
 
 func TestTxn_Apply_LockDelay(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -408,6 +411,7 @@ func TestTxn_Apply_LockDelay(t *testing.T) {
 }
 
 func TestTxn_Read(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -473,6 +477,7 @@ func TestTxn_Read(t *testing.T) {
 }
 
 func TestTxn_Read_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -574,7 +579,7 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 		default:
 			expected.Errors = append(expected.Errors, &structs.TxnError{
 				OpIndex: i,
-				What:    errPermissionDenied.Error(),
+				What:    acl.ErrPermissionDenied.Error(),
 			})
 		}
 	}

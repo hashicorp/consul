@@ -8,7 +8,55 @@ description: |-
 
 # ACL HTTP API
 
-The `/acl` endpoints create, update, destroy, and query ACL tokens in Consul.
+The `/acl` endpoints create, update, destroy, and query ACL tokens in Consul. For more information about ACLs, please see the [ACL Guide](/docs/guides/acl.html).
+
+## Bootstrap ACLs
+
+This endpoint does a special one-time bootstrap of the ACL system, making the first
+management token if the [`acl_master_token`](/docs/agent/options.html#acl_master_token)
+is not specified in the Consul server configuration, and if the cluster has not been
+bootstrapped previously. This is available in Consul 0.9.1 and later, and requires all
+Consul servers to be upgraded in order to operate.
+
+This provides a mechanism to bootstrap ACLs without having any secrets present in Consul's
+configuration files.
+
+| Method | Path                         | Produces                   |
+| ------ | ---------------------------- | -------------------------- |
+| `PUT`  | `/acl/bootstrap`             | `application/json`         |
+
+The table below shows this endpoint's support for
+[blocking queries](/api/index.html#blocking-queries),
+[consistency modes](/api/index.html#consistency-modes), and
+[required ACLs](/api/index.html#acls).
+
+| Blocking Queries | Consistency Modes | ACL Required |
+| ---------------- | ----------------- | ------------ |
+| `NO`             | `none`            | `none`       |
+
+### Sample Request
+
+```text
+$ curl \
+    --request PUT \
+    https://consul.rocks/v1/acl/bootstrap
+```
+
+### Sample Response
+
+```json
+{
+  "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
+}
+```
+
+You can detect if something has interfered with the ACL bootstrapping process by
+checking the response code. A 200 response means that the bootstrap was a success, and
+a 403 means that the cluster has already been bootstrapped, at which point you should
+consider the cluster in a potentially compromised state.
+
+The returned token will be a management token which can be used to further configure the
+ACL system. Please see the [ACL Guide](/docs/guides/acl.html) for more details.
 
 ## Create ACL Token
 

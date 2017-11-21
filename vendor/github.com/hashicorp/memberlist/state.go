@@ -251,10 +251,17 @@ func (m *Memberlist) probeNode(node *nodeState) {
 	nackCh := make(chan struct{}, m.config.IndirectChecks+1)
 	m.setProbeChannels(ping.SeqNo, ackCh, nackCh, probeInterval)
 
+	// Mark the sent time here, which should be after any pre-processing but
+	// before system calls to do the actual send. This probably over-reports
+	// a bit, but it's the best we can do. We had originally put this right
+	// after the I/O, but that would sometimes give negative RTT measurements
+	// which was not desirable.
+	sent := time.Now()
+
 	// Send a ping to the node. If this node looks like it's suspect or dead,
 	// also tack on a suspect message so that it has a chance to refute as
 	// soon as possible.
-	deadline := time.Now().Add(probeInterval)
+	deadline := sent.Add(probeInterval)
 	addr := node.Address()
 	if node.State == stateAlive {
 		if err := m.encodeAndSendMsg(addr, pingMsg, &ping); err != nil {
@@ -283,11 +290,6 @@ func (m *Memberlist) probeNode(node *nodeState) {
 			return
 		}
 	}
-
-	// Mark the sent time here, which should be after any pre-processing and
-	// system calls to do the actual send. This probably under-reports a bit,
-	// but it's the best we can do.
-	sent := time.Now()
 
 	// Arrange for our self-awareness to get updated. At this point we've
 	// sent the ping, so any return statement means the probe succeeded
@@ -835,7 +837,7 @@ func (m *Memberlist) aliveNode(a *alive, notify chan struct{}, bootstrap bool) {
 	// in-queue to be processed but blocked by the locks above. If we let
 	// that aliveMsg process, it'll cause us to re-join the cluster. This
 	// ensures that we don't.
-	if m.leave && a.Node == m.config.Name {
+	if m.hasLeft() && a.Node == m.config.Name {
 		return
 	}
 
@@ -1111,7 +1113,7 @@ func (m *Memberlist) deadNode(d *dead) {
 	// Check if this is us
 	if state.Name == m.config.Name {
 		// If we are not leaving we need to refute
-		if !m.leave {
+		if !m.hasLeft() {
 			m.refute(state, d.Incarnation)
 			m.logger.Printf("[WARN] memberlist: Refuting a dead message (from: %s)", d.From)
 			return // Do not mark ourself dead

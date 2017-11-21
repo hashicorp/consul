@@ -33,13 +33,9 @@ if ! git diff --quiet agent/bindata_assetfs.go; then
    exit 1
 fi
 
-# Now we are ready to do a clean build of everything. The "all" build will blow
-# away our pkg folder so we have to regenerate the ui once more. This is probably
-# for the best since we have meddled with the timestamps.
+# Now we are ready to do a clean build of everything. We no longer distribute the
+# web UI so it's ok that gets blown away as part of this.
 rm -rf pkg
 make all
-pushd ui
-make dist
-popd
 
 exit 0

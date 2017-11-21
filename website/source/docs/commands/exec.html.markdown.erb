@@ -29,6 +29,16 @@ through the Consul servers and the Raft consensus algorithm, so having a large
 number of nodes in the cluster flow a large amount of data through the KV store
 could make the cluster unavailable.
 
+The table below shows the [required ACLs](/api/index.html#acls) in order to
+execute this command.
+
+| ACL Required    | Scope             |
+| ------------    | ------------      |
+| `agent:read`    | local agent       |
+| `session:write` | local agent       |
+| `key:write`     | `"_rexec"` prefix |
+| `event:write`   | `"_rexec"` prefix |
+
 ## Usage
 
 Usage: `consul exec [options] [-|command...]`
@@ -50,6 +60,8 @@ completion as a script to evaluate.
 * `-node` - Regular expression to filter nodes which should evaluate the event.
 
 * `-service` - Regular expression to filter to only nodes with matching services.
+
+* `-shell` - Optional, use a shell to run the command. The default value is true.
 
 * `-tag` - Regular expression to filter to only nodes with a service that has
   a matching tag. This must be used with `-service`. As an example, you may

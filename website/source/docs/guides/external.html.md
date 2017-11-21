@@ -20,7 +20,9 @@ node service definition.
 
 Once registered, the DNS interface will be able to return the appropriate A
 records or CNAME records for the service. The service will also appear in standard
-queries against the API.
+queries against the API. Consul must be configured with a list of 
+[recursors](/docs/agent/options.html#recursors) for it to be able to resolve 
+external service addresses.
 
 Let us suppose we want to register a "search" service that is provided by
 "www.google.com". We might accomplish that like so:
@@ -30,6 +32,11 @@ $ curl -X PUT -d '{"Datacenter": "dc1", "Node": "google",
    "Address": "www.google.com",
    "Service": {"Service": "search", "Port": 80}}'
    http://127.0.0.1:8500/v1/catalog/register
+```
+
+Add an upstream DNS server to the list of recursors to Consul's configuration. Example with Google's public DNS server:
+```text
+"recursors":["8.8.8.8"]
 ```
 
 If we do a DNS lookup now, we can see the new search service:

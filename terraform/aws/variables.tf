@@ -17,16 +17,20 @@ variable "ami" {
   description = "AWS AMI Id, if you change, make sure it is compatible with instance type, not all AMIs allow all instance types "
 
   default = {
-    us-east-1-ubuntu      = "ami-fce3c696"
-    us-east-2-ubuntu      = "ami-b7075dd2"
-    us-west-1-ubuntu      = "ami-a9a8e4c9"
-    us-west-2-ubuntu      = "ami-9abea4fb"
-    eu-west-1-ubuntu      = "ami-47a23a30"
-    eu-central-1-ubuntu   = "ami-accff2b1"
-    ap-northeast-1-ubuntu = "ami-90815290"
-    ap-northeast-2-ubuntu = "ami-58af6136"
-    ap-southeast-1-ubuntu = "ami-0accf458"
-    ap-southeast-2-ubuntu = "ami-1dc8b127"
+    ap-south-1-ubuntu	  = "ami-08a5e367"
+    us-east-1-ubuntu	  = "ami-d651b8ac"
+    ap-northeast-1-ubuntu = "ami-8422ebe2"
+    eu-west-1-ubuntu	  = "ami-17d11e6e"
+    ap-southeast-1-ubuntu = "ami-e6d3a585"
+    ca-central-1-ubuntu	  = "ami-e59c2581"
+    us-west-1-ubuntu	  = "ami-2d5c6d4d"
+    eu-central-1-ubuntu	  = "ami-5a922335"
+    sa-east-1-ubuntu	  = "ami-a3e39ecf"
+    ap-southeast-2-ubuntu = "ami-391ff95b"
+    eu-west-2-ubuntu	  = "ami-e1f2e185"
+    ap-northeast-2-ubuntu = "ami-0f6fb461"
+    us-west-2-ubuntu	  = "ami-ecc63a94"
+    us-east-2-ubuntu  	  = "ami-9686a4f3"
     us-east-1-rhel6       = "ami-0d28fe66"
     us-east-2-rhel6       = "ami-aff2a9ca"
     us-west-2-rhel6       = "ami-3d3c0a0d"
@@ -44,7 +48,7 @@ variable "ami" {
 
 variable "service_conf" {
   default = {
-    ubuntu  = "debian_upstart.conf"
+    ubuntu  = "debian_consul.service"
     rhel6   = "rhel_upstart.conf"
     centos6 = "rhel_upstart.conf"
     centos7 = "rhel_consul.service"
@@ -54,7 +58,7 @@ variable "service_conf" {
 
 variable "service_conf_dest" {
   default = {
-    ubuntu  = "upstart.conf"
+    ubuntu  = "consul.service"
     rhel6   = "upstart.conf"
     centos6 = "upstart.conf"
     centos7 = "consul.service"
@@ -88,4 +92,14 @@ variable "instance_type" {
 variable "tagName" {
   default     = "consul"
   description = "Name tag for the servers"
+}
+
+variable "subnets" {
+  type = "map"
+  description = "map of subnets to deploy your infrastructure in, must have as many keys as your server count (default 3), -var 'subnets={\"0\"=\"subnet-12345\",\"1\"=\"subnets-23456\"}' "
+}
+
+variable "vpc_id" {
+  type = "string"
+  description = "ID of the VPC to use - in case your account doesn't have default VPC"
 }

@@ -2,15 +2,18 @@ package api
 
 import (
 	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/serf/serf"
 )
 
-func TestAgent_Self(t *testing.T) {
+func TestAPI_AgentSelf(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -22,21 +25,45 @@ func TestAgent_Self(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	name := info["Config"]["NodeName"]
+	name := info["Config"]["NodeName"].(string)
 	if name == "" {
 		t.Fatalf("bad: %v", info)
 	}
 }
 
-func TestAgent_Reload(t *testing.T) {
+func TestAPI_AgentMetrics(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+	timer := &retry.Timer{Timeout: 10 * time.Second, Wait: 500 * time.Millisecond}
+	retry.RunWith(timer, t, func(r *retry.R) {
+		metrics, err := agent.Metrics()
+		if err != nil {
+			r.Fatalf("err: %v", err)
+		}
+		for _, g := range metrics.Gauges {
+			if g.Name == "consul.runtime.alloc_bytes" {
+				return
+			}
+		}
+		r.Fatalf("missing runtime metrics")
+	})
+}
+
+func TestAPI_AgentReload(t *testing.T) {
 	t.Parallel()
 
 	// Create our initial empty config file, to be overwritten later
-	configFile := testutil.TempFile(t, "reload")
-	if _, err := configFile.Write([]byte("{}")); err != nil {
-		t.Fatalf("err: %s", err)
+	cfgDir := testutil.TempDir(t, "consul-config")
+	defer os.RemoveAll(cfgDir)
+
+	cfgFilePath := filepath.Join(cfgDir, "reload.json")
+	configFile, err := os.Create(cfgFilePath)
+	if err != nil {
+		t.Fatalf("Unable to create file %v, got error:%v", cfgFilePath, err)
 	}
-	configFile.Close()
 
 	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
 		conf.Args = []string{"-config-file", configFile.Name()}
@@ -47,7 +74,7 @@ func TestAgent_Reload(t *testing.T) {
 
 	// Update the config file with a service definition
 	config := `{"service":{"name":"redis", "port":1234}}`
-	err := ioutil.WriteFile(configFile.Name(), []byte(config), 0644)
+	err = ioutil.WriteFile(configFile.Name(), []byte(config), 0644)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -70,7 +97,30 @@ func TestAgent_Reload(t *testing.T) {
 	}
 }
 
-func TestAgent_Members(t *testing.T) {
+func TestAPI_AgentMembersOpts(t *testing.T) {
+	t.Parallel()
+	c, s1 := makeClient(t)
+	_, s2 := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
+		c.Datacenter = "dc2"
+	})
+	defer s1.Stop()
+	defer s2.Stop()
+
+	agent := c.Agent()
+
+	s2.JoinWAN(t, s1.WANAddr)
+
+	members, err := agent.MembersOpts(MembersOpts{WAN: true})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(members) != 2 {
+		t.Fatalf("bad: %v", members)
+	}
+}
+
+func TestAPI_AgentMembers(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -87,7 +137,7 @@ func TestAgent_Members(t *testing.T) {
 	}
 }
 
-func TestAgent_Services(t *testing.T) {
+func TestAPI_AgentServices(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -132,7 +182,7 @@ func TestAgent_Services(t *testing.T) {
 	}
 }
 
-func TestAgent_Services_CheckPassing(t *testing.T) {
+func TestAPI_AgentServices_CheckPassing(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -176,7 +226,7 @@ func TestAgent_Services_CheckPassing(t *testing.T) {
 	}
 }
 
-func TestAgent_Services_CheckBadStatus(t *testing.T) {
+func TestAPI_AgentServices_CheckBadStatus(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -196,7 +246,7 @@ func TestAgent_Services_CheckBadStatus(t *testing.T) {
 	}
 }
 
-func TestAgent_ServiceAddress(t *testing.T) {
+func TestAPI_AgentServiceAddress(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -243,7 +293,7 @@ func TestAgent_ServiceAddress(t *testing.T) {
 	}
 }
 
-func TestAgent_EnableTagOverride(t *testing.T) {
+func TestAPI_AgentEnableTagOverride(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -286,7 +336,7 @@ func TestAgent_EnableTagOverride(t *testing.T) {
 	}
 }
 
-func TestAgent_Services_MultipleChecks(t *testing.T) {
+func TestAPI_AgentServices_MultipleChecks(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -330,7 +380,7 @@ func TestAgent_Services_MultipleChecks(t *testing.T) {
 	}
 }
 
-func TestAgent_SetTTLStatus(t *testing.T) {
+func TestAPI_AgentSetTTLStatus(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -414,7 +464,7 @@ func TestAgent_SetTTLStatus(t *testing.T) {
 	}
 }
 
-func TestAgent_Checks(t *testing.T) {
+func TestAPI_AgentChecks(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -446,7 +496,70 @@ func TestAgent_Checks(t *testing.T) {
 	}
 }
 
-func TestAgent_CheckStartPassing(t *testing.T) {
+func TestAPI_AgentScriptCheck(t *testing.T) {
+	t.Parallel()
+	c, s := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
+		c.EnableScriptChecks = true
+	})
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	t.Run("node script check", func(t *testing.T) {
+		reg := &AgentCheckRegistration{
+			Name: "foo",
+			AgentServiceCheck: AgentServiceCheck{
+				Interval: "10s",
+				Args:     []string{"sh", "-c", "false"},
+			},
+		}
+		if err := agent.CheckRegister(reg); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		checks, err := agent.Checks()
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if _, ok := checks["foo"]; !ok {
+			t.Fatalf("missing check: %v", checks)
+		}
+	})
+
+	t.Run("service script check", func(t *testing.T) {
+		reg := &AgentServiceRegistration{
+			Name: "bar",
+			Port: 1234,
+			Checks: AgentServiceChecks{
+				&AgentServiceCheck{
+					Interval: "10s",
+					Args:     []string{"sh", "-c", "false"},
+				},
+			},
+		}
+		if err := agent.ServiceRegister(reg); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		services, err := agent.Services()
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if _, ok := services["bar"]; !ok {
+			t.Fatalf("missing service: %v", services)
+		}
+
+		checks, err := agent.Checks()
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if _, ok := checks["service:bar"]; !ok {
+			t.Fatalf("missing check: %v", checks)
+		}
+	})
+}
+
+func TestAPI_AgentCheckStartPassing(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -481,7 +594,7 @@ func TestAgent_CheckStartPassing(t *testing.T) {
 	}
 }
 
-func TestAgent_Checks_serviceBound(t *testing.T) {
+func TestAPI_AgentChecks_serviceBound(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -527,9 +640,11 @@ func TestAgent_Checks_serviceBound(t *testing.T) {
 	}
 }
 
-func TestAgent_Checks_Docker(t *testing.T) {
+func TestAPI_AgentChecks_Docker(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
+		c.EnableScriptChecks = true
+	})
 	defer s.Stop()
 
 	agent := c.Agent()
@@ -571,7 +686,7 @@ func TestAgent_Checks_Docker(t *testing.T) {
 	}
 }
 
-func TestAgent_Join(t *testing.T) {
+func TestAPI_AgentJoin(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -584,14 +699,16 @@ func TestAgent_Join(t *testing.T) {
 	}
 
 	// Join ourself
-	addr := info["Config"]["AdvertiseAddr"].(string)
+	addr := info["DebugConfig"]["SerfAdvertiseAddrLAN"].(string)
+	// strip off 'tcp://'
+	addr = addr[len("tcp://"):]
 	err = agent.Join(addr, false)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 }
 
-func TestAgent_Leave(t *testing.T) {
+func TestAPI_AgentLeave(t *testing.T) {
 	t.Parallel()
 	c1, s1 := makeClient(t)
 	defer s1.Stop()
@@ -626,7 +743,7 @@ func TestAgent_Leave(t *testing.T) {
 	}
 }
 
-func TestAgent_ForceLeave(t *testing.T) {
+func TestAPI_AgentForceLeave(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -640,7 +757,7 @@ func TestAgent_ForceLeave(t *testing.T) {
 	}
 }
 
-func TestAgent_Monitor(t *testing.T) {
+func TestAPI_AgentMonitor(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -663,7 +780,7 @@ func TestAgent_Monitor(t *testing.T) {
 	}
 }
 
-func TestServiceMaintenance(t *testing.T) {
+func TestAPI_ServiceMaintenance(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -718,7 +835,7 @@ func TestServiceMaintenance(t *testing.T) {
 	}
 }
 
-func TestNodeMaintenance(t *testing.T) {
+func TestAPI_NodeMaintenance(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -762,5 +879,29 @@ func TestNodeMaintenance(t *testing.T) {
 		if strings.Contains(check.CheckID, "maintenance") {
 			t.Fatalf("should have removed health check")
 		}
+	}
+}
+
+func TestAPI_AgentUpdateToken(t *testing.T) {
+	t.Parallel()
+	c, s := makeACLClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	if _, err := agent.UpdateACLToken("root", nil); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if _, err := agent.UpdateACLAgentToken("root", nil); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if _, err := agent.UpdateACLAgentMasterToken("root", nil); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if _, err := agent.UpdateACLReplicationToken("root", nil); err != nil {
+		t.Fatalf("err: %v", err)
 	}
 }

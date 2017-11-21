@@ -4,17 +4,21 @@ set -e
 # Get the version from the environment, or try to figure it out from the build tags.
 # We process the files in the same order Go does to find the last matching tag.
 if [ -z $VERSION ]; then
+  # get the OSS version from version.go
+  VERSION=$(awk -F\" '/Version =/ { print $2; exit }' <version/version.go)
+
+  # if we have build tags then try to determine the version
+  for tag in "$GOTAGS"; do
     for file in $(ls version/version_*.go | sort); do
-        for tag in "$GOTAGS"; do
-            if grep -q "// +build $tag" $file; then
-                VERSION=$(awk -F\" '/Version =/ { print $2; exit }' <$file)
-            fi
-        done
+      if grep -q "// +build $tag" $file; then
+        VERSION=$(awk -F\" '/Version =/ { print $2; exit }' <$file)
+      fi
     done
+  done
 fi
 if [ -z $VERSION ]; then
-    echo "Please specify a version (couldn't find one based on build tags)."
-    exit 1
+  echo "Please specify a version (couldn't find one based on build tags)."
+  exit 1
 fi
 echo "==> Building version $VERSION..."
 
@@ -35,8 +39,8 @@ fi
 
 # Do a hermetic build inside a Docker container.
 if [ -z $NOBUILD ]; then
-    docker build -t hashicorp/consul-builder scripts/consul-builder/
-    docker run --rm -e "GOTAGS=$GOTAGS" -v "$(pwd)":/gopath/src/github.com/hashicorp/consul hashicorp/consul-builder ./scripts/dist_build.sh
+  docker build -t hashicorp/consul-builder scripts/consul-builder/
+  docker run --rm -e "GOTAGS=$GOTAGS" -v "$(pwd)":/gopath/src/github.com/hashicorp/consul hashicorp/consul-builder ./scripts/dist_build.sh
 fi
 
 # Zip all the files.

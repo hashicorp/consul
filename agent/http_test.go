@@ -18,9 +18,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/go-cleanhttp"
+	"golang.org/x/net/http2"
 )
 
 func TestHTTPServer_UnixSocket(t *testing.T) {
@@ -33,14 +36,16 @@ func TestHTTPServer_UnixSocket(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 	socket := filepath.Join(tempDir, "test.sock")
 
-	cfg := TestConfig()
-	cfg.Addresses.HTTP = "unix://" + socket
-
 	// Only testing mode, since uid/gid might not be settable
 	// from test environment.
-	cfg.UnixSockets = UnixSocketConfig{}
-	cfg.UnixSockets.Perms = "0777"
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		addresses {
+			http = "unix://`+socket+`"
+		}
+		unix_sockets {
+			mode = "0777"
+		}
+	`)
 	defer a.Shutdown()
 
 	// Ensure the socket was created
@@ -58,10 +63,9 @@ func TestHTTPServer_UnixSocket(t *testing.T) {
 	}
 
 	// Ensure we can get a response from the socket.
-	path := socketPath(a.Config.Addresses.HTTP)
 	trans := cleanhttp.DefaultTransport()
 	trans.DialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
-		return net.Dial("unix", path)
+		return net.Dial("unix", socket)
 	}
 	client := &http.Client{
 		Transport: trans,
@@ -103,9 +107,11 @@ func TestHTTPServer_UnixSocket_FileExists(t *testing.T) {
 		t.Fatalf("not a regular file: %s", socket)
 	}
 
-	cfg := TestConfig()
-	cfg.Addresses.HTTP = "unix://" + socket
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		addresses {
+			http = "unix://`+socket+`"
+		}
+	`)
 	defer a.Shutdown()
 
 	// Ensure the file was replaced by the socket
@@ -115,6 +121,86 @@ func TestHTTPServer_UnixSocket_FileExists(t *testing.T) {
 	}
 	if fi.Mode()&os.ModeSocket == 0 {
 		t.Fatalf("expected socket to replace file")
+	}
+}
+
+func TestHTTPServer_H2(t *testing.T) {
+	t.Parallel()
+
+	// Fire up an agent with TLS enabled.
+	a := &TestAgent{
+		Name:   t.Name(),
+		UseTLS: true,
+		HCL: `
+			key_file = "../test/client_certs/server.key"
+			cert_file = "../test/client_certs/server.crt"
+			ca_file = "../test/client_certs/rootca.crt"
+		`,
+	}
+	a.Start()
+	defer a.Shutdown()
+
+	// Make an HTTP/2-enabled client, using the API helpers to set
+	// up TLS to be as normal as possible for Consul.
+	tlscfg := &api.TLSConfig{
+		Address:  "consul.test",
+		KeyFile:  "../test/client_certs/client.key",
+		CertFile: "../test/client_certs/client.crt",
+		CAFile:   "../test/client_certs/rootca.crt",
+	}
+	tlsccfg, err := api.SetupTLSConfig(tlscfg)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	transport := api.DefaultConfig().Transport
+	transport.TLSClientConfig = tlsccfg
+	if err := http2.ConfigureTransport(transport); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	hc := &http.Client{
+		Transport: transport,
+	}
+
+	// Hook a handler that echoes back the protocol.
+	handler := func(resp http.ResponseWriter, req *http.Request) {
+		resp.WriteHeader(http.StatusOK)
+		fmt.Fprint(resp, req.Proto)
+	}
+	mux, ok := a.srv.Handler.(*http.ServeMux)
+	if !ok {
+		t.Fatalf("handler is not expected type")
+	}
+	mux.HandleFunc("/echo", handler)
+
+	// Call it and make sure we see HTTP/2.
+	url := fmt.Sprintf("https://%s/echo", a.srv.ln.Addr().String())
+	resp, err := hc.Get(url)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !bytes.Equal(body, []byte("HTTP/2.0")) {
+		t.Fatalf("bad: %v", body)
+	}
+
+	// This doesn't have a closed-loop way to verify HTTP/2 support for
+	// some other endpoint, but configure an API client and make a call
+	// just as a sanity check.
+	cfg := &api.Config{
+		Address:    a.srv.ln.Addr().String(),
+		Scheme:     "https",
+		HttpClient: hc,
+	}
+	client, err := api.NewClient(cfg)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, err := client.Agent().Self(); err != nil {
+		t.Fatalf("err: %v", err)
 	}
 }
 
@@ -195,11 +281,46 @@ func TestSetMeta(t *testing.T) {
 	}
 }
 
+func TestHTTPAPI_BlockEndpoints(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t.Name(), `
+		http_config {
+			block_endpoints = ["/v1/agent/self"]
+		}
+	`)
+	defer a.Shutdown()
+
+	handler := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+		return nil, nil
+	}
+
+	// Try a blocked endpoint, which should get a 403.
+	{
+		req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
+		resp := httptest.NewRecorder()
+		a.srv.wrap(handler)(resp, req)
+		if got, want := resp.Code, http.StatusForbidden; got != want {
+			t.Fatalf("bad response code got %d want %d", got, want)
+		}
+	}
+
+	// Make sure some other endpoint still works.
+	{
+		req, _ := http.NewRequest("GET", "/v1/agent/checks", nil)
+		resp := httptest.NewRecorder()
+		a.srv.wrap(handler)(resp, req)
+		if got, want := resp.Code, http.StatusOK; got != want {
+			t.Fatalf("bad response code got %d want %d", got, want)
+		}
+	}
+}
+
 func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
 	t.Parallel()
 	// Header should not be present if address translation is off.
 	{
-		a := NewTestAgent(t.Name(), nil)
+		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
 
 		resp := httptest.NewRecorder()
@@ -218,9 +339,9 @@ func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
 
 	// Header should be set to true if it's turned on.
 	{
-		cfg := TestConfig()
-		cfg.TranslateWanAddrs = true
-		a := NewTestAgent(t.Name(), cfg)
+		a := NewTestAgent(t.Name(), `
+			translate_wan_addrs = true
+		`)
 		defer a.Shutdown()
 
 		resp := httptest.NewRecorder()
@@ -240,12 +361,14 @@ func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
 
 func TestHTTPAPIResponseHeaders(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.HTTPConfig.ResponseHeaders = map[string]string{
-		"Access-Control-Allow-Origin": "*",
-		"X-XSS-Protection":            "1; mode=block",
-	}
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		http_config {
+			response_headers = {
+				"Access-Control-Allow-Origin" = "*"
+				"X-XSS-Protection" = "1; mode=block"
+			}
+		}
+	`)
 	defer a.Shutdown()
 
 	resp := httptest.NewRecorder()
@@ -267,9 +390,118 @@ func TestHTTPAPIResponseHeaders(t *testing.T) {
 	}
 }
 
+func TestHTTPAPI_MethodNotAllowed(t *testing.T) {
+	tests := []struct {
+		methods, uri string
+	}{
+		{"PUT", "/v1/acl/bootstrap"},
+		{"PUT", "/v1/acl/create"},
+		{"PUT", "/v1/acl/update"},
+		{"PUT", "/v1/acl/destroy/"},
+		{"GET", "/v1/acl/info/"},
+		{"PUT", "/v1/acl/clone/"},
+		{"GET", "/v1/acl/list"},
+		{"GET", "/v1/acl/replication"},
+		{"PUT", "/v1/agent/token/"},
+		{"GET", "/v1/agent/self"},
+		{"GET", "/v1/agent/members"},
+		{"PUT", "/v1/agent/check/deregister/"},
+		{"PUT", "/v1/agent/check/fail/"},
+		{"PUT", "/v1/agent/check/pass/"},
+		{"PUT", "/v1/agent/check/register"},
+		{"PUT", "/v1/agent/check/update/"},
+		{"PUT", "/v1/agent/check/warn/"},
+		{"GET", "/v1/agent/checks"},
+		{"PUT", "/v1/agent/force-leave/"},
+		{"PUT", "/v1/agent/join/"},
+		{"PUT", "/v1/agent/leave"},
+		{"PUT", "/v1/agent/maintenance"},
+		{"GET", "/v1/agent/metrics"},
+		// {"GET", "/v1/agent/monitor"}, // requires LogWriter. Hangs if LogWriter is provided
+		{"PUT", "/v1/agent/reload"},
+		{"PUT", "/v1/agent/service/deregister/"},
+		{"PUT", "/v1/agent/service/maintenance/"},
+		{"PUT", "/v1/agent/service/register"},
+		{"GET", "/v1/agent/services"},
+		{"GET", "/v1/catalog/datacenters"},
+		{"PUT", "/v1/catalog/deregister"},
+		{"GET", "/v1/catalog/node/"},
+		{"GET", "/v1/catalog/nodes"},
+		{"PUT", "/v1/catalog/register"},
+		{"GET", "/v1/catalog/service/"},
+		{"GET", "/v1/catalog/services"},
+		{"GET", "/v1/coordinate/datacenters"},
+		{"GET", "/v1/coordinate/nodes"},
+		{"GET", "/v1/coordinate/node/"},
+		{"PUT", "/v1/event/fire/"},
+		{"GET", "/v1/event/list"},
+		{"GET", "/v1/health/checks/"},
+		{"GET", "/v1/health/node/"},
+		{"GET", "/v1/health/service/"},
+		{"GET", "/v1/health/state/"},
+		{"GET", "/v1/internal/ui/node/"},
+		{"GET", "/v1/internal/ui/nodes"},
+		{"GET", "/v1/internal/ui/services"},
+		{"GET PUT DELETE", "/v1/kv/"},
+		{"GET PUT", "/v1/operator/autopilot/configuration"},
+		{"GET", "/v1/operator/autopilot/health"},
+		{"GET POST PUT DELETE", "/v1/operator/keyring"},
+		{"GET", "/v1/operator/raft/configuration"},
+		{"DELETE", "/v1/operator/raft/peer"},
+		{"GET POST", "/v1/query"},
+		{"GET PUT DELETE", "/v1/query/"},
+		{"GET", "/v1/query/xxx/execute"},
+		{"GET", "/v1/query/xxx/explain"},
+		{"PUT", "/v1/session/create"},
+		{"PUT", "/v1/session/destroy/"},
+		{"GET", "/v1/session/info/"},
+		{"GET", "/v1/session/list"},
+		{"GET", "/v1/session/node/"},
+		{"PUT", "/v1/session/renew/"},
+		{"GET PUT", "/v1/snapshot"},
+		{"GET", "/v1/status/leader"},
+		// {"GET", "/v1/status/peers"},// hangs
+		{"PUT", "/v1/txn"},
+
+		// enterprise only
+		// {"GET POST", "/v1/operator/area"},
+		// {"GET PUT DELETE", "/v1/operator/area/"},
+		// {"GET", "/v1/operator/area/xxx/members"},
+	}
+
+	a := NewTestAgent(t.Name(), `acl_datacenter = "dc1"`)
+	a.Agent.LogWriter = logger.NewLogWriter(512)
+	defer a.Shutdown()
+
+	all := []string{"GET", "PUT", "POST", "DELETE", "HEAD"}
+	client := http.Client{}
+
+	for _, tt := range tests {
+		for _, m := range all {
+
+			t.Run(m+" "+tt.uri, func(t *testing.T) {
+				uri := fmt.Sprintf("http://%s%s", a.HTTPAddr(), tt.uri)
+				req, _ := http.NewRequest(m, uri, nil)
+				resp, err := client.Do(req)
+				if err != nil {
+					t.Fatal("client.Do failed: ", err)
+				}
+
+				allowed := strings.Contains(tt.methods, m)
+				if allowed && resp.StatusCode == http.StatusMethodNotAllowed {
+					t.Fatalf("method allowed: got status code %d want any other code", resp.StatusCode)
+				}
+				if !allowed && resp.StatusCode != http.StatusMethodNotAllowed {
+					t.Fatalf("method not allowed: got status code %d want %d", resp.StatusCode, http.StatusMethodNotAllowed)
+				}
+			})
+		}
+	}
+}
+
 func TestContentTypeIsJSON(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	resp := httptest.NewRecorder()
@@ -295,16 +527,50 @@ func TestHTTP_wrap_obfuscateLog(t *testing.T) {
 	a.Start()
 	defer a.Shutdown()
 
-	resp := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/some/url?token=secret1&token=secret2", nil)
 	handler := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 		return nil, nil
 	}
-	a.srv.wrap(handler)(resp, req)
 
-	// Make sure no tokens from the URL show up in the log
-	if strings.Contains(buf.String(), "secret") {
-		t.Fatalf("bad: %s", buf.String())
+	for _, pair := range [][]string{
+		{
+			"/some/url?token=secret1&token=secret2",
+			"/some/url?token=<hidden>&token=<hidden>",
+		},
+		{
+			"/v1/acl/clone/secret1",
+			"/v1/acl/clone/<hidden>",
+		},
+		{
+			"/v1/acl/clone/secret1?token=secret2",
+			"/v1/acl/clone/<hidden>?token=<hidden>",
+		},
+		{
+			"/v1/acl/destroy/secret1",
+			"/v1/acl/destroy/<hidden>",
+		},
+		{
+			"/v1/acl/destroy/secret1?token=secret2",
+			"/v1/acl/destroy/<hidden>?token=<hidden>",
+		},
+		{
+			"/v1/acl/info/secret1",
+			"/v1/acl/info/<hidden>",
+		},
+		{
+			"/v1/acl/info/secret1?token=secret2",
+			"/v1/acl/info/<hidden>?token=<hidden>",
+		},
+	} {
+		url, want := pair[0], pair[1]
+		t.Run(url, func(t *testing.T) {
+			resp := httptest.NewRecorder()
+			req, _ := http.NewRequest("GET", url, nil)
+			a.srv.wrap(handler)(resp, req)
+
+			if got := buf.String(); !strings.Contains(got, want) {
+				t.Fatalf("got %s want %s", got, want)
+			}
+		})
 	}
 }
 
@@ -319,7 +585,7 @@ func TestPrettyPrintBare(t *testing.T) {
 }
 
 func testPrettyPrint(pretty string, t *testing.T) {
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	r := &structs.DirEntry{Key: "key"}
@@ -347,7 +613,7 @@ func testPrettyPrint(pretty string, t *testing.T) {
 
 func TestParseSource(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Default is agent's DC and no node (since the user didn't care, then
@@ -495,18 +761,18 @@ func TestACLResolution(t *testing.T) {
 	reqBothTokens, _ := http.NewRequest("GET", "/v1/catalog/nodes?token=baz", nil)
 	reqBothTokens.Header.Add("X-Consul-Token", "zap")
 
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Check when no token is set
-	a.Config.ACLToken = ""
+	a.tokens.UpdateUserToken("")
 	a.srv.parseToken(req, &token)
 	if token != "" {
 		t.Fatalf("bad: %s", token)
 	}
 
 	// Check when ACLToken set
-	a.Config.ACLToken = "agent"
+	a.tokens.UpdateUserToken("agent")
 	a.srv.parseToken(req, &token)
 	if token != "agent" {
 		t.Fatalf("bad: %s", token)
@@ -533,9 +799,9 @@ func TestACLResolution(t *testing.T) {
 
 func TestEnableWebUI(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.EnableUI = true
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		ui = true
+	`)
 	defer a.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/ui/", nil)
@@ -574,10 +840,6 @@ func getIndex(t *testing.T, resp *httptest.ResponseRecorder) uint64 {
 		t.Fatalf("Bad: %v", header)
 	}
 	return uint64(val)
-}
-
-func isPermissionDenied(err error) bool {
-	return err != nil && strings.Contains(err.Error(), errPermissionDenied.Error())
 }
 
 func jsonReader(v interface{}) io.Reader {

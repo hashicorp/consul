@@ -18,6 +18,8 @@ increases both scalability and resilience. Features include:
 - [Redundancy Zones](/docs/enterprise/redundancy/index.html)
 - [Advanced Federation for Complex Network
   Topologies](/docs/enterprise/federation/index.html)
+- [Network Segments](/docs/enterprise/network-segments/index.html)
+- [Sentinel](/docs/enterprise/sentinel/index.html)
 
 These features are part of [Consul
 Enterprise](https://www.hashicorp.com/consul.html).

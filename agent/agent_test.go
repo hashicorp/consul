@@ -6,28 +6,24 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul"
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/checks"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/consul/version"
-	"github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/raft"
+	uuid "github.com/hashicorp/go-uuid"
 	"github.com/pascaldekloe/goe/verify"
 )
-
-func init() {
-	version.Version = "0.8.0"
-}
 
 func externalIP() (string, error) {
 	addrs, err := net.InterfaceAddrs()
@@ -45,10 +41,10 @@ func externalIP() (string, error) {
 }
 
 func TestAgent_MultiStartStop(t *testing.T) {
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 10; i++ {
 		t.Run("", func(t *testing.T) {
 			t.Parallel()
-			a := NewTestAgent(t.Name(), nil)
+			a := NewTestAgent(t.Name(), "")
 			time.Sleep(250 * time.Millisecond)
 			a.Shutdown()
 		})
@@ -57,7 +53,7 @@ func TestAgent_MultiStartStop(t *testing.T) {
 
 func TestAgent_StartStop(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	// defer a.Shutdown()
 
 	if err := a.Leave(); err != nil {
@@ -76,7 +72,7 @@ func TestAgent_StartStop(t *testing.T) {
 
 func TestAgent_RPCPing(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	var out struct{}
@@ -85,113 +81,31 @@ func TestAgent_RPCPing(t *testing.T) {
 	}
 }
 
-func TestAgent_CheckSerfBindAddrsSettings(t *testing.T) {
+func TestAgent_TokenStore(t *testing.T) {
 	t.Parallel()
-	if runtime.GOOS == "darwin" {
-		t.Skip("skip test on macOS to avoid firewall warning dialog")
-	}
 
-	cfg := TestConfig()
-	ip, err := externalIP()
-	if err != nil {
-		t.Fatalf("Unable to get a non-loopback IP: %v", err)
-	}
-	cfg.SerfLanBindAddr = ip
-	cfg.SerfWanBindAddr = ip
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		acl_token = "user"
+		acl_agent_token = "agent"
+		acl_agent_master_token = "master"`,
+	)
 	defer a.Shutdown()
 
-	serfWanBind := a.consulConfig().SerfWANConfig.MemberlistConfig.BindAddr
-	if serfWanBind != ip {
-		t.Fatalf("SerfWanBindAddr is should be a non-loopback IP not %s", serfWanBind)
+	if got, want := a.tokens.UserToken(), "user"; got != want {
+		t.Fatalf("got %q want %q", got, want)
 	}
-
-	serfLanBind := a.consulConfig().SerfLANConfig.MemberlistConfig.BindAddr
-	if serfLanBind != ip {
-		t.Fatalf("SerfLanBindAddr is should be a non-loopback IP not %s", serfWanBind)
+	if got, want := a.tokens.AgentToken(), "agent"; got != want {
+		t.Fatalf("got %q want %q", got, want)
 	}
-}
-func TestAgent_CheckAdvertiseAddrsSettings(t *testing.T) {
-	t.Parallel()
-	cfg := TestConfig()
-	cfg.AdvertiseAddrs.SerfLan, _ = net.ResolveTCPAddr("tcp", "127.0.0.42:1233")
-	cfg.AdvertiseAddrs.SerfWan, _ = net.ResolveTCPAddr("tcp", "127.0.0.43:1234")
-	cfg.AdvertiseAddrs.RPC, _ = net.ResolveTCPAddr("tcp", "127.0.0.44:1235")
-	a := NewTestAgent(t.Name(), cfg)
-	defer a.Shutdown()
-
-	serfLanAddr := a.consulConfig().SerfLANConfig.MemberlistConfig.AdvertiseAddr
-	if serfLanAddr != "127.0.0.42" {
-		t.Fatalf("SerfLan is not properly set to '127.0.0.42': %s", serfLanAddr)
-	}
-	serfLanPort := a.consulConfig().SerfLANConfig.MemberlistConfig.AdvertisePort
-	if serfLanPort != 1233 {
-		t.Fatalf("SerfLan is not properly set to '1233': %d", serfLanPort)
-	}
-	serfWanAddr := a.consulConfig().SerfWANConfig.MemberlistConfig.AdvertiseAddr
-	if serfWanAddr != "127.0.0.43" {
-		t.Fatalf("SerfWan is not properly set to '127.0.0.43': %s", serfWanAddr)
-	}
-	serfWanPort := a.consulConfig().SerfWANConfig.MemberlistConfig.AdvertisePort
-	if serfWanPort != 1234 {
-		t.Fatalf("SerfWan is not properly set to '1234': %d", serfWanPort)
-	}
-	rpc := a.consulConfig().RPCAdvertise
-	if rpc != cfg.AdvertiseAddrs.RPC {
-		t.Fatalf("RPC is not properly set to %v: %s", cfg.AdvertiseAddrs.RPC, rpc)
-	}
-	expected := map[string]string{
-		"lan": a.Config.AdvertiseAddr,
-		"wan": a.Config.AdvertiseAddrWan,
-	}
-	if !reflect.DeepEqual(a.Config.TaggedAddresses, expected) {
-		t.Fatalf("Tagged addresses not set up properly: %v", a.Config.TaggedAddresses)
-	}
-}
-
-func TestAgent_CheckPerformanceSettings(t *testing.T) {
-	t.Parallel()
-	// Try a default config.
-	{
-		cfg := TestConfig()
-		cfg.Bootstrap = false
-		cfg.ConsulConfig = nil
-		a := NewTestAgent(t.Name(), cfg)
-		defer a.Shutdown()
-
-		raftMult := time.Duration(consul.DefaultRaftMultiplier)
-		r := a.consulConfig().RaftConfig
-		def := raft.DefaultConfig()
-		if r.HeartbeatTimeout != raftMult*def.HeartbeatTimeout ||
-			r.ElectionTimeout != raftMult*def.ElectionTimeout ||
-			r.LeaderLeaseTimeout != raftMult*def.LeaderLeaseTimeout {
-			t.Fatalf("bad: %#v", *r)
-		}
-	}
-
-	// Try a multiplier.
-	{
-		cfg := TestConfig()
-		cfg.Bootstrap = false
-		cfg.Performance.RaftMultiplier = 99
-		a := NewTestAgent(t.Name(), cfg)
-		defer a.Shutdown()
-
-		const raftMult time.Duration = 99
-		r := a.consulConfig().RaftConfig
-		def := raft.DefaultConfig()
-		if r.HeartbeatTimeout != raftMult*def.HeartbeatTimeout ||
-			r.ElectionTimeout != raftMult*def.ElectionTimeout ||
-			r.LeaderLeaseTimeout != raftMult*def.LeaderLeaseTimeout {
-			t.Fatalf("bad: %#v", *r)
-		}
+	if got, want := a.tokens.IsAgentMasterToken("master"), true; got != want {
+		t.Fatalf("got %v want %v", got, want)
 	}
 }
 
 func TestAgent_ReconnectConfigSettings(t *testing.T) {
 	t.Parallel()
 	func() {
-		a := NewTestAgent(t.Name(), nil)
+		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
 
 		lan := a.consulConfig().SerfLANConfig.ReconnectTimeout
@@ -206,10 +120,10 @@ func TestAgent_ReconnectConfigSettings(t *testing.T) {
 	}()
 
 	func() {
-		cfg := TestConfig()
-		cfg.ReconnectTimeoutLan = 24 * time.Hour
-		cfg.ReconnectTimeoutWan = 36 * time.Hour
-		a := NewTestAgent(t.Name(), cfg)
+		a := NewTestAgent(t.Name(), `
+			reconnect_timeout = "24h"
+			reconnect_timeout_wan = "36h"
+		`)
 		defer a.Shutdown()
 
 		lan := a.consulConfig().SerfLANConfig.ReconnectTimeout
@@ -226,10 +140,12 @@ func TestAgent_ReconnectConfigSettings(t *testing.T) {
 
 func TestAgent_setupNodeID(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.NodeID = ""
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		node_id = ""
+	`)
 	defer a.Shutdown()
+
+	cfg := a.config
 
 	// The auto-assigned ID should be valid.
 	id := a.consulConfig().NodeID
@@ -292,9 +208,9 @@ func TestAgent_setupNodeID(t *testing.T) {
 
 func TestAgent_makeNodeID(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.NodeID = ""
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		node_id = ""
+	`)
 	defer a.Shutdown()
 
 	// We should get a valid host-based ID initially.
@@ -317,7 +233,7 @@ func TestAgent_makeNodeID(t *testing.T) {
 
 	// Turn on host-based IDs and try again. We should get the same ID
 	// each time (and a different one from the random one above).
-	a.Config.DisableHostNodeID = Bool(false)
+	a.Config.DisableHostNodeID = false
 	id, err = a.makeNodeID()
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -338,9 +254,9 @@ func TestAgent_makeNodeID(t *testing.T) {
 
 func TestAgent_AddService(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.NodeName = "node1"
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		node_name = "node1"
+	`)
 	defer a.Shutdown()
 
 	tests := []struct {
@@ -451,14 +367,14 @@ func TestAgent_AddService(t *testing.T) {
 					t.Fatalf("err: %v", err)
 				}
 
-				got, want := a.state.Services()[tt.srv.ID], tt.srv
+				got, want := a.State.Services()[tt.srv.ID], tt.srv
 				verify.Values(t, "", got, want)
 			})
 
 			// check the health checks
 			for k, v := range tt.healthChks {
 				t.Run(k, func(t *testing.T) {
-					got, want := a.state.Checks()[types.CheckID(k)], v
+					got, want := a.State.Checks()[types.CheckID(k)], v
 					verify.Values(t, k, got, want)
 				})
 			}
@@ -484,17 +400,12 @@ func TestAgent_AddService(t *testing.T) {
 
 func TestAgent_RemoveService(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Remove a service that doesn't exist
 	if err := a.RemoveService("redis", false); err != nil {
 		t.Fatalf("err: %v", err)
-	}
-
-	// Remove the consul service
-	if err := a.RemoveService("consul", false); err == nil {
-		t.Fatalf("should have errored")
 	}
 
 	// Remove without an ID
@@ -530,10 +441,10 @@ func TestAgent_RemoveService(t *testing.T) {
 		if err := a.RemoveService("memcache", false); err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		if _, ok := a.state.Checks()["service:memcache"]; ok {
+		if _, ok := a.State.Checks()["service:memcache"]; ok {
 			t.Fatalf("have memcache check")
 		}
-		if _, ok := a.state.Checks()["check2"]; ok {
+		if _, ok := a.State.Checks()["check2"]; ok {
 			t.Fatalf("have check2 check")
 		}
 	}
@@ -559,15 +470,15 @@ func TestAgent_RemoveService(t *testing.T) {
 		}
 
 		// Ensure we have a state mapping
-		if _, ok := a.state.Services()["redis"]; ok {
+		if _, ok := a.State.Services()["redis"]; ok {
 			t.Fatalf("have redis service")
 		}
 
 		// Ensure checks were removed
-		if _, ok := a.state.Checks()["service:redis:1"]; ok {
+		if _, ok := a.State.Checks()["service:redis:1"]; ok {
 			t.Fatalf("check redis:1 should be removed")
 		}
-		if _, ok := a.state.Checks()["service:redis:2"]; ok {
+		if _, ok := a.State.Checks()["service:redis:2"]; ok {
 			t.Fatalf("check redis:2 should be removed")
 		}
 
@@ -583,9 +494,9 @@ func TestAgent_RemoveService(t *testing.T) {
 
 func TestAgent_RemoveServiceRemovesAllChecks(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.NodeName = "node1"
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		node_name = "node1"
+	`)
 	defer a.Shutdown()
 
 	svc := &structs.NodeService{ID: "redis", Service: "redis", Port: 8000}
@@ -600,7 +511,7 @@ func TestAgent_RemoveServiceRemovesAllChecks(t *testing.T) {
 	}
 
 	// verify chk1 exists
-	if a.state.Checks()["chk1"] == nil {
+	if a.State.Checks()["chk1"] == nil {
 		t.Fatal("Could not find health check chk1")
 	}
 
@@ -610,10 +521,10 @@ func TestAgent_RemoveServiceRemovesAllChecks(t *testing.T) {
 	}
 
 	// check that both checks are there
-	if got, want := a.state.Checks()["chk1"], hchk1; !verify.Values(t, "", got, want) {
+	if got, want := a.State.Checks()["chk1"], hchk1; !verify.Values(t, "", got, want) {
 		t.FailNow()
 	}
-	if got, want := a.state.Checks()["chk2"], hchk2; !verify.Values(t, "", got, want) {
+	if got, want := a.State.Checks()["chk2"], hchk2; !verify.Values(t, "", got, want) {
 		t.FailNow()
 	}
 
@@ -623,17 +534,19 @@ func TestAgent_RemoveServiceRemovesAllChecks(t *testing.T) {
 	}
 
 	// Check that both checks are gone
-	if a.state.Checks()["chk1"] != nil {
+	if a.State.Checks()["chk1"] != nil {
 		t.Fatal("Found health check chk1 want nil")
 	}
-	if a.state.Checks()["chk2"] != nil {
+	if a.State.Checks()["chk2"] != nil {
 		t.Fatal("Found health check chk2 want nil")
 	}
 }
 
 func TestAgent_AddCheck(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), `
+		enable_script_checks = true
+	`)
 	defer a.Shutdown()
 
 	health := &structs.HealthCheck{
@@ -652,7 +565,7 @@ func TestAgent_AddCheck(t *testing.T) {
 	}
 
 	// Ensure we have a check mapping
-	sChk, ok := a.state.Checks()["mem"]
+	sChk, ok := a.State.Checks()["mem"]
 	if !ok {
 		t.Fatalf("missing mem check")
 	}
@@ -670,7 +583,9 @@ func TestAgent_AddCheck(t *testing.T) {
 
 func TestAgent_AddCheck_StartPassing(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), `
+		enable_script_checks = true
+	`)
 	defer a.Shutdown()
 
 	health := &structs.HealthCheck{
@@ -689,7 +604,7 @@ func TestAgent_AddCheck_StartPassing(t *testing.T) {
 	}
 
 	// Ensure we have a check mapping
-	sChk, ok := a.state.Checks()["mem"]
+	sChk, ok := a.State.Checks()["mem"]
 	if !ok {
 		t.Fatalf("missing mem check")
 	}
@@ -707,7 +622,9 @@ func TestAgent_AddCheck_StartPassing(t *testing.T) {
 
 func TestAgent_AddCheck_MinInterval(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), `
+		enable_script_checks = true
+	`)
 	defer a.Shutdown()
 
 	health := &structs.HealthCheck{
@@ -726,21 +643,23 @@ func TestAgent_AddCheck_MinInterval(t *testing.T) {
 	}
 
 	// Ensure we have a check mapping
-	if _, ok := a.state.Checks()["mem"]; !ok {
+	if _, ok := a.State.Checks()["mem"]; !ok {
 		t.Fatalf("missing mem check")
 	}
 
 	// Ensure a TTL is setup
 	if mon, ok := a.checkMonitors["mem"]; !ok {
 		t.Fatalf("missing mem monitor")
-	} else if mon.Interval != MinInterval {
+	} else if mon.Interval != checks.MinInterval {
 		t.Fatalf("bad mem monitor interval")
 	}
 }
 
 func TestAgent_AddCheck_MissingService(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), `
+		enable_script_checks = true
+	`)
 	defer a.Shutdown()
 
 	health := &structs.HealthCheck{
@@ -761,11 +680,11 @@ func TestAgent_AddCheck_MissingService(t *testing.T) {
 
 func TestAgent_AddCheck_RestoreState(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Create some state and persist it
-	ttl := &CheckTTL{
+	ttl := &checks.CheckTTL{
 		CheckID: "baz",
 		TTL:     time.Minute,
 	}
@@ -789,7 +708,7 @@ func TestAgent_AddCheck_RestoreState(t *testing.T) {
 	}
 
 	// Ensure the check status was restored during registration
-	checks := a.state.Checks()
+	checks := a.State.Checks()
 	check, ok := checks["baz"]
 	if !ok {
 		t.Fatalf("missing check")
@@ -802,9 +721,38 @@ func TestAgent_AddCheck_RestoreState(t *testing.T) {
 	}
 }
 
+func TestAgent_AddCheck_ExecDisable(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	health := &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "mem",
+		Name:    "memory util",
+		Status:  api.HealthCritical,
+	}
+	chk := &structs.CheckType{
+		Script:   "exit 0",
+		Interval: 15 * time.Second,
+	}
+	err := a.AddCheck(health, chk, false, "")
+	if err == nil || !strings.Contains(err.Error(), "Scripts are disabled on this agent") {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Ensure we don't have a check mapping
+	if memChk := a.State.Checks()["mem"]; memChk != nil {
+		t.Fatalf("should be missing mem check")
+	}
+}
+
 func TestAgent_RemoveCheck(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), `
+		enable_script_checks = true
+	`)
 	defer a.Shutdown()
 
 	// Remove check that doesn't exist
@@ -838,7 +786,7 @@ func TestAgent_RemoveCheck(t *testing.T) {
 	}
 
 	// Ensure we have a check mapping
-	if _, ok := a.state.Checks()["mem"]; ok {
+	if _, ok := a.State.Checks()["mem"]; ok {
 		t.Fatalf("have mem check")
 	}
 
@@ -848,9 +796,115 @@ func TestAgent_RemoveCheck(t *testing.T) {
 	}
 }
 
+func TestAgent_HTTPCheck_TLSSkipVerify(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "GOOD")
+	})
+	server := httptest.NewTLSServer(handler)
+	defer server.Close()
+
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	health := &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "tls",
+		Name:    "tls check",
+		Status:  api.HealthCritical,
+	}
+	chk := &structs.CheckType{
+		HTTP:          server.URL,
+		Interval:      20 * time.Millisecond,
+		TLSSkipVerify: true,
+	}
+
+	err := a.AddCheck(health, chk, false, "")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		status := a.State.Checks()["tls"]
+		if status.Status != api.HealthPassing {
+			r.Fatalf("bad: %v", status.Status)
+		}
+		if !strings.Contains(status.Output, "GOOD") {
+			r.Fatalf("bad: %v", status.Output)
+		}
+	})
+
+}
+
+func TestAgent_HTTPCheck_EnableAgentTLSForChecks(t *testing.T) {
+	t.Parallel()
+
+	run := func(t *testing.T, ca string) {
+		a := &TestAgent{
+			Name:   t.Name(),
+			UseTLS: true,
+			HCL: `
+				enable_agent_tls_for_checks = true
+
+				verify_incoming = true
+				server_name = "consul.test"
+				key_file = "../test/client_certs/server.key"
+				cert_file = "../test/client_certs/server.crt"
+			` + ca,
+		}
+		a.Start()
+		defer a.Shutdown()
+
+		health := &structs.HealthCheck{
+			Node:    "foo",
+			CheckID: "tls",
+			Name:    "tls check",
+			Status:  api.HealthCritical,
+		}
+
+		url := fmt.Sprintf("https://%s/v1/agent/self", a.srv.ln.Addr().String())
+		chk := &structs.CheckType{
+			HTTP:     url,
+			Interval: 20 * time.Millisecond,
+		}
+
+		err := a.AddCheck(health, chk, false, "")
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		retry.Run(t, func(r *retry.R) {
+			status := a.State.Checks()["tls"]
+			if status.Status != api.HealthPassing {
+				r.Fatalf("bad: %v", status.Status)
+			}
+			if !strings.Contains(status.Output, "200 OK") {
+				r.Fatalf("bad: %v", status.Output)
+			}
+		})
+	}
+
+	// We need to test both methods of passing the CA info to ensure that
+	// we propagate all the fields correctly. All the other fields are
+	// covered by the HCL in the test run function.
+	tests := []struct {
+		desc   string
+		config string
+	}{
+		{"ca_file", `ca_file = "../test/client_certs/rootca.crt"`},
+		{"ca_path", `ca_path = "../test/client_certs/path"`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			run(t, tt.config)
+		})
+	}
+}
+
 func TestAgent_updateTTLCheck(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	health := &structs.HealthCheck{
@@ -873,7 +927,7 @@ func TestAgent_updateTTLCheck(t *testing.T) {
 	}
 
 	// Ensure we have a check mapping.
-	status := a.state.Checks()["mem"]
+	status := a.State.Checks()["mem"]
 	if status.Status != api.HealthPassing {
 		t.Fatalf("bad: %v", status)
 	}
@@ -882,35 +936,17 @@ func TestAgent_updateTTLCheck(t *testing.T) {
 	}
 }
 
-func TestAgent_ConsulService(t *testing.T) {
-	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
-	defer a.Shutdown()
-
-	// Consul service is registered
-	services := a.state.Services()
-	if _, ok := services[consul.ConsulServiceID]; !ok {
-		t.Fatalf("%s service should be registered", consul.ConsulServiceID)
-	}
-
-	// Perform anti-entropy on consul service
-	if err := a.state.syncService(consul.ConsulServiceID); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Consul service should be in sync
-	if !a.state.serviceStatus[consul.ConsulServiceID].inSync {
-		t.Fatalf("%s service should be in sync", consul.ConsulServiceID)
-	}
-}
-
 func TestAgent_PersistService(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.Server = false
-	cfg.DataDir = testutil.TempDir(t, "agent") // we manage the data dir
-	a := NewTestAgent(t.Name(), cfg)
-	defer os.RemoveAll(cfg.DataDir)
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	cfg := `
+		server = false
+		bootstrap = false
+		data_dir = "` + dataDir + `"
+	`
+	a := &TestAgent{Name: t.Name(), HCL: cfg, DataDir: dataDir}
+	a.Start()
+	defer os.RemoveAll(dataDir)
 	defer a.Shutdown()
 
 	svc := &structs.NodeService{
@@ -974,25 +1010,26 @@ func TestAgent_PersistService(t *testing.T) {
 	a.Shutdown()
 
 	// Should load it back during later start
-	a2 := NewTestAgent(t.Name()+"-a2", cfg)
+	a2 := &TestAgent{Name: t.Name(), HCL: cfg, DataDir: dataDir}
+	a2.Start()
 	defer a2.Shutdown()
 
-	restored, ok := a2.state.services[svc.ID]
-	if !ok {
-		t.Fatalf("bad: %#v", a2.state.services)
+	restored := a2.State.ServiceState(svc.ID)
+	if restored == nil {
+		t.Fatalf("service %q missing", svc.ID)
 	}
-	if a2.state.serviceTokens[svc.ID] != "mytoken" {
-		t.Fatalf("bad: %#v", a2.state.services[svc.ID])
+	if got, want := restored.Token, "mytoken"; got != want {
+		t.Fatalf("got token %q want %q", got, want)
 	}
-	if restored.Port != 8001 {
-		t.Fatalf("bad: %#v", restored)
+	if got, want := restored.Service.Port, 8001; got != want {
+		t.Fatalf("got port %d want %d", got, want)
 	}
 }
 
 func TestAgent_persistedService_compat(t *testing.T) {
 	t.Parallel()
 	// Tests backwards compatibility of persisted services from pre-0.5.1
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	svc := &structs.NodeService{
@@ -1024,7 +1061,7 @@ func TestAgent_persistedService_compat(t *testing.T) {
 	}
 
 	// Ensure the service was restored
-	services := a.state.Services()
+	services := a.State.Services()
 	result, ok := services["redis"]
 	if !ok {
 		t.Fatalf("missing service")
@@ -1036,7 +1073,7 @@ func TestAgent_persistedService_compat(t *testing.T) {
 
 func TestAgent_PurgeService(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	svc := &structs.NodeService{
@@ -1075,10 +1112,16 @@ func TestAgent_PurgeService(t *testing.T) {
 
 func TestAgent_PurgeServiceOnDuplicate(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.Server = false
-	a := NewTestAgent(t.Name(), cfg)
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	cfg := `
+		data_dir = "` + dataDir + `"
+		server = false
+		bootstrap = false
+	`
+	a := &TestAgent{Name: t.Name(), HCL: cfg, DataDir: dataDir}
+	a.Start()
 	defer a.Shutdown()
+	defer os.RemoveAll(dataDir)
 
 	svc1 := &structs.NodeService{
 		ID:      "redis",
@@ -1095,41 +1138,46 @@ func TestAgent_PurgeServiceOnDuplicate(t *testing.T) {
 
 	// Try bringing the agent back up with the service already
 	// existing in the config
-	svc2 := &structs.ServiceDefinition{
-		ID:   "redis",
-		Name: "redis",
-		Tags: []string{"bar"},
-		Port: 9000,
-	}
-
-	cfg.Services = []*structs.ServiceDefinition{svc2}
-	a2 := NewTestAgent(t.Name()+"-a2", cfg)
+	a2 := &TestAgent{Name: t.Name() + "-a2", HCL: cfg + `
+		service = {
+			id = "redis"
+			name = "redis"
+			tags = ["bar"]
+			port = 9000
+		}
+	`, DataDir: dataDir}
+	a2.Start()
 	defer a2.Shutdown()
 
 	file := filepath.Join(a.Config.DataDir, servicesDir, stringHash(svc1.ID))
 	if _, err := os.Stat(file); err == nil {
 		t.Fatalf("should have removed persisted service")
 	}
-	result, ok := a2.state.services[svc2.ID]
-	if !ok {
+	result := a2.State.Service("redis")
+	if result == nil {
 		t.Fatalf("missing service registration")
 	}
-	if !reflect.DeepEqual(result.Tags, svc2.Tags) || result.Port != svc2.Port {
+	if !reflect.DeepEqual(result.Tags, []string{"bar"}) || result.Port != 9000 {
 		t.Fatalf("bad: %#v", result)
 	}
 }
 
 func TestAgent_PersistCheck(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.Server = false
-	cfg.DataDir = testutil.TempDir(t, "agent") // we manage the data dir
-	a := NewTestAgent(t.Name(), cfg)
-	defer os.RemoveAll(cfg.DataDir)
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	cfg := `
+		data_dir = "` + dataDir + `"
+		server = false
+		bootstrap = false
+		enable_script_checks = true
+	`
+	a := &TestAgent{Name: t.Name(), HCL: cfg, DataDir: dataDir}
+	a.Start()
+	defer os.RemoveAll(dataDir)
 	defer a.Shutdown()
 
 	check := &structs.HealthCheck{
-		Node:    cfg.NodeName,
+		Node:    a.config.NodeName,
 		CheckID: "mem",
 		Name:    "memory check",
 		Status:  api.HealthPassing,
@@ -1195,12 +1243,13 @@ func TestAgent_PersistCheck(t *testing.T) {
 	a.Shutdown()
 
 	// Should load it back during later start
-	a2 := NewTestAgent(t.Name()+"-a2", cfg)
+	a2 := &TestAgent{Name: t.Name() + "-a2", HCL: cfg, DataDir: dataDir}
+	a2.Start()
 	defer a2.Shutdown()
 
-	result, ok := a2.state.checks[check.CheckID]
-	if !ok {
-		t.Fatalf("bad: %#v", a2.state.checks)
+	result := a2.State.Check(check.CheckID)
+	if result == nil {
+		t.Fatalf("bad: %#v", a2.State.Checks())
 	}
 	if result.Status != api.HealthCritical {
 		t.Fatalf("bad: %#v", result)
@@ -1213,14 +1262,14 @@ func TestAgent_PersistCheck(t *testing.T) {
 	if _, ok := a2.checkMonitors[check.CheckID]; !ok {
 		t.Fatalf("bad: %#v", a2.checkMonitors)
 	}
-	if a2.state.checkTokens[check.CheckID] != "mytoken" {
-		t.Fatalf("bad: %s", a2.state.checkTokens[check.CheckID])
+	if a2.State.CheckState(check.CheckID).Token != "mytoken" {
+		t.Fatalf("bad: %s", a2.State.CheckState(check.CheckID).Token)
 	}
 }
 
 func TestAgent_PurgeCheck(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	check := &structs.HealthCheck{
@@ -1254,15 +1303,21 @@ func TestAgent_PurgeCheck(t *testing.T) {
 
 func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.Server = false
-	cfg.DataDir = testutil.TempDir(t, "agent") // we manage the data dir
-	a := NewTestAgent(t.Name(), cfg)
-	defer os.RemoveAll(cfg.DataDir)
+	nodeID := NodeID()
+	dataDir := testutil.TempDir(t, "agent")
+	a := NewTestAgent(t.Name(), `
+	    node_id = "`+nodeID+`"
+	    node_name = "Node `+nodeID+`"
+		data_dir = "`+dataDir+`"
+		server = false
+		bootstrap = false
+		enable_script_checks = true
+	`)
+	defer os.RemoveAll(dataDir)
 	defer a.Shutdown()
 
 	check1 := &structs.HealthCheck{
-		Node:    cfg.NodeName,
+		Node:    a.Config.NodeName,
 		CheckID: "mem",
 		Name:    "memory check",
 		Status:  api.HealthPassing,
@@ -1275,56 +1330,67 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	a.Shutdown()
 
 	// Start again with the check registered in config
-	check2 := &structs.CheckDefinition{
-		ID:       "mem",
-		Name:     "memory check",
-		Notes:    "my cool notes",
-		Script:   "/bin/check-redis.py",
-		Interval: 30 * time.Second,
-	}
-
-	cfg.Checks = []*structs.CheckDefinition{check2}
-	a2 := NewTestAgent(t.Name()+"-a2", cfg)
+	a2 := NewTestAgent(t.Name()+"-a2", `
+	    node_id = "`+nodeID+`"
+	    node_name = "Node `+nodeID+`"
+		data_dir = "`+dataDir+`"
+		server = false
+		bootstrap = false
+		enable_script_checks = true
+		check = {
+			id = "mem"
+			name = "memory check"
+			notes = "my cool notes"
+			script = "/bin/check-redis.py"
+			interval = "30s"
+		}
+	`)
 	defer a2.Shutdown()
 
-	file := filepath.Join(a.Config.DataDir, checksDir, checkIDHash(check1.CheckID))
+	file := filepath.Join(dataDir, checksDir, checkIDHash(check1.CheckID))
 	if _, err := os.Stat(file); err == nil {
 		t.Fatalf("should have removed persisted check")
 	}
-	result, ok := a2.state.checks[check2.ID]
-	if !ok {
+	result := a2.State.Check("mem")
+	if result == nil {
 		t.Fatalf("missing check registration")
 	}
-	expected := check2.HealthCheck(cfg.NodeName)
-	if !reflect.DeepEqual(expected, result) {
-		t.Fatalf("bad: %#v", result)
+	expected := &structs.HealthCheck{
+		Node:    a2.Config.NodeName,
+		CheckID: "mem",
+		Name:    "memory check",
+		Status:  api.HealthCritical,
+		Notes:   "my cool notes",
+	}
+	if got, want := result, expected; !verify.Values(t, "", got, want) {
+		t.FailNow()
 	}
 }
 
 func TestAgent_loadChecks_token(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.Checks = append(cfg.Checks, &structs.CheckDefinition{
-		ID:    "rabbitmq",
-		Name:  "rabbitmq",
-		Token: "abc123",
-		TTL:   10 * time.Second,
-	})
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		check = {
+			id = "rabbitmq"
+			name = "rabbitmq"
+			token = "abc123"
+			ttl = "10s"
+		}
+	`)
 	defer a.Shutdown()
 
-	checks := a.state.Checks()
+	checks := a.State.Checks()
 	if _, ok := checks["rabbitmq"]; !ok {
 		t.Fatalf("missing check")
 	}
-	if token := a.state.CheckToken("rabbitmq"); token != "abc123" {
+	if token := a.State.CheckToken("rabbitmq"); token != "abc123" {
 		t.Fatalf("bad: %s", token)
 	}
 }
 
 func TestAgent_unloadChecks(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// First register a service
@@ -1351,7 +1417,7 @@ func TestAgent_unloadChecks(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	found := false
-	for check := range a.state.Checks() {
+	for check := range a.State.Checks() {
 		if check == check1.CheckID {
 			found = true
 			break
@@ -1367,7 +1433,7 @@ func TestAgent_unloadChecks(t *testing.T) {
 	}
 
 	// Make sure it was unloaded
-	for check := range a.state.Checks() {
+	for check := range a.State.Checks() {
 		if check == check1.CheckID {
 			t.Fatalf("should have unloaded checks")
 		}
@@ -1376,28 +1442,28 @@ func TestAgent_unloadChecks(t *testing.T) {
 
 func TestAgent_loadServices_token(t *testing.T) {
 	t.Parallel()
-	cfg := TestConfig()
-	cfg.Services = append(cfg.Services, &structs.ServiceDefinition{
-		ID:    "rabbitmq",
-		Name:  "rabbitmq",
-		Port:  5672,
-		Token: "abc123",
-	})
-	a := NewTestAgent(t.Name(), cfg)
+	a := NewTestAgent(t.Name(), `
+		service = {
+			id = "rabbitmq"
+			name = "rabbitmq"
+			port = 5672
+			token = "abc123"
+		}
+	`)
 	defer a.Shutdown()
 
-	services := a.state.Services()
+	services := a.State.Services()
 	if _, ok := services["rabbitmq"]; !ok {
 		t.Fatalf("missing service")
 	}
-	if token := a.state.ServiceToken("rabbitmq"); token != "abc123" {
+	if token := a.State.ServiceToken("rabbitmq"); token != "abc123" {
 		t.Fatalf("bad: %s", token)
 	}
 }
 
 func TestAgent_unloadServices(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	svc := &structs.NodeService{
@@ -1412,7 +1478,7 @@ func TestAgent_unloadServices(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	found := false
-	for id := range a.state.Services() {
+	for id := range a.State.Services() {
 		if id == svc.ID {
 			found = true
 			break
@@ -1426,25 +1492,14 @@ func TestAgent_unloadServices(t *testing.T) {
 	if err := a.unloadServices(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-
-	// Make sure it was unloaded and the consul service remains
-	found = false
-	for id := range a.state.Services() {
-		if id == svc.ID {
-			t.Fatalf("should have unloaded services")
-		}
-		if id == consul.ConsulServiceID {
-			found = true
-		}
-	}
-	if !found {
-		t.Fatalf("consul service should not be removed")
+	if len(a.State.Services()) != 0 {
+		t.Fatalf("should have unloaded services")
 	}
 }
 
 func TestAgent_Service_MaintenanceMode(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	svc := &structs.NodeService{
@@ -1466,13 +1521,13 @@ func TestAgent_Service_MaintenanceMode(t *testing.T) {
 
 	// Make sure the critical health check was added
 	checkID := serviceMaintCheckID("redis")
-	check, ok := a.state.Checks()[checkID]
+	check, ok := a.State.Checks()[checkID]
 	if !ok {
 		t.Fatalf("should have registered critical maintenance check")
 	}
 
 	// Check that the token was used to register the check
-	if token := a.state.CheckToken(checkID); token != "mytoken" {
+	if token := a.State.CheckToken(checkID); token != "mytoken" {
 		t.Fatalf("expected 'mytoken', got: '%s'", token)
 	}
 
@@ -1487,7 +1542,7 @@ func TestAgent_Service_MaintenanceMode(t *testing.T) {
 	}
 
 	// Ensure the check was deregistered
-	if _, ok := a.state.Checks()[checkID]; ok {
+	if _, ok := a.State.Checks()[checkID]; ok {
 		t.Fatalf("should have deregistered maintenance check")
 	}
 
@@ -1497,7 +1552,7 @@ func TestAgent_Service_MaintenanceMode(t *testing.T) {
 	}
 
 	// Ensure the check was registered with the default notes
-	check, ok = a.state.Checks()[checkID]
+	check, ok = a.State.Checks()[checkID]
 	if !ok {
 		t.Fatalf("should have registered critical check")
 	}
@@ -1507,11 +1562,11 @@ func TestAgent_Service_MaintenanceMode(t *testing.T) {
 }
 
 func TestAgent_Service_Reap(t *testing.T) {
-	t.Parallel()
-	cfg := TestConfig()
-	cfg.CheckReapInterval = time.Millisecond
-	cfg.CheckDeregisterIntervalMin = 0
-	a := NewTestAgent(t.Name(), cfg)
+	// t.Parallel() // timing test. no parallel
+	a := NewTestAgent(t.Name(), `
+		check_reap_interval = "50ms"
+		check_deregister_interval_min = "0s"
+	`)
 	defer a.Shutdown()
 
 	svc := &structs.NodeService{
@@ -1523,8 +1578,8 @@ func TestAgent_Service_Reap(t *testing.T) {
 	chkTypes := []*structs.CheckType{
 		&structs.CheckType{
 			Status: api.HealthPassing,
-			TTL:    10 * time.Millisecond,
-			DeregisterCriticalServiceAfter: 100 * time.Millisecond,
+			TTL:    25 * time.Millisecond,
+			DeregisterCriticalServiceAfter: 200 * time.Millisecond,
 		},
 	}
 
@@ -1534,19 +1589,19 @@ func TestAgent_Service_Reap(t *testing.T) {
 	}
 
 	// Make sure it's there and there's no critical check yet.
-	if _, ok := a.state.Services()["redis"]; !ok {
+	if _, ok := a.State.Services()["redis"]; !ok {
 		t.Fatalf("should have redis service")
 	}
-	if checks := a.state.CriticalChecks(); len(checks) > 0 {
+	if checks := a.State.CriticalCheckStates(); len(checks) > 0 {
 		t.Fatalf("should not have critical checks")
 	}
 
-	// Wait for the check TTL to fail.
-	time.Sleep(30 * time.Millisecond)
-	if _, ok := a.state.Services()["redis"]; !ok {
+	// Wait for the check TTL to fail but before the check is reaped.
+	time.Sleep(100 * time.Millisecond)
+	if _, ok := a.State.Services()["redis"]; !ok {
 		t.Fatalf("should have redis service")
 	}
-	if checks := a.state.CriticalChecks(); len(checks) != 1 {
+	if checks := a.State.CriticalCheckStates(); len(checks) != 1 {
 		t.Fatalf("should have a critical check")
 	}
 
@@ -1554,38 +1609,38 @@ func TestAgent_Service_Reap(t *testing.T) {
 	if err := a.updateTTLCheck("service:redis", api.HealthPassing, "foo"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if _, ok := a.state.Services()["redis"]; !ok {
+	if _, ok := a.State.Services()["redis"]; !ok {
 		t.Fatalf("should have redis service")
 	}
-	if checks := a.state.CriticalChecks(); len(checks) > 0 {
+	if checks := a.State.CriticalCheckStates(); len(checks) > 0 {
 		t.Fatalf("should not have critical checks")
 	}
 
 	// Wait for the check TTL to fail again.
-	time.Sleep(30 * time.Millisecond)
-	if _, ok := a.state.Services()["redis"]; !ok {
+	time.Sleep(100 * time.Millisecond)
+	if _, ok := a.State.Services()["redis"]; !ok {
 		t.Fatalf("should have redis service")
 	}
-	if checks := a.state.CriticalChecks(); len(checks) != 1 {
+	if checks := a.State.CriticalCheckStates(); len(checks) != 1 {
 		t.Fatalf("should have a critical check")
 	}
 
 	// Wait for the reap.
-	time.Sleep(300 * time.Millisecond)
-	if _, ok := a.state.Services()["redis"]; ok {
+	time.Sleep(400 * time.Millisecond)
+	if _, ok := a.State.Services()["redis"]; ok {
 		t.Fatalf("redis service should have been reaped")
 	}
-	if checks := a.state.CriticalChecks(); len(checks) > 0 {
+	if checks := a.State.CriticalCheckStates(); len(checks) > 0 {
 		t.Fatalf("should not have critical checks")
 	}
 }
 
 func TestAgent_Service_NoReap(t *testing.T) {
-	t.Parallel()
-	cfg := TestConfig()
-	cfg.CheckReapInterval = time.Millisecond
-	cfg.CheckDeregisterIntervalMin = 0
-	a := NewTestAgent(t.Name(), cfg)
+	// t.Parallel() // timing test. no parallel
+	a := NewTestAgent(t.Name(), `
+		check_reap_interval = "50ms"
+		check_deregister_interval_min = "0s"
+	`)
 	defer a.Shutdown()
 
 	svc := &structs.NodeService{
@@ -1597,7 +1652,7 @@ func TestAgent_Service_NoReap(t *testing.T) {
 	chkTypes := []*structs.CheckType{
 		&structs.CheckType{
 			Status: api.HealthPassing,
-			TTL:    10 * time.Millisecond,
+			TTL:    25 * time.Millisecond,
 		},
 	}
 
@@ -1607,35 +1662,35 @@ func TestAgent_Service_NoReap(t *testing.T) {
 	}
 
 	// Make sure it's there and there's no critical check yet.
-	if _, ok := a.state.Services()["redis"]; !ok {
+	if _, ok := a.State.Services()["redis"]; !ok {
 		t.Fatalf("should have redis service")
 	}
-	if checks := a.state.CriticalChecks(); len(checks) > 0 {
+	if checks := a.State.CriticalCheckStates(); len(checks) > 0 {
 		t.Fatalf("should not have critical checks")
 	}
 
 	// Wait for the check TTL to fail.
-	time.Sleep(30 * time.Millisecond)
-	if _, ok := a.state.Services()["redis"]; !ok {
+	time.Sleep(200 * time.Millisecond)
+	if _, ok := a.State.Services()["redis"]; !ok {
 		t.Fatalf("should have redis service")
 	}
-	if checks := a.state.CriticalChecks(); len(checks) != 1 {
+	if checks := a.State.CriticalCheckStates(); len(checks) != 1 {
 		t.Fatalf("should have a critical check")
 	}
 
 	// Wait a while and make sure it doesn't reap.
-	time.Sleep(300 * time.Millisecond)
-	if _, ok := a.state.Services()["redis"]; !ok {
+	time.Sleep(200 * time.Millisecond)
+	if _, ok := a.State.Services()["redis"]; !ok {
 		t.Fatalf("should have redis service")
 	}
-	if checks := a.state.CriticalChecks(); len(checks) != 1 {
+	if checks := a.State.CriticalCheckStates(); len(checks) != 1 {
 		t.Fatalf("should have a critical check")
 	}
 }
 
 func TestAgent_addCheck_restoresSnapshot(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// First register a service
@@ -1667,7 +1722,7 @@ func TestAgent_addCheck_restoresSnapshot(t *testing.T) {
 	if err := a.AddService(svc, chkTypes, false, ""); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	check, ok := a.state.Checks()["service:redis"]
+	check, ok := a.State.Checks()["service:redis"]
 	if !ok {
 		t.Fatalf("missing check")
 	}
@@ -1678,20 +1733,20 @@ func TestAgent_addCheck_restoresSnapshot(t *testing.T) {
 
 func TestAgent_NodeMaintenanceMode(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Enter maintenance mode for the node
 	a.EnableNodeMaintenance("broken", "mytoken")
 
 	// Make sure the critical health check was added
-	check, ok := a.state.Checks()[structs.NodeMaint]
+	check, ok := a.State.Checks()[structs.NodeMaint]
 	if !ok {
 		t.Fatalf("should have registered critical node check")
 	}
 
 	// Check that the token was used to register the check
-	if token := a.state.CheckToken(structs.NodeMaint); token != "mytoken" {
+	if token := a.State.CheckToken(structs.NodeMaint); token != "mytoken" {
 		t.Fatalf("expected 'mytoken', got: '%s'", token)
 	}
 
@@ -1704,7 +1759,7 @@ func TestAgent_NodeMaintenanceMode(t *testing.T) {
 	a.DisableNodeMaintenance()
 
 	// Ensure the check was deregistered
-	if _, ok := a.state.Checks()[structs.NodeMaint]; ok {
+	if _, ok := a.State.Checks()[structs.NodeMaint]; ok {
 		t.Fatalf("should have deregistered critical node check")
 	}
 
@@ -1712,7 +1767,7 @@ func TestAgent_NodeMaintenanceMode(t *testing.T) {
 	a.EnableNodeMaintenance("", "")
 
 	// Make sure the check was registered with the default note
-	check, ok = a.state.Checks()[structs.NodeMaint]
+	check, ok = a.State.Checks()[structs.NodeMaint]
 	if !ok {
 		t.Fatalf("should have registered critical node check")
 	}
@@ -1723,7 +1778,7 @@ func TestAgent_NodeMaintenanceMode(t *testing.T) {
 
 func TestAgent_checkStateSnapshot(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// First register a service
@@ -1767,7 +1822,7 @@ func TestAgent_checkStateSnapshot(t *testing.T) {
 	a.restoreCheckState(snap)
 
 	// Search for the check
-	out, ok := a.state.Checks()[check1.CheckID]
+	out, ok := a.State.Checks()[check1.CheckID]
 	if !ok {
 		t.Fatalf("check should have been registered")
 	}
@@ -1780,7 +1835,7 @@ func TestAgent_checkStateSnapshot(t *testing.T) {
 
 func TestAgent_loadChecks_checkFails(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Persist a health check with an invalid service ID
@@ -1815,11 +1870,11 @@ func TestAgent_loadChecks_checkFails(t *testing.T) {
 
 func TestAgent_persistCheckState(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Create the TTL check to persist
-	check := &CheckTTL{
+	check := &checks.CheckTTL{
 		CheckID: "check1",
 		TTL:     10 * time.Minute,
 	}
@@ -1862,11 +1917,11 @@ func TestAgent_persistCheckState(t *testing.T) {
 
 func TestAgent_loadCheckState(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// Create a check whose state will expire immediately
-	check := &CheckTTL{
+	check := &checks.CheckTTL{
 		CheckID: "check1",
 		TTL:     0,
 	}
@@ -1923,7 +1978,7 @@ func TestAgent_loadCheckState(t *testing.T) {
 
 func TestAgent_purgeCheckState(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), nil)
+	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	// No error if the state does not exist
@@ -1932,7 +1987,7 @@ func TestAgent_purgeCheckState(t *testing.T) {
 	}
 
 	// Persist some state to the data dir
-	check := &CheckTTL{
+	check := &checks.CheckTTL{
 		CheckID: "check1",
 		TTL:     time.Minute,
 	}
@@ -1956,9 +2011,9 @@ func TestAgent_purgeCheckState(t *testing.T) {
 func TestAgent_GetCoordinate(t *testing.T) {
 	t.Parallel()
 	check := func(server bool) {
-		cfg := TestConfig()
-		cfg.Server = server
-		a := NewTestAgent(t.Name(), cfg)
+		a := NewTestAgent(t.Name(), `
+			server = true
+		`)
 		defer a.Shutdown()
 
 		// This doesn't verify the returned coordinate, but it makes
@@ -1972,4 +2027,50 @@ func TestAgent_GetCoordinate(t *testing.T) {
 
 	check(true)
 	check(false)
+}
+
+func TestAgent_reloadWatches(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Normal watch with http addr set, should succeed
+	newConf := *a.config
+	newConf.Watches = []map[string]interface{}{
+		{
+			"type": "key",
+			"key":  "asdf",
+			"args": []interface{}{"ls"},
+		},
+	}
+	if err := a.reloadWatches(&newConf); err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+
+	// Should still succeed with only HTTPS addresses
+	newConf.HTTPSAddrs = newConf.HTTPAddrs
+	newConf.HTTPAddrs = make([]net.Addr, 0)
+	newConf.Watches = []map[string]interface{}{
+		{
+			"type": "key",
+			"key":  "asdf",
+			"args": []interface{}{"ls"},
+		},
+	}
+	if err := a.reloadWatches(&newConf); err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+
+	// Should fail to reload with no http or https addrs
+	newConf.HTTPSAddrs = make([]net.Addr, 0)
+	newConf.Watches = []map[string]interface{}{
+		{
+			"type": "key",
+			"key":  "asdf",
+			"args": []interface{}{"ls"},
+		},
+	}
+	if err := a.reloadWatches(&newConf); err == nil || !strings.Contains(err.Error(), "watch plans require an HTTP or HTTPS endpoint") {
+		t.Fatalf("bad: %s", err)
+	}
 }

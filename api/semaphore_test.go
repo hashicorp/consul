@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func TestSemaphore_AcquireRelease(t *testing.T) {
+func TestAPI_SemaphoreAcquireRelease(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -69,7 +69,7 @@ func TestSemaphore_AcquireRelease(t *testing.T) {
 	}
 }
 
-func TestSemaphore_ForceInvalidate(t *testing.T) {
+func TestAPI_SemaphoreForceInvalidate(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -104,7 +104,7 @@ func TestSemaphore_ForceInvalidate(t *testing.T) {
 	}
 }
 
-func TestSemaphore_DeleteKey(t *testing.T) {
+func TestAPI_SemaphoreDeleteKey(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -138,7 +138,7 @@ func TestSemaphore_DeleteKey(t *testing.T) {
 	}
 }
 
-func TestSemaphore_Contend(t *testing.T) {
+func TestAPI_SemaphoreContend(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -191,7 +191,7 @@ func TestSemaphore_Contend(t *testing.T) {
 	}
 }
 
-func TestSemaphore_BadLimit(t *testing.T) {
+func TestAPI_SemaphoreBadLimit(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -222,7 +222,7 @@ func TestSemaphore_BadLimit(t *testing.T) {
 	}
 }
 
-func TestSemaphore_Destroy(t *testing.T) {
+func TestAPI_SemaphoreDestroy(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -278,7 +278,7 @@ func TestSemaphore_Destroy(t *testing.T) {
 	}
 }
 
-func TestSemaphore_Conflict(t *testing.T) {
+func TestAPI_SemaphoreConflict(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -316,7 +316,7 @@ func TestSemaphore_Conflict(t *testing.T) {
 	}
 }
 
-func TestSemaphore_MonitorRetry(t *testing.T) {
+func TestAPI_SemaphoreMonitorRetry(t *testing.T) {
 	t.Parallel()
 	raw, s := makeClient(t)
 	defer s.Stop()
@@ -433,7 +433,7 @@ func TestSemaphore_MonitorRetry(t *testing.T) {
 	}
 }
 
-func TestSemaphore_OneShot(t *testing.T) {
+func TestAPI_SemaphoreOneShot(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -499,7 +499,7 @@ func TestSemaphore_OneShot(t *testing.T) {
 	if ch != nil {
 		t.Fatalf("should not have acquired the semaphore")
 	}
-	diff := time.Now().Sub(start)
+	diff := time.Since(start)
 	if diff < contender.opts.SemaphoreWaitTime {
 		t.Fatalf("time out of bounds: %9.6f", diff.Seconds())
 	}

@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func TestLock_LockUnlock(t *testing.T) {
+func TestAPI_LockLockUnlock(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -69,7 +69,7 @@ func TestLock_LockUnlock(t *testing.T) {
 	}
 }
 
-func TestLock_ForceInvalidate(t *testing.T) {
+func TestAPI_LockForceInvalidate(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -104,7 +104,7 @@ func TestLock_ForceInvalidate(t *testing.T) {
 	}
 }
 
-func TestLock_DeleteKey(t *testing.T) {
+func TestAPI_LockDeleteKey(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -146,7 +146,7 @@ func TestLock_DeleteKey(t *testing.T) {
 	}
 }
 
-func TestLock_Contend(t *testing.T) {
+func TestAPI_LockContend(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -199,7 +199,7 @@ func TestLock_Contend(t *testing.T) {
 	}
 }
 
-func TestLock_Destroy(t *testing.T) {
+func TestAPI_LockDestroy(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -268,7 +268,7 @@ func TestLock_Destroy(t *testing.T) {
 	}
 }
 
-func TestLock_Conflict(t *testing.T) {
+func TestAPI_LockConflict(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -306,7 +306,7 @@ func TestLock_Conflict(t *testing.T) {
 	}
 }
 
-func TestLock_ReclaimLock(t *testing.T) {
+func TestAPI_LockReclaimLock(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -374,7 +374,7 @@ func TestLock_ReclaimLock(t *testing.T) {
 	}
 }
 
-func TestLock_MonitorRetry(t *testing.T) {
+func TestAPI_LockMonitorRetry(t *testing.T) {
 	t.Parallel()
 	raw, s := makeClient(t)
 	defer s.Stop()
@@ -489,7 +489,7 @@ func TestLock_MonitorRetry(t *testing.T) {
 	}
 }
 
-func TestLock_OneShot(t *testing.T) {
+func TestAPI_LockOneShot(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -541,7 +541,7 @@ func TestLock_OneShot(t *testing.T) {
 	if ch != nil {
 		t.Fatalf("should not be leader")
 	}
-	diff := time.Now().Sub(start)
+	diff := time.Since(start)
 	if diff < contender.opts.LockWaitTime || diff > 2*contender.opts.LockWaitTime {
 		t.Fatalf("time out of bounds: %9.6f", diff.Seconds())
 	}

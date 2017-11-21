@@ -16,8 +16,9 @@ import (
 	"net"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/snapshot"
 	"github.com/hashicorp/go-msgpack/codec"
 )
@@ -58,10 +59,10 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 	// Verify token is allowed to operate on snapshots. There's only a
 	// single ACL sense here (not read and write) since reading gets you
 	// all the ACLs and you could escalate from there.
-	if acl, err := s.resolveToken(args.Token); err != nil {
+	if rule, err := s.resolveToken(args.Token); err != nil {
 		return nil, err
-	} else if acl != nil && !acl.Snapshot() {
-		return nil, errPermissionDenied
+	} else if rule != nil && !rule.Snapshot() {
+		return nil, acl.ErrPermissionDenied
 	}
 
 	// Dispatch the operation.

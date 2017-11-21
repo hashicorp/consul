@@ -60,6 +60,7 @@ $ curl \
   "ServerStabilizationTime": "10s",
   "RedundancyZoneTag": "",
   "DisableUpgradeMigration": false,
+  "UpgradeVersionTag": "",
   "CreateIndex": 4,
   "ModifyIndex": 4
 }
@@ -110,7 +111,7 @@ The table below shows this endpoint's support for
   cluster. Only takes effect if all servers are running Raft protocol version 3
   or higher. Must be a duration value such as `30s`.
 
-- `RedundancyZoneTag` `(string: "")` controls the node-meta key to use when
+- `RedundancyZoneTag` `(string: "")` - Controls the node-meta key to use when
   Autopilot is separating servers into zones for redundancy. Only one server in
   each zone can be a voting member at one time. If left blank, this feature will
   be disabled.
@@ -119,6 +120,10 @@ The table below shows this endpoint's support for
   migration strategy in Consul Enterprise of waiting until enough
   newer-versioned servers have been added to the cluster before promoting any of
   them to voters.
+
+- `UpgradeVersionTag` `(string: "")` - Controls the node-meta key to use for
+  version info when performing upgrade migrations. If left blank, the Consul
+  version will be used.
 
 ### Sample Payload
 
@@ -130,6 +135,7 @@ The table below shows this endpoint's support for
   "ServerStabilizationTime": "10s",
   "RedundancyZoneTag": "",
   "DisableUpgradeMigration": false,
+  "UpgradeVersionTag": "",
   "CreateIndex": 4,
   "ModifyIndex": 4
 }
@@ -235,3 +241,6 @@ $ curl \
   - `Voter` is whether the server is a voting member of the Raft cluster.
 
   - `StableSince` is the time this server has been in its current `Healthy` state.
+  
+  The HTTP status code will indicate the health of the cluster. If `Healthy` is true, then a
+  status of 200 will be returned. If `Healthy` is false, then a status of 429 will be returned.

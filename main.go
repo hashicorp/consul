@@ -42,9 +42,11 @@ func realMain() int {
 	}
 
 	cli := &cli.CLI{
-		Args:     args,
-		Commands: command.Commands,
-		HelpFunc: cli.FilteredHelpFunc(cmds, cli.BasicHelpFunc("consul")),
+		Args:         args,
+		Commands:     command.Commands,
+		Autocomplete: true,
+		Name:         "consul",
+		HelpFunc:     cli.FilteredHelpFunc(cmds, cli.BasicHelpFunc("consul")),
 	}
 
 	exitCode, err := cli.Run()

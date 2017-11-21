@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/hashicorp/consul/agent/consul/agent"
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 )
@@ -17,12 +18,12 @@ func (op *Operator) RaftGetConfiguration(args *structs.DCSpecificRequest, reply 
 	}
 
 	// This action requires operator read access.
-	acl, err := op.srv.resolveToken(args.Token)
+	rule, err := op.srv.resolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if acl != nil && !acl.OperatorRead() {
-		return errPermissionDenied
+	if rule != nil && !rule.OperatorRead() {
+		return acl.ErrPermissionDenied
 	}
 
 	// We can't fetch the leader and the configuration atomically with
@@ -35,7 +36,7 @@ func (op *Operator) RaftGetConfiguration(args *structs.DCSpecificRequest, reply 
 	// Index the Consul information about the servers.
 	serverMap := make(map[raft.ServerAddress]serf.Member)
 	for _, member := range op.srv.serfLAN.Members() {
-		valid, parts := agent.IsConsulServer(member)
+		valid, parts := metadata.IsConsulServer(member)
 		if !valid {
 			continue
 		}
@@ -49,16 +50,19 @@ func (op *Operator) RaftGetConfiguration(args *structs.DCSpecificRequest, reply 
 	reply.Index = future.Index()
 	for _, server := range future.Configuration().Servers {
 		node := "(unknown)"
+		raftProtocolVersion := "unknown"
 		if member, ok := serverMap[server.Address]; ok {
 			node = member.Name
+			raftProtocolVersion = member.Tags["raft_vsn"]
 		}
 
 		entry := &structs.RaftServer{
-			ID:      server.ID,
-			Node:    node,
-			Address: server.Address,
-			Leader:  server.Address == leader,
-			Voter:   server.Suffrage == raft.Voter,
+			ID:              server.ID,
+			Node:            node,
+			Address:         server.Address,
+			Leader:          server.Address == leader,
+			Voter:           server.Suffrage == raft.Voter,
+			ProtocolVersion: raftProtocolVersion,
 		}
 		reply.Servers = append(reply.Servers, entry)
 	}
@@ -76,12 +80,12 @@ func (op *Operator) RaftRemovePeerByAddress(args *structs.RaftRemovePeerRequest,
 
 	// This is a super dangerous operation that requires operator write
 	// access.
-	acl, err := op.srv.resolveToken(args.Token)
+	rule, err := op.srv.resolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if acl != nil && !acl.OperatorWrite() {
-		return errPermissionDenied
+	if rule != nil && !rule.OperatorWrite() {
+		return acl.ErrPermissionDenied
 	}
 
 	// Since this is an operation designed for humans to use, we will return
@@ -143,12 +147,12 @@ func (op *Operator) RaftRemovePeerByID(args *structs.RaftRemovePeerRequest, repl
 
 	// This is a super dangerous operation that requires operator write
 	// access.
-	acl, err := op.srv.resolveToken(args.Token)
+	rule, err := op.srv.resolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if acl != nil && !acl.OperatorWrite() {
-		return errPermissionDenied
+	if rule != nil && !rule.OperatorWrite() {
+		return acl.ErrPermissionDenied
 	}
 
 	// Since this is an operation designed for humans to use, we will return

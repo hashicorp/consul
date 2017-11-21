@@ -16,8 +16,11 @@ service. This is particularly useful in combination with Consul's
 [DNS Interface](/docs/agent/dns.html) as it allows for much richer queries than
 would be possible given the limited entry points exposed by DNS.
 
-See the [ACL Guide](/docs/guides/acl.html#prepared_query_acls)
-prepared query section for more details about how prepared query policies work.
+See the [Geo Failover Guide](/docs/guides/geo-failover.html) for details and
+examples for using prepared queries to implement geo failover for services.
+
+See the ACL Guide's [prepared query rules](/docs/guides/acl.html#prepared-query-rules)
+section for more details about how prepared queries work with Consul's ACL system.
 
 ### Prepared Query Templates
 
@@ -29,7 +32,8 @@ Here is an example prepared query template:
 {
   "Template": {
     "Type": "name_prefix_match",
-    "Regexp": "^geo-db-(.*?)-([^\\-]+?)$"
+    "Regexp": "^geo-db-(.*?)-([^\\-]+?)$",
+    "RemoveEmptyTags": false
   }
 }
 ```
@@ -51,6 +55,12 @@ static query. It has two fields:
   everything else after as a tag. See the
   [RE2](https://github.com/google/re2/wiki/Syntax) reference for syntax of this
   regular expression.
+
+- `RemoveEmptyTags` is optional, and if set to true, will cause the `Tags` list
+  inside the `Service` structure to be stripped of any empty strings. This defaults
+  to false, meaning that empty strings will remain in the list. This is useful
+  when interpolating into tags in a way where the tag is optional, and where
+  searching for an empty tag would yield no results from the query.
 
 All other fields of the query have the same meanings as for a static query,
 except that several interpolation variables are available to dynamically
@@ -76,6 +86,25 @@ populate the query before it is executed. All of the string fields inside the
   `${match(1)}`, and `primary` for `${match(2)}`. If the regular expression
   doesn't match, or an invalid index is given, then `${match(N)}` will return an
   empty string.
+
+- `${agent.segment}` has the network segment (Enterprise-only) of the agent that
+  initiated the query. This can be used with the `NodeMeta` field to limit the results
+  of a query to service instances within its own network segment:
+
+    ```json
+    {
+      "Name": "",
+      "Template": {
+        "Type": "name_prefix_match"
+      },
+      "Service": {
+        "Service": "${name.full}",
+        "NodeMeta": {"consul-network-segment": "${agent.segment}"}
+      }
+    }
+    ```
+  This will map all names of the form "&lt;service&gt;.query.consul" over DNS to a query
+  that will select an instance of the service in the agent's own network segment.
 
 Using templates, it is possible to apply prepared query behaviors to many
 services with a single template. Here's an example template that matches any
@@ -327,7 +356,7 @@ The table below shows this endpoint's support for
 The body is the same as is used to create a prepared query. Please see above for
 more information.
 
-### Sample Response
+### Sample Request
 
 ```text
 $ curl \

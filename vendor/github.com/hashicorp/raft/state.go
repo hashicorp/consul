@@ -42,6 +42,10 @@ func (s RaftState) String() string {
 // and provides an interface to set/get the variables in a
 // thread safe manner.
 type raftState struct {
+	// currentTerm commitIndex, lastApplied,  must be kept at the top of
+	// the struct so they're 64 bit aligned which is a requirement for
+	// atomic ops on 32 bit platforms.
+
 	// The current term, cache of StableStore
 	currentTerm uint64
 

@@ -5,7 +5,7 @@ import (
 )
 
 func TestCache_GetPolicy(t *testing.T) {
-	c, err := NewCache(2, nil)
+	c, err := NewCache(2, nil, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -62,7 +62,7 @@ func TestCache_GetACL(t *testing.T) {
 		return "deny", policies[id], nil
 	}
 
-	c, err := NewCache(2, faultfn)
+	c, err := NewCache(2, faultfn, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -125,7 +125,7 @@ func TestCache_ClearACL(t *testing.T) {
 		return "deny", policies[id], nil
 	}
 
-	c, err := NewCache(16, faultfn)
+	c, err := NewCache(16, faultfn, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -160,7 +160,7 @@ func TestCache_Purge(t *testing.T) {
 		return "deny", policies[id], nil
 	}
 
-	c, err := NewCache(16, faultfn)
+	c, err := NewCache(16, faultfn, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -192,7 +192,7 @@ func TestCache_GetACLPolicy(t *testing.T) {
 	faultfn := func(id string) (string, string, error) {
 		return "deny", policies[id], nil
 	}
-	c, err := NewCache(16, faultfn)
+	c, err := NewCache(16, faultfn, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -245,7 +245,7 @@ func TestCache_GetACL_Parent(t *testing.T) {
 		return "", "", nil
 	}
 
-	c, err := NewCache(16, faultfn)
+	c, err := NewCache(16, faultfn, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -276,7 +276,7 @@ func TestCache_GetACL_ParentCache(t *testing.T) {
 		return "", "", nil
 	}
 
-	c, err := NewCache(16, faultfn)
+	c, err := NewCache(16, faultfn, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

@@ -10,7 +10,7 @@ description: |-
 
 Watches are a way of specifying a view of data (e.g. list of nodes, KV pairs, health
 checks) which is monitored for updates. When an update is detected, an external handler
-is invoked. A handler can be any executable. As an example, you could watch the status
+is invoked. A handler can be any executable or HTTP endpoint. As an example, you could watch the status
 of health checks and notify an external system when a check is critical.
 
 Watches are implemented using blocking queries in the [HTTP API](/api/index.html).
@@ -32,18 +32,65 @@ in a JSON body when using agent configuration or as CLI flags for the watch comm
 ## Handlers
 
 The watch configuration specifies the view of data to be monitored.
-Once that view is updated, the specified handler is invoked. The handler
-can be any executable.
+Once that view is updated, the specified handler is invoked. Handlers can be either an
+executable or an HTTP endpoint. A handler receives JSON formatted data
+with invocation info, following a format that depends on the type of the watch.
+Each watch type documents the format type. Because they map directly to an HTTP
+API, handlers should expect the input to match the format of the API. A Consul
+index is also given, corresponding to the responses from the
+[HTTP API](/api/index.html). 
 
-A handler should read its input from stdin and expect to read
-JSON formatted data. The format of the data depends on the type of the
-watch. Each watch type documents the format type. Because they
-map directly to an HTTP API, handlers should expect the input to
-match the format of the API.
+### Executable
 
-Additionally, the `CONSUL_INDEX` environment variable will be set.
-This maps to the `X-Consul-Index` value in responses from the
-[HTTP API](/api/index.html).
+An executable handler reads the JSON invocation info from stdin. Additionally,
+the `CONSUL_INDEX` environment variable will be set to the Consul index
+Anything written to stdout is logged.
+
+Here is an example configuration, where `handler_type` is optionally set to
+`script`:
+
+```javascript
+{
+  "type": "key",
+  "key": "foo/bar/baz",
+  "handler_type": "script",
+  "args": ["/usr/bin/my-service-handler.sh", "-redis"]
+}
+```
+
+Prior to Consul 1.0, watches used a single `handler` field to define the command to run, and
+would always run in a shell. In Consul 1.0, the `args` array was added so that handlers can be
+run without a shell. The `handler` field is deprecated, and you should include the shell in
+the `args` to run under a shell, eg. `"args": ["sh", "-c", "..."]`.
+
+### HTTP endpoint
+
+An HTTP handler sends an HTTP request when a watch is invoked. The JSON invocation info is sent
+as a payload along the request. The response also contains the Consul index as a header named
+`X-Consul-Index`.
+
+The HTTP handler can be configured by setting `handler_type` to `http`. Additional handler options
+are set using `http_handler_config`. The only required parameter is the `path` field which specifies
+the URL to the HTTP endpoint. Consul uses `POST` as the default HTTP method, but this is also configurable.
+Other optional fields are `header`, `timeout` and`tls_skip_verify`. The watch invocation data is
+always sent as a JSON payload.
+
+Here is an example configuration:
+
+```javascript
+{
+  "type": "key",
+  "key": "foo/bar/baz",
+  "handler_type": "http",
+  "http_handler_config": {
+    "path":"https://localhost:8000/watch",
+    "method": "POST",
+    "header": {"x-foo":["bar", "baz"]},
+    "timeout": "10s",
+    "tls_skip_verify": false
+  }
+}
+```
 
 ## Global Parameters
 
@@ -52,7 +99,8 @@ are a few global parameters that all watches support:
 
 * `datacenter` - Can be provided to override the agent's default datacenter.
 * `token` - Can be provided to override the agent's default ACL token.
-* `handler` - The handler to invoke when the data view updates.
+* `args` - The handler subprocess and arguments to invoke when the data view updates.
+* `handler` - The handler shell command to invoke when the data view updates.
 
 ## Watch Types
 
@@ -80,7 +128,7 @@ Here is an example configuration:
 {
   "type": "key",
   "key": "foo/bar/baz",
-  "handler": "/usr/bin/my-key-handler.sh"
+  "args": ["/usr/bin/my-service-handler.sh", "-redis"]
 }
 ```
 
@@ -117,7 +165,7 @@ Here is an example configuration:
 {
   "type": "keyprefix",
   "prefix": "foo/",
-  "handler": "/usr/bin/my-prefix-handler.sh"
+  "args": ["/usr/bin/my-service-handler.sh", "-redis"]
 }
 ```
 
@@ -231,7 +279,7 @@ Here is an example configuration:
 {
   "type": "service",
   "service": "redis",
-  "handler": "/usr/bin/my-service-handler.sh"
+  "args": ["/usr/bin/my-service-handler.sh", "-redis"]
 }
 ```
 
@@ -322,13 +370,13 @@ Here is an example configuration:
 {
   "type": "event",
   "name": "web-deploy",
-  "handler": "/usr/bin/my-deploy-handler.sh"
+  "args": ["/usr/bin/my-service-handler.sh", "-web-deploy"]
 }
 ```
 
 Or, using the watch command:
 
-    $ consul watch -type=event -name=web-deploy /usr/bin/my-deploy-handler.sh
+    $ consul watch -type=event -name=web-deploy /usr/bin/my-deploy-handler.sh -web-deploy
 
 An example of the output of this command:
 

@@ -2,7 +2,6 @@ package serf
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
@@ -13,7 +12,6 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/serf/coordinate"
 )
 
 /*
@@ -29,32 +27,32 @@ old events.
 
 const flushInterval = 500 * time.Millisecond
 const clockUpdateInterval = 500 * time.Millisecond
-const coordinateUpdateInterval = 60 * time.Second
 const tmpExt = ".compact"
+const snapshotErrorRecoveryInterval = 30 * time.Second
 
 // Snapshotter is responsible for ingesting events and persisting
 // them to disk, and providing a recovery mechanism at start time.
 type Snapshotter struct {
-	aliveNodes       map[string]string
-	clock            *LamportClock
-	coordClient      *coordinate.Client
-	fh               *os.File
-	buffered         *bufio.Writer
-	inCh             <-chan Event
-	lastFlush        time.Time
-	lastClock        LamportTime
-	lastEventClock   LamportTime
-	lastQueryClock   LamportTime
-	leaveCh          chan struct{}
-	leaving          bool
-	logger           *log.Logger
-	maxSize          int64
-	path             string
-	offset           int64
-	outCh            chan<- Event
-	rejoinAfterLeave bool
-	shutdownCh       <-chan struct{}
-	waitCh           chan struct{}
+	aliveNodes              map[string]string
+	clock                   *LamportClock
+	fh                      *os.File
+	buffered                *bufio.Writer
+	inCh                    <-chan Event
+	lastFlush               time.Time
+	lastClock               LamportTime
+	lastEventClock          LamportTime
+	lastQueryClock          LamportTime
+	leaveCh                 chan struct{}
+	leaving                 bool
+	logger                  *log.Logger
+	maxSize                 int64
+	path                    string
+	offset                  int64
+	outCh                   chan<- Event
+	rejoinAfterLeave        bool
+	shutdownCh              <-chan struct{}
+	waitCh                  chan struct{}
+	lastAttemptedCompaction time.Time
 }
 
 // PreviousNode is used to represent the previously known alive nodes
@@ -78,7 +76,6 @@ func NewSnapshotter(path string,
 	rejoinAfterLeave bool,
 	logger *log.Logger,
 	clock *LamportClock,
-	coordClient *coordinate.Client,
 	outCh chan<- Event,
 	shutdownCh <-chan struct{}) (chan<- Event, *Snapshotter, error) {
 	inCh := make(chan Event, 1024)
@@ -101,7 +98,6 @@ func NewSnapshotter(path string,
 	snap := &Snapshotter{
 		aliveNodes:       make(map[string]string),
 		clock:            clock,
-		coordClient:      coordClient,
 		fh:               fh,
 		buffered:         bufio.NewWriter(fh),
 		inCh:             inCh,
@@ -180,9 +176,6 @@ func (s *Snapshotter) stream() {
 	clockTicker := time.NewTicker(clockUpdateInterval)
 	defer clockTicker.Stop()
 
-	coordinateTicker := time.NewTicker(coordinateUpdateInterval)
-	defer coordinateTicker.Stop()
-
 	for {
 		select {
 		case <-s.leaveCh:
@@ -223,9 +216,6 @@ func (s *Snapshotter) stream() {
 
 		case <-clockTicker.C:
 			s.updateClock()
-
-		case <-coordinateTicker.C:
-			s.updateCoordinate()
 
 		case <-s.shutdownCh:
 			if err := s.buffered.Flush(); err != nil {
@@ -273,20 +263,6 @@ func (s *Snapshotter) updateClock() {
 	}
 }
 
-// updateCoordinate is called periodically to write out the current local
-// coordinate. It's safe to call this if coordinates aren't enabled (nil
-// client) and it will be a no-op.
-func (s *Snapshotter) updateCoordinate() {
-	if s.coordClient != nil {
-		encoded, err := json.Marshal(s.coordClient.GetCoordinate())
-		if err != nil {
-			s.logger.Printf("[ERR] serf: Failed to encode coordinate: %v", err)
-		} else {
-			s.tryAppend(fmt.Sprintf("coordinate: %s\n", encoded))
-		}
-	}
-}
-
 // processUserEvent is used to handle a single user event
 func (s *Snapshotter) processUserEvent(e UserEvent) {
 	// Ignore old clocks
@@ -311,6 +287,17 @@ func (s *Snapshotter) processQuery(q *Query) {
 func (s *Snapshotter) tryAppend(l string) {
 	if err := s.appendLine(l); err != nil {
 		s.logger.Printf("[ERR] serf: Failed to update snapshot: %v", err)
+		now := time.Now()
+		if now.Sub(s.lastAttemptedCompaction) > snapshotErrorRecoveryInterval {
+			s.lastAttemptedCompaction = now
+			s.logger.Printf("[INFO] serf: Attempting compaction to recover from error...")
+			err = s.compact()
+			if err != nil {
+				s.logger.Printf("[ERR] serf: Compaction failed, will reattempt after %v: %v", snapshotErrorRecoveryInterval, err)
+			} else {
+				s.logger.Printf("[INFO] serf: Finished compaction, successfully recovered from error state")
+			}
+		}
 	}
 }
 
@@ -391,29 +378,21 @@ func (s *Snapshotter) compact() error {
 	}
 	offset += int64(n)
 
-	// Write out the coordinate.
-	if s.coordClient != nil {
-		encoded, err := json.Marshal(s.coordClient.GetCoordinate())
-		if err != nil {
-			fh.Close()
-			return err
-		}
-
-		line = fmt.Sprintf("coordinate: %s\n", encoded)
-		n, err = buf.WriteString(line)
-		if err != nil {
-			fh.Close()
-			return err
-		}
-		offset += int64(n)
-	}
-
 	// Flush the new snapshot
 	err = buf.Flush()
-	fh.Close()
+
 	if err != nil {
 		return fmt.Errorf("failed to flush new snapshot: %v", err)
 	}
+
+	err = fh.Sync()
+
+	if err != nil {
+		fh.Close()
+		return fmt.Errorf("failed to fsync new snapshot: %v", err)
+	}
+
+	fh.Close()
 
 	// We now need to swap the old snapshot file with the new snapshot.
 	// Turns out, Windows won't let us rename the files if we have
@@ -520,22 +499,7 @@ func (s *Snapshotter) replay() error {
 			s.lastQueryClock = LamportTime(timeInt)
 
 		} else if strings.HasPrefix(line, "coordinate: ") {
-			if s.coordClient == nil {
-				s.logger.Printf("[WARN] serf: Ignoring snapshot coordinates since they are disabled")
-				continue
-			}
-
-			coordStr := strings.TrimPrefix(line, "coordinate: ")
-			var coord coordinate.Coordinate
-			err := json.Unmarshal([]byte(coordStr), &coord)
-			if err != nil {
-				s.logger.Printf("[WARN] serf: Failed to decode coordinate: %v", err)
-				continue
-			}
-			if err := s.coordClient.SetCoordinate(&coord); err != nil {
-				s.logger.Printf("[WARN] serf: Failed to set coordinate: %v", err)
-				continue
-			}
+			continue // Ignores any coordinate persistence from old snapshots, serf should re-converge
 		} else if line == "leave" {
 			// Ignore a leave if we plan on re-joining
 			if s.rejoinAfterLeave {

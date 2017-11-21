@@ -8,7 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testrpc"
@@ -18,6 +19,7 @@ import (
 )
 
 func TestCatalog_Register(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -47,6 +49,7 @@ func TestCatalog_Register(t *testing.T) {
 }
 
 func TestCatalog_RegisterService_InvalidAddress(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -75,7 +78,47 @@ func TestCatalog_RegisterService_InvalidAddress(t *testing.T) {
 	}
 }
 
+func TestCatalog_RegisterService_SkipNodeUpdate(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	// Register a node
+	arg := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+	}
+	var out struct{}
+	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Update it with a blank address, should fail.
+	arg.Address = ""
+	arg.Service = &structs.NodeService{
+		Service: "db",
+		Port:    8000,
+	}
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out)
+	if err == nil || err.Error() != "Must provide address if SkipNodeUpdate is not set" {
+		t.Fatalf("got error %v want 'Must provide address...'", err)
+	}
+
+	// Set SkipNodeUpdate, should succeed
+	arg.SkipNodeUpdate = true
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestCatalog_Register_NodeID(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -111,6 +154,7 @@ func TestCatalog_Register_NodeID(t *testing.T) {
 }
 
 func TestCatalog_Register_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -160,7 +204,7 @@ service "foo" {
 	// This should fail since we are writing to the "db" service, which isn't
 	// allowed.
 	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &argR, &outR)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -183,7 +227,7 @@ service "foo" {
 	// enforcement.
 	s1.config.ACLEnforceVersion8 = true
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &argR, &outR)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -206,12 +250,13 @@ service "foo" {
 	argR.Service.ID = "my-id"
 	argR.Token = id
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &argR, &outR)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 }
 
 func TestCatalog_Register_ForwardLeader(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -255,6 +300,7 @@ func TestCatalog_Register_ForwardLeader(t *testing.T) {
 }
 
 func TestCatalog_Register_ForwardDC(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -287,6 +333,7 @@ func TestCatalog_Register_ForwardDC(t *testing.T) {
 }
 
 func TestCatalog_Deregister(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -312,6 +359,7 @@ func TestCatalog_Deregister(t *testing.T) {
 }
 
 func TestCatalog_Deregister_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -425,7 +473,7 @@ service "service" {
 			Datacenter: "dc1",
 			Node:       "node",
 			CheckID:    "service-check"}, &out)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
@@ -433,7 +481,7 @@ service "service" {
 			Datacenter: "dc1",
 			Node:       "node",
 			CheckID:    "node-check"}, &out)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
@@ -441,14 +489,14 @@ service "service" {
 			Datacenter: "dc1",
 			Node:       "node",
 			ServiceID:  "service"}, &out)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
 		&structs.DeregisterRequest{
 			Datacenter: "dc1",
 			Node:       "node"}, &out)
-	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -523,6 +571,7 @@ service "service" {
 }
 
 func TestCatalog_ListDatacenters(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -556,6 +605,7 @@ func TestCatalog_ListDatacenters(t *testing.T) {
 }
 
 func TestCatalog_ListDatacenters_DistanceSort(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -594,6 +644,7 @@ func TestCatalog_ListDatacenters_DistanceSort(t *testing.T) {
 }
 
 func TestCatalog_ListNodes(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -635,6 +686,7 @@ func TestCatalog_ListNodes(t *testing.T) {
 }
 
 func TestCatalog_ListNodes_NodeMetaFilter(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -696,7 +748,8 @@ func TestCatalog_ListNodes_NodeMetaFilter(t *testing.T) {
 	})
 }
 
-func TestCatalog_ListNodes_StaleRaad(t *testing.T) {
+func TestCatalog_ListNodes_StaleRead(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -761,32 +814,42 @@ func TestCatalog_ListNodes_StaleRaad(t *testing.T) {
 }
 
 func TestCatalog_ListNodes_ConsistentRead_Fail(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	codec1 := rpcClient(t, s1)
-	defer codec1.Close()
 
 	dir2, s2 := testServerDCBootstrap(t, "dc1", false)
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
-	codec2 := rpcClient(t, s2)
-	defer codec2.Close()
 
-	// Try to join
+	dir3, s3 := testServerDCBootstrap(t, "dc1", false)
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	// Try to join and wait for all servers to get promoted to voters.
 	joinLAN(t, s2, s1)
+	joinLAN(t, s3, s2)
+	servers := []*Server{s1, s2, s3}
+	retry.Run(t, func(r *retry.R) {
+		r.Check(wantRaft(servers))
+		for _, s := range servers {
+			r.Check(wantPeers(s, 3))
+		}
+	})
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	testrpc.WaitForLeader(t, s2.RPC, "dc1")
-
-	// Use the leader as the client, kill the follower
+	// Use the leader as the client, kill the followers.
 	var codec rpc.ClientCodec
-	if s1.IsLeader() {
-		codec = codec1
-		s2.Shutdown()
-	} else {
-		codec = codec2
-		s1.Shutdown()
+	for _, s := range servers {
+		if s.IsLeader() {
+			codec = rpcClient(t, s)
+			defer codec.Close()
+		} else {
+			s.Shutdown()
+		}
+	}
+	if codec == nil {
+		t.Fatalf("no leader")
 	}
 
 	args := structs.DCSpecificRequest{
@@ -794,10 +857,10 @@ func TestCatalog_ListNodes_ConsistentRead_Fail(t *testing.T) {
 		QueryOptions: structs.QueryOptions{RequireConsistent: true},
 	}
 	var out structs.IndexedNodes
-	if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out); !strings.HasPrefix(err.Error(), "leadership lost") {
+	err := msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
+	if err == nil || !strings.HasPrefix(err.Error(), "leadership lost") {
 		t.Fatalf("err: %v", err)
 	}
-
 	if out.QueryMeta.LastContact != 0 {
 		t.Fatalf("should not have a last contact time")
 	}
@@ -807,6 +870,7 @@ func TestCatalog_ListNodes_ConsistentRead_Fail(t *testing.T) {
 }
 
 func TestCatalog_ListNodes_ConsistentRead(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -851,6 +915,7 @@ func TestCatalog_ListNodes_ConsistentRead(t *testing.T) {
 }
 
 func TestCatalog_ListNodes_DistanceSort(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -873,9 +938,9 @@ func TestCatalog_ListNodes_DistanceSort(t *testing.T) {
 
 	// Set all but one of the nodes to known coordinates.
 	updates := structs.Coordinates{
-		{"foo", lib.GenerateCoordinate(2 * time.Millisecond)},
-		{"bar", lib.GenerateCoordinate(5 * time.Millisecond)},
-		{"baz", lib.GenerateCoordinate(1 * time.Millisecond)},
+		{Node: "foo", Coord: lib.GenerateCoordinate(2 * time.Millisecond)},
+		{Node: "bar", Coord: lib.GenerateCoordinate(5 * time.Millisecond)},
+		{Node: "baz", Coord: lib.GenerateCoordinate(1 * time.Millisecond)},
 	}
 	if err := s1.fsm.State().CoordinateBatchUpdate(5, updates); err != nil {
 		t.Fatalf("err: %v", err)
@@ -941,6 +1006,7 @@ func TestCatalog_ListNodes_DistanceSort(t *testing.T) {
 }
 
 func TestCatalog_ListNodes_ACLFilter(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -1041,6 +1107,7 @@ func Benchmark_Catalog_ListNodes(t *testing.B) {
 }
 
 func TestCatalog_ListServices(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1091,6 +1158,7 @@ func TestCatalog_ListServices(t *testing.T) {
 }
 
 func TestCatalog_ListServices_NodeMetaFilter(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1154,6 +1222,7 @@ func TestCatalog_ListServices_NodeMetaFilter(t *testing.T) {
 }
 
 func TestCatalog_ListServices_Blocking(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1196,7 +1265,7 @@ func TestCatalog_ListServices_Blocking(t *testing.T) {
 	}
 
 	// Should block at least 100ms
-	if time.Now().Sub(start) < 100*time.Millisecond {
+	if time.Since(start) < 100*time.Millisecond {
 		t.Fatalf("too fast")
 	}
 
@@ -1212,6 +1281,7 @@ func TestCatalog_ListServices_Blocking(t *testing.T) {
 }
 
 func TestCatalog_ListServices_Timeout(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1242,7 +1312,7 @@ func TestCatalog_ListServices_Timeout(t *testing.T) {
 	}
 
 	// Should block at least 100ms
-	if time.Now().Sub(start) < 100*time.Millisecond {
+	if time.Since(start) < 100*time.Millisecond {
 		t.Fatalf("too fast")
 	}
 
@@ -1253,6 +1323,7 @@ func TestCatalog_ListServices_Timeout(t *testing.T) {
 }
 
 func TestCatalog_ListServices_Stale(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1290,6 +1361,7 @@ func TestCatalog_ListServices_Stale(t *testing.T) {
 }
 
 func TestCatalog_ListServiceNodes(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1339,6 +1411,7 @@ func TestCatalog_ListServiceNodes(t *testing.T) {
 }
 
 func TestCatalog_ListServiceNodes_NodeMetaFilter(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1439,6 +1512,7 @@ func TestCatalog_ListServiceNodes_NodeMetaFilter(t *testing.T) {
 }
 
 func TestCatalog_ListServiceNodes_DistanceSort(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1469,9 +1543,9 @@ func TestCatalog_ListServiceNodes_DistanceSort(t *testing.T) {
 
 	// Set all but one of the nodes to known coordinates.
 	updates := structs.Coordinates{
-		{"foo", lib.GenerateCoordinate(2 * time.Millisecond)},
-		{"bar", lib.GenerateCoordinate(5 * time.Millisecond)},
-		{"baz", lib.GenerateCoordinate(1 * time.Millisecond)},
+		{Node: "foo", Coord: lib.GenerateCoordinate(2 * time.Millisecond)},
+		{Node: "bar", Coord: lib.GenerateCoordinate(5 * time.Millisecond)},
+		{Node: "baz", Coord: lib.GenerateCoordinate(1 * time.Millisecond)},
 	}
 	if err := s1.fsm.State().CoordinateBatchUpdate(9, updates); err != nil {
 		t.Fatalf("err: %v", err)
@@ -1526,6 +1600,7 @@ func TestCatalog_ListServiceNodes_DistanceSort(t *testing.T) {
 }
 
 func TestCatalog_NodeServices(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1576,6 +1651,7 @@ func TestCatalog_NodeServices(t *testing.T) {
 
 // Used to check for a regression against a known bug
 func TestCatalog_Register_FailedCase1(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1695,6 +1771,7 @@ service "foo" {
 }
 
 func TestCatalog_ListServices_FilterACL(t *testing.T) {
+	t.Parallel()
 	dir, token, srv, codec := testACLFilterServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1717,6 +1794,7 @@ func TestCatalog_ListServices_FilterACL(t *testing.T) {
 }
 
 func TestCatalog_ServiceNodes_FilterACL(t *testing.T) {
+	t.Parallel()
 	dir, token, srv, codec := testACLFilterServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -1766,6 +1844,7 @@ func TestCatalog_ServiceNodes_FilterACL(t *testing.T) {
 }
 
 func TestCatalog_NodeServices_ACLDeny(t *testing.T) {
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -1841,6 +1920,7 @@ node "%s" {
 }
 
 func TestCatalog_NodeServices_FilterACL(t *testing.T) {
+	t.Parallel()
 	dir, token, srv, codec := testACLFilterServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()

@@ -5,7 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 // aclCreateResponse is used to wrap the ACL ID
@@ -15,16 +16,40 @@ type aclCreateResponse struct {
 
 // ACLDisabled handles if ACL datacenter is not configured
 func ACLDisabled(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	resp.WriteHeader(401)
+	resp.WriteHeader(http.StatusUnauthorized)
 	fmt.Fprint(resp, "ACL support disabled")
 	return nil, nil
 }
 
-func (s *HTTPServer) ACLDestroy(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	// Mandate a PUT request
+// ACLBootstrap is used to perform a one-time ACL bootstrap operation on
+// a cluster to get the first management token.
+func (s *HTTPServer) ACLBootstrap(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if req.Method != "PUT" {
-		resp.WriteHeader(405)
-		return nil, nil
+		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
+	}
+
+	args := structs.DCSpecificRequest{
+		Datacenter: s.agent.config.ACLDatacenter,
+	}
+
+	var out structs.ACL
+	err := s.agent.RPC("ACL.Bootstrap", &args, &out)
+	if err != nil {
+		if strings.Contains(err.Error(), structs.ACLBootstrapNotAllowedErr.Error()) {
+			resp.WriteHeader(http.StatusForbidden)
+			fmt.Fprint(resp, acl.PermissionDeniedError{Cause: err.Error()}.Error())
+			return nil, nil
+		} else {
+			return nil, err
+		}
+	}
+
+	return aclCreateResponse{out.ID}, nil
+}
+
+func (s *HTTPServer) ACLDestroy(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "PUT" {
+		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
 	}
 
 	args := structs.ACLRequest{
@@ -36,7 +61,7 @@ func (s *HTTPServer) ACLDestroy(resp http.ResponseWriter, req *http.Request) (in
 	// Pull out the acl id
 	args.ACL.ID = strings.TrimPrefix(req.URL.Path, "/v1/acl/destroy/")
 	if args.ACL.ID == "" {
-		resp.WriteHeader(400)
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing ACL")
 		return nil, nil
 	}
@@ -49,18 +74,22 @@ func (s *HTTPServer) ACLDestroy(resp http.ResponseWriter, req *http.Request) (in
 }
 
 func (s *HTTPServer) ACLCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "PUT" {
+		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
+	}
 	return s.aclSet(resp, req, false)
 }
 
 func (s *HTTPServer) ACLUpdate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "PUT" {
+		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
+	}
 	return s.aclSet(resp, req, true)
 }
 
 func (s *HTTPServer) aclSet(resp http.ResponseWriter, req *http.Request, update bool) (interface{}, error) {
-	// Mandate a PUT request
 	if req.Method != "PUT" {
-		resp.WriteHeader(405)
-		return nil, nil
+		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
 	}
 
 	args := structs.ACLRequest{
@@ -75,7 +104,7 @@ func (s *HTTPServer) aclSet(resp http.ResponseWriter, req *http.Request, update 
 	// Handle optional request body
 	if req.ContentLength > 0 {
 		if err := decodeBody(req, &args.ACL, nil); err != nil {
-			resp.WriteHeader(400)
+			resp.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(resp, "Request decode failed: %v", err)
 			return nil, nil
 		}
@@ -84,7 +113,7 @@ func (s *HTTPServer) aclSet(resp http.ResponseWriter, req *http.Request, update 
 	// Ensure there is an ID set for update. ID is optional for
 	// create, as one will be generated if not provided.
 	if update && args.ACL.ID == "" {
-		resp.WriteHeader(400)
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "ACL ID must be set")
 		return nil, nil
 	}
@@ -100,10 +129,8 @@ func (s *HTTPServer) aclSet(resp http.ResponseWriter, req *http.Request, update 
 }
 
 func (s *HTTPServer) ACLClone(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	// Mandate a PUT request
 	if req.Method != "PUT" {
-		resp.WriteHeader(405)
-		return nil, nil
+		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
 	}
 
 	args := structs.ACLSpecificRequest{
@@ -117,7 +144,7 @@ func (s *HTTPServer) ACLClone(resp http.ResponseWriter, req *http.Request) (inte
 	// Pull out the acl id
 	args.ACL = strings.TrimPrefix(req.URL.Path, "/v1/acl/clone/")
 	if args.ACL == "" {
-		resp.WriteHeader(400)
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing ACL")
 		return nil, nil
 	}
@@ -128,11 +155,10 @@ func (s *HTTPServer) ACLClone(resp http.ResponseWriter, req *http.Request) (inte
 		return nil, err
 	}
 
-	// Bail if the ACL is not found
+	// Bail if the ACL is not found, this could be a 404 or a 403, so
+	// always just return a 403.
 	if len(out.ACLs) == 0 {
-		resp.WriteHeader(404)
-		fmt.Fprint(resp, "Target ACL not found")
-		return nil, nil
+		return nil, acl.ErrPermissionDenied
 	}
 
 	// Create a new ACL
@@ -155,6 +181,10 @@ func (s *HTTPServer) ACLClone(resp http.ResponseWriter, req *http.Request) (inte
 }
 
 func (s *HTTPServer) ACLGet(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "GET" {
+		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+	}
+
 	args := structs.ACLSpecificRequest{
 		Datacenter: s.agent.config.ACLDatacenter,
 	}
@@ -166,7 +196,7 @@ func (s *HTTPServer) ACLGet(resp http.ResponseWriter, req *http.Request) (interf
 	// Pull out the acl id
 	args.ACL = strings.TrimPrefix(req.URL.Path, "/v1/acl/info/")
 	if args.ACL == "" {
-		resp.WriteHeader(400)
+		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing ACL")
 		return nil, nil
 	}
@@ -185,6 +215,10 @@ func (s *HTTPServer) ACLGet(resp http.ResponseWriter, req *http.Request) (interf
 }
 
 func (s *HTTPServer) ACLList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "GET" {
+		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+	}
+
 	args := structs.DCSpecificRequest{
 		Datacenter: s.agent.config.ACLDatacenter,
 	}
@@ -207,6 +241,10 @@ func (s *HTTPServer) ACLList(resp http.ResponseWriter, req *http.Request) (inter
 }
 
 func (s *HTTPServer) ACLReplicationStatus(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "GET" {
+		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+	}
+
 	// Note that we do not forward to the ACL DC here. This is a query for
 	// any DC that's doing replication.
 	args := structs.DCSpecificRequest{}

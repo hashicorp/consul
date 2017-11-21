@@ -70,6 +70,7 @@ const (
 	TypeNSEC3      uint16 = 50
 	TypeNSEC3PARAM uint16 = 51
 	TypeTLSA       uint16 = 52
+	TypeSMIMEA     uint16 = 53
 	TypeHIP        uint16 = 55
 	TypeNINFO      uint16 = 56
 	TypeRKEY       uint16 = 57
@@ -90,6 +91,7 @@ const (
 	TypeEUI64      uint16 = 109
 	TypeURI        uint16 = 256
 	TypeCAA        uint16 = 257
+	TypeAVC        uint16 = 258
 
 	TypeTKEY uint16 = 249
 	TypeTSIG uint16 = 250
@@ -113,27 +115,27 @@ const (
 	ClassNONE   = 254
 	ClassANY    = 255
 
-	// Message Response Codes.
-	RcodeSuccess        = 0
-	RcodeFormatError    = 1
-	RcodeServerFailure  = 2
-	RcodeNameError      = 3
-	RcodeNotImplemented = 4
-	RcodeRefused        = 5
-	RcodeYXDomain       = 6
-	RcodeYXRrset        = 7
-	RcodeNXRrset        = 8
-	RcodeNotAuth        = 9
-	RcodeNotZone        = 10
-	RcodeBadSig         = 16 // TSIG
-	RcodeBadVers        = 16 // EDNS0
-	RcodeBadKey         = 17
-	RcodeBadTime        = 18
-	RcodeBadMode        = 19 // TKEY
-	RcodeBadName        = 20
-	RcodeBadAlg         = 21
-	RcodeBadTrunc       = 22 // TSIG
-	RcodeBadCookie      = 23 // DNS Cookies
+	// Message Response Codes, see https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml
+	RcodeSuccess        = 0  // NoError   - No Error                          [DNS]
+	RcodeFormatError    = 1  // FormErr   - Format Error                      [DNS]
+	RcodeServerFailure  = 2  // ServFail  - Server Failure                    [DNS]
+	RcodeNameError      = 3  // NXDomain  - Non-Existent Domain               [DNS]
+	RcodeNotImplemented = 4  // NotImp    - Not Implemented                   [DNS]
+	RcodeRefused        = 5  // Refused   - Query Refused                     [DNS]
+	RcodeYXDomain       = 6  // YXDomain  - Name Exists when it should not    [DNS Update]
+	RcodeYXRrset        = 7  // YXRRSet   - RR Set Exists when it should not  [DNS Update]
+	RcodeNXRrset        = 8  // NXRRSet   - RR Set that should exist does not [DNS Update]
+	RcodeNotAuth        = 9  // NotAuth   - Server Not Authoritative for zone [DNS Update]
+	RcodeNotZone        = 10 // NotZone   - Name not contained in zone        [DNS Update/TSIG]
+	RcodeBadSig         = 16 // BADSIG    - TSIG Signature Failure            [TSIG]
+	RcodeBadVers        = 16 // BADVERS   - Bad OPT Version                   [EDNS0]
+	RcodeBadKey         = 17 // BADKEY    - Key not recognized                [TSIG]
+	RcodeBadTime        = 18 // BADTIME   - Signature out of time window      [TSIG]
+	RcodeBadMode        = 19 // BADMODE   - Bad TKEY Mode                     [TKEY]
+	RcodeBadName        = 20 // BADNAME   - Duplicate key name                [TKEY]
+	RcodeBadAlg         = 21 // BADALG    - Algorithm not supported           [TKEY]
+	RcodeBadTrunc       = 22 // BADTRUNC  - Bad Truncation                    [TSIG]
+	RcodeBadCookie      = 23 // BADCOOKIE - Bad/missing Server Cookie         [DNS Cookies]
 
 	// Message Opcodes. There is no 3.
 	OpcodeQuery  = 0
@@ -143,7 +145,7 @@ const (
 	OpcodeUpdate = 5
 )
 
-// Headers is the wire format for the DNS packet header.
+// Header is the wire format for the DNS packet header.
 type Header struct {
 	Id                                 uint16
 	Bits                               uint16
@@ -479,12 +481,6 @@ func appendDomainNameByte(s []byte, b byte) []byte {
 
 func appendTXTStringByte(s []byte, b byte) []byte {
 	switch b {
-	case '\t':
-		return append(s, '\\', 't')
-	case '\r':
-		return append(s, '\\', 'r')
-	case '\n':
-		return append(s, '\\', 'n')
 	case '"', '\\':
 		return append(s, '\\', b)
 	}
@@ -524,17 +520,8 @@ func nextByte(b []byte, offset int) (byte, int) {
 			return dddToByte(b[offset+1:]), 4
 		}
 	}
-	// not \ddd, maybe a control char
-	switch b[offset+1] {
-	case 't':
-		return '\t', 2
-	case 'r':
-		return '\r', 2
-	case 'n':
-		return '\n', 2
-	default:
-		return b[offset+1], 2
-	}
+	// not \ddd, just an RFC 1035 "quoted" character
+	return b[offset+1], 2
 }
 
 type SPF struct {
@@ -543,6 +530,13 @@ type SPF struct {
 }
 
 func (rr *SPF) String() string { return rr.Hdr.String() + sprintTxt(rr.Txt) }
+
+type AVC struct {
+	Hdr RR_Header
+	Txt []string `dns:"txt"`
+}
+
+func (rr *AVC) String() string { return rr.Hdr.String() + sprintTxt(rr.Txt) }
 
 type SRV struct {
 	Hdr      RR_Header
@@ -1047,6 +1041,28 @@ func (rr *TLSA) String() string {
 		" " + rr.Certificate
 }
 
+type SMIMEA struct {
+	Hdr          RR_Header
+	Usage        uint8
+	Selector     uint8
+	MatchingType uint8
+	Certificate  string `dns:"hex"`
+}
+
+func (rr *SMIMEA) String() string {
+	s := rr.Hdr.String() +
+		strconv.Itoa(int(rr.Usage)) +
+		" " + strconv.Itoa(int(rr.Selector)) +
+		" " + strconv.Itoa(int(rr.MatchingType))
+
+	// Every Nth char needs a space on this output. If we output
+	// this as one giant line, we can't read it can in because in some cases
+	// the cert length overflows scan.maxTok (2048).
+	sx := splitN(rr.Certificate, 1024) // conservative value here
+	s += " " + strings.Join(sx, " ")
+	return s
+}
+
 type HIP struct {
 	Hdr                RR_Header
 	HitLength          uint8
@@ -1246,4 +1262,26 @@ func copyIP(ip net.IP) net.IP {
 	p := make(net.IP, len(ip))
 	copy(p, ip)
 	return p
+}
+
+// SplitN splits a string into N sized string chunks.
+// This might become an exported function once.
+func splitN(s string, n int) []string {
+	if len(s) < n {
+		return []string{s}
+	}
+	sx := []string{}
+	p, i := 0, n
+	for {
+		if i <= len(s) {
+			sx = append(sx, s[p:i])
+		} else {
+			sx = append(sx, s[p:])
+			break
+
+		}
+		p, i = p+n, i+n
+	}
+
+	return sx
 }

@@ -1,6 +1,7 @@
 package state
 
 import (
+	"os"
 	"testing"
 	"time"
 )
@@ -23,6 +24,10 @@ func TestTombstoneGC_invalid(t *testing.T) {
 }
 
 func TestTombstoneGC(t *testing.T) {
+	if os.Getenv("TRAVIS") == "true" {
+		t.Skip("GC test is flaky on travis-ci (see #3670)")
+	}
+
 	ttl := 20 * time.Millisecond
 	gran := 5 * time.Millisecond
 	gc, err := NewTombstoneGC(ttl, gran)
@@ -37,11 +42,6 @@ func TestTombstoneGC(t *testing.T) {
 
 	start := time.Now()
 	gc.Hint(100)
-
-	time.Sleep(2 * gran)
-	start2 := time.Now()
-	gc.Hint(120)
-	gc.Hint(125)
 
 	if !gc.PendingExpiration() {
 		t.Fatalf("should be pending")
@@ -59,6 +59,14 @@ func TestTombstoneGC(t *testing.T) {
 
 	case <-time.After(ttl * 2):
 		t.Fatalf("should get expiration")
+	}
+
+	start2 := time.Now()
+	gc.Hint(120)
+	gc.Hint(125)
+
+	if !gc.PendingExpiration() {
+		t.Fatalf("should be pending")
 	}
 
 	select {
@@ -99,6 +107,6 @@ func TestTombstoneGC_Expire(t *testing.T) {
 	select {
 	case <-gc.ExpireCh():
 		t.Fatalf("should be reset")
-	case <-time.After(20 * time.Millisecond):
+	case <-time.After(ttl * 2):
 	}
 }

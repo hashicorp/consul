@@ -148,7 +148,7 @@ The table below shows this endpoint's support for
   "EnableTagOverride": false,
   "Check": {
     "DeregisterCriticalServiceAfter": "90m",
-    "Script": "/usr/local/bin/check_redis.py",
+    "Args": ["/usr/local/bin/check_redis.py"],
     "HTTP": "http://localhost:5000/health",
     "Interval": "10s",
     "TTL": "15s"

@@ -3,9 +3,11 @@ package consul
 import (
 	"fmt"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -68,14 +70,14 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 	}
 
 	// Check ACLs
-	acl, err := m.srv.resolveToken(args.Token)
+	rule, err := m.srv.resolveToken(args.Token)
 	if err != nil {
 		return err
 	}
 
-	if acl != nil && !acl.EventWrite(args.Name) {
+	if rule != nil && !rule.EventWrite(args.Name) {
 		m.srv.logger.Printf("[WARN] consul: user event %q blocked by ACLs", args.Name)
-		return errPermissionDenied
+		return acl.ErrPermissionDenied
 	}
 
 	// Set the query meta data
@@ -84,8 +86,17 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 	// Add the consul prefix to the event name
 	eventName := userEventName(args.Name)
 
-	// Fire the event
-	return m.srv.serfLAN.UserEvent(eventName, args.Payload, false)
+	// Fire the event on all LAN segments
+	segments := m.srv.LANSegments()
+	var errs error
+	for name, segment := range segments {
+		err := segment.UserEvent(eventName, args.Payload, false)
+		if err != nil {
+			err = fmt.Errorf("error broadcasting event to segment %q: %v", name, err)
+			errs = multierror.Append(errs, err)
+		}
+	}
+	return errs
 }
 
 // KeyringOperation will query the WAN and LAN gossip keyrings of all nodes.
@@ -94,14 +105,14 @@ func (m *Internal) KeyringOperation(
 	reply *structs.KeyringResponses) error {
 
 	// Check ACLs
-	acl, err := m.srv.resolveToken(args.Token)
+	rule, err := m.srv.resolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if acl != nil {
+	if rule != nil {
 		switch args.Operation {
 		case structs.KeyringList:
-			if !acl.KeyringRead() {
+			if !rule.KeyringRead() {
 				return fmt.Errorf("Reading keyring denied by ACLs")
 			}
 		case structs.KeyringInstall:
@@ -109,7 +120,7 @@ func (m *Internal) KeyringOperation(
 		case structs.KeyringUse:
 			fallthrough
 		case structs.KeyringRemove:
-			if !acl.KeyringWrite() {
+			if !rule.KeyringWrite() {
 				return fmt.Errorf("Modifying keyring denied due to ACLs")
 			}
 		default:
@@ -129,23 +140,36 @@ func (m *Internal) KeyringOperation(
 	return nil
 }
 
-// executeKeyringOp executes the appropriate keyring-related function based on
-// the type of keyring operation in the request. It takes the KeyManager as an
-// argument, so it can handle any operation for either LAN or WAN pools.
+// executeKeyringOp executes the keyring-related operation in the request
+// on either the WAN or LAN pools.
 func (m *Internal) executeKeyringOp(
 	args *structs.KeyringRequest,
 	reply *structs.KeyringResponses,
 	wan bool) {
 
+	if wan {
+		mgr := m.srv.KeyManagerWAN()
+		m.executeKeyringOpMgr(mgr, args, reply, wan, "")
+	} else {
+		segments := m.srv.LANSegments()
+		for name, segment := range segments {
+			mgr := segment.KeyManager()
+			m.executeKeyringOpMgr(mgr, args, reply, wan, name)
+		}
+	}
+}
+
+// executeKeyringOpMgr executes the appropriate keyring-related function based on
+// the type of keyring operation in the request. It takes the KeyManager as an
+// argument, so it can handle any operation for either LAN or WAN pools.
+func (m *Internal) executeKeyringOpMgr(
+	mgr *serf.KeyManager,
+	args *structs.KeyringRequest,
+	reply *structs.KeyringResponses,
+	wan bool,
+	segment string) {
 	var serfResp *serf.KeyResponse
 	var err error
-	var mgr *serf.KeyManager
-
-	if wan {
-		mgr = m.srv.KeyManagerWAN()
-	} else {
-		mgr = m.srv.KeyManagerLAN()
-	}
 
 	opts := &serf.KeyRequestOptions{RelayFactor: args.RelayFactor}
 	switch args.Operation {
@@ -167,6 +191,7 @@ func (m *Internal) executeKeyringOp(
 	reply.Responses = append(reply.Responses, &structs.KeyringResponse{
 		WAN:        wan,
 		Datacenter: m.srv.config.Datacenter,
+		Segment:    segment,
 		Messages:   serfResp.Messages,
 		Keys:       serfResp.Keys,
 		NumNodes:   serfResp.NumNodes,

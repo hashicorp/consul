@@ -56,6 +56,20 @@
           <li<%= sidebar_current("docs-commands-agent") %>>
             <a href="/docs/commands/agent.html">agent</a>
           </li>
+          <li<%= sidebar_current("docs-commands-catalog") %>>
+            <a href="/docs/commands/catalog.html">catalog</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-commands-catalog-datacenters") %>>
+                <a href="/docs/commands/catalog/datacenters.html">datacenters</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-catalog-nodes") %>>
+                <a href="/docs/commands/catalog/nodes.html">nodes</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-catalog-services") %>>
+                <a href="/docs/commands/catalog/services.html">services</a>
+              </li>
+            </ul>
+          </li>
           <li<%= sidebar_current("docs-commands-event") %>>
             <a href="/docs/commands/event.html">event</a>
           </li>
@@ -213,6 +227,9 @@
           <li<%= sidebar_current("docs-guides-bootstrapping") %>>
             <a href="/docs/guides/bootstrapping.html">Bootstrapping</a>
           </li>
+          <li<%= sidebar_current("docs-guides-consul-containers") %>>
+            <a href="/docs/guides/consul-containers.html">Consul with Containers</a>
+          </li>
           <li<%= sidebar_current("docs-guides-dns-cache") %>>
             <a href="/docs/guides/dns-cache.html">DNS Caching</a>
           </li>
@@ -228,8 +245,17 @@
           <li<%= sidebar_current("docs-guides-datacenters") %>>
             <a href="/docs/guides/datacenters.html">Federation (Basic)</a>
           </li>
+          <li<%= sidebar_current("docs-guides-geo-failover") %>>
+            <a href="/docs/guides/geo-failover.html">Geo Failover</a>
+          </li>
           <li<%= sidebar_current("docs-guides-leader") %>>
             <a href="/docs/guides/leader-election.html">Leader Election</a>
+          </li>
+          <li<%= sidebar_current("docs-guides-segments") %>>
+            <a href="/docs/guides/segments.html">Network Segments</a>
+          </li>
+          <li<%= sidebar_current("docs-guides-sentinel") %>>
+            <a href="/docs/guides/sentinel.html">Sentinel</a>
           </li>
           <li<%= sidebar_current("docs-guides-outage") %>>
             <a href="/docs/guides/outage.html">Outage Recovery</a>
@@ -266,6 +292,12 @@
           </li>
           <li<%= sidebar_current("docs-enterprise-federation") %>>
             <a href="/docs/enterprise/federation/index.html">Advanced Federation</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-network-segments") %>>
+            <a href="/docs/enterprise/network-segments/index.html">Network Segments</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-sentinel") %>>
+            <a href="/docs/enterprise/sentinel/index.html">Sentinel</a>
           </li>
         </ul>
       </li>

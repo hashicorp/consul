@@ -158,6 +158,10 @@ func TestRateScaledInterval(t *testing.T) {
 	if v := RateScaledInterval(rate, min, 10000); v != 50*time.Second {
 		t.Fatalf("Bad: %v", v)
 	}
+	halfMin := minRate / 2.0
+	if v := RateScaledInterval(halfMin, min, 100); v != min {
+		t.Fatalf("Bad: %v", v)
+	}
 	if v := RateScaledInterval(0, min, 10000); v != min {
 		t.Fatalf("Bad: %v", v)
 	}

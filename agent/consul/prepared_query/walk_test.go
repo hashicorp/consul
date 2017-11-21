@@ -7,7 +7,7 @@ import (
 
 	"sort"
 
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func TestWalk_ServiceQuery(t *testing.T) {

@@ -27,6 +27,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/lib/freeport"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-uuid"
@@ -47,15 +48,20 @@ type TestPortConfig struct {
 	SerfLan int `json:"serf_lan,omitempty"`
 	SerfWan int `json:"serf_wan,omitempty"`
 	Server  int `json:"server,omitempty"`
-
-	// Deprecated
-	RPC int `json:"rpc,omitempty"`
 }
 
 // TestAddressConfig contains the bind addresses for various
 // components of the Consul server.
 type TestAddressConfig struct {
 	HTTP string `json:"http,omitempty"`
+}
+
+// TestNetworkSegment contains the configuration for a network segment.
+type TestNetworkSegment struct {
+	Name      string `json:"name"`
+	Bind      string `json:"bind"`
+	Port      int    `json:"port"`
+	Advertise string `json:"advertise"`
 }
 
 // TestServerConfig is the main server configuration struct.
@@ -68,6 +74,7 @@ type TestServerConfig struct {
 	Server              bool                   `json:"server,omitempty"`
 	DataDir             string                 `json:"data_dir,omitempty"`
 	Datacenter          string                 `json:"datacenter,omitempty"`
+	Segments            []TestNetworkSegment   `json:"segments"`
 	DisableCheckpoint   bool                   `json:"disable_update_check"`
 	LogLevel            string                 `json:"log_level,omitempty"`
 	Bind                string                 `json:"bind_addr,omitempty"`
@@ -86,6 +93,7 @@ type TestServerConfig struct {
 	VerifyIncomingRPC   bool                   `json:"verify_incoming_rpc,omitempty"`
 	VerifyIncomingHTTPS bool                   `json:"verify_incoming_https,omitempty"`
 	VerifyOutgoing      bool                   `json:"verify_outgoing,omitempty"`
+	EnableScriptChecks  bool                   `json:"enable_script_checks,omitempty"`
 	ReadyTimeout        time.Duration          `json:"-"`
 	Stdout, Stderr      io.Writer              `json:"-"`
 	Args                []string               `json:"-"`
@@ -103,8 +111,9 @@ func defaultServerConfig() *TestServerConfig {
 		panic(err)
 	}
 
+	ports := freeport.Get(6)
 	return &TestServerConfig{
-		NodeName:          fmt.Sprintf("node%d", randomPort()),
+		NodeName:          "node-" + nodeID,
 		NodeID:            nodeID,
 		DisableCheckpoint: true,
 		Performance: &TestPerformanceConfig{
@@ -116,26 +125,15 @@ func defaultServerConfig() *TestServerConfig {
 		Bind:      "127.0.0.1",
 		Addresses: &TestAddressConfig{},
 		Ports: &TestPortConfig{
-			DNS:     randomPort(),
-			HTTP:    randomPort(),
-			HTTPS:   randomPort(),
-			SerfLan: randomPort(),
-			SerfWan: randomPort(),
-			Server:  randomPort(),
-			RPC:     randomPort(),
+			DNS:     ports[0],
+			HTTP:    ports[1],
+			HTTPS:   ports[2],
+			SerfLan: ports[3],
+			SerfWan: ports[4],
+			Server:  ports[5],
 		},
 		ReadyTimeout: 10 * time.Second,
 	}
-}
-
-// randomPort asks the kernel for a random port to use.
-func randomPort() int {
-	l, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		panic(err)
-	}
-	defer l.Close()
-	return l.Addr().(*net.TCPAddr).Port
 }
 
 // TestService is used to serialize a service definition.
@@ -190,6 +188,11 @@ func NewTestServerConfig(cb ServerConfigCallback) (*TestServer, error) {
 // configuring or starting the server, the server will NOT be running when the
 // function returns (thus you do not need to stop it).
 func NewTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, error) {
+	return newTestServerConfigT(t, cb)
+}
+
+// newTestServerConfigT is the internal helper for NewTestServerConfigT.
+func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, error) {
 	path, err := exec.LookPath("consul")
 	if err != nil || path == "" {
 		return nil, fmt.Errorf("consul not found on $PATH - download and install " +
@@ -333,7 +336,7 @@ func (s *TestServer) waitForLeader() error {
 	var index int64
 	retry.RunWith(timer, f, func(r *retry.R) {
 		// Query the API and check the status code.
-		url := s.url(fmt.Sprintf("/v1/catalog/nodes?index=%d&wait=2s", index))
+		url := s.url(fmt.Sprintf("/v1/catalog/nodes?index=%d", index))
 		resp, err := s.HTTPClient.Get(url)
 		if err != nil {
 			r.Fatal("failed http get", err)
