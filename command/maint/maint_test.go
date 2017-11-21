@@ -66,7 +66,7 @@ func TestMaintCommand_NoArgs(t *testing.T) {
 
 	args := []string{"-http-addr=" + a.HTTPAddr()}
 	code := c.Run(args)
-	if code != 0 {
+	if code != 2 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
 
