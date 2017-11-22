@@ -288,6 +288,7 @@ var svcIndex = map[string][]*api.Service{
 				Protocol: "tcp",
 				Port:     80,
 			}},
+			Type: api.ServiceTypeExternalName,
 		},
 	}},
 }

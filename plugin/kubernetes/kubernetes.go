@@ -418,16 +418,15 @@ func (k *Kubernetes) findServices(r recordRequest, zone string) (services []msg.
 		}
 
 		// External service
-		if svc.Spec.ExternalName != "" {
+		if svc.Spec.Type == api.ServiceTypeExternalName {
 			s := msg.Service{Key: strings.Join([]string{zonePath, Svc, svc.Namespace, svc.Name}, "/"), Host: svc.Spec.ExternalName, TTL: k.ttl}
 			if t, _ := s.HostType(); t == dns.TypeCNAME {
 				s.Key = strings.Join([]string{zonePath, Svc, svc.Namespace, svc.Name}, "/")
 				services = append(services, s)
 
 				err = nil
-
-				continue
 			}
+			continue
 		}
 
 		// ClusterIP service

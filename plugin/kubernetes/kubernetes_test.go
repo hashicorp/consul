@@ -101,6 +101,7 @@ func (APIConnServiceTest) SvcIndex(string) []*api.Service {
 					Protocol: "tcp",
 					Port:     80,
 				}},
+				Type: api.ServiceTypeExternalName,
 			},
 		},
 	}
@@ -144,6 +145,7 @@ func (APIConnServiceTest) ServiceList() []*api.Service {
 					Protocol: "tcp",
 					Port:     80,
 				}},
+				Type: api.ServiceTypeExternalName,
 			},
 		},
 	}
