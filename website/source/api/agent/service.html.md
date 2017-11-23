@@ -51,7 +51,7 @@ $ curl \
   "redis": {
     "ID": "redis",
     "Service": "redis",
-    "Tags": null,
+    "Tags": [],
     "Address": "",
     "Port": 8000
   }
