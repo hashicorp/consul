@@ -9,8 +9,6 @@ import (
 
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/etcd/msg"
-	"github.com/coredns/coredns/plugin/pkg/cache"
-	"github.com/coredns/coredns/plugin/pkg/singleflight"
 	"github.com/coredns/coredns/plugin/proxy"
 	"github.com/coredns/coredns/request"
 
@@ -28,7 +26,6 @@ type Etcd struct {
 	Proxy       proxy.Proxy // Proxy for looking up names during the resolution process
 	Client      etcdc.KeysAPI
 	Ctx         context.Context
-	Inflight    *singleflight.Group
 	Stubmap     *map[string]proxy.Proxy // list of proxies for stub resolving.
 
 	endpoints []string // Stored here as well, to aid in testing.
@@ -84,24 +81,15 @@ func (e *Etcd) Records(state request.Request, exact bool) ([]msg.Service, error)
 	}
 }
 
-// get is a wrapper for client.Get that uses SingleInflight to suppress multiple outstanding queries.
+// get is a wrapper for client.Get
 func (e *Etcd) get(path string, recursive bool) (*etcdc.Response, error) {
-
-	hash := cache.Hash([]byte(path))
-
-	resp, err := e.Inflight.Do(hash, func() (interface{}, error) {
-		ctx, cancel := context.WithTimeout(e.Ctx, etcdTimeout)
-		defer cancel()
-		r, e := e.Client.Get(ctx, path, &etcdc.GetOptions{Sort: false, Recursive: recursive})
-		if e != nil {
-			return nil, e
-		}
-		return r, e
-	})
+	ctx, cancel := context.WithTimeout(e.Ctx, etcdTimeout)
+	defer cancel()
+	r, err := e.Client.Get(ctx, path, &etcdc.GetOptions{Sort: false, Recursive: recursive})
 	if err != nil {
 		return nil, err
 	}
-	return resp.(*etcdc.Response), err
+	return r, nil
 }
 
 // skydns/local/skydns/east/staging/web

@@ -10,7 +10,6 @@ import (
 
 	"github.com/coredns/coredns/plugin/etcd/msg"
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
-	"github.com/coredns/coredns/plugin/pkg/singleflight"
 	"github.com/coredns/coredns/plugin/pkg/tls"
 	"github.com/coredns/coredns/plugin/proxy"
 	"github.com/coredns/coredns/plugin/test"
@@ -232,7 +231,6 @@ func newEtcdPlugin() *Etcd {
 		Proxy:      proxy.NewLookup([]string{"8.8.8.8:53"}),
 		PathPrefix: "skydns",
 		Ctx:        context.Background(),
-		Inflight:   &singleflight.Group{},
 		Zones:      []string{"skydns.test.", "skydns_extra.test.", "in-addr.arpa."},
 		Client:     client,
 	}

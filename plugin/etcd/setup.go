@@ -6,7 +6,6 @@ import (
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
-	"github.com/coredns/coredns/plugin/pkg/singleflight"
 	mwtls "github.com/coredns/coredns/plugin/pkg/tls"
 	"github.com/coredns/coredns/plugin/proxy"
 
@@ -50,7 +49,6 @@ func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 		//		Proxy:      proxy.NewLookup([]string{"8.8.8.8:53", "8.8.4.4:53"}),
 		PathPrefix: "skydns",
 		Ctx:        context.Background(),
-		Inflight:   &singleflight.Group{},
 		Stubmap:    &stub,
 	}
 	var (
