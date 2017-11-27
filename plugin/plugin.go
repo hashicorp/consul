@@ -100,3 +100,6 @@ func ClientWrite(rcode int) bool {
 
 // Namespace is the namespace used for the metrics.
 const Namespace = "coredns"
+
+// TimeBuckets is based on Prometheus client_golang prometheus.DefBuckets
+var TimeBuckets = []float64{0.00025, 0.0005, 0.001, 0.0025, .005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10}

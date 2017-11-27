@@ -18,9 +18,9 @@ var (
 	RequestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: plugin.Namespace,
 		Subsystem: subsystem,
-		Name:      "request_duration_milliseconds",
-		Buckets:   append(prometheus.DefBuckets, []float64{50, 100, 200, 500, 1000, 2000, 3000, 4000, 5000, 10000}...),
-		Help:      "Histogram of the time (in milliseconds) each request took.",
+		Name:      "request_duration_seconds",
+		Buckets:   plugin.TimeBuckets,
+		Help:      "Histogram of the time (in seconds) each request took.",
 	}, []string{"zone"})
 
 	RequestSize = prometheus.NewHistogramVec(prometheus.HistogramOpts{
