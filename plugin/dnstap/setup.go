@@ -1,15 +1,11 @@
 package dnstap
 
 import (
-	"fmt"
-	"io"
-	"log"
 	"strings"
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/dnstap/dnstapio"
-	"github.com/coredns/coredns/plugin/dnstap/out"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
 
 	"github.com/mholt/caddy"
@@ -69,24 +65,24 @@ func setup(c *caddy.Controller) error {
 		return err
 	}
 
-	dnstap := Dnstap{Pack: conf.full}
+	dio := dnstapio.New()
+	dnstap := Dnstap{IO: dio, Pack: conf.full}
 
-	var o io.WriteCloser
-	if conf.socket {
-		o, err = out.NewSocket(conf.target)
+	c.OnStartup(func() error {
+		err := dio.Connect(conf.target, conf.socket)
 		if err != nil {
-			log.Printf("[WARN] Can't connect to %s at the moment: %s", conf.target, err)
+			return plugin.Error("dnstap", err)
 		}
-	} else {
-		o = out.NewTCP(conf.target)
-	}
-	dio := dnstapio.New(o)
-	dnstap.IO = dio
+		return nil
+	})
 
-	c.OnShutdown(func() error {
-		if err := dio.Close(); err != nil {
-			return fmt.Errorf("dnstap io routine: %s", err)
-		}
+	c.OnRestart(func() error {
+		dio.Close()
+		return nil
+	})
+
+	c.OnFinalShutdown(func() error {
+		dio.Close()
 		return nil
 	})
 
