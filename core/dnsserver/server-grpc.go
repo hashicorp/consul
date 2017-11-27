@@ -133,8 +133,7 @@ func (s *ServergRPC) Query(ctx context.Context, in *pb.DnsPacket) (*pb.DnsPacket
 		return nil, fmt.Errorf("no TCP peer in gRPC context: %v", p.Addr)
 	}
 
-	r := &net.IPAddr{IP: a.IP}
-	w := &gRPCresponse{localAddr: s.listenAddr, remoteAddr: r, Msg: msg}
+	w := &gRPCresponse{localAddr: s.listenAddr, remoteAddr: a, Msg: msg}
 
 	s.ServeDNS(ctx, w, msg)
 
