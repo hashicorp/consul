@@ -36,9 +36,7 @@ func realMain() int {
 
 	var cmds []string
 	for c := range command.Commands {
-		if c != "configtest" {
-			cmds = append(cmds, c)
-		}
+		cmds = append(cmds, c)
 	}
 
 	cli := &cli.CLI{
