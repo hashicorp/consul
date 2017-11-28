@@ -113,17 +113,10 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 	handleFuncMetrics("/v1/catalog/services", s.wrap(s.CatalogServices))
 	handleFuncMetrics("/v1/catalog/service/", s.wrap(s.CatalogServiceNodes))
 	handleFuncMetrics("/v1/catalog/node/", s.wrap(s.CatalogNodeServices))
-	if !s.agent.config.DisableCoordinates {
-		handleFuncMetrics("/v1/coordinate/datacenters", s.wrap(s.CoordinateDatacenters))
-		handleFuncMetrics("/v1/coordinate/nodes", s.wrap(s.CoordinateNodes))
-		handleFuncMetrics("/v1/coordinate/node/", s.wrap(s.CoordinateNode))
-		handleFuncMetrics("/v1/coordinate/update", s.wrap(s.CoordinateUpdate))
-	} else {
-		handleFuncMetrics("/v1/coordinate/datacenters", s.wrap(coordinateDisabled))
-		handleFuncMetrics("/v1/coordinate/nodes", s.wrap(coordinateDisabled))
-		handleFuncMetrics("/v1/coordinate/node/", s.wrap(coordinateDisabled))
-		handleFuncMetrics("/v1/coordinate/update", s.wrap(coordinateDisabled))
-	}
+	handleFuncMetrics("/v1/coordinate/datacenters", s.wrap(s.CoordinateDatacenters))
+	handleFuncMetrics("/v1/coordinate/nodes", s.wrap(s.CoordinateNodes))
+	handleFuncMetrics("/v1/coordinate/node/", s.wrap(s.CoordinateNode))
+	handleFuncMetrics("/v1/coordinate/update", s.wrap(s.CoordinateUpdate))
 	handleFuncMetrics("/v1/event/fire/", s.wrap(s.EventFire))
 	handleFuncMetrics("/v1/event/list", s.wrap(s.EventList))
 	handleFuncMetrics("/v1/health/node/", s.wrap(s.HealthNodeChecks))
