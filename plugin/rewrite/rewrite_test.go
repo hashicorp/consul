@@ -364,9 +364,6 @@ func optsEqual(a, b []dns.EDNS0) bool {
 				if !bytes.Equal(aa.Address, bb.Address) {
 					return false
 				}
-				if aa.DraftOption != bb.DraftOption {
-					return false
-				}
 			} else {
 				return false
 			}
@@ -479,7 +476,7 @@ func TestRewriteEDNS0Subnet(t *testing.T) {
 				SourceNetmask: 0x18,
 				SourceScope:   0x0,
 				Address:       []byte{0x0A, 0xF0, 0x00, 0x00},
-				DraftOption:   false}},
+			}},
 		},
 		{
 			&test.ResponseWriter{},
@@ -490,7 +487,7 @@ func TestRewriteEDNS0Subnet(t *testing.T) {
 				SourceNetmask: 0x20,
 				SourceScope:   0x0,
 				Address:       []byte{0x0A, 0xF0, 0x00, 0x01},
-				DraftOption:   false}},
+			}},
 		},
 		{
 			&test.ResponseWriter{},
@@ -501,7 +498,7 @@ func TestRewriteEDNS0Subnet(t *testing.T) {
 				SourceNetmask: 0x0,
 				SourceScope:   0x0,
 				Address:       []byte{0x00, 0x00, 0x00, 0x00},
-				DraftOption:   false}},
+			}},
 		},
 		{
 			&test.ResponseWriter6{},
@@ -513,7 +510,7 @@ func TestRewriteEDNS0Subnet(t *testing.T) {
 				SourceScope:   0x0,
 				Address: []byte{0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 					0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-				DraftOption: false}},
+			}},
 		},
 		{
 			&test.ResponseWriter6{},
@@ -525,7 +522,7 @@ func TestRewriteEDNS0Subnet(t *testing.T) {
 				SourceScope:   0x0,
 				Address: []byte{0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 					0x00, 0x42, 0x00, 0xff, 0xfe, 0xca, 0x4c, 0x65},
-				DraftOption: false}},
+			}},
 		},
 		{
 			&test.ResponseWriter6{},
@@ -537,7 +534,7 @@ func TestRewriteEDNS0Subnet(t *testing.T) {
 				SourceScope:   0x0,
 				Address: []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 					0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-				DraftOption: false}},
+			}},
 		},
 	}
 

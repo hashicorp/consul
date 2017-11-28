@@ -368,7 +368,6 @@ func (rule *edns0SubnetRule) fillEcsData(w dns.ResponseWriter, r *dns.Msg,
 		return fmt.Errorf("unable to fill data for EDNS0 subnet due to invalid IP family")
 	}
 
-	ecs.DraftOption = false
 	ecs.Family = uint16(family)
 	ecs.SourceScope = 0
 
