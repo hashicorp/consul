@@ -7,6 +7,28 @@ import (
 	"github.com/hashicorp/go-memdb"
 )
 
+// autopilotConfigTableSchema returns a new table schema used for storing
+// the autopilot configuration
+func autopilotConfigTableSchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: "autopilot-config",
+		Indexes: map[string]*memdb.IndexSchema{
+			"id": &memdb.IndexSchema{
+				Name:         "id",
+				AllowMissing: true,
+				Unique:       true,
+				Indexer: &memdb.ConditionalIndex{
+					Conditional: func(obj interface{}) (bool, error) { return true, nil },
+				},
+			},
+		},
+	}
+}
+
+func init() {
+	registerSchema(autopilotConfigTableSchema)
+}
+
 // Autopilot is used to pull the autopilot config from the snapshot.
 func (s *Snapshot) Autopilot() (*structs.AutopilotConfig, error) {
 	c, err := s.tx.First("autopilot-config", "id")

@@ -9,6 +9,51 @@ import (
 	"github.com/hashicorp/go-memdb"
 )
 
+// preparedQueriesTableSchema returns a new table schema used for storing
+// prepared queries.
+func preparedQueriesTableSchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: "prepared-queries",
+		Indexes: map[string]*memdb.IndexSchema{
+			"id": &memdb.IndexSchema{
+				Name:         "id",
+				AllowMissing: false,
+				Unique:       true,
+				Indexer: &memdb.UUIDFieldIndex{
+					Field: "ID",
+				},
+			},
+			"name": &memdb.IndexSchema{
+				Name:         "name",
+				AllowMissing: true,
+				Unique:       true,
+				Indexer: &memdb.StringFieldIndex{
+					Field:     "Name",
+					Lowercase: true,
+				},
+			},
+			"template": &memdb.IndexSchema{
+				Name:         "template",
+				AllowMissing: true,
+				Unique:       true,
+				Indexer:      &PreparedQueryIndex{},
+			},
+			"session": &memdb.IndexSchema{
+				Name:         "session",
+				AllowMissing: true,
+				Unique:       false,
+				Indexer: &memdb.UUIDFieldIndex{
+					Field: "Session",
+				},
+			},
+		},
+	}
+}
+
+func init() {
+	registerSchema(preparedQueriesTableSchema)
+}
+
 // validUUID is used to check if a given string looks like a UUID
 var validUUID = regexp.MustCompile(`(?i)^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$`)
 

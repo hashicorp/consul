@@ -9,6 +9,57 @@ import (
 	"github.com/hashicorp/go-memdb"
 )
 
+// kvsTableSchema returns a new table schema used for storing key/value data for
+// Consul's kv store.
+func kvsTableSchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: "kvs",
+		Indexes: map[string]*memdb.IndexSchema{
+			"id": &memdb.IndexSchema{
+				Name:         "id",
+				AllowMissing: false,
+				Unique:       true,
+				Indexer: &memdb.StringFieldIndex{
+					Field:     "Key",
+					Lowercase: false,
+				},
+			},
+			"session": &memdb.IndexSchema{
+				Name:         "session",
+				AllowMissing: true,
+				Unique:       false,
+				Indexer: &memdb.UUIDFieldIndex{
+					Field: "Session",
+				},
+			},
+		},
+	}
+}
+
+// tombstonesTableSchema returns a new table schema used for storing tombstones
+// during KV delete operations to prevent the index from sliding backwards.
+func tombstonesTableSchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: "tombstones",
+		Indexes: map[string]*memdb.IndexSchema{
+			"id": &memdb.IndexSchema{
+				Name:         "id",
+				AllowMissing: false,
+				Unique:       true,
+				Indexer: &memdb.StringFieldIndex{
+					Field:     "Key",
+					Lowercase: false,
+				},
+			},
+		},
+	}
+}
+
+func init() {
+	registerSchema(kvsTableSchema)
+	registerSchema(tombstonesTableSchema)
+}
+
 // KVs is used to pull the full list of KVS entries for use during snapshots.
 func (s *Snapshot) KVs() (memdb.ResultIterator, error) {
 	iter, err := s.tx.Get("kvs", "id_prefix")

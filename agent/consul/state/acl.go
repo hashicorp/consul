@@ -44,6 +44,11 @@ func aclsBootstrapTableSchema() *memdb.TableSchema {
 	}
 }
 
+func init() {
+	registerSchema(aclsTableSchema)
+	registerSchema(aclsBootstrapTableSchema)
+}
+
 // ACLs is used to pull all the ACLs from the snapshot.
 func (s *Snapshot) ACLs() (memdb.ResultIterator, error) {
 	iter, err := s.tx.Get("acls", "id")
