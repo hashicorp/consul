@@ -112,9 +112,6 @@ type Server struct {
 	// Connection pool to other consul servers
 	connPool *pool.ConnPool
 
-	// Endpoints holds our RPC endpoints
-	endpoints endpoints
-
 	// eventChLAN is used to receive events from the
 	// serf cluster in the datacenter
 	eventChLAN chan serf.Event
@@ -216,21 +213,6 @@ type Server struct {
 	shutdown     bool
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
-}
-
-// Holds the RPC endpoints
-type endpoints struct {
-	ACL           *ACL
-	Catalog       *Catalog
-	Coordinate    *Coordinate
-	Health        *Health
-	Internal      *Internal
-	KVS           *KVS
-	Operator      *Operator
-	PreparedQuery *PreparedQuery
-	Session       *Session
-	Status        *Status
-	Txn           *Txn
 }
 
 func NewServer(config *Config) (*Server, error) {
@@ -624,33 +606,23 @@ func (s *Server) setupRaft() error {
 	return nil
 }
 
+// endpointFactory is a function that returns an RPC endpoint bound to the given
+// server.
+type factory func(s *Server) interface{}
+
+// endpoints is a list of registered RPC endpoint factories.
+var endpoints []factory
+
+// registerEndpoint registers a new RPC endpoint factory.
+func registerEndpoint(fn factory) {
+	endpoints = append(endpoints, fn)
+}
+
 // setupRPC is used to setup the RPC listener
 func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
-	// Create endpoints
-	s.endpoints.ACL = &ACL{s}
-	s.endpoints.Catalog = &Catalog{s}
-	s.endpoints.Coordinate = NewCoordinate(s)
-	s.endpoints.Health = &Health{s}
-	s.endpoints.Internal = &Internal{s}
-	s.endpoints.KVS = &KVS{s}
-	s.endpoints.Operator = &Operator{s}
-	s.endpoints.PreparedQuery = &PreparedQuery{s}
-	s.endpoints.Session = &Session{s}
-	s.endpoints.Status = &Status{s}
-	s.endpoints.Txn = &Txn{s}
-
-	// Register the handlers
-	s.rpcServer.Register(s.endpoints.ACL)
-	s.rpcServer.Register(s.endpoints.Catalog)
-	s.rpcServer.Register(s.endpoints.Coordinate)
-	s.rpcServer.Register(s.endpoints.Health)
-	s.rpcServer.Register(s.endpoints.Internal)
-	s.rpcServer.Register(s.endpoints.KVS)
-	s.rpcServer.Register(s.endpoints.Operator)
-	s.rpcServer.Register(s.endpoints.PreparedQuery)
-	s.rpcServer.Register(s.endpoints.Session)
-	s.rpcServer.Register(s.endpoints.Status)
-	s.rpcServer.Register(s.endpoints.Txn)
+	for _, fn := range endpoints {
+		s.rpcServer.Register(fn(s))
+	}
 
 	ln, err := net.ListenTCP("tcp", s.config.RPCAddr)
 	if err != nil {
