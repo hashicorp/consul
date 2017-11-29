@@ -1,4 +1,4 @@
-package consul
+package fsm
 
 import (
 	"fmt"
@@ -18,10 +18,10 @@ import (
 // msgpackHandle is a shared handle for encoding/decoding msgpack payloads
 var msgpackHandle = &codec.MsgpackHandle{}
 
-// consulFSM implements a finite state machine that is used
+// FSM implements a finite state machine that is used
 // along with Raft to provide strong consistency. We implement
 // this outside the Server to avoid exposing this outside the package.
-type consulFSM struct {
+type FSM struct {
 	logOutput io.Writer
 	logger    *log.Logger
 	path      string
@@ -50,14 +50,14 @@ type snapshotHeader struct {
 	LastIndex uint64
 }
 
-// NewFSM is used to construct a new FSM with a blank state
-func NewFSM(gc *state.TombstoneGC, logOutput io.Writer) (*consulFSM, error) {
+// New is used to construct a new FSM with a blank state.
+func New(gc *state.TombstoneGC, logOutput io.Writer) (*FSM, error) {
 	stateNew, err := state.NewStateStore(gc)
 	if err != nil {
 		return nil, err
 	}
 
-	fsm := &consulFSM{
+	fsm := &FSM{
 		logOutput: logOutput,
 		logger:    log.New(logOutput, "", log.LstdFlags),
 		state:     stateNew,
@@ -67,13 +67,13 @@ func NewFSM(gc *state.TombstoneGC, logOutput io.Writer) (*consulFSM, error) {
 }
 
 // State is used to return a handle to the current state
-func (c *consulFSM) State() *state.Store {
+func (c *FSM) State() *state.Store {
 	c.stateLock.RLock()
 	defer c.stateLock.RUnlock()
 	return c.state
 }
 
-func (c *consulFSM) Apply(log *raft.Log) interface{} {
+func (c *FSM) Apply(log *raft.Log) interface{} {
 	buf := log.Data
 	msgType := structs.MessageType(buf[0])
 
@@ -116,7 +116,7 @@ func (c *consulFSM) Apply(log *raft.Log) interface{} {
 	}
 }
 
-func (c *consulFSM) applyRegister(buf []byte, index uint64) interface{} {
+func (c *FSM) applyRegister(buf []byte, index uint64) interface{} {
 	defer metrics.MeasureSince([]string{"consul", "fsm", "register"}, time.Now())
 	defer metrics.MeasureSince([]string{"fsm", "register"}, time.Now())
 	var req structs.RegisterRequest
@@ -132,7 +132,7 @@ func (c *consulFSM) applyRegister(buf []byte, index uint64) interface{} {
 	return nil
 }
 
-func (c *consulFSM) applyDeregister(buf []byte, index uint64) interface{} {
+func (c *FSM) applyDeregister(buf []byte, index uint64) interface{} {
 	defer metrics.MeasureSince([]string{"consul", "fsm", "deregister"}, time.Now())
 	defer metrics.MeasureSince([]string{"fsm", "deregister"}, time.Now())
 	var req structs.DeregisterRequest
@@ -162,7 +162,7 @@ func (c *consulFSM) applyDeregister(buf []byte, index uint64) interface{} {
 	return nil
 }
 
-func (c *consulFSM) applyKVSOperation(buf []byte, index uint64) interface{} {
+func (c *FSM) applyKVSOperation(buf []byte, index uint64) interface{} {
 	var req structs.KVSRequest
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
@@ -209,7 +209,7 @@ func (c *consulFSM) applyKVSOperation(buf []byte, index uint64) interface{} {
 	}
 }
 
-func (c *consulFSM) applySessionOperation(buf []byte, index uint64) interface{} {
+func (c *FSM) applySessionOperation(buf []byte, index uint64) interface{} {
 	var req structs.SessionRequest
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
@@ -232,7 +232,7 @@ func (c *consulFSM) applySessionOperation(buf []byte, index uint64) interface{} 
 	}
 }
 
-func (c *consulFSM) applyACLOperation(buf []byte, index uint64) interface{} {
+func (c *FSM) applyACLOperation(buf []byte, index uint64) interface{} {
 	var req structs.ACLRequest
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
@@ -266,7 +266,7 @@ func (c *consulFSM) applyACLOperation(buf []byte, index uint64) interface{} {
 	}
 }
 
-func (c *consulFSM) applyTombstoneOperation(buf []byte, index uint64) interface{} {
+func (c *FSM) applyTombstoneOperation(buf []byte, index uint64) interface{} {
 	var req structs.TombstoneRequest
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
@@ -288,7 +288,7 @@ func (c *consulFSM) applyTombstoneOperation(buf []byte, index uint64) interface{
 // them in a single underlying transaction. This interface isn't 1:1 with the outer
 // update interface that the coordinate endpoint exposes, so we made it single
 // purpose and avoided the opcode convention.
-func (c *consulFSM) applyCoordinateBatchUpdate(buf []byte, index uint64) interface{} {
+func (c *FSM) applyCoordinateBatchUpdate(buf []byte, index uint64) interface{} {
 	var updates structs.Coordinates
 	if err := structs.Decode(buf, &updates); err != nil {
 		panic(fmt.Errorf("failed to decode batch updates: %v", err))
@@ -303,7 +303,7 @@ func (c *consulFSM) applyCoordinateBatchUpdate(buf []byte, index uint64) interfa
 
 // applyPreparedQueryOperation applies the given prepared query operation to the
 // state store.
-func (c *consulFSM) applyPreparedQueryOperation(buf []byte, index uint64) interface{} {
+func (c *FSM) applyPreparedQueryOperation(buf []byte, index uint64) interface{} {
 	var req structs.PreparedQueryRequest
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
@@ -324,7 +324,7 @@ func (c *consulFSM) applyPreparedQueryOperation(buf []byte, index uint64) interf
 	}
 }
 
-func (c *consulFSM) applyTxn(buf []byte, index uint64) interface{} {
+func (c *FSM) applyTxn(buf []byte, index uint64) interface{} {
 	var req structs.TxnRequest
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
@@ -338,7 +338,7 @@ func (c *consulFSM) applyTxn(buf []byte, index uint64) interface{} {
 	}
 }
 
-func (c *consulFSM) applyAutopilotUpdate(buf []byte, index uint64) interface{} {
+func (c *FSM) applyAutopilotUpdate(buf []byte, index uint64) interface{} {
 	var req structs.AutopilotSetConfigRequest
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
@@ -356,7 +356,7 @@ func (c *consulFSM) applyAutopilotUpdate(buf []byte, index uint64) interface{} {
 	return c.state.AutopilotSetConfig(index, &req.Config)
 }
 
-func (c *consulFSM) Snapshot() (raft.FSMSnapshot, error) {
+func (c *FSM) Snapshot() (raft.FSMSnapshot, error) {
 	defer func(start time.Time) {
 		c.logger.Printf("[INFO] consul.fsm: snapshot created in %v", time.Since(start))
 	}(time.Now())
@@ -366,7 +366,7 @@ func (c *consulFSM) Snapshot() (raft.FSMSnapshot, error) {
 
 // Restore streams in the snapshot and replaces the current state store with a
 // new one based on the snapshot if all goes OK during the restore.
-func (c *consulFSM) Restore(old io.ReadCloser) error {
+func (c *FSM) Restore(old io.ReadCloser) error {
 	defer old.Close()
 
 	// Create a new state store.

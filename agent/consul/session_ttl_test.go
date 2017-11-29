@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -9,8 +10,17 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
+
+func generateUUID() (ret string) {
+	var err error
+	if ret, err = uuid.GenerateUUID(); err != nil {
+		panic(fmt.Sprintf("Unable to generate a UUID, %v", err))
+	}
+	return ret
+}
 
 func TestInitializeSessionTimers(t *testing.T) {
 	t.Parallel()

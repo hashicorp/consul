@@ -5,14 +5,25 @@ import (
 	"reflect"
 	"testing"
 
+	consulfsm "github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/raft"
 )
+
+func makeLog(buf []byte) *raft.Log {
+	return &raft.Log{
+		Index: 1,
+		Term:  1,
+		Type:  raft.LogCommand,
+		Data:  buf,
+	}
+}
 
 // Testing for GH-300 and GH-279
 func TestHealthCheckRace(t *testing.T) {
 	t.Parallel()
-	fsm, err := NewFSM(nil, os.Stderr)
+	fsm, err := consulfsm.New(nil, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

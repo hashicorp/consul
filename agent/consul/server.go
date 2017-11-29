@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
@@ -122,7 +123,7 @@ type Server struct {
 
 	// fsm is the state machine used with Raft to provide
 	// strong consistency.
-	fsm *consulFSM
+	fsm *fsm.FSM
 
 	// Logger uses the provided LogOutput
 	logger *log.Logger
@@ -447,7 +448,7 @@ func (s *Server) setupRaft() error {
 
 	// Create the FSM.
 	var err error
-	s.fsm, err = NewFSM(s.tombstoneGC, s.config.LogOutput)
+	s.fsm, err = fsm.New(s.tombstoneGC, s.config.LogOutput)
 	if err != nil {
 		return err
 	}
@@ -554,7 +555,7 @@ func (s *Server) setupRaft() error {
 				return fmt.Errorf("recovery failed to parse peers.json: %v", err)
 			}
 
-			tmpFsm, err := NewFSM(s.tombstoneGC, s.config.LogOutput)
+			tmpFsm, err := fsm.New(s.tombstoneGC, s.config.LogOutput)
 			if err != nil {
 				return fmt.Errorf("recovery failed to make temp FSM: %v", err)
 			}
