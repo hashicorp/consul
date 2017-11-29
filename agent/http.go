@@ -39,6 +39,29 @@ type HTTPServer struct {
 	proto string
 }
 
+// endpoint is a Consul-specific HTTP handler that takes the usual arguments in
+// but returns a response object and error, both of which are handled in a
+// common manner by Consul's HTTP server.
+type endpoint func(resp http.ResponseWriter, req *http.Request) (interface{}, error)
+
+// unboundEndpoint is an endpoint method on a server.
+type unboundEndpoint func(s *HTTPServer, resp http.ResponseWriter, req *http.Request) (interface{}, error)
+
+// endpoints is a map from URL pattern to unbound endpoint.
+var endpoints map[string]unboundEndpoint
+
+// registerEndpoint registers a new endpoint, which should be done at package
+// init() time.
+func registerEndpoint(pattern string, fn unboundEndpoint) {
+	if endpoints == nil {
+		endpoints = make(map[string]unboundEndpoint)
+	}
+	if endpoints[pattern] != nil {
+		panic(fmt.Errorf("Pattern %q is already registered", pattern))
+	}
+	endpoints[pattern] = fn
+}
+
 // handler is used to attach our handlers to the mux
 func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 	mux := http.NewServeMux()
@@ -75,77 +98,13 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 	}
 
 	mux.HandleFunc("/", s.Index)
-
-	// API V1.
-	handleFuncMetrics("/v1/acl/bootstrap", s.wrap(s.ACLBootstrap))
-	handleFuncMetrics("/v1/acl/create", s.wrap(s.ACLCreate))
-	handleFuncMetrics("/v1/acl/update", s.wrap(s.ACLUpdate))
-	handleFuncMetrics("/v1/acl/destroy/", s.wrap(s.ACLDestroy))
-	handleFuncMetrics("/v1/acl/info/", s.wrap(s.ACLGet))
-	handleFuncMetrics("/v1/acl/clone/", s.wrap(s.ACLClone))
-	handleFuncMetrics("/v1/acl/list", s.wrap(s.ACLList))
-	handleFuncMetrics("/v1/acl/replication", s.wrap(s.ACLReplicationStatus))
-	handleFuncMetrics("/v1/agent/token/", s.wrap(s.AgentToken))
-	handleFuncMetrics("/v1/agent/self", s.wrap(s.AgentSelf))
-	handleFuncMetrics("/v1/agent/maintenance", s.wrap(s.AgentNodeMaintenance))
-	handleFuncMetrics("/v1/agent/reload", s.wrap(s.AgentReload))
-	handleFuncMetrics("/v1/agent/monitor", s.wrap(s.AgentMonitor))
-	handleFuncMetrics("/v1/agent/metrics", s.wrap(s.AgentMetrics))
-	handleFuncMetrics("/v1/agent/services", s.wrap(s.AgentServices))
-	handleFuncMetrics("/v1/agent/checks", s.wrap(s.AgentChecks))
-	handleFuncMetrics("/v1/agent/members", s.wrap(s.AgentMembers))
-	handleFuncMetrics("/v1/agent/join/", s.wrap(s.AgentJoin))
-	handleFuncMetrics("/v1/agent/leave", s.wrap(s.AgentLeave))
-	handleFuncMetrics("/v1/agent/force-leave/", s.wrap(s.AgentForceLeave))
-	handleFuncMetrics("/v1/agent/check/register", s.wrap(s.AgentRegisterCheck))
-	handleFuncMetrics("/v1/agent/check/deregister/", s.wrap(s.AgentDeregisterCheck))
-	handleFuncMetrics("/v1/agent/check/pass/", s.wrap(s.AgentCheckPass))
-	handleFuncMetrics("/v1/agent/check/warn/", s.wrap(s.AgentCheckWarn))
-	handleFuncMetrics("/v1/agent/check/fail/", s.wrap(s.AgentCheckFail))
-	handleFuncMetrics("/v1/agent/check/update/", s.wrap(s.AgentCheckUpdate))
-	handleFuncMetrics("/v1/agent/service/register", s.wrap(s.AgentRegisterService))
-	handleFuncMetrics("/v1/agent/service/deregister/", s.wrap(s.AgentDeregisterService))
-	handleFuncMetrics("/v1/agent/service/maintenance/", s.wrap(s.AgentServiceMaintenance))
-	handleFuncMetrics("/v1/catalog/register", s.wrap(s.CatalogRegister))
-	handleFuncMetrics("/v1/catalog/deregister", s.wrap(s.CatalogDeregister))
-	handleFuncMetrics("/v1/catalog/datacenters", s.wrap(s.CatalogDatacenters))
-	handleFuncMetrics("/v1/catalog/nodes", s.wrap(s.CatalogNodes))
-	handleFuncMetrics("/v1/catalog/services", s.wrap(s.CatalogServices))
-	handleFuncMetrics("/v1/catalog/service/", s.wrap(s.CatalogServiceNodes))
-	handleFuncMetrics("/v1/catalog/node/", s.wrap(s.CatalogNodeServices))
-	handleFuncMetrics("/v1/coordinate/datacenters", s.wrap(s.CoordinateDatacenters))
-	handleFuncMetrics("/v1/coordinate/nodes", s.wrap(s.CoordinateNodes))
-	handleFuncMetrics("/v1/coordinate/node/", s.wrap(s.CoordinateNode))
-	handleFuncMetrics("/v1/coordinate/update", s.wrap(s.CoordinateUpdate))
-	handleFuncMetrics("/v1/event/fire/", s.wrap(s.EventFire))
-	handleFuncMetrics("/v1/event/list", s.wrap(s.EventList))
-	handleFuncMetrics("/v1/health/node/", s.wrap(s.HealthNodeChecks))
-	handleFuncMetrics("/v1/health/checks/", s.wrap(s.HealthServiceChecks))
-	handleFuncMetrics("/v1/health/state/", s.wrap(s.HealthChecksInState))
-	handleFuncMetrics("/v1/health/service/", s.wrap(s.HealthServiceNodes))
-	handleFuncMetrics("/v1/internal/ui/nodes", s.wrap(s.UINodes))
-	handleFuncMetrics("/v1/internal/ui/node/", s.wrap(s.UINodeInfo))
-	handleFuncMetrics("/v1/internal/ui/services", s.wrap(s.UIServices))
-	handleFuncMetrics("/v1/kv/", s.wrap(s.KVSEndpoint))
-	handleFuncMetrics("/v1/operator/raft/configuration", s.wrap(s.OperatorRaftConfiguration))
-	handleFuncMetrics("/v1/operator/raft/peer", s.wrap(s.OperatorRaftPeer))
-	handleFuncMetrics("/v1/operator/keyring", s.wrap(s.OperatorKeyringEndpoint))
-	handleFuncMetrics("/v1/operator/autopilot/configuration", s.wrap(s.OperatorAutopilotConfiguration))
-	handleFuncMetrics("/v1/operator/autopilot/health", s.wrap(s.OperatorServerHealth))
-	handleFuncMetrics("/v1/query", s.wrap(s.PreparedQueryGeneral))
-	handleFuncMetrics("/v1/query/", s.wrap(s.PreparedQuerySpecific))
-	handleFuncMetrics("/v1/session/create", s.wrap(s.SessionCreate))
-	handleFuncMetrics("/v1/session/destroy/", s.wrap(s.SessionDestroy))
-	handleFuncMetrics("/v1/session/renew/", s.wrap(s.SessionRenew))
-	handleFuncMetrics("/v1/session/info/", s.wrap(s.SessionGet))
-	handleFuncMetrics("/v1/session/node/", s.wrap(s.SessionsForNode))
-	handleFuncMetrics("/v1/session/list", s.wrap(s.SessionList))
-	handleFuncMetrics("/v1/status/leader", s.wrap(s.StatusLeader))
-	handleFuncMetrics("/v1/status/peers", s.wrap(s.StatusPeers))
-	handleFuncMetrics("/v1/snapshot", s.wrap(s.Snapshot))
-	handleFuncMetrics("/v1/txn", s.wrap(s.Txn))
-
-	// Debug endpoints.
+	for pattern, fn := range endpoints {
+		thisFn := fn
+		bound := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+			return thisFn(s, resp, req)
+		}
+		handleFuncMetrics(pattern, s.wrap(bound))
+	}
 	if enableDebug {
 		handleFuncMetrics("/debug/pprof/", pprof.Index)
 		handleFuncMetrics("/debug/pprof/cmdline", pprof.Cmdline)
@@ -186,7 +145,7 @@ var (
 )
 
 // wrap is used to wrap functions to make them more convenient
-func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Request) (interface{}, error)) http.HandlerFunc {
+func (s *HTTPServer) wrap(handler endpoint) http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
 		setHeaders(resp, s.agent.config.HTTPResponseHeaders)
 		setTranslateAddr(resp, s.agent.config.TranslateWANAddrs)
