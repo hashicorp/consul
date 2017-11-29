@@ -4,7 +4,7 @@
 
 See a couple of blog posts on how to write and add plugin to CoreDNS:
 
-* <https://blog.coredns.io/2017/03/01/how-to-add-plugin-to-coredns/>
+* <https://blog.coredns.io/2017/03/01/how-to-add-plugins-to-coredns/>
 * <https://blog.coredns.io/2016/12/19/writing-plugin-for-coredns/>, slightly older, but useful.
 
 ## Metrics
