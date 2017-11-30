@@ -107,7 +107,7 @@ func (c *FSM) Apply(log *raft.Log) interface{} {
 	}
 
 	// Apply based on the dispatch table, if possible.
-	if fn, ok := c.apply[msgType]; ok {
+	if fn := c.apply[msgType]; fn != nil {
 		return fn(buf[1:], log.Index)
 	}
 
@@ -164,102 +164,15 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 		}
 
 		// Decode
-		switch structs.MessageType(msgType[0]) {
-		case structs.RegisterRequestType:
-			var req structs.RegisterRequest
-			if err := dec.Decode(&req); err != nil {
+		msg := structs.MessageType(msgType[0])
+		if fn := restorers[msg]; fn != nil {
+			if err := fn(&header, restore, dec); err != nil {
 				return err
 			}
-			if err := restore.Registration(header.LastIndex, &req); err != nil {
-				return err
-			}
-
-		case structs.KVSRequestType:
-			var req structs.DirEntry
-			if err := dec.Decode(&req); err != nil {
-				return err
-			}
-			if err := restore.KVS(&req); err != nil {
-				return err
-			}
-
-		case structs.TombstoneRequestType:
-			var req structs.DirEntry
-			if err := dec.Decode(&req); err != nil {
-				return err
-			}
-
-			// For historical reasons, these are serialized in the
-			// snapshots as KV entries. We want to keep the snapshot
-			// format compatible with pre-0.6 versions for now.
-			stone := &state.Tombstone{
-				Key:   req.Key,
-				Index: req.ModifyIndex,
-			}
-			if err := restore.Tombstone(stone); err != nil {
-				return err
-			}
-
-		case structs.SessionRequestType:
-			var req structs.Session
-			if err := dec.Decode(&req); err != nil {
-				return err
-			}
-			if err := restore.Session(&req); err != nil {
-				return err
-			}
-
-		case structs.ACLRequestType:
-			var req structs.ACL
-			if err := dec.Decode(&req); err != nil {
-				return err
-			}
-			if err := restore.ACL(&req); err != nil {
-				return err
-			}
-
-		case structs.ACLBootstrapRequestType:
-			var req structs.ACLBootstrap
-			if err := dec.Decode(&req); err != nil {
-				return err
-			}
-			if err := restore.ACLBootstrap(&req); err != nil {
-				return err
-			}
-
-		case structs.CoordinateBatchUpdateType:
-			var req structs.Coordinates
-			if err := dec.Decode(&req); err != nil {
-				return err
-
-			}
-			if err := restore.Coordinates(header.LastIndex, req); err != nil {
-				return err
-			}
-
-		case structs.PreparedQueryRequestType:
-			var req structs.PreparedQuery
-			if err := dec.Decode(&req); err != nil {
-				return err
-			}
-			if err := restore.PreparedQuery(&req); err != nil {
-				return err
-			}
-
-		case structs.AutopilotRequestType:
-			var req structs.AutopilotConfig
-			if err := dec.Decode(&req); err != nil {
-				return err
-			}
-			if err := restore.Autopilot(&req); err != nil {
-				return err
-			}
-
-		default:
-			return fmt.Errorf("Unrecognized msg type: %v", msgType)
+		} else {
+			return fmt.Errorf("Unrecognized msg type %d", msg)
 		}
 	}
-
 	restore.Commit()
 
 	// External code might be calling State(), so we need to synchronize
