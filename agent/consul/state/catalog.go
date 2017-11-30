@@ -10,6 +10,181 @@ import (
 	"github.com/hashicorp/go-memdb"
 )
 
+// nodesTableSchema returns a new table schema used for storing node
+// information.
+func nodesTableSchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: "nodes",
+		Indexes: map[string]*memdb.IndexSchema{
+			"id": &memdb.IndexSchema{
+				Name:         "id",
+				AllowMissing: false,
+				Unique:       true,
+				Indexer: &memdb.StringFieldIndex{
+					Field:     "Node",
+					Lowercase: true,
+				},
+			},
+			"uuid": &memdb.IndexSchema{
+				Name:         "uuid",
+				AllowMissing: true,
+				Unique:       true,
+				Indexer: &memdb.UUIDFieldIndex{
+					Field: "ID",
+				},
+			},
+			"meta": &memdb.IndexSchema{
+				Name:         "meta",
+				AllowMissing: true,
+				Unique:       false,
+				Indexer: &memdb.StringMapFieldIndex{
+					Field:     "Meta",
+					Lowercase: false,
+				},
+			},
+		},
+	}
+}
+
+// servicesTableSchema returns a new table schema used to store information
+// about services.
+func servicesTableSchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: "services",
+		Indexes: map[string]*memdb.IndexSchema{
+			"id": &memdb.IndexSchema{
+				Name:         "id",
+				AllowMissing: false,
+				Unique:       true,
+				Indexer: &memdb.CompoundIndex{
+					Indexes: []memdb.Indexer{
+						&memdb.StringFieldIndex{
+							Field:     "Node",
+							Lowercase: true,
+						},
+						&memdb.StringFieldIndex{
+							Field:     "ServiceID",
+							Lowercase: true,
+						},
+					},
+				},
+			},
+			"node": &memdb.IndexSchema{
+				Name:         "node",
+				AllowMissing: false,
+				Unique:       false,
+				Indexer: &memdb.StringFieldIndex{
+					Field:     "Node",
+					Lowercase: true,
+				},
+			},
+			"service": &memdb.IndexSchema{
+				Name:         "service",
+				AllowMissing: true,
+				Unique:       false,
+				Indexer: &memdb.StringFieldIndex{
+					Field:     "ServiceName",
+					Lowercase: true,
+				},
+			},
+		},
+	}
+}
+
+// checksTableSchema returns a new table schema used for storing and indexing
+// health check information. Health checks have a number of different attributes
+// we want to filter by, so this table is a bit more complex.
+func checksTableSchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: "checks",
+		Indexes: map[string]*memdb.IndexSchema{
+			"id": &memdb.IndexSchema{
+				Name:         "id",
+				AllowMissing: false,
+				Unique:       true,
+				Indexer: &memdb.CompoundIndex{
+					Indexes: []memdb.Indexer{
+						&memdb.StringFieldIndex{
+							Field:     "Node",
+							Lowercase: true,
+						},
+						&memdb.StringFieldIndex{
+							Field:     "CheckID",
+							Lowercase: true,
+						},
+					},
+				},
+			},
+			"status": &memdb.IndexSchema{
+				Name:         "status",
+				AllowMissing: false,
+				Unique:       false,
+				Indexer: &memdb.StringFieldIndex{
+					Field:     "Status",
+					Lowercase: false,
+				},
+			},
+			"service": &memdb.IndexSchema{
+				Name:         "service",
+				AllowMissing: true,
+				Unique:       false,
+				Indexer: &memdb.StringFieldIndex{
+					Field:     "ServiceName",
+					Lowercase: true,
+				},
+			},
+			"node": &memdb.IndexSchema{
+				Name:         "node",
+				AllowMissing: true,
+				Unique:       false,
+				Indexer: &memdb.StringFieldIndex{
+					Field:     "Node",
+					Lowercase: true,
+				},
+			},
+			"node_service_check": &memdb.IndexSchema{
+				Name:         "node_service_check",
+				AllowMissing: true,
+				Unique:       false,
+				Indexer: &memdb.CompoundIndex{
+					Indexes: []memdb.Indexer{
+						&memdb.StringFieldIndex{
+							Field:     "Node",
+							Lowercase: true,
+						},
+						&memdb.FieldSetIndex{
+							Field: "ServiceID",
+						},
+					},
+				},
+			},
+			"node_service": &memdb.IndexSchema{
+				Name:         "node_service",
+				AllowMissing: true,
+				Unique:       false,
+				Indexer: &memdb.CompoundIndex{
+					Indexes: []memdb.Indexer{
+						&memdb.StringFieldIndex{
+							Field:     "Node",
+							Lowercase: true,
+						},
+						&memdb.StringFieldIndex{
+							Field:     "ServiceID",
+							Lowercase: true,
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func init() {
+	registerSchema(nodesTableSchema)
+	registerSchema(servicesTableSchema)
+	registerSchema(checksTableSchema)
+}
+
 const (
 	// minUUIDLookupLen is used as a minimum length of a node name required before
 	// we test to see if the name is actually a UUID and perform an ID-based node

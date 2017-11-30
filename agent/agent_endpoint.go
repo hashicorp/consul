@@ -809,6 +809,9 @@ func (h *httpLogHandler) HandleLog(log string) {
 }
 
 func (s *HTTPServer) AgentToken(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if s.checkACLDisabled(resp, req) {
+		return nil, nil
+	}
 	if req.Method != "PUT" {
 		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
 	}

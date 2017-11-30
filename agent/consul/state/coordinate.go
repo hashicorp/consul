@@ -8,6 +8,49 @@ import (
 	"github.com/hashicorp/go-memdb"
 )
 
+// coordinatesTableSchema returns a new table schema used for storing
+// network coordinates.
+func coordinatesTableSchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: "coordinates",
+		Indexes: map[string]*memdb.IndexSchema{
+			"id": &memdb.IndexSchema{
+				Name:         "id",
+				AllowMissing: false,
+				Unique:       true,
+				Indexer: &memdb.CompoundIndex{
+					// AllowMissing is required since we allow
+					// Segment to be an empty string.
+					AllowMissing: true,
+					Indexes: []memdb.Indexer{
+						&memdb.StringFieldIndex{
+							Field:     "Node",
+							Lowercase: true,
+						},
+						&memdb.StringFieldIndex{
+							Field:     "Segment",
+							Lowercase: true,
+						},
+					},
+				},
+			},
+			"node": &memdb.IndexSchema{
+				Name:         "node",
+				AllowMissing: false,
+				Unique:       false,
+				Indexer: &memdb.StringFieldIndex{
+					Field:     "Node",
+					Lowercase: true,
+				},
+			},
+		},
+	}
+}
+
+func init() {
+	registerSchema(coordinatesTableSchema)
+}
+
 // Coordinates is used to pull all the coordinates from the snapshot.
 func (s *Snapshot) Coordinates() (memdb.ResultIterator, error) {
 	iter, err := s.tx.Get("coordinates", "id")
