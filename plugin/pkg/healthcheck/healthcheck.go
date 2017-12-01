@@ -123,6 +123,7 @@ func (uh *UpstreamHost) HealthCheckURL() {
 
 	if err != nil {
 		log.Printf("[WARNING] Host %s health check probe failed: %v", uh.Name, err)
+		atomic.AddInt32(&uh.Fails, 1)
 		return
 	}
 
@@ -132,6 +133,7 @@ func (uh *UpstreamHost) HealthCheckURL() {
 
 		if r.StatusCode < 200 || r.StatusCode >= 400 {
 			log.Printf("[WARNING] Host %s health check returned HTTP code %d", uh.Name, r.StatusCode)
+			atomic.AddInt32(&uh.Fails, 1)
 			return
 		}
 
