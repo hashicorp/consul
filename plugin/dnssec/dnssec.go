@@ -46,16 +46,21 @@ func (d Dnssec) Sign(state request.Request, zone string, now time.Time) *dns.Msg
 
 	mt, _ := response.Typify(req, time.Now().UTC()) // TODO(miek): need opt record here?
 	if mt == response.Delegation {
-		ttl := req.Ns[0].Header().Ttl
+		// This reverts 11203e44. Reverting with git revert leads to conflicts in dnskey.go, and I'm
+		// not sure yet if we just should fiddle with inserting DSs or not.
+		// Easy way to, see #1211 for discussion.
+		/*
+			ttl := req.Ns[0].Header().Ttl
 
-		ds := []dns.RR{}
-		for i := range d.keys {
-			ds = append(ds, d.keys[i].D)
-		}
-		if sigs, err := d.sign(ds, zone, ttl, incep, expir); err == nil {
-			req.Ns = append(req.Ns, ds...)
-			req.Ns = append(req.Ns, sigs...)
-		}
+			ds := []dns.RR{}
+			for i := range d.keys {
+				ds = append(ds, d.keys[i].D)
+			}
+			if sigs, err := d.sign(ds, zone, ttl, incep, expir); err == nil {
+				req.Ns = append(req.Ns, ds...)
+				req.Ns = append(req.Ns, sigs...)
+			}
+		*/
 		return req
 	}
 

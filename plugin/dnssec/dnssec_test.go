@@ -95,7 +95,8 @@ func TestSigningCname(t *testing.T) {
 	}
 }
 
-func TestZoneSigningDelegation(t *testing.T) {
+// Disabled for now, see #1211.
+func testZoneSigningDelegation(t *testing.T) {
 	d, rm1, rm2 := newDnssec(t, []string{"miek.nl."})
 	defer rm1()
 	defer rm2()
