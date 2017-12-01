@@ -98,7 +98,7 @@ payload over HTTPS). Note that with `https_google` the entire transport is encry
 
 If monitoring is enabled (via the *prometheus* directive) then the following metric is exported:
 
-* `coredns_proxy_request_duration_millisecond{proto, proto_proxy, family, to}` - duration per upstream
+* `coredns_proxy_request_duration_seconds{proto, proto_proxy, family, to}` - duration per upstream
   interaction.
 * `coredns_proxy_request_count_total{proto, proto_proxy, family, to}` - query count per upstream.
 

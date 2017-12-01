@@ -6,7 +6,7 @@ The default location for the metrics is `localhost:9153`. The metrics path is fi
 The following metrics are exported:
 
 * `coredns_dns_request_count_total{zone, proto, family}` - total query count.
-* `coredns_dns_request_duration_milliseconds{zone}` - duration to process each query.
+* `coredns_dns_request_duration_seconds{zone}` - duration to process each query.
 * `coredns_dns_request_size_bytes{zone, proto}` - size of the request in bytes.
 * `coredns_dns_request_do_count_total{zone}` -  queries that have the DO bit set
 * `coredns_dns_request_type_count_total{zone, type}` - counter of queries per zone and type.

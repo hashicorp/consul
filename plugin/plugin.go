@@ -7,6 +7,7 @@ import (
 
 	"github.com/miekg/dns"
 	ot "github.com/opentracing/opentracing-go"
+	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/net/context"
 )
 
@@ -102,4 +103,4 @@ func ClientWrite(rcode int) bool {
 const Namespace = "coredns"
 
 // TimeBuckets is based on Prometheus client_golang prometheus.DefBuckets
-var TimeBuckets = []float64{0.00025, 0.0005, 0.001, 0.0025, .005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10}
+var TimeBuckets = prometheus.ExponentialBuckets(0.25, 2, 16) // from 0.25ms to 8 seconds
