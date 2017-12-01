@@ -188,3 +188,8 @@ example.org {
     proxy . 8.8.8.8:53
 }
 ~~~
+
+# Bugs
+
+When using the `google_https` protocol the health checking will health check the wrong endpoint.
+See <https://github.com/coredns/coredns/issues/1202> for some background.

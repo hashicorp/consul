@@ -117,8 +117,6 @@ func (g *google) OnStartup(p *Proxy) error {
 
 	oldUpstream := (*p.Upstreams)[0]
 
-	log.Printf("[INFO] Bootstrapping A records %q", g.endpoint)
-
 	new, err := g.bootstrapProxy.Lookup(state, g.endpoint, dns.TypeA)
 	if err != nil {
 		log.Printf("[WARNING] Failed to bootstrap A records %q: %s", g.endpoint, err)
