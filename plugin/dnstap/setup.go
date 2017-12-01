@@ -65,14 +65,11 @@ func setup(c *caddy.Controller) error {
 		return err
 	}
 
-	dio := dnstapio.New()
+	dio := dnstapio.New(conf.target, conf.socket)
 	dnstap := Dnstap{IO: dio, Pack: conf.full}
 
 	c.OnStartup(func() error {
-		err := dio.Connect(conf.target, conf.socket)
-		if err != nil {
-			return plugin.Error("dnstap", err)
-		}
+		dio.Connect()
 		return nil
 	})
 
