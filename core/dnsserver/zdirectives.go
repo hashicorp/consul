@@ -12,6 +12,7 @@ package dnsserver
 
 var directives = []string{
 	"tls",
+	"nsid",
 	"root",
 	"bind",
 	"debug",
