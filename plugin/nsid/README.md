@@ -8,9 +8,9 @@ generating the reply and for debugging.
 
 ## Syntax
 
-~~ txt
+~~~ txt
 nsid [DATA]
-~~
+~~~
 
 **DATA** is the string to use in the nsid record.
 
@@ -20,8 +20,8 @@ If **DATA** is not given, the host's name is used.
 
 Enable nsid:
 
-~~ corefile
+~~~ corefile
 . {
     nsid
 }
-~~
+~~~
