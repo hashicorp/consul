@@ -103,4 +103,4 @@ func ClientWrite(rcode int) bool {
 const Namespace = "coredns"
 
 // TimeBuckets is based on Prometheus client_golang prometheus.DefBuckets
-var TimeBuckets = prometheus.ExponentialBuckets(0.25, 2, 16) // from 0.25ms to 8 seconds
+var TimeBuckets = prometheus.ExponentialBuckets(0.00025, 2, 16) // from 0.25ms to 8 seconds
