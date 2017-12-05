@@ -79,6 +79,14 @@ when resolving external pointing CNAMEs.
 }
 ~~~
 
+Multiple endpoints are supported as well.
+
+~~~
+etcd skydns.local {
+    endpoint http://localhost:2379 http://localhost:4001
+...
+~~~
+
 
 ### Reverse zones
 
