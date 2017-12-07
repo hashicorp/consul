@@ -120,6 +120,14 @@ func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 				}
 			}
 
+			// If protocol is https_google we do the health checks wrong, i.e. we're healthchecking the wrong
+			// endpoint, hence the health check code below should not be executed. See issue #1202.
+			// This is an ugly hack and the thing requires a rethink. Possibly in conjunction with moving
+			// to the *forward* plugin.
+			if upstream.Exchanger().Protocol() == "https_google" {
+				continue
+			}
+
 			timeout := host.FailTimeout
 			if timeout == 0 {
 				timeout = defaultFailTimeout
