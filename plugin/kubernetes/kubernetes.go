@@ -71,6 +71,12 @@ const (
 	podModeInsecure = "insecure"
 	// DNSSchemaVersion is the schema version: https://github.com/kubernetes/dns/blob/master/docs/specification.md
 	DNSSchemaVersion = "1.0.1"
+	// Svc is the DNS schema for kubernetes services
+	Svc = "svc"
+	// Pod is the DNS schema for kubernetes pods
+	Pod = "pod"
+	// defaultTTL to apply to all answers.
+	defaultTTL = 5
 )
 
 var (
@@ -461,12 +467,3 @@ func match(a, b string) bool {
 func wildcard(s string) bool {
 	return s == "*" || s == "any"
 }
-
-const (
-	// Svc is the DNS schema for kubernetes services
-	Svc = "svc"
-	// Pod is the DNS schema for kubernetes pods
-	Pod = "pod"
-	// defaultTTL to apply to all answers.
-	defaultTTL = 5
-)
