@@ -37,24 +37,25 @@ func (e *Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 		records, extra []dns.RR
 		err            error
 	)
-	switch state.Type() {
-	case "A":
+
+	switch state.QType() {
+	case dns.TypeA:
 		records, err = plugin.A(e, zone, state, nil, opt)
-	case "AAAA":
+	case dns.TypeAAAA:
 		records, err = plugin.AAAA(e, zone, state, nil, opt)
-	case "TXT":
+	case dns.TypeTXT:
 		records, err = plugin.TXT(e, zone, state, opt)
-	case "CNAME":
+	case dns.TypeCNAME:
 		records, err = plugin.CNAME(e, zone, state, opt)
-	case "PTR":
+	case dns.TypePTR:
 		records, err = plugin.PTR(e, zone, state, opt)
-	case "MX":
+	case dns.TypeMX:
 		records, extra, err = plugin.MX(e, zone, state, opt)
-	case "SRV":
+	case dns.TypeSRV:
 		records, extra, err = plugin.SRV(e, zone, state, opt)
-	case "SOA":
+	case dns.TypeSOA:
 		records, err = plugin.SOA(e, zone, state, opt)
-	case "NS":
+	case dns.TypeNS:
 		if state.Name() == zone {
 			records, extra, err = plugin.NS(e, zone, state, opt)
 			break

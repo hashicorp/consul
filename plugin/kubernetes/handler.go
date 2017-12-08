@@ -30,24 +30,24 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 		err     error
 	)
 
-	switch state.Type() {
-	case "A":
+	switch state.QType() {
+	case dns.TypeA:
 		records, err = plugin.A(&k, zone, state, nil, plugin.Options{})
-	case "AAAA":
+	case dns.TypeAAAA:
 		records, err = plugin.AAAA(&k, zone, state, nil, plugin.Options{})
-	case "TXT":
+	case dns.TypeTXT:
 		records, err = plugin.TXT(&k, zone, state, plugin.Options{})
-	case "CNAME":
+	case dns.TypeCNAME:
 		records, err = plugin.CNAME(&k, zone, state, plugin.Options{})
-	case "PTR":
+	case dns.TypePTR:
 		records, err = plugin.PTR(&k, zone, state, plugin.Options{})
-	case "MX":
+	case dns.TypeMX:
 		records, extra, err = plugin.MX(&k, zone, state, plugin.Options{})
-	case "SRV":
+	case dns.TypeSRV:
 		records, extra, err = plugin.SRV(&k, zone, state, plugin.Options{})
-	case "SOA":
+	case dns.TypeSOA:
 		records, err = plugin.SOA(&k, zone, state, plugin.Options{})
-	case "NS":
+	case dns.TypeNS:
 		if state.Name() == zone {
 			records, extra, err = plugin.NS(&k, zone, state, plugin.Options{})
 			break
