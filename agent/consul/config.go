@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/version"
@@ -376,21 +377,6 @@ func (c *Config) CheckACL() error {
 	return nil
 }
 
-// SerfDefaultConfig returns a Consul-flavored Serf default configuration,
-// suitable as a basis for a LAN, WAN, segment, or area.
-func SerfDefaultConfig() *serf.Config {
-	base := serf.DefaultConfig()
-
-	// This effectively disables the annoying queue depth warnings.
-	base.QueueDepthWarning = 1000000
-
-	// This enables dynamic sizing of the message queue depth based on the
-	// cluster size.
-	base.MinQueueDepth = 4096
-
-	return base
-}
-
 // DefaultConfig returns a sane default configuration.
 func DefaultConfig() *Config {
 	hostname, err := os.Hostname()
@@ -404,8 +390,8 @@ func DefaultConfig() *Config {
 		NodeName:                 hostname,
 		RPCAddr:                  DefaultRPCAddr,
 		RaftConfig:               raft.DefaultConfig(),
-		SerfLANConfig:            SerfDefaultConfig(),
-		SerfWANConfig:            SerfDefaultConfig(),
+		SerfLANConfig:            lib.SerfDefaultConfig(),
+		SerfWANConfig:            lib.SerfDefaultConfig(),
 		SerfFloodInterval:        60 * time.Second,
 		ReconcileInterval:        60 * time.Second,
 		ProtocolVersion:          ProtocolVersion2Compatible,
