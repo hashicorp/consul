@@ -29,7 +29,6 @@ func (n Nsid) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 			if _, ok := o.(*dns.EDNS0_NSID); ok {
 				nw := &ResponseWriter{ResponseWriter: w, Data: n.Data}
 				return plugin.NextOrFailure(n.Name(), n.Next, ctx, nw, r)
-
 			}
 		}
 	}
