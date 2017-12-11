@@ -128,11 +128,6 @@ func (z *Zone) Lookup(state request.Request, qname string) ([]dns.RR, []dns.RR, 
 		// If we see NS records, it means the name as been delegated, and we should return the delegation.
 		if nsrrs := elem.Types(dns.TypeNS); nsrrs != nil {
 			glue := z.Glue(nsrrs, do)
-			// If qtype == NS, we should returns success to put RRs in answer.
-			if qtype == dns.TypeNS {
-				return nsrrs, nil, glue, Success
-			}
-
 			if do {
 				dss := z.typeFromElem(elem, dns.TypeDS, do)
 				nsrrs = append(nsrrs, dss...)

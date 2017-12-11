@@ -25,7 +25,7 @@ var delegationTestCases = []test.Case{
 	},
 	{
 		Qname: "delegated.miek.nl.", Qtype: dns.TypeNS,
-		Answer: []dns.RR{
+		Ns: []dns.RR{
 			test.NS("delegated.miek.nl.	1800	IN	NS	a.delegated.miek.nl."),
 			test.NS("delegated.miek.nl.	1800	IN	NS	ns-ext.nlnetlabs.nl."),
 		},
@@ -91,9 +91,12 @@ var secureDelegationTestCases = []test.Case{
 	{
 		Qname: "delegated.example.org.", Qtype: dns.TypeNS,
 		Do: true,
-		Answer: []dns.RR{
+		Ns: []dns.RR{
+			test.DS("delegated.example.org.	1800	IN	DS	10056 5 1 EE72CABD1927759CDDA92A10DBF431504B9E1F13"),
+			test.DS("delegated.example.org.	1800	IN	DS	10056 5 2 E4B05F87725FA86D9A64F1E53C3D0E6250946599DFE639C45955B0ED416CDDFA"),
 			test.NS("delegated.example.org.	1800	IN	NS	a.delegated.example.org."),
 			test.NS("delegated.example.org.	1800	IN	NS	ns-ext.nlnetlabs.nl."),
+			test.RRSIG("delegated.example.org.	1800	IN	RRSIG	DS 13 3 1800 20161129153240 20161030153240 49035 example.org. rlNNzcUmtbjLSl02ZzQGUbWX75yCUx0Mug1jHtKVqRq1hpPE2S3863tIWSlz+W9wz4o19OI4jbznKKqk+DGKog=="),
 		},
 		Extra: []dns.RR{
 			test.OPT(4096, true),
