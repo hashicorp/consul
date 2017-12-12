@@ -26,9 +26,9 @@ func setup(c *caddy.Controller) error {
 	h := &health{Addr: addr}
 
 	c.OnStartup(func() error {
-		for he := range healthers {
-			m := dnsserver.GetConfig(c).Handler(he)
-			if x, ok := m.(Healther); ok {
+		plugins := dnsserver.GetConfig(c).Handlers()
+		for _, p := range plugins {
+			if x, ok := p.(Healther); ok {
 				h.h = append(h.h, x)
 			}
 		}

@@ -167,6 +167,21 @@ func (c *Config) Handler(name string) plugin.Handler {
 	return nil
 }
 
+// Handlers returns a slice of plugins that have been registered. This can be used to
+// inspect and interact with registered plugins but cannot be used to remove or add plugins.
+// Note that this is order dependent and the order is defined in directives.go, i.e. if your plugin
+// comes before the plugin you are checking; it will not be there (yet).
+func (c *Config) Handlers() []plugin.Handler {
+	if c.registry == nil {
+		return nil
+	}
+	hs := make([]plugin.Handler, 0, len(c.registry))
+	for k := range c.registry {
+		hs = append(hs, c.registry[k])
+	}
+	return hs
+}
+
 // groupSiteConfigsByListenAddr groups site configs by their listen
 // (bind) address, so sites that use the same listener can be served
 // on the same server instance. The return value maps the listen

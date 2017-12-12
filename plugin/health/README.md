@@ -18,10 +18,7 @@ supports health checks has a section "Health" in their README.
 
 ## Plugins
 
-The following plugins report health to the health plugin:
-
-* erratic
-* kubernetes
+Any plugin that implements the Healther interface will be used to report health.
 
 ## Examples
 

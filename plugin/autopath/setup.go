@@ -5,8 +5,6 @@ import (
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
-	"github.com/coredns/coredns/plugin/erratic"
-	"github.com/coredns/coredns/plugin/kubernetes"
 
 	"github.com/mholt/caddy"
 	"github.com/miekg/dns"
@@ -34,11 +32,10 @@ func setup(c *caddy.Controller) error {
 		if m == nil {
 			return nil
 		}
-		if x, ok := m.(*kubernetes.Kubernetes); ok {
+		if x, ok := m.(AutoPather); ok {
 			ap.searchFunc = x.AutoPath
-		}
-		if x, ok := m.(*erratic.Erratic); ok {
-			ap.searchFunc = x.AutoPath
+		} else {
+			return plugin.Error("autopath", fmt.Errorf("%s does not implement the AutoPather interface", mw))
 		}
 		return nil
 	})
@@ -49,12 +46,6 @@ func setup(c *caddy.Controller) error {
 	})
 
 	return nil
-}
-
-// allowedPlugins has a list of plugin that can be used by autopath.
-var allowedPlugins = map[string]bool{
-	"@kubernetes": true,
-	"@erratic":    true,
 }
 
 func autoPathParse(c *caddy.Controller) (*AutoPath, string, error) {
@@ -68,10 +59,7 @@ func autoPathParse(c *caddy.Controller) (*AutoPath, string, error) {
 		}
 		resolv := zoneAndresolv[len(zoneAndresolv)-1]
 		if resolv[0] == '@' {
-			_, ok := allowedPlugins[resolv]
-			if ok {
-				mw = resolv[1:]
-			}
+			mw = resolv[1:]
 		} else {
 			// assume file on disk
 			rc, err := dns.ClientConfigFromFile(resolv)

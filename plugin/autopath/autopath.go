@@ -46,6 +46,12 @@ import (
 // If Func returns a nil slice, no autopathing will be done.
 type Func func(request.Request) []string
 
+// AutoPather defines the interface that a plugin should implement in order to be
+// used by AutoPath.
+type AutoPather interface {
+	AutoPath(request.Request) []string
+}
+
 // AutoPath perform autopath: service side search path completion.
 type AutoPath struct {
 	Next  plugin.Handler

@@ -19,15 +19,12 @@ autopath [ZONE...] RESOLV-CONF
   plugin. For instance `@kubernetes`, will call out to the kubernetes plugin (for each
   query) to retrieve the search list it should use.
 
-Currently the following set of plugin has implemented *autopath*:
-
-* *kubernetes*
-* *erratic*
+If a plugin implements the `AutoPather` interface then it can be used.
 
 ## Metrics
- 
+
 If monitoring is enabled (via the *prometheus* directive) then the following metric is exported:
- 
+
 * `coredns_autopath_success_count_total{}` - counter of successfully autopath-ed queries.
 
 ## Examples

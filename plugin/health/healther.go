@@ -36,9 +36,3 @@ func (h *health) poll() {
 	}
 	h.SetOk(true)
 }
-
-// Plugins that implements the Healther interface.
-var healthers = map[string]bool{
-	"erratic":    true,
-	"kubernetes": true,
-}
