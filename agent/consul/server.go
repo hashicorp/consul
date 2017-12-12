@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/metadata"
@@ -86,8 +87,8 @@ type Server struct {
 	// aclCache is the non-authoritative ACL cache.
 	aclCache *aclCache
 
-	// autopilotPolicy controls the behavior of Autopilot for certain tasks.
-	autopilotPolicy AutopilotPolicy
+	// autopilot is the Autopilot instance for this server.
+	autopilot *autopilot.Autopilot
 
 	// autopilotRemoveDeadCh is used to trigger a check for dead server removals.
 	autopilotRemoveDeadCh chan struct{}
@@ -97,10 +98,6 @@ type Server struct {
 
 	// autopilotWaitGroup is used to block until Autopilot shuts down.
 	autopilotWaitGroup sync.WaitGroup
-
-	// clusterHealth stores the current view of the cluster's health.
-	clusterHealth     structs.OperatorHealthReply
-	clusterHealthLock sync.RWMutex
 
 	// Consul configuration
 	config *Config
@@ -305,8 +302,12 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		shutdownCh:            shutdownCh,
 	}
 
-	// Set up the autopilot policy
-	s.autopilotPolicy = &BasicAutopilot{server: s}
+	// Set up autopilot
+	apDelegate := &AutopilotDelegate{s}
+	serverFunc := func(m serf.Member) bool {
+		return m.Tags["role"] == "consul"
+	}
+	s.autopilot = autopilot.NewAutopilot(logger, apDelegate, serverFunc, config.AutopilotInterval, config.ServerHealthInterval)
 
 	// Initialize the stats fetcher that autopilot will use.
 	s.statsFetcher = NewStatsFetcher(logger, s.connPool, s.config.Datacenter)
@@ -430,7 +431,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 	go s.sessionStats()
 
 	// Start the server health checking.
-	go s.serverHealthLoop()
+	go s.autopilot.ServerHealthLoop(s.shutdownCh)
 
 	return s, nil
 }
@@ -732,7 +733,7 @@ func (s *Server) Leave() error {
 	// removed for some sane period of time.
 	isLeader := s.IsLeader()
 	if isLeader && numPeers > 1 {
-		minRaftProtocol, err := ServerMinRaftProtocol(s.serfLAN.Members())
+		minRaftProtocol, err := s.autopilot.MinRaftProtocol()
 		if err != nil {
 			return err
 		}

@@ -5,9 +5,9 @@ import (
 	"log"
 	"sync"
 
+	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
-	"github.com/hashicorp/consul/agent/structs"
 )
 
 // StatsFetcher has two functions for autopilot. First, lets us fetch all the
@@ -39,9 +39,9 @@ func NewStatsFetcher(logger *log.Logger, pool *pool.ConnPool, datacenter string)
 // cancel this when the context is canceled because we only want one in-flight
 // RPC to each server, so we let it finish and then clean up the in-flight
 // tracking.
-func (f *StatsFetcher) fetch(server *metadata.Server, replyCh chan *structs.ServerStats) {
+func (f *StatsFetcher) fetch(server *metadata.Server, replyCh chan *autopilot.ServerStats) {
 	var args struct{}
-	var reply structs.ServerStats
+	var reply autopilot.ServerStats
 	err := f.pool.RPC(f.datacenter, server.Addr, server.Version, "Status.RaftStats", server.UseTLS, &args, &reply)
 	if err != nil {
 		f.logger.Printf("[WARN] consul: error getting server health from %q: %v",
@@ -56,10 +56,10 @@ func (f *StatsFetcher) fetch(server *metadata.Server, replyCh chan *structs.Serv
 }
 
 // Fetch will attempt to query all the servers in parallel.
-func (f *StatsFetcher) Fetch(ctx context.Context, servers []*metadata.Server) map[string]*structs.ServerStats {
+func (f *StatsFetcher) Fetch(ctx context.Context, servers []*metadata.Server) map[string]*autopilot.ServerStats {
 	type workItem struct {
 		server  *metadata.Server
-		replyCh chan *structs.ServerStats
+		replyCh chan *autopilot.ServerStats
 	}
 	var work []*workItem
 
@@ -72,7 +72,7 @@ func (f *StatsFetcher) Fetch(ctx context.Context, servers []*metadata.Server) ma
 		} else {
 			workItem := &workItem{
 				server:  server,
-				replyCh: make(chan *structs.ServerStats, 1),
+				replyCh: make(chan *autopilot.ServerStats, 1),
 			}
 			work = append(work, workItem)
 			f.inflight[server.ID] = struct{}{}
@@ -83,7 +83,7 @@ func (f *StatsFetcher) Fetch(ctx context.Context, servers []*metadata.Server) ma
 
 	// Now wait for the results to come in, or for the context to be
 	// canceled.
-	replies := make(map[string]*structs.ServerStats)
+	replies := make(map[string]*autopilot.ServerStats)
 	for _, workItem := range work {
 		select {
 		case reply := <-workItem.replyCh:

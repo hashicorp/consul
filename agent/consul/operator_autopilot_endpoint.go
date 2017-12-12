@@ -4,11 +4,12 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
 // AutopilotGetConfiguration is used to retrieve the current Autopilot configuration.
-func (op *Operator) AutopilotGetConfiguration(args *structs.DCSpecificRequest, reply *structs.AutopilotConfig) error {
+func (op *Operator) AutopilotGetConfiguration(args *structs.DCSpecificRequest, reply *autopilot.Config) error {
 	if done, err := op.srv.forward("Operator.AutopilotGetConfiguration", args, args, reply); done {
 		return err
 	}
@@ -69,7 +70,7 @@ func (op *Operator) AutopilotSetConfiguration(args *structs.AutopilotSetConfigRe
 }
 
 // ServerHealth is used to get the current health of the servers.
-func (op *Operator) ServerHealth(args *structs.DCSpecificRequest, reply *structs.OperatorHealthReply) error {
+func (op *Operator) ServerHealth(args *structs.DCSpecificRequest, reply *autopilot.OperatorHealthReply) error {
 	// This must be sent to the leader, so we fix the args since we are
 	// re-using a structure where we don't support all the options.
 	args.RequireConsistent = true
@@ -88,7 +89,7 @@ func (op *Operator) ServerHealth(args *structs.DCSpecificRequest, reply *structs
 	}
 
 	// Exit early if the min Raft version is too low
-	minRaftProtocol, err := ServerMinRaftProtocol(op.srv.LANMembers())
+	minRaftProtocol, err := op.srv.autopilot.MinRaftProtocol()
 	if err != nil {
 		return fmt.Errorf("error getting server raft protocol versions: %s", err)
 	}
@@ -96,7 +97,7 @@ func (op *Operator) ServerHealth(args *structs.DCSpecificRequest, reply *structs
 		return fmt.Errorf("all servers must have raft_protocol set to 3 or higher to use this endpoint")
 	}
 
-	*reply = op.srv.getClusterHealth()
+	*reply = op.srv.autopilot.GetClusterHealth()
 
 	return nil
 }
