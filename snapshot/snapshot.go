@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"time"
 
 	"github.com/hashicorp/raft"
 )
@@ -185,7 +184,7 @@ func Restore(logger *log.Logger, in io.Reader, r *raft.Raft) error {
 	}
 
 	// Feed the snapshot into Raft.
-	if err := r.Restore(&metadata, snap, 60*time.Second); err != nil {
+	if err := r.Restore(&metadata, snap, 0); err != nil {
 		return fmt.Errorf("Raft error when restoring snapshot: %v", err)
 	}
 
