@@ -767,30 +767,19 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	if a.config.SessionTTLMin != 0 {
 		base.SessionTTLMin = a.config.SessionTTLMin
 	}
-	if a.config.AutopilotCleanupDeadServers {
-		base.AutopilotConfig.CleanupDeadServers = a.config.AutopilotCleanupDeadServers
-	}
-	if a.config.AutopilotLastContactThreshold != 0 {
-		base.AutopilotConfig.LastContactThreshold = a.config.AutopilotLastContactThreshold
-	}
-	if a.config.AutopilotMaxTrailingLogs != 0 {
-		base.AutopilotConfig.MaxTrailingLogs = uint64(a.config.AutopilotMaxTrailingLogs)
-	}
-	if a.config.AutopilotServerStabilizationTime != 0 {
-		base.AutopilotConfig.ServerStabilizationTime = a.config.AutopilotServerStabilizationTime
-	}
 	if a.config.NonVotingServer {
 		base.NonVoter = a.config.NonVotingServer
 	}
-	if a.config.AutopilotRedundancyZoneTag != "" {
-		base.AutopilotConfig.RedundancyZoneTag = a.config.AutopilotRedundancyZoneTag
-	}
-	if a.config.AutopilotDisableUpgradeMigration {
-		base.AutopilotConfig.DisableUpgradeMigration = a.config.AutopilotDisableUpgradeMigration
-	}
-	if a.config.AutopilotUpgradeVersionTag != "" {
-		base.AutopilotConfig.UpgradeVersionTag = a.config.AutopilotUpgradeVersionTag
-	}
+
+	// These are fully specified in the agent defaults, so we can simply
+	// copy them over.
+	base.AutopilotConfig.CleanupDeadServers = a.config.AutopilotCleanupDeadServers
+	base.AutopilotConfig.LastContactThreshold = a.config.AutopilotLastContactThreshold
+	base.AutopilotConfig.MaxTrailingLogs = uint64(a.config.AutopilotMaxTrailingLogs)
+	base.AutopilotConfig.ServerStabilizationTime = a.config.AutopilotServerStabilizationTime
+	base.AutopilotConfig.RedundancyZoneTag = a.config.AutopilotRedundancyZoneTag
+	base.AutopilotConfig.DisableUpgradeMigration = a.config.AutopilotDisableUpgradeMigration
+	base.AutopilotConfig.UpgradeVersionTag = a.config.AutopilotUpgradeVersionTag
 
 	// make sure the advertise address is always set
 	if base.RPCAdvertise == nil {
