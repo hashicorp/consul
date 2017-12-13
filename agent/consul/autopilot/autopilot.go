@@ -88,7 +88,7 @@ func (a *Autopilot) run() {
 			return
 		case <-ticker.C:
 			if err := a.promoteServers(); err != nil {
-				a.logger.Printf("[ERR] autopilot: %v", err)
+				a.logger.Printf("[ERR] autopilot: Error promoting servers: %v", err)
 			}
 
 			if err := a.pruneDeadServers(); err != nil {
@@ -145,6 +145,11 @@ func NumPeers(raftConfig raft.Configuration) int {
 
 // pruneDeadServers removes up to numPeers/2 failed servers
 func (a *Autopilot) pruneDeadServers() error {
+	conf := a.delegate.AutopilotConfig()
+	if conf == nil || !conf.CleanupDeadServers {
+		return nil
+	}
+
 	// Failed servers are known to Serf and marked failed, and stale servers
 	// are known to Raft but not Serf.
 	var failed []string
