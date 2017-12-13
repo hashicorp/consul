@@ -36,6 +36,11 @@ type Metrics struct {
 	zoneMu    sync.RWMutex
 }
 
+// New returns a new instance of Metrics with the given address
+func New(addr string) *Metrics {
+	return &Metrics{Addr: addr, zoneMap: make(map[string]bool)}
+}
+
 // AddZone adds zone z to m.
 func (m *Metrics) AddZone(z string) {
 	m.zoneMu.Lock()

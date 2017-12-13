@@ -42,10 +42,7 @@ func setup(c *caddy.Controller) error {
 }
 
 func prometheusParse(c *caddy.Controller) (*Metrics, error) {
-	var (
-		met = &Metrics{Addr: addr, zoneMap: make(map[string]bool)}
-		err error
-	)
+	var met = New(defaultAddr)
 
 	defer func() {
 		uniqAddr.SetAddress(met.Addr)
@@ -73,7 +70,7 @@ func prometheusParse(c *caddy.Controller) (*Metrics, error) {
 			return met, c.ArgErr()
 		}
 	}
-	return met, err
+	return met, nil
 }
 
 var uniqAddr addrs
@@ -91,8 +88,8 @@ func (a *addrs) SetAddress(addr string) {
 	a.a[addr] = todo
 }
 
-// Addr is the address the where the metrics are exported by default.
-const addr = "localhost:9153"
+// defaultAddr is the address the where the metrics are exported by default.
+const defaultAddr = "localhost:9153"
 
 const (
 	todo = 1

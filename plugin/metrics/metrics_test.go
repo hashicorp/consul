@@ -13,7 +13,7 @@ import (
 )
 
 func TestMetrics(t *testing.T) {
-	met := &Metrics{Addr: "localhost:0", zoneMap: make(map[string]bool)}
+	met := New("localhost:0")
 	if err := met.OnStartup(); err != nil {
 		t.Fatalf("Failed to start metrics handler: %s", err)
 	}
