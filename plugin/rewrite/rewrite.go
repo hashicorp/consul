@@ -100,12 +100,12 @@ func newRule(args ...string) (Rule, error) {
 		startArg = 1
 	}
 
-	if ruleType != "edns0" && expectNumArgs != 3 {
+	if ruleType != "edns0" && ruleType != "name" && expectNumArgs != 3 {
 		return nil, fmt.Errorf("%s rules must have exactly two arguments", ruleType)
 	}
 	switch ruleType {
 	case "name":
-		return newNameRule(args[startArg], args[startArg+1])
+		return newNameRule(mode, args[startArg:]...)
 	case "class":
 		return newClassRule(args[startArg], args[startArg+1])
 	case "type":

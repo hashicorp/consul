@@ -30,6 +30,13 @@ func TestNewRule(t *testing.T) {
 		{[]string{"name", "a.com"}, true, nil},
 		{[]string{"name", "a.com", "b.com", "c.com"}, true, nil},
 		{[]string{"name", "a.com", "b.com"}, false, reflect.TypeOf(&nameRule{})},
+		{[]string{"name", "exact", "a.com", "b.com"}, false, reflect.TypeOf(&nameRule{})},
+		{[]string{"name", "prefix", "a.com", "b.com"}, false, reflect.TypeOf(&prefixNameRule{})},
+		{[]string{"name", "suffix", "a.com", "b.com"}, false, reflect.TypeOf(&suffixNameRule{})},
+		{[]string{"name", "substring", "a.com", "b.com"}, false, reflect.TypeOf(&substringNameRule{})},
+		{[]string{"name", "regex", "([a])\\.com", "new-{1}.com"}, false, reflect.TypeOf(&regexNameRule{})},
+		{[]string{"name", "regex", "([a]\\.com", "new-{1}.com"}, true, nil},
+		{[]string{"name", "substring", "a.com", "b.com", "c.com"}, true, nil},
 		{[]string{"type"}, true, nil},
 		{[]string{"type", "a"}, true, nil},
 		{[]string{"type", "any", "a", "a"}, true, nil},
@@ -143,7 +150,17 @@ func TestNewRule(t *testing.T) {
 
 func TestRewrite(t *testing.T) {
 	rules := []Rule{}
-	r, _ := newNameRule("from.nl.", "to.nl.")
+	r, _ := newNameRule("stop", "from.nl.", "to.nl.")
+	rules = append(rules, r)
+	r, _ = newNameRule("stop", "exact", "from.exact.nl.", "to.nl.")
+	rules = append(rules, r)
+	r, _ = newNameRule("stop", "prefix", "prefix", "to")
+	rules = append(rules, r)
+	r, _ = newNameRule("stop", "suffix", ".suffix.", ".nl.")
+	rules = append(rules, r)
+	r, _ = newNameRule("stop", "substring", "from.substring", "to")
+	rules = append(rules, r)
+	r, _ = newNameRule("stop", "regex", "(f.*m)\\.regex\\.(nl)", "to.{2}")
 	rules = append(rules, r)
 	r, _ = newClassRule("CH", "IN")
 	rules = append(rules, r)
@@ -170,6 +187,11 @@ func TestRewrite(t *testing.T) {
 		{"a.nl.", dns.TypeANY, dns.ClassINET, "a.nl.", dns.TypeHINFO, dns.ClassINET},
 		// name is rewritten, type is not.
 		{"from.nl.", dns.TypeANY, dns.ClassINET, "to.nl.", dns.TypeANY, dns.ClassINET},
+		{"from.exact.nl.", dns.TypeA, dns.ClassINET, "to.nl.", dns.TypeA, dns.ClassINET},
+		{"prefix.nl.", dns.TypeA, dns.ClassINET, "to.nl.", dns.TypeA, dns.ClassINET},
+		{"to.suffix.", dns.TypeA, dns.ClassINET, "to.nl.", dns.TypeA, dns.ClassINET},
+		{"from.substring.nl.", dns.TypeA, dns.ClassINET, "to.nl.", dns.TypeA, dns.ClassINET},
+		{"from.regex.nl.", dns.TypeA, dns.ClassINET, "to.nl.", dns.TypeA, dns.ClassINET},
 		// name is not, type is, but class is, because class is the 2nd rule.
 		{"a.nl.", dns.TypeANY, dns.ClassCHAOS, "a.nl.", dns.TypeANY, dns.ClassINET},
 	}
