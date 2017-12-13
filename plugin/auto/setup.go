@@ -10,9 +10,9 @@ import (
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
-	"github.com/coredns/coredns/plugin/file"
 	"github.com/coredns/coredns/plugin/metrics"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
+	"github.com/coredns/coredns/plugin/pkg/parse"
 	"github.com/coredns/coredns/plugin/proxy"
 
 	"github.com/mholt/caddy"
@@ -158,7 +158,7 @@ func autoParse(c *caddy.Controller) (Auto, error) {
 				a.loader.proxy = proxy.NewLookup(ups)
 
 			default:
-				t, _, e := file.TransferParse(c, false)
+				t, _, e := parse.Transfer(c, false)
 				if e != nil {
 					return a, e
 				}

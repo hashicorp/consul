@@ -1,13 +1,13 @@
 package file
 
 import (
-	"fmt"
 	"os"
 	"path"
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
+	"github.com/coredns/coredns/plugin/pkg/parse"
 	"github.com/coredns/coredns/plugin/proxy"
 
 	"github.com/mholt/caddy"
@@ -97,7 +97,7 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 		for c.NextBlock() {
 			switch c.Val() {
 			case "transfer":
-				t, _, e = TransferParse(c, false)
+				t, _, e = parse.Transfer(c, false)
 				if e != nil {
 					return Zones{}, e
 				}
@@ -129,43 +129,4 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 		}
 	}
 	return Zones{Z: z, Names: names}, nil
-}
-
-// TransferParse parses transfer statements: 'transfer to [address...]'.
-func TransferParse(c *caddy.Controller, secondary bool) (tos, froms []string, err error) {
-	if !c.NextArg() {
-		return nil, nil, c.ArgErr()
-	}
-	value := c.Val()
-	switch value {
-	case "to":
-		tos = c.RemainingArgs()
-		for i := range tos {
-			if tos[i] != "*" {
-				normalized, err := dnsutil.ParseHostPort(tos[i], "53")
-				if err != nil {
-					return nil, nil, err
-				}
-				tos[i] = normalized
-			}
-		}
-
-	case "from":
-		if !secondary {
-			return nil, nil, fmt.Errorf("can't use `transfer from` when not being a secondary")
-		}
-		froms = c.RemainingArgs()
-		for i := range froms {
-			if froms[i] != "*" {
-				normalized, err := dnsutil.ParseHostPort(froms[i], "53")
-				if err != nil {
-					return nil, nil, err
-				}
-				froms[i] = normalized
-			} else {
-				return nil, nil, fmt.Errorf("can't use '*' in transfer from")
-			}
-		}
-	}
-	return
 }
