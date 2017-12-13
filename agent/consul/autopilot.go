@@ -26,29 +26,30 @@ func (d *AutopilotDelegate) FetchStats(ctx context.Context, servers []serf.Membe
 	return d.server.statsFetcher.Fetch(ctx, servers)
 }
 
-func (d *AutopilotDelegate) IsServer(m serf.Member) (bool, *autopilot.ServerInfo) {
+func (d *AutopilotDelegate) IsServer(m serf.Member) (*autopilot.ServerInfo, error) {
 	if m.Tags["role"] != "consul" {
-		return false, nil
+		return nil, nil
 	}
 
 	port_str := m.Tags["port"]
 	port, err := strconv.Atoi(port_str)
 	if err != nil {
-		return false, nil
+		return nil, err
 	}
 
 	build_version, err := metadata.Build(&m)
 	if err != nil {
-		return false, nil
+		return nil, err
 	}
 
-	return true, &autopilot.ServerInfo{
+	server := &autopilot.ServerInfo{
 		Name:   m.Name,
 		ID:     m.Tags["id"],
 		Addr:   &net.TCPAddr{IP: m.Addr, Port: port},
 		Build:  *build_version,
 		Status: m.Status,
 	}
+	return server, nil
 }
 
 // Heartbeat a metric for monitoring if we're the leader
