@@ -54,6 +54,8 @@ func DefaultSource() Source {
 		syslog_facility = "LOCAL0"
 		tls_min_version = "tls10"
 
+		// TODO (slackpad) - Until #3744 is done, we need to keep these
+		// in sync with agent/consul/config.go.
 		autopilot = {
 			cleanup_dead_servers = true
 			last_contact_threshold = "200ms"
