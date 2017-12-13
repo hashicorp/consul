@@ -70,7 +70,7 @@ cluster.local {
 ## Bugs
 
 Multiple *dnssec* plugins inside one server stanza will silently overwrite earlier ones, here
-`example.local` will overwrite the one for `cluster.org`.
+`example.org` will overwrite the one for `cluster.local`.
 
 ~~~
 . {
