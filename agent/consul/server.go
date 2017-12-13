@@ -304,10 +304,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 
 	// Set up autopilot
 	apDelegate := &AutopilotDelegate{s}
-	serverFunc := func(m serf.Member) bool {
-		return m.Tags["role"] == "consul"
-	}
-	s.autopilot = autopilot.NewAutopilot(logger, apDelegate, serverFunc, config.AutopilotInterval, config.ServerHealthInterval)
+	s.autopilot = autopilot.NewAutopilot(logger, apDelegate, config.AutopilotInterval, config.ServerHealthInterval)
 
 	// Initialize the stats fetcher that autopilot will use.
 	s.statsFetcher = NewStatsFetcher(logger, s.connPool, s.config.Datacenter)
@@ -832,13 +829,7 @@ func (s *Server) numPeers() (int, error) {
 		return 0, err
 	}
 
-	var numPeers int
-	for _, server := range future.Configuration().Servers {
-		if server.Suffrage == raft.Voter {
-			numPeers++
-		}
-	}
-	return numPeers, nil
+	return autopilot.NumPeers(future.Configuration()), nil
 }
 
 // JoinLAN is used to have Consul join the inner-DC pool

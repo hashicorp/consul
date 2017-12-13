@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/serf/serf"
 )
 
 // StatsFetcher has two functions for autopilot. First, lets us fetch all the
@@ -56,14 +57,20 @@ func (f *StatsFetcher) fetch(server *metadata.Server, replyCh chan *autopilot.Se
 }
 
 // Fetch will attempt to query all the servers in parallel.
-func (f *StatsFetcher) Fetch(ctx context.Context, servers []*metadata.Server) map[string]*autopilot.ServerStats {
+func (f *StatsFetcher) Fetch(ctx context.Context, members []serf.Member) map[string]*autopilot.ServerStats {
 	type workItem struct {
 		server  *metadata.Server
 		replyCh chan *autopilot.ServerStats
 	}
-	var work []*workItem
+	var servers []*metadata.Server
+	for _, s := range members {
+		if ok, parts := metadata.IsConsulServer(s); ok {
+			servers = append(servers, parts)
+		}
+	}
 
 	// Skip any servers that have inflight requests.
+	var work []*workItem
 	f.inflightLock.Lock()
 	for _, server := range servers {
 		if _, ok := f.inflight[server.ID]; ok {

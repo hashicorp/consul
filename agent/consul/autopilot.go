@@ -3,7 +3,10 @@ package consul
 import (
 	"context"
 	"fmt"
+	"net"
+	"strconv"
 
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/raft"
@@ -15,24 +18,52 @@ type AutopilotDelegate struct {
 	server *Server
 }
 
-func (d *AutopilotDelegate) FetchStats(ctx context.Context, servers []*metadata.Server) map[string]*autopilot.ServerStats {
-	return d.server.statsFetcher.Fetch(ctx, servers)
-}
-
-func (d *AutopilotDelegate) GetOrCreateAutopilotConfig() (*autopilot.Config, bool) {
+func (d *AutopilotDelegate) AutopilotConfig() *autopilot.Config {
 	return d.server.getOrCreateAutopilotConfig()
 }
 
-func (d *AutopilotDelegate) Raft() *raft.Raft {
-	return d.server.raft
+func (d *AutopilotDelegate) FetchStats(ctx context.Context, servers []serf.Member) map[string]*autopilot.ServerStats {
+	return d.server.statsFetcher.Fetch(ctx, servers)
 }
 
-func (d *AutopilotDelegate) Serf() *serf.Serf {
-	return d.server.serfLAN
+func (d *AutopilotDelegate) IsServer(m serf.Member) (bool, *autopilot.ServerInfo) {
+	if m.Tags["role"] != "consul" {
+		return false, nil
+	}
+
+	port_str := m.Tags["port"]
+	port, err := strconv.Atoi(port_str)
+	if err != nil {
+		return false, nil
+	}
+
+	build_version, err := metadata.Build(&m)
+	if err != nil {
+		return false, nil
+	}
+
+	return true, &autopilot.ServerInfo{
+		Name:   m.Name,
+		ID:     m.Tags["id"],
+		Addr:   &net.TCPAddr{IP: m.Addr, Port: port},
+		Build:  *build_version,
+		Status: m.Status,
+	}
 }
 
-func (d *AutopilotDelegate) NumPeers() (int, error) {
-	return d.server.numPeers()
+// Heartbeat a metric for monitoring if we're the leader
+func (d *AutopilotDelegate) NotifyHealth(health autopilot.OperatorHealthReply) {
+	if d.server.raft.State() == raft.Leader {
+		metrics.SetGauge([]string{"consul", "autopilot", "failure_tolerance"}, float32(health.FailureTolerance))
+		metrics.SetGauge([]string{"autopilot", "failure_tolerance"}, float32(health.FailureTolerance))
+		if health.Healthy {
+			metrics.SetGauge([]string{"consul", "autopilot", "healthy"}, 1)
+			metrics.SetGauge([]string{"autopilot", "healthy"}, 1)
+		} else {
+			metrics.SetGauge([]string{"consul", "autopilot", "healthy"}, 0)
+			metrics.SetGauge([]string{"autopilot", "healthy"}, 0)
+		}
+	}
 }
 
 func (d *AutopilotDelegate) PromoteNonVoters(conf *autopilot.Config, health autopilot.OperatorHealthReply) ([]raft.Server, error) {
@@ -42,4 +73,12 @@ func (d *AutopilotDelegate) PromoteNonVoters(conf *autopilot.Config, health auto
 	}
 
 	return autopilot.PromoteStableServers(conf, health, future.Configuration().Servers), nil
+}
+
+func (d *AutopilotDelegate) Raft() *raft.Raft {
+	return d.server.raft
+}
+
+func (d *AutopilotDelegate) Serf() *serf.Serf {
+	return d.server.serfLAN
 }
