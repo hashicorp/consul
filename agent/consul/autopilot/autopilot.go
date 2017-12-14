@@ -470,7 +470,7 @@ func (a *Autopilot) GetServerHealth(id string) *ServerHealth {
 	return a.clusterHealth.ServerHealth(id)
 }
 
-func isPotentialVoter(suffrage raft.ServerSuffrage) bool {
+func IsPotentialVoter(suffrage raft.ServerSuffrage) bool {
 	switch suffrage {
 	case raft.Voter, raft.Staging:
 		return true

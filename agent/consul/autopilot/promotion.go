@@ -14,7 +14,7 @@ func PromoteStableServers(autopilotConfig *Config, health OperatorHealthReply, s
 	now := time.Now()
 	var promotions []raft.Server
 	for _, server := range servers {
-		if !isPotentialVoter(server.Suffrage) {
+		if !IsPotentialVoter(server.Suffrage) {
 			health := health.ServerHealth(string(server.ID))
 			if health.IsStable(now, autopilotConfig) {
 				promotions = append(promotions, server)
