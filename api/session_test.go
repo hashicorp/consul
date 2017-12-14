@@ -326,6 +326,60 @@ func TestAPI_SessionInfo(t *testing.T) {
 	}
 }
 
+func TestAPI_SessionInfo_NoChecks(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	session := c.Session()
+
+	id, _, err := session.CreateNoChecks(nil, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer session.Destroy(id, nil)
+
+	info, qm, err := session.Info(id, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if qm.LastIndex == 0 {
+		t.Fatalf("bad: %v", qm)
+	}
+	if !qm.KnownLeader {
+		t.Fatalf("bad: %v", qm)
+	}
+
+	if info == nil {
+		t.Fatalf("should get session")
+	}
+	if info.CreateIndex == 0 {
+		t.Fatalf("bad: %v", info)
+	}
+	if info.ID != id {
+		t.Fatalf("bad: %v", info)
+	}
+	if info.Name != "" {
+		t.Fatalf("bad: %v", info)
+	}
+	if info.Node == "" {
+		t.Fatalf("bad: %v", info)
+	}
+	if len(info.Checks) != 0 {
+		t.Fatalf("bad: %v", info)
+	}
+	if info.LockDelay == 0 {
+		t.Fatalf("bad: %v", info)
+	}
+	if info.Behavior != "release" {
+		t.Fatalf("bad: %v", info)
+	}
+	if info.TTL != "" {
+		t.Fatalf("bad: %v", info)
+	}
+}
+
 func TestAPI_SessionNode(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)

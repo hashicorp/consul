@@ -31,7 +31,8 @@ func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) 
 		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
 	}
 
-	// Default the session to our node + serf check + release session invalidate behavior
+	// Default the session to our node + serf check + release session
+	// invalidate behavior.
 	args := structs.SessionRequest{
 		Op: structs.SessionCreate,
 		Session: structs.Session{
@@ -47,7 +48,16 @@ func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) 
 
 	// Handle optional request body
 	if req.ContentLength > 0 {
-		if err := decodeBody(req, &args.Session, FixupLockDelay); err != nil {
+		fixup := func(raw interface{}) error {
+			if err := FixupLockDelay(raw); err != nil {
+				return err
+			}
+			if err := FixupChecks(raw, &args.Session); err != nil {
+				return err
+			}
+			return nil
+		}
+		if err := decodeBody(req, &args.Session, fixup); err != nil {
 			resp.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(resp, "Request decode failed: %v", err)
 			return nil, nil
@@ -98,6 +108,27 @@ func FixupLockDelay(raw interface{}) error {
 				dur = dur * time.Second
 			}
 			rawMap[key] = dur
+		}
+	}
+	return nil
+}
+
+// FixupChecks is used to handle parsing the JSON body to default-add the Serf
+// health check if they didn't specify any checks, but to allow an empty list
+// to take out the Serf health check. This behavior broke when mapstructure was
+// updated after 0.9.3, likely because we have a type wrapper around the string.
+func FixupChecks(raw interface{}, s *structs.Session) error {
+	rawMap, ok := raw.(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	for k := range rawMap {
+		if strings.ToLower(k) == "checks" {
+			// If they supplied a checks key in the JSON, then
+			// remove the default entries and respect whatever they
+			// specified.
+			s.Checks = nil
+			return nil
 		}
 	}
 	return nil
