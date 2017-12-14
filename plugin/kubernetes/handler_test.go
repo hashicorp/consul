@@ -85,6 +85,22 @@ var dnsTestCases = []test.Case{
 			test.A("hdls1.testns.svc.cluster.local.	5	IN	A	172.0.0.3"),
 		},
 	},
+	// A pod ip
+	{
+		Qname: "172-0-0-2.hdls1.testns.svc.cluster.local.", Qtype: dns.TypeA,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.A("172-0-0-2.hdls1.testns.svc.cluster.local.	5	IN	A	172.0.0.2"),
+		},
+	},
+	// A pod ip
+	{
+		Qname: "172-0-0-3.hdls1.testns.svc.cluster.local.", Qtype: dns.TypeA,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.A("172-0-0-3.hdls1.testns.svc.cluster.local.	5	IN	A	172.0.0.3"),
+		},
+	},
 	// SRV Service (Headless)
 	{
 		Qname: "_http._tcp.hdls1.testns.svc.cluster.local.", Qtype: dns.TypeSRV,
@@ -101,6 +117,12 @@ var dnsTestCases = []test.Case{
 			test.AAAA("5678-abcd--1.hdls1.testns.svc.cluster.local.	5	IN	AAAA	5678:abcd::1"),
 			test.AAAA("5678-abcd--2.hdls1.testns.svc.cluster.local.	5	IN	AAAA	5678:abcd::2"),
 		},
+	},
+	// AAAA
+	{
+		Qname: "5678-abcd--2.hdls1.testns.svc.cluster.local", Qtype: dns.TypeAAAA,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{test.AAAA("5678-abcd--2.hdls1.testns.svc.cluster.local.	5	IN	AAAA	5678:abcd::2")},
 	},
 	// CNAME External
 	{
@@ -163,6 +185,17 @@ var dnsTestCases = []test.Case{
 		Qname: "svc6.testns.svc.cluster.local.", Qtype: dns.TypeAAAA,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
+			test.AAAA("svc6.testns.svc.cluster.local.	5	IN	AAAA	1234:abcd::1"),
+		},
+	},
+	// SRV
+	{
+		Qname: "_http._tcp.svc6.testns.svc.cluster.local.", Qtype: dns.TypeSRV,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.SRV("_http._tcp.svc6.testns.svc.cluster.local.	5	IN	SRV	0 100 80 svc6.testns.svc.cluster.local."),
+		},
+		Extra: []dns.RR{
 			test.AAAA("svc6.testns.svc.cluster.local.	5	IN	AAAA	1234:abcd::1"),
 		},
 	},
