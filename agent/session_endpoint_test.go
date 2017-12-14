@@ -11,7 +11,31 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
+	"github.com/pascaldekloe/goe/verify"
 )
+
+func verifySession(t *testing.T, a *TestAgent, want structs.Session) {
+	t.Helper()
+
+	args := &structs.SessionSpecificRequest{
+		Datacenter: "dc1",
+		Session:    want.ID,
+	}
+	var out structs.IndexedSessions
+	if err := a.RPC("Session.Get", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(out.Sessions) != 1 {
+		t.Fatalf("bad: %#v", out.Sessions)
+	}
+
+	// Make a copy so we don't modify the state store copy for an in-mem
+	// RPC and zero out the Raft info for the compare.
+	got := *(out.Sessions[0])
+	got.CreateIndex = 0
+	got.ModifyIndex = 0
+	verify.Values(t, "", got, want)
+}
 
 func TestSessionCreate(t *testing.T) {
 	t.Parallel()
@@ -54,12 +78,18 @@ func TestSessionCreate(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if _, ok := obj.(sessionCreateResponse); !ok {
-		t.Fatalf("should work")
+	want := structs.Session{
+		ID:        obj.(sessionCreateResponse).ID,
+		Name:      "my-cool-session",
+		Node:      a.Config.NodeName,
+		Checks:    []types.CheckID{structs.SerfCheckID, "consul"},
+		LockDelay: 20 * time.Second,
+		Behavior:  structs.SessionKeysRelease,
 	}
+	verifySession(t, a, want)
 }
 
-func TestSessionCreateDelete(t *testing.T) {
+func TestSessionCreate_Delete(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
@@ -101,9 +131,82 @@ func TestSessionCreateDelete(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if _, ok := obj.(sessionCreateResponse); !ok {
-		t.Fatalf("should work")
+	want := structs.Session{
+		ID:        obj.(sessionCreateResponse).ID,
+		Name:      "my-cool-session",
+		Node:      a.Config.NodeName,
+		Checks:    []types.CheckID{structs.SerfCheckID, "consul"},
+		LockDelay: 20 * time.Second,
+		Behavior:  structs.SessionKeysDelete,
 	}
+	verifySession(t, a, want)
+}
+
+func TestSessionCreate_DefaultCheck(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Associate session with node and 2 health checks
+	body := bytes.NewBuffer(nil)
+	enc := json.NewEncoder(body)
+	raw := map[string]interface{}{
+		"Name":      "my-cool-session",
+		"Node":      a.Config.NodeName,
+		"LockDelay": "20s",
+	}
+	enc.Encode(raw)
+
+	req, _ := http.NewRequest("PUT", "/v1/session/create", body)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.SessionCreate(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	want := structs.Session{
+		ID:        obj.(sessionCreateResponse).ID,
+		Name:      "my-cool-session",
+		Node:      a.Config.NodeName,
+		Checks:    []types.CheckID{structs.SerfCheckID},
+		LockDelay: 20 * time.Second,
+		Behavior:  structs.SessionKeysRelease,
+	}
+	verifySession(t, a, want)
+}
+
+func TestSessionCreate_NoCheck(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Associate session with node and 2 health checks
+	body := bytes.NewBuffer(nil)
+	enc := json.NewEncoder(body)
+	raw := map[string]interface{}{
+		"Name":      "my-cool-session",
+		"Node":      a.Config.NodeName,
+		"Checks":    []types.CheckID{},
+		"LockDelay": "20s",
+	}
+	enc.Encode(raw)
+
+	req, _ := http.NewRequest("PUT", "/v1/session/create", body)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.SessionCreate(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	want := structs.Session{
+		ID:        obj.(sessionCreateResponse).ID,
+		Name:      "my-cool-session",
+		Node:      a.Config.NodeName,
+		Checks:    []types.CheckID{},
+		LockDelay: 20 * time.Second,
+		Behavior:  structs.SessionKeysRelease,
+	}
+	verifySession(t, a, want)
 }
 
 func TestFixupLockDelay(t *testing.T) {
