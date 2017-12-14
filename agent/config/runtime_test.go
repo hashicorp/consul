@@ -1115,7 +1115,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 						"bootstrap_expect": 0,
 						"datacenter":"b",
 						"start_join": ["c", "d"],
-						"node_meta": {"c":"d"}
+						"node_meta": {"a":"c"}
 					}`,
 			},
 			hcl: []string{
@@ -1131,7 +1131,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					bootstrap_expect = 0
 					datacenter = "b"
 					start_join = ["c", "d"]
-					node_meta = { "c" = "d" }
+					node_meta = { "a" = "c" }
 					`,
 			},
 			patch: func(rt *RuntimeConfig) {
@@ -1139,7 +1139,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.BootstrapExpect = 0
 				rt.Datacenter = "b"
 				rt.StartJoinAddrsLAN = []string{"a", "b", "c", "d"}
-				rt.NodeMeta = map[string]string{"c": "d"}
+				rt.NodeMeta = map[string]string{"a": "c"}
 				rt.DataDir = dataDir
 			},
 		},
@@ -1181,7 +1181,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				`-datacenter=b`,
 				`-data-dir=` + dataDir,
 				`-join`, `c`, `-join=d`,
-				`-node-meta=c:d`,
+				`-node-meta=a:c`,
 				`-recursor`, `1.2.3.6`, `-recursor=5.6.7.10`,
 				`-serf-lan-bind=3.3.3.3`,
 				`-serf-wan-bind=4.4.4.4`,
@@ -1194,7 +1194,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.SerfAdvertiseAddrWAN = tcpAddr("2.2.2.2:8302")
 				rt.Datacenter = "b"
 				rt.DNSRecursors = []string{"1.2.3.6", "5.6.7.10", "1.2.3.5", "5.6.7.9"}
-				rt.NodeMeta = map[string]string{"c": "d"}
+				rt.NodeMeta = map[string]string{"a": "c"}
 				rt.SerfBindAddrLAN = tcpAddr("3.3.3.3:8301")
 				rt.SerfBindAddrWAN = tcpAddr("4.4.4.4:8302")
 				rt.StartJoinAddrsLAN = []string{"c", "d", "a", "b"}
