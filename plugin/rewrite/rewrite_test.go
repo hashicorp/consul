@@ -162,9 +162,15 @@ func TestRewrite(t *testing.T) {
 	rules = append(rules, r)
 	r, _ = newNameRule("stop", "regex", "(f.*m)\\.regex\\.(nl)", "to.{2}")
 	rules = append(rules, r)
-	r, _ = newClassRule("CH", "IN")
+	r, _ = newNameRule("continue", "regex", "consul\\.(rocks)", "core.dns.{1}")
 	rules = append(rules, r)
-	r, _ = newTypeRule("ANY", "HINFO")
+	r, _ = newNameRule("stop", "core.dns.rocks", "to.nl.")
+	rules = append(rules, r)
+	r, _ = newClassRule("continue", "HS", "CH")
+	rules = append(rules, r)
+	r, _ = newClassRule("stop", "CH", "IN")
+	rules = append(rules, r)
+	r, _ = newTypeRule("stop", "ANY", "HINFO")
 	rules = append(rules, r)
 
 	rw := Rewrite{
@@ -192,8 +198,11 @@ func TestRewrite(t *testing.T) {
 		{"to.suffix.", dns.TypeA, dns.ClassINET, "to.nl.", dns.TypeA, dns.ClassINET},
 		{"from.substring.nl.", dns.TypeA, dns.ClassINET, "to.nl.", dns.TypeA, dns.ClassINET},
 		{"from.regex.nl.", dns.TypeA, dns.ClassINET, "to.nl.", dns.TypeA, dns.ClassINET},
+		{"consul.rocks.", dns.TypeA, dns.ClassINET, "to.nl.", dns.TypeA, dns.ClassINET},
 		// name is not, type is, but class is, because class is the 2nd rule.
 		{"a.nl.", dns.TypeANY, dns.ClassCHAOS, "a.nl.", dns.TypeANY, dns.ClassINET},
+		// class gets rewritten twice because of continue/stop logic: HS to CH, CH to IN
+		{"a.nl.", dns.TypeANY, 4, "a.nl.", dns.TypeANY, dns.ClassINET},
 	}
 
 	ctx := context.TODO()

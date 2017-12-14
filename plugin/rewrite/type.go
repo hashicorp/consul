@@ -10,19 +10,21 @@ import (
 
 // typeRule is a type rewrite rule.
 type typeRule struct {
-	fromType, toType uint16
+	fromType   uint16
+	toType     uint16
+	nextAction string
 }
 
-func newTypeRule(fromS, toS string) (Rule, error) {
+func newTypeRule(nextAction string, args ...string) (Rule, error) {
 	var from, to uint16
 	var ok bool
-	if from, ok = dns.StringToType[strings.ToUpper(fromS)]; !ok {
-		return nil, fmt.Errorf("invalid type %q", strings.ToUpper(fromS))
+	if from, ok = dns.StringToType[strings.ToUpper(args[0])]; !ok {
+		return nil, fmt.Errorf("invalid type %q", strings.ToUpper(args[0]))
 	}
-	if to, ok = dns.StringToType[strings.ToUpper(toS)]; !ok {
-		return nil, fmt.Errorf("invalid type %q", strings.ToUpper(toS))
+	if to, ok = dns.StringToType[strings.ToUpper(args[1])]; !ok {
+		return nil, fmt.Errorf("invalid type %q", strings.ToUpper(args[1]))
 	}
-	return &typeRule{fromType: from, toType: to}, nil
+	return &typeRule{from, to, nextAction}, nil
 }
 
 // Rewrite rewrites the the current request.
@@ -38,5 +40,5 @@ func (rule *typeRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result {
 
 // Mode returns the processing mode
 func (rule *typeRule) Mode() string {
-	return Stop
+	return rule.nextAction
 }

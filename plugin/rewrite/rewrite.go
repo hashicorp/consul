@@ -107,9 +107,9 @@ func newRule(args ...string) (Rule, error) {
 	case "name":
 		return newNameRule(mode, args[startArg:]...)
 	case "class":
-		return newClassRule(args[startArg], args[startArg+1])
+		return newClassRule(mode, args[startArg:]...)
 	case "type":
-		return newTypeRule(args[startArg], args[startArg+1])
+		return newTypeRule(mode, args[startArg:]...)
 	case "edns0":
 		return newEdns0Rule(mode, args[startArg:]...)
 	default:
