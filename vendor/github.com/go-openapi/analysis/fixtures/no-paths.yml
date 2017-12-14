@@ -1,0 +1,38 @@
+---
+swagger: '2.0'
+info:
+  title: no paths API
+  version: 4.1.7
+schemes:
+  - http
+basePath: /wooble
+consumes:
+  - application/json
+produces:
+  - application/json
+paths:
+definitions:
+  common:
+    type: object
+    required:
+      - id
+    properties:
+      id:
+        type: string
+        format: string
+        minLength: 1
+parameters:
+  common:
+    name: common
+    in: query
+    type: string
+
+responses:
+  401:
+    description: bar unauthorized
+    schema:
+      $ref: "#/definitions/error"
+  404:
+    description: bar resource not found
+    schema:
+      $ref: "#/definitions/error"

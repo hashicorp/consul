@@ -5,29 +5,20 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"sync"
 
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/metrics/vars"
-
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
-
-func init() {
-	prometheus.MustRegister(vars.RequestCount)
-	prometheus.MustRegister(vars.RequestDuration)
-	prometheus.MustRegister(vars.RequestSize)
-	prometheus.MustRegister(vars.RequestDo)
-	prometheus.MustRegister(vars.RequestType)
-
-	prometheus.MustRegister(vars.ResponseSize)
-	prometheus.MustRegister(vars.ResponseRcode)
-}
 
 // Metrics holds the prometheus configuration. The metrics' path is fixed to be /metrics
 type Metrics struct {
 	Next plugin.Handler
 	Addr string
+	Reg  *prometheus.Registry
 	ln   net.Listener
 	mux  *http.ServeMux
 
@@ -38,7 +29,24 @@ type Metrics struct {
 
 // New returns a new instance of Metrics with the given address
 func New(addr string) *Metrics {
-	return &Metrics{Addr: addr, zoneMap: make(map[string]bool)}
+	met := &Metrics{
+		Addr:    addr,
+		Reg:     prometheus.NewRegistry(),
+		zoneMap: make(map[string]bool),
+	}
+	// Add the default collectors
+	met.Reg.MustRegister(prometheus.NewGoCollector())
+	met.Reg.MustRegister(prometheus.NewProcessCollector(os.Getpid(), ""))
+
+	// Add all of our collectors
+	met.Reg.MustRegister(vars.RequestCount)
+	met.Reg.MustRegister(vars.RequestDuration)
+	met.Reg.MustRegister(vars.RequestSize)
+	met.Reg.MustRegister(vars.RequestDo)
+	met.Reg.MustRegister(vars.RequestType)
+	met.Reg.MustRegister(vars.ResponseSize)
+	met.Reg.MustRegister(vars.ResponseRcode)
+	return met
 }
 
 // AddZone adds zone z to m.
@@ -77,7 +85,7 @@ func (m *Metrics) OnStartup() error {
 	ListenAddr = m.ln.Addr().String()
 
 	m.mux = http.NewServeMux()
-	m.mux.Handle("/metrics", prometheus.Handler())
+	m.mux.Handle("/metrics", promhttp.HandlerFor(m.Reg, promhttp.HandlerOpts{}))
 
 	go func() {
 		http.Serve(m.ln, m.mux)

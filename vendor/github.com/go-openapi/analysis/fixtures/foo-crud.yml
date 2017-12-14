@@ -1,0 +1,180 @@
+---
+swagger: '2.0'
+info:
+  title: foo CRUD API
+  version: 4.2.0
+schemes:
+  - http
+basePath: /api
+consumes:
+  - application/json
+produces:
+  - application/json
+paths:
+  /common:
+    get:
+      operationId: commonGet
+      summary: here to test path collisons
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: "#/definitions/foo"
+  /foos:
+    post:
+      operationId: create
+      summary: Create a new foo
+      parameters:
+        - name: info
+          in: body
+          schema:
+            $ref: "#/definitions/foo"
+      responses:
+        '201':
+          description: created
+          schema:
+            $ref: "#/definitions/fooId"
+        default:
+          description: error
+          schema:
+            $ref: "#/definitions/error"
+  /foos/{fooid}:
+    get:
+      operationId: get
+      summary: Get a foo by id
+      parameters:
+        - $ref: "#/parameters/fooid"
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: "#/definitions/foo"
+        '401':
+          $ref: "#/responses/401"
+        '404':
+          $ref: "#/responses/404"
+        default:
+          description: error
+          schema:
+            $ref: "#/definitions/error"
+    delete:
+      operationId: delete
+      summary: delete a foo by id
+      parameters:
+        - name: fooid
+          in: path
+          required: true
+          type: string
+      responses:
+        '200':
+          description: OK
+        '401':
+          description: unauthorized
+          schema:
+            $ref: "#/definitions/error"
+        '404':
+          description: resource not found
+          schema:
+            $ref: "#/definitions/error"
+        default:
+          description: error
+          schema:
+            $ref: "#/definitions/error"
+    post:
+      operationId: update
+      summary: update a foo by id
+      parameters:
+        - name: fooid
+          in: path
+          required: true
+          type: string
+        - name: info
+          in: body
+          schema:
+            $ref: "#/definitions/foo"
+      responses:
+        '200':
+          description: OK
+        '401':
+          description: unauthorized
+          schema:
+            $ref: "#/definitions/error"
+        '404':
+          description: resource not found
+          schema:
+            $ref: "#/definitions/error"
+        default:
+          description: error
+          schema:
+            $ref: "#/definitions/error"
+
+definitions:
+  common:
+    type: object
+    required:
+      - id
+    properties:
+      id:
+        type: string
+        format: string
+        minLength: 1
+  foo:
+    type: object
+    required:
+      - name
+      - description
+    properties:
+      id:
+        type: string
+        format: string
+        readOnly: true
+      name:
+        type: string
+        format: string
+        minLength: 1
+      description:
+        type: string
+        format: string
+        minLength: 1
+  fooId:
+    type: object
+    required:
+      - id
+    properties:
+      id:
+        type: string
+        format: string
+        minLength: 1
+  error:
+    type: object
+    required:
+       - message
+    properties:
+      code:
+        type: string
+        format: string
+      message:
+        type: string
+      fields:
+        type: string
+
+parameters:
+  common:
+    name: common
+    in: query
+    type: string
+  fooid:
+    name: fooid
+    in: path
+    required: true
+    type: string
+
+responses:
+  401:
+    description: foo unauthorized
+    schema:
+      $ref: "#/definitions/error"
+  404:
+    description: foo resource not found
+    schema:
+      $ref: "#/definitions/error"

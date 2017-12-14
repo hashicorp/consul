@@ -1,0 +1,12 @@
+#!/bin/sh
+
+. ../.env
+
+exec mongod $COMMONDOPTS \
+	--shardsvr \
+	--port 40003 \
+	--auth \
+	--sslMode preferSSL \
+	--sslCAFile ../../certs/server.pem \
+	--sslPEMKeyFile ../../certs/server.pem
+

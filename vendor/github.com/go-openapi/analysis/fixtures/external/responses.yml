@@ -1,0 +1,4 @@
+responses:
+  notFound:
+    schema:
+      $ref: "errors.yml#/error"

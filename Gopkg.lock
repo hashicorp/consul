@@ -279,7 +279,7 @@
 
 [[projects]]
   name = "github.com/prometheus/client_golang"
-  packages = ["prometheus"]
+  packages = ["prometheus","prometheus/promhttp"]
   revision = "c5b7fccd204277076155f10851dad72b76a49317"
   version = "v0.8.0"
 
@@ -380,6 +380,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "be9300a30414c93aa44756868a7906a0a295b0910a662880741bcfac58b7b679"
+  inputs-digest = "802b3c477e5c45a1fc7283cfc3e9ed03c4dffb4bfe9fb406d252a8d8194975d1"
   solver-name = "gps-cdcl"
   solver-version = 1

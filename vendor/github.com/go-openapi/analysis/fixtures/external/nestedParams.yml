@@ -1,0 +1,35 @@
+bodyParam:
+  name: body
+  in: body
+  schema:
+    type: object
+    properties:
+      record:
+        type: array
+        items:
+          - type: string
+            format: date-time
+          - type: object
+            properties:
+              createdAt:
+                type: string
+                format: date-time
+          - allOf:
+              - type: string
+                format: date
+              - type: object
+            properties:
+              id:
+                type: integer
+                format: int64
+              value:
+                type: string
+              name:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    format: int64
+                  createdAt:
+                    type: string
+                    format: date-time

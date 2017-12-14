@@ -1,0 +1,9 @@
+get:
+  operationId: modelOp
+  summary: many model variations
+  description: Used to see if a codegen can render all the possible parameter variations for a header param
+  tags:
+    - testcgen
+  responses:
+    default:
+      description: Generic Out

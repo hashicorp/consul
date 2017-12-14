@@ -1,0 +1,95 @@
+---
+swagger: "2.0"
+info:
+  version: "0.1.0"
+  title: reference analysis
+
+parameters:
+  someParam:
+    name: someParam
+    in: body
+    schema:
+      $ref: "external/definitions.yml#/definitions/record"
+responses:
+  someResponse:
+    schema:
+      $ref: "external/definitions.yml#/definitions/record"
+paths:
+  "/some/where/{id}":
+    parameters:
+      - $ref: "external/parameters.yml#/parameters/idParam"
+
+      - name: bodyId
+        in: body
+        schema:
+          $ref: "external/definitions.yml#/definitions/record"
+    get:
+      parameters:
+      - $ref: "external/parameters.yml#/parameters/limitParam"
+      - name: other
+        in: query
+        type: array
+        items:
+          $ref: "external/definitions.yml#/definitions/named"
+      - name: body
+        in: body
+        schema:
+          $ref: "external/definitions.yml#/definitions/record"
+      responses:
+        default:
+          schema:
+            $ref: "external/definitions.yml#/definitions/record"
+        404:
+          $ref: "external/responses.yml#/responses/notFound"
+        200:
+          schema:
+            $ref: "external/definitions.yml#/definitions/tag"
+  "/other/place":
+    $ref: "external/pathItem.yml"
+
+definitions:
+  namedAgain:
+    $ref: "external/definitions.yml#/definitions/named"
+
+  datedTag:
+    allOf:
+      - type: string
+        format: date
+      - $ref: "external/definitions.yml#/definitions/tag"
+  
+  records:
+    type: array
+    items:
+      - $ref: "external/definitions.yml#/definitions/record"
+
+  datedRecords:
+    type: array
+    items:
+      - type: string
+        format: date-time
+      - $ref: "external/definitions.yml#/definitions/record"
+
+  datedTaggedRecords:
+    type: array
+    items:
+      - type: string
+        format: date-time
+      - $ref: "external/definitions.yml#/definitions/record"
+    additionalItems:
+      $ref: "external/definitions.yml#/definitions/tag"
+    
+  otherRecords:
+    type: array
+    items:
+      $ref: "external/definitions.yml#/definitions/record"
+  
+  tags:
+    type: object
+    additionalProperties:
+      $ref: "external/definitions.yml#/definitions/tag"
+
+  namedThing:
+    type: object
+    properties:
+      name:
+        $ref: "external/definitions.yml#/definitions/named"

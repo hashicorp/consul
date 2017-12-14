@@ -1,0 +1,181 @@
+---
+swagger: '2.0'
+info:
+  title: widget CRUD API
+  version: 4.2.0
+schemes:
+  - http
+basePath: /api
+consumes:
+  - application/json
+produces:
+  - application/json
+paths:
+  /common:
+    get:
+      operationId: commonGet
+      summary: here to test path collisons
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: "#/definitions/widget"
+
+  /widgets:
+    post:
+      operationId: create
+      summary: Create a new widget
+      parameters:
+        - name: info
+          in: body
+          schema:
+            $ref: "#/definitions/widget"
+      responses:
+        '201':
+          description: created
+          schema:
+            $ref: "#/definitions/widgetId"
+        default:
+          description: error
+          schema:
+            $ref: "#/definitions/error"
+  /widgets/{widgetid}:
+    get:
+      operationId: get
+      summary: Get a widget by id
+      parameters:
+        - $ref: "#/parameters/widgetid"
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: "#/definitions/widget"
+        '401':
+          $ref: "#/responses/401"
+        '404':
+          $ref: "#/responses/404"
+        default:
+          description: error
+          schema:
+            $ref: "#/definitions/error"
+    delete:
+      operationId: delete
+      summary: delete a widget by id
+      parameters:
+        - name: widgetid
+          in: path
+          required: true
+          type: string
+      responses:
+        '200':
+          description: OK
+        '401':
+          description: unauthorized
+          schema:
+            $ref: "#/definitions/error"
+        '404':
+          description: resource not found
+          schema:
+            $ref: "#/definitions/error"
+        default:
+          description: error
+          schema:
+            $ref: "#/definitions/error"
+    post:
+      operationId: update
+      summary: update a widget by id
+      parameters:
+        - name: widgetid
+          in: path
+          required: true
+          type: string
+        - name: info
+          in: body
+          schema:
+            $ref: "#/definitions/widget"
+      responses:
+        '200':
+          description: OK
+        '401':
+          description: unauthorized
+          schema:
+            $ref: "#/definitions/error"
+        '404':
+          description: resource not found
+          schema:
+            $ref: "#/definitions/error"
+        default:
+          description: error
+          schema:
+            $ref: "#/definitions/error"
+
+definitions:
+  common:
+    type: object
+    required:
+      - id
+    properties:
+      id:
+        type: string
+        format: string
+        minLength: 1
+  widget:
+    type: object
+    required:
+      - name
+      - description
+    properties:
+      id:
+        type: string
+        format: string
+        readOnly: true
+      name:
+        type: string
+        format: string
+        minLength: 1
+      description:
+        type: string
+        format: string
+        minLength: 1
+  widgetId:
+    type: object
+    required:
+      - id
+    properties:
+      id:
+        type: string
+        format: string
+        minLength: 1
+  error:
+    type: object
+    required:
+       - message
+    properties:
+      code:
+        type: string
+        format: string
+      message:
+        type: string
+      fields:
+        type: string
+
+parameters:
+  common:
+    name: common
+    in: query
+    type: string
+  widgetid:
+    name: widgetid
+    in: path
+    required: true
+    type: string
+
+responses:
+  401:
+    description: widget unauthorized
+    schema:
+      $ref: "#/definitions/error"
+  404:
+    description: widget resource not found
+    schema:
+      $ref: "#/definitions/error"

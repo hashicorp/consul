@@ -1,0 +1,124 @@
+---
+swagger: "2.0"
+info:
+  version: "0.1.0"
+  title: reference analysis
+
+parameters:
+  idParam:
+    name: id
+    in: path
+    type: string
+    pattern: 'a[A-Za-Z0-9]+'
+
+responses:
+  notFound:
+    headers:
+      ContentLength:
+        type: string
+        pattern: '[0-9]+'
+    schema:
+      $ref: "#/definitions/error"
+
+paths:
+  "/some/where/{id}":
+    parameters:
+      - $ref: "#/parameters/idParam"
+      - name: name
+        in: query
+        pattern: 'b[A-Za-z0-9]+'
+      - name: bodyId
+        in: body
+        schema:
+          type: object
+    get:
+      parameters:
+      - name: filter
+        in: query
+        type: string
+        pattern: "[abc][0-9]+"
+      - name: other
+        in: query
+        type: array
+        items:
+          type: string
+          pattern: 'c[A-Za-z0-9]+'
+      - name: body
+        in: body
+        schema:
+          type: object
+            
+      responses:
+        default:
+          schema:
+            type: object
+        404:
+          $ref: "#/responses/notFound"
+        200:
+          headers:
+            X-Request-Id:
+              type: string
+              pattern: 'd[A-Za-z0-9]+'
+          schema:
+            $ref: "#/definitions/tag"
+  "/other/place":
+    post:
+      parameters:
+        - name: body
+          in: body
+          schema:
+            type: object
+            properties:
+              value:
+                type: string
+                pattern: 'e[A-Za-z0-9]+'
+      responses:
+        default:
+          headers:
+            Via:
+              type: array
+              items:
+                type: string
+                pattern: '[A-Za-z]+'
+        200:
+          schema:
+            type: object
+            properties:
+              data:
+                type: string
+                pattern: "[0-9]+[abd]"
+
+definitions:
+  named:
+    type: string
+    pattern: 'f[A-Za-z0-9]+'
+  tag:
+    type: object
+    properties:
+      id:
+        type: integer
+        format: int64
+      value:
+        type: string
+        pattern: 'g[A-Za-z0-9]+'
+      audit:
+        $ref: "#/definitions/record"
+  record:
+    type: object
+    properties:
+      createdAt:
+        type: string
+        format: date-time
+  error:
+    type: object
+    required:
+      - id
+      - message
+    properties:
+      id:
+        type: integer
+        format: int64
+        readOnly: true
+      message:
+        type: string
+        readOnly: true

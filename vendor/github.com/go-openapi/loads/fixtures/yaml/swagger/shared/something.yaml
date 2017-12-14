@@ -1,0 +1,44 @@
+swagger: '2.0'
+info:
+  title: Something definitions
+  contact:
+    name: Somebody
+    url: https://url.com
+    email: email@url.com
+  description: Something
+  version: v1
+host: security.sonusnet.com
+schemes:
+- https
+- http
+basePath: /api/something/definitions
+produces:
+- application/json
+- plain/text
+
+paths:
+  /shared:
+    get:
+      operationId: Get
+      tags:
+      - Shared
+      responses:
+        200:
+          description: OK
+          schema:
+            properties:
+              name:
+                type: string
+
+definitions:
+  Something:
+    description: Something
+    type: object
+    properties:
+      p1:
+        type: string
+        description: A string
+      p2:
+        type: integer
+        description: An integer
+

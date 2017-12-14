@@ -1,0 +1,7 @@
+#!/bin/sh
+
+. ../.env
+
+exec mongos $COMMONSOPTS \
+	--port 40201 \
+	--configdb 127.0.0.1:40101

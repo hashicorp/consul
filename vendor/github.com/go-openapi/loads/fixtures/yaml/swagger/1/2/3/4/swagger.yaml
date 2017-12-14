@@ -1,0 +1,42 @@
+swagger: '2.0'
+info:
+  title: Something
+  contact:
+    name: Somebody
+    url: https://url.com
+    email: email@url.com
+  description: Something
+  version: v1
+host: security.sonusnet.com
+schemes:
+- https
+- http
+basePath: /api
+produces:
+- application/json
+- plain/text
+
+paths:
+  /whatnot:
+    get:
+      description: Get something
+      responses:
+        200:
+          description: The something
+          schema:
+            $ref: '#/definitions/Something'
+        500:
+          description: Oops
+
+definitions:
+  Something:
+    description: A collection of service events
+    type: object
+    properties:
+      page:
+        $ref: '../../../../shared/definitions/page.yaml#/definitions/Page'
+      something:
+        #type: array
+        #description: An array of something
+        #items:
+        $ref: '../../../../shared/something.yaml#/definitions/Something'
