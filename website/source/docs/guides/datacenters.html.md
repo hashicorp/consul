@@ -104,5 +104,19 @@ between IP addresses across regions as well. Usually, this means that all datace
 must be connected using a VPN or other tunneling mechanism. Consul does not handle
 VPN or NAT traversal for you.
 
+Note that for RPC forwarding to work the bind address must be accessible from remote nodes. 
+Configuring `serf_wan`, `advertise_wan_addr` and `translate_wan_addrs` can lead to a
+situation where `consul members -wan` lists remote nodes but RPC operations fail with one 
+of the following errors:
+
+- `No path to datacenter`
+- `rpc error getting client: failed to get conn: dial tcp <LOCAL_ADDR>:0-><REMOTE_ADDR>:<REMOTE_RPC_PORT>: i/o timeout`
+
+The most likely cause of these errors is that `bind_addr` is set to a private address preventing
+the RPC server from accepting connections across the WAN. Setting `bind_addr` to a public
+address (or one that can be routed across the WAN) will resolve this issue. Be aware that
+exposing the RPC server on a public port should only be done **after** firewall rules have
+been established.
+
 The [`translate_wan_addrs`](/docs/agent/options.html#translate_wan_addrs) configuration
 provides a basic address rewriting capability.
