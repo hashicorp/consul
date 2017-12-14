@@ -40,7 +40,8 @@ import (
 //
 // The config sources are merged sequentially and later values
 // overwrite previously set values. Slice values are merged by
-// concatenating the two slices.
+// concatenating the two slices. Map values are merged by over-
+// laying the later maps on top of earlier ones.
 //
 // Then call Validate() to perform the semantic validation to ensure
 // that the configuration is ready to be used.
