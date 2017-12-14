@@ -55,7 +55,8 @@ $ curl \
     "Notes": "",
     "Output": "",
     "ServiceID": "redis",
-    "ServiceName": "redis"
+    "ServiceName": "redis",
+    "ServiceTags": ["primary"]
   }
 }
 ```

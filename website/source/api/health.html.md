@@ -62,7 +62,7 @@ $ curl \
     "Output": "",
     "ServiceID": "",
     "ServiceName": "",
-    "ServiceTags": null
+    "ServiceTags": []
   },
   {
     "ID": "40e4a748-2192-161a-0510-9bf59fe950b5",
@@ -239,7 +239,7 @@ $ curl \
         "Output": "",
         "ServiceID": "",
         "ServiceName": "",
-		"ServiceTags": null 
+        "ServiceTags": []
       }
     ]
   }
@@ -303,7 +303,7 @@ $ curl \
     "Output": "",
     "ServiceID": "",
     "ServiceName": "",
-	"ServiceTags": null
+    "ServiceTags": []
   },
   {
     "Node": "foobar",

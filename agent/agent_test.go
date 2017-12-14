@@ -290,6 +290,7 @@ func TestAgent_AddService(t *testing.T) {
 					Notes:       "note1",
 					ServiceID:   "svcid1",
 					ServiceName: "svcname1",
+					ServiceTags: []string{"tag1"},
 				},
 			},
 		},
@@ -329,6 +330,7 @@ func TestAgent_AddService(t *testing.T) {
 					Notes:       "note1",
 					ServiceID:   "svcid2",
 					ServiceName: "svcname2",
+					ServiceTags: []string{"tag2"},
 				},
 				"check-noname": &structs.HealthCheck{
 					Node:        "node1",
@@ -337,6 +339,7 @@ func TestAgent_AddService(t *testing.T) {
 					Status:      "critical",
 					ServiceID:   "svcid2",
 					ServiceName: "svcname2",
+					ServiceTags: []string{"tag2"},
 				},
 				"service:svcid2:3": &structs.HealthCheck{
 					Node:        "node1",
@@ -345,6 +348,7 @@ func TestAgent_AddService(t *testing.T) {
 					Status:      "critical",
 					ServiceID:   "svcid2",
 					ServiceName: "svcname2",
+					ServiceTags: []string{"tag2"},
 				},
 				"service:svcid2:4": &structs.HealthCheck{
 					Node:        "node1",
@@ -353,6 +357,7 @@ func TestAgent_AddService(t *testing.T) {
 					Status:      "critical",
 					ServiceID:   "svcid2",
 					ServiceName: "svcname2",
+					ServiceTags: []string{"tag2"},
 				},
 			},
 		},

@@ -75,7 +75,7 @@ can be run on either node):
 
 ```text
 vagrant@n1:~$ curl http://localhost:8500/v1/health/state/critical
-[{"Node":"agent-two","CheckID":"service:web","Name":"Service 'web' check","Status":"critical","Notes":"","ServiceID":"web","ServiceName":"web"}]
+[{"Node":"agent-two","CheckID":"service:web","Name":"Service 'web' check","Status":"critical","Notes":"","ServiceID":"web","ServiceName":"web","ServiceTags":["rails"]}]
 ```
 
 We can see that there is only a single check, our `web` service check, in the

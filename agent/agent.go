@@ -1592,6 +1592,7 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 			Notes:       chkType.Notes,
 			ServiceID:   service.ID,
 			ServiceName: service.Service,
+			ServiceTags: service.Tags,
 		}
 		if chkType.Status != "" {
 			check.Status = chkType.Status
