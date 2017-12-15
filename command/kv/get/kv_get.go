@@ -169,7 +169,11 @@ func (c *cmd) Run(args []string) int {
 			return 0
 		}
 
-		c.UI.Info(string(pair.Value))
+		if c.base64encode {
+			c.UI.Info(base64.StdEncoding.EncodeToString(pair.Value))
+		} else {
+			c.UI.Info(string(pair.Value))
+		}
 		return 0
 	}
 }
