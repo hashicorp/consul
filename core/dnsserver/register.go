@@ -22,7 +22,7 @@ func init() {
 	flag.StringVar(&Port, serverType+".port", DefaultPort, "Default port")
 
 	caddy.RegisterServerType(serverType, caddy.ServerType{
-		Directives: func() []string { return directives },
+		Directives: func() []string { return Directives },
 		DefaultInput: func() caddy.Input {
 			return caddy.CaddyfileInput{
 				Filepath:       "Corefile",

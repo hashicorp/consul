@@ -81,8 +81,7 @@ func genDirectives(file, pack string, md []string) {
 // feel the effects of all other plugin below
 // (after) them during a request, but they must not
 // care what plugin above them are doing.
-
-var directives = []string{
+var Directives = []string{
 `
 
 	for i := range md {
