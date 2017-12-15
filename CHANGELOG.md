@@ -16,6 +16,7 @@ BUG FIXES:
 * server: (Consul Enterprise) Fixed an issue with Network Segments where servers would not properly flood-join each other into all segments.
 * server: Fixed an issue where it wasn't possible to disable Autopilot's dead server cleanup behavior using configuration files. [[GH-3730](https://github.com/hashicorp/consul/issues/3730)]
 * server: Removed the 60 second timeout when restoring snapshots, which could cause large restores to fail on slower servers. [[GH-3326](https://github.com/hashicorp/consul/issues/3326)]
+* server: Fixed a goroutine leak during keyring operations when errors are encountered. [[GH-3728](https://github.com/hashicorp/consul/issues/3728)]
 
 ## 1.0.1 (November 20, 2017)
 
