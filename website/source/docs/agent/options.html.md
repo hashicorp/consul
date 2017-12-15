@@ -776,10 +776,10 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="advertise_addr"></a><a href="#advertise_addr">`advertise_addr`</a> Equivalent to
   the [`-advertise` command-line flag](#_advertise).
 
-* <a name="serf_wan_bind"></a><a href="#serf_wan_bind">`serf_wan_bind`</a> Equivalent to
+* <a name="serf_wan"></a><a href="#serf_wan_bind">`serf_wan`</a> Equivalent to
   the [`-serf-wan-bind` command-line flag](#_serf_wan_bind).
 
-* <a name="serf_lan_bind"></a><a href="#serf_lan_bind">`serf_lan_bind`</a> Equivalent to
+* <a name="serf_lan"></a><a href="#serf_lan_bind">`serf_lan`</a> Equivalent to
   the [`-serf-lan-bind` command-line flag](#_serf_lan_bind).
 
 * <a name="advertise_addr_wan"></a><a href="#advertise_addr_wan">`advertise_addr_wan`</a> Equivalent to
