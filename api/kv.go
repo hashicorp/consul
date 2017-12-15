@@ -93,6 +93,64 @@ func (c *Client) KV() *KV {
 	return &KV{c}
 }
 
+type KVClient interface {
+	Get(key string, q *QueryOptions) (*KVPair, *QueryMeta, error)
+	List(prefix string, q *QueryOptions) (KVPairs, *QueryMeta, error)
+	Keys(prefix, separator string, q *QueryOptions) ([]string, *QueryMeta, error)
+	Put(p *KVPair, q *WriteOptions) (*WriteMeta, error)
+	CAS(p *KVPair, q *WriteOptions) (bool, *WriteMeta, error)
+	Acquire(p *KVPair, q *WriteOptions) (bool, *WriteMeta, error)
+	Release(p *KVPair, q *WriteOptions) (bool, *WriteMeta, error)
+	Delete(key string, w *WriteOptions) (*WriteMeta, error)
+	DeleteCAS(p *KVPair, q *WriteOptions) (bool, *WriteMeta, error)
+	DeleteTree(prefix string, w *WriteOptions) (*WriteMeta, error)
+	Txn(txn KVTxnOps, q *QueryOptions) (bool, *KVTxnResponse, *QueryMeta, error)
+}
+
+type KVGetter interface {
+	Get(key string, q *QueryOptions) (*KVPair, *QueryMeta, error)
+}
+
+type KVLister interface {
+	List(prefix string, q *QueryOptions) (KVPairs, *QueryMeta, error)
+}
+
+type KVKeyer interface {
+	Keys(prefix, separator string, q *QueryOptions) ([]string, *QueryMeta, error)
+}
+
+type KVPutter interface {
+	Put(p *KVPair, q *WriteOptions) (*WriteMeta, error)
+}
+
+type KVCASer interface {
+	CAS(p *KVPair, q *WriteOptions) (bool, *WriteMeta, error)
+}
+
+type KVAcquirer interface {
+	Acquire(p *KVPair, q *WriteOptions) (bool, *WriteMeta, error)
+}
+
+type KVReleaser interface {
+	Release(p *KVPair, q *WriteOptions) (bool, *WriteMeta, error)
+}
+
+type KVDeleter interface {
+	Delete(key string, w *WriteOptions) (*WriteMeta, error)
+}
+
+type KVDeleteCASer interface {
+	DeleteCAS(p *KVPair, q *WriteOptions) (bool, *WriteMeta, error)
+}
+
+type KVDeleteTreer interface {
+	DeleteTree(prefix string, w *WriteOptions) (*WriteMeta, error)
+}
+
+type KVTxner interface {
+	Txn(txn KVTxnOps, q *QueryOptions) (bool, *KVTxnResponse, *QueryMeta, error)
+}
+
 // Get is used to lookup a single key. The returned pointer
 // to the KVPair will be nil if the key does not exist.
 func (k *KV) Get(key string, q *QueryOptions) (*KVPair, *QueryMeta, error) {
