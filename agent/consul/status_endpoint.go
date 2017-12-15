@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/consul/autopilot"
 )
 
 // Status endpoint is used to check on server status
@@ -42,7 +42,7 @@ func (s *Status) Peers(args struct{}, reply *[]string) error {
 }
 
 // Used by Autopilot to query the raft stats of the local server.
-func (s *Status) RaftStats(args struct{}, reply *structs.ServerStats) error {
+func (s *Status) RaftStats(args struct{}, reply *autopilot.ServerStats) error {
 	stats := s.server.raft.Stats()
 
 	var err error

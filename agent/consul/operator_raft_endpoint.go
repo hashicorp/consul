@@ -115,7 +115,7 @@ REMOVE:
 	// doing if you are calling this. If you remove a peer that's known to
 	// Serf, for example, it will come back when the leader does a reconcile
 	// pass.
-	minRaftProtocol, err := ServerMinRaftProtocol(op.srv.serfLAN.Members())
+	minRaftProtocol, err := op.srv.autopilot.MinRaftProtocol()
 	if err != nil {
 		return err
 	}
@@ -182,7 +182,7 @@ REMOVE:
 	// doing if you are calling this. If you remove a peer that's known to
 	// Serf, for example, it will come back when the leader does a reconcile
 	// pass.
-	minRaftProtocol, err := ServerMinRaftProtocol(op.srv.serfLAN.Members())
+	minRaftProtocol, err := op.srv.autopilot.MinRaftProtocol()
 	if err != nil {
 		return err
 	}
