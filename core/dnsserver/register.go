@@ -80,7 +80,7 @@ func (h *dnsContext) InspectServerBlocks(sourceFile string, serverBlocks []caddy
 			}
 
 			ones, bits := za.IPNet.Mask.Size()
-			if (bits-ones)%8 != 0 { // only do this for non-octet bounderies
+			if (bits-ones)%8 != 0 { // only do this for non-octet boundaries
 				cfg.FilterFunc = func(s string) bool {
 					// TODO(miek): strings.ToLower! Slow and allocates new string.
 					addr := dnsutil.ExtractAddressFromReverse(strings.ToLower(s))

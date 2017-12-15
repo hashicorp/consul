@@ -417,7 +417,7 @@ func (APIConnServeTest) GetNodeByName(name string) (*api.Node, error) {
 }
 
 func (APIConnServeTest) GetNamespaceByName(name string) (*api.Namespace, error) {
-	if name == "pod-nons" { // hanlder_pod_verified_test.go uses this for non-existent namespace.
+	if name == "pod-nons" { // handler_pod_verified_test.go uses this for non-existent namespace.
 		return &api.Namespace{}, nil
 	}
 	return &api.Namespace{
