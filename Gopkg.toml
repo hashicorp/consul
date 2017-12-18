@@ -14,10 +14,6 @@ ignored = [
 ]
 
 [[override]]
-    name = "github.com/apache/thrift"
-    branch = "master"
-
-[[override]]
     name = "github.com/ugorji/go"
     revision = "8c0409fcbb70099c748d71f714529204975f6c3f"
 

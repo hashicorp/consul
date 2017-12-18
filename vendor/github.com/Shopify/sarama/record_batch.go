@@ -161,6 +161,11 @@ func (b *RecordBatch) decode(pd packetDecoder) (err error) {
 	bufSize := int(batchLen) - recordBatchOverhead
 	recBuffer, err := pd.getRawBytes(bufSize)
 	if err != nil {
+		if err == ErrInsufficientData {
+			b.PartialTrailingRecord = true
+			b.Records = nil
+			return nil
+		}
 		return err
 	}
 

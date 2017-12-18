@@ -1,9 +1,0 @@
-#!/bin/sh
-
-. ../.env
-
-exec mongod $COMMONDOPTS \
-	--shardsvr \
-	--replSet rs3 \
-	--port 40033 \
-	--keyFile=../../certs/keyfile

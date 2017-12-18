@@ -34,15 +34,6 @@ type SockaddrDatalink struct {
 	raw    RawSockaddrDatalink
 }
 
-func clen(n []byte) int {
-	for i := 0; i < len(n); i++ {
-		if n[i] == 0 {
-			return i
-		}
-	}
-	return len(n)
-}
-
 func direntIno(buf []byte) (uint64, bool) {
 	return readInt(buf, unsafe.Offsetof(Dirent{}.Ino), unsafe.Sizeof(Dirent{}.Ino))
 }
@@ -137,6 +128,18 @@ func Getsockname(fd int) (sa Sockaddr, err error) {
 		return
 	}
 	return anyToSockaddr(&rsa)
+}
+
+// GetsockoptString returns the string value of the socket option opt for the
+// socket associated with fd at the given socket level.
+func GetsockoptString(fd, level, opt int) (string, error) {
+	buf := make([]byte, 256)
+	vallen := _Socklen(len(buf))
+	err := getsockopt(fd, level, opt, unsafe.Pointer(&buf[0]), &vallen)
+	if err != nil {
+		return "", err
+	}
+	return string(buf[:vallen-1]), nil
 }
 
 const ImplementsGetwd = true

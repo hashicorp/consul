@@ -31,7 +31,7 @@ func TestLegacyRecords(t *testing.T) {
 	}
 
 	set = &MessageSet{}
-	r = newLegacyRecords(nil)
+	r = Records{}
 
 	err = decode(exp, set)
 	if err != nil {
@@ -42,6 +42,9 @@ func TestLegacyRecords(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if r.recordsType != legacyRecords {
+		t.Fatalf("Wrong records type %v, expected %v", r.recordsType, legacyRecords)
+	}
 	if !reflect.DeepEqual(set, r.msgSet) {
 		t.Errorf("Wrong decoding for legacy records, wanted %#+v, got %#+v", set, r.msgSet)
 	}
@@ -96,7 +99,7 @@ func TestDefaultRecords(t *testing.T) {
 	}
 
 	batch = &RecordBatch{}
-	r = newDefaultRecords(nil)
+	r = Records{}
 
 	err = decode(exp, batch)
 	if err != nil {
@@ -107,6 +110,9 @@ func TestDefaultRecords(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if r.recordsType != defaultRecords {
+		t.Fatalf("Wrong records type %v, expected %v", r.recordsType, defaultRecords)
+	}
 	if !reflect.DeepEqual(batch, r.recordBatch) {
 		t.Errorf("Wrong decoding for default records, wanted %#+v, got %#+v", batch, r.recordBatch)
 	}

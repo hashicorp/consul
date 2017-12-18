@@ -188,11 +188,6 @@ func (r *ProduceRequest) decode(pd packetDecoder, version int16) error {
 				return err
 			}
 			var records Records
-			if version >= 3 {
-				records = newDefaultRecords(nil)
-			} else {
-				records = newLegacyRecords(nil)
-			}
 			if err := records.decode(recordsDecoder); err != nil {
 				return err
 			}

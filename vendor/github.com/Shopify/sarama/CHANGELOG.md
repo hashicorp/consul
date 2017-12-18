@@ -1,5 +1,31 @@
 # Changelog
 
+#### Version 1.15.0 (2017-12-08)
+
+New Features:
+ - Claim official support for Kafka 1.0, though it did already work
+   ([#984](https://github.com/Shopify/sarama/pull/984)).
+ - Helper methods for Kafka version numbers to/from strings
+   ([#989](https://github.com/Shopify/sarama/pull/989)).
+ - Implement CreatePartitions request/response
+   ([#985](https://github.com/Shopify/sarama/pull/985)).
+
+Improvements:
+ - Add error codes 45-60
+   ([#986](https://github.com/Shopify/sarama/issues/986)).
+
+Bug Fixes:
+ - Fix slow consuming for certain Kafka 0.11/1.0 configurations
+   ([#982](https://github.com/Shopify/sarama/pull/982)).
+ - Correctly determine when a FetchResponse contains the new message format
+   ([#990](https://github.com/Shopify/sarama/pull/990)).
+ - Fix producing with multiple headers
+   ([#996](https://github.com/Shopify/sarama/pull/996)).
+ - Fix handling of truncated record batches
+   ([#998](https://github.com/Shopify/sarama/pull/998)).
+ - Fix leaking metrics when closing brokers
+   ([#991](https://github.com/Shopify/sarama/pull/991)).
+
 #### Version 1.14.0 (2017-11-13)
 
 New Features:

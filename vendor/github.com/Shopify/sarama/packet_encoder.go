@@ -13,6 +13,7 @@ type packetEncoder interface {
 	putInt64(in int64)
 	putVarint(in int64)
 	putArrayLength(in int) error
+	putBool(in bool)
 
 	// Collections
 	putBytes(in []byte) error

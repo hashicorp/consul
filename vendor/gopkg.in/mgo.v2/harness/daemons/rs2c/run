@@ -1,8 +1,0 @@
-#!/bin/sh
-
-. ../.env
-
-exec mongod $COMMONDOPTS \
-	--shardsvr \
-	--replSet rs2 \
-	--port 40023

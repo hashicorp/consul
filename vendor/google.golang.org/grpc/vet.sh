@@ -8,12 +8,6 @@ die() {
   exit 1
 }
 
-# TODO: Remove this check and the mangling below once "context" is imported
-# directly.
-if git status --porcelain | read; then
-  die "Uncommitted or untracked files found; commit changes first"
-fi
-
 PATH="$GOPATH/bin:$GOROOT/bin:$PATH"
 
 # Check proto in manual runs or cron runs.
@@ -28,6 +22,7 @@ if [ "$1" = "-install" ]; then
     github.com/golang/lint/golint \
     golang.org/x/tools/cmd/goimports \
     honnef.co/go/tools/cmd/staticcheck \
+    github.com/client9/misspell/cmd/misspell \
     github.com/golang/protobuf/protoc-gen-go \
     golang.org/x/tools/cmd/stringer
   if [[ "$check_proto" = "true" ]]; then
@@ -46,6 +41,12 @@ if [ "$1" = "-install" ]; then
   exit 0
 elif [[ "$#" -ne 0 ]]; then
   die "Unknown argument(s): $*"
+fi
+
+# TODO: Remove this check and the mangling below once "context" is imported
+# directly.
+if git status --porcelain | read; then
+  die "Uncommitted or untracked files found; commit changes first"
 fi
 
 git ls-files "*.go" | xargs grep -L "\(Copyright [0-9]\{4,\} gRPC authors\)\|DO NOT EDIT" 2>&1 | tee /dev/stderr | (! read)
@@ -75,4 +76,10 @@ if [[ "$check_proto" = "true" ]]; then
 fi
 
 # TODO(menghanl): fix errors in transport_test.
-staticcheck -ignore google.golang.org/grpc/transport/transport_test.go:SA2002 ./...
+staticcheck -ignore '
+google.golang.org/grpc/transport/transport_test.go:SA2002
+google.golang.org/grpc/benchmark/benchmain/main.go:SA1019
+google.golang.org/grpc/stats/stats_test.go:SA1019
+google.golang.org/grpc/test/end2end_test.go:SA1019
+' ./...
+misspell -error .

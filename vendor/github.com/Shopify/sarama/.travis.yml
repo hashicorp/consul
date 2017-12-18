@@ -12,9 +12,9 @@ env:
   - KAFKA_HOSTNAME=localhost
   - DEBUG=true
   matrix:
-  - KAFKA_VERSION=0.9.0.1
   - KAFKA_VERSION=0.10.2.1
-  - KAFKA_VERSION=0.11.0.1
+  - KAFKA_VERSION=0.11.0.2
+  - KAFKA_VERSION=1.0.0
 
 before_install:
 - export REPOSITORY_ROOT=${TRAVIS_BUILD_DIR}

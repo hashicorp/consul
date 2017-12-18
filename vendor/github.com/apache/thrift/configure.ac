@@ -20,7 +20,7 @@
 AC_PREREQ(2.65)
 AC_CONFIG_MACRO_DIR([./aclocal])
 
-AC_INIT([thrift], [1.0.0-dev])
+AC_INIT([thrift], [0.11.0])
 
 AC_CONFIG_AUX_DIR([.])
 

@@ -83,3 +83,25 @@ func TestIntegrationOperation(t *testing.T) {
 
 	assertParsesJSON(t, operationJSON, operation)
 }
+
+func TestSecurityProperty(t *testing.T) {
+	//Ensure we omit security key when unset
+	securityNotSet := OperationProps{}
+	jsonResult, err := json.Marshal(securityNotSet)
+	if assert.NoError(t, err) {
+		assert.NotContains(t, string(jsonResult), "security", "security key should be omitted when unset")
+	}
+
+	//Ensure we preseve the security key when it contains an empty (zero length) slice
+	securityContainsEmptyArray := OperationProps{
+		Security: []map[string][]string{},
+	}
+	jsonResult, err = json.Marshal(securityContainsEmptyArray)
+	if assert.NoError(t, err) {
+		var props OperationProps
+		if assert.NoError(t, json.Unmarshal(jsonResult, &props)) {
+			assert.Equal(t, securityContainsEmptyArray, props)
+		}
+	}
+
+}

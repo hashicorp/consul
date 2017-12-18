@@ -1,2 +1,0 @@
-grpcio-opentracing>=1.0
-jaeger-client>=3.4.0

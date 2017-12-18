@@ -16,8 +16,8 @@
  *
  */
 
-//go:generate protoc --go_out=plugins=:. grpc_lb_v1/messages/messages.proto
-//go:generate protoc --go_out=Mgrpc_lb_v1/messages/messages.proto=google.golang.org/grpc/grpclb/grpc_lb_v1/messages,plugins=grpc:. grpc_lb_v1/service/service.proto
+//go:generate protoc --go_out=plugins=:$GOPATH grpc_lb_v1/messages/messages.proto
+//go:generate protoc --go_out=plugins=grpc:$GOPATH grpc_lb_v1/service/service.proto
 
 // Package grpclb_test is currently used only for grpclb testing.
 package grpclb_test
@@ -42,6 +42,7 @@ import (
 	_ "google.golang.org/grpc/grpclog/glogger"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/naming"
+	"google.golang.org/grpc/status"
 	testpb "google.golang.org/grpc/test/grpc_testing"
 	"google.golang.org/grpc/test/leakcheck"
 )
@@ -151,9 +152,19 @@ func (c *serverNameCheckCreds) ClientHandshake(ctx context.Context, addr string,
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	b := make([]byte, len(c.expected))
-	if _, err := rawConn.Read(b); err != nil {
-		fmt.Printf("Failed to read the server name from the server %v", err)
-		return nil, nil, err
+	errCh := make(chan error, 1)
+	go func() {
+		_, err := rawConn.Read(b)
+		errCh <- err
+	}()
+	select {
+	case err := <-errCh:
+		if err != nil {
+			fmt.Printf("Failed to read the server name from the server %v", err)
+			return nil, nil, err
+		}
+	case <-ctx.Done():
+		return nil, nil, ctx.Err()
 	}
 	if c.expected != string(b) {
 		fmt.Printf("Read the server name %s want %s", string(b), c.expected)
@@ -215,7 +226,7 @@ func (b *remoteBalancer) BalanceLoad(stream lbspb.LoadBalancer_BalanceLoadServer
 	}
 	initReq := req.GetInitialRequest()
 	if initReq.Name != besn {
-		return grpc.Errorf(codes.InvalidArgument, "invalid service name: %v", initReq.Name)
+		return status.Errorf(codes.InvalidArgument, "invalid service name: %v", initReq.Name)
 	}
 	resp := &lbmpb.LoadBalanceResponse{
 		LoadBalanceResponseType: &lbmpb.LoadBalanceResponse_InitialResponse{
@@ -275,10 +286,10 @@ const testmdkey = "testmd"
 func (s *testServer) EmptyCall(ctx context.Context, in *testpb.Empty) (*testpb.Empty, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return nil, grpc.Errorf(codes.Internal, "failed to receive metadata")
+		return nil, status.Error(codes.Internal, "failed to receive metadata")
 	}
 	if md == nil || md["lb-token"][0] != lbToken {
-		return nil, grpc.Errorf(codes.Internal, "received unexpected metadata: %v", md)
+		return nil, status.Errorf(codes.Internal, "received unexpected metadata: %v", md)
 	}
 	grpc.SetTrailer(ctx, metadata.Pairs(testmdkey, s.addr))
 	return &testpb.Empty{}, nil

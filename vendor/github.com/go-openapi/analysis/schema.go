@@ -99,8 +99,9 @@ func (a *AnalyzedSchema) inherits(other *AnalyzedSchema) {
 
 func (a *AnalyzedSchema) inferFromRef() error {
 	if a.hasRef {
-		opts := &spec.ExpandOptions{RelativeBase: a.basePath}
-		sch, err := spec.ResolveRefWithBase(a.root, &a.schema.Ref, opts)
+		sch := new(spec.Schema)
+		sch.Ref = a.schema.Ref
+		err := spec.ExpandSchema(sch, a.root, nil)
 		if err != nil {
 			return err
 		}

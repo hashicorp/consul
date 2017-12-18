@@ -45,6 +45,18 @@ func TestRegressionExpand(t *testing.T) {
 	assert.JSONEq(t, expectedExpanded, string(b))
 }
 
+func TestCascadingRefExpand(t *testing.T) {
+	swaggerFile := "fixtures/yaml/swagger/spec.yml"
+	document, err := Spec(swaggerFile)
+	assert.NoError(t, err)
+	assert.NotNil(t, document)
+	d, err := document.Expanded()
+	assert.NoError(t, err)
+	assert.NotNil(t, d)
+	b, _ := d.Spec().MarshalJSON()
+	assert.JSONEq(t, cascadeRefExpanded, string(b))
+}
+
 func TestFailsInvalidJSON(t *testing.T) {
 	_, err := Analyzed(json.RawMessage([]byte("{]")), "")
 
@@ -639,5 +651,67 @@ const expectedExpanded = `
          }
       }
    }
+}
+`
+
+const cascadeRefExpanded = `
+{ 
+  "swagger": "2.0",
+  "consumes":[  
+     "application/json"
+  ],
+  "produces":[  
+     "application/json"
+  ],
+  "schemes":[  
+     "http"
+  ],
+  "info":{  
+     "description":"recursively following JSON references",
+     "title":"test 1",
+     "contact":{  
+        "name":"Fred"
+     },
+     "version":"0.1.1"
+  },
+  "paths":{  
+     "/getAll":{  
+        "get":{  
+           "operationId":"getAll",
+           "parameters":[  
+              {  
+                 "description":"max number of results",
+                 "name":"a",
+                 "in":"body",
+                 "schema":{  
+                    "type":"string"
+                 }
+              }
+           ],
+           "responses":{  
+              "200":{  
+                 "description":"Success",
+                 "schema":{  
+                    "type":"array",
+                    "items":{  
+                       "type":"string"
+                    }
+                 }
+              }
+           }
+        }
+     }
+  },
+  "definitions":{  
+     "a":{  
+        "type":"string"
+     },
+     "b":{  
+        "type":"array",
+        "items":{  
+           "type":"string"
+        }
+     }
+  }
 }
 `

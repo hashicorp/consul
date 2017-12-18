@@ -26,9 +26,7 @@ import (
 	"net"
 )
 
-var (
-	errForInvalidTarget = fmt.Errorf("invalid target address [2001:db8:a0b:12f0::1, error info: address [2001:db8:a0b:12f0::1:443: missing ']' in address")
-)
+var errForInvalidTarget = fmt.Errorf("invalid target address [2001:db8:a0b:12f0::1, error info: address [2001:db8:a0b:12f0::1:443: missing ']' in address")
 
 func replaceNetFunc() func() {
 	oldLookupHost := lookupHost

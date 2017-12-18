@@ -19,7 +19,7 @@
 
 # build Apache Thrift on AppVeyor - https://ci.appveyor.com
 
-version: '1.0.0-dev.{build}'
+version: '0.11.0.{build}'
 
 shallow_clone: true
 

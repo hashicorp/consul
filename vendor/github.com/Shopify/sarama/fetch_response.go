@@ -79,18 +79,11 @@ func (b *FetchResponseBlock) decode(pd packetDecoder, version int16) (err error)
 	if err != nil {
 		return err
 	}
-	var records Records
-	if version >= 4 {
-		records = newDefaultRecords(nil)
-	} else {
-		records = newLegacyRecords(nil)
-	}
 	if recordsSize > 0 {
-		if err = records.decode(recordsDecoder); err != nil {
+		if err = b.Records.decode(recordsDecoder); err != nil {
 			return err
 		}
 	}
-	b.Records = records
 
 	return nil
 }

@@ -44,6 +44,14 @@ func (re *realEncoder) putArrayLength(in int) error {
 	return nil
 }
 
+func (re *realEncoder) putBool(in bool) {
+	if in {
+		re.putInt8(1)
+		return
+	}
+	re.putInt8(0)
+}
+
 // collection
 
 func (re *realEncoder) putRawBytes(in []byte) error {

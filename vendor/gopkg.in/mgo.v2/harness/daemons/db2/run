@@ -1,8 +1,0 @@
-#!/bin/sh
-
-. ../.env
-
-exec mongod $COMMONDOPTS \
-	--shardsvr \
-	--port 40002 \
-	--auth

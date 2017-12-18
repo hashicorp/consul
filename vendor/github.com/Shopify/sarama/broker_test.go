@@ -77,10 +77,6 @@ func TestSimpleBrokerCommunication(t *testing.T) {
 			t.Fatal(err)
 		}
 		tt.runner(t, broker)
-		err = broker.Close()
-		if err != nil {
-			t.Error(err)
-		}
 		// Wait up to 500 ms for the remote broker to process the request and
 		// notify us about the metrics
 		timeout := 500 * time.Millisecond
@@ -91,6 +87,10 @@ func TestSimpleBrokerCommunication(t *testing.T) {
 			t.Errorf("No request received for: %s after waiting for %v", tt.name, timeout)
 		}
 		mb.Close()
+		err = broker.Close()
+		if err != nil {
+			t.Error(err)
+		}
 	}
 
 }

@@ -32,6 +32,18 @@ func TestTimerExtremes(t *testing.T) {
 	}
 }
 
+func TestTimerStop(t *testing.T) {
+	l := len(arbiter.meters)
+	tm := NewTimer()
+	if len(arbiter.meters) != l+1 {
+		t.Errorf("arbiter.meters: %d != %d\n", l+1, len(arbiter.meters))
+	}
+	tm.Stop()
+	if len(arbiter.meters) != l {
+		t.Errorf("arbiter.meters: %d != %d\n", l, len(arbiter.meters))
+	}
+}
+
 func TestTimerFunc(t *testing.T) {
 	tm := NewTimer()
 	tm.Time(func() { time.Sleep(50e6) })

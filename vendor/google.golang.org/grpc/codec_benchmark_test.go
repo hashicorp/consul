@@ -28,7 +28,7 @@ import (
 	"google.golang.org/grpc/test/codec_perf"
 )
 
-func setupBenchmarkProtoCodecInputs(b *testing.B, payloadBaseSize uint32) []proto.Message {
+func setupBenchmarkProtoCodecInputs(payloadBaseSize uint32) []proto.Message {
 	payloadBase := make([]byte, payloadBaseSize)
 	// arbitrary byte slices
 	payloadSuffixes := [][]byte{
@@ -59,23 +59,21 @@ func BenchmarkProtoCodec(b *testing.B) {
 		payloadBaseSizes = append(payloadBaseSizes, 1<<i)
 	}
 	// range of SetParallelism
-	parallelisms := make([]uint32, 0)
+	parallelisms := make([]int, 0)
 	for i := uint32(0); i <= 16; i += 4 {
-		parallelisms = append(parallelisms, 1<<i)
+		parallelisms = append(parallelisms, int(1<<i))
 	}
 	for _, s := range payloadBaseSizes {
 		for _, p := range parallelisms {
-			func(parallelism int, payloadBaseSize uint32) {
-				protoStructs := setupBenchmarkProtoCodecInputs(b, payloadBaseSize)
-				name := fmt.Sprintf("MinPayloadSize:%v/SetParallelism(%v)", payloadBaseSize, parallelism)
-				b.Run(name, func(b *testing.B) {
-					codec := &protoCodec{}
-					b.SetParallelism(parallelism)
-					b.RunParallel(func(pb *testing.PB) {
-						benchmarkProtoCodec(codec, protoStructs, pb, b)
-					})
+			protoStructs := setupBenchmarkProtoCodecInputs(s)
+			name := fmt.Sprintf("MinPayloadSize:%v/SetParallelism(%v)", s, p)
+			b.Run(name, func(b *testing.B) {
+				codec := &protoCodec{}
+				b.SetParallelism(p)
+				b.RunParallel(func(pb *testing.PB) {
+					benchmarkProtoCodec(codec, protoStructs, pb, b)
 				})
-			}(int(p), s)
+			})
 		}
 	}
 }
@@ -94,7 +92,8 @@ func fastMarshalAndUnmarshal(protoCodec Codec, protoStruct proto.Message, b *tes
 	if err != nil {
 		b.Errorf("protoCodec.Marshal(_) returned an error")
 	}
-	if err := protoCodec.Unmarshal(marshaledBytes, protoStruct); err != nil {
+	res := codec_perf.Buffer{}
+	if err := protoCodec.Unmarshal(marshaledBytes, &res); err != nil {
 		b.Errorf("protoCodec.Unmarshal(_) returned an error")
 	}
 }

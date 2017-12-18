@@ -111,9 +111,13 @@ EXTRA_DIST = \
 	.clang-format \
 	.editorconfig \
 	.travis.yml \
+	.rustfmt.toml \
+	.dockerignore \
 	appveyor.yml \
 	bower.json \
 	build \
+	bootstrap.sh \
+	cleanup.sh \
 	CMakeLists.txt \
 	composer.json \
 	contrib \

@@ -48,6 +48,7 @@ includes_Darwin='
 #include <sys/sysctl.h>
 #include <sys/mman.h>
 #include <sys/mount.h>
+#include <sys/utsname.h>
 #include <sys/wait.h>
 #include <net/bpf.h>
 #include <net/if.h>
@@ -386,7 +387,9 @@ ccflags="$@"
 		$2 == "SOMAXCONN" ||
 		$2 == "NAME_MAX" ||
 		$2 == "IFNAMSIZ" ||
-		$2 ~ /^CTL_(MAXNAME|NET|QUERY)$/ ||
+		$2 ~ /^CTL_(HW|KERN|MAXNAME|NET|QUERY)$/ ||
+		$2 ~ /^KERN_(HOSTNAME|OS(RELEASE|TYPE)|VERSION)$/ ||
+		$2 ~ /^HW_MACHINE$/ ||
 		$2 ~ /^SYSCTL_VERS/ ||
 		$2 ~ /^(MS|MNT|UMOUNT)_/ ||
 		$2 ~ /^TUN(SET|GET|ATTACH|DETACH)/ ||

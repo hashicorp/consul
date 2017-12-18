@@ -1,6 +1,7 @@
 package sarama
 
 import (
+	"fmt"
 	"testing"
 	"time"
 )
@@ -196,6 +197,20 @@ func TestProduceSetV3RequestBuilding(t *testing.T) {
 		Partition: 0,
 		Key:       StringEncoder(TestMessage),
 		Value:     StringEncoder(TestMessage),
+		Headers: []RecordHeader{
+			RecordHeader{
+				Key:   []byte("header-1"),
+				Value: []byte("value-1"),
+			},
+			RecordHeader{
+				Key:   []byte("header-2"),
+				Value: []byte("value-2"),
+			},
+			RecordHeader{
+				Key:   []byte("header-3"),
+				Value: []byte("value-3"),
+			},
+		},
 		Timestamp: now,
 	}
 	for i := 0; i < 10; i++ {
@@ -217,6 +232,17 @@ func TestProduceSetV3RequestBuilding(t *testing.T) {
 		rec := batch.Records[i]
 		if rec.TimestampDelta != time.Duration(i)*time.Second {
 			t.Errorf("Wrong timestamp delta: %v", rec.TimestampDelta)
+		}
+
+		for j, h := range batch.Records[i].Headers {
+			exp := fmt.Sprintf("header-%d", j+1)
+			if string(h.Key) != exp {
+				t.Errorf("Wrong header key, expected %v, got %v", exp, h.Key)
+			}
+			exp = fmt.Sprintf("value-%d", j+1)
+			if string(h.Value) != exp {
+				t.Errorf("Wrong header value, expected %v, got %v", exp, h.Value)
+			}
 		}
 	}
 }

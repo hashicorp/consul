@@ -84,9 +84,9 @@ func (ps *produceSet) add(msg *ProducerMessage) error {
 		size += len(key) + len(val)
 		if len(msg.Headers) > 0 {
 			rec.Headers = make([]*RecordHeader, len(msg.Headers))
-			for i, h := range msg.Headers {
-				rec.Headers[i] = &h
-				size += len(h.Key) + len(h.Value) + 2*binary.MaxVarintLen32
+			for i := range msg.Headers {
+				rec.Headers[i] = &msg.Headers[i]
+				size += len(rec.Headers[i].Key) + len(rec.Headers[i].Value) + 2*binary.MaxVarintLen32
 			}
 		}
 		set.recordsToSend.recordBatch.addRecord(rec)

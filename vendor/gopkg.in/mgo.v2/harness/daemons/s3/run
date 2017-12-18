@@ -1,8 +1,0 @@
-#!/bin/sh
-
-. ../.env
-
-exec mongos $COMMONSOPTS \
-	--port 40203 \
-	--configdb 127.0.0.1:40103 \
-	--keyFile=../../certs/keyfile

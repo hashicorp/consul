@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"path"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -17,6 +19,8 @@ import (
 
 // FlattenOpts configuration for flattening a swagger specification.
 type FlattenOpts struct {
+	// If Expand is true, we skip flattening the spec and expand it instead
+	Expand   bool
 	Spec     *Spec
 	BasePath string
 
@@ -42,8 +46,16 @@ func (f *FlattenOpts) Swagger() *swspec.Swagger {
 // Move every inline schema to be a definition with an auto-generated name in a depth-first fashion.
 // Rewritten schemas get a vendor extension x-go-gen-location so we know in which package they need to be rendered.
 func Flatten(opts FlattenOpts) error {
+	// Make sure opts.BasePath is an absolute path
+	if !filepath.IsAbs(opts.BasePath) {
+		cwd, _ := os.Getwd()
+		opts.BasePath = filepath.Join(cwd, opts.BasePath)
+	}
 	// recursively expand responses, parameters, path items and items
-	err := swspec.ExpandSpec(opts.Swagger(), opts.ExpandOpts(true))
+	err := swspec.ExpandSpec(opts.Swagger(), &swspec.ExpandOptions{
+		RelativeBase: opts.BasePath,
+		SkipSchemas:  !opts.Expand,
+	})
 	if err != nil {
 		return err
 	}
@@ -68,7 +80,6 @@ func Flatten(opts FlattenOpts) error {
 func nameInlinedSchemas(opts *FlattenOpts) error {
 	namer := &inlineSchemaNamer{Spec: opts.Swagger(), Operations: opRefsByRef(gatherOperations(opts.Spec, nil))}
 	depthFirst := sortDepthFirst(opts.Spec.allSchemas)
-
 	for _, key := range depthFirst {
 		sch := opts.Spec.allSchemas[key]
 		if sch.Schema != nil && sch.Schema.Ref.String() == "" && !sch.TopLevel { // inline schema
@@ -200,9 +211,18 @@ func uniqifyName(definitions swspec.Definitions, name string) string {
 		return name
 	}
 
-	if _, ok := definitions[name]; !ok {
+	unq := true
+	for k := range definitions {
+		if strings.ToLower(k) == strings.ToLower(name) {
+			unq = false
+			break
+		}
+	}
+
+	if unq {
 		return name
 	}
+
 	name += "OAIGen"
 	var idx int
 	unique := name
@@ -301,9 +321,27 @@ func (s splitKey) DefinitionName() string {
 	return s[1]
 }
 
+func (s splitKey) isKeyName(i int) bool {
+	if i <= 0 {
+		return false
+	}
+	count := 0
+	for idx := i - 1; idx > 0; idx-- {
+		if s[idx] != "properties" {
+			break
+		}
+		count++
+	}
+
+	if count%2 != 0 {
+		return true
+	}
+	return false
+}
+
 func (s splitKey) BuildName(segments []string, startIndex int, aschema *AnalyzedSchema) string {
-	for _, part := range s[startIndex:] {
-		if _, ignored := ignoredKeys[part]; !ignored {
+	for i, part := range s[startIndex:] {
+		if _, ignored := ignoredKeys[part]; !ignored || s.isKeyName(startIndex+i) {
 			if part == "items" || part == "additionalItems" {
 				if aschema.IsTuple || aschema.IsTupleWithExtra {
 					segments = append(segments, "tuple")
@@ -540,7 +578,13 @@ func importExternalReferences(opts *FlattenOpts) error {
 				log.Printf("importing external schema for [%s] from %s", strings.Join(entry.Keys, ", "), refStr)
 			}
 			// resolve to actual schema
-			sch, err := swspec.ResolveRefWithBase(opts.Swagger(), &entry.Ref, opts.ExpandOpts(false))
+			sch := new(swspec.Schema)
+			sch.Ref = entry.Ref
+			expandOpts := swspec.ExpandOptions{
+				RelativeBase: opts.BasePath,
+				SkipSchemas:  false,
+			}
+			err := swspec.ExpandSchemaWithBasePath(sch, nil, &expandOpts)
 			if err != nil {
 				return err
 			}

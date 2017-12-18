@@ -44,6 +44,10 @@ func (pe *prepEncoder) putArrayLength(in int) error {
 	return nil
 }
 
+func (pe *prepEncoder) putBool(in bool) {
+	pe.length++
+}
+
 // arrays
 
 func (pe *prepEncoder) putBytes(in []byte) error {

@@ -38,10 +38,12 @@
     <programming-language>C++</programming-language>
     <programming-language>Cocoa</programming-language>
     <programming-language>D</programming-language>
+    <programming-language>Dart</programming-language>
     <programming-language>Delphi</programming-language>
     <programming-language>Erlang</programming-language>
     <programming-language>Go</programming-language>
     <programming-language>Haskell</programming-language>
+    <programming-language>Haxe</programming-language>
     <programming-language>Java</programming-language>
     <programming-language>JavaScript</programming-language>
     <programming-language>node.js</programming-language>
@@ -49,12 +51,23 @@
     <programming-language>Perl</programming-language>
     <programming-language>PHP</programming-language>
     <programming-language>Python</programming-language>
+    <programming-language>Rust</programming-language>
     <programming-language>SmallTalk</programming-language>
     <category rdf:resource="http://projects.apache.org/category/http" />
     <category rdf:resource="http://projects.apache.org/category/library" />
     <category rdf:resource="http://projects.apache.org/category/network-client" />
     <category rdf:resource="http://projects.apache.org/category/network-server" />
     <release rdf:parseType="Collection">
+      <Version>
+        <name>Apache Thrift</name>
+        <created>2017-11-30</created>
+        <revision>0.11.0</revision>
+      </Version>
+      <Version>
+        <name>Apache Thrift</name>
+        <created>2017-03-01</created>
+        <revision>0.10.0</revision>
+      </Version>
       <Version>
         <name>Apache Thrift</name>
         <created>2015-09-25</created>

@@ -6,7 +6,7 @@
     "type": "git",
     "url": "https://git-wip-us.apache.org/repos/asf/thrift.git"
   },
-  "version": "1.0.0-dev",
+  "version": "0.11.0",
   "author": {
     "name": "Apache Thrift Developers",
     "email": "dev@thrift.apache.org",

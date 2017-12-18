@@ -11,6 +11,7 @@ var errInvalidByteSliceLengthType = PacketDecodingError{"invalid byteslice lengt
 var errInvalidStringLength = PacketDecodingError{"invalid string length"}
 var errInvalidSubsetSize = PacketDecodingError{"invalid subset size"}
 var errVarintOverflow = PacketDecodingError{"varint overflow"}
+var errInvalidBool = PacketDecodingError{"invalid bool"}
 
 type realDecoder struct {
 	raw   []byte
@@ -90,6 +91,17 @@ func (rd *realDecoder) getArrayLength() (int, error) {
 	return tmp, nil
 }
 
+func (rd *realDecoder) getBool() (bool, error) {
+	b, err := rd.getInt8()
+	if err != nil || b == 0 {
+		return false, err
+	}
+	if b != 1 {
+		return false, errInvalidBool
+	}
+	return true, nil
+}
+
 // collections
 
 func (rd *realDecoder) getBytes() ([]byte, error) {
@@ -116,25 +128,29 @@ func (rd *realDecoder) getVarintBytes() ([]byte, error) {
 	return rd.getRawBytes(int(tmp))
 }
 
-func (rd *realDecoder) getString() (string, error) {
-	tmp, err := rd.getInt16()
-
+func (rd *realDecoder) getStringLength() (int, error) {
+	length, err := rd.getInt16()
 	if err != nil {
-		return "", err
+		return 0, err
 	}
 
-	n := int(tmp)
+	n := int(length)
 
 	switch {
 	case n < -1:
-		return "", errInvalidStringLength
-	case n == -1:
-		return "", nil
-	case n == 0:
-		return "", nil
+		return 0, errInvalidStringLength
 	case n > rd.remaining():
 		rd.off = len(rd.raw)
-		return "", ErrInsufficientData
+		return 0, ErrInsufficientData
+	}
+
+	return n, nil
+}
+
+func (rd *realDecoder) getString() (string, error) {
+	n, err := rd.getStringLength()
+	if err != nil || n == -1 {
+		return "", err
 	}
 
 	tmpStr := string(rd.raw[rd.off : rd.off+n])
@@ -143,12 +159,14 @@ func (rd *realDecoder) getString() (string, error) {
 }
 
 func (rd *realDecoder) getNullableString() (*string, error) {
-	tmp, err := rd.getInt16()
-	if err != nil || tmp == -1 {
+	n, err := rd.getStringLength()
+	if err != nil || n == -1 {
 		return nil, err
 	}
-	str, err := rd.getString()
-	return &str, err
+
+	tmpStr := string(rd.raw[rd.off : rd.off+n])
+	rd.off += n
+	return &tmpStr, err
 }
 
 func (rd *realDecoder) getInt32Array() ([]int32, error) {
@@ -262,6 +280,14 @@ func (rd *realDecoder) getRawBytes(length int) ([]byte, error) {
 	start := rd.off
 	rd.off += length
 	return rd.raw[start:rd.off], nil
+}
+
+func (rd *realDecoder) peek(offset, length int) (packetDecoder, error) {
+	if rd.remaining() < offset+length {
+		return nil, ErrInsufficientData
+	}
+	off := rd.off + offset
+	return &realDecoder{raw: rd.raw[off : off+length]}, nil
 }
 
 // stacks

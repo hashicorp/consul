@@ -178,6 +178,13 @@ func (b *Broker) Close() error {
 	b.done = nil
 	b.responses = nil
 
+	if b.id >= 0 {
+		b.conf.MetricRegistry.Unregister(getMetricNameForBroker("incoming-byte-rate", b))
+		b.conf.MetricRegistry.Unregister(getMetricNameForBroker("request-rate", b))
+		b.conf.MetricRegistry.Unregister(getMetricNameForBroker("outgoing-byte-rate", b))
+		b.conf.MetricRegistry.Unregister(getMetricNameForBroker("response-rate", b))
+	}
+
 	if err == nil {
 		Logger.Printf("Closed connection to broker %s\n", b.addr)
 	} else {
