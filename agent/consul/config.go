@@ -416,7 +416,7 @@ func DefaultConfig() *Config {
 
 		TLSMinVersion: "tls10",
 
-    // TODO (slackpad) - Until #3744 is done, we need to keep these
+		// TODO (slackpad) - Until #3744 is done, we need to keep these
 		// in sync with agent/config/default.go.
 		AutopilotConfig: &autopilot.Config{
 			CleanupDeadServers:      true,

@@ -143,6 +143,14 @@ func NumPeers(raftConfig raft.Configuration) int {
 	return numPeers
 }
 
+// RemoveDeadServers triggers a pruning of dead servers in a non-blocking way.
+func (a *Autopilot) RemoveDeadServers() {
+	select {
+	case a.removeDeadCh <- struct{}{}:
+	default:
+	}
+}
+
 // pruneDeadServers removes up to numPeers/2 failed servers
 func (a *Autopilot) pruneDeadServers() error {
 	conf := a.delegate.AutopilotConfig()
@@ -223,14 +231,17 @@ func (a *Autopilot) pruneDeadServers() error {
 
 // MinRaftProtocol returns the lowest supported Raft protocol among alive servers
 func (a *Autopilot) MinRaftProtocol() (int, error) {
+	return minRaftProtocol(a.delegate.Serf().Members(), a.delegate.IsServer)
+}
+
+func minRaftProtocol(members []serf.Member, serverFunc func(serf.Member) (*ServerInfo, error)) (int, error) {
 	minVersion := -1
-	members := a.delegate.Serf().Members()
 	for _, m := range members {
 		if m.Status != serf.StatusAlive {
 			continue
 		}
 
-		server, err := a.delegate.IsServer(m)
+		server, err := serverFunc(m)
 		if err != nil {
 			return -1, err
 		}

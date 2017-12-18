@@ -90,12 +90,6 @@ type Server struct {
 	// autopilot is the Autopilot instance for this server.
 	autopilot *autopilot.Autopilot
 
-	// autopilotRemoveDeadCh is used to trigger a check for dead server removals.
-	autopilotRemoveDeadCh chan struct{}
-
-	// autopilotShutdownCh is used to stop the Autopilot loop.
-	autopilotShutdownCh chan struct{}
-
 	// autopilotWaitGroup is used to block until Autopilot shuts down.
 	autopilotWaitGroup sync.WaitGroup
 
@@ -281,25 +275,23 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 
 	// Create server.
 	s := &Server{
-		autopilotRemoveDeadCh: make(chan struct{}),
-		autopilotShutdownCh:   make(chan struct{}),
-		config:                config,
-		tokens:                tokens,
-		connPool:              connPool,
-		eventChLAN:            make(chan serf.Event, 256),
-		eventChWAN:            make(chan serf.Event, 256),
-		logger:                logger,
-		leaveCh:               make(chan struct{}),
-		reconcileCh:           make(chan serf.Member, 32),
-		router:                router.NewRouter(logger, config.Datacenter),
-		rpcServer:             rpc.NewServer(),
-		rpcTLS:                incomingTLS,
-		reassertLeaderCh:      make(chan chan error),
-		segmentLAN:            make(map[string]*serf.Serf, len(config.Segments)),
-		sessionTimers:         NewSessionTimers(),
-		tombstoneGC:           gc,
-		serverLookup:          NewServerLookup(),
-		shutdownCh:            shutdownCh,
+		config:           config,
+		tokens:           tokens,
+		connPool:         connPool,
+		eventChLAN:       make(chan serf.Event, 256),
+		eventChWAN:       make(chan serf.Event, 256),
+		logger:           logger,
+		leaveCh:          make(chan struct{}),
+		reconcileCh:      make(chan serf.Member, 32),
+		router:           router.NewRouter(logger, config.Datacenter),
+		rpcServer:        rpc.NewServer(),
+		rpcTLS:           incomingTLS,
+		reassertLeaderCh: make(chan chan error),
+		segmentLAN:       make(map[string]*serf.Serf, len(config.Segments)),
+		sessionTimers:    NewSessionTimers(),
+		tombstoneGC:      gc,
+		serverLookup:     NewServerLookup(),
+		shutdownCh:       shutdownCh,
 	}
 
 	// Set up autopilot

@@ -738,10 +738,7 @@ func (s *Server) joinConsulServer(m serf.Member, parts *metadata.Server) error {
 	}
 
 	// Trigger a check to remove dead servers
-	select {
-	case s.autopilotRemoveDeadCh <- struct{}{}:
-	default:
-	}
+	s.autopilot.RemoveDeadServers()
 
 	return nil
 }
