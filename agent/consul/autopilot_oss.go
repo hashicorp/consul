@@ -1,4 +1,5 @@
 // +build !ent
+
 package consul
 
 import "github.com/hashicorp/consul/agent/consul/autopilot"
