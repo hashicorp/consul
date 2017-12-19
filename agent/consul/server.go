@@ -294,9 +294,8 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		shutdownCh:       shutdownCh,
 	}
 
-	// Set up autopilot
-	apDelegate := &AutopilotDelegate{s}
-	s.autopilot = autopilot.NewAutopilot(logger, apDelegate, config.AutopilotInterval, config.ServerHealthInterval)
+	// Run divergent OSS/Enterprise setup
+	s.startServerEnterprise(config)
 
 	// Initialize the stats fetcher that autopilot will use.
 	s.statsFetcher = NewStatsFetcher(logger, s.connPool, s.config.Datacenter)
