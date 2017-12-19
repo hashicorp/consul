@@ -294,9 +294,6 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		shutdownCh:       shutdownCh,
 	}
 
-	// Run divergent OSS/Enterprise setup
-	s.startServerEnterprise(config)
-
 	// Initialize the stats fetcher that autopilot will use.
 	s.statsFetcher = NewStatsFetcher(logger, s.connPool, s.config.Datacenter)
 
@@ -417,6 +414,9 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 
 	// Start the metrics handlers.
 	go s.sessionStats()
+
+	// Initialize Autopilot
+	s.initAutopilot(config)
 
 	// Start the server health checking.
 	go s.autopilot.ServerHealthLoop(s.shutdownCh)
