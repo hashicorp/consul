@@ -132,6 +132,21 @@ App.Key = Ember.Object.extend(Ember.Validations.Mixin, {
   // Boolean if the value is valid
   valueValid: Ember.computed.empty('errors.Value'),
 
+// Escape any user-entered parts that aren't URL-safe, but put slashes back since
+// they are common in keys, and the UI lets users make "folders" by simply adding
+// them to keys.
+  Key: function(key, value) {
+    // setter
+    if (arguments.length > 1) {
+      clean = encodeURIComponent(decodeURIComponent(value)).replace(/%2F/g, "/")
+      this.set('cleanKey', clean);
+      return clean;
+    }
+
+    // getter
+    return this.get('cleanKey')
+  }.property('Key'),
+
   // The key with the parent removed.
   // This is only for display purposes, and used for
   // showing the key name inside of a nested key.

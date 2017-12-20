@@ -6,6 +6,8 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* ui: Added a URI escape around key/value keys so that it's not possible to create unexpected partial key names when entering characters like `?` inside a key. [GH-3760]
+
 ## 1.0.2 (December 15, 2017)
 
 IMPROVEMENTS:
