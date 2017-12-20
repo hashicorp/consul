@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 	"log"
+	"net"
 	"strings"
 	"time"
 
@@ -86,6 +87,19 @@ func (r *retryJoiner) retryJoin() error {
 					r.logger.Printf("[INFO] agent: Discovered %s servers: %s", r.cluster, strings.Join(servers, " "))
 				}
 
+			case strings.Contains(addr, "/"):
+				ip, ipnet, err := net.ParseCIDR(addr)
+				if err != nil {
+					r.logger.Printf("[ERR] agent: Join %s: %s", r.cluster, err)
+				} else {
+					var ips []string
+
+					for ip := ip.Mask(ipnet.Mask); ipnet.Contains(ip); inc(ip) {
+						ips = append(ips, ip.String())
+					}
+
+					addrs = append(addrs, ips[1:len(ips)-1]...)
+				}
 			default:
 				addrs = append(addrs, addr)
 			}
@@ -110,5 +124,14 @@ func (r *retryJoiner) retryJoin() error {
 
 		r.logger.Printf("[WARN] agent: Join %s failed: %v, retrying in %v", r.cluster, err, r.interval)
 		time.Sleep(r.interval)
+	}
+}
+
+func inc(ip net.IP) {
+	for j := len(ip) - 1; j >= 0; j-- {
+		ip[j]++
+		if ip[j] > 0 {
+			break
+		}
 	}
 }
