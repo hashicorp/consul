@@ -24,7 +24,7 @@
 		{"path":"github.com/google/gofuzz","checksumSHA1":"PFtXkXPO7pwRtykVUUXtc07wc7U=","revision":"24818f796faf91cd76ec7bddd72458fbced7a6c1","revisionTime":"2017-06-12T17:47:53Z"},
 		{"path":"github.com/hashicorp/errwrap","checksumSHA1":"cdOCt0Yb+hdErz8NAQqayxPmRsY=","revision":"7554cd9344cec97297fa6649b055a8c98c2a1e55","revisionTime":"2014-10-28T05:47:10Z"},
 		{"path":"github.com/hashicorp/go-checkpoint","checksumSHA1":"D267IUMW2rcb+vNe3QU+xhfSrgY=","revision":"1545e56e46dec3bba264e41fde2c1e2aa65b5dd4","revisionTime":"2017-10-09T17:35:28Z"},
-		{"path":"github.com/hashicorp/go-cleanhttp","checksumSHA1":"b8F628srIitj5p7Y130xc9k0QWs=","revision":"3573b8b52aa7b37b9358d966a898feb387f62437","revisionTime":"2017-02-11T01:34:15Z"},
+		{"path":"github.com/hashicorp/go-cleanhttp","checksumSHA1":"YAq1rqZIp+M74Q+jMBQkkMKm3VM=","revision":"d5fe4b57a186c716b0e00b8c301cbd9b4182694d","revisionTime":"2017-12-18T14:54:08Z"},
 		{"path":"github.com/hashicorp/go-discover","checksumSHA1":"Ks9Bo8kevhaI5xTRdw1lULNMoOA=","revision":"c98e36ab72ce62b7d8fbc7f7e76f9a60e163cb45","revisionTime":"2017-10-30T10:26:55Z"},
 		{"path":"github.com/hashicorp/go-discover/provider/aliyun","checksumSHA1":"ZmU/47XUGUQpFP6E8T6Tl8QKszI=","revision":"c98e36ab72ce62b7d8fbc7f7e76f9a60e163cb45","revisionTime":"2017-10-30T10:26:55Z","tree":true},
 		{"path":"github.com/hashicorp/go-discover/provider/aws","checksumSHA1":"lyPRg8aZKgGiNkMILk/VKwOqMy4=","revision":"c98e36ab72ce62b7d8fbc7f7e76f9a60e163cb45","revisionTime":"2017-10-30T10:26:55Z","tree":true},
