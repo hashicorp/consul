@@ -32,13 +32,16 @@
 # * We use the manifest-tool from https://github.com/estesp/manifest-tool to build the manifest list
 # * Make sure you have the binary in your path.
 #
-# * Run: make -f Makefile.release docker
+# * Run: make DOKCKER=coredns -f Makefile.release docker
 #
-# Docker push should happen after you make the new release and uploaded it to
-# Github.
-EMPTY :=
-SPACE := $(EMPTY) $(EMPTY)
-COMMA := $(EMPTY),$(EMPTY)
+# Docker push should happen after you make the new release and uploaded it to Github.
+#
+# If you want to push to a personal registry, point DOCKER to something else, i.e.
+#
+# * make DOCKER=miek -f Makefile.release docker
+EMPTY:=
+SPACE:=$(EMPTY) $(EMPTY)
+COMMA:=$(EMPTY),$(EMPTY)
 
 ifeq (, $(shell which gh-release))
     $(error "No gh-release in $$PATH, install with: go get github.com/progrium/gh-release")
@@ -48,21 +51,25 @@ ifeq (, $(shell which manifest-tool))
     $(error "No manifest-tool in $$PATH, install with: go get github.com/estesp/manifest-tool")
 endif
 
+DOCKER:=
 NAME:=coredns
 VERSION:=$(shell grep 'coreVersion' coremain/version.go | awk '{ print $$3 }' | tr -d '"')
 GITHUB:=coredns
-DOCKER:=coredns
 DOCKER_IMAGE_NAME:=$(DOCKER)/$(NAME)
 GITCOMMIT:=$(shell git describe --dirty --always)
 LINUX_ARCH:=amd64 arm arm64 ppc64le s390x
 PLATFORMS:=$(subst $(SPACE),$(COMMA),$(foreach arch,$(LINUX_ARCH),linux/$(arch)))
+
+ifeq ($(DOCKER),)
+    $(error "Please specify Docker registry to use. Use \"coredns\" for releases")
+endif
 
 all:
 	@echo Use the 'release' target to start a release
 
 release: commit push build tar upload
 
-docker: docker-build docker-upload
+docker: docker-build docker-push
 
 .PHONY: push
 push:
@@ -136,9 +143,9 @@ docker-build: tar
 	    docker tag coredns $(DOCKER_IMAGE_NAME):coredns-$$arch ;\
 	done
 
-.PHONY: docker-upload
-docker-upload:
-	@echo Pushing: $(VERSION)
+.PHONY: docker-push
+docker-push:
+	@echo Pushing: $(VERSION) to $(DOCKER_IMAGE_NAME)
 	for arch in $(LINUX_ARCH); do \
 	    docker push $(DOCKER_IMAGE_NAME):coredns-$$arch ;\
 	done
