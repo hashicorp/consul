@@ -32,7 +32,7 @@
 # * We use the manifest-tool from https://github.com/estesp/manifest-tool to build the manifest list
 # * Make sure you have the binary in your path.
 #
-# * Run: make DOKCKER=coredns -f Makefile.release docker
+# * Run: make DOCKER=coredns -f Makefile.release docker
 #
 # Docker push should happen after you make the new release and uploaded it to Github.
 #
