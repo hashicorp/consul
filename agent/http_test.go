@@ -165,11 +165,11 @@ func TestHTTPServer_H2(t *testing.T) {
 		resp.WriteHeader(http.StatusOK)
 		fmt.Fprint(resp, req.Proto)
 	}
-	mux, ok := a.srv.Handler.(*http.ServeMux)
+	w, ok := a.srv.Handler.(*wrappedMux)
 	if !ok {
 		t.Fatalf("handler is not expected type")
 	}
-	mux.HandleFunc("/echo", handler)
+	w.mux.HandleFunc("/echo", handler)
 
 	// Call it and make sure we see HTTP/2.
 	url := fmt.Sprintf("https://%s/echo", a.srv.ln.Addr().String())
@@ -312,6 +312,18 @@ func TestHTTPAPI_BlockEndpoints(t *testing.T) {
 		if got, want := resp.Code, http.StatusOK; got != want {
 			t.Fatalf("bad response code got %d want %d", got, want)
 		}
+	}
+}
+
+func TestHTTPAPI_Ban_Nonprintable_Characters(t *testing.T) {
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	req, _ := http.NewRequest("GET", "/v1/kv/bad\x00ness", nil)
+	resp := httptest.NewRecorder()
+	a.srv.Handler.ServeHTTP(resp, req)
+	if got, want := resp.Code, http.StatusBadRequest; got != want {
+		t.Fatalf("bad response code got %d want %d", got, want)
 	}
 }
 
