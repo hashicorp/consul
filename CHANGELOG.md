@@ -1,12 +1,16 @@
 ## 1.0.3 (UNRELEASED)
 
+BREAKING CHANGES:
+
+agent: Updated Consul's HTTP server to ban all URLs containing non-printable characters (a bad request status will be returned for these cases). This affects some user-facing areas like key/value entry key names which are carried in URLs. [[GH-3762](https://github.com/hashicorp/consul/issues/3762)]
+
 FEATURES:
 
 IMPROVEMENTS:
 
 BUG FIXES:
 
-* ui: Added a URI escape around key/value keys so that it's not possible to create unexpected partial key names when entering characters like `?` inside a key. [GH-3760]
+* ui: Added a URI escape around key/value keys so that it's not possible to create unexpected partial key names when entering characters like `?` inside a key. [[GH-3760](https://github.com/hashicorp/consul/issues/3760)]
 
 ## 1.0.2 (December 15, 2017)
 
