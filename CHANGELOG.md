@@ -1,5 +1,9 @@
 ## 1.0.3 (UNRELEASED)
 
+SECURITY:
+
+ui: Patched handlebars JS to escape `=` to prevent potential XSS issues. [[GH-3733](https://github.com/hashicorp/consul/issues/3733)]
+
 BREAKING CHANGES:
 
 agent: Updated Consul's HTTP server to ban all URLs containing non-printable characters (a bad request status will be returned for these cases). This affects some user-facing areas like key/value entry key names which are carried in URLs. [[GH-3762](https://github.com/hashicorp/consul/issues/3762)]
@@ -70,7 +74,7 @@ BUG FIXES:
 
 SECURITY:
 
-* Fixed an XSS issue with Consul's built-in web UI where node names were not being properly escaped. [[GH-3578](https://github.com/hashicorp/consul/issues/3578)]
+* ui: Fixed an XSS issue with Consul's built-in web UI where node names were not being properly escaped. [[GH-3578](https://github.com/hashicorp/consul/issues/3578)]
 
 BREAKING CHANGES:
 
