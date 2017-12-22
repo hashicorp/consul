@@ -139,6 +139,11 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 	}
 }
 
+// nodeName returns the node name of the agent
+func (s *HTTPServer) nodeName() string {
+	return s.agent.config.NodeName
+}
+
 // aclEndpointRE is used to find old ACL endpoints that take tokens in the URL
 // so that we can redact them. The ACL endpoints that take the token in the URL
 // are all of the form /v1/acl/<verb>/<token>, and can optionally include query
