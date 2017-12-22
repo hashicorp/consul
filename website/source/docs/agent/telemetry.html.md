@@ -75,6 +75,90 @@ These metrics are used to monitor the health of specific Consul agents.
     <td>counter</td>
   </tr>
   <tr>
+    <td>`consul.client.api.catalog_register`</td>
+    <td>This increments whenever a Consul agent receives a catalog register request.</td>
+    <td>requests</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.client.api.success.catalog_register`</td>
+    <td>This increments whenever a Consul agent successfully responds to a catalog register request.</td>
+    <td>requests</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.client.api.catalog_deregister`</td>
+    <td>This increments whenever a Consul agent receives a catalog de-register request.</td>
+    <td>requests</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.client.api.success.catalog_deregister`</td>
+    <td>This increments whenever a Consul agent successfully responds to a catalog de-register request.</td>
+    <td>requests</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.client.api.catalog_datacenters`</td>
+    <td>This increments whenever a Consul agent receives a request to list datacenters in the catalog.</td>
+    <td>requests</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.client.api.success.catalog_datacenters`</td>
+    <td>This increments whenever a Consul agent successfully responds to a request to list datacenters.</td>
+    <td>requests</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.client.api.catalog_nodes`</td>
+    <td>This increments whenever a Consul agent receives a request to list nodes from the catalog.</td>
+    <td>requests</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.client.api.success.catalog_nodes`</td>
+    <td>This increments whenever a Consul agent successfully responds to a request to list nodes.</td>
+    <td>requests</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.client.api.catalog_services`</td>
+    <td>This increments whenever a Consul agent receives a request to list services from the catalog.</td>
+    <td>requests</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.client.api.success.catalog_services`</td>
+    <td>This increments whenever a Consul agent successfully responds to a request to list services.</td>
+    <td>requests</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.client.api.catalog_service_nodes`</td>
+    <td>This increments whenever a Consul agent receives a request to list nodes offering a service.</td>
+    <td>requests</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.client.api.success.catalog_service_nodes`</td>
+    <td>This increments whenever a Consul agent successfully responds to a request to list nodes offering a service.</td>
+    <td>requests</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.client.api.catalog_node_services`</td>
+    <td>This increments whenever a Consul agent receives a request to list services registered in a node.</td>
+    <td>requests</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.client.api.success.catalog_node_services`</td>
+    <td>This increments whenever a Consul agent successfully responds to a request to list services in a service.</td>
+    <td>requests</td>
+    <td>counter</td>
+  </tr>
+  <tr>
     <td>`consul.runtime.num_goroutines`</td>
     <td>This tracks the number of running goroutines and is a general load pressure indicator. This may burst from time to time but should return to a steady state value.</td>
     <td>number of goroutines</td>
