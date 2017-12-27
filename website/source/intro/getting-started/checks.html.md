@@ -26,16 +26,18 @@ appropriate calls to the [HTTP API](/api/health.html).
 We will use the check definition approach because, just like with
 services, definitions are the most common way to set up checks.
 
+In Consul 0.9.0 and later the agent must be configured with enable_script_checks set to true in order to enable script checks.
+
 Create two definition files in the Consul configuration directory of
 the second node:
 
 ```text
 vagrant@n2:~$ echo '{"check": {"name": "ping",
-  "script": "ping -c1 google.com >/dev/null", "interval": "30s"}}' \
+  "args": ["ping","-c1","google.com",">/dev/null"], "interval": "30s"}}' \
   >/etc/consul.d/ping.json
 
 vagrant@n2:~$ echo '{"service": {"name": "web", "tags": ["rails"], "port": 80,
-  "check": {"script": "curl localhost >/dev/null 2>&1", "interval": "10s"}}}' \
+  "check": {"args": ["curl","localhost",">/dev/null","2>&1"], "interval": "10s"}}}' \
   >/etc/consul.d/web.json
 ```
 
