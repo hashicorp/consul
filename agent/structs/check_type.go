@@ -9,10 +9,10 @@ import (
 )
 
 // CheckType is used to create either the CheckMonitor or the CheckTTL.
-// Five types are supported: Script, HTTP, TCP, Docker and TTL. Script, HTTP,
-// Docker and TCP all require Interval. Only one of the types may to be
-// provided: TTL or Script/Interval or HTTP/Interval or TCP/Interval or
-// Docker/Interval.
+// Six types are supported: Script, HTTP, TCP, Docker, TTL and GRPC. Script,
+// HTTP, Docker, TCP and GRPC all require Interval. Only one of the types may
+// to be provided: TTL or Script/Interval or HTTP/Interval or TCP/Interval or
+// Docker/Interval or GRPC/Interval.
 type CheckType struct {
 	// fields already embedded in CheckDefinition
 	// Note: CheckType.CheckID == CheckDefinition.ID
@@ -34,6 +34,8 @@ type CheckType struct {
 	Interval          time.Duration
 	DockerContainerID string
 	Shell             string
+	GRPC              string
+	TLS               bool
 	TLSSkipVerify     bool
 	Timeout           time.Duration
 	TTL               time.Duration
@@ -47,7 +49,7 @@ type CheckTypes []*CheckType
 
 // Validate returns an error message if the check is invalid
 func (c *CheckType) Validate() error {
-	intervalCheck := c.IsScript() || c.HTTP != "" || c.TCP != ""
+	intervalCheck := c.IsScript() || c.HTTP != "" || c.TCP != "" || c.GRPC != ""
 
 	if c.Interval > 0 && c.TTL > 0 {
 		return fmt.Errorf("Interval and TTL cannot both be specified")
@@ -94,4 +96,9 @@ func (c *CheckType) IsTCP() bool {
 // IsDocker returns true when checking a docker container.
 func (c *CheckType) IsDocker() bool {
 	return c.IsScript() && c.DockerContainerID != "" && c.Interval > 0
+}
+
+// IsGRPC checks if this is a GRPC type
+func (c *CheckType) IsGRPC() bool {
+	return c.GRPC != "" && c.Interval > 0
 }

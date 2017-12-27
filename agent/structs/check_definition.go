@@ -30,6 +30,8 @@ type CheckDefinition struct {
 	Interval                       time.Duration
 	DockerContainerID              string
 	Shell                          string
+	GRPC                           string
+	TLS                            bool
 	TLSSkipVerify                  bool
 	Timeout                        time.Duration
 	TTL                            time.Duration
@@ -64,12 +66,14 @@ func (c *CheckDefinition) CheckType() *CheckType {
 		Script:            c.Script,
 		ScriptArgs:        c.ScriptArgs,
 		HTTP:              c.HTTP,
+		GRPC:              c.GRPC,
 		Header:            c.Header,
 		Method:            c.Method,
 		TCP:               c.TCP,
 		Interval:          c.Interval,
 		DockerContainerID: c.DockerContainerID,
 		Shell:             c.Shell,
+		TLS:               c.TLS,
 		TLSSkipVerify:     c.TLSSkipVerify,
 		Timeout:           c.Timeout,
 		TTL:               c.TTL,
