@@ -35,19 +35,22 @@ func New(addr string) *Metrics {
 		zoneMap: make(map[string]bool),
 	}
 	// Add the default collectors
-	met.Reg.MustRegister(prometheus.NewGoCollector())
-	met.Reg.MustRegister(prometheus.NewProcessCollector(os.Getpid(), ""))
+	met.MustRegister(prometheus.NewGoCollector())
+	met.MustRegister(prometheus.NewProcessCollector(os.Getpid(), ""))
 
 	// Add all of our collectors
-	met.Reg.MustRegister(vars.RequestCount)
-	met.Reg.MustRegister(vars.RequestDuration)
-	met.Reg.MustRegister(vars.RequestSize)
-	met.Reg.MustRegister(vars.RequestDo)
-	met.Reg.MustRegister(vars.RequestType)
-	met.Reg.MustRegister(vars.ResponseSize)
-	met.Reg.MustRegister(vars.ResponseRcode)
+	met.MustRegister(vars.RequestCount)
+	met.MustRegister(vars.RequestDuration)
+	met.MustRegister(vars.RequestSize)
+	met.MustRegister(vars.RequestDo)
+	met.MustRegister(vars.RequestType)
+	met.MustRegister(vars.ResponseSize)
+	met.MustRegister(vars.ResponseRcode)
 	return met
 }
+
+// MustRegister wraps m.Reg.MustRegister.
+func (m *Metrics) MustRegister(c prometheus.Collector) { m.Reg.MustRegister(c) }
 
 // AddZone adds zone z to m.
 func (m *Metrics) AddZone(z string) {
