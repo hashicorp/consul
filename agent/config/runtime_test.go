@@ -1863,6 +1863,24 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
+			desc: "grpc check",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{
+				`{ "check": { "name": "a", "grpc": "localhost:12345/foo" } }`,
+			},
+			hcl: []string{
+				`check = { name = "a" grpc = "localhost:12345/foo" }`,
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.Checks = []*structs.CheckDefinition{
+					&structs.CheckDefinition{Name: "a", GRPC: "localhost:12345/foo"},
+				}
+				rt.DataDir = dataDir
+			},
+		},
+		{
 			desc: "multiple service files",
 			args: []string{
 				`-data-dir=` + dataDir,
@@ -3887,6 +3905,7 @@ func TestSanitize(t *testing.T) {
         {
             "DeregisterCriticalServiceAfter": "0s",
             "DockerContainerID": "",
+            "GRPC": "",
             "HTTP": "",
             "Header": {},
             "ID": "",
@@ -3900,6 +3919,7 @@ func TestSanitize(t *testing.T) {
             "Shell": "",
             "Status": "",
             "TCP": "",
+            "TLS": false,
             "TLSSkipVerify": false,
             "TTL": "0s",
             "Timeout": "0s",
@@ -4016,6 +4036,7 @@ func TestSanitize(t *testing.T) {
                 "CheckID": "",
                 "DeregisterCriticalServiceAfter": "0s",
                 "DockerContainerID": "",
+                "GRPC": "",
                 "HTTP": "",
                 "Header": {},
                 "Interval": "0s",
@@ -4027,6 +4048,7 @@ func TestSanitize(t *testing.T) {
                 "Shell": "",
                 "Status": "",
                 "TCP": "",
+                "TLS": false,
                 "TLSSkipVerify": false,
                 "TTL": "0s",
                 "Timeout": "0s"

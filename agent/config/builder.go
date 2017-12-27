@@ -945,6 +945,8 @@ func (b *Builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		Interval:          b.durationVal(fmt.Sprintf("check[%s].interval", id), v.Interval),
 		DockerContainerID: b.stringVal(v.DockerContainerID),
 		Shell:             b.stringVal(v.Shell),
+		GRPC:              b.stringVal(v.GRPC),
+		TLS:               b.boolVal(v.TLS),
 		TLSSkipVerify:     b.boolVal(v.TLSSkipVerify),
 		Timeout:           b.durationVal(fmt.Sprintf("check[%s].timeout", id), v.Timeout),
 		TTL:               b.durationVal(fmt.Sprintf("check[%s].ttl", id), v.TTL),
