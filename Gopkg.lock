@@ -32,12 +32,6 @@
   version = "v8"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/beorn7/perks"
-  packages = ["quantile"]
-  revision = "4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9"
-
-[[projects]]
   name = "github.com/coreos/etcd"
   packages = ["client","pkg/pathutil","pkg/srv","pkg/types","version"]
   revision = "1e1dbb23924672c6cd72c62ee0db2b45f778da71"
@@ -278,12 +272,6 @@
   version = "v0.1.1"
 
 [[projects]]
-  name = "github.com/prometheus/client_golang"
-  packages = ["prometheus","prometheus/promhttp"]
-  revision = "c5b7fccd204277076155f10851dad72b76a49317"
-  version = "v0.8.0"
-
-[[projects]]
   branch = "master"
   name = "github.com/prometheus/client_model"
   packages = ["go"]
@@ -294,12 +282,6 @@
   name = "github.com/prometheus/common"
   packages = ["expfmt","internal/bitbucket.org/ww/goautoneg","model"]
   revision = "2e54d0b93cba2fd133edc32211dcc32c06ef72ca"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/prometheus/procfs"
-  packages = [".","xfs"]
-  revision = "f98634e408857669d61064b283c4cde240622865"
 
 [[projects]]
   branch = "master"
@@ -380,6 +362,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f6880c7a6161931b90bc7bde132559b79d0a192c1879b3f095107391e2e45c14"
+  inputs-digest = "7449762cfec347014dce97efce332ac6a9bca1c9cbc82418b2bf2e6af6a5d6db"
   solver-name = "gps-cdcl"
   solver-version = 1

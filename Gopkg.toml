@@ -3,6 +3,8 @@ ignored = [
     "github.com/mholt/caddy/caddyfile",
     "github.com/mholt/caddy/startupshutdown",
     "github.com/miekg/dns",
+    "github.com/prometheus/client_golang/prometheus",
+    "github.com/prometheus/client_golang/prometheus/promhttp",
     "golang.org/x/net/context",
     "golang.org/x/net/context/ctxhttp",
     "golang.org/x/net/http2",

@@ -26,6 +26,8 @@ testk8s: check
 godeps:
 	go get github.com/mholt/caddy
 	go get github.com/miekg/dns
+	go get github.com/prometheus/client_golang/prometheus/promhttp
+	go get github.com/prometheus/client_golang/prometheus
 	go get golang.org/x/net/context
 	go get golang.org/x/text
 
