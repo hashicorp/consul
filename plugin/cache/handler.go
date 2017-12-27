@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"sync"
 	"time"
 
 	"github.com/coredns/coredns/plugin"
@@ -84,38 +85,31 @@ func (c *Cache) get(now time.Time, qname string, qtype uint16, do bool) (*item, 
 var (
 	cacheSize = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: plugin.Namespace,
-		Subsystem: subsystem,
+		Subsystem: "cache",
 		Name:      "size",
 		Help:      "The number of elements in the cache.",
 	}, []string{"type"})
 
 	cacheCapacity = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: plugin.Namespace,
-		Subsystem: subsystem,
+		Subsystem: "cache",
 		Name:      "capacity",
 		Help:      "The cache's capacity.",
 	}, []string{"type"})
 
 	cacheHits = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: plugin.Namespace,
-		Subsystem: subsystem,
+		Subsystem: "cache",
 		Name:      "hits_total",
 		Help:      "The count of cache hits.",
 	}, []string{"type"})
 
 	cacheMisses = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: plugin.Namespace,
-		Subsystem: subsystem,
+		Subsystem: "cache",
 		Name:      "misses_total",
 		Help:      "The count of cache misses.",
 	})
 )
 
-const subsystem = "cache"
-
-func init() {
-	prometheus.MustRegister(cacheSize)
-	prometheus.MustRegister(cacheCapacity)
-	prometheus.MustRegister(cacheHits)
-	prometheus.MustRegister(cacheMisses)
-}
+var once sync.Once

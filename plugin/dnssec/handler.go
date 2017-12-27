@@ -1,6 +1,8 @@
 package dnssec
 
 import (
+	"sync"
+
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/request"
 
@@ -42,28 +44,28 @@ func (d Dnssec) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 var (
 	cacheSize = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: plugin.Namespace,
-		Subsystem: subsystem,
+		Subsystem: "dnssec",
 		Name:      "cache_size",
 		Help:      "The number of elements in the dnssec cache.",
 	}, []string{"type"})
 
 	cacheCapacity = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: plugin.Namespace,
-		Subsystem: subsystem,
+		Subsystem: "dnssec",
 		Name:      "cache_capacity",
 		Help:      "The dnssec cache's capacity.",
 	}, []string{"type"})
 
 	cacheHits = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: plugin.Namespace,
-		Subsystem: subsystem,
+		Subsystem: "dnssec",
 		Name:      "cache_hits_total",
 		Help:      "The count of cache hits.",
 	})
 
 	cacheMisses = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: plugin.Namespace,
-		Subsystem: subsystem,
+		Subsystem: "dnssec",
 		Name:      "cache_misses_total",
 		Help:      "The count of cache misses.",
 	})
@@ -72,11 +74,4 @@ var (
 // Name implements the Handler interface.
 func (d Dnssec) Name() string { return "dnssec" }
 
-const subsystem = "dnssec"
-
-func init() {
-	prometheus.MustRegister(cacheSize)
-	prometheus.MustRegister(cacheCapacity)
-	prometheus.MustRegister(cacheHits)
-	prometheus.MustRegister(cacheMisses)
-}
+var once sync.Once

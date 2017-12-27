@@ -18,12 +18,4 @@ var (
 	}, []string{})
 )
 
-// OnStartupMetrics sets up the metrics on startup.
-func OnStartupMetrics() error {
-	metricsOnce.Do(func() {
-		prometheus.MustRegister(AutoPathCount)
-	})
-	return nil
-}
-
-var metricsOnce sync.Once
+var once sync.Once

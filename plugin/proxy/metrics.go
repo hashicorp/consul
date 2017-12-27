@@ -25,15 +25,6 @@ var (
 	}, []string{"proto", "proxy_proto", "family", "to"})
 )
 
-// OnStartupMetrics sets up the metrics on startup. This is done for all proxy protocols.
-func OnStartupMetrics() error {
-	metricsOnce.Do(func() {
-		prometheus.MustRegister(RequestCount)
-		prometheus.MustRegister(RequestDuration)
-	})
-	return nil
-}
-
 // familyToString returns the string form of either 1, or 2. Returns
 // empty string is not a known family
 func familyToString(f int) string {
@@ -46,4 +37,4 @@ func familyToString(f int) string {
 	return ""
 }
 
-var metricsOnce sync.Once
+var once sync.Once

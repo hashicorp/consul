@@ -7,6 +7,7 @@ import (
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
+	"github.com/coredns/coredns/plugin/metrics"
 	"github.com/coredns/coredns/plugin/pkg/cache"
 
 	"github.com/mholt/caddy"
@@ -27,6 +28,22 @@ func setup(c *caddy.Controller) error {
 	dnsserver.GetConfig(c).AddPlugin(func(next plugin.Handler) plugin.Handler {
 		ca.Next = next
 		return ca
+	})
+
+	c.OnStartup(func() error {
+		once.Do(func() {
+			m := dnsserver.GetConfig(c).Handler("prometheus")
+			if m == nil {
+				return
+			}
+			if x, ok := m.(*metrics.Metrics); ok {
+				x.MustRegister(cacheSize)
+				x.MustRegister(cacheCapacity)
+				x.MustRegister(cacheHits)
+				x.MustRegister(cacheMisses)
+			}
+		})
+		return nil
 	})
 
 	// Export the capacity for the metrics. This only happens once, because this is a re-load change only.

@@ -3,6 +3,7 @@ package proxy
 import (
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
+	"github.com/coredns/coredns/plugin/metrics"
 
 	"github.com/mholt/caddy"
 )
@@ -28,7 +29,19 @@ func setup(c *caddy.Controller) error {
 		return P
 	})
 
-	c.OnStartup(OnStartupMetrics)
+	c.OnStartup(func() error {
+		once.Do(func() {
+			m := dnsserver.GetConfig(c).Handler("prometheus")
+			if m == nil {
+				return
+			}
+			if x, ok := m.(*metrics.Metrics); ok {
+				x.MustRegister(RequestCount)
+				x.MustRegister(RequestDuration)
+			}
+		})
+		return nil
+	})
 
 	for i := range upstreams {
 		u := upstreams[i]

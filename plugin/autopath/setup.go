@@ -5,6 +5,7 @@ import (
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
+	"github.com/coredns/coredns/plugin/metrics"
 
 	"github.com/mholt/caddy"
 	"github.com/miekg/dns"
@@ -24,7 +25,18 @@ func setup(c *caddy.Controller) error {
 		return plugin.Error("autopath", err)
 	}
 
-	c.OnStartup(OnStartupMetrics)
+	c.OnStartup(func() error {
+		once.Do(func() {
+			m := dnsserver.GetConfig(c).Handler("prometheus")
+			if m == nil {
+				return
+			}
+			if x, ok := m.(*metrics.Metrics); ok {
+				x.MustRegister(AutoPathCount)
+			}
+		})
+		return nil
+	})
 
 	// Do this in OnStartup, so all plugin has been initialized.
 	c.OnStartup(func() error {
