@@ -2,6 +2,10 @@ query.log
 Corefile
 *.swp
 coredns
+coredns.exe
+coredns.exe~
+debug
+debug.test
 kubectl
 go-test-tmpfile*
 coverage.txt
