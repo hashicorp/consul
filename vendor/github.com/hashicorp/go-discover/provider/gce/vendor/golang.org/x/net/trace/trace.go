@@ -111,24 +111,29 @@ var AuthRequest = func(req *http.Request) (any, sensitive bool) {
 }
 
 func init() {
-	http.HandleFunc("/debug/requests", func(w http.ResponseWriter, req *http.Request) {
-		any, sensitive := AuthRequest(req)
-		if !any {
-			http.Error(w, "not allowed", http.StatusUnauthorized)
-			return
-		}
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		Render(w, req, sensitive)
-	})
-	http.HandleFunc("/debug/events", func(w http.ResponseWriter, req *http.Request) {
-		any, sensitive := AuthRequest(req)
-		if !any {
-			http.Error(w, "not allowed", http.StatusUnauthorized)
-			return
-		}
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		RenderEvents(w, req, sensitive)
-	})
+	// @slackpad - Monkey patch these registrations out to prevent problems
+	// when vendoring this alongside other code that also imports this. See
+	// See https://github.com/golang/go/issues/15359.
+	/*
+		http.HandleFunc("/debug/requests", func(w http.ResponseWriter, req *http.Request) {
+			any, sensitive := AuthRequest(req)
+			if !any {
+				http.Error(w, "not allowed", http.StatusUnauthorized)
+				return
+			}
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			Render(w, req, sensitive)
+		})
+		http.HandleFunc("/debug/events", func(w http.ResponseWriter, req *http.Request) {
+			any, sensitive := AuthRequest(req)
+			if !any {
+				http.Error(w, "not allowed", http.StatusUnauthorized)
+				return
+			}
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			RenderEvents(w, req, sensitive)
+		})
+	*/
 }
 
 // Render renders the HTML page typically served at /debug/requests.
