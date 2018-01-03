@@ -4,7 +4,7 @@ import (
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/request"
 
-	api "k8s.io/client-go/pkg/api/v1"
+	api "k8s.io/api/core/v1"
 )
 
 // AutoPath implements the AutoPathFunc call from the autopath plugin.

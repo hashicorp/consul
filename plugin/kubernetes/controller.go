@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
+	api "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
-	api "k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/tools/cache"
 
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -164,7 +164,7 @@ func serviceListFunc(c *kubernetes.Clientset, ns string, s *labels.Selector) fun
 		if s != nil {
 			opts.LabelSelector = (*s).String()
 		}
-		listV1, err := c.Services(ns).List(opts)
+		listV1, err := c.CoreV1().Services(ns).List(opts)
 		if err != nil {
 			return nil, err
 		}
@@ -177,7 +177,7 @@ func podListFunc(c *kubernetes.Clientset, ns string, s *labels.Selector) func(me
 		if s != nil {
 			opts.LabelSelector = (*s).String()
 		}
-		listV1, err := c.Pods(ns).List(opts)
+		listV1, err := c.CoreV1().Pods(ns).List(opts)
 		if err != nil {
 			return nil, err
 		}
@@ -190,7 +190,7 @@ func serviceWatchFunc(c *kubernetes.Clientset, ns string, s *labels.Selector) fu
 		if s != nil {
 			options.LabelSelector = (*s).String()
 		}
-		w, err := c.Services(ns).Watch(options)
+		w, err := c.CoreV1().Services(ns).Watch(options)
 		if err != nil {
 			return nil, err
 		}
@@ -203,7 +203,7 @@ func podWatchFunc(c *kubernetes.Clientset, ns string, s *labels.Selector) func(o
 		if s != nil {
 			options.LabelSelector = (*s).String()
 		}
-		w, err := c.Pods(ns).Watch(options)
+		w, err := c.CoreV1().Pods(ns).Watch(options)
 		if err != nil {
 			return nil, err
 		}
@@ -216,7 +216,7 @@ func endpointsListFunc(c *kubernetes.Clientset, ns string, s *labels.Selector) f
 		if s != nil {
 			opts.LabelSelector = (*s).String()
 		}
-		listV1, err := c.Endpoints(ns).List(opts)
+		listV1, err := c.CoreV1().Endpoints(ns).List(opts)
 		if err != nil {
 			return nil, err
 		}
@@ -229,7 +229,7 @@ func endpointsWatchFunc(c *kubernetes.Clientset, ns string, s *labels.Selector) 
 		if s != nil {
 			options.LabelSelector = (*s).String()
 		}
-		w, err := c.Endpoints(ns).Watch(options)
+		w, err := c.CoreV1().Endpoints(ns).Watch(options)
 		if err != nil {
 			return nil, err
 		}
@@ -393,7 +393,7 @@ func (dns *dnsControl) EndpointsList() (eps []*api.Endpoints) {
 // returned. This query causes a roundtrip to the k8s API server, so use
 // sparingly. Currently this is only used for Federation.
 func (dns *dnsControl) GetNodeByName(name string) (*api.Node, error) {
-	v1node, err := dns.client.Nodes().Get(name, meta.GetOptions{})
+	v1node, err := dns.client.CoreV1().Nodes().Get(name, meta.GetOptions{})
 	if err != nil {
 		return &api.Node{}, err
 	}
@@ -404,7 +404,7 @@ func (dns *dnsControl) GetNodeByName(name string) (*api.Node, error) {
 // error is returned. This query causes a roundtrip to the k8s API server, so
 // use sparingly.
 func (dns *dnsControl) GetNamespaceByName(name string) (*api.Namespace, error) {
-	v1ns, err := dns.client.Namespaces().Get(name, meta.GetOptions{})
+	v1ns, err := dns.client.CoreV1().Namespaces().Get(name, meta.GetOptions{})
 	if err != nil {
 		return &api.Namespace{}, err
 	}

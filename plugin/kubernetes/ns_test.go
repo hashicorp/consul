@@ -3,8 +3,8 @@ package kubernetes
 import (
 	"testing"
 
+	api "k8s.io/api/core/v1"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	api "k8s.io/client-go/pkg/api/v1"
 )
 
 type APIConnTest struct{}

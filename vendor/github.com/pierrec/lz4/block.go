@@ -101,11 +101,20 @@ func UncompressBlock(src, dst []byte, di int) (int, error) {
 		}
 
 		// copy the match (NB. match is at least 4 bytes long)
-		// NB. past di, copy() would write old bytes instead of
-		// the ones we just copied, so split the work into the largest chunk.
-		for ; mLen >= offset; mLen -= offset {
-			di += copy(dst[di:], dst[di-offset:di])
+		if mLen >= offset {
+			bytesToCopy := offset * (mLen / offset)
+			// Efficiently copy the match dst[di-offset:di] into the slice
+			// dst[di:di+bytesToCopy]
+			expanded := dst[di-offset : di+bytesToCopy]
+			n := offset
+			for n <= bytesToCopy+offset {
+				copy(expanded[n:], expanded[:n])
+				n *= 2
+			}
+			di += bytesToCopy
+			mLen -= bytesToCopy
 		}
+
 		di += copy(dst[di:], dst[di-offset:di-offset+mLen])
 	}
 }

@@ -20,6 +20,7 @@ package net
 
 import (
 	"crypto/tls"
+	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -171,6 +172,30 @@ func TestProxierWithNoProxyCIDR(t *testing.T) {
 			url:               "https://192.168.143.1:8443/api",
 			expectedDelegated: false,
 		},
+		{
+			name:              "IPv6 cidr",
+			noProxy:           "2001:db8::/48",
+			url:               "https://[2001:db8::1]/api",
+			expectedDelegated: false,
+		},
+		{
+			name:              "IPv6+port cidr",
+			noProxy:           "2001:db8::/48",
+			url:               "https://[2001:db8::1]:8443/api",
+			expectedDelegated: false,
+		},
+		{
+			name:              "IPv6, not matching cidr",
+			noProxy:           "2001:db8::/48",
+			url:               "https://[2001:db8:1::1]/api",
+			expectedDelegated: true,
+		},
+		{
+			name:              "IPv6+port, not matching cidr",
+			noProxy:           "2001:db8::/48",
+			url:               "https://[2001:db8:1::1]:8443/api",
+			expectedDelegated: true,
+		},
 	}
 
 	for _, test := range testCases {
@@ -216,5 +241,42 @@ func TestTLSClientConfigHolder(t *testing.T) {
 
 	if !rt.called {
 		t.Errorf("didn't find tls config")
+	}
+}
+
+func TestJoinPreservingTrailingSlash(t *testing.T) {
+	tests := []struct {
+		a    string
+		b    string
+		want string
+	}{
+		// All empty
+		{"", "", ""},
+
+		// Empty a
+		{"", "/", "/"},
+		{"", "foo", "foo"},
+		{"", "/foo", "/foo"},
+		{"", "/foo/", "/foo/"},
+
+		// Empty b
+		{"/", "", "/"},
+		{"foo", "", "foo"},
+		{"/foo", "", "/foo"},
+		{"/foo/", "", "/foo/"},
+
+		// Both populated
+		{"/", "/", "/"},
+		{"foo", "foo", "foo/foo"},
+		{"/foo", "/foo", "/foo/foo"},
+		{"/foo/", "/foo/", "/foo/foo/"},
+	}
+	for _, tt := range tests {
+		name := fmt.Sprintf("%q+%q=%q", tt.a, tt.b, tt.want)
+		t.Run(name, func(t *testing.T) {
+			if got := JoinPreservingTrailingSlash(tt.a, tt.b); got != tt.want {
+				t.Errorf("JoinPreservingTrailingSlash() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

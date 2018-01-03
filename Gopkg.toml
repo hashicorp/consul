@@ -19,10 +19,15 @@ ignored = [
     name = "github.com/ugorji/go"
     revision = "8c0409fcbb70099c748d71f714529204975f6c3f"
 
-# client-go 4.0.0 uses apimachinery 1fd2e63a9a370677308a42f24fd40c86438afddf (see Godep.json)
+# client-go 6.0.0 uses apimachinery 180eddb345a5be3a157cea1c624700ad5bd27b8f
+# and api 11147472b7c934c474a2c484af3c0c5210b7a3af (see Godep.json). go dep
+# is unable to match Godep.json automatically so have to specify here.
 [[constraint]]
     name = "k8s.io/client-go"
-    version = "v4.0.0"
+    version = "v6.0.0"
 [[override]]
     name = "k8s.io/apimachinery"
-    revision = "1fd2e63a9a370677308a42f24fd40c86438afddf"
+    revision = "180eddb345a5be3a157cea1c624700ad5bd27b8f"
+[[override]]
+    name = "k8s.io/api"
+    revision = "11147472b7c934c474a2c484af3c0c5210b7a3af"

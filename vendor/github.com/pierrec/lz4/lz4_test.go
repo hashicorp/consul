@@ -295,6 +295,21 @@ func BenchmarkUncompressBlock(b *testing.B) {
 	}
 }
 
+func BenchmarkUncompressConstantBlock(b *testing.B) {
+	d := make([]byte, 4096)
+	z := make([]byte, 4096)
+	source := make([]byte, 4096)
+	n, err := lz4.CompressBlock(source, z, 0)
+	if err != nil {
+		b.Errorf("CompressBlock: %s", err)
+		b.FailNow()
+	}
+	z = z[:n]
+	for i := 0; i < b.N; i++ {
+		lz4.UncompressBlock(z, d, 0)
+	}
+}
+
 func BenchmarkCompressBlock(b *testing.B) {
 	d := append([]byte{}, lorem...)
 	z := make([]byte, len(lorem))
@@ -306,6 +321,20 @@ func BenchmarkCompressBlock(b *testing.B) {
 	z = z[:n]
 	for i := 0; i < b.N; i++ {
 		d = append([]byte{}, lorem...)
+		lz4.CompressBlock(d, z, 0)
+	}
+}
+
+func BenchmarkCompressConstantBlock(b *testing.B) {
+	d := make([]byte, 4096)
+	z := make([]byte, 4096)
+	n, err := lz4.CompressBlock(d, z, 0)
+	if err != nil {
+		b.Errorf("CompressBlock: %s", err)
+		b.FailNow()
+	}
+	z = z[:n]
+	for i := 0; i < b.N; i++ {
 		lz4.CompressBlock(d, z, 0)
 	}
 }

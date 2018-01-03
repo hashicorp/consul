@@ -7,8 +7,8 @@ import (
 	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
+	api "k8s.io/api/core/v1"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	api "k8s.io/client-go/pkg/api/v1"
 )
 
 func TestWildcard(t *testing.T) {
