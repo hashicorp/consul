@@ -96,6 +96,8 @@ The table below shows this endpoint's support for
   provided, the agent's address is used as the address for the service during
   DNS queries.
 
+- `Port` `(int: 0)` - Specifies the port of the service.
+
 - `Check` `(Check: nil)` - Specifies a check. Please see the
   [check documentation](/api/agent/check.html) for more information about the
   accepted fields. If you don't provide a name or id for the check then they
