@@ -16,8 +16,8 @@ func TestZoneSigningBlackLies(t *testing.T) {
 	defer rm2()
 
 	m := testNxdomainMsg()
-	state := request.Request{Req: m}
-	m = d.Sign(state, "miek.nl.", time.Now().UTC())
+	state := request.Request{Req: m, Zone: "miek.nl."}
+	m = d.Sign(state, time.Now().UTC())
 	if !section(m.Ns, 2) {
 		t.Errorf("authority section should have 2 sig")
 	}

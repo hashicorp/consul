@@ -39,7 +39,7 @@ func New(zones []string, keys []*DNSKEY, next plugin.Handler, c *cache.Cache) Dn
 // will insert DS records and sign those.
 // Signatures will be cached for a short while. By default we sign for 8 days,
 // starting 3 hours ago.
-func (d Dnssec) Sign(state request.Request, zone string, now time.Time) *dns.Msg {
+func (d Dnssec) Sign(state request.Request, now time.Time) *dns.Msg {
 	req := state.Req
 
 	incep, expir := incepExpir(now)
@@ -71,10 +71,10 @@ func (d Dnssec) Sign(state request.Request, zone string, now time.Time) *dns.Msg
 
 		ttl := req.Ns[0].Header().Ttl
 
-		if sigs, err := d.sign(req.Ns, zone, ttl, incep, expir); err == nil {
+		if sigs, err := d.sign(req.Ns, state.Zone, ttl, incep, expir); err == nil {
 			req.Ns = append(req.Ns, sigs...)
 		}
-		if sigs, err := d.nsec(state.Name(), zone, ttl, incep, expir); err == nil {
+		if sigs, err := d.nsec(state, mt, ttl, incep, expir); err == nil {
 			req.Ns = append(req.Ns, sigs...)
 		}
 		if len(req.Ns) > 1 { // actually added nsec and sigs, reset the rcode
@@ -85,19 +85,19 @@ func (d Dnssec) Sign(state request.Request, zone string, now time.Time) *dns.Msg
 
 	for _, r := range rrSets(req.Answer) {
 		ttl := r[0].Header().Ttl
-		if sigs, err := d.sign(r, zone, ttl, incep, expir); err == nil {
+		if sigs, err := d.sign(r, state.Zone, ttl, incep, expir); err == nil {
 			req.Answer = append(req.Answer, sigs...)
 		}
 	}
 	for _, r := range rrSets(req.Ns) {
 		ttl := r[0].Header().Ttl
-		if sigs, err := d.sign(r, zone, ttl, incep, expir); err == nil {
+		if sigs, err := d.sign(r, state.Zone, ttl, incep, expir); err == nil {
 			req.Ns = append(req.Ns, sigs...)
 		}
 	}
 	for _, r := range rrSets(req.Extra) {
 		ttl := r[0].Header().Ttl
-		if sigs, err := d.sign(r, zone, ttl, incep, expir); err == nil {
+		if sigs, err := d.sign(r, state.Zone, ttl, incep, expir); err == nil {
 			req.Extra = append(sigs, req.Extra...) // prepend to leave OPT alone
 		}
 	}

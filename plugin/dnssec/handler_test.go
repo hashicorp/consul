@@ -73,9 +73,29 @@ var dnsTestCases = []test.Case{
 		Extra: []dns.RR{test.OPT(4096, true)},
 	},
 	{
+		Qname: "wwwww.miek.nl.", Qtype: dns.TypeAAAA, Do: true,
+		Ns: []dns.RR{
+			test.RRSIG("miek.nl.	1800	IN	RRSIG	SOA 13 2 3600 20171220135446 20171212105446 18512 miek.nl. hCRzzjYz6w=="),
+			test.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
+			test.NSEC("wwwww.miek.nl.	1800	IN	NSEC	\\000.wwwww.miek.nl. A HINFO TXT LOC SRV CERT SSHFP RRSIG NSEC TLSA HIP OPENPGPKEY SPF"),
+			test.RRSIG("wwwww.miek.nl.	1800	IN	RRSIG	NSEC 13 3 3600 20171220135446 20171212105446 18512 miek.nl. cVUQWs8xw=="),
+		},
+		Extra: []dns.RR{test.OPT(4096, true)},
+	},
+	{
+		Qname: "miek.nl.", Qtype: dns.TypeHINFO, Do: true,
+		Ns: []dns.RR{
+			test.NSEC("miek.nl.	1800	IN	NSEC	\\000.miek.nl. A NS SOA MX TXT AAAA LOC SRV CERT SSHFP RRSIG NSEC DNSKEY TLSA HIP OPENPGPKEY SPF"),
+			test.RRSIG("miek.nl.	1800	IN	RRSIG	NSEC 13 2 3600 20171220141741 20171212111741 18512 miek.nl. GuXROL7Uu+UiPcg=="),
+			test.RRSIG("miek.nl.	1800	IN	RRSIG	SOA 13 2 3600 20171220141741 20171212111741 18512 miek.nl. 8bLTReqmuQtw=="),
+			test.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
+		},
+		Extra: []dns.RR{test.OPT(4096, true)},
+	},
+	{
 		Qname: "www.example.org.", Qtype: dns.TypeAAAA, Do: true,
 		Rcode: dns.RcodeServerFailure,
-		// Extra: []dns.RR{test.OPT(4096, true)}, // test.ErrorHandler is a simple handler that does not do EDNS.
+		// Extra: []dns.RR{test.OPT(4096, true)}, // test.ErrorHandler is a simple handler that does not do EDNS on ServerFailure
 	},
 }
 
@@ -131,6 +151,17 @@ func TestLookupDNSKEY(t *testing.T) {
 		}
 
 		test.SortAndCheck(t, resp, tc)
+
+		// If there is an NSEC present in authority section check if the bitmap does not have the qtype set.
+		for _, rr := range resp.Ns {
+			if n, ok := rr.(*dns.NSEC); ok {
+				for i := range n.TypeBitMap {
+					if n.TypeBitMap[i] == tc.Qtype {
+						t.Errorf("bitmap contains qtype: %d", tc.Qtype)
+					}
+				}
+			}
+		}
 	}
 }
 

@@ -26,9 +26,10 @@ func (d *ResponseWriter) WriteMsg(res *dns.Msg) error {
 	if zone == "" {
 		return d.ResponseWriter.WriteMsg(res)
 	}
+	state.Zone = zone
 
 	if state.Do() {
-		res = d.d.Sign(state, zone, time.Now().UTC())
+		res = d.d.Sign(state, time.Now().UTC())
 
 		cacheSize.WithLabelValues("signature").Set(float64(d.d.cache.Len()))
 	}

@@ -23,6 +23,8 @@ func (d Dnssec) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 		return plugin.NextOrFailure(d.Name(), d.Next, ctx, w, r)
 	}
 
+	state.Zone = zone
+
 	// Intercept queries for DNSKEY, but only if one of the zones matches the qname, otherwise we let
 	// the query through.
 	if qtype == dns.TypeDNSKEY {

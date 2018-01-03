@@ -22,10 +22,10 @@ func TestCacheSet(t *testing.T) {
 
 	c := cache.New(defaultCap)
 	m := testMsg()
-	state := request.Request{Req: m}
+	state := request.Request{Req: m, Zone: "miek.nl."}
 	k := hash(m.Answer) // calculate *before* we add the sig
 	d := New([]string{"miek.nl."}, []*DNSKEY{dnskey}, nil, c)
-	d.Sign(state, "miek.nl.", time.Now().UTC())
+	d.Sign(state, time.Now().UTC())
 
 	_, ok := d.get(k)
 	if !ok {
