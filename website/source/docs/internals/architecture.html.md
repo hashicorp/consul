@@ -107,7 +107,7 @@ The server nodes also operate as part of a WAN gossip pool. This pool is differe
 as it is optimized for the higher latency of the internet and is expected to contain only
 other Consul server nodes. The purpose of this pool is to allow datacenters to discover each
 other in a low-touch manner. Bringing a new datacenter online is as easy as joining the existing
-WAN gossip. Because the servers are all operating in this pool, it also enables cross-datacenter
+WAN gossip pool. Because the servers are all operating in this pool, it also enables cross-datacenter
 requests. When a server receives a request for a different datacenter, it forwards it to a random
 server in the correct datacenter. That server may then forward to the local leader.
 

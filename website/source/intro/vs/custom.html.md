@@ -18,7 +18,7 @@ state. These solutions may work in the short term, but they are rarely fault
 tolerant or scalable. Besides these limitations, they require time and resources
 to build and maintain.
 
-Consul provides the core set of features needed by a SOA out of the box. By
+Consul provides the core set of features needed by an SOA out of the box. By
 using Consul, organizations can leverage open source work to reduce the time
 and effort spent re-inventing the wheel and can focus instead on their business
 applications.

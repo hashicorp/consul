@@ -120,10 +120,10 @@ lets the current lock holder update the key contents without having to give
 up the lock and reacquire it.
 
 Once held, the lock can be released using a corresponding `release` operation,
-providing the same session. Again, this acts like a Check-And-Set operations
+providing the same session. Again, this acts like a Check-And-Set operation
 since the request will fail if given an invalid session. A critical note is
 that the lock can be released without being the creator of the session.
-This is by design as it allows operators to intervene and force terminate
+This is by design as it allows operators to intervene and force-terminate
 a session if necessary. As mentioned above, a session invalidation will also
 cause all held locks to be released or deleted. When a lock is released, the `LockIndex`
 does not change; however, the `Session` is cleared and the `ModifyIndex` increments.

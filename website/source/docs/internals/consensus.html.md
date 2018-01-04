@@ -86,7 +86,7 @@ result in the same state as a replay of old logs. This allows Raft to capture th
 state at a point in time and then remove all the logs that were used to reach that
 state. This is performed automatically without user intervention and prevents unbounded
 disk usage while also minimizing time spent replaying logs. One of the advantages of
-using BoltDB is that it allows Consul to continue accepting new transactions even while
+using MemDB is that it allows Consul to continue accepting new transactions even while
 old state is being snapshotted, preventing any availability issues.
 
 Consensus is fault-tolerant up to the point where quorum is available.
@@ -165,7 +165,7 @@ The three read modes are:
   introduces an additional round-trip to all server nodes. The trade-off is
   always consistent reads but increased latency due to the extra round trip.
 
-* `stale` - This mode allows any server to service the read regardless of if
+* `stale` - This mode allows any server to service the read regardless of whether
   it is the leader. This means reads can be arbitrarily stale but are generally
   within 50 milliseconds of the leader. The trade-off is very fast and scalable
   reads but with stale values. This mode allows reads without a leader meaning

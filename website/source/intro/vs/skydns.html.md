@@ -39,5 +39,5 @@ runs an independent cluster of servers. Requests are forwarded to remote
 datacenters if necessary; requests for services within a datacenter
 never go over the WAN, and connectivity issues between datacenters do not
 affect availability within a datacenter. Additionally, the unavailability
-of one datacenter does not affect the service discovery of services
+of one datacenter does not affect the discovery of services
 in any other datacenter.
