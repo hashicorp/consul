@@ -1,0 +1,101 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "COREDNS\-METRICS" "7" "January 2018" "CoreDNS" "CoreDNS plugins"
+.
+.SH "NAME"
+\fIprometheus\fR \- enables Prometheus \fIhttps://prometheus\.io/\fR metrics\.
+.
+.SH "DESCRIPTION"
+With \fIprometheus\fR you export metrics from CoreDNS and any plugin that has them\. The default location for the metrics is \fBlocalhost:9153\fR\. The metrics path is fixed to \fB/metrics\fR\. The following metrics are exported:
+.
+.IP "\(bu" 4
+\fBcoredns_dns_request_count_total{zone, proto, family}\fR \- total query count\.
+.
+.IP "\(bu" 4
+\fBcoredns_dns_request_duration_seconds{zone}\fR \- duration to process each query\.
+.
+.IP "\(bu" 4
+\fBcoredns_dns_request_size_bytes{zone, proto}\fR \- size of the request in bytes\.
+.
+.IP "\(bu" 4
+\fBcoredns_dns_request_do_count_total{zone}\fR \- queries that have the DO bit set
+.
+.IP "\(bu" 4
+\fBcoredns_dns_request_type_count_total{zone, type}\fR \- counter of queries per zone and type\.
+.
+.IP "\(bu" 4
+\fBcoredns_dns_response_size_bytes{zone, proto}\fR \- response size in bytes\.
+.
+.IP "\(bu" 4
+\fBcoredns_dns_response_rcode_count_total{zone, rcode}\fR \- response per zone and rcode\.
+.
+.IP "" 0
+.
+.P
+Each counter has a label \fBzone\fR which is the zonename used for the request/response\.
+.
+.P
+Extra labels used are:
+.
+.IP "\(bu" 4
+\fBproto\fR which holds the transport of the response ("udp" or "tcp")
+.
+.IP "\(bu" 4
+The address family (\fBfamily\fR) of the transport (1 = IP (IP version 4), 2 = IP6 (IP version 6))\.
+.
+.IP "\(bu" 4
+\fBtype\fR which holds the query type\. It holds most common types (A, AAAA, MX, SOA, CNAME, PTR, TXT, NS, SRV, DS, DNSKEY, RRSIG, NSEC, NSEC3, IXFR, AXFR and ANY) and "other" which lumps together all other types\.
+.
+.IP "\(bu" 4
+The \fBresponse_rcode_count_total\fR has an extra label \fBrcode\fR which holds the rcode of the response\.
+.
+.IP "" 0
+.
+.P
+If monitoring is enabled, queries that do not enter the plugin chain are exported under the fake name "dropped" (without a closing dot \- this is never a valid domain name)\.
+.
+.SH "SYNTAX"
+.
+.nf
+
+prometheus [ADDRESS]
+.
+.fi
+.
+.P
+For each zone that you want to see metrics for\.
+.
+.P
+It optionally takes an address to which the metrics are exported; the default is \fBlocalhost:9153\fR\. The metrics path is fixed to \fB/metrics\fR\.
+.
+.SH "EXAMPLES"
+Use an alternative address:
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+    prometheus localhost:9253
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Or via an enviroment variable (this is supported throughout the Corefile): \fBexport PORT=9253\fR, and then:
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+    prometheus localhost:{$PORT}
+}
+.
+.fi
+.
+.IP "" 0
+When reloading, we keep the handler running, meaning that any changes to the handler\'s address aren\'t picked up\. You\'ll need to restart CoreDNS for that to happen\.

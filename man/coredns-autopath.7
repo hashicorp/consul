@@ -1,0 +1,61 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "COREDNS\-AUTOPATH" "7" "January 2018" "CoreDNS" "CoreDNS plugins"
+.
+.SH "NAME"
+\fIautopath\fR \- allows for server side search path completion\.
+.
+.SH "DESCRIPTION"
+If it sees a query that matches the first element of the configured search path, \fIautopath\fR will follow the chain of search path elements and returns the first reply that is not NXDOMAIN\. On any failures the original reply is returned\. Because \fIautopath\fR returns a reply for a name that wasn\'t the original question it will add a CNAME that points from the original name (with the search path element in it) to the name of this answer\.
+.
+.SH "SYNTAX"
+.
+.nf
+
+autopath [ZONE\.\.\.] RESOLV\-CONF
+.
+.fi
+.
+.IP "\(bu" 4
+\fBZONES\fR zones \fIautopath\fR should be authoritative for\.
+.
+.IP "\(bu" 4
+\fBRESOLV\-CONF\fR points to a \fBresolv\.conf\fR like file or uses a special syntax to point to another plugin\. For instance \fB@kubernetes\fR, will call out to the kubernetes plugin (for each query) to retrieve the search list it should use\.
+.
+.IP "" 0
+.
+.P
+If a plugin implements the \fBAutoPather\fR interface then it can be used\.
+.
+.SH "METRICS"
+If monitoring is enabled (via the \fIprometheus\fR directive) then the following metric is exported:
+.
+.IP "\(bu" 4
+\fBcoredns_autopath_success_count_total{}\fR \- counter of successfully autopath\-ed queries\.
+.
+.IP "" 0
+.
+.SH "EXAMPLES"
+.
+.nf
+
+autopath my\-resolv\.conf
+.
+.fi
+.
+.P
+Use \fBmy\-resolv\.conf\fR as the file to get the search path from\. This file only needs so have one line: \fBsearch domain1 domain2 \.\.\.\fR
+.
+.IP "" 4
+.
+.nf
+
+autopath @kubernetes
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Use the search path dynamically retrieved from the kubernetes plugin\.

@@ -1,7 +1,12 @@
 # prometheus
 
-*prometheus* enables [Prometheus](https://prometheus.io/) metrics.
+## Name
 
+*prometheus* - enables [Prometheus](https://prometheus.io/) metrics.
+
+## Description
+
+With *prometheus* you export metrics from CoreDNS and any plugin that has them.
 The default location for the metrics is `localhost:9153`. The metrics path is fixed to `/metrics`.
 The following metrics are exported:
 

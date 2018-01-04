@@ -1,0 +1,59 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "COREDNS" "1" "January 2018" "CoreDNS" "CoreDNS"
+.
+.SH "NAME"
+\fBcoredns\fR
+.
+.SH "NAME"
+\fIcoredns\fR \- plugable DNS nameserver optimized for service discovery\.
+.
+.SH "SYNOPSIS"
+\fIcoredns\fR \fI[OPTION]\fR\.\.\.
+.
+.SH "DESCRIPTION"
+CoreDNS is a DNS server that chains plugins\. Each plugin handles a DNS feature, like rewriting queries, kubernetes service discovery or just exporting metrics\. There are many other plugins, each described on \fIhttps://coredns\.io/plugins\fR and there respective manual pages\.
+.
+.P
+When started with no options CoreDNS will looks for a file names \fBCorefile\fR in the current directory, if found it will parse its contents and start up accordingly\. If no \fBCorefile\fR is found it will start with the \fIwhoami\fR plugin (coredns\-whoami(7)) and start listening on port 53 (unless overriden with \fB\-dns\.port\fR)\.
+.
+.P
+Available options:
+.
+.TP
+\fB\-conf\fR \fBFILE\fR
+specificy Corefile to load\.
+.
+.TP
+\fB\-cpu\fR \fBCAP\fR
+specify maximum CPU capacity in percent\.
+.
+.TP
+\fB\-dns\.port\fR \fBPORT\fR
+override default port to listen on\.
+.
+.TP
+\fB\-pidfile\fR \fBFILE\fR
+write PID to \fBFILE\fR\.
+.
+.TP
+\fB\-plugins\fR
+list all plugins and quit\.
+.
+.TP
+\fB\-quiet\fR
+don\'t print any version and port information on startup\.
+.
+.TP
+\fB\-version\fR
+show version and quit\.
+.
+.SH "AUTHORS"
+CoreDNS Authors\.
+.
+.SH "COPYRIGHT"
+Apache License 2\.0
+.
+.SH "SEE ALSO"
+Corefile(7) corendns\-debug(7) corendns\-dnssec(7) corendns\-health(7) corendns\-log(7) corendns\-file(7) corendns\-nsid(7) corendns\-autopath(7) corendns\-auto(7) corendns\-erratic(7) corendns\-chaos(7) corendns\-dnstap(7) corendns\-pprof(7) corendns\-tls(7) corendns\-loadbalance(7) corendns\-cache(7) corendns\-root(7) corendns\-whoami(7) corendns\-bind(7) corendns\-hosts(7) corendns\-proxy(7) corendns\-kubernetes(7) corendns\-secondary(7) corendns\-reverse(7) corendns\-errors(7) corendns\-metrics(7) corendns\-rewrite(7) corendns\-federation(7) corendns\-etcd(7) corendns\-trace(7)\.

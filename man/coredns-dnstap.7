@@ -1,0 +1,111 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "COREDNS\-DNSTAP" "7" "January 2018" "CoreDNS" "CoreDNS plugins"
+.
+.SH "NAME"
+\fIdnstap\fR \- enable logging to dnstap
+.
+.SH "DESCRIPTION"
+dnstap is a flexible, structured binary log format for DNS software: http://dnstap\.info\. With this plugin you make CoreDNS output dnstap logging\.
+.
+.P
+Note that there is an internal buffer, so expect at least 13 requests before the server sends its dnstap messages to the socket\.
+.
+.SH "SYNTAX"
+.
+.nf
+
+dnstap SOCKET [full]
+.
+.fi
+.
+.IP "\(bu" 4
+\fBSOCKET\fR is the socket path supplied to the dnstap command line tool\.
+.
+.IP "\(bu" 4
+\fBfull\fR to include the wire\-format DNS message\.
+.
+.IP "" 0
+.
+.SH "EXAMPLES"
+Log information about client requests and responses to \fI/tmp/dnstap\.sock\fR\.
+.
+.IP "" 4
+.
+.nf
+
+dnstap /tmp/dnstap\.sock
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Log information including the wire\-format DNS message about client requests and responses to \fI/tmp/dnstap\.sock\fR\.
+.
+.IP "" 4
+.
+.nf
+
+dnstap unix:///tmp/dnstap\.sock full
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Log to a remote endpoint\.
+.
+.IP "" 4
+.
+.nf
+
+dnstap tcp://127\.0\.0\.1:6000 full
+.
+.fi
+.
+.IP "" 0
+.
+.SH "COMMAND LINE TOOL"
+Dnstap has a command line tool that can be used to inspect the logging\. The tool can be found at Github: \fIhttps://github\.com/dnstap/golang\-dnstap\fR\. It\'s written in Go\.
+.
+.P
+The following command listens on the given socket and decodes messages to stdout\.
+.
+.IP "" 4
+.
+.nf
+
+% dnstap \-u /tmp/dnstap\.sock
+.
+.fi
+.
+.IP "" 0
+.
+.P
+The following command listens on the given socket and saves message payloads to a binary dnstap\-format log file\.
+.
+.IP "" 4
+.
+.nf
+
+% dnstap \-u /tmp/dnstap\.sock \-w /tmp/test\.dnstap
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Listen for dnstap messages on port 6000\.
+.
+.IP "" 4
+.
+.nf
+
+% dnstap \-l 127\.0\.0\.1:6000
+.
+.fi
+.
+.IP "" 0
+dnstap\.info \fIhttp://dnstap\.info\fR\.

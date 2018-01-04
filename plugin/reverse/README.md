@@ -1,6 +1,13 @@
 # reverse
 
-*reverse* allows for dynamic responses to PTR and the related A/AAAA requests.
+## Name
+
+*reverse* - allows for dynamic responses to PTR and the related A/AAAA requests.
+
+## Description
+
+If a request matches a regular expression (see Template Syntax below) this plugin will generate a
+response. This is only done for "address" records (PTR, A and AAAA).
 
 ## Syntax
 

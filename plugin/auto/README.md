@@ -1,7 +1,10 @@
 # auto
 
-*auto* enables serving zone data from an RFC 1035-style master file which is automatically picked
-up from disk.
+## Name
+
+*auto* - enables serving zone data from an RFC 1035-style master file which is automatically picked up from disk.
+
+## Description
 
 The *auto* plugin is used for an "old-style" DNS server. It serves from a preloaded file that exists
 on disk. If the zone file contains signatures (i.e. is signed, i.e. DNSSEC) correct DNSSEC answers

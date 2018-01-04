@@ -1,0 +1,77 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "COREDNS\-CHAOS" "7" "January 2018" "CoreDNS" "CoreDNS plugins"
+.
+.SH "NAME"
+\fIchaos\fR \- allows for responding to TXT queries in the CH class\.
+.
+.SH "DESCRIPTION"
+This is useful for retrieving version or author information from the server by querying a TXT record for a special domainname in the CH class\.
+.
+.SH "SYNTAX"
+.
+.nf
+
+chaos [VERSION] [AUTHORS\.\.\.]
+.
+.fi
+.
+.IP "\(bu" 4
+\fBVERSION\fR is the version to return\. Defaults to \fBCoreDNS\-<version>\fR, if not set\.
+.
+.IP "\(bu" 4
+\fBAUTHORS\fR is what authors to return\. No default\.
+.
+.IP "" 0
+.
+.P
+Note that you have to make sure that this plugin will get actual queries for the following zones: \fBversion\.bind\fR, \fBversion\.server\fR, \fBauthors\.bind\fR, \fBhostname\.bind\fR and \fBid\.server\fR\.
+.
+.SH "EXAMPLES"
+Specify all the zones in full\.
+.
+.IP "" 4
+.
+.nf
+
+version\.bind version\.server authors\.bind hostname\.bind id\.server {
+    chaos CoreDNS\-001 info@coredns\.io
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Or just default to \fB\.\fR:
+.
+.IP "" 4
+.
+.nf
+
+\&\.  {
+    chaos CoreDNS\-001 info@coredns\.io
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+And test with \fBdig\fR:
+.
+.IP "" 4
+.
+.nf
+
+% dig @localhost CH TXT version\.bind
+\.\.\.
+;; ANSWER SECTION:
+version\.bind\.       0   CH  TXT "CoreDNS\-001"
+\.\.\.
+.
+.fi
+.
+.IP "" 0
+

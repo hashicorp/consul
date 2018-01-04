@@ -1,0 +1,37 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "COREDNS\-BIND" "7" "January 2018" "CoreDNS" "CoreDNS plugins"
+.
+.SH "NAME"
+\fIbind\fR \- overrides the host to which the server should bind\.
+.
+.SH "DESCRIPTION"
+Normally, the listener binds to the wildcard host\. However, you may force the listener to bind to another IP instead\. This directive accepts only an address, not a port\.
+.
+.SH "SYNTAX"
+.
+.nf
+
+bind ADDRESS
+.
+.fi
+.
+.P
+\fBADDRESS\fR is the IP address to bind to\.
+.
+.SH "EXAMPLES"
+To make your socket accessible only to that machine, bind to IP 127\.0\.0\.1 (localhost):
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+    bind 127\.0\.0\.1
+}
+.
+.fi
+.
+.IP "" 0
+

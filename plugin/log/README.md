@@ -1,6 +1,15 @@
 # log
 
-*log* enables query logging to standard output.
+## Name
+
+*log* - enables query logging to standard output.
+
+## Description
+
+By just using *log* you dump all queries (and parts for the reply) on standard output. Options exist
+to tweak the output a little.
+
+Note that for busy servers this will incur a performance hit.
 
 ## Syntax
 

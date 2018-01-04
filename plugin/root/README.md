@@ -1,9 +1,13 @@
 # root
 
-*root* simply specifies the root of where to find (zone) files.
+## Name
 
-The default root is the current working directory of CoreDNS. A relative root path is relative to
-the current working directory.
+*root* - simply specifies the root of where to find (zone) files.
+
+## Description
+
+The default root is the current working directory of CoreDNS. The *root* plugin allows you to change
+this. A relative root path is relative to the current working directory.
 
 ## Syntax
 

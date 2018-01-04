@@ -20,7 +20,10 @@ Each plugin should have a README.md explaining what the plugin does and how it i
 file should have the following layout:
 
 * Title: use the plugin's name
-* Subsection titled: "Syntax"
+* Subsection titled: "Named"
+    with *PLUGIN* - one line description.
+* Subsection titled: "Description" has a longer description.
+* Subsection titled: "Syntax", syntax and supported directives.
 * Subsection titled: "Examples"
 
 More sections are of course possible.

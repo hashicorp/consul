@@ -1,0 +1,64 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "COREDNS\-FEDERATION" "7" "January 2018" "CoreDNS" "CoreDNS plugins"
+.
+.SH "NAME"
+\fIfederation\fR \- enables federated \fIhttps://kubernetes\.io/docs/tasks/federation/federation\-service\-discovery/\fR queries to be resolved via the kubernetes plugin\.
+.
+.SH "DESCRIPTION"
+Enabling \fIfederation\fR without also having \fIkubernetes\fR is a noop\.
+.
+.SH "SYNTAX"
+.
+.nf
+
+federation [ZONES\.\.\.] {
+    NAME DOMAIN
+}
+.
+.fi
+.
+.IP "\(bu" 4
+Each \fBNAME\fR and \fBDOMAIN\fR defines federation membership\. One entry for each\. A duplicate \fBNAME\fR will silently overwrite any previous value\.
+.
+.IP "" 0
+.
+.SH "EXAMPLES"
+Here we handle all service requests in the \fBprod\fR and \fBstage\fR federations\.
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+    kubernetes cluster\.local
+    federation cluster\.local {
+        prod prod\.feddomain\.com
+        staging staging\.feddomain\.com
+    }
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Or slightly shorter:
+.
+.IP "" 4
+.
+.nf
+
+cluster\.local {
+    kubernetes
+    federation {
+        prod prod\.feddomain\.com
+        staging staging\.feddomain\.com
+    }
+}
+.
+.fi
+.
+.IP "" 0
+

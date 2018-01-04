@@ -1,0 +1,65 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "COREDNS\-TLS" "7" "January 2018" "CoreDNS" "CoreDNS plugins"
+.
+.SH "NAME"
+\fItls\fR \- allows you to configure the server certificates for the TLS and gRPC servers\.
+.
+.SH "DESCRIPTION"
+CoreDNS supports queries that are encrypted using TLS (DNS over Transport Layer Security, RFC 7858) or are using gRPC (https://grpc\.io/, not an IETF standard)\. Normally DNS traffic isn\'t encrypted at all (DNSSEC only signs resource records)\.
+.
+.P
+The \fIproxy\fR plugin also support gRPC (\fBprotocol gRPC\fR), meaning you can chain CoreDNS servers using this protocol\.
+.
+.P
+The \fItls\fR "plugin" allows you to configure the cryptographic keys that are needed for both DNS\-over\-TLS and DNS\-over\-gRPC\. If the \fBtls\fR directive is omitted, then no encryption takes place\.
+.
+.P
+The gRPC protobuffer is defined in \fBpb/dns\.proto\fR\. It defines the proto as a simple wrapper for the wire data of a DNS message\.
+.
+.SH "SYNTAX"
+.
+.nf
+
+tls CERT KEY CA
+.
+.fi
+.
+.SH "EXAMPLES"
+Start a DNS\-over\-TLS server that picks up incoming DNS\-over\-TLS queries on port 5553 and uses the nameservers defined in \fB/etc/resolv\.conf\fR to resolve the query\. This proxy path uses plain old DNS\.
+.
+.IP "" 4
+.
+.nf
+
+tls://\.:5553 {
+    tls cert\.pem key\.pem ca\.pem
+    proxy \. /etc/resolv\.conf
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Start a DNS\-over\-gRPC server that is similar to the previous example, but using DNS\-over\-gRPC for incoming queries\.
+.
+.IP "" 4
+.
+.nf
+
+grpc://\. {
+    tls cert\.pem key\.pem ca\.pem
+    proxy \. /etc/resolv\.conf
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Only Knot DNS\' \fBkdig\fR supports DNS\-over\-TLS queries, no command line client supports gRPC making debugging these transports harder than it should be\.
+.
+.SH "ALSO SEE"
+RFC 7858 and https://grpc\.io\.

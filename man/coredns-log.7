@@ -1,0 +1,200 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "COREDNS\-LOG" "7" "January 2018" "CoreDNS" "CoreDNS plugins"
+.
+.SH "NAME"
+\fIlog\fR enables query logging to standard output\.
+.
+.SH "DESCRIPTION"
+By just using \fIlog\fR you dump all queries (and parts for the reply) on standard output\. Options exist to tweak the output a little\.
+.
+.P
+Note that for busy servers this will incur a performance hit\.
+.
+.SH "SYNTAX"
+.
+.nf
+
+log
+.
+.fi
+.
+.IP "\(bu" 4
+With no arguments, a query log entry is written to \fIstdout\fR in the common log format for all requests
+.
+.IP "" 0
+.
+.P
+Or if you want/need slightly more control:
+.
+.IP "" 4
+.
+.nf
+
+log [NAME] [FORMAT]
+.
+.fi
+.
+.IP "" 0
+.
+.IP "\(bu" 4
+\fBNAME\fR is the name to match in order to be logged
+.
+.IP "\(bu" 4
+\fBFORMAT\fR is the log format to use (default is Common Log Format)
+.
+.IP "" 0
+.
+.P
+You can further specify the class of responses that get logged:
+.
+.IP "" 4
+.
+.nf
+
+log [NAME] [FORMAT] {
+    class [success|denial|error|all]
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Here \fBsuccess\fR \fBdenial\fR and \fBerror\fR denotes the class of responses that should be logged\. The classes have the following meaning:
+.
+.IP "\(bu" 4
+\fBsuccess\fR: successful response
+.
+.IP "\(bu" 4
+\fBdenial\fR: either NXDOMAIN or NODATA (name exists, type does not)
+.
+.IP "\(bu" 4
+\fBerror\fR: SERVFAIL, NOTIMP, REFUSED, etc\. Anything that indicates the remote server is not willing to resolve the request\.
+.
+.IP "\(bu" 4
+\fBall\fR: the default \- nothing is specified\.
+.
+.IP "" 0
+.
+.P
+If no class is specified, it defaults to \fIall\fR\.
+.
+.SH "LOG FORMAT"
+You can specify a custom log format with any placeholder values\. Log supports both request and response placeholders\.
+.
+.P
+The following place holders are supported:
+.
+.IP "\(bu" 4
+\fB{type}\fR: qtype of the request
+.
+.IP "\(bu" 4
+\fB{name}\fR: qname of the request
+.
+.IP "\(bu" 4
+\fB{class}\fR: qclass of the request
+.
+.IP "\(bu" 4
+\fB{proto}\fR: protocol used (tcp or udp)
+.
+.IP "\(bu" 4
+\fB{when}\fR: time of the query
+.
+.IP "\(bu" 4
+\fB{remote}\fR: client\'s IP address
+.
+.IP "\(bu" 4
+\fB{size}\fR: request size in bytes
+.
+.IP "\(bu" 4
+\fB{port}\fR: client\'s port
+.
+.IP "\(bu" 4
+\fB{duration}\fR: response duration
+.
+.IP "\(bu" 4
+\fB{rcode}\fR: response RCODE
+.
+.IP "\(bu" 4
+\fB{rsize}\fR: response size
+.
+.IP "\(bu" 4
+\fB{>rflags}\fR: response flags, each set flag will be displayed, e\.g\. "aa, tc"\. This includes the qr bit as well\.
+.
+.IP "\(bu" 4
+\fB{>bufsize}\fR: the EDNS0 buffer size advertised in the query
+.
+.IP "\(bu" 4
+\fB{>do}\fR: is the EDNS0 DO (DNSSEC OK) bit set in the query
+.
+.IP "\(bu" 4
+\fB{>id}\fR: query ID
+.
+.IP "\(bu" 4
+\fB{>opcode}\fR: query OPCODE
+.
+.IP "" 0
+.
+.P
+The default Common Log Format is:
+.
+.IP "" 4
+.
+.nf
+
+`{remote} \- [{when}] "{type} {class} {name} {proto} {size} {>do} {>bufsize}" {rcode} {>rflags} {rsize} {duration}`
+.
+.fi
+.
+.IP "" 0
+.
+.SH "EXAMPLES"
+Log all requests to stdout
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+    log
+    whoami
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Custom log format, for all zones (\fB\.\fR)
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+    log \. "{proto} Request: {name} {type} {>id}"
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Only log denials for example\.org (and below to a file)
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+    log example\.org {
+        class denial
+    }
+}
+.
+.fi
+.
+.IP "" 0
+

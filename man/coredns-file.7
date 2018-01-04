@@ -1,0 +1,91 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "COREDNS\-FILE" "7" "January 2018" "CoreDNS" "CoreDNS plugins"
+.
+.SH "NAME"
+\fIfile\fR \- enables serving zone data from an RFC 1035\-style master file\.
+.
+.SH "DESCRIPTION"
+The file plugin is used for an "old\-style" DNS server\. It serves from a preloaded file that exists on disk\. If the zone file contains signatures (i\.e\. is signed, i\.e\. DNSSEC) correct DNSSEC answers are returned\. Only NSEC is supported! If you use this setup \fIyou\fR are responsible for resigning the zonefile\.
+.
+.SH "SYNTAX"
+.
+.nf
+
+file DBFILE [ZONES\.\.\.]
+.
+.fi
+.
+.IP "\(bu" 4
+\fBDBFILE\fR the database file to read and parse\. If the path is relative the path from the \fIroot\fR directive will be prepended to it\.
+.
+.IP "\(bu" 4
+\fBZONES\fR zones it should be authoritative for\. If empty, the zones from the configuration block are used\.
+.
+.IP "" 0
+.
+.P
+If you want to round robin A and AAAA responses look at the \fIloadbalance\fR plugin\.
+.
+.IP "" 4
+.
+.nf
+
+file DBFILE [ZONES\.\.\. ] {
+    transfer to ADDRESS\.\.\.
+    no_reload
+    upstream ADDRESS\.\.\.
+}
+.
+.fi
+.
+.IP "" 0
+.
+.IP "\(bu" 4
+\fBtransfer\fR enables zone transfers\. It may be specified multiples times\. \fBTo\fR or \fBfrom\fR signals the direction\. \fBADDRESS\fR must be denoted in CIDR notation (127\.0\.0\.1/32 etc\.) or just as plain addresses\. The special wildcard \fB*\fR means: the entire internet (only valid for \'transfer to\')\. When an address is specified a notify message will be send whenever the zone is reloaded\.
+.
+.IP "\(bu" 4
+\fBno_reload\fR by default CoreDNS will try to reload a zone every minute and reloads if the SOA\'s serial has changed\. This option disables that behavior\.
+.
+.IP "\(bu" 4
+\fBupstream\fR defines upstream resolvers to be used resolve external names found (think CNAMEs) pointing to external names\. This is only really useful when CoreDNS is configured as a proxy, for normal authoritative serving you don\'t need \fIor\fR want to use this\. \fBADDRESS\fR can be an IP address, and IP:port or a string pointing to a file that is structured as /etc/resolv\.conf\.
+.
+.IP "" 0
+.
+.SH "EXAMPLES"
+Load the \fBexample\.org\fR zone from \fBexample\.org\.signed\fR and allow transfers to the internet, but send notifies to 10\.240\.1\.1
+.
+.IP "" 4
+.
+.nf
+
+example\.org {
+    file example\.org\.signed {
+        transfer to *
+        transfer to 10\.240\.1\.1
+    }
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Or use a single zone file for multiple zones:
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+    file example\.org\.signed example\.org example\.net {
+        transfer to *
+        transfer to 10\.240\.1\.1
+    }
+}
+.
+.fi
+.
+.IP "" 0
+

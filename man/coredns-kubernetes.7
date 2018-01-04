@@ -1,0 +1,225 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "COREDNS\-KUBERNETES" "7" "January 2018" "CoreDNS" "CoreDNS plugins"
+.
+.SH "NAME"
+\fIkubernetes\fR \- enables the reading zone data from a Kubernetes cluster\.
+.
+.SH "DESCRIPTION"
+It implements the Kubernetes DNS\-Based Service Discovery Specification \fIhttps://github\.com/kubernetes/dns/blob/master/docs/specification\.md\fR\.
+.
+.P
+CoreDNS running the kubernetes plugin can be used as a replacement of kube\-dns in a kubernetes cluster\. See the deployment \fIhttps://github\.com/coredns/deployment\fR repository for details on how to deploy CoreDNS in Kubernetes \fIhttps://github\.com/coredns/deployment/tree/master/kubernetes\fR\.
+.
+.P
+stubDomains \fIhttp://blog\.kubernetes\.io/2017/04/configuring\-private\-dns\-zones\-upstream\-nameservers\-kubernetes\.html\fR are implemented via the \fIproxy\fR plugin\.
+.
+.SH "SYNTAX"
+.
+.nf
+
+kubernetes [ZONES\.\.\.]
+.
+.fi
+.
+.P
+With only the directive specified, the \fIkubernetes\fR plugin will default to the zone specified in the server\'s block\. It will handle all queries in that zone and connect to Kubernetes in\-cluster\. It will not provide PTR records for services, or A records for pods\. If \fBZONES\fR is used it specifies all the zones the plugin should be authoritative for\.
+.
+.IP "" 4
+.
+.nf
+
+kubernetes [ZONES\.\.\.] {
+    resyncperiod DURATION
+    endpoint URL
+    tls CERT KEY CACERT
+    namespaces NAMESPACE\.\.\.
+    labels EXPRESSION
+    pods POD\-MODE
+    endpoint_pod_names
+    upstream ADDRESS\.\.\.
+    ttl TTL
+    fallthrough
+}
+.
+.fi
+.
+.IP "" 0
+.
+.IP "\(bu" 4
+\fBresyncperiod\fR specifies the Kubernetes data API \fBDURATION\fR period\.
+.
+.IP "\(bu" 4
+\fBendpoint\fR specifies the \fBURL\fR for a remote k8s API endpoint\. If omitted, it will connect to k8s in\-cluster using the cluster service account\. Multiple k8s API endpoints could be specified, separated by \fB,\fRs, e\.g\. \fBendpoint http://k8s\-endpoint1:8080,http://k8s\-endpoint2:8080\fR\. CoreDNS will automatically perform a healthcheck and proxy to the healthy k8s API endpoint\.
+.
+.IP "\(bu" 4
+\fBtls\fR \fBCERT\fR \fBKEY\fR \fBCACERT\fR are the TLS cert, key and the CA cert file names for remote k8s connection\. This option is ignored if connecting in\-cluster (i\.e\. endpoint is not specified)\.
+.
+.IP "\(bu" 4
+\fBnamespaces\fR \fBNAMESPACE [NAMESPACE\.\.\.]\fR, only exposes the k8s namespaces listed\. If this option is omitted all namespaces are exposed
+.
+.IP "\(bu" 4
+\fBlabels\fR \fBEXPRESSION\fR only exposes the records for Kubernetes objects that match this label selector\. The label selector syntax is described in the Kubernetes User Guide \- Labels \fIhttp://kubernetes\.io/docs/user\-guide/labels/\fR\. An example that only exposes objects labeled as "application=nginx" in the "staging" or "qa" environments, would use: \fBlabels environment in (staging, qa),application=nginx\fR\.
+.
+.IP "\(bu" 4
+\fBpods\fR \fBPOD\-MODE\fR sets the mode for handling IP\-based pod A records, e\.g\. \fB1\-2\-3\-4\.ns\.pod\.cluster\.local\. in A 1\.2\.3\.4\fR\. This option is provided to facilitate use of SSL certs when connecting directly to pods\. Valid values for \fBPOD\-MODE\fR:
+.
+.IP "\(bu" 4
+\fBdisabled\fR: Default\. Do not process pod requests, always returning \fBNXDOMAIN\fR
+.
+.IP "\(bu" 4
+\fBinsecure\fR: Always return an A record with IP from request (without checking k8s)\. This option is is vulnerable to abuse if used maliciously in conjunction with wildcard SSL certs\. This option is provided for backward compatibility with kube\-dns\.
+.
+.IP "\(bu" 4
+\fBverified\fR: Return an A record if there exists a pod in same namespace with matching IP\. This option requires substantially more memory than in insecure mode, since it will maintain a watch on all pods\.
+.
+.IP "" 0
+
+.
+.IP "\(bu" 4
+\fBendpoint_pod_names\fR uses the pod name of the pod targeted by the endpoint as the endpoint name in A records, e\.g\. \fBendpoint\-name\.my\-service\.namespace\.svc\.cluster\.local\. in A 1\.2\.3\.4\fR By default, the endpoint\-name name selection is as follows: Use the hostname of the endpoint, or if hostname is not set, use the dashed form of the endpoint IP address (e\.g\. \fB1\-2\-3\-4\.my\-service\.namespace\.svc\.cluster\.local\.\fR) If this directive is included, then name selection for endpoints changes as follows: Use the hostname of the endpoint, or if hostname is not set, use the pod name of the pod targeted by the endpoint\. If there is no pod targeted by the endpoint, use the dashed IP address form\.
+.
+.IP "\(bu" 4
+\fBupstream\fR \fBADDRESS [ADDRESS\.\.\.]\fR defines the upstream resolvers used for resolving services that point to external hosts (External Services)\. \fBADDRESS\fR can be an IP, an IP:port, or a path to a file structured like resolv\.conf\.
+.
+.IP "\(bu" 4
+\fBttl\fR allows you to set a custom TTL for responses\. The default (and allowed minimum) is to use 5 seconds, the maximum is capped at 3600 seconds\.
+.
+.IP "\(bu" 4
+\fBfallthrough\fR If a query for a record in the cluster zone results in NXDOMAIN, normally that is what the response will be\. However, if you specify this option, the query will instead be passed on down the plugin chain, which can include another plugin to handle the query\.
+.
+.IP "" 0
+.
+.SH "HEALTH"
+This plugin implements dynamic health checking\. Currently this is limited to reporting healthy when the API has synced\.
+.
+.SH "EXAMPLES"
+Handle all queries in the \fBcluster\.local\fR zone\. Connect to Kubernetes in\-cluster\. Also handle all \fBin\-addr\.arpa\fR \fBPTR\fR requests for \fB10\.0\.0\.0/17\fR \. Verify the existence of pods when answering pod requests\. Resolve upstream records against \fB10\.102\.3\.10\fR\. Note we show the entire server block here:
+.
+.IP "" 4
+.
+.nf
+
+10\.0\.0\.0/17 cluster\.local {
+    kubernetes {
+        pods verified
+        upstream 10\.102\.3\.10:53
+    }
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Or you can selectively expose some namespaces:
+.
+.IP "" 4
+.
+.nf
+
+kubernetes cluster\.local {
+    namespaces test staging
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Connect to Kubernetes with CoreDNS running outside the cluster:
+.
+.IP "" 4
+.
+.nf
+
+kubernetes cluster\.local {
+    endpoint https://k8s\-endpoint:8443
+    tls cert key cacert
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Here we use the \fIproxy\fR plugin to implement stubDomains that forwards \fBexample\.org\fR and \fBexample\.com\fR to another nameserver\.
+.
+.IP "" 4
+.
+.nf
+
+cluster\.local {
+    kubernetes {
+        endpoint https://k8s\-endpoint:8443
+        tls cert key cacert
+    }
+}
+example\.org {
+    proxy \. 8\.8\.8\.8:53
+}
+example\.com {
+    proxy \. 8\.8\.8\.8:53
+}
+.
+.fi
+.
+.IP "" 0
+.
+.SH "AUTOPATH"
+The \fIkubernetes\fR plugin can be used in conjunction with the \fIautopath\fR plugin\. Using this feature enables server\-side domain search path completion in kubernetes clusters\. Note: \fBpods\fR must be set to \fBverified\fR for this to function properly\.
+.
+.IP "" 4
+.
+.nf
+
+cluster\.local {
+    autopath @kubernetes
+    kubernetes {
+        pods verified
+    }
+}
+.
+.fi
+.
+.IP "" 0
+.
+.SH "FEDERATION"
+The \fIkubernetes\fR plugin can be used in conjunction with the \fIfederation\fR plugin\. Using this feature enables serving federated domains from the kubernetes clusters\.
+.
+.IP "" 4
+.
+.nf
+
+cluster\.local {
+    federation {
+        fallthrough
+        prod prod\.example\.org
+        staging staging\.example\.org
+
+    }
+    kubernetes
+}
+.
+.fi
+.
+.IP "" 0
+.
+.SH "WILDCARDS"
+Some query labels accept a wildcard value to match any value\. If a label is a valid wildcard (*, or the word "any"), then that label will match all values\. The labels that accept wildcards are:
+.
+.IP "\(bu" 4
+\fIservice\fR in an \fBA\fR record request: \fIservice\fR\.namespace\.svc\.zone, e\.g\. \fB*\.ns\.svc\.myzone\.local\fR
+.
+.IP "\(bu" 4
+\fInamespace\fR in an \fBA\fR record request: service\.\fInamespace\fR\.svc\.zone, e\.g\. \fBnginx\.*\.svc\.myzone\.local\fR
+.
+.IP "\(bu" 4
+\fIport and/or protocol\fR in an \fBSRV\fR request: \fBport_\.\fRprotocol_\.service\.namespace\.svc\.zone\., e\.g\. \fB_http\.*\.service\.ns\.svc\.\fR
+.
+.IP "\(bu" 4
+multiple wild cards are allowed in a single query, e\.g\. \fBA\fR Request \fB*\.*\.svc\.zone\.\fR or \fBSRV\fR request \fB*\.*\.*\.*\.svc\.zone\.\fR
+.
+.IP "" 0
+

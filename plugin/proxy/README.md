@@ -1,6 +1,10 @@
 # proxy
 
-*proxy* facilitates both a basic reverse proxy and a robust load balancer.
+## Name
+
+*proxy* - facilitates both a basic reverse proxy and a robust load balancer.
+
+## Description
 
 The proxy has support for multiple backends. The load balancing features include multiple policies,
 health checks, and failovers. If all hosts fail their health check the proxy plugin will fail
@@ -72,27 +76,29 @@ Currently `protocol` supports `dns` (i.e., standard DNS over UDP/TCP) and `https
 payload over HTTPS). Note that with `https_google` the entire transport is encrypted. Only *you* and
 *Google* can see your DNS activity.
 
-* `dns`: uses the standard DNS exchange. You can pass `force_tcp` to make sure that the proxied connection is performed
-  over TCP, regardless of the inbound request's protocol.
-* `https_google`: bootstrap **ADDRESS...** is used to (re-)resolve `dns.google.com` to an address to
-  connect to. This happens every 300s. If not specified the default is used: 8.8.8.8:53/8.8.4.4:53.
-  Note that **TO** is *ignored* when `https_google` is used, as its upstream is defined as
-  `dns.google.com`.
+`dns`
+:   uses the standard DNS exchange. You can pass `force_tcp` to make sure that the proxied connection is performed
+    over TCP, regardless of the inbound request's protocol.
 
-  Debug queries are enabled by default and currently there is no way to turn them off. When CoreDNS
-  receives a debug query (i.e. the name is prefixed with `o-o.debug.`) a TXT record with Comment
-  from `dns.google.com` is added. Note this is not always set.
-* `grpc`: options are used to control how the TLS connection is made to the gRPC server.
+`grpc`
+:   extra options are used to control how the TLS connection is made to the gRPC server.
+
   * None - No client authentication is used, and the system CAs are used to verify the server certificate.
   * `insecure` - TLS is not used, the connection is made in plaintext (not good in production).
   * **CACERT** - No client authentication is used, and the file **CACERT** is used to verify the server certificate.
   * **KEY** **CERT** - Client authentication is used with the specified key/cert pair. The server
-    certificate is verified with the system CAs.
+     certificate is verified with the system CAs.
   * **KEY** **CERT** **CACERT** - Client authentication is used with the specified key/cert pair. The
-    server certificate is verified using the **CACERT** file.
-
+     server certificate is verified using the **CACERT** file.
   An out-of-tree plugin that implements the server side of this can be found at
   [here](https://github.com/infobloxopen/coredns-grpc).
+
+`https_google`
+:    bootstrap **ADDRESS...** is used to (re-)resolve `dns.google.com`.
+
+    This happens every 300s. If not specified the default is used: 8.8.8.8:53/8.8.4.4:53.
+    Note that **TO** is *ignored* when `https_google` is used, as its upstream is defined as `dns.google.com`.
+
 
 ## Metrics
 

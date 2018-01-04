@@ -1,0 +1,40 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "COREDNS\-LOADBALANCE" "7" "January 2018" "CoreDNS" "CoreDNS plugins"
+.
+.SH "NAME"
+\fIloadbalance\fR \- acts as a round\-robin DNS loadbalancer by randomizing the order of A and AAAA records in the answer\.
+.
+.SH "DESCRIPTION"
+See Wikipedia \fIhttps://en\.wikipedia\.org/wiki/Round\-robin_DNS\fR about the pros and cons on this setup\. It will take care to sort any CNAMEs before any address records, because some stub resolver implementations (like glibc) are particular about that\.
+.
+.SH "SYNTAX"
+.
+.nf
+
+loadbalance [POLICY]
+.
+.fi
+.
+.IP "\(bu" 4
+\fBPOLICY\fR is how to balance, the default is "round_robin"
+.
+.IP "" 0
+.
+.SH "EXAMPLES"
+Load balance replies coming back from Google Public DNS:
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+    loadbalance round_robin
+    proxy \. 8\.8\.8\.8 8\.8\.4\.4
+}
+.
+.fi
+.
+.IP "" 0
+

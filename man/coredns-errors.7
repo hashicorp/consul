@@ -1,0 +1,35 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "COREDNS\-ERRORS" "7" "January 2018" "CoreDNS" "CoreDNS plugins"
+.
+.SH "NAME"
+\fIerrors\fR \- enable error logging\.
+.
+.SH "DESCRIPTION"
+Any errors encountered during the query processing will be printed to standard output\.
+.
+.SH "SYNTAX"
+.
+.nf
+
+errors
+.
+.fi
+.
+.SH "EXAMPLES"
+Use the \fIwhoami\fR to respond to queries and Log errors to standard output\.
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+    whoami
+    errors
+}
+.
+.fi
+.
+.IP "" 0
+

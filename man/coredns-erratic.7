@@ -1,0 +1,120 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "COREDNS\-ERRATIC" "7" "January 2018" "CoreDNS" "CoreDNS plugins"
+.
+.SH "NAME"
+\fIerratic\fR \- a plugin useful for testing client behavior\.
+.
+.SH "DESCRIPTION"
+\fIerratic\fR returns a static response to all queries, but the responses can be delayed, dropped or truncated\. The \fIerratic\fR plugin will respond to every A or AAAA query\. For any other type it will return a SERVFAIL response\. The reply for A will return 192\.0\.2\.53 (see RFC 5737), for AAAA it returns 2001:DB8::53 (see RFC 3849)\.
+.
+.P
+\fIerratic\fR can also be used in conjunction with the \fIautopath\fR plugin\. This is mostly to aid in testing\.
+.
+.SH "SYNTAX"
+.
+.nf
+
+erratic {
+    drop [AMOUNT]
+    truncate [AMOUNT]
+    delay [AMOUNT [DURATION]]
+}
+.
+.fi
+.
+.IP "\(bu" 4
+\fBdrop\fR: drop 1 per \fBAMOUNT\fR of queries, the default is 2\.
+.
+.IP "\(bu" 4
+\fBtruncate\fR: truncate 1 per \fBAMOUNT\fR of queries, the default is 2\.
+.
+.IP "\(bu" 4
+\fBdelay\fR: delay 1 per \fBAMOUNT\fR of queries for \fBDURATION\fR, the default for \fBAMOUNT\fR is 2 and the default for \fBDURATION\fR is 100ms\.
+.
+.IP "" 0
+.
+.SH "HEALTH"
+This plugin implements dynamic health checking\. For every dropped query it turns unhealthy\.
+.
+.SH "EXAMPLES"
+.
+.nf
+
+\&\. {
+    erratic {
+        drop 3
+    }
+}
+.
+.fi
+.
+.P
+Or even shorter if the defaults suits you\. Note this only drops queries, it does not delay them\.
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+    erratic
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Delay 1 in 3 queries for 50ms
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+    erratic {
+        delay 3 50ms
+    }
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Delay 1 in 3 and truncate 1 in 5\.
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+    erratic {
+        delay 3 5ms
+        truncate 5
+    }
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Drop every second query\.
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+    erratic {
+        drop 2
+        truncate 2
+    }
+}
+.
+.fi
+.
+.IP "" 0
+

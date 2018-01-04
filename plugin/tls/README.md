@@ -1,7 +1,10 @@
 # tls
 
-*tls* allows you to configure the server certificates for the TLS and gRPC servers.
-For other types of servers it is ignored.
+## Name
+
+*tls* - allows you to configure the server certificates for the TLS and gRPC servers.
+
+## Description
 
 CoreDNS supports queries that are encrypted using TLS (DNS over Transport Layer Security, RFC 7858)
 or are using gRPC (https://grpc.io/, not an IETF standard). Normally DNS traffic isn't encrypted at

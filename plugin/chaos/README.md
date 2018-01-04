@@ -1,8 +1,13 @@
 # chaos
 
-*chaos* allows for responding to TXT queries in the CH class.
+## Name
 
-This is useful for retrieving version or author information from the server.
+*chaos* - allows for responding to TXT queries in the CH class.
+
+## Description
+
+This is useful for retrieving version or author information from the server by querying a TXT record
+for a special domainname in the CH class.
 
 ## Syntax
 

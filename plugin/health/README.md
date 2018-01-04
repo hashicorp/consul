@@ -1,8 +1,13 @@
 # health
 
-*health* enables a simple health check endpoint.
+## Name
 
-By default, it listens on port 8080.
+*health* - enables a health check endpoint.
+
+## Description
+
+By enabling *health* any plugin that implements it will be queried for it's health. The combined
+health is exported, by default, on port 8080/health .
 
 ## Syntax
 

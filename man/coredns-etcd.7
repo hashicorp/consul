@@ -1,0 +1,187 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "COREDNS\-ETCD" "7" "January 2018" "CoreDNS" "CoreDNS plugins"
+.
+.SH "NAME"
+\fIetcd\fR \- enables reading zone data from an etcd instance\.
+.
+.SH "DESCRIPTION"
+The data in etcd has to be encoded as a message \fIhttps://github\.com/skynetservices/skydns/blob/2fcff74cdc9f9a7dd64189a447ef27ac354b725f/msg/service\.go#L26\fR like SkyDNS \fIhttps://github\.com/skynetservices/skydns\fR\. It should also work just like SkyDNS\.
+.
+.P
+The etcd plugin makes extensive use of the proxy plugin to forward and query other servers in the network\.
+.
+.SH "SYNTAX"
+.
+.nf
+
+etcd [ZONES\.\.\.]
+.
+.fi
+.
+.IP "\(bu" 4
+\fBZONES\fR zones etcd should be authoritative for\.
+.
+.IP "" 0
+.
+.P
+The path will default to \fB/skydns\fR the local etcd proxy (http://localhost:2379)\. If no zones are specified the block\'s zone will be used as the zone\.
+.
+.P
+If you want to \fBround robin\fR A and AAAA responses look at the \fBloadbalance\fR plugin\.
+.
+.IP "" 4
+.
+.nf
+
+etcd [ZONES\.\.\.] {
+    stubzones
+    fallthrough
+    path PATH
+    endpoint ENDPOINT\.\.\.
+    upstream ADDRESS\.\.\.
+    tls CERT KEY CACERT
+}
+.
+.fi
+.
+.IP "" 0
+.
+.IP "\(bu" 4
+\fBstubzones\fR enables the stub zones feature\. The stubzone is \fIonly\fR done in the etcd tree located under the \fIfirst\fR zone specified\.
+.
+.IP "\(bu" 4
+\fBfallthrough\fR If zone matches but no record can be generated, pass request to the next plugin\.
+.
+.IP "\(bu" 4
+\fBPATH\fR the path inside etcd\. Defaults to "/skydns"\.
+.
+.IP "\(bu" 4
+\fBENDPOINT\fR the etcd endpoints\. Defaults to "http://localhost:2397"\.
+.
+.IP "\(bu" 4
+\fBupstream\fR upstream resolvers to be used resolve external names found in etcd (think CNAMEs) pointing to external names\. If you want CoreDNS to act as a proxy for clients, you\'ll need to add the proxy plugin\. \fBADDRESS\fR can be an IP address, and IP:port or a string pointing to a file that is structured as /etc/resolv\.conf\.
+.
+.IP "\(bu" 4
+\fBtls\fR followed by:
+.
+.IP "\(bu" 4
+no arguments, if the server certificate is signed by a system\-installed CA and no client cert is needed
+.
+.IP "\(bu" 4
+a single argument that is the CA PEM file, if the server cert is not signed by a system CA and no client cert is needed
+.
+.IP "\(bu" 4
+two arguments \- path to cert PEM file, the path to private key PEM file \- if the server certificate is signed by a system\-installed CA and a client certificate is needed
+.
+.IP "\(bu" 4
+three arguments \- path to cert PEM file, path to client private key PEM file, path to CA PEM file \- if the server certificate is not signed by a system\-installed CA and client certificate is needed\.
+.
+.IP "" 0
+
+.
+.IP "" 0
+.
+.SH "EXAMPLES"
+This is the default SkyDNS setup, with everying specified in full:
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+    etcd skydns\.local {
+        stubzones
+        path /skydns
+        endpoint http://localhost:2379
+        upstream 8\.8\.8\.8:53 8\.8\.4\.4:53
+    }
+    prometheus
+    cache 160 skydns\.local
+    loadbalance
+    proxy \. 8\.8\.8\.8:53 8\.8\.4\.4:53
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Or a setup where we use \fB/etc/resolv\.conf\fR as the basis for the proxy and the upstream when resolving external pointing CNAMEs\.
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+    etcd skydns\.local {
+        path /skydns
+        upstream /etc/resolv\.conf
+    }
+    cache 160 skydns\.local
+    proxy \. /etc/resolv\.conf
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Multiple endpoints are supported as well\.
+.
+.IP "" 4
+.
+.nf
+
+etcd skydns\.local {
+    endpoint http://localhost:2379 http://localhost:4001
+\.\.\.
+.
+.fi
+.
+.IP "" 0
+.
+.SS "REVERSE ZONES"
+Reverse zones are supported\. You need to make CoreDNS aware of the fact that you are also authoritative for the reverse\. For instance if you want to add the reverse for 10\.0\.0\.0/24, you\'ll need to add the zone \fB0\.0\.10\.in\-addr\.arpa\fR to the list of zones\. Showing a snippet of a Corefile:
+.
+.IP "" 4
+.
+.nf
+
+etcd skydns\.local 10\.0\.0\.0/24 {
+    stubzones
+\.\.\.
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Next you\'ll need to populate the zone with reverse records, here we add a reverse for 10\.0\.0\.127 pointing to reverse\.skydns\.local\.
+.
+.IP "" 4
+.
+.nf
+
+% curl \-XPUT http://127\.0\.0\.1:4001/v2/keys/skydns/arpa/in\-addr/10/0/0/127 \e
+    \-d value=\'{"host":"reverse\.skydns\.local\."}\'
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Querying with dig:
+.
+.IP "" 4
+.
+.nf
+
+% dig @localhost \-x 10\.0\.0\.127 +short
+reverse\.skydns\.local\.
+.
+.fi
+.
+.IP "" 0
+Only the etcdv2 protocol is supported\.

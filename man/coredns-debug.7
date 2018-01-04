@@ -1,0 +1,37 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "COREDNS\-DEBUG" "7" "January 2018" "CoreDNS" "CoreDNS plugins"
+.
+.SH "NAME"
+\fIdebug\fR \- disables the automatic recovery upon a crash so that you\'ll get a nice stack trace\.
+.
+.SH "DESCRIPTION"
+Normally CoreDNS will recover from panics, using \fIdebug\fR inhibits this\. The main use of \fIdebug\fR is to help testing\.
+.
+.P
+Note that the \fIerrors\fR plugin (if loaded) will also set a \fBrecover\fR negating this setting\.
+.
+.SH "SYNTAX"
+.
+.nf
+
+debug
+.
+.fi
+.
+.SH "EXAMPLES"
+Disable the ability to recover from crashes:
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+    debug
+}
+.
+.fi
+.
+.IP "" 0
+

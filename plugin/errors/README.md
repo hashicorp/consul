@@ -1,6 +1,10 @@
 # errors
 
-*errors* enables error logging.
+## Name
+
+*errors* - enable error logging.
+
+## Description
 
 Any errors encountered during the query processing will be printed to standard output.
 

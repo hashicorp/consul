@@ -1,6 +1,12 @@
 # etcd
 
-*etcd* enables reading zone data from an etcd instance. The data in etcd has to be encoded as
+## Name
+
+*etcd* - enables reading zone data from an etcd instance.
+
+## Description
+
+The data in etcd has to be encoded as
 a [message](https://github.com/skynetservices/skydns/blob/2fcff74cdc9f9a7dd64189a447ef27ac354b725f/msg/service.go#L26)
 like [SkyDNS](https://github.com/skynetservices/skydns). It should also work just like SkyDNS.
 
@@ -41,10 +47,13 @@ etcd [ZONES...] {
   the proxy plugin. **ADDRESS** can be an IP address, and IP:port or a string pointing to a file
   that is structured as /etc/resolv.conf.
 * `tls` followed by:
-  * no arguments, if the server certificate is signed by a system-installed CA and no client cert is needed
-  * a single argument that is the CA PEM file, if the server cert is not signed by a system CA and no client cert is needed
-  * two arguments - path to cert PEM file, the path to private key PEM file - if the server certificate is signed by a system-installed CA and a client certificate is needed
-  * three arguments - path to cert PEM file, path to client private key PEM file, path to CA PEM file - if the server certificate is not signed by a system-installed CA and client certificate is needed
+
+    * no arguments, if the server certificate is signed by a system-installed CA and no client cert is needed
+    * a single argument that is the CA PEM file, if the server cert is not signed by a system CA and no client cert is needed
+    * two arguments - path to cert PEM file, the path to private key PEM file - if the server certificate is signed by a system-installed CA and a client certificate is needed
+    * three arguments - path to cert PEM file, path to client private key PEM file, path to CA PEM
+      file - if the server certificate is not signed by a system-installed CA and client certificate
+      is needed.
 
 ## Examples
 
@@ -114,3 +123,7 @@ Querying with dig:
 % dig @localhost -x 10.0.0.127 +short
 reverse.skydns.local.
 ~~~
+
+# Bugs
+
+Only the etcdv2 protocol is supported.

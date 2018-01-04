@@ -1,8 +1,14 @@
 # secondary
 
-*secondary* enables serving a zone retrieved from a primary server.
+## Name
 
-## Syntax
+*secondary* - enables serving a zone retrieved from a primary server.
+
+## Description
+
+With *secondary* you can transfer (via AXFR) a zone from another server. The retrieved zone is
+*not committed* to disk (a violation of the RFC). This means restarting CoreDNS will cause it to
+ retrieve all secondary zones.
 
 ~~~
 secondary [ZONES...]
@@ -52,3 +58,7 @@ Or re-export the retrieved zone to other secondaries.
     }
 }
 ~~~
+
+# Bugs
+
+Only AXFR is supported and the retrieved zone is not committed to disk.

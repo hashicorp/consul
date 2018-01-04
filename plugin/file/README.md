@@ -1,6 +1,10 @@
 # file
 
-*file* enables serving zone data from an RFC 1035-style master file.
+## Name
+
+*file* - enables serving zone data from an RFC 1035-style master file.
+
+## Description
 
 The file plugin is used for an "old-style" DNS server. It serves from a preloaded file that exists
 on disk. If the zone file contains signatures (i.e. is signed, i.e. DNSSEC) correct DNSSEC answers

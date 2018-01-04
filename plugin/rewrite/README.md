@@ -1,6 +1,10 @@
 # rewrite
 
-*rewrite* performs internal message rewriting.
+## Name
+
+*rewrite* - performs internal message rewriting.
+
+## Description
 
 Rewrites are invisible to the client. There are simple rewrites (fast) and complex rewrites
 (slower), but they're powerful enough to accommodate most dynamic back-end applications.
@@ -28,7 +32,7 @@ When the FIELD is `edns0` an EDNS0 option can be appended to the request as desc
 
 If you specify multiple rules and an incoming query matches on multiple rules, the rewrite
 will behave as following
-* `continue` will continue apply the next rule in the rule list. 
+* `continue` will continue apply the next rule in the rule list.
 * `stop` will consider the current rule is the last rule and will not continue.  Default behaviour
 for not specifying this rule processing mode is `stop`
 
@@ -42,9 +46,9 @@ Using FIELD edns0, you can set, append, or replace specific EDNS0 options on the
 
 Currently supported are `EDNS0_LOCAL`, `EDNS0_NSID` and `EDNS0_SUBNET`.
 
-### `EDNS0_LOCAL`
+### EDNS0_LOCAL
 
-This has two fields, code and data. A match is defined as having the same code. Data may be a string or a variable.  
+This has two fields, code and data. A match is defined as having the same code. Data may be a string or a variable.
 
 * A string data can be treated as hex if it starts with `0x`. Example:
 
@@ -64,13 +68,7 @@ rewrites the first local option with code 0xffee, setting the data to "abcd". Eq
 ~~~
 
 * A variable data is specified with a pair of curly brackets `{}`. Following are the supported variables:
-    * {qname}
-    * {qtype}
-    * {client_ip}
-    * {client_port}
-    * {protocol}
-    * {server_ip}
-    * {server_port}
+  {qname}, {qtype}, {client_ip}, {client_port}, {protocol}, {server_ip}, {server_port}.
 
 Example:
 
@@ -78,15 +76,15 @@ Example:
 rewrite edns0 local set 0xffee {client_ip}
 ~~~
 
-### `EDNS0_NSID`
+### EDNS0_NSID
 
 This has no fields; it will add an NSID option with an empty string for the NSID. If the option already exists
 and the action is `replace` or `set`, then the NSID in the option will be set to the empty string.
 
-### `EDNS0_SUBNET`
+### EDNS0_SUBNET
 
 This has two fields,  IPv4 bitmask length and IPv6 bitmask length. The bitmask
-length is used to extract the client subnet from the source IP address in the query. 
+length is used to extract the client subnet from the source IP address in the query.
 
 Example:
 
@@ -109,7 +107,7 @@ The syntax for the name re-writing is as follows:
 rewrite [continue|stop] name [exact|prefix|suffix|substring|regex] STRING STRING
 ```
 
-The match type, i.e. `exact`, `substring`, etc., triggers re-write: 
+The match type, i.e. `exact`, `substring`, etc., triggers re-write:
 
 * **exact** (default): on exact match of the name in the question section of a request
 * **substring**: on a partial match of the name in the question section of a request
@@ -127,6 +125,7 @@ rewrite name substring service.us-west-1.example.org service.us-west-1.consul
 ```
 
 Thus:
+
 * Incoming Request Name: `ftp.service.us-west-1.example.org`
 * Re-written Request Name: `ftp.service.us-west-1.consul`
 
@@ -139,5 +138,6 @@ rewrite name regex (.*)-(us-west-1)\.example\.org {1}.service.{2}.consul
 ```
 
 Thus:
+
 * Incoming Request Name: `ftp-us-west-1.example.org`
 * Re-written Request Name: `ftp.service.us-west-1.consul`

@@ -1,0 +1,37 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "COREDNS\-ROOT" "7" "January 2018" "CoreDNS" "CoreDNS plugins"
+.
+.SH "NAME"
+\fIroot\fR \- simply specifies the root of where to find (zone) files\.
+.
+.SH "DESCRIPTION"
+The default root is the current working directory of CoreDNS\. The \fIroot\fR plugin allows you to change this\. A relative root path is relative to the current working directory\.
+.
+.SH "SYNTAX"
+.
+.nf
+
+root PATH
+.
+.fi
+.
+.P
+\fBPATH\fR is the directory to set as CoreDNS\' root\.
+.
+.SH "EXAMPLES"
+Serve zone data (when the \fIfile\fR plugin is used) from \fB/etc/coredns/zones\fR:
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+    root /etc/coredns/zones
+}
+.
+.fi
+.
+.IP "" 0
+

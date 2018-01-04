@@ -1,6 +1,10 @@
 # nsid
 
-*nsid* adds an identifier of this server to each reply.
+## Name
+
+*nsid* - adds an identifier of this server to each reply.
+
+## Description
 
 This plugin implements RFC 5001 and adds an EDNS0 OPT resource record to replies that uniquely
 identify the server. This is useful in anycast setups to see which server was responsible for

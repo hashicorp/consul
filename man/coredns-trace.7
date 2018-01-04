@@ -1,0 +1,134 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "COREDNS\-TRACE" "7" "January 2018" "CoreDNS" "CoreDNS plugins"
+.
+.SH "NAME"
+\fItrace\fR \- enables OpenTracing\-based tracing of DNS requests as they go through the plugin chain\.
+.
+.SH "DESCRIPTION"
+With \fItrace\fR you enable OpenTracing of how a request flows through CoreDNS\.
+.
+.SH "SYNTAX"
+The simplest form is just:
+.
+.IP "" 4
+.
+.nf
+
+trace [ENDPOINT\-TYPE] [ENDPOINT]
+.
+.fi
+.
+.IP "" 0
+.
+.IP "\(bu" 4
+\fBENDPOINT\-TYPE\fR is the type of tracing destination\. Currently only \fBzipkin\fR is supported and that is what it defaults to\.
+.
+.IP "\(bu" 4
+\fBENDPOINT\fR is the tracing destination, and defaults to \fBlocalhost:9411\fR\. For Zipkin, if ENDPOINT does not begin with \fBhttp\fR, then it will be transformed to \fBhttp://ENDPOINT/api/v1/spans\fR\.
+.
+.IP "" 0
+.
+.P
+With this form, all queries will be traced\.
+.
+.P
+Additional features can be enabled with this syntax:
+.
+.IP "" 4
+.
+.nf
+
+trace [ENDPOINT\-TYPE] [ENDPOINT] {
+    every AMOUNT
+    service NAME
+    client_server
+}
+.
+.fi
+.
+.IP "" 0
+.
+.IP "\(bu" 4
+\fBevery\fR \fBAMOUNT\fR will only trace one query of each AMOUNT queries\. For example, to trace 1 in every 100 queries, use AMOUNT of 100\. The default is 1\.
+.
+.IP "\(bu" 4
+\fBservice\fR \fBNAME\fR allows you to specify the service name reported to the tracing server\. Default is \fBcoredns\fR\.
+.
+.IP "\(bu" 4
+\fBclient_server\fR will enable the \fBClientServerSameSpan\fR OpenTracing feature\.
+.
+.IP "" 0
+.
+.SH "ZIPKIN"
+You can run Zipkin on a Docker host like this:
+.
+.IP "" 4
+.
+.nf
+
+docker run \-d \-p 9411:9411 openzipkin/zipkin
+.
+.fi
+.
+.IP "" 0
+.
+.SH "EXAMPLES"
+Use an alternative Zipkin address:
+.
+.IP "" 4
+.
+.nf
+
+trace tracinghost:9253
+.
+.fi
+.
+.IP "" 0
+.
+.P
+or
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+    trace zipkin tracinghost:9253
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+If for some reason you are using an API reverse proxy or something and need to remap the standard Zipkin URL you can do something like:
+.
+.IP "" 4
+.
+.nf
+
+trace http://tracinghost:9411/zipkin/api/v1/spans
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Trace one query every 10000 queries, rename the service, and enable same span:
+.
+.IP "" 4
+.
+.nf
+
+trace tracinghost:9411 {
+    every 10000
+    service dnsproxy
+    client_server
+}
+.
+.fi
+.
+.IP "" 0
+

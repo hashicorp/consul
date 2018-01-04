@@ -1,0 +1,30 @@
+ORG:=organization=CoreDNS
+RONN:=ronn -r
+PLUGINS:=$(wildcard plugin/*/README.md)
+READMES:=$(subst plugin/,,$(PLUGINS))
+READMES:=$(subst /README.md,,$(READMES))
+PLUGINS:=$(subst plugin/,corendns-,$(PLUGINS))
+PLUGINS:=$(subst /README.md,(7),$(PLUGINS))
+
+all: man/coredns.1 plugins
+
+man/coredns.1: coredns.1.md
+	sed -e 's/^\(#.*\)/\U\1/' $< > $@.md
+	sed -i -e "s/@@PLUGINS@@/$(PLUGINS)/" $@.md
+	$(RONN) --$(ORG) --manual='CoreDNS' $@.md
+	rm $@.md
+
+.PHONY: plugins
+plugins:
+	for README in $(READMES); do \
+	    $(MAKE) -f Makefile.doc man/coredns-$$README.7; \
+	done
+
+man/coredns-%.7: plugin/%/README.md
+	sed -e 's/^\(#.*\)/\U\1/' $< > $@.md
+	$(RONN) --$(ORG) --manual='CoreDNS plugins' $@.md
+	rm $@.md
+
+PHONY: clean
+clean:
+	rm -f man/*

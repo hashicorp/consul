@@ -1,9 +1,14 @@
 # whoami
 
-*whoami* returns your resolver's local IP address, port and transport. Your IP address is returned
- in the additional section as either an A or AAAA record.
+## Name
 
-When CoreDNS can not find a Corefile to load, this is the default plugin it loads.
+*whoami* - returns your resolver's local IP address, port and transport. 
+
+## Description
+
+The *whoami* plugin is not really that useful, but can be used for having a simple (fast) endpoint
+to test clients against. When *whoami* returns a response it will have your client's IP address the
+additional section as either an A or AAAA record.
 
 The reply always has an empty answer section. The port and transport are included in the additional
 section as a SRV record, transport can be "tcp" or "udp".
@@ -12,11 +17,11 @@ section as a SRV record, transport can be "tcp" or "udp".
 ._<transport>.qname. 0 IN SRV 0 0 <port> .
 ~~~
 
-If CoreDNS can't find a Corefile on startup this is the *default* plugin that gets loaded. As
-such it can be used to check that CoreDNS is responding to queries. Other than that this plugin
-is of limited use in production.
-
 The *whoami* plugin will respond to every A or AAAA query, regardless of the query name.
+
+If CoreDNS can't find a Corefile on startup this is the _default_ plugin that gets loaded. As such
+it can be used to check that CoreDNS is responding to queries. Other than that this plugin is of
+limited use in production.
 
 ## Syntax
 

@@ -1,6 +1,10 @@
 # kubernetes
 
-The *kubernetes* plugin enables the reading zone data from a Kubernetes cluster.
+## Name
+
+*kubernetes* - enables the reading zone data from a Kubernetes cluster.
+
+## Description
 
 It implements the [Kubernetes DNS-Based Service Discovery
 Specification](https://github.com/kubernetes/dns/blob/master/docs/specification.md).
@@ -66,15 +70,15 @@ kubernetes [ZONES...] {
      option requires substantially more memory than in insecure mode, since it will maintain a watch
      on all pods.
 
-* `endpoint_pod_names` uses the pod name of the pod targeted by the endpoint as 
+* `endpoint_pod_names` uses the pod name of the pod targeted by the endpoint as
    the endpoint name in A records, e.g.
    `endpoint-name.my-service.namespace.svc.cluster.local. in A 1.2.3.4`
-   By default, the endpoint-name name selection is as follows: Use the hostname 
+   By default, the endpoint-name name selection is as follows: Use the hostname
    of the endpoint, or if hostname is not set, use the dashed form of the endpoint
    IP address (e.g. `1-2-3-4.my-service.namespace.svc.cluster.local.`)
    If this directive is included, then name selection for endpoints changes as
    follows: Use the hostname of the endpoint, or if hostname is not set, use the
-   pod name of the pod targeted by the endpoint. If there is no pod targeted by 
+   pod name of the pod targeted by the endpoint. If there is no pod targeted by
    the endpoint, use the dashed IP address form.
 * `upstream` **ADDRESS [ADDRESS...]** defines the upstream resolvers used for resolving services
   that point to external hosts (External Services).  **ADDRESS** can be an IP, an IP:port, or a path
@@ -174,11 +178,8 @@ feature enables serving federated domains from the kubernetes clusters.
 Some query labels accept a wildcard value to match any value.  If a label is a valid wildcard (\*,
 or the word "any"), then that label will match all values.  The labels that accept wildcards are:
 
- * _service_ in an `A` record request: _service_.namespace.svc.zone.
-   * e.g. `*.ns.svc.myzone.local`
- * _namespace_ in an `A` record request: service._namespace_.svc.zone.
-   * e.g. `nginx.*.svc.myzone.local`
- * _port and/or protocol_ in an `SRV` request: __port_.__protocol_.service.namespace.svc.zone.
-   * e.g. `_http.*.service.ns.svc.`
- * multiple wild cards are allowed in a single query.
-   * e.g. `A` Request `*.*.svc.zone.` or `SRV` request `*.*.*.*.svc.zone.`
+ * _service_ in an `A` record request: _service_.namespace.svc.zone, e.g. `*.ns.svc.myzone.local`
+ * _namespace_ in an `A` record request: service._namespace_.svc.zone, e.g. `nginx.*.svc.myzone.local`
+ * _port and/or protocol_ in an `SRV` request: __port_.__protocol_.service.namespace.svc.zone.,
+   e.g. `_http.*.service.ns.svc.`
+ * multiple wild cards are allowed in a single query, e.g. `A` Request `*.*.svc.zone.` or `SRV` request `*.*.*.*.svc.zone.`

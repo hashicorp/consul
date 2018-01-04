@@ -1,6 +1,10 @@
 # autopath
 
-*autopath* allows for server side search path completion.
+## Name
+
+*autopath* - allows for server side search path completion.
+
+## Description
 
 If it sees a query that matches the first element of the configured search path, *autopath* will
 follow the chain of search path elements and returns the first reply that is not NXDOMAIN. On any

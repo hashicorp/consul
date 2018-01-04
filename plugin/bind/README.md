@@ -1,6 +1,10 @@
 # bind
 
-*bind* overrides the host to which the server should bind.
+## Name
+
+*bind* - overrides the host to which the server should bind.
+
+## Description
 
 Normally, the listener binds to the wildcard host. However, you may force the listener to bind to
 another IP instead. This directive accepts only an address, not a port.
