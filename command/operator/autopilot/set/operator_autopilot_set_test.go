@@ -18,7 +18,7 @@ func TestOperatorAutopilotSetConfigCommand_noTabs(t *testing.T) {
 	}
 }
 
-func TestOperatorAutopilotSetConfigCommmand(t *testing.T) {
+func TestOperatorAutopilotSetConfigCommand(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
