@@ -59,7 +59,9 @@ $ bin/consul
 
 *Note: `make` will also place a copy of the binary in the first part of your `$GOPATH`.*
 
-You can run tests by typing `make test`.
+You can run tests by typing `make test`. The test suite may fail if
+over-parallelized, so if you are seeing stochastic failures try
+`GOTEST_FLAGS="-p 2 -parallel 2" make test`.
 
 If you make any changes to the code, run `make format` in order to automatically
 format the code according to Go standards.
