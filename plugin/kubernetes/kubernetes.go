@@ -311,6 +311,19 @@ func (k *Kubernetes) findPods(r recordRequest, zone string) (pods []msg.Service,
 	zonePath := msg.Path(zone, "coredns")
 	ip := ""
 
+	if strings.Count(podname, "-") == 3 && !strings.Contains(podname, "--") {
+		ip = strings.Replace(podname, "-", ".", -1)
+	} else {
+		ip = strings.Replace(podname, "-", ":", -1)
+	}
+
+	if k.podMode == podModeInsecure {
+		if !wildcard(namespace) && !k.namespace(namespace) { // no wildcard, but namespace does not exist
+			return nil, errNoItems
+		}
+		return []msg.Service{{Key: strings.Join([]string{zonePath, Pod, namespace, podname}, "/"), Host: ip, TTL: k.ttl}}, err
+	}
+
 	err = errNoItems
 	if wildcard(podname) && !wildcard(namespace) {
 		// If namespace exist, err should be nil, so that we return nodata instead of NXDOMAIN
@@ -319,22 +332,13 @@ func (k *Kubernetes) findPods(r recordRequest, zone string) (pods []msg.Service,
 		}
 	}
 
-	if strings.Count(podname, "-") == 3 && !strings.Contains(podname, "--") {
-		ip = strings.Replace(podname, "-", ".", -1)
-	} else {
-		ip = strings.Replace(podname, "-", ":", -1)
-	}
-
-	if k.podMode == podModeInsecure {
-		return []msg.Service{{Key: strings.Join([]string{zonePath, Pod, namespace, podname}, "/"), Host: ip, TTL: k.ttl}}, nil
-	}
-
 	// PodModeVerified
 	for _, p := range k.APIConn.PodIndex(ip) {
 		// If namespace has a wildcard, filter results against Corefile namespace list.
 		if wildcard(namespace) && !k.namespaceExposed(p.Namespace) {
 			continue
 		}
+
 		// check for matching ip and namespace
 		if ip == p.Status.PodIP && match(namespace, p.Namespace) {
 			s := msg.Service{Key: strings.Join([]string{zonePath, Pod, namespace, podname}, "/"), Host: ip, TTL: k.ttl}

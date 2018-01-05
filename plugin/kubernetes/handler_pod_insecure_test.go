@@ -25,6 +25,13 @@ var podModeInsecureCases = []test.Case{
 			test.A("172-0-0-2.podns.pod.cluster.local.	5	IN	A	172.0.0.2"),
 		},
 	},
+	{
+		Qname: "blah.pod-nons.pod.cluster.local.", Qtype: dns.TypeA,
+		Rcode: dns.RcodeNameError,
+		Ns: []dns.RR{
+			test.SOA("cluster.local.	300	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1515173576 7200 1800 86400 30"),
+		},
+	},
 }
 
 func TestServeDNSModeInsecure(t *testing.T) {
