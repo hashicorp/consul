@@ -12,6 +12,8 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* agent: Added agent-side telemetry around Catalog APIs to provide insight on Consul's operation from the user's perspecive. [GH-3765]
+
 BUG FIXES:
 
 * ui: Added a URI escape around key/value keys so that it's not possible to create unexpected partial key names when entering characters like `?` inside a key. [[GH-3760](https://github.com/hashicorp/consul/issues/3760)]
