@@ -71,6 +71,9 @@ reverse cases and **all other** request are handled by the backing plugin. This 
 "fallthrough" does. To keep things explicit we've opted that plugins implement such behavior
 should implement a `fallthrough` keyword.
 
+The `fallthrough` directive should optionally accept a list of zones. Only queries for records
+in one of those zones should be allowed to fallthrough.
+
 ## Qualifying for main repo
 
 Plugins for CoreDNS can live out-of-tree, `plugin.cfg` defaults to CoreDNS' repo but other

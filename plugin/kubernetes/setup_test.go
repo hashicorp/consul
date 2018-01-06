@@ -19,7 +19,7 @@ func TestKubernetesParse(t *testing.T) {
 		expectedResyncPeriod  time.Duration // expected resync period value
 		expectedLabelSelector string        // expected label selector value
 		expectedPodMode       string
-		expectedFallthrough   bool
+		expectedFallthrough   *[]string
 		expectedUpstreams     []string
 	}{
 		// positive
@@ -32,7 +32,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			podModeDisabled,
-			false,
+			nil,
 			nil,
 		},
 		{
@@ -44,7 +44,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			podModeDisabled,
-			false,
+			nil,
 			nil,
 		},
 		{
@@ -57,7 +57,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			podModeDisabled,
-			false,
+			nil,
 			nil,
 		},
 		{
@@ -71,7 +71,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			podModeDisabled,
-			false,
+			nil,
 			nil,
 		},
 		{
@@ -85,7 +85,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			podModeDisabled,
-			false,
+			nil,
 			nil,
 		},
 		{
@@ -99,7 +99,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			podModeDisabled,
-			false,
+			nil,
 			nil,
 		},
 		{
@@ -113,7 +113,7 @@ func TestKubernetesParse(t *testing.T) {
 			30 * time.Second,
 			"",
 			podModeDisabled,
-			false,
+			nil,
 			nil,
 		},
 		{
@@ -127,7 +127,7 @@ func TestKubernetesParse(t *testing.T) {
 			15 * time.Minute,
 			"",
 			podModeDisabled,
-			false,
+			nil,
 			nil,
 		},
 		{
@@ -141,7 +141,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"environment=prod",
 			podModeDisabled,
-			false,
+			nil,
 			nil,
 		},
 		{
@@ -155,7 +155,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"application=nginx,environment in (production,qa,staging)",
 			podModeDisabled,
-			false,
+			nil,
 			nil,
 		},
 		{
@@ -173,7 +173,7 @@ func TestKubernetesParse(t *testing.T) {
 			15 * time.Minute,
 			"application=nginx,environment in (production,qa,staging)",
 			podModeDisabled,
-			true,
+			&[]string{},
 			nil,
 		},
 		// negative
@@ -188,7 +188,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			podModeDisabled,
-			false,
+			nil,
 			nil,
 		},
 		{
@@ -202,7 +202,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			podModeDisabled,
-			false,
+			nil,
 			nil,
 		},
 		{
@@ -216,7 +216,7 @@ func TestKubernetesParse(t *testing.T) {
 			0 * time.Minute,
 			"",
 			podModeDisabled,
-			false,
+			nil,
 			nil,
 		},
 		{
@@ -230,7 +230,7 @@ func TestKubernetesParse(t *testing.T) {
 			0 * time.Second,
 			"",
 			podModeDisabled,
-			false,
+			nil,
 			nil,
 		},
 		{
@@ -244,7 +244,7 @@ func TestKubernetesParse(t *testing.T) {
 			0 * time.Second,
 			"",
 			podModeDisabled,
-			false,
+			nil,
 			nil,
 		},
 		{
@@ -258,7 +258,7 @@ func TestKubernetesParse(t *testing.T) {
 			0 * time.Second,
 			"",
 			podModeDisabled,
-			false,
+			nil,
 			nil,
 		},
 		{
@@ -272,7 +272,7 @@ func TestKubernetesParse(t *testing.T) {
 			0 * time.Second,
 			"",
 			podModeDisabled,
-			false,
+			nil,
 			nil,
 		},
 		// pods disabled
@@ -287,7 +287,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			podModeDisabled,
-			false,
+			nil,
 			nil,
 		},
 		// pods insecure
@@ -302,7 +302,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			podModeInsecure,
-			false,
+			nil,
 			nil,
 		},
 		// pods verified
@@ -317,7 +317,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			podModeVerified,
-			false,
+			nil,
 			nil,
 		},
 		// pods invalid
@@ -332,22 +332,22 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			podModeVerified,
-			false,
+			nil,
 			nil,
 		},
-		// fallthrough invalid
+		// fallthrough with zones
 		{
 			`kubernetes coredns.local {
-	fallthrough junk
+	fallthrough ip6.arpa inaddr.arpa foo.com
 }`,
-			true,
+			false,
 			"rong argument count",
-			-1,
+			1,
 			0,
 			defaultResyncPeriod,
 			"",
 			podModeDisabled,
-			false,
+			&[]string{"ip6.arpa", "inaddr.arpa", "foo.com"},
 			nil,
 		},
 		// Valid upstream
@@ -362,7 +362,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			podModeDisabled,
-			false,
+			nil,
 			[]string{"13.14.15.16:53"},
 		},
 		// Invalid upstream
@@ -377,7 +377,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			podModeDisabled,
-			false,
+			nil,
 			nil,
 		},
 	}
@@ -444,8 +444,22 @@ func TestKubernetesParse(t *testing.T) {
 
 		// fallthrough
 		foundFallthrough := k8sController.Fallthrough
-		if foundFallthrough != test.expectedFallthrough {
-			t.Errorf("Test %d: Expected kubernetes controller to be initialized with fallthrough '%v'. Instead found fallthrough '%v' for input '%s'", i, test.expectedFallthrough, foundFallthrough, test.input)
+		if foundFallthrough != nil {
+			failed := false
+			if test.expectedFallthrough == nil {
+				failed = true
+			} else if len(*foundFallthrough) != len(*test.expectedFallthrough) {
+				failed = true
+			} else {
+				for i := range *foundFallthrough {
+					if (*foundFallthrough)[i] != (*test.expectedFallthrough)[i] {
+						failed = true
+					}
+				}
+			}
+			if failed {
+				t.Errorf("Test %d: Expected kubernetes controller to be initialized with fallthrough '%v'. Instead found fallthrough '%v' for input '%s'", i, test.expectedFallthrough, foundFallthrough, test.input)
+			}
 		}
 		// upstream
 		foundUpstreams := k8sController.Proxy.Upstreams

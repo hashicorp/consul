@@ -40,7 +40,7 @@ type Kubernetes struct {
 	Namespaces       map[string]bool
 	podMode          string
 	endpointNameMode bool
-	Fallthrough      bool
+	Fallthrough      *[]string // nil = disabled, empty = all zones, o/w zones
 	ttl              uint32
 
 	primaryZoneIndex   int

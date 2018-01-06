@@ -172,12 +172,8 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, dnsControlOpts, error) {
 				}
 				return nil, opts, c.ArgErr()
 			case "fallthrough":
-				args := c.RemainingArgs()
-				if len(args) == 0 {
-					k8s.Fallthrough = true
-					continue
-				}
-				return nil, opts, c.ArgErr()
+				zones := c.RemainingArgs()
+				k8s.Fallthrough = &zones
 			case "upstream":
 				args := c.RemainingArgs()
 				if len(args) == 0 {
