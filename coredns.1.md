@@ -50,4 +50,4 @@ Apache License 2.0
 
 ## See Also
 
-Corefile(7) @@PLUGINS@@.
+Corefile(5) @@PLUGINS@@.

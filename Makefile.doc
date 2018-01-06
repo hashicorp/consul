@@ -14,6 +14,11 @@ man/coredns.1: coredns.1.md
 	$(RONN) --$(ORG) --manual='CoreDNS' $@.md
 	rm $@.md
 
+man/corefile.5: corefile.5.md
+	sed -e 's/^\(#.*\)/\U\1/' $< > $@.md
+	$(RONN) --$(ORG) --manual='CoreDNS' $@.md
+	rm $@.md
+
 .PHONY: plugins
 plugins:
 	for README in $(READMES); do \
