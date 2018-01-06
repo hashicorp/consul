@@ -321,6 +321,12 @@ func (k *Kubernetes) findPods(r recordRequest, zone string) (pods []msg.Service,
 		if !wildcard(namespace) && !k.namespace(namespace) { // no wildcard, but namespace does not exist
 			return nil, errNoItems
 		}
+
+		// If ip does not parse as an IP address, we return an error, otherwise we assume a CNAME and will try to resolve it in backend_lookup.go
+		if net.ParseIP(ip) == nil {
+			return nil, errNoItems
+		}
+
 		return []msg.Service{{Key: strings.Join([]string{zonePath, Pod, namespace, podname}, "/"), Host: ip, TTL: k.ttl}}, err
 	}
 

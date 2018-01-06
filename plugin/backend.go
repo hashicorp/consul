@@ -9,8 +9,8 @@ import (
 
 // ServiceBackend defines a (dynamic) backend that returns a slice of service definitions.
 type ServiceBackend interface {
-	// Services communicates with the backend to retrieve the service definition. Exact indicates
-	// on exact much are that we are allowed to recurs.
+	// Services communicates with the backend to retrieve the service definitions. Exact indicates
+	// on exact match should be returned.
 	Services(state request.Request, exact bool, opt Options) ([]msg.Service, error)
 
 	// Reverse communicates with the backend to retrieve service definition based on a IP address
