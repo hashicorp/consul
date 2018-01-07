@@ -24,7 +24,6 @@ func TestReverse(t *testing.T) {
 			Template:     "ip-{ip}.example.org.",
 			RegexMatchIP: regexIP4,
 		}},
-		Fallthrough: false,
 	}
 
 	tests := []struct {

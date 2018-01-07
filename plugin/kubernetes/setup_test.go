@@ -347,7 +347,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			podModeDisabled,
-			&[]string{"ip6.arpa", "inaddr.arpa", "foo.com"},
+			&[]string{"ip6.arpa.", "inaddr.arpa.", "foo.com."},
 			nil,
 		},
 		// Valid upstream
@@ -443,7 +443,7 @@ func TestKubernetesParse(t *testing.T) {
 		}
 
 		// fallthrough
-		foundFallthrough := k8sController.Fallthrough
+		foundFallthrough := k8sController.Fall
 		if foundFallthrough != nil {
 			failed := false
 			if test.expectedFallthrough == nil {

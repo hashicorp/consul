@@ -83,21 +83,6 @@ func NextOrFailure(name string, next Handler, ctx context.Context, w dns.Respons
 	return dns.RcodeServerFailure, Error(name, errors.New("no next plugin found"))
 }
 
-// Fallthrough handles the fallthrough logic used in plugins that support it
-func Fallthrough(ftzones *[]string, qname string) bool {
-	if ftzones == nil {
-		return false
-	}
-	if len(*ftzones) == 0 {
-		return true
-	}
-	zone := Zones(*ftzones).Matches(qname)
-	if zone != "" {
-		return true
-	}
-	return false
-}
-
 // ClientWrite returns true if the response has been written to the client.
 // Each plugin to adhire to this protocol.
 func ClientWrite(rcode int) bool {

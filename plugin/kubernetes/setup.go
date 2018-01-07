@@ -10,6 +10,7 @@ import (
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
+	"github.com/coredns/coredns/plugin/pkg/fall"
 	"github.com/coredns/coredns/plugin/proxy"
 
 	"github.com/mholt/caddy"
@@ -172,8 +173,8 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, dnsControlOpts, error) {
 				}
 				return nil, opts, c.ArgErr()
 			case "fallthrough":
-				zones := c.RemainingArgs()
-				k8s.Fallthrough = &zones
+				k8s.Fall = fall.New()
+				k8s.Fall.SetZones(c.RemainingArgs())
 			case "upstream":
 				args := c.RemainingArgs()
 				if len(args) == 0 {

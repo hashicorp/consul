@@ -9,6 +9,7 @@ import (
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
+	"github.com/coredns/coredns/plugin/pkg/fall"
 
 	"github.com/mholt/caddy"
 )
@@ -105,14 +106,10 @@ func hostsParse(c *caddy.Controller) (Hosts, error) {
 		for c.NextBlock() {
 			switch c.Val() {
 			case "fallthrough":
-				args := c.RemainingArgs()
-				if len(args) == 0 {
-					h.Fallthrough = true
-					continue
-				}
-				return h, c.ArgErr()
+				h.Fall = fall.New()
+				h.Fall.SetZones(c.RemainingArgs())
 			default:
-				if !h.Fallthrough {
+				if h.Fall.IsNil() {
 					line := strings.Join(append([]string{c.Val()}, c.RemainingArgs()...), " ")
 					inline = append(inline, line)
 					continue

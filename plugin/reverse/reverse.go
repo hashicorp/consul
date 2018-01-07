@@ -5,6 +5,7 @@ import (
 
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
+	"github.com/coredns/coredns/plugin/pkg/fall"
 	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
@@ -13,9 +14,10 @@ import (
 
 // Reverse provides dynamic reverse DNS and the related forward RR.
 type Reverse struct {
-	Next        plugin.Handler
-	Networks    networks
-	Fallthrough bool
+	Next     plugin.Handler
+	Networks networks
+
+	Fall *fall.F
 }
 
 // ServeDNS implements the plugin.Handler interface.
@@ -97,7 +99,7 @@ func (re Reverse) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 		return dns.RcodeSuccess, nil
 	}
 
-	if re.Fallthrough {
+	if re.Fall.Through(state.Name()) {
 		return plugin.NextOrFailure(re.Name(), re.Next, ctx, w, r)
 	}
 	return dns.RcodeServerFailure, nil

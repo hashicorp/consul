@@ -12,6 +12,7 @@ import (
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/etcd/msg"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
+	"github.com/coredns/coredns/plugin/pkg/fall"
 	"github.com/coredns/coredns/plugin/pkg/healthcheck"
 	"github.com/coredns/coredns/plugin/proxy"
 	"github.com/coredns/coredns/request"
@@ -40,7 +41,7 @@ type Kubernetes struct {
 	Namespaces       map[string]bool
 	podMode          string
 	endpointNameMode bool
-	Fallthrough      *[]string // nil = disabled, empty = all zones, o/w zones
+	Fall             *fall.F
 	ttl              uint32
 
 	primaryZoneIndex   int

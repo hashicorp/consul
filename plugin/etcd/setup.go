@@ -6,6 +6,7 @@ import (
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
+	"github.com/coredns/coredns/plugin/pkg/fall"
 	mwtls "github.com/coredns/coredns/plugin/pkg/tls"
 	"github.com/coredns/coredns/plugin/proxy"
 
@@ -73,7 +74,8 @@ func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 				case "stubzones":
 					stubzones = true
 				case "fallthrough":
-					etc.Fallthrough = true
+					etc.Fall = fall.New()
+					etc.Fall.SetZones(c.RemainingArgs())
 				case "debug":
 					/* it is a noop now */
 				case "path":

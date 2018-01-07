@@ -59,7 +59,7 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 	}
 
 	if k.IsNameError(err) {
-		if plugin.Fallthrough(k.Fallthrough, state.Name()) {
+		if k.Fall.Through(state.Name()) {
 			return plugin.NextOrFailure(k.Name(), k.Next, ctx, w, r)
 		}
 		return plugin.BackendError(&k, zone, dns.RcodeNameError, state, nil /* err */, plugin.Options{})

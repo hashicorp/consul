@@ -41,15 +41,15 @@ We use the Unix manual page style:
 
 ### Example Domain Names
 
-Please be sure to use `example.org` or `example.net` in any examples you provide. These are the
-standard domain names created for this purpose.
+Please be sure to use `example.org` or `example.net` in any examples and tests you provide. These
+are the standard domain names created for this purpose.
 
 ## Fallthrough
 
 In a perfect world the following would be true for plugin: "Either you are responsible for a zone or
 not". If the answer is "not", the plugin should call the next plugin in the chain. If "yes" it
 should handle *all* names that fall in this zone and the names below - i.e. it should handle the
-entire domain.
+entire domain and all sub domains.
 
 ~~~ txt
 . {
@@ -61,7 +61,7 @@ In this example the *file* plugin is handling all names below (and including) `e
 a query comes in that is not a subdomain (or equal to) `example.org` the next plugin is called.
 
 Now, the world isn't perfect, and there are good reasons to "fallthrough" to the next middlware,
-meaning a plugin is only responsible for a subset of names within the zone. The first of these
+meaning a plugin is only responsible for a *subset* of names within the zone. The first of these
 to appear was the *reverse* plugin that synthesis PTR and A/AAAA responses (useful with IPv6).
 
 The nature of the *reverse* plugin is such that it only deals with A,AAAA and PTR and then only

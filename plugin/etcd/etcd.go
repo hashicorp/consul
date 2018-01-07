@@ -9,6 +9,7 @@ import (
 
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/etcd/msg"
+	"github.com/coredns/coredns/plugin/pkg/fall"
 	"github.com/coredns/coredns/plugin/proxy"
 	"github.com/coredns/coredns/request"
 
@@ -19,14 +20,14 @@ import (
 
 // Etcd is a plugin talks to an etcd cluster.
 type Etcd struct {
-	Next        plugin.Handler
-	Fallthrough bool
-	Zones       []string
-	PathPrefix  string
-	Proxy       proxy.Proxy // Proxy for looking up names during the resolution process
-	Client      etcdc.KeysAPI
-	Ctx         context.Context
-	Stubmap     *map[string]proxy.Proxy // list of proxies for stub resolving.
+	Next       plugin.Handler
+	Fall       *fall.F
+	Zones      []string
+	PathPrefix string
+	Proxy      proxy.Proxy // Proxy for looking up names during the resolution process
+	Client     etcdc.KeysAPI
+	Ctx        context.Context
+	Stubmap    *map[string]proxy.Proxy // list of proxies for stub resolving.
 
 	endpoints []string // Stored here as well, to aid in testing.
 }

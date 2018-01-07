@@ -16,12 +16,12 @@ available hosts files that block access to advertising servers.
 ~~~
 hosts [FILE [ZONES...]] {
     [INLINE]
-    fallthrough
+    fallthrough [ZONES...]
 }
 ~~~
 
 * **FILE** the hosts file to read and parse. If the path is relative the path from the *root*
-  directive will be prepended to it. Defaults to /etc/hosts if omitted. We scan the file for changes 
+  directive will be prepended to it. Defaults to /etc/hosts if omitted. We scan the file for changes
   every 5 seconds.
 * **ZONES** zones it should be authoritative for. If empty, the zones from the configuration block
    are used.
@@ -29,6 +29,9 @@ hosts [FILE [ZONES...]] {
    then all of them will be treated as the additional content for hosts file. The specified hosts
    file path will still be read but entries will be overrided.
 * `fallthrough` If zone matches and no record can be generated, pass request to the next plugin.
+  If **[ZONES...]** is omitted, then fallthrough happens for all zones for which the plugin
+  is authoritative. If specific zones are listed (for example `in-addr.arpa` and `ip6.arpa`), then only
+  queries for those zones will be subject to fallthrough.
 
 ## Examples
 

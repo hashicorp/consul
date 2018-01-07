@@ -67,7 +67,7 @@ func (e *Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 	}
 
 	if e.IsNameError(err) {
-		if e.Fallthrough {
+		if e.Fall.Through(state.Name()) {
 			return plugin.NextOrFailure(e.Name(), e.Next, ctx, w, r)
 		}
 		// Make err nil when returning here, so we don't log spam for NXDOMAIN.

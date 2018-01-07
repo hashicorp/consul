@@ -7,6 +7,7 @@ import (
 
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
+	"github.com/coredns/coredns/plugin/pkg/fall"
 	"github.com/coredns/coredns/request"
 	"github.com/miekg/dns"
 )
@@ -16,7 +17,7 @@ type Hosts struct {
 	Next plugin.Handler
 	*Hostsfile
 
-	Fallthrough bool
+	Fall *fall.F
 }
 
 // ServeDNS implements the plugin.Handle interface.
@@ -52,7 +53,7 @@ func (h Hosts) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 	}
 
 	if len(answers) == 0 {
-		if h.Fallthrough {
+		if h.Fall.Through(qname) {
 			return plugin.NextOrFailure(h.Name(), h.Next, ctx, w, r)
 		}
 		if !h.otherRecordsExist(state.QType(), qname) {

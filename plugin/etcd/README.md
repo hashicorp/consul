@@ -29,7 +29,7 @@ If you want to `round robin` A and AAAA responses look at the `loadbalance` plug
 ~~~
 etcd [ZONES...] {
     stubzones
-    fallthrough
+    fallthrough [ZONES...]
     path PATH
     endpoint ENDPOINT...
     upstream ADDRESS...
@@ -40,6 +40,9 @@ etcd [ZONES...] {
 * `stubzones` enables the stub zones feature. The stubzone is *only* done in the etcd tree located
     under the *first* zone specified.
 * `fallthrough` If zone matches but no record can be generated, pass request to the next plugin.
+  If **[ZONES...]** is omitted, then fallthrough happens for all zones for which the plugin
+  is authoritative. If specific zones are listed (for example `in-addr.arpa` and `ip6.arpa`), then only
+  queries for those zones will be subject to fallthrough.
 * **PATH** the path inside etcd. Defaults to "/skydns".
 * **ENDPOINT** the etcd endpoints. Defaults to "http://localhost:2397".
 * `upstream` upstream resolvers to be used resolve external names found in etcd (think CNAMEs)

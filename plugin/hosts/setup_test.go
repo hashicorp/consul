@@ -3,6 +3,8 @@ package hosts
 import (
 	"testing"
 
+	"github.com/coredns/coredns/plugin/pkg/fall"
+
 	"github.com/mholt/caddy"
 )
 
@@ -12,48 +14,48 @@ func TestHostsParse(t *testing.T) {
 		shouldErr           bool
 		expectedPath        string
 		expectedOrigins     []string
-		expectedFallthrough bool
+		expectedFallthrough *fall.F
 	}{
 		{
 			`hosts
 `,
-			false, "/etc/hosts", nil, false,
+			false, "/etc/hosts", nil, nil,
 		},
 		{
 			`hosts /tmp`,
-			false, "/tmp", nil, false,
+			false, "/tmp", nil, nil,
 		},
 		{
 			`hosts /etc/hosts miek.nl.`,
-			false, "/etc/hosts", []string{"miek.nl."}, false,
+			false, "/etc/hosts", []string{"miek.nl."}, nil,
 		},
 		{
 			`hosts /etc/hosts miek.nl. pun.gent.`,
-			false, "/etc/hosts", []string{"miek.nl.", "pun.gent."}, false,
+			false, "/etc/hosts", []string{"miek.nl.", "pun.gent."}, nil,
 		},
 		{
 			`hosts {
 				fallthrough
 			}`,
-			false, "/etc/hosts", nil, true,
+			false, "/etc/hosts", nil, fall.Zero(),
 		},
 		{
 			`hosts /tmp {
 				fallthrough
 			}`,
-			false, "/tmp", nil, true,
+			false, "/tmp", nil, fall.Zero(),
 		},
 		{
 			`hosts /etc/hosts miek.nl. {
 				fallthrough
 			}`,
-			false, "/etc/hosts", []string{"miek.nl."}, true,
+			false, "/etc/hosts", []string{"miek.nl."}, fall.Zero(),
 		},
 		{
 			`hosts /etc/hosts miek.nl 10.0.0.9/8 {
 				fallthrough
 			}`,
-			false, "/etc/hosts", []string{"miek.nl.", "10.in-addr.arpa."}, true,
+			false, "/etc/hosts", []string{"miek.nl.", "10.in-addr.arpa."}, fall.Zero(),
 		},
 	}
 
@@ -70,8 +72,8 @@ func TestHostsParse(t *testing.T) {
 				t.Fatalf("Test %d expected %v, got %v", i, test.expectedPath, h.path)
 			}
 		} else {
-			if h.Fallthrough != test.expectedFallthrough {
-				t.Fatalf("Test %d expected fallthrough of %v, got %v", i, test.expectedFallthrough, h.Fallthrough)
+			if !h.Fall.Equal(test.expectedFallthrough) {
+				t.Fatalf("Test %d expected fallthrough of %v, got %v", i, test.expectedFallthrough, h.Fall)
 			}
 			if len(h.Origins) != len(test.expectedOrigins) {
 				t.Fatalf("Test %d expected %v, got %v", i, test.expectedOrigins, h.Origins)
@@ -90,7 +92,7 @@ func TestHostsInlineParse(t *testing.T) {
 		inputFileRules      string
 		shouldErr           bool
 		expectedbyAddr      map[string][]string
-		expectedFallthrough bool
+		expectedFallthrough *fall.F
 	}{
 		{
 			`hosts highly_unlikely_to_exist_hosts_file example.org {
@@ -103,28 +105,28 @@ func TestHostsInlineParse(t *testing.T) {
 					`example.org.`,
 				},
 			},
-			true,
+			fall.Zero(),
 		},
 		{
 			`hosts highly_unlikely_to_exist_hosts_file example.org {
-                                10.0.0.1 example.org
-                        }`,
+			                                10.0.0.1 example.org
+			                        }`,
 			false,
 			map[string][]string{
 				`10.0.0.1`: {
 					`example.org.`,
 				},
 			},
-			false,
+			nil,
 		},
 		{
 			`hosts highly_unlikely_to_exist_hosts_file example.org {
-                                fallthrough
-                                10.0.0.1 example.org
-                        }`,
+			                                fallthrough
+			                                10.0.0.1 example.org
+			                        }`,
 			true,
 			map[string][]string{},
-			true,
+			fall.Zero(),
 		},
 	}
 
@@ -137,8 +139,8 @@ func TestHostsInlineParse(t *testing.T) {
 		} else if err != nil && !test.shouldErr {
 			t.Fatalf("Test %d expected no errors, but got '%v'", i, err)
 		} else if !test.shouldErr {
-			if h.Fallthrough != test.expectedFallthrough {
-				t.Fatalf("Test %d expected fallthrough of %v, got %v", i, test.expectedFallthrough, h.Fallthrough)
+			if !h.Fall.Equal(test.expectedFallthrough) {
+				t.Fatalf("Test %d expected fallthrough of %v, got %v", i, test.expectedFallthrough, h.Fall)
 			}
 			for k, expectedVal := range test.expectedbyAddr {
 				if val, ok := h.hmap.byAddr[k]; !ok {
