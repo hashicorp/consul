@@ -17,7 +17,7 @@ type Reverse struct {
 	Next     plugin.Handler
 	Networks networks
 
-	Fall *fall.F
+	Fall fall.F
 }
 
 // ServeDNS implements the plugin.Handler interface.

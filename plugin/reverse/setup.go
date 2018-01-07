@@ -34,7 +34,7 @@ func setupReverse(c *caddy.Controller) error {
 	return nil
 }
 
-func reverseParse(c *caddy.Controller) (nets networks, f *fall.F, err error) {
+func reverseParse(c *caddy.Controller) (nets networks, f fall.F, err error) {
 	zones := make([]string, len(c.ServerBlockKeys))
 	wildcard := false
 
@@ -87,8 +87,7 @@ func reverseParse(c *caddy.Controller) (nets networks, f *fall.F, err error) {
 				wildcard = true
 
 			case "fallthrough":
-				f = fall.New()
-				f.SetZones(c.RemainingArgs())
+				f.SetZonesFromArgs(c.RemainingArgs())
 
 			default:
 				return nil, f, c.ArgErr()

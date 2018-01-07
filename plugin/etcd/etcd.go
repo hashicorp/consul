@@ -21,7 +21,7 @@ import (
 // Etcd is a plugin talks to an etcd cluster.
 type Etcd struct {
 	Next       plugin.Handler
-	Fall       *fall.F
+	Fall       fall.F
 	Zones      []string
 	PathPrefix string
 	Proxy      proxy.Proxy // Proxy for looking up names during the resolution process

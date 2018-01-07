@@ -41,7 +41,7 @@ type Kubernetes struct {
 	Namespaces       map[string]bool
 	podMode          string
 	endpointNameMode bool
-	Fall             *fall.F
+	Fall             fall.F
 	ttl              uint32
 
 	primaryZoneIndex   int

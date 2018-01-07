@@ -17,7 +17,7 @@ type Hosts struct {
 	Next plugin.Handler
 	*Hostsfile
 
-	Fall *fall.F
+	Fall fall.F
 }
 
 // ServeDNS implements the plugin.Handle interface.
