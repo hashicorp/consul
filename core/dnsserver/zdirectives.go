@@ -29,6 +29,7 @@ var Directives = []string{
 	"dnssec",
 	"autopath",
 	"reverse",
+	"template",
 	"hosts",
 	"federation",
 	"kubernetes",

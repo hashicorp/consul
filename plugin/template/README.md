@@ -11,19 +11,19 @@ The *template* plugin allows you to dynamically repond to queries by just writin
 ~~~
 template CLASS TYPE [REGEX...] {
     [answer RR]
-    [answer RR]
     [additional RR]
     [authority RR]
     [...]
-    [rcode responsecode]
+    [rcode CODE]
 }
 ~~~
 
 * **CLASS** the query class (usually IN or ANY)
 * **TYPE** the query type (A, PTR, ...)
 * **REGEX** [Go regexp](https://golang.org/pkg/regexp/) that are matched against the incoming question name. Specifying no regex matches everything (default: `.*`). First matching regex wins.
-* `RR` A [RFC 1035](https://tools.ietf.org/html/rfc1035#section-5) style `<rr>` fragment build by a [Go template](https://golang.org/pkg/text/template/) that contains the answer.
-* `responsecode` A response code (`NXDOMAIN, SERVFAIL, ...`). The default is `SUCCESS`.
+* `answer|additional|authority` **RR** A [RFC 1035](https://tools.ietf.org/html/rfc1035#section-5) style resource record fragment
+  build by a [Go template](https://golang.org/pkg/text/template/) that contains the reply.
+* `rcode` **CODE** A response code (`NXDOMAIN, SERVFAIL, ...`). The default is `SUCCESS`.
 
 At least one answer section or rcode is needed.
 
@@ -32,17 +32,19 @@ At least one answer section or rcode is needed.
 ## Templates
 
 Each resource record is a full-featured [Go template](https://golang.org/pkg/text/template/) with the following predefined data
-* `.Name` the query name, as a string
-* `.Class` the query class (usually `IN`)
-* `.Type` the RR type requested (e.g. `PTR`)
+* `.Name` the query name, as a string (lowercased).
+* `.Class` the query class (usually `IN`).
+* `.Type` the RR type requested (e.g. `PTR`).
 * `.Match` an array of all matches. `index .Match 0` refers to the whole match.
 * `.Group` a map of the named capture groups.
-* `.Message` the incoming DNS query message.
+* `.Message` the complete incoming DNS message.
 * `.Question` the matched question section.
 
 The output of the template must be a [RFC 1035](https://tools.ietf.org/html/rfc1035) style resource record line (commonly refered to as a "zone file").
 
-**WARNING** there is a syntactical problem with Go templates and caddy config files. Expressions like `{{$var}}` will be interpreted as a reference to an environment variable by caddy/coredns while `{{ $var }}` will work. Try to avoid template variables. See [Bugs](#bugs).
+**WARNING** there is a syntactical problem with Go templates and CoreDNS config files. Expressions
+ like `{{$var}}` will be interpreted as a reference to an environment variable by CoreDNS (and
+ Caddy) while `{{ $var }}` will work. See [Bugs](#bugs) and corefile(5).
 
 ## Metrics
 
@@ -93,7 +95,7 @@ path (`dc1.example.com`) added.
 }
 ~~~
 
-1. Using numbered matches works well if there are very few groups (1-4)
+Using numbered matches works well if there are a few groups (1-4).
 
 ### Resolve A/PTR for .example
 
