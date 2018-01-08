@@ -53,6 +53,10 @@ func NewStaticUpstreams(c *caddyfile.Dispenser) ([]Upstream, error) {
 			return upstreams, err
 		}
 
+		if len(toHosts) > max {
+			return upstreams, fmt.Errorf("more than %d TOs configured: %d", max, len(toHosts))
+		}
+
 		for c.NextBlock() {
 			if err := parseBlock(c, upstream); err != nil {
 				return upstreams, err
@@ -192,3 +196,5 @@ func (u *staticUpstream) IsAllowedDomain(name string) bool {
 
 func (u *staticUpstream) Exchanger() Exchanger { return u.ex }
 func (u *staticUpstream) From() string         { return u.from }
+
+const max = 15
