@@ -140,12 +140,7 @@ func templateParse(c *caddy.Controller) (handler Handler, err error) {
 				t.rcode = rcode
 
 			case "fallthrough":
-				args := c.RemainingArgs()
-				if len(args) > 0 {
-					t.fthrough.SetZonesFromArgs(c.RemainingArgs())
-				} else {
-					t.fthrough.SetZonesFromArgs(zones)
-				}
+				t.fall.SetZonesFromArgs(c.RemainingArgs())
 
 			default:
 				return handler, c.ArgErr()

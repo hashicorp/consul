@@ -31,7 +31,7 @@ type template struct {
 	authority  []*gotmpl.Template
 	qclass     uint16
 	qtype      uint16
-	fthrough   fall.F
+	fall       fall.F
 }
 
 type templateData struct {
@@ -177,5 +177,5 @@ func (t template) match(state request.Request, zone string) (templateData, bool,
 		return data, true, false
 	}
 
-	return data, false, t.fthrough.Through(state.Name())
+	return data, false, t.fall.Through(state.Name())
 }

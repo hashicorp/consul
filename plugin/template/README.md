@@ -15,8 +15,8 @@ template CLASS TYPE [ZONE...] {
     [additional RR]
     [authority RR]
     [...]
-    [rcode responsecode]
-    [fallthrough [fallthrough zone...]]
+    [rcode CODE]
+    [fallthrough [ZONE...]]
 }
 ~~~
 
@@ -28,7 +28,8 @@ template CLASS TYPE [ZONE...] {
   build by a [Go template](https://golang.org/pkg/text/template/) that contains the reply.
 * `rcode` **CODE** A response code (`NXDOMAIN, SERVFAIL, ...`). The default is `SUCCESS`.
 * `fallthrough` Continue with the next plugin if the zone matched but no regex did not match.
-* `fallthrough zone` One or more zones that may fall through to other plugins. Defaults to all zones of the template.
+  If specific zones are listed (for example `in-addr.arpa` and `ip6.arpa`), then only queries for
+  those zones will be subject to fallthrough.
 
 At least one `answer` or `rcode` directive is needed (e.g. `rcode NXDOMAIN`).
 

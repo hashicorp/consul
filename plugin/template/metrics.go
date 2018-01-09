@@ -6,8 +6,8 @@ import (
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/metrics"
-	"github.com/mholt/caddy"
 
+	"github.com/mholt/caddy"
 	"github.com/prometheus/client_golang/prometheus"
 )
 

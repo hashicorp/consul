@@ -5,26 +5,25 @@ import (
 	"fmt"
 	"regexp"
 	"testing"
-
-	"github.com/coredns/coredns/plugin/test"
-	"github.com/mholt/caddy"
-
 	gotmpl "text/template"
 
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	"github.com/coredns/coredns/plugin/pkg/fall"
+	"github.com/coredns/coredns/plugin/test"
+
+	"github.com/mholt/caddy"
 	"github.com/miekg/dns"
 )
 
 func TestHandler(t *testing.T) {
 	rcodeFallthrough := 3841 // reserved for private use, used to indicate a fallthrough
 	exampleDomainATemplate := template{
-		regex:    []*regexp.Regexp{regexp.MustCompile("(^|[.])ip-10-(?P<b>[0-9]*)-(?P<c>[0-9]*)-(?P<d>[0-9]*)[.]example[.]$")},
-		answer:   []*gotmpl.Template{gotmpl.Must(gotmpl.New("answer").Parse("{{ .Name }} 60 IN A 10.{{ .Group.b }}.{{ .Group.c }}.{{ .Group.d }}"))},
-		qclass:   dns.ClassANY,
-		qtype:    dns.TypeANY,
-		fthrough: fall.F{Zones: []string{"."}},
-		zones:    []string{"."},
+		regex:  []*regexp.Regexp{regexp.MustCompile("(^|[.])ip-10-(?P<b>[0-9]*)-(?P<c>[0-9]*)-(?P<d>[0-9]*)[.]example[.]$")},
+		answer: []*gotmpl.Template{gotmpl.Must(gotmpl.New("answer").Parse("{{ .Name }} 60 IN A 10.{{ .Group.b }}.{{ .Group.c }}.{{ .Group.d }}"))},
+		qclass: dns.ClassANY,
+		qtype:  dns.TypeANY,
+		fall:   fall.F{Zones: []string{"."}},
+		zones:  []string{"."},
 	}
 	exampleDomainANSTemplate := template{
 		regex:      []*regexp.Regexp{regexp.MustCompile("(^|[.])ip-10-(?P<b>[0-9]*)-(?P<c>[0-9]*)-(?P<d>[0-9]*)[.]example[.]$")},
@@ -33,7 +32,7 @@ func TestHandler(t *testing.T) {
 		authority:  []*gotmpl.Template{gotmpl.Must(gotmpl.New("authority").Parse("example. IN NS ns0.example.com."))},
 		qclass:     dns.ClassANY,
 		qtype:      dns.TypeANY,
-		fthrough:   fall.F{Zones: []string{"."}},
+		fall:       fall.F{Zones: []string{"."}},
 		zones:      []string{"."},
 	}
 	exampleDomainMXTemplate := template{
@@ -42,48 +41,48 @@ func TestHandler(t *testing.T) {
 		additional: []*gotmpl.Template{gotmpl.Must(gotmpl.New("additional").Parse("{{ .Name }} 60 IN A 10.{{ .Group.b }}.{{ .Group.c }}.{{ .Group.d }}"))},
 		qclass:     dns.ClassANY,
 		qtype:      dns.TypeANY,
-		fthrough:   fall.F{Zones: []string{"."}},
+		fall:       fall.F{Zones: []string{"."}},
 		zones:      []string{"."},
 	}
 	invalidDomainTemplate := template{
-		regex:    []*regexp.Regexp{regexp.MustCompile("[.]invalid[.]$")},
-		rcode:    dns.RcodeNameError,
-		answer:   []*gotmpl.Template{gotmpl.Must(gotmpl.New("answer").Parse("invalid. 60 {{ .Class }} SOA a.invalid. b.invalid. (1 60 60 60 60)"))},
-		qclass:   dns.ClassANY,
-		qtype:    dns.TypeANY,
-		fthrough: fall.F{Zones: []string{"."}},
-		zones:    []string{"."},
+		regex:  []*regexp.Regexp{regexp.MustCompile("[.]invalid[.]$")},
+		rcode:  dns.RcodeNameError,
+		answer: []*gotmpl.Template{gotmpl.Must(gotmpl.New("answer").Parse("invalid. 60 {{ .Class }} SOA a.invalid. b.invalid. (1 60 60 60 60)"))},
+		qclass: dns.ClassANY,
+		qtype:  dns.TypeANY,
+		fall:   fall.F{Zones: []string{"."}},
+		zones:  []string{"."},
 	}
 	rcodeServfailTemplate := template{
-		regex:    []*regexp.Regexp{regexp.MustCompile(".*")},
-		rcode:    dns.RcodeServerFailure,
-		qclass:   dns.ClassANY,
-		qtype:    dns.TypeANY,
-		fthrough: fall.F{Zones: []string{"."}},
-		zones:    []string{"."},
+		regex:  []*regexp.Regexp{regexp.MustCompile(".*")},
+		rcode:  dns.RcodeServerFailure,
+		qclass: dns.ClassANY,
+		qtype:  dns.TypeANY,
+		fall:   fall.F{Zones: []string{"."}},
+		zones:  []string{"."},
 	}
 	brokenTemplate := template{
-		regex:    []*regexp.Regexp{regexp.MustCompile("[.]example[.]$")},
-		answer:   []*gotmpl.Template{gotmpl.Must(gotmpl.New("answer").Parse("{{ .Name }} 60 IN TXT \"{{ index .Match 2 }}\""))},
-		qclass:   dns.ClassANY,
-		qtype:    dns.TypeANY,
-		fthrough: fall.F{Zones: []string{"."}},
-		zones:    []string{"."},
+		regex:  []*regexp.Regexp{regexp.MustCompile("[.]example[.]$")},
+		answer: []*gotmpl.Template{gotmpl.Must(gotmpl.New("answer").Parse("{{ .Name }} 60 IN TXT \"{{ index .Match 2 }}\""))},
+		qclass: dns.ClassANY,
+		qtype:  dns.TypeANY,
+		fall:   fall.F{Zones: []string{"."}},
+		zones:  []string{"."},
 	}
 	nonRRTemplate := template{
-		regex:    []*regexp.Regexp{regexp.MustCompile("[.]example[.]$")},
-		answer:   []*gotmpl.Template{gotmpl.Must(gotmpl.New("answer").Parse("{{ .Name }}"))},
-		qclass:   dns.ClassANY,
-		qtype:    dns.TypeANY,
-		fthrough: fall.F{Zones: []string{"."}},
-		zones:    []string{"."},
+		regex:  []*regexp.Regexp{regexp.MustCompile("[.]example[.]$")},
+		answer: []*gotmpl.Template{gotmpl.Must(gotmpl.New("answer").Parse("{{ .Name }}"))},
+		qclass: dns.ClassANY,
+		qtype:  dns.TypeANY,
+		fall:   fall.F{Zones: []string{"."}},
+		zones:  []string{"."},
 	}
 	nonRRAdditionalTemplate := template{
 		regex:      []*regexp.Regexp{regexp.MustCompile("[.]example[.]$")},
 		additional: []*gotmpl.Template{gotmpl.Must(gotmpl.New("answer").Parse("{{ .Name }}"))},
 		qclass:     dns.ClassANY,
 		qtype:      dns.TypeANY,
-		fthrough:   fall.F{Zones: []string{"."}},
+		fall:       fall.F{Zones: []string{"."}},
 		zones:      []string{"."},
 	}
 	nonRRAuthoritativeTemplate := template{
@@ -91,7 +90,7 @@ func TestHandler(t *testing.T) {
 		authority: []*gotmpl.Template{gotmpl.Must(gotmpl.New("authority").Parse("{{ .Name }}"))},
 		qclass:    dns.ClassANY,
 		qtype:     dns.TypeANY,
-		fthrough:  fall.F{Zones: []string{"."}},
+		fall:      fall.F{Zones: []string{"."}},
 		zones:     []string{"."},
 	}
 
