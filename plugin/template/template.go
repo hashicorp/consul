@@ -8,6 +8,7 @@ import (
 	gotmpl "text/template"
 
 	"github.com/coredns/coredns/plugin"
+	"github.com/coredns/coredns/plugin/pkg/fall"
 	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
@@ -15,21 +16,26 @@ import (
 
 // Handler is a plugin handler that takes a query and templates a response.
 type Handler struct {
+	Zones []string
+
 	Next      plugin.Handler
 	Templates []template
 }
 
 type template struct {
+	zones      []string
 	rcode      int
-	class      uint16
-	qtype      uint16
 	regex      []*regexp.Regexp
 	answer     []*gotmpl.Template
 	additional []*gotmpl.Template
 	authority  []*gotmpl.Template
+	qclass     uint16
+	qtype      uint16
+	fthrough   fall.F
 }
 
 type templateData struct {
+	Zone     string
 	Name     string
 	Regex    string
 	Match    []string
@@ -44,13 +50,21 @@ type templateData struct {
 func (h Handler) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	state := request.Request{W: w, Req: r}
 
+	zone := plugin.Zones(h.Zones).Matches(state.Name())
+	if zone == "" {
+		return plugin.NextOrFailure(h.Name(), h.Next, ctx, w, r)
+	}
+
 	for _, template := range h.Templates {
-		data, match := template.match(state)
+		data, match, fthrough := template.match(state, zone)
 		if !match {
+			if !fthrough {
+				return dns.RcodeNameError, nil
+			}
 			continue
 		}
 
-		TemplateMatchesCount.WithLabelValues(data.Regex).Inc()
+		TemplateMatchesCount.WithLabelValues(data.Zone, data.Class, data.Type).Inc()
 
 		if template.rcode == dns.RcodeServerFailure {
 			return template.rcode, nil
@@ -87,7 +101,8 @@ func (h Handler) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 		w.WriteMsg(msg)
 		return template.rcode, nil
 	}
-	return plugin.NextOrFailure(h.Name(), h.Next, ctx, w, r)
+
+	return h.Next.ServeDNS(ctx, w, r)
 }
 
 // Name implements the plugin.Handler interface.
@@ -97,38 +112,53 @@ func executeRRTemplate(section string, template *gotmpl.Template, data templateD
 	buffer := &bytes.Buffer{}
 	err := template.Execute(buffer, data)
 	if err != nil {
-		TemplateFailureCount.WithLabelValues(data.Regex, section, template.Tree.Root.String()).Inc()
+		TemplateFailureCount.WithLabelValues(data.Zone, data.Class, data.Type, section, template.Tree.Root.String()).Inc()
 		return nil, err
 	}
 	rr, err := dns.NewRR(buffer.String())
 	if err != nil {
-		TemplateRRFailureCount.WithLabelValues(data.Regex, section, template.Tree.Root.String()).Inc()
+		TemplateRRFailureCount.WithLabelValues(data.Zone, data.Class, data.Type, section, template.Tree.Root.String()).Inc()
 		return rr, err
 	}
 	return rr, nil
 }
 
-func (t template) match(state request.Request) (templateData, bool) {
+func (t template) match(state request.Request, zone string) (templateData, bool, bool) {
 	q := state.Req.Question[0]
 	data := templateData{}
 
-	if t.class != dns.ClassANY && q.Qclass != dns.ClassANY && q.Qclass != t.class {
-		return data, false
+	zone = plugin.Zones(t.zones).Matches(state.Name())
+	if zone == "" {
+		return data, false, true
+	}
+
+	if t.qclass != dns.ClassANY && q.Qclass != dns.ClassANY && q.Qclass != t.qclass {
+		return data, false, true
 	}
 	if t.qtype != dns.TypeANY && q.Qtype != dns.TypeANY && q.Qtype != t.qtype {
-		return data, false
+		return data, false, true
 	}
+
 	for _, regex := range t.regex {
 		if !regex.MatchString(state.Name()) {
 			continue
 		}
 
+		data.Zone = zone
 		data.Regex = regex.String()
 		data.Name = state.Name()
 		data.Question = &q
 		data.Message = state.Req
-		data.Class = dns.ClassToString[q.Qclass]
-		data.Type = dns.TypeToString[q.Qtype]
+		if q.Qclass != dns.ClassANY {
+			data.Class = dns.ClassToString[q.Qclass]
+		} else {
+			data.Class = dns.ClassToString[t.qclass]
+		}
+		if q.Qtype != dns.TypeANY {
+			data.Type = dns.TypeToString[q.Qtype]
+		} else {
+			data.Type = dns.TypeToString[t.qtype]
+		}
 
 		matches := regex.FindStringSubmatch(state.Name())
 		data.Match = make([]string, len(matches))
@@ -144,7 +174,8 @@ func (t template) match(state request.Request) (templateData, bool) {
 			}
 		}
 
-		return data, true
+		return data, true, false
 	}
-	return data, false
+
+	return data, false, t.fthrough.Through(state.Name())
 }

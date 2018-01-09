@@ -93,30 +93,37 @@ func TestSetupParse(t *testing.T) {
 		},
 		// examples
 		{
-			`template ANY A ip-(?P<a>[0-9]*)-(?P<b>[0-9]*)-(?P<c>[0-9]*)-(?P<d>[0-9]*)[.]example[.]com {
+			`template ANY A example.com {
+				match ip-(?P<a>[0-9]*)-(?P<b>[0-9]*)-(?P<c>[0-9]*)-(?P<d>[0-9]*)[.]example[.]com
 				answer "{{ .Name }} A {{ .Group.a }}.{{ .Group.b }}.{{ .Group.c }}.{{ .Grup.d }}."
+				fallthrough
 			}`,
 			false,
 		},
 		{
-			`template IN ANY "[.](example[.]com[.]dc1[.]example[.]com[.])$" {
+			`template IN ANY example.com {
+				match "[.](example[.]com[.]dc1[.]example[.]com[.])$"
 				rcode NXDOMAIN
 				answer "{{ index .Match 1 }} 60 IN SOA a.{{ index .Match 1 }} b.{{ index .Match 1 }} (1 60 60 60 60)"
+				fallthrough example.com
 			}`,
 			false,
 		},
 		{
-			`template IN A ^ip-10-(?P<b>[0-9]*)-(?P<c>[0-9]*)-(?P<d>[0-9]*)[.]example[.]$ {
+			`template IN A example {
+				match ^ip-10-(?P<b>[0-9]*)-(?P<c>[0-9]*)-(?P<d>[0-9]*)[.]example[.]$
 				answer "{{ .Name }} 60 IN A 10.{{ .Group.b }}.{{ .Group.c }}.{{ .Group.d }}"
 			}
-			template IN MX ^ip-10-(?P<b>[0-9]*)-(?P<c>[0-9]*)-(?P<d>[0-9]*)[.]example[.]$ {
+			template IN MX example. {
+				match ^ip-10-(?P<b>[0-9]*)-(?P<c>[0-9]*)-(?P<d>[0-9]*)[.]example[.]$
 				answer "{{ .Name }} 60 IN MX 10 {{ .Name }}"
 				additional "{{ .Name }} 60 IN A 10.{{ .Group.b }}.{{ .Group.c }}.{{ .Group.d }}"
 			}`,
 			false,
 		},
 		{
-			`template IN MX ^ip-10-(?P<b>[0-9]*)-(?P<c>[0-9]*)-(?P<d>[0-9]*)[.]example[.]$ {
+			`template IN MX example {
+					match ^ip-10-(?P<b>[0-9]*)-(?P<c>[0-9]*)-(?P<d>[0-9]*)[.]example[.]$
 					answer "{{ .Name }} 60 IN MX 10 {{ .Name }}"
 					additional "{{ .Name }} 60 IN A 10.{{ .Group.b }}.{{ .Group.c }}.{{ .Group.d }}"
 					authority  "example. 60 IN NS ns0.example."
