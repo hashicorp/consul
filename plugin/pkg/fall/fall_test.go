@@ -23,7 +23,7 @@ func TestEqual(t *testing.T) {
 
 func TestZero(t *testing.T) {
 	var f F
-	if !f.Equal(Zero()) {
+	if !f.Equal(Zero) {
 		t.Errorf("F should be zero")
 	}
 }
@@ -31,7 +31,7 @@ func TestZero(t *testing.T) {
 func TestSetZonesFromArgs(t *testing.T) {
 	var f F
 	f.SetZonesFromArgs([]string{})
-	if !f.Equal(Root()) {
+	if !f.Equal(Root) {
 		t.Errorf("F should have the root zone")
 	}
 

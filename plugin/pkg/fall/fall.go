@@ -28,7 +28,7 @@ func (f *F) setZones(zones []string) {
 // SetZonesFromArgs sets zones in f to the passed value or to "." if the slice is empty.
 func (f *F) SetZonesFromArgs(zones []string) {
 	if len(zones) == 0 {
-		f.setZones(Root().Zones)
+		f.setZones(Root.Zones)
 		return
 	}
 	f.setZones(zones)
@@ -50,9 +50,9 @@ func (f F) Equal(g F) bool {
 // Zero returns a zero valued F.
 var Zero = func() F {
 	return F{[]string{}}
-}
+}()
 
 // Root returns F set to only ".".
 var Root = func() F {
 	return F{[]string{"."}}
-}
+}()

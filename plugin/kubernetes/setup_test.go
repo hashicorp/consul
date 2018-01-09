@@ -34,7 +34,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			podModeDisabled,
-			fall.Zero(),
+			fall.Zero,
 			nil,
 		},
 		{
@@ -46,7 +46,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			podModeDisabled,
-			fall.Zero(),
+			fall.Zero,
 			nil,
 		},
 		{
@@ -59,7 +59,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			podModeDisabled,
-			fall.Zero(),
+			fall.Zero,
 			nil,
 		},
 		{
@@ -73,7 +73,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			podModeDisabled,
-			fall.Zero(),
+			fall.Zero,
 			nil,
 		},
 		{
@@ -87,7 +87,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			podModeDisabled,
-			fall.Zero(),
+			fall.Zero,
 			nil,
 		},
 		{
@@ -101,7 +101,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			podModeDisabled,
-			fall.Zero(),
+			fall.Zero,
 			nil,
 		},
 		{
@@ -115,7 +115,7 @@ func TestKubernetesParse(t *testing.T) {
 			30 * time.Second,
 			"",
 			podModeDisabled,
-			fall.Zero(),
+			fall.Zero,
 			nil,
 		},
 		{
@@ -129,7 +129,7 @@ func TestKubernetesParse(t *testing.T) {
 			15 * time.Minute,
 			"",
 			podModeDisabled,
-			fall.Zero(),
+			fall.Zero,
 			nil,
 		},
 		{
@@ -143,7 +143,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"environment=prod",
 			podModeDisabled,
-			fall.Zero(),
+			fall.Zero,
 			nil,
 		},
 		{
@@ -157,7 +157,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"application=nginx,environment in (production,qa,staging)",
 			podModeDisabled,
-			fall.Zero(),
+			fall.Zero,
 			nil,
 		},
 		{
@@ -175,7 +175,7 @@ func TestKubernetesParse(t *testing.T) {
 			15 * time.Minute,
 			"application=nginx,environment in (production,qa,staging)",
 			podModeDisabled,
-			fall.Root(),
+			fall.Root,
 			nil,
 		},
 		// negative
@@ -190,7 +190,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			podModeDisabled,
-			fall.Zero(),
+			fall.Zero,
 			nil,
 		},
 		{
@@ -204,7 +204,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			podModeDisabled,
-			fall.Zero(),
+			fall.Zero,
 			nil,
 		},
 		{
@@ -218,7 +218,7 @@ func TestKubernetesParse(t *testing.T) {
 			0 * time.Minute,
 			"",
 			podModeDisabled,
-			fall.Zero(),
+			fall.Zero,
 			nil,
 		},
 		{
@@ -232,7 +232,7 @@ func TestKubernetesParse(t *testing.T) {
 			0 * time.Second,
 			"",
 			podModeDisabled,
-			fall.Zero(),
+			fall.Zero,
 			nil,
 		},
 		{
@@ -246,7 +246,7 @@ func TestKubernetesParse(t *testing.T) {
 			0 * time.Second,
 			"",
 			podModeDisabled,
-			fall.Zero(),
+			fall.Zero,
 			nil,
 		},
 		{
@@ -260,7 +260,7 @@ func TestKubernetesParse(t *testing.T) {
 			0 * time.Second,
 			"",
 			podModeDisabled,
-			fall.Zero(),
+			fall.Zero,
 			nil,
 		},
 		{
@@ -274,7 +274,7 @@ func TestKubernetesParse(t *testing.T) {
 			0 * time.Second,
 			"",
 			podModeDisabled,
-			fall.Zero(),
+			fall.Zero,
 			nil,
 		},
 		// pods disabled
@@ -289,7 +289,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			podModeDisabled,
-			fall.Zero(),
+			fall.Zero,
 			nil,
 		},
 		// pods insecure
@@ -304,7 +304,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			podModeInsecure,
-			fall.Zero(),
+			fall.Zero,
 			nil,
 		},
 		// pods verified
@@ -319,7 +319,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			podModeVerified,
-			fall.Zero(),
+			fall.Zero,
 			nil,
 		},
 		// pods invalid
@@ -334,7 +334,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			podModeVerified,
-			fall.Zero(),
+			fall.Zero,
 			nil,
 		},
 		// fallthrough with zones
@@ -364,7 +364,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			podModeDisabled,
-			fall.Zero(),
+			fall.Zero,
 			[]string{"13.14.15.16:53"},
 		},
 		// Invalid upstream
@@ -379,7 +379,7 @@ func TestKubernetesParse(t *testing.T) {
 			defaultResyncPeriod,
 			"",
 			podModeDisabled,
-			fall.Zero(),
+			fall.Zero,
 			nil,
 		},
 	}
