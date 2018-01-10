@@ -13,10 +13,10 @@ func TestHealth(t *testing.T) {
 	h := health{Addr: ":0"}
 	h.h = append(h.h, &erratic.Erratic{})
 
-	if err := h.Startup(); err != nil {
+	if err := h.OnStartup(); err != nil {
 		t.Fatalf("Unable to startup the health server: %v", err)
 	}
-	defer h.Shutdown()
+	defer h.OnShutdown()
 
 	// Reconstruct the http address based on the port allocated by operating system.
 	address := fmt.Sprintf("http://%s%s", h.ln.Addr().String(), path)

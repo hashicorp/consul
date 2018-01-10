@@ -6,6 +6,7 @@ import (
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
+	"github.com/coredns/coredns/plugin/metrics"
 
 	"github.com/mholt/caddy"
 )
@@ -23,7 +24,7 @@ func setup(c *caddy.Controller) error {
 		return plugin.Error("health", err)
 	}
 
-	h := &health{Addr: addr}
+	h := &health{Addr: addr, stop: make(chan bool)}
 
 	c.OnStartup(func() error {
 		plugins := dnsserver.GetConfig(c).Handlers()
@@ -36,6 +37,7 @@ func setup(c *caddy.Controller) error {
 	})
 
 	c.OnStartup(func() error {
+		// Poll all middleware every second.
 		h.poll()
 		go func() {
 			for {
@@ -46,8 +48,21 @@ func setup(c *caddy.Controller) error {
 		return nil
 	})
 
-	c.OnStartup(h.Startup)
-	c.OnFinalShutdown(h.Shutdown)
+	c.OnStartup(func() error {
+		onceMetric.Do(func() {
+			m := dnsserver.GetConfig(c).Handler("prometheus")
+			if m == nil {
+				return
+			}
+			if x, ok := m.(*metrics.Metrics); ok {
+				x.MustRegister(HealthDuration)
+			}
+		})
+		return nil
+	})
+
+	c.OnStartup(h.OnStartup)
+	c.OnFinalShutdown(h.OnShutdown)
 
 	// Don't do AddPlugin, as health is not *really* a plugin just a separate webserver running.
 	return nil

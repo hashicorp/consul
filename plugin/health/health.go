@@ -21,9 +21,11 @@ type health struct {
 	h []Healther
 	sync.RWMutex
 	ok bool // ok is the global boolean indicating an all healthy plugin stack
+
+	stop chan bool
 }
 
-func (h *health) Startup() error {
+func (h *health) OnStartup() error {
 	if h.Addr == "" {
 		h.Addr = defAddr
 	}
@@ -51,14 +53,20 @@ func (h *health) Startup() error {
 		go func() {
 			http.Serve(h.ln, h.mux)
 		}()
+		go func() {
+			h.overloaded()
+		}()
 	})
 	return nil
 }
 
-func (h *health) Shutdown() error {
+func (h *health) OnShutdown() error {
 	if h.ln != nil {
 		return h.ln.Close()
 	}
+
+	h.stop <- true
+
 	return nil
 }
 

@@ -25,6 +25,14 @@ supports health checks has a section "Health" in their README.
 
 Any plugin that implements the Healther interface will be used to report health.
 
+## Metrics
+
+If monitoring is enabled (via the *prometheus* directive) then the following metric is exported:
+
+* `coredns_health_request_duration_seconds{}` - duration to process a /health query. As this should
+  be a local operation it should be fast. A (large) increases in this duration indicates the
+  CoreDNS process is having trouble keeping up.
+
 ## Examples
 
 Run another health endpoint on http://localhost:8091.
