@@ -6,7 +6,7 @@
 
 ## Description
 
-The *template* plugin allows you to dynamically repond to queries by just writing a (Go) template.
+The *template* plugin allows you to dynamically respond to queries by just writing a (Go) template.
 
 ## Syntax
 
@@ -27,9 +27,9 @@ template CLASS TYPE [ZONE...] {
 * **ZONE** the zone scope(s) for this template. Defaults to the server zones.
 * **REGEX** [Go regexp](https://golang.org/pkg/regexp/) that are matched against the incoming question name. Specifying no regex matches everything (default: `.*`). First matching regex wins.
 * `answer|additional|authority` **RR** A [RFC 1035](https://tools.ietf.org/html/rfc1035#section-5) style resource record fragment
-  build by a [Go template](https://golang.org/pkg/text/template/) that contains the reply.
+  built by a [Go template](https://golang.org/pkg/text/template/) that contains the reply.
 * `rcode` **CODE** A response code (`NXDOMAIN, SERVFAIL, ...`). The default is `SUCCESS`.
-* `fallthrough` Continue with the next plugin if the zone matched but no regex did not match.
+* `fallthrough` Continue with the next plugin if the zone matched but no regex matched.
   If specific zones are listed (for example `in-addr.arpa` and `ip6.arpa`), then only queries for
   those zones will be subject to fallthrough.
 
@@ -49,7 +49,7 @@ Each resource record is a full-featured [Go template](https://golang.org/pkg/tex
 * `.Message` the complete incoming DNS message.
 * `.Question` the matched question section.
 
-The output of the template must be a [RFC 1035](https://tools.ietf.org/html/rfc1035) style resource record line (commonly refered to as a "zone file").
+The output of the template must be a [RFC 1035](https://tools.ietf.org/html/rfc1035) style resource record (commonly refered to as a "zone file").
 
 **WARNING** there is a syntactical problem with Go templates and CoreDNS config files. Expressions
  like `{{$var}}` will be interpreted as a reference to an environment variable by CoreDNS (and
@@ -98,16 +98,16 @@ The `.invalid` domain is a reserved TLD (see [RFC-2606 Reserved Top Level DNS Na
 ~~~
 
 1. A query to .invalid will result in NXDOMAIN (rcode)
-2. A dummy SOA record is send to hand out a TTL of 60s for caching
-3. Querying `.invalid` of `CH` will also cause a NXDOMAIN/SOA response
+2. A dummy SOA record is sent to hand out a TTL of 60s for caching purposes
+3. Querying `.invalid` in the `CH` class will also cause a NXDOMAIN/SOA response
 4. The default regex is `.*`
 
 ### Block invalid search domain completions
 
 Imagine you run `example.com` with a datacenter `dc1.example.com`. The datacenter domain
 is part of the DNS search domain.
-However `something.example.com.dc1.example.com` would indicates a fully qualified
-domain name (`something.example.com`) that inadvertely has the default domain or search
+However `something.example.com.dc1.example.com` would indicate a fully qualified
+domain name (`something.example.com`) that inadvertently has the default domain or search
 path (`dc1.example.com`) added.
 
 ~~~ corefile
@@ -136,7 +136,7 @@ A more verbose regex based equivalent would be
 }
 ~~~
 
-The regex based version can do more complex matching/templating while zone based templating is easier to read and use.
+The regex-based version can do more complex matching/templating while zone-based templating is easier to read and use.
 
 ### Resolve A/PTR for .example
 
@@ -161,10 +161,10 @@ The regex based version can do more complex matching/templating while zone based
 }
 ~~~
 
-An IPv4 address consists of 4 bytes, `a.b.c.d`. Named groups make it less error prone to reverse the
-ip in the PTR case. Try to use named groups to explain what your regex and template are doing.
+An IPv4 address consists of 4 bytes, `a.b.c.d`. Named groups make it less error-prone to reverse the
+IP address in the PTR case. Try to use named groups to explain what your regex and template are doing.
 
-Note that the A record is actually a wildcard, any subdomain of the ip will resolve to the ip.
+Note that the A record is actually a wildcard: any subdomain of the IP address will resolve to the IP address.
 
 Having templates to map certain PTR/A pairs is a common pattern.
 
@@ -187,7 +187,7 @@ Fallthrough is needed for mixed domains where only some responses are templated.
 
 Named capture groups can be used to template one response for multiple patterns.
 
-### Resolve A and MX records for ip templates in .example
+### Resolve A and MX records for IP templates in .example
 
 ~~~ corefile
 . {
