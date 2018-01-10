@@ -117,6 +117,7 @@ $ curl \
   "Config": {
     "Datacenter": "dc1",
     "NodeName": "foobar",
+    "NodeID": "9d754d17-d864-b1d3-e758-f3fe25a9874f",
     "Server": true,
     "Revision": "deadbeef",
     "Version": "1.0.0"

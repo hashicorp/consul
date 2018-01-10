@@ -57,12 +57,14 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 	config := struct {
 		Datacenter string
 		NodeName   string
+		NodeID     string
 		Revision   string
 		Server     bool
 		Version    string
 	}{
 		Datacenter: s.agent.config.Datacenter,
 		NodeName:   s.agent.config.NodeName,
+		NodeID:     string(s.agent.config.NodeID),
 		Revision:   s.agent.config.Revision,
 		Server:     s.agent.config.ServerMode,
 		Version:    s.agent.config.Version,
