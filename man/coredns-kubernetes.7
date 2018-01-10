@@ -40,7 +40,7 @@ kubernetes [ZONES\.\.\.] {
     endpoint_pod_names
     upstream ADDRESS\.\.\.
     ttl TTL
-    fallthrough
+    fallthrough [ZONES\.\.\.]
 }
 .
 .fi
@@ -87,7 +87,7 @@ kubernetes [ZONES\.\.\.] {
 \fBttl\fR allows you to set a custom TTL for responses\. The default (and allowed minimum) is to use 5 seconds, the maximum is capped at 3600 seconds\.
 .
 .IP "\(bu" 4
-\fBfallthrough\fR If a query for a record in the cluster zone results in NXDOMAIN, normally that is what the response will be\. However, if you specify this option, the query will instead be passed on down the plugin chain, which can include another plugin to handle the query\.
+\fBfallthrough\fR \fB[ZONES\.\.\.]\fR If a query for a record in the zones for which the plugin is authoritative results in NXDOMAIN, normally that is what the response will be\. However, if you specify this option, the query will instead be passed on down the plugin chain, which can include another plugin to handle the query\. If \fB[ZONES\.\.\.]\fR is omitted, then fallthrough happens for all zones for which the plugin is authoritative\. If specific zones are listed (for example \fBin\-addr\.arpa\fR and \fBip6\.arpa\fR), then only queries for those zones will be subject to fallthrough\.
 .
 .IP "" 0
 .

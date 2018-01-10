@@ -59,6 +59,6 @@ Or re-export the retrieved zone to other secondaries.
 }
 ~~~
 
-# Bugs
+## Bugs
 
 Only AXFR is supported and the retrieved zone is not committed to disk.

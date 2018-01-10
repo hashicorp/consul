@@ -64,6 +64,6 @@ Listen for dnstap messages on port 6000.
 % dnstap -l 127.0.0.1:6000
 ~~~
 
-# See Also
+## See Also
 
 [dnstap.info](http://dnstap.info).

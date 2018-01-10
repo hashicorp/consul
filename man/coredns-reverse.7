@@ -16,7 +16,7 @@ If a request matches a regular expression (see Template Syntax below) this plugi
 reverse NETWORK\.\.\. {
     hostname TEMPLATE
     [ttl TTL]
-    [fallthrough]
+    [fallthrough [ZONES\.\.\.]]
     [wildcard]
 .
 .fi
@@ -31,7 +31,7 @@ reverse NETWORK\.\.\. {
 \fBttl\fR defaults to 60
 .
 .IP "\(bu" 4
-\fBfallthrough\fR if zone matches and no record can be generated, pass request to the next plugin\.
+\fBfallthrough\fR if zone matches and no record can be generated, pass request to the next plugin\. If \fB[ZONES\.\.\.]\fR is omitted, then fallthrough happens for all zones for which the plugin is authoritative\. If specific zones are listed (for example \fBin\-addr\.arpa\fR and \fBip6\.arpa\fR), then only queries for those zones will be subject to fallthrough\.
 .
 .IP "\(bu" 4
 \fBwildcard\fR allows matches to catch all subdomains as well\.

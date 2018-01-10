@@ -1,5 +1,7 @@
 # template
 
+## Name
+
 *template* - allows for dynamic responses based on the incoming query.
 
 ## Description
@@ -233,14 +235,14 @@ Named capture groups can be used to template one response for multiple patterns.
 }
 ~~~
 
-# Also see
+## Also see
 
 - [Go regexp](https://golang.org/pkg/regexp/) for details about the regex implementation
 - [RE2 syntax reference](https://github.com/google/re2/wiki/Syntax) for details about the regex syntax
 - [RFC-1034](https://tools.ietf.org/html/rfc1034#section-3.6.1) and [RFC 1035](https://tools.ietf.org/html/rfc1035#section-5) for the resource record format
 - [Go template](https://golang.org/pkg/text/template/) for the template language reference
 
-# Bugs
+## Bugs
 
 CoreDNS supports [caddyfile environment variables](https://caddyserver.com/docs/caddyfile#env)
 with notion of `{$ENV_VAR}`. This parser feature will break [Go template variables](https://golang.org/pkg/text/template/#hdr-Variables) notations like`{{$variable}}`.

@@ -127,6 +127,6 @@ Querying with dig:
 reverse.skydns.local.
 ~~~
 
-# Bugs
+## Bugs
 
 Only the etcdv2 protocol is supported.

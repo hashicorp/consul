@@ -37,7 +37,7 @@ If you want to \fBround robin\fR A and AAAA responses look at the \fBloadbalance
 
 etcd [ZONES\.\.\.] {
     stubzones
-    fallthrough
+    fallthrough [ZONES\.\.\.]
     path PATH
     endpoint ENDPOINT\.\.\.
     upstream ADDRESS\.\.\.
@@ -52,7 +52,7 @@ etcd [ZONES\.\.\.] {
 \fBstubzones\fR enables the stub zones feature\. The stubzone is \fIonly\fR done in the etcd tree located under the \fIfirst\fR zone specified\.
 .
 .IP "\(bu" 4
-\fBfallthrough\fR If zone matches but no record can be generated, pass request to the next plugin\.
+\fBfallthrough\fR If zone matches but no record can be generated, pass request to the next plugin\. If \fB[ZONES\.\.\.]\fR is omitted, then fallthrough happens for all zones for which the plugin is authoritative\. If specific zones are listed (for example \fBin\-addr\.arpa\fR and \fBip6\.arpa\fR), then only queries for those zones will be subject to fallthrough\.
 .
 .IP "\(bu" 4
 \fBPATH\fR the path inside etcd\. Defaults to "/skydns"\.
@@ -184,4 +184,6 @@ reverse\.skydns\.local\.
 .fi
 .
 .IP "" 0
+.
+.SH "BUGS"
 Only the etcdv2 protocol is supported\.

@@ -15,7 +15,7 @@ The hosts plugin is useful for serving zones from a /etc/hosts file\. It serves 
 
 hosts [FILE [ZONES\.\.\.]] {
     [INLINE]
-    fallthrough
+    fallthrough [ZONES\.\.\.]
 }
 .
 .fi
@@ -30,7 +30,7 @@ hosts [FILE [ZONES\.\.\.]] {
 \fBINLINE\fR the hosts file contents inlined in Corefile\. If there are any lines before fallthrough then all of them will be treated as the additional content for hosts file\. The specified hosts file path will still be read but entries will be overrided\.
 .
 .IP "\(bu" 4
-\fBfallthrough\fR If zone matches and no record can be generated, pass request to the next plugin\.
+\fBfallthrough\fR If zone matches and no record can be generated, pass request to the next plugin\. If \fB[ZONES\.\.\.]\fR is omitted, then fallthrough happens for all zones for which the plugin is authoritative\. If specific zones are listed (for example \fBin\-addr\.arpa\fR and \fBip6\.arpa\fR), then only queries for those zones will be subject to fallthrough\.
 .
 .IP "" 0
 .
