@@ -387,7 +387,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 			return RuntimeConfig{}, fmt.Errorf("No %s address found", addrtyp)
 		}
 		if len(advertiseAddrs) > 1 {
-			return RuntimeConfig{}, fmt.Errorf("Multiple %s addresses found. Please configure one", addrtyp)
+			return RuntimeConfig{}, fmt.Errorf("Multiple %s addresses found. Please configure one with 'bind' and/or 'advertise'.", addrtyp)
 		}
 		advertiseAddr = advertiseAddrs[0]
 	}
