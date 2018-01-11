@@ -2,13 +2,13 @@
 
 ## Name
 
-*autopath* - allows for server side search path completion.
+*autopath* - allows for server-side search path completion.
 
 ## Description
 
 If it sees a query that matches the first element of the configured search path, *autopath* will
-follow the chain of search path elements and returns the first reply that is not NXDOMAIN. On any
-failures the original reply is returned. Because *autopath* returns a reply for a name that wasn't
+follow the chain of search path elements and return the first reply that is not NXDOMAIN. On any
+failures, the original reply is returned. Because *autopath* returns a reply for a name that wasn't
 the original question it will add a CNAME that points from the original name (with the search path
 element in it) to the name of this answer.
 
@@ -44,4 +44,4 @@ Use `my-resolv.conf` as the file to get the search path from. This file only nee
 autopath @kubernetes
 ~~~
 
-Use the search path dynamically retrieved from the kubernetes plugin.
+Use the search path dynamically retrieved from the *kubernetes* plugin.
