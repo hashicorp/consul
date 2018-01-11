@@ -246,6 +246,34 @@ func TestAPI_AgentServices_CheckBadStatus(t *testing.T) {
 	}
 }
 
+func TestAPI_AgentServices_CheckID(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+	reg := &AgentServiceRegistration{
+		Name: "foo",
+		Tags: []string{"bar", "baz"},
+		Port: 8000,
+		Check: &AgentServiceCheck{
+			CheckID: "foo-ttl",
+			TTL:     "15s",
+		},
+	}
+	if err := agent.ServiceRegister(reg); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	checks, err := agent.Checks()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, ok := checks["foo-ttl"]; !ok {
+		t.Fatalf("missing check: %v", checks)
+	}
+}
+
 func TestAPI_AgentServiceAddress(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
