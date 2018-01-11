@@ -1,0 +1,166 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "COREFILE" "5" "January 2018" "CoreDNS" "CoreDNS"
+.
+.SH "NAME"
+\fBcorefile\fR
+.
+.SH "NAME"
+\fIcorefile\fR \- configuration file for CoreDNS
+.
+.SH "DESCRIPTION"
+A \fIcorefile\fR specifies the (internal) servers CoreDNS should run and what plugins each of these should chain\. The syntax is as follows:
+.
+.IP "" 4
+.
+.nf
+
+[SCHEME://]ZONE [[SCHEME://]ZONE]\.\.\.[:PORT] {
+    [PLUGIN]\.\.\.
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+The \fBZONE\fR defines for which name this server should be called, multiple zones are allowed and should be \fIwhite space\fR separated\. You can use a "reverse" syntax to specify a reverse zone (i\.e\. ip6\.arpa and in\-addr\.arpa), but using an IP address in the CIDR notation\. The optional \fBSCHEME\fR defaults to \fBdns://\fR, but can also be \fBtls://\fR (DNS over TLS) or \fBgrpc://\fR (DNS over gRPC)\.
+.
+.P
+Specifying a \fBZONE\fR \fIand\fR \fBPORT\fR combination multiple time for \fIdifferent\fR servers will lead to an error on startup\.
+.
+.P
+When a query comes in it is matched again all zones for all servers, the server with the longest match on the query name will receive the query\.
+.
+.P
+The optional \fBPORT\fR controls on which port the server will bind, this default to 53\. If you use a port number here, you \fIcan\'t\fR override it with \fB\-dns\.port\fR (coredns(1))\.
+.
+.P
+\fBPLUGIN\fR defines the plugin(s) we want to load into this server\. This is optional as well, but as server with no plugins will just return SERVFAIL for all queries\. Each plugin can have a number of properties than can have arguments, see documentation for each plugin\.
+.
+.P
+Comments begin with an unquoted hash \fB#\fR and continue to the end of the line\. Comments may be started anywhere on a line\.
+.
+.P
+Enviroment variables are supported and either the Unix or Windows form may be used: \fB{$ENV_VAR_1}\fR or \fB{%ENV_VAR_2%}\fR\.
+.
+.P
+You can use the \fBimport\fR "plugin" to include parts of other files, see \fIhttps://coredns\.io/explugins/import\fR\.
+.
+.P
+If CoreDNS can’t find a Corefile to load it loads the following builtin one:
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+    whoami
+}
+.
+.fi
+.
+.IP "" 0
+.
+.SH "EXAMPLES"
+The \fBZONE\fR is root zone \fB\.\fR, the \fBPLUGIN\fR is chaos\. The chaos plugin takes an argument: \fBCoreDNS\-001\fR\. This text is returned on a CH class query: \fBdig CH txt version\.bind @localhost\fR\.
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+   chaos CoreDNS\-001
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+When defining a new zone, you either create a new server, or add it to an existing one\. Here we define one server that handles two zones; that potentially chain different plugins:
+.
+.IP "" 4
+.
+.nf
+
+example\.org {
+    whoami
+}
+org {
+    whoami
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Is identical to:
+.
+.IP "" 4
+.
+.nf
+
+example\.org org {
+    whoami
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Reverse zones can be specified as domain names:
+.
+.IP "" 4
+.
+.nf
+
+0\.0\.10\.in\-addr\.arpa {
+    whoami
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+or by just using the CIDR notation:
+.
+.IP "" 4
+.
+.nf
+
+10\.0\.0\.0/24 {
+    whoami
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+This also works on a non octet boundary:
+.
+.IP "" 4
+.
+.nf
+
+10\.0\.0\.0/27 {
+    whoami
+}
+.
+.fi
+.
+.IP "" 0
+.
+.SH "AUTHORS"
+CoreDNS Authors\.
+.
+.SH "COPYRIGHT"
+Apache License 2\.0
+.
+.SH "SEE ALSO"
+The manual page for CoreDNS: coredns(1) and more documentation on \fIhttps://coredns\.io\fR\.

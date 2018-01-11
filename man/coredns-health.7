@@ -23,6 +23,14 @@ Optionally takes an address; the default is \fB:8080\fR\. The health path is fix
 .SH "PLUGINS"
 Any plugin that implements the Healther interface will be used to report health\.
 .
+.SH "METRICS"
+If monitoring is enabled (via the \fIprometheus\fR directive) then the following metric is exported:
+.
+.IP "\(bu" 4
+\fBcoredns_health_request_duration_seconds{}\fR \- duration to process a /health query\. As this should be a local operation it should be fast\. A (large) increases in this duration indicates the CoreDNS process is having trouble keeping up\.
+.
+.IP "" 0
+.
 .SH "EXAMPLES"
 Run another health endpoint on http://localhost:8091\.
 .

@@ -6,7 +6,7 @@ READMES:=$(subst /README.md,,$(READMES))
 PLUGINS:=$(subst plugin/,corendns-,$(PLUGINS))
 PLUGINS:=$(subst /README.md,(7),$(PLUGINS))
 
-all: man/coredns.1 plugins
+all: man/coredns.1 man/corefile.5 plugins
 
 man/coredns.1: coredns.1.md
 	sed -e 's/^\(#.*\)/\U\1/' $< > $@.md
