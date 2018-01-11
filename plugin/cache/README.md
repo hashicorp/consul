@@ -47,8 +47,6 @@ cache [TTL] [ZONES...] {
   which defaults to `10%`. Values should be in the range `[10%, 90%]`. Note the percent sign is
   mandatory. **PERCENTAGE** is treated as an `int`.
 
-The minimum TTL allowed on resource records is 5 seconds.
-
 ## Metrics
 
 If monitoring is enabled (via the *prometheus* directive) then the following metrics are exported:

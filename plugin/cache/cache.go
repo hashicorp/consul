@@ -168,8 +168,6 @@ const (
 	maxTTL  = 1 * time.Hour
 	maxNTTL = 30 * time.Minute
 
-	minTTL = 5 // seconds
-
 	defaultCap = 10000 // default capacity of the cache.
 
 	// Success is the class for caching positive caching.

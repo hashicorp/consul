@@ -68,10 +68,6 @@ func (i *item) toMsg(m *dns.Msg) *dns.Msg {
 	m1.Extra = make([]dns.RR, len(i.Extra))
 
 	ttl := uint32(i.ttl(time.Now()))
-	if ttl < minTTL {
-		ttl = minTTL
-	}
-
 	for j, r := range i.Answer {
 		m1.Answer[j] = dns.Copy(r)
 		m1.Answer[j].Header().Ttl = ttl
