@@ -6,7 +6,7 @@
 
 ## Description
 
-With *dnssec* any reply that doesn't (or can't) do DNSSEC will get signed on-the-fly. Authenticated
+With *dnssec* any reply that doesn't (or can't) do DNSSEC will get signed on the fly. Authenticated
 denial of existence is implemented with NSEC black lies. Using ECDSA as an algorithm is preferred as
 this leads to smaller signatures (compared to RSA). NSEC3 is *not* supported.
 
@@ -19,7 +19,7 @@ dnssec [ZONES... ] {
 }
 ~~~
 
-The specified key is used for all signing operations. The DNSSEC signing will treat this key a
+The specified key is used for all signing operations. The DNSSEC signing will treat this key as a
 CSK (common signing key), forgoing the ZSK/KSK split. All signing operations are done online.
 Authenticated denial of existence is implemented with NSEC black lies. Using ECDSA as an algorithm
 is preferred as this leads to smaller signatures (compared to RSA). NSEC3 is *not* supported.
@@ -33,7 +33,7 @@ used (See [bugs](#bugs)).
 * `key file` indicates that **KEY** file(s) should be read from disk. When multiple keys are specified, RRsets
   will be signed with all keys. Generating a key can be done with `dnssec-keygen`: `dnssec-keygen -a
   ECDSAP256SHA256 <zonename>`. A key created for zone *A* can be safely used for zone *B*. The name of the
-  key file can be specified as one of the following formats
+  key file can be specified in one of the following formats
 
     * basename of the generated key `Kexample.org+013+45330`
     * generated public key `Kexample.org+013+45330.key`
