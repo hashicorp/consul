@@ -165,12 +165,25 @@ func (b *Builder) ReadPath(path string) ([]Source, error) {
 
 	var sources []Source
 	for _, fi := range fis {
+		fp := filepath.Join(path, fi.Name())
+		// check for a symlink and resolve the path
+		if fi.Mode()&os.ModeSymlink > 0 {
+			var err error
+			fp, err = filepath.EvalSymlinks(fp)
+			if err != nil {
+				return nil, err
+			}
+			fi, err = os.Stat(fp)
+			if err != nil {
+				return nil, err
+			}
+		}
 		// do not recurse into sub dirs
 		if fi.IsDir() {
 			continue
 		}
 
-		src, err := b.ReadFile(filepath.Join(path, fi.Name()))
+		src, err := b.ReadFile(fp)
 		if err != nil {
 			return nil, err
 		}
