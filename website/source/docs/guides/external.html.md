@@ -10,7 +10,10 @@ description: |-
 
 Very few infrastructures are entirely self-contained. Most rely on a multitude
 of external service providers. Consul supports this by allowing for the definition
-of external services, services that are not provided by a local node.
+of external services, services that are not provided by a local node. There's also a
+companion project called [Consul ESM](https://github.com/hashicorp/consul-esm) which
+is a daemon that functions as an external service monitor that can help run health
+checks for external services.
 
 Most services are registered in Consul through the use of a
 [service definition](/docs/agent/services.html). However, this approach registers
