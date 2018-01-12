@@ -75,7 +75,7 @@ The following place holders are supported:
 The default Common Log Format is:
 
 ~~~ txt
-`{remote} - [{when}] "{type} {class} {name} {proto} {size} {>do} {>bufsize}" {rcode} {>rflags} {rsize} {duration}`
+`{remote} - [{when}] {>id} "{type} {class} {name} {proto} {size} {>do} {>bufsize}" {rcode} {>rflags} {rsize} {duration}`
 ~~~
 
 ## Examples
