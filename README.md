@@ -40,6 +40,7 @@ Currently CoreDNS is able to:
 * Provide metrics (by using Prometheus) (*metrics*).
 * Provide query (*log*) and error (*error*) logging.
 * Support the CH class: `version.bind` and friends (*chaos*).
+* Support the RFC 5001 DNS name server identifier (NSID) option (*nsid*).
 * Profiling support (*pprof*).
 * Rewrite queries (qtype, qclass and qname) (*rewrite*).
 * Echo back the IP address, transport and port number used (*whoami*). This is also the default
