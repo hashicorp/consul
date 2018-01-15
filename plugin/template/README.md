@@ -40,6 +40,7 @@ At least one `answer` or `rcode` directive is needed (e.g. `rcode NXDOMAIN`).
 ## Templates
 
 Each resource record is a full-featured [Go template](https://golang.org/pkg/text/template/) with the following predefined data
+
 * `.Zone` the matched zone string (e.g. `example.`).
 * `.Name` the query name, as a string (lowercased).
 * `.Class` the query class (usually `IN`).
@@ -58,9 +59,10 @@ The output of the template must be a [RFC 1035](https://tools.ietf.org/html/rfc1
 ## Metrics
 
 If monitoring is enabled (via the *prometheus* directive) then the following metrics are exported:
-- `coredns_template_matches_total{regex}` the total number of matched requests by regex.
-- `coredns_template_template_failures_total{regex,section,template}` the number of times the Go templating failed. Regex, section and template label values can be used to map the error back to the config file.
-- `coredns_template_rr_failures_total{regex,section,template}` the number of times the templated resource record was invalid and could not be parsed. Regex, section and template label values can be used to map the error back to the config file.
+
+* `coredns_template_matches_total{regex}` the total number of matched requests by regex.
+* `coredns_template_template_failures_total{regex,section,template}` the number of times the Go templating failed. Regex, section and template label values can be used to map the error back to the config file.
+* `coredns_template_rr_failures_total{regex,section,template}` the number of times the templated resource record was invalid and could not be parsed. Regex, section and template label values can be used to map the error back to the config file.
 
 Both failure cases indicate a problem with the template configuration.
 
@@ -92,7 +94,7 @@ The `.invalid` domain is a reserved TLD (see [RFC-2606 Reserved Top Level DNS Na
 
     template ANY ANY invalid {
       rcode NXDOMAIN
-      answer "invalid. 60 {{ .Class }} SOA a.invalid. b.invalid. (1 60 60 60 60)"
+      authority "invalid. 60 {{ .Class }} SOA ns.invalid. hostmaster.invalid. (1 60 60 60 60)"
     }
 }
 ~~~
@@ -116,7 +118,7 @@ path (`dc1.example.com`) added.
 
     template IN ANY example.com.dc1.example.com {
       rcode NXDOMAIN
-      answer "{{ .Zone }} 60 IN SOA a.{{ .Zone }} b.{{ .Zone }} (1 60 60 60 60)"
+      authority "{{ .Zone }} 60 IN SOA ns.example.com hostmaster.example.com (1 60 60 60 60)"
     }
 }
 ~~~
@@ -128,9 +130,9 @@ A more verbose regex based equivalent would be
     proxy . 8.8.8.8
 
     template IN ANY example.com {
-      match "(example.com.dc1.example.com)$"
+      match "example\.com\.(dc1\.example\.com\.)$"
       rcode NXDOMAIN
-      answer "{{ index .Match 1 }} 60 IN SOA a.{{ index .Match 1 }} b.{{ index .Match 1 }} (1 60 60 60 60)"
+      authority "{{ index .Match 1 }} 60 IN SOA ns.{{ index .Match 1 }} hostmaster.{{ index .Match 1 }} (1 60 60 60 60)"
       fallthrough
     }
 }
@@ -237,10 +239,10 @@ Named capture groups can be used to template one response for multiple patterns.
 
 ## Also see
 
-- [Go regexp](https://golang.org/pkg/regexp/) for details about the regex implementation
-- [RE2 syntax reference](https://github.com/google/re2/wiki/Syntax) for details about the regex syntax
-- [RFC-1034](https://tools.ietf.org/html/rfc1034#section-3.6.1) and [RFC 1035](https://tools.ietf.org/html/rfc1035#section-5) for the resource record format
-- [Go template](https://golang.org/pkg/text/template/) for the template language reference
+* [Go regexp](https://golang.org/pkg/regexp/) for details about the regex implementation
+* [RE2 syntax reference](https://github.com/google/re2/wiki/Syntax) for details about the regex syntax
+* [RFC-1034](https://tools.ietf.org/html/rfc1034#section-3.6.1) and [RFC 1035](https://tools.ietf.org/html/rfc1035#section-5) for the resource record format
+* [Go template](https://golang.org/pkg/text/template/) for the template language reference
 
 ## Bugs
 
