@@ -212,7 +212,7 @@ only served if the client specifically requests them.
 The agent query is designed to return IP information about the local Consul 
 agent. The IP information returned is the DNS answer for the local node name.
 This does in fact send a DNS query from the local instance to the Consul Server
-Quorum. The result is the IP informaiton that any other service would receive
+Quorum. The result is the IP information that any other service would receive
 for the local Consul agent (this is most commonly the IPv4 bind address). The 
 only valid agent lookup is `agent.consul`. If anything other than that is 
 received an SOA record is returned.
