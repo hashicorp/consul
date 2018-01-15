@@ -261,8 +261,7 @@ func TestDNS_NodeLookup(t *testing.T) {
 	m.SetQuestion("agent.consul.", dns.TypeANY)
 
 	c = new(dns.Client)
-	addr, _ = srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
-	in, _, err = c.Exchange(m, addr.String())
+	in, _, err = c.Exchange(m, a.DNSAddr())
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -286,7 +285,7 @@ func TestDNS_NodeLookup(t *testing.T) {
 	m.SetQuestion("this.agent.consul.", dns.TypeANY)
 
 	c = new(dns.Client)
-	in, _, err = c.Exchange(m, addr.String())
+	in, _, err = c.Exchange(m, a.DNSAddr())
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
