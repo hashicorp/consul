@@ -48,7 +48,7 @@ func main() {
 		}
 	}
 
-	genImports("core/zplugin.go", "core", mi)
+	genImports("core/plugin/zplugin.go", "plugin", mi)
 	genDirectives("core/dnsserver/zdirectives.go", "dnsserver", md)
 }
 

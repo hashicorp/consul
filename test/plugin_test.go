@@ -8,6 +8,9 @@ import (
 	"github.com/coredns/coredns/plugin/test"
 
 	"github.com/miekg/dns"
+
+	// Load all managed plugins in github.com/coredns/coredns
+	_ "github.com/coredns/coredns/core/plugin"
 )
 
 func benchmarkLookupBalanceRewriteCache(b *testing.B) {
