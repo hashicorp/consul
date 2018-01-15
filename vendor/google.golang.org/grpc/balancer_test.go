@@ -30,10 +30,12 @@ import (
 	"google.golang.org/grpc/codes"
 	_ "google.golang.org/grpc/grpclog/glogger"
 	"google.golang.org/grpc/naming"
+	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/leakcheck"
 
 	// V1 balancer tests use passthrough resolver instead of dns.
 	// TODO(bar) remove this when removing v1 balaner entirely.
+
 	_ "google.golang.org/grpc/resolver/passthrough"
 )
 
@@ -128,7 +130,7 @@ func TestNameDiscovery(t *testing.T) {
 	defer cc.Close()
 	req := "port"
 	var reply string
-	if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err == nil || ErrorDesc(err) != servers[0].port {
+	if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err == nil || errorDesc(err) != servers[0].port {
 		t.Fatalf("grpc.Invoke(_, _, _, _, _) = %v, want %s", err, servers[0].port)
 	}
 	// Inject the name resolution change to remove servers[0] and add servers[1].
@@ -144,7 +146,7 @@ func TestNameDiscovery(t *testing.T) {
 	r.w.inject(updates)
 	// Loop until the rpcs in flight talks to servers[1].
 	for {
-		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err != nil && ErrorDesc(err) == servers[1].port {
+		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err != nil && errorDesc(err) == servers[1].port {
 			break
 		}
 		time.Sleep(10 * time.Millisecond)
@@ -204,7 +206,7 @@ func TestRoundRobin(t *testing.T) {
 	var reply string
 	// Loop until servers[1] is up
 	for {
-		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err != nil && ErrorDesc(err) == servers[1].port {
+		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err != nil && errorDesc(err) == servers[1].port {
 			break
 		}
 		time.Sleep(10 * time.Millisecond)
@@ -217,14 +219,14 @@ func TestRoundRobin(t *testing.T) {
 	r.w.inject([]*naming.Update{u})
 	// Loop until both servers[2] are up.
 	for {
-		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err != nil && ErrorDesc(err) == servers[2].port {
+		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err != nil && errorDesc(err) == servers[2].port {
 			break
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
 	// Check the incoming RPCs served in a round-robin manner.
 	for i := 0; i < 10; i++ {
-		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err == nil || ErrorDesc(err) != servers[i%numServers].port {
+		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err == nil || errorDesc(err) != servers[i%numServers].port {
 			t.Fatalf("Index %d: Invoke(_, _, _, _, _) = %v, want %s", i, err, servers[i%numServers].port)
 		}
 	}
@@ -252,7 +254,7 @@ func TestCloseWithPendingRPC(t *testing.T) {
 	// Loop until the above update applies.
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
-		if err := Invoke(ctx, "/foo/bar", &expectedRequest, &reply, cc, FailFast(false)); Code(err) == codes.DeadlineExceeded {
+		if err := Invoke(ctx, "/foo/bar", &expectedRequest, &reply, cc, FailFast(false)); status.Code(err) == codes.DeadlineExceeded {
 			cancel()
 			break
 		}
@@ -300,7 +302,7 @@ func TestGetOnWaitChannel(t *testing.T) {
 	for {
 		var reply string
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
-		if err := Invoke(ctx, "/foo/bar", &expectedRequest, &reply, cc, FailFast(false)); Code(err) == codes.DeadlineExceeded {
+		if err := Invoke(ctx, "/foo/bar", &expectedRequest, &reply, cc, FailFast(false)); status.Code(err) == codes.DeadlineExceeded {
 			cancel()
 			break
 		}
@@ -332,7 +334,7 @@ func TestOneServerDown(t *testing.T) {
 	numServers := 2
 	servers, r, cleanup := startServers(t, numServers, math.MaxUint32)
 	defer cleanup()
-	cc, err := Dial("passthrough:///foo.bar.com", WithBalancer(RoundRobin(r)), WithBlock(), WithInsecure(), WithCodec(testCodec{}))
+	cc, err := Dial("passthrough:///foo.bar.com", WithBalancer(RoundRobin(r)), WithBlock(), WithInsecure(), WithCodec(testCodec{}), WithWaitForHandshake())
 	if err != nil {
 		t.Fatalf("Failed to create ClientConn: %v", err)
 	}
@@ -348,7 +350,7 @@ func TestOneServerDown(t *testing.T) {
 	var reply string
 	// Loop until servers[1] is up
 	for {
-		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err != nil && ErrorDesc(err) == servers[1].port {
+		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err != nil && errorDesc(err) == servers[1].port {
 			break
 		}
 		time.Sleep(10 * time.Millisecond)
@@ -401,7 +403,7 @@ func TestOneAddressRemoval(t *testing.T) {
 	var reply string
 	// Loop until servers[1] is up
 	for {
-		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err != nil && ErrorDesc(err) == servers[1].port {
+		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err != nil && errorDesc(err) == servers[1].port {
 			break
 		}
 		time.Sleep(10 * time.Millisecond)
@@ -450,7 +452,7 @@ func checkServerUp(t *testing.T, currentServer *server) {
 	defer cc.Close()
 	var reply string
 	for {
-		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err != nil && ErrorDesc(err) == port {
+		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err != nil && errorDesc(err) == port {
 			break
 		}
 		time.Sleep(10 * time.Millisecond)
@@ -511,7 +513,7 @@ func TestPickFirstCloseWithPendingRPC(t *testing.T) {
 	// Loop until the above update applies.
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
-		if err := Invoke(ctx, "/foo/bar", &expectedRequest, &reply, cc, FailFast(false)); Code(err) == codes.DeadlineExceeded {
+		if err := Invoke(ctx, "/foo/bar", &expectedRequest, &reply, cc, FailFast(false)); status.Code(err) == codes.DeadlineExceeded {
 			cancel()
 			break
 		}
@@ -574,7 +576,7 @@ func TestPickFirstOrderAllServerUp(t *testing.T) {
 	req := "port"
 	var reply string
 	for i := 0; i < 20; i++ {
-		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err == nil || ErrorDesc(err) != servers[0].port {
+		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err == nil || errorDesc(err) != servers[0].port {
 			t.Fatalf("Index %d: Invoke(_, _, _, _, _) = %v, want %s", 0, err, servers[0].port)
 		}
 		time.Sleep(10 * time.Millisecond)
@@ -589,13 +591,13 @@ func TestPickFirstOrderAllServerUp(t *testing.T) {
 	r.w.inject([]*naming.Update{u})
 	// Loop until it changes to server[1]
 	for {
-		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err != nil && ErrorDesc(err) == servers[1].port {
+		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err != nil && errorDesc(err) == servers[1].port {
 			break
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
 	for i := 0; i < 20; i++ {
-		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err == nil || ErrorDesc(err) != servers[1].port {
+		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err == nil || errorDesc(err) != servers[1].port {
 			t.Fatalf("Index %d: Invoke(_, _, _, _, _) = %v, want %s", 1, err, servers[1].port)
 		}
 		time.Sleep(10 * time.Millisecond)
@@ -609,7 +611,7 @@ func TestPickFirstOrderAllServerUp(t *testing.T) {
 	}
 	r.w.inject([]*naming.Update{u})
 	for i := 0; i < 20; i++ {
-		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err == nil || ErrorDesc(err) != servers[1].port {
+		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err == nil || errorDesc(err) != servers[1].port {
 			t.Fatalf("Index %d: Invoke(_, _, _, _, _) = %v, want %s", 1, err, servers[1].port)
 		}
 		time.Sleep(10 * time.Millisecond)
@@ -622,13 +624,13 @@ func TestPickFirstOrderAllServerUp(t *testing.T) {
 	}
 	r.w.inject([]*naming.Update{u})
 	for {
-		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err != nil && ErrorDesc(err) == servers[2].port {
+		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err != nil && errorDesc(err) == servers[2].port {
 			break
 		}
 		time.Sleep(1 * time.Second)
 	}
 	for i := 0; i < 20; i++ {
-		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err == nil || ErrorDesc(err) != servers[2].port {
+		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err == nil || errorDesc(err) != servers[2].port {
 			t.Fatalf("Index %d: Invoke(_, _, _, _, _) = %v, want %s", 2, err, servers[2].port)
 		}
 		time.Sleep(10 * time.Millisecond)
@@ -641,13 +643,13 @@ func TestPickFirstOrderAllServerUp(t *testing.T) {
 	}
 	r.w.inject([]*naming.Update{u})
 	for {
-		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err != nil && ErrorDesc(err) == servers[0].port {
+		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err != nil && errorDesc(err) == servers[0].port {
 			break
 		}
 		time.Sleep(1 * time.Second)
 	}
 	for i := 0; i < 20; i++ {
-		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err == nil || ErrorDesc(err) != servers[0].port {
+		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err == nil || errorDesc(err) != servers[0].port {
 			t.Fatalf("Index %d: Invoke(_, _, _, _, _) = %v, want %s", 0, err, servers[0].port)
 		}
 		time.Sleep(10 * time.Millisecond)
@@ -660,7 +662,7 @@ func TestPickFirstOrderOneServerDown(t *testing.T) {
 	numServers := 3
 	servers, r, cleanup := startServers(t, numServers, math.MaxUint32)
 	defer cleanup()
-	cc, err := Dial("passthrough:///foo.bar.com", WithBalancer(pickFirstBalancerV1(r)), WithBlock(), WithInsecure(), WithCodec(testCodec{}))
+	cc, err := Dial("passthrough:///foo.bar.com", WithBalancer(pickFirstBalancerV1(r)), WithBlock(), WithInsecure(), WithCodec(testCodec{}), WithWaitForHandshake())
 	if err != nil {
 		t.Fatalf("Failed to create ClientConn: %v", err)
 	}
@@ -687,7 +689,7 @@ func TestPickFirstOrderOneServerDown(t *testing.T) {
 	req := "port"
 	var reply string
 	for i := 0; i < 20; i++ {
-		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err == nil || ErrorDesc(err) != servers[0].port {
+		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err == nil || errorDesc(err) != servers[0].port {
 			t.Fatalf("Index %d: Invoke(_, _, _, _, _) = %v, want %s", 0, err, servers[0].port)
 		}
 		time.Sleep(10 * time.Millisecond)
@@ -698,13 +700,13 @@ func TestPickFirstOrderOneServerDown(t *testing.T) {
 	servers[0].stop()
 	// Loop until it changes to server[1]
 	for {
-		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err != nil && ErrorDesc(err) == servers[1].port {
+		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err != nil && errorDesc(err) == servers[1].port {
 			break
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
 	for i := 0; i < 20; i++ {
-		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err == nil || ErrorDesc(err) != servers[1].port {
+		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err == nil || errorDesc(err) != servers[1].port {
 			t.Fatalf("Index %d: Invoke(_, _, _, _, _) = %v, want %s", 1, err, servers[1].port)
 		}
 		time.Sleep(10 * time.Millisecond)
@@ -719,7 +721,7 @@ func TestPickFirstOrderOneServerDown(t *testing.T) {
 	checkServerUp(t, servers[0])
 
 	for i := 0; i < 20; i++ {
-		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err == nil || ErrorDesc(err) != servers[1].port {
+		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err == nil || errorDesc(err) != servers[1].port {
 			t.Fatalf("Index %d: Invoke(_, _, _, _, _) = %v, want %s", 1, err, servers[1].port)
 		}
 		time.Sleep(10 * time.Millisecond)
@@ -732,13 +734,13 @@ func TestPickFirstOrderOneServerDown(t *testing.T) {
 	}
 	r.w.inject([]*naming.Update{u})
 	for {
-		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err != nil && ErrorDesc(err) == servers[0].port {
+		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err != nil && errorDesc(err) == servers[0].port {
 			break
 		}
 		time.Sleep(1 * time.Second)
 	}
 	for i := 0; i < 20; i++ {
-		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err == nil || ErrorDesc(err) != servers[0].port {
+		if err := Invoke(context.Background(), "/foo/bar", &req, &reply, cc); err == nil || errorDesc(err) != servers[0].port {
 			t.Fatalf("Index %d: Invoke(_, _, _, _, _) = %v, want %s", 0, err, servers[0].port)
 		}
 		time.Sleep(10 * time.Millisecond)

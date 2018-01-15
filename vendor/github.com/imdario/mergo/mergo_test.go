@@ -225,30 +225,71 @@ func TestPointerStructNil(t *testing.T) {
 	}
 }
 
-func TestSliceStruct(t *testing.T) {
-	a := sliceTest{}
-	b := sliceTest{[]int{1, 2, 3}}
-	if err := Merge(&a, b); err != nil {
+func testSlice(t *testing.T, a []int, b []int) {
+	bc := b
+	e := append(a, b...)
+
+	sa := sliceTest{a}
+	sb := sliceTest{b}
+	if err := Merge(&sa, sb); err != nil {
 		t.FailNow()
 	}
-	if len(b.S) != 3 {
-		t.FailNow()
+	if !reflect.DeepEqual(sb.S, bc) {
+		t.Fatalf("Source slice was modified %d != %d", sb.S, bc)
 	}
-	if len(a.S) != len(b.S) {
-		t.Fatalf("b not merged in a proper way %d != %d", len(a.S), len(b.S))
+	if !reflect.DeepEqual(sa.S, e) {
+		t.Fatalf("b not merged in a proper way %d != %d", sa.S, e)
 	}
 
-	a = sliceTest{[]int{1}}
-	b = sliceTest{[]int{1, 2, 3}}
-	if err := Merge(&a, b); err != nil {
+	ma := map[string][]int{"S": a}
+	mb := map[string][]int{"S": b}
+	if err := Merge(&ma, mb); err != nil {
 		t.FailNow()
 	}
-	if len(a.S) != 1 {
-		t.FailNow()
+	if !reflect.DeepEqual(mb["S"], bc) {
+		t.Fatalf("Source slice was modified %d != %d", mb["S"], bc)
 	}
-	if len(a.S) == len(b.S) {
-		t.Fatalf("b merged unexpectedly %d != %d", len(a.S), len(b.S))
+	if !reflect.DeepEqual(ma["S"], e) {
+		t.Fatalf("b not merged in a proper way %d != %d", ma["S"], e)
 	}
+
+	if a == nil {
+		// test case with missing dst key
+		ma := map[string][]int{}
+		mb := map[string][]int{"S": b}
+		if err := Merge(&ma, mb); err != nil {
+			t.FailNow()
+		}
+		if !reflect.DeepEqual(mb["S"], bc) {
+			t.Fatalf("Source slice was modified %d != %d", mb["S"], bc)
+		}
+		if !reflect.DeepEqual(ma["S"], e) {
+			t.Fatalf("b not merged in a proper way %d != %d", ma["S"], e)
+		}
+	}
+
+	if b == nil {
+		// test case with missing src key
+		ma := map[string][]int{"S": a}
+		mb := map[string][]int{}
+		if err := Merge(&ma, mb); err != nil {
+			t.FailNow()
+		}
+		if !reflect.DeepEqual(mb["S"], bc) {
+			t.Fatalf("Source slice was modified %d != %d", mb["S"], bc)
+		}
+		if !reflect.DeepEqual(ma["S"], e) {
+			t.Fatalf("b not merged in a proper way %d != %d", ma["S"], e)
+		}
+	}
+}
+
+func TestSlice(t *testing.T) {
+	testSlice(t, nil, []int{1, 2, 3})
+	testSlice(t, []int{}, []int{1, 2, 3})
+	testSlice(t, []int{1}, []int{2, 3})
+	testSlice(t, []int{1}, []int{})
+	testSlice(t, []int{1}, nil)
 }
 
 func TestEmptyMaps(t *testing.T) {

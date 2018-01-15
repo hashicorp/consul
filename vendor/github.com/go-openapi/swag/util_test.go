@@ -29,6 +29,10 @@ type translationSample struct {
 
 func titleize(s string) string { return strings.ToTitle(s[:1]) + lower(s[1:]) }
 
+func init() {
+	AddInitialisms("elb", "cap", "capwd", "wd")
+}
+
 func TestToGoName(t *testing.T) {
 	samples := []translationSample{
 		{"sample text", "SampleText"},
@@ -123,9 +127,9 @@ func TestToFileName(t *testing.T) {
 	samples := []translationSample{
 		{"SampleText", "sample_text"},
 		{"FindThingByID", "find_thing_by_id"},
-		{"CAPWD.folwdBYlc", "capwd_folwd_bylc"},
-		{"CAPWDfolwdBYlc", "capwdfolwd_bylc"},
-		{"CAP_WD_folwdBYlc", "cap_wd_folwd_bylc"},
+		{"CAPWD.folwdBylc", "capwd_folwd_bylc"},
+		{"CAPWDfolwdBylc", "capwdfolwd_bylc"},
+		{"CAP_WD_folwdBylc", "cap_wd_folwd_bylc"},
 		{"TypeOAI_alias", "type_oai_alias"},
 		{"Type_OAI_alias", "type_oai_alias"},
 		{"Type_OAIAlias", "type_oai_alias"},
@@ -148,6 +152,7 @@ func TestToCommandName(t *testing.T) {
 	samples := []translationSample{
 		{"SampleText", "sample-text"},
 		{"FindThingByID", "find-thing-by-id"},
+		{"elbHTTPLoadBalancer", "elb-http-load-balancer"},
 	}
 
 	for k := range commonInitialisms {
@@ -165,6 +170,7 @@ func TestToHumanName(t *testing.T) {
 	samples := []translationSample{
 		{"SampleText", "sample text"},
 		{"FindThingByID", "find thing by ID"},
+		{"elbHTTPLoadBalancer", "elb HTTP load balancer"},
 	}
 
 	for k := range commonInitialisms {
@@ -182,6 +188,7 @@ func TestToJSONName(t *testing.T) {
 	samples := []translationSample{
 		{"SampleText", "sampleText"},
 		{"FindThingByID", "findThingById"},
+		{"elbHTTPLoadBalancer", "elbHttpLoadBalancer"},
 	}
 
 	for k := range commonInitialisms {

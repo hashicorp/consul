@@ -426,6 +426,7 @@ ccflags="$@"
 		$2 ~ /^(VM|VMADDR)_/ ||
 		$2 ~ /^IOCTL_VM_SOCKETS_/ ||
 		$2 ~ /^(TASKSTATS|TS)_/ ||
+		$2 ~ /^CGROUPSTATS_/ ||
 		$2 ~ /^GENL_/ ||
 		$2 ~ /^UTIME_/ ||
 		$2 ~ /^XATTR_(CREATE|REPLACE)/ ||

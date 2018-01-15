@@ -31,6 +31,7 @@ var Directives = []string{
 	"reverse",
 	"template",
 	"hosts",
+	"route53",
 	"federation",
 	"kubernetes",
 	"file",

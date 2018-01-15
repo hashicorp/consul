@@ -228,6 +228,12 @@ func newHTTP2Server(conn net.Conn, config *ServerConfig) (_ ServerTransport, err
 	}
 	t.framer.writer.Flush()
 
+	defer func() {
+		if err != nil {
+			t.Close()
+		}
+	}()
+
 	// Check the validity of client preface.
 	preface := make([]byte, len(clientPreface))
 	if _, err := io.ReadFull(t.conn, preface); err != nil {
@@ -239,8 +245,7 @@ func newHTTP2Server(conn net.Conn, config *ServerConfig) (_ ServerTransport, err
 
 	frame, err := t.framer.fr.ReadFrame()
 	if err == io.EOF || err == io.ErrUnexpectedEOF {
-		t.Close()
-		return
+		return nil, err
 	}
 	if err != nil {
 		return nil, connectionErrorf(false, err, "transport: http2Server.HandleStreams failed to read initial settings frame: %v", err)
@@ -254,7 +259,7 @@ func newHTTP2Server(conn net.Conn, config *ServerConfig) (_ ServerTransport, err
 
 	go func() {
 		loopyWriter(t.ctx, t.controlBuf, t.itemHandler)
-		t.Close()
+		t.conn.Close()
 	}()
 	go t.keepalive()
 	return t, nil
@@ -1069,6 +1074,9 @@ func (t *http2Server) itemHandler(i item) error {
 		if !i.headsUp {
 			// Stop accepting more streams now.
 			t.state = draining
+			if len(t.activeStreams) == 0 {
+				i.closeConn = true
+			}
 			t.mu.Unlock()
 			if err := t.framer.fr.WriteGoAway(sid, i.code, i.debugData); err != nil {
 				return err
@@ -1076,8 +1084,7 @@ func (t *http2Server) itemHandler(i item) error {
 			if i.closeConn {
 				// Abruptly close the connection following the GoAway (via
 				// loopywriter).  But flush out what's inside the buffer first.
-				t.framer.writer.Flush()
-				return fmt.Errorf("transport: Connection closing")
+				t.controlBuf.put(&flushIO{closeTr: true})
 			}
 			return nil
 		}
@@ -1107,7 +1114,13 @@ func (t *http2Server) itemHandler(i item) error {
 		}()
 		return nil
 	case *flushIO:
-		return t.framer.writer.Flush()
+		if err := t.framer.writer.Flush(); err != nil {
+			return err
+		}
+		if i.closeTr {
+			return ErrConnClosing
+		}
+		return nil
 	case *ping:
 		if !i.ack {
 			t.bdpEst.timesnap(i.data)
@@ -1155,7 +1168,7 @@ func (t *http2Server) closeStream(s *Stream) {
 		t.idle = time.Now()
 	}
 	if t.state == draining && len(t.activeStreams) == 0 {
-		defer t.Close()
+		defer t.controlBuf.put(&flushIO{closeTr: true})
 	}
 	t.mu.Unlock()
 	// In case stream sending and receiving are invoked in separate

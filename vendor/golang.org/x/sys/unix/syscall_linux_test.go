@@ -9,6 +9,7 @@ package unix_test
 import (
 	"io/ioutil"
 	"os"
+	"runtime"
 	"testing"
 	"time"
 
@@ -252,6 +253,58 @@ func TestFstatat(t *testing.T) {
 
 	if st1 != st2 {
 		t.Errorf("Fstatat: returned stat does not match Lstat")
+	}
+}
+
+func TestSchedSetaffinity(t *testing.T) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	var oldMask unix.CPUSet
+	err := unix.SchedGetaffinity(0, &oldMask)
+	if err != nil {
+		t.Fatalf("SchedGetaffinity: %v", err)
+	}
+
+	var newMask unix.CPUSet
+	newMask.Zero()
+	if newMask.Count() != 0 {
+		t.Errorf("CpuZero: didn't zero CPU set: %v", newMask)
+	}
+	cpu := 1
+	newMask.Set(cpu)
+	if newMask.Count() != 1 || !newMask.IsSet(cpu) {
+		t.Errorf("CpuSet: didn't set CPU %d in set: %v", cpu, newMask)
+	}
+	cpu = 5
+	newMask.Set(cpu)
+	if newMask.Count() != 2 || !newMask.IsSet(cpu) {
+		t.Errorf("CpuSet: didn't set CPU %d in set: %v", cpu, newMask)
+	}
+	newMask.Clear(cpu)
+	if newMask.Count() != 1 || newMask.IsSet(cpu) {
+		t.Errorf("CpuClr: didn't clear CPU %d in set: %v", cpu, newMask)
+	}
+
+	err = unix.SchedSetaffinity(0, &newMask)
+	if err != nil {
+		t.Fatalf("SchedSetaffinity: %v", err)
+	}
+
+	var gotMask unix.CPUSet
+	err = unix.SchedGetaffinity(0, &gotMask)
+	if err != nil {
+		t.Fatalf("SchedGetaffinity: %v", err)
+	}
+
+	if gotMask != newMask {
+		t.Errorf("SchedSetaffinity: returned affinity mask does not match set affinity mask")
+	}
+
+	// Restore old mask so it doesn't affect successive tests
+	err = unix.SchedSetaffinity(0, &oldMask)
+	if err != nil {
+		t.Fatalf("SchedSetaffinity: %v", err)
 	}
 }
 

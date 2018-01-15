@@ -116,6 +116,7 @@ type goAway struct {
 func (*goAway) item() {}
 
 type flushIO struct {
+	closeTr bool
 }
 
 func (*flushIO) item() {}

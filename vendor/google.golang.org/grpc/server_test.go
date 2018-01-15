@@ -49,7 +49,7 @@ func TestStopBeforeServe(t *testing.T) {
 	// server.Serve is responsible for closing the listener, even if the
 	// server was already stopped.
 	err = lis.Close()
-	if got, want := ErrorDesc(err), "use of closed"; !strings.Contains(got, want) {
+	if got, want := errorDesc(err), "use of closed"; !strings.Contains(got, want) {
 		t.Errorf("Close() error = %q, want %q", got, want)
 	}
 }

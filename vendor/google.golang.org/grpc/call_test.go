@@ -233,7 +233,7 @@ func TestInvokeLargeErr(t *testing.T) {
 	if _, ok := status.FromError(err); !ok {
 		t.Fatalf("grpc.Invoke(_, _, _, _, _) receives non rpc error.")
 	}
-	if Code(err) != codes.Internal || len(ErrorDesc(err)) != sizeLargeErr {
+	if status.Code(err) != codes.Internal || len(errorDesc(err)) != sizeLargeErr {
 		t.Fatalf("grpc.Invoke(_, _, _, _, _) = %v, want an error of code %d and desc size %d", err, codes.Internal, sizeLargeErr)
 	}
 	cc.Close()
@@ -250,7 +250,7 @@ func TestInvokeErrorSpecialChars(t *testing.T) {
 	if _, ok := status.FromError(err); !ok {
 		t.Fatalf("grpc.Invoke(_, _, _, _, _) receives non rpc error.")
 	}
-	if got, want := ErrorDesc(err), weirdError; got != want {
+	if got, want := errorDesc(err), weirdError; got != want {
 		t.Fatalf("grpc.Invoke(_, _, _, _, _) error = %q, want %q", got, want)
 	}
 	cc.Close()

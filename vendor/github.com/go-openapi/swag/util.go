@@ -20,6 +20,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"unicode"
 )
 
@@ -67,7 +68,9 @@ var commonInitialisms = map[string]bool{
 }
 var initialisms []string
 
-func init() {
+var once sync.Once
+
+func sortInitialisms() {
 	for k := range commonInitialisms {
 		initialisms = append(initialisms, k)
 	}
@@ -166,6 +169,7 @@ func split(str string) (words []string) {
 	str = rex1.ReplaceAllString(str, " $1")
 
 	// check if consecutive single char things make up an initialism
+	once.Do(sortInitialisms)
 	for _, k := range initialisms {
 		str = strings.Replace(str, rex1.ReplaceAllString(k, " $1"), " "+k, -1)
 	}
@@ -205,34 +209,11 @@ func Camelize(word string) (camelized string) {
 // ToFileName lowercases and underscores a go type name
 func ToFileName(name string) string {
 	var out []string
-	cml := trim(name)
 
-	// Camelize any capital word preceding a reserved keyword ("initialism")
-	// thus, upper-cased words preceding a common initialism will get separated
-	// e.g: ELBHTTPLoadBalancer becomes elb_http_load_balancer
-	rexPrevious := regexp.MustCompile(`(?P<word>\p{Lu}{2,})(?:HTTP|OAI)`)
-	cml = rexPrevious.ReplaceAllStringFunc(cml, func(match string) (replaceInMatch string) {
-		for _, m := range rexPrevious.FindAllStringSubmatch(match, -1) { // [ match submatch ]
-			if m[1] != "" {
-				replaceInMatch = strings.Replace(m[0], m[1], Camelize(m[1]), -1)
-			}
-		}
-		return
-	})
-
-	// Pre-camelize reserved keywords ("initialisms") to avoid unnecessary hyphenization
-	for _, k := range initialisms {
-		cml = strings.Replace(cml, k, Camelize(k), -1)
-	}
-
-	// Camelize other capital words to avoid unnecessary hyphenization
-	rexCase := regexp.MustCompile(`(\p{Lu}{2,})`)
-	cml = rexCase.ReplaceAllStringFunc(cml, Camelize)
-
-	// Final split with hyphens
-	for _, w := range split(cml) {
+	for _, w := range split(name) {
 		out = append(out, lower(w))
 	}
+
 	return strings.Join(out, "_")
 }
 
@@ -364,6 +345,13 @@ func IsZero(data interface{}) bool {
 		return true
 	}
 	return false
+}
+
+// AddInitialisms add additional initialisms
+func AddInitialisms(words ...string) {
+	for _, word := range words {
+		commonInitialisms[upper(word)] = true
+	}
 }
 
 // CommandLineOptionsGroup represents a group of user-defined command line options

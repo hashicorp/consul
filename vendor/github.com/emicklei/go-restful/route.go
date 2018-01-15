@@ -43,6 +43,9 @@ type Route struct {
 
 	// Extra information used to store custom information about the route.
 	Metadata map[string]interface{}
+
+	// marks a route as deprecated
+	Deprecated bool
 }
 
 // Initialize for Route
