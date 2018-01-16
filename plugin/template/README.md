@@ -50,7 +50,7 @@ Each resource record is a full-featured [Go template](https://golang.org/pkg/tex
 * `.Message` the complete incoming DNS message.
 * `.Question` the matched question section.
 
-The output of the template must be a [RFC 1035](https://tools.ietf.org/html/rfc1035) style resource record (commonly refered to as a "zone file").
+The output of the template must be a [RFC 1035](https://tools.ietf.org/html/rfc1035) style resource record (commonly referred to as a "zone file").
 
 **WARNING** there is a syntactical problem with Go templates and CoreDNS config files. Expressions
  like `{{$var}}` will be interpreted as a reference to an environment variable by CoreDNS (and
