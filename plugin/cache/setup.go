@@ -41,21 +41,25 @@ func setup(c *caddy.Controller) error {
 				x.MustRegister(cacheCapacity)
 				x.MustRegister(cacheHits)
 				x.MustRegister(cacheMisses)
+				x.MustRegister(cachePrefetches)
 			}
 		})
 		return nil
 	})
 
-	// Export the capacity for the metrics. This only happens once, because this is a re-load change only.
+	// Initialize all counters and gauges.
+	cacheSize.WithLabelValues(Success)
+	cacheSize.WithLabelValues(Denial)
 	cacheCapacity.WithLabelValues(Success).Set(float64(ca.pcap))
 	cacheCapacity.WithLabelValues(Denial).Set(float64(ca.ncap))
+	cacheHits.WithLabelValues(Success)
+	cacheHits.WithLabelValues(Denial)
 
 	return nil
 }
 
 func cacheParse(c *caddy.Controller) (*Cache, error) {
-
-	ca := &Cache{pcap: defaultCap, ncap: defaultCap, pttl: maxTTL, nttl: maxNTTL, prefetch: 0, duration: 1 * time.Minute}
+	ca := New()
 
 	for c.Next() {
 		// cache [ttl] [zones..]
@@ -140,8 +144,6 @@ func cacheParse(c *caddy.Controller) (*Cache, error) {
 				}
 				ca.prefetch = amount
 
-				ca.duration = 1 * time.Minute
-				ca.percentage = 10
 				if len(args) > 1 {
 					dur, err := time.ParseDuration(args[1])
 					if err != nil {
@@ -174,7 +176,6 @@ func cacheParse(c *caddy.Controller) (*Cache, error) {
 		for i := range origins {
 			origins[i] = plugin.Host(origins[i]).Normalize()
 		}
-
 		ca.Zones = origins
 
 		ca.pcache = cache.New(ca.pcap)

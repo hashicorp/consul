@@ -9,7 +9,6 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/coredns/coredns/plugin"
-	"github.com/coredns/coredns/plugin/pkg/cache"
 	"github.com/coredns/coredns/plugin/pkg/response"
 	"github.com/coredns/coredns/plugin/test"
 
@@ -149,9 +148,9 @@ func cacheMsg(m *dns.Msg, tc cacheTestCase) *dns.Msg {
 }
 
 func newTestCache(ttl time.Duration) (*Cache, *ResponseWriter) {
-	c := &Cache{Zones: []string{"."}, pcap: defaultCap, ncap: defaultCap, pttl: ttl, nttl: ttl}
-	c.pcache = cache.New(c.pcap)
-	c.ncache = cache.New(c.ncap)
+	c := New()
+	c.pttl = ttl
+	c.nttl = ttl
 
 	crr := &ResponseWriter{ResponseWriter: nil, Cache: c}
 	return c, crr
@@ -187,7 +186,7 @@ func TestCache(t *testing.T) {
 		}
 
 		if ok {
-			resp := i.toMsg(m)
+			resp := i.toMsg(m, time.Now().UTC())
 
 			if !test.Header(t, tc.Case, resp) {
 				t.Logf("%v\n", resp)
@@ -209,9 +208,7 @@ func TestCache(t *testing.T) {
 }
 
 func TestCacheZeroTTL(t *testing.T) {
-	c := &Cache{Zones: []string{"."}, pcap: defaultCap, ncap: defaultCap, pttl: maxTTL, nttl: maxTTL}
-	c.pcache = cache.New(c.pcap)
-	c.ncache = cache.New(c.ncap)
+	c := New()
 	c.Next = zeroTTLBackend()
 
 	req := new(dns.Msg)
@@ -228,11 +225,8 @@ func TestCacheZeroTTL(t *testing.T) {
 }
 
 func BenchmarkCacheResponse(b *testing.B) {
-	c := &Cache{Zones: []string{"."}, pcap: defaultCap, ncap: defaultCap, pttl: maxTTL, nttl: maxTTL}
-	c.pcache = cache.New(c.pcap)
-	c.ncache = cache.New(c.ncap)
+	c := New()
 	c.prefetch = 1
-	c.duration = 1 * time.Second
 	c.Next = BackendHandler()
 
 	ctx := context.TODO()

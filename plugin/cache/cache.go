@@ -32,6 +32,27 @@ type Cache struct {
 	prefetch   int
 	duration   time.Duration
 	percentage int
+
+	// Testing.
+	now func() time.Time
+}
+
+// New returns an initialized Cache with default settings. It's up to the
+// caller to set the Next handler.
+func New() *Cache {
+	return &Cache{
+		Zones:      []string{"."},
+		pcap:       defaultCap,
+		pcache:     cache.New(defaultCap),
+		pttl:       maxTTL,
+		ncap:       defaultCap,
+		ncache:     cache.New(defaultCap),
+		nttl:       maxNTTL,
+		prefetch:   0,
+		duration:   1 * time.Minute,
+		percentage: 10,
+		now:        time.Now,
+	}
 }
 
 // Return key under which we store the item, -1 will be returned if we don't store the
@@ -88,7 +109,7 @@ type ResponseWriter struct {
 // WriteMsg implements the dns.ResponseWriter interface.
 func (w *ResponseWriter) WriteMsg(res *dns.Msg) error {
 	do := false
-	mt, opt := response.Typify(res, time.Now().UTC())
+	mt, opt := response.Typify(res, w.now().UTC())
 	if opt != nil {
 		do = opt.Do()
 	}
@@ -140,11 +161,11 @@ func (w *ResponseWriter) set(m *dns.Msg, key int, mt response.Type, duration tim
 
 	switch mt {
 	case response.NoError, response.Delegation:
-		i := newItem(m, duration)
+		i := newItem(m, w.now(), duration)
 		w.pcache.Add(uint32(key), i)
 
 	case response.NameError, response.NoData:
-		i := newItem(m, duration)
+		i := newItem(m, w.now(), duration)
 		w.ncache.Add(uint32(key), i)
 
 	case response.OtherError:

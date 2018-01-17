@@ -23,7 +23,7 @@ type item struct {
 	*freq.Freq
 }
 
-func newItem(m *dns.Msg, d time.Duration) *item {
+func newItem(m *dns.Msg, now time.Time, d time.Duration) *item {
 	i := new(item)
 	i.Rcode = m.Rcode
 	i.Authoritative = m.Authoritative
@@ -44,7 +44,7 @@ func newItem(m *dns.Msg, d time.Duration) *item {
 	i.Extra = i.Extra[:j]
 
 	i.origTTL = uint32(d.Seconds())
-	i.stored = time.Now().UTC()
+	i.stored = now.UTC()
 
 	i.Freq = new(freq.Freq)
 
@@ -53,7 +53,7 @@ func newItem(m *dns.Msg, d time.Duration) *item {
 
 // toMsg turns i into a message, it tailors the reply to m.
 // The Authoritative bit is always set to 0, because the answer is from the cache.
-func (i *item) toMsg(m *dns.Msg) *dns.Msg {
+func (i *item) toMsg(m *dns.Msg, now time.Time) *dns.Msg {
 	m1 := new(dns.Msg)
 	m1.SetReply(m)
 
@@ -67,7 +67,7 @@ func (i *item) toMsg(m *dns.Msg) *dns.Msg {
 	m1.Ns = make([]dns.RR, len(i.Ns))
 	m1.Extra = make([]dns.RR, len(i.Extra))
 
-	ttl := uint32(i.ttl(time.Now()))
+	ttl := uint32(i.ttl(now))
 	for j, r := range i.Answer {
 		m1.Answer[j] = dns.Copy(r)
 		m1.Answer[j].Header().Ttl = ttl

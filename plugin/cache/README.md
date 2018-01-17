@@ -44,8 +44,8 @@ cache [TTL] [ZONES...] {
 * `prefetch` will prefetch popular items when they are about to be expunged from the cache.
   Popular means **AMOUNT** queries have been seen with no gaps of **DURATION** or more between them.
   **DURATION** defaults to 1m. Prefetching will happen when the TTL drops below **PERCENTAGE**,
-  which defaults to `10%`. Values should be in the range `[10%, 90%]`. Note the percent sign is
-  mandatory. **PERCENTAGE** is treated as an `int`.
+  which defaults to `10%`, or latest 1 second before TTL expiration. Values should be in the range `[10%, 90%]`.
+  Note the percent sign is mandatory. **PERCENTAGE** is treated as an `int`.
 
 ## Metrics
 
