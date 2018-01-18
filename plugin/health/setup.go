@@ -1,6 +1,7 @@
 package health
 
 import (
+	"fmt"
 	"net"
 	"time"
 
@@ -19,12 +20,13 @@ func init() {
 }
 
 func setup(c *caddy.Controller) error {
-	addr, err := healthParse(c)
+	addr, lame, err := healthParse(c)
 	if err != nil {
 		return plugin.Error("health", err)
 	}
 
-	h := &health{Addr: addr, stop: make(chan bool)}
+	h := newHealth(addr)
+	h.lameduck = lame
 
 	c.OnStartup(func() error {
 		plugins := dnsserver.GetConfig(c).Handlers()
@@ -41,8 +43,12 @@ func setup(c *caddy.Controller) error {
 		h.poll()
 		go func() {
 			for {
-				<-time.After(1 * time.Second)
-				h.poll()
+				select {
+				case <-time.After(1 * time.Second):
+					h.poll()
+				case <-h.pollstop:
+					return
+				}
 			}
 		}()
 		return nil
@@ -68,8 +74,9 @@ func setup(c *caddy.Controller) error {
 	return nil
 }
 
-func healthParse(c *caddy.Controller) (string, error) {
+func healthParse(c *caddy.Controller) (string, time.Duration, error) {
 	addr := ""
+	dur := time.Duration(0)
 	for c.Next() {
 		args := c.RemainingArgs()
 
@@ -78,11 +85,28 @@ func healthParse(c *caddy.Controller) (string, error) {
 		case 1:
 			addr = args[0]
 			if _, _, e := net.SplitHostPort(addr); e != nil {
-				return "", e
+				return "", 0, e
 			}
 		default:
-			return "", c.ArgErr()
+			return "", 0, c.ArgErr()
+		}
+
+		for c.NextBlock() {
+			switch c.Val() {
+			case "lameduck":
+				args := c.RemainingArgs()
+				if len(args) != 1 {
+					return "", 0, c.ArgErr()
+				}
+				l, err := time.ParseDuration(args[0])
+				if err != nil {
+					return "", 0, fmt.Errorf("unable to parse lameduck duration value: '%v' : %v", args[0], err)
+				}
+				dur = l
+			default:
+				return "", 0, c.ArgErr()
+			}
 		}
 	}
-	return addr, nil
+	return addr, dur, nil
 }

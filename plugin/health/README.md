@@ -21,6 +21,17 @@ a 503. *health* periodically (1s) polls plugin that exports health information. 
 plugin signals that it is unhealthy, the server will go unhealthy too. Each plugin that
 supports health checks has a section "Health" in their README.
 
+More options can be set with this extended syntax:
+
+~~~
+health [ADDRESS] {
+    lameduck DURATION
+}
+~~~
+
+* Where `lameduck` will make the process unhealthy then *wait* for **DURATION** before the process
+  shuts down.
+
 ## Plugins
 
 Any plugin that implements the Healther interface will be used to report health.
@@ -40,5 +51,15 @@ Run another health endpoint on http://localhost:8091.
 ~~~ corefile
 . {
     health localhost:8091
+}
+~~~
+
+Set a lameduck duration of 1 second:
+
+~~~ corefile
+. {
+    health localhost:8091 {
+        lameduck 1s
+    }
 }
 ~~~
