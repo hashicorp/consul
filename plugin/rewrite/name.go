@@ -37,6 +37,7 @@ type regexNameRule struct {
 	NextAction  string
 	Pattern     *regexp.Regexp
 	Replacement string
+	ResponseRule
 }
 
 const (
@@ -113,9 +114,6 @@ func newNameRule(nextAction string, args ...string) (Rule, error) {
 	if len(args) < 2 {
 		return nil, fmt.Errorf("too few arguments for a name rule")
 	}
-	if len(args) > 3 {
-		return nil, fmt.Errorf("exceeded the number of arguments for a name rule")
-	}
 	if len(args) == 3 {
 		switch strings.ToLower(args[0]) {
 		case ExactMatch:
@@ -131,10 +129,44 @@ func newNameRule(nextAction string, args ...string) (Rule, error) {
 			if err != nil {
 				return nil, fmt.Errorf("Invalid regex pattern in a name rule: %s", args[1])
 			}
-			return &regexNameRule{nextAction, regexPattern, plugin.Name(args[2]).Normalize()}, nil
+			return &regexNameRule{nextAction, regexPattern, plugin.Name(args[2]).Normalize(), ResponseRule{}}, nil
 		default:
 			return nil, fmt.Errorf("A name rule supports only exact, prefix, suffix, substring, and regex name matching")
 		}
+	}
+	if len(args) == 7 {
+		if strings.ToLower(args[0]) == RegexMatch {
+			if args[3] != "answer" {
+				return nil, fmt.Errorf("exceeded the number of arguments for a regex name rule")
+			}
+			switch strings.ToLower(args[4]) {
+			case "name":
+			default:
+				return nil, fmt.Errorf("exceeded the number of arguments for a regex name rule")
+			}
+			regexPattern, err := regexp.Compile(args[1])
+			if err != nil {
+				return nil, fmt.Errorf("Invalid regex pattern in a name rule: %s", args)
+			}
+			responseRegexPattern, err := regexp.Compile(args[5])
+			if err != nil {
+				return nil, fmt.Errorf("Invalid regex pattern in a name rule: %s", args)
+			}
+			return &regexNameRule{
+				nextAction,
+				regexPattern,
+				plugin.Name(args[2]).Normalize(),
+				ResponseRule{
+					Active:      true,
+					Pattern:     responseRegexPattern,
+					Replacement: plugin.Name(args[6]).Normalize(),
+				},
+			}, nil
+		}
+		return nil, fmt.Errorf("the rewrite of response is supported only for name regex rule")
+	}
+	if len(args) > 3 && len(args) != 7 {
+		return nil, fmt.Errorf("exceeded the number of arguments for a name rule")
 	}
 	return &nameRule{nextAction, plugin.Name(args[0]).Normalize(), plugin.Name(args[1]).Normalize()}, nil
 }
@@ -158,4 +190,29 @@ func (rule *substringNameRule) Mode() string {
 
 func (rule *regexNameRule) Mode() string {
 	return rule.NextAction
+}
+
+// GetResponseRule return a rule to rewrite the response with. Currently not implemented.
+func (rule *nameRule) GetResponseRule() ResponseRule {
+	return ResponseRule{}
+}
+
+// GetResponseRule return a rule to rewrite the response with. Currently not implemented.
+func (rule *prefixNameRule) GetResponseRule() ResponseRule {
+	return ResponseRule{}
+}
+
+// GetResponseRule return a rule to rewrite the response with. Currently not implemented.
+func (rule *suffixNameRule) GetResponseRule() ResponseRule {
+	return ResponseRule{}
+}
+
+// GetResponseRule return a rule to rewrite the response with. Currently not implemented.
+func (rule *substringNameRule) GetResponseRule() ResponseRule {
+	return ResponseRule{}
+}
+
+// GetResponseRule return a rule to rewrite the response with.
+func (rule *regexNameRule) GetResponseRule() ResponseRule {
+	return rule.ResponseRule
 }

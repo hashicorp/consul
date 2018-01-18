@@ -45,6 +45,11 @@ func (rw Rewrite) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 	for _, rule := range rw.Rules {
 		switch result := rule.Rewrite(w, r); result {
 		case RewriteDone:
+			respRule := rule.GetResponseRule()
+			if respRule.Active == true {
+				wr.ResponseRewrite = true
+				wr.ResponseRules = append(wr.ResponseRules, respRule)
+			}
 			if rule.Mode() == Stop {
 				if rw.noRevert {
 					return plugin.NextOrFailure(rw.Name(), rw.Next, ctx, w, r)
@@ -70,8 +75,10 @@ func (rw Rewrite) Name() string { return "rewrite" }
 type Rule interface {
 	// Rewrite rewrites the current request.
 	Rewrite(dns.ResponseWriter, *dns.Msg) Result
-	// Mode returns the processing mode stop or continue
+	// Mode returns the processing mode stop or continue.
 	Mode() string
+	// GetResponseRule returns the rule to rewrite response with, if any.
+	GetResponseRule() ResponseRule
 }
 
 func newRule(args ...string) (Rule, error) {

@@ -36,6 +36,13 @@ func TestNewRule(t *testing.T) {
 		{[]string{"name", "substring", "a.com", "b.com"}, false, reflect.TypeOf(&substringNameRule{})},
 		{[]string{"name", "regex", "([a])\\.com", "new-{1}.com"}, false, reflect.TypeOf(&regexNameRule{})},
 		{[]string{"name", "regex", "([a]\\.com", "new-{1}.com"}, true, nil},
+		{[]string{"name", "regex", "(dns)\\.(core)\\.(rocks)", "{2}.{1}.{3}", "answer", "name", "(core)\\.(dns)\\.(rocks)", "{2}.{1}.{3}"}, false, reflect.TypeOf(&regexNameRule{})},
+		{[]string{"name", "regex", "(adns)\\.(core)\\.(rocks)", "{2}.{1}.{3}", "answer", "name", "(core)\\.(adns)\\.(rocks)", "{2}.{1}.{3}", "too.long", "way.too.long"}, true, nil},
+		{[]string{"name", "regex", "(bdns)\\.(core)\\.(rocks)", "{2}.{1}.{3}", "NoAnswer", "name", "(core)\\.(bdns)\\.(rocks)", "{2}.{1}.{3}"}, true, nil},
+		{[]string{"name", "regex", "(cdns)\\.(core)\\.(rocks)", "{2}.{1}.{3}", "answer", "ttl", "(core)\\.(cdns)\\.(rocks)", "{2}.{1}.{3}"}, true, nil},
+		{[]string{"name", "regex", "(ddns)\\.(core)\\.(rocks)", "{2}.{1}.{3}", "answer", "name", "\xecore\\.(ddns)\\.(rocks)", "{2}.{1}.{3}"}, true, nil},
+		{[]string{"name", "regex", "\xedns\\.(core)\\.(rocks)", "{2}.{1}.{3}", "answer", "name", "(core)\\.(edns)\\.(rocks)", "{2}.{1}.{3}"}, true, nil},
+		{[]string{"name", "substring", "fcore.dns.rocks", "dns.fcore.rocks", "answer", "name", "(fcore)\\.(dns)\\.(rocks)", "{2}.{1}.{3}"}, true, nil},
 		{[]string{"name", "substring", "a.com", "b.com", "c.com"}, true, nil},
 		{[]string{"type"}, true, nil},
 		{[]string{"type", "a"}, true, nil},
@@ -152,6 +159,8 @@ func TestRewrite(t *testing.T) {
 	rules := []Rule{}
 	r, _ := newNameRule("stop", "from.nl.", "to.nl.")
 	rules = append(rules, r)
+	r, _ = newNameRule("stop", "regex", "(core)\\.(dns)\\.(rocks)\\.(nl)", "{2}.{1}.{3}.{4}", "answer", "name", "(dns)\\.(core)\\.(rocks)\\.(nl)", "{2}.{1}.{3}.{4}")
+	rules = append(rules, r)
 	r, _ = newNameRule("stop", "exact", "from.exact.nl.", "to.nl.")
 	rules = append(rules, r)
 	r, _ = newNameRule("stop", "prefix", "prefix", "to")
@@ -203,6 +212,7 @@ func TestRewrite(t *testing.T) {
 		{"a.nl.", dns.TypeANY, dns.ClassCHAOS, "a.nl.", dns.TypeANY, dns.ClassINET},
 		// class gets rewritten twice because of continue/stop logic: HS to CH, CH to IN
 		{"a.nl.", dns.TypeANY, 4, "a.nl.", dns.TypeANY, dns.ClassINET},
+		{"core.dns.rocks.nl.", dns.TypeA, dns.ClassINET, "dns.core.rocks.nl.", dns.TypeA, dns.ClassINET},
 	}
 
 	ctx := context.TODO()
@@ -223,6 +233,13 @@ func TestRewrite(t *testing.T) {
 		}
 		if resp.Question[0].Qclass != tc.toC {
 			t.Errorf("Test %d: Expected Class to be '%d' but was '%d'", i, tc.toC, resp.Question[0].Qclass)
+		}
+		if tc.fromT == dns.TypeA && tc.toT == dns.TypeA {
+			if len(resp.Answer) > 0 {
+				if resp.Answer[0].(*dns.A).Hdr.Name != tc.to {
+					t.Errorf("Test %d: Expected Answer Name to be %q but was %q", i, tc.to, resp.Answer[0].(*dns.A).Hdr.Name)
+				}
+			}
 		}
 	}
 }

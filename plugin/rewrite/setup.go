@@ -3,7 +3,6 @@ package rewrite
 import (
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
-
 	"github.com/mholt/caddy"
 )
 
@@ -32,6 +31,12 @@ func rewriteParse(c *caddy.Controller) ([]Rule, error) {
 
 	for c.Next() {
 		args := c.RemainingArgs()
+		if len(args) < 2 {
+			// Handles rules out of nested instructions, i.e. the ones enclosed in curly brackets
+			for c.NextBlock() {
+				args = append(args, c.Val())
+			}
+		}
 		rule, err := newRule(args...)
 		if err != nil {
 			return nil, err

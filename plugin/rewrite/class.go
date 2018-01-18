@@ -41,3 +41,8 @@ func (rule *classRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result {
 func (rule *classRule) Mode() string {
 	return rule.NextAction
 }
+
+// GetResponseRule return a rule to rewrite the response with. Currently not implemented.
+func (rule *classRule) GetResponseRule() ResponseRule {
+	return ResponseRule{}
+}
