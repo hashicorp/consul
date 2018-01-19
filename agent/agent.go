@@ -2150,12 +2150,23 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig) error {
 			return fmt.Errorf("failed reading service file %q: %s", file, err)
 		}
 
+		// If the file ended up empty as a result of something like an OS crash, remove
+		// it for convenience and log about it.
+		if len(buf) == 0 {
+			a.logger.Printf("[WARN] Removing leftover empty service file %q", file)
+			if err := os.Remove(file); err != nil {
+				a.logger.Printf("[WARN] Error removing leftover empty service file %q: %v", file, err)
+			}
+			continue
+		}
+
 		// Try decoding the service definition
 		var p persistedService
 		if err := json.Unmarshal(buf, &p); err != nil {
 			// Backwards-compatibility for pre-0.5.1 persisted services
 			if err := json.Unmarshal(buf, &p.Service); err != nil {
-				return fmt.Errorf("failed decoding service file %q: %s", file, err)
+				a.logger.Printf("[WARN] Failed decoding service file %q: %s", file, err)
+				continue
 			}
 		}
 		serviceID := p.Service.ID
@@ -2231,10 +2242,21 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig) error {
 			return fmt.Errorf("failed reading check file %q: %s", file, err)
 		}
 
+		// If the file ended up empty as a result of something like an OS crash, remove
+		// it for convenience and log about it.
+		if len(buf) == 0 {
+			a.logger.Printf("[WARN] Removing leftover empty check file %q", file)
+			if err := os.Remove(file); err != nil {
+				a.logger.Printf("[WARN] Error removing leftover empty check file %q: %v", file, err)
+			}
+			continue
+		}
+
 		// Decode the check
 		var p persistedCheck
 		if err := json.Unmarshal(buf, &p); err != nil {
-			return fmt.Errorf("Failed decoding check file %q: %s", file, err)
+			a.logger.Printf("[WARN] Failed decoding check file %q: %s", file, err)
+			continue
 		}
 		checkID := p.Check.CheckID
 
