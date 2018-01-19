@@ -35,14 +35,6 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
 	}
 
-	var cs lib.CoordinateSet
-	if !s.agent.config.DisableCoordinates {
-		var err error
-		if cs, err = s.agent.GetLANCoordinate(); err != nil {
-			return nil, err
-		}
-	}
-
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
@@ -52,6 +44,14 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 	}
 	if rule != nil && !rule.AgentRead(s.agent.config.NodeName) {
 		return nil, acl.ErrPermissionDenied
+	}
+
+	var cs lib.CoordinateSet
+	if !s.agent.config.DisableCoordinates {
+		var err error
+		if cs, err = s.agent.GetLANCoordinate(); err != nil {
+			return nil, err
+		}
 	}
 
 	config := struct {
