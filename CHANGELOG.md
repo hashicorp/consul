@@ -19,6 +19,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * agent: Fixed an issue where config file symlinks were not being interpreted correctly. [[GH-3753](https://github.com/hashicorp/consul/issues/3753)]
+* agent: Enforce a valid port for the Serf WAN since it can't be disabled. [[GH-3817](https://github.com/hashicorp/consul/issues/3817)]
 * server: Fixed a crash when POST-ing an empty body to the /v1/query endpoint. [[GH-3791](https://github.com/hashicorp/consul/issues/3791)]
 * server: (Consul Enterprise) Fixed an issue where unhealthy servers were not replaced in a redundancy zone by autopilot (servers previously needed to be removed in order for a replacement to occur).
 * ui: Added a URI escape around key/value keys so that it's not possible to create unexpected partial key names when entering characters like `?` inside a key. [[GH-3760](https://github.com/hashicorp/consul/issues/3760)]
