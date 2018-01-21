@@ -1,0 +1,9 @@
+core/*
+coremain/*
+hooks/*
+man/*
+pb/*
+plugin/*
+request/*
+test/*
+vendor/*
