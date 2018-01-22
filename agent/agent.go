@@ -2155,7 +2155,8 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig) error {
 		if err := json.Unmarshal(buf, &p); err != nil {
 			// Backwards-compatibility for pre-0.5.1 persisted services
 			if err := json.Unmarshal(buf, &p.Service); err != nil {
-				return fmt.Errorf("failed decoding service file %q: %s", file, err)
+				a.logger.Printf("[ERR] Failed decoding service file %q: %s", file, err)
+				continue
 			}
 		}
 		serviceID := p.Service.ID
@@ -2234,7 +2235,8 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig) error {
 		// Decode the check
 		var p persistedCheck
 		if err := json.Unmarshal(buf, &p); err != nil {
-			return fmt.Errorf("Failed decoding check file %q: %s", file, err)
+			a.logger.Printf("[ERR] Failed decoding check file %q: %s", file, err)
+			continue
 		}
 		checkID := p.Check.CheckID
 
