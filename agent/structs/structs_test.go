@@ -133,9 +133,12 @@ func testServiceNode() *ServiceNode {
 		NodeMeta: map[string]string{
 			"tag": "value",
 		},
-		ServiceID:                "service1",
-		ServiceName:              "dogs",
-		ServiceTags:              []string{"prod", "v1"},
+		ServiceID:   "service1",
+		ServiceName: "dogs",
+		ServiceTags: []string{"prod", "v1"},
+		ServiceAnnotation: map[string]string{
+			"weight": "100",
+		},
 		ServiceAddress:           "127.0.0.2",
 		ServicePort:              8080,
 		ServiceEnableTagOverride: true,
@@ -172,6 +175,11 @@ func TestStructs_ServiceNode_PartialClone(t *testing.T) {
 	}
 
 	sn.ServiceTags = append(sn.ServiceTags, "hello")
+	if reflect.DeepEqual(sn, clone) {
+		t.Fatalf("clone wasn't independent of the original")
+	}
+
+	sn.ServiceAnnotation["hello"] = "world"
 	if reflect.DeepEqual(sn, clone) {
 		t.Fatalf("clone wasn't independent of the original")
 	}
