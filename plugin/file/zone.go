@@ -67,6 +67,16 @@ func (z *Zone) Copy() *Zone {
 	return z1
 }
 
+// CopyWithoutApex copies zone z without the Apex records.
+func (z *Zone) CopyWithoutApex() *Zone {
+	z1 := NewZone(z.origin, z.file)
+	z1.TransferTo = z.TransferTo
+	z1.TransferFrom = z.TransferFrom
+	z1.Expired = z.Expired
+
+	return z1
+}
+
 // Insert inserts r into z.
 func (z *Zone) Insert(r dns.RR) error {
 	r.Header().Name = strings.ToLower(r.Header().Name)

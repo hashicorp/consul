@@ -16,7 +16,7 @@ func (z *Zone) TransferIn() error {
 	m := new(dns.Msg)
 	m.SetAxfr(z.origin)
 
-	z1 := z.Copy()
+	z1 := z.CopyWithoutApex()
 	var (
 		Err error
 		tr  string
