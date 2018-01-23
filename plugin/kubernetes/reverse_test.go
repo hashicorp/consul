@@ -50,6 +50,8 @@ func (APIConnReverseTest) EpIndexReverse(ip string) []*api.Endpoints {
 	switch ip {
 	case "10.0.0.100":
 	case "1234:abcd::1":
+	case "fd00:77:30::a":
+	case "fd00:77:30::2:9ba6":
 	default:
 		return nil
 	}
@@ -65,6 +67,14 @@ func (APIConnReverseTest) EpIndexReverse(ip string) []*api.Endpoints {
 						{
 							IP:       "1234:abcd::1",
 							Hostname: "ep1b",
+						},
+						{
+							IP:       "fd00:77:30::a",
+							Hostname: "ip6svc1ex",
+						},
+						{
+							IP:       "fd00:77:30::2:9ba6",
+							Hostname: "ip6svc1in",
 						},
 					},
 					Ports: []api.EndpointPort{
@@ -103,7 +113,7 @@ func (APIConnReverseTest) GetNamespaceByName(name string) (*api.Namespace, error
 
 func TestReverse(t *testing.T) {
 
-	k := New([]string{"cluster.local.", "0.10.in-addr.arpa.", "168.192.in-addr.arpa.", "0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.d.c.b.a.4.3.2.1.ip6.arpa."})
+	k := New([]string{"cluster.local.", "0.10.in-addr.arpa.", "168.192.in-addr.arpa.", "0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.d.c.b.a.4.3.2.1.ip6.arpa.", "0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.3.0.0.7.7.0.0.0.0.d.f.ip6.arpa."})
 	k.APIConn = &APIConnReverseTest{}
 
 	tests := []test.Case{
@@ -126,6 +136,20 @@ func TestReverse(t *testing.T) {
 			Rcode: dns.RcodeSuccess,
 			Answer: []dns.RR{
 				test.PTR("1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.d.c.b.a.4.3.2.1.ip6.arpa. 5 IN PTR ep1b.svc1.testns.svc.cluster.local."),
+			},
+		},
+		{ // A PTR record query for an existing ipv6 endpoint should return a record
+			Qname: "a.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.3.0.0.7.7.0.0.0.0.d.f.ip6.arpa.", Qtype: dns.TypePTR,
+			Rcode: dns.RcodeSuccess,
+			Answer: []dns.RR{
+				test.PTR("a.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.3.0.0.7.7.0.0.0.0.d.f.ip6.arpa. 5 IN PTR ip6svc1ex.svc1.testns.svc.cluster.local."),
+			},
+		},
+		{ // A PTR record query for an existing ipv6 endpoint should return a record
+			Qname: "6.a.b.9.2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.3.0.0.7.7.0.0.0.0.d.f.ip6.arpa.", Qtype: dns.TypePTR,
+			Rcode: dns.RcodeSuccess,
+			Answer: []dns.RR{
+				test.PTR("6.a.b.9.2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.3.0.0.7.7.0.0.0.0.d.f.ip6.arpa. 5 IN PTR ip6svc1in.svc1.testns.svc.cluster.local."),
 			},
 		},
 		{

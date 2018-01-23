@@ -115,11 +115,16 @@ func SplitHostPort(s string) (host, port string, ipnet *net.IPNet, err error) {
 	if err == nil {
 		if rev, e := dns.ReverseAddr(ip.String()); e == nil {
 			ones, bits = n.Mask.Size()
+			// get the size, in bits, of each portion of hostname defined in the reverse address. (8 for IPv4, 4 for IPv6)
+			sizeDigit := 8
+			if len(n.IP) == net.IPv6len {
+				sizeDigit = 4
+			}
 			// Get the first lower octet boundary to see what encompassing zone we should be authoritative for.
-			mod := (bits - ones) % 8
+			mod := (bits - ones) % sizeDigit
 			nearest := (bits - ones) + mod
 			offset, end := 0, false
-			for i := 0; i < nearest/8; i++ {
+			for i := 0; i < nearest/sizeDigit; i++ {
 				offset, end = dns.NextLabel(rev, offset)
 				if end {
 					break
