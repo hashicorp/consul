@@ -6,8 +6,10 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"runtime"
 	"sync"
 
+	"github.com/coredns/coredns/coremain"
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/metrics/vars"
 	"github.com/prometheus/client_golang/prometheus"
@@ -39,6 +41,7 @@ func New(addr string) *Metrics {
 	met.MustRegister(prometheus.NewProcessCollector(os.Getpid(), ""))
 
 	// Add all of our collectors
+	met.MustRegister(buildInfo)
 	met.MustRegister(vars.RequestCount)
 	met.MustRegister(vars.RequestDuration)
 	met.MustRegister(vars.RequestSize)
@@ -46,6 +49,10 @@ func New(addr string) *Metrics {
 	met.MustRegister(vars.RequestType)
 	met.MustRegister(vars.ResponseSize)
 	met.MustRegister(vars.ResponseRcode)
+
+	// Initialize metrics.
+	buildInfo.WithLabelValues(coremain.CoreVersion, coremain.GitCommit, runtime.Version()).Set(1)
+
 	return met
 }
 
@@ -115,3 +122,11 @@ func keys(m map[string]bool) []string {
 // ListenAddr is assigned the address of the prometheus listener. Its use is mainly in tests where
 // we listen on "localhost:0" and need to retrieve the actual address.
 var ListenAddr string
+
+var (
+	buildInfo = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: plugin.Namespace,
+		Name:      "build_info",
+		Help:      "A metric with a constant '1' value labeled by version, revision, and goversion from which CoreDNS was built.",
+	}, []string{"version", "revision", "goversion"})
+)

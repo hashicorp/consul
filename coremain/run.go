@@ -49,7 +49,7 @@ func init() {
 	caddy.SetDefaultCaddyfileLoader("default", caddy.LoaderFunc(defaultLoader))
 
 	caddy.AppName = coreName
-	caddy.AppVersion = coreVersion
+	caddy.AppVersion = CoreVersion
 }
 
 // Run is CoreDNS's main() function.
@@ -180,7 +180,7 @@ func versionString() string {
 // e.g.,
 // linux/amd64, go1.8.3, a6d2d7b5
 func releaseString() string {
-	return fmt.Sprintf("%s/%s, %s, %s\n", runtime.GOOS, runtime.GOARCH, runtime.Version(), gitCommit)
+	return fmt.Sprintf("%s/%s, %s, %s\n", runtime.GOOS, runtime.GOARCH, runtime.Version(), GitCommit)
 }
 
 // setVersion figures out the version information
@@ -193,7 +193,7 @@ func setVersion() {
 	if gitNearestTag != "" || gitTag != "" {
 		if devBuild && gitNearestTag != "" {
 			appVersion = fmt.Sprintf("%s (+%s %s)",
-				strings.TrimPrefix(gitNearestTag, "v"), gitCommit, buildDate)
+				strings.TrimPrefix(gitNearestTag, "v"), GitCommit, buildDate)
 		} else if gitTag != "" {
 			appVersion = strings.TrimPrefix(gitTag, "v")
 		}
@@ -252,7 +252,7 @@ var (
 	buildDate        string // date -u
 	gitTag           string // git describe --exact-match HEAD 2> /dev/null
 	gitNearestTag    string // git describe --abbrev=0 --tags HEAD
-	gitCommit        string // git rev-parse HEAD
+	GitCommit        string // git rev-parse HEAD
 	gitShortStat     string // git diff-index --shortstat
 	gitFilesModified string // git diff-index --name-only HEAD
 )
