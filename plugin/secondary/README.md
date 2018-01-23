@@ -35,6 +35,10 @@ secondary [zones...] {
   normal authoritative serving you don't need *or* want to use this. **ADDRESS** can be an IP
   address, and IP:port or a string pointing to a file that is structured as /etc/resolv.conf.
 
+When a zone is due to be refreshed (Refresh timer fires) a random jitter of 5 seconds is
+applied, before fetching. In the case of retry this will be 2 seconds. If there are any errors
+during the transfer the transfer fails; this will be logged.
+
 ## Examples
 
 Transfer `example.org` from 10.0.1.1, and if that fails try 10.1.2.1.

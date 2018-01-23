@@ -118,19 +118,6 @@ Restart:
 	retry := time.Second * time.Duration(z.Apex.SOA.Retry)
 	expire := time.Second * time.Duration(z.Apex.SOA.Expire)
 
-	if refresh < time.Hour {
-		refresh = time.Hour
-	}
-	if retry < time.Hour {
-		retry = time.Hour
-	}
-	if refresh > 24*time.Hour {
-		refresh = 24 * time.Hour
-	}
-	if retry > 12*time.Hour {
-		retry = 12 * time.Hour
-	}
-
 	refreshTicker := time.NewTicker(refresh)
 	retryTicker := time.NewTicker(retry)
 	expireTicker := time.NewTicker(expire)
@@ -151,7 +138,12 @@ Restart:
 			time.Sleep(jitter(2000)) // 2s randomize
 
 			ok, err := z.shouldTransfer()
-			if err != nil && ok {
+			if err != nil {
+				log.Printf("[WARNING] Failed retry check %s", err)
+				continue
+			}
+
+			if ok {
 				if err := z.TransferIn(); err != nil {
 					// transfer failed, leave retryActive true
 					break
@@ -169,8 +161,13 @@ Restart:
 			time.Sleep(jitter(5000)) // 5s randomize
 
 			ok, err := z.shouldTransfer()
-			retryActive = err != nil
-			if err != nil && ok {
+			if err != nil {
+				log.Printf("[WARNING] Failed refresh check %s", err)
+				retryActive = true
+				continue
+			}
+
+			if ok {
 				if err := z.TransferIn(); err != nil {
 					// transfer failed
 					retryActive = true
