@@ -64,6 +64,7 @@ func NewAutopilot(logger *log.Logger, delegate Delegate, interval, healthInterva
 func (a *Autopilot) Start() {
 	a.shutdownCh = make(chan struct{})
 	a.waitGroup = sync.WaitGroup{}
+	a.clusterHealth = OperatorHealthReply{}
 
 	a.waitGroup.Add(2)
 	go a.run()
