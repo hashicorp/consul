@@ -64,9 +64,10 @@ func NewAutopilot(logger *log.Logger, delegate Delegate, interval, healthInterva
 func (a *Autopilot) Start() {
 	a.shutdownCh = make(chan struct{})
 	a.waitGroup = sync.WaitGroup{}
-	a.waitGroup.Add(1)
 
+	a.waitGroup.Add(2)
 	go a.run()
+	go a.serverHealthLoop()
 }
 
 func (a *Autopilot) Stop() {
@@ -299,15 +300,17 @@ func (a *Autopilot) handlePromotions(promotions []raft.Server) error {
 	return nil
 }
 
-// ServerHealthLoop monitors the health of the servers in the cluster
-func (a *Autopilot) ServerHealthLoop(shutdownCh <-chan struct{}) {
+// serverHealthLoop monitors the health of the servers in the cluster
+func (a *Autopilot) serverHealthLoop() {
+	defer a.waitGroup.Done()
+
 	// Monitor server health until shutdown
 	ticker := time.NewTicker(a.healthInterval)
 	defer ticker.Stop()
 
 	for {
 		select {
-		case <-shutdownCh:
+		case <-a.shutdownCh:
 			return
 		case <-ticker.C:
 			if err := a.updateClusterHealth(); err != nil {

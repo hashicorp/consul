@@ -418,9 +418,6 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 	// Initialize Autopilot
 	s.initAutopilot(config)
 
-	// Start the server health checking.
-	go s.autopilot.ServerHealthLoop(s.shutdownCh)
-
 	return s, nil
 }
 
