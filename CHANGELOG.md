@@ -1,3 +1,11 @@
+## 1.0.4 (UNRELEASED)
+
+FEATURES:
+
+IMPROVEMENTS:
+
+BUG FIXES:
+
 ## 1.0.3 (January 24, 2018)
 
 SECURITY:
