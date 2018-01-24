@@ -128,16 +128,6 @@ var dnsTestCasesOther = []test.Case{
 			test.TXT(fmt.Sprintf("large400.skydns.test. 300 IN TXT \"%s\"", strings.Repeat("0", 400))),
 		},
 	},
-	// Large txt greater than 512 (UDP)
-	{
-		Qname: "large600.skydns.test.", Qtype: dns.TypeTXT,
-		Answer: []dns.RR{},
-	},
-	// Large txt greater than 1500 (typical Ethernet)
-	{
-		Qname: "large2000.skydns.test.", Qtype: dns.TypeTXT,
-		Answer: []dns.RR{},
-	},
 	// Duplicate IP address test
 	{
 		Qname: "multiport.http.skydns.test.", Qtype: dns.TypeA,
