@@ -4,6 +4,8 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* build: Bumped Go version to 1.9.3. [[GH-3837](https://github.com/hashicorp/consul/issues/3837)]
+
 BUG FIXES:
 
 ## 1.0.3 (January 24, 2018)
