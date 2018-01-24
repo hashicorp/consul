@@ -1,6 +1,6 @@
 FROM ubuntu:bionic
 
-ENV GOVERSION 1.9.2
+ENV GOVERSION 1.9.3
 
 RUN apt-get update -y && \
     apt-get install --no-install-recommends -y -q \
