@@ -1,6 +1,7 @@
 package request
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/coredns/coredns/plugin/test"
@@ -57,6 +58,32 @@ func TestRequestMalformed(t *testing.T) {
 
 	if x := st.Class(); x != "" {
 		t.Errorf("Expected empty Class, got %s", x)
+	}
+}
+
+func TestRequestScrub(t *testing.T) {
+	m := new(dns.Msg)
+	m.SetQuestion("large.example.com.", dns.TypeSRV)
+	req := Request{W: &test.ResponseWriter{}, Req: m}
+
+	reply := new(dns.Msg)
+	reply.SetReply(m)
+	for i := 1; i < 200; i++ {
+		reply.Answer = append(reply.Answer, test.SRV(fmt.Sprintf(
+			"large.example.com. 10 IN SRV 0 0 80 10-0-0-%d.default.pod.k8s.example.com.",
+			i,
+		)))
+	}
+
+	msg, got := req.Scrub(reply)
+	if want := ScrubDone; want != got {
+		t.Errorf("want scrub result %d, got %d", want, got)
+	}
+	if want, got := req.Size(), msg.Len(); want < got {
+		t.Errorf("want scrub to reduce message length below %d bytes, got %d bytes", want, got)
+	}
+	if !msg.Truncated {
+		t.Errorf("want scrub to set truncated bit")
 	}
 }
 

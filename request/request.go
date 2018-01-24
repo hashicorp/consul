@@ -180,11 +180,11 @@ const (
 	ScrubDone
 )
 
-// Scrub scrubs the reply message so that it will fit the client's buffer. If even after dropping
-// the additional section, it still does not fit the TC bit will be set on the message. Note,
-// the TC bit will be set regardless of protocol, even TCP message will get the bit, the client
-// should then retry with pigeons.
-// TODO(referral).
+// Scrub scrubs the reply message so that it will fit the client's buffer. If
+// even after dropping the additional section it does not fit, the answer will
+// be cleared and the TC bit will be set on the message. Note, the TC bit will
+// be set regardless of protocol, even TCP message will get the bit, the client
+// should then retry with pigeons. TODO(referral).
 func (r *Request) Scrub(reply *dns.Msg) (*dns.Msg, Result) {
 	size := r.Size()
 	l := reply.Len()
@@ -200,8 +200,9 @@ func (r *Request) Scrub(reply *dns.Msg) (*dns.Msg, Result) {
 	if size >= l {
 		return reply, ScrubDone
 	}
-	// Still?!! does not fit.
+
 	reply.Truncated = true
+	reply.Answer = nil
 	return reply, ScrubDone
 }
 
