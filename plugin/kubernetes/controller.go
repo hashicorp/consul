@@ -46,7 +46,7 @@ type dnsController interface {
 type dnsControl struct {
 	client *kubernetes.Clientset
 
-	selector *labels.Selector
+	selector labels.Selector
 
 	svcController cache.Controller
 	podController cache.Controller
@@ -69,7 +69,7 @@ type dnsControlOpts struct {
 	resyncPeriod time.Duration
 	// Label handling.
 	labelSelector *meta.LabelSelector
-	selector      *labels.Selector
+	selector      labels.Selector
 }
 
 // newDNSController creates a controller for CoreDNS.
@@ -159,10 +159,10 @@ func epIPIndexFunc(obj interface{}) ([]string, error) {
 	return idx, nil
 }
 
-func serviceListFunc(c *kubernetes.Clientset, ns string, s *labels.Selector) func(meta.ListOptions) (runtime.Object, error) {
+func serviceListFunc(c *kubernetes.Clientset, ns string, s labels.Selector) func(meta.ListOptions) (runtime.Object, error) {
 	return func(opts meta.ListOptions) (runtime.Object, error) {
 		if s != nil {
-			opts.LabelSelector = (*s).String()
+			opts.LabelSelector = s.String()
 		}
 		listV1, err := c.CoreV1().Services(ns).List(opts)
 		if err != nil {
@@ -172,10 +172,10 @@ func serviceListFunc(c *kubernetes.Clientset, ns string, s *labels.Selector) fun
 	}
 }
 
-func podListFunc(c *kubernetes.Clientset, ns string, s *labels.Selector) func(meta.ListOptions) (runtime.Object, error) {
+func podListFunc(c *kubernetes.Clientset, ns string, s labels.Selector) func(meta.ListOptions) (runtime.Object, error) {
 	return func(opts meta.ListOptions) (runtime.Object, error) {
 		if s != nil {
-			opts.LabelSelector = (*s).String()
+			opts.LabelSelector = s.String()
 		}
 		listV1, err := c.CoreV1().Pods(ns).List(opts)
 		if err != nil {
@@ -185,10 +185,10 @@ func podListFunc(c *kubernetes.Clientset, ns string, s *labels.Selector) func(me
 	}
 }
 
-func serviceWatchFunc(c *kubernetes.Clientset, ns string, s *labels.Selector) func(options meta.ListOptions) (watch.Interface, error) {
+func serviceWatchFunc(c *kubernetes.Clientset, ns string, s labels.Selector) func(options meta.ListOptions) (watch.Interface, error) {
 	return func(options meta.ListOptions) (watch.Interface, error) {
 		if s != nil {
-			options.LabelSelector = (*s).String()
+			options.LabelSelector = s.String()
 		}
 		w, err := c.CoreV1().Services(ns).Watch(options)
 		if err != nil {
@@ -198,10 +198,10 @@ func serviceWatchFunc(c *kubernetes.Clientset, ns string, s *labels.Selector) fu
 	}
 }
 
-func podWatchFunc(c *kubernetes.Clientset, ns string, s *labels.Selector) func(options meta.ListOptions) (watch.Interface, error) {
+func podWatchFunc(c *kubernetes.Clientset, ns string, s labels.Selector) func(options meta.ListOptions) (watch.Interface, error) {
 	return func(options meta.ListOptions) (watch.Interface, error) {
 		if s != nil {
-			options.LabelSelector = (*s).String()
+			options.LabelSelector = s.String()
 		}
 		w, err := c.CoreV1().Pods(ns).Watch(options)
 		if err != nil {
@@ -211,10 +211,10 @@ func podWatchFunc(c *kubernetes.Clientset, ns string, s *labels.Selector) func(o
 	}
 }
 
-func endpointsListFunc(c *kubernetes.Clientset, ns string, s *labels.Selector) func(meta.ListOptions) (runtime.Object, error) {
+func endpointsListFunc(c *kubernetes.Clientset, ns string, s labels.Selector) func(meta.ListOptions) (runtime.Object, error) {
 	return func(opts meta.ListOptions) (runtime.Object, error) {
 		if s != nil {
-			opts.LabelSelector = (*s).String()
+			opts.LabelSelector = s.String()
 		}
 		listV1, err := c.CoreV1().Endpoints(ns).List(opts)
 		if err != nil {
@@ -224,10 +224,10 @@ func endpointsListFunc(c *kubernetes.Clientset, ns string, s *labels.Selector) f
 	}
 }
 
-func endpointsWatchFunc(c *kubernetes.Clientset, ns string, s *labels.Selector) func(options meta.ListOptions) (watch.Interface, error) {
+func endpointsWatchFunc(c *kubernetes.Clientset, ns string, s labels.Selector) func(options meta.ListOptions) (watch.Interface, error) {
 	return func(options meta.ListOptions) (watch.Interface, error) {
 		if s != nil {
-			options.LabelSelector = (*s).String()
+			options.LabelSelector = s.String()
 		}
 		w, err := c.CoreV1().Endpoints(ns).Watch(options)
 		if err != nil {

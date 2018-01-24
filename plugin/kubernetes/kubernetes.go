@@ -256,7 +256,7 @@ func (k *Kubernetes) initKubeCache(opts dnsControlOpts) (err error) {
 		if err != nil {
 			return fmt.Errorf("unable to create Selector for LabelSelector '%s': %q", opts.labelSelector, err)
 		}
-		opts.selector = &selector
+		opts.selector = selector
 	}
 
 	opts.initPodCache = k.podMode == podModeVerified
