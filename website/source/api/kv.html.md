@@ -197,12 +197,19 @@ The table below shows this endpoint's support for
 
 The payload is arbitrary, and is loaded directly into Consul as supplied.
 
-### Sample Request
+### Sample Requests
 
-```text
+```bash
 $ curl \
     --request PUT \
     --data @contents \
+    https://consul.rocks/v1/kv/my-key
+
+# or
+
+$ curl \
+    --request PUT \
+    --data-binary @contents \
     https://consul.rocks/v1/kv/my-key
 ```
 
