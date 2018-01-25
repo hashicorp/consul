@@ -7,7 +7,7 @@
 \fIdnssec\fR \- enable on\-the\-fly DNSSEC signing of served data\.
 .
 .SH "DESCRIPTION"
-With \fIdnssec\fR any reply that doesn\'t (or can\'t) do DNSSEC will get signed on\-the\-fly\. Authenticated denial of existence is implemented with NSEC black lies\. Using ECDSA as an algorithm is preferred as this leads to smaller signatures (compared to RSA)\. NSEC3 is \fInot\fR supported\.
+With \fIdnssec\fR any reply that doesn\'t (or can\'t) do DNSSEC will get signed on the fly\. Authenticated denial of existence is implemented with NSEC black lies\. Using ECDSA as an algorithm is preferred as this leads to smaller signatures (compared to RSA)\. NSEC3 is \fInot\fR supported\.
 .
 .SH "SYNTAX"
 .
@@ -21,7 +21,7 @@ dnssec [ZONES\.\.\. ] {
 .fi
 .
 .P
-The specified key is used for all signing operations\. The DNSSEC signing will treat this key a CSK (common signing key), forgoing the ZSK/KSK split\. All signing operations are done online\. Authenticated denial of existence is implemented with NSEC black lies\. Using ECDSA as an algorithm is preferred as this leads to smaller signatures (compared to RSA)\. NSEC3 is \fInot\fR supported\.
+The specified key is used for all signing operations\. The DNSSEC signing will treat this key as a CSK (common signing key), forgoing the ZSK/KSK split\. All signing operations are done online\. Authenticated denial of existence is implemented with NSEC black lies\. Using ECDSA as an algorithm is preferred as this leads to smaller signatures (compared to RSA)\. NSEC3 is \fInot\fR supported\.
 .
 .P
 If multiple \fIdnssec\fR plugins are specified in the same zone, the last one specified will be used (See \fIbugs\fR)\.
@@ -30,7 +30,7 @@ If multiple \fIdnssec\fR plugins are specified in the same zone, the last one sp
 \fBZONES\fR zones that should be signed\. If empty, the zones from the configuration block are used\.
 .
 .IP "\(bu" 4
-\fBkey file\fR indicates that \fBKEY\fR file(s) should be read from disk\. When multiple keys are specified, RRsets will be signed with all keys\. Generating a key can be done with \fBdnssec\-keygen\fR: \fBdnssec\-keygen \-a ECDSAP256SHA256 <zonename>\fR\. A key created for zone \fIA\fR can be safely used for zone \fIB\fR\. The name of the key file can be specified as one of the following formats
+\fBkey file\fR indicates that \fBKEY\fR file(s) should be read from disk\. When multiple keys are specified, RRsets will be signed with all keys\. Generating a key can be done with \fBdnssec\-keygen\fR: \fBdnssec\-keygen \-a ECDSAP256SHA256 <zonename>\fR\. A key created for zone \fIA\fR can be safely used for zone \fIB\fR\. The name of the key file can be specified in one of the following formats
 .
 .IP "\(bu" 4
 basename of the generated key \fBKexample\.org+013+45330\fR

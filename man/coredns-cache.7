@@ -7,7 +7,7 @@
 \fIcache\fR \- enables a frontend cache\.
 .
 .SH "DESCRIPTION"
-With \fIcache\fR enabled all records except zone transfers and metadata records will be cached for up to 3600s\. Caching is mostly useful in a scenario when fetching data from the backend (upstream, database, etc\.) is expensive\.
+With \fIcache\fR enabled, all records except zone transfers and metadata records will be cached for up to 3600s\. Caching is mostly useful in a scenario when fetching data from the backend (upstream, database, etc\.) is expensive\.
 .
 .SH "SYNTAX"
 .
@@ -18,7 +18,7 @@ cache [TTL] [ZONES\.\.\.]
 .fi
 .
 .IP "\(bu" 4
-\fBTTL\fR max TTL in seconds\. If not specified, the maximum TTL will be used which is 3600 for noerror responses and 1800 for denial of existence ones\. Setting a TTL of 300: \fBcache 300\fR would cache the record up to 300 seconds\.
+\fBTTL\fR max TTL in seconds\. If not specified, the maximum TTL will be used, which is 3600 for noerror responses and 1800 for denial of existence ones\. Setting a TTL of 300: \fBcache 300\fR would cache records up to 300 seconds\.
 .
 .IP "\(bu" 4
 \fBZONES\fR zones it should cache for\. If empty, the zones from the configuration block are used\.
@@ -49,18 +49,15 @@ cache [TTL] [ZONES\.\.\.] {
 \fBTTL\fR and \fBZONES\fR as above\.
 .
 .IP "\(bu" 4
-\fBsuccess\fR, override the settings for caching successful responses, \fBCAPACITY\fR indicates the maximum number of packets we cache before we start evicting (\fIrandomly\fR)\. \fBTTL\fR overrides the cache maximum TTL\.
+\fBsuccess\fR, override the settings for caching successful responses\. \fBCAPACITY\fR indicates the maximum number of packets we cache before we start evicting (\fIrandomly\fR)\. \fBTTL\fR overrides the cache maximum TTL\.
 .
 .IP "\(bu" 4
-\fBdenial\fR, override the settings for caching denial of existence responses, \fBCAPACITY\fR indicates the maximum number of packets we cache before we start evicting (LRU)\. \fBTTL\fR overrides the cache maximum TTL\. There is a third category (\fBerror\fR) but those responses are never cached\.
+\fBdenial\fR, override the settings for caching denial of existence responses\. \fBCAPACITY\fR indicates the maximum number of packets we cache before we start evicting (LRU)\. \fBTTL\fR overrides the cache maximum TTL\. There is a third category (\fBerror\fR) but those responses are never cached\.
 .
 .IP "\(bu" 4
-\fBprefetch\fR, will prefetch popular items when they are about to be expunged from the cache\. Popular means \fBAMOUNT\fR queries have been seen no gaps of \fBDURATION\fR or more between them\. \fBDURATION\fR defaults to 1m\. Prefetching will happen when the TTL drops below \fBPERCENTAGE\fR, which defaults to \fB10%\fR\. Values should be in the range \fB[10%, 90%]\fR\. Note the percent sign is mandatory\. \fBPERCENTAGE\fR is treated as an \fBint\fR\.
+\fBprefetch\fR will prefetch popular items when they are about to be expunged from the cache\. Popular means \fBAMOUNT\fR queries have been seen with no gaps of \fBDURATION\fR or more between them\. \fBDURATION\fR defaults to 1m\. Prefetching will happen when the TTL drops below \fBPERCENTAGE\fR, which defaults to \fB10%\fR, or latest 1 second before TTL expiration\. Values should be in the range \fB[10%, 90%]\fR\. Note the percent sign is mandatory\. \fBPERCENTAGE\fR is treated as an \fBint\fR\.
 .
 .IP "" 0
-.
-.P
-The minimum TTL allowed on resource records is 5 seconds\.
 .
 .SH "METRICS"
 If monitoring is enabled (via the \fIprometheus\fR directive) then the following metrics are exported:

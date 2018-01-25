@@ -4,10 +4,10 @@
 .TH "COREDNS\-AUTO" "7" "January 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
-\fIauto\fR \- enables serving zone data from an RFC 1035\-style master file which is automatically picked up from disk\.
+\fIauto\fR \- enables serving zone data from an RFC 1035\-style master file, which is automatically picked up from disk\.
 .
 .SH "DESCRIPTION"
-The \fIauto\fR plugin is used for an "old\-style" DNS server\. It serves from a preloaded file that exists on disk\. If the zone file contains signatures (i\.e\. is signed, i\.e\. DNSSEC) correct DNSSEC answers are returned\. Only NSEC is supported! If you use this setup \fIyou\fR are responsible for resigning the zonefile\. New zones or changed zone are automatically picked up from disk\.
+The \fIauto\fR plugin is used for an "old\-style" DNS server\. It serves from a preloaded file that exists on disk\. If the zone file contains signatures (i\.e\. is signed, i\.e\. using DNSSEC) correct DNSSEC answers are returned\. Only NSEC is supported! If you use this setup \fIyou\fR are responsible for re\-signing the zonefile\. New or changed zones are automatically picked up from disk\.
 .
 .SH "SYNTAX"
 .
@@ -25,13 +25,13 @@ auto [ZONES\.\.\.] {
 \fBZONES\fR zones it should be authoritative for\. If empty, the zones from the configuration block are used\.
 .
 .IP "\(bu" 4
-\fBdirectory\fR loads zones from the speficied \fBDIR\fR\. If a file name matches \fBREGEXP\fR it will be used to extract the origin\. \fBORIGIN_TEMPLATE\fR will be used as a template for the origin\. Strings like \fB{<number>}\fR are replaced with the respective matches in the file name, i\.e\. \fB{1}\fR is the first match, \fB{2}\fR is the second, etc\.\. The default is: \fBdb\e\.(\.*) {1}\fR e\.g\. from a file with the name \fBdb\.example\.com\fR, the extracted origin will be \fBexample\.com\fR\. \fBTIMEOUT\fR specifies how often CoreDNS should scan the directory, the default is every 60 seconds\. This value is in seconds\. The minimum value is 1 second\.
+\fBdirectory\fR loads zones from the speficied \fBDIR\fR\. If a file name matches \fBREGEXP\fR it will be used to extract the origin\. \fBORIGIN_TEMPLATE\fR will be used as a template for the origin\. Strings like \fB{<number>}\fR are replaced with the respective matches in the file name, e\.g\. \fB{1}\fR is the first match, \fB{2}\fR is the second\. The default is: \fBdb\e\.(\.*) {1}\fR i\.e\. from a file with the name \fBdb\.example\.com\fR, the extracted origin will be \fBexample\.com\fR\. \fBTIMEOUT\fR specifies how often CoreDNS should scan the directory; the default is every 60 seconds\. This value is in seconds\. The minimum value is 1 second\.
 .
 .IP "\(bu" 4
 \fBno_reload\fR by default CoreDNS will try to reload a zone every minute and reloads if the SOA\'s serial has changed\. This option disables that behavior\.
 .
 .IP "\(bu" 4
-\fBupstream\fR defines upstream resolvers to be used resolve external names found (think CNAMEs) pointing to external names\. \fBADDRESS\fR can be an IP address, and IP:port or a string pointing to a file that is structured as /etc/resolv\.conf\.
+\fBupstream\fR defines upstream resolvers to be used resolve external names found (think CNAMEs) pointing to external names\. \fBADDRESS\fR can be an IP address, an IP:port or a string pointing to a file that is structured as /etc/resolv\.conf\.
 .
 .IP "" 0
 .

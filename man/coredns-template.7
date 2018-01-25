@@ -7,7 +7,7 @@
 \fItemplate\fR \- allows for dynamic responses based on the incoming query\.
 .
 .SH "DESCRIPTION"
-The \fItemplate\fR plugin allows you to dynamically repond to queries by just writing a (Go) template\.
+The \fItemplate\fR plugin allows you to dynamically respond to queries by just writing a (Go) template\.
 .
 .SH "SYNTAX"
 .
@@ -38,13 +38,13 @@ template CLASS TYPE [ZONE\.\.\.] {
 \fBREGEX\fR Go regexp \fIhttps://golang\.org/pkg/regexp/\fR that are matched against the incoming question name\. Specifying no regex matches everything (default: \fB\.*\fR)\. First matching regex wins\.
 .
 .IP "\(bu" 4
-\fBanswer|additional|authority\fR \fBRR\fR A RFC 1035 \fIhttps://tools\.ietf\.org/html/rfc1035#section\-5\fR style resource record fragment build by a Go template \fIhttps://golang\.org/pkg/text/template/\fR that contains the reply\.
+\fBanswer|additional|authority\fR \fBRR\fR A RFC 1035 \fIhttps://tools\.ietf\.org/html/rfc1035#section\-5\fR style resource record fragment built by a Go template \fIhttps://golang\.org/pkg/text/template/\fR that contains the reply\.
 .
 .IP "\(bu" 4
 \fBrcode\fR \fBCODE\fR A response code (\fBNXDOMAIN, SERVFAIL, \.\.\.\fR)\. The default is \fBSUCCESS\fR\.
 .
 .IP "\(bu" 4
-\fBfallthrough\fR Continue with the next plugin if the zone matched but no regex did not match\. If specific zones are listed (for example \fBin\-addr\.arpa\fR and \fBip6\.arpa\fR), then only queries for those zones will be subject to fallthrough\.
+\fBfallthrough\fR Continue with the next plugin if the zone matched but no regex matched\. If specific zones are listed (for example \fBin\-addr\.arpa\fR and \fBip6\.arpa\fR), then only queries for those zones will be subject to fallthrough\.
 .
 .IP "" 0
 .
@@ -55,16 +55,53 @@ At least one \fBanswer\fR or \fBrcode\fR directive is needed (e\.g\. \fBrcode NX
 \fIAlso see\fR contains an additional reading list\.
 .
 .SH "TEMPLATES"
-Each resource record is a full\-featured Go template \fIhttps://golang\.org/pkg/text/template/\fR with the following predefined data * \fB\.Zone\fR the matched zone string (e\.g\. \fBexample\.\fR)\. * \fB\.Name\fR the query name, as a string (lowercased)\. * \fB\.Class\fR the query class (usually \fBIN\fR)\. * \fB\.Type\fR the RR type requested (e\.g\. \fBPTR\fR)\. * \fB\.Match\fR an array of all matches\. \fBindex \.Match 0\fR refers to the whole match\. * \fB\.Group\fR a map of the named capture groups\. * \fB\.Message\fR the complete incoming DNS message\. * \fB\.Question\fR the matched question section\.
+Each resource record is a full\-featured Go template \fIhttps://golang\.org/pkg/text/template/\fR with the following predefined data
+.
+.IP "\(bu" 4
+\fB\.Zone\fR the matched zone string (e\.g\. \fBexample\.\fR)\.
+.
+.IP "\(bu" 4
+\fB\.Name\fR the query name, as a string (lowercased)\.
+.
+.IP "\(bu" 4
+\fB\.Class\fR the query class (usually \fBIN\fR)\.
+.
+.IP "\(bu" 4
+\fB\.Type\fR the RR type requested (e\.g\. \fBPTR\fR)\.
+.
+.IP "\(bu" 4
+\fB\.Match\fR an array of all matches\. \fBindex \.Match 0\fR refers to the whole match\.
+.
+.IP "\(bu" 4
+\fB\.Group\fR a map of the named capture groups\.
+.
+.IP "\(bu" 4
+\fB\.Message\fR the complete incoming DNS message\.
+.
+.IP "\(bu" 4
+\fB\.Question\fR the matched question section\.
+.
+.IP "" 0
 .
 .P
-The output of the template must be a RFC 1035 \fIhttps://tools\.ietf\.org/html/rfc1035\fR style resource record line (commonly refered to as a "zone file")\.
+The output of the template must be a RFC 1035 \fIhttps://tools\.ietf\.org/html/rfc1035\fR style resource record (commonly referred to as a "zone file")\.
 .
 .P
 \fBWARNING\fR there is a syntactical problem with Go templates and CoreDNS config files\. Expressions like \fB{{$var}}\fR will be interpreted as a reference to an environment variable by CoreDNS (and Caddy) while \fB{{ $var }}\fR will work\. See \fIBugs\fR and corefile(5)\.
 .
 .SH "METRICS"
-If monitoring is enabled (via the \fIprometheus\fR directive) then the following metrics are exported: \- \fBcoredns_template_matches_total{regex}\fR the total number of matched requests by regex\. \- \fBcoredns_template_template_failures_total{regex,section,template}\fR the number of times the Go templating failed\. Regex, section and template label values can be used to map the error back to the config file\. \- \fBcoredns_template_rr_failures_total{regex,section,template}\fR the number of times the templated resource record was invalid and could not be parsed\. Regex, section and template label values can be used to map the error back to the config file\.
+If monitoring is enabled (via the \fIprometheus\fR directive) then the following metrics are exported:
+.
+.IP "\(bu" 4
+\fBcoredns_template_matches_total{regex}\fR the total number of matched requests by regex\.
+.
+.IP "\(bu" 4
+\fBcoredns_template_template_failures_total{regex,section,template}\fR the number of times the Go templating failed\. Regex, section and template label values can be used to map the error back to the config file\.
+.
+.IP "\(bu" 4
+\fBcoredns_template_rr_failures_total{regex,section,template}\fR the number of times the templated resource record was invalid and could not be parsed\. Regex, section and template label values can be used to map the error back to the config file\.
+.
+.IP "" 0
 .
 .P
 Both failure cases indicate a problem with the template configuration\.
@@ -111,7 +148,7 @@ The \fB\.invalid\fR domain is a reserved TLD (see RFC\-2606 Reserved Top Level D
 
     template ANY ANY invalid {
       rcode NXDOMAIN
-      answer "invalid\. 60 {{ \.Class }} SOA a\.invalid\. b\.invalid\. (1 60 60 60 60)"
+      authority "invalid\. 60 {{ \.Class }} SOA ns\.invalid\. hostmaster\.invalid\. (1 60 60 60 60)"
     }
 }
 .
@@ -123,10 +160,10 @@ The \fB\.invalid\fR domain is a reserved TLD (see RFC\-2606 Reserved Top Level D
 A query to \.invalid will result in NXDOMAIN (rcode)
 .
 .IP "2." 4
-A dummy SOA record is send to hand out a TTL of 60s for caching
+A dummy SOA record is sent to hand out a TTL of 60s for caching purposes
 .
 .IP "3." 4
-Querying \fB\.invalid\fR of \fBCH\fR will also cause a NXDOMAIN/SOA response
+Querying \fB\.invalid\fR in the \fBCH\fR class will also cause a NXDOMAIN/SOA response
 .
 .IP "4." 4
 The default regex is \fB\.*\fR
@@ -134,7 +171,7 @@ The default regex is \fB\.*\fR
 .IP "" 0
 .
 .SS "BLOCK INVALID SEARCH DOMAIN COMPLETIONS"
-Imagine you run \fBexample\.com\fR with a datacenter \fBdc1\.example\.com\fR\. The datacenter domain is part of the DNS search domain\. However \fBsomething\.example\.com\.dc1\.example\.com\fR would indicates a fully qualified domain name (\fBsomething\.example\.com\fR) that inadvertely has the default domain or search path (\fBdc1\.example\.com\fR) added\.
+Imagine you run \fBexample\.com\fR with a datacenter \fBdc1\.example\.com\fR\. The datacenter domain is part of the DNS search domain\. However \fBsomething\.example\.com\.dc1\.example\.com\fR would indicate a fully qualified domain name (\fBsomething\.example\.com\fR) that inadvertently has the default domain or search path (\fBdc1\.example\.com\fR) added\.
 .
 .IP "" 4
 .
@@ -145,7 +182,7 @@ Imagine you run \fBexample\.com\fR with a datacenter \fBdc1\.example\.com\fR\. T
 
     template IN ANY example\.com\.dc1\.example\.com {
       rcode NXDOMAIN
-      answer "{{ \.Zone }} 60 IN SOA a\.{{ \.Zone }} b\.{{ \.Zone }} (1 60 60 60 60)"
+      authority "{{ \.Zone }} 60 IN SOA ns\.example\.com hostmaster\.example\.com (1 60 60 60 60)"
     }
 }
 .
@@ -164,9 +201,9 @@ A more verbose regex based equivalent would be
     proxy \. 8\.8\.8\.8
 
     template IN ANY example\.com {
-      match "(example\.com\.dc1\.example\.com)$"
+      match "example\e\.com\e\.(dc1\e\.example\e\.com\e\.)$"
       rcode NXDOMAIN
-      answer "{{ index \.Match 1 }} 60 IN SOA a\.{{ index \.Match 1 }} b\.{{ index \.Match 1 }} (1 60 60 60 60)"
+      authority "{{ index \.Match 1 }} 60 IN SOA ns\.{{ index \.Match 1 }} hostmaster\.{{ index \.Match 1 }} (1 60 60 60 60)"
       fallthrough
     }
 }
@@ -176,7 +213,7 @@ A more verbose regex based equivalent would be
 .IP "" 0
 .
 .P
-The regex based version can do more complex matching/templating while zone based templating is easier to read and use\.
+The regex\-based version can do more complex matching/templating while zone\-based templating is easier to read and use\.
 .
 .SS "RESOLVE A/PTR FOR \.EXAMPLE"
 .
@@ -204,10 +241,10 @@ The regex based version can do more complex matching/templating while zone based
 .fi
 .
 .P
-An IPv4 address consists of 4 bytes, \fBa\.b\.c\.d\fR\. Named groups make it less error prone to reverse the ip in the PTR case\. Try to use named groups to explain what your regex and template are doing\.
+An IPv4 address consists of 4 bytes, \fBa\.b\.c\.d\fR\. Named groups make it less error\-prone to reverse the IP address in the PTR case\. Try to use named groups to explain what your regex and template are doing\.
 .
 .P
-Note that the A record is actually a wildcard, any subdomain of the ip will resolve to the ip\.
+Note that the A record is actually a wildcard: any subdomain of the IP address will resolve to the IP address\.
 .
 .P
 Having templates to map certain PTR/A pairs is a common pattern\.

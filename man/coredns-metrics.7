@@ -10,6 +10,9 @@
 With \fIprometheus\fR you export metrics from CoreDNS and any plugin that has them\. The default location for the metrics is \fBlocalhost:9153\fR\. The metrics path is fixed to \fB/metrics\fR\. The following metrics are exported:
 .
 .IP "\(bu" 4
+\fBcoredns_build_info{version, revision, goversion}\fR \- info about CoreDNS itself\.
+.
+.IP "\(bu" 4
 \fBcoredns_dns_request_count_total{zone, proto, family}\fR \- total query count\.
 .
 .IP "\(bu" 4

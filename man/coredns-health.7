@@ -20,6 +20,26 @@ health [ADDRESS]
 .P
 Optionally takes an address; the default is \fB:8080\fR\. The health path is fixed to \fB/health\fR\. The health endpoint returns a 200 response code and the word "OK" when CoreDNS is healthy\. It returns a 503\. \fIhealth\fR periodically (1s) polls plugin that exports health information\. If any of the plugin signals that it is unhealthy, the server will go unhealthy too\. Each plugin that supports health checks has a section "Health" in their README\.
 .
+.P
+More options can be set with this extended syntax:
+.
+.IP "" 4
+.
+.nf
+
+health [ADDRESS] {
+    lameduck DURATION
+}
+.
+.fi
+.
+.IP "" 0
+.
+.IP "\(bu" 4
+Where \fBlameduck\fR will make the process unhealthy then \fIwait\fR for \fBDURATION\fR before the process shuts down\.
+.
+.IP "" 0
+.
 .SH "PLUGINS"
 Any plugin that implements the Healther interface will be used to report health\.
 .
@@ -40,6 +60,23 @@ Run another health endpoint on http://localhost:8091\.
 
 \&\. {
     health localhost:8091
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Set a lameduck duration of 1 second:
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+    health localhost:8091 {
+        lameduck 1s
+    }
 }
 .
 .fi
