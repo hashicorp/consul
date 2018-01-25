@@ -52,20 +52,20 @@ func NewGrpcHealthProbe(target string, timeout time.Duration, tlsConfig *tls.Con
 
 // Check if the target of this GrpcHealthProbe is healthy
 // If nil is returned, target is healthy, otherwise target is not healthy
-func (probe *GrpcHealthProbe) Check() (err error) {
+func (probe *GrpcHealthProbe) Check() error {
 	ctx, cancel := context.WithTimeout(context.Background(), probe.timeout)
 	defer cancel()
 
 	connection, err := grpc.DialContext(ctx, probe.server, probe.dialOptions...)
 	if err != nil {
-		return
+		return err
 	}
 	defer connection.Close()
 
 	client := hv1.NewHealthClient(connection)
 	response, err := client.Check(ctx, probe.request)
 	if err != nil {
-		return
+		return err
 	}
 	if response == nil || (response != nil && response.Status != hv1.HealthCheckResponse_SERVING) {
 		return ErrGRPCUnhealthy
