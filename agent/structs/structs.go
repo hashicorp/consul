@@ -367,6 +367,7 @@ type ServiceNode struct {
 	ServiceID                string
 	ServiceName              string
 	ServiceTags              []string
+	ServiceAnnotation        map[string]string
 	ServiceAddress           string
 	ServicePort              int
 	ServiceEnableTagOverride bool
@@ -380,6 +381,11 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 	tags := make([]string, len(s.ServiceTags))
 	copy(tags, s.ServiceTags)
 
+	annotation := make(map[string]string)
+	for k, v := range s.ServiceAnnotation {
+		annotation[k] = v
+	}
+
 	return &ServiceNode{
 		// Skip ID, see above.
 		Node: s.Node,
@@ -388,6 +394,7 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 		ServiceID:                s.ServiceID,
 		ServiceName:              s.ServiceName,
 		ServiceTags:              tags,
+		ServiceAnnotation:        annotation,
 		ServiceAddress:           s.ServiceAddress,
 		ServicePort:              s.ServicePort,
 		ServiceEnableTagOverride: s.ServiceEnableTagOverride,
@@ -404,6 +411,7 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 		ID:                s.ServiceID,
 		Service:           s.ServiceName,
 		Tags:              s.ServiceTags,
+		Annotation:        s.ServiceAnnotation,
 		Address:           s.ServiceAddress,
 		Port:              s.ServicePort,
 		EnableTagOverride: s.ServiceEnableTagOverride,
@@ -421,6 +429,7 @@ type NodeService struct {
 	ID                string
 	Service           string
 	Tags              []string
+	Annotation        map[string]string
 	Address           string
 	Port              int
 	EnableTagOverride bool
@@ -436,6 +445,7 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 	if s.ID != other.ID ||
 		s.Service != other.Service ||
 		!reflect.DeepEqual(s.Tags, other.Tags) ||
+		!reflect.DeepEqual(s.Annotation, other.Annotation) ||
 		s.Address != other.Address ||
 		s.Port != other.Port ||
 		s.EnableTagOverride != other.EnableTagOverride {
@@ -455,6 +465,7 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 		ServiceID:                s.ID,
 		ServiceName:              s.Service,
 		ServiceTags:              s.Tags,
+		ServiceAnnotation:        s.Annotation,
 		ServiceAddress:           s.Address,
 		ServicePort:              s.Port,
 		ServiceEnableTagOverride: s.EnableTagOverride,

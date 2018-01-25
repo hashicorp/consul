@@ -4029,6 +4029,7 @@ func TestSanitize(t *testing.T) {
     "Services": [
         {
             "Address": "",
+            "Annotation": {},
             "Check": {
                 "CheckID": "",
                 "DeregisterCriticalServiceAfter": "0s",

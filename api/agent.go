@@ -23,6 +23,7 @@ type AgentService struct {
 	ID                string
 	Service           string
 	Tags              []string
+	Annotation        map[string]string
 	Port              int
 	Address           string
 	EnableTagOverride bool
@@ -60,12 +61,13 @@ type MembersOpts struct {
 
 // AgentServiceRegistration is used to register a new service
 type AgentServiceRegistration struct {
-	ID                string   `json:",omitempty"`
-	Name              string   `json:",omitempty"`
-	Tags              []string `json:",omitempty"`
-	Port              int      `json:",omitempty"`
-	Address           string   `json:",omitempty"`
-	EnableTagOverride bool     `json:",omitempty"`
+	ID                string            `json:",omitempty"`
+	Name              string            `json:",omitempty"`
+	Tags              []string          `json:",omitempty"`
+	Annotation        map[string]string `json:",omitempty"`
+	Port              int               `json:",omitempty"`
+	Address           string            `json:",omitempty"`
+	EnableTagOverride bool              `json:",omitempty"`
 	Check             *AgentServiceCheck
 	Checks            AgentServiceChecks
 }

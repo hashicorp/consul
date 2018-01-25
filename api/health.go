@@ -25,15 +25,16 @@ const (
 
 // HealthCheck is used to represent a single check
 type HealthCheck struct {
-	Node        string
-	CheckID     string
-	Name        string
-	Status      string
-	Notes       string
-	Output      string
-	ServiceID   string
-	ServiceName string
-	ServiceTags []string
+	Node              string
+	CheckID           string
+	Name              string
+	Status            string
+	Notes             string
+	Output            string
+	ServiceID         string
+	ServiceName       string
+	ServiceTags       []string
+	ServiceAnnotation map[string]string
 
 	Definition HealthCheckDefinition
 }
