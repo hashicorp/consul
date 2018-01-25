@@ -4,21 +4,22 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"strings"
+	"time"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	hv1 "google.golang.org/grpc/health/grpc_health_v1"
-	"strings"
-	"time"
 )
 
 var ErrGRPCUnhealthy = fmt.Errorf("gRPC application didn't report service healthy")
 
 // GrpcHealthProbe connects to gRPC application and queries health service for application/service status.
 type GrpcHealthProbe struct {
-	server        string
-	request       *hv1.HealthCheckRequest
-	timeout       time.Duration
-	dialOptions   []grpc.DialOption
+	server      string
+	request     *hv1.HealthCheckRequest
+	timeout     time.Duration
+	dialOptions []grpc.DialOption
 }
 
 // NewGrpcHealthProbe constructs GrpcHealthProbe from target string in format
@@ -72,4 +73,3 @@ func (probe *GrpcHealthProbe) Check() (err error) {
 
 	return nil
 }
-
