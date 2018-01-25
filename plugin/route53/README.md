@@ -6,7 +6,7 @@
 
 ## Description
 
-The hosts plugin is useful for serving zones from resource record sets in AWS route53.
+The route53 plugin is useful for serving zones from resource record sets in AWS route53.
 This plugin only supports A and AAAA records. The route53 plugin can be used when
 coredns is deployed on AWS.
 
