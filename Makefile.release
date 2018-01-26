@@ -21,8 +21,11 @@
 # * Get an access token: https://help.github.com/articles/creating-an-access-token-for-command-line-use/
 # * export GITHUB_ACCESS_TOKEN=<token>
 # * Up the version in coremain/version.go
-# * Run: make -f Makefile.release release
-#   * will *commit* your change with 'Release $VERSION'
+# * Run: make DOCKER=coredns -f Makefile.release release
+#   * runs make -f Makefile.doc
+#   	* this is a noop if ronn can't be found
+#   * perform a go generate
+#   * will *commit* your change(s) with 'Release $VERSION'
 #   * push to github
 #   * build the release and do all that fluff.
 #
@@ -61,15 +64,20 @@ LINUX_ARCH:=amd64 arm arm64 ppc64le s390x
 PLATFORMS:=$(subst $(SPACE),$(COMMA),$(foreach arch,$(LINUX_ARCH),linux/$(arch)))
 
 ifeq ($(DOCKER),)
-    $(error "Please specify Docker registry to use. Use \"coredns\" for releases")
+    $(error "Please specify Docker registry to use. Use DOCKER=coredns for releases")
 endif
 
 all:
 	@echo Use the 'release' target to start a release
 
-release: commit push build tar upload
+release: pre commit push build tar upload
 
 docker: docker-build docker-push
+
+.PHONY: pre
+pre:
+	go generate
+	$(MAKE) -f Makefile.doc
 
 .PHONY: push
 push:

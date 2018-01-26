@@ -6,7 +6,13 @@ READMES:=$(subst /README.md,,$(READMES))
 PLUGINS:=$(subst plugin/,corendns-,$(PLUGINS))
 PLUGINS:=$(subst /README.md,(7),$(PLUGINS))
 
+ifeq (, $(shell which ronn))
+    $(warning "No ronn in $$PATH, exiting")
+all:
+	@echo "noop"
+else
 all: man/coredns.1 man/corefile.5 plugins
+endif
 
 man/coredns.1: coredns.1.md
 	sed -e 's/^\(#.*\)/\U\1/' $< > $@.md
