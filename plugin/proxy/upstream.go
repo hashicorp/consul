@@ -28,56 +28,66 @@ type staticUpstream struct {
 func NewStaticUpstreams(c *caddyfile.Dispenser) ([]Upstream, error) {
 	var upstreams []Upstream
 	for c.Next() {
-		upstream := &staticUpstream{
-			from: ".",
-			HealthCheck: healthcheck.HealthCheck{
-				FailTimeout: 5 * time.Second,
-				MaxFails:    3,
-			},
-			ex: newDNSEx(),
-		}
-
-		if !c.Args(&upstream.from) {
-			return upstreams, c.ArgErr()
-		}
-		upstream.from = plugin.Host(upstream.from).Normalize()
-
-		to := c.RemainingArgs()
-		if len(to) == 0 {
-			return upstreams, c.ArgErr()
-		}
-
-		// process the host list, substituting in any nameservers in files
-		toHosts, err := dnsutil.ParseHostPortOrFile(to...)
+		u, err := NewStaticUpstream(c)
 		if err != nil {
 			return upstreams, err
 		}
-
-		if len(toHosts) > max {
-			return upstreams, fmt.Errorf("more than %d TOs configured: %d", max, len(toHosts))
-		}
-
-		for c.NextBlock() {
-			if err := parseBlock(c, upstream); err != nil {
-				return upstreams, err
-			}
-		}
-
-		upstream.Hosts = make([]*healthcheck.UpstreamHost, len(toHosts))
-
-		for i, host := range toHosts {
-			uh := &healthcheck.UpstreamHost{
-				Name:        host,
-				FailTimeout: upstream.FailTimeout,
-				CheckDown:   checkDownFunc(upstream),
-			}
-			upstream.Hosts[i] = uh
-		}
-		upstream.Start()
-
-		upstreams = append(upstreams, upstream)
+		upstreams = append(upstreams, u)
 	}
 	return upstreams, nil
+}
+
+// NewStaticUpstream parses the configuration of a single upstream
+// starting from the FROM
+func NewStaticUpstream(c *caddyfile.Dispenser) (Upstream, error) {
+	upstream := &staticUpstream{
+		from: ".",
+		HealthCheck: healthcheck.HealthCheck{
+			FailTimeout: 5 * time.Second,
+			MaxFails:    3,
+		},
+		ex: newDNSEx(),
+	}
+
+	if !c.Args(&upstream.from) {
+		return upstream, c.ArgErr()
+	}
+	upstream.from = plugin.Host(upstream.from).Normalize()
+
+	to := c.RemainingArgs()
+	if len(to) == 0 {
+		return upstream, c.ArgErr()
+	}
+
+	// process the host list, substituting in any nameservers in files
+	toHosts, err := dnsutil.ParseHostPortOrFile(to...)
+	if err != nil {
+		return upstream, err
+	}
+
+	if len(toHosts) > max {
+		return upstream, fmt.Errorf("more than %d TOs configured: %d", max, len(toHosts))
+	}
+
+	for c.NextBlock() {
+		if err := parseBlock(c, upstream); err != nil {
+			return upstream, err
+		}
+	}
+
+	upstream.Hosts = make([]*healthcheck.UpstreamHost, len(toHosts))
+
+	for i, host := range toHosts {
+		uh := &healthcheck.UpstreamHost{
+			Name:        host,
+			FailTimeout: upstream.FailTimeout,
+			CheckDown:   checkDownFunc(upstream),
+		}
+		upstream.Hosts[i] = uh
+	}
+	upstream.Start()
+
+	return upstream, nil
 }
 
 func parseBlock(c *caddyfile.Dispenser, u *staticUpstream) error {
