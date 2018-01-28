@@ -131,9 +131,9 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 	}
 
 	raftVsn := 0
-	raft_vsn_str, ok := m.Tags["raft_vsn"]
+	raftVsnStr, ok := m.Tags["raft_vsn"]
 	if ok {
-		raftVsn, err = strconv.Atoi(raft_vsn_str)
+		raftVsn, err = strconv.Atoi(raftVsnStr)
 		if err != nil {
 			return false, nil
 		}
@@ -149,7 +149,7 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		Port:         port,
 		SegmentAddrs: segmentAddrs,
 		SegmentPorts: segmentPorts,
-		WanJoinPort:  wan_join_port,
+		WanJoinPort:  wanJoinPort,
 		Bootstrap:    bootstrap,
 		Expect:       expect,
 		Addr:         addr,
