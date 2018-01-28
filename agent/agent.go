@@ -609,9 +609,9 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 			for _, arg := range raw {
 				if v, ok := arg.(string); !ok {
 					return fmt.Errorf("Watch args must be a list of strings")
-				} else {
-					parsed = append(parsed, v)
 				}
+
+				parsed = append(parsed, v)
 			}
 			wp.Exempt["args"] = parsed
 		} else if hasArgs && !ok {
