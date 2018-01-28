@@ -64,7 +64,7 @@ func TestKubernetesParse(t *testing.T) {
 		},
 		{
 			`kubernetes coredns.local {
-	endpoint http://localhost:9090
+	endpoint http://localhost:9090 http://localhost:9091
 }`,
 			false,
 			"",
