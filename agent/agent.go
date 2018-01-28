@@ -607,7 +607,8 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 		if raw, ok := args.([]interface{}); hasArgs && ok {
 			var parsed []string
 			for _, arg := range raw {
-				if v, ok := arg.(string); !ok {
+				v, ok := arg.(string)
+				if !ok {
 					return fmt.Errorf("Watch args must be a list of strings")
 				}
 

@@ -110,12 +110,12 @@ func GetDNSConfig(conf *config.RuntimeConfig) *dnsConfig {
 func (d *DNSServer) ListenAndServe(network, addr string, notif func()) error {
 	mux := dns.NewServeMux()
 	mux.HandleFunc("arpa.", d.handlePtr)
-	mux.HandleFunc(s.domain, dhandleQuery)
+	mux.HandleFunc(d.domain, d.handleQuery)
 	if len(d.recursors) > 0 {
 		mux.HandleFunc(".", d.handleRecurse)
 	}
 
-	s.Server = &dns.Server{
+	d.Server = &dns.Server{
 		Addr:              addr,
 		Net:               network,
 		Handler:           mux,
