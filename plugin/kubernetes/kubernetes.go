@@ -49,7 +49,7 @@ type Kubernetes struct {
 	autoPathSearch     []string // Local search path from /etc/resolv.conf. Needed for autopath.
 }
 
-// New returns a intialized Kubernetes. It default interfaceAddrFunc to return 127.0.0.1. All other
+// New returns a initialized Kubernetes. It default interfaceAddrFunc to return 127.0.0.1. All other
 // values default to their zero value, primaryZoneIndex will thus point to the first zone.
 func New(zones []string) *Kubernetes {
 	k := new(Kubernetes)
