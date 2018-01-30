@@ -63,10 +63,12 @@ func (d *dnsEx) Exchange(ctx context.Context, addr string, state request.Request
 	if err != nil {
 		return nil, err
 	}
-	// Make sure it fits in the DNS response.
-	reply, _ = state.Scrub(reply)
 	reply.Compress = true
 	reply.Id = state.Req.Id
+	// When using force_tcp the upstream can send a message that is too big for
+	// the udp buffer, hence we need to truncate the message to at least make it
+	// fit the udp buffer.
+	reply, _ = state.Scrub(reply)
 
 	return reply, nil
 }
