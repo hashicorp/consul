@@ -62,10 +62,7 @@ func (dio *dnstapIO) newConnect() error {
 		}
 	}
 
-	if err = dio.enc.resetWriter(dio.conn); err != nil {
-		return err
-	}
-	return nil
+	return dio.enc.resetWriter(dio.conn)
 }
 
 // Connect connects to the dnstop endpoint.
