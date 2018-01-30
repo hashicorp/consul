@@ -52,17 +52,16 @@ func TestRegisterPolicy(t *testing.T) {
 func TestHealthCheck(t *testing.T) {
 	u := &HealthCheck{
 		Hosts:       testPool(),
+		Path:        "/",
 		FailTimeout: 10 * time.Second,
 		MaxFails:    1,
 	}
 
 	for i, h := range u.Hosts {
-		u.Hosts[i].Fails = 1
 		u.Hosts[i].CheckURL = u.normalizeCheckURL(h.Name)
 	}
 
 	u.healthCheck()
-
 	time.Sleep(time.Duration(1 * time.Second)) // sleep a bit, it's async now
 
 	if u.Hosts[0].Down() {
@@ -70,6 +69,27 @@ func TestHealthCheck(t *testing.T) {
 	}
 	if !u.Hosts[1].Down() {
 		t.Error("Expected second host in testpool to fail healthcheck.")
+	}
+}
+
+func TestHealthCheckDisabled(t *testing.T) {
+	u := &HealthCheck{
+		Hosts:       testPool(),
+		FailTimeout: 10 * time.Second,
+		MaxFails:    1,
+	}
+
+	for i, h := range u.Hosts {
+		u.Hosts[i].CheckURL = u.normalizeCheckURL(h.Name)
+	}
+
+	u.healthCheck()
+	time.Sleep(time.Duration(1 * time.Second)) // sleep a bit, it's async now
+
+	for i, h := range u.Hosts {
+		if h.Down() {
+			t.Errorf("Expected host %d in testpool to not be down with healthchecks disabled.", i+1)
+		}
 	}
 }
 

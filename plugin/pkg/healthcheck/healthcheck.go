@@ -212,6 +212,10 @@ func (u *HealthCheck) Select() *UpstreamHost {
 
 // normalizeCheckURL creates a proper URL for the health check.
 func (u *HealthCheck) normalizeCheckURL(name string) string {
+	if u.Path == "" {
+		return ""
+	}
+
 	// The DNS server might be an HTTP server.  If so, extract its name.
 	hostName := name
 	ret, err := url.Parse(name)
