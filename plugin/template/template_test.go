@@ -1,7 +1,6 @@
 package template
 
 import (
-	"context"
 	"fmt"
 	"regexp"
 	"testing"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/mholt/caddy"
 	"github.com/miekg/dns"
+	"golang.org/x/net/context"
 )
 
 func TestHandler(t *testing.T) {

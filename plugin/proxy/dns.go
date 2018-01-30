@@ -1,13 +1,13 @@
 package proxy
 
 import (
-	"context"
 	"net"
 	"time"
 
 	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
+	"golang.org/x/net/context"
 )
 
 type dnsEx struct {

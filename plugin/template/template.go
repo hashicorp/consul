@@ -2,7 +2,6 @@ package template
 
 import (
 	"bytes"
-	"context"
 	"regexp"
 	"strconv"
 	gotmpl "text/template"
@@ -12,6 +11,7 @@ import (
 	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
+	"golang.org/x/net/context"
 )
 
 // Handler is a plugin handler that takes a query and templates a response.
