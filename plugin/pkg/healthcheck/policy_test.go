@@ -32,8 +32,8 @@ func (r *customPolicy) Select(pool HostPool) *UpstreamHost {
 
 func testPool() HostPool {
 	pool := []*UpstreamHost{
-		{Name: workableServer.URL},         // this should resolve (healthcheck test)
-		{Name: "http://shouldnot.resolve"}, // this shouldn't
+		{Name: workableServer.URL},            // this should resolve (healthcheck test)
+		{Name: "http://shouldnot.resolve:85"}, // this shouldn't, especially on port other than 80
 		{Name: "http://C"},
 	}
 	return HostPool(pool)
@@ -134,5 +134,26 @@ func TestCustomPolicy(t *testing.T) {
 	h := customPolicy.Select(pool)
 	if h != pool[0] {
 		t.Error("Expected custom policy host to be the first host.")
+	}
+}
+
+func TestFirstPolicy(t *testing.T) {
+	pool := testPool()
+	rrPolicy := &First{}
+	h := rrPolicy.Select(pool)
+	// First selected host is 1, because counter starts at 0
+	// and increments before host is selected
+	if h != pool[0] {
+		t.Error("Expected always first to be first host in the pool.")
+	}
+	h = rrPolicy.Select(pool)
+	if h != pool[0] {
+		t.Error("Expected always first to be first host in the pool, even in second call")
+	}
+	// set this first in pool as failed
+	pool[0].Fails = 1
+	h = rrPolicy.Select(pool)
+	if h != pool[1] {
+		t.Error("Expected first to be he second in pool if the first one is down.")
 	}
 }

@@ -27,6 +27,7 @@ func init() {
 	RegisterPolicy("random", func() Policy { return &Random{} })
 	RegisterPolicy("least_conn", func() Policy { return &LeastConn{} })
 	RegisterPolicy("round_robin", func() Policy { return &RoundRobin{} })
+	RegisterPolicy("first", func() Policy { return &First{} })
 }
 
 // Random is a policy that selects up hosts from a pool at random.
@@ -117,4 +118,20 @@ func (r *RoundRobin) Select(pool HostPool) *UpstreamHost {
 		host = pool[(selection+i)%poolLen]
 	}
 	return host
+}
+
+// First is a policy that selects always the first healthy host in the list order.
+type First struct{}
+
+// Select always the first that is not Down.
+func (r *First) Select(pool HostPool) *UpstreamHost {
+	for i := 0; i < len(pool); i++ {
+		host := pool[i]
+		if host.Down() {
+			continue
+		}
+		return host
+	}
+	// return the first one, anyway none is correct
+	return nil
 }

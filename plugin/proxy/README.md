@@ -25,7 +25,7 @@ However, advanced features including load balancing can be utilized with an expa
 
 ~~~
 proxy FROM TO... {
-    policy random|least_conn|round_robin
+    policy random|least_conn|round_robin|first
     fail_timeout DURATION
     max_fails INTEGER
     health_check PATH:PORT [DURATION]
@@ -39,7 +39,7 @@ proxy FROM TO... {
 * **TO** is the destination endpoint to proxy to. At least one is required, but multiple may be
   specified. **TO** may be an IP:Port pair, or may reference a file in resolv.conf format
 * `policy` is the load balancing policy to use; applies only with multiple backends. May be one of
-  random, least_conn, or round_robin. Default is random.
+  random, least_conn, round_robin or first. Default is random.
 * `fail_timeout` specifies how long to consider a backend as down after it has failed. While it is
   down, requests will not be routed to that backend. A backend is "down" if CoreDNS fails to
   communicate with it. The default value is 2 seconds ("2s").
