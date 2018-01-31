@@ -13,7 +13,7 @@ Consul is only a single command-line application: `consul`. This application
 then takes a subcommand such as "agent" or "members". The complete list of
 subcommands is in the navigation to the left.
 
-The `Consul` CLI is a well-behaved command line application. In erroneous
+The `consul` CLI is a well-behaved command line application. In erroneous
 cases, a non-zero exit status will be returned. It also responds to `-h` and `--help`
 as you'd most likely expect. And some commands that expect input accept
 "-" as a parameter to tell Consul to read the input from stdin.

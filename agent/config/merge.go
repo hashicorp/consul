@@ -11,7 +11,7 @@ import (
 // * only values of type struct, slice, map and pointer to simple types are allowed. Other types panic.
 // * when merging two structs the result is the recursive merge of all fields according to the rules below
 // * when merging two slices the result is the second slice appended to the first
-// * when merging two maps the result is the second map if it is not empty, otherwise the first
+// * when merging two maps the result is the second map overlaid on the first
 // * when merging two pointer values the result is the second value if it is not nil, otherwise the first
 func Merge(files ...Config) Config {
 	var a Config
@@ -28,10 +28,16 @@ func merge(a, b interface{}) interface{} {
 func mergeValue(a, b reflect.Value) reflect.Value {
 	switch a.Kind() {
 	case reflect.Map:
-		if b.Len() > 0 {
-			return b
+		r := reflect.MakeMap(a.Type())
+		for _, k := range a.MapKeys() {
+			v := a.MapIndex(k)
+			r.SetMapIndex(k, v)
 		}
-		return a
+		for _, k := range b.MapKeys() {
+			v := b.MapIndex(k)
+			r.SetMapIndex(k, v)
+		}
+		return r
 
 	case reflect.Ptr:
 		if !b.IsNil() {

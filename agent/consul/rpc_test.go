@@ -77,6 +77,24 @@ func TestRPC_NoLeader_Retry(t *testing.T) {
 	}
 }
 
+type MockSink struct {
+	*bytes.Buffer
+	cancel bool
+}
+
+func (m *MockSink) ID() string {
+	return "Mock"
+}
+
+func (m *MockSink) Cancel() error {
+	m.cancel = true
+	return nil
+}
+
+func (m *MockSink) Close() error {
+	return nil
+}
+
 func TestRPC_blockingQuery(t *testing.T) {
 	t.Parallel()
 	dir, s := testServer(t)

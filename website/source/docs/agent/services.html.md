@@ -17,7 +17,7 @@ or added at runtime over the HTTP interface.
 
 ## Service Definition
 
-A service definition that is a script looks like:
+A service definition is a script that looks like:
 
 ```javascript
 {

@@ -1,7 +1,6 @@
 package state
 
 import (
-	"os"
 	"testing"
 	"time"
 )
@@ -24,10 +23,6 @@ func TestTombstoneGC_invalid(t *testing.T) {
 }
 
 func TestTombstoneGC(t *testing.T) {
-	if os.Getenv("TRAVIS") == "true" {
-		t.Skip("GC test is flaky on travis-ci (see #3670)")
-	}
-
 	ttl := 20 * time.Millisecond
 	gran := 5 * time.Millisecond
 	gc, err := NewTombstoneGC(ttl, gran)
@@ -64,6 +59,14 @@ func TestTombstoneGC(t *testing.T) {
 	start2 := time.Now()
 	gc.Hint(120)
 	gc.Hint(125)
+
+	// Check that we only have a single bin (this cross-checks #3670).
+	gc.Lock()
+	bins := len(gc.expires)
+	gc.Unlock()
+	if got, want := bins, 1; got != want {
+		t.Fatalf("got %d want %d", got, want)
+	}
 
 	if !gc.PendingExpiration() {
 		t.Fatalf("should be pending")

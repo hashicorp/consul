@@ -46,7 +46,7 @@ exit
 ```
 
 > NOTE: This demo will query the HashiCorp Checkpoint service to determine
-> the the latest Consul release version and install that version by default,
+> the latest Consul release version and install that version by default,
 > but if you need a different Consul version, set the `CONSUL_DEMO_VERSION`
 > environment variable before `vagrant up` like this:
 > `CONSUL_DEMO_VERSION=0.6.4 vagrant up`

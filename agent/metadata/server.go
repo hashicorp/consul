@@ -36,7 +36,6 @@ type Server struct {
 	Build        version.Version
 	Version      int
 	RaftVersion  int
-	NonVoter     bool
 	Addr         net.Addr
 	Status       serf.MemberStatus
 
@@ -140,8 +139,6 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		}
 	}
 
-	_, nonVoter := m.Tags["nonvoter"]
-
 	addr := &net.TCPAddr{IP: m.Addr, Port: port}
 
 	parts := &Server{
@@ -160,7 +157,6 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		Version:      vsn,
 		RaftVersion:  raft_vsn,
 		Status:       m.Status,
-		NonVoter:     nonVoter,
 		UseTLS:       useTLS,
 	}
 	return true, parts

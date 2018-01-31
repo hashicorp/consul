@@ -40,7 +40,8 @@ import (
 //
 // The config sources are merged sequentially and later values
 // overwrite previously set values. Slice values are merged by
-// concatenating the two slices.
+// concatenating the two slices. Map values are merged by over-
+// laying the later maps on top of earlier ones.
 //
 // Then call Validate() to perform the semantic validation to ensure
 // that the configuration is ready to be used.
@@ -164,12 +165,25 @@ func (b *Builder) ReadPath(path string) ([]Source, error) {
 
 	var sources []Source
 	for _, fi := range fis {
+		fp := filepath.Join(path, fi.Name())
+		// check for a symlink and resolve the path
+		if fi.Mode()&os.ModeSymlink > 0 {
+			var err error
+			fp, err = filepath.EvalSymlinks(fp)
+			if err != nil {
+				return nil, err
+			}
+			fi, err = os.Stat(fp)
+			if err != nil {
+				return nil, err
+			}
+		}
 		// do not recurse into sub dirs
 		if fi.IsDir() {
 			continue
 		}
 
-		src, err := b.ReadFile(filepath.Join(path, fi.Name()))
+		src, err := b.ReadFile(fp)
 		if err != nil {
 			return nil, err
 		}
@@ -355,6 +369,9 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	if ipaddr.IsAny(b.stringVal(c.AdvertiseAddrWAN)) {
 		return RuntimeConfig{}, fmt.Errorf("Advertise WAN address cannot be 0.0.0.0, :: or [::]")
 	}
+	if serfPortWAN < 0 {
+		return RuntimeConfig{}, fmt.Errorf("ports.serf_wan must be a valid port from 1 to 65535")
+	}
 
 	bindAddr := bindAddrs[0].(*net.IPAddr)
 	advertiseAddr := b.makeIPAddr(b.expandFirstIP("advertise_addr", c.AdvertiseAddrLAN), bindAddr)
@@ -386,7 +403,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 			return RuntimeConfig{}, fmt.Errorf("No %s address found", addrtyp)
 		}
 		if len(advertiseAddrs) > 1 {
-			return RuntimeConfig{}, fmt.Errorf("Multiple %s addresses found. Please configure one", addrtyp)
+			return RuntimeConfig{}, fmt.Errorf("Multiple %s addresses found. Please configure one with 'bind' and/or 'advertise'.", addrtyp)
 		}
 		advertiseAddr = advertiseAddrs[0]
 	}

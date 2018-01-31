@@ -1,4 +1,4 @@
-package structs
+package autopilot
 
 import (
 	"testing"
@@ -12,7 +12,7 @@ func TestServerHealth_IsHealthy(t *testing.T) {
 		health    ServerHealth
 		lastTerm  uint64
 		lastIndex uint64
-		conf      AutopilotConfig
+		conf      Config
 		expected  bool
 	}{
 		// Healthy server, all values within allowed limits
@@ -20,7 +20,7 @@ func TestServerHealth_IsHealthy(t *testing.T) {
 			health:    ServerHealth{SerfStatus: serf.StatusAlive, LastTerm: 1, LastIndex: 0},
 			lastTerm:  1,
 			lastIndex: 10,
-			conf:      AutopilotConfig{MaxTrailingLogs: 20},
+			conf:      Config{MaxTrailingLogs: 20},
 			expected:  true,
 		},
 		// Serf status failed
@@ -38,7 +38,7 @@ func TestServerHealth_IsHealthy(t *testing.T) {
 		{
 			health:    ServerHealth{SerfStatus: serf.StatusAlive, LastIndex: 0},
 			lastIndex: 10,
-			conf:      AutopilotConfig{MaxTrailingLogs: 5},
+			conf:      Config{MaxTrailingLogs: 5},
 			expected:  false,
 		},
 	}
@@ -56,14 +56,14 @@ func TestServerHealth_IsStable(t *testing.T) {
 	cases := []struct {
 		health   *ServerHealth
 		now      time.Time
-		conf     AutopilotConfig
+		conf     Config
 		expected bool
 	}{
 		// Healthy server, all values within allowed limits
 		{
 			health:   &ServerHealth{Healthy: true, StableSince: start},
 			now:      start.Add(15 * time.Second),
-			conf:     AutopilotConfig{ServerStabilizationTime: 10 * time.Second},
+			conf:     Config{ServerStabilizationTime: 10 * time.Second},
 			expected: true,
 		},
 		// Unhealthy server
@@ -75,7 +75,7 @@ func TestServerHealth_IsStable(t *testing.T) {
 		{
 			health:   &ServerHealth{Healthy: true, StableSince: start},
 			now:      start.Add(5 * time.Second),
-			conf:     AutopilotConfig{ServerStabilizationTime: 10 * time.Second},
+			conf:     Config{ServerStabilizationTime: 10 * time.Second},
 			expected: false,
 		},
 		// Nil struct

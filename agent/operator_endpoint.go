@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	multierror "github.com/hashicorp/go-multierror"
@@ -194,7 +195,7 @@ func (s *HTTPServer) OperatorAutopilotConfiguration(resp http.ResponseWriter, re
 			return nil, nil
 		}
 
-		var reply structs.AutopilotConfig
+		var reply autopilot.Config
 		if err := s.agent.RPC("Operator.AutopilotGetConfiguration", &args, &reply); err != nil {
 			return nil, err
 		}
@@ -226,7 +227,7 @@ func (s *HTTPServer) OperatorAutopilotConfiguration(resp http.ResponseWriter, re
 			return nil, nil
 		}
 
-		args.Config = structs.AutopilotConfig{
+		args.Config = autopilot.Config{
 			CleanupDeadServers:      conf.CleanupDeadServers,
 			LastContactThreshold:    conf.LastContactThreshold.Duration(),
 			MaxTrailingLogs:         conf.MaxTrailingLogs,
@@ -276,7 +277,7 @@ func (s *HTTPServer) OperatorServerHealth(resp http.ResponseWriter, req *http.Re
 		return nil, nil
 	}
 
-	var reply structs.OperatorHealthReply
+	var reply autopilot.OperatorHealthReply
 	if err := s.agent.RPC("Operator.ServerHealth", &args, &reply); err != nil {
 		return nil, err
 	}

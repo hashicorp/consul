@@ -301,7 +301,7 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 		if servers[1].Suffrage != raft.Nonvoter {
 			r.Fatalf("bad: %v", servers)
 		}
-		health := s1.getServerHealth(string(servers[1].ID))
+		health := s1.autopilot.GetServerHealth(string(servers[1].ID))
 		if health == nil {
 			r.Fatal("nil health")
 		}

@@ -34,19 +34,19 @@ func realMain() int {
 		}
 	}
 
-	var cmds []string
-	for c := range command.Commands {
-		if c != "configtest" {
-			cmds = append(cmds, c)
-		}
+	ui := &cli.BasicUi{Writer: os.Stdout, ErrorWriter: os.Stderr}
+	cmds := command.Map(ui)
+	var names []string
+	for c := range cmds {
+		names = append(names, c)
 	}
 
 	cli := &cli.CLI{
 		Args:         args,
-		Commands:     command.Commands,
+		Commands:     cmds,
 		Autocomplete: true,
 		Name:         "consul",
-		HelpFunc:     cli.FilteredHelpFunc(cmds, cli.BasicHelpFunc("consul")),
+		HelpFunc:     cli.FilteredHelpFunc(names, cli.BasicHelpFunc("consul")),
 	}
 
 	exitCode, err := cli.Run()

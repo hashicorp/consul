@@ -35,14 +35,6 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
 	}
 
-	var cs lib.CoordinateSet
-	if !s.agent.config.DisableCoordinates {
-		var err error
-		if cs, err = s.agent.GetLANCoordinate(); err != nil {
-			return nil, err
-		}
-	}
-
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
@@ -54,15 +46,25 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 		return nil, acl.ErrPermissionDenied
 	}
 
+	var cs lib.CoordinateSet
+	if !s.agent.config.DisableCoordinates {
+		var err error
+		if cs, err = s.agent.GetLANCoordinate(); err != nil {
+			return nil, err
+		}
+	}
+
 	config := struct {
 		Datacenter string
 		NodeName   string
+		NodeID     string
 		Revision   string
 		Server     bool
 		Version    string
 	}{
 		Datacenter: s.agent.config.Datacenter,
 		NodeName:   s.agent.config.NodeName,
+		NodeID:     string(s.agent.config.NodeID),
 		Revision:   s.agent.config.Revision,
 		Server:     s.agent.config.ServerMode,
 		Version:    s.agent.config.Version,
@@ -809,6 +811,9 @@ func (h *httpLogHandler) HandleLog(log string) {
 }
 
 func (s *HTTPServer) AgentToken(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if s.checkACLDisabled(resp, req) {
+		return nil, nil
+	}
 	if req.Method != "PUT" {
 		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
 	}

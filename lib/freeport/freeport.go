@@ -16,7 +16,7 @@ const (
 	// blockSize is the size of the allocated port block. ports are given out
 	// consecutively from that block with roll-over for the lifetime of the
 	// application/test run.
-	blockSize = 500
+	blockSize = 1500
 
 	// maxBlocks is the number of available port blocks.
 	// lowPort + maxBlocks * blockSize must be less than 65535.

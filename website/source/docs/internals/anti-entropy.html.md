@@ -61,7 +61,7 @@ Entropy is the tendency of systems to become increasingly disordered. Consul's
 anti-entropy mechanisms are designed to counter this tendency, to keep the
 state of the cluster ordered even through failures of its components.
 
-Consul has a clear separation between the global service catalog and the agent
+Consul has a clear separation between the global service catalog and the agent's
 local state as discussed above. The anti-entropy mechanism reconciles these two
 views of the world: anti-entropy is a synchronization of the local agent state and
 the catalog. For example, when a user registers a new service or check with the
@@ -80,7 +80,7 @@ any services or checks exist in the catalog that the agent is not aware of, they
 will be automatically removed to make the catalog reflect the proper set of
 services and health information for that agent. Consul treats the state of the
 agent as authoritative; if there are any differences between the agent
-and catalog view, the agent local view will always be used.
+and catalog view, the agent-local view will always be used.
 
 ### Periodic Synchronization
 

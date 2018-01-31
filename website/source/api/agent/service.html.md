@@ -51,7 +51,7 @@ $ curl \
   "redis": {
     "ID": "redis",
     "Service": "redis",
-    "Tags": null,
+    "Tags": [],
     "Address": "",
     "Port": 8000
   }
@@ -95,6 +95,8 @@ The table below shows this endpoint's support for
 - `Address` `(string: "")` - Specifies the address of the service. If not
   provided, the agent's address is used as the address for the service during
   DNS queries.
+
+- `Port` `(int: 0)` - Specifies the port of the service.
 
 - `Check` `(Check: nil)` - Specifies a check. Please see the
   [check documentation](/api/agent/check.html) for more information about the

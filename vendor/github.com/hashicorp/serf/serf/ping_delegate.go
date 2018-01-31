@@ -68,7 +68,8 @@ func (p *pingDelegate) NotifyPingComplete(other *memberlist.Node, rtt time.Durat
 	before := p.serf.coordClient.GetCoordinate()
 	after, err := p.serf.coordClient.Update(other.Name, &coord, rtt)
 	if err != nil {
-		p.serf.logger.Printf("[ERR] serf: Rejected coordinate from %s: %v\n",
+		metrics.IncrCounter([]string{"serf", "coordinate", "rejected"}, 1)
+		p.serf.logger.Printf("[TRACE] serf: Rejected coordinate from %s: %v\n",
 			other.Name, err)
 		return
 	}

@@ -26,6 +26,7 @@ func TestMerge(t *testing.T) {
 				{StartJoinAddrsLAN: []string{"b"}},
 				{NodeMeta: map[string]string{"a": "b"}},
 				{NodeMeta: map[string]string{"c": "d"}},
+				{NodeMeta: map[string]string{"c": "e"}},
 				{Ports: Ports{DNS: pInt(1)}},
 				{Ports: Ports{DNS: pInt(2), HTTP: pInt(3)}},
 			},
@@ -34,8 +35,11 @@ func TestMerge(t *testing.T) {
 				RaftProtocol:      pInt(2),
 				ServerMode:        pBool(true),
 				StartJoinAddrsLAN: []string{"a", "b"},
-				NodeMeta:          map[string]string{"c": "d"},
-				Ports:             Ports{DNS: pInt(2), HTTP: pInt(3)},
+				NodeMeta: map[string]string{
+					"a": "b",
+					"c": "e",
+				},
+				Ports: Ports{DNS: pInt(2), HTTP: pInt(3)},
 			},
 		},
 	}

@@ -72,7 +72,7 @@ the replicated log until the expected number of servers has successfully joined.
 You can read more about this in the [bootstrapping
 guide](/docs/guides/bootstrapping.html).
 
-We've included the [`-enable_script_checks`](/docs/agent/options.html#_enable_script_checks)
+We've included the [`-enable-script-checks`](/docs/agent/options.html#_enable_script_checks)
 flag set to `true` in order to enable health checks that can execute external scripts.
 This will be used in examples later. For production use, you'd want to configure
 [ACLs](/docs/guides/acl.html) in conjunction with this to control the ability to

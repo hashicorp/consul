@@ -7,7 +7,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/consul/autopilot"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/version"
@@ -335,7 +336,7 @@ type Config struct {
 
 	// AutopilotConfig is used to apply the initial autopilot config when
 	// bootstrapping.
-	AutopilotConfig *structs.AutopilotConfig
+	AutopilotConfig *autopilot.Config
 
 	// ServerHealthInterval is the frequency with which the health of the
 	// servers in the cluster will be updated.
@@ -389,8 +390,8 @@ func DefaultConfig() *Config {
 		NodeName:                 hostname,
 		RPCAddr:                  DefaultRPCAddr,
 		RaftConfig:               raft.DefaultConfig(),
-		SerfLANConfig:            serf.DefaultConfig(),
-		SerfWANConfig:            serf.DefaultConfig(),
+		SerfLANConfig:            lib.SerfDefaultConfig(),
+		SerfWANConfig:            lib.SerfDefaultConfig(),
 		SerfFloodInterval:        60 * time.Second,
 		ReconcileInterval:        60 * time.Second,
 		ProtocolVersion:          ProtocolVersion2Compatible,
@@ -415,12 +416,15 @@ func DefaultConfig() *Config {
 
 		TLSMinVersion: "tls10",
 
-		AutopilotConfig: &structs.AutopilotConfig{
+		// TODO (slackpad) - Until #3744 is done, we need to keep these
+		// in sync with agent/config/default.go.
+		AutopilotConfig: &autopilot.Config{
 			CleanupDeadServers:      true,
 			LastContactThreshold:    200 * time.Millisecond,
 			MaxTrailingLogs:         250,
 			ServerStabilizationTime: 10 * time.Second,
 		},
+
 		ServerHealthInterval: 2 * time.Second,
 		AutopilotInterval:    10 * time.Second,
 	}

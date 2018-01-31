@@ -1,6 +1,6 @@
-FROM ubuntu:trusty
+FROM ubuntu:bionic
 
-ENV GOVERSION 1.9.2
+ENV GOVERSION 1.9.3
 
 RUN apt-get update -y && \
     apt-get install --no-install-recommends -y -q \
@@ -10,7 +10,8 @@ RUN apt-get update -y && \
             git \
             ruby \
             ruby-dev \
-            zip && \
+            zip \
+            zlib1g-dev && \
     gem install bundler
 
 RUN mkdir /goroot && \

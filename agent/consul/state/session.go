@@ -9,6 +9,93 @@ import (
 	"github.com/hashicorp/go-memdb"
 )
 
+// sessionsTableSchema returns a new table schema used for storing session
+// information.
+func sessionsTableSchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: "sessions",
+		Indexes: map[string]*memdb.IndexSchema{
+			"id": &memdb.IndexSchema{
+				Name:         "id",
+				AllowMissing: false,
+				Unique:       true,
+				Indexer: &memdb.UUIDFieldIndex{
+					Field: "ID",
+				},
+			},
+			"node": &memdb.IndexSchema{
+				Name:         "node",
+				AllowMissing: false,
+				Unique:       false,
+				Indexer: &memdb.StringFieldIndex{
+					Field:     "Node",
+					Lowercase: true,
+				},
+			},
+		},
+	}
+}
+
+// sessionChecksTableSchema returns a new table schema used for storing session
+// checks.
+func sessionChecksTableSchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: "session_checks",
+		Indexes: map[string]*memdb.IndexSchema{
+			"id": &memdb.IndexSchema{
+				Name:         "id",
+				AllowMissing: false,
+				Unique:       true,
+				Indexer: &memdb.CompoundIndex{
+					Indexes: []memdb.Indexer{
+						&memdb.StringFieldIndex{
+							Field:     "Node",
+							Lowercase: true,
+						},
+						&memdb.StringFieldIndex{
+							Field:     "CheckID",
+							Lowercase: true,
+						},
+						&memdb.UUIDFieldIndex{
+							Field: "Session",
+						},
+					},
+				},
+			},
+			"node_check": &memdb.IndexSchema{
+				Name:         "node_check",
+				AllowMissing: false,
+				Unique:       false,
+				Indexer: &memdb.CompoundIndex{
+					Indexes: []memdb.Indexer{
+						&memdb.StringFieldIndex{
+							Field:     "Node",
+							Lowercase: true,
+						},
+						&memdb.StringFieldIndex{
+							Field:     "CheckID",
+							Lowercase: true,
+						},
+					},
+				},
+			},
+			"session": &memdb.IndexSchema{
+				Name:         "session",
+				AllowMissing: false,
+				Unique:       false,
+				Indexer: &memdb.UUIDFieldIndex{
+					Field: "Session",
+				},
+			},
+		},
+	}
+}
+
+func init() {
+	registerSchema(sessionsTableSchema)
+	registerSchema(sessionChecksTableSchema)
+}
+
 // Sessions is used to pull the full list of sessions for use during snapshots.
 func (s *Snapshot) Sessions() (memdb.ResultIterator, error) {
 	iter, err := s.tx.Get("sessions", "id")

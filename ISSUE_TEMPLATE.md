@@ -5,6 +5,10 @@ of the [Consul Guides](https://www.consul.io/docs/guides/index.html).
 
 When filing a bug, please include the following:
 
+### Description of the Issue (and unexpected/desired result)
+
+### Reproduction steps
+
 ### `consul version` for both Client and Server
 Client: `[client version here]`
 Server: `[server version here]`
@@ -21,10 +25,6 @@ Server:
 ```
 
 ### Operating system and Environment details
-
-### Description of the Issue (and unexpected/desired result)
-
-### Reproduction steps
 
 ### Log Fragments or Link to [gist](https://gist.github.com/)
 

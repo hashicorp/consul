@@ -812,7 +812,7 @@ func TestLeader_RollRaftServer(t *testing.T) {
 
 	for _, s := range []*Server{s1, s3} {
 		retry.Run(t, func(r *retry.R) {
-			minVer, err := ServerMinRaftProtocol(s.LANMembers())
+			minVer, err := s.autopilot.MinRaftProtocol()
 			if err != nil {
 				r.Fatal(err)
 			}

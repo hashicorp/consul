@@ -767,30 +767,19 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	if a.config.SessionTTLMin != 0 {
 		base.SessionTTLMin = a.config.SessionTTLMin
 	}
-	if a.config.AutopilotCleanupDeadServers {
-		base.AutopilotConfig.CleanupDeadServers = a.config.AutopilotCleanupDeadServers
-	}
-	if a.config.AutopilotLastContactThreshold != 0 {
-		base.AutopilotConfig.LastContactThreshold = a.config.AutopilotLastContactThreshold
-	}
-	if a.config.AutopilotMaxTrailingLogs != 0 {
-		base.AutopilotConfig.MaxTrailingLogs = uint64(a.config.AutopilotMaxTrailingLogs)
-	}
-	if a.config.AutopilotServerStabilizationTime != 0 {
-		base.AutopilotConfig.ServerStabilizationTime = a.config.AutopilotServerStabilizationTime
-	}
 	if a.config.NonVotingServer {
 		base.NonVoter = a.config.NonVotingServer
 	}
-	if a.config.AutopilotRedundancyZoneTag != "" {
-		base.AutopilotConfig.RedundancyZoneTag = a.config.AutopilotRedundancyZoneTag
-	}
-	if a.config.AutopilotDisableUpgradeMigration {
-		base.AutopilotConfig.DisableUpgradeMigration = a.config.AutopilotDisableUpgradeMigration
-	}
-	if a.config.AutopilotUpgradeVersionTag != "" {
-		base.AutopilotConfig.UpgradeVersionTag = a.config.AutopilotUpgradeVersionTag
-	}
+
+	// These are fully specified in the agent defaults, so we can simply
+	// copy them over.
+	base.AutopilotConfig.CleanupDeadServers = a.config.AutopilotCleanupDeadServers
+	base.AutopilotConfig.LastContactThreshold = a.config.AutopilotLastContactThreshold
+	base.AutopilotConfig.MaxTrailingLogs = uint64(a.config.AutopilotMaxTrailingLogs)
+	base.AutopilotConfig.ServerStabilizationTime = a.config.AutopilotServerStabilizationTime
+	base.AutopilotConfig.RedundancyZoneTag = a.config.AutopilotRedundancyZoneTag
+	base.AutopilotConfig.DisableUpgradeMigration = a.config.AutopilotDisableUpgradeMigration
+	base.AutopilotConfig.UpgradeVersionTag = a.config.AutopilotUpgradeVersionTag
 
 	// make sure the advertise address is always set
 	if base.RPCAdvertise == nil {
@@ -1603,6 +1592,7 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 			Notes:       chkType.Notes,
 			ServiceID:   service.ID,
 			ServiceName: service.Service,
+			ServiceTags: service.Tags,
 		}
 		if chkType.Status != "" {
 			check.Status = chkType.Status
@@ -2165,7 +2155,8 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig) error {
 		if err := json.Unmarshal(buf, &p); err != nil {
 			// Backwards-compatibility for pre-0.5.1 persisted services
 			if err := json.Unmarshal(buf, &p.Service); err != nil {
-				return fmt.Errorf("failed decoding service file %q: %s", file, err)
+				a.logger.Printf("[ERR] Failed decoding service file %q: %s", file, err)
+				continue
 			}
 		}
 		serviceID := p.Service.ID
@@ -2244,7 +2235,8 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig) error {
 		// Decode the check
 		var p persistedCheck
 		if err := json.Unmarshal(buf, &p); err != nil {
-			return fmt.Errorf("Failed decoding check file %q: %s", file, err)
+			a.logger.Printf("[ERR] Failed decoding check file %q: %s", file, err)
+			continue
 		}
 		checkID := p.Check.CheckID
 

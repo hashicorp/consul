@@ -135,7 +135,9 @@ func (t *TombstoneGC) PendingExpiration() bool {
 // granularity that is set. This allows us to bin expirations and avoid a ton
 // of timers.
 func (t *TombstoneGC) nextExpires() time.Time {
-	expires := time.Now().Add(t.ttl)
+	// The Round(0) call here is to shed the monotonic time so that we
+	// can safely use these as map keys. See #3670 for more details.
+	expires := time.Now().Add(t.ttl).Round(0)
 	remain := expires.UnixNano() % int64(t.granularity)
 	adj := expires.Add(t.granularity - time.Duration(remain))
 	return adj

@@ -91,6 +91,41 @@ func TestKVGetCommand(t *testing.T) {
 	}
 }
 
+func TestKVGetCommand_Base64(t *testing.T) {
+	t.Parallel()
+	a := agent.NewTestAgent(t.Name(), ``)
+	defer a.Shutdown()
+	client := a.Client()
+
+	ui := cli.NewMockUi()
+	c := New(ui)
+
+	pair := &api.KVPair{
+		Key:   "foo",
+		Value: []byte("bar"),
+	}
+	_, err := client.KV().Put(pair, nil)
+	if err != nil {
+		t.Fatalf("err: %#v", err)
+	}
+
+	args := []string{
+		"-http-addr=" + a.HTTPAddr(),
+		"-base64",
+		"foo",
+	}
+
+	code := c.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+
+	output := ui.OutputWriter.String()
+	if !strings.Contains(output, base64.StdEncoding.EncodeToString(pair.Value)) {
+		t.Errorf("bad: %#v", output)
+	}
+}
+
 func TestKVGetCommand_Missing(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)

@@ -318,8 +318,8 @@ will exit with an error at startup.
     ### Microsoft Azure
 
     This returns the first private IP address of all servers in the given region
-    which have the given `tag_key` and `tag_value` in the tenant and
-    subscription.
+    which have the given `tag_key` and `tag_value` in the tenant and subscription, or in
+    the given `resource_group` of a `vm_scale_set` for Virtual Machine Scale Sets.
 
     ```sh
     $ consul agent -retry-join "provider=azure tag_name=... tag_value=... tenant_id=... client_id=... subscription_id=... secret_access_key=..."
@@ -332,11 +332,20 @@ will exit with an error at startup.
     ```
 
     - `provider` (required) - the name of the provider ("azure" in this case).
-    - `tag_name` (required) - the name of the tag to auto-join on.
-    - `tag_value` (required) - the value of the tag to auto-join on.
     - `tenant_id` (required) - the tenant to join machines in.
     - `client_id` (required) - the client to authenticate with.
     - `secret_access_key` (required) - the secret client key.
+
+    Use these configuration parameters when using tags:
+    - `tag_name` - the name of the tag to auto-join on.
+    - `tag_value` - the value of the tag to auto-join on.
+
+    Use these configuration parameters when using Virtual Machine Scale Sets (Consul 1.0.3 and later):
+    - `resource_group` - the name of the resource group to filter on.
+    - `vm_scale_set` - the name of the virtual machine scale set to filter on.
+
+    When using tags the only permission needed is the `ListAll` method for `NetworkInterfaces`. When using
+    Virtual Machine Scale Sets the only role action needed is `Microsoft.Compute/virtualMachineScaleSets/*/read`.
 
     ### Google Compute Engine
 
@@ -776,10 +785,10 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="advertise_addr"></a><a href="#advertise_addr">`advertise_addr`</a> Equivalent to
   the [`-advertise` command-line flag](#_advertise).
 
-* <a name="serf_wan_bind"></a><a href="#serf_wan_bind">`serf_wan_bind`</a> Equivalent to
+* <a name="serf_wan"></a><a href="#serf_wan_bind">`serf_wan`</a> Equivalent to
   the [`-serf-wan-bind` command-line flag](#_serf_wan_bind).
 
-* <a name="serf_lan_bind"></a><a href="#serf_lan_bind">`serf_lan_bind`</a> Equivalent to
+* <a name="serf_lan"></a><a href="#serf_lan_bind">`serf_lan`</a> Equivalent to
   the [`-serf-lan-bind` command-line flag](#_serf_lan_bind).
 
 * <a name="advertise_addr_wan"></a><a href="#advertise_addr_wan">`advertise_addr_wan`</a> Equivalent to
@@ -1446,5 +1455,5 @@ items which are reloaded include:
 * Watches
 * HTTP Client Address
 * <a href="#node_meta">Node Metadata</a>
-* <a href="#telemetry_prefix_filter">Metric Prefix Filter</a>
+* <a href="#telemetry-prefix_filter">Metric Prefix Filter</a>
 * <a href="#discard_check_output">Discard Check Output</a>
