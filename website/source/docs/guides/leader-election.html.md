@@ -143,3 +143,7 @@ Clients should also watch the key using a blocking query for any
 changes. If the leader steps down or fails, the `Session` associated
 with the key will be cleared. When a new leader is elected, the key
 value will also be updated.
+
+Using the `acquire` param is optional. This means
+that if you use leader election to update a key, you must not update the key
+without the acquire parameter.
