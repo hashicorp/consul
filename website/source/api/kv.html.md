@@ -186,7 +186,9 @@ The table below shows this endpoint's support for
   A key does not need to exist to be acquired. If the lock is already held by
   the given session, then the `LockIndex` is not incremented but the key
   contents are updated. This lets the current lock holder update the key
-  contents without having to give up the lock and reacquire it.
+  contents without having to give up the lock and reacquire it. **Note that an update
+  that does not include the acquire parameter will proceed normally even if another
+  session has locked the key.**
 
 - `release` `(string: "")` - Specifies to use a lock release operation. This is
   useful when paired with `?acquire=` as it allows clients to yield a lock. This
