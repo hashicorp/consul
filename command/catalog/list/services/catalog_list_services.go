@@ -99,7 +99,7 @@ func (c *cmd) Run(args []string) int {
 
 	// Order the map for consistent output
 	order := make([]string, 0, len(services))
-	for k, _ := range services {
+	for k := range services {
 		order = append(order, k)
 	}
 	sort.Strings(order)

@@ -31,13 +31,13 @@ func (d *AutopilotDelegate) IsServer(m serf.Member) (*autopilot.ServerInfo, erro
 		return nil, nil
 	}
 
-	port_str := m.Tags["port"]
-	port, err := strconv.Atoi(port_str)
+	portStr := m.Tags["port"]
+	port, err := strconv.Atoi(portStr)
 	if err != nil {
 		return nil, err
 	}
 
-	build_version, err := metadata.Build(&m)
+	buildVersion, err := metadata.Build(&m)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func (d *AutopilotDelegate) IsServer(m serf.Member) (*autopilot.ServerInfo, erro
 		Name:   m.Name,
 		ID:     m.Tags["id"],
 		Addr:   &net.TCPAddr{IP: m.Addr, Port: port},
-		Build:  *build_version,
+		Build:  *buildVersion,
 		Status: m.Status,
 	}
 	return server, nil

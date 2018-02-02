@@ -107,24 +107,24 @@ func GetDNSConfig(conf *config.RuntimeConfig) *dnsConfig {
 	}
 }
 
-func (s *DNSServer) ListenAndServe(network, addr string, notif func()) error {
+func (d *DNSServer) ListenAndServe(network, addr string, notif func()) error {
 	mux := dns.NewServeMux()
-	mux.HandleFunc("arpa.", s.handlePtr)
-	mux.HandleFunc(s.domain, s.handleQuery)
-	if len(s.recursors) > 0 {
-		mux.HandleFunc(".", s.handleRecurse)
+	mux.HandleFunc("arpa.", d.handlePtr)
+	mux.HandleFunc(d.domain, d.handleQuery)
+	if len(d.recursors) > 0 {
+		mux.HandleFunc(".", d.handleRecurse)
 	}
 
-	s.Server = &dns.Server{
+	d.Server = &dns.Server{
 		Addr:              addr,
 		Net:               network,
 		Handler:           mux,
 		NotifyStartedFunc: notif,
 	}
 	if network == "udp" {
-		s.UDPSize = 65535
+		d.UDPSize = 65535
 	}
-	return s.Server.ListenAndServe()
+	return d.Server.ListenAndServe()
 }
 
 // recursorAddr is used to add a port to the recursor if omitted.
