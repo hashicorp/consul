@@ -36,4 +36,16 @@ func TestSetupReload(t *testing.T) {
 	if err := setup(c); err == nil {
 		t.Fatalf("Expected errors, but got: %v", err)
 	}
+	c = caddy.NewTestController("dns", `reload 1s`)
+	if err := setup(c); err == nil {
+		t.Fatalf("Expected errors, but got: %v", err)
+	}
+	c = caddy.NewTestController("dns", `reload 0s`)
+	if err := setup(c); err == nil {
+		t.Fatalf("Expected errors, but got: %v", err)
+	}
+	c = caddy.NewTestController("dns", `reload 3s 0.5s`)
+	if err := setup(c); err == nil {
+		t.Fatalf("Expected errors, but got: %v", err)
+	}
 }

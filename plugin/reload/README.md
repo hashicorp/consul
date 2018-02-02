@@ -35,6 +35,7 @@ reload [INTERVAL] [JITTER]
 * The plugin will check for changes every **INTERVAL**, subject to +/- the **JITTER** duration
 * **INTERVAL** and **JITTER** are Golang (durations)[https://golang.org/pkg/time/#ParseDuration]
 * Default **INTERVAL** is 30s, default **JITTER** is 15s
+* Minimal value for **INTERVAL** is 2s, and for **JITTER** is 1s
 * If **JITTER** is more than half of **INTERVAL**, it will be set to half of **INTERVAL**
 
 ## Examples
