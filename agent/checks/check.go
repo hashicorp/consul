@@ -632,3 +632,71 @@ func (c *CheckDocker) doCheck() (string, *circbuf.Buffer, error) {
 		return api.HealthCritical, buf, nil
 	}
 }
+
+// CheckGRPC is used to periodically send request to a gRPC server
+// application that implements gRPC health-checking protocol.
+// The check is passing if returned status is SERVING.
+// The check is critical if connection fails or returned status is
+// not SERVING.
+type CheckGRPC struct {
+	Notify          CheckNotifier
+	CheckID         types.CheckID
+	GRPC            string
+	Interval        time.Duration
+	Timeout         time.Duration
+	TLSClientConfig *tls.Config
+	Logger          *log.Logger
+
+	probe    *GrpcHealthProbe
+	stop     bool
+	stopCh   chan struct{}
+	stopLock sync.Mutex
+}
+
+func (c *CheckGRPC) Start() {
+	c.stopLock.Lock()
+	defer c.stopLock.Unlock()
+	timeout := 10 * time.Second
+	if c.Timeout > 0 {
+		timeout = c.Timeout
+	}
+	c.probe = NewGrpcHealthProbe(c.GRPC, timeout, c.TLSClientConfig)
+	c.stop = false
+	c.stopCh = make(chan struct{})
+	go c.run()
+}
+
+func (c *CheckGRPC) run() {
+	// Get the randomized initial pause time
+	initialPauseTime := lib.RandomStagger(c.Interval)
+	next := time.After(initialPauseTime)
+	for {
+		select {
+		case <-next:
+			c.check()
+			next = time.After(c.Interval)
+		case <-c.stopCh:
+			return
+		}
+	}
+}
+
+func (c *CheckGRPC) check() {
+	err := c.probe.Check()
+	if err != nil {
+		c.Logger.Printf("[DEBUG] Check %q failed: %s", c.CheckID, err.Error())
+		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
+	} else {
+		c.Logger.Printf("[DEBUG] Check %q is passing", c.CheckID)
+		c.Notify.UpdateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("gRPC check %s: success", c.GRPC))
+	}
+}
+
+func (c *CheckGRPC) Stop() {
+	c.stopLock.Lock()
+	defer c.stopLock.Unlock()
+	if !c.stop {
+		c.stop = true
+		close(c.stopCh)
+	}
+}

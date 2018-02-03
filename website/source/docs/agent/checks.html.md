@@ -15,7 +15,7 @@ service. If not associated with a service, the check monitors the health of the 
 A check is defined in a configuration file or added at runtime over the HTTP interface. Checks
 created via the HTTP interface persist with that node.
 
-There are five different kinds of checks:
+There are several different kinds of checks:
 
 * Script + Interval - These checks depend on invoking an external application
   that performs the health check, exits with an appropriate exit code, and potentially
@@ -44,7 +44,7 @@ There are five different kinds of checks:
   10 seconds. It is possible to configure a custom HTTP check timeout value by
   specifying the `timeout` field in the check definition. The output of the
   check is limited to roughly 4KB. Responses larger than this will be truncated.
-  HTTP checks also support SSL. By default, a valid SSL certificate is expected.
+  HTTP checks also support TLS. By default, a valid TLS certificate is expected.
   Certificate verification can be turned off by setting the `tls_skip_verify`
   field to `true` in the check definition.
 
@@ -90,6 +90,16 @@ There are five different kinds of checks:
   4KB. Any output larger than this will be truncated. In Consul 0.9.0 and later, the agent
   must be configured with [`enable_script_checks`](/docs/agent/options.html#_enable_script_checks)
   set to `true` in order to enable Docker health checks.
+
+* gRPC + Interval - These checks are intended for applications that support the standard
+  [gRPC health checking protocol](https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
+  The state of the check will be updated at the given interval by probing the configured
+  endpoint. By default, gRPC checks will be configured with a default timeout of 10 seconds.
+  It is possible to configure a custom timeout value by specifying the `timeout` field in
+  the check definition. gRPC checks will default to not using TLS, but TLS can be enabled by
+  setting `grpc_use_tls` in the check definition. If TLS is enabled, then by default, a valid
+  TLS certificate is expected. Certificate verification can be turned off by setting the
+  `tls_skip_verify` field to `true` in the check definition.
 
 ## Check Definition
 
@@ -166,6 +176,20 @@ A Docker check:
 }
 ```
 
+A gRPC check:
+
+```javascript
+{
+"check": {
+    "id": "mem-util",
+    "name": "Service health status",
+    "grpc": "127.0.0.1:12345",
+    "grpc_use_tls": true,
+    "interval": "10s"
+  }
+}
+```
+
 Each type of definition must include a `name` and may optionally provide an
 `id` and `notes` field. The `id` must be unique per _agent_ otherwise only the
 last defined check with that `id` will be registered. If the `id` is not set
@@ -187,8 +211,8 @@ Checks may also contain a `token` field to provide an ACL token. This token is
 used for any interaction with the catalog for the check, including
 [anti-entropy syncs](/docs/internals/anti-entropy.html) and deregistration.
 
-Script, TCP, Docker and HTTP checks must include an `interval` field. This field is
-parsed by Go's `time` package, and has the following
+Script, TCP, HTTP, Docker, and gRPC checks must include an `interval` field. This
+field is parsed by Go's `time` package, and has the following
 [formatting specification](https://golang.org/pkg/time/#ParseDuration):
 > A duration string is a possibly signed sequence of decimal numbers, each with
 > optional fraction and a unit suffix, such as "300ms", "-1.5h" or "2h45m".
@@ -206,8 +230,8 @@ any expected recoverable outage for the given service.
 
 To configure a check, either provide it as a `-config-file` option to the
 agent or place it inside the `-config-dir` of the agent. The file must
-end in the ".json" extension to be loaded by Consul. Check definitions can
-also be updated by sending a `SIGHUP` to the agent. Alternatively, the
+end in a ".json" or ".hcl" extension to be loaded by Consul. Check definitions
+can also be updated by sending a `SIGHUP` to the agent. Alternatively, the
 check can be registered dynamically using the [HTTP API](/api/index.html).
 
 ## Check Scripts

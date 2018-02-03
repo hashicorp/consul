@@ -341,6 +341,8 @@ type CheckDefinition struct {
 	Interval                       *string             `json:"interval,omitempty" hcl:"interval" mapstructure:"interval"`
 	DockerContainerID              *string             `json:"docker_container_id,omitempty" hcl:"docker_container_id" mapstructure:"docker_container_id"`
 	Shell                          *string             `json:"shell,omitempty" hcl:"shell" mapstructure:"shell"`
+	GRPC                           *string             `json:"grpc,omitempty" hcl:"grpc" mapstructure:"grpc"`
+	GRPCUseTLS                     *bool               `json:"grpc_use_tls,omitempty" hcl:"grpc_use_tls" mapstructure:"grpc_use_tls"`
 	TLSSkipVerify                  *bool               `json:"tls_skip_verify,omitempty" hcl:"tls_skip_verify" mapstructure:"tls_skip_verify"`
 	Timeout                        *string             `json:"timeout,omitempty" hcl:"timeout" mapstructure:"timeout"`
 	TTL                            *string             `json:"ttl,omitempty" hcl:"ttl" mapstructure:"ttl"`

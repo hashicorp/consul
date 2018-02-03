@@ -130,6 +130,9 @@ type Agent struct {
 	// checkTCPs maps the check ID to an associated TCP check
 	checkTCPs map[types.CheckID]*checks.CheckTCP
 
+	// checkGRPCs maps the check ID to an associated GRPC check
+	checkGRPCs map[types.CheckID]*checks.CheckGRPC
+
 	// checkTTLs maps the check ID to an associated check TTL
 	checkTTLs map[types.CheckID]*checks.CheckTTL
 
@@ -212,6 +215,7 @@ func New(c *config.RuntimeConfig) (*Agent, error) {
 		checkTTLs:       make(map[types.CheckID]*checks.CheckTTL),
 		checkHTTPs:      make(map[types.CheckID]*checks.CheckHTTP),
 		checkTCPs:       make(map[types.CheckID]*checks.CheckTCP),
+		checkGRPCs:      make(map[types.CheckID]*checks.CheckGRPC),
 		checkDockers:    make(map[types.CheckID]*checks.CheckDocker),
 		eventCh:         make(chan serf.UserEvent, 1024),
 		eventBuf:        make([]*UserEvent, 256),
@@ -1171,6 +1175,9 @@ func (a *Agent) ShutdownAgent() error {
 	for _, chk := range a.checkTCPs {
 		chk.Stop()
 	}
+	for _, chk := range a.checkGRPCs {
+		chk.Stop()
+	}
 	for _, chk := range a.checkDockers {
 		chk.Stop()
 	}
@@ -1707,19 +1714,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				chkType.Interval = checks.MinInterval
 			}
 
-			// We re-use the API client's TLS structure since it
-			// closely aligns with Consul's internal configuration.
-			tlsConfig := &api.TLSConfig{
-				InsecureSkipVerify: chkType.TLSSkipVerify,
-			}
-			if a.config.EnableAgentTLSForChecks {
-				tlsConfig.Address = a.config.ServerName
-				tlsConfig.KeyFile = a.config.KeyFile
-				tlsConfig.CertFile = a.config.CertFile
-				tlsConfig.CAFile = a.config.CAFile
-				tlsConfig.CAPath = a.config.CAPath
-			}
-			tlsClientConfig, err := api.SetupTLSConfig(tlsConfig)
+			tlsClientConfig, err := a.setupTLSClientConfig(chkType.TLSSkipVerify)
 			if err != nil {
 				return fmt.Errorf("Failed to set up TLS: %v", err)
 			}
@@ -1759,6 +1754,38 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 			tcp.Start()
 			a.checkTCPs[check.CheckID] = tcp
+
+		case chkType.IsGRPC():
+			if existing, ok := a.checkGRPCs[check.CheckID]; ok {
+				existing.Stop()
+				delete(a.checkGRPCs, check.CheckID)
+			}
+			if chkType.Interval < checks.MinInterval {
+				a.logger.Println(fmt.Sprintf("[WARN] agent: check '%s' has interval below minimum of %v",
+					check.CheckID, checks.MinInterval))
+				chkType.Interval = checks.MinInterval
+			}
+
+			var tlsClientConfig *tls.Config
+			if chkType.GRPCUseTLS {
+				var err error
+				tlsClientConfig, err = a.setupTLSClientConfig(chkType.TLSSkipVerify)
+				if err != nil {
+					return fmt.Errorf("Failed to set up TLS: %v", err)
+				}
+			}
+
+			grpc := &checks.CheckGRPC{
+				Notify:          a.State,
+				CheckID:         check.CheckID,
+				GRPC:            chkType.GRPC,
+				Interval:        chkType.Interval,
+				Timeout:         chkType.Timeout,
+				Logger:          a.logger,
+				TLSClientConfig: tlsClientConfig,
+			}
+			grpc.Start()
+			a.checkGRPCs[check.CheckID] = grpc
 
 		case chkType.IsDocker():
 			if existing, ok := a.checkDockers[check.CheckID]; ok {
@@ -1863,6 +1890,23 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 	return nil
 }
 
+func (a *Agent) setupTLSClientConfig(skipVerify bool) (tlsClientConfig *tls.Config, err error) {
+	// We re-use the API client's TLS structure since it
+	// closely aligns with Consul's internal configuration.
+	tlsConfig := &api.TLSConfig{
+		InsecureSkipVerify: skipVerify,
+	}
+	if a.config.EnableAgentTLSForChecks {
+		tlsConfig.Address = a.config.ServerName
+		tlsConfig.KeyFile = a.config.KeyFile
+		tlsConfig.CertFile = a.config.CertFile
+		tlsConfig.CAFile = a.config.CAFile
+		tlsConfig.CAPath = a.config.CAPath
+	}
+	tlsClientConfig, err = api.SetupTLSConfig(tlsConfig)
+	return
+}
+
 // RemoveCheck is used to remove a health check.
 // The agent will make a best effort to ensure it is deregistered
 func (a *Agent) RemoveCheck(checkID types.CheckID, persist bool) error {
@@ -1905,6 +1949,10 @@ func (a *Agent) cancelCheckMonitors(checkID types.CheckID) {
 	if check, ok := a.checkTCPs[checkID]; ok {
 		check.Stop()
 		delete(a.checkTCPs, checkID)
+	}
+	if check, ok := a.checkGRPCs[checkID]; ok {
+		check.Stop()
+		delete(a.checkGRPCs, checkID)
 	}
 	if check, ok := a.checkTTLs[checkID]; ok {
 		check.Stop()

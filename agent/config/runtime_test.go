@@ -1880,6 +1880,24 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
+			desc: "grpc check",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{
+				`{ "check": { "name": "a", "grpc": "localhost:12345/foo", "grpc_use_tls": true } }`,
+			},
+			hcl: []string{
+				`check = { name = "a" grpc = "localhost:12345/foo", grpc_use_tls = true }`,
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.Checks = []*structs.CheckDefinition{
+					&structs.CheckDefinition{Name: "a", GRPC: "localhost:12345/foo", GRPCUseTLS: true},
+				}
+				rt.DataDir = dataDir
+			},
+		},
+		{
 			desc: "multiple service files",
 			args: []string{
 				`-data-dir=` + dataDir,
@@ -3904,6 +3922,8 @@ func TestSanitize(t *testing.T) {
         {
             "DeregisterCriticalServiceAfter": "0s",
             "DockerContainerID": "",
+            "GRPC": "",
+            "GRPCUseTLS": false,
             "HTTP": "",
             "Header": {},
             "ID": "",
@@ -4033,6 +4053,8 @@ func TestSanitize(t *testing.T) {
                 "CheckID": "",
                 "DeregisterCriticalServiceAfter": "0s",
                 "DockerContainerID": "",
+                "GRPC": "",
+                "GRPCUseTLS": false,
                 "HTTP": "",
                 "Header": {},
                 "Interval": "0s",
