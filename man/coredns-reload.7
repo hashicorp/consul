@@ -1,0 +1,77 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "COREDNS\-RELOAD" "7" "February 2018" "CoreDNS" "CoreDNS plugins"
+.
+.SH "NAME"
+\fIreload\fR \- allows automatic reload of a changed Corefile
+.
+.SH "DESCRIPTION"
+This plugin periodically checks if the Corefile has changed by reading it and calculating its MD5 checksum\. If the file has changed, it reloads CoreDNS with the new Corefile\. This eliminates the need to send a SIGHUP or SIGUSR1 after changing the Corefile\.
+.
+.P
+The reloads are graceful \- you should not see any loss of service when the reload happens\. Even if the new Corefile has an error, CoreDNS will continue to run the old config and an error message will be printed to the log\.
+.
+.P
+In some environments (for example, Kubernetes), there may be many CoreDNS instances that started very near the same time and all share a common Corefile\. To prevent these all from reloading at the same time, some jitter is added to the reload check interval\. This is jitter from the perspective of multiple CoreDNS instances; each instance still checks on a regular interval, but all of these instances will have their reloads spread out across the jitter duration\. This isn\'t strictly necessary given that the reloads are graceful, and can be disabled by setting the jitter to \fB0s\fR\.
+.
+.P
+Jitter is re\-calculated whenever the Corefile is reloaded\.
+.
+.SH "SYNTAX"
+.
+.nf
+
+reload [INTERVAL] [JITTER]
+.
+.fi
+.
+.IP "\(bu" 4
+The plugin will check for changes every \fBINTERVAL\fR, subject to +/\- the \fBJITTER\fR duration
+.
+.IP "\(bu" 4
+\fBINTERVAL\fR and \fBJITTER\fR are Golang (durations)[https://golang\.org/pkg/time/#ParseDuration]
+.
+.IP "\(bu" 4
+Default \fBINTERVAL\fR is 30s, default \fBJITTER\fR is 15s
+.
+.IP "\(bu" 4
+Minimal value for \fBINTERVAL\fR is 2s, and for \fBJITTER\fR is 1s
+.
+.IP "\(bu" 4
+If \fBJITTER\fR is more than half of \fBINTERVAL\fR, it will be set to half of \fBINTERVAL\fR
+.
+.IP "" 0
+.
+.SH "EXAMPLES"
+Check with the default intervals:
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+    reload
+    erratic
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Check every 10 seconds (jitter is automatically set to 10 / 2 = 5 in this case):
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+    reload 10s
+    erratic
+}
+.
+.fi
+.
+.IP "" 0
+
