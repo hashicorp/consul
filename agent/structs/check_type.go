@@ -35,7 +35,7 @@ type CheckType struct {
 	DockerContainerID string
 	Shell             string
 	GRPC              string
-	TLS               bool
+	GRPCUseTLS        bool
 	TLSSkipVerify     bool
 	Timeout           time.Duration
 	TTL               time.Duration

@@ -1766,7 +1766,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 
 			var tlsClientConfig *tls.Config
-			if chkType.TLS {
+			if chkType.GRPCUseTLS {
 				var err error
 				tlsClientConfig, err = a.setupTLSClientConfig(chkType.TLSSkipVerify)
 				if err != nil {
