@@ -753,6 +753,43 @@ func TestAgent_AddCheck_ExecDisable(t *testing.T) {
 	}
 }
 
+func TestAgent_AddCheck_GRPC(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	health := &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "grpchealth",
+		Name:    "grpc health checking protocol",
+		Status:  api.HealthCritical,
+	}
+	chk := &structs.CheckType{
+		GRPC:     "localhost:12345/package.Service",
+		Interval: 15 * time.Second,
+	}
+	err := a.AddCheck(health, chk, false, "")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Ensure we have a check mapping
+	sChk, ok := a.State.Checks()["grpchealth"]
+	if !ok {
+		t.Fatalf("missing grpchealth check")
+	}
+
+	// Ensure our check is in the right state
+	if sChk.Status != api.HealthCritical {
+		t.Fatalf("check not critical")
+	}
+
+	// Ensure a check is setup
+	if _, ok := a.checkGRPCs["grpchealth"]; !ok {
+		t.Fatalf("missing grpchealth check")
+	}
+}
+
 func TestAgent_RemoveCheck(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), `
