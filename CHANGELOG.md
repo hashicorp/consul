@@ -2,6 +2,8 @@
 
 FEATURES:
 
+* agent: Added support for gRPC health checks that probe the standard gRPC health endpoint. [[GH-3073](https://github.com/hashicorp/consul/issues/3073)]
+
 IMPROVEMENTS:
 
 * build: Bumped Go version to 1.9.3. [[GH-3837](https://github.com/hashicorp/consul/issues/3837)]
