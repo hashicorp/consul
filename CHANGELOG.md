@@ -10,6 +10,8 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* agent: (Consul Enterprise) Fixed an issue where the snapshot agent's HTTP client config was being ignored in favor of the HTTP command-line flags.
+
 ## 1.0.3 (January 24, 2018)
 
 SECURITY:
