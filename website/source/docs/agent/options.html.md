@@ -881,7 +881,8 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   0.8 the default was changed to true, to make remote exec opt-in instead of opt-out.
 
 * <a name="disable_update_check"></a><a href="#disable_update_check">`disable_update_check`</a>
-  Disables automatic checking for security bulletins and new version releases.
+  Disables automatic checking for security bulletins and new version releases. This is disabled in 
+  Consul Enterprise.
 
 * <a name="discard_check_output"></a><a href="#discard_check_output">`discard_check_output`</a>
   Discards the output of health checks before storing them. This reduces the number of writes
