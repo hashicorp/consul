@@ -125,7 +125,7 @@ func NewBuilder(flags Flags) (*Builder, error) {
 			Data:   s,
 		})
 	}
-	b.Tail = append(b.Tail, NonUserSource(), DefaultConsulSource(), DefaultVersionSource())
+	b.Tail = append(b.Tail, NonUserSource(), DefaultConsulSource(), DefaultEnterpriseSource(), DefaultVersionSource())
 	if b.boolVal(b.Flags.DevMode) {
 		b.Tail = append(b.Tail, DevConsulSource())
 	}
