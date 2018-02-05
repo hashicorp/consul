@@ -6,6 +6,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* agent: (Consul Enterprise) The `disable_update_check` option to disable Checkpoint now defaults to `true` (this is only in the Enterprise version).
 * build: Bumped Go version to 1.9.3. [[GH-3837](https://github.com/hashicorp/consul/issues/3837)]
 
 BUG FIXES:
