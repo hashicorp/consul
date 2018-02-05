@@ -3,6 +3,7 @@
 FEATURES:
 
 * agent: Added support for gRPC health checks that probe the standard gRPC health endpoint. [[GH-3073](https://github.com/hashicorp/consul/issues/3073)]
+* dns: Updated DNS vendor library to pick up bug fix in the DNS server where an open idle connection blocks the accept loop.[[GH-3859](https://github.com/hashicorp/consul/issues/3859)]
 
 IMPROVEMENTS:
 
