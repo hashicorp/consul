@@ -1,4 +1,4 @@
-## 1.0.4 (UNRELEASED)
+## 1.0.4 (February 6, 2018)
 SECURITY:
 
 * dns: Updated DNS vendor library to pick up bug fix in the DNS server where an open idle connection blocks the accept loop. [[GH-3859](https://github.com/hashicorp/consul/issues/3859)]
