@@ -38,7 +38,7 @@ func (r *ResponseReverter) WriteMsg(res *dns.Msg) error {
 	res.Question[0] = r.originalQuestion
 	if r.ResponseRewrite {
 		for _, rr := range res.Answer {
-			name := rr.(*dns.A).Hdr.Name
+			name := rr.Header().Name
 			for _, rule := range r.ResponseRules {
 				regexGroups := rule.Pattern.FindStringSubmatch(name)
 				if len(regexGroups) == 0 {
@@ -53,7 +53,7 @@ func (r *ResponseReverter) WriteMsg(res *dns.Msg) error {
 				}
 				name = s
 			}
-			rr.(*dns.A).Hdr.Name = name
+			rr.Header().Name = name
 		}
 	}
 	return r.ResponseWriter.WriteMsg(res)

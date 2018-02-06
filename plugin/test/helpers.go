@@ -81,6 +81,9 @@ func PTR(rr string) *dns.PTR { r, _ := dns.NewRR(rr); return r.(*dns.PTR) }
 // TXT returns a TXT record from rr. It panics on errors.
 func TXT(rr string) *dns.TXT { r, _ := dns.NewRR(rr); return r.(*dns.TXT) }
 
+// HINFO returns a HINFO record from rr. It panics on errors.
+func HINFO(rr string) *dns.HINFO { r, _ := dns.NewRR(rr); return r.(*dns.HINFO) }
+
 // MX returns an MX record from rr. It panics on errors.
 func MX(rr string) *dns.MX { r, _ := dns.NewRR(rr); return r.(*dns.MX) }
 
@@ -214,6 +217,13 @@ func Section(t *testing.T, tc Case, sec sect, rr []dns.RR) bool {
 					t.Errorf("rr %d should have a Txt of %q, but has %q", i, section[i].(*dns.TXT).Txt[j], txt)
 					return false
 				}
+			}
+		case *dns.HINFO:
+			if x.Cpu != section[i].(*dns.HINFO).Cpu {
+				t.Errorf("rr %d should have a Cpu of %s, but has %s", i, section[i].(*dns.HINFO).Cpu, x.Cpu)
+			}
+			if x.Os != section[i].(*dns.HINFO).Os {
+				t.Errorf("rr %d should have a Os of %s, but has %s", i, section[i].(*dns.HINFO).Os, x.Os)
 			}
 		case *dns.SOA:
 			tt := section[i].(*dns.SOA)
