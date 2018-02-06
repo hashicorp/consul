@@ -438,6 +438,28 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		}
 	}
 
+	// expand addresses in start join lan configuration
+	startJoinLAN := make([]string, len(c.StartJoinAddrsLAN))
+
+	for _, configStartJoinAddrsLAN := range c.StartJoinAddrsLAN {
+		startJoinAddrs := b.expandOptionalAddrs("start_join", &configStartJoinAddrsLAN)
+
+		if startJoinAddrs != nil {
+			startJoinLAN = append(startJoinLAN, startJoinAddrs...)
+		}
+	}
+
+	// expand addresses in retry join lan configuration
+	retryJoinLan := make([]string, len(c.RetryJoinLAN))
+
+	for _, retryJoinLanElement := range c.RetryJoinLAN {
+		retryJoinAddrs := b.expandOptionalAddrs("retry_join", &retryJoinLanElement)
+
+		if retryJoinAddrs != nil {
+			retryJoinLan = append(retryJoinLan, retryJoinAddrs...)
+		}
+	}
+
 	// expand dns recursors
 	uniq := map[string]bool{}
 	dnsRecursors := []string{}
@@ -686,7 +708,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		RejoinAfterLeave:            b.boolVal(c.RejoinAfterLeave),
 		RetryJoinIntervalLAN:        b.durationVal("retry_interval", c.RetryJoinIntervalLAN),
 		RetryJoinIntervalWAN:        b.durationVal("retry_interval_wan", c.RetryJoinIntervalWAN),
-		RetryJoinLAN:                c.RetryJoinLAN,
+		RetryJoinLAN:                retryJoinLan,
 		RetryJoinMaxAttemptsLAN:     b.intVal(c.RetryJoinMaxAttemptsLAN),
 		RetryJoinMaxAttemptsWAN:     b.intVal(c.RetryJoinMaxAttemptsWAN),
 		RetryJoinWAN:                c.RetryJoinWAN,
@@ -704,7 +726,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		Services:                    services,
 		SessionTTLMin:               b.durationVal("session_ttl_min", c.SessionTTLMin),
 		SkipLeaveOnInt:              skipLeaveOnInt,
-		StartJoinAddrsLAN:           c.StartJoinAddrsLAN,
+		StartJoinAddrsLAN:           startJoinLAN,
 		StartJoinAddrsWAN:           c.StartJoinAddrsWAN,
 		SyslogFacility:              b.stringVal(c.SyslogFacility),
 		TLSCipherSuites:             b.tlsCipherSuites("tls_cipher_suites", c.TLSCipherSuites),
@@ -1130,6 +1152,32 @@ func (b *Builder) expandAddrs(name string, s *string) []net.Addr {
 	}
 
 	return addrs
+}
+
+// expandOptionalAddrs expands the go-sockaddr template in s and returns the
+// result as a list of strings. If s does not contain a go-sockaddr template,
+// the result list will contain the input string as a single element with no
+// error set. In contrast to expandAddrs, expandOptionalAddrs does not validate
+// if the result contains valid addresses and returns a list of strings.
+// However, if the expansion of the go-sockaddr template fails an error is set.
+func (b *Builder) expandOptionalAddrs(name string, s *string) []string {
+	if s == nil || *s == "" {
+		return nil
+	}
+
+	x, err := template.Parse(*s)
+	if err != nil {
+		b.err = multierror.Append(b.err, fmt.Errorf("%s: error parsing %q: %s", name, s, err))
+		return nil
+	}
+
+	if x != *s {
+		// A template has been expanded, split the results from go-sockaddr
+		return strings.Fields(x)
+	} else {
+		// No template has been expanded, pass through the input
+		return []string{*s}
+	}
 }
 
 // expandIPs expands the go-sockaddr template in s and returns a list of
