@@ -1,7 +1,7 @@
 ## 1.0.4 (UNRELEASED)
 SECURITY:
 
-* dns: Updated DNS vendor library to pick up bug fix in the DNS server where an open idle connection blocks the accept loop. [GH-3859]
+* dns: Updated DNS vendor library to pick up bug fix in the DNS server where an open idle connection blocks the accept loop. [[GH-3859](https://github.com/hashicorp/consul/issues/3859)]
 
 FEATURES:
 
@@ -15,6 +15,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * agent: (Consul Enterprise) Fixed an issue where the snapshot agent's HTTP client config was being ignored in favor of the HTTP command-line flags.
+* agent: Fixed an issue where health checks added to services with tags would cause extra periodic writes to the Consul servers, even if nothing had changed. This could cause extra churn on downstream applications like consul-template or Fabio. [[GH-3845](https://github.com/hashicorp/consul/issues/3845)]
 
 ## 1.0.3 (January 24, 2018)
 
