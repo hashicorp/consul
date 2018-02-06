@@ -547,6 +547,64 @@ func TestAgent_RemoveServiceRemovesAllChecks(t *testing.T) {
 	}
 }
 
+// TestAgent_ServiceWithTagChurn is designed to detect a class of issues where
+// we would have unnecessary catalog churn for services with tags. See issues
+// #3259, #3642, and #3845.
+func TestAgent_ServiceWithTagChurn(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	svc := &structs.NodeService{
+		ID:      "redis",
+		Service: "redis",
+		Port:    8000,
+		Tags:    []string{"has", "tags"},
+	}
+	if err := a.AddService(svc, nil, true, ""); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	chk := &structs.HealthCheck{
+		CheckID:   "redis-check",
+		ServiceID: "redis",
+		Status:    api.HealthCritical,
+	}
+	chkt := &structs.CheckType{
+		TTL: time.Hour,
+	}
+	if err := a.AddCheck(chk, chkt, true, ""); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := a.sync.State.SyncFull(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	args := &structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "redis",
+	}
+	var before structs.IndexedHealthChecks
+	if err := a.RPC("Health.ServiceChecks", args, &before); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if got, want := len(before.HealthChecks), 1; got != want {
+		t.Fatalf("got %d want %d", got, want)
+	}
+
+	for i := 0; i < 10; i++ {
+		if err := a.sync.State.SyncFull(); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	var after structs.IndexedHealthChecks
+	if err := a.RPC("Health.ServiceChecks", args, &after); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	verify.Values(t, "", after, before)
+}
+
 func TestAgent_AddCheck(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), `
