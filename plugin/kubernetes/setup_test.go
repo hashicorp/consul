@@ -382,6 +382,20 @@ func TestKubernetesParse(t *testing.T) {
 			fall.Zero,
 			nil,
 		},
+		// More than one Kubernetes not allowed
+		{
+			`kubernetes coredns.local
+kubernetes cluster.local`,
+			true,
+			"only one kubernetes section allowed per server block",
+			-1,
+			0,
+			defaultResyncPeriod,
+			"",
+			podModeDisabled,
+			fall.Zero,
+			nil,
+		},
 	}
 
 	for i, test := range tests {

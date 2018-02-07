@@ -74,7 +74,10 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, dnsControlOpts, error) {
 		resyncPeriod: defaultResyncPeriod,
 	}
 
-	for c.Next() {
+	for i := 1; c.Next(); i++ {
+		if i > 1 {
+			return nil, opts, fmt.Errorf("only one kubernetes section allowed per server block")
+		}
 		zones := c.RemainingArgs()
 
 		if len(zones) != 0 {
