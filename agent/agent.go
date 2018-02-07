@@ -1551,6 +1551,11 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 			"all alpha-numerics and dashes.", service.Service)
 	}
 
+	// Use empty list instead of nil
+	if service.Tags == nil {
+		service.Tags = make([]string, 0)
+	}
+
 	// Warn if any tags are incompatible with DNS
 	for _, tag := range service.Tags {
 		if InvalidDnsRe.MatchString(tag) {
