@@ -1,4 +1,4 @@
-## 1.0.5 (UNRELEASED)
+## 1.0.5 (February 7, 2018)
 
 NOTE ON SKIPPED RELEASE 1.0.4:
 
