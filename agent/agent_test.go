@@ -547,11 +547,26 @@ func TestAgent_RemoveServiceRemovesAllChecks(t *testing.T) {
 	}
 }
 
-// TestAgent_ServiceWithTagChurn is designed to detect a class of issues where
-// we would have unnecessary catalog churn for services with tags. See issues
-// #3259, #3642, and #3845.
-func TestAgent_ServiceWithTagChurn(t *testing.T) {
+// TestAgent_IndexChurn is designed to detect a class of issues where
+// we would have unnecessary catalog churn from anti-entropy. See issues
+// #3259, #3642, #3845, and #3866.
+func TestAgent_IndexChurn(t *testing.T) {
 	t.Parallel()
+
+	t.Run("no tags", func(t *testing.T) {
+		verifyIndexChurn(t, nil)
+	})
+
+	t.Run("with tags", func(t *testing.T) {
+		verifyIndexChurn(t, []string{"foo", "bar"})
+	})
+}
+
+// verifyIndexChurn registers some things and runs anti-entropy a bunch of times
+// in a row to make sure there are no index bumps.
+func verifyIndexChurn(t *testing.T, tags []string) {
+	t.Helper()
+
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
@@ -559,7 +574,7 @@ func TestAgent_ServiceWithTagChurn(t *testing.T) {
 		ID:      "redis",
 		Service: "redis",
 		Port:    8000,
-		Tags:    []string{"has", "tags"},
+		Tags:    tags,
 	}
 	if err := a.AddService(svc, nil, true, ""); err != nil {
 		t.Fatalf("err: %v", err)
@@ -567,6 +582,7 @@ func TestAgent_ServiceWithTagChurn(t *testing.T) {
 
 	chk := &structs.HealthCheck{
 		CheckID:   "redis-check",
+		Name:      "Service-level check",
 		ServiceID: "redis",
 		Status:    api.HealthCritical,
 	}
@@ -577,18 +593,34 @@ func TestAgent_ServiceWithTagChurn(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
+	chk = &structs.HealthCheck{
+		CheckID: "node-check",
+		Name:    "Node-level check",
+		Status:  api.HealthCritical,
+	}
+	chkt = &structs.CheckType{
+		TTL: time.Hour,
+	}
+	if err := a.AddCheck(chk, chkt, true, ""); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
 	if err := a.sync.State.SyncFull(); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+
 	args := &structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
 		ServiceName: "redis",
 	}
-	var before structs.IndexedHealthChecks
-	if err := a.RPC("Health.ServiceChecks", args, &before); err != nil {
+	var before structs.IndexedCheckServiceNodes
+	if err := a.RPC("Health.ServiceNodes", args, &before); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if got, want := len(before.HealthChecks), 1; got != want {
+	if got, want := len(before.Nodes), 1; got != want {
+		t.Fatalf("got %d want %d", got, want)
+	}
+	if got, want := len(before.Nodes[0].Checks), 3; /* incl. serfHealth */ got != want {
 		t.Fatalf("got %d want %d", got, want)
 	}
 
@@ -598,8 +630,8 @@ func TestAgent_ServiceWithTagChurn(t *testing.T) {
 		}
 	}
 
-	var after structs.IndexedHealthChecks
-	if err := a.RPC("Health.ServiceChecks", args, &after); err != nil {
+	var after structs.IndexedCheckServiceNodes
+	if err := a.RPC("Health.ServiceNodes", args, &after); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	verify.Values(t, "", after, before)
