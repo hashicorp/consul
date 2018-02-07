@@ -39,7 +39,7 @@ type edns0NsidRule struct {
 func setupEdns0Opt(r *dns.Msg) *dns.OPT {
 	o := r.IsEdns0()
 	if o == nil {
-		r.SetEdns0(4096, true)
+		r.SetEdns0(4096, false)
 		o = r.IsEdns0()
 	}
 	return o
@@ -65,7 +65,6 @@ Option:
 
 	// add option if not found
 	if !found && (rule.action == Append || rule.action == Set) {
-		o.SetDo()
 		o.Option = append(o.Option, &dns.EDNS0_NSID{Code: dns.EDNS0NSID, Nsid: ""})
 		result = RewriteDone
 	}
@@ -104,7 +103,6 @@ func (rule *edns0LocalRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result {
 
 	// add option if not found
 	if !found && (rule.action == Append || rule.action == Set) {
-		o.SetDo()
 		var opt dns.EDNS0_LOCAL
 		opt.Code = rule.code
 		opt.Data = rule.data
@@ -306,7 +304,6 @@ func (rule *edns0VariableRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result 
 
 	// add option if not found
 	if !found && (rule.action == Append || rule.action == Set) {
-		o.SetDo()
 		var opt dns.EDNS0_LOCAL
 		opt.Code = rule.code
 		opt.Data = data
@@ -422,7 +419,6 @@ func (rule *edns0SubnetRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result {
 
 	// add option if not found
 	if !found && (rule.action == Append || rule.action == Set) {
-		o.SetDo()
 		opt := dns.EDNS0_SUBNET{Code: dns.EDNS0SUBNET}
 		if rule.fillEcsData(w, r, &opt) == nil {
 			o.Option = append(o.Option, &opt)
