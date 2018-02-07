@@ -1,8 +1,11 @@
-## (UNRELEASED)
+## 1.0.5 (UNRELEASED)
 
+BUG FIXES:
 
+* agent: Fixed several areas where reading from catalog, health, or agent HTTP endpoints could make unintended mofidications to Consul's state in a way that would cause unnecessary anti-entropy syncs back to the Consul servers. This could cause extra churn on downstream applications like consul-template or Fabio. [[GH-3867](https://github.com/hashicorp/consul/issues/3867)]
 
 ## 1.0.4 (February 6, 2018)
+
 SECURITY:
 
 * dns: Updated DNS vendor library to pick up bug fix in the DNS server where an open idle connection blocks the accept loop. [[GH-3859](https://github.com/hashicorp/consul/issues/3859)]
