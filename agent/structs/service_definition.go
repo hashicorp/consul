@@ -6,6 +6,7 @@ type ServiceDefinition struct {
 	Name              string
 	Tags              []string
 	Address           string
+	ServiceMeta       map[string]string
 	Port              int
 	Check             CheckType
 	Checks            CheckTypes
@@ -19,6 +20,7 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 		Service:           s.Name,
 		Tags:              s.Tags,
 		Address:           s.Address,
+		ServiceMeta:       s.ServiceMeta,
 		Port:              s.Port,
 		EnableTagOverride: s.EnableTagOverride,
 	}
