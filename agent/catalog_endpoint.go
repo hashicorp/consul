@@ -246,6 +246,15 @@ func (s *HTTPServer) CatalogNodeServices(resp http.ResponseWriter, req *http.Req
 		s.agent.TranslateAddresses(args.Datacenter, out.NodeServices.Node)
 	}
 
+	// TODO: The NodeServices object in IndexedNodeServices is a pointer to
+	// something that's created for each request by the state store way down
+	// in https://github.com/hashicorp/consul/blob/v1.0.4/agent/consul/state/catalog.go#L953-L963.
+	// Since this isn't a pointer to a real state store object, it's safe to
+	// modify out.NodeServices.Services in the loop below without making a
+	// copy here. Same for the Tags in each service entry, since that was
+	// created by .ToNodeService() which made a copy. This is safe as-is but
+	// this whole business is tricky and subtle. See #3867 for more context.
+
 	// Use empty list instead of nil
 	if out.NodeServices != nil {
 		for _, s := range out.NodeServices.Services {

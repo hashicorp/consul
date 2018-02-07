@@ -146,9 +146,11 @@ func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) 
 	}
 
 	// Use empty list instead of nil
-	for _, s := range services {
+	for id, s := range services {
 		if s.Tags == nil {
-			s.Tags = make([]string, 0)
+			clone := *s
+			clone.Tags = make([]string, 0)
+			services[id] = &clone
 		}
 	}
 
