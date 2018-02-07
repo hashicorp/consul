@@ -170,10 +170,11 @@ func (s *HTTPServer) AgentChecks(resp http.ResponseWriter, req *http.Request) (i
 	}
 
 	// Use empty list instead of nil
-	// checks needs to be a deep copy for this not be racy
-	for _, c := range checks {
+	for id, c := range checks {
 		if c.ServiceTags == nil {
-			c.ServiceTags = make([]string, 0)
+			clone := *c
+			clone.ServiceTags = make([]string, 0)
+			checks[id] = &clone
 		}
 	}
 
