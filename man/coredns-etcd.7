@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-ETCD" "7" "January 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-ETCD" "7" "February 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIetcd\fR \- enables reading zone data from an etcd instance\.
@@ -58,7 +58,7 @@ etcd [ZONES\.\.\.] {
 \fBPATH\fR the path inside etcd\. Defaults to "/skydns"\.
 .
 .IP "\(bu" 4
-\fBENDPOINT\fR the etcd endpoints\. Defaults to "http://localhost:2397"\.
+\fBENDPOINT\fR the etcd endpoints\. Defaults to "http://localhost:2379"\.
 .
 .IP "\(bu" 4
 \fBupstream\fR upstream resolvers to be used resolve external names found in etcd (think CNAMEs) pointing to external names\. If you want CoreDNS to act as a proxy for clients, you\'ll need to add the proxy plugin\. \fBADDRESS\fR can be an IP address, and IP:port or a string pointing to a file that is structured as /etc/resolv\.conf\.
