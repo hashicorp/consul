@@ -82,7 +82,7 @@ func decorate(s string) string {
 }
 
 func Run(t Failer, f func(r *R)) {
-	run(TwoSeconds(), t, f)
+	run(DefaultFailer(), t, f)
 }
 
 func RunWith(r Retryer, t Failer, f func(r *R)) {
@@ -131,6 +131,11 @@ func run(r Retryer, t Failer, f func(r *R)) {
 		}
 		break
 	}
+}
+
+// DefaultFailer provides default retry.Run() behavior for unit tests.
+func DefaultFailer() *Timer {
+	return &Timer{Timeout: 7 * time.Second, Wait: 25 * time.Millisecond}
 }
 
 // TwoSeconds repeats an operation for two seconds and waits 25ms in between.
