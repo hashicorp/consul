@@ -41,7 +41,7 @@ type Server struct {
 }
 
 // NewServer returns a new CoreDNS server and compiles all plugins in to it. By default CH class
-// queries are blocked unless the chaos or proxy is loaded.
+// queries are blocked unless queries from enableChaos are loaded.
 func NewServer(addr string, group []*Config) (*Server, error) {
 
 	s := &Server{
@@ -79,7 +79,8 @@ func NewServer(addr string, group []*Config) (*Server, error) {
 					s.trace = t
 				}
 			}
-			if stack.Name() == "chaos" || stack.Name() == "proxy" {
+			// Unblock CH class queries when any of these plugins are loaded.
+			if _, ok := enableChaos[stack.Name()]; ok {
 				s.classChaos = true
 			}
 		}
@@ -318,6 +319,14 @@ const (
 	tcp = 0
 	udp = 1
 )
+
+// enableChaos is a map with plugin names for which we should open CH class queries as
+// we block these by default.
+var enableChaos = map[string]bool{
+	"chaos":   true,
+	"forward": true,
+	"proxy":   true,
+}
 
 // Quiet mode will not show any informative output on initialization.
 var Quiet bool
