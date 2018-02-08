@@ -22,16 +22,20 @@ func (p *Provider) Help() string {
    subscription_id:   The id of the subscription
    secret_access_key: The authentication credential
 
-   Use these configuration parameters when using network interfaces:
+   Use these configuration parameters when using tags:
+   
    tag_name:          The name of the tag to filter on
    tag_value:         The value of the tag to filter on
 
-   Use these configuration parameters when using vm scale sets:
+   Use these configuration parameters when using Virtual Machine Scale Sets:
+   
    resource_group:    The name of the resource group to filter on
    vm_scale_set:      The name of the virtual machine scale set to filter on
 
-   When using tags the only permission needed is the 'ListAll' method for 'NetworkInterfaces'.
-   When using vm scale sets the only Role Action needed is "Microsoft.Compute/virtualMachineScaleSets/*/read".
+   When using tags the only permission needed is the 'ListAll' method for
+   'NetworkInterfaces'. When using Virtual Machine Scale Sets the only Role
+   Action needed is 'Microsoft.Compute/virtualMachineScaleSets/*/read'.
+   
    It is recommended you make a dedicated key used only for auto-joining.
 `
 }
@@ -111,7 +115,11 @@ func fetchAddrsWithTags(tagName string, tagValue string, vmnet network.Interface
 			continue
 		}
 		tv := (*v.Tags)[tagName] // *string
-		if tv == nil || *tv != tagValue {
+		if tv == nil {
+			l.Printf("[DEBUG] discover-azure: Interface %s did not have tag: %s", id, tagName)
+			continue
+		}
+		if *tv != tagValue {
 			l.Printf("[DEBUG] discover-azure: Interface %s tag value was: %s which did not match: %s", id, *tv, tagValue)
 			continue
 		}
