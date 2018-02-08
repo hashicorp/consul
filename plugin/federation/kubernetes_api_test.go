@@ -14,6 +14,7 @@ func (APIConnFederationTest) Run()                                   { return }
 func (APIConnFederationTest) Stop() error                            { return nil }
 func (APIConnFederationTest) SvcIndexReverse(string) []*api.Service  { return nil }
 func (APIConnFederationTest) EpIndexReverse(string) []*api.Endpoints { return nil }
+func (APIConnFederationTest) Modified() int64                        { return 0 }
 
 func (APIConnFederationTest) PodIndex(string) []*api.Pod {
 	a := []*api.Pod{{

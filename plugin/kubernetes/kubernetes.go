@@ -47,6 +47,7 @@ type Kubernetes struct {
 	primaryZoneIndex   int
 	interfaceAddrsFunc func() net.IP
 	autoPathSearch     []string // Local search path from /etc/resolv.conf. Needed for autopath.
+	TransferTo         []string
 }
 
 // New returns a initialized Kubernetes. It default interfaceAddrFunc to return 127.0.0.1. All other

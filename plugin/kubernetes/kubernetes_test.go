@@ -63,6 +63,7 @@ func (APIConnServiceTest) Stop() error                            { return nil }
 func (APIConnServiceTest) PodIndex(string) []*api.Pod             { return nil }
 func (APIConnServiceTest) SvcIndexReverse(string) []*api.Service  { return nil }
 func (APIConnServiceTest) EpIndexReverse(string) []*api.Endpoints { return nil }
+func (APIConnServiceTest) Modified() int64                        { return 0 }
 
 func (APIConnServiceTest) SvcIndex(string) []*api.Service {
 	svcs := []*api.Service{

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	api "k8s.io/api/core/v1"
@@ -16,15 +17,15 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 )
 
-var (
-	namespace = api.NamespaceAll
-)
+var namespace = api.NamespaceAll
 
-const podIPIndex = "PodIP"
-const svcNameNamespaceIndex = "NameNamespace"
-const svcIPIndex = "ServiceIP"
-const epNameNamespaceIndex = "EndpointNameNamespace"
-const epIPIndex = "EndpointsIP"
+const (
+	podIPIndex            = "PodIP"
+	svcNameNamespaceIndex = "NameNamespace"
+	svcIPIndex            = "ServiceIP"
+	epNameNamespaceIndex  = "EndpointNameNamespace"
+	epIPIndex             = "EndpointsIP"
+)
 
 type dnsController interface {
 	ServiceList() []*api.Service
@@ -41,9 +42,17 @@ type dnsController interface {
 	Run()
 	HasSynced() bool
 	Stop() error
+
+	// Modified returns the timestamp of the most recent changes
+	Modified() int64
 }
 
 type dnsControl struct {
+	// Modified tracks timestamp of the most recent changes
+	// It needs to be first because it is guarnteed to be 8-byte
+	// aligned ( we use sync.LoadAtomic with this )
+	modified int64
+
 	client *kubernetes.Clientset
 
 	selector labels.Selector
@@ -86,7 +95,7 @@ func newdnsController(kubeClient *kubernetes.Clientset, opts dnsControlOpts) *dn
 		},
 		&api.Service{},
 		opts.resyncPeriod,
-		cache.ResourceEventHandlerFuncs{},
+		cache.ResourceEventHandlerFuncs{AddFunc: dns.Add, UpdateFunc: dns.Update, DeleteFunc: dns.Delete},
 		cache.Indexers{svcNameNamespaceIndex: svcNameNamespaceIndexFunc, svcIPIndex: svcIPIndexFunc})
 
 	if opts.initPodCache {
@@ -95,9 +104,9 @@ func newdnsController(kubeClient *kubernetes.Clientset, opts dnsControlOpts) *dn
 				ListFunc:  podListFunc(dns.client, namespace, dns.selector),
 				WatchFunc: podWatchFunc(dns.client, namespace, dns.selector),
 			},
-			&api.Pod{}, // TODO replace with a lighter-weight custom struct
+			&api.Pod{},
 			opts.resyncPeriod,
-			cache.ResourceEventHandlerFuncs{},
+			cache.ResourceEventHandlerFuncs{AddFunc: dns.Add, UpdateFunc: dns.Update, DeleteFunc: dns.Delete},
 			cache.Indexers{podIPIndex: podIPIndexFunc})
 	}
 	dns.epLister, dns.epController = cache.NewIndexerInformer(
@@ -107,7 +116,7 @@ func newdnsController(kubeClient *kubernetes.Clientset, opts dnsControlOpts) *dn
 		},
 		&api.Endpoints{},
 		opts.resyncPeriod,
-		cache.ResourceEventHandlerFuncs{},
+		cache.ResourceEventHandlerFuncs{AddFunc: dns.Add, UpdateFunc: dns.Update, DeleteFunc: dns.Delete},
 		cache.Indexers{epNameNamespaceIndex: epNameNamespaceIndexFunc, epIPIndex: epIPIndexFunc})
 
 	return &dns
@@ -410,3 +419,18 @@ func (dns *dnsControl) GetNamespaceByName(name string) (*api.Namespace, error) {
 	}
 	return v1ns, nil
 }
+
+func (dns *dnsControl) Modified() int64 {
+	unix := atomic.LoadInt64(&dns.modified)
+	return unix
+}
+
+// updateModified set dns.modified to the current time.
+func (dns *dnsControl) updateModifed() {
+	unix := time.Now().Unix()
+	atomic.StoreInt64(&dns.modified, unix)
+}
+
+func (dns *dnsControl) Add(obj interface{})               { dns.updateModifed() }
+func (dns *dnsControl) Delete(obj interface{})            { dns.updateModifed() }
+func (dns *dnsControl) Update(objOld, newObj interface{}) { dns.updateModifed() }

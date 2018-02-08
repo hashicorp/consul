@@ -10,6 +10,7 @@ import (
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
+	"github.com/coredns/coredns/plugin/pkg/parse"
 	"github.com/coredns/coredns/plugin/proxy"
 
 	"github.com/mholt/caddy"
@@ -197,6 +198,15 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, dnsControlOpts, error) {
 					return nil, opts, c.Errf("ttl must be in range [5, 3600]: %d", t)
 				}
 				k8s.ttl = uint32(t)
+			case "transfer":
+				tos, froms, err := parse.Transfer(c, false)
+				if err != nil {
+					return nil, opts, err
+				}
+				if len(froms) != 0 {
+					return nil, opts, c.Errf("transfer from is not supported with this plugin")
+				}
+				k8s.TransferTo = tos
 			default:
 				return nil, opts, c.Errf("unknown property '%s'", c.Val())
 			}
