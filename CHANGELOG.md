@@ -1,5 +1,8 @@
 ## UNRELEASED ##
 
+IMPROVEMENTS:
+
+* build: Bumped Go version to 1.9.4. [[GH-3872](https://github.com/hashicorp/consul/issues/3872)]
 
 ## 1.0.5 (February 7, 2018)
 
