@@ -24,6 +24,7 @@ func init() {
 // WARNING: this data may be unsync after an invalid attempt of reload Corefile.
 var r = reload{interval: defaultInterval, usage: unused, quit: make(chan bool)}
 var once sync.Once
+var shutOnce sync.Once
 
 func setup(c *caddy.Controller) error {
 	c.Next() // 'reload'
@@ -73,9 +74,11 @@ func setup(c *caddy.Controller) error {
 	})
 
 	// re-register on finalShutDown as the instance most-likely will be changed
-	c.OnFinalShutdown(func() error {
-		r.quit <- true
-		return nil
+	shutOnce.Do(func() {
+		c.OnFinalShutdown(func() error {
+			r.quit <- true
+			return nil
+		})
 	})
 	return nil
 }
