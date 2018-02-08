@@ -27,6 +27,14 @@ func TestWhoami(t *testing.T) {
 			expectedReply: []string{"example.org.", "_udp.example.org."},
 			expectedErr:   nil,
 		},
+		// Case insensitive and case preserving
+		{
+			qname:         "Example.ORG",
+			qtype:         dns.TypeA,
+			expectedCode:  dns.RcodeSuccess,
+			expectedReply: []string{"Example.ORG.", "_udp.Example.ORG."},
+			expectedErr:   nil,
+		},
 	}
 
 	ctx := context.TODO()
