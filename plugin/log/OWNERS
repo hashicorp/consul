@@ -1,4 +1,6 @@
 reviewers:
   - miekg
+  - nchrisdk
 approvers:
   - miekg
+  - nchrisdk
