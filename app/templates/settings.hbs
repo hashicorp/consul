@@ -1,0 +1,16 @@
+    <div class="col-md-8 col-md-offset-2 col-xs-offset-0 col-sm-offset-0 col-xs-12 col-sm-12">
+      <h3>Settings</h3>
+      <p>These settings allow you to configure your browser for the Consul Web UI. Everything is saved to localstorage,
+      and should persist through visits and browser usage.</p>
+      <p>Settings are automatically persisted upon modification, so no manual save is required.</p>
+      <h5>ACL Token</h5>
+      <div class="form-group">
+        {{ input type="text" value=model.token class="form-control form-mono" placeholder="token"}}
+        <span class="help-block">The token is sent with requests as the <code>?token</code> parameter. This is used to control the ACL for the
+        web UI.</span>
+      </div>
+      <div class="form-group">
+        <button {{ action "reset" }} class="btn btn-danger">Reset Defaults</button>
+        <button {{ action "close" }} class="btn btn-default">Close</button>
+      </div>
+    </div>
