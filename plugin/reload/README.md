@@ -42,7 +42,7 @@ reload [INTERVAL] [JITTER]
 
 Check with the default intervals:
 
-~~~ corefile
+~~~ txt
 . {
     reload
     erratic
@@ -51,7 +51,7 @@ Check with the default intervals:
 
 Check every 10 seconds (jitter is automatically set to 10 / 2 = 5 in this case):
 
-~~~ corefile
+~~~ txt
 . {
     reload 10s
     erratic
