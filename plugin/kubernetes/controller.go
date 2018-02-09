@@ -431,6 +431,64 @@ func (dns *dnsControl) updateModifed() {
 	atomic.StoreInt64(&dns.modified, unix)
 }
 
-func (dns *dnsControl) Add(obj interface{})               { dns.updateModifed() }
-func (dns *dnsControl) Delete(obj interface{})            { dns.updateModifed() }
-func (dns *dnsControl) Update(objOld, newObj interface{}) { dns.updateModifed() }
+func (dns *dnsControl) Add(obj interface{})    { dns.updateModifed() }
+func (dns *dnsControl) Delete(obj interface{}) { dns.updateModifed() }
+
+func (dns *dnsControl) Update(objOld, newObj interface{}) {
+	// endpoint updates can come frequently, make sure
+	// it's a change we care about
+	if o, ok := objOld.(*api.Endpoints); ok {
+		n := newObj.(*api.Endpoints)
+		if endpointsEquivalent(o, n) {
+			return
+		}
+	}
+	dns.updateModifed()
+}
+
+// endpointsEquivalent checks if the update to an endpoint is something
+// that matters to us: ready addresses, host names, ports (including names for SRV)
+func endpointsEquivalent(a, b *api.Endpoints) bool {
+	// supposedly we should be able to rely on
+	// these being sorted and able to be compared
+	// they are supposed to be in a canonical format
+
+	if len(a.Subsets) != len(b.Subsets) {
+		return false
+	}
+
+	for i, sa := range a.Subsets {
+		// check the Addresses and Ports. Ignore unready addresses.
+		sb := b.Subsets[i]
+		if len(sa.Addresses) != len(sb.Addresses) {
+			return false
+		}
+		if len(sa.Ports) != len(sb.Ports) {
+			return false
+		}
+
+		for addr, aaddr := range sa.Addresses {
+			baddr := sb.Addresses[addr]
+			if aaddr.IP != baddr.IP {
+				return false
+			}
+			if aaddr.Hostname != baddr.Hostname {
+				return false
+			}
+		}
+
+		for port, aport := range sa.Ports {
+			bport := sb.Ports[port]
+			if aport.Name != bport.Name {
+				return false
+			}
+			if aport.Port != bport.Port {
+				return false
+			}
+			if aport.Protocol != bport.Protocol {
+				return false
+			}
+		}
+	}
+	return true
+}
