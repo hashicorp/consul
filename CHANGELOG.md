@@ -1,11 +1,13 @@
-## UNRELEASED ##
+## 1.0.6 (UNRELEASED) ##
 
 IMPROVEMENTS:
 
 * build: Bumped Go version to 1.9.4. [[GH-3872](https://github.com/hashicorp/consul/issues/3872)]
 
 BUG FIXES:
-* agent: Fixed a panic in the vendored go-discover library from the Azure provider.[[GH-3875](https://github.com/hashicorp/consul/issues/3875)]
+
+* agent: Fixed a panic when using the Azure provider for retry-join. [[GH-3875](https://github.com/hashicorp/consul/issues/3875)]
+* agent: Fixed a panic when querying Consul's DNS interface over TCP. [[GH-3877](https://github.com/hashicorp/consul/issues/3877)]
 
 ## 1.0.5 (February 7, 2018)
 
