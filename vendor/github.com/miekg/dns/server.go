@@ -495,6 +495,7 @@ func (srv *Server) serveTCP(l net.Listener) error {
 				rw.Close()
 				return
 			}
+			srv.inFlight.Add(1)
 			srv.serve(rw.RemoteAddr(), handler, m, nil, nil, rw)
 		}()
 
