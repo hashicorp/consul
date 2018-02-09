@@ -130,6 +130,38 @@ func TestEncodeKVasRFC1464(t *testing.T) {
 	}
 }
 
+func TestDNS_Over_TCP(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Register node
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "Foo",
+		Address:    "127.0.0.1",
+	}
+
+	var out struct{}
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("foo.node.dc1.consul.", dns.TypeANY)
+
+	c := new(dns.Client)
+	c.Net = "tcp"
+	in, _, err := c.Exchange(m, a.DNSAddr())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) != 1 {
+		t.Fatalf("empty lookup: %#v", in)
+	}
+}
+
 func TestDNS_NodeLookup(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
