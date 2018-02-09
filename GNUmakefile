@@ -4,6 +4,7 @@ server:
 	yarn run start
 
 watch:
+	# this needs to export to public
 	sass styles:static --watch
 
 dist:

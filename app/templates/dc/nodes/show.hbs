@@ -1,0 +1,91 @@
+<div class="col-xs-12 col-sm-12 visible-xs visible-sm">
+    {{#link-to "dc.nodes" class="btn btn-default btn-block" }}Back to all nodes{{/link-to}}
+    <hr>
+</div>
+
+<h3 class="no-margin">
+    {{ model.Node }} <small> {{ model.Address }}</small>
+</h3>
+<hr>
+
+<h5>Services</h5>
+
+{{#each model.Services as |service| }}
+    {{!-- change from original div href=false to a for now --}}
+    {{#link-to 'dc.services.show' service.Service class="list-group-item list-condensed-link double-line" }}
+        <div class="list-bar-horizontal bg-light-gray"></div>
+        <div class="name">
+            {{service.Service}}
+            <small class="pull-right">
+                {{service.Address}}:{{service.Port}}
+            </small>
+        </div>
+        <ul class="list-inline sub">
+            {{#each service.Tags as |tag|}}
+                <li>{{tag}}</li>
+            {{/each}}
+            {{#if service.Tags}}
+                <p>No tags</p>
+            {{/if}}
+        </ul>
+    {{/link-to}}
+
+{{/each}}
+
+<h5>Checks</h5>
+
+{{#each model.Checks as |check| }}
+
+    <div class="panel">
+        {{ panel-bar check.Status }}
+        <div class="panel-heading">
+            <h3 class="panel-title">
+                {{check.Name}}
+                <small>{{check.CheckID}}</small>
+                <span class="panel-note">{{check.Status}}</span>
+            </h3>
+        </div>
+
+        <div class="panel-body">
+            <h5>Notes</h5>
+            <p>{{ check.Notes }}</p>
+            <h5>Output</h5>
+            <pre>{{check.Output}}</pre>
+        </div>
+    </div>
+
+{{/each}}
+
+<h5>Lock Sessions</h5>
+
+{{#if sessions }}
+    {{errorMessage}}
+
+    {{#each sessions as |session| }}
+        <div class="list-group-item list-condensed double-line">
+            <div class="bg-light-gray list-bar-horizontal"></div>
+            <div class="name">
+                {{ sessionName session }}
+                <button {{ action "invalidateSession" session.ID }} {{ bind-attr class=":btn :btn-danger :pull-right :btn-list isLoading:btn-warning" }}>Invalidate</button>
+            </div>
+
+            <ul class="list-inline sub">
+                {{#each session.Checks as check }}
+                    <li class="bold">{{check}}</li>
+                {{/each}}
+            </ul>
+            {{ sessionMeta session }}
+        </div>
+    {{/each}}
+
+{{else}}
+    <p class="light small">No sessions</p>
+{{/if}}
+
+<h5>Network Tomography</h5>
+{{!-- tomographyGraph tomography 336 --}}
+
+<p class="light small">Node: <span id="tomography-node-info"></span></p>
+<p class="light small">Minimum: {{ tomography.min }}ms</p>
+<p class="light small">Median: {{ tomography.median }}ms</p>
+<p class="light small">Maximum: {{ tomography.max }}ms</p>
