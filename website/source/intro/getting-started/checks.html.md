@@ -45,13 +45,14 @@ vagrant@n2:~$ echo '{"service": {"name": "web", "tags": ["rails"], "port": 80,
 The first definition adds a host-level check named "ping". This check runs
 on a 30 second interval, invoking `ping -c1 google.com`. On a `script`-based
 health check, the check runs as the same user that started the Consul process.
-If the command exits with a non-zero exit code, then the node will be flagged
-unhealthy. This is the contract for any `script`-based health check.
+If the command exits with an exit code >= 2, then the check will be flagged as
+failing and the service will be considered unhealthy. This is the contract
+for any `script`-based health check.
 
 The second command modifies the service named `web`, adding a check that sends a
 request every 10 seconds via curl to verify that the web server is accessible.
-As with the host-level health check, if the script exits with a non-zero exit code,
-the service will be flagged unhealthy.
+As with the host-level health check, if the script exits with an exit code >= 2,
+the check will be flagged as failing and the service will be considered unhealthy.
 
 Now, restart the second agent, reload it with `consul reload`, or send it a `SIGHUP` signal. You should see the
 following log lines:
