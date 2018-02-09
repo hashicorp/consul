@@ -167,10 +167,8 @@ feature enables serving federated domains from the kubernetes clusters.
 
     cluster.local {
         federation {
-            fallthrough
             prod prod.example.org
             staging staging.example.org
-
         }
         kubernetes
     }
