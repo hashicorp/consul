@@ -380,6 +380,10 @@ type ServiceNode struct {
 func (s *ServiceNode) PartialClone() *ServiceNode {
 	tags := make([]string, len(s.ServiceTags))
 	copy(tags, s.ServiceTags)
+	nsmeta := make(map[string]string)
+	for k, v := range s.ServiceMeta {
+		nsmeta[k] = v
+	}
 
 	return &ServiceNode{
 		// Skip ID, see above.
@@ -391,7 +395,7 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 		ServiceTags:              tags,
 		ServiceAddress:           s.ServiceAddress,
 		ServicePort:              s.ServicePort,
-		ServiceMeta:              s.ServiceMeta,
+		ServiceMeta:              nsmeta,
 		ServiceEnableTagOverride: s.ServiceEnableTagOverride,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
