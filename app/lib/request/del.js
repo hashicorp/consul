@@ -7,7 +7,7 @@ export default function(url, dc)
 {
   return request(
     {
-      url: formatUrl(consulHost + url, dc),
+      url: formatURL(consulHost + url, dc),
       type: 'DELETE'
     }
   );

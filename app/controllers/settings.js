@@ -1,5 +1,7 @@
 import Controller from '@ember/controller';
 import Promise from 'rsvp';
+import confirm from 'consul-ui/lib/confirm';
+import notify from 'consul-ui/lib/notify';
 
 // emberize this
 var dispatch;
@@ -9,10 +11,6 @@ var _dispatch = function(prop, val)
     val = this.props[prop].apply(this, [val]);
   }
   return Promise.resolve(this.set(prop, val));
-}
-// quick console notify for the moment
-var notify = function(message) {
-  console.log(message);
 }
 export default Controller.extend({
   init: function() {

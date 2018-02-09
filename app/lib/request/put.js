@@ -7,7 +7,7 @@ export default function(url, dc, data)
 {
   return request(
     {
-      url: formatUrl(consulHost + url, dc),
+      url: formatURL(consulHost + url, dc),
       type: 'PUT',
       data: data
     }

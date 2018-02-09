@@ -1,0 +1,72 @@
+    <div class="row">
+      <div class="col-md-6 col-lg-5 padded-right-middle">
+        <h4 class="breadcrumbs"><a href="" {{action 'linkToKey' grandParentKey }}>{{parentKey}}</a> <a href="" {{action 'linkToKey' parentKey }}>+</a></h4>
+        </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-6 col-lg-5 padded-right-middle">
+
+          {{#each model as |item| }}
+            {{#link-to item.linkToRoute item.Key tagName="div" href=false class="list-group-item list-condensed-link" }}
+            <div class="list-bar-horizontal {{if item.isFolder "bg-gray" "bg-light-gray" }}"></div>
+              <div class="name">
+                {{item.keyWithoutParent}}
+              </div>
+            {{/link-to}}
+
+          {{/each}}
+      </div>
+
+      <div class="border-left hidden-xs hidden-sm">
+      </div>
+
+      <div class="visible-xs visible-sm">
+        <hr>
+      </div>
+
+      <div class="col-md-6 col-lg-7 border-left">
+        <div class="padded-border">
+          <div class="panel">
+              <div class="panel-bar {{if isLoading "bg-orange" "bg-light-gray" }}"></div>
+              <div class="panel-heading">
+                <h4 class="panel-title">
+                  Create Key
+                </h4>
+              </div>
+
+              <div class="panel-body panel-form">
+                <form class="form">
+
+                  <div class="form-group">
+                    <p>{{errorMessage}}</p>
+                  </div>
+
+                  <div class="form-group {{if newKey.keyValid "valid" }}">
+                    <div class="input-group">
+                      <span class="input-group-addon">{{parentKey}}</span>
+                      {{ input value=newKey.Key class="form-control" required=true }}
+                    </div>
+                    <span class="help-block">To create a folder, end the key with <code>/</code></span>
+                  </div>
+
+                  {{#if newKey.isFolder }}
+                  <p>No value needed for nested keys.</p>
+                  {{else}}
+                  <div class="form-group {{if newKey.validateJson "validate" }} {{if newKey.isValidJson "success" "error" }}">
+                    {{ textarea value=newKey.Value class="form-control"}}
+                    <span class="help-block">Value can be any format and length</span>
+                  </div>
+                  {{/if}}
+
+                  <button {{ action "createKey"}} disabled="{{if newKey.isInvalid "disabled"}}" class="btn {{if newKey.isValid "btn-success" "btn-default" }}">Create</button>
+                  {{#unless newKey.isFolder }}
+                    <label class="form-checkbox">{{ input type="checkbox" checked=newKey.validateJson }}Validate JSON</label>
+                  {{/unless}}
+                  <button {{ action "deleteFolder"}} class="btn pull-right {{if isLoading "btn-warning" "btn-danger" }} {{if isRoot "hidden" }}">Delete folder</button>
+                </form>
+              </div>
+            </div>
+        </div>
+      </div>
+    </div>

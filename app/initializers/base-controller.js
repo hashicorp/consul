@@ -4,7 +4,7 @@ export function initialize(/* application */) {
   Controller.reopen({
     needs: ["dc", "application"],
     // queryParams: ["filter", "status", "condensed"],
-    dc: computed.alias("controllers.dc"),
+    // dc: computed.alias("controllers.dc"),
     condensed: true,
     hasExpanded: true,
     filterText: "Filter by name",
