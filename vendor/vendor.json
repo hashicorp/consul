@@ -33,7 +33,7 @@
 		{"path":"github.com/hashicorp/go-discover","checksumSHA1":"yG6DzmNiB7kOdLcgvI1v9GacoSA=","revision":"4e49190abe2f3801a8653d7745a14bc445381615","revisionTime":"2018-01-20T00:19:59Z"},
 		{"path":"github.com/hashicorp/go-discover/provider/aliyun","checksumSHA1":"ZmU/47XUGUQpFP6E8T6Tl8QKszI=","revision":"c98e36ab72ce62b7d8fbc7f7e76f9a60e163cb45","revisionTime":"2017-10-30T10:26:55Z","tree":true},
 		{"path":"github.com/hashicorp/go-discover/provider/aws","checksumSHA1":"lyPRg8aZKgGiNkMILk/VKwOqMy4=","revision":"c98e36ab72ce62b7d8fbc7f7e76f9a60e163cb45","revisionTime":"2017-10-30T10:26:55Z","tree":true},
-		{"path":"github.com/hashicorp/go-discover/provider/azure","checksumSHA1":"+5VD2xEOEvTZhWn2Uk009wD6XvY=","revision":"4e49190abe2f3801a8653d7745a14bc445381615","revisionTime":"2018-01-20T00:19:59Z","tree":true},
+		{"path":"github.com/hashicorp/go-discover/provider/azure","checksumSHA1":"xgO+vNiKIhQlH8cPbkX9TCZXBKQ=","revision":"8f2af0ac44208783caab4dd65462ffb965229c60","revisionTime":"2018-02-08T17:16:50Z","tree":true},
 		{"path":"github.com/hashicorp/go-discover/provider/digitalocean","checksumSHA1":"qoy/euk2dwrONYMUsaAPznHHpxQ=","revision":"c98e36ab72ce62b7d8fbc7f7e76f9a60e163cb45","revisionTime":"2017-10-30T10:26:55Z","tree":true},
 		{"path":"github.com/hashicorp/go-discover/provider/gce","checksumSHA1":"tnKls5vtzpNQAj7b987N4i81HvY=","revision":"7642001b443a3723e2aba277054f16d1df172d97","revisionTime":"2018-01-03T21:14:29Z","tree":true},
 		{"path":"github.com/hashicorp/go-discover/provider/os","checksumSHA1":"LZwn9B00AjulYRCKapmJWFAamoo=","revision":"c98e36ab72ce62b7d8fbc7f7e76f9a60e163cb45","revisionTime":"2017-10-30T10:26:55Z","tree":true},

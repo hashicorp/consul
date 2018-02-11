@@ -610,6 +610,8 @@ type IndexedServiceNodes struct {
 }
 
 type IndexedNodeServices struct {
+	// TODO: This should not be a pointer, see comments in
+	// agent/catalog_endpoint.go.
 	NodeServices *NodeServices
 	QueryMeta
 }

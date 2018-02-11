@@ -1,7 +1,7 @@
 SHELL = bash
 GOTOOLS = \
 	github.com/elazarl/go-bindata-assetfs/... \
-	github.com/jteeuwen/go-bindata/... \
+	github.com/hashicorp/go-bindata/... \
 	github.com/magiconair/vendorfmt/cmd/vendorfmt \
 	github.com/mitchellh/gox \
 	golang.org/x/tools/cmd/cover \

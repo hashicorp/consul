@@ -42,9 +42,11 @@ func (s *HTTPServer) HealthChecksInState(resp http.ResponseWriter, req *http.Req
 	if out.HealthChecks == nil {
 		out.HealthChecks = make(structs.HealthChecks, 0)
 	}
-	for _, c := range out.HealthChecks {
+	for i, c := range out.HealthChecks {
 		if c.ServiceTags == nil {
-			c.ServiceTags = make([]string, 0)
+			clone := *c
+			clone.ServiceTags = make([]string, 0)
+			out.HealthChecks[i] = &clone
 		}
 	}
 	return out.HealthChecks, nil
@@ -80,9 +82,11 @@ func (s *HTTPServer) HealthNodeChecks(resp http.ResponseWriter, req *http.Reques
 	if out.HealthChecks == nil {
 		out.HealthChecks = make(structs.HealthChecks, 0)
 	}
-	for _, c := range out.HealthChecks {
+	for i, c := range out.HealthChecks {
 		if c.ServiceTags == nil {
-			c.ServiceTags = make([]string, 0)
+			clone := *c
+			clone.ServiceTags = make([]string, 0)
+			out.HealthChecks[i] = &clone
 		}
 	}
 	return out.HealthChecks, nil
@@ -120,9 +124,11 @@ func (s *HTTPServer) HealthServiceChecks(resp http.ResponseWriter, req *http.Req
 	if out.HealthChecks == nil {
 		out.HealthChecks = make(structs.HealthChecks, 0)
 	}
-	for _, c := range out.HealthChecks {
+	for i, c := range out.HealthChecks {
 		if c.ServiceTags == nil {
-			c.ServiceTags = make([]string, 0)
+			clone := *c
+			clone.ServiceTags = make([]string, 0)
+			out.HealthChecks[i] = &clone
 		}
 	}
 	return out.HealthChecks, nil
@@ -194,19 +200,20 @@ func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Requ
 		out.Nodes = make(structs.CheckServiceNodes, 0)
 	}
 	for i := range out.Nodes {
-		// TODO (slackpad) It's lame that this isn't a slice of pointers
-		// but it's not a well-scoped change to fix this. We should
-		// change this at the next opportunity.
 		if out.Nodes[i].Checks == nil {
 			out.Nodes[i].Checks = make(structs.HealthChecks, 0)
 		}
-		for _, c := range out.Nodes[i].Checks {
+		for j, c := range out.Nodes[i].Checks {
 			if c.ServiceTags == nil {
-				c.ServiceTags = make([]string, 0)
+				clone := *c
+				clone.ServiceTags = make([]string, 0)
+				out.Nodes[i].Checks[j] = &clone
 			}
 		}
 		if out.Nodes[i].Service != nil && out.Nodes[i].Service.Tags == nil {
-			out.Nodes[i].Service.Tags = make([]string, 0)
+			clone := *out.Nodes[i].Service
+			clone.Tags = make([]string, 0)
+			out.Nodes[i].Service = &clone
 		}
 	}
 	return out.Nodes, nil
