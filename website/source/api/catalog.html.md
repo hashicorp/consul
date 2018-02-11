@@ -54,7 +54,7 @@ The table below shows this endpoint's support for
 - `Service` `(Service: nil)` - Specifies to register a service. If `ID` is not
   provided, it will be defaulted to the value of the `Service.Service` property.
   Only one service with a given `ID` may be present per node. The service
-  `Tags`, `Address`, and `Port` fields are all optional.
+  `Tags`, `Address`, `ServiceMeta` and `Port` fields are all optional.
 
 - `Check` `(Check: nil)` - Specifies to register a check. The register API
   manipulates the health check entry in the Catalog, but it does not setup the
@@ -105,6 +105,9 @@ and vice versa. A catalog entry can have either, neither, or both.
       "v1"
     ],
     "Address": "127.0.0.1",
+    "ServiceMeta": {
+        "redis_version": "4.0"
+    },
     "Port": 8000
   },
   "Check": {
@@ -432,6 +435,9 @@ $ curl \
     "ServiceID": "32a2a47f7992:nodea:5000",
     "ServiceName": "foobar",
     "ServicePort": 5000,
+    "ServiceMeta": {
+        "foobar_meta_value": "baz"
+    },
     "ServiceTags": [
       "tacos"
     ]
@@ -466,6 +472,8 @@ $ curl \
 - `ServiceID` is a unique service instance identifier
 
 - `ServiceName` is the name of the service
+
+- `ServiceMeta` is a list of user-defined metadata key/value pairs for the service
 
 - `ServicePort` is the port number of the service
 
@@ -529,6 +537,7 @@ $ curl \
       "ID": "consul",
       "Service": "consul",
       "Tags": null,
+      "ServiceMeta": {},
       "Port": 8300
     },
     "redis": {
@@ -537,6 +546,9 @@ $ curl \
       "Tags": [
         "v1"
       ],
+      "ServiceMeta": {
+        "redis_version": "4.0"
+      },
       "Port": 8000
     }
   }

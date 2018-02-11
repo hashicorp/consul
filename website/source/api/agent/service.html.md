@@ -53,6 +53,9 @@ $ curl \
     "Service": "redis",
     "Tags": [],
     "Address": "",
+    "ServiceMeta": {
+      "redis_version": "4.0"
+    },
     "Port": 8000
   }
 }
@@ -96,6 +99,9 @@ The table below shows this endpoint's support for
   provided, the agent's address is used as the address for the service during
   DNS queries.
 
+- `ServiceMeta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata
+  linked to the service instance.
+
 - `Port` `(int: 0)` - Specifies the port of the service.
 
 - `Check` `(Check: nil)` - Specifies a check. Please see the
@@ -103,7 +109,7 @@ The table below shows this endpoint's support for
   accepted fields. If you don't provide a name or id for the check then they
   will be generated. To provide a custom id and/or name set the `CheckID`
   and/or `Name` field.
-  
+
 - `Checks` `(array<Check>: nil`) - Specifies a list of checks. Please see the
   [check documentation](/api/agent/check.html) for more information about the
   accepted fields. If you don't provide a name or id for the check then they
@@ -147,6 +153,9 @@ The table below shows this endpoint's support for
   ],
   "Address": "127.0.0.1",
   "Port": 8000,
+  "ServiceMeta": {
+    "redis_version": "4.0"
+  },
   "EnableTagOverride": false,
   "Check": {
     "DeregisterCriticalServiceAfter": "90m",
