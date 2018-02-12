@@ -400,7 +400,7 @@ kubernetes cluster.local`,
 
 	for i, test := range tests {
 		c := caddy.NewTestController("dns", test.input)
-		k8sController, opts, err := kubernetesParse(c)
+		k8sController, err := kubernetesParse(c)
 
 		if test.shouldErr && err == nil {
 			t.Errorf("Test %d: Expected error, but did not find error for input '%s'. Error was: '%v'", i, test.input, err)
@@ -440,14 +440,14 @@ kubernetes cluster.local`,
 		}
 
 		//    ResyncPeriod
-		foundResyncPeriod := opts.resyncPeriod
+		foundResyncPeriod := k8sController.opts.resyncPeriod
 		if foundResyncPeriod != test.expectedResyncPeriod {
 			t.Errorf("Test %d: Expected kubernetes controller to be initialized with resync period '%s'. Instead found period '%s' for input '%s'", i, test.expectedResyncPeriod, foundResyncPeriod, test.input)
 		}
 
 		//    Labels
-		if opts.labelSelector != nil {
-			foundLabelSelectorString := meta.FormatLabelSelector(opts.labelSelector)
+		if k8sController.opts.labelSelector != nil {
+			foundLabelSelectorString := meta.FormatLabelSelector(k8sController.opts.labelSelector)
 			if foundLabelSelectorString != test.expectedLabelSelector {
 				t.Errorf("Test %d: Expected kubernetes controller to be initialized with label selector '%s'. Instead found selector '%s' for input '%s'", i, test.expectedLabelSelector, foundLabelSelectorString, test.input)
 			}
@@ -524,7 +524,7 @@ func TestKubernetesEndpointsParse(t *testing.T) {
 
 	for i, test := range tests {
 		c := caddy.NewTestController("dns", test.input)
-		k8sController, _, err := kubernetesParse(c)
+		k8sController, err := kubernetesParse(c)
 
 		if test.shouldErr && err == nil {
 			t.Errorf("Test %d: Expected error, but did not find error for input '%s'. Error was: '%v'", i, test.input, err)

@@ -18,7 +18,7 @@ func TestKubernetesParseReverseZone(t *testing.T) {
 
 	for i, tc := range tests {
 		c := caddy.NewTestController("dns", tc.input)
-		k, _, err := kubernetesParse(c)
+		k, err := kubernetesParse(c)
 		if err != nil {
 			t.Fatalf("Test %d: Expected no error, got %q", i, err)
 		}

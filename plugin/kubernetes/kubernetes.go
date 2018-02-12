@@ -43,6 +43,7 @@ type Kubernetes struct {
 	endpointNameMode bool
 	Fall             fall.F
 	ttl              uint32
+	opts             dnsControlOpts
 
 	primaryZoneIndex   int
 	interfaceAddrsFunc func() net.IP
@@ -238,8 +239,8 @@ func (k *Kubernetes) getClientConfig() (*rest.Config, error) {
 
 }
 
-// initKubeCache initializes a new Kubernetes cache.
-func (k *Kubernetes) initKubeCache(opts dnsControlOpts) (err error) {
+// InitKubeCache initializes a new Kubernetes cache.
+func (k *Kubernetes) InitKubeCache() (err error) {
 
 	config, err := k.getClientConfig()
 	if err != nil {
@@ -251,18 +252,18 @@ func (k *Kubernetes) initKubeCache(opts dnsControlOpts) (err error) {
 		return fmt.Errorf("failed to create kubernetes notification controller: %q", err)
 	}
 
-	if opts.labelSelector != nil {
+	if k.opts.labelSelector != nil {
 		var selector labels.Selector
-		selector, err = meta.LabelSelectorAsSelector(opts.labelSelector)
+		selector, err = meta.LabelSelectorAsSelector(k.opts.labelSelector)
 		if err != nil {
-			return fmt.Errorf("unable to create Selector for LabelSelector '%s': %q", opts.labelSelector, err)
+			return fmt.Errorf("unable to create Selector for LabelSelector '%s': %q", k.opts.labelSelector, err)
 		}
-		opts.selector = selector
+		k.opts.selector = selector
 	}
 
-	opts.initPodCache = k.podMode == podModeVerified
+	k.opts.initPodCache = k.podMode == podModeVerified
 
-	k.APIConn = newdnsController(kubeClient, opts)
+	k.APIConn = newdnsController(kubeClient, k.opts)
 
 	return err
 }

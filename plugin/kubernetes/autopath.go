@@ -10,7 +10,7 @@ import (
 // AutoPath implements the AutoPathFunc call from the autopath plugin.
 // It returns a per-query search path or nil indicating no searchpathing should happen.
 func (k *Kubernetes) AutoPath(state request.Request) []string {
-	// Check if the query falls in a zone we are actually authoriative for and thus if we want autopath.
+	// Check if the query falls in a zone we are actually authoritative for and thus if we want autopath.
 	zone := plugin.Zones(k.Zones).Matches(state.Name())
 	if zone == "" {
 		return nil
