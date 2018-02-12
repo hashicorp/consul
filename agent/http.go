@@ -51,16 +51,23 @@ type unboundEndpoint func(s *HTTPServer, resp http.ResponseWriter, req *http.Req
 // endpoints is a map from URL pattern to unbound endpoint.
 var endpoints map[string]unboundEndpoint
 
+// allowedMethods is a map from endpoint prefix to supported HTTP methods.
+var allowedMethods map[string][]string
+
 // registerEndpoint registers a new endpoint, which should be done at package
 // init() time.
-func registerEndpoint(pattern string, fn unboundEndpoint) {
+func registerEndpoint(pattern string, methods []string, fn unboundEndpoint) {
 	if endpoints == nil {
 		endpoints = make(map[string]unboundEndpoint)
 	}
-	if endpoints[pattern] != nil {
+	if allowedMethods == nil {
+		allowedMethods = make(map[string][]string)
+	}
+	if endpoints[pattern] != nil || allowedMethods[pattern] != nil {
 		panic(fmt.Errorf("Pattern %q is already registered", pattern))
 	}
 	endpoints[pattern] = fn
+	allowedMethods[pattern] = methods
 }
 
 // wrappedMux hangs on to the underlying mux for unit tests.
@@ -112,10 +119,11 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 	mux.HandleFunc("/", s.Index)
 	for pattern, fn := range endpoints {
 		thisFn := fn
+		methods, _ := allowedMethods[pattern]
 		bound := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 			return thisFn(s, resp, req)
 		}
-		handleFuncMetrics(pattern, s.wrap(bound))
+		handleFuncMetrics(pattern, s.wrap(bound, methods))
 	}
 	if enableDebug {
 		handleFuncMetrics("/debug/pprof/", pprof.Index)
@@ -168,7 +176,7 @@ var (
 )
 
 // wrap is used to wrap functions to make them more convenient
-func (s *HTTPServer) wrap(handler endpoint) http.HandlerFunc {
+func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
 		setHeaders(resp, s.agent.config.HTTPResponseHeaders)
 		setTranslateAddr(resp, s.agent.config.TranslateWANAddrs)
@@ -205,6 +213,10 @@ func (s *HTTPServer) wrap(handler endpoint) http.HandlerFunc {
 			return ok
 		}
 
+		addAllowHeader := func(methods []string) {
+			resp.Header().Add("Allow", strings.Join(methods, ","))
+		}
+
 		handleErr := func(err error) {
 			s.agent.logger.Printf("[ERR] http: Request %s %v, error: %v from=%s", req.Method, logURL, err, req.RemoteAddr)
 			switch {
@@ -218,7 +230,7 @@ func (s *HTTPServer) wrap(handler endpoint) http.HandlerFunc {
 				// MUST include an Allow header containing the list of valid
 				// methods for the requested resource.
 				// https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
-				resp.Header()["Allow"] = err.(MethodNotAllowedError).Allow
+				addAllowHeader(err.(MethodNotAllowedError).Allow)
 				resp.WriteHeader(http.StatusMethodNotAllowed) // 405
 				fmt.Fprint(resp, err.Error())
 			default:
@@ -227,12 +239,34 @@ func (s *HTTPServer) wrap(handler endpoint) http.HandlerFunc {
 			}
 		}
 
-		// Invoke the handler
 		start := time.Now()
 		defer func() {
 			s.agent.logger.Printf("[DEBUG] http: Request %s %v (%v) from=%s", req.Method, logURL, time.Since(start), req.RemoteAddr)
 		}()
-		obj, err := handler(resp, req)
+
+		var obj interface{}
+
+		// respond appropriately to OPTIONS requests
+		if req.Method == "OPTIONS" {
+			addAllowHeader(append([]string{"OPTIONS"}, methods...))
+			return
+		}
+
+		methodFound := false
+		for _, method := range methods {
+			if method == req.Method {
+				methodFound = true
+				break
+			}
+		}
+
+		if !methodFound {
+			err = MethodNotAllowedError{req.Method, append([]string{"OPTIONS"}, methods...)}
+		} else {
+			// Invoke the handler
+			obj, err = handler(resp, req)
+		}
+
 		if err != nil {
 			handleErr(err)
 			return

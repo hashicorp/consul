@@ -14,9 +14,6 @@ var durations = NewDurationFixer("interval", "timeout", "deregistercriticalservi
 func (s *HTTPServer) CatalogRegister(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_register"}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
-	if req.Method != "PUT" {
-		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
-	}
 
 	var args structs.RegisterRequest
 	if err := decodeBody(req, &args, durations.FixupDurations); err != nil {
@@ -46,9 +43,6 @@ func (s *HTTPServer) CatalogRegister(resp http.ResponseWriter, req *http.Request
 func (s *HTTPServer) CatalogDeregister(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_deregister"}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
-	if req.Method != "PUT" {
-		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
-	}
 
 	var args structs.DeregisterRequest
 	if err := decodeBody(req, &args, nil); err != nil {
@@ -78,9 +72,6 @@ func (s *HTTPServer) CatalogDeregister(resp http.ResponseWriter, req *http.Reque
 func (s *HTTPServer) CatalogDatacenters(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_datacenters"}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
-	if req.Method != "GET" {
-		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
-	}
 
 	var out []string
 	if err := s.agent.RPC("Catalog.ListDatacenters", struct{}{}, &out); err != nil {
@@ -96,9 +87,6 @@ func (s *HTTPServer) CatalogDatacenters(resp http.ResponseWriter, req *http.Requ
 func (s *HTTPServer) CatalogNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_nodes"}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
-	if req.Method != "GET" {
-		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
-	}
 
 	// Setup the request
 	args := structs.DCSpecificRequest{}
@@ -129,9 +117,6 @@ func (s *HTTPServer) CatalogNodes(resp http.ResponseWriter, req *http.Request) (
 func (s *HTTPServer) CatalogServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_services"}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
-	if req.Method != "GET" {
-		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
-	}
 
 	// Set default DC
 	args := structs.DCSpecificRequest{}
@@ -160,9 +145,6 @@ func (s *HTTPServer) CatalogServices(resp http.ResponseWriter, req *http.Request
 func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_service_nodes"}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
-	if req.Method != "GET" {
-		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
-	}
 
 	// Set default DC
 	args := structs.ServiceSpecificRequest{}
@@ -216,9 +198,6 @@ func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Req
 func (s *HTTPServer) CatalogNodeServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_node_services"}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
-	if req.Method != "GET" {
-		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
-	}
 
 	// Set default Datacenter
 	args := structs.NodeSpecificRequest{}
