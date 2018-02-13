@@ -53,7 +53,7 @@ The following sections show examples using these fields to implement different g
 
 ### Static Policy
 
-A static failover policy includes a fixes list of datacenters to contact once there are no healthy instances in the local datacenter.
+A static failover policy includes a fixed list of datacenters to contact once there are no healthy instances in the local datacenter.
 
 Here's the example from the introduction, expanded with a static failover policy:
 
@@ -84,7 +84,7 @@ When this query is executed, such as with a DNS lookup to "api.query.consul", th
 
 ### Dynamic Policy
 
-In a complex federated environment with many Consul datacenters, it can be cumbersome to set static failover policies, so Consul offers a dynamic option based on Consul's [network coordinate](/docs/internals/coordinates.html) subsystem. Consul continuously maintains an estimate of the network round trip time from the local datacenter to the servers other datacenters it is federated with. Each server uses the median round trip time from itself to the servers in the remote datacenter. This means that failover can simply try other remote datacenters in order of increasing network round trip time, and if datacenters come and go, or experience network issues, this order will adjust automatically.
+In a complex federated environment with many Consul datacenters, it can be cumbersome to set static failover policies, so Consul offers a dynamic option based on Consul's [network coordinate](/docs/internals/coordinates.html) subsystem. Consul continuously maintains an estimate of the network round trip time from the local datacenter to the servers in other datacenters it is federated with. Each server uses the median round trip time from itself to the servers in the remote datacenter. This means that failover can simply try other remote datacenters in order of increasing network round trip time, and if datacenters come and go, or experience network issues, this order will adjust automatically.
 
 Here's the example from the introduction, expanded with a dynamic failover policy:
 
