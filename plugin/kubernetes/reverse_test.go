@@ -155,7 +155,7 @@ func TestReverse(t *testing.T) {
 		},
 		{
 			Qname: "101.0.0.10.in-addr.arpa.", Qtype: dns.TypePTR,
-			Rcode: dns.RcodeSuccess,
+			Rcode: dns.RcodeNameError,
 			Ns: []dns.RR{
 				test.SOA("0.10.in-addr.arpa.	300	IN	SOA	ns.dns.0.10.in-addr.arpa. hostmaster.0.10.in-addr.arpa. 1502782828 7200 1800 86400 60"),
 			},

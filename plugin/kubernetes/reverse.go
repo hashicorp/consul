@@ -18,6 +18,9 @@ func (k *Kubernetes) Reverse(state request.Request, exact bool, opt plugin.Optio
 	}
 
 	records := k.serviceRecordForIP(ip, state.Name())
+	if len(records) == 0 {
+		return records, errNoItems
+	}
 	return records, nil
 }
 
