@@ -15,7 +15,7 @@ export default Route.extend({
       nodes: get('/v1/internal/ui/nodes', params.dc).then(map(Node)),
       coordinates: get('/v1/coordinate/nodes', params.dc).then(function(data) {
         return data;
-      })
+      }),
     });
   },
   setupController: function(controller, models) {
@@ -24,5 +24,5 @@ export default Route.extend({
     controller.set('dcs', models.dcs);
     controller.set('coordinates', models.coordinates);
     controller.set('isDropdownVisible', false);
-  }
+  },
 });

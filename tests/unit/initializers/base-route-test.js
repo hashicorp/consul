@@ -14,7 +14,7 @@ module('Unit | Initializer | base route', {
   },
   afterEach() {
     destroyApp(this.application);
-  }
+  },
 });
 
 // Replace this with your real tests.

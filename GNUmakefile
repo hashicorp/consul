@@ -12,5 +12,7 @@ dist:
 
 lint:
 	yarn run lint:js
+format:
+	yarn run format:js
 
-.PHONY: server watch dist lint
+.PHONY: server watch dist lint format

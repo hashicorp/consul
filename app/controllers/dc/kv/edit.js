@@ -9,24 +9,26 @@ import del from 'consul-ui/utils/request/del';
 export default Controller.extend({
   isLoading: false,
   isLockedOrLoading: computed.or('isLoading', 'isLocked'),
-  needs: ["dc"],
+  needs: ['dc'],
   // dc: computed.alias("controllers.dc"),
   actions: {
     // Updates the key set as the model on the route.
     updateKey: function() {
       var controller = this;
       controller.set('isLoading', true);
-      var dc = this.get('dc');//.get('datacenter');
-      var key = this.get("model");
+      var dc = this.get('dc'); //.get('datacenter');
+      var key = this.get('model');
       // Put the key and the decoded (plain text) value
       // from the form.
-      put("/v1/kv/" + getter(key, 'Key'), dc, getter(key, "valueDecoded")).then(function(response) {
-        // If success, just reset the loading state.
-        controller.set('isLoading', false);
-      }).fail(function(response) {
-        // Render the error message on the form if the request failed
-        controller.set('errorMessage', 'Received error while processing: ' + response.statusText);
-      });
+      put('/v1/kv/' + getter(key, 'Key'), dc, getter(key, 'valueDecoded'))
+        .then(function(response) {
+          // If success, just reset the loading state.
+          controller.set('isLoading', false);
+        })
+        .fail(function(response) {
+          // Render the error message on the form if the request failed
+          controller.set('errorMessage', 'Received error while processing: ' + response.statusText);
+        });
     },
     cancelEdit: function() {
       this.set('isLoading', true);
@@ -36,16 +38,18 @@ export default Controller.extend({
     deleteKey: function() {
       var controller = this;
       controller.set('isLoading', true);
-      var dc = controller.get('dc');//.get('datacenter');
-      var key = controller.get("model");
+      var dc = controller.get('dc'); //.get('datacenter');
+      var key = controller.get('model');
       var parent = controller.getParentKeyRoute();
       // Delete the key
-      del("/v1/kv/" + key.get('Key'), dc).then(function(data) {
-        controller.transitionToNearestParent(parent);
-      }).fail(function(response) {
-        // Render the error message on the form if the request failed
-        controller.set('errorMessage', 'Received error while processing: ' + response.statusText);
-      });
-    }
-  }
+      del('/v1/kv/' + key.get('Key'), dc)
+        .then(function(data) {
+          controller.transitionToNearestParent(parent);
+        })
+        .fail(function(response) {
+          // Render the error message on the form if the request failed
+          controller.set('errorMessage', 'Received error while processing: ' + response.statusText);
+        });
+    },
+  },
 });

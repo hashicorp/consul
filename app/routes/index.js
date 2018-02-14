@@ -15,5 +15,5 @@ export default Route.extend({
     if (model.get('length') === 1) {
       this.transitionTo('dc.services', model[0]);
     }
-  }
+  },
 });

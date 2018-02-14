@@ -2,7 +2,7 @@ import Route from '@ember/routing/route';
 
 export function initialize(/* application */) {
   Route.reopen({
-    rootKey: "-",
+    rootKey: '-',
     condensedView: false,
     // Don't record characters in browser history
     // for the "search" query item (filter)
@@ -18,16 +18,16 @@ export function initialize(/* application */) {
 
       if (parts.length > 0) {
         parts.pop();
-        parentKey = parts.join("/") + "/";
+        parentKey = parts.join('/') + '/';
       }
       if (parts.length > 1) {
         parts.pop();
-        grandParentKey = parts.join("/") + "/";
+        grandParentKey = parts.join('/') + '/';
       }
       return {
         parent: parentKey,
         grandParent: grandParentKey,
-        isRoot: parentKey === '/'
+        isRoot: parentKey === '/',
       };
     },
     removeDuplicateKeys: function(keys, matcher) {
@@ -45,18 +45,18 @@ export function initialize(/* application */) {
       // Used to link to keys that are not objects,
       // like parents and grandParents
       linkToKey: function(key) {
-        if (key == "/") {
-          this.transitionTo('kv.show', "-");
+        if (key == '/') {
+          this.transitionTo('kv.show', '-');
         } else if (key.slice(-1) === '/' || key === this.rootKey) {
           this.transitionTo('kv.show', key);
         } else {
           this.transitionTo('kv.edit', key);
         }
-      }
-    }
+      },
+    },
   });
 }
 
 export default {
-  initialize
+  initialize,
 };

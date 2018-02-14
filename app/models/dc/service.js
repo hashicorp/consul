@@ -7,7 +7,7 @@ export default Model.extend({
     // If the service was returned from `/v1/internal/ui/services`
     // then we have a aggregated value which we can just grab
     if (this.get('ChecksCritical') !== undefined) {
-      return (this.get('ChecksCritical') + this.get('ChecksWarning'));
+      return this.get('ChecksCritical') + this.get('ChecksWarning');
       // Otherwise, we need to filter the child checks by both failing
       // states
     } else {
@@ -27,7 +27,9 @@ export default Model.extend({
       // Otherwise, we need to filter the child checks by both failing
       // states
     } else {
-      return this.get('Checks').filterBy('Status', 'passing').get('length');
+      return this.get('Checks')
+        .filterBy('Status', 'passing')
+        .get('length');
     }
   }.property('Checks'),
   // The formatted message returned for the user which represents the
@@ -40,7 +42,7 @@ export default Model.extend({
     }
   }.property('Checks'),
   nodes: function() {
-    return (this.get('Nodes'));
+    return this.get('Nodes');
   }.property('Nodes'),
   // Boolean of whether or not there are failing checks in the service.
   // This is used to set color backgrounds and so on.
@@ -48,5 +50,4 @@ export default Model.extend({
   // Key used for filtering through an array of this model, i.e s
   // searching
   filterKey: computed.alias('Name'),
-
 });

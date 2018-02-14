@@ -2,7 +2,7 @@ import { moduleForModel, test } from 'ember-qunit';
 
 moduleForModel('dc/acl', 'Unit | Model | dc/acl', {
   // Specify the other units that are required for this test.
-  needs: []
+  needs: [],
 });
 
 test('it exists', function(assert) {

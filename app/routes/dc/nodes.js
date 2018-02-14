@@ -12,5 +12,5 @@ export default Route.extend({
   },
   setupController: function(controller, model) {
     controller.set('nodes', model);
-  }
+  },
 });

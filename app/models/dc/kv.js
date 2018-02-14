@@ -2,10 +2,9 @@
 import Model, { computed, get } from '@ember/object';
 
 export default Model.extend({
-
   // Validates using the Ember.Validations library
   validations: {
-    Key: { presence: true }
+    Key: { presence: true },
   },
   // Boolean if field should validate JSON
   validateJson: false,
@@ -17,7 +16,7 @@ export default Model.extend({
   // This is only for display purposes, and used for
   // showing the key name inside of a nested key.
   keyWithoutParent: function() {
-    return (this.get('Key').replace(this.get('parentKey'), ''));
+    return this.get('Key').replace(this.get('parentKey'), '');
   }.property('Key'),
   // Boolean if the key is a "folder" or not, i.e is a nested key
   // that feels like a folder. Used for UI
@@ -25,7 +24,7 @@ export default Model.extend({
     if (this.get('Key') === undefined) {
       return false;
     }
-    return (this.get('Key').slice(-1) === '/');
+    return this.get('Key').slice(-1) === '/';
   }.property('Key'),
   // Boolean if the key is locked or now
   isLocked: function() {
@@ -57,14 +56,14 @@ export default Model.extend({
     // If the value is null, we don't
     // want to try and base64 decode it, so just return
     if (this.get('Value') == null) {
-      return "";
+      return '';
     }
     if (Base64.extendString) {
       // you have to explicitly extend String.prototype
       Base64.extendString();
     }
     // base64 decode the value
-    return (this.get('Value').fromBase64());
+    return this.get('Value').fromBase64();
   }.property('Value'),
   // Check if JSON is valid by attempting a native JSON parse
   isValidJson: function() {
@@ -87,7 +86,7 @@ export default Model.extend({
     var key = this.get('Key');
     // If the key is a folder, remove the last
     // slash to split properly
-    if (key.slice(-1) == "/") {
+    if (key.slice(-1) == '/') {
       key = key.substring(0, key.length - 1);
     }
     return key.split('/');
@@ -100,7 +99,7 @@ export default Model.extend({
     // Remove the last item, essentially going up a level
     // in hiearchy
     parts.pop();
-    return parts.join("/") + "/";
+    return parts.join('/') + '/';
   }.property('Key'),
   // The grandParent Key is the key two levels above this.Key
   // key: baz/bar/foobar/
@@ -110,6 +109,6 @@ export default Model.extend({
     // Remove the last two items, jumping two levels back
     parts.pop();
     parts.pop();
-    return parts.join("/") + "/";
-  }.property('Key')
+    return parts.join('/') + '/';
+  }.property('Key'),
 });

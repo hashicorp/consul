@@ -9,8 +9,8 @@ export default Route.extend({
   queryParams: {
     filter: {
       replace: true,
-      as: "other-filter"
-    }
+      as: 'other-filter',
+    },
   },
   model: function(params) {
     var dc = this.modelFor('dc');
@@ -20,7 +20,7 @@ export default Route.extend({
       tomography: tomography(params.name, dc),
       node: get('/v1/internal/ui/node/' + params.name, dc.dc).then(function(data) {
         return Node.create(data);
-      })
+      }),
     });
   },
   // Load the sessions for the node
@@ -35,5 +35,5 @@ export default Route.extend({
     controller.set('sessions', models.sessions);
     controller.set('tomography', models.tomography);
     controller.set('size', 337);
-  }
+  },
 });

@@ -18,8 +18,8 @@ export default Route.extend({
         return Kv.create().setProperties(data[0]);
       }),
       keys: get('/v1/kv/' + parentKeys.parent + '?keys&seperator=/', dc).then(function(data) {
-        return data.map(function(obj){
-          return Kv.create({Key: obj});
+        return data.map(function(obj) {
+          return Kv.create({ Key: obj });
         });
       }),
     });
@@ -50,5 +50,5 @@ export default Route.extend({
     controller.set('siblings', models.keys);
     controller.set('rootKey', this.rootKey);
     controller.set('session', models.session);
-  }
+  },
 });

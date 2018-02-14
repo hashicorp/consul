@@ -2,7 +2,7 @@ import { moduleForComponent, test } from 'ember-qunit';
 import hbs from 'htmlbars-inline-precompile';
 
 moduleForComponent('list-bar', 'helper:list-bar', {
-  integration: true
+  integration: true,
 });
 
 // Replace this with your real tests.
@@ -11,5 +11,10 @@ test('it renders', function(assert) {
 
   this.render(hbs`{{list-bar inputValue}}`);
 
-  assert.equal(this.$().text().trim(), '1234');
+  assert.equal(
+    this.$()
+      .text()
+      .trim(),
+    '1234'
+  );
 });

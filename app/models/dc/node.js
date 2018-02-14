@@ -14,16 +14,14 @@ export default Model.extend({
     return this.get('Checks').reduce(function(sum, check) {
       var status = get(check, 'Status');
       // We view both warning and critical as failing
-      return (status === 'critical' || status === 'warning') ?
-        sum + 1 :
-        sum;
-    },
-      0
-    );
+      return status === 'critical' || status === 'warning' ? sum + 1 : sum;
+    }, 0);
   }.property('Checks'),
   // The number of passing checks within the service.
   passingChecks: function() {
-    return this.get('Checks').filterBy('Status', 'passing').get('length');
+    return this.get('Checks')
+      .filterBy('Status', 'passing')
+      .get('length');
   }.property('Checks'),
   // The formatted message returned for the user which represents the
   // number of checks failing or passing. Returns `1 passing` or `2 failing`
@@ -33,6 +31,5 @@ export default Model.extend({
     } else {
       return this.get('failingChecks') + ' failing';
     }
-  }.property('Checks')
-
+  }.property('Checks'),
 });

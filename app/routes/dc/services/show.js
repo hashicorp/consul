@@ -12,16 +12,16 @@ export default Route.extend({
     return get('/v1/health/service/' + params.name, dc).then(map(Node));
   },
   setupController: function(controller, model) {
-    var tags = model.reduce(
-      function(prev, item, i, arr)
-      {
+    var tags = model
+      .reduce(function(prev, item, i, arr) {
         return item.Service.Tags !== null ? prev.concat(item.Service.Tags) : prev;
-      },
-      []
-    ).filter(function(n) {
-      return n !== undefined;
-    }).uniq().join(', ');
+      }, [])
+      .filter(function(n) {
+        return n !== undefined;
+      })
+      .uniq()
+      .join(', ');
     controller.set('model', model);
     controller.set('tags', tags);
-  }
+  },
 });
