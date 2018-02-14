@@ -31,7 +31,7 @@ SCRIPT
 CONSUL_DEMO_VERSION = ENV['CONSUL_DEMO_VERSION']
 
 # Specify a custom Vagrant box for the demo
-DEMO_BOX_NAME = ENV['DEMO_BOX_NAME'] || "debian/jessie64"
+DEMO_BOX_NAME = ENV['DEMO_BOX_NAME'] || "debian/stretch64"
 
 # Vagrantfile API/syntax version.
 # NB: Don't touch unless you know what you're doing!
