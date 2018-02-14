@@ -1,14 +1,14 @@
 package proxy
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/coredns/coredns/plugin/pkg/healthcheck"
-
-	"fmt"
 	"github.com/coredns/coredns/plugin/pkg/tls"
 	"github.com/coredns/coredns/plugin/test"
 	"github.com/coredns/coredns/request"
+
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/grpclog"
