@@ -1,14 +1,16 @@
-@import "mixins";
-@import "variables";
-@import "type";
-@import "panels";
-@import "nav";
-@import "buttons";
-@import "lists";
-@import "forms";
-@import "notifications";
+@import 'ember-bootstrap/bootstrap';
+@import 'mixins';
+@import 'variables';
+@import 'type';
+@import 'panels';
+@import 'nav';
+@import 'buttons';
+@import 'lists';
+@import 'forms';
+@import 'notifications';
 
-html, body {
+html,
+body {
   height: 100%;
 }
 
@@ -19,32 +21,36 @@ html, body {
   margin: 0 auto -60px; /* the bottom margin is the negative value of the footer's height */
 }
 
-.footer, .push {
+.footer,
+.push {
   height: 60px; /* .push must be the same height as .footer */
 }
 
-@media (min-width: 1120px) { // + 30
+@media (min-width: 1120px) {
+  // + 30
   .container {
     width: 1100px;
   }
 }
 
-@media (min-width: 1200px) { // + 30
+@media (min-width: 1200px) {
+  // + 30
   .container {
     width: 1200px;
   }
 }
 
-@media (min-width: 1438px) { // + 38
+@media (min-width: 1438px) {
+  // + 38
   .container {
     width: 1400px;
   }
 }
 
 a {
-    button:active {
-        outline: none;
-    }
+  button:active {
+    outline: none;
+  }
 }
 
 .buffer-small {
@@ -54,7 +60,7 @@ a {
 @media (min-width: 991px) {
   .border-left {
     border-left: 1px $gray-background solid;
-    .padded-border{
+    .padded-border {
       padding-left: 30px;
     }
   }
@@ -64,61 +70,60 @@ a {
 }
 
 .no-margin {
-    margin: 0;
+  margin: 0;
 }
 
 .vertical-center {
-    margin-top: 200px;
+  margin-top: 200px;
 }
 
 .sticky-scroll {
-    top: 15px;
-    position: sticky;
-    position: -webkit-sticky;
-    overflow: scroll;
+  top: 15px;
+  position: sticky;
+  position: -webkit-sticky;
+  overflow: scroll;
 }
 
 .row {
-    &.colored {
-        background-color: $light-pink;
-    }
+  &.colored {
+    background-color: $light-pink;
+  }
 }
 
 .bordered {
-    border-left: 2px solid $gray-background;
+  border-left: 2px solid $gray-background;
 }
 
-
 .bg-pink {
-    background-color: $pink;
+  background-color: $pink;
 }
 
 .bg-light-pink {
-    background-color: $light-pink;
+  background-color: $light-pink;
 }
 
 .bg-orange {
-    background-color: $orange-faded;
+  background-color: $orange-faded;
 }
 
 .bg-green {
-    background-color: $green-faded;
+  background-color: $green-faded;
 }
 
 .bg-dark-green {
-    background-color: $green-dark;
+  background-color: $green-dark;
 }
 
 .bg-red {
-    background-color: $red-faded;
+  background-color: $red-faded;
 }
 
 .bg-gray {
-    background-color: $gray-light;
+  background-color: $gray-light;
 }
 
 .bg-light-gray {
-    background-color: $gray-background;
+  background-color: $gray-background;
 }
 
 .action-bar {
@@ -157,32 +162,32 @@ a {
 }
 
 .tomography .background {
-    fill: $gray-background;
+  fill: $gray-background;
 }
 .tomography .axis {
-    fill: none;
-    stroke: $gray-light;
-    stroke-dasharray: 4 4;
+  fill: none;
+  stroke: $gray-light;
+  stroke-dasharray: 4 4;
 }
 .tomography .border {
-    fill: none;
-    stroke: $gray-darker;
+  fill: none;
+  stroke: $gray-darker;
 }
 .tomography .point {
-    stroke: $gray-darker;
-    fill: $green-faded;
+  stroke: $gray-darker;
+  fill: $green-faded;
 }
 .tomography .lines line {
-    stroke: $red;
+  stroke: $red;
 }
 .tomography .lines line:hover {
-    stroke: $gray-darker;
-    stroke-width: 2px;
+  stroke: $gray-darker;
+  stroke-width: 2px;
 }
 .tomography .tick line {
-    stroke: $gray-light;
+  stroke: $gray-light;
 }
 .tomography .tick text {
-    font-size: 14px;
-    text-anchor: start;
+  font-size: 14px;
+  text-anchor: start;
 }
