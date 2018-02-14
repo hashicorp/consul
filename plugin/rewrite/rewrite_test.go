@@ -254,36 +254,43 @@ func TestRewriteEDNS0Local(t *testing.T) {
 		fromOpts []dns.EDNS0
 		args     []string
 		toOpts   []dns.EDNS0
+		doBool   bool
 	}{
 		{
 			[]dns.EDNS0{},
 			[]string{"local", "set", "0xffee", "0xabcdef"},
 			[]dns.EDNS0{&dns.EDNS0_LOCAL{Code: 0xffee, Data: []byte{0xab, 0xcd, 0xef}}},
+			false,
 		},
 		{
 			[]dns.EDNS0{},
 			[]string{"local", "append", "0xffee", "abcdefghijklmnop"},
 			[]dns.EDNS0{&dns.EDNS0_LOCAL{Code: 0xffee, Data: []byte("abcdefghijklmnop")}},
+			false,
 		},
 		{
 			[]dns.EDNS0{},
 			[]string{"local", "replace", "0xffee", "abcdefghijklmnop"},
 			[]dns.EDNS0{},
+			true,
 		},
 		{
 			[]dns.EDNS0{},
 			[]string{"nsid", "set"},
 			[]dns.EDNS0{&dns.EDNS0_NSID{Code: dns.EDNS0NSID, Nsid: ""}},
+			false,
 		},
 		{
 			[]dns.EDNS0{},
 			[]string{"nsid", "append"},
 			[]dns.EDNS0{&dns.EDNS0_NSID{Code: dns.EDNS0NSID, Nsid: ""}},
+			true,
 		},
 		{
 			[]dns.EDNS0{},
 			[]string{"nsid", "replace"},
 			[]dns.EDNS0{},
+			true,
 		},
 	}
 
@@ -305,9 +312,13 @@ func TestRewriteEDNS0Local(t *testing.T) {
 
 		resp := rec.Msg
 		o := resp.IsEdns0()
+		o.SetDo(tc.doBool)
 		if o == nil {
 			t.Errorf("Test %d: EDNS0 options not set", i)
 			continue
+		}
+		if o.Do() != tc.doBool {
+			t.Errorf("Test %d: Expected %v but got %v", i, tc.doBool, o.Do())
 		}
 		if !optsEqual(o.Option, tc.toOpts) {
 			t.Errorf("Test %d: Expected %v but got %v", i, tc.toOpts, o)
@@ -437,41 +448,49 @@ func TestRewriteEDNS0LocalVariable(t *testing.T) {
 		fromOpts []dns.EDNS0
 		args     []string
 		toOpts   []dns.EDNS0
+		doBool   bool
 	}{
 		{
 			[]dns.EDNS0{},
 			[]string{"local", "set", "0xffee", "{qname}"},
 			[]dns.EDNS0{&dns.EDNS0_LOCAL{Code: 0xffee, Data: []byte("example.com.")}},
+			true,
 		},
 		{
 			[]dns.EDNS0{},
 			[]string{"local", "set", "0xffee", "{qtype}"},
 			[]dns.EDNS0{&dns.EDNS0_LOCAL{Code: 0xffee, Data: []byte{0x00, 0x01}}},
+			false,
 		},
 		{
 			[]dns.EDNS0{},
 			[]string{"local", "set", "0xffee", "{client_ip}"},
 			[]dns.EDNS0{&dns.EDNS0_LOCAL{Code: 0xffee, Data: []byte{0x0A, 0xF0, 0x00, 0x01}}},
+			false,
 		},
 		{
 			[]dns.EDNS0{},
 			[]string{"local", "set", "0xffee", "{client_port}"},
 			[]dns.EDNS0{&dns.EDNS0_LOCAL{Code: 0xffee, Data: []byte{0x9D, 0x14}}},
+			true,
 		},
 		{
 			[]dns.EDNS0{},
 			[]string{"local", "set", "0xffee", "{protocol}"},
 			[]dns.EDNS0{&dns.EDNS0_LOCAL{Code: 0xffee, Data: []byte("udp")}},
+			false,
 		},
 		{
 			[]dns.EDNS0{},
 			[]string{"local", "set", "0xffee", "{server_ip}"},
 			[]dns.EDNS0{&dns.EDNS0_LOCAL{Code: 0xffee, Data: []byte{0x7F, 0x00, 0x00, 0x01}}},
+			true,
 		},
 		{
 			[]dns.EDNS0{},
 			[]string{"local", "set", "0xffee", "{server_port}"},
 			[]dns.EDNS0{&dns.EDNS0_LOCAL{Code: 0xffee, Data: []byte{0x00, 0x35}}},
+			true,
 		},
 	}
 
@@ -493,9 +512,13 @@ func TestRewriteEDNS0LocalVariable(t *testing.T) {
 
 		resp := rec.Msg
 		o := resp.IsEdns0()
+		o.SetDo(tc.doBool)
 		if o == nil {
 			t.Errorf("Test %d: EDNS0 options not set", i)
 			continue
+		}
+		if o.Do() != tc.doBool {
+			t.Errorf("Test %d: Expected %v but got %v", i, tc.doBool, o.Do())
 		}
 		if !optsEqual(o.Option, tc.toOpts) {
 			t.Errorf("Test %d: Expected %v but got %v", i, tc.toOpts, o)
@@ -514,6 +537,7 @@ func TestRewriteEDNS0Subnet(t *testing.T) {
 		fromOpts []dns.EDNS0
 		args     []string
 		toOpts   []dns.EDNS0
+		doBool   bool
 	}{
 		{
 			&test.ResponseWriter{},
@@ -525,6 +549,7 @@ func TestRewriteEDNS0Subnet(t *testing.T) {
 				SourceScope:   0x0,
 				Address:       []byte{0x0A, 0xF0, 0x00, 0x00},
 			}},
+			true,
 		},
 		{
 			&test.ResponseWriter{},
@@ -536,6 +561,7 @@ func TestRewriteEDNS0Subnet(t *testing.T) {
 				SourceScope:   0x0,
 				Address:       []byte{0x0A, 0xF0, 0x00, 0x01},
 			}},
+			false,
 		},
 		{
 			&test.ResponseWriter{},
@@ -547,6 +573,7 @@ func TestRewriteEDNS0Subnet(t *testing.T) {
 				SourceScope:   0x0,
 				Address:       []byte{0x00, 0x00, 0x00, 0x00},
 			}},
+			false,
 		},
 		{
 			&test.ResponseWriter6{},
@@ -559,6 +586,7 @@ func TestRewriteEDNS0Subnet(t *testing.T) {
 				Address: []byte{0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 					0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 			}},
+			true,
 		},
 		{
 			&test.ResponseWriter6{},
@@ -571,6 +599,7 @@ func TestRewriteEDNS0Subnet(t *testing.T) {
 				Address: []byte{0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 					0x00, 0x42, 0x00, 0xff, 0xfe, 0xca, 0x4c, 0x65},
 			}},
+			false,
 		},
 		{
 			&test.ResponseWriter6{},
@@ -583,6 +612,7 @@ func TestRewriteEDNS0Subnet(t *testing.T) {
 				Address: []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 					0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 			}},
+			true,
 		},
 	}
 
@@ -603,9 +633,13 @@ func TestRewriteEDNS0Subnet(t *testing.T) {
 
 		resp := rec.Msg
 		o := resp.IsEdns0()
+		o.SetDo(tc.doBool)
 		if o == nil {
 			t.Errorf("Test %d: EDNS0 options not set", i)
 			continue
+		}
+		if o.Do() != tc.doBool {
+			t.Errorf("Test %d: Expected %v but got %v", i, tc.doBool, o.Do())
 		}
 		if !optsEqual(o.Option, tc.toOpts) {
 			t.Errorf("Test %d: Expected %v but got %v", i, tc.toOpts, o)
