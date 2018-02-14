@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"crypto/tls"
+	"fmt"
 	"log"
 
 	"github.com/coredns/coredns/pb"
@@ -42,16 +43,19 @@ func (g *grpcClient) Exchange(ctx context.Context, addr string, state request.Re
 		return nil, err
 	}
 
-	reply, err := g.clients[addr].Query(ctx, &pb.DnsPacket{Msg: msg})
-	if err != nil {
-		return nil, err
+	if cl, ok := g.clients[addr]; ok {
+		reply, err := cl.Query(ctx, &pb.DnsPacket{Msg: msg})
+		if err != nil {
+			return nil, err
+		}
+		d := new(dns.Msg)
+		err = d.Unpack(reply.Msg)
+		if err != nil {
+			return nil, err
+		}
+		return d, nil
 	}
-	d := new(dns.Msg)
-	err = d.Unpack(reply.Msg)
-	if err != nil {
-		return nil, err
-	}
-	return d, nil
+	return nil, fmt.Errorf("grpc exchange - no connection available for host: %s ", addr)
 }
 
 func (g *grpcClient) Transport() string { return "tcp" }
