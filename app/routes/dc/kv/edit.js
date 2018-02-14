@@ -3,7 +3,7 @@ import { hash } from 'rsvp';
 import { get as getter } from '@ember/object';
 
 import Kv from 'consul-ui/models/dc/kv';
-import get from 'consul-ui/lib/request/get';
+import get from 'consul-ui/utils/request/get';
 export default Route.extend({
   model: function(params) {
     var key = params.key;

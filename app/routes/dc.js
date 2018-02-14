@@ -1,8 +1,8 @@
 import Route from '@ember/routing/route';
 import { hash } from 'rsvp';
 
-import get from 'consul-ui/lib/request/get';
-import map from 'consul-ui/lib/map';
+import get from 'consul-ui/utils/request/get';
+import map from 'consul-ui/utils/map';
 
 import Node from 'consul-ui/models/dc/node';
 export default Route.extend({

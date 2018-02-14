@@ -1,7 +1,7 @@
 import Controller from '@ember/controller';
 import Promise from 'rsvp';
-import confirm from 'consul-ui/lib/confirm';
-import notify from 'consul-ui/lib/notify';
+import confirm from 'consul-ui/utils/confirm';
+import notify from 'consul-ui/utils/notify';
 
 // emberize this
 var dispatch;

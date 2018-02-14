@@ -3,8 +3,8 @@ import { computed } from '@ember/object';
 
 import { get as getter } from '@ember/object';
 
-import put from 'consul-ui/lib/request/put';
-import del from 'consul-ui/lib/request/del';
+import put from 'consul-ui/utils/request/put';
+import del from 'consul-ui/utils/request/del';
 
 export default Controller.extend({
   isLoading: false,

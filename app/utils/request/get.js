@@ -1,4 +1,4 @@
-import formatURLFactory from 'consul-ui/lib/formatURL';
+import formatURLFactory from 'consul-ui/utils/formatURL';
 import $ from 'jquery';
 const consulHost = '';
 const request = $.ajax;

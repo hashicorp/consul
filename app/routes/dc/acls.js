@@ -1,7 +1,7 @@
 import Route from '@ember/routing/route';
 
 import Kv from 'consul-ui/models/dc/acl';
-import get from 'consul-ui/lib/request/get';
+import get from 'consul-ui/utils/request/get';
 export default Route.extend({
   model: function(params) {
     var dc = this.modelFor('dc').dc;

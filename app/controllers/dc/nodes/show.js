@@ -1,7 +1,7 @@
 import Controller from '@ember/controller';
 import { computed } from '@ember/object';
 
-import put from 'consul-ui/lib/request/put';
+import put from 'consul-ui/utils/request/put';
 
 export default Controller.extend({
   needs: ["dc", "nodes"],

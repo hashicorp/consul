@@ -1,7 +1,7 @@
 import Route from '@ember/routing/route';
 
-import get from 'consul-ui/lib/request/get';
-import map from 'consul-ui/lib/map';
+import get from 'consul-ui/utils/request/get';
+import map from 'consul-ui/utils/map';
 import Service from 'consul-ui/models/dc/service';
 
 export default Route.extend({

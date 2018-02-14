@@ -1,10 +1,10 @@
 import Controller from '@ember/controller';
 import { computed } from '@ember/object';
 
-import get from 'consul-ui/lib/request/get';
-import put from 'consul-ui/lib/request/put';
-import del from 'consul-ui/lib/request/del';
-import confirm from 'consul-ui/lib/confirm';
+import get from 'consul-ui/utils/request/get';
+import put from 'consul-ui/utils/request/put';
+import del from 'consul-ui/utils/request/del';
+import confirm from 'consul-ui/utils/confirm';
 
 export default Controller.extend({
         getParentKeyRoute: function() {

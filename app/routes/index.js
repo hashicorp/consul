@@ -1,6 +1,6 @@
 import Route from '@ember/routing/route';
 
-import get from 'consul-ui/lib/request/get';
+import get from 'consul-ui/utils/request/get';
 
 export default Route.extend({
   model: function(params) {
