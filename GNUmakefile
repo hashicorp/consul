@@ -10,4 +10,7 @@ watch:
 dist:
 	yarn run build
 
-.PHONY: server watch dist
+lint:
+	yarn run lint:js
+
+.PHONY: server watch dist lint

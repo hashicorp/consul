@@ -7,4 +7,4 @@ export default function(Model)
             return Model.create(obj);
         });
     }
-};
+}

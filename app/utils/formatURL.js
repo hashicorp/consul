@@ -36,4 +36,4 @@ export default function(Settings)
     }
     return url + params;
   };
-};
+}
