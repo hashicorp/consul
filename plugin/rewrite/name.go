@@ -2,11 +2,12 @@ package rewrite
 
 import (
 	"fmt"
-	"github.com/coredns/coredns/plugin"
-	"github.com/miekg/dns"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/coredns/coredns/plugin"
+	"github.com/miekg/dns"
 )
 
 type nameRule struct {

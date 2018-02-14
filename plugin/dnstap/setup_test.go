@@ -1,8 +1,9 @@
 package dnstap
 
 import (
-	"github.com/mholt/caddy"
 	"testing"
+
+	"github.com/mholt/caddy"
 )
 
 func TestConfig(t *testing.T) {

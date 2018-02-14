@@ -1,10 +1,11 @@
 package rewrite
 
 import (
-	"github.com/miekg/dns"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/miekg/dns"
 )
 
 // ResponseRule contains a rule to rewrite a response with.
