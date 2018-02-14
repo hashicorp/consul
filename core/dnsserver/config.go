@@ -2,6 +2,7 @@ package dnsserver
 
 import (
 	"crypto/tls"
+	"net"
 
 	"github.com/coredns/coredns/plugin"
 
@@ -13,8 +14,9 @@ type Config struct {
 	// The zone of the site.
 	Zone string
 
-	// The hostname to bind listener to, defaults to the wildcard address
-	ListenHost string
+	// one or several hostnames to bind the server to.
+	// defaults to a single empty string that denote the wildcard address
+	ListenHosts []string
 
 	// The port to listen on.
 	Port string
@@ -50,6 +52,22 @@ type Config struct {
 	registry map[string]plugin.Handler
 }
 
+//HostAddresses builds a representation of the addresses of this Config
+//after server is started ONLY, can be used as a Key for identifing that config
+// :53 or 127.0.0.1:53 or 127.0.0.1:53/::1:53
+func (c *Config) HostAddresses() string {
+	all := ""
+	for _, h := range c.ListenHosts {
+		addr := net.JoinHostPort(h, c.Port)
+		if all == "" {
+			all = addr
+			continue
+		}
+		all = all + "/" + addr
+	}
+	return all
+}
+
 // GetConfig gets the Config that corresponds to c.
 // If none exist nil is returned.
 func GetConfig(c *caddy.Controller) *Config {
@@ -60,6 +78,6 @@ func GetConfig(c *caddy.Controller) *Config {
 	// we should only get here during tests because directive
 	// actions typically skip the server blocks where we make
 	// the configs.
-	ctx.saveConfig(c.Key, &Config{})
+	ctx.saveConfig(c.Key, &Config{ListenHosts: []string{""}})
 	return GetConfig(c)
 }

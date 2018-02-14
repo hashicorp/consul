@@ -41,7 +41,7 @@ func traceParse(c *caddy.Controller) (*trace, error) {
 	)
 
 	cfg := dnsserver.GetConfig(c)
-	tr.ServiceEndpoint = cfg.ListenHost + ":" + cfg.Port
+	tr.ServiceEndpoint = cfg.HostAddresses()
 	for c.Next() { // trace
 		var err error
 		args := c.RemainingArgs()

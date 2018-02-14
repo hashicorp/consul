@@ -9,22 +9,38 @@ import (
 )
 
 func TestSetupBind(t *testing.T) {
-	c := caddy.NewTestController("dns", `bind 1.2.3.4`)
-	err := setupBind(c)
-	if err != nil {
-		t.Fatalf("Expected no errors, but got: %v", err)
-	}
-
-	cfg := dnsserver.GetConfig(c)
-	if got, want := cfg.ListenHost, "1.2.3.4"; got != want {
-		t.Errorf("Expected the config's ListenHost to be %s, was %s", want, got)
-	}
-}
-
-func TestBindAddress(t *testing.T) {
-	c := caddy.NewTestController("dns", `bind 1.2.3.bla`)
-	err := setupBind(c)
-	if err == nil {
-		t.Fatalf("Expected errors, but got none")
+	for i, test := range []struct {
+		config   string
+		expected []string
+		failing  bool
+	}{
+		{`bind 1.2.3.4`, []string{"1.2.3.4"}, false},
+		{`bind`, nil, true},
+		{`bind 1.2.3.invalid`, nil, true},
+		{`bind 1.2.3.4 ::5`, []string{"1.2.3.4", "::5"}, false},
+		{`bind ::1 1.2.3.4 ::5 127.9.9.0`, []string{"::1", "1.2.3.4", "::5", "127.9.9.0"}, false},
+		{`bind ::1 1.2.3.4 ::5 127.9.9.0 noone`, nil, true},
+	} {
+		c := caddy.NewTestController("dns", test.config)
+		err := setupBind(c)
+		if err != nil {
+			if !test.failing {
+				t.Fatalf("test %d, expected no errors, but got: %v", i, err)
+			}
+			continue
+		}
+		if test.failing {
+			t.Fatalf("test %d, expected to failed but did not, returned values", i)
+		}
+		cfg := dnsserver.GetConfig(c)
+		if len(cfg.ListenHosts) != len(test.expected) {
+			t.Errorf("test %d : expected the config's ListenHosts size to be %d, was %d", i, len(test.expected), len(cfg.ListenHosts))
+			continue
+		}
+		for i, v := range test.expected {
+			if got, want := cfg.ListenHosts[i], v; got != want {
+				t.Errorf("test %d : expected the config's ListenHost to be %s, was %s", i, want, got)
+			}
+		}
 	}
 }

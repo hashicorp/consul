@@ -287,8 +287,22 @@ func (s *Server) OnStartupComplete() {
 		return
 	}
 
-	for zone, config := range s.zones {
-		fmt.Println(zone + ":" + config.Port)
+	for zone := range s.zones {
+		// split addr into protocol, IP and Port
+		_, ip, port, err := SplitProtocolHostPort(s.Addr)
+
+		if err != nil {
+			// this should not happen, but we need to take care of it anyway
+			fmt.Println(zone + ":" + s.Addr)
+			return
+		}
+		if ip == "" {
+			fmt.Println(zone + ":" + port)
+			return
+		}
+		// if the server is listening on a specific address let's make it visible in the log,
+		// so one can differentiate between all active listeners
+		fmt.Println(zone + ":" + port + " on " + ip)
 	}
 }
 

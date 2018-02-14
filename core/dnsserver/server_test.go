@@ -20,11 +20,11 @@ func (tp testPlugin) Name() string { return "testplugin" }
 
 func testConfig(transport string, p plugin.Handler) *Config {
 	c := &Config{
-		Zone:       "example.com.",
-		Transport:  transport,
-		ListenHost: "127.0.0.1",
-		Port:       "53",
-		Debug:      false,
+		Zone:        "example.com.",
+		Transport:   transport,
+		ListenHosts: []string{"127.0.0.1"},
+		Port:        "53",
+		Debug:       false,
 	}
 
 	c.AddPlugin(func(next plugin.Handler) plugin.Handler { return p })
