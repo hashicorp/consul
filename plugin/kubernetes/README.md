@@ -13,8 +13,8 @@ CoreDNS running the kubernetes plugin can be used as a replacement of kube-dns i
 cluster.  See the [deployment](https://github.com/coredns/deployment) repository for details on [how
 to deploy CoreDNS in Kubernetes](https://github.com/coredns/deployment/tree/master/kubernetes).
 
-[stubDomains](http://blog.kubernetes.io/2017/04/configuring-private-dns-zones-upstream-nameservers-kubernetes.html)
-are implemented via the *proxy* plugin.
+[stubDomains and upstreamNameservers](http://blog.kubernetes.io/2017/04/configuring-private-dns-zones-upstream-nameservers-kubernetes.html)
+are implemented via the *proxy* plugin and kubernetes *upstream*. See example below.
 
 ## Syntax
 
@@ -36,7 +36,7 @@ kubernetes [ZONES...] {
     labels EXPRESSION
     pods POD-MODE
     endpoint_pod_names
-    upstream ADDRESS...
+    upstream [ADDRESS...]
     ttl TTL
     fallthrough [ZONES...]
 }
@@ -80,8 +80,9 @@ kubernetes [ZONES...] {
    follows: Use the hostname of the endpoint, or if hostname is not set, use the
    pod name of the pod targeted by the endpoint. If there is no pod targeted by
    the endpoint, use the dashed IP address form.
-* `upstream` **ADDRESS [ADDRESS...]** defines the upstream resolvers used for resolving services
-  that point to external hosts (External Services).  **ADDRESS** can be an IP, an IP:port, or a path
+* `upstream` [**ADDRESS**...] defines the upstream resolvers used for resolving services
+  that point to external hosts (aka External Services aka CNAMEs).  If no **ADDRESS** is given, CoreDNS
+  will resolve External Services against itself. **ADDRESS** can be an IP, an IP:port, or a path
   to a file structured like resolv.conf.
 * `ttl` allows you to set a custom TTL for responses. The default (and allowed minimum) is to use
   5 seconds, the maximum is capped at 3600 seconds.
@@ -129,22 +130,31 @@ kubernetes cluster.local {
 }
 ~~~
 
-Here we use the *proxy* plugin to implement stubDomains that forwards `example.org` and
-`example.com` to another nameserver.
+
+## stubDomains and upstreamNameservers
+
+Here we use the *proxy* plugin to implement a stubDomain that forwards `example.local` to the nameserver `10.100.0.10:53`.
+The *upstream* option in kubernetes means that ExternalName services (CNAMEs) will be resolved using the respective proxy.
+Also configured is an upstreamNameserver `8.8.8.8:53` that will be used for resolving names that do not fall in `cluster.local`
+or `example.local`.
 
 ~~~ txt
-cluster.local {
-    kubernetes {
-        endpoint https://k8s-endpoint:8443
-        tls cert key cacert
+.:53 {
+    kubernetes cluster.local {
+        upstream
     }
-}
-example.org {
+    proxy example.local 10.100.0.10:53
     proxy . 8.8.8.8:53
 }
-example.com {
-    proxy . 8.8.8.8:53
-}
+~~~
+
+The configuration above represents the following Kube-DNS stubDomains and upstreamNameservers configuration.
+
+~~~ txt
+  stubDomains: |
+    {“example.local”: [“10.100.0.10:53”]}
+  upstreamNameservers: |
+    [“8.8.8.8:53”]
 ~~~
 
 ## AutoPath

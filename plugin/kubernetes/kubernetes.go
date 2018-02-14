@@ -14,7 +14,7 @@ import (
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
 	"github.com/coredns/coredns/plugin/pkg/fall"
 	"github.com/coredns/coredns/plugin/pkg/healthcheck"
-	"github.com/coredns/coredns/plugin/proxy"
+	"github.com/coredns/coredns/plugin/pkg/upstream"
 	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
@@ -31,7 +31,7 @@ import (
 type Kubernetes struct {
 	Next             plugin.Handler
 	Zones            []string
-	Proxy            proxy.Proxy // Proxy for looking up names during the resolution process
+	Upstream         upstream.Upstream
 	APIServerList    []string
 	APIProxy         *apiProxy
 	APICertAuth      string
@@ -59,7 +59,6 @@ func New(zones []string) *Kubernetes {
 	k.Namespaces = make(map[string]bool)
 	k.interfaceAddrsFunc = func() net.IP { return net.ParseIP("127.0.0.1") }
 	k.podMode = podModeDisabled
-	k.Proxy = proxy.Proxy{}
 	k.ttl = defaultTTL
 
 	return k
@@ -146,7 +145,7 @@ func (k *Kubernetes) primaryZone() string { return k.Zones[k.primaryZoneIndex] }
 
 // Lookup implements the ServiceBackend interface.
 func (k *Kubernetes) Lookup(state request.Request, name string, typ uint16) (*dns.Msg, error) {
-	return k.Proxy.Lookup(state, name, typ)
+	return k.Upstream.Lookup(state, name, typ)
 }
 
 // IsNameError implements the ServiceBackend interface.

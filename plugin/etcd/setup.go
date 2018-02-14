@@ -5,8 +5,8 @@ import (
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
-	"github.com/coredns/coredns/plugin/pkg/dnsutil"
 	mwtls "github.com/coredns/coredns/plugin/pkg/tls"
+	"github.com/coredns/coredns/plugin/pkg/upstream"
 	"github.com/coredns/coredns/plugin/proxy"
 
 	etcdc "github.com/coreos/etcd/client"
@@ -90,13 +90,13 @@ func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 				case "upstream":
 					args := c.RemainingArgs()
 					if len(args) == 0 {
-						return &Etcd{}, false, c.ArgErr()
+						return nil, false, c.ArgErr()
 					}
-					ups, err := dnsutil.ParseHostPortOrFile(args...)
+					u, err := upstream.NewUpstream(args)
 					if err != nil {
-						return &Etcd{}, false, err
+						return nil, false, err
 					}
-					etc.Proxy = proxy.NewLookup(ups)
+					etc.Upstream = u
 				case "tls": // cert key cacertfile
 					args := c.RemainingArgs()
 					tlsConfig, err = mwtls.NewTLSConfigFromArgs(args...)

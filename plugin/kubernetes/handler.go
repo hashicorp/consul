@@ -11,7 +11,8 @@ import (
 
 // ServeDNS implements the plugin.Handler interface.
 func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
-	state := request.Request{W: w, Req: r}
+	opt := plugin.Options{}
+	state := request.Request{W: w, Req: r, Context: ctx}
 
 	m := new(dns.Msg)
 	m.SetReply(r)
@@ -32,24 +33,24 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 
 	switch state.QType() {
 	case dns.TypeA:
-		records, err = plugin.A(&k, zone, state, nil, plugin.Options{})
+		records, err = plugin.A(&k, zone, state, nil, opt)
 	case dns.TypeAAAA:
-		records, err = plugin.AAAA(&k, zone, state, nil, plugin.Options{})
+		records, err = plugin.AAAA(&k, zone, state, nil, opt)
 	case dns.TypeTXT:
-		records, err = plugin.TXT(&k, zone, state, plugin.Options{})
+		records, err = plugin.TXT(&k, zone, state, opt)
 	case dns.TypeCNAME:
-		records, err = plugin.CNAME(&k, zone, state, plugin.Options{})
+		records, err = plugin.CNAME(&k, zone, state, opt)
 	case dns.TypePTR:
-		records, err = plugin.PTR(&k, zone, state, plugin.Options{})
+		records, err = plugin.PTR(&k, zone, state, opt)
 	case dns.TypeMX:
-		records, extra, err = plugin.MX(&k, zone, state, plugin.Options{})
+		records, extra, err = plugin.MX(&k, zone, state, opt)
 	case dns.TypeSRV:
-		records, extra, err = plugin.SRV(&k, zone, state, plugin.Options{})
+		records, extra, err = plugin.SRV(&k, zone, state, opt)
 	case dns.TypeSOA:
-		records, err = plugin.SOA(&k, zone, state, plugin.Options{})
+		records, err = plugin.SOA(&k, zone, state, opt)
 	case dns.TypeNS:
 		if state.Name() == zone {
-			records, extra, err = plugin.NS(&k, zone, state, plugin.Options{})
+			records, extra, err = plugin.NS(&k, zone, state, opt)
 			break
 		}
 		fallthrough
@@ -57,21 +58,21 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 		k.Transfer(ctx, state)
 	default:
 		// Do a fake A lookup, so we can distinguish between NODATA and NXDOMAIN
-		_, err = plugin.A(&k, zone, state, nil, plugin.Options{})
+		_, err = plugin.A(&k, zone, state, nil, opt)
 	}
 
 	if k.IsNameError(err) {
 		if k.Fall.Through(state.Name()) {
 			return plugin.NextOrFailure(k.Name(), k.Next, ctx, w, r)
 		}
-		return plugin.BackendError(&k, zone, dns.RcodeNameError, state, nil /* err */, plugin.Options{})
+		return plugin.BackendError(&k, zone, dns.RcodeNameError, state, nil /* err */, opt)
 	}
 	if err != nil {
 		return dns.RcodeServerFailure, err
 	}
 
 	if len(records) == 0 {
-		return plugin.BackendError(&k, zone, dns.RcodeSuccess, state, nil, plugin.Options{})
+		return plugin.BackendError(&k, zone, dns.RcodeSuccess, state, nil, opt)
 	}
 
 	m.Answer = append(m.Answer, records...)

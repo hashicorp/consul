@@ -9,10 +9,9 @@ import (
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
-	"github.com/coredns/coredns/plugin/pkg/dnsutil"
 	"github.com/coredns/coredns/plugin/pkg/parse"
-	"github.com/coredns/coredns/plugin/proxy"
 
+	"github.com/coredns/coredns/plugin/pkg/upstream"
 	"github.com/mholt/caddy"
 	"github.com/miekg/dns"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -195,14 +194,11 @@ func ParseStanza(c *caddy.Controller) (*Kubernetes, error) {
 			k8s.Fall.SetZonesFromArgs(c.RemainingArgs())
 		case "upstream":
 			args := c.RemainingArgs()
-			if len(args) == 0 {
-				return nil, c.ArgErr()
-			}
-			ups, err := dnsutil.ParseHostPortOrFile(args...)
+			u, err := upstream.NewUpstream(args)
 			if err != nil {
 				return nil, err
 			}
-			k8s.Proxy = proxy.NewLookup(ups)
+			k8s.Upstream = u
 		case "ttl":
 			args := c.RemainingArgs()
 			if len(args) == 0 {

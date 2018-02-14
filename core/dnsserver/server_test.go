@@ -48,6 +48,21 @@ func TestNewServer(t *testing.T) {
 	}
 }
 
+func TestIncrementDepthAndCheck(t *testing.T) {
+	ctx := context.Background()
+	var err error
+	for i := 0; i <= maxreentries; i++ {
+		ctx, err = incrementDepthAndCheck(ctx)
+		if err != nil {
+			t.Errorf("Expected no error for depthCheck (i=%v), got %s", i, err)
+		}
+	}
+	_, err = incrementDepthAndCheck(ctx)
+	if err == nil {
+		t.Errorf("Expected error for depthCheck (i=%v)", maxreentries+1)
+	}
+}
+
 func BenchmarkCoreServeDNS(b *testing.B) {
 	s, err := NewServer("127.0.0.1:53", []*Config{testConfig("dns", testPlugin{})})
 	if err != nil {

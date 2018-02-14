@@ -12,7 +12,7 @@ import (
 // ServeDNS implements the plugin.Handler interface.
 func (e *Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	opt := plugin.Options{}
-	state := request.Request{W: w, Req: r}
+	state := request.Request{W: w, Req: r, Context: ctx}
 
 	name := state.Name()
 

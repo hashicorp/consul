@@ -10,6 +10,7 @@ import (
 	"github.com/coredns/coredns/plugin/etcd/msg"
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	"github.com/coredns/coredns/plugin/pkg/tls"
+	"github.com/coredns/coredns/plugin/pkg/upstream"
 	"github.com/coredns/coredns/plugin/proxy"
 	"github.com/coredns/coredns/plugin/test"
 
@@ -227,8 +228,9 @@ func newEtcdPlugin() *Etcd {
 	tlsc, _ := tls.NewTLSConfigFromArgs()
 	client, _ := newEtcdClient(endpoints, tlsc)
 
+	p := proxy.NewLookup([]string{"8.8.8.8:53"})
 	return &Etcd{
-		Proxy:      proxy.NewLookup([]string{"8.8.8.8:53"}),
+		Upstream:   upstream.Upstream{Forward: &p},
 		PathPrefix: "skydns",
 		Ctx:        context.Background(),
 		Zones:      []string{"skydns.test.", "skydns_extra.test.", "in-addr.arpa."},

@@ -13,6 +13,7 @@ import (
 	"github.com/coredns/coredns/plugin/proxy"
 	"github.com/coredns/coredns/request"
 
+	"github.com/coredns/coredns/plugin/pkg/upstream"
 	etcdc "github.com/coreos/etcd/client"
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
@@ -24,7 +25,7 @@ type Etcd struct {
 	Fall       fall.F
 	Zones      []string
 	PathPrefix string
-	Proxy      proxy.Proxy // Proxy for looking up names during the resolution process
+	Upstream   upstream.Upstream // Proxy for looking up names during the resolution process
 	Client     etcdc.KeysAPI
 	Ctx        context.Context
 	Stubmap    *map[string]proxy.Proxy // list of proxies for stub resolving.
@@ -50,7 +51,7 @@ func (e *Etcd) Reverse(state request.Request, exact bool, opt plugin.Options) (s
 
 // Lookup implements the ServiceBackend interface.
 func (e *Etcd) Lookup(state request.Request, name string, typ uint16) (*dns.Msg, error) {
-	return e.Proxy.Lookup(state, name, typ)
+	return e.Upstream.Lookup(state, name, typ)
 }
 
 // IsNameError implements the ServiceBackend interface.

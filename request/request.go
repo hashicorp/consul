@@ -9,6 +9,7 @@ import (
 	"github.com/coredns/coredns/plugin/pkg/edns"
 
 	"github.com/miekg/dns"
+	"golang.org/x/net/context"
 )
 
 // Request contains some connection state and is useful in plugin.
@@ -18,6 +19,8 @@ type Request struct {
 
 	// Optional lowercased zone of this query.
 	Zone string
+
+	Context context.Context
 
 	// Cache size after first call to Size or Do.
 	size int

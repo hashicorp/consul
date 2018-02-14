@@ -7,6 +7,7 @@ import (
 
 	"github.com/coredns/coredns/plugin/pkg/fall"
 
+	"github.com/coredns/coredns/plugin/proxy"
 	"github.com/mholt/caddy"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -463,7 +464,10 @@ kubernetes cluster.local`,
 			t.Errorf("Test %d: Expected kubernetes controller to be initialized with fallthrough '%v'. Instead found fallthrough '%v' for input '%s'", i, test.expectedFallthrough, k8sController.Fall, test.input)
 		}
 		// upstream
-		foundUpstreams := k8sController.Proxy.Upstreams
+		var foundUpstreams *[]proxy.Upstream
+		if k8sController.Upstream.Forward != nil {
+			foundUpstreams = k8sController.Upstream.Forward.Upstreams
+		}
 		if test.expectedUpstreams == nil {
 			if foundUpstreams != nil {
 				t.Errorf("Test %d: Expected kubernetes controller to not be initialized with upstreams for input '%s'", i, test.input)
