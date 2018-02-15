@@ -168,6 +168,7 @@ func (s *HTTPServer) CoordinateUpdate(resp http.ResponseWriter, req *http.Reques
 		return nil, nil
 	}
 	s.parseDC(req, &args.Datacenter)
+	s.parseToken(req, &args.Token)
 
 	var reply struct{}
 	if err := s.agent.RPC("Coordinate.Update", &args, &reply); err != nil {
