@@ -16,8 +16,7 @@ func TestPersistent(t *testing.T) {
 	})
 	defer s.Close()
 
-	h := newHost(s.Addr)
-	tr := newTransport(h)
+	tr := newTransport(s.Addr, nil /* no TLS */)
 	defer tr.Stop()
 
 	c1, _ := tr.Dial("udp")

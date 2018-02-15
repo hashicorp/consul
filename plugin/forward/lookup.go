@@ -5,10 +5,6 @@
 package forward
 
 import (
-	"crypto/tls"
-	"log"
-	"time"
-
 	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
@@ -32,12 +28,10 @@ func (f *Forward) Forward(state request.Request) (*dns.Msg, error) {
 			// All upstream proxies are dead, assume healtcheck is complete broken and randomly
 			// select an upstream to connect to.
 			proxy = f.list()[0]
-			log.Printf("[WARNING] All upstreams down, picking random one to connect to %s", proxy.host.addr)
 		}
 
 		ret, err := proxy.connect(context.Background(), state, f.forceTCP, true)
 		if err != nil {
-			log.Printf("[WARNING] Failed to connect to %s: %s", proxy.host.addr, err)
 			if fails < len(f.proxies) {
 				continue
 			}
@@ -68,10 +62,11 @@ func (f *Forward) Lookup(state request.Request, name string, typ uint16) (*dns.M
 }
 
 // NewLookup returns a Forward that can be used for plugin that need an upstream to resolve external names.
+// Note that the caller must run Close on the forward to stop the health checking goroutines.
 func NewLookup(addr []string) *Forward {
-	f := &Forward{maxfails: 2, tlsConfig: new(tls.Config), expire: defaultExpire, hcInterval: 2 * time.Second}
+	f := New()
 	for i := range addr {
-		p := NewProxy(addr[i])
+		p := NewProxy(addr[i], nil)
 		f.SetProxy(p)
 	}
 	return f

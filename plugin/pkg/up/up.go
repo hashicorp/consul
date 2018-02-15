@@ -17,8 +17,8 @@ type Probe struct {
 	inprogress bool
 }
 
-// Func is used to determine if a target is alive. If so this function must return true.
-type Func func(target string) bool
+// Func is used to determine if a target is alive. If so this function must return nil.
+type Func func() error
 
 // New returns a pointer to an intialized Probe.
 func New() *Probe {
@@ -32,9 +32,9 @@ func (p *Probe) Do(f Func) { p.do <- f }
 func (p *Probe) Stop() { p.stop <- true }
 
 // Start will start the probe manager, after which probes can be initialized with Do.
-func (p *Probe) Start(target string, interval time.Duration) { go p.start(target, interval) }
+func (p *Probe) Start(interval time.Duration) { go p.start(interval) }
 
-func (p *Probe) start(target string, interval time.Duration) {
+func (p *Probe) start(interval time.Duration) {
 	for {
 		select {
 		case <-p.stop:
@@ -52,9 +52,10 @@ func (p *Probe) start(target string, interval time.Duration) {
 			// we return from the goroutine and we can accept another Func to run.
 			go func() {
 				for {
-					if ok := f(target); ok {
+					if err := f(); err == nil {
 						break
 					}
+					// TODO(miek): little bit of exponential backoff here?
 					time.Sleep(interval)
 				}
 				p.Lock()

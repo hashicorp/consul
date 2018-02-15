@@ -6,6 +6,7 @@ import (
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	"github.com/coredns/coredns/plugin/test"
 	"github.com/coredns/coredns/request"
+
 	"github.com/miekg/dns"
 )
 
@@ -18,7 +19,7 @@ func TestLookup(t *testing.T) {
 	})
 	defer s.Close()
 
-	p := NewProxy(s.Addr)
+	p := NewProxy(s.Addr, nil /* no TLS */)
 	f := New()
 	f.SetProxy(p)
 	defer f.Close()

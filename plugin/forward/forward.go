@@ -20,8 +20,9 @@ import (
 // Forward represents a plugin instance that can proxy requests to another (DNS) server. It has a list
 // of proxies each representing one upstream proxy.
 type Forward struct {
-	proxies []*Proxy
-	p       Policy
+	proxies    []*Proxy
+	p          Policy
+	hcInterval time.Duration
 
 	from    string
 	ignored []string
@@ -31,22 +32,21 @@ type Forward struct {
 	maxfails      uint32
 	expire        time.Duration
 
-	forceTCP   bool          // also here for testing
-	hcInterval time.Duration // also here for testing
+	forceTCP bool // also here for testing
 
 	Next plugin.Handler
 }
 
 // New returns a new Forward.
 func New() *Forward {
-	f := &Forward{maxfails: 2, tlsConfig: new(tls.Config), expire: defaultExpire, hcInterval: hcDuration, p: new(random)}
+	f := &Forward{maxfails: 2, tlsConfig: new(tls.Config), expire: defaultExpire, p: new(random), from: ".", hcInterval: hcDuration}
 	return f
 }
 
 // SetProxy appends p to the proxy list and starts healthchecking.
 func (f *Forward) SetProxy(p *Proxy) {
 	f.proxies = append(f.proxies, p)
-	go p.healthCheck()
+	p.start(f.hcInterval)
 }
 
 // Len returns the number of configured proxies.
@@ -92,7 +92,27 @@ func (f *Forward) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 			child.Finish()
 		}
 
+		// If you query for instance ANY isc.org; you get a truncated query back which miekg/dns fails to unpack
+		// because the RRs are not finished. The returned message can be useful or useless. Return the original
+		// query with some header bits set that they should retry with TCP.
+		if err == dns.ErrTruncated {
+			// We may or may not have something sensible... if not reassemble something to send to the client.
+			if ret == nil {
+				ret = new(dns.Msg)
+				ret.SetReply(r)
+				ret.Truncated = true
+				ret.Authoritative = true
+				ret.Rcode = dns.RcodeSuccess
+			}
+			err = nil // and reset err to pass this back to the client.
+		}
+
 		if err != nil {
+			// Kick off health check to see if *our* upstream is broken.
+			if f.maxfails != 0 {
+				proxy.Healthcheck()
+			}
+
 			if fails < len(f.proxies) {
 				continue
 			}
@@ -140,8 +160,8 @@ func (f *Forward) isAllowedDomain(name string) bool {
 func (f *Forward) list() []*Proxy { return f.p.List(f.proxies) }
 
 var (
-	errInvalidDomain = errors.New("invalid domain for proxy")
-	errNoHealthy     = errors.New("no healthy proxies")
+	errInvalidDomain = errors.New("invalid domain for forward")
+	errNoHealthy     = errors.New("no healthy proxies or upstream error")
 	errNoForward     = errors.New("no forwarder defined")
 )
 

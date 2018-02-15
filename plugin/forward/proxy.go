@@ -2,47 +2,60 @@ package forward
 
 import (
 	"crypto/tls"
-	"sync"
+	"sync/atomic"
 	"time"
+
+	"github.com/coredns/coredns/plugin/pkg/up"
 
 	"github.com/miekg/dns"
 )
 
 // Proxy defines an upstream host.
 type Proxy struct {
-	host *host
+	addr   string
+	client *dns.Client
 
+	// Connection caching
+	expire    time.Duration
 	transport *transport
 
-	// copied from Forward.
-	hcInterval time.Duration
-	forceTCP   bool
-
-	stop chan bool
-
-	sync.RWMutex
+	// health checking
+	probe *up.Probe
+	fails uint32
 }
 
 // NewProxy returns a new proxy.
-func NewProxy(addr string) *Proxy {
-	host := newHost(addr)
-
+func NewProxy(addr string, tlsConfig *tls.Config) *Proxy {
 	p := &Proxy{
-		host:       host,
-		hcInterval: hcDuration,
-		stop:       make(chan bool),
-		transport:  newTransport(host),
+		addr:      addr,
+		fails:     0,
+		probe:     up.New(),
+		transport: newTransport(addr, tlsConfig),
 	}
+	p.client = dnsClient(tlsConfig)
 	return p
 }
 
-// SetTLSConfig sets the TLS config in the lower p.host.
-func (p *Proxy) SetTLSConfig(cfg *tls.Config) { p.host.tlsConfig = cfg }
+// dnsClient returns a client used for health checking.
+func dnsClient(tlsConfig *tls.Config) *dns.Client {
+	c := new(dns.Client)
+	c.Net = "udp"
+	// TODO(miek): this should be half of hcDuration?
+	c.ReadTimeout = 1 * time.Second
+	c.WriteTimeout = 1 * time.Second
 
-// SetExpire sets the expire duration in the lower p.host.
-func (p *Proxy) SetExpire(expire time.Duration) { p.host.expire = expire }
+	if tlsConfig != nil {
+		c.Net = "tcp-tls"
+		c.TLSConfig = tlsConfig
+	}
+	return c
+}
 
-func (p *Proxy) close() { p.stop <- true }
+// SetTLSConfig sets the TLS config in the lower p.transport.
+func (p *Proxy) SetTLSConfig(cfg *tls.Config) { p.transport.SetTLSConfig(cfg) }
+
+// SetExpire sets the expire duration in the lower p.transport.
+func (p *Proxy) SetExpire(expire time.Duration) { p.transport.SetExpire(expire) }
 
 // Dial connects to the host in p with the configured transport.
 func (p *Proxy) Dial(proto string) (*dns.Conn, error) { return p.transport.Dial(proto) }
@@ -50,25 +63,27 @@ func (p *Proxy) Dial(proto string) (*dns.Conn, error) { return p.transport.Dial(
 // Yield returns the connection to the pool.
 func (p *Proxy) Yield(c *dns.Conn) { p.transport.Yield(c) }
 
-// Down returns if this proxy is up or down.
-func (p *Proxy) Down(maxfails uint32) bool { return p.host.down(maxfails) }
+// Healthcheck kicks of a round of health checks for this proxy.
+func (p *Proxy) Healthcheck() { p.probe.Do(p.Check) }
 
-func (p *Proxy) healthCheck() {
-
-	// stop channel
-	p.host.SetClient()
-
-	p.host.Check()
-	tick := time.NewTicker(p.hcInterval)
-	for {
-		select {
-		case <-tick.C:
-			p.host.Check()
-		case <-p.stop:
-			return
-		}
+// Down returns true if this proxy is down, i.e. has *more* fails than maxfails.
+func (p *Proxy) Down(maxfails uint32) bool {
+	if maxfails == 0 {
+		return false
 	}
+
+	fails := atomic.LoadUint32(&p.fails)
+	return fails > maxfails
 }
+
+// close stops the health checking goroutine.
+func (p *Proxy) close() {
+	p.probe.Stop()
+	p.transport.Stop()
+}
+
+// start starts the proxy's healthchecking.
+func (p *Proxy) start(duration time.Duration) { p.probe.Start(duration) }
 
 const (
 	dialTimeout = 4 * time.Second
