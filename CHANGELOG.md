@@ -1,5 +1,8 @@
 ## (UNRELEASED)
 
+BUG FIXES:
+
+* agent: Fixed an issue where the coordinate update endpoint was not correctly parsing the ACL token. [[GH-3892](https://github.com/hashicorp/consul/issues/3892)]
 
 ## 1.0.6 (February 9, 2018)
 
