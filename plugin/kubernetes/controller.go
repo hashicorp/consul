@@ -76,8 +76,9 @@ type dnsControl struct {
 }
 
 type dnsControlOpts struct {
-	initPodCache bool
-	resyncPeriod time.Duration
+	initPodCache       bool
+	initEndpointsCache bool
+	resyncPeriod       time.Duration
 	// Label handling.
 	labelSelector *meta.LabelSelector
 	selector      labels.Selector
@@ -113,15 +114,17 @@ func newdnsController(kubeClient *kubernetes.Clientset, opts dnsControlOpts) *dn
 			cache.Indexers{podIPIndex: podIPIndexFunc})
 	}
 
-	dns.epLister, dns.epController = cache.NewIndexerInformer(
-		&cache.ListWatch{
-			ListFunc:  endpointsListFunc(dns.client, namespace, dns.selector),
-			WatchFunc: endpointsWatchFunc(dns.client, namespace, dns.selector),
-		},
-		&api.Endpoints{},
-		opts.resyncPeriod,
-		cache.ResourceEventHandlerFuncs{AddFunc: dns.Add, UpdateFunc: dns.Update, DeleteFunc: dns.Delete},
-		cache.Indexers{epNameNamespaceIndex: epNameNamespaceIndexFunc, epIPIndex: epIPIndexFunc})
+	if opts.initEndpointsCache {
+		dns.epLister, dns.epController = cache.NewIndexerInformer(
+			&cache.ListWatch{
+				ListFunc:  endpointsListFunc(dns.client, namespace, dns.selector),
+				WatchFunc: endpointsWatchFunc(dns.client, namespace, dns.selector),
+			},
+			&api.Endpoints{},
+			opts.resyncPeriod,
+			cache.ResourceEventHandlerFuncs{AddFunc: dns.Add, UpdateFunc: dns.Update, DeleteFunc: dns.Delete},
+			cache.Indexers{epNameNamespaceIndex: epNameNamespaceIndexFunc, epIPIndex: epIPIndexFunc})
+	}
 
 	dns.nsLister.Store, dns.nsController = cache.NewInformer(
 		&cache.ListWatch{
@@ -307,7 +310,9 @@ func (dns *dnsControl) Stop() error {
 // Run starts the controller.
 func (dns *dnsControl) Run() {
 	go dns.svcController.Run(dns.stopCh)
-	go dns.epController.Run(dns.stopCh)
+	if dns.epController != nil {
+		go dns.epController.Run(dns.stopCh)
+	}
 	if dns.podController != nil {
 		go dns.podController.Run(dns.stopCh)
 	}
@@ -318,7 +323,10 @@ func (dns *dnsControl) Run() {
 // HasSynced calls on all controllers.
 func (dns *dnsControl) HasSynced() bool {
 	a := dns.svcController.HasSynced()
-	b := dns.epController.HasSynced()
+	b := true
+	if dns.epController != nil {
+		b = dns.epController.HasSynced()
+	}
 	c := true
 	if dns.podController != nil {
 		c = dns.podController.HasSynced()
@@ -431,6 +439,9 @@ func (dns *dnsControl) EpIndexReverse(ip string) (ep []*api.Endpoints) {
 }
 
 func (dns *dnsControl) EndpointsList() (eps []*api.Endpoints) {
+	if dns.epLister == nil {
+		return nil
+	}
 	os := dns.epLister.List()
 	for _, o := range os {
 		ep, ok := o.(*api.Endpoints)

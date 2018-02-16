@@ -86,6 +86,8 @@ kubernetes [ZONES...] {
   to a file structured like resolv.conf.
 * `ttl` allows you to set a custom TTL for responses. The default (and allowed minimum) is to use
   5 seconds, the maximum is capped at 3600 seconds.
+* `noendpoints` will turn off the serving of endpoint records by disabling the watch on endpoints.
+  All endpoint queries and headless service queries will result in an NXDOMAIN.
 * `fallthrough` **[ZONES...]** If a query for a record in the zones for which the plugin is authoritative
   results in NXDOMAIN, normally that is what the response will be. However, if you specify this option,
   the query will instead be passed on down the plugin chain, which can include another plugin to handle

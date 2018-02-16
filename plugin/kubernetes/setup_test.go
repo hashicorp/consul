@@ -491,7 +491,7 @@ kubernetes cluster.local`,
 	}
 }
 
-func TestKubernetesEndpointsParse(t *testing.T) {
+func TestKubernetesParseEndpointPodNames(t *testing.T) {
 	tests := []struct {
 		input                string // Corefile data as string
 		shouldErr            bool   // true if test case is exected to produce an error.
@@ -550,6 +550,68 @@ func TestKubernetesEndpointsParse(t *testing.T) {
 		foundEndpointNameMode := k8sController.endpointNameMode
 		if foundEndpointNameMode != test.expectedEndpointMode {
 			t.Errorf("Test %d: Expected kubernetes controller to be initialized with endpoints mode '%v'. Instead found endpoints mode '%v' for input '%s'", i, test.expectedEndpointMode, foundEndpointNameMode, test.input)
+		}
+	}
+}
+
+func TestKubernetesParseNoEndpoints(t *testing.T) {
+	tests := []struct {
+		input                 string // Corefile data as string
+		shouldErr             bool   // true if test case is exected to produce an error.
+		expectedErrContent    string // substring from the expected error. Empty for positive cases.
+		expectedEndpointsInit bool
+	}{
+		// valid
+		{
+			`kubernetes coredns.local {
+	noendpoints
+}`,
+			false,
+			"",
+			false,
+		},
+		// invalid
+		{
+			`kubernetes coredns.local {
+	noendpoints ixnay on the endpointsay
+}`,
+			true,
+			"rong argument count or unexpected",
+			true,
+		},
+		// not set
+		{
+			`kubernetes coredns.local {
+}`,
+			false,
+			"",
+			true,
+		},
+	}
+
+	for i, test := range tests {
+		c := caddy.NewTestController("dns", test.input)
+		k8sController, err := kubernetesParse(c)
+
+		if test.shouldErr && err == nil {
+			t.Errorf("Test %d: Expected error, but did not find error for input '%s'. Error was: '%v'", i, test.input, err)
+		}
+
+		if err != nil {
+			if !test.shouldErr {
+				t.Errorf("Test %d: Expected no error but found one for input %s. Error was: %v", i, test.input, err)
+				continue
+			}
+
+			if !strings.Contains(err.Error(), test.expectedErrContent) {
+				t.Errorf("Test %d: Expected error to contain: %v, found error: %v, input: %s", i, test.expectedErrContent, err, test.input)
+			}
+			continue
+		}
+
+		foundEndpointsInit := k8sController.opts.initEndpointsCache
+		if foundEndpointsInit != test.expectedEndpointsInit {
+			t.Errorf("Test %d: Expected kubernetes controller to be initialized with endpoints watch '%v'. Instead found endpoints watch '%v' for input '%s'", i, test.expectedEndpointsInit, foundEndpointsInit, test.input)
 		}
 	}
 }

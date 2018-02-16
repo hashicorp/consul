@@ -92,7 +92,8 @@ func ParseStanza(c *caddy.Controller) (*Kubernetes, error) {
 	k8s.autoPathSearch = searchFromResolvConf()
 
 	opts := dnsControlOpts{
-		resyncPeriod: defaultResyncPeriod,
+		initEndpointsCache: true,
+		resyncPeriod:       defaultResyncPeriod,
 	}
 	k8s.opts = opts
 
@@ -221,6 +222,11 @@ func ParseStanza(c *caddy.Controller) (*Kubernetes, error) {
 				return nil, c.Errf("transfer from is not supported with this plugin")
 			}
 			k8s.TransferTo = tos
+		case "noendpoints":
+			if len(c.RemainingArgs()) != 0 {
+				return nil, c.ArgErr()
+			}
+			k8s.opts.initEndpointsCache = false
 		default:
 			return nil, c.Errf("unknown property '%s'", c.Val())
 		}
