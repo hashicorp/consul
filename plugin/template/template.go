@@ -8,6 +8,7 @@ import (
 
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/pkg/fall"
+	"github.com/coredns/coredns/plugin/pkg/upstream"
 	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
@@ -32,6 +33,7 @@ type template struct {
 	qclass     uint16
 	qtype      uint16
 	fall       fall.F
+	upstream   upstream.Upstream
 }
 
 type templateData struct {
@@ -48,7 +50,7 @@ type templateData struct {
 
 // ServeDNS implements the plugin.Handler interface.
 func (h Handler) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
-	state := request.Request{W: w, Req: r}
+	state := request.Request{W: w, Req: r, Context: ctx}
 
 	zone := plugin.Zones(h.Zones).Matches(state.Name())
 	if zone == "" {
@@ -81,6 +83,10 @@ func (h Handler) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 				return dns.RcodeServerFailure, err
 			}
 			msg.Answer = append(msg.Answer, rr)
+			if rr.Header().Rrtype == dns.TypeCNAME {
+				up, _ := template.upstream.Lookup(state, rr.(*dns.CNAME).Target, dns.TypeA)
+				msg.Answer = append(msg.Answer, up.Answer...)
+			}
 		}
 		for _, additional := range template.additional {
 			rr, err := executeRRTemplate("additional", additional, data)

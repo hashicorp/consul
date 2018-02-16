@@ -6,6 +6,7 @@ import (
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
+	"github.com/coredns/coredns/plugin/pkg/upstream"
 
 	"github.com/mholt/caddy"
 	"github.com/miekg/dns"
@@ -142,6 +143,13 @@ func templateParse(c *caddy.Controller) (handler Handler, err error) {
 			case "fallthrough":
 				t.fall.SetZonesFromArgs(c.RemainingArgs())
 
+			case "upstream":
+				args := c.RemainingArgs()
+				u, err := upstream.NewUpstream(args)
+				if err != nil {
+					return handler, err
+				}
+				t.upstream = u
 			default:
 				return handler, c.ArgErr()
 			}
