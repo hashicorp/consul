@@ -22,6 +22,7 @@ type cacheTestCase struct {
 	Authoritative      bool
 	RecursionAvailable bool
 	Truncated          bool
+	Response           bool
 	shouldCache        bool
 }
 
@@ -112,6 +113,15 @@ var cacheTestCases = []cacheTestCase{
 		shouldCache: false,
 	},
 	{
+		// Response with only something in the additional, this should not be cached.
+		Response: true,
+		in: test.Case{
+			Qname: "example.org.", Qtype: dns.TypeMX,
+			Extra: []dns.RR{test.MX("example.org.	1800	IN	MX	1 mx.example.org.")},
+		},
+		shouldCache: false,
+	},
+	{
 		RecursionAvailable: true, Authoritative: true,
 		Case: test.Case{
 			Qname: "example.org.", Qtype: dns.TypeMX,
@@ -140,6 +150,7 @@ func cacheMsg(m *dns.Msg, tc cacheTestCase) *dns.Msg {
 	m.AuthenticatedData = tc.AuthenticatedData
 	m.Authoritative = tc.Authoritative
 	m.Rcode = tc.Rcode
+	m.Response = tc.Response
 	m.Truncated = tc.Truncated
 	m.Answer = tc.in.Answer
 	m.Ns = tc.in.Ns

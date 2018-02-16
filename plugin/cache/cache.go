@@ -171,7 +171,7 @@ func (w *ResponseWriter) set(m *dns.Msg, key int, mt response.Type, duration tim
 	case response.OtherError:
 		// don't cache these
 	default:
-		log.Printf("[WARNING] Caching called with unknown classification: %d", mt)
+		log.Printf("[WARNING] Caching called with unknown typification: %d", mt)
 	}
 }
 
