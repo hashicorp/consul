@@ -28,7 +28,7 @@ If you want to round robin A and AAAA responses look at the *loadbalance* plugin
 file DBFILE [ZONES... ] {
     transfer to ADDRESS...
     no_reload
-    upstream ADDRESS...
+    upstream [ADDRESS...]
 }
 ~~~
 
@@ -42,6 +42,7 @@ file DBFILE [ZONES... ] {
   pointing to external names. This is only really useful when CoreDNS is configured as a proxy, for
   normal authoritative serving you don't need *or* want to use this. **ADDRESS** can be an IP
   address, and IP:port or a string pointing to a file that is structured as /etc/resolv.conf.
+  If no **ADDRESS** is given, CoreDNS will resolve CNAMEs against itself.
 
 ## Examples
 

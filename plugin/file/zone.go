@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	"github.com/coredns/coredns/plugin/file/tree"
-	"github.com/coredns/coredns/plugin/proxy"
+	"github.com/coredns/coredns/plugin/pkg/upstream"
 	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
@@ -30,7 +30,7 @@ type Zone struct {
 	NoReload       bool
 	reloadMu       sync.RWMutex
 	ReloadShutdown chan bool
-	Proxy          proxy.Proxy // Proxy for looking up names during the resolution process
+	Upstream       upstream.Upstream // Upstream for looking up names during the resolution process
 }
 
 // Apex contains the apex records of a zone: SOA, NS and their potential signatures.

@@ -53,7 +53,7 @@ func (a Auto) Walk() error {
 		}
 
 		zo.NoReload = a.loader.noReload
-		zo.Proxy = a.loader.proxy
+		zo.Upstream = a.loader.upstream
 		zo.TransferTo = a.loader.transferTo
 
 		a.Zones.Add(zo, origin)

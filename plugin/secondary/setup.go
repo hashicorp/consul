@@ -4,10 +4,9 @@ import (
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/file"
-	"github.com/coredns/coredns/plugin/pkg/dnsutil"
 	"github.com/coredns/coredns/plugin/pkg/parse"
-	"github.com/coredns/coredns/plugin/proxy"
 
+	"github.com/coredns/coredns/plugin/pkg/upstream"
 	"github.com/mholt/caddy"
 )
 
@@ -51,7 +50,7 @@ func secondaryParse(c *caddy.Controller) (file.Zones, error) {
 	z := make(map[string]*file.Zone)
 	names := []string{}
 	origins := []string{}
-	prxy := proxy.Proxy{}
+	upstr := upstream.Upstream{}
 	for c.Next() {
 
 		if c.Val() == "secondary" {
@@ -81,14 +80,11 @@ func secondaryParse(c *caddy.Controller) (file.Zones, error) {
 					}
 				case "upstream":
 					args := c.RemainingArgs()
-					if len(args) == 0 {
-						return file.Zones{}, c.ArgErr()
-					}
-					ups, err := dnsutil.ParseHostPortOrFile(args...)
+					var err error
+					upstr, err = upstream.NewUpstream(args)
 					if err != nil {
 						return file.Zones{}, err
 					}
-					prxy = proxy.NewLookup(ups)
 				default:
 					return file.Zones{}, c.Errf("unknown property '%s'", c.Val())
 				}
@@ -100,7 +96,7 @@ func secondaryParse(c *caddy.Controller) (file.Zones, error) {
 					if f != nil {
 						z[origin].TransferFrom = append(z[origin].TransferFrom, f...)
 					}
-					z[origin].Proxy = prxy
+					z[origin].Upstream = upstr
 				}
 			}
 		}

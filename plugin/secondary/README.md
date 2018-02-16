@@ -23,7 +23,7 @@ A working syntax would be:
 secondary [zones...] {
     transfer from ADDRESS
     transfer to ADDRESS
-    upstream ADDRESS...
+    upstream [ADDRESS...]
 }
 ~~~
 
@@ -34,6 +34,7 @@ secondary [zones...] {
   pointing to external names. This is only really useful when CoreDNS is configured as a proxy, for
   normal authoritative serving you don't need *or* want to use this. **ADDRESS** can be an IP
   address, and IP:port or a string pointing to a file that is structured as /etc/resolv.conf.
+  If no **ADDRESS** is given, CoreDNS will resolve CNAMEs against itself.
 
 When a zone is due to be refreshed (Refresh timer fires) a random jitter of 5 seconds is
 applied, before fetching. In the case of retry this will be 2 seconds. If there are any errors
