@@ -7,7 +7,13 @@
 \fIforward\fR facilitates proxying DNS messages to upstream resolvers\.
 .
 .SH "DESCRIPTION"
-The \fIforward\fR plugin is generally faster (~30+%) than \fIproxy\fR as it re\-uses already opened sockets to the upstreams\. It supports UDP, TCP and DNS\-over\-TLS and uses inband health checking that is enabled by default\. When \fIall\fR upstreams are down it assumes healtchecking as a mechanism has failed and will try to connect to a random upstream (which may or may not work)\.
+The \fIforward\fR plugin re\-uses already opened sockets to the upstreams\. It supports UDP, TCP and DNS\-over\-TLS and uses in band health checking\.
+.
+.P
+When it detects an error a health check is performed\. This checks runs in a loop, every \fI0\.5s\fR, for as long as the upstream reports unhealthy\. Once healthy we stop health checking (until the next error)\. The health checks use a recursive DNS query (\fB\. IN NS\fR) to get upstream health\. Any response that is not a network error (REFUSED, NOTIMPL, SERVFAIL, etc) is taken as a healthy upstream\. The health check uses the same protocol as specified in \fBTO\fR\. If \fBmax_fails\fR is set to 0, no checking is performed and upstreams will always be considered healthy\.
+.
+.P
+When \fIall\fR upstreams are down it assumes health checking as a mechanism has failed and will try to connect to a random upstream (which may or may not work)\.
 .
 .SH "SYNTAX"
 In its most basic form, a simple forwarder uses this syntax:
@@ -26,15 +32,12 @@ forward FROM TO\.\.\.
 \fBFROM\fR is the base domain to match for the request to be forwarded\.
 .
 .IP "\(bu" 4
-\fBTO\.\.\.\fR are the destination endpoints to forward to\. The \fBTO\fR syntax allows you to specify a protocol, \fBtls://9\.9\.9\.9\fR or \fBdns://\fR for plain DNS\. The number of upstreams is limited to 15\.
+\fBTO\.\.\.\fR are the destination endpoints to forward to\. The \fBTO\fR syntax allows you to specify a protocol, \fBtls://9\.9\.9\.9\fR or \fBdns://\fR (or no protocol) for plain DNS\. The number of upstreams is limited to 15\.
 .
 .IP "" 0
 .
 .P
-The health checks are done every \fI0\.5s\fR\. After \fItwo\fR failed checks the upstream is considered unhealthy\. The health checks use a recursive DNS query (\fB\. IN NS\fR) to get upstream health\. Any response that is not an error (REFUSED, NOTIMPL, SERVFAIL, etc) is taken as a healthy upstream\. The health check uses the same protocol as specific in the \fBTO\fR\. On startup each upstream is marked unhealthy until it passes a health check\. A 0 duration will disable any health checks\.
-.
-.P
-Multiple upstreams are randomized (default policy) on first use\. When a healthy proxy returns an error during the exchange the next upstream in the list is tried\.
+Multiple upstreams are randomized (see \fBpolicy\fR) on first use\. When a healthy proxy returns an error during the exchange the next upstream in the list is tried\.
 .
 .P
 Extra knobs are available with an expanded syntax:
@@ -46,12 +49,12 @@ Extra knobs are available with an expanded syntax:
 forward FROM TO\.\.\. {
     except IGNORED_NAMES\.\.\.
     force_tcp
-    health_check DURATION
     expire DURATION
     max_fails INTEGER
     tls CERT KEY CA
     tls_servername NAME
     policy random|round_robin
+    health_checks DURATION
 }
 .
 .fi
@@ -68,10 +71,7 @@ forward FROM TO\.\.\. {
 \fBforce_tcp\fR, use TCP even when the request comes in over UDP\.
 .
 .IP "\(bu" 4
-\fBhealth_checks\fR, use a different \fBDURATION\fR for health checking, the default duration is 0\.5s\. A value of 0 disables the health checks completely\.
-.
-.IP "\(bu" 4
-\fBmax_fails\fR is the number of subsequent failed health checks that are needed before considering a backend to be down\. If 0, the backend will never be marked as down\. Default is 2\.
+\fBmax_fails\fR is the number of subsequent failed health checks that are needed before considering an upstream to be down\. If 0, the upstream will never be marked as down (nor health checked)\. Default is 2\.
 .
 .IP "\(bu" 4
 \fBexpire\fR \fBDURATION\fR, expire (cached) connections after this time, the default is 10s\.
@@ -85,10 +85,10 @@ forward FROM TO\.\.\. {
 .IP "\(bu" 4
 \fBpolicy\fR specifies the policy to use for selecting upstream servers\. The default is \fBrandom\fR\.
 .
-.IP "" 0
+.IP "\(bu" 4
+\fBhealth_checks\fR, use a different \fBDURATION\fR for health checking, the default duration is 0\.5s\.
 .
-.P
-The upstream selection is done via random (default policy) selection\. If the socket for this client isn\'t known \fIforward\fR will randomly choose one\. If this turns out to be unhealthy, the next one is tried\. If \fIall\fR hosts are down, we assume health checking is broken and select a \fIrandom\fR upstream to try\.
+.IP "" 0
 .
 .P
 Also note the TLS config is "global" for the whole forwarding proxy if you need a different \fBtls\-name\fR for different upstreams you\'re out of luck\.
@@ -109,7 +109,7 @@ If monitoring is enabled (via the \fIprometheus\fR directive) then the following
 \fBcoredns_forward_healthcheck_failure_count_total{to}\fR \- number of failed health checks per upstream\.
 .
 .IP "\(bu" 4
-\fBcoredns_forward_healthcheck_broken_count_total{}\fR \- counter of when all upstreams are unhealthy, and we are randomly spraying to a target\.
+\fBcoredns_forward_healthcheck_broken_count_total{}\fR \- counter of when all upstreams are unhealthy, and we are randomly (this always uses the \fBrandom\fR policy) spraying to an upstream\.
 .
 .IP "\(bu" 4
 \fBcoredns_forward_socket_count_total{to}\fR \- number of cached sockets per upstream\.
@@ -184,22 +184,7 @@ Proxy everything except \fBexample\.org\fR using the host\'s \fBresolv\.conf\fR\
 .IP "" 0
 .
 .P
-Forward to a IPv6 host:
-.
-.IP "" 4
-.
-.nf
-
-\&\. {
-    forward \. [::1]:1053
-}
-.
-.fi
-.
-.IP "" 0
-.
-.P
-Proxy all requests to 9\.9\.9\.9 using the DNS\-over\-TLS protocol, and cache every answer for up to 30 seconds\.
+Proxy all requests to 9\.9\.9\.9 using the DNS\-over\-TLS protocol, and cache every answer for up to 30 seconds\. Note the \fBtls_servername\fR is mandatory if you want a working setup, as 9\.9\.9\.9 can\'t be used in the TLS negotiation\. Also set the health check duration to 5s to not completely swamp the service with health checks\.
 .
 .IP "" 4
 .
@@ -218,7 +203,7 @@ Proxy all requests to 9\.9\.9\.9 using the DNS\-over\-TLS protocol, and cache ev
 .IP "" 0
 .
 .SH "BUGS"
-The TLS config is global for the whole forwarding proxy if you need a different \fBtls\-name\fR for different upstreams you\'re out of luck\.
+The TLS config is global for the whole forwarding proxy if you need a different \fBtls_serveraame\fR for different upstreams you\'re out of luck\.
 .
 .SH "ALSO SEE"
 RFC 7858 \fIhttps://tools\.ietf\.org/html/rfc7858\fR for DNS over TLS\.

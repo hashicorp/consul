@@ -40,7 +40,7 @@ etcd [ZONES\.\.\.] {
     fallthrough [ZONES\.\.\.]
     path PATH
     endpoint ENDPOINT\.\.\.
-    upstream ADDRESS\.\.\.
+    upstream [ADDRESS\.\.\.]
     tls CERT KEY CACERT
 }
 .
@@ -61,7 +61,7 @@ etcd [ZONES\.\.\.] {
 \fBENDPOINT\fR the etcd endpoints\. Defaults to "http://localhost:2379"\.
 .
 .IP "\(bu" 4
-\fBupstream\fR upstream resolvers to be used resolve external names found in etcd (think CNAMEs) pointing to external names\. If you want CoreDNS to act as a proxy for clients, you\'ll need to add the proxy plugin\. \fBADDRESS\fR can be an IP address, and IP:port or a string pointing to a file that is structured as /etc/resolv\.conf\.
+\fBupstream\fR upstream resolvers to be used resolve external names found in etcd (think CNAMEs) pointing to external names\. If you want CoreDNS to act as a proxy for clients, you\'ll need to add the proxy plugin\. If no \fBADDRESS\fR is given, CoreDNS will resolve CNAMEs against itself\. \fBADDRESS\fR can be an IP address, and IP:port or a string pointing to a file that is structured as /etc/resolv\.conf\.
 .
 .IP "\(bu" 4
 \fBtls\fR followed by:

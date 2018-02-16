@@ -1,24 +1,30 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-BIND" "7" "January 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-BIND" "7" "February 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIbind\fR \- overrides the host to which the server should bind\.
 .
 .SH "DESCRIPTION"
-Normally, the listener binds to the wildcard host\. However, you may force the listener to bind to another IP instead\. This directive accepts only an address, not a port\.
+Normally, the listener binds to the wildcard host\. However, you may want the listener to bind to another IP instead\.
+.
+.P
+If several addresses are provided, a listener will be open on each of the IP provided\.
+.
+.P
+Each address has to be an IP of one of the interfaces of the host\.
 .
 .SH "SYNTAX"
 .
 .nf
 
-bind ADDRESS
+bind ADDRESS  \.\.\.
 .
 .fi
 .
 .P
-\fBADDRESS\fR is the IP address to bind to\.
+\fBADDRESS\fR is an IP address to bind to\. When several addresses are provided a listener will be opened on each of the addresses\.
 .
 .SH "EXAMPLES"
 To make your socket accessible only to that machine, bind to IP 127\.0\.0\.1 (localhost):
@@ -29,6 +35,37 @@ To make your socket accessible only to that machine, bind to IP 127\.0\.0\.1 (lo
 
 \&\. {
     bind 127\.0\.0\.1
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+To allow processing DNS requests only local host on both IPv4 and IPv6 stacks, use the syntax:
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+    bind 127\.0\.0\.1 ::1
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+If the configuration comes up with several \fIbind\fR directives, all addresses are consolidated together: The following sample is equivalent to the preceding:
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+    bind 127\.0\.0\.1
+    bind ::1
 }
 .
 .fi

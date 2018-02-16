@@ -13,7 +13,7 @@ It implements the Kubernetes DNS\-Based Service Discovery Specification \fIhttps
 CoreDNS running the kubernetes plugin can be used as a replacement of kube\-dns in a kubernetes cluster\. See the deployment \fIhttps://github\.com/coredns/deployment\fR repository for details on how to deploy CoreDNS in Kubernetes \fIhttps://github\.com/coredns/deployment/tree/master/kubernetes\fR\.
 .
 .P
-stubDomains \fIhttp://blog\.kubernetes\.io/2017/04/configuring\-private\-dns\-zones\-upstream\-nameservers\-kubernetes\.html\fR are implemented via the \fIproxy\fR plugin\.
+stubDomains and upstreamNameservers \fIhttp://blog\.kubernetes\.io/2017/04/configuring\-private\-dns\-zones\-upstream\-nameservers\-kubernetes\.html\fR are implemented via the \fIproxy\fR plugin and kubernetes \fIupstream\fR\. See example below\.
 .
 .SH "SYNTAX"
 .
@@ -38,7 +38,7 @@ kubernetes [ZONES\.\.\.] {
     labels EXPRESSION
     pods POD\-MODE
     endpoint_pod_names
-    upstream ADDRESS\.\.\.
+    upstream [ADDRESS\.\.\.]
     ttl TTL
     fallthrough [ZONES\.\.\.]
 }
@@ -81,7 +81,7 @@ kubernetes [ZONES\.\.\.] {
 \fBendpoint_pod_names\fR uses the pod name of the pod targeted by the endpoint as the endpoint name in A records, e\.g\. \fBendpoint\-name\.my\-service\.namespace\.svc\.cluster\.local\. in A 1\.2\.3\.4\fR By default, the endpoint\-name name selection is as follows: Use the hostname of the endpoint, or if hostname is not set, use the dashed form of the endpoint IP address (e\.g\. \fB1\-2\-3\-4\.my\-service\.namespace\.svc\.cluster\.local\.\fR) If this directive is included, then name selection for endpoints changes as follows: Use the hostname of the endpoint, or if hostname is not set, use the pod name of the pod targeted by the endpoint\. If there is no pod targeted by the endpoint, use the dashed IP address form\.
 .
 .IP "\(bu" 4
-\fBupstream\fR \fBADDRESS [ADDRESS\.\.\.]\fR defines the upstream resolvers used for resolving services that point to external hosts (External Services)\. \fBADDRESS\fR can be an IP, an IP:port, or a path to a file structured like resolv\.conf\.
+\fBupstream\fR [\fBADDRESS\fR\.\.\.] defines the upstream resolvers used for resolving services that point to external hosts (aka External Services aka CNAMEs)\. If no \fBADDRESS\fR is given, CoreDNS will resolve External Services against itself\. \fBADDRESS\fR can be an IP, an IP:port, or a path to a file structured like resolv\.conf\.
 .
 .IP "\(bu" 4
 \fBttl\fR allows you to set a custom TTL for responses\. The default (and allowed minimum) is to use 5 seconds, the maximum is capped at 3600 seconds\.
@@ -143,25 +143,36 @@ kubernetes cluster\.local {
 .
 .IP "" 0
 .
-.P
-Here we use the \fIproxy\fR plugin to implement stubDomains that forwards \fBexample\.org\fR and \fBexample\.com\fR to another nameserver\.
+.SH "STUBDOMAINS AND UPSTREAMNAMESERVERS"
+Here we use the \fIproxy\fR plugin to implement a stubDomain that forwards \fBexample\.local\fR to the nameserver \fB10\.100\.0\.10:53\fR\. The \fIupstream\fR option in kubernetes means that ExternalName services (CNAMEs) will be resolved using the respective proxy\. Also configured is an upstreamNameserver \fB8\.8\.8\.8:53\fR that will be used for resolving names that do not fall in \fBcluster\.local\fR or \fBexample\.local\fR\.
 .
 .IP "" 4
 .
 .nf
 
-cluster\.local {
-    kubernetes {
-        endpoint https://k8s\-endpoint:8443
-        tls cert key cacert
+\&\.:53 {
+    kubernetes cluster\.local {
+        upstream
     }
-}
-example\.org {
+    proxy example\.local 10\.100\.0\.10:53
     proxy \. 8\.8\.8\.8:53
 }
-example\.com {
-    proxy \. 8\.8\.8\.8:53
-}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+The configuration above represents the following Kube\-DNS stubDomains and upstreamNameservers configuration\.
+.
+.IP "" 4
+.
+.nf
+
+  stubDomains: |
+    {“example\.local”: [“10\.100\.0\.10:53”]}
+  upstreamNameservers: |
+    [“8\.8\.8\.8:53”]
 .
 .fi
 .
@@ -194,10 +205,8 @@ The \fIkubernetes\fR plugin can be used in conjunction with the \fIfederation\fR
 
 cluster\.local {
     federation {
-        fallthrough
         prod prod\.example\.org
         staging staging\.example\.org
-
     }
     kubernetes
 }
