@@ -26,23 +26,6 @@ func TestTypifyDelegation(t *testing.T) {
 	}
 }
 
-func TestTypifyEmptyMessage(t *testing.T) {
-	m := new(dns.Msg)
-
-	// Normal question, with response = false
-	m.SetQuestion("example.org.", dns.TypeAAAA)
-	mt, _ := Typify(m, time.Now().UTC())
-	if mt != NoError {
-		t.Errorf("message is wrongly typified, expected NoError, got %s", mt)
-	}
-	// In case of a Reponse = true, this weird.
-	m.Response = true
-	mt, _ = Typify(m, time.Now().UTC())
-	if mt != OtherError {
-		t.Errorf("message is wrongly typified, expected OtherError, got %s", mt)
-	}
-}
-
 func TestTypifyRRSIG(t *testing.T) {
 	now, _ := time.Parse(time.UnixDate, "Fri Apr 21 10:51:21 BST 2017")
 	utc := now.UTC()

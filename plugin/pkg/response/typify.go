@@ -55,7 +55,6 @@ func Typify(m *dns.Msg, t time.Time) (Type, *dns.OPT) {
 	if m == nil {
 		return OtherError, nil
 	}
-
 	opt := m.IsEdns0()
 	do := false
 	if opt != nil {
@@ -75,11 +74,6 @@ func Typify(m *dns.Msg, t time.Time) (Type, *dns.OPT) {
 		if m.Question[0].Qtype == dns.TypeAXFR || m.Question[0].Qtype == dns.TypeIXFR {
 			return Meta, opt
 		}
-	}
-
-	if m.Response && len(m.Answer) == 0 && len(m.Ns) == 0 {
-		// Response with nothing in it, maybe stuff in the additional section, this is not useful.
-		return OtherError, opt
 	}
 
 	// If our message contains any expired sigs and we care about that, we should return expired

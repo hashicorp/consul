@@ -171,7 +171,7 @@ func (w *ResponseWriter) set(m *dns.Msg, key int, mt response.Type, duration tim
 	case response.OtherError:
 		// don't cache these
 	default:
-		log.Printf("[WARNING] Caching called with unknown typification: %d", mt)
+		log.Printf("[WARNING] Caching called with unknown classification: %d", mt)
 	}
 }
 
@@ -186,8 +186,9 @@ func (w *ResponseWriter) Write(buf []byte) (int, error) {
 }
 
 const (
-	maxTTL  = 1 * time.Hour
-	maxNTTL = 30 * time.Minute
+	maxTTL      = 1 * time.Hour
+	maxNTTL     = 30 * time.Minute
+	failSafeTTL = 5 * time.Second
 
 	defaultCap = 10000 // default capacity of the cache.
 
