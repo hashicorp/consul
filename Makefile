@@ -12,7 +12,7 @@ coredns: $(CHECKS)
 	CGO_ENABLED=0 $(SYSTEM) go build $(VERBOSE) -ldflags="-s -w -X github.com/coredns/coredns/coremain.GitCommit=$(GITCOMMIT)" -o $(BINARY)
 
 .PHONY: check
-check: linter core/zplugin.go core/dnsserver/zdirectives.go godeps
+check: linter goimports core/zplugin.go core/dnsserver/zdirectives.go godeps
 
 .PHONY: test
 test: check
@@ -78,7 +78,11 @@ gen:
 linter:
 	go get -u github.com/alecthomas/gometalinter
 	gometalinter --install golint
-	gometalinter --deadline=2m --disable-all --enable=gofmt --enable=golint --enable=vet --enable=goimports --exclude=^vendor/ --exclude=^pb/ ./...
+	gometalinter --deadline=2m --disable-all --enable=golint --enable=vet --vendor --exclude=^pb/ ./...
+
+.PHONY: goimports
+goimports:
+	( gometalinter --deadline=2m --disable-all --enable=goimports --vendor --exclude=^pb/ ./... || true )
 
 .PHONY: clean
 clean:
