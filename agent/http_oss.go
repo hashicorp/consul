@@ -59,7 +59,8 @@ func init() {
 	registerEndpoint("/v1/operator/autopilot/configuration", []string{"GET", "PUT"}, (*HTTPServer).OperatorAutopilotConfiguration)
 	registerEndpoint("/v1/operator/autopilot/health", []string{"GET"}, (*HTTPServer).OperatorServerHealth)
 	registerEndpoint("/v1/query", []string{"GET", "POST"}, (*HTTPServer).PreparedQueryGeneral)
-	registerEndpoint("/v1/query/", []string{"GET", "PUT", "DELETE"}, (*HTTPServer).PreparedQuerySpecific)
+	// because prepared queries have more complex rules for allowed methods, handle that in the endpoint.
+	registerEndpoint("/v1/query/", []string{}, (*HTTPServer).PreparedQuerySpecific)
 	registerEndpoint("/v1/session/create", []string{"PUT"}, (*HTTPServer).SessionCreate)
 	registerEndpoint("/v1/session/destroy/", []string{"PUT"}, (*HTTPServer).SessionDestroy)
 	registerEndpoint("/v1/session/renew/", []string{"PUT"}, (*HTTPServer).SessionRenew)

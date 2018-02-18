@@ -243,13 +243,14 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 
 		var obj interface{}
 
-		// respond appropriately to OPTIONS requests
-		if req.Method == "OPTIONS" {
+		// if this endpoint has declared methods, respond appropriately to OPTIONS requests. Otherwise let the endpoint handle that.
+		if req.Method == "OPTIONS" && len(methods) > 0 {
 			addAllowHeader(append([]string{"OPTIONS"}, methods...))
 			return
 		}
 
-		methodFound := false
+		// if this endpoint has declared methods, check the request method. Otherwise let the endpoint handle that.
+		methodFound := len(methods) == 0
 		for _, method := range methods {
 			if method == req.Method {
 				methodFound = true
