@@ -1,6 +1,8 @@
 package agent
 
 func init() {
+	allowedMethods = make(map[string][]string)
+
 	registerEndpoint("/v1/acl/bootstrap", []string{"PUT"}, (*HTTPServer).ACLBootstrap)
 	registerEndpoint("/v1/acl/create", []string{"PUT"}, (*HTTPServer).ACLCreate)
 	registerEndpoint("/v1/acl/update", []string{"PUT"}, (*HTTPServer).ACLUpdate)

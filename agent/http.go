@@ -60,9 +60,6 @@ func registerEndpoint(pattern string, methods []string, fn unboundEndpoint) {
 	if endpoints == nil {
 		endpoints = make(map[string]unboundEndpoint)
 	}
-	if allowedMethods == nil {
-		allowedMethods = make(map[string][]string)
-	}
 	if endpoints[pattern] != nil || allowedMethods[pattern] != nil {
 		panic(fmt.Errorf("Pattern %q is already registered", pattern))
 	}
