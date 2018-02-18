@@ -714,42 +714,6 @@ func TestEnableWebUI(t *testing.T) {
 	}
 }
 
-func TestHttpOptions(t *testing.T) {
-
-	req, _ := http.NewRequest("OPTIONS", "/v1/query", nil)
-	resp := httptest.NewRecorder()
-	a := NewTestAgent(t.Name(), "")
-	a.srv.Handler.ServeHTTP(resp, req)
-
-	// Check the result
-	if resp.Code != 200 {
-		t.Fatalf("should handle options method")
-	}
-	optionsStr := resp.Header().Get("Allow")
-	if optionsStr == "" {
-		t.Fatalf("options method should set 'Allow' header")
-	} else if optionsStr != "OPTIONS,GET,POST" {
-		t.Fatalf("options method should set 'Allow' header correctly")
-	}
-}
-
-func TestMethodNotAllowed(t *testing.T) {
-	req, _ := http.NewRequest("PATH", "/v1/kv/", nil)
-	resp := httptest.NewRecorder()
-	a := NewTestAgent(t.Name(), "")
-	a.srv.Handler.ServeHTTP(resp, req)
-
-	if resp.Code != 405 {
-		t.Fatalf("should reject an unsupported method with 405")
-	}
-	optionsStr := resp.Header().Get("Allow")
-	if optionsStr == "" {
-		t.Fatalf("405 error should set 'Allow' header")
-	} else if optionsStr != "OPTIONS,GET,PUT,DELETE" {
-		t.Fatalf("options method should set 'Allow' header correctly")
-	}
-}
-
 // assertIndex tests that X-Consul-Index is set and non-zero
 func assertIndex(t *testing.T, resp *httptest.ResponseRecorder) {
 	header := resp.Header().Get("X-Consul-Index")
