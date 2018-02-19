@@ -759,9 +759,9 @@ func (s *Store) ServicesByNodeMeta(ws memdb.WatchSet, filters map[string]string)
 	return idx, results, nil
 }
 
-// maxIndexForService return the maximum transaction number for a service
-// If the transaction is not set for the service, it will return the max
-// transaction number of "nodes", "services"
+// maxIndexForService return the maximum Raft Index for a service
+// If the index is not set for the service, it will return the max
+// Raft Index of "nodes", "services"
 func maxIndexForService(tx *memdb.Txn, serviceName string) (uint64, error) {
 	transaction, err := tx.First("index", "id", serviceIndexName(serviceName))
 	if err == nil {

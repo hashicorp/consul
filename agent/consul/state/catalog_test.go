@@ -2168,6 +2168,7 @@ func TestStateStore_DeleteCheck(t *testing.T) {
 
 func ensureServiceVersion(t *testing.T, s *Store, ws memdb.WatchSet, serviceID string, expectedIdx uint64, expectedSize int) {
 	idx, services, err := s.ServiceNodes(ws, serviceID)
+	t.Helper()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
