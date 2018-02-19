@@ -774,6 +774,8 @@ func (s *HTTPServer) AgentMonitor(resp http.ResponseWriter, req *http.Request) (
 	defer s.agent.LogWriter.DeregisterHandler(handler)
 	notify := resp.(http.CloseNotifier).CloseNotify()
 
+    // Send Http Header first
+	flusher.Flush()
 	// Stream logs until the connection is closed.
 	for {
 		select {
