@@ -1052,8 +1052,8 @@ func (s *Store) deleteServiceTxn(tx *memdb.Txn, idx uint64, nodeName, serviceID 
 	}
 
 	svc := service.(*structs.ServiceNode)
-	if remainingServicesItr, err := tx.Get("services", "service", svc.ServiceName); err == nil {
-		if remainingServicesItr != nil && remainingServicesItr.Next() != nil {
+	if remainingService, err := tx.First("services", "service", svc.ServiceName); err == nil {
+		if remainingService != nil {
 			// We have at least one remaining service, update the index
 			if err := tx.Insert("index", &IndexEntry{serviceIndexName(svc.ServiceName), idx}); err != nil {
 				return fmt.Errorf("failed updating index: %s", err)
