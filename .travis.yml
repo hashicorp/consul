@@ -10,4 +10,4 @@ branches:
 script:
   - GOTEST_FLAGS="-p 1 -parallel 1" make test
 
-sudo: false
+sudo: true
