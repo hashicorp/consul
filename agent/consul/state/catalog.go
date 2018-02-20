@@ -2,7 +2,6 @@ package state
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -619,12 +618,9 @@ func (s *Store) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *st
 	// conversion doesn't populate any of the node-specific information.
 	// That's always populated when we read from the state store.
 	entry := svc.ToServiceNode(node)
-	hasSameTags := false
 	if existing != nil {
 		entry.CreateIndex = existing.(*structs.ServiceNode).CreateIndex
 		entry.ModifyIndex = idx
-		eSvc := existing.(*structs.ServiceNode)
-		hasSameTags = reflect.DeepEqual(eSvc.ServiceTags, svc.Tags)
 	} else {
 		entry.CreateIndex = idx
 		entry.ModifyIndex = idx
@@ -643,11 +639,8 @@ func (s *Store) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *st
 	if err := tx.Insert("services", entry); err != nil {
 		return fmt.Errorf("failed inserting service: %s", err)
 	}
-	if !hasSameTags {
-		// We need to update /catalog/services only tags are different
-		if err := tx.Insert("index", &IndexEntry{"services", idx}); err != nil {
-			return fmt.Errorf("failed updating index: %s", err)
-		}
+	if err := tx.Insert("index", &IndexEntry{"services", idx}); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
 	}
 	if err := tx.Insert("index", &IndexEntry{serviceIndexName(svc.Service), idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
