@@ -136,7 +136,7 @@ App.KvShowRoute = App.BaseRoute.extend({
     // and the original key requested in params
     return Ember.RSVP.hash({
       key: key,
-      keys: Ember.$.getJSON(formatUrl(consulHost + '/v1/kv/' + key + '?keys&seperator=/', dc, token)).then(function(data) {
+      keys: Ember.$.getJSON(formatUrl(consulHost + '/v1/kv/' + key + '?keys&separator=/', dc, token)).then(function(data) {
         var objs = [];
         data.map(function(obj){
           objs.push(App.Key.create({Key: obj}));
@@ -175,7 +175,7 @@ App.KvEditRoute = App.BaseRoute.extend({
         // Convert the returned data to a Key
         return App.Key.create().setProperties(data[0]);
       }),
-      keys: keysPromise = Ember.$.getJSON(formatUrl(consulHost + '/v1/kv/' + parentKeys.parent + '?keys&seperator=/', dc, token)).then(function(data) {
+      keys: keysPromise = Ember.$.getJSON(formatUrl(consulHost + '/v1/kv/' + parentKeys.parent + '?keys&separator=/', dc, token)).then(function(data) {
         var objs = [];
         data.map(function(obj){
          objs.push(App.Key.create({Key: obj}));
