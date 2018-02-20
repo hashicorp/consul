@@ -2304,7 +2304,8 @@ func TestStateStore_CheckServiceNodes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx != 7 {
+	// registered with ensureServiceVersion(t, s, ws, "service1", 6, 1)
+	if idx != 6 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
@@ -2329,7 +2330,8 @@ func TestStateStore_CheckServiceNodes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx != 8 {
+	// service1 has been registered at idx=6, other different registrations do not count
+	if idx != 6 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
