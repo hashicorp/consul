@@ -38,8 +38,10 @@ type Autopilot struct {
 	clusterHealth     OperatorHealthReply
 	clusterHealthLock sync.RWMutex
 
+	enabled      bool
 	removeDeadCh chan struct{}
 	shutdownCh   chan struct{}
+	shutdownLock sync.Mutex
 	waitGroup    sync.WaitGroup
 }
 
@@ -62,6 +64,14 @@ func NewAutopilot(logger *log.Logger, delegate Delegate, interval, healthInterva
 }
 
 func (a *Autopilot) Start() {
+	a.shutdownLock.Lock()
+	defer a.shutdownLock.Unlock()
+
+	// Nothing to do
+	if a.enabled {
+		return
+	}
+
 	a.shutdownCh = make(chan struct{})
 	a.waitGroup = sync.WaitGroup{}
 	a.clusterHealth = OperatorHealthReply{}
@@ -69,11 +79,21 @@ func (a *Autopilot) Start() {
 	a.waitGroup.Add(2)
 	go a.run()
 	go a.serverHealthLoop()
+	a.enabled = true
 }
 
 func (a *Autopilot) Stop() {
+	a.shutdownLock.Lock()
+	defer a.shutdownLock.Unlock()
+
+	// Nothing to do
+	if !a.enabled {
+		return
+	}
+
 	close(a.shutdownCh)
 	a.waitGroup.Wait()
+	a.enabled = false
 }
 
 // run periodically looks for nonvoting servers to promote and dead servers to remove.
