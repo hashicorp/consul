@@ -67,7 +67,7 @@ test: other-consul dev-build vet
 	@echo "--> Running go test"
 	@rm -f test.log exit-code
 	go test -tags '$(GOTAGS)' -i ./...
-	go test $(GOTEST_FLAGS) -tags '$(GOTAGS)' -timeout 5m -v ./... &>test.log ; echo $$? > exit-code
+	{ go test $(GOTEST_FLAGS) -tags '$(GOTAGS)' -timeout 5m -v ./... 2>&1 ; echo $$? > exit-code ; } | tee test.log
 	@echo "Exit code: $$(cat exit-code)" >> test.log
 	@grep -A5 'DATA RACE' test.log || true
 	@grep -A10 'panic: test timed out' test.log || true
