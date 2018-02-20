@@ -1,12 +1,11 @@
 import Route from '@ember/routing/route';
 
-import get from 'consul-ui/utils/request/get';
+import { inject as service } from '@ember/service';
 
 export default Route.extend({
+  repo: service('dc'),
   model: function(params) {
-    return get('/v1/catalog/datacenters').then(function(data) {
-      return data;
-    });
+    return this.get('repo').findAll();
   },
   afterModel: function(model, transition) {
     // If we only have one datacenter, jump

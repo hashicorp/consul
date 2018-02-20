@@ -1,18 +1,13 @@
 import Route from '@ember/routing/route';
-
-import get from 'consul-ui/utils/request/get';
-import map from 'consul-ui/utils/map';
-import Node from 'consul-ui/models/dc/node';
+import { inject as service } from '@ember/service';
 
 export default Route.extend({
+  repo: service('services'),
   model: function(params) {
-    var dc = this.modelFor('dc').dc;
-    // Here we just use the built-in health endpoint, as it gives us everything
-    // we need.
-    return get('/v1/health/service/' + params.name, dc).then(map(Node));
+    return this.get('repo').findBySlug(params.name, this.modelFor('dc').dc);
   },
   setupController: function(controller, model) {
-    var tags = model
+    const tags = model
       .reduce(function(prev, item, i, arr) {
         return item.Service.Tags !== null ? prev.concat(item.Service.Tags) : prev;
       }, [])

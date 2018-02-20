@@ -1,33 +1,30 @@
 import Route from '@ember/routing/route';
+import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
-import Kv from 'consul-ui/models/dc/kv';
 
-import get from 'consul-ui/utils/request/get';
 export default Route.extend({
+  repo: service('kv'),
   model: function(params) {
-    var key = params.key || '-';
+    let key = params.key || '-';
     // quick hack around not being able to pass an empty
     // string as a wildcard route
     if (key == '-') {
       key = '/';
     }
-    var dc = this.modelFor('dc').dc;
+    const dc = this.modelFor('dc').dc;
+    const repo = this.get('repo');
     // Return a promise has with the ?keys for that namespace
     // and the original key requested in params
     return hash({
       dc: dc,
       key: key,
-      keys: get('/v1/kv/' + key + '?keys&seperator=/', dc).then(function(data) {
-        return data.map(function(obj) {
-          // be careful of this one it's weirder than the other map()'s
-          return Kv.create({ Key: obj });
-        });
-      }),
+      keys: repo.findKeysByKey(key, dc),
     });
   },
   setupController: function(controller, models) {
-    var key = models.key;
-    var parentKeys = this.getParentAndGrandparent(key);
+    const key = models.key;
+    const repo = this.get('repo');
+    const parentKeys = this.getParentAndGrandparent(key);
     models.keys = this.removeDuplicateKeys(models.keys, key);
 
     controller.set('dc', models.dc);
@@ -35,7 +32,7 @@ export default Route.extend({
     controller.set('parentKey', parentKeys.parent);
     controller.set('grandParentKey', parentKeys.grandParent);
     controller.set('isRoot', parentKeys.isRoot);
-    controller.set('newKey', Kv.create());
+    controller.set('newKey', repo.create());
     controller.set('rootKey', this.rootKey);
   },
 });

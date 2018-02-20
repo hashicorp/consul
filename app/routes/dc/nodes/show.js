@@ -1,11 +1,13 @@
 import Route from '@ember/routing/route';
+import { inject as service } from '@ember/service';
+
 import { hash } from 'rsvp';
 
-import get from 'consul-ui/utils/request/get';
 import tomography from 'consul-ui/utils/tomography';
-import Node from 'consul-ui/models/dc/node';
 
 export default Route.extend({
+  repo: service('nodes'),
+  sessionRepo: service('session'),
   queryParams: {
     filter: {
       replace: true,
@@ -13,19 +15,20 @@ export default Route.extend({
     },
   },
   model: function(params) {
-    var dc = this.modelFor('dc');
+    const dc = this.modelFor('dc');
+    const repo = this.get('repo');
     // Return a promise hash of the node
     return hash({
       dc: dc.dc,
       tomography: tomography(params.name, dc),
-      node: get('/v1/internal/ui/node/' + params.name, dc.dc).then(function(data) {
-        return Node.create(data);
-      }),
+      node: repo.findBySlug(params.name, dc.dc),
     });
   },
   // Load the sessions for the node
+  // jc: any reason why this is in afterModel?
   afterModel: function(models) {
-    return get('/v1/session/node/' + models.node.Node, models.dc).then(function(data) {
+    const sessionRepo = this.get('sessionRepo');
+    return sessionRepo.findByNode(models.node.Node, models.dc).then(function(data) {
       models.sessions = data;
       return models;
     });

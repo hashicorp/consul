@@ -1,21 +1,21 @@
 import Route from '@ember/routing/route';
+import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
-
-import get from 'consul-ui/utils/request/get';
-import map from 'consul-ui/utils/map';
 
 import Node from 'consul-ui/models/dc/node';
 export default Route.extend({
+  repo: service('dc'),
+  nodeRepo: service('nodes'),
   model: function(params) {
     // Return a promise hash to retreieve the
     // dcs and nodes used in the header
+    const repo = this.get('repo');
+    const nodeRepo = this.get('nodeRepo');
     return hash({
       dc: params.dc,
-      dcs: get('/v1/catalog/datacenters'),
-      nodes: get('/v1/internal/ui/nodes', params.dc).then(map(Node)),
-      coordinates: get('/v1/coordinate/nodes', params.dc).then(function(data) {
-        return data;
-      }),
+      dcs: repo.findAll(),
+      nodes: nodeRepo.findAllByDatacenter(params.dc),
+      coordinates: nodeRepo.findAllCoordinatesByDatacenter(params.dc),
     });
   },
   setupController: function(controller, models) {

@@ -1,22 +1,11 @@
 import Route from '@ember/routing/route';
+import { inject as service } from '@ember/service';
 
-import Kv from 'consul-ui/models/dc/acl';
-import get from 'consul-ui/utils/request/get';
 export default Route.extend({
+  repo: service('acls'),
   model: function(params) {
-    var dc = this.modelFor('dc').dc;
     // Return a promise containing the ACLS
-    return get('/v1/acl/list', dc).then(function(data) {
-      var objs = [];
-      data.map(function(obj) {
-        if (obj.ID === 'anonymous') {
-          objs.unshift(Acl.create(obj));
-        } else {
-          objs.push(Acl.create(obj));
-        }
-      });
-      return objs;
-    });
+    return this.get('repo').findByDatacenter(this.modelFor('dc').dc);
   },
   actions: {
     error: function(error, transition) {
@@ -33,6 +22,6 @@ export default Route.extend({
   },
   setupController: function(controller, model) {
     controller.set('acls', model);
-    controller.set('newAcl', Acl.create());
+    controller.set('newAcl', this.get('repo').create());
   },
 });

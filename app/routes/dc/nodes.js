@@ -1,14 +1,12 @@
 import Route from '@ember/routing/route';
 
-import get from 'consul-ui/utils/request/get';
-import map from 'consul-ui/utils/map';
-import Node from 'consul-ui/models/dc/node';
+import { inject as service } from '@ember/service';
 
 export default Route.extend({
+  repo: service('nodes'),
   model: function(params) {
-    var dc = this.modelFor('dc').dc;
     // Return a promise containing the nodes
-    return get('/v1/internal/ui/nodes', dc).then(map(Node));
+    return this.get('repo').findAllByDatacenter(this.modelFor('dc').dc);
   },
   setupController: function(controller, model) {
     controller.set('nodes', model);
