@@ -761,3 +761,22 @@ func TestServer_TLSToFullVerify(t *testing.T) {
 		t.Fatalf("bad: %v", success)
 	}
 }
+
+func TestServer_RevokeLeadershipIdempotent(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	err:= s1.revokeLeadership()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = s1.revokeLeadership()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
