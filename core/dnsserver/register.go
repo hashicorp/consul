@@ -34,7 +34,7 @@ func init() {
 	})
 }
 
-func newContext() caddy.Context {
+func newContext(i *caddy.Instance) caddy.Context {
 	return &dnsContext{keysToConfigs: make(map[string]*Config)}
 }
 
