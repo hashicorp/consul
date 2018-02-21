@@ -14,7 +14,7 @@ function.
 CoreDNS is a [Cloud Native Computing Foundation](https://cncf.io) inception level project.
 
 CoreDNS is a fast and flexible DNS server. The keyword here is *flexible*: with CoreDNS you
-are able to do what you want with your DNS data by utilizing plugin. If some functionality is not
+are able to do what you want with your DNS data by utilizing plugins. If some functionality is not
 provided out of the box you can add it by [writing a plugin](https://coredns.io/explugins).
 
 CoreDNS can listen for DNS request coming in over UDP/TCP (go'old DNS), TLS ([RFC
