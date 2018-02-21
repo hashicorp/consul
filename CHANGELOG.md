@@ -3,7 +3,7 @@
 BUG FIXES:
 
 * agent: Fixed an issue where the coordinate update endpoint was not correctly parsing the ACL token. [[GH-3892](https://github.com/hashicorp/consul/issues/3892)]
-
+* server: Fixed an issue where the leader could miss clean up after a leadership transition. [[GH-3909](https://github.com/hashicorp/consul/issues/3909)]
 ## 1.0.6 (February 9, 2018)
 
 BUG FIXES:
