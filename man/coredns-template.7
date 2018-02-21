@@ -20,6 +20,7 @@ template CLASS TYPE [ZONE\.\.\.] {
     [authority RR]
     [\.\.\.]
     [rcode CODE]
+    [upstream [ADDRESS\.\.\.]]
     [fallthrough [ZONE\.\.\.]]
 }
 .
@@ -42,6 +43,9 @@ template CLASS TYPE [ZONE\.\.\.] {
 .
 .IP "\(bu" 4
 \fBrcode\fR \fBCODE\fR A response code (\fBNXDOMAIN, SERVFAIL, \.\.\.\fR)\. The default is \fBSUCCESS\fR\.
+.
+.IP "\(bu" 4
+\fBupstream\fR [\fBADDRESS\fR\.\.\.] defines the upstream resolvers used for resolving CNAME\. If no \fBADDRESS\fR is given, CoreDNS will resolve CNAMEs against itself\. \fBADDRESS\fR can be an IP, an IP:port, or a path to a file structured like resolv\.conf\.
 .
 .IP "\(bu" 4
 \fBfallthrough\fR Continue with the next plugin if the zone matched but no regex matched\. If specific zones are listed (for example \fBin\-addr\.arpa\fR and \fBip6\.arpa\fR), then only queries for those zones will be subject to fallthrough\.

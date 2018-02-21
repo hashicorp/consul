@@ -16,7 +16,7 @@ The \fIauto\fR plugin is used for an "old\-style" DNS server\. It serves from a 
 auto [ZONES\.\.\.] {
     directory DIR [REGEXP ORIGIN_TEMPLATE [TIMEOUT]]
     no_reload
-    upstream ADDRESS\.\.\.
+    upstream [ADDRESS\.\.\.]
 }
 .
 .fi
@@ -31,7 +31,7 @@ auto [ZONES\.\.\.] {
 \fBno_reload\fR by default CoreDNS will try to reload a zone every minute and reloads if the SOA\'s serial has changed\. This option disables that behavior\.
 .
 .IP "\(bu" 4
-\fBupstream\fR defines upstream resolvers to be used resolve external names found (think CNAMEs) pointing to external names\. \fBADDRESS\fR can be an IP address, an IP:port or a string pointing to a file that is structured as /etc/resolv\.conf\.
+\fBupstream\fR defines upstream resolvers to be used resolve external names found (think CNAMEs) pointing to external names\. \fBADDRESS\fR can be an IP address, an IP:port or a string pointing to a file that is structured as /etc/resolv\.conf\. If no \fBADDRESS\fR is given, CoreDNS will resolve CNAMEs against itself\.
 .
 .IP "" 0
 .

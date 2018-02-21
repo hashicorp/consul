@@ -34,7 +34,7 @@ A working syntax would be:
 secondary [zones\.\.\.] {
     transfer from ADDRESS
     transfer to ADDRESS
-    upstream ADDRESS\.\.\.
+    upstream [ADDRESS\.\.\.]
 }
 .
 .fi
@@ -48,7 +48,7 @@ secondary [zones\.\.\.] {
 \fBtransfer to\fR can be enabled to allow this secondary zone to be transferred again\.
 .
 .IP "\(bu" 4
-\fBupstream\fR defines upstream resolvers to be used resolve external names found (think CNAMEs) pointing to external names\. This is only really useful when CoreDNS is configured as a proxy, for normal authoritative serving you don\'t need \fIor\fR want to use this\. \fBADDRESS\fR can be an IP address, and IP:port or a string pointing to a file that is structured as /etc/resolv\.conf\.
+\fBupstream\fR defines upstream resolvers to be used resolve external names found (think CNAMEs) pointing to external names\. This is only really useful when CoreDNS is configured as a proxy, for normal authoritative serving you don\'t need \fIor\fR want to use this\. \fBADDRESS\fR can be an IP address, and IP:port or a string pointing to a file that is structured as /etc/resolv\.conf\. If no \fBADDRESS\fR is given, CoreDNS will resolve CNAMEs against itself\.
 .
 .IP "" 0
 .

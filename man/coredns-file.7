@@ -35,7 +35,7 @@ If you want to round robin A and AAAA responses look at the \fIloadbalance\fR pl
 file DBFILE [ZONES\.\.\. ] {
     transfer to ADDRESS\.\.\.
     no_reload
-    upstream ADDRESS\.\.\.
+    upstream [ADDRESS\.\.\.]
 }
 .
 .fi
@@ -49,7 +49,7 @@ file DBFILE [ZONES\.\.\. ] {
 \fBno_reload\fR by default CoreDNS will try to reload a zone every minute and reloads if the SOA\'s serial has changed\. This option disables that behavior\.
 .
 .IP "\(bu" 4
-\fBupstream\fR defines upstream resolvers to be used resolve external names found (think CNAMEs) pointing to external names\. This is only really useful when CoreDNS is configured as a proxy, for normal authoritative serving you don\'t need \fIor\fR want to use this\. \fBADDRESS\fR can be an IP address, and IP:port or a string pointing to a file that is structured as /etc/resolv\.conf\.
+\fBupstream\fR defines upstream resolvers to be used resolve external names found (think CNAMEs) pointing to external names\. This is only really useful when CoreDNS is configured as a proxy, for normal authoritative serving you don\'t need \fIor\fR want to use this\. \fBADDRESS\fR can be an IP address, and IP:port or a string pointing to a file that is structured as /etc/resolv\.conf\. If no \fBADDRESS\fR is given, CoreDNS will resolve CNAMEs against itself\.
 .
 .IP "" 0
 .

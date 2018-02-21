@@ -76,7 +76,7 @@ proxy FROM TO\.\.\. {
 \fBspray\fR when all backends are unhealthy, randomly pick one to send the traffic to\. (This is a failsafe\.)
 .
 .IP "\(bu" 4
-\fBprotocol\fR specifies what protocol to use to speak to an upstream, \fBdns\fR (the default) is plain old DNS, and \fBhttps_google\fR uses \fBhttps://dns\.google\.com\fR and speaks a JSON DNS dialect\. Note when using this \fBTO\fR will be ignored\. The \fBgrpc\fR option will talk to a server that has implemented the DnsService \fIhttps://github\.com/coredns/coredns/pb/dns\.proto\fR\. An out\-of\-tree plugin that implements the server side of this can be found at here \fIhttps://github\.com/infobloxopen/coredns\-grpc\fR\.
+\fBprotocol\fR specifies what protocol to use to speak to an upstream, \fBdns\fR (the default) is plain old DNS, and \fBhttps_google\fR uses \fBhttps://dns\.google\.com\fR and speaks a JSON DNS dialect\. Note when using this \fBTO\fR will be ignored\. The \fBgrpc\fR option will talk to a server that has implemented the DnsService \fIhttps://github\.com/coredns/coredns/blob/master/pb/dns\.proto\fR\.
 .
 .IP "" 0
 .
@@ -110,7 +110,7 @@ None \- No client authentication is used, and the system CAs are used to verify 
 \fBKEY\fR \fBCERT\fR \- Client authentication is used with the specified key/cert pair\. The server certificate is verified with the system CAs\.
 .
 .IP "\(bu" 4
-\fBKEY\fR \fBCERT\fR \fBCACERT\fR \- Client authentication is used with the specified key/cert pair\. The server certificate is verified using the \fBCACERT\fR file\. An out\-of\-tree plugin that implements the server side of this can be found at here \fIhttps://github\.com/infobloxopen/coredns\-grpc\fR\.
+\fBKEY\fR \fBCERT\fR \fBCACERT\fR \- Client authentication is used with the specified key/cert pair\. The server certificate is verified using the \fBCACERT\fR file\.
 .
 .IP "" 0
 
