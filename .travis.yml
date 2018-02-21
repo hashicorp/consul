@@ -12,7 +12,7 @@ matrix:
     - env: GOTEST_PKGS="./api"
     - env: GOTEST_PKGS="./agent"
     - env: GOTEST_PKGS="./agent/consul"
-    - env: GOTEST_PKGS="$(go list ./... | sed 's/github.com\/hashicorp\/consul/./' | egrep -v './agent|./agent/consul|./api')"
+    - env: GOTEST_PKGS_EXCLUDE="./api|./agent|./agent/consul"
 
 script:
   - GOTEST_FLAGS="-p 3 -parallel 1" make test
