@@ -96,12 +96,16 @@ func minMsgTTL(m *dns.Msg, mt response.Type) time.Duration {
 	}
 
 	// No data to examine, return a short ttl as a fail safe.
-	if len(m.Answer)+len(m.Ns) == 0 {
+	if len(m.Answer)+len(m.Ns)+len(m.Extra) == 0 {
 		return failSafeTTL
 	}
 
 	minTTL := maxTTL
-	for _, r := range append(m.Answer, m.Ns...) {
+	for _, r := range append(append(m.Answer, m.Ns...), m.Extra...) {
+		if r.Header().Rrtype == dns.TypeOPT {
+			// OPT records use TTL field for extended rcode and flags
+			continue
+		}
 		switch mt {
 		case response.NameError, response.NoData:
 			if r.Header().Rrtype == dns.TypeSOA {
