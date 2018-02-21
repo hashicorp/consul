@@ -11,6 +11,20 @@ import (
 	"github.com/hashicorp/serf/serf"
 )
 
+func TestAutopilot_IdempotentShutdown(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, nil)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	retry.Run(t, func(r *retry.R) { r.Check(waitForLeader(s1)) })
+
+	s1.autopilot.Start()
+	s1.autopilot.Start()
+	s1.autopilot.Start()
+	s1.autopilot.Stop()
+	s1.autopilot.Stop()
+	s1.autopilot.Stop()
+}
+
 func TestAutopilot_CleanupDeadServer(t *testing.T) {
 	t.Parallel()
 	for i := 1; i <= 3; i++ {
