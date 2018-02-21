@@ -7,7 +7,14 @@ branches:
   only:
     - master
 
+matrix:
+  include:
+    - env: GOTEST_FLAGS="-p 1 -parallel 1" GOTEST_PKGS="./api"
+    - env: GOTEST_FLAGS="-p 1 -parallel 1" GOTEST_PKGS="./agent"
+    - env: GOTEST_FLAGS="-p 1 -parallel 1" GOTEST_PKGS="./agent/consul"
+    - env: GOTEST_FLAGS="-p 3 -parallel 1" GOTEST_PKGS="$(go list ./... | egrep -v '(/agent|/agent/consul|/api)$')"
+
 script:
-  - GOTEST_FLAGS="-p 3 -parallel 1" make test
+  - make test
 
 sudo: true
