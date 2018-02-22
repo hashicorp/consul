@@ -2,7 +2,7 @@
 
 ## Name
 
-*forward* facilitates proxying DNS messages to upstream resolvers.
+*forward* - facilitates proxying DNS messages to upstream resolvers.
 
 ## Description
 
