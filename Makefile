@@ -38,8 +38,8 @@ godeps:
 	(cd $(GOPATH)/src/github.com/mholt/caddy              && git checkout -q v0.10.11)
 	(cd $(GOPATH)/src/github.com/miekg/dns                && git checkout -q v1.0.4)
 	(cd $(GOPATH)/src/github.com/prometheus/client_golang && git checkout -q v0.8.0)
-	(cd $(GOPATH)/src/golang.org/x/net                    && git checkout -q release-branch.go1.9)
-	(cd $(GOPATH)/src/golang.org/x/text                   && git checkout -q e19ae1496984b1c655b8044a65c0300a3c878dd3)
+	(cd $(GOPATH)/src/golang.org/x/net                    && git checkout -q release-branch.go1.10)
+	(cd $(GOPATH)/src/golang.org/x/text                   && git checkout -q v0.3.0)
 
 .PHONY: travis
 travis: check
