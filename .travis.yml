@@ -8,6 +8,6 @@ branches:
     - master
 
 script:
-  - GOTEST_FLAGS="-p 3 -parallel 1" make test
+  - GOTEST_FLAGS="-p 2 -parallel 2" make test
 
 sudo: false
