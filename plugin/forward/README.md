@@ -46,7 +46,7 @@ forward FROM TO... {
     tls CERT KEY CA
     tls_servername NAME
     policy random|round_robin
-    health_checks DURATION
+    health_check DURATION
 }
 ~~~
 
@@ -63,7 +63,7 @@ forward FROM TO... {
 * `tls_servername` **NAME** allows you to set a server name in the TLS configuration; for instance 9.9.9.9
   needs this to be set to `dns.quad9.net`.
 * `policy` specifies the policy to use for selecting upstream servers. The default is `random`.
-* `health_checks`, use a different **DURATION** for health checking, the default duration is 0.5s.
+* `health_check`, use a different **DURATION** for health checking, the default duration is 0.5s.
 
 Also note the TLS config is "global" for the whole forwarding proxy if you need a different
 `tls-name` for different upstreams you're out of luck.
