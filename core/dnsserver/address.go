@@ -15,10 +15,17 @@ type zoneAddr struct {
 	Port      string
 	Transport string     // dns, tls or grpc
 	IPNet     *net.IPNet // if reverse zone this hold the IPNet
+	Address   string     // used for bound zoneAddr - validation of overlapping
 }
 
 // String return the string representation of z.
-func (z zoneAddr) String() string { return z.Transport + "://" + z.Zone + ":" + z.Port }
+func (z zoneAddr) String() string {
+	s := z.Transport + "://" + z.Zone + ":" + z.Port
+	if z.Address != "" {
+		s += " on " + z.Address
+	}
+	return s
+}
 
 // Transport returns the protocol of the string s
 func Transport(s string) string {
@@ -94,3 +101,37 @@ const (
 	TransportTLS  = "tls"
 	TransportGRPC = "grpc"
 )
+
+type zoneOverlap struct {
+	registeredAddr map[zoneAddr]zoneAddr // each zoneAddr is registered once by its key
+	unboundOverlap map[zoneAddr]zoneAddr // the "no bind" equiv ZoneAdddr is registered by its original key
+}
+
+func newOverlapZone() *zoneOverlap {
+	return &zoneOverlap{registeredAddr: make(map[zoneAddr]zoneAddr), unboundOverlap: make(map[zoneAddr]zoneAddr)}
+}
+
+// registerAndCheck adds a new zoneAddr for validation, it returns information about existing or overlapping with already registered
+// we consider that an unbound address is overlapping all bound addresses for same zone, same port
+func (zo *zoneOverlap) registerAndCheck(z zoneAddr) (existingZone *zoneAddr, overlappingZone *zoneAddr) {
+
+	if exist, ok := zo.registeredAddr[z]; ok {
+		// exact same zone already registered
+		return &exist, nil
+	}
+	uz := zoneAddr{Zone: z.Zone, Address: "", Port: z.Port, Transport: z.Transport}
+	if already, ok := zo.unboundOverlap[uz]; ok {
+		if z.Address == "" {
+			// current is not bound to an address, but there is already another zone with a bind address registered
+			return nil, &already
+		}
+		if _, ok := zo.registeredAddr[uz]; ok {
+			// current zone is bound to an address, but there is already an overlapping zone+port with no bind address
+			return nil, &uz
+		}
+	}
+	// there is no overlap, keep the current zoneAddr for future checks
+	zo.registeredAddr[z] = z
+	zo.unboundOverlap[uz] = z
+	return nil, nil
+}

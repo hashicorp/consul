@@ -51,7 +51,7 @@ func TestGroupingServers(t *testing.T) {
 			expectedGroups: []string{"dns://:53", "dns://:54"},
 			failing:        false},
 
-		// 2 configs on same port, same broadcast address, diff zones -> 1 group
+		// 2 configs on same port, both not using bind, diff zones -> 1 group
 		{configs: []*Config{
 			{Transport: "dns", Zone: ".", Port: "53", ListenHosts: []string{""}},
 			{Transport: "dns", Zone: "com.", Port: "53", ListenHosts: []string{""}},
@@ -59,7 +59,7 @@ func TestGroupingServers(t *testing.T) {
 			expectedGroups: []string{"dns://:53"},
 			failing:        false},
 
-		// 2 configs on same port, same address, diff zones -> 1 group
+		// 2 configs on same port, one addressed - one not using bind, diff zones -> 1 group
 		{configs: []*Config{
 			{Transport: "dns", Zone: ".", Port: "53", ListenHosts: []string{"127.0.0.1"}},
 			{Transport: "dns", Zone: ".", Port: "54", ListenHosts: []string{""}},
@@ -74,7 +74,7 @@ func TestGroupingServers(t *testing.T) {
 			expectedGroups: []string{"dns://127.0.0.1:53", "dns://[::1]:53", "dns://:54"},
 			failing:        false},
 
-		// 2 configs on same port, same unicast address, diff zones -> 1 group
+		// 2 configs on same port, same address, diff zones -> 1 group
 		{configs: []*Config{
 			{Transport: "dns", Zone: ".", Port: "53", ListenHosts: []string{"127.0.0.1", "::1"}},
 			{Transport: "dns", Zone: "com.", Port: "53", ListenHosts: []string{"127.0.0.1", "::1"}},

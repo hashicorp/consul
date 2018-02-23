@@ -2,6 +2,7 @@ package dnsserver
 
 import (
 	"crypto/tls"
+	"fmt"
 	"net"
 
 	"github.com/coredns/coredns/plugin"
@@ -68,16 +69,22 @@ func (c *Config) HostAddresses() string {
 	return all
 }
 
+// keyForConfig build a key for identifying the configs during setup time
+func keyForConfig(blocIndex int, blocKeyIndex int) string {
+	return fmt.Sprintf("%d:%d", blocIndex, blocKeyIndex)
+}
+
 // GetConfig gets the Config that corresponds to c.
 // If none exist nil is returned.
 func GetConfig(c *caddy.Controller) *Config {
 	ctx := c.Context().(*dnsContext)
-	if cfg, ok := ctx.keysToConfigs[c.Key]; ok {
+	key := keyForConfig(c.ServerBlockIndex, c.ServerBlockKeyIndex)
+	if cfg, ok := ctx.keysToConfigs[key]; ok {
 		return cfg
 	}
 	// we should only get here during tests because directive
 	// actions typically skip the server blocks where we make
 	// the configs.
-	ctx.saveConfig(c.Key, &Config{ListenHosts: []string{""}})
+	ctx.saveConfig(key, &Config{ListenHosts: []string{""}})
 	return GetConfig(c)
 }

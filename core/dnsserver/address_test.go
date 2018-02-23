@@ -108,3 +108,72 @@ func TestSplitProtocolHostPort(t *testing.T) {
 
 	}
 }
+
+type checkCall struct {
+	zone       zoneAddr
+	same       bool
+	overlap    bool
+	overlapKey string
+}
+
+type checkTest struct {
+	sequence []checkCall
+}
+
+func TestOverlapAddressChecker(t *testing.T) {
+	for i, test := range []checkTest{
+		{sequence: []checkCall{
+			{zoneAddr{Transport: "dns", Zone: ".", Address: "", Port: "53"}, false, false, ""},
+			{zoneAddr{Transport: "dns", Zone: ".", Address: "", Port: "53"}, true, false, ""},
+		},
+		},
+		{sequence: []checkCall{
+			{zoneAddr{Transport: "dns", Zone: ".", Address: "", Port: "53"}, false, false, ""},
+			{zoneAddr{Transport: "dns", Zone: ".", Address: "", Port: "54"}, false, false, ""},
+			{zoneAddr{Transport: "dns", Zone: ".", Address: "127.0.0.1", Port: "53"}, false, true, "dns://.:53"},
+		},
+		},
+		{sequence: []checkCall{
+			{zoneAddr{Transport: "dns", Zone: ".", Address: "127.0.0.1", Port: "53"}, false, false, ""},
+			{zoneAddr{Transport: "dns", Zone: ".", Address: "", Port: "54"}, false, false, ""},
+			{zoneAddr{Transport: "dns", Zone: ".", Address: "127.0.0.1", Port: "53"}, true, false, ""},
+		},
+		},
+		{sequence: []checkCall{
+			{zoneAddr{Transport: "dns", Zone: ".", Address: "127.0.0.1", Port: "53"}, false, false, ""},
+			{zoneAddr{Transport: "dns", Zone: ".", Address: "", Port: "54"}, false, false, ""},
+			{zoneAddr{Transport: "dns", Zone: ".", Address: "128.0.0.1", Port: "53"}, false, false, ""},
+			{zoneAddr{Transport: "dns", Zone: ".", Address: "129.0.0.1", Port: "53"}, false, false, ""},
+			{zoneAddr{Transport: "dns", Zone: ".", Address: "", Port: "53"}, false, true, "dns://.:53 on 129.0.0.1"},
+		},
+		},
+		{sequence: []checkCall{
+			{zoneAddr{Transport: "dns", Zone: ".", Address: "127.0.0.1", Port: "53"}, false, false, ""},
+			{zoneAddr{Transport: "dns", Zone: "com.", Address: "127.0.0.1", Port: "53"}, false, false, ""},
+			{zoneAddr{Transport: "dns", Zone: "com.", Address: "", Port: "53"}, false, true, "dns://com.:53 on 127.0.0.1"},
+		},
+		},
+	} {
+
+		checker := newOverlapZone()
+		for _, call := range test.sequence {
+			same, overlap := checker.registerAndCheck(call.zone)
+			sZone := call.zone.String()
+			if (same != nil) != call.same {
+				t.Errorf("Test %d: error, for zone %s, 'same' (%v) has not the expected value (%v)", i, sZone, same != nil, call.same)
+			}
+			if same == nil {
+				if (overlap != nil) != call.overlap {
+					t.Errorf("Test %d: error, for zone %s, 'overlap' (%v) has not the expected value (%v)", i, sZone, overlap != nil, call.overlap)
+				}
+				if overlap != nil {
+					if overlap.String() != call.overlapKey {
+						t.Errorf("Test %d: error, for zone %s, 'overlap Key' (%v) has not the expected value (%v)", i, sZone, overlap.String(), call.overlapKey)
+					}
+
+				}
+			}
+
+		}
+	}
+}

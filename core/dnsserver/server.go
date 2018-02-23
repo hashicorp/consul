@@ -65,6 +65,10 @@ func NewServer(addr string, group []*Config) (*Server, error) {
 		// set the config per zone
 		s.zones[site.Zone] = site
 		// compile custom plugin for everything
+		if site.registry != nil {
+			// this config is already computed with the chain of plugin
+			continue
+		}
 		var stack plugin.Handler
 		for i := len(site.Plugin) - 1; i >= 0; i-- {
 			stack = site.Plugin[i](stack)
