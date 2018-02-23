@@ -11,6 +11,11 @@ GOTOOLS = \
 
 GOTAGS ?=
 GOFILES ?= $(shell go list ./... | grep -v /vendor/)
+ifeq ($(origin GOTEST_PKGS_EXCLUDE), undefined)
+GOTEST_PKGS ?= "./..."
+else
+GOTEST_PKGS=$(shell go list ./... | sed 's/github.com\/hashicorp\/consul/./' | egrep -v "^($(GOTEST_PKGS_EXCLUDE))$$")
+endif
 GOOS=$(shell go env GOOS)
 GOARCH=$(shell go env GOARCH)
 GOPATH=$(shell go env GOPATH)
@@ -66,8 +71,12 @@ cov:
 test: other-consul dev-build vet
 	@echo "--> Running go test"
 	@rm -f test.log exit-code
-	go test -tags '$(GOTAGS)' -i ./...
-	go test $(GOTEST_FLAGS) -tags '$(GOTAGS)' -timeout 5m -v ./... &>test.log ; echo $$? > exit-code
+	go test -tags '$(GOTAGS)' -i $(GOTEST_PKGS)
+	@# Dump verbose output to test.log so we can surface test names on failure but
+	@# hide it from travis as it exceeds their log limits and causes job to be
+	@# terminated (over 4MB and over 10k lines in the UI). We need to output
+	@# _something_ to stop them terminating us due to inactivity...
+	{ go test $(GOTEST_FLAGS) -tags '$(GOTAGS)' -timeout 5m $(GOTEST_PKGS) 2>&1 ; echo $$? > exit-code ; } | tee test.log | egrep '^(ok|FAIL)\s*github.com/hashicorp/consul'
 	@echo "Exit code: $$(cat exit-code)" >> test.log
 	@grep -A5 'DATA RACE' test.log || true
 	@grep -A10 'panic: test timed out' test.log || true
