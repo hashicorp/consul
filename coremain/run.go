@@ -251,9 +251,11 @@ var (
 	buildDate        string // date -u
 	gitTag           string // git describe --exact-match HEAD 2> /dev/null
 	gitNearestTag    string // git describe --abbrev=0 --tags HEAD
-	GitCommit        string // git rev-parse HEAD
 	gitShortStat     string // git diff-index --shortstat
 	gitFilesModified string // git diff-index --name-only HEAD
+
+	// Gitcommit contains the commit where we built CoreDNS from.
+	GitCommit string
 )
 
 // flagsBlacklist removes flags with these names from our flagset.

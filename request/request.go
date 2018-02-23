@@ -1,5 +1,4 @@
-// Package request abstracts a client's request so that all plugin
-// will handle them in an unified way.
+// Package request abstracts a client's request so that all plugins will handle them in an unified way.
 package request
 
 import (

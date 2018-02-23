@@ -1,3 +1,4 @@
+// Package fuzz contains functions that enable fuzzing of plugins.
 package fuzz
 
 import (

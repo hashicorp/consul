@@ -25,7 +25,7 @@ func init() {
 func setup(c *caddy.Controller) error {
 	f, err := parseForward(c)
 	if err != nil {
-		return plugin.Error("foward", err)
+		return plugin.Error("forward", err)
 	}
 	if f.Len() > max {
 		return plugin.Error("forward", fmt.Errorf("more than %d TOs configured: %d", max, f.Len()))

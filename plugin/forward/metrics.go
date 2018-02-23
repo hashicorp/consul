@@ -45,7 +45,7 @@ var (
 		Namespace: plugin.Namespace,
 		Subsystem: "forward",
 		Name:      "socket_count_total",
-		Help:      "Guage of open sockets per upstream.",
+		Help:      "Gauge of open sockets per upstream.",
 	}, []string{"to"})
 )
 
