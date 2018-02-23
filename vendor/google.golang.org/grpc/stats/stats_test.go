@@ -256,11 +256,10 @@ const (
 )
 
 type rpcConfig struct {
-	count      int  // Number of requests and responses for streaming RPCs.
-	success    bool // Whether the RPC should succeed or return error.
-	failfast   bool
-	callType   rpcType // Type of RPC.
-	noLastRecv bool    // Whether to call recv for io.EOF. When true, last recv won't be called. Only valid for streaming RPCs.
+	count    int  // Number of requests and responses for streaming RPCs.
+	success  bool // Whether the RPC should succeed or return error.
+	failfast bool
+	callType rpcType // Type of RPC.
 }
 
 func (te *test) doUnaryCall(c *rpcConfig) (*testpb.SimpleRequest, *testpb.SimpleResponse, error) {
@@ -313,14 +312,8 @@ func (te *test) doFullDuplexCallRoundtrip(c *rpcConfig) ([]*testpb.SimpleRequest
 	if err = stream.CloseSend(); err != nil && err != io.EOF {
 		return reqs, resps, err
 	}
-	if !c.noLastRecv {
-		if _, err = stream.Recv(); err != io.EOF {
-			return reqs, resps, err
-		}
-	} else {
-		// In the case of not calling the last recv, sleep to avoid
-		// returning too fast to miss the remaining stats (InTrailer and End).
-		time.Sleep(time.Second)
+	if _, err = stream.Recv(); err != io.EOF {
+		return reqs, resps, err
 	}
 
 	return reqs, resps, nil
@@ -651,7 +644,7 @@ func checkEnd(t *testing.T, d *gotData, e *expectedData) {
 
 	actual, ok := status.FromError(st.Error)
 	if !ok {
-		t.Fatalf("expected st.Error to be a statusError, got %T", st.Error)
+		t.Fatalf("expected st.Error to be a statusError, got %v (type %T)", st.Error, st.Error)
 	}
 
 	expectedStatus, _ := status.FromError(e.err)
@@ -1217,20 +1210,6 @@ func TestClientStatsFullDuplexRPCError(t *testing.T) {
 		outHeader:  {checkOutHeader, 1},
 		outPayload: {checkOutPayload, 1},
 		inHeader:   {checkInHeader, 1},
-		inTrailer:  {checkInTrailer, 1},
-		end:        {checkEnd, 1},
-	})
-}
-
-// If the user doesn't call the last recv() on clientStream.
-func TestClientStatsFullDuplexRPCNotCallingLastRecv(t *testing.T) {
-	count := 1
-	testClientStats(t, &testConfig{compress: "gzip"}, &rpcConfig{count: count, success: true, failfast: false, callType: fullDuplexStreamRPC, noLastRecv: true}, map[int]*checkFuncWithCount{
-		begin:      {checkBegin, 1},
-		outHeader:  {checkOutHeader, 1},
-		outPayload: {checkOutPayload, count},
-		inHeader:   {checkInHeader, 1},
-		inPayload:  {checkInPayload, count},
 		inTrailer:  {checkInTrailer, 1},
 		end:        {checkEnd, 1},
 	})

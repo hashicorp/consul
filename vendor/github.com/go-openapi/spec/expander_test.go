@@ -206,6 +206,47 @@ func TestResponseExpansion(t *testing.T) {
 	// assert.Equal(t, expected, resp)
 }
 
+// test the exported version of ExpandResponse
+func TestExportedResponseExpansion(t *testing.T) {
+	specDoc, err := jsonDoc("fixtures/expansion/all-the-things.json")
+	assert.NoError(t, err)
+
+	basePath, err := absPath("fixtures/expansion/all-the-things.json")
+	assert.NoError(t, err)
+
+	spec := new(Swagger)
+	err = json.Unmarshal(specDoc, spec)
+	assert.NoError(t, err)
+
+	resp := spec.Responses["anotherPet"]
+	r := spec.Responses["petResponse"]
+	err = ExpandResponse(&r, basePath)
+	assert.NoError(t, err)
+	expected := r
+
+	err = ExpandResponse(&resp, basePath)
+	b, _ := resp.MarshalJSON()
+	log.Printf(string(b))
+	b, _ = expected.MarshalJSON()
+	log.Printf(string(b))
+	assert.NoError(t, err)
+	assert.Equal(t, expected, resp)
+
+	resp2 := spec.Paths.Paths["/"].Get.Responses.Default
+	expected = spec.Responses["stringResponse"]
+
+	err = ExpandResponse(resp2, basePath)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, *resp2)
+
+	resp = spec.Paths.Paths["/"].Get.Responses.StatusCodeResponses[200]
+	expected = spec.Responses["petResponse"]
+
+	err = ExpandResponse(&resp, basePath)
+	assert.NoError(t, err)
+	// assert.Equal(t, expected, resp)
+}
+
 func TestIssue3(t *testing.T) {
 	spec := new(Swagger)
 	specDoc, err := jsonDoc("fixtures/expansion/overflow.json")
@@ -250,6 +291,32 @@ func TestParameterExpansion(t *testing.T) {
 	expected = spec.Parameters["id"]
 
 	err = expandParameter(&param, resolver, basePath)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, param)
+}
+
+func TestExportedParameterExpansion(t *testing.T) {
+	paramDoc, err := jsonDoc("fixtures/expansion/params.json")
+	assert.NoError(t, err)
+
+	spec := new(Swagger)
+	err = json.Unmarshal(paramDoc, spec)
+	assert.NoError(t, err)
+
+	basePath, err := absPath("fixtures/expansion/params.json")
+	assert.NoError(t, err)
+
+	param := spec.Parameters["query"]
+	expected := spec.Parameters["tag"]
+
+	err = ExpandParameter(&param, basePath)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, param)
+
+	param = spec.Paths.Paths["/cars/{id}"].Parameters[0]
+	expected = spec.Parameters["id"]
+
+	err = ExpandParameter(&param, basePath)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, param)
 }
@@ -624,6 +691,71 @@ func TestDefaultResolutionCache(t *testing.T) {
 	sch, ok = cache.Get("something")
 	assert.True(t, ok)
 	assert.Equal(t, "here", sch)
+}
+
+func TestRelativeBaseURI(t *testing.T) {
+	server := httptest.NewServer(http.FileServer(http.Dir("fixtures/remote")))
+	defer server.Close()
+
+	spec := new(Swagger)
+	// resolver, err := defaultSchemaLoader(spec, nil, nil)
+	// assert.NoError(t, err)
+
+	err := ExpandSpec(spec, nil)
+	assert.NoError(t, err)
+
+	specDoc, err := jsonDoc("fixtures/remote/all-the-things.json")
+	assert.NoError(t, err)
+
+	opts := &ExpandOptions{
+		RelativeBase: server.URL + "/all-the-things.json",
+	}
+
+	spec = new(Swagger)
+	err = json.Unmarshal(specDoc, spec)
+	assert.NoError(t, err)
+
+	pet := spec.Definitions["pet"]
+	errorModel := spec.Definitions["errorModel"]
+	petResponse := spec.Responses["petResponse"]
+	petResponse.Schema = &pet
+	stringResponse := spec.Responses["stringResponse"]
+	tagParam := spec.Parameters["tag"]
+	idParam := spec.Parameters["idParam"]
+
+	anotherPet := spec.Responses["anotherPet"]
+	anotherPet.Ref = MustCreateRef(server.URL + "/" + anotherPet.Ref.String())
+	err = ExpandResponse(&anotherPet, opts.RelativeBase)
+	assert.NoError(t, err)
+	spec.Responses["anotherPet"] = anotherPet
+
+	circularA := spec.Responses["circularA"]
+	circularA.Ref = MustCreateRef(server.URL + "/" + circularA.Ref.String())
+	err = ExpandResponse(&circularA, opts.RelativeBase)
+	assert.NoError(t, err)
+	spec.Responses["circularA"] = circularA
+
+	err = ExpandSpec(spec, opts)
+	assert.NoError(t, err)
+
+	assert.Equal(t, tagParam, spec.Parameters["query"])
+	assert.Equal(t, petResponse, spec.Responses["petResponse"])
+	assert.Equal(t, petResponse, spec.Responses["anotherPet"])
+	assert.Equal(t, pet, *spec.Responses["petResponse"].Schema)
+	assert.Equal(t, stringResponse, *spec.Paths.Paths["/"].Get.Responses.Default)
+	assert.Equal(t, petResponse, spec.Paths.Paths["/"].Get.Responses.StatusCodeResponses[200])
+	assert.Equal(t, pet, *spec.Paths.Paths["/pets"].Get.Responses.StatusCodeResponses[200].Schema.Items.Schema)
+	assert.Equal(t, errorModel, *spec.Paths.Paths["/pets"].Get.Responses.Default.Schema)
+	assert.Equal(t, pet, spec.Definitions["petInput"].AllOf[0])
+	assert.Equal(t, spec.Definitions["petInput"], *spec.Paths.Paths["/pets"].Post.Parameters[0].Schema)
+	assert.Equal(t, petResponse, spec.Paths.Paths["/pets"].Post.Responses.StatusCodeResponses[200])
+	assert.Equal(t, errorModel, *spec.Paths.Paths["/pets"].Post.Responses.Default.Schema)
+	pi := spec.Paths.Paths["/pets/{id}"]
+	assert.Equal(t, idParam, pi.Get.Parameters[0])
+	assert.Equal(t, petResponse, pi.Get.Responses.StatusCodeResponses[200])
+	assert.Equal(t, errorModel, *pi.Get.Responses.Default.Schema)
+	assert.Equal(t, idParam, pi.Delete.Parameters[0])
+	assert.Equal(t, errorModel, *pi.Delete.Responses.Default.Schema)
 }
 
 func resolutionContextServer() *httptest.Server {

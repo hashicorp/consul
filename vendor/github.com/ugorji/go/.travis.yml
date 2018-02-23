@@ -1,0 +1,11 @@
+language: go
+sudo: false
+go:
+    - 1.7.x  # go testing suite support, which we use, was introduced in go 1.7
+    - 1.8.x
+    - 1.9.x
+    - tip
+script:
+    - go test -tags "alltests" -run Suite -coverprofile coverage.txt github.com/ugorji/go/codec
+after_success:
+    - bash <(curl -s https://codecov.io/bash)

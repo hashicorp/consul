@@ -40,6 +40,8 @@ godeps:
 	(cd $(GOPATH)/src/github.com/prometheus/client_golang && git checkout -q v0.8.0)
 	(cd $(GOPATH)/src/golang.org/x/net                    && git checkout -q release-branch.go1.10)
 	(cd $(GOPATH)/src/golang.org/x/text                   && git checkout -q v0.3.0)
+	# github.com/flynn/go-shlex is required by mholt/caddy at the moment
+	go get -u github.com/flynn/go-shlex
 
 .PHONY: travis
 travis: check

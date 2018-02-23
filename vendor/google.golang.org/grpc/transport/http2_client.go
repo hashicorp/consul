@@ -314,15 +314,16 @@ func newHTTP2Client(connectCtx, ctx context.Context, addr TargetInfo, opts Conne
 func (t *http2Client) newStream(ctx context.Context, callHdr *CallHdr) *Stream {
 	// TODO(zhaoq): Handle uint32 overflow of Stream.id.
 	s := &Stream{
-		id:            t.nextID,
-		done:          make(chan struct{}),
-		goAway:        make(chan struct{}),
-		method:        callHdr.Method,
-		sendCompress:  callHdr.SendCompress,
-		buf:           newRecvBuffer(),
-		fc:            &inFlow{limit: uint32(t.initialWindowSize)},
-		sendQuotaPool: newQuotaPool(int(t.streamSendQuota)),
-		headerChan:    make(chan struct{}),
+		id:             t.nextID,
+		done:           make(chan struct{}),
+		goAway:         make(chan struct{}),
+		method:         callHdr.Method,
+		sendCompress:   callHdr.SendCompress,
+		buf:            newRecvBuffer(),
+		fc:             &inFlow{limit: uint32(t.initialWindowSize)},
+		sendQuotaPool:  newQuotaPool(int(t.streamSendQuota)),
+		headerChan:     make(chan struct{}),
+		contentSubtype: callHdr.ContentSubtype,
 	}
 	t.nextID += 2
 	s.requestRead = func(n int) {
@@ -380,7 +381,11 @@ func (t *http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (_ *Strea
 	for _, c := range t.creds {
 		data, err := c.GetRequestMetadata(ctx, audience)
 		if err != nil {
-			return nil, streamErrorf(codes.Internal, "transport: %v", err)
+			if _, ok := status.FromError(err); ok {
+				return nil, err
+			}
+
+			return nil, streamErrorf(codes.Unauthenticated, "transport: %v", err)
 		}
 		for k, v := range data {
 			// Capital header names are illegal in HTTP/2.
@@ -434,7 +439,7 @@ func (t *http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (_ *Strea
 	headerFields = append(headerFields, hpack.HeaderField{Name: ":scheme", Value: t.scheme})
 	headerFields = append(headerFields, hpack.HeaderField{Name: ":path", Value: callHdr.Method})
 	headerFields = append(headerFields, hpack.HeaderField{Name: ":authority", Value: callHdr.Host})
-	headerFields = append(headerFields, hpack.HeaderField{Name: "content-type", Value: "application/grpc"})
+	headerFields = append(headerFields, hpack.HeaderField{Name: "content-type", Value: contentType(callHdr.ContentSubtype)})
 	headerFields = append(headerFields, hpack.HeaderField{Name: "user-agent", Value: t.userAgent})
 	headerFields = append(headerFields, hpack.HeaderField{Name: "te", Value: "trailers"})
 
@@ -459,7 +464,22 @@ func (t *http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (_ *Strea
 	if b := stats.OutgoingTrace(ctx); b != nil {
 		headerFields = append(headerFields, hpack.HeaderField{Name: "grpc-trace-bin", Value: encodeBinHeader(b)})
 	}
-	if md, ok := metadata.FromOutgoingContext(ctx); ok {
+
+	if md, added, ok := metadata.FromOutgoingContextRaw(ctx); ok {
+		var k string
+		for _, vv := range added {
+			for i, v := range vv {
+				if i%2 == 0 {
+					k = v
+					continue
+				}
+				// HTTP doesn't allow you to set pseudoheaders after non pseudoheaders were set.
+				if isReservedHeader(k) {
+					continue
+				}
+				headerFields = append(headerFields, hpack.HeaderField{Name: strings.ToLower(k), Value: encodeMetadataHeader(k, v)})
+			}
+		}
 		for k, vv := range md {
 			// HTTP doesn't allow you to set pseudoheaders after non pseudoheaders were set.
 			if isReservedHeader(k) {
@@ -576,7 +596,7 @@ func (t *http2Client) CloseStream(s *Stream, err error) {
 	}
 	s.state = streamDone
 	s.mu.Unlock()
-	if _, ok := err.(StreamError); ok {
+	if err != nil && !rstStream {
 		rstStream = true
 		rstError = http2.ErrCodeCancel
 	}
@@ -645,6 +665,8 @@ func (t *http2Client) Write(s *Stream, hdr []byte, data []byte, opts *Options) e
 	select {
 	case <-s.ctx.Done():
 		return ContextErr(s.ctx.Err())
+	case <-s.done:
+		return io.EOF
 	case <-t.ctx.Done():
 		return ErrConnClosing
 	default:
@@ -694,6 +716,8 @@ func (t *http2Client) Write(s *Stream, hdr []byte, data []byte, opts *Options) e
 			}
 			ltq, _, err := t.localSendQuota.get(size, s.waiters)
 			if err != nil {
+				// Add the acquired quota back to transport.
+				t.sendQuotaPool.add(tq)
 				return err
 			}
 			// even if ltq is smaller than size we don't adjust size since
@@ -1110,16 +1134,17 @@ func (t *http2Client) operateHeaders(frame *http2.MetaHeadersFrame) {
 	}()
 
 	s.mu.Lock()
-	if !endStream {
-		s.recvCompress = state.encoding
-	}
 	if !s.headerDone {
-		if !endStream && len(state.mdata) > 0 {
-			s.header = state.mdata
+		if !endStream {
+			// Headers frame is not actually a trailers-only frame.
+			isHeader = true
+			s.recvCompress = state.encoding
+			if len(state.mdata) > 0 {
+				s.header = state.mdata
+			}
 		}
 		close(s.headerChan)
 		s.headerDone = true
-		isHeader = true
 	}
 	if !endStream || s.state == streamDone {
 		s.mu.Unlock()

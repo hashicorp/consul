@@ -15,6 +15,7 @@
 package client
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -30,7 +31,6 @@ import (
 
 	"github.com/coreos/etcd/pkg/testutil"
 	"github.com/coreos/etcd/version"
-	"golang.org/x/net/context"
 )
 
 type actionAssertingHTTPClient struct {

@@ -117,7 +117,7 @@ func TestOneMessageFetchResponse(t *testing.T) {
 	if block.HighWaterMarkOffset != 0x10101010 {
 		t.Error("Decoding didn't produce correct high water mark offset.")
 	}
-	partial, err := block.Records.isPartial()
+	partial, err := block.isPartial()
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -125,14 +125,14 @@ func TestOneMessageFetchResponse(t *testing.T) {
 		t.Error("Decoding detected a partial trailing message where there wasn't one.")
 	}
 
-	n, err := block.Records.numRecords()
+	n, err := block.numRecords()
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 	if n != 1 {
 		t.Fatal("Decoding produced incorrect number of messages.")
 	}
-	msgBlock := block.Records.msgSet.Messages[0]
+	msgBlock := block.RecordsSet[0].msgSet.Messages[0]
 	if msgBlock.Offset != 0x550000 {
 		t.Error("Decoding produced incorrect message offset.")
 	}
@@ -170,7 +170,7 @@ func TestOneRecordFetchResponse(t *testing.T) {
 	if block.HighWaterMarkOffset != 0x10101010 {
 		t.Error("Decoding didn't produce correct high water mark offset.")
 	}
-	partial, err := block.Records.isPartial()
+	partial, err := block.isPartial()
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -178,14 +178,14 @@ func TestOneRecordFetchResponse(t *testing.T) {
 		t.Error("Decoding detected a partial trailing record where there wasn't one.")
 	}
 
-	n, err := block.Records.numRecords()
+	n, err := block.numRecords()
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 	if n != 1 {
 		t.Fatal("Decoding produced incorrect number of records.")
 	}
-	rec := block.Records.recordBatch.Records[0]
+	rec := block.RecordsSet[0].recordBatch.Records[0]
 	if !bytes.Equal(rec.Key, []byte{0x01, 0x02, 0x03, 0x04}) {
 		t.Error("Decoding produced incorrect record key.")
 	}
@@ -216,7 +216,7 @@ func TestOneMessageFetchResponseV4(t *testing.T) {
 	if block.HighWaterMarkOffset != 0x10101010 {
 		t.Error("Decoding didn't produce correct high water mark offset.")
 	}
-	partial, err := block.Records.isPartial()
+	partial, err := block.isPartial()
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -224,14 +224,14 @@ func TestOneMessageFetchResponseV4(t *testing.T) {
 		t.Error("Decoding detected a partial trailing record where there wasn't one.")
 	}
 
-	n, err := block.Records.numRecords()
+	n, err := block.numRecords()
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 	if n != 1 {
 		t.Fatal("Decoding produced incorrect number of records.")
 	}
-	msgBlock := block.Records.msgSet.Messages[0]
+	msgBlock := block.RecordsSet[0].msgSet.Messages[0]
 	if msgBlock.Offset != 0x550000 {
 		t.Error("Decoding produced incorrect message offset.")
 	}

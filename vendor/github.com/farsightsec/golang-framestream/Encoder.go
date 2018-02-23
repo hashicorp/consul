@@ -68,7 +68,7 @@ func NewEncoder(w io.Writer, opt *EncoderOptions) (enc *Encoder, err error) {
 	// Write the start control frame.
 	start := ControlStart
 	start.SetContentType(opt.ContentType)
-	err = start.Encode(enc.writer)
+	err = start.EncodeFlush(enc.writer)
 	if err != nil {
 		return
 	}

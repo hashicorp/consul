@@ -224,6 +224,9 @@ func (r *Request) SetContext(ctx aws.Context) {
 
 // WillRetry returns if the request's can be retried.
 func (r *Request) WillRetry() bool {
+	if !aws.IsReaderSeekable(r.Body) && r.HTTPRequest.Body != NoBody {
+		return false
+	}
 	return r.Error != nil && aws.BoolValue(r.Retryable) && r.RetryCount < r.MaxRetries()
 }
 
@@ -255,6 +258,7 @@ func (r *Request) SetStringBody(s string) {
 // SetReaderBody will set the request's body reader.
 func (r *Request) SetReaderBody(reader io.ReadSeeker) {
 	r.Body = reader
+	r.BodyStart, _ = reader.Seek(0, 1) // Get the Bodies current offset.
 	r.ResetBody()
 }
 
@@ -393,7 +397,7 @@ func (r *Request) getNextRequestBody() (io.ReadCloser, error) {
 	// of the SDK if they used that field.
 	//
 	// Related golang/go#18257
-	l, err := computeBodyLength(r.Body)
+	l, err := aws.SeekerLen(r.Body)
 	if err != nil {
 		return nil, awserr.New(ErrCodeSerialization, "failed to compute request body size", err)
 	}
@@ -411,7 +415,8 @@ func (r *Request) getNextRequestBody() (io.ReadCloser, error) {
 		// Transfer-Encoding: chunked bodies for these methods.
 		//
 		// This would only happen if a aws.ReaderSeekerCloser was used with
-		// a io.Reader that was not also an io.Seeker.
+		// a io.Reader that was not also an io.Seeker, or did not implement
+		// Len() method.
 		switch r.Operation.HTTPMethod {
 		case "GET", "HEAD", "DELETE":
 			body = NoBody
@@ -421,42 +426,6 @@ func (r *Request) getNextRequestBody() (io.ReadCloser, error) {
 	}
 
 	return body, nil
-}
-
-// Attempts to compute the length of the body of the reader using the
-// io.Seeker interface. If the value is not seekable because of being
-// a ReaderSeekerCloser without an unerlying Seeker -1 will be returned.
-// If no error occurs the length of the body will be returned.
-func computeBodyLength(r io.ReadSeeker) (int64, error) {
-	seekable := true
-	// Determine if the seeker is actually seekable. ReaderSeekerCloser
-	// hides the fact that a io.Readers might not actually be seekable.
-	switch v := r.(type) {
-	case aws.ReaderSeekerCloser:
-		seekable = v.IsSeeker()
-	case *aws.ReaderSeekerCloser:
-		seekable = v.IsSeeker()
-	}
-	if !seekable {
-		return -1, nil
-	}
-
-	curOffset, err := r.Seek(0, 1)
-	if err != nil {
-		return 0, err
-	}
-
-	endOffset, err := r.Seek(0, 2)
-	if err != nil {
-		return 0, err
-	}
-
-	_, err = r.Seek(curOffset, 0)
-	if err != nil {
-		return 0, err
-	}
-
-	return endOffset - curOffset, nil
 }
 
 // GetBody will return an io.ReadSeeker of the Request's underlying

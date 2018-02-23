@@ -199,9 +199,10 @@ func TestHandlerTransport_NewServerHandlerTransport(t *testing.T) {
 			},
 			check: func(ht *serverHandlerTransport, tt *testCase) error {
 				want := metadata.MD{
-					"meta-bar":   {"bar-val1", "bar-val2"},
-					"user-agent": {"x/y a/b"},
-					"meta-foo":   {"foo-val"},
+					"meta-bar":     {"bar-val1", "bar-val2"},
+					"user-agent":   {"x/y a/b"},
+					"meta-foo":     {"foo-val"},
+					"content-type": {"application/grpc"},
 				}
 
 				if !reflect.DeepEqual(ht.headerMD, want) {
@@ -217,7 +218,7 @@ func TestHandlerTransport_NewServerHandlerTransport(t *testing.T) {
 		if tt.modrw != nil {
 			rw = tt.modrw(rw)
 		}
-		got, gotErr := NewServerHandlerTransport(rw, tt.req)
+		got, gotErr := NewServerHandlerTransport(rw, tt.req, nil)
 		if (gotErr != nil) != (tt.wantErr != "") || (gotErr != nil && gotErr.Error() != tt.wantErr) {
 			t.Errorf("%s: error = %v; want %q", tt.name, gotErr, tt.wantErr)
 			continue
@@ -271,7 +272,7 @@ func newHandleStreamTest(t *testing.T) *handleStreamTest {
 		Body:       bodyr,
 	}
 	rw := newTestHandlerResponseWriter().(testHandlerResponseWriter)
-	ht, err := NewServerHandlerTransport(rw, req)
+	ht, err := NewServerHandlerTransport(rw, req, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -356,7 +357,7 @@ func TestHandlerTransport_HandleStreams_Timeout(t *testing.T) {
 		Body:       bodyr,
 	}
 	rw := newTestHandlerResponseWriter().(testHandlerResponseWriter)
-	ht, err := NewServerHandlerTransport(rw, req)
+	ht, err := NewServerHandlerTransport(rw, req, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

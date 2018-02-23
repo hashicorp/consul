@@ -246,6 +246,10 @@ type Stream struct {
 
 	bytesReceived bool // indicates whether any bytes have been received on this stream
 	unprocessed   bool // set if the server sends a refused stream or GOAWAY including this stream
+
+	// contentSubtype is the content-subtype for requests.
+	// this must be lowercase or the behavior is undefined.
+	contentSubtype string
 }
 
 func (s *Stream) waitOnHeader() error {
@@ -319,6 +323,15 @@ func (s *Stream) Trailer() metadata.MD {
 // The client side stream always returns nil.
 func (s *Stream) ServerTransport() ServerTransport {
 	return s.st
+}
+
+// ContentSubtype returns the content-subtype for a request. For example, a
+// content-subtype of "proto" will result in a content-type of
+// "application/grpc+proto". This will always be lowercase.  See
+// https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md#requests for
+// more details.
+func (s *Stream) ContentSubtype() string {
+	return s.contentSubtype
 }
 
 // Context returns the context of the stream.
@@ -553,6 +566,14 @@ type CallHdr struct {
 	// for performance purposes.
 	// If it's false, new stream will never be flushed.
 	Flush bool
+
+	// ContentSubtype specifies the content-subtype for a request. For example, a
+	// content-subtype of "proto" will result in a content-type of
+	// "application/grpc+proto". The value of ContentSubtype must be all
+	// lowercase, otherwise the behavior is undefined. See
+	// https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md#requests
+	// for more details.
+	ContentSubtype string
 }
 
 // ClientTransport is the common interface for all gRPC client-side transport
@@ -676,13 +697,13 @@ func (e ConnectionError) Origin() error {
 var (
 	// ErrConnClosing indicates that the transport is closing.
 	ErrConnClosing = connectionErrorf(true, nil, "transport is closing")
-	// errStreamDrain indicates that the stream is rejected by the server because
-	// the server stops accepting new RPCs.
-	// TODO: delete this error; it is no longer necessary.
-	errStreamDrain = streamErrorf(codes.Unavailable, "the server stops accepting new RPCs")
+	// errStreamDrain indicates that the stream is rejected because the
+	// connection is draining. This could be caused by goaway or balancer
+	// removing the address.
+	errStreamDrain = streamErrorf(codes.Unavailable, "the connection is draining")
 	// StatusGoAway indicates that the server sent a GOAWAY that included this
 	// stream's ID in unprocessed RPCs.
-	statusGoAway = status.New(codes.Unavailable, "the server stopped accepting new RPCs")
+	statusGoAway = status.New(codes.Unavailable, "the stream is rejected because server is draining the connection")
 )
 
 // TODO: See if we can replace StreamError with status package errors.

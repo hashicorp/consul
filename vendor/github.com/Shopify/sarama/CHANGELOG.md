@@ -1,5 +1,47 @@
 # Changelog
 
+#### Version 1.16.0 (2018-02-12)
+
+New Features:
+ - Add support for the Create/Delete Topics request/response pairs
+   ([#1007](https://github.com/Shopify/sarama/pull/1007),
+    [#1008](https://github.com/Shopify/sarama/pull/1008)).
+ - Add support for the Describe/Create/Delete ACL request/response pairs
+   ([#1009](https://github.com/Shopify/sarama/pull/1009)).
+ - Add support for the five transaction-related request/response pairs
+   ([#1016](https://github.com/Shopify/sarama/pull/1016)).
+
+Improvements:
+ - Permit setting version on mock producer responses
+   ([#999](https://github.com/Shopify/sarama/pull/999)).
+ - Add `NewMockBrokerListener` helper for testing TLS connections
+   ([#1019](https://github.com/Shopify/sarama/pull/1019)).
+ - Changed the default value for `Consumer.Fetch.Default` from 32KiB to 1MiB
+   which results in much higher throughput in most cases
+   ([#1024](https://github.com/Shopify/sarama/pull/1024)).
+ - Reuse the `time.Ticker` across fetch requests in the PartitionConsumer to
+   reduce CPU and memory usage when processing many partitions
+   ([#1028](https://github.com/Shopify/sarama/pull/1028)).
+ - Assign relative offsets to messages in the producer to save the brokers a
+   recompression pass
+   ([#1002](https://github.com/Shopify/sarama/pull/1002),
+    [#1015](https://github.com/Shopify/sarama/pull/1015)).
+
+Bug Fixes:
+ - Fix producing uncompressed batches with the new protocol format
+   ([#1032](https://github.com/Shopify/sarama/issues/1032)).
+ - Fix consuming compacted topics with the new protocol format
+   ([#1005](https://github.com/Shopify/sarama/issues/1005)).
+ - Fix consuming topics with a mix of protocol formats
+   ([#1021](https://github.com/Shopify/sarama/issues/1021)).
+ - Fix consuming when the broker includes multiple batches in a single response
+   ([#1022](https://github.com/Shopify/sarama/issues/1022)).
+ - Fix detection of `PartialTrailingMessage` when the partial message was
+   truncated before the magic value indicating its version
+   ([#1030](https://github.com/Shopify/sarama/pull/1030)).
+ - Fix expectation-checking in the mock of `SyncProducer.SendMessages`
+   ([#1035](https://github.com/Shopify/sarama/pull/1035)).
+
 #### Version 1.15.0 (2017-12-08)
 
 New Features:

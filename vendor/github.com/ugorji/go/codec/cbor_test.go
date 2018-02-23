@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2015 Ugorji Nwoke. All rights reserved.
+// Copyright (c) 2012-2018 Ugorji Nwoke. All rights reserved.
 // Use of this source code is governed by a MIT license found in the LICENSE file.
 
 package codec
@@ -97,7 +97,7 @@ type testCborGolden struct {
 }
 
 // Some tests are skipped because they include numbers outside the range of int64/uint64
-func doTestCborGoldens(t *testing.T) {
+func TestCborGoldens(t *testing.T) {
 	oldMapType := testCborH.MapType
 	defer func() {
 		testCborH.MapType = oldMapType
@@ -200,6 +200,31 @@ func testCborError(t *testing.T, i int, v0, v1 interface{}, err error, equal *bo
 	// fmt.Printf("%v testCborError passed (checks passed)\n", i)
 }
 
-func TestCborGoldens(t *testing.T) {
-	doTestCborGoldens(t)
+func TestCborHalfFloat(t *testing.T) {
+	m := map[uint16]float64{
+		// using examples from
+		// https://en.wikipedia.org/wiki/Half-precision_floating-point_format
+		0x3c00: 1,
+		0x3c01: 1 + math.Pow(2, -10),
+		0xc000: -2,
+		0x7bff: 65504,
+		0x0400: math.Pow(2, -14),
+		0x03ff: math.Pow(2, -14) - math.Pow(2, -24),
+		0x0001: math.Pow(2, -24),
+		0x0000: 0,
+		0x8000: -0.0,
+	}
+	var ba [3]byte
+	ba[0] = cborBdFloat16
+	var res float64
+	for k, v := range m {
+		res = 0
+		bigen.PutUint16(ba[1:], k)
+		testUnmarshalErr(&res, ba[:3], testCborH, t, "-")
+		if res == v {
+			logT(t, "equal floats: from %x %b, %v", k, k, v)
+		} else {
+			failT(t, "unequal floats: from %x %b, %v != %v", k, k, res, v)
+		}
+	}
 }

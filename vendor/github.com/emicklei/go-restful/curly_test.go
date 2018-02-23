@@ -158,6 +158,13 @@ func TestExtractParameters_Wildcard3(t *testing.T) {
 	}
 }
 
+func TestExtractParameters_Wildcard4(t *testing.T) {
+	params := doExtractParams("/static/{var:*}/sub", 3, "/static/test/sub", t)
+	if params["var"] != "test/sub" {
+		t.Errorf("parameter mismatch var: %s", params["var"])
+	}
+}
+
 // clear && go test -v -test.run TestCurly_ISSUE_34 ...restful
 func TestCurly_ISSUE_34(t *testing.T) {
 	ws1 := new(WebService).Path("/")

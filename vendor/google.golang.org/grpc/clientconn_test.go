@@ -599,6 +599,41 @@ func TestNonblockingDialWithEmptyBalancer(t *testing.T) {
 	}
 }
 
+func TestResolverServiceConfigBeforeAddressNotPanic(t *testing.T) {
+	defer leakcheck.Check(t)
+	r, rcleanup := manual.GenerateAndRegisterManualResolver()
+	defer rcleanup()
+
+	cc, err := Dial(r.Scheme()+":///test.server", WithInsecure())
+	if err != nil {
+		t.Fatalf("failed to dial: %v", err)
+	}
+	defer cc.Close()
+
+	// SwitchBalancer before NewAddress. There was no balancer created, this
+	// makes sure we don't call close on nil balancerWrapper.
+	r.NewServiceConfig(`{"loadBalancingPolicy": "round_robin"}`) // This should not panic.
+
+	time.Sleep(time.Second) // Sleep to make sure the service config is handled by ClientConn.
+}
+
+func TestResolverEmptyUpdateNotPanic(t *testing.T) {
+	defer leakcheck.Check(t)
+	r, rcleanup := manual.GenerateAndRegisterManualResolver()
+	defer rcleanup()
+
+	cc, err := Dial(r.Scheme()+":///test.server", WithInsecure())
+	if err != nil {
+		t.Fatalf("failed to dial: %v", err)
+	}
+	defer cc.Close()
+
+	// This make sure we don't create addrConn with empty address list.
+	r.NewAddress([]resolver.Address{}) // This should not panic.
+
+	time.Sleep(time.Second) // Sleep to make sure the service config is handled by ClientConn.
+}
+
 func TestClientUpdatesParamsAfterGoAway(t *testing.T) {
 	defer leakcheck.Check(t)
 	lis, err := net.Listen("tcp", "localhost:0")

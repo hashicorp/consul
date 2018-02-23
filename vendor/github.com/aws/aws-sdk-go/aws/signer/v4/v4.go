@@ -341,7 +341,9 @@ func (v4 Signer) signWithBody(r *http.Request, body io.ReadSeeker, service, regi
 
 	ctx.sanitizeHostForHeader()
 	ctx.assignAmzQueryValues()
-	ctx.build(v4.DisableHeaderHoisting)
+	if err := ctx.build(v4.DisableHeaderHoisting); err != nil {
+		return nil, err
+	}
 
 	// If the request is not presigned the body should be attached to it. This
 	// prevents the confusion of wanting to send a signed request without
@@ -503,11 +505,13 @@ func (v4 *Signer) logSigningInfo(ctx *signingCtx) {
 	v4.Logger.Log(msg)
 }
 
-func (ctx *signingCtx) build(disableHeaderHoisting bool) {
+func (ctx *signingCtx) build(disableHeaderHoisting bool) error {
 	ctx.buildTime()             // no depends
 	ctx.buildCredentialString() // no depends
 
-	ctx.buildBodyDigest()
+	if err := ctx.buildBodyDigest(); err != nil {
+		return err
+	}
 
 	unsignedHeaders := ctx.Request.Header
 	if ctx.isPresign {
@@ -535,6 +539,8 @@ func (ctx *signingCtx) build(disableHeaderHoisting bool) {
 		}
 		ctx.Request.Header.Set("Authorization", strings.Join(parts, ", "))
 	}
+
+	return nil
 }
 
 func (ctx *signingCtx) buildTime() {
@@ -661,7 +667,7 @@ func (ctx *signingCtx) buildSignature() {
 	ctx.signature = hex.EncodeToString(signature)
 }
 
-func (ctx *signingCtx) buildBodyDigest() {
+func (ctx *signingCtx) buildBodyDigest() error {
 	hash := ctx.Request.Header.Get("X-Amz-Content-Sha256")
 	if hash == "" {
 		if ctx.unsignedPayload || (ctx.isPresign && ctx.ServiceName == "s3") {
@@ -669,6 +675,9 @@ func (ctx *signingCtx) buildBodyDigest() {
 		} else if ctx.Body == nil {
 			hash = emptyStringSHA256
 		} else {
+			if !aws.IsReaderSeekable(ctx.Body) {
+				return fmt.Errorf("cannot use unseekable request body %T, for signed request with body", ctx.Body)
+			}
 			hash = hex.EncodeToString(makeSha256Reader(ctx.Body))
 		}
 		if ctx.unsignedPayload || ctx.ServiceName == "s3" || ctx.ServiceName == "glacier" {
@@ -676,6 +685,8 @@ func (ctx *signingCtx) buildBodyDigest() {
 		}
 	}
 	ctx.bodyDigest = hash
+
+	return nil
 }
 
 // isRequestSigned returns if the request is currently signed or presigned

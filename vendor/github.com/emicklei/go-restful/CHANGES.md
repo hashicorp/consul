@@ -1,5 +1,10 @@
 Change history of go-restful
 =
+v2.6.0
+- Make JSR 311 routing and path param processing consistent
+- Adding description to RouteBuilder.Reads()
+- Update example for Swagger12 and OpenAPI
+
 2017-09-13
 - added route condition functions using `.If(func)` in route building.
 

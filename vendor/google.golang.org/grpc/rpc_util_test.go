@@ -27,6 +27,8 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/encoding"
+	protoenc "google.golang.org/grpc/encoding/proto"
 	"google.golang.org/grpc/status"
 	perfpb "google.golang.org/grpc/test/codec_perf"
 	"google.golang.org/grpc/transport"
@@ -110,7 +112,7 @@ func TestEncode(t *testing.T) {
 	}{
 		{nil, nil, []byte{0, 0, 0, 0, 0}, []byte{}, nil},
 	} {
-		hdr, data, err := encode(protoCodec{}, test.msg, nil, nil, nil)
+		hdr, data, err := encode(encoding.GetCodec(protoenc.Name), test.msg, nil, nil, nil)
 		if err != test.err || !bytes.Equal(hdr, test.hdr) || !bytes.Equal(data, test.data) {
 			t.Fatalf("encode(_, _, %v, _) = %v, %v, %v\nwant %v, %v, %v", test.cp, hdr, data, err, test.hdr, test.data, test.err)
 		}
@@ -164,13 +166,14 @@ func TestToRPCErr(t *testing.T) {
 // bmEncode benchmarks encoding a Protocol Buffer message containing mSize
 // bytes.
 func bmEncode(b *testing.B, mSize int) {
+	cdc := encoding.GetCodec(protoenc.Name)
 	msg := &perfpb.Buffer{Body: make([]byte, mSize)}
-	encodeHdr, encodeData, _ := encode(protoCodec{}, msg, nil, nil, nil)
+	encodeHdr, encodeData, _ := encode(cdc, msg, nil, nil, nil)
 	encodedSz := int64(len(encodeHdr) + len(encodeData))
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		encode(protoCodec{}, msg, nil, nil, nil)
+		encode(cdc, msg, nil, nil, nil)
 	}
 	b.SetBytes(encodedSz)
 }

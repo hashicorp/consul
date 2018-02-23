@@ -259,7 +259,12 @@ func (c *Container) dispatch(httpWriter http.ResponseWriter, httpRequest *http.R
 		chain.ProcessFilter(NewRequest(httpRequest), NewResponse(writer))
 		return
 	}
-	wrappedRequest, wrappedResponse := route.wrapRequestResponse(writer, httpRequest)
+	pathProcessor, routerProcessesPath := c.router.(PathProcessor)
+	if !routerProcessesPath {
+		pathProcessor = defaultPathProcessor{}
+	}
+	pathParams := pathProcessor.ExtractParameters(route, webService, httpRequest.URL.Path)
+	wrappedRequest, wrappedResponse := route.wrapRequestResponse(writer, httpRequest, pathParams)
 	// pass through filters (if any)
 	if len(c.containerFilters)+len(webService.filters)+len(route.Filters) > 0 {
 		// compose filter chain

@@ -21,6 +21,8 @@ package metadata
 import (
 	"reflect"
 	"testing"
+
+	"golang.org/x/net/context"
 )
 
 func TestPairsMD(t *testing.T) {
@@ -67,5 +69,57 @@ func TestJoin(t *testing.T) {
 		if !reflect.DeepEqual(md, test.want) {
 			t.Errorf("context's metadata is %v, want %v", md, test.want)
 		}
+	}
+}
+
+func TestAppendToOutgoingContext(t *testing.T) {
+	// Pre-existing metadata
+	ctx := NewOutgoingContext(context.Background(), Pairs("k1", "v1", "k2", "v2"))
+	ctx = AppendToOutgoingContext(ctx, "k1", "v3")
+	ctx = AppendToOutgoingContext(ctx, "k1", "v4")
+	md, ok := FromOutgoingContext(ctx)
+	if !ok {
+		t.Errorf("Expected MD to exist in ctx, but got none")
+	}
+	want := Pairs("k1", "v1", "k1", "v3", "k1", "v4", "k2", "v2")
+	if !reflect.DeepEqual(md, want) {
+		t.Errorf("context's metadata is %v, want %v", md, want)
+	}
+
+	// No existing metadata
+	ctx = AppendToOutgoingContext(context.Background(), "k1", "v1")
+	md, ok = FromOutgoingContext(ctx)
+	if !ok {
+		t.Errorf("Expected MD to exist in ctx, but got none")
+	}
+	want = Pairs("k1", "v1")
+	if !reflect.DeepEqual(md, want) {
+		t.Errorf("context's metadata is %v, want %v", md, want)
+	}
+}
+
+// Old/slow approach to adding metadata to context
+func Benchmark_AddingMetadata_ContextManipulationApproach(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		ctx := context.Background()
+		md, _ := FromOutgoingContext(ctx)
+		NewOutgoingContext(ctx, Join(Pairs("k1", "v1", "k2", "v2"), md))
+	}
+}
+
+// Newer/faster approach to adding metadata to context
+func BenchmarkAppendToOutgoingContext(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		AppendToOutgoingContext(context.Background(), "k1", "v1", "k2", "v2")
+	}
+}
+
+func BenchmarkFromOutgoingContext(b *testing.B) {
+	ctx := context.Background()
+	ctx = NewOutgoingContext(ctx, MD{"k3": {"v3", "v4"}})
+	ctx = AppendToOutgoingContext(ctx, "k1", "v1", "k2", "v2")
+
+	for n := 0; n < b.N; n++ {
+		FromOutgoingContext(ctx)
 	}
 }

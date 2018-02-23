@@ -119,6 +119,33 @@ func TestFromErrorOK(t *testing.T) {
 	}
 }
 
+func TestFromErrorUnknownError(t *testing.T) {
+	code, message := codes.Unknown, "unknown error"
+	err := errors.New("unknown error")
+	s, ok := FromError(err)
+	if ok || s.Code() != code || s.Message() != message {
+		t.Fatalf("FromError(%v) = %v, %v; want <Code()=%s, Message()=%q>, false", err, s, ok, code, message)
+	}
+}
+
+func TestConvertKnownError(t *testing.T) {
+	code, message := codes.Internal, "test description"
+	err := Error(code, message)
+	s := Convert(err)
+	if s.Code() != code || s.Message() != message {
+		t.Fatalf("Convert(%v) = %v; want <Code()=%s, Message()=%q>", err, s, code, message)
+	}
+}
+
+func TestConvertUnknownError(t *testing.T) {
+	code, message := codes.Unknown, "unknown error"
+	err := errors.New("unknown error")
+	s := Convert(err)
+	if s.Code() != code || s.Message() != message {
+		t.Fatalf("Convert(%v) = %v; want <Code()=%s, Message()=%q>", err, s, code, message)
+	}
+}
+
 func TestStatus_ErrorDetails(t *testing.T) {
 	tests := []struct {
 		code    codes.Code

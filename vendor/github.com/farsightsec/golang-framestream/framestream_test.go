@@ -3,7 +3,9 @@ package framestream_test
 import (
 	"bytes"
 	"net"
+	"sync"
 	"testing"
+	"time"
 
 	framestream "github.com/farsightsec/golang-framestream"
 )
@@ -131,4 +133,53 @@ func TestOversizeFrame(t *testing.T) {
 	if err != framestream.ErrDataFrameTooLarge {
 		t.Error("data frame too large, received %v", err)
 	}
+}
+
+func testNew(t *testing.T, bidirectional bool) {
+	client, server := net.Pipe()
+	wg := &sync.WaitGroup{}
+	wg.Add(2)
+	done := make(chan bool)
+
+	go func() {
+		_, err := framestream.NewDecoder(server,
+			&framestream.DecoderOptions{
+				Bidirectional: bidirectional,
+			})
+
+		if err != nil {
+			t.Fatal(err)
+		}
+		wg.Done()
+	}()
+
+	go func() {
+		_, err := framestream.NewEncoder(client,
+			&framestream.EncoderOptions{
+				Bidirectional: bidirectional,
+			})
+		if err != nil {
+			t.Fatal(err)
+		}
+		wg.Done()
+	}()
+
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(1 * time.Second):
+		t.Fatal("Time's up.")
+	}
+}
+
+func TestNewBidirectional(t *testing.T) {
+	testNew(t, true)
+}
+
+func TestNewUnidirectional(t *testing.T) {
+	testNew(t, false)
 }

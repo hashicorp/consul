@@ -96,3 +96,5 @@ func testResponse(t *testing.T, name string, res protocolBody, expected []byte) 
 		t.Errorf("Decoded response does not match the encoded one\nencoded: %#v\ndecoded: %#v", res, decoded)
 	}
 }
+
+func nullString(s string) *string { return &s }

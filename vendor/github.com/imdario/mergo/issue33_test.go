@@ -28,6 +28,6 @@ func TestIssue33Merge(t *testing.T) {
 		t.Errorf("Error while merging: %s", err)
 	}
 	if dest.Str != toMerge.Str {
-		t.Errorf("dest.Str should have been override: dest.Str(%v) == toMerge.Str(%v)", dest.Str, toMerge.Str)
+		t.Errorf("dest.Str should have been override: dest.Str(%v) != toMerge.Str(%v)", dest.Str, toMerge.Str)
 	}
 }

@@ -8,40 +8,8 @@ package codec
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
-	"testing"
 )
-
-// ----- functions below are used only by tests (not benchmarks)
-
-const (
-	testLogToT    = true
-	failNowOnFail = true
-)
-
-func checkErrT(t *testing.T, err error) {
-	if err != nil {
-		logT(t, err.Error())
-		failT(t)
-	}
-}
-
-func checkEqualT(t *testing.T, v1 interface{}, v2 interface{}, desc string) (err error) {
-	if err = deepEqual(v1, v2); err != nil {
-		logT(t, "Not Equal: %s: %v. v1: %v, v2: %v", desc, err, v1, v2)
-		failT(t)
-	}
-	return
-}
-
-func failT(t *testing.T) {
-	if failNowOnFail {
-		t.FailNow()
-	} else {
-		t.Fail()
-	}
-}
 
 // --- these functions are used by both benchmarks and tests
 
@@ -50,21 +18,6 @@ func deepEqual(v1, v2 interface{}) (err error) {
 		err = errors.New("Not Match")
 	}
 	return
-}
-
-func logT(x interface{}, format string, args ...interface{}) {
-	if t, ok := x.(*testing.T); ok && t != nil && testLogToT {
-		if testVerbose {
-			t.Logf(format, args...)
-		}
-	} else if b, ok := x.(*testing.B); ok && b != nil && testLogToT {
-		b.Logf(format, args...)
-	} else {
-		if len(format) == 0 || format[len(format)-1] != '\n' {
-			format = format + "\n"
-		}
-		fmt.Printf(format, args...)
-	}
 }
 
 func approxDataSize(rv reflect.Value) (sum int) {

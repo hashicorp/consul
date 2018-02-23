@@ -115,3 +115,126 @@ func TestDecodeModelOptionsSet(t *testing.T) {
 		t.Errorf("expect %v options got %v", expect, actual)
 	}
 }
+
+func TestDecode_CustFixCloudHSMv2SigningName(t *testing.T) {
+	cases := []struct {
+		Doc    string
+		Expect string
+	}{
+		{
+			Doc: `
+{
+  "version": 3,
+  "partitions": [
+    {
+      "defaults": {
+        "hostname": "{service}.{region}.{dnsSuffix}",
+        "protocols": [
+          "https"
+        ],
+        "signatureVersions": [
+          "v4"
+        ]
+      },
+      "dnsSuffix": "amazonaws.com",
+      "partition": "aws",
+      "partitionName": "AWS Standard",
+      "regionRegex": "^(us|eu|ap|sa|ca)\\-\\w+\\-\\d+$",
+      "regions": {
+        "ap-northeast-1": {
+          "description": "Asia Pacific (Tokyo)"
+        },
+        "us-east-1": {
+          "description": "US East (N. Virginia)"
+        }
+      },
+      "services": {
+        "cloudhsmv2": {
+          "endpoints": {
+             "us-east-1": {}
+          }
+        },
+        "s3": {
+          "endpoints": {
+             "ap-northeast-1": {}
+          }
+        }
+      }
+    }
+  ]
+}`,
+			Expect: "cloudhsm",
+		},
+		{
+			Doc: `
+{
+  "version": 3,
+  "partitions": [
+    {
+      "defaults": {
+        "hostname": "{service}.{region}.{dnsSuffix}",
+        "protocols": [
+          "https"
+        ],
+        "signatureVersions": [
+          "v4"
+        ]
+      },
+      "dnsSuffix": "amazonaws.com",
+      "partition": "aws",
+      "partitionName": "AWS Standard",
+      "regionRegex": "^(us|eu|ap|sa|ca)\\-\\w+\\-\\d+$",
+      "regions": {
+        "ap-northeast-1": {
+          "description": "Asia Pacific (Tokyo)"
+        },
+        "us-east-1": {
+          "description": "US East (N. Virginia)"
+        }
+      },
+      "services": {
+        "cloudhsmv2": {
+          "defaults": {
+             "credentialScope": {
+                 "service": "coolSigningName"
+             }
+          },
+          "endpoints": {
+			  "us-east-1": {}
+          }
+        },
+        "s3": {
+          "endpoints": {
+             "ap-northeast-1": {}
+          }
+        }
+      }
+    }
+  ]
+}`,
+			Expect: "coolSigningName",
+		},
+	}
+
+	for i, c := range cases {
+		resolver, err := DecodeModel(strings.NewReader(c.Doc))
+		if err != nil {
+			t.Fatalf("%d, expected no error, got %v", i, err)
+		}
+
+		p := resolver.(partitions)[0]
+		defaults := p.Services["cloudhsmv2"].Defaults
+		if e, a := c.Expect, defaults.CredentialScope.Service; e != a {
+			t.Errorf("%d, expect %v, got %v", i, e, a)
+		}
+
+		endpoint, err := resolver.EndpointFor("cloudhsmv2", "us-east-1")
+		if err != nil {
+			t.Fatalf("%d, failed to resolve endpoint, %v", i, err)
+		}
+
+		if e, a := c.Expect, endpoint.SigningName; e != a {
+			t.Errorf("%d, expected %q go %q", i, e, a)
+		}
+	}
+}
