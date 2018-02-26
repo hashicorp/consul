@@ -8,9 +8,9 @@ The main method that gets called is `ServeDNS`. It has three parameters:
 * `dns.ResponseWriter` that is, basically, the client's connection;
 * `*dns.Msg` the request from the client.
 
-`ServeDNS` returns two values, a response code and an error. If the error is not nil CoreDNS
-will return a generic SERVFAIL to the client. The response code tells CoreDNS if a reply has been
-written by the plugin chain or not. In the latter case CoreDNS will take care of that.
+`ServeDNS` returns two values, a response code and an error. If the error is not nil CoreDNS,
+will return a SERVFAIL to the client. The response code tells CoreDNS if a *reply has been
+written by the plugin chain or not*. In the latter case CoreDNS will take care of that.
 
 CoreDNS treats:
 
@@ -23,7 +23,8 @@ as special and will then assume *nothing* has been written to the client. In all
 assumes something has been written to the client (by the plugin).
 
 The [*example*](https://github.com/coredns/example) plugin shows a bare-bones implementation that
-can be used as a starting point for your plugin.
+can be used as a starting point for your plugin. This plugin has tests and extensive comments in the
+code.
 
 ## Hooking It Up
 
