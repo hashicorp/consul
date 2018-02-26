@@ -381,20 +381,58 @@ func parseWait(resp http.ResponseWriter, req *http.Request, b *structs.QueryOpti
 	return false
 }
 
+func fillConsistencyFromValue(b *structs.QueryOptions, val string) error {
+	if val == "stale" {
+		b.AllowStale = true
+		b.RequireConsistent = false
+		return nil
+	} else if val == "consistent" {
+		b.AllowStale = false
+		b.RequireConsistent = true
+		return nil
+	} else if val == "leader" {
+		b.AllowStale = false
+		b.RequireConsistent = false
+		return nil
+	}
+	return fmt.Errorf("Consistency supposed to be stale|consistent|leader, but was %s", val)
+}
+
 // parseConsistency is used to parse the ?stale and ?consistent query params.
 // Returns true on error
-func parseConsistency(resp http.ResponseWriter, req *http.Request, b *structs.QueryOptions) bool {
+func (s *HTTPServer) parseConsistency(resp http.ResponseWriter, req *http.Request, b *structs.QueryOptions) bool {
 	query := req.URL.Query()
+	defaults := true
 	if _, ok := query["stale"]; ok {
 		b.AllowStale = true
+		defaults = false
 	}
 	if _, ok := query["consistent"]; ok {
 		b.RequireConsistent = true
+		defaults = false
 	}
 	if b.AllowStale && b.RequireConsistent {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Cannot specify ?stale with ?consistent, conflicting semantics.")
 		return true
+	}
+	if cval, ok := query["consistency"]; ok {
+		if cval[0] == "default" {
+			defaults = true
+		} else {
+			err := fillConsistencyFromValue(b, cval[0])
+			if err != nil {
+				resp.WriteHeader(http.StatusBadRequest)
+				fmt.Fprintf(resp, "Cannot parse consistency query param: %s", err)
+				return true
+			}
+		}
+	}
+	if defaults && s.agent.config.DefaultConsistencyLevel != "" {
+		err := fillConsistencyFromValue(b, s.agent.config.DefaultConsistencyLevel)
+		if err != nil {
+			// Unexpected since we supposed to validate DefaultConsistencyLevel beforehand
+		}
 	}
 	return false
 }
@@ -457,7 +495,7 @@ func (s *HTTPServer) parseMetaFilter(req *http.Request) map[string]string {
 func (s *HTTPServer) parse(resp http.ResponseWriter, req *http.Request, dc *string, b *structs.QueryOptions) bool {
 	s.parseDC(req, dc)
 	s.parseToken(req, &b.Token)
-	if parseConsistency(resp, req, b) {
+	if s.parseConsistency(resp, req, b) {
 		return true
 	}
 	return parseWait(resp, req, b)

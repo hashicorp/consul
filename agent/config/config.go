@@ -167,6 +167,7 @@ type Config struct {
 	DNSRecursors                []string                 `json:"recursors,omitempty" hcl:"recursors" mapstructure:"recursors"`
 	DataDir                     *string                  `json:"data_dir,omitempty" hcl:"data_dir" mapstructure:"data_dir"`
 	Datacenter                  *string                  `json:"datacenter,omitempty" hcl:"datacenter" mapstructure:"datacenter"`
+	DefaultConsistencyLevel     *string                  `json:"default_consistency_level,omitempty" hcl:"default_consistency_level" mapstructure:"default_consistency_level"`
 	DisableAnonymousSignature   *bool                    `json:"disable_anonymous_signature,omitempty" hcl:"disable_anonymous_signature" mapstructure:"disable_anonymous_signature"`
 	DisableCoordinates          *bool                    `json:"disable_coordinates,omitempty" hcl:"disable_coordinates" mapstructure:"disable_coordinates"`
 	DisableHostNodeID           *bool                    `json:"disable_host_node_id,omitempty" hcl:"disable_host_node_id" mapstructure:"disable_host_node_id"`

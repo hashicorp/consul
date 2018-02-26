@@ -640,6 +640,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		ClientAddrs:                 clientAddrs,
 		DataDir:                     b.stringVal(c.DataDir),
 		Datacenter:                  strings.ToLower(b.stringVal(c.Datacenter)),
+		DefaultConsistencyLevel:     strings.ToLower(b.stringVal(c.DefaultConsistencyLevel)),
 		DevMode:                     b.boolVal(b.Flags.DevMode),
 		DisableAnonymousSignature:   b.boolVal(c.DisableAnonymousSignature),
 		DisableCoordinates:          b.boolVal(c.DisableCoordinates),
@@ -754,6 +755,12 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		case err == nil && !fi.IsDir():
 			return fmt.Errorf("data_dir %q is not a directory", rt.DataDir)
 		}
+	}
+	if rt.DefaultConsistencyLevel != "" &&
+		rt.DefaultConsistencyLevel != "leader" &&
+		rt.DefaultConsistencyLevel != "stale" &&
+		rt.DefaultConsistencyLevel != "consistent" {
+		return fmt.Errorf("default_consistency_level, must be stale|leader|consistent, but was %s", rt.DefaultConsistencyLevel)
 	}
 	if rt.NodeName == "" {
 		return fmt.Errorf("node_name cannot be empty")

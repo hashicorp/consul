@@ -461,6 +461,11 @@ type RuntimeConfig struct {
 	// flag: -datacenter string
 	Datacenter string
 
+	// Defines the level of consistenty when not specified in a HTTP request
+	//
+	// Can be stale, leader, consistent
+	DefaultConsistencyLevel string
+
 	// Node name is the name we use to advertise. Defaults to hostname.
 	//
 	// NodeName is exposed via /v1/agent/self from here and
