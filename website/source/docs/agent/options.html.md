@@ -398,7 +398,7 @@ will exit with an error at startup.
     ```
 
     - `provider` (required) - the name of the provider ("softlayer" in this case).
-    - `datacenter` (required) - the name of the datacenter to auto-join in.
+    - <a name="sl_datacenter"></a><a href="#sl_datacenter"><code>datacenter</code></a></a> (required) - the name of the datacenter to auto-join in.
     - `tag_value` (required) - the value of the tag to auto-join on.
     - `username` (required) - the username to use for auth.
     - `api_key` (required) - the api key to use for auth.
