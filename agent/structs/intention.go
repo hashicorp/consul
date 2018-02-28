@@ -60,3 +60,12 @@ const (
 	// IntentionSourceConsul is a service within the Consul catalog.
 	IntentionSourceConsul IntentionSourceType = "consul"
 )
+
+// Intentions is a list of intentions.
+type Intentions []*Intention
+
+// IndexedIntentions represents a list of intentions for RPC responses.
+type IndexedIntentions struct {
+	Intentions Intentions
+	QueryMeta
+}

@@ -5,6 +5,7 @@ func init() {
 	registerEndpoint(func(s *Server) interface{} { return &Catalog{s} })
 	registerEndpoint(func(s *Server) interface{} { return NewCoordinate(s) })
 	registerEndpoint(func(s *Server) interface{} { return &Health{s} })
+	registerEndpoint(func(s *Server) interface{} { return &Intention{s} })
 	registerEndpoint(func(s *Server) interface{} { return &Internal{s} })
 	registerEndpoint(func(s *Server) interface{} { return &KVS{s} })
 	registerEndpoint(func(s *Server) interface{} { return &Operator{s} })
