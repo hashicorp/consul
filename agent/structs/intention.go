@@ -69,3 +69,33 @@ type IndexedIntentions struct {
 	Intentions Intentions
 	QueryMeta
 }
+
+// IntentionOp is the operation for a request related to intentions.
+type IntentionOp string
+
+const (
+	IntentionOpCreate IntentionOp = "create"
+	IntentionOpUpdate IntentionOp = "update"
+	IntentionOpDelete IntentionOp = "delete"
+)
+
+// IntentionRequest is used to create, update, and delete intentions.
+type IntentionRequest struct {
+	// Datacenter is the target for this request.
+	Datacenter string
+
+	// Op is the type of operation being requested.
+	Op IntentionOp
+
+	// Intention is the intention.
+	Intention *Intention
+
+	// WriteRequest is a common struct containing ACL tokens and other
+	// write-related common elements for requests.
+	WriteRequest
+}
+
+// RequestDatacenter returns the datacenter for a given request.
+func (q *IntentionRequest) RequestDatacenter() string {
+	return q.Datacenter
+}

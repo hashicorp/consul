@@ -20,6 +20,7 @@ func init() {
 	registerCommand(structs.PreparedQueryRequestType, (*FSM).applyPreparedQueryOperation)
 	registerCommand(structs.TxnRequestType, (*FSM).applyTxn)
 	registerCommand(structs.AutopilotRequestType, (*FSM).applyAutopilotUpdate)
+	registerCommand(structs.IntentionRequestType, (*FSM).applyIntentionOperation)
 }
 
 func (c *FSM) applyRegister(buf []byte, index uint64) interface{} {
@@ -245,4 +246,27 @@ func (c *FSM) applyAutopilotUpdate(buf []byte, index uint64) interface{} {
 		return act
 	}
 	return c.state.AutopilotSetConfig(index, &req.Config)
+}
+
+// applyIntentionOperation applies the given intention operation to the state store.
+func (c *FSM) applyIntentionOperation(buf []byte, index uint64) interface{} {
+	var req structs.IntentionRequest
+	if err := structs.Decode(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode request: %v", err))
+	}
+
+	defer metrics.MeasureSinceWithLabels([]string{"consul", "fsm", "intention"}, time.Now(),
+		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
+	defer metrics.MeasureSinceWithLabels([]string{"fsm", "intention"}, time.Now(),
+		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
+	switch req.Op {
+	case structs.IntentionOpCreate, structs.IntentionOpUpdate:
+		return c.state.IntentionSet(index, req.Intention)
+	case structs.IntentionOpDelete:
+		panic("TODO")
+		//return c.state.PreparedQueryDelete(index, req.Query.ID)
+	default:
+		c.logger.Printf("[WARN] consul.fsm: Invalid Intention operation '%s'", req.Op)
+		return fmt.Errorf("Invalid Intention operation '%s'", req.Op)
+	}
 }
