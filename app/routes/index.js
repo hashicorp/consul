@@ -9,7 +9,7 @@ export default Route.extend({
     return this.get('repo').findAll();
   },
   afterModel: function(model) {
-    //model, transition
+    // model, transition
     // If we only have one datacenter, jump
     // straight to it and bypass the global
     // view

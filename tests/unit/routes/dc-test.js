@@ -1,8 +1,9 @@
-import { moduleFor, test } from 'ember-qunit';
+import { moduleFor } from 'ember-qunit';
+import test from 'ember-sinon-qunit/test-support/test';
 
 moduleFor('route:dc', 'Unit | Route | dc', {
   // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
+  needs: ['service:dc', 'service:nodes'],
 });
 
 test('it exists', function(assert) {
