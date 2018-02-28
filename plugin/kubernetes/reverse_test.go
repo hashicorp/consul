@@ -18,11 +18,34 @@ func (APIConnReverseTest) HasSynced() bool                 { return true }
 func (APIConnReverseTest) Run()                            { return }
 func (APIConnReverseTest) Stop() error                     { return nil }
 func (APIConnReverseTest) PodIndex(string) []*api.Pod      { return nil }
-func (APIConnReverseTest) SvcIndex(string) []*api.Service  { return nil }
 func (APIConnReverseTest) EpIndex(string) []*api.Endpoints { return nil }
 func (APIConnReverseTest) EndpointsList() []*api.Endpoints { return nil }
 func (APIConnReverseTest) ServiceList() []*api.Service     { return nil }
 func (APIConnReverseTest) Modified() int64                 { return 0 }
+
+func (APIConnReverseTest) SvcIndex(svc string) []*api.Service {
+	if svc != "svc1.testns" {
+		return nil
+	}
+	svcs := []*api.Service{
+		{
+			ObjectMeta: meta.ObjectMeta{
+				Name:      "svc1",
+				Namespace: "testns",
+			},
+			Spec: api.ServiceSpec{
+				ClusterIP: "192.168.1.100",
+				Ports: []api.ServicePort{{
+					Name:     "http",
+					Protocol: "tcp",
+					Port:     80,
+				}},
+			},
+		},
+	}
+	return svcs
+
+}
 
 func (APIConnReverseTest) SvcIndexReverse(ip string) []*api.Service {
 	if ip != "192.168.1.100" {
@@ -162,7 +185,28 @@ func TestReverse(t *testing.T) {
 		},
 		{
 			Qname: "example.org.cluster.local.", Qtype: dns.TypePTR,
+			Rcode: dns.RcodeNameError,
+			Ns: []dns.RR{
+				test.SOA("cluster.local.       300     IN      SOA     ns.dns.cluster.local. hostmaster.cluster.local. 1502989566 7200 1800 86400 60"),
+			},
+		},
+		{
+			Qname: "svc1.testns.svc.cluster.local.", Qtype: dns.TypePTR,
 			Rcode: dns.RcodeSuccess,
+			Ns: []dns.RR{
+				test.SOA("cluster.local.       300     IN      SOA     ns.dns.cluster.local. hostmaster.cluster.local. 1502989566 7200 1800 86400 60"),
+			},
+		},
+		{
+			Qname: "svc1.testns.svc.0.10.in-addr.arpa.", Qtype: dns.TypeA,
+			Rcode: dns.RcodeNameError,
+			Ns: []dns.RR{
+				test.SOA("0.10.in-addr.arpa.       300     IN      SOA     ns.dns.0.10.in-addr.arpa. hostmaster.0.10.in-addr.arpa. 1502989566 7200 1800 86400 60"),
+			},
+		},
+		{
+			Qname: "100.0.0.10.cluster.local.", Qtype: dns.TypePTR,
+			Rcode: dns.RcodeNameError,
 			Ns: []dns.RR{
 				test.SOA("cluster.local.       300     IN      SOA     ns.dns.cluster.local. hostmaster.cluster.local. 1502989566 7200 1800 86400 60"),
 			},
