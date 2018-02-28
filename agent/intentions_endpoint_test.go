@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -107,5 +108,47 @@ func TestIntentionsCreate_good(t *testing.T) {
 		if actual.SourceName != "foo" {
 			t.Fatalf("bad: %#v", actual)
 		}
+	}
+}
+
+func TestIntentionsSpecificGet_good(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// The intention
+	ixn := &structs.Intention{SourceName: "foo"}
+
+	// Create an intention directly
+	var reply string
+	{
+		req := structs.IntentionRequest{
+			Datacenter: "dc1",
+			Op:         structs.IntentionOpCreate,
+			Intention:  ixn,
+		}
+		if err := a.RPC("Intention.Apply", &req, &reply); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	// Get the value
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/connect/intentions/%s", reply), nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.IntentionSpecific(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	value := obj.(*structs.Intention)
+	if value.ID != reply {
+		t.Fatalf("bad: %v", value)
+	}
+
+	ixn.ID = value.ID
+	ixn.RaftIndex = value.RaftIndex
+	if !reflect.DeepEqual(value, ixn) {
+		t.Fatalf("bad (got, want):\n\n%#v\n\n%#v", value, ixn)
 	}
 }

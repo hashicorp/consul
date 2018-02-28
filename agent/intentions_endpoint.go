@@ -3,7 +3,9 @@ package agent
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -63,6 +65,52 @@ func (s *HTTPServer) IntentionCreate(resp http.ResponseWriter, req *http.Request
 	}
 
 	return intentionCreateResponse{reply}, nil
+}
+
+// IntentionSpecific handles the endpoint for /v1/connection/intentions/:id
+func (s *HTTPServer) IntentionSpecific(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	id := strings.TrimPrefix(req.URL.Path, "/v1/connect/intentions/")
+
+	switch req.Method {
+	case "GET":
+		return s.IntentionSpecificGet(id, resp, req)
+
+	case "PUT":
+		panic("TODO")
+
+	case "DELETE":
+		panic("TODO")
+
+	default:
+		return nil, MethodNotAllowedError{req.Method, []string{"GET", "PUT", "DELETE"}}
+	}
+}
+
+// GET /v1/connect/intentions/:id
+func (s *HTTPServer) IntentionSpecificGet(id string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Method is tested in IntentionEndpoint
+
+	args := structs.IntentionQueryRequest{
+		IntentionID: id,
+	}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	var reply structs.IndexedIntentions
+	if err := s.agent.RPC("Intention.Get", &args, &reply); err != nil {
+		// We have to check the string since the RPC sheds the error type
+		if err.Error() == consul.ErrIntentionNotFound.Error() {
+			resp.WriteHeader(http.StatusNotFound)
+			fmt.Fprint(resp, err.Error())
+			return nil, nil
+		}
+
+		return nil, err
+	}
+
+	// TODO: validate length
+	return reply.Intentions[0], nil
 }
 
 // intentionCreateResponse is the response structure for creating an intention.

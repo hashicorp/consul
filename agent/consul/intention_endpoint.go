@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"errors"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -8,6 +9,11 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
+)
+
+var (
+	// ErrIntentionNotFound is returned if the intention lookup failed.
+	ErrIntentionNotFound = errors.New("Intention not found")
 )
 
 // Intention manages the Connect intentions.
@@ -83,7 +89,7 @@ func (s *Intention) Get(
 				return err
 			}
 			if ixn == nil {
-				return ErrQueryNotFound
+				return ErrIntentionNotFound
 			}
 
 			reply.Index = index
