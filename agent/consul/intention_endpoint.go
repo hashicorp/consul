@@ -65,6 +65,37 @@ func (s *Intention) Apply(
 	return nil
 }
 
+// Get returns a single intention by ID.
+func (s *Intention) Get(
+	args *structs.IntentionQueryRequest,
+	reply *structs.IndexedIntentions) error {
+	// Forward if necessary
+	if done, err := s.srv.forward("Intention.Get", args, args, reply); done {
+		return err
+	}
+
+	return s.srv.blockingQuery(
+		&args.QueryOptions,
+		&reply.QueryMeta,
+		func(ws memdb.WatchSet, state *state.Store) error {
+			index, ixn, err := state.IntentionGet(ws, args.IntentionID)
+			if err != nil {
+				return err
+			}
+			if ixn == nil {
+				return ErrQueryNotFound
+			}
+
+			reply.Index = index
+			reply.Intentions = structs.Intentions{ixn}
+
+			// TODO: acl filtering
+
+			return nil
+		},
+	)
+}
+
 // List returns all the intentions.
 func (s *Intention) List(
 	args *structs.DCSpecificRequest,

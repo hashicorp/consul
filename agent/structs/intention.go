@@ -99,3 +99,20 @@ type IntentionRequest struct {
 func (q *IntentionRequest) RequestDatacenter() string {
 	return q.Datacenter
 }
+
+// IntentionQueryRequest is used to query intentions.
+type IntentionQueryRequest struct {
+	// Datacenter is the target this request is intended for.
+	Datacenter string
+
+	// IntentionID is the ID of a specific intention.
+	IntentionID string
+
+	// Options for queries
+	QueryOptions
+}
+
+// RequestDatacenter returns the datacenter for a given request.
+func (q *IntentionQueryRequest) RequestDatacenter() string {
+	return q.Datacenter
+}

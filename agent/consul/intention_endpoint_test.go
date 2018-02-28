@@ -2,6 +2,7 @@ package consul
 
 import (
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -37,7 +38,29 @@ func TestIntentionApply_new(t *testing.T) {
 		t.Fatal("reply should be non-empty")
 	}
 
-	// TODO test read
+	// Read
+	ixn.Intention.ID = reply
+	{
+		req := &structs.IntentionQueryRequest{
+			Datacenter:  "dc1",
+			IntentionID: ixn.Intention.ID,
+		}
+		var resp structs.IndexedIntentions
+		if err := msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if len(resp.Intentions) != 1 {
+			t.Fatalf("bad: %v", resp)
+		}
+		actual := resp.Intentions[0]
+		if resp.Index != actual.ModifyIndex {
+			t.Fatalf("bad index: %d", resp.Index)
+		}
+		actual.CreateIndex, actual.ModifyIndex = 0, 0
+		if !reflect.DeepEqual(actual, ixn.Intention) {
+			t.Fatalf("bad: %v", actual)
+		}
+	}
 }
 
 func TestIntentionList(t *testing.T) {
