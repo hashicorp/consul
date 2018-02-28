@@ -67,6 +67,28 @@ func init() {
 	registerSchema(intentionsTableSchema)
 }
 
+// Intentions returns the list of all intentions.
+func (s *Store) Intentions(ws memdb.WatchSet) (uint64, structs.Intentions, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get the index
+	idx := maxIndexTxn(tx, intentionsTableName)
+
+	// Get all intentions
+	iter, err := tx.Get(intentionsTableName, "id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed intention lookup: %s", err)
+	}
+	ws.Add(iter.WatchCh())
+
+	var results structs.Intentions
+	for ixn := iter.Next(); ixn != nil; ixn = iter.Next() {
+		results = append(results, ixn.(*structs.Intention))
+	}
+	return idx, results, nil
+}
+
 // IntentionSet creates or updates an intention.
 func (s *Store) IntentionSet(idx uint64, ixn *structs.Intention) error {
 	tx := s.db.Txn(true)

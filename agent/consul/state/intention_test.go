@@ -120,3 +120,66 @@ func TestStore_IntentionSet_emptyId(t *testing.T) {
 		t.Fatalf("bad")
 	}
 }
+
+func TestStore_IntentionsList(t *testing.T) {
+	s := testStateStore(t)
+
+	// Querying with no results returns nil.
+	ws := memdb.NewWatchSet()
+	idx, res, err := s.Intentions(ws)
+	if idx != 0 || res != nil || err != nil {
+		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
+	}
+
+	// Create some intentions
+	ixns := structs.Intentions{
+		&structs.Intention{
+			ID: testUUID(),
+		},
+		&structs.Intention{
+			ID: testUUID(),
+		},
+	}
+
+	// Force deterministic sort order
+	ixns[0].ID = "a" + ixns[0].ID[1:]
+	ixns[1].ID = "b" + ixns[1].ID[1:]
+
+	// Create
+	for i, ixn := range ixns {
+		if err := s.IntentionSet(uint64(1+i), ixn); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
+
+	// Read it back and verify.
+	expected := structs.Intentions{
+		&structs.Intention{
+			ID: ixns[0].ID,
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 1,
+				ModifyIndex: 1,
+			},
+		},
+		&structs.Intention{
+			ID: ixns[1].ID,
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 2,
+				ModifyIndex: 2,
+			},
+		},
+	}
+	idx, actual, err := s.Intentions(nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 2 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %v", actual)
+	}
+}
