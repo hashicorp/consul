@@ -3,12 +3,14 @@ import { inject as service } from '@ember/service';
 
 export default Route.extend({
   repo: service('acls'),
-  model: function(params) {
+  model: function() {
+    //params
     // Return a promise containing the ACLS
     return this.get('repo').findByDatacenter(this.modelFor('dc').dc);
   },
   actions: {
-    error: function(error, transition) {
+    error: function(error) {
+      // error, transition
       // If consul returns 401, ACLs are disabled
       if (error && error.status === 401) {
         this.transitionTo('dc.aclsdisabled');

@@ -2,7 +2,6 @@ import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 
-import Node from 'consul-ui/models/dc/node';
 export default Route.extend({
   repo: service('dc'),
   nodeRepo: service('nodes'),

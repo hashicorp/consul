@@ -4,10 +4,12 @@ import { inject as service } from '@ember/service';
 
 export default Route.extend({
   repo: service('dc'),
-  model: function(params) {
+  model: function() {
+    //params
     return this.get('repo').findAll();
   },
-  afterModel: function(model, transition) {
+  afterModel: function(model) {
+    //model, transition
     // If we only have one datacenter, jump
     // straight to it and bypass the global
     // view

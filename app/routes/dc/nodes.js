@@ -4,7 +4,8 @@ import { inject as service } from '@ember/service';
 
 export default Route.extend({
   repo: service('nodes'),
-  model: function(params) {
+  model: function() {
+    // params
     // Return a promise containing the nodes
     return this.get('repo').findAllByDatacenter(this.modelFor('dc').dc);
   },

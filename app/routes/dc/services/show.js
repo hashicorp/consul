@@ -8,7 +8,7 @@ export default Route.extend({
   },
   setupController: function(controller, model) {
     const tags = model
-      .reduce(function(prev, item, i, arr) {
+      .reduce(function(prev, item) {
         return item.Service.Tags !== null ? prev.concat(item.Service.Tags) : prev;
       }, [])
       .filter(function(n) {
