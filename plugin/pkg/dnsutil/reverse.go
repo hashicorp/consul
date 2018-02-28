@@ -16,10 +16,10 @@ func ExtractAddressFromReverse(reverseName string) string {
 	f := reverse
 
 	switch {
-	case strings.HasSuffix(reverseName, v4arpaSuffix):
-		search = strings.TrimSuffix(reverseName, v4arpaSuffix)
-	case strings.HasSuffix(reverseName, v6arpaSuffix):
-		search = strings.TrimSuffix(reverseName, v6arpaSuffix)
+	case strings.HasSuffix(reverseName, IP4arpa):
+		search = strings.TrimSuffix(reverseName, IP4arpa)
+	case strings.HasSuffix(reverseName, IP6arpa):
+		search = strings.TrimSuffix(reverseName, IP6arpa)
 		f = reverse6
 	default:
 		return ""
@@ -29,9 +29,17 @@ func ExtractAddressFromReverse(reverseName string) string {
 	return f(strings.Split(search, "."))
 }
 
-// IsReverse returns true if name is in a reverse zone
-func IsReverse(name string) bool {
-	return strings.HasSuffix(name, v4arpaSuffix) || strings.HasSuffix(name, v6arpaSuffix)
+// IsReverse returns 0 is name is not in a reverse zone. Anything > 0 indicates
+// name is in a reverse zone. The returned integer will be 1 for in-addr.arpa. (IPv4)
+// and 2 for ip6.arpa. (IPv6).
+func IsReverse(name string) int {
+	if strings.HasSuffix(name, IP4arpa) {
+		return 1
+	}
+	if strings.HasSuffix(name, IP6arpa) {
+		return 2
+	}
+	return 0
 }
 
 func reverse(slice []string) string {
@@ -66,8 +74,8 @@ func reverse6(slice []string) string {
 }
 
 const (
-	// v4arpaSuffix is the reverse tree suffix for v4 IP addresses.
-	v4arpaSuffix = ".in-addr.arpa."
-	// v6arpaSuffix is the reverse tree suffix for v6 IP addresses.
-	v6arpaSuffix = ".ip6.arpa."
+	// IP4arpa is the reverse tree suffix for v4 IP addresses.
+	IP4arpa = ".in-addr.arpa."
+	// IP6arpa is the reverse tree suffix for v6 IP addresses.
+	IP6arpa = ".ip6.arpa."
 )

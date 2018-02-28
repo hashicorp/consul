@@ -274,7 +274,7 @@ func (k *Kubernetes) Records(state request.Request, exact bool) ([]msg.Service, 
 		return nil, e
 	}
 
-	if dnsutil.IsReverse(state.Name()) {
+	if dnsutil.IsReverse(state.Name()) > 0 {
 		return nil, errNoItems
 	}
 

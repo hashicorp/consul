@@ -49,3 +49,23 @@ func TestExtractAddressFromReverse(t *testing.T) {
 		}
 	}
 }
+
+func TestIsReverse(t *testing.T) {
+	tests := []struct {
+		name     string
+		expected int
+	}{
+		{"b.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa.", 2},
+		{"d.0.1.0.0.2.in-addr.arpa.", 1},
+		{"example.com.", 0},
+		{"", 0},
+		{"in-addr.arpa.example.com.", 0},
+	}
+	for i, tc := range tests {
+		got := IsReverse(tc.name)
+		if got != tc.expected {
+			t.Errorf("Test %d, got %d, expected %d for %s", i, got, tc.expected, tc.name)
+		}
+
+	}
+}

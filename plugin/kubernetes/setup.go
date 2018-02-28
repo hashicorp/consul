@@ -9,9 +9,10 @@ import (
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
+	"github.com/coredns/coredns/plugin/pkg/dnsutil"
 	"github.com/coredns/coredns/plugin/pkg/parse"
-
 	"github.com/coredns/coredns/plugin/pkg/upstream"
+
 	"github.com/mholt/caddy"
 	"github.com/miekg/dns"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -113,7 +114,7 @@ func ParseStanza(c *caddy.Controller) (*Kubernetes, error) {
 
 	k8s.primaryZoneIndex = -1
 	for i, z := range k8s.Zones {
-		if strings.HasSuffix(z, "in-addr.arpa.") || strings.HasSuffix(z, "ip6.arpa.") {
+		if dnsutil.IsReverse(z) > 0 {
 			continue
 		}
 		k8s.primaryZoneIndex = i
