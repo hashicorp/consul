@@ -39,7 +39,7 @@ type Intention struct {
 
 	// CreatedAt and UpdatedAt keep track of when this record was created
 	// or modified.
-	CreatedAt, UpdatedAt time.Time
+	CreatedAt, UpdatedAt time.Time `mapstructure:"-"`
 
 	RaftIndex
 }

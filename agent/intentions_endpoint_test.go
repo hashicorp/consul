@@ -69,3 +69,43 @@ func TestIntentionsList_values(t *testing.T) {
 		t.Fatalf("bad: %#v", actual)
 	}
 }
+
+func TestIntentionsCreate_good(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Make sure an empty list is non-nil.
+	args := &structs.Intention{SourceName: "foo"}
+	req, _ := http.NewRequest("POST", "/v1/connect/intentions", jsonReader(args))
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.IntentionCreate(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	value := obj.(intentionCreateResponse)
+	if value.ID == "" {
+		t.Fatalf("bad: %v", value)
+	}
+
+	// Read the value
+	{
+		req := &structs.IntentionQueryRequest{
+			Datacenter:  "dc1",
+			IntentionID: value.ID,
+		}
+		var resp structs.IndexedIntentions
+		if err := a.RPC("Intention.Get", req, &resp); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if len(resp.Intentions) != 1 {
+			t.Fatalf("bad: %v", resp)
+		}
+		actual := resp.Intentions[0]
+		if actual.SourceName != "foo" {
+			t.Fatalf("bad: %#v", actual)
+		}
+	}
+}

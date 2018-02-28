@@ -39,7 +39,7 @@ func init() {
 	registerEndpoint("/v1/catalog/services", []string{"GET"}, (*HTTPServer).CatalogServices)
 	registerEndpoint("/v1/catalog/service/", []string{"GET"}, (*HTTPServer).CatalogServiceNodes)
 	registerEndpoint("/v1/catalog/node/", []string{"GET"}, (*HTTPServer).CatalogNodeServices)
-	registerEndpoint("/v1/connect/intentions", []string{"GET"}, (*HTTPServer).IntentionList)
+	registerEndpoint("/v1/connect/intentions", []string{"GET", "POST"}, (*HTTPServer).IntentionList)
 	registerEndpoint("/v1/coordinate/datacenters", []string{"GET"}, (*HTTPServer).CoordinateDatacenters)
 	registerEndpoint("/v1/coordinate/nodes", []string{"GET"}, (*HTTPServer).CoordinateNodes)
 	registerEndpoint("/v1/coordinate/node/", []string{"GET"}, (*HTTPServer).CoordinateNode)
