@@ -10,6 +10,7 @@ import (
 	_ "github.com/coredns/coredns/plugin/cache"
 	_ "github.com/coredns/coredns/plugin/chaos"
 	_ "github.com/coredns/coredns/plugin/debug"
+	_ "github.com/coredns/coredns/plugin/deprecated"
 	_ "github.com/coredns/coredns/plugin/dnssec"
 	_ "github.com/coredns/coredns/plugin/dnstap"
 	_ "github.com/coredns/coredns/plugin/erratic"
@@ -37,5 +38,4 @@ import (
 	_ "github.com/coredns/coredns/plugin/trace"
 	_ "github.com/coredns/coredns/plugin/whoami"
 	_ "github.com/mholt/caddy/onevent"
-	_ "github.com/mholt/caddy/startupshutdown"
 )
