@@ -29,7 +29,7 @@ type Zone struct {
 
 	NoReload       bool
 	reloadMu       sync.RWMutex
-	ReloadShutdown chan bool
+	reloadShutdown chan bool
 	Upstream       upstream.Upstream // Upstream for looking up names during the resolution process
 }
 
@@ -49,7 +49,7 @@ func NewZone(name, file string) *Zone {
 		file:           path.Clean(file),
 		Tree:           &tree.Tree{},
 		Expired:        new(bool),
-		ReloadShutdown: make(chan bool),
+		reloadShutdown: make(chan bool),
 	}
 	*z.Expired = false
 

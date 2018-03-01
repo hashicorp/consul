@@ -60,8 +60,8 @@ func (z *Zones) Add(zo *file.Zone, name string) {
 func (z *Zones) Remove(name string) {
 	z.Lock()
 
-	if zo, ok := z.Z[name]; ok && !zo.NoReload {
-		zo.ReloadShutdown <- true
+	if zo, ok := z.Z[name]; ok {
+		zo.OnShutdown()
 	}
 
 	delete(z.Z, name)

@@ -53,6 +53,20 @@ func TestFileParse(t *testing.T) {
 			false,
 			Zones{Names: []string{"10.in-addr.arpa."}},
 		},
+		{
+			`file ` + zoneFileName1 + ` example.net. {
+				upstream a
+			}`,
+			true,
+			Zones{Names: []string{}},
+		},
+		{
+			`file ` + zoneFileName1 + ` example.net. {
+				no_rebloat
+			}`,
+			true,
+			Zones{Names: []string{}},
+		},
 	}
 
 	for i, test := range tests {

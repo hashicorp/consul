@@ -47,7 +47,7 @@ func (z *Zone) Reload() error {
 				log.Printf("[INFO] Successfully reloaded zone %q in %q with serial %d", z.origin, z.file, z.Apex.SOA.Serial)
 				z.Notify()
 
-			case <-z.ReloadShutdown:
+			case <-z.reloadShutdown:
 				tick.Stop()
 				return
 			}

@@ -38,6 +38,10 @@ func setup(c *caddy.Controller) error {
 			return nil
 		})
 	}
+	for _, n := range zones.Names {
+		z := zones.Z[n]
+		c.OnShutdown(z.OnShutdown)
+	}
 
 	dnsserver.GetConfig(c).AddPlugin(func(next plugin.Handler) plugin.Handler {
 		return File{Next: next, Zones: zones}
