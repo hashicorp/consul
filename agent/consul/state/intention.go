@@ -156,3 +156,39 @@ func (s *Store) IntentionGet(ws memdb.WatchSet, id string) (uint64, *structs.Int
 
 	return idx, result, nil
 }
+
+// IntentionDelete deletes the given intention by ID.
+func (s *Store) IntentionDelete(idx uint64, id string) error {
+	tx := s.db.Txn(true)
+	defer tx.Abort()
+
+	if err := s.intentionDeleteTxn(tx, idx, id); err != nil {
+		return fmt.Errorf("failed intention delete: %s", err)
+	}
+
+	tx.Commit()
+	return nil
+}
+
+// intentionDeleteTxn is the inner method used to delete a intention
+// with the proper indexes into the state store.
+func (s *Store) intentionDeleteTxn(tx *memdb.Txn, idx uint64, queryID string) error {
+	// Pull the query.
+	wrapped, err := tx.First(intentionsTableName, "id", queryID)
+	if err != nil {
+		return fmt.Errorf("failed intention lookup: %s", err)
+	}
+	if wrapped == nil {
+		return nil
+	}
+
+	// Delete the query and update the index.
+	if err := tx.Delete(intentionsTableName, wrapped); err != nil {
+		return fmt.Errorf("failed intention delete: %s", err)
+	}
+	if err := tx.Insert("index", &IndexEntry{intentionsTableName, idx}); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
+
+	return nil
+}

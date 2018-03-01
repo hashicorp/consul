@@ -263,8 +263,7 @@ func (c *FSM) applyIntentionOperation(buf []byte, index uint64) interface{} {
 	case structs.IntentionOpCreate, structs.IntentionOpUpdate:
 		return c.state.IntentionSet(index, req.Intention)
 	case structs.IntentionOpDelete:
-		panic("TODO")
-		//return c.state.PreparedQueryDelete(index, req.Query.ID)
+		return c.state.IntentionDelete(index, req.Intention.ID)
 	default:
 		c.logger.Printf("[WARN] consul.fsm: Invalid Intention operation '%s'", req.Op)
 		return fmt.Errorf("Invalid Intention operation '%s'", req.Op)

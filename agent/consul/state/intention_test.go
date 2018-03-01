@@ -121,6 +121,56 @@ func TestStore_IntentionSet_emptyId(t *testing.T) {
 	}
 }
 
+func TestStore_IntentionDelete(t *testing.T) {
+	s := testStateStore(t)
+
+	// Call Get to populate the watch set
+	ws := memdb.NewWatchSet()
+	_, _, err := s.IntentionGet(ws, testUUID())
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Create
+	ixn := &structs.Intention{ID: testUUID()}
+	if err := s.IntentionSet(1, ixn); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Make sure the index got updated.
+	if idx := s.maxIndex(intentionsTableName); idx != 1 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
+
+	// Delete
+	if err := s.IntentionDelete(2, ixn.ID); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Make sure the index got updated.
+	if idx := s.maxIndex(intentionsTableName); idx != 2 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
+
+	// Sanity check to make sure it's not there.
+	idx, actual, err := s.IntentionGet(nil, ixn.ID)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 2 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if actual != nil {
+		t.Fatalf("bad: %v", actual)
+	}
+}
+
 func TestStore_IntentionsList(t *testing.T) {
 	s := testStateStore(t)
 
