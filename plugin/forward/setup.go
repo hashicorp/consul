@@ -84,7 +84,13 @@ func parseForward(c *caddy.Controller) (*Forward, error) {
 
 	protocols := map[int]int{}
 
+	i := 0
 	for c.Next() {
+		if i > 0 {
+			return nil, plugin.ErrOnce
+		}
+		i++
+
 		if !c.Args(&f.from) {
 			return f, c.ArgErr()
 		}

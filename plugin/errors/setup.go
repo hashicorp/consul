@@ -37,7 +37,13 @@ func setup(c *caddy.Controller) error {
 func errorsParse(c *caddy.Controller) (errorHandler, error) {
 	handler := errorHandler{}
 
+	i := 0
 	for c.Next() {
+		if i > 0 {
+			return handler, plugin.ErrOnce
+		}
+		i++
+
 		args := c.RemainingArgs()
 		switch len(args) {
 		case 0:

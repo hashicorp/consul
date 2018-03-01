@@ -57,6 +57,15 @@ func TestHostsParse(t *testing.T) {
 			}`,
 			false, "/etc/hosts", []string{"miek.nl.", "10.in-addr.arpa."}, fall.Root,
 		},
+		{
+			`hosts /etc/hosts {
+				fallthrough
+			}
+			hosts /etc/hosts {
+				fallthrough
+			}`,
+			true, "/etc/hosts", nil, fall.Root,
+		},
 	}
 
 	for i, test := range tests {

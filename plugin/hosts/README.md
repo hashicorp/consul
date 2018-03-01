@@ -11,6 +11,8 @@ file that exists on disk. It checks the file for changes and updates the zones a
 plugin only supports A, AAAA, and PTR records. The hosts plugin can be used with readily
 available hosts files that block access to advertising servers.
 
+This plugin can only be used once per Server Block.
+
 ## Syntax
 
 ~~~

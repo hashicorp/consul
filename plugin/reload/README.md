@@ -26,6 +26,8 @@ reloads are graceful, and can be disabled by setting the jitter to `0s`.
 
 Jitter is re-calculated whenever the Corefile is reloaded.
 
+This plugin can only be used once per Server Block.
+
 ## Syntax
 
 ~~~ txt

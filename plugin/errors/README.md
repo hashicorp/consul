@@ -8,6 +8,8 @@
 
 Any errors encountered during the query processing will be printed to standard output.
 
+This plugin can only be used once per Server Block.
+
 ## Syntax
 
 ~~~

@@ -19,12 +19,15 @@ func init() {
 }
 
 func setup(c *caddy.Controller) error {
-	found := false
 	h := &handler{addr: defaultAddr}
+
+	i := 0
 	for c.Next() {
-		if found {
-			return plugin.Error("pprof", c.Err("pprof can only be specified once"))
+		if i > 0 {
+			return plugin.Error("pprof", plugin.ErrOnce)
 		}
+		i++
+
 		args := c.RemainingArgs()
 		if len(args) == 1 {
 			h.addr = args[0]
@@ -39,7 +42,6 @@ func setup(c *caddy.Controller) error {
 		if c.NextBlock() {
 			return plugin.Error("pprof", c.ArgErr())
 		}
-		found = true
 	}
 
 	pprofOnce.Do(func() {

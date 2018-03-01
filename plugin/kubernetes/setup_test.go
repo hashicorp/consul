@@ -388,7 +388,7 @@ func TestKubernetesParse(t *testing.T) {
 			`kubernetes coredns.local
 kubernetes cluster.local`,
 			true,
-			"only one kubernetes section allowed per server block",
+			"this plugin",
 			-1,
 			0,
 			defaultResyncPeriod,

@@ -16,6 +16,8 @@ For more information, please see [Go's pprof
 documentation](https://golang.org/pkg/net/http/pprof/) and read
 [Profiling Go Programs](https://blog.golang.org/profiling-go-programs).
 
+This plugin can only be used once per Server Block.
+
 ## Syntax
 
 ~~~

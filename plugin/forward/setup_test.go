@@ -30,6 +30,8 @@ func TestSetup(t *testing.T) {
 		// negative
 		{"forward . a27.0.0.1", true, "", nil, 0, false, "not an IP"},
 		{"forward . 127.0.0.1 {\nblaatl\n}\n", true, "", nil, 0, false, "unknown property"},
+		{`forward . ::1
+		forward com ::2`, true, "", nil, 0, false, "plugin"},
 	}
 
 	for i, test := range tests {

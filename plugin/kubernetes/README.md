@@ -16,6 +16,8 @@ to deploy CoreDNS in Kubernetes](https://github.com/coredns/deployment/tree/mast
 [stubDomains and upstreamNameservers](http://blog.kubernetes.io/2017/04/configuring-private-dns-zones-upstream-nameservers-kubernetes.html)
 are implemented via the *proxy* plugin and kubernetes *upstream*. See example below.
 
+This plugin can only be used once per Server Block.
+
 ## Syntax
 
 ~~~

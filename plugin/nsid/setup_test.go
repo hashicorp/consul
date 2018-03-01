@@ -19,18 +19,12 @@ func TestSetupNsid(t *testing.T) {
 		expectedData       string
 		expectedErrContent string // substring from the expected error. Empty for positive cases.
 	}{
-		{
-			`nsid`, false, defaultNsid, "",
-		},
-		{
-			`nsid "ps0"`, false, "ps0", "",
-		},
-		{
-			`nsid "worker1"`, false, "worker1", "",
-		},
-		{
-			`nsid "tf 2"`, false, "tf 2", "",
-		},
+		{`nsid`, false, defaultNsid, ""},
+		{`nsid "ps0"`, false, "ps0", ""},
+		{`nsid "worker1"`, false, "worker1", ""},
+		{`nsid "tf 2"`, false, "tf 2", ""},
+		{`nsid
+		nsid`, true, "", "plugin"},
 	}
 
 	for i, test := range tests {

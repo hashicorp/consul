@@ -36,13 +36,16 @@ func nsidParse(c *caddy.Controller) (string, error) {
 	if err != nil {
 		nsid = "localhost"
 	}
+	i := 0
 	for c.Next() {
-		args := c.RemainingArgs()
-		if len(args) == 0 {
-			return nsid, nil
+		if i > 0 {
+			return nsid, plugin.ErrOnce
 		}
-		nsid = strings.Join(args, " ")
-		return nsid, nil
+		i++
+		args := c.RemainingArgs()
+		if len(args) > 0 {
+			nsid = strings.Join(args, " ")
+		}
 	}
 	return nsid, nil
 }

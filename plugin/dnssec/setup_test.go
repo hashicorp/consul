@@ -61,6 +61,8 @@ func TestSetupDnssec(t *testing.T) {
 				key file
 			}`, true, []string{"example.org."}, nil, defaultCap, "argument count",
 		},
+		{`dnssec
+		  dnssec`, true, nil, nil, defaultCap, ""},
 	}
 
 	for i, test := range tests {

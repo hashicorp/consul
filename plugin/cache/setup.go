@@ -61,7 +61,13 @@ func setup(c *caddy.Controller) error {
 func cacheParse(c *caddy.Controller) (*Cache, error) {
 	ca := New()
 
+	j := 0
 	for c.Next() {
+		if j > 0 {
+			return nil, plugin.ErrOnce
+		}
+		j++
+
 		// cache [ttl] [zones..]
 		origins := make([]string, len(c.ServerBlockKeys))
 		copy(origins, c.ServerBlockKeys)
@@ -180,9 +186,7 @@ func cacheParse(c *caddy.Controller) (*Cache, error) {
 
 		ca.pcache = cache.New(ca.pcap)
 		ca.ncache = cache.New(ca.ncap)
-
-		return ca, nil
 	}
 
-	return nil, nil
+	return ca, nil
 }

@@ -9,6 +9,8 @@
 The default root is the current working directory of CoreDNS. The *root* plugin allows you to change
 this. A relative root path is relative to the current working directory.
 
+This plugin can only be used once per Server Block.
+
 ## Syntax
 
 ~~~ txt

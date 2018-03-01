@@ -6,9 +6,12 @@
 
 ## Description
 
-This plugin implements RFC 5001 and adds an EDNS0 OPT resource record to replies that uniquely
-identify the server. This is useful in anycast setups to see which server was responsible for
-generating the reply and for debugging.
+This plugin implements [RFC 5001](https://tools.ietf.org/html/rfc5001) and adds an EDNS0 OPT
+resource record to replies that uniquely identify the server. This is useful in anycast setups to
+see which server was responsible for generating the reply and for debugging.
+
+This plugin can only be used once per Server Block.
+
 
 ## Syntax
 
@@ -48,3 +51,7 @@ And now a client with NSID support will see an OPT record with the NSID option:
 ;; QUESTION SECTION:
 ;whoami.example.org.		IN	A
 ~~~
+
+## Also See
+
+[RFC 5001](https://tools.ietf.org/html/rfc5001)

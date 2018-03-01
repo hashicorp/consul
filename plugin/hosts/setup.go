@@ -69,7 +69,13 @@ func hostsParse(c *caddy.Controller) (Hosts, error) {
 	config := dnsserver.GetConfig(c)
 
 	inline := []string{}
+	i := 0
 	for c.Next() {
+		if i > 0 {
+			return h, plugin.ErrOnce
+		}
+		i++
+
 		args := c.RemainingArgs()
 		if len(args) >= 1 {
 			h.path = args[0]

@@ -10,6 +10,8 @@ With *cache* enabled, all records except zone transfers and metadata records wil
 3600s. Caching is mostly useful in a scenario when fetching data from the backend (upstream,
 database, etc.) is expensive.
 
+This plugin can only be used once per Server Block.
+
 ## Syntax
 
 ~~~ txt

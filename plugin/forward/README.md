@@ -19,6 +19,8 @@ is performed and upstreams will always be considered healthy.
 When *all* upstreams are down it assumes health checking as a mechanism has failed and will try to
 connect to a random upstream (which may or may not work).
 
+This plugin can only be used once per Server Block.
+
 ## Syntax
 
 In its most basic form, a simple forwarder uses this syntax:
