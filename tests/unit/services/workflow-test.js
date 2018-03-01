@@ -1,5 +1,6 @@
 import { moduleFor } from 'ember-qunit';
 import test from 'ember-sinon-qunit/test-support/test';
+import { Promise } from 'rsvp';
 
 moduleFor('service:workflow', 'Unit | Service | workflow', {
   // Specify the other units that are required for this test.

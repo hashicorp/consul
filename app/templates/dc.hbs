@@ -21,11 +21,11 @@
         </div>
 
         <div class="col-md-2 col-sm-2 col-xs-6 col-md-offset-0 col-sm-offset-4 col-xs-offset-1">
-            <a class="col-xs-12 btn {{if hasFailingChecks "btn-warning" "btn-success" }}" {{action "toggle"}}> <span class="elip-overflow">{{model}} <span class="caret"></span></span> </a>
+            <a class="col-xs-12 btn {{if hasFailingChecks "btn-warning" "btn-success" }}" {{action "toggle"}}> <span class="elip-overflow">{{item}}<span class="caret"></span></span> </a>
 
             {{#if isDropdownVisible}}
                 <ul class="dropdown-menu col-xs-8" style="display:block;">
-                    {{#each dcs as |dc|}}
+                    {{#each items as |dc|}}
                         <li {{action "hideDrop"}}>{{#link-to 'dc.services' dc}}{{dc}}{{/link-to}}</li>
                     {{/each}}
                 </ul>
