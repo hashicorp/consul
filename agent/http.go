@@ -428,10 +428,20 @@ func (s *HTTPServer) parseConsistency(resp http.ResponseWriter, req *http.Reques
 			}
 		}
 	}
-	if defaults && s.agent.config.DefaultConsistencyLevel != "" {
-		err := fillConsistencyFromValue(b, s.agent.config.DefaultConsistencyLevel)
-		if err != nil {
-			// Unexpected since we supposed to validate DefaultConsistencyLevel beforehand
+	// No specific Consistency has been specified by caller
+	if defaults {
+		path := req.URL.Path
+		candidate := s.agent.config.DefaultConsistencyLevel
+		if s.agent.config.DiscoveryConsistencyLevel != "" {
+			if strings.HasPrefix(path, "/v1/catalog") || strings.HasPrefix(path, "/v1/health") {
+				candidate = s.agent.config.DiscoveryConsistencyLevel
+			}
+		}
+		if candidate != "" {
+			err := fillConsistencyFromValue(b, candidate)
+			if err != nil {
+				// Unexpected since we supposed to validate DefaultConsistencyLevel beforehand
+			}
 		}
 	}
 	return false

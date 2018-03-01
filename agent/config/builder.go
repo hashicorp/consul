@@ -729,6 +729,10 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	return rt, nil
 }
 
+func isAcceptableConsistency(val string) bool {
+	return val == "" || val == "leader" || val == "stale" || val == "consistent"
+}
+
 // Validate performs semantical validation of the runtime configuration.
 func (b *Builder) Validate(rt RuntimeConfig) error {
 	// reDatacenter defines a regexp for a valid datacenter name
@@ -756,11 +760,11 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 			return fmt.Errorf("data_dir %q is not a directory", rt.DataDir)
 		}
 	}
-	if rt.DefaultConsistencyLevel != "" &&
-		rt.DefaultConsistencyLevel != "leader" &&
-		rt.DefaultConsistencyLevel != "stale" &&
-		rt.DefaultConsistencyLevel != "consistent" {
+	if !isAcceptableConsistency(rt.DefaultConsistencyLevel) {
 		return fmt.Errorf("default_consistency_level, must be stale|leader|consistent, but was %s", rt.DefaultConsistencyLevel)
+	}
+	if !isAcceptableConsistency(rt.DiscoveryConsistencyLevel) {
+		return fmt.Errorf("discovery_consistency_level, must be stale|leader|consistent, but was %s", rt.DiscoveryConsistencyLevel)
 	}
 	if rt.NodeName == "" {
 		return fmt.Errorf("node_name cannot be empty")
