@@ -37,7 +37,11 @@ func (s *Intention) Apply(
 	// appending to the Raft log, because the ID is not deterministic. Once
 	// the entry is in the log, the state update MUST be deterministic or
 	// the followers will not converge.
-	if args.Op == structs.IntentionOpCreate && args.Intention.ID == "" {
+	if args.Op == structs.IntentionOpCreate {
+		if args.Intention.ID != "" {
+			return fmt.Errorf("ID must be empty when creating a new intention")
+		}
+
 		state := s.srv.fsm.State()
 		for {
 			var err error

@@ -65,6 +65,35 @@ func TestIntentionApply_new(t *testing.T) {
 	}
 }
 
+// Shouldn't be able to create with an ID set
+func TestIntentionApply_createWithID(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Setup a basic record to create
+	ixn := structs.IntentionRequest{
+		Datacenter: "dc1",
+		Op:         structs.IntentionOpCreate,
+		Intention: &structs.Intention{
+			ID:         generateUUID(),
+			SourceName: "test",
+		},
+	}
+	var reply string
+
+	// Create
+	err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply)
+	if err == nil || !strings.Contains(err.Error(), "ID must be empty") {
+		t.Fatalf("bad: %v", err)
+	}
+}
+
 // Test basic updating
 func TestIntentionApply_updateGood(t *testing.T) {
 	t.Parallel()
