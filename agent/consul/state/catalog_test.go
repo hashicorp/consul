@@ -2180,6 +2180,25 @@ func ensureServiceVersion(t *testing.T, s *Store, ws memdb.WatchSet, serviceID s
 	}
 }
 
+// Ensure index exist, if expectedIndex = -1, ensure the index does not exists
+func ensureIndexForService(t *testing.T, s *Store, ws memdb.WatchSet, serviceName string, expectedIndex uint64) {
+	t.Helper()
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+	transaction, err := tx.First("index", "id", fmt.Sprintf("service.%s", serviceName))
+	if err == nil {
+		if idx, ok := transaction.(*IndexEntry); ok {
+			if expectedIndex != idx.Value {
+				t.Fatalf("Expected index %d, but had %d for %s", expectedIndex, idx.Value, serviceName)
+			}
+			return
+		}
+	}
+	if expectedIndex != 0 {
+		t.Fatalf("Index for %s was expected but not found", serviceName)
+	}
+}
+
 // TestIndexIndependance test that changes on a given service does not impact the
 // index of other services. It allows to have huge benefits for watches since
 // watchers are notified ONLY when there are changes in the given service
@@ -2247,8 +2266,10 @@ func TestIndexIndependance(t *testing.T) {
 
 	s.DeleteCheck(15, "node2", types.CheckID("check_service_shared"))
 	ensureServiceVersion(t, s, ws, "service_shared", 15, 2)
+	ensureIndexForService(t, s, ws, "service_shared", 15)
 	s.DeleteService(16, "node2", "service_shared")
 	ensureServiceVersion(t, s, ws, "service_shared", 16, 1)
+	ensureIndexForService(t, s, ws, "service_shared", 16)
 	s.DeleteService(17, "node1", "service_shared")
 	ensureServiceVersion(t, s, ws, "service_shared", 17, 0)
 
@@ -2257,9 +2278,12 @@ func TestIndexIndependance(t *testing.T) {
 	// The behaviour is the same as all non-existing services, meaning
 	// we properly did collect garbage
 	ensureServiceVersion(t, s, ws, "service_shared", 18, 0)
+	// No index should exist anymore, it must have been garbage collected
+	ensureIndexForService(t, s, ws, "service_shared", 0)
 	if !watchFired(ws) {
 		t.Fatalf("bad")
 	}
+
 }
 
 func TestStateStore_CheckServiceNodes(t *testing.T) {

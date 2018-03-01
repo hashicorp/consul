@@ -36,6 +36,18 @@ Consul is A, and version B is released.
    by running `consul members` to make sure all members have the latest
    build and highest protocol version.
 
+## Upgrade from Version 1.0.6 to higher
+
+In version 1.0.7 and higher, when requesting a specific service (/health or
+/catalog endpoints), the X-Consul-Index returned is now the index at which the
+service has been modified, not the global Raft Index of all services.
+
+Thus, if several versions of Consul are pre 1.0.7 and post 1.0.7, (ie: during an
+upgrade) it is possible to have a lower X-Consul-Index returned than the previous
+X-Consul-Index issued for this service.
+
+It should not be an issue unless library code does issue an error if it expects
+X-Consul-Index to be strictly increasing.
 
 ## Backward Incompatible Upgrades
 

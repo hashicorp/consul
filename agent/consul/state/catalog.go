@@ -761,19 +761,19 @@ func (s *Store) ServicesByNodeMeta(ws memdb.WatchSet, filters map[string]string)
 
 // maxIndexForService return the maximum Raft Index for a service
 // If the index is not set for the service, it will return:
-// - maxIndex(nodes, services) if checks if false
-// - maxIndex(nodes, services, checks) if checks if false
-func maxIndexForService(tx *memdb.Txn, serviceName string, checks bool) (uint64, error) {
+// - maxIndex(nodes, services) if checks is false
+// - maxIndex(nodes, services, checks) if checks is true
+func maxIndexForService(tx *memdb.Txn, serviceName string, checks bool) uint64 {
 	transaction, err := tx.First("index", "id", serviceIndexName(serviceName))
 	if err == nil {
 		if idx, ok := transaction.(*IndexEntry); ok {
-			return idx.Value, nil
+			return idx.Value
 		}
 	}
 	if checks {
-		return maxIndexTxn(tx, "nodes", "services", "checks"), nil
+		return maxIndexTxn(tx, "nodes", "services", "checks")
 	}
-	return maxIndexTxn(tx, "nodes", "services"), nil
+	return maxIndexTxn(tx, "nodes", "services")
 }
 
 // ServiceNodes returns the nodes associated with a given service name.
@@ -782,10 +782,7 @@ func (s *Store) ServiceNodes(ws memdb.WatchSet, serviceName string) (uint64, str
 	defer tx.Abort()
 
 	// Get the table index.
-	idx, err := maxIndexForService(tx, serviceName, false)
-	if err != nil {
-		panic(fmt.Sprintf("Could not retrieve maxIndex for %s: %s", serviceName, err))
-	}
+	idx := maxIndexForService(tx, serviceName, false)
 	// List all the services.
 	services, err := tx.Get("services", "service", serviceName)
 	if err != nil {
@@ -813,10 +810,7 @@ func (s *Store) ServiceTagNodes(ws memdb.WatchSet, service string, tag string) (
 	defer tx.Abort()
 
 	// Get the table index.
-	idx, err := maxIndexForService(tx, service, false)
-	if err != nil {
-		panic(fmt.Sprintf("Could not retrieve maxIndex for %s: %s", service, err))
-	}
+	idx := maxIndexForService(tx, service, false)
 
 	// List all the services.
 	services, err := tx.Get("services", "service", service)
@@ -1267,10 +1261,7 @@ func (s *Store) ServiceChecksByNodeMeta(ws memdb.WatchSet, serviceName string,
 	defer tx.Abort()
 
 	// Get the table index.
-	idx, err := maxIndexForService(tx, serviceName, true)
-	if err != nil {
-		panic(fmt.Sprintf("Could not retrieve maxIndex for %s: %s", serviceName, err))
-	}
+	idx := maxIndexForService(tx, serviceName, true)
 	// Return the checks.
 	iter, err := tx.Get("checks", "service", serviceName)
 	if err != nil {
@@ -1449,10 +1440,7 @@ func (s *Store) CheckServiceNodes(ws memdb.WatchSet, serviceName string) (uint64
 	defer tx.Abort()
 
 	// Get the table index.
-	idx, err := maxIndexForService(tx, serviceName, true)
-	if err != nil {
-		panic(fmt.Sprintf("Could not retrieve maxIndex for %s: %s", serviceName, err))
-	}
+	idx := maxIndexForService(tx, serviceName, true)
 
 	// Query the state store for the service.
 	iter, err := tx.Get("services", "service", serviceName)
@@ -1476,10 +1464,7 @@ func (s *Store) CheckServiceTagNodes(ws memdb.WatchSet, serviceName, tag string)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx, err := maxIndexForService(tx, serviceName, true)
-	if err != nil {
-		panic(fmt.Sprintf("Could not retrieve maxIndex for %s: %s", serviceName, err))
-	}
+	idx := maxIndexForService(tx, serviceName, true)
 
 	// Query the state store for the service.
 	iter, err := tx.Get("services", "service", serviceName)
