@@ -43,7 +43,7 @@ func New(r *dns.Msg, rr *dnstest.Recorder, emptyValue string) Replacer {
 				return time.Now().Format(timeFormat)
 			}(),
 			"{size}":   strconv.Itoa(req.Len()),
-			"{remote}": req.IP(),
+			"{remote}": addrToRFC3986(req.IP()),
 			"{port}":   req.Port(),
 		},
 		emptyValue: emptyValue,
@@ -153,6 +153,14 @@ func flagsToString(h dns.MsgHdr) string {
 		i++
 	}
 	return strings.Join(flags[:i], ",")
+}
+
+// addrToRFC3986 will add brackets to the address if it is an IPv6 address.
+func addrToRFC3986(addr string) string {
+	if strings.Contains(addr, ":") {
+		return "[" + addr + "]"
+	}
+	return addr
 }
 
 const (

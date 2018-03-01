@@ -59,7 +59,7 @@ The following place holders are supported:
 * `{class}`: qclass of the request
 * `{proto}`: protocol used (tcp or udp)
 * `{when}`: time of the query
-* `{remote}`: client's IP address
+* `{remote}`: client's IP address, for IPv6 addresses these are enclosed in brackets: `[::1]`
 * `{size}`: request size in bytes
 * `{port}`: client's port
 * `{duration}`: response duration
@@ -75,7 +75,7 @@ The following place holders are supported:
 The default Common Log Format is:
 
 ~~~ txt
-`{remote} - [{when}] {>id} "{type} {class} {name} {proto} {size} {>do} {>bufsize}" {rcode} {>rflags} {rsize} {duration}`
+`{remote}:{port} - [{when}] {>id} "{type} {class} {name} {proto} {size} {>do} {>bufsize}" {rcode} {>rflags} {rsize} {duration}`
 ~~~
 
 ## Examples
