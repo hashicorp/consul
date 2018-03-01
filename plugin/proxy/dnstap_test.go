@@ -14,9 +14,9 @@ import (
 	"golang.org/x/net/context"
 )
 
-func testCase(t *testing.T, ex Exchanger, q, r *dns.Msg, datq, datr *msg.Data) {
-	tapq := datq.ToOutsideQuery(tap.Message_FORWARDER_QUERY)
-	tapr := datr.ToOutsideResponse(tap.Message_FORWARDER_RESPONSE)
+func testCase(t *testing.T, ex Exchanger, q, r *dns.Msg, datq, datr *msg.Builder) {
+	tapq, _ := datq.ToOutsideQuery(tap.Message_FORWARDER_QUERY)
+	tapr, _ := datr.ToOutsideResponse(tap.Message_FORWARDER_RESPONSE)
 	ctx := test.Context{}
 	err := toDnstap(&ctx, "10.240.0.1:40212", ex,
 		request.Request{W: &mwtest.ResponseWriter{}, Req: q}, r, time.Now())

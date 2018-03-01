@@ -66,7 +66,7 @@ func setup(c *caddy.Controller) error {
 	}
 
 	dio := dnstapio.New(conf.target, conf.socket)
-	dnstap := Dnstap{IO: dio, Pack: conf.full}
+	dnstap := Dnstap{IO: dio, JoinRawMessage: conf.full}
 
 	c.OnStartup(func() error {
 		dio.Connect()

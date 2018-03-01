@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/coredns/coredns/plugin/dnstap"
+	"github.com/coredns/coredns/plugin/dnstap/msg"
 	"github.com/coredns/coredns/request"
 
 	tap "github.com/dnstap/golang-dnstap"
@@ -18,11 +19,7 @@ func toDnstap(ctx context.Context, host string, ex Exchanger, state request.Requ
 	}
 
 	// Query
-	b := tapper.TapBuilder()
-	b.TimeSec = uint64(start.Unix())
-	if err := b.HostPort(host); err != nil {
-		return err
-	}
+	b := msg.New().Time(start).HostPort(host)
 
 	t := ex.Transport()
 	if t == "" {
@@ -34,21 +31,26 @@ func toDnstap(ctx context.Context, host string, ex Exchanger, state request.Requ
 		b.SocketProto = tap.SocketProtocol_UDP
 	}
 
-	if err := b.Msg(state.Req); err != nil {
+	if tapper.Pack() {
+		b.Msg(state.Req)
+	}
+	m, err := b.ToOutsideQuery(tap.Message_FORWARDER_QUERY)
+	if err != nil {
 		return err
 	}
-
-	if err := tapper.TapMessage(b.ToOutsideQuery(tap.Message_FORWARDER_QUERY)); err != nil {
-		return err
-	}
+	tapper.TapMessage(m)
 
 	// Response
 	if reply != nil {
-		b.TimeSec = uint64(time.Now().Unix())
-		if err := b.Msg(reply); err != nil {
+		if tapper.Pack() {
+			b.Msg(reply)
+		}
+		m, err := b.Time(time.Now()).ToOutsideResponse(tap.Message_FORWARDER_RESPONSE)
+		if err != nil {
 			return err
 		}
-		return tapper.TapMessage(b.ToOutsideResponse(tap.Message_FORWARDER_RESPONSE))
+		tapper.TapMessage(m)
 	}
+
 	return nil
 }

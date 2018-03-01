@@ -12,12 +12,9 @@ import (
 	"github.com/miekg/dns"
 )
 
-func testRequest(t *testing.T, expected Data, r request.Request) {
-	d := Data{}
-	if err := d.RemoteAddr(r.W.RemoteAddr()); err != nil {
-		t.Fail()
-		return
-	}
+func testRequest(t *testing.T, expected Builder, r request.Request) {
+	d := Builder{}
+	d.Addr(r.W.RemoteAddr())
 	if d.SocketProto != expected.SocketProto ||
 		d.SocketFam != expected.SocketFam ||
 		!reflect.DeepEqual(d.Address, expected.Address) ||
@@ -27,7 +24,7 @@ func testRequest(t *testing.T, expected Data, r request.Request) {
 	}
 }
 func TestRequest(t *testing.T) {
-	testRequest(t, Data{
+	testRequest(t, Builder{
 		SocketProto: tap.SocketProtocol_UDP,
 		SocketFam:   tap.SocketFamily_INET,
 		Address:     net.ParseIP("10.240.0.1"),

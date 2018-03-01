@@ -21,67 +21,59 @@ type SendOption struct {
 
 // Tapper is what ResponseWriter needs to log to dnstap.
 type Tapper interface {
-	TapMessage(m *tap.Message) error
-	TapBuilder() msg.Builder
+	TapMessage(*tap.Message)
+	Pack() bool
 }
 
 // ResponseWriter captures the client response and logs the query to dnstap.
 // Single request use.
 // SendOption configures Dnstap to selectively send Dnstap messages. Default is send all.
 type ResponseWriter struct {
-	queryEpoch uint64
+	QueryEpoch time.Time
 	Query      *dns.Msg
 	dns.ResponseWriter
 	Tapper
-	err  error
 	Send *SendOption
+
+	dnstapErr error
 }
 
 // DnstapError check if a dnstap error occurred during Write and returns it.
-func (w ResponseWriter) DnstapError() error {
-	return w.err
-}
-
-// SetQueryEpoch sets the query epoch as reported by dnstap.
-func (w *ResponseWriter) SetQueryEpoch() {
-	w.queryEpoch = uint64(time.Now().Unix())
+func (w *ResponseWriter) DnstapError() error {
+	return w.dnstapErr
 }
 
 // WriteMsg writes back the response to the client and THEN works on logging the request
 // and response to dnstap.
-// Dnstap errors are to be checked by DnstapError.
 func (w *ResponseWriter) WriteMsg(resp *dns.Msg) (writeErr error) {
 	writeErr = w.ResponseWriter.WriteMsg(resp)
-	writeEpoch := uint64(time.Now().Unix())
+	writeEpoch := time.Now()
 
-	b := w.TapBuilder()
-	b.TimeSec = w.queryEpoch
+	b := msg.New().Time(w.QueryEpoch).Addr(w.RemoteAddr())
 
 	if w.Send == nil || w.Send.Cq {
-		if err := func() (err error) {
-			err = b.AddrMsg(w.ResponseWriter.RemoteAddr(), w.Query)
-			if err != nil {
-				return
-			}
-			return w.TapMessage(b.ToClientQuery())
-		}(); err != nil {
-			w.err = fmt.Errorf("client query: %s", err)
-			// don't forget to call DnstapError later
+		if w.Pack() {
+			b.Msg(w.Query)
+		}
+		if m, err := b.ToClientQuery(); err != nil {
+			w.dnstapErr = fmt.Errorf("client query: %s", err)
+		} else {
+			w.TapMessage(m)
 		}
 	}
 
 	if w.Send == nil || w.Send.Cr {
 		if writeErr == nil {
-			if err := func() (err error) {
-				b.TimeSec = writeEpoch
-				if err = b.Msg(resp); err != nil {
-					return
-				}
-				return w.TapMessage(b.ToClientResponse())
-			}(); err != nil {
-				w.err = fmt.Errorf("client response: %s", err)
+			if w.Pack() {
+				b.Msg(resp)
+			}
+			if m, err := b.Time(writeEpoch).ToClientResponse(); err != nil {
+				w.dnstapErr = fmt.Errorf("client response: %s", err)
+			} else {
+				w.TapMessage(m)
 			}
 		}
 	}
-	return
+
+	return writeErr
 }

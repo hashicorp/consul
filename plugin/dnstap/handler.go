@@ -1,11 +1,9 @@
 package dnstap
 
 import (
-	"fmt"
-	"io"
+	"time"
 
 	"github.com/coredns/coredns/plugin"
-	"github.com/coredns/coredns/plugin/dnstap/msg"
 	"github.com/coredns/coredns/plugin/dnstap/taprw"
 
 	tap "github.com/dnstap/golang-dnstap"
@@ -17,7 +15,9 @@ import (
 type Dnstap struct {
 	Next plugin.Handler
 	IO   IORoutine
-	Pack bool
+
+	// Set to true to include the relevant raw DNS message into the dnstap messages.
+	JoinRawMessage bool
 }
 
 type (
@@ -27,8 +27,8 @@ type (
 	}
 	// Tapper is implemented by the Context passed by the dnstap handler.
 	Tapper interface {
-		TapMessage(*tap.Message) error
-		TapBuilder() msg.Builder
+		TapMessage(message *tap.Message)
+		Pack() bool
 	}
 	tapContext struct {
 		context.Context
@@ -50,24 +50,18 @@ func TapperFromContext(ctx context.Context) (t Tapper) {
 	return
 }
 
-func tapMessageTo(w io.Writer, m *tap.Message) error {
-	frame, err := msg.Marshal(m)
-	if err != nil {
-		return fmt.Errorf("marshal: %s", err)
-	}
-	_, err = w.Write(frame)
-	return err
-}
-
 // TapMessage implements Tapper.
-func (h Dnstap) TapMessage(m *tap.Message) error {
-	h.IO.Dnstap(msg.Wrap(m))
-	return nil
+func (h *Dnstap) TapMessage(m *tap.Message) {
+	t := tap.Dnstap_MESSAGE
+	h.IO.Dnstap(tap.Dnstap{
+		Type:    &t,
+		Message: m,
+	})
 }
 
-// TapBuilder implements Tapper.
-func (h Dnstap) TapBuilder() msg.Builder {
-	return msg.Builder{Full: h.Pack}
+// Pack returns true if the raw DNS message should be included into the dnstap messages.
+func (h Dnstap) Pack() bool {
+	return h.JoinRawMessage
 }
 
 // ServeDNS logs the client query and response to dnstap and passes the dnstap Context.
@@ -78,8 +72,13 @@ func (h Dnstap) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 	sendOption := taprw.SendOption{Cq: true, Cr: true}
 	newCtx := context.WithValue(ctx, DnstapSendOption, &sendOption)
 
-	rw := &taprw.ResponseWriter{ResponseWriter: w, Tapper: &h, Query: r, Send: &sendOption}
-	rw.SetQueryEpoch()
+	rw := &taprw.ResponseWriter{
+		ResponseWriter: w,
+		Tapper:         &h,
+		Query:          r,
+		Send:           &sendOption,
+		QueryEpoch:     time.Now(),
+	}
 
 	code, err := plugin.NextOrFailure(h.Name(), h.Next, tapContext{newCtx, h}, rw, r)
 	if err != nil {
@@ -87,7 +86,7 @@ func (h Dnstap) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 		return code, err
 	}
 
-	if err := rw.DnstapError(); err != nil {
+	if err = rw.DnstapError(); err != nil {
 		return code, plugin.Error("dnstap", err)
 	}
 
