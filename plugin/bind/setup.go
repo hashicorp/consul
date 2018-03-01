@@ -10,7 +10,7 @@ import (
 	"github.com/mholt/caddy"
 )
 
-func setupBind(c *caddy.Controller) error {
+func setup(c *caddy.Controller) error {
 	config := dnsserver.GetConfig(c)
 
 	// addresses will be consolidated over all BIND directives available in that BlocServer

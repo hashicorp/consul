@@ -8,7 +8,7 @@ import (
 	"github.com/mholt/caddy"
 )
 
-func TestSetupBind(t *testing.T) {
+func TestSetup(t *testing.T) {
 	for i, test := range []struct {
 		config   string
 		expected []string
@@ -22,7 +22,7 @@ func TestSetupBind(t *testing.T) {
 		{`bind ::1 1.2.3.4 ::5 127.9.9.0 noone`, nil, true},
 	} {
 		c := caddy.NewTestController("dns", test.config)
-		err := setupBind(c)
+		err := setup(c)
 		if err != nil {
 			if !test.failing {
 				t.Fatalf("test %d, expected no errors, but got: %v", i, err)

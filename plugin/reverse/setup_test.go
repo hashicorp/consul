@@ -9,7 +9,7 @@ import (
 	"github.com/mholt/caddy"
 )
 
-func TestSetupParse(t *testing.T) {
+func TestSetup(t *testing.T) {
 
 	_, net4, _ := net.ParseCIDR("10.1.1.0/24")
 	_, net6, _ := net.ParseCIDR("fd01::/64")

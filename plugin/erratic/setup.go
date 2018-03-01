@@ -14,11 +14,11 @@ import (
 func init() {
 	caddy.RegisterPlugin("erratic", caddy.Plugin{
 		ServerType: "dns",
-		Action:     setupErratic,
+		Action:     setup,
 	})
 }
 
-func setupErratic(c *caddy.Controller) error {
+func setup(c *caddy.Controller) error {
 	e, err := parseErratic(c)
 	if err != nil {
 		return plugin.Error("erratic", err)

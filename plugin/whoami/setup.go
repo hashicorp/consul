@@ -10,11 +10,11 @@ import (
 func init() {
 	caddy.RegisterPlugin("whoami", caddy.Plugin{
 		ServerType: "dns",
-		Action:     setupWhoami,
+		Action:     setup,
 	})
 }
 
-func setupWhoami(c *caddy.Controller) error {
+func setup(c *caddy.Controller) error {
 	c.Next() // 'whoami'
 	if c.NextArg() {
 		return plugin.Error("whoami", c.ArgErr())

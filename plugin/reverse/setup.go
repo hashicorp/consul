@@ -17,11 +17,11 @@ import (
 func init() {
 	caddy.RegisterPlugin("reverse", caddy.Plugin{
 		ServerType: "dns",
-		Action:     setupReverse,
+		Action:     setup,
 	})
 }
 
-func setupReverse(c *caddy.Controller) error {
+func setup(c *caddy.Controller) error {
 	networks, fall, err := reverseParse(c)
 	if err != nil {
 		return plugin.Error("reverse", err)
