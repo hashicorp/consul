@@ -2,6 +2,7 @@ package consul
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -57,6 +58,18 @@ func (s *Intention) Apply(
 		}
 	}
 	*reply = args.Intention.ID
+
+	// If this is not a create, then we have to verify the ID.
+	if args.Op != structs.IntentionOpCreate {
+		state := s.srv.fsm.State()
+		_, ixn, err := state.IntentionGet(nil, args.Intention.ID)
+		if err != nil {
+			return fmt.Errorf("Intention lookup failed: %v", err)
+		}
+		if ixn == nil {
+			return fmt.Errorf("Cannot modify non-existent intention: '%s'", args.Intention.ID)
+		}
+	}
 
 	// Commit
 	resp, err := s.srv.raftApply(structs.IntentionRequestType, args)
