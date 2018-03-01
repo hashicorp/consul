@@ -607,7 +607,9 @@ func TestParseConsistency(t *testing.T) {
 	var b structs.QueryOptions
 
 	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?stale", nil)
-	if d := parseConsistency(resp, req, &b); d {
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+	if d := a.srv.parseConsistency(resp, req, &b); d {
 		t.Fatalf("unexpected done")
 	}
 
@@ -620,7 +622,7 @@ func TestParseConsistency(t *testing.T) {
 
 	b = structs.QueryOptions{}
 	req, _ = http.NewRequest("GET", "/v1/catalog/nodes?consistent", nil)
-	if d := parseConsistency(resp, req, &b); d {
+	if d := a.srv.parseConsistency(resp, req, &b); d {
 		t.Fatalf("unexpected done")
 	}
 
@@ -638,7 +640,9 @@ func TestParseConsistency_Invalid(t *testing.T) {
 	var b structs.QueryOptions
 
 	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?stale&consistent", nil)
-	if d := parseConsistency(resp, req, &b); !d {
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+	if d := a.srv.parseConsistency(resp, req, &b); !d {
 		t.Fatalf("expected done")
 	}
 
