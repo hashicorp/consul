@@ -182,6 +182,57 @@ func TestIntentionApply_updateNonExist(t *testing.T) {
 	}
 }
 
+// Test basic deleting
+func TestIntentionApply_deleteGood(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Setup a basic record to create
+	ixn := structs.IntentionRequest{
+		Datacenter: "dc1",
+		Op:         structs.IntentionOpCreate,
+		Intention: &structs.Intention{
+			SourceName: "test",
+		},
+	}
+	var reply string
+
+	// Create
+	if err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if reply == "" {
+		t.Fatal("reply should be non-empty")
+	}
+
+	// Delete
+	ixn.Op = structs.IntentionOpDelete
+	ixn.Intention.ID = reply
+	if err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Read
+	ixn.Intention.ID = reply
+	{
+		req := &structs.IntentionQueryRequest{
+			Datacenter:  "dc1",
+			IntentionID: ixn.Intention.ID,
+		}
+		var resp structs.IndexedIntentions
+		err := msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp)
+		if err == nil || !strings.Contains(err.Error(), ErrIntentionNotFound.Error()) {
+			t.Fatalf("err: %v", err)
+		}
+	}
+}
+
 func TestIntentionList(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServer(t)
