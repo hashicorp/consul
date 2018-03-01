@@ -79,7 +79,7 @@ func (s *HTTPServer) IntentionSpecific(resp http.ResponseWriter, req *http.Reque
 		panic("TODO")
 
 	case "DELETE":
-		panic("TODO")
+		return s.IntentionSpecificDelete(id, resp, req)
 
 	default:
 		return nil, MethodNotAllowedError{req.Method, []string{"GET", "PUT", "DELETE"}}
@@ -111,6 +111,25 @@ func (s *HTTPServer) IntentionSpecificGet(id string, resp http.ResponseWriter, r
 
 	// TODO: validate length
 	return reply.Intentions[0], nil
+}
+
+// DELETE /v1/connect/intentions/:id
+func (s *HTTPServer) IntentionSpecificDelete(id string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Method is tested in IntentionEndpoint
+
+	args := structs.IntentionRequest{
+		Op:        structs.IntentionOpDelete,
+		Intention: &structs.Intention{ID: id},
+	}
+	s.parseDC(req, &args.Datacenter)
+	s.parseToken(req, &args.Token)
+
+	var reply string
+	if err := s.agent.RPC("Intention.Apply", &args, &reply); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
 }
 
 // intentionCreateResponse is the response structure for creating an intention.

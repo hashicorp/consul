@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -151,4 +152,71 @@ func TestIntentionsSpecificGet_good(t *testing.T) {
 	if !reflect.DeepEqual(value, ixn) {
 		t.Fatalf("bad (got, want):\n\n%#v\n\n%#v", value, ixn)
 	}
+}
+
+func TestIntentionsSpecificDelete_good(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// The intention
+	ixn := &structs.Intention{SourceName: "foo"}
+
+	// Create an intention directly
+	var reply string
+	{
+		req := structs.IntentionRequest{
+			Datacenter: "dc1",
+			Op:         structs.IntentionOpCreate,
+			Intention:  ixn,
+		}
+		if err := a.RPC("Intention.Apply", &req, &reply); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	// Sanity check that the intention exists
+	{
+		req := &structs.IntentionQueryRequest{
+			Datacenter:  "dc1",
+			IntentionID: reply,
+		}
+		var resp structs.IndexedIntentions
+		if err := a.RPC("Intention.Get", req, &resp); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if len(resp.Intentions) != 1 {
+			t.Fatalf("bad: %v", resp)
+		}
+		actual := resp.Intentions[0]
+		if actual.SourceName != "foo" {
+			t.Fatalf("bad: %#v", actual)
+		}
+	}
+
+	// Delete the intention
+	req, _ := http.NewRequest("DELETE", fmt.Sprintf("/v1/connect/intentions/%s", reply), nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.IntentionSpecific(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if obj != nil {
+		t.Fatalf("obj should be nil: %v", err)
+	}
+
+	// Verify the intention is gone
+	{
+		req := &structs.IntentionQueryRequest{
+			Datacenter:  "dc1",
+			IntentionID: reply,
+		}
+		var resp structs.IndexedIntentions
+		err := a.RPC("Intention.Get", req, &resp)
+		if err == nil || !strings.Contains(err.Error(), "not found") {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
 }
