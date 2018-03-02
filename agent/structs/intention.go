@@ -4,6 +4,11 @@ import (
 	"time"
 )
 
+const (
+	// IntentionWildcard is the wildcard value.
+	IntentionWildcard = "*"
+)
+
 // Intention defines an intention for the Connect Service Graph. This defines
 // the allowed or denied behavior of a connection between two services using
 // Connect.
@@ -100,6 +105,16 @@ func (q *IntentionRequest) RequestDatacenter() string {
 	return q.Datacenter
 }
 
+// IntentionMatchType is the target for a match request. For example,
+// matching by source will look for all intentions that match the given
+// source value.
+type IntentionMatchType string
+
+const (
+	IntentionMatchSource      IntentionMatchType = "source"
+	IntentionMatchDestination IntentionMatchType = "destination"
+)
+
 // IntentionQueryRequest is used to query intentions.
 type IntentionQueryRequest struct {
 	// Datacenter is the target this request is intended for.
@@ -108,6 +123,12 @@ type IntentionQueryRequest struct {
 	// IntentionID is the ID of a specific intention.
 	IntentionID string
 
+	// MatchBy and MatchNames are used to match a namespace/name pair
+	// to a set of intentions. The list of MatchNames is an OR list,
+	// all matching intentions are returned together.
+	MatchBy    IntentionMatchType
+	MatchNames []string
+
 	// Options for queries
 	QueryOptions
 }
@@ -115,4 +136,63 @@ type IntentionQueryRequest struct {
 // RequestDatacenter returns the datacenter for a given request.
 func (q *IntentionQueryRequest) RequestDatacenter() string {
 	return q.Datacenter
+}
+
+// IntentionQueryMatch are the parameters for performing a match request
+// against the state store.
+type IntentionQueryMatch struct {
+	Type    IntentionMatchType
+	Entries []IntentionMatchEntry
+}
+
+// IntentionMatchEntry is a single entry for matching an intention.
+type IntentionMatchEntry struct {
+	Namespace string
+	Name      string
+}
+
+// IntentionPrecedenceSorter takes a list of intentions and sorts them
+// based on the match precedence rules for intentions. The intentions
+// closer to the head of the list have higher precedence. i.e. index 0 has
+// the highest precedence.
+type IntentionPrecedenceSorter Intentions
+
+func (s IntentionPrecedenceSorter) Len() int { return len(s) }
+func (s IntentionPrecedenceSorter) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func (s IntentionPrecedenceSorter) Less(i, j int) bool {
+	a, b := s[i], s[j]
+
+	// First test the # of exact values in destination, since precedence
+	// is destination-oriented.
+	aExact := s.countExact(a.DestinationNS, a.DestinationName)
+	bExact := s.countExact(b.DestinationNS, b.DestinationName)
+	if aExact != bExact {
+		return aExact > bExact
+	}
+
+	// Next test the # of exact values in source
+	aExact = s.countExact(a.SourceNS, a.SourceName)
+	bExact = s.countExact(b.SourceNS, b.SourceName)
+	return aExact > bExact
+}
+
+// countExact counts the number of exact values (not wildcards) in
+// the given namespace and name.
+func (s IntentionPrecedenceSorter) countExact(ns, n string) int {
+	// If NS is wildcard, it must be zero since wildcards only follow exact
+	if ns == IntentionWildcard {
+		return 0
+	}
+
+	// Same reasoning as above, a wildcard can only follow an exact value
+	// and an exact value cannot follow a wildcard, so if name is a wildcard
+	// we must have exactly one.
+	if n == IntentionWildcard {
+		return 1
+	}
+
+	return 2
 }
