@@ -18,6 +18,7 @@ type Builder struct {
 	Address     net.IP
 	Port        uint32
 	TimeSec     uint64
+	TimeNsec    uint32
 
 	err error
 }
@@ -95,6 +96,7 @@ func (b *Builder) HostPort(addr string) *Builder {
 // Time adds the timestamp to the message.
 func (b *Builder) Time(ts time.Time) *Builder {
 	b.TimeSec = uint64(ts.Unix())
+	b.TimeNsec = uint32(ts.Nanosecond())
 	return b
 }
 
@@ -102,13 +104,14 @@ func (b *Builder) Time(ts time.Time) *Builder {
 func (b *Builder) ToClientResponse() (*tap.Message, error) {
 	t := tap.Message_CLIENT_RESPONSE
 	return &tap.Message{
-		Type:            &t,
-		SocketFamily:    &b.SocketFam,
-		SocketProtocol:  &b.SocketProto,
-		ResponseTimeSec: &b.TimeSec,
-		ResponseMessage: b.Packed,
-		QueryAddress:    b.Address,
-		QueryPort:       &b.Port,
+		Type:             &t,
+		SocketFamily:     &b.SocketFam,
+		SocketProtocol:   &b.SocketProto,
+		ResponseTimeSec:  &b.TimeSec,
+		ResponseTimeNsec: &b.TimeNsec,
+		ResponseMessage:  b.Packed,
+		QueryAddress:     b.Address,
+		QueryPort:        &b.Port,
 	}, b.err
 }
 
@@ -120,6 +123,7 @@ func (b *Builder) ToClientQuery() (*tap.Message, error) {
 		SocketFamily:   &b.SocketFam,
 		SocketProtocol: &b.SocketProto,
 		QueryTimeSec:   &b.TimeSec,
+		QueryTimeNsec:  &b.TimeNsec,
 		QueryMessage:   b.Packed,
 		QueryAddress:   b.Address,
 		QueryPort:      &b.Port,
@@ -133,6 +137,7 @@ func (b *Builder) ToOutsideQuery(t tap.Message_Type) (*tap.Message, error) {
 		SocketFamily:    &b.SocketFam,
 		SocketProtocol:  &b.SocketProto,
 		QueryTimeSec:    &b.TimeSec,
+		QueryTimeNsec:   &b.TimeNsec,
 		QueryMessage:    b.Packed,
 		ResponseAddress: b.Address,
 		ResponsePort:    &b.Port,
@@ -142,12 +147,13 @@ func (b *Builder) ToOutsideQuery(t tap.Message_Type) (*tap.Message, error) {
 // ToOutsideResponse transforms the data into a forwarder or resolver response message.
 func (b *Builder) ToOutsideResponse(t tap.Message_Type) (*tap.Message, error) {
 	return &tap.Message{
-		Type:            &t,
-		SocketFamily:    &b.SocketFam,
-		SocketProtocol:  &b.SocketProto,
-		ResponseTimeSec: &b.TimeSec,
-		ResponseMessage: b.Packed,
-		ResponseAddress: b.Address,
-		ResponsePort:    &b.Port,
+		Type:             &t,
+		SocketFamily:     &b.SocketFam,
+		SocketProtocol:   &b.SocketProto,
+		ResponseTimeSec:  &b.TimeSec,
+		ResponseTimeNsec: &b.TimeNsec,
+		ResponseMessage:  b.Packed,
+		ResponseAddress:  b.Address,
+		ResponsePort:     &b.Port,
 	}, b.err
 }
