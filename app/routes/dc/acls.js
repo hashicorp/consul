@@ -1,12 +1,18 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
+import { hash } from 'rsvp';
 
 export default Route.extend({
   repo: service('acls'),
-  model: function() {
-    //params
-    // Return a promise containing the ACLS
-    return this.get('repo').findByDatacenter(this.modelFor('dc').dc);
+  model: function(/* params */) {
+    const repo = this.get('repo');
+    return hash({
+      acls: repo.findAllByDatacenter(this.modelFor('dc').dc),
+      newAcl: repo.create(),
+    });
+  },
+  setupController: function(controller, model) {
+    controller.setProperties(model);
   },
   actions: {
     error: function(error) {
@@ -21,9 +27,5 @@ export default Route.extend({
       }
       return true;
     },
-  },
-  setupController: function(controller, model) {
-    controller.set('acls', model);
-    controller.set('newAcl', this.get('repo').create());
   },
 });

@@ -9,8 +9,8 @@ export default Route.extend({
     const repo = this.get('repo');
     const nodeRepo = this.get('nodeRepo');
     return hash({
-      item: params.dc,
-      items: repo.findAll(),
+      dc: params.dc,
+      dcs: repo.findAll(),
       nodes: nodeRepo.findAllByDatacenter(params.dc),
       coordinates: nodeRepo.findAllCoordinatesByDatacenter(params.dc),
     });

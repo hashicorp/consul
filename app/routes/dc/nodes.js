@@ -1,15 +1,16 @@
 import Route from '@ember/routing/route';
-
 import { inject as service } from '@ember/service';
+import { hash } from 'rsvp';
 
 export default Route.extend({
   repo: service('nodes'),
-  model: function() {
-    // params
-    // Return a promise containing the nodes
-    return this.get('repo').findAllByDatacenter(this.modelFor('dc').dc);
+  model: function(/* params */) {
+    const repo = this.get('repo');
+    return hash({
+      nodes: repo.findAllByDatacenter(this.modelFor('dc').dc),
+    });
   },
   setupController: function(controller, model) {
-    controller.set('nodes', model);
+    controller.setProperties(model);
   },
 });
