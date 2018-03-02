@@ -38,16 +38,24 @@ Consul is A, and version B is released.
 
 ## Upgrade from Version 1.0.6 to higher
 
-In version 1.0.7 and higher, when requesting a specific service (/health or
-/catalog endpoints), the X-Consul-Index returned is now the index at which the
-service has been modified, not the global Raft Index of all services.
+In version 1.0.7 and higher, when requesting a specific service
+(`/v1/health/:service` or `/v1/catalog/:service` endpoints), the
+`X-Consul-Index` returned is now the index at which that specific service was
+last modified.
+In version 1.0.6 and earlier the X-Consul-Index returned was the index at
+which any service was last modified. See
+[GH-3890](https://github.com/hashicorp/consul/issues/3890) for more details.
 
-Thus, if several versions of Consul are pre 1.0.7 and post 1.0.7, (ie: during an
-upgrade) it is possible to have a lower X-Consul-Index returned than the previous
-X-Consul-Index issued for this service.
+During upgrades from 1.0.6 or lower to 1.0.7 or higher, watchers are likely to
+see `X-Consul-Index` for these endpoints decrease between blocking calls.
 
-It should not be an issue unless library code does issue an error if it expects
-X-Consul-Index to be strictly increasing.
+Consul’s watch feature and consul-template should gracefully handle this case.
+Other tools relying on blocking service or health queries are also likely to
+work; some may require a restart. It is possible external tools could break and
+either stop working or continually re-request data without blocking if they
+have assumed indexes can never decrease or be reset and/or persist index
+values. Please test any blocking query integrations in a controlled environment
+before proceeding.
 
 ## Backward Incompatible Upgrades
 
