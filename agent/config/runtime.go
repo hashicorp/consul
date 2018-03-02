@@ -463,13 +463,13 @@ type RuntimeConfig struct {
 
 	// Defines the level of consistenty when not specified in a HTTP request
 	//
-	// Can be stale, leader, consistent
+	// Can be stale, leader, consistent, by default "leader"
 	DefaultConsistencyLevel string
 
 	// Defines the level of consistency for discovery that will take precedence
 	// over DefaultConsistencyLevel if specified
 	// Will apply on endpoints /v1/catalog/* or /v1/health/*
-	// Can be stale, leader, consistent
+	// Can be stale, leader, consistent, by default, "leader"
 	DiscoveryConsistencyLevel string
 
 	// Node name is the name we use to advertise. Defaults to hostname.
