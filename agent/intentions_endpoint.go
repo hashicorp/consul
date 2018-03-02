@@ -67,6 +67,70 @@ func (s *HTTPServer) IntentionCreate(resp http.ResponseWriter, req *http.Request
 	return intentionCreateResponse{reply}, nil
 }
 
+// GET /v1/connect/intentions/match
+func (s *HTTPServer) IntentionMatch(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Test the method
+	if req.Method != "GET" {
+		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+	}
+
+	// Prepare args
+	args := &structs.IntentionQueryRequest{Match: &structs.IntentionQueryMatch{}}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	q := req.URL.Query()
+
+	// Extract the "by" query parameter
+	if by, ok := q["by"]; !ok || len(by) != 1 {
+		return nil, fmt.Errorf("required query parameter 'by' not set")
+	} else {
+		switch v := structs.IntentionMatchType(by[0]); v {
+		case structs.IntentionMatchSource, structs.IntentionMatchDestination:
+			args.Match.Type = v
+		default:
+			return nil, fmt.Errorf("'by' parameter must be one of 'source' or 'destination'")
+		}
+	}
+
+	// Extract all the match names
+	names, ok := q["name"]
+	if !ok || len(names) == 0 {
+		return nil, fmt.Errorf("required query parameter 'name' not set")
+	}
+
+	// Build the entries in order. The order matters since that is the
+	// order of the returned responses.
+	args.Match.Entries = make([]structs.IntentionMatchEntry, len(names))
+	for i, n := range names {
+		entry, err := parseIntentionMatchEntry(n)
+		if err != nil {
+			return nil, fmt.Errorf("name %q is invalid: %s", n, err)
+		}
+
+		args.Match.Entries[i] = entry
+	}
+
+	var reply structs.IndexedIntentionMatches
+	if err := s.agent.RPC("Intention.Match", args, &reply); err != nil {
+		return nil, err
+	}
+
+	// We must have an identical count of matches
+	if len(reply.Matches) != len(names) {
+		return nil, fmt.Errorf("internal error: match response count didn't match input count")
+	}
+
+	// Use empty list instead of nil.
+	response := make(map[string]structs.Intentions)
+	for i, ixns := range reply.Matches {
+		response[names[i]] = ixns
+	}
+
+	return response, nil
+}
+
 // IntentionSpecific handles the endpoint for /v1/connection/intentions/:id
 func (s *HTTPServer) IntentionSpecific(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	id := strings.TrimPrefix(req.URL.Path, "/v1/connect/intentions/")
@@ -161,3 +225,28 @@ func (s *HTTPServer) IntentionSpecificDelete(id string, resp http.ResponseWriter
 
 // intentionCreateResponse is the response structure for creating an intention.
 type intentionCreateResponse struct{ ID string }
+
+// parseIntentionMatchEntry parses the query parameter for an intention
+// match query entry.
+func parseIntentionMatchEntry(input string) (structs.IntentionMatchEntry, error) {
+	var result structs.IntentionMatchEntry
+
+	// TODO(mitchellh): when namespaces are introduced, set the default
+	// namespace to be the namespace of the requestor.
+
+	// Get the index to the '/'. If it doesn't exist, we have just a name
+	// so just set that and return.
+	idx := strings.IndexByte(input, '/')
+	if idx == -1 {
+		result.Name = input
+		return result, nil
+	}
+
+	result.Namespace = input[:idx]
+	result.Name = input[idx+1:]
+	if strings.IndexByte(result.Name, '/') != -1 {
+		return result, fmt.Errorf("input can contain at most one '/'")
+	}
+
+	return result, nil
+}

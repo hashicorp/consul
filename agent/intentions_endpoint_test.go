@@ -72,6 +72,125 @@ func TestIntentionsList_values(t *testing.T) {
 	}
 }
 
+func TestIntentionsMatch_basic(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Create some intentions
+	{
+		insert := [][]string{
+			{"foo", "*"},
+			{"foo", "bar"},
+			{"foo", "baz"}, // shouldn't match
+			{"bar", "bar"}, // shouldn't match
+			{"bar", "*"},   // shouldn't match
+			{"*", "*"},
+		}
+
+		for _, v := range insert {
+			ixn := structs.IntentionRequest{
+				Datacenter: "dc1",
+				Op:         structs.IntentionOpCreate,
+				Intention: &structs.Intention{
+					SourceNS:        "default",
+					SourceName:      "test",
+					DestinationNS:   v[0],
+					DestinationName: v[1],
+				},
+			}
+
+			// Create
+			var reply string
+			if err := a.RPC("Intention.Apply", &ixn, &reply); err != nil {
+				t.Fatalf("err: %v", err)
+			}
+		}
+	}
+
+	// Request
+	req, _ := http.NewRequest("GET",
+		"/v1/connect/intentions/match?by=destination&name=foo/bar", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.IntentionMatch(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	value := obj.(map[string]structs.Intentions)
+	if len(value) != 1 {
+		t.Fatalf("bad: %v", value)
+	}
+
+	var actual [][]string
+	expected := [][]string{{"foo", "bar"}, {"foo", "*"}, {"*", "*"}}
+	for _, ixn := range value["foo/bar"] {
+		actual = append(actual, []string{ixn.DestinationNS, ixn.DestinationName})
+	}
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad (got, wanted):\n\n%#v\n\n%#v", actual, expected)
+	}
+}
+
+func TestIntentionsMatch_noBy(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Request
+	req, _ := http.NewRequest("GET",
+		"/v1/connect/intentions/match?name=foo/bar", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.IntentionMatch(resp, req)
+	if err == nil || !strings.Contains(err.Error(), "by") {
+		t.Fatalf("err: %v", err)
+	}
+	if obj != nil {
+		t.Fatal("should have no response")
+	}
+}
+
+func TestIntentionsMatch_byInvalid(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Request
+	req, _ := http.NewRequest("GET",
+		"/v1/connect/intentions/match?by=datacenter", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.IntentionMatch(resp, req)
+	if err == nil || !strings.Contains(err.Error(), "'by' parameter") {
+		t.Fatalf("err: %v", err)
+	}
+	if obj != nil {
+		t.Fatal("should have no response")
+	}
+}
+
+func TestIntentionsMatch_noName(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Request
+	req, _ := http.NewRequest("GET",
+		"/v1/connect/intentions/match?by=source", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.IntentionMatch(resp, req)
+	if err == nil || !strings.Contains(err.Error(), "'name' not set") {
+		t.Fatalf("err: %v", err)
+	}
+	if obj != nil {
+		t.Fatal("should have no response")
+	}
+}
+
 func TestIntentionsCreate_good(t *testing.T) {
 	t.Parallel()
 
@@ -273,5 +392,51 @@ func TestIntentionsSpecificDelete_good(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 	}
+}
 
+func TestParseIntentionMatchEntry(t *testing.T) {
+	cases := []struct {
+		Input    string
+		Expected structs.IntentionMatchEntry
+		Err      bool
+	}{
+		{
+			"foo",
+			structs.IntentionMatchEntry{
+				Name: "foo",
+			},
+			false,
+		},
+
+		{
+			"foo/bar",
+			structs.IntentionMatchEntry{
+				Namespace: "foo",
+				Name:      "bar",
+			},
+			false,
+		},
+
+		{
+			"foo/bar/baz",
+			structs.IntentionMatchEntry{},
+			true,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Input, func(t *testing.T) {
+			actual, err := parseIntentionMatchEntry(tc.Input)
+			if (err != nil) != tc.Err {
+				t.Fatalf("err: %s", err)
+			}
+			if err != nil {
+				return
+			}
+
+			if !reflect.DeepEqual(actual, tc.Expected) {
+				t.Fatalf("bad: %#v", actual)
+			}
+		})
+	}
 }
