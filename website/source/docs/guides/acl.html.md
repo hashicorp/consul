@@ -961,12 +961,16 @@ to use for registration events:
 1. Using the [acl_token](/docs/agent/options.html#acl_token) configuration
    directive. This allows a single token to be configured globally and used
    during all service and check registration operations.
-2. Providing an ACL token with service and check definitions at
-   registration time. This allows for greater flexibility and enables the use
-   of multiple tokens on the same agent. Examples of what this looks like are
-   available for both [services](/docs/agent/services.html) and
-   [checks](/docs/agent/checks.html). Tokens may also be passed to the
-   [HTTP API](/api/index.html) for operations that require them.
+2. Providing an ACL token with service and check definitions at registration
+   time. This allows for greater flexibility and enables the use of multiple
+   tokens on the same agent. Examples of what this looks like are available for
+   both [services](/docs/agent/services.html) and
+   [checks](/docs/agent/checks.html). Tokens may also be passed to the [HTTP
+   API](/api/index.html) for operations that require them. **Note:** all tokens
+   passed to an agent are persisted on local disk to allow recovery from
+   restarts. See [`-data-dir` flag
+   documentation](/docs/agent/options.html#acl_token) for notes on securing
+   access.
 
 In addition to ACLs, in Consul 0.9.0 and later, the agent must be configured with
 [`enable_script_checks`](/docs/agent/options.html#_enable_script_checks) set to `true` in order to enable
