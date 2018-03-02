@@ -634,6 +634,83 @@ func TestParseConsistency(t *testing.T) {
 	}
 }
 
+func ensureConsistency(t *testing.T, a *TestAgent, path string, allowStale bool, requireConsistent bool) {
+	t.Helper()
+	req, _ := http.NewRequest("GET", path, nil)
+	var b structs.QueryOptions
+	resp := httptest.NewRecorder()
+	if d := a.srv.parseConsistency(resp, req, &b); d {
+		t.Fatalf("unexpected done")
+	}
+	if b.AllowStale != allowStale {
+		t.Fatalf("Bad Allow Stale")
+	}
+	if b.RequireConsistent != requireConsistent {
+		t.Fatal("Bad Consistent")
+	}
+}
+
+func TestParseConsistencyAndDefaultLevel(t *testing.T) {
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Default
+	a.config.DefaultConsistencyLevel = ""
+	ensureConsistency(t, a, "/v1/catalog/nodes", false, false)
+	// leader == default
+	a.config.DefaultConsistencyLevel = "leader"
+	ensureConsistency(t, a, "/v1/catalog/nodes", false, false)
+
+	// stale
+	a.config.DefaultConsistencyLevel = "stale"
+	ensureConsistency(t, a, "/v1/catalog/nodes", true, false)
+
+	// Should apply only on discovery path
+	a.config.DiscoveryConsistencyLevel = "consistent"
+	ensureConsistency(t, a, "/v1/catalog/nodes", false, true)
+	a.config.DiscoveryConsistencyLevel = "leader"
+	ensureConsistency(t, a, "/v1/catalog/nodes", false, false)
+	a.config.DiscoveryConsistencyLevel = "stale"
+	ensureConsistency(t, a, "/v1/catalog/nodes", true, false)
+
+	// DefaultConsistencyLevel should apply
+	a.config.DefaultConsistencyLevel = ""
+	ensureConsistency(t, a, "/v1/kv/path", false, false)
+
+	// DiscoveryConsistencyLevel should apply
+	ensureConsistency(t, a, "/v1/health/service/one", true, false)
+	ensureConsistency(t, a, "/v1/catalog/service/one", true, false)
+	ensureConsistency(t, a, "/v1/catalog/services", true, false)
+
+	// Query path should be taken into account
+	ensureConsistency(t, a, "/v1/catalog/services?consistent", false, true)
+	// Consistency taken into account
+	ensureConsistency(t, a, "/v1/catalog/services?consistent&consistency=leader", false, false)
+	ensureConsistency(t, a, "/v1/catalog/services?consistent&consistency=stale", true, false)
+	ensureConsistency(t, a, "/v1/catalog/services?stale&consistency=consistent", false, true)
+	ensureConsistency(t, a, "/v1/catalog/services?consistency=consistent", false, true)
+	ensureConsistency(t, a, "/v1/catalog/services?consistency=stale", true, false)
+	ensureConsistency(t, a, "/v1/catalog/services?consistency=leader", false, false)
+
+	a.config.DefaultConsistencyLevel = "leader"
+	a.config.DiscoveryConsistencyLevel = "stale"
+	ensureConsistency(t, a, "/v1/catalog/services?consistency=default", true, false)
+	ensureConsistency(t, a, "/v1/catalog/services", true, false)
+	ensureConsistency(t, a, "/v1/kv/my/path", false, false)
+
+	a.config.DefaultConsistencyLevel = ""
+	a.config.DiscoveryConsistencyLevel = "stale"
+	ensureConsistency(t, a, "/v1/catalog/services?consistency=default", true, false)
+	ensureConsistency(t, a, "/v1/catalog/services", true, false)
+	ensureConsistency(t, a, "/v1/kv/my/path", false, false)
+
+	a.config.DefaultConsistencyLevel = ""
+	a.config.DiscoveryConsistencyLevel = ""
+	ensureConsistency(t, a, "/v1/catalog/services?consistency=default", false, false)
+	ensureConsistency(t, a, "/v1/catalog/services", false, false)
+	ensureConsistency(t, a, "/v1/kv/my/path", false, false)
+}
+
 func TestParseConsistency_Invalid(t *testing.T) {
 	t.Parallel()
 	resp := httptest.NewRecorder()

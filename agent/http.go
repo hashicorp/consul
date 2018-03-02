@@ -420,6 +420,7 @@ func (s *HTTPServer) parseConsistency(resp http.ResponseWriter, req *http.Reques
 		if cval[0] == "default" {
 			defaults = true
 		} else {
+			defaults = false
 			err := fillConsistencyFromValue(b, cval[0])
 			if err != nil {
 				resp.WriteHeader(http.StatusBadRequest)
