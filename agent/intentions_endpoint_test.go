@@ -154,6 +154,61 @@ func TestIntentionsSpecificGet_good(t *testing.T) {
 	}
 }
 
+func TestIntentionsSpecificUpdate_good(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// The intention
+	ixn := &structs.Intention{SourceName: "foo"}
+
+	// Create an intention directly
+	var reply string
+	{
+		req := structs.IntentionRequest{
+			Datacenter: "dc1",
+			Op:         structs.IntentionOpCreate,
+			Intention:  ixn,
+		}
+		if err := a.RPC("Intention.Apply", &req, &reply); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	// Update the intention
+	ixn.ID = "bogus"
+	ixn.SourceName = "bar"
+	req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/connect/intentions/%s", reply), jsonReader(ixn))
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.IntentionSpecific(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if obj != nil {
+		t.Fatalf("obj should be nil: %v", err)
+	}
+
+	// Read the value
+	{
+		req := &structs.IntentionQueryRequest{
+			Datacenter:  "dc1",
+			IntentionID: reply,
+		}
+		var resp structs.IndexedIntentions
+		if err := a.RPC("Intention.Get", req, &resp); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if len(resp.Intentions) != 1 {
+			t.Fatalf("bad: %v", resp)
+		}
+		actual := resp.Intentions[0]
+		if actual.SourceName != "bar" {
+			t.Fatalf("bad: %#v", actual)
+		}
+	}
+}
+
 func TestIntentionsSpecificDelete_good(t *testing.T) {
 	t.Parallel()
 

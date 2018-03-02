@@ -76,7 +76,7 @@ func (s *HTTPServer) IntentionSpecific(resp http.ResponseWriter, req *http.Reque
 		return s.IntentionSpecificGet(id, resp, req)
 
 	case "PUT":
-		panic("TODO")
+		return s.IntentionSpecificUpdate(id, resp, req)
 
 	case "DELETE":
 		return s.IntentionSpecificDelete(id, resp, req)
@@ -111,6 +111,33 @@ func (s *HTTPServer) IntentionSpecificGet(id string, resp http.ResponseWriter, r
 
 	// TODO: validate length
 	return reply.Intentions[0], nil
+}
+
+// PUT /v1/connect/intentions/:id
+func (s *HTTPServer) IntentionSpecificUpdate(id string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Method is tested in IntentionEndpoint
+
+	args := structs.IntentionRequest{
+		Op: structs.IntentionOpUpdate,
+	}
+	s.parseDC(req, &args.Datacenter)
+	s.parseToken(req, &args.Token)
+	if err := decodeBody(req, &args.Intention, nil); err != nil {
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(resp, "Request decode failed: %v", err)
+		return nil, nil
+	}
+
+	// Use the ID from the URL
+	args.Intention.ID = id
+
+	var reply string
+	if err := s.agent.RPC("Intention.Apply", &args, &reply); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
+
 }
 
 // DELETE /v1/connect/intentions/:id
