@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
@@ -191,4 +192,81 @@ func (s *Store) intentionDeleteTxn(tx *memdb.Txn, idx uint64, queryID string) er
 	}
 
 	return nil
+}
+
+// IntentionMatch returns the list of intentions that match the namespace and
+// name for either a source or destination. This applies the resolution rules
+// so wildcards will match any value.
+//
+// The returned value is the list of intentions in the same order as the
+// entries in args. The intentions themselves are sorted based on the
+// intention precedence rules. i.e. result[0][0] is the highest precedent
+// rule to match for the first entry.
+func (s *Store) IntentionMatch(ws memdb.WatchSet, args *structs.IntentionQueryMatch) (uint64, []structs.Intentions, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get the table index.
+	idx := maxIndexTxn(tx, intentionsTableName)
+
+	// Make all the calls and accumulate the results
+	results := make([]structs.Intentions, len(args.Entries))
+	for i, entry := range args.Entries {
+		// Each search entry may require multiple queries to memdb, so this
+		// returns the arguments for each necessary Get. Note on performance:
+		// this is not the most optimal set of queries since we repeat some
+		// many times (such as */*). We can work on improving that in the
+		// future, the test cases shouldn't have to change for that.
+		getParams, err := s.intentionMatchGetParams(entry)
+		if err != nil {
+			return 0, nil, err
+		}
+
+		// Perform each call and accumulate the result.
+		var ixns structs.Intentions
+		for _, params := range getParams {
+			iter, err := tx.Get(intentionsTableName, string(args.Type), params...)
+			if err != nil {
+				return 0, nil, fmt.Errorf("failed intention lookup: %s", err)
+			}
+
+			ws.Add(iter.WatchCh())
+
+			for ixn := iter.Next(); ixn != nil; ixn = iter.Next() {
+				ixns = append(ixns, ixn.(*structs.Intention))
+			}
+		}
+
+		// TODO: filter for uniques
+
+		// Sort the results by precedence
+		sort.Sort(structs.IntentionPrecedenceSorter(ixns))
+
+		// Store the result
+		results[i] = ixns
+	}
+
+	return idx, results, nil
+}
+
+// intentionMatchGetParams returns the tx.Get parameters to find all the
+// intentions for a certain entry.
+func (s *Store) intentionMatchGetParams(entry structs.IntentionMatchEntry) ([][]interface{}, error) {
+	// We always query for "*/*" so include that. If the namespace is a
+	// wildcard, then we're actually done.
+	result := make([][]interface{}, 0, 3)
+	result = append(result, []interface{}{"*", "*"})
+	if entry.Namespace == structs.IntentionWildcard {
+		return result, nil
+	}
+
+	// Search for NS/* intentions. If we have a wildcard name, then we're done.
+	result = append(result, []interface{}{entry.Namespace, "*"})
+	if entry.Name == structs.IntentionWildcard {
+		return result, nil
+	}
+
+	// Search for the exact NS/N value.
+	result = append(result, []interface{}{entry.Namespace, entry.Name})
+	return result, nil
 }

@@ -233,3 +233,139 @@ func TestStore_IntentionsList(t *testing.T) {
 		t.Fatalf("bad: %v", actual)
 	}
 }
+
+// Test the matrix of match logic.
+//
+// Note that this doesn't need to test the intention sort logic exhaustively
+// since this is tested in their sort implementation in the structs.
+func TestStore_IntentionMatch_table(t *testing.T) {
+	type testCase struct {
+		Name     string
+		Insert   [][]string   // List of intentions to insert
+		Query    [][]string   // List of intentions to match
+		Expected [][][]string // List of matches, where each match is a list of intentions
+	}
+
+	cases := []testCase{
+		{
+			"single exact namespace/name",
+			[][]string{
+				{"foo", "*"},
+				{"foo", "bar"},
+				{"foo", "baz"}, // shouldn't match
+				{"bar", "bar"}, // shouldn't match
+				{"bar", "*"},   // shouldn't match
+				{"*", "*"},
+			},
+			[][]string{
+				{"foo", "bar"},
+			},
+			[][][]string{
+				{
+					{"foo", "bar"},
+					{"foo", "*"},
+					{"*", "*"},
+				},
+			},
+		},
+
+		{
+			"multiple exact namespace/name",
+			[][]string{
+				{"foo", "*"},
+				{"foo", "bar"},
+				{"foo", "baz"}, // shouldn't match
+				{"bar", "bar"},
+				{"bar", "*"},
+			},
+			[][]string{
+				{"foo", "bar"},
+				{"bar", "bar"},
+			},
+			[][][]string{
+				{
+					{"foo", "bar"},
+					{"foo", "*"},
+				},
+				{
+					{"bar", "bar"},
+					{"bar", "*"},
+				},
+			},
+		},
+	}
+
+	// testRunner implements the test for a single case, but can be
+	// parameterized to run for both source and destination so we can
+	// test both cases.
+	testRunner := func(t *testing.T, tc testCase, typ structs.IntentionMatchType) {
+		// Insert the set
+		s := testStateStore(t)
+		var idx uint64 = 1
+		for _, v := range tc.Insert {
+			ixn := &structs.Intention{ID: testUUID()}
+			switch typ {
+			case structs.IntentionMatchDestination:
+				ixn.DestinationNS = v[0]
+				ixn.DestinationName = v[1]
+			case structs.IntentionMatchSource:
+				ixn.SourceNS = v[0]
+				ixn.SourceName = v[1]
+			}
+
+			err := s.IntentionSet(idx, ixn)
+			if err != nil {
+				t.Fatalf("error inserting: %s", err)
+			}
+
+			idx++
+		}
+
+		// Build the arguments
+		args := &structs.IntentionQueryMatch{Type: typ}
+		for _, q := range tc.Query {
+			args.Entries = append(args.Entries, structs.IntentionMatchEntry{
+				Namespace: q[0],
+				Name:      q[1],
+			})
+		}
+
+		// Match
+		_, matches, err := s.IntentionMatch(nil, args)
+		if err != nil {
+			t.Fatalf("error matching: %s", err)
+		}
+
+		// Should have equal lengths
+		if len(matches) != len(tc.Expected) {
+			t.Fatalf("bad (got, wanted):\n\n%#v\n\n%#v", tc.Expected, matches)
+		}
+
+		// Verify matches
+		for i, expected := range tc.Expected {
+			var actual [][]string
+			for _, ixn := range matches[i] {
+				switch typ {
+				case structs.IntentionMatchDestination:
+					actual = append(actual, []string{ixn.DestinationNS, ixn.DestinationName})
+				case structs.IntentionMatchSource:
+					actual = append(actual, []string{ixn.SourceNS, ixn.SourceName})
+				}
+			}
+
+			if !reflect.DeepEqual(actual, expected) {
+				t.Fatalf("bad (got, wanted):\n\n%#v\n\n%#v", actual, expected)
+			}
+		}
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name+" (destination)", func(t *testing.T) {
+			testRunner(t, tc, structs.IntentionMatchDestination)
+		})
+
+		t.Run(tc.Name+" (source)", func(t *testing.T) {
+			testRunner(t, tc, structs.IntentionMatchSource)
+		})
+	}
+}
