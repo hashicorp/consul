@@ -2166,6 +2166,126 @@ func TestStateStore_DeleteCheck(t *testing.T) {
 	}
 }
 
+func ensureServiceVersion(t *testing.T, s *Store, ws memdb.WatchSet, serviceID string, expectedIdx uint64, expectedSize int) {
+	idx, services, err := s.ServiceNodes(ws, serviceID)
+	t.Helper()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != expectedIdx {
+		t.Fatalf("bad: %d, expected %d", idx, expectedIdx)
+	}
+	if len(services) != expectedSize {
+		t.Fatalf("expected size: %d, but was %d", expectedSize, len(services))
+	}
+}
+
+// Ensure index exist, if expectedIndex = -1, ensure the index does not exists
+func ensureIndexForService(t *testing.T, s *Store, ws memdb.WatchSet, serviceName string, expectedIndex uint64) {
+	t.Helper()
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+	transaction, err := tx.First("index", "id", fmt.Sprintf("service.%s", serviceName))
+	if err == nil {
+		if idx, ok := transaction.(*IndexEntry); ok {
+			if expectedIndex != idx.Value {
+				t.Fatalf("Expected index %d, but had %d for %s", expectedIndex, idx.Value, serviceName)
+			}
+			return
+		}
+	}
+	if expectedIndex != 0 {
+		t.Fatalf("Index for %s was expected but not found", serviceName)
+	}
+}
+
+// TestIndexIndependance test that changes on a given service does not impact the
+// index of other services. It allows to have huge benefits for watches since
+// watchers are notified ONLY when there are changes in the given service
+func TestIndexIndependance(t *testing.T) {
+	s := testStateStore(t)
+
+	// Querying with no matches gives an empty response
+	ws := memdb.NewWatchSet()
+	idx, res, err := s.CheckServiceNodes(ws, "service1")
+	if idx != 0 || res != nil || err != nil {
+		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
+	}
+
+	// Register some nodes.
+	testRegisterNode(t, s, 0, "node1")
+	testRegisterNode(t, s, 1, "node2")
+
+	// Register node-level checks. These should be the final result.
+	testRegisterCheck(t, s, 2, "node1", "", "check1", api.HealthPassing)
+	testRegisterCheck(t, s, 3, "node2", "", "check2", api.HealthPassing)
+
+	// Register a service against the nodes.
+	testRegisterService(t, s, 4, "node1", "service1")
+	testRegisterService(t, s, 5, "node2", "service2")
+	ensureServiceVersion(t, s, ws, "service2", 5, 1)
+
+	// Register checks against the services.
+	testRegisterCheck(t, s, 6, "node1", "service1", "check3", api.HealthPassing)
+	testRegisterCheck(t, s, 7, "node2", "service2", "check4", api.HealthPassing)
+	// Index must be updated when checks are updated
+	ensureServiceVersion(t, s, ws, "service1", 6, 1)
+	ensureServiceVersion(t, s, ws, "service2", 7, 1)
+
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
+	// We ensure the idx for service2 has not been changed
+	testRegisterCheck(t, s, 8, "node2", "service2", "check4", api.HealthWarning)
+	ensureServiceVersion(t, s, ws, "service2", 8, 1)
+	testRegisterCheck(t, s, 9, "node2", "service2", "check4", api.HealthPassing)
+	ensureServiceVersion(t, s, ws, "service2", 9, 1)
+
+	// Add a new check on node1, while not on service, it should impact
+	// indexes of all services running on node1, aka service1
+	testRegisterCheck(t, s, 10, "node1", "", "check_node", api.HealthPassing)
+
+	// Service2 should not be modified
+	ensureServiceVersion(t, s, ws, "service2", 9, 1)
+	// Service1 should be modified
+	ensureServiceVersion(t, s, ws, "service1", 10, 1)
+
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
+
+	testRegisterService(t, s, 11, "node1", "service_shared")
+	ensureServiceVersion(t, s, ws, "service_shared", 11, 1)
+	testRegisterService(t, s, 12, "node2", "service_shared")
+	ensureServiceVersion(t, s, ws, "service_shared", 12, 2)
+
+	testRegisterCheck(t, s, 13, "node2", "service_shared", "check_service_shared", api.HealthCritical)
+	ensureServiceVersion(t, s, ws, "service_shared", 13, 2)
+	testRegisterCheck(t, s, 14, "node2", "service_shared", "check_service_shared", api.HealthPassing)
+	ensureServiceVersion(t, s, ws, "service_shared", 14, 2)
+
+	s.DeleteCheck(15, "node2", types.CheckID("check_service_shared"))
+	ensureServiceVersion(t, s, ws, "service_shared", 15, 2)
+	ensureIndexForService(t, s, ws, "service_shared", 15)
+	s.DeleteService(16, "node2", "service_shared")
+	ensureServiceVersion(t, s, ws, "service_shared", 16, 1)
+	ensureIndexForService(t, s, ws, "service_shared", 16)
+	s.DeleteService(17, "node1", "service_shared")
+	ensureServiceVersion(t, s, ws, "service_shared", 17, 0)
+
+	testRegisterService(t, s, 18, "node1", "service_new")
+	// Since service does not exists anymore, its index should be last insert
+	// The behaviour is the same as all non-existing services, meaning
+	// we properly did collect garbage
+	ensureServiceVersion(t, s, ws, "service_shared", 18, 0)
+	// No index should exist anymore, it must have been garbage collected
+	ensureIndexForService(t, s, ws, "service_shared", 0)
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
+
+}
+
 func TestStateStore_CheckServiceNodes(t *testing.T) {
 	s := testStateStore(t)
 
@@ -2197,14 +2317,19 @@ func TestStateStore_CheckServiceNodes(t *testing.T) {
 		t.Fatalf("bad")
 	}
 
+	// We ensure the idx for service2 has not been changed
+	ensureServiceVersion(t, s, ws, "service2", 7, 1)
+
 	// Query the state store for nodes and checks which have been registered
 	// with a specific service.
 	ws = memdb.NewWatchSet()
+	ensureServiceVersion(t, s, ws, "service1", 6, 1)
 	idx, results, err := s.CheckServiceNodes(ws, "service1")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx != 7 {
+	// registered with ensureServiceVersion(t, s, ws, "service1", 6, 1)
+	if idx != 6 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
@@ -2229,7 +2354,8 @@ func TestStateStore_CheckServiceNodes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx != 8 {
+	// service1 has been registered at idx=6, other different registrations do not count
+	if idx != 6 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
