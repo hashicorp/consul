@@ -707,7 +707,9 @@ func TestParseConsistencyAndDefaultLevel(t *testing.T) {
 	a.config.DefaultConsistencyLevel = ""
 	a.config.DiscoveryConsistencyLevel = ""
 	ensureConsistency(t, a, "/v1/catalog/services?consistency=default", false, false)
+	ensureConsistency(t, a, "/v1/health/service/myservice?consistency=default", false, false)
 	ensureConsistency(t, a, "/v1/catalog/services", false, false)
+	ensureConsistency(t, a, "/v1/health/service/myservice", false, false)
 	ensureConsistency(t, a, "/v1/kv/my/path", false, false)
 }
 
