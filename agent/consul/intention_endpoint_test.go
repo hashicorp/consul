@@ -258,3 +258,79 @@ func TestIntentionList(t *testing.T) {
 		}
 	}
 }
+
+// Test basic matching. We don't need to exhaustively test inputs since this
+// is tested in the agent/consul/state package.
+func TestIntentionMatch_good(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Create some records
+	{
+		insert := [][]string{
+			{"foo", "*"},
+			{"foo", "bar"},
+			{"foo", "baz"}, // shouldn't match
+			{"bar", "bar"}, // shouldn't match
+			{"bar", "*"},   // shouldn't match
+			{"*", "*"},
+		}
+
+		for _, v := range insert {
+			ixn := structs.IntentionRequest{
+				Datacenter: "dc1",
+				Op:         structs.IntentionOpCreate,
+				Intention: &structs.Intention{
+					SourceNS:        "default",
+					SourceName:      "test",
+					DestinationNS:   v[0],
+					DestinationName: v[1],
+				},
+			}
+
+			// Create
+			var reply string
+			if err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply); err != nil {
+				t.Fatalf("err: %v", err)
+			}
+		}
+	}
+
+	// Match
+	req := &structs.IntentionQueryRequest{
+		Datacenter: "dc1",
+		Match: &structs.IntentionQueryMatch{
+			Type: structs.IntentionMatchDestination,
+			Entries: []structs.IntentionMatchEntry{
+				{
+					Namespace: "foo",
+					Name:      "bar",
+				},
+			},
+		},
+	}
+	var resp structs.IndexedIntentionMatches
+	if err := msgpackrpc.CallWithCodec(codec, "Intention.Match", req, &resp); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(resp.Matches) != 1 {
+		t.Fatalf("bad: %#v", resp.Matches)
+	}
+
+	expected := [][]string{{"foo", "bar"}, {"foo", "*"}, {"*", "*"}}
+	var actual [][]string
+	for _, ixn := range resp.Matches[0] {
+		actual = append(actual, []string{ixn.DestinationNS, ixn.DestinationName})
+	}
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad (got, wanted):\n\n%#v\n\n%#v", actual, expected)
+	}
+}

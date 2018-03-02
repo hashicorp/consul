@@ -75,6 +75,12 @@ type IndexedIntentions struct {
 	QueryMeta
 }
 
+// IndexedIntentionMatches represents the list of matches for a match query.
+type IndexedIntentionMatches struct {
+	Matches []Intentions
+	QueryMeta
+}
+
 // IntentionOp is the operation for a request related to intentions.
 type IntentionOp string
 
@@ -123,11 +129,10 @@ type IntentionQueryRequest struct {
 	// IntentionID is the ID of a specific intention.
 	IntentionID string
 
-	// MatchBy and MatchNames are used to match a namespace/name pair
-	// to a set of intentions. The list of MatchNames is an OR list,
-	// all matching intentions are returned together.
-	MatchBy    IntentionMatchType
-	MatchNames []string
+	// Match is non-nil if we're performing a match query. A match will
+	// find intentions that "match" the given parameters. A match includes
+	// resolving wildcards.
+	Match *IntentionQueryMatch
 
 	// Options for queries
 	QueryOptions

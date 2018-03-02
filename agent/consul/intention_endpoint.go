@@ -142,3 +142,33 @@ func (s *Intention) List(
 		},
 	)
 }
+
+// Match returns the set of intentions that match the given source/destination.
+func (s *Intention) Match(
+	args *structs.IntentionQueryRequest,
+	reply *structs.IndexedIntentionMatches) error {
+	// Forward if necessary
+	if done, err := s.srv.forward("Intention.Match", args, args, reply); done {
+		return err
+	}
+
+	// TODO(mitchellh): validate
+
+	return s.srv.blockingQuery(
+		&args.QueryOptions,
+		&reply.QueryMeta,
+		func(ws memdb.WatchSet, state *state.Store) error {
+			index, matches, err := state.IntentionMatch(ws, args.Match)
+			if err != nil {
+				return err
+			}
+
+			reply.Index = index
+			reply.Matches = matches
+
+			// TODO(mitchellh): acl filtering
+
+			return nil
+		},
+	)
+}
