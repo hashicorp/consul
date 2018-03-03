@@ -86,6 +86,14 @@ func (s *Intention) Apply(
 	// We always update the updatedat field. This has no effect for deletion.
 	args.Intention.UpdatedAt = time.Now()
 
+	// Until we support namespaces, we force all namespaces to be default
+	if args.Intention.SourceNS == "" {
+		args.Intention.SourceNS = structs.IntentionDefaultNamespace
+	}
+	if args.Intention.DestinationNS == "" {
+		args.Intention.DestinationNS = structs.IntentionDefaultNamespace
+	}
+
 	// Commit
 	resp, err := s.srv.raftApply(structs.IntentionRequestType, args)
 	if err != nil {

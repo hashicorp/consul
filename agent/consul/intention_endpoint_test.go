@@ -28,7 +28,10 @@ func TestIntentionApply_new(t *testing.T) {
 		Datacenter: "dc1",
 		Op:         structs.IntentionOpCreate,
 		Intention: &structs.Intention{
-			SourceName: "test",
+			SourceNS:        structs.IntentionDefaultNamespace,
+			SourceName:      "test",
+			DestinationNS:   structs.IntentionDefaultNamespace,
+			DestinationName: "test",
 		},
 	}
 	var reply string
@@ -133,7 +136,10 @@ func TestIntentionApply_updateGood(t *testing.T) {
 		Datacenter: "dc1",
 		Op:         structs.IntentionOpCreate,
 		Intention: &structs.Intention{
-			SourceName: "test",
+			SourceNS:        structs.IntentionDefaultNamespace,
+			SourceName:      "test",
+			DestinationNS:   structs.IntentionDefaultNamespace,
+			DestinationName: "test",
 		},
 	}
 	var reply string

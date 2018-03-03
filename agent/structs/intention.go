@@ -7,6 +7,13 @@ import (
 const (
 	// IntentionWildcard is the wildcard value.
 	IntentionWildcard = "*"
+
+	// IntentionDefaultNamespace is the default namespace value.
+	// NOTE(mitchellh): This is only meant to be a temporary constant.
+	// When namespaces are introduced, we should delete this constant and
+	// fix up all the places where this was used with the proper namespace
+	// value.
+	IntentionDefaultNamespace = "default"
 )
 
 // Intention defines an intention for the Connect Service Graph. This defines

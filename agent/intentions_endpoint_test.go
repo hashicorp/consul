@@ -238,7 +238,12 @@ func TestIntentionsSpecificGet_good(t *testing.T) {
 	defer a.Shutdown()
 
 	// The intention
-	ixn := &structs.Intention{SourceName: "foo"}
+	ixn := &structs.Intention{
+		SourceNS:        structs.IntentionDefaultNamespace,
+		SourceName:      "foo",
+		DestinationNS:   structs.IntentionDefaultNamespace,
+		DestinationName: "bar",
+	}
 
 	// Create an intention directly
 	var reply string
@@ -268,6 +273,7 @@ func TestIntentionsSpecificGet_good(t *testing.T) {
 
 	ixn.ID = value.ID
 	ixn.RaftIndex = value.RaftIndex
+	ixn.CreatedAt, ixn.UpdatedAt = value.CreatedAt, value.UpdatedAt
 	if !reflect.DeepEqual(value, ixn) {
 		t.Fatalf("bad (got, want):\n\n%#v\n\n%#v", value, ixn)
 	}
@@ -403,7 +409,8 @@ func TestParseIntentionMatchEntry(t *testing.T) {
 		{
 			"foo",
 			structs.IntentionMatchEntry{
-				Name: "foo",
+				Namespace: structs.IntentionDefaultNamespace,
+				Name:      "foo",
 			},
 			false,
 		},

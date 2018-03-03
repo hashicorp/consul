@@ -230,6 +230,7 @@ type intentionCreateResponse struct{ ID string }
 // match query entry.
 func parseIntentionMatchEntry(input string) (structs.IntentionMatchEntry, error) {
 	var result structs.IntentionMatchEntry
+	result.Namespace = structs.IntentionDefaultNamespace
 
 	// TODO(mitchellh): when namespaces are introduced, set the default
 	// namespace to be the namespace of the requestor.
