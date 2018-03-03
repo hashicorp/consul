@@ -245,8 +245,6 @@ func (s *Store) IntentionMatch(ws memdb.WatchSet, args *structs.IntentionQueryMa
 			}
 		}
 
-		// TODO: filter for uniques
-
 		// Sort the results by precedence
 		sort.Sort(structs.IntentionPrecedenceSorter(ixns))
 
