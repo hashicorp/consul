@@ -99,9 +99,12 @@ func (s *Intention) Apply(
 		args.Intention.DestinationNS = structs.IntentionDefaultNamespace
 	}
 
-	// Validate
-	if err := args.Intention.Validate(); err != nil {
-		return err
+	// Validate. We do not validate on delete since it is valid to only
+	// send an ID in that case.
+	if args.Op != structs.IntentionOpDelete {
+		if err := args.Intention.Validate(); err != nil {
+			return err
+		}
 	}
 
 	// Commit

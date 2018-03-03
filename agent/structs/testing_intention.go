@@ -13,5 +13,6 @@ func TestIntention(t testing.T) *Intention {
 		DestinationName: "db",
 		Action:          IntentionActionAllow,
 		SourceType:      IntentionSourceConsul,
+		Meta:            map[string]string{},
 	}
 }

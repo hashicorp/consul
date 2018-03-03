@@ -173,7 +173,13 @@ func (s *HTTPServer) IntentionSpecificGet(id string, resp http.ResponseWriter, r
 		return nil, err
 	}
 
-	// TODO: validate length
+	// This shouldn't happen since the called API documents it shouldn't,
+	// but we check since the alternative if it happens is a panic.
+	if len(reply.Intentions) == 0 {
+		resp.WriteHeader(http.StatusNotFound)
+		return nil, nil
+	}
+
 	return reply.Intentions[0], nil
 }
 

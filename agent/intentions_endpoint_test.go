@@ -43,8 +43,10 @@ func TestIntentionsList_values(t *testing.T) {
 		req := structs.IntentionRequest{
 			Datacenter: "dc1",
 			Op:         structs.IntentionOpCreate,
-			Intention:  &structs.Intention{SourceName: v},
+			Intention:  structs.TestIntention(t),
 		}
+		req.Intention.SourceName = v
+
 		var reply string
 		if err := a.RPC("Intention.Apply", &req, &reply); err != nil {
 			t.Fatalf("err: %s", err)
@@ -93,13 +95,10 @@ func TestIntentionsMatch_basic(t *testing.T) {
 			ixn := structs.IntentionRequest{
 				Datacenter: "dc1",
 				Op:         structs.IntentionOpCreate,
-				Intention: &structs.Intention{
-					SourceNS:        "default",
-					SourceName:      "test",
-					DestinationNS:   v[0],
-					DestinationName: v[1],
-				},
+				Intention:  structs.TestIntention(t),
 			}
+			ixn.Intention.DestinationNS = v[0]
+			ixn.Intention.DestinationName = v[1]
 
 			// Create
 			var reply string
@@ -198,7 +197,8 @@ func TestIntentionsCreate_good(t *testing.T) {
 	defer a.Shutdown()
 
 	// Make sure an empty list is non-nil.
-	args := &structs.Intention{SourceName: "foo"}
+	args := structs.TestIntention(t)
+	args.SourceName = "foo"
 	req, _ := http.NewRequest("POST", "/v1/connect/intentions", jsonReader(args))
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.IntentionCreate(resp, req)
@@ -238,12 +238,7 @@ func TestIntentionsSpecificGet_good(t *testing.T) {
 	defer a.Shutdown()
 
 	// The intention
-	ixn := &structs.Intention{
-		SourceNS:        structs.IntentionDefaultNamespace,
-		SourceName:      "foo",
-		DestinationNS:   structs.IntentionDefaultNamespace,
-		DestinationName: "bar",
-	}
+	ixn := structs.TestIntention(t)
 
 	// Create an intention directly
 	var reply string
@@ -286,7 +281,7 @@ func TestIntentionsSpecificUpdate_good(t *testing.T) {
 	defer a.Shutdown()
 
 	// The intention
-	ixn := &structs.Intention{SourceName: "foo"}
+	ixn := structs.TestIntention(t)
 
 	// Create an intention directly
 	var reply string
@@ -341,7 +336,8 @@ func TestIntentionsSpecificDelete_good(t *testing.T) {
 	defer a.Shutdown()
 
 	// The intention
-	ixn := &structs.Intention{SourceName: "foo"}
+	ixn := structs.TestIntention(t)
+	ixn.SourceName = "foo"
 
 	// Create an intention directly
 	var reply string
