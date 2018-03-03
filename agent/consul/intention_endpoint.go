@@ -86,6 +86,11 @@ func (s *Intention) Apply(
 	// We always update the updatedat field. This has no effect for deletion.
 	args.Intention.UpdatedAt = time.Now()
 
+	// Default source type
+	if args.Intention.SourceType == "" {
+		args.Intention.SourceType = structs.IntentionSourceConsul
+	}
+
 	// Until we support namespaces, we force all namespaces to be default
 	if args.Intention.SourceNS == "" {
 		args.Intention.SourceNS = structs.IntentionDefaultNamespace

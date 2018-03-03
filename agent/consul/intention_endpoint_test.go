@@ -33,6 +33,7 @@ func TestIntentionApply_new(t *testing.T) {
 			DestinationNS:   structs.IntentionDefaultNamespace,
 			DestinationName: "test",
 			Action:          structs.IntentionActionAllow,
+			SourceType:      structs.IntentionSourceConsul,
 			Meta:            map[string]string{},
 		},
 	}
@@ -93,6 +94,61 @@ func TestIntentionApply_new(t *testing.T) {
 	}
 }
 
+// Test the source type defaults
+func TestIntentionApply_defaultSourceType(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Setup a basic record to create
+	ixn := structs.IntentionRequest{
+		Datacenter: "dc1",
+		Op:         structs.IntentionOpCreate,
+		Intention: &structs.Intention{
+			SourceNS:        structs.IntentionDefaultNamespace,
+			SourceName:      "test",
+			DestinationNS:   structs.IntentionDefaultNamespace,
+			DestinationName: "test",
+			Action:          structs.IntentionActionAllow,
+		},
+	}
+	var reply string
+
+	// Create
+	if err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if reply == "" {
+		t.Fatal("reply should be non-empty")
+	}
+
+	// Read
+	ixn.Intention.ID = reply
+	{
+		req := &structs.IntentionQueryRequest{
+			Datacenter:  "dc1",
+			IntentionID: ixn.Intention.ID,
+		}
+		var resp structs.IndexedIntentions
+		if err := msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if len(resp.Intentions) != 1 {
+			t.Fatalf("bad: %v", resp)
+		}
+
+		actual := resp.Intentions[0]
+		if actual.SourceType != structs.IntentionSourceConsul {
+			t.Fatalf("bad:\n\n%#v\n\n%#v", actual, ixn.Intention)
+		}
+	}
+}
+
 // Shouldn't be able to create with an ID set
 func TestIntentionApply_createWithID(t *testing.T) {
 	t.Parallel()
@@ -143,6 +199,7 @@ func TestIntentionApply_updateGood(t *testing.T) {
 			DestinationNS:   structs.IntentionDefaultNamespace,
 			DestinationName: "test",
 			Action:          structs.IntentionActionAllow,
+			SourceType:      structs.IntentionSourceConsul,
 			Meta:            map[string]string{},
 		},
 	}

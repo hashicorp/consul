@@ -92,6 +92,18 @@ func TestIntentionValidate(t *testing.T) {
 			},
 			"follow wildcard",
 		},
+
+		{
+			"SourceType is not set",
+			func(x *Intention) { x.SourceType = "" },
+			"SourceType must",
+		},
+
+		{
+			"SourceType is other",
+			func(x *Intention) { x.SourceType = IntentionSourceType("other") },
+			"SourceType must",
+		},
 	}
 
 	for _, tc := range cases {

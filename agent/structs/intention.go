@@ -147,6 +147,13 @@ func (x *Intention) Validate() error {
 			"Action must be set to 'allow' or 'deny'"))
 	}
 
+	switch x.SourceType {
+	case IntentionSourceConsul:
+	default:
+		result = multierror.Append(result, fmt.Errorf(
+			"SourceType must be set to 'consul'"))
+	}
+
 	return result
 }
 

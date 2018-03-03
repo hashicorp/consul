@@ -11,5 +11,7 @@ func TestIntention(t testing.T) *Intention {
 		SourceName:      "api",
 		DestinationNS:   "eng",
 		DestinationName: "db",
+		Action:          IntentionActionAllow,
+		SourceType:      IntentionSourceConsul,
 	}
 }
