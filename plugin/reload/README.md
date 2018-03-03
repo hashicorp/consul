@@ -15,7 +15,7 @@ The reloads are graceful - you should not see any loss of service when the
 reload happens. Even if the new Corefile has an error, CoreDNS will continue
 to run the old config and an error message will be printed to the log.
 
-In some environments (for example, Kubernetes), there may be many CoreDNS 
+In some environments (for example, Kubernetes), there may be many CoreDNS
 instances that started very near the same time and all share a common
 Corefile. To prevent these all from reloading at the same time, some
 jitter is added to the reload check interval. This is jitter from the
@@ -44,7 +44,7 @@ reload [INTERVAL] [JITTER]
 
 Check with the default intervals:
 
-~~~ txt
+~~~ corefile
 . {
     reload
     erratic
@@ -53,7 +53,7 @@ Check with the default intervals:
 
 Check every 10 seconds (jitter is automatically set to 10 / 2 = 5 in this case):
 
-~~~ txt
+~~~ corefile
 . {
     reload 10s
     erratic
