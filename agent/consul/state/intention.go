@@ -125,6 +125,12 @@ func (s *Store) intentionSetTxn(tx *memdb.Txn, idx uint64, ixn *structs.Intentio
 	}
 	ixn.ModifyIndex = idx
 
+	// We always force meta to be non-nil so that we its an empty map.
+	// This makes it easy for API responses to not nil-check this everywhere.
+	if ixn.Meta == nil {
+		ixn.Meta = make(map[string]string)
+	}
+
 	// Insert
 	if err := tx.Insert(intentionsTableName, ixn); err != nil {
 		return err

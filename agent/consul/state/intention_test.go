@@ -154,6 +154,53 @@ func TestStore_IntentionSet_updateCreatedAt(t *testing.T) {
 	}
 }
 
+func TestStore_IntentionSet_metaNil(t *testing.T) {
+	s := testStateStore(t)
+
+	// Build a valid intention
+	ixn := structs.Intention{
+		ID: testUUID(),
+	}
+
+	// Insert
+	if err := s.IntentionSet(1, &ixn); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Read it back and verify
+	_, actual, err := s.IntentionGet(nil, ixn.ID)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if actual.Meta == nil {
+		t.Fatal("meta should be non-nil")
+	}
+}
+
+func TestStore_IntentionSet_metaSet(t *testing.T) {
+	s := testStateStore(t)
+
+	// Build a valid intention
+	ixn := structs.Intention{
+		ID:   testUUID(),
+		Meta: map[string]string{"foo": "bar"},
+	}
+
+	// Insert
+	if err := s.IntentionSet(1, &ixn); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Read it back and verify
+	_, actual, err := s.IntentionGet(nil, ixn.ID)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !reflect.DeepEqual(actual.Meta, ixn.Meta) {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func TestStore_IntentionDelete(t *testing.T) {
 	s := testStateStore(t)
 
