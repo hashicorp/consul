@@ -1148,3 +1148,105 @@ func TestFSM_Autopilot(t *testing.T) {
 		t.Fatalf("bad: %v", config.CleanupDeadServers)
 	}
 }
+
+func TestFSM_Intention_CRUD(t *testing.T) {
+	t.Parallel()
+
+	fsm, err := New(nil, os.Stderr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Create a new intention.
+	ixn := structs.IntentionRequest{
+		Datacenter: "dc1",
+		Op:         structs.IntentionOpCreate,
+		Intention: &structs.Intention{
+			ID:              generateUUID(),
+			SourceNS:        "default",
+			SourceName:      "web",
+			DestinationNS:   "default",
+			DestinationName: "db",
+		},
+	}
+
+	{
+		buf, err := structs.Encode(structs.IntentionRequestType, ixn)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		resp := fsm.Apply(makeLog(buf))
+		if resp != nil {
+			t.Fatalf("resp: %v", resp)
+		}
+	}
+
+	// Verify it's in the state store.
+	{
+		_, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		actual.CreateIndex, actual.ModifyIndex = 0, 0
+		actual.CreatedAt = ixn.Intention.CreatedAt
+		actual.UpdatedAt = ixn.Intention.UpdatedAt
+		if !reflect.DeepEqual(actual, ixn.Intention) {
+			t.Fatalf("bad: %v", actual)
+		}
+	}
+
+	// Make an update
+	ixn.Op = structs.IntentionOpUpdate
+	ixn.Intention.SourceName = "api"
+	{
+		buf, err := structs.Encode(structs.IntentionRequestType, ixn)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		resp := fsm.Apply(makeLog(buf))
+		if resp != nil {
+			t.Fatalf("resp: %v", resp)
+		}
+	}
+
+	// Verify the update.
+	{
+		_, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		actual.CreateIndex, actual.ModifyIndex = 0, 0
+		actual.CreatedAt = ixn.Intention.CreatedAt
+		actual.UpdatedAt = ixn.Intention.UpdatedAt
+		if !reflect.DeepEqual(actual, ixn.Intention) {
+			t.Fatalf("bad: %v", actual)
+		}
+	}
+
+	// Delete
+	ixn.Op = structs.IntentionOpDelete
+	{
+		buf, err := structs.Encode(structs.IntentionRequestType, ixn)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		resp := fsm.Apply(makeLog(buf))
+		if resp != nil {
+			t.Fatalf("resp: %v", resp)
+		}
+	}
+
+	// Make sure it's gone.
+	{
+		_, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		if actual != nil {
+			t.Fatalf("bad: %v", actual)
+		}
+	}
+}
