@@ -68,7 +68,7 @@ func setup(c *caddy.Controller) error {
 	})
 
 	c.OnStartup(h.OnStartup)
-	c.OnFinalShutdown(h.OnShutdown)
+	c.OnShutdown(h.OnShutdown)
 
 	// Don't do AddPlugin, as health is not *really* a plugin just a separate webserver running.
 	return nil
