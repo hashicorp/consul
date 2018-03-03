@@ -31,12 +31,12 @@ func setup(c *caddy.Controller) error {
 
 	for a, v := range uniqAddr.a {
 		if v == todo {
-			// During restarts we will keep this handler running, BUG.
 			c.OncePerServerBlock(m.OnStartup)
 		}
 		uniqAddr.a[a] = done
 	}
-	c.OnFinalShutdown(m.OnShutdown)
+
+	c.OnShutdown(m.OnShutdown)
 
 	return nil
 }
@@ -48,10 +48,12 @@ func prometheusParse(c *caddy.Controller) (*Metrics, error) {
 		uniqAddr.SetAddress(met.Addr)
 	}()
 
+	i := 0
 	for c.Next() {
-		if len(met.ZoneNames()) > 0 {
-			return met, c.Err("can only have one metrics module per server")
+		if i > 0 {
+			return nil, plugin.ErrOnce
 		}
+		i++
 
 		for _, z := range c.ServerBlockKeys {
 			met.AddZone(plugin.Host(z).Normalize())
