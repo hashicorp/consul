@@ -32,6 +32,8 @@ func TestIntentionApply_new(t *testing.T) {
 			SourceName:      "test",
 			DestinationNS:   structs.IntentionDefaultNamespace,
 			DestinationName: "test",
+			Action:          structs.IntentionActionAllow,
+			Meta:            map[string]string{},
 		},
 	}
 	var reply string
@@ -86,7 +88,7 @@ func TestIntentionApply_new(t *testing.T) {
 		actual.CreatedAt = ixn.Intention.CreatedAt
 		actual.UpdatedAt = ixn.Intention.UpdatedAt
 		if !reflect.DeepEqual(actual, ixn.Intention) {
-			t.Fatalf("bad: %v", actual)
+			t.Fatalf("bad:\n\n%#v\n\n%#v", actual, ixn.Intention)
 		}
 	}
 }
@@ -140,6 +142,8 @@ func TestIntentionApply_updateGood(t *testing.T) {
 			SourceName:      "test",
 			DestinationNS:   structs.IntentionDefaultNamespace,
 			DestinationName: "test",
+			Action:          structs.IntentionActionAllow,
+			Meta:            map[string]string{},
 		},
 	}
 	var reply string
@@ -265,7 +269,11 @@ func TestIntentionApply_deleteGood(t *testing.T) {
 		Datacenter: "dc1",
 		Op:         structs.IntentionOpCreate,
 		Intention: &structs.Intention{
-			SourceName: "test",
+			SourceNS:        "test",
+			SourceName:      "test",
+			DestinationNS:   "test",
+			DestinationName: "test",
+			Action:          structs.IntentionActionAllow,
 		},
 	}
 	var reply string
@@ -358,6 +366,7 @@ func TestIntentionMatch_good(t *testing.T) {
 					SourceName:      "test",
 					DestinationNS:   v[0],
 					DestinationName: v[1],
+					Action:          structs.IntentionActionAllow,
 				},
 			}
 

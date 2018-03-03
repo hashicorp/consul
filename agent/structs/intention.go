@@ -1,7 +1,11 @@
 package structs
 
 import (
+	"fmt"
+	"strings"
 	"time"
+
+	"github.com/hashicorp/go-multierror"
 )
 
 const (
@@ -59,6 +63,91 @@ type Intention struct {
 	CreatedAt, UpdatedAt time.Time `mapstructure:"-"`
 
 	RaftIndex
+}
+
+// Validate returns an error if the intention is invalid for inserting
+// or updating.
+func (x *Intention) Validate() error {
+	var result error
+
+	// Empty values
+	if x.SourceNS == "" {
+		result = multierror.Append(result, fmt.Errorf("SourceNS must be set"))
+	}
+	if x.SourceName == "" {
+		result = multierror.Append(result, fmt.Errorf("SourceName must be set"))
+	}
+	if x.DestinationNS == "" {
+		result = multierror.Append(result, fmt.Errorf("DestinationNS must be set"))
+	}
+	if x.DestinationName == "" {
+		result = multierror.Append(result, fmt.Errorf("DestinationName must be set"))
+	}
+
+	// Wildcard usage verification
+	if x.SourceNS != IntentionWildcard {
+		if strings.Contains(x.SourceNS, IntentionWildcard) {
+			result = multierror.Append(result, fmt.Errorf(
+				"SourceNS: wildcard character '*' cannot be used with partial values"))
+		}
+	}
+	if x.SourceName != IntentionWildcard {
+		if strings.Contains(x.SourceName, IntentionWildcard) {
+			result = multierror.Append(result, fmt.Errorf(
+				"SourceName: wildcard character '*' cannot be used with partial values"))
+		}
+
+		if x.SourceNS == IntentionWildcard {
+			result = multierror.Append(result, fmt.Errorf(
+				"SourceName: exact value cannot follow wildcard namespace"))
+		}
+	}
+	if x.DestinationNS != IntentionWildcard {
+		if strings.Contains(x.DestinationNS, IntentionWildcard) {
+			result = multierror.Append(result, fmt.Errorf(
+				"DestinationNS: wildcard character '*' cannot be used with partial values"))
+		}
+	}
+	if x.DestinationName != IntentionWildcard {
+		if strings.Contains(x.DestinationName, IntentionWildcard) {
+			result = multierror.Append(result, fmt.Errorf(
+				"DestinationName: wildcard character '*' cannot be used with partial values"))
+		}
+
+		if x.DestinationNS == IntentionWildcard {
+			result = multierror.Append(result, fmt.Errorf(
+				"DestinationName: exact value cannot follow wildcard namespace"))
+		}
+	}
+
+	// Length of opaque values
+	if len(x.Description) > metaValueMaxLength {
+		result = multierror.Append(result, fmt.Errorf(
+			"Description exceeds maximum length %d", metaValueMaxLength))
+	}
+	if len(x.Meta) > metaMaxKeyPairs {
+		result = multierror.Append(result, fmt.Errorf(
+			"Meta exceeds maximum element count %d", metaMaxKeyPairs))
+	}
+	for k, v := range x.Meta {
+		if len(k) > metaKeyMaxLength {
+			result = multierror.Append(result, fmt.Errorf(
+				"Meta key %q exceeds maximum length %d", k, metaKeyMaxLength))
+		}
+		if len(v) > metaValueMaxLength {
+			result = multierror.Append(result, fmt.Errorf(
+				"Meta value for key %q exceeds maximum length %d", k, metaValueMaxLength))
+		}
+	}
+
+	switch x.Action {
+	case IntentionActionAllow, IntentionActionDeny:
+	default:
+		result = multierror.Append(result, fmt.Errorf(
+			"Action must be set to 'allow' or 'deny'"))
+	}
+
+	return result
 }
 
 // IntentionAction is the action that the intention represents. This

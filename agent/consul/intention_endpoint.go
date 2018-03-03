@@ -94,6 +94,11 @@ func (s *Intention) Apply(
 		args.Intention.DestinationNS = structs.IntentionDefaultNamespace
 	}
 
+	// Validate
+	if err := args.Intention.Validate(); err != nil {
+		return err
+	}
+
 	// Commit
 	resp, err := s.srv.raftApply(structs.IntentionRequestType, args)
 	if err != nil {
