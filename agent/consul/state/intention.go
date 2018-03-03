@@ -117,7 +117,9 @@ func (s *Store) intentionSetTxn(tx *memdb.Txn, idx uint64, ixn *structs.Intentio
 		return fmt.Errorf("failed intention looup: %s", err)
 	}
 	if existing != nil {
-		ixn.CreateIndex = existing.(*structs.Intention).CreateIndex
+		oldIxn := existing.(*structs.Intention)
+		ixn.CreateIndex = oldIxn.CreateIndex
+		ixn.CreatedAt = oldIxn.CreatedAt
 	} else {
 		ixn.CreateIndex = idx
 	}

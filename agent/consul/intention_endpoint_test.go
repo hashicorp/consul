@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
@@ -32,6 +33,9 @@ func TestIntentionApply_new(t *testing.T) {
 	}
 	var reply string
 
+	// Record now to check created at time
+	now := time.Now()
+
 	// Create
 	if err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply); err != nil {
 		t.Fatalf("err: %v", err)
@@ -58,7 +62,26 @@ func TestIntentionApply_new(t *testing.T) {
 		if resp.Index != actual.ModifyIndex {
 			t.Fatalf("bad index: %d", resp.Index)
 		}
+
+		// Test CreatedAt
+		{
+			timeDiff := actual.CreatedAt.Sub(now)
+			if timeDiff < 0 || timeDiff > 5*time.Second {
+				t.Fatalf("should set created at: %s", actual.CreatedAt)
+			}
+		}
+
+		// Test UpdatedAt
+		{
+			timeDiff := actual.UpdatedAt.Sub(now)
+			if timeDiff < 0 || timeDiff > 5*time.Second {
+				t.Fatalf("should set updated at: %s", actual.CreatedAt)
+			}
+		}
+
 		actual.CreateIndex, actual.ModifyIndex = 0, 0
+		actual.CreatedAt = ixn.Intention.CreatedAt
+		actual.UpdatedAt = ixn.Intention.UpdatedAt
 		if !reflect.DeepEqual(actual, ixn.Intention) {
 			t.Fatalf("bad: %v", actual)
 		}
@@ -123,6 +146,28 @@ func TestIntentionApply_updateGood(t *testing.T) {
 		t.Fatal("reply should be non-empty")
 	}
 
+	// Read CreatedAt
+	var createdAt time.Time
+	ixn.Intention.ID = reply
+	{
+		req := &structs.IntentionQueryRequest{
+			Datacenter:  "dc1",
+			IntentionID: ixn.Intention.ID,
+		}
+		var resp structs.IndexedIntentions
+		if err := msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if len(resp.Intentions) != 1 {
+			t.Fatalf("bad: %v", resp)
+		}
+		actual := resp.Intentions[0]
+		createdAt = actual.CreatedAt
+	}
+
+	// Sleep a bit so that the updated at will definitely be different, not much
+	time.Sleep(1 * time.Millisecond)
+
 	// Update
 	ixn.Op = structs.IntentionOpUpdate
 	ixn.Intention.ID = reply
@@ -146,7 +191,23 @@ func TestIntentionApply_updateGood(t *testing.T) {
 			t.Fatalf("bad: %v", resp)
 		}
 		actual := resp.Intentions[0]
+
+		// Test CreatedAt
+		if !actual.CreatedAt.Equal(createdAt) {
+			t.Fatalf("should not modify created at: %s", actual.CreatedAt)
+		}
+
+		// Test UpdatedAt
+		{
+			timeDiff := actual.UpdatedAt.Sub(createdAt)
+			if timeDiff <= 0 || timeDiff > 5*time.Second {
+				t.Fatalf("should set updated at: %s", actual.CreatedAt)
+			}
+		}
+
 		actual.CreateIndex, actual.ModifyIndex = 0, 0
+		actual.CreatedAt = ixn.Intention.CreatedAt
+		actual.UpdatedAt = ixn.Intention.UpdatedAt
 		if !reflect.DeepEqual(actual, ixn.Intention) {
 			t.Fatalf("bad: %v", actual)
 		}

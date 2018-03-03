@@ -33,6 +33,11 @@ func (s *Intention) Apply(
 	defer metrics.MeasureSince([]string{"consul", "intention", "apply"}, time.Now())
 	defer metrics.MeasureSince([]string{"intention", "apply"}, time.Now())
 
+	// Always set a non-nil intention to avoid nil-access below
+	if args.Intention == nil {
+		args.Intention = &structs.Intention{}
+	}
+
 	// If no ID is provided, generate a new ID. This must be done prior to
 	// appending to the Raft log, because the ID is not deterministic. Once
 	// the entry is in the log, the state update MUST be deterministic or
@@ -60,6 +65,9 @@ func (s *Intention) Apply(
 				break
 			}
 		}
+
+		// Set the created at
+		args.Intention.CreatedAt = time.Now()
 	}
 	*reply = args.Intention.ID
 
@@ -74,6 +82,9 @@ func (s *Intention) Apply(
 			return fmt.Errorf("Cannot modify non-existent intention: '%s'", args.Intention.ID)
 		}
 	}
+
+	// We always update the updatedat field. This has no effect for deletion.
+	args.Intention.UpdatedAt = time.Now()
 
 	// Commit
 	resp, err := s.srv.raftApply(structs.IntentionRequestType, args)

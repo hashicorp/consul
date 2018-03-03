@@ -3,6 +3,7 @@ package state
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
@@ -118,6 +119,38 @@ func TestStore_IntentionSet_emptyId(t *testing.T) {
 	}
 	if watchFired(ws) {
 		t.Fatalf("bad")
+	}
+}
+
+func TestStore_IntentionSet_updateCreatedAt(t *testing.T) {
+	s := testStateStore(t)
+
+	// Build a valid intention
+	now := time.Now()
+	ixn := structs.Intention{
+		ID:        testUUID(),
+		CreatedAt: now,
+	}
+
+	// Insert
+	if err := s.IntentionSet(1, &ixn); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Change a value and test updating
+	ixnUpdate := ixn
+	ixnUpdate.CreatedAt = now.Add(10 * time.Second)
+	if err := s.IntentionSet(2, &ixnUpdate); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Read it back and verify
+	_, actual, err := s.IntentionGet(nil, ixn.ID)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !actual.CreatedAt.Equal(now) {
+		t.Fatalf("bad: %#v", actual)
 	}
 }
 
