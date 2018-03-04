@@ -96,6 +96,15 @@ func (s *Intention) Apply(
 		if ixn == nil {
 			return fmt.Errorf("Cannot modify non-existent intention: '%s'", args.Intention.ID)
 		}
+
+		// Perform the ACL check that we have write to the old prefix too,
+		// which must be true to perform any rename.
+		if prefix, ok := ixn.GetACLPrefix(); ok {
+			if rule != nil && !rule.IntentionWrite(prefix) {
+				s.srv.logger.Printf("[WARN] consul.intention: Operation on intention '%s' denied due to ACLs", args.Intention.ID)
+				return acl.ErrPermissionDenied
+			}
+		}
 	}
 
 	// We always update the updatedat field. This has no effect for deletion.
