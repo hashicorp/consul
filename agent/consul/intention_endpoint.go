@@ -168,7 +168,16 @@ func (s *Intention) Get(
 			reply.Index = index
 			reply.Intentions = structs.Intentions{ixn}
 
-			// TODO: acl filtering
+			// Filter
+			if err := s.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+
+			// If ACLs prevented any responses, error
+			if len(reply.Intentions) == 0 {
+				s.srv.logger.Printf("[WARN] consul.intention: Request to get intention '%s' denied due to ACLs", args.IntentionID)
+				return acl.ErrPermissionDenied
+			}
 
 			return nil
 		},
