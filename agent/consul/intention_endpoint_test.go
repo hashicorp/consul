@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
@@ -300,6 +301,94 @@ func TestIntentionApply_deleteGood(t *testing.T) {
 		err := msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp)
 		assert.NotNil(err)
 		assert.Contains(err, ErrIntentionNotFound.Error())
+	}
+}
+
+// Test apply with a deny ACL
+func TestIntentionApply_aclDeny(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Create an ACL with write permissions
+	var token string
+	{
+		var rules = `
+service "foo" {
+	policy = "deny"
+	intentions = "write"
+}`
+
+		req := structs.ACLRequest{
+			Datacenter: "dc1",
+			Op:         structs.ACLSet,
+			ACL: structs.ACL{
+				Name:  "User token",
+				Type:  structs.ACLTypeClient,
+				Rules: rules,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Setup a basic record to create
+	ixn := structs.IntentionRequest{
+		Datacenter: "dc1",
+		Op:         structs.IntentionOpCreate,
+		Intention:  structs.TestIntention(t),
+	}
+	ixn.Intention.DestinationName = "foobar"
+
+	// Create without a token should error since default deny
+	var reply string
+	err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply)
+	if !acl.IsErrPermissionDenied(err) {
+		t.Fatalf("bad: %v", err)
+	}
+
+	// Now add the token and try again.
+	ixn.WriteRequest.Token = token
+	if err = msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Read
+	ixn.Intention.ID = reply
+	{
+		req := &structs.IntentionQueryRequest{
+			Datacenter:  "dc1",
+			IntentionID: ixn.Intention.ID,
+		}
+		var resp structs.IndexedIntentions
+		if err := msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if len(resp.Intentions) != 1 {
+			t.Fatalf("bad: %v", resp)
+		}
+		actual := resp.Intentions[0]
+		if resp.Index != actual.ModifyIndex {
+			t.Fatalf("bad index: %d", resp.Index)
+		}
+
+		actual.CreateIndex, actual.ModifyIndex = 0, 0
+		actual.CreatedAt = ixn.Intention.CreatedAt
+		actual.UpdatedAt = ixn.Intention.UpdatedAt
+		if !reflect.DeepEqual(actual, ixn.Intention) {
+			t.Fatalf("bad:\n\n%#v\n\n%#v", actual, ixn.Intention)
+		}
 	}
 }
 

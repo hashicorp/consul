@@ -157,6 +157,13 @@ func (x *Intention) Validate() error {
 	return result
 }
 
+// GetACLPrefix returns the prefix to look up the ACL policy for this
+// intention, and a boolean noting whether the prefix is valid to check
+// or not. You must check the ok value before using the prefix.
+func (x *Intention) GetACLPrefix() (string, bool) {
+	return x.DestinationName, x.DestinationName != ""
+}
+
 // IntentionAction is the action that the intention represents. This
 // can be "allow" or "deny" to whitelist or blacklist intentions.
 type IntentionAction string

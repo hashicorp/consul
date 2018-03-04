@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
@@ -70,6 +71,20 @@ func (s *Intention) Apply(
 		args.Intention.CreatedAt = time.Now().UTC()
 	}
 	*reply = args.Intention.ID
+
+	// Get the ACL token for the request for the checks below.
+	rule, err := s.srv.resolveToken(args.Token)
+	if err != nil {
+		return err
+	}
+
+	// Perform the ACL check
+	if prefix, ok := args.Intention.GetACLPrefix(); ok {
+		if rule != nil && !rule.IntentionWrite(prefix) {
+			s.srv.logger.Printf("[WARN] consul.intention: Operation on intention '%s' denied due to ACLs", args.Intention.ID)
+			return acl.ErrPermissionDenied
+		}
+	}
 
 	// If this is not a create, then we have to verify the ID.
 	if args.Op != structs.IntentionOpCreate {
