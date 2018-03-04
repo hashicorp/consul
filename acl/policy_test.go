@@ -6,6 +6,88 @@ import (
 	"testing"
 )
 
+func TestParse_table(t *testing.T) {
+	// Note that the table tests are newer than other tests. Many of the
+	// other aspects of policy parsing are tested in older tests below. New
+	// parsing tests should be added to this table as its easier to maintain.
+	cases := []struct {
+		Name     string
+		Input    string
+		Expected *Policy
+		Err      string
+	}{
+		{
+			"service no intentions",
+			`
+service "foo" {
+	policy = "write"
+}
+			`,
+			&Policy{
+				Services: []*ServicePolicy{
+					{
+						Name:   "foo",
+						Policy: "write",
+					},
+				},
+			},
+			"",
+		},
+
+		{
+			"service intentions",
+			`
+service "foo" {
+	policy = "write"
+	intentions = "read"
+}
+			`,
+			&Policy{
+				Services: []*ServicePolicy{
+					{
+						Name:       "foo",
+						Policy:     "write",
+						Intentions: "read",
+					},
+				},
+			},
+			"",
+		},
+
+		{
+			"service intention: invalid value",
+			`
+service "foo" {
+	policy = "write"
+	intentions = "foo"
+}
+			`,
+			nil,
+			"service intentions",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			actual, err := Parse(tc.Input, nil)
+			if (err != nil) != (tc.Err != "") {
+				t.Fatalf("err: %s", err)
+			}
+			if err != nil {
+				if !strings.Contains(err.Error(), tc.Err) {
+					t.Fatalf("err: %s", err)
+				}
+
+				return
+			}
+
+			if !reflect.DeepEqual(actual, tc.Expected) {
+				t.Fatalf("bad: %#v", actual)
+			}
+		})
+	}
+}
+
 func TestACLPolicy_Parse_HCL(t *testing.T) {
 	inp := `
 agent "foo" {
