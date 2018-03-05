@@ -9,7 +9,6 @@ moduleFor('route:index', 'Unit | Route | index', {
 
 test('it exists', function(assert) {
   let route = this.subject();
-  console.log(route);
   assert.ok(route);
 });
 // test('model calls findAll', function(assert) {
