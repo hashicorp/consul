@@ -768,6 +768,110 @@ func TestIntentionList(t *testing.T) {
 	}
 }
 
+// Test listing with ACLs
+func TestIntentionList_acl(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Create an ACL with service write permissions. This will grant
+	// intentions read.
+	var token string
+	{
+		var rules = `
+service "foo" {
+	policy = "write"
+}`
+
+		req := structs.ACLRequest{
+			Datacenter: "dc1",
+			Op:         structs.ACLSet,
+			ACL: structs.ACL{
+				Name:  "User token",
+				Type:  structs.ACLTypeClient,
+				Rules: rules,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Create a few records
+	for _, name := range []string{"foobar", "bar", "baz"} {
+		ixn := structs.IntentionRequest{
+			Datacenter: "dc1",
+			Op:         structs.IntentionOpCreate,
+			Intention:  structs.TestIntention(t),
+		}
+		ixn.Intention.DestinationName = name
+		ixn.WriteRequest.Token = "root"
+
+		// Create
+		var reply string
+		if err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Test with no token
+	{
+		req := &structs.DCSpecificRequest{
+			Datacenter: "dc1",
+		}
+		var resp structs.IndexedIntentions
+		if err := msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(resp.Intentions) != 0 {
+			t.Fatalf("bad: %v", resp)
+		}
+	}
+
+	// Test with management token
+	{
+		req := &structs.DCSpecificRequest{
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Token: "root"},
+		}
+		var resp structs.IndexedIntentions
+		if err := msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(resp.Intentions) != 3 {
+			t.Fatalf("bad: %v", resp)
+		}
+	}
+
+	// Test with user token
+	{
+		req := &structs.DCSpecificRequest{
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Token: token},
+		}
+		var resp structs.IndexedIntentions
+		if err := msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(resp.Intentions) != 1 {
+			t.Fatalf("bad: %v", resp)
+		}
+	}
+}
+
 // Test basic matching. We don't need to exhaustively test inputs since this
 // is tested in the agent/consul/state package.
 func TestIntentionMatch_good(t *testing.T) {
@@ -835,4 +939,133 @@ func TestIntentionMatch_good(t *testing.T) {
 		actual = append(actual, []string{ixn.DestinationNS, ixn.DestinationName})
 	}
 	assert.Equal(expected, actual)
+}
+
+// Test matching with ACLs
+func TestIntentionMatch_acl(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Create an ACL with service write permissions. This will grant
+	// intentions read.
+	var token string
+	{
+		var rules = `
+service "bar" {
+	policy = "write"
+}`
+
+		req := structs.ACLRequest{
+			Datacenter: "dc1",
+			Op:         structs.ACLSet,
+			ACL: structs.ACL{
+				Name:  "User token",
+				Type:  structs.ACLTypeClient,
+				Rules: rules,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Create some records
+	{
+		insert := [][]string{
+			{"foo", "*"},
+			{"foo", "bar"},
+			{"foo", "baz"}, // shouldn't match
+			{"bar", "bar"}, // shouldn't match
+			{"bar", "*"},   // shouldn't match
+			{"*", "*"},
+		}
+
+		for _, v := range insert {
+			ixn := structs.IntentionRequest{
+				Datacenter: "dc1",
+				Op:         structs.IntentionOpCreate,
+				Intention:  structs.TestIntention(t),
+			}
+			ixn.Intention.DestinationNS = v[0]
+			ixn.Intention.DestinationName = v[1]
+			ixn.WriteRequest.Token = "root"
+
+			// Create
+			var reply string
+			if err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply); err != nil {
+				t.Fatalf("err: %v", err)
+			}
+		}
+	}
+
+	// Test with no token
+	{
+		req := &structs.IntentionQueryRequest{
+			Datacenter: "dc1",
+			Match: &structs.IntentionQueryMatch{
+				Type: structs.IntentionMatchDestination,
+				Entries: []structs.IntentionMatchEntry{
+					{
+						Namespace: "foo",
+						Name:      "bar",
+					},
+				},
+			},
+		}
+		var resp structs.IndexedIntentionMatches
+		err := msgpackrpc.CallWithCodec(codec, "Intention.Match", req, &resp)
+		if !acl.IsErrPermissionDenied(err) {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(resp.Matches) != 0 {
+			t.Fatalf("bad: %#v", resp.Matches)
+		}
+	}
+
+	// Test with proper token
+	{
+		req := &structs.IntentionQueryRequest{
+			Datacenter: "dc1",
+			Match: &structs.IntentionQueryMatch{
+				Type: structs.IntentionMatchDestination,
+				Entries: []structs.IntentionMatchEntry{
+					{
+						Namespace: "foo",
+						Name:      "bar",
+					},
+				},
+			},
+			QueryOptions: structs.QueryOptions{Token: token},
+		}
+		var resp structs.IndexedIntentionMatches
+		if err := msgpackrpc.CallWithCodec(codec, "Intention.Match", req, &resp); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(resp.Matches) != 1 {
+			t.Fatalf("bad: %#v", resp.Matches)
+		}
+
+		expected := [][]string{{"foo", "bar"}, {"foo", "*"}, {"*", "*"}}
+		var actual [][]string
+		for _, ixn := range resp.Matches[0] {
+			actual = append(actual, []string{ixn.DestinationNS, ixn.DestinationName})
+		}
+
+		if !reflect.DeepEqual(actual, expected) {
+			t.Fatalf("bad (got, wanted):\n\n%#v\n\n%#v", actual, expected)
+		}
+	}
 }

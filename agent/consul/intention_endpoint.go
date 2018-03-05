@@ -206,8 +206,7 @@ func (s *Intention) List(
 				reply.Intentions = make(structs.Intentions, 0)
 			}
 
-			// filterACL
-			return nil
+			return s.srv.filterACL(args.Token, reply)
 		},
 	)
 }
@@ -221,7 +220,22 @@ func (s *Intention) Match(
 		return err
 	}
 
-	// TODO(mitchellh): validate
+	// Get the ACL token for the request for the checks below.
+	rule, err := s.srv.resolveToken(args.Token)
+	if err != nil {
+		return err
+	}
+
+	if rule != nil {
+		// We go through each entry and test the destination to check if it
+		// matches.
+		for _, entry := range args.Match.Entries {
+			if prefix := entry.Name; prefix != "" && !rule.IntentionRead(prefix) {
+				s.srv.logger.Printf("[WARN] consul.intention: Operation on intention prefix '%s' denied due to ACLs", prefix)
+				return acl.ErrPermissionDenied
+			}
+		}
+	}
 
 	return s.srv.blockingQuery(
 		&args.QueryOptions,
@@ -234,9 +248,6 @@ func (s *Intention) Match(
 
 			reply.Index = index
 			reply.Matches = matches
-
-			// TODO(mitchellh): acl filtering
-
 			return nil
 		},
 	)
