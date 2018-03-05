@@ -32,7 +32,8 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 
 	// Build a valid intention
 	ixn := &structs.Intention{
-		ID: testUUID(),
+		ID:   testUUID(),
+		Meta: map[string]string{},
 	}
 
 	// Inserting a with empty ID is disallowed.
@@ -50,7 +51,8 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 
 	// Read it back out and verify it.
 	expected := &structs.Intention{
-		ID: ixn.ID,
+		ID:   ixn.ID,
+		Meta: map[string]string{},
 		RaftIndex: structs.RaftIndex{
 			CreateIndex: 1,
 			ModifyIndex: 1,
@@ -264,10 +266,12 @@ func TestStore_IntentionsList(t *testing.T) {
 	// Create some intentions
 	ixns := structs.Intentions{
 		&structs.Intention{
-			ID: testUUID(),
+			ID:   testUUID(),
+			Meta: map[string]string{},
 		},
 		&structs.Intention{
-			ID: testUUID(),
+			ID:   testUUID(),
+			Meta: map[string]string{},
 		},
 	}
 
@@ -288,14 +292,16 @@ func TestStore_IntentionsList(t *testing.T) {
 	// Read it back and verify.
 	expected := structs.Intentions{
 		&structs.Intention{
-			ID: ixns[0].ID,
+			ID:   ixns[0].ID,
+			Meta: map[string]string{},
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 1,
 				ModifyIndex: 1,
 			},
 		},
 		&structs.Intention{
-			ID: ixns[1].ID,
+			ID:   ixns[1].ID,
+			Meta: map[string]string{},
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 2,
 				ModifyIndex: 2,
