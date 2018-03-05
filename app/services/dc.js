@@ -1,8 +1,8 @@
-import Service from '@ember/service';
+import Service, { inject as service } from '@ember/service';
 
-import get from 'consul-ui/utils/request/get';
 export default Service.extend({
+  store: service('store'),
   findAll: function() {
-    return get('/v1/catalog/datacenters');
+    return this.get('store').findAll('dc');
   },
 });
