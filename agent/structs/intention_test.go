@@ -8,6 +8,43 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestIntentionGetACLPrefix(t *testing.T) {
+	cases := []struct {
+		Name     string
+		Input    *Intention
+		Expected string
+	}{
+		{
+			"unset name",
+			&Intention{DestinationName: ""},
+			"",
+		},
+
+		{
+			"set name",
+			&Intention{DestinationName: "fo"},
+			"fo",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			actual, ok := tc.Input.GetACLPrefix()
+			if tc.Expected == "" {
+				if !ok {
+					return
+				}
+
+				t.Fatal("should not be ok")
+			}
+
+			if actual != tc.Expected {
+				t.Fatalf("bad: %q", actual)
+			}
+		})
+	}
+}
+
 func TestIntentionValidate(t *testing.T) {
 	cases := []struct {
 		Name   string

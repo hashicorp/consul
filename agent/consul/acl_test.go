@@ -847,6 +847,66 @@ node "node1" {
 	}
 }
 
+func TestACL_filterIntentions(t *testing.T) {
+	t.Parallel()
+	fill := func() structs.Intentions {
+		return structs.Intentions{
+			&structs.Intention{
+				ID:              "f004177f-2c28-83b7-4229-eacc25fe55d1",
+				DestinationName: "bar",
+			},
+			&structs.Intention{
+				ID:              "f004177f-2c28-83b7-4229-eacc25fe55d2",
+				DestinationName: "foo",
+			},
+		}
+	}
+
+	// Try permissive filtering.
+	{
+		ixns := fill()
+		filt := newACLFilter(acl.AllowAll(), nil, false)
+		filt.filterIntentions(&ixns)
+		if len(ixns) != 2 {
+			t.Fatalf("bad: %#v", ixns)
+		}
+	}
+
+	// Try restrictive filtering.
+	{
+		ixns := fill()
+		filt := newACLFilter(acl.DenyAll(), nil, false)
+		filt.filterIntentions(&ixns)
+		if len(ixns) != 0 {
+			t.Fatalf("bad: %#v", ixns)
+		}
+	}
+
+	// Policy to see one
+	policy, err := acl.Parse(`
+service "foo" {
+  policy = "read"
+}
+`, nil)
+	if err != nil {
+		t.Fatalf("err %v", err)
+	}
+	perms, err := acl.New(acl.DenyAll(), policy, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Filter
+	{
+		ixns := fill()
+		filt := newACLFilter(perms, nil, false)
+		filt.filterIntentions(&ixns)
+		if len(ixns) != 1 {
+			t.Fatalf("bad: %#v", ixns)
+		}
+	}
+}
+
 func TestACL_filterServices(t *testing.T) {
 	t.Parallel()
 	// Create some services
