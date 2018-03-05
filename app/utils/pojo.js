@@ -3,7 +3,7 @@ export default function() {
   return function() {
     const vals = [].slice.call(arguments);
     const pojo = {};
-    props.forEach((item, i, arr) => {
+    props.forEach((item, i /*, arr */) => {
       pojo[item] = vals[i];
     });
     return pojo;
