@@ -1161,14 +1161,9 @@ func TestFSM_Intention_CRUD(t *testing.T) {
 	ixn := structs.IntentionRequest{
 		Datacenter: "dc1",
 		Op:         structs.IntentionOpCreate,
-		Intention: &structs.Intention{
-			ID:              generateUUID(),
-			SourceNS:        "default",
-			SourceName:      "web",
-			DestinationNS:   "default",
-			DestinationName: "db",
-		},
+		Intention:  structs.TestIntention(t),
 	}
+	ixn.Intention.ID = generateUUID()
 
 	{
 		buf, err := structs.Encode(structs.IntentionRequestType, ixn)
