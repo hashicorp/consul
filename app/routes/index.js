@@ -18,7 +18,7 @@ export default Route.extend({
     // straight to it and bypass the global
     // view
     if (model.get('length') === 1) {
-      this.transitionTo('dc.services', model[0]);
+      this.transitionTo('dc.services', model.get('firstObject').get('Name'));
     }
   },
 });
