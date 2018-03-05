@@ -1,7 +1,17 @@
-// import Model from 'ember-data';
-import Model, { computed, get } from '@ember/object';
+import Entity from 'ember-data/model';
+import attr from 'ember-data/attr';
+import { computed, get } from '@ember/object';
 
-export default Model.extend({
+import { belongsTo } from 'ember-data/relationships';
+export default Entity.extend({
+  ID: attr('string'),
+  Address: attr('string'),
+  Node: attr(),
+  Meta: attr(),
+  Services: attr(),
+  Checks: attr(),
+  TaggedAddresses: attr(),
+  Datacenter: belongsTo('dc'),
   // The number of failing checks within the service.
   // Boolean of whether or not there are failing checks in the service.
   // This is used to set color backgrounds and so on.
