@@ -9,7 +9,9 @@ module.exports = {
   env: {
     browser: true,
   },
-  rules: {},
+  rules: {
+    'no-unused-vars': ['error', { args: 'none' }]
+  },
   overrides: [
     // node files
     {
