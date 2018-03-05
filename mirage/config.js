@@ -25,7 +25,7 @@ export default function() {
   */
   this.get(
     '/catalog/datacenters',
-    function() {
+    function(schema, request) {
       return ['dc1'];
     }
   );
