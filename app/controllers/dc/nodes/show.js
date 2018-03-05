@@ -1,11 +1,10 @@
-import Controller from '@ember/controller';
+import Controller, { inject as controller } from '@ember/controller';
 import { computed } from '@ember/object';
 
 import put from 'consul-ui/utils/request/put';
 
 export default Controller.extend({
-  needs: ['dc', 'nodes'],
-  dc: computed.alias('controllers.dc'),
+  dc: controller('dc'),
   actions: {
     invalidateSession: function(sessionId) {
       var controller = this;

@@ -1,5 +1,6 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
+import { assign } from '@ember/polyfills';
 
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
@@ -18,35 +19,38 @@ export default Route.extend({
       key: repo.findByKey(key, dc),
       // jc awkward name, see services/kv.js
       keys: repo.findKeysByKey(parentKeys.parent, dc),
-    });
-  },
-
-  // Load the session on the key, if there is one
-  afterModel: function(models) {
-    if (get(models.key, 'isLocked')) {
-      return this.get('sessionRepo')
-        .findByKey(models.key.Session, models.dc)
-        .then(function(data) {
-          models.session = data[0];
-          return models;
+    })
+      .then(model => {
+        // jc: another afterModel for no reason replacement
+        // guessing ember-data will come in here, as we are just stitching stuff together
+        if (get(model.key, 'isLocked')) {
+          return this.get('sessionRepo')
+            .findByKey(model.key.Session, model.dc)
+            .then(function(data) {
+              return assign(model, {
+                session: data[0],
+              });
+            });
+        } else {
+          return model;
+        }
+      })
+      .then(model => {
+        // TODO: again as in show, look at tidying this up
+        const key = model.key;
+        const parentKeys = this.getParentAndGrandparent(get(key, 'Key'));
+        return assign(model, {
+          keys: this.removeDuplicateKeys(model.keys, parentKeys.parent),
+          model: key,
+          parentKey: parentKeys.parent,
+          grandParentKey: parentKeys.grandParent,
+          isRoot: parentKeys.isRoot,
+          siblings: model.keys,
+          session: model.session,
         });
-    } else {
-      return models;
-    }
+      });
   },
-
-  setupController: function(controller, models) {
-    const key = models.key;
-    const parentKeys = this.getParentAndGrandparent(get(key, 'Key'));
-    models.keys = this.removeDuplicateKeys(models.keys, parentKeys.parent);
-
-    controller.set('dc', models.dc);
-    controller.set('model', key);
-    controller.set('parentKey', parentKeys.parent);
-    controller.set('grandParentKey', parentKeys.grandParent);
-    controller.set('isRoot', parentKeys.isRoot);
-    controller.set('siblings', models.keys);
-    controller.set('rootKey', this.rootKey);
-    controller.set('session', models.session);
+  setupController: function(controller, model) {
+    controller.setProperties(model);
   },
 });
