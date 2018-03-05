@@ -1,13 +1,13 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-HEALTH" "7" "February 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-HEALTH" "7" "March 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIhealth\fR \- enables a health check endpoint\.
 .
 .SH "DESCRIPTION"
-By enabling \fIhealth\fR any plugin that implements it will be queried for it\'s health\. The combined health is exported, by default, on port 8080/health \.
+By enabling \fIhealth\fR any plugin that implements healt\.Healther interface \fIhttps://godoc\.org/github\.com/coredns/coredns/plugin/health#Healther\fR will be queried for it\'s health\. The combined health is exported, by default, on port 8080/health \.
 .
 .SH "SYNTAX"
 .
@@ -40,6 +40,27 @@ Where \fBlameduck\fR will make the process unhealthy then \fIwait\fR for \fBDURA
 .
 .IP "" 0
 .
+.P
+If you have multiple Server Block and need to export health for each of the plugins, you must run health endpoints on different ports:
+.
+.IP "" 4
+.
+.nf
+
+com {
+    whoami
+    health :8080
+}
+
+net {
+    erratic
+    health :8081
+}
+.
+.fi
+.
+.IP "" 0
+.
 .SH "PLUGINS"
 Any plugin that implements the Healther interface will be used to report health\.
 .
@@ -47,7 +68,7 @@ Any plugin that implements the Healther interface will be used to report health\
 If monitoring is enabled (via the \fIprometheus\fR directive) then the following metric is exported:
 .
 .IP "\(bu" 4
-\fBcoredns_health_request_duration_seconds{}\fR \- duration to process a /health query\. As this should be a local operation it should be fast\. A (large) increases in this duration indicates the CoreDNS process is having trouble keeping up\.
+\fBcoredns_health_request_duration_seconds{}\fR \- duration to process a /health query\. As this should be a local operation it should be fast\. A (large) increases in this duration indicates the CoreDNS process is having trouble keeping up with its query load\.
 .
 .IP "" 0
 .
@@ -74,7 +95,7 @@ Set a lameduck duration of 1 second:
 .nf
 
 \&\. {
-    health localhost:8091 {
+    health localhost:8092 {
         lameduck 1s
     }
 }

@@ -1,13 +1,16 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-NSID" "7" "February 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-NSID" "7" "March 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fInsid\fR \- adds an identifier of this server to each reply\.
 .
 .SH "DESCRIPTION"
-This plugin implements RFC 5001 and adds an EDNS0 OPT resource record to replies that uniquely identify the server\. This is useful in anycast setups to see which server was responsible for generating the reply and for debugging\.
+This plugin implements RFC 5001 \fIhttps://tools\.ietf\.org/html/rfc5001\fR and adds an EDNS0 OPT resource record to replies that uniquely identify the server\. This is useful in anycast setups to see which server was responsible for generating the reply and for debugging\.
+.
+.P
+This plugin can only be used once per Server Block\.
 .
 .SH "SYNTAX"
 .
@@ -63,4 +66,6 @@ And now a client with NSID support will see an OPT record with the NSID option:
 .fi
 .
 .IP "" 0
-
+.
+.SH "ALSO SEE"
+RFC 5001 \fIhttps://tools\.ietf\.org/html/rfc5001\fR

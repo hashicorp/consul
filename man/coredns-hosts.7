@@ -1,13 +1,16 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-HOSTS" "7" "February 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-HOSTS" "7" "March 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIhosts\fR \- enables serving zone data from a \fB/etc/hosts\fR style file\.
 .
 .SH "DESCRIPTION"
 The hosts plugin is useful for serving zones from a /etc/hosts file\. It serves from a preloaded file that exists on disk\. It checks the file for changes and updates the zones accordingly\. This plugin only supports A, AAAA, and PTR records\. The hosts plugin can be used with readily available hosts files that block access to advertising servers\.
+.
+.P
+This plugin can only be used once per Server Block\.
 .
 .SH "SYNTAX"
 .

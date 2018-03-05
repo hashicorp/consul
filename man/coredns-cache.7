@@ -1,13 +1,16 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-CACHE" "7" "February 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-CACHE" "7" "March 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIcache\fR \- enables a frontend cache\.
 .
 .SH "DESCRIPTION"
 With \fIcache\fR enabled, all records except zone transfers and metadata records will be cached for up to 3600s\. Caching is mostly useful in a scenario when fetching data from the backend (upstream, database, etc\.) is expensive\.
+.
+.P
+This plugin can only be used once per Server Block\.
 .
 .SH "SYNTAX"
 .

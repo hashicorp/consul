@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-FORWARD" "7" "February 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-FORWARD" "7" "March 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIforward\fR \- facilitates proxying DNS messages to upstream resolvers\.
@@ -14,6 +14,9 @@ When it detects an error a health check is performed\. This checks runs in a loo
 .
 .P
 When \fIall\fR upstreams are down it assumes health checking as a mechanism has failed and will try to connect to a random upstream (which may or may not work)\.
+.
+.P
+This plugin can only be used once per Server Block\.
 .
 .SH "SYNTAX"
 In its most basic form, a simple forwarder uses this syntax:
@@ -54,7 +57,7 @@ forward FROM TO\.\.\. {
     tls CERT KEY CA
     tls_servername NAME
     policy random|round_robin
-    health_checks DURATION
+    health_check DURATION
 }
 .
 .fi
@@ -86,7 +89,7 @@ forward FROM TO\.\.\. {
 \fBpolicy\fR specifies the policy to use for selecting upstream servers\. The default is \fBrandom\fR\.
 .
 .IP "\(bu" 4
-\fBhealth_checks\fR, use a different \fBDURATION\fR for health checking, the default duration is 0\.5s\.
+\fBhealth_check\fR, use a different \fBDURATION\fR for health checking, the default duration is 0\.5s\.
 .
 .IP "" 0
 .

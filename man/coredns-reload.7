@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-RELOAD" "7" "February 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-RELOAD" "7" "March 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIreload\fR \- allows automatic reload of a changed Corefile
@@ -17,6 +17,9 @@ In some environments (for example, Kubernetes), there may be many CoreDNS instan
 .
 .P
 Jitter is re\-calculated whenever the Corefile is reloaded\.
+.
+.P
+This plugin can only be used once per Server Block\.
 .
 .SH "SYNTAX"
 .

@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-LOG" "7" "February 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-LOG" "7" "March 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIlog\fR \- enables query logging to standard output\.
@@ -103,7 +103,7 @@ The following place holders are supported:
 \fB{when}\fR: time of the query
 .
 .IP "\(bu" 4
-\fB{remote}\fR: client\'s IP address
+\fB{remote}\fR: client\'s IP address, for IPv6 addresses these are enclosed in brackets: \fB[::1]\fR
 .
 .IP "\(bu" 4
 \fB{size}\fR: request size in bytes
@@ -144,7 +144,7 @@ The default Common Log Format is:
 .
 .nf
 
-`{remote} \- [{when}] {>id} "{type} {class} {name} {proto} {size} {>do} {>bufsize}" {rcode} {>rflags} {rsize} {duration}`
+`{remote}:{port} \- [{when}] {>id} "{type} {class} {name} {proto} {size} {>do} {>bufsize}" {rcode} {>rflags} {rsize} {duration}`
 .
 .fi
 .
