@@ -47,6 +47,7 @@ type dnsConfig struct {
 	SegmentName     string
 	ServiceTTL      map[string]time.Duration
 	UDPAnswerLimit  int
+	ARecordLimit    int
 }
 
 // DNSServer is used to wrap an Agent and expose various
@@ -94,6 +95,7 @@ func NewDNSServer(a *Agent) (*DNSServer, error) {
 func GetDNSConfig(conf *config.RuntimeConfig) *dnsConfig {
 	return &dnsConfig{
 		AllowStale:      conf.DNSAllowStale,
+		ARecordLimit:    conf.DNSARecordLimit,
 		Datacenter:      conf.Datacenter,
 		EnableTruncate:  conf.DNSEnableTruncate,
 		MaxStale:        conf.DNSMaxStale,
@@ -974,6 +976,7 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 	handled := make(map[string]struct{})
 	edns := req.IsEdns0() != nil
 
+	count := 0
 	for _, node := range nodes {
 		// Start with the translated address but use the service address,
 		// if specified.
@@ -999,6 +1002,11 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 		records := d.formatNodeRecord(node.Node, addr, qName, qType, ttl, edns)
 		if records != nil {
 			resp.Answer = append(resp.Answer, records...)
+			count++
+			if count == d.config.ARecordLimit {
+				// We stop only if greater than 0 or we reached the limit
+				return
+			}
 		}
 	}
 }
