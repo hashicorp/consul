@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/raft"
+	"github.com/stretchr/testify/assert"
 )
 
 type MockSink struct {
@@ -39,9 +40,7 @@ func makeLog(buf []byte) *raft.Log {
 func TestFSM_IgnoreUnknown(t *testing.T) {
 	t.Parallel()
 	fsm, err := New(nil, os.Stderr)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	assert.Nil(t, err)
 
 	// Create a new reap request
 	type UnknownRequest struct {
@@ -50,13 +49,10 @@ func TestFSM_IgnoreUnknown(t *testing.T) {
 	req := UnknownRequest{Foo: "bar"}
 	msgType := structs.IgnoreUnknownTypeFlag | 64
 	buf, err := structs.Encode(msgType, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	assert.Nil(t, err)
 
 	// Apply should work, even though not supported
 	resp := fsm.Apply(makeLog(buf))
-	if err, ok := resp.(error); ok {
-		t.Fatalf("resp: %v", err)
-	}
+	err, ok := resp.(error)
+	assert.False(t, ok, "response: %s", err)
 }
