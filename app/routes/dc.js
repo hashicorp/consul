@@ -12,7 +12,6 @@ export default Route.extend({
       dc: params.dc,
       dcs: repo.findAll(),
       nodes: nodeRepo.findAllByDatacenter(params.dc),
-      coordinates: nodeRepo.findAllCoordinatesByDatacenter(params.dc),
     });
   },
   setupController: function(controller, model) {
