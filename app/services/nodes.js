@@ -6,23 +6,13 @@ import map from 'consul-ui/utils/map';
 export default Service.extend({
   store: service('store'),
   findAllByDatacenter: function(datacenter) {
-    return this.get('store')
-      .findAll('node')
-      .then(function(res) {
-        return res;
-      });
+    return this.get('store').query('node', { dc: datacenter });
   },
   findBySlug: function(slug) {
     return this.get('store').findRecord('node', slug);
   },
-  // findAllByDatacenter: function(dc) {
-  //   return get('/v1/internal/ui/nodes', dc).then(map(Entity));
-  // },
   findAllCoordinatesByDatacenter: function(dc) {
+    console.warn('TODO: not ember-data');
     return get('/v1/coordinate/nodes', dc);
   },
-  // findBySlug: function(slug, dc) {
-  //   // maintain consistency with map([])
-  //   return get('/v1/internal/ui/node/' + slug, dc).then(map([Entity])[0]);
-  // },
 });

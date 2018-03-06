@@ -6,7 +6,7 @@ import { belongsTo } from 'ember-data/relationships';
 export default Entity.extend({
   ID: attr('string'),
   Address: attr('string'),
-  Node: attr(),
+  Node: attr('string'),
   Meta: attr(),
   Services: attr(),
   Checks: attr(),

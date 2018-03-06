@@ -11,6 +11,8 @@ export default Route.extend({
     return hash({
       dc: params.dc,
       dcs: repo.findAll(),
+      // TODO: Nodes should already be loaded on the selected
+      // dc, we only need them for the selected dc
       nodes: nodeRepo.findAllByDatacenter(params.dc),
     });
   },
