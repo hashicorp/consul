@@ -20,26 +20,26 @@ export default Entity.extend({
   numServices: computed.alias('Services.length'),
   services: computed.alias('Services'),
   filterKey: computed.alias('Node'),
-  failingChecks: function() {
+  failingChecks: computed('Checks', function() {
     return this.get('Checks').reduce(function(sum, check) {
       var status = get(check, 'Status');
       // We view both warning and critical as failing
       return status === 'critical' || status === 'warning' ? sum + 1 : sum;
     }, 0);
-  }.property('Checks'),
+  }),
   // The number of passing checks within the service.
-  passingChecks: function() {
+  passingChecks: computed('Checks', function() {
     return this.get('Checks')
       .filterBy('Status', 'passing')
       .get('length');
-  }.property('Checks'),
+  }),
   // The formatted message returned for the user which represents the
   // number of checks failing or passing. Returns `1 passing` or `2 failing`
-  checkMessage: function() {
+  checkMessage: computed('passingChecks', 'failingChecks', function() {
     if (this.get('hasFailingChecks') === false) {
       return this.get('passingChecks') + ' passing';
     } else {
       return this.get('failingChecks') + ' failing';
     }
-  }.property('Checks'),
+  }),
 });

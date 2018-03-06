@@ -8,13 +8,38 @@ import { belongsTo } from 'ember-data/relationships';
 export default Entity.extend({
   Id: attr('string'), // added by ember
   Name: attr('string'),
+  ChecksPassing: attr(),
+  ChecksCritical: attr(),
+  ChecksWarning: attr(),
   Nodes: attr(),
   Service: attr(),
-  Checks: attr(),
   Datacenter: belongsTo('service'),
 
+  tags: computed('Service', function() {
+    return ['Tag', 'Here'];
+    // TODO: isolate, quick read of this some sort of filter might fit here instead of reduce?
+    // come back and check exactly what this is doing and test
+    // return assign(model, {
+    //   tags: model.model
+    //     .reduce(function(prev, item) {
+    //       return item.Service.Tags !== null ? prev.concat(item.Service.Tags) : prev;
+    //     }, [])
+    //     .filter(function(n) {
+    //       return n !== undefined;
+    //     })
+    //     .uniq()
+    //     .join(', '),
+    // });
+  }),
+
+  Node: attr(),
+  Service: attr(),
+  Checks: attr(),
+  // Boolean of whether or not there are failing checks in the service.
+  // This is used to set color backgrounds and so on.
+  hasFailingChecks: computed.gt('failingChecks', 0),
   // The number of failing checks within the service.
-  failingChecks: function() {
+  failingChecks: computed('ChecksCritical', 'ChecksWarning', 'Checks', function() {
     // If the service was returned from `/v1/internal/ui/services`
     // then we have a aggregated value which we can just grab
     if (this.get('ChecksCritical') !== undefined) {
@@ -28,9 +53,9 @@ export default Entity.extend({
         checks.filterBy('Status', 'warning').get('length')
       );
     }
-  }.property('Checks'),
+  }),
   // The number of passing checks within the service.
-  passingChecks: function() {
+  passingChecks: computed('ChecksPassing', 'Checks', function() {
     // If the service was returned from `/v1/internal/ui/services`
     // then we have a aggregated value which we can just grab
     if (this.get('ChecksPassing') !== undefined) {
@@ -42,22 +67,17 @@ export default Entity.extend({
         .filterBy('Status', 'passing')
         .get('length');
     }
-  }.property('Checks'),
+  }),
   // The formatted message returned for the user which represents the
   // number of checks failing or passing. Returns `1 passing` or `2 failing`
-  checkMessage: function() {
+  checkMessage: computed('passingChecks', 'failingChecks', function() {
     if (this.get('hasFailingChecks') === false) {
       return this.get('passingChecks') + ' passing';
     } else {
       return this.get('failingChecks') + ' failing';
     }
-  }.property('Checks'),
-  nodes: function() {
-    return this.get('Nodes');
-  }.property('Nodes'),
-  // Boolean of whether or not there are failing checks in the service.
-  // This is used to set color backgrounds and so on.
-  hasFailingChecks: computed.gt('failingChecks', 0),
+  }),
+  nodes: computed.alias('Nodes'),
   // Key used for filtering through an array of this model, i.e s
   // searching
   filterKey: computed.alias('Name'),

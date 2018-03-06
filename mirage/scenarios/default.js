@@ -6,5 +6,5 @@ export default function(/* server */) {
   */
 
   // server.createList('post', 10);
-  server.createList('dc', 1);
+  window.server.createList('dc', 1);
 }
