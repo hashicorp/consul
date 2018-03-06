@@ -634,7 +634,11 @@ func TestParseConsistency(t *testing.T) {
 	}
 }
 
-func ensureConsistency(t *testing.T, a *TestAgent, path string, allowStale bool, requireConsistent bool) {
+// ensureConsistency check if consistency modes are correclty applied
+// if maxStale < 0 => stale, without MaxStaleDuration
+// if maxStale == 0 => no stale
+// if maxStale > 0 => stale + check duration
+func ensureConsistency(t *testing.T, a *TestAgent, path string, maxStale time.Duration, requireConsistent bool) {
 	t.Helper()
 	req, _ := http.NewRequest("GET", path, nil)
 	var b structs.QueryOptions
@@ -642,75 +646,47 @@ func ensureConsistency(t *testing.T, a *TestAgent, path string, allowStale bool,
 	if d := a.srv.parseConsistency(resp, req, &b); d {
 		t.Fatalf("unexpected done")
 	}
+	allowStale := maxStale.Nanoseconds() != 0
 	if b.AllowStale != allowStale {
 		t.Fatalf("Bad Allow Stale")
+	}
+	if maxStale > 0 && b.MaxStaleDuration != maxStale {
+		t.Fatalf("Bad MaxStaleDuration: %d VS expected %d", b.MaxStaleDuration, maxStale)
 	}
 	if b.RequireConsistent != requireConsistent {
 		t.Fatal("Bad Consistent")
 	}
 }
 
-func TestParseConsistencyAndDefaultLevel(t *testing.T) {
+func TestParseConsistencyAndMaxStale(t *testing.T) {
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
-	// Default
-	a.config.DefaultConsistencyLevel = ""
-	ensureConsistency(t, a, "/v1/catalog/nodes", false, false)
-	// leader == default
-	a.config.DefaultConsistencyLevel = "leader"
-	ensureConsistency(t, a, "/v1/catalog/nodes", false, false)
+	// Default => Consistent
+	a.config.DiscoveryMaxStale = time.Duration(0)
+	ensureConsistency(t, a, "/v1/catalog/nodes", 0, false)
+	// Stale, without MaxStale
+	ensureConsistency(t, a, "/v1/catalog/nodes?stale", -1, false)
+	// Override explicitly
+	ensureConsistency(t, a, "/v1/catalog/nodes?max_stale=3s", 3*time.Second, false)
+	ensureConsistency(t, a, "/v1/catalog/nodes?stale&max_stale=3s", 3*time.Second, false)
 
-	// stale
-	a.config.DefaultConsistencyLevel = "stale"
-	ensureConsistency(t, a, "/v1/catalog/nodes", true, false)
-
-	// Should apply only on discovery path
-	a.config.DiscoveryConsistencyLevel = "consistent"
-	ensureConsistency(t, a, "/v1/catalog/nodes", false, true)
-	a.config.DiscoveryConsistencyLevel = "leader"
-	ensureConsistency(t, a, "/v1/catalog/nodes", false, false)
-	a.config.DiscoveryConsistencyLevel = "stale"
-	ensureConsistency(t, a, "/v1/catalog/nodes", true, false)
-
-	// DefaultConsistencyLevel should apply
-	a.config.DefaultConsistencyLevel = ""
-	ensureConsistency(t, a, "/v1/kv/path", false, false)
+	// stale by defaul on discovery
+	a.config.DiscoveryMaxStale = time.Duration(7 * time.Second)
+	ensureConsistency(t, a, "/v1/catalog/nodes", a.config.DiscoveryMaxStale, false)
+	// Not in KV
+	ensureConsistency(t, a, "/v1/kv/my/path", 0, false)
 
 	// DiscoveryConsistencyLevel should apply
-	ensureConsistency(t, a, "/v1/health/service/one", true, false)
-	ensureConsistency(t, a, "/v1/catalog/service/one", true, false)
-	ensureConsistency(t, a, "/v1/catalog/services", true, false)
+	ensureConsistency(t, a, "/v1/health/service/one", a.config.DiscoveryMaxStale, false)
+	ensureConsistency(t, a, "/v1/catalog/service/one", a.config.DiscoveryMaxStale, false)
+	ensureConsistency(t, a, "/v1/catalog/services", a.config.DiscoveryMaxStale, false)
 
 	// Query path should be taken into account
-	ensureConsistency(t, a, "/v1/catalog/services?consistent", false, true)
-	// Consistency taken into account
-	ensureConsistency(t, a, "/v1/catalog/services?consistent&consistency=leader", false, false)
-	ensureConsistency(t, a, "/v1/catalog/services?consistent&consistency=stale", true, false)
-	ensureConsistency(t, a, "/v1/catalog/services?stale&consistency=consistent", false, true)
-	ensureConsistency(t, a, "/v1/catalog/services?consistency=consistent", false, true)
-	ensureConsistency(t, a, "/v1/catalog/services?consistency=stale", true, false)
-	ensureConsistency(t, a, "/v1/catalog/services?consistency=leader", false, false)
-
-	a.config.DefaultConsistencyLevel = "leader"
-	a.config.DiscoveryConsistencyLevel = "stale"
-	ensureConsistency(t, a, "/v1/catalog/services?consistency=default", true, false)
-	ensureConsistency(t, a, "/v1/catalog/services", true, false)
-	ensureConsistency(t, a, "/v1/kv/my/path", false, false)
-
-	a.config.DefaultConsistencyLevel = ""
-	a.config.DiscoveryConsistencyLevel = "stale"
-	ensureConsistency(t, a, "/v1/catalog/services?consistency=default", true, false)
-	ensureConsistency(t, a, "/v1/catalog/services", true, false)
-	ensureConsistency(t, a, "/v1/kv/my/path", false, false)
-
-	a.config.DefaultConsistencyLevel = ""
-	a.config.DiscoveryConsistencyLevel = ""
-	ensureConsistency(t, a, "/v1/catalog/services?consistency=default", false, false)
-	ensureConsistency(t, a, "/v1/health/service/myservice?consistency=default", false, false)
-	ensureConsistency(t, a, "/v1/catalog/services", false, false)
-	ensureConsistency(t, a, "/v1/health/service/myservice", false, false)
-	ensureConsistency(t, a, "/v1/kv/my/path", false, false)
+	ensureConsistency(t, a, "/v1/catalog/services?consistent", 0, true)
+	// Since stale is added, no MaxStale should be applied
+	ensureConsistency(t, a, "/v1/catalog/services?stale", -1, false)
+	ensureConsistency(t, a, "/v1/catalog/services?leader", 0, false)
 }
 
 func TestParseConsistency_Invalid(t *testing.T) {

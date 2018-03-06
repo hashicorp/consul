@@ -2285,6 +2285,7 @@ func TestFullConfig(t *testing.T) {
 			"disable_remote_exec": true,
 			"disable_update_check": true,
 			"discard_check_output": true,
+			"discovery_max_stale": "5s",
 			"domain": "7W1xXSqd",
 			"dns_config": {
 				"allow_stale": true,
@@ -2720,6 +2721,7 @@ func TestFullConfig(t *testing.T) {
 			disable_remote_exec = true
 			disable_update_check = true
 			discard_check_output = true
+			discovery_max_stale = "5s"
 			domain = "7W1xXSqd"
 			dns_config {
 				allow_stale = true
@@ -3046,6 +3048,7 @@ func TestFullConfig(t *testing.T) {
 					"ae_interval": "10003s",
 					"check_deregister_interval_min": "27870s",
 					"check_reap_interval": "10662s",
+					"discovery_max_stale": "5s",
 					"segment_limit": 24705,
 					"segment_name_limit": 27046,
 					"sync_coordinate_interval_min": "27983s",
@@ -3100,6 +3103,7 @@ func TestFullConfig(t *testing.T) {
 					ae_interval = "10003s"
 					check_deregister_interval_min = "27870s"
 					check_reap_interval = "10662s"
+					discovery_max_stale = "5s"
 					segment_limit = 24705
 					segment_name_limit = 27046
 					sync_coordinate_interval_min = "27983s"
@@ -3305,6 +3309,7 @@ func TestFullConfig(t *testing.T) {
 		DisableRemoteExec:         true,
 		DisableUpdateCheck:        true,
 		DiscardCheckOutput:        true,
+		DiscoveryMaxStale:         5 * time.Second,
 		EnableACLReplication:      true,
 		EnableAgentTLSForChecks:   true,
 		EnableDebug:               true,
@@ -3977,7 +3982,6 @@ func TestSanitize(t *testing.T) {
     "DNSUDPAnswerLimit": 0,
     "DataDir": "",
     "Datacenter": "",
-    "DefaultConsistencyLevel": "",
     "DevMode": false,
     "DisableAnonymousSignature": false,
     "DisableCoordinates": false,
@@ -3986,7 +3990,7 @@ func TestSanitize(t *testing.T) {
     "DisableRemoteExec": false,
     "DisableUpdateCheck": false,
     "DiscardCheckOutput": false,
-    "DiscoveryConsistencyLevel": "",
+    "DiscoveryMaxStale": "0s",
     "EnableACLReplication": false,
     "EnableAgentTLSForChecks": false,
     "EnableDebug": false,

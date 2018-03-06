@@ -461,16 +461,13 @@ type RuntimeConfig struct {
 	// flag: -datacenter string
 	Datacenter string
 
-	// Defines the level of consistenty when not specified in a HTTP request
+	// Defines the maximum stale value for discovery path. Defauls to "0s".
+	// Discovery paths are /v1/catalog/* and /v1/heath/* paths
 	//
-	// Can be stale, leader, consistent, by default "leader"
-	DefaultConsistencyLevel string
-
-	// Defines the level of consistency for discovery that will take precedence
-	// over DefaultConsistencyLevel if specified
-	// Will apply on endpoints /v1/catalog/* or /v1/health/*
-	// Can be stale, leader, consistent, by default, "leader"
-	DiscoveryConsistencyLevel string
+	// If not set to 0, it will try to perform stale read and perform only a
+	// consistent read whenever the value is too old.
+	// hcl: discovery_max_stale = "duration"
+	DiscoveryMaxStale time.Duration
 
 	// Node name is the name we use to advertise. Defaults to hostname.
 	//

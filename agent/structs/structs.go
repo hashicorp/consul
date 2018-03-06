@@ -110,6 +110,11 @@ type QueryOptions struct {
 	// If set, the leader must verify leadership prior to
 	// servicing the request. Prevents a stale read.
 	RequireConsistent bool
+
+	// If set and AllowStale is true, will try first a stale
+	// read, and then will perform a consistent read if stale
+	// read is older than value
+	MaxStaleDuration time.Duration
 }
 
 // IsRead is always true for QueryOption.

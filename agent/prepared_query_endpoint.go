@@ -43,8 +43,14 @@ func (s *HTTPServer) preparedQueryList(resp http.ResponseWriter, req *http.Reque
 	}
 
 	var reply structs.IndexedPreparedQueries
+RETRY_ONCE:
 	if err := s.agent.RPC("PreparedQuery.List", &args, &reply); err != nil {
 		return nil, err
+	}
+	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < reply.LastContact {
+		args.AllowStale = false
+		args.MaxStaleDuration = 0
+		goto RETRY_ONCE
 	}
 
 	// Use empty list instead of nil.
@@ -100,6 +106,7 @@ func (s *HTTPServer) preparedQueryExecute(id string, resp http.ResponseWriter, r
 	}
 
 	var reply structs.PreparedQueryExecuteResponse
+RETRY_ONCE:
 	if err := s.agent.RPC("PreparedQuery.Execute", &args, &reply); err != nil {
 		// We have to check the string since the RPC sheds
 		// the specific error type.
@@ -109,6 +116,11 @@ func (s *HTTPServer) preparedQueryExecute(id string, resp http.ResponseWriter, r
 			return nil, nil
 		}
 		return nil, err
+	}
+	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < reply.LastContact {
+		args.AllowStale = false
+		args.MaxStaleDuration = 0
+		goto RETRY_ONCE
 	}
 
 	// Note that we translate using the DC that the results came from, since
@@ -145,6 +157,7 @@ func (s *HTTPServer) preparedQueryExplain(id string, resp http.ResponseWriter, r
 	}
 
 	var reply structs.PreparedQueryExplainResponse
+RETRY_ONCE:
 	if err := s.agent.RPC("PreparedQuery.Explain", &args, &reply); err != nil {
 		// We have to check the string since the RPC sheds
 		// the specific error type.
@@ -154,6 +167,11 @@ func (s *HTTPServer) preparedQueryExplain(id string, resp http.ResponseWriter, r
 			return nil, nil
 		}
 		return nil, err
+	}
+	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < reply.LastContact {
+		args.AllowStale = false
+		args.MaxStaleDuration = 0
+		goto RETRY_ONCE
 	}
 	return reply, nil
 }
@@ -168,6 +186,7 @@ func (s *HTTPServer) preparedQueryGet(id string, resp http.ResponseWriter, req *
 	}
 
 	var reply structs.IndexedPreparedQueries
+RETRY_ONCE:
 	if err := s.agent.RPC("PreparedQuery.Get", &args, &reply); err != nil {
 		// We have to check the string since the RPC sheds
 		// the specific error type.
@@ -177,6 +196,11 @@ func (s *HTTPServer) preparedQueryGet(id string, resp http.ResponseWriter, req *
 			return nil, nil
 		}
 		return nil, err
+	}
+	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < reply.LastContact {
+		args.AllowStale = false
+		args.MaxStaleDuration = 0
+		goto RETRY_ONCE
 	}
 	return reply.Queries, nil
 }

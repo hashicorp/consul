@@ -381,23 +381,6 @@ func parseWait(resp http.ResponseWriter, req *http.Request, b *structs.QueryOpti
 	return false
 }
 
-func fillConsistencyFromValue(b *structs.QueryOptions, val string) error {
-	if val == "stale" {
-		b.AllowStale = true
-		b.RequireConsistent = false
-		return nil
-	} else if val == "consistent" {
-		b.AllowStale = false
-		b.RequireConsistent = true
-		return nil
-	} else if val == "leader" {
-		b.AllowStale = false
-		b.RequireConsistent = false
-		return nil
-	}
-	return fmt.Errorf("Consistency supposed to be stale|consistent|leader, but was %s", val)
-}
-
 // parseConsistency is used to parse the ?stale and ?consistent query params.
 // Returns true on error
 func (s *HTTPServer) parseConsistency(resp http.ResponseWriter, req *http.Request, b *structs.QueryOptions) bool {
@@ -411,39 +394,37 @@ func (s *HTTPServer) parseConsistency(resp http.ResponseWriter, req *http.Reques
 		b.RequireConsistent = true
 		defaults = false
 	}
-	if b.AllowStale && b.RequireConsistent {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Cannot specify ?stale with ?consistent, conflicting semantics.")
-		return true
+	if _, ok := query["leader"]; ok {
+		defaults = false
 	}
-	if cval, ok := query["consistency"]; ok {
-		if cval[0] == "default" {
-			defaults = true
-		} else {
+	if maxStale := query.Get("max_stale"); maxStale != "" {
+		fmt.Printf("**** max_stale=%s\n", maxStale)
+		dur, err := time.ParseDuration(maxStale)
+		if err != nil {
+			resp.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(resp, "Invalid max_stale time")
+			return true
+		}
+		b.MaxStaleDuration = dur
+		if dur.Nanoseconds() > 0 {
+			b.AllowStale = true
 			defaults = false
-			err := fillConsistencyFromValue(b, cval[0])
-			if err != nil {
-				resp.WriteHeader(http.StatusBadRequest)
-				fmt.Fprintf(resp, "Cannot parse consistency query param: %s", err)
-				return true
-			}
 		}
 	}
 	// No specific Consistency has been specified by caller
 	if defaults {
 		path := req.URL.Path
-		candidate := s.agent.config.DefaultConsistencyLevel
-		if s.agent.config.DiscoveryConsistencyLevel != "" {
-			if strings.HasPrefix(path, "/v1/catalog") || strings.HasPrefix(path, "/v1/health") {
-				candidate = s.agent.config.DiscoveryConsistencyLevel
+		if strings.HasPrefix(path, "/v1/catalog") || strings.HasPrefix(path, "/v1/health") {
+			b.MaxStaleDuration = s.agent.config.DiscoveryMaxStale
+			if b.MaxStaleDuration.Nanoseconds() > 0 {
+				b.AllowStale = true
 			}
 		}
-		if candidate != "" {
-			err := fillConsistencyFromValue(b, candidate)
-			if err != nil {
-				// Unexpected since we supposed to validate DefaultConsistencyLevel beforehand
-			}
-		}
+	}
+	if b.AllowStale && b.RequireConsistent {
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(resp, "Cannot specify ?stale with ?consistent, conflicting semantics.")
+		return true
 	}
 	return false
 }

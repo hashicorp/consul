@@ -167,8 +167,6 @@ type Config struct {
 	DNSRecursors                []string                 `json:"recursors,omitempty" hcl:"recursors" mapstructure:"recursors"`
 	DataDir                     *string                  `json:"data_dir,omitempty" hcl:"data_dir" mapstructure:"data_dir"`
 	Datacenter                  *string                  `json:"datacenter,omitempty" hcl:"datacenter" mapstructure:"datacenter"`
-	DefaultConsistencyLevel     *string                  `json:"default_consistency_level,omitempty" hcl:"default_consistency_level" mapstructure:"default_consistency_level"`
-	DiscoveryConsistencyLevel   *string                  `json:"discovery_consistency_level,omitempty" hcl:"discovery_consistency_level" mapstructure:"discovery_consistency_level"`
 	DisableAnonymousSignature   *bool                    `json:"disable_anonymous_signature,omitempty" hcl:"disable_anonymous_signature" mapstructure:"disable_anonymous_signature"`
 	DisableCoordinates          *bool                    `json:"disable_coordinates,omitempty" hcl:"disable_coordinates" mapstructure:"disable_coordinates"`
 	DisableHostNodeID           *bool                    `json:"disable_host_node_id,omitempty" hcl:"disable_host_node_id" mapstructure:"disable_host_node_id"`
@@ -176,6 +174,7 @@ type Config struct {
 	DisableRemoteExec           *bool                    `json:"disable_remote_exec,omitempty" hcl:"disable_remote_exec" mapstructure:"disable_remote_exec"`
 	DisableUpdateCheck          *bool                    `json:"disable_update_check,omitempty" hcl:"disable_update_check" mapstructure:"disable_update_check"`
 	DiscardCheckOutput          *bool                    `json:"discard_check_output" hcl:"discard_check_output" mapstructure:"discard_check_output"`
+	DiscoveryMaxStale           *string                  `json:"discovery_max_stale" hcl:"discovery_max_stale" mapstructure:"discovery_max_stale"`
 	EnableACLReplication        *bool                    `json:"enable_acl_replication,omitempty" hcl:"enable_acl_replication" mapstructure:"enable_acl_replication"`
 	EnableAgentTLSForChecks     *bool                    `json:"enable_agent_tls_for_checks,omitempty" hcl:"enable_agent_tls_for_checks" mapstructure:"enable_agent_tls_for_checks"`
 	EnableDebug                 *bool                    `json:"enable_debug,omitempty" hcl:"enable_debug" mapstructure:"enable_debug"`

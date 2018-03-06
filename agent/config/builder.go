@@ -293,7 +293,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	// ----------------------------------------------------------------
 	// process/merge some complex values
 	//
-
 	var dnsServiceTTL = map[string]time.Duration{}
 	for k, v := range c.DNS.ServiceTTL {
 		dnsServiceTTL[k] = b.durationVal(fmt.Sprintf("dns_config.service_ttl[%q]", k), &v)
@@ -640,7 +639,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		ClientAddrs:                 clientAddrs,
 		DataDir:                     b.stringVal(c.DataDir),
 		Datacenter:                  strings.ToLower(b.stringVal(c.Datacenter)),
-		DefaultConsistencyLevel:     strings.ToLower(b.stringVal(c.DefaultConsistencyLevel)),
 		DevMode:                     b.boolVal(b.Flags.DevMode),
 		DisableAnonymousSignature:   b.boolVal(c.DisableAnonymousSignature),
 		DisableCoordinates:          b.boolVal(c.DisableCoordinates),
@@ -649,6 +647,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		DisableRemoteExec:           b.boolVal(c.DisableRemoteExec),
 		DisableUpdateCheck:          b.boolVal(c.DisableUpdateCheck),
 		DiscardCheckOutput:          b.boolVal(c.DiscardCheckOutput),
+		DiscoveryMaxStale:           b.durationVal("discovery_max_stale", c.DiscoveryMaxStale),
 		EnableAgentTLSForChecks:     b.boolVal(c.EnableAgentTLSForChecks),
 		EnableDebug:                 b.boolVal(c.EnableDebug),
 		EnableScriptChecks:          b.boolVal(c.EnableScriptChecks),
@@ -759,12 +758,6 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		case err == nil && !fi.IsDir():
 			return fmt.Errorf("data_dir %q is not a directory", rt.DataDir)
 		}
-	}
-	if !isAcceptableConsistency(rt.DefaultConsistencyLevel) {
-		return fmt.Errorf("default_consistency_level, must be stale|leader|consistent, but was %s", rt.DefaultConsistencyLevel)
-	}
-	if !isAcceptableConsistency(rt.DiscoveryConsistencyLevel) {
-		return fmt.Errorf("discovery_consistency_level, must be stale|leader|consistent, but was %s", rt.DiscoveryConsistencyLevel)
 	}
 	if rt.NodeName == "" {
 		return fmt.Errorf("node_name cannot be empty")
