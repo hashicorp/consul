@@ -1,10 +1,11 @@
 package structs
 
 import (
-	"reflect"
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestIntentionValidate(t *testing.T) {
@@ -108,19 +109,17 @@ func TestIntentionValidate(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
+			assert := assert.New(t)
 			ixn := TestIntention(t)
 			tc.Modify(ixn)
 
 			err := ixn.Validate()
-			if (err != nil) != (tc.Err != "") {
-				t.Fatalf("err: %s", err)
-			}
+			assert.Equal(err != nil, tc.Err != "", err)
 			if err == nil {
 				return
 			}
-			if !strings.Contains(strings.ToLower(err.Error()), strings.ToLower(tc.Err)) {
-				t.Fatalf("err: %s", err)
-			}
+
+			assert.Contains(strings.ToLower(err.Error()), strings.ToLower(tc.Err))
 		})
 	}
 }
@@ -160,6 +159,8 @@ func TestIntentionPrecedenceSorter(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
+			assert := assert.New(t)
+
 			var input Intentions
 			for _, v := range tc.Input {
 				input = append(input, &Intention{
@@ -183,9 +184,7 @@ func TestIntentionPrecedenceSorter(t *testing.T) {
 					v.DestinationName,
 				})
 			}
-			if !reflect.DeepEqual(actual, tc.Expected) {
-				t.Fatalf("bad (got, wanted):\n\n%#v\n\n%#v", actual, tc.Expected)
-			}
+			assert.Equal(tc.Expected, actual)
 		})
 	}
 }

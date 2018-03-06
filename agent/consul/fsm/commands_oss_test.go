@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/assert"
 )
 
 func generateUUID() (ret string) {
@@ -1152,10 +1153,9 @@ func TestFSM_Autopilot(t *testing.T) {
 func TestFSM_Intention_CRUD(t *testing.T) {
 	t.Parallel()
 
+	assert := assert.New(t)
 	fsm, err := New(nil, os.Stderr)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	assert.Nil(err)
 
 	// Create a new intention.
 	ixn := structs.IntentionRequest{
@@ -1167,28 +1167,19 @@ func TestFSM_Intention_CRUD(t *testing.T) {
 
 	{
 		buf, err := structs.Encode(structs.IntentionRequestType, ixn)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		resp := fsm.Apply(makeLog(buf))
-		if resp != nil {
-			t.Fatalf("resp: %v", resp)
-		}
+		assert.Nil(err)
+		assert.Nil(fsm.Apply(makeLog(buf)))
 	}
 
 	// Verify it's in the state store.
 	{
 		_, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
+		assert.Nil(err)
 
 		actual.CreateIndex, actual.ModifyIndex = 0, 0
 		actual.CreatedAt = ixn.Intention.CreatedAt
 		actual.UpdatedAt = ixn.Intention.UpdatedAt
-		if !reflect.DeepEqual(actual, ixn.Intention) {
-			t.Fatalf("bad: %v", actual)
-		}
+		assert.Equal(ixn.Intention, actual)
 	}
 
 	// Make an update
@@ -1196,52 +1187,33 @@ func TestFSM_Intention_CRUD(t *testing.T) {
 	ixn.Intention.SourceName = "api"
 	{
 		buf, err := structs.Encode(structs.IntentionRequestType, ixn)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		resp := fsm.Apply(makeLog(buf))
-		if resp != nil {
-			t.Fatalf("resp: %v", resp)
-		}
+		assert.Nil(err)
+		assert.Nil(fsm.Apply(makeLog(buf)))
 	}
 
 	// Verify the update.
 	{
 		_, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
+		assert.Nil(err)
 
 		actual.CreateIndex, actual.ModifyIndex = 0, 0
 		actual.CreatedAt = ixn.Intention.CreatedAt
 		actual.UpdatedAt = ixn.Intention.UpdatedAt
-		if !reflect.DeepEqual(actual, ixn.Intention) {
-			t.Fatalf("bad: %v", actual)
-		}
+		assert.Equal(ixn.Intention, actual)
 	}
 
 	// Delete
 	ixn.Op = structs.IntentionOpDelete
 	{
 		buf, err := structs.Encode(structs.IntentionRequestType, ixn)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		resp := fsm.Apply(makeLog(buf))
-		if resp != nil {
-			t.Fatalf("resp: %v", resp)
-		}
+		assert.Nil(err)
+		assert.Nil(fsm.Apply(makeLog(buf)))
 	}
 
 	// Make sure it's gone.
 	{
 		_, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-
-		if actual != nil {
-			t.Fatalf("bad: %v", actual)
-		}
+		assert.Nil(err)
+		assert.Nil(actual)
 	}
 }

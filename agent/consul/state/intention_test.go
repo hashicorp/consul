@@ -1,34 +1,34 @@
 package state
 
 import (
-	"reflect"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestStore_IntentionGet_none(t *testing.T) {
+	assert := assert.New(t)
 	s := testStateStore(t)
 
 	// Querying with no results returns nil.
 	ws := memdb.NewWatchSet()
 	idx, res, err := s.IntentionGet(ws, testUUID())
-	if idx != 0 || res != nil || err != nil {
-		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
-	}
+	assert.Equal(idx, uint64(0))
+	assert.Nil(res)
+	assert.Nil(err)
 }
 
 func TestStore_IntentionSetGet_basic(t *testing.T) {
+	assert := assert.New(t)
 	s := testStateStore(t)
 
 	// Call Get to populate the watch set
 	ws := memdb.NewWatchSet()
 	_, _, err := s.IntentionGet(ws, testUUID())
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	assert.Nil(err)
 
 	// Build a valid intention
 	ixn := &structs.Intention{
@@ -37,17 +37,11 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 	}
 
 	// Inserting a with empty ID is disallowed.
-	if err := s.IntentionSet(1, ixn); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	assert.Nil(s.IntentionSet(1, ixn))
 
 	// Make sure the index got updated.
-	if idx := s.maxIndex(intentionsTableName); idx != 1 {
-		t.Fatalf("bad index: %d", idx)
-	}
-	if !watchFired(ws) {
-		t.Fatalf("bad")
-	}
+	assert.Equal(s.maxIndex(intentionsTableName), uint64(1))
+	assert.True(watchFired(ws), "watch fired")
 
 	// Read it back out and verify it.
 	expected := &structs.Intention{
@@ -61,70 +55,48 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 
 	ws = memdb.NewWatchSet()
 	idx, actual, err := s.IntentionGet(ws, ixn.ID)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if idx != expected.CreateIndex {
-		t.Fatalf("bad index: %d", idx)
-	}
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad: %v", actual)
-	}
+	assert.Nil(err)
+	assert.Equal(expected.CreateIndex, idx)
+	assert.Equal(expected, actual)
 
 	// Change a value and test updating
 	ixn.SourceNS = "foo"
-	if err := s.IntentionSet(2, ixn); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	assert.Nil(s.IntentionSet(2, ixn))
 
 	// Make sure the index got updated.
-	if idx := s.maxIndex(intentionsTableName); idx != 2 {
-		t.Fatalf("bad index: %d", idx)
-	}
-	if !watchFired(ws) {
-		t.Fatalf("bad")
-	}
+	assert.Equal(s.maxIndex(intentionsTableName), uint64(2))
+	assert.True(watchFired(ws), "watch fired")
 
 	// Read it back and verify the data was updated
 	expected.SourceNS = ixn.SourceNS
 	expected.ModifyIndex = 2
 	ws = memdb.NewWatchSet()
 	idx, actual, err = s.IntentionGet(ws, ixn.ID)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if idx != expected.ModifyIndex {
-		t.Fatalf("bad index: %d", idx)
-	}
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad: %#v", actual)
-	}
+	assert.Nil(err)
+	assert.Equal(expected.ModifyIndex, idx)
+	assert.Equal(expected, actual)
 }
 
 func TestStore_IntentionSet_emptyId(t *testing.T) {
+	assert := assert.New(t)
 	s := testStateStore(t)
 
 	ws := memdb.NewWatchSet()
 	_, _, err := s.IntentionGet(ws, testUUID())
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	assert.Nil(err)
 
 	// Inserting a with empty ID is disallowed.
-	if err := s.IntentionSet(1, &structs.Intention{}); err == nil {
-		t.Fatalf("expected %#v, got: %#v", ErrMissingIntentionID, err)
-	}
+	err = s.IntentionSet(1, &structs.Intention{})
+	assert.NotNil(err)
+	assert.Contains(err.Error(), ErrMissingIntentionID.Error())
 
 	// Index is not updated if nothing is saved.
-	if idx := s.maxIndex(intentionsTableName); idx != 0 {
-		t.Fatalf("bad index: %d", idx)
-	}
-	if watchFired(ws) {
-		t.Fatalf("bad")
-	}
+	assert.Equal(s.maxIndex(intentionsTableName), uint64(0))
+	assert.False(watchFired(ws), "watch fired")
 }
 
 func TestStore_IntentionSet_updateCreatedAt(t *testing.T) {
+	assert := assert.New(t)
 	s := testStateStore(t)
 
 	// Build a valid intention
@@ -135,28 +107,21 @@ func TestStore_IntentionSet_updateCreatedAt(t *testing.T) {
 	}
 
 	// Insert
-	if err := s.IntentionSet(1, &ixn); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	assert.Nil(s.IntentionSet(1, &ixn))
 
 	// Change a value and test updating
 	ixnUpdate := ixn
 	ixnUpdate.CreatedAt = now.Add(10 * time.Second)
-	if err := s.IntentionSet(2, &ixnUpdate); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	assert.Nil(s.IntentionSet(2, &ixnUpdate))
 
 	// Read it back and verify
 	_, actual, err := s.IntentionGet(nil, ixn.ID)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if !actual.CreatedAt.Equal(now) {
-		t.Fatalf("bad: %#v", actual)
-	}
+	assert.Nil(err)
+	assert.Equal(now, actual.CreatedAt)
 }
 
 func TestStore_IntentionSet_metaNil(t *testing.T) {
+	assert := assert.New(t)
 	s := testStateStore(t)
 
 	// Build a valid intention
@@ -165,21 +130,16 @@ func TestStore_IntentionSet_metaNil(t *testing.T) {
 	}
 
 	// Insert
-	if err := s.IntentionSet(1, &ixn); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	assert.Nil(s.IntentionSet(1, &ixn))
 
 	// Read it back and verify
 	_, actual, err := s.IntentionGet(nil, ixn.ID)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if actual.Meta == nil {
-		t.Fatal("meta should be non-nil")
-	}
+	assert.Nil(err)
+	assert.NotNil(actual.Meta)
 }
 
 func TestStore_IntentionSet_metaSet(t *testing.T) {
+	assert := assert.New(t)
 	s := testStateStore(t)
 
 	// Build a valid intention
@@ -189,79 +149,55 @@ func TestStore_IntentionSet_metaSet(t *testing.T) {
 	}
 
 	// Insert
-	if err := s.IntentionSet(1, &ixn); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	assert.Nil(s.IntentionSet(1, &ixn))
 
 	// Read it back and verify
 	_, actual, err := s.IntentionGet(nil, ixn.ID)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if !reflect.DeepEqual(actual.Meta, ixn.Meta) {
-		t.Fatalf("bad: %#v", actual)
-	}
+	assert.Nil(err)
+	assert.Equal(ixn.Meta, actual.Meta)
 }
 
 func TestStore_IntentionDelete(t *testing.T) {
+	assert := assert.New(t)
 	s := testStateStore(t)
 
 	// Call Get to populate the watch set
 	ws := memdb.NewWatchSet()
 	_, _, err := s.IntentionGet(ws, testUUID())
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	assert.Nil(err)
 
 	// Create
 	ixn := &structs.Intention{ID: testUUID()}
-	if err := s.IntentionSet(1, ixn); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	assert.Nil(s.IntentionSet(1, ixn))
 
 	// Make sure the index got updated.
-	if idx := s.maxIndex(intentionsTableName); idx != 1 {
-		t.Fatalf("bad index: %d", idx)
-	}
-	if !watchFired(ws) {
-		t.Fatalf("bad")
-	}
+	assert.Equal(s.maxIndex(intentionsTableName), uint64(1))
+	assert.True(watchFired(ws), "watch fired")
 
 	// Delete
-	if err := s.IntentionDelete(2, ixn.ID); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	assert.Nil(s.IntentionDelete(2, ixn.ID))
 
 	// Make sure the index got updated.
-	if idx := s.maxIndex(intentionsTableName); idx != 2 {
-		t.Fatalf("bad index: %d", idx)
-	}
-	if !watchFired(ws) {
-		t.Fatalf("bad")
-	}
+	assert.Equal(s.maxIndex(intentionsTableName), uint64(2))
+	assert.True(watchFired(ws), "watch fired")
 
 	// Sanity check to make sure it's not there.
 	idx, actual, err := s.IntentionGet(nil, ixn.ID)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if idx != 2 {
-		t.Fatalf("bad index: %d", idx)
-	}
-	if actual != nil {
-		t.Fatalf("bad: %v", actual)
-	}
+	assert.Nil(err)
+	assert.Equal(idx, uint64(2))
+	assert.Nil(actual)
 }
 
 func TestStore_IntentionsList(t *testing.T) {
+	assert := assert.New(t)
 	s := testStateStore(t)
 
 	// Querying with no results returns nil.
 	ws := memdb.NewWatchSet()
 	idx, res, err := s.Intentions(ws)
-	if idx != 0 || res != nil || err != nil {
-		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
-	}
+	assert.Nil(err)
+	assert.Nil(res)
+	assert.Equal(idx, uint64(0))
 
 	// Create some intentions
 	ixns := structs.Intentions{
@@ -281,13 +217,9 @@ func TestStore_IntentionsList(t *testing.T) {
 
 	// Create
 	for i, ixn := range ixns {
-		if err := s.IntentionSet(uint64(1+i), ixn); err != nil {
-			t.Fatalf("err: %s", err)
-		}
+		assert.Nil(s.IntentionSet(uint64(1+i), ixn))
 	}
-	if !watchFired(ws) {
-		t.Fatalf("bad")
-	}
+	assert.True(watchFired(ws), "watch fired")
 
 	// Read it back and verify.
 	expected := structs.Intentions{
@@ -309,15 +241,9 @@ func TestStore_IntentionsList(t *testing.T) {
 		},
 	}
 	idx, actual, err := s.Intentions(nil)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if idx != 2 {
-		t.Fatalf("bad index: %d", idx)
-	}
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad: %v", actual)
-	}
+	assert.Nil(err)
+	assert.Equal(idx, uint64(2))
+	assert.Equal(expected, actual)
 }
 
 // Test the matrix of match logic.
@@ -386,6 +312,7 @@ func TestStore_IntentionMatch_table(t *testing.T) {
 	// test both cases.
 	testRunner := func(t *testing.T, tc testCase, typ structs.IntentionMatchType) {
 		// Insert the set
+		assert := assert.New(t)
 		s := testStateStore(t)
 		var idx uint64 = 1
 		for _, v := range tc.Insert {
@@ -399,10 +326,7 @@ func TestStore_IntentionMatch_table(t *testing.T) {
 				ixn.SourceName = v[1]
 			}
 
-			err := s.IntentionSet(idx, ixn)
-			if err != nil {
-				t.Fatalf("error inserting: %s", err)
-			}
+			assert.Nil(s.IntentionSet(idx, ixn))
 
 			idx++
 		}
@@ -418,14 +342,10 @@ func TestStore_IntentionMatch_table(t *testing.T) {
 
 		// Match
 		_, matches, err := s.IntentionMatch(nil, args)
-		if err != nil {
-			t.Fatalf("error matching: %s", err)
-		}
+		assert.Nil(err)
 
 		// Should have equal lengths
-		if len(matches) != len(tc.Expected) {
-			t.Fatalf("bad (got, wanted):\n\n%#v\n\n%#v", tc.Expected, matches)
-		}
+		assert.Len(matches, len(tc.Expected))
 
 		// Verify matches
 		for i, expected := range tc.Expected {
@@ -439,9 +359,7 @@ func TestStore_IntentionMatch_table(t *testing.T) {
 				}
 			}
 
-			if !reflect.DeepEqual(actual, expected) {
-				t.Fatalf("bad (got, wanted):\n\n%#v\n\n%#v", actual, expected)
-			}
+			assert.Equal(expected, actual)
 		}
 	}
 
@@ -457,6 +375,7 @@ func TestStore_IntentionMatch_table(t *testing.T) {
 }
 
 func TestStore_Intention_Snapshot_Restore(t *testing.T) {
+	assert := assert.New(t)
 	s := testStateStore(t)
 
 	// Create some intentions.
@@ -481,9 +400,7 @@ func TestStore_Intention_Snapshot_Restore(t *testing.T) {
 
 	// Now create
 	for i, ixn := range ixns {
-		if err := s.IntentionSet(uint64(4+i), ixn); err != nil {
-			t.Fatalf("err: %s", err)
-		}
+		assert.Nil(s.IntentionSet(uint64(4+i), ixn))
 	}
 
 	// Snapshot the queries.
@@ -491,14 +408,10 @@ func TestStore_Intention_Snapshot_Restore(t *testing.T) {
 	defer snap.Close()
 
 	// Alter the real state store.
-	if err := s.IntentionDelete(7, ixns[0].ID); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	assert.Nil(s.IntentionDelete(7, ixns[0].ID))
 
 	// Verify the snapshot.
-	if idx := snap.LastIndex(); idx != 6 {
-		t.Fatalf("bad index: %d", idx)
-	}
+	assert.Equal(snap.LastIndex(), uint64(6))
 	expected := structs.Intentions{
 		&structs.Intention{
 			ID:              ixns[0].ID,
@@ -529,34 +442,22 @@ func TestStore_Intention_Snapshot_Restore(t *testing.T) {
 		},
 	}
 	dump, err := snap.Intentions()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if !reflect.DeepEqual(dump, expected) {
-		t.Fatalf("bad: %#v", dump[0])
-	}
+	assert.Nil(err)
+	assert.Equal(expected, dump)
 
 	// Restore the values into a new state store.
 	func() {
 		s := testStateStore(t)
 		restore := s.Restore()
 		for _, ixn := range dump {
-			if err := restore.Intention(ixn); err != nil {
-				t.Fatalf("err: %s", err)
-			}
+			assert.Nil(restore.Intention(ixn))
 		}
 		restore.Commit()
 
 		// Read the restored values back out and verify that they match.
 		idx, actual, err := s.Intentions(nil)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		if idx != 6 {
-			t.Fatalf("bad index: %d", idx)
-		}
-		if !reflect.DeepEqual(actual, expected) {
-			t.Fatalf("bad: %v", actual)
-		}
+		assert.Nil(err)
+		assert.Equal(idx, uint64(6))
+		assert.Equal(expected, actual)
 	}()
 }

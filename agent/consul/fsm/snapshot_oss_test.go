@@ -13,10 +13,13 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	t.Parallel()
+
+	assert := assert.New(t)
 	fsm, err := New(nil, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -105,9 +108,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		CreateIndex: 14,
 		ModifyIndex: 14,
 	}
-	if err := fsm.state.IntentionSet(14, ixn); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	assert.Nil(fsm.state.IntentionSet(14, ixn))
 
 	// Snapshot
 	snap, err := fsm.Snapshot()
@@ -273,15 +274,9 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 
 	// Verify intentions are restored.
 	_, ixns, err := fsm2.state.Intentions(nil)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if len(ixns) != 1 {
-		t.Fatalf("bad: %#v", ixns)
-	}
-	if !reflect.DeepEqual(ixns[0], ixn) {
-		t.Fatalf("bad: %#v", ixns[0])
-	}
+	assert.Nil(err)
+	assert.Len(ixns, 1)
+	assert.Equal(ixn, ixns[0])
 
 	// Snapshot
 	snap, err = fsm2.Snapshot()

@@ -2,19 +2,20 @@ package consul
 
 import (
 	"os"
-	"reflect"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/stretchr/testify/assert"
 )
 
 // Test basic creation
 func TestIntentionApply_new(t *testing.T) {
 	t.Parallel()
+
+	assert := assert.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -43,12 +44,8 @@ func TestIntentionApply_new(t *testing.T) {
 	now := time.Now()
 
 	// Create
-	if err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if reply == "" {
-		t.Fatal("reply should be non-empty")
-	}
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
+	assert.NotEmpty(reply)
 
 	// Read
 	ixn.Intention.ID = reply
@@ -58,45 +55,25 @@ func TestIntentionApply_new(t *testing.T) {
 			IntentionID: ixn.Intention.ID,
 		}
 		var resp structs.IndexedIntentions
-		if err := msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if len(resp.Intentions) != 1 {
-			t.Fatalf("bad: %v", resp)
-		}
+		assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp))
+		assert.Len(resp.Intentions, 1)
 		actual := resp.Intentions[0]
-		if resp.Index != actual.ModifyIndex {
-			t.Fatalf("bad index: %d", resp.Index)
-		}
-
-		// Test CreatedAt
-		{
-			timeDiff := actual.CreatedAt.Sub(now)
-			if timeDiff < 0 || timeDiff > 5*time.Second {
-				t.Fatalf("should set created at: %s", actual.CreatedAt)
-			}
-		}
-
-		// Test UpdatedAt
-		{
-			timeDiff := actual.UpdatedAt.Sub(now)
-			if timeDiff < 0 || timeDiff > 5*time.Second {
-				t.Fatalf("should set updated at: %s", actual.CreatedAt)
-			}
-		}
+		assert.Equal(resp.Index, actual.ModifyIndex)
+		assert.WithinDuration(now, actual.CreatedAt, 5*time.Second)
+		assert.WithinDuration(now, actual.UpdatedAt, 5*time.Second)
 
 		actual.CreateIndex, actual.ModifyIndex = 0, 0
 		actual.CreatedAt = ixn.Intention.CreatedAt
 		actual.UpdatedAt = ixn.Intention.UpdatedAt
-		if !reflect.DeepEqual(actual, ixn.Intention) {
-			t.Fatalf("bad:\n\n%#v\n\n%#v", actual, ixn.Intention)
-		}
+		assert.Equal(ixn.Intention, actual)
 	}
 }
 
 // Test the source type defaults
 func TestIntentionApply_defaultSourceType(t *testing.T) {
 	t.Parallel()
+
+	assert := assert.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -120,12 +97,8 @@ func TestIntentionApply_defaultSourceType(t *testing.T) {
 	var reply string
 
 	// Create
-	if err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if reply == "" {
-		t.Fatal("reply should be non-empty")
-	}
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
+	assert.NotEmpty(reply)
 
 	// Read
 	ixn.Intention.ID = reply
@@ -135,23 +108,18 @@ func TestIntentionApply_defaultSourceType(t *testing.T) {
 			IntentionID: ixn.Intention.ID,
 		}
 		var resp structs.IndexedIntentions
-		if err := msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if len(resp.Intentions) != 1 {
-			t.Fatalf("bad: %v", resp)
-		}
-
+		assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp))
+		assert.Len(resp.Intentions, 1)
 		actual := resp.Intentions[0]
-		if actual.SourceType != structs.IntentionSourceConsul {
-			t.Fatalf("bad:\n\n%#v\n\n%#v", actual, ixn.Intention)
-		}
+		assert.Equal(structs.IntentionSourceConsul, actual.SourceType)
 	}
 }
 
 // Shouldn't be able to create with an ID set
 func TestIntentionApply_createWithID(t *testing.T) {
 	t.Parallel()
+
+	assert := assert.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -173,14 +141,15 @@ func TestIntentionApply_createWithID(t *testing.T) {
 
 	// Create
 	err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply)
-	if err == nil || !strings.Contains(err.Error(), "ID must be empty") {
-		t.Fatalf("bad: %v", err)
-	}
+	assert.NotNil(err)
+	assert.Contains(err, "ID must be empty")
 }
 
 // Test basic updating
 func TestIntentionApply_updateGood(t *testing.T) {
 	t.Parallel()
+
+	assert := assert.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -206,12 +175,8 @@ func TestIntentionApply_updateGood(t *testing.T) {
 	var reply string
 
 	// Create
-	if err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if reply == "" {
-		t.Fatal("reply should be non-empty")
-	}
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
+	assert.NotEmpty(reply)
 
 	// Read CreatedAt
 	var createdAt time.Time
@@ -222,12 +187,8 @@ func TestIntentionApply_updateGood(t *testing.T) {
 			IntentionID: ixn.Intention.ID,
 		}
 		var resp structs.IndexedIntentions
-		if err := msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if len(resp.Intentions) != 1 {
-			t.Fatalf("bad: %v", resp)
-		}
+		assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp))
+		assert.Len(resp.Intentions, 1)
 		actual := resp.Intentions[0]
 		createdAt = actual.CreatedAt
 	}
@@ -239,9 +200,7 @@ func TestIntentionApply_updateGood(t *testing.T) {
 	ixn.Op = structs.IntentionOpUpdate
 	ixn.Intention.ID = reply
 	ixn.Intention.SourceName = "bar"
-	if err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 
 	// Read
 	ixn.Intention.ID = reply
@@ -251,39 +210,24 @@ func TestIntentionApply_updateGood(t *testing.T) {
 			IntentionID: ixn.Intention.ID,
 		}
 		var resp structs.IndexedIntentions
-		if err := msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if len(resp.Intentions) != 1 {
-			t.Fatalf("bad: %v", resp)
-		}
+		assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp))
+		assert.Len(resp.Intentions, 1)
 		actual := resp.Intentions[0]
-
-		// Test CreatedAt
-		if !actual.CreatedAt.Equal(createdAt) {
-			t.Fatalf("should not modify created at: %s", actual.CreatedAt)
-		}
-
-		// Test UpdatedAt
-		{
-			timeDiff := actual.UpdatedAt.Sub(createdAt)
-			if timeDiff <= 0 || timeDiff > 5*time.Second {
-				t.Fatalf("should set updated at: %s", actual.CreatedAt)
-			}
-		}
+		assert.Equal(createdAt, actual.CreatedAt)
+		assert.WithinDuration(time.Now(), actual.UpdatedAt, 5*time.Second)
 
 		actual.CreateIndex, actual.ModifyIndex = 0, 0
 		actual.CreatedAt = ixn.Intention.CreatedAt
 		actual.UpdatedAt = ixn.Intention.UpdatedAt
-		if !reflect.DeepEqual(actual, ixn.Intention) {
-			t.Fatalf("bad: %v", actual)
-		}
+		assert.Equal(ixn.Intention, actual)
 	}
 }
 
 // Shouldn't be able to update a non-existent intention
 func TestIntentionApply_updateNonExist(t *testing.T) {
 	t.Parallel()
+
+	assert := assert.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -305,14 +249,15 @@ func TestIntentionApply_updateNonExist(t *testing.T) {
 
 	// Create
 	err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply)
-	if err == nil || !strings.Contains(err.Error(), "Cannot modify non-existent intention") {
-		t.Fatalf("bad: %v", err)
-	}
+	assert.NotNil(err)
+	assert.Contains(err, "Cannot modify non-existent intention")
 }
 
 // Test basic deleting
 func TestIntentionApply_deleteGood(t *testing.T) {
 	t.Parallel()
+
+	assert := assert.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -336,19 +281,13 @@ func TestIntentionApply_deleteGood(t *testing.T) {
 	var reply string
 
 	// Create
-	if err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if reply == "" {
-		t.Fatal("reply should be non-empty")
-	}
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
+	assert.NotEmpty(reply)
 
 	// Delete
 	ixn.Op = structs.IntentionOpDelete
 	ixn.Intention.ID = reply
-	if err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 
 	// Read
 	ixn.Intention.ID = reply
@@ -359,14 +298,15 @@ func TestIntentionApply_deleteGood(t *testing.T) {
 		}
 		var resp structs.IndexedIntentions
 		err := msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp)
-		if err == nil || !strings.Contains(err.Error(), ErrIntentionNotFound.Error()) {
-			t.Fatalf("err: %v", err)
-		}
+		assert.NotNil(err)
+		assert.Contains(err, ErrIntentionNotFound.Error())
 	}
 }
 
 func TestIntentionList(t *testing.T) {
 	t.Parallel()
+
+	assert := assert.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -381,16 +321,9 @@ func TestIntentionList(t *testing.T) {
 			Datacenter: "dc1",
 		}
 		var resp structs.IndexedIntentions
-		if err := msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if resp.Intentions == nil {
-			t.Fatal("should not be nil")
-		}
-
-		if len(resp.Intentions) != 0 {
-			t.Fatalf("bad: %v", resp)
-		}
+		assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
+		assert.NotNil(resp.Intentions)
+		assert.Len(resp.Intentions, 0)
 	}
 }
 
@@ -398,6 +331,8 @@ func TestIntentionList(t *testing.T) {
 // is tested in the agent/consul/state package.
 func TestIntentionMatch_good(t *testing.T) {
 	t.Parallel()
+
+	assert := assert.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -432,9 +367,7 @@ func TestIntentionMatch_good(t *testing.T) {
 
 			// Create
 			var reply string
-			if err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply); err != nil {
-				t.Fatalf("err: %v", err)
-			}
+			assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 		}
 	}
 
@@ -452,21 +385,13 @@ func TestIntentionMatch_good(t *testing.T) {
 		},
 	}
 	var resp structs.IndexedIntentionMatches
-	if err := msgpackrpc.CallWithCodec(codec, "Intention.Match", req, &resp); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	if len(resp.Matches) != 1 {
-		t.Fatalf("bad: %#v", resp.Matches)
-	}
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Match", req, &resp))
+	assert.Len(resp.Matches, 1)
 
 	expected := [][]string{{"foo", "bar"}, {"foo", "*"}, {"*", "*"}}
 	var actual [][]string
 	for _, ixn := range resp.Matches[0] {
 		actual = append(actual, []string{ixn.DestinationNS, ixn.DestinationName})
 	}
-
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad (got, wanted):\n\n%#v\n\n%#v", actual, expected)
-	}
+	assert.Equal(expected, actual)
 }

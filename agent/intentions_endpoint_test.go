@@ -4,17 +4,17 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"sort"
-	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestIntentionsList_empty(t *testing.T) {
 	t.Parallel()
 
+	assert := assert.New(t)
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
@@ -22,19 +22,17 @@ func TestIntentionsList_empty(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/v1/connect/intentions", nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.IntentionList(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	assert.Nil(err)
 
 	value := obj.(structs.Intentions)
-	if value == nil || len(value) != 0 {
-		t.Fatalf("bad: %v", value)
-	}
+	assert.NotNil(value)
+	assert.Len(value, 0)
 }
 
 func TestIntentionsList_values(t *testing.T) {
 	t.Parallel()
 
+	assert := assert.New(t)
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
@@ -48,35 +46,28 @@ func TestIntentionsList_values(t *testing.T) {
 		req.Intention.SourceName = v
 
 		var reply string
-		if err := a.RPC("Intention.Apply", &req, &reply); err != nil {
-			t.Fatalf("err: %s", err)
-		}
+		assert.Nil(a.RPC("Intention.Apply", &req, &reply))
 	}
 
 	// Request
 	req, _ := http.NewRequest("GET", "/v1/connect/intentions", nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.IntentionList(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	assert.Nil(err)
 
 	value := obj.(structs.Intentions)
-	if len(value) != 2 {
-		t.Fatalf("bad: %v", value)
-	}
+	assert.Len(value, 2)
 
 	expected := []string{"bar", "foo"}
 	actual := []string{value[0].SourceName, value[1].SourceName}
 	sort.Strings(actual)
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad: %#v", actual)
-	}
+	assert.Equal(expected, actual)
 }
 
 func TestIntentionsMatch_basic(t *testing.T) {
 	t.Parallel()
 
+	assert := assert.New(t)
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
@@ -102,9 +93,7 @@ func TestIntentionsMatch_basic(t *testing.T) {
 
 			// Create
 			var reply string
-			if err := a.RPC("Intention.Apply", &ixn, &reply); err != nil {
-				t.Fatalf("err: %v", err)
-			}
+			assert.Nil(a.RPC("Intention.Apply", &ixn, &reply))
 		}
 	}
 
@@ -113,14 +102,10 @@ func TestIntentionsMatch_basic(t *testing.T) {
 		"/v1/connect/intentions/match?by=destination&name=foo/bar", nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.IntentionMatch(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	assert.Nil(err)
 
 	value := obj.(map[string]structs.Intentions)
-	if len(value) != 1 {
-		t.Fatalf("bad: %v", value)
-	}
+	assert.Len(value, 1)
 
 	var actual [][]string
 	expected := [][]string{{"foo", "bar"}, {"foo", "*"}, {"*", "*"}}
@@ -128,14 +113,13 @@ func TestIntentionsMatch_basic(t *testing.T) {
 		actual = append(actual, []string{ixn.DestinationNS, ixn.DestinationName})
 	}
 
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad (got, wanted):\n\n%#v\n\n%#v", actual, expected)
-	}
+	assert.Equal(expected, actual)
 }
 
 func TestIntentionsMatch_noBy(t *testing.T) {
 	t.Parallel()
 
+	assert := assert.New(t)
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
@@ -144,17 +128,15 @@ func TestIntentionsMatch_noBy(t *testing.T) {
 		"/v1/connect/intentions/match?name=foo/bar", nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.IntentionMatch(resp, req)
-	if err == nil || !strings.Contains(err.Error(), "by") {
-		t.Fatalf("err: %v", err)
-	}
-	if obj != nil {
-		t.Fatal("should have no response")
-	}
+	assert.NotNil(err)
+	assert.Contains(err.Error(), "by")
+	assert.Nil(obj)
 }
 
 func TestIntentionsMatch_byInvalid(t *testing.T) {
 	t.Parallel()
 
+	assert := assert.New(t)
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
@@ -163,17 +145,15 @@ func TestIntentionsMatch_byInvalid(t *testing.T) {
 		"/v1/connect/intentions/match?by=datacenter", nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.IntentionMatch(resp, req)
-	if err == nil || !strings.Contains(err.Error(), "'by' parameter") {
-		t.Fatalf("err: %v", err)
-	}
-	if obj != nil {
-		t.Fatal("should have no response")
-	}
+	assert.NotNil(err)
+	assert.Contains(err.Error(), "'by' parameter")
+	assert.Nil(obj)
 }
 
 func TestIntentionsMatch_noName(t *testing.T) {
 	t.Parallel()
 
+	assert := assert.New(t)
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
@@ -182,17 +162,15 @@ func TestIntentionsMatch_noName(t *testing.T) {
 		"/v1/connect/intentions/match?by=source", nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.IntentionMatch(resp, req)
-	if err == nil || !strings.Contains(err.Error(), "'name' not set") {
-		t.Fatalf("err: %v", err)
-	}
-	if obj != nil {
-		t.Fatal("should have no response")
-	}
+	assert.NotNil(err)
+	assert.Contains(err.Error(), "'name' not set")
+	assert.Nil(obj)
 }
 
 func TestIntentionsCreate_good(t *testing.T) {
 	t.Parallel()
 
+	assert := assert.New(t)
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
@@ -202,14 +180,10 @@ func TestIntentionsCreate_good(t *testing.T) {
 	req, _ := http.NewRequest("POST", "/v1/connect/intentions", jsonReader(args))
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.IntentionCreate(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	assert.Nil(err)
 
 	value := obj.(intentionCreateResponse)
-	if value.ID == "" {
-		t.Fatalf("bad: %v", value)
-	}
+	assert.NotEqual("", value.ID)
 
 	// Read the value
 	{
@@ -218,22 +192,17 @@ func TestIntentionsCreate_good(t *testing.T) {
 			IntentionID: value.ID,
 		}
 		var resp structs.IndexedIntentions
-		if err := a.RPC("Intention.Get", req, &resp); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if len(resp.Intentions) != 1 {
-			t.Fatalf("bad: %v", resp)
-		}
+		assert.Nil(a.RPC("Intention.Get", req, &resp))
+		assert.Len(resp.Intentions, 1)
 		actual := resp.Intentions[0]
-		if actual.SourceName != "foo" {
-			t.Fatalf("bad: %#v", actual)
-		}
+		assert.Equal("foo", actual.SourceName)
 	}
 }
 
 func TestIntentionsSpecificGet_good(t *testing.T) {
 	t.Parallel()
 
+	assert := assert.New(t)
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
@@ -248,35 +217,28 @@ func TestIntentionsSpecificGet_good(t *testing.T) {
 			Op:         structs.IntentionOpCreate,
 			Intention:  ixn,
 		}
-		if err := a.RPC("Intention.Apply", &req, &reply); err != nil {
-			t.Fatalf("err: %s", err)
-		}
+		assert.Nil(a.RPC("Intention.Apply", &req, &reply))
 	}
 
 	// Get the value
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/connect/intentions/%s", reply), nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.IntentionSpecific(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	assert.Nil(err)
 
 	value := obj.(*structs.Intention)
-	if value.ID != reply {
-		t.Fatalf("bad: %v", value)
-	}
+	assert.Equal(reply, value.ID)
 
 	ixn.ID = value.ID
 	ixn.RaftIndex = value.RaftIndex
 	ixn.CreatedAt, ixn.UpdatedAt = value.CreatedAt, value.UpdatedAt
-	if !reflect.DeepEqual(value, ixn) {
-		t.Fatalf("bad (got, want):\n\n%#v\n\n%#v", value, ixn)
-	}
+	assert.Equal(ixn, value)
 }
 
 func TestIntentionsSpecificUpdate_good(t *testing.T) {
 	t.Parallel()
 
+	assert := assert.New(t)
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
@@ -291,9 +253,7 @@ func TestIntentionsSpecificUpdate_good(t *testing.T) {
 			Op:         structs.IntentionOpCreate,
 			Intention:  ixn,
 		}
-		if err := a.RPC("Intention.Apply", &req, &reply); err != nil {
-			t.Fatalf("err: %s", err)
-		}
+		assert.Nil(a.RPC("Intention.Apply", &req, &reply))
 	}
 
 	// Update the intention
@@ -302,12 +262,8 @@ func TestIntentionsSpecificUpdate_good(t *testing.T) {
 	req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/connect/intentions/%s", reply), jsonReader(ixn))
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.IntentionSpecific(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if obj != nil {
-		t.Fatalf("obj should be nil: %v", err)
-	}
+	assert.Nil(err)
+	assert.Nil(obj)
 
 	// Read the value
 	{
@@ -316,22 +272,17 @@ func TestIntentionsSpecificUpdate_good(t *testing.T) {
 			IntentionID: reply,
 		}
 		var resp structs.IndexedIntentions
-		if err := a.RPC("Intention.Get", req, &resp); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if len(resp.Intentions) != 1 {
-			t.Fatalf("bad: %v", resp)
-		}
+		assert.Nil(a.RPC("Intention.Get", req, &resp))
+		assert.Len(resp.Intentions, 1)
 		actual := resp.Intentions[0]
-		if actual.SourceName != "bar" {
-			t.Fatalf("bad: %#v", actual)
-		}
+		assert.Equal("bar", actual.SourceName)
 	}
 }
 
 func TestIntentionsSpecificDelete_good(t *testing.T) {
 	t.Parallel()
 
+	assert := assert.New(t)
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
@@ -347,9 +298,7 @@ func TestIntentionsSpecificDelete_good(t *testing.T) {
 			Op:         structs.IntentionOpCreate,
 			Intention:  ixn,
 		}
-		if err := a.RPC("Intention.Apply", &req, &reply); err != nil {
-			t.Fatalf("err: %s", err)
-		}
+		assert.Nil(a.RPC("Intention.Apply", &req, &reply))
 	}
 
 	// Sanity check that the intention exists
@@ -359,28 +308,18 @@ func TestIntentionsSpecificDelete_good(t *testing.T) {
 			IntentionID: reply,
 		}
 		var resp structs.IndexedIntentions
-		if err := a.RPC("Intention.Get", req, &resp); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if len(resp.Intentions) != 1 {
-			t.Fatalf("bad: %v", resp)
-		}
+		assert.Nil(a.RPC("Intention.Get", req, &resp))
+		assert.Len(resp.Intentions, 1)
 		actual := resp.Intentions[0]
-		if actual.SourceName != "foo" {
-			t.Fatalf("bad: %#v", actual)
-		}
+		assert.Equal("foo", actual.SourceName)
 	}
 
 	// Delete the intention
 	req, _ := http.NewRequest("DELETE", fmt.Sprintf("/v1/connect/intentions/%s", reply), nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.IntentionSpecific(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if obj != nil {
-		t.Fatalf("obj should be nil: %v", err)
-	}
+	assert.Nil(err)
+	assert.Nil(obj)
 
 	// Verify the intention is gone
 	{
@@ -390,9 +329,8 @@ func TestIntentionsSpecificDelete_good(t *testing.T) {
 		}
 		var resp structs.IndexedIntentions
 		err := a.RPC("Intention.Get", req, &resp)
-		if err == nil || !strings.Contains(err.Error(), "not found") {
-			t.Fatalf("err: %v", err)
-		}
+		assert.NotNil(err)
+		assert.Contains(err.Error(), "not found")
 	}
 }
 
@@ -429,17 +367,14 @@ func TestParseIntentionMatchEntry(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Input, func(t *testing.T) {
+			assert := assert.New(t)
 			actual, err := parseIntentionMatchEntry(tc.Input)
-			if (err != nil) != tc.Err {
-				t.Fatalf("err: %s", err)
-			}
+			assert.Equal(err != nil, tc.Err, err)
 			if err != nil {
 				return
 			}
 
-			if !reflect.DeepEqual(actual, tc.Expected) {
-				t.Fatalf("bad: %#v", actual)
-			}
+			assert.Equal(tc.Expected, actual)
 		})
 	}
 }
