@@ -977,7 +977,7 @@ func TestStateStore_EnsureService(t *testing.T) {
 	ns4 := &structs.NodeService{
 		ID:      "service4",
 		Service: "web",
-		Tags:    []string{"prod"},
+		Tags:    []string{"prod", "mytag"},
 		Address: "1.1.1.1",
 		Port:    8000,
 	}
@@ -1009,6 +1009,80 @@ func TestStateStore_EnsureService(t *testing.T) {
 		t.Fatalf("bad index: %d", idx)
 	}
 
+	// Same service, same tags
+	ns5 := &structs.NodeService{
+		ID:      "service4",
+		Service: "web",
+		Tags:    []string{"prod", "mytag"},
+		Address: "1.1.1.1",
+		Port:    8000,
+	}
+
+	// node and service should be modified, but not services since tags did not change
+	if err = s.EnsureService(51, "node1", ns5); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
+	// Retrieve the service again and ensure it matches..
+	idx, out, err = s.NodeServices(nil, "node1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 51 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if out == nil || len(out.Services) != 3 {
+		t.Fatalf("bad: %#v", out)
+	}
+	// Since tags did not change, index of services should not have been modified
+	idx, _, err = s.Services(ws)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 50 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Same service, new tag
+	ns6 := &structs.NodeService{
+		ID:      "service4",
+		Service: "web",
+		Tags:    []string{"prod", "mytag", "newtag"},
+		Address: "1.1.1.1",
+		Port:    8000,
+	}
+
+	// node and service should be modified, but not services since tags did not change
+	if err = s.EnsureService(52, "node1", ns6); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
+	// Retrieve the service again and ensure it matches..
+	idx, out, err = s.NodeServices(nil, "node1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 52 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if out == nil || len(out.Services) != 3 {
+		t.Fatalf("bad: %#v", out)
+	}
+	// Since tags have been modified, index of services should have as well
+	sidx, sout, serr := s.Services(ws)
+	if serr != nil {
+		t.Fatalf("err: %s", serr)
+	}
+	if sidx != 52 {
+		t.Fatalf("bad index: %d", sidx)
+	}
+	if sout == nil || sout["web"][2] != "newtag" {
+		t.Fatalf("bad: %#v", out)
+	}
 }
 
 func TestStateStore_Services(t *testing.T) {
