@@ -981,6 +981,40 @@ func TestStateStore_EnsureService(t *testing.T) {
 	}
 }
 
+func TestStateStore_EnsureService_connectProxy(t *testing.T) {
+	s := testStateStore(t)
+
+	// Create the service registration.
+	ns1 := &structs.NodeService{
+		Kind:             structs.ServiceKindConnectProxy,
+		ID:               "connect-proxy",
+		Service:          "connect-proxy",
+		Address:          "1.1.1.1",
+		Port:             1111,
+		ProxyDestination: "foo",
+	}
+
+	// Service successfully registers into the state store.
+	testRegisterNode(t, s, 0, "node1")
+	if err := s.EnsureService(10, "node1", ns1); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Retrieve and verify
+	_, out, err := s.NodeServices(nil, "node1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if out == nil || len(out.Services) != 1 {
+		t.Fatalf("bad: %#v", out)
+	}
+	expect1 := *ns1
+	expect1.CreateIndex, expect1.ModifyIndex = 10, 10
+	if svc := out.Services["connect-proxy"]; !reflect.DeepEqual(&expect1, svc) {
+		t.Fatalf("bad: %#v", svc)
+	}
+}
+
 func TestStateStore_Services(t *testing.T) {
 	s := testStateStore(t)
 

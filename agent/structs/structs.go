@@ -388,6 +388,7 @@ type ServiceNode struct {
 	Datacenter               string
 	TaggedAddresses          map[string]string
 	NodeMeta                 map[string]string
+	ServiceKind              ServiceKind
 	ServiceID                string
 	ServiceName              string
 	ServiceTags              []string
@@ -395,6 +396,7 @@ type ServiceNode struct {
 	ServiceMeta              map[string]string
 	ServicePort              int
 	ServiceEnableTagOverride bool
+	ServiceProxyDestination  string
 
 	RaftIndex
 }
@@ -431,6 +433,7 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 // ToNodeService converts the given service node to a node service.
 func (s *ServiceNode) ToNodeService() *NodeService {
 	return &NodeService{
+		Kind:              s.ServiceKind,
 		ID:                s.ServiceID,
 		Service:           s.ServiceName,
 		Tags:              s.ServiceTags,
@@ -438,6 +441,7 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 		Port:              s.ServicePort,
 		Meta:              s.ServiceMeta,
 		EnableTagOverride: s.ServiceEnableTagOverride,
+		ProxyDestination:  s.ServiceProxyDestination,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,
@@ -447,8 +451,26 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 
 type ServiceNodes []*ServiceNode
 
+// ServiceKind is the kind of service being registered.
+type ServiceKind string
+
+const (
+	// ServiceKindTypical is a typical, classic Consul service.
+	ServiceKindTypical ServiceKind = "typical"
+
+	// ServiceKindConnectProxy is a proxy for the Connect feature. This
+	// service proxies another service within Consul and speaks the connect
+	// protocol.
+	ServiceKindConnectProxy ServiceKind = "connect-proxy"
+)
+
 // NodeService is a service provided by a node
 type NodeService struct {
+	// Kind is the kind of service this is. Different kinds of services may
+	// have differing validation, DNS behavior, etc. An empty kind will default
+	// to the Default kind. See ServiceKind for the full list of kinds.
+	Kind ServiceKind
+
 	ID                string
 	Service           string
 	Tags              []string
@@ -456,6 +478,10 @@ type NodeService struct {
 	Meta              map[string]string
 	Port              int
 	EnableTagOverride bool
+
+	// ProxyDestination is the name of the service that this service is
+	// a Connect proxy for. This is only valid if Kind is "connect-proxy".
+	ProxyDestination string
 
 	RaftIndex
 }
@@ -485,6 +511,7 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 		Node: node,
 		// Skip Address, see ServiceNode definition.
 		// Skip TaggedAddresses, see ServiceNode definition.
+		ServiceKind:              s.Kind,
 		ServiceID:                s.ID,
 		ServiceName:              s.Service,
 		ServiceTags:              s.Tags,
@@ -492,6 +519,7 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 		ServicePort:              s.Port,
 		ServiceMeta:              s.Meta,
 		ServiceEnableTagOverride: s.EnableTagOverride,
+		ServiceProxyDestination:  s.ProxyDestination,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,
