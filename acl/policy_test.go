@@ -4,6 +4,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParse_table(t *testing.T) {
@@ -69,21 +71,14 @@ service "foo" {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
+			assert := assert.New(t)
 			actual, err := Parse(tc.Input, nil)
-			if (err != nil) != (tc.Err != "") {
-				t.Fatalf("err: %s", err)
-			}
+			assert.Equal(tc.Err != "", err != nil, err)
 			if err != nil {
-				if !strings.Contains(err.Error(), tc.Err) {
-					t.Fatalf("err: %s", err)
-				}
-
+				assert.Contains(err.Error(), tc.Err)
 				return
 			}
-
-			if !reflect.DeepEqual(actual, tc.Expected) {
-				t.Fatalf("bad: %#v", actual)
-			}
+			assert.Equal(tc.Expected, actual)
 		})
 	}
 }

@@ -307,6 +307,8 @@ func TestIntentionApply_deleteGood(t *testing.T) {
 // Test apply with a deny ACL
 func TestIntentionApply_aclDeny(t *testing.T) {
 	t.Parallel()
+
+	assert := assert.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -338,9 +340,7 @@ service "foo" {
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
-		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		assert.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
 	}
 
 	// Setup a basic record to create
@@ -354,47 +354,38 @@ service "foo" {
 	// Create without a token should error since default deny
 	var reply string
 	err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply)
-	if !acl.IsErrPermissionDenied(err) {
-		t.Fatalf("bad: %v", err)
-	}
+	assert.True(acl.IsErrPermissionDenied(err))
 
 	// Now add the token and try again.
 	ixn.WriteRequest.Token = token
-	if err = msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 
 	// Read
 	ixn.Intention.ID = reply
 	{
 		req := &structs.IntentionQueryRequest{
-			Datacenter:  "dc1",
-			IntentionID: ixn.Intention.ID,
+			Datacenter:   "dc1",
+			IntentionID:  ixn.Intention.ID,
+			QueryOptions: structs.QueryOptions{Token: "root"},
 		}
 		var resp structs.IndexedIntentions
-		if err := msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if len(resp.Intentions) != 1 {
-			t.Fatalf("bad: %v", resp)
-		}
+		assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp))
+		assert.Len(resp.Intentions, 1)
 		actual := resp.Intentions[0]
-		if resp.Index != actual.ModifyIndex {
-			t.Fatalf("bad index: %d", resp.Index)
-		}
+		assert.Equal(resp.Index, actual.ModifyIndex)
 
 		actual.CreateIndex, actual.ModifyIndex = 0, 0
 		actual.CreatedAt = ixn.Intention.CreatedAt
 		actual.UpdatedAt = ixn.Intention.UpdatedAt
-		if !reflect.DeepEqual(actual, ixn.Intention) {
-			t.Fatalf("bad:\n\n%#v\n\n%#v", actual, ixn.Intention)
-		}
+		assert.Equal(ixn.Intention, actual)
 	}
 }
 
 // Test apply with delete and a default deny ACL
 func TestIntentionApply_aclDelete(t *testing.T) {
 	t.Parallel()
+
+	assert := assert.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -426,9 +417,7 @@ service "foo" {
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
-		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		assert.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
 	}
 
 	// Setup a basic record to create
@@ -442,24 +431,18 @@ service "foo" {
 
 	// Create
 	var reply string
-	if err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply); err != nil {
-		t.Fatalf("bad: %v", err)
-	}
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 
 	// Try to do a delete with no token; this should get rejected.
 	ixn.Op = structs.IntentionOpDelete
 	ixn.Intention.ID = reply
 	ixn.WriteRequest.Token = ""
 	err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply)
-	if !acl.IsErrPermissionDenied(err) {
-		t.Fatalf("bad: %v", err)
-	}
+	assert.True(acl.IsErrPermissionDenied(err))
 
 	// Try again with the original token. This should go through.
 	ixn.WriteRequest.Token = token
-	if err = msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 
 	// Verify it is gone
 	{
@@ -469,15 +452,16 @@ service "foo" {
 		}
 		var resp structs.IndexedIntentions
 		err := msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp)
-		if err == nil || err.Error() != ErrIntentionNotFound.Error() {
-			t.Fatalf("err: %v", err)
-		}
+		assert.NotNil(err)
+		assert.Contains(err.Error(), ErrIntentionNotFound.Error())
 	}
 }
 
 // Test apply with update and a default deny ACL
 func TestIntentionApply_aclUpdate(t *testing.T) {
 	t.Parallel()
+
+	assert := assert.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -509,9 +493,7 @@ service "foo" {
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
-		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		assert.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
 	}
 
 	// Setup a basic record to create
@@ -525,29 +507,25 @@ service "foo" {
 
 	// Create
 	var reply string
-	if err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply); err != nil {
-		t.Fatalf("bad: %v", err)
-	}
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 
 	// Try to do an update without a token; this should get rejected.
 	ixn.Op = structs.IntentionOpUpdate
 	ixn.Intention.ID = reply
 	ixn.WriteRequest.Token = ""
 	err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply)
-	if !acl.IsErrPermissionDenied(err) {
-		t.Fatalf("bad: %v", err)
-	}
+	assert.True(acl.IsErrPermissionDenied(err))
 
 	// Try again with the original token; this should go through.
 	ixn.WriteRequest.Token = token
-	if err = msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 }
 
 // Test apply with a management token
 func TestIntentionApply_aclManagement(t *testing.T) {
 	t.Parallel()
+
+	assert := assert.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -571,27 +549,23 @@ func TestIntentionApply_aclManagement(t *testing.T) {
 
 	// Create
 	var reply string
-	if err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply); err != nil {
-		t.Fatalf("bad: %v", err)
-	}
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 	ixn.Intention.ID = reply
 
 	// Update
 	ixn.Op = structs.IntentionOpUpdate
-	if err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 
 	// Delete
 	ixn.Op = structs.IntentionOpDelete
-	if err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 }
 
 // Test update changing the name where an ACL won't allow it
 func TestIntentionApply_aclUpdateChange(t *testing.T) {
 	t.Parallel()
+
+	assert := assert.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -623,9 +597,7 @@ service "foo" {
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
-		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		assert.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
 	}
 
 	// Setup a basic record to create
@@ -639,9 +611,7 @@ service "foo" {
 
 	// Create
 	var reply string
-	if err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply); err != nil {
-		t.Fatalf("bad: %v", err)
-	}
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 
 	// Try to do an update without a token; this should get rejected.
 	ixn.Op = structs.IntentionOpUpdate
@@ -649,14 +619,14 @@ service "foo" {
 	ixn.Intention.DestinationName = "foo"
 	ixn.WriteRequest.Token = token
 	err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply)
-	if !acl.IsErrPermissionDenied(err) {
-		t.Fatalf("bad: %v", err)
-	}
+	assert.True(acl.IsErrPermissionDenied(err))
 }
 
 // Test reading with ACLs
 func TestIntentionGet_acl(t *testing.T) {
 	t.Parallel()
+
+	assert := assert.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -688,9 +658,7 @@ service "foo" {
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
-		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		assert.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
 	}
 
 	// Setup a basic record to create
@@ -704,9 +672,7 @@ service "foo" {
 
 	// Create
 	var reply string
-	if err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 	ixn.Intention.ID = reply
 
 	// Read without token should be error
@@ -718,12 +684,8 @@ service "foo" {
 
 		var resp structs.IndexedIntentions
 		err := msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp)
-		if !acl.IsErrPermissionDenied(err) {
-			t.Fatalf("bad: %v", err)
-		}
-		if len(resp.Intentions) != 0 {
-			t.Fatalf("bad: %v", resp)
-		}
+		assert.True(acl.IsErrPermissionDenied(err))
+		assert.Len(resp.Intentions, 0)
 	}
 
 	// Read with token should work
@@ -735,12 +697,8 @@ service "foo" {
 		}
 
 		var resp structs.IndexedIntentions
-		if err := msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if len(resp.Intentions) != 1 {
-			t.Fatalf("bad: %v", resp)
-		}
+		assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp))
+		assert.Len(resp.Intentions, 1)
 	}
 }
 
@@ -771,6 +729,8 @@ func TestIntentionList(t *testing.T) {
 // Test listing with ACLs
 func TestIntentionList_acl(t *testing.T) {
 	t.Parallel()
+
+	assert := assert.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -802,9 +762,7 @@ service "foo" {
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
-		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		assert.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
 	}
 
 	// Create a few records
@@ -819,9 +777,7 @@ service "foo" {
 
 		// Create
 		var reply string
-		if err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 	}
 
 	// Test with no token
@@ -830,13 +786,8 @@ service "foo" {
 			Datacenter: "dc1",
 		}
 		var resp structs.IndexedIntentions
-		if err := msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
-		if len(resp.Intentions) != 0 {
-			t.Fatalf("bad: %v", resp)
-		}
+		assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
+		assert.Len(resp.Intentions, 0)
 	}
 
 	// Test with management token
@@ -846,13 +797,8 @@ service "foo" {
 			QueryOptions: structs.QueryOptions{Token: "root"},
 		}
 		var resp structs.IndexedIntentions
-		if err := msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
-		if len(resp.Intentions) != 3 {
-			t.Fatalf("bad: %v", resp)
-		}
+		assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
+		assert.Len(resp.Intentions, 3)
 	}
 
 	// Test with user token
@@ -862,13 +808,8 @@ service "foo" {
 			QueryOptions: structs.QueryOptions{Token: token},
 		}
 		var resp structs.IndexedIntentions
-		if err := msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
-		if len(resp.Intentions) != 1 {
-			t.Fatalf("bad: %v", resp)
-		}
+		assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
+		assert.Len(resp.Intentions, 1)
 	}
 }
 
@@ -944,6 +885,8 @@ func TestIntentionMatch_good(t *testing.T) {
 // Test matching with ACLs
 func TestIntentionMatch_acl(t *testing.T) {
 	t.Parallel()
+
+	assert := assert.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -975,9 +918,7 @@ service "bar" {
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
-		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		assert.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
 	}
 
 	// Create some records
@@ -1003,9 +944,7 @@ service "bar" {
 
 			// Create
 			var reply string
-			if err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply); err != nil {
-				t.Fatalf("err: %v", err)
-			}
+			assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 		}
 	}
 
@@ -1025,13 +964,8 @@ service "bar" {
 		}
 		var resp structs.IndexedIntentionMatches
 		err := msgpackrpc.CallWithCodec(codec, "Intention.Match", req, &resp)
-		if !acl.IsErrPermissionDenied(err) {
-			t.Fatalf("err: %v", err)
-		}
-
-		if len(resp.Matches) != 0 {
-			t.Fatalf("bad: %#v", resp.Matches)
-		}
+		assert.True(acl.IsErrPermissionDenied(err))
+		assert.Len(resp.Matches, 0)
 	}
 
 	// Test with proper token
@@ -1050,13 +984,8 @@ service "bar" {
 			QueryOptions: structs.QueryOptions{Token: token},
 		}
 		var resp structs.IndexedIntentionMatches
-		if err := msgpackrpc.CallWithCodec(codec, "Intention.Match", req, &resp); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
-		if len(resp.Matches) != 1 {
-			t.Fatalf("bad: %#v", resp.Matches)
-		}
+		assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Match", req, &resp))
+		assert.Len(resp.Matches, 1)
 
 		expected := [][]string{{"foo", "bar"}, {"foo", "*"}, {"*", "*"}}
 		var actual [][]string
@@ -1064,8 +993,6 @@ service "bar" {
 			actual = append(actual, []string{ixn.DestinationNS, ixn.DestinationName})
 		}
 
-		if !reflect.DeepEqual(actual, expected) {
-			t.Fatalf("bad (got, wanted):\n\n%#v\n\n%#v", actual, expected)
-		}
+		assert.Equal(expected, actual)
 	}
 }

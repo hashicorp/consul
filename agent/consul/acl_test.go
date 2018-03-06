@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/stretchr/testify/assert"
 )
 
 var testACLPolicy = `
@@ -849,6 +850,8 @@ node "node1" {
 
 func TestACL_filterIntentions(t *testing.T) {
 	t.Parallel()
+	assert := assert.New(t)
+
 	fill := func() structs.Intentions {
 		return structs.Intentions{
 			&structs.Intention{
@@ -867,9 +870,7 @@ func TestACL_filterIntentions(t *testing.T) {
 		ixns := fill()
 		filt := newACLFilter(acl.AllowAll(), nil, false)
 		filt.filterIntentions(&ixns)
-		if len(ixns) != 2 {
-			t.Fatalf("bad: %#v", ixns)
-		}
+		assert.Len(ixns, 2)
 	}
 
 	// Try restrictive filtering.
@@ -877,9 +878,7 @@ func TestACL_filterIntentions(t *testing.T) {
 		ixns := fill()
 		filt := newACLFilter(acl.DenyAll(), nil, false)
 		filt.filterIntentions(&ixns)
-		if len(ixns) != 0 {
-			t.Fatalf("bad: %#v", ixns)
-		}
+		assert.Len(ixns, 0)
 	}
 
 	// Policy to see one
@@ -888,22 +887,16 @@ service "foo" {
   policy = "read"
 }
 `, nil)
-	if err != nil {
-		t.Fatalf("err %v", err)
-	}
+	assert.Nil(err)
 	perms, err := acl.New(acl.DenyAll(), policy, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	assert.Nil(err)
 
 	// Filter
 	{
 		ixns := fill()
 		filt := newACLFilter(perms, nil, false)
 		filt.filterIntentions(&ixns)
-		if len(ixns) != 1 {
-			t.Fatalf("bad: %#v", ixns)
-		}
+		assert.Len(ixns, 1)
 	}
 }
 
