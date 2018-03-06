@@ -67,7 +67,7 @@ func (s *Intention) Apply(
 		}
 
 		// Set the created at
-		args.Intention.CreatedAt = time.Now()
+		args.Intention.CreatedAt = time.Now().UTC()
 	}
 	*reply = args.Intention.ID
 
@@ -84,7 +84,7 @@ func (s *Intention) Apply(
 	}
 
 	// We always update the updatedat field. This has no effect for deletion.
-	args.Intention.UpdatedAt = time.Now()
+	args.Intention.UpdatedAt = time.Now().UTC()
 
 	// Default source type
 	if args.Intention.SourceType == "" {
@@ -169,6 +169,10 @@ func (s *Intention) List(
 			}
 
 			reply.Index, reply.Intentions = index, ixns
+			if reply.Intentions == nil {
+				reply.Intentions = make(structs.Intentions, 0)
+			}
+
 			// filterACL
 			return nil
 		},

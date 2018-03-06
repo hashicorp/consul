@@ -384,6 +384,9 @@ func TestIntentionList(t *testing.T) {
 		if err := msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp); err != nil {
 			t.Fatalf("err: %v", err)
 		}
+		if resp.Intentions == nil {
+			t.Fatal("should not be nil")
+		}
 
 		if len(resp.Intentions) != 0 {
 			t.Fatalf("bad: %v", resp)

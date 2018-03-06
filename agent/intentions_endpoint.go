@@ -37,10 +37,6 @@ func (s *HTTPServer) IntentionList(resp http.ResponseWriter, req *http.Request) 
 		return nil, err
 	}
 
-	// Use empty list instead of nil.
-	if reply.Intentions == nil {
-		reply.Intentions = make(structs.Intentions, 0)
-	}
 	return reply.Intentions, nil
 }
 
