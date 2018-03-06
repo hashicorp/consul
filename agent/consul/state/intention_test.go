@@ -455,3 +455,108 @@ func TestStore_IntentionMatch_table(t *testing.T) {
 		})
 	}
 }
+
+func TestStore_Intention_Snapshot_Restore(t *testing.T) {
+	s := testStateStore(t)
+
+	// Create some intentions.
+	ixns := structs.Intentions{
+		&structs.Intention{
+			DestinationName: "foo",
+		},
+		&structs.Intention{
+			DestinationName: "bar",
+		},
+		&structs.Intention{
+			DestinationName: "baz",
+		},
+	}
+
+	// Force the sort order of the UUIDs before we create them so the
+	// order is deterministic.
+	id := testUUID()
+	ixns[0].ID = "a" + id[1:]
+	ixns[1].ID = "b" + id[1:]
+	ixns[2].ID = "c" + id[1:]
+
+	// Now create
+	for i, ixn := range ixns {
+		if err := s.IntentionSet(uint64(4+i), ixn); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	// Snapshot the queries.
+	snap := s.Snapshot()
+	defer snap.Close()
+
+	// Alter the real state store.
+	if err := s.IntentionDelete(7, ixns[0].ID); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Verify the snapshot.
+	if idx := snap.LastIndex(); idx != 6 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	expected := structs.Intentions{
+		&structs.Intention{
+			ID:              ixns[0].ID,
+			DestinationName: "foo",
+			Meta:            map[string]string{},
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 4,
+				ModifyIndex: 4,
+			},
+		},
+		&structs.Intention{
+			ID:              ixns[1].ID,
+			DestinationName: "bar",
+			Meta:            map[string]string{},
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 5,
+				ModifyIndex: 5,
+			},
+		},
+		&structs.Intention{
+			ID:              ixns[2].ID,
+			DestinationName: "baz",
+			Meta:            map[string]string{},
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 6,
+				ModifyIndex: 6,
+			},
+		},
+	}
+	dump, err := snap.Intentions()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !reflect.DeepEqual(dump, expected) {
+		t.Fatalf("bad: %#v", dump[0])
+	}
+
+	// Restore the values into a new state store.
+	func() {
+		s := testStateStore(t)
+		restore := s.Restore()
+		for _, ixn := range dump {
+			if err := restore.Intention(ixn); err != nil {
+				t.Fatalf("err: %s", err)
+			}
+		}
+		restore.Commit()
+
+		// Read the restored values back out and verify that they match.
+		idx, actual, err := s.Intentions(nil)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if idx != 6 {
+			t.Fatalf("bad index: %d", idx)
+		}
+		if !reflect.DeepEqual(actual, expected) {
+			t.Fatalf("bad: %v", actual)
+		}
+	}()
+}

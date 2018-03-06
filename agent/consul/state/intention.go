@@ -68,6 +68,34 @@ func init() {
 	registerSchema(intentionsTableSchema)
 }
 
+// Intentions is used to pull all the intentions from the snapshot.
+func (s *Snapshot) Intentions() (structs.Intentions, error) {
+	ixns, err := s.tx.Get(intentionsTableName, "id")
+	if err != nil {
+		return nil, err
+	}
+
+	var ret structs.Intentions
+	for wrapped := ixns.Next(); wrapped != nil; wrapped = ixns.Next() {
+		ret = append(ret, wrapped.(*structs.Intention))
+	}
+
+	return ret, nil
+}
+
+// Intention is used when restoring from a snapshot.
+func (s *Restore) Intention(ixn *structs.Intention) error {
+	// Insert the intention
+	if err := s.tx.Insert(intentionsTableName, ixn); err != nil {
+		return fmt.Errorf("failed restoring intention: %s", err)
+	}
+	if err := indexUpdateMaxTxn(s.tx, ixn.ModifyIndex, intentionsTableName); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
+
+	return nil
+}
+
 // Intentions returns the list of all intentions.
 func (s *Store) Intentions(ws memdb.WatchSet) (uint64, structs.Intentions, error) {
 	tx := s.db.Txn(false)
