@@ -1,7 +1,6 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
-import convertToLegacyDc from 'consul-ui/utils/convertToLegacyDc';
 
 export default Route.extend({
   repo: service('dc'),
@@ -9,11 +8,7 @@ export default Route.extend({
     const repo = this.get('repo');
     return hash({
       model: repo.findAll(),
-    }).then(
-      // temporarily turn back into a pojo so
-      // I don't have to touch the view
-      convertToLegacyDc('model')
-    );
+    });
   },
   setupController: function(controller, model) {
     controller.setProperties(model);
