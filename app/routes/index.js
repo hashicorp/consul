@@ -13,12 +13,12 @@ export default Route.extend({
   setupController: function(controller, model) {
     controller.setProperties(model);
   },
-  afterModel: function({ model } /*, transition */) {
+  afterModel: function({ model }, transition) {
     // If we only have one datacenter, jump
     // straight to it and bypass the global
     // view
     if (model.get('length') === 1) {
-      this.transitionTo('dc.services', model.get('firstObject').get('Name'));
+      this.transitionTo('dc.services', model[0]);
     }
   },
 });

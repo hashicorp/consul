@@ -1,7 +1,6 @@
 import Service, { inject as service } from '@ember/service';
 
 import get from 'consul-ui/utils/request/get';
-import map from 'consul-ui/utils/map';
 
 export default Service.extend({
   store: service('store'),

@@ -1,7 +1,6 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
-import { assign } from '@ember/polyfills';
 
 export default Route.extend({
   repo: service('dc'),
@@ -15,17 +14,7 @@ export default Route.extend({
       // TODO: Nodes should already be loaded on the selected
       // dc, we only need them for the selected dc
       nodes: nodeRepo.findAllByDatacenter(params.dc),
-    }).then(
-      // temporarily turn back into a pojo so
-      // I don't have to touch the view
-      function(model) {
-        return assign(model, {
-          dcs: model.dcs.map(function(item) {
-            return item.get('Name');
-          }),
-        });
-      }
-    );
+    });
   },
   setupController: function(controller, model) {
     controller.setProperties(model);

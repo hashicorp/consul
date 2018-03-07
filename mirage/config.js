@@ -26,7 +26,11 @@ export default function() {
   this.get(
     '/catalog/datacenters',
     function(schema, request) {
-      return ['dc1'];
+      return schema.dcs.all().models.map(
+        function(item) {
+          return item.Name;
+        }
+      );
     }
   );
   this.get(

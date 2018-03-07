@@ -1,5 +1,4 @@
-// import Model from 'ember-data';
-import Model, { computed, get } from '@ember/object';
+import Model from '@ember/object';
 
 export default Model.extend({
   isNotAnon: function() {

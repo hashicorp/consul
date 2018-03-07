@@ -5,5 +5,8 @@ export default Entity.extend({
   Name: attr('string'),
   Services: hasMany('service'),
   Nodes: hasMany('node'),
+  toString: function() {
+    return this.get('Name');
+  },
   // probably KV etc
 });
