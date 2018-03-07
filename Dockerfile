@@ -1,7 +1,6 @@
 FROM alpine:latest
-MAINTAINER Miek Gieben <miek@miek.nl> @miekg
 
-# only need ca-certificates & openssl if want to use https_google
+# Only need ca-certificates & openssl if want to use DNS over TLS (RFC 7858).
 RUN apk --no-cache add bind-tools ca-certificates openssl && update-ca-certificates
 
 ADD coredns /coredns
