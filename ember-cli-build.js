@@ -8,7 +8,14 @@ module.exports = function(defaults) {
       'bootstrapVersion': 3,
       'importBootstrapFont': true,
       'importBootstrapCSS': false
-    }
+    },
+    'ember-cli-uglify': {
+      uglify: {
+        compress: {
+          keep_fargs: false,
+        },
+      },
+    },
   });
 
   // Use `app.import` to add additional libraries to the generated
