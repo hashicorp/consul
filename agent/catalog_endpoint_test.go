@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/serf/coordinate"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCatalogRegister_Service_InvalidAddress(t *testing.T) {
@@ -748,6 +749,30 @@ func TestCatalogServiceNodes_DistanceSort(t *testing.T) {
 	if nodes[1].Node != "bar" {
 		t.Fatalf("bad: %v", nodes)
 	}
+}
+
+func TestCatalogServiceNodes_ConnectProxy(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Register
+	args := structs.TestRegisterRequestProxy(t)
+	var out struct{}
+	assert.Nil(a.RPC("Catalog.Register", args, &out))
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf(
+		"/v1/catalog/service/%s", args.Service.Service), nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.CatalogServiceNodes(resp, req)
+	assert.Nil(err)
+	assertIndex(t, resp)
+
+	nodes := obj.(structs.ServiceNodes)
+	assert.Len(nodes, 1)
+	assert.Equal(structs.ServiceKindConnectProxy, nodes[0].ServiceKind)
 }
 
 func TestCatalogNodeServices(t *testing.T) {

@@ -13,9 +13,12 @@ const (
 	SerfCheckFailedOutput               = "Agent not live or unreachable"
 )
 
-// These are used to manage the "consul" service that's attached to every Consul
-// server node in the catalog.
 const (
+	// These are used to manage the "consul" service that's attached to every
+	// Consul server node in the catalog.
 	ConsulServiceID   = "consul"
 	ConsulServiceName = "consul"
+
+	// ConnectProxyServiceName is the name of the proxy services.
+	ConnectProxyServiceName = "connect-proxy"
 )

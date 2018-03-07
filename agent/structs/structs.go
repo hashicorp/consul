@@ -416,6 +416,7 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 		Node: s.Node,
 		// Skip Address, see above.
 		// Skip TaggedAddresses, see above.
+		ServiceKind:              s.ServiceKind,
 		ServiceID:                s.ServiceID,
 		ServiceName:              s.ServiceName,
 		ServiceTags:              tags,
@@ -423,6 +424,7 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 		ServicePort:              s.ServicePort,
 		ServiceMeta:              nsmeta,
 		ServiceEnableTagOverride: s.ServiceEnableTagOverride,
+		ServiceProxyDestination:  s.ServiceProxyDestination,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,
