@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/go-memdb"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/assert"
 )
 
 func makeRandomNodeID(t *testing.T) types.NodeID {
@@ -982,6 +983,7 @@ func TestStateStore_EnsureService(t *testing.T) {
 }
 
 func TestStateStore_EnsureService_connectProxy(t *testing.T) {
+	assert := assert.New(t)
 	s := testStateStore(t)
 
 	// Create the service registration.
@@ -996,23 +998,17 @@ func TestStateStore_EnsureService_connectProxy(t *testing.T) {
 
 	// Service successfully registers into the state store.
 	testRegisterNode(t, s, 0, "node1")
-	if err := s.EnsureService(10, "node1", ns1); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	assert.Nil(s.EnsureService(10, "node1", ns1))
 
 	// Retrieve and verify
 	_, out, err := s.NodeServices(nil, "node1")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if out == nil || len(out.Services) != 1 {
-		t.Fatalf("bad: %#v", out)
-	}
+	assert.Nil(err)
+	assert.NotNil(out)
+	assert.Len(out.Services, 1)
+
 	expect1 := *ns1
 	expect1.CreateIndex, expect1.ModifyIndex = 10, 10
-	if svc := out.Services["connect-proxy"]; !reflect.DeepEqual(&expect1, svc) {
-		t.Fatalf("bad: %#v", svc)
-	}
+	assert.Equal(&expect1, out.Services["connect-proxy"])
 }
 
 func TestStateStore_Services(t *testing.T) {
