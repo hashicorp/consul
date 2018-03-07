@@ -15,23 +15,6 @@ export default Entity.extend({
   Service: attr(),
   Datacenter: belongsTo('service'),
 
-  tags: computed('Service', function() {
-    return ['Tag', 'Here'];
-    // TODO: isolate, quick read of this some sort of filter might fit here instead of reduce?
-    // come back and check exactly what this is doing and test
-    // return assign(model, {
-    //   tags: model.model
-    //     .reduce(function(prev, item) {
-    //       return item.Service.Tags !== null ? prev.concat(item.Service.Tags) : prev;
-    //     }, [])
-    //     .filter(function(n) {
-    //       return n !== undefined;
-    //     })
-    //     .uniq()
-    //     .join(', '),
-    // });
-  }),
-
   Node: attr(),
   Service: attr(),
   Checks: attr(),
