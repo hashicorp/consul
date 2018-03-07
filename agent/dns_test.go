@@ -2801,7 +2801,7 @@ func TestDNS_TCP_and_UDP_Truncate(t *testing.T) {
 			for _, question := range questions {
 				for _, protocol := range protocols {
 					for _, compress := range []bool{true, false} {
-						t.Run(fmt.Sprintf("lookup %s %s (qType:=%d) compressed=%b", question, protocol, qType, compress), func(t *testing.T) {
+						t.Run(fmt.Sprintf("lookup %s %s (qType:=%d) compressed=%v", question, protocol, qType, compress), func(t *testing.T) {
 							m := new(dns.Msg)
 							m.SetQuestion(question, dns.TypeANY)
 							if protocol == "udp" {
