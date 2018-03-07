@@ -1,4 +1,3 @@
-import pojo from 'consul-ui/utils/pojo';
 import { assign } from '@ember/polyfills';
 
 import Serializer from './application';
@@ -11,12 +10,12 @@ export default Serializer.extend({
     return this._super(
       store,
       primaryModelClass,
-      pojo(primaryModelClass.modelName)(
-        payload.map(function(item) {
+      {
+        [primaryModelClass.modelName]: payload.map(function(item) {
           item.Id = item.Name;
           return item;
-        })
-      ),
+        }),
+      },
       id,
       requestType
     );
@@ -25,10 +24,12 @@ export default Serializer.extend({
     return this._super(
       store,
       primaryModelClass,
-      pojo(primaryModelClass.modelName)({
-        Id: id,
-        Nodes: payload,
-      }),
+      {
+        [primaryModelClass.modelName]: {
+          Id: id,
+          Nodes: payload,
+        },
+      },
       id,
       requestType
     );

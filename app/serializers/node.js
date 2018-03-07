@@ -1,5 +1,3 @@
-import pojo from 'consul-ui/utils/pojo';
-
 import Serializer from './application';
 export default Serializer.extend({
   primaryKey: 'Node',
@@ -10,7 +8,9 @@ export default Serializer.extend({
     return this._super(
       store,
       primaryModelClass,
-      pojo(primaryModelClass.modelName)(payload),
+      {
+        [primaryModelClass.modelName]: payload,
+      },
       id,
       requestType
     );
