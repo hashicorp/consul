@@ -726,12 +726,19 @@ func (d *DNSServer) trimTCPResponse(req, resp *dns.Msg) (trimmed bool) {
 	// We avoid some function calls and allocations by only handling the
 	// extra data when necessary.
 	var index map[string]dns.RR
+	originalSize := resp.Len()
+	originalNumRecords := len(resp.Answer)
+
+	// Beyond 2500 records, performance gets bad
+	// Limit the number of records at once, anyway, it won't fit in 64k
+	// For SRV Records, the max is around 500 records, for A, less than 2k
+	if len(resp.Answer) > 2048 {
+		resp.Answer = resp.Answer[:2048]
+	}
 	if hasExtra {
 		index = make(map[string]dns.RR, len(resp.Extra))
 		indexRRs(resp.Extra, index)
 	}
-	originalSize := resp.Len()
-	originalNumRecords := len(resp.Answer)
 	truncated := false
 
 	// This enforces the given limit on 64k, the max limit for DNS messages
@@ -746,7 +753,6 @@ func (d *DNSServer) trimTCPResponse(req, resp *dns.Msg) (trimmed bool) {
 		d.logger.Printf("[DEBUG] dns: TCP answer to %v too large truncated recs:=%d/%d, size:=%d/%d",
 			req.Question,
 			len(resp.Answer), originalNumRecords, resp.Len(), originalSize)
-
 	}
 	// Restore compression if any
 	resp.Compress = compressed
