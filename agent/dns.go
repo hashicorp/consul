@@ -715,9 +715,10 @@ func syncExtra(index map[string]dns.RR, resp *dns.Msg) {
 
 // trimTCPResponse limit the MaximumSize of messages to 64k as it is the limit
 // of DNS responses
-func trimTCPResponse(req, resp *dns.Msg) (trimmed bool) {
+func (d *DNSServer) trimTCPResponse(req, resp *dns.Msg) (trimmed bool) {
 	hasExtra := len(resp.Extra) > 0
-	maxSize := 65535
+	// There is some overhead, 65535 does not work
+	maxSize := 64000
 
 	// We avoid some function calls and allocations by only handling the
 	// extra data when necessary.
@@ -726,6 +727,8 @@ func trimTCPResponse(req, resp *dns.Msg) (trimmed bool) {
 		index = make(map[string]dns.RR, len(resp.Extra))
 		indexRRs(resp.Extra, index)
 	}
+	originalSize := resp.Len()
+	originalNumRecords := len(resp.Answer)
 	truncated := false
 
 	// This enforces the given limit on 64k, the max limit for DNS messages
@@ -735,6 +738,12 @@ func trimTCPResponse(req, resp *dns.Msg) (trimmed bool) {
 		if hasExtra {
 			syncExtra(index, resp)
 		}
+	}
+	if truncated {
+		d.logger.Printf("[DEBUG] dns: TCP answer to %v too large truncated recs:=%d/%d, size:=%d/%d",
+			req.Question,
+			len(resp.Answer), originalNumRecords, resp.Len(), originalSize)
+
 	}
 	return truncated
 }
@@ -796,7 +805,7 @@ func (d *DNSServer) trimDNSResponse(network string, req, resp *dns.Msg) (trimmed
 	if network != "tcp" {
 		trimmed = trimUDPResponse(req, resp, d.config.UDPAnswerLimit)
 	} else {
-		trimmed = trimTCPResponse(req, resp)
+		trimmed = d.trimTCPResponse(req, resp)
 	}
 	// Flag that there are more records to return in the UDP response
 	if trimmed && d.config.EnableTruncate {
