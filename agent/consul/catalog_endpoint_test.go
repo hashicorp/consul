@@ -1681,6 +1681,37 @@ func TestCatalog_NodeServices(t *testing.T) {
 	}
 }
 
+func TestCatalog_NodeServices_ConnectProxy(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Register the service
+	args := structs.TestRegisterRequestProxy(t)
+	var out struct{}
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
+
+	// List
+	req := structs.NodeSpecificRequest{
+		Datacenter: "dc1",
+		Node:       args.Node,
+	}
+	var resp structs.IndexedNodeServices
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &req, &resp))
+
+	assert.Len(resp.NodeServices.Services, 1)
+	v := resp.NodeServices.Services[args.Service.Service]
+	assert.Equal(structs.ServiceKindConnectProxy, v.Kind)
+	assert.Equal(args.Service.ProxyDestination, v.ProxyDestination)
+}
+
 // Used to check for a regression against a known bug
 func TestCatalog_Register_FailedCase1(t *testing.T) {
 	t.Parallel()
