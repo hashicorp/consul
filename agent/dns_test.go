@@ -2740,6 +2740,94 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 	}
 }
 
+func TestDNS_TCP_and_UDP_Truncate(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), `
+		dns_config {
+			enable_truncate = true
+		}
+	`)
+	defer a.Shutdown()
+
+	services := []string{"normal", "truncated"}
+	for index, service := range services {
+		numServices := (index * 5000) + 2
+		for i := 1; i < numServices; i++ {
+			args := &structs.RegisterRequest{
+				Datacenter: "dc1",
+				Node:       fmt.Sprintf("%s-%d.acme.com", service, i),
+				Address:    fmt.Sprintf("127.%d.%d.%d", index, (i / 255), i%255),
+				Service: &structs.NodeService{
+					Service: service,
+					Port:    8000,
+				},
+			}
+
+			var out struct{}
+			if err := a.RPC("Catalog.Register", args, &out); err != nil {
+				t.Fatalf("err: %v", err)
+			}
+		}
+
+		// Register an equivalent prepared query.
+		var id string
+		{
+			args := &structs.PreparedQueryRequest{
+				Datacenter: "dc1",
+				Op:         structs.PreparedQueryCreate,
+				Query: &structs.PreparedQuery{
+					Name: service,
+					Service: structs.ServiceQuery{
+						Service: service,
+					},
+				},
+			}
+			if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+				t.Fatalf("err: %v", err)
+			}
+		}
+
+		// Look up the service directly and via prepared query. Ensure the
+		// response is truncated each time.
+		questions := []string{
+			fmt.Sprintf("%s.service.consul.", service),
+			id + ".query.consul.",
+		}
+		protocols := []string{
+			"tcp",
+			"udp",
+		}
+		for _, qType := range []uint16{dns.TypeANY, dns.TypeA, dns.TypeSRV} {
+			for _, question := range questions {
+				for _, protocol := range protocols {
+					t.Run(fmt.Sprintf("lookup %s %s (qType:=%d)", question, protocol, qType), func(t *testing.T) {
+						m := new(dns.Msg)
+						m.SetQuestion(question, dns.TypeANY)
+						if protocol == "udp" {
+							m.SetEdns0(8192, true)
+						}
+						c := new(dns.Client)
+						c.Net = protocol
+						in, out, err := c.Exchange(m, a.DNSAddr())
+						if err != nil && err != dns.ErrTruncated {
+							t.Fatalf("err: %v", err)
+						}
+
+						// Check for the truncate bit
+						shouldBeTruncated := numServices > 4095
+
+						if shouldBeTruncated != in.Truncated {
+							info := fmt.Sprintf("service %s question:=%s (%s) (%d total records) in %v",
+								service, question, protocol, numServices, out)
+							t.Fatalf("Should have truncate:=%v for %s", shouldBeTruncated, info)
+						}
+					})
+				}
+			}
+		}
+	}
+}
+
 func TestDNS_ServiceLookup_Truncate(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), `
