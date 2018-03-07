@@ -6,6 +6,10 @@ export default Service.extend({
     return this.get('store').query('service', { dc: datacenter });
   },
   findBySlug: function(slug) {
-    return this.get('store').findRecord('service', slug, { reload: true });
+    return this.get('store')
+      .findRecord('service', slug, { reload: true })
+      .then(function(service) {
+        return service.get('Nodes');
+      });
   },
 });

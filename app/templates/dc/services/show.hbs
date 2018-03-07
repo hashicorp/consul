@@ -14,7 +14,7 @@
 {{/if}}
 
 <h5>Nodes</h5>
-{{#each model.Nodes as |node| }}
+{{#each model as |node| }}
 
     {{#link-to 'dc.nodes.show' node.Node.Node tagName="div" href=false class="panel panel-link panel-list" }}
         <div class="panel-bar-horizontal {{ if node.hasFailingChecks "bg-orange" "bg-green" }}"></div>

@@ -10,10 +10,9 @@ export default Route.extend({
     return hash({
       model: repo.findBySlug(params.name, this.modelFor('dc').dc),
     }).then(function(model) {
-      console.log(model.model.get('Nodes'));
-      // TODO: isolate, quick read of this some sort of filter might fit here instead of reduce?
-      // come back and check exactly what this is doing and test
-      return assign({}, model, { tags: model.model.tags });
+      return assign({}, model, {
+        tags: model.model.tags,
+      });
     });
   },
   setupController: function(controller, model) {
