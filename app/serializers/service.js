@@ -1,5 +1,3 @@
-import { assign } from '@ember/polyfills';
-
 import Serializer from './application';
 export default Serializer.extend({
   primaryKey: 'Id',
