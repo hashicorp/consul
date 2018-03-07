@@ -2997,8 +2997,8 @@ func testDNSServiceLookupResponseLimits(t *testing.T, answerLimit int, qType uin
 	return true, nil
 }
 
-func testDNSServiceLookupResponseARecordLimits(t *testing.T, generateNumNodes int, aRecordLimit int, qType uint16,
-	expectedResultsCount int, udpSize uint16, udpAnswerLimit int) (bool, error) {
+func checkDNSService(t *testing.T, generateNumNodes int, aRecordLimit int, qType uint16,
+	expectedResultsCount int, udpSize uint16, udpAnswerLimit int) error {
 	a := NewTestAgent(t.Name(), `
 		node_name = "test-node"
 		dns_config {
@@ -3025,7 +3025,7 @@ func testDNSServiceLookupResponseARecordLimits(t *testing.T, generateNumNodes in
 
 		var out struct{}
 		if err := a.RPC("Catalog.Register", args, &out); err != nil {
-			return false, fmt.Errorf("err: %v", err)
+			return fmt.Errorf("err: %v", err)
 		}
 	}
 	var id string
@@ -3042,7 +3042,7 @@ func testDNSServiceLookupResponseARecordLimits(t *testing.T, generateNumNodes in
 		}
 
 		if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
-			return false, fmt.Errorf("err: %v", err)
+			return fmt.Errorf("err: %v", err)
 		}
 	}
 
@@ -3066,14 +3066,14 @@ func testDNSServiceLookupResponseARecordLimits(t *testing.T, generateNumNodes in
 		c := &dns.Client{Net: protocol, UDPSize: 8192}
 		in, _, err := c.Exchange(m, a.DNSAddr())
 		if err != nil {
-			return false, fmt.Errorf("err: %v", err)
+			return fmt.Errorf("err: %v", err)
 		}
 		if len(in.Answer) != expectedResultsCount {
-			return false, fmt.Errorf("%d/%d answers received for type %v for %s (%s)", len(in.Answer), expectedResultsCount, qType, question, protocol)
+			return fmt.Errorf("%d/%d answers received for type %v for %s (%s)", len(in.Answer), expectedResultsCount, qType, question, protocol)
 		}
 	}
 
-	return true, nil
+	return nil
 }
 
 func TestDNS_ServiceLookup_ARecordLimits(t *testing.T) {
@@ -3137,8 +3137,8 @@ func TestDNS_ServiceLookup_ARecordLimits(t *testing.T) {
 		for idx, qType := range queriesLimited {
 			t.Run(fmt.Sprintf("ARecordLimit %d qType: %d", idx, qType), func(t *testing.T) {
 				t.Parallel()
-				ok, err := testDNSServiceLookupResponseARecordLimits(t, test.numNodesTotal, test.aRecordLimit, qType, test.expectedAResults, test.udpSize, test.udpAnswerLimit)
-				if !ok {
+				err := checkDNSService(t, test.numNodesTotal, test.aRecordLimit, qType, test.expectedAResults, test.udpSize, test.udpAnswerLimit)
+				if err != nil {
 					t.Errorf("Expected lookup %s to pass: %v", test.name, err)
 				}
 			})
@@ -3146,8 +3146,8 @@ func TestDNS_ServiceLookup_ARecordLimits(t *testing.T) {
 		// No limits but the size of records for SRV records, since not subject to randomization issues
 		t.Run("SRV lookup limitARecord", func(t *testing.T) {
 			t.Parallel()
-			ok, err := testDNSServiceLookupResponseARecordLimits(t, test.expectedSRVResults, test.aRecordLimit, dns.TypeSRV, test.numNodesTotal, test.udpSize, test.udpAnswerLimit)
-			if !ok {
+			err := checkDNSService(t, test.expectedSRVResults, test.aRecordLimit, dns.TypeSRV, test.numNodesTotal, test.udpSize, test.udpAnswerLimit)
+			if err != nil {
 				t.Errorf("Expected service SRV lookup %s to pass: %v", test.name, err)
 			}
 		})
