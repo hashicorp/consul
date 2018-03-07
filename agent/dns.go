@@ -718,7 +718,10 @@ func syncExtra(index map[string]dns.RR, resp *dns.Msg) {
 func (d *DNSServer) trimTCPResponse(req, resp *dns.Msg) (trimmed bool) {
 	hasExtra := len(resp.Extra) > 0
 	// There is some overhead, 65535 does not work
-	maxSize := 64000
+	maxSize := 65533 // 64k - 2 bytes
+	// In order to compute properly, we have to avoid compress first
+	compressed := resp.Compress
+	resp.Compress = false
 
 	// We avoid some function calls and allocations by only handling the
 	// extra data when necessary.
@@ -745,6 +748,8 @@ func (d *DNSServer) trimTCPResponse(req, resp *dns.Msg) (trimmed bool) {
 			len(resp.Answer), originalNumRecords, resp.Len(), originalSize)
 
 	}
+	// Restore compression if any
+	resp.Compress = compressed
 	return truncated
 }
 

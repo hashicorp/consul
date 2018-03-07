@@ -2800,28 +2800,31 @@ func TestDNS_TCP_and_UDP_Truncate(t *testing.T) {
 		for _, qType := range []uint16{dns.TypeANY, dns.TypeA, dns.TypeSRV} {
 			for _, question := range questions {
 				for _, protocol := range protocols {
-					t.Run(fmt.Sprintf("lookup %s %s (qType:=%d)", question, protocol, qType), func(t *testing.T) {
-						m := new(dns.Msg)
-						m.SetQuestion(question, dns.TypeANY)
-						if protocol == "udp" {
-							m.SetEdns0(8192, true)
-						}
-						c := new(dns.Client)
-						c.Net = protocol
-						in, out, err := c.Exchange(m, a.DNSAddr())
-						if err != nil && err != dns.ErrTruncated {
-							t.Fatalf("err: %v", err)
-						}
+					for _, compress := range []bool{true, false} {
+						t.Run(fmt.Sprintf("lookup %s %s (qType:=%d) compressed=%b", question, protocol, qType, compress), func(t *testing.T) {
+							m := new(dns.Msg)
+							m.SetQuestion(question, dns.TypeANY)
+							if protocol == "udp" {
+								m.SetEdns0(8192, true)
+							}
+							c := new(dns.Client)
+							c.Net = protocol
+							m.Compress = compress
+							in, out, err := c.Exchange(m, a.DNSAddr())
+							if err != nil && err != dns.ErrTruncated {
+								t.Fatalf("err: %v", err)
+							}
 
-						// Check for the truncate bit
-						shouldBeTruncated := numServices > 4095
+							// Check for the truncate bit
+							shouldBeTruncated := numServices > 4095
 
-						if shouldBeTruncated != in.Truncated {
-							info := fmt.Sprintf("service %s question:=%s (%s) (%d total records) in %v",
-								service, question, protocol, numServices, out)
-							t.Fatalf("Should have truncate:=%v for %s", shouldBeTruncated, info)
-						}
-					})
+							if shouldBeTruncated != in.Truncated {
+								info := fmt.Sprintf("service %s question:=%s (%s) (%d total records) in %v",
+									service, question, protocol, numServices, out)
+								t.Fatalf("Should have truncate:=%v for %s", shouldBeTruncated, info)
+							}
+						})
+					}
 				}
 			}
 		}
