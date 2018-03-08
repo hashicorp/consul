@@ -949,10 +949,18 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 
     * <a name="udp_answer_limit"></a><a href="#udp_answer_limit">`udp_answer_limit`</a> - Limit the number of
       resource records contained in the answer section of a UDP-based DNS
-      response. When answering a question, Consul will use the complete list of
+      response. Since this parameters is applied only for DNS queries of 512 bytes (without support of EDNS or
+      TCP, this setting is now replaced by <a href="#a_record_limit">`a_record_limit`</a> if randomization of
+      A/AAAA records is needed.
+      Its only usage is to limit the size of response of legacy DNS queries (not TCP, not EDNS), so you should
+      probably not use it. 
+
+    * <a name="a_record_limit"></a><a href="#a_record_limit">`a_record_limit`</a> - Limit the number of
+      resource records contained in the answser section of a A, AAAA or ANY DNS response (both TCP and UDP).
+      When answering a question, Consul will use the complete list of
       matching hosts, shuffle the list randomly, and then limit the number of
-      answers to `udp_answer_limit` (default `3`). In environments where
-      [RFC 3484 Section 6](https://tools.ietf.org/html/rfc3484#section-6) Rule 9
+      answers to `a_record_limit` (default: no limit). This limit does not apply to SRV records.
+      In environments where [RFC 3484 Section 6](https://tools.ietf.org/html/rfc3484#section-6) Rule 9
       is implemented and enforced (i.e. DNS answers are always sorted and
       therefore never random), clients may need to set this value to `1` to
       preserve the expected randomized distribution behavior (note:
