@@ -10,6 +10,16 @@ const mapKeys = function(payload) {
 };
 const mapValues = function(payload) {
   return payload;
+  // const store = this.get('store');
+  // return payload.map(
+  //   (item, i, arr) => {
+  //     const current = store.peekRecord('kv', item.Key);
+  //     if(current != null) {
+  //       store.unloadRecord(current);
+  //     }
+  //     return item;
+  //   }
+  // );
 };
 export default ApplicationSerializer.extend({
   primaryKey: 'Key',
@@ -22,7 +32,7 @@ export default ApplicationSerializer.extend({
       store,
       primaryModelClass,
       {
-        [primaryModelClass.modelName]: map(payload),
+        [primaryModelClass.modelName]: map.bind(this)(payload),
       },
       id,
       requestType

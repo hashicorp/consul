@@ -9,6 +9,7 @@ export default Route.extend({
     let key = params.key || '-';
     // quick hack around not being able to pass an empty
     // string as a wildcard route
+    // TODO: this is a breaking change, fix this
     if (key == '-') {
       key = '/';
     }

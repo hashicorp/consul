@@ -32,14 +32,15 @@ export function initialize(/* application */) {
     },
     removeDuplicateKeys: function(keys, matcher) {
       // Loop over the keys
+      // DS.RecordArray's implementation of `forEach` is different/broken?
+      // DS.RecordArray doesn't implement Array (splice == removeAt)
+      keys = keys.toArray();
       keys.forEach(function(item, index) {
         if (item.get('Key') == matcher) {
           // If we are in a nested folder and the folder
           // name matches our position, remove it
 
-          // used to be slice
-          // DS.RecordArray doesn't implement Array
-          keys.removeAt(index, 1);
+          keys.splice(index, 1);
         }
       });
       return keys;

@@ -14,11 +14,13 @@ export default Route.extend({
     const parentKeys = this.getParentAndGrandparent(key);
     const repo = this.get('repo');
     // Return a promise hash to get the data for both columns
+    // the order than keys and key comes in could be important
+    // they'll both be arrays of Kv's with the same id's
     return hash({
       dc: dc,
-      key: repo.findByKey(key, dc),
       // jc awkward name, see services/kv.js
       keys: repo.findKeysByKey(parentKeys.parent, dc),
+      key: repo.findByKey(key, dc),
     })
       .then(model => {
         // jc: another afterModel for no reason replacement
@@ -43,7 +45,7 @@ export default Route.extend({
         const parentKeys = this.getParentAndGrandparent(key);
         return assign(model, {
           keys: this.removeDuplicateKeys(model.keys, parentKeys.parent),
-          model: key,
+          model: model.key,
           parentKey: parentKeys.parent,
           grandParentKey: parentKeys.grandParent,
           isRoot: parentKeys.isRoot,
