@@ -1,6 +1,15 @@
-import DS from 'ember-data';
+import Entity from 'ember-data/model';
+import attr from 'ember-data/attr';
+import { hasMany } from 'ember-data/relationships';
 
-export default DS.Model.extend({
+export default Entity.extend({
+  Key: attr('string'),
+  LockIndex: attr('number'),
+  Flags: attr('number'),
+  Value: attr('string'),
+  CreateIndex: attr('string'),
+  ModifyIndex: attr('string'),
+
   // Validates using the Ember.Validations library
   validations: {
     Key: { presence: true },

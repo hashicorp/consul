@@ -37,8 +37,10 @@ export default Route.extend({
       })
       .then(model => {
         // TODO: again as in show, look at tidying this up
-        const key = model.key;
-        const parentKeys = this.getParentAndGrandparent(get(key, 'Key'));
+        // const key = model.key;
+        // const parentKeys = this.getParentAndGrandparent(get(key, 'Key'));
+        // model.key.Key should === key ? temporary until I can look at query reload
+        const parentKeys = this.getParentAndGrandparent(key);
         return assign(model, {
           keys: this.removeDuplicateKeys(model.keys, parentKeys.parent),
           model: key,

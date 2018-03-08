@@ -1,23 +1,31 @@
 import ApplicationSerializer from './application';
+import { typeOf } from '@ember/utils';
 
+const mapKeys = function(payload) {
+  return payload.map(function(item, i, arr) {
+    return {
+      Key: item,
+    };
+  });
+};
+const mapValues = function(payload) {
+  return payload;
+};
 export default ApplicationSerializer.extend({
-  primaryKey: 'Node',
+  primaryKey: 'Key',
   normalizeQueryResponse: function(store, primaryModelClass, payload, id, requestType) {
-    return this.normalizeFindAllResponse(...arguments);
-  },
-  normalizeFindAllResponse: function(store, primaryModelClass, payload, id, requestType) {
+    let map = mapKeys;
+    if (payload[0] && typeOf(payload[0]) !== 'string') {
+      map = mapValues;
+    }
     return this._super(
       store,
       primaryModelClass,
       {
-        [primaryModelClass.modelName]: payload,
+        [primaryModelClass.modelName]: map(payload),
       },
       id,
       requestType
     );
-  },
-  normalizeFindRecordResponse: function(store, primaryModelClass, payload, id, requestType) {
-    // this feels strange but prefer non-repetition
-    return this.normalizeFindAllResponse(...arguments);
   },
 });

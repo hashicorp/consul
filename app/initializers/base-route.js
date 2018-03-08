@@ -36,7 +36,10 @@ export function initialize(/* application */) {
         if (item.get('Key') == matcher) {
           // If we are in a nested folder and the folder
           // name matches our position, remove it
-          keys.splice(index, 1);
+
+          // used to be slice
+          // DS.RecordArray doesn't implement Array
+          keys.removeAt(index, 1);
         }
       });
       return keys;
