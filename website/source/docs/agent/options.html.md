@@ -131,13 +131,19 @@ will exit with an error at startup.
   either "json" or "hcl" forces Consul to interpret any file with or without
   extension to be interpreted in that format.
 
-* <a name="_data_dir"></a><a href="#_data_dir">`-data-dir`</a> - This flag provides
-  a data directory for the agent to store state.
-  This is required for all agents. The directory should be durable across reboots.
-  This is especially critical for agents that are running in server mode as they
-  must be able to persist cluster state. Additionally, the directory must support
-  the use of filesystem locking, meaning some types of mounted folders (e.g. VirtualBox
-  shared folders) may not be suitable.
+* <a name="_data_dir"></a><a href="#_data_dir">`-data-dir`</a> - This flag
+  provides a data directory for the agent to store state. This is required for
+  all agents. The directory should be durable across reboots. This is especially
+  critical for agents that are running in server mode as they must be able to
+  persist cluster state. Additionally, the directory must support the use of
+  filesystem locking, meaning some types of mounted folders (e.g. VirtualBox
+  shared folders) may not be suitable. **Note:** both server and non-server
+  agents may store ACL tokens in the state in this directory so read access may
+  grant access to any tokens on servers and to any tokens used during service
+  registration on non-servers. On Unix-based platforms the files are written
+  with 0600 permissions so you should ensure only trusted processes can execute
+  as the same user as Consul. On Windows, you should ensure the directory has
+  suitable permissions configured as these will be inherited.
 
 * <a name="_datacenter"></a><a href="#_datacenter">`-datacenter`</a> - This flag controls the datacenter in
   which the agent is running. If not provided,
