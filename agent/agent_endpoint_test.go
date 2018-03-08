@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/serf/serf"
 	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/assert"
 )
 
 func makeReadOnlyAgentACL(t *testing.T, srv *HTTPServer) string {
@@ -66,6 +67,32 @@ func TestAgent_Services(t *testing.T) {
 	if val["mysql"].Port != 5000 {
 		t.Fatalf("bad service: %v", obj)
 	}
+}
+
+func TestAgent_Services_ConnectProxy(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	srv1 := &structs.NodeService{
+		Kind:             structs.ServiceKindConnectProxy,
+		ID:               structs.ConnectProxyServiceName,
+		Service:          structs.ConnectProxyServiceName,
+		Port:             5000,
+		ProxyDestination: "db",
+	}
+	a.State.AddService(srv1, "")
+
+	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
+	obj, err := a.srv.AgentServices(nil, req)
+	assert.Nil(err)
+	val := obj.(map[string]*structs.NodeService)
+	assert.Len(val, 1)
+	actual := val[structs.ConnectProxyServiceName]
+	assert.Equal(structs.ServiceKindConnectProxy, actual.Kind)
+	assert.Equal("db", actual.ProxyDestination)
 }
 
 func TestAgent_Services_ACLFilter(t *testing.T) {
