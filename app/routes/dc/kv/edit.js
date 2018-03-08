@@ -20,8 +20,14 @@ export default Route.extend({
       dc: dc,
       // jc awkward name, see services/kv.js
       keys: repo.findKeysByKey(parentKeys.parent, dc),
-      key: repo.findByKey(key, dc),
     })
+      .then(function(model) {
+        return hash(
+          assign(model, {
+            key: repo.findByKey(key, dc),
+          })
+        );
+      })
       .then(model => {
         // jc: another afterModel for no reason replacement
         // guessing ember-data will come in here, as we are just stitching stuff together
@@ -39,13 +45,11 @@ export default Route.extend({
       })
       .then(model => {
         // TODO: again as in show, look at tidying this up
-        // const key = model.key;
-        // const parentKeys = this.getParentAndGrandparent(get(key, 'Key'));
-        // model.key.Key should === key ? temporary until I can look at query reload
-        const parentKeys = this.getParentAndGrandparent(key);
+        const key = model.key.get('firstObject');
+        const parentKeys = this.getParentAndGrandparent(get(key, 'Key'));
         return assign(model, {
-          keys: this.removeDuplicateKeys(model.keys, parentKeys.parent),
-          model: model.key,
+          keys: this.removeDuplicateKeys(model.keys.toArray(), parentKeys.parent),
+          model: key,
           parentKey: parentKeys.parent,
           grandParentKey: parentKeys.grandParent,
           isRoot: parentKeys.isRoot,
