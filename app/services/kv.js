@@ -1,5 +1,4 @@
 import Service, { inject as service } from '@ember/service';
-import Entity from 'consul-ui/models/kv';
 export default Service.extend({
   store: service('store'),
   // this one gives you the full object so key,values and meta
