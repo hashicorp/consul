@@ -11,6 +11,12 @@ export default Controller.extend({
   isLockedOrLoading: computed.or('isLoading', 'isLocked'),
   needs: ['dc'],
   // dc: computed.alias("controllers.dc"),
+  getParentKeyRoute: function() {
+    if (this.get('isRoot')) {
+      return this.get('rootKey');
+    }
+    return this.get('parentKey');
+  },
   actions: {
     // Updates the key set as the model on the route.
     updateKey: function() {
@@ -32,7 +38,7 @@ export default Controller.extend({
     },
     cancelEdit: function() {
       this.set('isLoading', true);
-      this.transitionToRoute('kv.show', this.getParentKeyRoute());
+      this.transitionToRoute('dc.kv.show', this.getParentKeyRoute());
       this.set('isLoading', false);
     },
     deleteKey: function() {
