@@ -59,11 +59,11 @@
                   </div>
                   {{/if}}
 
-                  <button {{ action "createKey"}} disabled="{{if newKey.isInvalid "disabled"}}" class="btn {{if newKey.isValid "btn-success" "btn-default" }}">Create</button>
+                  <button {{ action "createKey" newKey parentKey grandParentKey}} disabled="{{if newKey.isInvalid "disabled"}}" class="btn {{if newKey.isValid "btn-success" "btn-default" }}">Create</button>
                   {{#unless newKey.isFolder }}
                     <label class="form-checkbox">{{ input type="checkbox" checked=newKey.validateJson }}Validate JSON</label>
                   {{/unless}}
-                  <button {{ action "deleteFolder"}} class="btn pull-right {{if isLoading "btn-warning" "btn-danger" }} {{if isRoot "hidden" }}">Delete folder</button>
+                  <button {{ action "requestDeleteFolder" parentKey grandParentKey}} class="btn pull-right {{if isLoading "btn-warning" "btn-danger" }} {{if isRoot "hidden" }}">Delete folder</button>
                 </form>
               </div>
             </div>

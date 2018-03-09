@@ -1,7 +1,7 @@
 import formatURLFactory from 'consul-ui/utils/formatURL';
-import $ from 'jquery';
+import request from 'consul-ui/utils/request/request';
 const consulHost = '';
-const request = $.ajax;
+
 const formatURL = formatURLFactory();
 export default function(url, dc) {
   return request({
