@@ -333,6 +333,87 @@ func TestCatalog_Register_ForwardDC(t *testing.T) {
 	}
 }
 
+func TestCatalog_Register_ConnectProxy(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	args := structs.TestRegisterRequestProxy(t)
+
+	// Register
+	var out struct{}
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+	// List
+	req := structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: args.Service.Service,
+	}
+	var resp structs.IndexedServiceNodes
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	assert.Len(resp.ServiceNodes, 1)
+	v := resp.ServiceNodes[0]
+	assert.Equal(structs.ServiceKindConnectProxy, v.ServiceKind)
+	assert.Equal(args.Service.ProxyDestination, v.ServiceProxyDestination)
+}
+
+// Test an invalid ConnectProxy. We don't need to exhaustively test because
+// this is all tested in structs on the Validate method.
+func TestCatalog_Register_ConnectProxy_invalid(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	args := structs.TestRegisterRequestProxy(t)
+	args.Service.ProxyDestination = ""
+
+	// Register
+	var out struct{}
+	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out)
+	assert.NotNil(err)
+	assert.Contains(err.Error(), "ProxyDestination")
+}
+
+// Test registering a proxy with no name set, which should work.
+func TestCatalog_Register_ConnectProxy_noName(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	args := structs.TestRegisterRequestProxy(t)
+	args.Service.Service = ""
+
+	// Register
+	var out struct{}
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+	// List
+	req := structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: fmt.Sprintf("%s-connect-proxy", args.Service.ProxyDestination),
+	}
+	var resp structs.IndexedServiceNodes
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	assert.Len(resp.ServiceNodes, 1)
+	v := resp.ServiceNodes[0]
+	assert.Equal(structs.ServiceKindConnectProxy, v.ServiceKind)
+}
+
 func TestCatalog_Deregister(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServer(t)

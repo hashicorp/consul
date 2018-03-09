@@ -11,12 +11,18 @@ func TestRegisterRequestProxy(t testing.T) *RegisterRequest {
 		Datacenter: "dc1",
 		Node:       "foo",
 		Address:    "127.0.0.1",
-		Service: &NodeService{
-			Kind:             ServiceKindConnectProxy,
-			Service:          ConnectProxyServiceName,
-			Address:          "127.0.0.2",
-			Port:             2222,
-			ProxyDestination: "web",
-		},
+		Service:    TestNodeServiceProxy(t),
+	}
+}
+
+// TestNodeServiceProxy returns a *NodeService representing a valid
+// Connect proxy.
+func TestNodeServiceProxy(t testing.T) *NodeService {
+	return &NodeService{
+		Kind:             ServiceKindConnectProxy,
+		Service:          ConnectProxyServiceName,
+		Address:          "127.0.0.2",
+		Port:             2222,
+		ProxyDestination: "web",
 	}
 }

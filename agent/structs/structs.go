@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/coordinate"
 )
 
@@ -486,6 +487,31 @@ type NodeService struct {
 	ProxyDestination string
 
 	RaftIndex
+}
+
+// Validate validates the node service configuration.
+//
+// NOTE(mitchellh): This currently only validates fields for a ConnectProxy.
+// Historically validation has been directly in the Catalog.Register RPC.
+// ConnectProxy validation was moved here for easier table testing, but
+// other validation still exists in Catalog.Register.
+func (s *NodeService) Validate() error {
+	var result error
+
+	// ConnectProxy validation
+	if s.Kind == ServiceKindConnectProxy {
+		if strings.TrimSpace(s.ProxyDestination) == "" {
+			result = multierror.Append(result, fmt.Errorf(
+				"ProxyDestination must be non-empty for Connect proxy services"))
+		}
+
+		if s.Port == 0 {
+			result = multierror.Append(result, fmt.Errorf(
+				"Port must be set for a Connect proxy"))
+		}
+	}
+
+	return result
 }
 
 // IsSame checks if one NodeService is the same as another, without looking

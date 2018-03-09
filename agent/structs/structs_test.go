@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestEncodeDecode(t *testing.T) {
@@ -205,6 +206,60 @@ func TestStructs_ServiceNode_Conversions(t *testing.T) {
 	sn.NodeMeta = nil
 	if !reflect.DeepEqual(sn, sn2) {
 		t.Fatalf("bad: %v", sn2)
+	}
+}
+
+func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
+	cases := []struct {
+		Name   string
+		Modify func(*NodeService)
+		Err    string
+	}{
+		{
+			"valid",
+			func(x *NodeService) {},
+			"",
+		},
+
+		{
+			"connect-proxy: no ProxyDestination",
+			func(x *NodeService) { x.ProxyDestination = "" },
+			"ProxyDestination must be",
+		},
+
+		{
+			"connect-proxy: whitespace ProxyDestination",
+			func(x *NodeService) { x.ProxyDestination = "  " },
+			"ProxyDestination must be",
+		},
+
+		{
+			"connect-proxy: valid ProxyDestination",
+			func(x *NodeService) { x.ProxyDestination = "hello" },
+			"",
+		},
+
+		{
+			"connect-proxy: no port set",
+			func(x *NodeService) { x.Port = 0 },
+			"Port must",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			assert := assert.New(t)
+			ns := TestNodeServiceProxy(t)
+			tc.Modify(ns)
+
+			err := ns.Validate()
+			assert.Equal(err != nil, tc.Err != "", err)
+			if err == nil {
+				return
+			}
+
+			assert.Contains(strings.ToLower(err.Error()), strings.ToLower(tc.Err))
+		})
 	}
 }
 
