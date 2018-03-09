@@ -4,6 +4,7 @@ import { assign } from '@ember/polyfills';
 
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
+import transitionToNearestParent from 'consul-ui/utils/transitionToNearestParent';
 
 export default Route.extend({
   repo: service('kv'),
@@ -53,14 +54,73 @@ export default Route.extend({
           model: key,
           parentKey: parentKeys.parent,
           grandParentKey: parentKeys.grandParent,
-          isRoot: parentKeys.isRoot,
           siblings: model.keys,
           session: model.session,
-          rootKey: this.rootKey,
         });
       });
   },
   setupController: function(controller, model) {
     controller.setProperties(model);
+  },
+  actions: {
+    // Updates the key set as the model on the route.
+    updateKey: function(key) {
+      var controller = this.controller;
+      controller.set('isLoading', true);
+      // Put the key and the decoded (plain text) value
+      // from the form.
+      key.set('Value', get(key, 'valueDecoded'));
+      this.get('repo')
+        .persist(key, this.modelFor('dc').dc)
+        .then(function(response) {
+          // If success, probably need a better notification
+        })
+        .catch(function(response) {
+          // Render the error message on the form if the request failed
+          controller.set('errorMessage', 'Received error while processing: ' + response.statusText);
+        })
+        .finally(function() {
+          controller.set('isLoading', false);
+        });
+    },
+    cancelEdit: function(key) {
+      const controller = this.controller;
+      // TODO: I've already done this once
+      const parentKeys = this.getParentAndGrandparent(get(key, 'Key'));
+      controller.set('isLoading', true); // check before removing these
+      // could probably do with a better notification
+      this.transitionTo('dc.kv.show', parentKeys.isRoot ? this.get('rootKey') : parentKeys.parent);
+      controller.set('isLoading', false);
+    },
+    deleteKey: function(key) {
+      const controller = this.controller;
+      const dc = this.modelFor('dc').dc;
+      // TODO: I've already done this once
+      const parentKeys = this.getParentAndGrandparent(get(key, 'Key'));
+      controller.set('isLoading', true);
+      // Delete the key
+      this.get('repo')
+        .remove(
+          {
+            Key: key.get('Key'),
+          },
+          dc
+        )
+        .then(() => {
+          const rootKey = this.get('rootKey');
+          return transitionToNearestParent.bind(this)(
+            dc,
+            parentKeys.isRoot ? rootKey : parentKeys.parent,
+            rootKey
+          );
+        })
+        .catch(function(response) {
+          // Render the error message on the form if the request failed
+          controller.set('errorMessage', 'Received error while processing: ' + response.statusText);
+        })
+        .finally(function() {
+          controller.set('isLoading', false);
+        });
+    },
   },
 });

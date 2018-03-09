@@ -2,13 +2,9 @@ import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 import { assign } from '@ember/polyfills';
+import rootKey from 'consul-ui/utils/rootKey';
+import transitionToNearestParent from 'consul-ui/utils/transitionToNearestParent';
 
-// quick hack around not being able to pass an empty
-// string as a wildcard route
-// TODO: this is a breaking change, fix this
-const rootKey = function(key, root) {
-  return key === root ? '/' : key; // consider null check and return root, although this will probably go
-};
 export default Route.extend({
   repo: service('kv'),
   model: function(params) {
@@ -33,25 +29,11 @@ export default Route.extend({
         keys: this.removeDuplicateKeys(model.keys, key),
         parentKey: parentKeys.parent,
         grandParentKey: parentKeys.grandParent,
-        isRoot: parentKeys.isRoot,
       });
     });
   },
   setupController: function(controller, model) {
     controller.setProperties(model);
-  },
-  transitionToNearestParent: function(parent) {
-    const dc = this.modelFor('dc').dc;
-    this.get('repo')
-      .findAllBySlug(rootKey(parent, this.rootKey), dc)
-      .then(data => {
-        this.transitionTo('dc.kv.show', parent);
-      })
-      .catch(response => {
-        if (response.status === 404) {
-          this.transitionTo('dc.kv.show', this.get('rootKey'));
-        }
-      });
   },
   actions: {
     // Creates the key from the key model argument
@@ -91,6 +73,7 @@ export default Route.extend({
     deleteFolder: function(parentKey, grandParent) {
       const controller = this.controller;
       controller.set('isLoading', true);
+      const dc = this.modelFor('dc').dc;
       // TODO: Possibly change to ember-data entity rather than a pojo
       this.get('repo')
         .remove(
@@ -98,10 +81,10 @@ export default Route.extend({
             Key: parentKey,
           },
           // TODO: the key object should know its dc, remove this
-          this.modelFor('dc').dc
+          dc
         )
         .then(response => {
-          this.transitionToNearestParent(grandParent);
+          return transitionToNearestParent.bind(this)(dc, grandParent, this.get('rootKey'));
         })
         .catch(function(response) {
           // Render the error message on the form if the request failed
