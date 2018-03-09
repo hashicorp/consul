@@ -16,8 +16,8 @@ The simplest form is just:
 trace [ENDPOINT-TYPE] [ENDPOINT]
 ~~~
 
-* **ENDPOINT-TYPE** is the type of tracing destination. Currently only `zipkin` is supported
-  and that is what it defaults to.
+* **ENDPOINT-TYPE** is the type of tracing destination. Currently only `zipkin` and `datadog` are supported.
+  Defaults to `zipkin`.
 * **ENDPOINT** is the tracing destination, and defaults to `localhost:9411`. For Zipkin, if
   ENDPOINT does not begin with `http`, then it will be transformed to `http://ENDPOINT/api/v1/spans`.
 
@@ -67,6 +67,12 @@ the standard Zipkin URL you can do something like:
 
 ~~~
 trace http://tracinghost:9411/zipkin/api/v1/spans
+~~~
+
+Using DataDog:
+
+~~~
+trace datadog localhost:8125
 ~~~
 
 Trace one query every 10000 queries, rename the service, and enable same span:

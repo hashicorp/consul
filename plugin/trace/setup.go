@@ -36,7 +36,7 @@ func setup(c *caddy.Controller) error {
 
 func traceParse(c *caddy.Controller) (*trace, error) {
 	var (
-		tr  = &trace{Endpoint: defEP, EndpointType: defEpType, every: 1, serviceName: defServiceName}
+		tr  = &trace{every: 1, serviceName: defServiceName}
 		err error
 	)
 
@@ -47,12 +47,12 @@ func traceParse(c *caddy.Controller) (*trace, error) {
 		args := c.RemainingArgs()
 		switch len(args) {
 		case 0:
-			tr.Endpoint, err = normalizeEndpoint(tr.EndpointType, defEP)
+			tr.EndpointType, tr.Endpoint, err = normalizeEndpoint(defEpType, "")
 		case 1:
-			tr.Endpoint, err = normalizeEndpoint(defEpType, args[0])
+			tr.EndpointType, tr.Endpoint, err = normalizeEndpoint(defEpType, args[0])
 		case 2:
-			tr.EndpointType = strings.ToLower(args[0])
-			tr.Endpoint, err = normalizeEndpoint(tr.EndpointType, args[1])
+			epType := strings.ToLower(args[0])
+			tr.EndpointType, tr.Endpoint, err = normalizeEndpoint(epType, args[1])
 		default:
 			err = c.ArgErr()
 		}
@@ -94,20 +94,30 @@ func traceParse(c *caddy.Controller) (*trace, error) {
 	return tr, err
 }
 
-func normalizeEndpoint(epType, ep string) (string, error) {
-	switch epType {
-	case "zipkin":
+func normalizeEndpoint(epType, ep string) (string, string, error) {
+	if _, ok := supportedProviders[epType]; !ok {
+		return "", "", fmt.Errorf("tracing endpoint type '%s' is not supported", epType)
+	}
+
+	if ep == "" {
+		ep = supportedProviders[epType]
+	}
+
+	if epType == "zipkin" {
 		if !strings.Contains(ep, "http") {
 			ep = "http://" + ep + "/api/v1/spans"
 		}
-		return ep, nil
-	default:
-		return "", fmt.Errorf("tracing endpoint type '%s' is not supported", epType)
 	}
+
+	return epType, ep, nil
+}
+
+var supportedProviders = map[string]string{
+	"zipkin":  "localhost:9411",
+	"datadog": "localhost:8126",
 }
 
 const (
-	defEP          = "localhost:9411"
 	defEpType      = "zipkin"
 	defServiceName = "coredns"
 )

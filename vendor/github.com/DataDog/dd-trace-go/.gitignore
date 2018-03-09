@@ -1,0 +1,12 @@
+# go
+bin/
+
+# profiling
+*.test
+*.out
+
+# generic
+.DS_Store
+*.cov
+*.lock
+*.swp
