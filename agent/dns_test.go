@@ -2821,7 +2821,7 @@ func TestDNS_TCP_and_UDP_Truncate(t *testing.T) {
 							if shouldBeTruncated != in.Truncated || len(in.Answer) > 2000 || len(in.Answer) < 1 || in.Len() > 65535 {
 								info := fmt.Sprintf("service %s question:=%s (%s) (%d total records) sz:= %d in %v",
 									service, question, protocol, numServices, len(in.Answer), out)
-								t.Fatalf("Should have truncate:=%v for %s", shouldBeTruncated, info)
+								t.Fatalf("Should have truncated:=%v for %s", shouldBeTruncated, info)
 							}
 						})
 					}
