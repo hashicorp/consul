@@ -9,6 +9,7 @@ export default Entity.extend({
   Value: attr('string'),
   CreateIndex: attr('string'),
   ModifyIndex: attr('string'),
+  Session: attr('string'), // probably belongsTo
 
   // Validates using the Ember.Validations library
   validations: {

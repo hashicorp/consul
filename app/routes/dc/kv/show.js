@@ -20,7 +20,7 @@ export default Route.extend({
     return hash({
       dc: dc,
       key: key,
-      keys: repo.findKeysByKey(key, dc),
+      keys: repo.findAllBySlug(key, dc),
       rootKey: this.rootKey,
       newKey: repo.create(),
     }).then(model => {
