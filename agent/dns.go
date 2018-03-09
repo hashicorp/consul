@@ -732,8 +732,12 @@ func (d *DNSServer) trimTCPResponse(req, resp *dns.Msg) (trimmed bool) {
 	// Beyond 2500 records, performance gets bad
 	// Limit the number of records at once, anyway, it won't fit in 64k
 	// For SRV Records, the max is around 500 records, for A, less than 2k
-	if len(resp.Answer) > 2048 {
-		resp.Answer = resp.Answer[:2048]
+	truncateAt := 2048
+	if req.Question[0].Qtype == dns.TypeSRV {
+		truncateAt = 640
+	}
+	if len(resp.Answer) > truncateAt {
+		resp.Answer = resp.Answer[:truncateAt]
 	}
 	if hasExtra {
 		index = make(map[string]dns.RR, len(resp.Extra))
