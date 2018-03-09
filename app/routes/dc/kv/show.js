@@ -6,11 +6,11 @@ import { assign } from '@ember/polyfills';
 export default Route.extend({
   repo: service('kv'),
   model: function(params) {
-    let key = params.key || '-';
+    let key = params.key || this.rootKey;
     // quick hack around not being able to pass an empty
     // string as a wildcard route
     // TODO: this is a breaking change, fix this
-    if (key == '-') {
+    if (key == this.rootKey) {
       key = '/';
     }
     const dc = this.modelFor('dc').dc;

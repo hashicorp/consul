@@ -14,8 +14,9 @@ export default Route.extend({
     const parentKeys = this.getParentAndGrandparent(key);
     const repo = this.get('repo');
     // Return a promise hash to get the data for both columns
-    // the order than keys and key comes in could be important
-    // they'll both be arrays of Kv's with the same id's
+
+    // keys and key are requested in series to avoid
+    // ember not being able to merge the responses
     return hash({
       dc: dc,
       // better name, slug vs key?
@@ -55,6 +56,7 @@ export default Route.extend({
           isRoot: parentKeys.isRoot,
           siblings: model.keys,
           session: model.session,
+          rootKey: this.rootKey,
         });
       });
   },

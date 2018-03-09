@@ -1,4 +1,4 @@
-import Controller from '@ember/controller';
+import Controller, { inject as controller } from '@ember/controller';
 import { computed } from '@ember/object';
 
 import get from 'consul-ui/utils/request/get';
@@ -16,21 +16,19 @@ export default Controller.extend({
   transitionToNearestParent: function(parent) {
     var controller = this;
     var rootKey = controller.get('rootKey');
-    var dc = controller.get('dc').get('datacenter');
+    var dc = controller.get('dc'); //.get('datacenter');
     get('/v1/kv/' + parent + '?keys', dc)
       .then(function(data) {
-        controller.transitionToRoute('kv.show', parent);
+        controller.transitionToRoute('dc.kv.show', parent);
       })
       .fail(function(response) {
         if (response.status === 404) {
-          controller.transitionToRoute('kv.show', rootKey);
+          controller.transitionToRoute('dc.kv.show', rootKey);
         }
       });
     controller.set('isLoading', false);
   },
-  //
-  needs: ['dc'],
-  // dc: computed.alias("controllers.dc"),
+  dc: controller('dc'),
   isLoading: false,
   actions: {
     // Creates the key from the newKey model
@@ -53,9 +51,9 @@ export default Controller.extend({
         .then(function(response) {
           // transition to the right place
           if (newKey.get('isFolder') === true) {
-            controller.transitionToRoute('kv.show', newKey.get('Key'));
+            controller.transitionToRoute('dc.kv.show', newKey.get('Key'));
           } else {
-            controller.transitionToRoute('kv.edit', newKey.get('Key'));
+            controller.transitionToRoute('dc.kv.edit', newKey.get('Key'));
           }
           controller.set('isLoading', false);
         })
@@ -67,7 +65,7 @@ export default Controller.extend({
     deleteFolder: function() {
       var controller = this;
       controller.set('isLoading', true);
-      var dc = controller.get('dc').get('datacenter');
+      var dc = controller.get('dc'); //.get('datacenter');
       var grandParent = controller.get('grandParentKey');
       confirm('Are you sure you want to delete this folder?')
         .then(function() {

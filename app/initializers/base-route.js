@@ -50,11 +50,11 @@ export function initialize(/* application */) {
       // like parents and grandParents
       linkToKey: function(key) {
         if (key == '/') {
-          this.transitionTo('kv.show', '-');
+          this.transitionTo('dc.kv.show', '-');
         } else if (key.slice(-1) === '/' || key === this.rootKey) {
-          this.transitionTo('kv.show', key);
+          this.transitionTo('dc.kv.show', key);
         } else {
-          this.transitionTo('kv.edit', key);
+          this.transitionTo('dc.kv.edit', key);
         }
       },
     },

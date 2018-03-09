@@ -1,21 +1,36 @@
-import Controller from '@ember/controller';
+import Controller, { inject as controller } from '@ember/controller';
 import { computed } from '@ember/object';
 
 import { get as getter } from '@ember/object';
 
+import get from 'consul-ui/utils/request/get';
 import put from 'consul-ui/utils/request/put';
 import del from 'consul-ui/utils/request/del';
 
 export default Controller.extend({
   isLoading: false,
   isLockedOrLoading: computed.or('isLoading', 'isLocked'),
-  needs: ['dc'],
-  // dc: computed.alias("controllers.dc"),
+  dc: controller('dc'),
   getParentKeyRoute: function() {
     if (this.get('isRoot')) {
       return this.get('rootKey');
     }
     return this.get('parentKey');
+  },
+  transitionToNearestParent: function(parent) {
+    var controller = this;
+    var rootKey = controller.get('rootKey');
+    var dc = controller.get('dc'); //.get('datacenter');
+    get('/v1/kv/' + parent + '?keys', dc)
+      .then(function(data) {
+        controller.transitionToRoute('dc.kv.show', parent);
+      })
+      .fail(function(response) {
+        if (response.status === 404) {
+          controller.transitionToRoute('dc.kv.show', rootKey);
+        }
+      });
+    controller.set('isLoading', false);
   },
   actions: {
     // Updates the key set as the model on the route.
