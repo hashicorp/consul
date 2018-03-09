@@ -2,7 +2,9 @@ package kubernetes
 
 import (
 	"errors"
+	"flag"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -19,6 +21,13 @@ import (
 )
 
 func init() {
+	// Kubernetes plugin uses the kubernetes library, which uses glog (ugh), we must set this *flag*,
+	// so we don't log to the filesystem, which can fill up and crash CoreDNS indirectly by calling os.Exit().
+	// We also set: os.Stderr = os.Stdout in the setup function below so we output to standard out; as we do for
+	// all CoreDNS logging. We can't do *that* in the init function, because we, when starting, also barf some
+	// things to stderr.
+	flag.Set("logtostderr", "true")
+
 	caddy.RegisterPlugin("kubernetes", caddy.Plugin{
 		ServerType: "dns",
 		Action:     setup,
@@ -26,6 +35,9 @@ func init() {
 }
 
 func setup(c *caddy.Controller) error {
+	// See comment in the init function.
+	os.Stderr = os.Stdout
+
 	k, err := kubernetesParse(c)
 	if err != nil {
 		return plugin.Error("kubernetes", err)
