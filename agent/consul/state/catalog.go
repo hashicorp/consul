@@ -1525,14 +1525,36 @@ func (s *Store) deleteCheckTxn(tx *memdb.Txn, idx uint64, node string, checkID t
 
 // CheckServiceNodes is used to query all nodes and checks for a given service.
 func (s *Store) CheckServiceNodes(ws memdb.WatchSet, serviceName string) (uint64, structs.CheckServiceNodes, error) {
+	return s.checkServiceNodes(ws, serviceName, false)
+}
+
+// CheckConnectServiceNodes is used to query all nodes and checks for Connect
+// compatible endpoints for a given service.
+func (s *Store) CheckConnectServiceNodes(ws memdb.WatchSet, serviceName string) (uint64, structs.CheckServiceNodes, error) {
+	return s.checkServiceNodes(ws, serviceName, true)
+}
+
+func (s *Store) checkServiceNodes(ws memdb.WatchSet, serviceName string, connect bool) (uint64, structs.CheckServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
 	idx := maxIndexForService(tx, serviceName, true)
 
+	// Function for lookup
+	var f func() (memdb.ResultIterator, error)
+	if !connect {
+		f = func() (memdb.ResultIterator, error) {
+			return tx.Get("services", "service", serviceName)
+		}
+	} else {
+		f = func() (memdb.ResultIterator, error) {
+			return tx.Get("services", "proxy_destination", serviceName)
+		}
+	}
+
 	// Query the state store for the service.
-	iter, err := tx.Get("services", "service", serviceName)
+	iter, err := f()
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 	}

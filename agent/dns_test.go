@@ -1053,6 +1053,7 @@ func TestDNS_ConnectServiceLookup(t *testing.T) {
 	{
 		args := structs.TestRegisterRequestProxy(t)
 		args.Service.ProxyDestination = "db"
+		args.Service.Address = ""
 		args.Service.Port = 12345
 		var out struct{}
 		assert.Nil(a.RPC("Catalog.Register", args, &out))
@@ -1073,14 +1074,14 @@ func TestDNS_ConnectServiceLookup(t *testing.T) {
 
 		srvRec, ok := in.Answer[0].(*dns.SRV)
 		assert.True(ok)
-		assert.Equal(12345, srvRec.Port)
+		assert.Equal(uint16(12345), srvRec.Port)
 		assert.Equal("foo.node.dc1.consul.", srvRec.Target)
-		assert.Equal(0, srvRec.Hdr.Ttl)
+		assert.Equal(uint32(0), srvRec.Hdr.Ttl)
 
-		cnameRec, ok := in.Extra[0].(*dns.CNAME)
+		cnameRec, ok := in.Extra[0].(*dns.A)
 		assert.True(ok)
 		assert.Equal("foo.node.dc1.consul.", cnameRec.Hdr.Name)
-		assert.Equal(0, srvRec.Hdr.Ttl)
+		assert.Equal(uint32(0), srvRec.Hdr.Ttl)
 	}
 }
 

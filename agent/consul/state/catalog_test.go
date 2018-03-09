@@ -2529,6 +2529,48 @@ func TestStateStore_CheckServiceNodes(t *testing.T) {
 	}
 }
 
+func TestStateStore_CheckConnectServiceNodes(t *testing.T) {
+	assert := assert.New(t)
+	s := testStateStore(t)
+
+	// Listing with no results returns an empty list.
+	ws := memdb.NewWatchSet()
+	idx, nodes, err := s.CheckConnectServiceNodes(ws, "db")
+	assert.Nil(err)
+	assert.Equal(idx, uint64(0))
+	assert.Len(nodes, 0)
+
+	// Create some nodes and services.
+	assert.Nil(s.EnsureNode(10, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
+	assert.Nil(s.EnsureNode(11, &structs.Node{Node: "bar", Address: "127.0.0.2"}))
+	assert.Nil(s.EnsureService(12, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: nil, Address: "", Port: 5000}))
+	assert.Nil(s.EnsureService(13, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
+	assert.Nil(s.EnsureService(14, "foo", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", ProxyDestination: "db", Port: 8000}))
+	assert.Nil(s.EnsureService(15, "bar", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", ProxyDestination: "db", Port: 8000}))
+	assert.Nil(s.EnsureService(16, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"slave"}, Address: "", Port: 8001}))
+	assert.True(watchFired(ws))
+
+	// Register node checks
+	testRegisterCheck(t, s, 17, "foo", "", "check1", api.HealthPassing)
+	testRegisterCheck(t, s, 18, "bar", "", "check2", api.HealthPassing)
+
+	// Register checks against the services.
+	testRegisterCheck(t, s, 19, "foo", "db", "check3", api.HealthPassing)
+	testRegisterCheck(t, s, 20, "bar", "proxy", "check4", api.HealthPassing)
+
+	// Read everything back.
+	ws = memdb.NewWatchSet()
+	idx, nodes, err = s.CheckConnectServiceNodes(ws, "db")
+	assert.Nil(err)
+	assert.Equal(idx, uint64(idx))
+	assert.Len(nodes, 2)
+
+	for _, n := range nodes {
+		assert.Equal(structs.ServiceKindConnectProxy, n.Service.Kind)
+		assert.Equal("db", n.Service.ProxyDestination)
+	}
+}
+
 func BenchmarkCheckServiceNodes(b *testing.B) {
 	s, err := NewStateStore(nil)
 	if err != nil {
