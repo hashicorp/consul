@@ -1,17 +1,19 @@
 import ApplicationAdapter from './application';
-import { typeOf } from '@ember/utils';
+const defaultPrefix = function(value, prefix = '/') {
+  if (value !== prefix) {
+    prefix += value;
+  }
+  return prefix;
+};
 export default ApplicationAdapter.extend({
   urlForQuery(query, modelName) {
-    let keys = '';
-    if (typeOf(query.keys) !== 'undefined') {
-      keys = '?keys';
-      delete query.keys;
-    }
-    let key = '/';
-    if (query.key !== key) {
-      key += query.key;
-    }
+    const key = defaultPrefix(query.key);
     delete query.key;
-    return `/${this.namespace}/kv${key}${keys}`;
+    return `/${this.namespace}/kv${key}?keys`;
+  },
+  urlForQueryRecord(query, modelName) {
+    const key = defaultPrefix(query.key);
+    delete query.key;
+    return `/${this.namespace}/kv${key}`;
   },
 });

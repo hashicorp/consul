@@ -18,13 +18,13 @@ export default Route.extend({
     // they'll both be arrays of Kv's with the same id's
     return hash({
       dc: dc,
-      // jc awkward name, see services/kv.js
-      keys: repo.findKeysByKey(parentKeys.parent, dc),
+      // better name, slug vs key?
+      keys: repo.findAllBySlug(parentKeys.parent, dc),
     })
       .then(function(model) {
         return hash(
           assign(model, {
-            key: repo.findByKey(key, dc),
+            key: repo.findBySlug(key, dc),
           })
         );
       })
@@ -45,7 +45,7 @@ export default Route.extend({
       })
       .then(model => {
         // TODO: again as in show, look at tidying this up
-        const key = model.key.get('firstObject');
+        const key = model.key;
         const parentKeys = this.getParentAndGrandparent(get(key, 'Key'));
         return assign(model, {
           keys: this.removeDuplicateKeys(model.keys.toArray(), parentKeys.parent),

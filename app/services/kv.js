@@ -2,8 +2,8 @@ import Service, { inject as service } from '@ember/service';
 export default Service.extend({
   store: service('store'),
   // this one gives you the full object so key,values and meta
-  findByKey: function(key, dc) {
-    return this.get('store').query('kv', {
+  findBySlug: function(key, dc) {
+    return this.get('store').queryRecord('kv', {
       key: key,
       dc: dc,
     });
@@ -11,10 +11,9 @@ export default Service.extend({
   // this one only gives you keys
   // TODO: refactor this into one method with an arg to specify what you want
   // https://www.consul.io/api/kv.html
-  findKeysByKey: function(key, dc) {
+  findAllBySlug: function(key, dc) {
     // TODO: [sic] seperator
     return this.get('store').query('kv', {
-      keys: null, // keys only
       key: key,
       dc: dc,
       seperator: '/',
