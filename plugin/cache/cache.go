@@ -177,7 +177,7 @@ func (w *ResponseWriter) set(m *dns.Msg, key int, mt response.Type, duration tim
 
 // Write implements the dns.ResponseWriter interface.
 func (w *ResponseWriter) Write(buf []byte) (int, error) {
-	log.Printf("[WARNING] Caching called with Write: not caching reply")
+	log.Print("[WARNING] Caching called with Write: not caching reply")
 	if w.prefetch {
 		return 0, nil
 	}

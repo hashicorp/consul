@@ -40,7 +40,7 @@ func (d *ResponseWriter) WriteMsg(res *dns.Msg) error {
 
 // Write implements the dns.ResponseWriter interface.
 func (d *ResponseWriter) Write(buf []byte) (int, error) {
-	log.Printf("[WARNING] Dnssec called with Write: not signing reply")
+	log.Print("[WARNING] Dnssec called with Write: not signing reply")
 	n, err := d.ResponseWriter.Write(buf)
 	return n, err
 }

@@ -53,7 +53,7 @@ func notify(zone string, to []string) error {
 			continue
 		}
 		if err := notifyAddr(c, m, t); err != nil {
-			log.Printf("[ERROR] " + err.Error())
+			log.Print("[ERROR] " + err.Error())
 		} else {
 			log.Printf("[INFO] Sent notify for zone %q to %q", zone, t)
 		}

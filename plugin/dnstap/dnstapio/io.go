@@ -70,7 +70,7 @@ func (dio *dnstapIO) newConnect() error {
 // Connect connects to the dnstop endpoint.
 func (dio *dnstapIO) Connect() {
 	if err := dio.newConnect(); err != nil {
-		log.Printf("[ERROR] No connection to dnstap endpoint")
+		log.Print("[ERROR] No connection to dnstap endpoint")
 	}
 	go dio.serve()
 }
@@ -102,7 +102,7 @@ func (dio *dnstapIO) flushBuffer() {
 		if err := dio.newConnect(); err != nil {
 			return
 		}
-		log.Printf("[INFO] Reconnected to dnstap")
+		log.Print("[INFO] Reconnected to dnstap")
 	}
 
 	if err := dio.enc.flushBuffer(); err != nil {
@@ -111,7 +111,7 @@ func (dio *dnstapIO) flushBuffer() {
 		if err := dio.newConnect(); err != nil {
 			log.Printf("[ERROR] Cannot connect to dnstap: %s", err)
 		} else {
-			log.Printf("[INFO] Reconnected to dnstap")
+			log.Print("[INFO] Reconnected to dnstap")
 		}
 	}
 }

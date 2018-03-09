@@ -33,7 +33,7 @@ func (p *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	hj, ok := w.(http.Hijacker)
 	if !ok {
-		log.Printf("[ERROR] Unable to establish connection: no hijacker")
+		log.Print("[ERROR] Unable to establish connection: no hijacker")
 		http.Error(w, "Unable to establish connection: no hijacker", 500)
 		return
 	}
