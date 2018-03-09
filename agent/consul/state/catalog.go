@@ -643,9 +643,12 @@ func (s *Store) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *st
 	if err := tx.Insert("services", entry); err != nil {
 		return fmt.Errorf("failed inserting service: %s", err)
 	}
+	if err := tx.Insert("index", &IndexEntry{"services", idx}); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
 	if !hasSameTags {
 		// We need to update /catalog/services only tags are different
-		if err := tx.Insert("index", &IndexEntry{"services", idx}); err != nil {
+		if err := tx.Insert("index", &IndexEntry{"service-catalog", idx}); err != nil {
 			return fmt.Errorf("failed updating index: %s", err)
 		}
 	}
@@ -661,8 +664,9 @@ func (s *Store) Services(ws memdb.WatchSet) (uint64, structs.Services, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	// Get the table index.
-	idx := maxIndexTxn(tx, "services")
+	// WARNING= This is an optimization since the index we are retrieving only handle
+	// tags + services list, if you are outputing something else, please do not use this
+	idx := maxIndexServiceCatalog(tx)
 
 	// List all the services.
 	services, err := tx.Get("services", "id")
@@ -779,6 +783,17 @@ func maxIndexForService(tx *memdb.Txn, serviceName string, checks bool) uint64 {
 	}
 	if checks {
 		return maxIndexTxn(tx, "nodes", "services", "checks")
+	}
+	return maxIndexTxn(tx, "nodes", "services")
+}
+
+// maxIndexServiceCatalog return the maximum Raft Index for a service-catalog index
+func maxIndexServiceCatalog(tx *memdb.Txn) uint64 {
+	transaction, err := tx.First("index", "id", "service-catalog")
+	if err == nil {
+		if idx, ok := transaction.(*IndexEntry); ok {
+			return idx.Value
+		}
 	}
 	return maxIndexTxn(tx, "nodes", "services")
 }
@@ -1058,6 +1073,13 @@ func (s *Store) deleteServiceTxn(tx *memdb.Txn, idx uint64, nodeName, serviceID 
 	}
 
 	svc := service.(*structs.ServiceNode)
+	// In some cases, it would be possible to avoid updating this index if
+	// the tags of this service instance are all present in other instances
+	// But the optimization might be costly since we would have to run thru the
+	// whole list of services.
+	if err := tx.Insert("index", &IndexEntry{"service-catalog", idx}); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
 	if remainingService, err := tx.First("services", "service", svc.ServiceName); err == nil {
 		if remainingService != nil {
 			// We have at least one remaining service, update the index

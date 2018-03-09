@@ -970,7 +970,12 @@ func TestStateStore_EnsureService(t *testing.T) {
 	}
 
 	// Index tables not updated since service did already exist
-	if idx := s.maxIndex("services"); idx != 30 {
+	if idx := s.maxIndex("service-catalog"); idx != 30 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Index tables not updated since service did already exist
+	if idx := s.maxIndex("services"); idx != 40 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
@@ -1080,8 +1085,83 @@ func TestStateStore_EnsureService(t *testing.T) {
 	if sidx != 52 {
 		t.Fatalf("bad index: %d", sidx)
 	}
-	if sout == nil || sout["web"][2] != "newtag" {
+	// tag order is not predictible
+	if sout == nil || !(sout["web"][2] == "newtag" || sout["web"][1] == "newtag" || sout["web"][0] == "newtag") {
 		t.Fatalf("bad: %#v", out)
+	}
+
+	err = s.DeleteService(60, "node1", "service4")
+	if err != nil {
+		t.Fatalf("err: %s", serr)
+	}
+	// Index MUST have been updated since it is the only "web" service
+	sidx, sout, serr = s.Services(ws)
+	if serr != nil {
+		t.Fatalf("err: %s", serr)
+	}
+	if sidx != 60 {
+		t.Fatalf("bad index: %d", sidx)
+	}
+
+	err = s.DeleteService(70, "node1", "service3")
+	if err != nil {
+		t.Fatalf("err: %s", serr)
+	}
+	// Index is not updated since other nodes still have same service
+	// and same tags
+	sidx, sout, serr = s.Services(ws)
+	if serr != nil {
+		t.Fatalf("err: %s", serr)
+	}
+	if sidx != 60 {
+		t.Fatalf("bad index: %d", sidx)
+	}
+	err = s.DeleteService(71, "node1", "service2")
+	if err != nil {
+		t.Fatalf("err: %s", serr)
+	}
+	err = s.DeleteService(72, "node2", "service2")
+	if err != nil {
+		t.Fatalf("err: %s", serr)
+	}
+	sidx, sout, serr = s.Services(ws)
+	if serr != nil {
+		t.Fatalf("err: %s", serr)
+	}
+	if sidx != 72 {
+		t.Fatalf("bad index: %d", sidx)
+	}
+
+	err = s.DeleteService(75, "node2", "service3")
+	if err != nil {
+		t.Fatalf("err: %s", serr)
+	}
+
+	// This service does not exist anymore, index unchanged
+	err = s.DeleteService(76, "node1", "service2")
+	if err != nil {
+		t.Fatalf("err: %s", serr)
+	}
+
+	sidx, sout, serr = s.Services(ws)
+	if serr != nil {
+		t.Fatalf("err: %s", serr)
+	}
+	if sidx != 75 {
+		t.Fatalf("bad index: %d", sidx)
+	}
+
+	// We remove the last redis service
+	err = s.DeleteService(90, "node1", "service1")
+	if err != nil {
+		t.Fatalf("err: %s", serr)
+	}
+	sidx, sout, serr = s.Services(ws)
+	if serr != nil {
+		t.Fatalf("err: %s", serr)
+	}
+	if sidx != 90 {
+		t.Fatalf("bad index: %d", sidx)
 	}
 }
 
