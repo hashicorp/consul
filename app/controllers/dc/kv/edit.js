@@ -11,6 +11,7 @@ export default Controller.extend({
   isLoading: false,
   isLockedOrLoading: computed.or('isLoading', 'isLocked'),
   dc: controller('dc'),
+  // TODO: refactor this out
   getParentKeyRoute: function() {
     if (this.get('isRoot')) {
       return this.get('rootKey');

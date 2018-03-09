@@ -7,6 +7,8 @@ import del from 'consul-ui/utils/request/del';
 import confirm from 'consul-ui/utils/confirm';
 
 export default Controller.extend({
+  dc: controller('dc'),
+  isLoading: false,
   getParentKeyRoute: function() {
     if (this.get('isRoot')) {
       return this.get('rootKey');
@@ -28,8 +30,6 @@ export default Controller.extend({
       });
     controller.set('isLoading', false);
   },
-  dc: controller('dc'),
-  isLoading: false,
   actions: {
     // Creates the key from the newKey model
     // set on the route.
