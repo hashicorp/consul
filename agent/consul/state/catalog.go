@@ -792,15 +792,39 @@ func maxIndexForService(tx *memdb.Txn, serviceName string, checks bool) uint64 {
 	return maxIndexTxn(tx, "nodes", "services")
 }
 
+// ConnectServiceNodes returns the nodes associated with a Connect
+// compatible destination for the given service name. This will include
+// both proxies and native integrations.
+func (s *Store) ConnectServiceNodes(ws memdb.WatchSet, serviceName string) (uint64, structs.ServiceNodes, error) {
+	return s.serviceNodes(ws, serviceName, true)
+}
+
 // ServiceNodes returns the nodes associated with a given service name.
 func (s *Store) ServiceNodes(ws memdb.WatchSet, serviceName string) (uint64, structs.ServiceNodes, error) {
+	return s.serviceNodes(ws, serviceName, false)
+}
+
+func (s *Store) serviceNodes(ws memdb.WatchSet, serviceName string, connect bool) (uint64, structs.ServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
 	idx := maxIndexForService(tx, serviceName, false)
+
+	// Function for lookup
+	var f func() (memdb.ResultIterator, error)
+	if !connect {
+		f = func() (memdb.ResultIterator, error) {
+			return tx.Get("services", "service", serviceName)
+		}
+	} else {
+		f = func() (memdb.ResultIterator, error) {
+			return tx.Get("services", "proxy_destination", serviceName)
+		}
+	}
+
 	// List all the services.
-	services, err := tx.Get("services", "service", serviceName)
+	services, err := f()
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 	}
@@ -849,39 +873,6 @@ func (s *Store) ServiceTagNodes(ws memdb.WatchSet, service string, tag string) (
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed parsing service nodes: %s", err)
 	}
-	return idx, results, nil
-}
-
-// ConnectServiceNodes returns the nodes associated with a Connect
-// compatible destination for the given service name. This will include
-// both proxies and native integrations.
-func (s *Store) ConnectServiceNodes(ws memdb.WatchSet, serviceName string) (uint64, structs.ServiceNodes, error) {
-	tx := s.db.Txn(false)
-	defer tx.Abort()
-
-	// Get the table index.
-	idx := maxIndexForService(tx, serviceName, false)
-
-	// Find all the proxies. When we support native integrations we'll have
-	// to perform another table lookup here.
-	services, err := tx.Get(servicesTableName, "proxy_destination", serviceName)
-	if err != nil {
-		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
-	}
-	ws.Add(services.WatchCh())
-
-	// Store them
-	var results structs.ServiceNodes
-	for service := services.Next(); service != nil; service = services.Next() {
-		results = append(results, service.(*structs.ServiceNode))
-	}
-
-	// Fill in the node details.
-	results, err = s.parseServiceNodes(tx, ws, results)
-	if err != nil {
-		return 0, nil, fmt.Errorf("failed parsing service nodes: %s", err)
-	}
-
 	return idx, results, nil
 }
 
