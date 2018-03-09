@@ -91,6 +91,13 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 				return acl.ErrPermissionDenied
 			}
 		}
+
+		// Proxies must have write permission on their destination
+		if args.Service.Kind == structs.ServiceKindConnectProxy {
+			if rule != nil && !rule.ServiceWrite(args.Service.ProxyDestination, nil) {
+				return acl.ErrPermissionDenied
+			}
+		}
 	}
 
 	// Move the old format single check into the slice, and fixup IDs.

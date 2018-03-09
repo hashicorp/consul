@@ -414,6 +414,67 @@ func TestCatalog_Register_ConnectProxy_noName(t *testing.T) {
 	assert.Equal(structs.ServiceKindConnectProxy, v.ServiceKind)
 }
 
+// Test that write is required for the proxy destination to register a proxy.
+func TestCatalog_Register_ConnectProxy_ACLProxyDestination(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+		c.ACLEnforceVersion8 = false
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Create the ACL.
+	arg := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name: "User token",
+			Type: structs.ACLTypeClient,
+			Rules: `
+service "foo" {
+	policy = "write"
+}
+`,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var token string
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &token))
+
+	// Register should fail because we don't have permission on the destination
+	args := structs.TestRegisterRequestProxy(t)
+	args.Service.Service = "foo"
+	args.Service.ProxyDestination = "bar"
+	args.WriteRequest.Token = token
+	var out struct{}
+	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out)
+	assert.True(acl.IsErrPermissionDenied(err))
+
+	// Register should fail with the right destination but wrong name
+	args = structs.TestRegisterRequestProxy(t)
+	args.Service.Service = "bar"
+	args.Service.ProxyDestination = "foo"
+	args.WriteRequest.Token = token
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out)
+	assert.True(acl.IsErrPermissionDenied(err))
+
+	// Register should work with the right destination
+	args = structs.TestRegisterRequestProxy(t)
+	args.Service.Service = "foo"
+	args.Service.ProxyDestination = "foo"
+	args.WriteRequest.Token = token
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+}
+
 func TestCatalog_Deregister(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServer(t)
