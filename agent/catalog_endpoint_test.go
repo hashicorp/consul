@@ -775,6 +775,30 @@ func TestCatalogServiceNodes_ConnectProxy(t *testing.T) {
 	assert.Equal(structs.ServiceKindConnectProxy, nodes[0].ServiceKind)
 }
 
+func TestCatalogConnectServiceNodes_good(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Register
+	args := structs.TestRegisterRequestProxy(t)
+	var out struct{}
+	assert.Nil(a.RPC("Catalog.Register", args, &out))
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf(
+		"/v1/catalog/connect/%s", args.Service.ProxyDestination), nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.CatalogConnectServiceNodes(resp, req)
+	assert.Nil(err)
+	assertIndex(t, resp)
+
+	nodes := obj.(structs.ServiceNodes)
+	assert.Len(nodes, 1)
+	assert.Equal(structs.ServiceKindConnectProxy, nodes[0].ServiceKind)
+}
+
 func TestCatalogNodeServices(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")

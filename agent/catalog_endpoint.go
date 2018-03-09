@@ -217,6 +217,55 @@ RETRY_ONCE:
 	return out.ServiceNodes, nil
 }
 
+func (s *HTTPServer) CatalogConnectServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_connect_service_nodes"}, 1,
+		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
+	if req.Method != "GET" {
+		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+	}
+
+	// Set default DC
+	args := structs.ServiceSpecificRequest{Connect: true}
+	s.parseSource(req, &args.Source)
+	args.NodeMetaFilters = s.parseMetaFilter(req)
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	// Pull out the service name
+	args.ServiceName = strings.TrimPrefix(req.URL.Path, "/v1/catalog/connect/")
+	if args.ServiceName == "" {
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(resp, "Missing service name")
+		return nil, nil
+	}
+
+	// Make the RPC request
+	var out structs.IndexedServiceNodes
+	defer setMeta(resp, &out.QueryMeta)
+	if err := s.agent.RPC("Catalog.ServiceNodes", &args, &out); err != nil {
+		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_connect_service_nodes"}, 1,
+			[]metrics.Label{{Name: "node", Value: s.nodeName()}})
+		return nil, err
+	}
+	s.agent.TranslateAddresses(args.Datacenter, out.ServiceNodes)
+
+	// Use empty list instead of nil
+	if out.ServiceNodes == nil {
+		out.ServiceNodes = make(structs.ServiceNodes, 0)
+	}
+	for i, s := range out.ServiceNodes {
+		if s.ServiceTags == nil {
+			clone := *s
+			clone.ServiceTags = make([]string, 0)
+			out.ServiceNodes[i] = &clone
+		}
+	}
+	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_connect_service_nodes"}, 1,
+		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
+	return out.ServiceNodes, nil
+}
+
 func (s *HTTPServer) CatalogNodeServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_node_services"}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
