@@ -284,6 +284,10 @@ type ServiceSpecificRequest struct {
 	ServiceAddress  string
 	TagFilter       bool // Controls tag filtering
 	Source          QuerySource
+
+	// Connect if true will only search for Connect-compatible services.
+	Connect bool
+
 	QueryOptions
 }
 

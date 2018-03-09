@@ -269,24 +269,37 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 		return fmt.Errorf("Must provide service name")
 	}
 
+	// Determine the function we'll call
+	var f func(memdb.WatchSet, *state.Store) (uint64, structs.ServiceNodes, error)
+	switch {
+	case args.Connect:
+		f = func(ws memdb.WatchSet, s *state.Store) (uint64, structs.ServiceNodes, error) {
+			return s.ConnectServiceNodes(ws, args.ServiceName)
+		}
+
+	default:
+		f = func(ws memdb.WatchSet, s *state.Store) (uint64, structs.ServiceNodes, error) {
+			if args.ServiceAddress != "" {
+				return s.ServiceAddressNodes(ws, args.ServiceAddress)
+			}
+
+			if args.TagFilter {
+				return s.ServiceTagNodes(ws, args.ServiceName, args.ServiceTag)
+			}
+
+			return s.ServiceNodes(ws, args.ServiceName)
+		}
+	}
+
 	err := c.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			var index uint64
-			var services structs.ServiceNodes
-			var err error
-			if args.TagFilter {
-				index, services, err = state.ServiceTagNodes(ws, args.ServiceName, args.ServiceTag)
-			} else {
-				index, services, err = state.ServiceNodes(ws, args.ServiceName)
-			}
-			if args.ServiceAddress != "" {
-				index, services, err = state.ServiceAddressNodes(ws, args.ServiceAddress)
-			}
+			index, services, err := f(ws, state)
 			if err != nil {
 				return err
 			}
+
 			reply.Index, reply.ServiceNodes = index, services
 			if len(args.NodeMetaFilters) > 0 {
 				var filtered structs.ServiceNodes
@@ -305,17 +318,24 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 
 	// Provide some metrics
 	if err == nil {
-		metrics.IncrCounterWithLabels([]string{"catalog", "service", "query"}, 1,
+		// For metrics, we separate Connect-based lookups from non-Connect
+		key := "service"
+		if args.Connect {
+			key = "connect"
+		}
+
+		metrics.IncrCounterWithLabels([]string{"catalog", key, "query"}, 1,
 			[]metrics.Label{{Name: "service", Value: args.ServiceName}})
 		if args.ServiceTag != "" {
-			metrics.IncrCounterWithLabels([]string{"catalog", "service", "query-tag"}, 1,
+			metrics.IncrCounterWithLabels([]string{"catalog", key, "query-tag"}, 1,
 				[]metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "tag", Value: args.ServiceTag}})
 		}
 		if len(reply.ServiceNodes) == 0 {
-			metrics.IncrCounterWithLabels([]string{"catalog", "service", "not-found"}, 1,
+			metrics.IncrCounterWithLabels([]string{"catalog", key, "not-found"}, 1,
 				[]metrics.Label{{Name: "service", Value: args.ServiceName}})
 		}
 	}
+
 	return err
 }
 
