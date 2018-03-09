@@ -1572,6 +1572,48 @@ func TestStateStore_DeleteService(t *testing.T) {
 	}
 }
 
+func TestStateStore_ConnectServiceNodes(t *testing.T) {
+	assert := assert.New(t)
+	s := testStateStore(t)
+
+	// Listing with no results returns an empty list.
+	ws := memdb.NewWatchSet()
+	idx, nodes, err := s.ConnectServiceNodes(ws, "db")
+	assert.Nil(err)
+	assert.Equal(idx, uint64(0))
+	assert.Len(nodes, 0)
+
+	// Create some nodes and services.
+	assert.Nil(s.EnsureNode(10, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
+	assert.Nil(s.EnsureNode(11, &structs.Node{Node: "bar", Address: "127.0.0.2"}))
+	assert.Nil(s.EnsureService(12, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: nil, Address: "", Port: 5000}))
+	assert.Nil(s.EnsureService(13, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
+	assert.Nil(s.EnsureService(14, "foo", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", ProxyDestination: "db", Port: 8000}))
+	assert.Nil(s.EnsureService(15, "bar", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", ProxyDestination: "db", Port: 8000}))
+	assert.Nil(s.EnsureService(16, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"slave"}, Address: "", Port: 8001}))
+	assert.True(watchFired(ws))
+
+	// Read everything back.
+	ws = memdb.NewWatchSet()
+	idx, nodes, err = s.ConnectServiceNodes(ws, "db")
+	assert.Nil(err)
+	assert.Equal(idx, uint64(idx))
+	assert.Len(nodes, 2)
+
+	for _, n := range nodes {
+		assert.Equal(structs.ServiceKindConnectProxy, n.ServiceKind)
+		assert.Equal("db", n.ServiceProxyDestination)
+	}
+
+	// Registering some unrelated node should not fire the watch.
+	testRegisterNode(t, s, 17, "nope")
+	assert.False(watchFired(ws))
+
+	// But removing a node with the "db" service should fire the watch.
+	assert.Nil(s.DeleteNode(18, "bar"))
+	assert.True(watchFired(ws))
+}
+
 func TestStateStore_Service_Snapshot(t *testing.T) {
 	s := testStateStore(t)
 

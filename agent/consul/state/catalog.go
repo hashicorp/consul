@@ -10,6 +10,10 @@ import (
 	"github.com/hashicorp/go-memdb"
 )
 
+const (
+	servicesTableName = "services"
+)
+
 // nodesTableSchema returns a new table schema used for storing node
 // information.
 func nodesTableSchema() *memdb.TableSchema {
@@ -84,6 +88,15 @@ func servicesTableSchema() *memdb.TableSchema {
 				Unique:       false,
 				Indexer: &memdb.StringFieldIndex{
 					Field:     "ServiceName",
+					Lowercase: true,
+				},
+			},
+			"proxy_destination": &memdb.IndexSchema{
+				Name:         "proxy_destination",
+				AllowMissing: true,
+				Unique:       false,
+				Indexer: &memdb.StringFieldIndex{
+					Field:     "ServiceProxyDestination",
 					Lowercase: true,
 				},
 			},
@@ -836,6 +849,39 @@ func (s *Store) ServiceTagNodes(ws memdb.WatchSet, service string, tag string) (
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed parsing service nodes: %s", err)
 	}
+	return idx, results, nil
+}
+
+// ConnectServiceNodes returns the nodes associated with a Connect
+// compatible destination for the given service name. This will include
+// both proxies and native integrations.
+func (s *Store) ConnectServiceNodes(ws memdb.WatchSet, serviceName string) (uint64, structs.ServiceNodes, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get the table index.
+	idx := maxIndexForService(tx, serviceName, false)
+
+	// Find all the proxies. When we support native integrations we'll have
+	// to perform another table lookup here.
+	services, err := tx.Get(servicesTableName, "proxy_destination", serviceName)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
+	}
+	ws.Add(services.WatchCh())
+
+	// Store them
+	var results structs.ServiceNodes
+	for service := services.Next(); service != nil; service = services.Next() {
+		results = append(results, service.(*structs.ServiceNode))
+	}
+
+	// Fill in the node details.
+	results, err = s.parseServiceNodes(tx, ws, results)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed parsing service nodes: %s", err)
+	}
+
 	return idx, results, nil
 }
 
