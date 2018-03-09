@@ -582,6 +582,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		// DNS
 		DNSAddrs:              dnsAddrs,
 		DNSAllowStale:         b.boolVal(c.DNS.AllowStale),
+		DNSARecordLimit:       b.intVal(c.DNS.ARecordLimit),
 		DNSDisableCompression: b.boolVal(c.DNS.DisableCompression),
 		DNSDomain:             b.stringVal(c.DNSDomain),
 		DNSEnableTruncate:     b.boolVal(c.DNS.EnableTruncate),
@@ -809,6 +810,9 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	}
 	if rt.DNSUDPAnswerLimit < 0 {
 		return fmt.Errorf("dns_config.udp_answer_limit cannot be %d. Must be greater than or equal to zero", rt.DNSUDPAnswerLimit)
+	}
+	if rt.DNSARecordLimit < 0 {
+		return fmt.Errorf("dns_config.a_record_limit cannot be %d. Must be greater than or equal to zero", rt.DNSARecordLimit)
 	}
 	if err := structs.ValidateMetadata(rt.NodeMeta, false); err != nil {
 		return fmt.Errorf("node_meta invalid: %v", err)

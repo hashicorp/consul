@@ -194,6 +194,25 @@ type RuntimeConfig struct {
 	// hcl: dns_config { allow_stale = (true|false) }
 	DNSAllowStale bool
 
+	// DNSARecordLimit is used to limit the maximum number of DNS Resource
+	// Records returned in the ANSWER section of a DNS response for A or AAAA
+	// records for both UDP and TCP queries.
+	//
+	// This is not normally useful and will be limited based on the querying
+	// protocol, however systems that implemented §6 Rule 9 in RFC3484
+	// may want to set this to `1` in order to subvert §6 Rule 9 and
+	// re-obtain the effect of randomized resource records (i.e. each
+	// answer contains only one IP, but the IP changes every request).
+	// RFC3484 sorts answers in a deterministic order, which defeats the
+	// purpose of randomized DNS responses.  This RFC has been obsoleted
+	// by RFC6724 and restores the desired behavior of randomized
+	// responses, however a large number of Linux hosts using glibc(3)
+	// implemented §6 Rule 9 and may need this option (e.g. CentOS 5-6,
+	// Debian Squeeze, etc).
+	//
+	// hcl: dns_config { a_record_limit = int }
+	DNSARecordLimit int
+
 	// DNSDisableCompression is used to control whether DNS responses are
 	// compressed. In Consul 0.7 this was turned on by default and this
 	// config was added as an opt-out.
@@ -253,18 +272,11 @@ type RuntimeConfig struct {
 	DNSServiceTTL map[string]time.Duration
 
 	// DNSUDPAnswerLimit is used to limit the maximum number of DNS Resource
-	// Records returned in the ANSWER section of a DNS response. This is
-	// not normally useful and will be limited based on the querying
-	// protocol, however systems that implemented §6 Rule 9 in RFC3484
-	// may want to set this to `1` in order to subvert §6 Rule 9 and
-	// re-obtain the effect of randomized resource records (i.e. each
-	// answer contains only one IP, but the IP changes every request).
-	// RFC3484 sorts answers in a deterministic order, which defeats the
-	// purpose of randomized DNS responses.  This RFC has been obsoleted
-	// by RFC6724 and restores the desired behavior of randomized
-	// responses, however a large number of Linux hosts using glibc(3)
-	// implemented §6 Rule 9 and may need this option (e.g. CentOS 5-6,
-	// Debian Squeeze, etc).
+	// Records returned in the ANSWER section of a DNS response for UDP
+	// responses without EDNS support (limited to 512 bytes).
+	// This parameter is deprecated, if you want to limit the number of
+	// records returned by A or AAAA questions, please use DNSARecordLimit
+	// instead.
 	//
 	// hcl: dns_config { udp_answer_limit = int }
 	DNSUDPAnswerLimit int

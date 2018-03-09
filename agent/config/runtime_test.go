@@ -1596,6 +1596,15 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			err:  "dns_config.udp_answer_limit cannot be -1. Must be greater than or equal to zero",
 		},
 		{
+			desc: "dns_config.a_record_limit invalid",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{ "dns_config": { "a_record_limit": -1 } }`},
+			hcl:  []string{`dns_config = { a_record_limit = -1 }`},
+			err:  "dns_config.a_record_limit cannot be -1. Must be greater than or equal to zero",
+		},
+		{
 			desc: "performance.raft_multiplier < 0",
 			args: []string{
 				`-data-dir=` + dataDir,
@@ -2288,6 +2297,7 @@ func TestFullConfig(t *testing.T) {
 			"domain": "7W1xXSqd",
 			"dns_config": {
 				"allow_stale": true,
+				"a_record_limit": 29907,
 				"disable_compression": true,
 				"enable_truncate": true,
 				"max_stale": "29685s",
@@ -2723,6 +2733,7 @@ func TestFullConfig(t *testing.T) {
 			domain = "7W1xXSqd"
 			dns_config {
 				allow_stale = true
+				a_record_limit = 29907
 				disable_compression = true
 				enable_truncate = true
 				max_stale = "29685s"
@@ -3283,6 +3294,7 @@ func TestFullConfig(t *testing.T) {
 		CheckUpdateInterval:       16507 * time.Second,
 		ClientAddrs:               []*net.IPAddr{ipAddr("93.83.18.19")},
 		DNSAddrs:                  []net.Addr{tcpAddr("93.95.95.81:7001"), udpAddr("93.95.95.81:7001")},
+		DNSARecordLimit:           29907,
 		DNSAllowStale:             true,
 		DNSDisableCompression:     true,
 		DNSDomain:                 "7W1xXSqd",
@@ -3959,6 +3971,7 @@ func TestSanitize(t *testing.T) {
     "ConsulSerfWANProbeTimeout": "0s",
     "ConsulSerfWANSuspicionMult": 0,
     "ConsulServerHealthInterval": "0s",
+    "DNSARecordLimit": 0,
     "DNSAddrs": [
         "tcp://1.2.3.4:5678",
         "udp://1.2.3.4:5678"
