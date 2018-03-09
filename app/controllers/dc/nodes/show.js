@@ -1,7 +1,7 @@
 import Controller, { inject as controller } from '@ember/controller';
-import { computed } from '@ember/object';
 
 import put from 'consul-ui/utils/request/put';
+import get from 'consul-ui/utils/request/get';
 
 export default Controller.extend({
   dc: controller('dc'),
@@ -12,7 +12,7 @@ export default Controller.extend({
       confirm('Are you sure you want to invalidate this session?')
         .then(function() {
           var node = controller.get('model');
-          var dc = controller.get('dc').get('datacenter');
+          var dc = controller.get('dc'); //.get('datacenter');
           // Delete the session
           put('/v1/session/destroy/' + sessionId, dc)
             .then(function(response) {

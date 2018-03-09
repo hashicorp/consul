@@ -19,9 +19,9 @@ export default Route.extend({
     // keys and key are requested in series to avoid
     // ember not being able to merge the responses
     return hash({
-      dc: dc,
       // better name, slug vs key?
       keys: repo.findAllBySlug(parentKeys.parent, dc),
+      isLoading: false,
     })
       .then(function(model) {
         return hash(
@@ -63,7 +63,6 @@ export default Route.extend({
     controller.setProperties(model);
   },
   actions: {
-    // Updates the key set as the model on the route.
     updateKey: function(key) {
       var controller = this.controller;
       controller.set('isLoading', true);
@@ -76,7 +75,6 @@ export default Route.extend({
           // If success, probably need a better notification
         })
         .catch(function(response) {
-          // Render the error message on the form if the request failed
           controller.set('errorMessage', 'Received error while processing: ' + response.statusText);
         })
         .finally(function() {
@@ -115,7 +113,6 @@ export default Route.extend({
           );
         })
         .catch(function(response) {
-          // Render the error message on the form if the request failed
           controller.set('errorMessage', 'Received error while processing: ' + response.statusText);
         })
         .finally(function() {

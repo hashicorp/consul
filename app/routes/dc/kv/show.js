@@ -14,11 +14,10 @@ export default Route.extend({
     // Return a promise has with the ?keys for that namespace
     // and the original key requested in params
     return hash({
-      dc: dc,
       key: key,
       keys: repo.findAllBySlug(key, dc),
-      rootKey: this.rootKey,
       newKey: repo.create(),
+      isLoading: false,
     }).then(model => {
       const key = model.key;
       const parentKeys = this.getParentAndGrandparent(key);
@@ -47,15 +46,13 @@ export default Route.extend({
       }
       const controller = this.controller;
       controller.set('isLoading', true);
-      // Put the Key and the Value retrieved from the form
       this.get('repo')
         .persist(
           key,
           // TODO: the key object should know its dc, remove this
           this.modelFor('dc').dc
         )
-        .then(response => {
-          // transition to the right place
+        .then(() => {
           if (key.get('isFolder') === true) {
             this.transitionTo('dc.kv.show', key.get('Key'));
           } else {

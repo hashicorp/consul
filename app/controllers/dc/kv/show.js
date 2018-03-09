@@ -1,9 +1,8 @@
-import Controller, { inject as controller } from '@ember/controller';
+import Controller from '@ember/controller';
 
 import confirm from 'consul-ui/utils/confirm';
 
 export default Controller.extend({
-  isLoading: false,
   actions: {
     requestDeleteFolder: function(parentKey, grandParent) {
       confirm('Are you sure you want to delete this folder?').then(() => {
