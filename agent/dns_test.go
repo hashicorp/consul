@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/miekg/dns"
 	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -1039,6 +1040,48 @@ func TestDNS_ServiceLookupWithInternalServiceAddress(t *testing.T) {
 		},
 	}
 	verify.Values(t, "extra", in.Extra, wantExtra)
+}
+
+func TestDNS_ConnectServiceLookup(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Register a node with an external service.
+	{
+		args := structs.TestRegisterRequestProxy(t)
+		args.Service.ProxyDestination = "db"
+		args.Service.Port = 12345
+		var out struct{}
+		assert.Nil(a.RPC("Catalog.Register", args, &out))
+	}
+
+	// Look up the service
+	questions := []string{
+		"db.connect.consul.",
+	}
+	for _, question := range questions {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeSRV)
+
+		c := new(dns.Client)
+		in, _, err := c.Exchange(m, a.DNSAddr())
+		assert.Nil(err)
+		assert.Len(in.Answer, 1)
+
+		srvRec, ok := in.Answer[0].(*dns.SRV)
+		assert.True(ok)
+		assert.Equal(12345, srvRec.Port)
+		assert.Equal("foo.node.dc1.consul.", srvRec.Target)
+		assert.Equal(0, srvRec.Hdr.Ttl)
+
+		cnameRec, ok := in.Extra[0].(*dns.CNAME)
+		assert.True(ok)
+		assert.Equal("foo.node.dc1.consul.", cnameRec.Hdr.Name)
+		assert.Equal(0, srvRec.Hdr.Ttl)
+	}
 }
 
 func TestDNS_ExternalServiceLookup(t *testing.T) {
