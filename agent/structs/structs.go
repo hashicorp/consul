@@ -529,7 +529,9 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 		s.Address != other.Address ||
 		s.Port != other.Port ||
 		!reflect.DeepEqual(s.Meta, other.Meta) ||
-		s.EnableTagOverride != other.EnableTagOverride {
+		s.EnableTagOverride != other.EnableTagOverride ||
+		s.Kind != other.Kind ||
+		s.ProxyDestination != other.ProxyDestination {
 		return false
 	}
 

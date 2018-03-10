@@ -134,6 +134,7 @@ func testServiceNode() *ServiceNode {
 		NodeMeta: map[string]string{
 			"tag": "value",
 		},
+		ServiceKind:    ServiceKindTypical,
 		ServiceID:      "service1",
 		ServiceName:    "dogs",
 		ServiceTags:    []string{"prod", "v1"},
@@ -143,6 +144,7 @@ func testServiceNode() *ServiceNode {
 			"service": "metadata",
 		},
 		ServiceEnableTagOverride: true,
+		ServiceProxyDestination:  "cats",
 		RaftIndex: RaftIndex{
 			CreateIndex: 1,
 			ModifyIndex: 2,
@@ -275,6 +277,7 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 		},
 		Port:              1234,
 		EnableTagOverride: true,
+		ProxyDestination:  "db",
 	}
 	if !ns.IsSame(ns) {
 		t.Fatalf("should be equal to itself")
@@ -292,6 +295,7 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 			"meta2": "value2",
 			"meta1": "value1",
 		},
+		ProxyDestination: "db",
 		RaftIndex: RaftIndex{
 			CreateIndex: 1,
 			ModifyIndex: 2,
@@ -325,6 +329,8 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 	check(func() { other.Port = 9999 }, func() { other.Port = 1234 })
 	check(func() { other.Meta["meta2"] = "wrongValue" }, func() { other.Meta["meta2"] = "value2" })
 	check(func() { other.EnableTagOverride = false }, func() { other.EnableTagOverride = true })
+	check(func() { other.Kind = ServiceKindConnectProxy }, func() { other.Kind = "" })
+	check(func() { other.ProxyDestination = "" }, func() { other.ProxyDestination = "db" })
 }
 
 func TestStructs_HealthCheck_IsSame(t *testing.T) {
