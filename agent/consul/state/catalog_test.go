@@ -1868,6 +1868,30 @@ func TestStateStore_EnsureCheck(t *testing.T) {
 	if idx := s.maxIndex("checks"); idx != 4 {
 		t.Fatalf("bad index: %d", idx)
 	}
+
+	// Test sync of tags with Services
+	if err := s.EnsureService(42, "node1", &structs.NodeService{ID: "service1", Service: "service1", Tags: []string{"brand_new_tag"}, Address: "1.1.1.1", Port: 1111}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	idx, checks, err = s.NodeChecks(nil, "node1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 42 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Test sync of tags -> same tags
+	if err := s.EnsureService(50, "node1", &structs.NodeService{ID: "service1", Service: "service1", Tags: []string{"brand_new_tag"}, Address: "1.1.1.1", Port: 1111}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	idx, checks, err = s.NodeChecks(nil, "node1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 42 {
+		t.Fatalf("bad index: %d", idx)
+	}
 }
 
 func TestStateStore_EnsureCheck_defaultStatus(t *testing.T) {
