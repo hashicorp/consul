@@ -2,6 +2,7 @@ package structs
 
 // ServiceDefinition is used to JSON decode the Service definitions
 type ServiceDefinition struct {
+	Kind              ServiceKind
 	ID                string
 	Name              string
 	Tags              []string
@@ -12,10 +13,12 @@ type ServiceDefinition struct {
 	Checks            CheckTypes
 	Token             string
 	EnableTagOverride bool
+	ProxyDestination  string
 }
 
 func (s *ServiceDefinition) NodeService() *NodeService {
 	ns := &NodeService{
+		Kind:              s.Kind,
 		ID:                s.ID,
 		Service:           s.Name,
 		Tags:              s.Tags,
@@ -23,6 +26,7 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 		Meta:              s.Meta,
 		Port:              s.Port,
 		EnableTagOverride: s.EnableTagOverride,
+		ProxyDestination:  s.ProxyDestination,
 	}
 	if ns.ID == "" && ns.Service != "" {
 		ns.ID = ns.Service

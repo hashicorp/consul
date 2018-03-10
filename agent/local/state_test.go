@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/types"
 	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAgentAntiEntropy_Services(t *testing.T) {
@@ -222,6 +223,145 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	if err := servicesInSync(a.State, 4); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	a := &agent.TestAgent{Name: t.Name()}
+	a.Start()
+	defer a.Shutdown()
+
+	// Register node info
+	var out struct{}
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       a.Config.NodeName,
+		Address:    "127.0.0.1",
+	}
+
+	// Exists both same (noop)
+	srv1 := &structs.NodeService{
+		Kind:             structs.ServiceKindConnectProxy,
+		ID:               "mysql-proxy",
+		Service:          "mysql-proxy",
+		Port:             5000,
+		ProxyDestination: "db",
+	}
+	a.State.AddService(srv1, "")
+	args.Service = srv1
+	assert.Nil(a.RPC("Catalog.Register", args, &out))
+
+	// Exists both, different (update)
+	srv2 := &structs.NodeService{
+		ID:               "redis-proxy",
+		Service:          "redis-proxy",
+		Port:             8000,
+		Kind:             structs.ServiceKindConnectProxy,
+		ProxyDestination: "redis",
+	}
+	a.State.AddService(srv2, "")
+
+	srv2_mod := new(structs.NodeService)
+	*srv2_mod = *srv2
+	srv2_mod.Port = 9000
+	args.Service = srv2_mod
+	assert.Nil(a.RPC("Catalog.Register", args, &out))
+
+	// Exists local (create)
+	srv3 := &structs.NodeService{
+		ID:               "web-proxy",
+		Service:          "web-proxy",
+		Port:             80,
+		Kind:             structs.ServiceKindConnectProxy,
+		ProxyDestination: "web",
+	}
+	a.State.AddService(srv3, "")
+
+	// Exists remote (delete)
+	srv4 := &structs.NodeService{
+		ID:               "lb-proxy",
+		Service:          "lb-proxy",
+		Port:             443,
+		Kind:             structs.ServiceKindConnectProxy,
+		ProxyDestination: "lb",
+	}
+	args.Service = srv4
+	assert.Nil(a.RPC("Catalog.Register", args, &out))
+
+	// Exists local, in sync, remote missing (create)
+	srv5 := &structs.NodeService{
+		ID:               "cache-proxy",
+		Service:          "cache-proxy",
+		Port:             11211,
+		Kind:             structs.ServiceKindConnectProxy,
+		ProxyDestination: "cache-proxy",
+	}
+	a.State.SetServiceState(&local.ServiceState{
+		Service: srv5,
+		InSync:  true,
+	})
+
+	assert.Nil(a.State.SyncFull())
+
+	var services structs.IndexedNodeServices
+	req := structs.NodeSpecificRequest{
+		Datacenter: "dc1",
+		Node:       a.Config.NodeName,
+	}
+	assert.Nil(a.RPC("Catalog.NodeServices", &req, &services))
+
+	// We should have 5 services (consul included)
+	assert.Len(services.NodeServices.Services, 5)
+
+	// All the services should match
+	for id, serv := range services.NodeServices.Services {
+		serv.CreateIndex, serv.ModifyIndex = 0, 0
+		switch id {
+		case "mysql-proxy":
+			assert.Equal(srv1, serv)
+		case "redis-proxy":
+			assert.Equal(srv2, serv)
+		case "web-proxy":
+			assert.Equal(srv3, serv)
+		case "cache-proxy":
+			assert.Equal(srv5, serv)
+		case structs.ConsulServiceID:
+			// ignore
+		default:
+			t.Fatalf("unexpected service: %v", id)
+		}
+	}
+
+	assert.Nil(servicesInSync(a.State, 4))
+
+	// Remove one of the services
+	a.State.RemoveService("cache-proxy")
+	assert.Nil(a.State.SyncFull())
+	assert.Nil(a.RPC("Catalog.NodeServices", &req, &services))
+
+	// We should have 4 services (consul included)
+	assert.Len(services.NodeServices.Services, 4)
+
+	// All the services should match
+	for id, serv := range services.NodeServices.Services {
+		serv.CreateIndex, serv.ModifyIndex = 0, 0
+		switch id {
+		case "mysql-proxy":
+			assert.Equal(srv1, serv)
+		case "redis-proxy":
+			assert.Equal(srv2, serv)
+		case "web-proxy":
+			assert.Equal(srv3, serv)
+		case structs.ConsulServiceID:
+			// ignore
+		default:
+			t.Fatalf("unexpected service: %v", id)
+		}
+	}
+
+	assert.Nil(servicesInSync(a.State, 3))
 }
 
 func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
