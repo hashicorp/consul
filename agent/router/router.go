@@ -380,7 +380,7 @@ func (n *datacenterSorter) Less(i, j int) bool {
 	return n.Vec[i] < n.Vec[j]
 }
 
-// GetDatacentersByDeistance returns a list of datacenters known to the router,
+// GetDatacentersByDistance returns a list of datacenters known to the router,
 // sorted by median RTT from this server to the servers in each datacenter. If
 // there are multiple areas that reach a given datacenter, this will use the
 // lowest RTT for the sort.
