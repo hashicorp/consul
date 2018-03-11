@@ -52,7 +52,7 @@ The table below shows this endpoint's support for
   the datacenter of the agent being queried. This is specified as a URL query
   parameter.
 
-- `PeerDatacenter` `(string: <required>)` - Specifes the name of the Consul
+- `PeerDatacenter` `(string: <required>)` - Specifies the name of the Consul
   datacenter that will be joined the Consul servers in the current datacenter to
   form the area. Only one area is allowed for each possible `PeerDatacenter`,
   and a datacenter cannot form an area with itself.
