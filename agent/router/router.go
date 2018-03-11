@@ -308,7 +308,7 @@ func (r *Router) FailServer(areaID types.AreaID, s *metadata.Server) error {
 // cases this may return a best-effort unhealthy server that can be used for a
 // connection attempt. If any problem occurs with the given server, the caller
 // should feed that back to the manager associated with the server, which is
-// also returned, by calling NofifyFailedServer().
+// also returned, by calling NotifyFailedServer().
 func (r *Router) FindRoute(datacenter string) (*Manager, *metadata.Server, bool) {
 	return r.routeFn(datacenter)
 }
