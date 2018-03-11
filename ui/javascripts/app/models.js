@@ -254,7 +254,7 @@ App.Key = Ember.Object.extend(Ember.Validations.Mixin, {
     var parts = this.get('keyParts').toArray();
 
     // Remove the last item, essentially going up a level
-    // in hiearchy
+    // in hierarchy
     parts.pop();
 
     return parts.join("/") + "/";
