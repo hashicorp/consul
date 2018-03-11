@@ -285,7 +285,7 @@ The table below shows this endpoint's support for
   the datacenter of the agent being queried. This is specified as a URL query
   parameter.
 
-### Sample Palyoad
+### Sample Payload
 
 ```json
 ["10.1.2.3", "10.1.2.4", "10.1.2.5"]
