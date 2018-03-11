@@ -1794,6 +1794,91 @@ func TestCatalog_ListServiceNodes_ConnectDestination(t *testing.T) {
 	assert.Equal("", v.ServiceProxyDestination)
 }
 
+func TestCatalog_ListServiceNodes_ConnectProxy_ACL(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+		c.ACLEnforceVersion8 = false
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Create the ACL.
+	arg := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name: "User token",
+			Type: structs.ACLTypeClient,
+			Rules: `
+service "foo" {
+	policy = "write"
+}
+`,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var token string
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &token))
+
+	{
+		// Register a proxy
+		args := structs.TestRegisterRequestProxy(t)
+		args.Service.Service = "foo-proxy"
+		args.Service.ProxyDestination = "bar"
+		args.WriteRequest.Token = "root"
+		var out struct{}
+		assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		// Register a proxy
+		args = structs.TestRegisterRequestProxy(t)
+		args.Service.Service = "foo-proxy"
+		args.Service.ProxyDestination = "foo"
+		args.WriteRequest.Token = "root"
+		assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		// Register a proxy
+		args = structs.TestRegisterRequestProxy(t)
+		args.Service.Service = "another-proxy"
+		args.Service.ProxyDestination = "foo"
+		args.WriteRequest.Token = "root"
+		assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+	}
+
+	// List w/ token. This should disallow because we don't have permission
+	// to read "bar"
+	req := structs.ServiceSpecificRequest{
+		Connect:      true,
+		Datacenter:   "dc1",
+		ServiceName:  "bar",
+		QueryOptions: structs.QueryOptions{Token: token},
+	}
+	var resp structs.IndexedServiceNodes
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	assert.Len(resp.ServiceNodes, 0)
+
+	// List w/ token. This should work since we're requesting "foo", but should
+	// also only contain the proxies with names that adhere to our ACL.
+	req = structs.ServiceSpecificRequest{
+		Connect:      true,
+		Datacenter:   "dc1",
+		ServiceName:  "foo",
+		QueryOptions: structs.QueryOptions{Token: token},
+	}
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	assert.Len(resp.ServiceNodes, 1)
+	v := resp.ServiceNodes[0]
+	assert.Equal("foo-proxy", v.ServiceName)
+}
+
 func TestCatalog_NodeServices(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServer(t)

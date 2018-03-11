@@ -280,6 +280,21 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 		}
 	}
 
+	// If we're doing a connect query, we need read access to the service
+	// we're trying to find proxies for, so check that.
+	if args.Connect {
+		// Fetch the ACL token, if any.
+		rule, err := c.srv.resolveToken(args.Token)
+		if err != nil {
+			return err
+		}
+
+		if rule != nil && !rule.ServiceRead(args.ServiceName) {
+			// Just return nil, which will return an empty response (tested)
+			return nil
+		}
+	}
+
 	err := c.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
