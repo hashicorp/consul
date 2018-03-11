@@ -120,7 +120,7 @@ App.Node = Ember.Object.extend({
 // A key/value object
 //
 App.Key = Ember.Object.extend(Ember.Validations.Mixin, {
-  // Validates using the Ember.Valdiations library
+  // Validates using the Ember.Validations library
   validations: {
     Key: { presence: true }
   },
