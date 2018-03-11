@@ -1398,6 +1398,35 @@ func TestAgent_RegisterService_ConnectProxy(t *testing.T) {
 	assert.Equal("abc123", a.State.ServiceToken("connect-proxy"))
 }
 
+func TestAgent_RegisterService_ConnectProxyInvalid(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	args := &structs.ServiceDefinition{
+		Kind:             structs.ServiceKindConnectProxy,
+		Name:             "connect-proxy",
+		ProxyDestination: "db",
+		Check: structs.CheckType{
+			TTL: 15 * time.Second,
+		},
+	}
+
+	req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=abc123", jsonReader(args))
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.AgentRegisterService(resp, req)
+	assert.Nil(err)
+	assert.Nil(obj)
+	assert.Equal(http.StatusBadRequest, resp.Code)
+	assert.Contains(resp.Body.String(), "Port")
+
+	// Ensure the service doesn't exist
+	_, ok := a.State.Services()["connect-proxy"]
+	assert.False(ok)
+}
+
 func TestAgent_DeregisterService(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")

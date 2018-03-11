@@ -554,6 +554,14 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 		return nil, nil
 	}
 
+	// Run validation. This is the same validation that would happen on
+	// the catalog endpoint so it helps ensure the sync will work properly.
+	if err := ns.Validate(); err != nil {
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(resp, err.Error())
+		return nil, nil
+	}
+
 	// Verify the check type.
 	chkTypes, err := args.CheckTypes()
 	if err != nil {
