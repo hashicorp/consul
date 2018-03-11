@@ -207,7 +207,7 @@ func (a *TestAgent) Start() *TestAgent {
 			resp := httptest.NewRecorder()
 			_, err := a.httpServers[0].AgentSelf(resp, req)
 			if err != nil || resp.Code != 200 {
-				r.Fatal(a.Name, "failed OK respose", err)
+				r.Fatal(a.Name, "failed OK response", err)
 			}
 		}
 	})
