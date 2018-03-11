@@ -1108,7 +1108,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
         performance.
 
         By default, Consul will use a lower-performance timing that's suitable
-        for [minimal Consul servers](/docs/guides/performance.html#minumum), currently equivalent
+        for [minimal Consul servers](/docs/guides/performance.html#minimum), currently equivalent
         to setting this to a value of 5 (this default may be changed in future versions of Consul,
         depending if the target minimum server profile changes). Setting this to a value of 1 will
         configure Raft to its highest-performance mode, equivalent to the default timing of Consul

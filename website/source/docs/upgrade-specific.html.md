@@ -299,7 +299,7 @@ configuration:
 Consul also 0.7 introduced support for tuning Raft performance using a new
 [performance configuration block](/docs/agent/options.html#performance). Also,
 the default Raft timing is set to a lower-performance mode suitable for
-[minimal Consul servers](/docs/guides/performance.html#minumum).
+[minimal Consul servers](/docs/guides/performance.html#minimum).
 
 To continue to use the high-performance settings that were the default prior to
 Consul 0.7 (recommended for production servers), add the following configuration
