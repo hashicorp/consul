@@ -1228,7 +1228,7 @@ func TestAgent_RegisterService(t *testing.T) {
 		t.Fatalf("bad: %v", obj)
 	}
 
-	// Ensure the servie
+	// Ensure the service
 	if _, ok := a.State.Services()["test"]; !ok {
 		t.Fatalf("missing test service")
 	}
