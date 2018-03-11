@@ -3082,7 +3082,7 @@ func TestDNS_ServiceLookup_ARecordLimits(t *testing.T) {
 		name               string
 		aRecordLimit       int
 		expectedAResults   int
-		expectedAAAAResuls int
+		expectedAAAAResults int
 		expectedSRVResults int
 		numNodesTotal      int
 		udpSize            uint16
