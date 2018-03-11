@@ -1163,7 +1163,7 @@ func (b *Builder) expandFirstAddr(name string, s *string) net.Addr {
 	return addrs[0]
 }
 
-// expandFirstIP exapnds the go-sockaddr template in s and returns the
+// expandFirstIP expands the go-sockaddr template in s and returns the
 // first address if it is not a unix socket address. If the template
 // expands to multiple addresses an error is set and nil is returned.
 func (b *Builder) expandFirstIP(name string, s *string) *net.IPAddr {
