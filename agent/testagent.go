@@ -282,7 +282,7 @@ func (a *TestAgent) consulConfig() *consul.Config {
 
 // pickRandomPorts selects random ports from fixed size random blocks of
 // ports. This does not eliminate the chance for port conflict but
-// reduces it significanltly with little overhead. Furthermore, asking
+// reduces it significantly with little overhead. Furthermore, asking
 // the kernel for a random port by binding to port 0 prolongs the test
 // execution (in our case +20sec) while also not fully eliminating the
 // chance of port conflicts for concurrently executed test binaries.
