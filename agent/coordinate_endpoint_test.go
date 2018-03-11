@@ -138,7 +138,7 @@ func TestCoordinate_Nodes(t *testing.T) {
 		t.Fatalf("bad: %v", coordinates)
 	}
 
-	// Filter on a nonexistant node segment
+	// Filter on a nonexistent node segment
 	req, _ = http.NewRequest("GET", "/v1/coordinate/nodes?segment=nope", nil)
 	resp = httptest.NewRecorder()
 	obj, err = a.srv.CoordinateNodes(resp, req)
@@ -245,7 +245,7 @@ func TestCoordinate_Node(t *testing.T) {
 		t.Fatalf("bad: %v", coordinates)
 	}
 
-	// Filter on a nonexistant node segment
+	// Filter on a nonexistent node segment
 	req, _ = http.NewRequest("GET", "/v1/coordinate/node/foo?segment=nope", nil)
 	resp = httptest.NewRecorder()
 	obj, err = a.srv.CoordinateNode(resp, req)
