@@ -1060,7 +1060,7 @@ type RuntimeConfig struct {
 	//     name = string
 	//     tags = []string
 	//     address = string
-	//     check = { check definiton }
+	//     check = { check definition }
 	//     checks = [ { check definition}, ... ]
 	//     token = string
 	//     enable_tag_override = (true|false)
