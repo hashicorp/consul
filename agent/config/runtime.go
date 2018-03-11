@@ -181,7 +181,7 @@ type RuntimeConfig struct {
 	// AutopilotUpgradeVersionTag is the node tag to use for version info when
 	// performing upgrade migrations. If left blank, the Consul version will be used.
 	//
-	// (Entrprise-only)
+	// (Enterprise-only)
 	//
 	// hcl: autopilot { upgrade_version_tag = string }
 	AutopilotUpgradeVersionTag string
