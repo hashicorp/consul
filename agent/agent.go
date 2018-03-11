@@ -1204,7 +1204,7 @@ func (a *Agent) ShutdownAgent() error {
 }
 
 // ShutdownEndpoints terminates the HTTP and DNS servers. Should be
-// preceeded by ShutdownAgent.
+// preceded by ShutdownAgent.
 func (a *Agent) ShutdownEndpoints() {
 	a.shutdownLock.Lock()
 	defer a.shutdownLock.Unlock()
