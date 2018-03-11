@@ -462,8 +462,11 @@ type ServiceNodes []*ServiceNode
 type ServiceKind string
 
 const (
-	// ServiceKindTypical is a typical, classic Consul service.
-	ServiceKindTypical ServiceKind = "typical"
+	// ServiceKindTypical is a typical, classic Consul service. This is
+	// represented by the absense of a value. This was chosen for ease of
+	// backwards compatibility: existing services in the catalog would
+	// default to the typical service.
+	ServiceKindTypical ServiceKind = ""
 
 	// ServiceKindConnectProxy is a proxy for the Connect feature. This
 	// service proxies another service within Consul and speaks the connect

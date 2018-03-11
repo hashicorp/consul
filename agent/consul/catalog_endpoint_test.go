@@ -384,36 +384,6 @@ func TestCatalog_Register_ConnectProxy_invalid(t *testing.T) {
 	assert.Contains(err.Error(), "ProxyDestination")
 }
 
-// Test registering a proxy with no name set, which should work.
-func TestCatalog_Register_ConnectProxy_noName(t *testing.T) {
-	t.Parallel()
-
-	assert := assert.New(t)
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	codec := rpcClient(t, s1)
-	defer codec.Close()
-
-	args := structs.TestRegisterRequestProxy(t)
-	args.Service.Service = ""
-
-	// Register
-	var out struct{}
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
-
-	// List
-	req := structs.ServiceSpecificRequest{
-		Datacenter:  "dc1",
-		ServiceName: fmt.Sprintf("%s-connect-proxy", args.Service.ProxyDestination),
-	}
-	var resp structs.IndexedServiceNodes
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
-	assert.Len(resp.ServiceNodes, 1)
-	v := resp.ServiceNodes[0]
-	assert.Equal(structs.ServiceKindConnectProxy, v.ServiceKind)
-}
-
 // Test that write is required for the proxy destination to register a proxy.
 func TestCatalog_Register_ConnectProxy_ACLProxyDestination(t *testing.T) {
 	t.Parallel()

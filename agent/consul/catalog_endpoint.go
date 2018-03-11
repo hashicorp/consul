@@ -47,17 +47,6 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 
 	// Handle a service registration.
 	if args.Service != nil {
-		// Connect proxy specific logic
-		if args.Service.Kind == structs.ServiceKindConnectProxy {
-			// Name is optional, if it isn't set, we default to the
-			// proxy name. It actually MUST be this, but the validation
-			// below this will verify.
-			if args.Service.Service == "" {
-				args.Service.Service = fmt.Sprintf(
-					"%s-connect-proxy", args.Service.ProxyDestination)
-			}
-		}
-
 		// Validate the service. This is in addition to the below since
 		// the above just hasn't been moved over yet. We should move it over
 		// in time.
