@@ -18,7 +18,4 @@ const (
 	// Consul server node in the catalog.
 	ConsulServiceID   = "consul"
 	ConsulServiceName = "consul"
-
-	// ConnectProxyServiceName is the name of the proxy services.
-	ConnectProxyServiceName = "connect-proxy"
 )

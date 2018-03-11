@@ -78,8 +78,8 @@ func TestAgent_Services_ConnectProxy(t *testing.T) {
 
 	srv1 := &structs.NodeService{
 		Kind:             structs.ServiceKindConnectProxy,
-		ID:               structs.ConnectProxyServiceName,
-		Service:          structs.ConnectProxyServiceName,
+		ID:               "db-proxy",
+		Service:          "db-proxy",
 		Port:             5000,
 		ProxyDestination: "db",
 	}
@@ -90,7 +90,7 @@ func TestAgent_Services_ConnectProxy(t *testing.T) {
 	assert.Nil(err)
 	val := obj.(map[string]*structs.NodeService)
 	assert.Len(val, 1)
-	actual := val[structs.ConnectProxyServiceName]
+	actual := val["db-proxy"]
 	assert.Equal(structs.ServiceKindConnectProxy, actual.Kind)
 	assert.Equal("db", actual.ProxyDestination)
 }

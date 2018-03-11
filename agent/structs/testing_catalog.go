@@ -34,7 +34,7 @@ func TestRegisterRequestProxy(t testing.T) *RegisterRequest {
 func TestNodeServiceProxy(t testing.T) *NodeService {
 	return &NodeService{
 		Kind:             ServiceKindConnectProxy,
-		Service:          ConnectProxyServiceName,
+		Service:          "connect-proxy",
 		Address:          "127.0.0.2",
 		Port:             2222,
 		ProxyDestination: "web",
