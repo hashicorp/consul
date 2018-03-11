@@ -322,7 +322,7 @@ type RuntimeConfig struct {
 	// metric management is enabled.
 	// Default: none
 	//
-	// hcl: telemetry { circonous_api_token = string }
+	// hcl: telemetry { circonus_api_token = string }
 	TelemetryCirconusAPIToken string
 
 	// TelemetryCirconusAPIURL is the base URL to use for contacting the Circonus API.
