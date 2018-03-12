@@ -24,7 +24,7 @@ export default Route.extend({
     })
       .then(function(model) {
         return hash(
-          assign(model, {
+          assign({}, model, {
             key: repo.findBySlug(key, dc),
           })
         );
@@ -32,16 +32,17 @@ export default Route.extend({
       .then(model => {
         // jc: another afterModel for no reason replacement
         // guessing ember-data will come in here, as we are just stitching stuff together
-        if (get(model.key, 'isLocked')) {
-          return this.get('sessionRepo')
-            .findByKey(model.key.Session, model.dc)
-            .then(function(data) {
-              return assign(model, {
-                session: data[0],
-              });
-            });
+        const session = model.key.get('Session');
+        if (session) {
+          return hash(
+            assign({}, model, {
+              session: this.get('sessionRepo').findByKey(session, model.dc),
+            })
+          );
         } else {
-          return model;
+          return assign({}, model, {
+            session: '',
+          });
         }
       })
       .then(model => {

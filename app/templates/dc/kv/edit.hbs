@@ -58,10 +58,11 @@
           {{#if model.isLocked}}
             <h5>Lock Session</h5>
 
-            {{#link-to 'nodes.show' model.session.Node tagName="div" href=false class="list-group-item list-condensed-link" }}
+            {{#link-to 'dc.nodes.show' session.Node tagName="div" href=false class="list-group-item list-condensed-link" }}
               <div class="bg-light-gray list-bar-horizontal"></div>
               <div class="name">
-                {{ sessionName session }}
+                <span>{{session.Name}}</span>
+                <small>{{session.ID}}</small>
                 <small class="pull-right">
                   {{session.Node}}
                 </small>
