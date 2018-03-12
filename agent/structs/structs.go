@@ -491,6 +491,9 @@ type NodeService struct {
 
 	// ProxyDestination is the name of the service that this service is
 	// a Connect proxy for. This is only valid if Kind is "connect-proxy".
+	// The destination may be a service that isn't present in the catalog.
+	// This is expected and allowed to allow for proxies to come up
+	// earlier than their target services.
 	ProxyDestination string
 
 	RaftIndex

@@ -1,6 +1,7 @@
 package structs
 
-// ServiceDefinition is used to JSON decode the Service definitions
+// ServiceDefinition is used to JSON decode the Service definitions. For
+// documentation on specific fields see NodeService which is better documented.
 type ServiceDefinition struct {
 	Kind              ServiceKind
 	ID                string

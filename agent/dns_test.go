@@ -1049,7 +1049,7 @@ func TestDNS_ConnectServiceLookup(t *testing.T) {
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
-	// Register a node with an external service.
+	// Register
 	{
 		args := structs.TestRegisterRequestProxy(t)
 		args.Service.ProxyDestination = "db"

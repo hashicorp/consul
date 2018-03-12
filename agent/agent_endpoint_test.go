@@ -1372,6 +1372,9 @@ func TestAgent_RegisterService_ConnectProxy(t *testing.T) {
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
+	// Register a proxy. Note that the destination doesn't exist here on
+	// this agent or in the catalog at all. This is intended and part
+	// of the design.
 	args := &structs.ServiceDefinition{
 		Kind:             structs.ServiceKindConnectProxy,
 		Name:             "connect-proxy",
@@ -1388,7 +1391,7 @@ func TestAgent_RegisterService_ConnectProxy(t *testing.T) {
 	assert.Nil(err)
 	assert.Nil(obj)
 
-	// Ensure the servie
+	// Ensure the service
 	svc, ok := a.State.Services()["connect-proxy"]
 	assert.True(ok, "has service")
 	assert.Equal(structs.ServiceKindConnectProxy, svc.Kind)
