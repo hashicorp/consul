@@ -7,7 +7,7 @@
 \fIerratic\fR \- a plugin useful for testing client behavior\.
 .
 .SH "DESCRIPTION"
-\fIerratic\fR returns a static response to all queries, but the responses can be delayed, dropped or truncated\. The \fIerratic\fR plugin will respond to every A or AAAA query\. For any other type it will return a SERVFAIL response\. The reply for A will return 192\.0\.2\.53 (see RFC 5737), for AAAA it returns 2001:DB8::53 (see RFC 3849)\.
+\fIerratic\fR returns a static response to all queries, but the responses can be delayed, dropped or truncated\. The \fIerratic\fR plugin will respond to every A or AAAA query\. For any other type it will return a SERVFAIL response\. The reply for A will return 192\.0\.2\.53 (see RFC 5737 \fIhttps://tools\.ietf\.org/html/rfc5737\fR, for AAAA it returns 2001:DB8::53 (see RFC 3849 \fIhttps://tools\.ietf\.org/html/rfc3849\fR)\.
 .
 .P
 \fIerratic\fR can also be used in conjunction with the \fIautopath\fR plugin\. This is mostly to aid in testing\.
@@ -117,4 +117,6 @@ Drop every second query\.
 .fi
 .
 .IP "" 0
-
+.
+.SH "ALSO SEE"
+RFC 3849 \fIhttps://tools\.ietf\.org/html/rfc3849\fR and RFC 5737 \fIhttps://tools\.ietf\.org/html/rfc5737\fR\.
