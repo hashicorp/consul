@@ -751,6 +751,8 @@ func TestCatalogServiceNodes_DistanceSort(t *testing.T) {
 	}
 }
 
+// Test that connect proxies can be queried via /v1/catalog/service/:service
+// directly and that their results contain the proxy fields.
 func TestCatalogServiceNodes_ConnectProxy(t *testing.T) {
 	t.Parallel()
 
@@ -775,6 +777,8 @@ func TestCatalogServiceNodes_ConnectProxy(t *testing.T) {
 	assert.Equal(structs.ServiceKindConnectProxy, nodes[0].ServiceKind)
 }
 
+// Test that the Connect-compatible endpoints can be queried for a
+// service via /v1/catalog/connect/:service.
 func TestCatalogConnectServiceNodes_good(t *testing.T) {
 	t.Parallel()
 
@@ -834,6 +838,8 @@ func TestCatalogNodeServices(t *testing.T) {
 	}
 }
 
+// Test that the services on a node contain all the Connect proxies on
+// the node as well with their fields properly populated.
 func TestCatalogNodeServices_ConnectProxy(t *testing.T) {
 	t.Parallel()
 

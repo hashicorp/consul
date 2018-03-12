@@ -69,6 +69,8 @@ func TestAgent_Services(t *testing.T) {
 	}
 }
 
+// This tests that the agent services endpoint (/v1/agent/services) returns
+// Connect proxies.
 func TestAgent_Services_ConnectProxy(t *testing.T) {
 	t.Parallel()
 
@@ -1365,6 +1367,9 @@ func TestAgent_RegisterService_InvalidAddress(t *testing.T) {
 	}
 }
 
+// This tests local agent service registration of a connect proxy. This
+// verifies that it is put in the local state store properly for syncing
+// later.
 func TestAgent_RegisterService_ConnectProxy(t *testing.T) {
 	t.Parallel()
 
@@ -1401,6 +1406,9 @@ func TestAgent_RegisterService_ConnectProxy(t *testing.T) {
 	assert.Equal("abc123", a.State.ServiceToken("connect-proxy"))
 }
 
+// This tests that connect proxy validation is done for local agent
+// registration. This doesn't need to test validation exhaustively since
+// that is done via a table test in the structs package.
 func TestAgent_RegisterService_ConnectProxyInvalid(t *testing.T) {
 	t.Parallel()
 
