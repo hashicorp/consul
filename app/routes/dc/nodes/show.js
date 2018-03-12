@@ -38,4 +38,29 @@ export default Route.extend({
   setupController: function(controller, model) {
     controller.setProperties(model);
   },
+  actions: {
+    invalidateSession: function(session) {
+      const controller = this.controller;
+      controller.set('isLoading', true);
+      const dc = this.modelFor('dc').dc;
+      // Delete the session
+      const sessionRepo = this.get('sessionRepo');
+      sessionRepo
+        .remove(session.get('ID'), dc)
+        .then(() => {
+          const node = controller.get('model');
+          return sessionRepo.findByNode(node.get('Node'), dc).then(function(sessions) {
+            controller.set('sessions', sessions);
+          });
+        })
+        .catch(function(e) {
+          // TODO: Make sure errors are dealt with properly
+          // Render the error message on the form if the request failed
+          controller.set('errorMessage', 'Received error while processing: ' + e.statusText);
+        })
+        .finally(function() {
+          controller.set('isLoading', false);
+        });
+    },
+  },
 });

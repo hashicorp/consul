@@ -1,5 +1,7 @@
 import Service, { inject as service } from '@ember/service';
 
+import put from 'consul-ui/utils/request/put';
+
 export default Service.extend({
   store: service('store'),
   findByNode: function(node, dc) {
@@ -13,5 +15,8 @@ export default Service.extend({
       key: key,
       dc: dc,
     });
+  },
+  remove: function(id, dc) {
+    return put('/v1/session/' + id, dc);
   },
 });

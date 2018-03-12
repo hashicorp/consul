@@ -67,7 +67,7 @@
             <div class="name">
                 <span>{{session.Name}}</span>
                 <small>{{session.ID}}</small>
-                <button {{ action "invalidateSession" session.ID }} class="btn btn-danger pull-right btn-list {{if isLoading "btn-warning"}}">Invalidate</button>
+                <button {{ action "requestInvalidateSession" session }} class="btn btn-danger pull-right btn-list {{if isLoading "btn-warning"}}">Invalidate</button>
             </div>
 
             <ul class="list-inline sub">
