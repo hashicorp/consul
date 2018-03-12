@@ -1,5 +1,5 @@
     <div class="row">
-        <div class="col-md-6 col-lg-5 padded-right-middle {{ if isShowingItem "hidden-xs hidden-sm" }}">
+        <div class="col-md-6 col-lg-5 padded-right-middle">
         {{#filtered-list placeholder="Filter by name" items=items as |item|}}
             {{#if true}}
                 {{#link-to 'dc.services.show' item.Name class="list-group-item list-condensed-link" }}
@@ -8,7 +8,7 @@
                 <div class="name">
                     {{item.Name}}
                     <small class="pull-right">
-                    {{ item.checkMessage }}
+                        {{ item.checkMessage }}
                     </small>
                 </div>
                 {{/link-to}}
