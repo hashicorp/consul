@@ -1,5 +1,4 @@
 import Controller from '@ember/controller';
-import { computed } from '@ember/object';
 export function initialize(/* application */) {
   Controller.reopen({
     needs: ['dc', 'application'],

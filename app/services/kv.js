@@ -1,4 +1,8 @@
 import Service, { inject as service } from '@ember/service';
+
+import put from 'consul-ui/utils/request/put';
+import del from 'consul-ui/utils/request/del';
+
 export default Service.extend({
   store: service('store'),
   // this one gives you the full object so key,values and meta
@@ -9,7 +13,6 @@ export default Service.extend({
     });
   },
   // this one only gives you keys
-  // TODO: refactor this into one method with an arg to specify what you want
   // https://www.consul.io/api/kv.html
   findAllBySlug: function(key, dc) {
     // TODO: [sic] seperator
@@ -21,5 +24,11 @@ export default Service.extend({
   },
   create: function() {
     return this.get('store').createRecord('kv');
+  },
+  persist: function(key, dc) {
+    return put('/v1/kv/' + key.get('Key'), dc, key.get('Value'));
+  },
+  remove: function(key, dc) {
+    return del('/v1/kv/' + key.Key + '?recurse', dc);
   },
 });
