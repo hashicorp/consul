@@ -193,13 +193,14 @@ feature enables serving federated domains from the kubernetes clusters.
 Some query labels accept a wildcard value to match any value.  If a label is a valid wildcard (\*,
 or the word "any"), then that label will match all values.  The labels that accept wildcards are:
 
- * _service_ in an `A` record request: _service_.namespace.svc.zone, e.g. `*.ns.svc.myzone.local`
- * _namespace_ in an `A` record request: service._namespace_.svc.zone, e.g. `nginx.*.svc.myzone.local`
+ * _endpoint_ in an `A` record request: _endpoint_.service.namespace.svc.zone, e.g. `*.nginx.ns.svc.cluster.local`
+ * _service_ in an `A` record request: _service_.namespace.svc.zone, e.g. `*.ns.svc.cluster.local`
+ * _namespace_ in an `A` record request: service._namespace_.svc.zone, e.g. `nginx.*.svc.cluster.local`
  * _port and/or protocol_ in an `SRV` request: __port_.__protocol_.service.namespace.svc.zone.,
-   e.g. `_http.*.service.ns.svc.`
+   e.g. `_http.*.service.ns.svc.cluster.local`
  * multiple wild cards are allowed in a single query, e.g. `A` Request `*.*.svc.zone.` or `SRV` request `*.*.*.*.svc.zone.`
  
- * Wildcard can be used also to resolve PODs IPs as `A` records in a Service with ClusterIP. e.g.: `*.service.ns.svc.myzone.local` will return the PODs IPs as the following:
+ For example, Wildcards can be used to resolve all Endpoints for a Service as `A` records. e.g.: `*.service.ns.svc.myzone.local` will return the Endpoint IPs in the Service `service` in namespace `default`:
  ```
 *.service.default.svc.cluster.local. 5	IN A	192.168.10.10
 *.service.default.svc.cluster.local. 5	IN A	192.168.25.15
