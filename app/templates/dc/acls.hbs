@@ -1,1 +1,63 @@
-{{outlet}}
+      <div class="row">
+        <div class="col-md-6 col-lg-5 padded-right-middle {{ if isShowingItem "hidden-xs hidden-sm" }}">
+          {{# if items }}
+              {{#each items as |item| }}
+                {{#link-to 'dc.acls.show' item.ID class="list-group-item list-condensed-link" }}
+                  <div class="bg-light-gray list-bar-horizontal"></div>
+                  <div class="name">
+                      {{ item.Name }}
+                      <small class="pull-right no-case">{{ item.ID }}</small>
+                  </div>
+                {{/link-to}}
+            {{/each}}
+          {{else}}
+            <p class="light">There are no ACLs to show.</p>
+          {{/if}}
+
+      </div>
+
+
+      {{#if isShowingItem}}
+      <div class="col-md-6 col-lg-7 border-left scrollable">
+        <div class="row padded-border">
+          {{outlet}}
+        </div>
+      </div>
+      {{else}}
+        <div class="col-md-6 col-lg-7 border-left">
+          <div class="row padded-border">
+            <div class="panel">
+                <div class="panel-bar {{if isLoading "bg-orange" "bg-light-gray" }}"></div>
+                <div class="panel-heading">
+                  <h4 class="panel-title">
+                    New ACL
+                  </h4>
+                </div>
+
+                <div class="panel-body panel-form">
+                  <div class="form-group"></div>
+
+                  <form class="form">
+                    <div class="form-group">
+                      {{ input value=newAcl.Name class="form-control" }}
+                      <span class="help-block">Set the optional name for the ACL.</span>
+                    </div>
+
+                    <div class="form-group">
+                      <span class="help-block">The type of ACL this is.</span>
+                    </div>
+
+                    <div class="form-group">
+                      <label>Rules</label>
+                      {{ textarea value=newAcl.Rules class="form-control" }}
+                      <span class="help-block">For more information on rules, visit the <a href="https://www.consul.io/docs/guides/acl.html" target="_blank">ACL documentation.</a></span>
+                    </div>
+
+                    <button {{ action "createAcl"}} class="btn btn-success">Create</button>
+                  </form>
+                </div>
+              </div>
+          </div>
+        </div>
+      {{/if}}
+    </div>
