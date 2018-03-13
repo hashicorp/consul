@@ -1,12 +1,12 @@
 import Adapter from './application';
 export default Adapter.extend({
-  urlForQuery() {
+  urlForQuery: function() {
     return this.urlForFindAll();
   },
-  urlForFindAll() {
+  urlForFindAll: function() {
     return `/${this.namespace}/internal/ui/nodes`;
   },
-  urlForFindRecord(id, modelName) {
+  urlForFindRecord: function(id, modelName) {
     return `/${this.namespace}/internal/ui/node/${id}`;
   },
 });

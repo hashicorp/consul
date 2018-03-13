@@ -4,7 +4,7 @@ import { hash } from 'rsvp';
 
 export default Route.extend({
   repo: service('nodes'),
-  model: function(/* params */) {
+  model: function(params) {
     const repo = this.get('repo');
     return hash({
       nodes: repo.findAllByDatacenter(this.modelFor('dc').dc),

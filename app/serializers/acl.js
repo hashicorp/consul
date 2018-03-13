@@ -1,6 +1,6 @@
-import ApplicationSerializer from './application';
+import Serializer from './application';
 import { typeOf } from '@ember/utils';
-export default ApplicationSerializer.extend({
+export default Serializer.extend({
   primaryKey: 'ID',
   normalizeQueryResponse: function(store, primaryModelClass, payload, id, requestType) {
     return this._super(

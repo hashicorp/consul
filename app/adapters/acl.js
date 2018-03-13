@@ -1,30 +1,29 @@
 import Adapter from './application';
-const token = '';
 export default Adapter.extend({
-  urlForQuery(query, modelName) {
-    return `/${this.namespace}/acl/list?token=${token}`;
+  urlForQuery: function(query, modelName) {
+    return `/${this.namespace}/acl/list`;
   },
-  urlForQueryRecord(query, modelName) {
+  urlForQueryRecord: function(query, modelName) {
     const acl = query.acl;
     delete query.acl;
     if (query.clone) {
       delete query.clone;
-      return `/${this.namespace}/acl/clone/${acl}?token=${token}`;
+      return `/${this.namespace}/acl/clone/${acl}`;
     }
-    return `/${this.namespace}/acl/info/${acl}?token=${token}`;
+    return `/${this.namespace}/acl/info/${acl}`;
   },
-  urlForDeleteRecord(id, modelName, snapshot) {
-    return `/${this.namespace}/acl/destroy/${id}?token=${token}`;
+  urlForDeleteRecord: function(id, modelName, snapshot) {
+    return `/${this.namespace}/acl/destroy/${id}`;
   },
-  urlForCreateRecord(modelName, snapshot) {
-    return `/${this.namespace}/acl/create?token=${token}`;
+  urlForCreateRecord: function(modelName, snapshot) {
+    return `/${this.namespace}/acl/create`;
   },
-  urlForCloneRecord(modelName, snapshot) {
+  urlForCloneRecord: function(modelName, snapshot) {
     // const id = snapshot.attr('ID');
-    return `/${this.namespace}/acl/clone/${id}?token=${token}`;
+    return `/${this.namespace}/acl/clone/${id}`;
   },
-  urlForUpdateRecord(id, modelName, snapshot) {
-    return `/${this.namespace}/acl/update?token=${token}`;
+  urlForUpdateRecord: function(id, modelName, snapshot) {
+    return `/${this.namespace}/acl/update`;
   },
   dataForRequest: function(params) {
     // const { store, type, snapshot, requestType, query } = params;
@@ -37,7 +36,7 @@ export default Adapter.extend({
     }
     return data;
   },
-  methodForRequest(params) {
+  methodForRequest: function(params) {
     switch (params.requestType) {
       case 'deleteRecord':
         return 'PUT';
