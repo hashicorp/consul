@@ -50,7 +50,7 @@
         margin-bottom: 4px;
         margin-top: 4px;
 
-        height: 40px;
+        min-height: 40px;
 
         &.double-line {
             height: 54px;
@@ -60,7 +60,8 @@
 
         .name {
             font-size: 15px;
-            padding-top: 6px;
+            padding: 6px 6px 6px 30px;
+            word-break: break-all;
 
             span {
                 white-space: nowrap;
@@ -110,6 +111,7 @@
         float: left;
         height: 100%;
         margin-right: 10px;
+        position: absolute;
     }
 
 
