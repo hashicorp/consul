@@ -3,6 +3,8 @@ import { inject as controller } from '@ember/controller';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 
+import handle from 'consul-ui/utils/handle';
+
 import { next } from '@ember/runloop';
 
 export default Route.extend({
@@ -42,28 +44,16 @@ export default Route.extend({
       }
       return true; // ??
     },
-    createAcl: function() {
-      this.set('isLoading', true);
-      var controller = this;
-      var newAcl = controller.get('newAcl');
-      var dc = controller.get('dc').get('datacenter');
-      // Create the ACL
-      put('/v1/acl/create', dc, JSON.stringify(newAcl))
-        .then(function(response) {
-          // transition to the acl
-          controller.transitionToRoute('acls.show', response.ID);
-          // Get the ACL again, including the newly created one
-          get('/v1/acl/list', dc).then(function(data) {
-            var objs = map(Acl)(data);
-            controller.set('items', objs);
+    createAcl: function(newAcl) {
+      handle.bind(this)(
+        () => {
+          return newAcl.save().then(() => {
+            this.refresh();
           });
-          controller.set('isLoading', false);
-        })
-        .fail(function(response) {
-          // Render the error message on the form if the request failed
-          notify('Received error while creating ACL: ' + response.statusText, 8000);
-          controller.set('isLoading', false);
-        });
+        },
+        'created',
+        'errored'
+      );
     },
   },
 });

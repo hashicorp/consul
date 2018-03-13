@@ -1,7 +1,7 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
-
+import handle from 'consul-ui/utils/handle';
 export default Route.extend({
   repo: service('acls'),
   model: function(params) {
@@ -17,70 +17,49 @@ export default Route.extend({
   },
   actions: {
     use: function(acl) {
-      const controller = this.controller;
-      controller.set('isLoading', true);
-      const dc = this.modelFor('dc').dc;
-      // settings.set('settings.token', acl.ID);
-      controller.set('isLoading', false);
-      // notify
-      controller.transitionToRoute('dc.services');
+      handle.bind(this)(
+        () => {
+          // settings.set('settings.token', acl.ID);
+          this.transitionTo('dc.services');
+        },
+        'using',
+        'errored'
+      );
     },
     clone: function(acl) {
-      const controller = this.controller;
-      controller.set('isLoading', true);
-      const dc = this.modelFor('dc').dc;
-      // Set
-      // TODO: temporarily use clone for now
-      this.get('repo')
-        .clone(acl, dc)
-        .then(function(acl) {
-          controller.set('isLoading', false);
-          // notify
-          controller.transitionToRoute('acls.show', acl.get('ID'));
-        })
-        .catch(function(response) {
-          // TODO: check e.errors
-          // Render the error message on the form if the request failed
-          controller.set('errorMessage', 'Received error while processing: ' + response.statusText);
-        })
-        .finally(function() {
-          controller.set('isLoading', false);
-        });
+      handle.bind(this)(
+        () => {
+          return this.get('repo')
+            .clone(acl, this.modelFor('dc').dc)
+            .then(acl => {
+              this.transitionTo('dc.acls.show', acl.get('ID'));
+            });
+        },
+        'cloned',
+        'errored'
+      );
     },
     delete: function(acl) {
-      const controller = this.controller;
-      controller.set('isLoading', true);
-      const dc = this.modelFor('dc').dc;
-      this.get('repo')
-        .remove(acl, dc)
-        .then(function(response) {
-          //transition, refresh?
-        })
-        .catch(function(response) {
-          // Render the error message on the form if the request failed
-          controller.set('errorMessage', 'Received error while processing: ' + response.statusText);
-        })
-        .finally(function() {
-          controller.set('isLoading', false);
-        });
+      handle.bind(this)(
+        () => {
+          return this.get('repo')
+            .remove(acl, this.modelFor('dc').dc)
+            .then(() => {
+              this.transitionTo('dc.acls');
+            });
+        },
+        'deleted',
+        'errored'
+      );
     },
     update: function(acl) {
-      var controller = this.controller;
-      controller.set('isLoading', true);
-      const dc = this.modelFor('dc').dc;
-
-      // Update the ACL
-      this.get('repo')
-        .persist(acl, dc)
-        .then(function() {
-          // notify
-        })
-        .catch(function() {
-          // notify
-        })
-        .finally(function() {
-          controller.set('isLoading', false);
-        });
+      handle.bind(this)(
+        () => {
+          return this.get('repo').persist(acl, this.modelFor('dc').dc);
+        },
+        'Updated',
+        'errored'
+      );
     },
   },
 });

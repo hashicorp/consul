@@ -37,7 +37,9 @@
                 </div>
 
                 <button {{ action "update" model}} class="btn btn-success">Update</button>
-                <button {{ action "clone" model }} class="btn btn-default">Clone</button>
+                {{#if false}}
+                    <button {{ action "clone" model }} class="btn btn-default">Clone</button>
+                {{/if}}
                 <button {{ action "requestUse" model }} class="btn btn-default">Use Token</button>
                 {{# if model.isNotAnon }}
                     <button {{ action "requestDelete" model}} class="btn pull-right {{if isLoading "btn-warning" "btn-danger"}}">Delete</button>

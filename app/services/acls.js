@@ -1,32 +1,43 @@
 import Service, { inject as service } from '@ember/service';
-
-import put from 'consul-ui/utils/request/put';
+import { assign } from '@ember/polyfills';
 export default Service.extend({
   store: service('store'),
   findAllByDatacenter: function(dc) {
     return this.get('store').query('acl', {
       dc: dc,
-      token: '',
     });
   },
   findBySlug: function(slug, dc) {
     return this.get('store').queryRecord('acl', {
       acl: slug,
       dc: dc,
-      token: '',
     });
   },
   persist: function(acl, dc) {
-    const token = '';
-    return put('/v1/acl/update', dc, token, JSON.stringify(acl));
+    return acl.save();
   },
-  clone: function(acl, dc) {
-    const token = '';
-    return put('/v1/acl/clone/' + acl.ID, dc, token);
-  },
+  // clone: function(acl, dc) {
+  //   const slug = acl.get('ID');
+  //   const newAcl = this.create();
+  //   newAcl.set('ID', slug);
+  //   return newAcl.save().then(
+  //     (acl) => {
+  //       return this.findBySlug(acl.get('ID'), dc).then(
+  //         (acl) => {
+  //           this.get('store').pushPayload(
+  //             {
+  //               acls: acl.serialize()
+  //             }
+  //           );
+  //           return acl;
+
+  //         }
+  //       );
+  //     }
+  //   );
+  // },
   remove: function(acl, dc) {
-    const token = '';
-    return put('/v1/acl/destroy/' + acl.ID, dc, token);
+    return acl.destroyRecord();
   },
   // findAllByDatacenter: function(dc) {
   //   return get('/v1/acl/list', dc).then(function(data) {
