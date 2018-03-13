@@ -24,6 +24,8 @@ func (mockedRoute53) ListResourceRecordSets(input *route53.ListResourceRecordSet
 		value = "10.2.3.4"
 	case "AAAA":
 		value = "2001:db8:85a3::8a2e:370:7334"
+	case "PTR":
+		value = "ptr.example.org"
 	}
 	return &route53.ListResourceRecordSetsOutput{
 		ResourceRecordSets: []*route53.ResourceRecordSet{
@@ -66,6 +68,13 @@ func TestRoute53(t *testing.T) {
 			expectedReply: []string{"2001:db8:85a3::8a2e:370:7334"},
 			expectedErr:   nil,
 		},
+		{
+			qname:         "example.org",
+			qtype:         dns.TypePTR,
+			expectedCode:  dns.RcodeSuccess,
+			expectedReply: []string{"ptr.example.org"},
+			expectedErr:   nil,
+		},
 	}
 
 	ctx := context.TODO()
@@ -91,6 +100,8 @@ func TestRoute53(t *testing.T) {
 					actual = rec.Msg.Answer[i].(*dns.A).A.String()
 				case dns.TypeAAAA:
 					actual = rec.Msg.Answer[i].(*dns.AAAA).AAAA.String()
+				case dns.TypePTR:
+					actual = rec.Msg.Answer[i].(*dns.PTR).Ptr
 				}
 				if actual != expected {
 					t.Errorf("Test %d: Expected answer %s, but got %s", i, expected, actual)
