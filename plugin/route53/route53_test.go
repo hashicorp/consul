@@ -18,12 +18,19 @@ type mockedRoute53 struct {
 }
 
 func (mockedRoute53) ListResourceRecordSets(input *route53.ListResourceRecordSetsInput) (*route53.ListResourceRecordSetsOutput, error) {
+	var value string
+	switch aws.StringValue(input.StartRecordType) {
+	case "A":
+		value = "10.2.3.4"
+	case "AAAA":
+		value = "2001:db8:85a3::8a2e:370:7334"
+	}
 	return &route53.ListResourceRecordSetsOutput{
 		ResourceRecordSets: []*route53.ResourceRecordSet{
 			{
 				ResourceRecords: []*route53.ResourceRecord{
 					{
-						Value: aws.String("10.2.3.4"),
+						Value: aws.String(value),
 					},
 				},
 			},
@@ -49,7 +56,14 @@ func TestRoute53(t *testing.T) {
 			qname:         "example.org",
 			qtype:         dns.TypeA,
 			expectedCode:  dns.RcodeSuccess,
-			expectedReply: []string{"example.org."},
+			expectedReply: []string{"10.2.3.4"},
+			expectedErr:   nil,
+		},
+		{
+			qname:         "example.org",
+			qtype:         dns.TypeAAAA,
+			expectedCode:  dns.RcodeSuccess,
+			expectedReply: []string{"2001:db8:85a3::8a2e:370:7334"},
 			expectedErr:   nil,
 		},
 	}
@@ -71,7 +85,13 @@ func TestRoute53(t *testing.T) {
 		}
 		if len(tc.expectedReply) != 0 {
 			for i, expected := range tc.expectedReply {
-				actual := rec.Msg.Answer[i].Header().Name
+				var actual string
+				switch tc.qtype {
+				case dns.TypeA:
+					actual = rec.Msg.Answer[i].(*dns.A).A.String()
+				case dns.TypeAAAA:
+					actual = rec.Msg.Answer[i].(*dns.AAAA).AAAA.String()
+				}
 				if actual != expected {
 					t.Errorf("Test %d: Expected answer %s, but got %s", i, expected, actual)
 				}
