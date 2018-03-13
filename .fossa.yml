@@ -1,0 +1,8 @@
+cli:
+  project: github.com/hashicorp/consul
+
+analyze:
+  modules:
+    - name: consul
+      path: github.com/hashicorp/consul
+      type: gopackage
