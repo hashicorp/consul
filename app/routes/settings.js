@@ -1,8 +1,17 @@
 import Route from '@ember/routing/route';
+import { inject as service } from '@ember/service';
 
 export default Route.extend({
-  model: function() {
+  repo: service('settings'),
+  model: function(params) {
     //params
-    return {}; //settings;
+    return {
+      model: {
+        token: this.get('repo').get('token'),
+      },
+    };
+  },
+  setupController: function(controller, model) {
+    controller.setProperties(model);
   },
 });
