@@ -236,5 +236,8 @@ Some query labels accept a wildcard value to match any value\. If a label is a v
 .IP "\(bu" 4
 multiple wild cards are allowed in a single query, e\.g\. \fBA\fR Request \fB*\.*\.svc\.zone\.\fR or \fBSRV\fR request \fB*\.*\.*\.*\.svc\.zone\.\fR
 .
+.IP "\(bu" 4
+Wildcard can be used also to resolve PODs IPs as \fBA\fR records in a Service with ClusterIP\. e\.g\.: \fB*\.service\.ns\.svc\.myzone\.local\fR will return the PODs IPs as the following: \fB*\.service\.default\.svc\.cluster\.local\. 5 IN A 192\.168\.10\.10 *\.service\.default\.svc\.cluster\.local\. 5 IN A 192\.168\.25\.15\fR This response can be randomized using the \fBloadbalance\fR plugin
+.
 .IP "" 0
 
