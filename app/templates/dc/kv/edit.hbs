@@ -47,10 +47,10 @@
                 <div class="form-group {{if model.validateJson "validate"}} {{if model.isValidJson "success" "error"}}">
                     {{ textarea value=model.valueDecoded class="form-control" disabled=model.isLocked}}
                 </div>
-                <button {{action "updateKey"}} disabled={{isLockedOrLoading}} class="btn {{if isLoading "btn-warning" "btn-success"}}">Update</button>
-                <button {{action "cancelEdit"}} disabled={{isLoading}} class="btn {{if isLoading "btn-warning" "btn-default"}}">Cancel</button>
+                <button {{action "updateKey" model}} disabled={{isLockedOrLoading}} class="btn {{if isLoading "btn-warning" "btn-success"}}">Update</button>
+                <button {{action "cancelEdit" model}} disabled={{isLoading}} class="btn {{if isLoading "btn-warning" "btn-default"}}">Cancel</button>
                 <label class="form-checkbox">{{ input type="checkbox" checked=model.validateJson }}Validate JSON</label>
-                <button {{action "deleteKey"}} disabled={{isLockedOrLoading}} class="btn pull-right {{if isLoading "btn-warning" "btn-danger"}}">Delete key</button>
+                <button {{action "deleteKey" model }} disabled={{isLockedOrLoading}} class="btn pull-right {{if isLoading "btn-warning" "btn-danger"}}">Delete key</button>
               </form>
             </div>
           </div>
@@ -58,10 +58,11 @@
           {{#if model.isLocked}}
             <h5>Lock Session</h5>
 
-            {{#link-to 'nodes.show' model.session.Node tagName="div" href=false class="list-group-item list-condensed-link" }}
+            {{#link-to 'dc.nodes.show' session.Node tagName="div" href=false class="list-group-item list-condensed-link" }}
               <div class="bg-light-gray list-bar-horizontal"></div>
               <div class="name">
-                {{ sessionName session }}
+                <span>{{session.Name}}</span>
+                <small>{{session.ID}}</small>
                 <small class="pull-right">
                   {{session.Node}}
                 </small>

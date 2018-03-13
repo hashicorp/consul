@@ -28,12 +28,39 @@ export default Route.extend({
       // Load the sessions for the node
       // jc: This was in afterModel, I think the only for which was
       // that the model needed resolving first to get to Node
-      return assign(model, {
-        sessions: sessionRepo.findByNode(model.model.get('Node'), model.dc),
-      });
+      return hash(
+        assign({}, model, {
+          sessions: sessionRepo.findByNode(model.model.get('Node'), model.dc),
+        })
+      );
     });
   },
   setupController: function(controller, model) {
     controller.setProperties(model);
+  },
+  actions: {
+    invalidateSession: function(session) {
+      const controller = this.controller;
+      controller.set('isLoading', true);
+      const dc = this.modelFor('dc').dc;
+      // Delete the session
+      const sessionRepo = this.get('sessionRepo');
+      sessionRepo
+        .remove(session.get('ID'), dc)
+        .then(() => {
+          const node = controller.get('model');
+          return sessionRepo.findByNode(node.get('Node'), dc).then(function(sessions) {
+            controller.set('sessions', sessions);
+          });
+        })
+        .catch(function(e) {
+          // TODO: Make sure errors are dealt with properly
+          // Render the error message on the form if the request failed
+          controller.set('errorMessage', 'Received error while processing: ' + e.statusText);
+        })
+        .finally(function() {
+          controller.set('isLoading', false);
+        });
+    },
   },
 });

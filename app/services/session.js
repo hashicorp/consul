@@ -1,11 +1,22 @@
-import Service from '@ember/service';
+import Service, { inject as service } from '@ember/service';
 
-import get from 'consul-ui/utils/request/get';
+import put from 'consul-ui/utils/request/put';
+
 export default Service.extend({
+  store: service('store'),
   findByNode: function(node, dc) {
-    return get('/v1/session/node/' + node, dc);
+    return this.get('store').query('session', {
+      node: node,
+      dc: dc,
+    });
   },
   findByKey: function(key, dc) {
-    return get('/v1/session/info/' + key, dc);
+    return this.get('store').queryRecord('session', {
+      key: key,
+      dc: dc,
+    });
+  },
+  remove: function(id, dc) {
+    return put('/v1/session/' + id, dc);
   },
 });

@@ -65,8 +65,9 @@
         <div class="list-group-item list-condensed double-line">
             <div class="bg-light-gray list-bar-horizontal"></div>
             <div class="name">
-                {{ sessionName session }}
-                <button {{ action "invalidateSession" session.ID }} {{ bind-attr class=":btn :btn-danger :pull-right :btn-list isLoading:btn-warning" }}>Invalidate</button>
+                <span>{{session.Name}}</span>
+                <small>{{session.ID}}</small>
+                <button {{ action "requestInvalidateSession" session }} class="btn btn-danger pull-right btn-list {{if isLoading "btn-warning"}}">Invalidate</button>
             </div>
 
             <ul class="list-inline sub">
@@ -74,7 +75,7 @@
                     <li class="bold">{{check}}</li>
                 {{/each}}
             </ul>
-            {{ sessionMeta session }}
+            <div class="metadata">{{session.Behavior}} behavior</div>{{#if session.TTL }}<div class="metadata">, {{session.TTL}} TTL</div>{{/if}}
         </div>
     {{/each}}
 
