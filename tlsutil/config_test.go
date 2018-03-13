@@ -534,7 +534,7 @@ func TestConfig_ParseCiphers(t *testing.T) {
 		"TLS_RSA_WITH_3DES_EDE_CBC_SHA",
 		"TLS_RSA_WITH_RC4_128_SHA",
 		"TLS_ECDHE_RSA_WITH_RC4_128_SHA",
-		"TLS_ECDHE_ECDSA_WITH_RC4_128_SHA"
+		"TLS_ECDHE_ECDSA_WITH_RC4_128_SHA",
 	}, ",")
 	ciphers := []uint16{
 		tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
@@ -558,7 +558,7 @@ func TestConfig_ParseCiphers(t *testing.T) {
 		tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,
 		tls.TLS_RSA_WITH_RC4_128_SHA,
 		tls.TLS_ECDHE_RSA_WITH_RC4_128_SHA,
-		tls.TLS_ECDHE_ECDSA_WITH_RC4_128_SHA
+		tls.TLS_ECDHE_ECDSA_WITH_RC4_128_SHA,
 	}
 	v, err := ParseCiphers(testOk)
 	if err != nil {
