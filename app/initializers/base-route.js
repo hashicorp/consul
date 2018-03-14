@@ -10,9 +10,6 @@ export function initialize(application) {
         execute: this.get('feedback').execute.bind(this),
       });
     },
-
-    rootKey: '-',
-    condensedView: false,
     // Don't record characters in browser history
     // for the "search" query item (filter)
     // queryParams: {
@@ -20,6 +17,8 @@ export function initialize(application) {
     //     replace: true
     //   }
     // },
+    // this is only KV not all Routes
+    rootKey: '-',
     getParentAndGrandparent: function(key) {
       var parentKey = this.rootKey,
         grandParentKey = this.rootKey,
@@ -40,6 +39,7 @@ export function initialize(application) {
       };
     },
     removeDuplicateKeys: function(keys, matcher) {
+      // I 'think' this can go now we are in ember-data?
       // Loop over the keys
       // DS.RecordArray's implementation of `forEach` is different/broken?
       // DS.RecordArray doesn't implement Array (splice == removeAt)

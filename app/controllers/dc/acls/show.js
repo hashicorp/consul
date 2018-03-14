@@ -1,5 +1,6 @@
 import Controller from '@ember/controller';
 import confirm from 'consul-ui/utils/confirm';
+
 export default Controller.extend({
   actions: {
     requestUse: function(acl) {
