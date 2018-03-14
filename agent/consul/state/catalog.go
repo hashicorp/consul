@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -617,10 +618,38 @@ func (s *Store) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *st
 	// Create the service node entry and populate the indexes. Note that
 	// conversion doesn't populate any of the node-specific information.
 	// That's always populated when we read from the state store.
+	hasSameTags := false
 	entry := svc.ToServiceNode(node)
 	if existing != nil {
 		entry.CreateIndex = existing.(*structs.ServiceNode).CreateIndex
 		entry.ModifyIndex = idx
+		eSvc := existing.(*structs.ServiceNode)
+		hasSameTags = reflect.DeepEqual(eSvc.ServiceTags, svc.Tags)
+		if !hasSameTags {
+			checks, err := tx.Get("checks", "node_service", node, eSvc.ServiceID)
+			if err != nil {
+				return fmt.Errorf("failed service check lookup: %s", err)
+			}
+			checksIndexNeedsUpdate := false
+			for check := checks.Next(); check != nil; check = checks.Next() {
+				scheck := check.(*structs.HealthCheck)
+				checkWithSameTag := reflect.DeepEqual(svc.Tags, scheck.ServiceTags)
+				if !checkWithSameTag {
+					checksIndexNeedsUpdate = true
+					scheck.ServiceTags = eSvc.ServiceTags
+					cerr := s.ensureCheckTxn(tx, idx, scheck)
+					if cerr != nil {
+						return fmt.Errorf("failed updating check index: %s", err)
+					}
+				}
+			}
+			if checksIndexNeedsUpdate {
+				// Update the index.
+				if err := tx.Insert("index", &IndexEntry{"checks", idx}); err != nil {
+					return fmt.Errorf("failed updating index: %s", err)
+				}
+			}
+		}
 	} else {
 		entry.CreateIndex = idx
 		entry.ModifyIndex = idx
