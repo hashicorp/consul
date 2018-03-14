@@ -618,13 +618,12 @@ func (s *Store) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *st
 	// Create the service node entry and populate the indexes. Note that
 	// conversion doesn't populate any of the node-specific information.
 	// That's always populated when we read from the state store.
-	hasSameTags := false
 	entry := svc.ToServiceNode(node)
 	if existing != nil {
 		entry.CreateIndex = existing.(*structs.ServiceNode).CreateIndex
 		entry.ModifyIndex = idx
 		eSvc := existing.(*structs.ServiceNode)
-		hasSameTags = reflect.DeepEqual(eSvc.ServiceTags, svc.Tags)
+		hasSameTags := reflect.DeepEqual(eSvc.ServiceTags, svc.Tags)
 		if !hasSameTags {
 			checks, err := tx.Get("checks", "node_service", node, eSvc.ServiceID)
 			if err != nil {
