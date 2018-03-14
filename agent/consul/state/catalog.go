@@ -1075,8 +1075,11 @@ func (s *Store) deleteServiceTxn(tx *memdb.Txn, idx uint64, nodeName, serviceID 
 	svc := service.(*structs.ServiceNode)
 	// In some cases, it would be possible to avoid updating this index if
 	// the tags of this service instance are all present in other instances
+	// and if the removed service is NOT the last one.
 	// But the optimization might be costly since we would have to run thru the
 	// whole list of services.
+	// We are here optimizing the most common use case which ensures the service does exists
+	// and we consider the removal of a service to be a less common scenario.
 	if err := tx.Insert("index", &IndexEntry{"service-catalog", idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
