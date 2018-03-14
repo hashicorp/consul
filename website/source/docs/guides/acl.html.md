@@ -502,6 +502,8 @@ $ curl \
 {"ID":"d0a9f330-2f9d-0a8c-d2af-1e9ceda354e6"}
 ```
 
+The token can then be set on the "settings" page of the UI.
+
 #### Next Steps
 
 The examples above configure a basic ACL environment with the ability to see all nodes
