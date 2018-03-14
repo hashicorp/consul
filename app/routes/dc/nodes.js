@@ -7,7 +7,7 @@ export default Route.extend({
   model: function(params) {
     const repo = this.get('repo');
     return hash({
-      nodes: repo.findAllByDatacenter(this.modelFor('dc').dc),
+      items: repo.findAllByDatacenter(this.modelFor('dc').dc),
     });
   },
   setupController: function(controller, model) {
