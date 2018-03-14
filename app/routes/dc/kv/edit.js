@@ -64,25 +64,42 @@ export default Route.extend({
     controller.setProperties(model);
   },
   actions: {
-    updateKey: function(key) {
-      var controller = this.controller;
-      controller.set('isLoading', true);
-      // Put the key and the decoded (plain text) value
-      // from the form.
-      key.set('Value', get(key, 'valueDecoded'));
-      this.get('repo')
-        .persist(key, this.modelFor('dc').dc)
-        .then(function(response) {
-          // If success, probably need a better notification
-        })
-        .catch(function(response) {
-          controller.set('errorMessage', 'Received error while processing: ' + response.statusText);
-        })
-        .finally(function() {
-          controller.set('isLoading', false);
-        });
+    update: function(key) {
+      this.get('feedback').execute(
+        () => {
+          key.set('Value', get(key, 'valueDecoded'));
+          return this.get('repo').persist(key, this.modelFor('dc').dc);
+        },
+        `Updated ${key.get('Key')}`,
+        `There was an error updating ${key.get('Key')}`
+      );
     },
-    cancelEdit: function(key) {
+    delete: function(key) {
+      this.get('feedback').execute(
+        () => {
+          const dc = this.modelFor('dc').dc;
+          const parentKeys = this.getParentAndGrandparent(get(key, 'Key'));
+          return this.get('repo')
+            .remove(
+              {
+                Key: key.get('Key'),
+              },
+              dc
+            )
+            .then(() => {
+              const rootKey = this.get('rootKey');
+              return transitionToNearestParent.bind(this)(
+                dc,
+                parentKeys.isRoot ? rootKey : parentKeys.parent,
+                rootKey
+              );
+            });
+        },
+        `Deleted ${key.get('Key')}`,
+        `There was an error deleting ${key.get('Key')}`
+      );
+    },
+    cancel: function(key) {
       const controller = this.controller;
       // TODO: I've already done this once
       const parentKeys = this.getParentAndGrandparent(get(key, 'Key'));
@@ -90,35 +107,6 @@ export default Route.extend({
       // could probably do with a better notification
       this.transitionTo('dc.kv.show', parentKeys.isRoot ? this.get('rootKey') : parentKeys.parent);
       controller.set('isLoading', false);
-    },
-    deleteKey: function(key) {
-      const controller = this.controller;
-      const dc = this.modelFor('dc').dc;
-      // TODO: I've already done this once
-      const parentKeys = this.getParentAndGrandparent(get(key, 'Key'));
-      controller.set('isLoading', true);
-      // Delete the key
-      this.get('repo')
-        .remove(
-          {
-            Key: key.get('Key'),
-          },
-          dc
-        )
-        .then(() => {
-          const rootKey = this.get('rootKey');
-          return transitionToNearestParent.bind(this)(
-            dc,
-            parentKeys.isRoot ? rootKey : parentKeys.parent,
-            rootKey
-          );
-        })
-        .catch(function(response) {
-          controller.set('errorMessage', 'Received error while processing: ' + response.statusText);
-        })
-        .finally(function() {
-          controller.set('isLoading', false);
-        });
     },
   },
 });

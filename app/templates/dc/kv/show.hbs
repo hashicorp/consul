@@ -59,7 +59,7 @@
                   </div>
                   {{/if}}
 
-                  <button {{ action "createKey" newKey parentKey grandParentKey}} disabled="{{if newKey.isInvalid "disabled"}}" class="btn {{if newKey.isValid "btn-success" "btn-default" }}">Create</button>
+                  <button {{ action "create" newKey parentKey grandParentKey}} disabled="{{if newKey.isInvalid "disabled"}}" class="btn {{if newKey.isValid "btn-success" "btn-default" }}">Create</button>
                   {{#unless newKey.isFolder }}
                     <label class="form-checkbox">{{ input type="checkbox" checked=newKey.validateJson }}Validate JSON</label>
                   {{/unless}}

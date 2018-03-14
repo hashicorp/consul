@@ -1,12 +1,8 @@
 import Route from '@ember/routing/route';
-import { inject as controller } from '@ember/controller';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 
-import handle from 'consul-ui/utils/handle';
-
 import { next } from '@ember/runloop';
-
 export default Route.extend({
   repo: service('acls'),
   model: function(params) {
@@ -15,7 +11,6 @@ export default Route.extend({
       items: repo.findAllByDatacenter(this.modelFor('dc').dc),
       newAcl: repo.create(),
       isShowingItem: false,
-      types: ['client', 'management'],
     });
   },
   setupController: function(controller, model) {
@@ -30,29 +25,27 @@ export default Route.extend({
         });
       });
     },
-    error: function(error, transition) {
-      // error, transition
-      // If consul returns 401, ACLs are disabled
-      if (error && error.status === 401) {
+    error: function(e, transition) {
+      if (e.errors[0].status === '401') {
+        // 401 - ACLs are disabled
         this.transitionTo('dc.aclsdisabled');
         return false;
-      } else if (error && error.status === 403) {
-        // If consul returns 403, they key isn't authorized for that
-        // action.
+      } else if (error && error.status === '403') {
+        // 403 - the key isn't authorized for that action.
         this.transitionTo('dc.unauthorized');
         return false;
       }
       return true; // ??
     },
-    createAcl: function(newAcl) {
-      handle.bind(this)(
+    create: function(acl) {
+      this.get('feedback').execute(
         () => {
-          return newAcl.save().then(() => {
+          return acl.save().then(() => {
             this.refresh();
           });
         },
-        'created',
-        'errored'
+        `Created ${acl.get('Name')}`,
+        `There was an error using ${acl.get('Name')}`
       );
     },
   },

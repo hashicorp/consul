@@ -35,61 +35,53 @@ export default Route.extend({
     controller.setProperties(model);
   },
   actions: {
-    // Creates the key from the key model argument
-    // set on the route.
-    createKey: function(key, parentKey, grandParentKey) {
+    create: function(key, parentKey, grandParentKey) {
       // If we don't have a previous model to base
       // on our parent, or we're not at the root level,
       // add the prefix
       if (parentKey !== undefined && parentKey !== '/') {
         key.set('Key', parentKey + key.get('Key'));
       }
-      const controller = this.controller;
-      controller.set('isLoading', true);
-      this.get('repo')
-        .persist(
-          key,
-          // TODO: the key object should know its dc, remove this
-          this.modelFor('dc').dc
-        )
-        .then(() => {
-          if (key.get('isFolder') === true) {
-            this.transitionTo('dc.kv.show', key.get('Key'));
-          } else {
-            this.transitionTo('dc.kv.edit', key.get('Key'));
-          }
-        })
-        .catch(function(response) {
-          // Render the error message on the form if the request failed
-          controller.set('errorMessage', 'Received error while processing: ' + response.statusText);
-        })
-        .finally(function() {
-          controller.set('isLoading', false);
-        });
+      this.get('feedback').execute(
+        () => {
+          return this.get('repo')
+            .persist(
+              key,
+              // TODO: the key object should know its dc, remove this
+              this.modelFor('dc').dc
+            )
+            .then(() => {
+              if (key.get('isFolder') === true) {
+                this.transitionTo('dc.kv.show', key.get('Key'));
+              } else {
+                this.transitionTo('dc.kv.edit', key.get('Key'));
+              }
+            });
+        },
+        `Created ${key.get('Key')}`,
+        `There was an error using ${key.get('Key')}`
+      );
     },
     deleteFolder: function(parentKey, grandParent) {
-      const controller = this.controller;
-      controller.set('isLoading', true);
-      const dc = this.modelFor('dc').dc;
-      // TODO: Possibly change to ember-data entity rather than a pojo
-      this.get('repo')
-        .remove(
-          {
-            Key: parentKey,
-          },
-          // TODO: the key object should know its dc, remove this
-          dc
-        )
-        .then(response => {
-          return transitionToNearestParent.bind(this)(dc, grandParent, this.get('rootKey'));
-        })
-        .catch(function(response) {
-          // Render the error message on the form if the request failed
-          controller.set('errorMessage', 'Received error while processing: ' + response.statusText);
-        })
-        .finally(function() {
-          controller.set('isLoading', false);
-        });
+      this.get('feedback').execute(
+        () => {
+          const dc = this.modelFor('dc').dc;
+          // TODO: Possibly change to ember-data entity rather than a pojo
+          return this.get('repo')
+            .remove(
+              {
+                Key: parentKey,
+              },
+              // TODO: the key object should know its dc, remove this
+              dc
+            )
+            .then(response => {
+              return transitionToNearestParent.bind(this)(dc, grandParent, this.get('rootKey'));
+            });
+        },
+        `Deleted ${key.get('Key')}`,
+        `There was an error deleting ${key.get('Key')}`
+      );
     },
   },
 });

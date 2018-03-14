@@ -1,7 +1,16 @@
 import Route from '@ember/routing/route';
+import { inject as service } from '@ember/service';
 
-export function initialize(/* application */) {
+export function initialize(application) {
   Route.reopen({
+    feedback: service('feedback'),
+    init: function() {
+      this._super(...arguments);
+      this.set('feedback', {
+        execute: this.get('feedback').execute.bind(this),
+      });
+    },
+
     rootKey: '-',
     condensedView: false,
     // Don't record characters in browser history

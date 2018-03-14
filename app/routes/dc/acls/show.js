@@ -1,7 +1,6 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
-import handle from 'consul-ui/utils/handle';
 export default Route.extend({
   repo: service('acls'),
   model: function(params) {
@@ -9,7 +8,6 @@ export default Route.extend({
     return hash({
       dc: dc,
       model: this.get('repo').findBySlug(params.id, dc),
-      types: ['client', 'management'],
     });
   },
   setupController: function(controller, model) {
@@ -17,17 +15,17 @@ export default Route.extend({
   },
   actions: {
     use: function(acl) {
-      handle.bind(this)(
+      this.get('feedback').execute(
         () => {
           // settings.set('settings.token', acl.ID);
           this.transitionTo('dc.services');
         },
-        'using',
-        'errored'
+        `Now using ${acl.get('ID')}`,
+        `There was an error using ${acl.get('ID')}`
       );
     },
     clone: function(acl) {
-      handle.bind(this)(
+      this.get('feedback').execute(
         () => {
           return this.get('repo')
             .clone(acl, this.modelFor('dc').dc)
@@ -35,12 +33,12 @@ export default Route.extend({
               this.transitionTo('dc.acls.show', acl.get('ID'));
             });
         },
-        'cloned',
-        'errored'
+        `Cloned ${acl.get('ID')}`,
+        `There was an error cloning ${acl.get('ID')}`
       );
     },
     delete: function(acl) {
-      handle.bind(this)(
+      this.get('feedback').execute(
         () => {
           return this.get('repo')
             .remove(acl, this.modelFor('dc').dc)
@@ -48,17 +46,17 @@ export default Route.extend({
               this.transitionTo('dc.acls');
             });
         },
-        'deleted',
-        'errored'
+        `Deleted ${acl.get('ID')}`,
+        `There was an error deleting ${acl.get('ID')}`
       );
     },
     update: function(acl) {
-      handle.bind(this)(
+      this.get('feedback').execute(
         () => {
           return this.get('repo').persist(acl, this.modelFor('dc').dc);
         },
-        'Updated',
-        'errored'
+        `Updated ${acl.get('ID')}`,
+        `There was an error updating ${acl.get('ID')}`
       );
     },
   },
