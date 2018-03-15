@@ -8,12 +8,18 @@ import { computed } from '@ember/object';
 export default Entity.extend({
   Id: attr('string'), // added by ember
   Name: attr('string'),
+  Address: attr('string'),
+  Port: attr('number'),
+  EnableTagOverride: attr('boolean'),
+  CreateIndex: attr('number'),
+  ModifyIndex: attr('number'),
   ChecksPassing: attr(),
   ChecksCritical: attr(),
   ChecksWarning: attr(),
   Nodes: attr(),
   Datacenter: belongsTo('service'),
 
+  Tags: attr(),
   Node: attr(),
   Service: attr(),
   Checks: attr(),

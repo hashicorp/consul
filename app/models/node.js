@@ -7,11 +7,15 @@ export default Entity.extend({
   ID: attr('string'),
   Address: attr('string'),
   Node: attr('string'),
-  Meta: attr(),
-  Services: attr(),
-  Checks: attr(),
-  TaggedAddresses: attr(),
+  Meta: attr(), // arbitrary??
+  Services: attr(), // hasMany
+  Checks: attr(), // hasMany
+  CreateIndex: attr('number'),
+  ModifyIndex: attr('number'),
+  TaggedAddresses: attr(), // lan, wan
   Datacenter: belongsTo('dc'),
+  Segment: attr(),
+  Coord: attr(), // hasMany Vec, Error, Adjustment, Height
   // The number of failing checks within the service.
   // Boolean of whether or not there are failing checks in the service.
   // This is used to set color backgrounds and so on.
