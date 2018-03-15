@@ -1,4 +1,4 @@
 import Promise from 'rsvp';
-export default function(message) {
-  return Promise.resolve(confirm(message));
+export default function(message, confirmation = confirm) {
+  return Promise.resolve(confirmation(message));
 }

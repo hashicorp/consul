@@ -1,7 +1,6 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
-import { assign } from '@ember/polyfills';
 import rootKey from 'consul-ui/utils/rootKey';
 import transitionToNearestParent from 'consul-ui/utils/transitionToNearestParent';
 import ascend from 'consul-ui/utils/ascend';

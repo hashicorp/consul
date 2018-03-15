@@ -1,7 +1,7 @@
+/* global Base64 */
 import Entity from 'ember-data/model';
 import attr from 'ember-data/attr';
 import { computed } from '@ember/object';
-import { typeOf } from '@ember/utils';
 import ascend from 'consul-ui/utils/ascend';
 import isFolder from 'consul-ui/utils/isFolder';
 
@@ -15,9 +15,9 @@ export default Entity.extend({
   Session: attr('string'), // probably belongsTo
 
   // Validates using the Ember.Validations library
-  validations: {
-    Key: { presence: true },
-  },
+  // validations: {
+  //   Key: { presence: true },
+  // },
   // Boolean if field should validate JSON
   validateJson: false,
   // Boolean if the key is valid

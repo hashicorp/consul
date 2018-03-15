@@ -30,7 +30,7 @@ export default Route.extend({
         // 401 - ACLs are disabled
         this.transitionTo('dc.aclsdisabled');
         return false;
-      } else if (error && error.status === '403') {
+      } else if (e.errors[0].status === '403') {
         // 403 - the key isn't authorized for that action.
         this.transitionTo('dc.unauthorized');
         return false;
