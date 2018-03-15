@@ -6,7 +6,10 @@ export default Entity.extend({
   Name: attr('string'),
   ID: attr('string'),
   Node: attr('string'),
-  Checks: attr(),
   CreateIndex: attr('number'),
+  ModifyIndex: attr('number'),
   LockDelay: attr('number'),
+  Behavior: attr('string'),
+  TTL: attr('number'),
+  Checks: attr(),
 });
