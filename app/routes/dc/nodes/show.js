@@ -3,8 +3,6 @@ import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 import { assign } from '@ember/polyfills';
 
-import tomography from 'consul-ui/utils/tomography';
-
 export default Route.extend({
   repo: service('nodes'),
   sessionRepo: service('session'),
@@ -21,7 +19,8 @@ export default Route.extend({
     // Return a promise hash of the node
     return hash({
       dc: dc.dc,
-      tomography: tomography(params.name, dc),
+      // TODO: bring this in
+      // tomography: tomography(params.name, dc),
       model: repo.findBySlug(params.name, dc.dc),
       size: 337,
     }).then(function(model) {
