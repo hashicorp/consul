@@ -2,8 +2,8 @@ import Service, { inject as service } from '@ember/service';
 
 export default Service.extend({
   store: service('store'),
-  findAllByDatacenter: function(datacenter) {
-    return this.get('store').query('service', { dc: datacenter });
+  findAllByDatacenter: function(dc) {
+    return this.get('store').query('service', { dc: dc });
   },
   findBySlug: function(slug) {
     return this.get('store')

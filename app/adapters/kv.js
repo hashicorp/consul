@@ -30,7 +30,7 @@ export default Adapter.extend({
     return this.appendURL('kv', [id]);
   },
   handleResponse: function(status, headers, payload, requestData) {
-    // isCreateRecord..
+    // TODO: isCreateRecord..
     if (payload === true) {
       const kv = {
         Key: requestData.url
@@ -46,14 +46,13 @@ export default Adapter.extend({
     return this._super(status, headers, payload, requestData);
   },
   dataForRequest: function(params) {
-    // const { store, type, snapshot, requestType, query } = params;
     const data = this._super(...arguments);
     switch (params.requestType) {
       case 'updateRecord':
       case 'createRecord':
         // this will never work as ember-data will ALWAYS JSON.stringify your payload,
         // thus adding "
-        // only way around it is private...
+        // TODO: only way around it is private...
         return data.kv.Value;
     }
     return data;

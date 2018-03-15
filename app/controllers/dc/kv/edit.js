@@ -1,5 +1,6 @@
 import Controller from '@ember/controller';
 import { computed } from '@ember/object';
+import confirm from 'consul-ui/utils/confirm';
 import error from 'consul-ui/utils/error';
 
 export default Controller.extend({

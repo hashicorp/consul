@@ -1,5 +1,4 @@
 import { module } from 'ember-qunit';
-// import Service from '@ember/service';
 import test from 'ember-sinon-qunit/test-support/test';
 import confirm from 'consul-ui/utils/confirm';
 module('Unit | Utils | confirm', {});

@@ -38,6 +38,7 @@ export default Route.extend({
     controller.setProperties(model);
   },
   actions: {
+    // TODO: use feedback service
     invalidateSession: function(session) {
       const controller = this.controller;
       controller.set('isLoading', true);

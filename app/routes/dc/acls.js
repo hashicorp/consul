@@ -18,6 +18,7 @@ export default Route.extend({
   },
   actions: {
     // temporary, better than previous
+    // TODO: look at nodes/services for responsive stuff
     didTransition: function() {
       next(() => {
         this.controller.setProperties({

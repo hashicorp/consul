@@ -47,7 +47,6 @@ export default Route.extend({
     deleteFolder: function(parentKey, grandParent) {
       this.get('feedback').execute(
         () => {
-          // TODO: Possibly change to ember-data entity rather than a pojo
           return this.get('repo')
             .remove({
               Key: parentKey,
