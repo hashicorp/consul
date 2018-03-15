@@ -677,7 +677,7 @@ func (r *KeyRequest) RequestDatacenter() string {
 type KeyListRequest struct {
 	Datacenter string
 	Prefix     string
-	Seperator  string
+	Separator  string
 	QueryOptions
 }
 
