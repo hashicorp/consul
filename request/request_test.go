@@ -109,6 +109,26 @@ func TestRequestScrubExtra(t *testing.T) {
 	}
 }
 
+func TestRequestMatch(t *testing.T) {
+	st := testRequest()
+	reply := new(dns.Msg)
+
+	reply.SetQuestion("example.com.", dns.TypeMX)
+	if b := st.Match(reply); b {
+		t.Errorf("failed to match %s %d, got %t, expected %t", "example.com.", dns.TypeMX, b, false)
+	}
+
+	reply.SetQuestion("example.com.", dns.TypeA)
+	if b := st.Match(reply); !b {
+		t.Errorf("failed to match %s %d, got %t, expected %t", "example.com.", dns.TypeA, b, true)
+	}
+
+	reply.SetQuestion("example.org.", dns.TypeA)
+	if b := st.Match(reply); b {
+		t.Errorf("failed to match %s %d, got %t, expected %t", "example.org.", dns.TypeA, b, false)
+	}
+}
+
 func BenchmarkRequestDo(b *testing.B) {
 	st := testRequest()
 
