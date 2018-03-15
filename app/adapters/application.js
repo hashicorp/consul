@@ -1,9 +1,7 @@
 import Adapter from 'ember-data/adapters/rest';
 import { inject as service } from '@ember/service';
 import { assign } from '@ember/polyfills';
-const createURL = function(encoded, raw, encode = encodeURIComponent) {
-  return encoded.concat(raw.map(encode)).join('/');
-};
+import createURL from 'consul-ui/utils/createURL';
 export default Adapter.extend({
   namespace: 'v1',
   repo: service('settings'),
