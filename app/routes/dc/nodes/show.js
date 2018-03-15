@@ -46,7 +46,7 @@ export default Route.extend({
       // Delete the session
       const sessionRepo = this.get('sessionRepo');
       sessionRepo
-        .remove(session.get('ID'), dc)
+        .remove(session, dc)
         .then(() => {
           const node = controller.get('model');
           return sessionRepo.findByNode(node.get('Node'), dc).then(function(sessions) {

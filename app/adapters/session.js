@@ -11,4 +11,14 @@ export default Adapter.extend({
     delete query.key;
     return this.appendURL('session/info', [id]);
   },
+  urlForDeleteRecord: function(id, modelName, snapshot) {
+    return this.appendURL('session/destroy', [id]);
+  },
+  methodForRequest: function(params) {
+    switch (params.requestType) {
+      case 'deleteRecord':
+        return 'PUT';
+    }
+    return this._super(...arguments);
+  },
 });

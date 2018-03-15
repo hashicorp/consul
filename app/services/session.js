@@ -1,7 +1,5 @@
 import Service, { inject as service } from '@ember/service';
 
-import put from 'consul-ui/utils/request/put';
-
 export default Service.extend({
   store: service('store'),
   findByNode: function(node, dc) {
@@ -16,7 +14,10 @@ export default Service.extend({
       dc: dc,
     });
   },
-  remove: function(id, dc) {
-    return put('/v1/session/' + id, dc);
+  remove: function(item, dc) {
+    return item.destroyRecord().then(item => {
+      // really?
+      return this.get('store').unloadRecord(item);
+    });
   },
 });
