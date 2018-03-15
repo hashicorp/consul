@@ -1,36 +1,29 @@
 import Adapter from './application';
 export default Adapter.extend({
   urlForQuery: function(query, modelName) {
-    return `/${this.namespace}/acl/list`;
+    return this.appendURL('acl/list');
   },
   urlForQueryRecord: function(query, modelName) {
     const acl = query.acl;
     delete query.acl;
-    if (query.clone) {
-      delete query.clone;
-      return `/${this.namespace}/acl/clone/${acl}`;
-    }
-    return `/${this.namespace}/acl/info/${acl}`;
+    return this.appendURL('acl/info', [acl]);
   },
   urlForDeleteRecord: function(id, modelName, snapshot) {
-    return `/${this.namespace}/acl/destroy/${id}`;
+    return this.appendURL('acl/destroy', [id]);
   },
   urlForCreateRecord: function(modelName, snapshot) {
-    return `/${this.namespace}/acl/create`;
+    return this.appendURL('acl/create');
   },
   urlForCloneRecord: function(modelName, snapshot) {
-    // const id = snapshot.attr('ID');
-    return `/${this.namespace}/acl/clone/${id}`;
+    return this.appendURL('acl/clone', [snapshot.attr('ID')]);
   },
   urlForUpdateRecord: function(id, modelName, snapshot) {
-    return `/${this.namespace}/acl/update`;
+    return this.appendURL('acl/update');
   },
   dataForRequest: function(params) {
-    // const { store, type, snapshot, requestType, query } = params;
     const data = this._super(...arguments);
     switch (params.requestType) {
       case 'updateRecord':
-        return data.acl;
       case 'createRecord':
         return data.acl;
     }
@@ -39,7 +32,6 @@ export default Adapter.extend({
   methodForRequest: function(params) {
     switch (params.requestType) {
       case 'deleteRecord':
-        return 'PUT';
       case 'createRecord':
         return 'PUT';
       case 'queryRecord':

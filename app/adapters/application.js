@@ -7,4 +7,7 @@ export default Adapter.extend({
   headersForRequest: function(params) {
     return assign({}, this.get('repo').findHeaders(), this._super(...arguments));
   },
+  appendURL: function(path, parts = []) {
+    return [this.buildURL(), path].concat(parts.map(encodeURIComponent)).join('/');
+  },
 });

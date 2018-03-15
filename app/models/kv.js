@@ -1,6 +1,9 @@
 import Entity from 'ember-data/model';
 import attr from 'ember-data/attr';
 import { computed } from '@ember/object';
+import { typeOf } from '@ember/utils';
+import ascend from 'consul-ui/utils/ascend';
+import isFolder from 'consul-ui/utils/isFolder';
 
 export default Entity.extend({
   Key: attr('string'),
@@ -24,29 +27,25 @@ export default Entity.extend({
   // The key with the parent removed.
   // This is only for display purposes, and used for
   // showing the key name inside of a nested key.
-  keyWithoutParent: function() {
-    return this.get('Key').replace(this.get('parentKey'), '');
-  }.property('Key'),
-  // Boolean if the key is a "folder" or not, i.e is a nested key
-  // that feels like a folder. Used for UI
-  isFolder: computed('Key', function() {
-    if (this.get('Key') === undefined) {
-      return false;
+  basename: computed('Key', function() {
+    let key = this.get('Key');
+    if (isFolder(key)) {
+      key = key.substring(0, key.length - 1);
     }
-    return this.get('Key').slice(-1) === '/';
+    return this.get('Key').replace(ascend(key, 1) || '/', '');
+  }),
+  isFolder: computed('Key', function() {
+    return isFolder(this.get('Key'));
   }),
   // Boolean if the key is locked or now
   isLocked: computed('Session', function() {
-    if (!this.get('Session')) {
-      return false;
-    } else {
-      return true;
-    }
+    // handlebars doesn't like booleans, use valueOf
+    return new Boolean(this.get('Session')).valueOf();
   }),
   // Determines what route to link to. If it's a folder,
   // it will link to kv.show. Otherwise, kv.edit
   linkToRoute: computed('Key', function() {
-    if (this.get('Key').slice(-1) === '/') {
+    if (isFolder(this.get('Key'))) {
       return 'dc.kv.show';
     } else {
       return 'dc.kv.edit';
@@ -89,35 +88,5 @@ export default Entity.extend({
     } catch (e) {
       return false;
     }
-  }),
-  // An array of the key broken up by the /
-  keyParts: computed('Key', function() {
-    var key = this.get('Key');
-    // If the key is a folder, remove the last
-    // slash to split properly
-    if (key.slice(-1) == '/') {
-      key = key.substring(0, key.length - 1);
-    }
-    return key.split('/');
-  }),
-  // The parent Key is the key one level above this.Key
-  // key: baz/bar/foobar/
-  // grandParent: baz/bar/
-  parentKey: computed('Key', function() {
-    var parts = this.get('keyParts').toArray();
-    // Remove the last item, essentially going up a level
-    // in hiearchy
-    parts.pop();
-    return parts.join('/') + '/';
-  }),
-  // The grandParent Key is the key two levels above this.Key
-  // key: baz/bar/foobar/
-  // grandParent: baz/
-  grandParentKey: computed('Key', function() {
-    var parts = this.get('keyParts').toArray();
-    // Remove the last two items, jumping two levels back
-    parts.pop();
-    parts.pop();
-    return parts.join('/') + '/';
   }),
 });

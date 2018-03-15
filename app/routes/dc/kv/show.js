@@ -4,31 +4,28 @@ import { hash } from 'rsvp';
 import { assign } from '@ember/polyfills';
 import rootKey from 'consul-ui/utils/rootKey';
 import transitionToNearestParent from 'consul-ui/utils/transitionToNearestParent';
+import ascend from 'consul-ui/utils/ascend';
 
+const prefix = function(key, prefix) {
+  // the user provided 'key' form the input field
+  // doesn't contain the entire path
+  // if its not root, prefix the parentKey (i.e. the folder the user is in)
+  if (prefix !== '/') {
+    key.set('Key', prefix + key.get('Key'));
+  }
+  return key;
+};
 export default Route.extend({
   repo: service('kv'),
   model: function(params) {
-    const key = rootKey(params.key, this.rootKey) || this.rootKey;
-    const dc = this.modelFor('dc').dc;
     const repo = this.get('repo');
-    // Return a promise has with the ?keys for that namespace
-    // and the original key requested in params
+    const key = rootKey(params.key, this.rootKey) || this.rootKey;
     return hash({
-      key: key,
-      keys: repo.findAllBySlug(key, dc),
+      keys: repo.findAllBySlug(key, this.modelFor('dc').dc),
       newKey: repo.create(),
+      parentKey: ascend(key, 1) || '/',
+      grandParentKey: ascend(key, 2) || '/',
       isLoading: false,
-    }).then(model => {
-      const key = model.key;
-      const parentKeys = this.getParentAndGrandparent(key);
-      // TODO: Tidy this up, this is pretty much just a slightly
-      // refactored old build
-      return assign(model, {
-        model: model.keys,
-        keys: this.removeDuplicateKeys(model.keys, key),
-        parentKey: parentKeys.parent,
-        grandParentKey: parentKeys.grandParent,
-      });
     });
   },
   setupController: function(controller, model) {
@@ -36,51 +33,36 @@ export default Route.extend({
   },
   actions: {
     create: function(key, parentKey, grandParentKey) {
-      // If we don't have a previous model to base
-      // on our parent, or we're not at the root level,
-      // add the prefix
-      if (parentKey !== undefined && parentKey !== '/') {
-        key.set('Key', parentKey + key.get('Key'));
-      }
       this.get('feedback').execute(
         () => {
           return this.get('repo')
-            .persist(
-              key,
-              // TODO: the key object should know its dc, remove this
-              this.modelFor('dc').dc
-            )
-            .then(() => {
-              if (key.get('isFolder') === true) {
-                this.transitionTo('dc.kv.show', key.get('Key'));
-              } else {
-                this.transitionTo('dc.kv.edit', key.get('Key'));
-              }
+            .persist(prefix(key, parentKey))
+            .then(key => {
+              this.transitionTo(key.get('isFolder') ? 'dc.kv.show' : 'dc.kv.edit', key.get('Key'));
             });
         },
         `Created ${key.get('Key')}`,
-        `There was an error using ${key.get('Key')}`
+        `There was an error creating ${key.get('Key')}`
       );
     },
     deleteFolder: function(parentKey, grandParent) {
       this.get('feedback').execute(
         () => {
-          const dc = this.modelFor('dc').dc;
           // TODO: Possibly change to ember-data entity rather than a pojo
           return this.get('repo')
-            .remove(
-              {
-                Key: parentKey,
-              },
-              // TODO: the key object should know its dc, remove this
-              dc
-            )
+            .remove({
+              Key: parentKey,
+            })
             .then(response => {
-              return transitionToNearestParent.bind(this)(dc, grandParent, this.get('rootKey'));
+              return transitionToNearestParent.bind(this)(
+                this.modelFor('dc').dc,
+                grandParent,
+                this.get('rootKey')
+              );
             });
         },
-        `Deleted ${key.get('Key')}`,
-        `There was an error deleting ${key.get('Key')}`
+        `Deleted ${parentKey}`,
+        `There was an error deleting ${parentKey}`
       );
     },
   },

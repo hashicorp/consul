@@ -19,48 +19,12 @@ export function initialize(application) {
     // },
     // this is only KV not all Routes
     rootKey: '-',
-    getParentAndGrandparent: function(key) {
-      var parentKey = this.rootKey,
-        grandParentKey = this.rootKey,
-        parts = key.split('/');
-
-      if (parts.length > 0) {
-        parts.pop();
-        parentKey = parts.join('/') + '/';
-      }
-      if (parts.length > 1) {
-        parts.pop();
-        grandParentKey = parts.join('/') + '/';
-      }
-      return {
-        parent: parentKey,
-        grandParent: grandParentKey,
-        isRoot: parentKey === '/',
-      };
-    },
-    removeDuplicateKeys: function(keys, matcher) {
-      // I 'think' this can go now we are in ember-data?
-      // Loop over the keys
-      // DS.RecordArray's implementation of `forEach` is different/broken?
-      // DS.RecordArray doesn't implement Array (splice == removeAt)
-      keys = keys.toArray();
-      keys.forEach(function(item, index) {
-        if (item.get('Key') == matcher) {
-          // If we are in a nested folder and the folder
-          // name matches our position, remove it
-
-          keys.splice(index, 1);
-        }
-      });
-      return keys;
-    },
     actions: {
       // Used to link to keys that are not objects,
       // like parents and grandParents
+      // TODO: This is a view thing, should possibly be a helper
       linkToKey: function(key) {
-        if (key == '/') {
-          this.transitionTo('dc.kv.show', '-');
-        } else if (key.slice(-1) === '/' || key === this.rootKey) {
+        if (key.slice(-1) === '/' || key === this.rootKey) {
           this.transitionTo('dc.kv.show', key);
         } else {
           this.transitionTo('dc.kv.edit', key);

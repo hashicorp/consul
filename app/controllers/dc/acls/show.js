@@ -1,25 +1,25 @@
 import Controller from '@ember/controller';
 import confirm from 'consul-ui/utils/confirm';
-
+import error from 'consul-ui/utils/error';
 export default Controller.extend({
   actions: {
-    requestUse: function(acl) {
+    requestUse: function(item) {
       confirm('Are you sure you want to use this token for your session?')
-        .then(() => {
-          return this.send('use', acl);
+        .then(confirmed => {
+          if (confirmed) {
+            return this.send('use', item);
+          }
         })
-        .catch(function(e) {
-          // cancel - noop
-        });
+        .catch(error);
     },
-    requestDelete: function(acl) {
+    requestDelete: function(item) {
       confirm('Are you sure you want to delete this token?')
-        .then(() => {
-          return this.send('delete', acl);
+        .then(confirmed => {
+          if (confirmed) {
+            return this.send('delete', item);
+          }
         })
-        .catch(function(e) {
-          // cancel - noop
-        });
+        .catch(error);
     },
   },
 });

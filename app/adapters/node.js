@@ -4,9 +4,9 @@ export default Adapter.extend({
     return this.urlForFindAll();
   },
   urlForFindAll: function() {
-    return `/${this.namespace}/internal/ui/nodes`;
+    return this.appendURL('internal/ui/nodes');
   },
   urlForFindRecord: function(id, modelName) {
-    return `/${this.namespace}/internal/ui/node/${id}`;
+    return this.appendURL('internal/ui/node', [id]);
   },
 });

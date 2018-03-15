@@ -1,7 +1,5 @@
 import Service, { inject as service } from '@ember/service';
-
-import put from 'consul-ui/utils/request/put';
-import del from 'consul-ui/utils/request/del';
+import { typeOf } from '@ember/utils';
 
 export default Service.extend({
   store: service('store'),
@@ -25,10 +23,21 @@ export default Service.extend({
   create: function() {
     return this.get('store').createRecord('kv');
   },
-  persist: function(key, dc) {
-    return put('/v1/kv/' + key.get('Key'), dc, key.get('Value'));
+  persist: function(item, dc) {
+    return item.save();
   },
-  remove: function(key, dc) {
-    return del('/v1/kv/' + key.Key + '?recurse', dc);
+  remove: function(item, dc) {
+    if (typeOf(item) === 'object') {
+      const key = item.Key;
+      item = this.get('store').peekRecord('kv', key);
+      if (item == null) {
+        item = this.create();
+        item.set('Key', key);
+      }
+    }
+    return item.destroyRecord().then(item => {
+      // really?
+      return this.get('store').unloadRecord(item);
+    });
   },
 });

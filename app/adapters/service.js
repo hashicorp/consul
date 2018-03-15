@@ -1,12 +1,13 @@
 import Adapter from './application';
 export default Adapter.extend({
   urlForQuery: function(query, modelName) {
-    return this.urlForFindAll(); /* modelName, snapshot?? */
+    // be careful proxying down as urlForFindAll needs snapshot
+    return this.urlForFindAll();
   },
   urlForFindAll: function(modelName, snapshot) {
-    return `/${this.namespace}/internal/ui/services`;
+    return this.appendURL('internal/ui/services');
   },
   urlForFindRecord: function(id, modelName) {
-    return `/${this.namespace}/health/service/${id}`;
+    return this.appendURL('health/service', [id]);
   },
 });

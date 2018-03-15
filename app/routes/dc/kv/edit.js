@@ -5,6 +5,7 @@ import { assign } from '@ember/polyfills';
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
 import transitionToNearestParent from 'consul-ui/utils/transitionToNearestParent';
+import ascend from 'consul-ui/utils/ascend';
 
 export default Route.extend({
   repo: service('kv'),
@@ -12,20 +13,21 @@ export default Route.extend({
   model: function(params) {
     const key = params.key;
     const dc = this.modelFor('dc').dc;
-    const parentKeys = this.getParentAndGrandparent(key);
     const repo = this.get('repo');
-    // Return a promise hash to get the data for both columns
-
     // keys and key are requested in series to avoid
     // ember not being able to merge the responses
+    const parentKey = ascend(key, 1);
     return hash({
       // better name, slug vs key?
-      keys: repo.findAllBySlug(parentKeys.parent, dc),
+      keys: repo.findAllBySlug(parentKey, dc),
       isLoading: false,
+      parentKey: parentKey,
+      grandParentKey: ascend(key, 2),
     })
       .then(function(model) {
         return hash(
           assign({}, model, {
+            siblings: model.keys,
             key: repo.findBySlug(key, dc),
           })
         );
@@ -37,27 +39,11 @@ export default Route.extend({
         if (session) {
           return hash(
             assign({}, model, {
-              session: this.get('sessionRepo').findByKey(session, model.dc),
+              session: this.get('sessionRepo').findByKey(session, dc),
             })
           );
-        } else {
-          return assign({}, model, {
-            session: '',
-          });
         }
-      })
-      .then(model => {
-        // TODO: again as in show, look at tidying this up
-        const key = model.key;
-        const parentKeys = this.getParentAndGrandparent(get(key, 'Key'));
-        return assign(model, {
-          keys: this.removeDuplicateKeys(model.keys.toArray(), parentKeys.parent),
-          model: key,
-          parentKey: parentKeys.parent,
-          grandParentKey: parentKeys.grandParent,
-          siblings: model.keys,
-          session: model.session,
-        });
+        return model;
       });
   },
   setupController: function(controller, model) {
@@ -77,20 +63,14 @@ export default Route.extend({
     delete: function(key) {
       this.get('feedback').execute(
         () => {
-          const dc = this.modelFor('dc').dc;
-          const parentKeys = this.getParentAndGrandparent(get(key, 'Key'));
+          const parentKey = ascend(key.get('Key'), 1) || '/';
           return this.get('repo')
-            .remove(
-              {
-                Key: key.get('Key'),
-              },
-              dc
-            )
+            .remove(key)
             .then(() => {
               const rootKey = this.get('rootKey');
               return transitionToNearestParent.bind(this)(
-                dc,
-                parentKeys.isRoot ? rootKey : parentKeys.parent,
+                this.modelFor('dc').dc,
+                parentKey === '/' ? rootKey : parentKey,
                 rootKey
               );
             });
@@ -99,13 +79,12 @@ export default Route.extend({
         `There was an error deleting ${key.get('Key')}`
       );
     },
+    // TODO: This is frontend ??
     cancel: function(key) {
       const controller = this.controller;
-      // TODO: I've already done this once
-      const parentKeys = this.getParentAndGrandparent(get(key, 'Key'));
       controller.set('isLoading', true); // check before removing these
       // could probably do with a better notification
-      this.transitionTo('dc.kv.show', parentKeys.isRoot ? this.get('rootKey') : parentKeys.parent);
+      this.transitionTo('dc.kv.show', ascend(key.get('Key'), 1) || '/');
       controller.set('isLoading', false);
     },
   },

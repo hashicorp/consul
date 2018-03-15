@@ -1,4 +1,6 @@
 import Service from '@ember/service';
+import notify from 'consul-ui/utils/notify';
+import error from 'consul-ui/utils/error';
 
 export default Service.extend({
   execute: function(handle, successMsg, failureMsg) {
@@ -6,13 +8,12 @@ export default Service.extend({
     controller.set('isLoading', true);
     return handle()
       .then(function() {
-        // notify
-        console.log(successMsg);
+        // this will go into the view
+        notify(successMsg);
         controller.set('notification', successMsg);
       })
       .catch(function(e) {
-        // notify
-        console.error(e);
+        error(e);
         controller.set('errorMessage', failureMsg);
       })
       .finally(function() {

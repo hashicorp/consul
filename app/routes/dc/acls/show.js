@@ -14,49 +14,49 @@ export default Route.extend({
     controller.setProperties(model);
   },
   actions: {
-    use: function(acl) {
+    update: function(item) {
+      this.get('feedback').execute(
+        () => {
+          return this.get('repo').persist(item, this.modelFor('dc').dc);
+        },
+        `Updated ${item.get('ID')}`,
+        `There was an error updating ${item.get('ID')}`
+      );
+    },
+    delete: function(item) {
+      this.get('feedback').execute(
+        () => {
+          return this.get('repo')
+            .remove(item, this.modelFor('dc').dc)
+            .then(() => {
+              this.transitionTo('dc.acls');
+            });
+        },
+        `Deleted ${item.get('ID')}`,
+        `There was an error deleting ${item.get('ID')}`
+      );
+    },
+    use: function(item) {
       this.get('feedback').execute(
         () => {
           // settings.set('settings.token', acl.ID);
           this.transitionTo('dc.services');
         },
-        `Now using ${acl.get('ID')}`,
-        `There was an error using ${acl.get('ID')}`
+        `Now using ${item.get('ID')}`,
+        `There was an error using ${item.get('ID')}`
       );
     },
-    clone: function(acl) {
+    clone: function(item) {
       this.get('feedback').execute(
         () => {
           return this.get('repo')
-            .clone(acl, this.modelFor('dc').dc)
-            .then(acl => {
-              this.transitionTo('dc.acls.show', acl.get('ID'));
+            .clone(item, this.modelFor('dc').dc)
+            .then(item => {
+              this.transitionTo('dc.acls.show', item.get('ID'));
             });
         },
-        `Cloned ${acl.get('ID')}`,
-        `There was an error cloning ${acl.get('ID')}`
-      );
-    },
-    delete: function(acl) {
-      this.get('feedback').execute(
-        () => {
-          return this.get('repo')
-            .remove(acl, this.modelFor('dc').dc)
-            .then(() => {
-              this.transitionTo('dc.acls');
-            });
-        },
-        `Deleted ${acl.get('ID')}`,
-        `There was an error deleting ${acl.get('ID')}`
-      );
-    },
-    update: function(acl) {
-      this.get('feedback').execute(
-        () => {
-          return this.get('repo').persist(acl, this.modelFor('dc').dc);
-        },
-        `Updated ${acl.get('ID')}`,
-        `There was an error updating ${acl.get('ID')}`
+        `Cloned ${item.get('ID')}`,
+        `There was an error cloning ${item.get('ID')}`
       );
     },
   },

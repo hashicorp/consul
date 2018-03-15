@@ -10,7 +10,7 @@
             {{#link-to item.linkToRoute item.Key tagName="div" href=false class="list-group-item list-condensed-link" }}
               <div class="{{if item.isFolder "bg-gray" "bg-light-gray" }} list-bar-horizontal"></div>
               <div class="name">
-                {{item.keyWithoutParent}}
+                {{item.basename}}
               </div>
             {{/link-to}}
           {{/each}}
@@ -30,8 +30,8 @@
               <div class="panel-bar {{if isLoading "bg-orange" "bg-green"}}{{if isLocked "bg-light-grey"}}"></div>
             <div class="panel-heading">
               <h4 class="panel-title {{if isLocked "locked"}}">
-                {{model.Key}}
-                {{#if model.isLocked}}
+                {{key.Key}}
+                {{#if key.isLocked}}
                 <small class="pull-right">
                     KEY LOCKED
                 </small>
@@ -44,18 +44,18 @@
                 {{errorMessage}}
               </div>
               <form class="form">
-                <div class="form-group {{if model.validateJson "validate"}} {{if model.isValidJson "success" "error"}}">
-                    {{ textarea value=model.valueDecoded class="form-control" disabled=model.isLocked}}
+                <div class="form-group {{if key.validateJson "validate"}} {{if model.isValidJson "success" "error"}}">
+                    {{ textarea value=key.valueDecoded class="form-control" disabled=model.isLocked}}
                 </div>
-                <button {{action "update" model}} disabled={{isLockedOrLoading}} class="btn {{if isLoading "btn-warning" "btn-success"}}">Update</button>
-                <button {{action "cancel" model}} disabled={{isLoading}} class="btn {{if isLoading "btn-warning" "btn-default"}}">Cancel</button>
-                <label class="form-checkbox">{{ input type="checkbox" checked=model.validateJson }}Validate JSON</label>
-                <button {{action "delete" model }} disabled={{isLockedOrLoading}} class="btn pull-right {{if isLoading "btn-warning" "btn-danger"}}">Delete key</button>
+                <button {{action "update" key}} disabled={{isLockedOrLoading}} class="btn {{if isLoading "btn-warning" "btn-success"}}">Update</button>
+                <button {{action "cancel" key}} disabled={{isLoading}} class="btn {{if isLoading "btn-warning" "btn-default"}}">Cancel</button>
+                <label class="form-checkbox">{{ input type="checkbox" checked=key.validateJson }}Validate JSON</label>
+                <button {{action "delete" key }} disabled={{isLockedOrLoading}} class="btn pull-right {{if isLoading "btn-warning" "btn-danger"}}">Delete key</button>
               </form>
             </div>
           </div>
 
-          {{#if model.isLocked}}
+          {{#if key.isLocked}}
             <h5>Lock Session</h5>
 
             {{#link-to 'dc.nodes.show' session.Node tagName="div" href=false class="list-group-item list-condensed-link" }}
