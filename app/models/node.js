@@ -13,7 +13,8 @@ export default Entity.extend({
   CreateIndex: attr('number'),
   ModifyIndex: attr('number'),
   TaggedAddresses: attr(), // lan, wan
-  Datacenter: belongsTo('dc'),
+  // Datacenter: belongsTo('dc'),
+  Datacenter: attr('string'),
   Segment: attr(),
   Coord: attr(), // hasMany Vec, Error, Adjustment, Height
   // The number of failing checks within the service.

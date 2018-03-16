@@ -7,9 +7,12 @@ export default Route.extend({
   repo: service('acls'),
   model: function(params) {
     const repo = this.get('repo');
+    const dc = this.modelFor('dc').dc;
+    const newItem = repo.create();
+    newItem.set('Datacenter', dc);
     return hash({
-      items: repo.findAllByDatacenter(this.modelFor('dc').dc),
-      newAcl: repo.create(),
+      items: repo.findAllByDatacenter(dc),
+      newAcl: newItem,
       isShowingItem: false,
     });
   },
@@ -21,6 +24,7 @@ export default Route.extend({
     // TODO: look at nodes/services for responsive stuff
     didTransition: function() {
       next(() => {
+        // TODO: hasOutlet
         this.controller.setProperties({
           isShowingItem: this.get('router.currentPath') === 'dc.acls.show',
         });

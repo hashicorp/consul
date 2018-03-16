@@ -27,7 +27,7 @@ export default Route.extend({
       this.get('feedback').execute(
         () => {
           return this.get('repo')
-            .remove(item, this.modelFor('dc').dc)
+            .remove(item)
             .then(() => {
               this.transitionTo('dc.acls');
             });

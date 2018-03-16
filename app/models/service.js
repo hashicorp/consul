@@ -17,7 +17,8 @@ export default Entity.extend({
   ChecksCritical: attr(),
   ChecksWarning: attr(),
   Nodes: attr(),
-  Datacenter: belongsTo('service'),
+  Datacenter: attr('string'),
+  // Datacenter: belongsTo('dc'),
 
   Tags: attr(),
   Node: attr(),

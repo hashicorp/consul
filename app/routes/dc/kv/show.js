@@ -19,9 +19,12 @@ export default Route.extend({
   model: function(params) {
     const repo = this.get('repo');
     const key = rootKey(params.key, this.rootKey) || this.rootKey;
+    const dc = this.modelFor('dc').dc;
+    const newKey = repo.create();
+    newKey.set('Datacenter', dc);
     return hash({
-      keys: repo.findAllBySlug(key, this.modelFor('dc').dc),
-      newKey: repo.create(),
+      keys: repo.findAllBySlug(key, dc),
+      newKey: newKey,
       parentKey: ascend(key, 1) || '/',
       grandParentKey: ascend(key, 2) || '/',
       isLoading: false,
@@ -47,16 +50,14 @@ export default Route.extend({
     deleteFolder: function(parentKey, grandParent) {
       this.get('feedback').execute(
         () => {
+          const dc = this.modelFor('dc').dc;
           return this.get('repo')
             .remove({
               Key: parentKey,
+              Datacenter: dc,
             })
             .then(response => {
-              return transitionToNearestParent.bind(this)(
-                this.modelFor('dc').dc,
-                grandParent,
-                this.get('rootKey')
-              );
+              return transitionToNearestParent.bind(this)(dc, grandParent, this.get('rootKey'));
             });
         },
         `Deleted ${parentKey}`,
