@@ -18,11 +18,28 @@ var extraTestEndpoints = map[string][]string{
 	"/v1/query/xxx/explain": []string{"GET"},
 }
 
-// certain endpoints can't be unit tested.
+// These endpoints are ignored in unit testing for response codes
+var ignoredEndpoints = []string{"/v1/status/peers","/v1/agent/monitor",  "/v1/agent/reload" }
+// These have custom logic
+var customEndpoints = []string{"/v1/query", "/v1/query/"}
+
+// includePathInTest returns whether this path should be ignored for the purpose of testing its response code
 func includePathInTest(path string) bool {
-	var hanging = path == "/v1/status/peers" || path == "/v1/agent/monitor" || path == "/v1/agent/reload" // these hang
-	var custom = path == "/v1/query" || path == "/v1/query/"                                              // these have custom logic
-	return !(hanging || custom)
+	ignored := false
+	for _, p := range ignoredEndpoints {
+		if p == path {
+			ignored = true
+			break
+		}
+	}
+	for _, p := range customEndpoints {
+		if p == path {
+			ignored = true
+			break
+		}
+	}
+
+	return !ignored
 }
 
 func TestHTTPAPI_MethodNotAllowed_OSS(t *testing.T) {
