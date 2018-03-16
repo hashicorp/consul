@@ -1,4 +1,5 @@
 import Adapter from './application';
+import isFolder from 'consul-ui/utils/isFolder';
 const makeAttrable = function(obj) {
   return {
     attr: function(prop) {
@@ -24,10 +25,13 @@ export default Adapter.extend({
     return this.appendURL('kv', parts);
   },
   urlForDeleteRecord: function(id, modelName, snapshot) {
-    return this.appendURL('kv', keyToArray(id), {
+    const query = {
       dc: snapshot.attr('Datacenter'),
-      // recurse?? only when a folder
-    });
+    };
+    if (isFolder(id)) {
+      query.recurse = null;
+    }
+    return this.appendURL('kv', keyToArray(id), query);
   },
   urlForCreateRecord: function(modelName, snapshot) {
     return this.appendURL('kv', keyToArray(snapshot.attr('Key')), {

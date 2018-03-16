@@ -25,6 +25,7 @@ export default Adapter.extend({
         Nodes: response,
       };
     } else {
+      // isQuery
       response = response.map(function(item, i, arr) {
         return assign({}, item, {
           Id: item.Name,
