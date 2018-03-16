@@ -298,7 +298,7 @@ func TestHTTPAPI_BlockEndpoints(t *testing.T) {
 	{
 		req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
 		resp := httptest.NewRecorder()
-		a.srv.wrap(handler)(resp, req)
+		a.srv.wrap(handler, []string{"GET"})(resp, req)
 		if got, want := resp.Code, http.StatusForbidden; got != want {
 			t.Fatalf("bad response code got %d want %d", got, want)
 		}
@@ -308,7 +308,7 @@ func TestHTTPAPI_BlockEndpoints(t *testing.T) {
 	{
 		req, _ := http.NewRequest("GET", "/v1/agent/checks", nil)
 		resp := httptest.NewRecorder()
-		a.srv.wrap(handler)(resp, req)
+		a.srv.wrap(handler, []string{"GET"})(resp, req)
 		if got, want := resp.Code, http.StatusOK; got != want {
 			t.Fatalf("bad response code got %d want %d", got, want)
 		}
@@ -340,7 +340,7 @@ func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
 		}
 
 		req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
-		a.srv.wrap(handler)(resp, req)
+		a.srv.wrap(handler, []string{"GET"})(resp, req)
 
 		translate := resp.Header().Get("X-Consul-Translate-Addresses")
 		if translate != "" {
@@ -361,7 +361,7 @@ func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
 		}
 
 		req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
-		a.srv.wrap(handler)(resp, req)
+		a.srv.wrap(handler, []string{"GET"})(resp, req)
 
 		translate := resp.Header().Get("X-Consul-Translate-Addresses")
 		if translate != "true" {
@@ -388,7 +388,7 @@ func TestHTTPAPIResponseHeaders(t *testing.T) {
 	}
 
 	req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
-	a.srv.wrap(handler)(resp, req)
+	a.srv.wrap(handler, []string{"GET"})(resp, req)
 
 	origin := resp.Header().Get("Access-Control-Allow-Origin")
 	if origin != "*" {
@@ -413,7 +413,7 @@ func TestContentTypeIsJSON(t *testing.T) {
 	}
 
 	req, _ := http.NewRequest("GET", "/v1/kv/key", nil)
-	a.srv.wrap(handler)(resp, req)
+	a.srv.wrap(handler, []string{"GET"})(resp, req)
 
 	contentType := resp.Header().Get("Content-Type")
 
@@ -467,7 +467,7 @@ func TestHTTP_wrap_obfuscateLog(t *testing.T) {
 		t.Run(url, func(t *testing.T) {
 			resp := httptest.NewRecorder()
 			req, _ := http.NewRequest("GET", url, nil)
-			a.srv.wrap(handler)(resp, req)
+			a.srv.wrap(handler, []string{"GET"})(resp, req)
 
 			if got := buf.String(); !strings.Contains(got, want) {
 				t.Fatalf("got %s want %s", got, want)
@@ -499,7 +499,7 @@ func testPrettyPrint(pretty string, t *testing.T) {
 
 	urlStr := "/v1/kv/key?" + pretty
 	req, _ := http.NewRequest("GET", urlStr, nil)
-	a.srv.wrap(handler)(resp, req)
+	a.srv.wrap(handler, []string{"GET"})(resp, req)
 
 	expected, _ := json.MarshalIndent(r, "", "    ")
 	expected = append(expected, "\n"...)

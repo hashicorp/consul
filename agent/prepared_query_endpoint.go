@@ -228,9 +228,31 @@ func (s *HTTPServer) preparedQueryDelete(id string, resp http.ResponseWriter, re
 	return nil, nil
 }
 
+// PreparedQuerySpecificOptions handles OPTIONS requests to prepared query endpoints.
+func (s *HTTPServer) preparedQuerySpecificOptions(resp http.ResponseWriter, req *http.Request) interface{} {
+	path := req.URL.Path
+	switch {
+	case strings.HasSuffix(path, "/execute"):
+		resp.Header().Add("Allow", strings.Join([]string{"OPTIONS", "GET"}, ","))
+		return resp
+
+	case strings.HasSuffix(path, "/explain"):
+		resp.Header().Add("Allow", strings.Join([]string{"OPTIONS", "GET"}, ","))
+		return resp
+
+	default:
+		resp.Header().Add("Allow", strings.Join([]string{"OPTIONS", "GET", "PUT", "DELETE"}, ","))
+		return resp
+	}
+}
+
 // PreparedQuerySpecific handles all the prepared query requests specific to a
 // particular query.
 func (s *HTTPServer) PreparedQuerySpecific(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method == "OPTIONS" {
+		return s.preparedQuerySpecificOptions(resp, req), nil
+	}
+
 	path := req.URL.Path
 	id := strings.TrimPrefix(path, "/v1/query/")
 

@@ -48,9 +48,6 @@ func (s *HTTPServer) CoordinateDatacenters(resp http.ResponseWriter, req *http.R
 	if s.checkCoordinateDisabled(resp, req) {
 		return nil, nil
 	}
-	if req.Method != "GET" {
-		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
-	}
 
 	var out []structs.DatacenterMap
 	if err := s.agent.RPC("Coordinate.ListDatacenters", struct{}{}, &out); err != nil {
@@ -80,9 +77,6 @@ func (s *HTTPServer) CoordinateNodes(resp http.ResponseWriter, req *http.Request
 	if s.checkCoordinateDisabled(resp, req) {
 		return nil, nil
 	}
-	if req.Method != "GET" {
-		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
-	}
 
 	args := structs.DCSpecificRequest{}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
@@ -104,9 +98,6 @@ func (s *HTTPServer) CoordinateNodes(resp http.ResponseWriter, req *http.Request
 func (s *HTTPServer) CoordinateNode(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkCoordinateDisabled(resp, req) {
 		return nil, nil
-	}
-	if req.Method != "GET" {
-		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
 	}
 
 	node := strings.TrimPrefix(req.URL.Path, "/v1/coordinate/node/")
@@ -156,9 +147,6 @@ func filterCoordinates(req *http.Request, in structs.Coordinates) structs.Coordi
 func (s *HTTPServer) CoordinateUpdate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkCoordinateDisabled(resp, req) {
 		return nil, nil
-	}
-	if req.Method != "PUT" {
-		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
 	}
 
 	args := structs.CoordinateUpdateRequest{}

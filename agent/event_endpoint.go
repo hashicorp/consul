@@ -20,9 +20,6 @@ const (
 
 // EventFire is used to fire a new event
 func (s *HTTPServer) EventFire(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if req.Method != "PUT" {
-		return nil, MethodNotAllowedError{req.Method, []string{"PUT"}}
-	}
 
 	// Get the datacenter
 	var dc string
@@ -77,10 +74,6 @@ func (s *HTTPServer) EventFire(resp http.ResponseWriter, req *http.Request) (int
 
 // EventList is used to retrieve the recent list of events
 func (s *HTTPServer) EventList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if req.Method != "GET" {
-		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
-	}
-
 	// Parse the query options, since we simulate a blocking query
 	var b structs.QueryOptions
 	if parseWait(resp, req, &b) {
