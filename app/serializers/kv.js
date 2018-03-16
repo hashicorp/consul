@@ -28,6 +28,12 @@ export default Serializer.extend({
       requestType
     );
   },
+  normalizeUpdateRecordResponse: function(store, primaryModelClass, payload, id, requestType) {
+    return this.normalizeCreateRecordResponse(...arguments);
+  },
+  normalizeDeleteRecordResponse: function(store, primaryModelClass, payload, id, requestType) {
+    return this.normalizeCreateRecordResponse(...arguments);
+  },
   normalizeQueryRecordResponse: function(store, primaryModelClass, payload, id, requestType) {
     return this._super(
       store,

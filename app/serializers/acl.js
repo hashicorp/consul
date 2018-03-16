@@ -24,6 +24,18 @@ export default Serializer.extend({
       requestType
     );
   },
+  normalizeUpdateRecordResponse: function(store, primaryModelClass, payload, id, requestType) {
+    return this.normalizeQueryResponse(...arguments);
+  },
+  normalizeDeleteRecordResponse: function(store, primaryModelClass, payload, id, requestType) {
+    return this.normalizeQueryResponse(
+      store,
+      primaryModelClass,
+      { [this.get('primaryKey')]: id },
+      id,
+      requestType
+    );
+  },
   normalizeCreateRecordResponse: function(store, primaryModelClass, payload, id, requestType) {
     return this._super(
       store,
