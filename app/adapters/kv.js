@@ -29,6 +29,8 @@ export default Adapter.extend({
   urlForUpdateRecord: function(id, modelName, snapshot) {
     return this.appendURL('kv', [id]);
   },
+  // When you createRecord this seems to be the only way to retain the
+  // 'id' or the 'Key' without overriding everything and resorting to private methods
   handleResponse: function(status, headers, payload, requestData) {
     // TODO: isCreateRecord..
     if (payload === true) {
