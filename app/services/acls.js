@@ -40,9 +40,8 @@ export default Service.extend({
         dc: dc,
       })
       .then(function(items) {
-        return items.map(function(item, i, arr) {
+        items = items.forEach(function(item, i, arr) {
           item.set('Datacenter', dc);
-          return item;
         });
       });
   },

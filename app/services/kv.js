@@ -26,9 +26,8 @@ export default Service.extend({
         seperator: '/',
       })
       .then(function(items) {
-        return items.map(function(item, i, arr) {
+        return items.forEach(function(item, i, arr) {
           item.set('Datacenter', dc);
-          return item;
         });
       });
   },

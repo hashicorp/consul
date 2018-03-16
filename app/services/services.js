@@ -8,9 +8,8 @@ export default Service.extend({
       .then(
         // TODO: Do I actually need to do this?
         function(items) {
-          return items.map(function(item) {
+          return items.forEach(function(item) {
             item.set('Datacenter', dc);
-            return item;
           });
         }
       );
