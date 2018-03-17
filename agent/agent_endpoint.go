@@ -836,3 +836,12 @@ func (s *HTTPServer) AgentToken(resp http.ResponseWriter, req *http.Request) (in
 	s.agent.logger.Printf("[INFO] agent: Updated agent's ACL token %q", target)
 	return nil, nil
 }
+
+// AgentConnectCARoots returns the trusted CA roots.
+func (s *HTTPServer) AgentConnectCARoots(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "GET" {
+		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+	}
+
+	return nil, nil
+}
