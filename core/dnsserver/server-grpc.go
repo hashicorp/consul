@@ -88,9 +88,11 @@ func (s *ServergRPC) OnStartupComplete() {
 		return
 	}
 
-	for zone, config := range s.zones {
-		fmt.Println(TransportGRPC + "://" + zone + ":" + config.Port)
+	out := startUpZones(TransportGRPC+"://", s.Addr, s.zones)
+	if out != "" {
+		fmt.Print(out)
 	}
+	return
 }
 
 // Stop stops the server. It blocks until the server is

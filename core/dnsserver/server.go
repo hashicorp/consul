@@ -294,23 +294,11 @@ func (s *Server) OnStartupComplete() {
 		return
 	}
 
-	for zone := range s.zones {
-		// split addr into protocol, IP and Port
-		_, ip, port, err := SplitProtocolHostPort(s.Addr)
-
-		if err != nil {
-			// this should not happen, but we need to take care of it anyway
-			fmt.Println(zone + ":" + s.Addr)
-			continue
-		}
-		if ip == "" {
-			fmt.Println(zone + ":" + port)
-			continue
-		}
-		// if the server is listening on a specific address let's make it visible in the log,
-		// so one can differentiate between all active listeners
-		fmt.Println(zone + ":" + port + " on " + ip)
+	out := startUpZones("", s.Addr, s.zones)
+	if out != "" {
+		fmt.Print(out)
 	}
+	return
 }
 
 // Tracer returns the tracer in the server if defined.

@@ -72,7 +72,9 @@ func (s *ServerTLS) OnStartupComplete() {
 		return
 	}
 
-	for zone, config := range s.zones {
-		fmt.Println(TransportTLS + "://" + zone + ":" + config.Port)
+	out := startUpZones(TransportTLS+"://", s.Addr, s.zones)
+	if out != "" {
+		fmt.Print(out)
 	}
+	return
 }
