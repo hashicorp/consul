@@ -1086,38 +1086,16 @@ func (s *Store) EnsureCheck(idx uint64, hc *structs.HealthCheck) error {
 	return nil
 }
 
-// This ensure all connected services to a check are updated properly
-func (s *Store) alterServicesFromCheck(tx *memdb.Txn, idx uint64, hc *structs.HealthCheck, checkServiceExists bool) error {
-	// If the check is associated with a service, check that we have
-	// a registration for the service.
-	if hc.ServiceID != "" {
-		service, err := tx.First("services", "id", hc.Node, hc.ServiceID)
-		// When deleting a service, service might have been removed already
-		if err != nil && checkServiceExists {
-			return fmt.Errorf("failed service lookup: %s", err)
-		}
-		if service == nil {
-			return ErrMissingService
-		}
-
-		// Copy in the service name and tags
-		svc := service.(*structs.ServiceNode)
-		hc.ServiceName = svc.ServiceName
-		hc.ServiceTags = svc.ServiceTags
-		if err = tx.Insert("index", &IndexEntry{serviceIndexName(svc.ServiceName), idx}); err != nil {
+// updateIndexForAllServicesOfNode updates the status for all the services associated with this node
+func (s *Store) updateAllServiceIndexesOfNode(tx *memdb.Txn, idx uint64, nodeID string) error {
+	services, err := tx.Get("services", "node", nodeID)
+	if err != nil {
+		return fmt.Errorf("failed updating services for node %s: %s", nodeID, err)
+	}
+	for service := services.Next(); service != nil; service = services.Next() {
+		svc := service.(*structs.ServiceNode).ToNodeService()
+		if err := tx.Insert("index", &IndexEntry{serviceIndexName(svc.Service), idx}); err != nil {
 			return fmt.Errorf("failed updating index: %s", err)
-		}
-	} else {
-		// Update the status for all the services associated with this node
-		services, err := tx.Get("services", "node", hc.Node)
-		if err != nil {
-			return fmt.Errorf("failed updating services for node %s: %s", hc.Node, err)
-		}
-		for service := services.Next(); service != nil; service = services.Next() {
-			svc := service.(*structs.ServiceNode).ToNodeService()
-			if err := tx.Insert("index", &IndexEntry{serviceIndexName(svc.Service), idx}); err != nil {
-				return fmt.Errorf("failed updating index: %s", err)
-			}
 		}
 	}
 	return nil
@@ -1156,9 +1134,30 @@ func (s *Store) ensureCheckTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthChec
 		return ErrMissingNode
 	}
 
-	err = s.alterServicesFromCheck(tx, idx, hc, true)
-	if err != nil {
-		return err
+	// If the check is associated with a service, check that we have
+	// a registration for the service.
+	if hc.ServiceID != "" {
+		service, err := tx.First("services", "id", hc.Node, hc.ServiceID)
+		if err != nil {
+			return fmt.Errorf("failed service lookup: %s", err)
+		}
+		if service == nil {
+			return ErrMissingService
+		}
+
+		// Copy in the service name and tags
+		svc := service.(*structs.ServiceNode)
+		hc.ServiceName = svc.ServiceName
+		hc.ServiceTags = svc.ServiceTags
+		if err = tx.Insert("index", &IndexEntry{serviceIndexName(svc.ServiceName), idx}); err != nil {
+			return fmt.Errorf("failed updating index: %s", err)
+		}
+	} else {
+		// Update the status for all the services associated with this node
+		err = s.updateAllServiceIndexesOfNode(tx, idx, hc.Node)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Delete any sessions for this check if the health is critical.
@@ -1401,9 +1400,19 @@ func (s *Store) deleteCheckTxn(tx *memdb.Txn, idx uint64, node string, checkID t
 	}
 	existing := hc.(*structs.HealthCheck)
 	if existing != nil {
-		err = s.alterServicesFromCheck(tx, idx, existing, false)
-		if err != nil {
-			return fmt.Errorf("Failed to update services linked to deleted healthcheck: %s", err)
+		// When no service is linked to this service, update all services of node
+		if existing.ServiceID != "" {
+			if err = tx.Insert("index", &IndexEntry{serviceIndexName(existing.ServiceName), idx}); err != nil {
+				return fmt.Errorf("failed updating index: %s", err)
+			}
+		} else {
+			err = s.updateAllServiceIndexesOfNode(tx, idx, existing.Node)
+			if err != nil {
+				return fmt.Errorf("Failed to update services linked to deleted healthcheck: %s", err)
+			}
+			if err := tx.Insert("index", &IndexEntry{"services", idx}); err != nil {
+				return fmt.Errorf("failed updating index: %s", err)
+			}
 		}
 	}
 
