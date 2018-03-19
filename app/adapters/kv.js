@@ -1,5 +1,13 @@
 import Adapter from './application';
 import isFolder from 'consul-ui/utils/isFolder';
+import injectableRequestToJQueryAjaxHash from 'consul-ui/utils/injectableRequestToJQueryAjaxHash';
+import { typeOf } from '@ember/utils';
+const stringify = function(obj) {
+  if (typeOf(obj) === 'string') {
+    return obj;
+  }
+  return JSON.stringify(obj);
+};
 const makeAttrable = function(obj) {
   return {
     attr: function(prop) {
@@ -11,6 +19,9 @@ const keyToArray = function(key) {
   return (key === '/' ? '' : key).split('/');
 };
 export default Adapter.extend({
+  _requestToJQueryAjaxHash: injectableRequestToJQueryAjaxHash({
+    stringify: stringify,
+  }),
   urlForQuery: function(query, modelName) {
     const parts = keyToArray(query.key);
     delete query.key;
