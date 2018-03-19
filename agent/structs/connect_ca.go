@@ -28,7 +28,8 @@ type CARoot struct {
 	RootCert string
 
 	// SigningCert is the PEM-encoded signing certificate and SigningKey
-	// is the PEM-encoded private key for the signing certificate.
+	// is the PEM-encoded private key for the signing certificate. These
+	// may actually be empty if the CA plugin in use manages these for us.
 	SigningCert string
 	SigningKey  string
 
@@ -37,3 +38,21 @@ type CARoot struct {
 
 // CARoots is a list of CARoot structures.
 type CARoots []*CARoot
+
+// CASignRequest is the request for signing a service certificate.
+type CASignRequest struct {
+	// Datacenter is the target for this request.
+	Datacenter string
+
+	// CSR is the PEM-encoded CSR.
+	CSR string
+
+	// WriteRequest is a common struct containing ACL tokens and other
+	// write-related common elements for requests.
+	WriteRequest
+}
+
+// RequestDatacenter returns the datacenter for a given request.
+func (q *CASignRequest) RequestDatacenter() string {
+	return q.Datacenter
+}

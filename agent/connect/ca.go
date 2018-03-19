@@ -40,6 +40,21 @@ func ParseSigner(pemValue string) (crypto.Signer, error) {
 	}
 }
 
+// ParseCSR parses a CSR from a PEM-encoded value. The certificate request
+// must be the the first block in the PEM value.
+func ParseCSR(pemValue string) (*x509.CertificateRequest, error) {
+	block, _ := pem.Decode([]byte(pemValue))
+	if block == nil {
+		return nil, fmt.Errorf("no PEM-encoded data found")
+	}
+
+	if block.Type != "CERTIFICATE REQUEST" {
+		return nil, fmt.Errorf("first PEM-block should be CERTIFICATE REQUEST type")
+	}
+
+	return x509.ParseCertificateRequest(block.Bytes)
+}
+
 // KeyId returns a x509 KeyId from the given signing key. The key must be
 // an *ecdsa.PublicKey, but is an interface type to support crypto.Signer.
 func KeyId(raw interface{}) ([]byte, error) {

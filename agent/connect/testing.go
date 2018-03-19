@@ -11,6 +11,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
+	"math/big"
 	"net/url"
 	"sync/atomic"
 	"time"
@@ -45,7 +46,7 @@ func TestCA(t testing.T, xc *structs.CARoot) *structs.CARoot {
 	signer := testPrivateKey(t, &result)
 
 	// The serial number for the cert
-	sn, err := SerialNumber()
+	sn, err := testSerialNumber()
 	if err != nil {
 		t.Fatalf("error generating serial number: %s", err)
 	}
@@ -124,7 +125,11 @@ func TestCA(t testing.T, xc *structs.CARoot) *structs.CARoot {
 // the given CA Root.
 func TestLeaf(t testing.T, service string, root *structs.CARoot) string {
 	// Parse the CA cert and signing key from the root
-	caCert, err := ParseCert(root.RootCert)
+	cert := root.SigningCert
+	if cert == "" {
+		cert = root.RootCert
+	}
+	caCert, err := ParseCert(cert)
 	if err != nil {
 		t.Fatalf("error parsing CA cert: %s", err)
 	}
@@ -133,8 +138,16 @@ func TestLeaf(t testing.T, service string, root *structs.CARoot) string {
 		t.Fatalf("error parsing signing key: %s", err)
 	}
 
+	// Build the SPIFFE ID
+	spiffeId := &SpiffeIDService{
+		Host:       fmt.Sprintf("%s.consul", testClusterID),
+		Namespace:  "default",
+		Datacenter: "dc01",
+		Service:    service,
+	}
+
 	// The serial number for the cert
-	sn, err := SerialNumber()
+	sn, err := testSerialNumber()
 	if err != nil {
 		t.Fatalf("error generating serial number: %s", err)
 	}
@@ -143,6 +156,7 @@ func TestLeaf(t testing.T, service string, root *structs.CARoot) string {
 	template := x509.Certificate{
 		SerialNumber:          sn,
 		Subject:               pkix.Name{CommonName: service},
+		URIs:                  []*url.URL{spiffeId.URI()},
 		SignatureAlgorithm:    x509.ECDSAWithSHA256,
 		BasicConstraintsValid: true,
 		KeyUsage:              x509.KeyUsageDataEncipherment | x509.KeyUsageKeyAgreement,
@@ -166,6 +180,30 @@ func TestLeaf(t testing.T, service string, root *structs.CARoot) string {
 	err = pem.Encode(&buf, &pem.Block{Type: "CERTIFICATE", Bytes: bs})
 	if err != nil {
 		t.Fatalf("error encoding private key: %s", err)
+	}
+
+	return buf.String()
+}
+
+// TestCSR returns a CSR to sign the given service.
+func TestCSR(t testing.T, id SpiffeID) string {
+	template := &x509.CertificateRequest{
+		URIs: []*url.URL{id.URI()},
+	}
+
+	// Create the private key we'll use
+	signer := testPrivateKey(t, nil)
+
+	// Create the CSR itself
+	bs, err := x509.CreateCertificateRequest(rand.Reader, template, signer)
+	if err != nil {
+		t.Fatalf("error creating CSR: %s", err)
+	}
+
+	var buf bytes.Buffer
+	err = pem.Encode(&buf, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: bs})
+	if err != nil {
+		t.Fatalf("error encoding CSR: %s", err)
 	}
 
 	return buf.String()
@@ -221,10 +259,20 @@ func testPrivateKey(t testing.T, ca *structs.CARoot) crypto.Signer {
 	if err != nil {
 		t.Fatalf("error encoding private key: %s", err)
 	}
-	ca.SigningKey = buf.String()
+	if ca != nil {
+		ca.SigningKey = buf.String()
+	}
 
 	// Memoize the key
 	testMemoizePK.Store(pk)
 
 	return pk
+}
+
+// testSerialNumber generates a serial number suitable for a certificate.
+// For testing, this just sets it to a random number.
+//
+// This function is taken directly from the Vault implementation.
+func testSerialNumber() (*big.Int, error) {
+	return rand.Int(rand.Reader, (&big.Int{}).Exp(big.NewInt(2), big.NewInt(159), nil))
 }
