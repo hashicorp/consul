@@ -124,7 +124,7 @@ fixtures.services_full = {
           "Notes": "",
           "Output": "200 ok",
           "Status": "passing",
-          "Name": "Foo Heathly",
+          "Name": "Foo Healthy",
           "CheckID": "fooHealth",
           "Node": "node-10-0-1-102"
         }
