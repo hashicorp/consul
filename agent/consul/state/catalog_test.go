@@ -905,11 +905,18 @@ func TestStateStore_EnsureService(t *testing.T) {
 
 	// Retrieve the services.
 	ws = memdb.NewWatchSet()
+	idx2, _, err2 := s.NodeServices(ws, "node2")
+	if err2 != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx2 != 30 {
+		t.Fatalf("bad index: %d", idx)
+	}
 	idx, out, err := s.NodeServices(ws, "node1")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx != 30 {
+	if idx != 20 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
@@ -962,9 +969,199 @@ func TestStateStore_EnsureService(t *testing.T) {
 		t.Fatalf("bad: %#v", svc)
 	}
 
-	// Index tables were updated.
+	// Index tables not updated since service did already exist
+	if idx := s.maxIndex("service-catalog"); idx != 30 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Index tables not updated since service did already exist
 	if idx := s.maxIndex("services"); idx != 40 {
 		t.Fatalf("bad index: %d", idx)
+	}
+
+	ns4 := &structs.NodeService{
+		ID:      "service4",
+		Service: "web",
+		Tags:    []string{"prod", "mytag"},
+		Address: "1.1.1.1",
+		Port:    8000,
+	}
+	if err = s.EnsureService(50, "node1", ns4); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
+	// Retrieve the service again and ensure it matches..
+	idx, out, err = s.NodeServices(nil, "node1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 50 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if out == nil || len(out.Services) != 3 {
+		t.Fatalf("bad: %#v", out)
+	}
+	expect4 := *ns4
+	expect4.CreateIndex, expect4.ModifyIndex = 50, 50
+	if svc := out.Services["service4"]; !reflect.DeepEqual(&expect4, svc) {
+		t.Fatalf("bad: %#v\nVS               : %#v", svc, expect4)
+	}
+
+	// Index tables not updated since service did already exist
+	if idx := s.maxIndex("services"); idx != 50 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Same service, same tags
+	ns5 := &structs.NodeService{
+		ID:      "service4",
+		Service: "web",
+		Tags:    []string{"prod", "mytag"},
+		Address: "1.1.1.1",
+		Port:    8000,
+	}
+
+	// node and service should be modified, but not services since tags did not change
+	if err = s.EnsureService(51, "node1", ns5); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
+	// Retrieve the service again and ensure it matches..
+	idx, out, err = s.NodeServices(nil, "node1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 51 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if out == nil || len(out.Services) != 3 {
+		t.Fatalf("bad: %#v", out)
+	}
+	// Since tags did not change, index of services should not have been modified
+	idx, _, err = s.Services(ws)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 50 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Same service, new tag
+	ns6 := &structs.NodeService{
+		ID:      "service4",
+		Service: "web",
+		Tags:    []string{"prod", "mytag", "newtag"},
+		Address: "1.1.1.1",
+		Port:    8000,
+	}
+
+	// node and service should be modified, but not services since tags did not change
+	if err = s.EnsureService(52, "node1", ns6); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !watchFired(ws) {
+		t.Fatalf("bad")
+	}
+	// Retrieve the service again and ensure it matches..
+	idx, out, err = s.NodeServices(nil, "node1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 52 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if out == nil || len(out.Services) != 3 {
+		t.Fatalf("bad: %#v", out)
+	}
+	// Since tags have been modified, index of services should have as well
+	sidx, sout, serr := s.Services(ws)
+	if serr != nil {
+		t.Fatalf("err: %s", serr)
+	}
+	if sidx != 52 {
+		t.Fatalf("bad index: %d", sidx)
+	}
+	// tag order is not predictible
+	if sout == nil || !(sout["web"][2] == "newtag" || sout["web"][1] == "newtag" || sout["web"][0] == "newtag") {
+		t.Fatalf("bad: %#v", out)
+	}
+
+	err = s.DeleteService(60, "node1", "service4")
+	if err != nil {
+		t.Fatalf("err: %s", serr)
+	}
+	// Index MUST have been updated since it is the only "web" service
+	sidx, sout, serr = s.Services(ws)
+	if serr != nil {
+		t.Fatalf("err: %s", serr)
+	}
+	if sidx != 60 {
+		t.Fatalf("bad index: %d", sidx)
+	}
+
+	err = s.DeleteService(70, "node1", "service3")
+	if err != nil {
+		t.Fatalf("err: %s", serr)
+	}
+	// Index is not updated since other nodes still have same service
+	// and same tags
+	sidx, sout, serr = s.Services(ws)
+	if serr != nil {
+		t.Fatalf("err: %s", serr)
+	}
+	if sidx != 60 {
+		t.Fatalf("bad index: %d", sidx)
+	}
+	err = s.DeleteService(71, "node1", "service2")
+	if err != nil {
+		t.Fatalf("err: %s", serr)
+	}
+	err = s.DeleteService(72, "node2", "service2")
+	if err != nil {
+		t.Fatalf("err: %s", serr)
+	}
+	sidx, sout, serr = s.Services(ws)
+	if serr != nil {
+		t.Fatalf("err: %s", serr)
+	}
+	if sidx != 72 {
+		t.Fatalf("bad index: %d", sidx)
+	}
+
+	err = s.DeleteService(75, "node2", "service3")
+	if err != nil {
+		t.Fatalf("err: %s", serr)
+	}
+
+	// This service does not exist anymore, index unchanged
+	err = s.DeleteService(76, "node1", "service2")
+	if err != nil {
+		t.Fatalf("err: %s", serr)
+	}
+
+	sidx, sout, serr = s.Services(ws)
+	if serr != nil {
+		t.Fatalf("err: %s", serr)
+	}
+	if sidx != 75 {
+		t.Fatalf("bad index: %d", sidx)
+	}
+
+	// We remove the last redis service
+	err = s.DeleteService(90, "node1", "service1")
+	if err != nil {
+		t.Fatalf("err: %s", serr)
+	}
+	sidx, sout, serr = s.Services(ws)
+	if serr != nil {
+		t.Fatalf("err: %s", serr)
+	}
+	if sidx != 90 {
+		t.Fatalf("bad index: %d", sidx)
 	}
 }
 
