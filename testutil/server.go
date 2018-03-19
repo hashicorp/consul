@@ -314,7 +314,7 @@ func (s *TestServer) waitForAPI() error {
 		}
 		defer resp.Body.Close()
 		if err := s.requireOK(resp); err != nil {
-			r.Fatal("failed OK respose", err)
+			r.Fatal("failed OK response", err)
 		}
 	})
 	if f.failed {

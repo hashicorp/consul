@@ -3703,7 +3703,7 @@ func nonZero(name string, uniq map[interface{}]string, v interface{}) error {
 
 	isUnique := func(v interface{}) error {
 		if other := uniq[v]; other != "" {
-			return fmt.Errorf("%q and %q both use vaule %q", name, other, v)
+			return fmt.Errorf("%q and %q both use value %q", name, other, v)
 		}
 		uniq[v] = name
 		return nil

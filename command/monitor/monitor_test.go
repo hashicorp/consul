@@ -12,7 +12,7 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func TestMonitorCommand_exitssOnSignalBeforeLinesArrive(t *testing.T) {
+func TestMonitorCommand_exitsOnSignalBeforeLinesArrive(t *testing.T) {
 	t.Parallel()
 	logWriter := logger.NewLogWriter(512)
 	a := &agent.TestAgent{

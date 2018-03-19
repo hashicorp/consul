@@ -120,7 +120,7 @@ App.Node = Ember.Object.extend({
 // A key/value object
 //
 App.Key = Ember.Object.extend(Ember.Validations.Mixin, {
-  // Validates using the Ember.Valdiations library
+  // Validates using the Ember.Validations library
   validations: {
     Key: { presence: true }
   },
@@ -254,7 +254,7 @@ App.Key = Ember.Object.extend(Ember.Validations.Mixin, {
     var parts = this.get('keyParts').toArray();
 
     // Remove the last item, essentially going up a level
-    // in hiearchy
+    // in hierarchy
     parts.pop();
 
     return parts.join("/") + "/";

@@ -181,7 +181,7 @@ type RuntimeConfig struct {
 	// AutopilotUpgradeVersionTag is the node tag to use for version info when
 	// performing upgrade migrations. If left blank, the Consul version will be used.
 	//
-	// (Entrprise-only)
+	// (Enterprise-only)
 	//
 	// hcl: autopilot { upgrade_version_tag = string }
 	AutopilotUpgradeVersionTag string
@@ -322,7 +322,7 @@ type RuntimeConfig struct {
 	// metric management is enabled.
 	// Default: none
 	//
-	// hcl: telemetry { circonous_api_token = string }
+	// hcl: telemetry { circonus_api_token = string }
 	TelemetryCirconusAPIToken string
 
 	// TelemetryCirconusAPIURL is the base URL to use for contacting the Circonus API.
@@ -359,7 +359,7 @@ type RuntimeConfig struct {
 
 	// TelemetryCirconusCheckForceMetricActivation will force enabling metrics, as they are encountered,
 	// if the metric already exists and is NOT active. If check management is enabled, the default
-	// behavior is to add new metrics as they are encoutered. If the metric already exists in the
+	// behavior is to add new metrics as they are encountered. If the metric already exists in the
 	// check, it will *NOT* be activated. This setting overrides that behavior.
 	// Default: "false"
 	//
@@ -1060,7 +1060,7 @@ type RuntimeConfig struct {
 	//     name = string
 	//     tags = []string
 	//     address = string
-	//     check = { check definiton }
+	//     check = { check definition }
 	//     checks = [ { check definition}, ... ]
 	//     token = string
 	//     enable_tag_override = (true|false)

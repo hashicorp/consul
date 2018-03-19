@@ -629,7 +629,7 @@ func TestServer_globalRPCErrors(t *testing.T) {
 		t.Fatalf("should have errored")
 	}
 	if !strings.Contains(err.Error(), "Bad.Method") {
-		t.Fatalf("unexpcted error: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 }
 

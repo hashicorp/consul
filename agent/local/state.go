@@ -746,7 +746,7 @@ func (l *State) updateSyncState() error {
 // and synchronizes the changes.
 func (l *State) SyncFull() error {
 	// note that we do not acquire the lock here since the methods
-	// we are calling will do that themself.
+	// we are calling will do that themselves.
 	//
 	// Also note that we don't hold the lock for the entire operation
 	// but release it between the two calls. This is not an issue since

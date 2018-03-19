@@ -38,7 +38,7 @@ The components in this section are only used by Consul servers.
 | --------- | -------- |
 | [agent/consul](https://github.com/hashicorp/consul/tree/master/agent/consul) | This is where the Consul server object is defined, and the top-level `consul` package has all of the functionality that's used by server agents. This includes things like the internal RPC endpoints. |
 | [agent/consul/fsm](https://github.com/hashicorp/consul/tree/master/agent/consul/fsm), [agent/consul/state](https://github.com/hashicorp/consul/tree/master/agent/consul/state) | These components make up Consul's finite state machine (updated by the Raft consensus algorithm) and backed by the state store (based on immutable radix trees). All updates of Consul's consistent state is handled by the finite state machine, and all read queries to the Consul servers are serviced by the state store's data structures. |
-| [agent/consul/autopulot](https://github.com/hashicorp/consul/tree/master/agent/consul/autopilot) | This contains a package of functions that provide Consul's [Autopilot](https://www.consul.io/docs/guides/autopilot.html) features. |
+| [agent/consul/autopilot](https://github.com/hashicorp/consul/tree/master/agent/consul/autopilot) | This contains a package of functions that provide Consul's [Autopilot](https://www.consul.io/docs/guides/autopilot.html) features. |
 
 ### Other Components
 

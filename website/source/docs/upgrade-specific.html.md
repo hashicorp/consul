@@ -30,7 +30,7 @@ Consul 1.0 has several important breaking changes that are documented here. Plea
 
 The [`-raft-protocol`](/docs/agent/options.html#_raft_protocol) default has been changed from 2 to 3, enabling all [Autopilot](/docs/guides/autopilot.html) features by default.
 
-Raft protocol version 3 requires Consul running 0.8.0 or newer on all servers in order to work, so if you are upgrading with older servers in a cluster then you will need to set this back to 2 in order to upgrade. See [Raft Protocol Version Compatibility](/docs/upgrade-specific.html#raft-protocol-version-compatibility) for more details. Also the format of `peers.json` used for outage recovery is different when running with the lastest Raft protocol. See [Manual Recovery Using peers.json](/docs/guides/outage.html#manual-recovery-using-peers-json) for a description of the required format.
+Raft protocol version 3 requires Consul running 0.8.0 or newer on all servers in order to work, so if you are upgrading with older servers in a cluster then you will need to set this back to 2 in order to upgrade. See [Raft Protocol Version Compatibility](/docs/upgrade-specific.html#raft-protocol-version-compatibility) for more details. Also the format of `peers.json` used for outage recovery is different when running with the latest Raft protocol. See [Manual Recovery Using peers.json](/docs/guides/outage.html#manual-recovery-using-peers-json) for a description of the required format.
 
 Please note that the Raft protocol is different from Consul's internal protocol as described on the [Protocol Compatibility Promise](/docs/compatibility.html) page, and as is shown in commands like `consul members` and `consul version`. To see the version of the Raft protocol in use on each server, use the `consul operator raft list-peers` command.
 
@@ -299,7 +299,7 @@ configuration:
 Consul also 0.7 introduced support for tuning Raft performance using a new
 [performance configuration block](/docs/agent/options.html#performance). Also,
 the default Raft timing is set to a lower-performance mode suitable for
-[minimal Consul servers](/docs/guides/performance.html#minumum).
+[minimal Consul servers](/docs/guides/performance.html#minimum).
 
 To continue to use the high-performance settings that were the default prior to
 Consul 0.7 (recommended for production servers), add the following configuration

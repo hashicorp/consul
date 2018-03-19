@@ -506,7 +506,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	}
 
 	// Check the service address here and in the catalog RPC endpoint
-	// since service registration isn't sychronous.
+	// since service registration isn't synchronous.
 	if ipaddr.IsAny(args.Address) {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Invalid service address")
