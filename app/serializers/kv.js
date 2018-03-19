@@ -1,48 +1,17 @@
 import Serializer from './application';
-
 export default Serializer.extend({
   primaryKey: 'Key',
-  normalizeQueryResponse: function(store, primaryModelClass, payload, id, requestType) {
-    return this._super(
-      store,
-      primaryModelClass,
-      {
-        [primaryModelClass.modelName]: payload.map(function(item, i, arr) {
+  normalizePayload: function(payload, id, requestType) {
+    switch (requestType) {
+      case 'query':
+        return payload.map(item => {
           return {
             Key: item,
           };
-        }),
-      },
-      id,
-      requestType
-    );
-  },
-  normalizeCreateRecordResponse: function(store, primaryModelClass, payload, id, requestType) {
-    return this._super(
-      store,
-      primaryModelClass,
-      {
-        [primaryModelClass.modelName]: payload,
-      },
-      id,
-      requestType
-    );
-  },
-  normalizeUpdateRecordResponse: function(store, primaryModelClass, payload, id, requestType) {
-    return this.normalizeCreateRecordResponse(...arguments);
-  },
-  normalizeDeleteRecordResponse: function(store, primaryModelClass, payload, id, requestType) {
-    return this.normalizeCreateRecordResponse(...arguments);
-  },
-  normalizeQueryRecordResponse: function(store, primaryModelClass, payload, id, requestType) {
-    return this._super(
-      store,
-      primaryModelClass,
-      {
-        [primaryModelClass.modelName]: payload[0],
-      },
-      id,
-      requestType
-    );
+        });
+      case 'queryRecord':
+        return payload[0];
+    }
+    return this._super(...arguments);
   },
 });

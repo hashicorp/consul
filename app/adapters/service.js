@@ -1,5 +1,6 @@
 import Adapter from './application';
 import { assign } from '@ember/polyfills';
+const PRIMARY_KEY = 'Id';
 export default Adapter.extend({
   urlForQuery: function(query, modelName) {
     return this.appendURL('internal/ui/services');
@@ -21,17 +22,18 @@ export default Adapter.extend({
     const parts = requestData.url.split('/');
     if (this.isQueryRecord(parts)) {
       response = {
-        Id: parts.pop(),
+        [PRIMARY_KEY]: parts.pop(),
         Nodes: response,
       };
     } else {
       // isQuery
       response = response.map(function(item, i, arr) {
         return assign({}, item, {
-          Id: item.Name,
+          [PRIMARY_KEY]: item.Name,
         });
       });
     }
-    return this._super(status, headers, { services: response }, requestData);
+    return this._super(status, headers, response, requestData);
+    // return this._super(status, headers, {services: response}, requestData);
   },
 });

@@ -10,6 +10,9 @@ const makeAttrable = function(obj) {
 const keyToArray = function(key) {
   return (key === '/' ? '' : key).split('/');
 };
+const PRIMARY_KEY = 'Key';
+const DATACENTER_KEY = 'Datacenter';
+
 export default Adapter.extend({
   urlForQuery: function(query, modelName) {
     const parts = keyToArray(query.key);
@@ -26,7 +29,7 @@ export default Adapter.extend({
   },
   urlForDeleteRecord: function(id, modelName, snapshot) {
     const query = {
-      dc: snapshot.attr('Datacenter'),
+      dc: snapshot.attr(DATACENTER_KEY),
     };
     if (isFolder(id)) {
       query.recurse = null;
@@ -35,7 +38,7 @@ export default Adapter.extend({
   },
   urlForCreateRecord: function(modelName, snapshot) {
     return this.appendURL('kv', keyToArray(snapshot.attr('Key')), {
-      dc: snapshot.attr('Datacenter'),
+      dc: snapshot.attr(DATACENTER_KEY),
     });
   },
   urlForUpdateRecord: function(id, modelName, snapshot) {
@@ -58,11 +61,11 @@ export default Adapter.extend({
       // isBoolean? should error on false
       const url = requestData.url.split('?')[0];
       const kv = {
-        Key: url
+        [PRIMARY_KEY]: url
           .split('/')
           .splice(3)
           .join('/'),
-        Datacenter: '',
+        DATACENTER_KEY: '',
       }; // TODO: separator?
       // safest way to check this is a create?
       if (this.urlForCreateRecord(null, makeAttrable(kv)).split('?')[0] === url) {
