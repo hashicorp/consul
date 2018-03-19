@@ -24,5 +24,5 @@ func (s *HTTPServer) ConnectCARoots(resp http.ResponseWriter, req *http.Request)
 		return nil, err
 	}
 
-	return reply.Roots, nil
+	return reply, nil
 }

@@ -10,7 +10,9 @@ type IndexedCARoots struct {
 	// Roots is a list of root CA certs to trust.
 	Roots []*CARoot
 
-	QueryMeta
+	// QueryMeta contains the meta sent via a header. We ignore for JSON
+	// so this whole structure can be returned.
+	QueryMeta `json:"-"`
 }
 
 // CARoot represents a root CA certificate that is trusted.
