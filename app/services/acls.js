@@ -35,24 +35,35 @@ import Service, { inject as service } from '@ember/service';
 export default Service.extend({
   store: service('store'),
   findAllByDatacenter: function(dc) {
-    return this.get('store').query('acl', {
-      dc: dc,
-    });
+    return this.get('store')
+      .query('acl', {
+        dc: dc,
+      })
+      .then(function(items) {
+        items = items.forEach(function(item, i, arr) {
+          item.set('Datacenter', dc);
+        });
+      });
   },
   findBySlug: function(slug, dc) {
-    return this.get('store').queryRecord('acl', {
-      acl: slug,
-      dc: dc,
-    });
+    return this.get('store')
+      .queryRecord('acl', {
+        acl: slug,
+        dc: dc,
+      })
+      .then(function(item) {
+        item.set('Datacenter', dc);
+        return item;
+      });
   },
   create: function() {
     return this.get('store').createRecord('acl');
   },
-  persist: function(item, dc) {
+  persist: function(item) {
     return item.save();
   },
-  remove: function(item, dc) {
-    return item.destroyRecord().then(() => {
+  remove: function(item) {
+    return item.destroyRecord().then(item => {
       // really?
       return this.get('store').unloadRecord(item);
     });

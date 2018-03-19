@@ -13,6 +13,7 @@ export default Entity.extend({
   CreateIndex: attr('string'),
   ModifyIndex: attr('string'),
   Session: attr('string'), // probably belongsTo
+  Datacenter: attr('string'),
 
   // Validates using the Ember.Validations library
   // validations: {

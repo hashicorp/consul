@@ -5,8 +5,8 @@ export default Service.extend({
   findAll: function() {
     return this.get('store')
       .findAll('dc')
-      .then(function(dcs) {
-        return dcs.map(function(item) {
+      .then(function(items) {
+        return items.map(function(item) {
           return item.get('Name');
         });
       });

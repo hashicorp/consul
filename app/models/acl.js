@@ -9,6 +9,7 @@ export default Entity.extend({
   Rules: attr('string'),
   CreateIndex: attr('number'),
   ModifyIndex: attr('number'),
+  Datacenter: attr('string'),
   isNotAnon: computed('ID', function() {
     if (this.get('ID') === 'anonymous') {
       return false;

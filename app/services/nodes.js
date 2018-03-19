@@ -5,8 +5,11 @@ export default Service.extend({
   findAllByDatacenter: function(dc) {
     return this.get('store').query('node', { dc: dc });
   },
-  findBySlug: function(slug) {
-    return this.get('store').findRecord('node', slug);
+  findBySlug: function(slug, dc) {
+    return this.get('store').queryRecord('node', {
+      id: slug,
+      dc: dc,
+    });
   },
   // findAllCoordinatesByDatacenter: function(dc) {
   //   console.warn('TODO: not ember-data');

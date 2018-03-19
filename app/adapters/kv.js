@@ -1,4 +1,5 @@
 import Adapter from './application';
+import isFolder from 'consul-ui/utils/isFolder';
 const makeAttrable = function(obj) {
   return {
     attr: function(prop) {
@@ -13,7 +14,10 @@ export default Adapter.extend({
   urlForQuery: function(query, modelName) {
     const parts = keyToArray(query.key);
     delete query.key;
-    return this.appendURL('kv', parts) + '?keys';
+    // append keys here otherwise query.keys will add an '='
+    return this.appendURL('kv', parts, {
+      keys: null,
+    });
   },
   urlForQueryRecord: function(query, modelName) {
     const parts = keyToArray(query.key);
@@ -21,31 +25,53 @@ export default Adapter.extend({
     return this.appendURL('kv', parts);
   },
   urlForDeleteRecord: function(id, modelName, snapshot) {
-    return this.appendURL('kv', [id]) + '?recurse';
+    const query = {
+      dc: snapshot.attr('Datacenter'),
+    };
+    if (isFolder(id)) {
+      query.recurse = null;
+    }
+    return this.appendURL('kv', keyToArray(id), query);
   },
   urlForCreateRecord: function(modelName, snapshot) {
-    return this.appendURL('kv', keyToArray(snapshot.attr('Key')));
+    return this.appendURL('kv', keyToArray(snapshot.attr('Key')), {
+      dc: snapshot.attr('Datacenter'),
+    });
   },
   urlForUpdateRecord: function(id, modelName, snapshot) {
     return this.appendURL('kv', [id]);
   },
+  // isCreateRecord: function(parts) {
+  //   const url = parts.splice(3).concat([""]).join('/');
+  //   return this.urlForQueryRecord({id: ""}) === url;
+  // },
+  // isQueryRecord: function(parts) {
+  //   const url = parts.slice(0, -1).concat([""]).join('/');
+  //   return this.urlForQueryRecord({id: ""}) === url;
+  // },
   // When you createRecord this seems to be the only way to retain the
   // 'id' or the 'Key' without overriding everything and resorting to private methods
   handleResponse: function(status, headers, payload, requestData) {
     // TODO: isCreateRecord..
-    if (payload === true) {
+    let response = payload;
+    if (response === true) {
+      // isBoolean? should error on false
+      const url = requestData.url.split('?')[0];
       const kv = {
-        Key: requestData.url
+        Key: url
           .split('/')
           .splice(3)
           .join('/'),
+        Datacenter: '',
       }; // TODO: separator?
       // safest way to check this is a create?
-      if (this.urlForCreateRecord(null, makeAttrable(kv)) === requestData.url) {
-        payload = kv;
+      if (this.urlForCreateRecord(null, makeAttrable(kv)).split('?')[0] === url) {
+        response = kv;
       }
+    } else {
+      // both query and queryRecord
     }
-    return this._super(status, headers, payload, requestData);
+    return this._super(status, headers, response, requestData);
   },
   dataForRequest: function(params) {
     const data = this._super(...arguments);
