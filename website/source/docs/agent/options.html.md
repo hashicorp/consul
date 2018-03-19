@@ -1341,7 +1341,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 
 * <a name="tls_cipher_suites"></a><a href="#tls_cipher_suites">`tls_cipher_suites`</a> Added in Consul
   0.8.2, this specifies the list of supported ciphersuites as a comma-separated-list. The list of all
-  available ciphersuites is available in the [Golang TLS documentation](https://golang.org/src/crypto/tls/cipher_suites.go).
+  supported ciphersuites is available in the [source code](https://github.com/hashicorp/consul/blob/master/tlsutil/config.go#L363).
 
 * <a name="tls_prefer_server_cipher_suites"></a><a href="#tls_prefer_server_cipher_suites">
   `tls_prefer_server_cipher_suites`</a> Added in Consul 0.8.2, this will cause Consul to prefer the
