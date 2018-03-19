@@ -1,5 +1,4 @@
 import Adapter from './application';
-import createQueryString from 'consul-ui/utils/createQueryString';
 export default Adapter.extend({
   urlForQuery: function(query, modelName) {
     return this.appendURL('acl/list');

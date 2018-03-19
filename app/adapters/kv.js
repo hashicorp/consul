@@ -42,7 +42,9 @@ export default Adapter.extend({
     });
   },
   urlForUpdateRecord: function(id, modelName, snapshot) {
-    return this.appendURL('kv', [id]);
+    return this.appendURL('kv', keyToArray(id), {
+      dc: snapshot.attr('Datacenter'),
+    });
   },
   // isCreateRecord: function(parts) {
   //   const url = parts.splice(3).concat([""]).join('/');
