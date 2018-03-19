@@ -40,7 +40,9 @@ export default Service.extend({
   remove: function(item) {
     if (typeOf(item) === 'object') {
       const key = item.Key;
+      const dc = item.Datacenter;
       // TODO: This won't work for multi dc?
+      // id's need to be 'dc-key'
       item = this.get('store').peekRecord('kv', key);
       if (item == null) {
         item = this.create();

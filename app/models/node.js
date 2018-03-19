@@ -2,7 +2,7 @@ import Entity from 'ember-data/model';
 import attr from 'ember-data/attr';
 import { computed, get } from '@ember/object';
 
-import { belongsTo } from 'ember-data/relationships';
+// import { belongsTo } from 'ember-data/relationships';
 export default Entity.extend({
   ID: attr('string'),
   Address: attr('string'),
