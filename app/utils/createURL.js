@@ -4,7 +4,7 @@ export default function(encoded, raw, query = {}, encode = encodeURIComponent) {
     Object.keys(query)
       .map(function(key, i, arr) {
         if (query[key] != null) {
-          return `${key}=${query[key]}`;
+          return `${key}=${encode(query[key])}`;
         }
         return key;
       })
