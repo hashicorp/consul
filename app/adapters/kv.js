@@ -1,5 +1,7 @@
 import Adapter from './application';
 import isFolder from 'consul-ui/utils/isFolder';
+import injectableRequestToJQueryAjaxHash from 'consul-ui/utils/injectableRequestToJQueryAjaxHash';
+import { typeOf } from '@ember/utils';
 const makeAttrable = function(obj) {
   return {
     attr: function(prop) {
@@ -10,7 +12,31 @@ const makeAttrable = function(obj) {
 const keyToArray = function(key) {
   return (key === '/' ? '' : key).split('/');
 };
+const stringify = function(obj) {
+  if (typeOf(obj) === 'string') {
+    return obj;
+  }
+  return JSON.stringify(obj);
+};
 export default Adapter.extend({
+  // There is no code path that can avoid the payload of a PUT request from
+  // going via JSON.stringify.
+  // Therefore a string payload of 'foobar' will always be encoded to '"foobar"'
+  //
+  // This means we have no other choice but rewriting the entire codepath or
+  // overwriting the private `_requestToJQueryAjaxHash` method
+  //
+  // The `injectableRequestToJQueryAjaxHash` function makes the JSON object
+  // injectable, meaning we can copy letter for letter the sourcecode of
+  // `_requestToJQueryAjaxHash`, which means we can compare it with the original
+  // private method within a test (`tests/unit/utils/injectableRequestToJQueryAjaxHash.js`).
+  // This means, if `_requestToJQueryAjaxHash` changes between Ember versions
+  // we will know about it
+
+  _requestToJQueryAjaxHash: injectableRequestToJQueryAjaxHash({
+    stringify: stringify,
+  }),
+
   urlForQuery: function(query, modelName) {
     const parts = keyToArray(query.key);
     delete query.key;
@@ -80,9 +106,6 @@ export default Adapter.extend({
     switch (params.requestType) {
       case 'updateRecord':
       case 'createRecord':
-        // this will never work as ember-data will ALWAYS JSON.stringify your payload,
-        // thus adding "
-        // TODO: only way around it is private...
         return data.kv.Value;
     }
     return data;
