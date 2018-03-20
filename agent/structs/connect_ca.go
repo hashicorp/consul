@@ -33,6 +33,12 @@ type CARoot struct {
 	SigningCert string
 	SigningKey  string
 
+	// Active is true if this is the current active CA. This must only
+	// be true for exactly one CA. For any method that modifies roots in the
+	// state store, tests should be written to verify that multiple roots
+	// cannot be active.
+	Active bool
+
 	RaftIndex
 }
 

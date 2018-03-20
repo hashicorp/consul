@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-uuid"
 	"github.com/mitchellh/go-testing-interface"
 )
 
@@ -32,14 +33,15 @@ const testClusterID = "11111111-2222-3333-4444-555555555555"
 var testCACounter uint64 = 0
 
 // TestCA creates a test CA certificate and signing key and returns it
-// in the CARoot structure format. The CARoot returned will NOT have an ID
-// set.
+// in the CARoot structure format. The returned CA will be set as Active = true.
 //
 // If xc is non-nil, then the returned certificate will have a signing cert
 // that is cross-signed with the previous cert, and this will be set as
 // SigningCert.
 func TestCA(t testing.T, xc *structs.CARoot) *structs.CARoot {
 	var result structs.CARoot
+	result.ID = testUUID(t)
+	result.Active = true
 	result.Name = fmt.Sprintf("Test CA %d", atomic.AddUint64(&testCACounter, 1))
 
 	// Create the private key we'll use for this CA cert.
@@ -275,4 +277,14 @@ func testPrivateKey(t testing.T, ca *structs.CARoot) crypto.Signer {
 // This function is taken directly from the Vault implementation.
 func testSerialNumber() (*big.Int, error) {
 	return rand.Int(rand.Reader, (&big.Int{}).Exp(big.NewInt(2), big.NewInt(159), nil))
+}
+
+// testUUID generates a UUID for testing.
+func testUUID(t testing.T) string {
+	ret, err := uuid.GenerateUUID()
+	if err != nil {
+		t.Fatalf("Unable to generate a UUID, %s", err)
+	}
+
+	return ret
 }

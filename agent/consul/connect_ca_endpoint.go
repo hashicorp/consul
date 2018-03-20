@@ -88,7 +88,12 @@ func (s *ConnectCA) Sign(
 		return fmt.Errorf("SPIFFE ID in CSR must be a service ID")
 	}
 
-	var root *structs.CARoot
+	// Get the currently active root
+	state := s.srv.fsm.State()
+	_, root, err := state.CARootActive(nil)
+	if err != nil {
+		return err
+	}
 
 	// Determine the signing certificate. It is the set signing cert
 	// unless that is empty, in which case it is identically to the public

@@ -55,6 +55,24 @@ func (s *Store) CARoots(ws memdb.WatchSet) (uint64, structs.CARoots, error) {
 	return idx, results, nil
 }
 
+// CARootActive returns the currently active CARoot.
+func (s *Store) CARootActive(ws memdb.WatchSet) (uint64, *structs.CARoot, error) {
+	// Get all the roots since there should never be that many and just
+	// do the filtering in this method.
+	var result *structs.CARoot
+	idx, roots, err := s.CARoots(ws)
+	if err == nil {
+		for _, r := range roots {
+			if r.Active {
+				result = r
+				break
+			}
+		}
+	}
+
+	return idx, result, err
+}
+
 // CARootSet creates or updates a CA root.
 //
 // NOTE(mitchellh): I have a feeling we'll want a CARootMultiSetCAS to
