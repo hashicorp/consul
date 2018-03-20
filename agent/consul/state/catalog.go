@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -617,10 +618,38 @@ func (s *Store) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *st
 	// Create the service node entry and populate the indexes. Note that
 	// conversion doesn't populate any of the node-specific information.
 	// That's always populated when we read from the state store.
+	hasSameTags := false
 	entry := svc.ToServiceNode(node)
 	if existing != nil {
 		entry.CreateIndex = existing.(*structs.ServiceNode).CreateIndex
 		entry.ModifyIndex = idx
+		eSvc := existing.(*structs.ServiceNode)
+		hasSameTags = reflect.DeepEqual(eSvc.ServiceTags, svc.Tags)
+		if !hasSameTags {
+			checks, err := tx.Get("checks", "node_service", node, eSvc.ServiceID)
+			if err != nil {
+				return fmt.Errorf("failed service check lookup: %s", err)
+			}
+			checksIndexNeedsUpdate := false
+			for check := checks.Next(); check != nil; check = checks.Next() {
+				scheck := check.(*structs.HealthCheck)
+				checkWithSameTag := reflect.DeepEqual(svc.Tags, scheck.ServiceTags)
+				if !checkWithSameTag {
+					checksIndexNeedsUpdate = true
+					scheck.ServiceTags = eSvc.ServiceTags
+					cerr := s.ensureCheckTxn(tx, idx, scheck)
+					if cerr != nil {
+						return fmt.Errorf("failed updating check index: %s", err)
+					}
+				}
+			}
+			if checksIndexNeedsUpdate {
+				// Update the index.
+				if err := tx.Insert("index", &IndexEntry{"checks", idx}); err != nil {
+					return fmt.Errorf("failed updating index: %s", err)
+				}
+			}
+		}
 	} else {
 		entry.CreateIndex = idx
 		entry.ModifyIndex = idx
@@ -642,6 +671,12 @@ func (s *Store) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *st
 	if err := tx.Insert("index", &IndexEntry{"services", idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
+	if !hasSameTags {
+		// We need to update /catalog/services only tags are different
+		if err := tx.Insert("index", &IndexEntry{"service-catalog", idx}); err != nil {
+			return fmt.Errorf("failed updating index: %s", err)
+		}
+	}
 	if err := tx.Insert("index", &IndexEntry{serviceIndexName(svc.Service), idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
@@ -654,8 +689,9 @@ func (s *Store) Services(ws memdb.WatchSet) (uint64, structs.Services, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	// Get the table index.
-	idx := maxIndexTxn(tx, "services")
+	// WARNING= This is an optimization since the index we are retrieving only handle
+	// tags + services list, if you are outputing something else, please do not use this
+	idx := maxIndexServiceCatalog(tx)
 
 	// List all the services.
 	services, err := tx.Get("services", "id")
@@ -772,6 +808,17 @@ func maxIndexForService(tx *memdb.Txn, serviceName string, checks bool) uint64 {
 	}
 	if checks {
 		return maxIndexTxn(tx, "nodes", "services", "checks")
+	}
+	return maxIndexTxn(tx, "nodes", "services")
+}
+
+// maxIndexServiceCatalog return the maximum Raft Index for a service-catalog index
+func maxIndexServiceCatalog(tx *memdb.Txn) uint64 {
+	transaction, err := tx.First("index", "id", "service-catalog")
+	if err == nil {
+		if idx, ok := transaction.(*IndexEntry); ok {
+			return idx.Value
+		}
 	}
 	return maxIndexTxn(tx, "nodes", "services")
 }
@@ -899,9 +946,6 @@ func (s *Store) NodeService(nodeName string, serviceID string) (uint64, *structs
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	// Get the table index.
-	idx := maxIndexTxn(tx, "services")
-
 	// Query the service
 	service, err := tx.First("services", "id", nodeName, serviceID)
 	if err != nil {
@@ -909,8 +953,11 @@ func (s *Store) NodeService(nodeName string, serviceID string) (uint64, *structs
 	}
 
 	if service != nil {
-		return idx, service.(*structs.ServiceNode).ToNodeService(), nil
+		svc := service.(*structs.ServiceNode).ToNodeService()
+		return svc.ModifyIndex, svc, nil
 	}
+	// Get the table index.
+	idx := maxIndexForService(tx, serviceID, true)
 	return idx, nil, nil
 }
 
@@ -918,9 +965,6 @@ func (s *Store) NodeService(nodeName string, serviceID string) (uint64, *structs
 func (s *Store) NodeServices(ws memdb.WatchSet, nodeNameOrID string) (uint64, *structs.NodeServices, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-
-	// Get the table index.
-	idx := maxIndexTxn(tx, "nodes", "services")
 
 	// Query the node by node name
 	watchCh, n, err := tx.FirstWatch("nodes", "id", nodeNameOrID)
@@ -964,6 +1008,7 @@ func (s *Store) NodeServices(ws memdb.WatchSet, nodeNameOrID string) (uint64, *s
 	}
 
 	node := n.(*structs.Node)
+	idx := node.ModifyIndex
 	nodeName := node.Node
 
 	// Read all of the services
@@ -983,6 +1028,9 @@ func (s *Store) NodeServices(ws memdb.WatchSet, nodeNameOrID string) (uint64, *s
 	for service := services.Next(); service != nil; service = services.Next() {
 		svc := service.(*structs.ServiceNode).ToNodeService()
 		ns.Services[svc.ID] = svc
+		if svc.ModifyIndex > idx {
+			idx = svc.ModifyIndex
+		}
 	}
 
 	return idx, ns, nil
@@ -1050,6 +1098,13 @@ func (s *Store) deleteServiceTxn(tx *memdb.Txn, idx uint64, nodeName, serviceID 
 	}
 
 	svc := service.(*structs.ServiceNode)
+	// In some cases, it would be possible to avoid updating this index if
+	// the tags of this service instance are all present in other instances
+	// But the optimization might be costly since we would have to run thru the
+	// whole list of services.
+	if err := tx.Insert("index", &IndexEntry{"service-catalog", idx}); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
 	if remainingService, err := tx.First("services", "service", svc.ServiceName); err == nil {
 		if remainingService != nil {
 			// We have at least one remaining service, update the index
