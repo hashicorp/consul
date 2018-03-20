@@ -93,7 +93,7 @@ export default Adapter.extend({
           .split('/')
           .splice(3)
           .join('/'),
-        DATACENTER_KEY: '',
+        [DATACENTER_KEY]: '',
       }; // TODO: separator?
       // safest way to check this is a create?
       if (this.urlForCreateRecord(null, makeAttrable(kv)).split('?')[0] === url) {
