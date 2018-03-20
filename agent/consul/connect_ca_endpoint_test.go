@@ -12,6 +12,44 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Test listing root CAs.
+func TestConnectCARoots(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Insert some CAs
+	state := s1.fsm.State()
+	ca1 := connect.TestCA(t, nil)
+	ca2 := connect.TestCA(t, nil)
+	ca2.Active = false
+	assert.Nil(state.CARootSet(1, ca1))
+	assert.Nil(state.CARootSet(2, ca2))
+
+	// Request
+	args := &structs.DCSpecificRequest{
+		Datacenter: "dc1",
+	}
+	var reply structs.IndexedCARoots
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", args, &reply))
+
+	// Verify
+	assert.Equal(ca1.ID, reply.ActiveRootID)
+	assert.Len(reply.Roots, 2)
+	for _, r := range reply.Roots {
+		// These must never be set, for security
+		assert.Equal("", r.SigningCert)
+		assert.Equal("", r.SigningKey)
+	}
+}
+
 // Test CA signing
 //
 // NOTE(mitchellh): Just testing the happy path and not all the other validation

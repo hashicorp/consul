@@ -56,6 +56,11 @@ func (s *ConnectCA) Roots(
 					Name:      r.Name,
 					RootCert:  r.RootCert,
 					RaftIndex: r.RaftIndex,
+					Active:    r.Active,
+				}
+
+				if r.Active {
+					reply.ActiveRootID = r.ID
 				}
 			}
 

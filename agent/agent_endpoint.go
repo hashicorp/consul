@@ -839,9 +839,8 @@ func (s *HTTPServer) AgentToken(resp http.ResponseWriter, req *http.Request) (in
 
 // AgentConnectCARoots returns the trusted CA roots.
 func (s *HTTPServer) AgentConnectCARoots(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if req.Method != "GET" {
-		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
-	}
-
-	return nil, nil
+	// NOTE(mitchellh): for now this is identical to /v1/connect/ca/roots.
+	// In the future, we're going to do some agent-local caching and the
+	// behavior will differ.
+	return s.ConnectCARoots(resp, req)
 }
