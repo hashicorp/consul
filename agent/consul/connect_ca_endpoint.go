@@ -71,7 +71,7 @@ func (s *ConnectCA) Roots(
 // isn't right, we're not using enough of the CSR fields, etc.
 func (s *ConnectCA) Sign(
 	args *structs.CASignRequest,
-	reply *structs.IndexedCARoots) error {
+	reply *structs.IssuedCert) error {
 	// Parse the CSR
 	csr, err := connect.ParseCSR(args.CSR)
 	if err != nil {
@@ -132,14 +132,17 @@ func (s *ConnectCA) Sign(
 		SerialNumber:          sn,
 		Subject:               pkix.Name{CommonName: serviceId.Service},
 		URIs:                  csr.URIs,
-		SignatureAlgorithm:    x509.ECDSAWithSHA256,
+		Signature:             csr.Signature,
+		SignatureAlgorithm:    csr.SignatureAlgorithm,
+		PublicKeyAlgorithm:    csr.PublicKeyAlgorithm,
+		PublicKey:             csr.PublicKey,
 		BasicConstraintsValid: true,
 		KeyUsage:              x509.KeyUsageDataEncipherment | x509.KeyUsageKeyAgreement,
 		ExtKeyUsage: []x509.ExtKeyUsage{
 			x509.ExtKeyUsageClientAuth,
 			x509.ExtKeyUsageServerAuth,
 		},
-		NotAfter:       time.Now().Add(10 * 365 * 24 * time.Hour),
+		NotAfter:       time.Now().Add(3 * 24 * time.Hour),
 		NotBefore:      time.Now(),
 		AuthorityKeyId: keyId,
 		SubjectKeyId:   keyId,
@@ -155,6 +158,12 @@ func (s *ConnectCA) Sign(
 	err = pem.Encode(&buf, &pem.Block{Type: "CERTIFICATE", Bytes: bs})
 	if err != nil {
 		return fmt.Errorf("error encoding private key: %s", err)
+	}
+
+	// Set the response
+	*reply = structs.IssuedCert{
+		SerialNumber: template.SerialNumber,
+		Cert:         buf.String(),
 	}
 
 	return nil

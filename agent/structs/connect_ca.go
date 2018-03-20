@@ -1,5 +1,9 @@
 package structs
 
+import (
+	"math/big"
+)
+
 // IndexedCARoots is the list of currently trusted CA Roots.
 type IndexedCARoots struct {
 	// ActiveRootID is the ID of a root in Roots that is the active CA root.
@@ -61,4 +65,14 @@ type CASignRequest struct {
 // RequestDatacenter returns the datacenter for a given request.
 func (q *CASignRequest) RequestDatacenter() string {
 	return q.Datacenter
+}
+
+// IssuedCert is a certificate that has been issued by a Connect CA.
+type IssuedCert struct {
+	// SerialNumber is the unique serial number for this certificate.
+	SerialNumber *big.Int
+
+	// Cert is the PEM-encoded certificate. This should not be stored in the
+	// state store, but is present in the sign API response.
+	Cert string `json:",omitempty"`
 }

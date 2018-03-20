@@ -190,7 +190,8 @@ func TestLeaf(t testing.T, service string, root *structs.CARoot) string {
 // TestCSR returns a CSR to sign the given service.
 func TestCSR(t testing.T, id SpiffeID) string {
 	template := &x509.CertificateRequest{
-		URIs: []*url.URL{id.URI()},
+		URIs:               []*url.URL{id.URI()},
+		SignatureAlgorithm: x509.ECDSAWithSHA256,
 	}
 
 	// Create the private key we'll use

@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"crypto/x509"
 	"os"
 	"testing"
 
@@ -30,13 +31,24 @@ func TestConnectCASign(t *testing.T) {
 
 	// Insert a CA
 	state := s1.fsm.State()
-	assert.Nil(state.CARootSet(1, connect.TestCA(t, nil)))
+	ca := connect.TestCA(t, nil)
+	assert.Nil(state.CARootSet(1, ca))
 
 	// Generate a CSR and request signing
 	args := &structs.CASignRequest{
 		Datacenter: "dc01",
 		CSR:        connect.TestCSR(t, connect.TestSpiffeIDService(t, "web")),
 	}
-	var reply interface{}
+	var reply structs.IssuedCert
 	assert.Nil(msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", args, &reply))
+
+	// Verify that the cert is signed by the CA
+	roots := x509.NewCertPool()
+	assert.True(roots.AppendCertsFromPEM([]byte(ca.RootCert)))
+	leaf, err := connect.ParseCert(reply.Cert)
+	assert.Nil(err)
+	_, err = leaf.Verify(x509.VerifyOptions{
+		Roots: roots,
+	})
+	assert.Nil(err)
 }
