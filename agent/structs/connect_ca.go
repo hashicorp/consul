@@ -113,3 +113,14 @@ type CARequest struct {
 	// always be active.
 	Roots []*CARoot
 }
+
+// CAConfiguration is the configuration for the current CA plugin.
+type CAConfiguration struct {
+	// Provider is the CA provider implementation to use.
+	Provider string
+
+	// Configuration is arbitrary configuration for the provider. This
+	// should only contain primitive values and containers (such as lists
+	// and maps).
+	Config map[string]interface{}
+}

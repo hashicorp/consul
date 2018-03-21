@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -25,4 +26,31 @@ func (s *HTTPServer) ConnectCARoots(resp http.ResponseWriter, req *http.Request)
 	}
 
 	return reply, nil
+}
+
+// /v1/connect/ca/configuration
+func (s *HTTPServer) ConnectCAConfiguration(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	switch req.Method {
+	case "PUT":
+		return s.ConnectCAConfigurationSet(resp, req)
+
+	default:
+		return nil, MethodNotAllowedError{req.Method, []string{"GET", "POST"}}
+	}
+}
+
+// PUT /v1/connect/ca/configuration
+func (s *HTTPServer) ConnectCAConfigurationSet(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Method is tested in ConnectCAConfiguration
+
+	var args structs.CAConfiguration
+	if err := decodeBody(req, &args, nil); err != nil {
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(resp, "Request decode failed: %v", err)
+		return nil, nil
+	}
+
+	var reply interface{}
+	err := s.agent.RPC("ConnectCA.ConfigurationSet", &args, &reply)
+	return nil, err
 }

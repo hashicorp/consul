@@ -14,12 +14,99 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-uuid"
+	"github.com/mitchellh/go-testing-interface"
+	"github.com/mitchellh/mapstructure"
 )
 
 // ConnectCA manages the Connect CA.
 type ConnectCA struct {
 	// srv is a pointer back to the server.
 	srv *Server
+}
+
+// ConfigurationSet updates the configuration for the CA.
+//
+// NOTE(mitchellh): This whole implementation is temporary until the real
+// CA plugin work comes in. For now, this is only used to configure a single
+// static CA root.
+func (s *ConnectCA) ConfigurationSet(
+	args *structs.CAConfiguration,
+	reply *interface{}) error {
+	// NOTE(mitchellh): This is the temporary hardcoding of a static CA
+	// provider. This will allow us to test agent implementations and so on
+	// with an incomplete CA for now.
+	if args.Provider != "static" {
+		return fmt.Errorf("The CA provider can only be 'static' for now")
+	}
+
+	// Config is the configuration allowed for our static provider
+	var config struct {
+		Name          string
+		CertPEM       string
+		PrivateKeyPEM string
+		Generate      bool
+	}
+	if err := mapstructure.Decode(args.Config, &config); err != nil {
+		return fmt.Errorf("error decoding config: %s", err)
+	}
+
+	// Basic validation so demos aren't super jank
+	if config.Name == "" {
+		return fmt.Errorf("Name must be set")
+	}
+	if config.CertPEM == "" || config.PrivateKeyPEM == "" {
+		if !config.Generate {
+			return fmt.Errorf(
+				"CertPEM and PrivateKeyPEM must be set, or Generate must be true")
+		}
+	}
+
+	// Convenience to auto-generate the cert
+	if config.Generate {
+		ca := connect.TestCA(&testing.RuntimeT{}, nil)
+		config.CertPEM = ca.RootCert
+		config.PrivateKeyPEM = ca.SigningKey
+	}
+
+	// TODO(mitchellh): verify that the private key is valid for the cert
+
+	// Generate an ID for this
+	id, err := uuid.GenerateUUID()
+	if err != nil {
+		return err
+	}
+
+	// Get the highest index
+	state := s.srv.fsm.State()
+	idx, _, err := state.CARoots(nil)
+	if err != nil {
+		return err
+	}
+
+	// Commit
+	resp, err := s.srv.raftApply(structs.ConnectCARequestType, &structs.CARequest{
+		Op:    structs.CAOpSet,
+		Index: idx,
+		Roots: []*structs.CARoot{
+			&structs.CARoot{
+				ID:         id,
+				Name:       config.Name,
+				RootCert:   config.CertPEM,
+				SigningKey: config.PrivateKeyPEM,
+				Active:     true,
+			},
+		},
+	})
+	if err != nil {
+		s.srv.logger.Printf("[ERR] consul.test: Apply failed %v", err)
+		return err
+	}
+	if respErr, ok := resp.(error); ok {
+		return respErr
+	}
+
+	return nil
 }
 
 // Roots returns the currently trusted root certificates.
