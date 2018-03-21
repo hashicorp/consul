@@ -6,6 +6,8 @@ import (
 	catlistdc "github.com/hashicorp/consul/command/catalog/list/dc"
 	catlistnodes "github.com/hashicorp/consul/command/catalog/list/nodes"
 	catlistsvc "github.com/hashicorp/consul/command/catalog/list/services"
+	"github.com/hashicorp/consul/command/connect"
+	"github.com/hashicorp/consul/command/connect/proxy"
 	"github.com/hashicorp/consul/command/event"
 	"github.com/hashicorp/consul/command/exec"
 	"github.com/hashicorp/consul/command/forceleave"
@@ -58,6 +60,8 @@ func init() {
 	Register("catalog datacenters", func(ui cli.Ui) (cli.Command, error) { return catlistdc.New(ui), nil })
 	Register("catalog nodes", func(ui cli.Ui) (cli.Command, error) { return catlistnodes.New(ui), nil })
 	Register("catalog services", func(ui cli.Ui) (cli.Command, error) { return catlistsvc.New(ui), nil })
+	Register("connect", func(ui cli.Ui) (cli.Command, error) { return connect.New(), nil })
+	Register("connect proxy", func(ui cli.Ui) (cli.Command, error) { return proxy.New(ui, MakeShutdownCh()), nil })
 	Register("event", func(ui cli.Ui) (cli.Command, error) { return event.New(ui), nil })
 	Register("exec", func(ui cli.Ui) (cli.Command, error) { return exec.New(ui, MakeShutdownCh()), nil })
 	Register("force-leave", func(ui cli.Ui) (cli.Command, error) { return forceleave.New(ui), nil })
