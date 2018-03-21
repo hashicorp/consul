@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -1215,5 +1216,37 @@ func TestFSM_Intention_CRUD(t *testing.T) {
 		_, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
 		assert.Nil(err)
 		assert.Nil(actual)
+	}
+}
+
+func TestFSM_CARoots(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	fsm, err := New(nil, os.Stderr)
+	assert.Nil(err)
+
+	// Roots
+	ca1 := connect.TestCA(t, nil)
+	ca2 := connect.TestCA(t, nil)
+	ca2.Active = false
+
+	// Create a new request.
+	req := structs.CARequest{
+		Op:    structs.CAOpSet,
+		Roots: []*structs.CARoot{ca1, ca2},
+	}
+
+	{
+		buf, err := structs.Encode(structs.ConnectCARequestType, req)
+		assert.Nil(err)
+		assert.True(fsm.Apply(makeLog(buf)).(bool))
+	}
+
+	// Verify it's in the state store.
+	{
+		_, roots, err := fsm.state.CARoots(nil)
+		assert.Nil(err)
+		assert.Len(roots, 2)
 	}
 }
