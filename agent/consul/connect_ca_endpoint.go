@@ -99,6 +99,9 @@ func (s *ConnectCA) Sign(
 	if err != nil {
 		return err
 	}
+	if root == nil {
+		return fmt.Errorf("no active CA found")
+	}
 
 	// Determine the signing certificate. It is the set signing cert
 	// unless that is empty, in which case it is identically to the public

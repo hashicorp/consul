@@ -21,6 +21,7 @@ func init() {
 	registerCommand(structs.TxnRequestType, (*FSM).applyTxn)
 	registerCommand(structs.AutopilotRequestType, (*FSM).applyAutopilotUpdate)
 	registerCommand(structs.IntentionRequestType, (*FSM).applyIntentionOperation)
+	registerCommand(structs.ConnectCARequestType, (*FSM).applyConnectCAOperation)
 }
 
 func (c *FSM) applyRegister(buf []byte, index uint64) interface{} {
@@ -267,5 +268,30 @@ func (c *FSM) applyIntentionOperation(buf []byte, index uint64) interface{} {
 	default:
 		c.logger.Printf("[WARN] consul.fsm: Invalid Intention operation '%s'", req.Op)
 		return fmt.Errorf("Invalid Intention operation '%s'", req.Op)
+	}
+}
+
+// applyConnectCAOperation applies the given CA operation to the state store.
+func (c *FSM) applyConnectCAOperation(buf []byte, index uint64) interface{} {
+	var req structs.CARequest
+	if err := structs.Decode(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode request: %v", err))
+	}
+
+	defer metrics.MeasureSinceWithLabels([]string{"consul", "fsm", "ca"}, time.Now(),
+		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
+	defer metrics.MeasureSinceWithLabels([]string{"fsm", "ca"}, time.Now(),
+		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
+	switch req.Op {
+	case structs.CAOpSet:
+		act, err := c.state.CARootSetCAS(index, req.Index, req.Roots)
+		if err != nil {
+			return err
+		}
+
+		return act
+	default:
+		c.logger.Printf("[WARN] consul.fsm: Invalid CA operation '%s'", req.Op)
+		return fmt.Errorf("Invalid CA operation '%s'", req.Op)
 	}
 }

@@ -30,8 +30,9 @@ func TestConnectCARoots(t *testing.T) {
 	ca1 := connect.TestCA(t, nil)
 	ca2 := connect.TestCA(t, nil)
 	ca2.Active = false
-	assert.Nil(state.CARootSet(1, ca1))
-	assert.Nil(state.CARootSet(2, ca2))
+	ok, err := state.CARootSetCAS(1, 0, []*structs.CARoot{ca1, ca2})
+	assert.True(ok)
+	assert.Nil(err)
 
 	// Request
 	args := &structs.DCSpecificRequest{
@@ -70,7 +71,9 @@ func TestConnectCASign(t *testing.T) {
 	// Insert a CA
 	state := s1.fsm.State()
 	ca := connect.TestCA(t, nil)
-	assert.Nil(state.CARootSet(1, ca))
+	ok, err := state.CARootSetCAS(1, 0, []*structs.CARoot{ca})
+	assert.True(ok)
+	assert.Nil(err)
 
 	// Generate a CSR and request signing
 	args := &structs.CASignRequest{

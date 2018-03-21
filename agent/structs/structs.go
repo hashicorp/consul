@@ -41,6 +41,7 @@ const (
 	AreaRequestType                       = 10
 	ACLBootstrapRequestType               = 11 // FSM snapshots only.
 	IntentionRequestType                  = 12
+	ConnectCARequestType                  = 13
 )
 
 const (

@@ -76,3 +76,25 @@ type IssuedCert struct {
 	// state store, but is present in the sign API response.
 	Cert string `json:",omitempty"`
 }
+
+// CAOp is the operation for a request related to intentions.
+type CAOp string
+
+const (
+	CAOpSet CAOp = "set"
+)
+
+// CARequest is used to modify connect CA data. This is used by the
+// FSM (agent/consul/fsm) to apply changes.
+type CARequest struct {
+	// Op is the type of operation being requested. This determines what
+	// other fields are required.
+	Op CAOp
+
+	// Index is used by CAOpSet for a CAS operation.
+	Index uint64
+
+	// Roots is a list of roots. This is used for CAOpSet. One root must
+	// always be active.
+	Roots []*CARoot
+}

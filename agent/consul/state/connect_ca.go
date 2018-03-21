@@ -73,52 +73,58 @@ func (s *Store) CARootActive(ws memdb.WatchSet) (uint64, *structs.CARoot, error)
 	return idx, result, err
 }
 
-// CARootSet creates or updates a CA root.
+// CARootSetCAS sets the current CA root state using a check-and-set operation.
+// On success, this will replace the previous set of CARoots completely with
+// the given set of roots.
 //
-// NOTE(mitchellh): I have a feeling we'll want a CARootMultiSetCAS to
-// perform a check-and-set on the entire set of CARoots versus an individual
-// set, since we'll want to modify them atomically during events such as
-// rotation.
-func (s *Store) CARootSet(idx uint64, v *structs.CARoot) error {
+// The first boolean result returns whether the transaction succeeded or not.
+func (s *Store) CARootSetCAS(idx, cidx uint64, rs []*structs.CARoot) (bool, error) {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
-	if err := s.caRootSetTxn(tx, idx, v); err != nil {
-		return err
+	// Get the current max index
+	if midx := maxIndexTxn(tx, caRootTableName); midx != cidx {
+		return false, nil
+	}
+
+	// Go through and find any existing matching CAs so we can preserve and
+	// update their Create/ModifyIndex values.
+	for _, r := range rs {
+		if r.ID == "" {
+			return false, ErrMissingCARootID
+		}
+
+		existing, err := tx.First(caRootTableName, "id", r.ID)
+		if err != nil {
+			return false, fmt.Errorf("failed CA root lookup: %s", err)
+		}
+
+		if existing != nil {
+			r.CreateIndex = existing.(*structs.CARoot).CreateIndex
+		} else {
+			r.CreateIndex = idx
+		}
+		r.ModifyIndex = idx
+	}
+
+	// Delete all
+	_, err := tx.DeleteAll(caRootTableName, "id")
+	if err != nil {
+		return false, err
+	}
+
+	// Insert all
+	for _, r := range rs {
+		if err := tx.Insert(caRootTableName, r); err != nil {
+			return false, err
+		}
+	}
+
+	// Update the index
+	if err := tx.Insert("index", &IndexEntry{caRootTableName, idx}); err != nil {
+		return false, fmt.Errorf("failed updating index: %s", err)
 	}
 
 	tx.Commit()
-	return nil
-}
-
-// caRootSetTxn is the inner method used to insert or update a CA root with
-// the proper indexes into the state store.
-func (s *Store) caRootSetTxn(tx *memdb.Txn, idx uint64, v *structs.CARoot) error {
-	// ID is required
-	if v.ID == "" {
-		return ErrMissingCARootID
-	}
-
-	// Check for an existing value
-	existing, err := tx.First(caRootTableName, "id", v.ID)
-	if err != nil {
-		return fmt.Errorf("failed CA root lookup: %s", err)
-	}
-	if existing != nil {
-		old := existing.(*structs.CARoot)
-		v.CreateIndex = old.CreateIndex
-	} else {
-		v.CreateIndex = idx
-	}
-	v.ModifyIndex = idx
-
-	// Insert
-	if err := tx.Insert(caRootTableName, v); err != nil {
-		return err
-	}
-	if err := tx.Insert("index", &IndexEntry{caRootTableName, idx}); err != nil {
-		return fmt.Errorf("failed updating index: %s", err)
-	}
-
-	return nil
+	return true, nil
 }

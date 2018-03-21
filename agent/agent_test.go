@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/checks"
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testutil"
@@ -24,6 +25,14 @@ import (
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/pascaldekloe/goe/verify"
 )
+
+// TestMain is the main entrypoint for `go test`.
+func TestMain(m *testing.M) {
+	// Enable the test RPC endpoints
+	consul.TestEndpoint()
+
+	os.Exit(m.Run())
+}
 
 func externalIP() (string, error) {
 	addrs, err := net.InterfaceAddrs()
