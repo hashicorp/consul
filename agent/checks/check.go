@@ -150,11 +150,11 @@ func (c *CheckMonitor) check() {
 	select {
 	case <-time.After(timeout):
 		if err := exec.KillCommandSubtree(cmd); err != nil {
-			c.Logger.Printf("[WARN] Check %q failed to kill after timeout: %s", c.CheckID, err)
+			c.Logger.Printf("[WARN] agent: Check %q failed to kill after timeout: %s", c.CheckID, err)
 		}
 
 		msg := fmt.Sprintf("Timed out (%s) running check", timeout.String())
-		c.Logger.Printf("[WARN] Check %q: %s", c.CheckID, msg)
+		c.Logger.Printf("[WARN] agent: Check %q: %s", c.CheckID, msg)
 
 		outputStr := truncateAndLogOutput()
 		if len(outputStr) > 0 {
@@ -625,10 +625,10 @@ func (c *CheckDocker) doCheck() (string, *circbuf.Buffer, error) {
 	case 0:
 		return api.HealthPassing, buf, nil
 	case 1:
-		c.Logger.Printf("[DEBUG] Check %q failed with exit code: %d", c.CheckID, exitCode)
+		c.Logger.Printf("[DEBUG] agent: Check %q failed with exit code: %d", c.CheckID, exitCode)
 		return api.HealthWarning, buf, nil
 	default:
-		c.Logger.Printf("[DEBUG] Check %q failed with exit code: %d", c.CheckID, exitCode)
+		c.Logger.Printf("[DEBUG] agent: Check %q failed with exit code: %d", c.CheckID, exitCode)
 		return api.HealthCritical, buf, nil
 	}
 }
@@ -684,10 +684,10 @@ func (c *CheckGRPC) run() {
 func (c *CheckGRPC) check() {
 	err := c.probe.Check()
 	if err != nil {
-		c.Logger.Printf("[DEBUG] Check %q failed: %s", c.CheckID, err.Error())
+		c.Logger.Printf("[DEBUG] agent: Check %q failed: %s", c.CheckID, err.Error())
 		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
 	} else {
-		c.Logger.Printf("[DEBUG] Check %q is passing", c.CheckID)
+		c.Logger.Printf("[DEBUG] agent: Check %q is passing", c.CheckID)
 		c.Notify.UpdateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("gRPC check %s: success", c.GRPC))
 	}
 }
