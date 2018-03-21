@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
@@ -21,6 +22,9 @@ import (
 	"github.com/hashicorp/serf/serf"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	// NOTE(mitcehllh): This is temporary while certs are stubbed out.
+	"github.com/mitchellh/go-testing-interface"
 )
 
 type Self struct {
@@ -843,4 +847,41 @@ func (s *HTTPServer) AgentConnectCARoots(resp http.ResponseWriter, req *http.Req
 	// In the future, we're going to do some agent-local caching and the
 	// behavior will differ.
 	return s.ConnectCARoots(resp, req)
+}
+
+// AgentConnectCALeafCert returns the certificate bundle for a service
+// instance. This supports blocking queries to update the returned bundle.
+func (s *HTTPServer) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Test the method
+	if req.Method != "GET" {
+		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+	}
+
+	// Get the service ID. Note that this is the ID of a service instance.
+	id := strings.TrimPrefix(req.URL.Path, "/v1/agent/connect/ca/leaf/")
+
+	// Retrieve the service specified
+	service := s.agent.State.Service(id)
+	if service == nil {
+		return nil, fmt.Errorf("unknown service ID: %s", id)
+	}
+
+	// Create a CSR.
+	// TODO(mitchellh): This is obviously not production ready!
+	csr, pk := connect.TestCSR(&testing.RuntimeT{}, &connect.SpiffeIDService{
+		Host:       "1234.consul",
+		Namespace:  "default",
+		Datacenter: s.agent.config.Datacenter,
+		Service:    service.Service,
+	})
+
+	// Request signing
+	var reply structs.IssuedCert
+	args := structs.CASignRequest{CSR: csr}
+	if err := s.agent.RPC("ConnectCA.Sign", &args, &reply); err != nil {
+		return nil, err
+	}
+	reply.PrivateKeyPEM = pk
+
+	return &reply, nil
 }

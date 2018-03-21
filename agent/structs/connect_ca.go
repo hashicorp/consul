@@ -2,6 +2,7 @@ package structs
 
 import (
 	"math/big"
+	"time"
 )
 
 // IndexedCARoots is the list of currently trusted CA Roots.
@@ -72,9 +73,23 @@ type IssuedCert struct {
 	// SerialNumber is the unique serial number for this certificate.
 	SerialNumber *big.Int
 
-	// Cert is the PEM-encoded certificate. This should not be stored in the
+	// CertPEM and PrivateKeyPEM are the PEM-encoded certificate and private
+	// key for that cert, respectively. This should not be stored in the
 	// state store, but is present in the sign API response.
-	Cert string `json:",omitempty"`
+	CertPEM       string `json:",omitempty"`
+	PrivateKeyPEM string
+
+	// Service is the name of the service for which the cert was issued.
+	// ServiceURI is the cert URI value.
+	Service    string
+	ServiceURI string
+
+	// ValidAfter and ValidBefore are the validity periods for the
+	// certificate.
+	ValidAfter  time.Time
+	ValidBefore time.Time
+
+	RaftIndex
 }
 
 // CAOp is the operation for a request related to intentions.

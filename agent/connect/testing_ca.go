@@ -187,29 +187,47 @@ func TestLeaf(t testing.T, service string, root *structs.CARoot) string {
 	return buf.String()
 }
 
-// TestCSR returns a CSR to sign the given service.
-func TestCSR(t testing.T, id SpiffeID) string {
+// TestCSR returns a CSR to sign the given service along with the PEM-encoded
+// private key for this certificate.
+func TestCSR(t testing.T, id SpiffeID) (string, string) {
 	template := &x509.CertificateRequest{
 		URIs:               []*url.URL{id.URI()},
 		SignatureAlgorithm: x509.ECDSAWithSHA256,
 	}
 
+	// Result buffers
+	var csrBuf, pkBuf bytes.Buffer
+
 	// Create the private key we'll use
 	signer := testPrivateKey(t, nil)
 
-	// Create the CSR itself
-	bs, err := x509.CreateCertificateRequest(rand.Reader, template, signer)
-	if err != nil {
-		t.Fatalf("error creating CSR: %s", err)
+	{
+		// Create the private key PEM
+		bs, err := x509.MarshalECPrivateKey(signer.(*ecdsa.PrivateKey))
+		if err != nil {
+			t.Fatalf("error marshalling PK: %s", err)
+		}
+
+		err = pem.Encode(&pkBuf, &pem.Block{Type: "EC PRIVATE KEY", Bytes: bs})
+		if err != nil {
+			t.Fatalf("error encoding PK: %s", err)
+		}
 	}
 
-	var buf bytes.Buffer
-	err = pem.Encode(&buf, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: bs})
-	if err != nil {
-		t.Fatalf("error encoding CSR: %s", err)
+	{
+		// Create the CSR itself
+		bs, err := x509.CreateCertificateRequest(rand.Reader, template, signer)
+		if err != nil {
+			t.Fatalf("error creating CSR: %s", err)
+		}
+
+		err = pem.Encode(&csrBuf, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: bs})
+		if err != nil {
+			t.Fatalf("error encoding CSR: %s", err)
+		}
 	}
 
-	return buf.String()
+	return csrBuf.String(), pkBuf.String()
 }
 
 // testKeyID returns a KeyID from the given public key. The "raw" must be

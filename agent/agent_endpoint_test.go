@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"crypto/x509"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -2073,4 +2074,59 @@ func TestAgentConnectCARoots_list(t *testing.T) {
 		assert.Equal("", r.SigningCert)
 		assert.Equal("", r.SigningKey)
 	}
+}
+
+func TestAgentConnectCALeafCert_good(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Set CAs
+	var reply interface{}
+	ca1 := connect.TestCA(t, nil)
+	assert.Nil(a.RPC("Test.ConnectCASetRoots", []*structs.CARoot{ca1}, &reply))
+
+	{
+		// Register a local service
+		args := &structs.ServiceDefinition{
+			ID:      "foo",
+			Name:    "test",
+			Address: "127.0.0.1",
+			Port:    8000,
+			Check: structs.CheckType{
+				TTL: 15 * time.Second,
+			},
+		}
+		req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
+		resp := httptest.NewRecorder()
+		_, err := a.srv.AgentRegisterService(resp, req)
+		assert.Nil(err)
+		if !assert.Equal(200, resp.Code) {
+			t.Log("Body: ", resp.Body.String())
+		}
+	}
+
+	// List
+	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/foo", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.AgentConnectCALeafCert(resp, req)
+	assert.Nil(err)
+
+	// Get the issued cert
+	issued, ok := obj.(*structs.IssuedCert)
+	assert.True(ok)
+
+	// Verify that the cert is signed by the CA
+	roots := x509.NewCertPool()
+	assert.True(roots.AppendCertsFromPEM([]byte(ca1.RootCert)))
+	leaf, err := connect.ParseCert(issued.CertPEM)
+	assert.Nil(err)
+	_, err = leaf.Verify(x509.VerifyOptions{
+		Roots: roots,
+	})
+	assert.Nil(err)
+
+	// TODO(mitchellh): verify the private key matches the cert
 }
