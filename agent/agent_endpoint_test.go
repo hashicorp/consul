@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/logger"
@@ -2023,4 +2024,53 @@ func TestAgent_Token(t *testing.T) {
 			t.Fatalf("got %q want %q", got, want)
 		}
 	})
+}
+
+func TestAgentConnectCARoots_empty(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/roots", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.AgentConnectCARoots(resp, req)
+	assert.Nil(err)
+
+	value := obj.(structs.IndexedCARoots)
+	assert.Equal(value.ActiveRootID, "")
+	assert.Len(value.Roots, 0)
+}
+
+func TestAgentConnectCARoots_list(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Set some CAs
+	var reply interface{}
+	ca1 := connect.TestCA(t, nil)
+	ca1.Active = false
+	ca2 := connect.TestCA(t, nil)
+	assert.Nil(a.RPC("Test.ConnectCASetRoots",
+		[]*structs.CARoot{ca1, ca2}, &reply))
+
+	// List
+	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/roots", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.AgentConnectCARoots(resp, req)
+	assert.Nil(err)
+
+	value := obj.(structs.IndexedCARoots)
+	assert.Equal(value.ActiveRootID, ca2.ID)
+	assert.Len(value.Roots, 2)
+
+	// We should never have the secret information
+	for _, r := range value.Roots {
+		assert.Equal("", r.SigningCert)
+		assert.Equal("", r.SigningKey)
+	}
 }
