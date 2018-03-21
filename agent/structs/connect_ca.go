@@ -35,8 +35,8 @@ type CARoot struct {
 	// SigningCert is the PEM-encoded signing certificate and SigningKey
 	// is the PEM-encoded private key for the signing certificate. These
 	// may actually be empty if the CA plugin in use manages these for us.
-	SigningCert string
-	SigningKey  string
+	SigningCert string `json:",omitempty"`
+	SigningKey  string `json:",omitempty"`
 
 	// Active is true if this is the current active CA. This must only
 	// be true for exactly one CA. For any method that modifies roots in the
@@ -77,7 +77,7 @@ type IssuedCert struct {
 	// key for that cert, respectively. This should not be stored in the
 	// state store, but is present in the sign API response.
 	CertPEM       string `json:",omitempty"`
-	PrivateKeyPEM string
+	PrivateKeyPEM string `json:",omitempty"`
 
 	// Service is the name of the service for which the cert was issued.
 	// ServiceURI is the cert URI value.
