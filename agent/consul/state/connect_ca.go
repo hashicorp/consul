@@ -33,6 +33,34 @@ func init() {
 	registerSchema(caRootTableSchema)
 }
 
+// CARoots is used to pull all the CA roots for the snapshot.
+func (s *Snapshot) CARoots() (structs.CARoots, error) {
+	ixns, err := s.tx.Get(caRootTableName, "id")
+	if err != nil {
+		return nil, err
+	}
+
+	var ret structs.CARoots
+	for wrapped := ixns.Next(); wrapped != nil; wrapped = ixns.Next() {
+		ret = append(ret, wrapped.(*structs.CARoot))
+	}
+
+	return ret, nil
+}
+
+// CARoots is used when restoring from a snapshot.
+func (s *Restore) CARoot(r *structs.CARoot) error {
+	// Insert
+	if err := s.tx.Insert(caRootTableName, r); err != nil {
+		return fmt.Errorf("failed restoring CA root: %s", err)
+	}
+	if err := indexUpdateMaxTxn(s.tx, r.ModifyIndex, caRootTableName); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
+
+	return nil
+}
+
 // CARoots returns the list of all CA roots.
 func (s *Store) CARoots(ws memdb.WatchSet) (uint64, structs.CARoots, error) {
 	tx := s.db.Txn(false)

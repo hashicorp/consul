@@ -113,92 +113,60 @@ func TestStore_CARootActive_none(t *testing.T) {
 	assert.Nil(err)
 }
 
-/*
-func TestStore_Intention_Snapshot_Restore(t *testing.T) {
+func TestStore_CARoot_Snapshot_Restore(t *testing.T) {
 	assert := assert.New(t)
 	s := testStateStore(t)
 
 	// Create some intentions.
-	ixns := structs.Intentions{
-		&structs.Intention{
-			DestinationName: "foo",
-		},
-		&structs.Intention{
-			DestinationName: "bar",
-		},
-		&structs.Intention{
-			DestinationName: "baz",
-		},
+	roots := structs.CARoots{
+		connect.TestCA(t, nil),
+		connect.TestCA(t, nil),
+		connect.TestCA(t, nil),
+	}
+	for _, r := range roots[1:] {
+		r.Active = false
 	}
 
 	// Force the sort order of the UUIDs before we create them so the
 	// order is deterministic.
 	id := testUUID()
-	ixns[0].ID = "a" + id[1:]
-	ixns[1].ID = "b" + id[1:]
-	ixns[2].ID = "c" + id[1:]
+	roots[0].ID = "a" + id[1:]
+	roots[1].ID = "b" + id[1:]
+	roots[2].ID = "c" + id[1:]
 
 	// Now create
-	for i, ixn := range ixns {
-		assert.Nil(s.IntentionSet(uint64(4+i), ixn))
-	}
+	ok, err := s.CARootSetCAS(1, 0, roots)
+	assert.Nil(err)
+	assert.True(ok)
 
 	// Snapshot the queries.
 	snap := s.Snapshot()
 	defer snap.Close()
 
 	// Alter the real state store.
-	assert.Nil(s.IntentionDelete(7, ixns[0].ID))
+	ok, err = s.CARootSetCAS(2, 1, roots[:1])
+	assert.Nil(err)
+	assert.True(ok)
 
 	// Verify the snapshot.
-	assert.Equal(snap.LastIndex(), uint64(6))
-	expected := structs.Intentions{
-		&structs.Intention{
-			ID:              ixns[0].ID,
-			DestinationName: "foo",
-			Meta:            map[string]string{},
-			RaftIndex: structs.RaftIndex{
-				CreateIndex: 4,
-				ModifyIndex: 4,
-			},
-		},
-		&structs.Intention{
-			ID:              ixns[1].ID,
-			DestinationName: "bar",
-			Meta:            map[string]string{},
-			RaftIndex: structs.RaftIndex{
-				CreateIndex: 5,
-				ModifyIndex: 5,
-			},
-		},
-		&structs.Intention{
-			ID:              ixns[2].ID,
-			DestinationName: "baz",
-			Meta:            map[string]string{},
-			RaftIndex: structs.RaftIndex{
-				CreateIndex: 6,
-				ModifyIndex: 6,
-			},
-		},
-	}
-	dump, err := snap.Intentions()
+	assert.Equal(snap.LastIndex(), uint64(1))
+	dump, err := snap.CARoots()
 	assert.Nil(err)
-	assert.Equal(expected, dump)
+	assert.Equal(roots, dump)
 
 	// Restore the values into a new state store.
 	func() {
 		s := testStateStore(t)
 		restore := s.Restore()
-		for _, ixn := range dump {
-			assert.Nil(restore.Intention(ixn))
+		for _, r := range dump {
+			assert.Nil(restore.CARoot(r))
 		}
 		restore.Commit()
 
 		// Read the restored values back out and verify that they match.
-		idx, actual, err := s.Intentions(nil)
+		idx, actual, err := s.CARoots(nil)
 		assert.Nil(err)
-		assert.Equal(idx, uint64(6))
-		assert.Equal(expected, actual)
+		assert.Equal(idx, uint64(2))
+		assert.Equal(roots, actual)
 	}()
 }
-*/
