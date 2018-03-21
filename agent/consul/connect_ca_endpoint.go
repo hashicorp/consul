@@ -172,6 +172,10 @@ func (s *ConnectCA) Sign(
 	*reply = structs.IssuedCert{
 		SerialNumber: template.SerialNumber,
 		CertPEM:      buf.String(),
+		Service:      serviceId.Service,
+		ServiceURI:   template.URIs[0].String(),
+		ValidAfter:   template.NotBefore,
+		ValidBefore:  template.NotAfter,
 	}
 
 	return nil

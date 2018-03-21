@@ -76,9 +76,11 @@ func TestConnectCASign(t *testing.T) {
 	assert.Nil(err)
 
 	// Generate a CSR and request signing
+	spiffeId := connect.TestSpiffeIDService(t, "web")
+	csr, _ := connect.TestCSR(t, spiffeId)
 	args := &structs.CASignRequest{
 		Datacenter: "dc01",
-		CSR:        connect.TestCSR(t, connect.TestSpiffeIDService(t, "web")),
+		CSR:        csr,
 	}
 	var reply structs.IssuedCert
 	assert.Nil(msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", args, &reply))
@@ -86,10 +88,14 @@ func TestConnectCASign(t *testing.T) {
 	// Verify that the cert is signed by the CA
 	roots := x509.NewCertPool()
 	assert.True(roots.AppendCertsFromPEM([]byte(ca.RootCert)))
-	leaf, err := connect.ParseCert(reply.Cert)
+	leaf, err := connect.ParseCert(reply.CertPEM)
 	assert.Nil(err)
 	_, err = leaf.Verify(x509.VerifyOptions{
 		Roots: roots,
 	})
 	assert.Nil(err)
+
+	// Verify other fields
+	assert.Equal("web", reply.Service)
+	assert.Equal(spiffeId.URI().String(), reply.ServiceURI)
 }
