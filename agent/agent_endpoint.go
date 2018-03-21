@@ -885,3 +885,16 @@ func (s *HTTPServer) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.
 
 	return &reply, nil
 }
+
+// AgentConnectAuthorize
+//
+// POST /v1/agent/connect/authorize
+func (s *HTTPServer) AgentConnectAuthorize(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Test the method
+	if req.Method != "POST" {
+		return nil, MethodNotAllowedError{req.Method, []string{"POST"}}
+	}
+
+	// NOTE(mitchellh): return 200 for now. To be implemented later.
+	return nil, nil
+}
