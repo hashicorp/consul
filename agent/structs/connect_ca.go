@@ -1,7 +1,6 @@
 package structs
 
 import (
-	"math/big"
 	"time"
 )
 
@@ -71,7 +70,8 @@ func (q *CASignRequest) RequestDatacenter() string {
 // IssuedCert is a certificate that has been issued by a Connect CA.
 type IssuedCert struct {
 	// SerialNumber is the unique serial number for this certificate.
-	SerialNumber *big.Int
+	// This is encoded in standard hex separated by :.
+	SerialNumber string
 
 	// CertPEM and PrivateKeyPEM are the PEM-encoded certificate and private
 	// key for that cert, respectively. This should not be stored in the

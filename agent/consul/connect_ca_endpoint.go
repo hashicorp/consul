@@ -257,7 +257,7 @@ func (s *ConnectCA) Sign(
 
 	// Set the response
 	*reply = structs.IssuedCert{
-		SerialNumber: template.SerialNumber,
+		SerialNumber: connect.HexString(template.SerialNumber.Bytes()),
 		CertPEM:      buf.String(),
 		Service:      serviceId.Service,
 		ServiceURI:   template.URIs[0].String(),

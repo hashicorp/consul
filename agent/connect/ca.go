@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"strings"
 )
 
 // ParseCert parses the x509 certificate from a PEM-encoded value.
@@ -71,4 +72,10 @@ func KeyId(raw interface{}) ([]byte, error) {
 	h.Write(pub.X.Bytes())
 	h.Write(pub.Y.Bytes())
 	return h.Sum([]byte{}), nil
+}
+
+// HexString returns a standard colon-separated hex value for the input
+// byte slice. This should be used with cert serial numbers and so on.
+func HexString(input []byte) string {
+	return strings.Replace(fmt.Sprintf("% x", input), " ", ":", -1)
 }
