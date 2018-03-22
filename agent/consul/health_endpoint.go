@@ -112,22 +112,14 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 	}
 
 	// Determine the function we'll call
-	var f func(memdb.WatchSet, *state.Store) (uint64, structs.CheckServiceNodes, error)
+	var f func(memdb.WatchSet, *state.Store, *structs.ServiceSpecificRequest) (uint64, structs.CheckServiceNodes, error)
 	switch {
 	case args.Connect:
-		f = func(ws memdb.WatchSet, s *state.Store) (uint64, structs.CheckServiceNodes, error) {
-			return s.CheckConnectServiceNodes(ws, args.ServiceName)
-		}
-
+		f = h.serviceNodesConnect
 	case args.TagFilter:
-		f = func(ws memdb.WatchSet, s *state.Store) (uint64, structs.CheckServiceNodes, error) {
-			return s.CheckServiceTagNodes(ws, args.ServiceName, args.ServiceTag)
-		}
-
+		f = h.serviceNodesTagFilter
 	default:
-		f = func(ws memdb.WatchSet, s *state.Store) (uint64, structs.CheckServiceNodes, error) {
-			return s.CheckServiceNodes(ws, args.ServiceName)
-		}
+		f = h.serviceNodesDefault
 	}
 
 	// If we're doing a connect query, we need read access to the service
@@ -149,7 +141,7 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, nodes, err := f(ws, state)
+			index, nodes, err := f(ws, state, args)
 			if err != nil {
 				return err
 			}
@@ -184,4 +176,19 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 		}
 	}
 	return err
+}
+
+// The serviceNodes* functions below are the various lookup methods that
+// can be used by the ServiceNodes endpoint.
+
+func (h *Health) serviceNodesConnect(ws memdb.WatchSet, s *state.Store, args *structs.ServiceSpecificRequest) (uint64, structs.CheckServiceNodes, error) {
+	return s.CheckConnectServiceNodes(ws, args.ServiceName)
+}
+
+func (h *Health) serviceNodesTagFilter(ws memdb.WatchSet, s *state.Store, args *structs.ServiceSpecificRequest) (uint64, structs.CheckServiceNodes, error) {
+	return s.CheckServiceTagNodes(ws, args.ServiceName, args.ServiceTag)
+}
+
+func (h *Health) serviceNodesDefault(ws memdb.WatchSet, s *state.Store, args *structs.ServiceSpecificRequest) (uint64, structs.CheckServiceNodes, error) {
+	return s.CheckServiceNodes(ws, args.ServiceName)
 }

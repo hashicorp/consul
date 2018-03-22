@@ -851,7 +851,7 @@ func TestHealthConnectServiceNodes_PassingFilter(t *testing.T) {
 		assert.Nil(err)
 		assertIndex(t, resp)
 
-		// Should be 0 health check for consul
+		// Should be 1
 		nodes := obj.(structs.CheckServiceNodes)
 		assert.Len(nodes, 1)
 	})

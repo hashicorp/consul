@@ -788,6 +788,7 @@ func TestCatalogConnectServiceNodes_good(t *testing.T) {
 
 	// Register
 	args := structs.TestRegisterRequestProxy(t)
+	args.Service.Address = "127.0.0.55"
 	var out struct{}
 	assert.Nil(a.RPC("Catalog.Register", args, &out))
 
@@ -801,6 +802,7 @@ func TestCatalogConnectServiceNodes_good(t *testing.T) {
 	nodes := obj.(structs.ServiceNodes)
 	assert.Len(nodes, 1)
 	assert.Equal(structs.ServiceKindConnectProxy, nodes[0].ServiceKind)
+	assert.Equal(args.Service.Address, nodes[0].ServiceAddress)
 }
 
 func TestCatalogNodeServices(t *testing.T) {
