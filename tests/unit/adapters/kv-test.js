@@ -57,7 +57,7 @@ module('Unit | Adapter | kv', function(hooks) {
     };
     const it = stubSuper(adapter, this.stub().returns(deep));
     it('returns string KV value when calling update/create record', function() {
-      [
+      const requests = [
         {
           request: 'updateRecord',
           expected: expected,
@@ -66,11 +66,12 @@ module('Unit | Adapter | kv', function(hooks) {
           request: 'createRecord',
           expected: expected,
         },
-      ].forEach(function(item, i, arr) {
+      ];
+      requests.forEach(function(item, i, arr) {
         const actual = adapter.dataForRequest({
           requestType: item.request,
         });
-        assert.equal(actual, item.expected);
+        assert.equal(actual, expected);
       });
     });
     // not included in the above forEach as it's a slightly different concept
@@ -83,7 +84,7 @@ module('Unit | Adapter | kv', function(hooks) {
   });
   test('methodForRequest returns the correct method', function(assert) {
     const adapter = this.owner.lookup('adapter:kv');
-    [
+    const requests = [
       {
         request: 'deleteRecord',
         expected: 'DELETE',
@@ -96,7 +97,8 @@ module('Unit | Adapter | kv', function(hooks) {
         request: 'anythingElse',
         expected: 'GET',
       },
-    ].forEach(function(item) {
+    ];
+    requests.forEach(function(item) {
       const actual = adapter.methodForRequest({ requestType: item.request });
       assert.equal(actual, item.expected);
     });
