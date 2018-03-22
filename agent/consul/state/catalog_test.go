@@ -2137,8 +2137,11 @@ func TestStateStore_DeleteCheck(t *testing.T) {
 	if err := s.DeleteCheck(3, "node1", "check1"); err != nil {
 		t.Fatalf("err: %s", err)
 	}
+	if idx, check, err := s.NodeCheck("node1", "check1"); idx != 3 || err != nil || check != nil {
+		t.Fatalf("Node check should have been deleted idx=%d, node=%v, err=%s", idx, check, err)
+	}
 	if idx := s.maxIndex("checks"); idx != 3 {
-		t.Fatalf("bad index: %d", idx)
+		t.Fatalf("bad index for checks: %d", idx)
 	}
 	if !watchFired(ws) {
 		t.Fatalf("bad")
