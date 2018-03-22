@@ -629,7 +629,7 @@ func TestServer_globalRPCErrors(t *testing.T) {
 		t.Fatalf("should have errored")
 	}
 	if !strings.Contains(err.Error(), "Bad.Method") {
-		t.Fatalf("unexpcted error: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 }
 
@@ -767,10 +767,10 @@ func TestServer_RevokeLeadershipIdempotent(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	
+
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	err:= s1.revokeLeadership()
+	err := s1.revokeLeadership()
 	if err != nil {
 		t.Fatal(err)
 	}

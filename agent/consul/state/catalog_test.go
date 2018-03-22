@@ -2210,10 +2210,10 @@ func ensureIndexForService(t *testing.T, s *Store, ws memdb.WatchSet, serviceNam
 	}
 }
 
-// TestIndexIndependance test that changes on a given service does not impact the
+// TestIndexIndependence test that changes on a given service does not impact the
 // index of other services. It allows to have huge benefits for watches since
 // watchers are notified ONLY when there are changes in the given service
-func TestIndexIndependance(t *testing.T) {
+func TestIndexIndependence(t *testing.T) {
 	s := testStateStore(t)
 
 	// Querying with no matches gives an empty response

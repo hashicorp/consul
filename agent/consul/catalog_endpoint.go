@@ -59,7 +59,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 		}
 
 		// Check the service address here and in the agent endpoint
-		// since service registration isn't sychronous.
+		// since service registration isn't synchronous.
 		if ipaddr.IsAny(args.Service.Address) {
 			return fmt.Errorf("Invalid service address")
 		}

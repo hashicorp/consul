@@ -254,7 +254,7 @@ func (a *Agent) UserEvents() []*UserEvent {
 	return out
 }
 
-// LastUserEvent is used to return the lastest user event.
+// LastUserEvent is used to return the last user event.
 // This will return nil if there is no recent event.
 func (a *Agent) LastUserEvent() *UserEvent {
 	a.eventLock.RLock()

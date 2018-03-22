@@ -94,7 +94,7 @@ func (c *cmd) Run(args []string) int {
 		}
 	}
 
-	// Session is reauired for release or acquire
+	// Session is required for release or acquire
 	if (c.release || c.acquire) && c.session == "" {
 		c.UI.Error("Error! Missing -session (required with -acquire and -release)")
 		return 1

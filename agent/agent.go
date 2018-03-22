@@ -1204,7 +1204,7 @@ func (a *Agent) ShutdownAgent() error {
 }
 
 // ShutdownEndpoints terminates the HTTP and DNS servers. Should be
-// preceeded by ShutdownAgent.
+// preceded by ShutdownAgent.
 func (a *Agent) ShutdownEndpoints() {
 	a.shutdownLock.Lock()
 	defer a.shutdownLock.Unlock()
@@ -1400,7 +1400,7 @@ func (a *Agent) reapServicesInternal() {
 		}
 
 		// See if there's a timeout.
-		// todo(fs): this looks fishy... why is there anoter data structure in the agent with its own lock?
+		// todo(fs): this looks fishy... why is there another data structure in the agent with its own lock?
 		a.checkLock.Lock()
 		timeout := a.checkReapAfter[checkID]
 		a.checkLock.Unlock()

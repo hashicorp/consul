@@ -255,7 +255,7 @@ func (s *Server) IsACLReplicationEnabled() bool {
 
 // updateACLReplicationStatus safely updates the ACL replication status.
 func (s *Server) updateACLReplicationStatus(status structs.ACLReplicationStatus) {
-	// Fixup the times to shed some useless precision to ease formattting,
+	// Fixup the times to shed some useless precision to ease formatting,
 	// and always report UTC.
 	status.LastError = status.LastError.Round(time.Second).UTC()
 	status.LastSuccess = status.LastSuccess.Round(time.Second).UTC()

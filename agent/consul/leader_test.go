@@ -441,7 +441,7 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 	})
 
 	// Add in some metadata via the catalog (as if the agent synced it
-	// there). We also set the serfHealth check to failing so the reconile
+	// there). We also set the serfHealth check to failing so the reconcile
 	// will attempt to flip it back
 	req := structs.RegisterRequest{
 		Datacenter: s1.config.Datacenter,

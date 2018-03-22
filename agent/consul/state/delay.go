@@ -7,7 +7,7 @@ import (
 
 // Delay is used to mark certain locks as unacquirable. When a lock is
 // forcefully released (failing health check, destroyed session, etc.), it is
-// subject to the LockDelay impossed by the session. This prevents another
+// subject to the LockDelay imposed by the session. This prevents another
 // session from acquiring the lock for some period of time as a protection
 // against split-brains. This is inspired by the lock-delay in Chubby. Because
 // this relies on wall-time, we cannot assume all peers perceive time as flowing
