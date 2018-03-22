@@ -7,6 +7,6 @@ export default Serializer.extend({
       case 'queryRecord':
         return payload[0];
     }
-    return this._super(...arguments);
+    return payload;
   },
 });

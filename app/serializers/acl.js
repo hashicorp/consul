@@ -9,6 +9,6 @@ export default Serializer.extend({
       case 'queryRecord':
         return typeOf(payload) === 'array' ? payload[0] : payload;
     }
-    return this._super(...arguments);
+    return payload;
   },
 });
