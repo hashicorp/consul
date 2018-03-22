@@ -17,6 +17,12 @@
     {{content-for "head-footer"}}
   </head>
   <body>
+    <noscript>
+        <div style="margin: 0 auto;">
+            <h2>JavaScript Required</h2>
+            <p>Please enable JavaScript in your web browser to use Consul UI.</p>
+        </div>
+    </noscript>
     {{content-for "body"}}
 
     <script src="{{rootURL}}assets/vendor.js"></script>

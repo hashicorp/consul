@@ -1,45 +1,29 @@
-    <div class="row">
-        <div class="col-md-6 col-lg-5 padded-right-middle">
-        {{#filtered-list placeholder="Filter by name" items=items as |item|}}
-            {{#if true}}
-                {{!-- change from original div href=false to a for now --}}
-                {{#link-to 'dc.nodes.show' item.Node class="list-group-item list-condensed-link" }}
-                    <div class="list-bar-horizontal {{ if hasFailingChecks "bg-orange" "bg-green"}}"></div>
-                    <div class="name">
-                        {{item.Node}}
-                        <small class="pull-right">
-                            {{ item.numServices }} services
-                        </small>
-                    </div>
-                {{/link-to}}
-            {{else}}
-                {{!-- change from original div href=false to a for now --}}
-                {{#link-to 'dc.nodes.show' item.Node class="list-group-item list-link" }}
-                    <div class="list-bar {{if hasFailingChecks "bg-orange" "bg-green" }}"></div>
-                    <h4 class="list-group-item-heading">
-                        {{item.Node}}
-                        <small>{{item.Address}}</small>
-                        <div class="heading-helper">
-                            <a class="subtle" href="#">{{item.checkMessage}}</a>
-                        </div>
-                    </h4>
-                    <ul class="list-inline">
-                        {{#each item.services as |service|}}
-                            <li class="bold">{{service.Service}}</li>
+    <table>
+        {{! <caption></caption>}}
+        <thead>
+            <tr>
+                <th>Node</th>
+                <th>Health</th>
+                <th>Nodes</th>
+            </tr>
+        </thead>
+        {{#filtered-list tagName="tbody" placeholder="Filter by name" items=items as |item|}}
+            <tr>{{! if hasFailingChecks "bg-orange" "bg-green"}}
+                <td>
+                    {{#link-to 'dc.services.show' item.Name }}{{item.Node}}{{/link-to}}
+                </td>
+                <td>
+                        {{ item.numServices }} services
+                </td>
+                <td>
+                    <ul>
+                        {{#each item.services as |service| }}
+                            <li>{{ service.Service }}</li>
                         {{/each}}
                     </ul>
-                {{/link-to}}
-            {{/if}}
+                </td>
+            </tr>
         {{/filtered-list}}
-        <!--TODO: <p class="light">There are no nodes to show.</p>-->
-      </div>
-
-      <div class="border-left hidden-xs hidden-sm">
-      </div>
-
-      <div class="col-md-6 col-lg-7 border-left scrollable">
-        <div class="row padded-border">
-          {{outlet}}
-        </div>
-      </div>
-    </div>
+    </table>
+    <!--TODO: <p class="light">There are no services to show.</p>-->
+    {{outlet}}

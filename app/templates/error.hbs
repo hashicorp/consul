@@ -1,19 +1,12 @@
-    <div class="row">
-      <div class="col-md-8 col-md-offset-2 col-sm-12 col-xs-12">
-        <div class="text-center vertical-center">
-          {{#if controller.model.statusText }}
-            <p class="bold">HTTP error code from Consul: <code>{{controller.model.status}} {{controller.model.statusText}}</code></p>
-          {{/if}}
-          {{#if controller.model.responseText }}
-            <p class="bold">Error message from Consul: <code>{{limit controller.model.responseText 255}}</code></p>
-          {{/if}}
-          <p>Consul returned an error. You may have visited a URL that is loading an unknown resource, so you
-            can try going back to the root. If your ACL token was not found you can reset it, and then you
-            will be redirected to the settings page to enter a new ACL token.</p>
-          <div class="form-group">
-            <button {{ action "resetToken" }} class="btn btn-danger">Reset ACL Token</button>
-            <button {{ action "backHome" }} class="btn btn-default">Go Back to Root</button>
-          </div>
-        </div>
-      </div>
-    </div>
+    {{#if controller.model.statusText }}
+        <p>HTTP error code from Consul: <code>{{controller.model.status}} {{controller.model.statusText}}</code></p>
+    {{/if}}
+    {{#if controller.model.responseText }}
+        <p>Error message from Consul: <code>{{limit controller.model.responseText 255}}</code></p>
+    {{/if}}
+    <p>
+        Consul returned an error. You may have visited a URL that is loading an unknown resource, so you can try going back to the root. If your ACL token was not found you can reset it, and then you will be redirected to the settings page to enter a new ACL token.
+    </p>
+    {{! TODO: why are these buttons? }}
+    <button {{ action "resetToken" }}>Reset ACL Token</button>
+    <button {{ action "backHome" }}>Go Back to Root</button>

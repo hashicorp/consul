@@ -1,76 +1,44 @@
-    <div class="row">
-      <div class="col-md-6 col-lg-5 padded-right-middle">
-        <h4 class="breadcrumbs"><a href="" {{action 'linkToKey' grandParentKey }}>{{parentKey}}</a> <a href="" {{action 'linkToKey' parentKey }}>+</a></h4>
-      </div>
-    </div>
+<h1>
+    <a href="" {{action 'linkToKey' grandParentKey }}>{{parentKey}}</a>
+    <a href="" {{action 'linkToKey' parentKey }}>+</a>
+</h1>
+<ul>
+{{#each siblings as |item| }}
+    <li>
+        {{#link-to item.linkToRoute item.Key tagName="div" href=false class="list-group-item list-condensed-link" }}
+            {{!if item.isFolder "bg-gray" "bg-light-gray" }}
+            {{item.basename}}
+        {{/link-to}}
+    </li>
+{{/each}}
+</ul>
+<form>
+    <p>
+        {{errorMessage}}
+    </p>
+    <fieldset>
+        <legend>
+            {{key.Key}}
+{{#if key.isLocked}}
+            KEY LOCKED
+{{/if}}
+        </legend>
+        <label>
+            {{ textarea value=key.valueDecoded class="form-control" disabled=model.isLocked}}
+        </label>
+        <label>
+            {{ input type="checkbox" checked=key.validateJson }}
+            <span>Validate JSON</span>
+        </label>
+    </fieldset>
+    <button {{action "update" key}} disabled={{isLockedOrLoading}}>Update</button>
+    <button {{action "cancel" key}} disabled={{isLoading}}>Cancel</button>
+    <button {{action "delete" key }} disabled={{isLockedOrLoading}}>Delete key</button>
+</form>
 
-    <div class="row">
-      <div class="col-md-6 col-lg-5 padded-right-middle">
-          {{#each siblings as |item| }}
-            {{#link-to item.linkToRoute item.Key tagName="div" href=false class="list-group-item list-condensed-link" }}
-              <div class="{{if item.isFolder "bg-gray" "bg-light-gray" }} list-bar-horizontal"></div>
-              <div class="name">
-                {{item.basename}}
-              </div>
-            {{/link-to}}
-          {{/each}}
-      </div>
-
-      <div class="border-left hidden-xs hidden-sm">
-      </div>
-
-      <div class="visible-xs visible-sm">
-        <hr>
-      </div>
-
-      <div class="col-md-6 col-lg-7 border-left sticky-scroll">
-        <div class="padded-border">
-
-          <div class="panel">
-              <div class="panel-bar {{if isLoading "bg-orange" "bg-green"}}{{if isLocked "bg-light-grey"}}"></div>
-            <div class="panel-heading">
-              <h4 class="panel-title {{if isLocked "locked"}}">
-                {{key.Key}}
-                {{#if key.isLocked}}
-                <small class="pull-right">
-                    KEY LOCKED
-                </small>
-                {{/if}}
-              </h4>
-            </div>
-
-            <div class="panel-body panel-form">
-              <div class="form-group">
-                {{errorMessage}}
-              </div>
-              <form class="form">
-                <div class="form-group {{if key.validateJson "validate"}} {{if model.isValidJson "success" "error"}}">
-                    {{ textarea value=key.valueDecoded class="form-control" disabled=model.isLocked}}
-                </div>
-                <button {{action "update" key}} disabled={{isLockedOrLoading}} class="btn {{if isLoading "btn-warning" "btn-success"}}">Update</button>
-                <button {{action "cancel" key}} disabled={{isLoading}} class="btn {{if isLoading "btn-warning" "btn-default"}}">Cancel</button>
-                <label class="form-checkbox">{{ input type="checkbox" checked=key.validateJson }}Validate JSON</label>
-                <button {{action "delete" key }} disabled={{isLockedOrLoading}} class="btn pull-right {{if isLoading "btn-warning" "btn-danger"}}">Delete key</button>
-              </form>
-            </div>
-          </div>
-
-          {{#if key.isLocked}}
-            <h5>Lock Session</h5>
-
-            {{#link-to 'dc.nodes.show' session.Node tagName="div" href=false class="list-group-item list-condensed-link" }}
-              <div class="bg-light-gray list-bar-horizontal"></div>
-              <div class="name">
-                <span>{{session.Name}}</span>
-                <small>{{session.ID}}</small>
-                <small class="pull-right">
-                  {{session.Node}}
-                </small>
-              </div>
-            {{/link-to}}
-          {{/if}}
-
-        </div>
-      </div>
-
-    </div>
+{{#if key.isLocked}}
+    <h2>Lock Session</h2>
+    {{#link-to 'dc.nodes.show' session.Node }}
+        {{session.Name}} - {{session.ID}} - {{session.Node}}
+    {{/link-to}}
+{{/if}}

@@ -1,49 +1,31 @@
-    <div class="row">
-        <div class="col-md-6 col-lg-5 padded-right-middle">
-        {{#filtered-list placeholder="Filter by name" items=items as |item|}}
-            {{#if true}}
-                {{#link-to 'dc.services.show' item.Name class="list-group-item list-condensed-link" }}
-                <div class="list-bar-horizontal {{ if hasFailingChecks "bg-orange" "bg-green"}}">
-                </div>
-                <div class="name">
-                    {{item.Name}}
-                    <small class="pull-right">
-                        {{ item.checkMessage }}
-                    </small>
-                </div>
-                {{/link-to}}
-            {{else}}
-                {{#link-to 'dc.services.show' item.Name class="list-group-item list-link" }}
-                <div class="list-bar {{ if hasFailingChecks "bg-orange" "bg-green"}}">
-                </div>
-                <h4 class="list-group-item-heading">
-                    {{#link-to 'dc.services.show' item.Name class='subtle'}}{{item.Name}}{{/link-to}}
-                    <div class="heading-helper">
-                    <a class="subtle" href="#">{{item.checkMessage}}</a>
-                    </div>
-                </h4>
-                <ul class="list-inline">
-                    {{#each item.node as |node| }}
-                    <li class="bold">{{ node }}</li>
-                    {{/each}}
-                </ul>
-                {{/link-to}}
-            {{/if}}
-        {{/filtered-list}}
-        <!--TODO: <p class="light">There are no services to show.</p>-->
-
-      </div>
-
-      <div class="border-left hidden-xs hidden-sm">
-      </div>
-
-      <div class="visible-xs visible-sm">
-        <hr>
-      </div>
-
-      <div class="col-md-6 col-lg-7 border-left scrollable">
-        <div class="row padded-border">
-          {{outlet}}
-        </div>
-      </div>
-    </div>
+    <table>
+        {{! <caption></caption>}}
+        <thead>
+            <tr>
+                <th>Service</th>
+                <th>Health</th>
+                <th>Nodes</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#filtered-list placeholder="Filter by name" items=items as |item|}}
+                <tr>{{! if hasFailingChecks "bg-orange" "bg-green"}}
+                    <td>
+                        {{#link-to 'dc.services.show' item.Name }}{{item.Name}}{{/link-to}}
+                    </td>
+                    <td>
+                         {{ item.checkMessage }}
+                    </td>
+                    <td>
+                        <ul>
+                            {{#each item.node as |node| }}
+                                <li>{{ node }}</li>
+                            {{/each}}
+                        </ul>
+                    </td>
+                </tr>
+            {{/filtered-list}}
+        </tbody>
+    </table>
+    <!--TODO: <p class="light">There are no services to show.</p>-->
+    {{outlet}}

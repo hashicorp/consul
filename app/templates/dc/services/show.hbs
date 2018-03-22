@@ -1,46 +1,24 @@
-<div class="col-xs-12 col-sm-12 visible-xs visible-sm">
-    {{#link-to "dc.services" class="btn btn-default btn-block" }}Back to all services{{/link-to}}
-    <hr>
-</div>
-
-<h3 class="no-margin">{{ model.0.Service.Service }}</h3>
-<hr>
-
-<h5>Tags</h5>
-{{#if tags}}
-    <p>{{tags}}</p>
-{{else}}
-    <p>No tags</p>
-{{/if}}
-
-<h5>Nodes</h5>
-{{#each model as |node| }}
-
-    {{#link-to 'dc.nodes.show' node.Node.Node tagName="div" href=false class="panel panel-link panel-list" }}
-        <div class="panel-bar-horizontal {{ if node.hasFailingChecks "bg-orange" "bg-green" }}"></div>
-
-        <div class="panel-heading">
-            <h3 class="panel-title">
-                {{node.Node.Node}}
-                <small>{{node.Node.Address}}</small>
-                <span class="panel-note">{{node.checkMessage}}</span>
+    {{#link-to "dc.services"}}Back to all services{{/link-to}}
+    <h1>{{ model.0.Service.Service }}</h1>
+    <h2>Tags</h2>
+    {{#if tags}}
+        <p>{{tags}}</p>
+    {{else}}
+        <p>No tags</p>
+    {{/if}}
+    <h2>Nodes</h2>
+    {{#each model as |node| }}
+        {{#link-to 'dc.nodes.show' node.Node.Node }}
+            {{! if node.hasFailingChecks "bg-orange" "bg-green" }}
+            <h3>
+                {{node.Node.Node}} {{node.Node.Address}} {{node.checkMessage}}
             </h3>
-        </div>
-
-        <ul class="list-unstyled">
-            {{#each node.Checks as |check| }}
-                <li class="list-group-item list-condensed-link">
-                    {{ list-bar check.Status }}
-                    <div class="name">
-                        {{check.Name}}
-                        <small>{{ check.CheckID }}</small>
-                        <small class="pull-right">
-                            {{check.Status}}
-                        </small>
-                    </div>
-                </li>
-            {{/each}}
-        </ul>
-    {{/link-to}}
-
-{{/each}}
+            <ul>
+                {{#each node.Checks as |check| }}
+                    <li>
+                        {{check.Name}} - {{ check.CheckID }} - {{check.Status}}
+                    </li>
+                {{/each}}
+            </ul>
+        {{/link-to}}
+    {{/each}}
