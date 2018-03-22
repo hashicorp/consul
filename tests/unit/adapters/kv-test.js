@@ -1,10 +1,12 @@
 import { module, skip } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import test from 'ember-sinon-qunit/test-support/test';
-import _super from 'consul-ui/tests/helpers/stub-super';
+import stubSuper from 'consul-ui/tests/helpers/stub-super';
 
 module('Unit | Adapter | kv', function(hooks) {
   setupTest(hooks);
+
+  skip('what should handleResponse return when createRecord is called with a `false` payload');
 
   // Replace this with your real tests.
   test('it exists', function(assert) {
@@ -15,13 +17,23 @@ module('Unit | Adapter | kv', function(hooks) {
     const adapter = this.owner.lookup('adapter:kv');
     const expected = 'key/name';
     const url = `/v1/kv/${expected}?dc=dc1`;
+    // handleResponse calls `urlForCreateRecord`, so stub that out
+    // so we are testing a single unit of code
     const urlForCreateRecord = this.stub(adapter, 'urlForCreateRecord');
     urlForCreateRecord.returns(url);
-    const it = _super(adapter, function(status, headers, response, requestData) {
+    // handleResponse calls `this._super`, so stub that out also
+    // so we only test a single unit
+    // calling `it() will now create a 'sandbox' with a stubbed `_super`
+    const it = stubSuper(adapter, function(status, headers, response, requestData) {
       return response;
     });
 
-    it("return's a KV pojo when createRecord is called with a `true` payload", function() {
+    // right now, the message here is more for documentation purposes
+    // and to replicate the `test`/`it` API
+    // it does not currently get printed to the QUnit test runner output
+
+    // the following tests use our stubbed `_super` sandbox
+    it('returns a KV pojo when createRecord is called with a `true` payload', function() {
       const deep = {
         Key: expected,
         Datacenter: '',
@@ -29,13 +41,12 @@ module('Unit | Adapter | kv', function(hooks) {
       const actual = adapter.handleResponse(200, {}, true, { url: url });
       assert.deepEqual(actual, deep);
     });
-    it("return's the original payload if it's not a Boolean", function() {
+    it("returns the original payload if it's not a Boolean", function() {
       const expected = [];
       const actual = adapter.handleResponse(200, {}, expected, { url: url });
       assert.deepEqual(actual, expected);
     });
   });
-  skip("what's should handleResponse return when createRecord is called with a `false` payload");
   test('dataForRequest returns', function(assert) {
     const adapter = this.owner.lookup('adapter:kv');
     const expected = 'value';
@@ -44,18 +55,26 @@ module('Unit | Adapter | kv', function(hooks) {
         Value: expected,
       },
     };
-    const it = _super(adapter, this.stub().returns(deep));
+    const it = stubSuper(adapter, this.stub().returns(deep));
     it('returns string KV value when calling update/create record', function() {
-      let actual = adapter.dataForRequest({
-        requestType: 'updateRecord',
+      [
+        {
+          request: 'updateRecord',
+          expected: expected,
+        },
+        {
+          request: 'createRecord',
+          expected: expected,
+        },
+      ].forEach(function(item, i, arr) {
+        const actual = adapter.dataForRequest({
+          requestType: item.request,
+        });
+        assert.equal(actual, item.expected);
       });
-      assert.equal(actual, expected);
-      actual = adapter.dataForRequest({
-        requestType: 'createRecord',
-      });
-      assert.equal(actual, expected);
     });
-    it('returns string KV object when calling queryRecord (or anthing else) record', function() {
+    // not included in the above forEach as it's a slightly different concept
+    it('returns string KV object when calling queryRecord (or anything else) record', function() {
       const actual = adapter.dataForRequest({
         requestType: 'queryRecord',
       });
