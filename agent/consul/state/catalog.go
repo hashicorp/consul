@@ -1086,7 +1086,7 @@ func (s *Store) EnsureCheck(idx uint64, hc *structs.HealthCheck) error {
 	return nil
 }
 
-// updateAllServiceIndexesOfNode updates the status for all the services associated with this node
+// updateAllServiceIndexesOfNode updates the Raft index of all the services associated with this node
 func (s *Store) updateAllServiceIndexesOfNode(tx *memdb.Txn, idx uint64, nodeID string) error {
 	services, err := tx.Get("services", "node", nodeID)
 	if err != nil {
