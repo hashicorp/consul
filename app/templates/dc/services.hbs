@@ -1,31 +1,36 @@
+    <h1>
+        Services
+    </h1>
+{{#if true }}
+    {{catalog-filter}}
     <table>
-        {{! <caption></caption>}}
         <thead>
             <tr>
                 <th>Service</th>
-                <th>Health</th>
-                <th>Nodes</th>
+                <th>Node Health</th>
+                <th>Tags</th>
             </tr>
         </thead>
-        <tbody>
-            {{#filtered-list placeholder="Filter by name" items=items as |item|}}
-                <tr>{{! if hasFailingChecks "bg-orange" "bg-green"}}
-                    <td>
-                        {{#link-to 'dc.services.show' item.Name }}{{item.Name}}{{/link-to}}
-                    </td>
-                    <td>
-                         {{ item.checkMessage }}
-                    </td>
-                    <td>
-                        <ul>
-                            {{#each item.node as |node| }}
-                                <li>{{ node }}</li>
-                            {{/each}}
-                        </ul>
-                    </td>
-                </tr>
-            {{/filtered-list}}
-        </tbody>
+        {{#filtered-list tagName="tbody" items=items as |item|}}
+            <tr>
+                <td>
+                    <a href={{href-to 'dc.services.show' item.Name}}>{{item.Name}}</a>
+                </td>
+                <td>
+                    <dl>
+                        <dt>Healthchecks Passing</dt>
+                        <dd>{{item.ChecksPassing}}</dd>
+                        <dt>Healthchecks Critical</dt>
+                        <dd>{{item.ChecksCritical}}</dd>
+                    </dl>
+                </td>
+                <td>
+                        Need to switch API to the public catalog one
+                </td>
+            </tr>
+        {{/filtered-list}}
     </table>
-    <!--TODO: <p class="light">There are no services to show.</p>-->
+{{else}}
+    <p>There are no services.</p>
+{{/if}}
     {{outlet}}

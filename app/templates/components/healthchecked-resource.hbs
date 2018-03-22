@@ -1,0 +1,13 @@
+<header>
+    <a href={{href-to href item.Node}}>{{item.Node}}<span>{{item.Address}}</span></a>
+</header>
+<ul>
+    {{#each item.Checks as |check| }}
+        <li>
+            <a href={{href-to href item.Node}}>{{! check.CheckID }}
+                <strong>{{ check.status }}</strong>
+                <span>{{ check.Name }}</span>
+            </a>
+        </li>
+    {{/each}}
+</ul>

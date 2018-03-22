@@ -1,20 +1,31 @@
-{{# if items }}
-    {{#each items as |item| }}
-        {{#link-to 'dc.acls.show' item.ID }}
-            {{ item.Name }}{{ item.ID }}
-        {{/link-to}}
-    {{/each}}
+<h1>ACL Tokens</h1>
+{{#if true }}
+    {{acl-filter}}
+    <table>
+        {{#filtered-list tagName="tbody" items=items as |item|}}
+            <tr>
+                <td>
+                    <a href={{href-to 'dc.acls.show' item.ID}}>{{item.Name}}</a>
+                </td>
+                <td>
+                    {{item.Type}}
+                </td>
+                <td>
+                    Actions
+                </td>
+            </tr>
+        {{/filtered-list}}
+    </table>
 {{else}}
-    <p>There are no ACLs to show.</p>
+    <p>There are no ACLs.</p>
 {{/if}}
 
-{{#if isShowingItem}}
+{{#if isShowingItem}} {{!hasOutlet}}
     {{outlet}}
 {{else}}
     <h2>
         New ACL
     </h2>
-
     <form>
         <fieldset>
             <label>

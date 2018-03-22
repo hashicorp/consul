@@ -1,38 +1,45 @@
-<header role="banner">
-    <a href="#"></a>
-    <nav>
-        <ul>
-            <li>
-                {{#link-to 'dc.services'}}Services{{/link-to}}
-            </li>
-            <li>
-                {{#link-to 'dc.nodes'}}Nodes{{/link-to}}
-            </li>
-            <li>
-                {{#link-to 'dc.kv'}}Key/Value{{/link-to}}
-            </li>
-            <li>
-                {{#link-to 'dc.acls'}}ACL{{/link-to}}
-            </li>
-            <li>
-            {{! TODO: component }}
-                <a class="{{if hasFailingChecks "btn-warning" "btn-success" }}" {{action "toggle"}}>{{dc}}</a>
-                {{#if isDropdownVisible}}
-                    <ul>
-                        {{#each dcs as |dc|}}
-                            <li {{action "hideDrop"}}>{{#link-to 'dc.services' dc}}{{dc}}{{/link-to}}</li>
-                        {{/each}}
-                    </ul>
-                {{/if}}
-            </li>
-            <li>
-                {{#link-to 'settings'}}
-                    Settings
-                {{/link-to}}
-            </li>
-        </ul>
-    </nav>
-</header>
-<main>
+<div id="wrapper">
+    <header role="banner">
+        <a href={{href-to 'index'}}>Consul</a>
+        <nav>
+            <ul>
+                <li>
+                    <a {{action "toggle"}}>{{dc}}</a>
+{{#if isDropdownVisible}}
+                    {{datacenter-picker items=dcs}}
+{{/if}}
+                </li>
+                <li>
+                    <a href={{href-to 'dc.services'}}>Services</a>
+                </li>
+                <li>
+                    <a href={{href-to 'dc.nodes'}}>Nodes</a>
+                </li>
+                <li>
+                    <a href={{href-to 'dc.kv'}}>Key/Value</a>
+                </li>
+                <li>
+                    <a href={{href-to 'dc.acls'}}>ACL</a>
+                </li>
+            </ul>
+        </nav>
+        <nav>
+            <ul>
+                <li>
+                    <a href="#">Documentation</a>
+                </li>
+                <li>
+                    <a href={{href-to 'settings'}}>Settings</a>
+                </li>
+            </ul>
+        </nav>
+    </header>
+    <main>
 {{outlet}}
-</main>
+    </main>
+    <footer>
+        <p>&copy; 0000 HashiCorp</p>
+        <a href="#">Consul 0.0</a>
+        <a href="#">Documentation</a>
+    </footer>
+</div>

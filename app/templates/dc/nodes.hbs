@@ -1,29 +1,21 @@
-    <table>
-        {{! <caption></caption>}}
-        <thead>
-            <tr>
-                <th>Node</th>
-                <th>Health</th>
-                <th>Nodes</th>
-            </tr>
-        </thead>
-        {{#filtered-list tagName="tbody" placeholder="Filter by name" items=items as |item|}}
-            <tr>{{! if hasFailingChecks "bg-orange" "bg-green"}}
-                <td>
-                    {{#link-to 'dc.services.show' item.Name }}{{item.Node}}{{/link-to}}
-                </td>
-                <td>
-                        {{ item.numServices }} services
-                </td>
-                <td>
-                    <ul>
-                        {{#each item.services as |service| }}
-                            <li>{{ service.Service }}</li>
-                        {{/each}}
-                    </ul>
-                </td>
-            </tr>
-        {{/filtered-list}}
-    </table>
-    <!--TODO: <p class="light">There are no services to show.</p>-->
+    <h1>
+        Nodes
+    </h1>
+{{#if true }}
+    {{catalog-filter}}
+    <h2>Unhealthy Nodes</h2>
+    {{#filtered-list tagName="ul" items=items as |item|}}
+        <li>
+            {{ healthchecked-resource item=item href='dc.nodes.show'}}
+        </li>
+    {{/filtered-list}}
+    <h2>Healthy Nodes</h2>
+    {{#filtered-list tagName="ul" items=items as |item|}}
+        <li>
+            {{ healthchecked-resource item=item href='dc.nodes.show'}}
+        </li>
+    {{/filtered-list}}
+{{else}}
+    <p>There are no nodes.</p>
+{{/if}}
     {{outlet}}
