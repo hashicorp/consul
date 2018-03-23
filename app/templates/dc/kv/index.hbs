@@ -1,1 +1,40 @@
-{{outlet}}
+{{#app-view}}
+    {{#block-slot 'header'}}
+        <h1>
+            Key / Value
+        </h1>
+    {{/block-slot}}
+    {{#block-slot 'content'}}
+{{#if (gt items.length 0)}}
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Value</th>
+                    <th>Lock Session</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+    {{#filtered-list tagName="tbody" items=items as |item|}}
+                <tr>
+                    <td>
+                        {{!if item.isFolder "bg-gray" "bg-light-gray" }}
+                        <a href={{href-to item.linkToRoute item.Key}}>{{item.basename}}</a>
+                    </td>
+                    <td>
+                        Value (need to change API call to get this)
+                    </td>
+                    <td>
+                        Lock Session (need to change API call to get this)
+                    </td>
+                    <td>
+                        Actions
+                    </td>
+                </tr>
+    {{/filtered-list}}
+        </table>
+{{else}}
+        <p>There are no Key / Value pairs.</p>
+{{/if}}
+    {{/block-slot}}
+{{/app-view}}

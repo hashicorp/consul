@@ -1,100 +1,105 @@
-{{#link-to "dc.nodes" class="btn btn-default btn-block" }}Back to all nodes{{/link-to}}
-<h1>
-    {{ model.Node }} {{ model.Address }}
-</h1>
-<h2>Services</h2>
+{{#app-view}}
+    {{#block-slot 'header'}}
+        <a href={{href-to 'dc.nodes'}}>All Nodes</a>
+        <h1>
+            {{ model.Node }}
+        </h1>
+        {{catalog-filter}}
+    {{/block-slot}}
+    {{#block-slot 'content'}}
 {{#each model.Services as |service| }}
-    {{#link-to 'dc.services.show' service.Service }}
+        <a href={{href-to 'dc.services.show' service.Service}}>
             <h3>
                 {{service.Service}} - {{service.Address}}:{{service.Port}}
             </h3>
-            {{#if service.Tags}}
-                <ul>
-                    {{#each service.Tags as |tag|}}
-                        <li>{{tag}}</li>
-                    {{/each}}
-                </ul>
-            {{else}}
-                <p>
-                    No tags
-                </p>
-            {{/if}}
-    {{/link-to}}
-{{/each}}
-<h2>Checks</h2>
-<ul>
-{{#each model.Checks as |check| }}
-    <li>
-        <h3>
-            {{check.Name}} - {{check.CheckID}} - {{check.Status}}
-        </h3>
-        <h4>
-            Notes
-        </h4>
-        <p>
-            {{ check.Notes }}
-        </p>
-        <h4>
-            Output
-        </h4>
-        <pre>
-            {{check.Output}}
-        </pre>
-    </li>
-{{/each}}
-</ul>
-<h2>Lock Sessions</h2>
-{{#if sessions }}
-    <p>
-        {{errorMessage}}
-    </p>
-    <ul>
-    {{#each sessions as |session| }}
-        <li>
-            {{session.Name}} - {{session.ID}}
-            <button {{ action "requestInvalidateSession" session }} class="btn btn-danger pull-right btn-list {{if isLoading "btn-warning"}}">Invalidate</button>
+    {{#if service.Tags}}
             <ul>
-                {{#each session.Checks as check }}
-                    <li>{{check}}</li>
+                {{#each service.Tags as |tag|}}
+                    <li>{{tag}}</li>
                 {{/each}}
             </ul>
+    {{else}}
             <p>
-                {{session.Behavior}} behavior{{#if session.TTL }}, {{session.TTL}} TTL{{/if}}
+                No tags
             </p>
-        </li>
+    {{/if}}
+        </a>
+{{/each}}
+        <h2>Checks</h2>
+        <ul>
+{{#each model.Checks as |check| }}
+            <li>
+                <h3>
+                    {{check.Name}} - {{check.CheckID}} - {{check.Status}}
+                </h3>
+                <h4>
+                    Notes
+                </h4>
+                <p>
+                    {{ check.Notes }}
+                </p>
+                <h4>
+                    Output
+                </h4>
+                <pre>
+                    {{check.Output}}
+                </pre>
+            </li>
+{{/each}}
+        </ul>
+        <h2>Lock Sessions</h2>
+{{#if sessions }}
+        <p>
+            {{errorMessage}}
+        </p>
+        <ul>
+    {{#each sessions as |session| }}
+            <li>
+                {{session.Name}} - {{session.ID}}
+                <button {{ action "requestInvalidateSession" session }}>Invalidate</button>
+                <ul>
+                    {{#each session.Checks as check }}
+                        <li>{{check}}</li>
+                    {{/each}}
+                </ul>
+                <p>
+                    {{session.Behavior}} behavior{{#if session.TTL }}, {{session.TTL}} TTL{{/if}}
+                </p>
+            </li>
     {{/each}}
-    </ul>
+        </ul>
 {{else}}
-    <p>
-        No sessions
-    </p>
+        <p>
+            No sessions
+        </p>
 {{/if}}
-
-<h2>Network Tomography</h2>
-{{!-- tomographyGraph tomography 336 --}}
-<dl>
-    <dt>
-        Node
-    </dt>
-    <dd>
-        What goes here?
-    </dd>
-    <dt>
-        Minimum
-    </dt>
-    <dd>
-        {{ tomography.min }}ms
-    </dd>
-    <dt>
-        Median
-    </dt>
-    <dd>
-        {{ tomography.median }}ms
-    </dd>
-    <dt>
-        Maximum
-    </dt>
-    <dd>
-        {{ tomography.max }}ms
-    </dd>
-</dl>
+        <h2>Network Tomography</h2>
+        {{!-- tomographyGraph tomography 336 --}}
+        <dl>
+            <dt>
+                Node
+            </dt>
+            <dd>
+                What goes here?
+            </dd>
+            <dt>
+                Minimum
+            </dt>
+            <dd>
+                {{ tomography.min }}ms
+            </dd>
+            <dt>
+                Median
+            </dt>
+            <dd>
+                {{ tomography.median }}ms
+            </dd>
+            <dt>
+                Maximum
+            </dt>
+            <dd>
+                {{ tomography.max }}ms
+            </dd>
+        </dl>
+    {{/block-slot}}
+{{/app-view}}

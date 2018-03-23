@@ -1,12 +1,20 @@
-    {{#if controller.model.statusText }}
-        <p>HTTP error code from Consul: <code>{{controller.model.status}} {{controller.model.statusText}}</code></p>
-    {{/if}}
-    {{#if controller.model.responseText }}
-        <p>Error message from Consul: <code>{{limit controller.model.responseText 255}}</code></p>
-    {{/if}}
-    <p>
-        Consul returned an error. You may have visited a URL that is loading an unknown resource, so you can try going back to the root. If your ACL token was not found you can reset it, and then you will be redirected to the settings page to enter a new ACL token.
-    </p>
-    {{! TODO: why are these buttons? }}
-    <button {{ action "resetToken" }}>Reset ACL Token</button>
-    <button {{ action "backHome" }}>Go Back to Root</button>
+{{#app-view}}
+    {{#block-slot 'header'}}
+        <h1>
+            Error
+        </h1>
+    {{/block-slot}}
+    {{#block-slot 'content'}}
+        {{#if controller.model.statusText }}
+            <p>HTTP error code from Consul: <code>{{controller.model.status}} {{controller.model.statusText}}</code></p>
+        {{/if}}
+        {{#if controller.model.responseText }}
+            <p>Error message from Consul: <code>{{limit controller.model.responseText 255}}</code></p>
+        {{/if}}
+        <p>
+            Consul returned an error. You may have visited a URL that is loading an unknown resource, so you can try going back to the root. If your ACL token was not found you can reset it, and then you will be redirected to the settings page to enter a new ACL token.
+        </p>
+        <button {{ action "resetToken" }}>Reset ACL Token</button>
+        <button {{ action "backHome" }}>Go Back to Root</button>
+    {{/block-slot}}
+{{/app-view}}

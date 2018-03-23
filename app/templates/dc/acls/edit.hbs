@@ -1,0 +1,43 @@
+{{#app-view}}
+    {{#block-slot 'header'}}
+        <a href={{href-to 'dc.acls'}}>Tokens</a>
+        <h1>
+            {{model.Name}}
+        </h1>
+    {{/block-slot}}
+    {{#block-slot 'actions'}}
+        Copy Token ID
+        <button {{ action "clone" model }}>Clone</button>
+        <button {{ action "requestUse" model }}>Use Token</button>
+    {{/block-slot}}
+    {{#block-slot 'content'}}
+        <form>
+            <fieldset>
+                <label>
+                    <span>Name</span>
+                    {{ input value=model.Name }}
+                    <p>
+                        Set the optional name for the ACL.
+                    </p>
+                </label>
+                <div role="radiogroup">
+                    {{#each types as |type|}}
+                        <label>
+                            <span>{{type}}</span>
+                            <input type="radio" name="type" value="{{type}}" />
+                        </label>
+                    {{/each}}
+                </div>
+                <label>
+                    <span>Policy <a href="">(HCL Format)</a></span>
+                    {{ textarea value=model.Rules }}
+                </label>
+            </fieldset>
+            <button {{ action "update" model}}>Save</button>
+            <button {{ action "cancel" model}}>Cancel Changes</button>
+            {{# if model.isNotAnon }}
+                <button {{ action "requestDelete" model}}>Delete</button>
+            {{/if}}
+        </form>
+    {{/block-slot}}
+{{/app-view}}

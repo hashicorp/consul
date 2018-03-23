@@ -1,24 +1,41 @@
-    {{#link-to "dc.services"}}Back to all services{{/link-to}}
-    <h1>{{ model.0.Service.Service }}</h1>
-    <h2>Tags</h2>
-    {{#if tags}}
-        <p>{{tags}}</p>
-    {{else}}
-        <p>No tags</p>
-    {{/if}}
-    <h2>Nodes</h2>
-    {{#each model as |node| }}
-        {{#link-to 'dc.nodes.show' node.Node.Node }}
-            {{! if node.hasFailingChecks "bg-orange" "bg-green" }}
-            <h3>
-                {{node.Node.Node}} {{node.Node.Address}} {{node.checkMessage}}
-            </h3>
-            <ul>
-                {{#each node.Checks as |check| }}
-                    <li>
-                        {{check.Name}} - {{ check.CheckID }} - {{check.Status}}
-                    </li>
-                {{/each}}
-            </ul>
-        {{/link-to}}
-    {{/each}}
+{{#app-view}}
+    {{#block-slot 'header'}}
+        <a href={{href-to 'dc.services'}}>All Services</a>
+        <h1>
+            {{ model.0.Service.Service }}
+        </h1>
+        {{catalog-filter}}
+    {{/block-slot}}
+    {{#block-slot 'content'}}
+        <dl>
+            <dt>Tags</dt>
+            <dd>
+                <ul>
+                    <li>Tags in here</li>
+                </ul>
+            </dd>
+        </dl>
+        <h2>Unhealthy Nodes</h2>
+        {{#filtered-list tagName="ul" items=model as |item|}}
+            <li>
+                {{healthchecked-resource
+                    href=(href-to 'dc.nodes.show' item.Node.Node)
+                    name=item.Node.Node
+                    address=item.Node.Address
+                    checks=item.Checks
+                }}
+            </li>
+        {{/filtered-list}}
+        <h2>Healthy Nodes</h2>
+        {{#filtered-list tagName="ul" items=model as |item|}}
+            <li>
+                {{healthchecked-resource
+                    href=(href-to 'dc.nodes.show' item.Node.Node)
+                    name=item.Node.Node
+                    address=item.Node.Address
+                    checks=item.Checks
+                }}
+            </li>
+        {{/filtered-list}}
+    {{/block-slot}}
+{{/app-view}}

@@ -12,17 +12,14 @@ export default Route.extend({
   sessionRepo: service('session'),
   model: function(params) {
     const key = params.key;
+    const parentKey = ascend(key, 1) || '/';
     const dc = this.modelFor('dc').dc;
     const repo = this.get('repo');
-    // keys and key are requested in series to avoid
-    // ember not being able to merge the responses
-    const parentKey = ascend(key, 1);
     return hash({
-      // better name, slug vs key?
-      keys: repo.findAllBySlug(parentKey, dc),
       isLoading: false,
       parentKey: parentKey,
       grandParentKey: ascend(key, 2),
+      key: repo.findBySlug(key, dc),
     })
       .then(function(model) {
         return hash(

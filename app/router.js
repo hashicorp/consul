@@ -22,14 +22,11 @@ Router.map(function() {
     // Key/Value
     this.route('kv', { path: '/kv' }, function() {
       this.route('index', { path: '/' });
-      // List keys. This is more like an index
-      this.route('show', { path: '/*key' });
-      // Edit a specific key
       this.route('edit', { path: '/*key/edit' });
     });
     // ACLs
     this.route('acls', { path: '/acls' }, function() {
-      this.route('show', { path: '/:id' });
+      this.route('edit', { path: '/:id' });
     });
 
     // Shows a page explaining that ACLs haven't been set-up

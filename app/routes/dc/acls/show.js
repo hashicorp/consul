@@ -8,6 +8,7 @@ export default Route.extend({
     return hash({
       dc: dc,
       model: this.get('repo').findBySlug(params.id, dc),
+      types: ['management', 'client'],
     });
   },
   setupController: function(controller, model) {
@@ -45,6 +46,9 @@ export default Route.extend({
         `Now using ${item.get('ID')}`,
         `There was an error using ${item.get('ID')}`
       );
+    },
+    cancel: function(item) {
+      this.transitionTo('dc.acls');
     },
     clone: function(item) {
       this.get('feedback').execute(

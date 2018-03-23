@@ -1,44 +1,52 @@
-<h1>
-    <a href="" {{action 'linkToKey' grandParentKey }}>{{parentKey}}</a>
-    <a href="" {{action 'linkToKey' parentKey }}>+</a>
-</h1>
-<ul>
-{{#each siblings as |item| }}
-    <li>
-        {{#link-to item.linkToRoute item.Key tagName="div" href=false class="list-group-item list-condensed-link" }}
-            {{!if item.isFolder "bg-gray" "bg-light-gray" }}
+{{#app-view}}
+    {{#block-slot 'header'}}
+        <h1>
             {{item.basename}}
-        {{/link-to}}
-    </li>
-{{/each}}
-</ul>
-<form>
-    <p>
-        {{errorMessage}}
-    </p>
-    <fieldset>
-        <legend>
-            {{key.Key}}
-{{#if key.isLocked}}
-            KEY LOCKED
-{{/if}}
-        </legend>
-        <label>
-            {{ textarea value=key.valueDecoded class="form-control" disabled=model.isLocked}}
-        </label>
-        <label>
-            {{ input type="checkbox" checked=key.validateJson }}
-            <span>Validate JSON</span>
-        </label>
-    </fieldset>
-    <button {{action "update" key}} disabled={{isLockedOrLoading}}>Update</button>
-    <button {{action "cancel" key}} disabled={{isLoading}}>Cancel</button>
-    <button {{action "delete" key }} disabled={{isLockedOrLoading}}>Delete key</button>
-</form>
+        </h1>
+    {{/block-slot}}
+    {{#block-slot 'content'}}
+        <form>
+            <fieldset>
+                <label>
+                    <span>Key Name</span>
+                    <input type="text" value={{item.basename}} />
+                </label>
+                <div>
+                    <label>
+                        <span>JSON</span>
+                        {{ input type="checkbox" }}
+                    </label>
+                    <label>
+                        <span>Value</span>
+                        {{ textarea value=key.valueDecoded class="form-control" disabled=model.isLocked}}
+                    </label>
+                </div>
+            </fieldset>
+            {{!if (or model.isLocked model.isLoading)}}
+            <button {{action "update" key}} disabled>Save</button>
+            <button {{action "cancel" key}} disabled={{model.isLoading}}>Cancel changes</button>
 
-{{#if key.isLocked}}
-    <h2>Lock Session</h2>
-    {{#link-to 'dc.nodes.show' session.Node }}
-        {{session.Name}} - {{session.ID}} - {{session.Node}}
-    {{/link-to}}
-{{/if}}
+            {{!if (or model.isLocked model.isLoading)}}
+            <button {{action "requestDelete" key }}>Delete</button>
+        </form>
+
+        {{#if key.isLocked}}
+            <h2>Lock Session</h2>
+            <dl>
+                <dt>Name</dt>
+                <dd>{{session.Name}}</dd>
+                <dt>ID</dt>
+                <dd>{{session.ID}}</dd>
+                <dt>Behavior</dt>
+                <dd><{{session.Behavior}}/dd>
+                <dt>Delay</dt>
+                <dd><{{session.Delay}}/dd>
+                <dt>TTL</dt>
+                <dd>{{session.TTL}}</dd>
+                <dt>Health Checks</dt>
+                <dd>Checks in here</dd>
+            </dl>
+            <button {{ action "requestInvalidateSession" session }}>Invalidate</button>
+        {{/if}}
+    {{/block-slot}}
+{{/app-view}}

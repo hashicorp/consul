@@ -1,0 +1,39 @@
+{{#app-view}}
+    {{#block-slot 'header'}}
+        <h1>
+            Nodes
+        </h1>
+{{#if true }}
+        {{catalog-filter}}
+{{/if}}
+    {{/block-slot}}
+    {{#block-slot 'content'}}
+{{#if (gt items.length 0) }}
+        <h2>Unhealthy Nodes</h2>
+        {{#filtered-list tagName="ul" items=items as |item|}}
+            <li>
+                {{healthchecked-resource
+                    href=(href-to 'dc.nodes.show' item.Node)
+                    name=item.Node
+                    address=item.Address
+                    checks=item.Checks
+                }}
+            </li>
+        {{/filtered-list}}
+        <h2>Healthy Nodes</h2>
+        {{#filtered-list tagName="ul" items=items as |item|}}
+            <li>
+                {{healthchecked-resource
+                    href=(href-to 'dc.nodes.show' item.Node)
+                    name=item.Node
+                    address=item.Address
+                    checks=item.Checks
+                }}
+            </li>
+        {{/filtered-list}}
+    {{else}}
+        <p>There are no nodes.</p>
+    {{/if}}
+{{outlet}}
+    {{/block-slot}}
+{{/app-view}}

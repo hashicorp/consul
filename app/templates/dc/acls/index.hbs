@@ -1,0 +1,31 @@
+{{#app-view}}
+    {{#block-slot 'header'}}
+        <h1>
+            ACL Tokens
+        </h1>
+{{#if (gt items.length 0)}}
+        {{acl-filter}}
+{{/if}}
+    {{/block-slot}}
+    {{#block-slot 'content'}}
+{{#if (gt items.length 0)}}
+        <table>
+    {{#filtered-list tagName="tbody" items=items as |item|}}
+                <tr>
+                    <td>
+                        <a href={{href-to 'dc.acls.edit' item.ID}}>{{item.Name}}</a>
+                    </td>
+                    <td>
+                        {{item.Type}}
+                    </td>
+                    <td>
+                        Actions
+                    </td>
+                </tr>
+    {{/filtered-list}}
+        </table>
+{{else}}
+        <p>There are no ACLs.</p>
+{{/if}}
+    {{/block-slot}}
+{{/app-view}}

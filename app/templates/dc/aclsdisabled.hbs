@@ -1,7 +1,15 @@
-    <h1>ACLs Disabled</h1>
-    <p>
-        ACLs are disabled in this Consul cluster. This is the default behavior, as you have to explicitly enable them.
-    </p>
-    <p>
-        Learn more in the <a href="https://www.consul.io/docs/guides/acl.html" target="_blank">ACL documentation</a>.
-    </p>
+{{#app-view}}
+    {{#block-slot 'header'}}
+        <h1>
+            ACL
+        </h1>
+    {{/block-slot}}
+    {{#block-slot 'content'}}
+        <p>
+            ACLs are disabled in this Consul cluster. This is the default behavior, as you have to explicitly enable them.
+        </p>
+        <p>
+            Learn more in the <a href="https://www.consul.io/docs/guides/acl.html" target="_blank">ACL documentation</a>.
+        </p>
+    {{/block-slot}}
+{{/app-view}}

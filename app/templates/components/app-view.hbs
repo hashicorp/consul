@@ -1,0 +1,8 @@
+{{yield}}
+<header>
+    {{#yield-slot 'header'}}{{yield}}{{/yield-slot}}
+    {{#yield-slot 'actions'}}{{yield}}{{/yield-slot}}
+</header>
+<div>
+    {{#yield-slot 'content'}}{{yield}}{{/yield-slot}}
+</div>
