@@ -217,6 +217,9 @@ func (r *Request) Scrub(reply *dns.Msg) (*dns.Msg, Result) {
 			re = m - 1
 			continue
 		}
+		if rl == size {
+			break
+		}
 	}
 	// We may come out of this loop with one rotation too many as we don't break on rl == size.
 	// I.e. m makes it too large, but m-1 works.
@@ -244,6 +247,9 @@ func (r *Request) Scrub(reply *dns.Msg) (*dns.Msg, Result) {
 		if rl > size {
 			ra = m - 1
 			continue
+		}
+		if rl == size {
+			break
 		}
 	}
 	// We may come out of this loop with one rotation too many as we don't break on rl == size.
