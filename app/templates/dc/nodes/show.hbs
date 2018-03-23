@@ -7,24 +7,24 @@
         {{catalog-filter}}
     {{/block-slot}}
     {{#block-slot 'content'}}
-{{#each model.Services as |service| }}
-        <a href={{href-to 'dc.services.show' service.Service}}>
-            <h3>
-                {{service.Service}} - {{service.Address}}:{{service.Port}}
-            </h3>
-    {{#if service.Tags}}
-            <ul>
-                {{#each service.Tags as |tag|}}
-                    <li>{{tag}}</li>
-                {{/each}}
-            </ul>
-    {{else}}
-            <p>
-                No tags
-            </p>
-    {{/if}}
-        </a>
-{{/each}}
+        <table>
+            <thead>
+                <tr>
+                    <th>Service</th>
+                    <th>Tags</th>
+                </tr>
+            </thead>
+    {{#filtered-list tagName="tbody" items=model.Services as |item|}}
+                <tr>
+                    <td>
+                        <a href={{href-to 'dc.services.show' item.Service}}>{{item.Service}}</a>
+                    </td>
+                    <td>
+                        Need to switch API to the public catalog one
+                    </td>
+                </tr>
+    {{/filtered-list}}
+        </table>
         <h2>Checks</h2>
         <ul>
 {{#each model.Checks as |check| }}

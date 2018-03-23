@@ -7,6 +7,7 @@ export default Component.extend({
   filtered: computed('filter', 'items.@each', function() {
     const filter = this.get('filter');
     return this.get('items').filter(function(item) {
+      return true;
       return item
         .get('filterKey')
         .toLowerCase()

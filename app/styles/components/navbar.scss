@@ -1,0 +1,79 @@
+[role='banner'] {
+  @extend %main-header;
+}
+%main-header {
+  height: 48px;
+  padding: 10px 0;
+}
+%main-header::before {
+  content: '';
+  display: block;
+  width: 100vw;
+  height: 30px;
+  position: absolute;
+  left: 0;
+  height: 48px;
+  background-color: $magenta-600;
+}
+%main-header nav:first-of-type {
+  @extend %primary-nav;
+}
+%main-header nav:last-of-type {
+  @extend %secondary-nav;
+}
+%main-header,
+%primary-nav ul,
+%secondary-nav ul {
+  @extend .columns;
+}
+%main-header > *,
+%main-header li {
+  @extend .column;
+}
+%primary-nav ul,
+%secondary-nav ul {
+  @extend .navbar;
+}
+%main-header li {
+  @extend .navbar-item;
+}
+%main-header li,
+%main-header a {
+  color: inherit;
+}
+%main-header a {
+  @extend .navbar-link;
+  display: block;
+}
+%main-header > *,
+%main-header ul,
+%main-header a,
+%main-header li {
+  flex-grow: 0;
+}
+%primary-nav {
+  flex-grow: 1;
+}
+%main-header a:hover {
+  background-color: transparent;
+}
+.navbar-link::after {
+  display: none;
+}
+.navbar-item {
+  padding: 0;
+}
+%secondary-nav {
+  float: right;
+}
+%primary-nav a {
+  background-color: $magenta-800;
+}
+%primary-nav a,
+%secondary-nav a {
+  border-radius: 4px;
+  white-space: nowrap;
+}
+%main-header {
+  color: $white;
+}

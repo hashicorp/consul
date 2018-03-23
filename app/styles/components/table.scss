@@ -1,0 +1,33 @@
+table {
+  @extend .table;
+  width: 100%;
+}
+td dl {
+  overflow: hidden;
+}
+td dl > * {
+  float: left;
+}
+td dt {
+  visibility: hidden;
+  width: 14px;
+  line-height: 0%;
+}
+td dt::before {
+  content: '';
+  display: block;
+  width: 14px;
+  height: 14px;
+  visibility: visible;
+}
+td dt:first-of-type::before {
+  border-radius: 100%;
+  background-color: green;
+}
+td dt:nth-of-type(2)::before {
+  border-radius: 20%;
+  background-color: red;
+}
+td dd {
+  margin-left: 6px;
+}

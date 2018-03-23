@@ -28,11 +28,10 @@
     ]
   },
   "devDependencies": {
-    "bootstrap-sass": "^3.3.7",
     "broccoli-asset-rev": "^2.4.5",
     "ember-ajax": "^3.0.0",
     "ember-block-slots": "^1.1.11",
-    "ember-bootstrap": "^1.2.0",
+    "ember-bulma-css": "^0.2.1",
     "ember-cli": "~2.16.0",
     "ember-cli-app-version": "^3.0.0",
     "ember-cli-babel": "^6.6.0",

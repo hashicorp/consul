@@ -1,0 +1,9 @@
+html,
+.navbar,
+.columns,
+* {
+  background-color: transparent;
+}
+fieldset {
+  border: 0;
+}

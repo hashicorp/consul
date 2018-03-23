@@ -1,17 +1,19 @@
 {{!<form>}}
     <fieldset>
-        <label>
-            <span>All (0000000000)</span>
-            <input type="radio" name="filter" />
-        </label>
-        <label>
-            <span>Management (0000000000)</span>
-            <input type="radio" name="filter" />
-        </label>
-        <label>
-            <span>Client (0000000000)</span>
-            <input type="radio" name="filter" />
-        </label>
+        <div role="radiogroup">
+            <label>
+                <input type="radio" name="filter" checked="checked" />
+                <span>All (0000000000)</span>
+            </label>
+            <label>
+                <input type="radio" name="filter" />
+                <span>Management (0000000000)</span>
+            </label>
+            <label>
+                <input type="radio" name="filter" />
+                <span>Client (0000000000)</span>
+            </label>
+        </div>
     </fieldset>
     {{freetext-filter}}
 {{!</form>}}

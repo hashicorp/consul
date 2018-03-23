@@ -1,18 +1,20 @@
 {{!<fieldset>}}
-    <label>
-        <span>All (0000000000)</span>
-        <input type="radio" name="filter" />
-    </label>
-    <label>
-        <span>Passing (0000000000)</span>
-        <input type="radio" name="filter" />
-    </label>
-    <label>
-        <span>Warning (0000000000)</span>
-        <input type="radio" name="filter" />
-    </label>
-    <label>
-        <span>Critical (0000000000)</span>
-        <input type="radio" name="filter" />
-    </label>
+    <div role="radiogroup">
+        <label>
+            <input type="radio" name="filter" checked="checked" />
+            <span>All (0000000000)</span>
+        </label>
+        <label>
+            <input type="radio" name="filter" />
+            <span>Passing (0000000000)</span>
+        </label>
+        <label>
+            <input type="radio" name="filter" />
+            <span>Warning (0000000000)</span>
+        </label>
+        <label>
+            <input type="radio" name="filter" />
+            <span>Critical (0000000000)</span>
+        </label>
+    </div>
 {{!</fieldset>}}

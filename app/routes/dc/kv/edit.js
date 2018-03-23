@@ -20,28 +20,19 @@ export default Route.extend({
       parentKey: parentKey,
       grandParentKey: ascend(key, 2),
       key: repo.findBySlug(key, dc),
-    })
-      .then(function(model) {
+    }).then(model => {
+      // jc: another afterModel for no reason replacement
+      // guessing ember-data will come in here, as we are just stitching stuff together
+      const session = model.key.get('Session');
+      if (session) {
         return hash(
           assign({}, model, {
-            siblings: model.keys,
-            key: repo.findBySlug(key, dc),
+            session: this.get('sessionRepo').findByKey(session, dc),
           })
         );
-      })
-      .then(model => {
-        // jc: another afterModel for no reason replacement
-        // guessing ember-data will come in here, as we are just stitching stuff together
-        const session = model.key.get('Session');
-        if (session) {
-          return hash(
-            assign({}, model, {
-              session: this.get('sessionRepo').findByKey(session, dc),
-            })
-          );
-        }
-        return model;
-      });
+      }
+      return model;
+    });
   },
   setupController: function(controller, model) {
     controller.setProperties(model);

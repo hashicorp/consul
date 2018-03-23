@@ -1,0 +1,20 @@
+main {
+  @extend %app-view;
+}
+%app-view {
+  margin-top: 76px;
+}
+%app-view h1 {
+  border-bottom: 1px solid;
+}
+%app-view h1 {
+  border-color: $border-blue;
+}
+%app-view header form {
+  @extend .columns;
+  height: 64px; // 36 + (14 * 2)
+  justify-content: space-between;
+  margin: 0 !important;
+  padding: 14px;
+  background-color: $lightest-gray;
+}
