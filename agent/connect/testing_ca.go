@@ -6,7 +6,6 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
@@ -67,12 +66,14 @@ func TestCA(t testing.T, xc *structs.CARoot) *structs.CARoot {
 		PermittedDNSDomainsCritical: true,
 		PermittedDNSDomains:         []string{uri.Hostname()},
 		BasicConstraintsValid:       true,
-		KeyUsage:                    x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
-		IsCA:                        true,
-		NotAfter:                    time.Now().Add(10 * 365 * 24 * time.Hour),
-		NotBefore:                   time.Now(),
-		AuthorityKeyId:              testKeyID(t, signer.Public()),
-		SubjectKeyId:                testKeyID(t, signer.Public()),
+		KeyUsage: x509.KeyUsageCertSign |
+			x509.KeyUsageCRLSign |
+			x509.KeyUsageDigitalSignature,
+		IsCA:           true,
+		NotAfter:       time.Now().Add(10 * 365 * 24 * time.Hour),
+		NotBefore:      time.Now(),
+		AuthorityKeyId: testKeyID(t, signer.Public()),
+		SubjectKeyId:   testKeyID(t, signer.Public()),
 	}
 
 	bs, err := x509.CreateCertificate(
@@ -100,7 +101,11 @@ func TestCA(t testing.T, xc *structs.CARoot) *structs.CARoot {
 			t.Fatalf("error parsing signing key: %s", err)
 		}
 
-		// Set the authority key to be the previous one
+		// Set the authority key to be the previous one.
+		// NOTE(mitchellh): From Paul Banks:  if we have to cross-sign a cert
+		// that came from outside (e.g. vault) we can't rely on them using the
+		// same KeyID hashing algo we do so we'd need to actually copy this
+		// from the xc cert's subjectKeyIdentifier extension.
 		template.AuthorityKeyId = testKeyID(t, xcsigner.Public())
 
 		// Create the new certificate where the parent is the previous
@@ -161,7 +166,10 @@ func TestLeaf(t testing.T, service string, root *structs.CARoot) string {
 		URIs:                  []*url.URL{spiffeId.URI()},
 		SignatureAlgorithm:    x509.ECDSAWithSHA256,
 		BasicConstraintsValid: true,
-		KeyUsage:              x509.KeyUsageDataEncipherment | x509.KeyUsageKeyAgreement,
+		KeyUsage: x509.KeyUsageDataEncipherment |
+			x509.KeyUsageKeyAgreement |
+			x509.KeyUsageDigitalSignature |
+			x509.KeyUsageKeyEncipherment,
 		ExtKeyUsage: []x509.ExtKeyUsage{
 			x509.ExtKeyUsageClientAuth,
 			x509.ExtKeyUsageServerAuth,
@@ -230,23 +238,15 @@ func TestCSR(t testing.T, id SpiffeID) (string, string) {
 	return csrBuf.String(), pkBuf.String()
 }
 
-// testKeyID returns a KeyID from the given public key. The "raw" must be
-// an *ecdsa.PublicKey, but is an interface type to suppot crypto.Signer.Public
-// values.
+// testKeyID returns a KeyID from the given public key. This just calls
+// KeyId but handles errors for tests.
 func testKeyID(t testing.T, raw interface{}) []byte {
-	pub, ok := raw.(*ecdsa.PublicKey)
-	if !ok {
-		t.Fatalf("raw is type %T, expected *ecdsa.PublicKey", raw)
+	result, err := KeyId(raw)
+	if err != nil {
+		t.Fatalf("KeyId error: %s", err)
 	}
 
-	// This is not standard; RFC allows any unique identifier as long as they
-	// match in subject/authority chains but suggests specific hashing of DER
-	// bytes of public key including DER tags. I can't be bothered to do esp.
-	// since ECDSA keys don't have a handy way to marshal the publick key alone.
-	h := sha256.New()
-	h.Write(pub.X.Bytes())
-	h.Write(pub.Y.Bytes())
-	return h.Sum([]byte{})
+	return result
 }
 
 // testMemoizePK is the private key that we memoize once we generate it

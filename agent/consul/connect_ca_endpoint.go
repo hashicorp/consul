@@ -232,7 +232,10 @@ func (s *ConnectCA) Sign(
 		PublicKeyAlgorithm:    csr.PublicKeyAlgorithm,
 		PublicKey:             csr.PublicKey,
 		BasicConstraintsValid: true,
-		KeyUsage:              x509.KeyUsageDataEncipherment | x509.KeyUsageKeyAgreement,
+		KeyUsage: x509.KeyUsageDataEncipherment |
+			x509.KeyUsageKeyAgreement |
+			x509.KeyUsageDigitalSignature |
+			x509.KeyUsageKeyEncipherment,
 		ExtKeyUsage: []x509.ExtKeyUsage{
 			x509.ExtKeyUsageClientAuth,
 			x509.ExtKeyUsageServerAuth,
