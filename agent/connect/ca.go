@@ -12,6 +12,7 @@ import (
 
 // ParseCert parses the x509 certificate from a PEM-encoded value.
 func ParseCert(pemValue string) (*x509.Certificate, error) {
+	// The _ result below is not an error but the remaining PEM bytes.
 	block, _ := pem.Decode([]byte(pemValue))
 	if block == nil {
 		return nil, fmt.Errorf("no PEM-encoded data found")
@@ -27,6 +28,7 @@ func ParseCert(pemValue string) (*x509.Certificate, error) {
 // ParseSigner parses a crypto.Signer from a PEM-encoded key. The private key
 // is expected to be the first block in the PEM value.
 func ParseSigner(pemValue string) (crypto.Signer, error) {
+	// The _ result below is not an error but the remaining PEM bytes.
 	block, _ := pem.Decode([]byte(pemValue))
 	if block == nil {
 		return nil, fmt.Errorf("no PEM-encoded data found")
@@ -44,6 +46,7 @@ func ParseSigner(pemValue string) (crypto.Signer, error) {
 // ParseCSR parses a CSR from a PEM-encoded value. The certificate request
 // must be the the first block in the PEM value.
 func ParseCSR(pemValue string) (*x509.CertificateRequest, error) {
+	// The _ result below is not an error but the remaining PEM bytes.
 	block, _ := pem.Decode([]byte(pemValue))
 	if block == nil {
 		return nil, fmt.Errorf("no PEM-encoded data found")
@@ -57,7 +60,7 @@ func ParseCSR(pemValue string) (*x509.CertificateRequest, error) {
 }
 
 // KeyId returns a x509 KeyId from the given signing key. The key must be
-// an *ecdsa.PublicKey, but is an interface type to support crypto.Signer.
+// an *ecdsa.PublicKey currently, but may support more types in the future.
 func KeyId(raw interface{}) ([]byte, error) {
 	pub, ok := raw.(*ecdsa.PublicKey)
 	if !ok {
@@ -66,12 +69,15 @@ func KeyId(raw interface{}) ([]byte, error) {
 
 	// This is not standard; RFC allows any unique identifier as long as they
 	// match in subject/authority chains but suggests specific hashing of DER
-	// bytes of public key including DER tags. I can't be bothered to do esp.
-	// since ECDSA keys don't have a handy way to marshal the publick key alone.
-	h := sha256.New()
-	h.Write(pub.X.Bytes())
-	h.Write(pub.Y.Bytes())
-	return h.Sum([]byte{}), nil
+	// bytes of public key including DER tags.
+	bs, err := x509.MarshalPKIXPublicKey(pub)
+	if err != nil {
+		return nil, err
+	}
+
+	// String formatted
+	kID := sha256.Sum256(bs)
+	return []byte(strings.Replace(fmt.Sprintf("% x", kID), " ", ":", -1)), nil
 }
 
 // HexString returns a standard colon-separated hex value for the input
