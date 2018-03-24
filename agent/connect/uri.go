@@ -6,9 +6,14 @@ import (
 	"regexp"
 )
 
-// SpiffeID represents a Connect-valid SPIFFE ID. The user should type switch
-// on the various implementations in this package to determine the type of ID.
-type SpiffeID interface {
+// CertURI represents a Connect-valid URI value for a TLS certificate.
+// The user should type switch on the various implementations in this
+// package to determine the type of URI and the data encoded within it.
+//
+// Note that the current implementations of this are all also SPIFFE IDs.
+// However, we anticipate that we may accept URIs that are also not SPIFFE
+// compliant and therefore the interface is named as such.
+type CertURI interface {
 	URI() *url.URL
 }
 
@@ -17,8 +22,8 @@ var (
 		`^/ns/(\w+)/dc/(\w+)/svc/(\w+)$`)
 )
 
-// ParseSpiffeID parses a SPIFFE ID from the input URI.
-func ParseSpiffeID(input *url.URL) (SpiffeID, error) {
+// ParseCertURI parses a the URI value from a TLS certificate.
+func ParseCertURI(input *url.URL) (CertURI, error) {
 	if input.Scheme != "spiffe" {
 		return nil, fmt.Errorf("SPIFFE ID must have 'spiffe' scheme")
 	}

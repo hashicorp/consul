@@ -7,9 +7,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// testSpiffeIDCases contains the test cases for parsing and encoding
+// testCertURICases contains the test cases for parsing and encoding
 // the SPIFFE IDs. This is a global since it is used in multiple test functions.
-var testSpiffeIDCases = []struct {
+var testCertURICases = []struct {
 	Name       string
 	URI        string
 	Struct     interface{}
@@ -35,8 +35,8 @@ var testSpiffeIDCases = []struct {
 	},
 }
 
-func TestParseSpiffeID(t *testing.T) {
-	for _, tc := range testSpiffeIDCases {
+func TestParseCertURI(t *testing.T) {
+	for _, tc := range testCertURICases {
 		t.Run(tc.Name, func(t *testing.T) {
 			assert := assert.New(t)
 
@@ -45,7 +45,7 @@ func TestParseSpiffeID(t *testing.T) {
 			assert.Nil(err)
 
 			// Parse the ID and check the error/return value
-			actual, err := ParseSpiffeID(uri)
+			actual, err := ParseCertURI(uri)
 			assert.Equal(tc.ParseError != "", err != nil, "error value")
 			if err != nil {
 				assert.Contains(err.Error(), tc.ParseError)

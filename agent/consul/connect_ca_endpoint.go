@@ -171,7 +171,7 @@ func (s *ConnectCA) Sign(
 	}
 
 	// Parse the SPIFFE ID
-	spiffeId, err := connect.ParseSpiffeID(csr.URIs[0])
+	spiffeId, err := connect.ParseCertURI(csr.URIs[0])
 	if err != nil {
 		return err
 	}
