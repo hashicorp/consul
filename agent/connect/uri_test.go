@@ -33,6 +33,16 @@ var testCertURICases = []struct {
 		},
 		"",
 	},
+
+	{
+		"signing ID",
+		"spiffe://1234.consul",
+		&SpiffeIDSigning{
+			ClusterID: "1234",
+			Domain:    "consul",
+		},
+		"",
+	},
 }
 
 func TestParseCertURI(t *testing.T) {

@@ -53,18 +53,15 @@ func TestCA(t testing.T, xc *structs.CARoot) *structs.CARoot {
 	}
 
 	// The URI (SPIFFE compatible) for the cert
-	uri, err := url.Parse(fmt.Sprintf("spiffe://%s.consul", testClusterID))
-	if err != nil {
-		t.Fatalf("error parsing CA URI: %s", err)
-	}
+	id := &SpiffeIDSigning{ClusterID: testClusterID, Domain: "consul"}
 
 	// Create the CA cert
 	template := x509.Certificate{
 		SerialNumber: sn,
 		Subject:      pkix.Name{CommonName: result.Name},
-		URIs:         []*url.URL{uri},
+		URIs:         []*url.URL{id.URI()},
 		PermittedDNSDomainsCritical: true,
-		PermittedDNSDomains:         []string{uri.Hostname()},
+		PermittedDNSDomains:         []string{id.URI().Hostname()},
 		BasicConstraintsValid:       true,
 		KeyUsage: x509.KeyUsageCertSign |
 			x509.KeyUsageCRLSign |
