@@ -59,7 +59,9 @@ Load \fBexample\.hosts\fR file in the current directory\.
 .
 .nf
 
-hosts example\.hosts
+\&\. {
+    hosts example\.hosts
+}
 .
 .fi
 .
@@ -72,8 +74,10 @@ Load example\.hosts file and only serve example\.org and example\.net from it an
 .
 .nf
 
-hosts example\.hosts example\.org example\.net {
-    fallthrough
+\&\. {
+    hosts example\.hosts example\.org example\.net {
+        fallthrough
+    }
 }
 .
 .fi
@@ -87,9 +91,11 @@ Load hosts file inlined in Corefile\.
 .
 .nf
 
-hosts example\.hosts example\.org {
-    10\.0\.0\.1 example\.org
-    fallthrough
+\&\. {
+    hosts example\.hosts example\.org {
+        10\.0\.0\.1 example\.org
+        fallthrough
+    }
 }
 .
 .fi
