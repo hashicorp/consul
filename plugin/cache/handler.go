@@ -46,7 +46,7 @@ func (c *Cache) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 					// When prefetching we loose the item i, and with it the frequency
 					// that we've gathered sofar. See we copy the frequencies info back
 					// into the new item that was stored in the cache.
-					prr := &ResponseWriter{ResponseWriter: w, Cache: c, prefetch: true}
+					prr := &ResponseWriter{ResponseWriter: w, Cache: c, prefetch: true, state: state}
 					plugin.NextOrFailure(c.Name(), c.Next, ctx, prr, r)
 
 					if i1 := c.exists(qname, qtype, do); i1 != nil {
@@ -58,7 +58,7 @@ func (c *Cache) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 		return dns.RcodeSuccess, nil
 	}
 
-	crr := &ResponseWriter{ResponseWriter: w, Cache: c}
+	crr := &ResponseWriter{ResponseWriter: w, Cache: c, state: state}
 	return plugin.NextOrFailure(c.Name(), c.Next, ctx, crr, r)
 }
 
@@ -126,6 +126,13 @@ var (
 		Subsystem: "cache",
 		Name:      "prefetch_total",
 		Help:      "The number of time the cache has prefetched a cached item.",
+	})
+
+	cacheDrops = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: plugin.Namespace,
+		Subsystem: "cache",
+		Name:      "drops_total",
+		Help:      "The number responses that are not cached, because the reply is malformed.",
 	})
 )
 

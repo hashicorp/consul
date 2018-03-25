@@ -42,6 +42,7 @@ func setup(c *caddy.Controller) error {
 				x.MustRegister(cacheHits)
 				x.MustRegister(cacheMisses)
 				x.MustRegister(cachePrefetches)
+				x.MustRegister(cacheDrops)
 			}
 		})
 		return nil

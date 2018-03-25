@@ -57,6 +57,7 @@ If monitoring is enabled (via the *prometheus* directive) then the following met
 * `coredns_cache_capacity{type}` - Total capacity of the cache by cache type.
 * `coredns_cache_hits_total{type}` - Counter of cache hits by cache type.
 * `coredns_cache_misses_total{}` - Counter of cache misses.
+* `coredns_cache_drops_total{}` - Counter of dropped messages.
 
 Cache types are either "denial" or "success".
 

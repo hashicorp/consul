@@ -119,6 +119,13 @@ func (f *Forward) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 			break
 		}
 
+		// Check if the reply is correct; if not return FormErr.
+		if !state.Match(ret) {
+			formerr := state.ErrorMessage(dns.RcodeFormatError)
+			w.WriteMsg(formerr)
+			return 0, nil
+		}
+
 		ret.Compress = true
 		// When using force_tcp the upstream can send a message that is too big for
 		// the udp buffer, hence we need to truncate the message to at least make it

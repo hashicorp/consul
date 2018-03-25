@@ -100,6 +100,14 @@ func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 			taperr := toDnstap(ctx, host.Name, upstream.Exchanger(), state, reply, start)
 
 			if backendErr == nil {
+
+				// Check if the reply is correct; if not return FormErr.
+				if !state.Match(reply) {
+					formerr := state.ErrorMessage(dns.RcodeFormatError)
+					w.WriteMsg(formerr)
+					return 0, taperr
+				}
+
 				w.WriteMsg(reply)
 
 				RequestDuration.WithLabelValues(state.Proto(), upstream.Exchanger().Protocol(), familyToString(state.Family()), host.Name).Observe(time.Since(start).Seconds())

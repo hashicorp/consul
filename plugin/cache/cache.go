@@ -10,6 +10,7 @@ import (
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/pkg/cache"
 	"github.com/coredns/coredns/plugin/pkg/response"
+	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
 )
@@ -102,6 +103,7 @@ func hash(qname string, qtype uint16, do bool) uint32 {
 type ResponseWriter struct {
 	dns.ResponseWriter
 	*Cache
+	state request.Request
 
 	prefetch bool // When true write nothing back to the client.
 }
@@ -128,10 +130,15 @@ func (w *ResponseWriter) WriteMsg(res *dns.Msg) error {
 	}
 
 	if key != -1 && duration > 0 {
-		w.set(res, key, mt, duration)
 
-		cacheSize.WithLabelValues(Success).Set(float64(w.pcache.Len()))
-		cacheSize.WithLabelValues(Denial).Set(float64(w.ncache.Len()))
+		if w.state.Match(res) {
+			w.set(res, key, mt, duration)
+			cacheSize.WithLabelValues(Success).Set(float64(w.pcache.Len()))
+			cacheSize.WithLabelValues(Denial).Set(float64(w.ncache.Len()))
+		} else {
+			// Don't log it, but increment counter
+			cacheDrops.Inc()
+		}
 	}
 
 	if w.prefetch {
