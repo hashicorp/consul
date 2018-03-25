@@ -48,23 +48,29 @@ Load `/etc/hosts` file.
 Load `example.hosts` file in the current directory.
 
 ~~~
-hosts example.hosts
+. {
+    hosts example.hosts
+}
 ~~~
 
 Load example.hosts file and only serve example.org and example.net from it and fall through to the
 next plugin if query doesn't match.
 
 ~~~
-hosts example.hosts example.org example.net {
-    fallthrough
+. {
+    hosts example.hosts example.org example.net {
+        fallthrough
+    }
 }
 ~~~
 
 Load hosts file inlined in Corefile.
 
 ~~~
-hosts example.hosts example.org {
-    10.0.0.1 example.org
-    fallthrough
+. {
+    hosts example.hosts example.org {
+        10.0.0.1 example.org
+        fallthrough
+    }
 }
 ~~~
