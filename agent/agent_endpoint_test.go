@@ -2292,3 +2292,93 @@ func TestAgentConnectAuthorize_deny(t *testing.T) {
 	assert.False(obj.Authorized)
 	assert.Contains(obj.Reason, "Matched")
 }
+
+// Test that authorize fails without service:write for the target service.
+func TestAgentConnectAuthorize_serviceWrite(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	a := NewTestAgent(t.Name(), TestACLConfig())
+	defer a.Shutdown()
+
+	// Create an ACL
+	var token string
+	{
+		args := map[string]interface{}{
+			"Name":  "User Token",
+			"Type":  "client",
+			"Rules": `service "foo" { policy = "read" }`,
+		}
+		req, _ := http.NewRequest("PUT", "/v1/acl/create?token=root", jsonReader(args))
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.ACLCreate(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		aclResp := obj.(aclCreateResponse)
+		token = aclResp.ID
+	}
+
+	args := &structs.ConnectAuthorizeRequest{
+		Target:   "foo",
+		ClientID: connect.TestSpiffeIDService(t, "web").URI().String(),
+	}
+	req, _ := http.NewRequest("POST",
+		"/v1/agent/connect/authorize?token="+token, jsonReader(args))
+	resp := httptest.NewRecorder()
+	_, err := a.srv.AgentConnectAuthorize(resp, req)
+	assert.True(acl.IsErrPermissionDenied(err))
+}
+
+// Test when no intentions match w/ a default deny policy
+func TestAgentConnectAuthorize_defaultDeny(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	a := NewTestAgent(t.Name(), TestACLConfig())
+	defer a.Shutdown()
+
+	args := &structs.ConnectAuthorizeRequest{
+		Target:   "foo",
+		ClientID: connect.TestSpiffeIDService(t, "web").URI().String(),
+	}
+	req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize?token=root", jsonReader(args))
+	resp := httptest.NewRecorder()
+	respRaw, err := a.srv.AgentConnectAuthorize(resp, req)
+	assert.Nil(err)
+	assert.Equal(200, resp.Code)
+
+	obj := respRaw.(*connectAuthorizeResp)
+	assert.False(obj.Authorized)
+	assert.Contains(obj.Reason, "Default behavior")
+}
+
+// Test when no intentions match w/ a default allow policy
+func TestAgentConnectAuthorize_defaultAllow(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	a := NewTestAgent(t.Name(), `
+		acl_datacenter = "dc1"
+		acl_default_policy = "allow"
+		acl_master_token = "root"
+		acl_agent_token = "root"
+		acl_agent_master_token = "towel"
+		acl_enforce_version_8 = true
+	`)
+	defer a.Shutdown()
+
+	args := &structs.ConnectAuthorizeRequest{
+		Target:   "foo",
+		ClientID: connect.TestSpiffeIDService(t, "web").URI().String(),
+	}
+	req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize?token=root", jsonReader(args))
+	resp := httptest.NewRecorder()
+	respRaw, err := a.srv.AgentConnectAuthorize(resp, req)
+	assert.Nil(err)
+	assert.Equal(200, resp.Code)
+
+	obj := respRaw.(*connectAuthorizeResp)
+	assert.True(obj.Authorized)
+	assert.Contains(obj.Reason, "Default behavior")
+}

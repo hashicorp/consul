@@ -886,6 +886,10 @@ func (s *HTTPServer) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.
 //
 // POST /v1/agent/connect/authorize
 func (s *HTTPServer) AgentConnectAuthorize(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Fetch the token
+	var token string
+	s.parseToken(req, &token)
+
 	// Decode the request from the request body
 	var authReq structs.ConnectAuthorizeRequest
 	if err := decodeBody(req, &authReq, nil); err != nil {
@@ -925,7 +929,18 @@ func (s *HTTPServer) AgentConnectAuthorize(resp http.ResponseWriter, req *http.R
 		}, nil
 	}
 
-	// Get the intentions for this target service
+	// We need to verify service:write permissions for the given token.
+	// We do this manually here since the RPC request below only verifies
+	// service:read.
+	rule, err := s.agent.resolveToken(token)
+	if err != nil {
+		return nil, err
+	}
+	if rule != nil && !rule.ServiceWrite(authReq.Target, nil) {
+		return nil, acl.ErrPermissionDenied
+	}
+
+	// Get the intentions for this target service.
 	args := &structs.IntentionQueryRequest{
 		Datacenter: s.agent.config.Datacenter,
 		Match: &structs.IntentionQueryMatch{
@@ -938,6 +953,7 @@ func (s *HTTPServer) AgentConnectAuthorize(resp http.ResponseWriter, req *http.R
 			},
 		},
 	}
+	args.Token = token
 	var reply structs.IndexedIntentionMatches
 	if err := s.agent.RPC("Intention.Match", args, &reply); err != nil {
 		return nil, err
@@ -956,15 +972,25 @@ func (s *HTTPServer) AgentConnectAuthorize(resp http.ResponseWriter, req *http.R
 		}
 	}
 
-	// If there was no matching intention, we always deny. Connect does
-	// support a blacklist (default allow) mode, but this works by appending
-	// */* => */* ALLOW intention to all Match requests. This means that
-	// the above should've matched. Therefore, if we reached here, something
-	// strange has happened and we should just deny the connection and err
-	// on the side of safety.
+	// No match, we need to determine the default behavior. We do this by
+	// specifying the anonymous token token, which will get that behavior.
+	// The default behavior if ACLs are disabled is to allow connections
+	// to mimic the behavior of Consul itself: everything is allowed if
+	// ACLs are disabled.
+	rule, err = s.agent.resolveToken("")
+	if err != nil {
+		return nil, err
+	}
+	authz := true
+	reason := "ACLs disabled, access is allowed by default"
+	if rule != nil {
+		authz = rule.IntentionDefault()
+		reason = "Default behavior configured by ACLs"
+	}
+
 	return &connectAuthorizeResp{
-		Authorized: false,
-		Reason:     "No matching intention, denying",
+		Authorized: authz,
+		Reason:     reason,
 	}, nil
 }
 

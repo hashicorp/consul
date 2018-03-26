@@ -53,6 +53,9 @@ func TestStaticACL(t *testing.T) {
 	if !all.EventWrite("foobar") {
 		t.Fatalf("should allow")
 	}
+	if !all.IntentionDefault() {
+		t.Fatalf("should allow")
+	}
 	if !all.IntentionWrite("foobar") {
 		t.Fatalf("should allow")
 	}
@@ -126,6 +129,9 @@ func TestStaticACL(t *testing.T) {
 	if none.EventWrite("") {
 		t.Fatalf("should not allow")
 	}
+	if none.IntentionDefault() {
+		t.Fatalf("should not allow")
+	}
 	if none.IntentionWrite("foo") {
 		t.Fatalf("should not allow")
 	}
@@ -191,6 +197,9 @@ func TestStaticACL(t *testing.T) {
 		t.Fatalf("should allow")
 	}
 	if !manage.EventWrite("foobar") {
+		t.Fatalf("should allow")
+	}
+	if !manage.IntentionDefault() {
 		t.Fatalf("should allow")
 	}
 	if !manage.IntentionWrite("foobar") {
@@ -454,6 +463,11 @@ func TestPolicyACL(t *testing.T) {
 			t.Fatalf("Prepared query fail: %#v", c)
 		}
 	}
+
+	// Check default intentions bubble up
+	if !acl.IntentionDefault() {
+		t.Fatal("should allow")
+	}
 }
 
 func TestPolicyACL_Parent(t *testing.T) {
@@ -606,6 +620,11 @@ func TestPolicyACL_Parent(t *testing.T) {
 	}
 	if acl.Snapshot() {
 		t.Fatalf("should not allow")
+	}
+
+	// Check default intentions
+	if acl.IntentionDefault() {
+		t.Fatal("should not allow")
 	}
 }
 
