@@ -697,7 +697,7 @@ func (l *State) updateSyncState() error {
 			// The Serf check is created automatically and does not
 			// need to be deregistered.
 			if id == structs.SerfCheckID {
-				l.logger.Printf("[DEBUG] Skipping remote check %q since it is managed automatically", id)
+				l.logger.Printf("[DEBUG] agent: Skipping remote check %q since it is managed automatically", id)
 				continue
 			}
 

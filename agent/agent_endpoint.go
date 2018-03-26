@@ -783,6 +783,6 @@ func (s *HTTPServer) AgentToken(resp http.ResponseWriter, req *http.Request) (in
 		return nil, nil
 	}
 
-	s.agent.logger.Printf("[INFO] Updated agent's ACL token %q", target)
+	s.agent.logger.Printf("[INFO] agent: Updated agent's ACL token %q", target)
 	return nil, nil
 }

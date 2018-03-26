@@ -659,7 +659,7 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 			}
 			wp.LogOutput = a.LogOutput
 			if err := wp.Run(addr); err != nil {
-				a.logger.Printf("[ERR] Failed to run watch: %v", err)
+				a.logger.Printf("[ERR] agent: Failed to run watch: %v", err)
 			}
 		}(wp)
 	}
@@ -908,7 +908,7 @@ func (a *Agent) makeRandomID() (string, error) {
 		return "", err
 	}
 
-	a.logger.Printf("[DEBUG] Using random ID %q as node ID", id)
+	a.logger.Printf("[DEBUG] agent: Using random ID %q as node ID", id)
 	return id, nil
 }
 
@@ -926,7 +926,7 @@ func (a *Agent) makeNodeID() (string, error) {
 	// Try to get a stable ID associated with the host itself.
 	info, err := host.Info()
 	if err != nil {
-		a.logger.Printf("[DEBUG] Couldn't get a unique ID from the host: %v", err)
+		a.logger.Printf("[DEBUG] agent: Couldn't get a unique ID from the host: %v", err)
 		return a.makeRandomID()
 	}
 
@@ -934,7 +934,7 @@ func (a *Agent) makeNodeID() (string, error) {
 	// control over this process.
 	id := strings.ToLower(info.HostID)
 	if _, err := uuid.ParseUUID(id); err != nil {
-		a.logger.Printf("[DEBUG] Unique ID %q from host isn't formatted as a UUID: %v",
+		a.logger.Printf("[DEBUG] agent: Unique ID %q from host isn't formatted as a UUID: %v",
 			id, err)
 		return a.makeRandomID()
 	}
@@ -950,7 +950,7 @@ func (a *Agent) makeNodeID() (string, error) {
 		buf[8:10],
 		buf[10:16])
 
-	a.logger.Printf("[DEBUG] Using unique ID %q from host as node ID", id)
+	a.logger.Printf("[DEBUG] agent: Using unique ID %q from host as node ID", id)
 	return id, nil
 }
 
@@ -1280,10 +1280,10 @@ func (a *Agent) JoinWAN(addrs []string) (n int, err error) {
 
 // ForceLeave is used to remove a failed node from the cluster
 func (a *Agent) ForceLeave(node string) (err error) {
-	a.logger.Printf("[INFO] Force leaving node: %v", node)
+	a.logger.Printf("[INFO] agent: Force leaving node: %v", node)
 	err = a.delegate.RemoveFailedNode(node)
 	if err != nil {
-		a.logger.Printf("[WARN] Failed to remove node: %v", err)
+		a.logger.Printf("[WARN] agent: Failed to remove node: %v", err)
 	}
 	return err
 }
@@ -1546,7 +1546,7 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 
 	// Warn if the service name is incompatible with DNS
 	if InvalidDnsRe.MatchString(service.Service) {
-		a.logger.Printf("[WARN] Service name %q will not be discoverable "+
+		a.logger.Printf("[WARN] agent: Service name %q will not be discoverable "+
 			"via DNS due to invalid characters. Valid characters include "+
 			"all alpha-numerics and dashes.", service.Service)
 	}
@@ -1554,7 +1554,7 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 	// Warn if any tags are incompatible with DNS
 	for _, tag := range service.Tags {
 		if InvalidDnsRe.MatchString(tag) {
-			a.logger.Printf("[DEBUG] Service tag %q will not be discoverable "+
+			a.logger.Printf("[DEBUG] agent: Service tag %q will not be discoverable "+
 				"via DNS due to invalid characters. Valid characters include "+
 				"all alpha-numerics and dashes.", tag)
 		}
@@ -2182,7 +2182,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig) error {
 
 		// Skip all partially written temporary files
 		if strings.HasSuffix(fi.Name(), "tmp") {
-			a.logger.Printf("[WARN] Ignoring temporary service file %v", fi.Name())
+			a.logger.Printf("[WARN] agent: Ignoring temporary service file %v", fi.Name())
 			continue
 		}
 
@@ -2205,7 +2205,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig) error {
 		if err := json.Unmarshal(buf, &p); err != nil {
 			// Backwards-compatibility for pre-0.5.1 persisted services
 			if err := json.Unmarshal(buf, &p.Service); err != nil {
-				a.logger.Printf("[ERR] Failed decoding service file %q: %s", file, err)
+				a.logger.Printf("[ERR] agent: Failed decoding service file %q: %s", file, err)
 				continue
 			}
 		}
@@ -2285,7 +2285,7 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig) error {
 		// Decode the check
 		var p persistedCheck
 		if err := json.Unmarshal(buf, &p); err != nil {
-			a.logger.Printf("[ERR] Failed decoding check file %q: %s", file, err)
+			a.logger.Printf("[ERR] agent: Failed decoding check file %q: %s", file, err)
 			continue
 		}
 		checkID := p.Check.CheckID
