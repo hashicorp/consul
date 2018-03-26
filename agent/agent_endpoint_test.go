@@ -2130,3 +2130,165 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 
 	// TODO(mitchellh): verify the private key matches the cert
 }
+
+func TestAgentConnectAuthorize_badBody(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	args := []string{}
+	req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
+	resp := httptest.NewRecorder()
+	_, err := a.srv.AgentConnectAuthorize(resp, req)
+	assert.Nil(err)
+	assert.Equal(400, resp.Code)
+	assert.Contains(resp.Body.String(), "decode")
+}
+
+func TestAgentConnectAuthorize_noTarget(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	args := &structs.ConnectAuthorizeRequest{}
+	req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
+	resp := httptest.NewRecorder()
+	_, err := a.srv.AgentConnectAuthorize(resp, req)
+	assert.Nil(err)
+	assert.Equal(400, resp.Code)
+	assert.Contains(resp.Body.String(), "Target service")
+}
+
+// Client ID is not in the valid URI format
+func TestAgentConnectAuthorize_idInvalidFormat(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	args := &structs.ConnectAuthorizeRequest{
+		Target:   "web",
+		ClientID: "tubes",
+	}
+	req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
+	resp := httptest.NewRecorder()
+	respRaw, err := a.srv.AgentConnectAuthorize(resp, req)
+	assert.Nil(err)
+	assert.Equal(200, resp.Code)
+
+	obj := respRaw.(*connectAuthorizeResp)
+	assert.False(obj.Authorized)
+	assert.Contains(obj.Reason, "Invalid client")
+}
+
+// Client ID is a valid URI but its not a service URI
+func TestAgentConnectAuthorize_idNotService(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	args := &structs.ConnectAuthorizeRequest{
+		Target:   "web",
+		ClientID: "spiffe://1234.consul",
+	}
+	req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
+	resp := httptest.NewRecorder()
+	respRaw, err := a.srv.AgentConnectAuthorize(resp, req)
+	assert.Nil(err)
+	assert.Equal(200, resp.Code)
+
+	obj := respRaw.(*connectAuthorizeResp)
+	assert.False(obj.Authorized)
+	assert.Contains(obj.Reason, "must be a valid")
+}
+
+// Test when there is an intention allowing the connection
+func TestAgentConnectAuthorize_allow(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	target := "db"
+
+	// Create some intentions
+	{
+		req := structs.IntentionRequest{
+			Datacenter: "dc1",
+			Op:         structs.IntentionOpCreate,
+			Intention:  structs.TestIntention(t),
+		}
+		req.Intention.SourceNS = structs.IntentionDefaultNamespace
+		req.Intention.SourceName = "web"
+		req.Intention.DestinationNS = structs.IntentionDefaultNamespace
+		req.Intention.DestinationName = target
+		req.Intention.Action = structs.IntentionActionAllow
+
+		var reply string
+		assert.Nil(a.RPC("Intention.Apply", &req, &reply))
+	}
+
+	args := &structs.ConnectAuthorizeRequest{
+		Target:   target,
+		ClientID: connect.TestSpiffeIDService(t, "web").URI().String(),
+	}
+	req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
+	resp := httptest.NewRecorder()
+	respRaw, err := a.srv.AgentConnectAuthorize(resp, req)
+	assert.Nil(err)
+	assert.Equal(200, resp.Code)
+
+	obj := respRaw.(*connectAuthorizeResp)
+	assert.True(obj.Authorized)
+	assert.Contains(obj.Reason, "Matched")
+}
+
+// Test when there is an intention denying the connection
+func TestAgentConnectAuthorize_deny(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	target := "db"
+
+	// Create some intentions
+	{
+		req := structs.IntentionRequest{
+			Datacenter: "dc1",
+			Op:         structs.IntentionOpCreate,
+			Intention:  structs.TestIntention(t),
+		}
+		req.Intention.SourceNS = structs.IntentionDefaultNamespace
+		req.Intention.SourceName = "web"
+		req.Intention.DestinationNS = structs.IntentionDefaultNamespace
+		req.Intention.DestinationName = target
+		req.Intention.Action = structs.IntentionActionDeny
+
+		var reply string
+		assert.Nil(a.RPC("Intention.Apply", &req, &reply))
+	}
+
+	args := &structs.ConnectAuthorizeRequest{
+		Target:   target,
+		ClientID: connect.TestSpiffeIDService(t, "web").URI().String(),
+	}
+	req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
+	resp := httptest.NewRecorder()
+	respRaw, err := a.srv.AgentConnectAuthorize(resp, req)
+	assert.Nil(err)
+	assert.Equal(200, resp.Code)
+
+	obj := respRaw.(*connectAuthorizeResp)
+	assert.False(obj.Authorized)
+	assert.Contains(obj.Reason, "Matched")
+}

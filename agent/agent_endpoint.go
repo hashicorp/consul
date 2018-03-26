@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -885,6 +886,85 @@ func (s *HTTPServer) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.
 //
 // POST /v1/agent/connect/authorize
 func (s *HTTPServer) AgentConnectAuthorize(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	// NOTE(mitchellh): return 200 for now. To be implemented later.
-	return nil, nil
+	// Decode the request from the request body
+	var authReq structs.ConnectAuthorizeRequest
+	if err := decodeBody(req, &authReq, nil); err != nil {
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(resp, "Request decode failed: %v", err)
+		return nil, nil
+	}
+
+	// We need to have a target to check intentions
+	if authReq.Target == "" {
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(resp, "Target service must be specified")
+		return nil, nil
+	}
+
+	// Parse the certificate URI from the client ID
+	uriRaw, err := url.Parse(authReq.ClientID)
+	if err != nil {
+		return &connectAuthorizeResp{
+			Authorized: false,
+			Reason:     fmt.Sprintf("Client ID must be a URI: %s", err),
+		}, nil
+	}
+	uri, err := connect.ParseCertURI(uriRaw)
+	if err != nil {
+		return &connectAuthorizeResp{
+			Authorized: false,
+			Reason:     fmt.Sprintf("Invalid client ID: %s", err),
+		}, nil
+	}
+
+	uriService, ok := uri.(*connect.SpiffeIDService)
+	if !ok {
+		return &connectAuthorizeResp{
+			Authorized: false,
+			Reason:     fmt.Sprintf("Client ID must be a valid SPIFFE service URI"),
+		}, nil
+	}
+
+	// Get the intentions for this target service
+	args := &structs.IntentionQueryRequest{
+		Datacenter: s.agent.config.Datacenter,
+		Match: &structs.IntentionQueryMatch{
+			Type: structs.IntentionMatchDestination,
+			Entries: []structs.IntentionMatchEntry{
+				{
+					Namespace: structs.IntentionDefaultNamespace,
+					Name:      authReq.Target,
+				},
+			},
+		},
+	}
+	var reply structs.IndexedIntentionMatches
+	if err := s.agent.RPC("Intention.Match", args, &reply); err != nil {
+		return nil, err
+	}
+	if len(reply.Matches) != 1 {
+		return nil, fmt.Errorf("Internal error loading matches")
+	}
+
+	// Test the authorization for each match
+	for _, ixn := range reply.Matches[0] {
+		if auth, ok := uriService.Authorize(ixn); ok {
+			return &connectAuthorizeResp{
+				Authorized: auth,
+				Reason:     fmt.Sprintf("Matched intention %s", ixn.ID),
+			}, nil
+		}
+	}
+
+	// TODO(mitchellh): default behavior here for now is "deny" but we
+	// should consider how this is determined.
+	return &connectAuthorizeResp{
+		Authorized: false,
+		Reason:     "No matching intention, using default behavior",
+	}, nil
+}
+
+type connectAuthorizeResp struct {
+	Authorized bool
+	Reason     string
 }
