@@ -956,11 +956,15 @@ func (s *HTTPServer) AgentConnectAuthorize(resp http.ResponseWriter, req *http.R
 		}
 	}
 
-	// TODO(mitchellh): default behavior here for now is "deny" but we
-	// should consider how this is determined.
+	// If there was no matching intention, we always deny. Connect does
+	// support a blacklist (default allow) mode, but this works by appending
+	// */* => */* ALLOW intention to all Match requests. This means that
+	// the above should've matched. Therefore, if we reached here, something
+	// strange has happened and we should just deny the connection and err
+	// on the side of safety.
 	return &connectAuthorizeResp{
 		Authorized: false,
-		Reason:     "No matching intention, using default behavior",
+		Reason:     "No matching intention, denying",
 	}, nil
 }
 
