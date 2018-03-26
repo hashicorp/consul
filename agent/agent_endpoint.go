@@ -968,7 +968,9 @@ func (s *HTTPServer) AgentConnectAuthorize(resp http.ResponseWriter, req *http.R
 	}, nil
 }
 
+// connectAuthorizeResp is the response format/structure for the
+// /v1/agent/connect/authorize endpoint.
 type connectAuthorizeResp struct {
-	Authorized bool
-	Reason     string
+	Authorized bool   // True if authorized, false if not
+	Reason     string // Reason for the Authorized value (whether true or false)
 }
