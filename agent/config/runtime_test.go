@@ -1065,7 +1065,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
-			desc: "serf wan port > 0",
+			desc: "allow disabling serf wan port",
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{
 				"ports": {
@@ -1079,7 +1079,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				}
 				advertise_addr_wan = "1.2.3.4"
 			`},
-			err: "ports.serf_wan must be a valid port from 1 to 65535",
+			err: nil,
 		},
 		{
 			desc: "serf bind address lan template",

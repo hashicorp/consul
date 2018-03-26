@@ -703,16 +703,21 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	base.SerfLANConfig.MemberlistConfig.ProbeTimeout = a.config.ConsulSerfLANProbeTimeout
 	base.SerfLANConfig.MemberlistConfig.SuspicionMult = a.config.ConsulSerfLANSuspicionMult
 
-	base.SerfWANConfig.MemberlistConfig.BindAddr = a.config.SerfBindAddrWAN.IP.String()
-	base.SerfWANConfig.MemberlistConfig.BindPort = a.config.SerfBindAddrWAN.Port
-	base.SerfWANConfig.MemberlistConfig.AdvertiseAddr = a.config.SerfAdvertiseAddrWAN.IP.String()
-	base.SerfWANConfig.MemberlistConfig.AdvertisePort = a.config.SerfAdvertiseAddrWAN.Port
-	base.SerfWANConfig.MemberlistConfig.GossipVerifyIncoming = a.config.EncryptVerifyIncoming
-	base.SerfWANConfig.MemberlistConfig.GossipVerifyOutgoing = a.config.EncryptVerifyOutgoing
-	base.SerfWANConfig.MemberlistConfig.GossipInterval = a.config.ConsulSerfWANGossipInterval
-	base.SerfWANConfig.MemberlistConfig.ProbeInterval = a.config.ConsulSerfWANProbeInterval
-	base.SerfWANConfig.MemberlistConfig.ProbeTimeout = a.config.ConsulSerfWANProbeTimeout
-	base.SerfWANConfig.MemberlistConfig.SuspicionMult = a.config.ConsulSerfWANSuspicionMult
+	if a.config.SerfBindAddrWAN != nil {
+		base.SerfWANConfig.MemberlistConfig.BindAddr = a.config.SerfBindAddrWAN.IP.String()
+		base.SerfWANConfig.MemberlistConfig.BindPort = a.config.SerfBindAddrWAN.Port
+		base.SerfWANConfig.MemberlistConfig.AdvertiseAddr = a.config.SerfAdvertiseAddrWAN.IP.String()
+		base.SerfWANConfig.MemberlistConfig.AdvertisePort = a.config.SerfAdvertiseAddrWAN.Port
+		base.SerfWANConfig.MemberlistConfig.GossipVerifyIncoming = a.config.EncryptVerifyIncoming
+		base.SerfWANConfig.MemberlistConfig.GossipVerifyOutgoing = a.config.EncryptVerifyOutgoing
+		base.SerfWANConfig.MemberlistConfig.GossipInterval = a.config.ConsulSerfWANGossipInterval
+		base.SerfWANConfig.MemberlistConfig.ProbeInterval = a.config.ConsulSerfWANProbeInterval
+		base.SerfWANConfig.MemberlistConfig.ProbeTimeout = a.config.ConsulSerfWANProbeTimeout
+		base.SerfWANConfig.MemberlistConfig.SuspicionMult = a.config.ConsulSerfWANSuspicionMult
+	} else {
+		// Disable serf WAN federation
+		base.SerfWANConfig = nil
+	}
 
 	base.RPCAddr = a.config.RPCBindAddr
 	base.RPCAdvertise = a.config.RPCAdvertiseAddr
@@ -1019,6 +1024,7 @@ func (a *Agent) setupNodeID(config *config.RuntimeConfig) error {
 func (a *Agent) setupBaseKeyrings(config *consul.Config) error {
 	// If the keyring file is disabled then just poke the provided key
 	// into the in-memory keyring.
+	fedarationEnabled := config.SerfWANConfig != nil
 	if a.config.DisableKeyringFile {
 		if a.config.EncryptKey == "" {
 			return nil
@@ -1028,7 +1034,7 @@ func (a *Agent) setupBaseKeyrings(config *consul.Config) error {
 		if err := loadKeyring(config.SerfLANConfig, keys); err != nil {
 			return err
 		}
-		if a.config.ServerMode {
+		if a.config.ServerMode && fedarationEnabled {
 			if err := loadKeyring(config.SerfWANConfig, keys); err != nil {
 				return err
 			}
@@ -1048,7 +1054,7 @@ func (a *Agent) setupBaseKeyrings(config *consul.Config) error {
 			return err
 		}
 	}
-	if a.config.ServerMode {
+	if a.config.ServerMode && fedarationEnabled {
 		if _, err := os.Stat(fileWAN); err != nil {
 			if err := initKeyring(fileWAN, a.config.EncryptKey); err != nil {
 				return err
@@ -1063,7 +1069,7 @@ LOAD:
 	if err := loadKeyringFile(config.SerfLANConfig); err != nil {
 		return err
 	}
-	if a.config.ServerMode {
+	if a.config.ServerMode && fedarationEnabled {
 		if _, err := os.Stat(fileWAN); err == nil {
 			config.SerfWANConfig.KeyringFile = fileWAN
 		}

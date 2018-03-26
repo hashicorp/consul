@@ -369,9 +369,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	if ipaddr.IsAny(b.stringVal(c.AdvertiseAddrWAN)) {
 		return RuntimeConfig{}, fmt.Errorf("Advertise WAN address cannot be 0.0.0.0, :: or [::]")
 	}
-	if serfPortWAN < 0 {
-		return RuntimeConfig{}, fmt.Errorf("ports.serf_wan must be a valid port from 1 to 65535")
-	}
 
 	bindAddr := bindAddrs[0].(*net.IPAddr)
 	advertiseAddr := b.makeIPAddr(b.expandFirstIP("advertise_addr", c.AdvertiseAddrLAN), bindAddr)
