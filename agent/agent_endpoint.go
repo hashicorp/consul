@@ -921,7 +921,7 @@ func (s *HTTPServer) AgentConnectAuthorize(resp http.ResponseWriter, req *http.R
 	if !ok {
 		return &connectAuthorizeResp{
 			Authorized: false,
-			Reason:     fmt.Sprintf("Client ID must be a valid SPIFFE service URI"),
+			Reason:     "Client ID must be a valid SPIFFE service URI",
 		}, nil
 	}
 
@@ -951,7 +951,7 @@ func (s *HTTPServer) AgentConnectAuthorize(resp http.ResponseWriter, req *http.R
 		if auth, ok := uriService.Authorize(ixn); ok {
 			return &connectAuthorizeResp{
 				Authorized: auth,
-				Reason:     fmt.Sprintf("Matched intention %s", ixn.ID),
+				Reason:     fmt.Sprintf("Matched intention: %s", ixn.String()),
 			}, nil
 		}
 	}

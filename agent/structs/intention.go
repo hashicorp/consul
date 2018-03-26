@@ -164,6 +164,15 @@ func (x *Intention) GetACLPrefix() (string, bool) {
 	return x.DestinationName, x.DestinationName != ""
 }
 
+// String returns a human-friendly string for this intention.
+func (x *Intention) String() string {
+	return fmt.Sprintf("%s %s/%s => %s/%s (ID: %s",
+		strings.ToUpper(string(x.Action)),
+		x.SourceNS, x.SourceName,
+		x.DestinationNS, x.DestinationName,
+		x.ID)
+}
+
 // IntentionAction is the action that the intention represents. This
 // can be "allow" or "deny" to whitelist or blacklist intentions.
 type IntentionAction string
