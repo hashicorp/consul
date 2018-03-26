@@ -25,7 +25,6 @@ func (p *Proxy) Check() error {
 func (p *Proxy) send() error {
 	hcping := new(dns.Msg)
 	hcping.SetQuestion(".", dns.TypeNS)
-	hcping.RecursionDesired = false
 
 	m, _, err := p.client.Exchange(hcping, p.addr)
 	// If we got a header, we're alright, basically only care about I/O errors 'n stuff
