@@ -5,6 +5,8 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 // CertURI represents a Connect-valid URI value for a TLS certificate.
@@ -15,6 +17,14 @@ import (
 // However, we anticipate that we may accept URIs that are also not SPIFFE
 // compliant and therefore the interface is named as such.
 type CertURI interface {
+	// Authorize tests the authorization for this URI as a client
+	// for the given intention. The return value `auth` is only valid if
+	// the second value `match` is true. If the second value `match` is
+	// false, then the intention doesn't match this client and any
+	// result should be ignored.
+	Authorize(*structs.Intention) (auth bool, match bool)
+
+	// URI is the valid URI value used in the cert.
 	URI() *url.URL
 }
 
@@ -78,37 +88,4 @@ func ParseCertURI(input *url.URL) (CertURI, error) {
 	}
 
 	return nil, fmt.Errorf("SPIFFE ID is not in the expected format")
-}
-
-// SpiffeIDService is the structure to represent the SPIFFE ID for a service.
-type SpiffeIDService struct {
-	Host       string
-	Namespace  string
-	Datacenter string
-	Service    string
-}
-
-// URI returns the *url.URL for this SPIFFE ID.
-func (id *SpiffeIDService) URI() *url.URL {
-	var result url.URL
-	result.Scheme = "spiffe"
-	result.Host = id.Host
-	result.Path = fmt.Sprintf("/ns/%s/dc/%s/svc/%s",
-		id.Namespace, id.Datacenter, id.Service)
-	return &result
-}
-
-// SpiffeIDSigning is the structure to represent the SPIFFE ID for a
-// signing certificate (not a leaf service).
-type SpiffeIDSigning struct {
-	ClusterID string // Unique cluster ID
-	Domain    string // The domain, usually "consul"
-}
-
-// URI returns the *url.URL for this SPIFFE ID.
-func (id *SpiffeIDSigning) URI() *url.URL {
-	var result url.URL
-	result.Scheme = "spiffe"
-	result.Host = fmt.Sprintf("%s.%s", id.ClusterID, id.Domain)
-	return &result
 }
