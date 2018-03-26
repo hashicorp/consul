@@ -7,80 +7,44 @@
         {{catalog-filter}}
     {{/block-slot}}
     {{#block-slot 'content'}}
-        <table>
-            <thead>
-                <tr>
-                    <th>Service</th>
-                    <th>Tags</th>
-                </tr>
-            </thead>
-    {{#filtered-list tagName="tbody" items=model.Services as |item|}}
-                <tr>
-                    <td>
-                        <a href={{href-to 'dc.services.show' item.Service}}>{{item.Service}}</a>
-                    </td>
-                    <td>
-                        Need to switch API to the public catalog one
-                    </td>
-                </tr>
-    {{/filtered-list}}
-        </table>
-        <h2>Checks</h2>
+        {{tab-nav items=tabs}}
+        {{#tab-section id=tabs.[0] selected=true}}
         <ul>
 {{#each model.Checks as |check| }}
-            <li>
-                <h3>
-                    {{check.Name}} - {{check.CheckID}} - {{check.Status}}
-                </h3>
-                <h4>
-                    Notes
-                </h4>
-                <p>
-                    {{ check.Notes }}
-                </p>
-                <h4>
-                    Output
-                </h4>
-                <pre>
-                    {{check.Output}}
-                </pre>
-            </li>
+            {{healthcheck-status tagName='li' name=check.Name status=check.status output=check.Output}}
 {{/each}}
         </ul>
-        <h2>Lock Sessions</h2>
-{{#if sessions }}
-        <p>
-            {{errorMessage}}
-        </p>
-        <ul>
-    {{#each sessions as |session| }}
-            <li>
-                {{session.Name}} - {{session.ID}}
-                <button {{ action "requestInvalidateSession" session }}>Invalidate</button>
-                <ul>
-                    {{#each session.Checks as check }}
-                        <li>{{check}}</li>
-                    {{/each}}
-                </ul>
-                <p>
-                    {{session.Behavior}} behavior{{#if session.TTL }}, {{session.TTL}} TTL{{/if}}
-                </p>
-            </li>
-    {{/each}}
-        </ul>
-{{else}}
-        <p>
-            No sessions
-        </p>
-{{/if}}
+        {{/tab-section}}
+        {{#tab-section id=tabs.[1]}}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Service</th>
+                        <th>Tags</th>
+                    </tr>
+                </thead>
+            {{#filtered-list tagName="tbody" items=model.Services as |item|}}
+                    <tr>
+                        <td>
+                            <a href={{href-to 'dc.services.show' item.Service}}>{{item.Service}}</a>
+                        </td>
+                        <td>
+                            Need to switch API to the public catalog one
+                        </td>
+                    </tr>
+            {{/filtered-list}}
+            </table>
+        {{/tab-section}}
+        {{#tab-section id=tabs.[2]}}
         <h2>Network Tomography</h2>
+        TOMOGRAPHY GRAPH GOES HERE
         {{!-- tomographyGraph tomography 336 --}}
         <dl>
             <dt>
                 Node
             </dt>
             <dd>
-                What goes here?
+                What goes here? This has never had anything in it
             </dd>
             <dt>
                 Minimum
@@ -101,5 +65,15 @@
                 {{ tomography.max }}ms
             </dd>
         </dl>
+        {{/tab-section}}
+        {{#tab-section id=tabs.[3]}}
+{{#if sessions }}
+        {{session-list items=sessions}}
+{{else}}
+        <p>
+            There are no sessions
+        </p>
+{{/if}}
+        {{/tab-section}}
     {{/block-slot}}
 {{/app-view}}

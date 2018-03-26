@@ -3,6 +3,7 @@ import confirm from 'consul-ui/utils/confirm';
 import error from 'consul-ui/utils/error';
 
 export default Controller.extend({
+  tabs: ['Health Checks', 'Services', 'Round Trip Time', 'Lock Sessions'],
   actions: {
     requestInvalidateSession: function(item) {
       confirm('Are you sure you want to invalidate this session?')

@@ -1,0 +1,24 @@
+%healthcheck-icon {
+  visibility: hidden;
+  width: 14px;
+  line-height: 0%;
+}
+%healthcheck-icon-passing,
+%healthcheck-icon-failing {
+  @extend %healthcheck-icon;
+}
+%healthcheck-icon::before {
+  content: '';
+  display: block;
+  width: 14px;
+  height: 14px;
+  visibility: visible;
+}
+%healthcheck-icon-passing::before {
+  border-radius: 100%;
+  background-color: green;
+}
+%healthcheck-icon-failing::before {
+  border-radius: 20%;
+  background-color: red;
+}

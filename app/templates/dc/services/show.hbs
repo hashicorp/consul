@@ -15,27 +15,31 @@
                 </ul>
             </dd>
         </dl>
-        <h2>Unhealthy Nodes</h2>
-        {{#filtered-list tagName="ul" items=model as |item|}}
-            <li>
-                {{healthchecked-resource
-                    href=(href-to 'dc.nodes.show' item.Node.Node)
-                    name=item.Node.Node
-                    address=item.Node.Address
-                    checks=item.Checks
-                }}
-            </li>
-        {{/filtered-list}}
-        <h2>Healthy Nodes</h2>
-        {{#filtered-list tagName="ul" items=model as |item|}}
-            <li>
-                {{healthchecked-resource
-                    href=(href-to 'dc.nodes.show' item.Node.Node)
-                    name=item.Node.Node
-                    address=item.Node.Address
-                    checks=item.Checks
-                }}
-            </li>
-        {{/filtered-list}}
+        <div class="unhealthy">
+            <h2>Unhealthy Nodes</h2>
+            {{#filtered-list tagName="ul" items=model as |item|}}
+                <li>
+                    {{healthchecked-resource
+                        href=(href-to 'dc.nodes.show' item.Node.Node)
+                        name=item.Node.Node
+                        address=item.Node.Address
+                        checks=item.Checks
+                    }}
+                </li>
+            {{/filtered-list}}
+        </div>
+        <div class="healthy">
+            <h2>Healthy Nodes</h2>
+            {{#filtered-list tagName="ul" items=model as |item|}}
+                <li>
+                    {{healthchecked-resource
+                        href=(href-to 'dc.nodes.show' item.Node.Node)
+                        name=item.Node.Node
+                        address=item.Node.Address
+                        checks=item.Checks
+                    }}
+                </li>
+            {{/filtered-list}}
+        </div>
     {{/block-slot}}
 {{/app-view}}

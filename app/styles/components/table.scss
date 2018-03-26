@@ -1,6 +1,17 @@
+@import './healthcheck-icon';
 table {
   @extend .table;
   width: 100%;
+}
+table td {
+  padding: 0.9em 0;
+}
+table th {
+  padding: 0.5em 0;
+}
+table th,
+table td {
+  padding-right: 0.9em;
 }
 td dl {
   overflow: hidden;
@@ -9,24 +20,13 @@ td dl > * {
   float: left;
 }
 td dt {
-  visibility: hidden;
-  width: 14px;
-  line-height: 0%;
+  @extend %healthcheck-icon;
 }
-td dt::before {
-  content: '';
-  display: block;
-  width: 14px;
-  height: 14px;
-  visibility: visible;
-}
-td dt:first-of-type::before {
-  border-radius: 100%;
-  background-color: green;
+td dt:first-of-type {
+  @extend %healthcheck-icon-passing;
 }
 td dt:nth-of-type(2)::before {
-  border-radius: 20%;
-  background-color: red;
+  @extend %healthcheck-icon-failing;
 }
 td dd {
   margin-left: 6px;

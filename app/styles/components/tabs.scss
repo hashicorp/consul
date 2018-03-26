@@ -1,0 +1,17 @@
+main nav {
+  @extend %tab-nav, .tabs;
+}
+main nav ~ div {
+  @extend %tab-section;
+}
+%tab-nav input[type='radio'],
+%tab-section > input[type='radio'],
+%tab-section > input[type='radio'] + * {
+  display: none;
+}
+%tab-section > input[type='radio']:checked + * {
+  display: block;
+}
+%tab-nav label {
+  cursor: pointer;
+}

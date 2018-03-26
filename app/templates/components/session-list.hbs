@@ -1,0 +1,43 @@
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>ID</th>
+                    <th>Delay</th>
+                    <th>TTL</th>
+                    <th>Behavior</th>
+                    <th>Checks</th>
+                    <th>&nbsp;</th>
+                </tr>
+            </thead>
+    {{#filtered-list tagName="tbody" items=items as |item|}}
+                <tr>
+                    <td>
+                        <a href={{href-to 'dc.services.show' item.Name}}>{{item.Name}}</a>
+                    </td>
+                    <td>
+                        {{item.ID}}
+                    </td>
+                    <td>
+                        {{item.LockDelay}}
+                    </td>
+                    <td>
+                        {{item.TTL}}
+                    </td>
+                    <td>
+                        {{item.Behavior}}
+                    </td>
+                    <td>
+                        {{item.Checks}}
+                        <ul>
+                            {{#each item.Checks as check }}
+                                <li>{{check}}</li>
+                            {{/each}}
+                        </ul>
+                    </td>
+                    <td>
+                        <button {{ action "requestInvalidateSession" item }}>Invalidate</button>
+                    </td>
+                </tr>
+    {{/filtered-list}}
+        </table>

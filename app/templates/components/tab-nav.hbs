@@ -1,0 +1,11 @@
+{{!<nav>}}
+    <ul>
+{{#each items as |item|}}
+        <li>
+            <label for="radiogroup_{{name}}_{{item}}">
+                <a>{{item}}</a>
+            </label>
+        </li>
+{{/each}}
+    </ul>
+{{!</nav>}}

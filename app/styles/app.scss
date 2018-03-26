@@ -1,3 +1,5 @@
+@import 'core/color';
+@import 'core/fonts';
 @import 'ember-bulma-css/utilities/_all';
 @import 'ember-bulma-css/base/_all';
 @import 'ember-bulma-css/elements/_all';
@@ -6,11 +8,39 @@
 @import 'ember-bulma-css/layout/_all';
 
 @import 'core/reset';
-@import 'core/color';
-@import 'core/fonts';
 @import 'core/layout';
 
+@import 'components/button';
+@import 'components/tabs';
+@import 'components/healthcheck-status';
+@import 'components/healthchecked-resource';
 @import 'components/navbar';
 @import 'components/expanded-single-select';
 @import 'components/app-view';
 @import 'components/table';
+
+.unhealthy,
+.healthy {
+  @extend %card-grid;
+}
+%card-grid > ul {
+  overflow: hidden;
+}
+%card-grid > ul > li {
+  float: left;
+  width: 270px; // make%
+  margin-right: 23px; // make%
+  margin-bottom: 20px;
+}
+%card-grid > ul > li:nth-child(4n) {
+  margin-right: 0;
+}
+th {
+  color: $text-light !important;
+}
+a {
+  color: $text;
+}
+%main-header a {
+  color: $white !important;
+}

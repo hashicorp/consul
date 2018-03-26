@@ -1,0 +1,31 @@
+@import './healthcheck-icon';
+.healthcheck-status {
+  @extend %healthcheck-status;
+}
+
+%healthcheck-status {
+  border: 1px solid $border-blue;
+  border-radius: 4px;
+  padding: 24px;
+  padding-left: 60px;
+  margin-bottom: 24px;
+  position: relative;
+}
+%healthcheck-status::before {
+  content: '';
+  display: block;
+  background-color: red;
+  width: 25px;
+  height: 25px;
+  border-radius: 4px;
+  position: absolute;
+  top: 24px;
+  left: 24px;
+}
+%healthcheck-status pre {
+  background-color: $black;
+  color: $white;
+}
+%healthcheck-status dt {
+  margin-bottom: 0.5em;
+}
