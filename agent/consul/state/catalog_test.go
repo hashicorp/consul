@@ -476,6 +476,35 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "aliases existing node") {
 		t.Fatalf("err: %v", err)
 	}
+
+	// Renaming a node should work as long as IP did not change
+	in = &structs.Node{
+		Node:    "node1-renamed",
+		ID:      types.NodeID("cda916bc-a357-4a19-b886-59419fcee50c"),
+		Address: "1.1.1.2",
+	}
+	if err := s.EnsureNode(6, in); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Retrieve the node
+	idx, out, err = s.GetNode("node1")
+	if out != nil {
+		t.Fatalf("Node should not exist anymore: %q", out)
+	}
+
+	idx, out, err = s.GetNode("node1-renamed")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Node and indexes were updated
+	if out.CreateIndex != 1 || out.ModifyIndex != 6 || out.Address != "1.1.1.2" || out.Node != "node1-renamed" {
+		t.Fatalf("bad: %#v", out)
+	}
+	if idx != 6 {
+		t.Fatalf("bad index: %d", idx)
+	}
 }
 
 func TestStateStore_GetNodes(t *testing.T) {
