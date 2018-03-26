@@ -185,6 +185,51 @@ func TestAPI_AgentServices(t *testing.T) {
 	}
 }
 
+func TestAPI_AgentServices_ConnectProxy(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	// Register service
+	reg := &AgentServiceRegistration{
+		Name: "foo",
+		Port: 8000,
+	}
+	if err := agent.ServiceRegister(reg); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	// Register proxy
+	reg = &AgentServiceRegistration{
+		Kind:             ServiceKindConnectProxy,
+		Name:             "foo-proxy",
+		Port:             8001,
+		ProxyDestination: "foo",
+	}
+	if err := agent.ServiceRegister(reg); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	services, err := agent.Services()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, ok := services["foo"]; !ok {
+		t.Fatalf("missing service: %v", services)
+	}
+	if _, ok := services["foo-proxy"]; !ok {
+		t.Fatalf("missing proxy service: %v", services)
+	}
+
+	if err := agent.ServiceDeregister("foo"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := agent.ServiceDeregister("foo-proxy"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
 func TestAPI_AgentServices_CheckPassing(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)

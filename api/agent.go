@@ -5,6 +5,22 @@ import (
 	"fmt"
 )
 
+// ServiceKind is the kind of service being registered.
+type ServiceKind string
+
+const (
+	// ServiceKindTypical is a typical, classic Consul service. This is
+	// represented by the absence of a value. This was chosen for ease of
+	// backwards compatibility: existing services in the catalog would
+	// default to the typical service.
+	ServiceKindTypical ServiceKind = ""
+
+	// ServiceKindConnectProxy is a proxy for the Connect feature. This
+	// service proxies another service within Consul and speaks the connect
+	// protocol.
+	ServiceKindConnectProxy ServiceKind = "connect-proxy"
+)
+
 // AgentCheck represents a check known to the agent
 type AgentCheck struct {
 	Node        string
@@ -20,6 +36,7 @@ type AgentCheck struct {
 
 // AgentService represents a service known to the agent
 type AgentService struct {
+	Kind              ServiceKind
 	ID                string
 	Service           string
 	Tags              []string
@@ -29,6 +46,7 @@ type AgentService struct {
 	EnableTagOverride bool
 	CreateIndex       uint64
 	ModifyIndex       uint64
+	ProxyDestination  string
 }
 
 // AgentMember represents a cluster member known to the agent
@@ -61,6 +79,7 @@ type MembersOpts struct {
 
 // AgentServiceRegistration is used to register a new service
 type AgentServiceRegistration struct {
+	Kind              ServiceKind       `json:",omitempty"`
 	ID                string            `json:",omitempty"`
 	Name              string            `json:",omitempty"`
 	Tags              []string          `json:",omitempty"`
@@ -70,6 +89,7 @@ type AgentServiceRegistration struct {
 	Meta              map[string]string `json:",omitempty"`
 	Check             *AgentServiceCheck
 	Checks            AgentServiceChecks
+	ProxyDestination  string `json:",omitempty"`
 }
 
 // AgentCheckRegistration is used to register a new check

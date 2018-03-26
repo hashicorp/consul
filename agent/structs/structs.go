@@ -464,7 +464,7 @@ type ServiceKind string
 
 const (
 	// ServiceKindTypical is a typical, classic Consul service. This is
-	// represented by the absense of a value. This was chosen for ease of
+	// represented by the absence of a value. This was chosen for ease of
 	// backwards compatibility: existing services in the catalog would
 	// default to the typical service.
 	ServiceKindTypical ServiceKind = ""
