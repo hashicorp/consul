@@ -368,6 +368,7 @@ type ServiceNode struct {
 	ServiceName              string
 	ServiceTags              []string
 	ServiceAddress           string
+	ServiceMeta              map[string]string
 	ServicePort              int
 	ServiceEnableTagOverride bool
 
@@ -379,6 +380,10 @@ type ServiceNode struct {
 func (s *ServiceNode) PartialClone() *ServiceNode {
 	tags := make([]string, len(s.ServiceTags))
 	copy(tags, s.ServiceTags)
+	nsmeta := make(map[string]string)
+	for k, v := range s.ServiceMeta {
+		nsmeta[k] = v
+	}
 
 	return &ServiceNode{
 		// Skip ID, see above.
@@ -390,6 +395,7 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 		ServiceTags:              tags,
 		ServiceAddress:           s.ServiceAddress,
 		ServicePort:              s.ServicePort,
+		ServiceMeta:              nsmeta,
 		ServiceEnableTagOverride: s.ServiceEnableTagOverride,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
@@ -406,6 +412,7 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 		Tags:              s.ServiceTags,
 		Address:           s.ServiceAddress,
 		Port:              s.ServicePort,
+		ServiceMeta:       s.ServiceMeta,
 		EnableTagOverride: s.ServiceEnableTagOverride,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
@@ -422,6 +429,7 @@ type NodeService struct {
 	Service           string
 	Tags              []string
 	Address           string
+	ServiceMeta       map[string]string
 	Port              int
 	EnableTagOverride bool
 
@@ -438,6 +446,7 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 		!reflect.DeepEqual(s.Tags, other.Tags) ||
 		s.Address != other.Address ||
 		s.Port != other.Port ||
+		!reflect.DeepEqual(s.ServiceMeta, other.ServiceMeta) ||
 		s.EnableTagOverride != other.EnableTagOverride {
 		return false
 	}
@@ -457,6 +466,7 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 		ServiceTags:              s.Tags,
 		ServiceAddress:           s.Address,
 		ServicePort:              s.Port,
+		ServiceMeta:              s.ServiceMeta,
 		ServiceEnableTagOverride: s.EnableTagOverride,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,

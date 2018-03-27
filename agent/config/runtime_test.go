@@ -4098,6 +4098,7 @@ func TestSanitize(t *testing.T) {
             "ID": "",
             "Name": "foo",
             "Port": 0,
+            "ServiceMeta": {},
             "Tags": [],
             "Token": "hidden"
         }
