@@ -35,6 +35,18 @@ var testCertURICases = []struct {
 	},
 
 	{
+		"service with URL-encoded values",
+		"spiffe://1234.consul/ns/foo%2Fbar/dc/bar%2Fbaz/svc/baz%2Fqux",
+		&SpiffeIDService{
+			Host:       "1234.consul",
+			Namespace:  "foo/bar",
+			Datacenter: "bar/baz",
+			Service:    "baz/qux",
+		},
+		"",
+	},
+
+	{
 		"signing ID",
 		"spiffe://1234.consul",
 		&SpiffeIDSigning{
@@ -56,6 +68,9 @@ func TestParseCertURI(t *testing.T) {
 
 			// Parse the ID and check the error/return value
 			actual, err := ParseCertURI(uri)
+			if err != nil {
+				t.Logf("parse error: %s", err.Error())
+			}
 			assert.Equal(tc.ParseError != "", err != nil, "error value")
 			if err != nil {
 				assert.Contains(err.Error(), tc.ParseError)

@@ -20,7 +20,7 @@ type CertURI interface {
 
 var (
 	spiffeIDServiceRegexp = regexp.MustCompile(
-		`^/ns/(\w+)/dc/(\w+)/svc/(\w+)$`)
+		`^/ns/([^/]+)/dc/([^/]+)/svc/([^/]+)$`)
 )
 
 // ParseCertURI parses a the URI value from a TLS certificate.
@@ -29,13 +29,40 @@ func ParseCertURI(input *url.URL) (CertURI, error) {
 		return nil, fmt.Errorf("SPIFFE ID must have 'spiffe' scheme")
 	}
 
+	// Path is the raw value of the path without url decoding values.
+	// RawPath is empty if there were no encoded values so we must
+	// check both.
+	path := input.Path
+	if input.RawPath != "" {
+		path = input.RawPath
+	}
+
 	// Test for service IDs
-	if v := spiffeIDServiceRegexp.FindStringSubmatch(input.Path); v != nil {
+	if v := spiffeIDServiceRegexp.FindStringSubmatch(path); v != nil {
+		// Determine the values. We assume they're sane to save cycles,
+		// but if the raw path is not empty that means that something is
+		// URL encoded so we go to the slow path.
+		ns := v[1]
+		dc := v[2]
+		service := v[3]
+		if input.RawPath != "" {
+			var err error
+			if ns, err = url.PathUnescape(v[1]); err != nil {
+				return nil, fmt.Errorf("Invalid namespace: %s", err)
+			}
+			if dc, err = url.PathUnescape(v[2]); err != nil {
+				return nil, fmt.Errorf("Invalid datacenter: %s", err)
+			}
+			if service, err = url.PathUnescape(v[3]); err != nil {
+				return nil, fmt.Errorf("Invalid service: %s", err)
+			}
+		}
+
 		return &SpiffeIDService{
 			Host:       input.Host,
-			Namespace:  v[1],
-			Datacenter: v[2],
-			Service:    v[3],
+			Namespace:  ns,
+			Datacenter: dc,
+			Service:    service,
 		}, nil
 	}
 
