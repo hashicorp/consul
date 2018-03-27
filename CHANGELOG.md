@@ -5,16 +5,17 @@ IMPROVEMENTS:
 * build: Bumped Go version to 1.10 [[GH-3988](https://github.com/hashicorp/consul/pull/3988)]
 * agent: Blocking queries on service-specific health and catalog endpoints now return a per-service `X-Consul-Index` improving watch performance on very busy clusters. [[GH-3890](https://github.com/hashicorp/consul/issues/3890)]. **Note this may break blocking clients that relied on undocumented implementation details** as noted in the [upgrade docs](https://github.com/hashicorp/consul/blob/master/website/source/docs/upgrading.html.md#upgrade-from-version-106-to-higher).
 * agent: All endpoints now respond to OPTIONS requests. [[GH-3885](https://github.com/hashicorp/consul/issues/3885)]
-* dns: Introduced a new config param to limit the number of A/AAAA records returned. [[GH-3940](https://github.com/hashicorp/consul/issues/3940)]
 * agent: List of supported TLS cipher suites updated to include newer options, [[GH-3962](https://github.com/hashicorp/consul/pull/3962)]
-* server: Updated yamux library to pick up a performance improvement. [[GH-3982](https://github.com/hashicorp/consul/issues/3982)]
 * agent: WAN federation can now be disabled by setting the serf WAN port to -1. [[GH-3984](https://github.com/hashicorp/consul/issues/3984)]
+* agent: Added support for specifying metadata during service registration. [[GH-3881](https://github.com/hashicorp/consul/issues/3881)]
+* dns: Introduced a new config param to limit the number of A/AAAA records returned. [[GH-3940](https://github.com/hashicorp/consul/issues/3940)]
+* server: Updated yamux library to pick up a performance improvement. [[GH-3982](https://github.com/hashicorp/consul/issues/3982)]
+
 BUG FIXES:
 
 * agent: Fixed an issue where the coordinate update endpoint was not correctly parsing the ACL token. [[GH-3892](https://github.com/hashicorp/consul/issues/3892)]
-* server: Fixed an issue where the leader could miss clean up after a leadership transition. [[GH-3909](https://github.com/hashicorp/consul/issues/3909)]
 * agent: Fixed an issue where `consul monitor` couldn't be terminated until the first log line is delivered [[GH-3891](https://github.com/hashicorp/consul/issues/3891)]
-
+* server: Fixed an issue where the leader could miss clean up after a leadership transition. [[GH-3909](https://github.com/hashicorp/consul/issues/3909)]
 
 ## 1.0.6 (February 9, 2018)
 
