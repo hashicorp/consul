@@ -888,9 +888,6 @@ func (s *Server) KeyManagerLAN() *serf.KeyManager {
 
 // KeyManagerWAN returns the WAN Serf keyring manager
 func (s *Server) KeyManagerWAN() *serf.KeyManager {
-	if s.serfWAN == nil {
-		return nil
-	}
 	return s.serfWAN.KeyManager()
 }
 

@@ -116,9 +116,6 @@ func (r *Router) Shutdown() {
 
 // AddArea registers a new network area with the router.
 func (r *Router) AddArea(areaID types.AreaID, cluster RouterSerfCluster, pinger Pinger, useTLS bool) error {
-	if cluster == nil {
-		return nil
-	}
 	r.Lock()
 	defer r.Unlock()
 
