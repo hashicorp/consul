@@ -1024,7 +1024,7 @@ func (a *Agent) setupNodeID(config *config.RuntimeConfig) error {
 func (a *Agent) setupBaseKeyrings(config *consul.Config) error {
 	// If the keyring file is disabled then just poke the provided key
 	// into the in-memory keyring.
-	fedarationEnabled := config.SerfWANConfig != nil
+	federationEnabled := config.SerfWANConfig != nil
 	if a.config.DisableKeyringFile {
 		if a.config.EncryptKey == "" {
 			return nil
@@ -1034,7 +1034,7 @@ func (a *Agent) setupBaseKeyrings(config *consul.Config) error {
 		if err := loadKeyring(config.SerfLANConfig, keys); err != nil {
 			return err
 		}
-		if a.config.ServerMode && fedarationEnabled {
+		if a.config.ServerMode && federationEnabled {
 			if err := loadKeyring(config.SerfWANConfig, keys); err != nil {
 				return err
 			}
@@ -1054,7 +1054,7 @@ func (a *Agent) setupBaseKeyrings(config *consul.Config) error {
 			return err
 		}
 	}
-	if a.config.ServerMode && fedarationEnabled {
+	if a.config.ServerMode && federationEnabled {
 		if _, err := os.Stat(fileWAN); err != nil {
 			if err := initKeyring(fileWAN, a.config.EncryptKey); err != nil {
 				return err
@@ -1069,7 +1069,7 @@ LOAD:
 	if err := loadKeyringFile(config.SerfLANConfig); err != nil {
 		return err
 	}
-	if a.config.ServerMode && fedarationEnabled {
+	if a.config.ServerMode && federationEnabled {
 		if _, err := os.Stat(fileWAN); err == nil {
 			config.SerfWANConfig.KeyringFile = fileWAN
 		}
