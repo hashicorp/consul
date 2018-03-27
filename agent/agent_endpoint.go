@@ -940,6 +940,9 @@ func (s *HTTPServer) AgentConnectAuthorize(resp http.ResponseWriter, req *http.R
 		return nil, acl.ErrPermissionDenied
 	}
 
+	// TODO(mitchellh): we need to verify more things here, such as the
+	// trust domain, blacklist lookup of the serial, etc.
+
 	// Get the intentions for this target service.
 	args := &structs.IntentionQueryRequest{
 		Datacenter: s.agent.config.Datacenter,
