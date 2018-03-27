@@ -66,6 +66,17 @@ func NewServer(addr string, group []*Config) (*Server, error) {
 		// compile custom plugin for everything
 		if site.registry != nil {
 			// this config is already computed with the chain of plugin
+			// set classChaos in accordance with previously registered plugins
+			for name := range enableChaos {
+				if _, ok := site.registry[name]; ok {
+					s.classChaos = true
+					break
+				}
+			}
+			// set trace handler in accordance with previously registered "trace" plugin
+			if handler, ok := site.registry["trace"]; ok {
+				s.trace = handler.(trace.Trace)
+			}
 			continue
 		}
 		var stack plugin.Handler
