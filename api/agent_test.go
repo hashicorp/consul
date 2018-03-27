@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/serf/serf"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPI_AgentSelf(t *testing.T) {
@@ -980,4 +981,18 @@ func TestAPI_AgentUpdateToken(t *testing.T) {
 	if _, err := agent.UpdateACLReplicationToken("root", nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+}
+
+func TestAPI_AgentConnectCARoots_empty(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+	list, meta, err := agent.ConnectCARoots(nil)
+	require.Nil(err)
+	require.Equal(uint64(0), meta.LastIndex)
+	require.Len(list.Roots, 0)
 }

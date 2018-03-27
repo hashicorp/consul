@@ -172,6 +172,19 @@ type SampledValue struct {
 	Labels map[string]string
 }
 
+// AgentAuthorizeParams are the request parameters for authorizing a request.
+type AgentAuthorizeParams struct {
+	Target           string
+	ClientID         string
+	ClientCertSerial string
+}
+
+// AgentAuthorize is the response structure for Connect authorization.
+type AgentAuthorize struct {
+	Authorized bool
+	Reason     string
+}
+
 // Agent can be used to query the Agent endpoints
 type Agent struct {
 	c *Client
@@ -503,6 +516,75 @@ func (a *Agent) ForceLeave(node string) error {
 	}
 	resp.Body.Close()
 	return nil
+}
+
+// ConnectAuthorize is used to authorize an incoming connection
+// to a natively integrated Connect service.
+//
+// TODO(mitchellh): we need to test this better once we have a way to
+// configure CAs from the API package (when the CA work is done).
+func (a *Agent) ConnectAuthorize(auth *AgentAuthorizeParams) (*AgentAuthorize, error) {
+	r := a.c.newRequest("POST", "/v1/agent/connect/authorize")
+	r.obj = auth
+	_, resp, err := requireOK(a.c.doRequest(r))
+	if err != nil {
+		return nil, err
+	}
+	resp.Body.Close()
+
+	var out AgentAuthorize
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ConnectCARoots returns the list of roots.
+//
+// TODO(mitchellh): we need to test this better once we have a way to
+// configure CAs from the API package (when the CA work is done).
+func (a *Agent) ConnectCARoots(q *QueryOptions) (*CARootList, *QueryMeta, error) {
+	r := a.c.newRequest("GET", "/v1/agent/connect/ca/roots")
+	r.setQueryOptions(q)
+	rtt, resp, err := requireOK(a.c.doRequest(r))
+	if err != nil {
+		return nil, nil, err
+	}
+	defer resp.Body.Close()
+
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
+
+	var out CARootList
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, nil, err
+	}
+	return &out, qm, nil
+}
+
+// ConnectCALeaf gets the leaf certificate for the given service ID.
+//
+// TODO(mitchellh): we need to test this better once we have a way to
+// configure CAs from the API package (when the CA work is done).
+func (a *Agent) ConnectCALeaf(serviceID string, q *QueryOptions) (*IssuedCert, *QueryMeta, error) {
+	r := a.c.newRequest("GET", "/v1/agent/connect/ca/leaf/"+serviceID)
+	r.setQueryOptions(q)
+	rtt, resp, err := requireOK(a.c.doRequest(r))
+	if err != nil {
+		return nil, nil, err
+	}
+	defer resp.Body.Close()
+
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
+
+	var out IssuedCert
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, nil, err
+	}
+	return &out, qm, nil
 }
 
 // EnableServiceMaintenance toggles service maintenance mode on
