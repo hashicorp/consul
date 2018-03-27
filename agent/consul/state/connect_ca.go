@@ -110,6 +110,17 @@ func (s *Store) CARootSetCAS(idx, cidx uint64, rs []*structs.CARoot) (bool, erro
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
+	// There must be exactly one active CA root.
+	activeCount := 0
+	for _, r := range rs {
+		if r.Active {
+			activeCount++
+		}
+	}
+	if activeCount != 1 {
+		return false, fmt.Errorf("there must be exactly one active CA")
+	}
+
 	// Get the current max index
 	if midx := maxIndexTxn(tx, caRootTableName); midx != cidx {
 		return false, nil

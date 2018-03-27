@@ -75,6 +75,48 @@ func TestStore_CARootSet_emptyID(t *testing.T) {
 	assert.Len(roots, 0)
 }
 
+func TestStore_CARootSet_noActive(t *testing.T) {
+	assert := assert.New(t)
+	s := testStateStore(t)
+
+	// Call list to populate the watch set
+	ws := memdb.NewWatchSet()
+	_, _, err := s.CARoots(ws)
+	assert.Nil(err)
+
+	// Build a valid value
+	ca1 := connect.TestCA(t, nil)
+	ca1.Active = false
+	ca2 := connect.TestCA(t, nil)
+	ca2.Active = false
+
+	// Set
+	ok, err := s.CARootSetCAS(1, 0, []*structs.CARoot{ca1, ca2})
+	assert.NotNil(err)
+	assert.Contains(err.Error(), "exactly one active")
+	assert.False(ok)
+}
+
+func TestStore_CARootSet_multipleActive(t *testing.T) {
+	assert := assert.New(t)
+	s := testStateStore(t)
+
+	// Call list to populate the watch set
+	ws := memdb.NewWatchSet()
+	_, _, err := s.CARoots(ws)
+	assert.Nil(err)
+
+	// Build a valid value
+	ca1 := connect.TestCA(t, nil)
+	ca2 := connect.TestCA(t, nil)
+
+	// Set
+	ok, err := s.CARootSetCAS(1, 0, []*structs.CARoot{ca1, ca2})
+	assert.NotNil(err)
+	assert.Contains(err.Error(), "exactly one active")
+	assert.False(ok)
+}
+
 func TestStore_CARootActive_valid(t *testing.T) {
 	assert := assert.New(t)
 	s := testStateStore(t)
