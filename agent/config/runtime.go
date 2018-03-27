@@ -462,7 +462,7 @@ type RuntimeConfig struct {
 	Datacenter string
 
 	// Defines the maximum stale value for discovery path. Defauls to "0s".
-	// Discovery paths are /v1/catalog/* and /v1/heath/* paths
+	// Discovery paths are /v1/heath/ paths
 	//
 	// If not set to 0, it will try to perform stale read and perform only a
 	// consistent read whenever the value is too old.

@@ -634,7 +634,7 @@ func TestParseConsistency(t *testing.T) {
 	}
 }
 
-// ensureConsistency check if consistency modes are correclty applied
+// ensureConsistency check if consistency modes are correctly applied
 // if maxStale < 0 => stale, without MaxStaleDuration
 // if maxStale == 0 => no stale
 // if maxStale > 0 => stale + check duration

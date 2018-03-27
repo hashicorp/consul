@@ -43,6 +43,7 @@ RETRY_ONCE:
 		args.MaxStaleDuration = 0
 		goto RETRY_ONCE
 	}
+	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
 
 	// Use empty list instead of nil
 	if out.HealthChecks == nil {
@@ -89,6 +90,7 @@ RETRY_ONCE:
 		args.MaxStaleDuration = 0
 		goto RETRY_ONCE
 	}
+	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
 
 	// Use empty list instead of nil
 	if out.HealthChecks == nil {
@@ -137,6 +139,7 @@ RETRY_ONCE:
 		args.MaxStaleDuration = 0
 		goto RETRY_ONCE
 	}
+	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
 
 	// Use empty list instead of nil
 	if out.HealthChecks == nil {
@@ -192,6 +195,7 @@ RETRY_ONCE:
 		args.MaxStaleDuration = 0
 		goto RETRY_ONCE
 	}
+	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
 
 	// Filter to only passing if specified
 	if _, ok := params[api.HealthPassing]; ok {

@@ -122,6 +122,17 @@ func (q QueryOptions) IsRead() bool {
 	return true
 }
 
+// ConsistencyLevel display the consistency required by a request
+func (q QueryOptions) ConsistencyLevel() string {
+	if q.RequireConsistent {
+		return "consistent"
+	} else if q.AllowStale {
+		return "stale"
+	} else {
+		return "leader"
+	}
+}
+
 func (q QueryOptions) AllowStaleRead() bool {
 	return q.AllowStale
 }
@@ -162,6 +173,8 @@ type QueryMeta struct {
 
 	// Used to indicate if there is a known leader node
 	KnownLeader bool
+
+	ConsistencyLevel string
 }
 
 // RegisterRequest is used for the Catalog.Register endpoint

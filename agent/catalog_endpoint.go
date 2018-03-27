@@ -121,6 +121,7 @@ RETRY_ONCE:
 		args.MaxStaleDuration = 0
 		goto RETRY_ONCE
 	}
+	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
 
 	s.agent.TranslateAddresses(args.Datacenter, out.Nodes)
 
@@ -160,6 +161,7 @@ RETRY_ONCE:
 		args.MaxStaleDuration = 0
 		goto RETRY_ONCE
 	}
+	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
 
 	// Use empty map instead of nil
 	if out.Services == nil {
@@ -214,6 +216,7 @@ RETRY_ONCE:
 		args.MaxStaleDuration = 0
 		goto RETRY_ONCE
 	}
+	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
 	s.agent.TranslateAddresses(args.Datacenter, out.ServiceNodes)
 
 	// Use empty list instead of nil
@@ -267,6 +270,7 @@ RETRY_ONCE:
 		args.MaxStaleDuration = 0
 		goto RETRY_ONCE
 	}
+	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
 	if out.NodeServices != nil && out.NodeServices.Node != nil {
 		s.agent.TranslateAddresses(args.Datacenter, out.NodeServices.Node)
 	}

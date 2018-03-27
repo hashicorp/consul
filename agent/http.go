@@ -333,6 +333,12 @@ func setKnownLeader(resp http.ResponseWriter, known bool) {
 	resp.Header().Set("X-Consul-KnownLeader", s)
 }
 
+func setConsistency(resp http.ResponseWriter, consistency string) {
+	if consistency != "" {
+		resp.Header().Set("X-Consul-Effective-Consistency-Level", consistency)
+	}
+}
+
 // setLastContact is used to set the last contact header
 func setLastContact(resp http.ResponseWriter, last time.Duration) {
 	if last < 0 {
@@ -347,6 +353,7 @@ func setMeta(resp http.ResponseWriter, m *structs.QueryMeta) {
 	setIndex(resp, m.Index)
 	setLastContact(resp, m.LastContact)
 	setKnownLeader(resp, m.KnownLeader)
+	setConsistency(resp, m.ConsistencyLevel)
 }
 
 // setHeaders is used to set canonical response header fields
@@ -398,11 +405,10 @@ func (s *HTTPServer) parseConsistency(resp http.ResponseWriter, req *http.Reques
 		defaults = false
 	}
 	if maxStale := query.Get("max_stale"); maxStale != "" {
-		fmt.Printf("**** max_stale=%s\n", maxStale)
 		dur, err := time.ParseDuration(maxStale)
 		if err != nil {
 			resp.WriteHeader(http.StatusBadRequest)
-			fmt.Fprint(resp, "Invalid max_stale time")
+			fmt.Fprintf(resp, "Invalid max_stale value %q", maxStale)
 			return true
 		}
 		b.MaxStaleDuration = dur
@@ -415,8 +421,8 @@ func (s *HTTPServer) parseConsistency(resp http.ResponseWriter, req *http.Reques
 	if defaults {
 		path := req.URL.Path
 		if strings.HasPrefix(path, "/v1/catalog") || strings.HasPrefix(path, "/v1/health") {
-			b.MaxStaleDuration = s.agent.config.DiscoveryMaxStale
-			if b.MaxStaleDuration.Nanoseconds() > 0 {
+			if s.agent.config.DiscoveryMaxStale.Nanoseconds() > 0 {
+				b.MaxStaleDuration = s.agent.config.DiscoveryMaxStale
 				b.AllowStale = true
 			}
 		}
