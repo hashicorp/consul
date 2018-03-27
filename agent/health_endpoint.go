@@ -152,10 +152,6 @@ func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Requ
 }
 
 func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Request, connect bool) (interface{}, error) {
-	if req.Method != "GET" {
-		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
-	}
-
 	// Set default DC
 	args := structs.ServiceSpecificRequest{Connect: connect}
 	s.parseSource(req, &args.Source)

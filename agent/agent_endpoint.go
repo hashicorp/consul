@@ -852,11 +852,6 @@ func (s *HTTPServer) AgentConnectCARoots(resp http.ResponseWriter, req *http.Req
 // AgentConnectCALeafCert returns the certificate bundle for a service
 // instance. This supports blocking queries to update the returned bundle.
 func (s *HTTPServer) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	// Test the method
-	if req.Method != "GET" {
-		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
-	}
-
 	// Get the service ID. Note that this is the ID of a service instance.
 	id := strings.TrimPrefix(req.URL.Path, "/v1/agent/connect/ca/leaf/")
 
@@ -890,11 +885,6 @@ func (s *HTTPServer) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.
 //
 // POST /v1/agent/connect/authorize
 func (s *HTTPServer) AgentConnectAuthorize(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	// Test the method
-	if req.Method != "POST" {
-		return nil, MethodNotAllowedError{req.Method, []string{"POST"}}
-	}
-
 	// NOTE(mitchellh): return 200 for now. To be implemented later.
 	return nil, nil
 }

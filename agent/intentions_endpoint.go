@@ -65,11 +65,6 @@ func (s *HTTPServer) IntentionCreate(resp http.ResponseWriter, req *http.Request
 
 // GET /v1/connect/intentions/match
 func (s *HTTPServer) IntentionMatch(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	// Test the method
-	if req.Method != "GET" {
-		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
-	}
-
 	// Prepare args
 	args := &structs.IntentionQueryRequest{Match: &structs.IntentionQueryMatch{}}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
