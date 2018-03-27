@@ -1079,7 +1079,17 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				}
 				advertise_addr_wan = "1.2.3.4"
 			`},
-			err: nil,
+			patch: func(rt *RuntimeConfig) {
+				rt.AdvertiseAddrWAN = ipAddr("1.2.3.4")
+				rt.SerfAdvertiseAddrWAN = nil
+				rt.SerfBindAddrWAN = nil
+				rt.TaggedAddresses = map[string]string{
+					"lan": "10.0.0.1",
+					"wan": "1.2.3.4",
+				}
+				rt.DataDir = dataDir
+				rt.SerfPortWAN = -1
+			},
 		},
 		{
 			desc: "serf bind address lan template",

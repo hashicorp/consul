@@ -32,7 +32,6 @@ import (
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/raft"
 	raftboltdb "github.com/hashicorp/raft-boltdb"
-	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -1043,15 +1042,6 @@ func (s *Server) GetLANCoordinate() (lib.CoordinateSet, error) {
 		cs[name] = c
 	}
 	return cs, nil
-}
-
-// GetWANCoordinate returns the coordinate of the server in the WAN gossip pool.
-func (s *Server) GetWANCoordinate() (*coordinate.Coordinate, error) {
-	if s.serfWAN == nil {
-		// Return zero values if WAN federation is disabled
-		return &coordinate.Coordinate{}, nil
-	}
-	return s.serfWAN.GetCoordinate()
 }
 
 // Atomically sets a readiness state flag when leadership is obtained, to indicate that server is past its barrier write
