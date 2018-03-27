@@ -581,7 +581,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	ns := args.NodeService()
 	if err := structs.ValidateMetadata(ns.ServiceMeta, false); err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, fmt.Errorf("Invalid Meta: %v", err))
+		fmt.Fprint(resp, fmt.Errorf("Invalid Service Meta: %v", err))
 		return nil, nil
 	}
 
