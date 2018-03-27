@@ -269,6 +269,17 @@ func (a *Agent) Start() error {
 		return fmt.Errorf("Failed to setup node ID: %v", err)
 	}
 
+	// Warn if the node name is incompatible with DNS
+	if InvalidDnsRe.MatchString(a.config.NodeName) {
+		a.logger.Printf("[WARN] agent: Node name %q will not be discoverable "+
+			"via DNS due to invalid characters. Valid characters include "+
+			"all alpha-numerics and dashes.", a.config.NodeName)
+	} else if ( len(a.config.NodeName) > MaxDNSLabelLength ) {
+		a.logger.Printf("[WARN] agent: Node name %q will not be discoverable "+
+			"via DNS due to it being too long. Valid lengths are between "+
+			"1 and 63 bytes.", a.config.NodeName)
+	}
+	
 	// create the local state
 	a.State = local.NewState(LocalConfig(c), a.logger, a.tokens)
 
@@ -1549,6 +1560,10 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 		a.logger.Printf("[WARN] agent: Service name %q will not be discoverable "+
 			"via DNS due to invalid characters. Valid characters include "+
 			"all alpha-numerics and dashes.", service.Service)
+	} else if ( len(service.Service) > MaxDNSLabelLength ) {
+		a.logger.Printf("[WARN] agent: Service name %q will not be discoverable "+
+			"via DNS due to it being too long. Valid lengths are between "+
+			"1 and 63 bytes.", service.Service)
 	}
 
 	// Warn if any tags are incompatible with DNS
@@ -1557,6 +1572,10 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 			a.logger.Printf("[DEBUG] agent: Service tag %q will not be discoverable "+
 				"via DNS due to invalid characters. Valid characters include "+
 				"all alpha-numerics and dashes.", tag)
+		}  else if ( len(tag) > MaxDNSLabelLength ) {
+			a.logger.Printf("[DEBUG] agent: Service tag %q will not be discoverable "+
+				"via DNS due to it being too long. Valid lengths are between "+
+				"1 and 63 bytes.", tag)
 		}
 	}
 
