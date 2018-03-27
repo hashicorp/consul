@@ -31,7 +31,7 @@ const (
 	staleCounterThreshold = 5 * time.Second
 
 	defaultMaxUDPSize = 512
-	
+
 	MaxDNSLabelLength = 63
 )
 

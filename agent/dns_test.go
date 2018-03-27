@@ -3079,14 +3079,14 @@ func checkDNSService(t *testing.T, generateNumNodes int, aRecordLimit int, qType
 func TestDNS_ServiceLookup_ARecordLimits(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name               string
-		aRecordLimit       int
-		expectedAResults   int
+		name                string
+		aRecordLimit        int
+		expectedAResults    int
 		expectedAAAAResults int
-		expectedSRVResults int
-		numNodesTotal      int
-		udpSize            uint16
-		udpAnswerLimit     int
+		expectedSRVResults  int
+		numNodesTotal       int
+		udpSize             uint16
+		udpAnswerLimit      int
 	}{
 		// UDP + EDNS
 		{"udp-edns-1", 1, 1, 1, 30, 30, 8192, 3},

@@ -19,7 +19,8 @@ var extraTestEndpoints = map[string][]string{
 }
 
 // These endpoints are ignored in unit testing for response codes
-var ignoredEndpoints = []string{"/v1/status/peers","/v1/agent/monitor",  "/v1/agent/reload" }
+var ignoredEndpoints = []string{"/v1/status/peers", "/v1/agent/monitor", "/v1/agent/reload"}
+
 // These have custom logic
 var customEndpoints = []string{"/v1/query", "/v1/query/"}
 
