@@ -60,9 +60,9 @@ type ACL interface {
 	// EventWrite determines if a specific event may be fired.
 	EventWrite(string) bool
 
-	// IntentionDefault determines the default authorized behavior
+	// IntentionDefaultAllow determines the default authorized behavior
 	// when no intentions match a Connect request.
-	IntentionDefault() bool
+	IntentionDefaultAllow() bool
 
 	// IntentionRead determines if a specific intention can be read.
 	IntentionRead(string) bool
@@ -165,7 +165,7 @@ func (s *StaticACL) EventWrite(string) bool {
 	return s.defaultAllow
 }
 
-func (s *StaticACL) IntentionDefault() bool {
+func (s *StaticACL) IntentionDefaultAllow() bool {
 	return s.defaultAllow
 }
 
@@ -501,11 +501,11 @@ func (p *PolicyACL) EventWrite(name string) bool {
 	return p.parent.EventWrite(name)
 }
 
-// IntentionDefault returns whether the default behavior when there are
+// IntentionDefaultAllow returns whether the default behavior when there are
 // no matching intentions is to allow or deny.
-func (p *PolicyACL) IntentionDefault() bool {
+func (p *PolicyACL) IntentionDefaultAllow() bool {
 	// We always go up, this can't be determined by a policy.
-	return p.parent.IntentionDefault()
+	return p.parent.IntentionDefaultAllow()
 }
 
 // IntentionRead checks if writing (creating, updating, or deleting) of an

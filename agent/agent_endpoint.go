@@ -984,7 +984,7 @@ func (s *HTTPServer) AgentConnectAuthorize(resp http.ResponseWriter, req *http.R
 	authz := true
 	reason := "ACLs disabled, access is allowed by default"
 	if rule != nil {
-		authz = rule.IntentionDefault()
+		authz = rule.IntentionDefaultAllow()
 		reason = "Default behavior configured by ACLs"
 	}
 
