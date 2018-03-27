@@ -21,19 +21,27 @@
   padding: 12px 15px;
 }
 %healthchecked-resource li a {
-  padding: 5px 15px;
 }
 
 %healthchecked-resource li a {
+  padding: 5px 15px;
   padding-left: 45px;
   position: relative;
 }
 %healthchecked-resource li strong {
-  @extend %healthcheck-icon-passing;
   position: absolute;
   left: 20px;
   top: 50%;
   margin-top: -7px;
+}
+%healthchecked-resource li.passing strong {
+  @extend %healthcheck-icon-passing;
+}
+%healthchecked-resource li.warning strong {
+  @extend %healthcheck-icon-warning;
+}
+%healthchecked-resource li.critical strong {
+  @extend %healthcheck-icon-critical;
 }
 %healthchecked-resource li:first-child:last-child {
   position: absolute;

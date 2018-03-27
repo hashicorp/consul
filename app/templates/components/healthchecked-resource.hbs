@@ -8,7 +8,7 @@
 </header>
 <ul>
     {{#each checks as |check| }}
-        <li>
+        <li class={{check.Status}}>
             <a href={{href}}>{{! check.CheckID }}
                 <strong>{{ check.Status }}</strong>
                 <span>{{ check.Name }}</span>

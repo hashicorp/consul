@@ -17,24 +17,10 @@
 @import 'components/navbar';
 @import 'components/expanded-single-select';
 @import 'components/app-view';
+@import 'components/tabular-collection';
+@import 'components/list-collection';
 @import 'components/table';
 
-.unhealthy,
-.healthy {
-  @extend %card-grid;
-}
-%card-grid > ul {
-  overflow: hidden;
-}
-%card-grid > ul > li {
-  float: left;
-  width: 270px; // make%
-  margin-right: 23px; // make%
-  margin-bottom: 20px;
-}
-%card-grid > ul > li:nth-child(4n) {
-  margin-right: 0;
-}
 th {
   color: $text-light !important;
 }

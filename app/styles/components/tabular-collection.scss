@@ -1,0 +1,20 @@
+table {
+  position: relative;
+  height: 500px;
+}
+table tbody {
+  width: 100%;
+  height: 100%;
+  top: 42px !important;
+}
+tbody tr {
+  display: flex;
+}
+table tbody tr {
+  display: flex;
+}
+table td,
+table th {
+  flex: 1 0 auto;
+  width: 33%;
+}

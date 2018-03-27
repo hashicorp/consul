@@ -2386,6 +2386,16 @@ ember-cli-app-version@^3.0.0:
     ember-cli-babel "^6.8.0"
     git-repo-version "^1.0.0"
 
+ember-cli-babel@^5.1.5, ember-cli-babel@^5.2.4:
+  version "5.2.7"
+  resolved "https://registry.yarnpkg.com/ember-cli-babel/-/ember-cli-babel-5.2.7.tgz#a3a08af97a5e6fd51488081c0bfdd984d411d533"
+  dependencies:
+    broccoli-babel-transpiler "^5.6.2"
+    broccoli-funnel "^1.0.0"
+    clone "^2.0.0"
+    ember-cli-version-checker "^1.0.2"
+    resolve "^1.1.2"
+
 ember-cli-babel@^5.1.6, ember-cli-babel@^5.1.7:
   version "5.2.4"
   resolved "https://registry.yarnpkg.com/ember-cli-babel/-/ember-cli-babel-5.2.4.tgz#5ce4f46b08ed6f6d21e878619fb689719d6e8e13"
@@ -2482,7 +2492,7 @@ ember-cli-htmlbars-inline-precompile@^1.0.0:
     heimdalljs-logger "^0.1.7"
     silent-error "^1.1.0"
 
-ember-cli-htmlbars@^1.0.3:
+ember-cli-htmlbars@^1.0.1, ember-cli-htmlbars@^1.0.3:
   version "1.3.4"
   resolved "https://registry.yarnpkg.com/ember-cli-htmlbars/-/ember-cli-htmlbars-1.3.4.tgz#461289724b34af372a6a0c4b6635819156963353"
   dependencies:
@@ -2764,6 +2774,14 @@ ember-cli@~2.16.0:
     validate-npm-package-name "^3.0.0"
     walk-sync "^0.3.0"
     yam "0.0.22"
+
+ember-collection@^1.0.0-alpha.7:
+  version "1.0.0-alpha.7"
+  resolved "https://registry.yarnpkg.com/ember-collection/-/ember-collection-1.0.0-alpha.7.tgz#172c2ddaa7d3482fac0781686b434c9c9c42d79a"
+  dependencies:
+    ember-cli-babel "^5.1.5"
+    ember-cli-htmlbars "^1.0.1"
+    layout-bin-packer "^1.2.0"
 
 ember-data@^3.0.2:
   version "3.0.2"
@@ -4786,6 +4804,12 @@ klaw@^1.0.0:
   resolved "https://registry.yarnpkg.com/klaw/-/klaw-1.3.1.tgz#4088433b46b3b1ba259d78785d8e96f73ba02439"
   optionalDependencies:
     graceful-fs "^4.1.9"
+
+layout-bin-packer@^1.2.0:
+  version "1.3.0"
+  resolved "https://registry.yarnpkg.com/layout-bin-packer/-/layout-bin-packer-1.3.0.tgz#6f232f67db7606b2a405f39ae7197f2931a26c0c"
+  dependencies:
+    ember-cli-babel "^5.2.4"
 
 lazy-cache@^1.0.3:
   version "1.0.4"

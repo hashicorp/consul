@@ -8,10 +8,10 @@
 {{/if}}
     {{/block-slot}}
     {{#block-slot 'content'}}
-{{#if (gt items.length 0) }}
+{{#if (gt unhealthy.length 0) }}
         <div class="unhealthy">
             <h2>Unhealthy Nodes</h2>
-            {{#filtered-list tagName="ul" items=items as |item|}}
+            {{#filtered-list tagName="ul" items=unhealthy as |item|}}
                 <li>
                     {{healthchecked-resource
                         href=(href-to 'dc.nodes.show' item.Node)
@@ -22,22 +22,22 @@
                 </li>
             {{/filtered-list}}
         </div>
+{{/if}}
+{{#if (gt healthy.length 0) }}
         <div class="healthy">
             <h2>Healthy Nodes</h2>
-            {{#filtered-list tagName="ul" items=items as |item|}}
-                <li>
-                    {{healthchecked-resource
-                        href=(href-to 'dc.nodes.show' item.Node)
-                        name=item.Node
-                        address=item.Address
-                        checks=item.Checks
-                    }}
-                </li>
-            {{/filtered-list}}
+            {{#list-collection
+                items=healthy
+                cell-layout=(percentage-columns-layout healthy.length columns 100) as |item index|
+            }}
+                {{healthchecked-resource
+                    href=(href-to 'dc.nodes.show' item.Node)
+                    name=item.Node
+                    address=item.Address
+                    checks=item.Checks
+                }}
+            {{/list-collection}}
         </div>
-        {{else}}
-            <p>There are no nodes.</p>
-        {{/if}}
-{{outlet}}
+{{/if}}
     {{/block-slot}}
 {{/app-view}}

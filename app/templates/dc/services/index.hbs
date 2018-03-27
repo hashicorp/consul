@@ -9,7 +9,7 @@
     {{/block-slot}}
     {{#block-slot 'content'}}
 {{#if (gt items.length 0) }}
-        <table>
+        <table style="">
             <thead>
                 <tr>
                     <th>Service</th>
@@ -17,10 +17,13 @@
                     <th>Tags</th>
                 </tr>
             </thead>
-    {{#filtered-list tagName="tbody" items=items as |item|}}
-                <tr>
+            {{#tabular-collection
+                items=items
+                tagName=''
+                cell-layout=(fixed-grid-layout 1150 46) as |item index|
+            }}
                     <td>
-                        <a href={{href-to 'dc.services.show' item.Name}}>{{item.Name}}</a>
+                        <a href={{href-to 'dc.services.show' 'dc1' }}>{{item.Name}}</a>
                     </td>
                     <td>
                         <dl>
@@ -33,8 +36,7 @@
                     <td>
                         Need to switch API to the public catalog one
                     </td>
-                </tr>
-    {{/filtered-list}}
+            {{/tabular-collection}}
         </table>
 {{else}}
         <p>

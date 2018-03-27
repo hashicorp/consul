@@ -4,7 +4,8 @@
   line-height: 0%;
 }
 %healthcheck-icon-passing,
-%healthcheck-icon-failing {
+%healthcheck-icon-warning,
+%healthcheck-icon-critical {
   @extend %healthcheck-icon;
 }
 %healthcheck-icon::before {
@@ -18,7 +19,11 @@
   border-radius: 100%;
   background-color: green;
 }
-%healthcheck-icon-failing::before {
+%healthcheck-icon-critical::before {
   border-radius: 20%;
   background-color: red;
+}
+%healthcheck-icon-warning::before {
+  border-radius: 20%;
+  background-color: yellow;
 }

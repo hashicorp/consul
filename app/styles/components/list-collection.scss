@@ -1,0 +1,23 @@
+.list-collection {
+  height: 500px;
+  position: relative;
+}
+.unhealthy > div,
+.healthy > div {
+  @extend %card-grid;
+  width: calc(100% + 23px);
+}
+%card-grid > ul {
+  overflow: hidden;
+}
+%card-grid > ul > li {
+  float: left;
+  // width: 270px; // make%
+  // margin-right: 23px; // make%
+  // margin-bottom: 20px;
+  padding-right: 23px;
+  padding-bottom: 20px;
+}
+%card-grid > ul > li:nth-child(5n) {
+  // padding-right: 0;
+}

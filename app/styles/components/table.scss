@@ -3,11 +3,13 @@ table {
   @extend .table;
   width: 100%;
 }
-table td {
+table td,
+table th {
+  // width: 300px;
   padding: 0.9em 0;
 }
 table th {
-  padding: 0.5em 0;
+  // padding: 0.5em 0;
 }
 table th,
 table td {
@@ -26,7 +28,7 @@ td dt:first-of-type {
   @extend %healthcheck-icon-passing;
 }
 td dt:nth-of-type(2)::before {
-  @extend %healthcheck-icon-failing;
+  @extend %healthcheck-icon-critical;
 }
 td dd {
   margin-left: 6px;
