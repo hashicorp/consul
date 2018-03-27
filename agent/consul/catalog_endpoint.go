@@ -170,6 +170,10 @@ func (c *Catalog) ListDatacenters(args *struct{}, reply *[]string) error {
 		return err
 	}
 
+	if len(dcs) == 0 { // no WAN federation, so return the local data center name
+		dcs = []string{c.srv.config.Datacenter}
+	}
+
 	*reply = dcs
 	return nil
 }
