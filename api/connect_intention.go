@@ -67,6 +67,22 @@ const (
 	IntentionSourceConsul IntentionSourceType = "consul"
 )
 
+// IntentionMatch are the arguments for the intention match API.
+type IntentionMatch struct {
+	By    IntentionMatchType
+	Names []string
+}
+
+// IntentionMatchType is the target for a match request. For example,
+// matching by source will look for all intentions that match the given
+// source value.
+type IntentionMatchType string
+
+const (
+	IntentionMatchSource      IntentionMatchType = "source"
+	IntentionMatchDestination IntentionMatchType = "destination"
+)
+
 // Intentions returns the list of intentions.
 func (h *Connect) Intentions(q *QueryOptions) ([]*Intention, *QueryMeta, error) {
 	r := h.c.newRequest("GET", "/v1/connect/intentions")
@@ -82,6 +98,58 @@ func (h *Connect) Intentions(q *QueryOptions) ([]*Intention, *QueryMeta, error) 
 	qm.RequestTime = rtt
 
 	var out []*Intention
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, nil, err
+	}
+	return out, qm, nil
+}
+
+// IntentionGet retrieves a single intention.
+func (h *Connect) IntentionGet(id string, q *QueryOptions) (*Intention, *QueryMeta, error) {
+	r := h.c.newRequest("GET", "/v1/connect/intentions/"+id)
+	r.setQueryOptions(q)
+	rtt, resp, err := requireOK(h.c.doRequest(r))
+	if err != nil {
+		return nil, nil, err
+	}
+	defer resp.Body.Close()
+
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
+
+	var out Intention
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, nil, err
+	}
+	return &out, qm, nil
+}
+
+// IntentionMatch returns the list of intentions that match a given source
+// or destination. The returned intentions are ordered by precedence where
+// result[0] is the highest precedence (if that matches, then that rule overrides
+// all other rules).
+//
+// Matching can be done for multiple names at the same time. The resulting
+// map is keyed by the given names. Casing is preserved.
+func (h *Connect) IntentionMatch(args *IntentionMatch, q *QueryOptions) (map[string][]*Intention, *QueryMeta, error) {
+	r := h.c.newRequest("GET", "/v1/connect/intentions/match")
+	r.setQueryOptions(q)
+	r.params.Set("by", string(args.By))
+	for _, name := range args.Names {
+		r.params.Add("name", name)
+	}
+	rtt, resp, err := requireOK(h.c.doRequest(r))
+	if err != nil {
+		return nil, nil, err
+	}
+	defer resp.Body.Close()
+
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
+
+	var out map[string][]*Intention
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, nil, err
 	}

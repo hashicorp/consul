@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAPI_ConnectIntentionCreate(t *testing.T) {
+func TestAPI_ConnectIntentionCreateListGet(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
@@ -33,6 +33,58 @@ func TestAPI_ConnectIntentionCreate(t *testing.T) {
 	ixn.CreateIndex = actual.CreateIndex
 	ixn.ModifyIndex = actual.ModifyIndex
 	require.Equal(ixn, actual)
+
+	// Get it
+	actual, _, err = connect.IntentionGet(id, nil)
+	require.Nil(err)
+	require.Equal(ixn, actual)
+}
+
+func TestAPI_ConnectIntentionMatch(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	connect := c.Connect()
+
+	// Create
+	{
+		insert := [][]string{
+			{"foo", "*"},
+			{"foo", "bar"},
+			{"foo", "baz"}, // shouldn't match
+			{"bar", "bar"}, // shouldn't match
+			{"bar", "*"},   // shouldn't match
+			{"*", "*"},
+		}
+
+		for _, v := range insert {
+			ixn := testIntention()
+			ixn.DestinationNS = v[0]
+			ixn.DestinationName = v[1]
+			id, _, err := connect.IntentionCreate(ixn, nil)
+			require.Nil(err)
+			require.NotEmpty(id)
+		}
+	}
+
+	// Match it
+	result, _, err := connect.IntentionMatch(&IntentionMatch{
+		By:    IntentionMatchDestination,
+		Names: []string{"foo/bar"},
+	}, nil)
+	require.Nil(err)
+	require.Len(result, 1)
+
+	var actual [][]string
+	expected := [][]string{{"foo", "bar"}, {"foo", "*"}, {"*", "*"}}
+	for _, ixn := range result["foo/bar"] {
+		actual = append(actual, []string{ixn.DestinationNS, ixn.DestinationName})
+	}
+
+	require.Equal(expected, actual)
 }
 
 func testIntention() *Intention {
