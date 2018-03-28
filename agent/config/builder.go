@@ -293,6 +293,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	// ----------------------------------------------------------------
 	// process/merge some complex values
 	//
+
 	var dnsServiceTTL = map[string]time.Duration{}
 	for k, v := range c.DNS.ServiceTTL {
 		dnsServiceTTL[k] = b.durationVal(fmt.Sprintf("dns_config.service_ttl[%q]", k), &v)
@@ -726,10 +727,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	}
 
 	return rt, nil
-}
-
-func isAcceptableConsistency(val string) bool {
-	return val == "" || val == "leader" || val == "stale" || val == "consistent"
 }
 
 // Validate performs semantical validation of the runtime configuration.
