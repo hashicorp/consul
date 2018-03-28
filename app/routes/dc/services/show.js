@@ -13,6 +13,7 @@ export default Route.extend({
       // TODO: isolate, quick read of this some sort of filter might fit here instead of reduce?
       // come back and check exactly what this is doing and test
       return assign({}, model, {
+        items: model.model,
         tags: model.model
           .reduce(function(prev, item) {
             return item.Service.Tags !== null ? prev.concat(item.Service.Tags) : prev;

@@ -5,6 +5,8 @@
 .unhealthy > div,
 .healthy > div {
   @extend %card-grid;
+}
+.healthy > div {
   width: calc(100% + 23px);
 }
 %card-grid > ul {
@@ -12,12 +14,16 @@
 }
 %card-grid > ul > li {
   float: left;
-  // width: 270px; // make%
-  // margin-right: 23px; // make%
-  // margin-bottom: 20px;
+}
+.healthy > div > ul > li {
   padding-right: 23px;
   padding-bottom: 20px;
 }
-%card-grid > ul > li:nth-child(5n) {
-  // padding-right: 0;
+.unhealthy > div > ul > li {
+  width: 23.47826%; // 270px
+  margin-right: 2%; // 23px
+  margin-bottom: 20px;
+}
+.unhealthy > div > ul > li:nth-child(4n) {
+  margin-right: 0;
 }

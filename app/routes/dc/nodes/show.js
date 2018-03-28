@@ -29,6 +29,7 @@ export default Route.extend({
       // that the model needed resolving first to get to Node
       return hash(
         assign({}, model, {
+          items: model.model.get('Services'),
           sessions: sessionRepo.findByNode(model.model.get('Node'), model.dc),
         })
       );

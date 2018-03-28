@@ -4,7 +4,7 @@
         <h1>
             {{ model.0.Service.Service }}
         </h1>
-        {{catalog-filter}}
+        {{catalog-filter search=filters.s status=filters.status onchange=(action 'filter')}}
     {{/block-slot}}
     {{#block-slot 'content'}}
         <dl>
@@ -15,31 +15,39 @@
                 </ul>
             </dd>
         </dl>
+{{#if (gt unhealthy.length 0) }}
         <div class="unhealthy">
             <h2>Unhealthy Nodes</h2>
-            {{#filtered-list tagName="ul" items=model as |item|}}
-                <li>
-                    {{healthchecked-resource
-                        href=(href-to 'dc.nodes.show' item.Node.Node)
-                        name=item.Node.Node
-                        address=item.Node.Address
-                        checks=item.Checks
-                    }}
-                </li>
-            {{/filtered-list}}
+            <div>
+                {{#filtered-list tagName="ul" items=unhealthy as |item|}}
+                    <li>
+                        {{healthchecked-resource
+                            href=(href-to 'dc.nodes.show' item.Node.Node)
+                            name=item.Node.Node
+                            address=item.Node.Address
+                            checks=item.Checks
+                        }}
+                    </li>
+                {{/filtered-list}}
+            </div>
         </div>
+{{/if}}
+{{#if (gt healthy.length 0) }}
         <div class="healthy">
             <h2>Healthy Nodes</h2>
-            {{#filtered-list tagName="ul" items=model as |item|}}
-                <li>
-                    {{healthchecked-resource
-                        href=(href-to 'dc.nodes.show' item.Node.Node)
-                        name=item.Node.Node
-                        address=item.Node.Address
-                        checks=item.Checks
-                    }}
-                </li>
-            {{/filtered-list}}
+            {{#list-collection
+                items=healthy
+                cell-layout=(percentage-columns-layout healthy.length columns 100) as |item index|
+            }}
+                {{healthchecked-resource
+                    href=(href-to 'dc.nodes.show' item.Node.Node)
+                    name=item.Node.Node
+                    address=item.Node.Address
+                    checks=item.Checks
+                    status=item.Checks.[0].Status
+                }}
+            {{/list-collection}}
         </div>
+{{/if}}
     {{/block-slot}}
 {{/app-view}}

@@ -10,7 +10,6 @@ export default Model.extend({
   CreateIndex: attr('number'),
   ModifyIndex: attr('number'),
   Datacenter: attr('string'),
-  filterKey: computed.alias('Name'),
   isNotAnon: computed('ID', function() {
     if (this.get('ID') === 'anonymous') {
       return false;

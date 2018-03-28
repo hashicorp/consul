@@ -9,18 +9,9 @@ export default Route.extend({
     const repo = this.get('repo');
     return hash({
       items: repo.findAllByDatacenter(this.modelFor('dc').dc),
-    }).then(function(hash) {
-      return assign(
-        {},
-        {
-          unhealthy: hash.items.filter(item => item.get('hasFailingChecks')),
-          healthy: hash.items.filter(item => !item.get('hasFailingChecks')),
-        }
-      );
     });
   },
   setupController: function(controller, model) {
-    console.log(model);
     controller.setProperties(model);
   },
 });

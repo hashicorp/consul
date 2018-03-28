@@ -3,24 +3,26 @@
         <h1>
             Nodes
         </h1>
-{{#if true }}
-        {{catalog-filter}}
+{{#if (gt items.length 0) }}
+        {{catalog-filter search=filters.s status=filters.status onchange=(action 'filter')}}
 {{/if}}
     {{/block-slot}}
     {{#block-slot 'content'}}
 {{#if (gt unhealthy.length 0) }}
         <div class="unhealthy">
             <h2>Unhealthy Nodes</h2>
-            {{#filtered-list tagName="ul" items=unhealthy as |item|}}
-                <li>
-                    {{healthchecked-resource
-                        href=(href-to 'dc.nodes.show' item.Node)
-                        name=item.Node
-                        address=item.Address
-                        checks=item.Checks
-                    }}
-                </li>
-            {{/filtered-list}}
+            <div>
+                {{#filtered-list tagName="ul" items=unhealthy as |item|}}
+                    <li>
+                        {{healthchecked-resource
+                            href=(href-to 'dc.nodes.show' item.Node)
+                            name=item.Node
+                            address=item.Address
+                            checks=item.Checks
+                        }}
+                    </li>
+                {{/filtered-list}}
+            </div>
         </div>
 {{/if}}
 {{#if (gt healthy.length 0) }}
@@ -35,6 +37,7 @@
                     name=item.Node
                     address=item.Address
                     checks=item.Checks
+                    status=item.Checks.[0].Status
                 }}
             {{/list-collection}}
         </div>

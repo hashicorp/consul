@@ -4,13 +4,13 @@
             ACL Tokens
         </h1>
 {{#if (gt items.length 0)}}
-        {{acl-filter}}
+        {{acl-filter search=filters.s status=filters.status onchange=(action 'filter')}}
 {{/if}}
     {{/block-slot}}
     {{#block-slot 'content'}}
-{{#if (gt items.length 0)}}
+{{#if (gt filtered.length 0)}}
         <table>
-    {{#filtered-list tagName="tbody" items=items as |item|}}
+    {{#filtered-list tagName="tbody" items=filtered as |item|}}
                 <tr>
                     <td>
                         <a href={{href-to 'dc.acls.edit' item.ID}}>{{item.Name}}</a>

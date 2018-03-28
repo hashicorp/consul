@@ -4,18 +4,18 @@
         <h1>
             {{ model.Node }}
         </h1>
-        {{catalog-filter}}
     {{/block-slot}}
     {{#block-slot 'content'}}
         {{tab-nav items=tabs}}
         {{#tab-section id=tabs.[0] selected=true}}
-        <ul>
-{{#each model.Checks as |check| }}
-            {{healthcheck-status tagName='li' name=check.Name status=check.status output=check.Output}}
-{{/each}}
-        </ul>
+            <ul>
+    {{#each model.Checks as |check| }}
+                {{healthcheck-status tagName='li' name=check.Name status=check.status output=check.Output}}
+    {{/each}}
+            </ul>
         {{/tab-section}}
         {{#tab-section id=tabs.[1]}}
+            {{freetext-filter onchange=(action 'filter') value=filter.s placeholder="Search by name"}}
             <table>
                 <thead>
                     <tr>
@@ -23,48 +23,50 @@
                         <th>Tags</th>
                     </tr>
                 </thead>
-            {{#filtered-list tagName="tbody" items=model.Services as |item|}}
-                    <tr>
+                {{#tabular-collection
+                    items=filtered
+                    tagName=''
+                    cell-layout=(fixed-grid-layout 1150 46) as |item index|
+                }}
                         <td>
-                            <a href={{href-to 'dc.services.show' item.Service}}>{{item.Service}}</a>
+                            <a href={{href-to 'dc.services.show' item.Service }}>{{item.Service}}</a>
                         </td>
                         <td>
                             Need to switch API to the public catalog one
                         </td>
-                    </tr>
-            {{/filtered-list}}
+                {{/tabular-collection}}
             </table>
         {{/tab-section}}
         {{#tab-section id=tabs.[2]}}
-        <h2>Network Tomography</h2>
-        TOMOGRAPHY GRAPH GOES HERE
-        {{!-- tomographyGraph tomography 336 --}}
-        <dl>
-            <dt>
-                Node
-            </dt>
-            <dd>
-                What goes here? This has never had anything in it
-            </dd>
-            <dt>
-                Minimum
-            </dt>
-            <dd>
-                {{ tomography.min }}ms
-            </dd>
-            <dt>
-                Median
-            </dt>
-            <dd>
-                {{ tomography.median }}ms
-            </dd>
-            <dt>
-                Maximum
-            </dt>
-            <dd>
-                {{ tomography.max }}ms
-            </dd>
-        </dl>
+            <h2>Network Tomography</h2>
+            TOMOGRAPHY GRAPH GOES HERE
+            {{!-- tomographyGraph tomography 336 --}}
+            <dl>
+                <dt>
+                    Node
+                </dt>
+                <dd>
+                    What goes here? This has never had anything in it
+                </dd>
+                <dt>
+                    Minimum
+                </dt>
+                <dd>
+                    {{ tomography.min }}ms
+                </dd>
+                <dt>
+                    Median
+                </dt>
+                <dd>
+                    {{ tomography.median }}ms
+                </dd>
+                <dt>
+                    Maximum
+                </dt>
+                <dd>
+                    {{ tomography.max }}ms
+                </dd>
+            </dl>
         {{/tab-section}}
         {{#tab-section id=tabs.[3]}}
 {{#if sessions }}

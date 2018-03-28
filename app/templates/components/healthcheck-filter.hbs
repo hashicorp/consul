@@ -1,19 +1,19 @@
 {{!<fieldset>}}
     <div role="radiogroup">
         <label>
-            <input type="radio" name="filter" checked="checked" />
+            <input type="radio" name="status" value="" checked={{if (eq value '') 'checked'}} onchange={{action onchange}} />
             <span>All (0000000000)</span>
         </label>
         <label>
-            <input type="radio" name="filter" />
+            <input type="radio" name="status" value="passing" checked={{if (eq value 'passing') 'checked'}} onchange={{action onchange}} />
             <span>Passing (0000000000)</span>
         </label>
         <label>
-            <input type="radio" name="filter" />
+            <input type="radio" name="status" value="warning" checked={{if (eq value 'warning') 'checked'}} onchange={{action onchange}} />
             <span>Warning (0000000000)</span>
         </label>
         <label>
-            <input type="radio" name="filter" />
+            <input type="radio" name="status" value="critical" checked={{if (eq value 'critical') 'checked'}} onchange={{action onchange}} />
             <span>Critical (0000000000)</span>
         </label>
     </div>

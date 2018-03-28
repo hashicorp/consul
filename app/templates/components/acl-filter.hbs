@@ -2,18 +2,18 @@
     <fieldset>
         <div role="radiogroup">
             <label>
-                <input type="radio" name="filter" checked="checked" />
+                <input type="radio" name="type" value="" checked={{if (eq value '') 'checked'}} onchange={{action onchange}} />
                 <span>All (0000000000)</span>
             </label>
             <label>
-                <input type="radio" name="filter" />
+                <input type="radio" name="type" value="management" checked={{if (eq value 'management') 'checked'}} onchange={{action onchange}} />
                 <span>Management (0000000000)</span>
             </label>
             <label>
-                <input type="radio" name="filter" />
+                <input type="radio" name="type" value="client" checked={{if (eq value 'client') 'checked'}} onchange={{action onchange}} />
                 <span>Client (0000000000)</span>
             </label>
         </div>
     </fieldset>
-    {{freetext-filter placeholder="Search by name"}}
+    {{freetext-filter onchange=(action onchange) value=search placeholder="Search by name"}}
 {{!</form>}}

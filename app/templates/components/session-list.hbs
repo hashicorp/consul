@@ -1,17 +1,20 @@
-        <table>
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>ID</th>
-                    <th>Delay</th>
-                    <th>TTL</th>
-                    <th>Behavior</th>
-                    <th>Checks</th>
-                    <th>&nbsp;</th>
-                </tr>
-            </thead>
-    {{#filtered-list tagName="tbody" items=items as |item|}}
-                <tr>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>ID</th>
+                        <th>Delay</th>
+                        <th>TTL</th>
+                        <th>Behavior</th>
+                        <th>Checks</th>
+                        <th>&nbsp;</th>
+                    </tr>
+                </thead>
+                {{#tabular-collection
+                    items=items
+                    tagName=''
+                    cell-layout=(fixed-grid-layout 1150 46) as |item index|
+                }}
                     <td>
                         <a href={{href-to 'dc.services.show' item.Name}}>{{item.Name}}</a>
                     </td>
@@ -38,6 +41,5 @@
                     <td>
                         <button {{ action "requestInvalidateSession" item }}>Invalidate</button>
                     </td>
-                </tr>
-    {{/filtered-list}}
-        </table>
+                {{/tabular-collection}}
+            </table>

@@ -7,6 +7,13 @@
     </a>
 </header>
 <ul>
+{{#if status }}
+        <li class={{status}}>
+            <a href={{href}}>
+                <strong>{{status}}</strong>
+            </a>
+        </li>
+{{ else }}
     {{#each checks as |check| }}
         <li class={{check.Status}}>
             <a href={{href}}>{{! check.CheckID }}
@@ -15,4 +22,5 @@
             </a>
         </li>
     {{/each}}
+{{/if}}
 </ul>

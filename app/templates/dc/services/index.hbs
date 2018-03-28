@@ -4,12 +4,12 @@
             Services
         </h1>
 {{#if (gt items.length 0) }}
-        {{catalog-filter}}
+        {{catalog-filter search=filters.s status=filters.status onchange=(action 'filter')}}
 {{/if}}
     {{/block-slot}}
     {{#block-slot 'content'}}
-{{#if (gt items.length 0) }}
-        <table style="">
+{{#if (gt filtered.length 0) }}
+        <table>
             <thead>
                 <tr>
                     <th>Service</th>
@@ -18,12 +18,12 @@
                 </tr>
             </thead>
             {{#tabular-collection
-                items=items
+                items=filtered
                 tagName=''
                 cell-layout=(fixed-grid-layout 1150 46) as |item index|
             }}
                     <td>
-                        <a href={{href-to 'dc.services.show' 'dc1' }}>{{item.Name}}</a>
+                        <a href={{href-to 'dc.services.show' item.Name }}>{{item.Name}}</a>
                     </td>
                     <td>
                         <dl>

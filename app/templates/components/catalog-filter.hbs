@@ -1,4 +1,4 @@
 {{!<form>}}
-    {{healthcheck-filter}}
-    {{freetext-filter placeholder="Search by name"}}
+    {{healthcheck-filter onchange=(action onchange) value=status}}
+    {{freetext-filter onchange=(action onchange) value=search placeholder="Search by name"}}
 {{!</form>}}
