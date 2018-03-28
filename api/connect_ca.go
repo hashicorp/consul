@@ -19,8 +19,8 @@ type CARoot struct {
 	// opaque to Consul and is not used for anything internally.
 	Name string
 
-	// RootCert is the PEM-encoded public certificate.
-	RootCert string
+	// RootCertPEM is the PEM-encoded public certificate.
+	RootCertPEM string `json:"RootCert"`
 
 	// Active is true if this is the current active CA. This must only
 	// be true for exactly one CA. For any method that modifies roots in the
@@ -32,8 +32,8 @@ type CARoot struct {
 	ModifyIndex uint64
 }
 
-// IssuedCert is a certificate that has been issued by a Connect CA.
-type IssuedCert struct {
+// LeafCert is a certificate that has been issued by a Connect CA.
+type LeafCert struct {
 	// SerialNumber is the unique serial number for this certificate.
 	// This is encoded in standard hex separated by :.
 	SerialNumber string

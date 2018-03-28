@@ -567,7 +567,7 @@ func (a *Agent) ConnectCARoots(q *QueryOptions) (*CARootList, *QueryMeta, error)
 //
 // TODO(mitchellh): we need to test this better once we have a way to
 // configure CAs from the API package (when the CA work is done).
-func (a *Agent) ConnectCALeaf(serviceID string, q *QueryOptions) (*IssuedCert, *QueryMeta, error) {
+func (a *Agent) ConnectCALeaf(serviceID string, q *QueryOptions) (*LeafCert, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/agent/connect/ca/leaf/"+serviceID)
 	r.setQueryOptions(q)
 	rtt, resp, err := requireOK(a.c.doRequest(r))
@@ -580,7 +580,7 @@ func (a *Agent) ConnectCALeaf(serviceID string, q *QueryOptions) (*IssuedCert, *
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
 
-	var out IssuedCert
+	var out LeafCert
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, nil, err
 	}

@@ -6,7 +6,7 @@ type Connect struct {
 	c *Client
 }
 
-// Health returns a handle to the health endpoints
+// Connect returns a handle to the connect-related endpoints
 func (c *Client) Connect() *Connect {
 	return &Connect{c}
 }
