@@ -175,7 +175,7 @@ type SampledValue struct {
 // AgentAuthorizeParams are the request parameters for authorizing a request.
 type AgentAuthorizeParams struct {
 	Target           string
-	ClientID         string
+	ClientCertURI    string
 	ClientCertSerial string
 }
 
