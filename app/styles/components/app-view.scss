@@ -53,14 +53,14 @@ main {
 %radio-group label {
   @extend %form-element, .radio;
 }
-%radio-group label span {
+%radio-group label > span {
   margin-left: 1em;
   float: right;
 }
 %form-element {
   @extend .control, .field;
 }
-%form-element span {
+%form-element > span {
   @extend .label;
   text-transform: uppercase;
 }

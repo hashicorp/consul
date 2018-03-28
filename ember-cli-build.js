@@ -9,6 +9,11 @@ module.exports = function(defaults) {
       'importBootstrapFont': true,
       'importBootstrapCSS': false
     },
+    'codemirror': {
+      modes: ['javascript','ruby'],
+      keyMaps: ['vim'],
+      themes: ['solarized']
+    },
     'ember-cli-uglify': {
       uglify: {
         compress: {

@@ -27,7 +27,7 @@
                 </div>
                 <label class="type-text">
                     <span>Policy <a href="">(HCL Format)</a></span>
-                    {{ textarea value=model.Rules }}
+                    {{configuration-code value=model.Rules}}
                 </label>
             </fieldset>
             <button type="submit" {{ action "update" model}}>Save</button>

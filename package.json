@@ -58,6 +58,7 @@
     "ember-truth-helpers": "^2.0.0",
     "eslint-plugin-ember": "^5.0.0",
     "husky": "^0.14.3",
+    "ivy-codemirror": "^2.1.0",
     "lint-staged": "^6.1.0",
     "loader.js": "^4.2.3",
     "prettier": "^1.10.2"
