@@ -11,6 +11,10 @@ $size-4: 1.5rem; // $size-large?
 $size-5: 1.125rem; // $size-medium?
 $size-6: 0.875rem; // $size-normal?
 $size-7: 0.8125rem; // $size-small?
+$size-8: 0.75rem; // $size-small?
+.is-size-8 {
+  font-size: $size-8;
+}
 h1 {
   @extend .is-size-4;
 }
@@ -21,9 +25,13 @@ body,
 pre code {
   @extend .is-size-6; // .is-size-normal doesn't seem to exist
 }
-th {
+th,
+button {
   @extend .is-size-7;
   font-weight: normal;
+}
+button {
+  @extend .is-size-8;
 }
 td {
   @extend .is-size-6;

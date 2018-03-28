@@ -1,3 +1,17 @@
 button {
   @extend .button;
+  padding-left: 1.7em;
+  padding-right: 1.7em;
+}
+button[type='button'] {
+}
+button:hover,
+button:focus {
+  @extend .is-hovered;
+}
+
+button:active {
+}
+button[type='submit'] {
+  @extend .is-primary;
 }

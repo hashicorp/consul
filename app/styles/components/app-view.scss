@@ -2,7 +2,7 @@
 main {
   @extend %app-view;
 }
-%app-view > div {
+%app-view > div > div {
   @extend %app-content;
 }
 %app-view {
@@ -40,6 +40,9 @@ main {
 }
 %app-content .type-text {
   @extend %form-element;
+}
+%app-content .type-toggle input {
+  display: none;
 }
 %app-content [role='radiogroup'] {
   @extend %radio-group;

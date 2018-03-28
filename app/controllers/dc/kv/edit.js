@@ -4,6 +4,7 @@ import confirm from 'consul-ui/utils/confirm';
 import error from 'consul-ui/utils/error';
 
 export default Controller.extend({
+  json: false,
   requestDelete: function(item) {
     confirm('Are you sure you want to delete this key?')
       .then(confirmed => {

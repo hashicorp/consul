@@ -27,11 +27,11 @@
                 </div>
                 <label class="type-text">
                     <span>Policy <a href="">(HCL Format)</a></span>
-                    {{configuration-code value=model.Rules}}
+                    {{code-editor value=model.Rules}}
                 </label>
             </fieldset>
             <button type="submit" {{ action "update" model}}>Save</button>
-            <button {{ action "cancel" model}}>Cancel Changes</button>
+            <button type="button" {{ action "cancel" model}}>Cancel</button>
             {{# if model.isNotAnon }}
                 <button {{ action "requestDelete" model}}>Delete</button>
             {{/if}}

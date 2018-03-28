@@ -1,29 +1,33 @@
 {{#app-view}}
     {{#block-slot 'header'}}
         <h1>
-            {{item.basename}}
+            {{key.basename}}
         </h1>
     {{/block-slot}}
     {{#block-slot 'content'}}
         <form>
             <fieldset>
-                <label>
+                <label class="type-text">
                     <span>Key Name</span>
-                    <input type="text" value={{item.basename}} />
+                    <input type="text" value={{key.basename}} />
                 </label>
                 <div>
-                    <label>
+                    <label class="type-toggle">
                         <span>JSON</span>
-                        {{ input type="checkbox" }}
+                        {{ input type="checkbox" checked=json }}
                     </label>
-                    <label>
+                    <label class="type-text">
                         <span>Value</span>
-                        {{ textarea value=key.valueDecoded class="form-control" disabled=model.isLocked}}
+{{#if json}}
+                        {{ code-editor value=key.valueDecoded disabled=model.isLocked }}
+{{else}}
+                        {{ input type="text" value=key.valueDecoded disabled=model.isLocked }}
+{{/if}}
                     </label>
                 </div>
             </fieldset>
             {{!if (or model.isLocked model.isLoading)}}
-            <button {{action "update" key}} disabled>Save</button>
+            <button type="submit" {{action "update" key}}>Save</button>
             <button {{action "cancel" key}} disabled={{model.isLoading}}>Cancel changes</button>
 
             {{!if (or model.isLocked model.isLoading)}}
@@ -31,22 +35,24 @@
         </form>
 
         {{#if key.isLocked}}
-            <h2>Lock Session</h2>
-            <dl>
-                <dt>Name</dt>
-                <dd>{{session.Name}}</dd>
-                <dt>ID</dt>
-                <dd>{{session.ID}}</dd>
-                <dt>Behavior</dt>
-                <dd><{{session.Behavior}}/dd>
-                <dt>Delay</dt>
-                <dd><{{session.Delay}}/dd>
-                <dt>TTL</dt>
-                <dd>{{session.TTL}}</dd>
-                <dt>Health Checks</dt>
-                <dd>Checks in here</dd>
-            </dl>
-            <button {{ action "requestInvalidateSession" session }}>Invalidate</button>
+            <div>
+                <h2>Lock Session</h2>
+                <dl>
+                    <dt>Name</dt>
+                    <dd>{{session.Name}}</dd>
+                    <dt>ID</dt>
+                    <dd>{{session.ID}}</dd>
+                    <dt>Behavior</dt>
+                    <dd><{{session.Behavior}}/dd>
+                    <dt>Delay</dt>
+                    <dd><{{session.Delay}}/dd>
+                    <dt>TTL</dt>
+                    <dd>{{session.TTL}}</dd>
+                    <dt>Health Checks</dt>
+                    <dd>Checks in here</dd>
+                </dl>
+                <button {{ action "requestInvalidateSession" session }}>Invalidate</button>
+            </div>
         {{/if}}
     {{/block-slot}}
 {{/app-view}}
