@@ -13,12 +13,9 @@
     {{#block-slot 'content'}}
         <form>
             <fieldset>
-                <label>
+                <label class="type-text">
                     <span>Name</span>
                     {{ input value=model.Name }}
-                    <p>
-                        Set the optional name for the ACL.
-                    </p>
                 </label>
                 <div role="radiogroup">
                     {{#each types as |type|}}
@@ -28,12 +25,12 @@
                         </label>
                     {{/each}}
                 </div>
-                <label>
+                <label class="type-text">
                     <span>Policy <a href="">(HCL Format)</a></span>
                     {{ textarea value=model.Rules }}
                 </label>
             </fieldset>
-            <button {{ action "update" model}}>Save</button>
+            <button type="submit" {{ action "update" model}}>Save</button>
             <button {{ action "cancel" model}}>Cancel Changes</button>
             {{# if model.isNotAnon }}
                 <button {{ action "requestDelete" model}}>Delete</button>

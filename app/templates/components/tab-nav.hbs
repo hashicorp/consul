@@ -1,8 +1,8 @@
-{{!<nav>}}
+{{!<nav role="tablist">}}
     <ul>
 {{#each items as |item|}}
         <li>
-            <label for="radiogroup_{{name}}_{{item}}">
+            <label for="radiogroup_{{name}}_{{item}}" role="tab" aria-controls="radiogroup_{{name}}_{{item}}_panel">
                 <a>{{item}}</a>
             </label>
         </li>

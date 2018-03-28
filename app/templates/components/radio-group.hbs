@@ -1,5 +1,5 @@
 {{!<fieldset>}}
-    <div role="radiogroup">
+    <div role="radiogroup">{{! menu?}}
 {{#each items as |item|}}
         <label>
             <input type="radio" name={{name}} value={{item.value}} checked={{if (eq value item.value) 'checked'}} onchange={{action onchange}} />
