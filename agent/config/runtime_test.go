@@ -4096,9 +4096,9 @@ func TestSanitize(t *testing.T) {
             "Checks": [],
             "EnableTagOverride": false,
             "ID": "",
+            "Meta": {},
             "Name": "foo",
             "Port": 0,
-            "ServiceMeta": {},
             "Tags": [],
             "Token": "hidden"
         }

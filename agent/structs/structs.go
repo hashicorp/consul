@@ -412,7 +412,7 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 		Tags:              s.ServiceTags,
 		Address:           s.ServiceAddress,
 		Port:              s.ServicePort,
-		ServiceMeta:       s.ServiceMeta,
+		Meta:              s.ServiceMeta,
 		EnableTagOverride: s.ServiceEnableTagOverride,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
@@ -429,7 +429,7 @@ type NodeService struct {
 	Service           string
 	Tags              []string
 	Address           string
-	ServiceMeta       map[string]string
+	Meta              map[string]string
 	Port              int
 	EnableTagOverride bool
 
@@ -446,7 +446,7 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 		!reflect.DeepEqual(s.Tags, other.Tags) ||
 		s.Address != other.Address ||
 		s.Port != other.Port ||
-		!reflect.DeepEqual(s.ServiceMeta, other.ServiceMeta) ||
+		!reflect.DeepEqual(s.Meta, other.Meta) ||
 		s.EnableTagOverride != other.EnableTagOverride {
 		return false
 	}
@@ -466,7 +466,7 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 		ServiceTags:              s.Tags,
 		ServiceAddress:           s.Address,
 		ServicePort:              s.Port,
-		ServiceMeta:              s.ServiceMeta,
+		ServiceMeta:              s.Meta,
 		ServiceEnableTagOverride: s.EnableTagOverride,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,

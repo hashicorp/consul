@@ -216,7 +216,7 @@ $ curl \
       "Service": "redis",
       "Tags": ["primary"],
       "Address": "10.1.10.12",
-      "ServiceMeta": {
+      "Meta": {
         "redis_version": "4.0"
       },
       "Port": 8000

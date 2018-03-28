@@ -241,7 +241,6 @@ The table below shows this endpoint's support for
     "Near": "node1",
     "OnlyPassing": false,
     "Tags": ["primary", "!experimental"],
-    "ServiceMeta": {"redis_version": "4.0"},
     "NodeMeta": {"instance_type": "m3.large"}
   },
   "DNS": {
@@ -314,7 +313,6 @@ $ curl \
       },
       "OnlyPassing": false,
       "Tags": ["primary", "!experimental"],
-      "ServiceMeta": {"redis_version": "4.0"},
       "NodeMeta": {"instance_type": "m3.large"}
     },
     "DNS": {
@@ -512,7 +510,7 @@ $ curl \
         "ID": "redis",
         "Service": "redis",
         "Tags": null,
-        "ServiceMeta": {"redis_version": "4.0"},
+        "Meta": {"redis_version": "4.0"},
         "Port": 8000
       },
       "Checks": [
@@ -619,7 +617,7 @@ $ curl \
       },
       "OnlyPassing": true,
       "Tags": ["primary"],
-      "ServiceMeta": { "mysql_version": "5.7.20" },
+      "Meta": { "mysql_version": "5.7.20" },
       "NodeMeta": {"instance_type": "m3.large"}
     }
   }
