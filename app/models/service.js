@@ -40,14 +40,20 @@ export default Model.extend({
       );
     }
   }),
-  passingChecks: computed('ChecksPassing', 'Checks', function() {
+  passing: computed('ChecksPassing', 'Checks', function() {
+    let num = 0;
     if (this.get('ChecksPassing') !== undefined) {
-      return this.get('ChecksPassing');
+      // TODO: if we don't need this then just return the filterBy array
+      // as it has a length
+      num = this.get('ChecksPassing');
     } else {
-      return this.get('Checks')
+      num = this.get('Checks')
         .filterBy('Status', 'passing')
         .get('length');
     }
+    return {
+      length: num,
+    };
   }),
   hasStatus: function(status) {
     let num = 0;

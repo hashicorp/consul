@@ -4,7 +4,7 @@
         <h1>
             {{ model.0.Service.Service }}
         </h1>
-        {{catalog-filter search=filters.s status=filters.status onchange=(action 'filter')}}
+        {{catalog-filter filters=healthFilters search=filters.s status=filters.status onchange=(action 'filter')}}
     {{/block-slot}}
     {{#block-slot 'content'}}
         <dl>

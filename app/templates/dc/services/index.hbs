@@ -4,7 +4,7 @@
             Services
         </h1>
 {{#if (gt items.length 0) }}
-        {{catalog-filter search=filters.s status=filters.status onchange=(action 'filter')}}
+    {{catalog-filter filters=healthFilters search=filters.s status=filters.status onchange=(action 'filter')}}
 {{/if}}
     {{/block-slot}}
     {{#block-slot 'content'}}
