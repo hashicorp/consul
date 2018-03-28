@@ -906,7 +906,7 @@ func (s *HTTPServer) AgentConnectAuthorize(resp http.ResponseWriter, req *http.R
 	}
 
 	// Parse the certificate URI from the client ID
-	uriRaw, err := url.Parse(authReq.ClientID)
+	uriRaw, err := url.Parse(authReq.ClientCertURI)
 	if err != nil {
 		return &connectAuthorizeResp{
 			Authorized: false,
