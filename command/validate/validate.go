@@ -18,7 +18,7 @@ func New(ui cli.Ui) *cmd {
 type cmd struct {
 	UI    cli.Ui
 	flags *flag.FlagSet
-	// ConfigFormat forces all config files to be interpreted as this
+	// configFormat forces all config files to be interpreted as this
 	// format independent of their extension.
 	configFormat string
 	quiet        bool
