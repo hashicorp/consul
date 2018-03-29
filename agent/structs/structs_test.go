@@ -187,7 +187,7 @@ func TestStructs_ServiceNode_PartialClone(t *testing.T) {
 	}
 	sn.ServiceMeta["new_meta"] = "new_value"
 	if reflect.DeepEqual(sn, clone) {
-		t.Fatalf("clone wasn't independent of the original for ServiceMeta")
+		t.Fatalf("clone wasn't independent of the original for Meta")
 	}
 }
 
@@ -214,7 +214,7 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 		Service: "theservice",
 		Tags:    []string{"foo", "bar"},
 		Address: "127.0.0.1",
-		ServiceMeta: map[string]string{
+		Meta: map[string]string{
 			"meta1": "value1",
 			"meta2": "value2",
 		},
@@ -232,7 +232,7 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 		Address:           "127.0.0.1",
 		Port:              1234,
 		EnableTagOverride: true,
-		ServiceMeta: map[string]string{
+		Meta: map[string]string{
 			// We don't care about order
 			"meta2": "value2",
 			"meta1": "value1",
@@ -268,7 +268,7 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 	check(func() { other.Tags = []string{"foo"} }, func() { other.Tags = []string{"foo", "bar"} })
 	check(func() { other.Address = "XXX" }, func() { other.Address = "127.0.0.1" })
 	check(func() { other.Port = 9999 }, func() { other.Port = 1234 })
-	check(func() { other.ServiceMeta["meta2"] = "wrongValue" }, func() { other.ServiceMeta["meta2"] = "value2" })
+	check(func() { other.Meta["meta2"] = "wrongValue" }, func() { other.Meta["meta2"] = "value2" })
 	check(func() { other.EnableTagOverride = false }, func() { other.EnableTagOverride = true })
 }
 

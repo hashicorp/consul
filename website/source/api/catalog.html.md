@@ -105,7 +105,7 @@ and vice versa. A catalog entry can have either, neither, or both.
       "v1"
     ],
     "Address": "127.0.0.1",
-    "ServiceMeta": {
+    "Meta": {
         "redis_version": "4.0"
     },
     "Port": 8000
@@ -537,7 +537,7 @@ $ curl \
       "ID": "consul",
       "Service": "consul",
       "Tags": null,
-      "ServiceMeta": {},
+      "Meta": {},
       "Port": 8300
     },
     "redis": {
@@ -546,7 +546,7 @@ $ curl \
       "Tags": [
         "v1"
       ],
-      "ServiceMeta": {
+      "Meta": {
         "redis_version": "4.0"
       },
       "Port": 8000

@@ -53,7 +53,7 @@ $ curl \
     "Service": "redis",
     "Tags": [],
     "Address": "",
-    "ServiceMeta": {
+    "Meta": {
       "redis_version": "4.0"
     },
     "Port": 8000
@@ -99,7 +99,7 @@ The table below shows this endpoint's support for
   provided, the agent's address is used as the address for the service during
   DNS queries.
 
-- `ServiceMeta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata
+- `Meta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata
   linked to the service instance.
 
 - `Port` `(int: 0)` - Specifies the port of the service.
@@ -153,7 +153,7 @@ The table below shows this endpoint's support for
   ],
   "Address": "127.0.0.1",
   "Port": 8000,
-  "ServiceMeta": {
+  "Meta": {
     "redis_version": "4.0"
   },
   "EnableTagOverride": false,
