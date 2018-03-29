@@ -1226,7 +1226,7 @@ func (a *Agent) ShutdownEndpoints() {
 	a.shutdownLock.Lock()
 	defer a.shutdownLock.Unlock()
 
-	if len(a.dnsServers) == 0 || len(a.httpServers) == 0 {
+	if len(a.dnsServers) == 0 && len(a.httpServers) == 0 {
 		return
 	}
 
