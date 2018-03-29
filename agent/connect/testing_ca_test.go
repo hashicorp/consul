@@ -29,7 +29,7 @@ func TestTestCAAndLeaf(t *testing.T) {
 
 	// Create the certs
 	ca := TestCA(t, nil)
-	leaf := TestLeaf(t, "web", ca)
+	leaf, _ := TestLeaf(t, "web", ca)
 
 	// Create a temporary directory for storing the certs
 	td, err := ioutil.TempDir("", "consul")
@@ -62,8 +62,8 @@ func TestTestCAAndLeaf_xc(t *testing.T) {
 	// Create the certs
 	ca1 := TestCA(t, nil)
 	ca2 := TestCA(t, ca1)
-	leaf1 := TestLeaf(t, "web", ca1)
-	leaf2 := TestLeaf(t, "web", ca2)
+	leaf1, _ := TestLeaf(t, "web", ca1)
+	leaf2, _ := TestLeaf(t, "web", ca2)
 
 	// Create a temporary directory for storing the certs
 	td, err := ioutil.TempDir("", "consul")
@@ -96,14 +96,5 @@ func TestTestCAAndLeaf_xc(t *testing.T) {
 		output, err := cmd.Output()
 		t.Log(string(output))
 		assert.Nil(err)
-	}
-}
-
-// Test that the private key is memoized to preseve system entropy.
-func TestTestPrivateKey_memoize(t *testing.T) {
-	ca1 := TestCA(t, nil)
-	ca2 := TestCA(t, nil)
-	if ca1.SigningKey != ca2.SigningKey {
-		t.Fatal("should have the same signing keys for tests")
 	}
 }

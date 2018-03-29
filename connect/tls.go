@@ -3,13 +3,18 @@ package connect
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"io/ioutil"
 	"sync"
+
+	"github.com/hashicorp/consul/agent/connect"
 )
 
-// defaultTLSConfig returns the standard config for connect clients and servers.
-func defaultTLSConfig() *tls.Config {
-	serverAuther := &ServerAuther{}
+// verifyFunc is the type of tls.Config.VerifyPeerCertificate for convenience.
+type verifyFunc func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error
+
+// defaultTLSConfig returns the standard config.
+func defaultTLSConfig(verify verifyFunc) *tls.Config {
 	return &tls.Config{
 		MinVersion: tls.VersionTLS12,
 		ClientAuth: tls.RequireAndVerifyClientCert,
@@ -29,16 +34,18 @@ func defaultTLSConfig() *tls.Config {
 		// We have to set this since otherwise Go will attempt to verify DNS names
 		// match DNS SAN/CN which we don't want. We hook up VerifyPeerCertificate to
 		// do our own path validation as well as Connect AuthZ.
-		InsecureSkipVerify: true,
-		// By default auth as if we are a server. Clients need to override this with
-		// an Auther that is performs correct validation of the server identity they
-		// intended to connect to.
-		VerifyPeerCertificate: serverAuther.Auth,
+		InsecureSkipVerify:    true,
+		VerifyPeerCertificate: verify,
+		// Include h2 to allow connect http servers to automatically support http2.
+		// See: https://github.com/golang/go/blob/917c33fe8672116b04848cf11545296789cafd3b/src/net/http/server.go#L2724-L2731
+		NextProtos: []string{"h2"},
 	}
 }
 
 // ReloadableTLSConfig exposes a tls.Config that can have it's certificates
-// reloaded. This works by
+// reloaded. On a server, this uses GetConfigForClient to pass the current
+// tls.Config or client certificate for each acceptted connection. On a client,
+// this uses GetClientCertificate to provide the current client certificate.
 type ReloadableTLSConfig struct {
 	mu sync.Mutex
 
@@ -46,52 +53,40 @@ type ReloadableTLSConfig struct {
 	cfg *tls.Config
 }
 
-// NewReloadableTLSConfig returns a reloadable config currently set to base. The
-// Auther used to verify certificates for incoming connections on a Server will
-// just be copied from the VerifyPeerCertificate passed. Clients will need to
-// pass a specific Auther instance when they call TLSConfig that is configured
-// to perform the necessary validation of the server's identity.
+// NewReloadableTLSConfig returns a reloadable config currently set to base.
 func NewReloadableTLSConfig(base *tls.Config) *ReloadableTLSConfig {
-	return &ReloadableTLSConfig{cfg: base}
+	c := &ReloadableTLSConfig{}
+	c.SetTLSConfig(base)
+	return c
 }
 
-// ServerTLSConfig returns a *tls.Config that will dynamically load certs for
-// each inbound connection via the GetConfigForClient callback.
-func (c *ReloadableTLSConfig) ServerTLSConfig() *tls.Config {
-	// Setup the basic one with current params even though we will be using
-	// different config for each new conn.
-	c.mu.Lock()
-	base := c.cfg
-	c.mu.Unlock()
-
-	// Dynamically fetch the current config for each new inbound connection
-	base.GetConfigForClient = func(info *tls.ClientHelloInfo) (*tls.Config, error) {
-		return c.TLSConfig(nil), nil
-	}
-
-	return base
-}
-
-// TLSConfig returns the current value for the config. It is safe to call from
-// any goroutine. The passed Auther is inserted into the config's
-// VerifyPeerCertificate. Passing a nil Auther will leave the default one in the
-// base config
-func (c *ReloadableTLSConfig) TLSConfig(auther Auther) *tls.Config {
+// TLSConfig returns a *tls.Config that will dynamically load certs. It's
+// suitable for use in either a client or server.
+func (c *ReloadableTLSConfig) TLSConfig() *tls.Config {
 	c.mu.Lock()
 	cfgCopy := c.cfg
 	c.mu.Unlock()
-	if auther != nil {
-		cfgCopy.VerifyPeerCertificate = auther.Auth
-	}
 	return cfgCopy
 }
 
 // SetTLSConfig sets the config used for future connections. It is safe to call
 // from any goroutine.
 func (c *ReloadableTLSConfig) SetTLSConfig(cfg *tls.Config) error {
+	copy := cfg.Clone()
+	copy.GetClientCertificate = func(*tls.CertificateRequestInfo) (*tls.Certificate, error) {
+		current := c.TLSConfig()
+		if len(current.Certificates) < 1 {
+			return nil, errors.New("tls: no certificates configured")
+		}
+		return &current.Certificates[0], nil
+	}
+	copy.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
+		return c.TLSConfig(), nil
+	}
+
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.cfg = cfg
+	c.cfg = copy
 	return nil
 }
 
@@ -114,11 +109,52 @@ func devTLSConfigFromFiles(caFile, certFile,
 		return nil, err
 	}
 
-	cfg := defaultTLSConfig()
+	// Insecure no verification
+	cfg := defaultTLSConfig(nil)
 
 	cfg.Certificates = []tls.Certificate{cert}
 	cfg.RootCAs = roots
 	cfg.ClientCAs = roots
 
 	return cfg, nil
+}
+
+// verifyServerCertMatchesURI is used on tls connections dialled to a connect
+// server to ensure that the certificate it presented has the correct identity.
+func verifyServerCertMatchesURI(certs []*x509.Certificate,
+	expected connect.CertURI) error {
+	expectedStr := expected.URI().String()
+
+	if len(certs) < 1 {
+		return errors.New("peer certificate mismatch")
+	}
+
+	// Only check the first cert assuming this is the only leaf. It's not clear if
+	// services might ever legitimately present multiple leaf certificates or if
+	// the slice is just to allow presenting the whole chain of intermediates.
+	cert := certs[0]
+
+	// Our certs will only ever have a single URI for now so only check that
+	if len(cert.URIs) < 1 {
+		return errors.New("peer certificate mismatch")
+	}
+	// We may want to do better than string matching later in some special
+	// cases and/or encapsulate the "match" logic inside the CertURI
+	// implementation but for now this is all we need.
+	if cert.URIs[0].String() == expectedStr {
+		return nil
+	}
+	return errors.New("peer certificate mismatch")
+}
+
+// serverVerifyCerts is the verifyFunc for use on Connect servers.
+func serverVerifyCerts(rawCerts [][]byte, chains [][]*x509.Certificate) error {
+	// TODO(banks): implement me
+	return nil
+}
+
+// clientVerifyCerts is the verifyFunc for use on Connect clients.
+func clientVerifyCerts(rawCerts [][]byte, chains [][]*x509.Certificate) error {
+	// TODO(banks): implement me
+	return nil
 }

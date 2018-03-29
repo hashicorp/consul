@@ -29,7 +29,7 @@ const testClusterID = "11111111-2222-3333-4444-555555555555"
 
 // testCACounter is just an atomically incremented counter for creating
 // unique names for the CA certs.
-var testCACounter uint64 = 0
+var testCACounter uint64
 
 // TestCA creates a test CA certificate and signing key and returns it
 // in the CARoot structure format. The returned CA will be set as Active = true.
@@ -44,7 +44,8 @@ func TestCA(t testing.T, xc *structs.CARoot) *structs.CARoot {
 	result.Name = fmt.Sprintf("Test CA %d", atomic.AddUint64(&testCACounter, 1))
 
 	// Create the private key we'll use for this CA cert.
-	signer := testPrivateKey(t, &result)
+	signer, keyPEM := testPrivateKey(t)
+	result.SigningKey = keyPEM
 
 	// The serial number for the cert
 	sn, err := testSerialNumber()
@@ -125,9 +126,9 @@ func TestCA(t testing.T, xc *structs.CARoot) *structs.CARoot {
 	return &result
 }
 
-// TestLeaf returns a valid leaf certificate for the named service with
-// the given CA Root.
-func TestLeaf(t testing.T, service string, root *structs.CARoot) string {
+// TestLeaf returns a valid leaf certificate and it's private key for the named
+// service with the given CA Root.
+func TestLeaf(t testing.T, service string, root *structs.CARoot) (string, string) {
 	// Parse the CA cert and signing key from the root
 	cert := root.SigningCert
 	if cert == "" {
@@ -137,7 +138,7 @@ func TestLeaf(t testing.T, service string, root *structs.CARoot) string {
 	if err != nil {
 		t.Fatalf("error parsing CA cert: %s", err)
 	}
-	signer, err := ParseSigner(root.SigningKey)
+	caSigner, err := ParseSigner(root.SigningKey)
 	if err != nil {
 		t.Fatalf("error parsing signing key: %s", err)
 	}
@@ -156,6 +157,9 @@ func TestLeaf(t testing.T, service string, root *structs.CARoot) string {
 		t.Fatalf("error generating serial number: %s", err)
 	}
 
+	// Genereate fresh private key
+	pkSigner, pkPEM := testPrivateKey(t)
+
 	// Cert template for generation
 	template := x509.Certificate{
 		SerialNumber:          sn,
@@ -173,14 +177,14 @@ func TestLeaf(t testing.T, service string, root *structs.CARoot) string {
 		},
 		NotAfter:       time.Now().Add(10 * 365 * 24 * time.Hour),
 		NotBefore:      time.Now(),
-		AuthorityKeyId: testKeyID(t, signer.Public()),
-		SubjectKeyId:   testKeyID(t, signer.Public()),
+		AuthorityKeyId: testKeyID(t, caSigner.Public()),
+		SubjectKeyId:   testKeyID(t, pkSigner.Public()),
 	}
 
 	// Create the certificate, PEM encode it and return that value.
 	var buf bytes.Buffer
 	bs, err := x509.CreateCertificate(
-		rand.Reader, &template, caCert, signer.Public(), signer)
+		rand.Reader, &template, caCert, pkSigner.Public(), caSigner)
 	if err != nil {
 		t.Fatalf("error generating certificate: %s", err)
 	}
@@ -189,7 +193,7 @@ func TestLeaf(t testing.T, service string, root *structs.CARoot) string {
 		t.Fatalf("error encoding private key: %s", err)
 	}
 
-	return buf.String()
+	return buf.String(), pkPEM
 }
 
 // TestCSR returns a CSR to sign the given service along with the PEM-encoded
@@ -200,39 +204,22 @@ func TestCSR(t testing.T, uri CertURI) (string, string) {
 		SignatureAlgorithm: x509.ECDSAWithSHA256,
 	}
 
-	// Result buffers
-	var csrBuf, pkBuf bytes.Buffer
-
 	// Create the private key we'll use
-	signer := testPrivateKey(t, nil)
+	signer, pkPEM := testPrivateKey(t)
 
-	{
-		// Create the private key PEM
-		bs, err := x509.MarshalECPrivateKey(signer.(*ecdsa.PrivateKey))
-		if err != nil {
-			t.Fatalf("error marshalling PK: %s", err)
-		}
-
-		err = pem.Encode(&pkBuf, &pem.Block{Type: "EC PRIVATE KEY", Bytes: bs})
-		if err != nil {
-			t.Fatalf("error encoding PK: %s", err)
-		}
+	// Create the CSR itself
+	var csrBuf bytes.Buffer
+	bs, err := x509.CreateCertificateRequest(rand.Reader, template, signer)
+	if err != nil {
+		t.Fatalf("error creating CSR: %s", err)
 	}
 
-	{
-		// Create the CSR itself
-		bs, err := x509.CreateCertificateRequest(rand.Reader, template, signer)
-		if err != nil {
-			t.Fatalf("error creating CSR: %s", err)
-		}
-
-		err = pem.Encode(&csrBuf, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: bs})
-		if err != nil {
-			t.Fatalf("error encoding CSR: %s", err)
-		}
+	err = pem.Encode(&csrBuf, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: bs})
+	if err != nil {
+		t.Fatalf("error encoding CSR: %s", err)
 	}
 
-	return csrBuf.String(), pkBuf.String()
+	return csrBuf.String(), pkPEM
 }
 
 // testKeyID returns a KeyID from the given public key. This just calls
@@ -246,25 +233,26 @@ func testKeyID(t testing.T, raw interface{}) []byte {
 	return result
 }
 
-// testMemoizePK is the private key that we memoize once we generate it
-// once so that our tests don't rely on too much system entropy.
-var testMemoizePK atomic.Value
-
-// testPrivateKey creates an ECDSA based private key.
-func testPrivateKey(t testing.T, ca *structs.CARoot) crypto.Signer {
-	// If we already generated a private key, use that
-	var pk *ecdsa.PrivateKey
-	if v := testMemoizePK.Load(); v != nil {
-		pk = v.(*ecdsa.PrivateKey)
-	}
-
-	// If we have no key, then create a new one.
-	if pk == nil {
-		var err error
-		pk, err = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-		if err != nil {
-			t.Fatalf("error generating private key: %s", err)
-		}
+// testPrivateKey creates an ECDSA based private key. Both a crypto.Signer and
+// the key in PEM form are returned.
+//
+// NOTE(banks): this was memoized to save entropy during tests but it turns out
+// crypto/rand will never block and always reads from /dev/urandom on unix OSes
+// which does not consume entropy.
+//
+// If we find by profiling it's taking a lot of cycles we could optimise/cache
+// again but we at least need to use different keys for each distinct CA (when
+// multiple CAs are generated at once e.g. to test cross-signing) and a
+// different one again for the leafs otherwise we risk tests that have false
+// positives since signatures from different logical cert's keys are
+// indistinguishable, but worse we build validation chains using AuthorityKeyID
+// which will be the same for multiple CAs/Leafs. Also note that our UUID
+// generator also reads from crypto rand and is called far more often during
+// tests than this will be.
+func testPrivateKey(t testing.T) (crypto.Signer, string) {
+	pk, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatalf("error generating private key: %s", err)
 	}
 
 	bs, err := x509.MarshalECPrivateKey(pk)
@@ -277,14 +265,8 @@ func testPrivateKey(t testing.T, ca *structs.CARoot) crypto.Signer {
 	if err != nil {
 		t.Fatalf("error encoding private key: %s", err)
 	}
-	if ca != nil {
-		ca.SigningKey = buf.String()
-	}
 
-	// Memoize the key
-	testMemoizePK.Store(pk)
-
-	return pk
+	return pk, buf.String()
 }
 
 // testSerialNumber generates a serial number suitable for a certificate.
