@@ -50,6 +50,63 @@ func TestValidateCommand_SucceedOnMinimalConfigFile(t *testing.T) {
 	}
 }
 
+func TestValidateCommand_SucceedWithMinimalJSONConfigFormat(t * testing.T) {
+	t.Parallel()
+	td := testutil.TempDir(t, "consul")
+	defer os.RemoveAll(td)
+	
+	fp := filepath.Join(td, "json.conf")
+	err := ioutil.WriteFile(fp, []byte(`{"bind_addr":"10.0.0.1", "data_dir":"`+td+`"}`), 0644)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	
+	cmd := New(cli.NewMockUi())
+	args := []string{"--config-format", "json", fp}
+	
+	if code := cmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d", code)
+	}
+}
+
+func TestValidateCommand_SucceedWithMinimalHCLConfigFormat(t * testing.T) {
+	t.Parallel()
+	td := testutil.TempDir(t, "consul")
+	defer os.RemoveAll(td)
+	
+	fp := filepath.Join(td, "hcl.conf")
+	err := ioutil.WriteFile(fp, []byte("bind_addr = \"10.0.0.1\"\ndata_dir = \""+td+"\""), 0644)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	
+	cmd := New(cli.NewMockUi())
+	args := []string{"--config-format", "hcl", fp}
+	
+	if code := cmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d", code)
+	}
+}
+
+func TestValidateCommand_SucceedWithJSONAsHCL(t * testing.T) {
+	t.Parallel()
+	td := testutil.TempDir(t, "consul")
+	defer os.RemoveAll(td)
+	
+	fp := filepath.Join(td, "json.conf")
+	err := ioutil.WriteFile(fp, []byte(`{"bind_addr":"10.0.0.1", "data_dir":"`+td+`"}`), 0644)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	
+	cmd := New(cli.NewMockUi())
+	args := []string{"--config-format", "hcl", fp}
+	
+	if code := cmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d", code)
+	}
+}
+
 func TestValidateCommand_SucceedOnMinimalConfigDir(t *testing.T) {
 	t.Parallel()
 	td := testutil.TempDir(t, "consul")
@@ -64,6 +121,25 @@ func TestValidateCommand_SucceedOnMinimalConfigDir(t *testing.T) {
 	args := []string{td}
 
 	if code := cmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d", code)
+	}
+}
+
+func TestValidateCommand_FailForInvalidJSONConfigFormat(t * testing.T) {
+	t.Parallel()
+	td := testutil.TempDir(t, "consul")
+	defer os.RemoveAll(td)
+	
+	fp := filepath.Join(td, "hcl.conf")
+	err := ioutil.WriteFile(fp, []byte(`bind_addr = "10.0.0.1"\ndata_dir = "`+td+`"`), 0644)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	
+	cmd := New(cli.NewMockUi())
+	args := []string{"--config-format", "json", fp}
+	
+	if code := cmd.Run(args); code == 0 {
 		t.Fatalf("bad: %d", code)
 	}
 }
