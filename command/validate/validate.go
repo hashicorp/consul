@@ -21,8 +21,8 @@ type cmd struct {
 	// ConfigFormat forces all config files to be interpreted as this
 	// format independent of their extension.
 	configFormat string
-	quiet bool
-	help  string
+	quiet        bool
+	help         string
 }
 
 func (c *cmd) init() {
