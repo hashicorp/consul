@@ -917,6 +917,14 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
       leader, so this lets Consul continue serving requests in long outage scenarios where no leader can
       be elected.
 
+    * <a name="discovery_max_stale"></a><a href="discovery_max_stale">`discovery_max_stale`</a> - In a
+      similar was as [`max_stale`](#max_stale), `discovery_max_stale` let the Consul Agent administrator
+      to specify a default allowed stale duration on discovery endpoints. The value is a duration (s for
+      seconds, m for minutes...) and if greater than 0, stale requests will be performed on
+      discovery HTTP endpoints unless the request is staled more than `discovery_max_stale`.
+      In practical terms, it means that all requests to discovery paths will be forwarded to non-leader
+      consul servers unless the delta between the leader and its followers is greater than this value.
+
     * <a name="node_ttl"></a><a href="#node_ttl">`node_ttl`</a> - By default, this is "0s", so all
       node lookups are served with a 0 TTL value. DNS caching for node lookups can be enabled by
       setting this value. This should be specified with the "s" suffix for second or "m" for minute.
