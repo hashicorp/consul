@@ -174,6 +174,9 @@ type QueryMeta struct {
 	// Used to indicate if there is a known leader node
 	KnownLeader bool
 
+	// Consistencylevel returns the consistency used to serve the query
+	// Having `discovery_max_stale` on the agent can affect whether
+	// the request was served by a leader.
 	ConsistencyLevel string
 }
 

@@ -335,7 +335,7 @@ func setKnownLeader(resp http.ResponseWriter, known bool) {
 
 func setConsistency(resp http.ResponseWriter, consistency string) {
 	if consistency != "" {
-		resp.Header().Set("X-Consul-Effective-Consistency-Level", consistency)
+		resp.Header().Set("X-Consul-Effective-Consistency", consistency)
 	}
 }
 
