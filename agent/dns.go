@@ -717,6 +717,56 @@ func syncExtra(index map[string]dns.RR, resp *dns.Msg) {
 	resp.Extra = extra
 }
 
+// trimTCPResponse limit the MaximumSize of messages to 64k as it is the limit
+// of DNS responses
+func (d *DNSServer) trimTCPResponse(req, resp *dns.Msg) (trimmed bool) {
+	hasExtra := len(resp.Extra) > 0
+	// There is some overhead, 65535 does not work
+	maxSize := 65533 // 64k - 2 bytes
+	// In order to compute properly, we have to avoid compress first
+	compressed := resp.Compress
+	resp.Compress = false
+
+	// We avoid some function calls and allocations by only handling the
+	// extra data when necessary.
+	var index map[string]dns.RR
+	originalSize := resp.Len()
+	originalNumRecords := len(resp.Answer)
+
+	// Beyond 2500 records, performance gets bad
+	// Limit the number of records at once, anyway, it won't fit in 64k
+	// For SRV Records, the max is around 500 records, for A, less than 2k
+	truncateAt := 2048
+	if req.Question[0].Qtype == dns.TypeSRV {
+		truncateAt = 640
+	}
+	if len(resp.Answer) > truncateAt {
+		resp.Answer = resp.Answer[:truncateAt]
+	}
+	if hasExtra {
+		index = make(map[string]dns.RR, len(resp.Extra))
+		indexRRs(resp.Extra, index)
+	}
+	truncated := false
+
+	// This enforces the given limit on 64k, the max limit for DNS messages
+	for len(resp.Answer) > 0 && resp.Len() > maxSize {
+		truncated = true
+		resp.Answer = resp.Answer[:len(resp.Answer)-1]
+		if hasExtra {
+			syncExtra(index, resp)
+		}
+	}
+	if truncated {
+		d.logger.Printf("[DEBUG] dns: TCP answer to %v too large truncated recs:=%d/%d, size:=%d/%d",
+			req.Question,
+			len(resp.Answer), originalNumRecords, resp.Len(), originalSize)
+	}
+	// Restore compression if any
+	resp.Compress = compressed
+	return truncated
+}
+
 // trimUDPResponse makes sure a UDP response is not longer than allowed by RFC
 // 1035. Enforce an arbitrary limit that can be further ratcheted down by
 // config, and then make sure the response doesn't exceed 512 bytes. Any extra
@@ -767,6 +817,20 @@ func trimUDPResponse(req, resp *dns.Msg, udpAnswerLimit int) (trimmed bool) {
 	resp.Compress = compress
 
 	return len(resp.Answer) < numAnswers
+}
+
+// trimDNSResponse will trim the response for UDP and TCP
+func (d *DNSServer) trimDNSResponse(network string, req, resp *dns.Msg) (trimmed bool) {
+	if network != "tcp" {
+		trimmed = trimUDPResponse(req, resp, d.config.UDPAnswerLimit)
+	} else {
+		trimmed = d.trimTCPResponse(req, resp)
+	}
+	// Flag that there are more records to return in the UDP response
+	if trimmed && d.config.EnableTruncate {
+		resp.Truncated = true
+	}
+	return trimmed
 }
 
 // lookupServiceNodes returns nodes with a given service.
@@ -844,15 +908,7 @@ func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, req,
 		d.serviceNodeRecords(datacenter, out.Nodes, req, resp, ttl)
 	}
 
-	// If the network is not TCP, restrict the number of responses
-	if network != "tcp" {
-		wasTrimmed := trimUDPResponse(req, resp, d.config.UDPAnswerLimit)
-
-		// Flag that there are more records to return in the UDP response
-		if wasTrimmed && d.config.EnableTruncate {
-			resp.Truncated = true
-		}
-	}
+	d.trimDNSResponse(network, req, resp)
 
 	// If the answer is empty and the response isn't truncated, return not found
 	if len(resp.Answer) == 0 && !resp.Truncated {
@@ -954,15 +1010,7 @@ RPC:
 		d.serviceNodeRecords(out.Datacenter, out.Nodes, req, resp, ttl)
 	}
 
-	// If the network is not TCP, restrict the number of responses.
-	if network != "tcp" {
-		wasTrimmed := trimUDPResponse(req, resp, d.config.UDPAnswerLimit)
-
-		// Flag that there are more records to return in the UDP response
-		if wasTrimmed && d.config.EnableTruncate {
-			resp.Truncated = true
-		}
-	}
+	d.trimDNSResponse(network, req, resp)
 
 	// If the answer is empty and the response isn't truncated, return not found
 	if len(resp.Answer) == 0 && !resp.Truncated {
