@@ -60,8 +60,14 @@ forward FROM TO... {
   an upstream to be down. If 0, the upstream will never be marked as down (nor health checked).
   Default is 2.
 * `expire` **DURATION**, expire (cached) connections after this time, the default is 10s.
-* `tls` **CERT** **KEY** **CA** define the TLS properties for TLS; if you leave this out the
-  system's configuration will be used.
+* `tls` **CERT** **KEY** **CA** define the TLS properties for TLS connection. From 0 to 3 arguments can be
+  provided with the meaning as described below
+  * `tls` - no client authentication is used, and the system CAs are used to verify the server certificate
+  * `tls` **CA** - no client authentication is used, and the file CA is used to verify the server certificate
+  * `tls` **CERT** **KEY** - client authentication is used with the specified cert/key pair.
+    The server certificate is verified with the system CAs
+  * `tls` **CERT** **KEY**  **CA** - client authentication is used with the specified cert/key pair.
+    The server certificate is verified using the specified CA file
 * `tls_servername` **NAME** allows you to set a server name in the TLS configuration; for instance 9.9.9.9
   needs this to be set to `dns.quad9.net`.
 * `policy` specifies the policy to use for selecting upstream servers. The default is `random`.

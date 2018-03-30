@@ -200,11 +200,11 @@ func parseBlock(c *caddy.Controller, f *Forward) error {
 		f.forceTCP = true
 	case "tls":
 		args := c.RemainingArgs()
-		if len(args) != 3 {
+		if len(args) > 3 {
 			return c.ArgErr()
 		}
 
-		tlsConfig, err := pkgtls.NewTLSConfig(args[0], args[1], args[2])
+		tlsConfig, err := pkgtls.NewTLSConfigFromArgs(args...)
 		if err != nil {
 			return err
 		}
