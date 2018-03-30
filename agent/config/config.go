@@ -174,6 +174,7 @@ type Config struct {
 	DisableRemoteExec           *bool                    `json:"disable_remote_exec,omitempty" hcl:"disable_remote_exec" mapstructure:"disable_remote_exec"`
 	DisableUpdateCheck          *bool                    `json:"disable_update_check,omitempty" hcl:"disable_update_check" mapstructure:"disable_update_check"`
 	DiscardCheckOutput          *bool                    `json:"discard_check_output" hcl:"discard_check_output" mapstructure:"discard_check_output"`
+	DiscoveryMaxStale           *string                  `json:"discovery_max_stale" hcl:"discovery_max_stale" mapstructure:"discovery_max_stale"`
 	EnableACLReplication        *bool                    `json:"enable_acl_replication,omitempty" hcl:"enable_acl_replication" mapstructure:"enable_acl_replication"`
 	EnableAgentTLSForChecks     *bool                    `json:"enable_agent_tls_for_checks,omitempty" hcl:"enable_agent_tls_for_checks" mapstructure:"enable_agent_tls_for_checks"`
 	EnableDebug                 *bool                    `json:"enable_debug,omitempty" hcl:"enable_debug" mapstructure:"enable_debug"`

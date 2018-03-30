@@ -110,11 +110,27 @@ type QueryOptions struct {
 	// If set, the leader must verify leadership prior to
 	// servicing the request. Prevents a stale read.
 	RequireConsistent bool
+
+	// If set and AllowStale is true, will try first a stale
+	// read, and then will perform a consistent read if stale
+	// read is older than value
+	MaxStaleDuration time.Duration
 }
 
 // IsRead is always true for QueryOption.
 func (q QueryOptions) IsRead() bool {
 	return true
+}
+
+// ConsistencyLevel display the consistency required by a request
+func (q QueryOptions) ConsistencyLevel() string {
+	if q.RequireConsistent {
+		return "consistent"
+	} else if q.AllowStale {
+		return "stale"
+	} else {
+		return "leader"
+	}
 }
 
 func (q QueryOptions) AllowStaleRead() bool {
@@ -157,6 +173,11 @@ type QueryMeta struct {
 
 	// Used to indicate if there is a known leader node
 	KnownLeader bool
+
+	// Consistencylevel returns the consistency used to serve the query
+	// Having `discovery_max_stale` on the agent can affect whether
+	// the request was served by a leader.
+	ConsistencyLevel string
 }
 
 // RegisterRequest is used for the Catalog.Register endpoint

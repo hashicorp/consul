@@ -655,6 +655,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		DisableRemoteExec:           b.boolVal(c.DisableRemoteExec),
 		DisableUpdateCheck:          b.boolVal(c.DisableUpdateCheck),
 		DiscardCheckOutput:          b.boolVal(c.DiscardCheckOutput),
+		DiscoveryMaxStale:           b.durationVal("discovery_max_stale", c.DiscoveryMaxStale),
 		EnableAgentTLSForChecks:     b.boolVal(c.EnableAgentTLSForChecks),
 		EnableDebug:                 b.boolVal(c.EnableDebug),
 		EnableScriptChecks:          b.boolVal(c.EnableScriptChecks),

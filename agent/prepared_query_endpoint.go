@@ -43,9 +43,17 @@ func (s *HTTPServer) preparedQueryList(resp http.ResponseWriter, req *http.Reque
 	}
 
 	var reply structs.IndexedPreparedQueries
+	defer setMeta(resp, &reply.QueryMeta)
+RETRY_ONCE:
 	if err := s.agent.RPC("PreparedQuery.List", &args, &reply); err != nil {
 		return nil, err
 	}
+	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < reply.LastContact {
+		args.AllowStale = false
+		args.MaxStaleDuration = 0
+		goto RETRY_ONCE
+	}
+	reply.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
 
 	// Use empty list instead of nil.
 	if reply.Queries == nil {
@@ -100,6 +108,8 @@ func (s *HTTPServer) preparedQueryExecute(id string, resp http.ResponseWriter, r
 	}
 
 	var reply structs.PreparedQueryExecuteResponse
+	defer setMeta(resp, &reply.QueryMeta)
+RETRY_ONCE:
 	if err := s.agent.RPC("PreparedQuery.Execute", &args, &reply); err != nil {
 		// We have to check the string since the RPC sheds
 		// the specific error type.
@@ -110,6 +120,12 @@ func (s *HTTPServer) preparedQueryExecute(id string, resp http.ResponseWriter, r
 		}
 		return nil, err
 	}
+	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < reply.LastContact {
+		args.AllowStale = false
+		args.MaxStaleDuration = 0
+		goto RETRY_ONCE
+	}
+	reply.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
 
 	// Note that we translate using the DC that the results came from, since
 	// a query can fail over to a different DC than where the execute request
@@ -145,6 +161,8 @@ func (s *HTTPServer) preparedQueryExplain(id string, resp http.ResponseWriter, r
 	}
 
 	var reply structs.PreparedQueryExplainResponse
+	defer setMeta(resp, &reply.QueryMeta)
+RETRY_ONCE:
 	if err := s.agent.RPC("PreparedQuery.Explain", &args, &reply); err != nil {
 		// We have to check the string since the RPC sheds
 		// the specific error type.
@@ -155,6 +173,12 @@ func (s *HTTPServer) preparedQueryExplain(id string, resp http.ResponseWriter, r
 		}
 		return nil, err
 	}
+	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < reply.LastContact {
+		args.AllowStale = false
+		args.MaxStaleDuration = 0
+		goto RETRY_ONCE
+	}
+	reply.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
 	return reply, nil
 }
 
@@ -168,6 +192,8 @@ func (s *HTTPServer) preparedQueryGet(id string, resp http.ResponseWriter, req *
 	}
 
 	var reply structs.IndexedPreparedQueries
+	defer setMeta(resp, &reply.QueryMeta)
+RETRY_ONCE:
 	if err := s.agent.RPC("PreparedQuery.Get", &args, &reply); err != nil {
 		// We have to check the string since the RPC sheds
 		// the specific error type.
@@ -178,6 +204,12 @@ func (s *HTTPServer) preparedQueryGet(id string, resp http.ResponseWriter, req *
 		}
 		return nil, err
 	}
+	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < reply.LastContact {
+		args.AllowStale = false
+		args.MaxStaleDuration = 0
+		goto RETRY_ONCE
+	}
+	reply.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
 	return reply.Queries, nil
 }
 

@@ -473,6 +473,14 @@ type RuntimeConfig struct {
 	// flag: -datacenter string
 	Datacenter string
 
+	// Defines the maximum stale value for discovery path. Defauls to "0s".
+	// Discovery paths are /v1/heath/ paths
+	//
+	// If not set to 0, it will try to perform stale read and perform only a
+	// consistent read whenever the value is too old.
+	// hcl: discovery_max_stale = "duration"
+	DiscoveryMaxStale time.Duration
+
 	// Node name is the name we use to advertise. Defaults to hostname.
 	//
 	// NodeName is exposed via /v1/agent/self from here and
