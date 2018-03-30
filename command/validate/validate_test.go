@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	require "github.com/stretchr/testify/require"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/mitchellh/cli"
 )
@@ -26,9 +27,8 @@ func TestValidateCommand_FailOnEmptyFile(t *testing.T) {
 	cmd := New(cli.NewMockUi())
 	args := []string{tmpFile.Name()}
 
-	if code := cmd.Run(args); code == 0 {
-		t.Fatalf("bad: %d", code)
-	}
+	code := cmd.Run(args)
+	require.NotEqualf(t, 0, code, "bad: %d", code)
 }
 
 func TestValidateCommand_SucceedOnMinimalConfigFile(t *testing.T) {
@@ -38,16 +38,13 @@ func TestValidateCommand_SucceedOnMinimalConfigFile(t *testing.T) {
 
 	fp := filepath.Join(td, "config.json")
 	err := ioutil.WriteFile(fp, []byte(`{"bind_addr":"10.0.0.1", "data_dir":"`+td+`"}`), 0644)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.Nilf(t, err, "err: %s", err)
 
 	cmd := New(cli.NewMockUi())
 	args := []string{fp}
 
-	if code := cmd.Run(args); code != 0 {
-		t.Fatalf("bad: %d", code)
-	}
+	code := cmd.Run(args)
+	require.Equalf(t, 0, code, "bad: %d", code)
 }
 
 func TestValidateCommand_SucceedWithMinimalJSONConfigFormat(t *testing.T) {
@@ -57,16 +54,13 @@ func TestValidateCommand_SucceedWithMinimalJSONConfigFormat(t *testing.T) {
 
 	fp := filepath.Join(td, "json.conf")
 	err := ioutil.WriteFile(fp, []byte(`{"bind_addr":"10.0.0.1", "data_dir":"`+td+`"}`), 0644)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.Nilf(t, err, "err: %s", err)
 
 	cmd := New(cli.NewMockUi())
 	args := []string{"--config-format", "json", fp}
 
-	if code := cmd.Run(args); code != 0 {
-		t.Fatalf("bad: %d", code)
-	}
+	code := cmd.Run(args)
+	require.Equalf(t, 0, code, "bad: %d", code)
 }
 
 func TestValidateCommand_SucceedWithMinimalHCLConfigFormat(t *testing.T) {
@@ -76,16 +70,14 @@ func TestValidateCommand_SucceedWithMinimalHCLConfigFormat(t *testing.T) {
 
 	fp := filepath.Join(td, "hcl.conf")
 	err := ioutil.WriteFile(fp, []byte("bind_addr = \"10.0.0.1\"\ndata_dir = \""+td+"\""), 0644)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.Nilf(t, err, "err: %s", err)
+
 
 	cmd := New(cli.NewMockUi())
 	args := []string{"--config-format", "hcl", fp}
 
-	if code := cmd.Run(args); code != 0 {
-		t.Fatalf("bad: %d", code)
-	}
+	code := cmd.Run(args)
+	require.Equalf(t, 0, code, "bad: %d", code)
 }
 
 func TestValidateCommand_SucceedWithJSONAsHCL(t *testing.T) {
@@ -95,16 +87,13 @@ func TestValidateCommand_SucceedWithJSONAsHCL(t *testing.T) {
 
 	fp := filepath.Join(td, "json.conf")
 	err := ioutil.WriteFile(fp, []byte(`{"bind_addr":"10.0.0.1", "data_dir":"`+td+`"}`), 0644)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.Nilf(t, err, "err: %s", err)
 
 	cmd := New(cli.NewMockUi())
 	args := []string{"--config-format", "hcl", fp}
 
-	if code := cmd.Run(args); code != 0 {
-		t.Fatalf("bad: %d", code)
-	}
+	code := cmd.Run(args)
+	require.Equalf(t, 0, code, "bad: %d", code)
 }
 
 func TestValidateCommand_SucceedOnMinimalConfigDir(t *testing.T) {
@@ -113,16 +102,13 @@ func TestValidateCommand_SucceedOnMinimalConfigDir(t *testing.T) {
 	defer os.RemoveAll(td)
 
 	err := ioutil.WriteFile(filepath.Join(td, "config.json"), []byte(`{"bind_addr":"10.0.0.1", "data_dir":"`+td+`"}`), 0644)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.Nilf(t, err, "err: %s", err)
 
 	cmd := New(cli.NewMockUi())
 	args := []string{td}
 
-	if code := cmd.Run(args); code != 0 {
-		t.Fatalf("bad: %d", code)
-	}
+	code := cmd.Run(args)
+	require.Equalf(t, 0, code, "bad: %d", code)
 }
 
 func TestValidateCommand_FailForInvalidJSONConfigFormat(t *testing.T) {
@@ -132,16 +118,13 @@ func TestValidateCommand_FailForInvalidJSONConfigFormat(t *testing.T) {
 
 	fp := filepath.Join(td, "hcl.conf")
 	err := ioutil.WriteFile(fp, []byte(`bind_addr = "10.0.0.1"\ndata_dir = "`+td+`"`), 0644)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.Nilf(t, err, "err: %s", err)
 
 	cmd := New(cli.NewMockUi())
 	args := []string{"--config-format", "json", fp}
 
-	if code := cmd.Run(args); code == 0 {
-		t.Fatalf("bad: %d", code)
-	}
+	code := cmd.Run(args)
+	require.NotEqualf(t, 0, code, "bad: %d", code)
 }
 
 func TestValidateCommand_Quiet(t *testing.T) {
@@ -151,18 +134,13 @@ func TestValidateCommand_Quiet(t *testing.T) {
 
 	fp := filepath.Join(td, "config.json")
 	err := ioutil.WriteFile(fp, []byte(`{"bind_addr":"10.0.0.1", "data_dir":"`+td+`"}`), 0644)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.Nilf(t, err, "err: %s", err)
 
 	ui := cli.NewMockUi()
 	cmd := New(ui)
 	args := []string{"-quiet", td}
 
-	if code := cmd.Run(args); code != 0 {
-		t.Fatalf("bad: %d, %s", code, ui.ErrorWriter.String())
-	}
-	if ui.OutputWriter.String() != "" {
-		t.Fatalf("bad: %v", ui.OutputWriter.String())
-	}
+	code := cmd.Run(args)
+	require.Equalf(t, 0, code, "bad: %d, %s", code, ui.ErrorWriter.String())
+	require.Equalf(t, "", ui.OutputWriter.String(), "bad: %v", ui.OutputWriter.String())
 }
