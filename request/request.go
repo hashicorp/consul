@@ -23,7 +23,7 @@ type Request struct {
 
 	// Cache size after first call to Size or Do.
 	size int
-	do   int // 0: not, 1: true: 2: false
+	do   *bool // nil: nothing, otherwise *do value
 	// TODO(miek): opt record itself as well?
 
 	// Cache lowercase qname.
@@ -95,19 +95,17 @@ func (r *Request) Family() int {
 
 // Do returns if the request has the DO (DNSSEC OK) bit set.
 func (r *Request) Do() bool {
-	if r.do != 0 {
-		return r.do == doTrue
+	if r.do != nil {
+		return *r.do
 	}
 
+	r.do = new(bool)
+
 	if o := r.Req.IsEdns0(); o != nil {
-		if o.Do() {
-			r.do = doTrue
-		} else {
-			r.do = doFalse
-		}
-		return o.Do()
+		*r.do = o.Do()
+		return *r.do
 	}
-	r.do = doFalse
+	*r.do = false
 	return false
 }
 
@@ -123,14 +121,13 @@ func (r *Request) Size() int {
 
 	size := 0
 	if o := r.Req.IsEdns0(); o != nil {
-		if o.Do() {
-			r.do = doTrue
-		} else {
-			r.do = doFalse
+		if r.do == nil {
+			r.do = new(bool)
 		}
+		*r.do = o.Do()
 		size = int(o.UDPSize())
 	}
-	// TODO(miek) move edns.Size to dnsutil?
+
 	size = edns.Size(r.Proto(), size)
 	r.size = size
 	return size
@@ -389,9 +386,4 @@ func (r *Request) Match(reply *dns.Msg) bool {
 	return true
 }
 
-const (
-	// TODO(miek): make this less awkward.
-	doTrue  = 1
-	doFalse = 2
-	optLen  = 12 // OPT record length.
-)
+const optLen = 12 // OPT record length.

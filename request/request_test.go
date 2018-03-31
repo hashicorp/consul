@@ -13,7 +13,7 @@ func TestRequestDo(t *testing.T) {
 	st := testRequest()
 
 	st.Do()
-	if st.do == 0 {
+	if st.do == nil {
 		t.Fatalf("Expected st.do to be set")
 	}
 }
