@@ -92,6 +92,11 @@ func (p Proxy) lookup(state request.Request) (*dns.Msg, error) {
 			atomic.AddInt64(&host.Conns, -1)
 
 			if backendErr == nil {
+
+				if !state.Match(reply) {
+					return state.ErrorMessage(dns.RcodeFormatError), nil
+				}
+
 				return reply, nil
 			}
 

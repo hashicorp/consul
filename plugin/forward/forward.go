@@ -92,20 +92,7 @@ func (f *Forward) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 			child.Finish()
 		}
 
-		// If you query for instance ANY isc.org; you get a truncated query back which miekg/dns fails to unpack
-		// because the RRs are not finished. The returned message can be useful or useless. Return the original
-		// query with some header bits set that they should retry with TCP.
-		if err == dns.ErrTruncated {
-			// We may or may not have something sensible... if not reassemble something to send to the client.
-			if ret == nil {
-				ret = new(dns.Msg)
-				ret.SetReply(r)
-				ret.Truncated = true
-				ret.Authoritative = true
-				ret.Rcode = dns.RcodeSuccess
-			}
-			err = nil // and reset err to pass this back to the client.
-		}
+		ret, err = truncated(ret, err)
 
 		if err != nil {
 			// Kick off health check to see if *our* upstream is broken.

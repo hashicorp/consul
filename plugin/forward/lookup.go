@@ -31,15 +31,22 @@ func (f *Forward) Forward(state request.Request) (*dns.Msg, error) {
 		}
 
 		ret, err := proxy.connect(context.Background(), state, f.forceTCP, true)
+
+		ret, err = truncated(ret, err)
+
 		if err != nil {
 			if fails < len(f.proxies) {
 				continue
 			}
 			break
-
 		}
 
-		return ret, nil
+		// Check if the reply is correct; if not return FormErr.
+		if !state.Match(ret) {
+			return state.ErrorMessage(dns.RcodeFormatError), nil
+		}
+
+		return ret, err
 	}
 	return nil, errNoHealthy
 }
