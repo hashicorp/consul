@@ -227,6 +227,9 @@ type Config struct {
 	// which overrides the agent's default token.
 	Token string
 
+	// Extra HTTP headers to be appended to each request
+	ExtraHeaders http.Header
+
 	TLSConfig TLSConfig
 }
 
@@ -656,6 +659,11 @@ func (c *Client) newRequest(method, path string) *request {
 	}
 	if c.config.WaitTime != 0 {
 		r.params.Set("wait", durToMsec(r.config.WaitTime))
+	}
+	if c.config.ExtraHeaders != nil {
+		for k,v := range c.config.ExtraHeaders {
+			r.header[k] = v
+		}
 	}
 	if c.config.Token != "" {
 		r.header.Set("X-Consul-Token", r.config.Token)
