@@ -7,6 +7,7 @@ package forward
 import (
 	"crypto/tls"
 	"errors"
+	"io"
 	"time"
 
 	"github.com/coredns/coredns/plugin"
@@ -87,7 +88,19 @@ func (f *Forward) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 			ctx = ot.ContextWithSpan(ctx, child)
 		}
 
-		ret, err := proxy.connect(ctx, state, f.forceTCP, true)
+		var (
+			ret *dns.Msg
+			err error
+		)
+		stop := false
+		for {
+			ret, err = proxy.connect(ctx, state, f.forceTCP, true)
+			if err != nil && err == io.EOF && !stop { // Remote side closed conn, can only happen with TCP.
+				stop = true
+				continue
+			}
+			break
+		}
 
 		if child != nil {
 			child.Finish()
