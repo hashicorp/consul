@@ -38,17 +38,7 @@ func setup(c *caddy.Controller) error {
 
 	c.OnStartup(func() error {
 		once.Do(func() {
-			m := dnsserver.GetConfig(c).Handler("prometheus")
-			if m == nil {
-				return
-			}
-			if x, ok := m.(*metrics.Metrics); ok {
-				x.MustRegister(RequestCount)
-				x.MustRegister(RcodeCount)
-				x.MustRegister(RequestDuration)
-				x.MustRegister(HealthcheckFailureCount)
-				x.MustRegister(SocketGauge)
-			}
+			metrics.MustRegister(c, RequestCount, RcodeCount, RequestDuration, HealthcheckFailureCount, SocketGauge)
 		})
 		return f.OnStartup()
 	})

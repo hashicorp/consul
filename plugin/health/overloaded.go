@@ -49,4 +49,4 @@ var (
 	})
 )
 
-var onceMetric sync.Once
+var once sync.Once

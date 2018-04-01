@@ -3,7 +3,6 @@ package template
 import (
 	"sync"
 
-	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/metrics"
 
@@ -37,15 +36,7 @@ var (
 func setupMetrics(c *caddy.Controller) error {
 	c.OnStartup(func() error {
 		metricsOnce.Do(func() {
-			m := dnsserver.GetConfig(c).Handler("prometheus")
-			if m == nil {
-				return
-			}
-			if x, ok := m.(*metrics.Metrics); ok {
-				x.MustRegister(TemplateMatchesCount)
-				x.MustRegister(TemplateFailureCount)
-				x.MustRegister(TemplateRRFailureCount)
-			}
+			metrics.MustRegister(c, TemplateMatchesCount, TemplateFailureCount, TemplateRRFailureCount)
 		})
 		return nil
 	})

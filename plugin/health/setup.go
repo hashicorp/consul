@@ -55,15 +55,7 @@ func setup(c *caddy.Controller) error {
 	})
 
 	c.OnStartup(func() error {
-		onceMetric.Do(func() {
-			m := dnsserver.GetConfig(c).Handler("prometheus")
-			if m == nil {
-				return
-			}
-			if x, ok := m.(*metrics.Metrics); ok {
-				x.MustRegister(HealthDuration)
-			}
-		})
+		once.Do(func() { metrics.MustRegister(c, HealthDuration) })
 		return nil
 	})
 
