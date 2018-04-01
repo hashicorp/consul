@@ -245,6 +245,11 @@ func (s *Server) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 		}
 
 		if h, ok := s.zones[string(b[:l])]; ok {
+
+			// Set server's address in the context so plugins can reference back to this,
+			// This will makes those metrics unique.
+			ctx = context.WithValue(ctx, plugin.ServerCtx{}, s.Addr)
+
 			if r.Question[0].Qtype != dns.TypeDS {
 				if h.FilterFunc == nil {
 					rcode, _ := h.pluginChain.ServeDNS(ctx, w, r)
@@ -287,6 +292,10 @@ func (s *Server) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 
 	// Wildcard match, if we have found nothing try the root zone as a last resort.
 	if h, ok := s.zones["."]; ok && h.pluginChain != nil {
+
+		// See comment above.
+		ctx = context.WithValue(ctx, plugin.ServerCtx{}, s.Addr)
+
 		rcode, _ := h.pluginChain.ServeDNS(ctx, w, r)
 		if !plugin.ClientWrite(rcode) {
 			DefaultErrorFunc(w, r, rcode)
@@ -359,11 +368,11 @@ const (
 	maxreentries = 10
 )
 
-// Key is the context key for the current server
-type Key struct{}
-
-// loopKey is the context key for counting self loops
-type loopKey struct{}
+type (
+	// Key is the context key for the current server
+	Key     struct{}
+	loopKey struct{} // loopKey is the context key for counting self loops
+)
 
 // enableChaos is a map with plugin names for which we should open CH class queries as
 // we block these by default.
