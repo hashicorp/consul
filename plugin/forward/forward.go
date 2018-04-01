@@ -65,6 +65,7 @@ func (f *Forward) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 
 	fails := 0
 	var span, child ot.Span
+	var upstreamErr error
 	span = ot.SpanFromContext(ctx)
 
 	for _, proxy := range f.list() {
@@ -93,6 +94,7 @@ func (f *Forward) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 		}
 
 		ret, err = truncated(ret, err)
+		upstreamErr = err
 
 		if err != nil {
 			// Kick off health check to see if *our* upstream is broken.
@@ -122,6 +124,10 @@ func (f *Forward) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 		w.WriteMsg(ret)
 
 		return 0, nil
+	}
+
+	if upstreamErr != nil {
+		return dns.RcodeServerFailure, upstreamErr
 	}
 
 	return dns.RcodeServerFailure, errNoHealthy
@@ -155,7 +161,7 @@ func (f *Forward) list() []*Proxy { return f.p.List(f.proxies) }
 
 var (
 	errInvalidDomain = errors.New("invalid domain for forward")
-	errNoHealthy     = errors.New("no healthy proxies or upstream error")
+	errNoHealthy     = errors.New("no healthy proxies")
 	errNoForward     = errors.New("no forwarder defined")
 )
 

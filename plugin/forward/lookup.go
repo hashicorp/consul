@@ -19,6 +19,7 @@ func (f *Forward) Forward(state request.Request) (*dns.Msg, error) {
 	}
 
 	fails := 0
+	var upstreamErr error
 	for _, proxy := range f.list() {
 		if proxy.Down(f.maxfails) {
 			fails++
@@ -33,6 +34,7 @@ func (f *Forward) Forward(state request.Request) (*dns.Msg, error) {
 		ret, err := proxy.connect(context.Background(), state, f.forceTCP, true)
 
 		ret, err = truncated(ret, err)
+		upstreamErr = err
 
 		if err != nil {
 			if fails < len(f.proxies) {
@@ -48,6 +50,11 @@ func (f *Forward) Forward(state request.Request) (*dns.Msg, error) {
 
 		return ret, err
 	}
+
+	if upstreamErr != nil {
+		return nil, upstreamErr
+	}
+
 	return nil, errNoHealthy
 }
 
