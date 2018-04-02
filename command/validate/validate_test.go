@@ -28,7 +28,7 @@ func TestValidateCommand_FailOnEmptyFile(t *testing.T) {
 	args := []string{tmpFile.Name()}
 
 	code := cmd.Run(args)
-	require.NotEqualf(t, 0, code, "bad: %d", code)
+	require.NotEqual(t, 0, code)
 }
 
 func TestValidateCommand_SucceedOnMinimalConfigFile(t *testing.T) {
@@ -44,7 +44,7 @@ func TestValidateCommand_SucceedOnMinimalConfigFile(t *testing.T) {
 	args := []string{fp}
 
 	code := cmd.Run(args)
-	require.Equalf(t, 0, code, "bad: %d", code)
+	require.Equal(t, 0, code)
 }
 
 func TestValidateCommand_SucceedWithMinimalJSONConfigFormat(t *testing.T) {
@@ -60,7 +60,7 @@ func TestValidateCommand_SucceedWithMinimalJSONConfigFormat(t *testing.T) {
 	args := []string{"--config-format", "json", fp}
 
 	code := cmd.Run(args)
-	require.Equalf(t, 0, code, "bad: %d", code)
+	require.Equal(t, 0, code)
 }
 
 func TestValidateCommand_SucceedWithMinimalHCLConfigFormat(t *testing.T) {
@@ -77,7 +77,7 @@ func TestValidateCommand_SucceedWithMinimalHCLConfigFormat(t *testing.T) {
 	args := []string{"--config-format", "hcl", fp}
 
 	code := cmd.Run(args)
-	require.Equalf(t, 0, code, "bad: %d", code)
+	require.Equal(t, 0, code)
 }
 
 func TestValidateCommand_SucceedWithJSONAsHCL(t *testing.T) {
@@ -93,7 +93,7 @@ func TestValidateCommand_SucceedWithJSONAsHCL(t *testing.T) {
 	args := []string{"--config-format", "hcl", fp}
 
 	code := cmd.Run(args)
-	require.Equalf(t, 0, code, "bad: %d", code)
+	require.Equal(t, 0, code)
 }
 
 func TestValidateCommand_SucceedOnMinimalConfigDir(t *testing.T) {
@@ -108,7 +108,7 @@ func TestValidateCommand_SucceedOnMinimalConfigDir(t *testing.T) {
 	args := []string{td}
 
 	code := cmd.Run(args)
-	require.Equalf(t, 0, code, "bad: %d", code)
+	require.Equal(t, 0, code)
 }
 
 func TestValidateCommand_FailForInvalidJSONConfigFormat(t *testing.T) {
@@ -124,7 +124,7 @@ func TestValidateCommand_FailForInvalidJSONConfigFormat(t *testing.T) {
 	args := []string{"--config-format", "json", fp}
 
 	code := cmd.Run(args)
-	require.NotEqualf(t, 0, code, "bad: %d", code)
+	require.NotEqual(t, 0, code)
 }
 
 func TestValidateCommand_Quiet(t *testing.T) {
@@ -141,6 +141,6 @@ func TestValidateCommand_Quiet(t *testing.T) {
 	args := []string{"-quiet", td}
 
 	code := cmd.Run(args)
-	require.Equalf(t, 0, code, "bad: %d, %s", code, ui.ErrorWriter.String())
-	require.Equalf(t, "", ui.OutputWriter.String(), "bad: %v", ui.OutputWriter.String())
+	require.Equalf(t, 0, code, "return code - expected: 0, bad: %d, %s", code, ui.ErrorWriter.String())
+	require.Equal(t, "", ui.OutputWriter.String())
 }
