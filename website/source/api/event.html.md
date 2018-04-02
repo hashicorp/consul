@@ -85,7 +85,7 @@ $ curl \
 
 ## List Events
 
-This endpoint returns the most recent events known by the agent. As a
+This endpoint returns the most recent events (up to 256) known by the agent. As a
 consequence of how the [event command](/docs/commands/event.html) works, each
 agent may have a different view of the events. Events are broadcast using the
 [gossip protocol](/docs/internals/gossip.html), so they have no global ordering
