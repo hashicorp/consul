@@ -69,17 +69,17 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 	}
 	verifyNode()
 
-	// Add in a invalid service definition with too long Key value for ServiceMeta
+	// Add in a invalid service definition with too long Key value for Meta
 	req.Service = &structs.NodeService{
-		ID:          "redis1",
-		Service:     "redis",
-		Address:     "1.1.1.1",
-		Port:        8080,
-		ServiceMeta: map[string]string{strings.Repeat("a", 129): "somevalue"},
-		Tags:        []string{"master"},
+		ID:      "redis1",
+		Service: "redis",
+		Address: "1.1.1.1",
+		Port:    8080,
+		Meta:    map[string]string{strings.Repeat("a", 129): "somevalue"},
+		Tags:    []string{"master"},
 	}
 	if err := s.EnsureRegistration(9, req); err == nil {
-		t.Fatalf("Service should not have been registered since ServiceMeta is invalid")
+		t.Fatalf("Service should not have been registered since Meta is invalid")
 	}
 
 	// Add in a service definition.

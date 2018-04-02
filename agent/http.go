@@ -366,6 +366,12 @@ func setKnownLeader(resp http.ResponseWriter, known bool) {
 	resp.Header().Set("X-Consul-KnownLeader", s)
 }
 
+func setConsistency(resp http.ResponseWriter, consistency string) {
+	if consistency != "" {
+		resp.Header().Set("X-Consul-Effective-Consistency", consistency)
+	}
+}
+
 // setLastContact is used to set the last contact header
 func setLastContact(resp http.ResponseWriter, last time.Duration) {
 	if last < 0 {
@@ -380,6 +386,7 @@ func setMeta(resp http.ResponseWriter, m *structs.QueryMeta) {
 	setIndex(resp, m.Index)
 	setLastContact(resp, m.LastContact)
 	setKnownLeader(resp, m.KnownLeader)
+	setConsistency(resp, m.ConsistencyLevel)
 }
 
 // setHeaders is used to set canonical response header fields
@@ -416,13 +423,42 @@ func parseWait(resp http.ResponseWriter, req *http.Request, b *structs.QueryOpti
 
 // parseConsistency is used to parse the ?stale and ?consistent query params.
 // Returns true on error
-func parseConsistency(resp http.ResponseWriter, req *http.Request, b *structs.QueryOptions) bool {
+func (s *HTTPServer) parseConsistency(resp http.ResponseWriter, req *http.Request, b *structs.QueryOptions) bool {
 	query := req.URL.Query()
+	defaults := true
 	if _, ok := query["stale"]; ok {
 		b.AllowStale = true
+		defaults = false
 	}
 	if _, ok := query["consistent"]; ok {
 		b.RequireConsistent = true
+		defaults = false
+	}
+	if _, ok := query["leader"]; ok {
+		defaults = false
+	}
+	if maxStale := query.Get("max_stale"); maxStale != "" {
+		dur, err := time.ParseDuration(maxStale)
+		if err != nil {
+			resp.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(resp, "Invalid max_stale value %q", maxStale)
+			return true
+		}
+		b.MaxStaleDuration = dur
+		if dur.Nanoseconds() > 0 {
+			b.AllowStale = true
+			defaults = false
+		}
+	}
+	// No specific Consistency has been specified by caller
+	if defaults {
+		path := req.URL.Path
+		if strings.HasPrefix(path, "/v1/catalog") || strings.HasPrefix(path, "/v1/health") {
+			if s.agent.config.DiscoveryMaxStale.Nanoseconds() > 0 {
+				b.MaxStaleDuration = s.agent.config.DiscoveryMaxStale
+				b.AllowStale = true
+			}
+		}
 	}
 	if b.AllowStale && b.RequireConsistent {
 		resp.WriteHeader(http.StatusBadRequest)
@@ -490,7 +526,7 @@ func (s *HTTPServer) parseMetaFilter(req *http.Request) map[string]string {
 func (s *HTTPServer) parse(resp http.ResponseWriter, req *http.Request, dc *string, b *structs.QueryOptions) bool {
 	s.parseDC(req, dc)
 	s.parseToken(req, &b.Token)
-	if parseConsistency(resp, req, b) {
+	if s.parseConsistency(resp, req, b) {
 		return true
 	}
 	return parseWait(resp, req, b)
