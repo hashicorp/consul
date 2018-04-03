@@ -18,12 +18,17 @@ func New(ui cli.Ui) *cmd {
 type cmd struct {
 	UI    cli.Ui
 	flags *flag.FlagSet
-	quiet bool
-	help  string
+	// configFormat forces all config files to be interpreted as this
+	// format independent of their extension.
+	configFormat string
+	quiet        bool
+	help         string
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.StringVar(&c.configFormat, "config-format", "",
+		"Config files are in this format irrespective of their extension. Must be 'hcl' or 'json'")
 	c.flags.BoolVar(&c.quiet, "quiet", false,
 		"When given, a successful run will produce no output.")
 	c.help = flags.Usage(help, c.flags)
@@ -40,7 +45,13 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error("Must specify at least one config file or directory")
 		return 1
 	}
-	b, err := config.NewBuilder(config.Flags{ConfigFiles: configFiles})
+	
+	if c.configFormat != "" && c.configFormat != "json" && c.configFormat != "hcl" {
+		c.UI.Error("-config-format must be either 'hcl' or 'json")
+		return 1	
+	}
+	
+	b, err := config.NewBuilder(config.Flags{ConfigFiles: configFiles, ConfigFormat: &c.configFormat})
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Config validation failed: %v", err.Error()))
 		return 1
