@@ -157,7 +157,7 @@ func TestLeaf(t testing.T, service string, root *structs.CARoot) (string, string
 		t.Fatalf("error generating serial number: %s", err)
 	}
 
-	// Genereate fresh private key
+	// Generate fresh private key
 	pkSigner, pkPEM := testPrivateKey(t)
 
 	// Cert template for generation

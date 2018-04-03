@@ -42,27 +42,27 @@ func defaultTLSConfig(verify verifyFunc) *tls.Config {
 	}
 }
 
-// ReloadableTLSConfig exposes a tls.Config that can have it's certificates
+// reloadableTLSConfig exposes a tls.Config that can have it's certificates
 // reloaded. On a server, this uses GetConfigForClient to pass the current
 // tls.Config or client certificate for each acceptted connection. On a client,
 // this uses GetClientCertificate to provide the current client certificate.
-type ReloadableTLSConfig struct {
+type reloadableTLSConfig struct {
 	mu sync.Mutex
 
 	// cfg is the current config to use for new connections
 	cfg *tls.Config
 }
 
-// NewReloadableTLSConfig returns a reloadable config currently set to base.
-func NewReloadableTLSConfig(base *tls.Config) *ReloadableTLSConfig {
-	c := &ReloadableTLSConfig{}
+// newReloadableTLSConfig returns a reloadable config currently set to base.
+func newReloadableTLSConfig(base *tls.Config) *reloadableTLSConfig {
+	c := &reloadableTLSConfig{}
 	c.SetTLSConfig(base)
 	return c
 }
 
 // TLSConfig returns a *tls.Config that will dynamically load certs. It's
 // suitable for use in either a client or server.
-func (c *ReloadableTLSConfig) TLSConfig() *tls.Config {
+func (c *reloadableTLSConfig) TLSConfig() *tls.Config {
 	c.mu.Lock()
 	cfgCopy := c.cfg
 	c.mu.Unlock()
@@ -71,7 +71,7 @@ func (c *ReloadableTLSConfig) TLSConfig() *tls.Config {
 
 // SetTLSConfig sets the config used for future connections. It is safe to call
 // from any goroutine.
-func (c *ReloadableTLSConfig) SetTLSConfig(cfg *tls.Config) error {
+func (c *reloadableTLSConfig) SetTLSConfig(cfg *tls.Config) error {
 	copy := cfg.Clone()
 	copy.GetClientCertificate = func(*tls.CertificateRequestInfo) (*tls.Certificate, error) {
 		current := c.TLSConfig()

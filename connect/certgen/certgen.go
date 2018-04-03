@@ -27,6 +27,7 @@
 // NOTE: THIS IS A QUIRK OF OPENSSL; in Connect we distribute the roots alone
 // and stable intermediates like the XC cert to the _leaf_.
 package main // import "github.com/hashicorp/consul/connect/certgen"
+
 import (
 	"flag"
 	"fmt"
@@ -42,7 +43,6 @@ import (
 func main() {
 	var numCAs = 2
 	var services = []string{"web", "db", "cache"}
-	//var slugRe = regexp.MustCompile("[^a-zA-Z0-9]+")
 	var outDir string
 
 	flag.StringVar(&outDir, "out-dir", "",

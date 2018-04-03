@@ -10,10 +10,9 @@ import (
 
 func TestReloadableTLSConfig(t *testing.T) {
 	require := require.New(t)
-	verify, _ := testVerifier(t, nil)
-	base := defaultTLSConfig(verify)
+	base := defaultTLSConfig(nil)
 
-	c := NewReloadableTLSConfig(base)
+	c := newReloadableTLSConfig(base)
 
 	// The dynamic config should be the one we loaded (with some different hooks)
 	got := c.TLSConfig()

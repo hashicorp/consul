@@ -1,17 +1,15 @@
 package proxy
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
-	// Expose pprof if configured
-	_ "net/http/pprof"
+	_ "net/http/pprof" // Expose pprof if configured
 
 	"github.com/hashicorp/consul/command/flags"
-	proxyImpl "github.com/hashicorp/consul/proxy"
+	proxyImpl "github.com/hashicorp/consul/connect/proxy"
 
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/logutils"
@@ -46,13 +44,14 @@ type cmd struct {
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 
-	c.flags.StringVar(&c.cfgFile, "insecure-dev-config", "",
+	c.flags.StringVar(&c.cfgFile, "dev-config", "",
 		"If set, proxy config is read on startup from this file (in HCL or JSON"+
 			"format). If a config file is given, the proxy will use that instead of "+
 			"querying the local agent for it's configuration. It will not reload it "+
 			"except on startup. In this mode the proxy WILL NOT authorize incoming "+
 			"connections with the local agent which is totally insecure. This is "+
-			"ONLY for development and testing.")
+			"ONLY for internal development and testing and will probably be removed "+
+			"once proxy implementation is more complete..")
 
 	c.flags.StringVar(&c.proxyID, "proxy-id", "",
 		"The proxy's ID on the local agent.")
@@ -121,31 +120,23 @@ func (c *cmd) Run(args []string) int {
 		}
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	// Hook the shutdownCh up to close the proxy
 	go func() {
-		err := p.Run(ctx)
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Failed running proxy: %s", err))
-		}
-		// If we exited early due to a fatal error, need to unblock the main
-		// routine. But we can't close shutdownCh since it might already be closed
-		// by a signal and there is no way to tell. We also can't send on it to
-		// unblock main routine since it's typed as receive only. So the best thing
-		// we can do is cancel the context and have the main routine select on both.
-		cancel()
+		<-c.shutdownCh
+		p.Close()
 	}()
 
-	c.UI.Output("Consul Connect proxy running!")
+	c.UI.Output("Consul Connect proxy starting")
 
 	c.UI.Output("Log data will now stream in as it occurs:\n")
 	logGate.Flush()
 
-	// Wait for shutdown or context cancel (see Run() goroutine above)
-	select {
-	case <-c.shutdownCh:
-		cancel()
-	case <-ctx.Done():
+	// Run the proxy
+	err = p.Serve()
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Failed running proxy: %s", err))
 	}
+
 	c.UI.Output("Consul Connect proxy shutdown")
 	return 0
 }

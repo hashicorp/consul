@@ -3,6 +3,7 @@ package connect
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"log"
 	"net"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/api"
+	"golang.org/x/net/http2"
 )
 
 // Service represents a Consul service that accepts and/or connects via Connect.
@@ -41,10 +43,17 @@ type Service struct {
 	client *api.Client
 
 	// serverTLSCfg is the (reloadable) TLS config we use for serving.
-	serverTLSCfg *ReloadableTLSConfig
+	serverTLSCfg *reloadableTLSConfig
 
 	// clientTLSCfg is the (reloadable) TLS config we use for dialling.
-	clientTLSCfg *ReloadableTLSConfig
+	clientTLSCfg *reloadableTLSConfig
+
+	// httpResolverFromAddr is a function that returns a Resolver from a string
+	// address for HTTP clients. It's privately pluggable to make testing easier
+	// but will default to a simple method to parse the host as a Consul DNS host.
+	//
+	// TODO(banks): write the proper implementation
+	httpResolverFromAddr func(addr string) (Resolver, error)
 
 	logger *log.Logger
 }
@@ -65,8 +74,8 @@ func NewServiceWithLogger(serviceID string, client *api.Client,
 		client:    client,
 		logger:    logger,
 	}
-	s.serverTLSCfg = NewReloadableTLSConfig(defaultTLSConfig(serverVerifyCerts))
-	s.clientTLSCfg = NewReloadableTLSConfig(defaultTLSConfig(clientVerifyCerts))
+	s.serverTLSCfg = newReloadableTLSConfig(defaultTLSConfig(serverVerifyCerts))
+	s.clientTLSCfg = newReloadableTLSConfig(defaultTLSConfig(clientVerifyCerts))
 
 	// TODO(banks) run the background certificate sync
 	return s, nil
@@ -86,12 +95,12 @@ func NewDevServiceFromCertFiles(serviceID string, client *api.Client,
 		return nil, err
 	}
 
-	// Note that NewReloadableTLSConfig makes a copy so we can re-use the same
+	// Note that newReloadableTLSConfig makes a copy so we can re-use the same
 	// base for both client and server with swapped verifiers.
 	tlsCfg.VerifyPeerCertificate = serverVerifyCerts
-	s.serverTLSCfg = NewReloadableTLSConfig(tlsCfg)
+	s.serverTLSCfg = newReloadableTLSConfig(tlsCfg)
 	tlsCfg.VerifyPeerCertificate = clientVerifyCerts
-	s.clientTLSCfg = NewReloadableTLSConfig(tlsCfg)
+	s.clientTLSCfg = newReloadableTLSConfig(tlsCfg)
 	return s, nil
 }
 
@@ -121,6 +130,8 @@ func (s *Service) Dial(ctx context.Context, resolver Resolver) (net.Conn, error)
 	if err != nil {
 		return nil, err
 	}
+	s.logger.Printf("[DEBUG] resolved service instance: %s (%s)", addr,
+		certURI.URI())
 	var dialer net.Dialer
 	tcpConn, err := dialer.DialContext(ctx, "tcp", addr)
 	if err != nil {
@@ -133,8 +144,8 @@ func (s *Service) Dial(ctx context.Context, resolver Resolver) (net.Conn, error)
 	if ok {
 		tlsConn.SetDeadline(deadline)
 	}
-	err = tlsConn.Handshake()
-	if err != nil {
+	// Perform handshake
+	if err = tlsConn.Handshake(); err != nil {
 		tlsConn.Close()
 		return nil, err
 	}
@@ -149,20 +160,27 @@ func (s *Service) Dial(ctx context.Context, resolver Resolver) (net.Conn, error)
 		tlsConn.Close()
 		return nil, err
 	}
-
+	s.logger.Printf("[DEBUG] successfully connected to %s (%s)", addr,
+		certURI.URI())
 	return tlsConn, nil
 }
 
-// HTTPDialContext is compatible with http.Transport.DialContext. It expects the
-// addr hostname to be specified using Consul DNS query syntax, e.g.
+// HTTPDialTLS is compatible with http.Transport.DialTLS. It expects the addr
+// hostname to be specified using Consul DNS query syntax, e.g.
 // "web.service.consul". It converts that into the equivalent ConsulResolver and
 // then call s.Dial with the resolver. This is low level, clients should
 // typically use HTTPClient directly.
-func (s *Service) HTTPDialContext(ctx context.Context, network,
+func (s *Service) HTTPDialTLS(network,
 	addr string) (net.Conn, error) {
-	var r ConsulResolver
-	// TODO(banks): parse addr into ConsulResolver
-	return s.Dial(ctx, &r)
+	if s.httpResolverFromAddr == nil {
+		return nil, errors.New("no http resolver configured")
+	}
+	r, err := s.httpResolverFromAddr(addr)
+	if err != nil {
+		return nil, err
+	}
+	// TODO(banks): figure out how to do timeouts better.
+	return s.Dial(context.Background(), r)
 }
 
 // HTTPClient returns an *http.Client configured to dial remote Consul Connect
@@ -172,14 +190,27 @@ func (s *Service) HTTPDialContext(ctx context.Context, network,
 // API rather than just relying on Consul DNS. Hostnames that are not valid
 // Consul DNS queries will fail.
 func (s *Service) HTTPClient() *http.Client {
+	t := &http.Transport{
+		// Sadly we can't use DialContext hook since that is expected to return a
+		// plain TCP connection an http.Client tries to start a TLS handshake over
+		// it. We need to control the handshake to be able to do our validation.
+		// So we have to use the older DialTLS which means no context/timeout
+		// support.
+		//
+		// TODO(banks): figure out how users can configure a timeout when using
+		// this and/or compatibility with http.Request.WithContext.
+		DialTLS: s.HTTPDialTLS,
+	}
+	// Need to manually re-enable http2 support since we set custom DialTLS.
+	// See https://golang.org/src/net/http/transport.go?s=8692:9036#L228
+	http2.ConfigureTransport(t)
 	return &http.Client{
-		Transport: &http.Transport{
-			DialContext: s.HTTPDialContext,
-		},
+		Transport: t,
 	}
 }
 
 // Close stops the service and frees resources.
-func (s *Service) Close() {
+func (s *Service) Close() error {
 	// TODO(banks): stop background activity if started
+	return nil
 }

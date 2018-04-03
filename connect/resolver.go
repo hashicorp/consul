@@ -10,7 +10,9 @@ import (
 	testing "github.com/mitchellh/go-testing-interface"
 )
 
-// Resolver is the interface implemented by a service discovery mechanism.
+// Resolver is the interface implemented by a service discovery mechanism to get
+// the address and identity of an instance to connect to via Connect as a
+// client.
 type Resolver interface {
 	// Resolve returns a single service instance to connect to. Implementations
 	// may attempt to ensure the instance returned is currently available. It is
@@ -19,7 +21,10 @@ type Resolver interface {
 	// increases reliability. The context passed can be used to impose timeouts
 	// which may or may not be respected by implementations that make network
 	// calls to resolve the service. The addr returned is a string in any valid
-	// form for passing directly to `net.Dial("tcp", addr)`.
+	// form for passing directly to `net.Dial("tcp", addr)`. The certURI
+	// represents the identity of the service instance. It will be matched against
+	// the TLS certificate URI SAN presented by the server and the connection
+	// rejected if they don't match.
 	Resolve(ctx context.Context) (addr string, certURI connect.CertURI, err error)
 }
 
@@ -33,7 +38,8 @@ type StaticResolver struct {
 	Addr string
 
 	// CertURL is the _identity_ we expect the server to present in it's TLS
-	// certificate. It must be an exact match or the connection will be rejected.
+	// certificate. It must be an exact URI string match or the connection will be
+	// rejected.
 	CertURI connect.CertURI
 }
 
@@ -56,13 +62,14 @@ type ConsulResolver struct {
 	// panic.
 	Client *api.Client
 
-	// Namespace of the query target
+	// Namespace of the query target.
 	Namespace string
 
-	// Name of the query target
+	// Name of the query target.
 	Name string
 
-	// Type of the query target,
+	// Type of the query target. Should be one of the defined ConsulResolverType*
+	// constants. Currently defaults to ConsulResolverTypeService.
 	Type int
 
 	// Datacenter to resolve in, empty indicates agent's local DC.

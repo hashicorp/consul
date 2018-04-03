@@ -5,26 +5,33 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
+	"log"
 	"net"
+	"net/http"
 	"sync/atomic"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/freeport"
 	testing "github.com/mitchellh/go-testing-interface"
-	"github.com/stretchr/testify/require"
 )
 
-// testVerifier creates a helper verifyFunc that can be set in a tls.Config and
-// records calls made, passing back the certificates presented via the returned
-// channel. The channel is buffered so up to 128 verification calls can be made
-// without reading the chan before verification blocks.
-func testVerifier(t testing.T, returnErr error) (verifyFunc, chan [][]byte) {
-	ch := make(chan [][]byte, 128)
-	return func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-		ch <- rawCerts
-		return returnErr
-	}, ch
+// TestService returns a Service instance based on a static TLS Config.
+func TestService(t testing.T, service string, ca *structs.CARoot) *Service {
+	t.Helper()
+
+	// Don't need to talk to client since we are setting TLSConfig locally
+	svc, err := NewService(service, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	svc.serverTLSCfg = newReloadableTLSConfig(
+		TestTLSConfigWithVerifier(t, service, ca, serverVerifyCerts))
+	svc.clientTLSCfg = newReloadableTLSConfig(
+		TestTLSConfigWithVerifier(t, service, ca, clientVerifyCerts))
+
+	return svc
 }
 
 // TestTLSConfig returns a *tls.Config suitable for use during tests.
@@ -32,7 +39,16 @@ func TestTLSConfig(t testing.T, service string, ca *structs.CARoot) *tls.Config 
 	t.Helper()
 
 	// Insecure default (nil verifier)
-	cfg := defaultTLSConfig(nil)
+	return TestTLSConfigWithVerifier(t, service, ca, nil)
+}
+
+// TestTLSConfigWithVerifier returns a *tls.Config suitable for use during
+// tests, it will use the given verifyFunc to verify tls certificates.
+func TestTLSConfigWithVerifier(t testing.T, service string, ca *structs.CARoot,
+	verifier verifyFunc) *tls.Config {
+	t.Helper()
+
+	cfg := defaultTLSConfig(verifier)
 	cfg.Certificates = []tls.Certificate{TestSvcKeyPair(t, service, ca)}
 	cfg.RootCAs = TestCAPool(t, ca)
 	cfg.ClientCAs = TestCAPool(t, ca)
@@ -55,7 +71,9 @@ func TestSvcKeyPair(t testing.T, service string, ca *structs.CARoot) tls.Certifi
 	t.Helper()
 	certPEM, keyPEM := connect.TestLeaf(t, service, ca)
 	cert, err := tls.X509KeyPair([]byte(certPEM), []byte(keyPEM))
-	require.Nil(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	return cert
 }
 
@@ -65,13 +83,15 @@ func TestPeerCertificates(t testing.T, service string, ca *structs.CARoot) []*x5
 	t.Helper()
 	certPEM, _ := connect.TestLeaf(t, service, ca)
 	cert, err := connect.ParseCert(certPEM)
-	require.Nil(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	return []*x509.Certificate{cert}
 }
 
-// TestService runs a service listener that can be used to test clients. It's
+// TestServer runs a service listener that can be used to test clients. It's
 // behaviour can be controlled by the struct members.
-type TestService struct {
+type TestServer struct {
 	// The service name to serve.
 	Service string
 	// The (test) CA to use for generating certs.
@@ -91,11 +111,11 @@ type TestService struct {
 	stopChan chan struct{}
 }
 
-// NewTestService returns a TestService. It should be closed when test is
+// NewTestServer returns a TestServer. It should be closed when test is
 // complete.
-func NewTestService(t testing.T, service string, ca *structs.CARoot) *TestService {
+func NewTestServer(t testing.T, service string, ca *structs.CARoot) *TestServer {
 	ports := freeport.GetT(t, 1)
-	return &TestService{
+	return &TestServer{
 		Service:  service,
 		CA:       ca,
 		stopChan: make(chan struct{}),
@@ -104,14 +124,16 @@ func NewTestService(t testing.T, service string, ca *structs.CARoot) *TestServic
 	}
 }
 
-// Serve runs a TestService and blocks until it is closed or errors.
-func (s *TestService) Serve() error {
+// Serve runs a tcp echo server and blocks until it is closed or errors. If
+// TimeoutHandshake is set it won't start TLS handshake on new connections.
+func (s *TestServer) Serve() error {
 	// Just accept TCP conn but so we can control timing of accept/handshake
 	l, err := net.Listen("tcp", s.Addr)
 	if err != nil {
 		return err
 	}
 	s.l = l
+	log.Printf("test connect service listening on %s", s.Addr)
 
 	for {
 		conn, err := s.l.Accept()
@@ -122,12 +144,14 @@ func (s *TestService) Serve() error {
 			return err
 		}
 
-		// Ignore the conn if we are not actively ha
+		// Ignore the conn if we are not actively handshaking
 		if !s.TimeoutHandshake {
 			// Upgrade conn to TLS
 			conn = tls.Server(conn, s.TLSCfg)
 
 			// Run an echo service
+			log.Printf("test connect service accepted conn from %s, "+
+				" running echo service", conn.RemoteAddr())
 			go io.Copy(conn, conn)
 		}
 
@@ -141,8 +165,20 @@ func (s *TestService) Serve() error {
 	return nil
 }
 
-// Close stops a TestService
-func (s *TestService) Close() {
+// ServeHTTPS runs an HTTPS server with the given config. It invokes the passed
+// Handler for all requests.
+func (s *TestServer) ServeHTTPS(h http.Handler) error {
+	srv := http.Server{
+		Addr:      s.Addr,
+		TLSConfig: s.TLSCfg,
+		Handler:   h,
+	}
+	log.Printf("starting test connect HTTPS server on %s", s.Addr)
+	return srv.ListenAndServeTLS("", "")
+}
+
+// Close stops a TestServer
+func (s *TestServer) Close() error {
 	old := atomic.SwapInt32(&s.stopFlag, 1)
 	if old == 0 {
 		if s.l != nil {
@@ -150,4 +186,5 @@ func (s *TestService) Close() {
 		}
 		close(s.stopChan)
 	}
+	return nil
 }
