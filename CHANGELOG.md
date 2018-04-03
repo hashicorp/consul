@@ -9,6 +9,7 @@ IMPROVEMENTS:
 * agent: WAN federation can now be disabled by setting the serf WAN port to -1. [[GH-3984](https://github.com/hashicorp/consul/issues/3984)]
 * agent: Added support for specifying metadata during service registration. [[GH-3881](https://github.com/hashicorp/consul/issues/3881)]
 * agent: Added a new `discover-max-stale` config option to enable stale requests for service discovery endpoints. [[GH-4004](https://github.com/hashicorp/consul/issues/4004)]
+* agent: (Consul Enterprise) Added a new option to the snapshot agent for configuring the S3 endpoint.
 * dns: Introduced a new config param to limit the number of A/AAAA records returned. [[GH-3940](https://github.com/hashicorp/consul/issues/3940)]
 * dns: Upgrade vendored DNS library to pick up bugfixes and improvements. [[GH-3978](https://github.com/hashicorp/consul/issues/3978)]
 * server: Updated yamux library to pick up a performance improvement. [[GH-3982](https://github.com/hashicorp/consul/issues/3982)]
