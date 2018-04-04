@@ -13,6 +13,7 @@ IMPROVEMENTS:
 * dns: Introduced a new config param to limit the number of A/AAAA records returned. [[GH-3940](https://github.com/hashicorp/consul/issues/3940)]
 * dns: Upgrade vendored DNS library to pick up bugfixes and improvements. [[GH-3978](https://github.com/hashicorp/consul/issues/3978)]
 * server: Updated yamux library to pick up a performance improvement. [[GH-3982](https://github.com/hashicorp/consul/issues/3982)]
+* api: Add support for GZIP compression in HTTP responses. [[GH-3687](https://github.com/hashicorp/consul/issues/3687)]
 
 BUG FIXES:
 
