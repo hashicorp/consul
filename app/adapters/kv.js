@@ -2,16 +2,10 @@ import Adapter from './application';
 import isFolder from 'consul-ui/utils/isFolder';
 import injectableRequestToJQueryAjaxHash from 'consul-ui/utils/injectableRequestToJQueryAjaxHash';
 import { typeOf } from '@ember/utils';
-const makeAttrable = function(obj) {
-  return {
-    attr: function(prop) {
-      return obj[prop];
-    },
-  };
-};
-const keyToArray = function(key) {
-  return (key === '/' ? '' : key).split('/');
-};
+
+import makeAttrable from 'consul-ui/utils/makeAttrable';
+import keyToArray from 'consul-ui/utils/keyToArray';
+
 const PRIMARY_KEY = 'Key';
 const DATACENTER_KEY = 'Datacenter';
 
@@ -88,6 +82,7 @@ export default Adapter.extend({
     if (response === true) {
       // isBoolean? should error on false
       const url = requestData.url.split('?')[0];
+      // TODO: How reliable is this?
       const kv = {
         [PRIMARY_KEY]: url
           .split('/')
