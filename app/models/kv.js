@@ -1,11 +1,11 @@
 /* global Base64 */
-import Entity from 'ember-data/model';
+import Model from 'ember-data/model';
 import attr from 'ember-data/attr';
 import { computed } from '@ember/object';
 import ascend from 'consul-ui/utils/ascend';
 import isFolder from 'consul-ui/utils/isFolder';
 
-export default Entity.extend({
+export default Model.extend({
   Key: attr('string'),
   LockIndex: attr('number'),
   Flags: attr('number'),
