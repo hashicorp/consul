@@ -1,26 +1,106 @@
-import { module, test } from 'qunit';
+import { module, skip } from 'qunit';
 import { setupTest } from 'ember-qunit';
+import test from 'ember-sinon-qunit/test-support/test';
+import stubSuper from 'consul-ui/tests/helpers/stub-super';
 
 module('Unit | Adapter | kv', function(hooks) {
   setupTest(hooks);
+
+  skip('what should handleResponse return when createRecord is called with a `false` payload');
 
   // Replace this with your real tests.
   test('it exists', function(assert) {
     const adapter = this.owner.lookup('adapter:kv');
     assert.ok(adapter);
   });
-  test('handleResponse returns a Kv-like object when the request is a createRecord', function(assert) {
+  test('handleResponse', function(assert) {
     const adapter = this.owner.lookup('adapter:kv');
-    // unflake, this is also going through _super and
-    // using urlForCreateRecord and makeAttrable so not the unit
     const expected = 'key/name';
-    const actual = adapter.handleResponse(200, {}, true, {
-      method: 'GET',
-      url: `/v1/kv/${expected}`,
+    const url = `/v1/kv/${expected}?dc=dc1`;
+    // handleResponse calls `urlForCreateRecord`, so stub that out
+    // so we are testing a single unit of code
+    const urlForCreateRecord = this.stub(adapter, 'urlForCreateRecord');
+    urlForCreateRecord.returns(url);
+    // handleResponse calls `this._super`, so stub that out also
+    // so we only test a single unit
+    // calling `it() will now create a 'sandbox' with a stubbed `_super`
+    const it = stubSuper(adapter, function(status, headers, response, requestData) {
+      return response;
     });
-    assert.deepEqual(actual, {
-      Key: expected,
-      Datacenter: '',
+
+    // right now, the message here is more for documentation purposes
+    // and to replicate the `test`/`it` API
+    // it does not currently get printed to the QUnit test runner output
+
+    // the following tests use our stubbed `_super` sandbox
+    it('returns a KV pojo when createRecord is called with a `true` payload', function() {
+      const deep = {
+        Key: expected,
+        Datacenter: '',
+      };
+      const actual = adapter.handleResponse(200, {}, true, { url: url });
+      assert.deepEqual(actual, deep);
+    });
+    it("returns the original payload if it's not a Boolean", function() {
+      const expected = [];
+      const actual = adapter.handleResponse(200, {}, expected, { url: url });
+      assert.deepEqual(actual, expected);
+    });
+  });
+  test('dataForRequest returns', function(assert) {
+    const adapter = this.owner.lookup('adapter:kv');
+    const expected = 'value';
+    const deep = {
+      kv: {
+        Value: expected,
+      },
+    };
+    const it = stubSuper(adapter, this.stub().returns(deep));
+    it('returns string KV value when calling update/create record', function() {
+      const requests = [
+        {
+          request: 'updateRecord',
+          expected: expected,
+        },
+        {
+          request: 'createRecord',
+          expected: expected,
+        },
+      ];
+      requests.forEach(function(item, i, arr) {
+        const actual = adapter.dataForRequest({
+          requestType: item.request,
+        });
+        assert.equal(actual, expected);
+      });
+    });
+    // not included in the above forEach as it's a slightly different concept
+    it('returns string KV object when calling queryRecord (or anything else) record', function() {
+      const actual = adapter.dataForRequest({
+        requestType: 'queryRecord',
+      });
+      assert.deepEqual(actual, deep);
+    });
+  });
+  test('methodForRequest returns the correct method', function(assert) {
+    const adapter = this.owner.lookup('adapter:kv');
+    const requests = [
+      {
+        request: 'deleteRecord',
+        expected: 'DELETE',
+      },
+      {
+        request: 'createRecord',
+        expected: 'PUT',
+      },
+      {
+        request: 'anythingElse',
+        expected: 'GET',
+      },
+    ];
+    requests.forEach(function(item) {
+      const actual = adapter.methodForRequest({ requestType: item.request });
+      assert.equal(actual, item.expected);
     });
   });
 });

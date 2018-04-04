@@ -4,10 +4,12 @@ import { assign } from '@ember/polyfills';
 
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
+import WithFeedback from 'consul-ui/mixins/with-feedback';
+import WithKeyUtils from 'consul-ui/mixins/with-key-utils';
 import transitionToNearestParent from 'consul-ui/utils/transitionToNearestParent';
 import ascend from 'consul-ui/utils/ascend';
 
-export default Route.extend({
+export default Route.extend(WithFeedback, WithKeyUtils, {
   repo: service('kv'),
   sessionRepo: service('session'),
   model: function(params) {
