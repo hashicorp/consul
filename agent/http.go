@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/mitchellh/mapstructure"
+	"github.com/NYTimes/gziphandler"
 )
 
 // MethodNotAllowedError should be returned by a handler when the HTTP method is not allowed.
@@ -64,6 +65,7 @@ func registerEndpoint(pattern string, methods []string, fn unboundEndpoint) {
 	if endpoints[pattern] != nil || allowedMethods[pattern] != nil {
 		panic(fmt.Errorf("Pattern %q is already registered", pattern))
 	}
+
 	endpoints[pattern] = fn
 	allowedMethods[pattern] = methods
 }
@@ -111,7 +113,10 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 			metrics.MeasureSince(append([]string{"consul"}, key...), start)
 			metrics.MeasureSince(key, start)
 		}
-		mux.HandleFunc(pattern, wrapper)
+
+		gzipWrapper, _ := gziphandler.GzipHandlerWithOpts(gziphandler.MinSize(0))
+		gzipHandler := gzipWrapper(http.HandlerFunc(wrapper))
+		mux.Handle(pattern, gzipHandler)
 	}
 
 	mux.HandleFunc("/", s.Index)

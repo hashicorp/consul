@@ -4,6 +4,7 @@
 	"package": [
 		{"path":"github.com/DataDog/datadog-go/statsd","checksumSHA1":"JhyS/zIicgtrSasHSZ6WtXGWJVk=","revision":"cc2f4770f4d61871e19bfee967bc767fe730b0d9","revisionTime":"2016-03-29T13:52:53Z"},
 		{"path":"github.com/Microsoft/go-winio","checksumSHA1":"AzjRkOQtVBTwIw4RJLTygFhJs3s=","revision":"c4dc1301f1dc0307acd38e611aa375a64dfe0642","revisionTime":"2017-07-12T04:46:15Z"},
+		{"path":"github.com/NYTimes/gziphandler","checksumSHA1":"GM+KgxfAv3HJdtffkEPpegaFxe0=","revision":"2600fb119af974220d3916a5916d6e31176aac1b","revisionTime":"2018-02-20T23:40:21Z","version":"v1.0.1","versionExact":"v1.0.1"},
 		{"path":"github.com/StackExchange/wmi","checksumSHA1":"9NR0rrcAT5J76C5xMS4AVksS9o0=","revision":"e54cbda6595d7293a7a468ccf9525f6bc8887f99","revisionTime":"2016-08-11T21:45:55Z"},
 		{"path":"github.com/armon/circbuf","checksumSHA1":"l0iFqayYAaEip6Olaq3/LCOa/Sg=","revision":"bbbad097214e2918d8543d5201d12bfd7bca254d","revisionTime":"2015-08-27T00:49:46Z"},
 		{"path":"github.com/armon/go-metrics","checksumSHA1":"0et4hA6AYqZCgYiY+c6Z17t3k3k=","revision":"023a4bbe4bb9bfb23ee7e1afc8d0abad217641f3","revisionTime":"2017-08-09T01:16:44Z"},
