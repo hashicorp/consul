@@ -3,13 +3,15 @@
         <h1>
             Services
         </h1>
+    {{/block-slot}}
+    {{#block-slot 'toolbar'}}
 {{#if (gt items.length 0) }}
-    {{catalog-filter filters=healthFilters search=filters.s status=filters.status onchange=(action 'filter')}}
+        {{catalog-filter filters=healthFilters search=filters.s status=filters.status onchange=(action 'filter')}}
 {{/if}}
     {{/block-slot}}
     {{#block-slot 'content'}}
 {{#if (gt filtered.length 0) }}
-        <table>
+    <table style="height: {{height}}px">
             <thead>
                 <tr>
                     <th>Service</th>
@@ -17,11 +19,10 @@
                     <th>Tags</th>
                 </tr>
             </thead>
-    {{#tabular-collection
-        items=filtered
-        tagName=''
-        cell-layout=(fixed-grid-layout 1150 46) as |item index|
-    }}
+            {{#tabular-collection
+                items=filtered
+                cell-layout=(fixed-grid-layout width 46) as |item index|
+            }}
                     <td>
                         <a href={{href-to 'dc.services.show' item.Name }}>{{item.Name}}</a>
                     </td>

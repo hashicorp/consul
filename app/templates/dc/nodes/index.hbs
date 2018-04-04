@@ -3,6 +3,8 @@
         <h1>
             Nodes
         </h1>
+    {{/block-slot}}
+    {{#block-slot 'toolbar'}}
 {{#if (gt items.length 0) }}
         {{catalog-filter filters=healthFilters search=filters.s status=filters.status onchange=(action 'filter')}}
 {{/if}}
@@ -12,6 +14,7 @@
         <div class="unhealthy">
             <h2>Unhealthy Nodes</h2>
             <div>
+                {{! think about 2 differeing views here }}
                 {{#filtered-list tagName="ul" items=unhealthy as |item|}}
                     <li>
                         {{healthchecked-resource

@@ -31,7 +31,8 @@ th,
   @extend .is-size-7;
 }
 button,
-.with-confirmation p {
+.with-confirmation p,
+%form-element em {
   @extend .is-size-8;
 }
 th,

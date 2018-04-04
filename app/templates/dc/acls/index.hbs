@@ -3,19 +3,26 @@
         <h1>
             ACL Tokens
         </h1>
-{{#if (gt items.length 0)}}
+    {{/block-slot}}
+    {{#block-slot 'toolbar'}}
+{{#if (gt items.length 0) }}
         {{acl-filter filters=typeFilters search=filters.s status=filters.status onchange=(action 'filter')}}
 {{/if}}
     {{/block-slot}}
     {{#block-slot 'content'}}
 {{#if (gt filtered.length 0)}}
         <table>
-    {{#tabular-collection
-        items=filtered
-        tagName=''
-        cell-layout=(fixed-grid-layout 1150 46) as |item index|
-    }}
+            <thead>
                 <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            {{#tabular-collection
+                items=filtered
+                cell-layout=(fixed-grid-layout 1150 46) as |item index|
+            }}
                     <td>
                         <a href={{href-to 'dc.acls.edit' item.ID}}>{{item.Name}}</a>
                     </td>
@@ -25,11 +32,12 @@
                     <td>
                         Actions
                     </td>
-                </tr>
-    {{/tabular-collection}}
+            {{/tabular-collection}}
         </table>
 {{else}}
-        <p>There are no ACLs.</p>
+    <p>
+        There are no ACLs.
+    </p>
 {{/if}}
     {{/block-slot}}
 {{/app-view}}

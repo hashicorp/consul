@@ -15,10 +15,11 @@
                     <th>Actions</th>
                 </tr>
             </thead>
-    {{#filtered-list tagName="tbody" items=items as |item|}}
-                <tr>
-                    <td>
-                        {{!if item.isFolder "bg-gray" "bg-light-gray" }}
+            {{#tabular-collection
+                items=items
+                cell-layout=(fixed-grid-layout 1150 46) as |item index|
+            }}
+                    <td class={{if item.isFolder "folder" "file" }}>
                         <a href={{href-to item.linkToRoute item.Key}}>{{item.basename}}</a>
                     </td>
                     <td>
@@ -30,8 +31,7 @@
                     <td>
                         Actions
                     </td>
-                </tr>
-    {{/filtered-list}}
+            {{/tabular-collection}}
         </table>
 {{else}}
         <p>There are no Key / Value pairs.</p>

@@ -2496,7 +2496,7 @@ ember-cli-htmlbars-inline-precompile@^1.0.0:
     heimdalljs-logger "^0.1.7"
     silent-error "^1.1.0"
 
-ember-cli-htmlbars@^1.0.1, ember-cli-htmlbars@^1.0.3:
+ember-cli-htmlbars@^1.0.1, ember-cli-htmlbars@^1.0.3, ember-cli-htmlbars@^1.0.5:
   version "1.3.4"
   resolved "https://registry.yarnpkg.com/ember-cli-htmlbars/-/ember-cli-htmlbars-1.3.4.tgz#461289724b34af372a6a0c4b6635819156963353"
   dependencies:
@@ -2894,6 +2894,13 @@ ember-qunit@^3.3.2:
     ember-cli-babel "^6.3.0"
     ember-cli-test-loader "^2.2.0"
     qunit "^2.5.0"
+
+ember-resize@^0.0.17:
+  version "0.0.17"
+  resolved "https://registry.yarnpkg.com/ember-resize/-/ember-resize-0.0.17.tgz#42bd7894cd7ed68bdc88fddb40efca18147f6bd5"
+  dependencies:
+    ember-cli-babel "^5.1.6"
+    ember-cli-htmlbars "^1.0.5"
 
 ember-resolver@^4.0.0:
   version "4.5.0"

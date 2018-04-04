@@ -10,10 +10,17 @@
   @extend .control, .field;
   display: block;
 }
+%form-element > span,
+%form-element > em {
+  margin-left: 8px;
+}
 %form-element > span {
   @extend .label;
   text-transform: uppercase;
-  margin-left: 8px;
+}
+%form-element > em {
+  font-style: normal;
+  color: $text-note;
 }
 %form-element > span > * {
   text-transform: none;

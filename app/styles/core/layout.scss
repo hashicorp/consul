@@ -1,7 +1,6 @@
 #wrapper {
   @extend .container;
   position: static;
-  box-sizing: border-box;
   max-width: 1150px;
   padding: 0 4.7244%; // 60px
   width: auto; // stop bulma jumping around
@@ -12,4 +11,11 @@
 }
 main {
   flex: 1;
+}
+// workaround bulma's sweeping box-sizing
+#wrapper {
+  box-sizing: content-box;
+}
+main {
+  box-sizing: border-box;
 }

@@ -32,7 +32,7 @@
             <div>
                 <button type="submit" {{ action "update" model}}>Save</button>
                 <button type="button" class="type-cancel" {{ action "cancel" model}}>Cancel</button>
-        {{# if model.isNotAnon }}
+{{# if model.isNotAnon }}
                 <div class="with-confirmation">
                     <p>
                         Are you sure you want to delete {{model.Name}}?
@@ -40,7 +40,7 @@
                     <button type="button" class="type-delete" {{ action "requestDelete" model}}>Delete</button>
                     <button type="button" class="type-cancel" {{ action "requestDelete" model}}>Cancel</button>
                 </div>
-        {{/if}}
+{{/if}}
             </div>
         </form>
     {{/block-slot}}

@@ -10,6 +10,7 @@
                 <label class="type-text">
                     <span>Key Name</span>
                     <input type="text" value={{key.basename}} />
+                    <em>To create a folder, end a key with <code>/</code></em>
                 </label>
                 <div>
                     <label class="type-toggle">
@@ -28,10 +29,16 @@
             </fieldset>
             {{!if (or model.isLocked model.isLoading)}}
             <button type="submit" {{action "update" key}}>Save</button>
-            <button {{action "cancel" key}} disabled={{model.isLoading}}>Cancel changes</button>
+            <button type="button" {{action "cancel" key}} disabled={{model.isLoading}}>Cancel changes</button>
 
             {{!if (or model.isLocked model.isLoading)}}
-            <button {{action "requestDelete" key }}>Delete</button>
+                <div class="with-confirmation">
+                    <p>
+                        Are you sure you want to delete {{key.basename}}?
+                    </p>
+                    <button type="button" class="type-delete" {{ action "requestDelete" model}}>Delete</button>
+                    <button type="button" class="type-cancel" {{ action "requestDelete" model}}>Cancel</button>
+                </div>
         </form>
 
         {{#if key.isLocked}}
@@ -51,7 +58,7 @@
                     <dt>Health Checks</dt>
                     <dd>Checks in here</dd>
                 </dl>
-                <button {{ action "requestInvalidateSession" session }}>Invalidate</button>
+                <button type="button" class="type-delete" {{ action "requestInvalidateSession" session }}>Invalidate Session</button>
             </div>
         {{/if}}
     {{/block-slot}}
