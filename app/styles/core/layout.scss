@@ -1,5 +1,15 @@
 #wrapper {
   @extend .container;
   position: static;
+  box-sizing: border-box;
   max-width: 1150px;
+  padding: 0 4.7244%; // 60px
+  width: auto; // stop bulma jumping around
+
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+}
+main {
+  flex: 1;
 }

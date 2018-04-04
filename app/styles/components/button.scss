@@ -2,8 +2,10 @@ button {
   @extend .button;
   padding-left: 1.7em;
   padding-right: 1.7em;
+  box-shadow: 0 3px 1px 0 rgba(0, 0, 0, 0.12);
 }
-button[type='button'] {
+button:not(:last-child) {
+  margin-right: 7px;
 }
 button:hover,
 button:focus {
@@ -14,4 +16,22 @@ button:active {
 }
 button[type='submit'] {
   @extend .is-primary;
+}
+button:not([type='submit']) {
+  border-color: currentColor;
+}
+button[type='button'] {
+  color: $text-blue;
+}
+button.type-delete {
+  color: $danger;
+}
+.with-confirmation {
+  float: right;
+  display: flex;
+  align-items: center;
+}
+.with-confirmation p {
+  margin-right: 1em;
+  color: $text-note;
 }

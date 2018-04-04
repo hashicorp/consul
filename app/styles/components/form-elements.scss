@@ -1,0 +1,73 @@
+.label {
+  margin-bottom: 0.25em;
+  font-weight: normal;
+}
+.input {
+  box-shadow: none;
+}
+
+%form-element {
+  @extend .control, .field;
+  display: block;
+}
+%form-element > span {
+  @extend .label;
+  text-transform: uppercase;
+  margin-left: 8px;
+}
+%form-element > span > * {
+  text-transform: none;
+}
+%form-element > span > a {
+  position: relative;
+  padding-right: 1.8em;
+}
+%form-element > span > a::after {
+  content: '';
+  display: block;
+  position: absolute;
+  right: 0;
+  top: 0;
+  border-radius: 100%;
+  width: 1.2em;
+  height: 1.2em;
+  border: 1px solid $border-blue;
+}
+%form-element,
+%radio-group {
+  margin-bottom: 1.55em !important;
+}
+%radio-group {
+  @extend .control, .field;
+  overflow: hidden;
+  padding-left: 1px;
+}
+%radio-group label {
+  @extend %form-element, .radio;
+  float: left;
+}
+%radio-group label:not(:last-child) {
+  margin-right: 25px;
+}
+%radio-group label > span {
+  margin-left: 1em;
+  float: right;
+}
+%radio-group label,
+%radio-group label > span {
+  margin-bottom: 0 !important;
+}
+%form-element [type='text'] {
+  @extend .input;
+  color: $text-content-blue;
+  border-color: $text-field-blue;
+  background-color: $lightest-gray;
+  padding: 17px 15px;
+}
+%form-element textarea {
+  @extend .textarea;
+}
+
+.type-toggle input {
+  display: none;
+}

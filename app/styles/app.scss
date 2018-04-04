@@ -1,5 +1,6 @@
 @import 'core/color';
 @import 'core/fonts';
+$radius: 2px;
 @import 'ember-bulma-css/utilities/_all';
 @import 'ember-bulma-css/base/_all';
 @import 'ember-bulma-css/elements/_all';
@@ -10,11 +11,12 @@
 @import 'core/reset';
 @import 'core/layout';
 
+@import 'components/navbar';
+@import 'components/footer';
 @import 'components/button';
 @import 'components/tabs';
 @import 'components/healthcheck-status';
 @import 'components/healthchecked-resource';
-@import 'components/navbar';
 @import 'components/expanded-single-select';
 @import 'components/app-view';
 @import 'components/tabular-collection';

@@ -10,19 +10,23 @@
     {{#block-slot 'content'}}
 {{#if (gt filtered.length 0)}}
         <table>
-    {{#filtered-list tagName="tbody" items=filtered as |item|}}
+    {{#tabular-collection
+        items=filtered
+        tagName=''
+        cell-layout=(fixed-grid-layout 1150 46) as |item index|
+    }}
                 <tr>
                     <td>
                         <a href={{href-to 'dc.acls.edit' item.ID}}>{{item.Name}}</a>
                     </td>
                     <td>
-                        {{item.Type}}
+                        <span>{{item.Type}}</span>
                     </td>
                     <td>
                         Actions
                     </td>
                 </tr>
-    {{/filtered-list}}
+    {{/tabular-collection}}
         </table>
 {{else}}
         <p>There are no ACLs.</p>

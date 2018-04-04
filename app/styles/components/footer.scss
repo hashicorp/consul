@@ -1,0 +1,30 @@
+#wrapper > footer {
+  @extend %footer;
+}
+%footer {
+  border-top: 1px solid $border-blue;
+  padding: 25px;
+  display: flex;
+  justify-content: center;
+}
+%footer > * {
+  display: block;
+  padding: 10px;
+  font-size: inherit;
+  color: $text-note;
+}
+%footer > a:first-child {
+  position: relative;
+}
+%footer > a:first-child::before {
+  // temp square
+  display: block;
+  content: '';
+  width: 25px;
+  height: 25px;
+  background-color: $text-note;
+  position: absolute;
+  top: 50%;
+  margin-top: -13px;
+  left: -30px;
+}

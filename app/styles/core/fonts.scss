@@ -22,17 +22,19 @@ h2 {
   @extend .is-size-5;
 }
 body,
-pre code {
+pre code,
+td {
   @extend .is-size-6; // .is-size-normal doesn't seem to exist
 }
 th,
-button {
+%footer {
   @extend .is-size-7;
-  font-weight: normal;
 }
-button {
+button,
+.with-confirmation p {
   @extend .is-size-8;
 }
-td {
-  @extend .is-size-6;
+th,
+button {
+  font-weight: normal;
 }

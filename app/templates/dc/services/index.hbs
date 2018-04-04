@@ -17,11 +17,11 @@
                     <th>Tags</th>
                 </tr>
             </thead>
-            {{#tabular-collection
-                items=filtered
-                tagName=''
-                cell-layout=(fixed-grid-layout 1150 46) as |item index|
-            }}
+    {{#tabular-collection
+        items=filtered
+        tagName=''
+        cell-layout=(fixed-grid-layout 1150 46) as |item index|
+    }}
                     <td>
                         <a href={{href-to 'dc.services.show' item.Name }}>{{item.Name}}</a>
                     </td>
@@ -36,7 +36,7 @@
                     <td>
                         Need to switch API to the public catalog one
                     </td>
-            {{/tabular-collection}}
+    {{/tabular-collection}}
         </table>
 {{else}}
         <p>

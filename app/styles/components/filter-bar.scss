@@ -1,0 +1,12 @@
+@import './expanded-single-select';
+%filter-bar {
+  @extend .columns;
+  height: 64px; // 36 + (14 * 2)
+  justify-content: space-between;
+  margin: 0 !important;
+  padding: 14px;
+  background-color: $lightest-gray;
+}
+%filter-bar [role='radiogroup'] {
+  @extend %expanded-single-select;
+}
