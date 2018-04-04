@@ -1,6 +1,8 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
+import WithFeedback from 'consul-ui/mixins/with-feedback';
+import WithKeyUtils from 'consul-ui/mixins/with-key-utils';
 import rootKey from 'consul-ui/utils/rootKey';
 import transitionToNearestParent from 'consul-ui/utils/transitionToNearestParent';
 import ascend from 'consul-ui/utils/ascend';
@@ -14,7 +16,7 @@ const prefix = function(key, prefix) {
   }
   return key;
 };
-export default Route.extend({
+export default Route.extend(WithFeedback, WithKeyUtils, {
   repo: service('kv'),
   model: function(params) {
     const repo = this.get('repo');

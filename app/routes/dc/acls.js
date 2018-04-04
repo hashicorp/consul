@@ -3,7 +3,8 @@ import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 
 import { next } from '@ember/runloop';
-export default Route.extend({
+import WithFeedback from 'consul-ui/mixins/with-feedback';
+export default Route.extend(WithFeedback, {
   repo: service('acls'),
   model: function(params) {
     const repo = this.get('repo');
