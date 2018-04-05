@@ -42,11 +42,8 @@ type Service struct {
 	// connections will fail to verify.
 	client *api.Client
 
-	// serverTLSCfg is the (reloadable) TLS config we use for serving.
-	serverTLSCfg *reloadableTLSConfig
-
-	// clientTLSCfg is the (reloadable) TLS config we use for dialling.
-	clientTLSCfg *reloadableTLSConfig
+	// tlsCfg is the dynamic TLS config
+	tlsCfg *dynamicTLSConfig
 
 	// httpResolverFromAddr is a function that returns a Resolver from a string
 	// address for HTTP clients. It's privately pluggable to make testing easier
@@ -73,9 +70,8 @@ func NewServiceWithLogger(serviceID string, client *api.Client,
 		serviceID: serviceID,
 		client:    client,
 		logger:    logger,
+		tlsCfg:    newDynamicTLSConfig(defaultTLSConfig()),
 	}
-	s.serverTLSCfg = newReloadableTLSConfig(defaultTLSConfig(newServerSideVerifier(client, serviceID)))
-	s.clientTLSCfg = newReloadableTLSConfig(defaultTLSConfig(clientSideVerifier))
 
 	// TODO(banks) run the background certificate sync
 	return s, nil
@@ -94,13 +90,7 @@ func NewDevServiceFromCertFiles(serviceID string, client *api.Client,
 	if err != nil {
 		return nil, err
 	}
-
-	// Note that newReloadableTLSConfig makes a copy so we can re-use the same
-	// base for both client and server with swapped verifiers.
-	setVerifier(tlsCfg, newServerSideVerifier(client, serviceID))
-	s.serverTLSCfg = newReloadableTLSConfig(tlsCfg)
-	setVerifier(tlsCfg, clientSideVerifier)
-	s.clientTLSCfg = newReloadableTLSConfig(tlsCfg)
+	s.tlsCfg = newDynamicTLSConfig(tlsCfg)
 	return s, nil
 }
 
@@ -115,7 +105,7 @@ func NewDevServiceFromCertFiles(serviceID string, client *api.Client,
 // error during renewal. The listener will be able to accept connections again
 // once connectivity is restored provided the client's Token is valid.
 func (s *Service) ServerTLSConfig() *tls.Config {
-	return s.serverTLSCfg.TLSConfig()
+	return s.tlsCfg.Get(newServerSideVerifier(s.client, s.serviceID))
 }
 
 // Dial connects to a remote Connect-enabled server. The passed Resolver is used
@@ -138,7 +128,7 @@ func (s *Service) Dial(ctx context.Context, resolver Resolver) (net.Conn, error)
 		return nil, err
 	}
 
-	tlsConn := tls.Client(tcpConn, s.clientTLSCfg.TLSConfig())
+	tlsConn := tls.Client(tcpConn, s.tlsCfg.Get(clientSideVerifier))
 	// Set deadline for Handshake to complete.
 	deadline, ok := ctx.Deadline()
 	if ok {

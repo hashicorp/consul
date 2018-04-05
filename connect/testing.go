@@ -20,17 +20,15 @@ import (
 func TestService(t testing.T, service string, ca *structs.CARoot) *Service {
 	t.Helper()
 
-	// Don't need to talk to client since we are setting TLSConfig locally
+	// Don't need to talk to client since we are setting TLSConfig locally. This
+	// will cause server verification to skip AuthZ too.
 	svc, err := NewService(service, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// verify server without AuthZ call
-	svc.serverTLSCfg = newReloadableTLSConfig(
-		TestTLSConfigWithVerifier(t, service, ca, newServerSideVerifier(nil, service)))
-	svc.clientTLSCfg = newReloadableTLSConfig(
-		TestTLSConfigWithVerifier(t, service, ca, clientSideVerifier))
+	// Override the tlsConfig hackily.
+	svc.tlsCfg = newDynamicTLSConfig(TestTLSConfig(t, service, ca))
 
 	return svc
 }
@@ -39,17 +37,7 @@ func TestService(t testing.T, service string, ca *structs.CARoot) *Service {
 func TestTLSConfig(t testing.T, service string, ca *structs.CARoot) *tls.Config {
 	t.Helper()
 
-	// Insecure default (nil verifier)
-	return TestTLSConfigWithVerifier(t, service, ca, nil)
-}
-
-// TestTLSConfigWithVerifier returns a *tls.Config suitable for use during
-// tests, it will use the given verifierFunc to verify tls certificates.
-func TestTLSConfigWithVerifier(t testing.T, service string, ca *structs.CARoot,
-	verifier verifierFunc) *tls.Config {
-	t.Helper()
-
-	cfg := defaultTLSConfig(verifier)
+	cfg := defaultTLSConfig()
 	cfg.Certificates = []tls.Certificate{TestSvcKeyPair(t, service, ca)}
 	cfg.RootCAs = TestCAPool(t, ca)
 	cfg.ClientCAs = TestCAPool(t, ca)

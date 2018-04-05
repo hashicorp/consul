@@ -5,7 +5,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"io/ioutil"
-	"log"
 	"sync"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -14,13 +13,18 @@ import (
 
 // verifierFunc is a function that can accept rawCertificate bytes from a peer
 // and verify them against a given tls.Config. It's called from the
-// tls.Config.VerifyPeerCertificate hook. We don't pass verifiedChains since
-// that is always nil in our usage. Implementations can use the roots provided
-// in the cfg to verify the certs.
+// tls.Config.VerifyPeerCertificate hook.
+//
+// We don't pass verifiedChains since that is always nil in our usage.
+// Implementations can use the roots provided in the cfg to verify the certs.
+//
+// The passed *tls.Config may have a nil VerifyPeerCertificates function but
+// will have correct roots, leaf and other fields.
 type verifierFunc func(cfg *tls.Config, rawCerts [][]byte) error
 
-// defaultTLSConfig returns the standard config.
-func defaultTLSConfig(v verifierFunc) *tls.Config {
+// defaultTLSConfig returns the standard config with no peer verifier. It is
+// insecure to use it as-is.
+func defaultTLSConfig() *tls.Config {
 	cfg := &tls.Config{
 		MinVersion: tls.VersionTLS12,
 		ClientAuth: tls.RequireAndVerifyClientCert,
@@ -45,70 +49,11 @@ func defaultTLSConfig(v verifierFunc) *tls.Config {
 		// See: https://github.com/golang/go/blob/917c33fe8672116b04848cf11545296789cafd3b/src/net/http/server.go#L2724-L2731
 		NextProtos: []string{"h2"},
 	}
-	setVerifier(cfg, v)
 	return cfg
 }
 
-// setVerifier takes a *tls.Config and set's it's VerifyPeerCertificates hook to
-// use the passed verifierFunc.
-func setVerifier(cfg *tls.Config, v verifierFunc) {
-	if v != nil {
-		cfg.VerifyPeerCertificate = func(rawCerts [][]byte, chains [][]*x509.Certificate) error {
-			return v(cfg, rawCerts)
-		}
-	}
-}
-
-// reloadableTLSConfig exposes a tls.Config that can have it's certificates
-// reloaded. On a server, this uses GetConfigForClient to pass the current
-// tls.Config or client certificate for each acceptted connection. On a client,
-// this uses GetClientCertificate to provide the current client certificate.
-type reloadableTLSConfig struct {
-	mu sync.Mutex
-
-	// cfg is the current config to use for new connections
-	cfg *tls.Config
-}
-
-// newReloadableTLSConfig returns a reloadable config currently set to base.
-func newReloadableTLSConfig(base *tls.Config) *reloadableTLSConfig {
-	c := &reloadableTLSConfig{}
-	c.SetTLSConfig(base)
-	return c
-}
-
-// TLSConfig returns a *tls.Config that will dynamically load certs. It's
-// suitable for use in either a client or server.
-func (c *reloadableTLSConfig) TLSConfig() *tls.Config {
-	c.mu.Lock()
-	cfgCopy := c.cfg
-	c.mu.Unlock()
-	return cfgCopy
-}
-
-// SetTLSConfig sets the config used for future connections. It is safe to call
-// from any goroutine.
-func (c *reloadableTLSConfig) SetTLSConfig(cfg *tls.Config) error {
-	copy := cfg.Clone()
-	copy.GetClientCertificate = func(*tls.CertificateRequestInfo) (*tls.Certificate, error) {
-		current := c.TLSConfig()
-		if len(current.Certificates) < 1 {
-			return nil, errors.New("tls: no certificates configured")
-		}
-		return &current.Certificates[0], nil
-	}
-	copy.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
-		return c.TLSConfig(), nil
-	}
-
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.cfg = copy
-	return nil
-}
-
 // devTLSConfigFromFiles returns a default TLS Config but with certs and CAs
-// based on local files for dev.
+// based on local files for dev. No verification is setup.
 func devTLSConfigFromFiles(caFile, certFile,
 	keyFile string) (*tls.Config, error) {
 
@@ -126,9 +71,7 @@ func devTLSConfigFromFiles(caFile, certFile,
 		return nil, err
 	}
 
-	// Insecure no verification
-	cfg := defaultTLSConfig(nil)
-
+	cfg := defaultTLSConfig()
 	cfg.Certificates = []tls.Certificate{cert}
 	cfg.RootCAs = roots
 	cfg.ClientCAs = roots
@@ -210,7 +153,6 @@ func newServerSideVerifier(client *api.Client, serviceID string) verifierFunc {
 		if !resp.Authorized {
 			return errors.New("connect: authz denied: " + resp.Reason)
 		}
-		log.Println("[DEBUG] authz result", resp)
 		return nil
 	}
 }
@@ -264,4 +206,102 @@ func verifyChain(tlsCfg *tls.Config, rawCerts [][]byte, client bool) (*x509.Cert
 	}
 	_, err := certs[0].Verify(opts)
 	return certs[0], err
+}
+
+// dynamicTLSConfig represents the state for returning a tls.Config that can
+// have root and leaf certificates updated dynamically with all existing clients
+// and servers automatically picking up the changes. It requires initialising
+// with a valid base config from which all the non-certificate and verification
+// params are used. The base config passed should not be modified externally as
+// it is assumed to be serialised by the embedded mutex.
+type dynamicTLSConfig struct {
+	base *tls.Config
+
+	sync.Mutex
+	leaf  *tls.Certificate
+	roots *x509.CertPool
+}
+
+// newDynamicTLSConfig returns a dynamicTLSConfig constructed from base.
+// base.Certificates[0] is used as the initial leaf and base.RootCAs is used as
+// the initial roots.
+func newDynamicTLSConfig(base *tls.Config) *dynamicTLSConfig {
+	cfg := &dynamicTLSConfig{
+		base: base,
+	}
+	if len(base.Certificates) > 0 {
+		cfg.leaf = &base.Certificates[0]
+	}
+	if base.RootCAs != nil {
+		cfg.roots = base.RootCAs
+	}
+	return cfg
+}
+
+// Get fetches the lastest tls.Config with all the hooks attached to keep it
+// loading the most recent roots and certs even after future changes to cfg.
+//
+// The verifierFunc passed will be attached to the config returned such that it
+// runs with the _latest_ config object returned passed to it. That means that a
+// client can use this config for a long time and will still verify against the
+// latest roots even though the roots in the struct is has can't change.
+func (cfg *dynamicTLSConfig) Get(v verifierFunc) *tls.Config {
+	cfg.Lock()
+	defer cfg.Unlock()
+	copy := cfg.base.Clone()
+	copy.RootCAs = cfg.roots
+	copy.ClientCAs = cfg.roots
+	if v != nil {
+		copy.VerifyPeerCertificate = func(rawCerts [][]byte, chains [][]*x509.Certificate) error {
+			return v(cfg.Get(nil), rawCerts)
+		}
+	}
+	copy.GetCertificate = func(_ *tls.ClientHelloInfo) (*tls.Certificate, error) {
+		leaf := cfg.Leaf()
+		if leaf == nil {
+			return nil, errors.New("tls: no certificates configured")
+		}
+		return leaf, nil
+	}
+	copy.GetClientCertificate = func(_ *tls.CertificateRequestInfo) (*tls.Certificate, error) {
+		leaf := cfg.Leaf()
+		if leaf == nil {
+			return nil, errors.New("tls: no certificates configured")
+		}
+		return leaf, nil
+	}
+	copy.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
+		return cfg.Get(v), nil
+	}
+	return copy
+}
+
+// SetRoots sets new roots.
+func (cfg *dynamicTLSConfig) SetRoots(roots *x509.CertPool) error {
+	cfg.Lock()
+	defer cfg.Unlock()
+	cfg.roots = roots
+	return nil
+}
+
+// SetLeaf sets a new leaf.
+func (cfg *dynamicTLSConfig) SetLeaf(leaf *tls.Certificate) error {
+	cfg.Lock()
+	defer cfg.Unlock()
+	cfg.leaf = leaf
+	return nil
+}
+
+// Roots returns the current CA root CertPool.
+func (cfg *dynamicTLSConfig) Roots() *x509.CertPool {
+	cfg.Lock()
+	defer cfg.Unlock()
+	return cfg.roots
+}
+
+// Leaf returns the current Leaf certificate.
+func (cfg *dynamicTLSConfig) Leaf() *tls.Certificate {
+	cfg.Lock()
+	defer cfg.Unlock()
+	return cfg.leaf
 }

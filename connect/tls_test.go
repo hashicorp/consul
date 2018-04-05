@@ -12,53 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestReloadableTLSConfig(t *testing.T) {
-	require := require.New(t)
-	base := defaultTLSConfig(nil)
-
-	c := newReloadableTLSConfig(base)
-
-	// The dynamic config should be the one we loaded (with some different hooks)
-	got := c.TLSConfig()
-	expect := base.Clone()
-	// Equal and even cmp.Diff fail on tls.Config due to unexported fields in
-	// each. Compare a few things to prove it's returning the bits we
-	// specifically set.
-	require.Equal(expect.Certificates, got.Certificates)
-	require.Equal(expect.RootCAs, got.RootCAs)
-	require.Equal(expect.ClientCAs, got.ClientCAs)
-	require.Equal(expect.InsecureSkipVerify, got.InsecureSkipVerify)
-	require.Equal(expect.MinVersion, got.MinVersion)
-	require.Equal(expect.CipherSuites, got.CipherSuites)
-	require.NotNil(got.GetClientCertificate)
-	require.NotNil(got.GetConfigForClient)
-	require.Contains(got.NextProtos, "h2")
-
-	ca := connect.TestCA(t, nil)
-
-	// Now change the config as if we just loaded certs from Consul
-	new := TestTLSConfig(t, "web", ca)
-	err := c.SetTLSConfig(new)
-	require.Nil(err)
-
-	// Change the passed config to ensure SetTLSConfig made a copy otherwise this
-	// is racey.
-	expect = new.Clone()
-	new.Certificates = nil
-
-	// The dynamic config should be the one we loaded (with some different hooks)
-	got = c.TLSConfig()
-	require.Equal(expect.Certificates, got.Certificates)
-	require.Equal(expect.RootCAs, got.RootCAs)
-	require.Equal(expect.ClientCAs, got.ClientCAs)
-	require.Equal(expect.InsecureSkipVerify, got.InsecureSkipVerify)
-	require.Equal(expect.MinVersion, got.MinVersion)
-	require.Equal(expect.CipherSuites, got.CipherSuites)
-	require.NotNil(got.GetClientCertificate)
-	require.NotNil(got.GetConfigForClient)
-	require.Contains(got.NextProtos, "h2")
-}
-
 func Test_verifyServerCertMatchesURI(t *testing.T) {
 	ca1 := connect.TestCA(t, nil)
 
@@ -287,4 +240,121 @@ func TestServerSideVerifier(t *testing.T) {
 			}
 		})
 	}
+}
+
+// requireEqualTLSConfig compares tlsConfig fields we care about. Equal and even
+// cmp.Diff fail on tls.Config due to unexported fields in each. expectLeaf
+// allows expecting a leaf cert different from the one in expect
+func requireEqualTLSConfig(t *testing.T, expect, got *tls.Config) {
+	require := require.New(t)
+	require.Equal(expect.RootCAs, got.RootCAs)
+	require.Equal(expect.ClientCAs, got.ClientCAs)
+	require.Equal(expect.InsecureSkipVerify, got.InsecureSkipVerify)
+	require.Equal(expect.MinVersion, got.MinVersion)
+	require.Equal(expect.CipherSuites, got.CipherSuites)
+	require.NotNil(got.GetCertificate)
+	require.NotNil(got.GetClientCertificate)
+	require.NotNil(got.GetConfigForClient)
+	require.Contains(got.NextProtos, "h2")
+
+	var expectLeaf *tls.Certificate
+	var err error
+	if expect.GetCertificate != nil {
+		expectLeaf, err = expect.GetCertificate(nil)
+		require.Nil(err)
+	} else if len(expect.Certificates) > 0 {
+		expectLeaf = &expect.Certificates[0]
+	}
+
+	gotLeaf, err := got.GetCertificate(nil)
+	require.Nil(err)
+	require.Equal(expectLeaf, gotLeaf)
+
+	gotLeaf, err = got.GetClientCertificate(nil)
+	require.Nil(err)
+	require.Equal(expectLeaf, gotLeaf)
+}
+
+// requireCorrectVerifier invokes got.VerifyPeerCertificate and expects the
+// tls.Config arg to be returned on the provided channel. This ensures the
+// correct verifier func was attached to got.
+//
+// It then ensures that the tls.Config passed to the verifierFunc was actually
+// the same as the expected current value.
+func requireCorrectVerifier(t *testing.T, expect, got *tls.Config,
+	ch chan *tls.Config) {
+
+	err := got.VerifyPeerCertificate(nil, nil)
+	require.Nil(t, err)
+	verifierCfg := <-ch
+	// The tls.Cfg passed to verifyFunc should be the expected (current) value.
+	requireEqualTLSConfig(t, expect, verifierCfg)
+}
+
+func TestDynamicTLSConfig(t *testing.T) {
+	require := require.New(t)
+
+	ca1 := connect.TestCA(t, nil)
+	ca2 := connect.TestCA(t, nil)
+	baseCfg := TestTLSConfig(t, "web", ca1)
+	newCfg := TestTLSConfig(t, "web", ca2)
+
+	c := newDynamicTLSConfig(baseCfg)
+
+	// Should set them from the base config
+	require.Equal(c.Leaf(), &baseCfg.Certificates[0])
+	require.Equal(c.Roots(), baseCfg.RootCAs)
+
+	// Create verifiers we can assert are set and run correctly.
+	v1Ch := make(chan *tls.Config, 1)
+	v2Ch := make(chan *tls.Config, 1)
+	v3Ch := make(chan *tls.Config, 1)
+	verify1 := func(cfg *tls.Config, rawCerts [][]byte) error {
+		v1Ch <- cfg
+		return nil
+	}
+	verify2 := func(cfg *tls.Config, rawCerts [][]byte) error {
+		v2Ch <- cfg
+		return nil
+	}
+	verify3 := func(cfg *tls.Config, rawCerts [][]byte) error {
+		v3Ch <- cfg
+		return nil
+	}
+
+	// The dynamic config should be the one we loaded (with some different hooks)
+	gotBefore := c.Get(verify1)
+	requireEqualTLSConfig(t, baseCfg, gotBefore)
+	requireCorrectVerifier(t, baseCfg, gotBefore, v1Ch)
+
+	// Now change the roots as if we just loaded new roots from Consul
+	err := c.SetRoots(newCfg.RootCAs)
+	require.Nil(err)
+
+	// The dynamic config should have the new roots, but old leaf
+	gotAfter := c.Get(verify2)
+	expect := newCfg.Clone()
+	expect.GetCertificate = func(_ *tls.ClientHelloInfo) (*tls.Certificate, error) {
+		return &baseCfg.Certificates[0], nil
+	}
+	requireEqualTLSConfig(t, expect, gotAfter)
+	requireCorrectVerifier(t, expect, gotAfter, v2Ch)
+
+	// The old config fetched before should still call it's own verify func, but
+	// that verifier should be passed the new config (expect).
+	requireCorrectVerifier(t, expect, gotBefore, v1Ch)
+
+	// Now change the leaf
+	err = c.SetLeaf(&newCfg.Certificates[0])
+	require.Nil(err)
+
+	// The dynamic config should have the new roots, AND new leaf
+	gotAfterLeaf := c.Get(verify3)
+	requireEqualTLSConfig(t, newCfg, gotAfterLeaf)
+	requireCorrectVerifier(t, newCfg, gotAfterLeaf, v3Ch)
+
+	// Both older configs should still call their own verify funcs, but those
+	// verifiers should be passed the new config.
+	requireCorrectVerifier(t, newCfg, gotBefore, v1Ch)
+	requireCorrectVerifier(t, newCfg, gotAfter, v2Ch)
 }
