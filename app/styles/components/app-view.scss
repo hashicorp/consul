@@ -20,11 +20,13 @@ main {
 }
 %app-view header form {
   @extend %filter-bar;
+  @extend .columns;
+  justify-content: space-between;
 }
 %app-view header > div:first-child {
   display: flex;
   width: 100%;
-  padding-bottom: 0.25em;
+  // padding-bottom: 0.25em;
   border-bottom: 2px solid;
 }
 %app-view header > div:first-child > div:first-child {

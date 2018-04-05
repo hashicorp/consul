@@ -5,6 +5,7 @@ import confirm from 'consul-ui/utils/confirm';
 import error from 'consul-ui/utils/error';
 
 export default Controller.extend(WithFiltering, {
+  selectedTab: 'Health Checks',
   tabs: ['Health Checks', 'Services', 'Round Trip Time', 'Lock Sessions'],
   filter: function(item, { s = '', status = '' }) {
     return (
@@ -14,6 +15,9 @@ export default Controller.extend(WithFiltering, {
     );
   },
   actions: {
+    change: function(event) {
+      this.set('selectedTab', event.target.value);
+    },
     requestInvalidateSession: function(item) {
       confirm('Are you sure you want to invalidate this session?')
         .then(confirmed => {

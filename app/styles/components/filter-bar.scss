@@ -1,12 +1,17 @@
 @import './expanded-single-select';
 @import './icons';
+// really!?
+.filter-bar {
+  @extend %filter-bar;
+}
+%filter-bar fieldset:only-child {
+  float: right;
+}
 %filter-bar {
-  @extend .columns;
   height: 64px; // 36 + (14 * 2)
   margin: 0 !important;
   padding: 14px;
   background-color: $lightest-gray;
-  justify-content: space-between;
 }
 %filter-bar [role='radiogroup'] {
   @extend %expanded-single-select;

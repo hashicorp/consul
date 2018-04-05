@@ -1,5 +1,6 @@
 import Component from '@ember/component';
 
 export default Component.extend({
-  name: 'tab',
+  classNames: ['tab-section'],
+  name: 'tab'
 });

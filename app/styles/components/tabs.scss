@@ -1,8 +1,22 @@
 main nav {
   @extend %tab-nav, .tabs;
 }
-main nav ~ div {
+.tab-section {
   @extend %tab-section;
+}
+.tabs ul {
+  border: 0;
+}
+.tabs ul li:not(:first-child) {
+  margin-left: 37px;
+}
+.tabs a {
+  border-bottom: 3px solid transparent;
+  padding: 12px 5px;
+}
+.tabs a:hover, .tabs a:focus, .tabs a:active,
+.tabs .selected a {
+  border-bottom: 3px solid $magenta-600;
 }
 %tab-nav input[type='radio'],
 %tab-section > input[type='radio'],

@@ -1,7 +1,7 @@
 {{!<nav role="tablist">}}
     <ul>
 {{#each items as |item|}}
-        <li>
+        <li class={{if (eq selected item) 'selected' }}>
             <label for="radiogroup_{{name}}_{{item}}" role="tab" aria-controls="radiogroup_{{name}}_{{item}}_panel">
                 <a>{{item}}</a>
             </label>

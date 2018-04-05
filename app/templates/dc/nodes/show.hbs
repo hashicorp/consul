@@ -4,18 +4,22 @@
         <h1>
             {{ model.Node }}
         </h1>
+        {{tab-nav items=tabs selected=selectedTab}}
+    {{/block-slot}}
+    {{#block-slot 'toolbar'}}
     {{/block-slot}}
     {{#block-slot 'content'}}
-        {{tab-nav items=tabs}}
-        {{#tab-section id=tabs.[0] selected=true}}
+        {{#tab-section id=tabs.[0] selected=(eq selectedTab tabs.[0]) onchange=(action 'change')}}
             <ul>
     {{#each model.Checks as |check| }}
                 {{healthcheck-status tagName='li' name=check.Name class=check.Status status=check.Status output=check.Output}}
     {{/each}}
             </ul>
         {{/tab-section}}
-        {{#tab-section id=tabs.[1]}}
-            {{freetext-filter onchange=(action 'filter') value=filter.s placeholder="Search by name"}}
+        {{#tab-section id=tabs.[1] selected=(eq selectedTab tabs.[1]) onchange=(action 'change')}}
+            <form class="filter-bar">
+                {{freetext-filter onchange=(action 'filter') value=filter.s placeholder="Search by name"}}
+            </form>
             <table>
                 <thead>
                     <tr>
@@ -36,7 +40,7 @@
                 {{/tabular-collection}}
             </table>
         {{/tab-section}}
-        {{#tab-section id=tabs.[2]}}
+        {{#tab-section id=tabs.[2] selected=(eq selectedTab tabs.[2]) onchange=(action 'change')}}
             <h2>Network Tomography</h2>
             TOMOGRAPHY GRAPH GOES HERE
             {{!-- tomographyGraph tomography 336 --}}
@@ -67,7 +71,7 @@
                 </dd>
             </dl>
         {{/tab-section}}
-        {{#tab-section id=tabs.[3]}}
+        {{#tab-section id=tabs.[3] selected=(eq selectedTab tabs.[3]) onchange=(action 'change')}}
 {{#if sessions }}
         {{session-list items=sessions}}
 {{else}}
