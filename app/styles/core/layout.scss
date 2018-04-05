@@ -1,13 +1,17 @@
 #wrapper {
   @extend .container;
   position: static;
-  max-width: 1150px;
+  max-width: 1260px;
   padding: 0 4.7244%; // 60px
   width: auto; // stop bulma jumping around
 
   display: flex;
   min-height: 100vh;
   flex-direction: column;
+}
+main, #wrapper > footer {
+  max-width: 1150px;
+  padding: 0 4.365079365079365%;
 }
 main {
   flex: 1;

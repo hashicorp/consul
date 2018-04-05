@@ -1,15 +1,17 @@
-[role='banner'] {
+[role='banner']  {
   @extend %main-header;
 }
 %main-header {
+  align-items: center;
   height: 48px;
-  padding: 10px 0;
+}
+%main-header > a {
+  line-height: 0;
 }
 %main-header::before {
   content: '';
   display: block;
   width: 100vw;
-  height: 30px;
   position: absolute;
   left: 0;
   height: 48px;
@@ -25,10 +27,17 @@
 %primary-nav ul,
 %secondary-nav ul {
   @extend .columns;
+  min-height: 0;
+  margin: 0 !important;
+}
+%primary-nav a,
+%secondary-nav a {
+  padding: 3px 12px;
 }
 %main-header > *,
 %main-header li {
   @extend .column;
+  padding: 0;
 }
 %primary-nav ul,
 %secondary-nav ul {
@@ -66,7 +75,9 @@
 %secondary-nav {
   float: right;
 }
-%primary-nav a {
+// %primary-nav a,
+%primary-nav a:hover, %primary-nav a:focus, %primary-nav a:active,
+%primary-nav a.selected {
   background-color: $magenta-800;
 }
 %primary-nav a,
