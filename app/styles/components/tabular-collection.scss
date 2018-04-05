@@ -16,5 +16,16 @@ table tbody tr {
 table td,
 table th {
   flex: 1 0 auto;
+}
+table tr > *:first-child:nth-last-child(3),
+table tr > *:first-child:nth-last-child(3) ~ * {
   width: 33%;
+}
+table tr > *:first-child:nth-last-child(4),
+table tr > *:first-child:nth-last-child(4) ~ * {
+  width: 25%;
+}
+table tr > *:first-child:nth-last-child(7),
+table tr > *:first-child:nth-last-child(7) ~ * {
+  width: 14.2857%;
 }

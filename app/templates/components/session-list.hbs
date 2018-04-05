@@ -12,7 +12,6 @@
                 </thead>
                 {{#tabular-collection
                     items=items
-                    tagName=''
                     cell-layout=(fixed-grid-layout 1150 46) as |item index|
                 }}
                     <td>
@@ -39,7 +38,7 @@
                         </ul>
                     </td>
                     <td>
-                        <button {{ action "requestInvalidateSession" item }}>Invalidate</button>
+                        <button type="button" class="type-delete" {{ action "requestInvalidateSession" item }}>Invalidate</button>
                     </td>
                 {{/tabular-collection}}
             </table>

@@ -8,3 +8,6 @@ fieldset {
   border: 0;
   width: 100%;
 }
+label span {
+  user-select: none;
+}

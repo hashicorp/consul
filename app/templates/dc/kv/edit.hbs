@@ -13,9 +13,10 @@
                     <em>To create a folder, end a key with <code>/</code></em>
                 </label>
                 <div>
-                    <label class="type-toggle">
-                        <span>JSON</span>
+                    {{! temporary style attr until I can make a id/class adder }}
+                    <label class="type-toggle" style="float: right;z-index: 1;margin-bottom: 0">
                         {{ input type="checkbox" checked=json }}
+                        <span>JSON</span>
                     </label>
                     <label class="type-text">
                         <span>Value</span>
