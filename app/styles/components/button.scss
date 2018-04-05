@@ -12,10 +12,11 @@ button:focus {
   @extend .is-hovered;
 }
 
-button:active {
-}
-button[type='submit'] {
+button[type='submit'],
+button.type-create {
   @extend .is-primary;
+  border: 0;
+  color: $white !important;
 }
 button:not([type='submit']) {
   border-color: currentColor;

@@ -4,6 +4,9 @@
             ACL Tokens
         </h1>
     {{/block-slot}}
+    {{#block-slot 'actions'}}
+        <button type="button" class="type-create">Create</button>
+    {{/block-slot}}
     {{#block-slot 'toolbar'}}
 {{#if (gt items.length 0) }}
         {{acl-filter filters=typeFilters search=filters.s status=filters.status onchange=(action 'filter')}}
@@ -16,7 +19,7 @@
                 <tr>
                     <th>Name</th>
                     <th>Type</th>
-                    <th>Actions</th>
+                    <th>&nbsp;</th>
                 </tr>
             </thead>
             {{#tabular-collection
@@ -27,7 +30,11 @@
                         <a href={{href-to 'dc.acls.edit' item.ID}}>{{item.Name}}</a>
                     </td>
                     <td>
-                        <span>{{item.Type}}</span>
+                        {{#if (eq item.Type 'management')}}
+                            <strong>{{item.Type}}</strong>
+                        {{else}}
+                            <span>{{item.Type}}</span>
+                        {{/if}}
                     </td>
                     <td>
                         Actions

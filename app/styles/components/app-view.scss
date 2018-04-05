@@ -36,6 +36,10 @@ main {
 %app-view h2 {
   border-color: $border-blue;
 }
+%app-view .actions {
+  position: relative;
+  top: -5px;
+}
 // content
 %app-content .type-text,
 %app-content .type-toggle {

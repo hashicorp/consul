@@ -36,7 +36,8 @@ button,
   @extend .is-size-8;
 }
 th,
-button {
+button,
+td strong {
   font-weight: normal;
 }
 td:first-child {

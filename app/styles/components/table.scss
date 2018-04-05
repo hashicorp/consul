@@ -23,6 +23,12 @@ table td:first-child {
 table td a {
   display: block;
 }
+td strong {
+  display: inline-block;
+  background-color: $gray;
+  padding: 1px 5px;
+  border-radius: $radius;
+}
 // this isn't specific to table
 td dl {
   overflow: hidden;
