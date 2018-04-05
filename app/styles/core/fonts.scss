@@ -7,11 +7,11 @@ html {
   font-size: 16px;
 }
 // follow bulma and use 1, 2, 3, 4 etc for font sizes...
-$size-4: 1.5rem; // $size-large?
-$size-5: 1.125rem; // $size-medium?
-$size-6: 0.875rem; // $size-normal?
-$size-7: 0.8125rem; // $size-small?
-$size-8: 0.75rem; // $size-small?
+$size-4: 1.5rem; // $size-large? 24
+$size-5: 1.125rem; // $size-medium? // 18
+$size-6: 0.875rem; // $size-normal? // 14
+$size-7: 0.8125rem; // $size-small? // 13
+$size-8: 0.75rem; // $size-small? // 12
 .is-size-8 {
   font-size: $size-8;
 }
@@ -38,4 +38,7 @@ button,
 th,
 button {
   font-weight: normal;
+}
+td:first-child {
+  font-weight: bold;
 }

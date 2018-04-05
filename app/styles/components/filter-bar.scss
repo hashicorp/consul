@@ -1,4 +1,5 @@
 @import './expanded-single-select';
+@import './icons';
 %filter-bar {
   @extend .columns;
   height: 64px; // 36 + (14 * 2)
@@ -15,4 +16,36 @@
 }
 %filter-bar fieldset:last-child {
   width: 255px;
+}
+
+%filter-bar [role=radiogroup] label:not(.value-) span {
+  position: relative;
+  text-indent: 23px;
+}
+%filter-bar [role=radiogroup] label {
+  color: $text-note;
+  cursor: pointer;
+}
+%filter-bar label span::before {
+  left: 11px;
+  top: 50%;
+  margin-top: -.5em;
+}
+%filter-bar .value-passing span {
+  @extend %with-passing;
+}
+%filter-bar .value-warning span {
+  @extend %with-warning;
+}
+%filter-bar .value-critical span {
+  @extend %with-critical;
+}
+%filter-bar .value-warning span::after {
+  left: .7em;
+  top: 50%;
+  margin-top: -8px;
+  border-color: $lightest-gray;
+}
+%filter-bar .value-warning input:checked + span::after {
+  border-color: $white;
 }

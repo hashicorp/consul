@@ -1,0 +1,55 @@
+%pseudo-icon {
+  width: 1em;
+  height: 1em;
+  position: absolute;
+  content: "";
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-color: currentColor;
+  visibility: visible;
+}
+%with-tick {
+  @extend %pseudo-icon;
+  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="10" height="8" xmlns="http://www.w3.org/2000/svg"><path d="M8.95 0L10 .985 3.734 8 0 4.737l.924-1.11 2.688 2.349z" fill="#FFF"/></svg>');
+}
+%with-cross {
+  @extend %pseudo-icon;
+  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="8" height="8" xmlns="http://www.w3.org/2000/svg"><path d="M4 5.064L1.064 8 0 6.936 2.936 4 0 1.064 1.064 0 4 2.936 6.936 0 8 1.064 5.064 4 8 6.936 6.936 8 4 5.064z" fill="#FFF"/></svg>');
+}
+%with-i {
+  @extend %pseudo-icon;
+  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="2" height="9" xmlns="http://www.w3.org/2000/svg"><g fill="#FFF"><path d="M1.75 8.978H.25V6.98h1.5zM1.75 5.495H.25V.5h1.5z"/></g></svg>');
+
+}
+%with-passing::before {
+  @extend %with-tick;
+  border-radius: 100%;
+}
+%with-warning::before {
+  @extend %pseudo-icon;
+  border: solid 0.6em transparent;
+  border-bottom-color: currentColor;
+  background-color: transparent;
+  border-bottom-width: 1.1em;
+  border-top-width: 0;
+  margin-top: -.6em;
+}
+%with-warning {
+  position: relative;
+}
+%with-warning::after {
+  @extend %with-i;
+  // left: 0;
+  // position: absolute;
+  background-color: transparent;
+  // background-position: 49.9% 39.5%;
+  border: 2px solid $white;
+  border-radius: 100%;
+  width: 1.4em;
+  height: 1.4em;
+}
+%with-critical::before {
+  @extend %with-cross;
+  border-radius: 20%;
+}
+

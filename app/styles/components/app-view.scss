@@ -45,21 +45,21 @@ main {
 %app-content form:not(:last-child) {
   margin-bottom: 2.2em;
 }
-%app-content :not(table) dl {
+%app-content div > dl {
   position: relative;
 }
-%app-content dt {
+%app-content div > dt {
   font-weight: bold;
 }
-%app-content :not(table) dl > dt {
+%app-content div > dl > dt {
   width: 120px;
   position: absolute;
 }
-%app-content *:not(table) dl > dd {
+%app-content div > dl > dd {
   padding-left: 120px;
   color: $text-light;
 }
-%app-content dl > * {
+%app-content div > dl > * {
   min-height: 1em;
   margin-bottom: 1em;
 }

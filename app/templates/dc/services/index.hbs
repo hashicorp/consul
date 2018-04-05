@@ -28,10 +28,18 @@
                     </td>
                     <td>
                         <dl>
-                            <dt>Healthchecks Passing</dt>
+    {{#if (gt item.ChecksPassing 0)}}
+                            <dt class="passing">Healthchecks Passing</dt>
                             <dd>{{item.ChecksPassing}}</dd>
-                            <dt>Healthchecks Critical</dt>
+    {{/if}}
+    {{#if (gt item.ChecksWarning 0)}}
+                            <dt class="warning">Healthchecks Warning</dt>
+                            <dd>{{item.ChecksWarning}}</dd>
+    {{/if}}
+    {{#if (gt item.ChecksCritical 0)}}
+                            <dt class="critical">Healthchecks Critical</dt>
                             <dd>{{item.ChecksCritical}}</dd>
+    {{/if}}
                         </dl>
                     </td>
                     <td>

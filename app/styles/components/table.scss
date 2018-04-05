@@ -1,4 +1,4 @@
-@import './healthcheck-icon';
+@import './icons';
 table {
   @extend .table;
   width: 100%;
@@ -26,19 +26,48 @@ table td a {
 // this isn't specific to table
 td dl {
   overflow: hidden;
+  height: 18px;
 }
 td dl > * {
   float: left;
 }
 td dt {
-  @extend %healthcheck-icon;
+  visibility: hidden;
+  line-height: 0;
+  display: inline-block;
 }
-td dt:first-of-type {
-  @extend %healthcheck-icon-passing;
+td dt.passing,
+td dt.passing + dd {
+  color: $green;
 }
-td dt:nth-of-type(2)::before {
-  @extend %healthcheck-icon-critical;
+td dt.warning,
+td dt.warning + dd {
+  color: $orange;
+}
+td dt.critical,
+td dt.critical + dd {
+  color: $red;
+}
+td dt.passing {
+  @extend %with-passing;
+}
+td dt.warning {
+  overflow: visible;
+  @extend %with-warning;
+}
+td dt.warning::before {
+  top: 7px;
+}
+td dt.warning::after {
+  left: -2px;
+  top: -1px;
+  // border-color: black;
+}
+td dt.critical {
+  @extend %with-critical;
 }
 td dd {
-  margin-left: 6px;
+  line-height: 1em;
+  padding-left: 22px;
+  padding-right: 15px;
 }

@@ -1,4 +1,4 @@
-@import './healthcheck-icon';
+@import './icons';
 .healthchecked-resource {
   @extend %healthchecked-resource;
 }
@@ -34,15 +34,15 @@
   top: 50%;
   margin-top: -7px;
 }
-%healthchecked-resource li.passing strong {
-  @extend %healthcheck-icon-passing;
-}
-%healthchecked-resource li.warning strong {
-  @extend %healthcheck-icon-warning;
-}
-%healthchecked-resource li.critical strong {
-  @extend %healthcheck-icon-critical;
-}
+// %healthchecked-resource li.passing strong {
+//   @extend %healthcheck-icon-passing;
+// }
+// %healthchecked-resource li.warning strong {
+//   @extend %healthcheck-icon-warning;
+// }
+// %healthchecked-resource li.critical strong {
+//   @extend %healthcheck-icon-critical;
+// }
 %healthchecked-resource li:first-child:last-child {
   position: absolute;
   top: 20px;
