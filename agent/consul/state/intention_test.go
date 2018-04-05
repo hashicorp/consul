@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStore_IntentionGet_none(t *testing.T) {
@@ -32,21 +33,29 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 
 	// Build a valid intention
 	ixn := &structs.Intention{
-		ID:   testUUID(),
-		Meta: map[string]string{},
+		ID:              testUUID(),
+		SourceNS:        "default",
+		SourceName:      "*",
+		DestinationNS:   "default",
+		DestinationName: "web",
+		Meta:            map[string]string{},
 	}
 
 	// Inserting a with empty ID is disallowed.
 	assert.Nil(s.IntentionSet(1, ixn))
 
 	// Make sure the index got updated.
-	assert.Equal(s.maxIndex(intentionsTableName), uint64(1))
+	assert.Equal(uint64(1), s.maxIndex(intentionsTableName))
 	assert.True(watchFired(ws), "watch fired")
 
 	// Read it back out and verify it.
 	expected := &structs.Intention{
-		ID:   ixn.ID,
-		Meta: map[string]string{},
+		ID:              ixn.ID,
+		SourceNS:        "default",
+		SourceName:      "*",
+		DestinationNS:   "default",
+		DestinationName: "web",
+		Meta:            map[string]string{},
 		RaftIndex: structs.RaftIndex{
 			CreateIndex: 1,
 			ModifyIndex: 1,
@@ -64,7 +73,7 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 	assert.Nil(s.IntentionSet(2, ixn))
 
 	// Make sure the index got updated.
-	assert.Equal(s.maxIndex(intentionsTableName), uint64(2))
+	assert.Equal(uint64(2), s.maxIndex(intentionsTableName))
 	assert.True(watchFired(ws), "watch fired")
 
 	// Read it back and verify the data was updated
@@ -75,6 +84,24 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal(expected.ModifyIndex, idx)
 	assert.Equal(expected, actual)
+
+	// Attempt to insert another intention with duplicate 4-tuple
+	ixn = &structs.Intention{
+		ID:              testUUID(),
+		SourceNS:        "default",
+		SourceName:      "*",
+		DestinationNS:   "default",
+		DestinationName: "web",
+		Meta:            map[string]string{},
+	}
+
+	// Duplicate 4-tuple should cause an error
+	ws = memdb.NewWatchSet()
+	assert.NotNil(s.IntentionSet(3, ixn))
+
+	// Make sure the index did NOT get updated.
+	assert.Equal(uint64(2), s.maxIndex(intentionsTableName))
+	assert.False(watchFired(ws), "watch not fired")
 }
 
 func TestStore_IntentionSet_emptyId(t *testing.T) {
@@ -305,6 +332,31 @@ func TestStore_IntentionMatch_table(t *testing.T) {
 				},
 			},
 		},
+
+		{
+			"single exact namespace/name with duplicate destinations",
+			[][]string{
+				// 4-tuple specifies src and destination to test duplicate destinations
+				// with different sources. We flip them around to test in both
+				// directions. The first pair are the ones searched on in both cases so
+				// the duplicates need to be there.
+				{"foo", "bar", "foo", "*"},
+				{"foo", "bar", "bar", "*"},
+				{"*", "*", "*", "*"},
+			},
+			[][]string{
+				{"foo", "bar"},
+			},
+			[][][]string{
+				{
+					// Note the first two have the same precedence so we rely on arbitrary
+					// lexicographical tie-break behaviour.
+					{"foo", "bar", "bar", "*"},
+					{"foo", "bar", "foo", "*"},
+					{"*", "*", "*", "*"},
+				},
+			},
+		},
 	}
 
 	// testRunner implements the test for a single case, but can be
@@ -321,9 +373,17 @@ func TestStore_IntentionMatch_table(t *testing.T) {
 			case structs.IntentionMatchDestination:
 				ixn.DestinationNS = v[0]
 				ixn.DestinationName = v[1]
+				if len(v) == 4 {
+					ixn.SourceNS = v[2]
+					ixn.SourceName = v[3]
+				}
 			case structs.IntentionMatchSource:
 				ixn.SourceNS = v[0]
 				ixn.SourceName = v[1]
+				if len(v) == 4 {
+					ixn.DestinationNS = v[2]
+					ixn.DestinationName = v[3]
+				}
 			}
 
 			assert.Nil(s.IntentionSet(idx, ixn))
@@ -345,7 +405,7 @@ func TestStore_IntentionMatch_table(t *testing.T) {
 		assert.Nil(err)
 
 		// Should have equal lengths
-		assert.Len(matches, len(tc.Expected))
+		require.Len(t, matches, len(tc.Expected))
 
 		// Verify matches
 		for i, expected := range tc.Expected {
@@ -353,9 +413,27 @@ func TestStore_IntentionMatch_table(t *testing.T) {
 			for _, ixn := range matches[i] {
 				switch typ {
 				case structs.IntentionMatchDestination:
-					actual = append(actual, []string{ixn.DestinationNS, ixn.DestinationName})
+					if len(expected) > 1 && len(expected[0]) == 4 {
+						actual = append(actual, []string{
+							ixn.DestinationNS,
+							ixn.DestinationName,
+							ixn.SourceNS,
+							ixn.SourceName,
+						})
+					} else {
+						actual = append(actual, []string{ixn.DestinationNS, ixn.DestinationName})
+					}
 				case structs.IntentionMatchSource:
-					actual = append(actual, []string{ixn.SourceNS, ixn.SourceName})
+					if len(expected) > 1 && len(expected[0]) == 4 {
+						actual = append(actual, []string{
+							ixn.SourceNS,
+							ixn.SourceName,
+							ixn.DestinationNS,
+							ixn.DestinationName,
+						})
+					} else {
+						actual = append(actual, []string{ixn.SourceNS, ixn.SourceName})
+					}
 				}
 			}
 

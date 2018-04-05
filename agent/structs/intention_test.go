@@ -192,6 +192,30 @@ func TestIntentionPrecedenceSorter(t *testing.T) {
 				{"*", "*", "*", "*"},
 			},
 		},
+		{
+			"tiebreak deterministically",
+			[][]string{
+				{"a", "*", "a", "b"},
+				{"a", "*", "a", "a"},
+				{"b", "a", "a", "a"},
+				{"a", "b", "a", "a"},
+				{"a", "a", "b", "a"},
+				{"a", "a", "a", "b"},
+				{"a", "a", "a", "a"},
+			},
+			[][]string{
+				// Exact matches first in lexicographical order (arbitrary but
+				// deterministic)
+				{"a", "a", "a", "a"},
+				{"a", "a", "a", "b"},
+				{"a", "a", "b", "a"},
+				{"a", "b", "a", "a"},
+				{"b", "a", "a", "a"},
+				// Wildcards next, lexicographical
+				{"a", "*", "a", "a"},
+				{"a", "*", "a", "b"},
+			},
+		},
 	}
 
 	for _, tc := range cases {

@@ -166,7 +166,7 @@ func (x *Intention) GetACLPrefix() (string, bool) {
 
 // String returns a human-friendly string for this intention.
 func (x *Intention) String() string {
-	return fmt.Sprintf("%s %s/%s => %s/%s (ID: %s",
+	return fmt.Sprintf("%s %s/%s => %s/%s (ID: %s)",
 		strings.ToUpper(string(x.Action)),
 		x.SourceNS, x.SourceName,
 		x.DestinationNS, x.DestinationName,
@@ -305,7 +305,26 @@ func (s IntentionPrecedenceSorter) Less(i, j int) bool {
 	// Next test the # of exact values in source
 	aExact = s.countExact(a.SourceNS, a.SourceName)
 	bExact = s.countExact(b.SourceNS, b.SourceName)
-	return aExact > bExact
+	if aExact != bExact {
+		return aExact > bExact
+	}
+
+	// Tie break on lexicographic order of the 4-tuple in canonical form (SrcNS,
+	// Src, DstNS, Dst). This is arbitrary but it keeps sorting deterministic
+	// which is a nice property for consistency. It is arguably open to abuse if
+	// implementations rely on this however by definition the order among
+	// same-precedence rules is arbitrary and doesn't affect whether an allow or
+	// deny rule is acted on since all applicable rules are checked.
+	if a.SourceNS != b.SourceNS {
+		return a.SourceNS < b.SourceNS
+	}
+	if a.SourceName != b.SourceName {
+		return a.SourceName < b.SourceName
+	}
+	if a.DestinationNS != b.DestinationNS {
+		return a.DestinationNS < b.DestinationNS
+	}
+	return a.DestinationName < b.DestinationName
 }
 
 // countExact counts the number of exact values (not wildcards) in

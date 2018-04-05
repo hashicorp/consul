@@ -29,7 +29,9 @@ func intentionsTableSchema() *memdb.TableSchema {
 			"destination": &memdb.IndexSchema{
 				Name:         "destination",
 				AllowMissing: true,
-				Unique:       true,
+				// This index is not unique since we need uniqueness across the whole
+				// 4-tuple.
+				Unique: false,
 				Indexer: &memdb.CompoundIndex{
 					Indexes: []memdb.Indexer{
 						&memdb.StringFieldIndex{
@@ -46,6 +48,25 @@ func intentionsTableSchema() *memdb.TableSchema {
 			"source": &memdb.IndexSchema{
 				Name:         "source",
 				AllowMissing: true,
+				// This index is not unique since we need uniqueness across the whole
+				// 4-tuple.
+				Unique: false,
+				Indexer: &memdb.CompoundIndex{
+					Indexes: []memdb.Indexer{
+						&memdb.StringFieldIndex{
+							Field:     "SourceNS",
+							Lowercase: true,
+						},
+						&memdb.StringFieldIndex{
+							Field:     "SourceName",
+							Lowercase: true,
+						},
+					},
+				},
+			},
+			"source_destination": &memdb.IndexSchema{
+				Name:         "source_destination",
+				AllowMissing: true,
 				Unique:       true,
 				Indexer: &memdb.CompoundIndex{
 					Indexes: []memdb.Indexer{
@@ -55,6 +76,14 @@ func intentionsTableSchema() *memdb.TableSchema {
 						},
 						&memdb.StringFieldIndex{
 							Field:     "SourceName",
+							Lowercase: true,
+						},
+						&memdb.StringFieldIndex{
+							Field:     "DestinationNS",
+							Lowercase: true,
+						},
+						&memdb.StringFieldIndex{
+							Field:     "DestinationName",
 							Lowercase: true,
 						},
 					},
@@ -142,7 +171,7 @@ func (s *Store) intentionSetTxn(tx *memdb.Txn, idx uint64, ixn *structs.Intentio
 	// Check for an existing intention
 	existing, err := tx.First(intentionsTableName, "id", ixn.ID)
 	if err != nil {
-		return fmt.Errorf("failed intention looup: %s", err)
+		return fmt.Errorf("failed intention lookup: %s", err)
 	}
 	if existing != nil {
 		oldIxn := existing.(*structs.Intention)
@@ -152,6 +181,17 @@ func (s *Store) intentionSetTxn(tx *memdb.Txn, idx uint64, ixn *structs.Intentio
 		ixn.CreateIndex = idx
 	}
 	ixn.ModifyIndex = idx
+
+	// Check for duplicates on the 4-tuple.
+	duplicate, err := tx.First(intentionsTableName, "source_destination",
+		ixn.SourceNS, ixn.SourceName, ixn.DestinationNS, ixn.DestinationName)
+	if err != nil {
+		return fmt.Errorf("failed intention lookup: %s", err)
+	}
+	if duplicate != nil {
+		dupIxn := duplicate.(*structs.Intention)
+		return fmt.Errorf("duplicate intention found: %s", dupIxn.String())
+	}
 
 	// We always force meta to be non-nil so that we its an empty map.
 	// This makes it easy for API responses to not nil-check this everywhere.
