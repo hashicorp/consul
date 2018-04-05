@@ -74,8 +74,8 @@ func NewServiceWithLogger(serviceID string, client *api.Client,
 		client:    client,
 		logger:    logger,
 	}
-	s.serverTLSCfg = newReloadableTLSConfig(defaultTLSConfig(serverVerifyCerts))
-	s.clientTLSCfg = newReloadableTLSConfig(defaultTLSConfig(clientVerifyCerts))
+	s.serverTLSCfg = newReloadableTLSConfig(defaultTLSConfig(newServerSideVerifier(client, serviceID)))
+	s.clientTLSCfg = newReloadableTLSConfig(defaultTLSConfig(clientSideVerifier))
 
 	// TODO(banks) run the background certificate sync
 	return s, nil
@@ -97,9 +97,9 @@ func NewDevServiceFromCertFiles(serviceID string, client *api.Client,
 
 	// Note that newReloadableTLSConfig makes a copy so we can re-use the same
 	// base for both client and server with swapped verifiers.
-	tlsCfg.VerifyPeerCertificate = serverVerifyCerts
+	setVerifier(tlsCfg, newServerSideVerifier(client, serviceID))
 	s.serverTLSCfg = newReloadableTLSConfig(tlsCfg)
-	tlsCfg.VerifyPeerCertificate = clientVerifyCerts
+	setVerifier(tlsCfg, clientSideVerifier)
 	s.clientTLSCfg = newReloadableTLSConfig(tlsCfg)
 	return s, nil
 }

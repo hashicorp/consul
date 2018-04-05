@@ -5,17 +5,23 @@ import (
 	"crypto/x509"
 	"errors"
 	"io/ioutil"
+	"log"
 	"sync"
 
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/api"
 )
 
-// verifyFunc is the type of tls.Config.VerifyPeerCertificate for convenience.
-type verifyFunc func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error
+// verifierFunc is a function that can accept rawCertificate bytes from a peer
+// and verify them against a given tls.Config. It's called from the
+// tls.Config.VerifyPeerCertificate hook. We don't pass verifiedChains since
+// that is always nil in our usage. Implementations can use the roots provided
+// in the cfg to verify the certs.
+type verifierFunc func(cfg *tls.Config, rawCerts [][]byte) error
 
 // defaultTLSConfig returns the standard config.
-func defaultTLSConfig(verify verifyFunc) *tls.Config {
-	return &tls.Config{
+func defaultTLSConfig(v verifierFunc) *tls.Config {
+	cfg := &tls.Config{
 		MinVersion: tls.VersionTLS12,
 		ClientAuth: tls.RequireAndVerifyClientCert,
 		// We don't have access to go internals that decide if AES hardware
@@ -34,11 +40,22 @@ func defaultTLSConfig(verify verifyFunc) *tls.Config {
 		// We have to set this since otherwise Go will attempt to verify DNS names
 		// match DNS SAN/CN which we don't want. We hook up VerifyPeerCertificate to
 		// do our own path validation as well as Connect AuthZ.
-		InsecureSkipVerify:    true,
-		VerifyPeerCertificate: verify,
+		InsecureSkipVerify: true,
 		// Include h2 to allow connect http servers to automatically support http2.
 		// See: https://github.com/golang/go/blob/917c33fe8672116b04848cf11545296789cafd3b/src/net/http/server.go#L2724-L2731
 		NextProtos: []string{"h2"},
+	}
+	setVerifier(cfg, v)
+	return cfg
+}
+
+// setVerifier takes a *tls.Config and set's it's VerifyPeerCertificates hook to
+// use the passed verifierFunc.
+func setVerifier(cfg *tls.Config, v verifierFunc) {
+	if v != nil {
+		cfg.VerifyPeerCertificate = func(rawCerts [][]byte, chains [][]*x509.Certificate) error {
+			return v(cfg, rawCerts)
+		}
 	}
 }
 
@@ -147,14 +164,104 @@ func verifyServerCertMatchesURI(certs []*x509.Certificate,
 	return errors.New("peer certificate mismatch")
 }
 
-// serverVerifyCerts is the verifyFunc for use on Connect servers.
-func serverVerifyCerts(rawCerts [][]byte, chains [][]*x509.Certificate) error {
-	// TODO(banks): implement me
-	return nil
+// newServerSideVerifier returns a verifierFunc that wraps the provided
+// api.Client to verify the TLS chain and perform AuthZ for the server end of
+// the connection. The service name provided is used as the target serviceID
+// for the Authorization.
+func newServerSideVerifier(client *api.Client, serviceID string) verifierFunc {
+	return func(tlsCfg *tls.Config, rawCerts [][]byte) error {
+		leaf, err := verifyChain(tlsCfg, rawCerts, false)
+		if err != nil {
+			return err
+		}
+
+		// Check leaf is a cert we understand
+		if len(leaf.URIs) < 1 {
+			return errors.New("connect: invalid leaf certificate")
+		}
+
+		certURI, err := connect.ParseCertURI(leaf.URIs[0])
+		if err != nil {
+			return errors.New("connect: invalid leaf certificate URI")
+		}
+
+		// No AuthZ if there is no client.
+		if client == nil {
+			return nil
+		}
+
+		// Perform AuthZ
+		req := &api.AgentAuthorizeParams{
+			// TODO(banks): this is jank, we have a serviceID from the Service setup
+			// but this needs to be a service name as the target. For now we are
+			// relying on them usually being the same but this will break when they
+			// are not. We either need to make Authorize endpoint optionally accept
+			// IDs somehow or rethink this as it will require fetching the service
+			// name sometime ahead of accepting requests (maybe along with TLS certs?)
+			// which feels gross and will take extra plumbing to expose it to here.
+			Target:           serviceID,
+			ClientCertURI:    certURI.URI().String(),
+			ClientCertSerial: connect.HexString(leaf.SerialNumber.Bytes()),
+		}
+		resp, err := client.Agent().ConnectAuthorize(req)
+		if err != nil {
+			return errors.New("connect: authz call failed: " + err.Error())
+		}
+		if !resp.Authorized {
+			return errors.New("connect: authz denied: " + resp.Reason)
+		}
+		log.Println("[DEBUG] authz result", resp)
+		return nil
+	}
 }
 
-// clientVerifyCerts is the verifyFunc for use on Connect clients.
-func clientVerifyCerts(rawCerts [][]byte, chains [][]*x509.Certificate) error {
-	// TODO(banks): implement me
-	return nil
+// clientSideVerifier is a verifierFunc that performs verification of certificates
+// on the client end of the connection. For now it is just basic TLS
+// verification since the identity check needs additional state and becomes
+// clunky to customise the callback for every outgoing request. That is done
+// within Service.Dial for now.
+func clientSideVerifier(tlsCfg *tls.Config, rawCerts [][]byte) error {
+	_, err := verifyChain(tlsCfg, rawCerts, true)
+	return err
+}
+
+// verifyChain performs standard TLS verification without enforcing remote
+// hostname matching.
+func verifyChain(tlsCfg *tls.Config, rawCerts [][]byte, client bool) (*x509.Certificate, error) {
+
+	// Fetch leaf and intermediates. This is based on code form tls handshake.
+	if len(rawCerts) < 1 {
+		return nil, errors.New("tls: no certificates from peer")
+	}
+	certs := make([]*x509.Certificate, len(rawCerts))
+	for i, asn1Data := range rawCerts {
+		cert, err := x509.ParseCertificate(asn1Data)
+		if err != nil {
+			return nil, errors.New("tls: failed to parse certificate from peer: " + err.Error())
+		}
+		certs[i] = cert
+	}
+
+	cas := tlsCfg.RootCAs
+	if client {
+		cas = tlsCfg.ClientCAs
+	}
+
+	opts := x509.VerifyOptions{
+		Roots:         cas,
+		Intermediates: x509.NewCertPool(),
+	}
+	if !client {
+		// Server side only sets KeyUsages in tls. This defaults to ServerAuth in
+		// x509 lib. See
+		// https://github.com/golang/go/blob/ee7dd810f9ca4e63ecfc1d3044869591783b8b74/src/crypto/x509/verify.go#L866-L868
+		opts.KeyUsages = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
+	}
+
+	// All but the first cert are intermediates
+	for _, cert := range certs[1:] {
+		opts.Intermediates.AddCert(cert)
+	}
+	_, err := certs[0].Verify(opts)
+	return certs[0], err
 }

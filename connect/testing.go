@@ -26,10 +26,11 @@ func TestService(t testing.T, service string, ca *structs.CARoot) *Service {
 		t.Fatal(err)
 	}
 
+	// verify server without AuthZ call
 	svc.serverTLSCfg = newReloadableTLSConfig(
-		TestTLSConfigWithVerifier(t, service, ca, serverVerifyCerts))
+		TestTLSConfigWithVerifier(t, service, ca, newServerSideVerifier(nil, service)))
 	svc.clientTLSCfg = newReloadableTLSConfig(
-		TestTLSConfigWithVerifier(t, service, ca, clientVerifyCerts))
+		TestTLSConfigWithVerifier(t, service, ca, clientSideVerifier))
 
 	return svc
 }
@@ -43,9 +44,9 @@ func TestTLSConfig(t testing.T, service string, ca *structs.CARoot) *tls.Config 
 }
 
 // TestTLSConfigWithVerifier returns a *tls.Config suitable for use during
-// tests, it will use the given verifyFunc to verify tls certificates.
+// tests, it will use the given verifierFunc to verify tls certificates.
 func TestTLSConfigWithVerifier(t testing.T, service string, ca *structs.CARoot,
-	verifier verifyFunc) *tls.Config {
+	verifier verifierFunc) *tls.Config {
 	t.Helper()
 
 	cfg := defaultTLSConfig(verifier)
