@@ -530,7 +530,7 @@ func (a *Agent) ConnectAuthorize(auth *AgentAuthorizeParams) (*AgentAuthorize, e
 	if err != nil {
 		return nil, err
 	}
-	resp.Body.Close()
+	defer resp.Body.Close()
 
 	var out AgentAuthorize
 	if err := decodeBody(resp, &out); err != nil {

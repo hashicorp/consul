@@ -2293,6 +2293,84 @@ func TestAgentConnectAuthorize_deny(t *testing.T) {
 	assert.Contains(obj.Reason, "Matched")
 }
 
+func TestAgentConnectAuthorize_denyWildcard(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	target := "db"
+
+	// Create some intentions
+	{
+		// Deny wildcard to DB
+		req := structs.IntentionRequest{
+			Datacenter: "dc1",
+			Op:         structs.IntentionOpCreate,
+			Intention:  structs.TestIntention(t),
+		}
+		req.Intention.SourceNS = structs.IntentionDefaultNamespace
+		req.Intention.SourceName = "*"
+		req.Intention.DestinationNS = structs.IntentionDefaultNamespace
+		req.Intention.DestinationName = target
+		req.Intention.Action = structs.IntentionActionDeny
+
+		var reply string
+		assert.Nil(a.RPC("Intention.Apply", &req, &reply))
+	}
+	{
+		// Allow web to DB
+		req := structs.IntentionRequest{
+			Datacenter: "dc1",
+			Op:         structs.IntentionOpCreate,
+			Intention:  structs.TestIntention(t),
+		}
+		req.Intention.SourceNS = structs.IntentionDefaultNamespace
+		req.Intention.SourceName = "web"
+		req.Intention.DestinationNS = structs.IntentionDefaultNamespace
+		req.Intention.DestinationName = target
+		req.Intention.Action = structs.IntentionActionAllow
+
+		var reply string
+		assert.Nil(a.RPC("Intention.Apply", &req, &reply))
+	}
+
+	// Web should be allowed
+	{
+		args := &structs.ConnectAuthorizeRequest{
+			Target:        target,
+			ClientCertURI: connect.TestSpiffeIDService(t, "web").URI().String(),
+		}
+		req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
+		resp := httptest.NewRecorder()
+		respRaw, err := a.srv.AgentConnectAuthorize(resp, req)
+		assert.Nil(err)
+		assert.Equal(200, resp.Code)
+
+		obj := respRaw.(*connectAuthorizeResp)
+		assert.True(obj.Authorized)
+		assert.Contains(obj.Reason, "Matched")
+	}
+
+	// API should be denied
+	{
+		args := &structs.ConnectAuthorizeRequest{
+			Target:        target,
+			ClientCertURI: connect.TestSpiffeIDService(t, "api").URI().String(),
+		}
+		req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
+		resp := httptest.NewRecorder()
+		respRaw, err := a.srv.AgentConnectAuthorize(resp, req)
+		assert.Nil(err)
+		assert.Equal(200, resp.Code)
+
+		obj := respRaw.(*connectAuthorizeResp)
+		assert.False(obj.Authorized)
+		assert.Contains(obj.Reason, "Matched")
+	}
+}
+
 // Test that authorize fails without service:write for the target service.
 func TestAgentConnectAuthorize_serviceWrite(t *testing.T) {
 	t.Parallel()

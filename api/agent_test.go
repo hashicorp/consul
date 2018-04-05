@@ -996,3 +996,26 @@ func TestAPI_AgentConnectCARoots_empty(t *testing.T) {
 	require.Equal(uint64(0), meta.LastIndex)
 	require.Len(list.Roots, 0)
 }
+
+// TODO(banks): once we have CA stuff setup properly we can probably make this
+// much more complete. This is just a sanity check that the agent code basically
+// works.
+func TestAPI_AgentConnectAuthorize(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+	params := &AgentAuthorizeParams{
+		Target:           "foo",
+		ClientCertSerial: "fake",
+		// Importing connect.TestSpiffeIDService creates an import cycle
+		ClientCertURI: "spiffe://123.consul/ns/default/dc/ny1/svc/web",
+	}
+	auth, err := agent.ConnectAuthorize(params)
+	require.Nil(err)
+	require.True(auth.Authorized)
+	require.Equal(auth.Reason, "ACLs disabled, access is allowed by default")
+}

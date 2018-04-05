@@ -74,12 +74,13 @@ func TestIntentionsMatch_basic(t *testing.T) {
 	// Create some intentions
 	{
 		insert := [][]string{
-			{"foo", "*"},
-			{"foo", "bar"},
-			{"foo", "baz"}, // shouldn't match
-			{"bar", "bar"}, // shouldn't match
-			{"bar", "*"},   // shouldn't match
-			{"*", "*"},
+			{"foo", "*", "foo", "*"},
+			{"foo", "*", "foo", "bar"},
+			{"foo", "*", "foo", "baz"}, // shouldn't match
+			{"foo", "*", "bar", "bar"}, // shouldn't match
+			{"foo", "*", "bar", "*"},   // shouldn't match
+			{"foo", "*", "*", "*"},
+			{"bar", "*", "foo", "bar"}, // duplicate destination different source
 		}
 
 		for _, v := range insert {
@@ -88,8 +89,10 @@ func TestIntentionsMatch_basic(t *testing.T) {
 				Op:         structs.IntentionOpCreate,
 				Intention:  structs.TestIntention(t),
 			}
-			ixn.Intention.DestinationNS = v[0]
-			ixn.Intention.DestinationName = v[1]
+			ixn.Intention.SourceNS = v[0]
+			ixn.Intention.SourceName = v[1]
+			ixn.Intention.DestinationNS = v[2]
+			ixn.Intention.DestinationName = v[3]
 
 			// Create
 			var reply string
@@ -108,9 +111,19 @@ func TestIntentionsMatch_basic(t *testing.T) {
 	assert.Len(value, 1)
 
 	var actual [][]string
-	expected := [][]string{{"foo", "bar"}, {"foo", "*"}, {"*", "*"}}
+	expected := [][]string{
+		{"bar", "*", "foo", "bar"},
+		{"foo", "*", "foo", "bar"},
+		{"foo", "*", "foo", "*"},
+		{"foo", "*", "*", "*"},
+	}
 	for _, ixn := range value["foo/bar"] {
-		actual = append(actual, []string{ixn.DestinationNS, ixn.DestinationName})
+		actual = append(actual, []string{
+			ixn.SourceNS,
+			ixn.SourceName,
+			ixn.DestinationNS,
+			ixn.DestinationName,
+		})
 	}
 
 	assert.Equal(expected, actual)

@@ -830,12 +830,13 @@ func TestIntentionMatch_good(t *testing.T) {
 	// Create some records
 	{
 		insert := [][]string{
-			{"foo", "*"},
-			{"foo", "bar"},
-			{"foo", "baz"}, // shouldn't match
-			{"bar", "bar"}, // shouldn't match
-			{"bar", "*"},   // shouldn't match
-			{"*", "*"},
+			{"foo", "*", "foo", "*"},
+			{"foo", "*", "foo", "bar"},
+			{"foo", "*", "foo", "baz"}, // shouldn't match
+			{"foo", "*", "bar", "bar"}, // shouldn't match
+			{"foo", "*", "bar", "*"},   // shouldn't match
+			{"foo", "*", "*", "*"},
+			{"bar", "*", "foo", "bar"}, // duplicate destination different source
 		}
 
 		for _, v := range insert {
@@ -843,10 +844,10 @@ func TestIntentionMatch_good(t *testing.T) {
 				Datacenter: "dc1",
 				Op:         structs.IntentionOpCreate,
 				Intention: &structs.Intention{
-					SourceNS:        "default",
-					SourceName:      "test",
-					DestinationNS:   v[0],
-					DestinationName: v[1],
+					SourceNS:        v[0],
+					SourceName:      v[1],
+					DestinationNS:   v[2],
+					DestinationName: v[3],
 					Action:          structs.IntentionActionAllow,
 				},
 			}
@@ -874,10 +875,20 @@ func TestIntentionMatch_good(t *testing.T) {
 	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Match", req, &resp))
 	assert.Len(resp.Matches, 1)
 
-	expected := [][]string{{"foo", "bar"}, {"foo", "*"}, {"*", "*"}}
+	expected := [][]string{
+		{"bar", "*", "foo", "bar"},
+		{"foo", "*", "foo", "bar"},
+		{"foo", "*", "foo", "*"},
+		{"foo", "*", "*", "*"},
+	}
 	var actual [][]string
 	for _, ixn := range resp.Matches[0] {
-		actual = append(actual, []string{ixn.DestinationNS, ixn.DestinationName})
+		actual = append(actual, []string{
+			ixn.SourceNS,
+			ixn.SourceName,
+			ixn.DestinationNS,
+			ixn.DestinationName,
+		})
 	}
 	assert.Equal(expected, actual)
 }
