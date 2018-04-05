@@ -37,7 +37,6 @@ func (p *Plan) RunWithConfig(address string, conf *consulapi.Config) error {
 	if err != nil {
 		return fmt.Errorf("Failed to connect to agent: %v", err)
 	}
-	p.client = client
 
 	// Create the logger
 	output := p.LogOutput
@@ -46,12 +45,24 @@ func (p *Plan) RunWithConfig(address string, conf *consulapi.Config) error {
 	}
 	logger := log.New(output, "", log.LstdFlags)
 
+	return p.RunWithClientAndLogger(client, logger)
+}
+
+// RunWithClientAndLogger runs a watch plan using an external client and
+// log.Logger instance. Using this, the plan's Datacenter, Token and LogOutput
+// fields are ignored and the passed client is expected to be configured as
+// needed.
+func (p *Plan) RunWithClientAndLogger(client *consulapi.Client,
+	logger *log.Logger) error {
+
+	p.client = client
+
 	// Loop until we are canceled
 	failures := 0
 OUTER:
 	for !p.shouldStop() {
 		// Invoke the handler
-		index, result, err := p.Watcher(p)
+		blockParamVal, result, err := p.Watcher(p)
 
 		// Check if we should terminate since the function
 		// could have blocked for a while
@@ -63,7 +74,11 @@ OUTER:
 		if err != nil {
 			// Perform an exponential backoff
 			failures++
-			p.lastIndex = 0
+			if blockParamVal == nil {
+				p.lastParamVal = nil
+			} else {
+				p.lastParamVal = blockParamVal.Next(p.lastParamVal)
+			}
 			retry := retryInterval * time.Duration(failures*failures)
 			if retry > maxBackoffTime {
 				retry = maxBackoffTime
@@ -82,24 +97,21 @@ OUTER:
 		failures = 0
 
 		// If the index is unchanged do nothing
-		if index == p.lastIndex {
+		if p.lastParamVal != nil && p.lastParamVal.Equal(blockParamVal) {
 			continue
 		}
 
 		// Update the index, look for change
-		oldIndex := p.lastIndex
-		p.lastIndex = index
-		if oldIndex != 0 && reflect.DeepEqual(p.lastResult, result) {
+		oldParamVal := p.lastParamVal
+		p.lastParamVal = blockParamVal.Next(oldParamVal)
+		if oldParamVal != nil && reflect.DeepEqual(p.lastResult, result) {
 			continue
-		}
-		if p.lastIndex < oldIndex {
-			p.lastIndex = 0
 		}
 
 		// Handle the updated result
 		p.lastResult = result
 		if p.Handler != nil {
-			p.Handler(index, result)
+			p.Handler(blockParamVal, result)
 		}
 	}
 	return nil

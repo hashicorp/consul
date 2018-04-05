@@ -175,6 +175,11 @@ type QueryMeta struct {
 	// a blocking query
 	LastIndex uint64
 
+	// LastContentHash. This can be used as a WaitHash to perform a blocking query
+	// for endpoints that support hash-based blocking. Endpoints that do not
+	// support it will return an empty hash.
+	LastContentHash string
+
 	// Time of last contact from the leader for the
 	// server servicing the request
 	LastContact time.Duration
@@ -733,12 +738,16 @@ func (c *Client) write(endpoint string, in, out interface{}, q *WriteOptions) (*
 func parseQueryMeta(resp *http.Response, q *QueryMeta) error {
 	header := resp.Header
 
-	// Parse the X-Consul-Index
-	index, err := strconv.ParseUint(header.Get("X-Consul-Index"), 10, 64)
-	if err != nil {
-		return fmt.Errorf("Failed to parse X-Consul-Index: %v", err)
+	// Parse the X-Consul-Index (if it's set - hash based blocking queries don't
+	// set this)
+	if indexStr := header.Get("X-Consul-Index"); indexStr != "" {
+		index, err := strconv.ParseUint(indexStr, 10, 64)
+		if err != nil {
+			return fmt.Errorf("Failed to parse X-Consul-Index: %v", err)
+		}
+		q.LastIndex = index
 	}
-	q.LastIndex = index
+	q.LastContentHash = header.Get("X-Consul-ContentHash")
 
 	// Parse the X-Consul-LastContact
 	last, err := strconv.ParseUint(header.Get("X-Consul-LastContact"), 10, 64)

@@ -66,8 +66,11 @@ type ConnectManagedProxy struct {
 
 	// ProxyService is a pointer to the local proxy's service record for
 	// convenience. The proxies ID and name etc. can be read from there. It may be
-	// nil if the agent is starting up and hasn't registered the service yet.
-	ProxyService *NodeService
+	// nil if the agent is starting up and hasn't registered the service yet. We
+	// ignore it when calculating the hash value since the only thing that effects
+	// the proxy's config is the ID of the target service which is already
+	// represented below.
+	ProxyService *NodeService `hash:"ignore"`
 
 	// TargetServiceID is the ID of the target service on the localhost. It may
 	// not exist yet since bootstrapping is allowed to happen in either order.

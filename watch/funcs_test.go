@@ -8,8 +8,10 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent"
+	"github.com/hashicorp/consul/agent/structs"
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/watch"
+	"github.com/stretchr/testify/require"
 )
 
 var errBadContent = errors.New("bad content")
@@ -30,7 +32,7 @@ func TestKeyWatch(t *testing.T) {
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"key", "key":"foo/bar/baz"}`)
-	plan.Handler = func(idx uint64, raw interface{}) {
+	plan.Handler = func(blockParam watch.BlockingParam, raw interface{}) {
 		if raw == nil {
 			return // ignore
 		}
@@ -84,7 +86,7 @@ func TestKeyWatch_With_PrefixDelete(t *testing.T) {
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"key", "key":"foo/bar/baz"}`)
-	plan.Handler = func(idx uint64, raw interface{}) {
+	plan.Handler = func(blockParam watch.BlockingParam, raw interface{}) {
 		if raw == nil {
 			return // ignore
 		}
@@ -138,7 +140,7 @@ func TestKeyPrefixWatch(t *testing.T) {
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"keyprefix", "prefix":"foo/"}`)
-	plan.Handler = func(idx uint64, raw interface{}) {
+	plan.Handler = func(blockParam watch.BlockingParam, raw interface{}) {
 		if raw == nil {
 			return // ignore
 		}
@@ -191,7 +193,7 @@ func TestServicesWatch(t *testing.T) {
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"services"}`)
-	plan.Handler = func(idx uint64, raw interface{}) {
+	plan.Handler = func(blockParam watch.BlockingParam, raw interface{}) {
 		if raw == nil {
 			return // ignore
 		}
@@ -245,7 +247,7 @@ func TestNodesWatch(t *testing.T) {
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"nodes"}`)
-	plan.Handler = func(idx uint64, raw interface{}) {
+	plan.Handler = func(blockParam watch.BlockingParam, raw interface{}) {
 		if raw == nil {
 			return // ignore
 		}
@@ -296,7 +298,7 @@ func TestServiceWatch(t *testing.T) {
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"service", "service":"foo", "tag":"bar", "passingonly":true}`)
-	plan.Handler = func(idx uint64, raw interface{}) {
+	plan.Handler = func(blockParam watch.BlockingParam, raw interface{}) {
 		if raw == nil {
 			return // ignore
 		}
@@ -352,7 +354,7 @@ func TestChecksWatch_State(t *testing.T) {
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"checks", "state":"warning"}`)
-	plan.Handler = func(idx uint64, raw interface{}) {
+	plan.Handler = func(blockParam watch.BlockingParam, raw interface{}) {
 		if raw == nil {
 			return // ignore
 		}
@@ -413,7 +415,7 @@ func TestChecksWatch_Service(t *testing.T) {
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"checks", "service":"foobar"}`)
-	plan.Handler = func(idx uint64, raw interface{}) {
+	plan.Handler = func(blockParam watch.BlockingParam, raw interface{}) {
 		if raw == nil {
 			return // ignore
 		}
@@ -479,7 +481,7 @@ func TestEventWatch(t *testing.T) {
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"event", "name": "foo"}`)
-	plan.Handler = func(idx uint64, raw interface{}) {
+	plan.Handler = func(blockParam watch.BlockingParam, raw interface{}) {
 		if raw == nil {
 			return
 		}
@@ -505,6 +507,220 @@ func TestEventWatch(t *testing.T) {
 		if _, _, err := event.Fire(params, nil); err != nil {
 			t.Fatalf("err: %v", err)
 		}
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := plan.Run(a.HTTPAddr()); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}()
+
+	if err := <-invoke; err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	plan.Stop()
+	wg.Wait()
+}
+
+func TestConnectRootsWatch(t *testing.T) {
+	// TODO(banks) enable and make it work once this is supported. Note that this
+	// test actually passes currently just by busy-polling the roots endpoint
+	// until it changes.
+	t.Skip("CA and Leaf implementation don't actually support blocking yet")
+	t.Parallel()
+	a := agent.NewTestAgent(t.Name(), ``)
+	defer a.Shutdown()
+
+	invoke := makeInvokeCh()
+	plan := mustParse(t, `{"type":"connect_roots"}`)
+	plan.Handler = func(blockParam watch.BlockingParam, raw interface{}) {
+		if raw == nil {
+			return // ignore
+		}
+		v, ok := raw.(*consulapi.CARootList)
+		if !ok || v == nil {
+			return // ignore
+		}
+		// TODO(banks): verify the right roots came back.
+		invoke <- nil
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		time.Sleep(20 * time.Millisecond)
+		// TODO(banks): this is a hack since CA config is in flux. We _did_ expose a
+		// temporary agent endpoint for PUTing config, but didn't expose it in `api`
+		// package intentionally. If we are going to hack around with temporary API,
+		// we can might as well drop right down to the RPC level...
+		args := structs.CAConfiguration{
+			Provider: "static",
+			Config: map[string]interface{}{
+				"Name":     "test-1",
+				"Generate": true,
+			},
+		}
+		var reply interface{}
+		if err := a.RPC("ConnectCA.ConfigurationSet", &args, &reply); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := plan.Run(a.HTTPAddr()); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}()
+
+	if err := <-invoke; err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	plan.Stop()
+	wg.Wait()
+}
+
+func TestConnectLeafWatch(t *testing.T) {
+	// TODO(banks) enable and make it work once this is supported.
+	t.Skip("CA and Leaf implementation don't actually support blocking yet")
+	t.Parallel()
+	a := agent.NewTestAgent(t.Name(), ``)
+	defer a.Shutdown()
+
+	// Register a web service to get certs for
+	{
+		agent := a.Client().Agent()
+		reg := consulapi.AgentServiceRegistration{
+			ID:   "web",
+			Name: "web",
+			Port: 9090,
+		}
+		err := agent.ServiceRegister(&reg)
+		require.Nil(t, err)
+	}
+
+	// Setup a new generated CA
+	//
+	// TODO(banks): this is a hack since CA config is in flux. We _did_ expose a
+	// temporary agent endpoint for PUTing config, but didn't expose it in `api`
+	// package intentionally. If we are going to hack around with temporary API,
+	// we can might as well drop right down to the RPC level...
+	args := structs.CAConfiguration{
+		Provider: "static",
+		Config: map[string]interface{}{
+			"Name":     "test-1",
+			"Generate": true,
+		},
+	}
+	var reply interface{}
+	if err := a.RPC("ConnectCA.ConfigurationSet", &args, &reply); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	invoke := makeInvokeCh()
+	plan := mustParse(t, `{"type":"connect_leaf", "service_id":"web"}`)
+	plan.Handler = func(blockParam watch.BlockingParam, raw interface{}) {
+		if raw == nil {
+			return // ignore
+		}
+		v, ok := raw.(*consulapi.LeafCert)
+		if !ok || v == nil {
+			return // ignore
+		}
+		// TODO(banks): verify the right leaf came back.
+		invoke <- nil
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		time.Sleep(20 * time.Millisecond)
+
+		// Change the CA which should eventually trigger a leaf change but probably
+		// won't now so this test has no way to succeed yet.
+		args := structs.CAConfiguration{
+			Provider: "static",
+			Config: map[string]interface{}{
+				"Name":     "test-2",
+				"Generate": true,
+			},
+		}
+		var reply interface{}
+		if err := a.RPC("ConnectCA.ConfigurationSet", &args, &reply); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := plan.Run(a.HTTPAddr()); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}()
+
+	if err := <-invoke; err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	plan.Stop()
+	wg.Wait()
+}
+
+func TestConnectProxyConfigWatch(t *testing.T) {
+	t.Parallel()
+	a := agent.NewTestAgent(t.Name(), ``)
+	defer a.Shutdown()
+
+	// Register a local agent service with a managed proxy
+	reg := &consulapi.AgentServiceRegistration{
+		Name: "web",
+		Port: 8080,
+		Connect: &consulapi.AgentServiceConnect{
+			Proxy: &consulapi.AgentServiceConnectProxy{
+				Config: map[string]interface{}{
+					"foo": "bar",
+				},
+			},
+		},
+	}
+	client := a.Client()
+	agent := client.Agent()
+	err := agent.ServiceRegister(reg)
+	require.NoError(t, err)
+
+	invoke := makeInvokeCh()
+	plan := mustParse(t, `{"type":"connect_proxy_config", "proxy_service_id":"web-proxy"}`)
+	plan.Handler = func(blockParam watch.BlockingParam, raw interface{}) {
+		if raw == nil {
+			return // ignore
+		}
+		v, ok := raw.(*consulapi.ConnectProxyConfig)
+		if !ok || v == nil {
+			return // ignore
+		}
+		invoke <- nil
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		time.Sleep(20 * time.Millisecond)
+
+		// Change the proxy's config
+		reg.Connect.Proxy.Config["foo"] = "buzz"
+		reg.Connect.Proxy.Config["baz"] = "qux"
+		err := agent.ServiceRegister(reg)
+		require.NoError(t, err)
 	}()
 
 	wg.Add(1)

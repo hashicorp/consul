@@ -1087,20 +1087,31 @@ func TestAPI_AgentConnectProxyConfig(t *testing.T) {
 		Name: "foo",
 		Tags: []string{"bar", "baz"},
 		Port: 8000,
-		Check: &AgentServiceCheck{
-			CheckID: "foo-ttl",
-			TTL:     "15s",
+		Connect: &AgentServiceConnect{
+			Proxy: &AgentServiceConnectProxy{
+				Config: map[string]interface{}{
+					"foo": "bar",
+				},
+			},
 		},
 	}
 	if err := agent.ServiceRegister(reg); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	checks, err := agent.Checks()
-	if err != nil {
-		t.Fatalf("err: %v", err)
+	config, qm, err := agent.ConnectProxyConfig("foo-proxy", nil)
+	require.NoError(t, err)
+	expectConfig := &ConnectProxyConfig{
+		ProxyServiceID:    "foo-proxy",
+		TargetServiceID:   "foo",
+		TargetServiceName: "foo",
+		ContentHash:       "e662ea8600d84cf0",
+		ExecMode:          "daemon",
+		Command:           "",
+		Config: map[string]interface{}{
+			"foo": "bar",
+		},
 	}
-	if _, ok := checks["foo-ttl"]; !ok {
-		t.Fatalf("missing check: %v", checks)
-	}
+	require.Equal(t, expectConfig, config)
+	require.Equal(t, "e662ea8600d84cf0", qm.LastContentHash)
 }

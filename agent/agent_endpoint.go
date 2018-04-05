@@ -942,7 +942,7 @@ func (s *HTTPServer) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.
 //
 // Returns the local proxy config for the identified proxy. Requires token=
 // param with the correct local ProxyToken (not ACL token).
-func (s *HTTPServer) ConnectProxyConfig(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPServer) AgentConnectProxyConfig(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Get the proxy ID. Note that this is the ID of a proxy's service instance.
 	id := strings.TrimPrefix(req.URL.Path, "/v1/agent/connect/proxy/")
 

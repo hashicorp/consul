@@ -3,6 +3,7 @@ package connect
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"log"
 	"net"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/watch"
 	"golang.org/x/net/http2"
 )
 
@@ -52,6 +54,9 @@ type Service struct {
 	// TODO(banks): write the proper implementation
 	httpResolverFromAddr func(addr string) (Resolver, error)
 
+	rootsWatch *watch.Plan
+	leafWatch  *watch.Plan
+
 	logger *log.Logger
 }
 
@@ -73,7 +78,28 @@ func NewServiceWithLogger(serviceID string, client *api.Client,
 		tlsCfg:    newDynamicTLSConfig(defaultTLSConfig()),
 	}
 
-	// TODO(banks) run the background certificate sync
+	// Set up root and leaf watches
+	p, err := watch.Parse(map[string]interface{}{
+		"type": "connect_roots",
+	})
+	if err != nil {
+		return nil, err
+	}
+	s.rootsWatch = p
+	s.rootsWatch.Handler = s.rootsWatchHandler
+
+	p, err = watch.Parse(map[string]interface{}{
+		"type": "connect_leaf",
+	})
+	if err != nil {
+		return nil, err
+	}
+	s.leafWatch = p
+	s.leafWatch.Handler = s.leafWatchHandler
+
+	//go s.rootsWatch.RunWithClientAndLogger(s.client, s.logger)
+	//go s.leafWatch.RunWithClientAndLogger(s.client, s.logger)
+
 	return s, nil
 }
 
@@ -201,6 +227,75 @@ func (s *Service) HTTPClient() *http.Client {
 
 // Close stops the service and frees resources.
 func (s *Service) Close() error {
-	// TODO(banks): stop background activity if started
+	if s.rootsWatch != nil {
+		s.rootsWatch.Stop()
+	}
+	if s.leafWatch != nil {
+		s.leafWatch.Stop()
+	}
 	return nil
+}
+
+func (s *Service) rootsWatchHandler(blockParam watch.BlockingParam, raw interface{}) {
+	if raw == nil {
+		return
+	}
+	v, ok := raw.(*api.CARootList)
+	if !ok || v == nil {
+		s.logger.Println("[ERR] got invalid response from root watch")
+		return
+	}
+
+	// Got new root certificates, update the tls.Configs.
+	roots := x509.NewCertPool()
+	for _, root := range v.Roots {
+		roots.AppendCertsFromPEM([]byte(root.RootCertPEM))
+	}
+
+	// Note that SetTLSConfig takes care of adding a dynamic GetConfigForClient
+	// hook that will fetch this updated config for new incoming connections on a
+	// server. That means all future connections are validated against the new
+	// roots. On a client, we only expose Dial and we fetch the most recent config
+	// each time so all future Dials (direct or via an http.Client with our dial
+	// hook) will grab this new config.
+	newCfg := s.serverTLSCfg.TLSConfig()
+	// Server-side verification uses ClientCAs.
+	newCfg.ClientCAs = roots
+	s.serverTLSCfg.SetTLSConfig(newCfg)
+
+	newCfg = s.clientTLSCfg.TLSConfig()
+	// Client-side verification uses RootCAs.
+	newCfg.RootCAs = roots
+	s.clientTLSCfg.SetTLSConfig(newCfg)
+}
+
+func (s *Service) leafWatchHandler(blockParam watch.BlockingParam, raw interface{}) {
+	if raw == nil {
+		return // ignore
+	}
+	v, ok := raw.(*api.LeafCert)
+	if !ok || v == nil {
+		s.logger.Println("[ERR] got invalid response from root watch")
+		return
+	}
+
+	// Got new leaf, update the tls.Configs
+	cert, err := tls.X509KeyPair([]byte(v.CertPEM), []byte(v.PrivateKeyPEM))
+	if err != nil {
+		s.logger.Printf("[ERR] failed to parse new leaf cert: %s", err)
+		return
+	}
+
+	// Note that SetTLSConfig takes care of adding a dynamic GetClientCertificate
+	// hook that will fetch the first cert from the Certificates slice of the
+	// current config for each outbound client request even if the client is using
+	// an old version of the config struct so all we need to do it set that and
+	// all existing clients will start using the new cert.
+	newCfg := s.serverTLSCfg.TLSConfig()
+	newCfg.Certificates = []tls.Certificate{cert}
+	s.serverTLSCfg.SetTLSConfig(newCfg)
+
+	newCfg = s.clientTLSCfg.TLSConfig()
+	newCfg.Certificates = []tls.Certificate{cert}
+	s.clientTLSCfg.SetTLSConfig(newCfg)
 }

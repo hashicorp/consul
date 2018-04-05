@@ -10,9 +10,12 @@ func init() {
 }
 
 func noopWatch(params map[string]interface{}) (WatcherFunc, error) {
-	fn := func(p *Plan) (uint64, interface{}, error) {
-		idx := p.lastIndex + 1
-		return idx, idx, nil
+	fn := func(p *Plan) (BlockingParam, interface{}, error) {
+		idx := WaitIndexVal(0)
+		if i, ok := p.lastParamVal.(WaitIndexVal); ok {
+			idx = i
+		}
+		return idx + 1, uint64(idx + 1), nil
 	}
 	return fn, nil
 }
@@ -32,7 +35,12 @@ func TestRun_Stop(t *testing.T) {
 
 	var expect uint64 = 1
 	doneCh := make(chan struct{})
-	plan.Handler = func(idx uint64, val interface{}) {
+	plan.Handler = func(blockParamVal BlockingParam, val interface{}) {
+		idxVal, ok := blockParamVal.(WaitIndexVal)
+		if !ok {
+			t.Fatalf("Expected index-based watch")
+		}
+		idx := uint64(idxVal)
 		if idx != expect {
 			t.Fatalf("Bad: %d %d", expect, idx)
 		}

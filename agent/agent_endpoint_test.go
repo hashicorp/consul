@@ -2292,7 +2292,7 @@ func TestAgentConnectProxy(t *testing.T) {
 		ProxyServiceID:    "test-proxy",
 		TargetServiceID:   "test",
 		TargetServiceName: "test",
-		ContentHash:       "a15dccb216d38a6e",
+		ContentHash:       "84346af2031659c9",
 		ExecMode:          "daemon",
 		Command:           "",
 		Config: map[string]interface{}{
@@ -2310,7 +2310,7 @@ func TestAgentConnectProxy(t *testing.T) {
 	ur, err := copystructure.Copy(expectedResponse)
 	require.NoError(t, err)
 	updatedResponse := ur.(*api.ConnectProxyConfig)
-	updatedResponse.ContentHash = "22bc9233a52c08fd"
+	updatedResponse.ContentHash = "7d53473b0e9db5a"
 	upstreams := updatedResponse.Config["upstreams"].([]interface{})
 	upstreams = append(upstreams,
 		map[string]interface{}{
@@ -2337,7 +2337,7 @@ func TestAgentConnectProxy(t *testing.T) {
 		},
 		{
 			name:     "blocking fetch timeout, no change",
-			url:      "/v1/agent/connect/proxy/test-proxy?hash=a15dccb216d38a6e&wait=100ms",
+			url:      "/v1/agent/connect/proxy/test-proxy?hash=" + expectedResponse.ContentHash + "&wait=100ms",
 			wantWait: 100 * time.Millisecond,
 			wantCode: 200,
 			wantErr:  false,
@@ -2352,7 +2352,7 @@ func TestAgentConnectProxy(t *testing.T) {
 		},
 		{
 			name: "blocking fetch returns change",
-			url:  "/v1/agent/connect/proxy/test-proxy?hash=a15dccb216d38a6e",
+			url:  "/v1/agent/connect/proxy/test-proxy?hash=" + expectedResponse.ContentHash,
 			updateFunc: func() {
 				time.Sleep(100 * time.Millisecond)
 				// Re-register with new proxy config
@@ -2393,7 +2393,7 @@ func TestAgentConnectProxy(t *testing.T) {
 				go tt.updateFunc()
 			}
 			start := time.Now()
-			obj, err := a.srv.ConnectProxyConfig(resp, req)
+			obj, err := a.srv.AgentConnectProxyConfig(resp, req)
 			elapsed := time.Now().Sub(start)
 
 			if tt.wantErr {

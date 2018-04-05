@@ -42,7 +42,13 @@ func makeWatchHandler(logOutput io.Writer, handler interface{}) watch.HandlerFun
 	}
 
 	logger := log.New(logOutput, "", log.LstdFlags)
-	fn := func(idx uint64, data interface{}) {
+	fn := func(blockVal watch.BlockingParam, data interface{}) {
+		idx, ok := blockVal.(watch.WaitIndexVal)
+		if !ok {
+			logger.Printf("[ERR] agent: watch handler doesn't support non-index watches")
+			return
+		}
+
 		// Create the command
 		var cmd *osexec.Cmd
 		var err error
@@ -58,7 +64,7 @@ func makeWatchHandler(logOutput io.Writer, handler interface{}) watch.HandlerFun
 		}
 
 		cmd.Env = append(os.Environ(),
-			"CONSUL_INDEX="+strconv.FormatUint(idx, 10),
+			"CONSUL_INDEX="+strconv.FormatUint(uint64(idx), 10),
 		)
 
 		// Collect the output
@@ -96,7 +102,13 @@ func makeWatchHandler(logOutput io.Writer, handler interface{}) watch.HandlerFun
 func makeHTTPWatchHandler(logOutput io.Writer, config *watch.HttpHandlerConfig) watch.HandlerFunc {
 	logger := log.New(logOutput, "", log.LstdFlags)
 
-	fn := func(idx uint64, data interface{}) {
+	fn := func(blockVal watch.BlockingParam, data interface{}) {
+		idx, ok := blockVal.(watch.WaitIndexVal)
+		if !ok {
+			logger.Printf("[ERR] agent: watch handler doesn't support non-index watches")
+			return
+		}
+
 		trans := cleanhttp.DefaultTransport()
 
 		// Skip SSL certificate verification if TLSSkipVerify is true
@@ -132,7 +144,7 @@ func makeHTTPWatchHandler(logOutput io.Writer, config *watch.HttpHandlerConfig) 
 		}
 		req = req.WithContext(ctx)
 		req.Header.Add("Content-Type", "application/json")
-		req.Header.Add("X-Consul-Index", strconv.FormatUint(idx, 10))
+		req.Header.Add("X-Consul-Index", strconv.FormatUint(uint64(idx), 10))
 		for key, values := range config.Header {
 			for _, val := range values {
 				req.Header.Add(key, val)
