@@ -11,16 +11,15 @@
   margin-bottom: 24px;
   position: relative;
 }
-%healthcheck-status::before {
-  content: '';
-  display: block;
-  background-color: red;
-  width: 25px;
-  height: 25px;
-  border-radius: 4px;
-  position: absolute;
-  top: 24px;
-  left: 24px;
+%healthcheck-status.passing {
+  @extend %with-passing;
+}
+%healthcheck-status.passing::before {
+  background-color: $green !important;
+  background-size: 70%;
+  width: 25px !important;
+  height: 25px !important;
+  left: 20px;
 }
 %healthcheck-status pre {
   background-color: $black;
@@ -28,4 +27,7 @@
 }
 %healthcheck-status dt {
   margin-bottom: 0.5em;
+}
+%healthcheck-status dd:first-of-type {
+  display: none;
 }

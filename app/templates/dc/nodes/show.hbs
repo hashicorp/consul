@@ -10,7 +10,7 @@
         {{#tab-section id=tabs.[0] selected=true}}
             <ul>
     {{#each model.Checks as |check| }}
-                {{healthcheck-status tagName='li' name=check.Name status=check.status output=check.Output}}
+                {{healthcheck-status tagName='li' name=check.Name class=check.Status status=check.Status output=check.Output}}
     {{/each}}
             </ul>
         {{/tab-section}}
@@ -25,7 +25,6 @@
                 </thead>
                 {{#tabular-collection
                     items=filtered
-                    tagName=''
                     cell-layout=(fixed-grid-layout 1150 46) as |item index|
                 }}
                         <td>

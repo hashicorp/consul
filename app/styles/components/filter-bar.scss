@@ -18,10 +18,6 @@
   width: 255px;
 }
 
-%filter-bar [role=radiogroup] label:not(.value-) span {
-  position: relative;
-  text-indent: 23px;
-}
 %filter-bar [role=radiogroup] label {
   color: $text-note;
   cursor: pointer;
@@ -30,6 +26,12 @@
   left: 11px;
   top: 50%;
   margin-top: -.5em;
+}
+%filter-bar .value-passing span,
+%filter-bar .value-warning span,
+%filter-bar .value-critical span {
+  position: relative;
+  text-indent: 23px;
 }
 %filter-bar .value-passing span {
   @extend %with-passing;
