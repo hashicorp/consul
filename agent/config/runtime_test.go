@@ -2589,7 +2589,7 @@ func TestFullConfig(t *testing.T) {
 				"prefix_filter": [ "+oJotS8XJ","-cazlEhGn" ],
 				"enable_deprecated_names": true,
 				"metrics_prefix": "ftO6DySn",
-				"prometheus_disable": true,
+				"prometheus_retention_time": "15s",
 				"statsd_address": "drce87cy",
 				"statsite_address": "HpFwKB8R"
 			},
@@ -3027,7 +3027,7 @@ func TestFullConfig(t *testing.T) {
 				prefix_filter = [ "+oJotS8XJ","-cazlEhGn" ]
 				enable_deprecated_names = true
 				metrics_prefix = "ftO6DySn"
-				prometheus_disable = true
+				prometheus_retention_time = "15s"
 				statsd_address = "drce87cy"
 				statsite_address = "HpFwKB8R"
 			}
@@ -3590,7 +3590,7 @@ func TestFullConfig(t *testing.T) {
 		TelemetryAllowedPrefixes:                    []string{"oJotS8XJ", "consul.consul"},
 		TelemetryBlockedPrefixes:                    []string{"cazlEhGn"},
 		TelemetryMetricsPrefix:                      "ftO6DySn",
-		TelemetryPrometheusDisable:                  true,
+		TelemetryPrometheusRetentionTime:            15 * time.Second,
 		TelemetryStatsdAddr:                         "drce87cy",
 		TelemetryStatsiteAddr:                       "HpFwKB8R",
 		TLSCipherSuites:                             []uint16{tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305, tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384},
@@ -4143,7 +4143,7 @@ func TestSanitize(t *testing.T) {
     "TelemetryDogstatsdTags": [],
     "TelemetryFilterDefault": false,
     "TelemetryMetricsPrefix": "",
-    "TelemetryPrometheusDisable": false,
+    "TelemetryPrometheusRetentionTime": "0s",
     "TelemetryStatsdAddr": "",
     "TelemetryStatsiteAddr": "",
     "TranslateWANAddrs": false,

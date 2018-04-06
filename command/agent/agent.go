@@ -210,10 +210,13 @@ func dogstatdSink(config *config.RuntimeConfig, hostname string) (metrics.Metric
 }
 
 func prometheusSink(config *config.RuntimeConfig, hostname string) (metrics.MetricSink, error) {
-	if config.TelemetryPrometheusDisable {
+	if config.TelemetryPrometheusRetentionTime.Nanoseconds() < 1 {
 		return nil, nil
 	}
-	sink, err := prometheus.NewPrometheusSink()
+	prometheusOpts := prometheus.PrometheusOpts{
+		Expiration: config.TelemetryPrometheusRetentionTime,
+	}
+	sink, err := prometheus.NewPrometheusSinkFrom(prometheusOpts)
 	if err != nil {
 		return nil, err
 	}

@@ -89,6 +89,11 @@ func (s *HTTPServer) AgentMetrics(resp http.ResponseWriter, req *http.Request) (
 		return nil, acl.ErrPermissionDenied
 	}
 	if format := req.URL.Query().Get("format"); format == "prometheus" {
+		if s.agent.config.TelemetryPrometheusRetentionTime.Nanoseconds() < 1 {
+			resp.WriteHeader(http.StatusUnsupportedMediaType)
+			fmt.Fprint(resp, "Prometheus is not enable since its retention time is not positive")
+			return nil, nil
+		}
 		handlerOptions := promhttp.HandlerOpts{
 			ErrorLog:           s.agent.logger,
 			ErrorHandling:      promhttp.ContinueOnError,

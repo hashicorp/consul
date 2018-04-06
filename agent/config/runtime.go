@@ -425,10 +425,10 @@ type RuntimeConfig struct {
 	// hcl: telemetry { dogstatsd_tags = []string }
 	TelemetryDogstatsdTags []string
 
-	// TelemetryPrometheusDisable enables prometheus Support for metrics
+	// PrometheusRetentionTime enables prometheus Support for metrics if greater than 0
 	//
-	// hcl: telemetry { prometheus_disable = (true|false) }
-	TelemetryPrometheusDisable bool
+	// hcl: telemetry { prometheus_retention_time = "duration" }
+	TelemetryPrometheusRetentionTime time.Duration
 
 	// TelemetryFilterDefault is the default for whether to allow a metric that's not
 	// covered by the filter.
