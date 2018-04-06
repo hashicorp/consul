@@ -1,6 +1,7 @@
 @import 'core/color';
 @import 'core/fonts';
-$radius: 2px;
+@import 'core/decoration';
+
 @import 'ember-bulma-css/utilities/_all';
 @import 'ember-bulma-css/base/_all';
 @import 'ember-bulma-css/elements/_all';

@@ -1,3 +1,6 @@
+%expanded-single-select input[type='radio']:checked + * {
+  background-color: $white;
+}
 %expanded-single-select,
 %expanded-single-select label {
   height: 100%;
@@ -16,50 +19,4 @@
 }
 %expanded-single-select input[type='radio'] {
   display: none;
-}
-%expanded-single-select input[type='radio']:checked + * {
-  background-color: $white;
-}
-%expanded-single-select label:not(:last-child) {
-  border-right: 1px solid $border-blue;
-}
-%expanded-single-select,
-%freetext-filter {
-  border: 1px solid;
-  border-radius: $radius;
-  background-color: $lightest-gray;
-}
-.type-search {
-  @extend %freetext-filter;
-}
-%freetext-filter {
-  display: block;
-}
-%freetext-filter span {
-  visibility: hidden;
-  width: 25px;
-  height: 100%;
-  float: right;
-  display: block;
-}
-%freetext-filter span::before {
-  visibility: visible;
-  width: 100%;
-  height: 100%;
-  content: '';
-  display: block;
-  background-color: $lightest-gray;
-  border-left: 1px solid $border-blue;
-}
-%freetext-filter input {
-  -webkit-appearance: none;
-  border: none;
-  background-color: $white;
-  padding: 9px 5px;
-}
-%expanded-single-select,
-%expanded-single-select label,
-%freetext-filter,
-%freetext-filter span::before {
-  border-color: $border-blue !important;
 }

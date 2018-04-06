@@ -23,6 +23,7 @@ h2 {
 }
 body,
 pre code,
+input,
 td {
   @extend .is-size-6; // .is-size-normal doesn't seem to exist
 }
@@ -34,6 +35,9 @@ button,
 .with-confirmation p,
 %form-element em {
   @extend .is-size-8;
+}
+input {
+
 }
 th,
 button,

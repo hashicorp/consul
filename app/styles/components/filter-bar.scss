@@ -1,33 +1,47 @@
 @import './expanded-single-select';
 @import './icons';
-// really!?
 .filter-bar {
   @extend %filter-bar;
 }
-%filter-bar fieldset:only-child {
-  float: right;
+
+// decoration/color
+%filter-bar label:not(:last-child) {
+  border-right: 1px solid;
 }
+%filter-bar > * {
+  border: 1px solid;
+  border-radius: $radius-small;
+  background-color: $lightest-gray;
+}
+%filter-bar > *,
+%filter-bar label:not(:last-child) {
+  border-color: $border-blue !important;
+}
+
+// layout
 %filter-bar {
+  @extend .columns;
+  flex-direction: row-reverse;
+  justify-content: space-between;
   height: 64px; // 36 + (14 * 2)
   margin: 0 !important;
   padding: 14px;
   background-color: $lightest-gray;
 }
-%filter-bar [role='radiogroup'] {
-  @extend %expanded-single-select;
-}
 %filter-bar fieldset {
   width: auto;
 }
-%filter-bar fieldset:last-child {
-  width: 255px;
+%filter-bar [role='radiogroup'] {
+  @extend %expanded-single-select;
 }
-
 %filter-bar [role=radiogroup] label {
   color: $text-note;
   cursor: pointer;
+  line-height: 1.7;
+  white-space: nowrap;
 }
-%filter-bar label span::before {
+// icons
+%filter-bar [role=radiogroup] label span::before {
   left: 11px;
   top: 50%;
   margin-top: -.5em;

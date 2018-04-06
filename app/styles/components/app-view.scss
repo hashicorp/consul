@@ -20,8 +20,6 @@ main {
 }
 %app-view header form {
   @extend %filter-bar;
-  @extend .columns;
-  justify-content: space-between;
 }
 %app-view header > div:first-child {
   display: flex;

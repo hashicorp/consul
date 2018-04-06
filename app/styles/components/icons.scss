@@ -8,6 +8,36 @@
   background-color: currentColor;
   visibility: visible;
 }
+%with-magnifier {
+  position: relative;
+}
+%with-magnifier::before {
+  @extend %pseudo-icon;
+  cursor: pointer; // autosearch
+  top: 50%;
+  left: 50%;
+  margin-left: -0.2em;
+  margin-top: -0.2em;
+  font-size: 3em;
+  width: 0.35em;
+  height: 0.35em;
+  border: 0.05em solid;
+  border-radius: 0.35em;
+  border-color: currentColor;
+  background-color: transparent;
+}
+%with-magnifier::after {
+  @extend %pseudo-icon;
+  font-size: 3em;
+  top: 50%;
+  left: 50%;
+  margin-top: 0.13em;
+  margin-left: 0.07em;
+  border-width: 0;
+  width: 0.18em;
+  height: 0.05em;
+  transform: rotate(45deg);
+}
 %with-tick {
   @extend %pseudo-icon;
   background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="10" height="8" xmlns="http://www.w3.org/2000/svg"><path d="M8.95 0L10 .985 3.734 8 0 4.737l.924-1.11 2.688 2.349z" fill="#FFF"/></svg>');
