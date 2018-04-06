@@ -10,7 +10,12 @@ const countStatus = function(items, status) {
   }
   const key = `Checks${ucfirst(status)}`;
   return items.reduce(function(prev, item, i, arr) {
-    return prev + get(item, key) || 0;
+    const num = get(item, key);
+    return prev + (typeof num !== 'undefined' ? num : get(item, 'Checks').filter(
+        function(item) {
+          return item.Status === status;
+        }
+      ).length) || 0;
   }, 0);
 };
 export default Mixin.create(WithFiltering, {
