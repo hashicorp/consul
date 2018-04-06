@@ -232,9 +232,16 @@ func (a *Autopilot) pruneDeadServers() error {
 		return nil
 	}
 
-	// Only do removals if a minority of servers will be affected.
 	peers := NumPeers(raftConfig)
-	if peers-removalCount >= int(conf.MinQuorum) && removalCount < peers/2 {
+
+	if peers-removalCount < int(conf.MinQuorum) {
+		return nil
+	}
+
+	// Only do removals if a minority of servers will be affected.
+	// For failure tolerance of F we need n = 2F+1 servers.
+	// This means we can safely remove up to (n-1)/2 servers.
+	if removalCount <= (peers-1)/2 {
 		for _, node := range failed {
 			a.logger.Printf("[INFO] autopilot: Attempting removal of failed server node %q", node.Name)
 			go serfLAN.RemoveFailedNode(node.Name)
