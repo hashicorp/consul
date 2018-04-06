@@ -626,6 +626,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		TelemetryDisableHostname:                    b.boolVal(c.Telemetry.DisableHostname),
 		TelemetryDogstatsdAddr:                      b.stringVal(c.Telemetry.DogstatsdAddr),
 		TelemetryDogstatsdTags:                      c.Telemetry.DogstatsdTags,
+		TelemetryPrometheusDisable:                  b.boolVal(c.Telemetry.PrometheusDisable),
 		TelemetryFilterDefault:                      b.boolVal(c.Telemetry.FilterDefault),
 		TelemetryAllowedPrefixes:                    telemetryAllowedPrefixes,
 		TelemetryBlockedPrefixes:                    telemetryBlockedPrefixes,

@@ -19,6 +19,8 @@ import (
 	"github.com/hashicorp/logutils"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type Self struct {
@@ -86,7 +88,17 @@ func (s *HTTPServer) AgentMetrics(resp http.ResponseWriter, req *http.Request) (
 	if rule != nil && !rule.AgentRead(s.agent.config.NodeName) {
 		return nil, acl.ErrPermissionDenied
 	}
+	if format := req.URL.Query().Get("format"); format == "prometheus" {
+		handlerOptions := promhttp.HandlerOpts{
+			ErrorLog:           s.agent.logger,
+			ErrorHandling:      promhttp.ContinueOnError,
+			DisableCompression: true,
+		}
 
+		handler := promhttp.HandlerFor(prometheus.DefaultGatherer, handlerOptions)
+		handler.ServeHTTP(resp, req)
+		return nil, nil
+	}
 	return s.agent.MemSink.DisplayMetrics(resp, req)
 }
 

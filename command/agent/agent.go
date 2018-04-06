@@ -15,6 +15,7 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/circonus"
 	"github.com/armon/go-metrics/datadog"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/command/flags"
@@ -208,6 +209,17 @@ func dogstatdSink(config *config.RuntimeConfig, hostname string) (metrics.Metric
 	return sink, nil
 }
 
+func prometheusSink(config *config.RuntimeConfig, hostname string) (metrics.MetricSink, error) {
+	if config.TelemetryPrometheusDisable {
+		return nil, nil
+	}
+	sink, err := prometheus.NewPrometheusSink()
+	if err != nil {
+		return nil, err
+	}
+	return sink, nil
+}
+
 func circonusSink(config *config.RuntimeConfig, hostname string) (metrics.MetricSink, error) {
 	if config.TelemetryCirconusAPIToken == "" && config.TelemetryCirconusSubmissionURL == "" {
 		return nil, nil
@@ -282,6 +294,9 @@ func startupTelemetry(conf *config.RuntimeConfig) (*metrics.InmemSink, error) {
 		return nil, err
 	}
 	if err := addSink("circonus", circonusSink); err != nil {
+		return nil, err
+	}
+	if err := addSink("prometheus", prometheusSink); err != nil {
 		return nil, err
 	}
 
