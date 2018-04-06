@@ -1,26 +1,32 @@
-<header>
-    <a href={{href}}>
-        <span>{{name}}</span>
-        <strong>
-            {{address}}
-        </strong>
-    </a>
-</header>
-<ul>
-{{#if status }}
-        <li class={{status}}>
-            <a href={{href}}>
-                <strong>{{status}}</strong>
-            </a>
-        </li>
-{{ else }}
-    {{#each checks as |check| }}
-        <li class={{check.Status}}>
-            <a href={{href}}>{{! check.CheckID }}
-                <strong>{{ check.Status }}</strong>
-                <span>{{ check.Name }}</span>
-            </a>
-        </li>
-    {{/each}}
-{{/if}}
-</ul>
+    <header>
+        <a href={{href}}>
+            <span>{{name}}</span>
+            <strong>
+                {{address}}
+            </strong>
+        </a>
+    </header>
+    <ul>
+    {{#if status }}
+            <li class={{status}}>
+                <a href={{href}}>
+                    <strong>{{status}}</strong>
+                </a>
+            </li>
+    {{ else }}
+        {{#each unhealthy as |check| }}
+            <li class={{check.Status}}>
+                <a href={{href}}>{{! check.CheckID }}
+                    <strong>{{ check.Status }}</strong>
+                    <span>{{ check.Name }}</span>
+                </a>
+            </li>
+        {{/each}}
+            <li class="passing">
+                <a href={{href}}>
+                    <strong>{{healthy.length}}</strong>
+                    <span>other passing checks</span>
+                </a>
+            </li>
+    {{/if}}
+    </ul>

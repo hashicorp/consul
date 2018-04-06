@@ -9,21 +9,18 @@
 .healthy > div {
   width: calc(100% + 23px);
 }
-%card-grid > ul {
-  overflow: hidden;
+%card-grid {
+  margin-bottom: 20px;
 }
-%card-grid > ul > li {
-  float: left;
+%card-grid > ul,
+%card-grid > ol {
+  list-style-type: none;
+  display: grid;
+  grid-gap: 20px 2%;
+  grid-template-columns: repeat(4, minmax(23.47826%, 1fr));
+  grid-auto-rows: 12px;
 }
 .healthy > div > ul > li {
   padding-right: 23px;
   padding-bottom: 20px;
-}
-.unhealthy > div > ul > li {
-  width: 23.47826%; // 270px
-  margin-right: 2%; // 23px
-  margin-bottom: 20px;
-}
-.unhealthy > div > ul > li:nth-child(4n) {
-  margin-right: 0;
 }

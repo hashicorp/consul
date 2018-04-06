@@ -15,16 +15,18 @@
             <h2>Unhealthy Nodes</h2>
             <div>
                 {{! think about 2 differing views here }}
-                {{#filtered-list tagName="ul" items=unhealthy as |item|}}
-                    <li>
-                        {{healthchecked-resource
-                            href=(href-to 'dc.nodes.show' item.Node)
-                            name=item.Node
-                            address=item.Address
-                            checks=item.Checks
-                        }}
-                    </li>
-                {{/filtered-list}}
+                <ol>
+    {{#each unhealthy as |item|}}
+                    {{healthchecked-resource
+                        tagName='li'
+                        href=(href-to 'dc.nodes.show' item.Node)
+                        name=item.Node
+                        address=item.Address
+                        unhealthy=item.UnhealthyChecks
+                        healthy=item.HealthyChecks
+                    }}
+    {{/each}}
+                </ol>
             </div>
         </div>
 {{/if}}
@@ -39,7 +41,6 @@
                     href=(href-to 'dc.nodes.show' item.Node)
                     name=item.Node
                     address=item.Address
-                    checks=item.Checks
                     status=item.Checks.[0].Status
                 }}
             {{/list-collection}}

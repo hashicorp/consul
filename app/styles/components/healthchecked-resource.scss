@@ -3,19 +3,49 @@
   @extend %healthchecked-resource;
 }
 %healthchecked-resource {
-  position: relative;
-  border: 1px solid $border-blue;
-  border-radius: 4px;
+  border: 1px solid;
 }
+%healthchecked-resource li {
+  border-top: 1px solid;
+}
+%healthchecked-resource header span,
+%healthchecked-resource li:not(:last-child) span {
+  overflow: hidden;
+  display: inline-block;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+%healthchecked-resource li:not(:last-child) span {
+  // line-height: 1.7;
+}
+%healthchecked-resource li:last-child:not(:only-child) {
+  overflow: hidden;
+  white-space: nowrap;
+}
+%healthchecked-resource,
+%healthchecked-resource li {
+  border-color: $border-blue;
+}
+%healthchecked-resource {
+  position: relative;
+  border-radius: $radius;
+}
+%healthchecked-resource header {
+  margin-bottom: .5em;
+}
+%healthchecked-resource header span {
+  font-weight: $weight-bold;
+}
+%healthchecked-resource strong {
+  font-weight: $weight-normal;
+}
+
 %healthchecked-resource a,
 %healthchecked-resource header a > * {
   display: block;
 }
-%healthchecked-resource a > :first-child {
-  // margin-bottom: 1em;
-}
 %healthchecked-resource li {
-  border-top: 1px solid $border-blue;
   position: relative;
 }
 %healthchecked-resource li::before {
@@ -35,19 +65,22 @@
   @extend %with-critical;
   color: $red;
 }
-%healthchecked-resource li:first-child:last-child {
+.healthy .healthchecked-resource header span {
+  padding-right: 20px;
+}
+%healthchecked-resource li:only-child {
   position: absolute;
   top: 20px;
   right: 16px;
   border: none;
 }
-%healthchecked-resource li:first-child:last-child::before {
+%healthchecked-resource li:only-child::before {
   left: 0;
 }
-%healthchecked-resource li:first-child:last-child span {
+%healthchecked-resource li:only-child span {
   display: none;
 }
-%healthchecked-resource li:first-child:last-child a {
+%healthchecked-resource li:only-child a {
   padding-left: 0;
 }
 %healthchecked-resource header a {
@@ -55,16 +88,11 @@
 }
 
 %healthchecked-resource li a {
-  padding: 5px 15px;
-  padding-left: 45px;
+  padding: 2px 15px;
+  padding-top: 4px;
+  padding-left: 39px;
 }
-%healthchecked-resource li strong {
+%healthchecked-resource li:not(:last-child) strong,
+%healthchecked-resource li:only-child strong {
   display: none;
-}
-
-%healthchecked-resource span {
-  font-weight: $weight-bold;
-}
-%healthchecked-resource strong {
-  font-weight: $weight-normal;
 }

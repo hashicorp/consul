@@ -28,4 +28,12 @@ export default Model.extend({
   isUnhealthy: computed('Checks', function() {
     return sumOfUnhealthy(get(this, 'Checks')) > 0;
   }),
+  UnhealthyChecks: computed.filter(`Checks.@each.Status`, function(item) {
+    const status = get(item, 'Status');
+    return status === 'critical' || status === 'warning';
+  }),
+  HealthyChecks: computed.filter(`Checks.@each.Status`, function(item) {
+    const status = get(item, 'Status');
+    return status === 'passing';
+  }),
 });
