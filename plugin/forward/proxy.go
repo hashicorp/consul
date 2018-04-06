@@ -58,7 +58,7 @@ func (p *Proxy) SetTLSConfig(cfg *tls.Config) { p.transport.SetTLSConfig(cfg) }
 func (p *Proxy) SetExpire(expire time.Duration) { p.transport.SetExpire(expire) }
 
 // Dial connects to the host in p with the configured transport.
-func (p *Proxy) Dial(proto string) (*dns.Conn, error) { return p.transport.Dial(proto) }
+func (p *Proxy) Dial(proto string) (*dns.Conn, bool, error) { return p.transport.Dial(proto) }
 
 // Yield returns the connection to the pool.
 func (p *Proxy) Yield(c *dns.Conn) { p.transport.Yield(c) }

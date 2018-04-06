@@ -16,8 +16,9 @@ type persistConn struct {
 
 // connErr is used to communicate the connection manager.
 type connErr struct {
-	c   *dns.Conn
-	err error
+	c      *dns.Conn
+	err    error
+	cached bool
 }
 
 // transport hold the persistent cache.
@@ -86,7 +87,7 @@ Wait:
 				if time.Since(pc.used) < t.expire {
 					// Found one, remove from pool and return this conn.
 					t.conns[proto] = t.conns[proto][i+1:]
-					t.ret <- connErr{pc.c, nil}
+					t.ret <- connErr{pc.c, nil, true}
 					continue Wait
 				}
 				// This conn has expired. Close it.
@@ -100,12 +101,12 @@ Wait:
 			go func() {
 				if proto != "tcp-tls" {
 					c, err := dns.DialTimeout(proto, t.addr, dialTimeout)
-					t.ret <- connErr{c, err}
+					t.ret <- connErr{c, err, false}
 					return
 				}
 
 				c, err := dns.DialTimeoutWithTLS("tcp", t.addr, t.tlsConfig, dialTimeout)
-				t.ret <- connErr{c, err}
+				t.ret <- connErr{c, err, false}
 			}()
 
 		case conn := <-t.yield:
@@ -139,7 +140,7 @@ Wait:
 }
 
 // Dial dials the address configured in transport, potentially reusing a connection or creating a new one.
-func (t *transport) Dial(proto string) (*dns.Conn, error) {
+func (t *transport) Dial(proto string) (*dns.Conn, bool, error) {
 	// If tls has been configured; use it.
 	if t.tlsConfig != nil {
 		proto = "tcp-tls"
@@ -147,12 +148,12 @@ func (t *transport) Dial(proto string) (*dns.Conn, error) {
 
 	t.dial <- proto
 	c := <-t.ret
-	return c.c, c.err
+	return c.c, c.cached, c.err
 }
 
 // Yield return the connection to transport for reuse.
 func (t *transport) Yield(c *dns.Conn) {
-	t.yield <- connErr{c, nil}
+	t.yield <- connErr{c, nil, false}
 }
 
 // Stop stops the transport's connection manager.

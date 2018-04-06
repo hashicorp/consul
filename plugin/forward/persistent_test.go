@@ -19,9 +19,13 @@ func TestPersistent(t *testing.T) {
 	tr := newTransport(s.Addr, nil /* no TLS */)
 	defer tr.Stop()
 
-	c1, _ := tr.Dial("udp")
-	c2, _ := tr.Dial("udp")
-	c3, _ := tr.Dial("udp")
+	c1, cache1, _ := tr.Dial("udp")
+	c2, cache2, _ := tr.Dial("udp")
+	c3, cache3, _ := tr.Dial("udp")
+
+	if cache1 || cache2 || cache3 {
+		t.Errorf("Expected non-cached connection")
+	}
 
 	tr.Yield(c1)
 	tr.Yield(c2)
@@ -31,13 +35,23 @@ func TestPersistent(t *testing.T) {
 		t.Errorf("Expected cache size to be 3, got %d", x)
 	}
 
-	tr.Dial("udp")
+	c4, cache4, _ := tr.Dial("udp")
 	if x := tr.Len(); x != 2 {
 		t.Errorf("Expected cache size to be 2, got %d", x)
 	}
 
-	tr.Dial("udp")
+	c5, cache5, _ := tr.Dial("udp")
 	if x := tr.Len(); x != 1 {
-		t.Errorf("Expected cache size to be 2, got %d", x)
+		t.Errorf("Expected cache size to be 1, got %d", x)
+	}
+
+	if cache4 == false || cache5 == false {
+		t.Errorf("Expected cached connection")
+	}
+	tr.Yield(c4)
+	tr.Yield(c5)
+
+	if x := tr.Len(); x != 3 {
+		t.Errorf("Expected cache size to be 3, got %d", x)
 	}
 }

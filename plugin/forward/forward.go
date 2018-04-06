@@ -7,7 +7,6 @@ package forward
 import (
 	"crypto/tls"
 	"errors"
-	"io"
 	"time"
 
 	"github.com/coredns/coredns/plugin"
@@ -92,11 +91,9 @@ func (f *Forward) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 			ret *dns.Msg
 			err error
 		)
-		stop := false
 		for {
 			ret, err = proxy.connect(ctx, state, f.forceTCP, true)
-			if err != nil && err == io.EOF && !stop { // Remote side closed conn, can only happen with TCP.
-				stop = true
+			if err != nil && err == errCachedClosed { // Remote side closed conn, can only happen with TCP.
 				continue
 			}
 			break
@@ -176,6 +173,7 @@ var (
 	errInvalidDomain = errors.New("invalid domain for forward")
 	errNoHealthy     = errors.New("no healthy proxies")
 	errNoForward     = errors.New("no forwarder defined")
+	errCachedClosed  = errors.New("cached connection was closed by peer")
 )
 
 // policy tells forward what policy for selecting upstream it uses.

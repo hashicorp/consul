@@ -5,6 +5,7 @@
 package forward
 
 import (
+	"io"
 	"strconv"
 	"time"
 
@@ -22,7 +23,7 @@ func (p *Proxy) connect(ctx context.Context, state request.Request, forceTCP, me
 		proto = "tcp"
 	}
 
-	conn, err := p.Dial(proto)
+	conn, cached, err := p.Dial(proto)
 	if err != nil {
 		return nil, err
 	}
@@ -36,6 +37,9 @@ func (p *Proxy) connect(ctx context.Context, state request.Request, forceTCP, me
 	conn.SetWriteDeadline(time.Now().Add(timeout))
 	if err := conn.WriteMsg(state.Req); err != nil {
 		conn.Close() // not giving it back
+		if err == io.EOF && cached {
+			return nil, errCachedClosed
+		}
 		return nil, err
 	}
 
@@ -43,6 +47,9 @@ func (p *Proxy) connect(ctx context.Context, state request.Request, forceTCP, me
 	ret, err := conn.ReadMsg()
 	if err != nil {
 		conn.Close() // not giving it back
+		if err == io.EOF && cached {
+			return nil, errCachedClosed
+		}
 		return nil, err
 	}
 
