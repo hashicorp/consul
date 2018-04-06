@@ -17,7 +17,7 @@
   list-style-type: none;
   display: grid;
   grid-gap: 20px 2%;
-  grid-template-columns: repeat(4, minmax(23.47826%, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
   grid-auto-rows: 12px;
 }
 .healthy > div > ul > li {

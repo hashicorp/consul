@@ -23,16 +23,17 @@
         <div class="unhealthy">
             <h2>Unhealthy Nodes</h2>
             <div>
-                {{#filtered-list tagName="ul" items=unhealthy as |item|}}
-                    <li>
-                        {{healthchecked-resource
-                            href=(href-to 'dc.nodes.show' item.Node.Node)
-                            name=item.Node.Node
-                            address=item.Node.Address
-                            checks=item.Checks
-                        }}
-                    </li>
-                {{/filtered-list}}
+                <ul>
+    {{#each unhealthy as |item|}}
+                    {{healthchecked-resource
+                        tagName='li'
+                        href=(href-to 'dc.nodes.show' item.Node.Node)
+                        name=item.Node.Node
+                        address=item.Node.Address
+                        checks=item.Checks
+                    }}
+    {{/each}}
+                </ul>
             </div>
         </div>
 {{/if}}
