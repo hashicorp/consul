@@ -85,6 +85,7 @@
 		{"path":"github.com/mitchellh/reflectwalk","checksumSHA1":"mrqMlK6gqe//WsJSrJ1HgkPM0lM=","revision":"eecf4c70c626c7cfbb95c90195bc34d386c74ac6","revisionTime":"2015-05-27T15:31:53Z"},
 		{"path":"github.com/pascaldekloe/goe/verify","checksumSHA1":"5h+ERzHw3Rl2G0kFPxoJzxiA9s0=","revision":"07ebd1e2481f616a278ab431cf04cc5cf5ab3ebe","revisionTime":"2017-03-28T18:37:59Z"},
 		{"path":"github.com/pkg/errors","checksumSHA1":"ynJSWoF6v+3zMnh9R0QmmG6iGV8=","revision":"ff09b135c25aae272398c51a07235b90a75aa4f0","revisionTime":"2017-03-16T20:15:38Z","tree":true},
+                {"path": "github.com/prometheus/client_golang/prometheus/promhttp", "checksumSHA1": "BM771aKU6hC+5rap48aqvMXczII=", "revision": "f504d69affe11ec1ccb2e5948127f86878c9fd57", "revisionTime": "2018-03-28T13:04:30Z"},
 		{"path":"github.com/pmezard/go-difflib/difflib","checksumSHA1":"LuFv4/jlrmFNnDb/5SCSEPAM9vU=","revision":"792786c7400a136282c1664665ae0a8db921c6c2","revisionTime":"2016-01-10T10:55:54Z"},
 		{"path":"github.com/posener/complete","checksumSHA1":"Nt4Ol6ZM2n0XD5zatxjwEYBpQnw=","revision":"dc2bc5a81accba8782bebea28628224643a8286a","revisionTime":"2017-11-04T09:57:02Z","version":"=v1.1","versionExact":"v1.1"},
 		{"path":"github.com/ryanuber/columnize","checksumSHA1":"ExnVEVNT8APpFTm26cUb5T09yR4=","comment":"v2.0.1-8-g983d3a5","revision":"9b3edd62028f107d7cabb19353292afd29311a4e","revisionTime":"2016-07-12T16:32:29Z"},
