@@ -1,13 +1,150 @@
 package state
 
 import (
+	"reflect"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
+	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestStore_CAConfig(t *testing.T) {
+	s := testStateStore(t)
+
+	expected := &structs.CAConfiguration{
+		Provider: "consul",
+		Config: map[string]interface{}{
+			"PrivateKey":     "asdf",
+			"RootCert":       "qwer",
+			"RotationPeriod": 90 * 24 * time.Hour,
+		},
+	}
+
+	if err := s.CASetConfig(0, expected); err != nil {
+		t.Fatal(err)
+	}
+
+	idx, config, err := s.CAConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if idx != 0 {
+		t.Fatalf("bad: %d", idx)
+	}
+	if !reflect.DeepEqual(expected, config) {
+		t.Fatalf("bad: %#v, %#v", expected, config)
+	}
+}
+
+func TestStore_CAConfigCAS(t *testing.T) {
+	s := testStateStore(t)
+
+	expected := &structs.CAConfiguration{
+		Provider: "consul",
+	}
+
+	if err := s.CASetConfig(0, expected); err != nil {
+		t.Fatal(err)
+	}
+	// Do an extra operation to move the index up by 1 for the
+	// check-and-set operation after this
+	if err := s.CASetConfig(1, expected); err != nil {
+		t.Fatal(err)
+	}
+
+	// Do a CAS with an index lower than the entry
+	ok, err := s.CACheckAndSetConfig(2, 0, &structs.CAConfiguration{
+		Provider: "static",
+	})
+	if ok || err != nil {
+		t.Fatalf("expected (false, nil), got: (%v, %#v)", ok, err)
+	}
+
+	// Check that the index is untouched and the entry
+	// has not been updated.
+	idx, config, err := s.CAConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if idx != 1 {
+		t.Fatalf("bad: %d", idx)
+	}
+	if config.Provider != "consul" {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	// Do another CAS, this time with the correct index
+	ok, err = s.CACheckAndSetConfig(2, 1, &structs.CAConfiguration{
+		Provider: "static",
+	})
+	if !ok || err != nil {
+		t.Fatalf("expected (true, nil), got: (%v, %#v)", ok, err)
+	}
+
+	// Make sure the config was updated
+	idx, config, err = s.CAConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if idx != 2 {
+		t.Fatalf("bad: %d", idx)
+	}
+	if config.Provider != "static" {
+		t.Fatalf("bad: %#v", config)
+	}
+}
+
+func TestStore_CAConfig_Snapshot_Restore(t *testing.T) {
+	s := testStateStore(t)
+	before := &structs.CAConfiguration{
+		Provider: "consul",
+		Config: map[string]interface{}{
+			"PrivateKey":     "asdf",
+			"RootCert":       "qwer",
+			"RotationPeriod": 90 * 24 * time.Hour,
+		},
+	}
+	if err := s.CASetConfig(99, before); err != nil {
+		t.Fatal(err)
+	}
+
+	snap := s.Snapshot()
+	defer snap.Close()
+
+	after := &structs.CAConfiguration{
+		Provider: "static",
+		Config:   map[string]interface{}{},
+	}
+	if err := s.CASetConfig(100, after); err != nil {
+		t.Fatal(err)
+	}
+
+	snapped, err := snap.CAConfig()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	verify.Values(t, "", before, snapped)
+
+	s2 := testStateStore(t)
+	restore := s2.Restore()
+	if err := restore.CAConfig(snapped); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	restore.Commit()
+
+	idx, res, err := s2.CAConfig()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 99 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	verify.Values(t, "", before, res)
+}
 
 func TestStore_CARootSetList(t *testing.T) {
 	assert := assert.New(t)

@@ -8,8 +8,27 @@ import (
 )
 
 const (
-	caRootTableName = "connect-ca-roots"
+	caConfigTableName = "connect-ca-config"
+	caRootTableName   = "connect-ca-roots"
 )
+
+// caConfigTableSchema returns a new table schema used for storing
+// the CA config for Connect.
+func caConfigTableSchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: caConfigTableName,
+		Indexes: map[string]*memdb.IndexSchema{
+			"id": &memdb.IndexSchema{
+				Name:         "id",
+				AllowMissing: true,
+				Unique:       true,
+				Indexer: &memdb.ConditionalIndex{
+					Conditional: func(obj interface{}) (bool, error) { return true, nil },
+				},
+			},
+		},
+	}
+}
 
 // caRootTableSchema returns a new table schema used for storing
 // CA roots for Connect.
@@ -30,7 +49,110 @@ func caRootTableSchema() *memdb.TableSchema {
 }
 
 func init() {
+	registerSchema(caConfigTableSchema)
 	registerSchema(caRootTableSchema)
+}
+
+// CAConfig is used to pull the CA config from the snapshot.
+func (s *Snapshot) CAConfig() (*structs.CAConfiguration, error) {
+	c, err := s.tx.First("connect-ca-config", "id")
+	if err != nil {
+		return nil, err
+	}
+
+	config, ok := c.(*structs.CAConfiguration)
+	if !ok {
+		return nil, nil
+	}
+
+	return config, nil
+}
+
+// CAConfig is used when restoring from a snapshot.
+func (s *Restore) CAConfig(config *structs.CAConfiguration) error {
+	if err := s.tx.Insert("connect-ca-config", config); err != nil {
+		return fmt.Errorf("failed restoring CA config: %s", err)
+	}
+
+	return nil
+}
+
+// CAConfig is used to get the current Autopilot configuration.
+func (s *Store) CAConfig() (uint64, *structs.CAConfiguration, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get the autopilot config
+	c, err := tx.First("connect-ca-config", "id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed CA config lookup: %s", err)
+	}
+
+	config, ok := c.(*structs.CAConfiguration)
+	if !ok {
+		return 0, nil, nil
+	}
+
+	return config.ModifyIndex, config, nil
+}
+
+// CASetConfig is used to set the current Autopilot configuration.
+func (s *Store) CASetConfig(idx uint64, config *structs.CAConfiguration) error {
+	tx := s.db.Txn(true)
+	defer tx.Abort()
+
+	s.caSetConfigTxn(idx, tx, config)
+
+	tx.Commit()
+	return nil
+}
+
+// CACheckAndSetConfig is used to try updating the CA configuration with a
+// given Raft index. If the CAS index specified is not equal to the last observed index
+// for the config, then the call is a noop,
+func (s *Store) CACheckAndSetConfig(idx, cidx uint64, config *structs.CAConfiguration) (bool, error) {
+	tx := s.db.Txn(true)
+	defer tx.Abort()
+
+	// Check for an existing config
+	existing, err := tx.First("connect-ca-config", "id")
+	if err != nil {
+		return false, fmt.Errorf("failed CA config lookup: %s", err)
+	}
+
+	// If the existing index does not match the provided CAS
+	// index arg, then we shouldn't update anything and can safely
+	// return early here.
+	e, ok := existing.(*structs.CAConfiguration)
+	if !ok || e.ModifyIndex != cidx {
+		return false, nil
+	}
+
+	s.caSetConfigTxn(idx, tx, config)
+
+	tx.Commit()
+	return true, nil
+}
+
+func (s *Store) caSetConfigTxn(idx uint64, tx *memdb.Txn, config *structs.CAConfiguration) error {
+	// Check for an existing config
+	existing, err := tx.First("connect-ca-config", "id")
+	if err != nil {
+		return fmt.Errorf("failed CA config lookup: %s", err)
+	}
+
+	// Set the indexes.
+	if existing != nil {
+		config.CreateIndex = existing.(*structs.CAConfiguration).CreateIndex
+	} else {
+		config.CreateIndex = idx
+	}
+	config.ModifyIndex = idx
+
+	if err := tx.Insert("connect-ca-config", config); err != nil {
+		return fmt.Errorf("failed updating CA config: %s", err)
+	}
+	return nil
 }
 
 // CARoots is used to pull all the CA roots for the snapshot.
