@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/coordinate"
+	"github.com/mitchellh/mapstructure"
 	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/assert"
 )
@@ -1219,6 +1220,73 @@ func TestFSM_Intention_CRUD(t *testing.T) {
 	}
 }
 
+func TestFSM_CAConfig(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	fsm, err := New(nil, os.Stderr)
+	assert.Nil(err)
+
+	// Set the autopilot config using a request.
+	req := structs.CARequest{
+		Op: structs.CAOpSetConfig,
+		Config: &structs.CAConfiguration{
+			Provider: "consul",
+			Config: map[string]interface{}{
+				"PrivateKey":     "asdf",
+				"RootCert":       "qwer",
+				"RotationPeriod": 90 * 24 * time.Hour,
+			},
+		},
+	}
+	buf, err := structs.Encode(structs.ConnectCARequestType, req)
+	assert.Nil(err)
+	resp := fsm.Apply(makeLog(buf))
+	if _, ok := resp.(error); ok {
+		t.Fatalf("bad: %v", resp)
+	}
+
+	// Verify key is set directly in the state store.
+	_, config, err := fsm.state.CAConfig()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	var conf *connect.ConsulCAProviderConfig
+	if err := mapstructure.WeakDecode(config.Config, &conf); err != nil {
+		t.Fatalf("error decoding config: %s, %v", err, config.Config)
+	}
+	if got, want := config.Provider, req.Config.Provider; got != want {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+	if got, want := conf.PrivateKey, "asdf"; got != want {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+	if got, want := conf.RootCert, "qwer"; got != want {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+	if got, want := conf.RotationPeriod, 90*24*time.Hour; got != want {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+
+	// Now use CAS and provide an old index
+	req.Config.Provider = "static"
+	req.Config.ModifyIndex = config.ModifyIndex - 1
+	buf, err = structs.Encode(structs.ConnectCARequestType, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp = fsm.Apply(makeLog(buf))
+	if _, ok := resp.(error); ok {
+		t.Fatalf("bad: %v", resp)
+	}
+
+	_, config, err = fsm.state.CAConfig()
+	assert.Nil(err)
+	if config.Provider != "static" {
+		t.Fatalf("bad: %v", config.Provider)
+	}
+}
+
 func TestFSM_CARoots(t *testing.T) {
 	t.Parallel()
 
@@ -1233,7 +1301,7 @@ func TestFSM_CARoots(t *testing.T) {
 
 	// Create a new request.
 	req := structs.CARequest{
-		Op:    structs.CAOpSet,
+		Op:    structs.CAOpSetRoots,
 		Roots: []*structs.CARoot{ca1, ca2},
 	}
 
