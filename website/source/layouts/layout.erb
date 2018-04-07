@@ -33,12 +33,14 @@
     <![endif]-->
     <%= javascript_include_tag "application" %>
 
+    <% if config[:environment] == :build %>
     <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
     j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
     })(window,document,'script','dataLayer','GTM-NR2SD7C');</script>
+    <% end %>
 
     <!-- Typekit script to import Klavika font -->
     <script src="https://use.typekit.net/wxf7mfi.js"></script>
@@ -121,6 +123,7 @@
       </div>
     </div>
 
+    <% if config[:environment] == :build %>
     <script>
       (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
       (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
@@ -131,6 +134,7 @@
       ga('require', 'linkid');
       ga('send', 'pageview', location.pathname);
     </script>
+    <% end %>
 
     <script type="application/ld+json">
       {
