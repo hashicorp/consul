@@ -1,6 +1,5 @@
 package cache
 
-/*
 import (
 	"fmt"
 
@@ -36,4 +35,3 @@ func (c *TypeCARoot) Fetch(opts FetchOptions, req Request) (FetchResult, error) 
 	result.Index = reply.QueryMeta.Index
 	return result, nil
 }
-*/

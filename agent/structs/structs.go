@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/coordinate"
+	"github.com/mitchellh/hashstructure"
 )
 
 type MessageType uint8
@@ -274,6 +276,24 @@ type DCSpecificRequest struct {
 
 func (r *DCSpecificRequest) RequestDatacenter() string {
 	return r.Datacenter
+}
+
+func (r *DCSpecificRequest) CacheKey() string {
+	// To calculate the cache key we only hash the node filters. The
+	// datacenter is handled by the cache framework. The other fields are
+	// not, but should not be used in any cache types.
+	v, err := hashstructure.Hash(r.NodeMetaFilters, nil)
+	if err != nil {
+		// Empty string means do not cache. If we have an error we should
+		// just forward along to the server.
+		return ""
+	}
+
+	return strconv.FormatUint(v, 10)
+}
+
+func (r *DCSpecificRequest) CacheMinIndex() uint64 {
+	return r.QueryOptions.MinQueryIndex
 }
 
 // ServiceSpecificRequest is used to query about a specific service
