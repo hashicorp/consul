@@ -20,29 +20,10 @@ import (
 
 //go:generate mockery -all -inpkg
 
-// Pre-written options for type registration. These should not be modified.
-var (
-	// RegisterOptsPeriodic performs a periodic refresh of data fetched
-	// by the registered type.
-	RegisterOptsPeriodic = &RegisterOptions{
-		Refresh:        true,
-		RefreshTimer:   30 * time.Second,
-		RefreshTimeout: 5 * time.Minute,
-	}
-)
-
-// TODO: DC-aware
-
-// RPC is an interface that an RPC client must implement.
-type RPC interface {
-	RPC(method string, args interface{}, reply interface{}) error
-}
+// TODO: DC-aware, ACL-aware
 
 // Cache is a agent-local cache of Consul data.
 type Cache struct {
-	// rpcClient is the RPC-client.
-	rpcClient RPC
-
 	entriesLock sync.RWMutex
 	entries     map[string]cacheEntry
 
@@ -50,6 +31,7 @@ type Cache struct {
 	types     map[string]typeEntry
 }
 
+// cacheEntry stores a single cache entry.
 type cacheEntry struct {
 	// Fields pertaining to the actual value
 	Value interface{}
@@ -68,13 +50,17 @@ type typeEntry struct {
 	Opts *RegisterOptions
 }
 
+// Options are options for the Cache.
+type Options struct {
+	// Nothing currently, reserved.
+}
+
 // New creates a new cache with the given RPC client and reasonable defaults.
 // Further settings can be tweaked on the returned value.
-func New(rpc RPC) *Cache {
+func New(*Options) *Cache {
 	return &Cache{
-		rpcClient: rpc,
-		entries:   make(map[string]cacheEntry),
-		types:     make(map[string]typeEntry),
+		entries: make(map[string]cacheEntry),
+		types:   make(map[string]typeEntry),
 	}
 }
 
@@ -124,7 +110,11 @@ func (c *Cache) RegisterType(n string, typ Type, opts *RegisterOptions) {
 // block on a single network request.
 func (c *Cache) Get(t string, r Request) (interface{}, error) {
 	key := r.CacheKey()
-	idx := r.CacheMinIndex()
+	if key == "" {
+		// If no key is specified, then we do not cache this request.
+		// Pass directly through to the backend.
+		return c.fetchDirect(t, r)
+	}
 
 RETRY_GET:
 	// Get the current value
@@ -136,8 +126,11 @@ RETRY_GET:
 	// currently stored index then we return that right away. If the
 	// index is zero and we have something in the cache we accept whatever
 	// we have.
-	if ok && entry.Valid && (idx == 0 || idx < entry.Index) {
-		return entry.Value, nil
+	if ok && entry.Valid {
+		idx := r.CacheMinIndex()
+		if idx == 0 || idx < entry.Index {
+			return entry.Value, nil
+		}
 	}
 
 	// At this point, we know we either don't have a value at all or the
@@ -192,7 +185,6 @@ func (c *Cache) fetch(t string, r Request) (<-chan struct{}, error) {
 		// Start building the new entry by blocking on the fetch.
 		var newEntry cacheEntry
 		result, err := tEntry.Type.Fetch(FetchOptions{
-			RPC:      c.rpcClient,
 			MinIndex: entry.Index,
 		}, r)
 		newEntry.Value = result.Value
@@ -221,6 +213,28 @@ func (c *Cache) fetch(t string, r Request) (<-chan struct{}, error) {
 	}()
 
 	return entry.Waiter, nil
+}
+
+// fetchDirect fetches the given request with no caching.
+func (c *Cache) fetchDirect(t string, r Request) (interface{}, error) {
+	// Get the type that we're fetching
+	c.typesLock.RLock()
+	tEntry, ok := c.types[t]
+	c.typesLock.RUnlock()
+	if !ok {
+		return nil, fmt.Errorf("unknown type in cache: %s", t)
+	}
+
+	// Fetch it with the min index specified directly by the request.
+	result, err := tEntry.Type.Fetch(FetchOptions{
+		MinIndex: r.CacheMinIndex(),
+	}, r)
+	if err != nil {
+		return nil, err
+	}
+
+	// Return the result and ignore the rest
+	return result.Value, nil
 }
 
 func (c *Cache) refresh(opts *RegisterOptions, t string, r Request) {

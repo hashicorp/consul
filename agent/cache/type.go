@@ -20,9 +20,6 @@ type Type interface {
 
 // FetchOptions are various settable options when a Fetch is called.
 type FetchOptions struct {
-	// RPC is the RPC client to communicate to a Consul server.
-	RPC RPC
-
 	// MinIndex is the minimum index to be used for blocking queries.
 	// If blocking queries aren't supported for data being returned,
 	// this value can be ignored.
@@ -42,27 +39,3 @@ type FetchResult struct {
 	// Index is the corresponding index value for this data.
 	Index uint64
 }
-
-/*
-type TypeCARoot struct{}
-
-func (c *TypeCARoot) Fetch(delegate RPC, idx uint64, req Request) (interface{}, uint64, error) {
-	// The request should be a DCSpecificRequest.
-	reqReal, ok := req.(*structs.DCSpecificRequest)
-	if !ok {
-		return nil, 0, fmt.Errorf(
-			"Internal cache failure: request wrong type: %T", req)
-	}
-
-	// Set the minimum query index to our current index so we block
-	reqReal.QueryOptions.MinQueryIndex = idx
-
-	// Fetch
-	var reply structs.IndexedCARoots
-	if err := delegate.RPC("ConnectCA.Roots", reqReal, &reply); err != nil {
-		return nil, 0, err
-	}
-
-	return &reply, reply.QueryMeta.Index, nil
-}
-*/

@@ -41,6 +41,38 @@ func TestCacheGet_noIndex(t *testing.T) {
 	typ.AssertExpectations(t)
 }
 
+// Test a Get with a request that returns a blank cache key. This should
+// force a backend request and skip the cache entirely.
+func TestCacheGet_blankCacheKey(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	typ := TestType(t)
+	defer typ.AssertExpectations(t)
+	c := TestCache(t)
+	c.RegisterType("t", typ, nil)
+
+	// Configure the type
+	typ.Static(FetchResult{Value: 42}, nil).Times(2)
+
+	// Get, should fetch
+	req := TestRequest(t, "", 0)
+	result, err := c.Get("t", req)
+	require.Nil(err)
+	require.Equal(42, result)
+
+	// Get, should not fetch since we already have a satisfying value
+	result, err = c.Get("t", req)
+	require.Nil(err)
+	require.Equal(42, result)
+
+	// Sleep a tiny bit just to let maybe some background calls happen
+	// then verify that we still only got the one call
+	time.Sleep(20 * time.Millisecond)
+	typ.AssertExpectations(t)
+}
+
 // Test that Get blocks on the initial value
 func TestCacheGet_blockingInitSameKey(t *testing.T) {
 	t.Parallel()
