@@ -2479,6 +2479,11 @@ func (a *Agent) DisableNodeMaintenance() {
 	a.logger.Printf("[INFO] agent: Node left maintenance mode")
 }
 
+func (a *Agent) loadLimits(conf *config.RuntimeConfig) {
+  a.config.RPCRateLimit = conf.RPCRateLimit
+  a.config.RPCMaxBurst = conf.RPCMaxBurst
+}
+
 func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	// Bulk update the services and checks
 	a.PauseSync()
@@ -2512,6 +2517,8 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	if err := a.reloadWatches(newCfg); err != nil {
 		return fmt.Errorf("Failed reloading watches: %v", err)
 	}
+
+  a.loadLimits(newCfg)
 
 	// Update filtered metrics
 	metrics.UpdateFilter(newCfg.TelemetryAllowedPrefixes, newCfg.TelemetryBlockedPrefixes)
