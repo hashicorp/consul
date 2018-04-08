@@ -8,29 +8,15 @@ type MockRequest struct {
 	mock.Mock
 }
 
-// CacheKey provides a mock function with given fields:
-func (_m *MockRequest) CacheKey() string {
+// CacheInfo provides a mock function with given fields:
+func (_m *MockRequest) CacheInfo() RequestInfo {
 	ret := _m.Called()
 
-	var r0 string
-	if rf, ok := ret.Get(0).(func() string); ok {
+	var r0 RequestInfo
+	if rf, ok := ret.Get(0).(func() RequestInfo); ok {
 		r0 = rf()
 	} else {
-		r0 = ret.Get(0).(string)
-	}
-
-	return r0
-}
-
-// CacheMinIndex provides a mock function with given fields:
-func (_m *MockRequest) CacheMinIndex() uint64 {
-	ret := _m.Called()
-
-	var r0 uint64
-	if rf, ok := ret.Get(0).(func() uint64); ok {
-		r0 = rf()
-	} else {
-		r0 = ret.Get(0).(uint64)
+		r0 = ret.Get(0).(RequestInfo)
 	}
 
 	return r0

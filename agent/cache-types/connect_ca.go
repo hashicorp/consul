@@ -1,8 +1,9 @@
-package cache
+package cachetype
 
 import (
 	"fmt"
 
+	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -11,8 +12,8 @@ type TypeCARoot struct {
 	RPC RPC
 }
 
-func (c *TypeCARoot) Fetch(opts FetchOptions, req Request) (FetchResult, error) {
-	var result FetchResult
+func (c *TypeCARoot) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+	var result cache.FetchResult
 
 	// The request should be a DCSpecificRequest.
 	reqReal, ok := req.(*structs.DCSpecificRequest)

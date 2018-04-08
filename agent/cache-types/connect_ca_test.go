@@ -1,9 +1,10 @@
-package cache
+package cachetype
 
 import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -30,12 +31,12 @@ func TestTypeCARoot(t *testing.T) {
 		})
 
 	// Fetch
-	result, err := typ.Fetch(FetchOptions{
+	result, err := typ.Fetch(cache.FetchOptions{
 		MinIndex: 24,
 		Timeout:  1 * time.Second,
 	}, &structs.DCSpecificRequest{Datacenter: "dc1"})
 	require.Nil(err)
-	require.Equal(FetchResult{
+	require.Equal(cache.FetchResult{
 		Value: resp,
 		Index: 48,
 	}, result)
@@ -48,7 +49,8 @@ func TestTypeCARoot_badReqType(t *testing.T) {
 	typ := &TypeCARoot{RPC: rpc}
 
 	// Fetch
-	_, err := typ.Fetch(FetchOptions{}, TestRequest(t, "foo", 64))
+	_, err := typ.Fetch(cache.FetchOptions{}, cache.TestRequest(
+		t, cache.RequestInfo{Key: "foo", MinIndex: 64}))
 	require.NotNil(err)
 	require.Contains(err.Error(), "wrong type")
 

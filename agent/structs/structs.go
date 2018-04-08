@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-msgpack/codec"
@@ -278,18 +279,23 @@ func (r *DCSpecificRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
-func (r *DCSpecificRequest) CacheKey() string {
+func (r *DCSpecificRequest) CacheInfo() cache.RequestInfo {
+	info := cache.RequestInfo{
+		MinIndex: r.QueryOptions.MinQueryIndex,
+	}
+
 	// To calculate the cache key we only hash the node filters. The
 	// datacenter is handled by the cache framework. The other fields are
 	// not, but should not be used in any cache types.
 	v, err := hashstructure.Hash(r.NodeMetaFilters, nil)
-	if err != nil {
-		// Empty string means do not cache. If we have an error we should
-		// just forward along to the server.
-		return ""
+	if err == nil {
+		// If there is an error, we don't set the key. A blank key forces
+		// no cache for this request so the request is forwarded directly
+		// to the server.
+		info.Key = strconv.FormatUint(v, 10)
 	}
 
-	return strconv.FormatUint(v, 10)
+	return info
 }
 
 func (r *DCSpecificRequest) CacheMinIndex() uint64 {

@@ -50,18 +50,10 @@ func TestCacheGetChResult(t testing.T, ch <-chan interface{}, expected interface
 
 // TestRequest returns a Request that returns the given cache key and index.
 // The Reset method can be called to reset it for custom usage.
-func TestRequest(t testing.T, key string, index uint64) *MockRequest {
+func TestRequest(t testing.T, info RequestInfo) *MockRequest {
 	req := &MockRequest{}
-	req.On("CacheKey").Return(key)
-	req.On("CacheMinIndex").Return(index)
+	req.On("CacheInfo").Return(info)
 	return req
-}
-
-// TestRPC returns a mock implementation of the RPC interface.
-func TestRPC(t testing.T) *MockRPC {
-	// This function is relatively useless but this allows us to perhaps
-	// perform some initialization later.
-	return &MockRPC{}
 }
 
 // TestType returns a MockType that can be used to setup expectations

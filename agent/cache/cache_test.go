@@ -25,7 +25,7 @@ func TestCacheGet_noIndex(t *testing.T) {
 	typ.Static(FetchResult{Value: 42}, nil).Times(1)
 
 	// Get, should fetch
-	req := TestRequest(t, "hello", 0)
+	req := TestRequest(t, RequestInfo{Key: "hello"})
 	result, err := c.Get("t", req)
 	require.Nil(err)
 	require.Equal(42, result)
@@ -57,7 +57,7 @@ func TestCacheGet_blankCacheKey(t *testing.T) {
 	typ.Static(FetchResult{Value: 42}, nil).Times(2)
 
 	// Get, should fetch
-	req := TestRequest(t, "", 0)
+	req := TestRequest(t, RequestInfo{Key: ""})
 	result, err := c.Get("t", req)
 	require.Nil(err)
 	require.Equal(42, result)
@@ -87,8 +87,8 @@ func TestCacheGet_blockingInitSameKey(t *testing.T) {
 	typ.Static(FetchResult{Value: 42}, nil).WaitUntil(triggerCh).Times(1)
 
 	// Perform multiple gets
-	getCh1 := TestCacheGetCh(t, c, "t", TestRequest(t, "hello", 0))
-	getCh2 := TestCacheGetCh(t, c, "t", TestRequest(t, "hello", 0))
+	getCh1 := TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{Key: "hello"}))
+	getCh2 := TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{Key: "hello"}))
 
 	// They should block
 	select {
@@ -131,12 +131,12 @@ func TestCacheGet_blockingInitDiffKeys(t *testing.T) {
 		Run(func(args mock.Arguments) {
 			keysLock.Lock()
 			defer keysLock.Unlock()
-			keys = append(keys, args.Get(1).(Request).CacheKey())
+			keys = append(keys, args.Get(1).(Request).CacheInfo().Key)
 		})
 
 	// Perform multiple gets
-	getCh1 := TestCacheGetCh(t, c, "t", TestRequest(t, "hello", 0))
-	getCh2 := TestCacheGetCh(t, c, "t", TestRequest(t, "goodbye", 0))
+	getCh1 := TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{Key: "hello"}))
+	getCh2 := TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{Key: "goodbye"}))
 
 	// They should block
 	select {
@@ -176,7 +176,8 @@ func TestCacheGet_blockingIndex(t *testing.T) {
 	typ.Static(FetchResult{Value: 42, Index: 6}, nil).WaitUntil(triggerCh)
 
 	// Fetch should block
-	resultCh := TestCacheGetCh(t, c, "t", TestRequest(t, "hello", 5))
+	resultCh := TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{
+		Key: "hello", MinIndex: 5}))
 
 	// Should block
 	select {
@@ -217,16 +218,16 @@ func TestCacheGet_periodicRefresh(t *testing.T) {
 	typ.Static(FetchResult{Value: 12, Index: 5}, nil).WaitUntil(triggerCh)
 
 	// Fetch should block
-	resultCh := TestCacheGetCh(t, c, "t", TestRequest(t, "hello", 0))
+	resultCh := TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{Key: "hello"}))
 	TestCacheGetChResult(t, resultCh, 1)
 
 	// Fetch again almost immediately should return old result
 	time.Sleep(5 * time.Millisecond)
-	resultCh = TestCacheGetCh(t, c, "t", TestRequest(t, "hello", 0))
+	resultCh = TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{Key: "hello"}))
 	TestCacheGetChResult(t, resultCh, 1)
 
 	// Wait for the timer
 	time.Sleep(200 * time.Millisecond)
-	resultCh = TestCacheGetCh(t, c, "t", TestRequest(t, "hello", 0))
+	resultCh = TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{Key: "hello"}))
 	TestCacheGetChResult(t, resultCh, 12)
 }

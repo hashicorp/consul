@@ -109,8 +109,8 @@ func (c *Cache) RegisterType(n string, typ Type, opts *RegisterOptions) {
 // Multiple Get calls for the same Request (matching CacheKey value) will
 // block on a single network request.
 func (c *Cache) Get(t string, r Request) (interface{}, error) {
-	key := r.CacheKey()
-	if key == "" {
+	info := r.CacheInfo()
+	if info.Key == "" {
 		// If no key is specified, then we do not cache this request.
 		// Pass directly through to the backend.
 		return c.fetchDirect(t, r)
@@ -119,7 +119,7 @@ func (c *Cache) Get(t string, r Request) (interface{}, error) {
 RETRY_GET:
 	// Get the current value
 	c.entriesLock.RLock()
-	entry, ok := c.entries[key]
+	entry, ok := c.entries[info.Key]
 	c.entriesLock.RUnlock()
 
 	// If we have a current value and the index is greater than the
@@ -127,8 +127,7 @@ RETRY_GET:
 	// index is zero and we have something in the cache we accept whatever
 	// we have.
 	if ok && entry.Valid {
-		idx := r.CacheMinIndex()
-		if idx == 0 || idx < entry.Index {
+		if info.MinIndex == 0 || info.MinIndex < entry.Index {
 			return entry.Value, nil
 		}
 	}
@@ -154,13 +153,12 @@ func (c *Cache) fetch(t string, r Request) (<-chan struct{}, error) {
 		return nil, fmt.Errorf("unknown type in cache: %s", t)
 	}
 
-	// The cache key is used multiple times and might be dynamically
-	// constructed so let's just store it once here.
-	key := r.CacheKey()
+	// Grab the cache information while we're outside the lock.
+	info := r.CacheInfo()
 
 	c.entriesLock.Lock()
 	defer c.entriesLock.Unlock()
-	entry, ok := c.entries[key]
+	entry, ok := c.entries[info.Key]
 
 	// If we already have an entry and it is actively fetching, then return
 	// the currently active waiter.
@@ -178,7 +176,7 @@ func (c *Cache) fetch(t string, r Request) (<-chan struct{}, error) {
 	// identical calls to fetch will return the same waiter rather than
 	// perform multiple fetches.
 	entry.Fetching = true
-	c.entries[key] = entry
+	c.entries[info.Key] = entry
 
 	// The actual Fetch must be performed in a goroutine.
 	go func() {
@@ -199,7 +197,7 @@ func (c *Cache) fetch(t string, r Request) (<-chan struct{}, error) {
 
 		// Insert
 		c.entriesLock.Lock()
-		c.entries[key] = newEntry
+		c.entries[info.Key] = newEntry
 		c.entriesLock.Unlock()
 
 		// Trigger the waiter
@@ -227,7 +225,7 @@ func (c *Cache) fetchDirect(t string, r Request) (interface{}, error) {
 
 	// Fetch it with the min index specified directly by the request.
 	result, err := tEntry.Type.Fetch(FetchOptions{
-		MinIndex: r.CacheMinIndex(),
+		MinIndex: r.CacheInfo().MinIndex,
 	}, r)
 	if err != nil {
 		return nil, err
