@@ -281,6 +281,10 @@ func TestAgent_Reload(t *testing.T) {
 				handler = "true"
 			}
 		]
+    limits = {
+      rpc_rate=1
+      rpc_max_burst=100
+    }
 	`)
 	defer a.Shutdown()
 
@@ -302,6 +306,10 @@ func TestAgent_Reload(t *testing.T) {
 					name = "redis-reloaded"
 				}
 			]
+      limits = {
+        rpc_rate=2
+        rpc_max_burst=200
+      }
 		`,
 	})
 
@@ -310,6 +318,14 @@ func TestAgent_Reload(t *testing.T) {
 	}
 	if a.State.Service("redis-reloaded") == nil {
 		t.Fatal("missing redis-reloaded service")
+	}
+
+	if a.config.RPCRateLimit != 2 {
+		t.Fatalf("RPC rate not set correctly.  Got %v. Want 2", a.config.RPCRateLimit)
+	}
+
+	if a.config.RPCMaxBurst != 200 {
+		t.Fatalf("RPC max burst not set correctly.  Got %v. Want 200", a.config.RPCMaxBurst)
 	}
 
 	for _, wp := range a.watchPlans {
