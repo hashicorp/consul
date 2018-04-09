@@ -53,6 +53,7 @@
     "ember-export-application-global": "^2.0.0",
     "ember-href-to": "^1.15.1",
     "ember-load-initializers": "^1.0.0",
+    "ember-math-helpers": "^2.4.0",
     "ember-resize": "^0.0.17",
     "ember-resolver": "^4.0.0",
     "ember-sinon-qunit": "^2.1.0",

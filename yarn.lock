@@ -2961,6 +2961,14 @@ ember-lodash@^4.17.3:
     ember-cli-babel "^6.10.0"
     lodash-es "^4.17.4"
 
+ember-math-helpers@^2.4.0:
+  version "2.4.0"
+  resolved "https://registry.yarnpkg.com/ember-math-helpers/-/ember-math-helpers-2.4.0.tgz#a8d4b5615862401fbf81ce9f11d75261291e1ad1"
+  dependencies:
+    broccoli-funnel "^2.0.0"
+    ember-cli-babel "^6.6.0"
+    ember-cli-htmlbars "^2.0.1"
+
 "ember-prop-types@>=2.0.0 <4.0.0":
   version "3.14.2"
   resolved "https://registry.yarnpkg.com/ember-prop-types/-/ember-prop-types-3.14.2.tgz#59ee8f7672aa67fce8aa0cdf2d9527c4e13c3e42"

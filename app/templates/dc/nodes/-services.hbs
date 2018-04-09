@@ -1,0 +1,23 @@
+<form class="filter-bar">
+    {{freetext-filter onchange=(action 'filter') value=filter.s placeholder="Search by name"}}
+</form>
+<table>
+    <thead>
+        <tr>
+            <th>Service</th>
+            <th>Tags</th>
+        </tr>
+    </thead>
+    {{#tabular-collection
+        items=filtered
+        cell-layout=(fixed-grid-layout 1150 46) as |item index|
+    }}
+            <td>
+                <a href={{href-to 'dc.services.show' item.Service }}>{{item.Service}}</a>
+            </td>
+            <td>
+                Need to switch API to the public catalog one
+            </td>
+    {{/tabular-collection}}
+</table>
+
