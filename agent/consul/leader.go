@@ -1,11 +1,14 @@
 package consul
 
 import (
+	"crypto/x509"
 	"fmt"
 	"net"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/hashicorp/consul/agent/connect"
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
@@ -210,6 +213,10 @@ func (s *Server) establishLeadership() error {
 
 	s.getOrCreateAutopilotConfig()
 	s.autopilot.Start()
+
+	// todo(kyhavlov): start a goroutine here for handling periodic CA rotation
+	s.bootstrapCA()
+
 	s.setConsistentReadReady()
 	return nil
 }
@@ -357,6 +364,106 @@ func (s *Server) getOrCreateAutopilotConfig() *autopilot.Config {
 	}
 
 	return config
+}
+
+// getOrCreateCAConfig is used to get the CA config, initializing it if necessary
+func (s *Server) getOrCreateCAConfig() (*structs.CAConfiguration, error) {
+	state := s.fsm.State()
+	_, config, err := state.CAConfig()
+	if err != nil {
+		return nil, err
+	}
+	if config != nil {
+		return config, nil
+	}
+
+	config = s.config.CAConfig
+	req := structs.CARequest{
+		Op:     structs.CAOpSetConfig,
+		Config: config,
+	}
+	if _, err = s.raftApply(structs.ConnectCARequestType, req); err != nil {
+		return nil, err
+	}
+
+	return config, nil
+}
+
+// bootstrapCA handles the initialization of a new CA provider
+func (s *Server) bootstrapCA() error {
+	conf, err := s.getOrCreateCAConfig()
+	if err != nil {
+		return err
+	}
+
+	// Initialize the right provider based on the config
+	var provider connect.CAProvider
+	switch conf.Provider {
+	case structs.ConsulCAProvider:
+		provider, err = connect.NewConsulCAProvider(conf.Config)
+		if err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("unknown CA provider %q", conf.Provider)
+	}
+
+	s.caProviderLock.Lock()
+	s.caProvider = provider
+	s.caProviderLock.Unlock()
+
+	// Get the intermediate cert from the CA
+	trustedCA, err := provider.ActiveIntermediate()
+	if err != nil {
+		return fmt.Errorf("error getting intermediate cert: %v", err)
+	}
+
+	// Check if this CA is already initialized
+	state := s.fsm.State()
+	_, root, err := state.CARootActive(nil)
+	if err != nil {
+		return err
+	}
+	// Exit early if the root is already in the state store.
+	if root != nil && root.ID == trustedCA.ID {
+		return nil
+	}
+
+	// Get the highest index
+	idx, _, err := state.CARoots(nil)
+	if err != nil {
+		return err
+	}
+
+	// Store the intermediate in raft
+	resp, err := s.raftApply(structs.ConnectCARequestType, &structs.CARequest{
+		Op:    structs.CAOpSetRoots,
+		Index: idx,
+		Roots: []*structs.CARoot{trustedCA},
+	})
+	if err != nil {
+		s.logger.Printf("[ERR] connect: Apply failed %v", err)
+		return err
+	}
+	if respErr, ok := resp.(error); ok {
+		return respErr
+	}
+
+	s.logger.Printf("[INFO] connect: initialized CA with provider %q", conf.Provider)
+
+	return nil
+}
+
+// signConnectCert signs a cert for a service using the currently configured CA provider
+func (s *Server) signConnectCert(service *connect.SpiffeIDService, csr *x509.CertificateRequest) (*structs.IssuedCert, error) {
+	s.caProviderLock.RLock()
+	defer s.caProviderLock.RUnlock()
+
+	cert, err := s.caProvider.Sign(service, csr)
+	if err != nil {
+		return nil, err
+	}
+	return cert, nil
 }
 
 // reconcileReaped is used to reconcile nodes that have failed and been reaped
