@@ -27,7 +27,7 @@ func (s *Test) ConnectCASetRoots(
 
 	// Commit
 	resp, err := s.srv.raftApply(structs.ConnectCARequestType, &structs.CARequest{
-		Op:    structs.CAOpSet,
+		Op:    structs.CAOpSetRoots,
 		Index: idx,
 		Roots: args,
 	})
