@@ -1,0 +1,79 @@
+%main-header nav:first-of-type {
+  @extend %primary-nav;
+}
+%main-header nav:last-of-type {
+  @extend %secondary-nav;
+}
+%primary-nav ul ul {
+  @extend %header-drop-nav;
+}
+.navbar-link::after {
+  display: none;
+}
+%primary-nav,
+%secondary-nav {
+  @extend %header-nav;
+}
+// %primary-nav a,
+%primary-nav > ul > li > a:hover,
+%primary-nav > ul > li > a:focus,
+%primary-nav > ul > li > a:active,
+%primary-nav > ul > li > a.selected {
+  background-color: $magenta-800;
+}
+%header-drop-nav a:hover,
+%header-drop-nav a:focus,
+%header-drop-nav a:active,
+%header-drop-nav a.selected {
+  background-color: $lightest-gray;
+}
+%header-nav ul {
+  @extend .columns, .navbar;
+}
+%header-nav li {
+  @extend .column, .navbar-item;
+}
+%header-nav ul {
+  min-height: 0;
+  margin: 0 !important;
+}
+%header-nav li {
+  padding: 0;
+  color: inherit;
+  position: relative;
+}
+%header-nav a {
+  padding: 3px 12px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+%header-nav ul,
+%header-nav a,
+%header-nav li {
+  flex-grow: 0;
+}
+%primary-nav {
+  flex-grow: 1;
+}
+%secondary-nav {
+  float: right;
+}
+%header-drop-nav {
+  display: block !important;
+  position: absolute;
+  z-index: 100;
+  border: 1px solid $border-blue;
+  min-width: 266px;
+  background-color: $white;
+  box-shadow: 0 2px 7px 0 rgba(0, 0, 0, 0.21);
+}
+%header-drop-nav a {
+  color: $text !important;
+  padding: 12px 25px;
+}
+%header-drop-nav li {
+  border-bottom: 1px solid;
+}
+%header-drop-nav li {
+  border-color: $border-blue;
+}

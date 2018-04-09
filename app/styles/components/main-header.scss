@@ -1,0 +1,43 @@
+// @import './header-nav';
+[role='banner']  {
+  @extend %main-header;
+}
+%main-header {
+  color: $white !important;
+}
+%main-header::before {
+  background-color: $magenta-600;
+}
+%main-header {
+  @extend .columns;
+}
+%main-header > * {
+  @extend .column;
+}
+%main-header {
+  min-height: 0;
+  margin: 0 !important;
+  align-items: center;
+  height: 48px;
+}
+%main-header::before {
+  content: '';
+  display: block;
+  width: 100vw;
+  position: absolute;
+  left: 0;
+  height: 48px;
+}
+%main-header > a {
+  position: relative;
+  z-index: 10;
+  line-height: 0;
+}
+%main-header a {
+  @extend .navbar-link;
+  display: block;
+}
+%main-header > * {
+  padding: 0;
+  flex-grow: 0;
+}
