@@ -77,6 +77,17 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 	}, nil
 }
 
+// enablePrometheusOutput will look for Prometheus mime-type or format Query parameter the same way as Nomad
+func enablePrometheusOutput(req *http.Request) bool {
+	if contentType := req.Header.Get("Accept"); contentType == "text/plain; version=0.0.4; charset=utf-8" {
+		return true
+	}
+	if format := req.URL.Query().Get("format"); format == "prometheus" {
+		return true
+	}
+	return false
+}
+
 func (s *HTTPServer) AgentMetrics(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
@@ -88,16 +99,15 @@ func (s *HTTPServer) AgentMetrics(resp http.ResponseWriter, req *http.Request) (
 	if rule != nil && !rule.AgentRead(s.agent.config.NodeName) {
 		return nil, acl.ErrPermissionDenied
 	}
-	if format := req.URL.Query().Get("format"); format == "prometheus" {
+	if enablePrometheusOutput(req) {
 		if s.agent.config.TelemetryPrometheusRetentionTime.Nanoseconds() < 1 {
 			resp.WriteHeader(http.StatusUnsupportedMediaType)
 			fmt.Fprint(resp, "Prometheus is not enable since its retention time is not positive")
 			return nil, nil
 		}
 		handlerOptions := promhttp.HandlerOpts{
-			ErrorLog:           s.agent.logger,
-			ErrorHandling:      promhttp.ContinueOnError,
-			DisableCompression: true,
+			ErrorLog:      s.agent.logger,
+			ErrorHandling: promhttp.ContinueOnError,
 		}
 
 		handler := promhttp.HandlerFor(prometheus.DefaultGatherer, handlerOptions)
