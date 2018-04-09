@@ -26,6 +26,9 @@ func (s *HTTPServer) ConnectCARoots(resp http.ResponseWriter, req *http.Request)
 // /v1/connect/ca/configuration
 func (s *HTTPServer) ConnectCAConfiguration(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	switch req.Method {
+	case "GET":
+		return s.ConnectCAConfigurationGet(resp, req)
+
 	case "PUT":
 		return s.ConnectCAConfigurationSet(resp, req)
 
@@ -34,12 +37,27 @@ func (s *HTTPServer) ConnectCAConfiguration(resp http.ResponseWriter, req *http.
 	}
 }
 
+// GEt /v1/connect/ca/configuration
+func (s *HTTPServer) ConnectCAConfigurationGet(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Method is tested in ConnectCAConfiguration
+	var args structs.DCSpecificRequest
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	var reply structs.CAConfiguration
+	err := s.agent.RPC("ConnectCA.ConfigurationGet", &args, &reply)
+	return reply, err
+}
+
 // PUT /v1/connect/ca/configuration
 func (s *HTTPServer) ConnectCAConfigurationSet(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Method is tested in ConnectCAConfiguration
 
-	var args structs.CAConfiguration
-	if err := decodeBody(req, &args, nil); err != nil {
+	var args structs.CARequest
+	s.parseDC(req, &args.Datacenter)
+	s.parseToken(req, &args.Token)
+	if err := decodeBody(req, &args.Config, nil); err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Request decode failed: %v", err)
 		return nil, nil
