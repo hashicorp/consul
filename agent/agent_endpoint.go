@@ -515,7 +515,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 
 	// Get the node service.
 	ns := args.NodeService()
-	if err := structs.ValidateMetadata(ns.ServiceMeta, false); err != nil {
+	if err := structs.ValidateMetadata(ns.Meta, false); err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, fmt.Errorf("Invalid Service Meta: %v", err))
 		return nil, nil
@@ -701,6 +701,10 @@ func (s *HTTPServer) AgentMonitor(resp http.ResponseWriter, req *http.Request) (
 
 	// Send header so client can start streaming body
 	resp.WriteHeader(http.StatusOK)
+
+	// 0 byte write is needed before the Flush call so that if we are using
+	// a gzip stream it will go ahead and write out the HTTP response header
+	resp.Write([]byte(""))
 	flusher.Flush()
 
 	// Stream logs until the connection is closed.

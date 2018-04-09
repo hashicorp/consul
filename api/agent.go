@@ -66,7 +66,7 @@ type AgentServiceRegistration struct {
 	Port              int               `json:",omitempty"`
 	Address           string            `json:",omitempty"`
 	EnableTagOverride bool              `json:",omitempty"`
-	ServiceMeta       map[string]string `json:",omitempty"`
+	Meta              map[string]string `json:",omitempty"`
 	Check             *AgentServiceCheck
 	Checks            AgentServiceChecks
 }

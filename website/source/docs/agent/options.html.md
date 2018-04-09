@@ -917,6 +917,17 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
       leader, so this lets Consul continue serving requests in long outage scenarios where no leader can
       be elected.
 
+    * <a name="discovery_max_stale"></a><a href="discovery_max_stale">`discovery_max_stale`</a> - Enables
+      stale requests for all service discovery HTTP endpoints. This is equivalent to the
+      [`max_stale`](#max_stale) configuration for DNS requests. If this value is zero (default), all service
+      discovery HTTP endpoints are forwarded to the leader. If this value is greater than zero, any Consul server
+      can handle the service discovery request.  If a Consul server is behind the leader by more than `discovery_max_stale`,
+      the query will be re-evaluated on the leader to get more up-to-date results. Consul agents also add a new
+      `X-Consul-Effective-Consistency` response header which indicates if the agent did a stale read. `discover-max-stale`
+      was introduced in Consul 1.0.7 as a way for Consul operators to force stale requests from clients at the agent level,
+      and defaults to zero which matches default consistency behavior in earlier Consul versions.
+
+
     * <a name="node_ttl"></a><a href="#node_ttl">`node_ttl`</a> - By default, this is "0s", so all
       node lookups are served with a 0 TTL value. DNS caching for node lookups can be enabled by
       setting this value. This should be specified with the "s" suffix for second or "m" for minute.
@@ -1127,7 +1138,9 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
     * <a name="http_port"></a><a href="#http_port">`http`</a> - The HTTP API, -1 to disable. Default 8500.
     * <a name="https_port"></a><a href="#https_port">`https`</a> - The HTTPS API, -1 to disable. Default -1 (disabled).
     * <a name="serf_lan_port"></a><a href="#serf_lan_port">`serf_lan`</a> - The Serf LAN port. Default 8301.
-    * <a name="serf_wan_port"></a><a href="#serf_wan_port">`serf_wan`</a> - The Serf WAN port. Default 8302.
+    * <a name="serf_wan_port"></a><a href="#serf_wan_port">`serf_wan`</a> - The Serf WAN port. Default 8302. Set to -1
+      to disable. **Note**: this will disable WAN federation which is not recommended. Various catalog and WAN related
+      endpoints will return errors or empty results.
     * <a name="server_rpc_port"></a><a href="#server_rpc_port">`server`</a> - Server RPC address. Default 8300.
 
 * <a name="protocol"></a><a href="#protocol">`protocol`</a> Equivalent to the
@@ -1434,7 +1447,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
    [watch documentation](/docs/agent/watches.html) for more detail. Watches can be
    modified when the configuration is reloaded.
 
-## <a id="ports"></a>Ports Used
+## <a id="ports-used"></a>Ports Used
 
 Consul requires up to 6 different ports to work properly, some on
 TCP, UDP, or both protocols. Below we document the requirements for each
