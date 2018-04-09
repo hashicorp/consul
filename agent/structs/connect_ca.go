@@ -96,7 +96,8 @@ type IssuedCert struct {
 type CAOp string
 
 const (
-	CAOpSet CAOp = "set"
+	CAOpSetRoots  CAOp = "set-roots"
+	CAOpSetConfig CAOp = "set-config"
 )
 
 // CARequest is used to modify connect CA data. This is used by the
@@ -106,13 +107,32 @@ type CARequest struct {
 	// other fields are required.
 	Op CAOp
 
+	// Datacenter is the target for this request.
+	Datacenter string
+
 	// Index is used by CAOpSet for a CAS operation.
 	Index uint64
 
 	// Roots is a list of roots. This is used for CAOpSet. One root must
 	// always be active.
 	Roots []*CARoot
+
+	// Config is the configuration for the current CA plugin.
+	Config *CAConfiguration
+
+	// WriteRequest is a common struct containing ACL tokens and other
+	// write-related common elements for requests.
+	WriteRequest
 }
+
+// RequestDatacenter returns the datacenter for a given request.
+func (q *CARequest) RequestDatacenter() string {
+	return q.Datacenter
+}
+
+const (
+	ConsulCAProvider = "consul"
+)
 
 // CAConfiguration is the configuration for the current CA plugin.
 type CAConfiguration struct {
@@ -123,4 +143,8 @@ type CAConfiguration struct {
 	// should only contain primitive values and containers (such as lists
 	// and maps).
 	Config map[string]interface{}
+
+	// CreateIndex/ModifyIndex store the create/modify indexes of this configuration.
+	CreateIndex uint64
+	ModifyIndex uint64
 }

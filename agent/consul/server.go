@@ -17,6 +17,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/consul/agent/connect"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/consul/fsm"
@@ -95,6 +97,10 @@ type Server struct {
 
 	// autopilotWaitGroup is used to block until Autopilot shuts down.
 	autopilotWaitGroup sync.WaitGroup
+
+	// caProvider is the current CA provider in use for Connect.
+	caProvider     connect.CAProvider
+	caProviderLock sync.RWMutex
 
 	// Consul configuration
 	config *Config
