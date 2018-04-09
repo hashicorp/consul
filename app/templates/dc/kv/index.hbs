@@ -4,6 +4,9 @@
             Key / Value
         </h1>
     {{/block-slot}}
+    {{#block-slot 'actions'}}
+        <button type="button" class="type-create">Create</button>
+    {{/block-slot}}
     {{#block-slot 'content'}}
 {{#if (gt items.length 0)}}
         <table>
