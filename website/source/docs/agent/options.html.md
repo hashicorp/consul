@@ -1332,8 +1332,11 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
     * <a name="telemetry-prometheus_retention_time"></a><a href="telemetry-prometheus_retention_time">prometheus_retention_time</a>
       If the value is greater than `0s` (the default), this enables [Prometheus](https://prometheus.io/) export of metrics.
       The duration can be expressed using the duration semantics and will aggregates all counters for the duration specified
-      (it might have an impact on Consul's memory usage).
-      Fetching the metrics using prometheus can then be performed using the `/v1/agent/metrics?format=prometheus`.
+      (it might have an impact on Consul's memory usage). A good value for this parameter is at least 2 times the interval of scrape
+      of Prometheus, but you might also put a very high retention time such as a few days (for instance 744h to enable retention
+      to 31 days).
+      Fetching the metrics using prometheus can then be performed using the `/v1/agent/metrics?format=prometheus` URL or by sending
+      the Accept header with value `text/plain; version=0.0.4; charset=utf-8`  to the `/v1/agent/metrics` (as done by Prometheus).
       The format is compatible natively with prometheus. When running in this mode, it is recommended to also enable the option
       <a href="#telemetry-disable_hostname">`disable_hostname`</a> to avoid having prefixed metrics with hostname.
 
