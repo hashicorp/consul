@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/consul/autopilot"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -346,6 +347,10 @@ type Config struct {
 	// autopilot tasks, such as promoting eligible non-voters and removing
 	// dead servers.
 	AutopilotInterval time.Duration
+
+	// CAConfig is used to apply the initial Connect CA configuration when
+	// bootstrapping.
+	CAConfig *structs.CAConfiguration
 }
 
 // CheckProtocolVersion validates the protocol version.
@@ -427,6 +432,15 @@ func DefaultConfig() *Config {
 
 		ServerHealthInterval: 2 * time.Second,
 		AutopilotInterval:    10 * time.Second,
+
+		CAConfig: &structs.CAConfiguration{
+			Provider: "consul",
+			Config: map[string]interface{}{
+				"PrivateKey":     "",
+				"RootCert":       "",
+				"RotationPeriod": 90 * 24 * time.Hour,
+			},
+		},
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.
