@@ -3,10 +3,10 @@ import { inject as service } from '@ember/service';
 import { assign } from '@ember/polyfills';
 
 import { hash } from 'rsvp';
-import { get, set } from '@ember/object';
+import { get } from '@ember/object';
 import WithFeedback from 'consul-ui/mixins/with-feedback';
 import WithKeyUtils from 'consul-ui/mixins/with-key-utils';
-import transitionToNearestParent from 'consul-ui/utils/transitionToNearestParent';
+// import transitionToNearestParent from 'consul-ui/utils/transitionToNearestParent';
 import ascend from 'consul-ui/utils/ascend';
 
 export default Route.extend(WithFeedback, WithKeyUtils, {
@@ -52,11 +52,11 @@ export default Route.extend(WithFeedback, WithKeyUtils, {
     delete: function(item) {
       this.get('feedback').execute(
         () => {
-          const parentKey = ascend(get(item, 'Key'), 1) || '/';
+          // const parentKey = ascend(get(item, 'Key'), 1) || '/';
           return get(this, 'repo')
             .remove(item)
             .then(() => {
-              const rootKey = this.get('rootKey');
+              // const rootKey = this.get('rootKey');
               return this.transitionTo('dc.kv.index');
               // return transitionToNearestParent.bind(this)(
               //   this.modelFor('dc').dc,

@@ -5,7 +5,11 @@ import sumOfUnhealthy from 'consul-ui/utils/sumOfUnhealthy';
 import hasStatus from 'consul-ui/utils/hasStatus';
 import WithHealthFiltering from 'consul-ui/mixins/with-health-filtering';
 export default Controller.extend(WithHealthFiltering, {
-  columns: [25, 25, 25, 25],
+  init: function() {
+    this._super(...arguments);
+    // TODO:
+    this.columns = [25, 25, 25, 25];
+  },
   unhealthy: computed('filtered', function() {
     return this.get('filtered').filter(function(item) {
       return sumOfUnhealthy(item.Checks) > 0;

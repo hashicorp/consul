@@ -15,20 +15,18 @@ test('it renders', function(assert) {
     this.$()
       .text()
       .trim(),
-    ''
+    'Search'
   );
 
   // Template block usage:
   this.render(hbs`
-    {{#acl-filter}}
-      template block text
-    {{/acl-filter}}
+    {{#acl-filter}}{{/acl-filter}}
   `);
 
   assert.equal(
     this.$()
       .text()
       .trim(),
-    'template block text'
+    'Search'
   );
 });

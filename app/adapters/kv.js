@@ -33,7 +33,7 @@ export default Adapter.extend({
   _requestToJQueryAjaxHash: injectableRequestToJQueryAjaxHash({
     stringify: stringify,
   }),
-
+  atob: window.atob,
   urlForQuery: function(query, modelName) {
     const parts = keyToArray(query.key);
     delete query.key;
@@ -104,7 +104,7 @@ export default Adapter.extend({
     switch (params.requestType) {
       case 'updateRecord':
       case 'createRecord':
-        return window.atob(data.kv.Value);
+        return this.get('atob')(data.kv.Value);
     }
     return data;
   },

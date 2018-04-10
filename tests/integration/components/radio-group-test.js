@@ -20,15 +20,13 @@ test('it renders', function(assert) {
 
   // Template block usage:
   this.render(hbs`
-    {{#radio-group}}
-      template block text
-    {{/radio-group}}
+    {{#radio-group}}{{/radio-group}}
   `);
 
   assert.equal(
     this.$()
       .text()
       .trim(),
-    'template block text'
+    ''
   );
 });

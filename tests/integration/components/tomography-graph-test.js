@@ -11,14 +11,12 @@ test('it renders', function(assert) {
 
   this.render(hbs`{{tomography-graph}}`);
 
-  assert.equal(this.$().text().trim(), '');
+  assert.ok(this.$().text().trim().indexOf('ms') !== -1);
 
   // Template block usage:
   this.render(hbs`
-    {{#tomography-graph}}
-      template block text
-    {{/tomography-graph}}
+    {{#tomography-graph}}{{/tomography-graph}}
   `);
 
-  assert.equal(this.$().text().trim(), 'template block text');
+  assert.ok(this.$().text().trim().indexOf('ms') !== -1);
 });

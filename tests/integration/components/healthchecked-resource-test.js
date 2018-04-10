@@ -11,24 +11,20 @@ test('it renders', function(assert) {
 
   this.render(hbs`{{healthchecked-resource}}`);
 
-  assert.equal(
+  assert.ok(
     this.$()
       .text()
-      .trim(),
-    ''
+      .trim().indexOf('other passing checks') !== -1
   );
 
   // Template block usage:
   this.render(hbs`
-    {{#healthchecked-resource}}
-      template block text
-    {{/healthchecked-resource}}
+    {{#healthchecked-resource}}{{/healthchecked-resource}}
   `);
 
-  assert.equal(
+  assert.ok(
     this.$()
       .text()
-      .trim(),
-    'template block text'
+      .trim().indexOf('other passing checks') !== -1
   );
 });

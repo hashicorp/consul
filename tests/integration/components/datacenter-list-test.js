@@ -20,15 +20,13 @@ test('it renders', function(assert) {
 
   // Template block usage:
   this.render(hbs`
-    {{#datacenter-list}}
-      template block text
-    {{/datacenter-list}}
+    {{#datacenter-list}}{{/datacenter-list}}
   `);
 
   assert.equal(
     this.$()
       .text()
       .trim(),
-    'template block text'
+    ''
   );
 });

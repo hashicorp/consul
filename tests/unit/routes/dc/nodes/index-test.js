@@ -1,8 +1,8 @@
 import { moduleFor, test } from 'ember-qunit';
 
-moduleFor('route:dc/acls/show', 'Unit | Route | dc/acls/show', {
+moduleFor('route:dc/nodes/index', 'Unit | Route | dc/nodes/index', {
   // Specify the other units that are required for this test.
-  needs: ['service:acls'],
+  needs: ['service:nodes']
 });
 
 test('it exists', function(assert) {

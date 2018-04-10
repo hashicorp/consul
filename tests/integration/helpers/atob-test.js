@@ -8,10 +8,9 @@ moduleForComponent('atob', 'helper:atob', {
 
 // Replace this with your real tests.
 test('it renders', function(assert) {
-  this.set('inputValue', '1234');
+  this.set('inputValue', 'MTIzNA==');
 
   this.render(hbs`{{atob inputValue}}`);
-
   assert.equal(this.$().text().trim(), '1234');
 });
 

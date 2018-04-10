@@ -9,7 +9,7 @@ test('it renders', function(assert) {
   // Set any properties with this.set('myProperty', 'value');
   // Handle any actions with this.on('myAction', function(val) { ... });
 
-  this.render(hbs`{{tabular-collection}}`);
+  this.render(hbs`{{tabular-collection cell-layout=(fixed-grid-layout 800 50)}}`);
 
   assert.equal(
     this.$()
@@ -20,15 +20,13 @@ test('it renders', function(assert) {
 
   // Template block usage:
   this.render(hbs`
-    {{#tabular-collection}}
-      template block text
-    {{/tabular-collection}}
+    {{#tabular-collection cell-layout=(fixed-grid-layout 800 50)}}{{/tabular-collection}}
   `);
 
   assert.equal(
     this.$()
       .text()
       .trim(),
-    'template block text'
+    ''
   );
 });

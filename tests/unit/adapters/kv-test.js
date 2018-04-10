@@ -49,6 +49,10 @@ module('Unit | Adapter | kv', function(hooks) {
   });
   test('dataForRequest returns', function(assert) {
     const adapter = this.owner.lookup('adapter:kv');
+    // dataForRequest goes through window.atob
+    const atob = this.stub(adapter, 'atob');
+    atob.returnsArg(0);
+    //
     const expected = 'value';
     const deep = {
       kv: {

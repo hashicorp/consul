@@ -4,7 +4,6 @@ export default function(distance)
   {
     var min = 999999999;
     var max = -999999999;
-    var sum = 0;
     var distances = [];
     coordinates.forEach(function (node) {
       if (name == node.Node) {
@@ -13,7 +12,6 @@ export default function(distance)
             if (node.Node != other.Node && other.Segment == segment) {
               var dist = distance(node, other);
               distances.push({ node: other.Node, distance: dist, segment: segment });
-              sum += dist;
               if (dist < min) {
                 min = dist;
               }

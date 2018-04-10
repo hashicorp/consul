@@ -11,24 +11,20 @@ test('it renders', function(assert) {
 
   this.render(hbs`{{session-list}}`);
 
-  assert.equal(
+  assert.ok(
     this.$()
       .text()
-      .trim(),
-    ''
+      .trim().indexOf('Name') !== -1
   );
 
   // Template block usage:
   this.render(hbs`
-    {{#session-list}}
-      template block text
-    {{/session-list}}
+    {{#session-list}}{{/session-list}}
   `);
 
-  assert.equal(
+  assert.ok(
     this.$()
       .text()
-      .trim(),
-    'template block text'
+      .trim().indexOf('Name') !== -1
   );
 });

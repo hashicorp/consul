@@ -20,15 +20,13 @@ test('it renders', function(assert) {
 
   // Template block usage:
   this.render(hbs`
-    {{#tab-nav}}
-      template block text
-    {{/tab-nav}}
+    {{#tab-nav}}{{/tab-nav}}
   `);
 
   assert.equal(
     this.$()
       .text()
       .trim(),
-    'template block text'
+    ''
   );
 });

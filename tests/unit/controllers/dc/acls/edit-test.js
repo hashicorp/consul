@@ -1,6 +1,6 @@
 import { moduleFor, test } from 'ember-qunit';
 
-moduleFor('controller:dc/acls/show', 'Unit | Controller | dc/acls/show', {
+moduleFor('controller:dc/acls/edit', 'Unit | Controller | dc/acls/edit', {
   // Specify the other units that are required for this test.
   // needs: ['controller:foo']
 });

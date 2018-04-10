@@ -15,20 +15,18 @@ test('it renders', function(assert) {
     this.$()
       .text()
       .trim(),
-    ''
+    'Output'
   );
 
   // Template block usage:
   this.render(hbs`
-    {{#healthcheck-status}}
-      template block text
-    {{/healthcheck-status}}
+    {{#healthcheck-status}}{{/healthcheck-status}}
   `);
 
   assert.equal(
     this.$()
       .text()
       .trim(),
-    'template block text'
+    'Output'
   );
 });

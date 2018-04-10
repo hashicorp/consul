@@ -5,8 +5,11 @@ import confirm from 'consul-ui/utils/confirm';
 import error from 'consul-ui/utils/error';
 
 export default Controller.extend(WithFiltering, {
-  selectedTab: 'Health Checks',
-  tabs: ['Health Checks', 'Services', 'Round Trip Time', 'Lock Sessions'],
+  init: function() {
+    this._super(...arguments);
+    this.tabs = ['Health Checks', 'Services', 'Round Trip Time', 'Lock Sessions'];
+    this.selectedTab = this.tabs[0];
+  },
   filter: function(item, { s = '', status = '' }) {
     return (
       get(item, 'Service')
