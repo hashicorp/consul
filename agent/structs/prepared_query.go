@@ -1,5 +1,7 @@
 package structs
 
+import "github.com/hashicorp/consul/types"
+
 // QueryDatacenterOptions sets options about how we fail over if there are no
 // healthy nodes in the local datacenter.
 type QueryDatacenterOptions struct {
@@ -33,6 +35,12 @@ type ServiceQuery struct {
 	// health checks (critical AND warning checks will cause a node to be
 	// discarded)
 	OnlyPassing bool
+
+	// IgnoreCheckIDs is an optional list of health check IDs to ignore when
+	// considering which nodes are healthy. It is useful as an emergency measure
+	// to temporarily override some health check that is producing false negatives
+	// for example.
+	IgnoreCheckIDs []types.CheckID
 
 	// Near allows the query to always prefer the node nearest the given
 	// node. If the node does not exist, results are returned in their

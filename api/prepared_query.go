@@ -34,6 +34,12 @@ type ServiceQuery struct {
 	// local datacenter.
 	Failover QueryDatacenterOptions
 
+	// IgnoreCheckIDs is an optional list of health check IDs to ignore when
+	// considering which nodes are healthy. It is useful as an emergency measure
+	// to temporarily override some health check that is producing false negatives
+	// for example.
+	IgnoreCheckIDs []string
+
 	// If OnlyPassing is true then we will only include nodes with passing
 	// health checks (critical AND warning checks will cause a node to be
 	// discarded)
