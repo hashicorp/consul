@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"fmt"
 	"sort"
 	"sync"
 	"testing"
@@ -230,4 +231,55 @@ func TestCacheGet_periodicRefresh(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 	resultCh = TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{Key: "hello"}))
 	TestCacheGetChResult(t, resultCh, 12)
+}
+
+// Test that Get partitions the caches based on DC so two equivalent requests
+// to different datacenters are automatically cached even if their keys are
+// the same.
+func TestCacheGet_partitionDC(t *testing.T) {
+	t.Parallel()
+
+	c := TestCache(t)
+	c.RegisterType("t", &testPartitionType{}, nil)
+
+	// Perform multiple gets
+	getCh1 := TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{
+		Datacenter: "dc1", Key: "hello"}))
+	getCh2 := TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{
+		Datacenter: "dc9", Key: "hello"}))
+
+	// Should return both!
+	TestCacheGetChResult(t, getCh1, "dc1")
+	TestCacheGetChResult(t, getCh2, "dc9")
+}
+
+// Test that Get partitions the caches based on token so two equivalent requests
+// with different ACL tokens do not return the same result.
+func TestCacheGet_partitionToken(t *testing.T) {
+	t.Parallel()
+
+	c := TestCache(t)
+	c.RegisterType("t", &testPartitionType{}, nil)
+
+	// Perform multiple gets
+	getCh1 := TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{
+		Token: "", Key: "hello"}))
+	getCh2 := TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{
+		Token: "foo", Key: "hello"}))
+
+	// Should return both!
+	TestCacheGetChResult(t, getCh1, "")
+	TestCacheGetChResult(t, getCh2, "foo")
+}
+
+// testPartitionType implements Type for testing that simply returns a value
+// comprised of the request DC and ACL token, used for testing cache
+// partitioning.
+type testPartitionType struct{}
+
+func (t *testPartitionType) Fetch(opts FetchOptions, r Request) (FetchResult, error) {
+	info := r.CacheInfo()
+	return FetchResult{
+		Value: fmt.Sprintf("%s%s", info.Datacenter, info.Token),
+	}, nil
 }
