@@ -499,22 +499,22 @@ func (s *HTTPServer) parseToken(req *http.Request, token *string) {
 }
 
 func sourceAddrFromRequest(req *http.Request) (string, error) {
+	forwardHost := req.Header.Get("X-Forwarded-For")
+	forwardIp := net.ParseIP(forwardHost)
+	if forwardIp != nil {
+		return forwardIp.String(), nil
+	} 
+	
 	host, _, err := net.SplitHostPort(req.RemoteAddr)
 	if err != nil {
 		return "", err
 	}
 
 	ip := net.ParseIP(host)
-	if ip == nil {
-		return "", fmt.Errorf("Could not get IP from request")
-	}
-
-	forwardHost := req.Header.Get("X-Forwarded-For")
-	forwardIp := net.ParseIP(forwardHost)
-	if forwardIp != nil {
-		return forwardIp.String(), nil
-	} else {
+	if ip != nil {
 		return ip.String(), nil
+	} else {
+		return "", fmt.Errorf("Could not get remote IP from HTTP Request")
 	}
 }
 
