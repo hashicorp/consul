@@ -393,6 +393,23 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 	// Respect the magic "_agent" flag.
 	if qs.Node == "_agent" {
 		qs.Node = args.Agent.Node
+	} else if qs.Node == "_ip" {
+		if args.Source.Ip != "" {
+			_, nodes, err := state.Nodes(nil)
+			if err == nil {
+				for _, node := range nodes {
+					if args.Source.Ip == node.Address {
+						qs.Node = node.Node
+					}
+				}
+			}
+		} 
+		
+		// Either a source IP was given but we couldnt find the associated node
+		// or no source ip was given. In both cases we should wipe the Node value
+		if qs.Node == "_ip" {
+			qs.Node = ""
+		}
 	}
 
 	// Perform the distance sort

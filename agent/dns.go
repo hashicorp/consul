@@ -917,6 +917,23 @@ func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, req,
 	}
 }
 
+func ednsSubnetForRequest(req *dns.Msg) (*dns.EDNS0_SUBNET) {
+	// Its probably not obvious but IsEdns0 returns the EDNS RR if present or nil otherwise
+	edns := req.IsEdns0()
+	
+	if edns == nil {
+		return nil
+	}
+	
+	for _, o := range edns.Option {
+		if subnet, ok := o.(*dns.EDNS0_SUBNET); ok {
+			return subnet
+		}
+	}
+	
+	return nil;
+}
+
 // preparedQueryLookup is used to handle a prepared query.
 func (d *DNSServer) preparedQueryLookup(network, datacenter, query string, req, resp *dns.Msg) {
 	// Execute the prepared query.
@@ -937,6 +954,12 @@ func (d *DNSServer) preparedQueryLookup(network, datacenter, query string, req, 
 			Segment:    d.agent.config.SegmentName,
 			Node:       d.agent.config.NodeName,
 		},
+	}
+	
+	subnet := ednsSubnetForRequest(req)
+	
+	if subnet != nil {
+		args.Source.Ip = subnet.Address.String()
 	}
 
 	// TODO (slackpad) - What's a safe limit we can set here? It seems like
