@@ -8,6 +8,7 @@ import { computed } from '@ember/object';
 export default Model.extend({
   Id: attr('string'), // added by ember
   Name: attr('string'),
+  Tags: attr(),
   Address: attr('string'),
   Port: attr('number'),
   EnableTagOverride: attr('boolean'),
@@ -20,7 +21,6 @@ export default Model.extend({
   Datacenter: attr('string'),
   // Datacenter: belongsTo('dc'),
 
-  Tags: attr(),
   Node: attr(),
   Service: attr(),
   Checks: attr(),
