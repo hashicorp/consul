@@ -5,10 +5,8 @@ import WithFeedback from 'consul-ui/mixins/with-feedback';
 export default Route.extend(WithFeedback, {
   repo: service('acls'),
   model: function(params) {
-    const dc = this.modelFor('dc').dc;
     return hash({
-      dc: dc,
-      model: this.get('repo').findBySlug(params.id, dc),
+      item: this.get('repo').findBySlug(params.id, this.modelFor('dc').dc),
       types: ['management', 'client'],
     });
   },
@@ -16,15 +14,6 @@ export default Route.extend(WithFeedback, {
     controller.setProperties(model);
   },
   actions: {
-    update: function(item) {
-      this.get('feedback').execute(
-        () => {
-          return this.get('repo').persist(item, this.modelFor('dc').dc);
-        },
-        `Updated ${item.get('ID')}`,
-        `There was an error updating ${item.get('ID')}`
-      );
-    },
     delete: function(item) {
       this.get('feedback').execute(
         () => {
@@ -38,6 +27,18 @@ export default Route.extend(WithFeedback, {
         `There was an error deleting ${item.get('ID')}`
       );
     },
+    update: function(item) {
+      this.get('feedback').execute(
+        () => {
+          return this.get('repo').persist(item, this.modelFor('dc').dc);
+        },
+        `Updated ${item.get('ID')}`,
+        `There was an error updating ${item.get('ID')}`
+      );
+    },
+    cancel: function(item) {
+      this.transitionTo('dc.acls');
+    },
     use: function(item) {
       this.get('feedback').execute(
         () => {
@@ -47,9 +48,6 @@ export default Route.extend(WithFeedback, {
         `Now using ${item.get('ID')}`,
         `There was an error using ${item.get('ID')}`
       );
-    },
-    cancel: function(item) {
-      this.transitionTo('dc.acls');
     },
     clone: function(item) {
       this.get('feedback').execute(

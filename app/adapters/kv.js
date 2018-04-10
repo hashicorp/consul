@@ -104,7 +104,7 @@ export default Adapter.extend({
     switch (params.requestType) {
       case 'updateRecord':
       case 'createRecord':
-        return data.kv.Value;
+        return window.atob(data.kv.Value);
     }
     return data;
   },

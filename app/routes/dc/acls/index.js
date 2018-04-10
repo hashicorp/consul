@@ -2,35 +2,26 @@ import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 
-import { next } from '@ember/runloop';
-import WithFeedback from 'consul-ui/mixins/with-feedback';
-export default Route.extend(WithFeedback, {
+export default Route.extend({
   repo: service('acls'),
   model: function(params) {
-    const repo = this.get('repo');
-    const dc = this.modelFor('dc').dc;
-    const newItem = repo.create();
-    newItem.set('Datacenter', dc);
     return hash({
-      items: repo.findAllByDatacenter(dc),
-      newAcl: newItem,
-      isShowingItem: false,
+      items: this.get('repo').findAllByDatacenter(this.modelFor('dc').dc)
     });
   },
   setupController: function(controller, model) {
     controller.setProperties(model);
   },
   actions: {
-    // temporary, better than previous
-    // TODO: look at nodes/services for responsive stuff
-    didTransition: function() {
-      next(() => {
-        // TODO: hasOutlet
-        this.controller.setProperties({
-          isShowingItem: this.get('router.currentPath') === 'dc.acls.show',
-        });
-      });
-    },
+    // didTransition: function() {
+    //   next(() => {
+    //     // TODO: hasOutlet
+    //     this.controller.setProperties({
+    //       isShowingItem: this.get('router.currentPath') === 'dc.acls.show',
+    //     });
+    //   });
+    // },
+    // TODO: this needs to happen for all endpoints
     error: function(e, transition) {
       if (e.errors[0].status === '401') {
         // 401 - ACLs are disabled
@@ -42,17 +33,6 @@ export default Route.extend(WithFeedback, {
         return false;
       }
       return true; // ??
-    },
-    create: function(acl) {
-      this.get('feedback').execute(
-        () => {
-          return acl.save().then(() => {
-            this.refresh();
-          });
-        },
-        `Created ${acl.get('Name')}`,
-        `There was an error using ${acl.get('Name')}`
-      );
-    },
+    }
   },
 });

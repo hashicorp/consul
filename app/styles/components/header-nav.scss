@@ -21,6 +21,12 @@
 %primary-nav > ul > li > a.selected {
   background-color: $magenta-800;
 }
+%secondary-nav a:hover,
+%secondary-nav a:focus,
+%secondary-nav a:active,
+%secondary-nav a.selected {
+  background-color: transparent;
+}
 %header-drop-nav a:hover,
 %header-drop-nav a:focus,
 %header-drop-nav a:active,

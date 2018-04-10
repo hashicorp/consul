@@ -1,44 +1,50 @@
 {{#app-view}}
     {{#block-slot 'header'}}
         <h1>
-            {{key.basename}}
+            {{item.basename}}
         </h1>
     {{/block-slot}}
     {{#block-slot 'content'}}
         <form>
             <fieldset>
+{{#if create }}
                 <label class="type-text">
                     <span>Key Name</span>
-                    <input type="text" value={{key.basename}} />
+                    <input type="text" value={{item.basename}} name="basename" onkeyup={{action 'change'}} />
                     <em>To create a folder, end a key with <code>/</code></em>
                 </label>
+{{/if}}
                 <div>
                     {{! temporary style attr until I can make a id/class adder }}
                     <label class="type-toggle" style="float: right;z-index: 1;margin-bottom: 0">
-                        {{ input type="checkbox" checked=json }}
+                        <input type="checkbox" name="json" checked={{if json 'checked' }} onchange={{action 'change'}} />
                         <span>JSON</span>
                     </label>
                     <label class="type-text">
                         <span>Value</span>
 {{#if json}}
-                        {{ code-editor value=key.valueDecoded disabled=model.isLocked }}
+                        {{ code-editor value=(atob item.Value) onkeyup=(action 'change') disabled=item.isLocked }}
 {{else}}
-                        {{ input type="text" value=key.valueDecoded disabled=model.isLocked }}
+                        <input type="text" name="value" value={{atob item.Value}} onkeyup={{action 'change'}} />
 {{/if}}
                     </label>
                 </div>
             </fieldset>
             {{!if (or model.isLocked model.isLoading)}}
-            <button type="submit" {{action "update" key}}>Save</button>
-            <button type="button" {{action "cancel" key}} disabled={{model.isLoading}}>Cancel changes</button>
+{{#if (not create) }}
+            <button type="submit" {{ action "update" item}}>Save</button>
+{{ else }}
+            <button type="submit" {{ action "create" item parentKey}}>Save</button>
+{{/if}}
+            <a rel="back" href={{href-to 'dc.kv.index'}}>Cancel changes</a>
 
-            {{!if (or model.isLocked model.isLoading)}}
+            {{!if (or item.isLocked isLoading)}}
                 <div class="with-confirmation">
                     <p>
-                        Are you sure you want to delete {{key.basename}}?
+                        Are you sure you want to delete {{item.basename}}?
                     </p>
-                    <button type="button" class="type-delete" {{ action "requestDelete" model}}>Delete</button>
-                    <button type="button" class="type-cancel" {{ action "requestDelete" model}}>Cancel</button>
+                    <button type="button" class="type-delete" {{ action "requestDelete" item}}>Delete</button>
+                    <button type="button" class="type-cancel" {{ action "requestDelete" item}}>Cancel</button>
                 </div>
         </form>
 

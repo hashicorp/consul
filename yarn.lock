@@ -2878,6 +2878,13 @@ ember-collection@^1.0.0-alpha.7:
     ember-cli-htmlbars "^1.0.1"
     layout-bin-packer "^1.2.0"
 
+ember-composable-helpers@^2.1.0:
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/ember-composable-helpers/-/ember-composable-helpers-2.1.0.tgz#71f75ab2de1c696d21939b5f9dcc62eaf2c947e5"
+  dependencies:
+    broccoli-funnel "^1.0.1"
+    ember-cli-babel "^6.6.0"
+
 ember-computed-style@^0.2.0:
   version "0.2.0"
   resolved "https://registry.yarnpkg.com/ember-computed-style/-/ember-computed-style-0.2.0.tgz#6ceb2f1f10f9555fa5b5092f5668dde2c9df5440"

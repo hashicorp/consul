@@ -23,10 +23,12 @@ Router.map(function() {
     this.route('kv', { path: '/kv' }, function() {
       this.route('index', { path: '/' });
       this.route('edit', { path: '/*key/edit' });
+      this.route('create', { path: '/*key/create' });
     });
     // ACLs
     this.route('acls', { path: '/acls' }, function() {
       this.route('edit', { path: '/:id' });
+      this.route('create', { path: '/create' });
     });
 
     // Shows a page explaining that ACLs haven't been set-up

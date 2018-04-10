@@ -29,6 +29,11 @@ td strong {
   padding: 1px 5px;
   border-radius: $radius;
 }
+td:not(:first-child) {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
 // this isn't specific to table
 td dl {
   overflow: hidden;

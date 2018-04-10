@@ -29,6 +29,7 @@
   height: 48px;
 }
 %main-header > a {
+  background-color: transparent !important;
   position: relative;
   z-index: 10;
   line-height: 0;

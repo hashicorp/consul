@@ -5,7 +5,7 @@
         </h1>
     {{/block-slot}}
     {{#block-slot 'actions'}}
-        <button type="button" class="type-create">Create</button>
+        <a href="{{href-to 'dc.kv.create' parentKey}}" class="type-create">Create</a>
     {{/block-slot}}
     {{#block-slot 'content'}}
 {{#if (gt items.length 0)}}
@@ -32,7 +32,7 @@
                         Lock Session (need to change API call to get this)
                     </td>
                     <td>
-                        Actions
+                        &nbsp;
                     </td>
             {{/tabular-collection}}
         </table>

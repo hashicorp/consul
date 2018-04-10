@@ -29,14 +29,14 @@ export default Model.extend({
   // This is only for display purposes, and used for
   // showing the key name inside of a nested key.
   basename: computed('Key', function() {
-    let key = this.get('Key');
+    let key = this.get('Key') || '';
     if (isFolder(key)) {
       key = key.substring(0, key.length - 1);
     }
-    return this.get('Key').replace(ascend(key, 1) || '/', '');
+    return (this.get('Key') || '').replace(ascend(key || '', 1) || '/', '');
   }),
   isFolder: computed('Key', function() {
-    return isFolder(this.get('Key'));
+    return isFolder(this.get('Key') || '');
   }),
   // Boolean if the key is locked or now
   isLocked: computed('Session', function() {
@@ -52,28 +52,6 @@ export default Model.extend({
       return 'dc.kv.edit';
     }
   }),
-  // The base64 decoded value of the key.
-  // if you set on this key, it will update
-  // the key.Value
-  valueDecoded: function(key, value) {
-    // setter
-    if (arguments.length > 1) {
-      this.set('Value', value);
-      return value;
-    }
-    // getter
-    // If the value is null, we don't
-    // want to try and base64 decode it, so just return
-    if (this.get('Value') == null) {
-      return '';
-    }
-    if (Base64.extendString) {
-      // you have to explicitly extend String.prototype
-      Base64.extendString();
-    }
-    // base64 decode the value
-    return this.get('Value').fromBase64();
-  }.property('Value'),
   // Check if JSON is valid by attempting a native JSON parse
   isValidJson: computed('Value', function() {
     var value;

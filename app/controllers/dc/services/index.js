@@ -17,8 +17,10 @@ export default Controller.extend(ResizeAware, WithHealthFiltering, {
     const $header = [...$('#wrapper > header')][0];
     const $footer = [...$('#wrapper > footer')][0];
     const $thead = [...$('#wrapper thead')][0];
-    this.set('height', new Number(height - ($footer.clientHeight + 335)));
-    this.set('width', new Number($thead.clientWidth));
+    if($thead) {
+      this.set('height', new Number(height - ($footer.clientHeight + 335)));
+      this.set('width', new Number($thead.clientWidth));
+    }
   },
   filter: function(item, { s = '', status = '' }) {
     return (

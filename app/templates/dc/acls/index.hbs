@@ -5,7 +5,7 @@
         </h1>
     {{/block-slot}}
     {{#block-slot 'actions'}}
-        <button type="button" class="type-create">Create</button>
+        <a href="{{href-to 'dc.acls.create'}}" class="type-create">Create</a>
     {{/block-slot}}
     {{#block-slot 'toolbar'}}
 {{#if (gt items.length 0) }}
@@ -37,7 +37,7 @@
                         {{/if}}
                     </td>
                     <td>
-                        Actions
+                        &nbsp;
                     </td>
             {{/tabular-collection}}
         </table>

@@ -38,6 +38,9 @@ main {
   position: relative;
   top: -5px;
 }
+%app-view .actions a {
+  @extend %button;
+}
 // content
 %app-content .type-text,
 %app-content .type-toggle {

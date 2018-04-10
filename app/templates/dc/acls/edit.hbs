@@ -1,20 +1,22 @@
 {{#app-view}}
     {{#block-slot 'header'}}
         <h1>
-            {{model.Name}}
+            {{item.Name}}
         </h1>
     {{/block-slot}}
     {{#block-slot 'actions'}}
+{{#if item.ID }}
         <button type="button">Copy Token ID</button>
-        <button type="button" {{ action "clone" model }}>Clone token</button>
-        <button type="button" {{ action "requestUse" model }}>Use token</button>
+        <button type="button" {{ action "clone" item }}>Clone token</button>
+        <button type="button" {{ action "requestUse" item }}>Use token</button>
+{{/if}}
     {{/block-slot}}
     {{#block-slot 'content'}}
         <form>
             <fieldset>
                 <label class="type-text">
                     <span>Name</span>
-                    {{ input value=model.Name }}
+                    {{ input value=item.Name }}
                 </label>
                 <div role="radiogroup">
                     {{#each types as |type|}}
@@ -26,19 +28,34 @@
                 </div>
                 <label class="type-text">
                     <span>Policy <a href="" target="_blank">(HCL Format)</a></span>
-                    {{code-editor value=model.Rules}}
+                    {{!code-editor value=item.Rules}}
+                    {{ivy-codemirror
+                        value=item.Rules
+                        options=(hash lineNumbers=true mode="ruby" theme="solarized")
+                    }}
                 </label>
+{{#if (not item.ID) }}
+                <label class="type-text">
+                    <span>ID</span>
+                    {{ input value=item.ID }}
+                    <em>We'll generate a UUID if this field is left empty.</em>
+                </label>
+{{/if}}
             </fieldset>
             <div>
-                <button type="submit" {{ action "update" model}}>Save</button>
-                <button type="button" class="type-cancel" {{ action "cancel" model}}>Cancel</button>
-{{# if model.isNotAnon }}
+{{#if item.ID }}
+                <button type="submit" {{ action "update" item}}>Save</button>
+{{ else }}
+                <button type="submit" {{ action "create" item}}>Save</button>
+{{/if}}
+                <button type="button" class="type-cancel" {{ action "cancel" item}}>Cancel</button>
+{{# if (and item.isNotAnon item.ID) }}
                 <div class="with-confirmation">
                     <p>
-                        Are you sure you want to delete {{model.Name}}?
+                        Are you sure you want to delete {{item.Name}}?
                     </p>
-                    <button type="button" class="type-delete" {{ action "requestDelete" model}}>Delete</button>
-                    <button type="button" class="type-cancel" {{ action "requestDelete" model}}>Cancel</button>
+                    <button type="button" class="type-delete" {{ action "requestDelete" item}}>Delete</button>
+                    <button type="button" class="type-cancel" {{ action "requestDelete" item}}>Cancel</button>
                 </div>
 {{/if}}
             </div>
