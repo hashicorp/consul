@@ -177,8 +177,12 @@ The table below shows this endpoint's support for
   nodes in the response will be sorted in ascending order of estimated
   round-trip times. If the node given does not exist, the nodes in the response
   will be shuffled. Using `_agent` is supported, and will automatically return
-  results nearest the agent servicing the request. If unspecified, the response
-  will be shuffled by default.
+  results nearest the agent servicing the request. Using `_ip` is supported and 
+  will automatically return results nearest to the node associated with the 
+  source IP where the query is executed from. For HTTP the source IP is remote
+  peers IP address or the value of the X-Forwarded-For head with the header
+  taking precedence. For DNS the source IP is the value of the EDNS client IP. 
+  If unspecified, the response will be shuffled by default.
 
 - `Service` `(Service: <required>)` - Specifies the structure to define the query's behavior.
 
@@ -474,7 +478,9 @@ Token will be used.
 
 - `near` `(string: "")` - Specifies to sort the resulting list in ascending
   order based on the estimated round trip time from that node. Passing
-  `?near=_agent` will use the agent's node for the sort. If this is not present,
+  `?near=_agent` will use the agent's node for the sort. Passing `?near=_ip`
+  will use the source IP of the request or the value of the X-Forwarded-For
+  header to lookup the node to use for the sort. If this is not present,
   the default behavior will shuffle the nodes randomly each time the query is
   executed.
 
