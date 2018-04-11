@@ -22,6 +22,8 @@ type Proxy struct {
 	// health checking
 	probe *up.Probe
 	fails uint32
+
+	avgRtt int64
 }
 
 // NewProxy returns a new proxy.
@@ -31,6 +33,7 @@ func NewProxy(addr string, tlsConfig *tls.Config) *Proxy {
 		fails:     0,
 		probe:     up.New(),
 		transport: newTransport(addr, tlsConfig),
+		avgRtt:    int64(timeout / 2),
 	}
 	p.client = dnsClient(tlsConfig)
 	return p
