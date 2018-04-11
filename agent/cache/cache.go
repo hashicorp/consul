@@ -15,6 +15,7 @@ package cache
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -22,6 +23,11 @@ import (
 
 // Cache is a agent-local cache of Consul data.
 type Cache struct {
+	// Keeps track of the cache hits and misses in total. This is used by
+	// tests currently to verify cache behavior and is not meant for general
+	// analytics; for that, go-metrics emitted values are better.
+	hits, misses uint64
+
 	// types stores the list of data types that the cache knows how to service.
 	// These can be dynamically registered with RegisterType.
 	typesLock sync.RWMutex
@@ -127,6 +133,9 @@ func (c *Cache) Get(t string, r Request) (interface{}, error) {
 	// Get the actual key for our entry
 	key := c.entryKey(&info)
 
+	// First time through
+	first := true
+
 RETRY_GET:
 	// Get the current value
 	c.entriesLock.RLock()
@@ -139,9 +148,21 @@ RETRY_GET:
 	// we have.
 	if ok && entry.Valid {
 		if info.MinIndex == 0 || info.MinIndex < entry.Index {
+			if first {
+				atomic.AddUint64(&c.hits, 1)
+			}
+
 			return entry.Value, nil
 		}
 	}
+
+	if first {
+		// Record the miss if its our first time through
+		atomic.AddUint64(&c.misses, 1)
+	}
+
+	// No longer our first time through
+	first = false
 
 	// At this point, we know we either don't have a value at all or the
 	// value we have is too old. We need to wait for new data.
@@ -262,4 +283,9 @@ func (c *Cache) refresh(opts *RegisterOptions, t string, key string, r Request) 
 
 	// Trigger
 	c.fetch(t, key, r)
+}
+
+// Returns the number of cache hits. Safe to call concurrently.
+func (c *Cache) Hits() uint64 {
+	return atomic.LoadUint64(&c.hits)
 }

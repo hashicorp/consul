@@ -2121,32 +2121,77 @@ func TestAgentConnectCARoots_empty(t *testing.T) {
 func TestAgentConnectCARoots_list(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
+	require := require.New(t)
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+
+	// Grab the initial cache hit count
+	cacheHits := a.cache.Hits()
 
 	// Set some CAs
 	var reply interface{}
 	ca1 := connect.TestCA(t, nil)
 	ca1.Active = false
 	ca2 := connect.TestCA(t, nil)
-	assert.Nil(a.RPC("Test.ConnectCASetRoots",
+	require.Nil(a.RPC("Test.ConnectCASetRoots",
 		[]*structs.CARoot{ca1, ca2}, &reply))
 
 	// List
 	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/roots", nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.AgentConnectCARoots(resp, req)
-	assert.Nil(err)
+	require.Nil(err)
 
 	value := obj.(structs.IndexedCARoots)
-	assert.Equal(value.ActiveRootID, ca2.ID)
-	assert.Len(value.Roots, 2)
+	require.Equal(value.ActiveRootID, ca2.ID)
+	require.Len(value.Roots, 2)
 
 	// We should never have the secret information
 	for _, r := range value.Roots {
-		assert.Equal("", r.SigningCert)
-		assert.Equal("", r.SigningKey)
+		require.Equal("", r.SigningCert)
+		require.Equal("", r.SigningKey)
+	}
+
+	// That should've been a cache miss, so not hit change
+	require.Equal(cacheHits, a.cache.Hits())
+
+	// Test caching
+	{
+		// List it again
+		obj2, err := a.srv.AgentConnectCARoots(httptest.NewRecorder(), req)
+		require.Nil(err)
+		require.Equal(obj, obj2)
+
+		// Should cache hit this time and not make request
+		require.Equal(cacheHits+1, a.cache.Hits())
+		cacheHits++
+	}
+
+	// Test that caching is updated in the background
+	{
+		// Set some new CAs
+		var reply interface{}
+		ca := connect.TestCA(t, nil)
+		require.Nil(a.RPC("Test.ConnectCASetRoots",
+			[]*structs.CARoot{ca}, &reply))
+
+		// Sleep a bit to wait for the cache to update
+		time.Sleep(100 * time.Millisecond)
+
+		// List it again
+		obj, err := a.srv.AgentConnectCARoots(httptest.NewRecorder(), req)
+		require.Nil(err)
+		require.Equal(obj, obj)
+
+		value := obj.(structs.IndexedCARoots)
+		require.Equal(value.ActiveRootID, ca.ID)
+		require.Len(value.Roots, 1)
+
+		// Should be a cache hit! The data should've updated in the cache
+		// in the background so this should've been fetched directly from
+		// the cache.
+		require.Equal(cacheHits+1, a.cache.Hits())
+		cacheHits++
 	}
 }
 
