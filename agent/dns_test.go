@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	require "github.com/stretchr/testify/require"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -16,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/miekg/dns"
 	"github.com/pascaldekloe/goe/verify"
+	"github.com/hashicorp/serf/coordinate"
 )
 
 const (
@@ -1832,6 +1834,124 @@ func TestDNS_ServiceLookup_TagPeriod(t *testing.T) {
 	}
 	if aRec.A.String() != "127.0.0.1" {
 		t.Fatalf("Bad: %#v", in.Extra[0])
+	}
+}
+
+func TestDNS_PreparedQueryNearIP(t *testing.T) {
+	ipCoord := lib.GenerateCoordinate(1 * time.Millisecond)
+	serviceNodes := []struct{
+			name string
+			address string
+			coord *coordinate.Coordinate
+	}{
+		{"foo1", "198.18.0.1", lib.GenerateCoordinate(1 * time.Millisecond),},
+		{"foo2", "198.18.0.2", lib.GenerateCoordinate(10 * time.Millisecond),},
+		{"foo3", "198.18.0.3", lib.GenerateCoordinate(30 * time.Millisecond),},
+	}
+	
+	t.Parallel()
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+	
+	added := 0
+	
+	// Register nodes with a service
+	for _, cfg := range serviceNodes {
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       cfg.name,
+			Address:    cfg.address,
+			Service: &structs.NodeService{
+				Service: "db",
+				Port:    12345,
+			},
+		}
+		
+		var out struct{}
+		err := a.RPC("Catalog.Register", args, &out)
+		require.NoError(t, err)
+		
+		// Send coordinate updates
+		coordArgs := structs.CoordinateUpdateRequest{
+			Datacenter: "dc1",
+			Node:       cfg.name,
+			Coord:      cfg.coord,
+		}
+		err = a.RPC("Coordinate.Update", &coordArgs, &out)
+		require.NoError(t, err)
+		
+		added += 1
+	}
+	
+	fmt.Printf("Added %d service nodes\n", added)
+	
+	// Register a node without a service
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "bar",
+			Address:    "198.18.0.9",
+		}
+		
+		var out struct{}
+		err := a.RPC("Catalog.Register", args, &out)
+		require.NoError(t, err)
+		
+		// Send coordinate updates for a few nodes.
+		coordArgs := structs.CoordinateUpdateRequest{
+			Datacenter: "dc1",
+			Node:       "bar",
+			Coord:      ipCoord,
+		}
+		err = a.RPC("Coordinate.Update", &coordArgs, &out)
+		require.NoError(t, err)
+	}
+	
+	// Register a prepared query Near = _ip
+	{
+		args := &structs.PreparedQueryRequest{
+			Datacenter: "dc1",
+			Op:         structs.PreparedQueryCreate,
+			Query: &structs.PreparedQuery{
+				Name: "some.query.we.like",
+				Service: structs.ServiceQuery{
+					Service: "db",
+					Near: "_ip",
+				},
+			},
+		}
+
+		var id string
+		err := a.RPC("PreparedQuery.Apply", args, &id)
+		require.NoError(t, err)
+	}
+	
+	m :=new(dns.Msg)
+	m.SetQuestion("some.query.we.like.query.consul.", dns.TypeA)
+	m.SetEdns0(4096, false)
+	o := new(dns.OPT)
+	o.Hdr.Name = "."
+	o.Hdr.Rrtype = dns.TypeOPT
+	e := new(dns.EDNS0_SUBNET)
+	e.Code = dns.EDNS0SUBNET
+	e.Family = 1
+	e.SourceNetmask = 32
+	e.SourceScope = 0
+	e.Address = net.ParseIP("198.18.0.9").To4()
+	o.Option = append(o.Option, e)
+	m.Extra = append(m.Extra, o)
+	
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, a.DNSAddr())
+	require.NoErrorf(t, err, "Error with call to dns.Client.Exchange: %s", err)
+	
+	require.Equalf(t, len(serviceNodes), len(in.Answer), "Expecting %d A RRs in response, Actual found was %d", len(serviceNodes), len(in.Answer))
+	
+	for i, rr := range in.Answer {
+		aRec, ok := rr.(*dns.A);
+		require.Truef(t, ok, "DNS Answer contained a non A RR")
+		actual := aRec.A.String()
+		require.Equalf(t, serviceNodes[i].address, actual, "Expecting A RR #%d = %s, Actual RR was %s", i, serviceNodes[i].address, actual)
 	}
 }
 
