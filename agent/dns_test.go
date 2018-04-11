@@ -1925,34 +1925,42 @@ func TestDNS_PreparedQueryNearIP(t *testing.T) {
 		err := a.RPC("PreparedQuery.Apply", args, &id)
 		require.NoError(t, err)
 	}
-	
-	m :=new(dns.Msg)
-	m.SetQuestion("some.query.we.like.query.consul.", dns.TypeA)
-	m.SetEdns0(4096, false)
-	o := new(dns.OPT)
-	o.Hdr.Name = "."
-	o.Hdr.Rrtype = dns.TypeOPT
-	e := new(dns.EDNS0_SUBNET)
-	e.Code = dns.EDNS0SUBNET
-	e.Family = 1
-	e.SourceNetmask = 32
-	e.SourceScope = 0
-	e.Address = net.ParseIP("198.18.0.9").To4()
-	o.Option = append(o.Option, e)
-	m.Extra = append(m.Extra, o)
-	
-	c := new(dns.Client)
-	in, _, err := c.Exchange(m, a.DNSAddr())
-	require.NoErrorf(t, err, "Error with call to dns.Client.Exchange: %s", err)
-	
-	require.Equalf(t, len(serviceNodes), len(in.Answer), "Expecting %d A RRs in response, Actual found was %d", len(serviceNodes), len(in.Answer))
-	
-	for i, rr := range in.Answer {
-		aRec, ok := rr.(*dns.A);
-		require.Truef(t, ok, "DNS Answer contained a non A RR")
-		actual := aRec.A.String()
-		require.Equalf(t, serviceNodes[i].address, actual, "Expecting A RR #%d = %s, Actual RR was %s", i, serviceNodes[i].address, actual)
-	}
+	retry.Run(t, func(r *retry.R) {
+		m :=new(dns.Msg)
+		m.SetQuestion("some.query.we.like.query.consul.", dns.TypeA)
+		m.SetEdns0(4096, false)
+		o := new(dns.OPT)
+		o.Hdr.Name = "."
+		o.Hdr.Rrtype = dns.TypeOPT
+		e := new(dns.EDNS0_SUBNET)
+		e.Code = dns.EDNS0SUBNET
+		e.Family = 1
+		e.SourceNetmask = 32
+		e.SourceScope = 0
+		e.Address = net.ParseIP("198.18.0.9").To4()
+		o.Option = append(o.Option, e)
+		m.Extra = append(m.Extra, o)
+		
+		c := new(dns.Client)
+		in, _, err := c.Exchange(m, a.DNSAddr())
+		if err != nil {
+			r.Fatalf("Error with call to dns.Client.Exchange: %s", err)
+		}
+		
+		if len(serviceNodes) != len(in.Answer) {
+			r.Fatalf("Expecting %d A RRs in response, Actual found was %d", len(serviceNodes), len(in.Answer))
+		}
+		
+		for i, rr := range in.Answer {
+			if aRec, ok := rr.(*dns.A); ok {
+				if actual := aRec.A.String(); serviceNodes[i].address != actual {
+					r.Fatalf("Expecting A RR #%d = %s, Actual RR was %s", i, serviceNodes[i].address, actual)
+				}
+			} else {
+				r.Fatalf("DNS Answer container a non-A RR")
+			}
+		}
+	})
 }
 
 func TestDNS_ServiceLookup_PreparedQueryNamePeriod(t *testing.T) {
