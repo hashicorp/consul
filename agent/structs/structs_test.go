@@ -441,6 +441,20 @@ func TestStructs_CheckServiceNodes_Filter(t *testing.T) {
 				},
 			},
 		},
+		CheckServiceNode{
+			Node: &Node{
+				Node:    "node4",
+				Address: "127.0.0.4",
+			},
+			Checks: HealthChecks{
+				// This check has a different ID to the others to ensure it is not
+				// ignored by accident
+				&HealthCheck{
+					CheckID: "failing2",
+					Status:  api.HealthCritical,
+				},
+			},
+		},
 	}
 
 	// Test the case where warnings are allowed.
@@ -468,6 +482,26 @@ func TestStructs_CheckServiceNodes_Filter(t *testing.T) {
 		filtered := twiddle.Filter(true)
 		expected := CheckServiceNodes{
 			nodes[1],
+		}
+		if !reflect.DeepEqual(filtered, expected) {
+			t.Fatalf("bad: %v", filtered)
+		}
+	}
+
+	// Allow failing checks to be ignored (note that the test checks have empty
+	// CheckID which is valid).
+	{
+		twiddle := make(CheckServiceNodes, len(nodes))
+		if n := copy(twiddle, nodes); n != len(nodes) {
+			t.Fatalf("bad: %d", n)
+		}
+		filtered := twiddle.FilterIgnore(true, []types.CheckID{""})
+		expected := CheckServiceNodes{
+			nodes[0],
+			nodes[1],
+			nodes[2], // Node 3's critical check should be ignored.
+			// Node 4 should still be failing since it's got a critical check with a
+			// non-ignored ID.
 		}
 		if !reflect.DeepEqual(filtered, expected) {
 			t.Fatalf("bad: %v", filtered)

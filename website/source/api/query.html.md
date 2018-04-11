@@ -25,7 +25,7 @@ section for more details about how prepared queries work with Consul's ACL syste
 ### Prepared Query Templates
 
 Consul 0.6.4 and later support prepared query templates. These are created
-similar to static templates, except with some additional fields and features.
+similar to static queries, except with some additional fields and features.
 Here is an example prepared query template:
 
 ```json
@@ -205,6 +205,13 @@ The table below shows this endpoint's support for
         `Datacenters`. A given datacenter will only be queried one time during a
         failover, even if it is selected by both `NearestN` and is listed in
         `Datacenters`.
+
+  - `IgnoreCheckIDs` `(array<string>: nil)` - Specifies a list of check IDs that
+    should be ignored when filtering unhealthy instances. This is mostly useful
+    in an emergency or as a temporary measure when a health check is found to be
+    unreliable. Being able to ignore it in centrally-defined queries can be
+    simpler than de-registering the check as an interim solution until the check
+    can be fixed.
 
   - `OnlyPassing` `(bool: false)` - Specifies the behavior of the query's health
     check filtering. If this is set to false, the results will include nodes
