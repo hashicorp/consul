@@ -7,12 +7,15 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-// TypeCARoot supports fetching the Connect CA roots.
-type TypeCARoot struct {
+// Recommended name for registration for ConnectCARoot
+const ConnectCARootName = "connect-ca"
+
+// ConnectCARoot supports fetching the Connect CA roots.
+type ConnectCARoot struct {
 	RPC RPC
 }
 
-func (c *TypeCARoot) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+func (c *ConnectCARoot) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
 	// The request should be a DCSpecificRequest.

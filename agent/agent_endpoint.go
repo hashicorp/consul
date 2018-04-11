@@ -13,6 +13,7 @@ import (
 	"github.com/mitchellh/hashstructure"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
@@ -885,10 +886,24 @@ func (s *HTTPServer) AgentToken(resp http.ResponseWriter, req *http.Request) (in
 
 // AgentConnectCARoots returns the trusted CA roots.
 func (s *HTTPServer) AgentConnectCARoots(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	// NOTE(mitchellh): for now this is identical to /v1/connect/ca/roots.
-	// In the future, we're going to do some agent-local caching and the
-	// behavior will differ.
-	return s.ConnectCARoots(resp, req)
+	var args structs.DCSpecificRequest
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	raw, err := s.agent.cache.Get(cachetype.ConnectCARootName, &args)
+	if err != nil {
+		return nil, err
+	}
+
+	reply, ok := raw.(*structs.IndexedCARoots)
+	if !ok {
+		// This should never happen, but we want to protect against panics
+		return nil, fmt.Errorf("internal error: response type not correct")
+	}
+	defer setMeta(resp, &reply.QueryMeta)
+
+	return *reply, nil
 }
 
 // AgentConnectCALeafCert returns the certificate bundle for a service

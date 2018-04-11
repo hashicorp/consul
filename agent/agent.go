@@ -21,6 +21,8 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/ae"
+	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
@@ -117,6 +119,9 @@ type Agent struct {
 	// sync manages the synchronization of the local
 	// and the remote state.
 	sync *ae.StateSyncer
+
+	// cache is the in-memory cache for data the Agent requests.
+	cache *cache.Cache
 
 	// checkReapAfter maps the check ID to a timeout after which we should
 	// reap its associated service
@@ -290,6 +295,9 @@ func (a *Agent) Start() error {
 	// regular and on-demand state synchronizations (anti-entropy).
 	a.sync = ae.NewStateSyncer(a.State, c.AEInterval, a.shutdownCh, a.logger)
 
+	// create the cache
+	a.cache = cache.New(nil)
+
 	// create the config for the rpc server/client
 	consulCfg, err := a.consulConfig()
 	if err != nil {
@@ -325,6 +333,9 @@ func (a *Agent) Start() error {
 	// and that should be hidden in the state syncer implementation.
 	a.State.Delegate = a.delegate
 	a.State.TriggerSyncChanges = a.sync.SyncChanges.Trigger
+
+	// Register the cache
+	a.registerCache()
 
 	// Load checks/services/metadata.
 	if err := a.loadServices(c); err != nil {
@@ -2623,4 +2634,19 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	a.State.SetDiscardCheckOutput(newCfg.DiscardCheckOutput)
 
 	return nil
+}
+
+// registerCache configures the cache and registers all the supported
+// types onto the cache. This is NOT safe to call multiple times so
+// care should be taken to call this exactly once after the cache
+// field has been initialized.
+func (a *Agent) registerCache() {
+	a.cache.RegisterType(cachetype.ConnectCARootName, &cachetype.ConnectCARoot{
+		RPC: a.delegate,
+	}, &cache.RegisterOptions{
+		// Maintain a blocking query, retry dropped connections quickly
+		Refresh:        true,
+		RefreshTimer:   0,
+		RefreshTimeout: 10 * time.Minute,
+	})
 }

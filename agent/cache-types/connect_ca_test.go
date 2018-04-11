@@ -10,11 +10,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestTypeCARoot(t *testing.T) {
+func TestConnectCARoot(t *testing.T) {
 	require := require.New(t)
 	rpc := TestRPC(t)
 	defer rpc.AssertExpectations(t)
-	typ := &TypeCARoot{RPC: rpc}
+	typ := &ConnectCARoot{RPC: rpc}
 
 	// Expect the proper RPC call. This also sets the expected value
 	// since that is return-by-pointer in the arguments.
@@ -42,11 +42,11 @@ func TestTypeCARoot(t *testing.T) {
 	}, result)
 }
 
-func TestTypeCARoot_badReqType(t *testing.T) {
+func TestConnectCARoot_badReqType(t *testing.T) {
 	require := require.New(t)
 	rpc := TestRPC(t)
 	defer rpc.AssertExpectations(t)
-	typ := &TypeCARoot{RPC: rpc}
+	typ := &ConnectCARoot{RPC: rpc}
 
 	// Fetch
 	_, err := typ.Fetch(cache.FetchOptions{}, cache.TestRequest(
