@@ -270,7 +270,7 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 		m.SetRcode(req, dns.RcodeNotImplemented)
 
 	default:
-		d.dispatch(network, req, m)
+		d.dispatch(network, resp.RemoteAddr(), req, m)
 	}
 
 	// Handle EDNS
@@ -362,7 +362,7 @@ func (d *DNSServer) nameservers(edns bool) (ns []dns.RR, extra []dns.RR) {
 }
 
 // dispatch is used to parse a request and invoke the correct handler
-func (d *DNSServer) dispatch(network string, req, resp *dns.Msg) {
+func (d *DNSServer) dispatch(network string, remoteAddr net.Addr, req, resp *dns.Msg) {
 	// By default the query is in the default datacenter
 	datacenter := d.agent.config.Datacenter
 
@@ -439,7 +439,7 @@ PARSE:
 
 		// Allow a "." in the query name, just join all the parts.
 		query := strings.Join(labels[:n-1], ".")
-		d.preparedQueryLookup(network, datacenter, query, req, resp)
+		d.preparedQueryLookup(network, datacenter, query, remoteAddr, req, resp)
 
 	case "addr":
 		if n != 2 {
@@ -935,7 +935,7 @@ func ednsSubnetForRequest(req *dns.Msg) (*dns.EDNS0_SUBNET) {
 }
 
 // preparedQueryLookup is used to handle a prepared query.
-func (d *DNSServer) preparedQueryLookup(network, datacenter, query string, req, resp *dns.Msg) {
+func (d *DNSServer) preparedQueryLookup(network, datacenter, query string, remoteAddr net.Addr, req, resp *dns.Msg) {
 	// Execute the prepared query.
 	args := structs.PreparedQueryExecuteRequest{
 		Datacenter:    datacenter,
@@ -960,6 +960,13 @@ func (d *DNSServer) preparedQueryLookup(network, datacenter, query string, req, 
 	
 	if subnet != nil {
 		args.Source.Ip = subnet.Address.String()
+	} else {
+		switch v := remoteAddr.(type) {
+			case *net.TCPAddr:
+				args.Source.Ip = v.IP.String()				
+			case *net.UDPAddr:
+				args.Source.Ip = v.IP.String()
+		}
 	}
 
 	// TODO (slackpad) - What's a safe limit we can set here? It seems like
@@ -1217,7 +1224,7 @@ func (d *DNSServer) resolveCNAME(name string) []dns.RR {
 		resp := &dns.Msg{}
 
 		req.SetQuestion(name, dns.TypeANY)
-		d.dispatch("udp", req, resp)
+		d.dispatch("udp", nil, req, resp)
 
 		return resp.Answer
 	}

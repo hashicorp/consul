@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	require "github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/require"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"

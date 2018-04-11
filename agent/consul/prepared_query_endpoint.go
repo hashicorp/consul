@@ -400,6 +400,7 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 				for _, node := range nodes {
 					if args.Source.Ip == node.Address {
 						qs.Node = node.Node
+						break
 					}
 				}
 			}
