@@ -33,7 +33,7 @@ func (f *Forward) Forward(state request.Request) (*dns.Msg, error) {
 
 		ret, err := proxy.connect(context.Background(), state, f.forceTCP, true)
 
-		ret, err = truncated(ret, err)
+		ret, err = truncated(state, ret, err)
 		upstreamErr = err
 
 		if err != nil {

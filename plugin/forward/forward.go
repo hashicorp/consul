@@ -114,7 +114,7 @@ func (f *Forward) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 			child.Finish()
 		}
 
-		ret, err = truncated(ret, err)
+		ret, err = truncated(state, ret, err)
 		upstreamErr = err
 
 		if err != nil {
