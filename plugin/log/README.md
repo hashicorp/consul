@@ -28,22 +28,23 @@ log [NAME] [FORMAT]
 * `NAME` is the name to match in order to be logged
 * `FORMAT` is the log format to use (default is Common Log Format)
 
-You can further specify the class of responses that get logged:
+You can further specify the classes of responses that get logged:
 
 ~~~ txt
 log [NAME] [FORMAT] {
-    class [success|denial|error|all]
+    class CLASSES...
 }
 ~~~
 
-Here `success` `denial` and `error` denotes the class of responses that should be logged. The
-classes have the following meaning:
+* `CLASSES` is a space-separated list of classes of responses that should be logged
+
+The classes of responses have the following meaning:
 
 * `success`: successful response
 * `denial`: either NXDOMAIN or NODATA (name exists, type does not)
 * `error`: SERVFAIL, NOTIMP, REFUSED, etc. Anything that indicates the remote server is not willing to
     resolve the request.
-* `all`: the default - nothing is specified.
+* `all`: the default - nothing is specified. Using of this class means that all messages will be logged whatever we mix together with "all".
 
 If no class is specified, it defaults to *all*.
 
@@ -103,6 +104,37 @@ Only log denials for example.org (and below to a file)
 . {
     log example.org {
         class denial
+    }
+}
+~~~
+
+Log all queries which were not resolved successfully
+
+~~~ corefile
+. {
+    log . {
+        class denial error
+    }
+}
+~~~
+
+Log all queries on which we did not get errors
+
+~~~ corefile
+. {
+    log . {
+        class denial success
+    }
+}
+~~~
+
+Also the multiple statements can be OR-ed, for example, we can rewrite the above case as following:
+
+~~~ corefile
+. {
+    log . {
+        class denial
+        class success
     }
 }
 ~~~
