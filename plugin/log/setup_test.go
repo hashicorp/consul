@@ -1,6 +1,7 @@
 package log
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/coredns/coredns/plugin/pkg/response"
@@ -17,34 +18,42 @@ func TestLogParse(t *testing.T) {
 		{`log`, false, []Rule{{
 			NameScope: ".",
 			Format:    DefaultLogFormat,
+			Class:     map[response.Class]bool{response.All: true},
 		}}},
 		{`log example.org`, false, []Rule{{
 			NameScope: "example.org.",
 			Format:    DefaultLogFormat,
+			Class:     map[response.Class]bool{response.All: true},
 		}}},
 		{`log example.org. {common}`, false, []Rule{{
 			NameScope: "example.org.",
 			Format:    CommonLogFormat,
+			Class:     map[response.Class]bool{response.All: true},
 		}}},
 		{`log example.org {combined}`, false, []Rule{{
 			NameScope: "example.org.",
 			Format:    CombinedLogFormat,
+			Class:     map[response.Class]bool{response.All: true},
 		}}},
 		{`log example.org.
 		log example.net {combined}`, false, []Rule{{
 			NameScope: "example.org.",
 			Format:    DefaultLogFormat,
+			Class:     map[response.Class]bool{response.All: true},
 		}, {
 			NameScope: "example.net.",
 			Format:    CombinedLogFormat,
+			Class:     map[response.Class]bool{response.All: true},
 		}}},
 		{`log example.org {host}
 			  log example.org {when}`, false, []Rule{{
 			NameScope: "example.org.",
 			Format:    "{host}",
+			Class:     map[response.Class]bool{response.All: true},
 		}, {
 			NameScope: "example.org.",
 			Format:    "{when}",
+			Class:     map[response.Class]bool{response.All: true},
 		}}},
 
 		{`log example.org {
@@ -52,22 +61,49 @@ func TestLogParse(t *testing.T) {
 			}`, false, []Rule{{
 			NameScope: "example.org.",
 			Format:    CommonLogFormat,
-			Class:     response.All,
+			Class:     map[response.Class]bool{response.All: true},
 		}}},
 		{`log example.org {
 			class denial
 		}`, false, []Rule{{
 			NameScope: "example.org.",
 			Format:    CommonLogFormat,
-			Class:     response.Denial,
+			Class:     map[response.Class]bool{response.Denial: true},
 		}}},
 		{`log {
 			class denial
 		}`, false, []Rule{{
 			NameScope: ".",
 			Format:    CommonLogFormat,
-			Class:     response.Denial,
+			Class:     map[response.Class]bool{response.Denial: true},
 		}}},
+		{`log {
+			class denial error
+		}`, false, []Rule{{
+			NameScope: ".",
+			Format:    CommonLogFormat,
+			Class:     map[response.Class]bool{response.Denial: true, response.Error: true},
+		}}},
+		{`log {
+			class denial
+			class error
+		}`, false, []Rule{{
+			NameScope: ".",
+			Format:    CommonLogFormat,
+			Class:     map[response.Class]bool{response.Denial: true, response.Error: true},
+		}}},
+		{`log {
+			class abracadabra
+		}`, true, []Rule{
+		}},
+		{`log {
+			class
+		}`, true, []Rule{
+		}},
+		{`log {
+			unknown
+		}`, true, []Rule{
+		}},
 	}
 	for i, test := range tests {
 		c := caddy.NewTestController("dns", test.inputLogRules)
@@ -95,8 +131,8 @@ func TestLogParse(t *testing.T) {
 					i, j, test.inputLogRules, test.expectedLogRules[j].Format, actualLogRule.Format)
 			}
 
-			if actualLogRule.Class != test.expectedLogRules[j].Class {
-				t.Errorf("Test %d expected %dth LogRule Class to be  %s  , but got %s",
+			if !reflect.DeepEqual(actualLogRule.Class, test.expectedLogRules[j].Class) {
+				t.Errorf("Test %d expected %dth LogRule Class to be  %v  , but got %v",
 					i, j, test.expectedLogRules[j].Class, actualLogRule.Class)
 			}
 		}

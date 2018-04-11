@@ -54,7 +54,9 @@ func (l Logger) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 
 		tpe, _ := response.Typify(rrw.Msg, time.Now().UTC())
 		class := response.Classify(tpe)
-		if rule.Class == response.All || rule.Class == class {
+		// If we don't set up a class in config, the default "all" will be added
+		// and we shouldn't have an empty rule.Class.
+		if rule.Class[response.All] || rule.Class[class] {
 			rep := replacer.New(r, rrw, CommonLogEmptyValue)
 			rule.Log.Println(rep.Replace(rule.Format))
 		}
@@ -71,7 +73,7 @@ func (l Logger) Name() string { return "log" }
 // Rule configures the logging plugin.
 type Rule struct {
 	NameScope string
-	Class     response.Class
+	Class     map[response.Class]bool
 	Format    string
 	Log       *log.Logger
 }

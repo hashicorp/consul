@@ -20,6 +20,7 @@ func TestLoggedStatus(t *testing.T) {
 		NameScope: ".",
 		Format:    DefaultLogFormat,
 		Log:       log.New(&f, "", 0),
+		Class:     map[response.Class]bool{response.All: true},
 	}
 
 	logger := Logger{
@@ -50,7 +51,7 @@ func TestLoggedClassDenial(t *testing.T) {
 		NameScope: ".",
 		Format:    DefaultLogFormat,
 		Log:       log.New(&f, "", 0),
-		Class:     response.Denial,
+		Class:     map[response.Class]bool{response.Denial: true},
 	}
 
 	logger := Logger{
@@ -78,7 +79,7 @@ func TestLoggedClassError(t *testing.T) {
 		NameScope: ".",
 		Format:    DefaultLogFormat,
 		Log:       log.New(&f, "", 0),
-		Class:     response.Error,
+		Class:     map[response.Class]bool{response.Error: true},
 	}
 
 	logger := Logger{
