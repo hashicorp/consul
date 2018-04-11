@@ -67,8 +67,19 @@ func (f *Forward) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 	var span, child ot.Span
 	var upstreamErr error
 	span = ot.SpanFromContext(ctx)
+	i := 0
+	list := f.list()
+	deadline := time.Now().Add(defaultTimeout)
 
-	for _, proxy := range f.list() {
+	for time.Now().Before(deadline) {
+		if i >= len(list) {
+			// reached the end of list, reset to begin
+			i = 0
+			fails = 0
+		}
+
+		proxy := list[i]
+		i++
 		if proxy.Down(f.maxfails) {
 			fails++
 			if fails < len(f.proxies) {
@@ -183,3 +194,5 @@ const (
 	randomPolicy policy = iota
 	roundRobinPolicy
 )
+
+const defaultTimeout = 5 * time.Second
