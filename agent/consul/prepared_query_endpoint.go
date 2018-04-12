@@ -406,6 +406,11 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 					break
 				}
 			}
+		} else {
+			p.srv.logger.Printf("[WARN] Prepared Query using near=_ip requires "+
+				"the source IP to be set but none was provided. No distance "+
+				"sorting will be done.")
+			
 		}
 		
 		// Either a source IP was given but we couldnt find the associated node

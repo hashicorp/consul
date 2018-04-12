@@ -1890,7 +1890,7 @@ func TestDNS_PreparedQueryNearIP(t *testing.T) {
 		args := &structs.RegisterRequest{
 			Datacenter: "dc1",
 			Node:       "bar",
-			Address:    "198.18.0.9",
+			Address:    "127.0.0.1",
 		}
 		
 		var out struct{}
@@ -1937,9 +1937,34 @@ func TestDNS_PreparedQueryNearIP(t *testing.T) {
 		e.Family = 1
 		e.SourceNetmask = 32
 		e.SourceScope = 0
-		e.Address = net.ParseIP("198.18.0.9").To4()
+		e.Address = net.ParseIP("127.0.0.1").To4()
 		o.Option = append(o.Option, e)
 		m.Extra = append(m.Extra, o)
+		
+		c := new(dns.Client)
+		in, _, err := c.Exchange(m, a.DNSAddr())
+		if err != nil {
+			r.Fatalf("Error with call to dns.Client.Exchange: %s", err)
+		}
+		
+		if len(serviceNodes) != len(in.Answer) {
+			r.Fatalf("Expecting %d A RRs in response, Actual found was %d", len(serviceNodes), len(in.Answer))
+		}
+		
+		for i, rr := range in.Answer {
+			if aRec, ok := rr.(*dns.A); ok {
+				if actual := aRec.A.String(); serviceNodes[i].address != actual {
+					r.Fatalf("Expecting A RR #%d = %s, Actual RR was %s", i, serviceNodes[i].address, actual)
+				}
+			} else {
+				r.Fatalf("DNS Answer contained a non-A RR")
+			}
+		}
+	})
+	
+	retry.Run(t, func(r *retry.R) {
+		m := new(dns.Msg)
+		m.SetQuestion("some.query.we.like.query.consul.", dns.TypeA)
 		
 		c := new(dns.Client)
 		in, _, err := c.Exchange(m, a.DNSAddr())

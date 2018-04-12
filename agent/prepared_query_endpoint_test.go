@@ -380,6 +380,24 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		if r.Failovers != 99 {
 			t.Fatalf("bad: %v", r)
 		}
+		
+		req, _ = http.NewRequest("GET", "/v1/query/my-id/execute?token=my-token&consistent=true&near=_ip&limit=5", body)
+		req.RemoteAddr = "127.0.0.1:12345"
+		resp = httptest.NewRecorder()
+		obj, err = a.srv.PreparedQuerySpecific(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if resp.Code != 200 {
+			t.Fatalf("bad code: %d", resp.Code)
+		}
+		r, ok = obj.(structs.PreparedQueryExecuteResponse)
+		if !ok {
+			t.Fatalf("unexpected: %T", obj)
+		}
+		if r.Failovers != 99 {
+			t.Fatalf("bad: %v", r)
+		}
 	})
 
 	// Ensure the proper params are set when no special args are passed
