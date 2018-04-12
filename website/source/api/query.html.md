@@ -180,7 +180,7 @@ The table below shows this endpoint's support for
   results nearest the agent servicing the request. Using `_ip` is supported and 
   will automatically return results nearest to the node associated with the 
   source IP where the query is executed from. For HTTP the source IP is the
-  remote peer's IP address or the value of the X-Forwarded-For head with the 
+  remote peer's IP address or the value of the X-Forwarded-For header with the 
   header taking precedence. For DNS the source IP is the value of the EDNS 
   client IP or the remote peer's IP address. If unspecified, the response 
   will be shuffled by default.

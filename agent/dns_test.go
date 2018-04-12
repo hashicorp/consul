@@ -1926,7 +1926,7 @@ func TestDNS_PreparedQueryNearIP(t *testing.T) {
 		require.NoError(t, err)
 	}
 	retry.Run(t, func(r *retry.R) {
-		m :=new(dns.Msg)
+		m := new(dns.Msg)
 		m.SetQuestion("some.query.we.like.query.consul.", dns.TypeA)
 		m.SetEdns0(4096, false)
 		o := new(dns.OPT)
@@ -1957,7 +1957,7 @@ func TestDNS_PreparedQueryNearIP(t *testing.T) {
 					r.Fatalf("Expecting A RR #%d = %s, Actual RR was %s", i, serviceNodes[i].address, actual)
 				}
 			} else {
-				r.Fatalf("DNS Answer container a non-A RR")
+				r.Fatalf("DNS Answer contained a non-A RR")
 			}
 		}
 	})

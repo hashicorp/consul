@@ -962,9 +962,11 @@ func (d *DNSServer) preparedQueryLookup(network, datacenter, query string, remot
 		args.Source.Ip = subnet.Address.String()
 	} else {
 		switch v := remoteAddr.(type) {
+			case *net.UDPAddr:
+				args.Source.Ip = v.IP.String()
 			case *net.TCPAddr:
 				args.Source.Ip = v.IP.String()				
-			case *net.UDPAddr:
+			case *net.IPAddr:
 				args.Source.Ip = v.IP.String()
 		}
 	}

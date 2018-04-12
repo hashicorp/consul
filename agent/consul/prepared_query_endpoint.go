@@ -396,15 +396,17 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 	} else if qs.Node == "_ip" {
 		if args.Source.Ip != "" {
 			_, nodes, err := state.Nodes(nil)
-			if err == nil {
-				for _, node := range nodes {
-					if args.Source.Ip == node.Address {
-						qs.Node = node.Node
-						break
-					}
+			if err != nil {
+				return err
+			}
+
+			for _, node := range nodes {
+				if args.Source.Ip == node.Address {
+					qs.Node = node.Node
+					break
 				}
 			}
-		} 
+		}
 		
 		// Either a source IP was given but we couldnt find the associated node
 		// or no source ip was given. In both cases we should wipe the Node value
