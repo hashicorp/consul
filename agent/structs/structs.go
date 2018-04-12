@@ -258,6 +258,7 @@ type QuerySource struct {
 	Datacenter string
 	Segment    string
 	Node       string
+	Ip         string
 }
 
 // DCSpecificRequest is used to query about a specific DC
