@@ -66,7 +66,7 @@ func (p *Proxy) connect(ctx context.Context, state request.Request, forceTCP, me
 		if err == io.EOF && cached {
 			return nil, errCachedClosed
 		}
-		return nil, err
+		return ret, err
 	}
 
 	p.updateRtt(time.Since(reqTime))

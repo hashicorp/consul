@@ -49,6 +49,9 @@ func TestLookupTruncated(t *testing.T) {
 	if !resp.Truncated {
 		t.Error("Expected to receive reply with TC bit set, but didn't")
 	}
+	if len(resp.Answer) != 1 {
+		t.Error("Expected to receive original reply, but answer is missing")
+	}
 
 	resp, err = f.Lookup(state, "example.org.", dns.TypeA)
 	if err != nil {
@@ -101,6 +104,9 @@ func TestForwardTruncated(t *testing.T) {
 	// expect answer with TC
 	if !resp.Truncated {
 		t.Error("Expected to receive reply with TC bit set, but didn't")
+	}
+	if len(resp.Answer) != 1 {
+		t.Error("Expected to receive original reply, but answer is missing")
 	}
 
 	resp, err = f.Forward(state)
