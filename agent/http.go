@@ -498,23 +498,26 @@ func (s *HTTPServer) parseToken(req *http.Request, token *string) {
 	*token = s.agent.tokens.UserToken()
 }
 
-func sourceAddrFromRequest(req *http.Request) (string, error) {
-	forwardHost := req.Header.Get("X-Forwarded-For")
-	forwardIp := net.ParseIP(forwardHost)
-	if forwardIp != nil {
-		return forwardIp.String(), nil
-	} 
+func sourceAddrFromRequest(req *http.Request) string {
+	xff := req.Header.Get("X-Forwarded-For")
+	forwardHosts := strings.Split(xff, ",")
+	if len(forwardHosts) > 0 {
+		forwardIp := net.ParseIP(strings.TrimSpace(forwardHosts[0]))
+		if forwardIp != nil {
+			return forwardIp.String()
+		}
+	}
 	
 	host, _, err := net.SplitHostPort(req.RemoteAddr)
 	if err != nil {
-		return "", err
+		return ""
 	}
 
 	ip := net.ParseIP(host)
 	if ip != nil {
-		return ip.String(), nil
+		return ip.String()
 	} else {
-		return "", fmt.Errorf("Could not get remote IP from HTTP Request")
+		return ""
 	}
 }
 
@@ -524,7 +527,7 @@ func sourceAddrFromRequest(req *http.Request) (string, error) {
 // DC in the request, if given, or else the agent's DC.
 func (s *HTTPServer) parseSource(req *http.Request, source *structs.QuerySource) {
 	s.parseDC(req, &source.Datacenter)
-	source.Ip, _ = sourceAddrFromRequest(req)
+	source.Ip = sourceAddrFromRequest(req)
 	if node := req.URL.Query().Get("near"); node != "" {
 		if node == "_agent" {
 			source.Node = s.agent.config.NodeName

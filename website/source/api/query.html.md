@@ -176,14 +176,15 @@ The table below shows this endpoint's support for
   nearest instance to the specified node will be returned first, and subsequent
   nodes in the response will be sorted in ascending order of estimated
   round-trip times. If the node given does not exist, the nodes in the response
-  will be shuffled. Using `_agent` is supported, and will automatically return
-  results nearest the agent servicing the request. Using `_ip` is supported and 
-  will automatically return results nearest to the node associated with the 
-  source IP where the query is executed from. For HTTP the source IP is the
-  remote peer's IP address or the value of the X-Forwarded-For header with the 
-  header taking precedence. For DNS the source IP is the value of the EDNS 
-  client IP or the remote peer's IP address. If unspecified, the response 
-  will be shuffled by default.
+  will be shuffled. If unspecified, the response will be shuffled by default.
+  
+    - `_agent` - Returns results nearest the agent servicing the request.
+    - `_ip` - Returns results nearest to the node associated with the source IP
+      where the query was executed from. For HTTP the source IP is the remote
+      peer's IP address or the value of the X-Forwarded-For header with the
+      header taking precedence. For DNS the source IP is the remote peer's IP
+      address or the value of the ENDS client IP with the EDNS client IP
+      taking precedence.
 
 - `Service` `(Service: <required>)` - Specifies the structure to define the query's behavior.
 

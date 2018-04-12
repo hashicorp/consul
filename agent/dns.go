@@ -918,7 +918,7 @@ func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, req,
 }
 
 func ednsSubnetForRequest(req *dns.Msg) (*dns.EDNS0_SUBNET) {
-	// Its probably not obvious but IsEdns0 returns the EDNS RR if present or nil otherwise
+	// IsEdns0 returns the EDNS RR if present or nil otherwise
 	edns := req.IsEdns0()
 	
 	if edns == nil {
