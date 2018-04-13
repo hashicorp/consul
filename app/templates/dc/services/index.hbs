@@ -23,7 +23,7 @@
                 items=filtered
                 cell-layout=(fixed-grid-layout width 46) as |item index|
             }}
-                    <td>
+                    <td data-test-service="{{item.Name}}">
                         <a href={{href-to 'dc.services.show' item.Name }}>{{item.Name}}</a>
                     </td>
                     <td>

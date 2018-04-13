@@ -1,6 +1,6 @@
 {{!<ul>}}
     {{#each items as |item|}}
-        <li>
+        <li data-test-datacenter-picker="{{item}}">
             <a href={{href-to 'dc.services' item}}>{{item}}</a>
         </li>
     {{/each}}

@@ -16,7 +16,7 @@
             <fieldset>
                 <label class="type-text">
                     <span>Name</span>
-                    {{ input value=item.Name }}
+                    {{ input value=item.Name name='name' }}
                 </label>
                 <div role="radiogroup">
                     {{#each types as |type|}}
@@ -28,11 +28,7 @@
                 </div>
                 <label class="type-text">
                     <span>Policy <a href="" target="_blank">(HCL Format)</a></span>
-                    {{!code-editor value=item.Rules}}
-                    {{ivy-codemirror
-                        value=item.Rules
-                        options=(hash lineNumbers=true mode="ruby" theme="solarized")
-                    }}
+                    {{code-editor name="policy" value=item.Rules}}
                 </label>
 {{#if (not item.ID) }}
                 <label class="type-text">

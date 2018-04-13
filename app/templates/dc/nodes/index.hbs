@@ -19,6 +19,7 @@
     {{#each unhealthy as |item|}}
                     {{healthchecked-resource
                         tagName='li'
+                        data-test-node=item.Node
                         href=(href-to 'dc.nodes.show' item.Node)
                         name=item.Node
                         address=item.Address
@@ -37,6 +38,7 @@
                 cell-layout=(percentage-columns-layout healthy.length columns 100) as |item index|
             }}
                 {{healthchecked-resource
+                    data-test-node=item.Node
                     href=(href-to 'dc.nodes.show' item.Node)
                     name=item.Node
                     address=item.Address

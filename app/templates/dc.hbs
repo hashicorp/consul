@@ -4,7 +4,7 @@
         <nav>
             <ul>
                 <li>
-                    <a {{action "toggle"}}>{{dc}}</a>
+                    <a data-test-datacenter-selected="{{dc}}" {{action "toggle"}}>{{dc}}</a>
 {{#if isDropdownVisible}}
                     {{datacenter-picker items=dcs}}
 {{/if}}
@@ -18,7 +18,7 @@
                 <li>
                     <a href={{href-to 'dc.kv'}}>Key/Value</a>
                 </li>
-                <li>
+                <li data-test-main-nav-acl>
                     <a href={{href-to 'dc.acls'}}>ACL</a>
                 </li>
             </ul>

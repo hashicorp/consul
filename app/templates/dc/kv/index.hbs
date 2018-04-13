@@ -22,7 +22,7 @@
                 items=items
                 cell-layout=(fixed-grid-layout 1150 46) as |item index|
             }}
-                    <td class={{if item.isFolder "folder" "file" }}>
+                    <td data-test-kv="{{item.Key}}" class={{if item.isFolder "folder" "file" }}>
                         <a href={{href-to item.linkToRoute item.Key}}>{{item.basename}}</a>
                     </td>
                     <td>

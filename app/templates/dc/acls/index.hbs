@@ -26,7 +26,7 @@
                 items=filtered
                 cell-layout=(fixed-grid-layout 1150 46) as |item index|
             }}
-                    <td>
+                    <td data-test-acls="{{item.Name}}">
                         <a href={{href-to 'dc.acls.edit' item.ID}}>{{item.Name}}</a>
                     </td>
                     <td>
