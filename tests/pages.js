@@ -1,0 +1,19 @@
+import index from 'consul-ui/tests/pages/index';
+import dcs from 'consul-ui/tests/pages/dc';
+import services from 'consul-ui/tests/pages/dc/services/index';
+import nodes from 'consul-ui/tests/pages/dc/nodes/index';
+import kvs from 'consul-ui/tests/pages/dc/kv/index';
+import kv from 'consul-ui/tests/pages/dc/kv/edit';
+import acls from 'consul-ui/tests/pages/dc/acls/index';
+import acl from 'consul-ui/tests/pages/dc/acls/edit';
+
+export default {
+  index,
+  dcs,
+  services,
+  nodes,
+  kvs,
+  kv,
+  acls,
+  acl,
+};
