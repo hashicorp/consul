@@ -7,8 +7,11 @@ const countType = function(items, type) {
   return type === '' ? get(items, 'length') : items.filterBy('Type', type).length;
 };
 export default Controller.extend(WithFiltering, {
-  filters: {
-    type: '',
+  init: function() {
+    this._super(...arguments);
+    this.filters = {
+      type: '',
+    };
   },
   typeFilters: computed('items', function() {
     const items = get(this, 'items');
