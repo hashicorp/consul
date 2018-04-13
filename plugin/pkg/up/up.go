@@ -16,7 +16,7 @@ type Probe struct {
 	target string
 
 	sync.Mutex
-	inprogress bool
+	inprogress int
 }
 
 // Func is used to determine if a target is alive. If so this function must return nil.
@@ -40,14 +40,17 @@ func (p *Probe) start(interval time.Duration) {
 	for {
 		select {
 		case <-p.stop:
+			p.Lock()
+			p.inprogress = stop
+			p.Unlock()
 			return
 		case f := <-p.do:
 			p.Lock()
-			if p.inprogress {
+			if p.inprogress == active || p.inprogress == stop {
 				p.Unlock()
 				continue
 			}
-			p.inprogress = true
+			p.inprogress = active
 			p.Unlock()
 
 			// Passed the lock. Now run f for as long it returns false. If a true is returned
@@ -57,13 +60,25 @@ func (p *Probe) start(interval time.Duration) {
 					if err := f(); err == nil {
 						break
 					}
-					// TODO(miek): little bit of exponential backoff here?
 					time.Sleep(interval)
+					p.Lock()
+					if p.inprogress == stop {
+						p.Unlock()
+						return
+					}
+					p.Unlock()
 				}
+
 				p.Lock()
-				p.inprogress = false
+				p.inprogress = idle
 				p.Unlock()
 			}()
 		}
 	}
 }
+
+const (
+	idle = iota
+	active
+	stop
+)
