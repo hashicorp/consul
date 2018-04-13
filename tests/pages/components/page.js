@@ -8,7 +8,7 @@ export default {
       });
     },
     {
-      scope: '[data-test-page] header',
+      scope: '[data-test-navigation]',
     }
   ),
   footer: ['copyright', 'docs'].reduce(
@@ -19,7 +19,7 @@ export default {
       });
     },
     {
-      scope: '[data-test-page] footer',
+      scope: '[data-test-footer]',
     }
   ),
 };
