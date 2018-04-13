@@ -68,3 +68,40 @@ func TestSetup(t *testing.T) {
 		}
 	}
 }
+
+func TestSetupTLS(t *testing.T) {
+	tests := []struct {
+		input              string
+		shouldErr          bool
+		expectedServerName string
+		expectedErr        string
+	}{
+		// positive
+		{`forward . 127.0.0.1 {
+			tls_servername dns
+		}`, false, "dns", ""},
+	}
+
+	for i, test := range tests {
+		c := caddy.NewTestController("dns", test.input)
+		f, err := parseForward(c)
+
+		if test.shouldErr && err == nil {
+			t.Errorf("Test %d: expected error but found %s for input %s", i, err, test.input)
+		}
+
+		if err != nil {
+			if !test.shouldErr {
+				t.Errorf("Test %d: expected no error but found one for input %s, got: %v", i, test.input, err)
+			}
+
+			if !strings.Contains(err.Error(), test.expectedErr) {
+				t.Errorf("Test %d: expected error to contain: %v, found error: %v, input: %s", i, test.expectedErr, err, test.input)
+			}
+		}
+
+		if !test.shouldErr && test.expectedServerName != f.tlsConfig.ServerName {
+			t.Errorf("Test %d: expected: %q, actual: %q", i, test.expectedServerName, f.tlsConfig.ServerName)
+		}
+	}
+}

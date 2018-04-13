@@ -114,7 +114,7 @@ func parseForward(c *caddy.Controller) (*Forward, error) {
 					break
 				}
 
-				// This is more of a bug in // dnsutil.ParseHostPortOrFile that defaults to
+				// This is more of a bug in dnsutil.ParseHostPortOrFile that defaults to
 				// 53 because it doesn't know about the tls:// // and friends (that should be fixed). Hence
 				// Fix the port number here, back to what the user intended.
 				if p == "53" {
