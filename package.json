@@ -42,6 +42,7 @@
     "ember-cli-htmlbars-inline-precompile": "^1.0.0",
     "ember-cli-inject-live-reload": "^1.4.1",
     "ember-cli-mirage": "^0.4.2",
+    "ember-cli-page-object": "^1.15.0-beta.2",
     "ember-cli-qunit": "^4.1.1",
     "ember-cli-sass": "^7.1.4",
     "ember-cli-shims": "^1.2.0",
@@ -65,12 +66,10 @@
     "ivy-codemirror": "^2.1.0",
     "lint-staged": "^6.1.0",
     "loader.js": "^4.2.3",
-    "prettier": "^1.10.2"
+    "prettier": "^1.10.2",
+    "svgo": "^1.0.5"
   },
   "engines": {
     "node": "^4.5 || 6.* || >= 7.*"
-  },
-  "dependencies": {
-    "svgo": "^1.0.5"
   }
 }
