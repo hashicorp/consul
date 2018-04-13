@@ -9,15 +9,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/serf/coordinate"
 	"github.com/miekg/dns"
 	"github.com/pascaldekloe/goe/verify"
-	"github.com/hashicorp/serf/coordinate"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -1839,22 +1839,22 @@ func TestDNS_ServiceLookup_TagPeriod(t *testing.T) {
 
 func TestDNS_PreparedQueryNearIPEDNS(t *testing.T) {
 	ipCoord := lib.GenerateCoordinate(1 * time.Millisecond)
-	serviceNodes := []struct{
-			name string
-			address string
-			coord *coordinate.Coordinate
+	serviceNodes := []struct {
+		name    string
+		address string
+		coord   *coordinate.Coordinate
 	}{
-		{"foo1", "198.18.0.1", lib.GenerateCoordinate(1 * time.Millisecond),},
-		{"foo2", "198.18.0.2", lib.GenerateCoordinate(10 * time.Millisecond),},
-		{"foo3", "198.18.0.3", lib.GenerateCoordinate(30 * time.Millisecond),},
+		{"foo1", "198.18.0.1", lib.GenerateCoordinate(1 * time.Millisecond)},
+		{"foo2", "198.18.0.2", lib.GenerateCoordinate(10 * time.Millisecond)},
+		{"foo3", "198.18.0.3", lib.GenerateCoordinate(30 * time.Millisecond)},
 	}
-	
+
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
-	
+
 	added := 0
-	
+
 	// Register nodes with a service
 	for _, cfg := range serviceNodes {
 		args := &structs.RegisterRequest{
@@ -1866,11 +1866,11 @@ func TestDNS_PreparedQueryNearIPEDNS(t *testing.T) {
 				Port:    12345,
 			},
 		}
-		
+
 		var out struct{}
 		err := a.RPC("Catalog.Register", args, &out)
 		require.NoError(t, err)
-		
+
 		// Send coordinate updates
 		coordArgs := structs.CoordinateUpdateRequest{
 			Datacenter: "dc1",
@@ -1879,12 +1879,12 @@ func TestDNS_PreparedQueryNearIPEDNS(t *testing.T) {
 		}
 		err = a.RPC("Coordinate.Update", &coordArgs, &out)
 		require.NoError(t, err)
-		
+
 		added += 1
 	}
-	
+
 	fmt.Printf("Added %d service nodes\n", added)
-	
+
 	// Register a node without a service
 	{
 		args := &structs.RegisterRequest{
@@ -1892,11 +1892,11 @@ func TestDNS_PreparedQueryNearIPEDNS(t *testing.T) {
 			Node:       "bar",
 			Address:    "198.18.0.9",
 		}
-		
+
 		var out struct{}
 		err := a.RPC("Catalog.Register", args, &out)
 		require.NoError(t, err)
-		
+
 		// Send coordinate updates for a few nodes.
 		coordArgs := structs.CoordinateUpdateRequest{
 			Datacenter: "dc1",
@@ -1906,7 +1906,7 @@ func TestDNS_PreparedQueryNearIPEDNS(t *testing.T) {
 		err = a.RPC("Coordinate.Update", &coordArgs, &out)
 		require.NoError(t, err)
 	}
-	
+
 	// Register a prepared query Near = _ip
 	{
 		args := &structs.PreparedQueryRequest{
@@ -1916,7 +1916,7 @@ func TestDNS_PreparedQueryNearIPEDNS(t *testing.T) {
 				Name: "some.query.we.like",
 				Service: structs.ServiceQuery{
 					Service: "db",
-					Near: "_ip",
+					Near:    "_ip",
 				},
 			},
 		}
@@ -1940,17 +1940,17 @@ func TestDNS_PreparedQueryNearIPEDNS(t *testing.T) {
 		e.Address = net.ParseIP("198.18.0.9").To4()
 		o.Option = append(o.Option, e)
 		m.Extra = append(m.Extra, o)
-		
+
 		c := new(dns.Client)
 		in, _, err := c.Exchange(m, a.DNSAddr())
 		if err != nil {
 			r.Fatalf("Error with call to dns.Client.Exchange: %s", err)
 		}
-		
+
 		if len(serviceNodes) != len(in.Answer) {
 			r.Fatalf("Expecting %d A RRs in response, Actual found was %d", len(serviceNodes), len(in.Answer))
 		}
-		
+
 		for i, rr := range in.Answer {
 			if aRec, ok := rr.(*dns.A); ok {
 				if actual := aRec.A.String(); serviceNodes[i].address != actual {
@@ -1965,22 +1965,22 @@ func TestDNS_PreparedQueryNearIPEDNS(t *testing.T) {
 
 func TestDNS_PreparedQueryNearIP(t *testing.T) {
 	ipCoord := lib.GenerateCoordinate(1 * time.Millisecond)
-	serviceNodes := []struct{
-			name string
-			address string
-			coord *coordinate.Coordinate
+	serviceNodes := []struct {
+		name    string
+		address string
+		coord   *coordinate.Coordinate
 	}{
-		{"foo1", "198.18.0.1", lib.GenerateCoordinate(1 * time.Millisecond),},
-		{"foo2", "198.18.0.2", lib.GenerateCoordinate(10 * time.Millisecond),},
-		{"foo3", "198.18.0.3", lib.GenerateCoordinate(30 * time.Millisecond),},
+		{"foo1", "198.18.0.1", lib.GenerateCoordinate(1 * time.Millisecond)},
+		{"foo2", "198.18.0.2", lib.GenerateCoordinate(10 * time.Millisecond)},
+		{"foo3", "198.18.0.3", lib.GenerateCoordinate(30 * time.Millisecond)},
 	}
-	
+
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
-	
+
 	added := 0
-	
+
 	// Register nodes with a service
 	for _, cfg := range serviceNodes {
 		args := &structs.RegisterRequest{
@@ -1992,11 +1992,11 @@ func TestDNS_PreparedQueryNearIP(t *testing.T) {
 				Port:    12345,
 			},
 		}
-		
+
 		var out struct{}
 		err := a.RPC("Catalog.Register", args, &out)
 		require.NoError(t, err)
-		
+
 		// Send coordinate updates
 		coordArgs := structs.CoordinateUpdateRequest{
 			Datacenter: "dc1",
@@ -2005,12 +2005,12 @@ func TestDNS_PreparedQueryNearIP(t *testing.T) {
 		}
 		err = a.RPC("Coordinate.Update", &coordArgs, &out)
 		require.NoError(t, err)
-		
+
 		added += 1
 	}
-	
+
 	fmt.Printf("Added %d service nodes\n", added)
-	
+
 	// Register a node without a service
 	{
 		args := &structs.RegisterRequest{
@@ -2018,11 +2018,11 @@ func TestDNS_PreparedQueryNearIP(t *testing.T) {
 			Node:       "bar",
 			Address:    "198.18.0.9",
 		}
-		
+
 		var out struct{}
 		err := a.RPC("Catalog.Register", args, &out)
 		require.NoError(t, err)
-		
+
 		// Send coordinate updates for a few nodes.
 		coordArgs := structs.CoordinateUpdateRequest{
 			Datacenter: "dc1",
@@ -2032,7 +2032,7 @@ func TestDNS_PreparedQueryNearIP(t *testing.T) {
 		err = a.RPC("Coordinate.Update", &coordArgs, &out)
 		require.NoError(t, err)
 	}
-	
+
 	// Register a prepared query Near = _ip
 	{
 		args := &structs.PreparedQueryRequest{
@@ -2042,7 +2042,7 @@ func TestDNS_PreparedQueryNearIP(t *testing.T) {
 				Name: "some.query.we.like",
 				Service: structs.ServiceQuery{
 					Service: "db",
-					Near: "_ip",
+					Near:    "_ip",
 				},
 			},
 		}
@@ -2051,21 +2051,21 @@ func TestDNS_PreparedQueryNearIP(t *testing.T) {
 		err := a.RPC("PreparedQuery.Apply", args, &id)
 		require.NoError(t, err)
 	}
-	
+
 	retry.Run(t, func(r *retry.R) {
 		m := new(dns.Msg)
 		m.SetQuestion("some.query.we.like.query.consul.", dns.TypeA)
-		
+
 		c := new(dns.Client)
 		in, _, err := c.Exchange(m, a.DNSAddr())
 		if err != nil {
 			r.Fatalf("Error with call to dns.Client.Exchange: %s", err)
 		}
-		
+
 		if len(serviceNodes) != len(in.Answer) {
 			r.Fatalf("Expecting %d A RRs in response, Actual found was %d", len(serviceNodes), len(in.Answer))
 		}
-		
+
 		for i, rr := range in.Answer {
 			if aRec, ok := rr.(*dns.A); ok {
 				if actual := aRec.A.String(); serviceNodes[i].address != actual {

@@ -122,7 +122,7 @@ ui:
 # changes to the UI assets that aren't checked in.
 static-assets:
 	@go-bindata-assetfs -pkg agent -prefix pkg ./pkg/web_ui/...
-	@mv bindata_assetfs.go agent/
+	@mv bindata.go agent/bindata_assetfs.go
 	$(MAKE) format
 
 tools:

@@ -327,7 +327,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 			t.Fatalf("bad: %v", r)
 		}
 	})
-	
+
 	t.Run("", func(t *testing.T) {
 		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
@@ -340,7 +340,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 					Limit:         5,
 					Source: structs.QuerySource{
 						Datacenter: "dc1",
-						Node: "_ip",
+						Node:       "_ip",
 						Ip:         "127.0.0.1",
 					},
 					Agent: structs.QuerySource{
@@ -384,7 +384,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 			t.Fatalf("bad: %v", r)
 		}
 	})
-	
+
 	t.Run("", func(t *testing.T) {
 		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
@@ -397,7 +397,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 					Limit:         5,
 					Source: structs.QuerySource{
 						Datacenter: "dc1",
-						Node: "_ip",
+						Node:       "_ip",
 						Ip:         "198.18.0.1",
 					},
 					Agent: structs.QuerySource{
@@ -440,7 +440,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		if r.Failovers != 99 {
 			t.Fatalf("bad: %v", r)
 		}
-		
+
 		req, _ = http.NewRequest("GET", "/v1/query/my-id/execute?token=my-token&consistent=true&near=_ip&limit=5", body)
 		req.Header.Add("X-Forwarded-For", "198.18.0.1, 198.19.0.1")
 		resp = httptest.NewRecorder()

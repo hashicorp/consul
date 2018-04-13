@@ -917,21 +917,21 @@ func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, req,
 	}
 }
 
-func ednsSubnetForRequest(req *dns.Msg) (*dns.EDNS0_SUBNET) {
+func ednsSubnetForRequest(req *dns.Msg) *dns.EDNS0_SUBNET {
 	// IsEdns0 returns the EDNS RR if present or nil otherwise
 	edns := req.IsEdns0()
-	
+
 	if edns == nil {
 		return nil
 	}
-	
+
 	for _, o := range edns.Option {
 		if subnet, ok := o.(*dns.EDNS0_SUBNET); ok {
 			return subnet
 		}
 	}
-	
-	return nil;
+
+	return nil
 }
 
 // preparedQueryLookup is used to handle a prepared query.
@@ -955,19 +955,19 @@ func (d *DNSServer) preparedQueryLookup(network, datacenter, query string, remot
 			Node:       d.agent.config.NodeName,
 		},
 	}
-	
+
 	subnet := ednsSubnetForRequest(req)
-	
+
 	if subnet != nil {
 		args.Source.Ip = subnet.Address.String()
 	} else {
 		switch v := remoteAddr.(type) {
-			case *net.UDPAddr:
-				args.Source.Ip = v.IP.String()
-			case *net.TCPAddr:
-				args.Source.Ip = v.IP.String()				
-			case *net.IPAddr:
-				args.Source.Ip = v.IP.String()
+		case *net.UDPAddr:
+			args.Source.Ip = v.IP.String()
+		case *net.TCPAddr:
+			args.Source.Ip = v.IP.String()
+		case *net.IPAddr:
+			args.Source.Ip = v.IP.String()
 		}
 	}
 

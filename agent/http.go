@@ -12,12 +12,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/NYTimes/gziphandler"
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/mitchellh/mapstructure"
-	"github.com/NYTimes/gziphandler"
 )
 
 // MethodNotAllowedError should be returned by a handler when the HTTP method is not allowed.
@@ -507,7 +507,7 @@ func sourceAddrFromRequest(req *http.Request) string {
 			return forwardIp.String()
 		}
 	}
-	
+
 	host, _, err := net.SplitHostPort(req.RemoteAddr)
 	if err != nil {
 		return ""
@@ -520,7 +520,6 @@ func sourceAddrFromRequest(req *http.Request) string {
 		return ""
 	}
 }
-
 
 // parseSource is used to parse the ?near=<node> query parameter, used for
 // sorting by RTT based on a source node. We set the source's DC to the target
