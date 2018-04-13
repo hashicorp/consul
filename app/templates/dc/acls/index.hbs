@@ -9,7 +9,7 @@
     {{/block-slot}}
     {{#block-slot 'toolbar'}}
 {{#if (gt items.length 0) }}
-        {{acl-filter filters=typeFilters search=filters.s status=filters.status onchange=(action 'filter')}}
+        {{acl-filter filters=typeFilters search=filters.s type=filters.type onchange=(action 'filter')}}
 {{/if}}
     {{/block-slot}}
     {{#block-slot 'content'}}
