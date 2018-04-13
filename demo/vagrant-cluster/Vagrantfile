@@ -5,7 +5,7 @@ $script = <<SCRIPT
 
 echo "Installing dependencies ..."
 sudo apt-get update
-sudo apt-get install -y unzip curl jq
+sudo apt-get install -y unzip curl jq dnsutils
 
 echo "Determining Consul version to install ..."
 CHECKPOINT_URL="https://checkpoint-api.hashicorp.com/v1/check"
