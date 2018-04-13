@@ -917,7 +917,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
       leader, so this lets Consul continue serving requests in long outage scenarios where no leader can
       be elected.
 
-    * <a name="discovery_max_stale"></a><a href="discovery_max_stale">`discovery_max_stale`</a> - Enables
+    * <a name="discovery_max_stale"></a><a href="#discovery_max_stale">`discovery_max_stale`</a> - Enables
       stale requests for all service discovery HTTP endpoints. This is equivalent to the
       [`max_stale`](#max_stale) configuration for DNS requests. If this value is zero (default), all service
       discovery HTTP endpoints are forwarded to the leader. If this value is greater than zero, any Consul server
