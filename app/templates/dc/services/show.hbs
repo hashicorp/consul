@@ -27,6 +27,7 @@
     {{#each unhealthy as |item|}}
                     {{healthchecked-resource
                         tagName='li'
+                        data-test-node=item.Node.Node
                         href=(href-to 'dc.nodes.show' item.Node.Node)
                         name=item.Node.Node
                         address=item.Node.Address
@@ -46,6 +47,7 @@
             }}
                 {{healthchecked-resource
                     href=(href-to 'dc.nodes.show' item.Node.Node)
+                    data-test-node=item.Node.Node
                     name=item.Node.Node
                     address=item.Node.Address
                     checks=item.Checks

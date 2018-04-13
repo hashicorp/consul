@@ -1,6 +1,7 @@
 import index from 'consul-ui/tests/pages/index';
 import dcs from 'consul-ui/tests/pages/dc';
 import services from 'consul-ui/tests/pages/dc/services/index';
+import service from 'consul-ui/tests/pages/dc/services/show';
 import nodes from 'consul-ui/tests/pages/dc/nodes/index';
 import kvs from 'consul-ui/tests/pages/dc/kv/index';
 import kv from 'consul-ui/tests/pages/dc/kv/edit';
@@ -11,6 +12,7 @@ export default {
   index,
   dcs,
   services,
+  service,
   nodes,
   kvs,
   kv,
