@@ -28,6 +28,7 @@
     ]
   },
   "devDependencies": {
+    "babel-plugin-transform-object-rest-spread": "^6.26.0",
     "broccoli-asset-rev": "^2.4.5",
     "ember-ajax": "^3.0.0",
     "ember-block-slots": "^1.1.11",
@@ -59,6 +60,7 @@
     "ember-resolver": "^4.0.0",
     "ember-sinon-qunit": "^2.1.0",
     "ember-source": "~2.16.0",
+    "ember-test-selectors": "^0.3.9",
     "ember-truth-helpers": "^2.0.0",
     "eslint-plugin-ember": "^5.0.0",
     "husky": "^0.14.3",
@@ -66,7 +68,6 @@
     "lint-staged": "^6.1.0",
     "loader.js": "^4.2.3",
     "prettier": "^1.10.2",
-    "babel-plugin-transform-object-rest-spread": "^6.26.0",
     "svgo": "^1.0.5"
   },
   "engines": {
