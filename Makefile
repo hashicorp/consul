@@ -4,6 +4,7 @@ BINARY:=coredns
 SYSTEM:=
 CHECKS:=check godeps
 VERBOSE:=-v
+GOPATH?=$(HOME)/go
 
 all: coredns
 
