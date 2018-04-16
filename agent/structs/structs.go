@@ -281,7 +281,10 @@ func (r *DCSpecificRequest) RequestDatacenter() string {
 
 func (r *DCSpecificRequest) CacheInfo() cache.RequestInfo {
 	info := cache.RequestInfo{
-		MinIndex: r.QueryOptions.MinQueryIndex,
+		Token:      r.Token,
+		Datacenter: r.Datacenter,
+		MinIndex:   r.MinQueryIndex,
+		Timeout:    r.MaxQueryTime,
 	}
 
 	// To calculate the cache key we only hash the node filters. The
