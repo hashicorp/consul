@@ -47,11 +47,15 @@
                 <button type="button" class="type-cancel" {{ action "cancel" item}}>Cancel</button>
 {{# if (and item.isNotAnon item.ID) }}
                 <div class="with-confirmation">
+{{#if false}}
                     <p>
                         Are you sure you want to delete {{item.Name}}?
                     </p>
+{{/if}}
                     <button type="button" class="type-delete" {{ action "requestDelete" item}}>Delete</button>
+{{#if false}}
                     <button type="button" class="type-cancel" {{ action "requestDelete" item}}>Cancel</button>
+{{/if}}
                 </div>
 {{/if}}
             </div>

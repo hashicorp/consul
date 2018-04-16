@@ -17,9 +17,12 @@
             <thead>
                 <tr>
                     <th>Name</th>
+{{#if false}}
+
                     <th>Value</th>
                     <th>Lock Session</th>
-                    <th>Actions</th>
+{{/if}}
+                    <th>&nbsp;</th>
                 </tr>
             </thead>
             {{#tabular-collection
@@ -29,19 +32,25 @@
                     <td data-test-kv="{{item.Key}}" class={{if item.isFolder 'folder' 'file' }}>
                         <a href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key}}>{{item.basename}}</a>
                     </td>
+{{#if false}}
                     <td>
                         Value (need to change API call to get this)
                     </td>
                     <td>
                         Lock Session (need to change API call to get this)
                     </td>
+{{/if}}
                     <td>
                         <div class="with-confirmation">
+{{#if false}}
                             <p>
                                 Are you sure you want to delete {{item.basename}}?
                             </p>
+{{/if}}
                             <button type="button" class="type-delete" {{ action "requestDelete" item parent}}>Delete</button>
+{{#if false}}
                             <button type="button" class="type-cancel" {{ action "requestDelete" item parent}}>Cancel</button>
+{{/if}}
                         </div>
                     </td>
             {{/tabular-collection}}

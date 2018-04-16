@@ -6,6 +6,10 @@ table {
 td.folder {
   @extend %with-folder;
 }
+td button {
+  position: relative;
+  top: -6px;
+}
 table th,
 table td,
 table td a {
@@ -16,7 +20,7 @@ table th {
   // padding: 0.5em 0;
 }
 table th,
-table td,
+table td:not(:last-child),
 table td a {
   padding-right: 0.9em;
 }

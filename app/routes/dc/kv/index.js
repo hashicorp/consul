@@ -15,19 +15,23 @@ export default Route.extend(WithFeedback, {
     return hash({
       isLoading: false,
       parent: repo.findBySlug(key, dc),
-    }).then(
-      function(model) {
-        return hash(
-          assign({}, model, {
-            // better name, slug vs key?
-            items: repo.findAllBySlug(get(model.parent, 'Key'), dc),
-          })
-        );
-      },
-      function() {
+    })
+      .then(
+        function(model) {
+          return hash(
+            assign({}, model, {
+              // better name, slug vs key?
+              items: repo.findAllBySlug(get(model.parent, 'Key'), dc),
+            })
+          );
+        }
+        // usually when an entire folder structure and no longer exists
+        // a 404 comes back, just redirect to root as the old UI did
+      )
+      .catch(() => {
+        // this still gives me an error!?
         return this.transitionTo('dc.kv.index');
-      }
-    );
+      });
   },
   actions: {
     delete: function(item, parent) {
@@ -37,7 +41,6 @@ export default Route.extend(WithFeedback, {
             .remove(item)
             .then(() => {
               return this.refresh();
-              // return this.transitionTo('dc.kv.folder', get(parent, 'Key'));
             });
         },
         `Deleted ${get(item, 'Key')}`,
