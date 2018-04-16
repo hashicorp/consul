@@ -2353,6 +2353,21 @@ func TestFullConfig(t *testing.T) {
 			],
 			"check_update_interval": "16507s",
 			"client_addr": "93.83.18.19",
+			"connect": {
+				"enabled": true,
+				"proxy_defaults": {
+					"bind_min_port": 2000,
+					"bind_max_port": 3000,
+					"exec_mode": "script",
+					"daemon_command": "consul connect proxy",
+					"script_command": "proxyctl.sh",
+					"config": {
+						"foo": "bar",
+						"connect_timeout_ms": 1000,
+						"pedantic_mode": true
+					}
+				}
+			},
 			"data_dir": "` + dataDir + `",
 			"datacenter": "rzo029wg",
 			"disable_anonymous_signature": true,
@@ -2613,7 +2628,16 @@ func TestFullConfig(t *testing.T) {
 							"ttl": "11222s",
 							"deregister_critical_service_after": "68482s"
 						}
-					]
+					],
+					"connect": {
+						"proxy": {
+							"exec_mode": "daemon",
+							"command": "awesome-proxy",
+							"config": {
+								"foo": "qux"
+							}
+						}
+					}
 				}
 			],
 			"session_ttl_min": "26627s",
@@ -2786,6 +2810,21 @@ func TestFullConfig(t *testing.T) {
 			]
 			check_update_interval = "16507s"
 			client_addr = "93.83.18.19"
+			connect {
+				enabled = true
+				proxy_defaults {
+					bind_min_port = 2000
+					bind_max_port = 3000
+					exec_mode = "script"
+					daemon_command = "consul connect proxy"
+					script_command = "proxyctl.sh"
+					config = {
+						foo = "bar"
+						connect_timeout_ms = 1000
+						pedantic_mode = true
+					}
+				}
+			}
 			data_dir = "` + dataDir + `"
 			datacenter = "rzo029wg"
 			disable_anonymous_signature = true
@@ -3047,6 +3086,15 @@ func TestFullConfig(t *testing.T) {
 							deregister_critical_service_after = "68482s"
 						}
 					]
+					connect {
+						proxy {
+							exec_mode = "daemon"
+							command = "awesome-proxy"
+							config = {
+								foo = "qux"
+							}
+						}
+					}
 				}
 			]
 			session_ttl_min = "26627s"
@@ -3355,8 +3403,23 @@ func TestFullConfig(t *testing.T) {
 				DeregisterCriticalServiceAfter: 13209 * time.Second,
 			},
 		},
-		CheckUpdateInterval:       16507 * time.Second,
-		ClientAddrs:               []*net.IPAddr{ipAddr("93.83.18.19")},
+		CheckUpdateInterval: 16507 * time.Second,
+		ClientAddrs:         []*net.IPAddr{ipAddr("93.83.18.19")},
+		ConnectProxies: []*structs.ConnectManagedProxy{
+			{
+				ExecMode: structs.ProxyExecModeDaemon,
+				Command:  "awesome-proxy",
+				Config: map[string]interface{}{
+					"foo": "qux", // Overriden by service
+					// Note globals are not merged here but on rendering to the proxy
+					// endpoint. That's because proxies can be added later too so merging
+					// at config time is redundant if we have to do it later anyway.
+				},
+				TargetServiceID: "MRHVMZuD",
+			},
+		},
+		ConnectProxyBindMinPort:   2000,
+		ConnectProxyBindMaxPort:   3000,
 		DNSAddrs:                  []net.Addr{tcpAddr("93.95.95.81:7001"), udpAddr("93.95.95.81:7001")},
 		DNSARecordLimit:           29907,
 		DNSAllowStale:             true,
@@ -4018,6 +4081,14 @@ func TestSanitize(t *testing.T) {
         }
     ],
     "ClientAddrs": [],
+    "ConnectEnabled": false,
+    "ConnectProxies": [],
+    "ConnectProxyBindMaxPort": 0,
+    "ConnectProxyBindMinPort": 0,
+    "ConnectProxyDefaultConfig": {},
+    "ConnectProxyDefaultDaemonCommand": null,
+    "ConnectProxyDefaultExecMode": null,
+    "ConnectProxyDefaultScriptCommand": null,
     "ConsulCoordinateUpdateBatchSize": 0,
     "ConsulCoordinateUpdateMaxBatches": 0,
     "ConsulCoordinateUpdatePeriod": "15s",
@@ -4150,9 +4221,11 @@ func TestSanitize(t *testing.T) {
             "Checks": [],
             "EnableTagOverride": false,
             "ID": "",
+            "Kind": "",
             "Meta": {},
             "Name": "foo",
             "Port": 0,
+            "ProxyDestination": "",
             "Tags": [],
             "Token": "hidden"
         }

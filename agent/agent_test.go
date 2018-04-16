@@ -15,6 +15,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
@@ -2234,4 +2236,104 @@ func TestAgent_reloadWatchesHTTPS(t *testing.T) {
 	if err := a.reloadWatches(&newConf); err != nil {
 		t.Fatalf("bad: %s", err)
 	}
+}
+
+func TestAgent_AddProxy(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), `
+		node_name = "node1"
+	`)
+	defer a.Shutdown()
+
+	// Register a target service we can use
+	reg := &structs.NodeService{
+		Service: "web",
+		Port:    8080,
+	}
+	require.NoError(t, a.AddService(reg, nil, false, ""))
+
+	tests := []struct {
+		desc    string
+		proxy   *structs.ConnectManagedProxy
+		wantErr bool
+	}{
+		{
+			desc: "basic proxy adding, unregistered service",
+			proxy: &structs.ConnectManagedProxy{
+				ExecMode: structs.ProxyExecModeDaemon,
+				Command:  "consul connect proxy",
+				Config: map[string]interface{}{
+					"foo": "bar",
+				},
+				TargetServiceID: "db", // non-existent service.
+			},
+			// Target service must be registered.
+			wantErr: true,
+		},
+		{
+			desc: "basic proxy adding, unregistered service",
+			proxy: &structs.ConnectManagedProxy{
+				ExecMode: structs.ProxyExecModeDaemon,
+				Command:  "consul connect proxy",
+				Config: map[string]interface{}{
+					"foo": "bar",
+				},
+				TargetServiceID: "web",
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			require := require.New(t)
+
+			err := a.AddProxy(tt.proxy, false)
+			if tt.wantErr {
+				require.Error(err)
+				return
+			}
+			require.NoError(err)
+
+			// Test the ID was created as we expect.
+			got := a.State.Proxy("web-proxy")
+			require.Equal(tt.proxy, got)
+		})
+	}
+}
+
+func TestAgent_RemoveProxy(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), `
+		node_name = "node1"
+	`)
+	defer a.Shutdown()
+	require := require.New(t)
+
+	// Register a target service we can use
+	reg := &structs.NodeService{
+		Service: "web",
+		Port:    8080,
+	}
+	require.NoError(a.AddService(reg, nil, false, ""))
+
+	// Add a proxy for web
+	pReg := &structs.ConnectManagedProxy{
+		TargetServiceID: "web",
+	}
+	require.NoError(a.AddProxy(pReg, false))
+
+	// Test the ID was created as we expect.
+	gotProxy := a.State.Proxy("web-proxy")
+	require.Equal(pReg, gotProxy)
+
+	err := a.RemoveProxy("web-proxy", false)
+	require.NoError(err)
+
+	gotProxy = a.State.Proxy("web-proxy")
+	require.Nil(gotProxy)
+
+	// Removing invalid proxy should be an error
+	err = a.RemoveProxy("foobar", false)
+	require.Error(err)
 }

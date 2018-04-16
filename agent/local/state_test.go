@@ -3,9 +3,13 @@ package local_test
 import (
 	"errors"
 	"fmt"
+	"log"
+	"os"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/config"
@@ -1663,4 +1667,129 @@ func checksInSync(state *local.State, wantChecks int) error {
 		}
 	}
 	return nil
+}
+
+func TestStateProxyManagement(t *testing.T) {
+	t.Parallel()
+
+	state := local.NewState(local.Config{
+		ProxyPortRangeStart: 20000,
+		ProxyPortRangeEnd:   20002,
+	}, log.New(os.Stderr, "", log.LstdFlags), &token.Store{})
+
+	// Stub state syncing
+	state.TriggerSyncChanges = func() {}
+
+	p1 := structs.ConnectManagedProxy{
+		ExecMode:        structs.ProxyExecModeDaemon,
+		Command:         "consul connect proxy",
+		TargetServiceID: "web",
+	}
+
+	require := require.New(t)
+	assert := assert.New(t)
+
+	_, err := state.AddProxy(&p1, "fake-token")
+	require.Error(err, "should fail as the target service isn't registered")
+
+	// Sanity check done, lets add a couple of target services to the state
+	err = state.AddService(&structs.NodeService{
+		Service: "web",
+	}, "fake-token-web")
+	require.NoError(err)
+	err = state.AddService(&structs.NodeService{
+		Service: "cache",
+	}, "fake-token-cache")
+	require.NoError(err)
+	require.NoError(err)
+	err = state.AddService(&structs.NodeService{
+		Service: "db",
+	}, "fake-token-db")
+	require.NoError(err)
+
+	// Should work now
+	svc, err := state.AddProxy(&p1, "fake-token")
+	require.NoError(err)
+
+	assert.Equal("web-proxy", svc.ID)
+	assert.Equal("web-proxy", svc.Service)
+	assert.Equal(structs.ServiceKindConnectProxy, svc.Kind)
+	assert.Equal("web", svc.ProxyDestination)
+	assert.Equal("", svc.Address, "should have empty address by default")
+	// Port is non-deterministic but could be either of 20000 or 20001
+	assert.Contains([]int{20000, 20001}, svc.Port)
+
+	// Second proxy should claim other port
+	p2 := p1
+	p2.TargetServiceID = "cache"
+	svc2, err := state.AddProxy(&p2, "fake-token")
+	require.NoError(err)
+	assert.Contains([]int{20000, 20001}, svc2.Port)
+	assert.NotEqual(svc.Port, svc2.Port)
+
+	// Just saving this for later...
+	p2Token, err := state.ProxyToken(svc2.ID)
+	require.NoError(err)
+
+	// Third proxy should fail as all ports are used
+	p3 := p1
+	p3.TargetServiceID = "db"
+	_, err = state.AddProxy(&p3, "fake-token")
+	require.Error(err)
+
+	// But if we set a port explicitly it should be OK
+	p3.Config = map[string]interface{}{
+		"bind_port":    1234,
+		"bind_address": "0.0.0.0",
+	}
+	svc3, err := state.AddProxy(&p3, "fake-token")
+	require.NoError(err)
+	require.Equal("0.0.0.0", svc3.Address)
+	require.Equal(1234, svc3.Port)
+
+	// Remove one of the auto-assigned proxies
+	err = state.RemoveProxy(svc2.ID)
+	require.NoError(err)
+
+	// Should be able to create a new proxy for that service with the port (it
+	// should have been "freed").
+	p4 := p2
+	svc4, err := state.AddProxy(&p4, "fake-token")
+	require.NoError(err)
+	assert.Contains([]int{20000, 20001}, svc2.Port)
+	assert.Equal(svc4.Port, svc2.Port, "should get the same port back that we freed")
+
+	// Remove a proxy that doesn't exist should error
+	err = state.RemoveProxy("nope")
+	require.Error(err)
+
+	assert.Equal(&p4, state.Proxy(p4.ProxyService.ID),
+		"should fetch the right proxy details")
+	assert.Nil(state.Proxy("nope"))
+
+	proxies := state.Proxies()
+	assert.Len(proxies, 3)
+	assert.Equal(&p1, proxies[svc.ID])
+	assert.Equal(&p4, proxies[svc4.ID])
+	assert.Equal(&p3, proxies[svc3.ID])
+
+	tokens := make([]string, 4)
+	tokens[0], err = state.ProxyToken(svc.ID)
+	require.NoError(err)
+	// p2 not registered anymore but lets make sure p4 got a new token when it
+	// re-registered with same ID.
+	tokens[1] = p2Token
+	tokens[2], err = state.ProxyToken(svc3.ID)
+	require.NoError(err)
+	tokens[3], err = state.ProxyToken(svc4.ID)
+	require.NoError(err)
+
+	// Quick check all are distinct
+	for i := 0; i < len(tokens)-1; i++ {
+		assert.Len(tokens[i], 36) // Sanity check for UUIDish thing.
+		for j := i + 1; j < len(tokens); j++ {
+			assert.NotEqual(tokens[i], tokens[j], "tokens for proxy %d and %d match",
+				i+1, j+1)
+		}
+	}
 }

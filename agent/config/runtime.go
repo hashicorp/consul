@@ -616,6 +616,41 @@ type RuntimeConfig struct {
 	// flag: -client string
 	ClientAddrs []*net.IPAddr
 
+	// ConnectEnabled opts the agent into connect. It should be set on all clients
+	// and servers in a cluster for correct connect operation. TODO(banks) review
+	// that.
+	ConnectEnabled bool
+
+	// ConnectProxies is a list of configured proxies taken from the "connect"
+	// block of service registrations.
+	ConnectProxies []*structs.ConnectManagedProxy
+
+	// ConnectProxyBindMinPort is the inclusive start of the range of ports
+	// allocated to the agent for starting proxy listeners on where no explicit
+	// port is specified.
+	ConnectProxyBindMinPort int
+
+	// ConnectProxyBindMaxPort is the inclusive end of the range of ports
+	// allocated to the agent for starting proxy listeners on where no explicit
+	// port is specified.
+	ConnectProxyBindMaxPort int
+
+	// ConnectProxyDefaultExecMode is used where a registration doesn't include an
+	// exec_mode. Defaults to daemon.
+	ConnectProxyDefaultExecMode *string
+
+	// ConnectProxyDefaultDaemonCommand is used to start proxy in exec_mode =
+	// daemon if not specified at registration time.
+	ConnectProxyDefaultDaemonCommand *string
+
+	// ConnectProxyDefaultScriptCommand is used to start proxy in exec_mode =
+	// script if not specified at registration time.
+	ConnectProxyDefaultScriptCommand *string
+
+	// ConnectProxyDefaultConfig is merged with any config specified at
+	// registration time to allow global control of defaults.
+	ConnectProxyDefaultConfig map[string]interface{}
+
 	// DNSAddrs contains the list of TCP and UDP addresses the DNS server will
 	// bind to. If the DNS endpoint is disabled (ports.dns <= 0) the list is
 	// empty.

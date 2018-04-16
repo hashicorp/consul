@@ -246,6 +246,8 @@ func LocalConfig(cfg *config.RuntimeConfig) local.Config {
 		NodeID:              cfg.NodeID,
 		NodeName:            cfg.NodeName,
 		TaggedAddresses:     map[string]string{},
+		ProxyBindMinPort:    cfg.ConnectProxyBindMinPort,
+		ProxyBindMaxPort:    cfg.ConnectProxyBindMaxPort,
 	}
 	for k, v := range cfg.TaggedAddresses {
 		lc.TaggedAddresses[k] = v
@@ -326,6 +328,9 @@ func (a *Agent) Start() error {
 
 	// Load checks/services/metadata.
 	if err := a.loadServices(c); err != nil {
+		return err
+	}
+	if err := a.loadProxies(c); err != nil {
 		return err
 	}
 	if err := a.loadChecks(c); err != nil {
@@ -1973,6 +1978,58 @@ func (a *Agent) RemoveCheck(checkID types.CheckID, persist bool) error {
 	return nil
 }
 
+// AddProxy adds a new local Connect Proxy instance to be managed by the agent.
+//
+// It REQUIRES that the service that is being proxied is already present in the
+// local state. Note that this is only used for agent-managed proxies so we can
+// ensure that we always make this true. For externally managed and registered
+// proxies we explicitly allow the proxy to be registered first to make
+// bootstrap ordering of a new service simpler but the same is not true here
+// since this is only ever called when setting up a _managed_ proxy which was
+// registered as part of a service registration either from config or HTTP API
+// call.
+func (a *Agent) AddProxy(proxy *structs.ConnectManagedProxy, persist bool) error {
+	// Lookup the target service token in state if there is one.
+	token := a.State.ServiceToken(proxy.TargetServiceID)
+
+	// Add the proxy to local state first since we may need to assign a port which
+	// needs to be coordinate under state lock. AddProxy will generate the
+	// NodeService for the proxy populated with the allocated (or configured) port
+	// and an ID, but it doesn't add it to the agent directly since that could
+	// deadlock and we may need to coordinate adding it and persisting etc.
+	proxyService, err := a.State.AddProxy(proxy, token)
+	if err != nil {
+		return err
+	}
+
+	// TODO(banks): register proxy health checks.
+	err = a.AddService(proxyService, nil, persist, token)
+	if err != nil {
+		// Remove the state too
+		a.State.RemoveProxy(proxyService.ID)
+		return err
+	}
+
+	// TODO(banks): persist some of the local proxy state (not the _proxy_ token).
+	return nil
+}
+
+// RemoveProxy stops and removes a local proxy instance.
+func (a *Agent) RemoveProxy(proxyID string, persist bool) error {
+	// Validate proxyID
+	if proxyID == "" {
+		return fmt.Errorf("proxyID missing")
+	}
+
+	if err := a.State.RemoveProxy(proxyID); err != nil {
+		return err
+	}
+
+	// TODO(banks): unpersist proxy
+
+	return nil
+}
+
 func (a *Agent) cancelCheckMonitors(checkID types.CheckID) {
 	// Stop any monitors
 	delete(a.checkReapAfter, checkID)
@@ -2366,6 +2423,25 @@ func (a *Agent) unloadChecks() error {
 	return nil
 }
 
+// loadProxies will load connect proxy definitions from configuration and
+// persisted definitions on disk, and load them into the local agent.
+func (a *Agent) loadProxies(conf *config.RuntimeConfig) error {
+	for _, proxy := range conf.ConnectProxies {
+		if err := a.AddProxy(proxy, false); err != nil {
+			return fmt.Errorf("failed adding proxy: %s", err)
+		}
+	}
+
+	// TODO(banks): persist proxy state and re-load it here?
+	return nil
+}
+
+// unloadProxies will deregister all proxies known to the local agent.
+func (a *Agent) unloadProxies() error {
+	// TODO(banks): implement me
+	return nil
+}
+
 // snapshotCheckState is used to snapshot the current state of the health
 // checks. This is done before we reload our checks, so that we can properly
 // restore into the same state.
@@ -2513,6 +2589,9 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	// Reload service/check definitions and metadata.
 	if err := a.loadServices(newCfg); err != nil {
 		return fmt.Errorf("Failed reloading services: %s", err)
+	}
+	if err := a.loadProxies(newCfg); err != nil {
+		return fmt.Errorf("Failed reloading proxies: %s", err)
 	}
 	if err := a.loadChecks(newCfg); err != nil {
 		return fmt.Errorf("Failed reloading checks: %s", err)

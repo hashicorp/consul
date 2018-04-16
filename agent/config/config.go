@@ -159,6 +159,7 @@ type Config struct {
 	CheckUpdateInterval         *string                  `json:"check_update_interval,omitempty" hcl:"check_update_interval" mapstructure:"check_update_interval"`
 	Checks                      []CheckDefinition        `json:"checks,omitempty" hcl:"checks" mapstructure:"checks"`
 	ClientAddr                  *string                  `json:"client_addr,omitempty" hcl:"client_addr" mapstructure:"client_addr"`
+	Connect                     *Connect                 `json:"connect,omitempty" hcl:"connect" mapstructure:"connect"`
 	DNS                         DNS                      `json:"dns_config,omitempty" hcl:"dns_config" mapstructure:"dns_config"`
 	DNSDomain                   *string                  `json:"domain,omitempty" hcl:"domain" mapstructure:"domain"`
 	DNSRecursors                []string                 `json:"recursors,omitempty" hcl:"recursors" mapstructure:"recursors"`
@@ -324,6 +325,7 @@ type ServiceDefinition struct {
 	Checks            []CheckDefinition `json:"checks,omitempty" hcl:"checks" mapstructure:"checks"`
 	Token             *string           `json:"token,omitempty" hcl:"token" mapstructure:"token"`
 	EnableTagOverride *bool             `json:"enable_tag_override,omitempty" hcl:"enable_tag_override" mapstructure:"enable_tag_override"`
+	Connect           *ServiceConnect   `json:"connect,omitempty" hcl:"connect" mapstructure:"connect"`
 }
 
 type CheckDefinition struct {
@@ -347,6 +349,47 @@ type CheckDefinition struct {
 	Timeout                        *string             `json:"timeout,omitempty" hcl:"timeout" mapstructure:"timeout"`
 	TTL                            *string             `json:"ttl,omitempty" hcl:"ttl" mapstructure:"ttl"`
 	DeregisterCriticalServiceAfter *string             `json:"deregister_critical_service_after,omitempty" hcl:"deregister_critical_service_after" mapstructure:"deregister_critical_service_after"`
+}
+
+// ServiceConnect is the connect block within a service registration
+type ServiceConnect struct {
+	// TODO(banks) add way to specify that the app is connect-native
+	// Proxy configures a connect proxy instance for the service
+	Proxy *ServiceConnectProxy `json:"proxy,omitempty" hcl:"proxy" mapstructure:"proxy"`
+}
+
+type ServiceConnectProxy struct {
+	Command  *string                `json:"command,omitempty" hcl:"command" mapstructure:"command"`
+	ExecMode *string                `json:"exec_mode,omitempty" hcl:"exec_mode" mapstructure:"exec_mode"`
+	Config   map[string]interface{} `json:"config,omitempty" hcl:"config" mapstructure:"config"`
+}
+
+// Connect is the agent-global connect configuration.
+type Connect struct {
+	// Enabled opts the agent into connect. It should be set on all clients and
+	// servers in a cluster for correct connect operation. TODO(banks) review that.
+	Enabled       bool                  `json:"enabled,omitempty" hcl:"enabled" mapstructure:"enabled"`
+	ProxyDefaults *ConnectProxyDefaults `json:"proxy_defaults,omitempty" hcl:"proxy_defaults" mapstructure:"proxy_defaults"`
+}
+
+// ConnectProxyDefaults is the agent-global connect proxy configuration.
+type ConnectProxyDefaults struct {
+	// BindMinPort, BindMaxPort are the inclusive lower and upper bounds on the
+	// port range allocated to the agent to assign to connect proxies that have no
+	// bind_port specified.
+	BindMinPort *int `json:"bind_min_port,omitempty" hcl:"bind_min_port" mapstructure:"bind_min_port"`
+	BindMaxPort *int `json:"bind_max_port,omitempty" hcl:"bind_max_port" mapstructure:"bind_max_port"`
+	// ExecMode is used where a registration doesn't include an exec_mode.
+	// Defaults to daemon.
+	ExecMode *string `json:"exec_mode,omitempty" hcl:"exec_mode" mapstructure:"exec_mode"`
+	// DaemonCommand is used to start proxy in exec_mode = daemon if not specified
+	// at registration time.
+	DaemonCommand *string `json:"daemon_command,omitempty" hcl:"daemon_command" mapstructure:"daemon_command"`
+	// ScriptCommand is used to start proxy in exec_mode = script if not specified
+	// at registration time.
+	ScriptCommand *string `json:"script_command,omitempty" hcl:"script_command" mapstructure:"script_command"`
+	// Config is merged into an Config specified at registration time.
+	Config map[string]interface{} `json:"config,omitempty" hcl:"config" mapstructure:"config"`
 }
 
 type DNS struct {

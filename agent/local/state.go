@@ -3,12 +3,15 @@ package local
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"reflect"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -27,6 +30,8 @@ type Config struct {
 	NodeID              types.NodeID
 	NodeName            string
 	TaggedAddresses     map[string]string
+	ProxyBindMinPort    int
+	ProxyBindMaxPort    int
 }
 
 // ServiceState describes the state of a service record.
@@ -107,6 +112,21 @@ type rpc interface {
 	RPC(method string, args interface{}, reply interface{}) error
 }
 
+// ManagedProxy represents the local state for a registered proxy instance.
+type ManagedProxy struct {
+	Proxy *structs.ConnectManagedProxy
+
+	// ProxyToken is a special local-only security token that grants the bearer
+	// access to the proxy's config as well as allowing it to request certificates
+	// on behalf of the TargetService. Certain connect endpoints will validate
+	// against this token and if it matches will then use the TargetService.Token
+	// to actually authenticate the upstream RPC on behalf of the service. This
+	// token is passed securely to the proxy process via ENV vars and should never
+	// be exposed any other way. Unmanaged proxies will never see this and need to
+	// use service-scoped ACL tokens distributed externally.
+	ProxyToken string
+}
+
 // State is used to represent the node's services,
 // and checks. We use it to perform anti-entropy with the
 // catalog representation
@@ -150,17 +170,28 @@ type State struct {
 
 	// tokens contains the ACL tokens
 	tokens *token.Store
+
+	// managedProxies is a map of all manged connect proxies registered locally on
+	// this agent. This is NOT kept in sync with servers since it's agent-local
+	// config only. Proxy instances have separate service registrations in the
+	// services map above which are kept in sync via anti-entropy. Un-managed
+	// proxies (that registered themselves separately from the service
+	// registration) do not appear here as the agent doesn't need to manage their
+	// process nor config. The _do_ still exist in services above though as
+	// services with Kind == connect-proxy.
+	managedProxies map[string]*ManagedProxy
 }
 
-// NewLocalState creates a new local state for the agent.
+// NewState creates a new local state for the agent.
 func NewState(c Config, lg *log.Logger, tokens *token.Store) *State {
 	l := &State{
-		config:   c,
-		logger:   lg,
-		services: make(map[string]*ServiceState),
-		checks:   make(map[types.CheckID]*CheckState),
-		metadata: make(map[string]string),
-		tokens:   tokens,
+		config:         c,
+		logger:         lg,
+		services:       make(map[string]*ServiceState),
+		checks:         make(map[types.CheckID]*CheckState),
+		metadata:       make(map[string]string),
+		tokens:         tokens,
+		managedProxies: make(map[string]*ManagedProxy),
 	}
 	l.SetDiscardCheckOutput(c.DiscardCheckOutput)
 	return l
@@ -527,6 +558,142 @@ func (l *State) CriticalCheckStates() map[types.CheckID]*CheckState {
 		m[id] = c.Clone()
 	}
 	return m
+}
+
+// AddProxy is used to add a connect proxy entry to the local state. This
+// assumes the proxy's NodeService is already registered via Agent.AddService
+// (since that has to do other book keeping). The token passed here is the ACL
+// token the service used to register itself so must have write on service
+// record.
+func (l *State) AddProxy(proxy *structs.ConnectManagedProxy, token string) (*structs.NodeService, error) {
+	if proxy == nil {
+		return nil, fmt.Errorf("no proxy")
+	}
+
+	// Lookup the local service
+	target := l.Service(proxy.TargetServiceID)
+	if target == nil {
+		return nil, fmt.Errorf("target service ID %s not registered",
+			proxy.TargetServiceID)
+	}
+
+	// Get bind info from config
+	cfg, err := proxy.ParseConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	// Construct almost all of the NodeService that needs to be registered by the
+	// caller outside of the lock.
+	svc := &structs.NodeService{
+		Kind:             structs.ServiceKindConnectProxy,
+		ID:               target.ID + "-proxy",
+		Service:          target.ID + "-proxy",
+		ProxyDestination: target.Service,
+		Address:          cfg.BindAddress,
+		Port:             cfg.BindPort,
+	}
+
+	pToken, err := uuid.GenerateUUID()
+	if err != nil {
+		return nil, err
+	}
+
+	// Lock now. We can't lock earlier as l.Service would deadlock and shouldn't
+	// anyway to minimise the critical section.
+	l.Lock()
+	defer l.Unlock()
+
+	// Allocate port if needed (min and max inclusive)
+	rangeLen := l.config.ProxyBindMaxPort - l.config.ProxyBindMinPort + 1
+	if svc.Port < 1 && l.config.ProxyBindMinPort > 0 && rangeLen > 0 {
+		// This should be a really short list so don't bother optimising lookup yet.
+	OUTER:
+		for _, offset := range rand.Perm(rangeLen) {
+			p := l.config.ProxyBindMinPort + offset
+			// See if this port was already allocated to another proxy
+			for _, other := range l.managedProxies {
+				if other.Proxy.ProxyService.Port == p {
+					// allready taken, skip to next random pick in the range
+					continue OUTER
+				}
+			}
+			// We made it through all existing proxies without a match so claim this one
+			svc.Port = p
+			break
+		}
+	}
+	// If no ports left (or auto ports disabled) fail
+	if svc.Port < 1 {
+		return nil, fmt.Errorf("no port provided for proxy bind_port and none "+
+			" left in the allocated range [%d, %d]", l.config.ProxyBindMinPort,
+			l.config.ProxyBindMaxPort)
+	}
+
+	proxy.ProxyService = svc
+
+	// All set, add the proxy and return the service
+	l.managedProxies[svc.ID] = &ManagedProxy{
+		Proxy:      proxy,
+		ProxyToken: pToken,
+	}
+
+	// No need to trigger sync as proxy state is local only.
+	return svc, nil
+}
+
+// RemoveProxy is used to remove a proxy entry from the local state.
+func (l *State) RemoveProxy(id string) error {
+	l.Lock()
+	defer l.Unlock()
+
+	p := l.managedProxies[id]
+	if p == nil {
+		return fmt.Errorf("Proxy %s does not exist", id)
+	}
+	delete(l.managedProxies, id)
+
+	// No need to trigger sync as proxy state is local only.
+	return nil
+}
+
+// Proxy returns the local proxy state.
+func (l *State) Proxy(id string) *structs.ConnectManagedProxy {
+	l.RLock()
+	defer l.RUnlock()
+
+	p := l.managedProxies[id]
+	if p == nil {
+		return nil
+	}
+	return p.Proxy
+}
+
+// Proxies returns the locally registered proxies.
+func (l *State) Proxies() map[string]*structs.ConnectManagedProxy {
+	l.RLock()
+	defer l.RUnlock()
+
+	m := make(map[string]*structs.ConnectManagedProxy)
+	for id, p := range l.managedProxies {
+		m[id] = p.Proxy
+	}
+	return m
+}
+
+// ProxyToken returns the local proxy token for a given proxy. Note this is not
+// an ACL token so it won't fallback to using the agent-configured default ACL
+// token. If the proxy doesn't exist an error is returned, otherwise the token
+// is guaranteed to exist.
+func (l *State) ProxyToken(id string) (string, error) {
+	l.RLock()
+	defer l.RUnlock()
+
+	p := l.managedProxies[id]
+	if p == nil {
+		return "", fmt.Errorf("proxy %s not registered", id)
+	}
+	return p.ProxyToken, nil
 }
 
 // Metadata returns the local node metadata fields that the
