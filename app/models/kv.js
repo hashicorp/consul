@@ -46,7 +46,7 @@ export default Model.extend({
   // it will link to kv.show. Otherwise, kv.edit
   linkToRoute: computed('Key', function() {
     if (isFolder(this.get('Key'))) {
-      return 'dc.kv.show';
+      return 'dc.kv.index';
     } else {
       return 'dc.kv.edit';
     }

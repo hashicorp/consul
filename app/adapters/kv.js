@@ -2,6 +2,7 @@ import Adapter from './application';
 import isFolder from 'consul-ui/utils/isFolder';
 import injectableRequestToJQueryAjaxHash from 'consul-ui/utils/injectableRequestToJQueryAjaxHash';
 import { typeOf } from '@ember/utils';
+import { assign } from '@ember/polyfills';
 
 import makeAttrable from 'consul-ui/utils/makeAttrable';
 import keyToArray from 'consul-ui/utils/keyToArray';
@@ -38,14 +39,22 @@ export default Adapter.extend({
     const parts = keyToArray(query.key);
     delete query.key;
     // append keys here otherwise query.keys will add an '='
-    return this.appendURL('kv', parts, {
-      keys: null,
-    });
+    return this.appendURL(
+      'kv',
+      parts,
+      assign(
+        {},
+        {
+          keys: null,
+        },
+        query
+      )
+    );
   },
   urlForQueryRecord: function(query, modelName) {
     const parts = keyToArray(query.key);
     delete query.key;
-    return this.appendURL('kv', parts);
+    return this.appendURL('kv', parts, query);
   },
   urlForDeleteRecord: function(id, modelName, snapshot) {
     const query = {
@@ -104,9 +113,12 @@ export default Adapter.extend({
     switch (params.requestType) {
       case 'updateRecord':
       case 'createRecord':
-        return this.get('atob')(data.kv.Value);
+        const value = data.kv.Value;
+        if (typeof value === 'string') {
+          return this.get('atob')(value);
+        }
+        return null;
     }
-    return data;
   },
   methodForRequest: function(params) {
     switch (params.requestType) {

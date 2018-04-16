@@ -1,10 +1,18 @@
 import Service, { inject as service } from '@ember/service';
 import { typeOf } from '@ember/utils';
+import { Promise } from 'rsvp';
+import isFolder from 'consul-ui/utils/isFolder';
+import { get, set } from '@ember/object';
 
 export default Service.extend({
   store: service('store'),
   // this one gives you the full object so key,values and meta
   findBySlug: function(key, dc) {
+    if (isFolder(key)) {
+      return Promise.resolve({
+        Key: key,
+      });
+    }
     return this.get('store')
       .queryRecord('kv', {
         key: key,
@@ -18,17 +26,25 @@ export default Service.extend({
   // this one only gives you keys
   // https://www.consul.io/api/kv.html
   findAllBySlug: function(key, dc) {
-    // TODO: [sic] seperator
+    if (key === '/') {
+      key = '';
+    }
     return this.get('store')
       .query('kv', {
         key: key,
         dc: dc,
+        // TODO: [sic] seperator
         seperator: '/',
       })
       .then(function(items) {
-        return items.forEach(function(item, i, arr) {
-          item.set('Datacenter', dc);
-        });
+        return items
+          .filter(function(item) {
+            return key !== get(item, 'Key');
+          })
+          .map(function(item, i, arr) {
+            set(item, 'Datacenter', dc);
+            return item;
+          });
       });
   },
   create: function() {

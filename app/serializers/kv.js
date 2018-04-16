@@ -4,6 +4,7 @@ export default Serializer.extend({
   normalizePayload: function(payload, id, requestType) {
     switch (requestType) {
       case 'query':
+        // return payload;
         return payload.map(item => {
           return {
             Key: item,

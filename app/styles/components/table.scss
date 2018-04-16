@@ -3,6 +3,9 @@ table {
   @extend .table;
   width: 100%;
 }
+td.folder {
+  @extend %with-folder;
+}
 table th,
 table td,
 table td a {

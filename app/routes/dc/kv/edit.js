@@ -1,35 +1,31 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { assign } from '@ember/polyfills';
-
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
+
 import WithFeedback from 'consul-ui/mixins/with-feedback';
-import WithKeyUtils from 'consul-ui/mixins/with-key-utils';
-// import transitionToNearestParent from 'consul-ui/utils/transitionToNearestParent';
 import ascend from 'consul-ui/utils/ascend';
 
-export default Route.extend(WithFeedback, WithKeyUtils, {
+export default Route.extend(WithFeedback, {
   repo: service('kv'),
   sessionRepo: service('session'),
   model: function(params) {
     const key = params.key;
-    const parentKey = ascend(key, 1) || '/';
     const dc = this.modelFor('dc').dc;
-    const repo = this.get('repo');
+    const repo = get(this, 'repo');
     return hash({
       isLoading: false,
-      parentKey: parentKey,
-      grandParentKey: ascend(key, 2),
+      parent: repo.findBySlug(ascend(key, 1) || '/', dc),
       item: repo.findBySlug(key, dc),
     }).then(model => {
       // jc: another afterModel for no reason replacement
       // guessing ember-data will come in here, as we are just stitching stuff together
-      const session = model.item.get('Session');
+      const session = get(model.item, 'Session');
       if (session) {
         return hash(
           assign({}, model, {
-            session: this.get('sessionRepo').findByKey(session, dc),
+            session: get(this, 'sessionRepo').findByKey(session, dc),
           })
         );
       }
@@ -40,42 +36,35 @@ export default Route.extend(WithFeedback, WithKeyUtils, {
     controller.setProperties(model);
   },
   actions: {
-    update: function(item) {
-      this.get('feedback').execute(
+    update: function(item, parent) {
+      get(this, 'feedback').execute(
         () => {
-          return get(this, 'repo').persist(item, this.modelFor('dc').dc);
+          return get(this, 'repo')
+            .persist(item, this.modelFor('dc').dc)
+            .then(() => {
+              return this.transitionTo('dc.kv.folder', get(parent, 'Key'));
+            });
         },
         `Updated ${get(item, 'Key')}`,
-        `There was an error updating ${item.get('Key')}`
+        `There was an error updating ${get(item, 'Key')}`
       );
     },
-    delete: function(item) {
-      this.get('feedback').execute(
+    delete: function(item, parent) {
+      get(this, 'feedback').execute(
         () => {
-          // const parentKey = ascend(get(item, 'Key'), 1) || '/';
           return get(this, 'repo')
             .remove(item)
             .then(() => {
-              // const rootKey = this.get('rootKey');
-              return this.transitionTo('dc.kv.index');
-              // return transitionToNearestParent.bind(this)(
-              //   this.modelFor('dc').dc,
-              //   parentKey === '/' ? rootKey : parentKey,
-              //   rootKey
-              // );
+              return this.transitionTo('dc.kv.folder', get(parent, 'Key'));
             });
         },
-        `Deleted ${item.get('Key')}`,
-        `There was an error deleting ${item.get('Key')}`
+        `Deleted ${get(item, 'Key')}`,
+        `There was an error deleting ${get(item, 'Key')}`
       );
     },
     // TODO: This is frontend ??
-    cancel: function(item) {
-      const controller = this.controller;
-      controller.set('isLoading', true); // check before removing these
-      // could probably do with a better notification
-      this.transitionTo('dc.kv', ascend(get(item, 'Key'), 1) || '/');
-      controller.set('isLoading', false);
+    cancel: function(item, parent) {
+      return this.transitionTo('dc.kv.folder', parent);
     },
   },
 });

@@ -7,24 +7,24 @@ export default Controller.extend({
   json: false,
   actions: {
     change: function(e) {
-        const target = e.target || {name: 'value', value: e};
-        switch(target.name) {
-          case 'basename':
-            set(this, 'item.Key', `${get(this, 'parentKey')}${target.value}`)
-            break;
-          case 'json':
-            set(this, 'json', !get(this, 'json'))
-            break;
-          case 'value':
-            set(this, 'item.Value', btoa(target.value))
-            break;
-        }
+      const target = e.target || { name: 'value', value: e };
+      switch (target.name) {
+        case 'basename':
+          set(this, 'item.Key', `${get(this, 'parentKey')}${target.value}`);
+          break;
+        case 'json':
+          set(this, 'json', !get(this, 'json'));
+          break;
+        case 'value':
+          set(this, 'item.Value', btoa(target.value));
+          break;
+      }
     },
-    requestDelete: function(item) {
+    requestDelete: function(item, parent) {
       confirm('Are you sure you want to delete this key?')
         .then(confirmed => {
           if (confirmed) {
-            return this.send('delete', item);
+            return this.send('delete', item, parent);
           }
         })
         .catch(error);
@@ -38,5 +38,5 @@ export default Controller.extend({
         })
         .catch(error);
     },
-  }
+  },
 });
