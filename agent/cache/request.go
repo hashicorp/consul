@@ -1,5 +1,9 @@
 package cache
 
+import (
+	"time"
+)
+
 // Request is a cache-able request.
 //
 // This interface is typically implemented by request structures in
@@ -36,4 +40,9 @@ type RequestInfo struct {
 	// to block until new data is available. If no index is available, the
 	// default value (zero) is acceptable.
 	MinIndex uint64
+
+	// Timeout is the timeout for waiting on a blocking query. When the
+	// timeout is reached, the last known value is returned (or maybe nil
+	// if there was no prior value).
+	Timeout time.Duration
 }

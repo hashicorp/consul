@@ -194,6 +194,77 @@ func TestCacheGet_blockingIndex(t *testing.T) {
 	TestCacheGetChResult(t, resultCh, 42)
 }
 
+// Test a get with an index set will timeout if the fetch doesn't return
+// anything.
+func TestCacheGet_blockingIndexTimeout(t *testing.T) {
+	t.Parallel()
+
+	typ := TestType(t)
+	defer typ.AssertExpectations(t)
+	c := TestCache(t)
+	c.RegisterType("t", typ, nil)
+
+	// Configure the type
+	triggerCh := make(chan time.Time)
+	typ.Static(FetchResult{Value: 1, Index: 4}, nil).Once()
+	typ.Static(FetchResult{Value: 12, Index: 5}, nil).Once()
+	typ.Static(FetchResult{Value: 42, Index: 6}, nil).WaitUntil(triggerCh)
+
+	// Fetch should block
+	resultCh := TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{
+		Key: "hello", MinIndex: 5, Timeout: 200 * time.Millisecond}))
+
+	// Should block
+	select {
+	case <-resultCh:
+		t.Fatal("should block")
+	case <-time.After(50 * time.Millisecond):
+	}
+
+	// Should return after more of the timeout
+	select {
+	case result := <-resultCh:
+		require.Equal(t, 12, result)
+	case <-time.After(300 * time.Millisecond):
+		t.Fatal("should've returned")
+	}
+}
+
+// Test that if a Type returns an empty value on Fetch that the previous
+// value is preserved.
+func TestCacheGet_emptyFetchResult(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	typ := TestType(t)
+	defer typ.AssertExpectations(t)
+	c := TestCache(t)
+	c.RegisterType("t", typ, nil)
+
+	// Configure the type
+	typ.Static(FetchResult{Value: 42, Index: 1}, nil).Times(1)
+	typ.Static(FetchResult{Value: nil}, nil)
+
+	// Get, should fetch
+	req := TestRequest(t, RequestInfo{Key: "hello"})
+	result, err := c.Get("t", req)
+	require.Nil(err)
+	require.Equal(42, result)
+
+	// Get, should not fetch since we already have a satisfying value
+	req = TestRequest(t, RequestInfo{
+		Key: "hello", MinIndex: 1, Timeout: 100 * time.Millisecond})
+	result, err = c.Get("t", req)
+	require.Nil(err)
+	require.Equal(42, result)
+
+	// Sleep a tiny bit just to let maybe some background calls happen
+	// then verify that we still only got the one call
+	time.Sleep(20 * time.Millisecond)
+	typ.AssertExpectations(t)
+}
+
 // Test that a type registered with a periodic refresh will perform
 // that refresh after the timer is up.
 func TestCacheGet_periodicRefresh(t *testing.T) {

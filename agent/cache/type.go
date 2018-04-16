@@ -15,6 +15,12 @@ type Type interface {
 	//
 	// The return value is a FetchResult which contains information about
 	// the fetch.
+	//
+	// On timeout, FetchResult can behave one of two ways. First, it can
+	// return the last known value. This is the default behavior of blocking
+	// RPC calls in Consul so this allows cache types to be implemented with
+	// no extra logic. Second, FetchResult can return an unset value and index.
+	// In this case, the cache will reuse the last value automatically.
 	Fetch(FetchOptions, Request) (FetchResult, error)
 }
 

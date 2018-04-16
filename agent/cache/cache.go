@@ -136,6 +136,9 @@ func (c *Cache) Get(t string, r Request) (interface{}, error) {
 	// First time through
 	first := true
 
+	// timeoutCh for watching our tmeout
+	var timeoutCh <-chan time.Time
+
 RETRY_GET:
 	// Get the current value
 	c.entriesLock.RLock()
@@ -164,16 +167,27 @@ RETRY_GET:
 	// No longer our first time through
 	first = false
 
+	// Set our timeout channel if we must
+	if info.Timeout > 0 && timeoutCh == nil {
+		timeoutCh = time.After(info.Timeout)
+	}
+
 	// At this point, we know we either don't have a value at all or the
 	// value we have is too old. We need to wait for new data.
-	waiter, err := c.fetch(t, key, r)
+	waiterCh, err := c.fetch(t, key, r)
 	if err != nil {
 		return nil, err
 	}
 
-	// Wait on our waiter and then retry the cache load
-	<-waiter
-	goto RETRY_GET
+	select {
+	case <-waiterCh:
+		// Our fetch returned, retry the get from the cache
+		goto RETRY_GET
+
+	case <-timeoutCh:
+		// Timeout on the cache read, just return whatever we have.
+		return entry.Value, nil
+	}
 }
 
 // entryKey returns the key for the entry in the cache. See the note
@@ -216,16 +230,26 @@ func (c *Cache) fetch(t, key string, r Request) (<-chan struct{}, error) {
 	// The actual Fetch must be performed in a goroutine.
 	go func() {
 		// Start building the new entry by blocking on the fetch.
-		var newEntry cacheEntry
 		result, err := tEntry.Type.Fetch(FetchOptions{
 			MinIndex: entry.Index,
 		}, r)
-		newEntry.Value = result.Value
-		newEntry.Index = result.Index
-		newEntry.Error = err
 
-		// This is a valid entry with a result
-		newEntry.Valid = true
+		var newEntry cacheEntry
+		if result.Value == nil {
+			// If no value was set, then we do not change the prior entry.
+			// Instead, we just update the waiter to be new so that another
+			// Get will wait on the correct value.
+			newEntry = entry
+			newEntry.Fetching = false
+		} else {
+			// A new value was given, so we create a brand new entry.
+			newEntry.Value = result.Value
+			newEntry.Index = result.Index
+			newEntry.Error = err
+
+			// This is a valid entry with a result
+			newEntry.Valid = true
+		}
 
 		// Create a new waiter that will be used for the next fetch.
 		newEntry.Waiter = make(chan struct{})
