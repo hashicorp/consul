@@ -1,14 +1,9 @@
-import { is, clickable, triggerable } from 'ember-cli-page-object';
-export default ['', 'passing', 'warning', 'critical'].reduce(
-  function(prev, item, i, arr) {
-    const key = item === '' ? 'all' : item;
-    return Object.assign({}, prev, {
-      [`${key}IsSelected`]: is(':checked', `[data-test-radiobutton="status_${item}"] input`),
-      [key]: clickable(`[data-test-radiobutton="status_${item}"]`),
-    });
-  },
-  {
+import { triggerable } from 'ember-cli-page-object';
+import radiogroup from 'consul-ui/tests/lib/page-object/radiogroup';
+export default {
+  ...radiogroup('status', ['', 'passing', 'warning', 'critical']),
+  ...{
     scope: '[data-test-catalog-filter]',
     search: triggerable('keypress', '[name="s"]'),
-  }
-);
+  },
+};

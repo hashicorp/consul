@@ -7,16 +7,16 @@
         {{tab-nav items=tabs selected=selectedTab}}
     {{/block-slot}}
     {{#block-slot 'content'}}
-        {{#tab-section id=tabs.[0] selected=(eq selectedTab tabs.[0]) onchange=(action 'change')}}
+        {{#tab-section id=(slugify tabs.[0]) selected=(eq selectedTab tabs.[0]) onchange=(action 'change')}}
             {{partial 'dc/nodes/healthchecks'}}
         {{/tab-section}}
-        {{#tab-section id=tabs.[1] selected=(eq selectedTab tabs.[1]) onchange=(action 'change')}}
+        {{#tab-section id=(slugify tabs.[1]) selected=(eq selectedTab tabs.[1]) onchange=(action 'change')}}
             {{partial 'dc/nodes/services'}}
         {{/tab-section}}
-        {{#tab-section id=tabs.[2] selected=(eq selectedTab tabs.[2]) onchange=(action 'change')}}
+        {{#tab-section id=(slugify tabs.[2]) selected=(eq selectedTab tabs.[2]) onchange=(action 'change')}}
             {{partial 'dc/nodes/rtt'}}
         {{/tab-section}}
-        {{#tab-section id=tabs.[3] selected=(eq selectedTab tabs.[3]) onchange=(action 'change')}}
+        {{#tab-section id=(slugify tabs.[3]) selected=(eq selectedTab tabs.[3]) onchange=(action 'change')}}
             {{partial 'dc/nodes/sessions'}}
         {{/tab-section}}
     {{/block-slot}}
