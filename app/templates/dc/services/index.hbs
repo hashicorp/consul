@@ -11,7 +11,7 @@
     {{/block-slot}}
     {{#block-slot 'content'}}
 {{#if (gt filtered.length 0) }}
-    <table style="height: {{height}}px">
+        <table style="height: {{height}}px">
             <thead>
                 <tr>
                     <th>Service</th>
@@ -45,7 +45,7 @@
                     <td>
                         {{ join ', ' item.Tags}}
                     </td>
-    {{/tabular-collection}}
+            {{/tabular-collection}}
         </table>
 {{else}}
         <p>

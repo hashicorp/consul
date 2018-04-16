@@ -8,7 +8,11 @@ import { computed } from '@ember/object';
 export default Model.extend({
   Id: attr('string'), // added by ember
   Name: attr('string'),
-  Tags: attr(),
+  Tags: attr({
+    defaultValue: function() {
+      return [];
+    },
+  }),
   Address: attr('string'),
   Port: attr('number'),
   EnableTagOverride: attr('boolean'),
