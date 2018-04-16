@@ -717,6 +717,8 @@ func syncExtra(index map[string]dns.RR, resp *dns.Msg) {
 	resp.Extra = extra
 }
 
+// dnsBinaryTruncate find the optimal number of records using a fast binary search and return
+// it in order to return a DNS answer lower than maxSize parameter.
 func dnsBinaryTruncate(resp *dns.Msg, maxSize int, index map[string]dns.RR, hasExtra bool) int {
 	originalAnswser := resp.Answer
 	startIndex := 0
