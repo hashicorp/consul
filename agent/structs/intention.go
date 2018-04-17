@@ -2,10 +2,13 @@ package structs
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/go-multierror"
+	"github.com/mitchellh/hashstructure"
 )
 
 const (
@@ -265,6 +268,36 @@ type IntentionQueryRequest struct {
 // RequestDatacenter returns the datacenter for a given request.
 func (q *IntentionQueryRequest) RequestDatacenter() string {
 	return q.Datacenter
+}
+
+// cache.Request impl.
+func (q *IntentionQueryRequest) CacheInfo() cache.RequestInfo {
+	// We only support caching Match queries, so if Match isn't set,
+	// then return an empty info object which will cause a pass-through
+	// (and likely fail).
+	if q.Match == nil {
+		return cache.RequestInfo{}
+	}
+
+	info := cache.RequestInfo{
+		Token:      q.Token,
+		Datacenter: q.Datacenter,
+		MinIndex:   q.MinQueryIndex,
+		Timeout:    q.MaxQueryTime,
+	}
+
+	// Calculate the cache key via just hashing the Match struct. This
+	// has been configured so things like ordering of entries has no
+	// effect (via struct tags).
+	v, err := hashstructure.Hash(q.Match, nil)
+	if err == nil {
+		// If there is an error, we don't set the key. A blank key forces
+		// no cache for this request so the request is forwarded directly
+		// to the server.
+		info.Key = strconv.FormatUint(v, 10)
+	}
+
+	return info
 }
 
 // IntentionQueryMatch are the parameters for performing a match request
