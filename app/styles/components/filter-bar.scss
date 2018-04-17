@@ -5,12 +5,23 @@
 }
 
 // decoration/color
-%filter-bar label:not(:last-child) {
-  border-right: 1px solid;
-}
 %filter-bar > * {
   border: 1px solid;
   border-radius: $radius-small;
+}
+// this doesn't make sense here
+@media #{$--horizontal-selects} {
+  %filter-bar label:not(:last-child) {
+    border-right: 1px solid;
+  }
+}
+@media #{$--lt-horizontal-selects} {
+  %filter-bar label:not(:last-child) {
+    border-bottom: 1px solid;
+  }
+}
+%filter-bar,
+%filter-bar > * {
   background-color: $lightest-gray;
 }
 %filter-bar > *,
@@ -19,32 +30,48 @@
 }
 
 // layout
+/* bulma
 %filter-bar {
   @extend .columns;
-  flex-direction: row-reverse;
-  justify-content: space-between;
-  height: 64px; // 36 + (14 * 2)
   margin: 0 !important;
-  padding: 14px;
-  background-color: $lightest-gray;
 }
-%filter-bar fieldset {
-  width: auto;
+*/
+%filter-bar {
+  padding: 14px;
+  display: block;
+}
+@media #{$--horizontal-filters} {
+  %filter-bar {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: space-between;
+  }
+  %filter-bar > *:first-child {
+    margin-left: 12px;
+  }
+  %filter-bar fieldset {
+    width: auto;
+  }
+}
+@media #{$--lt-horizontal-filters} {
+  %filter-bar > *:first-child {
+    margin-bottom: 12px;
+  }
 }
 %filter-bar [role='radiogroup'] {
   @extend %expanded-single-select;
 }
-%filter-bar [role=radiogroup] label {
+%filter-bar [role='radiogroup'] label {
   color: $text-note;
   cursor: pointer;
   line-height: 1.7;
   white-space: nowrap;
 }
 // icons
-%filter-bar [role=radiogroup] label span::before {
+%filter-bar [role='radiogroup'] label span::before {
   left: 11px;
   top: 50%;
-  margin-top: -.5em;
+  margin-top: -0.5em;
 }
 %filter-bar .value-passing span,
 %filter-bar .value-warning span,
@@ -62,7 +89,7 @@
   @extend %with-critical;
 }
 %filter-bar .value-warning span::after {
-  left: .7em;
+  left: 0.7em;
   top: 50%;
   margin-top: -8px;
   border-color: $lightest-gray;

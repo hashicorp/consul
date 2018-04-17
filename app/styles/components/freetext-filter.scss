@@ -3,34 +3,44 @@
   @extend %freetext-filter;
 }
 %freetext-filter {
-  background-color: $white;
-}
-%freetext-filter label {
-  display: block;
-  height: 100%;
-}
-%freetext-filter {
-  width: 255px !important;
-  cursor: pointer; // autosearch
+  cursor: pointer;
 }
 %freetext-filter input {
   -webkit-appearance: none;
-  color: $text-note;
   border: none;
-  padding: 8px 10px;
-  height: 100%;
-  width: calc(100% - 2.7em);
-  border-right: 1px solid $border-blue;
-}
-%freetext-filter input::placeholder {
-  color: $text-note;
+  border-right: 1px solid;
 }
 %freetext-filter span {
   @extend %with-magnifier;
-  color: $border-blue;
   visibility: hidden;
+}
+%freetext-filter {
+  background-color: $white;
+}
+%freetext-filter span {
+  color: $border-blue;
+}
+%freetext-filter input {
+  border-color: 1px $border-blue;
+}
+%freetext-filter input,
+%freetext-filter input::placeholder {
+  color: $text-note;
+}
+// %freetext-filter {
+//   width: 255px !important;
+// }
+%freetext-filter label {
+  display: block;
+  height: 33px;
+}
+%freetext-filter input {
+  width: calc(100% - 2.7em);
+  height: 100%;
+  padding: 8px 10px;
+}
+%freetext-filter span {
   width: 2.7em;
   height: 100%;
   float: right;
-  display: block;
 }

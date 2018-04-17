@@ -1,3 +1,6 @@
+%expanded-single-select label {
+  cursor: pointer;
+}
 %expanded-single-select input[type='radio']:checked + * {
   background-color: $white;
 }
@@ -5,17 +8,27 @@
 %expanded-single-select label {
   height: 100%;
 }
+/* bulma
 %expanded-single-select {
   @extend .column, .columns, .is-gapless;
   padding: 0;
 }
+*/
+@media #{$--horizontal-selects} {
+  %expanded-single-select {
+    display: flex;
+  }
+  %expanded-single-select label {
+    flex-grow: 1;
+  }
+}
 %expanded-single-select label {
-  cursor: pointer;
+  display: block;
 }
 %expanded-single-select label span {
-  padding: 5px 14px;
   display: block;
   height: 100%;
+  padding: 5px 14px;
 }
 %expanded-single-select input[type='radio'] {
   display: none;
