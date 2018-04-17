@@ -1124,9 +1124,15 @@ func (s *HTTPServer) AgentConnectAuthorize(resp http.ResponseWriter, req *http.R
 		},
 	}
 	args.Token = token
-	var reply structs.IndexedIntentionMatches
-	if err := s.agent.RPC("Intention.Match", args, &reply); err != nil {
+
+	raw, err := s.agent.cache.Get(cachetype.IntentionMatchName, args)
+	if err != nil {
 		return nil, err
+	}
+
+	reply, ok := raw.(*structs.IndexedIntentionMatches)
+	if !ok {
+		return nil, fmt.Errorf("internal error: response type not correct")
 	}
 	if len(reply.Matches) != 1 {
 		return nil, fmt.Errorf("Internal error loading matches")

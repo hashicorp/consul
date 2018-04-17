@@ -2495,13 +2495,14 @@ func TestAgentConnectAuthorize_idNotService(t *testing.T) {
 func TestAgentConnectAuthorize_allow(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
+	require := require.New(t)
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
 	target := "db"
 
 	// Create some intentions
+	var ixnId string
 	{
 		req := structs.IntentionRequest{
 			Datacenter: "dc1",
@@ -2514,9 +2515,11 @@ func TestAgentConnectAuthorize_allow(t *testing.T) {
 		req.Intention.DestinationName = target
 		req.Intention.Action = structs.IntentionActionAllow
 
-		var reply string
-		assert.Nil(a.RPC("Intention.Apply", &req, &reply))
+		require.Nil(a.RPC("Intention.Apply", &req, &ixnId))
 	}
+
+	// Grab the initial cache hit count
+	cacheHits := a.cache.Hits()
 
 	args := &structs.ConnectAuthorizeRequest{
 		Target:        target,
@@ -2525,12 +2528,70 @@ func TestAgentConnectAuthorize_allow(t *testing.T) {
 	req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
 	resp := httptest.NewRecorder()
 	respRaw, err := a.srv.AgentConnectAuthorize(resp, req)
-	assert.Nil(err)
-	assert.Equal(200, resp.Code)
+	require.Nil(err)
+	require.Equal(200, resp.Code)
 
 	obj := respRaw.(*connectAuthorizeResp)
-	assert.True(obj.Authorized)
-	assert.Contains(obj.Reason, "Matched")
+	require.True(obj.Authorized)
+	require.Contains(obj.Reason, "Matched")
+
+	// That should've been a cache miss, so not hit change
+	require.Equal(cacheHits, a.cache.Hits())
+
+	// Make the request again
+	{
+		req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
+		resp := httptest.NewRecorder()
+		respRaw, err := a.srv.AgentConnectAuthorize(resp, req)
+		require.Nil(err)
+		require.Equal(200, resp.Code)
+
+		obj := respRaw.(*connectAuthorizeResp)
+		require.True(obj.Authorized)
+		require.Contains(obj.Reason, "Matched")
+	}
+
+	// That should've been a cache hit
+	require.Equal(cacheHits+1, a.cache.Hits())
+	cacheHits++
+
+	// Change the intention
+	{
+		req := structs.IntentionRequest{
+			Datacenter: "dc1",
+			Op:         structs.IntentionOpUpdate,
+			Intention:  structs.TestIntention(t),
+		}
+		req.Intention.ID = ixnId
+		req.Intention.SourceNS = structs.IntentionDefaultNamespace
+		req.Intention.SourceName = "web"
+		req.Intention.DestinationNS = structs.IntentionDefaultNamespace
+		req.Intention.DestinationName = target
+		req.Intention.Action = structs.IntentionActionDeny
+
+		require.Nil(a.RPC("Intention.Apply", &req, &ixnId))
+	}
+
+	// Short sleep lets the cache background refresh happen
+	time.Sleep(100 * time.Millisecond)
+
+	// Make the request again
+	{
+		req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
+		resp := httptest.NewRecorder()
+		respRaw, err := a.srv.AgentConnectAuthorize(resp, req)
+		require.Nil(err)
+		require.Equal(200, resp.Code)
+
+		obj := respRaw.(*connectAuthorizeResp)
+		require.False(obj.Authorized)
+		require.Contains(obj.Reason, "Matched")
+	}
+
+	// That should've been a cache hit, too, since it updated in the
+	// background.
+	require.Equal(cacheHits+1, a.cache.Hits())
+	cacheHits++
 }
 
 // Test when there is an intention denying the connection
