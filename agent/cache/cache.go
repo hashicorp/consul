@@ -170,7 +170,7 @@ RETRY_GET:
 				atomic.AddUint64(&c.hits, 1)
 			}
 
-			return entry.Value, nil
+			return entry.Value, entry.Error
 		}
 	}
 
