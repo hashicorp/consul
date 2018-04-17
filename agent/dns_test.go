@@ -2984,6 +2984,7 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 }
 
 func TestBinarySearch(t *testing.T) {
+	t.Parallel()
 	msgSrc := new(dns.Msg)
 	msgSrc.Compress = true
 	msgSrc.SetQuestion("redis.service.consul.", dns.TypeSRV)
@@ -2994,27 +2995,29 @@ func TestBinarySearch(t *testing.T) {
 		msgSrc.Extra = append(msgSrc.Extra, &dns.CNAME{Hdr: dns.RR_Header{Name: target, Class: 1, Rrtype: dns.TypeCNAME, Ttl: 0x3c}, Target: fmt.Sprintf("fx.168.%d.%d.", i/256, i%256)})
 	}
 	for idx, maxSize := range []int{12, 256, 512, 8192, 65535} {
-		msg := new(dns.Msg)
-		msgSrc.Compress = true
-		msgSrc.SetQuestion("redis.service.consul.", dns.TypeSRV)
-		msg.Answer = msgSrc.Answer
-		msg.Extra = msgSrc.Extra
-		index := make(map[string]dns.RR, len(msg.Extra))
-		indexRRs(msg.Extra, index)
-		blen := dnsBinaryTruncate(msg, maxSize, index, true)
-		msg.Answer = msg.Answer[:blen]
-		syncExtra(index, msg)
-		predicted := msg.Len()
-		buf, err := msg.Pack()
-		if err != nil {
-			t.Error(err)
-		}
-		if predicted < len(buf) {
-			t.Fatalf("Bug in DNS library: %d != %d", predicted, len(buf))
-		}
-		if len(buf) > maxSize || (idx != 0 && len(buf) < 16) || (maxSize == 65535 && blen != 50) {
-			t.Fatalf("bad[%d]: %d > %d", idx, len(buf), maxSize)
-		}
+		t.Run(fmt.Sprintf("binarySearch %d", maxSize), func(t *testing.T) {
+			msg := new(dns.Msg)
+			msgSrc.Compress = true
+			msgSrc.SetQuestion("redis.service.consul.", dns.TypeSRV)
+			msg.Answer = msgSrc.Answer
+			msg.Extra = msgSrc.Extra
+			index := make(map[string]dns.RR, len(msg.Extra))
+			indexRRs(msg.Extra, index)
+			blen := dnsBinaryTruncate(msg, maxSize, index, true)
+			msg.Answer = msg.Answer[:blen]
+			syncExtra(index, msg)
+			predicted := msg.Len()
+			buf, err := msg.Pack()
+			if err != nil {
+				t.Error(err)
+			}
+			if predicted < len(buf) {
+				t.Fatalf("Bug in DNS library: %d != %d", predicted, len(buf))
+			}
+			if len(buf) > maxSize || (idx != 0 && len(buf) < 16) || (maxSize == 65535 && blen != 50) {
+				t.Fatalf("bad[%d]: %d > %d", idx, len(buf), maxSize)
+			}
+		})
 	}
 }
 
