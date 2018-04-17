@@ -2993,7 +2993,7 @@ func TestBinarySearch(t *testing.T) {
 		msgSrc.Answer = append(msgSrc.Answer, &dns.SRV{Hdr: dns.RR_Header{Name: "redis.service.consul.", Class: 1, Rrtype: dns.TypeSRV, Ttl: 0x3c}, Port: 0x4c57, Target: target})
 		msgSrc.Extra = append(msgSrc.Extra, &dns.CNAME{Hdr: dns.RR_Header{Name: target, Class: 1, Rrtype: dns.TypeCNAME, Ttl: 0x3c}, Target: fmt.Sprintf("fx.168.%d.%d.", i/256, i%256)})
 	}
-	for _, maxSize := range []int{256, 512, 8192} {
+	for idx, maxSize := range []int{12, 256, 512, 8192, 65535} {
 		msg := new(dns.Msg)
 		msgSrc.Compress = true
 		msgSrc.SetQuestion("redis.service.consul.", dns.TypeSRV)
@@ -3012,8 +3012,8 @@ func TestBinarySearch(t *testing.T) {
 		if predicted < len(buf) {
 			t.Fatalf("Bug in DNS library: %d != %d", predicted, len(buf))
 		}
-		if len(buf) > maxSize || len(buf) < 1 {
-			t.Fatalf("bad: %d > %d", predicted, maxSize)
+		if len(buf) > maxSize || (idx != 0 && len(buf) < 16) || (maxSize == 65535 && blen != 50) {
+			t.Fatalf("bad[%d]: %d > %d", idx, len(buf), maxSize)
 		}
 	}
 }
