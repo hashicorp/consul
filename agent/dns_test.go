@@ -2983,6 +2983,41 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 	}
 }
 
+func TestBinarySearch(t *testing.T) {
+	msgSrc := new(dns.Msg)
+	msgSrc.Compress = true
+	msgSrc.SetQuestion("redis.service.consul.", dns.TypeSRV)
+
+	for i := 0; i < 50; i++ {
+		target := fmt.Sprintf("host-redis-%d-%d.test.acme.com.node.dc1.consul.", i/256, i%256)
+		msgSrc.Answer = append(msgSrc.Answer, &dns.SRV{Hdr: dns.RR_Header{Name: "redis.service.consul.", Class: 1, Rrtype: dns.TypeSRV, Ttl: 0x3c}, Port: 0x4c57, Target: target})
+		msgSrc.Extra = append(msgSrc.Extra, &dns.CNAME{Hdr: dns.RR_Header{Name: target, Class: 1, Rrtype: dns.TypeCNAME, Ttl: 0x3c}, Target: fmt.Sprintf("fx.168.%d.%d.", i/256, i%256)})
+	}
+	for _, maxSize := range []int{256, 512, 8192} {
+		msg := new(dns.Msg)
+		msgSrc.Compress = true
+		msgSrc.SetQuestion("redis.service.consul.", dns.TypeSRV)
+		msg.Answer = msgSrc.Answer
+		msg.Extra = msgSrc.Extra
+		index := make(map[string]dns.RR, len(msg.Extra))
+		indexRRs(msg.Extra, index)
+		blen := dnsBinaryTruncate(msg, maxSize, index, true)
+		msg.Answer = msg.Answer[:blen]
+		syncExtra(index, msg)
+		predicted := msg.Len()
+		buf, err := msg.Pack()
+		if err != nil {
+			t.Error(err)
+		}
+		if predicted < len(buf) {
+			t.Fatalf("Bug in DNS library: %d != %d", predicted, len(buf))
+		}
+		if len(buf) > maxSize || len(buf) < 1 {
+			t.Fatalf("bad: %d > %d", predicted, maxSize)
+		}
+	}
+}
+
 func TestDNS_TCP_and_UDP_Truncate(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), `

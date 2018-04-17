@@ -722,7 +722,7 @@ func syncExtra(index map[string]dns.RR, resp *dns.Msg) {
 func dnsBinaryTruncate(resp *dns.Msg, maxSize int, index map[string]dns.RR, hasExtra bool) int {
 	originalAnswser := resp.Answer
 	startIndex := 0
-	endIndex := len(resp.Answer)
+	endIndex := len(resp.Answer) + 1
 	for endIndex-startIndex > 1 {
 		median := startIndex + (endIndex-startIndex)/2
 
