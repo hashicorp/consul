@@ -2426,9 +2426,15 @@ func (a *Agent) unloadChecks() error {
 // loadProxies will load connect proxy definitions from configuration and
 // persisted definitions on disk, and load them into the local agent.
 func (a *Agent) loadProxies(conf *config.RuntimeConfig) error {
-	for _, proxy := range conf.ConnectProxies {
-		if err := a.AddProxy(proxy, false); err != nil {
-			return fmt.Errorf("failed adding proxy: %s", err)
+	for _, svc := range conf.Services {
+		if svc.Connect != nil {
+			proxy, err := svc.ConnectManagedProxy()
+			if err != nil {
+				return fmt.Errorf("failed adding proxy: %s", err)
+			}
+			if err := a.AddProxy(proxy, false); err != nil {
+				return fmt.Errorf("failed adding proxy: %s", err)
+			}
 		}
 	}
 

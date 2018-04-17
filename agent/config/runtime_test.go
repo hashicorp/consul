@@ -3403,21 +3403,8 @@ func TestFullConfig(t *testing.T) {
 				DeregisterCriticalServiceAfter: 13209 * time.Second,
 			},
 		},
-		CheckUpdateInterval: 16507 * time.Second,
-		ClientAddrs:         []*net.IPAddr{ipAddr("93.83.18.19")},
-		ConnectProxies: []*structs.ConnectManagedProxy{
-			{
-				ExecMode: structs.ProxyExecModeDaemon,
-				Command:  "awesome-proxy",
-				Config: map[string]interface{}{
-					"foo": "qux", // Overriden by service
-					// Note globals are not merged here but on rendering to the proxy
-					// endpoint. That's because proxies can be added later too so merging
-					// at config time is redundant if we have to do it later anyway.
-				},
-				TargetServiceID: "MRHVMZuD",
-			},
-		},
+		CheckUpdateInterval:       16507 * time.Second,
+		ClientAddrs:               []*net.IPAddr{ipAddr("93.83.18.19")},
 		ConnectProxyBindMinPort:   2000,
 		ConnectProxyBindMaxPort:   3000,
 		DNSAddrs:                  []net.Addr{tcpAddr("93.95.95.81:7001"), udpAddr("93.95.95.81:7001")},
@@ -3590,6 +3577,15 @@ func TestFullConfig(t *testing.T) {
 						Timeout:           4868 * time.Second,
 						TTL:               11222 * time.Second,
 						DeregisterCriticalServiceAfter: 68482 * time.Second,
+					},
+				},
+				Connect: &structs.ServiceDefinitionConnect{
+					Proxy: &structs.ServiceDefinitionConnectProxy{
+						ExecMode: "daemon",
+						Command:  "awesome-proxy",
+						Config: map[string]interface{}{
+							"foo": "qux",
+						},
 					},
 				},
 			},
@@ -4082,7 +4078,6 @@ func TestSanitize(t *testing.T) {
     ],
     "ClientAddrs": [],
     "ConnectEnabled": false,
-    "ConnectProxies": [],
     "ConnectProxyBindMaxPort": 0,
     "ConnectProxyBindMinPort": 0,
     "ConnectProxyDefaultConfig": {},
@@ -4219,6 +4214,7 @@ func TestSanitize(t *testing.T) {
                 "Timeout": "0s"
             },
             "Checks": [],
+            "Connect": null,
             "EnableTagOverride": false,
             "ID": "",
             "Kind": "",

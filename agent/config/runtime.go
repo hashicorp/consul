@@ -621,10 +621,6 @@ type RuntimeConfig struct {
 	// that.
 	ConnectEnabled bool
 
-	// ConnectProxies is a list of configured proxies taken from the "connect"
-	// block of service registrations.
-	ConnectProxies []*structs.ConnectManagedProxy
-
 	// ConnectProxyBindMinPort is the inclusive start of the range of ports
 	// allocated to the agent for starting proxy listeners on where no explicit
 	// port is specified.

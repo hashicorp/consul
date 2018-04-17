@@ -322,15 +322,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	}
 
 	var services []*structs.ServiceDefinition
-	var proxies []*structs.ConnectManagedProxy
 	for _, service := range c.Services {
 		services = append(services, b.serviceVal(&service))
-		// Register any connect proxies requested
-		if proxy := b.connectManagedProxyVal(&service); proxy != nil {
-			proxies = append(proxies, proxy)
-		}
-		// TODO(banks): support connect-native registrations (v.Connect.Enabled ==
-		// true)
 	}
 	if c.Service != nil {
 		services = append(services, b.serviceVal(c.Service))
@@ -648,7 +641,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		CheckUpdateInterval:         b.durationVal("check_update_interval", c.CheckUpdateInterval),
 		Checks:                      checks,
 		ClientAddrs:                 clientAddrs,
-		ConnectProxies:              proxies,
 		ConnectProxyBindMinPort:     proxyBindMinPort,
 		ConnectProxyBindMaxPort:     proxyBindMaxPort,
 		DataDir:                     b.stringVal(c.DataDir),
@@ -1020,46 +1012,26 @@ func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		Token:             b.stringVal(v.Token),
 		EnableTagOverride: b.boolVal(v.EnableTagOverride),
 		Checks:            checks,
+		Connect:           b.serviceConnectVal(v.Connect),
 	}
 }
 
-func (b *Builder) connectManagedProxyVal(v *ServiceDefinition) *structs.ConnectManagedProxy {
-	if v.Connect == nil || v.Connect.Proxy == nil {
+func (b *Builder) serviceConnectVal(v *ServiceConnect) *structs.ServiceDefinitionConnect {
+	if v == nil {
 		return nil
 	}
 
-	p := v.Connect.Proxy
-
-	targetID := b.stringVal(v.ID)
-	if targetID == "" {
-		targetID = b.stringVal(v.Name)
-	}
-
-	execMode := structs.ProxyExecModeDaemon
-	if p.ExecMode != nil {
-		switch *p.ExecMode {
-		case "daemon":
-			execMode = structs.ProxyExecModeDaemon
-		case "script":
-			execMode = structs.ProxyExecModeScript
-		default:
-			b.err = multierror.Append(fmt.Errorf(
-				"service[%s]: invalid connect proxy exec_mode: %s", targetID,
-				*p.ExecMode))
-			return nil
+	var proxy *structs.ServiceDefinitionConnectProxy
+	if v.Proxy != nil {
+		proxy = &structs.ServiceDefinitionConnectProxy{
+			ExecMode: b.stringVal(v.Proxy.ExecMode),
+			Command:  b.stringVal(v.Proxy.Command),
+			Config:   v.Proxy.Config,
 		}
 	}
 
-	return &structs.ConnectManagedProxy{
-		ExecMode: execMode,
-		Command:  b.stringVal(p.Command),
-		Config:   p.Config,
-		// ProxyService will be setup when the agent registers the configured
-		// proxies and starts them etc. We could do it here but we may need to do
-		// things like probe the OS for a free port etc. And we have enough info to
-		// resolve all this later.
-		ProxyService:    nil,
-		TargetServiceID: targetID,
+	return &structs.ServiceDefinitionConnect{
+		Proxy: proxy,
 	}
 }
 

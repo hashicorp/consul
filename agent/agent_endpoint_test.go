@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/serf/serf"
 	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func makeReadOnlyAgentACL(t *testing.T, srv *HTTPServer) string {
@@ -1369,10 +1370,78 @@ func TestAgent_RegisterService_InvalidAddress(t *testing.T) {
 	}
 }
 
-// This tests local agent service registration of a connect proxy. This
-// verifies that it is put in the local state store properly for syncing
-// later.
-func TestAgent_RegisterService_ConnectProxy(t *testing.T) {
+// This tests local agent service registration with a managed proxy.
+func TestAgent_RegisterService_ManagedConnectProxy(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	require := require.New(t)
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Register a proxy. Note that the destination doesn't exist here on
+	// this agent or in the catalog at all. This is intended and part
+	// of the design.
+	args := &structs.ServiceDefinition{
+		Name: "web",
+		Port: 8000,
+		// This is needed just because empty check struct (not pointer) get json
+		// encoded as object with zero values and then decoded back to object with
+		// zero values _except that the header map is an empty map not a nil map_.
+		// So our check to see if s.Check.Empty() returns false since DeepEqual
+		// considers empty maps and nil maps to be different types. Then the request
+		// fails validation because the Check definition isn't valid... This is jank
+		// we should fix but it's another yak I don't want to shave right now.
+		Check: structs.CheckType{
+			TTL: 15 * time.Second,
+		},
+		Connect: &structs.ServiceDefinitionConnect{
+			Proxy: &structs.ServiceDefinitionConnectProxy{
+				ExecMode: "script",
+				Command:  "proxy.sh",
+				Config: map[string]interface{}{
+					"foo": "bar",
+				},
+			},
+		},
+	}
+
+	req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=abc123", jsonReader(args))
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.AgentRegisterService(resp, req)
+	assert.NoError(err)
+	assert.Nil(obj)
+	require.Equal(200, resp.Code, "request failed with body: %s",
+		resp.Body.String())
+
+	// Ensure the target service
+	_, ok := a.State.Services()["web"]
+	assert.True(ok, "has service")
+
+	// Ensure the proxy service was registered
+	proxySvc, ok := a.State.Services()["web-proxy"]
+	require.True(ok, "has proxy service")
+	assert.Equal(structs.ServiceKindConnectProxy, proxySvc.Kind)
+	assert.Equal("web", proxySvc.ProxyDestination)
+	assert.NotEmpty(proxySvc.Port, "a port should have been assigned")
+
+	// Ensure proxy itself was registered
+	proxy := a.State.Proxy("web-proxy")
+	require.NotNil(proxy)
+	assert.Equal(structs.ProxyExecModeScript, proxy.ExecMode)
+	assert.Equal("proxy.sh", proxy.Command)
+	assert.Equal(args.Connect.Proxy.Config, proxy.Config)
+
+	// Ensure the token was configured
+	assert.Equal("abc123", a.State.ServiceToken("web"))
+	assert.Equal("abc123", a.State.ServiceToken("web-proxy"))
+}
+
+// This tests local agent service registration of a unmanaged connect proxy.
+// This verifies that it is put in the local state store properly for syncing
+// later. Note that _managed_ connect proxies are registered as part of the
+// target service's registration.
+func TestAgent_RegisterService_UnmanagedConnectProxy(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
@@ -1411,7 +1480,7 @@ func TestAgent_RegisterService_ConnectProxy(t *testing.T) {
 // This tests that connect proxy validation is done for local agent
 // registration. This doesn't need to test validation exhaustively since
 // that is done via a table test in the structs package.
-func TestAgent_RegisterService_ConnectProxyInvalid(t *testing.T) {
+func TestAgent_RegisterService_UnmanagedConnectProxyInvalid(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)

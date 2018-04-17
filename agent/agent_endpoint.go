@@ -589,9 +589,23 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 		return nil, err
 	}
 
+	// Get any proxy registrations
+	proxy, err := args.ConnectManagedProxy()
+	if err != nil {
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(resp, err.Error())
+		return nil, nil
+	}
+
 	// Add the service.
 	if err := s.agent.AddService(ns, chkTypes, true, token); err != nil {
 		return nil, err
+	}
+	// Add proxy (which will add proxy service so do it before we trigger sync)
+	if proxy != nil {
+		if err := s.agent.AddProxy(proxy, true); err != nil {
+			return nil, err
+		}
 	}
 	s.syncChanges()
 	return nil, nil
