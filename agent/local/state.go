@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
@@ -842,6 +843,7 @@ func (l *State) deleteService(id string) error {
 		// todo(fs): some backoff strategy might be a better solution
 		l.services[id].InSync = true
 		l.logger.Printf("[WARN] agent: Service %q deregistration blocked by ACLs", id)
+		metrics.IncrCounter([]string{"consul", "acl", "blocked", "service", "deregistration"}, 1)
 		return nil
 
 	default:
@@ -879,6 +881,7 @@ func (l *State) deleteCheck(id types.CheckID) error {
 		// todo(fs): some backoff strategy might be a better solution
 		l.checks[id].InSync = true
 		l.logger.Printf("[WARN] agent: Check %q deregistration blocked by ACLs", id)
+		metrics.IncrCounter([]string{"consul", "acl", "blocked", "check", "deregistration"}, 1)
 		return nil
 
 	default:
@@ -949,6 +952,7 @@ func (l *State) syncService(id string) error {
 			l.checks[check.CheckID].InSync = true
 		}
 		l.logger.Printf("[WARN] agent: Service %q registration blocked by ACLs", id)
+		metrics.IncrCounter([]string{"consul", "acl", "blocked", "service", "registration"}, 1)
 		return nil
 
 	default:
@@ -994,6 +998,7 @@ func (l *State) syncCheck(id types.CheckID) error {
 		// todo(fs): some backoff strategy might be a better solution
 		l.checks[id].InSync = true
 		l.logger.Printf("[WARN] agent: Check %q registration blocked by ACLs", id)
+		metrics.IncrCounter([]string{"consul", "acl", "blocked", "service", "registration"}, 1)
 		return nil
 
 	default:
@@ -1025,6 +1030,7 @@ func (l *State) syncNodeInfo() error {
 		// todo(fs): some backoff strategy might be a better solution
 		l.nodeInfoInSync = true
 		l.logger.Printf("[WARN] agent: Node info update blocked by ACLs")
+		metrics.IncrCounter([]string{"consul", "acl", "blocked", "node", "registration"}, 1)
 		return nil
 
 	default:
