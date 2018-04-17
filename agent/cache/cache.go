@@ -7,9 +7,11 @@
 // balance performance and correctness, depending on the type of data being
 // requested.
 //
-// Currently, the cache package supports only continuous, blocking query
-// caching. This means that the cache update is edge-triggered by Consul
-// server blocking queries.
+// The types of data that can be cached is configurable via the Type interface.
+// This allows specialized behavior for certain types of data. Each type of
+// Consul data (CA roots, leaf certs, intentions, KV, catalog, etc.) will
+// have to be manually implemented. This usually is not much work, see
+// the "agent/cache-types" package.
 package cache
 
 import (
@@ -23,7 +25,24 @@ import (
 
 //go:generate mockery -all -inpkg
 
-// Cache is a agent-local cache of Consul data.
+// Cache is a agent-local cache of Consul data. Create a Cache using the
+// New function. A zero-value Cache is not ready for usage and will result
+// in a panic.
+//
+// The types of data to be cached must be registered via RegisterType. Then,
+// calls to Get specify the type and a Request implementation. The
+// implementation of Request is usually done directly on the standard RPC
+// struct in agent/structs.  This API makes cache usage a mostly drop-in
+// replacement for non-cached RPC calls.
+//
+// The cache is partitioned by ACL and datacenter. This allows the cache
+// to be safe for multi-DC queries and for queries where the data is modified
+// due to ACLs all without the cache having to have any clever logic, at
+// the slight expense of a less perfect cache.
+//
+// The Cache exposes various metrics via go-metrics. Please view the source
+// searching for "metrics." to see the various metrics exposed. These can be
+// used to explore the performance of the cache.
 type Cache struct {
 	// Keeps track of the cache hits and misses in total. This is used by
 	// tests currently to verify cache behavior and is not meant for general

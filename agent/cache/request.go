@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// Request is a cache-able request.
+// Request is a cacheable request.
 //
 // This interface is typically implemented by request structures in
 // the agent/structs package.
@@ -20,6 +20,8 @@ type RequestInfo struct {
 	// Key is a unique cache key for this request. This key should
 	// absolutely uniquely identify this request, since any conflicting
 	// cache keys could result in invalid data being returned from the cache.
+	// The Key does not need to include ACL or DC information, since the
+	// cache already partitions by these values prior to using this key.
 	Key string
 
 	// Token is the ACL token associated with this request.
@@ -43,6 +45,7 @@ type RequestInfo struct {
 
 	// Timeout is the timeout for waiting on a blocking query. When the
 	// timeout is reached, the last known value is returned (or maybe nil
-	// if there was no prior value).
+	// if there was no prior value). This "last known value" behavior matches
+	// normal Consul blocking queries.
 	Timeout time.Duration
 }
