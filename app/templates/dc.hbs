@@ -4,22 +4,22 @@
         <nav>
             <ul>
                 <li>
-                    <a data-test-datacenter-selected="{{dc.Name}}" {{action "toggle"}}>{{dc.Name}}</a>
+                    <a data-test-datacenter-selected="{{dc.Name}}" {{action 'change'}}>{{dc.Name}}</a>
 {{#if isDropdownVisible}}
-                    {{datacenter-picker items=dcs selected=dc}}
+                    {{datacenter-picker items=dcs selected=dc onchange=(action 'change') onblur=(action 'change')}}
 {{/if}}
                 </li>
-                <li data-test-main-nav-services>
-                    <a href={{href-to 'dc.services'}}>Services</a>
+                <li data-test-main-nav-services class={{if (is-href 'dc.services' dc.Name) 'is-active'}}>
+                    <a href={{href-to 'dc.services' dc.Name}}>Services</a>
                 </li>
-                <li data-test-main-nav-nodes>
-                    <a href={{href-to 'dc.nodes'}}>Nodes</a>
+                <li data-test-main-nav-nodes class={{if (is-href 'dc.nodes' dc.Name) 'is-active'}}>
+                    <a href={{href-to 'dc.nodes' dc.Name}}>Nodes</a>
                 </li>
-                <li data-test-main-nav-kvs>
-                    <a href={{href-to 'dc.kv'}}>Key/Value</a>
+                <li data-test-main-nav-kvs class={{if (is-href 'dc.kv' dc.Name) 'is-active'}}>
+                    <a href={{href-to 'dc.kv' dc.Name}}>Key/Value</a>
                 </li>
-                <li data-test-main-nav-acls>
-                    <a href={{href-to 'dc.acls'}}>ACL</a>
+                <li data-test-main-nav-acls class={{if (is-href 'dc.acls' dc.Name) 'is-active'}}>
+                    <a href={{href-to 'dc.acls' dc.Name}}>ACL</a>
                 </li>
             </ul>
         </nav>

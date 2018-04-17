@@ -18,7 +18,7 @@
 %primary-nav > ul > li > a:hover,
 %primary-nav > ul > li > a:focus,
 %primary-nav > ul > li > a:active,
-%primary-nav > ul > li > a.selected {
+%primary-nav > ul > li.is-active > a {
   background-color: $magenta-800;
 }
 %secondary-nav a:hover,
