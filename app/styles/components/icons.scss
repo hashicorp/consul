@@ -2,6 +2,7 @@
   width: 1em;
   height: 1em;
   position: absolute;
+  display: block;
   content: '';
   background-repeat: no-repeat;
   background-position: center center;
@@ -55,6 +56,14 @@
 %with-tick {
   @extend %pseudo-icon;
   background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="10" height="8" xmlns="http://www.w3.org/2000/svg"><path d="M8.95 0L10 .985 3.734 8 0 4.737l.924-1.11 2.688 2.349z" fill="#FFF"/></svg>');
+}
+%with-inverted-tick {
+  @extend %pseudo-icon;
+  background-color: transparent;
+  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="10" height="8" xmlns="http://www.w3.org/2000/svg"><path d="M8.95 0L10 .985 3.734 8 0 4.737l.924-1.11 2.688 2.349z" fill="#{$magenta-800}"/></svg>');
+  height: 20px !important; // bulma overwrite
+  width: 16px !important; // bulma overwrite
+  // font-size: 2rem;
 }
 %with-cross {
   @extend %pseudo-icon;

@@ -8,12 +8,13 @@ export default Route.extend({
   model: function(params) {
     const repo = this.get('repo');
     const nodeRepo = this.get('nodeRepo');
+    const dc = { Name: params.dc }; // TODO: this needs to be an ember-data object
     return hash({
-      dc: params.dc, // TODO: this needs to be an ember-data object
+      dc: dc,
       dcs: repo.findAll(),
       // TODO: Nodes should already be loaded on the selected
       // dc, we only need them for the selected dc
-      nodes: nodeRepo.findAllByDatacenter(params.dc),
+      nodes: nodeRepo.findAllByDatacenter(dc.Name),
     });
   },
   setupController: function(controller, model) {

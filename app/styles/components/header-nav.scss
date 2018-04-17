@@ -77,6 +77,13 @@
   color: $text !important;
   padding: 12px 25px;
 }
+%header-drop-nav .is-active a::after {
+  @extend %with-inverted-tick;
+}
+%header-drop-nav .is-active {
+  @extend .has-text-weight-bold;
+  font-size: $size-5;
+}
 %header-drop-nav li {
   border-bottom: 1px solid;
 }

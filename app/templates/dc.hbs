@@ -4,9 +4,9 @@
         <nav>
             <ul>
                 <li>
-                    <a data-test-datacenter-selected="{{dc}}" {{action "toggle"}}>{{dc}}</a>
+                    <a data-test-datacenter-selected="{{dc.Name}}" {{action "toggle"}}>{{dc.Name}}</a>
 {{#if isDropdownVisible}}
-                    {{datacenter-picker items=dcs}}
+                    {{datacenter-picker items=dcs selected=dc}}
 {{/if}}
                 </li>
                 <li data-test-main-nav-services>
@@ -26,7 +26,7 @@
         <nav>
             <ul>
                 <li data-test-main-nav-docs>
-                    <a href="#" target="_blank">Documentation</a>
+                    <a href="{{ env 'CONSUL_DOCUMENTATION_URL'}}" target="_blank">Documentation</a>
                 </li>
                 <li data-test-main-nav-settings>
                     <a href={{href-to 'settings'}}>Settings</a>
@@ -38,8 +38,8 @@
 {{outlet}}
     </main>
     <footer data-test-footer>
-        <a data-test-footer-copyright href="#" target="_blank">&copy; 0000 HashiCorp</a>
-        <p data-test-footer-version>Consul 0.0</p>
-        <a data-test-footer-docs href="#" target="_blank">Documentation</a>
+        <a data-test-footer-copyright href="{{env 'CONSUL_COPYRIGHT_URL'}}" target="_blank">&copy; {{env 'CONSUL_COPYRIGHT_YEAR'}} HashiCorp</a>
+        <p data-test-footer-version>Consul {{env 'CONSUL_VERSION'}}</p>
+        <a data-test-footer-docs href="{{env 'CONSUL_DOCUMENTATION_URL'}}" target="_blank">Documentation</a>
     </footer>
 </div>

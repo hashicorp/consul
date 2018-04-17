@@ -1,5 +1,6 @@
 'use strict';
-
+const fs = require('fs');
+const path = require('path');
 module.exports = function(environment) {
   let ENV = {
     modulePrefix: 'consul-ui',
@@ -26,6 +27,23 @@ module.exports = function(environment) {
       injectionFactories: ['view', 'controller', 'component'],
     },
   };
+  ENV = Object.assign({}, ENV, {
+    CONSUL_VERSION: (function() {
+      // see /scripts/dist.sh:8
+      const version_go = `${path.dirname(process.cwd())}/version/version.go`;
+      const contents = fs.readFileSync(version_go).toString();
+      return contents
+        .split('\n')
+        .find(function(item, i, arr) {
+          return item.indexOf('Version =') !== -1;
+        })
+        .trim()
+        .split('"')[1];
+    })(),
+    CONSUL_DOCUMENTATION_URL: 'https://www.consul.io/docs/index.html',
+    CONSUL_COPYRIGHT_URL: 'https://www.hashicorp.com/',
+    CONSUL_COPYRIGHT_YEAR: '2018', // hardcode for now, could be auto-gen'ed on build
+  });
 
   if (environment === 'development') {
     // ENV.APP.LOG_RESOLVER = true;
