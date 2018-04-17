@@ -76,7 +76,7 @@ test: other-consul dev-build vet
 	@# hide it from travis as it exceeds their log limits and causes job to be
 	@# terminated (over 4MB and over 10k lines in the UI). We need to output
 	@# _something_ to stop them terminating us due to inactivity...
-	{ go test $(GOTEST_FLAGS) -tags '$(GOTAGS)' -timeout 6m $(GOTEST_PKGS) 2>&1 ; echo $$? > exit-code ; } | tee test.log | egrep '^(ok|FAIL)\s*github.com/hashicorp/consul'
+	{ go test $(GOTEST_FLAGS) -tags '$(GOTAGS)' -timeout 5m $(GOTEST_PKGS) 2>&1 ; echo $$? > exit-code ; } | tee test.log | egrep '^(ok|FAIL)\s*github.com/hashicorp/consul'
 	@echo "Exit code: $$(cat exit-code)" >> test.log
 	@grep -A5 'DATA RACE' test.log || true
 	@grep -A10 'panic: test timed out' test.log || true
