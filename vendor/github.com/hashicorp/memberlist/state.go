@@ -1126,7 +1126,7 @@ func (m *Memberlist) deadNode(d *dead) {
 	}
 
 	// Update metrics
-	metrics.IncrCounterWithLabels([]string{"memberlist", "msg", "dead"}, 1, []metrics.Label{{Name: "node", Value: d.Node.Name}})
+	metrics.IncrCounterWithLabels([]string{"memberlist", "msg", "dead"}, 1, []metrics.Label{{Name: "node", Value: d.Node}})
 
 	// Update the state
 	state.Incarnation = d.Incarnation
