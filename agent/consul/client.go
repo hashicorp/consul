@@ -251,11 +251,12 @@ TRY:
 	}
 
 	// Enforce the RPC limit.
-	metrics.IncrCounterWithLabels([]string{"consul", "client", "rpc"}, 1, []metrics.Label{{Name: "server", Value: server.Name}})
-	metrics.IncrCounterWithLabels([]string{"client", "rpc"}, 1, []metrics.Label{{Name: "server", Value: server.Name}})
+	labels := []metrics.Label{{Name: "server", Value: server.Name}}
+	metrics.IncrCounterWithLabels([]string{"consul", "client", "rpc"}, 1, labels)
+	metrics.IncrCounterWithLabels([]string{"client", "rpc"}, 1, labels)
 	if !c.rpcLimiter.Allow() {
-		metrics.IncrCounterWithLabels([]string{"consul", "client", "rpc", "exceeded"}, 1, []metrics.Label{{Name: "server", Value: server.Name}})
-		metrics.IncrCounterWithLabels([]string{"client", "rpc", "exceeded"}, 1, []metrics.Label{{Name: "server", Value: server.Name}})
+		metrics.IncrCounterWithLabels([]string{"consul", "client", "rpc", "exceeded"}, 1, labels)
+		metrics.IncrCounterWithLabels([]string{"client", "rpc", "exceeded"}, 1, labels)
 		return structs.ErrRPCRateExceeded
 	}
 
@@ -297,11 +298,12 @@ func (c *Client) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 	}
 
 	// Enforce the RPC limit.
-	metrics.IncrCounterWithLabels([]string{"consul", "client", "rpc"}, 1, []metrics.Label{{Name: "server", Value: server.Name}})
-	metrics.IncrCounterWithLabels([]string{"client", "rpc"}, 1, []metrics.Label{{Name: "server", Value: server.Name}})
+	labels := []metrics.Label{{Name: "server", Value: server.Name}}
+	metrics.IncrCounterWithLabels([]string{"consul", "client", "rpc"}, 1, labels)
+	metrics.IncrCounterWithLabels([]string{"client", "rpc"}, 1, labels)
 	if !c.rpcLimiter.Allow() {
-		metrics.IncrCounterWithLabels([]string{"consul", "client", "rpc", "exceeded"}, 1, []metrics.Label{{Name: "server", Value: server.Name}})
-		metrics.IncrCounterWithLabels([]string{"client", "rpc", "exceeded"}, 1, []metrics.Label{{Name: "server", Value: server.Name}})
+		metrics.IncrCounterWithLabels([]string{"consul", "client", "rpc", "exceeded"}, 1, labels)
+		metrics.IncrCounterWithLabels([]string{"client", "rpc", "exceeded"}, 1, labels)
 		return structs.ErrRPCRateExceeded
 	}
 
