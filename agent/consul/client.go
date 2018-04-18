@@ -245,15 +245,17 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 TRY:
 	server := c.routers.FindServer()
 	if server == nil {
+		metrics.IncrCounter([]string{"consul", "client", "rpc", "noserverfound"}, 1)
+		metrics.IncrCounter([]string{"client", "rpc", "noserverfound"}, 1)
 		return structs.ErrNoServers
 	}
 
 	// Enforce the RPC limit.
-	metrics.IncrCounter([]string{"consul", "client", "rpc"}, 1)
-	metrics.IncrCounter([]string{"client", "rpc"}, 1)
+	metrics.IncrCounterWithLabels([]string{"consul", "client", "rpc"}, 1, []metrics.Label{{Name: "server", Value: server.Name}})
+	metrics.IncrCounterWithLabels([]string{"client", "rpc"}, 1, []metrics.Label{{Name: "server", Value: server.Name}})
 	if !c.rpcLimiter.Allow() {
-		metrics.IncrCounter([]string{"consul", "client", "rpc", "exceeded"}, 1)
-		metrics.IncrCounter([]string{"client", "rpc", "exceeded"}, 1)
+		metrics.IncrCounterWithLabels([]string{"consul", "client", "rpc", "exceeded"}, 1, []metrics.Label{{Name: "server", Value: server.Name}})
+		metrics.IncrCounterWithLabels([]string{"client", "rpc", "exceeded"}, 1, []metrics.Label{{Name: "server", Value: server.Name}})
 		return structs.ErrRPCRateExceeded
 	}
 
@@ -289,15 +291,17 @@ func (c *Client) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 	replyFn structs.SnapshotReplyFn) error {
 	server := c.routers.FindServer()
 	if server == nil {
+		metrics.IncrCounter([]string{"consul", "client", "rpc", "noserverfound"}, 1)
+		metrics.IncrCounter([]string{"client", "rpc", "noserverfound"}, 1)
 		return structs.ErrNoServers
 	}
 
 	// Enforce the RPC limit.
-	metrics.IncrCounter([]string{"consul", "client", "rpc"}, 1)
-	metrics.IncrCounter([]string{"client", "rpc"}, 1)
+	metrics.IncrCounterWithLabels([]string{"consul", "client", "rpc"}, 1, []metrics.Label{{Name: "server", Value: server.Name}})
+	metrics.IncrCounterWithLabels([]string{"client", "rpc"}, 1, []metrics.Label{{Name: "server", Value: server.Name}})
 	if !c.rpcLimiter.Allow() {
-		metrics.IncrCounter([]string{"consul", "client", "rpc", "exceeded"}, 1)
-		metrics.IncrCounter([]string{"client", "rpc", "exceeded"}, 1)
+		metrics.IncrCounterWithLabels([]string{"consul", "client", "rpc", "exceeded"}, 1, []metrics.Label{{Name: "server", Value: server.Name}})
+		metrics.IncrCounterWithLabels([]string{"client", "rpc", "exceeded"}, 1, []metrics.Label{{Name: "server", Value: server.Name}})
 		return structs.ErrRPCRateExceeded
 	}
 

@@ -264,7 +264,7 @@ func (t *NetTransport) udpListen(udpLn *net.UDPConn) {
 		}
 
 		// Ingest the packet.
-		metrics.IncrCounter([]string{"memberlist", "udp", "received"}, float32(n))
+		metrics.IncrCounterWithLabels([]string{"memberlist", "udp", "received"}, float32(n), []metrics.Label{{Name: "client", Value: udpLn.RemoteAddr().String()}})
 		t.packetCh <- &Packet{
 			Buf:       buf[:n],
 			From:      addr,

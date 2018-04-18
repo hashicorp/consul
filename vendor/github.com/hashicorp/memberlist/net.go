@@ -208,7 +208,7 @@ func (m *Memberlist) handleConn(conn net.Conn) {
 	m.logger.Printf("[DEBUG] memberlist: Stream connection %s", LogConn(conn))
 
 	defer conn.Close()
-	metrics.IncrCounter([]string{"memberlist", "tcp", "accept"}, 1)
+	metrics.IncrCounterWithLabels([]string{"memberlist", "tcp", "accept"}, 1, []metrics.Label{{Name: "client", Value: conn.RemoteAddr().String()}})
 
 	conn.SetDeadline(time.Now().Add(m.config.TCPTimeout))
 	msgType, bufConn, dec, err := m.readStream(conn)
@@ -657,7 +657,7 @@ func (m *Memberlist) rawSendMsgPacket(addr string, node *Node, msg []byte) error
 		msg = buf.Bytes()
 	}
 
-	metrics.IncrCounter([]string{"memberlist", "udp", "sent"}, float32(len(msg)))
+	metrics.IncrCounterWithLabels([]string{"memberlist", "udp", "sent"}, float32(len(msg)), []metrics.Label{{Name: "dst", Value: addr}})
 	_, err := m.transport.WriteTo(msg, addr)
 	return err
 }
@@ -686,7 +686,7 @@ func (m *Memberlist) rawSendMsgStream(conn net.Conn, sendBuf []byte) error {
 	}
 
 	// Write out the entire send buffer
-	metrics.IncrCounter([]string{"memberlist", "tcp", "sent"}, float32(len(sendBuf)))
+	metrics.IncrCounterWithLabels([]string{"memberlist", "tcp", "sent"}, float32(len(sendBuf)), []metrics.Label{{Name: "dst", Value: conn.RemoteAddr().String()}})
 
 	if n, err := conn.Write(sendBuf); err != nil {
 		return err
@@ -732,7 +732,7 @@ func (m *Memberlist) sendAndReceiveState(addr string, join bool) ([]pushNodeStat
 	}
 	defer conn.Close()
 	m.logger.Printf("[DEBUG] memberlist: Initiating push/pull sync with: %s", conn.RemoteAddr())
-	metrics.IncrCounter([]string{"memberlist", "tcp", "connect"}, 1)
+	metrics.IncrCounterWithLabels([]string{"memberlist", "tcp", "connect"}, 1, []metrics.Label{{Name: "dst", Value: conn.RemoteAddr().String()}})
 
 	// Send our state
 	if err := m.sendLocalState(conn, join); err != nil {

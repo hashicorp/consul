@@ -542,8 +542,8 @@ RPC:
 			d.logger.Printf("[WARN] dns: Query results too stale, re-requesting")
 			goto RPC
 		} else if out.LastContact > staleCounterThreshold {
-			metrics.IncrCounter([]string{"consul", "dns", "stale_queries"}, 1)
-			metrics.IncrCounter([]string{"dns", "stale_queries"}, 1)
+			metrics.IncrCounterWithLabels([]string{"consul", "dns", "stale_queries"}, 1, []metrics.Label{{Name: "dc", Value: datacenter}, {Name: "node", Value: node}})
+			metrics.IncrCounterWithLabels([]string{"dns", "stale_queries"}, 1, []metrics.Label{{Name: "dc", Value: datacenter}, {Name: "node", Value: node}})
 		}
 	}
 
@@ -852,8 +852,12 @@ func (d *DNSServer) lookupServiceNodes(datacenter, service, tag string) (structs
 	}
 
 	if args.AllowStale && out.LastContact > staleCounterThreshold {
-		metrics.IncrCounter([]string{"consul", "dns", "stale_queries"}, 1)
-		metrics.IncrCounter([]string{"dns", "stale_queries"}, 1)
+		labels := []metrics.Label{{Name: "dc", Value: datacenter}, {Name: "service", Value: service}}
+		if tag != "" {
+			labels = append(labels, metrics.Label{Name: "tag", Value: tag})
+		}
+		metrics.IncrCounterWithLabels([]string{"consul", "dns", "stale_queries"}, 1, labels)
+		metrics.IncrCounterWithLabels([]string{"dns", "stale_queries"}, 1, labels)
 	}
 
 	// redo the request the response was too stale
@@ -1003,8 +1007,9 @@ RPC:
 			d.logger.Printf("[WARN] dns: Query results too stale, re-requesting")
 			goto RPC
 		} else if out.LastContact > staleCounterThreshold {
-			metrics.IncrCounter([]string{"consul", "dns", "stale_queries"}, 1)
-			metrics.IncrCounter([]string{"dns", "stale_queries"}, 1)
+			labels := []metrics.Label{{Name: "dc", Value: datacenter}, {Name: "query", Value: query}}
+			metrics.IncrCounterWithLabels([]string{"consul", "dns", "stale_queries"}, 1, labels)
+			metrics.IncrCounterWithLabels([]string{"dns", "stale_queries"}, 1, labels)
 		}
 	}
 

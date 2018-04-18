@@ -59,8 +59,8 @@ func (s *Server) listen(listener net.Listener) {
 		}
 
 		go s.handleConn(conn, false)
-		metrics.IncrCounter([]string{"consul", "rpc", "accept_conn"}, 1)
-		metrics.IncrCounter([]string{"rpc", "accept_conn"}, 1)
+		metrics.IncrCounterWithLabels([]string{"consul", "rpc", "accept_conn"}, 1, []metrics.Label{{Name: "client", Value: conn.RemoteAddr().String()}})
+		metrics.IncrCounterWithLabels([]string{"rpc", "accept_conn"}, 1, []metrics.Label{{Name: "client", Value: conn.RemoteAddr().String()}})
 	}
 }
 
@@ -97,8 +97,8 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 		s.handleConsulConn(conn)
 
 	case pool.RPCRaft:
-		metrics.IncrCounter([]string{"consul", "rpc", "raft_handoff"}, 1)
-		metrics.IncrCounter([]string{"rpc", "raft_handoff"}, 1)
+		metrics.IncrCounterWithLabels([]string{"consul", "rpc", "raft_handoff"}, 1, []metrics.Label{{Name: "client", Value: conn.RemoteAddr().String()}})
+		metrics.IncrCounterWithLabels([]string{"rpc", "raft_handoff"}, 1, []metrics.Label{{Name: "client", Value: conn.RemoteAddr().String()}})
 		s.raftLayer.Handoff(conn)
 
 	case pool.RPCTLS:
@@ -156,13 +156,13 @@ func (s *Server) handleConsulConn(conn net.Conn) {
 		if err := s.rpcServer.ServeRequest(rpcCodec); err != nil {
 			if err != io.EOF && !strings.Contains(err.Error(), "closed") {
 				s.logger.Printf("[ERR] consul.rpc: RPC error: %v %s", err, logConn(conn))
-				metrics.IncrCounter([]string{"consul", "rpc", "request_error"}, 1)
-				metrics.IncrCounter([]string{"rpc", "request_error"}, 1)
+				metrics.IncrCounterWithLabels([]string{"consul", "rpc", "request_error"}, 1, []metrics.Label{{Name: "client", Value: conn.RemoteAddr().String()}})
+				metrics.IncrCounterWithLabels([]string{"rpc", "request_error"}, 1, []metrics.Label{{Name: "client", Value: conn.RemoteAddr().String()}})
 			}
 			return
 		}
-		metrics.IncrCounter([]string{"consul", "rpc", "request"}, 1)
-		metrics.IncrCounter([]string{"rpc", "request"}, 1)
+		metrics.IncrCounterWithLabels([]string{"consul", "rpc", "request"}, 1, []metrics.Label{{Name: "client", Value: conn.RemoteAddr().String()}})
+		metrics.IncrCounterWithLabels([]string{"rpc", "request"}, 1, []metrics.Label{{Name: "client", Value: conn.RemoteAddr().String()}})
 	}
 }
 

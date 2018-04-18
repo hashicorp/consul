@@ -885,7 +885,7 @@ func (s *Serf) handleNodeJoin(n *memberlist.Node) {
 		oldStatus = member.Status
 		deadTime := time.Now().Sub(member.leaveTime)
 		if oldStatus == StatusFailed && deadTime < s.config.FlapTimeout {
-			metrics.IncrCounter([]string{"serf", "member", "flap"}, 1)
+			metrics.IncrCounterWithLabels([]string{"serf", "member", "flap"}, 1, []metrics.Label{{Name: "node", Value: member.Name}})
 		}
 
 		member.Status = StatusAlive
@@ -912,7 +912,7 @@ func (s *Serf) handleNodeJoin(n *memberlist.Node) {
 	}
 
 	// Update some metrics
-	metrics.IncrCounter([]string{"serf", "member", "join"}, 1)
+	metrics.IncrCounterWithLabels([]string{"serf", "member", "join"}, 1, []metrics.Label{{Name: "node", Value: member.Name}})
 
 	// Send an event along
 	s.logger.Printf("[INFO] serf: EventMemberJoin: %s %s",
@@ -962,7 +962,7 @@ func (s *Serf) handleNodeLeave(n *memberlist.Node) {
 	}
 
 	// Update some metrics
-	metrics.IncrCounter([]string{"serf", "member", member.Status.String()}, 1)
+	metrics.IncrCounterWithLabels([]string{"serf", "member", member.Status.String()}, 1, []metrics.Label{{Name: "node", Value: member.Name}})
 
 	s.logger.Printf("[INFO] serf: %s: %s %s",
 		eventStr, member.Member.Name, member.Member.Addr)
@@ -1006,7 +1006,7 @@ func (s *Serf) handleNodeUpdate(n *memberlist.Node) {
 	member.DelegateCur = n.DCur
 
 	// Update some metrics
-	metrics.IncrCounter([]string{"serf", "member", "update"}, 1)
+	metrics.IncrCounterWithLabels([]string{"serf", "member", "update"}, 1, []metrics.Label{{Name: "node", Value: member.Name}})
 
 	// Send an event along
 	s.logger.Printf("[INFO] serf: EventMemberUpdate: %s", member.Member.Name)
@@ -1296,11 +1296,11 @@ func (s *Serf) handleQueryResponse(resp *messageQueryResponse) {
 	if resp.Ack() {
 		// Exit early if this is a duplicate ack
 		if _, ok := query.acks[resp.From]; ok {
-			metrics.IncrCounter([]string{"serf", "query_duplicate_acks"}, 1)
+			metrics.IncrCounterWithLabels([]string{"serf", "query_duplicate_acks"}, 1, []metrics.Label{{Name: "node", Value: resp.From}})
 			return
 		}
 
-		metrics.IncrCounter([]string{"serf", "query_acks"}, 1)
+		metrics.IncrCounterWithLabels([]string{"serf", "query_acks"}, 1, []metrics.Label{{Name: "node", Value: resp.From}})
 		select {
 		case query.ackCh <- resp.From:
 			query.acks[resp.From] = struct{}{}
@@ -1310,11 +1310,11 @@ func (s *Serf) handleQueryResponse(resp *messageQueryResponse) {
 	} else {
 		// Exit early if this is a duplicate response
 		if _, ok := query.responses[resp.From]; ok {
-			metrics.IncrCounter([]string{"serf", "query_duplicate_responses"}, 1)
+			metrics.IncrCounterWithLabels([]string{"serf", "query_duplicate_responses"}, 1, []metrics.Label{{Name: "node", Value: resp.From}})
 			return
 		}
 
-		metrics.IncrCounter([]string{"serf", "query_responses"}, 1)
+		metrics.IncrCounterWithLabels([]string{"serf", "query_responses"}, 1, []metrics.Label{{Name: "node", Value: resp.From}})
 		err := query.sendResponse(NodeResponse{From: resp.From, Payload: resp.Payload})
 		if err != nil {
 			s.logger.Printf("[WARN] %v", err)
