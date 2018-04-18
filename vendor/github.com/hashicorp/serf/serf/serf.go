@@ -1213,8 +1213,9 @@ func (s *Serf) handleQuery(query *messageQuery) bool {
 	seen.QueryIDs = append(seen.QueryIDs, query.ID)
 
 	// Update some metrics
-	metrics.IncrCounter([]string{"serf", "queries"}, 1)
-	metrics.IncrCounter([]string{"serf", "queries", query.Name}, 1)
+	labels := []metrics.Label{{Name: "id", Value: strconv.FormatInt(int64(query.ID), 10)}, {Name: "name", Value: query.Name}}
+	metrics.IncrCounterWithLabels([]string{"serf", "queries"}, 1, labels)
+	metrics.IncrCounterWithLabels([]string{"serf", "queries", query.Name}, 1, labels)
 
 	// Check if we should rebroadcast, this may be disabled by a flag
 	rebroadcast := true
@@ -1293,14 +1294,15 @@ func (s *Serf) handleQueryResponse(resp *messageQueryResponse) {
 	}
 
 	// Process each type of response
+	labels := []metrics.Label{{Name: "node", Value: resp.From}}
 	if resp.Ack() {
 		// Exit early if this is a duplicate ack
 		if _, ok := query.acks[resp.From]; ok {
-			metrics.IncrCounterWithLabels([]string{"serf", "query_duplicate_acks"}, 1, []metrics.Label{{Name: "node", Value: resp.From}})
+			metrics.IncrCounterWithLabels([]string{"serf", "query_duplicate_acks"}, 1, labels)
 			return
 		}
 
-		metrics.IncrCounterWithLabels([]string{"serf", "query_acks"}, 1, []metrics.Label{{Name: "node", Value: resp.From}})
+		metrics.IncrCounterWithLabels([]string{"serf", "query_acks"}, 1, labels)
 		select {
 		case query.ackCh <- resp.From:
 			query.acks[resp.From] = struct{}{}
@@ -1310,11 +1312,11 @@ func (s *Serf) handleQueryResponse(resp *messageQueryResponse) {
 	} else {
 		// Exit early if this is a duplicate response
 		if _, ok := query.responses[resp.From]; ok {
-			metrics.IncrCounterWithLabels([]string{"serf", "query_duplicate_responses"}, 1, []metrics.Label{{Name: "node", Value: resp.From}})
+			metrics.IncrCounterWithLabels([]string{"serf", "query_duplicate_responses"}, 1, labels)
 			return
 		}
 
-		metrics.IncrCounterWithLabels([]string{"serf", "query_responses"}, 1, []metrics.Label{{Name: "node", Value: resp.From}})
+		metrics.IncrCounterWithLabels([]string{"serf", "query_responses"}, 1, labels)
 		err := query.sendResponse(NodeResponse{From: resp.From, Payload: resp.Payload})
 		if err != nil {
 			s.logger.Printf("[WARN] %v", err)
