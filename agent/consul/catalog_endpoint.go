@@ -280,20 +280,20 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 	// Provide some metrics
 	if err == nil {
 		metrics.IncrCounterWithLabels([]string{"consul", "catalog", "service", "query"}, 1,
-			[]metrics.Label{{Name: "service", Value: args.ServiceName}})
+			[]metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "client", Value: req.RemoteAddr().String()}})
 		metrics.IncrCounterWithLabels([]string{"catalog", "service", "query"}, 1,
-			[]metrics.Label{{Name: "service", Value: args.ServiceName}})
+			[]metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "client", Value: req.RemoteAddr().String()}})
 		if args.ServiceTag != "" {
 			metrics.IncrCounterWithLabels([]string{"consul", "catalog", "service", "query-tag"}, 1,
-				[]metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "tag", Value: args.ServiceTag}})
+				[]metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "tag", Value: args.ServiceTag}, {Name: "client", Value: req.RemoteAddr().String()}})
 			metrics.IncrCounterWithLabels([]string{"catalog", "service", "query-tag"}, 1,
-				[]metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "tag", Value: args.ServiceTag}})
+				[]metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "tag", Value: args.ServiceTag}, {Name: "client", Value: req.RemoteAddr().String()}})
 		}
 		if len(reply.ServiceNodes) == 0 {
 			metrics.IncrCounterWithLabels([]string{"consul", "catalog", "service", "not-found"}, 1,
-				[]metrics.Label{{Name: "service", Value: args.ServiceName}})
+				[]metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "client", Value: req.RemoteAddr().String()}})
 			metrics.IncrCounterWithLabels([]string{"catalog", "service", "not-found"}, 1,
-				[]metrics.Label{{Name: "service", Value: args.ServiceName}})
+				[]metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "client", Value: req.RemoteAddr().String()}})
 		}
 	}
 	return err
