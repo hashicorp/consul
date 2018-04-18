@@ -1,13 +1,19 @@
 td.actions > div {
   @extend %action-group;
 }
-%action-group {
-  border-radius: $radius-small;
+th.actions input {
+  display: none;
+}
+th.actions {
+  text-align: right;
 }
 %action-group label {
+  border-radius: $radius-small;
   cursor: pointer;
 }
-%action-group {
+
+%action-group input[type='radio']:checked + label:first-of-type,
+%action-group label:first-of-type:hover {
   background-color: $gray;
 }
 %action-group label span {
@@ -25,6 +31,7 @@ td.actions > div {
   top: 50%;
   left: 50%;
   margin-top: -1px;
+  pointer-events: none;
 }
 %action-group label::after,
 %action-group label::before,
@@ -62,27 +69,33 @@ td.actions > div {
   background-color: $white;
 }
 %action-group {
-  float: right;
-  top: -5px;
 }
 %action-group {
   width: 30px;
   height: 30px;
-  position: relative;
+  position: absolute;
+  top: 8px;
+  right: 15px;
 }
 %action-group label {
   display: block;
   height: 100%;
 }
+%action-group label:last-of-type {
+  position: absolute;
+  width: 100%;
+  z-index: -1;
+  top: 0;
+}
 %action-group ul {
   position: absolute;
-  right: -4px;
+  right: -10px;
   top: 35px;
   padding: 1px;
 }
 %action-group ul::before {
   position: absolute;
-  right: 10px;
+  right: 18px;
   top: -6px;
   content: '';
   display: block;
@@ -99,9 +112,12 @@ td.actions > div {
   padding: 10px 10px;
 }
 %action-group input[type='radio'],
-%action-group input[type='radio'] + * {
+%action-group input[type='radio'] ~ ul {
   display: none;
 }
-%action-group input[type='radio']:checked + * {
+%action-group input[type='radio']:checked ~ ul {
   display: block;
+}
+%action-group input[type='radio']:checked ~ label:last-of-type {
+  z-index: 1;
 }

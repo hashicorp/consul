@@ -33,28 +33,22 @@
                         <span>{{item.Type}}</span>
                     {{/if}}
                 </td>
-                <td class="actions">
-                    <div>
-                        <label for="actions_{{index}}">
-                            <span>Open</span>
-                        </label>
-                        <input type="radio" name="actions" id="actions_{{index}}" />
-                        <ul>
-                            <li>
-                                <a href="{{href-to 'dc.acls.edit' item.ID}}">Edit</a>
-                            </li>
-                            <li>
-                                <a onclick={{action 'requestUse'}}>Use</a>
-                            </li>
-                            <li>
-                                <a onclick={{action 'clone'}}>Clone</a>
-                            </li>
-                            <li>
-                                <a onclick={{action 'requestDelete'}}>Delete</a>
-                            </li>
-                        </ul>
-                    </div>
-                </td>
+            {{/block-slot}}
+            {{#block-slot 'actions'}}
+                <ul>
+                    <li>
+                        <a href="{{href-to 'dc.acls.edit' item.ID}}">Edit</a>
+                    </li>
+                    <li>
+                        <a onclick={{action 'requestUse'}}>Use</a>
+                    </li>
+                    <li>
+                        <a onclick={{action 'clone'}}>Clone</a>
+                    </li>
+                    <li>
+                        <a onclick={{action 'requestDelete'}}>Delete</a>
+                    </li>
+                </ul>
             {{/block-slot}}
         {{/tabular-collection}}
 {{else}}

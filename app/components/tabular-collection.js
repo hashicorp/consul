@@ -12,7 +12,13 @@ const createSizeEvent = function(detail) {
     detail: { width: window.innerWidth, height: window.innerHeight },
   };
 };
-
+class ZIndexedGrid extends Grid {
+  formatItemStyle(index, w, h) {
+    let style = super.formatItemStyle(...arguments);
+    style += 'z-index: ' + (10000 - index);
+    return style;
+  }
+}
 export default Component.extend(SlotsMixin, {
   tagName: 'table',
   attributeBindings: ['style'],
@@ -21,7 +27,7 @@ export default Component.extend(SlotsMixin, {
   style: style('getStyle'),
   init: function() {
     this._super(...arguments);
-    this['cell-layout'] = new Grid(get(this, 'width'), 46);
+    this['cell-layout'] = new ZIndexedGrid(get(this, 'width'), 46);
     this.handler = () => {
       this.resize(createSizeEvent());
     };
@@ -31,6 +37,10 @@ export default Component.extend(SlotsMixin, {
       height: get(this, 'height'),
     };
   }),
+  willRender: function() {
+    this._super(...arguments);
+    this.set('hasActions', this._isRegistered('actions'));
+  },
   didInsertElement: function() {
     this._super(...arguments);
     window.addEventListener('resize', this.handler);
@@ -46,8 +56,8 @@ export default Component.extend(SlotsMixin, {
     // TODO: cheat for the moment
     const $thead = [...$$('main > div')][0];
     if ($thead) {
-      this.set('height', new Number(e.detail.height - ($footer.clientHeight + 335)));
-      this['cell-layout'] = new Grid($thead.clientWidth, 46);
+      this.set('height', new Number(e.detail.height - ($footer.clientHeight + 278)));
+      this['cell-layout'] = new ZIndexedGrid($thead.clientWidth, 46);
       this.updateItems();
       this.updateScrollPosition();
     }
