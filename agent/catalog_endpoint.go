@@ -13,7 +13,7 @@ var durations = NewDurationFixer("interval", "timeout", "deregistercriticalservi
 
 func (s *HTTPServer) CatalogRegister(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_register"}, 1,
-		[]metrics.Label{{Name: "node", Value: s.nodeName(), []metrics.Label{{Name: "node", Value: s.nodeName(), {Name: "client", Value: req.RemoteAddr().String()}}})}})
+		[]metrics.Label{{Name: "node", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
 
 	var args structs.RegisterRequest
 	if err := decodeBody(req, &args, durations.FixupDurations); err != nil {
@@ -32,17 +32,17 @@ func (s *HTTPServer) CatalogRegister(resp http.ResponseWriter, req *http.Request
 	var out struct{}
 	if err := s.agent.RPC("Catalog.Register", &args, &out); err != nil {
 		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_register"}, 1,
-			[]metrics.Label{{Name: "node", Value: s.nodeName(), []metrics.Label{{Name: "node", Value: s.nodeName(), {Name: "client", Value: req.RemoteAddr().String()}}})}})
+			[]metrics.Label{{Name: "node", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
 		return nil, err
 	}
 	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_register"}, 1,
-		[]metrics.Label{{Name: "node", Value: s.nodeName(), []metrics.Label{{Name: "node", Value: s.nodeName(), {Name: "client", Value: req.RemoteAddr().String()}}})}})
+		[]metrics.Label{{Name: "node", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
 	return true, nil
 }
 
 func (s *HTTPServer) CatalogDeregister(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_deregister"}, 1,
-		[]metrics.Label{{Name: "node", Value: s.nodeName(), []metrics.Label{{Name: "node", Value: s.nodeName(), {Name: "client", Value: req.RemoteAddr().String()}}})}})
+		[]metrics.Label{{Name: "node", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
 
 	var args structs.DeregisterRequest
 	if err := decodeBody(req, &args, nil); err != nil {
@@ -61,32 +61,32 @@ func (s *HTTPServer) CatalogDeregister(resp http.ResponseWriter, req *http.Reque
 	var out struct{}
 	if err := s.agent.RPC("Catalog.Deregister", &args, &out); err != nil {
 		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_deregister"}, 1,
-			[]metrics.Label{{Name: "node", Value: s.nodeName(), []metrics.Label{{Name: "node", Value: s.nodeName(), {Name: "client", Value: req.RemoteAddr().String()}}})}})
+			[]metrics.Label{{Name: "node", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
 		return nil, err
 	}
 	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_deregister"}, 1,
-		[]metrics.Label{{Name: "node", Value: s.nodeName(), []metrics.Label{{Name: "node", Value: s.nodeName(), {Name: "client", Value: req.RemoteAddr().String()}}})}})
+		[]metrics.Label{{Name: "node", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
 	return true, nil
 }
 
 func (s *HTTPServer) CatalogDatacenters(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_datacenters"}, 1,
-		[]metrics.Label{{Name: "node", Value: s.nodeName(), []metrics.Label{{Name: "node", Value: s.nodeName(), {Name: "client", Value: req.RemoteAddr().String()}}})}})
+		[]metrics.Label{{Name: "node", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
 
 	var out []string
 	if err := s.agent.RPC("Catalog.ListDatacenters", struct{}{}, &out); err != nil {
 		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_datacenters"}, 1,
-			[]metrics.Label{{Name: "node", Value: s.nodeName(), []metrics.Label{{Name: "node", Value: s.nodeName(), {Name: "client", Value: req.RemoteAddr().String()}}})}})
+			[]metrics.Label{{Name: "node", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
 		return nil, err
 	}
 	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_datacenters"}, 1,
-		[]metrics.Label{{Name: "node", Value: s.nodeName(), []metrics.Label{{Name: "node", Value: s.nodeName(), {Name: "client", Value: req.RemoteAddr().String()}}})}})
+		[]metrics.Label{{Name: "node", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
 	return out, nil
 }
 
 func (s *HTTPServer) CatalogNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_nodes"}, 1,
-		[]metrics.Label{{Name: "node", Value: s.nodeName(), []metrics.Label{{Name: "node", Value: s.nodeName(), {Name: "client", Value: req.RemoteAddr().String()}}})}})
+		[]metrics.Label{{Name: "node", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
 
 	// Setup the request
 	args := structs.DCSpecificRequest{}
@@ -94,7 +94,7 @@ func (s *HTTPServer) CatalogNodes(resp http.ResponseWriter, req *http.Request) (
 	args.NodeMetaFilters = s.parseMetaFilter(req)
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_nodes"}, 1,
-			[]metrics.Label{{Name: "node", Value: s.nodeName(), []metrics.Label{{Name: "node", Value: s.nodeName(), {Name: "client", Value: req.RemoteAddr().String()}}})}})
+			[]metrics.Label{{Name: "node", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
 		return nil, nil
 	}
 
@@ -124,7 +124,7 @@ RETRY_ONCE:
 
 func (s *HTTPServer) CatalogServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_services"}, 1,
-		[]metrics.Label{{Name: "node", Value: s.nodeName(), []metrics.Label{{Name: "node", Value: s.nodeName(), {Name: "client", Value: req.RemoteAddr().String()}}})}})
+		[]metrics.Label{{Name: "node", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
 
 	// Set default DC
 	args := structs.DCSpecificRequest{}
@@ -138,7 +138,7 @@ func (s *HTTPServer) CatalogServices(resp http.ResponseWriter, req *http.Request
 RETRY_ONCE:
 	if err := s.agent.RPC("Catalog.ListServices", &args, &out); err != nil {
 		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_services"}, 1,
-			[]metrics.Label{{Name: "node", Value: s.nodeName(), []metrics.Label{{Name: "node", Value: s.nodeName(), {Name: "client", Value: req.RemoteAddr().String()}}})}})
+			[]metrics.Label{{Name: "node", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
 		return nil, err
 	}
 	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
@@ -153,13 +153,13 @@ RETRY_ONCE:
 		out.Services = make(structs.Services, 0)
 	}
 	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_services"}, 1,
-		[]metrics.Label{{Name: "node", Value: s.nodeName(), []metrics.Label{{Name: "node", Value: s.nodeName(), {Name: "client", Value: req.RemoteAddr().String()}}})}})
+		[]metrics.Label{{Name: "node", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
 	return out.Services, nil
 }
 
 func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_service_nodes"}, 1,
-		[]metrics.Label{{Name: "node", Value: s.nodeName(), []metrics.Label{{Name: "node", Value: s.nodeName(), {Name: "client", Value: req.RemoteAddr().String()}}})}})
+		[]metrics.Label{{Name: "node", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
 
 	// Set default DC
 	args := structs.ServiceSpecificRequest{}
@@ -190,7 +190,7 @@ func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Req
 RETRY_ONCE:
 	if err := s.agent.RPC("Catalog.ServiceNodes", &args, &out); err != nil {
 		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_service_nodes"}, 1,
-			[]metrics.Label{{Name: "node", Value: s.nodeName(), []metrics.Label{{Name: "node", Value: s.nodeName(), {Name: "client", Value: req.RemoteAddr().String()}}})}})
+			[]metrics.Label{{Name: "node", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
 		return nil, err
 	}
 	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
@@ -213,13 +213,13 @@ RETRY_ONCE:
 		}
 	}
 	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_service_nodes"}, 1,
-		[]metrics.Label{{Name: "node", Value: s.nodeName(), []metrics.Label{{Name: "node", Value: s.nodeName(), {Name: "client", Value: req.RemoteAddr().String()}}})}})
+		[]metrics.Label{{Name: "node", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
 	return out.ServiceNodes, nil
 }
 
 func (s *HTTPServer) CatalogNodeServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_node_services"}, 1,
-		[]metrics.Label{{Name: "node", Value: s.nodeName(), []metrics.Label{{Name: "node", Value: s.nodeName(), {Name: "client", Value: req.RemoteAddr().String()}}})}})
+		[]metrics.Label{{Name: "node", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
 
 	// Set default Datacenter
 	args := structs.NodeSpecificRequest{}
@@ -241,7 +241,7 @@ func (s *HTTPServer) CatalogNodeServices(resp http.ResponseWriter, req *http.Req
 RETRY_ONCE:
 	if err := s.agent.RPC("Catalog.NodeServices", &args, &out); err != nil {
 		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_node_services"}, 1,
-			[]metrics.Label{{Name: "node", Value: s.nodeName(), []metrics.Label{{Name: "node", Value: s.nodeName(), {Name: "client", Value: req.RemoteAddr().String()}}})}})
+			[]metrics.Label{{Name: "node", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
 		return nil, err
 	}
 	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
@@ -272,6 +272,6 @@ RETRY_ONCE:
 		}
 	}
 	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_node_services"}, 1,
-		[]metrics.Label{{Name: "node", Value: s.nodeName(), []metrics.Label{{Name: "node", Value: s.nodeName(), {Name: "client", Value: req.RemoteAddr().String()}}})}})
+		[]metrics.Label{{Name: "node", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
 	return out.NodeServices, nil
 }

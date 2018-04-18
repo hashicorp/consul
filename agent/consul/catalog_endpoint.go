@@ -2,6 +2,7 @@ package consul
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -279,21 +280,18 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 
 	// Provide some metrics
 	if err == nil {
-		metrics.IncrCounterWithLabels([]string{"consul", "catalog", "service", "query"}, 1,
-			[]metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "client", Value: req.RemoteAddr().String()}})
-		metrics.IncrCounterWithLabels([]string{"catalog", "service", "query"}, 1,
-			[]metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "client", Value: req.RemoteAddr().String()}})
+		numResults := len(reply.ServiceNodes)
+		labels := []metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "results", Value: strconv.FormatInt(int64(numResults), 10)}, {Name: "found", Value: strconv.FormatBool(numResults != 0)}}
 		if args.ServiceTag != "" {
-			metrics.IncrCounterWithLabels([]string{"consul", "catalog", "service", "query-tag"}, 1,
-				[]metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "tag", Value: args.ServiceTag}, {Name: "client", Value: req.RemoteAddr().String()}})
-			metrics.IncrCounterWithLabels([]string{"catalog", "service", "query-tag"}, 1,
-				[]metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "tag", Value: args.ServiceTag}, {Name: "client", Value: req.RemoteAddr().String()}})
+			labels = append(labels, metrics.Label{Name: "tag", Value: args.ServiceTag})
+			metrics.IncrCounterWithLabels([]string{"consul", "catalog", "service", "query-tag"}, 1, labels)
+			metrics.IncrCounterWithLabels([]string{"catalog", "service", "query-tag"}, 1, labels)
 		}
-		if len(reply.ServiceNodes) == 0 {
-			metrics.IncrCounterWithLabels([]string{"consul", "catalog", "service", "not-found"}, 1,
-				[]metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "client", Value: req.RemoteAddr().String()}})
-			metrics.IncrCounterWithLabels([]string{"catalog", "service", "not-found"}, 1,
-				[]metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "client", Value: req.RemoteAddr().String()}})
+		metrics.IncrCounterWithLabels([]string{"consul", "catalog", "service", "query"}, 1, labels)
+		metrics.IncrCounterWithLabels([]string{"catalog", "service", "query"}, 1, labels)
+		if numResults == 0 {
+			metrics.IncrCounterWithLabels([]string{"consul", "catalog", "service", "not-found"}, 1, labels)
+			metrics.IncrCounterWithLabels([]string{"catalog", "service", "not-found"}, 1, labels)
 		}
 	}
 	return err
