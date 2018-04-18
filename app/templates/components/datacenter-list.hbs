@@ -1,7 +1,7 @@
     <ul>
     {{#each items as |item|}}
-        <li data-test-datacenter-list="{{item}}">
-            {{#link-to 'dc.services' item }}{{item}}{{/link-to}}
+        <li data-test-datacenter-list="{{item.Name}}">
+            <a href={{href-to 'dc.services' item.Name}}>{{item.Name}}</a>
         </li>
     {{/each}}
     </ul>

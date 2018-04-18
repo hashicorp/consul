@@ -72,7 +72,7 @@ export default Adapter.extend({
   },
   urlForUpdateRecord: function(id, modelName, snapshot) {
     return this.appendURL('kv', keyToArray(id), {
-      dc: snapshot.attr('Datacenter'),
+      dc: snapshot.attr(DATACENTER_KEY),
     });
   },
   // isCreateRecord: function(parts) {

@@ -51,9 +51,9 @@
                         Are you sure you want to delete {{item.basename}}?
                     </p>
 {{/if}}
-                    <button type="button" class="type-delete" {{ action "requestDelete" item parent}}>Delete</button>
+                    <button type="button" class="type-delete" {{ action "requestDelete" item}}>Delete</button>
 {{#if false }}
-                    <button type="button" class="type-cancel" {{ action "requestDelete" item parent}}>Cancel</button>
+                    <button type="button" class="type-cancel" {{ action "requestDelete" item}}>Cancel</button>
 {{/if}}
                 </div>
         </form>

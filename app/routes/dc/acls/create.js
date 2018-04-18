@@ -1,15 +1,15 @@
 import Route from '@ember/routing/route';
-import { get } from '@ember/object';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
+import { get, set } from '@ember/object';
 
 import WithFeedback from 'consul-ui/mixins/with-feedback';
 export default Route.extend(WithFeedback, {
   templateName: 'dc/acls/edit',
   repo: service('acls'),
   model: function(params) {
-    const item = this.get('repo').create();
-    item.set('Datacenter', this.modelFor('dc').dc);
+    const item = get(this, 'repo').create();
+    set(item, 'Datacenter', this.modelFor('dc').dc.Name);
     return hash({
       item: item,
       types: ['management', 'client'],
@@ -20,14 +20,14 @@ export default Route.extend(WithFeedback, {
   },
   actions: {
     create: function(item) {
-      this.get('feedback').execute(
+      get(this, 'feedback').execute(
         () => {
           return item.save().then(() => {
-              this.transitionTo('dc.acls.edit', get(item, 'ID'));
+            return this.transitionTo('dc.acls.edit', get(item, 'ID'));
           });
         },
-        `Created ${item.get('Name')}`,
-        `There was an error using ${item.get('Name')}`
+        `Your ACL token has been added.`,
+        `There was an error adding your ACL token.`
       );
     },
     cancel: function(item) {

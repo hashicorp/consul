@@ -4,11 +4,11 @@ import error from 'consul-ui/utils/error';
 
 export default Controller.extend({
   actions: {
-    requestDelete: function(item, parent) {
+    requestDelete: function(item) {
       confirm('Are you sure you want to delete this key?')
         .then(confirmed => {
           if (confirmed) {
-            return this.send('delete', item, parent);
+            return this.send('delete', item);
           }
         })
         .catch(error);

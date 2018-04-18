@@ -10,7 +10,7 @@ export default Route.extend(WithFeedback, {
   repo: service('kv'),
   model: function(params) {
     const key = params.key || '/';
-    const dc = this.modelFor('dc').dc;
+    const dc = this.modelFor('dc').dc.Name;
     const repo = get(this, 'repo');
     return hash({
       isLoading: false,
@@ -34,7 +34,7 @@ export default Route.extend(WithFeedback, {
       });
   },
   actions: {
-    delete: function(item, parent) {
+    delete: function(item) {
       get(this, 'feedback').execute(
         () => {
           return get(this, 'repo')
@@ -43,8 +43,8 @@ export default Route.extend(WithFeedback, {
               return this.refresh();
             });
         },
-        `Deleted ${get(item, 'Key')}`,
-        `There was an error deleting ${get(item, 'Key')}`
+        `Your key was deleted.`,
+        `There was an error deleting your key.`
       );
     },
     // TODO: This is frontend ??

@@ -12,7 +12,7 @@ export default Route.extend(WithFeedback, {
   sessionRepo: service('session'),
   model: function(params) {
     const key = params.key;
-    const dc = this.modelFor('dc').dc;
+    const dc = this.modelFor('dc').dc.Name;
     const repo = get(this, 'repo');
     return hash({
       isLoading: false,
@@ -40,13 +40,13 @@ export default Route.extend(WithFeedback, {
       get(this, 'feedback').execute(
         () => {
           return get(this, 'repo')
-            .persist(item, this.modelFor('dc').dc)
+            .persist(item)
             .then(() => {
               return this.transitionTo('dc.kv.folder', get(parent, 'Key'));
             });
         },
-        `Updated ${get(item, 'Key')}`,
-        `There was an error updating ${get(item, 'Key')}`
+        `Your key has been saved.`,
+        `There was an error saving your key.`
       );
     },
     delete: function(item, parent) {
@@ -58,8 +58,8 @@ export default Route.extend(WithFeedback, {
               return this.transitionTo('dc.kv.folder', get(parent, 'Key'));
             });
         },
-        `Deleted ${get(item, 'Key')}`,
-        `There was an error deleting ${get(item, 'Key')}`
+        `Your key was deleted.`,
+        `There was an error deleting your key.`
       );
     },
     // TODO: This is frontend ??

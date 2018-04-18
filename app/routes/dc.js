@@ -1,13 +1,14 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
+import { get } from '@ember/object';
 
 export default Route.extend({
   repo: service('dc'),
   // nodeRepo: service('nodes'),
   model: function(params) {
-    const repo = this.get('repo');
-    // const nodeRepo = this.get('nodeRepo');
+    const repo = get(this, 'repo');
+    // const nodeRepo = get(this, 'nodeRepo');
     const dc = { Name: params.dc }; // TODO: this needs to be an ember-data object
     return hash({
       dc: dc,

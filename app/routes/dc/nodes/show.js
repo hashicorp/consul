@@ -5,10 +5,11 @@ import { assign } from '@ember/polyfills';
 
 import distance from 'consul-ui/utils/distance';
 import tomographyFactory from 'consul-ui/utils/tomography';
+import WithFeedback from 'consul-ui/mixins/with-feedback';
 
 const tomography = tomographyFactory(distance);
 
-export default Route.extend({
+export default Route.extend(WithFeedback, {
   repo: service('nodes'),
   sessionRepo: service('session'),
   queryParams: {
@@ -18,13 +19,11 @@ export default Route.extend({
     },
   },
   model: function(params) {
-    const dc = this.modelFor('dc');
-    const repo = this.get('repo');
-    const sessionRepo = this.get('sessionRepo');
-    // Return a promise hash of the node
+    const dc = this.modelFor('dc').dc.Name;
+    const repo = this.get(this, 'repo');
+    const sessionRepo = get(this, 'sessionRepo');
     return hash({
-      dc: dc.dc,
-      model: repo.findBySlug(params.name, dc.dc),
+      model: repo.findBySlug(params.name, dc),
       size: 337,
     }).then(function(model) {
       // Load the sessions for the node
@@ -33,8 +32,8 @@ export default Route.extend({
       return hash(
         assign({}, model, {
           tomography: tomography(params.name, model.model.coordinates),
-          items: model.model.get('Services'),
-          sessions: sessionRepo.findByNode(model.model.get('Node'), model.dc),
+          items: get(model.model, 'Services'),
+          sessions: sessionRepo.findByNode(get(model.model, 'Node'), dc),
         })
       );
     });
@@ -44,28 +43,22 @@ export default Route.extend({
   },
   actions: {
     // TODO: use feedback service
-    invalidateSession: function(session) {
+    invalidateSession: function(item) {
+      const dc = this.modelFor('dc').dc.Name;
       const controller = this.controller;
-      controller.set('isLoading', true);
-      const dc = this.modelFor('dc').dc;
-      // Delete the session
-      const sessionRepo = this.get('sessionRepo');
-      sessionRepo
-        .remove(session, dc)
-        .then(() => {
-          const node = controller.get('model');
-          return sessionRepo.findByNode(node.get('Node'), dc).then(function(sessions) {
-            controller.set('sessions', sessions);
+      const repo = get(this, 'sessionRepo');
+      get(this, 'feedback').execute(
+        () => {
+          return repo.remove(item, dc).then(() => {
+            const node = controller.get('model');
+            return repo.findByNode(node.get('Node'), dc).then(function(sessions) {
+              controller.set('sessions', sessions);
+            });
           });
-        })
-        .catch(function(e) {
-          // TODO: Make sure errors are dealt with properly
-          // Render the error message on the form if the request failed
-          controller.set('errorMessage', 'Received error while processing: ' + e.statusText);
-        })
-        .finally(function() {
-          controller.set('isLoading', false);
-        });
+        },
+        `The session was invalidated.`,
+        `There was an error invalidating the session.`
+      );
     },
   },
 });

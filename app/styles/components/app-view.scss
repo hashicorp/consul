@@ -21,16 +21,16 @@ main {
 %app-view header form {
   @extend %filter-bar;
 }
-%app-view header > div:first-child {
+%app-view header > div:last-of-type {
   display: flex;
   width: 100%;
   // padding-bottom: 0.25em;
   border-bottom: 2px solid;
 }
-%app-view header > div:first-child > div:first-child {
+%app-view header > div:last-of-type > div:first-child {
   flex-grow: 1;
 }
-%app-view header > div:first-child,
+%app-view header > div:last-of-type,
 %app-view h2 {
   border-color: $border-blue;
 }

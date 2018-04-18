@@ -1,12 +1,13 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
+import { get } from '@ember/object';
 import WithFeedback from 'consul-ui/mixins/with-feedback';
 export default Route.extend(WithFeedback, {
   repo: service('acls'),
   model: function(params) {
     return hash({
-      item: this.get('repo').findBySlug(params.id, this.modelFor('dc').dc),
+      item: get(this, 'repo').findBySlug(params.id, this.modelFor('dc').dc.Name),
       types: ['management', 'client'],
     });
   },
@@ -15,51 +16,51 @@ export default Route.extend(WithFeedback, {
   },
   actions: {
     delete: function(item) {
-      this.get('feedback').execute(
+      get(this, 'feedback').execute(
         () => {
-          return this.get('repo')
+          return get(this, 'repo')
             .remove(item)
             .then(() => {
               this.transitionTo('dc.acls');
             });
         },
-        `Deleted ${item.get('ID')}`,
-        `There was an error deleting ${item.get('ID')}`
+        `Your ACL token was deleted.`,
+        `There was an error deleting your ACL token.`
       );
     },
     update: function(item) {
-      this.get('feedback').execute(
+      get(this, 'feedback').execute(
         () => {
-          return this.get('repo').persist(item, this.modelFor('dc').dc);
+          return get(this, 'repo').persist(item);
         },
-        `Updated ${item.get('ID')}`,
-        `There was an error updating ${item.get('ID')}`
+        `Your ACL token was saved.`,
+        `There was an error saving your ACL token.`
       );
     },
     cancel: function(item) {
       this.transitionTo('dc.acls');
     },
     use: function(item) {
-      this.get('feedback').execute(
+      get(this, 'feedback').execute(
         () => {
           // settings.set('settings.token', acl.ID);
           this.transitionTo('dc.services');
         },
-        `Now using ${item.get('ID')}`,
-        `There was an error using ${item.get('ID')}`
+        `Now using new ACL token`,
+        `There was an error using that ACL token`
       );
     },
     clone: function(item) {
-      this.get('feedback').execute(
+      get(this, 'feedback').execute(
         () => {
-          return this.get('repo')
-            .clone(item, this.modelFor('dc').dc)
+          return get(this, 'repo')
+            .clone(item)
             .then(item => {
-              this.transitionTo('dc.acls.show', item.get('ID'));
+              this.transitionTo('dc.acls.show', get(item, 'ID'));
             });
         },
-        `Cloned ${item.get('ID')}`,
-        `There was an error cloning ${item.get('ID')}`
+        `Your ACL token was cloned.`,
+        `There was an error cloning your ACL token.`
       );
     },
   },

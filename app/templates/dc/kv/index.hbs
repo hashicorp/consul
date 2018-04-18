@@ -30,7 +30,7 @@
                         <a href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key}}>Edit</a>
                     </li>
                     <li>
-                        <a onclick={{action 'requestDelete'}}>Delete</a>
+                        <a onclick={{action 'requestDelete' item}}>Delete</a>
                     </li>
                 </ul>
             {{/block-slot}}

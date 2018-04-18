@@ -7,21 +7,13 @@ export default Route.extend({
   repo: service('acls'),
   model: function(params) {
     return hash({
-      items: this.get('repo').findAllByDatacenter(this.modelFor('dc').dc),
+      items: get(this, 'repo').findAllByDatacenter(this.modelFor('dc').dc.Name),
     });
   },
   setupController: function(controller, model) {
     controller.setProperties(model);
   },
   actions: {
-    // didTransition: function() {
-    //   next(() => {
-    //     // TODO: hasOutlet
-    //     this.controller.setProperties({
-    //       isShowingItem: this.get('router.currentPath') === 'dc.acls.show',
-    //     });
-    //   });
-    // },
     // TODO: this needs to happen for all endpoints
     error: function(e, transition) {
       if (e.errors[0].status === '401') {

@@ -1,20 +1,24 @@
 import Service from '@ember/service';
-import notify from 'consul-ui/utils/notify';
-import error from 'consul-ui/utils/error';
+import { inject as service } from '@ember/service';
+import { get } from '@ember/object';
 
 export default Service.extend({
-  execute: function(handle, successMsg, failureMsg) {
+  flashMessages: service('flashMessages'),
+  execute: function(handle, success, error) {
     const controller = this.controller;
     controller.set('isLoading', true);
     return handle()
-      .then(function() {
-        // this will go into the view
-        notify(successMsg);
-        controller.set('notification', successMsg);
+      .then(() => {
+        get(this, 'flashMessages').add({
+          type: 'success',
+          message: success,
+        });
       })
-      .catch(function(e) {
-        error(e);
-        controller.set('errorMessage', failureMsg);
+      .catch(e => {
+        get(this, 'flashMessages').add({
+          type: 'error',
+          message: error,
+        });
       })
       .finally(function() {
         controller.set('isLoading', false);
