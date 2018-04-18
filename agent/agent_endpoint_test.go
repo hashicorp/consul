@@ -2358,6 +2358,8 @@ func TestAgentConnectProxy(t *testing.T) {
 			}
 
 			assert.Equal(tt.wantResp, obj)
+
+			assert.Equal(tt.wantResp.ContentHash, resp.Header().Get("X-Consul-ContentHash"))
 		})
 	}
 }

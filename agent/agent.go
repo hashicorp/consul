@@ -2444,7 +2444,11 @@ func (a *Agent) loadProxies(conf *config.RuntimeConfig) error {
 
 // unloadProxies will deregister all proxies known to the local agent.
 func (a *Agent) unloadProxies() error {
-	// TODO(banks): implement me
+	for id := range a.State.Proxies() {
+		if err := a.RemoveProxy(id, false); err != nil {
+			return fmt.Errorf("Failed deregistering proxy '%s': %s", id, err)
+		}
+	}
 	return nil
 }
 

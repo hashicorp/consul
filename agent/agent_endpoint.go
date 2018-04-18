@@ -918,7 +918,7 @@ func (s *HTTPServer) AgentConnectProxyConfig(resp http.ResponseWriter, req *http
 	// didn't want to make very general changes right away.
 	hash := req.URL.Query().Get("hash")
 
-	return s.agentLocalBlockingQuery(hash, &queryOpts,
+	return s.agentLocalBlockingQuery(resp, hash, &queryOpts,
 		func(updateCh chan struct{}) (string, interface{}, error) {
 			// Retrieve the proxy specified
 			proxy := s.agent.State.Proxy(id)
@@ -972,7 +972,11 @@ func (s *HTTPServer) AgentConnectProxyConfig(resp http.ResponseWriter, req *http
 
 type agentLocalBlockingFunc func(updateCh chan struct{}) (string, interface{}, error)
 
-func (s *HTTPServer) agentLocalBlockingQuery(hash string,
+// agentLocalBlockingQuery performs a blocking query in a generic way against
+// local agent state that has no RPC or raft to back it. It uses `hash` paramter
+// instead of an `index`. The resp is needed to write the `X-Consul-ContentHash`
+// header back on return no Status nor body content is ever written to it.
+func (s *HTTPServer) agentLocalBlockingQuery(resp http.ResponseWriter, hash string,
 	queryOpts *structs.QueryOptions, fn agentLocalBlockingFunc) (interface{}, error) {
 
 	var timer *time.Timer
@@ -1011,6 +1015,8 @@ func (s *HTTPServer) agentLocalBlockingQuery(hash string,
 				break
 			}
 		}
+
+		resp.Header().Set("X-Consul-ContentHash", curHash)
 		return curResp, err
 	}
 }
