@@ -1940,6 +1940,32 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
+			desc: "service with wrong meta: too long",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{
+				`{ "service": { "name": "a", "port": 80, "meta": { "a": "` + randomString(520) + `" } } }`,
+			},
+			hcl: []string{
+				`service = { name = "a" port = 80, meta={a="` + randomString(520) + `"} }`,
+			},
+			err: `Value is too long`,
+		},
+		{
+			desc: "service with wrong meta: too many meta",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{
+				`{ "service": { "name": "a", "port": 80, "meta": { ` + metaPairs(70, "json") + `} } }`,
+			},
+			hcl: []string{
+				`service = { name = "a" port = 80 meta={` + metaPairs(70, "hcl") + `} }`,
+			},
+			err: `invalid meta for service a: Node metadata cannot contain more than 64 key`,
+		},
+		{
 			desc: "translated keys",
 			args: []string{
 				`-data-dir=` + dataDir,

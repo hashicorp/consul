@@ -999,7 +999,7 @@ func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 
 	meta := make(map[string]string)
 	if err := structs.ValidateMetadata(v.Meta, false); err != nil {
-		b.err = multierror.Append(fmt.Errorf("invalid meta for service %v: %v", v.Name, err))
+		b.err = multierror.Append(fmt.Errorf("invalid meta for service %s: %v", *v.Name, err))
 	} else {
 		meta = v.Meta
 	}
