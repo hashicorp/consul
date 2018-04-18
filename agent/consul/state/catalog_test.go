@@ -466,18 +466,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Now try to add another node with the same ID
-	in = &structs.Node{
-		Node:    "nope",
-		ID:      types.NodeID("cda916bc-a357-4a19-b886-59419fcee50c"),
-		Address: "1.2.3.4",
-	}
-	err = s.EnsureNode(5, in)
-	if err == nil || !strings.Contains(err.Error(), "aliases existing node") {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Renaming a node should work as long as IP did not change
+	// Renaming a node should work if ID is the same
 	in = &structs.Node{
 		Node:    "node1-renamed",
 		ID:      types.NodeID("cda916bc-a357-4a19-b886-59419fcee50c"),

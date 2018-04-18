@@ -355,11 +355,7 @@ func (s *Store) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) err
 		if existing != nil {
 			n = existing.(*structs.Node)
 			if n.Node != node.Node {
-				if n.Address != node.Address {
-					return fmt.Errorf("node ID %q for node %q (%s) aliases existing node %q (%s)",
-						node.ID, node.Node, node.Address, n.Node, n.Address)
-				}
-				fmt.Printf("Node renaming: %s VS %s -- idx=%d\n", node.Node, n.Node, idx)
+				// We are actually renaming a node, remove its reference first
 				err := s.deleteNodeTxn(tx, idx, n.Node)
 				if err != nil {
 					return fmt.Errorf("Error while renaming Node ID: %q from %s to %s",
