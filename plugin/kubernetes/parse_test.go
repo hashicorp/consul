@@ -19,6 +19,12 @@ func TestParseRequest(t *testing.T) {
 		{"*.any.*.any.svc.inter.webs.test.", "*.any..*.any.svc"},
 		// A request of endpoint
 		{"1-2-3-4.webs.mynamespace.svc.inter.webs.test.", "*.*.1-2-3-4.webs.mynamespace.svc"},
+		// bare zone
+		{"inter.webs.test.", "....."},
+		// bare svc type
+		{"svc.inter.webs.test.", "....."},
+		// bare pod type
+		{"pod.inter.webs.test.", "....."},
 	}
 	for i, tc := range tests {
 		m := new(dns.Msg)
@@ -53,4 +59,4 @@ func TestParseInvalidRequest(t *testing.T) {
 	}
 }
 
-const zone = "intern.webs.tests."
+const zone = "inter.webs.tests."

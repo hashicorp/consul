@@ -35,6 +35,10 @@ func parseRequest(state request.Request) (r recordRequest, err error) {
 	// Federations are handled in the federation plugin. And aren't parsed here.
 
 	base, _ := dnsutil.TrimZone(state.Name(), state.Zone)
+	// return NODATA for apex queries
+	if base == "" || base == Svc || base == Pod {
+		return r, nil
+	}
 	segs := dns.SplitDomainName(base)
 
 	r.port = "*"

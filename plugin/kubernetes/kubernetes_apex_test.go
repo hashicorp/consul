@@ -35,6 +35,27 @@ var kubeApexCases = []test.Case{
 			test.A("ns.dns.cluster.local.   303       IN      A       127.0.0.1"),
 		},
 	},
+	{
+		Qname: "cluster.local.", Qtype: dns.TypeA,
+		Rcode: dns.RcodeSuccess,
+		Ns: []dns.RR{
+			test.SOA("cluster.local.	303	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1499347823 7200 1800 86400 60"),
+		},
+	},
+	{
+		Qname: "cluster.local.", Qtype: dns.TypeAAAA,
+		Rcode: dns.RcodeSuccess,
+		Ns: []dns.RR{
+			test.SOA("cluster.local.	303	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1499347823 7200 1800 86400 60"),
+		},
+	},
+	{
+		Qname: "cluster.local.", Qtype: dns.TypeSRV,
+		Rcode: dns.RcodeSuccess,
+		Ns: []dns.RR{
+			test.SOA("cluster.local.	303	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1499347823 7200 1800 86400 60"),
+		},
+	},
 }
 
 func TestServeDNSApex(t *testing.T) {
