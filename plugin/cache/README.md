@@ -24,8 +24,9 @@ cache [TTL] [ZONES...]
 * **ZONES** zones it should cache for. If empty, the zones from the configuration block are used.
 
 Each element in the cache is cached according to its TTL (with **TTL** as the max).
-For the negative cache, the SOA's MinTTL value is used. A cache can contain up to 10,000 items by
-default. A TTL of zero is not allowed.
+For the negative cache, the SOA's MinTTL value is used. A TTL of zero is not allowed. 
+A cache is divided into 256 shards, each holding up to 512 items by default - for a total size 
+of 256 * 512 = 131,072 items.
 
 If you want more control:
 
@@ -48,6 +49,14 @@ cache [TTL] [ZONES...] {
   **DURATION** defaults to 1m. Prefetching will happen when the TTL drops below **PERCENTAGE**,
   which defaults to `10%`, or latest 1 second before TTL expiration. Values should be in the range `[10%, 90%]`.
   Note the percent sign is mandatory. **PERCENTAGE** is treated as an `int`.
+
+## Capacity and Eviction
+
+When specifying **CAPACITY**, the minimum cache capacity is 131,072.  Specifying a lower value will be
+ignored. Specifying a **CAPACITY** of zero does not disable the cache.
+
+Eviction is done per shard - i.e. when a shard reaches capacity, items are evicted from that shard.  Since shards don't fill up perfectly evenly, evictions will occur before the entire cache reaches full capacity. Each shard capacity is equal to the total cache size / number of shards (256).
+
 
 ## Metrics
 
