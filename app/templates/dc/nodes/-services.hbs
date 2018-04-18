@@ -7,14 +7,14 @@
     }}
         {{#block-slot 'header'}}
             <th>Service</th>
-            <th>Tags</th>
+            <th>Port</th>
         {{/block-slot}}
         {{#block-slot 'row'}}
             <td>
                 <a href={{href-to 'dc.services.show' item.Service }}>{{item.Service}}</a>
             </td>
             <td>
-                Tags aren't available currently in this API
+                {{item.Port}}
             </td>
         {{/block-slot}}
     {{/tabular-collection}}

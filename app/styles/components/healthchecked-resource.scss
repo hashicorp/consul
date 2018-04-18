@@ -32,7 +32,8 @@
   border-radius: $radius;
 }
 %healthchecked-resource header {
-  margin-bottom: .5em;
+  margin-bottom: 2.5em;
+  position: relative;
 }
 %healthchecked-resource header span {
   font-weight: $weight-bold;
@@ -41,6 +42,11 @@
   font-weight: $weight-normal;
 }
 
+%healthchecked-resource header strong {
+  position: absolute;
+  bottom: -0.4em;
+  left: 15px;
+}
 %healthchecked-resource a,
 %healthchecked-resource header a > * {
   display: block;
@@ -51,7 +57,7 @@
 %healthchecked-resource li::before {
   left: 11px;
   top: 50%;
-  margin-top: -.5em;
+  margin-top: -0.5em;
 }
 %healthchecked-resource li.passing {
   @extend %with-passing;
