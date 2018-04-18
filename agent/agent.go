@@ -2588,6 +2588,9 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 
 	// First unload all checks, services, and metadata. This lets us begin the reload
 	// with a clean slate.
+	if err := a.unloadProxies(); err != nil {
+		return fmt.Errorf("Failed unloading proxies: %s", err)
+	}
 	if err := a.unloadServices(); err != nil {
 		return fmt.Errorf("Failed unloading services: %s", err)
 	}

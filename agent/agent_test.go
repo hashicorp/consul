@@ -1640,6 +1640,75 @@ func TestAgent_unloadServices(t *testing.T) {
 	}
 }
 
+func TestAgent_loadProxies(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), `
+		service = {
+			id = "rabbitmq"
+			name = "rabbitmq"
+			port = 5672
+			token = "abc123"
+			connect {
+				proxy {
+					config {
+						bind_port = 1234
+					}
+				}
+			}
+		}
+	`)
+	defer a.Shutdown()
+
+	services := a.State.Services()
+	if _, ok := services["rabbitmq"]; !ok {
+		t.Fatalf("missing service")
+	}
+	if token := a.State.ServiceToken("rabbitmq"); token != "abc123" {
+		t.Fatalf("bad: %s", token)
+	}
+	if _, ok := services["rabbitmq-proxy"]; !ok {
+		t.Fatalf("missing proxy service")
+	}
+	if token := a.State.ServiceToken("rabbitmq-proxy"); token != "abc123" {
+		t.Fatalf("bad: %s", token)
+	}
+	proxies := a.State.Proxies()
+	if _, ok := proxies["rabbitmq-proxy"]; !ok {
+		t.Fatalf("missing proxy")
+	}
+}
+
+func TestAgent_unloadProxies(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), `
+		service = {
+			id = "rabbitmq"
+			name = "rabbitmq"
+			port = 5672
+			token = "abc123"
+			connect {
+				proxy {
+					config {
+						bind_port = 1234
+					}
+				}
+			}
+		}
+	`)
+	defer a.Shutdown()
+
+	// Sanity check it's there
+	require.NotNil(t, a.State.Proxy("rabbitmq-proxy"))
+
+	// Unload all proxies
+	if err := a.unloadProxies(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if len(a.State.Proxies()) != 0 {
+		t.Fatalf("should have unloaded proxies")
+	}
+}
+
 func TestAgent_Service_MaintenanceMode(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
