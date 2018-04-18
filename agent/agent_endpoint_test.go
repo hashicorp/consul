@@ -24,6 +24,7 @@ import (
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/serf/serf"
+	"github.com/mitchellh/copystructure"
 	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1428,9 +1429,9 @@ func TestAgent_RegisterService_ManagedConnectProxy(t *testing.T) {
 	// Ensure proxy itself was registered
 	proxy := a.State.Proxy("web-proxy")
 	require.NotNil(proxy)
-	assert.Equal(structs.ProxyExecModeScript, proxy.ExecMode)
-	assert.Equal("proxy.sh", proxy.Command)
-	assert.Equal(args.Connect.Proxy.Config, proxy.Config)
+	assert.Equal(structs.ProxyExecModeScript, proxy.Proxy.ExecMode)
+	assert.Equal("proxy.sh", proxy.Proxy.Command)
+	assert.Equal(args.Connect.Proxy.Config, proxy.Proxy.Config)
 
 	// Ensure the token was configured
 	assert.Equal("abc123", a.State.ServiceToken("web"))
@@ -2198,6 +2199,167 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 	assert.Nil(err)
 
 	// TODO(mitchellh): verify the private key matches the cert
+}
+
+func TestAgentConnectProxy(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Define a local service with a managed proxy. It's registered in the test
+	// loop to make sure agent state is predictable whatever order tests execute
+	// since some alter this service config.
+	reg := &structs.ServiceDefinition{
+		Name:    "test",
+		Address: "127.0.0.1",
+		Port:    8000,
+		Check: structs.CheckType{
+			TTL: 15 * time.Second,
+		},
+		Connect: &structs.ServiceDefinitionConnect{
+			Proxy: &structs.ServiceDefinitionConnectProxy{
+				Config: map[string]interface{}{
+					"bind_port":          1234,
+					"connect_timeout_ms": 500,
+					"upstreams": []map[string]interface{}{
+						{
+							"destination_name": "db",
+							"local_port":       3131,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	expectedResponse := &structs.ConnectManageProxyResponse{
+		ProxyServiceID:    "test-proxy",
+		TargetServiceID:   "test",
+		TargetServiceName: "test",
+		ContentHash:       "a15dccb216d38a6e",
+		ExecMode:          "daemon",
+		Command:           "",
+		Config: map[string]interface{}{
+			"upstreams": []interface{}{
+				map[string]interface{}{
+					"destination_name": "db",
+					"local_port":       float64(3131),
+				},
+			},
+			"bind_port":          float64(1234),
+			"connect_timeout_ms": float64(500),
+		},
+	}
+
+	ur, err := copystructure.Copy(expectedResponse)
+	require.NoError(t, err)
+	updatedResponse := ur.(*structs.ConnectManageProxyResponse)
+	updatedResponse.ContentHash = "22bc9233a52c08fd"
+	upstreams := updatedResponse.Config["upstreams"].([]interface{})
+	upstreams = append(upstreams,
+		map[string]interface{}{
+			"destination_name": "cache",
+			"local_port":       float64(4242),
+		})
+	updatedResponse.Config["upstreams"] = upstreams
+
+	tests := []struct {
+		name       string
+		url        string
+		updateFunc func()
+		wantWait   time.Duration
+		wantCode   int
+		wantErr    bool
+		wantResp   *structs.ConnectManageProxyResponse
+	}{
+		{
+			name:     "simple fetch",
+			url:      "/v1/agent/connect/proxy/test-proxy",
+			wantCode: 200,
+			wantErr:  false,
+			wantResp: expectedResponse,
+		},
+		{
+			name:     "blocking fetch timeout, no change",
+			url:      "/v1/agent/connect/proxy/test-proxy?hash=a15dccb216d38a6e&wait=100ms",
+			wantWait: 100 * time.Millisecond,
+			wantCode: 200,
+			wantErr:  false,
+			wantResp: expectedResponse,
+		},
+		{
+			name:     "blocking fetch old hash should return immediately",
+			url:      "/v1/agent/connect/proxy/test-proxy?hash=123456789abcd&wait=10m",
+			wantCode: 200,
+			wantErr:  false,
+			wantResp: expectedResponse,
+		},
+		{
+			name: "blocking fetch returns change",
+			url:  "/v1/agent/connect/proxy/test-proxy?hash=a15dccb216d38a6e",
+			updateFunc: func() {
+				time.Sleep(100 * time.Millisecond)
+				// Re-register with new proxy config
+				r2, err := copystructure.Copy(reg)
+				require.NoError(t, err)
+				reg2 := r2.(*structs.ServiceDefinition)
+				reg2.Connect.Proxy.Config = updatedResponse.Config
+				req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(r2))
+				resp := httptest.NewRecorder()
+				_, err = a.srv.AgentRegisterService(resp, req)
+				require.NoError(t, err)
+				require.Equal(t, 200, resp.Code, "body: %s", resp.Body.String())
+			},
+			wantWait: 100 * time.Millisecond,
+			wantCode: 200,
+			wantErr:  false,
+			wantResp: updatedResponse,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert := assert.New(t)
+			require := require.New(t)
+
+			// Register the basic service to ensure it's in a known state to start.
+			{
+				req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(reg))
+				resp := httptest.NewRecorder()
+				_, err := a.srv.AgentRegisterService(resp, req)
+				require.NoError(err)
+				require.Equal(200, resp.Code, "body: %s", resp.Body.String())
+			}
+
+			req, _ := http.NewRequest("GET", tt.url, nil)
+			resp := httptest.NewRecorder()
+			if tt.updateFunc != nil {
+				go tt.updateFunc()
+			}
+			start := time.Now()
+			obj, err := a.srv.AgentConnectProxyConfig(resp, req)
+			elapsed := time.Now().Sub(start)
+
+			if tt.wantErr {
+				require.Error(err)
+			} else {
+				require.NoError(err)
+			}
+			if tt.wantCode != 0 {
+				require.Equal(tt.wantCode, resp.Code, "body: %s", resp.Body.String())
+			}
+			if tt.wantWait != 0 {
+				assert.True(elapsed >= tt.wantWait, "should have waited at least %s, "+
+					"took %s", tt.wantWait, elapsed)
+			} else {
+				assert.True(elapsed < 10*time.Millisecond, "should not have waited, "+
+					"took %s", elapsed)
+			}
+
+			assert.Equal(tt.wantResp, obj)
+		})
+	}
 }
 
 func TestAgentConnectAuthorize_badBody(t *testing.T) {

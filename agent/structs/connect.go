@@ -32,6 +32,18 @@ const (
 	ProxyExecModeScript
 )
 
+// String implements Stringer
+func (m ProxyExecMode) String() string {
+	switch m {
+	case ProxyExecModeDaemon:
+		return "daemon"
+	case ProxyExecModeScript:
+		return "script"
+	default:
+		return "unknown"
+	}
+}
+
 // ConnectManagedProxy represents the agent-local state for a configured proxy
 // instance. This is never stored or sent to the servers and is only used to
 // store the config for the proxy that the agent needs to track. For now it's
@@ -90,4 +102,17 @@ func (p *ConnectManagedProxy) ParseConfig() (*ConnectManagedProxyConfig, error) 
 		return nil, err
 	}
 	return &cfg, nil
+}
+
+// ConnectManageProxyResponse is the public response object we return for
+// queries on local proxy config state. It's similar to ConnectManagedProxy but
+// with some fields re-arranged.
+type ConnectManageProxyResponse struct {
+	ProxyServiceID    string
+	TargetServiceID   string
+	TargetServiceName string
+	ContentHash       string
+	ExecMode          string
+	Command           string
+	Config            map[string]interface{}
 }

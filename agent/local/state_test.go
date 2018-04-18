@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
@@ -1673,8 +1674,8 @@ func TestStateProxyManagement(t *testing.T) {
 	t.Parallel()
 
 	state := local.NewState(local.Config{
-		ProxyPortRangeStart: 20000,
-		ProxyPortRangeEnd:   20002,
+		ProxyBindMinPort: 20000,
+		ProxyBindMaxPort: 20001,
 	}, log.New(os.Stderr, "", log.LstdFlags), &token.Store{})
 
 	// Stub state syncing
@@ -1707,6 +1708,20 @@ func TestStateProxyManagement(t *testing.T) {
 	}, "fake-token-db")
 	require.NoError(err)
 
+	// Record initial local modify index
+	lastModifyIndex := state.LocalModifyIndex()
+	assertModIndexUpdate := func(id string) {
+		t.Helper()
+		nowIndex := state.LocalModifyIndex()
+		assert.True(lastModifyIndex < nowIndex)
+		if id != "" {
+			p := state.Proxy(id)
+			require.NotNil(p)
+			assert.True(lastModifyIndex < p.ModifyIndex)
+		}
+		lastModifyIndex = nowIndex
+	}
+
 	// Should work now
 	svc, err := state.AddProxy(&p1, "fake-token")
 	require.NoError(err)
@@ -1718,6 +1733,7 @@ func TestStateProxyManagement(t *testing.T) {
 	assert.Equal("", svc.Address, "should have empty address by default")
 	// Port is non-deterministic but could be either of 20000 or 20001
 	assert.Contains([]int{20000, 20001}, svc.Port)
+	assertModIndexUpdate(svc.ID)
 
 	// Second proxy should claim other port
 	p2 := p1
@@ -1726,10 +1742,10 @@ func TestStateProxyManagement(t *testing.T) {
 	require.NoError(err)
 	assert.Contains([]int{20000, 20001}, svc2.Port)
 	assert.NotEqual(svc.Port, svc2.Port)
+	assertModIndexUpdate(svc2.ID)
 
-	// Just saving this for later...
-	p2Token, err := state.ProxyToken(svc2.ID)
-	require.NoError(err)
+	// Store this for later
+	p2token := state.Proxy(svc2.ID).ProxyToken
 
 	// Third proxy should fail as all ports are used
 	p3 := p1
@@ -1746,6 +1762,32 @@ func TestStateProxyManagement(t *testing.T) {
 	require.NoError(err)
 	require.Equal("0.0.0.0", svc3.Address)
 	require.Equal(1234, svc3.Port)
+	assertModIndexUpdate(svc3.ID)
+
+	// Update config of an already registered proxy should work
+	p3updated := p3
+	p3updated.Config["foo"] = "bar"
+	// Setup multiple watchers who should all witness the change
+	gotP3 := state.Proxy(svc3.ID)
+	require.NotNil(gotP3)
+	var watchWg sync.WaitGroup
+	for i := 0; i < 3; i++ {
+		watchWg.Add(1)
+		go func() {
+			<-gotP3.WatchCh
+			watchWg.Done()
+		}()
+	}
+	svc3, err = state.AddProxy(&p3updated, "fake-token")
+	require.NoError(err)
+	require.Equal("0.0.0.0", svc3.Address)
+	require.Equal(1234, svc3.Port)
+	gotProxy3 := state.Proxy(svc3.ID)
+	require.NotNil(gotProxy3)
+	require.Equal(p3updated.Config, gotProxy3.Proxy.Config)
+	assertModIndexUpdate(svc3.ID) // update must change mod index
+	// All watchers should have fired so this should not hang the test!
+	watchWg.Wait()
 
 	// Remove one of the auto-assigned proxies
 	err = state.RemoveProxy(svc2.ID)
@@ -1758,31 +1800,29 @@ func TestStateProxyManagement(t *testing.T) {
 	require.NoError(err)
 	assert.Contains([]int{20000, 20001}, svc2.Port)
 	assert.Equal(svc4.Port, svc2.Port, "should get the same port back that we freed")
+	assertModIndexUpdate(svc4.ID)
 
 	// Remove a proxy that doesn't exist should error
 	err = state.RemoveProxy("nope")
 	require.Error(err)
 
-	assert.Equal(&p4, state.Proxy(p4.ProxyService.ID),
+	assert.Equal(&p4, state.Proxy(p4.ProxyService.ID).Proxy,
 		"should fetch the right proxy details")
 	assert.Nil(state.Proxy("nope"))
 
 	proxies := state.Proxies()
 	assert.Len(proxies, 3)
-	assert.Equal(&p1, proxies[svc.ID])
-	assert.Equal(&p4, proxies[svc4.ID])
-	assert.Equal(&p3, proxies[svc3.ID])
+	assert.Equal(&p1, proxies[svc.ID].Proxy)
+	assert.Equal(&p4, proxies[svc4.ID].Proxy)
+	assert.Equal(&p3, proxies[svc3.ID].Proxy)
 
 	tokens := make([]string, 4)
-	tokens[0], err = state.ProxyToken(svc.ID)
-	require.NoError(err)
+	tokens[0] = state.Proxy(svc.ID).ProxyToken
 	// p2 not registered anymore but lets make sure p4 got a new token when it
 	// re-registered with same ID.
-	tokens[1] = p2Token
-	tokens[2], err = state.ProxyToken(svc3.ID)
-	require.NoError(err)
-	tokens[3], err = state.ProxyToken(svc4.ID)
-	require.NoError(err)
+	tokens[1] = p2token
+	tokens[2] = state.Proxy(svc2.ID).ProxyToken
+	tokens[3] = state.Proxy(svc3.ID).ProxyToken
 
 	// Quick check all are distinct
 	for i := 0; i < len(tokens)-1; i++ {

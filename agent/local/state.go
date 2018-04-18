@@ -125,6 +125,10 @@ type ManagedProxy struct {
 	// be exposed any other way. Unmanaged proxies will never see this and need to
 	// use service-scoped ACL tokens distributed externally.
 	ProxyToken string
+
+	// WatchCh is a close-only chan that is closed when the proxy is removed or
+	// updated.
+	WatchCh chan struct{}
 }
 
 // State is used to represent the node's services,
@@ -171,7 +175,7 @@ type State struct {
 	// tokens contains the ACL tokens
 	tokens *token.Store
 
-	// managedProxies is a map of all manged connect proxies registered locally on
+	// managedProxies is a map of all managed connect proxies registered locally on
 	// this agent. This is NOT kept in sync with servers since it's agent-local
 	// config only. Proxy instances have separate service registrations in the
 	// services map above which are kept in sync via anti-entropy. Un-managed
@@ -633,9 +637,17 @@ func (l *State) AddProxy(proxy *structs.ConnectManagedProxy, token string) (*str
 	proxy.ProxyService = svc
 
 	// All set, add the proxy and return the service
+	if old, ok := l.managedProxies[svc.ID]; ok {
+		// Notify watchers of the existing proxy config that it's changing. Note
+		// this is safe here even before the map is updated since we still hold the
+		// state lock and the watcher can't re-read the new config until we return
+		// anyway.
+		close(old.WatchCh)
+	}
 	l.managedProxies[svc.ID] = &ManagedProxy{
 		Proxy:      proxy,
 		ProxyToken: pToken,
+		WatchCh:    make(chan struct{}),
 	}
 
 	// No need to trigger sync as proxy state is local only.
@@ -653,47 +665,30 @@ func (l *State) RemoveProxy(id string) error {
 	}
 	delete(l.managedProxies, id)
 
+	// Notify watchers of the existing proxy config that it's changed.
+	close(p.WatchCh)
+
 	// No need to trigger sync as proxy state is local only.
 	return nil
 }
 
 // Proxy returns the local proxy state.
-func (l *State) Proxy(id string) *structs.ConnectManagedProxy {
+func (l *State) Proxy(id string) *ManagedProxy {
 	l.RLock()
 	defer l.RUnlock()
-
-	p := l.managedProxies[id]
-	if p == nil {
-		return nil
-	}
-	return p.Proxy
+	return l.managedProxies[id]
 }
 
 // Proxies returns the locally registered proxies.
-func (l *State) Proxies() map[string]*structs.ConnectManagedProxy {
+func (l *State) Proxies() map[string]*ManagedProxy {
 	l.RLock()
 	defer l.RUnlock()
 
-	m := make(map[string]*structs.ConnectManagedProxy)
+	m := make(map[string]*ManagedProxy)
 	for id, p := range l.managedProxies {
-		m[id] = p.Proxy
+		m[id] = p
 	}
 	return m
-}
-
-// ProxyToken returns the local proxy token for a given proxy. Note this is not
-// an ACL token so it won't fallback to using the agent-configured default ACL
-// token. If the proxy doesn't exist an error is returned, otherwise the token
-// is guaranteed to exist.
-func (l *State) ProxyToken(id string) (string, error) {
-	l.RLock()
-	defer l.RUnlock()
-
-	p := l.managedProxies[id]
-	if p == nil {
-		return "", fmt.Errorf("proxy %s not registered", id)
-	}
-	return p.ProxyToken, nil
 }
 
 // Metadata returns the local node metadata fields that the

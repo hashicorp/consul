@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/checks"
@@ -26,6 +27,7 @@ import (
 
 	// NOTE(mitcehllh): This is temporary while certs are stubbed out.
 	"github.com/mitchellh/go-testing-interface"
+	"github.com/mitchellh/hashstructure"
 )
 
 type Self struct {
@@ -894,6 +896,123 @@ func (s *HTTPServer) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.
 	reply.PrivateKeyPEM = pk
 
 	return &reply, nil
+}
+
+// GET /v1/agent/connect/proxy/:proxy_service_id
+//
+// Returns the local proxy config for the identified proxy. Requires token=
+// param with the correct local ProxyToken (not ACL token).
+func (s *HTTPServer) AgentConnectProxyConfig(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Get the proxy ID. Note that this is the ID of a proxy's service instance.
+	id := strings.TrimPrefix(req.URL.Path, "/v1/agent/connect/proxy/")
+
+	// Maybe block
+	var queryOpts structs.QueryOptions
+	if parseWait(resp, req, &queryOpts) {
+		// parseWait returns an error itself
+		return nil, nil
+	}
+
+	// Parse hash specially since it's only this endpoint that uses it currently.
+	// Eventually this should happen in parseWait and end up in QueryOptions but I
+	// didn't want to make very general changes right away.
+	hash := req.URL.Query().Get("hash")
+
+	return s.agentLocalBlockingQuery(hash, &queryOpts,
+		func(updateCh chan struct{}) (string, interface{}, error) {
+			// Retrieve the proxy specified
+			proxy := s.agent.State.Proxy(id)
+			if proxy == nil {
+				resp.WriteHeader(http.StatusNotFound)
+				fmt.Fprintf(resp, "unknown proxy service ID: %s", id)
+				return "", nil, nil
+			}
+
+			// Lookup the target service as a convenience
+			target := s.agent.State.Service(proxy.Proxy.TargetServiceID)
+			if target == nil {
+				// Not found since this endpoint is only useful for agent-managed proxies so
+				// service missing means the service was deregistered racily with this call.
+				resp.WriteHeader(http.StatusNotFound)
+				fmt.Fprintf(resp, "unknown target service ID: %s", proxy.Proxy.TargetServiceID)
+				return "", nil, nil
+			}
+
+			// Setup "watch" on the proxy being modified and respond on chan if it is.
+			go func() {
+				select {
+				case <-updateCh:
+					// blocking query timedout or was cancelled. Abort
+					return
+				case <-proxy.WatchCh:
+					// Proxy was updated or removed, report it
+					updateCh <- struct{}{}
+				}
+			}()
+
+			hash, err := hashstructure.Hash(proxy.Proxy, nil)
+			if err != nil {
+				return "", nil, err
+			}
+			contentHash := fmt.Sprintf("%x", hash)
+
+			reply := &structs.ConnectManageProxyResponse{
+				ProxyServiceID:    proxy.Proxy.ProxyService.ID,
+				TargetServiceID:   target.ID,
+				TargetServiceName: target.Service,
+				ContentHash:       contentHash,
+				ExecMode:          proxy.Proxy.ExecMode.String(),
+				Command:           proxy.Proxy.Command,
+				Config:            proxy.Proxy.Config,
+			}
+			return contentHash, reply, nil
+		})
+	return nil, nil
+}
+
+type agentLocalBlockingFunc func(updateCh chan struct{}) (string, interface{}, error)
+
+func (s *HTTPServer) agentLocalBlockingQuery(hash string,
+	queryOpts *structs.QueryOptions, fn agentLocalBlockingFunc) (interface{}, error) {
+
+	var timer *time.Timer
+
+	if hash != "" {
+		// TODO(banks) at least define these defaults somewhere in a const. Would be
+		// nice not to duplicate the ones in consul/rpc.go too...
+		wait := queryOpts.MaxQueryTime
+		if wait == 0 {
+			wait = 5 * time.Minute
+		}
+		if wait > 10*time.Minute {
+			wait = 10 * time.Minute
+		}
+		// Apply a small amount of jitter to the request.
+		wait += lib.RandomStagger(wait / 16)
+		timer = time.NewTimer(wait)
+	}
+
+	ch := make(chan struct{})
+
+	for {
+		curHash, curResp, err := fn(ch)
+		if err != nil {
+			return curResp, err
+		}
+		// Hash was passed and matches current one, wait for update or timeout.
+		if timer != nil && hash == curHash {
+			select {
+			case <-ch:
+				// Update happened, loop to fetch a new value
+				continue
+			case <-timer.C:
+				// Timeout, stop the watcher goroutine and return what we have
+				close(ch)
+				break
+			}
+		}
+		return curResp, err
+	}
 }
 
 // AgentConnectAuthorize
