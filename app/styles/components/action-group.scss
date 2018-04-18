@@ -1,0 +1,107 @@
+td.actions > div {
+  @extend %action-group;
+}
+%action-group {
+  border-radius: $radius-small;
+}
+%action-group label {
+  cursor: pointer;
+}
+%action-group {
+  background-color: $gray;
+}
+%action-group label span {
+  display: none;
+}
+%with-dot {
+  content: '';
+  display: block;
+  position: absolute;
+  border-radius: 100%;
+  width: 3px;
+  height: 3px;
+  background-color: $black;
+  visibility: visible;
+  top: 50%;
+  left: 50%;
+  margin-top: -1px;
+}
+%action-group label::after,
+%action-group label::before,
+%action-group::before {
+  @extend %with-dot;
+}
+%action-group::before {
+  margin-left: -1px;
+}
+%action-group label::after {
+  margin-left: 5px;
+}
+%action-group label::before {
+  margin-left: -7px;
+}
+%action-group ul {
+  border: 1px solid;
+  border-radius: $radius-small;
+  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.21);
+}
+%action-group ul::before {
+  border-top: 1px solid;
+  border-left: 1px solid;
+}
+%action-group ul,
+%action-group ul::before {
+  border-color: $blue;
+}
+%action-group li a:hover {
+  background-color: $blue;
+  color: $white;
+}
+%action-group ul,
+%action-group ul::before {
+  background-color: $white;
+}
+%action-group {
+  float: right;
+  top: -5px;
+}
+%action-group {
+  width: 30px;
+  height: 30px;
+  position: relative;
+}
+%action-group label {
+  display: block;
+  height: 100%;
+}
+%action-group ul {
+  position: absolute;
+  right: -4px;
+  top: 35px;
+  padding: 1px;
+}
+%action-group ul::before {
+  position: absolute;
+  right: 10px;
+  top: -6px;
+  content: '';
+  display: block;
+  width: 10px;
+  height: 10px;
+  transform: rotate(45deg);
+}
+%action-group li {
+  position: relative;
+  z-index: 1;
+}
+%action-group li a {
+  width: 170px;
+  padding: 10px 10px;
+}
+%action-group input[type='radio'],
+%action-group input[type='radio'] + * {
+  display: none;
+}
+%action-group input[type='radio']:checked + * {
+  display: block;
+}

@@ -24,11 +24,15 @@ export default Controller.extend(WithFiltering, {
   }),
   filter: function(item, { s = '', type = '' }) {
     return (
-      item
-        .get('Name')
+      get(item, 'Name')
         .toLowerCase()
         .indexOf(s.toLowerCase()) === 0 &&
-      (type === '' || item.get('Type') === type)
+      (type === '' || get(item, 'Type') === type)
     );
+  },
+  actions: {
+    requestUse: function() {},
+    requestDelete: function() {},
+    clone: function() {},
   },
 });

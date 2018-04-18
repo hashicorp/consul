@@ -1,4 +1,5 @@
 import Service, { inject as service } from '@ember/service';
+import { get, set } from '@ember/object';
 // clone: function(acl, dc) {
 //   const slug = acl.get('ID');
 //   const newAcl = this.create();

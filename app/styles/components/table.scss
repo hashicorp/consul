@@ -20,7 +20,7 @@ table th {
   // padding: 0.5em 0;
 }
 table th,
-table td:not(:last-child),
+table td:not(.actions),
 table td a {
   padding-right: 0.9em;
 }
@@ -30,13 +30,16 @@ table td:first-child {
 table td a {
   display: block;
 }
+tbody {
+  overflow-x: visible !important;
+}
 td strong {
   display: inline-block;
   background-color: $gray;
   padding: 1px 5px;
   border-radius: $radius;
 }
-td:not(:first-child) {
+td:not(.actions) {
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;

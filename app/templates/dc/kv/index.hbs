@@ -13,48 +13,32 @@
     {{/block-slot}}
     {{#block-slot 'content'}}
 {{#if (gt items.length 0)}}
-        <table>
-            <thead>
-                <tr>
-                    <th>Name</th>
+        {{#tabular-collection
+            items=items as |item index|
+        }}
+            {{#block-slot 'header'}}
+                <th>Name</th>
+                <th>&nbsp;</th>
+            {{/block-slot}}
+            {{#block-slot 'row'}}
+                <td data-test-kv="{{item.Key}}" class={{if item.isFolder 'folder' 'file' }}>
+                    <a href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key}}>{{item.basename}}</a>
+                </td>
+                <td>
+                    <div class="with-confirmation">
 {{#if false}}
-
-                    <th>Value</th>
-                    <th>Lock Session</th>
+                        <p>
+                            Are you sure you want to delete {{item.basename}}?
+                        </p>
 {{/if}}
-                    <th>&nbsp;</th>
-                </tr>
-            </thead>
-            {{#tabular-collection
-                items=items
-                cell-layout=(fixed-grid-layout 1150 46) as |item index|
-            }}
-                    <td data-test-kv="{{item.Key}}" class={{if item.isFolder 'folder' 'file' }}>
-                        <a href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key}}>{{item.basename}}</a>
-                    </td>
+                        <button type="button" class="type-delete" {{ action "requestDelete" item parent}}>Delete</button>
 {{#if false}}
-                    <td>
-                        Value (need to change API call to get this)
-                    </td>
-                    <td>
-                        Lock Session (need to change API call to get this)
-                    </td>
+                        <button type="button" class="type-cancel" {{ action "requestDelete" item parent}}>Cancel</button>
 {{/if}}
-                    <td>
-                        <div class="with-confirmation">
-{{#if false}}
-                            <p>
-                                Are you sure you want to delete {{item.basename}}?
-                            </p>
-{{/if}}
-                            <button type="button" class="type-delete" {{ action "requestDelete" item parent}}>Delete</button>
-{{#if false}}
-                            <button type="button" class="type-cancel" {{ action "requestDelete" item parent}}>Cancel</button>
-{{/if}}
-                        </div>
-                    </td>
-            {{/tabular-collection}}
-        </table>
+                    </div>
+                </td>
+            {{/block-slot}}
+        {{/tabular-collection}}
 {{else}}
         <p>There are no Key / Value pairs.</p>
 {{/if}}

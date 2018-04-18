@@ -14,33 +14,49 @@
     {{/block-slot}}
     {{#block-slot 'content'}}
 {{#if (gt filtered.length 0)}}
-        <table>
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Type</th>
-                    <th>&nbsp;</th>
-                </tr>
-            </thead>
-            {{#tabular-collection
-                items=filtered
-                cell-layout=(fixed-grid-layout 1150 46) as |item index|
-            }}
-                    <td data-test-acl="{{item.Name}}">
-                        <a href={{href-to 'dc.acls.edit' item.ID}}>{{item.Name}}</a>
-                    </td>
-                    <td>
-                        {{#if (eq item.Type 'management')}}
-                            <strong>{{item.Type}}</strong>
-                        {{else}}
-                            <span>{{item.Type}}</span>
-                        {{/if}}
-                    </td>
-                    <td>
-                        &nbsp;
-                    </td>
-            {{/tabular-collection}}
-        </table>
+        {{#tabular-collection
+            items=filtered as |item index|
+        }}
+            {{#block-slot 'header'}}
+                <th>Name</th>
+                <th>Type</th>
+                <th>&nbsp;</th>
+            {{/block-slot}}
+            {{#block-slot 'row'}}
+                <td data-test-acl="{{item.Name}}">
+                    <a href={{href-to 'dc.acls.edit' item.ID}}>{{item.Name}}</a>
+                </td>
+                <td>
+                    {{#if (eq item.Type 'management')}}
+                        <strong>{{item.Type}}</strong>
+                    {{else}}
+                        <span>{{item.Type}}</span>
+                    {{/if}}
+                </td>
+                <td class="actions">
+                    <div>
+                        <label for="actions_{{index}}">
+                            <span>Open</span>
+                        </label>
+                        <input type="radio" name="actions" id="actions_{{index}}" />
+                        <ul>
+                            <li>
+                                <a href="{{href-to 'dc.acls.edit' item.ID}}">Edit</a>
+                            </li>
+                            <li>
+                                <a onclick={{action 'requestUse'}}>Use</a>
+                            </li>
+                            <li>
+                                <a onclick={{action 'clone'}}>Clone</a>
+                            </li>
+                            <li>
+                                <a onclick={{action 'requestDelete'}}>Delete</a>
+                            </li>
+                        </ul>
+                    </div>
+                </td>
+            {{/block-slot}}
+        {{/tabular-collection}}
 {{else}}
     <p>
         There are no ACLs.

@@ -34,11 +34,11 @@ main {
 %app-view h2 {
   border-color: $border-blue;
 }
-%app-view .actions {
+%app-view header .actions {
   position: relative;
   top: -5px;
 }
-%app-view .actions a {
+%app-view header .actions a {
   @extend %button;
 }
 // content
