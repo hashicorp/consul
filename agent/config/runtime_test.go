@@ -1940,7 +1940,20 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
-			desc: "service with wrong meta: too long",
+			desc: "service with wrong meta: too long key",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{
+				`{ "service": { "name": "a", "port": 80, "meta": { "` + randomString(520) + `": "metaValue" } } }`,
+			},
+			hcl: []string{
+				`service = { name = "a" port = 80, meta={` + randomString(520) + `="metaValue"} }`,
+			},
+			err: `Key is too long`,
+		},
+		{
+			desc: "service with wrong meta: too long value",
 			args: []string{
 				`-data-dir=` + dataDir,
 			},
