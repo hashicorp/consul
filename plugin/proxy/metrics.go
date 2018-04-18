@@ -15,14 +15,14 @@ var (
 		Subsystem: "proxy",
 		Name:      "request_count_total",
 		Help:      "Counter of requests made per protocol, proxy protocol, family and upstream.",
-	}, []string{"proto", "proxy_proto", "family", "to"})
+	}, []string{"server", "proto", "proxy_proto", "family", "to"})
 	RequestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: plugin.Namespace,
 		Subsystem: "proxy",
 		Name:      "request_duration_seconds",
 		Buckets:   plugin.TimeBuckets,
 		Help:      "Histogram of the time (in seconds) each request took.",
-	}, []string{"proto", "proxy_proto", "family", "to"})
+	}, []string{"server", "proto", "proxy_proto", "family", "to"})
 )
 
 // familyToString returns the string form of either 1, or 2. Returns

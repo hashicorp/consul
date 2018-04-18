@@ -1,7 +1,7 @@
 package metrics
 
 import (
-	"github.com/coredns/coredns/plugin"
+	"github.com/coredns/coredns/plugin/metrics/vars"
 
 	"golang.org/x/net/context"
 )
@@ -15,10 +15,4 @@ import (
 // Basic usage with a metric:
 //
 // <metric>.WithLabelValues(metrics.WithServer(ctx), labels..).Add(1)
-func WithServer(ctx context.Context) string {
-	srv := ctx.Value(plugin.ServerCtx{})
-	if srv == nil {
-		return ""
-	}
-	return srv.(string)
-}
+func WithServer(ctx context.Context) string { return vars.WithServer(ctx) }

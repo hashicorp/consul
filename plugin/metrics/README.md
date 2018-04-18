@@ -11,18 +11,21 @@ The default location for the metrics is `localhost:9153`. The metrics path is fi
 The following metrics are exported:
 
 * `coredns_build_info{version, revision, goversion}` - info about CoreDNS itself.
-* `coredns_dns_request_count_total{zone, proto, family}` - total query count.
-* `coredns_dns_request_duration_seconds{zone}` - duration to process each query.
-* `coredns_dns_request_size_bytes{zone, proto}` - size of the request in bytes.
-* `coredns_dns_request_do_count_total{zone}` -  queries that have the DO bit set
-* `coredns_dns_request_type_count_total{zone, type}` - counter of queries per zone and type.
-* `coredns_dns_response_size_bytes{zone, proto}` - response size in bytes.
-* `coredns_dns_response_rcode_count_total{zone, rcode}` - response per zone and rcode.
+* `coredns_dns_request_count_total{server, zone, proto, family}` - total query count.
+* `coredns_dns_request_duration_seconds{server, zone}` - duration to process each query.
+* `coredns_dns_request_size_bytes{server, zone, proto}` - size of the request in bytes.
+* `coredns_dns_request_do_count_total{server, zone}` -  queries that have the DO bit set
+* `coredns_dns_request_type_count_total{server, zone, type}` - counter of queries per zone and type.
+* `coredns_dns_response_size_bytes{server, zone, proto}` - response size in bytes.
+* `coredns_dns_response_rcode_count_total{server, zone, rcode}` - response per zone and rcode.
 
 Each counter has a label `zone` which is the zonename used for the request/response.
 
 Extra labels used are:
 
+* `server` is identifying the server responsible for the request. This is a string formatted
+  as the server's listening address: `<scheme>://[<bind>]:<port>`. I.e. for a "normal" DNS server
+  this is `dns://:53`. If you are using the *bind* plugin an IP address is included, e.g.: `dns://127.0.0.53:53`.
 * `proto` which holds the transport of the response ("udp" or "tcp")
 * The address family (`family`) of the transport (1 = IP (IP version 4), 2 = IP6 (IP version 6)).
 * `type` which holds the query type. It holds most common types (A, AAAA, MX, SOA, CNAME, PTR, TXT,

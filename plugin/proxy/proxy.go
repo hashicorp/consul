@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/coredns/coredns/plugin"
+	"github.com/coredns/coredns/plugin/metrics"
 	"github.com/coredns/coredns/plugin/pkg/healthcheck"
 	"github.com/coredns/coredns/request"
 
@@ -87,7 +88,7 @@ func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 
 			atomic.AddInt64(&host.Conns, 1)
 
-			RequestCount.WithLabelValues(state.Proto(), upstream.Exchanger().Protocol(), familyToString(state.Family()), host.Name).Add(1)
+			RequestCount.WithLabelValues(metrics.WithServer(ctx), state.Proto(), upstream.Exchanger().Protocol(), familyToString(state.Family()), host.Name).Add(1)
 
 			reply, backendErr = upstream.Exchanger().Exchange(ctx, host.Name, state)
 
@@ -110,7 +111,7 @@ func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 
 				w.WriteMsg(reply)
 
-				RequestDuration.WithLabelValues(state.Proto(), upstream.Exchanger().Protocol(), familyToString(state.Family()), host.Name).Observe(time.Since(start).Seconds())
+				RequestDuration.WithLabelValues(metrics.WithServer(ctx), state.Proto(), upstream.Exchanger().Protocol(), familyToString(state.Family()), host.Name).Observe(time.Since(start).Seconds())
 
 				return 0, taperr
 			}
