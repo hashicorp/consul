@@ -158,10 +158,9 @@ START:
 func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	q := req.Question[0]
 	defer func(s time.Time) {
-		metrics.MeasureSinceWithLabels([]string{"consul", "dns", "ptr_query"}, s,
-			[]metrics.Label{{Name: "agent", Value: d.agent.config.NodeName}})
-		metrics.MeasureSinceWithLabels([]string{"dns", "ptr_query"}, s,
-			[]metrics.Label{{Name: "agent", Value: d.agent.config.NodeName}})
+		labels := []metrics.Label{{Name: "agent", Value: d.agent.config.NodeName}, {Name: "type", Value: dns.TypeToString[q.Qtype]}, {Name: "name", Value: q.Name}}
+		metrics.MeasureSinceWithLabels([]string{"consul", "dns", "ptr_query"}, s, labels)
+		metrics.MeasureSinceWithLabels([]string{"dns", "ptr_query"}, s, labels)
 		d.logger.Printf("[DEBUG] dns: request for %v (%v) from client %s (%s)",
 			q, time.Since(s), resp.RemoteAddr().String(),
 			resp.RemoteAddr().Network())
@@ -229,11 +228,10 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 // handleQuery is used to handle DNS queries in the configured domain
 func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	q := req.Question[0]
+	labels := []metrics.Label{{Name: "agent", Value: d.agent.config.NodeName}, {Name: "type", Value: dns.TypeToString[q.Qtype]}, {Name: "name", Value: q.Name}}
 	defer func(s time.Time) {
-		metrics.MeasureSinceWithLabels([]string{"consul", "dns", "domain_query"}, s,
-			[]metrics.Label{{Name: "agent", Value: d.agent.config.NodeName}})
-		metrics.MeasureSinceWithLabels([]string{"dns", "domain_query"}, s,
-			[]metrics.Label{{Name: "agent", Value: d.agent.config.NodeName}})
+		metrics.MeasureSinceWithLabels([]string{"consul", "dns", "domain_query"}, s, labels)
+		metrics.MeasureSinceWithLabels([]string{"dns", "domain_query"}, s, labels)
 		d.logger.Printf("[DEBUG] dns: request for name %v type %v class %v (took %v) from client %s (%s)",
 			q.Name, dns.Type(q.Qtype), dns.Class(q.Qclass), time.Since(s), resp.RemoteAddr().String(),
 			resp.RemoteAddr().Network())
@@ -244,6 +242,7 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	if _, ok := resp.RemoteAddr().(*net.TCPAddr); ok {
 		network = "tcp"
 	}
+	labels = append(labels, metrics.Label{Name: "proto", Value: network})
 
 	// Setup the message response
 	m := new(dns.Msg)
@@ -527,12 +526,18 @@ func (d *DNSServer) nodeLookup(network, datacenter, node string, req, resp *dns.
 			AllowStale: d.config.AllowStale,
 		},
 	}
+	labels := []metrics.Label{{Name: "dc", Value: datacenter}, {Name: "agent", Value: node}, {Name: "type", Value: dns.TypeToString[qType]}, {Name: "name", Value: req.Question[0].Name}}
 	var out structs.IndexedNodeServices
 RPC:
 	if err := d.agent.RPC("Catalog.NodeServices", &args, &out); err != nil {
 		d.logger.Printf("[ERR] dns: rpc error: %v", err)
 		resp.SetRcode(req, dns.RcodeServerFailure)
 		return
+	}
+	if args.AllowStale {
+		labels = append(labels, metrics.Label{Name: "consistency", Value: "stale"})
+	} else {
+		labels = append(labels, metrics.Label{Name: "consistency", Value: "leader"})
 	}
 
 	// Verify that request is not too stale, redo the request
@@ -542,8 +547,8 @@ RPC:
 			d.logger.Printf("[WARN] dns: Query results too stale, re-requesting")
 			goto RPC
 		} else if out.LastContact > staleCounterThreshold {
-			metrics.IncrCounterWithLabels([]string{"consul", "dns", "stale_queries"}, 1, []metrics.Label{{Name: "dc", Value: datacenter}, {Name: "agent", Value: node}})
-			metrics.IncrCounterWithLabels([]string{"dns", "stale_queries"}, 1, []metrics.Label{{Name: "dc", Value: datacenter}, {Name: "agent", Value: node}})
+			metrics.IncrCounterWithLabels([]string{"consul", "dns", "stale_queries"}, 1, labels)
+			metrics.IncrCounterWithLabels([]string{"dns", "stale_queries"}, 1, labels)
 		}
 	}
 
