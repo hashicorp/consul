@@ -34,7 +34,7 @@
                         <a href="{{ env 'CONSUL_DOCUMENTATION_URL'}}" target="_blank">Documentation</a>
                     </li>
                     <li data-test-main-nav-settings>
-                        <a href={{href-to 'settings'}}>Settings</a>
+                        <a href="#settings">Settings</a>
                     </li>
                 </ul>
             </nav>
@@ -42,6 +42,7 @@
     </header>
     <main>
 {{outlet}}
+        {{app-settings id="settings"}}
     </main>
     <footer data-test-footer>
         <a data-test-footer-copyright href="{{env 'CONSUL_COPYRIGHT_URL'}}" target="_blank">&copy; {{env 'CONSUL_COPYRIGHT_YEAR'}} HashiCorp</a>
