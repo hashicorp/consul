@@ -2,6 +2,7 @@ package consul
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -139,22 +140,19 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 
 	// Provide some metrics
 	if err == nil {
-		metrics.IncrCounterWithLabels([]string{"consul", "health", "service", "query"}, 1,
-			[]metrics.Label{{Name: "service", Value: args.ServiceName}})
-		metrics.IncrCounterWithLabels([]string{"health", "service", "query"}, 1,
-			[]metrics.Label{{Name: "service", Value: args.ServiceName}})
+		numResults := len(reply.Nodes)
+		labels := []metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "found", Value: strconv.FormatBool(numResults != 0)}}
 		if args.ServiceTag != "" {
-			metrics.IncrCounterWithLabels([]string{"consul", "health", "service", "query-tag"}, 1,
-				[]metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "tag", Value: args.ServiceTag}})
-			metrics.IncrCounterWithLabels([]string{"health", "service", "query-tag"}, 1,
-				[]metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "tag", Value: args.ServiceTag}})
+			labels = append(labels, metrics.Label{Name: "tag", Value: args.ServiceTag})
+			metrics.IncrCounterWithLabels([]string{"consul", "health", "service", "query-tag"}, 1, labels)
+			metrics.IncrCounterWithLabels([]string{"health", "service", "query-tag"}, 1, labels)
 		}
-		if len(reply.Nodes) == 0 {
-			metrics.IncrCounterWithLabels([]string{"consul", "health", "service", "not-found"}, 1,
-				[]metrics.Label{{Name: "service", Value: args.ServiceName}})
-			metrics.IncrCounterWithLabels([]string{"health", "service", "not-found"}, 1,
-				[]metrics.Label{{Name: "service", Value: args.ServiceName}})
+		if numResults == 0 {
+			metrics.IncrCounterWithLabels([]string{"consul", "health", "service", "not-found"}, 1, labels)
+			metrics.IncrCounterWithLabels([]string{"health", "service", "not-found"}, 1, labels)
 		}
+		metrics.IncrCounterWithLabels([]string{"consul", "health", "service", "query"}, 1, labels)
+		metrics.IncrCounterWithLabels([]string{"health", "service", "query"}, 1, labels)
 	}
 	return err
 }
