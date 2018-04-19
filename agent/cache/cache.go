@@ -193,6 +193,15 @@ RETRY_GET:
 		}
 	}
 
+	// If this isn't our first time through and our last value has an error,
+	// then we return the error. This has the behavior that we don't sit in
+	// a retry loop getting the same error for the entire duration of the
+	// timeout. Instead, we make one effort to fetch a new value, and if
+	// there was an error, we return.
+	if !first && entry.Error != nil {
+		return entry.Value, entry.Error
+	}
+
 	if first {
 		// Record the miss if its our first time through
 		atomic.AddUint64(&c.misses, 1)
@@ -306,6 +315,12 @@ func (c *Cache) fetch(t, key string, r Request) (<-chan struct{}, error) {
 
 			// This is a valid entry with a result
 			newEntry.Valid = true
+		}
+
+		// If we have an error and the prior entry wasn't valid, then we
+		// set the error at least.
+		if err != nil && !newEntry.Valid {
+			newEntry.Error = err
 		}
 
 		// Create a new waiter that will be used for the next fetch.

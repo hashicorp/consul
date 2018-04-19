@@ -42,6 +42,38 @@ func TestCacheGet_noIndex(t *testing.T) {
 	typ.AssertExpectations(t)
 }
 
+// Test a basic Get with no index and a failed fetch.
+func TestCacheGet_initError(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	typ := TestType(t)
+	defer typ.AssertExpectations(t)
+	c := TestCache(t)
+	c.RegisterType("t", typ, nil)
+
+	// Configure the type
+	fetcherr := fmt.Errorf("error")
+	typ.Static(FetchResult{}, fetcherr).Times(2)
+
+	// Get, should fetch
+	req := TestRequest(t, RequestInfo{Key: "hello"})
+	result, err := c.Get("t", req)
+	require.Error(err)
+	require.Nil(result)
+
+	// Get, should fetch again since our last fetch was an error
+	result, err = c.Get("t", req)
+	require.Error(err)
+	require.Nil(result)
+
+	// Sleep a tiny bit just to let maybe some background calls happen
+	// then verify that we still only got the one call
+	time.Sleep(20 * time.Millisecond)
+	typ.AssertExpectations(t)
+}
+
 // Test a Get with a request that returns a blank cache key. This should
 // force a backend request and skip the cache entirely.
 func TestCacheGet_blankCacheKey(t *testing.T) {
