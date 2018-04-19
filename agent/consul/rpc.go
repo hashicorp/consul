@@ -146,6 +146,7 @@ func (s *Server) handleMultiplexV2(conn net.Conn) {
 // handleConsulConn is used to service a single Consul RPC connection
 func (s *Server) handleConsulConn(conn net.Conn) {
 	defer conn.Close()
+	labels := []metrics.Label{{Name: "client", Value: conn.RemoteAddr().String()}}
 	rpcCodec := msgpackrpc.NewServerCodec(conn)
 	for {
 		select {
@@ -157,13 +158,13 @@ func (s *Server) handleConsulConn(conn net.Conn) {
 		if err := s.rpcServer.ServeRequest(rpcCodec); err != nil {
 			if err != io.EOF && !strings.Contains(err.Error(), "closed") {
 				s.logger.Printf("[ERR] consul.rpc: RPC error: %v %s", err, logConn(conn))
-				metrics.IncrCounterWithLabels([]string{"consul", "rpc", "request_error"}, 1, []metrics.Label{{Name: "client", Value: conn.RemoteAddr().String()}})
-				metrics.IncrCounterWithLabels([]string{"rpc", "request_error"}, 1, []metrics.Label{{Name: "client", Value: conn.RemoteAddr().String()}})
+				metrics.IncrCounterWithLabels([]string{"consul", "rpc", "request_error"}, 1, labels)
+				metrics.IncrCounterWithLabels([]string{"rpc", "request_error"}, 1, labels)
 			}
 			return
 		}
-		metrics.IncrCounterWithLabels([]string{"consul", "rpc", "request"}, 1, []metrics.Label{{Name: "client", Value: conn.RemoteAddr().String()}})
-		metrics.IncrCounterWithLabels([]string{"rpc", "request"}, 1, []metrics.Label{{Name: "client", Value: conn.RemoteAddr().String()}})
+		metrics.IncrCounterWithLabels([]string{"consul", "rpc", "request"}, 1, labels)
+		metrics.IncrCounterWithLabels([]string{"rpc", "request"}, 1, labels)
 	}
 }
 
@@ -288,11 +289,9 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 		s.logger.Printf("[WARN] consul.rpc: RPC request for DC %q, no path found", dc)
 		return structs.ErrNoDCPath
 	}
-
-	metrics.IncrCounterWithLabels([]string{"consul", "rpc", "cross-dc"}, 1,
-		[]metrics.Label{{Name: "datacenter", Value: dc}})
-	metrics.IncrCounterWithLabels([]string{"rpc", "cross-dc"}, 1,
-		[]metrics.Label{{Name: "datacenter", Value: dc}})
+	labels := []metrics.Label{{Name: "datacenter", Value: dc}}
+	metrics.IncrCounterWithLabels([]string{"consul", "rpc", "cross-dc"}, 1, labels)
+	metrics.IncrCounterWithLabels([]string{"rpc", "cross-dc"}, 1, labels)
 	if err := s.connPool.RPC(dc, server.Addr, server.Version, method, server.UseTLS, args, reply); err != nil {
 		manager.NotifyFailedServer(server)
 		s.logger.Printf("[ERR] consul: RPC failed to server %s in DC %q: %v", server.Addr, dc, err)
