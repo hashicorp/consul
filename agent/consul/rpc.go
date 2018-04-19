@@ -98,8 +98,9 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 		s.handleConsulConn(conn)
 
 	case pool.RPCRaft:
-		metrics.IncrCounterWithLabels([]string{"consul", "rpc", "raft_handoff"}, 1, []metrics.Label{{Name: "client", Value: conn.RemoteAddr().String()}})
-		metrics.IncrCounterWithLabels([]string{"rpc", "raft_handoff"}, 1, []metrics.Label{{Name: "client", Value: conn.RemoteAddr().String()}})
+		labels := []metrics.Label{{Name: "client", Value: conn.RemoteAddr().String()}}
+		metrics.IncrCounterWithLabels([]string{"consul", "rpc", "raft_handoff"}, 1, labels)
+		metrics.IncrCounterWithLabels([]string{"rpc", "raft_handoff"}, 1, labels)
 		s.raftLayer.Handoff(conn)
 
 	case pool.RPCTLS:
