@@ -134,6 +134,10 @@
 }
 %header-drop-nav .is-active a::after {
   @extend %with-inverted-tick;
+  position: absolute;
+  top: 50%;
+  margin-top: -8px;
+  right: 10px;
 }
 %header-drop-nav .is-active {
   @extend .has-text-weight-bold;
@@ -152,5 +156,6 @@
 }
 %header-drop-nav a {
   text-align: left;
+  position: relative;
   padding: 12px 25px;
 }

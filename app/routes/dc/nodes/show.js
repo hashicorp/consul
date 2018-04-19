@@ -2,6 +2,7 @@ import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 import { assign } from '@ember/polyfills';
+import { get } from '@ember/object';
 
 import distance from 'consul-ui/utils/distance';
 import tomographyFactory from 'consul-ui/utils/tomography';
@@ -20,7 +21,7 @@ export default Route.extend(WithFeedback, {
   },
   model: function(params) {
     const dc = this.modelFor('dc').dc.Name;
-    const repo = this.get(this, 'repo');
+    const repo = get(this, 'repo');
     const sessionRepo = get(this, 'sessionRepo');
     return hash({
       model: repo.findBySlug(params.name, dc),
