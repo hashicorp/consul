@@ -281,7 +281,7 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 	// Provide some metrics
 	if err == nil {
 		numResults := len(reply.ServiceNodes)
-		labels := []metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "results", Value: strconv.FormatInt(int64(numResults), 10)}, {Name: "found", Value: strconv.FormatBool(numResults != 0)}}
+		labels := []metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "found", Value: strconv.FormatBool(numResults != 0)}}
 		if args.ServiceTag != "" {
 			labels = append(labels, metrics.Label{Name: "tag", Value: args.ServiceTag})
 			metrics.IncrCounterWithLabels([]string{"consul", "catalog", "service", "query-tag"}, 1, labels)
