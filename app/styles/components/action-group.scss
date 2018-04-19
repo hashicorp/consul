@@ -19,20 +19,6 @@ th.actions {
 %action-group label span {
   display: none;
 }
-%with-dot {
-  content: '';
-  display: block;
-  position: absolute;
-  border-radius: 100%;
-  width: 3px;
-  height: 3px;
-  background-color: $black;
-  visibility: visible;
-  top: 50%;
-  left: 50%;
-  margin-top: -1px;
-  pointer-events: none;
-}
 %action-group label::after,
 %action-group label::before,
 %action-group::before {

@@ -9,6 +9,20 @@
   background-color: currentColor;
   visibility: visible;
 }
+%with-dot {
+  content: '';
+  display: block;
+  position: absolute;
+  border-radius: 100%;
+  width: 3px;
+  height: 3px;
+  background-color: currentColor;
+  visibility: visible;
+  top: 50%;
+  left: 50%;
+  // margin-top: -1px;
+  pointer-events: none;
+}
 %with-folder {
   position: relative;
   text-indent: 30px;
