@@ -6,3 +6,4 @@
 * [seansean2](https://web.mit.edu) uses CoreDNS in production at MIT for DNS.
 * [Tradeshift](https://tradeshift.com/) uses CoreDNS to look up company identifiers across multiple shards/regions/zones
 * [SoundCloud](https://soundcloud.com/) uses CoreDNS as internal cache+proxy in Kubernetes clusters to handle hundreds of thousands DNS service discovery requests per second.
+* [Z Lab](https://zlab.co.jp) uses CoreDNS in production combination with Consul and Kuberenetes Clusters.
