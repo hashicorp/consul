@@ -12,13 +12,13 @@ import (
 var durations = NewDurationFixer("interval", "timeout", "deregistercriticalserviceafter")
 
 func (s *HTTPServer) CatalogRegister(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_register"}, 1,
-		[]metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
-
+	labels := []metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}}
+	defer metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_register"}, 1, labels)
 	var args structs.RegisterRequest
 	if err := decodeBody(req, &args, durations.FixupDurations); err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Request decode failed: %v", err)
+		labels = append(labels, metrics.Label{Name: "code", Value: "400"})
 		return nil, nil
 	}
 
@@ -31,23 +31,24 @@ func (s *HTTPServer) CatalogRegister(resp http.ResponseWriter, req *http.Request
 	// Forward to the servers
 	var out struct{}
 	if err := s.agent.RPC("Catalog.Register", &args, &out); err != nil {
-		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_register"}, 1,
-			[]metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
+		labels = append(labels, metrics.Label{Name: "code", Value: "500"})
+		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_register"}, 1, labels)
 		return nil, err
 	}
-	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_register"}, 1,
-		[]metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
+	labels = append(labels, metrics.Label{Name: "code", Value: "200"})
+	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_register"}, 1, labels)
 	return true, nil
 }
 
 func (s *HTTPServer) CatalogDeregister(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_deregister"}, 1,
-		[]metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
+	labels := []metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}}
+	defer metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_deregister"}, 1, labels)
 
 	var args structs.DeregisterRequest
 	if err := decodeBody(req, &args, nil); err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Request decode failed: %v", err)
+		labels = append(labels, metrics.Label{Name: "code", Value: "400"})
 		return nil, nil
 	}
 
@@ -60,48 +61,50 @@ func (s *HTTPServer) CatalogDeregister(resp http.ResponseWriter, req *http.Reque
 	// Forward to the servers
 	var out struct{}
 	if err := s.agent.RPC("Catalog.Deregister", &args, &out); err != nil {
-		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_deregister"}, 1,
-			[]metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
+		labels = append(labels, metrics.Label{Name: "code", Value: "500"})
+		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_deregister"}, 1, labels)
 		return nil, err
 	}
-	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_deregister"}, 1,
-		[]metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
+	labels = append(labels, metrics.Label{Name: "code", Value: "200"})
+	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_deregister"}, 1, labels)
 	return true, nil
 }
 
 func (s *HTTPServer) CatalogDatacenters(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_datacenters"}, 1,
-		[]metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
+	labels := []metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}}
+	defer metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_datacenters"}, 1, labels)
 
 	var out []string
 	if err := s.agent.RPC("Catalog.ListDatacenters", struct{}{}, &out); err != nil {
-		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_datacenters"}, 1,
-			[]metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
+		labels = append(labels, metrics.Label{Name: "code", Value: "500"})
+		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_datacenters"}, 1, labels)
 		return nil, err
 	}
-	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_datacenters"}, 1,
-		[]metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
+	labels = append(labels, metrics.Label{Name: "code", Value: "200"})
+	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_datacenters"}, 1, labels)
 	return out, nil
 }
 
 func (s *HTTPServer) CatalogNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_nodes"}, 1,
-		[]metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
+	labels := []metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}}
+	defer metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_nodes"}, 1, labels)
 
 	// Setup the request
 	args := structs.DCSpecificRequest{}
 	s.parseSource(req, &args.Source)
 	args.NodeMetaFilters = s.parseMetaFilter(req)
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
-		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_nodes"}, 1,
-			[]metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
+		labels = append(labels, metrics.Label{Name: "code", Value: "500"})
+		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_nodes"}, 1, labels)
 		return nil, nil
 	}
 
 	var out structs.IndexedNodes
 	defer setMeta(resp, &out.QueryMeta)
 RETRY_ONCE:
+	labels = append(labels, metrics.Label{Name: "consistency", Value: args.QueryOptions.ConsistencyLevel()})
 	if err := s.agent.RPC("Catalog.ListNodes", &args, &out); err != nil {
+		labels = append(labels, metrics.Label{Name: "code", Value: "500"})
 		return nil, err
 	}
 	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
@@ -117,14 +120,13 @@ RETRY_ONCE:
 	if out.Nodes == nil {
 		out.Nodes = make(structs.Nodes, 0)
 	}
-	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_nodes"}, 1,
-		[]metrics.Label{{Name: "agent", Value: s.nodeName()}})
+	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_nodes"}, 1, labels)
 	return out.Nodes, nil
 }
 
 func (s *HTTPServer) CatalogServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_services"}, 1,
-		[]metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
+	labels := []metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}}
+	defer metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_services"}, 1, labels)
 
 	// Set default DC
 	args := structs.DCSpecificRequest{}
@@ -136,9 +138,10 @@ func (s *HTTPServer) CatalogServices(resp http.ResponseWriter, req *http.Request
 	var out structs.IndexedServices
 	defer setMeta(resp, &out.QueryMeta)
 RETRY_ONCE:
+	labels = append(labels, metrics.Label{Name: "consistency", Value: args.QueryOptions.ConsistencyLevel()})
 	if err := s.agent.RPC("Catalog.ListServices", &args, &out); err != nil {
-		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_services"}, 1,
-			[]metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
+		labels = append(labels, metrics.Label{Name: "code", Value: "500"})
+		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_services"}, 1, labels)
 		return nil, err
 	}
 	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
@@ -152,20 +155,21 @@ RETRY_ONCE:
 	if out.Services == nil {
 		out.Services = make(structs.Services, 0)
 	}
-	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_services"}, 1,
-		[]metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
+	labels = append(labels, metrics.Label{Name: "code", Value: "200"})
+	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_services"}, 1, labels)
 	return out.Services, nil
 }
 
 func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_service_nodes"}, 1,
-		[]metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
+	labels := []metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}}
+	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_service_nodes"}, 1, labels)
 
 	// Set default DC
 	args := structs.ServiceSpecificRequest{}
 	s.parseSource(req, &args.Source)
 	args.NodeMetaFilters = s.parseMetaFilter(req)
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		labels = append(labels, metrics.Label{Name: "code", Value: "400"})
 		return nil, nil
 	}
 
@@ -174,6 +178,7 @@ func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Req
 	if _, ok := params["tag"]; ok {
 		args.ServiceTag = params.Get("tag")
 		args.TagFilter = true
+		labels = append(labels, metrics.Label{Name: "tag", Value: args.ServiceTag})
 	}
 
 	// Pull out the service name
@@ -181,6 +186,7 @@ func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Req
 	if args.ServiceName == "" {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing service name")
+		labels = append(labels, metrics.Label{Name: "code", Value: "400"})
 		return nil, nil
 	}
 
@@ -188,9 +194,10 @@ func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Req
 	var out structs.IndexedServiceNodes
 	defer setMeta(resp, &out.QueryMeta)
 RETRY_ONCE:
+	labels = append(labels, metrics.Label{Name: "consistency", Value: args.QueryOptions.ConsistencyLevel()})
 	if err := s.agent.RPC("Catalog.ServiceNodes", &args, &out); err != nil {
-		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_service_nodes"}, 1,
-			[]metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
+		labels = append(labels, metrics.Label{Name: "code", Value: "500"})
+		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_service_nodes"}, 1, labels)
 		return nil, err
 	}
 	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
@@ -212,18 +219,19 @@ RETRY_ONCE:
 			out.ServiceNodes[i] = &clone
 		}
 	}
-	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_service_nodes"}, 1,
-		[]metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
+	labels = append(labels, metrics.Label{Name: "code", Value: "200"})
+	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_service_nodes"}, 1, labels)
 	return out.ServiceNodes, nil
 }
 
 func (s *HTTPServer) CatalogNodeServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_node_services"}, 1,
-		[]metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
+	labels := []metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}}
+	defer metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_node_services"}, 1, labels)
 
 	// Set default Datacenter
 	args := structs.NodeSpecificRequest{}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		labels = append(labels, metrics.Label{Name: "code", Value: "400"})
 		return nil, nil
 	}
 
@@ -232,6 +240,7 @@ func (s *HTTPServer) CatalogNodeServices(resp http.ResponseWriter, req *http.Req
 	if args.Node == "" {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing node name")
+		labels = append(labels, metrics.Label{Name: "code", Value: "400"})
 		return nil, nil
 	}
 
@@ -239,9 +248,10 @@ func (s *HTTPServer) CatalogNodeServices(resp http.ResponseWriter, req *http.Req
 	var out structs.IndexedNodeServices
 	defer setMeta(resp, &out.QueryMeta)
 RETRY_ONCE:
+	labels = append(labels, metrics.Label{Name: "consistency", Value: args.QueryOptions.ConsistencyLevel()})
 	if err := s.agent.RPC("Catalog.NodeServices", &args, &out); err != nil {
-		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_node_services"}, 1,
-			[]metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
+		labels = append(labels, metrics.Label{Name: "code", Value: "500"})
+		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_node_services"}, 1, labels)
 		return nil, err
 	}
 	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
@@ -271,7 +281,7 @@ RETRY_ONCE:
 			}
 		}
 	}
-	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_node_services"}, 1,
-		[]metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}})
+	labels = append(labels, metrics.Label{Name: "code", Value: "200"})
+	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_node_services"}, 1, labels)
 	return out.NodeServices, nil
 }
