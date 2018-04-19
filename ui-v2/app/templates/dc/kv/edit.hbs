@@ -1,0 +1,82 @@
+{{#app-view}}
+    {{#block-slot 'header'}}
+        <h1>
+{{#if item.Key }}
+            {{item.Key}}
+{{ else }}
+            {{parent.Key}}
+{{/if}}
+        </h1>
+    {{/block-slot}}
+    {{#block-slot 'content'}}
+        <form>
+            <fieldset>
+{{#if create }}
+                <label class="type-text">
+                    <span>Key Name</span>
+                    <input type="text" value={{replace item.Key parent.Key ''}} name="additional" onkeyup={{action 'change'}} placeholder="Key or folder" />
+                    <em>To create a folder, end a key with <code>/</code></em>
+                </label>
+{{/if}}
+{{#if (not-eq (last item.Key) '/') }}
+                <div>
+                    {{! temporary style attr until I can make a id/class adder }}
+                    <label class="type-toggle">
+                        <input type="checkbox" name="json" checked={{if json 'checked' }} onchange={{action 'change'}} />
+                        <span>JSON</span>
+                    </label>
+                    <label class="type-text">
+                        <span>Value</span>
+    {{#if json}}
+                        {{ code-editor value=(atob item.Value) onkeyup=(action 'change') disabled=item.isLocked }}
+    {{else}}
+                        <input type="text" name="value" value={{atob item.Value}} onkeyup={{action 'change'}} />
+    {{/if}}
+                    </label>
+                </div>
+{{/if}}
+            </fieldset>
+            {{!if (or model.isLocked model.isLoading)}}
+{{#if create }}
+            <button type="submit" {{ action "create" item parent}}>Save</button>
+{{ else }}
+            <button type="submit" {{ action "update" item parent}}>Save</button>
+{{/if}}
+            <a rel="back" href={{href-to 'dc.kv.folder' parent.Key}}>Cancel changes</a>
+
+            {{!if (or item.isLocked isLoading)}}
+                <div class="with-confirmation">
+{{#if false }}
+                    <p>
+                        Are you sure you want to delete {{item.basename}}?
+                    </p>
+{{/if}}
+                    <button type="button" class="type-delete" {{ action "requestDelete" item}}>Delete</button>
+{{#if false }}
+                    <button type="button" class="type-cancel" {{ action "requestDelete" item}}>Cancel</button>
+{{/if}}
+                </div>
+        </form>
+
+        {{#if key.isLocked}}
+            <div>
+                <h2>Lock Session</h2>
+                <dl>
+                    <dt>Name</dt>
+                    <dd>{{session.Name}}</dd>
+                    <dt>ID</dt>
+                    <dd>{{session.ID}}</dd>
+                    <dt>Behavior</dt>
+                    <dd><{{session.Behavior}}/dd>
+                    <dt>Delay</dt>
+                    <dd><{{session.Delay}}/dd>
+                    <dt>TTL</dt>
+                    <dd>{{session.TTL}}</dd>
+                    <dt>Health Checks</dt>
+                    <dd>Checks in here</dd>
+                </dl>
+                <button type="button" class="type-delete" {{ action "requestInvalidateSession" session }}>Invalidate Session</button>
+            </div>
+        {{/if}}
+    {{/block-slot}}
+{{/app-view}}

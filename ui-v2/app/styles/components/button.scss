@@ -1,0 +1,43 @@
+button, a[rel='back'] {
+  @extend %button;
+}
+%button {
+  @extend .button;
+  padding-left: 1.7em;
+  padding-right: 1.7em;
+  box-shadow: 0 3px 1px 0 rgba(0, 0, 0, 0.12);
+}
+%button:not(:last-child) {
+  margin-right: 7px;
+}
+%button:hover,
+%button:focus {
+  @extend .is-hovered;
+}
+
+%button[type='submit'],
+%button.type-create {
+  @extend .is-primary;
+  border: 0;
+  color: $white !important;
+}
+%button:not([type='submit']),
+a[rel=back] {
+  border-color: currentColor;
+}
+%button[type='button'],
+a[rel=back] {
+  color: $text-blue;
+}
+%button.type-delete {
+  color: $danger;
+}
+.with-confirmation {
+  float: right;
+  display: flex;
+  align-items: center;
+}
+.with-confirmation p {
+  margin-right: 1em;
+  color: $text-note;
+}

@@ -1,0 +1,35 @@
+table {
+  position: relative;
+  height: 500px;
+}
+table tbody {
+  width: 100%;
+  height: 100%;
+  top: 46px !important;
+}
+tbody tr {
+  display: flex;
+}
+table tbody tr {
+  display: flex;
+}
+table td,
+table th {
+  flex: 1 0 auto;
+}
+table tr > *:first-child:nth-last-child(2),
+table tr > *:first-child:nth-last-child(2) ~ * {
+  width: 50%;
+}
+table tr > *:first-child:nth-last-child(3),
+table tr > *:first-child:nth-last-child(3) ~ * {
+  width: 33%;
+}
+table tr > *:first-child:nth-last-child(4),
+table tr > *:first-child:nth-last-child(4) ~ * {
+  width: 25%;
+}
+table tr > *:first-child:nth-last-child(7),
+table tr > *:first-child:nth-last-child(7) ~ * {
+  width: 14.2857%;
+}

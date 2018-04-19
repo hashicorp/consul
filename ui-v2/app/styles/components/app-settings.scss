@@ -1,0 +1,18 @@
+#settings {
+  @extend %app-settings;
+}
+#settings {
+  display: none;
+}
+#settings:target {
+  display: block;
+}
+%app-settings {
+  background-color: $white;
+  position: absolute;
+  padding-top: 6px;
+  top: -6px;
+  width: 100%;
+  max-width: 1150px;
+  height: 100%;
+}

@@ -1,0 +1,42 @@
+{{#app-view}}
+    {{#block-slot 'header'}}
+        <h1>
+            {{#if (eq parent.Key '/') }}
+                Key / Value
+            {{else}}
+                {{ parent.Key }}
+            {{/if}}
+        </h1>
+    {{/block-slot}}
+    {{#block-slot 'actions'}}
+        <a href="{{href-to 'dc.kv.create' parent.Key}}" class="type-create">Create</a>
+    {{/block-slot}}
+    {{#block-slot 'content'}}
+{{#if (gt items.length 0)}}
+        {{#tabular-collection
+            items=items as |item index|
+        }}
+            {{#block-slot 'header'}}
+                <th>Name</th>
+            {{/block-slot}}
+            {{#block-slot 'row'}}
+                <td data-test-kv="{{item.Key}}" class={{if item.isFolder 'folder' 'file' }}>
+                    <a href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key}}>{{item.basename}}</a>
+                </td>
+            {{/block-slot}}
+            {{#block-slot 'actions'}}
+                <ul>
+                    <li>
+                        <a href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key}}>Edit</a>
+                    </li>
+                    <li>
+                        <a onclick={{action 'requestDelete' item}}>Delete</a>
+                    </li>
+                </ul>
+            {{/block-slot}}
+        {{/tabular-collection}}
+{{else}}
+        <p>There are no Key / Value pairs.</p>
+{{/if}}
+    {{/block-slot}}
+{{/app-view}}

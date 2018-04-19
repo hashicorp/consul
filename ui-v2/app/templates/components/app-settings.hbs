@@ -1,0 +1,22 @@
+    {{#app-view}}
+    {{#block-slot 'header'}}
+        <h1>
+            Settings
+        </h1>
+    {{/block-slot}}
+    {{#block-slot 'content'}}
+        <p>
+            These settings allow you to configure your browser for the Consul Web UI. Everything is saved to localstorage, and should persist through visits and browser usage.
+        </p>
+        <form>
+            <fieldset>
+                <label class="type-text">
+                    <span>ACL Token</span>
+                    <input type="password" value="{{model.token}}" placeholder="ACL Token" />
+                    <p>The token is sent with requests as the <code>X-Consul-Token</code> HTTP header parameter. This is used to control the ACL for the web UI.</p>
+                </label>
+            </fieldset>
+            <button type="button">Save</button>
+        </form>
+    {{/block-slot}}
+{{/app-view}}

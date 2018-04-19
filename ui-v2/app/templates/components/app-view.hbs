@@ -1,0 +1,21 @@
+{{yield}}
+<header>
+{{#each flashMessages.queue as |flash|}}
+    {{#flash-message flash=flash as |component flash|}}
+        {{! flashes automatically ucfirst the type...}}
+        <p><strong>{{if (eq component.flashType 'Success') 'Success!' 'Error!'}}</strong> {{flash.message}}</p>
+    {{/flash-message}}
+{{/each}}
+    <div>
+        <div>
+            {{#yield-slot 'header'}}{{yield}}{{/yield-slot}}
+        </div>
+        <div class="actions">
+            {{#yield-slot 'actions'}}{{yield}}{{/yield-slot}}
+        </div>
+    </div>
+    {{#yield-slot 'toolbar'}}{{yield}}{{/yield-slot}}
+</header>
+<div>
+    {{#yield-slot 'content'}}{{yield}}{{/yield-slot}}
+</div>

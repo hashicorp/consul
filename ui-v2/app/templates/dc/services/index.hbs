@@ -1,0 +1,54 @@
+{{#app-view}}
+    {{#block-slot 'header'}}
+        <h1>
+            Services
+        </h1>
+    {{/block-slot}}
+    {{#block-slot 'toolbar'}}
+{{#if (gt items.length 0) }}
+        {{catalog-filter filters=healthFilters search=filters.s status=filters.status onchange=(action 'filter')}}
+{{/if}}
+    {{/block-slot}}
+    {{#block-slot 'content'}}
+{{#if (gt filtered.length 0) }}
+        {{#tabular-collection
+            items=filtered as |item index|
+        }}
+            {{#block-slot 'header'}}
+                <th>Service</th>
+                <th>Node Health</th>
+                <th>Tags</th>
+            {{/block-slot}}
+            {{#block-slot 'row'}}
+                <td data-test-service="{{item.Name}}">
+                    <a href={{href-to 'dc.services.show' item.Name }}>{{item.Name}}</a>
+                </td>
+                <td>
+                    <dl>
+{{#if (gt item.ChecksPassing 0)}}
+                        <dt class="passing">Healthchecks Passing</dt>
+                        <dd>{{item.ChecksPassing}}</dd>
+{{/if}}
+{{#if (gt item.ChecksWarning 0)}}
+                        <dt class="warning">Healthchecks Warning</dt>
+                        <dd>{{item.ChecksWarning}}</dd>
+{{/if}}
+{{#if (gt item.ChecksCritical 0)}}
+                        <dt class="critical">Healthchecks Critical</dt>
+                        <dd>{{item.ChecksCritical}}</dd>
+{{/if}}
+                    </dl>
+                </td>
+                <td>
+                    {{ join ', ' item.Tags}}
+                </td>
+            {{/block-slot}}
+        {{/tabular-collection}}
+{{else}}
+        <p>
+            There are no services.
+        </p>
+{{/if}}
+    {{/block-slot}}
+{{/app-view}}
+

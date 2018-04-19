@@ -1,0 +1,94 @@
+@import './icons';
+table {
+  @extend .table;
+  width: 100%;
+}
+td.folder {
+  @extend %with-folder;
+}
+td button {
+  position: relative;
+  top: -6px;
+}
+table th,
+table td,
+table td a {
+  // width: 300px;
+  padding: 0.9em 0;
+}
+table th {
+  // padding: 0.5em 0;
+}
+table th,
+table td:not(.actions),
+table td a {
+  padding-right: 0.9em;
+}
+table td:first-child {
+  padding: 0;
+}
+table td a {
+  display: block;
+}
+tbody {
+  overflow-x: visible !important;
+}
+td strong {
+  display: inline-block;
+  background-color: $gray;
+  padding: 1px 5px;
+  border-radius: $radius;
+}
+td:not(.actions) {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+// this isn't specific to table
+td dl {
+  overflow: hidden;
+  height: 18px;
+}
+td dl > * {
+  float: left;
+}
+td dt {
+  visibility: hidden;
+  line-height: 0;
+  display: inline-block;
+}
+td dt.passing,
+td dt.passing + dd {
+  color: $green;
+}
+td dt.warning,
+td dt.warning + dd {
+  color: $orange;
+}
+td dt.critical,
+td dt.critical + dd {
+  color: $red;
+}
+td dt.passing {
+  @extend %with-passing;
+}
+td dt.warning {
+  overflow: visible;
+  @extend %with-warning;
+}
+td dt.warning::before {
+  top: 7px;
+}
+td dt.warning::after {
+  left: -2px;
+  top: -1px;
+  // border-color: black;
+}
+td dt.critical {
+  @extend %with-critical;
+}
+td dd {
+  line-height: 1em;
+  padding-left: 22px;
+  padding-right: 15px;
+}

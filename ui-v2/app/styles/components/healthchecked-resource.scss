@@ -1,0 +1,104 @@
+@import './icons';
+.healthchecked-resource {
+  @extend %healthchecked-resource;
+}
+%healthchecked-resource {
+  border: 1px solid;
+}
+%healthchecked-resource li {
+  border-top: 1px solid;
+}
+%healthchecked-resource header span,
+%healthchecked-resource li:not(:last-child) span {
+  overflow: hidden;
+  display: inline-block;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+%healthchecked-resource li:not(:last-child) span {
+  // line-height: 1.7;
+}
+%healthchecked-resource li:last-child:not(:only-child) {
+  overflow: hidden;
+  white-space: nowrap;
+}
+%healthchecked-resource,
+%healthchecked-resource li {
+  border-color: $border-blue;
+}
+%healthchecked-resource {
+  position: relative;
+  border-radius: $radius;
+}
+%healthchecked-resource header {
+  margin-bottom: 2em;
+  position: relative;
+}
+%healthchecked-resource header span {
+  font-weight: $weight-bold;
+}
+%healthchecked-resource strong {
+  font-weight: $weight-normal;
+}
+
+%healthchecked-resource header strong {
+  position: absolute;
+  bottom: -0.4em;
+  left: 15px;
+}
+%healthchecked-resource a,
+%healthchecked-resource header a > * {
+  display: block;
+}
+%healthchecked-resource li {
+  position: relative;
+}
+%healthchecked-resource li::before {
+  left: 11px;
+  top: 50%;
+  margin-top: -0.5em;
+}
+%healthchecked-resource li.passing {
+  @extend %with-passing;
+  color: $green;
+}
+%healthchecked-resource li.warning {
+  @extend %with-warning;
+  color: $orange;
+}
+%healthchecked-resource li.critical {
+  @extend %with-critical;
+  color: $red;
+}
+.healthy .healthchecked-resource header span {
+  padding-right: 20px;
+}
+%healthchecked-resource li:only-child {
+  position: absolute;
+  top: 20px;
+  right: 16px;
+  border: none;
+}
+%healthchecked-resource li:only-child::before {
+  left: 0;
+}
+%healthchecked-resource li:only-child span {
+  display: none;
+}
+%healthchecked-resource li:only-child a {
+  padding-left: 0;
+}
+%healthchecked-resource header a {
+  padding: 12px 15px;
+}
+
+%healthchecked-resource li a {
+  padding: 2px 15px;
+  padding-top: 4px;
+  padding-left: 39px;
+}
+%healthchecked-resource li:not(:last-child) strong,
+%healthchecked-resource li:only-child strong {
+  display: none;
+}

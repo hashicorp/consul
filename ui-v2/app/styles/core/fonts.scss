@@ -1,0 +1,49 @@
+/**
+ * Sizes don't use auto rem to px calculating
+ * as I'm not sure what is familiar with everyone else
+ * Lets just hardcode for the minute
+*/
+html {
+  font-size: 16px;
+}
+// follow bulma and use 1, 2, 3, 4 etc for font sizes...
+$size-4: 1.5rem; // $size-large? 24
+$size-5: 1.125rem; // $size-medium? // 18
+$size-6: 0.875rem; // $size-normal? // 14
+$size-7: 0.8125rem; // $size-small? // 13
+$size-8: 0.75rem; // $size-small? // 12
+.is-size-8 {
+  font-size: $size-8;
+}
+h1 {
+  @extend .is-size-4;
+}
+h2 {
+  @extend .is-size-5;
+}
+body,
+pre code,
+input,
+td {
+  @extend .is-size-6; // .is-size-normal doesn't seem to exist
+}
+th,
+%footer {
+  @extend .is-size-7;
+}
+button,
+.with-confirmation p,
+%form-element em {
+  @extend .is-size-8;
+}
+input {
+
+}
+th,
+button,
+td strong {
+  font-weight: normal;
+}
+td:first-child {
+  font-weight: bold;
+}
