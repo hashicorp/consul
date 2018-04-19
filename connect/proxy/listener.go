@@ -87,7 +87,6 @@ func (l *Listener) Serve() error {
 
 		go l.handleConn(conn)
 	}
-	return nil
 }
 
 // handleConn is the internal connection handler goroutine.

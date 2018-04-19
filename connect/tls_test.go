@@ -16,7 +16,7 @@ func TestReloadableTLSConfig(t *testing.T) {
 
 	// The dynamic config should be the one we loaded (with some different hooks)
 	got := c.TLSConfig()
-	expect := *base
+	expect := base.Clone()
 	// Equal and even cmp.Diff fail on tls.Config due to unexported fields in
 	// each. Compare a few things to prove it's returning the bits we
 	// specifically set.
@@ -39,7 +39,7 @@ func TestReloadableTLSConfig(t *testing.T) {
 
 	// Change the passed config to ensure SetTLSConfig made a copy otherwise this
 	// is racey.
-	expect = *new
+	expect = new.Clone()
 	new.Certificates = nil
 
 	// The dynamic config should be the one we loaded (with some different hooks)

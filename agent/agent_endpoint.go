@@ -960,7 +960,6 @@ func (s *HTTPServer) AgentConnectProxyConfig(resp http.ResponseWriter, req *http
 			}
 			return contentHash, reply, nil
 		})
-	return nil, nil
 }
 
 type agentLocalBlockingFunc func(ws memdb.WatchSet) (string, interface{}, error)

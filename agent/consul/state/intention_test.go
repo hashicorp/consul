@@ -42,7 +42,7 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 	}
 
 	// Inserting a with empty ID is disallowed.
-	assert.Nil(s.IntentionSet(1, ixn))
+	assert.NoError(s.IntentionSet(1, ixn))
 
 	// Make sure the index got updated.
 	assert.Equal(uint64(1), s.maxIndex(intentionsTableName))
@@ -64,13 +64,18 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 
 	ws = memdb.NewWatchSet()
 	idx, actual, err := s.IntentionGet(ws, ixn.ID)
-	assert.Nil(err)
+	assert.NoError(err)
 	assert.Equal(expected.CreateIndex, idx)
 	assert.Equal(expected, actual)
 
 	// Change a value and test updating
 	ixn.SourceNS = "foo"
-	assert.Nil(s.IntentionSet(2, ixn))
+	assert.NoError(s.IntentionSet(2, ixn))
+
+	// Change a value that isn't in the unique 4 tuple and check we don't
+	// incorrectly consider this a duplicate when updating.
+	ixn.Action = structs.IntentionActionDeny
+	assert.NoError(s.IntentionSet(2, ixn))
 
 	// Make sure the index got updated.
 	assert.Equal(uint64(2), s.maxIndex(intentionsTableName))
@@ -78,10 +83,11 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 
 	// Read it back and verify the data was updated
 	expected.SourceNS = ixn.SourceNS
+	expected.Action = structs.IntentionActionDeny
 	expected.ModifyIndex = 2
 	ws = memdb.NewWatchSet()
 	idx, actual, err = s.IntentionGet(ws, ixn.ID)
-	assert.Nil(err)
+	assert.NoError(err)
 	assert.Equal(expected.ModifyIndex, idx)
 	assert.Equal(expected, actual)
 
@@ -97,7 +103,7 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 
 	// Duplicate 4-tuple should cause an error
 	ws = memdb.NewWatchSet()
-	assert.NotNil(s.IntentionSet(3, ixn))
+	assert.Error(s.IntentionSet(3, ixn))
 
 	// Make sure the index did NOT get updated.
 	assert.Equal(uint64(2), s.maxIndex(intentionsTableName))
@@ -110,11 +116,11 @@ func TestStore_IntentionSet_emptyId(t *testing.T) {
 
 	ws := memdb.NewWatchSet()
 	_, _, err := s.IntentionGet(ws, testUUID())
-	assert.Nil(err)
+	assert.NoError(err)
 
 	// Inserting a with empty ID is disallowed.
 	err = s.IntentionSet(1, &structs.Intention{})
-	assert.NotNil(err)
+	assert.Error(err)
 	assert.Contains(err.Error(), ErrMissingIntentionID.Error())
 
 	// Index is not updated if nothing is saved.
@@ -134,16 +140,16 @@ func TestStore_IntentionSet_updateCreatedAt(t *testing.T) {
 	}
 
 	// Insert
-	assert.Nil(s.IntentionSet(1, &ixn))
+	assert.NoError(s.IntentionSet(1, &ixn))
 
 	// Change a value and test updating
 	ixnUpdate := ixn
 	ixnUpdate.CreatedAt = now.Add(10 * time.Second)
-	assert.Nil(s.IntentionSet(2, &ixnUpdate))
+	assert.NoError(s.IntentionSet(2, &ixnUpdate))
 
 	// Read it back and verify
 	_, actual, err := s.IntentionGet(nil, ixn.ID)
-	assert.Nil(err)
+	assert.NoError(err)
 	assert.Equal(now, actual.CreatedAt)
 }
 
@@ -157,11 +163,11 @@ func TestStore_IntentionSet_metaNil(t *testing.T) {
 	}
 
 	// Insert
-	assert.Nil(s.IntentionSet(1, &ixn))
+	assert.NoError(s.IntentionSet(1, &ixn))
 
 	// Read it back and verify
 	_, actual, err := s.IntentionGet(nil, ixn.ID)
-	assert.Nil(err)
+	assert.NoError(err)
 	assert.NotNil(actual.Meta)
 }
 
@@ -176,11 +182,11 @@ func TestStore_IntentionSet_metaSet(t *testing.T) {
 	}
 
 	// Insert
-	assert.Nil(s.IntentionSet(1, &ixn))
+	assert.NoError(s.IntentionSet(1, &ixn))
 
 	// Read it back and verify
 	_, actual, err := s.IntentionGet(nil, ixn.ID)
-	assert.Nil(err)
+	assert.NoError(err)
 	assert.Equal(ixn.Meta, actual.Meta)
 }
 
@@ -191,18 +197,18 @@ func TestStore_IntentionDelete(t *testing.T) {
 	// Call Get to populate the watch set
 	ws := memdb.NewWatchSet()
 	_, _, err := s.IntentionGet(ws, testUUID())
-	assert.Nil(err)
+	assert.NoError(err)
 
 	// Create
 	ixn := &structs.Intention{ID: testUUID()}
-	assert.Nil(s.IntentionSet(1, ixn))
+	assert.NoError(s.IntentionSet(1, ixn))
 
 	// Make sure the index got updated.
 	assert.Equal(s.maxIndex(intentionsTableName), uint64(1))
 	assert.True(watchFired(ws), "watch fired")
 
 	// Delete
-	assert.Nil(s.IntentionDelete(2, ixn.ID))
+	assert.NoError(s.IntentionDelete(2, ixn.ID))
 
 	// Make sure the index got updated.
 	assert.Equal(s.maxIndex(intentionsTableName), uint64(2))
@@ -210,7 +216,7 @@ func TestStore_IntentionDelete(t *testing.T) {
 
 	// Sanity check to make sure it's not there.
 	idx, actual, err := s.IntentionGet(nil, ixn.ID)
-	assert.Nil(err)
+	assert.NoError(err)
 	assert.Equal(idx, uint64(2))
 	assert.Nil(actual)
 }
@@ -222,7 +228,7 @@ func TestStore_IntentionsList(t *testing.T) {
 	// Querying with no results returns nil.
 	ws := memdb.NewWatchSet()
 	idx, res, err := s.Intentions(ws)
-	assert.Nil(err)
+	assert.NoError(err)
 	assert.Nil(res)
 	assert.Equal(idx, uint64(0))
 
@@ -244,7 +250,7 @@ func TestStore_IntentionsList(t *testing.T) {
 
 	// Create
 	for i, ixn := range ixns {
-		assert.Nil(s.IntentionSet(uint64(1+i), ixn))
+		assert.NoError(s.IntentionSet(uint64(1+i), ixn))
 	}
 	assert.True(watchFired(ws), "watch fired")
 
@@ -268,7 +274,7 @@ func TestStore_IntentionsList(t *testing.T) {
 		},
 	}
 	idx, actual, err := s.Intentions(nil)
-	assert.Nil(err)
+	assert.NoError(err)
 	assert.Equal(idx, uint64(2))
 	assert.Equal(expected, actual)
 }
@@ -386,7 +392,7 @@ func TestStore_IntentionMatch_table(t *testing.T) {
 				}
 			}
 
-			assert.Nil(s.IntentionSet(idx, ixn))
+			assert.NoError(s.IntentionSet(idx, ixn))
 
 			idx++
 		}
@@ -402,7 +408,7 @@ func TestStore_IntentionMatch_table(t *testing.T) {
 
 		// Match
 		_, matches, err := s.IntentionMatch(nil, args)
-		assert.Nil(err)
+		assert.NoError(err)
 
 		// Should have equal lengths
 		require.Len(t, matches, len(tc.Expected))
@@ -478,7 +484,7 @@ func TestStore_Intention_Snapshot_Restore(t *testing.T) {
 
 	// Now create
 	for i, ixn := range ixns {
-		assert.Nil(s.IntentionSet(uint64(4+i), ixn))
+		assert.NoError(s.IntentionSet(uint64(4+i), ixn))
 	}
 
 	// Snapshot the queries.
@@ -486,7 +492,7 @@ func TestStore_Intention_Snapshot_Restore(t *testing.T) {
 	defer snap.Close()
 
 	// Alter the real state store.
-	assert.Nil(s.IntentionDelete(7, ixns[0].ID))
+	assert.NoError(s.IntentionDelete(7, ixns[0].ID))
 
 	// Verify the snapshot.
 	assert.Equal(snap.LastIndex(), uint64(6))
@@ -520,7 +526,7 @@ func TestStore_Intention_Snapshot_Restore(t *testing.T) {
 		},
 	}
 	dump, err := snap.Intentions()
-	assert.Nil(err)
+	assert.NoError(err)
 	assert.Equal(expected, dump)
 
 	// Restore the values into a new state store.
@@ -528,13 +534,13 @@ func TestStore_Intention_Snapshot_Restore(t *testing.T) {
 		s := testStateStore(t)
 		restore := s.Restore()
 		for _, ixn := range dump {
-			assert.Nil(restore.Intention(ixn))
+			assert.NoError(restore.Intention(ixn))
 		}
 		restore.Commit()
 
 		// Read the restored values back out and verify that they match.
 		idx, actual, err := s.Intentions(nil)
-		assert.Nil(err)
+		assert.NoError(err)
 		assert.Equal(idx, uint64(6))
 		assert.Equal(expected, actual)
 	}()

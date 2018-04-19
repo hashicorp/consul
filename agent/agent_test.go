@@ -2366,7 +2366,7 @@ func TestAgent_AddProxy(t *testing.T) {
 
 			// Test the ID was created as we expect.
 			got := a.State.Proxy("web-proxy")
-			require.Equal(tt.proxy, got)
+			require.Equal(tt.proxy, got.Proxy)
 		})
 	}
 }
@@ -2394,7 +2394,7 @@ func TestAgent_RemoveProxy(t *testing.T) {
 
 	// Test the ID was created as we expect.
 	gotProxy := a.State.Proxy("web-proxy")
-	require.Equal(pReg, gotProxy)
+	require.Equal(pReg, gotProxy.Proxy)
 
 	err := a.RemoveProxy("web-proxy", false)
 	require.NoError(err)

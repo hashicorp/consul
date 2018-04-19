@@ -6,9 +6,10 @@ import (
 	"log"
 	"os"
 	"reflect"
-	"sync"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/go-memdb"
 
 	"github.com/stretchr/testify/require"
 
@@ -1708,20 +1709,6 @@ func TestStateProxyManagement(t *testing.T) {
 	}, "fake-token-db")
 	require.NoError(err)
 
-	// Record initial local modify index
-	lastModifyIndex := state.LocalModifyIndex()
-	assertModIndexUpdate := func(id string) {
-		t.Helper()
-		nowIndex := state.LocalModifyIndex()
-		assert.True(lastModifyIndex < nowIndex)
-		if id != "" {
-			p := state.Proxy(id)
-			require.NotNil(p)
-			assert.True(lastModifyIndex < p.ModifyIndex)
-		}
-		lastModifyIndex = nowIndex
-	}
-
 	// Should work now
 	svc, err := state.AddProxy(&p1, "fake-token")
 	require.NoError(err)
@@ -1733,7 +1720,6 @@ func TestStateProxyManagement(t *testing.T) {
 	assert.Equal("", svc.Address, "should have empty address by default")
 	// Port is non-deterministic but could be either of 20000 or 20001
 	assert.Contains([]int{20000, 20001}, svc.Port)
-	assertModIndexUpdate(svc.ID)
 
 	// Second proxy should claim other port
 	p2 := p1
@@ -1742,7 +1728,6 @@ func TestStateProxyManagement(t *testing.T) {
 	require.NoError(err)
 	assert.Contains([]int{20000, 20001}, svc2.Port)
 	assert.NotEqual(svc.Port, svc2.Port)
-	assertModIndexUpdate(svc2.ID)
 
 	// Store this for later
 	p2token := state.Proxy(svc2.ID).ProxyToken
@@ -1762,7 +1747,6 @@ func TestStateProxyManagement(t *testing.T) {
 	require.NoError(err)
 	require.Equal("0.0.0.0", svc3.Address)
 	require.Equal(1234, svc3.Port)
-	assertModIndexUpdate(svc3.ID)
 
 	// Update config of an already registered proxy should work
 	p3updated := p3
@@ -1770,14 +1754,8 @@ func TestStateProxyManagement(t *testing.T) {
 	// Setup multiple watchers who should all witness the change
 	gotP3 := state.Proxy(svc3.ID)
 	require.NotNil(gotP3)
-	var watchWg sync.WaitGroup
-	for i := 0; i < 3; i++ {
-		watchWg.Add(1)
-		go func() {
-			<-gotP3.WatchCh
-			watchWg.Done()
-		}()
-	}
+	var ws memdb.WatchSet
+	ws.Add(gotP3.WatchCh)
 	svc3, err = state.AddProxy(&p3updated, "fake-token")
 	require.NoError(err)
 	require.Equal("0.0.0.0", svc3.Address)
@@ -1785,9 +1763,8 @@ func TestStateProxyManagement(t *testing.T) {
 	gotProxy3 := state.Proxy(svc3.ID)
 	require.NotNil(gotProxy3)
 	require.Equal(p3updated.Config, gotProxy3.Proxy.Config)
-	assertModIndexUpdate(svc3.ID) // update must change mod index
-	// All watchers should have fired so this should not hang the test!
-	watchWg.Wait()
+	assert.False(ws.Watch(time.After(500*time.Millisecond)),
+		"watch should have fired so ws.Watch should not timeout")
 
 	// Remove one of the auto-assigned proxies
 	err = state.RemoveProxy(svc2.ID)
@@ -1800,7 +1777,6 @@ func TestStateProxyManagement(t *testing.T) {
 	require.NoError(err)
 	assert.Contains([]int{20000, 20001}, svc2.Port)
 	assert.Equal(svc4.Port, svc2.Port, "should get the same port back that we freed")
-	assertModIndexUpdate(svc4.ID)
 
 	// Remove a proxy that doesn't exist should error
 	err = state.RemoveProxy("nope")

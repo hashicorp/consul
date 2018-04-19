@@ -161,8 +161,6 @@ func (s *TestServer) Serve() error {
 			c.Close()
 		}(conn)
 	}
-
-	return nil
 }
 
 // ServeHTTPS runs an HTTPS server with the given config. It invokes the passed

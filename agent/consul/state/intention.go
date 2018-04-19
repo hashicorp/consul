@@ -190,7 +190,10 @@ func (s *Store) intentionSetTxn(tx *memdb.Txn, idx uint64, ixn *structs.Intentio
 	}
 	if duplicate != nil {
 		dupIxn := duplicate.(*structs.Intention)
-		return fmt.Errorf("duplicate intention found: %s", dupIxn.String())
+		// Same ID is OK - this is an update
+		if dupIxn.ID != ixn.ID {
+			return fmt.Errorf("duplicate intention found: %s", dupIxn.String())
+		}
 	}
 
 	// We always force meta to be non-nil so that we its an empty map.
