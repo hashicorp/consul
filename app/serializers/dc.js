@@ -1,4 +1,5 @@
 import Serializer from './application';
+import { get } from '@ember/object';
 export default Serializer.extend({
   primaryKey: 'Name',
   normalizePayload: function(payload, id, requestType) {
@@ -6,7 +7,7 @@ export default Serializer.extend({
       case 'findAll':
         return payload.map(item => {
           return {
-            [this.get('primaryKey')]: item,
+            [get(this, 'primaryKey')]: item,
           };
         });
     }

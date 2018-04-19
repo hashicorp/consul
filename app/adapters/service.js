@@ -1,5 +1,4 @@
 import Adapter from './application';
-import { assign } from '@ember/polyfills';
 const PRIMARY_KEY = 'Id';
 export default Adapter.extend({
   urlForQuery: function(query, modelName) {
@@ -28,9 +27,12 @@ export default Adapter.extend({
     } else {
       // isQuery
       response = response.map(function(item, i, arr) {
-        return assign({}, item, {
-          [PRIMARY_KEY]: item.Name,
-        });
+        return {
+          ...item,
+          ...{
+            [PRIMARY_KEY]: item.Name,
+          },
+        };
       });
     }
     return this._super(status, headers, response, requestData);

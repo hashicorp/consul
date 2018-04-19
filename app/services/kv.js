@@ -13,13 +13,13 @@ export default Service.extend({
         Key: key,
       });
     }
-    return this.get('store')
+    return get(this, 'store')
       .queryRecord('kv', {
         key: key,
         dc: dc,
       })
       .then(function(item) {
-        item.set('Datacenter', dc);
+        set(item, 'Datacenter', dc);
         return item;
       });
   },
@@ -33,8 +33,7 @@ export default Service.extend({
       .query('kv', {
         key: key,
         dc: dc,
-        // TODO: [sic] seperator
-        seperator: '/',
+        separator: '/',
       })
       .then(function(items) {
         return items
@@ -48,7 +47,7 @@ export default Service.extend({
       });
   },
   create: function() {
-    return this.get('store').createRecord('kv');
+    return get(this, 'store').createRecord('kv');
   },
   persist: function(item) {
     return item.save();
@@ -59,16 +58,16 @@ export default Service.extend({
       const dc = item.Datacenter;
       // TODO: This won't work for multi dc?
       // id's need to be 'dc-key'
-      item = this.get('store').peekRecord('kv', key);
+      item = get(this, 'store').peekRecord('kv', key);
       if (item == null) {
         item = this.create();
-        item.set('Key', key);
-        item.set('Datacenter', dc);
+        set(item, 'Key', key);
+        set(item, 'Datacenter', dc);
       }
     }
     return item.destroyRecord().then(item => {
       // really?
-      return this.get('store').unloadRecord(item);
+      return get(this, 'store').unloadRecord(item);
     });
   },
 });

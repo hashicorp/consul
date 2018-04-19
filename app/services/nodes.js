@@ -1,5 +1,6 @@
 /* eslint no-console: "off" */
 import Service, { inject as service } from '@ember/service';
+import { get } from '@ember/object';
 import $ from 'jquery';
 import { Promise } from 'rsvp';
 const request = function() {
@@ -14,27 +15,24 @@ const request = function() {
         return e;
       });
   });
-}
+};
 export default Service.extend({
   store: service('store'),
   findAllByDatacenter: function(dc) {
-    return this.get('store').query('node', { dc: dc });
+    return get(this, 'store').query('node', { dc: dc });
   },
   findBySlug: function(slug, dc) {
-    return this.get('store').queryRecord('node', {
-      id: slug,
-      dc: dc,
-    }).then(
-      (node) => {
-        return this.findAllCoordinatesByDatacenter(dc).then(
-          function(res) {
-            node.coordinates = res;
-            return node;
-          }
-        );
-
-      }
-    );
+    return get(this, 'store')
+      .queryRecord('node', {
+        id: slug,
+        dc: dc,
+      })
+      .then(node => {
+        return this.findAllCoordinatesByDatacenter(dc).then(function(res) {
+          node.coordinates = res;
+          return node;
+        });
+      });
   },
   findAllCoordinatesByDatacenter: function(dc) {
     console.warn('TODO: not ember-data');

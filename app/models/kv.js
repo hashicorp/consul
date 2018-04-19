@@ -1,6 +1,6 @@
 import Model from 'ember-data/model';
 import attr from 'ember-data/attr';
-import { computed } from '@ember/object';
+import { computed, get } from '@ember/object';
 import ascend from 'consul-ui/utils/ascend';
 import isFolder from 'consul-ui/utils/isFolder';
 
@@ -28,24 +28,24 @@ export default Model.extend({
   // This is only for display purposes, and used for
   // showing the key name inside of a nested key.
   basename: computed('Key', function() {
-    let key = this.get('Key') || '';
+    let key = get(this, 'Key') || '';
     if (isFolder(key)) {
       key = key.substring(0, key.length - 1);
     }
-    return (this.get('Key') || '').replace(ascend(key || '', 1) || '/', '');
+    return (get(this, 'Key') || '').replace(ascend(key || '', 1) || '/', '');
   }),
   isFolder: computed('Key', function() {
-    return isFolder(this.get('Key') || '');
+    return isFolder(get(this, 'Key') || '');
   }),
   // Boolean if the key is locked or now
   isLocked: computed('Session', function() {
     // handlebars doesn't like booleans, use valueOf
-    return new Boolean(this.get('Session')).valueOf();
+    return new Boolean(get(this, 'Session')).valueOf();
   }),
   // Determines what route to link to. If it's a folder,
   // it will link to kv.show. Otherwise, kv.edit
   linkToRoute: computed('Key', function() {
-    if (isFolder(this.get('Key'))) {
+    if (isFolder(get(this, 'Key'))) {
       return 'dc.kv.index';
     } else {
       return 'dc.kv.edit';
@@ -55,10 +55,10 @@ export default Model.extend({
   isValidJson: computed('Value', function() {
     var value;
     try {
-      window.atob(this.get('Value'));
-      value = this.get('valueDecoded');
+      window.atob(get(this, 'Value'));
+      value = get(this, 'valueDecoded');
     } catch (e) {
-      value = this.get('Value');
+      value = get(this, 'Value');
     }
     try {
       JSON.parse(value);

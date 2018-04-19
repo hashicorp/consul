@@ -1,6 +1,5 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
-import { assign } from '@ember/polyfills';
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
 
@@ -19,15 +18,15 @@ export default Route.extend(WithFeedback, {
       parent: repo.findBySlug(ascend(key, 1) || '/', dc),
       item: repo.findBySlug(key, dc),
     }).then(model => {
-      // jc: another afterModel for no reason replacement
-      // guessing ember-data will come in here, as we are just stitching stuff together
+      // TODO: Consider loading this after initial page load
       const session = get(model.item, 'Session');
       if (session) {
-        return hash(
-          assign({}, model, {
+        return hash({
+          ...model,
+          ...{
             session: get(this, 'sessionRepo').findByKey(session, dc),
-          })
-        );
+          },
+        });
       }
       return model;
     });

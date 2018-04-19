@@ -1,15 +1,16 @@
 import Service, { inject as service } from '@ember/service';
+import { get } from '@ember/object';
 
 export default Service.extend({
   store: service('store'),
   findByNode: function(node, dc) {
-    return this.get('store').query('session', {
+    return get(this, 'store').query('session', {
       node: node,
       dc: dc,
     });
   },
   findByKey: function(key, dc) {
-    return this.get('store').queryRecord('session', {
+    return get(this, 'store').queryRecord('session', {
       key: key,
       dc: dc,
     });
@@ -17,7 +18,7 @@ export default Service.extend({
   remove: function(item, dc) {
     return item.destroyRecord().then(item => {
       // really?
-      return this.get('store').unloadRecord(item);
+      return get(this, 'store').unloadRecord(item);
     });
   },
 });

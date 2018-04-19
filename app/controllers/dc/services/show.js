@@ -11,12 +11,12 @@ export default Controller.extend(WithHealthFiltering, {
     this.columns = [25, 25, 25, 25];
   },
   unhealthy: computed('filtered', function() {
-    return this.get('filtered').filter(function(item) {
+    return get(this, 'filtered').filter(function(item) {
       return sumOfUnhealthy(item.Checks) > 0;
     });
   }),
   healthy: computed('filtered', function() {
-    return this.get('filtered').filter(function(item) {
+    return get(this, 'filtered').filter(function(item) {
       return sumOfUnhealthy(item.Checks) === 0;
     });
   }),

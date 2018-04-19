@@ -36,29 +36,29 @@ import { get, set } from '@ember/object';
 export default Service.extend({
   store: service('store'),
   findAllByDatacenter: function(dc) {
-    return this.get('store')
+    return get(this, 'store')
       .query('acl', {
         dc: dc,
       })
       .then(function(items) {
         return items.forEach(function(item, i, arr) {
-          item.set('Datacenter', dc);
+          set(item, 'Datacenter', dc);
         });
       });
   },
   findBySlug: function(slug, dc) {
-    return this.get('store')
+    return get(this, 'store')
       .queryRecord('acl', {
         acl: slug,
         dc: dc,
       })
       .then(function(item) {
-        item.set('Datacenter', dc);
+        set(item, 'Datacenter', dc);
         return item;
       });
   },
   create: function() {
-    return this.get('store').createRecord('acl');
+    return get(this, 'store').createRecord('acl');
   },
   persist: function(item) {
     return item.save();
@@ -66,7 +66,7 @@ export default Service.extend({
   remove: function(item) {
     return item.destroyRecord().then(item => {
       // really?
-      return this.get('store').unloadRecord(item);
+      return get(this, 'store').unloadRecord(item);
     });
   },
 });

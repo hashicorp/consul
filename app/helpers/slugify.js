@@ -1,6 +1,7 @@
 import { helper } from '@ember/component/helper';
 
-export function slugify([str = ''] /*, hash*/) {
+// TODO: Improve this
+export function slugify([str = ''], hash) {
   return str.replace(/ /g, '-').toLowerCase();
 }
 

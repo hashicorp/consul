@@ -1,7 +1,6 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
-import { assign } from '@ember/polyfills';
 import { get } from '@ember/object';
 
 import distance from 'consul-ui/utils/distance';
@@ -27,23 +26,21 @@ export default Route.extend(WithFeedback, {
       model: repo.findBySlug(params.name, dc),
       size: 337,
     }).then(function(model) {
-      // Load the sessions for the node
-      // jc: This was in afterModel, I think the only for which was
-      // that the model needed resolving first to get to Node
-      return hash(
-        assign({}, model, {
+      // TODO: Consider loading this after initial page load
+      return hash({
+        ...model,
+        ...{
           tomography: tomography(params.name, model.model.coordinates),
           items: get(model.model, 'Services'),
           sessions: sessionRepo.findByNode(get(model.model, 'Node'), dc),
-        })
-      );
+        },
+      });
     });
   },
   setupController: function(controller, model) {
     controller.setProperties(model);
   },
   actions: {
-    // TODO: use feedback service
     invalidateSession: function(item) {
       const dc = this.modelFor('dc').dc.Name;
       const controller = this.controller;

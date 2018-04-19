@@ -14,10 +14,10 @@ export default Route.extend(WithFeedback, {
     const item = repo.create();
     set(item, 'Datacenter', dc);
     return hash({
+      isLoading: false,
       create: true,
       parent: repo.findBySlug(key, dc),
       item: item,
-      isLoading: false,
     });
   },
   setupController: function(controller, model) {

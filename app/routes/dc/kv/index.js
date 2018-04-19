@@ -1,9 +1,8 @@
 import Route from '@ember/routing/route';
-
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
-import { assign } from '@ember/polyfills';
 import { get } from '@ember/object';
+
 import WithFeedback from 'consul-ui/mixins/with-feedback';
 
 export default Route.extend(WithFeedback, {
@@ -16,22 +15,23 @@ export default Route.extend(WithFeedback, {
       isLoading: false,
       parent: repo.findBySlug(key, dc),
     })
-      .then(
-        function(model) {
-          return hash(
-            assign({}, model, {
-              // better name, slug vs key?
-              items: repo.findAllBySlug(get(model.parent, 'Key'), dc),
-            })
-          );
-        }
+      .then(function(model) {
+        return hash({
+          ...model,
+          ...{
+            items: repo.findAllBySlug(get(model.parent, 'Key'), dc),
+          },
+        });
+      })
+      .catch(() => {
         // usually when an entire folder structure and no longer exists
         // a 404 comes back, just redirect to root as the old UI did
-      )
-      .catch(() => {
-        // this still gives me an error!?
+        // TODO: this still gives me an error!?
         return this.transitionTo('dc.kv.index');
       });
+  },
+  setupController: function(controller, model) {
+    controller.setProperties(model);
   },
   actions: {
     delete: function(item) {
@@ -51,8 +51,5 @@ export default Route.extend(WithFeedback, {
     cancel: function(item, parent) {
       return this.transitionTo('dc.kv.folder', parent);
     },
-  },
-  setupController: function(controller, model) {
-    controller.setProperties(model);
   },
 });

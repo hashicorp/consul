@@ -1,5 +1,5 @@
 import Controller from '@ember/controller';
-import { get } from '@ember/object';
+import { get, set } from '@ember/object';
 import WithFiltering from 'consul-ui/mixins/with-filtering';
 import confirm from 'consul-ui/utils/confirm';
 import error from 'consul-ui/utils/error';
@@ -19,7 +19,7 @@ export default Controller.extend(WithFiltering, {
   },
   actions: {
     change: function(event) {
-      this.set('selectedTab', event.target.value);
+      set(this, 'selectedTab', event.target.value);
     },
     requestInvalidateSession: function(item) {
       confirm('Are you sure you want to invalidate this session?')

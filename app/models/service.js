@@ -1,10 +1,7 @@
-// import { collect, sum, bool, equal } from '@ember/object/computed';
 import Model from 'ember-data/model';
 import attr from 'ember-data/attr';
 // import { belongsTo } from 'ember-data/relationships';
-import { computed } from '@ember/object';
-// import { fragmentArray } from 'ember-data-model-fragments/attributes';
-// import sumAggregation from '../utils/properties/sum-aggregation';
+import { computed, get } from '@ember/object';
 export default Model.extend({
   Id: attr('string'), // added by ember
   Name: attr('string'),
@@ -32,28 +29,26 @@ export default Model.extend({
   failingChecks: computed('ChecksCritical', 'ChecksWarning', 'Checks', function() {
     // If the service was returned from `/v1/internal/ui/services`
     // then we have a aggregated value which we can just grab
-    if (this.get('ChecksCritical') !== undefined) {
-      return this.get('ChecksCritical') + this.get('ChecksWarning');
+    if (get(this, 'ChecksCritical') !== undefined) {
+      return get(this, 'ChecksCritical') + get(this, 'ChecksWarning');
       // Otherwise, we need to filter the child checks by both failing
       // states
     } else {
-      var checks = this.get('Checks');
+      var checks = get(this, 'Checks');
       return (
-        checks.filterBy('Status', 'critical').get('length') +
-        checks.filterBy('Status', 'warning').get('length')
+        get(checks.filterBy('Status', 'critical'), 'length') +
+        get(checks.filterBy('Status', 'warning'), 'length')
       );
     }
   }),
   passing: computed('ChecksPassing', 'Checks', function() {
     let num = 0;
-    if (this.get('ChecksPassing') !== undefined) {
+    if (get(this, 'ChecksPassing') !== undefined) {
       // TODO: if we don't need this then just return the filterBy array
       // as it has a length
-      num = this.get('ChecksPassing');
+      num = get(this, 'ChecksPassing');
     } else {
-      num = this.get('Checks')
-        .filterBy('Status', 'passing')
-        .get('length');
+      num = get(get(this, 'Checks').filterBy('Status', 'passing'), 'length');
     }
     return {
       length: num,
@@ -63,13 +58,13 @@ export default Model.extend({
     let num = 0;
     switch (status) {
       case 'passing':
-        num = this.get('ChecksPassing');
+        num = get(this, 'ChecksPassing');
         break;
       case 'critical':
-        num = this.get('ChecksCritical');
+        num = get(this, 'ChecksCritical');
         break;
       case 'warning':
-        num = this.get('ChecksWarning');
+        num = get(this, 'ChecksWarning');
         break;
       case '': // all
         num = 1;

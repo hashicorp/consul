@@ -1,7 +1,6 @@
 import Mixin from '@ember/object/mixin';
 
-import { computed } from '@ember/object';
-import { assign } from '@ember/polyfills';
+import { computed, get, set } from '@ember/object';
 const toKeyValue = function(el) {
   const key = el.name;
   let value = '';
@@ -17,14 +16,17 @@ const toKeyValue = function(el) {
 export default Mixin.create({
   filters: {},
   filtered: computed('items', 'filters', function() {
-    const filters = this.get('filters');
-    return this.get('items').filter(item => {
+    const filters = get(this, 'filters');
+    return get(this, 'items').filter(item => {
       return this.filter(item, filters);
     });
   }),
   actions: {
     filter: function(e) {
-      this.set('filters', assign({}, this.get('filters'), toKeyValue(e.target)));
+      set(this, 'filters', {
+        ...this.get('filters'),
+        ...toKeyValue(e.target),
+      });
     },
   },
 });

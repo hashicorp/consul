@@ -1,25 +1,25 @@
 import Controller from '@ember/controller';
 import { computed } from '@ember/object';
 import WithHealthFiltering from 'consul-ui/mixins/with-health-filtering';
+import { get } from '@ember/object';
 export default Controller.extend(WithHealthFiltering, {
   init: function() {
     this._super(...arguments);
     this.columns = [25, 25, 25, 25];
   },
   unhealthy: computed('filtered', function() {
-    return this.get('filtered').filter(function(item) {
-      return item.get('isUnhealthy');
+    return get(this, 'filtered').filter(function(item) {
+      return get(item, 'isUnhealthy');
     });
   }),
   healthy: computed('filtered', function() {
-    return this.get('filtered').filter(function(item) {
-      return item.get('isHealthy');
+    return get(this, 'filtered').filter(function(item) {
+      return get(item, 'isHealthy');
     });
   }),
   filter: function(item, { s = '', status = '' }) {
     return (
-      item
-        .get('Node')
+      get(item, 'Node')
         .toLowerCase()
         .indexOf(s.toLowerCase()) === 0 && item.hasStatus(status)
     );
