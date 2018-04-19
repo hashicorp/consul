@@ -59,8 +59,9 @@ func (s *Server) listen(listener net.Listener) {
 		}
 
 		go s.handleConn(conn, false)
-		metrics.IncrCounterWithLabels([]string{"consul", "rpc", "accept_conn"}, 1, []metrics.Label{{Name: "client", Value: conn.RemoteAddr().String()}})
-		metrics.IncrCounterWithLabels([]string{"rpc", "accept_conn"}, 1, []metrics.Label{{Name: "client", Value: conn.RemoteAddr().String()}})
+		labels := []metrics.Label{{Name: "client", Value: conn.RemoteAddr().String()}}
+		metrics.IncrCounterWithLabels([]string{"consul", "rpc", "accept_conn"}, 1, labels)
+		metrics.IncrCounterWithLabels([]string{"rpc", "accept_conn"}, 1, labels)
 	}
 }
 

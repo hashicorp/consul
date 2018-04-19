@@ -159,9 +159,9 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	q := req.Question[0]
 	defer func(s time.Time) {
 		metrics.MeasureSinceWithLabels([]string{"consul", "dns", "ptr_query"}, s,
-			[]metrics.Label{{Name: "node", Value: d.agent.config.NodeName}})
+			[]metrics.Label{{Name: "agent", Value: d.agent.config.NodeName}})
 		metrics.MeasureSinceWithLabels([]string{"dns", "ptr_query"}, s,
-			[]metrics.Label{{Name: "node", Value: d.agent.config.NodeName}})
+			[]metrics.Label{{Name: "agent", Value: d.agent.config.NodeName}})
 		d.logger.Printf("[DEBUG] dns: request for %v (%v) from client %s (%s)",
 			q, time.Since(s), resp.RemoteAddr().String(),
 			resp.RemoteAddr().Network())
@@ -231,9 +231,9 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	q := req.Question[0]
 	defer func(s time.Time) {
 		metrics.MeasureSinceWithLabels([]string{"consul", "dns", "domain_query"}, s,
-			[]metrics.Label{{Name: "node", Value: d.agent.config.NodeName}})
+			[]metrics.Label{{Name: "agent", Value: d.agent.config.NodeName}})
 		metrics.MeasureSinceWithLabels([]string{"dns", "domain_query"}, s,
-			[]metrics.Label{{Name: "node", Value: d.agent.config.NodeName}})
+			[]metrics.Label{{Name: "agent", Value: d.agent.config.NodeName}})
 		d.logger.Printf("[DEBUG] dns: request for name %v type %v class %v (took %v) from client %s (%s)",
 			q.Name, dns.Type(q.Qtype), dns.Class(q.Qclass), time.Since(s), resp.RemoteAddr().String(),
 			resp.RemoteAddr().Network())
@@ -542,8 +542,8 @@ RPC:
 			d.logger.Printf("[WARN] dns: Query results too stale, re-requesting")
 			goto RPC
 		} else if out.LastContact > staleCounterThreshold {
-			metrics.IncrCounterWithLabels([]string{"consul", "dns", "stale_queries"}, 1, []metrics.Label{{Name: "dc", Value: datacenter}, {Name: "node", Value: node}})
-			metrics.IncrCounterWithLabels([]string{"dns", "stale_queries"}, 1, []metrics.Label{{Name: "dc", Value: datacenter}, {Name: "node", Value: node}})
+			metrics.IncrCounterWithLabels([]string{"consul", "dns", "stale_queries"}, 1, []metrics.Label{{Name: "dc", Value: datacenter}, {Name: "agent", Value: node}})
+			metrics.IncrCounterWithLabels([]string{"dns", "stale_queries"}, 1, []metrics.Label{{Name: "dc", Value: datacenter}, {Name: "agent", Value: node}})
 		}
 	}
 

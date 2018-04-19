@@ -242,7 +242,7 @@ func (m *Memberlist) probeNode(node *nodeState) {
 	// us running over the base interval, and will skip missed ticks.
 	probeInterval := m.awareness.ScaleTimeout(m.config.ProbeInterval)
 	if probeInterval > m.config.ProbeInterval {
-		metrics.IncrCounterWithLabels([]string{"memberlist", "degraded", "probe"}, 1, []metrics.Label{{Name: "node", Value: node.Name}})
+		metrics.IncrCounterWithLabels([]string{"memberlist", "degraded", "probe"}, 1, []metrics.Label{{Name: "agent", Value: node.Name}})
 	}
 
 	// Prepare a ping message and setup an ack handler.
@@ -982,7 +982,7 @@ func (m *Memberlist) aliveNode(a *alive, notify chan struct{}, bootstrap bool) {
 	}
 
 	// Update metrics
-	metrics.IncrCounterWithLabels([]string{"memberlist", "msg", "alive"}, 1, []metrics.Label{{Name: "node", Value: state.Node.Name}})
+	metrics.IncrCounterWithLabels([]string{"memberlist", "msg", "alive"}, 1, []metrics.Label{{Name: "agent", Value: state.Node.Name}})
 
 	// Notify the delegate of any relevant updates
 	if m.config.Events != nil {
@@ -1040,7 +1040,7 @@ func (m *Memberlist) suspectNode(s *suspect) {
 	}
 
 	// Update metrics
-	metrics.IncrCounterWithLabels([]string{"memberlist", "msg", "suspect"}, 1, []metrics.Label{{Name: "node", Value: state.Node.Name}})
+	metrics.IncrCounterWithLabels([]string{"memberlist", "msg", "suspect"}, 1, []metrics.Label{{Name: "agent", Value: state.Node.Name}})
 
 	// Update the state
 	state.Incarnation = s.Incarnation
@@ -1073,7 +1073,7 @@ func (m *Memberlist) suspectNode(s *suspect) {
 
 		if timeout {
 			if k > 0 && numConfirmations < k {
-				metrics.IncrCounterWithLabels([]string{"memberlist", "degraded", "timeout"}, 1, []metrics.Label{{Name: "node", Value: state.Node.Name}})
+				metrics.IncrCounterWithLabels([]string{"memberlist", "degraded", "timeout"}, 1, []metrics.Label{{Name: "agent", Value: state.Node.Name}})
 			}
 
 			m.logger.Printf("[INFO] memberlist: Marking %s as failed, suspect timeout reached (%d peer confirmations)",
@@ -1126,7 +1126,7 @@ func (m *Memberlist) deadNode(d *dead) {
 	}
 
 	// Update metrics
-	metrics.IncrCounterWithLabels([]string{"memberlist", "msg", "dead"}, 1, []metrics.Label{{Name: "node", Value: d.Node}})
+	metrics.IncrCounterWithLabels([]string{"memberlist", "msg", "dead"}, 1, []metrics.Label{{Name: "agent", Value: d.Node}})
 
 	// Update the state
 	state.Incarnation = d.Incarnation

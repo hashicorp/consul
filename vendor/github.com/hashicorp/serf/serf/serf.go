@@ -885,7 +885,7 @@ func (s *Serf) handleNodeJoin(n *memberlist.Node) {
 		oldStatus = member.Status
 		deadTime := time.Now().Sub(member.leaveTime)
 		if oldStatus == StatusFailed && deadTime < s.config.FlapTimeout {
-			metrics.IncrCounterWithLabels([]string{"serf", "member", "flap"}, 1, []metrics.Label{{Name: "node", Value: member.Name}})
+			metrics.IncrCounterWithLabels([]string{"serf", "member", "flap"}, 1, []metrics.Label{{Name: "agent", Value: member.Name}})
 		}
 
 		member.Status = StatusAlive
@@ -912,7 +912,7 @@ func (s *Serf) handleNodeJoin(n *memberlist.Node) {
 	}
 
 	// Update some metrics
-	metrics.IncrCounterWithLabels([]string{"serf", "member", "join"}, 1, []metrics.Label{{Name: "node", Value: member.Name}})
+	metrics.IncrCounterWithLabels([]string{"serf", "member", "join"}, 1, []metrics.Label{{Name: "agent", Value: member.Name}})
 
 	// Send an event along
 	s.logger.Printf("[INFO] serf: EventMemberJoin: %s %s",
@@ -962,7 +962,7 @@ func (s *Serf) handleNodeLeave(n *memberlist.Node) {
 	}
 
 	// Update some metrics
-	metrics.IncrCounterWithLabels([]string{"serf", "member", member.Status.String()}, 1, []metrics.Label{{Name: "node", Value: member.Name}})
+	metrics.IncrCounterWithLabels([]string{"serf", "member", member.Status.String()}, 1, []metrics.Label{{Name: "agent", Value: member.Name}})
 
 	s.logger.Printf("[INFO] serf: %s: %s %s",
 		eventStr, member.Member.Name, member.Member.Addr)
@@ -1006,7 +1006,7 @@ func (s *Serf) handleNodeUpdate(n *memberlist.Node) {
 	member.DelegateCur = n.DCur
 
 	// Update some metrics
-	metrics.IncrCounterWithLabels([]string{"serf", "member", "update"}, 1, []metrics.Label{{Name: "node", Value: member.Name}})
+	metrics.IncrCounterWithLabels([]string{"serf", "member", "update"}, 1, []metrics.Label{{Name: "agent", Value: member.Name}})
 
 	// Send an event along
 	s.logger.Printf("[INFO] serf: EventMemberUpdate: %s", member.Member.Name)
@@ -1294,7 +1294,7 @@ func (s *Serf) handleQueryResponse(resp *messageQueryResponse) {
 	}
 
 	// Process each type of response
-	labels := []metrics.Label{{Name: "node", Value: resp.From}}
+	labels := []metrics.Label{{Name: "agent", Value: resp.From}}
 	if resp.Ack() {
 		// Exit early if this is a duplicate ack
 		if _, ok := query.acks[resp.From]; ok {
