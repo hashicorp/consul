@@ -336,6 +336,39 @@ func TestCacheGet_periodicRefresh(t *testing.T) {
 	TestCacheGetChResult(t, resultCh, 12)
 }
 
+// Test that the backend fetch sets the proper timeout.
+func TestCacheGet_fetchTimeout(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	typ := TestType(t)
+	defer typ.AssertExpectations(t)
+	c := TestCache(t)
+
+	// Register the type with a timeout
+	timeout := 10 * time.Minute
+	c.RegisterType("t", typ, &RegisterOptions{
+		RefreshTimeout: timeout,
+	})
+
+	// Configure the type
+	var actual time.Duration
+	typ.Static(FetchResult{Value: 42}, nil).Times(1).Run(func(args mock.Arguments) {
+		opts := args.Get(0).(FetchOptions)
+		actual = opts.Timeout
+	})
+
+	// Get, should fetch
+	req := TestRequest(t, RequestInfo{Key: "hello"})
+	result, err := c.Get("t", req)
+	require.Nil(err)
+	require.Equal(42, result)
+
+	// Test the timeout
+	require.Equal(timeout, actual)
+}
+
 // Test that Get partitions the caches based on DC so two equivalent requests
 // to different datacenters are automatically cached even if their keys are
 // the same.

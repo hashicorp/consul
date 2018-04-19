@@ -134,6 +134,10 @@ type RegisterOptions struct {
 // This makes the type available for Get but does not automatically perform
 // any prefetching. In order to populate the cache, Get must be called.
 func (c *Cache) RegisterType(n string, typ Type, opts *RegisterOptions) {
+	if opts == nil {
+		opts = &RegisterOptions{}
+	}
+
 	c.typesLock.Lock()
 	defer c.typesLock.Unlock()
 	c.types[n] = typeEntry{Type: typ, Opts: opts}
@@ -290,6 +294,7 @@ func (c *Cache) fetch(t, key string, r Request) (<-chan struct{}, error) {
 		// Start building the new entry by blocking on the fetch.
 		result, err := tEntry.Type.Fetch(FetchOptions{
 			MinIndex: entry.Index,
+			Timeout:  tEntry.Opts.RefreshTimeout,
 		}, r)
 
 		if err == nil {
@@ -336,7 +341,7 @@ func (c *Cache) fetch(t, key string, r Request) (<-chan struct{}, error) {
 
 		// If refresh is enabled, run the refresh in due time. The refresh
 		// below might block, but saves us from spawning another goroutine.
-		if tEntry.Opts != nil && tEntry.Opts.Refresh {
+		if tEntry.Opts.Refresh {
 			c.refresh(tEntry.Opts, t, key, r)
 		}
 	}()
