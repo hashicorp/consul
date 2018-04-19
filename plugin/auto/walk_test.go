@@ -2,7 +2,6 @@ package auto
 
 import (
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"regexp"
@@ -20,8 +19,6 @@ www IN A 127.0.0.1
 `
 
 func TestWalk(t *testing.T) {
-	log.SetOutput(ioutil.Discard)
-
 	tempdir, err := createFiles()
 	if err != nil {
 		if tempdir != "" {
@@ -53,8 +50,6 @@ func TestWalk(t *testing.T) {
 }
 
 func TestWalkNonExistent(t *testing.T) {
-	log.SetOutput(ioutil.Discard)
-
 	nonExistingDir := "highly_unlikely_to_exist_dir"
 
 	ldr := loader{

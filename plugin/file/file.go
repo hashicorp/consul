@@ -4,9 +4,9 @@ package file
 import (
 	"fmt"
 	"io"
-	"log"
 
 	"github.com/coredns/coredns/plugin"
+	"github.com/coredns/coredns/plugin/pkg/log"
 	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
@@ -52,24 +52,24 @@ func (f File) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 			state.SizeAndDo(m)
 			w.WriteMsg(m)
 
-			log.Printf("[INFO] Notify from %s for %s: checking transfer", state.IP(), zone)
+			log.Infof("Notify from %s for %s: checking transfer", state.IP(), zone)
 			ok, err := z.shouldTransfer()
 			if ok {
 				z.TransferIn()
 			} else {
-				log.Printf("[INFO] Notify from %s for %s: no serial increase seen", state.IP(), zone)
+				log.Infof("Notify from %s for %s: no serial increase seen", state.IP(), zone)
 			}
 			if err != nil {
-				log.Printf("[WARNING] Notify from %s for %s: failed primary check: %s", state.IP(), zone, err)
+				log.Warningf("Notify from %s for %s: failed primary check: %s", state.IP(), zone, err)
 			}
 			return dns.RcodeSuccess, nil
 		}
-		log.Printf("[INFO] Dropping notify from %s for %s", state.IP(), zone)
+		log.Infof("Dropping notify from %s for %s", state.IP(), zone)
 		return dns.RcodeSuccess, nil
 	}
 
 	if z.Expired != nil && *z.Expired {
-		log.Printf("[ERROR] Zone %s is expired", zone)
+		log.Errorf("Zone %s is expired", zone)
 		return dns.RcodeServerFailure, nil
 	}
 

@@ -3,11 +3,11 @@ package kubernetes
 import (
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 
 	"github.com/coredns/coredns/plugin/pkg/healthcheck"
+	"github.com/coredns/coredns/plugin/pkg/log"
 )
 
 type proxyHandler struct {
@@ -27,19 +27,19 @@ func (p *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	d, err := net.Dial(network, address)
 	if err != nil {
-		log.Printf("[ERROR] Unable to establish connection to upstream %s://%s: %s", network, address, err)
+		log.Errorf("Unable to establish connection to upstream %s://%s: %s", network, address, err)
 		http.Error(w, fmt.Sprintf("Unable to establish connection to upstream %s://%s: %s", network, address, err), 500)
 		return
 	}
 	hj, ok := w.(http.Hijacker)
 	if !ok {
-		log.Print("[ERROR] Unable to establish connection: no hijacker")
+		log.Error("Unable to establish connection: no hijacker")
 		http.Error(w, "Unable to establish connection: no hijacker", 500)
 		return
 	}
 	nc, _, err := hj.Hijack()
 	if err != nil {
-		log.Printf("[ERROR] Unable to hijack connection: %s", err)
+		log.Errorf("Unable to hijack connection: %s", err)
 		http.Error(w, fmt.Sprintf("Unable to hijack connection: %s", err), 500)
 		return
 	}
@@ -48,7 +48,7 @@ func (p *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	err = r.Write(d)
 	if err != nil {
-		log.Printf("[ERROR] Unable to copy connection to upstream %s://%s: %s", network, address, err)
+		log.Errorf("Unable to copy connection to upstream %s://%s: %s", network, address, err)
 		http.Error(w, fmt.Sprintf("Unable to copy connection to upstream %s://%s: %s", network, address, err), 500)
 		return
 	}

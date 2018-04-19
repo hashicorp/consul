@@ -1,8 +1,6 @@
 package healthcheck
 
 import (
-	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -13,8 +11,6 @@ import (
 var workableServer *httptest.Server
 
 func TestMain(m *testing.M) {
-	log.SetOutput(ioutil.Discard)
-
 	workableServer = httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			// do nothing

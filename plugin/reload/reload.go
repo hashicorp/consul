@@ -2,8 +2,9 @@ package reload
 
 import (
 	"crypto/md5"
-	"log"
 	"time"
+
+	"github.com/coredns/coredns/plugin/pkg/log"
 
 	"github.com/mholt/caddy"
 )
@@ -36,7 +37,7 @@ func hook(event caddy.EventName, info interface{}) error {
 	// this should be an instance. ok to panic if not
 	instance := info.(*caddy.Instance)
 	md5sum := md5.Sum(instance.Caddyfile().Body())
-	log.Printf("[INFO] Running configuration MD5 = %x\n", md5sum)
+	log.Infof("Running configuration MD5 = %x\n", md5sum)
 
 	go func() {
 		tick := time.NewTicker(r.interval)
@@ -57,7 +58,7 @@ func hook(event caddy.EventName, info interface{}) error {
 					r.usage = maybeUsed
 					_, err := instance.Restart(corefile)
 					if err != nil {
-						log.Printf("[ERROR] Corefile changed but reload failed: %s\n", err)
+						log.Errorf("Corefile changed but reload failed: %s\n", err)
 						continue
 					}
 					// we are done, if the plugin was not set used, then it is not.

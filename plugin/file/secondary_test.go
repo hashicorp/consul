@@ -2,8 +2,6 @@ package file
 
 import (
 	"fmt"
-	"io/ioutil"
-	"log"
 	"testing"
 
 	"github.com/coredns/coredns/plugin/test"
@@ -72,7 +70,6 @@ const testZone = "secondary.miek.nl."
 
 func TestShouldTransfer(t *testing.T) {
 	soa := soa{250}
-	log.SetOutput(ioutil.Discard)
 
 	dns.HandleFunc(testZone, soa.Handler)
 	defer dns.HandleRemove(testZone)
@@ -117,7 +114,6 @@ func TestShouldTransfer(t *testing.T) {
 
 func TestTransferIn(t *testing.T) {
 	soa := soa{250}
-	log.SetOutput(ioutil.Discard)
 
 	dns.HandleFunc(testZone, soa.Handler)
 	defer dns.HandleRemove(testZone)

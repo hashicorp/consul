@@ -1,8 +1,6 @@
 package auto
 
 import (
-	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"regexp"
@@ -10,8 +8,6 @@ import (
 )
 
 func TestWatcher(t *testing.T) {
-	log.SetOutput(ioutil.Discard)
-
 	tempdir, err := createFiles()
 	if err != nil {
 		if tempdir != "" {

@@ -2,7 +2,7 @@
 package loadbalance
 
 import (
-	"log"
+	"github.com/coredns/coredns/plugin/pkg/log"
 
 	"github.com/miekg/dns"
 )
@@ -75,7 +75,7 @@ func roundRobinShuffle(records []dns.RR) {
 // Write implements the dns.ResponseWriter interface.
 func (r *RoundRobinResponseWriter) Write(buf []byte) (int, error) {
 	// Should we pack and unpack here to fiddle with the packet... Not likely.
-	log.Print("[WARNING] RoundRobin called with Write: no shuffling records")
+	log.Warning("RoundRobin called with Write: not shuffling records")
 	n, err := r.ResponseWriter.Write(buf)
 	return n, err
 }

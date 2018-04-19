@@ -1,13 +1,13 @@
 package auto
 
 import (
-	"log"
 	"os"
 	"path"
 	"path/filepath"
 	"regexp"
 
 	"github.com/coredns/coredns/plugin/file"
+	"github.com/coredns/coredns/plugin/pkg/log"
 
 	"github.com/miekg/dns"
 )
@@ -40,7 +40,7 @@ func (a Auto) Walk() error {
 
 		reader, err := os.Open(path)
 		if err != nil {
-			log.Printf("[WARNING] Opening %s failed: %s", path, err)
+			log.Warningf("Opening %s failed: %s", path, err)
 			return nil
 		}
 		defer reader.Close()
@@ -48,7 +48,7 @@ func (a Auto) Walk() error {
 		// Serial for loading a zone is 0, because it is a new zone.
 		zo, err := file.Parse(reader, origin, path, 0)
 		if err != nil {
-			log.Printf("[WARNING] Parse zone `%s': %v", origin, err)
+			log.Warningf("Parse zone `%s': %v", origin, err)
 			return nil
 		}
 
@@ -64,7 +64,7 @@ func (a Auto) Walk() error {
 
 		zo.Notify()
 
-		log.Printf("[INFO] Inserting zone `%s' from: %s", origin, path)
+		log.Infof("Inserting zone `%s' from: %s", origin, path)
 
 		toDelete[origin] = false
 
@@ -82,7 +82,7 @@ func (a Auto) Walk() error {
 
 		a.Zones.Remove(origin)
 
-		log.Printf("[INFO] Deleting zone `%s'", origin)
+		log.Infof("Deleting zone `%s'", origin)
 	}
 
 	return nil

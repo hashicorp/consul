@@ -2,7 +2,6 @@ package file
 
 import (
 	"io/ioutil"
-	"log"
 	"os"
 	"strings"
 	"testing"
@@ -15,8 +14,6 @@ import (
 )
 
 func TestZoneReload(t *testing.T) {
-	log.SetOutput(ioutil.Discard)
-
 	fileName, rm, err := test.TempFile(".", reloadZoneTest)
 	if err != nil {
 		t.Fatalf("failed to create zone: %s", err)

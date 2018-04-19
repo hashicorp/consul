@@ -1,13 +1,13 @@
 package etcd
 
 import (
-	"log"
 	"net"
 	"strconv"
 	"time"
 
 	"github.com/coredns/coredns/plugin/etcd/msg"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
+	"github.com/coredns/coredns/plugin/pkg/log"
 	"github.com/coredns/coredns/plugin/proxy"
 	"github.com/coredns/coredns/request"
 
@@ -50,7 +50,7 @@ Services:
 		}
 		ip := net.ParseIP(serv.Host)
 		if ip == nil {
-			log.Printf("[WARNING] Non IP address stub nameserver: %s", serv.Host)
+			log.Warningf("Non IP address stub nameserver: %s", serv.Host)
 			continue
 		}
 
@@ -64,7 +64,7 @@ Services:
 			// We must *also* chop of dns.stub. which means cutting two more labels.
 			domain = dnsutil.Join(labels[1 : len(labels)-dns.CountLabel(z)-2])
 			if domain == z {
-				log.Printf("[WARNING] Skipping nameserver for domain we are authoritative for: %s", domain)
+				log.Warningf("Skipping nameserver for domain we are authoritative for: %s", domain)
 				continue Services
 			}
 		}

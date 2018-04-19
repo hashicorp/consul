@@ -1,9 +1,10 @@
 package healthcheck
 
 import (
-	"log"
 	"math/rand"
 	"sync/atomic"
+
+	"github.com/coredns/coredns/plugin/pkg/log"
 )
 
 var (
@@ -64,7 +65,7 @@ type Spray struct{}
 func (r *Spray) Select(pool HostPool) *UpstreamHost {
 	rnd := rand.Int() % len(pool)
 	randHost := pool[rnd]
-	log.Printf("[WARNING] All hosts reported as down, spraying to target: %s", randHost.Name)
+	log.Warningf("All hosts reported as down, spraying to target: %s", randHost.Name)
 	return randHost
 }
 

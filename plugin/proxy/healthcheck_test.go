@@ -2,8 +2,6 @@ package proxy
 
 import (
 	"fmt"
-	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -17,10 +15,6 @@ import (
 	"github.com/mholt/caddy/caddyfile"
 	"github.com/miekg/dns"
 )
-
-func init() {
-	log.SetOutput(ioutil.Discard)
-}
 
 func TestUnhealthy(t *testing.T) {
 	// High HC interval, we want to test the HC after failed queries.

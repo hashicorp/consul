@@ -3,10 +3,11 @@
 package pprof
 
 import (
-	"log"
 	"net"
 	"net/http"
 	pp "net/http/pprof"
+
+	"github.com/coredns/coredns/plugin/pkg/log"
 )
 
 type handler struct {
@@ -18,7 +19,7 @@ type handler struct {
 func (h *handler) Startup() error {
 	ln, err := net.Listen("tcp", h.addr)
 	if err != nil {
-		log.Printf("[ERROR] Failed to start pprof handler: %s", err)
+		log.Errorf("Failed to start pprof handler: %s", err)
 		return err
 	}
 

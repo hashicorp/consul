@@ -1,8 +1,6 @@
 package tls
 
 import (
-	"io/ioutil"
-	"log"
 	"strings"
 	"testing"
 
@@ -10,16 +8,14 @@ import (
 )
 
 func TestTLS(t *testing.T) {
-	log.SetOutput(ioutil.Discard)
-
 	tests := []struct {
 		input              string
 		shouldErr          bool
 		expectedRoot       string // expected root, set to the controller. Empty for negative cases.
 		expectedErrContent string // substring from the expected error. Empty for positive cases.
 	}{
-	// positive
-	// negative
+		// positive
+		// negative
 	}
 
 	for i, test := range tests {

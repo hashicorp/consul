@@ -3,11 +3,12 @@ package health
 
 import (
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/coredns/coredns/plugin/pkg/log"
 )
 
 // Health implements healthchecks by polling plugins.
@@ -67,7 +68,7 @@ func (h *health) OnShutdown() error {
 	h.SetOk(false)
 
 	if h.lameduck > 0 {
-		log.Printf("[INFO] Going into lameduck mode for %s", h.lameduck)
+		log.Infof("Going into lameduck mode for %s", h.lameduck)
 		time.Sleep(h.lameduck)
 	}
 

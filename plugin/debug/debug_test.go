@@ -1,8 +1,6 @@
 package debug
 
 import (
-	"io/ioutil"
-	"log"
 	"testing"
 
 	"github.com/coredns/coredns/core/dnsserver"
@@ -11,8 +9,6 @@ import (
 )
 
 func TestDebug(t *testing.T) {
-	log.SetOutput(ioutil.Discard)
-
 	tests := []struct {
 		input         string
 		shouldErr     bool

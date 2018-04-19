@@ -2,8 +2,8 @@ package etcd
 
 import (
 	"errors"
-	"log"
 
+	"github.com/coredns/coredns/plugin/pkg/log"
 	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
@@ -19,7 +19,7 @@ type Stub struct {
 // ServeDNS implements the plugin.Handler interface.
 func (s Stub) ServeDNS(ctx context.Context, w dns.ResponseWriter, req *dns.Msg) (int, error) {
 	if hasStubEdns0(req) {
-		log.Printf("[WARNING] Forwarding cycle detected, refusing msg: %s", req.Question[0].Name)
+		log.Warningf("Forwarding cycle detected, refusing msg: %s", req.Question[0].Name)
 		return dns.RcodeRefused, errors.New("stub forward cycle")
 	}
 	req = addStubEdns0(req)

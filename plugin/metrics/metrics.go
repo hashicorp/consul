@@ -2,7 +2,6 @@
 package metrics
 
 import (
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -12,6 +11,7 @@ import (
 	"github.com/coredns/coredns/coremain"
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/metrics/vars"
+	"github.com/coredns/coredns/plugin/pkg/log"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -88,7 +88,7 @@ func (m *Metrics) ZoneNames() []string {
 func (m *Metrics) OnStartup() error {
 	ln, err := net.Listen("tcp", m.Addr)
 	if err != nil {
-		log.Printf("[ERROR] Failed to start metrics handler: %s", err)
+		log.Errorf("Failed to start metrics handler: %s", err)
 		return err
 	}
 

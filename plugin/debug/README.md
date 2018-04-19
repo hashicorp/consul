@@ -7,7 +7,8 @@
 ## Description
 
 Normally CoreDNS will recover from panics, using *debug* inhibits this. The main use of *debug* is
-to help testing.
+to help testing. A side effect of using *debug* is that `log.Debug` and `log.Debugf` will be printed
+to standard output.
 
 Note that the *errors* plugin (if loaded) will also set a `recover` negating this setting. 
 
@@ -19,7 +20,7 @@ debug
 
 ## Examples
 
-Disable the ability to recover from crashes:
+Disable the ability to recover from crashes and show debug logging:
 
 ~~~ corefile
 . {

@@ -2,9 +2,9 @@ package file
 
 import (
 	"fmt"
-	"log"
 	"net"
 
+	"github.com/coredns/coredns/plugin/pkg/log"
 	"github.com/coredns/coredns/plugin/pkg/rcode"
 	"github.com/coredns/coredns/request"
 
@@ -53,9 +53,9 @@ func notify(zone string, to []string) error {
 			continue
 		}
 		if err := notifyAddr(c, m, t); err != nil {
-			log.Print("[ERROR] " + err.Error())
+			log.Error(err.Error())
 		} else {
-			log.Printf("[INFO] Sent notify for zone %q to %q", zone, t)
+			log.Infof("Sent notify for zone %q to %q", zone, t)
 		}
 	}
 	return nil

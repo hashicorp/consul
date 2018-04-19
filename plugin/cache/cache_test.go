@@ -1,8 +1,6 @@
 package cache
 
 import (
-	"io/ioutil"
-	"log"
 	"testing"
 	"time"
 
@@ -161,8 +159,6 @@ func TestCache(t *testing.T) {
 	utc := now.UTC()
 
 	c, crr := newTestCache(maxTTL)
-
-	log.SetOutput(ioutil.Discard)
 
 	for _, tc := range cacheTestCases {
 		m := tc.in.Msg()
