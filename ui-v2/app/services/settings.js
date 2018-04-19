@@ -14,8 +14,15 @@ export default Service.extend({
   findAll: function(key) {
     return Promise.resolve({ token: get(this, 'storage').getItem('token') });
   },
+  findBySlug: function(slug) {
+    return Promise.resolve(get(this, 'storage').getItem(slug));
+  },
   persist: function(obj) {
-    return Promise.resolve(get(this, 'storage').setItem('token', obj.token));
+    const storage = get(this, 'storage');
+    Object.keys(obj).forEach((item, i) => {
+      storage.setItem(item, obj[item]);
+    });
+    return Promise.resolve(obj);
   },
   delete: function(obj) {
     return Promise.resolve(get(this, 'storage').removeItem('token'));

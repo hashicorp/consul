@@ -4,10 +4,22 @@ import { hash } from 'rsvp';
 import { get } from '@ember/object';
 
 export default Route.extend({
+  dcRepo: service('dc'),
   repo: service('settings'),
   model: function(params) {
     return hash({
       model: get(this, 'repo').findAll(),
+      dc: get(this, 'repo').findBySlug('lastDc'),
+      dcs: get(this, 'dcRepo').findAll(),
+    }).then(function(model) {
+      return {
+        ...model,
+        ...{
+          dc: {
+            Name: model.dc,
+          },
+        },
+      };
     });
   },
   setupController: function(controller, model) {

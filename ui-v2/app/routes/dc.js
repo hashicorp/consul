@@ -5,11 +5,13 @@ import { get } from '@ember/object';
 
 export default Route.extend({
   repo: service('dc'),
+  settings: service('settings'),
   // nodeRepo: service('nodes'),
   model: function(params) {
     const repo = get(this, 'repo');
     // const nodeRepo = get(this, 'nodeRepo');
     const dc = { Name: params.dc }; // TODO: this needs to be an ember-data object
+    get(this, 'settings').persist({ lastDc: dc.Name });
     return hash({
       dc: dc,
       dcs: repo.findAll(),
