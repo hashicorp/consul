@@ -369,6 +369,51 @@ func TestCacheGet_fetchTimeout(t *testing.T) {
 	require.Equal(timeout, actual)
 }
 
+// Test that entries expire
+func TestCacheGet_expire(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	typ := TestType(t)
+	defer typ.AssertExpectations(t)
+	c := TestCache(t)
+
+	// Register the type with a timeout
+	c.RegisterType("t", typ, &RegisterOptions{
+		LastGetTTL: 400 * time.Millisecond,
+	})
+
+	// Configure the type
+	typ.Static(FetchResult{Value: 42}, nil).Times(2)
+
+	// Get, should fetch
+	req := TestRequest(t, RequestInfo{Key: "hello"})
+	result, err := c.Get("t", req)
+	require.Nil(err)
+	require.Equal(42, result)
+
+	// Get, should not fetch
+	req = TestRequest(t, RequestInfo{Key: "hello"})
+	result, err = c.Get("t", req)
+	require.Nil(err)
+	require.Equal(42, result)
+
+	// Sleep for the expiry
+	time.Sleep(500 * time.Millisecond)
+
+	// Get, should fetch
+	req = TestRequest(t, RequestInfo{Key: "hello"})
+	result, err = c.Get("t", req)
+	require.Nil(err)
+	require.Equal(42, result)
+
+	// Sleep a tiny bit just to let maybe some background calls happen
+	// then verify that we still only got the one call
+	time.Sleep(20 * time.Millisecond)
+	typ.AssertExpectations(t)
+}
+
 // Test that Get partitions the caches based on DC so two equivalent requests
 // to different datacenters are automatically cached even if their keys are
 // the same.

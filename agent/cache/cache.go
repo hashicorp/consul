@@ -15,6 +15,7 @@
 package cache
 
 import (
+	"container/heap"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -54,7 +55,11 @@ type Cache struct {
 	typesLock sync.RWMutex
 	types     map[string]typeEntry
 
-	// entries contains the actual cache data.
+	// entries contains the actual cache data. Access to entries and
+	// entriesExpiryHeap must be protected by entriesLock.
+	//
+	// entriesExpiryHeap is a heap of *cacheEntry values ordered by
+	// expiry, with the soonest to expire being first in the list (index 0).
 	//
 	// NOTE(mitchellh): The entry map key is currently a string in the format
 	// of "<DC>/<ACL token>/<Request key>" in order to properly partition
@@ -62,21 +67,9 @@ type Cache struct {
 	// big drawbacks: we can't evict by datacenter, ACL token, etc. For an
 	// initial implementaiton this works and the tests are agnostic to the
 	// internal storage format so changing this should be possible safely.
-	entriesLock sync.RWMutex
-	entries     map[string]cacheEntry
-}
-
-// cacheEntry stores a single cache entry.
-type cacheEntry struct {
-	// Fields pertaining to the actual value
-	Value interface{}
-	Error error
-	Index uint64
-
-	// Metadata that is used for internal accounting
-	Valid    bool
-	Fetching bool
-	Waiter   chan struct{}
+	entriesLock       sync.RWMutex
+	entries           map[string]cacheEntry
+	entriesExpiryHeap *expiryHeap
 }
 
 // typeEntry is a single type that is registered with a Cache.
@@ -93,16 +86,34 @@ type Options struct {
 // New creates a new cache with the given RPC client and reasonable defaults.
 // Further settings can be tweaked on the returned value.
 func New(*Options) *Cache {
-	return &Cache{
-		entries: make(map[string]cacheEntry),
-		types:   make(map[string]typeEntry),
+	// Initialize the heap. The buffer of 1 is really important because
+	// its possible for the expiry loop to trigger the heap to update
+	// itself and it'd block forever otherwise.
+	h := &expiryHeap{NotifyCh: make(chan struct{}, 1)}
+	heap.Init(h)
+
+	c := &Cache{
+		types:             make(map[string]typeEntry),
+		entries:           make(map[string]cacheEntry),
+		entriesExpiryHeap: h,
 	}
+
+	// Start the expiry watcher
+	go c.runExpiryLoop()
+
+	return c
 }
 
 // RegisterOptions are options that can be associated with a type being
 // registered for the cache. This changes the behavior of the cache for
 // this type.
 type RegisterOptions struct {
+	// LastGetTTL is the time that the values returned by this type remain
+	// in the cache after the last get operation. If a value isn't accessed
+	// within this duration, the value is purged from the cache and
+	// background refreshing will cease.
+	LastGetTTL time.Duration
+
 	// Refresh configures whether the data is actively refreshed or if
 	// the data is only refreshed on an explicit Get. The default (false)
 	// is to only request data on explicit Get.
@@ -136,6 +147,9 @@ type RegisterOptions struct {
 func (c *Cache) RegisterType(n string, typ Type, opts *RegisterOptions) {
 	if opts == nil {
 		opts = &RegisterOptions{}
+	}
+	if opts.LastGetTTL == 0 {
+		opts.LastGetTTL = 72 * time.Hour // reasonable default is days
 	}
 
 	c.typesLock.Lock()
@@ -193,6 +207,12 @@ RETRY_GET:
 				atomic.AddUint64(&c.hits, 1)
 			}
 
+			// Touch the expiration and fix the heap
+			entry.ResetExpires()
+			c.entriesLock.Lock()
+			heap.Fix(c.entriesExpiryHeap, *entry.ExpiryHeapIndex)
+			c.entriesLock.Unlock()
+
 			return entry.Value, entry.Error
 		}
 	}
@@ -230,7 +250,7 @@ RETRY_GET:
 
 	// At this point, we know we either don't have a value at all or the
 	// value we have is too old. We need to wait for new data.
-	waiterCh, err := c.fetch(t, key, r)
+	waiterCh, err := c.fetch(t, key, r, true)
 	if err != nil {
 		return nil, err
 	}
@@ -256,7 +276,11 @@ func (c *Cache) entryKey(r *RequestInfo) string {
 // background fetch is already running for a matching Request, the waiter
 // channel for that request is returned. The effect of this is that there
 // is only ever one blocking query for any matching requests.
-func (c *Cache) fetch(t, key string, r Request) (<-chan struct{}, error) {
+//
+// If allowNew is true then the fetch should create the cache entry
+// if it doesn't exist. If this is false, then fetch will do nothing
+// if the entry doesn't exist. This latter case is to support refreshing.
+func (c *Cache) fetch(t, key string, r Request, allowNew bool) (<-chan struct{}, error) {
 	// Get the type that we're fetching
 	c.typesLock.RLock()
 	tEntry, ok := c.types[t]
@@ -269,6 +293,15 @@ func (c *Cache) fetch(t, key string, r Request) (<-chan struct{}, error) {
 	c.entriesLock.Lock()
 	defer c.entriesLock.Unlock()
 	entry, ok := c.entries[key]
+
+	// If we aren't allowing new values and we don't have an existing value,
+	// return immediately. We return an immediately-closed channel so nothing
+	// blocks.
+	if !ok && !allowNew {
+		ch := make(chan struct{})
+		close(ch)
+		return ch, nil
+	}
 
 	// If we already have an entry and it is actively fetching, then return
 	// the currently active waiter.
@@ -305,14 +338,10 @@ func (c *Cache) fetch(t, key string, r Request) (<-chan struct{}, error) {
 			metrics.IncrCounter([]string{"consul", "cache", t, "fetch_error"}, 1)
 		}
 
-		var newEntry cacheEntry
-		if result.Value == nil {
-			// If no value was set, then we do not change the prior entry.
-			// Instead, we just update the waiter to be new so that another
-			// Get will wait on the correct value.
-			newEntry = entry
-			newEntry.Fetching = false
-		} else {
+		// Copy the existing entry to start.
+		newEntry := entry
+		newEntry.Fetching = false
+		if result.Value != nil {
 			// A new value was given, so we create a brand new entry.
 			newEntry.Value = result.Value
 			newEntry.Index = result.Index
@@ -331,12 +360,33 @@ func (c *Cache) fetch(t, key string, r Request) (<-chan struct{}, error) {
 		// Create a new waiter that will be used for the next fetch.
 		newEntry.Waiter = make(chan struct{})
 
-		// Insert
+		// The key needs to always be set since this is used by the
+		// expiration loop to know what entry to delete.
+		newEntry.Key = key
+
+		// If this is a new entry (not in the heap yet), then set the
+		// initial expiration TTL.
+		if newEntry.ExpiryHeapIndex == nil {
+			newEntry.ExpiresTTL = tEntry.Opts.LastGetTTL
+			newEntry.ResetExpires()
+		}
+
+		// Set our entry
 		c.entriesLock.Lock()
+		if newEntry.ExpiryHeapIndex != nil {
+			// If we're already in the heap, just change the value in-place.
+			// We don't need to call heap.Fix because the expiry doesn't
+			// change.
+			c.entriesExpiryHeap.Entries[*newEntry.ExpiryHeapIndex] = &newEntry
+		} else {
+			// Add the new value
+			newEntry.ExpiryHeapIndex = new(int)
+			heap.Push(c.entriesExpiryHeap, &newEntry)
+		}
 		c.entries[key] = newEntry
 		c.entriesLock.Unlock()
 
-		// Trigger the waiter
+		// Trigger the old waiter
 		close(entry.Waiter)
 
 		// If refresh is enabled, run the refresh in due time. The refresh
@@ -386,8 +436,47 @@ func (c *Cache) refresh(opts *RegisterOptions, t string, key string, r Request) 
 		time.Sleep(opts.RefreshTimer)
 	}
 
-	// Trigger
-	c.fetch(t, key, r)
+	// Trigger. The "allowNew" field is false because in the time we were
+	// waiting to refresh we may have expired and got evicted. If that
+	// happened, we don't want to create a new entry.
+	c.fetch(t, key, r, false)
+}
+
+// runExpiryLoop is a blocking function that watches the expiration
+// heap and invalidates entries that have expired.
+func (c *Cache) runExpiryLoop() {
+	var expiryTimer *time.Timer
+	for {
+		// If we have a previous timer, stop it.
+		if expiryTimer != nil {
+			expiryTimer.Stop()
+		}
+
+		// Get the entry expiring soonest
+		var entry *cacheEntry
+		var expiryCh <-chan time.Time
+		c.entriesLock.RLock()
+		if len(c.entriesExpiryHeap.Entries) > 0 {
+			entry = c.entriesExpiryHeap.Entries[0]
+			expiryTimer = time.NewTimer(entry.Expires().Sub(time.Now()))
+			expiryCh = expiryTimer.C
+		}
+		c.entriesLock.RUnlock()
+
+		select {
+		case <-c.entriesExpiryHeap.NotifyCh:
+			// Entries changed, so the heap may have changed. Restart loop.
+
+		case <-expiryCh:
+			// Entry expired! Remove it.
+			c.entriesLock.Lock()
+			delete(c.entries, entry.Key)
+			heap.Remove(c.entriesExpiryHeap, *entry.ExpiryHeapIndex)
+			c.entriesLock.Unlock()
+
+			metrics.IncrCounter([]string{"consul", "cache", "evict_expired"}, 1)
+		}
+	}
 }
 
 // Returns the number of cache hits. Safe to call concurrently.
