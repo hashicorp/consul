@@ -96,8 +96,9 @@ type IssuedCert struct {
 type CAOp string
 
 const (
-	CAOpSetRoots  CAOp = "set-roots"
-	CAOpSetConfig CAOp = "set-config"
+	CAOpSetRoots         CAOp = "set-roots"
+	CAOpSetConfig        CAOp = "set-config"
+	CAOpSetProviderState CAOp = "set-provider-state"
 )
 
 // CARequest is used to modify connect CA data. This is used by the
@@ -110,7 +111,7 @@ type CARequest struct {
 	// Datacenter is the target for this request.
 	Datacenter string
 
-	// Index is used by CAOpSet for a CAS operation.
+	// Index is used by CAOpSetRoots and CAOpSetConfig for a CAS operation.
 	Index uint64
 
 	// Roots is a list of roots. This is used for CAOpSet. One root must
@@ -119,6 +120,9 @@ type CARequest struct {
 
 	// Config is the configuration for the current CA plugin.
 	Config *CAConfiguration
+
+	// ProviderState is the state for the builtin CA provider.
+	ProviderState *CAConsulProviderState
 
 	// WriteRequest is a common struct containing ACL tokens and other
 	// write-related common elements for requests.
@@ -136,6 +140,9 @@ const (
 
 // CAConfiguration is the configuration for the current CA plugin.
 type CAConfiguration struct {
+	// Unique identifier for the cluster
+	ClusterSerial string `json:"-"`
+
 	// Provider is the CA provider implementation to use.
 	Provider string
 
@@ -144,7 +151,15 @@ type CAConfiguration struct {
 	// and maps).
 	Config map[string]interface{}
 
-	// CreateIndex/ModifyIndex store the create/modify indexes of this configuration.
-	CreateIndex uint64
-	ModifyIndex uint64
+	RaftIndex
+}
+
+// CAConsulProviderState is used to track the built-in Consul CA provider's state.
+type CAConsulProviderState struct {
+	PrivateKey string
+	CARoot     *CARoot
+	RootIndex  uint64
+	LeafIndex  uint64
+
+	RaftIndex
 }

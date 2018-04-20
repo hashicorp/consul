@@ -8,8 +8,9 @@ import (
 )
 
 const (
-	caConfigTableName = "connect-ca-config"
-	caRootTableName   = "connect-ca-roots"
+	caConfigTableName   = "connect-ca-config"
+	caRootTableName     = "connect-ca-roots"
+	caProviderTableName = "connect-ca-builtin"
 )
 
 // caConfigTableSchema returns a new table schema used for storing
@@ -48,14 +49,34 @@ func caRootTableSchema() *memdb.TableSchema {
 	}
 }
 
+// caProviderTableSchema returns a new table schema used for storing
+// the built-in CA provider's state for connect. This is only used by
+// the internal Consul CA provider.
+func caProviderTableSchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: caProviderTableName,
+		Indexes: map[string]*memdb.IndexSchema{
+			"id": &memdb.IndexSchema{
+				Name:         "id",
+				AllowMissing: false,
+				Unique:       true,
+				Indexer: &memdb.ConditionalIndex{
+					Conditional: func(obj interface{}) (bool, error) { return true, nil },
+				},
+			},
+		},
+	}
+}
+
 func init() {
 	registerSchema(caConfigTableSchema)
 	registerSchema(caRootTableSchema)
+	registerSchema(caProviderTableSchema)
 }
 
 // CAConfig is used to pull the CA config from the snapshot.
 func (s *Snapshot) CAConfig() (*structs.CAConfiguration, error) {
-	c, err := s.tx.First("connect-ca-config", "id")
+	c, err := s.tx.First(caConfigTableName, "id")
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +91,7 @@ func (s *Snapshot) CAConfig() (*structs.CAConfiguration, error) {
 
 // CAConfig is used when restoring from a snapshot.
 func (s *Restore) CAConfig(config *structs.CAConfiguration) error {
-	if err := s.tx.Insert("connect-ca-config", config); err != nil {
+	if err := s.tx.Insert(caConfigTableName, config); err != nil {
 		return fmt.Errorf("failed restoring CA config: %s", err)
 	}
 
@@ -83,7 +104,7 @@ func (s *Store) CAConfig() (uint64, *structs.CAConfiguration, error) {
 	defer tx.Abort()
 
 	// Get the autopilot config
-	c, err := tx.First("connect-ca-config", "id")
+	c, err := tx.First(caConfigTableName, "id")
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed CA config lookup: %s", err)
 	}
@@ -101,7 +122,9 @@ func (s *Store) CASetConfig(idx uint64, config *structs.CAConfiguration) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
-	s.caSetConfigTxn(idx, tx, config)
+	if err := s.caSetConfigTxn(idx, tx, config); err != nil {
+		return err
+	}
 
 	tx.Commit()
 	return nil
@@ -115,7 +138,7 @@ func (s *Store) CACheckAndSetConfig(idx, cidx uint64, config *structs.CAConfigur
 	defer tx.Abort()
 
 	// Check for an existing config
-	existing, err := tx.First("connect-ca-config", "id")
+	existing, err := tx.First(caConfigTableName, "id")
 	if err != nil {
 		return false, fmt.Errorf("failed CA config lookup: %s", err)
 	}
@@ -128,7 +151,9 @@ func (s *Store) CACheckAndSetConfig(idx, cidx uint64, config *structs.CAConfigur
 		return false, nil
 	}
 
-	s.caSetConfigTxn(idx, tx, config)
+	if err := s.caSetConfigTxn(idx, tx, config); err != nil {
+		return false, err
+	}
 
 	tx.Commit()
 	return true, nil
@@ -136,20 +161,22 @@ func (s *Store) CACheckAndSetConfig(idx, cidx uint64, config *structs.CAConfigur
 
 func (s *Store) caSetConfigTxn(idx uint64, tx *memdb.Txn, config *structs.CAConfiguration) error {
 	// Check for an existing config
-	existing, err := tx.First("connect-ca-config", "id")
+	prev, err := tx.First(caConfigTableName, "id")
 	if err != nil {
 		return fmt.Errorf("failed CA config lookup: %s", err)
 	}
 
-	// Set the indexes.
-	if existing != nil {
-		config.CreateIndex = existing.(*structs.CAConfiguration).CreateIndex
+	// Set the indexes, prevent the cluster ID from changing.
+	if prev != nil {
+		existing := prev.(*structs.CAConfiguration)
+		config.CreateIndex = existing.CreateIndex
+		config.ClusterSerial = existing.ClusterSerial
 	} else {
 		config.CreateIndex = idx
 	}
 	config.ModifyIndex = idx
 
-	if err := tx.Insert("connect-ca-config", config); err != nil {
+	if err := tx.Insert(caConfigTableName, config); err != nil {
 		return fmt.Errorf("failed updating CA config: %s", err)
 	}
 	return nil
@@ -287,5 +314,75 @@ func (s *Store) CARootSetCAS(idx, cidx uint64, rs []*structs.CARoot) (bool, erro
 	}
 
 	tx.Commit()
+	return true, nil
+}
+
+// CAProviderState is used to pull the built-in provider state from the snapshot.
+func (s *Snapshot) CAProviderState() (*structs.CAConsulProviderState, error) {
+	c, err := s.tx.First(caProviderTableName, "id")
+	if err != nil {
+		return nil, err
+	}
+
+	state, ok := c.(*structs.CAConsulProviderState)
+	if !ok {
+		return nil, nil
+	}
+
+	return state, nil
+}
+
+// CAProviderState is used when restoring from a snapshot.
+func (s *Restore) CAProviderState(state *structs.CAConsulProviderState) error {
+	if err := s.tx.Insert(caProviderTableName, state); err != nil {
+		return fmt.Errorf("failed restoring built-in CA state: %s", err)
+	}
+
+	return nil
+}
+
+// CAProviderState is used to get the current Consul CA provider state.
+func (s *Store) CAProviderState() (uint64, *structs.CAConsulProviderState, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get the autopilot config
+	c, err := tx.First(caProviderTableName, "id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed built-in CA state lookup: %s", err)
+	}
+
+	state, ok := c.(*structs.CAConsulProviderState)
+	if !ok {
+		return 0, nil, nil
+	}
+
+	return state.ModifyIndex, state, nil
+}
+
+// CASetProviderState is used to set the current built-in CA provider state.
+func (s *Store) CASetProviderState(idx uint64, state *structs.CAConsulProviderState) (bool, error) {
+	tx := s.db.Txn(true)
+	defer tx.Abort()
+
+	// Check for an existing config
+	existing, err := tx.First(caProviderTableName, "id")
+	if err != nil {
+		return false, fmt.Errorf("failed built-in CA state lookup: %s", err)
+	}
+
+	// Set the indexes.
+	if existing != nil {
+		state.CreateIndex = existing.(*structs.CAConfiguration).CreateIndex
+	} else {
+		state.CreateIndex = idx
+	}
+	state.ModifyIndex = idx
+
+	if err := tx.Insert(caProviderTableName, state); err != nil {
+		return false, fmt.Errorf("failed updating built-in CA state: %s", err)
+	}
+	tx.Commit()
+
 	return true, nil
 }

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/connect"
+	uuid "github.com/hashicorp/go-uuid"
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
@@ -377,7 +378,13 @@ func (s *Server) getOrCreateCAConfig() (*structs.CAConfiguration, error) {
 		return config, nil
 	}
 
+	sn, err := uuid.GenerateUUID()
+	if err != nil {
+		return nil, err
+	}
+
 	config = s.config.CAConfig
+	config.ClusterSerial = sn
 	req := structs.CARequest{
 		Op:     structs.CAOpSetConfig,
 		Config: config,
@@ -400,7 +407,7 @@ func (s *Server) bootstrapCA() error {
 	var provider connect.CAProvider
 	switch conf.Provider {
 	case structs.ConsulCAProvider:
-		provider, err = connect.NewConsulCAProvider(conf.Config)
+		provider, err = NewConsulCAProvider(conf.Config, s)
 		if err != nil {
 			return err
 		}
@@ -412,10 +419,10 @@ func (s *Server) bootstrapCA() error {
 	s.caProvider = provider
 	s.caProviderLock.Unlock()
 
-	// Get the intermediate cert from the CA
-	trustedCA, err := provider.ActiveIntermediate()
+	// Get the active root cert from the CA
+	trustedCA, err := provider.ActiveRoot()
 	if err != nil {
-		return fmt.Errorf("error getting intermediate cert: %v", err)
+		return fmt.Errorf("error getting root cert: %v", err)
 	}
 
 	// Check if this CA is already initialized
@@ -435,7 +442,7 @@ func (s *Server) bootstrapCA() error {
 		return err
 	}
 
-	// Store the intermediate in raft
+	// Store the root cert in raft
 	resp, err := s.raftApply(structs.ConnectCARequestType, &structs.CARequest{
 		Op:    structs.CAOpSetRoots,
 		Index: idx,

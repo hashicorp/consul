@@ -301,6 +301,13 @@ func (c *FSM) applyConnectCAOperation(buf []byte, index uint64) interface{} {
 		}
 
 		return act
+	case structs.CAOpSetProviderState:
+		act, err := c.state.CASetProviderState(index, req.ProviderState)
+		if err != nil {
+			return err
+		}
+
+		return act
 	default:
 		c.logger.Printf("[WARN] consul.fsm: Invalid CA operation '%s'", req.Op)
 		return fmt.Errorf("Invalid CA operation '%s'", req.Op)

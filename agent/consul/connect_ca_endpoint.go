@@ -61,6 +61,7 @@ func (s *ConnectCA) ConfigurationSet(
 	}
 
 	// Commit
+	// todo(kyhavlov): trigger a bootstrap here when the provider changes
 	args.Op = structs.CAOpSetConfig
 	resp, err := s.srv.raftApply(structs.ConnectCARequestType, args)
 	if err != nil {
