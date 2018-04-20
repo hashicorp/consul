@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/pprof"
 	"net/url"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -139,7 +140,20 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 	if s.agent.config.UIDir != "" {
 		mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(http.Dir(s.agent.config.UIDir))))
 	} else if s.agent.config.EnableUI {
-		mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(assetFS())))
+		fs := assetFS()
+
+		val := strings.ToLower(os.Getenv("CONSUL_UI_BETA"))
+		switch val {
+		case "1":
+			fallthrough
+		case "true":
+			fallthrough
+		case "yes":
+			fs.Prefix += "/v2"
+		default:
+			fs.Prefix += "/v1"
+		}
+		mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(fs)))
 	}
 
 	// Wrap the whole mux with a handler that bans URLs with non-printable

@@ -5,6 +5,7 @@ server:
 
 dist:
 	yarn run build
+	mv dist ../pkg/web_ui/v2
 
 lint:
 	yarn run lint:js
