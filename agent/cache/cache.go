@@ -207,10 +207,16 @@ RETRY_GET:
 				atomic.AddUint64(&c.hits, 1)
 			}
 
-			// Touch the expiration and fix the heap
-			entry.ResetExpires()
+			// Touch the expiration and fix the heap.
 			c.entriesLock.Lock()
-			heap.Fix(c.entriesExpiryHeap, *entry.ExpiryHeapIndex)
+			entry.Expiry.Reset()
+			idx := entry.Expiry.HeapIndex
+			heap.Fix(c.entriesExpiryHeap, entry.Expiry.HeapIndex)
+			if idx == 0 && entry.Expiry.HeapIndex == 0 {
+				// We didn't move and we were at the head of the heap.
+				// We need to let the loop know that the value changed.
+				c.entriesExpiryHeap.Notify()
+			}
 			c.entriesLock.Unlock()
 
 			return entry.Value, entry.Error
@@ -360,29 +366,21 @@ func (c *Cache) fetch(t, key string, r Request, allowNew bool) (<-chan struct{},
 		// Create a new waiter that will be used for the next fetch.
 		newEntry.Waiter = make(chan struct{})
 
-		// The key needs to always be set since this is used by the
-		// expiration loop to know what entry to delete.
-		newEntry.Key = key
-
-		// If this is a new entry (not in the heap yet), then set the
-		// initial expiration TTL.
-		if newEntry.ExpiryHeapIndex == nil {
-			newEntry.ExpiresTTL = tEntry.Opts.LastGetTTL
-			newEntry.ResetExpires()
-		}
-
 		// Set our entry
 		c.entriesLock.Lock()
-		if newEntry.ExpiryHeapIndex != nil {
-			// If we're already in the heap, just change the value in-place.
-			// We don't need to call heap.Fix because the expiry doesn't
-			// change.
-			c.entriesExpiryHeap.Entries[*newEntry.ExpiryHeapIndex] = &newEntry
-		} else {
-			// Add the new value
-			newEntry.ExpiryHeapIndex = new(int)
-			heap.Push(c.entriesExpiryHeap, &newEntry)
+
+		// If this is a new entry (not in the heap yet), then setup the
+		// initial expiry information and insert. If we're already in
+		// the heap we do nothing since we're reusing the same entry.
+		if newEntry.Expiry == nil || newEntry.Expiry.HeapIndex == -1 {
+			newEntry.Expiry = &cacheEntryExpiry{
+				Key: key,
+				TTL: tEntry.Opts.LastGetTTL,
+			}
+			newEntry.Expiry.Reset()
+			heap.Push(c.entriesExpiryHeap, newEntry.Expiry)
 		}
+
 		c.entries[key] = newEntry
 		c.entriesLock.Unlock()
 
@@ -453,12 +451,12 @@ func (c *Cache) runExpiryLoop() {
 		}
 
 		// Get the entry expiring soonest
-		var entry *cacheEntry
+		var entry *cacheEntryExpiry
 		var expiryCh <-chan time.Time
 		c.entriesLock.RLock()
 		if len(c.entriesExpiryHeap.Entries) > 0 {
 			entry = c.entriesExpiryHeap.Entries[0]
-			expiryTimer = time.NewTimer(entry.Expires().Sub(time.Now()))
+			expiryTimer = time.NewTimer(entry.Expires.Sub(time.Now()))
 			expiryCh = expiryTimer.C
 		}
 		c.entriesLock.RUnlock()
@@ -468,10 +466,17 @@ func (c *Cache) runExpiryLoop() {
 			// Entries changed, so the heap may have changed. Restart loop.
 
 		case <-expiryCh:
-			// Entry expired! Remove it.
 			c.entriesLock.Lock()
+
+			// Entry expired! Remove it.
 			delete(c.entries, entry.Key)
-			heap.Remove(c.entriesExpiryHeap, *entry.ExpiryHeapIndex)
+			heap.Remove(c.entriesExpiryHeap, entry.HeapIndex)
+
+			// This is subtle but important: if we race and simultaneously
+			// evict and fetch a new value, then we set this to -1 to
+			// have it treated as a new value so that the TTL is extended.
+			entry.HeapIndex = -1
+
 			c.entriesLock.Unlock()
 
 			metrics.IncrCounter([]string{"consul", "cache", "evict_expired"}, 1)
