@@ -60,6 +60,9 @@ If monitoring is enabled (via the *prometheus* directive) then the following met
   be a local operation it should be fast. A (large) increases in this duration indicates the
   CoreDNS process is having trouble keeping up with its query load.
 
+Note that this metric *does not* have a `server` label, because being overloaded is a symptom of
+the running process, *not* a specific server.
+
 ## Examples
 
 Run another health endpoint on http://localhost:8091.
