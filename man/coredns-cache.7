@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-CACHE" "7" "March 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-CACHE" "7" "April 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIcache\fR \- enables a frontend cache\.
@@ -29,7 +29,7 @@ cache [TTL] [ZONES\.\.\.]
 .IP "" 0
 .
 .P
-Each element in the cache is cached according to its TTL (with \fBTTL\fR as the max)\. For the negative cache, the SOA\'s MinTTL value is used\. A cache can contain up to 10,000 items by default\. A TTL of zero is not allowed\.
+Each element in the cache is cached according to its TTL (with \fBTTL\fR as the max)\. For the negative cache, the SOA\'s MinTTL value is used\. A TTL of zero is not allowed\. A cache is divided into 256 shards, each holding up to 512 items by default \- for a total size of 256 * 512 = 131,072 items\.
 .
 .P
 If you want more control:
@@ -61,6 +61,12 @@ cache [TTL] [ZONES\.\.\.] {
 \fBprefetch\fR will prefetch popular items when they are about to be expunged from the cache\. Popular means \fBAMOUNT\fR queries have been seen with no gaps of \fBDURATION\fR or more between them\. \fBDURATION\fR defaults to 1m\. Prefetching will happen when the TTL drops below \fBPERCENTAGE\fR, which defaults to \fB10%\fR, or latest 1 second before TTL expiration\. Values should be in the range \fB[10%, 90%]\fR\. Note the percent sign is mandatory\. \fBPERCENTAGE\fR is treated as an \fBint\fR\.
 .
 .IP "" 0
+.
+.SH "CAPACITY AND EVICTION"
+When specifying \fBCAPACITY\fR, the minimum cache capacity is 131,072\. Specifying a lower value will be ignored\. Specifying a \fBCAPACITY\fR of zero does not disable the cache\.
+.
+.P
+Eviction is done per shard \- i\.e\. when a shard reaches capacity, items are evicted from that shard\. Since shards don\'t fill up perfectly evenly, evictions will occur before the entire cache reaches full capacity\. Each shard capacity is equal to the total cache size / number of shards (256)\.
 .
 .SH "METRICS"
 If monitoring is enabled (via the \fIprometheus\fR directive) then the following metrics are exported:

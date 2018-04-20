@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-METRICS" "7" "March 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-METRICS" "7" "April 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIprometheus\fR \- enables Prometheus \fIhttps://prometheus\.io/\fR metrics\.
@@ -13,25 +13,25 @@ With \fIprometheus\fR you export metrics from CoreDNS and any plugin that has th
 \fBcoredns_build_info{version, revision, goversion}\fR \- info about CoreDNS itself\.
 .
 .IP "\(bu" 4
-\fBcoredns_dns_request_count_total{zone, proto, family}\fR \- total query count\.
+\fBcoredns_dns_request_count_total{server, zone, proto, family}\fR \- total query count\.
 .
 .IP "\(bu" 4
-\fBcoredns_dns_request_duration_seconds{zone}\fR \- duration to process each query\.
+\fBcoredns_dns_request_duration_seconds{server, zone}\fR \- duration to process each query\.
 .
 .IP "\(bu" 4
-\fBcoredns_dns_request_size_bytes{zone, proto}\fR \- size of the request in bytes\.
+\fBcoredns_dns_request_size_bytes{server, zone, proto}\fR \- size of the request in bytes\.
 .
 .IP "\(bu" 4
-\fBcoredns_dns_request_do_count_total{zone}\fR \- queries that have the DO bit set
+\fBcoredns_dns_request_do_count_total{server, zone}\fR \- queries that have the DO bit set
 .
 .IP "\(bu" 4
-\fBcoredns_dns_request_type_count_total{zone, type}\fR \- counter of queries per zone and type\.
+\fBcoredns_dns_request_type_count_total{server, zone, type}\fR \- counter of queries per zone and type\.
 .
 .IP "\(bu" 4
-\fBcoredns_dns_response_size_bytes{zone, proto}\fR \- response size in bytes\.
+\fBcoredns_dns_response_size_bytes{server, zone, proto}\fR \- response size in bytes\.
 .
 .IP "\(bu" 4
-\fBcoredns_dns_response_rcode_count_total{zone, rcode}\fR \- response per zone and rcode\.
+\fBcoredns_dns_response_rcode_count_total{server, zone, rcode}\fR \- response per zone and rcode\.
 .
 .IP "" 0
 .
@@ -40,6 +40,9 @@ Each counter has a label \fBzone\fR which is the zonename used for the request/r
 .
 .P
 Extra labels used are:
+.
+.IP "\(bu" 4
+\fBserver\fR is identifying the server responsible for the request\. This is a string formatted as the server\'s listening address: \fB<scheme>://[<bind>]:<port>\fR\. I\.e\. for a "normal" DNS server this is \fBdns://:53\fR\. If you are using the \fIbind\fR plugin an IP address is included, e\.g\.: \fBdns://127\.0\.0\.53:53\fR\.
 .
 .IP "\(bu" 4
 \fBproto\fR which holds the transport of the response ("udp" or "tcp")

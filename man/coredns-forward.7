@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-FORWARD" "7" "March 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-FORWARD" "7" "April 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIforward\fR \- facilitates proxying DNS messages to upstream resolvers\.
@@ -80,7 +80,21 @@ forward FROM TO\.\.\. {
 \fBexpire\fR \fBDURATION\fR, expire (cached) connections after this time, the default is 10s\.
 .
 .IP "\(bu" 4
-\fBtls\fR \fBCERT\fR \fBKEY\fR \fBCA\fR define the TLS properties for TLS; if you leave this out the system\'s configuration will be used\.
+.
+.IP "\(bu" 4
+\fBtls\fR \- no client authentication is used, and the system CAs are used to verify the server certificate
+.
+.IP "\(bu" 4
+\fBtls\fR \fBCA\fR \- no client authentication is used, and the file CA is used to verify the server certificate
+.
+.IP "\(bu" 4
+\fBtls\fR \fBCERT\fR \fBKEY\fR \- client authentication is used with the specified cert/key pair\. The server certificate is verified with the system CAs
+.
+.IP "\(bu" 4
+\fBtls\fR \fBCERT\fR \fBKEY\fR \fBCA\fR \- client authentication is used with the specified cert/key pair\. The server certificate is verified using the specified CA file
+.
+.IP "" 0
+
 .
 .IP "\(bu" 4
 \fBtls_servername\fR \fBNAME\fR allows you to set a server name in the TLS configuration; for instance 9\.9\.9\.9 needs this to be set to \fBdns\.quad9\.net\fR\.

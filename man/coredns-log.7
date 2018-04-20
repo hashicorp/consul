@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-LOG" "7" "March 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-LOG" "7" "April 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIlog\fR \- enables query logging to standard output\.
@@ -47,22 +47,27 @@ log [NAME] [FORMAT]
 .IP "" 0
 .
 .P
-You can further specify the class of responses that get logged:
+You can further specify the classes of responses that get logged:
 .
 .IP "" 4
 .
 .nf
 
 log [NAME] [FORMAT] {
-    class [success|denial|error|all]
+    class CLASSES\.\.\.
 }
 .
 .fi
 .
 .IP "" 0
 .
+.IP "\(bu" 4
+\fBCLASSES\fR is a space\-separated list of classes of responses that should be logged
+.
+.IP "" 0
+.
 .P
-Here \fBsuccess\fR \fBdenial\fR and \fBerror\fR denotes the class of responses that should be logged\. The classes have the following meaning:
+The classes of responses have the following meaning:
 .
 .IP "\(bu" 4
 \fBsuccess\fR: successful response
@@ -74,7 +79,7 @@ Here \fBsuccess\fR \fBdenial\fR and \fBerror\fR denotes the class of responses t
 \fBerror\fR: SERVFAIL, NOTIMP, REFUSED, etc\. Anything that indicates the remote server is not willing to resolve the request\.
 .
 .IP "\(bu" 4
-\fBall\fR: the default \- nothing is specified\.
+\fBall\fR: the default \- nothing is specified\. Using of this class means that all messages will be logged whatever we mix together with "all"\.
 .
 .IP "" 0
 .
@@ -191,6 +196,58 @@ Only log denials for example\.org (and below to a file)
 \&\. {
     log example\.org {
         class denial
+    }
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Log all queries which were not resolved successfully
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+    log \. {
+        class denial error
+    }
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Log all queries on which we did not get errors
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+    log \. {
+        class denial success
+    }
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Also the multiple statements can be OR\-ed, for example, we can rewrite the above case as following:
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+    log \. {
+        class denial
+        class success
     }
 }
 .
