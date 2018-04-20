@@ -385,7 +385,6 @@ func (c *cmd) run(args []string) int {
 
 	// wait for signal
 	signalCh := make(chan os.Signal, 10)
-	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE)
 
 	for {
