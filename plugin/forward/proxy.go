@@ -24,6 +24,9 @@ type Proxy struct {
 	fails uint32
 
 	avgRtt int64
+
+	state      uint32
+	inProgress int32
 }
 
 // NewProxy returns a new proxy.
@@ -79,14 +82,25 @@ func (p *Proxy) Down(maxfails uint32) bool {
 	return fails > maxfails
 }
 
-// close stops the health checking goroutine.
+// close stops the health checking goroutine and connection manager.
 func (p *Proxy) close() {
-	p.probe.Stop()
-	p.transport.Stop()
+	if atomic.CompareAndSwapUint32(&p.state, running, stopping) {
+		p.probe.Stop()
+	}
+	if atomic.LoadInt32(&p.inProgress) == 0 {
+		p.checkStopTransport()
+	}
 }
 
 // start starts the proxy's healthchecking.
 func (p *Proxy) start(duration time.Duration) { p.probe.Start(duration) }
+
+// checkStopTransport checks if stop was requested and stops connection manager
+func (p *Proxy) checkStopTransport() {
+	if atomic.CompareAndSwapUint32(&p.state, stopping, stopped) {
+		p.transport.Stop()
+	}
+}
 
 const (
 	dialTimeout = 4 * time.Second
@@ -94,4 +108,10 @@ const (
 	maxTimeout  = 2 * time.Second
 	minTimeout  = 10 * time.Millisecond
 	hcDuration  = 500 * time.Millisecond
+)
+
+const (
+	running = iota
+	stopping
+	stopped
 )

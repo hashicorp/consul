@@ -120,7 +120,7 @@ func (f *Forward) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 
 		if err != nil {
 			// Kick off health check to see if *our* upstream is broken.
-			if f.maxfails != 0 {
+			if f.maxfails != 0 && err != errStopped {
 				proxy.Healthcheck()
 			}
 
@@ -186,6 +186,7 @@ var (
 	errNoHealthy     = errors.New("no healthy proxies")
 	errNoForward     = errors.New("no forwarder defined")
 	errCachedClosed  = errors.New("cached connection was closed by peer")
+	errStopped       = errors.New("proxy has been stopped")
 )
 
 // policy tells forward what policy for selecting upstream it uses.

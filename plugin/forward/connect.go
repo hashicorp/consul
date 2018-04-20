@@ -35,6 +35,16 @@ func (p *Proxy) updateRtt(newRtt time.Duration) {
 }
 
 func (p *Proxy) connect(ctx context.Context, state request.Request, forceTCP, metric bool) (*dns.Msg, error) {
+	atomic.AddInt32(&p.inProgress, 1)
+	defer func() {
+		if atomic.AddInt32(&p.inProgress, -1) == 0 {
+			p.checkStopTransport()
+		}
+	}()
+	if atomic.LoadUint32(&p.state) != running {
+		return nil, errStopped
+	}
+
 	start := time.Now()
 
 	proto := state.Proto()
@@ -46,7 +56,6 @@ func (p *Proxy) connect(ctx context.Context, state request.Request, forceTCP, me
 	if err != nil {
 		return nil, err
 	}
-
 	// Set buffer size correctly for this client.
 	conn.UDPSize = uint16(state.Size())
 	if conn.UDPSize < 512 {
