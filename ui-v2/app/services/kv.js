@@ -53,6 +53,7 @@ export default Service.extend({
     return item.save();
   },
   remove: function(item) {
+    // TODO: check to see if this is still needed
     if (typeOf(item) === 'object') {
       const key = item.Key;
       const dc = item.Datacenter;
@@ -66,7 +67,6 @@ export default Service.extend({
       }
     }
     return item.destroyRecord().then(item => {
-      // really?
       return get(this, 'store').unloadRecord(item);
     });
   },

@@ -15,19 +15,6 @@ export default Route.extend(WithFeedback, {
     controller.setProperties(model);
   },
   actions: {
-    delete: function(item) {
-      get(this, 'feedback').execute(
-        () => {
-          return get(this, 'repo')
-            .remove(item)
-            .then(() => {
-              this.transitionTo('dc.acls');
-            });
-        },
-        `Your ACL token was deleted.`,
-        `There was an error deleting your ACL token.`
-      );
-    },
     update: function(item) {
       get(this, 'feedback').execute(
         () => {
@@ -35,6 +22,19 @@ export default Route.extend(WithFeedback, {
         },
         `Your ACL token was saved.`,
         `There was an error saving your ACL token.`
+      );
+    },
+    delete: function(item) {
+      get(this, 'feedback').execute(
+        () => {
+          return get(this, 'repo')
+            .remove(item)
+            .then(() => {
+              return this.transitionTo('dc.acls');
+            });
+        },
+        `Your ACL token was deleted.`,
+        `There was an error deleting your ACL token.`
       );
     },
     cancel: function(item) {

@@ -11,6 +11,8 @@ export default Route.extend(WithFeedback, {
     const item = get(this, 'repo').create();
     set(item, 'Datacenter', this.modelFor('dc').dc.Name);
     return hash({
+      isLoading: false,
+      create: true,
       item: item,
       types: ['management', 'client'],
     });
@@ -22,9 +24,11 @@ export default Route.extend(WithFeedback, {
     create: function(item) {
       get(this, 'feedback').execute(
         () => {
-          return item.save().then(() => {
-            return this.transitionTo('dc.acls.edit', get(item, 'ID'));
-          });
+          return get(this, 'repo')
+            .persist(item)
+            .then(item => {
+              return this.transitionTo('dc.acls.edit', get(item, 'ID'));
+            });
         },
         `Your ACL token has been added.`,
         `There was an error adding your ACL token.`

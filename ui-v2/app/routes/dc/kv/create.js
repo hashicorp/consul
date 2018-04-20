@@ -16,8 +16,8 @@ export default Route.extend(WithFeedback, {
     return hash({
       isLoading: false,
       create: true,
-      parent: repo.findBySlug(key, dc),
       item: item,
+      parent: repo.findBySlug(key, dc),
     });
   },
   setupController: function(controller, model) {
@@ -37,22 +37,5 @@ export default Route.extend(WithFeedback, {
         `There was an error adding your key.`
       );
     },
-    // deleteFolder: function(parentKey, grandParent) {
-    //   this.get('feedback').execute(
-    //     () => {
-    //       const dc = this.modelFor('dc').dc.Name;
-    //       return this.get('repo')
-    //         .remove({
-    //           Key: parentKey,
-    //           Datacenter: dc,
-    //         })
-    //         .then(response => {
-    //           return transitionToNearestParent.bind(this)(dc, grandParent, this.get('rootKey'));
-    //         });
-    //     },
-    //     `Deleted ${parentKey}`,
-    //     `There was an error deleting ${parentKey}`
-    //   );
-    // },
   },
 });

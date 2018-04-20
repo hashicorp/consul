@@ -3,7 +3,9 @@ import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
 
-export default Route.extend({
+import WithFeedback from 'consul-ui/mixins/with-feedback';
+
+export default Route.extend(WithFeedback, {
   repo: service('acls'),
   model: function(params) {
     return hash({
@@ -14,6 +16,19 @@ export default Route.extend({
     controller.setProperties(model);
   },
   actions: {
+    delete: function(item) {
+      get(this, 'feedback').execute(
+        () => {
+          return get(this, 'repo')
+            .remove(item)
+            .then(() => {
+              return this.refresh();
+            });
+        },
+        `Your key was deleted.`,
+        `There was an error deleting your token.`
+      );
+    },
     // TODO: this needs to happen for all endpoints
     error: function(e, transition) {
       if (e.errors[0].status === '401') {

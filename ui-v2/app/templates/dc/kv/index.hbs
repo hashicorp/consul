@@ -30,7 +30,17 @@
                         <a href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key}}>Edit</a>
                     </li>
                     <li>
-                        <a onclick={{action 'requestDelete' item}}>Delete</a>
+                        {{#confirmation-dialog message='Are you sure you want to delete this key?'}}
+                            {{#block-slot 'action' as |confirm|}}
+                                <a onclick={{action confirm 'delete' item}}>Delete</a>
+                            {{/block-slot}}
+                            {{#block-slot 'dialog'}}
+                                <p>
+                                    Are you sure you want to delete {{item.basename}}?
+                                </p>
+                                <button type="button" class="type-cancel" {{ action cancel}}>Cancel</button>
+                            {{/block-slot}}
+                        {{/confirmation-dialog}}
                     </li>
                 </ul>
             {{/block-slot}}

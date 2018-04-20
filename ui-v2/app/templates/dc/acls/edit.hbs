@@ -30,7 +30,7 @@
                     <span>Policy <a href="" target="_blank">(HCL Format)</a></span>
                     {{code-editor name="policy" value=item.Rules}}
                 </label>
-{{#if (not item.ID) }}
+{{#if create }}
                 <label class="type-text">
                     <span>ID</span>
                     {{ input value=item.ID }}
@@ -39,24 +39,24 @@
 {{/if}}
             </fieldset>
             <div>
-{{#if item.ID }}
-                <button type="submit" {{ action "update" item}}>Save</button>
-{{ else }}
+{{#if create }}
                 <button type="submit" {{ action "create" item}}>Save</button>
+{{ else }}
+                <button type="submit" {{ action "update" item}}>Save</button>
 {{/if}}
                 <button type="button" class="type-cancel" {{ action "cancel" item}}>Cancel</button>
 {{# if (and item.isNotAnon item.ID) }}
-                <div class="with-confirmation">
-{{#if false}}
+            {{#confirmation-dialog message='Are you sure you want to delete this ACL token?'}}
+                {{#block-slot 'action' as |confirm|}}
+                    <button type="button" class="type-delete" {{action confirm 'delete' item parent}}>Delete</button>
+                {{/block-slot}}
+                {{#block-slot 'dialog'}}
                     <p>
-                        Are you sure you want to delete {{item.Name}}?
+                        Are you sure you want to delete {{item.basename}}?
                     </p>
-{{/if}}
-                    <button type="button" class="type-delete" {{ action "requestDelete" item}}>Delete</button>
-{{#if false}}
-                    <button type="button" class="type-cancel" {{ action "requestDelete" item}}>Cancel</button>
-{{/if}}
-                </div>
+                    <button type="button" class="type-cancel" {{ action cancel}}>Cancel</button>
+                {{/block-slot}}
+            {{/confirmation-dialog}}
 {{/if}}
             </div>
         </form>
