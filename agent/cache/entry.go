@@ -76,7 +76,7 @@ func (h *expiryHeap) Fix(entry *cacheEntryExpiry) {
 	// is zero, it means the head-of-line didn't change while the value
 	// changed. Notify to reset our expiry worker.
 	if idx == 0 && entry.HeapIndex == 0 {
-		h.NotifyCh <- struct{}{}
+		h.notify()
 	}
 }
 
@@ -91,7 +91,7 @@ func (h *expiryHeap) Swap(i, j int) {
 	// to re-update the timer we're waiting on for the soonest expiring
 	// value.
 	if i == 0 || j == 0 {
-		h.NotifyCh <- struct{}{}
+		h.notify()
 	}
 }
 
@@ -113,7 +113,7 @@ func (h *expiryHeap) Push(x interface{}) {
 	// Swap won't be called; nothing to swap! We can call it right away
 	// because all heap operations are within a lock.
 	if len(h.Entries) == 0 {
-		h.NotifyCh <- struct{}{}
+		h.notify()
 	}
 
 	h.Entries = append(h.Entries, entry)
@@ -125,4 +125,17 @@ func (h *expiryHeap) Pop() interface{} {
 	x := old[n-1]
 	h.Entries = old[0 : n-1]
 	return x
+}
+
+func (h *expiryHeap) notify() {
+	select {
+	case h.NotifyCh <- struct{}{}:
+		// Good
+
+	default:
+		// If the send would've blocked, we just ignore it. The reason this
+		// is safe is because NotifyCh should always be a buffered channel.
+		// If this blocks, it means that there is a pending message anyways
+		// so the receiver will restart regardless.
+	}
 }
