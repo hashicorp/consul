@@ -24,7 +24,7 @@ func TestPublicListener(t *testing.T) {
 	}
 
 	testApp, err := NewTestTCPServer(t, cfg.LocalServiceAddress)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer testApp.Close()
 
 	svc := connect.TestService(t, "db", ca)
@@ -34,9 +34,10 @@ func TestPublicListener(t *testing.T) {
 	// Run proxy
 	go func() {
 		err := l.Serve()
-		require.Nil(t, err)
+		require.NoError(t, err)
 	}()
 	defer l.Close()
+	l.Wait()
 
 	// Proxy and backend are running, play the part of a TLS client using same
 	// cert for now.
@@ -44,7 +45,7 @@ func TestPublicListener(t *testing.T) {
 		Addr:    addrs[0],
 		CertURI: agConnect.TestSpiffeIDService(t, "db"),
 	})
-	require.Nilf(t, err, "unexpected err: %s", err)
+	require.NoError(t, err)
 	TestEchoConn(t, conn, "")
 }
 
@@ -56,9 +57,10 @@ func TestUpstreamListener(t *testing.T) {
 	testSvr := connect.NewTestServer(t, "db", ca)
 	go func() {
 		err := testSvr.Serve()
-		require.Nil(t, err)
+		require.NoError(t, err)
 	}()
 	defer testSvr.Close()
+	<-testSvr.Listening
 
 	cfg := UpstreamConfig{
 		DestinationType:      "service",
@@ -79,13 +81,14 @@ func TestUpstreamListener(t *testing.T) {
 	// Run proxy
 	go func() {
 		err := l.Serve()
-		require.Nil(t, err)
+		require.NoError(t, err)
 	}()
 	defer l.Close()
+	l.Wait()
 
 	// Proxy and fake remote service are running, play the part of the app
 	// connecting to a remote connect service over TCP.
 	conn, err := net.Dial("tcp", cfg.LocalBindAddress)
-	require.Nilf(t, err, "unexpected err: %s", err)
+	require.NoError(t, err)
 	TestEchoConn(t, conn, "")
 }

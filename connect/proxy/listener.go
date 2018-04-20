@@ -25,6 +25,15 @@ type Listener struct {
 	stopFlag int32
 	stopChan chan struct{}
 
+	// listeningChan is closed when listener is opened successfully. It's really
+	// only for use in tests where we need to coordinate wait for the Serve
+	// goroutine to be running before we proceed trying to connect. On my laptop
+	// this always works out anyway but on constrained VMs and especially docker
+	// containers (e.g. in CI) we often see the Dial routine win the race and get
+	// `connection refused`. Retry loops and sleeps are unpleasant workarounds and
+	// this is cheap and correct.
+	listeningChan chan struct{}
+
 	logger *log.Logger
 }
 
@@ -41,8 +50,9 @@ func NewPublicListener(svc *connect.Service, cfg PublicListenerConfig,
 			return net.DialTimeout("tcp", cfg.LocalServiceAddress,
 				time.Duration(cfg.LocalConnectTimeoutMs)*time.Millisecond)
 		},
-		stopChan: make(chan struct{}),
-		logger:   logger,
+		stopChan:      make(chan struct{}),
+		listeningChan: make(chan struct{}),
+		logger:        logger,
 	}
 }
 
@@ -64,17 +74,27 @@ func NewUpstreamListener(svc *connect.Service, cfg UpstreamConfig,
 			defer cancel()
 			return svc.Dial(ctx, cfg.resolver)
 		},
-		stopChan: make(chan struct{}),
-		logger:   logger,
+		stopChan:      make(chan struct{}),
+		listeningChan: make(chan struct{}),
+		logger:        logger,
 	}
 }
 
-// Serve runs the listener until it is stopped.
+// Serve runs the listener until it is stopped. It is an error to call Serve
+// more than once for any given Listener instance.
 func (l *Listener) Serve() error {
+	// Ensure we mark state closed if we fail before Close is called externally.
+	defer l.Close()
+
+	if atomic.LoadInt32(&l.stopFlag) != 0 {
+		return errors.New("serve called on a closed listener")
+	}
+
 	listen, err := l.listenFunc()
 	if err != nil {
 		return err
 	}
+	close(l.listeningChan)
 
 	for {
 		conn, err := listen.Accept()
@@ -112,4 +132,9 @@ func (l *Listener) handleConn(src net.Conn) {
 // Close terminates the listener and all active connections.
 func (l *Listener) Close() error {
 	return nil
+}
+
+// Wait for the listener to be ready to accept connections.
+func (l *Listener) Wait() {
+	<-l.listeningChan
 }

@@ -73,9 +73,10 @@ func TestService_Dial(t *testing.T) {
 			if tt.accept {
 				go func() {
 					err := testSvr.Serve()
-					require.Nil(err)
+					require.NoError(err)
 				}()
 				defer testSvr.Close()
+				<-testSvr.Listening
 			}
 
 			// Always expect to be connecting to a "DB"
@@ -95,10 +96,10 @@ func TestService_Dial(t *testing.T) {
 			testTimer.Stop()
 
 			if tt.wantErr == "" {
-				require.Nil(err)
+				require.NoError(err)
 				require.IsType(&tls.Conn{}, conn)
 			} else {
-				require.NotNil(err)
+				require.Error(err)
 				require.Contains(err.Error(), tt.wantErr)
 			}
 
@@ -117,7 +118,6 @@ func TestService_ServerTLSConfig(t *testing.T) {
 }
 
 func TestService_HTTPClient(t *testing.T) {
-	require := require.New(t)
 	ca := connect.TestCA(t, nil)
 
 	s := TestService(t, "web", ca)
@@ -129,8 +129,9 @@ func TestService_HTTPClient(t *testing.T) {
 		err := testSvr.ServeHTTPS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("Hello, I am Backend"))
 		}))
-		require.Nil(t, err)
+		require.NoError(t, err)
 	}()
+	<-testSvr.Listening
 
 	// TODO(banks): this will talk http2 on both client and server. I hit some
 	// compatibility issues when testing though need to make sure that the http

@@ -105,6 +105,8 @@ type TestServer struct {
 	// Addr is the listen address. It is set to a random free port on `localhost`
 	// by default.
 	Addr string
+	// Listening is closed when the listener is run.
+	Listening chan struct{}
 
 	l        net.Listener
 	stopFlag int32
@@ -116,11 +118,12 @@ type TestServer struct {
 func NewTestServer(t testing.T, service string, ca *structs.CARoot) *TestServer {
 	ports := freeport.GetT(t, 1)
 	return &TestServer{
-		Service:  service,
-		CA:       ca,
-		stopChan: make(chan struct{}),
-		TLSCfg:   TestTLSConfig(t, service, ca),
-		Addr:     fmt.Sprintf("localhost:%d", ports[0]),
+		Service:   service,
+		CA:        ca,
+		stopChan:  make(chan struct{}),
+		TLSCfg:    TestTLSConfig(t, service, ca),
+		Addr:      fmt.Sprintf("127.0.0.1:%d", ports[0]),
+		Listening: make(chan struct{}),
 	}
 }
 
@@ -132,6 +135,7 @@ func (s *TestServer) Serve() error {
 	if err != nil {
 		return err
 	}
+	close(s.Listening)
 	s.l = l
 	log.Printf("test connect service listening on %s", s.Addr)
 
@@ -172,7 +176,21 @@ func (s *TestServer) ServeHTTPS(h http.Handler) error {
 		Handler:   h,
 	}
 	log.Printf("starting test connect HTTPS server on %s", s.Addr)
-	return srv.ListenAndServeTLS("", "")
+
+	// Use our own listener so we can signal when it's ready.
+	l, err := net.Listen("tcp", s.Addr)
+	if err != nil {
+		return err
+	}
+	close(s.Listening)
+	s.l = l
+	log.Printf("test connect service listening on %s", s.Addr)
+
+	err = srv.ServeTLS(l, "", "")
+	if atomic.LoadInt32(&s.stopFlag) == 1 {
+		return nil
+	}
+	return err
 }
 
 // Close stops a TestServer
