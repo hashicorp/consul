@@ -210,13 +210,7 @@ RETRY_GET:
 			// Touch the expiration and fix the heap.
 			c.entriesLock.Lock()
 			entry.Expiry.Reset()
-			idx := entry.Expiry.HeapIndex
-			heap.Fix(c.entriesExpiryHeap, entry.Expiry.HeapIndex)
-			if idx == 0 && entry.Expiry.HeapIndex == 0 {
-				// We didn't move and we were at the head of the heap.
-				// We need to let the loop know that the value changed.
-				c.entriesExpiryHeap.Notify()
-			}
+			c.entriesExpiryHeap.Fix(entry.Expiry)
 			c.entriesLock.Unlock()
 
 			return entry.Value, entry.Error

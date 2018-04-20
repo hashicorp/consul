@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"container/heap"
 	"time"
 )
 
@@ -51,7 +52,32 @@ type expiryHeap struct {
 	// NotifyCh is sent a value whenever the 0 index value of the heap
 	// changes. This can be used to detect when the earliest value
 	// changes.
+	//
+	// There is a single edge case where the heap will not automatically
+	// send a notification: if heap.Fix is called manually and the index
+	// changed is 0 and the change doesn't result in any moves (stays at index
+	// 0), then we won't detect the change. To work around this, please
+	// always call the expiryHeap.Fix method instead.
 	NotifyCh chan struct{}
+}
+
+// Identical to heap.Fix for this heap instance but will properly handle
+// the edge case where idx == 0 and no heap modification is necessary,
+// and still notify the NotifyCh.
+//
+// This is important for cache expiry since the expiry time may have been
+// extended and if we don't send a message to the NotifyCh then we'll never
+// reset the timer and the entry will be evicted early.
+func (h *expiryHeap) Fix(entry *cacheEntryExpiry) {
+	idx := entry.HeapIndex
+	heap.Fix(h, idx)
+
+	// This is the edge case we handle: if the prev and current index
+	// is zero, it means the head-of-line didn't change while the value
+	// changed. Notify to reset our expiry worker.
+	if idx == 0 && entry.HeapIndex == 0 {
+		h.NotifyCh <- struct{}{}
+	}
 }
 
 func (h *expiryHeap) Len() int { return len(h.Entries) }
@@ -96,8 +122,4 @@ func (h *expiryHeap) Pop() interface{} {
 	x := old[n-1]
 	h.Entries = old[0 : n-1]
 	return x
-}
-
-func (h *expiryHeap) Notify() {
-	h.NotifyCh <- struct{}{}
 }
