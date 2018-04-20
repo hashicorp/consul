@@ -721,8 +721,6 @@ func syncExtra(index map[string]dns.RR, resp *dns.Msg) {
 // it in order to return a DNS answer lower than maxSize parameter.
 func dnsBinaryTruncate(resp *dns.Msg, maxSize int, index map[string]dns.RR, hasExtra bool) int {
 	originalAnswser := resp.Answer
-	originalExtra := resp.Extra
-	originalIndex := index
 	startIndex := 0
 	endIndex := len(resp.Answer) + 1
 	for endIndex-startIndex > 1 {
@@ -730,8 +728,6 @@ func dnsBinaryTruncate(resp *dns.Msg, maxSize int, index map[string]dns.RR, hasE
 
 		resp.Answer = originalAnswser[:median]
 		if hasExtra {
-			resp.Extra = originalExtra[:median]
-			index := originalIndex
 			syncExtra(index, resp)
 		}
 		aLen := resp.Len()
