@@ -105,11 +105,14 @@ func (h *expiryHeap) Less(i, j int) bool {
 func (h *expiryHeap) Push(x interface{}) {
 	entry := x.(*cacheEntryExpiry)
 
+	// Set initial heap index, if we're going to the end then Swap
+	// won't be called so we need to initialize
+	entry.HeapIndex = len(h.Entries)
+
 	// For the first entry, we need to trigger a channel send because
 	// Swap won't be called; nothing to swap! We can call it right away
 	// because all heap operations are within a lock.
 	if len(h.Entries) == 0 {
-		entry.HeapIndex = 0 // Set correct initial index
 		h.NotifyCh <- struct{}{}
 	}
 
