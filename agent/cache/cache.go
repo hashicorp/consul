@@ -471,9 +471,11 @@ func (c *Cache) runExpiryLoop() {
 			// have it treated as a new value so that the TTL is extended.
 			entry.HeapIndex = -1
 
-			c.entriesLock.Unlock()
-
+			// Set some metrics
 			metrics.IncrCounter([]string{"consul", "cache", "evict_expired"}, 1)
+			metrics.SetGauge([]string{"consul", "cache", "entries_count"}, float32(len(c.entries)))
+
+			c.entriesLock.Unlock()
 		}
 	}
 }
