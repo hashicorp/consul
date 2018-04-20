@@ -144,6 +144,9 @@ The table below shows this endpoint's support for
 - `Header` `(map[string][]string: {})` - Specifies a set of headers that should
   be set for `HTTP` checks. Each header can have multiple values.
 
+- `Body` `(string: "")` - Specifies a body to be set
+  for `HTTP` checks. When no value is specified, empty string is used.
+
 - `Timeout` `(duration: 10s)` - Specifies a timeout for outgoing connections in the
   case of a Script, HTTP, TCP, or gRPC check. Can be specified in the form of "10s"
   or "5m" (i.e., 10 seconds or 5 minutes, respectively).
@@ -181,6 +184,7 @@ The table below shows this endpoint's support for
   "HTTP": "https://example.com",
   "Method": "POST",
   "Header": {"x-foo":["bar", "baz"]},
+  "Body": "something...",
   "TCP": "example.com:22",
   "Interval": "10s",
   "TTL": "15s",

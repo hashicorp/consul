@@ -128,6 +128,7 @@ A HTTP check:
     "tls_skip_verify": false,
     "method": "POST",
     "header": {"x-foo":["bar", "baz"]},
+    "body": "something...",
     "interval": "10s",
     "timeout": "1s"
   }

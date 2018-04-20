@@ -3947,6 +3947,7 @@ func TestSanitize(t *testing.T) {
     "CheckUpdateInterval": "0s",
     "Checks": [
         {
+            "Body": "",
             "DeregisterCriticalServiceAfter": "0s",
             "DockerContainerID": "",
             "GRPC": "",
@@ -4079,6 +4080,7 @@ func TestSanitize(t *testing.T) {
         {
             "Address": "",
             "Check": {
+                "Body": "",
                 "CheckID": "",
                 "DeregisterCriticalServiceAfter": "0s",
                 "DockerContainerID": "",

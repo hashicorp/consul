@@ -26,6 +26,7 @@ type CheckDefinition struct {
 	HTTP                           string
 	Header                         map[string][]string
 	Method                         string
+	Body                           string
 	TCP                            string
 	Interval                       time.Duration
 	DockerContainerID              string
@@ -70,6 +71,7 @@ func (c *CheckDefinition) CheckType() *CheckType {
 		GRPCUseTLS:        c.GRPCUseTLS,
 		Header:            c.Header,
 		Method:            c.Method,
+		Body:              c.Body,
 		TCP:               c.TCP,
 		Interval:          c.Interval,
 		DockerContainerID: c.DockerContainerID,
