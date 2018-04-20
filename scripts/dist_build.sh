@@ -18,6 +18,11 @@ bundle
 make dist
 popd
 
+pushd ui-v2
+yarn install
+make dist
+popd
+
 # Fixup the timestamps to match what's checked in. This will allow us to cleanly
 # verify that the checked-in content is up to date without spurious diffs of the
 # file mod times.

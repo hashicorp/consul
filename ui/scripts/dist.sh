@@ -32,6 +32,6 @@ sed -E -e "s#<\/body>#<script src=\"static/application.min.js\"></script></body>
 # Remove the backup file from sed
 rm $DEPLOY/index.htmlbak
 
-pushd $(dirname $DEPLOY) >/dev/null 2>&1
-zip -r ../web_ui.zip ./*
-popd >/dev/null 2>&1
+# pushd $(dirname $DEPLOY) >/dev/null 2>&1
+# zip -r ../web_ui.zip ./*
+# popd >/dev/null 2>&1

@@ -11,8 +11,12 @@ RUN apt-get update -y && \
             ruby \
             ruby-dev \
             zip \
-            zlib1g-dev && \
-    gem install bundler
+            zlib1g-dev \
+            nodejs \
+            npm && \
+    gem install bundler && \
+    npm install --global yarn && \
+    npm install --global ember-cli
 
 RUN mkdir /goroot && \
     mkdir /gopath && \

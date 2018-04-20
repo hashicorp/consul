@@ -13,8 +13,15 @@ cd $DIR
 make tools
 
 # Build the web assets.
+echo "Building the V1 UI"
 pushd ui
 bundle
+make dist
+popd
+
+echo "Building the V2 UI"
+pushd ui-v2
+yarn install
 make dist
 popd
 
