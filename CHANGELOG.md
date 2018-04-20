@@ -1,5 +1,8 @@
 ## UNRELEASED
 
+BUG FIXES:
+
+* agent: Only call signal.Notify once during agent startup [[PR-4024](https://github.com/hashicorp/consul/pull/4024)]
 
 ## 1.0.7 (April 13, 2018)
 
