@@ -101,7 +101,7 @@ type QueryOptions struct {
 	// be provided for filtering.
 	NodeMeta map[string]string
 
-	// RelayFactor is used in keyring operations to cause reponses to be
+	// RelayFactor is used in keyring operations to cause responses to be
 	// relayed back to the sender through N other random nodes. Must be
 	// a value from 0 to 5 (inclusive).
 	RelayFactor uint8
@@ -137,7 +137,7 @@ type WriteOptions struct {
 	// which overrides the agent's default token.
 	Token string
 
-	// RelayFactor is used in keyring operations to cause reponses to be
+	// RelayFactor is used in keyring operations to cause responses to be
 	// relayed back to the sender through N other random nodes. Must be
 	// a value from 0 to 5 (inclusive).
 	RelayFactor uint8

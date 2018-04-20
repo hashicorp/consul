@@ -110,11 +110,27 @@ type QueryOptions struct {
 	// If set, the leader must verify leadership prior to
 	// servicing the request. Prevents a stale read.
 	RequireConsistent bool
+
+	// If set and AllowStale is true, will try first a stale
+	// read, and then will perform a consistent read if stale
+	// read is older than value
+	MaxStaleDuration time.Duration
 }
 
 // IsRead is always true for QueryOption.
 func (q QueryOptions) IsRead() bool {
 	return true
+}
+
+// ConsistencyLevel display the consistency required by a request
+func (q QueryOptions) ConsistencyLevel() string {
+	if q.RequireConsistent {
+		return "consistent"
+	} else if q.AllowStale {
+		return "stale"
+	} else {
+		return "leader"
+	}
 }
 
 func (q QueryOptions) AllowStaleRead() bool {
@@ -157,6 +173,11 @@ type QueryMeta struct {
 
 	// Used to indicate if there is a known leader node
 	KnownLeader bool
+
+	// Consistencylevel returns the consistency used to serve the query
+	// Having `discovery_max_stale` on the agent can affect whether
+	// the request was served by a leader.
+	ConsistencyLevel string
 }
 
 // RegisterRequest is used for the Catalog.Register endpoint
@@ -237,6 +258,7 @@ type QuerySource struct {
 	Datacenter string
 	Segment    string
 	Node       string
+	Ip         string
 }
 
 // DCSpecificRequest is used to query about a specific DC
@@ -368,6 +390,7 @@ type ServiceNode struct {
 	ServiceName              string
 	ServiceTags              []string
 	ServiceAddress           string
+	ServiceMeta              map[string]string
 	ServicePort              int
 	ServiceEnableTagOverride bool
 
@@ -379,6 +402,10 @@ type ServiceNode struct {
 func (s *ServiceNode) PartialClone() *ServiceNode {
 	tags := make([]string, len(s.ServiceTags))
 	copy(tags, s.ServiceTags)
+	nsmeta := make(map[string]string)
+	for k, v := range s.ServiceMeta {
+		nsmeta[k] = v
+	}
 
 	return &ServiceNode{
 		// Skip ID, see above.
@@ -390,6 +417,7 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 		ServiceTags:              tags,
 		ServiceAddress:           s.ServiceAddress,
 		ServicePort:              s.ServicePort,
+		ServiceMeta:              nsmeta,
 		ServiceEnableTagOverride: s.ServiceEnableTagOverride,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
@@ -406,6 +434,7 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 		Tags:              s.ServiceTags,
 		Address:           s.ServiceAddress,
 		Port:              s.ServicePort,
+		Meta:              s.ServiceMeta,
 		EnableTagOverride: s.ServiceEnableTagOverride,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
@@ -422,6 +451,7 @@ type NodeService struct {
 	Service           string
 	Tags              []string
 	Address           string
+	Meta              map[string]string
 	Port              int
 	EnableTagOverride bool
 
@@ -438,6 +468,7 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 		!reflect.DeepEqual(s.Tags, other.Tags) ||
 		s.Address != other.Address ||
 		s.Port != other.Port ||
+		!reflect.DeepEqual(s.Meta, other.Meta) ||
 		s.EnableTagOverride != other.EnableTagOverride {
 		return false
 	}
@@ -457,6 +488,7 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 		ServiceTags:              s.Tags,
 		ServiceAddress:           s.Address,
 		ServicePort:              s.Port,
+		ServiceMeta:              s.Meta,
 		ServiceEnableTagOverride: s.EnableTagOverride,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
@@ -549,16 +581,33 @@ func (nodes CheckServiceNodes) Shuffle() {
 // check if that option is selected). Note that this returns the filtered
 // results AND modifies the receiver for performance.
 func (nodes CheckServiceNodes) Filter(onlyPassing bool) CheckServiceNodes {
+	return nodes.FilterIgnore(onlyPassing, nil)
+}
+
+// FilterIgnore removes nodes that are failing health checks just like Filter.
+// It also ignores the status of any check with an ID present in ignoreCheckIDs
+// as if that check didn't exist. Note that this returns the filtered results
+// AND modifies the receiver for performance.
+func (nodes CheckServiceNodes) FilterIgnore(onlyPassing bool,
+	ignoreCheckIDs []types.CheckID) CheckServiceNodes {
 	n := len(nodes)
 OUTER:
 	for i := 0; i < n; i++ {
 		node := nodes[i]
+	INNER:
 		for _, check := range node.Checks {
+			for _, ignore := range ignoreCheckIDs {
+				if check.CheckID == ignore {
+					// Skip this _check_ but keep looking at other checks for this node.
+					continue INNER
+				}
+			}
 			if check.Status == api.HealthCritical ||
 				(onlyPassing && check.Status != api.HealthPassing) {
 				nodes[i], nodes[n-1] = nodes[n-1], CheckServiceNode{}
 				n--
 				i--
+				// Skip this _node_ now we've swapped it off the end of the list.
 				continue OUTER
 			}
 		}

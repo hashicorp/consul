@@ -76,7 +76,7 @@ func (c *cmd) init() {
 func (c *cmd) Run(args []string) int {
 	code := c.run(args)
 	if c.logger != nil {
-		c.logger.Println("[INFO] Exit code:", code)
+		c.logger.Println("[INFO] agent: Exit code:", code)
 	}
 	return code
 }
@@ -400,7 +400,7 @@ func (c *cmd) run(args []string) int {
 		case <-c.shutdownCh:
 			sig = os.Interrupt
 		case err := <-agent.RetryJoinCh():
-			c.logger.Println("[ERR] Retry join failed: ", err)
+			c.logger.Println("[ERR] agent: Retry join failed: ", err)
 			return 1
 		case <-agent.ShutdownCh():
 			// agent is already down!
@@ -412,14 +412,14 @@ func (c *cmd) run(args []string) int {
 			continue
 
 		case syscall.SIGHUP:
-			c.logger.Println("[INFO] Caught signal: ", sig)
+			c.logger.Println("[INFO] agent: Caught signal: ", sig)
 
 			conf, err := c.handleReload(agent, config)
 			if conf != nil {
 				config = conf
 			}
 			if err != nil {
-				c.logger.Println("[ERR] Reload config failed: ", err)
+				c.logger.Println("[ERR] agent: Reload config failed: ", err)
 			}
 			// Send result back if reload was called via HTTP
 			if reloadErrCh != nil {
@@ -427,19 +427,19 @@ func (c *cmd) run(args []string) int {
 			}
 
 		default:
-			c.logger.Println("[INFO] Caught signal: ", sig)
+			c.logger.Println("[INFO] agent: Caught signal: ", sig)
 
 			graceful := (sig == os.Interrupt && !(config.SkipLeaveOnInt)) || (sig == syscall.SIGTERM && (config.LeaveOnTerm))
 			if !graceful {
-				c.logger.Println("[INFO] Graceful shutdown disabled. Exiting")
+				c.logger.Println("[INFO] agent: Graceful shutdown disabled. Exiting")
 				return 1
 			}
 
-			c.logger.Println("[INFO] Gracefully shutting down agent...")
+			c.logger.Println("[INFO] agent: Gracefully shutting down agent...")
 			gracefulCh := make(chan struct{})
 			go func() {
 				if err := agent.Leave(); err != nil {
-					c.logger.Println("[ERR] Error on leave:", err)
+					c.logger.Println("[ERR] agent: Error on leave:", err)
 					return
 				}
 				close(gracefulCh)
@@ -448,13 +448,13 @@ func (c *cmd) run(args []string) int {
 			gracefulTimeout := 15 * time.Second
 			select {
 			case <-signalCh:
-				c.logger.Printf("[INFO] Caught second signal %v. Exiting\n", sig)
+				c.logger.Printf("[INFO] agent: Caught second signal %v. Exiting\n", sig)
 				return 1
 			case <-time.After(gracefulTimeout):
-				c.logger.Println("[INFO] Timeout on graceful leave. Exiting")
+				c.logger.Println("[INFO] agent: Timeout on graceful leave. Exiting")
 				return 1
 			case <-gracefulCh:
-				c.logger.Println("[INFO] Graceful exit completed")
+				c.logger.Println("[INFO] agent: Graceful exit completed")
 				return 0
 			}
 		}
@@ -463,7 +463,7 @@ func (c *cmd) run(args []string) int {
 
 // handleReload is invoked when we should reload our configs, e.g. SIGHUP
 func (c *cmd) handleReload(agent *agent.Agent, cfg *config.RuntimeConfig) (*config.RuntimeConfig, error) {
-	c.logger.Println("[INFO] Reloading configuration...")
+	c.logger.Println("[INFO] agent: Reloading configuration...")
 	var errs error
 	newCfg := c.readConfig()
 	if newCfg == nil {

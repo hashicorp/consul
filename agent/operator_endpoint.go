@@ -16,10 +16,6 @@ import (
 // OperatorRaftConfiguration is used to inspect the current Raft configuration.
 // This supports the stale query mode in case the cluster doesn't have a leader.
 func (s *HTTPServer) OperatorRaftConfiguration(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if req.Method != "GET" {
-		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
-	}
-
 	var args structs.DCSpecificRequest
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
@@ -36,10 +32,6 @@ func (s *HTTPServer) OperatorRaftConfiguration(resp http.ResponseWriter, req *ht
 // OperatorRaftPeer supports actions on Raft peers. Currently we only support
 // removing peers by address.
 func (s *HTTPServer) OperatorRaftPeer(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if req.Method != "DELETE" {
-		return nil, MethodNotAllowedError{req.Method, []string{"DELETE"}}
-	}
-
 	var args structs.RaftRemovePeerRequest
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
@@ -268,10 +260,6 @@ func (s *HTTPServer) OperatorAutopilotConfiguration(resp http.ResponseWriter, re
 
 // OperatorServerHealth is used to get the health of the servers in the local DC
 func (s *HTTPServer) OperatorServerHealth(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if req.Method != "GET" {
-		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
-	}
-
 	var args structs.DCSpecificRequest
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil

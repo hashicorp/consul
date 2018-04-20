@@ -60,12 +60,13 @@ type MembersOpts struct {
 
 // AgentServiceRegistration is used to register a new service
 type AgentServiceRegistration struct {
-	ID                string   `json:",omitempty"`
-	Name              string   `json:",omitempty"`
-	Tags              []string `json:",omitempty"`
-	Port              int      `json:",omitempty"`
-	Address           string   `json:",omitempty"`
-	EnableTagOverride bool     `json:",omitempty"`
+	ID                string            `json:",omitempty"`
+	Name              string            `json:",omitempty"`
+	Tags              []string          `json:",omitempty"`
+	Port              int               `json:",omitempty"`
+	Address           string            `json:",omitempty"`
+	EnableTagOverride bool              `json:",omitempty"`
+	Meta              map[string]string `json:",omitempty"`
 	Check             *AgentServiceCheck
 	Checks            AgentServiceChecks
 }
@@ -97,6 +98,8 @@ type AgentServiceCheck struct {
 	Status            string              `json:",omitempty"`
 	Notes             string              `json:",omitempty"`
 	TLSSkipVerify     bool                `json:",omitempty"`
+	GRPC              string              `json:",omitempty"`
+	GRPCUseTLS        bool                `json:",omitempty"`
 
 	// In Consul 0.7 and later, checks that are associated with a service
 	// may also contain this optional DeregisterCriticalServiceAfter field,

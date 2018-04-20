@@ -5,7 +5,7 @@ $script = <<SCRIPT
 
 echo "Installing dependencies ..."
 sudo apt-get update
-sudo apt-get install -y unzip curl jq
+sudo apt-get install -y unzip curl jq dnsutils
 
 echo "Determining Consul version to install ..."
 CHECKPOINT_URL="https://checkpoint-api.hashicorp.com/v1/check"
@@ -31,7 +31,7 @@ SCRIPT
 CONSUL_DEMO_VERSION = ENV['CONSUL_DEMO_VERSION']
 
 # Specify a custom Vagrant box for the demo
-DEMO_BOX_NAME = ENV['DEMO_BOX_NAME'] || "debian/jessie64"
+DEMO_BOX_NAME = ENV['DEMO_BOX_NAME'] || "debian/stretch64"
 
 # Vagrantfile API/syntax version.
 # NB: Don't touch unless you know what you're doing!

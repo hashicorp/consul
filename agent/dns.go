@@ -31,6 +31,8 @@ const (
 	staleCounterThreshold = 5 * time.Second
 
 	defaultMaxUDPSize = 512
+
+	MaxDNSLabelLength = 63
 )
 
 var InvalidDnsRe = regexp.MustCompile(`[^A-Za-z0-9\\-]+`)
@@ -47,6 +49,7 @@ type dnsConfig struct {
 	SegmentName     string
 	ServiceTTL      map[string]time.Duration
 	UDPAnswerLimit  int
+	ARecordLimit    int
 }
 
 // DNSServer is used to wrap an Agent and expose various
@@ -94,6 +97,7 @@ func NewDNSServer(a *Agent) (*DNSServer, error) {
 func GetDNSConfig(conf *config.RuntimeConfig) *dnsConfig {
 	return &dnsConfig{
 		AllowStale:      conf.DNSAllowStale,
+		ARecordLimit:    conf.DNSARecordLimit,
 		Datacenter:      conf.Datacenter,
 		EnableTruncate:  conf.DNSEnableTruncate,
 		MaxStale:        conf.DNSMaxStale,
@@ -230,8 +234,8 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 			[]metrics.Label{{Name: "node", Value: d.agent.config.NodeName}})
 		metrics.MeasureSinceWithLabels([]string{"dns", "domain_query"}, s,
 			[]metrics.Label{{Name: "node", Value: d.agent.config.NodeName}})
-		d.logger.Printf("[DEBUG] dns: request for %v (%v) from client %s (%s)",
-			q, time.Since(s), resp.RemoteAddr().String(),
+		d.logger.Printf("[DEBUG] dns: request for name %v type %v class %v (took %v) from client %s (%s)",
+			q.Name, dns.Type(q.Qtype), dns.Class(q.Qclass), time.Since(s), resp.RemoteAddr().String(),
 			resp.RemoteAddr().Network())
 	}(time.Now())
 
@@ -266,7 +270,7 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 		m.SetRcode(req, dns.RcodeNotImplemented)
 
 	default:
-		d.dispatch(network, req, m)
+		d.dispatch(network, resp.RemoteAddr(), req, m)
 	}
 
 	// Handle EDNS
@@ -358,7 +362,7 @@ func (d *DNSServer) nameservers(edns bool) (ns []dns.RR, extra []dns.RR) {
 }
 
 // dispatch is used to parse a request and invoke the correct handler
-func (d *DNSServer) dispatch(network string, req, resp *dns.Msg) {
+func (d *DNSServer) dispatch(network string, remoteAddr net.Addr, req, resp *dns.Msg) {
 	// By default the query is in the default datacenter
 	datacenter := d.agent.config.Datacenter
 
@@ -435,7 +439,7 @@ PARSE:
 
 		// Allow a "." in the query name, just join all the parts.
 		query := strings.Join(labels[:n-1], ".")
-		d.preparedQueryLookup(network, datacenter, query, req, resp)
+		d.preparedQueryLookup(network, datacenter, query, remoteAddr, req, resp)
 
 	case "addr":
 		if n != 2 {
@@ -713,6 +717,56 @@ func syncExtra(index map[string]dns.RR, resp *dns.Msg) {
 	resp.Extra = extra
 }
 
+// trimTCPResponse limit the MaximumSize of messages to 64k as it is the limit
+// of DNS responses
+func (d *DNSServer) trimTCPResponse(req, resp *dns.Msg) (trimmed bool) {
+	hasExtra := len(resp.Extra) > 0
+	// There is some overhead, 65535 does not work
+	maxSize := 65533 // 64k - 2 bytes
+	// In order to compute properly, we have to avoid compress first
+	compressed := resp.Compress
+	resp.Compress = false
+
+	// We avoid some function calls and allocations by only handling the
+	// extra data when necessary.
+	var index map[string]dns.RR
+	originalSize := resp.Len()
+	originalNumRecords := len(resp.Answer)
+
+	// Beyond 2500 records, performance gets bad
+	// Limit the number of records at once, anyway, it won't fit in 64k
+	// For SRV Records, the max is around 500 records, for A, less than 2k
+	truncateAt := 2048
+	if req.Question[0].Qtype == dns.TypeSRV {
+		truncateAt = 640
+	}
+	if len(resp.Answer) > truncateAt {
+		resp.Answer = resp.Answer[:truncateAt]
+	}
+	if hasExtra {
+		index = make(map[string]dns.RR, len(resp.Extra))
+		indexRRs(resp.Extra, index)
+	}
+	truncated := false
+
+	// This enforces the given limit on 64k, the max limit for DNS messages
+	for len(resp.Answer) > 0 && resp.Len() > maxSize {
+		truncated = true
+		resp.Answer = resp.Answer[:len(resp.Answer)-1]
+		if hasExtra {
+			syncExtra(index, resp)
+		}
+	}
+	if truncated {
+		d.logger.Printf("[DEBUG] dns: TCP answer to %v too large truncated recs:=%d/%d, size:=%d/%d",
+			req.Question,
+			len(resp.Answer), originalNumRecords, resp.Len(), originalSize)
+	}
+	// Restore compression if any
+	resp.Compress = compressed
+	return truncated
+}
+
 // trimUDPResponse makes sure a UDP response is not longer than allowed by RFC
 // 1035. Enforce an arbitrary limit that can be further ratcheted down by
 // config, and then make sure the response doesn't exceed 512 bytes. Any extra
@@ -763,6 +817,20 @@ func trimUDPResponse(req, resp *dns.Msg, udpAnswerLimit int) (trimmed bool) {
 	resp.Compress = compress
 
 	return len(resp.Answer) < numAnswers
+}
+
+// trimDNSResponse will trim the response for UDP and TCP
+func (d *DNSServer) trimDNSResponse(network string, req, resp *dns.Msg) (trimmed bool) {
+	if network != "tcp" {
+		trimmed = trimUDPResponse(req, resp, d.config.UDPAnswerLimit)
+	} else {
+		trimmed = d.trimTCPResponse(req, resp)
+	}
+	// Flag that there are more records to return in the UDP response
+	if trimmed && d.config.EnableTruncate {
+		resp.Truncated = true
+	}
+	return trimmed
 }
 
 // lookupServiceNodes returns nodes with a given service.
@@ -840,15 +908,7 @@ func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, req,
 		d.serviceNodeRecords(datacenter, out.Nodes, req, resp, ttl)
 	}
 
-	// If the network is not TCP, restrict the number of responses
-	if network != "tcp" {
-		wasTrimmed := trimUDPResponse(req, resp, d.config.UDPAnswerLimit)
-
-		// Flag that there are more records to return in the UDP response
-		if wasTrimmed && d.config.EnableTruncate {
-			resp.Truncated = true
-		}
-	}
+	d.trimDNSResponse(network, req, resp)
 
 	// If the answer is empty and the response isn't truncated, return not found
 	if len(resp.Answer) == 0 && !resp.Truncated {
@@ -857,8 +917,25 @@ func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, req,
 	}
 }
 
+func ednsSubnetForRequest(req *dns.Msg) *dns.EDNS0_SUBNET {
+	// IsEdns0 returns the EDNS RR if present or nil otherwise
+	edns := req.IsEdns0()
+
+	if edns == nil {
+		return nil
+	}
+
+	for _, o := range edns.Option {
+		if subnet, ok := o.(*dns.EDNS0_SUBNET); ok {
+			return subnet
+		}
+	}
+
+	return nil
+}
+
 // preparedQueryLookup is used to handle a prepared query.
-func (d *DNSServer) preparedQueryLookup(network, datacenter, query string, req, resp *dns.Msg) {
+func (d *DNSServer) preparedQueryLookup(network, datacenter, query string, remoteAddr net.Addr, req, resp *dns.Msg) {
 	// Execute the prepared query.
 	args := structs.PreparedQueryExecuteRequest{
 		Datacenter:    datacenter,
@@ -877,6 +954,21 @@ func (d *DNSServer) preparedQueryLookup(network, datacenter, query string, req, 
 			Segment:    d.agent.config.SegmentName,
 			Node:       d.agent.config.NodeName,
 		},
+	}
+
+	subnet := ednsSubnetForRequest(req)
+
+	if subnet != nil {
+		args.Source.Ip = subnet.Address.String()
+	} else {
+		switch v := remoteAddr.(type) {
+		case *net.UDPAddr:
+			args.Source.Ip = v.IP.String()
+		case *net.TCPAddr:
+			args.Source.Ip = v.IP.String()
+		case *net.IPAddr:
+			args.Source.Ip = v.IP.String()
+		}
 	}
 
 	// TODO (slackpad) - What's a safe limit we can set here? It seems like
@@ -950,15 +1042,7 @@ RPC:
 		d.serviceNodeRecords(out.Datacenter, out.Nodes, req, resp, ttl)
 	}
 
-	// If the network is not TCP, restrict the number of responses.
-	if network != "tcp" {
-		wasTrimmed := trimUDPResponse(req, resp, d.config.UDPAnswerLimit)
-
-		// Flag that there are more records to return in the UDP response
-		if wasTrimmed && d.config.EnableTruncate {
-			resp.Truncated = true
-		}
-	}
+	d.trimDNSResponse(network, req, resp)
 
 	// If the answer is empty and the response isn't truncated, return not found
 	if len(resp.Answer) == 0 && !resp.Truncated {
@@ -974,6 +1058,7 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 	handled := make(map[string]struct{})
 	edns := req.IsEdns0() != nil
 
+	count := 0
 	for _, node := range nodes {
 		// Start with the translated address but use the service address,
 		// if specified.
@@ -999,6 +1084,11 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 		records := d.formatNodeRecord(node.Node, addr, qName, qType, ttl, edns)
 		if records != nil {
 			resp.Answer = append(resp.Answer, records...)
+			count++
+			if count == d.config.ARecordLimit {
+				// We stop only if greater than 0 or we reached the limit
+				return
+			}
 		}
 	}
 }
@@ -1136,7 +1226,7 @@ func (d *DNSServer) resolveCNAME(name string) []dns.RR {
 		resp := &dns.Msg{}
 
 		req.SetQuestion(name, dns.TypeANY)
-		d.dispatch("udp", req, resp)
+		d.dispatch("udp", nil, req, resp)
 
 		return resp.Answer
 	}

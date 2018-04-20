@@ -59,7 +59,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 		}
 
 		// Check the service address here and in the agent endpoint
-		// since service registration isn't sychronous.
+		// since service registration isn't synchronous.
 		if ipaddr.IsAny(args.Service.Address) {
 			return fmt.Errorf("Invalid service address")
 		}
@@ -168,6 +168,10 @@ func (c *Catalog) ListDatacenters(args *struct{}, reply *[]string) error {
 	dcs, err := c.srv.router.GetDatacentersByDistance()
 	if err != nil {
 		return err
+	}
+
+	if len(dcs) == 0 { // no WAN federation, so return the local data center name
+		dcs = []string{c.srv.config.Datacenter}
 	}
 
 	*reply = dcs

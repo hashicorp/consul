@@ -123,6 +123,11 @@ RECONCILE:
 	if !establishedLeader {
 		if err := s.establishLeadership(); err != nil {
 			s.logger.Printf("[ERR] consul: failed to establish leadership: %v", err)
+			// Immediately revoke leadership since we didn't successfully
+			// establish leadership.
+			if err := s.revokeLeadership(); err != nil {
+				s.logger.Printf("[ERR] consul: failed to revoke leadership: %v", err)
+			}
 			goto WAIT
 		}
 		establishedLeader = true
@@ -178,6 +183,7 @@ WAIT:
 // previously inflight transactions have been committed and that our
 // state is up-to-date.
 func (s *Server) establishLeadership() error {
+	defer metrics.MeasureSince([]string{"consul", "leader", "establish_leadership"}, time.Now())
 	// This will create the anonymous token and master token (if that is
 	// configured).
 	if err := s.initializeACL(); err != nil {
@@ -213,6 +219,7 @@ func (s *Server) establishLeadership() error {
 // revokeLeadership is invoked once we step down as leader.
 // This is used to cleanup any state that may be specific to a leader.
 func (s *Server) revokeLeadership() error {
+	defer metrics.MeasureSince([]string{"consul", "leader", "revoke_leadership"}, time.Now())
 	// Disable the tombstone GC, since it is only useful as a leader
 	s.tombstoneGC.SetEnabled(false)
 

@@ -13,6 +13,7 @@ import (
 // ServiceSummary is used to summarize a service
 type ServiceSummary struct {
 	Name           string
+	Tags           []string
 	Nodes          []string
 	ChecksPassing  int
 	ChecksWarning  int
@@ -22,10 +23,6 @@ type ServiceSummary struct {
 // UINodes is used to list the nodes in a given datacenter. We return a
 // NodeDump which provides overview information for all the nodes
 func (s *HTTPServer) UINodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if req.Method != "GET" {
-		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
-	}
-
 	// Parse arguments
 	args := structs.DCSpecificRequest{}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
@@ -63,10 +60,6 @@ RPC:
 // UINodeInfo is used to get info on a single node in a given datacenter. We return a
 // NodeInfo which provides overview information for the node
 func (s *HTTPServer) UINodeInfo(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if req.Method != "GET" {
-		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
-	}
-
 	// Parse arguments
 	args := structs.NodeSpecificRequest{}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
@@ -113,10 +106,6 @@ RPC:
 // UIServices is used to list the services in a given datacenter. We return a
 // ServiceSummary which provides overview information for the service
 func (s *HTTPServer) UIServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if req.Method != "GET" {
-		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
-	}
-
 	// Parse arguments
 	args := structs.DCSpecificRequest{}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
@@ -159,6 +148,7 @@ func summarizeServices(dump structs.NodeDump) []*ServiceSummary {
 		nodeServices := make([]*ServiceSummary, len(node.Services))
 		for idx, service := range node.Services {
 			sum := getService(service.Service)
+			sum.Tags = service.Tags
 			sum.Nodes = append(sum.Nodes, node.Node)
 			nodeServices[idx] = sum
 		}

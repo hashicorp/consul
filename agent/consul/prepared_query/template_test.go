@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/types"
 	"github.com/mitchellh/copystructure"
 )
 
@@ -31,6 +32,15 @@ var (
 					"${match(2)}",
 					"${agent.segment}",
 				},
+			},
+			IgnoreCheckIDs: []types.CheckID{
+				"${name.full}",
+				"${name.prefix}",
+				"${name.suffix}",
+				"${match(0)}",
+				"${match(1)}",
+				"${match(2)}",
+				"${agent.segment}",
 			},
 			Tags: []string{
 				"${name.full}",
@@ -124,6 +134,7 @@ func TestTemplate_Compile(t *testing.T) {
 	query.Template.Type = structs.QueryTemplateTypeNamePrefixMatch
 	query.Template.Regexp = "^(hello)there$"
 	query.Service.Service = "${name.full}"
+	query.Service.IgnoreCheckIDs = []types.CheckID{"${match(1)}", "${agent.segment}"}
 	query.Service.Tags = []string{"${match(1)}", "${agent.segment}"}
 	backup, err := copystructure.Copy(query)
 	if err != nil {
@@ -151,6 +162,10 @@ func TestTemplate_Compile(t *testing.T) {
 		},
 		Service: structs.ServiceQuery{
 			Service: "hellothere",
+			IgnoreCheckIDs: []types.CheckID{
+				"hello",
+				"segment-foo",
+			},
 			Tags: []string{
 				"hello",
 				"segment-foo",

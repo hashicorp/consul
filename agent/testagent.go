@@ -207,7 +207,7 @@ func (a *TestAgent) Start() *TestAgent {
 			resp := httptest.NewRecorder()
 			_, err := a.httpServers[0].AgentSelf(resp, req)
 			if err != nil || resp.Code != 200 {
-				r.Fatal(a.Name, "failed OK respose", err)
+				r.Fatal(a.Name, "failed OK response", err)
 			}
 		}
 	})
@@ -282,7 +282,7 @@ func (a *TestAgent) consulConfig() *consul.Config {
 
 // pickRandomPorts selects random ports from fixed size random blocks of
 // ports. This does not eliminate the chance for port conflict but
-// reduces it significanltly with little overhead. Furthermore, asking
+// reduces it significantly with little overhead. Furthermore, asking
 // the kernel for a random port by binding to port 0 prolongs the test
 // execution (in our case +20sec) while also not fully eliminating the
 // chance of port conflicts for concurrently executed test binaries.

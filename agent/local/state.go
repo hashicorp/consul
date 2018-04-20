@@ -697,7 +697,7 @@ func (l *State) updateSyncState() error {
 			// The Serf check is created automatically and does not
 			// need to be deregistered.
 			if id == structs.SerfCheckID {
-				l.logger.Printf("[DEBUG] Skipping remote check %q since it is managed automatically", id)
+				l.logger.Printf("[DEBUG] agent: Skipping remote check %q since it is managed automatically", id)
 				continue
 			}
 
@@ -746,7 +746,7 @@ func (l *State) updateSyncState() error {
 // and synchronizes the changes.
 func (l *State) SyncFull() error {
 	// note that we do not acquire the lock here since the methods
-	// we are calling will do that themself.
+	// we are calling will do that themselves.
 	//
 	// Also note that we don't hold the lock for the entire operation
 	// but release it between the two calls. This is not an issue since

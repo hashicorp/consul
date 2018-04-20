@@ -2,11 +2,21 @@ set :base_url, "https://www.consul.io/"
 
 activate :hashicorp do |h|
   h.name        = "consul"
-  h.version     = "1.0.5"
+  h.version     = "1.0.7"
   h.github_slug = "hashicorp/consul"
 end
 
 helpers do
+  # Returns a segment tracking ID such that local development is not
+  # tracked to production systems.
+  def segmentId()
+    if (ENV['ENV'] == 'production')
+      'IyzLrqXkox5KJ8XL4fo8vTYNGfiKlTCm'
+    else
+      '0EXTgkNx0Ydje2PGXVbRhpKKoe5wtzcE'
+    end
+  end
+
   # Returns the FQDN of the image URL.
   #
   # @param [String] path

@@ -181,7 +181,7 @@ type RuntimeConfig struct {
 	// AutopilotUpgradeVersionTag is the node tag to use for version info when
 	// performing upgrade migrations. If left blank, the Consul version will be used.
 	//
-	// (Entrprise-only)
+	// (Enterprise-only)
 	//
 	// hcl: autopilot { upgrade_version_tag = string }
 	AutopilotUpgradeVersionTag string
@@ -193,6 +193,25 @@ type RuntimeConfig struct {
 	//
 	// hcl: dns_config { allow_stale = (true|false) }
 	DNSAllowStale bool
+
+	// DNSARecordLimit is used to limit the maximum number of DNS Resource
+	// Records returned in the ANSWER section of a DNS response for A or AAAA
+	// records for both UDP and TCP queries.
+	//
+	// This is not normally useful and will be limited based on the querying
+	// protocol, however systems that implemented §6 Rule 9 in RFC3484
+	// may want to set this to `1` in order to subvert §6 Rule 9 and
+	// re-obtain the effect of randomized resource records (i.e. each
+	// answer contains only one IP, but the IP changes every request).
+	// RFC3484 sorts answers in a deterministic order, which defeats the
+	// purpose of randomized DNS responses.  This RFC has been obsoleted
+	// by RFC6724 and restores the desired behavior of randomized
+	// responses, however a large number of Linux hosts using glibc(3)
+	// implemented §6 Rule 9 and may need this option (e.g. CentOS 5-6,
+	// Debian Squeeze, etc).
+	//
+	// hcl: dns_config { a_record_limit = int }
+	DNSARecordLimit int
 
 	// DNSDisableCompression is used to control whether DNS responses are
 	// compressed. In Consul 0.7 this was turned on by default and this
@@ -253,18 +272,11 @@ type RuntimeConfig struct {
 	DNSServiceTTL map[string]time.Duration
 
 	// DNSUDPAnswerLimit is used to limit the maximum number of DNS Resource
-	// Records returned in the ANSWER section of a DNS response. This is
-	// not normally useful and will be limited based on the querying
-	// protocol, however systems that implemented §6 Rule 9 in RFC3484
-	// may want to set this to `1` in order to subvert §6 Rule 9 and
-	// re-obtain the effect of randomized resource records (i.e. each
-	// answer contains only one IP, but the IP changes every request).
-	// RFC3484 sorts answers in a deterministic order, which defeats the
-	// purpose of randomized DNS responses.  This RFC has been obsoleted
-	// by RFC6724 and restores the desired behavior of randomized
-	// responses, however a large number of Linux hosts using glibc(3)
-	// implemented §6 Rule 9 and may need this option (e.g. CentOS 5-6,
-	// Debian Squeeze, etc).
+	// Records returned in the ANSWER section of a DNS response for UDP
+	// responses without EDNS support (limited to 512 bytes).
+	// This parameter is deprecated, if you want to limit the number of
+	// records returned by A or AAAA questions, please use DNSARecordLimit
+	// instead.
 	//
 	// hcl: dns_config { udp_answer_limit = int }
 	DNSUDPAnswerLimit int
@@ -310,7 +322,7 @@ type RuntimeConfig struct {
 	// metric management is enabled.
 	// Default: none
 	//
-	// hcl: telemetry { circonous_api_token = string }
+	// hcl: telemetry { circonus_api_token = string }
 	TelemetryCirconusAPIToken string
 
 	// TelemetryCirconusAPIURL is the base URL to use for contacting the Circonus API.
@@ -347,7 +359,7 @@ type RuntimeConfig struct {
 
 	// TelemetryCirconusCheckForceMetricActivation will force enabling metrics, as they are encountered,
 	// if the metric already exists and is NOT active. If check management is enabled, the default
-	// behavior is to add new metrics as they are encoutered. If the metric already exists in the
+	// behavior is to add new metrics as they are encountered. If the metric already exists in the
 	// check, it will *NOT* be activated. This setting overrides that behavior.
 	// Default: "false"
 	//
@@ -460,6 +472,14 @@ type RuntimeConfig struct {
 	// hcl: datacenter = string
 	// flag: -datacenter string
 	Datacenter string
+
+	// Defines the maximum stale value for discovery path. Defauls to "0s".
+	// Discovery paths are /v1/heath/ paths
+	//
+	// If not set to 0, it will try to perform stale read and perform only a
+	// consistent read whenever the value is too old.
+	// hcl: discovery_max_stale = "duration"
+	DiscoveryMaxStale time.Duration
 
 	// Node name is the name we use to advertise. Defaults to hostname.
 	//
@@ -1048,7 +1068,7 @@ type RuntimeConfig struct {
 	//     name = string
 	//     tags = []string
 	//     address = string
-	//     check = { check definiton }
+	//     check = { check definition }
 	//     checks = [ { check definition}, ... ]
 	//     token = string
 	//     enable_tag_override = (true|false)
@@ -1095,23 +1115,28 @@ type RuntimeConfig struct {
 	//
 	// The values should be a list of the following values:
 	//
-	//   TLS_RSA_WITH_RC4_128_SHA
-	//   TLS_RSA_WITH_3DES_EDE_CBC_SHA
-	//   TLS_RSA_WITH_AES_128_CBC_SHA
-	//   TLS_RSA_WITH_AES_256_CBC_SHA
-	//   TLS_RSA_WITH_AES_128_GCM_SHA256
-	//   TLS_RSA_WITH_AES_256_GCM_SHA384
-	//   TLS_ECDHE_ECDSA_WITH_RC4_128_SHA
-	//   TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
-	//   TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
-	//   TLS_ECDHE_RSA_WITH_RC4_128_SHA
-	//   TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA
-	//   TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
-	//   TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+	//   TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
+	//   TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
 	//   TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
 	//   TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
 	//   TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
 	//   TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+	//   TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+	//   TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+	//   TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
+	//   TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
+	//   TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+	//   TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
+	//   TLS_RSA_WITH_AES_128_GCM_SHA256
+	//   TLS_RSA_WITH_AES_256_GCM_SHA384
+	//   TLS_RSA_WITH_AES_128_CBC_SHA256
+	//   TLS_RSA_WITH_AES_128_CBC_SHA
+	//   TLS_RSA_WITH_AES_256_CBC_SHA
+	//   TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA
+	//   TLS_RSA_WITH_3DES_EDE_CBC_SHA
+	//   TLS_RSA_WITH_RC4_128_SHA
+	//   TLS_ECDHE_RSA_WITH_RC4_128_SHA
+	//   TLS_ECDHE_ECDSA_WITH_RC4_128_SHA
 	//
 	// todo(fs): IMHO, we should also support the raw 0xNNNN values from
 	// todo(fs): https://golang.org/pkg/crypto/tls/#pkg-constants

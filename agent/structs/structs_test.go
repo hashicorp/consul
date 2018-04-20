@@ -133,11 +133,14 @@ func testServiceNode() *ServiceNode {
 		NodeMeta: map[string]string{
 			"tag": "value",
 		},
-		ServiceID:                "service1",
-		ServiceName:              "dogs",
-		ServiceTags:              []string{"prod", "v1"},
-		ServiceAddress:           "127.0.0.2",
-		ServicePort:              8080,
+		ServiceID:      "service1",
+		ServiceName:    "dogs",
+		ServiceTags:    []string{"prod", "v1"},
+		ServiceAddress: "127.0.0.2",
+		ServicePort:    8080,
+		ServiceMeta: map[string]string{
+			"service": "metadata",
+		},
 		ServiceEnableTagOverride: true,
 		RaftIndex: RaftIndex{
 			CreateIndex: 1,
@@ -175,6 +178,17 @@ func TestStructs_ServiceNode_PartialClone(t *testing.T) {
 	if reflect.DeepEqual(sn, clone) {
 		t.Fatalf("clone wasn't independent of the original")
 	}
+
+	revert := make([]string, len(sn.ServiceTags)-1)
+	copy(revert, sn.ServiceTags[0:len(sn.ServiceTags)-1])
+	sn.ServiceTags = revert
+	if !reflect.DeepEqual(sn, clone) {
+		t.Fatalf("bad: %v VS %v", clone, sn)
+	}
+	sn.ServiceMeta["new_meta"] = "new_value"
+	if reflect.DeepEqual(sn, clone) {
+		t.Fatalf("clone wasn't independent of the original for Meta")
+	}
 }
 
 func TestStructs_ServiceNode_Conversions(t *testing.T) {
@@ -196,10 +210,14 @@ func TestStructs_ServiceNode_Conversions(t *testing.T) {
 
 func TestStructs_NodeService_IsSame(t *testing.T) {
 	ns := &NodeService{
-		ID:                "node1",
-		Service:           "theservice",
-		Tags:              []string{"foo", "bar"},
-		Address:           "127.0.0.1",
+		ID:      "node1",
+		Service: "theservice",
+		Tags:    []string{"foo", "bar"},
+		Address: "127.0.0.1",
+		Meta: map[string]string{
+			"meta1": "value1",
+			"meta2": "value2",
+		},
 		Port:              1234,
 		EnableTagOverride: true,
 	}
@@ -214,6 +232,11 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 		Address:           "127.0.0.1",
 		Port:              1234,
 		EnableTagOverride: true,
+		Meta: map[string]string{
+			// We don't care about order
+			"meta2": "value2",
+			"meta1": "value1",
+		},
 		RaftIndex: RaftIndex{
 			CreateIndex: 1,
 			ModifyIndex: 2,
@@ -245,6 +268,7 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 	check(func() { other.Tags = []string{"foo"} }, func() { other.Tags = []string{"foo", "bar"} })
 	check(func() { other.Address = "XXX" }, func() { other.Address = "127.0.0.1" })
 	check(func() { other.Port = 9999 }, func() { other.Port = 1234 })
+	check(func() { other.Meta["meta2"] = "wrongValue" }, func() { other.Meta["meta2"] = "value2" })
 	check(func() { other.EnableTagOverride = false }, func() { other.EnableTagOverride = true })
 }
 
@@ -417,6 +441,20 @@ func TestStructs_CheckServiceNodes_Filter(t *testing.T) {
 				},
 			},
 		},
+		CheckServiceNode{
+			Node: &Node{
+				Node:    "node4",
+				Address: "127.0.0.4",
+			},
+			Checks: HealthChecks{
+				// This check has a different ID to the others to ensure it is not
+				// ignored by accident
+				&HealthCheck{
+					CheckID: "failing2",
+					Status:  api.HealthCritical,
+				},
+			},
+		},
 	}
 
 	// Test the case where warnings are allowed.
@@ -444,6 +482,26 @@ func TestStructs_CheckServiceNodes_Filter(t *testing.T) {
 		filtered := twiddle.Filter(true)
 		expected := CheckServiceNodes{
 			nodes[1],
+		}
+		if !reflect.DeepEqual(filtered, expected) {
+			t.Fatalf("bad: %v", filtered)
+		}
+	}
+
+	// Allow failing checks to be ignored (note that the test checks have empty
+	// CheckID which is valid).
+	{
+		twiddle := make(CheckServiceNodes, len(nodes))
+		if n := copy(twiddle, nodes); n != len(nodes) {
+			t.Fatalf("bad: %d", n)
+		}
+		filtered := twiddle.FilterIgnore(true, []types.CheckID{""})
+		expected := CheckServiceNodes{
+			nodes[0],
+			nodes[1],
+			nodes[2], // Node 3's critical check should be ignored.
+			// Node 4 should still be failing since it's got a critical check with a
+			// non-ignored ID.
 		}
 		if !reflect.DeepEqual(filtered, expected) {
 			t.Fatalf("bad: %v", filtered)
