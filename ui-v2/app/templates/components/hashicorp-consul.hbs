@@ -6,6 +6,7 @@
         <input type="checkbox" name="menu" id="main-nav-toggle" />
         <div data-close-text="Close">
             <nav>
+{{#if dc }}
                 <ul>
                     <li class={{if isDropdownVisible 'is-active'}}>
                         <a data-test-datacenter-selected="{{dc.Name}}" {{action 'change'}}>{{dc.Name}}</a>
@@ -26,6 +27,7 @@
                         <a href={{href-to 'dc.acls' dc.Name}}>ACL</a>
                     </li>
                 </ul>
+{{/if}}
             </nav>
             <nav>
                 <ul>
