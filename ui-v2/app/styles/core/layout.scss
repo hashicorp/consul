@@ -9,9 +9,11 @@
   min-height: 100vh;
   flex-direction: column;
 }
+main {
+  max-width: 1150px;
+}
 main,
 #wrapper > footer {
-  max-width: 1150px;
   padding: 0 4.365079365079365%;
 }
 main {
@@ -23,4 +25,7 @@ main {
 }
 main > * {
   box-sizing: border-box;
+}
+main p {
+  margin-bottom: 1em;
 }

@@ -6,8 +6,24 @@
   box-shadow: none;
 }
 
-%form-element {
+%form-element,
+%radio-group {
   @extend .control, .field;
+}
+%form-element > span {
+  @extend .label;
+}
+%radio-group label {
+  @extend .radio;
+}
+%form-element [type='text'],
+%form-element [type='password'] {
+  @extend .input;
+}
+%form-element textarea {
+  @extend .textarea;
+}
+%form-element {
   display: block;
 }
 %form-element > span,
@@ -15,12 +31,13 @@
   margin-left: 8px;
 }
 %form-element > span {
-  @extend .label;
   text-transform: uppercase;
 }
 %form-element > em {
   font-style: normal;
   color: $text-note;
+  margin-top: 10px;
+  display: block;
 }
 %form-element > span > * {
   text-transform: none;
@@ -45,12 +62,11 @@
   margin-bottom: 1.55em;
 }
 %radio-group {
-  @extend .control, .field;
   overflow: hidden;
   padding-left: 1px;
 }
 %radio-group label {
-  @extend %form-element, .radio;
+  @extend %form-element;
   float: left;
 }
 %radio-group label:not(:last-child) {
@@ -64,15 +80,12 @@
 %radio-group label > span {
   margin-bottom: 0 !important;
 }
-%form-element [type='text'] {
-  @extend .input;
+%form-element [type='text'],
+%form-element [type='password'] {
   color: $text-content-blue;
   border-color: $text-field-blue;
   background-color: $lightest-gray;
   padding: 17px 15px;
-}
-%form-element textarea {
-  @extend .textarea;
 }
 .type-toggle {
   @extend %toggle;

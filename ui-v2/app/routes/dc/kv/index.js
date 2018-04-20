@@ -23,7 +23,10 @@ export default Route.extend(WithFeedback, {
           },
         });
       })
-      .catch(() => {
+      .catch(e => {
+        if (e.errors[0].status == '500') {
+          throw e;
+        }
         // usually when an entire folder structure and no longer exists
         // a 404 comes back, just redirect to root as the old UI did
         // TODO: this still gives me an error!?

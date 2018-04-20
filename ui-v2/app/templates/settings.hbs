@@ -13,11 +13,11 @@
                 <fieldset>
                     <label class="type-text">
                         <span>ACL Token</span>
-                        <input type="password" value="{{model.token}}" placeholder="ACL Token" />
-                        <p>The token is sent with requests as the <code>X-Consul-Token</code> HTTP header parameter. This is used to control the ACL for the web UI.</p>
+                        {{ input type='password' value=item.token }}
+                        <em>The token is sent with requests as the <code>X-Consul-Token</code> HTTP header parameter. This is used to control the ACL for the web UI.</em>
                     </label>
                 </fieldset>
-                <button type="button">Save</button>
+                <button type="submit" {{action 'update' item}}>Save</button>
             </form>
         {{/block-slot}}
     {{/app-view}}

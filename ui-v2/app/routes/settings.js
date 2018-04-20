@@ -3,12 +3,13 @@ import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
 
-export default Route.extend({
+import WithFeedback from 'consul-ui/mixins/with-feedback';
+export default Route.extend(WithFeedback, {
   dcRepo: service('dc'),
   repo: service('settings'),
   model: function(params) {
     return hash({
-      model: get(this, 'repo').findAll(),
+      item: get(this, 'repo').findAll(),
       dc: get(this, 'repo').findBySlug('lastDc'),
       dcs: get(this, 'dcRepo').findAll(),
     }).then(function(model) {
