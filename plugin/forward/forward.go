@@ -193,6 +193,7 @@ type policy int
 const (
 	randomPolicy policy = iota
 	roundRobinPolicy
+	sequentialPolicy
 )
 
 const defaultTimeout = 5 * time.Second

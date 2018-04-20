@@ -17,6 +17,7 @@ func TestSetupPolicy(t *testing.T) {
 		// positive
 		{"forward . 127.0.0.1 {\npolicy random\n}\n", false, "random", ""},
 		{"forward . 127.0.0.1 {\npolicy round_robin\n}\n", false, "round_robin", ""},
+		{"forward . 127.0.0.1 {\npolicy sequential\n}\n", false, "sequential", ""},
 		// negative
 		{"forward . 127.0.0.1 {\npolicy random2\n}\n", true, "random", "unknown policy"},
 	}

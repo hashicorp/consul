@@ -225,6 +225,8 @@ func parseBlock(c *caddy.Controller, f *Forward) error {
 			f.p = &random{}
 		case "round_robin":
 			f.p = &roundRobin{}
+		case "sequential":
+			f.p = &sequential{}
 		default:
 			return c.Errf("unknown policy '%s'", x)
 		}

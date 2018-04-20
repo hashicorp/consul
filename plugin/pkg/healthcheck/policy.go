@@ -29,6 +29,9 @@ func init() {
 	RegisterPolicy("least_conn", func() Policy { return &LeastConn{} })
 	RegisterPolicy("round_robin", func() Policy { return &RoundRobin{} })
 	RegisterPolicy("first", func() Policy { return &First{} })
+        // 'sequential' is an alias to 'first' to maintain consistency with the forward plugin
+        // should probably remove 'first' in a future release
+	RegisterPolicy("sequential", func() Policy { return &First{} })
 }
 
 // Random is a policy that selects up hosts from a pool at random.
