@@ -82,6 +82,12 @@ type QueryOptions struct {
 	// until the timeout or the next index is reached
 	WaitIndex uint64
 
+	// WaitHash is used by some endpoints instead of WaitIndex to perform blocking
+	// on state based on a hash of the response rather than a monotonic index.
+	// This is required when the state being blocked on is not stored in Raft, for
+	// example agent-local proxy configuration.
+	WaitHash string
+
 	// WaitTime is used to bound the duration of a wait.
 	// Defaults to that of the Config, but can be overridden.
 	WaitTime time.Duration
@@ -532,6 +538,9 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 	}
 	if q.WaitTime != 0 {
 		r.params.Set("wait", durToMsec(q.WaitTime))
+	}
+	if q.WaitHash != "" {
+		r.params.Set("hash", q.WaitHash)
 	}
 	if q.Token != "" {
 		r.header.Set("X-Consul-Token", q.Token)

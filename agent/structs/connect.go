@@ -103,16 +103,3 @@ func (p *ConnectManagedProxy) ParseConfig() (*ConnectManagedProxyConfig, error) 
 	}
 	return &cfg, nil
 }
-
-// ConnectManageProxyResponse is the public response object we return for
-// queries on local proxy config state. It's similar to ConnectManagedProxy but
-// with some fields re-arranged.
-type ConnectManageProxyResponse struct {
-	ProxyServiceID    string
-	TargetServiceID   string
-	TargetServiceName string
-	ContentHash       string
-	ExecMode          string
-	Command           string
-	Config            map[string]interface{}
-}

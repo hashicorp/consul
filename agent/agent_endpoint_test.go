@@ -57,25 +57,39 @@ func TestAgent_Services(t *testing.T) {
 		Tags:    []string{"master"},
 		Port:    5000,
 	}
-	a.State.AddService(srv1, "")
+	require.NoError(t, a.State.AddService(srv1, ""))
+
+	// Add a managed proxy for that service
+	prxy1 := &structs.ConnectManagedProxy{
+		ExecMode: structs.ProxyExecModeScript,
+		Command:  "proxy.sh",
+		Config: map[string]interface{}{
+			"bind_port": 1234,
+			"foo":       "bar",
+		},
+		TargetServiceID: "mysql",
+	}
+	_, err := a.State.AddProxy(prxy1, "")
+	require.NoError(t, err)
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
 	obj, err := a.srv.AgentServices(nil, req)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
-	val := obj.(map[string]*structs.NodeService)
-	if len(val) != 1 {
-		t.Fatalf("bad services: %v", obj)
-	}
-	if val["mysql"].Port != 5000 {
-		t.Fatalf("bad service: %v", obj)
-	}
+	val := obj.(map[string]*api.AgentService)
+	assert.Lenf(t, val, 1, "bad services: %v", obj)
+	assert.Equal(t, 5000, val["mysql"].Port)
+	assert.NotNil(t, val["mysql"].Connect)
+	assert.NotNil(t, val["mysql"].Connect.Proxy)
+	assert.Equal(t, prxy1.ExecMode.String(), string(val["mysql"].Connect.Proxy.ExecMode))
+	assert.Equal(t, prxy1.Command, val["mysql"].Connect.Proxy.Command)
+	assert.Equal(t, prxy1.Config, val["mysql"].Connect.Proxy.Config)
 }
 
 // This tests that the agent services endpoint (/v1/agent/services) returns
 // Connect proxies.
-func TestAgent_Services_ConnectProxy(t *testing.T) {
+func TestAgent_Services_ExternalConnectProxy(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
@@ -94,10 +108,10 @@ func TestAgent_Services_ConnectProxy(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
 	obj, err := a.srv.AgentServices(nil, req)
 	assert.Nil(err)
-	val := obj.(map[string]*structs.NodeService)
+	val := obj.(map[string]*api.AgentService)
 	assert.Len(val, 1)
 	actual := val["db-proxy"]
-	assert.Equal(structs.ServiceKindConnectProxy, actual.Kind)
+	assert.Equal(api.ServiceKindConnectProxy, actual.Kind)
 	assert.Equal("db", actual.ProxyDestination)
 }
 
@@ -120,7 +134,7 @@ func TestAgent_Services_ACLFilter(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Err: %v", err)
 		}
-		val := obj.(map[string]*structs.NodeService)
+		val := obj.(map[string]*api.AgentService)
 		if len(val) != 0 {
 			t.Fatalf("bad: %v", obj)
 		}
@@ -132,7 +146,7 @@ func TestAgent_Services_ACLFilter(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Err: %v", err)
 		}
-		val := obj.(map[string]*structs.NodeService)
+		val := obj.(map[string]*api.AgentService)
 		if len(val) != 1 {
 			t.Fatalf("bad: %v", obj)
 		}
@@ -1383,21 +1397,11 @@ func TestAgent_RegisterService_ManagedConnectProxy(t *testing.T) {
 	// Register a proxy. Note that the destination doesn't exist here on
 	// this agent or in the catalog at all. This is intended and part
 	// of the design.
-	args := &structs.ServiceDefinition{
+	args := &api.AgentServiceRegistration{
 		Name: "web",
 		Port: 8000,
-		// This is needed just because empty check struct (not pointer) get json
-		// encoded as object with zero values and then decoded back to object with
-		// zero values _except that the header map is an empty map not a nil map_.
-		// So our check to see if s.Check.Empty() returns false since DeepEqual
-		// considers empty maps and nil maps to be different types. Then the request
-		// fails validation because the Check definition isn't valid... This is jank
-		// we should fix but it's another yak I don't want to shave right now.
-		Check: structs.CheckType{
-			TTL: 15 * time.Second,
-		},
-		Connect: &structs.ServiceDefinitionConnect{
-			Proxy: &structs.ServiceDefinitionConnectProxy{
+		Connect: &api.AgentServiceConnect{
+			Proxy: &api.AgentServiceConnectProxy{
 				ExecMode: "script",
 				Command:  "proxy.sh",
 				Config: map[string]interface{}{
@@ -2233,7 +2237,7 @@ func TestAgentConnectProxy(t *testing.T) {
 		},
 	}
 
-	expectedResponse := &structs.ConnectManageProxyResponse{
+	expectedResponse := &api.ConnectProxyConfig{
 		ProxyServiceID:    "test-proxy",
 		TargetServiceID:   "test",
 		TargetServiceName: "test",
@@ -2254,7 +2258,7 @@ func TestAgentConnectProxy(t *testing.T) {
 
 	ur, err := copystructure.Copy(expectedResponse)
 	require.NoError(t, err)
-	updatedResponse := ur.(*structs.ConnectManageProxyResponse)
+	updatedResponse := ur.(*api.ConnectProxyConfig)
 	updatedResponse.ContentHash = "22bc9233a52c08fd"
 	upstreams := updatedResponse.Config["upstreams"].([]interface{})
 	upstreams = append(upstreams,
@@ -2271,7 +2275,7 @@ func TestAgentConnectProxy(t *testing.T) {
 		wantWait   time.Duration
 		wantCode   int
 		wantErr    bool
-		wantResp   *structs.ConnectManageProxyResponse
+		wantResp   *api.ConnectProxyConfig
 	}{
 		{
 			name:     "simple fetch",
@@ -2338,7 +2342,7 @@ func TestAgentConnectProxy(t *testing.T) {
 				go tt.updateFunc()
 			}
 			start := time.Now()
-			obj, err := a.srv.AgentConnectProxyConfig(resp, req)
+			obj, err := a.srv.ConnectProxyConfig(resp, req)
 			elapsed := time.Now().Sub(start)
 
 			if tt.wantErr {

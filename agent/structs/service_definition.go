@@ -102,14 +102,14 @@ func (s *ServiceDefinition) CheckTypes() (checks CheckTypes, err error) {
 type ServiceDefinitionConnect struct {
 	// TODO(banks) add way to specify that the app is connect-native
 	// Proxy configures a connect proxy instance for the service
-	Proxy *ServiceDefinitionConnectProxy `json:"proxy,omitempty" hcl:"proxy" mapstructure:"proxy"`
+	Proxy *ServiceDefinitionConnectProxy
 }
 
 // ServiceDefinitionConnectProxy is the connect proxy config  within a service
 // registration. Note this is duplicated in config.ServiceConnectProxy and needs
 // to be kept in sync.
 type ServiceDefinitionConnectProxy struct {
-	Command  string                 `json:"command,omitempty" hcl:"command" mapstructure:"command"`
-	ExecMode string                 `json:"exec_mode,omitempty" hcl:"exec_mode" mapstructure:"exec_mode"`
-	Config   map[string]interface{} `json:"config,omitempty" hcl:"config" mapstructure:"config"`
+	Command  string
+	ExecMode string
+	Config   map[string]interface{}
 }

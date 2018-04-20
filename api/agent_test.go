@@ -186,7 +186,64 @@ func TestAPI_AgentServices(t *testing.T) {
 	}
 }
 
-func TestAPI_AgentServices_ConnectProxy(t *testing.T) {
+func TestAPI_AgentServices_ManagedConnectProxy(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	reg := &AgentServiceRegistration{
+		Name: "foo",
+		Tags: []string{"bar", "baz"},
+		Port: 8000,
+		Check: &AgentServiceCheck{
+			TTL: "15s",
+		},
+		Connect: &AgentServiceConnect{
+			Proxy: &AgentServiceConnectProxy{
+				ExecMode: ProxyExecModeScript,
+				Command:  "foo.rb",
+				Config: map[string]interface{}{
+					"foo": "bar",
+				},
+			},
+		},
+	}
+	if err := agent.ServiceRegister(reg); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	services, err := agent.Services()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, ok := services["foo"]; !ok {
+		t.Fatalf("missing service: %v", services)
+	}
+	checks, err := agent.Checks()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	chk, ok := checks["service:foo"]
+	if !ok {
+		t.Fatalf("missing check: %v", checks)
+	}
+
+	// Checks should default to critical
+	if chk.Status != HealthCritical {
+		t.Fatalf("Bad: %#v", chk)
+	}
+
+	// Proxy config should be present in response
+	require.Equal(t, reg.Connect, services["foo"].Connect)
+
+	if err := agent.ServiceDeregister("foo"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestAPI_AgentServices_ExternalConnectProxy(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -1018,4 +1075,32 @@ func TestAPI_AgentConnectAuthorize(t *testing.T) {
 	require.Nil(err)
 	require.True(auth.Authorized)
 	require.Equal(auth.Reason, "ACLs disabled, access is allowed by default")
+}
+
+func TestAPI_AgentConnectProxyConfig(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+	reg := &AgentServiceRegistration{
+		Name: "foo",
+		Tags: []string{"bar", "baz"},
+		Port: 8000,
+		Check: &AgentServiceCheck{
+			CheckID: "foo-ttl",
+			TTL:     "15s",
+		},
+	}
+	if err := agent.ServiceRegister(reg); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	checks, err := agent.Checks()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, ok := checks["foo-ttl"]; !ok {
+		t.Fatalf("missing check: %v", checks)
+	}
 }

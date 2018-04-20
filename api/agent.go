@@ -21,6 +21,23 @@ const (
 	ServiceKindConnectProxy ServiceKind = "connect-proxy"
 )
 
+// ProxyExecMode is the execution mode for a managed Connect proxy.
+type ProxyExecMode string
+
+const (
+	// ProxyExecModeDaemon indicates that the proxy command should be long-running
+	// and should be started and supervised by the agent until it's target service
+	// is deregistered.
+	ProxyExecModeDaemon ProxyExecMode = "daemon"
+
+	// ProxyExecModeScript indicates that the proxy command should be invoke to
+	// completion on each change to the configuration of lifecycle event. The
+	// script typically fetches the config and certificates from the agent API and
+	// then configures an externally managed daemon, perhaps starting and stopping
+	// it if necessary.
+	ProxyExecModeScript ProxyExecMode = "script"
+)
+
 // AgentCheck represents a check known to the agent
 type AgentCheck struct {
 	Node        string
@@ -47,6 +64,20 @@ type AgentService struct {
 	CreateIndex       uint64
 	ModifyIndex       uint64
 	ProxyDestination  string
+	Connect           *AgentServiceConnect
+}
+
+// AgentServiceConnect represents the Connect configuration of a service.
+type AgentServiceConnect struct {
+	Proxy *AgentServiceConnectProxy
+}
+
+// AgentServiceConnectProxy represents the Connect Proxy configuration of a
+// service.
+type AgentServiceConnectProxy struct {
+	ExecMode ProxyExecMode
+	Command  string
+	Config   map[string]interface{}
 }
 
 // AgentMember represents a cluster member known to the agent
@@ -89,7 +120,8 @@ type AgentServiceRegistration struct {
 	Meta              map[string]string `json:",omitempty"`
 	Check             *AgentServiceCheck
 	Checks            AgentServiceChecks
-	ProxyDestination  string `json:",omitempty"`
+	ProxyDestination  string               `json:",omitempty"`
+	Connect           *AgentServiceConnect `json:",omitempty"`
 }
 
 // AgentCheckRegistration is used to register a new check
@@ -183,6 +215,18 @@ type AgentAuthorizeParams struct {
 type AgentAuthorize struct {
 	Authorized bool
 	Reason     string
+}
+
+// ConnectProxyConfig is the response structure for agent-local proxy
+// configuration.
+type ConnectProxyConfig struct {
+	ProxyServiceID    string
+	TargetServiceID   string
+	TargetServiceName string
+	ContentHash       string
+	ExecMode          ProxyExecMode
+	Command           string
+	Config            map[string]interface{}
 }
 
 // Agent can be used to query the Agent endpoints
@@ -286,6 +330,7 @@ func (a *Agent) Services() (map[string]*AgentService, error) {
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, err
 	}
+
 	return out, nil
 }
 
@@ -581,6 +626,31 @@ func (a *Agent) ConnectCALeaf(serviceID string, q *QueryOptions) (*LeafCert, *Qu
 	qm.RequestTime = rtt
 
 	var out LeafCert
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, nil, err
+	}
+	return &out, qm, nil
+}
+
+// ConnectProxyConfig gets the configuration for a local managed proxy instance.
+//
+// Note that this uses an unconventional blocking mechanism since it's
+// agent-local state. That means there is no persistent raft index so we block
+// based on object hash instead.
+func (a *Agent) ConnectProxyConfig(proxyServiceID string, q *QueryOptions) (*ConnectProxyConfig, *QueryMeta, error) {
+	r := a.c.newRequest("GET", "/v1/agent/connect/proxy/"+proxyServiceID)
+	r.setQueryOptions(q)
+	rtt, resp, err := requireOK(a.c.doRequest(r))
+	if err != nil {
+		return nil, nil, err
+	}
+	defer resp.Body.Close()
+
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
+
+	var out ConnectProxyConfig
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, nil, err
 	}

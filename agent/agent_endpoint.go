@@ -162,25 +162,48 @@ func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) 
 		return nil, err
 	}
 
+	proxies := s.agent.State.Proxies()
+
+	// Convert into api.AgentService since that includes Connect config but so far
+	// NodeService doesn't need to internally. They are otherwise identical since
+	// that is the struct used in client for reading the one we output here
+	// anyway.
+	agentSvcs := make(map[string]*api.AgentService)
+
 	// Use empty list instead of nil
 	for id, s := range services {
-		if s.Tags == nil || s.Meta == nil {
-			clone := *s
-			if s.Tags == nil {
-				clone.Tags = make([]string, 0)
-			} else {
-				clone.Tags = s.Tags
-			}
-			if s.Meta == nil {
-				clone.Meta = make(map[string]string)
-			} else {
-				clone.Meta = s.Meta
-			}
-			services[id] = &clone
+		as := &api.AgentService{
+			Kind:              api.ServiceKind(s.Kind),
+			ID:                s.ID,
+			Service:           s.Service,
+			Tags:              s.Tags,
+			Port:              s.Port,
+			Address:           s.Address,
+			EnableTagOverride: s.EnableTagOverride,
+			CreateIndex:       s.CreateIndex,
+			ModifyIndex:       s.ModifyIndex,
+			ProxyDestination:  s.ProxyDestination,
 		}
+		if as.Tags == nil {
+			as.Tags = []string{}
+		}
+		if as.Meta == nil {
+			as.Meta = map[string]string{}
+		}
+		// Attach Connect configs if the exist
+		if proxy, ok := proxies[id+"-proxy"]; ok {
+			as.Connect = &api.AgentServiceConnect{
+				Proxy: &api.AgentServiceConnectProxy{
+					ExecMode: api.ProxyExecMode(proxy.Proxy.ExecMode.String()),
+					Command:  proxy.Proxy.Command,
+					Config:   proxy.Proxy.Config,
+				},
+			}
+		}
+		agentSvcs[id] = as
 	}
 
-	return services, nil
+	return agentSvcs, nil
 }
 
 func (s *HTTPServer) AgentChecks(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -904,7 +927,7 @@ func (s *HTTPServer) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.
 //
 // Returns the local proxy config for the identified proxy. Requires token=
 // param with the correct local ProxyToken (not ACL token).
-func (s *HTTPServer) AgentConnectProxyConfig(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPServer) ConnectProxyConfig(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Get the proxy ID. Note that this is the ID of a proxy's service instance.
 	id := strings.TrimPrefix(req.URL.Path, "/v1/agent/connect/proxy/")
 
@@ -949,12 +972,12 @@ func (s *HTTPServer) AgentConnectProxyConfig(resp http.ResponseWriter, req *http
 			}
 			contentHash := fmt.Sprintf("%x", hash)
 
-			reply := &structs.ConnectManageProxyResponse{
+			reply := &api.ConnectProxyConfig{
 				ProxyServiceID:    proxy.Proxy.ProxyService.ID,
 				TargetServiceID:   target.ID,
 				TargetServiceName: target.Service,
 				ContentHash:       contentHash,
-				ExecMode:          proxy.Proxy.ExecMode.String(),
+				ExecMode:          api.ProxyExecMode(proxy.Proxy.ExecMode.String()),
 				Command:           proxy.Proxy.Command,
 				Config:            proxy.Proxy.Config,
 			}
