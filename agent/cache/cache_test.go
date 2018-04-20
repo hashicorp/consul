@@ -28,12 +28,12 @@ func TestCacheGet_noIndex(t *testing.T) {
 	// Get, should fetch
 	req := TestRequest(t, RequestInfo{Key: "hello"})
 	result, err := c.Get("t", req)
-	require.Nil(err)
+	require.NoError(err)
 	require.Equal(42, result)
 
 	// Get, should not fetch since we already have a satisfying value
 	result, err = c.Get("t", req)
-	require.Nil(err)
+	require.NoError(err)
 	require.Equal(42, result)
 
 	// Sleep a tiny bit just to let maybe some background calls happen
@@ -92,12 +92,12 @@ func TestCacheGet_blankCacheKey(t *testing.T) {
 	// Get, should fetch
 	req := TestRequest(t, RequestInfo{Key: ""})
 	result, err := c.Get("t", req)
-	require.Nil(err)
+	require.NoError(err)
 	require.Equal(42, result)
 
 	// Get, should not fetch since we already have a satisfying value
 	result, err = c.Get("t", req)
-	require.Nil(err)
+	require.NoError(err)
 	require.Equal(42, result)
 
 	// Sleep a tiny bit just to let maybe some background calls happen
@@ -281,14 +281,14 @@ func TestCacheGet_emptyFetchResult(t *testing.T) {
 	// Get, should fetch
 	req := TestRequest(t, RequestInfo{Key: "hello"})
 	result, err := c.Get("t", req)
-	require.Nil(err)
+	require.NoError(err)
 	require.Equal(42, result)
 
 	// Get, should not fetch since we already have a satisfying value
 	req = TestRequest(t, RequestInfo{
 		Key: "hello", MinIndex: 1, Timeout: 100 * time.Millisecond})
 	result, err = c.Get("t", req)
-	require.Nil(err)
+	require.NoError(err)
 	require.Equal(42, result)
 
 	// Sleep a tiny bit just to let maybe some background calls happen
@@ -362,7 +362,7 @@ func TestCacheGet_fetchTimeout(t *testing.T) {
 	// Get, should fetch
 	req := TestRequest(t, RequestInfo{Key: "hello"})
 	result, err := c.Get("t", req)
-	require.Nil(err)
+	require.NoError(err)
 	require.Equal(42, result)
 
 	// Test the timeout
@@ -390,14 +390,16 @@ func TestCacheGet_expire(t *testing.T) {
 	// Get, should fetch
 	req := TestRequest(t, RequestInfo{Key: "hello"})
 	result, err := c.Get("t", req)
-	require.Nil(err)
+	require.NoError(err)
 	require.Equal(42, result)
 
-	// Get, should not fetch
+	// Get, should not fetch, verified via the mock assertions above
+	hits := c.Hits()
 	req = TestRequest(t, RequestInfo{Key: "hello"})
 	result, err = c.Get("t", req)
-	require.Nil(err)
+	require.NoError(err)
 	require.Equal(42, result)
+	require.Equal(hits+1, c.Hits())
 
 	// Sleep for the expiry
 	time.Sleep(500 * time.Millisecond)
@@ -405,7 +407,7 @@ func TestCacheGet_expire(t *testing.T) {
 	// Get, should fetch
 	req = TestRequest(t, RequestInfo{Key: "hello"})
 	result, err = c.Get("t", req)
-	require.Nil(err)
+	require.NoError(err)
 	require.Equal(42, result)
 
 	// Sleep a tiny bit just to let maybe some background calls happen
@@ -435,7 +437,7 @@ func TestCacheGet_expireResetGet(t *testing.T) {
 	// Get, should fetch
 	req := TestRequest(t, RequestInfo{Key: "hello"})
 	result, err := c.Get("t", req)
-	require.Nil(err)
+	require.NoError(err)
 	require.Equal(42, result)
 
 	// Fetch multiple times, where the total time is well beyond
@@ -447,7 +449,7 @@ func TestCacheGet_expireResetGet(t *testing.T) {
 		// Get, should not fetch
 		req = TestRequest(t, RequestInfo{Key: "hello"})
 		result, err = c.Get("t", req)
-		require.Nil(err)
+		require.NoError(err)
 		require.Equal(42, result)
 	}
 
@@ -456,7 +458,7 @@ func TestCacheGet_expireResetGet(t *testing.T) {
 	// Get, should fetch
 	req = TestRequest(t, RequestInfo{Key: "hello"})
 	result, err = c.Get("t", req)
-	require.Nil(err)
+	require.NoError(err)
 	require.Equal(42, result)
 
 	// Sleep a tiny bit just to let maybe some background calls happen

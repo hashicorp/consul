@@ -72,7 +72,7 @@ func (h *expiryHeap) Fix(entry *cacheEntryExpiry) {
 	idx := entry.HeapIndex
 	heap.Fix(h, idx)
 
-	// This is the edge case we handle: if the prev and current index
+	// This is the edge case we handle: if the prev (idx) and current (HeapIndex)
 	// is zero, it means the head-of-line didn't change while the value
 	// changed. Notify to reset our expiry worker.
 	if idx == 0 && entry.HeapIndex == 0 {
@@ -102,6 +102,7 @@ func (h *expiryHeap) Less(i, j int) bool {
 	return h.Entries[i].Expires.Before(h.Entries[j].Expires)
 }
 
+// heap.Interface, this isn't expected to be called directly.
 func (h *expiryHeap) Push(x interface{}) {
 	entry := x.(*cacheEntryExpiry)
 
@@ -119,6 +120,7 @@ func (h *expiryHeap) Push(x interface{}) {
 	h.Entries = append(h.Entries, entry)
 }
 
+// heap.Interface, this isn't expected to be called directly.
 func (h *expiryHeap) Pop() interface{} {
 	old := h.Entries
 	n := len(old)
