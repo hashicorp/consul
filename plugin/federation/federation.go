@@ -20,8 +20,9 @@ import (
 	"github.com/coredns/coredns/plugin/pkg/nonwriter"
 	"github.com/coredns/coredns/request"
 
+	"context"
+
 	"github.com/miekg/dns"
-	"golang.org/x/net/context"
 )
 
 // Federation contains the name to zone mapping used for federation in kubernetes.

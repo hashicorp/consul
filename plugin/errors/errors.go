@@ -11,8 +11,9 @@ import (
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/request"
 
+	"context"
+
 	"github.com/miekg/dns"
-	"golang.org/x/net/context"
 )
 
 // errorHandler handles DNS errors (and errors from other plugin).

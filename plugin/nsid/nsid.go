@@ -6,8 +6,9 @@ import (
 
 	"github.com/coredns/coredns/plugin"
 
+	"context"
+
 	"github.com/miekg/dns"
-	"golang.org/x/net/context"
 )
 
 // Nsid plugin

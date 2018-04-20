@@ -7,8 +7,9 @@ import (
 
 	"github.com/coredns/coredns/request"
 
+	"context"
+
 	"github.com/miekg/dns"
-	"golang.org/x/net/context"
 )
 
 // Erratic is a plugin that returns erratic repsonses to each client.

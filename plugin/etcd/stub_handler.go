@@ -6,8 +6,9 @@ import (
 	"github.com/coredns/coredns/plugin/pkg/log"
 	"github.com/coredns/coredns/request"
 
+	"context"
+
 	"github.com/miekg/dns"
-	"golang.org/x/net/context"
 )
 
 // Stub wraps an Etcd. We have this type so that it can have a ServeDNS method.

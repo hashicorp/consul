@@ -14,9 +14,10 @@ import (
 	"github.com/coredns/coredns/plugin/proxy"
 	"github.com/coredns/coredns/plugin/test"
 
+	"context"
+
 	etcdc "github.com/coreos/etcd/client"
 	"github.com/miekg/dns"
-	"golang.org/x/net/context"
 )
 
 func init() {

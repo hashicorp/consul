@@ -3,8 +3,9 @@ package proxy
 import (
 	"github.com/coredns/coredns/request"
 
+	"context"
+
 	"github.com/miekg/dns"
-	"golang.org/x/net/context"
 )
 
 // Exchanger is an interface that specifies a type implementing a DNS resolver that

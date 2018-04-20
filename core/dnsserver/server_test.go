@@ -1,13 +1,13 @@
 package dnsserver
 
 import (
+	"context"
 	"testing"
 
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/test"
 
 	"github.com/miekg/dns"
-	"golang.org/x/net/context"
 )
 
 type testPlugin struct{}

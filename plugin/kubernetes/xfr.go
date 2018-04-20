@@ -10,8 +10,9 @@ import (
 	"github.com/coredns/coredns/plugin/pkg/log"
 	"github.com/coredns/coredns/request"
 
+	"context"
+
 	"github.com/miekg/dns"
-	"golang.org/x/net/context"
 	api "k8s.io/api/core/v1"
 )
 

@@ -5,10 +5,11 @@ import (
 	"errors"
 	"fmt"
 
+	"context"
+
 	"github.com/miekg/dns"
 	ot "github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/net/context"
 )
 
 type (

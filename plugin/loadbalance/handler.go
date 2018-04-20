@@ -4,8 +4,9 @@ package loadbalance
 import (
 	"github.com/coredns/coredns/plugin"
 
+	"context"
+
 	"github.com/miekg/dns"
-	"golang.org/x/net/context"
 )
 
 // RoundRobin is plugin to rewrite responses for "load balancing".

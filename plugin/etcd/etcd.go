@@ -13,10 +13,11 @@ import (
 	"github.com/coredns/coredns/plugin/proxy"
 	"github.com/coredns/coredns/request"
 
+	"context"
+
 	"github.com/coredns/coredns/plugin/pkg/upstream"
 	etcdc "github.com/coreos/etcd/client"
 	"github.com/miekg/dns"
-	"golang.org/x/net/context"
 )
 
 // Etcd is a plugin talks to an etcd cluster.

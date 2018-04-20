@@ -94,16 +94,13 @@ func TestLogParse(t *testing.T) {
 		}}},
 		{`log {
 			class abracadabra
-		}`, true, []Rule{
-		}},
+		}`, true, []Rule{}},
 		{`log {
 			class
-		}`, true, []Rule{
-		}},
+		}`, true, []Rule{}},
 		{`log {
 			unknown
-		}`, true, []Rule{
-		}},
+		}`, true, []Rule{}},
 	}
 	for i, test := range tests {
 		c := caddy.NewTestController("dns", test.inputLogRules)

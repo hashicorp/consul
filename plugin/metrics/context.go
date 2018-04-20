@@ -3,7 +3,7 @@ package metrics
 import (
 	"github.com/coredns/coredns/plugin/metrics/vars"
 
-	"golang.org/x/net/context"
+	"context"
 )
 
 // WithServer returns the current server handling the request. It returns the

@@ -11,11 +11,12 @@ import (
 	// Plugin the trace package.
 	_ "github.com/coredns/coredns/plugin/pkg/trace"
 
+	"context"
+
 	ddtrace "github.com/DataDog/dd-trace-go/opentracing"
 	"github.com/miekg/dns"
 	ot "github.com/opentracing/opentracing-go"
 	zipkin "github.com/openzipkin/zipkin-go-opentracing"
-	"golang.org/x/net/context"
 )
 
 type trace struct {

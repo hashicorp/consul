@@ -8,11 +8,12 @@ import (
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/request"
 
+	"context"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/aws/aws-sdk-go/service/route53/route53iface"
 	"github.com/miekg/dns"
-	"golang.org/x/net/context"
 )
 
 // Route53 is a plugin that returns RR from AWS route53

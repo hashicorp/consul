@@ -7,9 +7,10 @@ import (
 	"github.com/coredns/coredns/plugin/dnstap/msg"
 	"github.com/coredns/coredns/request"
 
+	"context"
+
 	tap "github.com/dnstap/golang-dnstap"
 	"github.com/miekg/dns"
-	"golang.org/x/net/context"
 )
 
 func toDnstap(ctx context.Context, host string, ex Exchanger, state request.Request, reply *dns.Msg, start time.Time) error {

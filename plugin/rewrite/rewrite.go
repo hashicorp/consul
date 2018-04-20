@@ -8,7 +8,7 @@ import (
 
 	"github.com/miekg/dns"
 
-	"golang.org/x/net/context"
+	"context"
 )
 
 // Result is the result of a rewrite

@@ -8,8 +8,9 @@ import (
 	"github.com/coredns/coredns/plugin/pkg/upstream"
 	"github.com/coredns/coredns/plugin/test"
 
+	"context"
+
 	"github.com/miekg/dns"
-	"golang.org/x/net/context"
 )
 
 func TestLookupCNAMEChain(t *testing.T) {

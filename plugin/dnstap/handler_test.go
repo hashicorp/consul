@@ -10,9 +10,10 @@ import (
 	"github.com/coredns/coredns/plugin/dnstap/test"
 	mwtest "github.com/coredns/coredns/plugin/test"
 
+	"context"
+
 	tap "github.com/dnstap/golang-dnstap"
 	"github.com/miekg/dns"
-	"golang.org/x/net/context"
 )
 
 func testCase(t *testing.T, tapq, tapr *tap.Message, q, r *dns.Msg) {

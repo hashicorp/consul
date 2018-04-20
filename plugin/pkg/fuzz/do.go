@@ -5,8 +5,9 @@ import (
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/test"
 
+	"context"
+
 	"github.com/miekg/dns"
-	"golang.org/x/net/context"
 )
 
 // Do will fuzz p - used by gofuzz. See Maefile.fuzz for comments and context.

@@ -6,7 +6,7 @@ import (
 
 	"github.com/miekg/dns"
 
-	"golang.org/x/net/context"
+	"context"
 )
 
 // ServiceBackend defines a (dynamic) backend that returns a slice of service definitions.

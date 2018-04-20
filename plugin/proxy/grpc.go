@@ -9,10 +9,11 @@ import (
 	"github.com/coredns/coredns/plugin/pkg/trace"
 	"github.com/coredns/coredns/request"
 
+	"context"
+
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/miekg/dns"
 	opentracing "github.com/opentracing/opentracing-go"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )

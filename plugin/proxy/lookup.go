@@ -11,8 +11,9 @@ import (
 	"github.com/coredns/coredns/plugin/pkg/healthcheck"
 	"github.com/coredns/coredns/request"
 
+	"context"
+
 	"github.com/miekg/dns"
-	"golang.org/x/net/context"
 )
 
 // NewLookup create a new proxy with the hosts in host and a Random policy.

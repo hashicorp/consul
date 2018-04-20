@@ -4,8 +4,9 @@ import (
 	"sort"
 	"testing"
 
+	"context"
+
 	"github.com/miekg/dns"
-	"golang.org/x/net/context"
 )
 
 type sect int

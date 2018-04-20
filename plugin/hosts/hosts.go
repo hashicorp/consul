@@ -3,7 +3,7 @@ package hosts
 import (
 	"net"
 
-	"golang.org/x/net/context"
+	"context"
 
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"

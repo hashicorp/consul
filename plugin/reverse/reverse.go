@@ -8,8 +8,9 @@ import (
 	"github.com/coredns/coredns/plugin/pkg/fall"
 	"github.com/coredns/coredns/request"
 
+	"context"
+
 	"github.com/miekg/dns"
-	"golang.org/x/net/context"
 )
 
 // Reverse provides dynamic reverse DNS and the related forward RR.

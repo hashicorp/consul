@@ -7,8 +7,9 @@ package forward
 import (
 	"github.com/coredns/coredns/request"
 
+	"context"
+
 	"github.com/miekg/dns"
-	"golang.org/x/net/context"
 )
 
 // Forward forward the request in state as-is. Unlike Lookup that adds EDNS0 suffix to the message.

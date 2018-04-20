@@ -6,8 +6,9 @@ import (
 
 	"github.com/coredns/coredns/plugin/dnstap/msg"
 
+	"context"
+
 	tap "github.com/dnstap/golang-dnstap"
-	"golang.org/x/net/context"
 )
 
 // Context is a message trap.

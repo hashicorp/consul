@@ -10,9 +10,10 @@ import (
 	"github.com/coredns/coredns/plugin/pkg/fall"
 	"github.com/coredns/coredns/plugin/test"
 
+	"context"
+
 	"github.com/mholt/caddy"
 	"github.com/miekg/dns"
-	"golang.org/x/net/context"
 )
 
 func TestHandler(t *testing.T) {

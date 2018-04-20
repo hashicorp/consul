@@ -13,9 +13,10 @@ import (
 	"github.com/coredns/coredns/plugin/pkg/healthcheck"
 	"github.com/coredns/coredns/request"
 
+	"context"
+
 	"github.com/miekg/dns"
 	ot "github.com/opentracing/opentracing-go"
-	"golang.org/x/net/context"
 )
 
 var (

@@ -1,12 +1,12 @@
 package dnsserver
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net"
 
 	"github.com/miekg/dns"
-	"golang.org/x/net/context"
 )
 
 // ServerTLS represents an instance of a TLS-over-DNS-server.

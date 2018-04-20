@@ -8,8 +8,9 @@ import (
 
 	"github.com/coredns/coredns/request"
 
+	"context"
+
 	"github.com/miekg/dns"
-	"golang.org/x/net/context"
 )
 
 // Whoami is a plugin that returns your IP address, port and the protocol used for connecting

@@ -12,8 +12,9 @@ import (
 
 	"github.com/coredns/coredns/request"
 
+	"context"
+
 	"github.com/miekg/dns"
-	"golang.org/x/net/context"
 )
 
 func (p *Proxy) readTimeout() time.Duration {

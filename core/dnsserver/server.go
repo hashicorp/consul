@@ -2,6 +2,7 @@
 package dnsserver
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"runtime"
@@ -18,7 +19,6 @@ import (
 
 	"github.com/miekg/dns"
 	ot "github.com/opentracing/opentracing-go"
-	"golang.org/x/net/context"
 )
 
 // Server represents an instance of a server, which serves

@@ -12,9 +12,10 @@ import (
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/request"
 
+	"context"
+
 	"github.com/miekg/dns"
 	ot "github.com/opentracing/opentracing-go"
-	"golang.org/x/net/context"
 )
 
 // Forward represents a plugin instance that can proxy requests to another (DNS) server. It has a list

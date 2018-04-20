@@ -9,9 +9,10 @@ import (
 	"github.com/coredns/coredns/plugin/pkg/upstream"
 	"github.com/coredns/coredns/plugin/proxy"
 
+	"context"
+
 	etcdc "github.com/coreos/etcd/client"
 	"github.com/mholt/caddy"
-	"golang.org/x/net/context"
 )
 
 func init() {
