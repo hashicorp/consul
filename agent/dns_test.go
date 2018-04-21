@@ -2989,35 +2989,37 @@ func TestBinarySearch(t *testing.T) {
 	msgSrc.Compress = true
 	msgSrc.SetQuestion("redis.service.consul.", dns.TypeSRV)
 
-	for i := 0; i < 50; i++ {
+	for i := 0; i < 5000; i++ {
 		target := fmt.Sprintf("host-redis-%d-%d.test.acme.com.node.dc1.consul.", i/256, i%256)
 		msgSrc.Answer = append(msgSrc.Answer, &dns.SRV{Hdr: dns.RR_Header{Name: "redis.service.consul.", Class: 1, Rrtype: dns.TypeSRV, Ttl: 0x3c}, Port: 0x4c57, Target: target})
 		msgSrc.Extra = append(msgSrc.Extra, &dns.CNAME{Hdr: dns.RR_Header{Name: target, Class: 1, Rrtype: dns.TypeCNAME, Ttl: 0x3c}, Target: fmt.Sprintf("fx.168.%d.%d.", i/256, i%256)})
 	}
-	for idx, maxSize := range []int{12, 256, 512, 8192, 65535} {
-		t.Run(fmt.Sprintf("binarySearch %d", maxSize), func(t *testing.T) {
-			msg := new(dns.Msg)
-			msgSrc.Compress = true
-			msgSrc.SetQuestion("redis.service.consul.", dns.TypeSRV)
-			msg.Answer = msgSrc.Answer
-			msg.Extra = msgSrc.Extra
-			index := make(map[string]dns.RR, len(msg.Extra))
-			indexRRs(msg.Extra, index)
-			blen := dnsBinaryTruncate(msg, maxSize, index, true)
-			msg.Answer = msg.Answer[:blen]
-			syncExtra(index, msg)
-			predicted := msg.Len()
-			buf, err := msg.Pack()
-			if err != nil {
-				t.Error(err)
-			}
-			if predicted < len(buf) {
-				t.Fatalf("Bug in DNS library: %d != %d", predicted, len(buf))
-			}
-			if len(buf) > maxSize || (idx != 0 && len(buf) < 16) || (maxSize == 65535 && blen != 50) {
-				t.Fatalf("bad[%d]: %d > %d", idx, len(buf), maxSize)
-			}
-		})
+	for _, compress := range []bool{true, false} {
+		for idx, maxSize := range []int{12, 256, 512, 8192, 65535} {
+			t.Run(fmt.Sprintf("binarySearch %d", maxSize), func(t *testing.T) {
+				msg := new(dns.Msg)
+				msgSrc.Compress = compress
+				msgSrc.SetQuestion("redis.service.consul.", dns.TypeSRV)
+				msg.Answer = msgSrc.Answer
+				msg.Extra = msgSrc.Extra
+				index := make(map[string]dns.RR, len(msg.Extra))
+				indexRRs(msg.Extra, index)
+				blen := dnsBinaryTruncate(msg, maxSize, index, true)
+				msg.Answer = msg.Answer[:blen]
+				syncExtra(index, msg)
+				predicted := msg.Len()
+				buf, err := msg.Pack()
+				if err != nil {
+					t.Error(err)
+				}
+				if predicted < len(buf) {
+					t.Fatalf("Bug in DNS library: %d != %d", predicted, len(buf))
+				}
+				if len(buf) > maxSize || (idx != 0 && len(buf) < 16) {
+					t.Fatalf("bad[%d]: %d > %d", idx, len(buf), maxSize)
+				}
+			})
+		}
 	}
 }
 
@@ -3095,9 +3097,8 @@ func TestDNS_TCP_and_UDP_Truncate(t *testing.T) {
 							if err != nil && err != dns.ErrTruncated {
 								t.Fatalf("err: %v", err)
 							}
-
 							// Check for the truncate bit
-							shouldBeTruncated := numServices > 4095
+							shouldBeTruncated := numServices > 5000
 
 							if shouldBeTruncated != in.Truncated || len(in.Answer) > 2000 || len(in.Answer) < 1 || in.Len() > 65535 {
 								info := fmt.Sprintf("service %s question:=%s (%s) (%d total records) sz:= %d in %v",
