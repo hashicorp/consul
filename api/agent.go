@@ -23,6 +23,7 @@ type AgentService struct {
 	ID                string
 	Service           string
 	Tags              []string
+	Meta              map[string]string
 	Port              int
 	Address           string
 	EnableTagOverride bool
