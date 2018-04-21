@@ -60,8 +60,8 @@ func caProviderTableSchema() *memdb.TableSchema {
 				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: &memdb.ConditionalIndex{
-					Conditional: func(obj interface{}) (bool, error) { return true, nil },
+				Indexer: &memdb.StringFieldIndex{
+					Field: "ID",
 				},
 			},
 		},
@@ -98,12 +98,12 @@ func (s *Restore) CAConfig(config *structs.CAConfiguration) error {
 	return nil
 }
 
-// CAConfig is used to get the current Autopilot configuration.
+// CAConfig is used to get the current CA configuration.
 func (s *Store) CAConfig() (uint64, *structs.CAConfiguration, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	// Get the autopilot config
+	// Get the CA config
 	c, err := tx.First(caConfigTableName, "id")
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed CA config lookup: %s", err)
@@ -117,7 +117,7 @@ func (s *Store) CAConfig() (uint64, *structs.CAConfiguration, error) {
 	return config.ModifyIndex, config, nil
 }
 
-// CASetConfig is used to set the current Autopilot configuration.
+// CASetConfig is used to set the current CA configuration.
 func (s *Store) CASetConfig(idx uint64, config *structs.CAConfiguration) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
@@ -341,13 +341,16 @@ func (s *Restore) CAProviderState(state *structs.CAConsulProviderState) error {
 	return nil
 }
 
-// CAProviderState is used to get the current Consul CA provider state.
-func (s *Store) CAProviderState() (uint64, *structs.CAConsulProviderState, error) {
+// CAProviderState is used to get the Consul CA provider state for the given ID.
+func (s *Store) CAProviderState(id string) (uint64, *structs.CAConsulProviderState, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	// Get the autopilot config
-	c, err := tx.First(caProviderTableName, "id")
+	// Get the index
+	idx := maxIndexTxn(tx, caProviderTableName)
+
+	// Get the provider config
+	c, err := tx.First(caProviderTableName, "id", id)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed built-in CA state lookup: %s", err)
 	}
@@ -357,7 +360,28 @@ func (s *Store) CAProviderState() (uint64, *structs.CAConsulProviderState, error
 		return 0, nil, nil
 	}
 
-	return state.ModifyIndex, state, nil
+	return idx, state, nil
+}
+
+// CAProviderStates is used to get the Consul CA provider state for the given ID.
+func (s *Store) CAProviderStates() (uint64, []*structs.CAConsulProviderState, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get the index
+	idx := maxIndexTxn(tx, caProviderTableName)
+
+	// Get all
+	iter, err := tx.Get(caProviderTableName, "id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed CA provider state lookup: %s", err)
+	}
+
+	var results []*structs.CAConsulProviderState
+	for v := iter.Next(); v != nil; v = iter.Next() {
+		results = append(results, v.(*structs.CAConsulProviderState))
+	}
+	return idx, results, nil
 }
 
 // CASetProviderState is used to set the current built-in CA provider state.
@@ -366,14 +390,14 @@ func (s *Store) CASetProviderState(idx uint64, state *structs.CAConsulProviderSt
 	defer tx.Abort()
 
 	// Check for an existing config
-	existing, err := tx.First(caProviderTableName, "id")
+	existing, err := tx.First(caProviderTableName, "id", state.ID)
 	if err != nil {
 		return false, fmt.Errorf("failed built-in CA state lookup: %s", err)
 	}
 
 	// Set the indexes.
 	if existing != nil {
-		state.CreateIndex = existing.(*structs.CAConfiguration).CreateIndex
+		state.CreateIndex = existing.(*structs.CAConsulProviderState).CreateIndex
 	} else {
 		state.CreateIndex = idx
 	}
@@ -382,7 +406,45 @@ func (s *Store) CASetProviderState(idx uint64, state *structs.CAConsulProviderSt
 	if err := tx.Insert(caProviderTableName, state); err != nil {
 		return false, fmt.Errorf("failed updating built-in CA state: %s", err)
 	}
+
+	// Update the index
+	if err := tx.Insert("index", &IndexEntry{caProviderTableName, idx}); err != nil {
+		return false, fmt.Errorf("failed updating index: %s", err)
+	}
+
 	tx.Commit()
 
 	return true, nil
+}
+
+// CADeleteProviderState is used to remove the Consul CA provider state for the given ID.
+func (s *Store) CADeleteProviderState(id string) error {
+	tx := s.db.Txn(true)
+	defer tx.Abort()
+
+	// Get the index
+	idx := maxIndexTxn(tx, caProviderTableName)
+
+	// Check for an existing config
+	existing, err := tx.First(caProviderTableName, "id", id)
+	if err != nil {
+		return fmt.Errorf("failed built-in CA state lookup: %s", err)
+	}
+	if existing == nil {
+		return nil
+	}
+
+	providerState := existing.(*structs.CAConsulProviderState)
+
+	// Do the delete and update the index
+	if err := tx.Delete(caProviderTableName, providerState); err != nil {
+		return err
+	}
+	if err := tx.Insert("index", &IndexEntry{caProviderTableName, idx}); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
+
+	tx.Commit()
+
+	return nil
 }

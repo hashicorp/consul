@@ -2,6 +2,7 @@ package consul
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
@@ -60,9 +61,95 @@ func (s *ConnectCA) ConfigurationSet(
 		return acl.ErrPermissionDenied
 	}
 
-	// Commit
-	// todo(kyhavlov): trigger a bootstrap here when the provider changes
-	args.Op = structs.CAOpSetConfig
+	// Exit early if it's a no-op change
+	state := s.srv.fsm.State()
+	_, config, err := state.CAConfig()
+	if err != nil {
+		return err
+	}
+	if args.Config.Provider == config.Provider && reflect.DeepEqual(args.Config.Config, config.Config) {
+		return nil
+	}
+
+	// Create a new instance of the provider described by the config
+	// and get the current active root CA. This acts as a good validation
+	// of the config and makes sure the provider is functioning correctly
+	// before we commit any changes to Raft.
+	newProvider, err := s.srv.createCAProvider(args.Config)
+	if err != nil {
+		return fmt.Errorf("could not initialize provider: %v", err)
+	}
+
+	newActiveRoot, err := newProvider.ActiveRoot()
+	if err != nil {
+		return err
+	}
+
+	// Compare the new provider's root CA ID to the current one. If they
+	// match, just update the existing provider with the new config.
+	// If they don't match, begin the root rotation process.
+	_, root, err := state.CARootActive(nil)
+	if err != nil {
+		return err
+	}
+
+	if root != nil && root.ID == newActiveRoot.ID {
+		args.Op = structs.CAOpSetConfig
+		resp, err := s.srv.raftApply(structs.ConnectCARequestType, args)
+		if err != nil {
+			return err
+		}
+		if respErr, ok := resp.(error); ok {
+			return respErr
+		}
+
+		// If the config has been committed, update the local provider instance
+		s.srv.setCAProvider(newProvider)
+
+		s.srv.logger.Printf("[INFO] connect: provider config updated")
+
+		return nil
+	}
+
+	// At this point, we know the config change has trigged a root rotation,
+	// either by swapping the provider type or changing the provider's config
+	// to use a different root certificate.
+
+	// If it's a config change that would trigger a rotation (different provider/root):
+	// -1. Create an instance of the provider described by the new config
+	// 2. Get the intermediate from the new provider
+	// 3. Generate a CSR for the new intermediate, call SignCA on the old/current provider
+	// to get the cross-signed intermediate
+	// ~4. Get the active root for the new provider, append the intermediate from step 3
+	// to its list of intermediates
+	// -5. Update the roots and CA config in the state store at the same time, finally switching
+	// to the new provider
+	// -6. Call teardown on the old provider, so it can clean up whatever it needs to
+
+	/*_, err := newProvider.ActiveIntermediate()
+	if err != nil {
+		return err
+	}*/
+
+	// Update the roots and CA config in the state store at the same time
+	idx, roots, err := state.CARoots(nil)
+	if err != nil {
+		return err
+	}
+
+	var newRoots structs.CARoots
+	for _, r := range roots {
+		newRoot := *r
+		if newRoot.Active {
+			newRoot.Active = false
+		}
+		newRoots = append(newRoots, &newRoot)
+	}
+	newRoots = append(newRoots, newActiveRoot)
+
+	args.Op = structs.CAOpSetRootsAndConfig
+	args.Index = idx
+	args.Roots = newRoots
 	resp, err := s.srv.raftApply(structs.ConnectCARequestType, args)
 	if err != nil {
 		return err
@@ -70,6 +157,17 @@ func (s *ConnectCA) ConfigurationSet(
 	if respErr, ok := resp.(error); ok {
 		return respErr
 	}
+
+	// If the config has been committed, update the local provider instance
+	// and call teardown on the old provider
+	oldProvider := s.srv.getCAProvider()
+	s.srv.setCAProvider(newProvider)
+
+	if err := oldProvider.Teardown(); err != nil {
+		return err
+	}
+
+	s.srv.logger.Printf("[INFO] connect: CA rotated to the new root under %q provider", args.Config.Provider)
 
 	return nil
 }

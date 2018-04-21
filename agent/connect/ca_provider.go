@@ -10,9 +10,10 @@ import (
 // an external CA that provides leaf certificate signing for
 // given SpiffeIDServices.
 type CAProvider interface {
-	SetConfiguration(raw map[string]interface{}) error
 	ActiveRoot() (*structs.CARoot, error)
 	ActiveIntermediate() (*structs.CARoot, error)
 	GenerateIntermediate() (*structs.CARoot, error)
 	Sign(*SpiffeIDService, *x509.CertificateRequest) (*structs.IssuedCert, error)
+	//SignCA(*x509.CertificateRequest) (*structs.IssuedCert, error)
+	Teardown() error
 }

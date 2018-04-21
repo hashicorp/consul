@@ -96,9 +96,11 @@ type IssuedCert struct {
 type CAOp string
 
 const (
-	CAOpSetRoots         CAOp = "set-roots"
-	CAOpSetConfig        CAOp = "set-config"
-	CAOpSetProviderState CAOp = "set-provider-state"
+	CAOpSetRoots            CAOp = "set-roots"
+	CAOpSetConfig           CAOp = "set-config"
+	CAOpSetProviderState    CAOp = "set-provider-state"
+	CAOpDeleteProviderState CAOp = "delete-provider-state"
+	CAOpSetRootsAndConfig   CAOp = "set-roots-config"
 )
 
 // CARequest is used to modify connect CA data. This is used by the
@@ -156,9 +158,9 @@ type CAConfiguration struct {
 
 // CAConsulProviderState is used to track the built-in Consul CA provider's state.
 type CAConsulProviderState struct {
+	ID         string
 	PrivateKey string
 	CARoot     *CARoot
-	RootIndex  uint64
 	LeafIndex  uint64
 
 	RaftIndex

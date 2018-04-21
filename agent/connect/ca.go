@@ -38,6 +38,18 @@ func ParseSigner(pemValue string) (crypto.Signer, error) {
 	case "EC PRIVATE KEY":
 		return x509.ParseECPrivateKey(block.Bytes)
 
+	case "PRIVATE KEY":
+		signer, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+		if err != nil {
+			return nil, err
+		}
+		pk, ok := signer.(crypto.Signer)
+		if !ok {
+			return nil, fmt.Errorf("private key is not a valid format")
+		}
+
+		return pk, nil
+
 	default:
 		return nil, fmt.Errorf("unknown PEM block type for signing key: %s", block.Type)
 	}

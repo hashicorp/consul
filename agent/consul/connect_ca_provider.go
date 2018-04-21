@@ -29,28 +29,94 @@ type ConsulCAProviderConfig struct {
 type ConsulCAProvider struct {
 	config *ConsulCAProviderConfig
 
-	// todo(kyhavlov): store these directly in the state store
-	// and pass a reference to the state to this provider instead of
-	// having these values here
+	id  string
 	srv *Server
 	sync.RWMutex
 }
 
+// NewConsulCAProvider returns a new instance of the Consul CA provider,
+// bootstrapping its state in the state store necessary
 func NewConsulCAProvider(rawConfig map[string]interface{}, srv *Server) (*ConsulCAProvider, error) {
-	provider := &ConsulCAProvider{srv: srv}
-	provider.SetConfiguration(rawConfig)
-
-	return provider, nil
-}
-
-func (c *ConsulCAProvider) SetConfiguration(raw map[string]interface{}) error {
-	conf, err := decodeConfig(raw)
+	conf, err := decodeConfig(rawConfig)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	provider := &ConsulCAProvider{
+		config: conf,
+		srv:    srv,
+		id:     fmt.Sprintf("%s,%s", conf.PrivateKey, conf.RootCert),
 	}
 
-	c.config = conf
-	return nil
+	// Check if this configuration of the provider has already been
+	// initialized in the state store.
+	state := srv.fsm.State()
+	_, providerState, err := state.CAProviderState(provider.id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Exit early if the state store has already been populated for this config.
+	if providerState != nil {
+		return provider, nil
+	}
+
+	newState := structs.CAConsulProviderState{
+		ID: provider.id,
+	}
+
+	// Write the initial provider state to get the index to use for the
+	// CA serial number.
+	{
+		args := &structs.CARequest{
+			Op:            structs.CAOpSetProviderState,
+			ProviderState: &newState,
+		}
+		resp, err := srv.raftApply(structs.ConnectCARequestType, args)
+		if err != nil {
+			return nil, err
+		}
+		if respErr, ok := resp.(error); ok {
+			return nil, respErr
+		}
+	}
+
+	idx, _, err := state.CAProviderState(provider.id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Generate a private key if needed
+	if conf.PrivateKey == "" {
+		pk, err := generatePrivateKey()
+		if err != nil {
+			return nil, err
+		}
+		newState.PrivateKey = pk
+	} else {
+		newState.PrivateKey = conf.PrivateKey
+	}
+
+	// Generate the root CA
+	ca, err := provider.generateCA(newState.PrivateKey, conf.RootCert, idx+1)
+	if err != nil {
+		return nil, fmt.Errorf("error generating CA: %v", err)
+	}
+	newState.CARoot = ca
+
+	// Write the provider state
+	args := &structs.CARequest{
+		Op:            structs.CAOpSetProviderState,
+		ProviderState: &newState,
+	}
+	resp, err := srv.raftApply(structs.ConnectCARequestType, args)
+	if err != nil {
+		return nil, err
+	}
+	if respErr, ok := resp.(error); ok {
+		return nil, respErr
+	}
+
+	return provider, nil
 }
 
 func decodeConfig(raw map[string]interface{}) (*ConsulCAProviderConfig, error) {
@@ -59,59 +125,22 @@ func decodeConfig(raw map[string]interface{}) (*ConsulCAProviderConfig, error) {
 		return nil, fmt.Errorf("error decoding config: %s", err)
 	}
 
+	if config.PrivateKey == "" && config.RootCert != "" {
+		return nil, fmt.Errorf("must provide a private key when providing a root cert")
+	}
+
 	return config, nil
 }
 
 // Return the active root CA and generate a new one if needed
 func (c *ConsulCAProvider) ActiveRoot() (*structs.CARoot, error) {
 	state := c.srv.fsm.State()
-	_, providerState, err := state.CAProviderState()
+	_, providerState, err := state.CAProviderState(c.id)
 	if err != nil {
 		return nil, err
 	}
 
-	var update bool
-	var newState structs.CAConsulProviderState
-	if providerState != nil {
-		newState = *providerState
-	}
-
-	// Generate a private key if needed
-	if providerState == nil || providerState.PrivateKey == "" {
-		pk, err := generatePrivateKey()
-		if err != nil {
-			return nil, err
-		}
-		newState.PrivateKey = pk
-		update = true
-	}
-
-	// Generate a root CA if needed
-	if providerState == nil || providerState.CARoot == nil {
-		ca, err := c.generateCA(newState.PrivateKey, newState.RootIndex+1)
-		if err != nil {
-			return nil, err
-		}
-		newState.CARoot = ca
-		newState.RootIndex += 1
-		update = true
-	}
-
-	// Update the provider state if we generated a new private key/cert
-	if update {
-		args := &structs.CARequest{
-			Op:            structs.CAOpSetProviderState,
-			ProviderState: &newState,
-		}
-		resp, err := c.srv.raftApply(structs.ConnectCARequestType, args)
-		if err != nil {
-			return nil, err
-		}
-		if respErr, ok := resp.(error); ok {
-			return nil, respErr
-		}
-	}
-	return newState.CARoot, nil
+	return providerState.CARoot, nil
 }
 
 func (c *ConsulCAProvider) ActiveIntermediate() (*structs.CARoot, error) {
@@ -120,15 +149,12 @@ func (c *ConsulCAProvider) ActiveIntermediate() (*structs.CARoot, error) {
 
 func (c *ConsulCAProvider) GenerateIntermediate() (*structs.CARoot, error) {
 	state := c.srv.fsm.State()
-	_, providerState, err := state.CAProviderState()
+	idx, providerState, err := state.CAProviderState(c.id)
 	if err != nil {
 		return nil, err
 	}
-	if providerState == nil {
-		return nil, fmt.Errorf("CA provider not yet initialized")
-	}
 
-	ca, err := c.generateCA(providerState.PrivateKey, providerState.RootIndex+1)
+	ca, err := c.generateCA(providerState.PrivateKey, "", idx+1)
 	if err != nil {
 		return nil, err
 	}
@@ -136,12 +162,34 @@ func (c *ConsulCAProvider) GenerateIntermediate() (*structs.CARoot, error) {
 	return ca, nil
 }
 
+// Remove the state store entry for this provider instance.
+func (c *ConsulCAProvider) Teardown() error {
+	args := &structs.CARequest{
+		Op:            structs.CAOpDeleteProviderState,
+		ProviderState: &structs.CAConsulProviderState{ID: c.id},
+	}
+	resp, err := c.srv.raftApply(structs.ConnectCARequestType, args)
+	if err != nil {
+		return err
+	}
+	if respErr, ok := resp.(error); ok {
+		return respErr
+	}
+
+	return nil
+}
+
 // Sign returns a new certificate valid for the given SpiffeIDService
 // using the current CA.
 func (c *ConsulCAProvider) Sign(serviceId *connect.SpiffeIDService, csr *x509.CertificateRequest) (*structs.IssuedCert, error) {
+	// Lock during the signing so we don't use the same index twice
+	// for different cert serial numbers.
+	c.Lock()
+	defer c.Unlock()
+
 	// Get the provider state
 	state := c.srv.fsm.State()
-	_, providerState, err := state.CAProviderState()
+	_, providerState, err := state.CAProviderState(c.id)
 	if err != nil {
 		return nil, err
 	}
@@ -254,7 +302,7 @@ func generatePrivateKey() (string, error) {
 }
 
 // generateCA makes a new root CA using the current private key
-func (c *ConsulCAProvider) generateCA(privateKey string, sn uint64) (*structs.CARoot, error) {
+func (c *ConsulCAProvider) generateCA(privateKey, contents string, sn uint64) (*structs.CARoot, error) {
 	state := c.srv.fsm.State()
 	_, config, err := state.CAConfig()
 	if err != nil {
@@ -263,48 +311,54 @@ func (c *ConsulCAProvider) generateCA(privateKey string, sn uint64) (*structs.CA
 
 	privKey, err := connect.ParseSigner(privateKey)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error parsing private key %q: %v", privateKey, err)
 	}
 
 	name := fmt.Sprintf("Consul CA %d", sn)
 
-	// The URI (SPIFFE compatible) for the cert
-	id := &connect.SpiffeIDSigning{ClusterID: config.ClusterSerial, Domain: "consul"}
-	keyId, err := connect.KeyId(privKey.Public())
-	if err != nil {
-		return nil, err
-	}
+	pemContents := contents
 
-	// Create the CA cert
-	serialNum := &big.Int{}
-	serialNum.SetUint64(sn)
-	template := x509.Certificate{
-		SerialNumber: serialNum,
-		Subject:      pkix.Name{CommonName: name},
-		URIs:         []*url.URL{id.URI()},
-		PermittedDNSDomainsCritical: true,
-		PermittedDNSDomains:         []string{id.URI().Hostname()},
-		BasicConstraintsValid:       true,
-		KeyUsage: x509.KeyUsageCertSign |
-			x509.KeyUsageCRLSign |
-			x509.KeyUsageDigitalSignature,
-		IsCA:           true,
-		NotAfter:       time.Now().Add(10 * 365 * 24 * time.Hour),
-		NotBefore:      time.Now(),
-		AuthorityKeyId: keyId,
-		SubjectKeyId:   keyId,
-	}
+	if pemContents == "" {
+		// The URI (SPIFFE compatible) for the cert
+		id := &connect.SpiffeIDSigning{ClusterID: config.ClusterSerial, Domain: "consul"}
+		keyId, err := connect.KeyId(privKey.Public())
+		if err != nil {
+			return nil, err
+		}
 
-	bs, err := x509.CreateCertificate(
-		rand.Reader, &template, &template, privKey.Public(), privKey)
-	if err != nil {
-		return nil, fmt.Errorf("error generating CA certificate: %s", err)
-	}
+		// Create the CA cert
+		serialNum := &big.Int{}
+		serialNum.SetUint64(sn)
+		template := x509.Certificate{
+			SerialNumber: serialNum,
+			Subject:      pkix.Name{CommonName: name},
+			URIs:         []*url.URL{id.URI()},
+			PermittedDNSDomainsCritical: true,
+			PermittedDNSDomains:         []string{id.URI().Hostname()},
+			BasicConstraintsValid:       true,
+			KeyUsage: x509.KeyUsageCertSign |
+				x509.KeyUsageCRLSign |
+				x509.KeyUsageDigitalSignature,
+			IsCA:           true,
+			NotAfter:       time.Now().Add(10 * 365 * 24 * time.Hour),
+			NotBefore:      time.Now(),
+			AuthorityKeyId: keyId,
+			SubjectKeyId:   keyId,
+		}
 
-	var buf bytes.Buffer
-	err = pem.Encode(&buf, &pem.Block{Type: "CERTIFICATE", Bytes: bs})
-	if err != nil {
-		return nil, fmt.Errorf("error encoding private key: %s", err)
+		bs, err := x509.CreateCertificate(
+			rand.Reader, &template, &template, privKey.Public(), privKey)
+		if err != nil {
+			return nil, fmt.Errorf("error generating CA certificate: %s", err)
+		}
+
+		var buf bytes.Buffer
+		err = pem.Encode(&buf, &pem.Block{Type: "CERTIFICATE", Bytes: bs})
+		if err != nil {
+			return nil, fmt.Errorf("error encoding private key: %s", err)
+		}
+
+		pemContents = buf.String()
 	}
 
 	// Generate an ID for the new CA cert
@@ -316,7 +370,7 @@ func (c *ConsulCAProvider) generateCA(privateKey string, sn uint64) (*structs.CA
 	return &structs.CARoot{
 		ID:       rootId,
 		Name:     name,
-		RootCert: buf.String(),
+		RootCert: pemContents,
 		Active:   true,
 	}, nil
 }

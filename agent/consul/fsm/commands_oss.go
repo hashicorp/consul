@@ -308,6 +308,23 @@ func (c *FSM) applyConnectCAOperation(buf []byte, index uint64) interface{} {
 		}
 
 		return act
+	case structs.CAOpDeleteProviderState:
+		if err := c.state.CADeleteProviderState(req.ProviderState.ID); err != nil {
+			return err
+		}
+
+		return true
+	case structs.CAOpSetRootsAndConfig:
+		act, err := c.state.CARootSetCAS(index, req.Index, req.Roots)
+		if err != nil {
+			return err
+		}
+
+		if err := c.state.CASetConfig(index+1, req.Config); err != nil {
+			return err
+		}
+
+		return act
 	default:
 		c.logger.Printf("[WARN] consul.fsm: Invalid CA operation '%s'", req.Op)
 		return fmt.Errorf("Invalid CA operation '%s'", req.Op)

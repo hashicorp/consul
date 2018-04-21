@@ -396,7 +396,7 @@ func (s *Server) getOrCreateCAConfig() (*structs.CAConfiguration, error) {
 	return config, nil
 }
 
-// bootstrapCA handles the initialization of a new CA provider
+// bootstrapCA creates a CA provider from the current configuration.
 func (s *Server) bootstrapCA() error {
 	conf, err := s.getOrCreateCAConfig()
 	if err != nil {
@@ -404,20 +404,12 @@ func (s *Server) bootstrapCA() error {
 	}
 
 	// Initialize the right provider based on the config
-	var provider connect.CAProvider
-	switch conf.Provider {
-	case structs.ConsulCAProvider:
-		provider, err = NewConsulCAProvider(conf.Config, s)
-		if err != nil {
-			return err
-		}
-	default:
-		return fmt.Errorf("unknown CA provider %q", conf.Provider)
+	provider, err := s.createCAProvider(conf)
+	if err != nil {
+		return err
 	}
 
-	s.caProviderLock.Lock()
-	s.caProvider = provider
-	s.caProviderLock.Unlock()
+	s.setCAProvider(provider)
 
 	// Get the active root cert from the CA
 	trustedCA, err := provider.ActiveRoot()
@@ -425,13 +417,14 @@ func (s *Server) bootstrapCA() error {
 		return fmt.Errorf("error getting root cert: %v", err)
 	}
 
-	// Check if this CA is already initialized
+	// Check if the CA root is already initialized and exit if it is.
+	// Every change to the CA after this initial bootstrapping should
+	// be done through the rotation process.
 	state := s.fsm.State()
 	_, root, err := state.CARootActive(nil)
 	if err != nil {
 		return err
 	}
-	// Exit early if the root is already in the state store.
 	if root != nil && root.ID == trustedCA.ID {
 		return nil
 	}
@@ -459,6 +452,28 @@ func (s *Server) bootstrapCA() error {
 	s.logger.Printf("[INFO] connect: initialized CA with provider %q", conf.Provider)
 
 	return nil
+}
+
+// createProvider returns a connect CA provider from the given config.
+func (s *Server) createCAProvider(conf *structs.CAConfiguration) (connect.CAProvider, error) {
+	switch conf.Provider {
+	case structs.ConsulCAProvider:
+		return NewConsulCAProvider(conf.Config, s)
+	default:
+		return nil, fmt.Errorf("unknown CA provider %q", conf.Provider)
+	}
+}
+
+func (s *Server) getCAProvider() connect.CAProvider {
+	s.caProviderLock.RLock()
+	defer s.caProviderLock.RUnlock()
+	return s.caProvider
+}
+
+func (s *Server) setCAProvider(newProvider connect.CAProvider) {
+	s.caProviderLock.Lock()
+	defer s.caProviderLock.Unlock()
+	s.caProvider = newProvider
 }
 
 // signConnectCert signs a cert for a service using the currently configured CA provider
