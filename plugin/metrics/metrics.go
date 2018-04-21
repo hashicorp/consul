@@ -19,11 +19,12 @@ import (
 
 // Metrics holds the prometheus configuration. The metrics' path is fixed to be /metrics
 type Metrics struct {
-	Next plugin.Handler
-	Addr string
-	Reg  *prometheus.Registry
-	ln   net.Listener
-	mux  *http.ServeMux
+	Next    plugin.Handler
+	Addr    string
+	Reg     *prometheus.Registry
+	ln      net.Listener
+	lnSetup bool
+	mux     *http.ServeMux
 
 	zoneNames []string
 	zoneMap   map[string]bool
@@ -93,7 +94,8 @@ func (m *Metrics) OnStartup() error {
 	}
 
 	m.ln = ln
-	ListenAddr = m.ln.Addr().String()
+	m.lnSetup = true
+	ListenAddr = m.ln.Addr().String() // For tests
 
 	m.mux = http.NewServeMux()
 	m.mux.Handle("/metrics", promhttp.HandlerFor(m.Reg, promhttp.HandlerOpts{}))
@@ -104,14 +106,29 @@ func (m *Metrics) OnStartup() error {
 	return nil
 }
 
-// OnShutdown tears down the metrics listener on shutdown and restart.
-func (m *Metrics) OnShutdown() error {
+// OnRestart stops the listener on reload.
+func (m *Metrics) OnRestart() error {
+	if !m.lnSetup {
+		return nil
+	}
+
+	uniqAddr.setAddressTodo(m.Addr)
+
+	m.ln.Close()
+	m.lnSetup = false
+	return nil
+}
+
+// OnFinalShutdown tears down the metrics listener on shutdown and restart.
+func (m *Metrics) OnFinalShutdown() error {
 	// We allow prometheus statements in multiple Server Blocks, but only the first
 	// will open the listener, for the rest they are all nil; guard against that.
-	if m.ln != nil {
-		return m.ln.Close()
+	if !m.lnSetup {
+		return nil
 	}
-	return nil
+
+	m.lnSetup = false
+	return m.ln.Close()
 }
 
 func keys(m map[string]bool) []string {

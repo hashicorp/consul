@@ -17,7 +17,7 @@ func TestHealth(t *testing.T) {
 	if err := h.OnStartup(); err != nil {
 		t.Fatalf("Unable to startup the health server: %v", err)
 	}
-	defer h.OnShutdown()
+	defer h.OnFinalShutdown()
 
 	go func() {
 		<-h.pollstop
@@ -73,5 +73,5 @@ func TestHealthLameduck(t *testing.T) {
 		return
 	}()
 
-	h.OnShutdown()
+	h.OnFinalShutdown()
 }

@@ -15,7 +15,7 @@ func init() {
 		Action:     setup,
 	})
 
-	uniqAddr = addrs{a: make(map[string]int)}
+	uniqAddr = newAddress()
 }
 
 func setup(c *caddy.Controller) error {
@@ -29,14 +29,15 @@ func setup(c *caddy.Controller) error {
 		return m
 	})
 
-	for a, v := range uniqAddr.a {
-		if v == todo {
-			c.OncePerServerBlock(m.OnStartup)
-		}
-		uniqAddr.a[a] = done
-	}
+	c.OncePerServerBlock(func() error {
+		c.OnStartup(func() error {
+			return uniqAddr.forEachTodo()
+		})
+		return nil
+	})
 
-	c.OnShutdown(m.OnShutdown)
+	c.OnRestart(m.OnRestart)
+	c.OnFinalShutdown(m.OnFinalShutdown)
 
 	return nil
 }
@@ -45,7 +46,7 @@ func prometheusParse(c *caddy.Controller) (*Metrics, error) {
 	var met = New(defaultAddr)
 
 	defer func() {
-		uniqAddr.SetAddress(met.Addr)
+		uniqAddr.setAddress(met.Addr, met.OnStartup)
 	}()
 
 	i := 0
@@ -75,25 +76,5 @@ func prometheusParse(c *caddy.Controller) (*Metrics, error) {
 	return met, nil
 }
 
-var uniqAddr addrs
-
-// Keep track on which addrs we listen, so we only start one listener.
-type addrs struct {
-	a map[string]int
-}
-
-func (a *addrs) SetAddress(addr string) {
-	// If already there and set to done, we've already started this listener.
-	if a.a[addr] == done {
-		return
-	}
-	a.a[addr] = todo
-}
-
 // defaultAddr is the address the where the metrics are exported by default.
 const defaultAddr = "localhost:9153"
-
-const (
-	todo = 1
-	done = 2
-)

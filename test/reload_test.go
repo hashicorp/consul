@@ -1,6 +1,9 @@
 package test
 
 import (
+	"bytes"
+	"io/ioutil"
+	"net/http"
 	"testing"
 
 	"github.com/miekg/dns"
@@ -50,5 +53,73 @@ func send(t *testing.T, server string) {
 	}
 	if len(r.Extra) != 2 {
 		t.Fatalf("Expected 2 RRs in additional, got %d", len(r.Extra))
+	}
+}
+
+func TestReloadHealth(t *testing.T) {
+	corefile := `
+.:0 {
+	health 127.0.0.1:52182
+	whoami
+}`
+	c, err := CoreDNSServer(corefile)
+	if err != nil {
+		t.Fatalf("Could not get service instance: %s", err)
+	}
+
+	// This fails with address 8080 already in use, it shouldn't.
+	if c1, err := c.Restart(NewInput(corefile)); err != nil {
+		t.Fatal(err)
+	} else {
+		c1.Stop()
+	}
+}
+
+func TestReloadMetricsHealth(t *testing.T) {
+	corefile := `
+.:0 {
+	prometheus 127.0.0.1:53183
+	health 127.0.0.1:53184
+	whoami
+}`
+	c, err := CoreDNSServer(corefile)
+	if err != nil {
+		t.Fatalf("Could not get service instance: %s", err)
+	}
+
+	c1, err := c.Restart(NewInput(corefile))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c1.Stop()
+
+	// Send query to trigger monitoring to export on the new process
+	udp, _ := CoreDNSServerPorts(c1, 0)
+	m := new(dns.Msg)
+	m.SetQuestion("example.org.", dns.TypeA)
+	if _, err := dns.Exchange(m, udp); err != nil {
+		t.Fatal(err)
+	}
+
+	// Health
+	resp, err := http.Get("http://localhost:53184/health")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ok, _ := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	if string(ok) != "OK" {
+		t.Errorf("Failed to receive OK, got %s", ok)
+	}
+
+	// Metrics
+	resp, err = http.Get("http://localhost:53183/metrics")
+	if err != nil {
+		t.Fatal(err)
+	}
+	const proc = "process_virtual_memory_bytes"
+	metrics, _ := ioutil.ReadAll(resp.Body)
+	if !bytes.Contains(metrics, []byte(proc)) {
+		t.Errorf("Failed to see %s in metric output", proc)
 	}
 }
