@@ -2,8 +2,10 @@ package metrics
 
 import (
 	"net"
+	"runtime"
 
 	"github.com/coredns/coredns/core/dnsserver"
+	"github.com/coredns/coredns/coremain"
 	"github.com/coredns/coredns/plugin"
 
 	"github.com/mholt/caddy"
@@ -38,6 +40,9 @@ func setup(c *caddy.Controller) error {
 
 	c.OnRestart(m.OnRestart)
 	c.OnFinalShutdown(m.OnFinalShutdown)
+
+	// Initialize metrics.
+	buildInfo.WithLabelValues(coremain.CoreVersion, coremain.GitCommit, runtime.Version()).Set(1)
 
 	return nil
 }

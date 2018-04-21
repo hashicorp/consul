@@ -5,10 +5,8 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"runtime"
 	"sync"
 
-	"github.com/coredns/coredns/coremain"
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/metrics/vars"
 	"github.com/coredns/coredns/plugin/pkg/log"
@@ -51,9 +49,6 @@ func New(addr string) *Metrics {
 	met.MustRegister(vars.RequestType)
 	met.MustRegister(vars.ResponseSize)
 	met.MustRegister(vars.ResponseRcode)
-
-	// Initialize metrics.
-	buildInfo.WithLabelValues(coremain.CoreVersion, coremain.GitCommit, runtime.Version()).Set(1)
 
 	return met
 }
