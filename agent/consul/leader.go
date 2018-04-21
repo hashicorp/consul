@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"crypto/x509"
 	"fmt"
 	"net"
 	"strconv"
@@ -474,18 +473,6 @@ func (s *Server) setCAProvider(newProvider connect.CAProvider) {
 	s.caProviderLock.Lock()
 	defer s.caProviderLock.Unlock()
 	s.caProvider = newProvider
-}
-
-// signConnectCert signs a cert for a service using the currently configured CA provider
-func (s *Server) signConnectCert(service *connect.SpiffeIDService, csr *x509.CertificateRequest) (*structs.IssuedCert, error) {
-	s.caProviderLock.RLock()
-	defer s.caProviderLock.RUnlock()
-
-	cert, err := s.caProvider.Sign(service, csr)
-	if err != nil {
-		return nil, err
-	}
-	return cert, nil
 }
 
 // reconcileReaped is used to reconcile nodes that have failed and been reaped

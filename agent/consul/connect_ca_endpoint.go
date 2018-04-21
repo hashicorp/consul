@@ -116,20 +116,24 @@ func (s *ConnectCA) ConfigurationSet(
 	// to use a different root certificate.
 
 	// If it's a config change that would trigger a rotation (different provider/root):
-	// -1. Create an instance of the provider described by the new config
-	// 2. Get the intermediate from the new provider
-	// 3. Generate a CSR for the new intermediate, call SignCA on the old/current provider
+	// 1. Get the intermediate from the new provider
+	// 2. Generate a CSR for the new intermediate, call SignCA on the old/current provider
 	// to get the cross-signed intermediate
-	// ~4. Get the active root for the new provider, append the intermediate from step 3
+	// 3. Get the active root for the new provider, append the intermediate from step 3
 	// to its list of intermediates
-	// -5. Update the roots and CA config in the state store at the same time, finally switching
-	// to the new provider
-	// -6. Call teardown on the old provider, so it can clean up whatever it needs to
-
-	/*_, err := newProvider.ActiveIntermediate()
+	_, csr, err := newProvider.GenerateIntermediate()
 	if err != nil {
 		return err
-	}*/
+	}
+
+	oldProvider := s.srv.getCAProvider()
+	xcCert, err := oldProvider.SignCA(csr)
+	if err != nil {
+		return err
+	}
+
+	// Add the cross signed cert to the new root's intermediates
+	newActiveRoot.Intermediates = []string{xcCert}
 
 	// Update the roots and CA config in the state store at the same time
 	idx, roots, err := state.CARoots(nil)
@@ -160,7 +164,6 @@ func (s *ConnectCA) ConfigurationSet(
 
 	// If the config has been committed, update the local provider instance
 	// and call teardown on the old provider
-	oldProvider := s.srv.getCAProvider()
 	s.srv.setCAProvider(newProvider)
 
 	if err := oldProvider.Teardown(); err != nil {
@@ -202,11 +205,12 @@ func (s *ConnectCA) Roots(
 				// directly to the structure in the memdb store.
 
 				reply.Roots[i] = &structs.CARoot{
-					ID:        r.ID,
-					Name:      r.Name,
-					RootCert:  r.RootCert,
-					RaftIndex: r.RaftIndex,
-					Active:    r.Active,
+					ID:            r.ID,
+					Name:          r.Name,
+					RootCert:      r.RootCert,
+					Intermediates: r.Intermediates,
+					RaftIndex:     r.RaftIndex,
+					Active:        r.Active,
 				}
 
 				if r.Active {
@@ -245,7 +249,9 @@ func (s *ConnectCA) Sign(
 
 	// todo(kyhavlov): more validation on the CSR before signing
 
-	cert, err := s.srv.signConnectCert(serviceId, csr)
+	provider := s.srv.getCAProvider()
+
+	cert, err := provider.Sign(serviceId, csr)
 	if err != nil {
 		return err
 	}

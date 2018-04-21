@@ -143,23 +143,58 @@ func (c *ConsulCAProvider) ActiveRoot() (*structs.CARoot, error) {
 	return providerState.CARoot, nil
 }
 
+// We aren't maintaining separate root/intermediate CAs for the builtin
+// provider, so just return the root.
 func (c *ConsulCAProvider) ActiveIntermediate() (*structs.CARoot, error) {
 	return c.ActiveRoot()
 }
 
-func (c *ConsulCAProvider) GenerateIntermediate() (*structs.CARoot, error) {
+// We aren't maintaining separate root/intermediate CAs for the builtin
+// provider, so just generate a CSR for the active root.
+func (c *ConsulCAProvider) GenerateIntermediate() (*structs.CARoot, *x509.CertificateRequest, error) {
+	ca, err := c.ActiveIntermediate()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	state := c.srv.fsm.State()
-	idx, providerState, err := state.CAProviderState(c.id)
+	_, providerState, err := state.CAProviderState(c.id)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	_, config, err := state.CAConfig()
+	if err != nil {
+		return nil, nil, err
 	}
 
-	ca, err := c.generateCA(providerState.PrivateKey, "", idx+1)
-	if err != nil {
-		return nil, err
+	id := &connect.SpiffeIDSigning{ClusterID: config.ClusterSerial, Domain: "consul"}
+	template := &x509.CertificateRequest{
+		URIs: []*url.URL{id.URI()},
 	}
 
-	return ca, nil
+	signer, err := connect.ParseSigner(providerState.PrivateKey)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Create the CSR itself
+	var csrBuf bytes.Buffer
+	bs, err := x509.CreateCertificateRequest(rand.Reader, template, signer)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error creating CSR: %s", err)
+	}
+
+	err = pem.Encode(&csrBuf, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: bs})
+	if err != nil {
+		return nil, nil, fmt.Errorf("error encoding CSR: %s", err)
+	}
+
+	csr, err := connect.ParseCSR(csrBuf.String())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return ca, csr, err
 }
 
 // Remove the state store entry for this provider instance.
@@ -194,7 +229,7 @@ func (c *ConsulCAProvider) Sign(serviceId *connect.SpiffeIDService, csr *x509.Ce
 		return nil, err
 	}
 
-	// Create the keyId for the cert from the signing public key.
+	// Create the keyId for the cert from the signing private key.
 	signer, err := connect.ParseSigner(providerState.PrivateKey)
 	if err != nil {
 		return nil, err
@@ -275,6 +310,74 @@ func (c *ConsulCAProvider) Sign(serviceId *connect.SpiffeIDService, csr *x509.Ce
 		ValidAfter:   template.NotBefore,
 		ValidBefore:  template.NotAfter,
 	}, nil
+}
+
+// SignCA returns an intermediate CA cert signed by the current active root.
+func (c *ConsulCAProvider) SignCA(csr *x509.CertificateRequest) (string, error) {
+	c.Lock()
+	defer c.Unlock()
+
+	// Get the provider state
+	state := c.srv.fsm.State()
+	_, providerState, err := state.CAProviderState(c.id)
+	if err != nil {
+		return "", err
+	}
+
+	privKey, err := connect.ParseSigner(providerState.PrivateKey)
+	if err != nil {
+		return "", fmt.Errorf("error parsing private key %q: %v", providerState.PrivateKey, err)
+	}
+
+	name := fmt.Sprintf("Consul cross-signed CA %d", providerState.LeafIndex+1)
+
+	// The URI (SPIFFE compatible) for the cert
+	_, config, err := state.CAConfig()
+	if err != nil {
+		return "", err
+	}
+	id := &connect.SpiffeIDSigning{ClusterID: config.ClusterSerial, Domain: "consul"}
+	keyId, err := connect.KeyId(privKey.Public())
+	if err != nil {
+		return "", err
+	}
+
+	// Create the CA cert
+	serialNum := &big.Int{}
+	serialNum.SetUint64(providerState.LeafIndex + 1)
+	template := x509.Certificate{
+		SerialNumber:                serialNum,
+		Subject:                     pkix.Name{CommonName: name},
+		URIs:                        csr.URIs,
+		Signature:                   csr.Signature,
+		PublicKeyAlgorithm:          csr.PublicKeyAlgorithm,
+		PublicKey:                   csr.PublicKey,
+		PermittedDNSDomainsCritical: true,
+		PermittedDNSDomains:         []string{id.URI().Hostname()},
+		BasicConstraintsValid:       true,
+		KeyUsage: x509.KeyUsageCertSign |
+			x509.KeyUsageCRLSign |
+			x509.KeyUsageDigitalSignature,
+		IsCA:           true,
+		NotAfter:       time.Now().Add(10 * 365 * 24 * time.Hour),
+		NotBefore:      time.Now(),
+		AuthorityKeyId: keyId,
+		SubjectKeyId:   keyId,
+	}
+
+	bs, err := x509.CreateCertificate(
+		rand.Reader, &template, &template, privKey.Public(), privKey)
+	if err != nil {
+		return "", fmt.Errorf("error generating CA certificate: %s", err)
+	}
+
+	var buf bytes.Buffer
+	err = pem.Encode(&buf, &pem.Block{Type: "CERTIFICATE", Bytes: bs})
+	if err != nil {
+		return "", fmt.Errorf("error encoding private key: %s", err)
+	}
+
+	return buf.String(), nil
 }
 
 // generatePrivateKey returns a new private key
