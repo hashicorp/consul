@@ -7,9 +7,12 @@ import (
 	"time"
 
 	"github.com/coredns/coredns/plugin"
+	clog "github.com/coredns/coredns/plugin/pkg/log"
 
 	"github.com/mholt/caddy"
 )
+
+var log = clog.NewWithPlugin("reload")
 
 func init() {
 	caddy.RegisterPlugin("reload", caddy.Plugin{

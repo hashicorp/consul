@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/coredns/coredns/pb"
-	"github.com/coredns/coredns/plugin/pkg/log"
 	"github.com/coredns/coredns/plugin/pkg/trace"
 	"github.com/coredns/coredns/request"
 

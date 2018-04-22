@@ -4,8 +4,6 @@ import (
 	"crypto/md5"
 	"time"
 
-	"github.com/coredns/coredns/plugin/pkg/log"
-
 	"github.com/mholt/caddy"
 )
 

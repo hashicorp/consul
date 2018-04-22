@@ -5,9 +5,12 @@ import (
 	"sync"
 
 	"github.com/coredns/coredns/plugin"
+	clog "github.com/coredns/coredns/plugin/pkg/log"
 
 	"github.com/mholt/caddy"
 )
+
+var log = clog.NewWithPlugin("pprof")
 
 const defaultAddr = "localhost:6053"
 

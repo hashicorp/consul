@@ -8,8 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/coredns/coredns/plugin/pkg/log"
+	clog "github.com/coredns/coredns/plugin/pkg/log"
 )
+
+var log = clog.NewWithPlugin("health")
 
 // Health implements healthchecks by polling plugins.
 type health struct {

@@ -3,8 +3,6 @@ package file
 import (
 	"os"
 	"time"
-
-	"github.com/coredns/coredns/plugin/pkg/log"
 )
 
 // TickTime is the default time we use to reload zone. Exported to be tweaked in tests.

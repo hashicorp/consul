@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/coredns/coredns/plugin/pkg/log"
 	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"

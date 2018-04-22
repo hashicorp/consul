@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/coredns/coredns/plugin/pkg/healthcheck"
-	"github.com/coredns/coredns/plugin/pkg/log"
 )
 
 type proxyHandler struct {

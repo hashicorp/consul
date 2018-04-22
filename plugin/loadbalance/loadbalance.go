@@ -2,8 +2,6 @@
 package loadbalance
 
 import (
-	"github.com/coredns/coredns/plugin/pkg/log"
-
 	"github.com/miekg/dns"
 )
 

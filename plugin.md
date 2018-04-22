@@ -38,7 +38,15 @@ See a couple of blog posts on how to write and add plugin to CoreDNS:
 If your plugin needs to output a log line you should use the `plugin/pkg/log` package. This package
 implements log levels. The standard way of outputting is: `log.Info` for info level messages. The
 levels available are `log.Info`, `log.Warning`, `log.Error`, `log.Debug`. Each of these also has
-a `f` variant.
+a `f` variant. The plugin's name should be included, by using the log package like so:
+
+~~~ go
+import clog "github.com/coredns/coredns/plugin/pkg/log"
+
+var log = clog.NewWithPlugin("whoami")
+
+log.Info("message") // outputs: [INFO] plugin/whoami: message
+~~~
 
 In general, logging should be left to the higher layers by returning an error. However, if there is
 a reason to consume the error and notify the user, then logging in the plugin itself can be

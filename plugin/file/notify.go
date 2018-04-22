@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/coredns/coredns/plugin/pkg/log"
 	"github.com/coredns/coredns/plugin/pkg/rcode"
 	"github.com/coredns/coredns/request"
 

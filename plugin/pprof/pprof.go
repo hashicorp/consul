@@ -6,8 +6,6 @@ import (
 	"net"
 	"net/http"
 	pp "net/http/pprof"
-
-	"github.com/coredns/coredns/plugin/pkg/log"
 )
 
 type handler struct {

@@ -7,10 +7,13 @@ import (
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/dnstap/dnstapio"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
+	clog "github.com/coredns/coredns/plugin/pkg/log"
 
 	"github.com/mholt/caddy"
 	"github.com/mholt/caddy/caddyfile"
 )
+
+var log = clog.NewWithPlugin("dnstap")
 
 func init() {
 	caddy.RegisterPlugin("dnstap", caddy.Plugin{

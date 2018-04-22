@@ -12,6 +12,7 @@ import (
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
+	clog "github.com/coredns/coredns/plugin/pkg/log"
 	"github.com/coredns/coredns/plugin/pkg/parse"
 	"github.com/coredns/coredns/plugin/pkg/upstream"
 
@@ -19,6 +20,8 @@ import (
 	"github.com/miekg/dns"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+var log = clog.NewWithPlugin("kubernetes")
 
 func init() {
 	// Kubernetes plugin uses the kubernetes library, which uses glog (ugh), we must set this *flag*,
