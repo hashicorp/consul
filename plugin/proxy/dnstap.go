@@ -1,13 +1,12 @@
 package proxy
 
 import (
+	"context"
 	"time"
 
 	"github.com/coredns/coredns/plugin/dnstap"
 	"github.com/coredns/coredns/plugin/dnstap/msg"
 	"github.com/coredns/coredns/request"
-
-	"context"
 
 	tap "github.com/dnstap/golang-dnstap"
 	"github.com/miekg/dns"

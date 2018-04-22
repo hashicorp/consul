@@ -3,12 +3,11 @@
 package whoami
 
 import (
+	"context"
 	"net"
 	"strconv"
 
 	"github.com/coredns/coredns/request"
-
-	"context"
 
 	"github.com/miekg/dns"
 )

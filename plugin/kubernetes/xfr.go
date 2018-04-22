@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"context"
 	"math"
 	"net"
 	"strings"
@@ -9,8 +10,6 @@ import (
 	"github.com/coredns/coredns/plugin/etcd/msg"
 	"github.com/coredns/coredns/plugin/pkg/log"
 	"github.com/coredns/coredns/request"
-
-	"context"
 
 	"github.com/miekg/dns"
 	api "k8s.io/api/core/v1"

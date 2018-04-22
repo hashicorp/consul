@@ -1,12 +1,11 @@
 package test
 
 import (
+	"context"
 	"net"
 	"reflect"
 
 	"github.com/coredns/coredns/plugin/dnstap/msg"
-
-	"context"
 
 	tap "github.com/dnstap/golang-dnstap"
 )

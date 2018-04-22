@@ -1,10 +1,9 @@
 package test
 
 import (
+	"context"
 	"sort"
 	"testing"
-
-	"context"
 
 	"github.com/miekg/dns"
 )

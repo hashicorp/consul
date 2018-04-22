@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -8,8 +9,6 @@ import (
 	"github.com/coredns/coredns/plugin/pkg/tls"
 	"github.com/coredns/coredns/plugin/test"
 	"github.com/coredns/coredns/request"
-
-	"context"
 
 	"github.com/miekg/dns"
 	"google.golang.org/grpc/grpclog"

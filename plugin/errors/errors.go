@@ -2,6 +2,7 @@
 package errors
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"runtime"
@@ -10,8 +11,6 @@ import (
 
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/request"
-
-	"context"
 
 	"github.com/miekg/dns"
 )

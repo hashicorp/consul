@@ -1,11 +1,11 @@
 package etcd
 
 import (
+	"context"
 	"time"
 
-	"context"
-
 	"github.com/coredns/coredns/request"
+
 	"github.com/miekg/dns"
 )
 

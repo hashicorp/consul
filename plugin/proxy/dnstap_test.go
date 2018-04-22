@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -8,8 +9,6 @@ import (
 	"github.com/coredns/coredns/plugin/dnstap/test"
 	mwtest "github.com/coredns/coredns/plugin/test"
 	"github.com/coredns/coredns/request"
-
-	"context"
 
 	tap "github.com/dnstap/golang-dnstap"
 	"github.com/miekg/dns"

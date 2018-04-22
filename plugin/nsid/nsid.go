@@ -2,11 +2,10 @@
 package nsid
 
 import (
+	"context"
 	"encoding/hex"
 
 	"github.com/coredns/coredns/plugin"
-
-	"context"
 
 	"github.com/miekg/dns"
 )

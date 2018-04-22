@@ -5,14 +5,13 @@
 package forward
 
 import (
+	"context"
 	"io"
 	"strconv"
 	"sync/atomic"
 	"time"
 
 	"github.com/coredns/coredns/request"
-
-	"context"
 
 	"github.com/miekg/dns"
 )

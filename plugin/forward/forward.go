@@ -5,14 +5,13 @@
 package forward
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"time"
 
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/request"
-
-	"context"
 
 	"github.com/miekg/dns"
 	ot "github.com/opentracing/opentracing-go"

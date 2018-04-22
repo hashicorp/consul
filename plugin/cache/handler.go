@@ -1,14 +1,13 @@
 package cache
 
 import (
+	"context"
 	"math"
 	"sync"
 	"time"
 
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/request"
-
-	"context"
 
 	"github.com/miekg/dns"
 	"github.com/prometheus/client_golang/prometheus"

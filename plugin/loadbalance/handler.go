@@ -2,9 +2,9 @@
 package loadbalance
 
 import (
-	"github.com/coredns/coredns/plugin"
-
 	"context"
+
+	"github.com/coredns/coredns/plugin"
 
 	"github.com/miekg/dns"
 )

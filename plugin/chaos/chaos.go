@@ -2,12 +2,11 @@
 package chaos
 
 import (
+	"context"
 	"os"
 
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/request"
-
-	"context"
 
 	"github.com/miekg/dns"
 )

@@ -2,6 +2,7 @@
 package auto
 
 import (
+	"context"
 	"regexp"
 	"time"
 
@@ -10,8 +11,6 @@ import (
 	"github.com/coredns/coredns/plugin/metrics"
 	"github.com/coredns/coredns/plugin/pkg/upstream"
 	"github.com/coredns/coredns/request"
-
-	"context"
 
 	"github.com/miekg/dns"
 )

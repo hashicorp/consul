@@ -1,13 +1,12 @@
 package kubernetes
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	"github.com/coredns/coredns/plugin/test"
-
-	"context"
 
 	"github.com/miekg/dns"
 	api "k8s.io/api/core/v1"

@@ -2,10 +2,9 @@
 package plugin
 
 import (
+	"context"
 	"errors"
 	"fmt"
-
-	"context"
 
 	"github.com/miekg/dns"
 	ot "github.com/opentracing/opentracing-go"

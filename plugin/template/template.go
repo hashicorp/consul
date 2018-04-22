@@ -2,6 +2,7 @@ package template
 
 import (
 	"bytes"
+	"context"
 	"regexp"
 	"strconv"
 	gotmpl "text/template"
@@ -10,8 +11,6 @@ import (
 	"github.com/coredns/coredns/plugin/pkg/fall"
 	"github.com/coredns/coredns/plugin/pkg/upstream"
 	"github.com/coredns/coredns/request"
-
-	"context"
 
 	"github.com/miekg/dns"
 )

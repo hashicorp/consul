@@ -2,12 +2,11 @@
 package erratic
 
 import (
+	"context"
 	"sync/atomic"
 	"time"
 
 	"github.com/coredns/coredns/request"
-
-	"context"
 
 	"github.com/miekg/dns"
 )

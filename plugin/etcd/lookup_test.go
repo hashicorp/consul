@@ -3,6 +3,7 @@
 package etcd
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 	"time"
@@ -13,8 +14,6 @@ import (
 	"github.com/coredns/coredns/plugin/pkg/upstream"
 	"github.com/coredns/coredns/plugin/proxy"
 	"github.com/coredns/coredns/plugin/test"
-
-	"context"
 
 	etcdc "github.com/coreos/etcd/client"
 	"github.com/miekg/dns"

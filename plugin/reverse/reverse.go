@@ -1,15 +1,13 @@
 package reverse
 
 import (
+	"context"
 	"net"
 
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
 	"github.com/coredns/coredns/plugin/pkg/fall"
 	"github.com/coredns/coredns/request"
-
-	"context"
-
 	"github.com/miekg/dns"
 )
 

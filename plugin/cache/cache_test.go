@@ -1,10 +1,9 @@
 package cache
 
 import (
+	"context"
 	"testing"
 	"time"
-
-	"context"
 
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/pkg/response"

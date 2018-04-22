@@ -2,6 +2,7 @@
 package log
 
 import (
+	"context"
 	"log"
 	"time"
 
@@ -12,8 +13,6 @@ import (
 	"github.com/coredns/coredns/plugin/pkg/replacer"
 	"github.com/coredns/coredns/plugin/pkg/response"
 	"github.com/coredns/coredns/request"
-
-	"context"
 
 	"github.com/miekg/dns"
 )

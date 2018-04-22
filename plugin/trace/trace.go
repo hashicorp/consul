@@ -2,6 +2,7 @@
 package trace
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"sync"
@@ -10,8 +11,6 @@ import (
 	"github.com/coredns/coredns/plugin"
 	// Plugin the trace package.
 	_ "github.com/coredns/coredns/plugin/pkg/trace"
-
-	"context"
 
 	ddtrace "github.com/DataDog/dd-trace-go/opentracing"
 	"github.com/miekg/dns"

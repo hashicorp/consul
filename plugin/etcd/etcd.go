@@ -2,6 +2,7 @@
 package etcd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -12,8 +13,6 @@ import (
 	"github.com/coredns/coredns/plugin/pkg/fall"
 	"github.com/coredns/coredns/plugin/proxy"
 	"github.com/coredns/coredns/request"
-
-	"context"
 
 	"github.com/coredns/coredns/plugin/pkg/upstream"
 	etcdc "github.com/coreos/etcd/client"

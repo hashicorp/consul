@@ -1,14 +1,13 @@
 package rewrite
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"github.com/coredns/coredns/plugin"
 
 	"github.com/miekg/dns"
-
-	"context"
 )
 
 // Result is the result of a rewrite

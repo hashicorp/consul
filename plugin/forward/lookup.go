@@ -5,9 +5,9 @@
 package forward
 
 import (
-	"github.com/coredns/coredns/request"
-
 	"context"
+
+	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
 )

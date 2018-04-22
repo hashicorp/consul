@@ -1,13 +1,12 @@
 package file
 
 import (
+	"context"
 	"strings"
 	"testing"
 
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	"github.com/coredns/coredns/plugin/test"
-
-	"context"
 
 	"github.com/miekg/dns"
 )

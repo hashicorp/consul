@@ -1,12 +1,11 @@
 package proxy
 
 import (
+	"context"
 	"net"
 	"time"
 
 	"github.com/coredns/coredns/request"
-
-	"context"
 
 	"github.com/miekg/dns"
 )

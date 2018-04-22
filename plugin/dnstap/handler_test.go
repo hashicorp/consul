@@ -1,6 +1,7 @@
 package dnstap
 
 import (
+	"context"
 	"errors"
 	"net"
 	"strings"
@@ -9,9 +10,6 @@ import (
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/dnstap/test"
 	mwtest "github.com/coredns/coredns/plugin/test"
-
-	"context"
-
 	tap "github.com/dnstap/golang-dnstap"
 	"github.com/miekg/dns"
 )
