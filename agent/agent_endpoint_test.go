@@ -2194,8 +2194,10 @@ func TestAgentConnectCARoots_list(t *testing.T) {
 		// Should be a cache hit! The data should've updated in the cache
 		// in the background so this should've been fetched directly from
 		// the cache.
-		require.Equal(cacheHits+1, a.cache.Hits())
-		cacheHits++
+		if v := a.cache.Hits(); v < cacheHits+1 {
+			t.Fatalf("expected at least one more cache hit, still at %d", v)
+		}
+		cacheHits = a.cache.Hits()
 	}
 }
 
