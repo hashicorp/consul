@@ -4,12 +4,12 @@ import (
 	"time"
 )
 
-// Type implement the logic to fetch certain types of data.
+// Type implements the logic to fetch certain types of data.
 type Type interface {
 	// Fetch fetches a single unique item.
 	//
 	// The FetchOptions contain the index and timeouts for blocking queries.
-	// The CacheMinIndex value on the Request itself should NOT be used
+	// The MinIndex value on the Request itself should NOT be used
 	// as the blocking index since a request may be reused multiple times
 	// as part of Refresh behavior.
 	//

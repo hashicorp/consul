@@ -98,7 +98,9 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 	}
 
 	// Create a CSR.
-	// TODO(mitchellh): This is obviously not production ready!
+	// TODO(mitchellh): This is obviously not production ready! The host
+	// needs a correct host ID, and we probably don't want to use TestCSR
+	// and want a non-test-specific way to create a CSR.
 	csr, pk := connect.TestCSR(&testing.RuntimeT{}, &connect.SpiffeIDService{
 		Host:       "1234.consul",
 		Namespace:  "default",

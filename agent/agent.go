@@ -295,8 +295,9 @@ func (a *Agent) Start() error {
 	// regular and on-demand state synchronizations (anti-entropy).
 	a.sync = ae.NewStateSyncer(a.State, c.AEInterval, a.shutdownCh, a.logger)
 
-	// create the cache
+	// create the cache and register types
 	a.cache = cache.New(nil)
+	a.registerCache()
 
 	// create the config for the rpc server/client
 	consulCfg, err := a.consulConfig()
@@ -333,9 +334,6 @@ func (a *Agent) Start() error {
 	// and that should be hidden in the state syncer implementation.
 	a.State.Delegate = a.delegate
 	a.State.TriggerSyncChanges = a.sync.SyncChanges.Trigger
-
-	// Register the cache
-	a.registerCache()
 
 	// Load checks/services/metadata.
 	if err := a.loadServices(c); err != nil {

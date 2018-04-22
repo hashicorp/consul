@@ -35,7 +35,7 @@ func TestIntentionMatch(t *testing.T) {
 		MinIndex: 24,
 		Timeout:  1 * time.Second,
 	}, &structs.IntentionQueryRequest{Datacenter: "dc1"})
-	require.Nil(err)
+	require.NoError(err)
 	require.Equal(cache.FetchResult{
 		Value: resp,
 		Index: 48,
@@ -51,7 +51,7 @@ func TestIntentionMatch_badReqType(t *testing.T) {
 	// Fetch
 	_, err := typ.Fetch(cache.FetchOptions{}, cache.TestRequest(
 		t, cache.RequestInfo{Key: "foo", MinIndex: 64}))
-	require.NotNil(err)
+	require.Error(err)
 	require.Contains(err.Error(), "wrong type")
 
 }

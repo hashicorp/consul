@@ -18,7 +18,7 @@ type Request interface {
 // cacheability.
 type RequestInfo struct {
 	// Key is a unique cache key for this request. This key should
-	// absolutely uniquely identify this request, since any conflicting
+	// be globally unique to identify this request, since any conflicting
 	// cache keys could result in invalid data being returned from the cache.
 	// The Key does not need to include ACL or DC information, since the
 	// cache already partitions by these values prior to using this key.

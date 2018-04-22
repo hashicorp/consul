@@ -270,7 +270,7 @@ func (q *IntentionQueryRequest) RequestDatacenter() string {
 	return q.Datacenter
 }
 
-// cache.Request impl.
+// CacheInfo implements cache.Request
 func (q *IntentionQueryRequest) CacheInfo() cache.RequestInfo {
 	// We only support caching Match queries, so if Match isn't set,
 	// then return an empty info object which will cause a pass-through
@@ -294,7 +294,7 @@ func (q *IntentionQueryRequest) CacheInfo() cache.RequestInfo {
 		// If there is an error, we don't set the key. A blank key forces
 		// no cache for this request so the request is forwarded directly
 		// to the server.
-		info.Key = strconv.FormatUint(v, 10)
+		info.Key = strconv.FormatUint(v, 16)
 	}
 
 	return info

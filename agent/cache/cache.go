@@ -187,7 +187,7 @@ func (c *Cache) Get(t string, r Request) (interface{}, error) {
 	// First time through
 	first := true
 
-	// timeoutCh for watching our tmeout
+	// timeoutCh for watching our timeout
 	var timeoutCh <-chan time.Time
 
 RETRY_GET:
