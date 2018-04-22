@@ -2175,17 +2175,21 @@ func TestAgentConnectCARoots_list(t *testing.T) {
 		require.Nil(a.RPC("Test.ConnectCASetRoots",
 			[]*structs.CARoot{ca}, &reply))
 
-		// Sleep a bit to wait for the cache to update
-		time.Sleep(100 * time.Millisecond)
+		retry.Run(t, func(r *retry.R) {
+			// List it again
+			obj, err := a.srv.AgentConnectCARoots(httptest.NewRecorder(), req)
+			if err != nil {
+				r.Fatal(err)
+			}
 
-		// List it again
-		obj, err := a.srv.AgentConnectCARoots(httptest.NewRecorder(), req)
-		require.Nil(err)
-		require.Equal(obj, obj)
-
-		value := obj.(structs.IndexedCARoots)
-		require.Equal(value.ActiveRootID, ca.ID)
-		require.Len(value.Roots, 1)
+			value := obj.(structs.IndexedCARoots)
+			if ca.ID != value.ActiveRootID {
+				r.Fatalf("%s != %s", ca.ID, value.ActiveRootID)
+			}
+			if len(value.Roots) != 1 {
+				r.Fatalf("bad len: %d", len(value.Roots))
+			}
+		})
 
 		// Should be a cache hit! The data should've updated in the cache
 		// in the background so this should've been fetched directly from
