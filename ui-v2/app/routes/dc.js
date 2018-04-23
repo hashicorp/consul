@@ -11,7 +11,7 @@ export default Route.extend({
     const repo = get(this, 'repo');
     // const nodeRepo = get(this, 'nodeRepo');
     const dc = { Name: params.dc }; // TODO: this needs to be an ember-data object
-    get(this, 'settings').persist({ lastDc: dc.Name });
+    get(this, 'settings').persist({ dc: dc.Name }); //TODO: this should really be a promise
     return hash({
       dc: dc,
       dcs: repo.findAll(),
