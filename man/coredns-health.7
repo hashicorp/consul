@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-HEALTH" "7" "March 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-HEALTH" "7" "April 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIhealth\fR \- enables a health check endpoint\.
@@ -18,7 +18,7 @@ health [ADDRESS]
 .fi
 .
 .P
-Optionally takes an address; the default is \fB:8080\fR\. The health path is fixed to \fB/health\fR\. The health endpoint returns a 200 response code and the word "OK" when CoreDNS is healthy\. It returns a 503\. \fIhealth\fR periodically (1s) polls plugin that exports health information\. If any of the plugin signals that it is unhealthy, the server will go unhealthy too\. Each plugin that supports health checks has a section "Health" in their README\.
+Optionally takes an address; the default is \fB:8080\fR\. The health path is fixed to \fB/health\fR\. The health endpoint returns a 200 response code and the word "OK" when this server is healthy\. It returns a 503\. \fIhealth\fR periodically (1s) polls plugins that exports health information\. If any of the plugins signals that it is unhealthy, the server will go unhealthy too\. Each plugin that supports health checks has a section "Health" in their README\.
 .
 .P
 More options can be set with this extended syntax:
@@ -41,7 +41,7 @@ Where \fBlameduck\fR will make the process unhealthy then \fIwait\fR for \fBDURA
 .IP "" 0
 .
 .P
-If you have multiple Server Block and need to export health for each of the plugins, you must run health endpoints on different ports:
+If you have multiple Server Blocks and need to export health for each of the plugins, you must run health endpoints on different ports:
 .
 .IP "" 4
 .
@@ -71,6 +71,9 @@ If monitoring is enabled (via the \fIprometheus\fR directive) then the following
 \fBcoredns_health_request_duration_seconds{}\fR \- duration to process a /health query\. As this should be a local operation it should be fast\. A (large) increases in this duration indicates the CoreDNS process is having trouble keeping up with its query load\.
 .
 .IP "" 0
+.
+.P
+Note that this metric \fIdoes not\fR have a \fBserver\fR label, because being overloaded is a symptom of the running process, \fInot\fR a specific server\.
 .
 .SH "EXAMPLES"
 Run another health endpoint on http://localhost:8091\.

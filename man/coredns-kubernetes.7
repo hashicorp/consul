@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-KUBERNETES" "7" "March 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-KUBERNETES" "7" "April 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIkubernetes\fR \- enables the reading zone data from a Kubernetes cluster\.
@@ -225,19 +225,21 @@ cluster\.local {
 Some query labels accept a wildcard value to match any value\. If a label is a valid wildcard (*, or the word "any"), then that label will match all values\. The labels that accept wildcards are:
 .
 .IP "\(bu" 4
-\fIservice\fR in an \fBA\fR record request: \fIservice\fR\.namespace\.svc\.zone, e\.g\. \fB*\.ns\.svc\.myzone\.local\fR
+\fIendpoint\fR in an \fBA\fR record request: \fIendpoint\fR\.service\.namespace\.svc\.zone, e\.g\. \fB*\.nginx\.ns\.svc\.cluster\.local\fR
 .
 .IP "\(bu" 4
-\fInamespace\fR in an \fBA\fR record request: service\.\fInamespace\fR\.svc\.zone, e\.g\. \fBnginx\.*\.svc\.myzone\.local\fR
+\fIservice\fR in an \fBA\fR record request: \fIservice\fR\.namespace\.svc\.zone, e\.g\. \fB*\.ns\.svc\.cluster\.local\fR
 .
 .IP "\(bu" 4
-\fIport and/or protocol\fR in an \fBSRV\fR request: \fBport_\.\fRprotocol_\.service\.namespace\.svc\.zone\., e\.g\. \fB_http\.*\.service\.ns\.svc\.\fR
+\fInamespace\fR in an \fBA\fR record request: service\.\fInamespace\fR\.svc\.zone, e\.g\. \fBnginx\.*\.svc\.cluster\.local\fR
+.
+.IP "\(bu" 4
+\fIport and/or protocol\fR in an \fBSRV\fR request: \fBport_\.\fRprotocol_\.service\.namespace\.svc\.zone\., e\.g\. \fB_http\.*\.service\.ns\.svc\.cluster\.local\fR
 .
 .IP "\(bu" 4
 multiple wild cards are allowed in a single query, e\.g\. \fBA\fR Request \fB*\.*\.svc\.zone\.\fR or \fBSRV\fR request \fB*\.*\.*\.*\.svc\.zone\.\fR
 .
-.IP "\(bu" 4
-Wildcard can be used also to resolve PODs IPs as \fBA\fR records in a Service with ClusterIP\. e\.g\.: \fB*\.service\.ns\.svc\.myzone\.local\fR will return the PODs IPs as the following: \fB*\.service\.default\.svc\.cluster\.local\. 5 IN A 192\.168\.10\.10 *\.service\.default\.svc\.cluster\.local\. 5 IN A 192\.168\.25\.15\fR This response can be randomized using the \fBloadbalance\fR plugin
-.
 .IP "" 0
-
+.
+.P
+For example, Wildcards can be used to resolve all Endpoints for a Service as \fBA\fR records\. e\.g\.: \fB*\.service\.ns\.svc\.myzone\.local\fR will return the Endpoint IPs in the Service \fBservice\fR in namespace \fBdefault\fR: \fB*\.service\.default\.svc\.cluster\.local\. 5 IN A 192\.168\.10\.10 *\.service\.default\.svc\.cluster\.local\. 5 IN A 192\.168\.25\.15\fR This response can be randomized using the \fBloadbalance\fR plugin
