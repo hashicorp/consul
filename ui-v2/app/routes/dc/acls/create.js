@@ -27,7 +27,7 @@ export default Route.extend(WithFeedback, {
           return get(this, 'repo')
             .persist(item)
             .then(item => {
-              return this.transitionTo('dc.acls.edit', get(item, 'ID'));
+              return this.transitionTo('dc.acls');
             });
         },
         `Your ACL token has been added.`,

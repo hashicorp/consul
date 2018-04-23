@@ -18,7 +18,11 @@ export default Route.extend(WithFeedback, {
     update: function(item) {
       get(this, 'feedback').execute(
         () => {
-          return get(this, 'repo').persist(item);
+          return get(this, 'repo')
+            .persist(item)
+            .then(function() {
+              return this.transitionTo('dc.acls');
+            });
         },
         `Your ACL token was saved.`,
         `There was an error saving your ACL token.`
