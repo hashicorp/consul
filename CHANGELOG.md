@@ -1,5 +1,8 @@
 ## UNRELEASED
 
+IMPROVEMENTS:
+* agent: Improve DNS performance on large clusters [[GH-4036](https://github.com/hashicorp/consul/issues/4036)]
+
 BUG FIXES:
 
 * agent: Only call signal.Notify once during agent startup [[PR-4024](https://github.com/hashicorp/consul/pull/4024)]
