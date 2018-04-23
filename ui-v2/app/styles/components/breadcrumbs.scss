@@ -3,7 +3,7 @@ main header nav:first-child {
 }
 %breadcrumbs {
   position: absolute;
-  top: -50px;
+  top: -35px; // %app-view:margin-top - 15px;
 }
 %breadcrumbs ol {
   list-style-type: none;
