@@ -1,4 +1,4 @@
-main nav {
+main header nav:last-child {
   @extend %tab-nav, .tabs;
 }
 .tab-section {
@@ -14,7 +14,9 @@ main nav {
   border-bottom: 3px solid transparent;
   padding: 12px 5px;
 }
-.tabs a:hover, .tabs a:focus, .tabs a:active,
+.tabs a:hover,
+.tabs a:focus,
+.tabs a:active,
 .tabs .selected a {
   border-bottom: 3px solid $magenta-600;
 }

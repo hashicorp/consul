@@ -1,0 +1,14 @@
+main header nav:first-child {
+  @extend %breadcrumbs;
+}
+%breadcrumbs {
+  position: absolute;
+  top: -50px;
+}
+%breadcrumbs ol {
+  list-style-type: none;
+  display: flex;
+}
+%breadcrumbs a {
+  color: $blue;
+}

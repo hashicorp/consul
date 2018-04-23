@@ -1,6 +1,10 @@
 {{#app-view}}
+    {{#block-slot 'breadcrumbs'}}
+        <ol>
+            <li><a href={{href-to 'dc.services'}}>All Services</a></li>
+        </ol>
+    {{/block-slot}}
     {{#block-slot 'header'}}
-        <a href={{href-to 'dc.services'}}>All Services</a>
         <h1>
             {{ model.0.Service.Service }}
         </h1>

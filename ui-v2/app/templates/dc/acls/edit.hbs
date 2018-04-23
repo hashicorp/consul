@@ -1,4 +1,9 @@
 {{#app-view}}
+    {{#block-slot 'breadcrumbs'}}
+        <ol>
+            <li><a href={{href-to 'dc.acls'}}>All Tokens</a></li>
+        </ol>
+    {{/block-slot}}
     {{#block-slot 'header'}}
         <h1>
             {{item.Name}}
@@ -46,17 +51,17 @@
 {{/if}}
                 <button type="button" class="type-cancel" {{ action "cancel" item}}>Cancel</button>
 {{# if (and item.isNotAnon item.ID) }}
-            {{#confirmation-dialog message='Are you sure you want to delete this ACL token?'}}
-                {{#block-slot 'action' as |confirm|}}
-                    <button type="button" class="type-delete" {{action confirm 'delete' item parent}}>Delete</button>
-                {{/block-slot}}
-                {{#block-slot 'dialog'}}
-                    <p>
-                        Are you sure you want to delete {{item.basename}}?
-                    </p>
-                    <button type="button" class="type-cancel" {{ action cancel}}>Cancel</button>
-                {{/block-slot}}
-            {{/confirmation-dialog}}
+                {{#confirmation-dialog message='Are you sure you want to delete this ACL token?'}}
+                    {{#block-slot 'action' as |confirm|}}
+                        <button type="button" class="type-delete" {{action confirm 'delete' item parent}}>Delete</button>
+                    {{/block-slot}}
+                    {{#block-slot 'dialog'}}
+                        <p>
+                            Are you sure you want to delete {{item.basename}}?
+                        </p>
+                        <button type="button" class="type-cancel" {{ action cancel}}>Cancel</button>
+                    {{/block-slot}}
+                {{/confirmation-dialog}}
 {{/if}}
             </div>
         </form>

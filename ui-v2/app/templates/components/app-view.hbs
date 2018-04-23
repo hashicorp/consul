@@ -8,6 +8,9 @@
 {{/each}}
     <div>
         <div>
+            <nav aria-label="Breadcrumb">
+                {{#yield-slot 'breadcrumbs'}}{{yield}}{{/yield-slot}}
+            </nav>
             {{#yield-slot 'header'}}{{yield}}{{/yield-slot}}
         </div>
         <div class="actions">
