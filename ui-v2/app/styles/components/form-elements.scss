@@ -23,6 +23,9 @@
 %form-element textarea {
   @extend .textarea;
 }
+.has-error > input {
+  border: 1px solid red !important;
+}
 %form-element {
   display: block;
 }

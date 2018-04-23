@@ -14,7 +14,7 @@
             {{#if (eq parent.Key '/') }}
                 Key / Value
             {{else}}
-                {{ parent.Key }}
+                {{ take 1 (drop 1 (reverse (split parent.Key '/'))) }}
             {{/if}}
         </h1>
     {{/block-slot}}
@@ -24,14 +24,14 @@
     {{#block-slot 'content'}}
 {{#if (gt items.length 0)}}
         {{#tabular-collection
-            items=items as |item index|
+            items=(sort-by 'isFolder:desc' items) as |item index|
         }}
             {{#block-slot 'header'}}
                 <th>Name</th>
             {{/block-slot}}
             {{#block-slot 'row'}}
                 <td data-test-kv="{{item.Key}}" class={{if item.isFolder 'folder' 'file' }}>
-                    <a href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key}}>{{item.basename}}</a>
+                    <a href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key}}>{{right-trim (left-trim item.Key parent.Key) '/'}}</a>
                 </td>
             {{/block-slot}}
             {{#block-slot 'actions'}}

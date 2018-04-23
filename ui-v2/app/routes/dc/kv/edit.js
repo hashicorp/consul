@@ -52,7 +52,7 @@ export default Route.extend(WithFeedback, {
       get(this, 'feedback').execute(
         () => {
           return get(this, 'repo')
-            .remove(item)
+            .remove(item.get('data'))
             .then(() => {
               return this.transitionTo('dc.kv.folder', get(parent, 'Key'));
             });

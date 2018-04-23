@@ -1,25 +1,16 @@
 import Controller from '@ember/controller';
-import confirm from 'consul-ui/utils/confirm';
-import error from 'consul-ui/utils/error';
+import Changeset from 'ember-changeset';
+import validations from 'consul-ui/validations/acl';
+import lookupValidator from 'ember-changeset-validations';
+
 export default Controller.extend({
-  actions: {
-    requestUse: function(item) {
-      confirm('Are you sure you want to use this token for your session?')
-        .then(confirmed => {
-          if (confirmed) {
-            return this.send('use', item);
-          }
-        })
-        .catch(error);
-    },
-    requestDelete: function(item) {
-      confirm('Are you sure you want to delete this token?')
-        .then(confirmed => {
-          if (confirmed) {
-            return this.send('delete', item);
-          }
-        })
-        .catch(error);
-    },
+  setProperties: function(model) {
+    this.changeset = new Changeset(model.item, lookupValidator(validations), validations);
+    this._super({
+      ...model,
+      ...{
+        item: this.changeset,
+      },
+    });
   },
 });

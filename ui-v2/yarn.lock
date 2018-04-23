@@ -2471,6 +2471,23 @@ ember-bulma-css@^0.2.1:
     ember-cli-babel "^6.6.0"
     ember-cli-sass "^7.2.0"
 
+ember-changeset-validations@^1.2.11:
+  version "1.2.11"
+  resolved "https://registry.yarnpkg.com/ember-changeset-validations/-/ember-changeset-validations-1.2.11.tgz#b769c3557f42fae05398869f3904200e21a005d7"
+  dependencies:
+    ember-changeset "1.4.2-beta.1"
+    ember-cli-babel "^6.0.0"
+    ember-cli-htmlbars "^1.1.1"
+    ember-get-config "^0.2.4"
+    ember-validators "^1.0.0"
+
+ember-changeset@1.4.2-beta.1:
+  version "1.4.2-beta.1"
+  resolved "https://registry.yarnpkg.com/ember-changeset/-/ember-changeset-1.4.2-beta.1.tgz#c6d750a3e6682f4a07f01d221eacd890b22e7250"
+  dependencies:
+    ember-cli-babel "^6.8.2"
+    ember-deep-set "^0.1.3"
+
 ember-cli-app-version@^3.0.0:
   version "3.1.3"
   resolved "https://registry.yarnpkg.com/ember-cli-app-version/-/ember-cli-app-version-3.1.3.tgz#26d25f5e653ff0106f0b39da6d75518ba8ed282d"
@@ -2488,7 +2505,7 @@ ember-cli-babel@5.1.5:
     ember-cli-version-checker "^1.0.2"
     resolve "^1.1.2"
 
-ember-cli-babel@6.12.0, ember-cli-babel@^6.0.0, ember-cli-babel@^6.0.0-beta.7, ember-cli-babel@^6.10.0, ember-cli-babel@^6.11.0, ember-cli-babel@^6.3.0, ember-cli-babel@^6.6.0, ember-cli-babel@^6.7.2, ember-cli-babel@^6.8.0, ember-cli-babel@^6.8.1, ember-cli-babel@^6.8.2, ember-cli-babel@^6.9.0:
+ember-cli-babel@6.12.0, ember-cli-babel@^6.0.0, ember-cli-babel@^6.0.0-beta.7, ember-cli-babel@^6.10.0, ember-cli-babel@^6.11.0, ember-cli-babel@^6.3.0, ember-cli-babel@^6.6.0, ember-cli-babel@^6.7.2, ember-cli-babel@^6.8.0, ember-cli-babel@^6.8.1, ember-cli-babel@^6.8.2, ember-cli-babel@^6.9.0, ember-cli-babel@^6.9.2:
   version "6.12.0"
   resolved "https://registry.yarnpkg.com/ember-cli-babel/-/ember-cli-babel-6.12.0.tgz#3adcdbe1278da1fcd0b9038f1360cb4ac5d4414c"
   dependencies:
@@ -2592,7 +2609,7 @@ ember-cli-htmlbars-inline-precompile@^1.0.0:
     heimdalljs-logger "^0.1.7"
     silent-error "^1.1.0"
 
-ember-cli-htmlbars@^1.0.1, ember-cli-htmlbars@^1.0.3, ember-cli-htmlbars@^1.0.5:
+ember-cli-htmlbars@^1.0.1, ember-cli-htmlbars@^1.0.3, ember-cli-htmlbars@^1.0.5, ember-cli-htmlbars@^1.1.1:
   version "1.3.4"
   resolved "https://registry.yarnpkg.com/ember-cli-htmlbars/-/ember-cli-htmlbars-1.3.4.tgz#461289724b34af372a6a0c4b6635819156963353"
   dependencies:
@@ -2931,13 +2948,19 @@ ember-data@^3.0.2:
     semver "^5.1.0"
     silent-error "^1.0.0"
 
+ember-deep-set@^0.1.3:
+  version "0.1.3"
+  resolved "https://registry.yarnpkg.com/ember-deep-set/-/ember-deep-set-0.1.3.tgz#852dbcf189419d33e57af724ff2d6d8f404d7b73"
+  dependencies:
+    ember-cli-babel "^6.6.0"
+
 ember-export-application-global@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/ember-export-application-global/-/ember-export-application-global-2.0.0.tgz#8d6d7619ac8a1a3f8c43003549eb21ebed685bd2"
   dependencies:
     ember-cli-babel "^6.0.0-beta.7"
 
-ember-get-config@^0.2.2:
+ember-get-config@^0.2.2, ember-get-config@^0.2.4:
   version "0.2.4"
   resolved "https://registry.yarnpkg.com/ember-get-config/-/ember-get-config-0.2.4.tgz#118492a2a03d73e46004ed777928942021fe1ecd"
   dependencies:
@@ -3003,6 +3026,12 @@ ember-qunit@^3.3.2:
     ember-cli-babel "^6.3.0"
     ember-cli-test-loader "^2.2.0"
     qunit "^2.5.0"
+
+ember-require-module@^0.2.0:
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/ember-require-module/-/ember-require-module-0.2.0.tgz#eafe436737ead4762220a9166b78364abf754274"
+  dependencies:
+    ember-cli-babel "^6.9.2"
 
 ember-resize@^0.0.17:
   version "0.0.17"
@@ -3123,6 +3152,13 @@ ember-try@^0.2.15:
     rimraf "^2.3.2"
     rsvp "^3.0.17"
     semver "^5.1.0"
+
+ember-validators@^1.0.0:
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/ember-validators/-/ember-validators-1.1.1.tgz#34b06f7c4bde4e57c30cb9dfc6566647c1c140c1"
+  dependencies:
+    ember-cli-babel "^6.9.2"
+    ember-require-module "^0.2.0"
 
 encodeurl@~1.0.2:
   version "1.0.2"
