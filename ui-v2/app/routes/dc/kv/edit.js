@@ -63,7 +63,7 @@ export default Route.extend(WithFeedback, {
     },
     // TODO: This is frontend ??
     cancel: function(item, parent) {
-      return this.transitionTo('dc.kv.folder', parent);
+      return this.transitionTo('dc.kv.folder', get(parent, 'Key'));
     },
   },
 });

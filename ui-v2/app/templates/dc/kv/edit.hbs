@@ -49,7 +49,7 @@
             <button type="submit" {{ action "create" item parent}}>Save</button>
 {{ else }}
             <button type="submit" {{ action "update" item parent}}>Save</button>
-            <a rel="back" href={{href-to 'dc.kv.folder' parent.Key}}>Cancel changes</a>
+            <button type="reset" {{ action "cancel" item parent}}>Cancel changes</button>
 
             {{!if (or item.isLocked isLoading)}}
             {{#confirmation-dialog message='Are you sure you want to delete this key?'}}
@@ -60,7 +60,7 @@
                     <p>
                         Are you sure you want to delete {{item.basename}}?
                     </p>
-                    <button type="button" class="type-cancel" {{ action cancel}}>Cancel</button>
+                    <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
                 {{/block-slot}}
             {{/confirmation-dialog}}
 {{/if}}

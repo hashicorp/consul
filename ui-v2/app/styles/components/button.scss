@@ -1,4 +1,5 @@
-button, a[rel='back'] {
+button,
+a[rel='back'] {
   @extend %button;
 }
 %button {
@@ -22,11 +23,12 @@ button, a[rel='back'] {
   color: $white !important;
 }
 %button:not([type='submit']),
-a[rel=back] {
+a[rel='back'] {
   border-color: currentColor;
 }
 %button[type='button'],
-a[rel=back] {
+%button[type='reset'],
+a[rel='back'] {
   color: $text-blue;
 }
 %button.type-delete {

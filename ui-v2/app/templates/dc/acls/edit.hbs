@@ -49,7 +49,7 @@
 {{ else }}
                 <button type="submit" {{ action "update" item}}>Save</button>
 {{/if}}
-                <button type="button" class="type-cancel" {{ action "cancel" item}}>Cancel</button>
+                <button type="reset" {{ action "cancel" item}}>Cancel</button>
 {{# if (and item.isNotAnon item.ID) }}
                 {{#confirmation-dialog message='Are you sure you want to delete this ACL token?'}}
                     {{#block-slot 'action' as |confirm|}}
