@@ -10,17 +10,14 @@ export default Route.extend(WithFeedback, {
   model: function(params) {
     return hash({
       item: get(this, 'repo').findAll(),
-      dc: get(this, 'repo').findBySlug('dc'),
       dcs: get(this, 'dcRepo').findAll(),
-    }).then(function(model) {
-      return {
+    }).then(model => {
+      return hash({
         ...model,
         ...{
-          dc: {
-            Name: model.dc,
-          },
+          dc: get(this, 'dcRepo').getActive(model.dcs),
         },
-      };
+      });
     });
   },
   setupController: function(controller, model) {

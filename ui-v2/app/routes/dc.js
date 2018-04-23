@@ -6,18 +6,13 @@ import { get } from '@ember/object';
 export default Route.extend({
   repo: service('dc'),
   settings: service('settings'),
-  // nodeRepo: service('nodes'),
   model: function(params) {
     const repo = get(this, 'repo');
-    // const nodeRepo = get(this, 'nodeRepo');
-    const dc = { Name: params.dc }; // TODO: this needs to be an ember-data object
-    get(this, 'settings').persist({ dc: dc.Name }); //TODO: this should really be a promise
-    return hash({
-      dc: dc,
-      dcs: repo.findAll(),
-      // TODO: Nodes should already be loaded on the selected
-      // dc, we only need them for the selected dc
-      // nodes: nodeRepo.findAllByDatacenter(dc.Name),
+    return repo.findAll().then(function(items) {
+      return hash({
+        dcs: items,
+        dc: repo.findBySlug(params.dc, items),
+      });
     });
   },
   setupController: function(controller, model) {
