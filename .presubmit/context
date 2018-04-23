@@ -1,0 +1,8 @@
+#!/bin/bash
+
+echo "** presubmit/$(basename $0)"
+
+if grep -lr "golang.org/x/net/context" "$@"; then
+    echo "** presubmit/$(basename $0): please use std lib's 'context' instead"
+    exit 1
+fi

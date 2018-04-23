@@ -5,6 +5,7 @@ SYSTEM:=
 CHECKS:=check godeps
 VERBOSE:=-v
 GOPATH?=$(HOME)/go
+PRESUBMIT:=core coremain plugin
 
 all: coredns
 
@@ -13,7 +14,7 @@ coredns: $(CHECKS)
 	CGO_ENABLED=0 $(SYSTEM) go build $(VERBOSE) -ldflags="-s -w -X github.com/coredns/coredns/coremain.GitCommit=$(GITCOMMIT)" -o $(BINARY)
 
 .PHONY: check
-check: linter goimports core/zplugin.go core/dnsserver/zdirectives.go godeps
+check: presubmit linter goimports core/zplugin.go core/dnsserver/zdirectives.go godeps
 
 .PHONY: test
 test: check
@@ -86,6 +87,11 @@ linter:
 .PHONY: goimports
 goimports:
 	( gometalinter --deadline=2m --disable-all --enable=goimports --vendor --exclude=^pb/ ./... || true )
+
+# Presubmit runs all scripts in .presubmit; any non 0 exit code will fail the build.
+.PHONY: presubmit
+presubmit:
+	@for pre in $(PWD)/.presubmit/* ; do "$$pre" $(PRESUBMIT); done
 
 .PHONY: clean
 clean:
