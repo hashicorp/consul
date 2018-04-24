@@ -61,10 +61,11 @@ simpler to configure; this way, the address and port of a service can
 be discovered.
 
 The `meta` object is a map of max 64 key/values with string semantics. Key can contain
-only ASCII chars and no special characters (`A-Z` `a-z` `0-9` `_` and `-`, no `.`).
+only ASCII chars and no special characters (`A-Z` `a-z` `0-9` `_` and `-`).
 For performance and security reasons, values as well as keys are limited to 128
-characters for keys, 512 for values, it has the same limitations as the node meta
-keys. All those meta data can be retrieved individually per instance of the service
+characters for keys, 512 for values. This object has the same limitations as the node
+meta keys.
+All those meta data can be retrieved individually per instance of the service
 and all the instances of a given service have their own copy of it.
 
 Services may also contain a `token` field to provide an ACL token. This token is
