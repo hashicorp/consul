@@ -25,6 +25,9 @@ A service definition is a script that looks like:
     "name": "redis",
     "tags": ["primary"],
     "address": "",
+    "meta": {
+      "meta": "for my service"
+    }
     "port": 8000,
     "enable_tag_override": false,
     "checks": [
@@ -38,8 +41,8 @@ A service definition is a script that looks like:
 ```
 
 A service definition must include a `name` and may optionally provide an
-`id`, `tags`, `address`, `port`, `check`, and `enable_tag_override`. The
-`id` is set to the `name` if not provided. It is required that all
+`id`, `tags`, `address`, `port`, `check`, `meta` and `enable_tag_override`.
+The `id` is set to the `name` if not provided. It is required that all
 services have a unique ID per node, so if names might conflict then
 unique IDs should be provided.
 
@@ -56,6 +59,13 @@ default, the IP address of the agent is used, and this does not need to be provi
 The `port` field can be used as well to make a service-oriented architecture
 simpler to configure; this way, the address and port of a service can
 be discovered.
+
+The `meta` object is a map of max 64 key/values with string semantics. Key can contain
+only ASCII chars and no special characters (`A-Z` `a-z` `0-9` `_` and `-`, no `.`).
+For performance and security reasons, values as well as keys are limited to 128
+characters for keys, 512 for values, it has the same limitations as the node meta
+keys. All those meta data can be retrieved individually per instance of the service
+and all the instances of a given service have their own copy of it.
 
 Services may also contain a `token` field to provide an ACL token. This token is
 used for any interaction with the catalog for the service, including
