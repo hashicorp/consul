@@ -29,3 +29,7 @@ main > * {
 main p {
   margin-bottom: 1em;
 }
+main p a {
+  color: $blue;
+  text-decoration: underline;
+}

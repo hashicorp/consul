@@ -1,5 +1,6 @@
 button,
-a[rel='back'] {
+a[rel='back'],
+a[rel='home'] {
   @extend %button;
 }
 %button {

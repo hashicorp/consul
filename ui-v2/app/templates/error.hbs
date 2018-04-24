@@ -16,10 +16,10 @@
                 Consul returned an error.
                 You may have visited a URL that is loading an unknown resource, so you can try going back to the root.
                 If your ACL token was not found you can reset it, and then you will be redirected to the settings page to enter a new ACL token.
-                Try looking in our <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}" target="_blank">documentation</a>
+                Try looking in our <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/index.html" target="_blank">documentation</a>
             </p>
             <button type="button" {{ action "resetToken" }}>Reset ACL Token</button>
-            <button type="button" {{ action "backHome" }}>Go Back to Root</button>
+            <a rel="home" href={{href-to 'index'}}>Go Back to Root</a>
         {{/block-slot}}
     {{/app-view}}
 {{/hashicorp-consul}}
