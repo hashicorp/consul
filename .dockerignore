@@ -1,3 +1,4 @@
+.git/*
 core/*
 coremain/*
 hooks/*
@@ -7,3 +8,5 @@ plugin/*
 request/*
 test/*
 vendor/*
+build/*
+release/*
