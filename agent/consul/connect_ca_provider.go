@@ -184,7 +184,7 @@ func (c *ConsulCAProvider) Cleanup() error {
 
 // Sign returns a new certificate valid for the given SpiffeIDService
 // using the current CA.
-func (c *ConsulCAProvider) Sign(csr *x509.CertificateRequest) (*structs.IssuedCert, error) {
+func (c *ConsulCAProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	// Lock during the signing so we don't use the same index twice
 	// for different cert serial numbers.
 	c.Lock()
@@ -194,36 +194,36 @@ func (c *ConsulCAProvider) Sign(csr *x509.CertificateRequest) (*structs.IssuedCe
 	state := c.srv.fsm.State()
 	_, providerState, err := state.CAProviderState(c.id)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	// Create the keyId for the cert from the signing private key.
 	signer, err := connect.ParseSigner(providerState.PrivateKey)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	if signer == nil {
-		return nil, fmt.Errorf("error signing cert: Consul CA not initialized yet")
+		return "", fmt.Errorf("error signing cert: Consul CA not initialized yet")
 	}
 	keyId, err := connect.KeyId(signer.Public())
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	// Parse the SPIFFE ID
 	spiffeId, err := connect.ParseCertURI(csr.URIs[0])
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	serviceId, ok := spiffeId.(*connect.SpiffeIDService)
 	if !ok {
-		return nil, fmt.Errorf("SPIFFE ID in CSR must be a service ID")
+		return "", fmt.Errorf("SPIFFE ID in CSR must be a service ID")
 	}
 
 	// Parse the CA cert
 	caCert, err := connect.ParseCert(providerState.RootCert)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing CA cert: %s", err)
+		return "", fmt.Errorf("error parsing CA cert: %s", err)
 	}
 
 	// Cert template for generation
@@ -257,11 +257,11 @@ func (c *ConsulCAProvider) Sign(csr *x509.CertificateRequest) (*structs.IssuedCe
 	bs, err := x509.CreateCertificate(
 		rand.Reader, &template, caCert, signer.Public(), signer)
 	if err != nil {
-		return nil, fmt.Errorf("error generating certificate: %s", err)
+		return "", fmt.Errorf("error generating certificate: %s", err)
 	}
 	err = pem.Encode(&buf, &pem.Block{Type: "CERTIFICATE", Bytes: bs})
 	if err != nil {
-		return nil, fmt.Errorf("error encoding private key: %s", err)
+		return "", fmt.Errorf("error encoding private key: %s", err)
 	}
 
 	// Increment the leaf cert index
@@ -273,21 +273,14 @@ func (c *ConsulCAProvider) Sign(csr *x509.CertificateRequest) (*structs.IssuedCe
 	}
 	resp, err := c.srv.raftApply(structs.ConnectCARequestType, args)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	if respErr, ok := resp.(error); ok {
-		return nil, respErr
+		return "", respErr
 	}
 
 	// Set the response
-	return &structs.IssuedCert{
-		SerialNumber: connect.HexString(template.SerialNumber.Bytes()),
-		CertPEM:      buf.String(),
-		Service:      serviceId.Service,
-		ServiceURI:   template.URIs[0].String(),
-		ValidAfter:   template.NotBefore,
-		ValidBefore:  template.NotAfter,
-	}, nil
+	return buf.String(), nil
 }
 
 // CrossSignCA returns the given intermediate CA cert signed by the current active root.

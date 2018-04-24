@@ -254,17 +254,37 @@ func (s *ConnectCA) Sign(
 		return err
 	}
 
-	// todo(kyhavlov): more validation on the CSR before signing
-
 	provider := s.srv.getCAProvider()
 
-	cert, err := provider.Sign(csr)
+	// todo(kyhavlov): more validation on the CSR before signing
+	pem, err := provider.Sign(csr)
+	if err != nil {
+		return err
+	}
+
+	// Parse the SPIFFE ID
+	spiffeId, err := connect.ParseCertURI(csr.URIs[0])
+	if err != nil {
+		return err
+	}
+	serviceId, ok := spiffeId.(*connect.SpiffeIDService)
+	if !ok {
+		return fmt.Errorf("SPIFFE ID in CSR must be a service ID")
+	}
+	cert, err := connect.ParseCert(pem)
 	if err != nil {
 		return err
 	}
 
 	// Set the response
-	*reply = *cert
+	reply = &structs.IssuedCert{
+		SerialNumber: connect.HexString(cert.SerialNumber.Bytes()),
+		CertPEM:      pem,
+		Service:      serviceId.Service,
+		ServiceURI:   cert.URIs[0].String(),
+		ValidAfter:   cert.NotBefore,
+		ValidBefore:  cert.NotAfter,
+	}
 
 	return nil
 }
