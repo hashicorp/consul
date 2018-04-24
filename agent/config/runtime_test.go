@@ -49,8 +49,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 	dataDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(dataDir)
 
-	metaVal := make(map[string]string)
-	metaVal["my"] = "value"
 	tests := []configTest{
 		// ------------------------------------------------------------
 		// cmd line flags
@@ -1934,7 +1932,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			patch: func(rt *RuntimeConfig) {
 				rt.Services = []*structs.ServiceDefinition{
 					&structs.ServiceDefinition{Name: "a", Port: 80},
-					&structs.ServiceDefinition{Name: "b", Port: 90, Meta: metaVal},
+					&structs.ServiceDefinition{Name: "b", Port: 90, Meta: map[string]string{"my": "value"}},
 				}
 				rt.DataDir = dataDir
 			},
