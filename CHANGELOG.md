@@ -2,7 +2,7 @@
 
 IMPROVEMENTS:
 * agent: Improve DNS performance on large clusters [[GH-4036](https://github.com/hashicorp/consul/issues/4036)]
-* api: Add support for Prometheus client format in metrics endpoint with `?format=prometheus` [[GH-4014](https://github.com/hashicorp/consul/issues/4014)]
+* api: Add support for Prometheus client format in metrics endpoint with `?format=prometheus` (see [docs](https://www.consul.io/api/agent.html#view-metrics)) [[GH-4014](https://github.com/hashicorp/consul/issues/4014)]
 
 BUG FIXES:
 
