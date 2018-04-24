@@ -92,11 +92,11 @@
 %healthchecked-resource header a {
   padding: 12px 15px;
 }
-
 %healthchecked-resource li a {
-  padding: 2px 15px;
+  padding: 3px 15px;
   padding-top: 4px;
   padding-left: 39px;
+  height: 31px;
 }
 %healthchecked-resource li:not(:last-child) strong,
 %healthchecked-resource li:only-child strong {

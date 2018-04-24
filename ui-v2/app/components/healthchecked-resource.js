@@ -14,8 +14,12 @@ export default Component.extend({
     return status === 'passing';
   }),
   gridRowEnd: computed('UnhealthyChecks', function() {
+    let spans = 3;
+    if (get(this, 'healthy.length') > 0) {
+      spans++;
+    }
     return {
-      gridRow: `auto / span ${4 + (get(this, 'unhealthy.length') || 0)}`
+      gridRow: `auto / span ${spans + (get(this, 'unhealthy.length') || 0)}`,
     };
-  })
+  }),
 });
