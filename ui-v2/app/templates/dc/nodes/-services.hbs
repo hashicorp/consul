@@ -1,6 +1,8 @@
-<form class="filter-bar">
-    {{freetext-filter onchange=(action 'filter') value=filter.s placeholder="Search by name"}}
-</form>
+{{#if (gt items.length 0) }}
+    <form class="filter-bar">
+        {{freetext-filter onchange=(action 'filter') value=filter.s placeholder="Search by name"}}
+    </form>
+{{/if}}
 {{#if (gt filtered.length 0)}}
     {{#tabular-collection
         items=filtered as |item index|
@@ -18,4 +20,8 @@
             </td>
         {{/block-slot}}
     {{/tabular-collection}}
+{{else}}
+    <p>
+        There are no services.
+    </p>
 {{/if}}
