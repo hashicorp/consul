@@ -17,10 +17,19 @@ table td,
 table th {
   flex: 1 0 auto;
 }
-table tr > *:first-child:nth-last-child(2),
-table tr > *:first-child:nth-last-child(2) ~ * {
-  width: 50%;
+// table tr > *:first-child:nth-last-child(2),
+// table tr > *:first-child:nth-last-child(2) ~ * {
+//   width: 50%;
+// }
+
+// KV's
+table tr > *:first-child:nth-last-child(2) {
+  width: calc(100% - 60px);
 }
+table tr > *:first-child:nth-last-child(2) ~ * {
+  width: 60px;
+}
+
 table tr > *:first-child:nth-last-child(3),
 table tr > *:first-child:nth-last-child(3) ~ * {
   width: 33%;
