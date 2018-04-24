@@ -20,7 +20,9 @@
                 {{item.Port}}
             </td>
             <td>
-                {{join ', ' item.Tags}}
+                {{#if (gt item.Tags.length 0)}}
+                    {{join ', ' item.Tags}}
+                {{/if}}
             </td>
         {{/block-slot}}
     {{/tabular-collection}}
