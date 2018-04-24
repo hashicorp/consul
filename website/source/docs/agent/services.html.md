@@ -64,7 +64,7 @@ The `meta` object is a map of max 64 key/values with string semantics. Key can c
 only ASCII chars and no special characters (`A-Z` `a-z` `0-9` `_` and `-`).
 For performance and security reasons, values as well as keys are limited to 128
 characters for keys, 512 for values. This object has the same limitations as the node
-meta keys.
+meta object in node definition.
 All those meta data can be retrieved individually per instance of the service
 and all the instances of a given service have their own copy of it.
 
