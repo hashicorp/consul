@@ -30,7 +30,7 @@ module.exports = function(environment) {
   ENV = Object.assign({}, ENV, {
     CONSUL_VERSION: (function() {
       // see /scripts/dist.sh:8
-      const version_go = `${path.dirname(process.cwd())}/version/version.go`;
+      const version_go = `${path.dirname(path.dirname(__dirname))}/version/version.go`;
       const contents = fs.readFileSync(version_go).toString();
       return contents
         .split('\n')
@@ -40,8 +40,8 @@ module.exports = function(environment) {
         .trim()
         .split('"')[1];
     })(),
-    CONSUL_DOCUMENTATION_URL: 'https://www.consul.io/docs/index.html',
-    CONSUL_COPYRIGHT_URL: 'https://www.hashicorp.com/',
+    CONSUL_DOCUMENTATION_URL: 'https://www.consul.io/docs',
+    CONSUL_COPYRIGHT_URL: 'https://www.hashicorp.com',
     CONSUL_COPYRIGHT_YEAR: '2018', // hardcode for now, could be auto-gen'ed on build
   });
 
