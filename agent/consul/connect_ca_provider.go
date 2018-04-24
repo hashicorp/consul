@@ -16,7 +16,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	uuid "github.com/hashicorp/go-uuid"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -96,12 +95,16 @@ func NewConsulCAProvider(rawConfig map[string]interface{}, srv *Server) (*Consul
 		newState.PrivateKey = conf.PrivateKey
 	}
 
-	// Generate the root CA
-	ca, err := provider.generateCA(newState.PrivateKey, conf.RootCert, idx+1)
-	if err != nil {
-		return nil, fmt.Errorf("error generating CA: %v", err)
+	// Generate the root CA if necessary
+	if conf.RootCert == "" {
+		ca, err := provider.generateCA(newState.PrivateKey, idx+1)
+		if err != nil {
+			return nil, fmt.Errorf("error generating CA: %v", err)
+		}
+		newState.RootCert = ca
+	} else {
+		newState.RootCert = conf.RootCert
 	}
-	newState.CARoot = ca
 
 	// Write the provider state
 	args := &structs.CARequest{
@@ -133,68 +136,33 @@ func decodeConfig(raw map[string]interface{}) (*ConsulCAProviderConfig, error) {
 }
 
 // Return the active root CA and generate a new one if needed
-func (c *ConsulCAProvider) ActiveRoot() (*structs.CARoot, error) {
+func (c *ConsulCAProvider) ActiveRoot() (string, error) {
 	state := c.srv.fsm.State()
 	_, providerState, err := state.CAProviderState(c.id)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return providerState.CARoot, nil
+	return providerState.RootCert, nil
 }
 
 // We aren't maintaining separate root/intermediate CAs for the builtin
 // provider, so just return the root.
-func (c *ConsulCAProvider) ActiveIntermediate() (*structs.CARoot, error) {
+func (c *ConsulCAProvider) ActiveIntermediate() (string, error) {
 	return c.ActiveRoot()
 }
 
 // We aren't maintaining separate root/intermediate CAs for the builtin
 // provider, so just generate a CSR for the active root.
-func (c *ConsulCAProvider) GenerateIntermediate() (*structs.CARoot, *x509.CertificateRequest, error) {
+func (c *ConsulCAProvider) GenerateIntermediate() (string, error) {
 	ca, err := c.ActiveIntermediate()
 	if err != nil {
-		return nil, nil, err
+		return "", err
 	}
 
-	state := c.srv.fsm.State()
-	_, providerState, err := state.CAProviderState(c.id)
-	if err != nil {
-		return nil, nil, err
-	}
-	_, config, err := state.CAConfig()
-	if err != nil {
-		return nil, nil, err
-	}
+	// todo(kyhavlov): make a new intermediate here
 
-	id := &connect.SpiffeIDSigning{ClusterID: config.ClusterID, Domain: "consul"}
-	template := &x509.CertificateRequest{
-		URIs: []*url.URL{id.URI()},
-	}
-
-	signer, err := connect.ParseSigner(providerState.PrivateKey)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// Create the CSR itself
-	var csrBuf bytes.Buffer
-	bs, err := x509.CreateCertificateRequest(rand.Reader, template, signer)
-	if err != nil {
-		return nil, nil, fmt.Errorf("error creating CSR: %s", err)
-	}
-
-	err = pem.Encode(&csrBuf, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: bs})
-	if err != nil {
-		return nil, nil, fmt.Errorf("error encoding CSR: %s", err)
-	}
-
-	csr, err := connect.ParseCSR(csrBuf.String())
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return ca, csr, err
+	return ca, err
 }
 
 // Remove the state store entry for this provider instance.
@@ -216,7 +184,7 @@ func (c *ConsulCAProvider) Cleanup() error {
 
 // Sign returns a new certificate valid for the given SpiffeIDService
 // using the current CA.
-func (c *ConsulCAProvider) Sign(serviceId *connect.SpiffeIDService, csr *x509.CertificateRequest) (*structs.IssuedCert, error) {
+func (c *ConsulCAProvider) Sign(csr *x509.CertificateRequest) (*structs.IssuedCert, error) {
 	// Lock during the signing so we don't use the same index twice
 	// for different cert serial numbers.
 	c.Lock()
@@ -242,8 +210,18 @@ func (c *ConsulCAProvider) Sign(serviceId *connect.SpiffeIDService, csr *x509.Ce
 		return nil, err
 	}
 
+	// Parse the SPIFFE ID
+	spiffeId, err := connect.ParseCertURI(csr.URIs[0])
+	if err != nil {
+		return nil, err
+	}
+	serviceId, ok := spiffeId.(*connect.SpiffeIDService)
+	if !ok {
+		return nil, fmt.Errorf("SPIFFE ID in CSR must be a service ID")
+	}
+
 	// Parse the CA cert
-	caCert, err := connect.ParseCert(providerState.CARoot.RootCert)
+	caCert, err := connect.ParseCert(providerState.RootCert)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing CA cert: %s", err)
 	}
@@ -312,8 +290,8 @@ func (c *ConsulCAProvider) Sign(serviceId *connect.SpiffeIDService, csr *x509.Ce
 	}, nil
 }
 
-// SignCA returns an intermediate CA cert signed by the current active root.
-func (c *ConsulCAProvider) SignCA(csr *x509.CertificateRequest) (string, error) {
+// CrossSignCA returns the given intermediate CA cert signed by the current active root.
+func (c *ConsulCAProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 	c.Lock()
 	defer c.Unlock()
 
@@ -329,44 +307,28 @@ func (c *ConsulCAProvider) SignCA(csr *x509.CertificateRequest) (string, error) 
 		return "", fmt.Errorf("error parsing private key %q: %v", providerState.PrivateKey, err)
 	}
 
-	name := fmt.Sprintf("Consul cross-signed CA %d", providerState.LeafIndex+1)
-
-	// The URI (SPIFFE compatible) for the cert
-	_, config, err := state.CAConfig()
+	rootCA, err := connect.ParseCert(providerState.RootCert)
 	if err != nil {
 		return "", err
 	}
-	id := &connect.SpiffeIDSigning{ClusterID: config.ClusterID, Domain: "consul"}
+
 	keyId, err := connect.KeyId(privKey.Public())
 	if err != nil {
 		return "", err
 	}
 
-	// Create the CA cert
+	// Create the cross-signing template from the existing root CA
 	serialNum := &big.Int{}
 	serialNum.SetUint64(providerState.LeafIndex + 1)
-	template := x509.Certificate{
-		SerialNumber:                serialNum,
-		Subject:                     pkix.Name{CommonName: name},
-		URIs:                        csr.URIs,
-		Signature:                   csr.Signature,
-		PublicKeyAlgorithm:          csr.PublicKeyAlgorithm,
-		PublicKey:                   csr.PublicKey,
-		PermittedDNSDomainsCritical: true,
-		PermittedDNSDomains:         []string{id.URI().Hostname()},
-		BasicConstraintsValid:       true,
-		KeyUsage: x509.KeyUsageCertSign |
-			x509.KeyUsageCRLSign |
-			x509.KeyUsageDigitalSignature,
-		IsCA:           true,
-		NotAfter:       time.Now().Add(10 * 365 * 24 * time.Hour),
-		NotBefore:      time.Now(),
-		AuthorityKeyId: keyId,
-		SubjectKeyId:   keyId,
-	}
+	template := *cert
+	template.SerialNumber = serialNum
+	template.Subject = rootCA.Subject
+	template.SignatureAlgorithm = rootCA.SignatureAlgorithm
+	template.SubjectKeyId = keyId
+	template.AuthorityKeyId = keyId
 
 	bs, err := x509.CreateCertificate(
-		rand.Reader, &template, &template, privKey.Public(), privKey)
+		rand.Reader, &template, rootCA, cert.PublicKey, privKey)
 	if err != nil {
 		return "", fmt.Errorf("error generating CA certificate: %s", err)
 	}
@@ -405,75 +367,58 @@ func generatePrivateKey() (string, error) {
 }
 
 // generateCA makes a new root CA using the current private key
-func (c *ConsulCAProvider) generateCA(privateKey, contents string, sn uint64) (*structs.CARoot, error) {
+func (c *ConsulCAProvider) generateCA(privateKey string, sn uint64) (string, error) {
 	state := c.srv.fsm.State()
 	_, config, err := state.CAConfig()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	privKey, err := connect.ParseSigner(privateKey)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing private key %q: %v", privateKey, err)
+		return "", fmt.Errorf("error parsing private key %q: %v", privateKey, err)
 	}
 
 	name := fmt.Sprintf("Consul CA %d", sn)
 
-	pemContents := contents
-
-	if pemContents == "" {
-		// The URI (SPIFFE compatible) for the cert
-		id := &connect.SpiffeIDSigning{ClusterID: config.ClusterID, Domain: "consul"}
-		keyId, err := connect.KeyId(privKey.Public())
-		if err != nil {
-			return nil, err
-		}
-
-		// Create the CA cert
-		serialNum := &big.Int{}
-		serialNum.SetUint64(sn)
-		template := x509.Certificate{
-			SerialNumber: serialNum,
-			Subject:      pkix.Name{CommonName: name},
-			URIs:         []*url.URL{id.URI()},
-			PermittedDNSDomainsCritical: true,
-			PermittedDNSDomains:         []string{id.URI().Hostname()},
-			BasicConstraintsValid:       true,
-			KeyUsage: x509.KeyUsageCertSign |
-				x509.KeyUsageCRLSign |
-				x509.KeyUsageDigitalSignature,
-			IsCA:           true,
-			NotAfter:       time.Now().Add(10 * 365 * 24 * time.Hour),
-			NotBefore:      time.Now(),
-			AuthorityKeyId: keyId,
-			SubjectKeyId:   keyId,
-		}
-
-		bs, err := x509.CreateCertificate(
-			rand.Reader, &template, &template, privKey.Public(), privKey)
-		if err != nil {
-			return nil, fmt.Errorf("error generating CA certificate: %s", err)
-		}
-
-		var buf bytes.Buffer
-		err = pem.Encode(&buf, &pem.Block{Type: "CERTIFICATE", Bytes: bs})
-		if err != nil {
-			return nil, fmt.Errorf("error encoding private key: %s", err)
-		}
-
-		pemContents = buf.String()
-	}
-
-	// Generate an ID for the new CA cert
-	rootId, err := uuid.GenerateUUID()
+	// The URI (SPIFFE compatible) for the cert
+	id := &connect.SpiffeIDSigning{ClusterID: config.ClusterID, Domain: "consul"}
+	keyId, err := connect.KeyId(privKey.Public())
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return &structs.CARoot{
-		ID:       rootId,
-		Name:     name,
-		RootCert: pemContents,
-		Active:   true,
-	}, nil
+	// Create the CA cert
+	serialNum := &big.Int{}
+	serialNum.SetUint64(sn)
+	template := x509.Certificate{
+		SerialNumber: serialNum,
+		Subject:      pkix.Name{CommonName: name},
+		URIs:         []*url.URL{id.URI()},
+		PermittedDNSDomainsCritical: true,
+		PermittedDNSDomains:         []string{id.URI().Hostname()},
+		BasicConstraintsValid:       true,
+		KeyUsage: x509.KeyUsageCertSign |
+			x509.KeyUsageCRLSign |
+			x509.KeyUsageDigitalSignature,
+		IsCA:           true,
+		NotAfter:       time.Now().Add(10 * 365 * 24 * time.Hour),
+		NotBefore:      time.Now(),
+		AuthorityKeyId: keyId,
+		SubjectKeyId:   keyId,
+	}
+
+	bs, err := x509.CreateCertificate(
+		rand.Reader, &template, &template, privKey.Public(), privKey)
+	if err != nil {
+		return "", fmt.Errorf("error generating CA certificate: %s", err)
+	}
+
+	var buf bytes.Buffer
+	err = pem.Encode(&buf, &pem.Block{Type: "CERTIFICATE", Bytes: bs})
+	if err != nil {
+		return "", fmt.Errorf("error encoding private key: %s", err)
+	}
+
+	return buf.String(), nil
 }

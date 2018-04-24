@@ -62,7 +62,7 @@ func caRootTableSchema() *memdb.TableSchema {
 				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: &memdb.UUIDFieldIndex{
+				Indexer: &memdb.StringFieldIndex{
 					Field: "ID",
 				},
 			},

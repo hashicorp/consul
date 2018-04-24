@@ -214,7 +214,9 @@ func (s *Server) establishLeadership() error {
 	s.autopilot.Start()
 
 	// todo(kyhavlov): start a goroutine here for handling periodic CA rotation
-	s.initializeCA()
+	if err := s.initializeCA(); err != nil {
+		return err
+	}
 
 	s.setConsistentReadReady()
 	return nil
@@ -231,6 +233,8 @@ func (s *Server) revokeLeadership() error {
 	if err := s.clearAllSessionTimers(); err != nil {
 		return err
 	}
+
+	s.setCAProvider(nil)
 
 	s.resetConsistentReadReady()
 	s.autopilot.Stop()
@@ -412,22 +416,33 @@ func (s *Server) initializeCA() error {
 	s.setCAProvider(provider)
 
 	// Get the active root cert from the CA
-	trustedCA, err := provider.ActiveRoot()
+	rootPEM, err := provider.ActiveRoot()
 	if err != nil {
 		return fmt.Errorf("error getting root cert: %v", err)
+	}
+
+	id, err := connect.ParseCertFingerprint(rootPEM)
+	if err != nil {
+		return fmt.Errorf("error parsing root fingerprint: %v", err)
+	}
+	rootCA := &structs.CARoot{
+		ID:       id,
+		Name:     fmt.Sprintf("%s CA Root Cert", conf.Provider),
+		RootCert: rootPEM,
+		Active:   true,
 	}
 
 	// Check if the CA root is already initialized and exit if it is.
 	// Every change to the CA after this initial bootstrapping should
 	// be done through the rotation process.
 	state := s.fsm.State()
-	_, root, err := state.CARootActive(nil)
+	_, activeRoot, err := state.CARootActive(nil)
 	if err != nil {
 		return err
 	}
-	if root != nil {
-		if root.ID != trustedCA.ID {
-			s.logger.Printf("[WARN] connect: CA root %q is not the active root (%q)", trustedCA.ID, root.ID)
+	if activeRoot != nil {
+		if activeRoot.ID != rootCA.ID {
+			s.logger.Printf("[WARN] connect: CA root %q is not the active root (%q)", rootCA.ID, activeRoot.ID)
 		}
 		return nil
 	}
@@ -442,7 +457,7 @@ func (s *Server) initializeCA() error {
 	resp, err := s.raftApply(structs.ConnectCARequestType, &structs.CARequest{
 		Op:    structs.CAOpSetRoots,
 		Index: idx,
-		Roots: []*structs.CARoot{trustedCA},
+		Roots: []*structs.CARoot{rootCA},
 	})
 	if err != nil {
 		s.logger.Printf("[ERR] connect: Apply failed %v", err)

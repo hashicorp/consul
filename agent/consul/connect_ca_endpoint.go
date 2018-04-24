@@ -80,9 +80,20 @@ func (s *ConnectCA) ConfigurationSet(
 		return fmt.Errorf("could not initialize provider: %v", err)
 	}
 
-	newActiveRoot, err := newProvider.ActiveRoot()
+	newRootPEM, err := newProvider.ActiveRoot()
 	if err != nil {
 		return err
+	}
+
+	id, err := connect.ParseCertFingerprint(newRootPEM)
+	if err != nil {
+		return fmt.Errorf("error parsing root fingerprint: %v", err)
+	}
+	newActiveRoot := &structs.CARoot{
+		ID:       id,
+		Name:     fmt.Sprintf("%s CA Root Cert", config.Provider),
+		RootCert: newRootPEM,
+		Active:   true,
 	}
 
 	// Compare the new provider's root CA ID to the current one. If they
@@ -121,13 +132,19 @@ func (s *ConnectCA) ConfigurationSet(
 	// to get the cross-signed intermediate
 	// 3. Get the active root for the new provider, append the intermediate from step 3
 	// to its list of intermediates
-	_, csr, err := newProvider.GenerateIntermediate()
+	intermediatePEM, err := newProvider.GenerateIntermediate()
 	if err != nil {
 		return err
 	}
 
+	intermediateCA, err := connect.ParseCert(intermediatePEM)
+	if err != nil {
+		return err
+	}
+
+	// Have the old provider cross-sign the new intermediate
 	oldProvider := s.srv.getCAProvider()
-	xcCert, err := oldProvider.SignCA(csr)
+	xcCert, err := oldProvider.CrossSignCA(intermediateCA)
 	if err != nil {
 		return err
 	}
@@ -237,21 +254,11 @@ func (s *ConnectCA) Sign(
 		return err
 	}
 
-	// Parse the SPIFFE ID
-	spiffeId, err := connect.ParseCertURI(csr.URIs[0])
-	if err != nil {
-		return err
-	}
-	serviceId, ok := spiffeId.(*connect.SpiffeIDService)
-	if !ok {
-		return fmt.Errorf("SPIFFE ID in CSR must be a service ID")
-	}
-
 	// todo(kyhavlov): more validation on the CSR before signing
 
 	provider := s.srv.getCAProvider()
 
-	cert, err := provider.Sign(serviceId, csr)
+	cert, err := provider.Sign(csr)
 	if err != nil {
 		return err
 	}

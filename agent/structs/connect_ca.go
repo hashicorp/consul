@@ -164,7 +164,7 @@ type CAConfiguration struct {
 type CAConsulProviderState struct {
 	ID         string
 	PrivateKey string
-	CARoot     *CARoot
+	RootCert   string
 	LeafIndex  uint64
 
 	RaftIndex
