@@ -87,11 +87,14 @@ export default Adapter.extend({
       // isBoolean? should error on false
       const url = requestData.url.split('?')[0];
       // TODO: How reliable is this?
+      // KV `Keys` and therefore id's can have spaces and therefore %20's in them
       const item = {
-        [PRIMARY_KEY]: url
-          .split('/')
-          .splice(3)
-          .join('/'),
+        [PRIMARY_KEY]: decodeURIComponent(
+          url
+            .split('/')
+            .splice(3)
+            .join('/')
+        ),
         [DATACENTER_KEY]: '',
       }; // TODO: separator?
       // safest way to check this is a create?
