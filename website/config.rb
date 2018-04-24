@@ -45,7 +45,7 @@ helpers do
   #
   # @return [String]
   def description_for(page)
-    description = (page.data.description || "")
+    description = (page.data.description || "Consul by HashiCorp")
       .gsub('"', '')
       .gsub(/\n+/, ' ')
       .squeeze(' ')

@@ -1,5 +1,12 @@
 ## UNRELEASED
 
+IMPROVEMENTS:
+* agent: Improve DNS performance on large clusters [[GH-4036](https://github.com/hashicorp/consul/issues/4036)]
+* api: Add support for Prometheus client format in metrics endpoint with `?format=prometheus` (see [docs](https://www.consul.io/api/agent.html#view-metrics)) [[GH-4014](https://github.com/hashicorp/consul/issues/4014)]
+
+BUG FIXES:
+
+* agent: Only call signal.Notify once during agent startup [[PR-4024](https://github.com/hashicorp/consul/pull/4024)]
 
 ## 1.0.7 (April 13, 2018)
 
