@@ -29,6 +29,19 @@ export default Route.extend(WithFeedback, {
         `There was an error deleting your token.`
       );
     },
+    use: function(item) {
+      get(this, 'feedback').execute(
+        () => {
+          get(this, 'settings')
+            .persist({ token: get(item, 'ID') })
+            .then(() => {
+              this.transitionTo('dc.services');
+            });
+        },
+        `Now using new ACL token`,
+        `There was an error using that ACL token`
+      );
+    },
     // TODO: this needs to happen for all endpoints
     error: function(e, transition) {
       if (e.errors[0].status === '401') {

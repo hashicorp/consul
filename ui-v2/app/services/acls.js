@@ -1,5 +1,6 @@
 import Service, { inject as service } from '@ember/service';
 import { get, set } from '@ember/object';
+import { typeOf } from '@ember/utils';
 // clone: function(acl, dc) {
 //   const slug = acl.get('ID');
 //   const newAcl = this.create();
@@ -14,24 +15,10 @@ import { get, set } from '@ember/object';
 //             }
 //           );
 //           return acl;
-
 //         }
 //       );
 //     }
 //   );
-// },
-// findAllByDatacenter: function(dc) {
-//   return get('/v1/acl/list', dc).then(function(data) {
-//     const objs = [];
-//     data.map(function(obj) {
-//       if (obj.ID === 'anonymous') {
-//         objs.unshift(Entity.create(obj));
-//       } else {
-//         objs.push(Entity.create(obj));
-//       }
-//     });
-//     return objs;
-//   });
 // },
 export default Service.extend({
   store: service('store'),
@@ -41,6 +28,7 @@ export default Service.extend({
         dc: dc,
       })
       .then(function(items) {
+        // TODO: Sort with anonymous first
         return items.forEach(function(item, i, arr) {
           set(item, 'Datacenter', dc);
         });
@@ -64,8 +52,22 @@ export default Service.extend({
     return item.save();
   },
   remove: function(item) {
+    // TODO: check to see if this is still needed
+    // seems like ember-changeset .get('data') still needs this
+    //
+    if (typeOf(item) === 'object') {
+      const id = item.ID;
+      const dc = item.Datacenter;
+      // TODO: This won't work for multi dc?
+      // id's need to be 'dc-id'
+      item = get(this, 'store').peekRecord('acl', id);
+      if (item == null) {
+        item = this.create();
+        set(item, 'ID', id);
+        set(item, 'Datacenter', dc);
+      }
+    }
     return item.destroyRecord().then(item => {
-      // really?
       return get(this, 'store').unloadRecord(item);
     });
   },

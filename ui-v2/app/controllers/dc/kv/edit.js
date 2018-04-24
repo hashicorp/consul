@@ -31,9 +31,6 @@ export default Controller.extend({
         case 'value':
           set(this, 'item.Value', btoa(target.value));
           break;
-        // case 'key':
-        //   set(this, 'item.Key', target.value);
-        //   break;
       }
     },
   },

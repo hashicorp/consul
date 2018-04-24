@@ -10,10 +10,19 @@
         </h1>
     {{/block-slot}}
     {{#block-slot 'actions'}}
-{{#if item.ID }}
-        <button type="button">Copy Token ID</button>
+{{#if (not create) }}
         <button type="button" {{ action "clone" item }}>Clone token</button>
-        <button type="button" {{ action "requestUse" item }}>Use token</button>
+        {{#confirmation-dialog message='Are you sure you want to use this ACL token?'}}
+            {{#block-slot 'action' as |confirm|}}
+                <button type="button" {{ action confirm 'use' item }}>Use token</button>
+            {{/block-slot}}
+            {{#block-slot 'dialog'}}
+                <p>
+                    Are you sure you want to use this ACL token?
+                </p>
+                <button type="button" class="type-cancel" {{ action cancel}}>Cancel</button>
+            {{/block-slot}}
+        {{/confirmation-dialog}}
 {{/if}}
     {{/block-slot}}
     {{#block-slot 'content'}}

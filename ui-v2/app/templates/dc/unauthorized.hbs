@@ -1,12 +1,12 @@
 {{#app-view class="disabled"}}
     {{#block-slot 'header'}}
         <h1>
-            ACL
+            Access Denied
         </h1>
     {{/block-slot}}
     {{#block-slot 'content'}}
         <p>
-            ACLs are disabled in this Consul cluster. This is the default behavior, as you have to explicitly enable them.
+            Your ACL token does not have the appropriate permissions to perform the expected action.
         </p>
         <p>
             Learn more in the <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guides/acl.html" target="_blank">ACL documentation</a>.

@@ -54,6 +54,8 @@ export default Service.extend({
   },
   remove: function(item) {
     // TODO: check to see if this is still needed
+    // seems like ember-changeset .get('data') still needs this
+    //
     if (typeOf(item) === 'object') {
       const key = item.Key;
       const dc = item.Datacenter;

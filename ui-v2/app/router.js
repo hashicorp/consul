@@ -45,7 +45,7 @@ Router.map(function() {
   this.route('index', { path: '/' });
 
   // The settings page is global.
-  this.resource('settings', { path: '/settings' });
+  this.route('settings', { path: '/settings' });
   this.route('notfound', { path: '/*path' });
 });
 

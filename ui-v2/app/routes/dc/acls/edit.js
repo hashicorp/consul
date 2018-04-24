@@ -5,6 +5,7 @@ import { get } from '@ember/object';
 import WithFeedback from 'consul-ui/mixins/with-feedback';
 export default Route.extend(WithFeedback, {
   repo: service('acls'),
+  settings: service('settings'),
   model: function(params) {
     return hash({
       item: get(this, 'repo').findBySlug(params.id, this.modelFor('dc').dc.Name),
@@ -31,11 +32,15 @@ export default Route.extend(WithFeedback, {
     delete: function(item) {
       get(this, 'feedback').execute(
         () => {
-          return get(this, 'repo')
-            .remove(item.get('data'))
-            .then(() => {
-              return this.transitionTo('dc.acls');
-            });
+          return (
+            get(this, 'repo')
+              // ember-changeset doesn't support `get`
+              // and `data` returns an object not a model
+              .remove(item.get('data'))
+              .then(() => {
+                return this.transitionTo('dc.acls');
+              })
+          );
         },
         `Your ACL token was deleted.`,
         `There was an error deleting your ACL token.`
@@ -47,8 +52,11 @@ export default Route.extend(WithFeedback, {
     use: function(item) {
       get(this, 'feedback').execute(
         () => {
-          // settings.set('settings.token', acl.ID);
-          this.transitionTo('dc.services');
+          get(this, 'settings')
+            .persist({ token: get(item, 'ID') })
+            .then(() => {
+              this.transitionTo('dc.services');
+            });
         },
         `Now using new ACL token`,
         `There was an error using that ACL token`
