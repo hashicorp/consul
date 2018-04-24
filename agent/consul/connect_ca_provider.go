@@ -167,7 +167,7 @@ func (c *ConsulCAProvider) GenerateIntermediate() (*structs.CARoot, *x509.Certif
 		return nil, nil, err
 	}
 
-	id := &connect.SpiffeIDSigning{ClusterID: config.ClusterSerial, Domain: "consul"}
+	id := &connect.SpiffeIDSigning{ClusterID: config.ClusterID, Domain: "consul"}
 	template := &x509.CertificateRequest{
 		URIs: []*url.URL{id.URI()},
 	}
@@ -198,7 +198,7 @@ func (c *ConsulCAProvider) GenerateIntermediate() (*structs.CARoot, *x509.Certif
 }
 
 // Remove the state store entry for this provider instance.
-func (c *ConsulCAProvider) Teardown() error {
+func (c *ConsulCAProvider) Cleanup() error {
 	args := &structs.CARequest{
 		Op:            structs.CAOpDeleteProviderState,
 		ProviderState: &structs.CAConsulProviderState{ID: c.id},
@@ -336,7 +336,7 @@ func (c *ConsulCAProvider) SignCA(csr *x509.CertificateRequest) (string, error) 
 	if err != nil {
 		return "", err
 	}
-	id := &connect.SpiffeIDSigning{ClusterID: config.ClusterSerial, Domain: "consul"}
+	id := &connect.SpiffeIDSigning{ClusterID: config.ClusterID, Domain: "consul"}
 	keyId, err := connect.KeyId(privKey.Public())
 	if err != nil {
 		return "", err
@@ -423,7 +423,7 @@ func (c *ConsulCAProvider) generateCA(privateKey, contents string, sn uint64) (*
 
 	if pemContents == "" {
 		// The URI (SPIFFE compatible) for the cert
-		id := &connect.SpiffeIDSigning{ClusterID: config.ClusterSerial, Domain: "consul"}
+		id := &connect.SpiffeIDSigning{ClusterID: config.ClusterID, Domain: "consul"}
 		keyId, err := connect.KeyId(privKey.Public())
 		if err != nil {
 			return nil, err

@@ -31,9 +31,9 @@ type CARoot struct {
 	// RootCert is the PEM-encoded public certificate.
 	RootCert string
 
-	// Intermediates is a list of PEM-encoded intermediate certs to
+	// IntermediateCerts is a list of PEM-encoded intermediate certs to
 	// attach to any leaf certs signed by this CA.
-	Intermediates []string
+	IntermediateCerts []string
 
 	// SigningCert is the PEM-encoded signing certificate and SigningKey
 	// is the PEM-encoded private key for the signing certificate. These
@@ -146,8 +146,8 @@ const (
 
 // CAConfiguration is the configuration for the current CA plugin.
 type CAConfiguration struct {
-	// Unique identifier for the cluster
-	ClusterSerial string `json:"-"`
+	// ClusterID is a unique identifier for the cluster
+	ClusterID string `json:"-"`
 
 	// Provider is the CA provider implementation to use.
 	Provider string

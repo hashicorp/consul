@@ -29,8 +29,8 @@ type CAProvider interface {
 	// SignCA signs a CA CSR and returns the resulting cross-signed cert.
 	SignCA(*x509.CertificateRequest) (string, error)
 
-	// Teardown performs any necessary cleanup that should happen when the provider
+	// Cleanup performs any necessary cleanup that should happen when the provider
 	// is shut down permanently, such as removing a temporary PKI backend in Vault
 	// created for an intermediate CA.
-	Teardown() error
+	Cleanup() error
 }

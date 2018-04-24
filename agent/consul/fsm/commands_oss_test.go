@@ -1251,7 +1251,7 @@ func TestFSM_CAConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	var conf *connect.ConsulCAProviderConfig
+	var conf *structs.ConsulCAProviderConfig
 	if err := mapstructure.WeakDecode(config.Config, &conf); err != nil {
 		t.Fatalf("error decoding config: %s, %v", err, config.Config)
 	}

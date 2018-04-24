@@ -7,16 +7,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/consul/agent/connect"
-	uuid "github.com/hashicorp/go-uuid"
-
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
+	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
@@ -215,7 +214,7 @@ func (s *Server) establishLeadership() error {
 	s.autopilot.Start()
 
 	// todo(kyhavlov): start a goroutine here for handling periodic CA rotation
-	s.bootstrapCA()
+	s.initializeCA()
 
 	s.setConsistentReadReady()
 	return nil
@@ -366,8 +365,9 @@ func (s *Server) getOrCreateAutopilotConfig() *autopilot.Config {
 	return config
 }
 
-// getOrCreateCAConfig is used to get the CA config, initializing it if necessary
-func (s *Server) getOrCreateCAConfig() (*structs.CAConfiguration, error) {
+// initializeCAConfig is used to initialize the CA config if necessary
+// when setting up the CA during establishLeadership
+func (s *Server) initializeCAConfig() (*structs.CAConfiguration, error) {
 	state := s.fsm.State()
 	_, config, err := state.CAConfig()
 	if err != nil {
@@ -377,13 +377,13 @@ func (s *Server) getOrCreateCAConfig() (*structs.CAConfiguration, error) {
 		return config, nil
 	}
 
-	sn, err := uuid.GenerateUUID()
+	id, err := uuid.GenerateUUID()
 	if err != nil {
 		return nil, err
 	}
 
 	config = s.config.CAConfig
-	config.ClusterSerial = sn
+	config.ClusterID = id
 	req := structs.CARequest{
 		Op:     structs.CAOpSetConfig,
 		Config: config,
@@ -395,9 +395,10 @@ func (s *Server) getOrCreateCAConfig() (*structs.CAConfiguration, error) {
 	return config, nil
 }
 
-// bootstrapCA creates a CA provider from the current configuration.
-func (s *Server) bootstrapCA() error {
-	conf, err := s.getOrCreateCAConfig()
+// initializeCA sets up the CA provider when gaining leadership, bootstrapping
+// the root in the state store if necessary.
+func (s *Server) initializeCA() error {
+	conf, err := s.initializeCAConfig()
 	if err != nil {
 		return err
 	}
@@ -424,7 +425,10 @@ func (s *Server) bootstrapCA() error {
 	if err != nil {
 		return err
 	}
-	if root != nil && root.ID == trustedCA.ID {
+	if root != nil {
+		if root.ID != trustedCA.ID {
+			s.logger.Printf("[WARN] connect: CA root %q is not the active root (%q)", trustedCA.ID, root.ID)
+		}
 		return nil
 	}
 

@@ -52,7 +52,7 @@ func (s *ConnectCA) ConfigurationSet(
 		return err
 	}
 
-	// This action requires operator read access.
+	// This action requires operator write access.
 	rule, err := s.srv.resolveToken(args.Token)
 	if err != nil {
 		return err
@@ -133,7 +133,7 @@ func (s *ConnectCA) ConfigurationSet(
 	}
 
 	// Add the cross signed cert to the new root's intermediates
-	newActiveRoot.Intermediates = []string{xcCert}
+	newActiveRoot.IntermediateCerts = []string{xcCert}
 
 	// Update the roots and CA config in the state store at the same time
 	idx, roots, err := state.CARoots(nil)
@@ -166,11 +166,11 @@ func (s *ConnectCA) ConfigurationSet(
 	// and call teardown on the old provider
 	s.srv.setCAProvider(newProvider)
 
-	if err := oldProvider.Teardown(); err != nil {
-		return err
+	if err := oldProvider.Cleanup(); err != nil {
+		s.srv.logger.Printf("[WARN] connect: failed to clean up old provider %q", config.Provider)
 	}
 
-	s.srv.logger.Printf("[INFO] connect: CA rotated to the new root under %q provider", args.Config.Provider)
+	s.srv.logger.Printf("[INFO] connect: CA rotated to new root under provider %q", args.Config.Provider)
 
 	return nil
 }
@@ -205,12 +205,12 @@ func (s *ConnectCA) Roots(
 				// directly to the structure in the memdb store.
 
 				reply.Roots[i] = &structs.CARoot{
-					ID:            r.ID,
-					Name:          r.Name,
-					RootCert:      r.RootCert,
-					Intermediates: r.Intermediates,
-					RaftIndex:     r.RaftIndex,
-					Active:        r.Active,
+					ID:                r.ID,
+					Name:              r.Name,
+					RootCert:          r.RootCert,
+					IntermediateCerts: r.IntermediateCerts,
+					RaftIndex:         r.RaftIndex,
+					Active:            r.Active,
 				}
 
 				if r.Active {
