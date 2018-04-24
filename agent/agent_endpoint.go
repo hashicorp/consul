@@ -79,9 +79,6 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 
 // enablePrometheusOutput will look for Prometheus mime-type or format Query parameter the same way as Nomad
 func enablePrometheusOutput(req *http.Request) bool {
-	if contentType := req.Header.Get("Accept"); contentType == "text/plain; version=0.0.4; charset=utf-8" {
-		return true
-	}
 	if format := req.URL.Query().Get("format"); format == "prometheus" {
 		return true
 	}
