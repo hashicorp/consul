@@ -29,7 +29,8 @@ main > * {
 main p {
   margin-bottom: 1em;
 }
-main p a {
+main p a,
+main dd a {
   color: $blue;
   text-decoration: underline;
 }
