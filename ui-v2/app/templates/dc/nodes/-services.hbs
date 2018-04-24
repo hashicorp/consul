@@ -10,6 +10,7 @@
         {{#block-slot 'header'}}
             <th>Service</th>
             <th>Port</th>
+            <th>Tags</th>
         {{/block-slot}}
         {{#block-slot 'row'}}
             <td>
@@ -17,6 +18,9 @@
             </td>
             <td>
                 {{item.Port}}
+            </td>
+            <td>
+                {{join ', ' item.Tags}}
             </td>
         {{/block-slot}}
     {{/tabular-collection}}
