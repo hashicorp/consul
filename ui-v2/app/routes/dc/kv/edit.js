@@ -6,6 +6,13 @@ import { get, set } from '@ember/object';
 import WithFeedback from 'consul-ui/mixins/with-feedback';
 import ascend from 'consul-ui/utils/ascend';
 
+const transitionToList = function(key, transitionTo) {
+  if (key === '/') {
+    return transitionTo('dc.kv.index');
+  } else {
+    return transitionTo('dc.kv.folder', key);
+  }
+};
 export default Route.extend(WithFeedback, {
   repo: service('kv'),
   sessionRepo: service('session'),
@@ -41,7 +48,7 @@ export default Route.extend(WithFeedback, {
           return get(this, 'repo')
             .persist(item)
             .then(() => {
-              return this.transitionTo('dc.kv.folder', get(parent, 'Key'));
+              return transitionToList(get(parent, 'Key'), this.transitionTo.bind(this));
             });
         },
         `Your key has been saved.`,
@@ -54,7 +61,7 @@ export default Route.extend(WithFeedback, {
           return get(this, 'repo')
             .remove(item.get('data'))
             .then(() => {
-              return this.transitionTo('dc.kv.folder', get(parent, 'Key'));
+              return transitionToList(get(parent, 'Key'), this.transitionTo.bind(this));
             });
         },
         `Your key was deleted.`,
@@ -63,7 +70,7 @@ export default Route.extend(WithFeedback, {
     },
     // TODO: This is frontend ??
     cancel: function(item, parent) {
-      return this.transitionTo('dc.kv.folder', get(parent, 'Key'));
+      return transitionToList(get(parent, 'Key'), this.transitionTo.bind(this));
     },
     invalidateSession: function(item) {
       const dc = this.modelFor('dc').dc.Name;

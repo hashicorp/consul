@@ -21,10 +21,11 @@ Router.map(function() {
     });
     // Key/Value
     this.route('kv', { path: '/kv' }, function() {
-      this.route('index', { path: '' });
+      // this.route('index', { path: '' });
       this.route('folder', { path: '/*key' });
       this.route('edit', { path: '/*key/edit' });
       this.route('create', { path: '/*key/create' });
+      this.route('root-create', { path: '/create' });
     });
     // ACLs
     this.route('acls', { path: '/acls' }, function() {

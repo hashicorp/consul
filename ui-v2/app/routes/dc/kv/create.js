@@ -8,7 +8,7 @@ export default Route.extend(WithFeedback, {
   templateName: 'dc/kv/edit',
   repo: service('kv'),
   model: function(params) {
-    const key = params.key;
+    const key = params.key || '/';
     const repo = get(this, 'repo');
     const dc = this.modelFor('dc').dc.Name;
     const item = repo.create();
