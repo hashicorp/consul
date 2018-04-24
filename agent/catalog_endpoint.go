@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
 
@@ -11,8 +12,17 @@ import (
 
 var durations = NewDurationFixer("interval", "timeout", "deregistercriticalserviceafter")
 
+// findSourceIP extract the source IP of request
+func findSourceIP(req *http.Request) string {
+	host, _, err := net.SplitHostPort(req.RemoteAddr)
+	if err != nil {
+		return "unknown"
+	}
+	return host
+}
+
 func (s *HTTPServer) CatalogRegister(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	labels := []metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}}
+	labels := []metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: findSourceIP(req)}}
 	defer metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_register"}, 1, labels)
 	var args structs.RegisterRequest
 	if err := decodeBody(req, &args, durations.FixupDurations); err != nil {
@@ -41,7 +51,7 @@ func (s *HTTPServer) CatalogRegister(resp http.ResponseWriter, req *http.Request
 }
 
 func (s *HTTPServer) CatalogDeregister(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	labels := []metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}}
+	labels := []metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: findSourceIP(req)}}
 	defer metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_deregister"}, 1, labels)
 
 	var args structs.DeregisterRequest
@@ -71,7 +81,7 @@ func (s *HTTPServer) CatalogDeregister(resp http.ResponseWriter, req *http.Reque
 }
 
 func (s *HTTPServer) CatalogDatacenters(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	labels := []metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}}
+	labels := []metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: findSourceIP(req)}}
 	defer metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_datacenters"}, 1, labels)
 
 	var out []string
@@ -86,7 +96,7 @@ func (s *HTTPServer) CatalogDatacenters(resp http.ResponseWriter, req *http.Requ
 }
 
 func (s *HTTPServer) CatalogNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	labels := []metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}}
+	labels := []metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: findSourceIP(req)}}
 	defer metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_nodes"}, 1, labels)
 
 	// Setup the request
@@ -125,7 +135,7 @@ RETRY_ONCE:
 }
 
 func (s *HTTPServer) CatalogServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	labels := []metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}}
+	labels := []metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: findSourceIP(req)}}
 	defer metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_services"}, 1, labels)
 
 	// Set default DC
@@ -161,7 +171,7 @@ RETRY_ONCE:
 }
 
 func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	labels := []metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}}
+	labels := []metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: findSourceIP(req)}}
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_service_nodes"}, 1, labels)
 
 	// Set default DC
@@ -225,7 +235,7 @@ RETRY_ONCE:
 }
 
 func (s *HTTPServer) CatalogNodeServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	labels := []metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: req.RemoteAddr}}
+	labels := []metrics.Label{{Name: "agent", Value: s.nodeName()}, {Name: "client", Value: findSourceIP(req)}}
 	defer metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_node_services"}, 1, labels)
 
 	// Set default Datacenter
