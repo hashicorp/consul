@@ -8,13 +8,13 @@
             {{#each types as |type|}}
                 <label>
                     <span>{{type}}</span>
-                    <input type="radio" name="type" value="{{type}}" checked={{if (eq item.Type type) 'checked'}} />
+                    <input type="radio" name="Type" value="{{type}}" checked={{if (eq item.Type type) 'checked'}} onchange={{ action 'change' }}/>
                 </label>
             {{/each}}
         </div>
         <label class="type-text">
-            <span>Policy <a href="" target="_blank">(HCL Format)</a></span>
-            {{code-editor class=(if item.error.Name 'error') name="policy" value=item.Rules}}
+            <span>Policy <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guides/acl.html#rule-specification" target="_blank">(HCL Format)</a></span>
+            {{code-editor class=(if item.error.Rules 'error') name='Rules' value=item.Rules onkeyup=(action 'change')}}
         </label>
 {{#if create }}
         <label class="type-text">

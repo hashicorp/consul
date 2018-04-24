@@ -21,7 +21,7 @@ export default Route.extend(WithFeedback, {
         () => {
           return get(this, 'repo')
             .persist(item)
-            .then(function() {
+            .then(() => {
               return this.transitionTo('dc.acls');
             });
         },
