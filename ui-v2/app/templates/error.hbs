@@ -18,7 +18,7 @@
                 If your ACL token was not found you can reset it, and then you will be redirected to the settings page to enter a new ACL token.
                 Try looking in our <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/index.html" target="_blank">documentation</a>
             </p>
-            <button type="button" {{ action "resetToken" }}>Reset ACL Token</button>
+            <a href={{href-to 'settings'}}>Reset ACL Token</a>
             <a rel="home" href={{href-to 'index'}}>Go Back to Root</a>
         {{/block-slot}}
     {{/app-view}}
