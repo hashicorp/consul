@@ -31,25 +31,18 @@ type transport struct {
 	dial  chan string
 	yield chan connErr
 	ret   chan connErr
-
-	// Aid in testing, gets length of cache in data-race safe manner.
-	lenc    chan bool
-	lencOut chan int
-
-	stop chan bool
+	stop  chan bool
 }
 
 func newTransport(addr string, tlsConfig *tls.Config) *transport {
 	t := &transport{
-		conns:   make(map[string][]*persistConn),
-		expire:  defaultExpire,
-		addr:    addr,
-		dial:    make(chan string),
-		yield:   make(chan connErr),
-		ret:     make(chan connErr),
-		stop:    make(chan bool),
-		lenc:    make(chan bool),
-		lencOut: make(chan int),
+		conns:  make(map[string][]*persistConn),
+		expire: defaultExpire,
+		addr:   addr,
+		dial:   make(chan string),
+		yield:  make(chan connErr),
+		ret:    make(chan connErr),
+		stop:   make(chan bool),
 	}
 	go t.connManager()
 	return t
@@ -62,13 +55,6 @@ func (t *transport) len() int {
 	for _, conns := range t.conns {
 		l += len(conns)
 	}
-	return l
-}
-
-// Len returns the number of connections in the cache.
-func (t *transport) Len() int {
-	t.lenc <- true
-	l := <-t.lencOut
 	return l
 }
 
@@ -128,13 +114,6 @@ Wait:
 
 		case <-t.stop:
 			return
-
-		case <-t.lenc:
-			l := 0
-			for _, conns := range t.conns {
-				l += len(conns)
-			}
-			t.lencOut <- l
 		}
 	}
 }

@@ -30,28 +30,4 @@ func TestPersistent(t *testing.T) {
 	tr.Yield(c1)
 	tr.Yield(c2)
 	tr.Yield(c3)
-
-	if x := tr.Len(); x != 3 {
-		t.Errorf("Expected cache size to be 3, got %d", x)
-	}
-
-	c4, cache4, _ := tr.Dial("udp")
-	if x := tr.Len(); x != 2 {
-		t.Errorf("Expected cache size to be 2, got %d", x)
-	}
-
-	c5, cache5, _ := tr.Dial("udp")
-	if x := tr.Len(); x != 1 {
-		t.Errorf("Expected cache size to be 1, got %d", x)
-	}
-
-	if cache4 == false || cache5 == false {
-		t.Errorf("Expected cached connection")
-	}
-	tr.Yield(c4)
-	tr.Yield(c5)
-
-	if x := tr.Len(); x != 3 {
-		t.Errorf("Expected cache size to be 3, got %d", x)
-	}
 }
