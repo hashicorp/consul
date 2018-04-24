@@ -37,7 +37,11 @@
                     <dt>TTL</dt>
                     <dd>{{session.TTL}}</dd>
                     <dt>Health Checks</dt>
-                    <dd>{{ join ', ' session.Checks}}</dd>
+                    <dd>
+            {{#if (gt session.Checks 0)}}
+                        {{ join ', ' session.Checks}}
+            {{/if}}
+                    </dd>
                 </dl>
             {{#confirmation-dialog message='Are you sure you want to invalidate this session?'}}
                 {{#block-slot 'action' as |confirm|}}
