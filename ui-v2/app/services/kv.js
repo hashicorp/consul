@@ -52,10 +52,14 @@ export default Service.extend({
   persist: function(item) {
     return item.save();
   },
-  remove: function(item) {
+  remove: function(obj) {
     // TODO: check to see if this is still needed
     // seems like ember-changeset .get('data') still needs this
     //
+    let item = obj;
+    if (typeof obj.destroyRecord === 'undefined') {
+      item = obj.get('data');
+    }
     if (typeOf(item) === 'object') {
       const key = item.Key;
       const dc = item.Datacenter;

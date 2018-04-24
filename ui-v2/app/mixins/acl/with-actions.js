@@ -1,0 +1,99 @@
+import Mixin from '@ember/object/mixin';
+import { get, set } from '@ember/object';
+import WithFeedback from 'consul-ui/mixins/with-feedback';
+
+export default Mixin.create(WithFeedback, {
+  actions: {
+    create: function(item) {
+      get(this, 'feedback').execute(
+        () => {
+          return get(this, 'repo')
+            .persist(item)
+            .then(item => {
+              return this.transitionTo('dc.acls');
+            });
+        },
+        `Your ACL token has been added.`,
+        `There was an error adding your ACL token.`
+      );
+    },
+    update: function(item) {
+      get(this, 'feedback').execute(
+        () => {
+          return get(this, 'repo')
+            .persist(item)
+            .then(() => {
+              return this.transitionTo('dc.acls');
+            });
+        },
+        `Your ACL token was saved.`,
+        `There was an error saving your ACL token.`
+      );
+    },
+    delete: function(item) {
+      get(this, 'feedback').execute(
+        () => {
+          return (
+            get(this, 'repo')
+              // ember-changeset doesn't support `get`
+              // and `data` returns an object not a model
+              .remove(item)
+              .then(() => {
+                switch (this.routeName) {
+                  case 'dc.acls.index':
+                    return this.refresh();
+                  default:
+                    return this.transitionTo('dc.acls');
+                }
+              })
+          );
+        },
+        `Your ACL token was deleted.`,
+        `There was an error deleting your ACL token.`
+      );
+    },
+    // TODO: This is frontend ??
+    cancel: function(item) {
+      this.transitionTo('dc.acls');
+    },
+    // TODO: this needs to happen for all endpoints
+    error: function(e, transition) {
+      if (e.errors[0].status === '401') {
+        // 401 - ACLs are disabled
+        this.transitionTo('dc.aclsdisabled');
+        return false;
+      } else if (e.errors[0].status === '403') {
+        // 403 - the key isn't authorized for that action.
+        this.transitionTo('dc.unauthorized');
+        return false;
+      }
+      return true; // ??
+    },
+    use: function(item) {
+      get(this, 'feedback').execute(
+        () => {
+          get(this, 'settings')
+            .persist({ token: get(item, 'ID') })
+            .then(() => {
+              this.transitionTo('dc.services');
+            });
+        },
+        `Now using new ACL token`,
+        `There was an error using that ACL token`
+      );
+    },
+    clone: function(item) {
+      get(this, 'feedback').execute(
+        () => {
+          return get(this, 'repo')
+            .clone(item)
+            .then(item => {
+              this.transitionTo('dc.acls.show', get(item, 'ID'));
+            });
+        },
+        `Your ACL token was cloned.`,
+        `There was an error cloning your ACL token.`
+      );
+    },
+  },
+});

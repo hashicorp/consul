@@ -1,10 +1,10 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
-import WithFeedback from 'consul-ui/mixins/with-feedback';
 import { get, set } from '@ember/object';
+import WithKvActions from 'consul-ui/mixins/kv/with-actions';
 
-export default Route.extend(WithFeedback, {
+export default Route.extend(WithKvActions, {
   templateName: 'dc/kv/edit',
   repo: service('kv'),
   model: function(params) {
@@ -14,28 +14,13 @@ export default Route.extend(WithFeedback, {
     const item = repo.create();
     set(item, 'Datacenter', dc);
     return hash({
-      isLoading: false,
       create: true,
+      isLoading: false,
       item: item,
       parent: repo.findBySlug(key, dc),
     });
   },
   setupController: function(controller, model) {
     controller.setProperties(model);
-  },
-  actions: {
-    create: function(item, parent) {
-      get(this, 'feedback').execute(
-        () => {
-          return get(this, 'repo')
-            .persist(item)
-            .then(item => {
-              return this.transitionTo('dc.kv.folder', get(parent, 'Key'));
-            });
-        },
-        `Your key has been added.`,
-        `There was an error adding your key.`
-      );
-    },
   },
 });

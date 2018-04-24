@@ -2,10 +2,9 @@ import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
+import WithKvActions from 'consul-ui/mixins/kv/with-actions';
 
-import WithFeedback from 'consul-ui/mixins/with-feedback';
-
-export default Route.extend(WithFeedback, {
+export default Route.extend(WithKvActions, {
   repo: service('kv'),
   model: function(params) {
     const key = params.key || '/';
@@ -35,24 +34,5 @@ export default Route.extend(WithFeedback, {
   },
   setupController: function(controller, model) {
     controller.setProperties(model);
-  },
-  actions: {
-    delete: function(item) {
-      get(this, 'feedback').execute(
-        () => {
-          return get(this, 'repo')
-            .remove(item)
-            .then(() => {
-              return this.refresh();
-            });
-        },
-        `Your key was deleted.`,
-        `There was an error deleting your key.`
-      );
-    },
-    // TODO: This is frontend ??
-    cancel: function(item, parent) {
-      return this.transitionTo('dc.kv.folder', parent);
-    },
   },
 });
