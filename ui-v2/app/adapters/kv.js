@@ -87,7 +87,7 @@ export default Adapter.extend({
       // isBoolean? should error on false
       const url = requestData.url.split('?')[0];
       // TODO: How reliable is this?
-      const kv = {
+      const item = {
         [PRIMARY_KEY]: url
           .split('/')
           .splice(3)
@@ -95,8 +95,8 @@ export default Adapter.extend({
         [DATACENTER_KEY]: '',
       }; // TODO: separator?
       // safest way to check this is a create?
-      if (this.urlForCreateRecord(null, makeAttrable(kv)).split('?')[0] === url) {
-        response = kv;
+      if (this.urlForCreateRecord(null, makeAttrable(item)).split('?')[0] === url) {
+        response = item;
       }
     } else {
       // both query and queryRecord

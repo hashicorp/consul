@@ -21,14 +21,5 @@ export default Controller.extend(WithFiltering, {
     change: function(event) {
       set(this, 'selectedTab', event.target.value);
     },
-    requestInvalidateSession: function(item) {
-      confirm('Are you sure you want to invalidate this session?')
-        .then(confirmed => {
-          if (confirmed) {
-            return this.send('invalidateSession', item);
-          }
-        })
-        .catch(error);
-    },
   },
 });

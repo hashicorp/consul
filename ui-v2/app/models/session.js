@@ -10,5 +10,10 @@ export default Model.extend({
   LockDelay: attr('number'),
   Behavior: attr('string'),
   TTL: attr('number'),
-  Checks: attr(),
+  Checks: attr({
+    defaultValue: function() {
+      return [];
+    },
+  }),
+  Datacenter: attr('string'),
 });

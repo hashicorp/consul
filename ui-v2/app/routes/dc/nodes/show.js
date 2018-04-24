@@ -1,7 +1,7 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
-import { get } from '@ember/object';
+import { get, set } from '@ember/object';
 
 import distance from 'consul-ui/utils/distance';
 import tomographyFactory from 'consul-ui/utils/tomography';
@@ -47,10 +47,10 @@ export default Route.extend(WithFeedback, {
       const repo = get(this, 'sessionRepo');
       get(this, 'feedback').execute(
         () => {
-          return repo.remove(item, dc).then(() => {
-            const node = controller.get('model');
-            return repo.findByNode(node.get('Node'), dc).then(function(sessions) {
-              controller.set('sessions', sessions);
+          const node = get(item, 'Node');
+          return repo.remove(item).then(() => {
+            return repo.findByNode(node, dc).then(function(sessions) {
+              set(controller, 'sessions', sessions);
             });
           });
         },

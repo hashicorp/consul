@@ -1,7 +1,7 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
-import { get } from '@ember/object';
+import { get, set } from '@ember/object';
 
 import WithFeedback from 'consul-ui/mixins/with-feedback';
 import ascend from 'consul-ui/utils/ascend';
@@ -64,6 +64,23 @@ export default Route.extend(WithFeedback, {
     // TODO: This is frontend ??
     cancel: function(item, parent) {
       return this.transitionTo('dc.kv.folder', get(parent, 'Key'));
+    },
+    invalidateSession: function(item) {
+      const dc = this.modelFor('dc').dc.Name;
+      const controller = this.controller;
+      const repo = get(this, 'sessionRepo');
+      get(this, 'feedback').execute(
+        () => {
+          return repo.remove(item).then(() => {
+            const item = get(controller, 'item');
+            set(item, 'Session', null);
+            delete item.Session;
+            set(controller, 'session', null);
+          });
+        },
+        `The session was invalidated.`,
+        `There was an error invalidating the session.`
+      );
     },
   },
 });

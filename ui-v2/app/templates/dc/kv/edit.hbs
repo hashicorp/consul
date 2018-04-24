@@ -18,7 +18,7 @@
     {{/block-slot}}
     {{#block-slot 'content'}}
         {{partial 'dc/kv/form'}}
-        {{#if item.isLocked}}
+        {{#if session}}
             <div>
                 <h2>Lock Session</h2>
                 <dl>
@@ -29,11 +29,11 @@
                     <dt>Behavior</dt>
                     <dd><{{session.Behavior}}/dd>
                     <dt>Delay</dt>
-                    <dd><{{session.Delay}}/dd>
+                    <dd><{{session.LockDelay}}/dd>
                     <dt>TTL</dt>
                     <dd>{{session.TTL}}</dd>
                     <dt>Health Checks</dt>
-                    <dd>Checks in here</dd>
+                    <dd>{{ join ', ' session.Checks}}</dd>
                 </dl>
             {{#confirmation-dialog message='Are you sure you want to invalidate this session?'}}
                 {{#block-slot 'action' as |confirm|}}
