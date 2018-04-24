@@ -2438,6 +2438,9 @@ func TestFullConfig(t *testing.T) {
 			"service": {
 				"id": "dLOXpSCI",
 				"name": "o1ynPkp0",
+				"meta": {
+					"mymeta": "data"
+				},
 				"tags": ["nkwshvM5", "NTDWn3ek"],
 				"address": "cOlSOhbp",
 				"token": "msy7iWER",
@@ -2875,6 +2878,9 @@ func TestFullConfig(t *testing.T) {
 			service = {
 				id = "dLOXpSCI"
 				name = "o1ynPkp0"
+				meta = {
+					mymeta = "data"
+				}
 				tags = ["nkwshvM5", "NTDWn3ek"]
 				address = "cOlSOhbp"
 				token = "msy7iWER"
@@ -3528,6 +3534,7 @@ func TestFullConfig(t *testing.T) {
 				Tags:              []string{"nkwshvM5", "NTDWn3ek"},
 				Address:           "cOlSOhbp",
 				Token:             "msy7iWER",
+				Meta:              map[string]string{"mymeta": "data"},
 				Port:              24237,
 				EnableTagOverride: true,
 				Checks: structs.CheckTypes{

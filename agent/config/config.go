@@ -319,7 +319,7 @@ type ServiceDefinition struct {
 	Name              *string           `json:"name,omitempty" hcl:"name" mapstructure:"name"`
 	Tags              []string          `json:"tags,omitempty" hcl:"tags" mapstructure:"tags"`
 	Address           *string           `json:"address,omitempty" hcl:"address" mapstructure:"address"`
-	Meta              map[string]string `json:"node_meta,omitempty" hcl:"meta" mapstructure:"meta"`
+	Meta              map[string]string `json:"meta,omitempty" hcl:"meta" mapstructure:"meta"`
 	Port              *int              `json:"port,omitempty" hcl:"port" mapstructure:"port"`
 	Check             *CheckDefinition  `json:"check,omitempty" hcl:"check" mapstructure:"check"`
 	Checks            []CheckDefinition `json:"checks,omitempty" hcl:"checks" mapstructure:"checks"`
