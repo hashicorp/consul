@@ -25,9 +25,7 @@ func TestProxyClose(t *testing.T) {
 	state := request.Request{W: &test.ResponseWriter{}, Req: req}
 	ctx := context.TODO()
 
-	repeatCnt := 1000
-	for repeatCnt > 0 {
-		repeatCnt--
+	for i := 0; i < 100; i++ {
 		p := NewProxy(s.Addr, nil /* no TLS */)
 		p.start(hcDuration)
 
