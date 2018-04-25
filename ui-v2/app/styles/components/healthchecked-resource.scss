@@ -74,19 +74,19 @@
 .healthy .healthchecked-resource header span {
   padding-right: 20px;
 }
-%healthchecked-resource li:only-child {
+.healthy .healthchecked-resource li {
   position: absolute;
   top: 20px;
   right: 16px;
   border: none;
 }
-%healthchecked-resource li:only-child::before {
+.healthy healthchecked-resource li::before {
   left: 0;
 }
-%healthchecked-resource li:only-child span {
+.healthy .healthchecked-resource li span {
   display: none;
 }
-%healthchecked-resource li:only-child a {
+.healthy .healthchecked-resource li a {
   padding-left: 0;
 }
 %healthchecked-resource header a {
