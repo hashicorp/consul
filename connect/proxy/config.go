@@ -256,7 +256,7 @@ func NewAgentConfigWatcher(client *api.Client, proxyID string,
 	return w, nil
 }
 
-func (w *AgentConfigWatcher) handler(blockVal watch.BlockingParam,
+func (w *AgentConfigWatcher) handler(blockVal watch.BlockingParamVal,
 	val interface{}) {
 	log.Printf("DEBUG: got hash %s", blockVal.(watch.WaitHashVal))
 

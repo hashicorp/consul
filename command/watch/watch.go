@@ -154,7 +154,7 @@ func (c *cmd) Run(args []string) int {
 	//	1: true
 	errExit := 0
 	if len(c.flags.Args()) == 0 {
-		wp.Handler = func(blockParam consulwatch.BlockingParam, data interface{}) {
+		wp.Handler = func(idx uint64, data interface{}) {
 			defer wp.Stop()
 			buf, err := json.MarshalIndent(data, "", "    ")
 			if err != nil {
@@ -164,14 +164,7 @@ func (c *cmd) Run(args []string) int {
 			c.UI.Output(string(buf))
 		}
 	} else {
-		wp.Handler = func(blockVal consulwatch.BlockingParam, data interface{}) {
-			idx, ok := blockVal.(consulwatch.WaitIndexVal)
-			if !ok {
-				// TODO(banks): make this work for hash based watches.
-				c.UI.Error("Error: watch handler doesn't support non-index watches")
-				return
-			}
-
+		wp.Handler = func(idx uint64, data interface{}) {
 			doneCh := make(chan struct{})
 			defer close(doneCh)
 			logFn := func(err error) {
@@ -192,7 +185,7 @@ func (c *cmd) Run(args []string) int {
 				goto ERR
 			}
 			cmd.Env = append(os.Environ(),
-				"CONSUL_INDEX="+strconv.FormatUint(uint64(idx), 10),
+				"CONSUL_INDEX="+strconv.FormatUint(idx, 10),
 			)
 
 			// Encode the input

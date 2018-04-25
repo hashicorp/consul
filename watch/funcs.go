@@ -43,7 +43,7 @@ func keyWatch(params map[string]interface{}) (WatcherFunc, error) {
 	if key == "" {
 		return nil, fmt.Errorf("Must specify a single key to watch")
 	}
-	fn := func(p *Plan) (BlockingParam, interface{}, error) {
+	fn := func(p *Plan) (BlockingParamVal, interface{}, error) {
 		kv := p.client.KV()
 		opts := makeQueryOptionsWithContext(p, stale)
 		defer p.cancelFunc()
@@ -73,7 +73,7 @@ func keyPrefixWatch(params map[string]interface{}) (WatcherFunc, error) {
 	if prefix == "" {
 		return nil, fmt.Errorf("Must specify a single prefix to watch")
 	}
-	fn := func(p *Plan) (BlockingParam, interface{}, error) {
+	fn := func(p *Plan) (BlockingParamVal, interface{}, error) {
 		kv := p.client.KV()
 		opts := makeQueryOptionsWithContext(p, stale)
 		defer p.cancelFunc()
@@ -93,7 +93,7 @@ func servicesWatch(params map[string]interface{}) (WatcherFunc, error) {
 		return nil, err
 	}
 
-	fn := func(p *Plan) (BlockingParam, interface{}, error) {
+	fn := func(p *Plan) (BlockingParamVal, interface{}, error) {
 		catalog := p.client.Catalog()
 		opts := makeQueryOptionsWithContext(p, stale)
 		defer p.cancelFunc()
@@ -113,7 +113,7 @@ func nodesWatch(params map[string]interface{}) (WatcherFunc, error) {
 		return nil, err
 	}
 
-	fn := func(p *Plan) (BlockingParam, interface{}, error) {
+	fn := func(p *Plan) (BlockingParamVal, interface{}, error) {
 		catalog := p.client.Catalog()
 		opts := makeQueryOptionsWithContext(p, stale)
 		defer p.cancelFunc()
@@ -150,7 +150,7 @@ func serviceWatch(params map[string]interface{}) (WatcherFunc, error) {
 		return nil, err
 	}
 
-	fn := func(p *Plan) (BlockingParam, interface{}, error) {
+	fn := func(p *Plan) (BlockingParamVal, interface{}, error) {
 		health := p.client.Health()
 		opts := makeQueryOptionsWithContext(p, stale)
 		defer p.cancelFunc()
@@ -184,7 +184,7 @@ func checksWatch(params map[string]interface{}) (WatcherFunc, error) {
 		state = "any"
 	}
 
-	fn := func(p *Plan) (BlockingParam, interface{}, error) {
+	fn := func(p *Plan) (BlockingParamVal, interface{}, error) {
 		health := p.client.Health()
 		opts := makeQueryOptionsWithContext(p, stale)
 		defer p.cancelFunc()
@@ -213,7 +213,7 @@ func eventWatch(params map[string]interface{}) (WatcherFunc, error) {
 		return nil, err
 	}
 
-	fn := func(p *Plan) (BlockingParam, interface{}, error) {
+	fn := func(p *Plan) (BlockingParamVal, interface{}, error) {
 		event := p.client.Event()
 		opts := makeQueryOptionsWithContext(p, false)
 		defer p.cancelFunc()
@@ -239,7 +239,7 @@ func connectRootsWatch(params map[string]interface{}) (WatcherFunc, error) {
 	// We don't support stale since roots are likely to be cached locally in the
 	// agent anyway.
 
-	fn := func(p *Plan) (BlockingParam, interface{}, error) {
+	fn := func(p *Plan) (BlockingParamVal, interface{}, error) {
 		agent := p.client.Agent()
 		opts := makeQueryOptionsWithContext(p, false)
 		defer p.cancelFunc()
@@ -265,7 +265,7 @@ func connectLeafWatch(params map[string]interface{}) (WatcherFunc, error) {
 		return nil, err
 	}
 
-	fn := func(p *Plan) (BlockingParam, interface{}, error) {
+	fn := func(p *Plan) (BlockingParamVal, interface{}, error) {
 		agent := p.client.Agent()
 		opts := makeQueryOptionsWithContext(p, false)
 		defer p.cancelFunc()
@@ -291,7 +291,7 @@ func connectProxyConfigWatch(params map[string]interface{}) (WatcherFunc, error)
 		return nil, err
 	}
 
-	fn := func(p *Plan) (BlockingParam, interface{}, error) {
+	fn := func(p *Plan) (BlockingParamVal, interface{}, error) {
 		agent := p.client.Agent()
 		opts := makeQueryOptionsWithContext(p, false)
 		defer p.cancelFunc()

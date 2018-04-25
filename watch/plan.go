@@ -110,8 +110,16 @@ OUTER:
 
 		// Handle the updated result
 		p.lastResult = result
-		if p.Handler != nil {
-			p.Handler(blockParamVal, result)
+		// If a hybrid handler exists use that
+		if p.HybridHandler != nil {
+			p.HybridHandler(blockParamVal, result)
+		} else if p.Handler != nil {
+			idx, ok := blockParamVal.(WaitIndexVal)
+			if !ok {
+				logger.Printf("[ERR] consul.watch: Handler only supports index-based " +
+					" watches but non index-based watch run. Skipping Handler.")
+			}
+			p.Handler(uint64(idx), result)
 		}
 	}
 	return nil

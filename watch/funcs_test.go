@@ -32,7 +32,7 @@ func TestKeyWatch(t *testing.T) {
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"key", "key":"foo/bar/baz"}`)
-	plan.Handler = func(blockParam watch.BlockingParam, raw interface{}) {
+	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
 			return // ignore
 		}
@@ -86,7 +86,7 @@ func TestKeyWatch_With_PrefixDelete(t *testing.T) {
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"key", "key":"foo/bar/baz"}`)
-	plan.Handler = func(blockParam watch.BlockingParam, raw interface{}) {
+	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
 			return // ignore
 		}
@@ -140,7 +140,7 @@ func TestKeyPrefixWatch(t *testing.T) {
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"keyprefix", "prefix":"foo/"}`)
-	plan.Handler = func(blockParam watch.BlockingParam, raw interface{}) {
+	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
 			return // ignore
 		}
@@ -193,7 +193,7 @@ func TestServicesWatch(t *testing.T) {
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"services"}`)
-	plan.Handler = func(blockParam watch.BlockingParam, raw interface{}) {
+	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
 			return // ignore
 		}
@@ -247,7 +247,7 @@ func TestNodesWatch(t *testing.T) {
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"nodes"}`)
-	plan.Handler = func(blockParam watch.BlockingParam, raw interface{}) {
+	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
 			return // ignore
 		}
@@ -298,7 +298,7 @@ func TestServiceWatch(t *testing.T) {
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"service", "service":"foo", "tag":"bar", "passingonly":true}`)
-	plan.Handler = func(blockParam watch.BlockingParam, raw interface{}) {
+	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
 			return // ignore
 		}
@@ -354,7 +354,7 @@ func TestChecksWatch_State(t *testing.T) {
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"checks", "state":"warning"}`)
-	plan.Handler = func(blockParam watch.BlockingParam, raw interface{}) {
+	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
 			return // ignore
 		}
@@ -415,7 +415,7 @@ func TestChecksWatch_Service(t *testing.T) {
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"checks", "service":"foobar"}`)
-	plan.Handler = func(blockParam watch.BlockingParam, raw interface{}) {
+	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
 			return // ignore
 		}
@@ -481,7 +481,7 @@ func TestEventWatch(t *testing.T) {
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"event", "name": "foo"}`)
-	plan.Handler = func(blockParam watch.BlockingParam, raw interface{}) {
+	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
 			return
 		}
@@ -536,7 +536,7 @@ func TestConnectRootsWatch(t *testing.T) {
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"connect_roots"}`)
-	plan.Handler = func(blockParam watch.BlockingParam, raw interface{}) {
+	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
 			return // ignore
 		}
@@ -626,7 +626,7 @@ func TestConnectLeafWatch(t *testing.T) {
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"connect_leaf", "service_id":"web"}`)
-	plan.Handler = func(blockParam watch.BlockingParam, raw interface{}) {
+	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
 			return // ignore
 		}
@@ -699,7 +699,7 @@ func TestConnectProxyConfigWatch(t *testing.T) {
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"connect_proxy_config", "proxy_service_id":"web-proxy"}`)
-	plan.Handler = func(blockParam watch.BlockingParam, raw interface{}) {
+	plan.HybridHandler = func(blockParamVal watch.BlockingParamVal, raw interface{}) {
 		if raw == nil {
 			return // ignore
 		}

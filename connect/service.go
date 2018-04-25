@@ -236,7 +236,7 @@ func (s *Service) Close() error {
 	return nil
 }
 
-func (s *Service) rootsWatchHandler(blockParam watch.BlockingParam, raw interface{}) {
+func (s *Service) rootsWatchHandler(blockParam watch.BlockingParamVal, raw interface{}) {
 	if raw == nil {
 		return
 	}
@@ -269,7 +269,7 @@ func (s *Service) rootsWatchHandler(blockParam watch.BlockingParam, raw interfac
 	s.clientTLSCfg.SetTLSConfig(newCfg)
 }
 
-func (s *Service) leafWatchHandler(blockParam watch.BlockingParam, raw interface{}) {
+func (s *Service) leafWatchHandler(blockParam watch.BlockingParamVal, raw interface{}) {
 	if raw == nil {
 		return // ignore
 	}

@@ -17,7 +17,7 @@ func TestMakeWatchHandler(t *testing.T) {
 	defer os.Remove("handler_index_out")
 	script := "bash -c 'echo $CONSUL_INDEX >> handler_index_out && cat >> handler_out'"
 	handler := makeWatchHandler(os.Stderr, script)
-	handler(watch.WaitIndexVal(100), []string{"foo", "bar", "baz"})
+	handler(100, []string{"foo", "bar", "baz"})
 	raw, err := ioutil.ReadFile("handler_out")
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -62,5 +62,5 @@ func TestMakeHTTPWatchHandler(t *testing.T) {
 		Timeout: time.Minute,
 	}
 	handler := makeHTTPWatchHandler(os.Stderr, &config)
-	handler(watch.WaitIndexVal(100), []string{"foo", "bar", "baz"})
+	handler(100, []string{"foo", "bar", "baz"})
 }
