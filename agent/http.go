@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/mitchellh/mapstructure"
+	"github.com/elazarl/go-bindata-assetfs"
 )
 
 // MethodNotAllowedError should be returned by a handler when the HTTP method is not allowed.
@@ -40,6 +41,18 @@ type HTTPServer struct {
 
 	// proto is filled by the agent to "http" or "https".
 	proto string
+}
+
+type RedirectFS struct {
+	fs *assetfs.AssetFS
+}
+
+func (fs *RedirectFS) Open(name string) (http.File, error) {
+	file, err := fs.fs.Open(name)
+	if err != nil {
+		file, err = fs.fs.Open("/index.html")
+	}
+	return file, err
 }
 
 // endpoint is a Consul-specific HTTP handler that takes the usual arguments in
@@ -150,10 +163,11 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 			fallthrough
 		case "yes":
 			fs.Prefix += "/v2"
+			mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(&RedirectFS{fs: fs})))
 		default:
 			fs.Prefix += "/v1"
+			mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(fs)))
 		}
-		mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(fs)))
 	}
 
 	// Wrap the whole mux with a handler that bans URLs with non-printable
