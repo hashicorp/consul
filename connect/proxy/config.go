@@ -65,7 +65,7 @@ type PublicListenerConfig struct {
 	// BindAddress is the host/IP the public mTLS listener will bind to.
 	BindAddress string `json:"bind_address" hcl:"bind_address" mapstructure:"bind_address"`
 
-	BindPort string `json:"bind_port" hcl:"bind_port" mapstructure:"bind_port"`
+	BindPort int `json:"bind_port" hcl:"bind_port" mapstructure:"bind_port"`
 
 	// LocalServiceAddress is the host:port for the proxied application. This
 	// should be on loopback or otherwise protected as it's plain TCP.
@@ -251,7 +251,7 @@ func NewAgentConfigWatcher(client *api.Client, proxyID string,
 		return nil, err
 	}
 	w.plan = plan
-	w.plan.Handler = w.handler
+	w.plan.HybridHandler = w.handler
 	go w.plan.RunWithClientAndLogger(w.client, w.logger)
 	return w, nil
 }

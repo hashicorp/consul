@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"sync/atomic"
@@ -44,7 +45,9 @@ func NewPublicListener(svc *connect.Service, cfg PublicListenerConfig,
 	return &Listener{
 		Service: svc,
 		listenFunc: func() (net.Listener, error) {
-			return tls.Listen("tcp", cfg.BindAddress, svc.ServerTLSConfig())
+			return tls.Listen("tcp",
+				fmt.Sprintf("%s:%d", cfg.BindAddress, cfg.BindPort),
+				svc.ServerTLSConfig())
 		},
 		dialFunc: func() (net.Conn, error) {
 			return net.DialTimeout("tcp", cfg.LocalServiceAddress,
@@ -63,7 +66,8 @@ func NewUpstreamListener(svc *connect.Service, cfg UpstreamConfig,
 	return &Listener{
 		Service: svc,
 		listenFunc: func() (net.Listener, error) {
-			return net.Listen("tcp", cfg.LocalBindAddress)
+			return net.Listen("tcp",
+				fmt.Sprintf("%s:%d", cfg.LocalBindAddress, cfg.LocalBindPort))
 		},
 		dialFunc: func() (net.Conn, error) {
 			if cfg.resolver == nil {

@@ -24,7 +24,8 @@ func TestParseConfigFile(t *testing.T) {
 		ProxiedServiceID:        "web",
 		ProxiedServiceNamespace: "default",
 		PublicListener: PublicListenerConfig{
-			BindAddress:           ":9999",
+			BindAddress:           "127.0.0.1",
+			BindPort:              9999,
 			LocalServiceAddress:   "127.0.0.1:5000",
 			LocalConnectTimeoutMs: 1000,
 			HandshakeTimeoutMs:    10000, // From defaults
@@ -129,7 +130,7 @@ func TestAgentConfigWatcher(t *testing.T) {
 			Proxy: &api.AgentServiceConnectProxy{
 				Config: map[string]interface{}{
 					"bind_address":          "10.10.10.10",
-					"bind_port":             "1010",
+					"bind_port":             1010,
 					"local_service_address": "127.0.0.1:5000",
 					"handshake_timeout_ms":  999,
 					"upstreams": []interface{}{
@@ -157,7 +158,7 @@ func TestAgentConfigWatcher(t *testing.T) {
 		ProxiedServiceNamespace: "default",
 		PublicListener: PublicListenerConfig{
 			BindAddress:           "10.10.10.10",
-			BindPort:              "1010",
+			BindPort:              1010,
 			LocalServiceAddress:   "127.0.0.1:5000",
 			HandshakeTimeoutMs:    999,
 			LocalConnectTimeoutMs: 1000, // from applyDefaults

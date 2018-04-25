@@ -86,7 +86,7 @@ func NewServiceWithLogger(serviceID string, client *api.Client,
 		return nil, err
 	}
 	s.rootsWatch = p
-	s.rootsWatch.Handler = s.rootsWatchHandler
+	s.rootsWatch.HybridHandler = s.rootsWatchHandler
 
 	p, err = watch.Parse(map[string]interface{}{
 		"type": "connect_leaf",
@@ -95,7 +95,7 @@ func NewServiceWithLogger(serviceID string, client *api.Client,
 		return nil, err
 	}
 	s.leafWatch = p
-	s.leafWatch.Handler = s.leafWatchHandler
+	s.leafWatch.HybridHandler = s.leafWatchHandler
 
 	//go s.rootsWatch.RunWithClientAndLogger(s.client, s.logger)
 	//go s.leafWatch.RunWithClientAndLogger(s.client, s.logger)

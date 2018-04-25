@@ -7,20 +7,13 @@ import (
 	"net"
 	"sync/atomic"
 
-	"github.com/hashicorp/consul/lib/freeport"
 	"github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 )
 
-// TestLocalBindAddrs returns n localhost address:port strings with free ports
-// for binding test listeners to.
-func TestLocalBindAddrs(t testing.T, n int) []string {
-	ports := freeport.GetT(t, n)
-	addrs := make([]string, n)
-	for i, p := range ports {
-		addrs[i] = fmt.Sprintf("localhost:%d", p)
-	}
-	return addrs
+// TestLocalAddr makes a localhost address on the given port
+func TestLocalAddr(port int) string {
+	return fmt.Sprintf("localhost:%d", port)
 }
 
 // TestTCPServer is a simple TCP echo server for use during tests.
