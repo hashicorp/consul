@@ -1,1 +1,6 @@
-{{outlet}}
+{{#if (not loading)}}
+    {{outlet}}
+{{else}}
+{{#hashicorp-consul id="wrapper" dc=dc}}
+{{/hashicorp-consul}}
+{{/if}}

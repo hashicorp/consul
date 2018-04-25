@@ -7,6 +7,23 @@ export default Route.extend({
   // logger: service('logger'),
   repo: service('dc'),
   actions: {
+    loading: function(transition, originRoute) {
+      hash({
+        loading: true,
+        dc: get(this, 'repo').getActive(),
+      }).then(model => {
+        next(() => {
+          const controller = this.controllerFor('application');
+          controller.setProperties(model);
+          transition.promise.finally(function() {
+            controller.setProperties({
+              loading: false,
+            });
+          });
+        });
+      });
+      return true;
+    },
     error: function(e, transition) {
       let error = {
         status: '',
