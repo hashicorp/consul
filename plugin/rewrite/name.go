@@ -167,7 +167,7 @@ func newNameRule(nextAction string, args ...string) (Rule, error) {
 		return nil, fmt.Errorf("the rewrite of response is supported only for name regex rule")
 	}
 	if len(args) > 3 && len(args) != 7 {
-		return nil, fmt.Errorf("exceeded the number of arguments for a name rule")
+		return nil, fmt.Errorf("response rewrites must consist only of a name rule with 3 arguments and an answer rule with 3 arguments")
 	}
 	return &nameRule{nextAction, plugin.Name(args[0]).Normalize(), plugin.Name(args[1]).Normalize()}, nil
 }

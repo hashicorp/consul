@@ -155,13 +155,26 @@ ftp-us-west-1.coredns.rocks. 0    IN A    10.20.20.20
 ftp-us-west-1.coredns.rocks. 0    IN A    10.30.30.30
 ```
 
-The syntax for the response of DNS request and response is as follows:
+The syntax for the rewrite of DNS request and response is as follows:
 
 ```
 rewrite [continue|stop] {
     name regex STRING STRING
     answer name STRING STRING
 }
+```
+
+Note that the above syntax is strict.  For response rewrites only `name`
+rules are allowed to match the question section, and only by match type
+`regex`. The answer rewrite must be after the name, as ordered in the
+syntax example. There must only be two lines (a `name` follwed by an
+`answer`) in the brackets, additional rules are not supported.
+
+An alternate syntax for the rewrite of DNS request and response is as
+follows:
+
+```
+rewrite [continue|stop] name regex STRING STRING answer name STRING STRING
 ```
 
 ## EDNS0 Options
