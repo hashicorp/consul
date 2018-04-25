@@ -25,18 +25,12 @@
                 </td>
                 <td>
                     <dl>
-{{#if (gt item.ChecksPassing 0)}}
-                        <dt class="passing">Healthchecks Passing</dt>
-                        <dd>{{item.ChecksPassing}}</dd>
-{{/if}}
-{{#if (gt item.ChecksWarning 0)}}
-                        <dt class="warning">Healthchecks Warning</dt>
-                        <dd>{{item.ChecksWarning}}</dd>
-{{/if}}
-{{#if (gt item.ChecksCritical 0)}}
-                        <dt class="critical">Healthchecks Critical</dt>
-                        <dd>{{item.ChecksCritical}}</dd>
-{{/if}}
+                        <dt title="Passing" class="passing{{if (lt item.ChecksPassing 1) ' zero'}}">Healthchecks Passing</dt>
+                        <dd title="Passing" class={{if (lt item.ChecksPassing 1) 'zero'}} style={{passingWidth}}>{{format_number item.ChecksPassing}}</dd>
+                        <dt title="Warning" class="warning{{if (lt item.ChecksWarning 1) ' zero'}}">Healthchecks Warning</dt>
+                        <dd title="Warning" class={{if (lt item.ChecksWarning 1) 'zero'}} style={{warningWidth}}>{{format_number item.ChecksWarning}}</dd>
+                        <dt title="Critical" class="critical{{if (lt item.ChecksCritical 1) ' zero'}}">Healthchecks Critical</dt>
+                        <dd title="Critical" class={{if (lt item.ChecksCritical 1) 'zero'}} style={{criticalWidth}}>{{format_number item.ChecksCritical}}</dd>
                     </dl>
                 </td>
                 <td>

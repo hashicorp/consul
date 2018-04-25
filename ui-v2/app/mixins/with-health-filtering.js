@@ -2,7 +2,7 @@ import Mixin from '@ember/object/mixin';
 import WithFiltering from 'consul-ui/mixins/with-filtering';
 import { computed, get } from '@ember/object';
 import ucfirst from 'consul-ui/utils/ucfirst';
-import humanize from 'consul-ui/utils/humanize';
+import numeral from 'numeral';
 
 const countStatus = function(items, status) {
   if (status === '') {
@@ -29,7 +29,9 @@ export default Mixin.create(WithFiltering, {
     const items = get(this, 'items');
     return ['', 'passing', 'warning', 'critical'].map(function(item) {
       return {
-        label: `${item === '' ? 'All' : ucfirst(item)} (${humanize(countStatus(items, item))})`,
+        label: `${item === '' ? 'All' : ucfirst(item)} (${numeral(
+          countStatus(items, item)
+        ).format()})`,
         value: item,
       };
     });
