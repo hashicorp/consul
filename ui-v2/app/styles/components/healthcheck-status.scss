@@ -5,7 +5,7 @@
 
 %healthcheck-status {
   border: 1px solid $border-blue;
-  border-radius: 4px;
+  border-radius: $radius;
   padding: 24px;
   padding-left: 60px;
   margin-bottom: 24px;

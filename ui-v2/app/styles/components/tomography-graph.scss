@@ -1,31 +1,31 @@
 .tomography .background {
-    fill: gray;
+  fill: $lightest-gray;
 }
 .tomography .axis {
-    fill: none;
-    stroke: $lightest-gray;
-    stroke-dasharray: 4 4;
+  fill: none;
+  stroke: $border-blue;
+  stroke-dasharray: 4 4;
 }
 .tomography .border {
-    fill: none;
-    stroke: $border-blue;
+  fill: none;
+  stroke: $border-blue;
 }
 .tomography .point {
-    stroke: $text-note;
-    fill: $green;
+  stroke: $text-note;
+  fill: $magenta-600;
 }
 .tomography .lines line {
-    stroke: $red;
+  stroke: $magenta-600;
 }
 .tomography .lines line:hover {
-    stroke: $border-blue;
-    stroke-width: 2px;
+  stroke: $border-blue;
+  stroke-width: 2px;
 }
 .tomography .tick line {
-    stroke: $border-blue;
+  stroke: $border-blue;
 }
 .tomography .tick text {
-    font-size: 14px;
-    text-anchor: start;
+  font-size: $size-normal;
+  text-anchor: start;
+  color: $text;
 }
-

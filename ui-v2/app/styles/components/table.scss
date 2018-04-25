@@ -36,7 +36,7 @@ td strong {
   display: inline-block;
   background-color: $gray;
   padding: 1px 5px;
-  border-radius: $radius;
+  border-radius: $radius-small;
 }
 td:not(.actions),
 td:not(.actions) a {

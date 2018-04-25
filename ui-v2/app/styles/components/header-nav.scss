@@ -88,9 +88,12 @@
   background-color: $lightest-gray;
 }
 %header-nav a {
+  color: $magenta-50;
+}
+%header-nav a {
   display: block;
   padding: 3px 12px;
-  border-radius: 4px;
+  border-radius: $radius;
   white-space: nowrap;
 }
 @media #{$--lt-horizontal-nav} {
@@ -107,14 +110,16 @@
   }
   // %primary-nav a,
   %primary-nav > ul > li.is-active > a {
-    font-weight: bold;
+    font-weight: $weight-bold;
   }
 }
+%primary-nav > ul > li > a:hover,
+%primary-nav > ul > li > a:focus {
+  color: $white;
+}
 @media #{$--horizontal-nav} {
-  %primary-nav > ul > li > a:hover,
-  %primary-nav > ul > li > a:focus,
-  %primary-nav > ul > li > a:active,
-  %primary-nav > ul > li.is-active > a {
+  %header-nav > ul > li > a:active,
+  %header-nav > ul > li.is-active > a {
     background-color: $magenta-800;
   }
   %header-nav ul {
