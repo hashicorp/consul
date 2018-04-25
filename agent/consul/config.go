@@ -348,6 +348,9 @@ type Config struct {
 	// dead servers.
 	AutopilotInterval time.Duration
 
+	// ConnectEnabled is whether to enable Connect features such as the CA.
+	ConnectEnabled bool
+
 	// CAConfig is used to apply the initial Connect CA configuration when
 	// bootstrapping.
 	CAConfig *structs.CAConfiguration

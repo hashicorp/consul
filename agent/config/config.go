@@ -368,8 +368,10 @@ type ServiceConnectProxy struct {
 type Connect struct {
 	// Enabled opts the agent into connect. It should be set on all clients and
 	// servers in a cluster for correct connect operation. TODO(banks) review that.
-	Enabled       bool                  `json:"enabled,omitempty" hcl:"enabled" mapstructure:"enabled"`
-	ProxyDefaults *ConnectProxyDefaults `json:"proxy_defaults,omitempty" hcl:"proxy_defaults" mapstructure:"proxy_defaults"`
+	Enabled       *bool                  `json:"enabled,omitempty" hcl:"enabled" mapstructure:"enabled"`
+	ProxyDefaults *ConnectProxyDefaults  `json:"proxy_defaults,omitempty" hcl:"proxy_defaults" mapstructure:"proxy_defaults"`
+	CAProvider    *string                `json:"ca_provider,omitempty" hcl:"ca_provider" mapstructure:"ca_provider"`
+	CAConfig      map[string]interface{} `json:"ca_config,omitempty" hcl:"ca_config" mapstructure:"ca_config"`
 }
 
 // ConnectProxyDefaults is the agent-global connect proxy configuration.

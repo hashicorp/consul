@@ -2354,6 +2354,11 @@ func TestFullConfig(t *testing.T) {
 			"check_update_interval": "16507s",
 			"client_addr": "93.83.18.19",
 			"connect": {
+				"ca_provider": "b8j4ynx9",
+				"ca_config": {
+					"g4cvJyys": "IRLXE9Ds",
+					"hyMy9Oxn": "XeBp4Sis"
+				},
 				"enabled": true,
 				"proxy_defaults": {
 					"bind_min_port": 2000,
@@ -2811,6 +2816,11 @@ func TestFullConfig(t *testing.T) {
 			check_update_interval = "16507s"
 			client_addr = "93.83.18.19"
 			connect {
+				ca_provider = "b8j4ynx9"
+				ca_config {
+					"g4cvJyys" = "IRLXE9Ds"
+					"hyMy9Oxn" = "XeBp4Sis"
+				}
 				enabled = true
 				proxy_defaults {
 					bind_min_port = 2000
@@ -3403,10 +3413,15 @@ func TestFullConfig(t *testing.T) {
 				DeregisterCriticalServiceAfter: 13209 * time.Second,
 			},
 		},
-		CheckUpdateInterval:       16507 * time.Second,
-		ClientAddrs:               []*net.IPAddr{ipAddr("93.83.18.19")},
-		ConnectProxyBindMinPort:   2000,
-		ConnectProxyBindMaxPort:   3000,
+		CheckUpdateInterval:     16507 * time.Second,
+		ClientAddrs:             []*net.IPAddr{ipAddr("93.83.18.19")},
+		ConnectProxyBindMinPort: 2000,
+		ConnectProxyBindMaxPort: 3000,
+		ConnectCAProvider:       "b8j4ynx9",
+		ConnectCAConfig: map[string]interface{}{
+			"g4cvJyys": "IRLXE9Ds",
+			"hyMy9Oxn": "XeBp4Sis",
+		},
 		DNSAddrs:                  []net.Addr{tcpAddr("93.95.95.81:7001"), udpAddr("93.95.95.81:7001")},
 		DNSARecordLimit:           29907,
 		DNSAllowStale:             true,

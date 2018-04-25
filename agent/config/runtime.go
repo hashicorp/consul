@@ -647,6 +647,12 @@ type RuntimeConfig struct {
 	// registration time to allow global control of defaults.
 	ConnectProxyDefaultConfig map[string]interface{}
 
+	// ConnectCAProvider is the type of CA provider to use with Connect.
+	ConnectCAProvider string
+
+	// ConnectCAConfig is the config to use for the CA provider.
+	ConnectCAConfig map[string]interface{}
+
 	// DNSAddrs contains the list of TCP and UDP addresses the DNS server will
 	// bind to. If the DNS endpoint is disabled (ports.dns <= 0) the list is
 	// empty.

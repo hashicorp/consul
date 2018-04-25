@@ -522,6 +522,14 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 
 	// Connect proxy defaults.
 	proxyBindMinPort, proxyBindMaxPort := b.connectProxyPortRange(c.Connect)
+	var connectEnabled bool
+	var connectCAProvider string
+	var connectCAConfig map[string]interface{}
+	if c.Connect != nil {
+		connectEnabled = b.boolVal(c.Connect.Enabled)
+		connectCAProvider = b.stringVal(c.Connect.CAProvider)
+		connectCAConfig = c.Connect.CAConfig
+	}
 
 	// ----------------------------------------------------------------
 	// build runtime config
@@ -641,8 +649,11 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		CheckUpdateInterval:         b.durationVal("check_update_interval", c.CheckUpdateInterval),
 		Checks:                      checks,
 		ClientAddrs:                 clientAddrs,
+		ConnectEnabled:              connectEnabled,
 		ConnectProxyBindMinPort:     proxyBindMinPort,
 		ConnectProxyBindMaxPort:     proxyBindMaxPort,
+		ConnectCAProvider:           connectCAProvider,
+		ConnectCAConfig:             connectCAConfig,
 		DataDir:                     b.stringVal(c.DataDir),
 		Datacenter:                  strings.ToLower(b.stringVal(c.Datacenter)),
 		DevMode:                     b.boolVal(b.Flags.DevMode),

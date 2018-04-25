@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 
@@ -10,6 +11,8 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
 )
+
+var ErrConnectNotEnabled = errors.New("Connect must be enabled in order to use this endpoint")
 
 // ConnectCA manages the Connect CA.
 type ConnectCA struct {
@@ -21,6 +24,11 @@ type ConnectCA struct {
 func (s *ConnectCA) ConfigurationGet(
 	args *structs.DCSpecificRequest,
 	reply *structs.CAConfiguration) error {
+	// Exit early if Connect hasn't been enabled.
+	if !s.srv.config.ConnectEnabled {
+		return ErrConnectNotEnabled
+	}
+
 	if done, err := s.srv.forward("ConnectCA.ConfigurationGet", args, args, reply); done {
 		return err
 	}
@@ -48,6 +56,11 @@ func (s *ConnectCA) ConfigurationGet(
 func (s *ConnectCA) ConfigurationSet(
 	args *structs.CARequest,
 	reply *interface{}) error {
+	// Exit early if Connect hasn't been enabled.
+	if !s.srv.config.ConnectEnabled {
+		return ErrConnectNotEnabled
+	}
+
 	if done, err := s.srv.forward("ConnectCA.ConfigurationSet", args, args, reply); done {
 		return err
 	}
@@ -244,6 +257,11 @@ func (s *ConnectCA) Roots(
 func (s *ConnectCA) Sign(
 	args *structs.CASignRequest,
 	reply *structs.IssuedCert) error {
+	// Exit early if Connect hasn't been enabled.
+	if !s.srv.config.ConnectEnabled {
+		return ErrConnectNotEnabled
+	}
+
 	if done, err := s.srv.forward("ConnectCA.Sign", args, args, reply); done {
 		return err
 	}

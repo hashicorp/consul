@@ -894,6 +894,24 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	base.TLSCipherSuites = a.config.TLSCipherSuites
 	base.TLSPreferServerCipherSuites = a.config.TLSPreferServerCipherSuites
 
+	// Copy the Connect CA bootstrap config
+	if a.config.ConnectEnabled {
+		base.ConnectEnabled = true
+
+		if a.config.ConnectCAProvider != "" {
+			base.CAConfig.Provider = a.config.ConnectCAProvider
+
+			// Merge with the default config if it's the consul provider.
+			if a.config.ConnectCAProvider == "consul" {
+				for k, v := range a.config.ConnectCAConfig {
+					base.CAConfig.Config[k] = v
+				}
+			} else {
+				base.CAConfig.Config = a.config.ConnectCAConfig
+			}
+		}
+	}
+
 	// Setup the user event callback
 	base.UserEventHandler = func(e serf.UserEvent) {
 		select {

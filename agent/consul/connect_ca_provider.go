@@ -291,7 +291,7 @@ func (c *ConsulCAProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 
 	privKey, err := connect.ParseSigner(providerState.PrivateKey)
 	if err != nil {
-		return "", fmt.Errorf("error parsing private key %q: %v", providerState.PrivateKey, err)
+		return "", fmt.Errorf("error parsing private key %q: %s", providerState.PrivateKey, err)
 	}
 
 	rootCA, err := connect.ParseCert(providerState.RootCert)
@@ -363,7 +363,7 @@ func (c *ConsulCAProvider) generateCA(privateKey string, sn uint64) (string, err
 
 	privKey, err := connect.ParseSigner(privateKey)
 	if err != nil {
-		return "", fmt.Errorf("error parsing private key %q: %v", privateKey, err)
+		return "", fmt.Errorf("error parsing private key %q: %s", privateKey, err)
 	}
 
 	name := fmt.Sprintf("Consul CA %d", sn)
