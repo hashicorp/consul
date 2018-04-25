@@ -2,8 +2,9 @@ package forward
 
 import (
 	"context"
-	"sync"
+	"runtime"
 	"testing"
+	"time"
 
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	"github.com/coredns/coredns/plugin/test"
@@ -30,30 +31,41 @@ func TestProxyClose(t *testing.T) {
 		p := NewProxy(s.Addr, nil /* no TLS */)
 		p.start(hcDuration)
 
-		var wg sync.WaitGroup
-		wg.Add(5)
+		doneCnt := 0
+		doneCh := make(chan bool)
+		timeCh := time.After(10 * time.Second)
 		go func() {
 			p.connect(ctx, state, false, false)
-			wg.Done()
+			doneCh <- true
 		}()
 		go func() {
 			p.connect(ctx, state, true, false)
-			wg.Done()
+			doneCh <- true
 		}()
 		go func() {
 			p.close()
-			wg.Done()
+			doneCh <- true
 		}()
 		go func() {
 			p.connect(ctx, state, false, false)
-			wg.Done()
+			doneCh <- true
 		}()
 		go func() {
 			p.connect(ctx, state, true, false)
-			wg.Done()
+			doneCh <- true
 		}()
-		wg.Wait()
 
+		for doneCnt < 5 {
+			select {
+			case <-doneCh:
+				doneCnt++
+			case <-timeCh:
+				t.Error("TestProxyClose is running too long, dumping goroutines:")
+				buf := make([]byte, 100000)
+				stackSize := runtime.Stack(buf, true)
+				t.Fatal(string(buf[:stackSize]))
+			}
+		}
 		if p.inProgress != 0 {
 			t.Errorf("unexpected query in progress")
 		}
