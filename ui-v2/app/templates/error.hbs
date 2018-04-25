@@ -1,8 +1,12 @@
 {{#hashicorp-consul id="wrapper" dcs=dcs dc=dc}}
-    {{#app-view}}
+    {{#app-view class="template-error"}}
         {{#block-slot 'header'}}
             <h1>
-                xxx Error
+{{#if error.status }}
+                {{error.status}} ({{error.detail}})
+{{else}}
+                {{error.detail}}
+{{/if}}
             </h1>
         {{/block-slot}}
         {{#block-slot 'content'}}

@@ -1,6 +1,6 @@
 button,
 a[rel='back'],
-a[rel='home'] {
+.template-error div > a {
   @extend %button;
 }
 %button {
@@ -29,7 +29,8 @@ a[rel='back'] {
 }
 %button[type='button'],
 %button[type='reset'],
-a[rel='back'] {
+a[rel='back'],
+.template-error div > a {
   color: $text-blue;
 }
 %button.type-delete {

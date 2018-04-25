@@ -44,7 +44,8 @@ main {
 // content
 %app-content > p:only-child,
 [role='tabpanel'] > p:only-child,
-%app-view > div.disabled > div {
+%app-view > div.disabled > div,
+.template-error > div {
   background-color: $lightest-gray;
   color: $text-blue;
   font-size: $size-8;
