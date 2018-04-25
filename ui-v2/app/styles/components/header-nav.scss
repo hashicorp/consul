@@ -113,12 +113,12 @@
     font-weight: $weight-bold;
   }
 }
-%primary-nav > ul > li > a:hover,
-%primary-nav > ul > li > a:focus {
+%header-nav > ul > li > a:hover,
+%header-nav > ul > li > a:focus,
+%header-nav > ul > li > a:active {
   color: $white;
 }
 @media #{$--horizontal-nav} {
-  %header-nav > ul > li > a:active,
   %header-nav > ul > li.is-active > a {
     background-color: $magenta-800;
   }
