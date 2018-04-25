@@ -9,7 +9,11 @@
 {{#if dc }}
                 <ul>
                     <li class={{if isDropdownVisible 'is-active'}}>
+    {{#if (gt dcs.length 0) }}
                         <a data-test-datacenter-selected="{{dc.Name}}" {{action 'change'}}>{{dc.Name}}</a>
+    {{ else }}
+                        <a href={{href-to 'dc.services' dc.Name }} data-test-datacenter-selected="{{dc.Name}}">{{dc.Name}}</a>
+    {{/if}}
     {{#if isDropdownVisible}}
                         {{datacenter-picker items=dcs selected=dc onchange=(action 'change') onblur=(action 'change')}}
     {{/if}}

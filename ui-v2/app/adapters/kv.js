@@ -83,26 +83,28 @@ export default Adapter.extend({
   handleResponse: function(status, headers, payload, requestData) {
     // TODO: isCreateRecord..
     let response = payload;
-    if (response === true) {
-      // isBoolean? should error on false
-      const url = requestData.url.split('?')[0];
-      // TODO: How reliable is this?
-      // KV `Keys` and therefore id's can have spaces and therefore %20's in them
-      const item = {
-        [PRIMARY_KEY]: decodeURIComponent(
-          url
-            .split('/')
-            .splice(3)
-            .join('/')
-        ),
-        [DATACENTER_KEY]: '',
-      }; // TODO: separator?
-      // safest way to check this is a create?
-      if (this.urlForCreateRecord(null, makeAttrable(item)).split('?')[0] === url) {
-        response = item;
+    if (status === 200) {
+      if (response === true) {
+        // isBoolean? should error on false
+        const url = requestData.url.split('?')[0];
+        // TODO: How reliable is this?
+        // KV `Keys` and therefore id's can have spaces and therefore %20's in them
+        const item = {
+          [PRIMARY_KEY]: decodeURIComponent(
+            url
+              .split('/')
+              .splice(3)
+              .join('/')
+          ),
+          [DATACENTER_KEY]: '',
+        }; // TODO: separator?
+        // safest way to check this is a create?
+        if (this.urlForCreateRecord(null, makeAttrable(item)).split('?')[0] === url) {
+          response = item;
+        }
+      } else {
+        // both query and queryRecord
       }
-    } else {
-      // both query and queryRecord
     }
     return this._super(status, headers, response, requestData);
   },

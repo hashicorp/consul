@@ -23,13 +23,13 @@ export default Route.extend(WithKvActions, {
         });
       })
       .catch(e => {
-        if (e.errors[0].status == '500') {
-          throw e;
-        }
         // usually when an entire folder structure and no longer exists
         // a 404 comes back, just redirect to root as the old UI did
         // TODO: this still gives me an error!?
-        return this.transitionTo('dc.kv.index');
+        if (e.errors && e.errors[0] && e.errors[0].status == '404') {
+          return this.transitionTo('dc.kv.index');
+        }
+        throw e;
       });
   },
   setupController: function(controller, model) {

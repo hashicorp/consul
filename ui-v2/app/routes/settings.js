@@ -15,7 +15,7 @@ export default Route.extend(WithFeedback, {
       return hash({
         ...model,
         ...{
-          dc: get(this, 'dcRepo').getActive(model.dcs),
+          dc: get(this, 'dcRepo').getActive(null, model.dcs),
         },
       });
     });

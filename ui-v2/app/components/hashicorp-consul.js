@@ -4,7 +4,9 @@ export default Component.extend({
   isDropdownVisible: false,
   actions: {
     change: function(item) {
-      set(this, 'isDropdownVisible', !get(this, 'isDropdownVisible'));
+      if (get(this, 'dcs.length') > 0) {
+        set(this, 'isDropdownVisible', !get(this, 'isDropdownVisible'));
+      }
     },
   },
 });

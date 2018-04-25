@@ -1,5 +1,6 @@
 import Service, { inject as service } from '@ember/service';
 import { get } from '@ember/object';
+import Error from '@ember/error';
 
 export default Service.extend({
   store: service('store'),
@@ -17,13 +18,16 @@ export default Service.extend({
           });
       }
     }
-    return Promise.reject(items);
+    const e = new Error();
+    e.status = '404';
+    e.detail = 'Not Found';
+    return Promise.reject({ errors: [e] });
   },
   getActive: function(name, items) {
     const settings = get(this, 'settings');
     return Promise.all([name || settings.findBySlug('dc'), items || this.findAll()]).then(
       ([name, items]) => {
-        return this.findBySlug(name, items).catch(function(items) {
+        return this.findBySlug(name, items).catch(function() {
           const item = get(items, 'firstObject');
           settings.persist({ dc: get(item, 'Name') });
           return item;

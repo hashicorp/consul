@@ -18,22 +18,25 @@ export default Adapter.extend({
   },
   handleResponse: function(status, headers, payload, requestData) {
     let response = payload;
-    const parts = requestData.url.split('/');
-    if (this.isQueryRecord(parts)) {
-      response = {
-        [PRIMARY_KEY]: parts.pop(),
-        Nodes: response,
-      };
-    } else {
-      // isQuery
-      response = response.map(function(item, i, arr) {
-        return {
-          ...item,
-          ...{
-            [PRIMARY_KEY]: item.Name,
-          },
+    if (status === 200) {
+      // here status is a number..
+      const parts = requestData.url.split('/');
+      if (this.isQueryRecord(parts)) {
+        response = {
+          [PRIMARY_KEY]: parts.pop(),
+          Nodes: response,
         };
-      });
+      } else {
+        // isQuery
+        response = response.map(function(item, i, arr) {
+          return {
+            ...item,
+            ...{
+              [PRIMARY_KEY]: item.Name,
+            },
+          };
+        });
+      }
     }
     return this._super(status, headers, response, requestData);
     // return this._super(status, headers, {services: response}, requestData);
