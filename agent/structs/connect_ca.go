@@ -160,6 +160,12 @@ type CAConfiguration struct {
 	RaftIndex
 }
 
+type ConsulCAProviderConfig struct {
+	PrivateKey     string
+	RootCert       string
+	RotationPeriod time.Duration
+}
+
 // CAConsulProviderState is used to track the built-in Consul CA provider's state.
 type CAConsulProviderState struct {
 	ID         string

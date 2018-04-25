@@ -28,7 +28,5 @@ func TestCAProvider_Bootstrap(t *testing.T) {
 	state := s1.fsm.State()
 	_, activeRoot, err := state.CARootActive(nil)
 	assert.NoError(err)
-	assert.Equal(root.ID, activeRoot.ID)
-	assert.Equal(root.Name, activeRoot.Name)
-	assert.Equal(root.RootCert, activeRoot.RootCert)
+	assert.Equal(root, activeRoot.RootCert)
 }

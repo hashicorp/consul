@@ -19,14 +19,8 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-type ConsulCAProviderConfig struct {
-	PrivateKey     string
-	RootCert       string
-	RotationPeriod time.Duration
-}
-
 type ConsulCAProvider struct {
-	config *ConsulCAProviderConfig
+	config *structs.ConsulCAProviderConfig
 
 	id  string
 	srv *Server
@@ -122,8 +116,8 @@ func NewConsulCAProvider(rawConfig map[string]interface{}, srv *Server) (*Consul
 	return provider, nil
 }
 
-func decodeConfig(raw map[string]interface{}) (*ConsulCAProviderConfig, error) {
-	var config *ConsulCAProviderConfig
+func decodeConfig(raw map[string]interface{}) (*structs.ConsulCAProviderConfig, error) {
+	var config *structs.ConsulCAProviderConfig
 	if err := mapstructure.WeakDecode(raw, &config); err != nil {
 		return nil, fmt.Errorf("error decoding config: %s", err)
 	}
