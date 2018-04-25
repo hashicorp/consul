@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 
 	"github.com/coredns/coredns/plugin"
+	"github.com/coredns/coredns/plugin/metrics"
 	// Plugin the trace package.
 	_ "github.com/coredns/coredns/plugin/pkg/trace"
 
@@ -20,10 +21,10 @@ import (
 
 type trace struct {
 	Next            plugin.Handler
-	ServiceEndpoint string
 	Endpoint        string
 	EndpointType    string
 	tracer          ot.Tracer
+	serviceEndpoint string
 	serviceName     string
 	clientServer    bool
 	every           uint64
@@ -58,7 +59,7 @@ func (t *trace) setupZipkin() error {
 		return err
 	}
 
-	recorder := zipkin.NewRecorder(collector, false, t.ServiceEndpoint, t.serviceName)
+	recorder := zipkin.NewRecorder(collector, false, t.serviceEndpoint, t.serviceName)
 	t.tracer, err = zipkin.NewTracer(recorder, zipkin.ClientServerSameSpan(t.clientServer))
 
 	return err
@@ -81,9 +82,7 @@ func (t *trace) setupDatadog() error {
 }
 
 // Name implements the Handler interface.
-func (t *trace) Name() string {
-	return "trace"
-}
+func (t *trace) Name() string { return "trace" }
 
 // ServeDNS implements the plugin.Handle interface.
 func (t *trace) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
@@ -96,7 +95,7 @@ func (t *trace) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 		}
 	}
 	if span := ot.SpanFromContext(ctx); span == nil && trace {
-		span := t.Tracer().StartSpan("servedns")
+		span := t.Tracer().StartSpan("servedns:" + metrics.WithServer(ctx))
 		defer span.Finish()
 		ctx = ot.ContextWithSpan(ctx, span)
 	}

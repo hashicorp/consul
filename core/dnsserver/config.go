@@ -3,7 +3,6 @@ package dnsserver
 import (
 	"crypto/tls"
 	"fmt"
-	"net"
 
 	"github.com/coredns/coredns/plugin"
 
@@ -51,22 +50,6 @@ type Config struct {
 	// on them should register themselves here. The name should be the name as return by the
 	// Handler's Name method.
 	registry map[string]plugin.Handler
-}
-
-//HostAddresses builds a representation of the addresses of this Config
-//after server is started ONLY, can be used as a Key for identifing that config
-// :53 or 127.0.0.1:53 or 127.0.0.1:53/::1:53
-func (c *Config) HostAddresses() string {
-	all := ""
-	for _, h := range c.ListenHosts {
-		addr := net.JoinHostPort(h, c.Port)
-		if all == "" {
-			all = addr
-			continue
-		}
-		all = all + "/" + addr
-	}
-	return all
 }
 
 // keyForConfig build a key for identifying the configs during setup time
