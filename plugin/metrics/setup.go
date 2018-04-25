@@ -8,19 +8,21 @@ import (
 	"github.com/coredns/coredns/coremain"
 	"github.com/coredns/coredns/plugin"
 	clog "github.com/coredns/coredns/plugin/pkg/log"
+	"github.com/coredns/coredns/plugin/pkg/uniq"
 
 	"github.com/mholt/caddy"
 )
 
-var log = clog.NewWithPlugin("prometheus")
+var (
+	log      = clog.NewWithPlugin("prometheus")
+	uniqAddr = uniq.New()
+)
 
 func init() {
 	caddy.RegisterPlugin("prometheus", caddy.Plugin{
 		ServerType: "dns",
 		Action:     setup,
 	})
-
-	uniqAddr = newAddress()
 }
 
 func setup(c *caddy.Controller) error {
@@ -36,7 +38,7 @@ func setup(c *caddy.Controller) error {
 
 	c.OncePerServerBlock(func() error {
 		c.OnStartup(func() error {
-			return uniqAddr.forEachTodo()
+			return uniqAddr.ForEach()
 		})
 		return nil
 	})
@@ -54,7 +56,7 @@ func prometheusParse(c *caddy.Controller) (*Metrics, error) {
 	var met = New(defaultAddr)
 
 	defer func() {
-		uniqAddr.setAddress(met.Addr, met.OnStartup)
+		uniqAddr.Set(met.Addr, met.OnStartup)
 	}()
 
 	i := 0
