@@ -76,11 +76,11 @@
 }
 .healthy .healthchecked-resource li {
   position: absolute;
-  top: 20px;
+  top: 8px;
   right: 16px;
   border: none;
 }
-.healthy healthchecked-resource li::before {
+.healthy .healthchecked-resource li::before {
   left: 0;
 }
 .healthy .healthchecked-resource li span {
@@ -99,6 +99,6 @@
   height: 31px;
 }
 %healthchecked-resource li:not(:last-child) strong,
-%healthchecked-resource li:only-child strong {
+.healthy .healthchecked-resource li:only-child strong {
   display: none;
 }
