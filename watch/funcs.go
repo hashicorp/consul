@@ -3,7 +3,6 @@ package watch
 import (
 	"context"
 	"fmt"
-	"log"
 
 	consulapi "github.com/hashicorp/consul/api"
 )
@@ -296,8 +295,6 @@ func connectProxyConfigWatch(params map[string]interface{}) (WatcherFunc, error)
 		agent := p.client.Agent()
 		opts := makeQueryOptionsWithContext(p, false)
 		defer p.cancelFunc()
-
-		log.Printf("DEBUG: id: %s, opts: %v", proxyServiceID, opts)
 
 		config, _, err := agent.ConnectProxyConfig(proxyServiceID, &opts)
 		if err != nil {

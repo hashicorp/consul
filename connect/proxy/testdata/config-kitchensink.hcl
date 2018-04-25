@@ -12,7 +12,8 @@ dev_service_cert_file = "connect/testdata/ca1-svc-web.cert.pem"
 dev_service_key_file = "connect/testdata/ca1-svc-web.key.pem"
 
 public_listener {
-  bind_address = ":9999"
+  bind_address = "127.0.0.1"
+  bind_port= "9999"
   local_service_address = "127.0.0.1:5000"
 }
 

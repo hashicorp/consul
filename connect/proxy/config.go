@@ -5,8 +5,11 @@ import (
 	"io/ioutil"
 	"log"
 
+	"github.com/mitchellh/mapstructure"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/connect"
+	"github.com/hashicorp/consul/watch"
 	"github.com/hashicorp/hcl"
 )
 
@@ -59,21 +62,23 @@ type Config struct {
 // PublicListenerConfig contains the parameters needed for the incoming mTLS
 // listener.
 type PublicListenerConfig struct {
-	// BindAddress is the host:port the public mTLS listener will bind to.
-	BindAddress string `json:"bind_address" hcl:"bind_address"`
+	// BindAddress is the host/IP the public mTLS listener will bind to.
+	BindAddress string `json:"bind_address" hcl:"bind_address" mapstructure:"bind_address"`
+
+	BindPort string `json:"bind_port" hcl:"bind_port" mapstructure:"bind_port"`
 
 	// LocalServiceAddress is the host:port for the proxied application. This
 	// should be on loopback or otherwise protected as it's plain TCP.
-	LocalServiceAddress string `json:"local_service_address" hcl:"local_service_address"`
+	LocalServiceAddress string `json:"local_service_address" hcl:"local_service_address" mapstructure:"local_service_address"`
 
 	// LocalConnectTimeout is the timeout for establishing connections with the
 	// local backend. Defaults to 1000 (1s).
-	LocalConnectTimeoutMs int `json:"local_connect_timeout_ms" hcl:"local_connect_timeout_ms"`
+	LocalConnectTimeoutMs int `json:"local_connect_timeout_ms" hcl:"local_connect_timeout_ms" mapstructure:"local_connect_timeout_ms"`
 
 	// HandshakeTimeout is the timeout for incoming mTLS clients to complete a
 	// handshake. Setting this low avoids DOS by malicious clients holding
 	// resources open. Defaults to 10000 (10s).
-	HandshakeTimeoutMs int `json:"handshake_timeout_ms" hcl:"handshake_timeout_ms"`
+	HandshakeTimeoutMs int `json:"handshake_timeout_ms" hcl:"handshake_timeout_ms" mapstructure:"handshake_timeout_ms"`
 }
 
 // applyDefaults sets zero-valued params to a sane default.
@@ -88,26 +93,28 @@ func (plc *PublicListenerConfig) applyDefaults() {
 
 // UpstreamConfig configures an upstream (outgoing) listener.
 type UpstreamConfig struct {
-	// LocalAddress is the host:port to listen on for local app connections.
-	LocalBindAddress string `json:"local_bind_address" hcl:"local_bind_address,attr"`
+	// LocalAddress is the host/ip to listen on for local app connections. Defaults to 127.0.0.1.
+	LocalBindAddress string `json:"local_bind_address" hcl:"local_bind_address,attr" mapstructure:"local_bind_address"`
+
+	LocalBindPort int `json:"local_bind_port" hcl:"local_bind_port,attr" mapstructure:"local_bind_port"`
 
 	// DestinationName is the service name of the destination.
-	DestinationName string `json:"destination_name" hcl:"destination_name,attr"`
+	DestinationName string `json:"destination_name" hcl:"destination_name,attr" mapstructure:"destination_name"`
 
 	// DestinationNamespace is the namespace of the destination.
-	DestinationNamespace string `json:"destination_namespace" hcl:"destination_namespace,attr"`
+	DestinationNamespace string `json:"destination_namespace" hcl:"destination_namespace,attr" mapstructure:"destination_namespace"`
 
 	// DestinationType determines which service discovery method is used to find a
 	// candidate instance to connect to.
-	DestinationType string `json:"destination_type" hcl:"destination_type,attr"`
+	DestinationType string `json:"destination_type" hcl:"destination_type,attr" mapstructure:"destination_type"`
 
 	// DestinationDatacenter is the datacenter the destination is in. If empty,
 	// defaults to discovery within the same datacenter.
-	DestinationDatacenter string `json:"destination_datacenter" hcl:"destination_datacenter,attr"`
+	DestinationDatacenter string `json:"destination_datacenter" hcl:"destination_datacenter,attr" mapstructure:"destination_datacenter"`
 
 	// ConnectTimeout is the timeout for establishing connections with the remote
 	// service instance. Defaults to 10,000 (10s).
-	ConnectTimeoutMs int `json:"connect_timeout_ms" hcl:"connect_timeout_ms,attr"`
+	ConnectTimeoutMs int `json:"connect_timeout_ms" hcl:"connect_timeout_ms,attr" mapstructure:"connect_timeout_ms"`
 
 	// resolver is used to plug in the service discover mechanism. It can be used
 	// in tests to bypass discovery. In real usage it is used to inject the
@@ -121,13 +128,22 @@ func (uc *UpstreamConfig) applyDefaults() {
 	if uc.ConnectTimeoutMs == 0 {
 		uc.ConnectTimeoutMs = 10000
 	}
+	if uc.DestinationType == "" {
+		uc.DestinationType = "service"
+	}
+	if uc.DestinationNamespace == "" {
+		uc.DestinationNamespace = "default"
+	}
+	if uc.LocalBindAddress == "" {
+		uc.LocalBindAddress = "127.0.0.1"
+	}
 }
 
 // String returns a string that uniquely identifies the Upstream. Used for
 // identifying the upstream in log output and map keys.
 func (uc *UpstreamConfig) String() string {
-	return fmt.Sprintf("%s->%s:%s/%s", uc.LocalBindAddress, uc.DestinationType,
-		uc.DestinationNamespace, uc.DestinationName)
+	return fmt.Sprintf("%s:%d->%s:%s/%s", uc.LocalBindAddress, uc.LocalBindPort,
+		uc.DestinationType, uc.DestinationNamespace, uc.DestinationName)
 }
 
 // UpstreamResolverFromClient returns a ConsulResolver that can resolve the
@@ -212,12 +228,93 @@ type AgentConfigWatcher struct {
 	client  *api.Client
 	proxyID string
 	logger  *log.Logger
+	ch      chan *Config
+	plan    *watch.Plan
+}
+
+// NewAgentConfigWatcher creates an AgentConfigWatcher.
+func NewAgentConfigWatcher(client *api.Client, proxyID string,
+	logger *log.Logger) (*AgentConfigWatcher, error) {
+	w := &AgentConfigWatcher{
+		client:  client,
+		proxyID: proxyID,
+		logger:  logger,
+		ch:      make(chan *Config),
+	}
+
+	// Setup watch plan for config
+	plan, err := watch.Parse(map[string]interface{}{
+		"type":             "connect_proxy_config",
+		"proxy_service_id": w.proxyID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	w.plan = plan
+	w.plan.Handler = w.handler
+	go w.plan.RunWithClientAndLogger(w.client, w.logger)
+	return w, nil
+}
+
+func (w *AgentConfigWatcher) handler(blockVal watch.BlockingParam,
+	val interface{}) {
+	log.Printf("DEBUG: got hash %s", blockVal.(watch.WaitHashVal))
+
+	resp, ok := val.(*api.ConnectProxyConfig)
+	if !ok {
+		w.logger.Printf("[WARN] proxy config watch returned bad response: %v", val)
+		return
+	}
+
+	// Setup Service instance now we know target ID etc
+	service, err := connect.NewService(resp.TargetServiceID, w.client)
+	if err != nil {
+		w.logger.Printf("[WARN] proxy config watch failed to initialize"+
+			" service: %s", err)
+		return
+	}
+
+	// Create proxy config from the response
+	cfg := &Config{
+		ProxyID: w.proxyID,
+		// Token should be already setup in the client
+		ProxiedServiceID:        resp.TargetServiceID,
+		ProxiedServiceNamespace: "default",
+		service:                 service,
+	}
+
+	// Unmarshal configs
+	err = mapstructure.Decode(resp.Config, &cfg.PublicListener)
+	if err != nil {
+		w.logger.Printf("[ERR] proxy config watch public listener config "+
+			"couldn't be parsed: %s", err)
+		return
+	}
+	cfg.PublicListener.applyDefaults()
+
+	err = mapstructure.Decode(resp.Config["upstreams"], &cfg.Upstreams)
+	if err != nil {
+		w.logger.Printf("[ERR] proxy config watch upstream listener config "+
+			"couldn't be parsed: %s", err)
+		return
+	}
+	for i := range cfg.Upstreams {
+		cfg.Upstreams[i].applyDefaults()
+	}
+
+	// Parsed config OK, deliver it!
+	w.ch <- cfg
 }
 
 // Watch implements ConfigWatcher.
 func (w *AgentConfigWatcher) Watch() <-chan *Config {
-	watch := make(chan *Config)
-	// TODO implement me, note we need to discover the Service instance to use and
-	// set it on the Config we return.
-	return watch
+	return w.ch
+}
+
+// Close frees watcher resources and implements io.Closer
+func (w *AgentConfigWatcher) Close() error {
+	if w.plan != nil {
+		w.plan.Stop()
+	}
+	return nil
 }
