@@ -1923,19 +1923,58 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			json: []string{
 				`{ "service": { "name": "a", "port": 80 } }`,
-				`{ "service": { "name": "b", "port": 90 } }`,
+				`{ "service": { "name": "b", "port": 90, "meta": {"my": "value"} } }`,
 			},
 			hcl: []string{
 				`service = { name = "a" port = 80 }`,
-				`service = { name = "b" port = 90 }`,
+				`service = { name = "b" port = 90 meta={my="value"}}`,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Services = []*structs.ServiceDefinition{
 					&structs.ServiceDefinition{Name: "a", Port: 80},
-					&structs.ServiceDefinition{Name: "b", Port: 90},
+					&structs.ServiceDefinition{Name: "b", Port: 90, Meta: map[string]string{"my": "value"}},
 				}
 				rt.DataDir = dataDir
 			},
+		},
+		{
+			desc: "service with wrong meta: too long key",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{
+				`{ "service": { "name": "a", "port": 80, "meta": { "` + randomString(520) + `": "metaValue" } } }`,
+			},
+			hcl: []string{
+				`service = { name = "a" port = 80, meta={` + randomString(520) + `="metaValue"} }`,
+			},
+			err: `Key is too long`,
+		},
+		{
+			desc: "service with wrong meta: too long value",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{
+				`{ "service": { "name": "a", "port": 80, "meta": { "a": "` + randomString(520) + `" } } }`,
+			},
+			hcl: []string{
+				`service = { name = "a" port = 80, meta={a="` + randomString(520) + `"} }`,
+			},
+			err: `Value is too long`,
+		},
+		{
+			desc: "service with wrong meta: too many meta",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{
+				`{ "service": { "name": "a", "port": 80, "meta": { ` + metaPairs(70, "json") + `} } }`,
+			},
+			hcl: []string{
+				`service = { name = "a" port = 80 meta={` + metaPairs(70, "hcl") + `} }`,
+			},
+			err: `invalid meta for service a: Node metadata cannot contain more than 64 key`,
 		},
 		{
 			desc: "translated keys",
@@ -2397,6 +2436,9 @@ func TestFullConfig(t *testing.T) {
 			"service": {
 				"id": "dLOXpSCI",
 				"name": "o1ynPkp0",
+				"meta": {
+					"mymeta": "data"
+				},
 				"tags": ["nkwshvM5", "NTDWn3ek"],
 				"address": "cOlSOhbp",
 				"token": "msy7iWER",
@@ -2835,6 +2877,9 @@ func TestFullConfig(t *testing.T) {
 			service = {
 				id = "dLOXpSCI"
 				name = "o1ynPkp0"
+				meta = {
+					mymeta = "data"
+				}
 				tags = ["nkwshvM5", "NTDWn3ek"]
 				address = "cOlSOhbp"
 				token = "msy7iWER"
@@ -3489,6 +3534,7 @@ func TestFullConfig(t *testing.T) {
 				Tags:              []string{"nkwshvM5", "NTDWn3ek"},
 				Address:           "cOlSOhbp",
 				Token:             "msy7iWER",
+				Meta:              map[string]string{"mymeta": "data"},
 				Port:              24237,
 				EnableTagOverride: true,
 				Checks: structs.CheckTypes{
