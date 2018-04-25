@@ -27,6 +27,9 @@ type google struct {
 }
 
 func newGoogle(endpoint string, bootstrap []string) *google {
+	// TODO(miek): Deprecate after 1.1.3 (that would be 1.2.0)
+	log.Warning("https_google will be deprecated in the next release")
+
 	if endpoint == "" {
 		endpoint = ghost
 	}

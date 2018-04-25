@@ -10,9 +10,12 @@ import (
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/pkg/fall"
+	clog "github.com/coredns/coredns/plugin/pkg/log"
 
 	"github.com/mholt/caddy"
 )
+
+var log = clog.NewWithPlugin("reverse")
 
 func init() {
 	caddy.RegisterPlugin("reverse", caddy.Plugin{
@@ -30,6 +33,9 @@ func setup(c *caddy.Controller) error {
 	dnsserver.GetConfig(c).AddPlugin(func(next plugin.Handler) plugin.Handler {
 		return Reverse{Next: next, Networks: networks, Fall: fall}
 	})
+
+	// TODO(miek): Deprecate after 1.1.3 (that would be 1.2.0)
+	log.Warning("reverse will be deprecated in the next release")
 
 	return nil
 }
