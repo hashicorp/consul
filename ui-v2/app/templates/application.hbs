@@ -1,6 +1,9 @@
 {{#if (not loading)}}
     {{outlet}}
 {{else}}
-{{#hashicorp-consul id="wrapper" dc=dc}}
+{{#hashicorp-consul class="template-loading" id="wrapper" dc=dc}}
+    <div>
+        {{partial 'consul-loading'}}
+    </div>
 {{/hashicorp-consul}}
 {{/if}}
