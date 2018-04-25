@@ -26,7 +26,7 @@ func setup(c *caddy.Controller) error {
 	}
 
 	c.OnStartup(func() error {
-		once.Do(func() { metrics.MustRegister(c, AutoPathCount) })
+		once.Do(func() { metrics.MustRegister(c, autoPathCount) })
 		return nil
 	})
 
