@@ -9,17 +9,22 @@ export default Route.extend(WithAclActions, {
   templateName: 'dc/acls/edit',
   repo: service('acls'),
   model: function(params) {
-    const item = get(this, 'repo').create();
-    set(item, 'Datacenter', this.modelFor('dc').dc.Name);
+    this.item = get(this, 'repo').create();
+    set(this.item, 'Datacenter', this.modelFor('dc').dc.Name);
     return hash({
       create: true,
       isLoading: false,
-      item: item,
+      item: this.item,
       types: ['management', 'client'],
     });
   },
   setupController: function(controller, model) {
     this._super(...arguments);
     controller.setProperties(model);
+  },
+  deactivate: function() {
+    if (get(this.item, 'isNew')) {
+      this.item.destroyRecord();
+    }
   },
 });

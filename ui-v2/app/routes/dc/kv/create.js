@@ -11,17 +11,22 @@ export default Route.extend(WithKvActions, {
     const key = params.key || '/';
     const repo = get(this, 'repo');
     const dc = this.modelFor('dc').dc.Name;
-    const item = repo.create();
-    set(item, 'Datacenter', dc);
+    this.item = repo.create();
+    set(this.item, 'Datacenter', dc);
     return hash({
       create: true,
       isLoading: false,
-      item: item,
+      item: this.item,
       parent: repo.findBySlug(key, dc),
     });
   },
   setupController: function(controller, model) {
     this._super(...arguments);
     controller.setProperties(model);
+  },
+  deactivate: function() {
+    if (get(this.item, 'isNew')) {
+      this.item.destroyRecord();
+    }
   },
 });
