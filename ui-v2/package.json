@@ -66,6 +66,7 @@
     "ember-source": "~2.18.2",
     "ember-test-selectors": "^0.3.9",
     "ember-truth-helpers": "^2.0.0",
+    "ember-url": "^0.6.0",
     "eslint-plugin-ember": "^5.0.0",
     "husky": "^0.14.3",
     "ivy-codemirror": "^2.1.0",

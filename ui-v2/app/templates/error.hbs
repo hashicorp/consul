@@ -3,9 +3,9 @@
         {{#block-slot 'header'}}
             <h1>
 {{#if error.status }}
-                {{error.status}} ({{error.detail}})
+                {{error.status}} ({{error.message}})
 {{else}}
-                {{error.detail}}
+                {{error.message}}
 {{/if}}
             </h1>
         {{/block-slot}}

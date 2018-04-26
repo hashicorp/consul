@@ -8,9 +8,14 @@ export default Route.extend({
   repo: service('dc'),
   actions: {
     loading: function(transition, originRoute) {
+      let dc = null;
+      if (originRoute.routeName !== 'dc') {
+        const model = this.modelFor('dc') || { dcs: null, dc: { Name: null } };
+        dc = get(this, 'repo').getActive(model.dc.Name, model.dcs);
+      }
       hash({
         loading: true,
-        dc: get(this, 'repo').getActive(),
+        dc: dc,
       }).then(model => {
         next(() => {
           const controller = this.controllerFor('application');
@@ -18,6 +23,7 @@ export default Route.extend({
           transition.promise.finally(function() {
             controller.setProperties({
               loading: false,
+              dc: model.dc,
             });
           });
         });
@@ -26,21 +32,28 @@ export default Route.extend({
     },
     error: function(e, transition) {
       let error = {
-        status: '',
-        detail: 'Error',
+        status: e.code || '',
+        message: e.message || 'Error',
       };
       if (e.errors && e.errors[0]) {
         error = e.errors[0];
+        error.message = error.detail;
       }
       // logger(error);
       hash({
         error: error,
-        dc: get(this, 'repo').getActive(),
-      }).then(model => {
-        next(() => {
-          this.controllerFor('error').setProperties(model);
+        dc: error.status.toString().indexOf('5') !== 0 ? get(this, 'repo').getActive() : null,
+      })
+        .then(model => {
+          next(() => {
+            this.controllerFor('error').setProperties(model);
+          });
+        })
+        .catch(e => {
+          next(() => {
+            this.controllerFor('error').setProperties({ error: error });
+          });
         });
-      });
       return true;
     },
   },

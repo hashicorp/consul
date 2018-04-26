@@ -6,7 +6,7 @@ export default Service.extend({
   findByNode: function(node, dc) {
     return get(this, 'store')
       .query('session', {
-        node: node,
+        id: node,
         dc: dc,
       })
       .then(function(items) {
@@ -16,10 +16,10 @@ export default Service.extend({
         });
       });
   },
-  findByKey: function(key, dc) {
+  findByKey: function(slug, dc) {
     return get(this, 'store')
       .queryRecord('session', {
-        key: key,
+        id: slug,
         dc: dc,
       })
       .then(function(item) {
@@ -28,13 +28,8 @@ export default Service.extend({
       });
   },
   remove: function(item) {
-    return item
-      .destroyRecord()
-      .then(item => {
-        return get(this, 'store').unloadRecord(item);
-      })
-      .catch(function(e) {
-        console.log(e);
-      });
+    return item.destroyRecord().then(item => {
+      return get(this, 'store').unloadRecord(item);
+    });
   },
 });

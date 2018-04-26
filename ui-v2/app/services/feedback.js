@@ -3,6 +3,7 @@ import { inject as service } from '@ember/service';
 import { get } from '@ember/object';
 
 export default Service.extend({
+  // logger: service('logger'),
   // TODO: Why can't I name this `notify`?
   flashMessages: service('flashMessages'),
   execute: function(handle, success, error) {

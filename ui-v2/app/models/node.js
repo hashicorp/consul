@@ -5,8 +5,11 @@ import { computed, get } from '@ember/object';
 import sumOfUnhealthy from 'consul-ui/utils/sumOfUnhealthy';
 import hasStatus from 'consul-ui/utils/hasStatus';
 // import { belongsTo } from 'ember-data/relationships';
+export const PRIMARY_KEY = 'uid';
+export const SLUG_KEY = 'ID';
 export default Model.extend({
-  ID: attr('string'),
+  [PRIMARY_KEY]: attr('string'),
+  [SLUG_KEY]: attr('string'),
   Address: attr('string'),
   Node: attr('string'),
   Meta: attr(), // arbitrary??

@@ -20,7 +20,7 @@ export default Service.extend({
     }
     const e = new Error();
     e.status = '404';
-    e.detail = 'Not Found';
+    e.detail = 'Page not found';
     return Promise.reject({ errors: [e] });
   },
   getActive: function(name, items) {

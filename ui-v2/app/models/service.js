@@ -2,9 +2,11 @@ import Model from 'ember-data/model';
 import attr from 'ember-data/attr';
 // import { belongsTo } from 'ember-data/relationships';
 import { computed, get } from '@ember/object';
+export const PRIMARY_KEY = 'uid';
+export const SLUG_KEY = 'Name';
 export default Model.extend({
-  Id: attr('string'), // added by ember
-  Name: attr('string'),
+  [PRIMARY_KEY]: attr('string'),
+  [SLUG_KEY]: attr('string'),
   Tags: attr({
     defaultValue: function() {
       return [];

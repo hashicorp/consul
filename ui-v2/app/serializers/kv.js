@@ -1,18 +1,5 @@
 import Serializer from './application';
+import { PRIMARY_KEY } from 'consul-ui/models/kv';
 export default Serializer.extend({
-  primaryKey: 'Key',
-  normalizePayload: function(payload, id, requestType) {
-    switch (requestType) {
-      case 'query':
-        // return payload;
-        return payload.map(item => {
-          return {
-            Key: item,
-          };
-        });
-      case 'queryRecord':
-        return payload[0];
-    }
-    return payload;
-  },
+  primaryKey: PRIMARY_KEY,
 });

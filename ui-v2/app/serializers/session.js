@@ -1,12 +1,6 @@
 import Serializer from './application';
 
+import { PRIMARY_KEY } from 'consul-ui/models/session';
 export default Serializer.extend({
-  primaryKey: 'ID',
-  normalizePayload: function(payload, id, requestType) {
-    switch (requestType) {
-      case 'queryRecord':
-        return payload[0];
-    }
-    return payload;
-  },
+  primaryKey: PRIMARY_KEY,
 });

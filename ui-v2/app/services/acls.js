@@ -1,6 +1,7 @@
 import Service, { inject as service } from '@ember/service';
 import { get, set } from '@ember/object';
 import { typeOf } from '@ember/utils';
+import { PRIMARY_KEY } from 'consul-ui/models/acl';
 // clone: function(acl, dc) {
 //   const slug = acl.get('ID');
 //   const newAcl = this.create();
@@ -37,7 +38,7 @@ export default Service.extend({
   findBySlug: function(slug, dc) {
     return get(this, 'store')
       .queryRecord('acl', {
-        acl: slug,
+        id: slug,
         dc: dc,
       })
       .then(function(item) {
@@ -52,24 +53,12 @@ export default Service.extend({
     return item.save();
   },
   remove: function(obj) {
-    // TODO: check to see if this is still needed
-    // seems like ember-changeset .get('data') still needs this
-    //
     let item = obj;
     if (typeof obj.destroyRecord === 'undefined') {
       item = obj.get('data');
     }
     if (typeOf(item) === 'object') {
-      const id = item.ID;
-      const dc = item.Datacenter;
-      // TODO: This won't work for multi dc?
-      // id's need to be 'dc-id'
-      item = get(this, 'store').peekRecord('acl', id);
-      if (item == null) {
-        item = this.create();
-        set(item, 'ID', id);
-        set(item, 'Datacenter', dc);
-      }
+      item = get(this, 'store').peekRecord('acl', item[PRIMARY_KEY]);
     }
     return item.destroyRecord().then(item => {
       return get(this, 'store').unloadRecord(item);

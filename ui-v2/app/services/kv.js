@@ -3,6 +3,7 @@ import { typeOf } from '@ember/utils';
 import { Promise } from 'rsvp';
 import isFolder from 'consul-ui/utils/isFolder';
 import { get, set } from '@ember/object';
+import { PRIMARY_KEY } from 'consul-ui/models/kv';
 
 export default Service.extend({
   store: service('store'),
@@ -15,7 +16,7 @@ export default Service.extend({
     }
     return get(this, 'store')
       .queryRecord('kv', {
-        key: key,
+        id: key,
         dc: dc,
       })
       .then(function(item) {
@@ -31,7 +32,7 @@ export default Service.extend({
     }
     return this.get('store')
       .query('kv', {
-        key: key,
+        id: key,
         dc: dc,
         separator: '/',
       })
@@ -53,24 +54,12 @@ export default Service.extend({
     return item.save();
   },
   remove: function(obj) {
-    // TODO: check to see if this is still needed
-    // seems like ember-changeset .get('data') still needs this
-    //
     let item = obj;
     if (typeof obj.destroyRecord === 'undefined') {
       item = obj.get('data');
     }
     if (typeOf(item) === 'object') {
-      const key = item.Key;
-      const dc = item.Datacenter;
-      // TODO: This won't work for multi dc?
-      // id's need to be 'dc-key'
-      item = get(this, 'store').peekRecord('kv', key);
-      if (item == null) {
-        item = this.create();
-        set(item, 'Key', key);
-        set(item, 'Datacenter', dc);
-      }
+      item = get(this, 'store').peekRecord('kv', item[PRIMARY_KEY]);
     }
     return item.destroyRecord().then(item => {
       return get(this, 'store').unloadRecord(item);
