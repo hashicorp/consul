@@ -9,3 +9,4 @@ debug.test
 kubectl
 go-test-tmpfile*
 coverage.txt
+.idea
