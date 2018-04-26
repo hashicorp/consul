@@ -75,7 +75,7 @@ export default Mixin.create(WithFeedback, {
           return get(this, 'repo')
             .clone(item)
             .then(item => {
-              this.transitionTo('dc.acls.show', get(item, 'ID'));
+              this.transitionTo('dc.acls');
             });
         },
         `Your ACL token was cloned.`,

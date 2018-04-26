@@ -1,6 +1,5 @@
 import Adapter, {
   REQUEST_CREATE,
-  REQUEST_READ,
   REQUEST_UPDATE,
   REQUEST_DELETE,
   DATACENTER_KEY as API_DATACENTER_KEY,
@@ -11,7 +10,7 @@ import { PUT as HTTP_PUT } from 'consul-ui/utils/http/method';
 import { OK as HTTP_OK } from 'consul-ui/utils/http/status';
 
 import makeAttrable from 'consul-ui/utils/makeAttrable';
-
+const REQUEST_CLONE = 'cloneRecord';
 export default Adapter.extend({
   urlForQuery: function(query, modelName) {
     // https://www.consul.io/api/acl.html#list-acls
@@ -46,6 +45,31 @@ export default Adapter.extend({
       [API_DATACENTER_KEY]: snapshot.attr(DATACENTER_KEY),
     });
   },
+  urlForRequest: function({ type, snapshot, requestType }) {
+    switch (requestType) {
+      case 'cloneRecord':
+        return this.urlForCloneRecord(type.modelName, snapshot);
+    }
+    return this._super(...arguments);
+  },
+  clone: function(store, modelClass, id, snapshot) {
+    const params = {
+      store: store,
+      type: modelClass,
+      id: id,
+      snapshot: snapshot,
+      requestType: 'cloneRecord',
+    };
+    // _requestFor is private... but these methods aren't, until they disappear..
+    const request = {
+      method: this.methodForRequest(params),
+      url: this.urlForRequest(params),
+      headers: this.headersForRequest(params),
+      data: this.dataForRequest(params),
+    };
+    // TODO: private..
+    return this._makeRequest(request);
+  },
   dataForRequest: function(params) {
     const data = this._super(...arguments);
     switch (params.requestType) {
@@ -59,11 +83,8 @@ export default Adapter.extend({
     switch (params.requestType) {
       case REQUEST_DELETE:
       case REQUEST_CREATE:
+      case REQUEST_CLONE:
         return HTTP_PUT;
-      case REQUEST_READ:
-        if (params.query.clone) {
-          return HTTP_PUT;
-        }
     }
     return this._super(...arguments);
   },
@@ -71,6 +92,17 @@ export default Adapter.extend({
     return (
       url.pathname ===
       this.parseURL(this.urlForCreateRecord('acl', makeAttrable({ [DATACENTER_KEY]: '' }))).pathname
+    );
+  },
+  isCloneRecord: function(url) {
+    return (
+      url.pathname ===
+      this.parseURL(
+        this.urlForCloneRecord(
+          'acl',
+          makeAttrable({ [SLUG_KEY]: this.slugFromURL(url), [DATACENTER_KEY]: '' })
+        )
+      ).pathname
     );
   },
   handleResponse: function(status, headers, payload, requestData) {
@@ -84,6 +116,7 @@ export default Adapter.extend({
           };
           break;
         case this.isCreateRecord(url):
+        case this.isCloneRecord(url):
           response = {
             ...response,
             ...{

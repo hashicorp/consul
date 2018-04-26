@@ -2,27 +2,11 @@ import Service, { inject as service } from '@ember/service';
 import { get, set } from '@ember/object';
 import { typeOf } from '@ember/utils';
 import { PRIMARY_KEY } from 'consul-ui/models/acl';
-// clone: function(acl, dc) {
-//   const slug = acl.get('ID');
-//   const newAcl = this.create();
-//   newAcl.set('ID', slug);
-//   return newAcl.save().then(
-//     (acl) => {
-//       return this.findBySlug(acl.get('ID'), dc).then(
-//         (acl) => {
-//           this.get('store').pushPayload(
-//             {
-//               acls: acl.serialize()
-//             }
-//           );
-//           return acl;
-//         }
-//       );
-//     }
-//   );
-// },
 export default Service.extend({
   store: service('store'),
+  clone: function(item) {
+    return get(this, 'store').clone('acl', get(item, PRIMARY_KEY));
+  },
   findAllByDatacenter: function(dc) {
     return get(this, 'store')
       .query('acl', {
