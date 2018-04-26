@@ -14,7 +14,7 @@ coredns: $(CHECKS)
 	CGO_ENABLED=0 $(SYSTEM) go build $(VERBOSE) -ldflags="-s -w -X github.com/coredns/coredns/coremain.GitCommit=$(GITCOMMIT)" -o $(BINARY)
 
 .PHONY: check
-check: presubmit linter goimports core/zplugin.go core/dnsserver/zdirectives.go godeps
+check: presubmit goimports core/zplugin.go core/dnsserver/zdirectives.go godeps linter
 
 .PHONY: test
 test: check
