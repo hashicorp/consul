@@ -19,7 +19,7 @@ const width = function(num) {
   const len = str.length;
   const commas = chunk(str, 3).length - 1;
   const w = commas * 4 + len * 10;
-  return `width: ${w}px`;
+  return `width: ${w}px`.htmlSafe();
 };
 export default Controller.extend(WithHealthFiltering, {
   filter: function(item, { s = '', status = '' }) {
