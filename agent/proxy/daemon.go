@@ -6,6 +6,16 @@ import (
 	"os"
 	"os/exec"
 	"sync"
+	"time"
+)
+
+// Constants related to restart timers with the daemon mode proxies. At some
+// point we will probably want to expose these knobs to an end user, but
+// reasonable defaults are chosen.
+const (
+	DaemonRestartHealthy    = 10 * time.Second // time before considering healthy
+	DaemonRestartBackoffMin = 3                // 3 attempts before backing off
+	DaemonRestartMaxWait    = 1 * time.Minute  // maximum backoff wait time
 )
 
 // Daemon is a long-running proxy process. It is expected to keep running
@@ -68,8 +78,38 @@ func (p *Daemon) keepAlive(stopCh chan struct{}) {
 	process := p.process
 	p.lock.Unlock()
 
+	// attemptsDeadline is the time at which we consider the daemon to have
+	// been alive long enough that we can reset the attempt counter.
+	//
+	// attempts keeps track of the number of restart attempts we've had and
+	// is used to calculate the wait time using an exponential backoff.
+	var attemptsDeadline time.Time
+	var attempts uint
+
 	for {
 		if process == nil {
+			// If we're passed the attempt deadline then reset the attempts
+			if !attemptsDeadline.IsZero() && time.Now().After(attemptsDeadline) {
+				attempts = 0
+			}
+			attemptsDeadline = time.Now().Add(DaemonRestartHealthy)
+			attempts++
+
+			// Calculate the exponential backoff and wait if we have to
+			if attempts > DaemonRestartBackoffMin {
+				waitTime := (1 << (attempts - DaemonRestartBackoffMin)) * time.Second
+				if waitTime > DaemonRestartMaxWait {
+					waitTime = DaemonRestartMaxWait
+				}
+
+				if waitTime > 0 {
+					p.Logger.Printf(
+						"[WARN] agent/proxy: waiting %s before restarting daemon",
+						waitTime)
+					time.Sleep(waitTime)
+				}
+			}
+
 			p.lock.Lock()
 
 			// If we gracefully stopped (stopCh is closed) then don't restart. We
