@@ -4,7 +4,9 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
+	"fmt"
 	"io/ioutil"
+	"log"
 	"sync"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -104,7 +106,8 @@ func verifyServerCertMatchesURI(certs []*x509.Certificate,
 	if cert.URIs[0].String() == expectedStr {
 		return nil
 	}
-	return errors.New("peer certificate mismatch")
+	return fmt.Errorf("peer certificate mismatch got %s, want %s",
+		cert.URIs[0].String(), expectedStr)
 }
 
 // newServerSideVerifier returns a verifierFunc that wraps the provided
@@ -115,21 +118,25 @@ func newServerSideVerifier(client *api.Client, serviceID string) verifierFunc {
 	return func(tlsCfg *tls.Config, rawCerts [][]byte) error {
 		leaf, err := verifyChain(tlsCfg, rawCerts, false)
 		if err != nil {
+			log.Printf("connect: failed TLS verification: %s", err)
 			return err
 		}
 
 		// Check leaf is a cert we understand
 		if len(leaf.URIs) < 1 {
+			log.Printf("connect: invalid leaf certificate")
 			return errors.New("connect: invalid leaf certificate")
 		}
 
 		certURI, err := connect.ParseCertURI(leaf.URIs[0])
 		if err != nil {
+			log.Printf("connect: invalid leaf certificate URI")
 			return errors.New("connect: invalid leaf certificate URI")
 		}
 
 		// No AuthZ if there is no client.
 		if client == nil {
+			log.Printf("connect: nil client")
 			return nil
 		}
 
@@ -148,9 +155,11 @@ func newServerSideVerifier(client *api.Client, serviceID string) verifierFunc {
 		}
 		resp, err := client.Agent().ConnectAuthorize(req)
 		if err != nil {
+			log.Printf("connect: authz call failed: %s", err)
 			return errors.New("connect: authz call failed: " + err.Error())
 		}
 		if !resp.Authorized {
+			log.Printf("connect: authz call denied: %s", resp.Reason)
 			return errors.New("connect: authz denied: " + resp.Reason)
 		}
 		return nil
@@ -217,9 +226,17 @@ func verifyChain(tlsCfg *tls.Config, rawCerts [][]byte, client bool) (*x509.Cert
 type dynamicTLSConfig struct {
 	base *tls.Config
 
-	sync.Mutex
+	sync.RWMutex
 	leaf  *tls.Certificate
 	roots *x509.CertPool
+	// readyCh is closed when the config first gets both leaf and roots set.
+	// Watchers can wait on this via ReadyWait.
+	readyCh chan struct{}
+}
+
+type tlsCfgUpdate struct {
+	ch   chan struct{}
+	next *tlsCfgUpdate
 }
 
 // newDynamicTLSConfig returns a dynamicTLSConfig constructed from base.
@@ -235,6 +252,9 @@ func newDynamicTLSConfig(base *tls.Config) *dynamicTLSConfig {
 	if base.RootCAs != nil {
 		cfg.roots = base.RootCAs
 	}
+	if !cfg.Ready() {
+		cfg.readyCh = make(chan struct{})
+	}
 	return cfg
 }
 
@@ -246,8 +266,8 @@ func newDynamicTLSConfig(base *tls.Config) *dynamicTLSConfig {
 // client can use this config for a long time and will still verify against the
 // latest roots even though the roots in the struct is has can't change.
 func (cfg *dynamicTLSConfig) Get(v verifierFunc) *tls.Config {
-	cfg.Lock()
-	defer cfg.Unlock()
+	cfg.RLock()
+	defer cfg.RUnlock()
 	copy := cfg.base.Clone()
 	copy.RootCAs = cfg.roots
 	copy.ClientCAs = cfg.roots
@@ -281,6 +301,7 @@ func (cfg *dynamicTLSConfig) SetRoots(roots *x509.CertPool) error {
 	cfg.Lock()
 	defer cfg.Unlock()
 	cfg.roots = roots
+	cfg.notify()
 	return nil
 }
 
@@ -289,19 +310,43 @@ func (cfg *dynamicTLSConfig) SetLeaf(leaf *tls.Certificate) error {
 	cfg.Lock()
 	defer cfg.Unlock()
 	cfg.leaf = leaf
+	cfg.notify()
 	return nil
+}
+
+// notify is called under lock during an update to check if we are now ready.
+func (cfg *dynamicTLSConfig) notify() {
+	if cfg.readyCh != nil && cfg.leaf != nil && cfg.roots != nil {
+		close(cfg.readyCh)
+		cfg.readyCh = nil
+	}
 }
 
 // Roots returns the current CA root CertPool.
 func (cfg *dynamicTLSConfig) Roots() *x509.CertPool {
-	cfg.Lock()
-	defer cfg.Unlock()
+	cfg.RLock()
+	defer cfg.RUnlock()
 	return cfg.roots
 }
 
 // Leaf returns the current Leaf certificate.
 func (cfg *dynamicTLSConfig) Leaf() *tls.Certificate {
-	cfg.Lock()
-	defer cfg.Unlock()
+	cfg.RLock()
+	defer cfg.RUnlock()
 	return cfg.leaf
+}
+
+// Ready returns whether or not both roots and a leaf certificate are
+// configured. If both are non-nil, they are assumed to be valid and usable.
+func (cfg *dynamicTLSConfig) Ready() bool {
+	cfg.RLock()
+	defer cfg.RUnlock()
+	return cfg.leaf != nil && cfg.roots != nil
+}
+
+// ReadyWait returns a chan that is closed when the the tlsConfig becomes Ready
+// for use. Note that if the config is ready when it is called it returns a nil
+// chan.
+func (cfg *dynamicTLSConfig) ReadyWait() <-chan struct{} {
+	return cfg.readyCh
 }

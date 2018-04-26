@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"os"
@@ -94,6 +95,7 @@ type TestServerConfig struct {
 	VerifyIncomingHTTPS bool                   `json:"verify_incoming_https,omitempty"`
 	VerifyOutgoing      bool                   `json:"verify_outgoing,omitempty"`
 	EnableScriptChecks  bool                   `json:"enable_script_checks,omitempty"`
+	Connect             map[string]interface{} `json:"connect,omitempty"`
 	ReadyTimeout        time.Duration          `json:"-"`
 	Stdout, Stderr      io.Writer              `json:"-"`
 	Args                []string               `json:"-"`
@@ -211,6 +213,7 @@ func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, e
 		return nil, errors.Wrap(err, "failed marshaling json")
 	}
 
+	log.Printf("CONFIG JSON: %s", string(b))
 	configFile := filepath.Join(tmpdir, "config.json")
 	if err := ioutil.WriteFile(configFile, b, 0644); err != nil {
 		defer os.RemoveAll(tmpdir)

@@ -2316,7 +2316,7 @@ func requireLeafValidUnderCA(t *testing.T, issued *structs.IssuedCert,
 	require.NoError(t, err)
 }
 
-func TestAgentConnectProxy(t *testing.T) {
+func TestAgentConnectProxyConfig_Blocking(t *testing.T) {
 	t.Parallel()
 
 	a := NewTestAgent(t.Name(), "")
@@ -2354,7 +2354,7 @@ func TestAgentConnectProxy(t *testing.T) {
 		TargetServiceName: "test",
 		ContentHash:       "84346af2031659c9",
 		ExecMode:          "daemon",
-		Command:           "",
+		Command:           "consul connect proxy",
 		Config: map[string]interface{}{
 			"upstreams": []interface{}{
 				map[string]interface{}{
@@ -2362,15 +2362,17 @@ func TestAgentConnectProxy(t *testing.T) {
 					"local_port":       float64(3131),
 				},
 			},
-			"bind_port":          float64(1234),
-			"connect_timeout_ms": float64(500),
+			"bind_address":          "127.0.0.1",
+			"local_service_address": "127.0.0.1:8000",
+			"bind_port":             float64(1234),
+			"connect_timeout_ms":    float64(500),
 		},
 	}
 
 	ur, err := copystructure.Copy(expectedResponse)
 	require.NoError(t, err)
 	updatedResponse := ur.(*api.ConnectProxyConfig)
-	updatedResponse.ContentHash = "7d53473b0e9db5a"
+	updatedResponse.ContentHash = "e1e3395f0d00cd41"
 	upstreams := updatedResponse.Config["upstreams"].([]interface{})
 	upstreams = append(upstreams,
 		map[string]interface{}{
@@ -2431,6 +2433,41 @@ func TestAgentConnectProxy(t *testing.T) {
 			wantErr:  false,
 			wantResp: updatedResponse,
 		},
+		{
+			// This test exercises a case that caused a busy loop to eat CPU for the
+			// entire duration of the blocking query. If a service gets re-registered
+			// wth same proxy config then the old proxy config chan is closed causing
+			// blocked watchset.Watch to return false indicating a change. But since
+			// the hash is the same when the blocking fn is re-called we should just
+			// keep blocking on the next iteration. The bug hit was that the WatchSet
+			// ws was not being reset in the loop and so when you try to `Watch` it
+			// the second time it just returns immediately making the blocking loop
+			// into a busy-poll!
+			//
+			// This test though doesn't catch that because busy poll still has the
+			// correct external behaviour. I don't want to instrument the loop to
+			// assert it's not executing too fast here as I can't think of a clean way
+			// and the issue is fixed now so this test doesn't actually catch the
+			// error, but does provide an easy way to verify the behaviour by hand:
+			//  1. Make this test fail e.g. change wantErr to true
+			//  2. Add a log.Println or similar into the blocking loop/function
+			//  3. See whether it's called just once or many times in a tight loop.
+			name: "blocking fetch interrupted with no change (same hash)",
+			url:  "/v1/agent/connect/proxy/test-proxy?wait=200ms&hash=" + expectedResponse.ContentHash,
+			updateFunc: func() {
+				time.Sleep(100 * time.Millisecond)
+				// Re-register with _same_ proxy config
+				req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(reg))
+				resp := httptest.NewRecorder()
+				_, err = a.srv.AgentRegisterService(resp, req)
+				require.NoError(t, err)
+				require.Equal(t, 200, resp.Code, "body: %s", resp.Body.String())
+			},
+			wantWait: 200 * time.Millisecond,
+			wantCode: 200,
+			wantErr:  false,
+			wantResp: expectedResponse,
+		},
 	}
 
 	for _, tt := range tests {
@@ -2475,6 +2512,201 @@ func TestAgentConnectProxy(t *testing.T) {
 			assert.Equal(tt.wantResp, obj)
 
 			assert.Equal(tt.wantResp.ContentHash, resp.Header().Get("X-Consul-ContentHash"))
+		})
+	}
+}
+
+func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
+	t.Parallel()
+
+	// Define a local service with a managed proxy. It's registered in the test
+	// loop to make sure agent state is predictable whatever order tests execute
+	// since some alter this service config.
+	reg := &structs.ServiceDefinition{
+		ID:      "test-id",
+		Name:    "test",
+		Address: "127.0.0.1",
+		Port:    8000,
+		Check: structs.CheckType{
+			TTL: 15 * time.Second,
+		},
+		Connect: &structs.ServiceDefinitionConnect{},
+	}
+
+	tests := []struct {
+		name         string
+		globalConfig string
+		proxy        structs.ServiceDefinitionConnectProxy
+		wantMode     api.ProxyExecMode
+		wantCommand  string
+		wantConfig   map[string]interface{}
+	}{
+		{
+			name: "defaults",
+			globalConfig: `
+			bind_addr = "0.0.0.0"
+			connect {
+				enabled = true
+				proxy_defaults = {
+					bind_min_port = 10000
+					bind_max_port = 10000
+				}
+			}
+			`,
+			proxy:       structs.ServiceDefinitionConnectProxy{},
+			wantMode:    api.ProxyExecModeDaemon,
+			wantCommand: "consul connect proxy",
+			wantConfig: map[string]interface{}{
+				"bind_address":          "0.0.0.0",
+				"bind_port":             10000,            // "randomly" chosen from our range of 1
+				"local_service_address": "127.0.0.1:8000", // port from service reg
+			},
+		},
+		{
+			name: "global defaults - script",
+			globalConfig: `
+			bind_addr = "0.0.0.0"
+			connect {
+				enabled = true
+				proxy_defaults = {
+					bind_min_port = 10000
+					bind_max_port = 10000
+					exec_mode = "script"
+					script_command = "script.sh"
+				}
+			}
+			`,
+			proxy:       structs.ServiceDefinitionConnectProxy{},
+			wantMode:    api.ProxyExecModeScript,
+			wantCommand: "script.sh",
+			wantConfig: map[string]interface{}{
+				"bind_address":          "0.0.0.0",
+				"bind_port":             10000,            // "randomly" chosen from our range of 1
+				"local_service_address": "127.0.0.1:8000", // port from service reg
+			},
+		},
+		{
+			name: "global defaults - daemon",
+			globalConfig: `
+			bind_addr = "0.0.0.0"
+			connect {
+				enabled = true
+				proxy_defaults = {
+					bind_min_port = 10000
+					bind_max_port = 10000
+					exec_mode = "daemon"
+					daemon_command = "daemon.sh"
+				}
+			}
+			`,
+			proxy:       structs.ServiceDefinitionConnectProxy{},
+			wantMode:    api.ProxyExecModeDaemon,
+			wantCommand: "daemon.sh",
+			wantConfig: map[string]interface{}{
+				"bind_address":          "0.0.0.0",
+				"bind_port":             10000,            // "randomly" chosen from our range of 1
+				"local_service_address": "127.0.0.1:8000", // port from service reg
+			},
+		},
+		{
+			name: "global default config merge",
+			globalConfig: `
+			bind_addr = "0.0.0.0"
+			connect {
+				enabled = true
+				proxy_defaults = {
+					bind_min_port = 10000
+					bind_max_port = 10000
+					config = {
+						connect_timeout_ms = 1000
+					}
+				}
+			}
+			`,
+			proxy: structs.ServiceDefinitionConnectProxy{
+				Config: map[string]interface{}{
+					"foo": "bar",
+				},
+			},
+			wantMode:    api.ProxyExecModeDaemon,
+			wantCommand: "consul connect proxy",
+			wantConfig: map[string]interface{}{
+				"bind_address":          "0.0.0.0",
+				"bind_port":             10000,            // "randomly" chosen from our range of 1
+				"local_service_address": "127.0.0.1:8000", // port from service reg
+				"connect_timeout_ms":    1000,
+				"foo":                   "bar",
+			},
+		},
+		{
+			name: "overrides in reg",
+			globalConfig: `
+			bind_addr = "0.0.0.0"
+			connect {
+				enabled = true
+				proxy_defaults = {
+					bind_min_port = 10000
+					bind_max_port = 10000
+					exec_mode = "daemon"
+					daemon_command = "daemon.sh"
+					script_command = "script.sh"
+					config = {
+						connect_timeout_ms = 1000
+					}
+				}
+			}
+			`,
+			proxy: structs.ServiceDefinitionConnectProxy{
+				ExecMode: "script",
+				Command:  "foo.sh",
+				Config: map[string]interface{}{
+					"connect_timeout_ms":    2000,
+					"bind_address":          "127.0.0.1",
+					"bind_port":             1024,
+					"local_service_address": "127.0.0.1:9191",
+				},
+			},
+			wantMode:    api.ProxyExecModeScript,
+			wantCommand: "foo.sh",
+			wantConfig: map[string]interface{}{
+				"bind_address":          "127.0.0.1",
+				"bind_port":             float64(1024),
+				"local_service_address": "127.0.0.1:9191",
+				"connect_timeout_ms":    float64(2000),
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert := assert.New(t)
+			require := require.New(t)
+
+			a := NewTestAgent(t.Name(), tt.globalConfig)
+			defer a.Shutdown()
+
+			// Register the basic service with the required config
+			{
+				reg.Connect.Proxy = &tt.proxy
+				req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(reg))
+				resp := httptest.NewRecorder()
+				_, err := a.srv.AgentRegisterService(resp, req)
+				require.NoError(err)
+				require.Equal(200, resp.Code, "body: %s", resp.Body.String())
+			}
+
+			req, _ := http.NewRequest("GET", "/v1/agent/connect/proxy/test-id-proxy", nil)
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.AgentConnectProxyConfig(resp, req)
+			require.NoError(err)
+
+			proxyCfg := obj.(*api.ConnectProxyConfig)
+			assert.Equal("test-id-proxy", proxyCfg.ProxyServiceID)
+			assert.Equal("test-id", proxyCfg.TargetServiceID)
+			assert.Equal("test", proxyCfg.TargetServiceName)
+			assert.Equal(tt.wantMode, proxyCfg.ExecMode)
+			assert.Equal(tt.wantCommand, proxyCfg.Command)
+			require.Equal(tt.wantConfig, proxyCfg.Config)
 		})
 	}
 }

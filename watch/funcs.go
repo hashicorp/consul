@@ -236,8 +236,7 @@ func eventWatch(params map[string]interface{}) (WatcherFunc, error) {
 
 // connectRootsWatch is used to watch for changes to Connect Root certificates.
 func connectRootsWatch(params map[string]interface{}) (WatcherFunc, error) {
-	// We don't support stale since roots are likely to be cached locally in the
-	// agent anyway.
+	// We don't support stale since roots are cached locally in the agent.
 
 	fn := func(p *Plan) (BlockingParamVal, interface{}, error) {
 		agent := p.client.Agent()
@@ -257,8 +256,7 @@ func connectRootsWatch(params map[string]interface{}) (WatcherFunc, error) {
 // connectLeafWatch is used to watch for changes to Connect Leaf certificates
 // for given local service id.
 func connectLeafWatch(params map[string]interface{}) (WatcherFunc, error) {
-	// We don't support stale since certs are likely to be cached locally in the
-	// agent anyway.
+	// We don't support stale since certs are cached locally in the agent.
 
 	var serviceID string
 	if err := assignValue(params, "service_id", &serviceID); err != nil {

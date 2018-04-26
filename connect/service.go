@@ -41,7 +41,8 @@ type Service struct {
 	// fetch certificates and print a loud error message. It will not Close() or
 	// kill the process since that could lead to a crash loop in every service if
 	// ACL token was revoked. All attempts to dial will error and any incoming
-	// connections will fail to verify.
+	// connections will fail to verify. It may be nil if the Service is being
+	// configured from local files for development or testing.
 	client *api.Client
 
 	// tlsCfg is the dynamic TLS config
@@ -63,6 +64,10 @@ type Service struct {
 // NewService creates and starts a Service. The caller must close the returned
 // service to free resources and allow the program to exit normally. This is
 // typically called in a signal handler.
+//
+// Caller must provide client which is already configured to speak to the local
+// Consul agent, and with an ACL token that has `service:write` privileges for
+// the serviceID specified.
 func NewService(serviceID string, client *api.Client) (*Service, error) {
 	return NewServiceWithLogger(serviceID, client,
 		log.New(os.Stderr, "", log.LstdFlags))
@@ -89,7 +94,8 @@ func NewServiceWithLogger(serviceID string, client *api.Client,
 	s.rootsWatch.HybridHandler = s.rootsWatchHandler
 
 	p, err = watch.Parse(map[string]interface{}{
-		"type": "connect_leaf",
+		"type":       "connect_leaf",
+		"service_id": s.serviceID,
 	})
 	if err != nil {
 		return nil, err
@@ -97,26 +103,33 @@ func NewServiceWithLogger(serviceID string, client *api.Client,
 	s.leafWatch = p
 	s.leafWatch.HybridHandler = s.leafWatchHandler
 
-	//go s.rootsWatch.RunWithClientAndLogger(s.client, s.logger)
-	//go s.leafWatch.RunWithClientAndLogger(s.client, s.logger)
+	go s.rootsWatch.RunWithClientAndLogger(client, s.logger)
+	go s.leafWatch.RunWithClientAndLogger(client, s.logger)
 
 	return s, nil
 }
 
 // NewDevServiceFromCertFiles creates a Service using certificate and key files
 // passed instead of fetching them from the client.
-func NewDevServiceFromCertFiles(serviceID string, client *api.Client,
-	logger *log.Logger, caFile, certFile, keyFile string) (*Service, error) {
-	s := &Service{
-		serviceID: serviceID,
-		client:    client,
-		logger:    logger,
-	}
+func NewDevServiceFromCertFiles(serviceID string, logger *log.Logger,
+	caFile, certFile, keyFile string) (*Service, error) {
+
 	tlsCfg, err := devTLSConfigFromFiles(caFile, certFile, keyFile)
 	if err != nil {
 		return nil, err
 	}
-	s.tlsCfg = newDynamicTLSConfig(tlsCfg)
+	return NewDevServiceWithTLSConfig(serviceID, logger, tlsCfg)
+}
+
+// NewDevServiceWithTLSConfig creates a Service using static TLS config passed.
+// It's mostly useful for testing.
+func NewDevServiceWithTLSConfig(serviceID string, logger *log.Logger,
+	tlsCfg *tls.Config) (*Service, error) {
+	s := &Service{
+		serviceID: serviceID,
+		logger:    logger,
+		tlsCfg:    newDynamicTLSConfig(tlsCfg),
+	}
 	return s, nil
 }
 
@@ -273,4 +286,18 @@ func (s *Service) leafWatchHandler(blockParam watch.BlockingParamVal, raw interf
 	}
 
 	s.tlsCfg.SetLeaf(&cert)
+}
+
+// Ready returns whether or not both roots and a leaf certificate are
+// configured. If both are non-nil, they are assumed to be valid and usable.
+func (s *Service) Ready() bool {
+	return s.tlsCfg.Ready()
+}
+
+// ReadyWait returns a chan that is closed when the the Service becomes ready
+// for use. Note that if the Service is ready when it is called it returns a nil
+// chan. Ready means that it has root and leaf certificates configured which we
+// assume are valid.
+func (s *Service) ReadyWait() <-chan struct{} {
+	return s.tlsCfg.ReadyWait()
 }

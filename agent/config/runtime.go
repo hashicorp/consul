@@ -633,15 +633,15 @@ type RuntimeConfig struct {
 
 	// ConnectProxyDefaultExecMode is used where a registration doesn't include an
 	// exec_mode. Defaults to daemon.
-	ConnectProxyDefaultExecMode *string
+	ConnectProxyDefaultExecMode string
 
 	// ConnectProxyDefaultDaemonCommand is used to start proxy in exec_mode =
 	// daemon if not specified at registration time.
-	ConnectProxyDefaultDaemonCommand *string
+	ConnectProxyDefaultDaemonCommand string
 
 	// ConnectProxyDefaultScriptCommand is used to start proxy in exec_mode =
 	// script if not specified at registration time.
-	ConnectProxyDefaultScriptCommand *string
+	ConnectProxyDefaultScriptCommand string
 
 	// ConnectProxyDefaultConfig is merged with any config specified at
 	// registration time to allow global control of defaults.

@@ -28,7 +28,6 @@ import (
 	"github.com/hashicorp/serf/serf"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	// NOTE(mitcehllh): This is temporary while certs are stubbed out.
 )
 
 type Self struct {
@@ -1000,14 +999,71 @@ func (s *HTTPServer) AgentConnectProxyConfig(resp http.ResponseWriter, req *http
 			}
 			contentHash := fmt.Sprintf("%x", hash)
 
+			// Merge globals defaults
+			config := make(map[string]interface{})
+			for k, v := range s.agent.config.ConnectProxyDefaultConfig {
+				if _, ok := config[k]; !ok {
+					config[k] = v
+				}
+			}
+
+			execMode := "daemon"
+			// If there is a global default mode use that instead
+			if s.agent.config.ConnectProxyDefaultExecMode != "" {
+				execMode = s.agent.config.ConnectProxyDefaultExecMode
+			}
+			// If it's actually set though, use the one set
+			if proxy.Proxy.ExecMode != structs.ProxyExecModeUnspecified {
+				execMode = proxy.Proxy.ExecMode.String()
+			}
+
+			// TODO(banks): default the binary to current binary. Probably needs to be
+			// done deeper though as it will be needed for actually managing proxy
+			// lifecycle.
+			command := proxy.Proxy.Command
+			if command == "" {
+				if execMode == "daemon" {
+					command = s.agent.config.ConnectProxyDefaultDaemonCommand
+				}
+				if execMode == "script" {
+					command = s.agent.config.ConnectProxyDefaultScriptCommand
+				}
+			}
+			// No global defaults set either...
+			if command == "" {
+				command = "consul connect proxy"
+			}
+
+			// Set defaults for anything that is still not specified but required.
+			// Note that these are not included in the content hash. Since we expect
+			// them to be static in general but some like the default target service
+			// port might not be. In that edge case services can set that explicitly
+			// when they re-register which will be caught though.
+			for k, v := range proxy.Proxy.Config {
+				config[k] = v
+			}
+			if _, ok := config["bind_port"]; !ok {
+				config["bind_port"] = proxy.Proxy.ProxyService.Port
+			}
+			if _, ok := config["bind_address"]; !ok {
+				// Default to binding to the same address the agent is configured to
+				// bind to.
+				config["bind_address"] = s.agent.config.BindAddr.String()
+			}
+			if _, ok := config["local_service_address"]; !ok {
+				// Default to localhost and the port the service registered with
+				config["local_service_address"] = fmt.Sprintf("127.0.0.1:%d",
+					target.Port)
+			}
+
 			reply := &api.ConnectProxyConfig{
 				ProxyServiceID:    proxy.Proxy.ProxyService.ID,
 				TargetServiceID:   target.ID,
 				TargetServiceName: target.Service,
 				ContentHash:       contentHash,
-				ExecMode:          api.ProxyExecMode(proxy.Proxy.ExecMode.String()),
-				Command:           proxy.Proxy.Command,
-				Config:            proxy.Proxy.Config,
+				ExecMode:          api.ProxyExecMode(execMode),
+				Command:           command,
+				Config:            config,
 			}
 			return contentHash, reply, nil
 		})
@@ -1040,10 +1096,13 @@ func (s *HTTPServer) agentLocalBlockingQuery(resp http.ResponseWriter, hash stri
 		// Apply a small amount of jitter to the request.
 		wait += lib.RandomStagger(wait / 16)
 		timeout = time.NewTimer(wait)
-		ws = memdb.NewWatchSet()
 	}
 
 	for {
+		// Must reset this every loop in case the Watch set is already closed but
+		// hash remains same. In that case we'll need to re-block on ws.Watch()
+		// again.
+		ws = memdb.NewWatchSet()
 		curHash, curResp, err := fn(ws)
 		if err != nil {
 			return curResp, err

@@ -608,7 +608,12 @@ func (l *State) AddProxy(proxy *structs.ConnectManagedProxy, token string) (*str
 	l.Lock()
 	defer l.Unlock()
 
-	// Allocate port if needed (min and max inclusive)
+	// Does this proxy instance allready exist?
+	if existing, ok := l.managedProxies[svc.ID]; ok {
+		svc.Port = existing.Proxy.ProxyService.Port
+	}
+
+	// Allocate port if needed (min and max inclusive).
 	rangeLen := l.config.ProxyBindMaxPort - l.config.ProxyBindMinPort + 1
 	if svc.Port < 1 && l.config.ProxyBindMinPort > 0 && rangeLen > 0 {
 		// This should be a really short list so don't bother optimising lookup yet.

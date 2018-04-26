@@ -9,7 +9,7 @@ func TestSpiffeIDService(t testing.T, service string) *SpiffeIDService {
 	return &SpiffeIDService{
 		Host:       testClusterID + ".consul",
 		Namespace:  "default",
-		Datacenter: "dc01",
+		Datacenter: "dc1",
 		Service:    service,
 	}
 }

@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/api"
-	testing "github.com/mitchellh/go-testing-interface"
 )
 
 // Resolver is the interface implemented by a service discovery mechanism to get
@@ -122,7 +121,12 @@ func (cr *ConsulResolver) resolveService(ctx context.Context) (string, connect.C
 	// propagating these trust domains we need to actually fetch the trust domain
 	// somehow. We also need to implement namespaces. Use of test function here is
 	// temporary pending the work on trust domains.
-	certURI := connect.TestSpiffeIDService(&testing.RuntimeT{}, cr.Name)
+	certURI := &connect.SpiffeIDService{
+		Host:       "11111111-2222-3333-4444-555555555555.consul",
+		Namespace:  "default",
+		Datacenter: svcs[idx].Node.Datacenter,
+		Service:    svcs[idx].Service.ProxyDestination,
+	}
 
 	return fmt.Sprintf("%s:%d", addr, port), certURI, nil
 }

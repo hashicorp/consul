@@ -1721,6 +1721,21 @@ func TestStateProxyManagement(t *testing.T) {
 	// Port is non-deterministic but could be either of 20000 or 20001
 	assert.Contains([]int{20000, 20001}, svc.Port)
 
+	{
+		// Re-registering same proxy again should not pick a random port but re-use
+		// the assigned one.
+		svcDup, err := state.AddProxy(&p1, "fake-token")
+		require.NoError(err)
+
+		assert.Equal("web-proxy", svcDup.ID)
+		assert.Equal("web-proxy", svcDup.Service)
+		assert.Equal(structs.ServiceKindConnectProxy, svcDup.Kind)
+		assert.Equal("web", svcDup.ProxyDestination)
+		assert.Equal("", svcDup.Address, "should have empty address by default")
+		// Port must be same as before
+		assert.Equal(svc.Port, svcDup.Port)
+	}
+
 	// Second proxy should claim other port
 	p2 := p1
 	p2.TargetServiceID = "cache"

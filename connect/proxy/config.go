@@ -52,11 +52,6 @@ type Config struct {
 	// private key to be used in development instead of the ones supplied by
 	// Connect.
 	DevServiceKeyFile string `json:"dev_service_key_file" hcl:"dev_service_key_file"`
-
-	// service is a connect.Service instance representing the proxied service. It
-	// is created internally by the code responsible for setting up config as it
-	// may depend on other external dependencies
-	service *connect.Service
 }
 
 // PublicListenerConfig contains the parameters needed for the incoming mTLS
@@ -88,6 +83,9 @@ func (plc *PublicListenerConfig) applyDefaults() {
 	}
 	if plc.HandshakeTimeoutMs == 0 {
 		plc.HandshakeTimeoutMs = 10000
+	}
+	if plc.BindAddress == "" {
+		plc.BindAddress = "0.0.0.0"
 	}
 }
 
@@ -258,19 +256,10 @@ func NewAgentConfigWatcher(client *api.Client, proxyID string,
 
 func (w *AgentConfigWatcher) handler(blockVal watch.BlockingParamVal,
 	val interface{}) {
-	log.Printf("DEBUG: got hash %s", blockVal.(watch.WaitHashVal))
 
 	resp, ok := val.(*api.ConnectProxyConfig)
 	if !ok {
 		w.logger.Printf("[WARN] proxy config watch returned bad response: %v", val)
-		return
-	}
-
-	// Setup Service instance now we know target ID etc
-	service, err := connect.NewService(resp.TargetServiceID, w.client)
-	if err != nil {
-		w.logger.Printf("[WARN] proxy config watch failed to initialize"+
-			" service: %s", err)
 		return
 	}
 
@@ -280,11 +269,10 @@ func (w *AgentConfigWatcher) handler(blockVal watch.BlockingParamVal,
 		// Token should be already setup in the client
 		ProxiedServiceID:        resp.TargetServiceID,
 		ProxiedServiceNamespace: "default",
-		service:                 service,
 	}
 
 	// Unmarshal configs
-	err = mapstructure.Decode(resp.Config, &cfg.PublicListener)
+	err := mapstructure.Decode(resp.Config, &cfg.PublicListener)
 	if err != nil {
 		w.logger.Printf("[ERR] proxy config watch public listener config "+
 			"couldn't be parsed: %s", err)

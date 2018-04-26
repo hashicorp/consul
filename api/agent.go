@@ -609,9 +609,6 @@ func (a *Agent) ConnectCARoots(q *QueryOptions) (*CARootList, *QueryMeta, error)
 }
 
 // ConnectCALeaf gets the leaf certificate for the given service ID.
-//
-// TODO(mitchellh): we need to test this better once we have a way to
-// configure CAs from the API package (when the CA work is done).
 func (a *Agent) ConnectCALeaf(serviceID string, q *QueryOptions) (*LeafCert, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/agent/connect/ca/leaf/"+serviceID)
 	r.setQueryOptions(q)

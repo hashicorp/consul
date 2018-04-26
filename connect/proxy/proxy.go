@@ -1,6 +1,8 @@
 package proxy
 
 import (
+	"bytes"
+	"crypto/x509"
 	"log"
 
 	"github.com/hashicorp/consul/api"
@@ -14,6 +16,7 @@ type Proxy struct {
 	cfgWatcher ConfigWatcher
 	stopChan   chan struct{}
 	logger     *log.Logger
+	service    *connect.Service
 }
 
 // NewFromConfigFile returns a Proxy instance configured just from a local file.
@@ -27,12 +30,11 @@ func NewFromConfigFile(client *api.Client, filename string,
 	}
 
 	service, err := connect.NewDevServiceFromCertFiles(cfg.ProxiedServiceID,
-		client, logger, cfg.DevCAFile, cfg.DevServiceCertFile,
+		logger, cfg.DevCAFile, cfg.DevServiceCertFile,
 		cfg.DevServiceKeyFile)
 	if err != nil {
 		return nil, err
 	}
-	cfg.service = service
 
 	p := &Proxy{
 		proxyID:    cfg.ProxyID,
@@ -40,6 +42,7 @@ func NewFromConfigFile(client *api.Client, filename string,
 		cfgWatcher: NewStaticConfigWatcher(cfg),
 		stopChan:   make(chan struct{}),
 		logger:     logger,
+		service:    service,
 	}
 	return p, nil
 }
@@ -47,16 +50,18 @@ func NewFromConfigFile(client *api.Client, filename string,
 // New returns a Proxy with the given id, consuming the provided (configured)
 // agent. It is ready to Run().
 func New(client *api.Client, proxyID string, logger *log.Logger) (*Proxy, error) {
+	cw, err := NewAgentConfigWatcher(client, proxyID, logger)
+	if err != nil {
+		return nil, err
+	}
 	p := &Proxy{
-		proxyID: proxyID,
-		client:  client,
-		cfgWatcher: &AgentConfigWatcher{
-			client:  client,
-			proxyID: proxyID,
-			logger:  logger,
-		},
-		stopChan: make(chan struct{}),
-		logger:   logger,
+		proxyID:    proxyID,
+		client:     client,
+		cfgWatcher: cw,
+		stopChan:   make(chan struct{}),
+		logger:     logger,
+		// Can't load service yet as we only have the proxy's ID not the service's
+		// until initial config fetch happens.
 	}
 	return p, nil
 }
@@ -71,16 +76,29 @@ func (p *Proxy) Serve() error {
 		select {
 		case newCfg := <-p.cfgWatcher.Watch():
 			p.logger.Printf("[DEBUG] got new config")
-			if newCfg.service == nil {
-				p.logger.Printf("[ERR] new config has nil service")
-				continue
-			}
+
 			if cfg == nil {
 				// Initial setup
 
+				// Setup Service instance now we know target ID etc
+				service, err := connect.NewService(newCfg.ProxiedServiceID, p.client)
+				if err != nil {
+					return err
+				}
+				p.service = service
+
+				go func() {
+					<-service.ReadyWait()
+					p.logger.Printf("[INFO] proxy loaded config and ready to serve")
+					tcfg := service.ServerTLSConfig()
+					cert, _ := tcfg.GetCertificate(nil)
+					leaf, _ := x509.ParseCertificate(cert.Certificate[0])
+					p.logger.Printf("[DEBUG] leaf: %s roots: %s", leaf.URIs[0], bytes.Join(tcfg.RootCAs.Subjects(), []byte(",")))
+				}()
+
 				newCfg.PublicListener.applyDefaults()
-				l := NewPublicListener(newCfg.service, newCfg.PublicListener, p.logger)
-				err := p.startListener("public listener", l)
+				l := NewPublicListener(p.service, newCfg.PublicListener, p.logger)
+				err = p.startListener("public listener", l)
 				if err != nil {
 					return err
 				}
@@ -93,7 +111,13 @@ func (p *Proxy) Serve() error {
 				uc.applyDefaults()
 				uc.resolver = UpstreamResolverFromClient(p.client, uc)
 
-				l := NewUpstreamListener(newCfg.service, uc, p.logger)
+				if uc.LocalBindPort < 1 {
+					p.logger.Printf("[ERR] upstream %s has no local_bind_port. "+
+						"Can't start upstream.", uc.String())
+					continue
+				}
+
+				l := NewUpstreamListener(p.service, uc, p.logger)
 				err := p.startListener(uc.String(), l)
 				if err != nil {
 					p.logger.Printf("[ERR] failed to start upstream %s: %s", uc.String(),
@@ -110,6 +134,7 @@ func (p *Proxy) Serve() error {
 
 // startPublicListener is run from the internal state machine loop
 func (p *Proxy) startListener(name string, l *Listener) error {
+	p.logger.Printf("[INFO] %s starting on %s", name, l.BindAddr())
 	go func() {
 		err := l.Serve()
 		if err != nil {
@@ -122,6 +147,7 @@ func (p *Proxy) startListener(name string, l *Listener) error {
 	go func() {
 		<-p.stopChan
 		l.Close()
+
 	}()
 
 	return nil
@@ -131,4 +157,7 @@ func (p *Proxy) startListener(name string, l *Listener) error {
 // called only once.
 func (p *Proxy) Close() {
 	close(p.stopChan)
+	if p.service != nil {
+		p.service.Close()
+	}
 }

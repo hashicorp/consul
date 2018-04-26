@@ -175,11 +175,6 @@ func TestAgentConfigWatcher(t *testing.T) {
 		},
 	}
 
-	// nil this out as comparisons are problematic, we'll explicitly sanity check
-	// it's reasonable later.
-	assert.NotNil(t, cfg.service)
-	cfg.service = nil
-
 	assert.Equal(t, expectCfg, cfg)
 
 	// TODO(banks): Sanity check the service is viable and gets TLS certs eventually from
@@ -212,11 +207,6 @@ func TestAgentConfigWatcher(t *testing.T) {
 		LocalBindAddress:     "127.10.10.10",
 	})
 	expectCfg.PublicListener.LocalConnectTimeoutMs = 444
-
-	// nil this out as comparisons are problematic, we'll explicitly sanity check
-	// it's reasonable later.
-	assert.NotNil(t, cfg.service)
-	cfg.service = nil
 
 	assert.Equal(t, expectCfg, cfg)
 }

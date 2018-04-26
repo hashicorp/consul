@@ -150,7 +150,7 @@ func TestLeaf(t testing.T, service string, root *structs.CARoot) (string, string
 	spiffeId := &SpiffeIDService{
 		Host:       fmt.Sprintf("%s.consul", testClusterID),
 		Namespace:  "default",
-		Datacenter: "dc01",
+		Datacenter: "dc1",
 		Service:    service,
 	}
 

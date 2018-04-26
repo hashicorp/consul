@@ -358,3 +358,45 @@ func TestDynamicTLSConfig(t *testing.T) {
 	requireCorrectVerifier(t, newCfg, gotBefore, v1Ch)
 	requireCorrectVerifier(t, newCfg, gotAfter, v2Ch)
 }
+
+func TestDynamicTLSConfig_Ready(t *testing.T) {
+	require := require.New(t)
+
+	ca1 := connect.TestCA(t, nil)
+	baseCfg := TestTLSConfig(t, "web", ca1)
+
+	c := newDynamicTLSConfig(defaultTLSConfig())
+	readyCh := c.ReadyWait()
+	assertBlocked(t, readyCh)
+	require.False(c.Ready(), "no roots or leaf, should not be ready")
+
+	err := c.SetLeaf(&baseCfg.Certificates[0])
+	require.NoError(err)
+	assertBlocked(t, readyCh)
+	require.False(c.Ready(), "no roots, should not be ready")
+
+	err = c.SetRoots(baseCfg.RootCAs)
+	require.NoError(err)
+	assertNotBlocked(t, readyCh)
+	require.True(c.Ready(), "should be ready")
+}
+
+func assertBlocked(t *testing.T, ch <-chan struct{}) {
+	t.Helper()
+	select {
+	case <-ch:
+		t.Fatalf("want blocked chan")
+	default:
+		return
+	}
+}
+
+func assertNotBlocked(t *testing.T, ch <-chan struct{}) {
+	t.Helper()
+	select {
+	case <-ch:
+		return
+	default:
+		t.Fatalf("want unblocked chan but it blocked")
+	}
+}

@@ -7,8 +7,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/hashicorp/consul/agent"
-	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/connect"
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/watch"
 	"github.com/stretchr/testify/require"
@@ -526,14 +528,12 @@ func TestEventWatch(t *testing.T) {
 }
 
 func TestConnectRootsWatch(t *testing.T) {
-	// TODO(banks) enable and make it work once this is supported. Note that this
-	// test actually passes currently just by busy-polling the roots endpoint
-	// until it changes.
-	t.Skip("CA and Leaf implementation don't actually support blocking yet")
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	// NewTestAgent will bootstrap a new CA
+	a := agent.NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
+	var originalCAID string
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"connect_roots"}`)
 	plan.Handler = func(idx uint64, raw interface{}) {
@@ -544,7 +544,14 @@ func TestConnectRootsWatch(t *testing.T) {
 		if !ok || v == nil {
 			return // ignore
 		}
-		// TODO(banks): verify the right roots came back.
+		// Only 1 CA is the bootstrapped state (i.e. first response). Ignore this
+		// state and wait for the new CA to show up too.
+		if len(v.Roots) == 1 {
+			originalCAID = v.ActiveRootID
+			return
+		}
+		assert.NotEmpty(t, originalCAID)
+		assert.NotEqual(t, originalCAID, v.ActiveRootID)
 		invoke <- nil
 	}
 
@@ -553,22 +560,8 @@ func TestConnectRootsWatch(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		time.Sleep(20 * time.Millisecond)
-		// TODO(banks): this is a hack since CA config is in flux. We _did_ expose a
-		// temporary agent endpoint for PUTing config, but didn't expose it in `api`
-		// package intentionally. If we are going to hack around with temporary API,
-		// we can might as well drop right down to the RPC level...
-		args := structs.CAConfiguration{
-			Provider: "static",
-			Config: map[string]interface{}{
-				"Name":     "test-1",
-				"Generate": true,
-			},
-		}
-		var reply interface{}
-		if err := a.RPC("ConnectCA.ConfigurationSet", &args, &reply); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
+		// Set a new CA
+		connect.TestCAConfigSet(t, a, nil)
 	}()
 
 	wg.Add(1)
@@ -588,9 +581,8 @@ func TestConnectRootsWatch(t *testing.T) {
 }
 
 func TestConnectLeafWatch(t *testing.T) {
-	// TODO(banks) enable and make it work once this is supported.
-	t.Skip("CA and Leaf implementation don't actually support blocking yet")
 	t.Parallel()
+	// NewTestAgent will bootstrap a new CA
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
@@ -606,25 +598,10 @@ func TestConnectLeafWatch(t *testing.T) {
 		require.Nil(t, err)
 	}
 
-	// Setup a new generated CA
-	//
-	// TODO(banks): this is a hack since CA config is in flux. We _did_ expose a
-	// temporary agent endpoint for PUTing config, but didn't expose it in `api`
-	// package intentionally. If we are going to hack around with temporary API,
-	// we can might as well drop right down to the RPC level...
-	args := structs.CAConfiguration{
-		Provider: "static",
-		Config: map[string]interface{}{
-			"Name":     "test-1",
-			"Generate": true,
-		},
-	}
-	var reply interface{}
-	if err := a.RPC("ConnectCA.ConfigurationSet", &args, &reply); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	var lastCert *consulapi.LeafCert
 
-	invoke := makeInvokeCh()
+	//invoke := makeInvokeCh()
+	invoke := make(chan error)
 	plan := mustParse(t, `{"type":"connect_leaf", "service_id":"web"}`)
 	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
@@ -634,7 +611,18 @@ func TestConnectLeafWatch(t *testing.T) {
 		if !ok || v == nil {
 			return // ignore
 		}
-		// TODO(banks): verify the right leaf came back.
+		if lastCert == nil {
+			// Initial fetch, just store the cert and return
+			lastCert = v
+			return
+		}
+		// TODO(banks): right now the root rotation actually causes Serial numbers
+		// to reset so these end up all being the same. That needs fixing but it's
+		// a bigger task than I want to bite off for this PR.
+		//assert.NotEqual(t, lastCert.SerialNumber, v.SerialNumber)
+		assert.NotEqual(t, lastCert.CertPEM, v.CertPEM)
+		assert.NotEqual(t, lastCert.PrivateKeyPEM, v.PrivateKeyPEM)
+		assert.NotEqual(t, lastCert.ModifyIndex, v.ModifyIndex)
 		invoke <- nil
 	}
 
@@ -643,20 +631,8 @@ func TestConnectLeafWatch(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		time.Sleep(20 * time.Millisecond)
-
-		// Change the CA which should eventually trigger a leaf change but probably
-		// won't now so this test has no way to succeed yet.
-		args := structs.CAConfiguration{
-			Provider: "static",
-			Config: map[string]interface{}{
-				"Name":     "test-2",
-				"Generate": true,
-			},
-		}
-		var reply interface{}
-		if err := a.RPC("ConnectCA.ConfigurationSet", &args, &reply); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		// Change the CA to trigger a leaf change
+		connect.TestCAConfigSet(t, a, nil)
 	}()
 
 	wg.Add(1)
@@ -740,6 +716,7 @@ func TestConnectProxyConfigWatch(t *testing.T) {
 }
 
 func mustParse(t *testing.T, q string) *watch.Plan {
+	t.Helper()
 	var params map[string]interface{}
 	if err := json.Unmarshal([]byte(q), &params); err != nil {
 		t.Fatal(err)

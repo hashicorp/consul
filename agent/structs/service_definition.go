@@ -55,10 +55,11 @@ func (s *ServiceDefinition) ConnectManagedProxy() (*ConnectManagedProxy, error) 
 	// which we shouldn't hard code ourselves here...
 	ns := s.NodeService()
 
-	execMode := ProxyExecModeDaemon
+	execMode := ProxyExecModeUnspecified
 	switch s.Connect.Proxy.ExecMode {
 	case "":
-		execMode = ProxyExecModeDaemon
+		// Use default
+		break
 	case "daemon":
 		execMode = ProxyExecModeDaemon
 	case "script":

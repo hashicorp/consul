@@ -24,8 +24,11 @@ type ConnectAuthorizeRequest struct {
 type ProxyExecMode int
 
 const (
+	// ProxyExecModeUnspecified uses the global default proxy mode.
+	ProxyExecModeUnspecified ProxyExecMode = iota
+
 	// ProxyExecModeDaemon executes a proxy process as a supervised daemon.
-	ProxyExecModeDaemon ProxyExecMode = iota
+	ProxyExecModeDaemon
 
 	// ProxyExecModeScript executes a proxy config script on each change to it's
 	// config.
@@ -35,6 +38,8 @@ const (
 // String implements Stringer
 func (m ProxyExecMode) String() string {
 	switch m {
+	case ProxyExecModeUnspecified:
+		return "global_default"
 	case ProxyExecModeDaemon:
 		return "daemon"
 	case ProxyExecModeScript:

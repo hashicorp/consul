@@ -1049,9 +1049,64 @@ func TestAPI_AgentConnectCARoots_empty(t *testing.T) {
 
 	agent := c.Agent()
 	list, meta, err := agent.ConnectCARoots(nil)
-	require.Nil(err)
+	require.NoError(err)
 	require.Equal(uint64(0), meta.LastIndex)
 	require.Len(list.Roots, 0)
+}
+
+func TestAPI_AgentConnectCARoots_list(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	c, s := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
+		// Force auto port range to 1 port so we have deterministic response.
+		c.Connect = map[string]interface{}{
+			"enabled": true,
+		}
+	})
+	defer s.Stop()
+
+	agent := c.Agent()
+	list, meta, err := agent.ConnectCARoots(nil)
+	require.NoError(err)
+	require.True(meta.LastIndex > 0)
+	require.Len(list.Roots, 1)
+}
+
+func TestAPI_AgentConnectCALeaf(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	c, s := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
+		// Force auto port range to 1 port so we have deterministic response.
+		c.Connect = map[string]interface{}{
+			"enabled": true,
+		}
+	})
+	defer s.Stop()
+
+	agent := c.Agent()
+	// Setup service
+	reg := &AgentServiceRegistration{
+		Name: "foo",
+		Tags: []string{"bar", "baz"},
+		Port: 8000,
+	}
+	require.NoError(agent.ServiceRegister(reg))
+
+	leaf, meta, err := agent.ConnectCALeaf("foo", nil)
+	require.NoError(err)
+	require.True(meta.LastIndex > 0)
+	// Sanity checks here as we have actual certificate validation checks at many
+	// other levels.
+	require.NotEmpty(leaf.SerialNumber)
+	require.NotEmpty(leaf.CertPEM)
+	require.NotEmpty(leaf.PrivateKeyPEM)
+	require.Equal("foo", leaf.Service)
+	require.True(strings.HasSuffix(leaf.ServiceURI, "/svc/foo"))
+	require.True(leaf.ModifyIndex > 0)
+	require.True(leaf.ValidAfter.Before(time.Now()))
+	require.True(leaf.ValidBefore.After(time.Now()))
 }
 
 // TODO(banks): once we have CA stuff setup properly we can probably make this
@@ -1059,7 +1114,6 @@ func TestAPI_AgentConnectCARoots_empty(t *testing.T) {
 // works.
 func TestAPI_AgentConnectAuthorize(t *testing.T) {
 	t.Parallel()
-
 	require := require.New(t)
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -1079,7 +1133,15 @@ func TestAPI_AgentConnectAuthorize(t *testing.T) {
 
 func TestAPI_AgentConnectProxyConfig(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+	c, s := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
+		// Force auto port range to 1 port so we have deterministic response.
+		c.Connect = map[string]interface{}{
+			"proxy_defaults": map[string]interface{}{
+				"bind_min_port": 20000,
+				"bind_max_port": 20000,
+			},
+		}
+	})
 	defer s.Stop()
 
 	agent := c.Agent()
@@ -1107,9 +1169,12 @@ func TestAPI_AgentConnectProxyConfig(t *testing.T) {
 		TargetServiceName: "foo",
 		ContentHash:       "e662ea8600d84cf0",
 		ExecMode:          "daemon",
-		Command:           "",
+		Command:           "consul connect proxy",
 		Config: map[string]interface{}{
-			"foo": "bar",
+			"bind_address": "127.0.0.1",
+			"bind_port":    float64(20000),
+			"foo":          "bar",
+			"local_service_address": "127.0.0.1:8000",
 		},
 	}
 	require.Equal(t, expectConfig, config)

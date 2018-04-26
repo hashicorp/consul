@@ -20,8 +20,10 @@ type Listener struct {
 	// Service is the connect service instance to use.
 	Service *connect.Service
 
+	// listenFunc, dialFunc and bindAddr are set by type-specific constructors
 	listenFunc func() (net.Listener, error)
 	dialFunc   func() (net.Conn, error)
+	bindAddr   string
 
 	stopFlag int32
 	stopChan chan struct{}
@@ -42,17 +44,17 @@ type Listener struct {
 // connections and proxy them to the configured local application over TCP.
 func NewPublicListener(svc *connect.Service, cfg PublicListenerConfig,
 	logger *log.Logger) *Listener {
+	bindAddr := fmt.Sprintf("%s:%d", cfg.BindAddress, cfg.BindPort)
 	return &Listener{
 		Service: svc,
 		listenFunc: func() (net.Listener, error) {
-			return tls.Listen("tcp",
-				fmt.Sprintf("%s:%d", cfg.BindAddress, cfg.BindPort),
-				svc.ServerTLSConfig())
+			return tls.Listen("tcp", bindAddr, svc.ServerTLSConfig())
 		},
 		dialFunc: func() (net.Conn, error) {
 			return net.DialTimeout("tcp", cfg.LocalServiceAddress,
 				time.Duration(cfg.LocalConnectTimeoutMs)*time.Millisecond)
 		},
+		bindAddr:      bindAddr,
 		stopChan:      make(chan struct{}),
 		listeningChan: make(chan struct{}),
 		logger:        logger,
@@ -63,11 +65,11 @@ func NewPublicListener(svc *connect.Service, cfg PublicListenerConfig,
 // connections that are proxied to a discovered Connect service instance.
 func NewUpstreamListener(svc *connect.Service, cfg UpstreamConfig,
 	logger *log.Logger) *Listener {
+	bindAddr := fmt.Sprintf("%s:%d", cfg.LocalBindAddress, cfg.LocalBindPort)
 	return &Listener{
 		Service: svc,
 		listenFunc: func() (net.Listener, error) {
-			return net.Listen("tcp",
-				fmt.Sprintf("%s:%d", cfg.LocalBindAddress, cfg.LocalBindPort))
+			return net.Listen("tcp", bindAddr)
 		},
 		dialFunc: func() (net.Conn, error) {
 			if cfg.resolver == nil {
@@ -78,6 +80,7 @@ func NewUpstreamListener(svc *connect.Service, cfg UpstreamConfig,
 			defer cancel()
 			return svc.Dial(ctx, cfg.resolver)
 		},
+		bindAddr:      bindAddr,
 		stopChan:      make(chan struct{}),
 		listeningChan: make(chan struct{}),
 		logger:        logger,
@@ -141,4 +144,9 @@ func (l *Listener) Close() error {
 // Wait for the listener to be ready to accept connections.
 func (l *Listener) Wait() {
 	<-l.listeningChan
+}
+
+// BindAddr returns the address the listen is bound to.
+func (l *Listener) BindAddr() string {
+	return l.bindAddr
 }

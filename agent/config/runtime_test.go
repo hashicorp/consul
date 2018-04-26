@@ -2830,7 +2830,9 @@ func TestFullConfig(t *testing.T) {
 					script_command = "proxyctl.sh"
 					config = {
 						foo = "bar"
-						connect_timeout_ms = 1000
+						# hack float since json parses numbers as float and we have to
+						# assert against the same thing
+						connect_timeout_ms = 1000.0 
 						pedantic_mode = true
 					}
 				}
@@ -3422,6 +3424,14 @@ func TestFullConfig(t *testing.T) {
 		ConnectCAConfig: map[string]interface{}{
 			"g4cvJyys": "IRLXE9Ds",
 			"hyMy9Oxn": "XeBp4Sis",
+		},
+		ConnectProxyDefaultExecMode:      "script",
+		ConnectProxyDefaultDaemonCommand: "consul connect proxy",
+		ConnectProxyDefaultScriptCommand: "proxyctl.sh",
+		ConnectProxyDefaultConfig: map[string]interface{}{
+			"foo":                "bar",
+			"connect_timeout_ms": float64(1000),
+			"pedantic_mode":      true,
 		},
 		DNSAddrs:                  []net.Addr{tcpAddr("93.95.95.81:7001"), udpAddr("93.95.95.81:7001")},
 		DNSARecordLimit:           29907,
@@ -4099,9 +4109,9 @@ func TestSanitize(t *testing.T) {
     "ConnectProxyBindMaxPort": 0,
     "ConnectProxyBindMinPort": 0,
     "ConnectProxyDefaultConfig": {},
-    "ConnectProxyDefaultDaemonCommand": null,
-    "ConnectProxyDefaultExecMode": null,
-    "ConnectProxyDefaultScriptCommand": null,
+    "ConnectProxyDefaultDaemonCommand": "",
+    "ConnectProxyDefaultExecMode": "",
+    "ConnectProxyDefaultScriptCommand": "",
     "ConsulCoordinateUpdateBatchSize": 0,
     "ConsulCoordinateUpdateMaxBatches": 0,
     "ConsulCoordinateUpdatePeriod": "15s",
