@@ -35,6 +35,7 @@
   %header-nav-panel::before {
     content: attr(data-close-text);
     display: block;
+    color: $magenta-50;
   }
   %header-nav-toggle-button {
     position: absolute;
@@ -87,7 +88,8 @@
 %header-drop-nav a.selected {
   background-color: $lightest-gray;
 }
-%header-nav a {
+%header-nav a,
+%header-nav-toggle-button {
   color: $magenta-50;
 }
 %header-nav a {
