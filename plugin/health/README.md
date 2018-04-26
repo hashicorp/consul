@@ -48,6 +48,17 @@ net {
 }
 ~~~
 
+Note that if you format this in one server block you will get an error on startup, that the second
+server can't setup the health plugin (on the same port).
+
+~~~ txt
+com net {
+    whoami
+    erratic
+    health :8080
+}
+~~~~
+
 ## Plugins
 
 Any plugin that implements the Healther interface will be used to report health.
