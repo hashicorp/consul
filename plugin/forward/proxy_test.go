@@ -2,9 +2,7 @@ package forward
 
 import (
 	"context"
-	"runtime"
 	"testing"
-	"time"
 
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	"github.com/coredns/coredns/plugin/test"
@@ -28,50 +26,15 @@ func TestProxyClose(t *testing.T) {
 	ctx := context.TODO()
 
 	for i := 0; i < 100; i++ {
-		p := NewProxy(s.Addr, nil /* no TLS */)
+		p := NewProxy(s.Addr, nil)
 		p.start(hcDuration)
 
-		doneCnt := 0
-		doneCh := make(chan bool)
-		timeCh := time.After(10 * time.Second)
-		go func() {
-			p.connect(ctx, state, false, false)
-			doneCh <- true
-		}()
-		go func() {
-			p.connect(ctx, state, true, false)
-			doneCh <- true
-		}()
-		go func() {
-			p.close()
-			doneCh <- true
-		}()
-		go func() {
-			p.connect(ctx, state, false, false)
-			doneCh <- true
-		}()
-		go func() {
-			p.connect(ctx, state, true, false)
-			doneCh <- true
-		}()
+		go func() { p.connect(ctx, state, false, false) }()
+		go func() { p.connect(ctx, state, true, false) }()
+		go func() { p.connect(ctx, state, false, false) }()
+		go func() { p.connect(ctx, state, true, false) }()
 
-		for doneCnt < 5 {
-			select {
-			case <-doneCh:
-				doneCnt++
-			case <-timeCh:
-				t.Error("TestProxyClose is running too long, dumping goroutines:")
-				buf := make([]byte, 100000)
-				stackSize := runtime.Stack(buf, true)
-				t.Fatal(string(buf[:stackSize]))
-			}
-		}
-		if p.inProgress != 0 {
-			t.Errorf("unexpected query in progress")
-		}
-		if p.state != stopped {
-			t.Errorf("unexpected proxy state, expected %d, got %d", stopped, p.state)
-		}
+		p.close()
 	}
 }
 
