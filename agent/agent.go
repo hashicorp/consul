@@ -621,6 +621,16 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 			return fmt.Errorf("Handler type '%s' not recognized", params["handler_type"])
 		}
 
+		// Don't let people use connect watches via this mechanism for now as it
+		// needs thought about how to do securely and shouldn't be necessary. Note
+		// that if the type assertion fails an type is not a string then
+		// ParseExample below will error so we don't need to handle that case.
+		if typ, ok := params["type"].(string); ok {
+			if strings.HasPrefix(typ, "connect_") {
+				return fmt.Errorf("Watch type %s is not allowed in agent config", typ)
+			}
+		}
+
 		// Parse the watches, excluding 'handler' and 'args'
 		wp, err := watch.ParseExempt(params, []string{"handler", "args"})
 		if err != nil {

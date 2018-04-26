@@ -2259,6 +2259,18 @@ func TestAgent_reloadWatches(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 
+	// Should fail to reload with connect watches
+	newConf.Watches = []map[string]interface{}{
+		{
+			"type": "connect_roots",
+			"key":  "asdf",
+			"args": []interface{}{"ls"},
+		},
+	}
+	if err := a.reloadWatches(&newConf); err == nil || !strings.Contains(err.Error(), "not allowed in agent config") {
+		t.Fatalf("bad: %s", err)
+	}
+
 	// Should still succeed with only HTTPS addresses
 	newConf.HTTPSAddrs = newConf.HTTPAddrs
 	newConf.HTTPAddrs = make([]net.Addr, 0)
