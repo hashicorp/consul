@@ -38,6 +38,7 @@ export default Route.extend(WithFeedback, {
     });
   },
   setupController: function(controller, model) {
+    this._super(...arguments);
     controller.setProperties(model);
   },
   actions: {

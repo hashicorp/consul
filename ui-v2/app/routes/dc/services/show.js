@@ -30,6 +30,7 @@ export default Route.extend({
     });
   },
   setupController: function(controller, model) {
+    this._super(...arguments);
     controller.setProperties(model);
   },
 });

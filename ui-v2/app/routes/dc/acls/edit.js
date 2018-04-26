@@ -15,6 +15,7 @@ export default Route.extend(WithAclActions, {
     });
   },
   setupController: function(controller, model) {
+    this._super(...arguments);
     controller.setProperties(model);
   },
 });
