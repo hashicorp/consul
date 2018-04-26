@@ -1,6 +1,5 @@
 import Service from '@ember/service';
 import Store from 'ember-data/store';
-import { get } from '@ember/object';
 
 export default Store.extend({
   // luckily I do another query straight after this, so the cloned

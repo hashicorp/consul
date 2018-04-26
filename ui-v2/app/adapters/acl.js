@@ -115,20 +115,20 @@ export default Adapter.extend({
             [PRIMARY_KEY]: this.uidForURL(url),
           };
           break;
+        case this.isQueryRecord(url):
+          response = {
+            ...response[0],
+            ...{
+              [PRIMARY_KEY]: this.uidForURL(url),
+            },
+          };
+          break;
         case this.isCreateRecord(url):
         case this.isCloneRecord(url):
           response = {
             ...response,
             ...{
               [PRIMARY_KEY]: this.uidForURL(url, response[SLUG_KEY]),
-            },
-          };
-          break;
-        case this.isQueryRecord(url):
-          response = {
-            ...response[0],
-            ...{
-              [PRIMARY_KEY]: this.uidForURL(url),
             },
           };
           break;
