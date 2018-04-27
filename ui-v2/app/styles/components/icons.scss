@@ -36,7 +36,7 @@
   top: 50%;
   margin-top: -6px;
   left: 2px;
-  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="14" height="13" xmlns="http://www.w3.org/2000/svg"><path d="M4.779 1H1.8c-.439 0-.8.37-.8.833v9.334c0 .463.361.833.8.833h10.4c.439 0 .8-.37.8-.833V3.833C13 3.37 12.639 3 12.2 3H6.35a.5.5 0 0 1-.42-.228L4.78 1z" stroke="#BBC4D2" fill="none"/></svg>');
+  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="14" height="13" xmlns="http://www.w3.org/2000/svg"><path d="M4.779 1H1.8c-.439 0-.8.37-.8.833v9.334c0 .463.361.833.8.833h10.4c.439 0 .8-.37.8-.833V3.833C13 3.37 12.639 3 12.2 3H6.35a.5.5 0 0 1-.42-.228L4.78 1z" stroke="%23BBC4D2" fill="none"/></svg>');
   background-color: transparent;
 }
 %with-magnifier {
@@ -71,23 +71,23 @@
 }
 %with-tick {
   @extend %pseudo-icon;
-  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="10" height="8" xmlns="http://www.w3.org/2000/svg"><path d="M8.95 0L10 .985 3.734 8 0 4.737l.924-1.11 2.688 2.349z" fill="#FFF"/></svg>');
+  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="10" height="8" xmlns="http://www.w3.org/2000/svg"><path d="M8.95 0L10 .985 3.734 8 0 4.737l.924-1.11 2.688 2.349z" fill="%23FFF"/></svg>');
 }
 %with-inverted-tick {
   @extend %pseudo-icon;
   background-color: transparent;
-  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="10" height="8" xmlns="http://www.w3.org/2000/svg"><path d="M8.95 0L10 .985 3.734 8 0 4.737l.924-1.11 2.688 2.349z" fill="#{$magenta-800}"/></svg>');
+  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="10" height="8" xmlns="http://www.w3.org/2000/svg"><path d="M8.95 0L10 .985 3.734 8 0 4.737l.924-1.11 2.688 2.349z" fill="#{$magenta-800-url-encoded}"/></svg>');
   height: 20px !important; // bulma overwrite
   width: 16px !important; // bulma overwrite
   // font-size: 2rem;
 }
 %with-cross {
   @extend %pseudo-icon;
-  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="8" height="8" xmlns="http://www.w3.org/2000/svg"><path d="M4 5.064L1.064 8 0 6.936 2.936 4 0 1.064 1.064 0 4 2.936 6.936 0 8 1.064 5.064 4 8 6.936 6.936 8 4 5.064z" fill="#FFF"/></svg>');
+  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="8" height="8" xmlns="http://www.w3.org/2000/svg"><path d="M4 5.064L1.064 8 0 6.936 2.936 4 0 1.064 1.064 0 4 2.936 6.936 0 8 1.064 5.064 4 8 6.936 6.936 8 4 5.064z" fill="%23FFF"/></svg>');
 }
 %with-i {
   @extend %pseudo-icon;
-  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="2" height="9" xmlns="http://www.w3.org/2000/svg"><g fill="#FFF"><path d="M1.75 8.978H.25V6.98h1.5zM1.75 5.495H.25V.5h1.5z"/></g></svg>');
+  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="2" height="9" xmlns="http://www.w3.org/2000/svg"><g fill="%23FFF"><path d="M1.75 8.978H.25V6.98h1.5zM1.75 5.495H.25V.5h1.5z"/></g></svg>');
 }
 %with-passing::before {
   @extend %with-tick;
