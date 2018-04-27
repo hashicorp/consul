@@ -62,13 +62,13 @@ Eviction is done per shard - i.e. when a shard reaches capacity, items are evict
 
 If monitoring is enabled (via the *prometheus* directive) then the following metrics are exported:
 
-* `coredns_cache_size{type}` - Total elements in the cache by cache type.
-* `coredns_cache_capacity{type}` - Total capacity of the cache by cache type.
-* `coredns_cache_hits_total{type}` - Counter of cache hits by cache type.
-* `coredns_cache_misses_total{}` - Counter of cache misses.
-* `coredns_cache_drops_total{}` - Counter of dropped messages.
+* `coredns_cache_size{server, type}` - Total elements in the cache by cache type.
+* `coredns_cache_hits_total{server, type}` - Counter of cache hits by cache type.
+* `coredns_cache_misses_total{server}` - Counter of cache misses.
+* `coredns_cache_drops_total{server}` - Counter of dropped messages.
 
-Cache types are either "denial" or "success".
+Cache types are either "denial" or "success". `Server` is the server handling the request, see the
+metrics plugin for documentation.
 
 ## Examples
 

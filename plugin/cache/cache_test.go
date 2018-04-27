@@ -8,6 +8,7 @@ import (
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/pkg/response"
 	"github.com/coredns/coredns/plugin/test"
+	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
 )
@@ -162,21 +163,19 @@ func TestCache(t *testing.T) {
 	for _, tc := range cacheTestCases {
 		m := tc.in.Msg()
 		m = cacheMsg(m, tc)
-		do := tc.in.Do
+
+		state := request.Request{W: nil, Req: m}
 
 		mt, _ := response.Typify(m, utc)
-		k := key(m, mt, do)
+		k := key(m, mt, state.Do())
 
 		crr.set(m, k, mt, c.pttl)
 
-		name := plugin.Name(m.Question[0].Name).Normalize()
-		qtype := m.Question[0].Qtype
-
-		i, _ := c.get(time.Now().UTC(), name, qtype, do)
+		i, _ := c.get(time.Now().UTC(), state, "dns://:53")
 		ok := i != nil
 
 		if ok != tc.shouldCache {
-			t.Errorf("cached message that should not have been cached: %s", name)
+			t.Errorf("cached message that should not have been cached: %s", state.Name())
 			continue
 		}
 

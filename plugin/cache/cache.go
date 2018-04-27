@@ -102,7 +102,8 @@ func hash(qname string, qtype uint16, do bool) uint32 {
 type ResponseWriter struct {
 	dns.ResponseWriter
 	*Cache
-	state request.Request
+	state  request.Request
+	server string // Server handling the request.
 
 	prefetch bool // When true write nothing back to the client.
 }
@@ -132,11 +133,11 @@ func (w *ResponseWriter) WriteMsg(res *dns.Msg) error {
 
 		if w.state.Match(res) {
 			w.set(res, key, mt, duration)
-			cacheSize.WithLabelValues(Success).Set(float64(w.pcache.Len()))
-			cacheSize.WithLabelValues(Denial).Set(float64(w.ncache.Len()))
+			cacheSize.WithLabelValues(w.server, Success).Set(float64(w.pcache.Len()))
+			cacheSize.WithLabelValues(w.server, Denial).Set(float64(w.ncache.Len()))
 		} else {
 			// Don't log it, but increment counter
-			cacheDrops.Inc()
+			cacheDrops.WithLabelValues(w.server).Inc()
 		}
 	}
 
