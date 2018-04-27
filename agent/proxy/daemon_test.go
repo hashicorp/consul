@@ -11,6 +11,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestDaemon_impl(t *testing.T) {
+	var _ Proxy = new(Daemon)
+}
+
 func TestDaemonStartStop(t *testing.T) {
 	require := require.New(t)
 	td, closer := testTempDir(t)

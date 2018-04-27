@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/proxy"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -125,6 +126,9 @@ type ManagedProxy struct {
 	// be exposed any other way. Unmanaged proxies will never see this and need to
 	// use service-scoped ACL tokens distributed externally.
 	ProxyToken string
+
+	// ManagedProxy is the managed proxy itself that is running.
+	ManagedProxy proxy.Proxy
 
 	// WatchCh is a close-only chan that is closed when the proxy is removed or
 	// updated.
@@ -603,6 +607,14 @@ func (l *State) AddProxy(proxy *structs.ConnectManagedProxy, token string) (*str
 		return nil, err
 	}
 
+	// Initialize the managed proxy process. This doesn't start anything,
+	// it only sets up the structures we'll use. To start the proxy, the
+	// caller should call Proxy and use the returned ManagedProxy instance.
+	proxyProcess, err := l.newProxyProcess(proxy, pToken)
+	if err != nil {
+		return nil, err
+	}
+
 	// Lock now. We can't lock earlier as l.Service would deadlock and shouldn't
 	// anyway to minimise the critical section.
 	l.Lock()
@@ -650,9 +662,10 @@ func (l *State) AddProxy(proxy *structs.ConnectManagedProxy, token string) (*str
 		close(old.WatchCh)
 	}
 	l.managedProxies[svc.ID] = &ManagedProxy{
-		Proxy:      proxy,
-		ProxyToken: pToken,
-		WatchCh:    make(chan struct{}),
+		Proxy:        proxy,
+		ProxyToken:   pToken,
+		ManagedProxy: proxyProcess,
+		WatchCh:      make(chan struct{}),
 	}
 
 	// No need to trigger sync as proxy state is local only.
