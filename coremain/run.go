@@ -12,9 +12,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mholt/caddy"
-
 	"github.com/coredns/coredns/core/dnsserver"
+	clog "github.com/coredns/coredns/plugin/pkg/log"
+
+	"github.com/mholt/caddy"
 )
 
 func init() {
@@ -156,8 +157,8 @@ func defaultLoader(serverType string) (caddy.Input, error) {
 
 // logVersion logs the version that is starting.
 func logVersion() {
-	log.Print("[INFO] " + versionString())
-	log.Print("[INFO] " + releaseString())
+	clog.Info(versionString())
+	clog.Info(releaseString())
 }
 
 // showVersion prints the version that is starting.
