@@ -21,6 +21,10 @@ connect to a random upstream (which may or may not work).
 
 This plugin can only be used once per Server Block.
 
+How does *forward* relate to *proxy*? This plugin is the "new" version of *proxy* and is faster
+because it re-uses connections to the upstreams. It also does in-band health checks - using DNS
+instead of HTTP. Since it is newer it has a little less (production) millage on it.
+
 ## Syntax
 
 In its most basic form, a simple forwarder uses this syntax:
@@ -96,7 +100,7 @@ IPv6).
 
 ## Examples
 
-Proxy all requests within example.org. to a nameserver running on a different port:
+Proxy all requests within `example.org.` to a nameserver running on a different port:
 
 ~~~ corefile
 example.org {
@@ -149,7 +153,7 @@ service with health checks.
 
 ## Bugs
 
-The TLS config is global for the whole forwarding proxy if you need a different `tls_serveraame` for
+The TLS config is global for the whole forwarding proxy if you need a different `tls_servername` for
 different upstreams you're out of luck.
 
 ## Also See
