@@ -37,7 +37,7 @@ export default Route.extend({
       };
       if (e.errors && e.errors[0]) {
         error = e.errors[0];
-        error.message = error.detail;
+        error.message = error.title;
       }
       // logger(error);
       hash({
