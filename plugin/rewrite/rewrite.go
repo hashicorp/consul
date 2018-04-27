@@ -64,7 +64,10 @@ func (rw Rewrite) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 			// }
 		}
 	}
-	return plugin.NextOrFailure(rw.Name(), rw.Next, ctx, w, r)
+	if rw.noRevert || len(wr.ResponseRules) == 0 {
+		return plugin.NextOrFailure(rw.Name(), rw.Next, ctx, w, r)
+	}
+	return plugin.NextOrFailure(rw.Name(), rw.Next, ctx, wr, r)
 }
 
 // Name implements the Handler interface.
