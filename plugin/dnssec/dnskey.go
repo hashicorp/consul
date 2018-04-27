@@ -57,7 +57,7 @@ func ParseKeyFile(pubFile, privFile string) (*DNSKEY, error) {
 }
 
 // getDNSKEY returns the correct DNSKEY to the client. Signatures are added when do is true.
-func (d Dnssec) getDNSKEY(state request.Request, zone string, do bool) *dns.Msg {
+func (d Dnssec) getDNSKEY(state request.Request, zone string, do bool, server string) *dns.Msg {
 	keys := make([]dns.RR, len(d.keys))
 	for i, k := range d.keys {
 		keys[i] = dns.Copy(k.K)
@@ -71,7 +71,7 @@ func (d Dnssec) getDNSKEY(state request.Request, zone string, do bool) *dns.Msg 
 	}
 
 	incep, expir := incepExpir(time.Now().UTC())
-	if sigs, err := d.sign(keys, zone, 3600, incep, expir); err == nil {
+	if sigs, err := d.sign(keys, zone, 3600, incep, expir, server); err == nil {
 		m.Answer = append(m.Answer, sigs...)
 	}
 	return m

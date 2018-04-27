@@ -36,13 +36,10 @@ func setup(c *caddy.Controller) error {
 
 	c.OnStartup(func() error {
 		once.Do(func() {
-			metrics.MustRegister(c, cacheSize, cacheCapacity, cacheHits, cacheMisses)
+			metrics.MustRegister(c, cacheSize, cacheHits, cacheMisses)
 		})
 		return nil
 	})
-
-	// Export the capacity for the metrics. This only happens once, because this is a re-load change only.
-	cacheCapacity.WithLabelValues("signature").Set(float64(capacity))
 
 	return nil
 }

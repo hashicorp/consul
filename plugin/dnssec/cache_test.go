@@ -25,9 +25,9 @@ func TestCacheSet(t *testing.T) {
 	state := request.Request{Req: m, Zone: "miek.nl."}
 	k := hash(m.Answer) // calculate *before* we add the sig
 	d := New([]string{"miek.nl."}, []*DNSKEY{dnskey}, nil, c)
-	d.Sign(state, time.Now().UTC())
+	d.Sign(state, time.Now().UTC(), server)
 
-	_, ok := d.get(k)
+	_, ok := d.get(k, server)
 	if !ok {
 		t.Errorf("signature was not added to the cache")
 	}
@@ -49,9 +49,9 @@ func TestCacheNotValidExpired(t *testing.T) {
 	state := request.Request{Req: m, Zone: "miek.nl."}
 	k := hash(m.Answer) // calculate *before* we add the sig
 	d := New([]string{"miek.nl."}, []*DNSKEY{dnskey}, nil, c)
-	d.Sign(state, time.Now().UTC().AddDate(0, 0, -9))
+	d.Sign(state, time.Now().UTC().AddDate(0, 0, -9), server)
 
-	_, ok := d.get(k)
+	_, ok := d.get(k, server)
 	if ok {
 		t.Errorf("signature was added to the cache even though not valid")
 	}
@@ -73,9 +73,9 @@ func TestCacheNotValidYet(t *testing.T) {
 	state := request.Request{Req: m, Zone: "miek.nl."}
 	k := hash(m.Answer) // calculate *before* we add the sig
 	d := New([]string{"miek.nl."}, []*DNSKEY{dnskey}, nil, c)
-	d.Sign(state, time.Now().UTC().AddDate(0, 0, +9))
+	d.Sign(state, time.Now().UTC().AddDate(0, 0, +9), server)
 
-	_, ok := d.get(k)
+	_, ok := d.get(k, server)
 	if ok {
 		t.Errorf("signature was added to the cache even though not valid yet")
 	}

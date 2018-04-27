@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/coredns/coredns/plugin"
+	"github.com/coredns/coredns/plugin/metrics"
 	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
@@ -24,13 +25,14 @@ func (d Dnssec) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 	}
 
 	state.Zone = zone
+	server := metrics.WithServer(ctx)
 
 	// Intercept queries for DNSKEY, but only if one of the zones matches the qname, otherwise we let
 	// the query through.
 	if qtype == dns.TypeDNSKEY {
 		for _, z := range d.zones {
 			if qname == z {
-				resp := d.getDNSKEY(state, z, do)
+				resp := d.getDNSKEY(state, z, do, server)
 				resp.Authoritative = true
 				state.SizeAndDo(resp)
 				w.WriteMsg(resp)
@@ -39,7 +41,7 @@ func (d Dnssec) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 		}
 	}
 
-	drr := &ResponseWriter{w, d}
+	drr := &ResponseWriter{w, d, server}
 	return plugin.NextOrFailure(d.Name(), d.Next, ctx, drr, r)
 }
 
@@ -49,28 +51,28 @@ var (
 		Subsystem: "dnssec",
 		Name:      "cache_size",
 		Help:      "The number of elements in the dnssec cache.",
-	}, []string{"type"})
+	}, []string{"server", "type"})
 
 	cacheCapacity = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: plugin.Namespace,
 		Subsystem: "dnssec",
 		Name:      "cache_capacity",
 		Help:      "The dnssec cache's capacity.",
-	}, []string{"type"})
+	}, []string{"server", "type"})
 
-	cacheHits = prometheus.NewCounter(prometheus.CounterOpts{
+	cacheHits = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: plugin.Namespace,
 		Subsystem: "dnssec",
 		Name:      "cache_hits_total",
 		Help:      "The count of cache hits.",
-	})
+	}, []string{"server"})
 
-	cacheMisses = prometheus.NewCounter(prometheus.CounterOpts{
+	cacheMisses = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: plugin.Namespace,
 		Subsystem: "dnssec",
 		Name:      "cache_misses_total",
 		Help:      "The count of cache misses.",
-	})
+	}, []string{"server"})
 )
 
 // Name implements the Handler interface.

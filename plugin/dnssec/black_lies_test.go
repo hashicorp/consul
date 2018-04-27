@@ -17,7 +17,7 @@ func TestZoneSigningBlackLies(t *testing.T) {
 
 	m := testNxdomainMsg()
 	state := request.Request{Req: m, Zone: "miek.nl."}
-	m = d.Sign(state, time.Now().UTC())
+	m = d.Sign(state, time.Now().UTC(), server)
 	if !section(m.Ns, 2) {
 		t.Errorf("authority section should have 2 sig")
 	}
@@ -48,7 +48,7 @@ func TestBlackLiesNoError(t *testing.T) {
 
 	m := testSuccessMsg()
 	state := request.Request{Req: m, Zone: "miek.nl."}
-	m = d.Sign(state, time.Now().UTC())
+	m = d.Sign(state, time.Now().UTC(), server)
 
 	if m.Rcode != dns.RcodeSuccess {
 		t.Errorf("expected rcode %d, got %d", dns.RcodeSuccess, m.Rcode)

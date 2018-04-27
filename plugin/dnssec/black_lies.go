@@ -14,7 +14,7 @@ import (
 //	a.example.com. 3600 IN NSEC \000.a.example.com. ( RRSIG NSEC ... )
 // This inturn makes every NXDOMAIN answer a NODATA one, don't forget to flip
 // the header rcode to NOERROR.
-func (d Dnssec) nsec(state request.Request, mt response.Type, ttl, incep, expir uint32) ([]dns.RR, error) {
+func (d Dnssec) nsec(state request.Request, mt response.Type, ttl, incep, expir uint32, server string) ([]dns.RR, error) {
 	nsec := &dns.NSEC{}
 	nsec.Hdr = dns.RR_Header{Name: state.QName(), Ttl: ttl, Class: dns.ClassINET, Rrtype: dns.TypeNSEC}
 	nsec.NextDomain = "\\000." + state.QName()
@@ -24,7 +24,7 @@ func (d Dnssec) nsec(state request.Request, mt response.Type, ttl, incep, expir 
 		nsec.TypeBitMap = filter14(state.QType(), zoneBitmap, mt)
 	}
 
-	sigs, err := d.sign([]dns.RR{nsec}, state.Zone, ttl, incep, expir)
+	sigs, err := d.sign([]dns.RR{nsec}, state.Zone, ttl, incep, expir, server)
 	if err != nil {
 		return nil, err
 	}

@@ -48,10 +48,11 @@ used (See [bugs](#bugs)).
 
 If monitoring is enabled (via the *prometheus* directive) then the following metrics are exported:
 
-* `coredns_dnssec_cache_size{type}` - total elements in the cache, type is "signature".
-* `coredns_dnssec_cache_capacity{type}` - total capacity of the cache, type is "signature".
-* `coredns_dnssec_cache_hits_total{}` - Counter of cache hits.
-* `coredns_dnssec_cache_misses_total{}` - Counter of cache misses.
+* `coredns_dnssec_cache_size{server, type}` - total elements in the cache, type is "signature".
+* `coredns_dnssec_cache_hits_total{server}` - Counter of cache hits.
+* `coredns_dnssec_cache_misses_total{server}` - Counter of cache misses.
+
+The label `server` indicated the server handling the request, see the *metrics* plugin for details.
 
 ## Examples
 

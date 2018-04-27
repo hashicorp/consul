@@ -39,7 +39,7 @@ func New(zones []string, keys []*DNSKEY, next plugin.Handler, c *cache.Cache) Dn
 // will insert DS records and sign those.
 // Signatures will be cached for a short while. By default we sign for 8 days,
 // starting 3 hours ago.
-func (d Dnssec) Sign(state request.Request, now time.Time) *dns.Msg {
+func (d Dnssec) Sign(state request.Request, now time.Time, server string) *dns.Msg {
 	req := state.Req
 
 	incep, expir := incepExpir(now)
@@ -71,10 +71,10 @@ func (d Dnssec) Sign(state request.Request, now time.Time) *dns.Msg {
 
 		ttl := req.Ns[0].Header().Ttl
 
-		if sigs, err := d.sign(req.Ns, state.Zone, ttl, incep, expir); err == nil {
+		if sigs, err := d.sign(req.Ns, state.Zone, ttl, incep, expir, server); err == nil {
 			req.Ns = append(req.Ns, sigs...)
 		}
-		if sigs, err := d.nsec(state, mt, ttl, incep, expir); err == nil {
+		if sigs, err := d.nsec(state, mt, ttl, incep, expir, server); err == nil {
 			req.Ns = append(req.Ns, sigs...)
 		}
 		if len(req.Ns) > 1 { // actually added nsec and sigs, reset the rcode
@@ -85,28 +85,28 @@ func (d Dnssec) Sign(state request.Request, now time.Time) *dns.Msg {
 
 	for _, r := range rrSets(req.Answer) {
 		ttl := r[0].Header().Ttl
-		if sigs, err := d.sign(r, state.Zone, ttl, incep, expir); err == nil {
+		if sigs, err := d.sign(r, state.Zone, ttl, incep, expir, server); err == nil {
 			req.Answer = append(req.Answer, sigs...)
 		}
 	}
 	for _, r := range rrSets(req.Ns) {
 		ttl := r[0].Header().Ttl
-		if sigs, err := d.sign(r, state.Zone, ttl, incep, expir); err == nil {
+		if sigs, err := d.sign(r, state.Zone, ttl, incep, expir, server); err == nil {
 			req.Ns = append(req.Ns, sigs...)
 		}
 	}
 	for _, r := range rrSets(req.Extra) {
 		ttl := r[0].Header().Ttl
-		if sigs, err := d.sign(r, state.Zone, ttl, incep, expir); err == nil {
+		if sigs, err := d.sign(r, state.Zone, ttl, incep, expir, server); err == nil {
 			req.Extra = append(sigs, req.Extra...) // prepend to leave OPT alone
 		}
 	}
 	return req
 }
 
-func (d Dnssec) sign(rrs []dns.RR, signerName string, ttl, incep, expir uint32) ([]dns.RR, error) {
+func (d Dnssec) sign(rrs []dns.RR, signerName string, ttl, incep, expir uint32, server string) ([]dns.RR, error) {
 	k := hash(rrs)
-	sgs, ok := d.get(k)
+	sgs, ok := d.get(k, server)
 	if ok {
 		return sgs, nil
 	}
@@ -129,21 +129,21 @@ func (d Dnssec) set(key uint32, sigs []dns.RR) {
 	d.cache.Add(key, sigs)
 }
 
-func (d Dnssec) get(key uint32) ([]dns.RR, bool) {
+func (d Dnssec) get(key uint32, server string) ([]dns.RR, bool) {
 	if s, ok := d.cache.Get(key); ok {
 		// we sign for 8 days, check if a signature in the cache reached 3/4 of that
 		is75 := time.Now().UTC().Add(sixDays)
 		for _, rr := range s.([]dns.RR) {
 			if !rr.(*dns.RRSIG).ValidityPeriod(is75) {
-				cacheMisses.Inc()
+				cacheMisses.WithLabelValues(server).Inc()
 				return nil, false
 			}
 		}
 
-		cacheHits.Inc()
+		cacheHits.WithLabelValues(server).Inc()
 		return s.([]dns.RR), true
 	}
-	cacheMisses.Inc()
+	cacheMisses.WithLabelValues(server).Inc()
 	return nil, false
 }
 

@@ -10,6 +10,8 @@ import (
 	"github.com/miekg/dns"
 )
 
+const server = "dns//."
+
 func TestBlackLiesBitmapNoData(t *testing.T) {
 	d, rm1, rm2 := newDnssec(t, []string{"example.org."})
 	defer rm1()
@@ -17,7 +19,7 @@ func TestBlackLiesBitmapNoData(t *testing.T) {
 
 	m := testTLSAMsg()
 	state := request.Request{Req: m, Zone: "example.org."}
-	m = d.Sign(state, time.Now().UTC())
+	m = d.Sign(state, time.Now().UTC(), server)
 
 	var nsec *dns.NSEC
 	for _, r := range m.Ns {
@@ -39,7 +41,7 @@ func TestBlackLiesBitmapNameError(t *testing.T) {
 	m := testTLSAMsg()
 	m.Rcode = dns.RcodeNameError // change to name error
 	state := request.Request{Req: m, Zone: "example.org."}
-	m = d.Sign(state, time.Now().UTC())
+	m = d.Sign(state, time.Now().UTC(), server)
 
 	var nsec *dns.NSEC
 	for _, r := range m.Ns {

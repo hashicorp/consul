@@ -19,7 +19,7 @@ func TestZoneSigning(t *testing.T) {
 	m := testMsg()
 	state := request.Request{Req: m, Zone: "miek.nl."}
 
-	m = d.Sign(state, time.Now().UTC())
+	m = d.Sign(state, time.Now().UTC(), server)
 	if !section(m.Answer, 1) {
 		t.Errorf("Answer section should have 1 RRSIG")
 	}
@@ -46,7 +46,7 @@ func TestZoneSigningDouble(t *testing.T) {
 
 	m := testMsg()
 	state := request.Request{Req: m, Zone: "miek.nl."}
-	m = d.Sign(state, time.Now().UTC())
+	m = d.Sign(state, time.Now().UTC(), server)
 	if !section(m.Answer, 2) {
 		t.Errorf("Answer section should have 1 RRSIG")
 	}
@@ -71,7 +71,7 @@ func TestSigningDifferentZone(t *testing.T) {
 	state := request.Request{Req: m, Zone: "example.org."}
 	c := cache.New(defaultCap)
 	d := New([]string{"example.org."}, []*DNSKEY{key}, nil, c)
-	m = d.Sign(state, time.Now().UTC())
+	m = d.Sign(state, time.Now().UTC(), server)
 	if !section(m.Answer, 1) {
 		t.Errorf("Answer section should have 1 RRSIG")
 		t.Logf("%+v\n", m)
@@ -89,7 +89,7 @@ func TestSigningCname(t *testing.T) {
 
 	m := testMsgCname()
 	state := request.Request{Req: m, Zone: "miek.nl."}
-	m = d.Sign(state, time.Now().UTC())
+	m = d.Sign(state, time.Now().UTC(), server)
 	if !section(m.Answer, 1) {
 		t.Errorf("Answer section should have 1 RRSIG")
 	}
@@ -103,7 +103,7 @@ func testZoneSigningDelegation(t *testing.T) {
 
 	m := testDelegationMsg()
 	state := request.Request{Req: m, Zone: "miek.nl."}
-	m = d.Sign(state, time.Now().UTC())
+	m = d.Sign(state, time.Now().UTC(), server)
 	if !section(m.Ns, 1) {
 		t.Errorf("Authority section should have 1 RRSIG")
 		t.Logf("%v\n", m)
@@ -134,7 +134,7 @@ func TestSigningDname(t *testing.T) {
 	m := testMsgDname()
 	state := request.Request{Req: m, Zone: "miek.nl."}
 	// We sign *everything* we see, also the synthesized CNAME.
-	m = d.Sign(state, time.Now().UTC())
+	m = d.Sign(state, time.Now().UTC(), server)
 	if !section(m.Answer, 3) {
 		t.Errorf("Answer section should have 3 RRSIGs")
 	}
@@ -148,7 +148,7 @@ func TestSigningEmpty(t *testing.T) {
 	m := testEmptyMsg()
 	m.SetQuestion("a.miek.nl.", dns.TypeA)
 	state := request.Request{Req: m, Zone: "miek.nl."}
-	m = d.Sign(state, time.Now().UTC())
+	m = d.Sign(state, time.Now().UTC(), server)
 	if !section(m.Ns, 2) {
 		t.Errorf("Authority section should have 2 RRSIGs")
 	}
