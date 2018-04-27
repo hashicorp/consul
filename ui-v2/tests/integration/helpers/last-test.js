@@ -1,4 +1,4 @@
-import { moduleForComponent, test } from 'ember-qunit';
+import { moduleForComponent, skip } from 'ember-qunit';
 import hbs from 'htmlbars-inline-precompile';
 
 moduleForComponent('last', 'helper:last', {
@@ -6,7 +6,7 @@ moduleForComponent('last', 'helper:last', {
 });
 
 // Replace this with your real tests.
-test('it renders', function(assert) {
+skip('it renders', function(assert) {
   this.set('inputValue', '1234');
 
   this.render(hbs`{{last inputValue}}`);

@@ -116,10 +116,11 @@ export default Adapter.extend({
   },
   dataForRequest: function(params) {
     const data = this._super(...arguments);
-    const value = data.kv.Value;
+    let value = '';
     switch (params.requestType) {
       case REQUEST_UPDATE:
       case REQUEST_CREATE:
+        value = data.kv.Value;
         if (typeof value === 'string') {
           return get(this, 'atob')(value);
         }
