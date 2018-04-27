@@ -426,7 +426,7 @@ func (s *Server) initializeCA() error {
 		return fmt.Errorf("error getting root cert: %v", err)
 	}
 
-	id, err := connect.ParseCertFingerprint(rootPEM)
+	id, err := connect.CalculateCertFingerprint(rootPEM)
 	if err != nil {
 		return fmt.Errorf("error parsing root fingerprint: %v", err)
 	}

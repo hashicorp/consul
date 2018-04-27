@@ -98,7 +98,7 @@ func (s *ConnectCA) ConfigurationSet(
 		return err
 	}
 
-	id, err := connect.ParseCertFingerprint(newRootPEM)
+	id, err := connect.CalculateCertFingerprint(newRootPEM)
 	if err != nil {
 		return fmt.Errorf("error parsing root fingerprint: %v", err)
 	}

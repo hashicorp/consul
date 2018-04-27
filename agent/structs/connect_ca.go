@@ -168,10 +168,10 @@ type ConsulCAProviderConfig struct {
 
 // CAConsulProviderState is used to track the built-in Consul CA provider's state.
 type CAConsulProviderState struct {
-	ID         string
-	PrivateKey string
-	RootCert   string
-	LeafIndex  uint64
+	ID          string
+	PrivateKey  string
+	RootCert    string
+	SerialIndex uint64
 
 	RaftIndex
 }

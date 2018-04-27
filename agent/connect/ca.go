@@ -1,7 +1,6 @@
 package connect
 
 import (
-	"bytes"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/rsa"
@@ -28,21 +27,21 @@ func ParseCert(pemValue string) (*x509.Certificate, error) {
 	return x509.ParseCertificate(block.Bytes)
 }
 
-// ParseCertFingerprint parses the x509 certificate from a PEM-encoded value
-// and returns the SHA-1 fingerprint.
-func ParseCertFingerprint(pemValue string) (string, error) {
+// CalculateCertFingerprint parses the x509 certificate from a PEM-encoded value
+// and calculates the SHA-1 fingerprint.
+func CalculateCertFingerprint(pemValue string) (string, error) {
 	// The _ result below is not an error but the remaining PEM bytes.
 	block, _ := pem.Decode([]byte(pemValue))
 	if block == nil {
 		return "", fmt.Errorf("no PEM-encoded data found")
 	}
 
-	hash := sha1.Sum(block.Bytes)
-	hexified := make([][]byte, len(hash))
-	for i, data := range hash {
-		hexified[i] = []byte(fmt.Sprintf("%02X", data))
+	if block.Type != "CERTIFICATE" {
+		return "", fmt.Errorf("first PEM-block should be CERTIFICATE type")
 	}
-	return string(bytes.Join(hexified, []byte(":"))), nil
+
+	hash := sha1.Sum(block.Bytes)
+	return HexString(hash[:]), nil
 }
 
 // ParseSigner parses a crypto.Signer from a PEM-encoded key. The private key
