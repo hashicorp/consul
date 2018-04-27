@@ -175,8 +175,13 @@ func (k *KV) getInternal(key string, params map[string]string, q *QueryOptions) 
 		resp.Body.Close()
 		return nil, qm, nil
 	} else if resp.StatusCode != 200 {
+		errMsg := fmt.Sprintf("Unexpected response code: %d", resp.StatusCode)
+		var buf bytes.Buffer
+		if _, err := io.Copy(&buf, resp.Body); err == nil {
+			errMsg = fmt.Sprintf("%s: %s", errMsg, buf.String())
+		}
 		resp.Body.Close()
-		return nil, nil, fmt.Errorf("Unexpected response code: %d", resp.StatusCode)
+		return nil, nil, fmt.Errorf(errMsg)
 	}
 	return resp, qm, nil
 }
