@@ -66,6 +66,9 @@ type ConnectManagedProxy struct {
 	// for ProxyExecModeScript.
 	Command []string
 
+	// CommandDefault is the default command to execute if Command is empty.
+	CommandDefault []string `json:"-" hash:"ignore"`
+
 	// Config is the arbitrary configuration data provided with the registration.
 	Config map[string]interface{}
 

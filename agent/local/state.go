@@ -127,8 +127,8 @@ type ManagedProxy struct {
 	// use service-scoped ACL tokens distributed externally.
 	ProxyToken string
 
-	// ManagedProxy is the managed proxy itself that is running.
-	ManagedProxy proxy.Proxy
+	// ProxyProcess is the managed proxy itself that is running.
+	ProxyProcess proxy.Proxy
 
 	// WatchCh is a close-only chan that is closed when the proxy is removed or
 	// updated.
@@ -573,22 +573,26 @@ func (l *State) CriticalCheckStates() map[types.CheckID]*CheckState {
 // (since that has to do other book keeping). The token passed here is the ACL
 // token the service used to register itself so must have write on service
 // record.
-func (l *State) AddProxy(proxy *structs.ConnectManagedProxy, token string) (*structs.NodeService, error) {
+//
+// AddProxy returns the newly added proxy, any replaced proxy, and an error.
+// The second return value (replaced proxy) can be used to determine if
+// the process needs to be updated or not.
+func (l *State) AddProxy(proxy *structs.ConnectManagedProxy, token string) (*ManagedProxy, *ManagedProxy, error) {
 	if proxy == nil {
-		return nil, fmt.Errorf("no proxy")
+		return nil, nil, fmt.Errorf("no proxy")
 	}
 
 	// Lookup the local service
 	target := l.Service(proxy.TargetServiceID)
 	if target == nil {
-		return nil, fmt.Errorf("target service ID %s not registered",
+		return nil, nil, fmt.Errorf("target service ID %s not registered",
 			proxy.TargetServiceID)
 	}
 
 	// Get bind info from config
 	cfg, err := proxy.ParseConfig()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Construct almost all of the NodeService that needs to be registered by the
@@ -604,7 +608,7 @@ func (l *State) AddProxy(proxy *structs.ConnectManagedProxy, token string) (*str
 
 	pToken, err := uuid.GenerateUUID()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Initialize the managed proxy process. This doesn't start anything,
@@ -612,7 +616,7 @@ func (l *State) AddProxy(proxy *structs.ConnectManagedProxy, token string) (*str
 	// caller should call Proxy and use the returned ManagedProxy instance.
 	proxyProcess, err := l.newProxyProcess(proxy, pToken)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Lock now. We can't lock earlier as l.Service would deadlock and shouldn't
@@ -646,7 +650,7 @@ func (l *State) AddProxy(proxy *structs.ConnectManagedProxy, token string) (*str
 	}
 	// If no ports left (or auto ports disabled) fail
 	if svc.Port < 1 {
-		return nil, fmt.Errorf("no port provided for proxy bind_port and none "+
+		return nil, nil, fmt.Errorf("no port provided for proxy bind_port and none "+
 			" left in the allocated range [%d, %d]", l.config.ProxyBindMinPort,
 			l.config.ProxyBindMaxPort)
 	}
@@ -654,7 +658,8 @@ func (l *State) AddProxy(proxy *structs.ConnectManagedProxy, token string) (*str
 	proxy.ProxyService = svc
 
 	// All set, add the proxy and return the service
-	if old, ok := l.managedProxies[svc.ID]; ok {
+	old, ok := l.managedProxies[svc.ID]
+	if ok {
 		// Notify watchers of the existing proxy config that it's changing. Note
 		// this is safe here even before the map is updated since we still hold the
 		// state lock and the watcher can't re-read the new config until we return
@@ -664,22 +669,23 @@ func (l *State) AddProxy(proxy *structs.ConnectManagedProxy, token string) (*str
 	l.managedProxies[svc.ID] = &ManagedProxy{
 		Proxy:        proxy,
 		ProxyToken:   pToken,
-		ManagedProxy: proxyProcess,
+		ProxyProcess: proxyProcess,
 		WatchCh:      make(chan struct{}),
 	}
 
 	// No need to trigger sync as proxy state is local only.
-	return svc, nil
+	return l.managedProxies[svc.ID], old, nil
 }
 
 // RemoveProxy is used to remove a proxy entry from the local state.
-func (l *State) RemoveProxy(id string) error {
+// This returns the proxy that was removed.
+func (l *State) RemoveProxy(id string) (*ManagedProxy, error) {
 	l.Lock()
 	defer l.Unlock()
 
 	p := l.managedProxies[id]
 	if p == nil {
-		return fmt.Errorf("Proxy %s does not exist", id)
+		return nil, fmt.Errorf("Proxy %s does not exist", id)
 	}
 	delete(l.managedProxies, id)
 
@@ -687,7 +693,7 @@ func (l *State) RemoveProxy(id string) error {
 	close(p.WatchCh)
 
 	// No need to trigger sync as proxy state is local only.
-	return nil
+	return p, nil
 }
 
 // Proxy returns the local proxy state.

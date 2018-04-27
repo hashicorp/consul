@@ -1684,7 +1684,7 @@ func TestStateProxyManagement(t *testing.T) {
 
 	p1 := structs.ConnectManagedProxy{
 		ExecMode:        structs.ProxyExecModeDaemon,
-		Command:         "consul connect proxy",
+		Command:         []string{"consul", "connect", "proxy"},
 		TargetServiceID: "web",
 	}
 
@@ -1710,9 +1710,10 @@ func TestStateProxyManagement(t *testing.T) {
 	require.NoError(err)
 
 	// Should work now
-	svc, err := state.AddProxy(&p1, "fake-token")
+	pstate, err := state.AddProxy(&p1, "fake-token")
 	require.NoError(err)
 
+	svc := pstate.Proxy.ProxyService
 	assert.Equal("web-proxy", svc.ID)
 	assert.Equal("web-proxy", svc.Service)
 	assert.Equal(structs.ServiceKindConnectProxy, svc.Kind)
@@ -1739,8 +1740,9 @@ func TestStateProxyManagement(t *testing.T) {
 	// Second proxy should claim other port
 	p2 := p1
 	p2.TargetServiceID = "cache"
-	svc2, err := state.AddProxy(&p2, "fake-token")
+	pstate2, err := state.AddProxy(&p2, "fake-token")
 	require.NoError(err)
+	svc2 := pstate2.Proxy.ProxyService
 	assert.Contains([]int{20000, 20001}, svc2.Port)
 	assert.NotEqual(svc.Port, svc2.Port)
 
@@ -1758,8 +1760,9 @@ func TestStateProxyManagement(t *testing.T) {
 		"bind_port":    1234,
 		"bind_address": "0.0.0.0",
 	}
-	svc3, err := state.AddProxy(&p3, "fake-token")
+	pstate3, err := state.AddProxy(&p3, "fake-token")
 	require.NoError(err)
+	svc3 := pstate3.Proxy.ProxyService
 	require.Equal("0.0.0.0", svc3.Address)
 	require.Equal(1234, svc3.Port)
 
@@ -1771,8 +1774,9 @@ func TestStateProxyManagement(t *testing.T) {
 	require.NotNil(gotP3)
 	var ws memdb.WatchSet
 	ws.Add(gotP3.WatchCh)
-	svc3, err = state.AddProxy(&p3updated, "fake-token")
+	pstate3, err = state.AddProxy(&p3updated, "fake-token")
 	require.NoError(err)
+	svc3 = pstate3.Proxy.ProxyService
 	require.Equal("0.0.0.0", svc3.Address)
 	require.Equal(1234, svc3.Port)
 	gotProxy3 := state.Proxy(svc3.ID)
@@ -1782,19 +1786,20 @@ func TestStateProxyManagement(t *testing.T) {
 		"watch should have fired so ws.Watch should not timeout")
 
 	// Remove one of the auto-assigned proxies
-	err = state.RemoveProxy(svc2.ID)
+	_, err = state.RemoveProxy(svc2.ID)
 	require.NoError(err)
 
 	// Should be able to create a new proxy for that service with the port (it
 	// should have been "freed").
 	p4 := p2
-	svc4, err := state.AddProxy(&p4, "fake-token")
+	pstate4, err := state.AddProxy(&p4, "fake-token")
 	require.NoError(err)
+	svc4 := pstate4.Proxy.ProxyService
 	assert.Contains([]int{20000, 20001}, svc2.Port)
 	assert.Equal(svc4.Port, svc2.Port, "should get the same port back that we freed")
 
 	// Remove a proxy that doesn't exist should error
-	err = state.RemoveProxy("nope")
+	_, err = state.RemoveProxy("nope")
 	require.Error(err)
 
 	assert.Equal(&p4, state.Proxy(p4.ProxyService.ID).Proxy,

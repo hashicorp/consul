@@ -70,7 +70,7 @@ func TestAgent_Services(t *testing.T) {
 		},
 		TargetServiceID: "mysql",
 	}
-	_, err := a.State.AddProxy(prxy1, "")
+	_, _, err := a.State.AddProxy(prxy1, "")
 	require.NoError(t, err)
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
@@ -1435,7 +1435,7 @@ func TestAgent_RegisterService_ManagedConnectProxy(t *testing.T) {
 	proxy := a.State.Proxy("web-proxy")
 	require.NotNil(proxy)
 	assert.Equal(structs.ProxyExecModeScript, proxy.Proxy.ExecMode)
-	assert.Equal("proxy.sh", proxy.Proxy.Command)
+	assert.Equal([]string{"proxy.sh"}, proxy.Proxy.Command)
 	assert.Equal(args.Connect.Proxy.Config, proxy.Proxy.Config)
 
 	// Ensure the token was configured
@@ -2352,7 +2352,7 @@ func TestAgentConnectProxyConfig_Blocking(t *testing.T) {
 		ProxyServiceID:    "test-proxy",
 		TargetServiceID:   "test",
 		TargetServiceName: "test",
-		ContentHash:       "84346af2031659c9",
+		ContentHash:       "365a50cbb9a748b6",
 		ExecMode:          "daemon",
 		Command:           nil,
 		Config: map[string]interface{}{
@@ -2372,7 +2372,7 @@ func TestAgentConnectProxyConfig_Blocking(t *testing.T) {
 	ur, err := copystructure.Copy(expectedResponse)
 	require.NoError(t, err)
 	updatedResponse := ur.(*api.ConnectProxyConfig)
-	updatedResponse.ContentHash = "e1e3395f0d00cd41"
+	updatedResponse.ContentHash = "b5bb0e4a0a58ca25"
 	upstreams := updatedResponse.Config["upstreams"].([]interface{})
 	upstreams = append(upstreams,
 		map[string]interface{}{
