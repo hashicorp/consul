@@ -5,10 +5,36 @@
 
 @import 'ember-bulma-css/utilities/_all';
 @import 'ember-bulma-css/base/_all';
-@import 'ember-bulma-css/elements/_all';
-@import 'ember-bulma-css/components/_all';
-@import 'ember-bulma-css/grid/_all';
-@import 'ember-bulma-css/layout/_all';
+// @import 'ember-bulma-css/elements/_all';
+// @import 'ember-bulma-css/elements/box.sass';
+@import 'ember-bulma-css/elements/button.sass';
+@import 'ember-bulma-css/elements/container.sass';
+// @import 'ember-bulma-css/elements/content.sass';
+@import 'ember-bulma-css/elements/form.sass';
+// @import 'ember-bulma-css/elements/icon.sass';
+// @import 'ember-bulma-css/elements/image.sass';
+// @import 'ember-bulma-css/elements/notification.sass';
+// @import 'ember-bulma-css/elements/progress.sass';
+@import 'ember-bulma-css/elements/table.sass';
+// @import 'ember-bulma-css/elements/tag.sass';
+// @import 'ember-bulma-css/elements/title.sass';
+// @import 'ember-bulma-css/elements/other.sass';
+
+// @import 'ember-bulma-css/components/_all';
+// @import 'ember-bulma-css/components/breadcrumb.sass';
+// @import 'ember-bulma-css/components/card.sass';
+// @import 'ember-bulma-css/components/dropdown.sass';
+// @import 'ember-bulma-css/components/level.sass';
+// @import 'ember-bulma-css/components/media.sass';
+// @import 'ember-bulma-css/components/menu.sass';
+// @import 'ember-bulma-css/components/message.sass';
+// @import 'ember-bulma-css/components/modal.sass';
+// @import 'ember-bulma-css/components/navbar.sass';
+// @import 'ember-bulma-css/components/pagination.sass';
+// @import 'ember-bulma-css/components/panel.sass';
+@import 'ember-bulma-css/components/tabs.sass';
+// @import 'ember-bulma-css/grid/_all';
+// @import 'ember-bulma-css/layout/_all';
 
 @import 'core/reset';
 @import 'core/layout';
