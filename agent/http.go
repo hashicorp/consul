@@ -19,7 +19,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/mitchellh/mapstructure"
-	"github.com/elazarl/go-bindata-assetfs"
 )
 
 // MethodNotAllowedError should be returned by a handler when the HTTP method is not allowed.
@@ -44,7 +43,7 @@ type HTTPServer struct {
 }
 
 type RedirectFS struct {
-	fs *assetfs.AssetFS
+	fs http.FileSystem
 }
 
 func (fs *RedirectFS) Open(name string) (http.File, error) {
@@ -149,25 +148,39 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 		handleFuncMetrics("/debug/pprof/symbol", pprof.Symbol)
 	}
 
-	// Use the custom UI dir if provided.
-	if s.agent.config.UIDir != "" {
-		mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(http.Dir(s.agent.config.UIDir))))
-	} else if s.agent.config.EnableUI {
-		fs := assetFS()
-
-		val := strings.ToLower(os.Getenv("CONSUL_UI_BETA"))
-		switch val {
-		case "1":
-			fallthrough
-		case "true":
-			fallthrough
-		case "yes":
-			fs.Prefix += "/v2"
-			mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(&RedirectFS{fs: fs})))
-		default:
-			fs.Prefix += "/v1"
-			mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(fs)))
+	if s.IsUIEnabled() {
+		new_ui := false
+		switch strings.ToLower(os.Getenv("CONSUL_UI_BETA")) {
+			case "1":
+				fallthrough
+			case "true":
+				fallthrough
+			case "yes":
+				new_ui = true
+			default:
+				new_ui = false		
 		}
+		var uifs http.FileSystem = nil;
+
+		// Use the custom UI dir if provided.		
+		if s.agent.config.UIDir != "" {
+			uifs = http.Dir(s.agent.config.UIDir)
+		} else {
+			fs := assetFS()
+
+			if new_ui {
+				fs.Prefix += "/v2/"
+			} else {
+				fs.Prefix += "/v1/"
+			}		
+			uifs = fs
+		}
+		
+		if new_ui {
+			uifs = &RedirectFS{fs:uifs}	
+		}
+		
+		mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(uifs)))
 	}
 
 	// Wrap the whole mux with a handler that bans URLs with non-printable
