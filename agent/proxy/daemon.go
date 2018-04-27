@@ -39,8 +39,9 @@ type Daemon struct {
 
 	// process is the started process
 	lock    sync.Mutex
-	process *os.Process
+	stopped bool
 	stopCh  chan struct{}
+	process *os.Process
 }
 
 // Start starts the daemon and keeps it running.
@@ -50,30 +51,29 @@ func (p *Daemon) Start() error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
-	// If the daemon is already started, return no error.
-	if p.stopCh != nil {
+	// A stopped proxy cannot be restarted
+	if p.stopped {
+		return fmt.Errorf("stopped")
+	}
+
+	// If we're already running, that is okay
+	if p.process != nil {
 		return nil
 	}
 
-	// Start it for the first time
-	process, err := p.start()
-	if err != nil {
-		return err
-	}
-
-	// Create the stop channel we use to notify when we've gracefully stopped
+	// Setup our stop channel
 	stopCh := make(chan struct{})
 	p.stopCh = stopCh
 
-	// Store the process so that we can signal it later
-	p.process = process
-
+	// Start the loop.
 	go p.keepAlive(stopCh)
 
 	return nil
 }
 
-func (p *Daemon) keepAlive(stopCh chan struct{}) {
+// keepAlive starts and keeps the configured process alive until it
+// is stopped via Stop.
+func (p *Daemon) keepAlive(stopCh <-chan struct{}) {
 	p.lock.Lock()
 	process := p.process
 	p.lock.Unlock()
@@ -106,31 +106,43 @@ func (p *Daemon) keepAlive(stopCh chan struct{}) {
 					p.Logger.Printf(
 						"[WARN] agent/proxy: waiting %s before restarting daemon",
 						waitTime)
-					time.Sleep(waitTime)
+
+					timer := time.NewTimer(waitTime)
+					select {
+					case <-timer.C:
+						// Timer is up, good!
+
+					case <-stopCh:
+						// During our backoff wait, we've been signalled to
+						// quit, so just quit.
+						timer.Stop()
+						return
+					}
 				}
 			}
 
 			p.lock.Lock()
 
-			// If we gracefully stopped (stopCh is closed) then don't restart. We
-			// check stopCh and not p.stopCh because the latter could reference
-			// a new process.
-			select {
-			case <-stopCh:
+			// If we gracefully stopped then don't restart.
+			if p.stopped {
 				p.lock.Unlock()
 				return
-			default:
 			}
 
-			// Process isn't started currently. We're restarting.
+			// Process isn't started currently. We're restarting. Start it
+			// and save the process if we have it.
 			var err error
 			process, err = p.start()
+			if err == nil {
+				p.process = process
+			}
+			p.lock.Unlock()
+
 			if err != nil {
 				p.Logger.Printf("[ERR] agent/proxy: error restarting daemon: %s", err)
+				continue
 			}
 
-			p.process = process
-			p.lock.Unlock()
 		}
 
 		_, err := process.Wait()
@@ -169,23 +181,19 @@ func (p *Daemon) Stop() error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
-	// If we don't have a stopCh then we never even started yet.
-	if p.stopCh == nil {
+	// If we're already stopped or never started, then no problem.
+	if p.stopped || p.process == nil {
+		// In the case we never even started, calling Stop makes it so
+		// that we can't ever start in the future, either, so mark this.
+		p.stopped = true
 		return nil
 	}
 
-	// If stopCh is closed, then we're already stopped
-	select {
-	case <-p.stopCh:
-		return nil
-	default:
-	}
+	// Note that we've stopped
+	p.stopped = true
+	close(p.stopCh)
 
 	err := p.process.Signal(os.Interrupt)
-
-	// This signals that we've stopped and therefore don't want to restart
-	close(p.stopCh)
-	p.stopCh = nil
 
 	return err
 	//return p.Command.Process.Kill()

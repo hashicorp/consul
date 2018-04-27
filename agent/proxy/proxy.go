@@ -21,8 +21,14 @@ type Proxy interface {
 	// proxy registration is rejected. Therefore, this should only fail if
 	// the configuration of the proxy itself is irrecoverable, and should
 	// retry starting for other failures.
+	//
+	// Starting an already-started proxy should not return an error.
 	Start() error
 
-	// Stop stops the proxy.
+	// Stop stops the proxy and disallows it from ever being started again.
+	//
+	// If the proxy is not started yet, this should not return an error, but
+	// it should disallow Start from working again. If the proxy is already
+	// stopped, this should not return an error.
 	Stop() error
 }
