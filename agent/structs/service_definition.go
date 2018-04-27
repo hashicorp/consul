@@ -110,7 +110,7 @@ type ServiceDefinitionConnect struct {
 // registration. Note this is duplicated in config.ServiceConnectProxy and needs
 // to be kept in sync.
 type ServiceDefinitionConnectProxy struct {
-	Command  string
+	Command  []string
 	ExecMode string
 	Config   map[string]interface{}
 }

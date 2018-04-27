@@ -359,7 +359,7 @@ type ServiceConnect struct {
 }
 
 type ServiceConnectProxy struct {
-	Command  *string                `json:"command,omitempty" hcl:"command" mapstructure:"command"`
+	Command  []string               `json:"command,omitempty" hcl:"command" mapstructure:"command"`
 	ExecMode *string                `json:"exec_mode,omitempty" hcl:"exec_mode" mapstructure:"exec_mode"`
 	Config   map[string]interface{} `json:"config,omitempty" hcl:"config" mapstructure:"config"`
 }
@@ -386,10 +386,10 @@ type ConnectProxyDefaults struct {
 	ExecMode *string `json:"exec_mode,omitempty" hcl:"exec_mode" mapstructure:"exec_mode"`
 	// DaemonCommand is used to start proxy in exec_mode = daemon if not specified
 	// at registration time.
-	DaemonCommand *string `json:"daemon_command,omitempty" hcl:"daemon_command" mapstructure:"daemon_command"`
+	DaemonCommand []string `json:"daemon_command,omitempty" hcl:"daemon_command" mapstructure:"daemon_command"`
 	// ScriptCommand is used to start proxy in exec_mode = script if not specified
 	// at registration time.
-	ScriptCommand *string `json:"script_command,omitempty" hcl:"script_command" mapstructure:"script_command"`
+	ScriptCommand []string `json:"script_command,omitempty" hcl:"script_command" mapstructure:"script_command"`
 	// Config is merged into an Config specified at registration time.
 	Config map[string]interface{} `json:"config,omitempty" hcl:"config" mapstructure:"config"`
 }

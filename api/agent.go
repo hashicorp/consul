@@ -76,7 +76,7 @@ type AgentServiceConnect struct {
 // service.
 type AgentServiceConnectProxy struct {
 	ExecMode ProxyExecMode
-	Command  string
+	Command  []string
 	Config   map[string]interface{}
 }
 
@@ -225,7 +225,7 @@ type ConnectProxyConfig struct {
 	TargetServiceName string
 	ContentHash       string
 	ExecMode          ProxyExecMode
-	Command           string
+	Command           []string
 	Config            map[string]interface{}
 }
 

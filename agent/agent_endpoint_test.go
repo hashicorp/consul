@@ -63,7 +63,7 @@ func TestAgent_Services(t *testing.T) {
 	// Add a managed proxy for that service
 	prxy1 := &structs.ConnectManagedProxy{
 		ExecMode: structs.ProxyExecModeScript,
-		Command:  "proxy.sh",
+		Command:  []string{"proxy.sh"},
 		Config: map[string]interface{}{
 			"bind_port": 1234,
 			"foo":       "bar",
@@ -1404,7 +1404,7 @@ func TestAgent_RegisterService_ManagedConnectProxy(t *testing.T) {
 		Connect: &api.AgentServiceConnect{
 			Proxy: &api.AgentServiceConnectProxy{
 				ExecMode: "script",
-				Command:  "proxy.sh",
+				Command:  []string{"proxy.sh"},
 				Config: map[string]interface{}{
 					"foo": "bar",
 				},
@@ -2354,7 +2354,7 @@ func TestAgentConnectProxyConfig_Blocking(t *testing.T) {
 		TargetServiceName: "test",
 		ContentHash:       "84346af2031659c9",
 		ExecMode:          "daemon",
-		Command:           "consul connect proxy",
+		Command:           nil,
 		Config: map[string]interface{}{
 			"upstreams": []interface{}{
 				map[string]interface{}{

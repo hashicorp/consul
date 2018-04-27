@@ -2364,8 +2364,8 @@ func TestFullConfig(t *testing.T) {
 					"bind_min_port": 2000,
 					"bind_max_port": 3000,
 					"exec_mode": "script",
-					"daemon_command": "consul connect proxy",
-					"script_command": "proxyctl.sh",
+					"daemon_command": ["consul", "connect", "proxy"],
+					"script_command": ["proxyctl.sh"],
 					"config": {
 						"foo": "bar",
 						"connect_timeout_ms": 1000,
@@ -2637,7 +2637,7 @@ func TestFullConfig(t *testing.T) {
 					"connect": {
 						"proxy": {
 							"exec_mode": "daemon",
-							"command": "awesome-proxy",
+							"command": ["awesome-proxy"],
 							"config": {
 								"foo": "qux"
 							}
@@ -2826,13 +2826,13 @@ func TestFullConfig(t *testing.T) {
 					bind_min_port = 2000
 					bind_max_port = 3000
 					exec_mode = "script"
-					daemon_command = "consul connect proxy"
-					script_command = "proxyctl.sh"
+					daemon_command = ["consul", "connect", "proxy"]
+					script_command = ["proxyctl.sh"]
 					config = {
 						foo = "bar"
 						# hack float since json parses numbers as float and we have to
 						# assert against the same thing
-						connect_timeout_ms = 1000.0 
+						connect_timeout_ms = 1000.0
 						pedantic_mode = true
 					}
 				}
@@ -3101,7 +3101,7 @@ func TestFullConfig(t *testing.T) {
 					connect {
 						proxy {
 							exec_mode = "daemon"
-							command = "awesome-proxy"
+							command = ["awesome-proxy"]
 							config = {
 								foo = "qux"
 							}
@@ -3426,8 +3426,8 @@ func TestFullConfig(t *testing.T) {
 			"hyMy9Oxn": "XeBp4Sis",
 		},
 		ConnectProxyDefaultExecMode:      "script",
-		ConnectProxyDefaultDaemonCommand: "consul connect proxy",
-		ConnectProxyDefaultScriptCommand: "proxyctl.sh",
+		ConnectProxyDefaultDaemonCommand: []string{"consul", "connect", "proxy"},
+		ConnectProxyDefaultScriptCommand: []string{"proxyctl.sh"},
 		ConnectProxyDefaultConfig: map[string]interface{}{
 			"foo":                "bar",
 			"connect_timeout_ms": float64(1000),
@@ -3608,7 +3608,7 @@ func TestFullConfig(t *testing.T) {
 				Connect: &structs.ServiceDefinitionConnect{
 					Proxy: &structs.ServiceDefinitionConnectProxy{
 						ExecMode: "daemon",
-						Command:  "awesome-proxy",
+						Command:  []string{"awesome-proxy"},
 						Config: map[string]interface{}{
 							"foo": "qux",
 						},
@@ -4109,9 +4109,9 @@ func TestSanitize(t *testing.T) {
     "ConnectProxyBindMaxPort": 0,
     "ConnectProxyBindMinPort": 0,
     "ConnectProxyDefaultConfig": {},
-    "ConnectProxyDefaultDaemonCommand": "",
+    "ConnectProxyDefaultDaemonCommand": [],
     "ConnectProxyDefaultExecMode": "",
-    "ConnectProxyDefaultScriptCommand": "",
+    "ConnectProxyDefaultScriptCommand": [],
     "ConsulCoordinateUpdateBatchSize": 0,
     "ConsulCoordinateUpdateMaxBatches": 0,
     "ConsulCoordinateUpdatePeriod": "15s",

@@ -2333,7 +2333,7 @@ func TestAgent_AddProxy(t *testing.T) {
 			desc: "basic proxy adding, unregistered service",
 			proxy: &structs.ConnectManagedProxy{
 				ExecMode: structs.ProxyExecModeDaemon,
-				Command:  "consul connect proxy",
+				Command:  []string{"consul", "connect", "proxy"},
 				Config: map[string]interface{}{
 					"foo": "bar",
 				},
@@ -2346,7 +2346,7 @@ func TestAgent_AddProxy(t *testing.T) {
 			desc: "basic proxy adding, unregistered service",
 			proxy: &structs.ConnectManagedProxy{
 				ExecMode: structs.ProxyExecModeDaemon,
-				Command:  "consul connect proxy",
+				Command:  []string{"consul", "connect", "proxy"},
 				Config: map[string]interface{}{
 					"foo": "bar",
 				},
@@ -2392,6 +2392,7 @@ func TestAgent_RemoveProxy(t *testing.T) {
 	// Add a proxy for web
 	pReg := &structs.ConnectManagedProxy{
 		TargetServiceID: "web",
+		Command:         []string{"foo"},
 	}
 	require.NoError(a.AddProxy(pReg, false))
 

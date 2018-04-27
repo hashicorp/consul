@@ -532,13 +532,13 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	}
 
 	proxyDefaultExecMode := ""
-	proxyDefaultDaemonCommand := ""
-	proxyDefaultScriptCommand := ""
+	var proxyDefaultDaemonCommand []string
+	var proxyDefaultScriptCommand []string
 	proxyDefaultConfig := make(map[string]interface{})
 	if c.Connect != nil && c.Connect.ProxyDefaults != nil {
 		proxyDefaultExecMode = b.stringVal(c.Connect.ProxyDefaults.ExecMode)
-		proxyDefaultDaemonCommand = b.stringVal(c.Connect.ProxyDefaults.DaemonCommand)
-		proxyDefaultScriptCommand = b.stringVal(c.Connect.ProxyDefaults.ScriptCommand)
+		proxyDefaultDaemonCommand = c.Connect.ProxyDefaults.DaemonCommand
+		proxyDefaultScriptCommand = c.Connect.ProxyDefaults.ScriptCommand
 		proxyDefaultConfig = c.Connect.ProxyDefaults.Config
 	}
 
@@ -1051,7 +1051,7 @@ func (b *Builder) serviceConnectVal(v *ServiceConnect) *structs.ServiceDefinitio
 	if v.Proxy != nil {
 		proxy = &structs.ServiceDefinitionConnectProxy{
 			ExecMode: b.stringVal(v.Proxy.ExecMode),
-			Command:  b.stringVal(v.Proxy.Command),
+			Command:  v.Proxy.Command,
 			Config:   v.Proxy.Config,
 		}
 	}

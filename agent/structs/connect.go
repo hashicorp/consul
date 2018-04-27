@@ -64,7 +64,7 @@ type ConnectManagedProxy struct {
 	// Command is the command to execute. Empty defaults to self-invoking the same
 	// consul binary with proxy subcomand for ProxyExecModeDaemon and is an error
 	// for ProxyExecModeScript.
-	Command string
+	Command []string
 
 	// Config is the arbitrary configuration data provided with the registration.
 	Config map[string]interface{}
