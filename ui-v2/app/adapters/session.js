@@ -1,5 +1,4 @@
 import Adapter, { REQUEST_DELETE, DATACENTER_KEY as API_DATACENTER_KEY } from './application';
-import makeAttrable from 'consul-ui/utils/makeAttrable';
 
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/session';

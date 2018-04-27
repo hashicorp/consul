@@ -61,7 +61,6 @@ export default Mixin.create(WithFeedback, {
       return transitionToList(get(parent, 'Key'), this.transitionTo.bind(this));
     },
     invalidateSession: function(item) {
-      const dc = this.modelFor('dc').dc.Name;
       const controller = this.controller;
       const repo = get(this, 'sessionRepo');
       get(this, 'feedback').execute(

@@ -1,5 +1,5 @@
 import Mixin from '@ember/object/mixin';
-import { get, set } from '@ember/object';
+import { get } from '@ember/object';
 import WithFeedback from 'consul-ui/mixins/with-feedback';
 
 export default Mixin.create(WithFeedback, {

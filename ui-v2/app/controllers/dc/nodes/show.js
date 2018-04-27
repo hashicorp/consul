@@ -1,8 +1,6 @@
 import Controller from '@ember/controller';
 import { get, set } from '@ember/object';
 import WithFiltering from 'consul-ui/mixins/with-filtering';
-import confirm from 'consul-ui/utils/confirm';
-import error from 'consul-ui/utils/error';
 
 export default Controller.extend(WithFiltering, {
   init: function() {

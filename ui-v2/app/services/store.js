@@ -1,4 +1,3 @@
-import Service from '@ember/service';
 import Store from 'ember-data/store';
 
 export default Store.extend({

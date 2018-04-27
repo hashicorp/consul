@@ -20,9 +20,10 @@ export default Controller.extend({
   actions: {
     change: function(e) {
       const target = e.target || { name: 'value', value: e };
+      var parent;
       switch (target.name) {
         case 'additional':
-          const parent = get(this, 'parent.Key');
+          parent = get(this, 'parent.Key');
           set(this.changeset, 'Key', `${parent !== '/' ? parent : ''}${target.value}`);
           break;
         case 'json':

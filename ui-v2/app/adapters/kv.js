@@ -9,7 +9,6 @@ import injectableRequestToJQueryAjaxHash from 'consul-ui/utils/injectableRequest
 import { typeOf } from '@ember/utils';
 import { get } from '@ember/object';
 
-import makeAttrable from 'consul-ui/utils/makeAttrable';
 import keyToArray from 'consul-ui/utils/keyToArray';
 
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/kv';
@@ -117,10 +116,10 @@ export default Adapter.extend({
   },
   dataForRequest: function(params) {
     const data = this._super(...arguments);
+    const value = data.kv.Value;
     switch (params.requestType) {
       case REQUEST_UPDATE:
       case REQUEST_CREATE:
-        const value = data.kv.Value;
         if (typeof value === 'string') {
           return get(this, 'atob')(value);
         }
