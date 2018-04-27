@@ -1318,3 +1318,42 @@ func TestFSM_CARoots(t *testing.T) {
 		assert.Len(roots, 2)
 	}
 }
+
+func TestFSM_CABuiltinProvider(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	fsm, err := New(nil, os.Stderr)
+	assert.Nil(err)
+
+	// Provider state.
+	expected := &structs.CAConsulProviderState{
+		ID:          "foo",
+		PrivateKey:  "a",
+		RootCert:    "b",
+		SerialIndex: 2,
+		RaftIndex: structs.RaftIndex{
+			CreateIndex: 1,
+			ModifyIndex: 1,
+		},
+	}
+
+	// Create a new request.
+	req := structs.CARequest{
+		Op:            structs.CAOpSetProviderState,
+		ProviderState: expected,
+	}
+
+	{
+		buf, err := structs.Encode(structs.ConnectCARequestType, req)
+		assert.Nil(err)
+		assert.True(fsm.Apply(makeLog(buf)).(bool))
+	}
+
+	// Verify it's in the state store.
+	{
+		_, state, err := fsm.state.CAProviderState("foo")
+		assert.Nil(err)
+		assert.Equal(expected, state)
+	}
+}

@@ -349,3 +349,106 @@ func TestStore_CARoot_Snapshot_Restore(t *testing.T) {
 		assert.Equal(roots, actual)
 	}()
 }
+
+func TestStore_CABuiltinProvider(t *testing.T) {
+	assert := assert.New(t)
+	s := testStateStore(t)
+
+	{
+		expected := &structs.CAConsulProviderState{
+			ID:          "foo",
+			PrivateKey:  "a",
+			RootCert:    "b",
+			SerialIndex: 1,
+		}
+
+		ok, err := s.CASetProviderState(0, expected)
+		assert.NoError(err)
+		assert.True(ok)
+
+		idx, state, err := s.CAProviderState(expected.ID)
+		assert.NoError(err)
+		assert.Equal(idx, uint64(0))
+		assert.Equal(expected, state)
+	}
+
+	{
+		expected := &structs.CAConsulProviderState{
+			ID:          "bar",
+			PrivateKey:  "c",
+			RootCert:    "d",
+			SerialIndex: 2,
+		}
+
+		ok, err := s.CASetProviderState(1, expected)
+		assert.NoError(err)
+		assert.True(ok)
+
+		idx, state, err := s.CAProviderState(expected.ID)
+		assert.NoError(err)
+		assert.Equal(idx, uint64(1))
+		assert.Equal(expected, state)
+	}
+}
+
+func TestStore_CABuiltinProvider_Snapshot_Restore(t *testing.T) {
+	assert := assert.New(t)
+	s := testStateStore(t)
+
+	// Create multiple state entries.
+	before := []*structs.CAConsulProviderState{
+		{
+			ID:          "bar",
+			PrivateKey:  "y",
+			RootCert:    "z",
+			SerialIndex: 2,
+		},
+		{
+			ID:          "foo",
+			PrivateKey:  "a",
+			RootCert:    "b",
+			SerialIndex: 1,
+		},
+	}
+
+	for i, state := range before {
+		ok, err := s.CASetProviderState(uint64(98+i), state)
+		assert.NoError(err)
+		assert.True(ok)
+	}
+
+	// Take a snapshot.
+	snap := s.Snapshot()
+	defer snap.Close()
+
+	// Modify the state store.
+	after := &structs.CAConsulProviderState{
+		ID:          "foo",
+		PrivateKey:  "c",
+		RootCert:    "d",
+		SerialIndex: 1,
+	}
+	ok, err := s.CASetProviderState(100, after)
+	assert.NoError(err)
+	assert.True(ok)
+
+	snapped, err := snap.CAProviderState()
+	assert.NoError(err)
+	assert.Equal(before, snapped)
+
+	// Restore onto a new state store.
+	s2 := testStateStore(t)
+	restore := s2.Restore()
+	for _, entry := range snapped {
+		assert.NoError(restore.CAProviderState(entry))
+	}
+	restore.Commit()
+
+	// Verify the restored values match those from before the snapshot.
+	for _, state := range before {
+		idx, res, err := s2.CAProviderState(state.ID)
+		assert.NoError(err)
+		assert.Equal(idx, uint64(99))
+		assert.Equal(state, res)
+	}
+}

@@ -319,25 +319,28 @@ func (s *Store) CARootSetCAS(idx, cidx uint64, rs []*structs.CARoot) (bool, erro
 	return true, nil
 }
 
-// CAProviderState is used to pull the built-in provider state from the snapshot.
-func (s *Snapshot) CAProviderState() (*structs.CAConsulProviderState, error) {
-	c, err := s.tx.First(caBuiltinProviderTableName, "id")
+// CAProviderState is used to pull the built-in provider states from the snapshot.
+func (s *Snapshot) CAProviderState() ([]*structs.CAConsulProviderState, error) {
+	ixns, err := s.tx.Get(caBuiltinProviderTableName, "id")
 	if err != nil {
 		return nil, err
 	}
 
-	state, ok := c.(*structs.CAConsulProviderState)
-	if !ok {
-		return nil, nil
+	var ret []*structs.CAConsulProviderState
+	for wrapped := ixns.Next(); wrapped != nil; wrapped = ixns.Next() {
+		ret = append(ret, wrapped.(*structs.CAConsulProviderState))
 	}
 
-	return state, nil
+	return ret, nil
 }
 
 // CAProviderState is used when restoring from a snapshot.
 func (s *Restore) CAProviderState(state *structs.CAConsulProviderState) error {
 	if err := s.tx.Insert(caBuiltinProviderTableName, state); err != nil {
 		return fmt.Errorf("failed restoring built-in CA state: %s", err)
+	}
+	if err := indexUpdateMaxTxn(s.tx, state.ModifyIndex, caBuiltinProviderTableName); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
 	}
 
 	return nil
@@ -363,27 +366,6 @@ func (s *Store) CAProviderState(id string) (uint64, *structs.CAConsulProviderSta
 	}
 
 	return idx, state, nil
-}
-
-// CAProviderStates is used to get the Consul CA provider state for the given ID.
-func (s *Store) CAProviderStates() (uint64, []*structs.CAConsulProviderState, error) {
-	tx := s.db.Txn(false)
-	defer tx.Abort()
-
-	// Get the index
-	idx := maxIndexTxn(tx, caBuiltinProviderTableName)
-
-	// Get all
-	iter, err := tx.Get(caBuiltinProviderTableName, "id")
-	if err != nil {
-		return 0, nil, fmt.Errorf("failed CA provider state lookup: %s", err)
-	}
-
-	var results []*structs.CAConsulProviderState
-	for v := iter.Next(); v != nil; v = iter.Next() {
-		results = append(results, v.(*structs.CAConsulProviderState))
-	}
-	return idx, results, nil
 }
 
 // CASetProviderState is used to set the current built-in CA provider state.
@@ -419,7 +401,8 @@ func (s *Store) CASetProviderState(idx uint64, state *structs.CAConsulProviderSt
 	return true, nil
 }
 
-// CADeleteProviderState is used to remove the Consul CA provider state for the given ID.
+// CADeleteProviderState is used to remove the built-in Consul CA provider
+// state for the given ID.
 func (s *Store) CADeleteProviderState(id string) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
