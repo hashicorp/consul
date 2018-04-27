@@ -341,7 +341,6 @@ func (c *ConsulCAProvider) incrementSerialIndex(providerState *structs.CAConsulP
 func generatePrivateKey() (string, error) {
 	var pk *ecdsa.PrivateKey
 
-	// If we have no key, then create a new one.
 	pk, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		return "", fmt.Errorf("error generating private key: %s", err)

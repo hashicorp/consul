@@ -91,6 +91,8 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	// looks like several depend on it.
 	config.RPCHoldTimeout = 5 * time.Second
 
+	config.ConnectEnabled = true
+
 	return dir, config
 }
 
