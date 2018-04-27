@@ -43,6 +43,25 @@ var services = []*msg.Service{
 	// Nameservers.
 	{Host: "10.0.0.2", Key: "a.ns.dns.skydns.test."},
 	{Host: "10.0.0.3", Key: "b.ns.dns.skydns.test."},
+	// Zone name as A record (basic, return all)
+	{Host: "10.0.0.2", Key: "x.skydns_zonea.test."},
+	{Host: "10.0.0.3", Key: "y.skydns_zonea.test."},
+	// Zone name as A (single entry).
+	{Host: "10.0.0.2", Key: "x.skydns_zoneb.test."},
+	{Host: "10.0.0.3", Key: "y.skydns_zoneb.test."},
+	{Host: "10.0.0.4", Key: "apex.dns.skydns_zoneb.test."},
+	// A zone record (rr multiple entries).
+	{Host: "10.0.0.2", Key: "x.skydns_zonec.test."},
+	{Host: "10.0.0.3", Key: "y.skydns_zonec.test."},
+	{Host: "10.0.0.4", Key: "a1.apex.dns.skydns_zonec.test."},
+	{Host: "10.0.0.5", Key: "a2.apex.dns.skydns_zonec.test."},
+	// AAAA zone record (rr multiple entries mixed with A).
+	{Host: "10.0.0.2", Key: "x.skydns_zoned.test."},
+	{Host: "10.0.0.3", Key: "y.skydns_zoned.test."},
+	{Host: "10.0.0.4", Key: "a1.apex.dns.skydns_zoned.test."},
+	{Host: "10.0.0.5", Key: "a2.apex.dns.skydns_zoned.test."},
+	{Host: "2003::8:1", Key: "a3.apex.dns.skydns_zoned.test."},
+	{Host: "2003::8:2", Key: "a4.apex.dns.skydns_zoned.test."},
 	// Reverse.
 	{Host: "reverse.example.com", Key: "1.0.0.10.in-addr.arpa."}, // 10.0.0.1
 }
@@ -214,6 +233,43 @@ var dnsTestCases = []test.Case{
 		Qname: "skydns_extra.test.", Qtype: dns.TypeSOA,
 		Answer: []dns.RR{test.SOA("skydns_extra.test. 300 IN SOA ns.dns.skydns_extra.test. hostmaster.skydns_extra.test. 1460498836 14400 3600 604800 60")},
 	},
+	// A Record Test for backward compatibility for zone records
+	{
+		Qname: "skydns_zonea.test.", Qtype: dns.TypeA,
+		Answer: []dns.RR{
+			test.A("skydns_zonea.test. 300 A 10.0.0.2"),
+			test.A("skydns_zonea.test. 300 A 10.0.0.3"),
+		},
+	},
+	// A Record Test for single A zone record
+	{
+		Qname: "skydns_zoneb.test.", Qtype: dns.TypeA,
+		Answer: []dns.RR{test.A("skydns_zoneb.test. 300 A 10.0.0.4")},
+	},
+	// A Record Test for multiple A zone records
+	{
+		Qname: "skydns_zonec.test.", Qtype: dns.TypeA,
+		Answer: []dns.RR{
+			test.A("skydns_zonec.test. 300 A 10.0.0.4"),
+			test.A("skydns_zonec.test. 300 A 10.0.0.5"),
+		},
+	},
+	// A Record Test for multiple mixed A and AAAA records
+	{
+		Qname: "skydns_zoned.test.", Qtype: dns.TypeA,
+		Answer: []dns.RR{
+			test.A("skydns_zoned.test. 300 A 10.0.0.4"),
+			test.A("skydns_zoned.test. 300 A 10.0.0.5"),
+		},
+	},
+	// AAAA Record Test for multiple mixed A and AAAA records
+	{
+		Qname: "skydns_zoned.test.", Qtype: dns.TypeAAAA,
+		Answer: []dns.RR{
+			test.AAAA("skydns_zoned.test. 300 AAAA 2003::8:1"),
+			test.AAAA("skydns_zoned.test. 300 AAAA 2003::8:2"),
+		},
+	},
 	// Reverse lookup
 	{
 		Qname: "1.0.0.10.in-addr.arpa.", Qtype: dns.TypePTR,
@@ -233,7 +289,7 @@ func newEtcdPlugin() *Etcd {
 		Upstream:   upstream.Upstream{Forward: &p},
 		PathPrefix: "skydns",
 		Ctx:        context.Background(),
-		Zones:      []string{"skydns.test.", "skydns_extra.test.", "in-addr.arpa."},
+		Zones:      []string{"skydns.test.", "skydns_extra.test.", "skydns_zonea.test.", "skydns_zoneb.test.", "skydns_zonec.test.", "skydns_zoned.test.", "in-addr.arpa."},
 		Client:     client,
 	}
 }

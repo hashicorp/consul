@@ -14,7 +14,7 @@ import (
 
 // A returns A records from Backend or an error.
 func A(b ServiceBackend, zone string, state request.Request, previousRecords []dns.RR, opt Options) (records []dns.RR, err error) {
-	services, err := b.Services(state, false, opt)
+	services, err := checkZoneForRecord(b, zone, state, opt)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func A(b ServiceBackend, zone string, state request.Request, previousRecords []d
 
 // AAAA returns AAAA records from Backend or an error.
 func AAAA(b ServiceBackend, zone string, state request.Request, previousRecords []dns.RR, opt Options) (records []dns.RR, err error) {
-	services, err := b.Services(state, false, opt)
+	services, err := checkZoneForRecord(b, zone, state, opt)
 	if err != nil {
 		return nil, err
 	}
@@ -401,6 +401,39 @@ func newAddress(s msg.Service, name string, ip net.IP, what uint16) dns.RR {
 	}
 	// Should always be dns.TypeAAAA
 	return &dns.AAAA{Hdr: hdr, AAAA: ip}
+}
+
+func checkZoneForRecord(b ServiceBackend, zone string, state request.Request, opt Options) ([]msg.Service, error) {
+	var services []msg.Service
+	var err error
+	// if the zone name itself is queried we fake the query to search for a special entry
+	// this is equivalent to the NS search code
+	if state.Name() == zone {
+		old := state.QName()
+		state.Clear()
+		state.Req.Question[0].Name = dnsutil.Join([]string{"apex.dns", zone})
+
+		services, err = b.Services(state, false, opt)
+		if err != nil {
+			// it might be possible, that "apex.dns.zone" does not exists
+			// we set back the query and try it once again to restore the backward compatibility behavior
+			state.Req.Question[0].Name = old
+			services, err = b.Services(state, false, opt)
+			// if it still errors, we return the error
+			if err != nil {
+				return services, err
+			}
+		}
+
+		state.Req.Question[0].Name = old
+	} else {
+		services, err = b.Services(state, false, opt)
+		if err != nil {
+			return services, err
+		}
+	}
+
+	return services, err
 }
 
 const hostmaster = "hostmaster"

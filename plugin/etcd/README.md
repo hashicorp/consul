@@ -128,6 +128,48 @@ Querying with dig:
 reverse.skydns.local.
 ~~~
 
+### Zone name as A record
+
+The zone name itself can be used A record. This behavior can be achieved by writing special entries to the ETCD path of your zone. If your zone is named `skydns.local` for example, you can create an `A` record for this zone as follows:
+
+~~~
+% curl -XPUT http://127.0.0.1:2379/v2/keys/skydns/local/skydns/dns/apex -d value='{"host":"1.1.1.1","ttl":"60"}'
+~~~
+
+If you query the zone name itself, you will receive the created `A` record:
+
+~~~ sh
+% dig +short skydns.local @localhost
+1.1.1.1
+~~~
+
+If you would like to use DNS RR for the zone name, you can set the following:
+~~~
+% curl -XPUT http://127.0.0.1:2379/v2/keys/skydns/local/skydns/dns/apex/x1 -d value='{"host":"1.1.1.1","ttl":"60"}'
+% curl -XPUT http://127.0.0.1:2379/v2/keys/skydns/local/skydns/dns/apex/x2 -d value='{"host":"1.1.1.2","ttl":"60"}'
+~~~
+
+If you query the zone name now, you will get the following response:
+
+~~~ sh
+dig +short skydns.local @localhost
+1.1.1.1
+1.1.1.2
+~~~
+
+If you would like to use `AAAA` records for the zone name too, you can set the following:
+~~~
+% curl -XPUT http://127.0.0.1:2379/v2/keys/skydns/local/skydns/dns/apex/x3 -d value='{"host":"2003::8:1","ttl":"60"}'
+% curl -XPUT http://127.0.0.1:2379/v2/keys/skydns/local/skydns/dns/apex/x4 -d value='{"host":"2003::8:2","ttl":"60"}'
+~~~
+
+If you query the zone name now for `AAAA` now, you will get the following response:
+~~~ sh
+dig +short skydns.local AAAA @localhost
+2003::8:1
+2003::8:2
+~~~
+
 ## Bugs
 
 Only the etcdv2 protocol is supported.
