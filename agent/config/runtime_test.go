@@ -3415,6 +3415,7 @@ func TestFullConfig(t *testing.T) {
 		},
 		CheckUpdateInterval:     16507 * time.Second,
 		ClientAddrs:             []*net.IPAddr{ipAddr("93.83.18.19")},
+		ConnectEnabled:          true,
 		ConnectProxyBindMinPort: 2000,
 		ConnectProxyBindMaxPort: 3000,
 		ConnectCAProvider:       "b8j4ynx9",
@@ -4092,6 +4093,8 @@ func TestSanitize(t *testing.T) {
         }
     ],
     "ClientAddrs": [],
+    "ConnectCAConfig": {},
+    "ConnectCAProvider": "",
     "ConnectEnabled": false,
     "ConnectProxyBindMaxPort": 0,
     "ConnectProxyBindMinPort": 0,
