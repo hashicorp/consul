@@ -6,7 +6,7 @@ export default Controller.extend(WithFiltering, {
   init: function() {
     this._super(...arguments);
     this.tabs = ['Health Checks', 'Services', 'Round Trip Time', 'Lock Sessions'];
-    this.selectedTab = this.tabs[0];
+    this.selectedTab = 'health-checks';
   },
   filter: function(item, { s = '', status = '' }) {
     return (
