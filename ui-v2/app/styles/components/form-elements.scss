@@ -9,7 +9,9 @@
 
 %form-element,
 %radio-group {
-  @extend .control, .field;
+  // @extend .control;
+  // @extend .field;
+  margin-bottom: 0.75rem;
 }
 %form-element > span {
   @extend .label;

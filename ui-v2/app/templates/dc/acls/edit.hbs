@@ -6,7 +6,11 @@
     {{/block-slot}}
     {{#block-slot 'header'}}
         <h1>
+{{#if item.Name }}
             {{item.Name}}
+{{else}}
+            &nbsp;
+{{/if}}
         </h1>
     {{/block-slot}}
     {{#block-slot 'actions'}}
