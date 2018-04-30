@@ -2,32 +2,55 @@
 .healthcheck-status {
   @extend %healthcheck-status;
 }
-
-%healthcheck-status {
-  border: 1px solid $border-blue;
-  border-radius: $radius;
-  padding: 24px;
-  padding-left: 60px;
-  margin-bottom: 24px;
-  position: relative;
+%healthcheck-status dt {
+  font-weight: bold;
+}
+%healthcheck-status dd:first-of-type {
+  color: $text-note;
+}
+%healthcheck-status pre {
+  background-color: $black;
+  color: $white;
+}
+%healthcheck-status::before {
+  background-size: 70%;
+  width: 25px !important;
+  height: 25px !important;
+  left: 20px;
+  top: 26px !important;
+  margin-top: 0 !important;
 }
 %healthcheck-status.passing {
   @extend %with-passing;
 }
 %healthcheck-status.passing::before {
   background-color: $green !important;
-  background-size: 70%;
-  width: 25px !important;
-  height: 25px !important;
-  left: 20px;
+  border-color: $border-blue;
 }
-%healthcheck-status pre {
-  background-color: $black;
-  color: $white;
+%healthcheck-status.critical {
+  @extend %with-critical;
+  border-color: $red;
+  background-color: rgba($red, 0.1);
 }
-%healthcheck-status dt {
-  margin-bottom: 0.5em;
+%healthcheck-status.critical::before {
+  background-color: $red !important;
+}
+%healthcheck-status.warning {
+  @extend %with-warning;
+  border-color: $orange;
+  background-color: rgba($orange, 0.1);
+}
+%healthcheck-status.warning::before {
+  background-size: 100%;
+}
+%healthcheck-status {
+  border: 1px solid;
+  border-radius: $radius;
+  padding: 24px;
+  padding-left: 60px;
+  margin-bottom: 24px;
+  position: relative;
 }
 %healthcheck-status dd:first-of-type {
-  display: none;
+  margin-bottom: 0.5em;
 }

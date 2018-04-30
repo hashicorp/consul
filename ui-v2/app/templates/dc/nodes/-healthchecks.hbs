@@ -1,6 +1,6 @@
 <ul>
 {{#each model.Checks as |check| }}
-    {{healthcheck-status tagName='li' name=check.Name class=check.Status status=check.Status output=check.Output}}
+    {{healthcheck-status tagName='li' name=check.Name class=check.Status status=check.Status notes=check.Notes output=check.Output}}
 {{/each}}
 </ul>
 

@@ -109,10 +109,6 @@
   @extend %pseudo-icon;
   background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="8" height="8" xmlns="http://www.w3.org/2000/svg"><path d="M4 5.064L1.064 8 0 6.936 2.936 4 0 1.064 1.064 0 4 2.936 6.936 0 8 1.064 5.064 4 8 6.936 6.936 8 4 5.064z" fill="%23FFF"/></svg>');
 }
-%with-i {
-  @extend %pseudo-icon;
-  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="2" height="9" xmlns="http://www.w3.org/2000/svg"><g fill="%23FFF"><path d="M1.75 8.978H.25V6.98h1.5zM1.75 5.495H.25V.5h1.5z"/></g></svg>');
-}
 %with-warning-icon-orange {
   @extend %pseudo-icon;
   background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="14" height="14" xmlns="http://www.w3.org/2000/svg"><path d="M13.645 10.092c.24.409.365.88.365 1.37 0 1.392-1.027 2.527-2.294 2.538H2.322c-.824 0-1.592-.487-2.004-1.27a2.761 2.761 0 0 1 0-2.538l4.686-8.904C5.416.505 6.184.018 7.008.018c.824 0 1.592.487 2.004 1.27l4.633 8.804zm-5.989 1.264V9.607H6.344v1.749h1.312zm0-3.048v-4.37H6.344v4.37h1.312z" fill="%23fa8f37"/></svg>');
