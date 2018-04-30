@@ -231,15 +231,15 @@ func BenchmarkCacheResponse(b *testing.B) {
 		reqs[i].SetQuestion(q+".example.org.", dns.TypeA)
 	}
 
-	b.RunParallel(func(pb *testing.PB) {
-		i := 0
-		for pb.Next() {
-			req := reqs[i]
-			c.ServeDNS(ctx, &test.ResponseWriter{}, req)
-			i++
-			i = i % 5
-		}
-	})
+	b.StartTimer()
+
+	j := 0
+	for i := 0; i < b.N; i++ {
+		req := reqs[j]
+		c.ServeDNS(ctx, &test.ResponseWriter{}, req)
+		j++
+		j = j % 5
+	}
 }
 
 func BackendHandler() plugin.Handler {
