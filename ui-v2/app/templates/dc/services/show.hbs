@@ -6,7 +6,7 @@
     {{/block-slot}}
     {{#block-slot 'header'}}
         <h1>
-            {{ model.0.Service.Service }}
+            {{ item.Service.Service }}
         </h1>
     {{/block-slot}}
     {{#block-slot 'toolbar'}}
@@ -15,14 +15,14 @@
 {{/if}}
     {{/block-slot}}
     {{#block-slot 'content'}}
+{{#if (gt item.Service.Tags.length 0)}}
         <dl>
             <dt>Tags</dt>
             <dd>
-                <ul>
-                    <li>Tags in here</li>
-                </ul>
+                {{join ', ' item.Service.Tags}}
             </dd>
         </dl>
+{{/if}}
 {{#if (gt unhealthy.length 0) }}
         <div class="unhealthy">
             <h2>Unhealthy Nodes</h2>

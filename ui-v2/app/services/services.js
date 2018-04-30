@@ -22,7 +22,11 @@ export default Service.extend({
         dc: dc,
       })
       .then(function(item) {
-        return get(item, 'Nodes');
+        const nodes = get(item, 'Nodes');
+        const service = get(nodes, 'firstObject');
+        set(service, 'Nodes', nodes);
+        return service;
+        // return get(item, 'Nodes');
       });
   },
 });
