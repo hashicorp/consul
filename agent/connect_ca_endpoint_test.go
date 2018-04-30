@@ -14,7 +14,7 @@ func TestConnectCARoots_empty(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t.Name(), "connect { enabled = false }")
 	defer a.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/v1/connect/ca/roots", nil)
@@ -34,13 +34,9 @@ func TestConnectCARoots_list(t *testing.T) {
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
-	// Set some CAs
-	var reply interface{}
-	ca1 := connect.TestCA(t, nil)
-	ca1.Active = false
-	ca2 := connect.TestCA(t, nil)
-	assert.Nil(a.RPC("Test.ConnectCASetRoots",
-		[]*structs.CARoot{ca1, ca2}, &reply))
+	// Set some CAs. Note that NewTestAgent already bootstraps one CA so this just
+	// adds a second and makes it active.
+	ca2 := connect.TestCAConfigSet(t, a, nil)
 
 	// List
 	req, _ := http.NewRequest("GET", "/v1/connect/ca/roots", nil)

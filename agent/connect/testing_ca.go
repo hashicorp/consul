@@ -39,7 +39,6 @@ var testCACounter uint64
 // SigningCert.
 func TestCA(t testing.T, xc *structs.CARoot) *structs.CARoot {
 	var result structs.CARoot
-	result.ID = testUUID(t)
 	result.Active = true
 	result.Name = fmt.Sprintf("Test CA %d", atomic.AddUint64(&testCACounter, 1))
 
@@ -86,6 +85,10 @@ func TestCA(t testing.T, xc *structs.CARoot) *structs.CARoot {
 		t.Fatalf("error encoding private key: %s", err)
 	}
 	result.RootCert = buf.String()
+	result.ID, err = CalculateCertFingerprint(result.RootCert)
+	if err != nil {
+		t.Fatalf("error generating CA ID fingerprint: %s", err)
+	}
 
 	// If there is a prior CA to cross-sign with, then we need to create that
 	// and set it as the signing cert.
@@ -285,4 +288,48 @@ func testUUID(t testing.T) string {
 	}
 
 	return ret
+}
+
+// TestAgentRPC is an interface that an RPC client must implement. This is a
+// helper interface that is implemented by the agent delegate so that test
+// helpers can make RPCs without introducing an import cycle on `agent`.
+type TestAgentRPC interface {
+	RPC(method string, args interface{}, reply interface{}) error
+}
+
+// TestCAConfigSet sets a CARoot returned by TestCA into the TestAgent state. It
+// requires that TestAgent had connect enabled in it's config. If ca is nil, a
+// new CA is created.
+//
+// It returns the CARoot passed or created.
+//
+// Note that we have to use an interface for the TestAgent.RPC method since we
+// can't introduce an import cycle by importing `agent.TestAgent` here directly.
+// It also means this will work in a few other places we mock that method.
+func TestCAConfigSet(t testing.T, a TestAgentRPC,
+	ca *structs.CARoot) *structs.CARoot {
+	t.Helper()
+
+	if ca == nil {
+		ca = TestCA(t, nil)
+	}
+	newConfig := &structs.CAConfiguration{
+		Provider: "consul",
+		Config: map[string]interface{}{
+			"PrivateKey":     ca.SigningKey,
+			"RootCert":       ca.RootCert,
+			"RotationPeriod": 180 * 24 * time.Hour,
+		},
+	}
+	args := &structs.CARequest{
+		Datacenter: "dc1",
+		Config:     newConfig,
+	}
+	var reply interface{}
+
+	err := a.RPC("ConnectCA.ConfigurationSet", args, &reply)
+	if err != nil {
+		t.Fatalf("failed to set test CA config: %s", err)
+	}
+	return ca
 }

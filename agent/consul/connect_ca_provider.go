@@ -250,7 +250,7 @@ func (c *ConsulCAProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	// Create the certificate, PEM encode it and return that value.
 	var buf bytes.Buffer
 	bs, err := x509.CreateCertificate(
-		rand.Reader, &template, caCert, signer.Public(), signer)
+		rand.Reader, &template, caCert, csr.PublicKey, signer)
 	if err != nil {
 		return "", fmt.Errorf("error generating certificate: %s", err)
 	}
@@ -259,7 +259,10 @@ func (c *ConsulCAProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 		return "", fmt.Errorf("error encoding private key: %s", err)
 	}
 
-	c.incrementSerialIndex(providerState)
+	err = c.incrementSerialIndex(providerState)
+	if err != nil {
+		return "", err
+	}
 
 	// Set the response
 	return buf.String(), nil
@@ -313,15 +316,19 @@ func (c *ConsulCAProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 		return "", fmt.Errorf("error encoding private key: %s", err)
 	}
 
-	c.incrementSerialIndex(providerState)
+	err = c.incrementSerialIndex(providerState)
+	if err != nil {
+		return "", err
+	}
 
 	return buf.String(), nil
 }
 
-// incrementSerialIndex increments the cert serial number index in the provider state
+// incrementSerialIndex increments the cert serial number index in the provider
+// state.
 func (c *ConsulCAProvider) incrementSerialIndex(providerState *structs.CAConsulProviderState) error {
 	newState := *providerState
-	newState.SerialIndex += 1
+	newState.SerialIndex++
 	args := &structs.CARequest{
 		Op:            structs.CAOpSetProviderState,
 		ProviderState: &newState,

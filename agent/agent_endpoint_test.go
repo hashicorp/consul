@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"io"
@@ -2105,7 +2106,7 @@ func TestAgentConnectCARoots_empty(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t.Name(), "connect { enabled = false }")
 	defer a.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/roots", nil)
@@ -2128,13 +2129,9 @@ func TestAgentConnectCARoots_list(t *testing.T) {
 	// Grab the initial cache hit count
 	cacheHits := a.cache.Hits()
 
-	// Set some CAs
-	var reply interface{}
-	ca1 := connect.TestCA(t, nil)
-	ca1.Active = false
-	ca2 := connect.TestCA(t, nil)
-	require.Nil(a.RPC("Test.ConnectCASetRoots",
-		[]*structs.CARoot{ca1, ca2}, &reply))
+	// Set some CAs. Note that NewTestAgent already bootstraps one CA so this just
+	// adds a second and makes it active.
+	ca2 := connect.TestCAConfigSet(t, a, nil)
 
 	// List
 	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/roots", nil)
@@ -2152,7 +2149,7 @@ func TestAgentConnectCARoots_list(t *testing.T) {
 		require.Equal("", r.SigningKey)
 	}
 
-	// That should've been a cache miss, so not hit change
+	// That should've been a cache miss, so no hit change
 	require.Equal(cacheHits, a.cache.Hits())
 
 	// Test caching
@@ -2169,24 +2166,21 @@ func TestAgentConnectCARoots_list(t *testing.T) {
 
 	// Test that caching is updated in the background
 	{
-		// Set some new CAs
-		var reply interface{}
-		ca := connect.TestCA(t, nil)
-		require.Nil(a.RPC("Test.ConnectCASetRoots",
-			[]*structs.CARoot{ca}, &reply))
+		// Set a new CA
+		ca := connect.TestCAConfigSet(t, a, nil)
 
 		retry.Run(t, func(r *retry.R) {
 			// List it again
 			obj, err := a.srv.AgentConnectCARoots(httptest.NewRecorder(), req)
-			if err != nil {
-				r.Fatal(err)
-			}
+			r.Check(err)
 
 			value := obj.(structs.IndexedCARoots)
 			if ca.ID != value.ActiveRootID {
 				r.Fatalf("%s != %s", ca.ID, value.ActiveRootID)
 			}
-			if len(value.Roots) != 1 {
+			// There are now 3 CAs because we didn't complete rotation on the original
+			// 2
+			if len(value.Roots) != 3 {
 				r.Fatalf("bad len: %d", len(value.Roots))
 			}
 		})
@@ -2205,13 +2199,16 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
+	require := require.New(t)
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
-	// Set CAs
-	var reply interface{}
-	ca1 := connect.TestCA(t, nil)
-	assert.Nil(a.RPC("Test.ConnectCASetRoots", []*structs.CARoot{ca1}, &reply))
+	// CA already setup by default by NewTestAgent but force a new one so we can
+	// verify it was signed easily.
+	ca1 := connect.TestCAConfigSet(t, a, nil)
+
+	// Grab the initial cache hit count
+	cacheHits := a.cache.Hits()
 
 	{
 		// Register a local service
@@ -2227,7 +2224,7 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 		req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
 		resp := httptest.NewRecorder()
 		_, err := a.srv.AgentRegisterService(resp, req)
-		assert.Nil(err)
+		require.NoError(err)
 		if !assert.Equal(200, resp.Code) {
 			t.Log("Body: ", resp.Body.String())
 		}
@@ -2237,23 +2234,86 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/foo", nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.AgentConnectCALeafCert(resp, req)
-	assert.Nil(err)
+	require.NoError(err)
 
 	// Get the issued cert
 	issued, ok := obj.(*structs.IssuedCert)
 	assert.True(ok)
 
 	// Verify that the cert is signed by the CA
+	requireLeafValidUnderCA(t, issued, ca1)
+
+	// Verify blocking index
+	assert.True(issued.ModifyIndex > 0)
+	assert.Equal(fmt.Sprintf("%d", issued.ModifyIndex),
+		resp.Header().Get("X-Consul-Index"))
+
+	// That should've been a cache miss, so no hit change
+	require.Equal(cacheHits, a.cache.Hits())
+
+	// Test caching
+	{
+		// Fetch it again
+		obj2, err := a.srv.AgentConnectCALeafCert(httptest.NewRecorder(), req)
+		require.NoError(err)
+		require.Equal(obj, obj2)
+
+		// Should cache hit this time and not make request
+		require.Equal(cacheHits+1, a.cache.Hits())
+		cacheHits++
+	}
+
+	// Test that caching is updated in the background
+	{
+		// Set a new CA
+		ca := connect.TestCAConfigSet(t, a, nil)
+
+		retry.Run(t, func(r *retry.R) {
+			// Try and sign again (note no index/wait arg since cache should update in
+			// background even if we aren't actively blocking)
+			obj, err := a.srv.AgentConnectCALeafCert(httptest.NewRecorder(), req)
+			r.Check(err)
+
+			issued2 := obj.(*structs.IssuedCert)
+			if issued.CertPEM == issued2.CertPEM {
+				r.Fatalf("leaf has not updated")
+			}
+
+			// Got a new leaf. Sanity check it's a whole new key as well as differnt
+			// cert.
+			if issued.PrivateKeyPEM == issued2.PrivateKeyPEM {
+				r.Fatalf("new leaf has same private key as before")
+			}
+
+			// Verify that the cert is signed by the new CA
+			requireLeafValidUnderCA(t, issued2, ca)
+		})
+
+		// Should be a cache hit! The data should've updated in the cache
+		// in the background so this should've been fetched directly from
+		// the cache.
+		if v := a.cache.Hits(); v < cacheHits+1 {
+			t.Fatalf("expected at least one more cache hit, still at %d", v)
+		}
+		cacheHits = a.cache.Hits()
+	}
+}
+
+func requireLeafValidUnderCA(t *testing.T, issued *structs.IssuedCert,
+	ca *structs.CARoot) {
+
 	roots := x509.NewCertPool()
-	assert.True(roots.AppendCertsFromPEM([]byte(ca1.RootCert)))
+	require.True(t, roots.AppendCertsFromPEM([]byte(ca.RootCert)))
 	leaf, err := connect.ParseCert(issued.CertPEM)
-	assert.Nil(err)
+	require.NoError(t, err)
 	_, err = leaf.Verify(x509.VerifyOptions{
 		Roots: roots,
 	})
-	assert.Nil(err)
+	require.NoError(t, err)
 
-	// TODO(mitchellh): verify the private key matches the cert
+	// Verify the private key matches. tls.LoadX509Keypair does this for us!
+	_, err = tls.X509KeyPair([]byte(issued.CertPEM), []byte(issued.PrivateKeyPEM))
+	require.NoError(t, err)
 }
 
 func TestAgentConnectProxy(t *testing.T) {

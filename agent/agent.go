@@ -2679,6 +2679,16 @@ func (a *Agent) registerCache() {
 		RefreshTimeout: 10 * time.Minute,
 	})
 
+	a.cache.RegisterType(cachetype.ConnectCALeafName, &cachetype.ConnectCALeaf{
+		RPC:   a.delegate,
+		Cache: a.cache,
+	}, &cache.RegisterOptions{
+		// Maintain a blocking query, retry dropped connections quickly
+		Refresh:        true,
+		RefreshTimer:   0,
+		RefreshTimeout: 10 * time.Minute,
+	})
+
 	a.cache.RegisterType(cachetype.IntentionMatchName, &cachetype.IntentionMatch{
 		RPC: a.delegate,
 	}, &cache.RegisterOptions{

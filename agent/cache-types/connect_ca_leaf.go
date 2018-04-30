@@ -48,7 +48,7 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 	// is so that the goroutine doesn't block forever if we return for other
 	// reasons.
 	newRootCACh := make(chan error, 1)
-	go c.waitNewRootCA(newRootCACh, opts.Timeout)
+	go c.waitNewRootCA(reqReal.Datacenter, newRootCACh, opts.Timeout)
 
 	// Get our prior cert (if we had one) and use that to determine our
 	// expiration time. If no cert exists, we expire immediately since we
@@ -110,7 +110,10 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 
 	// Request signing
 	var reply structs.IssuedCert
-	args := structs.CASignRequest{CSR: csr}
+	args := structs.CASignRequest{
+		Datacenter: reqReal.Datacenter,
+		CSR:        csr,
+	}
 	if err := c.RPC.RPC("ConnectCA.Sign", &args, &reply); err != nil {
 		return result, err
 	}
@@ -139,11 +142,12 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 
 // waitNewRootCA blocks until a new root CA is available or the timeout is
 // reached (on timeout ErrTimeout is returned on the channel).
-func (c *ConnectCALeaf) waitNewRootCA(ch chan<- error, timeout time.Duration) {
+func (c *ConnectCALeaf) waitNewRootCA(datacenter string, ch chan<- error,
+	timeout time.Duration) {
 	// Fetch some new roots. This will block until our MinQueryIndex is
 	// matched or the timeout is reached.
 	rawRoots, err := c.Cache.Get(ConnectCARootName, &structs.DCSpecificRequest{
-		Datacenter: "",
+		Datacenter: datacenter,
 		QueryOptions: structs.QueryOptions{
 			MinQueryIndex: atomic.LoadUint64(&c.caIndex),
 			MaxQueryTime:  timeout,
@@ -186,7 +190,7 @@ func (c *ConnectCALeaf) waitNewRootCA(ch chan<- error, timeout time.Duration) {
 }
 
 // ConnectCALeafRequest is the cache.Request implementation for the
-// COnnectCALeaf cache type. This is implemented here and not in structs
+// ConnectCALeaf cache type. This is implemented here and not in structs
 // since this is only used for cache-related requests and not forwarded
 // directly to any Consul servers.
 type ConnectCALeafRequest struct {

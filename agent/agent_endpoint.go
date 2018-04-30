@@ -28,9 +28,7 @@ import (
 	"github.com/hashicorp/serf/serf"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-
 	// NOTE(mitcehllh): This is temporary while certs are stubbed out.
-	"github.com/mitchellh/go-testing-interface"
 )
 
 type Self struct {
@@ -918,24 +916,39 @@ func (s *HTTPServer) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.
 		return nil, fmt.Errorf("unknown service ID: %s", id)
 	}
 
-	// Create a CSR.
-	// TODO(mitchellh): This is obviously not production ready!
-	csr, pk := connect.TestCSR(&testing.RuntimeT{}, &connect.SpiffeIDService{
-		Host:       "1234.consul",
-		Namespace:  "default",
-		Datacenter: s.agent.config.Datacenter,
-		Service:    service.Service,
-	})
+	args := cachetype.ConnectCALeafRequest{
+		Service: service.Service, // Need name not ID
+	}
+	var qOpts structs.QueryOptions
+	// Store DC in the ConnectCALeafRequest but query opts separately
+	if done := s.parse(resp, req, &args.Datacenter, &qOpts); done {
+		return nil, nil
+	}
+	args.MinQueryIndex = qOpts.MinQueryIndex
 
-	// Request signing
-	var reply structs.IssuedCert
-	args := structs.CASignRequest{CSR: csr}
-	if err := s.agent.RPC("ConnectCA.Sign", &args, &reply); err != nil {
+	// Validate token
+	// TODO(banks): support correct proxy token checking too
+	rule, err := s.agent.resolveToken(qOpts.Token)
+	if err != nil {
 		return nil, err
 	}
-	reply.PrivateKeyPEM = pk
+	if rule != nil && !rule.ServiceWrite(service.Service, nil) {
+		return nil, acl.ErrPermissionDenied
+	}
 
-	return &reply, nil
+	raw, err := s.agent.cache.Get(cachetype.ConnectCALeafName, &args)
+	if err != nil {
+		return nil, err
+	}
+
+	reply, ok := raw.(*structs.IssuedCert)
+	if !ok {
+		// This should never happen, but we want to protect against panics
+		return nil, fmt.Errorf("internal error: response type not correct")
+	}
+	setIndex(resp, reply.ModifyIndex)
+
+	return reply, nil
 }
 
 // GET /v1/agent/connect/proxy/:proxy_service_id

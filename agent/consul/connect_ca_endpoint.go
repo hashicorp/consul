@@ -272,14 +272,6 @@ func (s *ConnectCA) Sign(
 		return err
 	}
 
-	provider := s.srv.getCAProvider()
-
-	// todo(kyhavlov): more validation on the CSR before signing
-	pem, err := provider.Sign(csr)
-	if err != nil {
-		return err
-	}
-
 	// Parse the SPIFFE ID
 	spiffeId, err := connect.ParseCertURI(csr.URIs[0])
 	if err != nil {
@@ -289,6 +281,27 @@ func (s *ConnectCA) Sign(
 	if !ok {
 		return fmt.Errorf("SPIFFE ID in CSR must be a service ID")
 	}
+
+	provider := s.srv.getCAProvider()
+
+	// todo(kyhavlov): more validation on the CSR before signing
+	pem, err := provider.Sign(csr)
+	if err != nil {
+		return err
+	}
+
+	// TODO(banks): when we implement IssuedCerts table we can use the insert to
+	// that as the raft index to return in response. Right now we can rely on only
+	// the built-in provider being supported and the implementation detail that we
+	// have to write a SerialIndex update to the provider config table for every
+	// cert issued so in all cases this index will be higher than any previous
+	// sign response. This has to happen after the provider.Sign call to observe
+	// the index update.
+	modIdx, _, err := s.srv.fsm.State().CAConfig()
+	if err != nil {
+		return err
+	}
+
 	cert, err := connect.ParseCert(pem)
 	if err != nil {
 		return err
@@ -302,6 +315,10 @@ func (s *ConnectCA) Sign(
 		ServiceURI:   cert.URIs[0].String(),
 		ValidAfter:   cert.NotBefore,
 		ValidBefore:  cert.NotAfter,
+		RaftIndex: structs.RaftIndex{
+			ModifyIndex: modIdx,
+			CreateIndex: modIdx,
+		},
 	}
 
 	return nil
