@@ -14,17 +14,5 @@
   color: $text-note;
 }
 %footer > a:first-child {
-  position: relative;
-}
-%footer > a:first-child::before {
-  // temp square
-  display: block;
-  content: '';
-  width: 25px;
-  height: 25px;
-  background-color: $text-note;
-  position: absolute;
-  top: 50%;
-  margin-top: -13px;
-  left: -30px;
+  @extend %with-hashicorp;
 }
