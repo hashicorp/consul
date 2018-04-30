@@ -1204,6 +1204,7 @@ func TestAgent_RegisterService(t *testing.T) {
 
 	args := &structs.ServiceDefinition{
 		Name: "test",
+		Meta: map[string]string{"hello": "world"},
 		Tags: []string{"master"},
 		Port: 8000,
 		Check: structs.CheckType{
@@ -1232,6 +1233,9 @@ func TestAgent_RegisterService(t *testing.T) {
 	if _, ok := a.State.Services()["test"]; !ok {
 		t.Fatalf("missing test service")
 	}
+	if val := a.State.Service("test").Meta["hello"]; val != "world" {
+		t.Fatalf("Missing meta: %v", a.State.Service("test").Meta)
+	}
 
 	// Ensure we have a check mapping
 	checks := a.State.Checks()
@@ -1254,7 +1258,7 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
-	json := `{"name":"test", "port":8000, "enable_tag_override": true}`
+	json := `{"name":"test", "port":8000, "enable_tag_override": true, "meta": {"some": "meta"}}`
 	req, _ := http.NewRequest("PUT", "/v1/agent/service/register", strings.NewReader(json))
 
 	obj, err := a.srv.AgentRegisterService(nil, req)
@@ -1264,10 +1268,10 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 	if obj != nil {
 		t.Fatalf("bad: %v", obj)
 	}
-
 	svc := &structs.NodeService{
 		ID:                "test",
 		Service:           "test",
+		Meta:              map[string]string{"some": "meta"},
 		Port:              8000,
 		EnableTagOverride: true,
 	}

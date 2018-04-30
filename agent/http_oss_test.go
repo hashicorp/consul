@@ -60,6 +60,7 @@ func TestHTTPAPI_MethodNotAllowed_OSS(t *testing.T) {
 			if err != nil {
 				t.Fatal("client.Do failed: ", err)
 			}
+			defer resp.Body.Close()
 
 			allowed := method == "OPTIONS"
 			for _, allowedMethod := range allowedMethods {

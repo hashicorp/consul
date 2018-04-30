@@ -717,6 +717,33 @@ func syncExtra(index map[string]dns.RR, resp *dns.Msg) {
 	resp.Extra = extra
 }
 
+// dnsBinaryTruncate find the optimal number of records using a fast binary search and return
+// it in order to return a DNS answer lower than maxSize parameter.
+func dnsBinaryTruncate(resp *dns.Msg, maxSize int, index map[string]dns.RR, hasExtra bool) int {
+	originalAnswser := resp.Answer
+	startIndex := 0
+	endIndex := len(resp.Answer) + 1
+	for endIndex-startIndex > 1 {
+		median := startIndex + (endIndex-startIndex)/2
+
+		resp.Answer = originalAnswser[:median]
+		if hasExtra {
+			syncExtra(index, resp)
+		}
+		aLen := resp.Len()
+		if aLen <= maxSize {
+			if maxSize-aLen < 10 {
+				// We are good, increasing will go out of bounds
+				return median
+			}
+			startIndex = median
+		} else {
+			endIndex = median
+		}
+	}
+	return startIndex
+}
+
 // trimTCPResponse limit the MaximumSize of messages to 64k as it is the limit
 // of DNS responses
 func (d *DNSServer) trimTCPResponse(req, resp *dns.Msg) (trimmed bool) {
@@ -752,7 +779,13 @@ func (d *DNSServer) trimTCPResponse(req, resp *dns.Msg) (trimmed bool) {
 	// This enforces the given limit on 64k, the max limit for DNS messages
 	for len(resp.Answer) > 0 && resp.Len() > maxSize {
 		truncated = true
-		resp.Answer = resp.Answer[:len(resp.Answer)-1]
+		// More than 100 bytes, find with a binary search
+		if resp.Len()-maxSize > 100 {
+			bestIndex := dnsBinaryTruncate(resp, maxSize, index, hasExtra)
+			resp.Answer = resp.Answer[:bestIndex]
+		} else {
+			resp.Answer = resp.Answer[:len(resp.Answer)-1]
+		}
 		if hasExtra {
 			syncExtra(index, resp)
 		}
@@ -809,7 +842,13 @@ func trimUDPResponse(req, resp *dns.Msg, udpAnswerLimit int) (trimmed bool) {
 	compress := resp.Compress
 	resp.Compress = false
 	for len(resp.Answer) > 0 && resp.Len() > maxSize {
-		resp.Answer = resp.Answer[:len(resp.Answer)-1]
+		// More than 100 bytes, find with a binary search
+		if resp.Len()-maxSize > 100 {
+			bestIndex := dnsBinaryTruncate(resp, maxSize, index, hasExtra)
+			resp.Answer = resp.Answer[:bestIndex]
+		} else {
+			resp.Answer = resp.Answer[:len(resp.Answer)-1]
+		}
 		if hasExtra {
 			syncExtra(index, resp)
 		}

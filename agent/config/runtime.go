@@ -425,6 +425,14 @@ type RuntimeConfig struct {
 	// hcl: telemetry { dogstatsd_tags = []string }
 	TelemetryDogstatsdTags []string
 
+	// PrometheusRetentionTime is the retention time for prometheus metrics if greater than 0.
+	// A value of 0 disable Prometheus support. Regarding Prometheus, it is considered a good
+	// practice to put large values here (such as a few days), and at least the interval between
+	// prometheus requests.
+	//
+	// hcl: telemetry { prometheus_retention_time = "duration" }
+	TelemetryPrometheusRetentionTime time.Duration
+
 	// TelemetryFilterDefault is the default for whether to allow a metric that's not
 	// covered by the filter.
 	//

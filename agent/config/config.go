@@ -319,6 +319,7 @@ type ServiceDefinition struct {
 	Name              *string           `json:"name,omitempty" hcl:"name" mapstructure:"name"`
 	Tags              []string          `json:"tags,omitempty" hcl:"tags" mapstructure:"tags"`
 	Address           *string           `json:"address,omitempty" hcl:"address" mapstructure:"address"`
+	Meta              map[string]string `json:"meta,omitempty" hcl:"meta" mapstructure:"meta"`
 	Port              *int              `json:"port,omitempty" hcl:"port" mapstructure:"port"`
 	Check             *CheckDefinition  `json:"check,omitempty" hcl:"check" mapstructure:"check"`
 	Checks            []CheckDefinition `json:"checks,omitempty" hcl:"checks" mapstructure:"checks"`
@@ -394,6 +395,7 @@ type Telemetry struct {
 	FilterDefault                      *bool    `json:"filter_default,omitempty" hcl:"filter_default" mapstructure:"filter_default"`
 	PrefixFilter                       []string `json:"prefix_filter,omitempty" hcl:"prefix_filter" mapstructure:"prefix_filter"`
 	MetricsPrefix                      *string  `json:"metrics_prefix,omitempty" hcl:"metrics_prefix" mapstructure:"metrics_prefix"`
+	PrometheusRetentionTime            *string  `json:"prometheus_retention_time,omitempty" hcl:"prometheus_retention_time" mapstructure:"prometheus_retention_time"`
 	StatsdAddr                         *string  `json:"statsd_address,omitempty" hcl:"statsd_address" mapstructure:"statsd_address"`
 	StatsiteAddr                       *string  `json:"statsite_address,omitempty" hcl:"statsite_address" mapstructure:"statsite_address"`
 	EnableDeprecatedNames              *bool    `json:"enable_deprecated_names" hcl:"enable_deprecated_names" mapstructure:"enable_deprecated_names"`

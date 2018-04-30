@@ -626,6 +626,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		TelemetryDisableHostname:                    b.boolVal(c.Telemetry.DisableHostname),
 		TelemetryDogstatsdAddr:                      b.stringVal(c.Telemetry.DogstatsdAddr),
 		TelemetryDogstatsdTags:                      c.Telemetry.DogstatsdTags,
+		TelemetryPrometheusRetentionTime:            b.durationVal("prometheus_retention_time", c.Telemetry.PrometheusRetentionTime),
 		TelemetryFilterDefault:                      b.boolVal(c.Telemetry.FilterDefault),
 		TelemetryAllowedPrefixes:                    telemetryAllowedPrefixes,
 		TelemetryBlockedPrefixes:                    telemetryBlockedPrefixes,
@@ -997,11 +998,18 @@ func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		checks = append(checks, b.checkVal(v.Check).CheckType())
 	}
 
+	meta := make(map[string]string)
+	if err := structs.ValidateMetadata(v.Meta, false); err != nil {
+		b.err = multierror.Append(fmt.Errorf("invalid meta for service %s: %v", b.stringVal(v.Name), err))
+	} else {
+		meta = v.Meta
+	}
 	return &structs.ServiceDefinition{
 		ID:                b.stringVal(v.ID),
 		Name:              b.stringVal(v.Name),
 		Tags:              v.Tags,
 		Address:           b.stringVal(v.Address),
+		Meta:              meta,
 		Port:              b.intVal(v.Port),
 		Token:             b.stringVal(v.Token),
 		EnableTagOverride: b.boolVal(v.EnableTagOverride),
