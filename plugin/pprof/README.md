@@ -36,6 +36,8 @@ Enable pprof endpoints:
 }
 ~~~
 
+And use the pprof tool to get statistics: `go tool pprof http://localhost:6053`.
+
 Listen on an alternate address:
 
 ~~~ txt
