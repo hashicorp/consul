@@ -64,3 +64,6 @@ th {
 main a {
   color: $text;
 }
+main a[rel*='help'] {
+  @extend %with-info;
+}

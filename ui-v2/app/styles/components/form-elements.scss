@@ -48,21 +48,6 @@
 %form-element > span > * {
   text-transform: none;
 }
-%form-element > span > a {
-  position: relative;
-  padding-right: 1.8em;
-}
-%form-element > span > a::after {
-  content: '';
-  display: block;
-  position: absolute;
-  right: 0;
-  top: 0;
-  border-radius: 100%;
-  width: 1.2em;
-  height: 1.2em;
-  border: 1px solid $border-blue;
-}
 %form-element,
 %radio-group {
   margin-bottom: 1.55em;
