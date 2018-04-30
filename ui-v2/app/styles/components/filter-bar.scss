@@ -85,6 +85,9 @@
 %filter-bar .value-warning span {
   @extend %with-warning;
 }
+%filter-bar .value-warning span::before {
+  @extend %with-warning-icon-grey;
+}
 %filter-bar .value-critical span {
   @extend %with-critical;
 }
