@@ -334,6 +334,9 @@ func TestConfig(sources ...config.Source) *config.RuntimeConfig {
 			server = true
 			node_id = "` + nodeID + `"
 			node_name = "Node ` + nodeID + `"
+			connect {
+				enabled = true
+			}
 			performance {
 				raft_multiplier = 1
 			}

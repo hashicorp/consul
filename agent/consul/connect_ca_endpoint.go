@@ -130,7 +130,7 @@ func (s *ConnectCA) ConfigurationSet(
 		// If the config has been committed, update the local provider instance
 		s.srv.setCAProvider(newProvider)
 
-		s.srv.logger.Printf("[INFO] connect: provider config updated")
+		s.srv.logger.Printf("[INFO] connect: CA provider config updated")
 
 		return nil
 	}
@@ -295,7 +295,7 @@ func (s *ConnectCA) Sign(
 	}
 
 	// Set the response
-	reply = &structs.IssuedCert{
+	*reply = structs.IssuedCert{
 		SerialNumber: connect.HexString(cert.SerialNumber.Bytes()),
 		CertPEM:      pem,
 		Service:      serviceId.Service,

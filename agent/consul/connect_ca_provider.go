@@ -30,7 +30,7 @@ type ConsulCAProvider struct {
 // NewConsulCAProvider returns a new instance of the Consul CA provider,
 // bootstrapping its state in the state store necessary
 func NewConsulCAProvider(rawConfig map[string]interface{}, srv *Server) (*ConsulCAProvider, error) {
-	conf, err := decodeConfig(rawConfig)
+	conf, err := ParseConsulCAConfig(rawConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +116,7 @@ func NewConsulCAProvider(rawConfig map[string]interface{}, srv *Server) (*Consul
 	return provider, nil
 }
 
-func decodeConfig(raw map[string]interface{}) (*structs.ConsulCAProviderConfig, error) {
+func ParseConsulCAConfig(raw map[string]interface{}) (*structs.ConsulCAProviderConfig, error) {
 	var config *structs.ConsulCAProviderConfig
 	if err := mapstructure.WeakDecode(raw, &config); err != nil {
 		return nil, fmt.Errorf("error decoding config: %s", err)
