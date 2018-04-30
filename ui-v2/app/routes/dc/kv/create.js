@@ -7,6 +7,9 @@ import WithKvActions from 'consul-ui/mixins/kv/with-actions';
 export default Route.extend(WithKvActions, {
   templateName: 'dc/kv/edit',
   repo: service('kv'),
+  beforeModel: function() {
+    get(this, 'repo').invalidate();
+  },
   model: function(params) {
     const key = params.key || '/';
     const repo = get(this, 'repo');
@@ -26,7 +29,7 @@ export default Route.extend(WithKvActions, {
   },
   deactivate: function() {
     if (get(this.item, 'isNew')) {
-      this.item.destroyRecord();
+      // this.item.destroyRecord();
     }
   },
 });

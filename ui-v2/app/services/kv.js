@@ -65,4 +65,7 @@ export default Service.extend({
       return get(this, 'store').unloadRecord(item);
     });
   },
+  invalidate: function() {
+    get(this, 'store').unloadAll('kv');
+  },
 });

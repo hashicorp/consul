@@ -8,6 +8,9 @@ import WithAclActions from 'consul-ui/mixins/acl/with-actions';
 export default Route.extend(WithAclActions, {
   templateName: 'dc/acls/edit',
   repo: service('acls'),
+  beforeModel: function() {
+    get(this, 'repo').invalidate();
+  },
   model: function(params) {
     this.item = get(this, 'repo').create();
     set(this.item, 'Datacenter', this.modelFor('dc').dc.Name);
