@@ -252,21 +252,7 @@ func (s *Service) rootsWatchHandler(blockParam watch.BlockingParamVal, raw inter
 		roots.AppendCertsFromPEM([]byte(root.RootCertPEM))
 	}
 
-	// Note that SetTLSConfig takes care of adding a dynamic GetConfigForClient
-	// hook that will fetch this updated config for new incoming connections on a
-	// server. That means all future connections are validated against the new
-	// roots. On a client, we only expose Dial and we fetch the most recent config
-	// each time so all future Dials (direct or via an http.Client with our dial
-	// hook) will grab this new config.
-	newCfg := s.serverTLSCfg.TLSConfig()
-	// Server-side verification uses ClientCAs.
-	newCfg.ClientCAs = roots
-	s.serverTLSCfg.SetTLSConfig(newCfg)
-
-	newCfg = s.clientTLSCfg.TLSConfig()
-	// Client-side verification uses RootCAs.
-	newCfg.RootCAs = roots
-	s.clientTLSCfg.SetTLSConfig(newCfg)
+	s.tlsCfg.SetRoots(roots)
 }
 
 func (s *Service) leafWatchHandler(blockParam watch.BlockingParamVal, raw interface{}) {
@@ -286,16 +272,5 @@ func (s *Service) leafWatchHandler(blockParam watch.BlockingParamVal, raw interf
 		return
 	}
 
-	// Note that SetTLSConfig takes care of adding a dynamic GetClientCertificate
-	// hook that will fetch the first cert from the Certificates slice of the
-	// current config for each outbound client request even if the client is using
-	// an old version of the config struct so all we need to do it set that and
-	// all existing clients will start using the new cert.
-	newCfg := s.serverTLSCfg.TLSConfig()
-	newCfg.Certificates = []tls.Certificate{cert}
-	s.serverTLSCfg.SetTLSConfig(newCfg)
-
-	newCfg = s.clientTLSCfg.TLSConfig()
-	newCfg.Certificates = []tls.Certificate{cert}
-	s.clientTLSCfg.SetTLSConfig(newCfg)
+	s.tlsCfg.SetLeaf(&cert)
 }
