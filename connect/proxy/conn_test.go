@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -88,6 +89,10 @@ func TestConn(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, "ping 2\n", got)
 
+	tx, rx := c.Stats()
+	assert.Equal(t, uint64(7), tx)
+	assert.Equal(t, uint64(7), rx)
+
 	_, err = src.Write([]byte("pong 1\n"))
 	require.Nil(t, err)
 	_, err = dst.Write([]byte("pong 2\n"))
@@ -100,6 +105,10 @@ func TestConn(t *testing.T) {
 	got, err = srcR.ReadString('\n')
 	require.Nil(t, err)
 	require.Equal(t, "pong 2\n", got)
+
+	tx, rx = c.Stats()
+	assert.Equal(t, uint64(14), tx)
+	assert.Equal(t, uint64(14), rx)
 
 	c.Close()
 
