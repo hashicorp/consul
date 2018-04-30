@@ -32,13 +32,6 @@ Router.map(function() {
       this.route('edit', { path: '/:id' });
       this.route('create', { path: '/create' });
     });
-
-    // Shows a page explaining that ACLs haven't been set-up
-    this.route('aclsdisabled', { path: '/aclsdisabled' });
-
-    // Shows a page explaining that the ACL token being used isn't
-    // authorized
-    this.route('unauthorized', { path: '/unauthorized' });
   });
 
   // Shows a datacenter picker. If you only have one
