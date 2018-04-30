@@ -34,3 +34,15 @@ main dd a {
   color: $blue;
   text-decoration: underline;
 }
+html body > svg {
+  display: none;
+}
+html.ember-loading body > svg {
+  display: block;
+}
+html.ember-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}

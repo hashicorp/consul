@@ -5,6 +5,9 @@ import { get } from '@ember/object';
 import { next } from '@ember/runloop';
 export default Route.extend({
   // logger: service('logger'),
+  init: function() {
+    document.documentElement.classList.remove('ember-loading');
+  },
   repo: service('dc'),
   actions: {
     loading: function(transition, originRoute) {
