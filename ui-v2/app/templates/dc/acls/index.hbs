@@ -36,7 +36,7 @@
             {{#block-slot 'actions'}}
                 <ul>
                     <li>
-                        <a href="{{href-to 'dc.acls.edit' item.ID}}">Edit</a>
+                        <a href={{href-to 'dc.acls.edit' item.ID}}>Edit</a>
                     </li>
                     {{#confirmation-dialog tagName='li' message='Are you sure you want to use this ACL token?'}}
                         {{#block-slot 'action' as |confirm|}}
