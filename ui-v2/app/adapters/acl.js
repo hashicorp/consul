@@ -4,10 +4,11 @@ import Adapter, {
   REQUEST_DELETE,
   DATACENTER_KEY as API_DATACENTER_KEY,
 } from './application';
+import EmberError from '@ember/error';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/acl';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 import { PUT as HTTP_PUT } from 'consul-ui/utils/http/method';
-import { OK as HTTP_OK } from 'consul-ui/utils/http/status';
+import { OK as HTTP_OK, UNAUTHORIZED as HTTP_UNAUTHORIZED } from 'consul-ui/utils/http/status';
 
 import makeAttrable from 'consul-ui/utils/makeAttrable';
 const REQUEST_CLONE = 'cloneRecord';
@@ -142,6 +143,11 @@ export default Adapter.extend({
             };
           });
       }
+    } else if (status === HTTP_UNAUTHORIZED) {
+      const e = new EmberError();
+      e.code = status;
+      e.message = payload;
+      throw e;
     }
     return this._super(status, headers, response, requestData);
   },
