@@ -8,7 +8,10 @@ import (
 
 // Conn represents a single proxied TCP connection.
 type Conn struct {
-	src, dst   net.Conn
+	src, dst net.Conn
+	// TODO(banks): benchmark and consider adding _ [8]uint64 padding between
+	// these to prevent false sharing between the rx and tx goroutines when
+	// running on separate cores.
 	srcW, dstW countWriter
 	stopping   int32
 }
