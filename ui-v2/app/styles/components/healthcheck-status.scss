@@ -5,6 +5,10 @@
 %healthcheck-status dt {
   font-weight: bold;
 }
+%healthcheck-status {
+  border: 1px solid;
+  border-radius: $radius;
+}
 %healthcheck-status dd:first-of-type {
   color: $text-note;
 }
@@ -22,10 +26,10 @@
 }
 %healthcheck-status.passing {
   @extend %with-passing;
+  border-color: $border-blue;
 }
 %healthcheck-status.passing::before {
   background-color: $green !important;
-  border-color: $border-blue;
 }
 %healthcheck-status.critical {
   @extend %with-critical;
@@ -44,8 +48,6 @@
   background-size: 100%;
 }
 %healthcheck-status {
-  border: 1px solid;
-  border-radius: $radius;
   padding: 24px;
   padding-left: 60px;
   margin-bottom: 24px;
