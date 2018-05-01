@@ -1,9 +1,15 @@
 import Controller from '@ember/controller';
-import { get, set } from '@ember/object';
+import { get } from '@ember/object';
 import WithFiltering from 'consul-ui/mixins/with-filtering';
 
 export default Controller.extend(WithFiltering, {
-  filter: function(item, { s = '', status = '' }) {
+  queryParams: {
+    s: {
+      as: 'filter',
+      replace: true,
+    },
+  },
+  filter: function(item, { s = '' }) {
     return (
       get(item, 'Service')
         .toLowerCase()

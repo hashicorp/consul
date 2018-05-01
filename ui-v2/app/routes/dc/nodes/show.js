@@ -13,9 +13,9 @@ export default Route.extend(WithFeedback, {
   repo: service('nodes'),
   sessionRepo: service('session'),
   queryParams: {
-    filter: {
+    s: {
+      as: 'filter',
       replace: true,
-      as: 'other-filter',
     },
   },
   model: function(params) {

@@ -7,6 +7,12 @@ import WithAclActions from 'consul-ui/mixins/acl/with-actions';
 
 export default Route.extend(WithAclActions, {
   repo: service('acls'),
+  queryParams: {
+    s: {
+      as: 'filter',
+      replace: true,
+    },
+  },
   model: function(params) {
     return hash({
       items: get(this, 'repo').findAllByDatacenter(this.modelFor('dc').dc.Name),

@@ -7,11 +7,14 @@ const countType = function(items, type) {
   return type === '' ? get(items, 'length') : items.filterBy('Type', type).length;
 };
 export default Controller.extend(WithFiltering, {
-  init: function() {
-    this._super(...arguments);
-    this.filters = {
-      type: '',
-    };
+  queryParams: {
+    type: {
+      as: 'type',
+    },
+    s: {
+      as: 'filter',
+      replace: true,
+    },
   },
   typeFilters: computed('items', function() {
     const items = get(this, 'items');
@@ -33,8 +36,6 @@ export default Controller.extend(WithFiltering, {
     );
   },
   actions: {
-    requestUse: function() {},
-    requestDelete: function() {},
     clone: function() {},
   },
 });

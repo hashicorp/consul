@@ -5,6 +5,12 @@ import { get } from '@ember/object';
 
 export default Route.extend({
   repo: service('services'),
+  queryParams: {
+    s: {
+      as: 'filter',
+      replace: true,
+    },
+  },
   model: function(params) {
     const repo = get(this, 'repo');
     return hash({
