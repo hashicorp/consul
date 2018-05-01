@@ -4,7 +4,6 @@ import { computed, get } from '@ember/object';
 
 import sumOfUnhealthy from 'consul-ui/utils/sumOfUnhealthy';
 import hasStatus from 'consul-ui/utils/hasStatus';
-// import { belongsTo } from 'ember-data/relationships';
 export const PRIMARY_KEY = 'uid';
 export const SLUG_KEY = 'ID';
 export default Model.extend({
@@ -12,16 +11,15 @@ export default Model.extend({
   [SLUG_KEY]: attr('string'),
   Address: attr('string'),
   Node: attr('string'),
-  Meta: attr(), // arbitrary??
-  Services: attr(), // hasMany
-  Checks: attr(), // hasMany
+  Meta: attr(),
+  Services: attr(),
+  Checks: attr(),
   CreateIndex: attr('number'),
   ModifyIndex: attr('number'),
-  TaggedAddresses: attr(), // lan, wan
-  // Datacenter: belongsTo('dc'),
+  TaggedAddresses: attr(),
   Datacenter: attr('string'),
   Segment: attr(),
-  Coord: attr(), // hasMany Vec, Error, Adjustment, Height
+  Coord: attr(),
   hasStatus: function(status) {
     return hasStatus(get(this, 'Checks'), status);
   },

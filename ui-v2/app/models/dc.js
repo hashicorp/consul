@@ -9,5 +9,4 @@ export default Model.extend({
   [SLUG_KEY]: attr('string'),
   Services: hasMany('service'),
   Nodes: hasMany('node'),
-  // probably KV etc
 });

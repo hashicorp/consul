@@ -14,7 +14,7 @@ export default Model.extend({
   Value: attr('string'),
   CreateIndex: attr('string'),
   ModifyIndex: attr('string'),
-  Session: attr('string'), // probably belongsTo
+  Session: attr('string'),
   Datacenter: attr('string'),
 
   isFolder: computed('Key', function() {
