@@ -9,6 +9,19 @@ main header nav:first-child {
   list-style-type: none;
   display: flex;
 }
+%breadcrumbs li {
+  margin-right: 5px;
+}
 %breadcrumbs a {
   color: $blue;
+}
+main div:not(.kv) header nav:first-child a {
+  @extend %with-chevron;
+}
+main div.kv header nav:first-child li:not(:first-child) {
+  margin-right: 0;
+}
+// :not(:child-range(0, 2))
+main div.kv header nav:first-child li:nth-child(-n + 2) a {
+  @extend %with-chevron;
 }

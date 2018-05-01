@@ -29,8 +29,13 @@
   position: relative;
   text-indent: 30px;
 }
-%with-hashicorp {
+%with-hashicorp,
+%with-chevron {
   position: relative;
+}
+%with-chevron {
+  padding-left: 10px;
+  display: inline-block;
 }
 %with-hashicorp::before {
   @extend %pseudo-icon;
@@ -39,6 +44,15 @@
   height: 22px;
   left: -25px;
   margin-top: -11px;
+  background-color: transparent;
+}
+%with-chevron::before {
+  @extend %pseudo-icon;
+  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="6" height="9" xmlns="http://www.w3.org/2000/svg"><path fill="%230068FF" d="M5.771 9H3.527L.334 4.834 3.527.674h2.244l-3.193 4.16z" opacity=".33"/></svg>');
+  width: 6px;
+  height: 9px;
+  left: 0;
+  margin-top: -4px;
   background-color: transparent;
 }
 %with-folder::before {
