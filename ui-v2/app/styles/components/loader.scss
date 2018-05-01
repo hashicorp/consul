@@ -1,4 +1,4 @@
-.template-loading main > div {
+html.template-loading main > div {
   @extend %loader;
 }
 %loader {
