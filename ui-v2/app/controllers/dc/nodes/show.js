@@ -1,5 +1,5 @@
 import Controller from '@ember/controller';
-import { get } from '@ember/object';
+import { get, set } from '@ember/object';
 import WithFiltering from 'consul-ui/mixins/with-filtering';
 
 export default Controller.extend(WithFiltering, {
@@ -8,6 +8,10 @@ export default Controller.extend(WithFiltering, {
       as: 'filter',
       replace: true,
     },
+  },
+  setProperties: function() {
+    this._super(...arguments);
+    set(this, 'selectedTab', 'health-checks');
   },
   filter: function(item, { s = '' }) {
     return (
