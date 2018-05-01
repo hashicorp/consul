@@ -80,6 +80,8 @@
 }
 .type-toggle {
   @extend %toggle;
+  float: right;
+  margin-bottom: 0 !important;
 }
 %toggle {
   position: relative;
