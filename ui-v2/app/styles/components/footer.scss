@@ -3,6 +3,9 @@
 }
 %footer {
   border-top: 1px solid $border-blue;
+  background-color: $white;
+  position: relative;
+  z-index: 1;
   padding: 25px;
   display: flex;
   justify-content: center;
