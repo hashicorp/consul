@@ -37,11 +37,11 @@ export default Route.extend({
     error: function(e, transition) {
       let error = {
         status: e.code || '',
-        message: e.message || 'Error',
+        message: e.message || e.detail || 'Error',
       };
       if (e.errors && e.errors[0]) {
         error = e.errors[0];
-        error.message = error.title;
+        error.message = error.title || error.detail || 'Error';
       }
       // logger(error);
       hash({
