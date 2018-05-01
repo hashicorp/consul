@@ -67,3 +67,6 @@ main a {
 main a[rel*='help'] {
   @extend %with-info;
 }
+[role='tabpanel'] > p:only-child [rel*='help']::after {
+  content: none;
+}
