@@ -2038,58 +2038,38 @@ func (a *Agent) AddProxy(proxy *structs.ConnectManagedProxy, persist bool) error
 	// Lookup the target service token in state if there is one.
 	token := a.State.ServiceToken(proxy.TargetServiceID)
 
-	// Determine if we need to default the command
-	if proxy.ExecMode == structs.ProxyExecModeDaemon && len(proxy.Command) == 0 {
-		// We use the globally configured default command. If it is empty
-		// then we need to determine the subcommand for this agent.
-		cmd := a.config.ConnectProxyDefaultDaemonCommand
-		if len(cmd) == 0 {
-			var err error
-			cmd, err = a.defaultProxyCommand()
-			if err != nil {
-				return err
+	/*
+		// Determine if we need to default the command
+		if proxy.ExecMode == structs.ProxyExecModeDaemon && len(proxy.Command) == 0 {
+			// We use the globally configured default command. If it is empty
+			// then we need to determine the subcommand for this agent.
+			cmd := a.config.ConnectProxyDefaultDaemonCommand
+			if len(cmd) == 0 {
+				var err error
+				cmd, err = a.defaultProxyCommand()
+				if err != nil {
+					return err
+				}
 			}
-		}
 
-		proxy.CommandDefault = cmd
-	}
+			proxy.CommandDefault = cmd
+		}
+	*/
 
 	// Add the proxy to local state first since we may need to assign a port which
 	// needs to be coordinate under state lock. AddProxy will generate the
 	// NodeService for the proxy populated with the allocated (or configured) port
 	// and an ID, but it doesn't add it to the agent directly since that could
 	// deadlock and we may need to coordinate adding it and persisting etc.
-	proxyState, oldProxy, err := a.State.AddProxy(proxy, token)
+	proxyState, err := a.State.AddProxy(proxy, token)
 	if err != nil {
 		return err
 	}
 	proxyService := proxyState.Proxy.ProxyService
 
-	// If we replaced an existing proxy, stop that process.
-	if oldProxy != nil {
-		if err := oldProxy.ProxyProcess.Stop(); err != nil {
-			a.logger.Printf(
-				"[ERR] error stopping managed proxy, may still be running: %s",
-				err)
-		}
-	}
-
-	// Start the proxy process
-	if err := proxyState.ProxyProcess.Start(); err != nil {
-		a.State.RemoveProxy(proxyService.ID)
-		return fmt.Errorf("error starting managed proxy: %s", err)
-	}
-
 	// TODO(banks): register proxy health checks.
 	err = a.AddService(proxyService, nil, persist, token)
 	if err != nil {
-		// Stop the proxy process if it was started
-		if err := proxyState.ProxyProcess.Stop(); err != nil {
-			a.logger.Printf(
-				"[ERR] error stopping managed proxy, may still be running: %s",
-				err)
-		}
-
 		// Remove the state too
 		a.State.RemoveProxy(proxyService.ID)
 		return err
@@ -2107,16 +2087,8 @@ func (a *Agent) RemoveProxy(proxyID string, persist bool) error {
 	}
 
 	// Remove the proxy from the local state
-	proxyState, err := a.State.RemoveProxy(proxyID)
-	if err != nil {
+	if _, err := a.State.RemoveProxy(proxyID); err != nil {
 		return err
-	}
-
-	// Stop the process. The proxy implementation is expected to perform
-	// retries so if this fails then retries have already been performed and
-	// the most we can do is just error.
-	if err := proxyState.ProxyProcess.Stop(); err != nil {
-		return fmt.Errorf("error stopping managed proxy process: %s", err)
 	}
 
 	// TODO(banks): unpersist proxy

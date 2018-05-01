@@ -31,16 +31,19 @@ func testTempDir(t *testing.T) (string, func()) {
 	}
 }
 
+// helperProcessSentinel is a sentinel value that is put as the first
+// argument following "--" and is used to determine if TestHelperProcess
+// should run.
+const helperProcessSentinel = "WANT_HELPER_PROCESS"
+
 // helperProcess returns an *exec.Cmd that can be used to execute the
 // TestHelperProcess function below. This can be used to test multi-process
 // interactions.
 func helperProcess(s ...string) *exec.Cmd {
-	cs := []string{"-test.run=TestHelperProcess", "--"}
+	cs := []string{"-test.run=TestHelperProcess", "--", helperProcessSentinel}
 	cs = append(cs, s...)
-	env := []string{"GO_WANT_HELPER_PROCESS=1"}
 
 	cmd := exec.Command(os.Args[0], cs...)
-	cmd.Env = append(env, os.Environ()...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd
@@ -49,12 +52,6 @@ func helperProcess(s ...string) *exec.Cmd {
 // This is not a real test. This is just a helper process kicked off by tests
 // using the helperProcess helper function.
 func TestHelperProcess(t *testing.T) {
-	if os.Getenv("GO_WANT_HELPER_PROCESS") != "1" {
-		return
-	}
-
-	defer os.Exit(0)
-
 	args := os.Args
 	for len(args) > 0 {
 		if args[0] == "--" {
@@ -65,15 +62,16 @@ func TestHelperProcess(t *testing.T) {
 		args = args[1:]
 	}
 
-	if len(args) == 0 {
-		fmt.Fprintf(os.Stderr, "No command\n")
-		os.Exit(2)
+	if len(args) == 0 || args[0] != helperProcessSentinel {
+		return
 	}
 
+	defer os.Exit(0)
+	args = args[1:] // strip sentinel value
 	cmd, args := args[0], args[1:]
 	switch cmd {
 	// While running, this creates a file in the given directory (args[0])
-	// and deletes it only whe nit is stopped.
+	// and deletes it only when it is stopped.
 	case "start-stop":
 		ch := make(chan os.Signal, 1)
 		signal.Notify(ch, os.Interrupt)

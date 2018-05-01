@@ -16,6 +16,8 @@ func TestDaemon_impl(t *testing.T) {
 }
 
 func TestDaemonStartStop(t *testing.T) {
+	t.Parallel()
+
 	require := require.New(t)
 	td, closer := testTempDir(t)
 	defer closer()
@@ -63,6 +65,8 @@ func TestDaemonStartStop(t *testing.T) {
 }
 
 func TestDaemonRestart(t *testing.T) {
+	t.Parallel()
+
 	require := require.New(t)
 	td, closer := testTempDir(t)
 	defer closer()

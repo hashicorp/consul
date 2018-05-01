@@ -33,6 +33,11 @@ const (
 	// ProxyExecModeScript executes a proxy config script on each change to it's
 	// config.
 	ProxyExecModeScript
+
+	// ProxyExecModeTest tracks the start/stop of the proxy in-memory
+	// and is only used for tests. This shouldn't be set outside of tests,
+	// but even if it is it has no external effect.
+	ProxyExecModeTest
 )
 
 // String implements Stringer
