@@ -1,6 +1,10 @@
 main header nav:first-child {
   @extend %breadcrumbs;
 }
+%breadcrumbs a {
+  @extend %with-chevron;
+  color: $blue;
+}
 %breadcrumbs {
   position: absolute;
   top: -35px; // %app-view:margin-top - 15px;
@@ -11,17 +15,4 @@ main header nav:first-child {
 }
 %breadcrumbs li {
   margin-right: 5px;
-}
-%breadcrumbs a {
-  color: $blue;
-}
-main div:not(.kv) header nav:first-child a {
-  @extend %with-chevron;
-}
-main div.kv header nav:first-child li:not(:first-child) {
-  margin-right: 0;
-}
-// :not(:child-range(0, 2))
-main div.kv header nav:first-child li:nth-child(-n + 2) a {
-  @extend %with-chevron;
 }
