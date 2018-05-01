@@ -7,10 +7,7 @@ table tbody {
   height: 100%;
   top: 46px !important;
 }
-tbody tr {
-  display: flex;
-}
-table tbody tr {
+table tr {
   display: flex;
 }
 table td,
@@ -38,7 +35,17 @@ table tr > *:first-child:nth-last-child(4),
 table tr > *:first-child:nth-last-child(4) ~ * {
   width: 25%;
 }
-table tr > *:first-child:nth-last-child(7),
-table tr > *:first-child:nth-last-child(7) ~ * {
-  width: 14.2857%;
+// table tr > *:first-child:nth-last-child(7),
+// table tr > *:first-child:nth-last-child(7) ~ * {
+//   width: 14.2857%;
+// }
+table.sessions tr > * {
+  // (100% / 7) - (300px / 6) - (120px / 6)
+  width: calc(14.2857% - 50px - 20px);
+}
+table.sessions tr > *:nth-child(2) {
+  width: 300px;
+}
+table.sessions tr > *:nth-last-child(1) {
+  width: 120px;
 }

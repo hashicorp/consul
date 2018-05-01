@@ -1,5 +1,6 @@
 {{#if (gt sessions.length 0)}}
     {{#tabular-collection
+        class="sessions"
         items=sessions as |item index|
     }}
         {{#block-slot 'header'}}
