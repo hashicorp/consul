@@ -1,6 +1,6 @@
 button,
 a[rel='back'],
-.template-error div > a {
+html.template-error div > a {
   @extend %button;
 }
 %button.type-delete {

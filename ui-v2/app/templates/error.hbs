@@ -1,5 +1,5 @@
 {{#hashicorp-consul id="wrapper" dcs=dcs dc=dc}}
-    {{#app-view class="template-error"}}
+    {{#app-view class="error show"}}
         {{#block-slot 'header'}}
             <h1>
 {{#if error.status }}
@@ -10,12 +10,6 @@
             </h1>
         {{/block-slot}}
         {{#block-slot 'content'}}
-            {{#if controller.model.statusText }}
-                <p>HTTP error code from Consul: <code>{{controller.model.status}} {{controller.model.statusText}}</code></p>
-            {{/if}}
-            {{#if controller.model.responseText }}
-                <p>Error message from Consul: <code>{{limit controller.model.responseText 255}}</code></p>
-            {{/if}}
             <p>
                 Consul returned an error.
                 You may have visited a URL that is loading an unknown resource, so you can try going back to the root.
