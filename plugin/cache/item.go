@@ -61,7 +61,6 @@ func (i *item) toMsg(m *dns.Msg, now time.Time) *dns.Msg {
 	m1.AuthenticatedData = i.AuthenticatedData
 	m1.RecursionAvailable = i.RecursionAvailable
 	m1.Rcode = i.Rcode
-	m1.Compress = true
 
 	m1.Answer = make([]dns.RR, len(i.Answer))
 	m1.Ns = make([]dns.RR, len(i.Ns))

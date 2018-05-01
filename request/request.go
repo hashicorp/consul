@@ -180,20 +180,25 @@ const (
 	ScrubAnswer
 )
 
-// Scrub scrubs the reply message so that it will fit the client's buffer. It sets
-// reply.Compress to true.
-// Scrub uses binary search to find a save cut off point in the additional section.
+// Scrub scrubs the reply message so that it will fit the client's buffer. It will first
+// check if the reply fits without compression and then *with* compression.
+// Scrub will then use binary search to find a save cut off point in the additional section.
 // If even *without* the additional section the reply still doesn't fit we
 // repeat this process for the answer section. If we scrub the answer section
 // we set the TC bit on the reply; indicating the client should retry over TCP.
 // Note, the TC bit will be set regardless of protocol, even TCP message will
 // get the bit, the client should then retry with pigeons.
 func (r *Request) Scrub(reply *dns.Msg) (*dns.Msg, Result) {
-	reply.Compress = true
-
 	size := r.Size()
-	rl := reply.Len()
 
+	reply.Compress = false
+	rl := reply.Len()
+	if size >= rl {
+		return reply, ScrubIgnored
+	}
+
+	reply.Compress = true
+	rl = reply.Len()
 	if size >= rl {
 		return reply, ScrubIgnored
 	}

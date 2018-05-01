@@ -383,7 +383,7 @@ func SOA(b ServiceBackend, zone string, state request.Request, opt Options) ([]d
 func BackendError(b ServiceBackend, zone string, rcode int, state request.Request, err error, opt Options) (int, error) {
 	m := new(dns.Msg)
 	m.SetRcode(state.Req, rcode)
-	m.Authoritative, m.RecursionAvailable, m.Compress = true, true, true
+	m.Authoritative, m.RecursionAvailable = true, true
 	m.Ns, _ = SOA(b, zone, state, opt)
 
 	state.SizeAndDo(m)

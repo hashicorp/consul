@@ -17,7 +17,7 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 
 	m := new(dns.Msg)
 	m.SetReply(r)
-	m.Authoritative, m.RecursionAvailable, m.Compress = true, true, true
+	m.Authoritative, m.RecursionAvailable = true, true
 
 	zone := plugin.Zones(k.Zones).Matches(state.Name())
 	if zone == "" {
@@ -79,6 +79,7 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 	m.Answer = append(m.Answer, records...)
 	m.Extra = append(m.Extra, extra...)
 
+	// TODO(miek): get rid of this by not adding dups in the first place, dnsutil.Append()?
 	m = dnsutil.Dedup(m)
 
 	state.SizeAndDo(m)

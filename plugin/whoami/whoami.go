@@ -22,7 +22,6 @@ func (wh Whoami) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 
 	a := new(dns.Msg)
 	a.SetReply(r)
-	a.Compress = true
 	a.Authoritative = true
 
 	ip := state.IP()

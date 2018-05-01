@@ -60,7 +60,7 @@ func (rr Route53) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 
 	m := new(dns.Msg)
 	m.SetReply(r)
-	m.Authoritative, m.RecursionAvailable, m.Compress = true, true, true
+	m.Authoritative, m.RecursionAvailable = true, true
 	m.Answer = answers
 
 	state.SizeAndDo(m)
