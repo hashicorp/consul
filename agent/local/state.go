@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/proxy"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -127,9 +126,6 @@ type ManagedProxy struct {
 	// use service-scoped ACL tokens distributed externally.
 	ProxyToken string
 
-	// ProxyProcess is the managed proxy itself that is running.
-	ProxyProcess proxy.Proxy
-
 	// WatchCh is a close-only chan that is closed when the proxy is removed or
 	// updated.
 	WatchCh chan struct{}
@@ -187,19 +183,24 @@ type State struct {
 	// registration) do not appear here as the agent doesn't need to manage their
 	// process nor config. The _do_ still exist in services above though as
 	// services with Kind == connect-proxy.
-	managedProxies map[string]*ManagedProxy
+	//
+	// managedProxyHandlers is a map of registered channel listeners that
+	// are sent a message each time a proxy changes via Add or RemoveProxy.
+	managedProxies       map[string]*ManagedProxy
+	managedProxyHandlers map[chan<- struct{}]struct{}
 }
 
 // NewState creates a new local state for the agent.
 func NewState(c Config, lg *log.Logger, tokens *token.Store) *State {
 	l := &State{
-		config:         c,
-		logger:         lg,
-		services:       make(map[string]*ServiceState),
-		checks:         make(map[types.CheckID]*CheckState),
-		metadata:       make(map[string]string),
-		tokens:         tokens,
-		managedProxies: make(map[string]*ManagedProxy),
+		config:               c,
+		logger:               lg,
+		services:             make(map[string]*ServiceState),
+		checks:               make(map[types.CheckID]*CheckState),
+		metadata:             make(map[string]string),
+		tokens:               tokens,
+		managedProxies:       make(map[string]*ManagedProxy),
+		managedProxyHandlers: make(map[chan<- struct{}]struct{}),
 	}
 	l.SetDiscardCheckOutput(c.DiscardCheckOutput)
 	return l
@@ -577,22 +578,22 @@ func (l *State) CriticalCheckStates() map[types.CheckID]*CheckState {
 // AddProxy returns the newly added proxy, any replaced proxy, and an error.
 // The second return value (replaced proxy) can be used to determine if
 // the process needs to be updated or not.
-func (l *State) AddProxy(proxy *structs.ConnectManagedProxy, token string) (*ManagedProxy, *ManagedProxy, error) {
+func (l *State) AddProxy(proxy *structs.ConnectManagedProxy, token string) (*ManagedProxy, error) {
 	if proxy == nil {
-		return nil, nil, fmt.Errorf("no proxy")
+		return nil, fmt.Errorf("no proxy")
 	}
 
 	// Lookup the local service
 	target := l.Service(proxy.TargetServiceID)
 	if target == nil {
-		return nil, nil, fmt.Errorf("target service ID %s not registered",
+		return nil, fmt.Errorf("target service ID %s not registered",
 			proxy.TargetServiceID)
 	}
 
 	// Get bind info from config
 	cfg, err := proxy.ParseConfig()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// Construct almost all of the NodeService that needs to be registered by the
@@ -608,15 +609,7 @@ func (l *State) AddProxy(proxy *structs.ConnectManagedProxy, token string) (*Man
 
 	pToken, err := uuid.GenerateUUID()
 	if err != nil {
-		return nil, nil, err
-	}
-
-	// Initialize the managed proxy process. This doesn't start anything,
-	// it only sets up the structures we'll use. To start the proxy, the
-	// caller should call Proxy and use the returned ManagedProxy instance.
-	proxyProcess, err := l.newProxyProcess(proxy, pToken)
-	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// Lock now. We can't lock earlier as l.Service would deadlock and shouldn't
@@ -650,7 +643,7 @@ func (l *State) AddProxy(proxy *structs.ConnectManagedProxy, token string) (*Man
 	}
 	// If no ports left (or auto ports disabled) fail
 	if svc.Port < 1 {
-		return nil, nil, fmt.Errorf("no port provided for proxy bind_port and none "+
+		return nil, fmt.Errorf("no port provided for proxy bind_port and none "+
 			" left in the allocated range [%d, %d]", l.config.ProxyBindMinPort,
 			l.config.ProxyBindMaxPort)
 	}
@@ -658,8 +651,7 @@ func (l *State) AddProxy(proxy *structs.ConnectManagedProxy, token string) (*Man
 	proxy.ProxyService = svc
 
 	// All set, add the proxy and return the service
-	old, ok := l.managedProxies[svc.ID]
-	if ok {
+	if old, ok := l.managedProxies[svc.ID]; ok {
 		// Notify watchers of the existing proxy config that it's changing. Note
 		// this is safe here even before the map is updated since we still hold the
 		// state lock and the watcher can't re-read the new config until we return
@@ -667,14 +659,22 @@ func (l *State) AddProxy(proxy *structs.ConnectManagedProxy, token string) (*Man
 		close(old.WatchCh)
 	}
 	l.managedProxies[svc.ID] = &ManagedProxy{
-		Proxy:        proxy,
-		ProxyToken:   pToken,
-		ProxyProcess: proxyProcess,
-		WatchCh:      make(chan struct{}),
+		Proxy:      proxy,
+		ProxyToken: pToken,
+		WatchCh:    make(chan struct{}),
+	}
+
+	// Notify
+	for ch := range l.managedProxyHandlers {
+		// Do not block
+		select {
+		case ch <- struct{}{}:
+		default:
+		}
 	}
 
 	// No need to trigger sync as proxy state is local only.
-	return l.managedProxies[svc.ID], old, nil
+	return l.managedProxies[svc.ID], nil
 }
 
 // RemoveProxy is used to remove a proxy entry from the local state.
@@ -691,6 +691,15 @@ func (l *State) RemoveProxy(id string) (*ManagedProxy, error) {
 
 	// Notify watchers of the existing proxy config that it's changed.
 	close(p.WatchCh)
+
+	// Notify
+	for ch := range l.managedProxyHandlers {
+		// Do not block
+		select {
+		case ch <- struct{}{}:
+		default:
+		}
+	}
 
 	// No need to trigger sync as proxy state is local only.
 	return p, nil
@@ -713,6 +722,27 @@ func (l *State) Proxies() map[string]*ManagedProxy {
 		m[id] = p
 	}
 	return m
+}
+
+// NotifyProxy will register a channel to receive messages when the
+// configuration or set of proxies changes. This will not block on
+// channel send so ensure the channel has a large enough buffer.
+//
+// NOTE(mitchellh): This could be more generalized but for my use case I
+// only needed proxy events. In the future if it were to be generalized I
+// would add a new Notify method and remove the proxy-specific ones.
+func (l *State) NotifyProxy(ch chan<- struct{}) {
+	l.Lock()
+	defer l.Unlock()
+	l.managedProxyHandlers[ch] = struct{}{}
+}
+
+// StopNotifyProxy will deregister a channel receiving proxy notifications.
+// Pair this with all calls to NotifyProxy to clean up state.
+func (l *State) StopNotifyProxy(ch chan<- struct{}) {
+	l.Lock()
+	defer l.Unlock()
+	delete(l.managedProxyHandlers, ch)
 }
 
 // Metadata returns the local node metadata fields that the

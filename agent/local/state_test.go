@@ -1737,6 +1737,13 @@ func TestStateProxyManagement(t *testing.T) {
 		assert.Equal(svc.Port, svcDup.Port)
 	}
 
+	// Let's register a notifier now
+	notifyCh := make(chan struct{}, 1)
+	state.NotifyProxy(notifyCh)
+	defer state.StopNotifyProxy(notifyCh)
+	assert.Empty(notifyCh)
+	drainCh(notifyCh)
+
 	// Second proxy should claim other port
 	p2 := p1
 	p2.TargetServiceID = "cache"
@@ -1746,6 +1753,10 @@ func TestStateProxyManagement(t *testing.T) {
 	assert.Contains([]int{20000, 20001}, svc2.Port)
 	assert.NotEqual(svc.Port, svc2.Port)
 
+	// Should have a notification
+	assert.NotEmpty(notifyCh)
+	drainCh(notifyCh)
+
 	// Store this for later
 	p2token := state.Proxy(svc2.ID).ProxyToken
 
@@ -1754,6 +1765,9 @@ func TestStateProxyManagement(t *testing.T) {
 	p3.TargetServiceID = "db"
 	_, err = state.AddProxy(&p3, "fake-token")
 	require.Error(err)
+
+	// Should have a notification but we'll do nothing so that the next
+	// receive should block (we set cap == 1 above)
 
 	// But if we set a port explicitly it should be OK
 	p3.Config = map[string]interface{}{
@@ -1765,6 +1779,10 @@ func TestStateProxyManagement(t *testing.T) {
 	svc3 := pstate3.Proxy.ProxyService
 	require.Equal("0.0.0.0", svc3.Address)
 	require.Equal(1234, svc3.Port)
+
+	// Should have a notification
+	assert.NotEmpty(notifyCh)
+	drainCh(notifyCh)
 
 	// Update config of an already registered proxy should work
 	p3updated := p3
@@ -1785,9 +1803,15 @@ func TestStateProxyManagement(t *testing.T) {
 	assert.False(ws.Watch(time.After(500*time.Millisecond)),
 		"watch should have fired so ws.Watch should not timeout")
 
+	drainCh(notifyCh)
+
 	// Remove one of the auto-assigned proxies
 	_, err = state.RemoveProxy(svc2.ID)
 	require.NoError(err)
+
+	// Should have a notification
+	assert.NotEmpty(notifyCh)
+	drainCh(notifyCh)
 
 	// Should be able to create a new proxy for that service with the port (it
 	// should have been "freed").
@@ -1826,6 +1850,17 @@ func TestStateProxyManagement(t *testing.T) {
 		for j := i + 1; j < len(tokens); j++ {
 			assert.NotEqual(tokens[i], tokens[j], "tokens for proxy %d and %d match",
 				i+1, j+1)
+		}
+	}
+}
+
+// drainCh drains a channel by reading messages until it would block.
+func drainCh(ch chan struct{}) {
+	for {
+		select {
+		case <-ch:
+		default:
+			return
 		}
 	}
 }
