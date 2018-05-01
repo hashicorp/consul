@@ -6,12 +6,7 @@ import numeral from 'numeral';
 
 const countStatus = function(items, status) {
   if (status === '') {
-    return items.reduce(function(prev, item, i, arr) {
-      return (
-        prev + get(item, 'ChecksPassing') + get(item, 'ChecksWarning') + get(item, 'ChecksCritical')
-      );
-    }, 0);
-    // return get(items, 'length');
+    return get(items, 'length');
   }
   const key = `Checks${ucfirst(status)}`;
   return items.reduce(function(prev, item, i, arr) {
@@ -32,13 +27,19 @@ export default Mixin.create(WithFiltering, {
   },
   healthFilters: computed('items', function() {
     const items = get(this, 'items');
-    return ['', 'passing', 'warning', 'critical'].map(function(item) {
+    const objs = ['', 'passing', 'warning', 'critical'].map(function(item) {
+      const count = countStatus(items, item);
       return {
-        label: `${item === '' ? 'All' : ucfirst(item)} (${numeral(
-          countStatus(items, item)
-        ).format()})`,
+        count: count,
+        label: `${item === '' ? 'All' : ucfirst(item)} (${numeral(count).format()})`,
         value: item,
       };
     });
+    objs[0].label = `All (${numeral(
+      objs.slice(1).reduce(function(prev, item, i, arr) {
+        return prev + item.count;
+      }, 0)
+    ).format()})`;
+    return objs;
   }),
 });
