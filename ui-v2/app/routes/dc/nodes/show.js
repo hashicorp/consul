@@ -30,7 +30,10 @@ export default Route.extend(WithFeedback, {
       return hash({
         ...model,
         ...{
-          tomography: tomography(params.name, model.model.coordinates),
+          tomography:
+            model.model.coordinates.length > 1
+              ? tomography(params.name, model.model.coordinates)
+              : null,
           items: get(model.model, 'Services'),
           sessions: sessionRepo.findByNode(get(model.model, 'Node'), dc),
         },

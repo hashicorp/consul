@@ -8,20 +8,27 @@
         <h1>
             {{ model.Node }}
         </h1>
-        {{tab-nav items=tabs selected=selectedTab}}
+        {{tab-nav
+            items=(compact
+                (array 'Health Checks' 'Services' (if tomography 'Round Trip Time' '') 'Lock Sessions')
+            )
+            selected=(if selectedTab selectedTab 'health-checks')
+        }}
     {{/block-slot}}
     {{#block-slot 'content'}}
-        {{#tab-section id=(slugify tabs.[0]) selected=(eq selectedTab (slugify tabs.[0])) onchange=(action 'change')}}
-            {{partial 'dc/nodes/healthchecks'}}
-        {{/tab-section}}
-        {{#tab-section id=(slugify tabs.[1]) selected=(eq selectedTab (slugify tabs.[1])) onchange=(action 'change')}}
-            {{partial 'dc/nodes/services'}}
-        {{/tab-section}}
-        {{#tab-section id=(slugify tabs.[2]) selected=(eq selectedTab (slugify tabs.[2])) onchange=(action 'change')}}
-            {{partial 'dc/nodes/rtt'}}
-        {{/tab-section}}
-        {{#tab-section id=(slugify tabs.[3]) selected=(eq selectedTab (slugify tabs.[3])) onchange=(action 'change')}}
-            {{partial 'dc/nodes/sessions'}}
-        {{/tab-section}}
+        {{#each
+            (compact
+                (array
+                    (hash id=(slugify 'Health Checks') partial='dc/nodes/healthchecks')
+                    (hash id=(slugify 'Services') partial='dc/nodes/services')
+                    (if tomography (hash id=(slugify 'Round Trip Time') partial='dc/nodes/rtt') '')
+                    (hash id=(slugify 'Lock Sessions') partial='dc/nodes/sessions')
+                )
+            ) as |item|
+        }}
+            {{#tab-section id=item.id selected=(eq (if selectedTab selectedTab 'health-checks') item.id) onchange=(action (mut selectedTab) value="target.value")}}
+                {{partial item.partial}}
+            {{/tab-section}}
+        {{/each}}
     {{/block-slot}}
 {{/app-view}}
