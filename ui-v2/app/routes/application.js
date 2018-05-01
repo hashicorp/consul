@@ -6,6 +6,7 @@ import { next } from '@ember/runloop';
 export default Route.extend({
   // logger: service('logger'),
   init: function() {
+    this._super(...arguments);
     document.documentElement.classList.remove('ember-loading');
   },
   repo: service('dc'),
