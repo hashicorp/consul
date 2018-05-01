@@ -6,7 +6,12 @@ import numeral from 'numeral';
 
 const countStatus = function(items, status) {
   if (status === '') {
-    return get(items, 'length');
+    return items.reduce(function(prev, item, i, arr) {
+      return (
+        prev + get(item, 'ChecksPassing') + get(item, 'ChecksWarning') + get(item, 'ChecksCritical')
+      );
+    }, 0);
+    // return get(items, 'length');
   }
   const key = `Checks${ucfirst(status)}`;
   return items.reduce(function(prev, item, i, arr) {
