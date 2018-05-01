@@ -23,11 +23,9 @@ export default Route.extend(WithKvActions, {
         });
       })
       .catch(e => {
-        // usually when an entire folder structure and no longer exists
-        // a 404 comes back, just redirect to root as the old UI did
-        // TODO: this still gives me an error!?
         if (e.errors && e.errors[0] && e.errors[0].status == '404') {
-          return this.transitionTo('dc.kv.index');
+          this.transitionTo('dc.kv.index');
+          return;
         }
         throw e;
       });

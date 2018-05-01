@@ -42,7 +42,7 @@ export default Mixin.create(WithFeedback, {
       get(this, 'feedback').execute(
         () => {
           return get(this, 'repo')
-            .remove(item) // get('data')
+            .remove(item)
             .then(() => {
               switch (this.routeName) {
                 case 'dc.kv.index':

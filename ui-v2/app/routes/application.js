@@ -43,6 +43,9 @@ export default Route.extend({
         error = e.errors[0];
         error.message = error.title || error.detail || 'Error';
       }
+      if (error.status === '') {
+        error.message = 'Error';
+      }
       // logger(error);
       hash({
         error: error,

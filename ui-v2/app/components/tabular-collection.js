@@ -56,7 +56,7 @@ export default Component.extend(SlotsMixin, {
     // TODO: cheat for the moment
     const $thead = [...$$('main > div')][0];
     if ($thead) {
-      this.set('height', Math.max(0, new Number(e.detail.height - ($footer.clientHeight + 278))));
+      this.set('height', Math.max(0, new Number(e.detail.height - ($footer.clientHeight + 188))));
       this['cell-layout'] = new ZIndexedGrid($thead.clientWidth, 46);
       this.updateItems();
       this.updateScrollPosition();
