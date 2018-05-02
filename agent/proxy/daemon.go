@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"reflect"
 	"sync"
-	"syscall"
 	"time"
 )
 
@@ -151,10 +150,8 @@ func (p *Daemon) keepAlive(stopCh <-chan struct{}) {
 		process = nil
 		if err != nil {
 			p.Logger.Printf("[INFO] agent/proxy: daemon exited with error: %s", err)
-		} else if status, ok := ps.Sys().(syscall.WaitStatus); ok {
-			p.Logger.Printf(
-				"[INFO] agent/proxy: daemon exited with exit code: %d",
-				status.ExitStatus())
+		} else if status, ok := exitStatus(ps); ok {
+			p.Logger.Printf("[INFO] agent/proxy: daemon exited with exit code: %d", status)
 		}
 	}
 }
@@ -176,8 +173,15 @@ func (p *Daemon) start() (*os.Process, error) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
+	// Args must always contain a 0 entry which is usually the executed binary.
+	// To be safe and a bit more robust we default this, but only to prevent
+	// a panic below.
+	if len(cmd.Args) == 0 {
+		cmd.Args = []string{cmd.Path}
+	}
+
 	// Start it
-	p.Logger.Printf("[DEBUG] agent/proxy: starting proxy: %q %#v", cmd.Path, cmd.Args)
+	p.Logger.Printf("[DEBUG] agent/proxy: starting proxy: %q %#v", cmd.Path, cmd.Args[1:])
 	err := cmd.Start()
 	return cmd.Process, err
 }
