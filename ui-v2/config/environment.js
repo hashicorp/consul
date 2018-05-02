@@ -28,6 +28,12 @@ module.exports = function(environment) {
     },
   };
   ENV = Object.assign({}, ENV, {
+    CONSUL_GIT_SHA: (function() {
+      return require('child_process')
+        .execSync('git rev-parse --short HEAD')
+        .toString()
+        .trim();
+    })(),
     CONSUL_VERSION: (function() {
       // see /scripts/dist.sh:8
       const version_go = `${path.dirname(path.dirname(__dirname))}/version/version.go`;
