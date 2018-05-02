@@ -573,11 +573,7 @@ func (l *State) CriticalCheckStates() map[types.CheckID]*CheckState {
 // assumes the proxy's NodeService is already registered via Agent.AddService
 // (since that has to do other book keeping). The token passed here is the ACL
 // token the service used to register itself so must have write on service
-// record.
-//
-// AddProxy returns the newly added proxy, any replaced proxy, and an error.
-// The second return value (replaced proxy) can be used to determine if
-// the process needs to be updated or not.
+// record. AddProxy returns the newly added proxy and an error.
 func (l *State) AddProxy(proxy *structs.ConnectManagedProxy, token string) (*ManagedProxy, error) {
 	if proxy == nil {
 		return nil, fmt.Errorf("no proxy")
