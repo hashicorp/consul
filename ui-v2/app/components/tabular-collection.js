@@ -4,7 +4,7 @@ import Grid from 'ember-collection/layouts/grid';
 import SlotsMixin from 'ember-block-slots';
 import style from 'ember-computed-style';
 
-import { computed, get } from '@ember/object';
+import { computed, get, set } from '@ember/object';
 
 const $$ = document.querySelectorAll.bind(document);
 const createSizeEvent = function(detail) {
@@ -19,14 +19,42 @@ class ZIndexedGrid extends Grid {
     return style;
   }
 }
+const change = function(e) {
+  // TODO: Why am I getting a jQuery event here?!
+  if (e instanceof MouseEvent) {
+    // set(this, 'checked', null);
+    return;
+  }
+  if (e instanceof Event) {
+    const value = e.currentTarget.value;
+    if (value != get(this, 'checked')) {
+      set(this, 'checked', value);
+    } else {
+      set(this, 'checked', null);
+    }
+  } else if (e.detail && e.detail.index) {
+    // set(this, 'checked', null)
+    if (e.detail.confirming) {
+      this.confirming.push(e.detail.index);
+    } else {
+      const pos = this.confirming.indexOf(e.detail.index);
+      if (pos !== -1) {
+        this.confirming.splice(pos, 1);
+      }
+    }
+  }
+};
 export default Component.extend(SlotsMixin, {
   tagName: 'table',
   attributeBindings: ['style'],
   width: 1150,
   height: 500,
   style: style('getStyle'),
+  checked: null,
   init: function() {
     this._super(...arguments);
+    this.change = change.bind(this);
+    this.confirming = [];
     this['cell-layout'] = new ZIndexedGrid(get(this, 'width'), 46);
     this.handler = () => {
       this.resize(createSizeEvent());

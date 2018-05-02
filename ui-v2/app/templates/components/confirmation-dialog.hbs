@@ -1,6 +1,6 @@
 {{yield}}
 {{#if (or permanent (not confirming))}}
-{{#yield-slot 'action' (block-params confirm)}}
+{{#yield-slot 'action' (block-params confirm cancel)}}
     {{yield}}
 {{/yield-slot}}
 {{/if}}

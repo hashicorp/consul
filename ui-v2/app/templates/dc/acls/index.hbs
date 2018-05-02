@@ -33,22 +33,22 @@
                     {{/if}}
                 </td>
             {{/block-slot}}
-            {{#block-slot 'actions' as |index|}}
-                {{#confirmation-dialog}}
+            {{#block-slot 'actions' as |index change checked|}}
+                {{#confirmation-dialog confirming=false index=index}}
                     {{#block-slot 'action' as |confirm|}}
-                        {{#action-group index=index}}
+                        {{#action-group index=index onchange=(action change) checked=(if (eq checked index) 'checked')}}
                             <ul>
                                 <li>
                                     <a href={{href-to 'dc.acls.edit' item.ID}}>Edit</a>
                                 </li>
                                 <li>
-                                    <a onclick={{action confirm 'use' item}}>Use</a>
+                                    <a onclick={{queue (action confirm 'use' item) (action change)}}>Use</a>
                                 </li>
                                 <li>
-                                    <a onclick={{action 'clone'}}>Clone</a>
+                                    <a onclick={{queue (action 'clone')}}>Clone</a>
                                 </li>
                                 <li>
-                                    <a onclick={{action confirm 'delete' item}}>Delete</a>
+                                    <a onclick={{queue (action confirm 'delete' item)}}>Delete</a>
                                 </li>
                             </ul>
                         {{/action-group}}

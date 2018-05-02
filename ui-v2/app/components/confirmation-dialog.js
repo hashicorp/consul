@@ -7,6 +7,7 @@ import { inject as service } from '@ember/service';
 
 const cancel = function() {
   set(this, 'confirming', false);
+  // this.onchange({detail: {confirming: false, index: this.index}});
 };
 const execute = function() {
   this.sendAction(...['actionName', ...get(this, 'arguments')]);
@@ -17,6 +18,7 @@ const confirm = function() {
   set(this, 'arguments', args);
   if (this._isRegistered('dialog')) {
     set(this, 'confirming', true);
+    // this.onchange({detail: {confirming: true, index: this.index}});
   } else {
     get(this, 'confirm')
       .execute(get(this, 'message'))
