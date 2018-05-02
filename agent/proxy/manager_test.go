@@ -17,7 +17,7 @@ func TestManagerClose_noRun(t *testing.T) {
 	t.Parallel()
 
 	// Really we're testing that it doesn't deadlock here.
-	m := NewManager()
+	m := testManager(t)
 	require.NoError(t, m.Close())
 
 	// Close again for sanity
@@ -30,7 +30,7 @@ func TestManagerRun_initialSync(t *testing.T) {
 	t.Parallel()
 
 	state := local.TestState(t)
-	m := NewManager()
+	m := testManager(t)
 	m.State = state
 	defer m.Kill()
 
@@ -57,7 +57,7 @@ func TestManagerRun_syncNew(t *testing.T) {
 	t.Parallel()
 
 	state := local.TestState(t)
-	m := NewManager()
+	m := testManager(t)
 	m.State = state
 	defer m.Kill()
 
@@ -99,7 +99,7 @@ func TestManagerRun_syncDelete(t *testing.T) {
 	t.Parallel()
 
 	state := local.TestState(t)
-	m := NewManager()
+	m := testManager(t)
 	m.State = state
 	defer m.Kill()
 
@@ -138,7 +138,7 @@ func TestManagerRun_syncUpdate(t *testing.T) {
 	t.Parallel()
 
 	state := local.TestState(t)
-	m := NewManager()
+	m := testManager(t)
 	m.State = state
 	defer m.Kill()
 
@@ -179,6 +179,16 @@ func TestManagerRun_syncUpdate(t *testing.T) {
 			r.Fatalf("old path exists")
 		}
 	})
+}
+
+func testManager(t *testing.T) *Manager {
+	m := NewManager()
+
+	// Set these periods low to speed up tests
+	m.CoalescePeriod = 1 * time.Millisecond
+	m.QuiescentPeriod = 1 * time.Millisecond
+
+	return m
 }
 
 // testStateProxy registers a proxy with the given local state and the command
