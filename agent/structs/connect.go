@@ -49,6 +49,8 @@ func (m ProxyExecMode) String() string {
 		return "daemon"
 	case ProxyExecModeScript:
 		return "script"
+	case ProxyExecModeTest:
+		return "test"
 	default:
 		return "unknown"
 	}

@@ -27,6 +27,7 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/local"
+	"github.com/hashicorp/consul/agent/proxy"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/systemd"
 	"github.com/hashicorp/consul/agent/token"
@@ -200,6 +201,9 @@ type Agent struct {
 	// be updated at runtime, so should always be used instead of going to
 	// the configuration directly.
 	tokens *token.Store
+
+	// proxyManager is the proxy process manager for managed Connect proxies.
+	proxyManager *proxy.Manager
 }
 
 func New(c *config.RuntimeConfig) (*Agent, error) {
@@ -352,6 +356,14 @@ func (a *Agent) Start() error {
 	if err := a.loadMetadata(c); err != nil {
 		return err
 	}
+
+	// create the proxy process manager and start it. This is purposely
+	// done here after the local state above is loaded in so we can have
+	// a more accurate initial state view.
+	a.proxyManager = proxy.NewManager()
+	a.proxyManager.State = a.State
+	a.proxyManager.Logger = a.logger
+	go a.proxyManager.Run()
 
 	// Start watching for critical services to deregister, based on their
 	// checks.
@@ -1269,9 +1281,11 @@ func (a *Agent) ShutdownAgent() error {
 		chk.Stop()
 	}
 
-	// Unload all our proxies so that we stop the running processes.
-	if err := a.unloadProxies(); err != nil {
-		a.logger.Printf("[WARN] agent: error stopping managed proxies: %s", err)
+	// Stop the proxy manager
+	// NOTE(mitchellh): we use Kill for now to kill the processes since
+	// snapshotting isn't implemented. This should change to Close later.
+	if err := a.proxyManager.Kill(); err != nil {
+		a.logger.Printf("[WARN] agent: error shutting down proxy manager: %s", err)
 	}
 
 	var err error
@@ -2038,23 +2052,21 @@ func (a *Agent) AddProxy(proxy *structs.ConnectManagedProxy, persist bool) error
 	// Lookup the target service token in state if there is one.
 	token := a.State.ServiceToken(proxy.TargetServiceID)
 
-	/*
-		// Determine if we need to default the command
-		if proxy.ExecMode == structs.ProxyExecModeDaemon && len(proxy.Command) == 0 {
-			// We use the globally configured default command. If it is empty
-			// then we need to determine the subcommand for this agent.
-			cmd := a.config.ConnectProxyDefaultDaemonCommand
-			if len(cmd) == 0 {
-				var err error
-				cmd, err = a.defaultProxyCommand()
-				if err != nil {
-					return err
-				}
+	// Determine if we need to default the command
+	if proxy.ExecMode == structs.ProxyExecModeDaemon && len(proxy.Command) == 0 {
+		// We use the globally configured default command. If it is empty
+		// then we need to determine the subcommand for this agent.
+		cmd := a.config.ConnectProxyDefaultDaemonCommand
+		if len(cmd) == 0 {
+			var err error
+			cmd, err = a.defaultProxyCommand()
+			if err != nil {
+				return err
 			}
-
-			proxy.CommandDefault = cmd
 		}
-	*/
+
+		proxy.CommandDefault = cmd
+	}
 
 	// Add the proxy to local state first since we may need to assign a port which
 	// needs to be coordinate under state lock. AddProxy will generate the

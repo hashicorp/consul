@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"reflect"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -146,9 +147,15 @@ func (p *Daemon) keepAlive(stopCh <-chan struct{}) {
 
 		}
 
-		_, err := process.Wait()
+		ps, err := process.Wait()
 		process = nil
-		p.Logger.Printf("[INFO] agent/proxy: daemon exited: %s", err)
+		if err != nil {
+			p.Logger.Printf("[INFO] agent/proxy: daemon exited with error: %s", err)
+		} else if status, ok := ps.Sys().(syscall.WaitStatus); ok {
+			p.Logger.Printf(
+				"[INFO] agent/proxy: daemon exited with exit code: %d",
+				status.ExitStatus())
+		}
 	}
 }
 
@@ -165,7 +172,12 @@ func (p *Daemon) start() (*os.Process, error) {
 	copy(cmd.Env, p.Command.Env)
 	cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", EnvProxyToken, p.ProxyToken))
 
+	// TODO(mitchellh): temporary until we introduce the file based logging
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
 	// Start it
+	p.Logger.Printf("[DEBUG] agent/proxy: starting proxy: %q %#v", cmd.Path, cmd.Args)
 	err := cmd.Start()
 	return cmd.Process, err
 }

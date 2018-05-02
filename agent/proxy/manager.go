@@ -192,6 +192,7 @@ func (m *Manager) Run() {
 	m.State.NotifyProxy(notifyCh)
 	defer m.State.StopNotifyProxy(notifyCh)
 
+	m.Logger.Println("[DEBUG] agent/proxy: managed Connect proxy manager started")
 	for {
 		// Sync first, before waiting on further notifications so that
 		// we can start with a known-current state.
@@ -203,6 +204,7 @@ func (m *Manager) Run() {
 
 		case <-stopCh:
 			// Stop immediately, no cleanup
+			m.Logger.Println("[DEBUG] agent/proxy: Stopping managed Connect proxy manager")
 			return
 		}
 	}
@@ -298,7 +300,7 @@ func (m *Manager) newProxy(mp *local.ManagedProxy) (Proxy, error) {
 		// Build the command to execute.
 		var cmd exec.Cmd
 		cmd.Path = command[0]
-		cmd.Args = command[1:]
+		cmd.Args = command // idx 0 is path but preserved since it should be
 
 		// Build the daemon structure
 		return &Daemon{

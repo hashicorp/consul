@@ -70,7 +70,7 @@ func TestAgent_Services(t *testing.T) {
 		},
 		TargetServiceID: "mysql",
 	}
-	_, _, err := a.State.AddProxy(prxy1, "")
+	_, err := a.State.AddProxy(prxy1, "")
 	require.NoError(t, err)
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
