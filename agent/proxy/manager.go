@@ -173,7 +173,7 @@ func (m *Manager) Run() {
 		// We wait for anything not running, just so we're more resilient
 		// in the face of state machine issues. Basically any state change
 		// will cause us to quit.
-		for m.runState != managerStateRunning {
+		for m.runState == managerStateRunning {
 			m.cond.Wait()
 		}
 	}()
@@ -240,7 +240,7 @@ func (m *Manager) sync() {
 		delete(state, id)
 
 		// TODO: diff and restart if necessary
-		println(stateProxy)
+		println("DIFF", id, stateProxy)
 	}
 
 	// Remaining entries in state are new proxies. Start them!

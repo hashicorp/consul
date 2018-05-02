@@ -91,6 +91,10 @@ func TestHelperProcess(t *testing.T) {
 	// exists. When that file is removed, this process exits. This can be
 	// used to test restarting.
 	case "restart":
+		ch := make(chan os.Signal, 1)
+		signal.Notify(ch, os.Interrupt)
+		defer signal.Stop(ch)
+
 		// Write the file
 		path := args[0]
 		if err := ioutil.WriteFile(path, []byte("hello"), 0644); err != nil {
@@ -104,6 +108,15 @@ func TestHelperProcess(t *testing.T) {
 			time.Sleep(25 * time.Millisecond)
 			if _, err := os.Stat(path); os.IsNotExist(err) {
 				break
+			}
+
+			select {
+			case <-ch:
+				// We received an interrupt, clean exit
+				os.Remove(path)
+				break
+
+			default:
 			}
 		}
 
