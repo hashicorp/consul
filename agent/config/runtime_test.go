@@ -1811,7 +1811,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			patch: func(rt *RuntimeConfig) {
 				rt.DataDir = dataDir
 				rt.TelemetryAllowedPrefixes = []string{"foo"}
-				rt.TelemetryBlockedPrefixes = []string{"bar", "consul.consul"}
+				rt.TelemetryBlockedPrefixes = []string{"bar", "consul.consul."}
 			},
 			warns: []string{`Filter rule must begin with either '+' or '-': "nix"`},
 		},
@@ -1829,7 +1829,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			patch: func(rt *RuntimeConfig) {
 				rt.DataDir = dataDir
 				rt.TelemetryFilterDefault = false
-				rt.TelemetryAllowedPrefixes = []string{"consul.consul"}
+				rt.TelemetryAllowedPrefixes = []string{"consul.consul."}
 				rt.TelemetryBlockedPrefixes = []string{}
 			},
 		},
@@ -3633,7 +3633,7 @@ func TestFullConfig(t *testing.T) {
 		TelemetryDogstatsdAddr:                      "0wSndumK",
 		TelemetryDogstatsdTags:                      []string{"3N81zSUB", "Xtj8AnXZ"},
 		TelemetryFilterDefault:                      true,
-		TelemetryAllowedPrefixes:                    []string{"oJotS8XJ", "consul.consul"},
+		TelemetryAllowedPrefixes:                    []string{"oJotS8XJ", "consul.consul."},
 		TelemetryBlockedPrefixes:                    []string{"cazlEhGn"},
 		TelemetryMetricsPrefix:                      "ftO6DySn",
 		TelemetryPrometheusRetentionTime:            15 * time.Second,
