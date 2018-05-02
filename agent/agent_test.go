@@ -15,8 +15,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -25,6 +23,7 @@ import (
 	"github.com/hashicorp/consul/types"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/require"
 )
 
 func externalIP() (string, error) {
@@ -1667,6 +1666,27 @@ func TestAgent_loadProxies(t *testing.T) {
 	if _, ok := proxies["rabbitmq-proxy"]; !ok {
 		t.Fatalf("missing proxy")
 	}
+}
+
+func TestAgent_loadProxies_nilProxy(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), `
+		service = {
+			id = "rabbitmq"
+			name = "rabbitmq"
+			port = 5672
+			token = "abc123"
+			connect {
+			}
+		}
+	`)
+	defer a.Shutdown()
+
+	services := a.State.Services()
+	require.Contains(t, services, "rabbitmq")
+	require.Equal(t, "abc123", a.State.ServiceToken("rabbitmq"))
+	require.NotContains(t, services, "rabbitme-proxy")
+	require.Empty(t, a.State.Proxies())
 }
 
 func TestAgent_unloadProxies(t *testing.T) {

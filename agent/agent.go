@@ -2523,6 +2523,9 @@ func (a *Agent) loadProxies(conf *config.RuntimeConfig) error {
 			if err != nil {
 				return fmt.Errorf("failed adding proxy: %s", err)
 			}
+			if proxy == nil {
+				continue
+			}
 			if err := a.AddProxy(proxy, false); err != nil {
 				return fmt.Errorf("failed adding proxy: %s", err)
 			}
