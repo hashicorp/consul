@@ -1,0 +1,15 @@
+div.with-confirmation {
+  @extend %confirmation-dialog, %confirmation-dialog-inline;
+}
+%confirmation-dialog {
+  float: right;
+}
+%confirmation-dialog-inline p {
+  margin-right: 1em;
+  color: $text-note;
+}
+%confirmation-dialog-inline {
+  display: flex;
+  align-items: center;
+  line-height: 1;
+}

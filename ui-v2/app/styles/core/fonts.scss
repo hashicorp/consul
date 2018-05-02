@@ -33,7 +33,8 @@ th,
 }
 %button,
 .with-confirmation p,
-%form-element em {
+%form-element em,
+%feedback-dialog-inline p {
   @extend .is-size-8;
 }
 input {

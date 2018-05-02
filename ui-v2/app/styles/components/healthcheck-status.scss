@@ -2,8 +2,14 @@
 .healthcheck-status {
   @extend %healthcheck-status;
 }
+%healthcheck-status .with-feedback {
+  float: right;
+}
 %healthcheck-status dt {
   font-weight: bold;
+}
+%healthcheck-status dt {
+  margin-bottom: 0.5em;
 }
 %healthcheck-status {
   border: 1px solid;

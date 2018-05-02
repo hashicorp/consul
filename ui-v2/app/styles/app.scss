@@ -57,6 +57,8 @@
 @import 'components/tomography-graph';
 @import 'components/action-group';
 @import 'components/flash-message';
+@import 'components/confirmation-dialog';
+@import 'components/feedback-dialog';
 
 th {
   color: $text-light !important;

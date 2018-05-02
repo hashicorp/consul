@@ -6,6 +6,10 @@ html.template-error div > a {
 %button.type-delete {
   @extend %dangerous-button;
 }
+// no % all copy buttons WILL be buttons
+button.copy-btn {
+  @extend %copy-button;
+}
 %button[type='submit'],
 %button.type-create {
   @extend %primary-button;
@@ -39,13 +43,17 @@ a[rel='back'] {
 %dangerous-button {
   color: $danger;
 }
-
-div.with-confirmation {
-  float: right;
-  display: flex;
-  align-items: center;
+%copy-button {
+  @extend %with-clipboard;
+  color: $blue !important;
+  background-color: transparent !important;
 }
-.with-confirmation p {
-  margin-right: 1em;
-  color: $text-note;
+%copy-button:hover,
+%copy-button:focus,
+%copy-button:active {
+  background-color: $gray;
+}
+%copy-button {
+  border: 0 !important;
+  box-shadow: none !important;
 }

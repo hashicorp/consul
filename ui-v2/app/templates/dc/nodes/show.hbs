@@ -15,13 +15,32 @@
             selected=(if selectedTab selectedTab 'health-checks')
         }}
     {{/block-slot}}
+    {{#block-slot 'actions'}}
+        {{#feedback-dialog type='inline'}}
+            {{#block-slot 'action' as |success error|}}
+                {{#copy-button success=(action success) error=(action error) clipboardText=model.Address title='copy IP address to clipboard'}}
+                    {{model.Address}}
+                {{/copy-button}}
+            {{/block-slot}}
+            {{#block-slot 'success'}}
+                <p>
+                    Copied IP Address!
+                </p>
+            {{/block-slot}}
+            {{#block-slot 'error'}}
+                <p>
+                    Sorry, something went wrong!
+                </p>
+            {{/block-slot}}
+        {{/feedback-dialog}}
+    {{/block-slot}}
     {{#block-slot 'content'}}
         {{#each
             (compact
                 (array
                     (hash id=(slugify 'Health Checks') partial='dc/nodes/healthchecks')
                     (hash id=(slugify 'Services') partial='dc/nodes/services')
-                    (if tomography (hash id=(slugify 'Round Trip Time') partial='dc/nodes/rtt') '')
+     (if tomography (hash id=(slugify 'Round Trip Time') partial='dc/nodes/rtt') '')
                     (hash id=(slugify 'Lock Sessions') partial='dc/nodes/sessions')
                 )
             ) as |item|
