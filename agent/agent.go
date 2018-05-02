@@ -41,7 +41,6 @@ import (
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
-	"github.com/kardianos/osext"
 	"github.com/shirou/gopsutil/host"
 	"golang.org/x/net/http2"
 )
@@ -2112,7 +2111,7 @@ func (a *Agent) RemoveProxy(proxyID string, persist bool) error {
 func (a *Agent) defaultProxyCommand() ([]string, error) {
 	// Get the path to the current exectuable. This is cached once by the
 	// library so this is effectively just a variable read.
-	execPath, err := osext.Executable()
+	execPath, err := os.Executable()
 	if err != nil {
 		return nil, err
 	}
