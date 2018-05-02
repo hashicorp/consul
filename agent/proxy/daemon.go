@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"reflect"
 	"sync"
 	"time"
 )
@@ -197,4 +198,19 @@ func (p *Daemon) Stop() error {
 
 	return err
 	//return p.Command.Process.Kill()
+}
+
+// Equal implements Proxy to check for equality.
+func (p *Daemon) Equal(raw Proxy) bool {
+	p2, ok := raw.(*Daemon)
+	if !ok {
+		return false
+	}
+
+	// We compare equality on a subset of the command configuration
+	return p.ProxyToken == p2.ProxyToken &&
+		p.Command.Path == p2.Command.Path &&
+		p.Command.Dir == p2.Command.Dir &&
+		reflect.DeepEqual(p.Command.Args, p2.Command.Args) &&
+		reflect.DeepEqual(p.Command.Env, p2.Command.Env)
 }

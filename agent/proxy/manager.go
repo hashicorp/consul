@@ -225,22 +225,35 @@ func (m *Manager) sync() {
 	for id, proxy := range m.proxies {
 		// Get the proxy.
 		stateProxy, ok := state[id]
-		if !ok {
-			// Proxy is deregistered. Remove it from our map and stop it
-			delete(m.proxies, id)
-			if err := proxy.Stop(); err != nil {
-				m.Logger.Printf("[ERROR] agent/proxy: failed to stop deregistered proxy for %q: %s", id, err)
+		if ok {
+			// Remove the proxy from the state so we don't start it new.
+			delete(state, id)
+
+			// Make the proxy so we can compare. This does not start it.
+			proxy2, err := m.newProxy(stateProxy)
+			if err != nil {
+				m.Logger.Printf("[ERROR] agent/proxy: failed to initialize proxy for %q: %s", id, err)
+				continue
 			}
 
-			continue
+			// If the proxies are equal, then do nothing
+			if proxy.Equal(proxy2) {
+				continue
+			}
+
+			// Proxies are not equal, so we should stop it. We add it
+			// back to the state here (unlikely case) so the loop below starts
+			// the new one.
+			state[id] = stateProxy
+
+			// Continue out of `if` as if proxy didn't exist so we stop it
 		}
 
-		// Proxy is in the state. Always delete it so that the remainder
-		// are NEW proxies that we start after this loop.
-		delete(state, id)
-
-		// TODO: diff and restart if necessary
-		println("DIFF", id, stateProxy)
+		// Proxy is deregistered. Remove it from our map and stop it
+		delete(m.proxies, id)
+		if err := proxy.Stop(); err != nil {
+			m.Logger.Printf("[ERROR] agent/proxy: failed to stop deregistered proxy for %q: %s", id, err)
+		}
 	}
 
 	// Remaining entries in state are new proxies. Start them!

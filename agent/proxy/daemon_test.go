@@ -3,6 +3,7 @@ package proxy
 import (
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 
@@ -96,4 +97,94 @@ func TestDaemonRestart(t *testing.T) {
 
 	// File should re-appear because the process is restart
 	waitFile()
+}
+
+func TestDaemonEqual(t *testing.T) {
+	cases := []struct {
+		Name     string
+		D1, D2   Proxy
+		Expected bool
+	}{
+		{
+			"Different type",
+			&Daemon{
+				Command: &exec.Cmd{},
+			},
+			&Noop{},
+			false,
+		},
+
+		{
+			"Nil",
+			&Daemon{
+				Command: &exec.Cmd{},
+			},
+			nil,
+			false,
+		},
+
+		{
+			"Equal",
+			&Daemon{
+				Command: &exec.Cmd{},
+			},
+			&Daemon{
+				Command: &exec.Cmd{},
+			},
+			true,
+		},
+
+		{
+			"Different path",
+			&Daemon{
+				Command: &exec.Cmd{Path: "/foo"},
+			},
+			&Daemon{
+				Command: &exec.Cmd{Path: "/bar"},
+			},
+			false,
+		},
+
+		{
+			"Different dir",
+			&Daemon{
+				Command: &exec.Cmd{Dir: "/foo"},
+			},
+			&Daemon{
+				Command: &exec.Cmd{Dir: "/bar"},
+			},
+			false,
+		},
+
+		{
+			"Different args",
+			&Daemon{
+				Command: &exec.Cmd{Args: []string{"foo"}},
+			},
+			&Daemon{
+				Command: &exec.Cmd{Args: []string{"bar"}},
+			},
+			false,
+		},
+
+		{
+			"Different token",
+			&Daemon{
+				Command:    &exec.Cmd{},
+				ProxyToken: "one",
+			},
+			&Daemon{
+				Command:    &exec.Cmd{},
+				ProxyToken: "two",
+			},
+			false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			actual := tc.D1.Equal(tc.D2)
+			require.Equal(t, tc.Expected, actual)
+		})
+	}
 }

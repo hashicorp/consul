@@ -31,4 +31,12 @@ type Proxy interface {
 	// it should disallow Start from working again. If the proxy is already
 	// stopped, this should not return an error.
 	Stop() error
+
+	// Equal returns true if the argument is equal to the proxy being called.
+	// This is called by the manager to determine if a change in configuration
+	// results in a proxy that needs to be restarted or not. If Equal returns
+	// false, then the manager will stop the old proxy and start the new one.
+	// If Equal returns true, the old proxy will remain running and the new
+	// one will be ignored.
+	Equal(Proxy) bool
 }

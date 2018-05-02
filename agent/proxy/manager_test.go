@@ -134,6 +134,53 @@ func TestManagerRun_syncDelete(t *testing.T) {
 	})
 }
 
+func TestManagerRun_syncUpdate(t *testing.T) {
+	t.Parallel()
+
+	state := local.TestState(t)
+	m := NewManager()
+	m.State = state
+	defer m.Kill()
+
+	// Start the manager
+	go m.Run()
+
+	// Add the first proxy
+	td, closer := testTempDir(t)
+	defer closer()
+	path := filepath.Join(td, "file")
+	testStateProxy(t, state, "web", helperProcess("restart", path))
+
+	// We should see the path appear shortly
+	retry.Run(t, func(r *retry.R) {
+		_, err := os.Stat(path)
+		if err == nil {
+			return
+		}
+		r.Fatalf("error waiting for path: %s", err)
+	})
+
+	// Update the proxy with a new path
+	oldPath := path
+	path = path + "2"
+	testStateProxy(t, state, "web", helperProcess("restart", path))
+	retry.Run(t, func(r *retry.R) {
+		_, err := os.Stat(path)
+		if err == nil {
+			return
+		}
+		r.Fatalf("error waiting for path: %s", err)
+	})
+
+	// Old path should be gone
+	retry.Run(t, func(r *retry.R) {
+		_, err := os.Stat(oldPath)
+		if err == nil {
+			r.Fatalf("old path exists")
+		}
+	})
+}
+
 // testStateProxy registers a proxy with the given local state and the command
 // (expected to be from the helperProcess function call). It returns the
 // ID for deregistration.
