@@ -120,6 +120,24 @@ func TestHelperProcess(t *testing.T) {
 			}
 		}
 
+	case "stop-kill":
+		// Setup listeners so it is ignored
+		ch := make(chan os.Signal, 1)
+		signal.Notify(ch, os.Interrupt)
+		defer signal.Stop(ch)
+
+		path := args[0]
+		data := []byte(os.Getenv(EnvProxyToken))
+		for {
+			if err := ioutil.WriteFile(path, data, 0644); err != nil {
+				t.Fatalf("err: %s", err)
+			}
+			time.Sleep(25 * time.Millisecond)
+		}
+
+		// Run forever
+		<-make(chan struct{})
+
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %q\n", cmd)
 		os.Exit(2)

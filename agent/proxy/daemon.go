@@ -38,11 +38,16 @@ type Daemon struct {
 	// a file.
 	Logger *log.Logger
 
+	// For tests, they can set this to change the default duration to wait
+	// for a graceful quit.
+	gracefulWait time.Duration
+
 	// process is the started process
-	lock    sync.Mutex
-	stopped bool
-	stopCh  chan struct{}
-	process *os.Process
+	lock     sync.Mutex
+	stopped  bool
+	stopCh   chan struct{}
+	exitedCh chan struct{}
+	process  *os.Process
 }
 
 // Start starts the daemon and keeps it running.
@@ -64,17 +69,21 @@ func (p *Daemon) Start() error {
 
 	// Setup our stop channel
 	stopCh := make(chan struct{})
+	exitedCh := make(chan struct{})
 	p.stopCh = stopCh
+	p.exitedCh = exitedCh
 
 	// Start the loop.
-	go p.keepAlive(stopCh)
+	go p.keepAlive(stopCh, exitedCh)
 
 	return nil
 }
 
 // keepAlive starts and keeps the configured process alive until it
 // is stopped via Stop.
-func (p *Daemon) keepAlive(stopCh <-chan struct{}) {
+func (p *Daemon) keepAlive(stopCh <-chan struct{}, exitedCh chan<- struct{}) {
+	defer close(exitedCh)
+
 	p.lock.Lock()
 	process := p.process
 	p.lock.Unlock()
@@ -196,24 +205,42 @@ func (p *Daemon) start() (*os.Process, error) {
 // then this returns no error.
 func (p *Daemon) Stop() error {
 	p.lock.Lock()
-	defer p.lock.Unlock()
 
 	// If we're already stopped or never started, then no problem.
 	if p.stopped || p.process == nil {
 		// In the case we never even started, calling Stop makes it so
 		// that we can't ever start in the future, either, so mark this.
 		p.stopped = true
+		p.lock.Unlock()
 		return nil
 	}
 
 	// Note that we've stopped
 	p.stopped = true
 	close(p.stopCh)
+	process := p.process
+	p.lock.Unlock()
 
-	err := p.process.Signal(os.Interrupt)
+	gracefulWait := p.gracefulWait
+	if gracefulWait == 0 {
+		gracefulWait = 5 * time.Second
+	}
 
-	return err
-	//return p.Command.Process.Kill()
+	// First, try a graceful stop
+	err := process.Signal(os.Interrupt)
+	if err == nil {
+		select {
+		case <-p.exitedCh:
+			// Success!
+			return nil
+
+		case <-time.After(gracefulWait):
+			// Interrupt didn't work
+		}
+	}
+
+	// Graceful didn't work, forcibly kill
+	return process.Kill()
 }
 
 // Equal implements Proxy to check for equality.

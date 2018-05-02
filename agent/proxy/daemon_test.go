@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/go-uuid"
@@ -97,6 +98,48 @@ func TestDaemonRestart(t *testing.T) {
 
 	// File should re-appear because the process is restart
 	waitFile()
+}
+
+func TestDaemonStop_kill(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	td, closer := testTempDir(t)
+	defer closer()
+
+	path := filepath.Join(td, "file")
+
+	d := &Daemon{
+		Command:      helperProcess("stop-kill", path),
+		ProxyToken:   "hello",
+		Logger:       testLogger,
+		gracefulWait: 200 * time.Millisecond,
+	}
+	require.NoError(d.Start())
+
+	// Wait for the file to exist
+	retry.Run(t, func(r *retry.R) {
+		_, err := os.Stat(path)
+		if err == nil {
+			return
+		}
+
+		r.Fatalf("error: %s", err)
+	})
+
+	// Stop the process
+	require.NoError(d.Stop())
+
+	// State the file so that we can get the mtime
+	fi, err := os.Stat(path)
+	require.NoError(err)
+	mtime := fi.ModTime()
+
+	// The mtime shouldn't change
+	time.Sleep(100 * time.Millisecond)
+	fi, err = os.Stat(path)
+	require.NoError(err)
+	require.Equal(mtime, fi.ModTime())
 }
 
 func TestDaemonEqual(t *testing.T) {
