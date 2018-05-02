@@ -14,16 +14,7 @@
             {{#yield-slot 'row'}}{{yield cell.item cell.index}}{{/yield-slot}}
 {{#if hasActions }}
             <td class="actions">
-                <div>
-                    <input type="radio" name="actions" id="actions_{{cell.index}}" />
-                    <label for="actions_{{cell.index}}">
-                        <span>Open</span>
-                    </label>
-                    <label for="actions_close">
-                        <span>Close</span>
-                    </label>
-                    {{#yield-slot 'actions'}}{{yield cell.item cell.index}}{{/yield-slot}}
-                </div>
+                {{#yield-slot 'actions' (block-params cell.index)}}{{yield cell.item cell.index}}{{/yield-slot}}
             </td>
 {{/if}}
         </tr>

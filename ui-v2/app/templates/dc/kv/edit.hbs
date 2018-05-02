@@ -49,11 +49,12 @@
                 {{#block-slot 'action' as |confirm|}}
                     <button type="button" class="type-delete" {{ action confirm "invalidateSession" session }}>Invalidate Session</button>
                 {{/block-slot}}
-                {{#block-slot 'dialog'}}
+                {{#block-slot 'dialog' as |execute cancel message|}}
                     <p>
-                        Are you sure you want to invalidate this session?
+                        {{message}}
                     </p>
-                    <button type="button" class="type-cancel" {{ action cancel}}>Cancel</button>
+                    <button type="button" class="type-delete" {{action execute}}>Confirm Invalidation</button>
+                    <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
                 {{/block-slot}}
             {{/confirmation-dialog}}
             </div>

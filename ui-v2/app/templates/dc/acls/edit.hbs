@@ -37,11 +37,12 @@
             {{#block-slot 'action' as |confirm|}}
                 <button type="button" {{ action confirm 'use' item }}>Use token</button>
             {{/block-slot}}
-            {{#block-slot 'dialog'}}
+            {{#block-slot 'dialog' as |execute cancel message|}}
                 <p>
-                    Are you sure you want to use this ACL token?
+                    {{message}}
                 </p>
-                <button type="button" class="type-cancel" {{ action cancel}}>Cancel</button>
+                <button type="button" class="type-delete" {{action execute}}>Confirm Use</button>
+                <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
             {{/block-slot}}
         {{/confirmation-dialog}}
 {{/if}}

@@ -1,11 +1,5 @@
-td.actions > div {
+.action-group {
   @extend %action-group;
-}
-th.actions input {
-  display: none;
-}
-th.actions {
-  text-align: right;
 }
 %action-group label {
   border-radius: $radius-small;
@@ -98,10 +92,12 @@ th.actions {
   padding: 10px 10px;
 }
 %action-group input[type='radio'],
-%action-group input[type='radio'] ~ ul {
+%action-group input[type='radio'] ~ ul,
+%action-group input[type='radio'] ~ .with-confirmation > ul {
   display: none;
 }
-%action-group input[type='radio']:checked ~ ul {
+%action-group input[type='radio']:checked ~ ul,
+%action-group input[type='radio']:checked ~ .with-confirmation > ul {
   display: block;
 }
 %action-group input[type='radio']:checked ~ label:last-of-type {

@@ -36,11 +36,12 @@
             {{#block-slot 'action' as |confirm|}}
                 <button type="button" class="type-delete" {{action confirm 'delete' item parent}}>Delete</button>
             {{/block-slot}}
-            {{#block-slot 'dialog'}}
+            {{#block-slot 'dialog' as |execute cancel message|}}
                 <p>
-                    Are you sure you want to delete {{item.basename}}?
+                    {{message}}
                 </p>
-                <button type="button" class="type-cancel" {{ action cancel}}>Cancel</button>
+                <button type="button" class="type-delete" {{action execute}}>Confirm Delete</button>
+                <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
             {{/block-slot}}
         {{/confirmation-dialog}}
 {{/if}}

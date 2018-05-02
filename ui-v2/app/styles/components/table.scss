@@ -10,6 +10,16 @@ td button {
   position: relative;
   top: -6px;
 }
+th.actions input {
+  display: none;
+}
+th.actions {
+  text-align: right;
+}
+td.actions .with-confirmation.confirming {
+  position: absolute;
+  right: 0;
+}
 table th,
 table td,
 table td a {
