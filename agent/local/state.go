@@ -722,7 +722,11 @@ func (l *State) Proxies() map[string]*ManagedProxy {
 
 // NotifyProxy will register a channel to receive messages when the
 // configuration or set of proxies changes. This will not block on
-// channel send so ensure the channel has a large enough buffer.
+// channel send so ensure the channel has a buffer. Note that any buffer
+// size is generally fine since actual data is not sent over the channel,
+// so a dropped send due to a full buffer does not result in any loss of
+// data. The fact that a buffer already contains a notification means that
+// the receiver will still be notified that changes occurred.
 //
 // NOTE(mitchellh): This could be more generalized but for my use case I
 // only needed proxy events. In the future if it were to be generalized I
