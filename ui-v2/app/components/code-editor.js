@@ -1,5 +1,6 @@
 import Component from '@ember/component';
 
 export default Component.extend({
-  onkeyup: function(){}
+  mode: 'application/json',
+  onkeyup: function() {},
 });
