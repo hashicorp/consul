@@ -1,9 +1,5 @@
 package structs
 
-import (
-	"fmt"
-)
-
 // ServiceDefinition is used to JSON decode the Service definitions. For
 // documentation on specific fields see NodeService which is better documented.
 type ServiceDefinition struct {
@@ -55,17 +51,9 @@ func (s *ServiceDefinition) ConnectManagedProxy() (*ConnectManagedProxy, error) 
 	// which we shouldn't hard code ourselves here...
 	ns := s.NodeService()
 
-	execMode := ProxyExecModeUnspecified
-	switch s.Connect.Proxy.ExecMode {
-	case "":
-		// Use default
-		break
-	case "daemon":
-		execMode = ProxyExecModeDaemon
-	case "script":
-		execMode = ProxyExecModeScript
-	default:
-		return nil, fmt.Errorf("invalid exec mode: %s", s.Connect.Proxy.ExecMode)
+	execMode, err := NewProxyExecMode(s.Connect.Proxy.ExecMode)
+	if err != nil {
+		return nil, err
 	}
 
 	p := &ConnectManagedProxy{

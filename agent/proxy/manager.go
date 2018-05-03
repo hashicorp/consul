@@ -332,9 +332,6 @@ func (m *Manager) newProxy(mp *local.ManagedProxy) (Proxy, error) {
 	switch p.ExecMode {
 	case structs.ProxyExecModeDaemon:
 		command := p.Command
-		if len(command) == 0 {
-			command = p.CommandDefault
-		}
 
 		// This should never happen since validation should happen upstream
 		// but verify it because the alternative is to panic below.

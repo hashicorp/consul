@@ -2051,20 +2051,11 @@ func (a *Agent) AddProxy(proxy *structs.ConnectManagedProxy, persist bool) error
 	// Lookup the target service token in state if there is one.
 	token := a.State.ServiceToken(proxy.TargetServiceID)
 
-	// Determine if we need to default the command
-	if proxy.ExecMode == structs.ProxyExecModeDaemon && len(proxy.Command) == 0 {
-		// We use the globally configured default command. If it is empty
-		// then we need to determine the subcommand for this agent.
-		cmd := a.config.ConnectProxyDefaultDaemonCommand
-		if len(cmd) == 0 {
-			var err error
-			cmd, err = a.defaultProxyCommand()
-			if err != nil {
-				return err
-			}
-		}
-
-		proxy.CommandDefault = cmd
+	// Copy the basic proxy structure so it isn't modified w/ defaults
+	proxyCopy := *proxy
+	proxy = &proxyCopy
+	if err := a.applyProxyDefaults(proxy); err != nil {
+		return err
 	}
 
 	// Add the proxy to local state first since we may need to assign a port which
@@ -2090,6 +2081,47 @@ func (a *Agent) AddProxy(proxy *structs.ConnectManagedProxy, persist bool) error
 	return nil
 }
 
+// applyProxyDefaults modifies the given proxy by applying any configured
+// defaults, such as the default execution mode, command, etc.
+func (a *Agent) applyProxyDefaults(proxy *structs.ConnectManagedProxy) error {
+	// Set the default exec mode
+	if proxy.ExecMode == structs.ProxyExecModeUnspecified {
+		mode, err := structs.NewProxyExecMode(a.config.ConnectProxyDefaultExecMode)
+		if err != nil {
+			return err
+		}
+
+		proxy.ExecMode = mode
+	}
+	if proxy.ExecMode == structs.ProxyExecModeUnspecified {
+		proxy.ExecMode = structs.ProxyExecModeDaemon
+	}
+
+	// Set the default command to the globally configured default
+	if len(proxy.Command) == 0 {
+		switch proxy.ExecMode {
+		case structs.ProxyExecModeDaemon:
+			proxy.Command = a.config.ConnectProxyDefaultDaemonCommand
+
+		case structs.ProxyExecModeScript:
+			proxy.Command = a.config.ConnectProxyDefaultScriptCommand
+		}
+	}
+
+	// If there is no globally configured default we need to get the
+	// default command so we can do "consul connect proxy"
+	if len(proxy.Command) == 0 {
+		command, err := defaultProxyCommand()
+		if err != nil {
+			return err
+		}
+
+		proxy.Command = command
+	}
+
+	return nil
+}
+
 // RemoveProxy stops and removes a local proxy instance.
 func (a *Agent) RemoveProxy(proxyID string, persist bool) error {
 	// Validate proxyID
@@ -2105,19 +2137,6 @@ func (a *Agent) RemoveProxy(proxyID string, persist bool) error {
 	// TODO(banks): unpersist proxy
 
 	return nil
-}
-
-// defaultProxyCommand returns the default Connect managed proxy command.
-func (a *Agent) defaultProxyCommand() ([]string, error) {
-	// Get the path to the current exectuable. This is cached once by the
-	// library so this is effectively just a variable read.
-	execPath, err := os.Executable()
-	if err != nil {
-		return nil, err
-	}
-
-	// "consul connect proxy" default value for managed daemon proxy
-	return []string{execPath, "connect", "proxy"}, nil
 }
 
 func (a *Agent) cancelCheckMonitors(checkID types.CheckID) {
@@ -2750,4 +2769,17 @@ func (a *Agent) registerCache() {
 		RefreshTimer:   0,
 		RefreshTimeout: 10 * time.Minute,
 	})
+}
+
+// defaultProxyCommand returns the default Connect managed proxy command.
+func defaultProxyCommand() ([]string, error) {
+	// Get the path to the current exectuable. This is cached once by the
+	// library so this is effectively just a variable read.
+	execPath, err := os.Executable()
+	if err != nil {
+		return nil, err
+	}
+
+	// "consul connect proxy" default value for managed daemon proxy
+	return []string{execPath, "connect", "proxy"}, nil
 }

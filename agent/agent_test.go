@@ -2389,6 +2389,7 @@ func TestAgent_AddProxy(t *testing.T) {
 
 			// Test the ID was created as we expect.
 			got := a.State.Proxy("web-proxy")
+			tt.proxy.ProxyService = got.Proxy.ProxyService
 			require.Equal(tt.proxy, got.Proxy)
 		})
 	}
@@ -2412,12 +2413,14 @@ func TestAgent_RemoveProxy(t *testing.T) {
 	// Add a proxy for web
 	pReg := &structs.ConnectManagedProxy{
 		TargetServiceID: "web",
+		ExecMode:        structs.ProxyExecModeDaemon,
 		Command:         []string{"foo"},
 	}
 	require.NoError(a.AddProxy(pReg, false))
 
 	// Test the ID was created as we expect.
 	gotProxy := a.State.Proxy("web-proxy")
+	gotProxy.Proxy.ProxyService = nil
 	require.Equal(pReg, gotProxy.Proxy)
 
 	err := a.RemoveProxy("web-proxy", false)

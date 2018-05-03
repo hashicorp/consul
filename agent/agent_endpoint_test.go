@@ -2334,6 +2334,7 @@ func TestAgentConnectProxyConfig_Blocking(t *testing.T) {
 		},
 		Connect: &structs.ServiceDefinitionConnect{
 			Proxy: &structs.ServiceDefinitionConnectProxy{
+				Command: []string{"tubes.sh"},
 				Config: map[string]interface{}{
 					"bind_port":          1234,
 					"connect_timeout_ms": 500,
@@ -2352,9 +2353,9 @@ func TestAgentConnectProxyConfig_Blocking(t *testing.T) {
 		ProxyServiceID:    "test-proxy",
 		TargetServiceID:   "test",
 		TargetServiceName: "test",
-		ContentHash:       "365a50cbb9a748b6",
+		ContentHash:       "4662e51e78609569",
 		ExecMode:          "daemon",
-		Command:           []string{"consul", "connect", "proxy"},
+		Command:           []string{"tubes.sh"},
 		Config: map[string]interface{}{
 			"upstreams": []interface{}{
 				map[string]interface{}{
@@ -2372,7 +2373,7 @@ func TestAgentConnectProxyConfig_Blocking(t *testing.T) {
 	ur, err := copystructure.Copy(expectedResponse)
 	require.NoError(t, err)
 	updatedResponse := ur.(*api.ConnectProxyConfig)
-	updatedResponse.ContentHash = "538d0366b7b1dc3e"
+	updatedResponse.ContentHash = "23b5b6b3767601e1"
 	upstreams := updatedResponse.Config["upstreams"].([]interface{})
 	upstreams = append(upstreams,
 		map[string]interface{}{
@@ -2519,6 +2520,10 @@ func TestAgentConnectProxyConfig_Blocking(t *testing.T) {
 func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 	t.Parallel()
 
+	// Get the default command to compare below
+	defaultCommand, err := defaultProxyCommand()
+	require.NoError(t, err)
+
 	// Define a local service with a managed proxy. It's registered in the test
 	// loop to make sure agent state is predictable whatever order tests execute
 	// since some alter this service config.
@@ -2555,7 +2560,7 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 			`,
 			proxy:       structs.ServiceDefinitionConnectProxy{},
 			wantMode:    api.ProxyExecModeDaemon,
-			wantCommand: []string{"consul", "connect", "proxy"},
+			wantCommand: defaultCommand,
 			wantConfig: map[string]interface{}{
 				"bind_address":          "0.0.0.0",
 				"bind_port":             10000,            // "randomly" chosen from our range of 1
@@ -2629,7 +2634,7 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 				},
 			},
 			wantMode:    api.ProxyExecModeDaemon,
-			wantCommand: []string{"consul", "connect", "proxy"},
+			wantCommand: defaultCommand,
 			wantConfig: map[string]interface{}{
 				"bind_address":          "0.0.0.0",
 				"bind_port":             10000,            // "randomly" chosen from our range of 1

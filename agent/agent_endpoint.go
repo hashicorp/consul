@@ -1007,33 +1007,6 @@ func (s *HTTPServer) AgentConnectProxyConfig(resp http.ResponseWriter, req *http
 				}
 			}
 
-			execMode := "daemon"
-			// If there is a global default mode use that instead
-			if s.agent.config.ConnectProxyDefaultExecMode != "" {
-				execMode = s.agent.config.ConnectProxyDefaultExecMode
-			}
-			// If it's actually set though, use the one set
-			if proxy.Proxy.ExecMode != structs.ProxyExecModeUnspecified {
-				execMode = proxy.Proxy.ExecMode.String()
-			}
-
-			// TODO(banks): default the binary to current binary. Probably needs to be
-			// done deeper though as it will be needed for actually managing proxy
-			// lifecycle.
-			command := proxy.Proxy.Command
-			if len(command) == 0 {
-				if execMode == "daemon" {
-					command = s.agent.config.ConnectProxyDefaultDaemonCommand
-				}
-				if execMode == "script" {
-					command = s.agent.config.ConnectProxyDefaultScriptCommand
-				}
-			}
-			// No global defaults set either...
-			if len(command) == 0 {
-				command = []string{"consul", "connect", "proxy"}
-			}
-
 			// Set defaults for anything that is still not specified but required.
 			// Note that these are not included in the content hash. Since we expect
 			// them to be static in general but some like the default target service
@@ -1061,8 +1034,8 @@ func (s *HTTPServer) AgentConnectProxyConfig(resp http.ResponseWriter, req *http
 				TargetServiceID:   target.ID,
 				TargetServiceName: target.Service,
 				ContentHash:       contentHash,
-				ExecMode:          api.ProxyExecMode(execMode),
-				Command:           command,
+				ExecMode:          api.ProxyExecMode(proxy.Proxy.ExecMode.String()),
+				Command:           proxy.Proxy.Command,
 				Config:            config,
 			}
 			return contentHash, reply, nil
