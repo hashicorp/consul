@@ -203,7 +203,8 @@ func TestManagerRun_daemonLogs(t *testing.T) {
 	m.LogDir = filepath.Join(td, "logs")
 
 	// Create the service and calculate the log paths
-	id := testStateProxy(t, state, "web", helperProcess("output"))
+	path := filepath.Join(td, "notify")
+	id := testStateProxy(t, state, "web", helperProcess("output", path))
 	stdoutPath := logPath(m.LogDir, id, "stdout")
 	stderrPath := logPath(m.LogDir, id, "stderr")
 
@@ -212,12 +213,8 @@ func TestManagerRun_daemonLogs(t *testing.T) {
 
 	// We should see the path appear shortly
 	retry.Run(t, func(r *retry.R) {
-		if _, err := os.Stat(stdoutPath); err != nil {
+		if _, err := os.Stat(path); err != nil {
 			r.Fatalf("error waiting for stdout path: %s", err)
-		}
-
-		if _, err := os.Stat(stderrPath); err != nil {
-			r.Fatalf("error waiting for stderr path: %s", err)
 		}
 	})
 

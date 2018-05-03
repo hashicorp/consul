@@ -141,6 +141,18 @@ func TestHelperProcess(t *testing.T) {
 	case "output":
 		fmt.Fprintf(os.Stdout, "hello stdout\n")
 		fmt.Fprintf(os.Stderr, "hello stderr\n")
+
+		// Sync to be sure it is written out of buffers
+		os.Stdout.Sync()
+		os.Stderr.Sync()
+
+		// Output a file to signal we've written to stdout/err
+		path := args[0]
+		if err := ioutil.WriteFile(path, []byte("hello"), 0644); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+			os.Exit(1)
+		}
+
 		<-make(chan struct{})
 
 	default:
