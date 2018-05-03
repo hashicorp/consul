@@ -55,7 +55,7 @@ export default Component.extend(SlotsMixin, {
     this._super(...arguments);
     this.change = change.bind(this);
     this.confirming = [];
-    this['cell-layout'] = new ZIndexedGrid(get(this, 'width'), 46);
+    this['cell-layout'] = new ZIndexedGrid(get(this, 'width'), 50);
     this.handler = () => {
       this.resize(createSizeEvent());
     };
@@ -85,7 +85,7 @@ export default Component.extend(SlotsMixin, {
     const $thead = [...$$('main > div')][0];
     if ($thead) {
       this.set('height', Math.max(0, new Number(e.detail.height - ($footer.clientHeight + 188))));
-      this['cell-layout'] = new ZIndexedGrid($thead.clientWidth, 46);
+      this['cell-layout'] = new ZIndexedGrid($thead.clientWidth, 50);
       this.updateItems();
       this.updateScrollPosition();
     }

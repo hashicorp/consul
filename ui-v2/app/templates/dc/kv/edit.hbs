@@ -14,7 +14,7 @@
 {{#if item.Key }}
             {{left-trim item.Key parent.Key }}
 {{else}}
-            &nbsp;
+            New Key / Value
 {{/if}}
         </h1>
     {{/block-slot}}
@@ -34,16 +34,20 @@
                     <dd>{{session.ID}}</dd>
                     <dt>Behavior</dt>
                     <dd><{{session.Behavior}}/dd>
+{{#if session.Delay }}
                     <dt>Delay</dt>
                     <dd><{{session.LockDelay}}/dd>
+{{/if}}
+{{#if session.TTL }}
                     <dt>TTL</dt>
                     <dd>{{session.TTL}}</dd>
+{{/if}}
+{{#if (gt session.Checks.length 0)}}
                     <dt>Health Checks</dt>
                     <dd>
-            {{#if (gt session.Checks 0)}}
                         {{ join ', ' session.Checks}}
-            {{/if}}
                     </dd>
+{{/if}}
                 </dl>
                 {{#confirmation-dialog message='Are you sure you want to invalidate this session?'}}
                     {{#block-slot 'action' as |confirm|}}

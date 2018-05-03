@@ -1,7 +1,5 @@
 @import 'core/custom-queries';
-@import 'core/color';
-@import 'core/fonts';
-@import 'core/decoration';
+@import 'core/variables';
 
 @import 'ember-bulma-css/utilities/_all';
 @import 'ember-bulma-css/base/_all';
@@ -37,6 +35,8 @@
 // @import 'ember-bulma-css/layout/_all';
 
 @import 'core/reset';
+@import 'core/typography';
+@import 'core/color';
 @import 'core/layout';
 
 @import 'components/loader';
@@ -49,7 +49,6 @@
 @import 'components/healthchecked-resource';
 @import 'components/expanded-single-select';
 @import 'components/app-view';
-@import 'components/app-settings';
 @import 'components/tabular-collection';
 @import 'components/list-collection';
 @import 'components/table';
@@ -60,6 +59,9 @@
 @import 'components/confirmation-dialog';
 @import 'components/feedback-dialog';
 
+@import 'routes/dc/service/index';
+@import 'routes/dc/kv/index';
+
 th {
   color: $text-light !important;
 }
@@ -68,6 +70,9 @@ main a {
 }
 main a[rel*='help'] {
   @extend %with-info;
+}
+main label a[rel*='help'] {
+  color: $text-note;
 }
 [role='tabpanel'] > p:only-child [rel*='help']::after {
   content: none;

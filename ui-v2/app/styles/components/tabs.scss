@@ -4,21 +4,31 @@ main header nav:last-child {
 .tab-section {
   @extend %tab-section;
 }
+%tab-nav label {
+  cursor: pointer;
+}
 .tabs ul {
   border: 0;
 }
-.tabs ul li:not(:first-child) {
-  margin-left: 37px;
+.tabs a {
+  border-bottom: 3px solid;
 }
 .tabs a {
-  border-bottom: 3px solid transparent;
-  padding: 12px 5px;
+  border-color: transparent;
+  color: $text-gray;
 }
 .tabs a:hover,
 .tabs a:focus,
 .tabs a:active,
 .tabs .selected a {
-  border-bottom: 3px solid $magenta-600;
+  border-color: $magenta-600;
+  color: $magenta-600;
+}
+.tabs ul li:not(:first-child) {
+  margin-left: 37px;
+}
+.tabs a {
+  padding: 12px 5px;
 }
 %tab-nav input[type='radio'],
 %tab-section > input[type='radio'],
@@ -27,7 +37,4 @@ main header nav:last-child {
 }
 %tab-section > input[type='radio']:checked + * {
   display: block;
-}
-%tab-nav label {
-  cursor: pointer;
 }

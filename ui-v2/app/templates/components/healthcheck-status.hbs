@@ -1,7 +1,7 @@
 {{#feedback-dialog type='inline'}}
     {{#block-slot 'action' as |success error|}}
         {{#copy-button success=(action success) error=(action error) clipboardText=output title='copy output to clipboard'}}
-            Copy output
+            Copy Output
         {{/copy-button}}
     {{/block-slot}}
     {{#block-slot 'success'}}

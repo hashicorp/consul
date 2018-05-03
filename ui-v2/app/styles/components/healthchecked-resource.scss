@@ -35,16 +35,10 @@
   margin-bottom: 2em;
   position: relative;
 }
-%healthchecked-resource header span {
-  font-weight: $weight-bold;
-}
-%healthchecked-resource strong {
-  font-weight: $weight-normal;
-}
 
 %healthchecked-resource header strong {
   position: absolute;
-  bottom: -0.4em;
+  bottom: -0.6em;
   left: 15px;
 }
 %healthchecked-resource a,

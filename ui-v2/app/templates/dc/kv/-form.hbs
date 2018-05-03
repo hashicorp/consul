@@ -2,7 +2,7 @@
     <fieldset>
 {{#if create }}
         <label class="type-text{{if item.error.Key ' has-error'}}">
-            <span>Key Name</span>
+            <span>Key or folder</span>
             <input type="text" value={{left-trim item.Key parent.Key}} name="additional" onkeyup={{action 'change'}} placeholder="Key or folder" />
             <em>To create a folder, end a key with <code>/</code></em>
         </label>

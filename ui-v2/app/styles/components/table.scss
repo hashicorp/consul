@@ -1,7 +1,17 @@
 @import './icons';
 table {
-  @extend .table;
+  // @extend .table;
   width: 100%;
+}
+th,
+td {
+  border-bottom: 1px solid;
+}
+th {
+  border-color: $keyline-dark;
+}
+td {
+  border-color: $keyline-mid;
 }
 td.folder {
   @extend %with-folder;
@@ -20,7 +30,9 @@ td.actions .with-confirmation.confirming {
   position: absolute;
   right: 0;
 }
-table th,
+table th {
+  padding-bottom: 0.6em;
+}
 table td,
 table td a {
   padding: 0.9em 0;

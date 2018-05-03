@@ -6,6 +6,20 @@ main {
 %app-view > div > div {
   @extend %app-content;
 }
+%app-view header form {
+  @extend %filter-bar;
+}
+%app-view h2,
+%app-view header > div:last-of-type {
+  border-bottom: 1px solid;
+}
+%app-view header > div:last-of-type,
+%app-view h2 {
+  border-color: $keyline-light;
+}
+%app-content div > dl > dd {
+  color: $text-light;
+}
 %app-view {
   position: relative;
   margin-top: 50px;
@@ -16,23 +30,13 @@ main {
 %app-view h2 {
   padding-bottom: 0.2em;
   margin-bottom: 1.1em;
-  border-bottom: 1px solid;
-}
-%app-view header form {
-  @extend %filter-bar;
 }
 %app-view header > div:last-of-type {
   display: flex;
   width: 100%;
-  // padding-bottom: 0.25em;
-  border-bottom: 2px solid;
 }
 %app-view header > div:last-of-type > div:first-child {
   flex-grow: 1;
-}
-%app-view header > div:last-of-type,
-%app-view h2 {
-  border-color: $border-blue;
 }
 %app-view header .actions {
   display: flex;
@@ -90,9 +94,8 @@ main {
 }
 %app-content div > dl > dd {
   padding-left: 120px;
-  color: $text-light;
 }
 %app-content div > dl > * {
   min-height: 1em;
-  margin-bottom: 1em;
+  margin-bottom: 0.3em;
 }

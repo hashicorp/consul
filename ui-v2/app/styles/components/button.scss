@@ -14,13 +14,15 @@ button.copy-btn {
 %button.type-create {
   @extend %primary-button;
 }
+%button:hover,
+%button:focus {
+  @extend .is-hovered;
+}
+%primary-button {
+  @extend .is-primary;
+}
 %button {
-  @extend .button;
   border-radius: $radius-small;
-  font-size: $size-8;
-  font-weight: $weight-bold;
-  padding: calc(0.375em - 1px) calc(2.2em - 1px);
-  height: 2.5em;
   box-shadow: 0 3px 1px 0 rgba(0, 0, 0, 0.12);
   color: $text-blue;
 }
@@ -28,15 +30,7 @@ button.copy-btn {
 a[rel='back'] {
   border-color: currentColor;
 }
-%button:hover,
-%button:focus {
-  @extend .is-hovered;
-}
-%button:not(:last-child) {
-  margin-right: 7px;
-}
 %primary-button {
-  @extend .is-primary;
   border: 0;
   color: $white !important;
 }
@@ -56,4 +50,12 @@ a[rel='back'] {
 %copy-button {
   border: 0 !important;
   box-shadow: none !important;
+}
+%button {
+  @extend .button;
+  padding: calc(0.375em - 1px) calc(2.2em - 1px);
+  height: 2.5em;
+}
+%button:not(:last-child) {
+  margin-right: 7px;
 }
