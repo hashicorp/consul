@@ -117,10 +117,15 @@ for simple load balancing, the set of nodes returned is also randomized each tim
 These mechanisms make it easy to use DNS along with application-level retries
 as the foundation for an auto-healing service oriented architecture.
 
-For standard services queries, both A and SRV records are supported. SRV records
-provide the port that a service is registered on, enabling clients to avoid relying
-on well-known ports. SRV records are only served if the client specifically requests
-them, like so:
+For standard services queries, both A, TXT, and SRV records are supported. TXT records
+values will match the service's metadata key-value paris according to
+[RFC1464](https://www.ietf.org/rfc/rfc1464.txt).
+Alternatively, the TXT record will only include the node's metadata value when the
+services's metadata key starts with `rfc1035-`.
+
+SRV records provide the port that a service is registered on, enabling clients
+to avoid relying on well-known ports. SRV records are only served if the client
+specifically requests them, like so:
 
 ```text
 $ dig @127.0.0.1 -p 8600 consul.service.consul SRV
