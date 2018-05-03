@@ -855,6 +855,36 @@ func serviceTagFilter(sn *structs.ServiceNode, tag string) bool {
 	return true
 }
 
+// ServiceAddressNodes returns the nodes associated with a given service, filtering
+// out services that don't match the given serviceAddress
+func (s *Store) ServiceAddressNodes(ws memdb.WatchSet, address string) (uint64, structs.ServiceNodes, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// List all the services.
+	services, err := tx.Get("services", "id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
+	}
+	ws.Add(services.WatchCh())
+
+	// Gather all the services and apply the tag filter.
+	var results structs.ServiceNodes
+	for service := services.Next(); service != nil; service = services.Next() {
+		svc := service.(*structs.ServiceNode)
+		if svc.ServiceAddress == address {
+			results = append(results, svc)
+		}
+	}
+
+	// Fill in the node details.
+	results, err = s.parseServiceNodes(tx, ws, results)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed parsing service nodes: %s", err)
+	}
+	return 0, results, nil
+}
+
 // parseServiceNodes iterates over a services query and fills in the node details,
 // returning a ServiceNodes slice.
 func (s *Store) parseServiceNodes(tx *memdb.Txn, ws memdb.WatchSet, services structs.ServiceNodes) (structs.ServiceNodes, error) {
