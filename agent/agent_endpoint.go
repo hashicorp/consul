@@ -1021,7 +1021,7 @@ func (s *HTTPServer) AgentConnectProxyConfig(resp http.ResponseWriter, req *http
 			// done deeper though as it will be needed for actually managing proxy
 			// lifecycle.
 			command := proxy.Proxy.Command
-			if command == "" {
+			if len(command) == 0 {
 				if execMode == "daemon" {
 					command = s.agent.config.ConnectProxyDefaultDaemonCommand
 				}
@@ -1030,8 +1030,8 @@ func (s *HTTPServer) AgentConnectProxyConfig(resp http.ResponseWriter, req *http
 				}
 			}
 			// No global defaults set either...
-			if command == "" {
-				command = "consul connect proxy"
+			if len(command) == 0 {
+				command = []string{"consul", "connect", "proxy"}
 			}
 
 			// Set defaults for anything that is still not specified but required.

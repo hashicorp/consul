@@ -1725,8 +1725,9 @@ func TestStateProxyManagement(t *testing.T) {
 	{
 		// Re-registering same proxy again should not pick a random port but re-use
 		// the assigned one.
-		svcDup, err := state.AddProxy(&p1, "fake-token")
+		pstateDup, err := state.AddProxy(&p1, "fake-token")
 		require.NoError(err)
+		svcDup := pstateDup.Proxy.ProxyService
 
 		assert.Equal("web-proxy", svcDup.ID)
 		assert.Equal("web-proxy", svcDup.Service)

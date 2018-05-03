@@ -2354,7 +2354,7 @@ func TestAgentConnectProxyConfig_Blocking(t *testing.T) {
 		TargetServiceName: "test",
 		ContentHash:       "365a50cbb9a748b6",
 		ExecMode:          "daemon",
-		Command:           nil,
+		Command:           []string{"consul", "connect", "proxy"},
 		Config: map[string]interface{}{
 			"upstreams": []interface{}{
 				map[string]interface{}{
@@ -2372,7 +2372,7 @@ func TestAgentConnectProxyConfig_Blocking(t *testing.T) {
 	ur, err := copystructure.Copy(expectedResponse)
 	require.NoError(t, err)
 	updatedResponse := ur.(*api.ConnectProxyConfig)
-	updatedResponse.ContentHash = "b5bb0e4a0a58ca25"
+	updatedResponse.ContentHash = "538d0366b7b1dc3e"
 	upstreams := updatedResponse.Config["upstreams"].([]interface{})
 	upstreams = append(upstreams,
 		map[string]interface{}{
@@ -2538,7 +2538,7 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 		globalConfig string
 		proxy        structs.ServiceDefinitionConnectProxy
 		wantMode     api.ProxyExecMode
-		wantCommand  string
+		wantCommand  []string
 		wantConfig   map[string]interface{}
 	}{
 		{
@@ -2555,7 +2555,7 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 			`,
 			proxy:       structs.ServiceDefinitionConnectProxy{},
 			wantMode:    api.ProxyExecModeDaemon,
-			wantCommand: "consul connect proxy",
+			wantCommand: []string{"consul", "connect", "proxy"},
 			wantConfig: map[string]interface{}{
 				"bind_address":          "0.0.0.0",
 				"bind_port":             10000,            // "randomly" chosen from our range of 1
@@ -2572,13 +2572,13 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 					bind_min_port = 10000
 					bind_max_port = 10000
 					exec_mode = "script"
-					script_command = "script.sh"
+					script_command = ["script.sh"]
 				}
 			}
 			`,
 			proxy:       structs.ServiceDefinitionConnectProxy{},
 			wantMode:    api.ProxyExecModeScript,
-			wantCommand: "script.sh",
+			wantCommand: []string{"script.sh"},
 			wantConfig: map[string]interface{}{
 				"bind_address":          "0.0.0.0",
 				"bind_port":             10000,            // "randomly" chosen from our range of 1
@@ -2595,13 +2595,13 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 					bind_min_port = 10000
 					bind_max_port = 10000
 					exec_mode = "daemon"
-					daemon_command = "daemon.sh"
+					daemon_command = ["daemon.sh"]
 				}
 			}
 			`,
 			proxy:       structs.ServiceDefinitionConnectProxy{},
 			wantMode:    api.ProxyExecModeDaemon,
-			wantCommand: "daemon.sh",
+			wantCommand: []string{"daemon.sh"},
 			wantConfig: map[string]interface{}{
 				"bind_address":          "0.0.0.0",
 				"bind_port":             10000,            // "randomly" chosen from our range of 1
@@ -2629,7 +2629,7 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 				},
 			},
 			wantMode:    api.ProxyExecModeDaemon,
-			wantCommand: "consul connect proxy",
+			wantCommand: []string{"consul", "connect", "proxy"},
 			wantConfig: map[string]interface{}{
 				"bind_address":          "0.0.0.0",
 				"bind_port":             10000,            // "randomly" chosen from our range of 1
@@ -2648,8 +2648,8 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 					bind_min_port = 10000
 					bind_max_port = 10000
 					exec_mode = "daemon"
-					daemon_command = "daemon.sh"
-					script_command = "script.sh"
+					daemon_command = ["daemon.sh"]
+					script_command = ["script.sh"]
 					config = {
 						connect_timeout_ms = 1000
 					}
@@ -2658,7 +2658,7 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 			`,
 			proxy: structs.ServiceDefinitionConnectProxy{
 				ExecMode: "script",
-				Command:  "foo.sh",
+				Command:  []string{"foo.sh"},
 				Config: map[string]interface{}{
 					"connect_timeout_ms":    2000,
 					"bind_address":          "127.0.0.1",
@@ -2667,7 +2667,7 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 				},
 			},
 			wantMode:    api.ProxyExecModeScript,
-			wantCommand: "foo.sh",
+			wantCommand: []string{"foo.sh"},
 			wantConfig: map[string]interface{}{
 				"bind_address":          "127.0.0.1",
 				"bind_port":             float64(1024),
