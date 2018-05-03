@@ -40,9 +40,6 @@ bin: tools
 dev: changelogfmt vendorfmt dev-build
 
 dev-build:
-	@echo "--> TEMPORARY HACK: installing hashstructure to make CI pass until we vendor it upstream"
-	go get github.com/mitchellh/hashstructure
-	go get github.com/stretchr/testify/mock
 	@echo "--> Building consul"
 	mkdir -p pkg/$(GOOS)_$(GOARCH)/ bin/
 	go install -ldflags '$(GOLDFLAGS)' -tags '$(GOTAGS)'
