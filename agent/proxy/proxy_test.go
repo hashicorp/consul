@@ -138,6 +138,11 @@ func TestHelperProcess(t *testing.T) {
 		// Run forever
 		<-make(chan struct{})
 
+	case "output":
+		fmt.Fprintf(os.Stdout, "hello stdout\n")
+		fmt.Fprintf(os.Stderr, "hello stderr\n")
+		<-make(chan struct{})
+
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %q\n", cmd)
 		os.Exit(2)

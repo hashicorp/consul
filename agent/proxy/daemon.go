@@ -178,10 +178,6 @@ func (p *Daemon) start() (*os.Process, error) {
 	copy(cmd.Env, p.Command.Env)
 	cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", EnvProxyToken, p.ProxyToken))
 
-	// TODO(mitchellh): temporary until we introduce the file based logging
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
 	// Args must always contain a 0 entry which is usually the executed binary.
 	// To be safe and a bit more robust we default this, but only to prevent
 	// a panic below.

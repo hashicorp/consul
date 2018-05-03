@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,7 +18,8 @@ func TestManagerClose_noRun(t *testing.T) {
 	t.Parallel()
 
 	// Really we're testing that it doesn't deadlock here.
-	m := testManager(t)
+	m, closer := testManager(t)
+	defer closer()
 	require.NoError(t, m.Close())
 
 	// Close again for sanity
@@ -30,7 +32,8 @@ func TestManagerRun_initialSync(t *testing.T) {
 	t.Parallel()
 
 	state := local.TestState(t)
-	m := testManager(t)
+	m, closer := testManager(t)
+	defer closer()
 	m.State = state
 	defer m.Kill()
 
@@ -57,7 +60,8 @@ func TestManagerRun_syncNew(t *testing.T) {
 	t.Parallel()
 
 	state := local.TestState(t)
-	m := testManager(t)
+	m, closer := testManager(t)
+	defer closer()
 	m.State = state
 	defer m.Kill()
 
@@ -99,7 +103,8 @@ func TestManagerRun_syncDelete(t *testing.T) {
 	t.Parallel()
 
 	state := local.TestState(t)
-	m := testManager(t)
+	m, closer := testManager(t)
+	defer closer()
 	m.State = state
 	defer m.Kill()
 
@@ -138,7 +143,8 @@ func TestManagerRun_syncUpdate(t *testing.T) {
 	t.Parallel()
 
 	state := local.TestState(t)
-	m := testManager(t)
+	m, closer := testManager(t)
+	defer closer()
 	m.State = state
 	defer m.Kill()
 
@@ -181,14 +187,63 @@ func TestManagerRun_syncUpdate(t *testing.T) {
 	})
 }
 
-func testManager(t *testing.T) *Manager {
+func TestManagerRun_daemonLogs(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	state := local.TestState(t)
+	m, closer := testManager(t)
+	defer closer()
+	m.State = state
+	defer m.Kill()
+
+	// Configure a log dir so that we can read the logs
+	td, closer := testTempDir(t)
+	defer closer()
+	m.LogDir = filepath.Join(td, "logs")
+
+	// Create the service and calculate the log paths
+	id := testStateProxy(t, state, "web", helperProcess("output"))
+	stdoutPath := logPath(m.LogDir, id, "stdout")
+	stderrPath := logPath(m.LogDir, id, "stderr")
+
+	// Start the manager
+	go m.Run()
+
+	// We should see the path appear shortly
+	retry.Run(t, func(r *retry.R) {
+		if _, err := os.Stat(stdoutPath); err != nil {
+			r.Fatalf("error waiting for stdout path: %s", err)
+		}
+
+		if _, err := os.Stat(stderrPath); err != nil {
+			r.Fatalf("error waiting for stderr path: %s", err)
+		}
+	})
+
+	expectedOut := "hello stdout\n"
+	actual, err := ioutil.ReadFile(stdoutPath)
+	require.NoError(err)
+	require.Equal([]byte(expectedOut), actual)
+
+	expectedErr := "hello stderr\n"
+	actual, err = ioutil.ReadFile(stderrPath)
+	require.NoError(err)
+	require.Equal([]byte(expectedErr), actual)
+}
+
+func testManager(t *testing.T) (*Manager, func()) {
 	m := NewManager()
 
 	// Set these periods low to speed up tests
 	m.CoalescePeriod = 1 * time.Millisecond
 	m.QuiescentPeriod = 1 * time.Millisecond
 
-	return m
+	// Setup a temporary directory for logs
+	td, closer := testTempDir(t)
+	m.LogDir = td
+
+	return m, func() { closer() }
 }
 
 // testStateProxy registers a proxy with the given local state and the command

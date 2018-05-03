@@ -362,6 +362,7 @@ func (a *Agent) Start() error {
 	a.proxyManager = proxy.NewManager()
 	a.proxyManager.State = a.State
 	a.proxyManager.Logger = a.logger
+	a.proxyManager.LogDir = filepath.Join(a.config.DataDir, "proxy", "logs")
 	go a.proxyManager.Run()
 
 	// Start watching for critical services to deregister, based on their

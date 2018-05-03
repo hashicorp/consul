@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -52,6 +53,12 @@ type Manager struct {
 	// Output for proxies will not go here generally but varies by proxy
 	// implementation type.
 	Logger *log.Logger
+
+	// LogDir is the path to the directory where logs will be written
+	// for daemon mode proxies. This directory will be created if it does
+	// not exist. If this is empty then logs will be dumped into the
+	// working directory.
+	LogDir string
 
 	// CoalescePeriod and QuiescencePeriod control the timers for coalescing
 	// updates from the local state. See the defaults at the top of this
@@ -328,6 +335,13 @@ func (m *Manager) newProxy(mp *local.ManagedProxy) (Proxy, error) {
 		return nil, fmt.Errorf("internal error: nil *local.ManagedProxy or Proxy field")
 	}
 
+	// Attempt to create the log directory now that we have a proxy
+	if m.LogDir != "" {
+		if err := os.MkdirAll(m.LogDir, 0700); err != nil {
+			m.Logger.Printf("[ERROR] agent/proxy: failed to create log directory: %s", err)
+		}
+	}
+
 	p := mp.Proxy
 	switch p.ExecMode {
 	case structs.ProxyExecModeDaemon:
@@ -343,6 +357,9 @@ func (m *Manager) newProxy(mp *local.ManagedProxy) (Proxy, error) {
 		var cmd exec.Cmd
 		cmd.Path = command[0]
 		cmd.Args = command // idx 0 is path but preserved since it should be
+		if err := m.configureLogDir(p.ProxyService.ID, &cmd); err != nil {
+			return nil, fmt.Errorf("error configuring proxy logs: %s", err)
+		}
 
 		// Build the daemon structure
 		return &Daemon{
@@ -354,4 +371,43 @@ func (m *Manager) newProxy(mp *local.ManagedProxy) (Proxy, error) {
 	default:
 		return nil, fmt.Errorf("unsupported managed proxy type: %q", p.ExecMode)
 	}
+}
+
+// configureLogDir sets up the file descriptors to stdout/stderr so that
+// they log to the proper file path for the given service ID.
+func (m *Manager) configureLogDir(id string, cmd *exec.Cmd) error {
+	// Create the log directory
+	if m.LogDir != "" {
+		if err := os.MkdirAll(m.LogDir, 0700); err != nil {
+			return err
+		}
+	}
+
+	// Configure the stdout, stderr paths
+	stdoutPath := logPath(m.LogDir, id, "stdout")
+	stderrPath := logPath(m.LogDir, id, "stderr")
+
+	// Open the files. We want to append to each. We expect these files
+	// to be rotated by some external process.
+	stdoutF, err := os.OpenFile(stdoutPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	if err != nil {
+		return fmt.Errorf("error creating stdout file: %s", err)
+	}
+	stderrF, err := os.OpenFile(stderrPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	if err != nil {
+		// Don't forget to close stdoutF which successfully opened
+		stdoutF.Close()
+
+		return fmt.Errorf("error creating stderr file: %s", err)
+	}
+
+	cmd.Stdout = stdoutF
+	cmd.Stderr = stderrF
+	return nil
+}
+
+// logPath is a helper to return the path to the log file for the given
+// directory, service ID, and stream type (stdout or stderr).
+func logPath(dir, id, stream string) string {
+	return filepath.Join(dir, fmt.Sprintf("%s-%s.log", id, stream))
 }
