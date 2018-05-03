@@ -354,11 +354,14 @@ func (m *Manager) newProxy(mp *local.ManagedProxy) (Proxy, error) {
 			return nil, fmt.Errorf("daemon mode managed proxy requires command")
 		}
 
+		// We reuse the service ID a few times
+		id := p.ProxyService.ID
+
 		// Build the command to execute.
 		var cmd exec.Cmd
 		cmd.Path = command[0]
 		cmd.Args = command // idx 0 is path but preserved since it should be
-		if err := m.configureLogDir(p.ProxyService.ID, &cmd); err != nil {
+		if err := m.configureLogDir(id, &cmd); err != nil {
 			return nil, fmt.Errorf("error configuring proxy logs: %s", err)
 		}
 
@@ -367,6 +370,7 @@ func (m *Manager) newProxy(mp *local.ManagedProxy) (Proxy, error) {
 			Command:    &cmd,
 			ProxyToken: mp.ProxyToken,
 			Logger:     m.Logger,
+			PidPath:    pidPath(filepath.Join(m.DataDir, "pids"), id),
 		}, nil
 
 	default:
@@ -413,4 +417,15 @@ func (m *Manager) configureLogDir(id string, cmd *exec.Cmd) error {
 // directory, service ID, and stream type (stdout or stderr).
 func logPath(dir, id, stream string) string {
 	return filepath.Join(dir, fmt.Sprintf("%s-%s.log", id, stream))
+}
+
+// pidPath is a helper to return the path to the pid file for the given
+// directory and service ID.
+func pidPath(dir, id string) string {
+	// If no directory is given we do not write a pid
+	if dir == "" {
+		return ""
+	}
+
+	return filepath.Join(dir, fmt.Sprintf("%s.pid", id))
 }

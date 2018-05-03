@@ -227,6 +227,40 @@ func TestManagerRun_daemonLogs(t *testing.T) {
 	require.Equal([]byte(expectedErr), actual)
 }
 
+func TestManagerRun_daemonPid(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	state := local.TestState(t)
+	m, closer := testManager(t)
+	defer closer()
+	m.State = state
+	defer m.Kill()
+
+	// Configure a log dir so that we can read the logs
+	pidDir := filepath.Join(m.DataDir, "pids")
+
+	// Create the service and calculate the log paths
+	path := filepath.Join(m.DataDir, "notify")
+	id := testStateProxy(t, state, "web", helperProcess("output", path))
+	pidPath := pidPath(pidDir, id)
+
+	// Start the manager
+	go m.Run()
+
+	// We should see the path appear shortly
+	retry.Run(t, func(r *retry.R) {
+		if _, err := os.Stat(path); err != nil {
+			r.Fatalf("error waiting for stdout path: %s", err)
+		}
+	})
+
+	// Verify the pid file is not empty
+	pidRaw, err := ioutil.ReadFile(pidPath)
+	require.NoError(err)
+	require.NotEmpty(pidRaw)
+}
+
 func testManager(t *testing.T) (*Manager, func()) {
 	m := NewManager()
 
