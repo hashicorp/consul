@@ -6,8 +6,11 @@ import (
 	"os"
 	"os/exec"
 	"reflect"
+	"strconv"
 	"sync"
 	"time"
+
+	"github.com/hashicorp/consul/lib/file"
 )
 
 // Constants related to restart timers with the daemon mode proxies. At some
@@ -37,6 +40,12 @@ type Daemon struct {
 	// daemon. The actual logs for the daemon itself will be sent to
 	// a file.
 	Logger *log.Logger
+
+	// PidPath is the path where a pid file will be created storing the
+	// pid of the active process. If this is empty then a pid-file won't
+	// be created. Under erroneous conditions, the pid file may not be
+	// created but the error will be logged to the Logger.
+	PidPath string
 
 	// For tests, they can set this to change the default duration to wait
 	// for a graceful quit.
@@ -187,8 +196,21 @@ func (p *Daemon) start() (*os.Process, error) {
 
 	// Start it
 	p.Logger.Printf("[DEBUG] agent/proxy: starting proxy: %q %#v", cmd.Path, cmd.Args[1:])
-	err := cmd.Start()
-	return cmd.Process, err
+	if err := cmd.Start(); err != nil {
+		return nil, err
+	}
+
+	// Write the pid file. This might error and that's okay.
+	if p.PidPath != "" {
+		pid := strconv.FormatInt(int64(cmd.Process.Pid), 10)
+		if err := file.WriteAtomic(p.PidPath, []byte(pid)); err != nil {
+			p.Logger.Printf(
+				"[DEBUG] agent/proxy: error writing pid file %q: %s",
+				p.PidPath, err)
+		}
+	}
+
+	return cmd.Process, nil
 }
 
 // Stop stops the daemon.

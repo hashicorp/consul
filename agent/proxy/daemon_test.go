@@ -142,6 +142,91 @@ func TestDaemonStop_kill(t *testing.T) {
 	require.Equal(mtime, fi.ModTime())
 }
 
+func TestDaemonStart_pidFile(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	td, closer := testTempDir(t)
+	defer closer()
+
+	path := filepath.Join(td, "file")
+	pidPath := filepath.Join(td, "pid")
+	uuid, err := uuid.GenerateUUID()
+	require.NoError(err)
+
+	d := &Daemon{
+		Command:    helperProcess("start-once", path),
+		ProxyToken: uuid,
+		Logger:     testLogger,
+		PidPath:    pidPath,
+	}
+	require.NoError(d.Start())
+	defer d.Stop()
+
+	// Wait for the file to exist
+	retry.Run(t, func(r *retry.R) {
+		_, err := os.Stat(pidPath)
+		if err == nil {
+			return
+		}
+
+		r.Fatalf("error: %s", err)
+	})
+
+	// Check the pid file
+	pidRaw, err := ioutil.ReadFile(pidPath)
+	require.NoError(err)
+	require.NotEmpty(pidRaw)
+}
+
+// Verify the pid file changes on restart
+func TestDaemonRestart_pidFile(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	td, closer := testTempDir(t)
+	defer closer()
+	path := filepath.Join(td, "file")
+	pidPath := filepath.Join(td, "pid")
+
+	d := &Daemon{
+		Command: helperProcess("restart", path),
+		Logger:  testLogger,
+		PidPath: pidPath,
+	}
+	require.NoError(d.Start())
+	defer d.Stop()
+
+	// Wait for the file to exist. We save the func so we can reuse the test.
+	waitFile := func() {
+		retry.Run(t, func(r *retry.R) {
+			_, err := os.Stat(path)
+			if err == nil {
+				return
+			}
+			r.Fatalf("error waiting for path: %s", err)
+		})
+	}
+	waitFile()
+
+	// Check the pid file
+	pidRaw, err := ioutil.ReadFile(pidPath)
+	require.NoError(err)
+	require.NotEmpty(pidRaw)
+
+	// Delete the file
+	require.NoError(os.Remove(path))
+
+	// File should re-appear because the process is restart
+	waitFile()
+
+	// Check the pid file and it should not equal
+	pidRaw2, err := ioutil.ReadFile(pidPath)
+	require.NoError(err)
+	require.NotEmpty(pidRaw2)
+	require.NotEqual(pidRaw, pidRaw2)
+}
+
 func TestDaemonEqual(t *testing.T) {
 	cases := []struct {
 		Name     string

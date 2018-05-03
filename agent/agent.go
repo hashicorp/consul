@@ -34,6 +34,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/file"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/watch"
@@ -362,7 +363,7 @@ func (a *Agent) Start() error {
 	a.proxyManager = proxy.NewManager()
 	a.proxyManager.State = a.State
 	a.proxyManager.Logger = a.logger
-	a.proxyManager.LogDir = filepath.Join(a.config.DataDir, "proxy", "logs")
+	a.proxyManager.DataDir = filepath.Join(a.config.DataDir, "proxy")
 	go a.proxyManager.Run()
 
 	// Start watching for critical services to deregister, based on their
@@ -1557,7 +1558,7 @@ func (a *Agent) persistService(service *structs.NodeService) error {
 		return err
 	}
 
-	return writeFileAtomic(svcPath, encoded)
+	return file.WriteAtomic(svcPath, encoded)
 }
 
 // purgeService removes a persisted service definition file from the data dir
@@ -1585,7 +1586,7 @@ func (a *Agent) persistCheck(check *structs.HealthCheck, chkType *structs.CheckT
 		return err
 	}
 
-	return writeFileAtomic(checkPath, encoded)
+	return file.WriteAtomic(checkPath, encoded)
 }
 
 // purgeCheck removes a persisted check definition file from the data dir
@@ -1593,43 +1594,6 @@ func (a *Agent) purgeCheck(checkID types.CheckID) error {
 	checkPath := filepath.Join(a.config.DataDir, checksDir, checkIDHash(checkID))
 	if _, err := os.Stat(checkPath); err == nil {
 		return os.Remove(checkPath)
-	}
-	return nil
-}
-
-// writeFileAtomic writes the given contents to a temporary file in the same
-// directory, does an fsync and then renames the file to its real path
-func writeFileAtomic(path string, contents []byte) error {
-	uuid, err := uuid.GenerateUUID()
-	if err != nil {
-		return err
-	}
-	tempPath := fmt.Sprintf("%s-%s.tmp", path, uuid)
-
-	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
-		return err
-	}
-	fh, err := os.OpenFile(tempPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
-	if err != nil {
-		return err
-	}
-	if _, err := fh.Write(contents); err != nil {
-		fh.Close()
-		os.Remove(tempPath)
-		return err
-	}
-	if err := fh.Sync(); err != nil {
-		fh.Close()
-		os.Remove(tempPath)
-		return err
-	}
-	if err := fh.Close(); err != nil {
-		os.Remove(tempPath)
-		return err
-	}
-	if err := os.Rename(tempPath, path); err != nil {
-		os.Remove(tempPath)
-		return err
 	}
 	return nil
 }
