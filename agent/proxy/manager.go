@@ -60,7 +60,7 @@ type Manager struct {
 	//
 	//   * logs/ - log files named <service id>-std{out|err}.log
 	//   * pids/ - pid files for daemons named <service id>.pid
-	//   * state.ext - the state of the manager
+	//   * snapshot.json - the state of the manager
 	//
 	DataDir string
 

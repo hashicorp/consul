@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/lib/file"
+	"github.com/mitchellh/mapstructure"
 )
 
 // Constants related to restart timers with the daemon mode proxies. At some
@@ -261,6 +262,26 @@ func (p *Daemon) Stop() error {
 	return process.Kill()
 }
 
+// stopKeepAlive is like Stop but keeps the process running. This is
+// used only for tests.
+func (p *Daemon) stopKeepAlive() error {
+	p.lock.Lock()
+
+	// If we're already stopped or never started, then no problem.
+	if p.stopped || p.process == nil {
+		p.stopped = true
+		p.lock.Unlock()
+		return nil
+	}
+
+	// Note that we've stopped
+	p.stopped = true
+	close(p.stopCh)
+	p.lock.Unlock()
+
+	return nil
+}
+
 // Equal implements Proxy to check for equality.
 func (p *Daemon) Equal(raw Proxy) bool {
 	p2, ok := raw.(*Daemon)
@@ -274,4 +295,82 @@ func (p *Daemon) Equal(raw Proxy) bool {
 		p.Command.Dir == p2.Command.Dir &&
 		reflect.DeepEqual(p.Command.Args, p2.Command.Args) &&
 		reflect.DeepEqual(p.Command.Env, p2.Command.Env)
+}
+
+// MarshalSnapshot implements Proxy
+func (p *Daemon) MarshalSnapshot() map[string]interface{} {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	// If we're stopped or have no process, then nothing to snapshot.
+	if p.stopped || p.process == nil {
+		return nil
+	}
+
+	return map[string]interface{}{
+		"Pid":         p.process.Pid,
+		"CommandPath": p.Command.Path,
+		"CommandArgs": p.Command.Args,
+		"CommandDir":  p.Command.Dir,
+		"CommandEnv":  p.Command.Env,
+		"ProxyToken":  p.ProxyToken,
+	}
+}
+
+// UnmarshalSnapshot implements Proxy
+func (p *Daemon) UnmarshalSnapshot(m map[string]interface{}) error {
+	var s daemonSnapshot
+	if err := mapstructure.Decode(m, &s); err != nil {
+		return err
+	}
+
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	// Set the basic fields
+	p.ProxyToken = s.ProxyToken
+	p.Command = &exec.Cmd{
+		Path: s.CommandPath,
+		Args: s.CommandArgs,
+		Dir:  s.CommandDir,
+		Env:  s.CommandEnv,
+	}
+
+	// For the pid, we want to find the process.
+	proc, err := os.FindProcess(s.Pid)
+	if err != nil {
+		return err
+	}
+
+	// TODO(mitchellh): we should check if proc refers to a process that
+	// is currently alive. If not, we should return here and not manage the
+	// process.
+
+	// "Start it"
+	stopCh := make(chan struct{})
+	exitedCh := make(chan struct{})
+	p.stopCh = stopCh
+	p.exitedCh = exitedCh
+	p.process = proc
+	go p.keepAlive(stopCh, exitedCh)
+
+	return nil
+}
+
+// daemonSnapshot is the structure of the marshalled data for snapshotting.
+type daemonSnapshot struct {
+	// Pid of the process. This is the only value actually required to
+	// regain mangement control. The remainder values are for Equal.
+	Pid int
+
+	// Command information
+	CommandPath string
+	CommandArgs []string
+	CommandDir  string
+	CommandEnv  []string
+
+	// NOTE(mitchellh): longer term there are discussions/plans to only
+	// store the hash of the token but for now we need the full token in
+	// case the process dies and has to be restarted.
+	ProxyToken string
 }

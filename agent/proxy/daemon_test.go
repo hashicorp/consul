@@ -316,3 +316,95 @@ func TestDaemonEqual(t *testing.T) {
 		})
 	}
 }
+
+func TestDaemonMarshalSnapshot(t *testing.T) {
+	cases := []struct {
+		Name     string
+		Proxy    Proxy
+		Expected map[string]interface{}
+	}{
+		{
+			"stopped daemon",
+			&Daemon{
+				Command: &exec.Cmd{Path: "/foo"},
+			},
+			nil,
+		},
+
+		{
+			"basic",
+			&Daemon{
+				Command: &exec.Cmd{Path: "/foo"},
+				process: &os.Process{Pid: 42},
+			},
+			map[string]interface{}{
+				"Pid":         42,
+				"CommandPath": "/foo",
+				"CommandArgs": []string(nil),
+				"CommandDir":  "",
+				"CommandEnv":  []string(nil),
+				"ProxyToken":  "",
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			actual := tc.Proxy.MarshalSnapshot()
+			require.Equal(t, tc.Expected, actual)
+		})
+	}
+}
+
+func TestDaemonUnmarshalSnapshot(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	td, closer := testTempDir(t)
+	defer closer()
+
+	path := filepath.Join(td, "file")
+	uuid, err := uuid.GenerateUUID()
+	require.NoError(err)
+
+	d := &Daemon{
+		Command:    helperProcess("start-stop", path),
+		ProxyToken: uuid,
+		Logger:     testLogger,
+	}
+	require.NoError(d.Start())
+
+	// Wait for the file to exist
+	retry.Run(t, func(r *retry.R) {
+		_, err := os.Stat(path)
+		if err == nil {
+			return
+		}
+
+		r.Fatalf("error: %s", err)
+	})
+
+	// Snapshot
+	snap := d.MarshalSnapshot()
+
+	// Stop the original daemon but keep it alive
+	require.NoError(d.stopKeepAlive())
+
+	// Restore the second daemon
+	d2 := &Daemon{Logger: testLogger}
+	require.NoError(d2.UnmarshalSnapshot(snap))
+
+	// Stop the process
+	require.NoError(d2.Stop())
+
+	// File should no longer exist.
+	retry.Run(t, func(r *retry.R) {
+		_, err := os.Stat(path)
+		if os.IsNotExist(err) {
+			return
+		}
+
+		// err might be nil here but that's okay
+		r.Fatalf("should not exist: %s", err)
+	})
+}

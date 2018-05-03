@@ -39,4 +39,20 @@ type Proxy interface {
 	// If Equal returns true, the old proxy will remain running and the new
 	// one will be ignored.
 	Equal(Proxy) bool
+
+	// MarshalSnapshot returns the state that will be stored in a snapshot
+	// so that Consul can recover the proxy process after a restart. The
+	// result should only contain primitive values and containers (lists/maps).
+	//
+	// UnmarshalSnapshot is called to restore the receiving Proxy from its
+	// marshalled state. If UnmarshalSnapshot returns an error, the snapshot
+	// is ignored and the marshalled snapshot will be lost. The manager will
+	// log.
+	//
+	// This should save/restore enough state to be able to regain management
+	// of a proxy process as well as to perform the Equal method above. The
+	// Equal method will be called when a local state sync happens to determine
+	// if the recovered process should be restarted or not.
+	MarshalSnapshot() map[string]interface{}
+	UnmarshalSnapshot(map[string]interface{}) error
 }
