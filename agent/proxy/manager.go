@@ -335,13 +335,6 @@ func (m *Manager) newProxy(mp *local.ManagedProxy) (Proxy, error) {
 		return nil, fmt.Errorf("internal error: nil *local.ManagedProxy or Proxy field")
 	}
 
-	// Attempt to create the log directory now that we have a proxy
-	if m.LogDir != "" {
-		if err := os.MkdirAll(m.LogDir, 0700); err != nil {
-			m.Logger.Printf("[ERROR] agent/proxy: failed to create log directory: %s", err)
-		}
-	}
-
 	p := mp.Proxy
 	switch p.ExecMode {
 	case structs.ProxyExecModeDaemon:
