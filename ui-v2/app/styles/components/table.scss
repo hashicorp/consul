@@ -1,7 +1,6 @@
 @import './icons';
-table {
-  // @extend .table;
-  width: 100%;
+th {
+  color: $text-light !important;
 }
 th,
 td {
@@ -15,6 +14,10 @@ td {
 }
 td.folder {
   @extend %with-folder;
+}
+table {
+  // @extend .table;
+  width: 100%;
 }
 td button {
   position: relative;

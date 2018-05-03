@@ -19,8 +19,7 @@ module.exports = function(defaults) {
     },
     'codemirror': {
       modes: ['javascript','ruby'],
-      keyMaps: ['vim'],
-      themes: ['solarized']
+      keyMaps: ['sublime']
     },
     'ember-cli-uglify': {
       uglify: {
@@ -29,8 +28,14 @@ module.exports = function(defaults) {
         },
       },
     },
+    'autoprefixer': {
+      grid: true,
+      browsers: [
+        "defaults",
+        "ie 11"
+      ]
+    },
   });
-
   // Use `app.import` to add additional libraries to the generated
   // output files.
   //

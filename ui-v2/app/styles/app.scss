@@ -56,15 +56,13 @@
 @import 'components/tomography-graph';
 @import 'components/action-group';
 @import 'components/flash-message';
+@import 'components/code-editor';
 @import 'components/confirmation-dialog';
 @import 'components/feedback-dialog';
 
 @import 'routes/dc/service/index';
 @import 'routes/dc/kv/index';
 
-th {
-  color: $text-light !important;
-}
 main a {
   color: $text;
 }
