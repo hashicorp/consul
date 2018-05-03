@@ -19,7 +19,6 @@ import (
 )
 
 func init() {
-	caddy.TrapSignals()
 	caddy.DefaultConfigFile = "Corefile"
 	caddy.Quiet = true // don't show init stuff from caddy
 	setVersion()
@@ -41,6 +40,8 @@ func init() {
 
 // Run is CoreDNS's main() function.
 func Run() {
+	caddy.TrapSignals()
+
 	// Reset flag.CommandLine to get rid of unwanted flags for instance from glog (used in kubernetes).
 	// And readd the once we want to keep.
 	flag.VisitAll(func(f *flag.Flag) {
