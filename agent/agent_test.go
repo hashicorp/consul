@@ -2334,6 +2334,14 @@ func TestAgent_AddProxy(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), `
 		node_name = "node1"
+
+		connect {
+			proxy_defaults {
+				exec_mode = "script"
+				daemon_command = ["foo", "bar"]
+				script_command = ["bar", "foo"]
+			}
+		}
 	`)
 	defer a.Shutdown()
 
@@ -2345,9 +2353,9 @@ func TestAgent_AddProxy(t *testing.T) {
 	require.NoError(t, a.AddService(reg, nil, false, ""))
 
 	tests := []struct {
-		desc    string
-		proxy   *structs.ConnectManagedProxy
-		wantErr bool
+		desc             string
+		proxy, wantProxy *structs.ConnectManagedProxy
+		wantErr          bool
 	}{
 		{
 			desc: "basic proxy adding, unregistered service",
@@ -2374,6 +2382,45 @@ func TestAgent_AddProxy(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			desc: "default global exec mode",
+			proxy: &structs.ConnectManagedProxy{
+				Command:         []string{"consul", "connect", "proxy"},
+				TargetServiceID: "web",
+			},
+			wantProxy: &structs.ConnectManagedProxy{
+				ExecMode:        structs.ProxyExecModeScript,
+				Command:         []string{"consul", "connect", "proxy"},
+				TargetServiceID: "web",
+			},
+			wantErr: false,
+		},
+		{
+			desc: "default daemon command",
+			proxy: &structs.ConnectManagedProxy{
+				ExecMode:        structs.ProxyExecModeDaemon,
+				TargetServiceID: "web",
+			},
+			wantProxy: &structs.ConnectManagedProxy{
+				ExecMode:        structs.ProxyExecModeDaemon,
+				Command:         []string{"foo", "bar"},
+				TargetServiceID: "web",
+			},
+			wantErr: false,
+		},
+		{
+			desc: "default script command",
+			proxy: &structs.ConnectManagedProxy{
+				ExecMode:        structs.ProxyExecModeScript,
+				TargetServiceID: "web",
+			},
+			wantProxy: &structs.ConnectManagedProxy{
+				ExecMode:        structs.ProxyExecModeScript,
+				Command:         []string{"bar", "foo"},
+				TargetServiceID: "web",
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -2389,8 +2436,12 @@ func TestAgent_AddProxy(t *testing.T) {
 
 			// Test the ID was created as we expect.
 			got := a.State.Proxy("web-proxy")
-			tt.proxy.ProxyService = got.Proxy.ProxyService
-			require.Equal(tt.proxy, got.Proxy)
+			wantProxy := tt.wantProxy
+			if wantProxy == nil {
+				wantProxy = tt.proxy
+			}
+			wantProxy.ProxyService = got.Proxy.ProxyService
+			require.Equal(wantProxy, got.Proxy)
 		})
 	}
 }
