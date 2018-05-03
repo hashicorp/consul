@@ -31,14 +31,11 @@ main {
   padding-bottom: 0.2em;
   margin-bottom: 1.1em;
 }
-%app-view header > div:last-of-type {
-  display: flex;
-  width: 100%;
-}
 %app-view header > div:last-of-type > div:first-child {
   flex-grow: 1;
 }
 %app-view header .actions {
+  float: right;
   display: flex;
   align-items: flex-start;
 }

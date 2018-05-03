@@ -32,6 +32,36 @@ html.template-node.template-show main table.sessions tr {
   @extend %node-sessions-row;
 }
 
+@media #{$--horizontal-session-list} {
+  %node-sessions-row > * {
+    // (100% / 7) - (300px / 6) - (120px / 6)
+    width: calc(14.2857% - 50px - 20px);
+  }
+  %node-sessions-row > *:nth-child(2) {
+    width: 300px;
+  }
+  %node-sessions-row > *:nth-last-child(1) {
+    width: 120px;
+  }
+}
+@media #{$--lt-horizontal-session-list} {
+  %node-sessions-row > * {
+    // (100% / 2) - (300px / 2) - (120px / 2)
+    width: calc(50% - 150px - 60px);
+  }
+  %node-sessions-row > *:nth-child(2) {
+    width: 300px;
+  }
+  %node-sessions-row > *:nth-last-child(1) {
+    width: 120px;
+  }
+  %node-sessions-row > *:nth-child(3),
+  %node-sessions-row > *:nth-child(4),
+  %node-sessions-row > *:nth-child(5),
+  %node-sessions-row > *:nth-child(6) {
+    display: none;
+  }
+}
 %kvs-row > *:first-child {
   width: calc(100% - 60px);
 }
@@ -53,14 +83,4 @@ html.template-node.template-show main table.sessions tr {
 }
 %services-row > *:nth-child(2) {
   width: 160px;
-}
-%node-sessions-row > * {
-  // (100% / 7) - (300px / 6) - (120px / 6)
-  width: calc(14.2857% - 50px - 20px);
-}
-%node-sessions-row > *:nth-child(2) {
-  width: 300px;
-}
-%node-sessions-row > *:nth-last-child(1) {
-  width: 120px;
 }

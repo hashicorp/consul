@@ -29,12 +29,9 @@
                     {{item.Behavior}}
                 </td>
                 <td>
-                    {{item.Checks}}
-                    <ul>
-                        {{#each item.Checks as check }}
-                            <li>{{check}}</li>
-                        {{/each}}
-                    </ul>
+{{#if (gt item.Checks.length 0)}}
+                    {{ join ', ' item.Checks}}
+{{/if}}
                 </td>
                 <td>
                     {{#confirmation-dialog message='Are you sure you want to invalidate this session?'}}
