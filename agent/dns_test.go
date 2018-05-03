@@ -851,6 +851,56 @@ func TestDNS_ServiceLookupWithInternalServiceAddress(t *testing.T) {
 	verify.Values(t, "extra", in.Extra, wantExtra)
 }
 
+func TestDNS_ServiceLookup_TXT(t *testing.T) {
+	a := NewTestAgent(t.Name(), ``)
+	defer a.Shutdown()
+
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "db",
+			Tags:    []string{"master"},
+			Port:    12345,
+		    Meta: map[string]string{
+			    "rfc1035-00": "value0",
+			    "key0":       "value1",
+		    },
+		},
+	}
+
+	var out struct{}
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("db.service.consul.", dns.TypeTXT)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, a.DNSAddr())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should have the 1 TXT record reply
+	if len(in.Answer) != 2 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	txtRec, ok := in.Answer[0].(*dns.TXT)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if len(txtRec.Txt) != 1 {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if txtRec.Txt[0] != "value0" && txtRec.Txt[0] != "key0=value1" {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+}
+
 func TestDNS_ExternalServiceLookup(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
