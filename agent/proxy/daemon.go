@@ -342,9 +342,11 @@ func (p *Daemon) UnmarshalSnapshot(m map[string]interface{}) error {
 		return err
 	}
 
-	// TODO(mitchellh): we should check if proc refers to a process that
-	// is currently alive. If not, we should return here and not manage the
-	// process.
+	// FindProcess on many systems returns no error even if the process
+	// is now dead. We perform an extra check that the process is alive.
+	if err := processAlive(proc); err != nil {
+		return err
+	}
 
 	// "Start it"
 	stopCh := make(chan struct{})

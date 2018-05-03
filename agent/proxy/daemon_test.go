@@ -372,6 +372,7 @@ func TestDaemonUnmarshalSnapshot(t *testing.T) {
 		ProxyToken: uuid,
 		Logger:     testLogger,
 	}
+	defer d.Stop()
 	require.NoError(d.Start())
 
 	// Wait for the file to exist
@@ -407,4 +408,44 @@ func TestDaemonUnmarshalSnapshot(t *testing.T) {
 		// err might be nil here but that's okay
 		r.Fatalf("should not exist: %s", err)
 	})
+}
+
+func TestDaemonUnmarshalSnapshot_notRunning(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	td, closer := testTempDir(t)
+	defer closer()
+
+	path := filepath.Join(td, "file")
+	uuid, err := uuid.GenerateUUID()
+	require.NoError(err)
+
+	d := &Daemon{
+		Command:    helperProcess("start-stop", path),
+		ProxyToken: uuid,
+		Logger:     testLogger,
+	}
+	defer d.Stop()
+	require.NoError(d.Start())
+
+	// Wait for the file to exist
+	retry.Run(t, func(r *retry.R) {
+		_, err := os.Stat(path)
+		if err == nil {
+			return
+		}
+
+		r.Fatalf("error: %s", err)
+	})
+
+	// Snapshot
+	snap := d.MarshalSnapshot()
+
+	// Stop the original daemon
+	require.NoError(d.Stop())
+
+	// Restore the second daemon
+	d2 := &Daemon{Logger: testLogger}
+	require.Error(d2.UnmarshalSnapshot(snap))
 }
