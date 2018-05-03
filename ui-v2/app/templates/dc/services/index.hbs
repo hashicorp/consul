@@ -12,6 +12,8 @@
     {{#block-slot 'content'}}
 {{#if (gt filtered.length 0) }}
         {{#tabular-collection
+            route='dc.services.show'
+            key='Name'
             items=filtered as |item index|
         }}
             {{#block-slot 'header'}}
@@ -21,7 +23,7 @@
             {{/block-slot}}
             {{#block-slot 'row'}}
                 <td data-test-service="{{item.Name}}">
-                    <a href={{href-to 'dc.services.show' item.Name }}>{{item.Name}}</a>
+                    <a href={{href-to 'dc.services.show' item.Name}}>{{item.Name}}</a>
                 </td>
                 <td>
                     <dl>

@@ -37,15 +37,12 @@ table td,
 table td a {
   padding: 0.9em 0;
 }
-table th {
-  // padding: 0.5em 0;
-}
 table th,
 table td:not(.actions),
 table td a {
   padding-right: 0.9em;
 }
-table td:first-child {
+table:not(.sessions) td:first-child {
   padding: 0;
 }
 table td a {

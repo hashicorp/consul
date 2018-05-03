@@ -19,6 +19,11 @@ class ZIndexedGrid extends Grid {
     return style;
   }
 }
+const closest = function(sel, el) {
+  try {
+    return el.closest(sel);
+  } catch (e) {}
+};
 const change = function(e) {
   // TODO: Why am I getting a jQuery event here?!
   if (e instanceof MouseEvent) {
@@ -99,5 +104,27 @@ export default Component.extend(SlotsMixin, {
     } else {
       needsRevalidate(this);
     }
+  },
+  actions: {
+    click: function(e) {
+      const name = e.target.nodeName.toLowerCase();
+      switch (name) {
+        case 'input':
+        case 'label':
+        case 'a':
+        case 'button':
+          break;
+        default:
+          const $a = closest('tr', e.target).querySelector('a');
+          if ($a) {
+            const click = new MouseEvent('click', {
+              bubbles: true,
+              cancelable: true,
+              view: window,
+            });
+            $a.dispatchEvent(click);
+          }
+      }
+    },
   },
 });

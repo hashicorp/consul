@@ -1,3 +1,6 @@
+table:not(.sessions) tr {
+  cursor: pointer;
+}
 table {
   position: relative;
 }
@@ -9,42 +12,55 @@ table tbody {
 table tr {
   display: flex;
 }
-table td,
-table th {
+table tr > * {
   flex: 1 0 auto;
 }
-// table tr > *:first-child:nth-last-child(2),
-// table tr > *:first-child:nth-last-child(2) ~ * {
-//   width: 50%;
-// }
 
-// KV's
-table tr > *:first-child:nth-last-child(2) {
+html.template-service.template-list main table tr {
+  @extend %services-row;
+}
+html.template-kv.template-list main table tr {
+  @extend %kvs-row;
+}
+html.template-acl.template-list main table tr {
+  @extend %acls-row;
+}
+html.template-node.template-show main table tr {
+  @extend %node-services-row;
+}
+html.template-node.template-show main table.sessions tr {
+  @extend %node-sessions-row;
+}
+
+%kvs-row > *:first-child {
   width: calc(100% - 60px);
 }
-table tr > *:first-child:nth-last-child(2) ~ * {
+%kvs-row > *:last-child {
   width: 60px;
 }
-
-table tr > *:first-child:nth-last-child(3),
-table tr > *:first-child:nth-last-child(3) ~ * {
+%node-services-row > * {
   width: 33%;
 }
-table tr > *:first-child:nth-last-child(4),
-table tr > *:first-child:nth-last-child(4) ~ * {
-  width: 25%;
+%acls-row > * {
+  width: calc(50% - 30px);
 }
-// table tr > *:first-child:nth-last-child(7),
-// table tr > *:first-child:nth-last-child(7) ~ * {
-//   width: 14.2857%;
-// }
-table.sessions tr > * {
+%acls-row > *:last-child {
+  width: 60px;
+}
+%services-row > * {
+  // (100% / 2) - (160px / 2)
+  width: calc(50% - 80px);
+}
+%services-row > *:nth-child(2) {
+  width: 160px;
+}
+%node-sessions-row > * {
   // (100% / 7) - (300px / 6) - (120px / 6)
   width: calc(14.2857% - 50px - 20px);
 }
-table.sessions tr > *:nth-child(2) {
+%node-sessions-row > *:nth-child(2) {
   width: 300px;
 }
-table.sessions tr > *:nth-last-child(1) {
+%node-sessions-row > *:nth-last-child(1) {
   width: 120px;
 }
