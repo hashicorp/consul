@@ -1,28 +1,81 @@
-package consul
+package connect
 
 import (
-	"os"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/assert"
 )
+
+type consulCAMockDelegate struct {
+	state *state.Store
+}
+
+func (c *consulCAMockDelegate) State() *state.Store {
+	return c.state
+}
+
+func (c *consulCAMockDelegate) ApplyCARequest(req *structs.CARequest) error {
+	idx, _, err := c.state.CAConfig()
+	if err != nil {
+		return err
+	}
+
+	switch req.Op {
+	case structs.CAOpSetProviderState:
+		_, err := c.state.CASetProviderState(idx+1, req.ProviderState)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	case structs.CAOpDeleteProviderState:
+		if err := c.state.CADeleteProviderState(req.ProviderState.ID); err != nil {
+			return err
+		}
+
+		return nil
+	default:
+		return fmt.Errorf("Invalid CA operation '%s'", req.Op)
+	}
+}
+
+func newMockDelegate(t *testing.T, conf *structs.CAConfiguration) *consulCAMockDelegate {
+	s, err := state.NewStateStore(nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if s == nil {
+		t.Fatalf("missing state store")
+	}
+	if err := s.CASetConfig(0, conf); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	return &consulCAMockDelegate{s}
+}
+
+func testConsulCAConfig() *structs.CAConfiguration {
+	return &structs.CAConfiguration{
+		ClusterID: "asdf",
+		Provider:  "consul",
+		Config:    map[string]interface{}{},
+	}
+}
 
 func TestCAProvider_Bootstrap(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	codec := rpcClient(t, s1)
-	defer codec.Close()
+	conf := testConsulCAConfig()
+	delegate := newMockDelegate(t, conf)
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-
-	provider := s1.getCAProvider()
+	provider, err := NewConsulCAProvider(conf.Config, delegate)
+	assert.NoError(err)
 
 	root, err := provider.ActiveRoot()
 	assert.NoError(err)
@@ -30,14 +83,12 @@ func TestCAProvider_Bootstrap(t *testing.T) {
 	// Intermediate should be the same cert.
 	inter, err := provider.ActiveIntermediate()
 	assert.NoError(err)
+	assert.Equal(root, inter)
 
-	// Make sure we initialize without errors and that the
-	// root cert gets set to the active cert.
-	state := s1.fsm.State()
-	_, activeRoot, err := state.CARootActive(nil)
+	// Should be a valid cert
+	parsed, err := connect.ParseCert(root)
 	assert.NoError(err)
-	assert.Equal(root, activeRoot.RootCert)
-	assert.Equal(inter, activeRoot.RootCert)
+	assert.Equal(parsed.URIs[0].String(), fmt.Sprintf("spiffe://%s.consul", conf.ClusterID))
 }
 
 func TestCAProvider_Bootstrap_WithCert(t *testing.T) {
@@ -46,49 +97,35 @@ func TestCAProvider_Bootstrap_WithCert(t *testing.T) {
 	// Make sure setting a custom private key/root cert works.
 	assert := assert.New(t)
 	rootCA := connect.TestCA(t, nil)
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.CAConfig.Config["PrivateKey"] = rootCA.SigningKey
-		c.CAConfig.Config["RootCert"] = rootCA.RootCert
-	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	codec := rpcClient(t, s1)
-	defer codec.Close()
+	conf := testConsulCAConfig()
+	conf.Config = map[string]interface{}{
+		"PrivateKey": rootCA.SigningKey,
+		"RootCert":   rootCA.RootCert,
+	}
+	delegate := newMockDelegate(t, conf)
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-
-	provider := s1.getCAProvider()
+	provider, err := NewConsulCAProvider(conf.Config, delegate)
+	assert.NoError(err)
 
 	root, err := provider.ActiveRoot()
 	assert.NoError(err)
-
-	// Make sure we initialize without errors and that the
-	// root cert we provided gets set to the active cert.
-	state := s1.fsm.State()
-	_, activeRoot, err := state.CARootActive(nil)
-	assert.NoError(err)
-	assert.Equal(root, activeRoot.RootCert)
-	assert.Equal(rootCA.RootCert, activeRoot.RootCert)
+	assert.Equal(root, rootCA.RootCert)
 }
 
 func TestCAProvider_SignLeaf(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	codec := rpcClient(t, s1)
-	defer codec.Close()
+	conf := testConsulCAConfig()
+	delegate := newMockDelegate(t, conf)
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-
-	provider := s1.getCAProvider()
+	provider, err := NewConsulCAProvider(conf.Config, delegate)
+	assert.NoError(err)
 
 	spiffeService := &connect.SpiffeIDService{
-		Host:       s1.config.NodeName,
+		Host:       "node1",
 		Namespace:  "default",
-		Datacenter: s1.config.Datacenter,
+		Datacenter: "dc1",
 		Service:    "foo",
 	}
 
@@ -141,18 +178,12 @@ func TestCAProvider_CrossSignCA(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
+	conf := testConsulCAConfig()
+	delegate := newMockDelegate(t, conf)
+	provider, err := NewConsulCAProvider(conf.Config, delegate)
+	assert.NoError(err)
 
-	// Make sure setting a custom private key/root cert works.
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	codec := rpcClient(t, s1)
-	defer codec.Close()
-
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-
-	provider := s1.getCAProvider()
-
+	// Make a new CA cert to get cross-signed.
 	rootCA := connect.TestCA(t, nil)
 	rootPEM, err := provider.ActiveRoot()
 	assert.NoError(err)

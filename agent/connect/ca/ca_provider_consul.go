@@ -1,4 +1,4 @@
-package consul
+package connect
 
 import (
 	"bytes"
@@ -15,34 +15,39 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/mitchellh/mapstructure"
 )
 
 type ConsulCAProvider struct {
-	config *structs.ConsulCAProviderConfig
-
-	id  string
-	srv *Server
+	config   *structs.ConsulCAProviderConfig
+	id       string
+	delegate ConsulCAStateDelegate
 	sync.RWMutex
+}
+
+type ConsulCAStateDelegate interface {
+	State() *state.Store
+	ApplyCARequest(*structs.CARequest) error
 }
 
 // NewConsulCAProvider returns a new instance of the Consul CA provider,
 // bootstrapping its state in the state store necessary
-func NewConsulCAProvider(rawConfig map[string]interface{}, srv *Server) (*ConsulCAProvider, error) {
+func NewConsulCAProvider(rawConfig map[string]interface{}, delegate ConsulCAStateDelegate) (*ConsulCAProvider, error) {
 	conf, err := ParseConsulCAConfig(rawConfig)
 	if err != nil {
 		return nil, err
 	}
 	provider := &ConsulCAProvider{
-		config: conf,
-		srv:    srv,
-		id:     fmt.Sprintf("%s,%s", conf.PrivateKey, conf.RootCert),
+		config:   conf,
+		delegate: delegate,
+		id:       fmt.Sprintf("%s,%s", conf.PrivateKey, conf.RootCert),
 	}
 
 	// Check if this configuration of the provider has already been
 	// initialized in the state store.
-	state := srv.fsm.State()
+	state := delegate.State()
 	_, providerState, err := state.CAProviderState(provider.id)
 	if err != nil {
 		return nil, err
@@ -64,12 +69,8 @@ func NewConsulCAProvider(rawConfig map[string]interface{}, srv *Server) (*Consul
 			Op:            structs.CAOpSetProviderState,
 			ProviderState: &newState,
 		}
-		resp, err := srv.raftApply(structs.ConnectCARequestType, args)
-		if err != nil {
+		if err := delegate.ApplyCARequest(args); err != nil {
 			return nil, err
-		}
-		if respErr, ok := resp.(error); ok {
-			return nil, respErr
 		}
 	}
 
@@ -80,7 +81,7 @@ func NewConsulCAProvider(rawConfig map[string]interface{}, srv *Server) (*Consul
 
 	// Generate a private key if needed
 	if conf.PrivateKey == "" {
-		pk, err := generatePrivateKey()
+		pk, err := GeneratePrivateKey()
 		if err != nil {
 			return nil, err
 		}
@@ -105,12 +106,8 @@ func NewConsulCAProvider(rawConfig map[string]interface{}, srv *Server) (*Consul
 		Op:            structs.CAOpSetProviderState,
 		ProviderState: &newState,
 	}
-	resp, err := srv.raftApply(structs.ConnectCARequestType, args)
-	if err != nil {
+	if err := delegate.ApplyCARequest(args); err != nil {
 		return nil, err
-	}
-	if respErr, ok := resp.(error); ok {
-		return nil, respErr
 	}
 
 	return provider, nil
@@ -131,7 +128,7 @@ func ParseConsulCAConfig(raw map[string]interface{}) (*structs.ConsulCAProviderC
 
 // Return the active root CA and generate a new one if needed
 func (c *ConsulCAProvider) ActiveRoot() (string, error) {
-	state := c.srv.fsm.State()
+	state := c.delegate.State()
 	_, providerState, err := state.CAProviderState(c.id)
 	if err != nil {
 		return "", err
@@ -165,12 +162,8 @@ func (c *ConsulCAProvider) Cleanup() error {
 		Op:            structs.CAOpDeleteProviderState,
 		ProviderState: &structs.CAConsulProviderState{ID: c.id},
 	}
-	resp, err := c.srv.raftApply(structs.ConnectCARequestType, args)
-	if err != nil {
+	if err := c.delegate.ApplyCARequest(args); err != nil {
 		return err
-	}
-	if respErr, ok := resp.(error); ok {
-		return respErr
 	}
 
 	return nil
@@ -185,7 +178,7 @@ func (c *ConsulCAProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	defer c.Unlock()
 
 	// Get the provider state
-	state := c.srv.fsm.State()
+	state := c.delegate.State()
 	_, providerState, err := state.CAProviderState(c.id)
 	if err != nil {
 		return "", err
@@ -274,7 +267,7 @@ func (c *ConsulCAProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 	defer c.Unlock()
 
 	// Get the provider state
-	state := c.srv.fsm.State()
+	state := c.delegate.State()
 	_, providerState, err := state.CAProviderState(c.id)
 	if err != nil {
 		return "", err
@@ -333,19 +326,15 @@ func (c *ConsulCAProvider) incrementSerialIndex(providerState *structs.CAConsulP
 		Op:            structs.CAOpSetProviderState,
 		ProviderState: &newState,
 	}
-	resp, err := c.srv.raftApply(structs.ConnectCARequestType, args)
-	if err != nil {
+	if err := c.delegate.ApplyCARequest(args); err != nil {
 		return err
-	}
-	if respErr, ok := resp.(error); ok {
-		return respErr
 	}
 
 	return nil
 }
 
-// generatePrivateKey returns a new private key
-func generatePrivateKey() (string, error) {
+// GeneratePrivateKey returns a new private key
+func GeneratePrivateKey() (string, error) {
 	var pk *ecdsa.PrivateKey
 
 	pk, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
@@ -369,7 +358,7 @@ func generatePrivateKey() (string, error) {
 
 // generateCA makes a new root CA using the current private key
 func (c *ConsulCAProvider) generateCA(privateKey string, sn uint64) (string, error) {
-	state := c.srv.fsm.State()
+	state := c.delegate.State()
 	_, config, err := state.CAConfig()
 	if err != nil {
 		return "", err

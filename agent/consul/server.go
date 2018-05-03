@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/connect"
+	connect_ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -99,7 +99,7 @@ type Server struct {
 
 	// caProvider is the current CA provider in use for Connect. This is
 	// only non-nil when we are the leader.
-	caProvider     connect.CAProvider
+	caProvider     connect_ca.Provider
 	caProviderLock sync.RWMutex
 
 	// Consul configuration

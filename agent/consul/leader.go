@@ -10,6 +10,7 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
+	connect_ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
@@ -478,10 +479,10 @@ func (s *Server) initializeCA() error {
 }
 
 // createProvider returns a connect CA provider from the given config.
-func (s *Server) createCAProvider(conf *structs.CAConfiguration) (connect.CAProvider, error) {
+func (s *Server) createCAProvider(conf *structs.CAConfiguration) (connect_ca.Provider, error) {
 	switch conf.Provider {
 	case structs.ConsulCAProvider:
-		return NewConsulCAProvider(conf.Config, s)
+		return connect_ca.NewConsulCAProvider(conf.Config, &consulCADelegate{s})
 	default:
 		return nil, fmt.Errorf("unknown CA provider %q", conf.Provider)
 	}
@@ -510,7 +511,7 @@ func (s *Server) getCAProvider() connect.CAProvider {
 	return result
 }
 
-func (s *Server) setCAProvider(newProvider connect.CAProvider) {
+func (s *Server) setCAProvider(newProvider connect_ca.Provider) {
 	s.caProviderLock.Lock()
 	defer s.caProviderLock.Unlock()
 	s.caProvider = newProvider

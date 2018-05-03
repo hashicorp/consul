@@ -4,10 +4,10 @@ import (
 	"crypto/x509"
 )
 
-// CAProvider is the interface for Consul to interact with
+// Provider is the interface for Consul to interact with
 // an external CA that provides leaf certificate signing for
 // given SpiffeIDServices.
-type CAProvider interface {
+type Provider interface {
 	// Active root returns the currently active root CA for this
 	// provider. This should be a parent of the certificate returned by
 	// ActiveIntermediate()
