@@ -198,15 +198,13 @@ func TestManagerRun_daemonLogs(t *testing.T) {
 	defer m.Kill()
 
 	// Configure a log dir so that we can read the logs
-	td, closer := testTempDir(t)
-	defer closer()
-	m.LogDir = filepath.Join(td, "logs")
+	logDir := filepath.Join(m.DataDir, "logs")
 
 	// Create the service and calculate the log paths
-	path := filepath.Join(td, "notify")
+	path := filepath.Join(m.DataDir, "notify")
 	id := testStateProxy(t, state, "web", helperProcess("output", path))
-	stdoutPath := logPath(m.LogDir, id, "stdout")
-	stderrPath := logPath(m.LogDir, id, "stderr")
+	stdoutPath := logPath(logDir, id, "stdout")
+	stderrPath := logPath(logDir, id, "stderr")
 
 	// Start the manager
 	go m.Run()
@@ -238,7 +236,7 @@ func testManager(t *testing.T) (*Manager, func()) {
 
 	// Setup a temporary directory for logs
 	td, closer := testTempDir(t)
-	m.LogDir = td
+	m.DataDir = td
 
 	return m, func() { closer() }
 }

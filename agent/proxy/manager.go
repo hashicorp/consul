@@ -54,11 +54,19 @@ type Manager struct {
 	// implementation type.
 	Logger *log.Logger
 
-	// LogDir is the path to the directory where logs will be written
-	// for daemon mode proxies. This directory will be created if it does
-	// not exist. If this is empty then logs will be dumped into the
-	// working directory.
-	LogDir string
+	// DataDir is the path to the directory where data for proxies is
+	// written, including snapshots for any state changes in the manager.
+	// Within the data dir, files will be written in the following locatins:
+	//
+	//   * logs/ - log files named <service id>-std{out|err}.log
+	//   * pids/ - pid files for daemons named <service id>.pid
+	//   * state.ext - the state of the manager
+	//
+	DataDir string
+
+	// SnapshotDir is the path to the directory where snapshots will
+	// be written
+	SnapshotDir string
 
 	// CoalescePeriod and QuiescencePeriod control the timers for coalescing
 	// updates from the local state. See the defaults at the top of this
@@ -370,15 +378,17 @@ func (m *Manager) newProxy(mp *local.ManagedProxy) (Proxy, error) {
 // they log to the proper file path for the given service ID.
 func (m *Manager) configureLogDir(id string, cmd *exec.Cmd) error {
 	// Create the log directory
-	if m.LogDir != "" {
-		if err := os.MkdirAll(m.LogDir, 0700); err != nil {
+	logDir := ""
+	if m.DataDir != "" {
+		logDir = filepath.Join(m.DataDir, "logs")
+		if err := os.MkdirAll(logDir, 0700); err != nil {
 			return err
 		}
 	}
 
 	// Configure the stdout, stderr paths
-	stdoutPath := logPath(m.LogDir, id, "stdout")
-	stderrPath := logPath(m.LogDir, id, "stderr")
+	stdoutPath := logPath(logDir, id, "stdout")
+	stderrPath := logPath(logDir, id, "stderr")
 
 	// Open the files. We want to append to each. We expect these files
 	// to be rotated by some external process.
