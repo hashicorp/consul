@@ -223,13 +223,16 @@ func (d *delegate) MergeRemoteState(buf []byte, isJoin bool) {
 		d.serf.queryClock.Witness(pp.QueryLTime - 1)
 	}
 
-	// Process the left nodes first to avoid the LTimes from being increment
-	// in the wrong order
+	// Process the left nodes first to avoid the LTimes from incrementing
+	// in the wrong order. Note that we don't have the actual Lamport time
+	// for the leave message, so we go one past the join time, since the
+	// leave must have been accepted after that to get onto the left members
+	// list. If we didn't do this then the message would not get processed.
 	leftMap := make(map[string]struct{}, len(pp.LeftMembers))
 	leave := messageLeave{}
 	for _, name := range pp.LeftMembers {
 		leftMap[name] = struct{}{}
-		leave.LTime = pp.StatusLTimes[name]
+		leave.LTime = pp.StatusLTimes[name] + 1
 		leave.Node = name
 		d.serf.handleNodeLeaveIntent(&leave)
 	}
