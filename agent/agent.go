@@ -363,7 +363,12 @@ func (a *Agent) Start() error {
 	a.proxyManager = proxy.NewManager()
 	a.proxyManager.State = a.State
 	a.proxyManager.Logger = a.logger
-	a.proxyManager.DataDir = filepath.Join(a.config.DataDir, "proxy")
+	if a.config.DataDir != "" {
+		// DataDir is required for all non-dev mode agents, but we want
+		// to allow setting the data dir for demos and so on for the agent,
+		// so do the check above instead.
+		a.proxyManager.DataDir = filepath.Join(a.config.DataDir, "proxy")
+	}
 	go a.proxyManager.Run()
 
 	// Start watching for critical services to deregister, based on their
