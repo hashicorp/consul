@@ -514,9 +514,9 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	// Add a filter rule if needed for enabling the deprecated metric names
 	enableDeprecatedNames := b.boolVal(c.Telemetry.EnableDeprecatedNames)
 	if enableDeprecatedNames {
-		telemetryAllowedPrefixes = append(telemetryAllowedPrefixes, "consul.consul")
+		telemetryAllowedPrefixes = append(telemetryAllowedPrefixes, "consul.consul.")
 	} else {
-		telemetryBlockedPrefixes = append(telemetryBlockedPrefixes, "consul.consul")
+		telemetryBlockedPrefixes = append(telemetryBlockedPrefixes, "consul.consul.")
 	}
 
 	// raft performance scaling
