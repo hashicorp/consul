@@ -115,6 +115,7 @@
 		{"path":"github.com/shirou/gopsutil/net","checksumSHA1":"OSvOZs5uK5iolCOeS46nB2InVy8=","revision":"32b6636de04b303274daac3ca2b10d3b0e4afc35","revisionTime":"2017-02-04T05:36:48Z"},
 		{"path":"github.com/shirou/gopsutil/process","checksumSHA1":"JX0bRK/BdKVfbm4XOxMducVdY58=","revision":"32b6636de04b303274daac3ca2b10d3b0e4afc35","revisionTime":"2017-02-04T05:36:48Z"},
 		{"path":"github.com/shirou/w32","checksumSHA1":"Nve7SpDmjsv6+rhkXAkfg/UQx94=","revision":"bb4de0191aa41b5507caa14b0650cdbddcd9280b","revisionTime":"2016-09-30T03:27:40Z"},
+		{"path":"github.com/stretchr/objx","checksumSHA1":"n+vQ7Bmp+ODWGmCp8cI5MFsaZVA=","revision":"a5cfa15c000af5f09784e5355969ba7eb66ef0de","revisionTime":"2018-04-26T10:50:06Z"},
 		{"path":"github.com/stretchr/testify/assert","checksumSHA1":"6LwXZI7kXm1C0h4Ui0Y52p9uQhk=","revision":"c679ae2cc0cb27ec3293fea7e254e47386f05d69","revisionTime":"2018-03-14T08:05:35Z"},
 		{"path":"github.com/stretchr/testify/mock","checksumSHA1":"Qloi2PTvZv+D9FDHXM/banCoaFY=","revision":"c679ae2cc0cb27ec3293fea7e254e47386f05d69","revisionTime":"2018-03-14T08:05:35Z"},
 		{"path":"github.com/stretchr/testify/require","checksumSHA1":"KqYmXUcuGwsvBL6XVsQnXsFb3LI=","revision":"c679ae2cc0cb27ec3293fea7e254e47386f05d69","revisionTime":"2018-03-14T08:05:35Z"},
