@@ -2,10 +2,11 @@ import Component from '@ember/component';
 import { get, set } from '@ember/object';
 import { inject as service } from '@ember/service';
 
+import SlotsMixin from 'ember-block-slots';
 const STATE_READY = 'ready';
 const STATE_SUCCESS = 'success';
 const STATE_ERROR = 'error';
-export default Component.extend({
+export default Component.extend(SlotsMixin, {
   wait: service('timeout'),
   interval: null,
   classNames: ['with-feedback'],

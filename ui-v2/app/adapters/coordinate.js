@@ -1,6 +1,5 @@
 import ApplicationAdapter from './application';
 
-import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/coordinate';
 
 import { OK as HTTP_OK } from 'consul-ui/utils/http/status';

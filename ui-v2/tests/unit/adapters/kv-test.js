@@ -13,10 +13,11 @@ module('Unit | Adapter | kv', function(hooks) {
     const adapter = this.owner.lookup('adapter:kv');
     assert.ok(adapter);
   });
-  test('handleResponse', function(assert) {
+  test('handleResponse with single type requests', function(assert) {
     const adapter = this.owner.lookup('adapter:kv');
     const expected = 'key/name';
-    const url = `/v1/kv/${expected}?dc=dc1`;
+    const dc = 'dc1';
+    const url = `/v1/kv/${expected}?dc=${dc}`;
     // handleResponse calls `urlForCreateRecord`, so stub that out
     // so we are testing a single unit of code
     const urlForCreateRecord = this.stub(adapter, 'urlForCreateRecord');
@@ -33,20 +34,23 @@ module('Unit | Adapter | kv', function(hooks) {
     // it does not currently get printed to the QUnit test runner output
 
     // the following tests use our stubbed `_super` sandbox
-    it('returns a KV pojo when createRecord is called with a `true` payload', function() {
-      const deep = {
-        Key: expected,
-        Datacenter: '',
+    it('returns a KV uid pojo when createRecord is called with a `true` payload', function() {
+      const uid = {
+        uid: JSON.stringify([dc, expected]),
       };
-      const actual = adapter.handleResponse(200, {}, true, { url: url });
-      assert.deepEqual(actual, deep);
+      const headers = {};
+      const actual = adapter.handleResponse(200, headers, true, { url: url });
+      assert.deepEqual(actual, uid);
     });
-    it("returns the original payload if it's not a Boolean", function() {
-      const expected = [];
-      const actual = adapter.handleResponse(200, {}, expected, { url: url });
-      assert.deepEqual(actual, expected);
+    it("returns the original payload plus the uid if it's not a Boolean", function() {
+      const uid = {
+        uid: JSON.stringify([dc, expected]),
+      };
+      const actual = adapter.handleResponse(200, {}, uid, { url: url });
+      assert.deepEqual(actual, uid);
     });
   });
+  skip('handleRequest for multiple type requests');
   test('dataForRequest returns', function(assert) {
     const adapter = this.owner.lookup('adapter:kv');
     // dataForRequest goes through window.atob
@@ -83,7 +87,7 @@ module('Unit | Adapter | kv', function(hooks) {
       const actual = adapter.dataForRequest({
         requestType: 'queryRecord',
       });
-      assert.deepEqual(actual, deep);
+      assert.equal(actual, null);
     });
   });
   test('methodForRequest returns the correct method', function(assert) {

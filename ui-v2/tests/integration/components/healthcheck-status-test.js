@@ -11,11 +11,12 @@ test('it renders', function(assert) {
 
   this.render(hbs`{{healthcheck-status}}`);
 
-  assert.equal(
+  assert.notEqual(
     this.$()
       .text()
-      .trim(),
-    'Output'
+      .trim()
+      .indexOf('Output'),
+    -1
   );
 
   // Template block usage:
@@ -23,10 +24,11 @@ test('it renders', function(assert) {
     {{#healthcheck-status}}{{/healthcheck-status}}
   `);
 
-  assert.equal(
+  assert.notEqual(
     this.$()
       .text()
-      .trim(),
-    'Output'
+      .trim()
+      .indexOf('Output'),
+    -1
   );
 });

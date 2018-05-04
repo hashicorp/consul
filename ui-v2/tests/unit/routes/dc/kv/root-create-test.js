@@ -2,7 +2,7 @@ import { moduleFor, test } from 'ember-qunit';
 
 moduleFor('route:dc/kv/root-create', 'Unit | Route | dc/kv/root create', {
   // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
+  needs: ['service:kv', 'service:feedback', 'service:flashMessages'],
 });
 
 test('it exists', function(assert) {

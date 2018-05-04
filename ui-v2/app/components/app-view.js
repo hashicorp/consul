@@ -8,9 +8,15 @@ const templatize = function(arr = []) {
 export default Component.extend(SlotsMixin, {
   classNames: ['app-view'],
   didInsertElement: function() {
-    $html.classList.add(...templatize(get(this, 'class').split(' ')));
+    const cls = get(this, 'class');
+    if (cls) {
+      $html.classList.add(...templatize(cls.split(' ')));
+    }
   },
   didDestroyElement: function() {
-    $html.classList.remove(...templatize(get(this, 'class').split(' ')));
+    const cls = get(this, 'class');
+    if (cls) {
+      $html.classList.remove(...templatize(cls.split(' ')));
+    }
   },
 });
