@@ -177,6 +177,13 @@ func TestDaemonStart_pidFile(t *testing.T) {
 	pidRaw, err := ioutil.ReadFile(pidPath)
 	require.NoError(err)
 	require.NotEmpty(pidRaw)
+
+	// Stop
+	require.NoError(d.Stop())
+
+	// Pid file should be gone
+	_, err = os.Stat(pidPath)
+	require.True(os.IsNotExist(err))
 }
 
 // Verify the pid file changes on restart

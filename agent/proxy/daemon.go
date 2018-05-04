@@ -263,6 +263,20 @@ func (p *Daemon) Stop() error {
 		gracefulWait = 5 * time.Second
 	}
 
+	// Defer removing the pid file. Even under error conditions we
+	// delete the pid file since Stop means that the manager is no
+	// longer managing this proxy and therefore nothing else will ever
+	// clean it up.
+	if p.PidPath != "" {
+		defer func() {
+			if err := os.Remove(p.PidPath); err != nil && !os.IsNotExist(err) {
+				p.Logger.Printf(
+					"[DEBUG] agent/proxy: error removing pid file %q: %s",
+					p.PidPath, err)
+			}
+		}()
+	}
+
 	// First, try a graceful stop
 	err := process.Signal(os.Interrupt)
 	if err == nil {
