@@ -55,11 +55,10 @@ func (r *roundRobin) List(p []*Proxy) []*Proxy {
 }
 
 // sequential is a policy that selects hosts based on sequential ordering.
-type sequential struct {}
+type sequential struct{}
 
 func (r *sequential) String() string { return "sequential" }
 
 func (r *sequential) List(p []*Proxy) []*Proxy {
 	return p
 }
-
