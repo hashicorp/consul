@@ -86,13 +86,11 @@ export default Component.extend(SlotsMixin, {
     window.removeEventListener('resize', this.handler);
   },
   resize: function(e) {
-    // const $header = [...$('#wrapper > header')][0];
     const $footer = [...$$('#wrapper > footer')][0];
-    // const $thead = this.$('thead')[0];
     const $thead = [...$$('main > div')][0];
     if ($thead) {
       // TODO: This should auto calculate properly from the CSS
-      this.set('height', Math.max(0, new Number(e.detail.height - ($footer.clientHeight + 188))));
+      this.set('height', Math.max(0, new Number(e.detail.height - ($footer.clientHeight + 218))));
       this['cell-layout'] = new ZIndexedGrid($thead.clientWidth, 50);
       this.updateItems();
       this.updateScrollPosition();
