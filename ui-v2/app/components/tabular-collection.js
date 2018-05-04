@@ -24,7 +24,9 @@ class ZIndexedGrid extends Grid {
 const closest = function(sel, el) {
   try {
     return el.closest(sel);
-  } catch (e) {}
+  } catch (e) {
+    return;
+  }
 };
 const change = function(e) {
   if (e instanceof MouseEvent) {
@@ -114,17 +116,16 @@ export default Component.extend(SlotsMixin, {
         case 'label':
         case 'a':
         case 'button':
-          break;
-        default:
-          const $a = closest('tr', e.target).querySelector('a');
-          if ($a) {
-            const click = new MouseEvent('click', {
-              bubbles: true,
-              cancelable: true,
-              view: window,
-            });
-            $a.dispatchEvent(click);
-          }
+          return;
+      }
+      const $a = closest('tr', e.target).querySelector('a');
+      if ($a) {
+        const click = new MouseEvent('click', {
+          bubbles: true,
+          cancelable: true,
+          view: window,
+        });
+        $a.dispatchEvent(click);
       }
     },
   },
