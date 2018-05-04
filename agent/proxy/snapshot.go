@@ -101,7 +101,10 @@ func (m *Manager) snapshot(path string, checkDup bool) error {
 
 	// Write the file
 	err = file.WriteAtomic(path, encoded)
-	if err == nil && checkDup {
+
+	// If we are checking for dups and we had a successful write, store
+	// it so we don't rewrite the same value.
+	if checkDup && err == nil {
 		m.lastSnapshot = &s
 	}
 	return err

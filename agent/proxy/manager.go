@@ -96,8 +96,14 @@ type Manager struct {
 	// for changes to this value.
 	runState managerRunState
 
-	proxies      map[string]Proxy
+	// lastSnapshot stores a pointer to the last snapshot that successfully
+	// wrote to disk. This is used for dup detection to prevent rewriting
+	// the same snapshot multiple times. snapshots should never be that
+	// large so keeping it in-memory should be cheap even for thousands of
+	// proxies (unlikely scenario).
 	lastSnapshot *snapshot
+
+	proxies map[string]Proxy
 }
 
 // NewManager initializes a Manager. After initialization, the exported
