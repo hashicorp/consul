@@ -1,6 +1,7 @@
 import { helper } from '@ember/component/helper';
 
-// TODO: Improve this
+// TODO: Currently I'm only using this for hardcoded values
+// so ' ' to '-' replacement is sufficient for the moment
 export function slugify([str = ''], hash) {
   return str.replace(/ /g, '-').toLowerCase();
 }

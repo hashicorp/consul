@@ -5,7 +5,3 @@ fieldset {
 label span {
   user-select: none;
 }
-.navbar-link::after {
-  border: 0;
-  transform: none;
-}

@@ -1,6 +1,6 @@
 import Mixin from '@ember/object/mixin';
-
 import { computed, get, set } from '@ember/object';
+
 const toKeyValue = function(el) {
   const key = el.name;
   let value = '';

@@ -9,12 +9,11 @@ export default Service.extend({
     if (name != null) {
       const item = items.findBy('Name', name);
       if (item) {
-        // TODO: this does too much
         return get(this, 'settings')
           .persist({ dc: get(item, 'Name') })
           .then(function() {
+            // TODO: create a model
             return { Name: get(item, 'Name') };
-            // return item; // ?
           });
       }
     }

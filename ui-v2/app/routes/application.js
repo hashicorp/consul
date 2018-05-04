@@ -4,7 +4,6 @@ import { hash } from 'rsvp';
 import { get } from '@ember/object';
 import { next } from '@ember/runloop';
 export default Route.extend({
-  // logger: service('logger'),
   init: function() {
     this._super(...arguments);
     document.documentElement.classList.remove('ember-loading');
@@ -46,7 +45,6 @@ export default Route.extend({
       if (error.status === '') {
         error.message = 'Error';
       }
-      // logger(error);
       hash({
         error: error,
         dc: error.status.toString().indexOf('5') !== 0 ? get(this, 'repo').getActive() : null,

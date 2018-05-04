@@ -56,7 +56,6 @@ export default Mixin.create(WithFeedback, {
         `There was an error deleting your key.`
       );
     },
-    // TODO: This is frontend ??
     cancel: function(item, parent) {
       return transitionToList(get(parent, 'Key'), this.transitionTo.bind(this));
     },

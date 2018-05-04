@@ -19,17 +19,18 @@ class ZIndexedGrid extends Grid {
     return style;
   }
 }
+// TODO instead of degrading gracefully
+// add a while polyfill for closest
 const closest = function(sel, el) {
   try {
     return el.closest(sel);
   } catch (e) {}
 };
 const change = function(e) {
-  // TODO: Why am I getting a jQuery event here?!
   if (e instanceof MouseEvent) {
-    // set(this, 'checked', null);
     return;
   }
+  // TODO: Why am I getting a jQuery event here?!
   if (e instanceof Event) {
     const value = e.currentTarget.value;
     if (value != get(this, 'checked')) {
@@ -38,7 +39,6 @@ const change = function(e) {
       set(this, 'checked', null);
     }
   } else if (e.detail && e.detail.index) {
-    // set(this, 'checked', null)
     if (e.detail.confirming) {
       this.confirming.push(e.detail.index);
     } else {
@@ -60,6 +60,7 @@ export default Component.extend(SlotsMixin, {
     this._super(...arguments);
     this.change = change.bind(this);
     this.confirming = [];
+    // TODO: This should auto calculate properly from the CSS
     this['cell-layout'] = new ZIndexedGrid(get(this, 'width'), 50);
     this.handler = () => {
       this.resize(createSizeEvent());
@@ -86,9 +87,9 @@ export default Component.extend(SlotsMixin, {
     // const $header = [...$('#wrapper > header')][0];
     const $footer = [...$$('#wrapper > footer')][0];
     // const $thead = this.$('thead')[0];
-    // TODO: cheat for the moment
     const $thead = [...$$('main > div')][0];
     if ($thead) {
+      // TODO: This should auto calculate properly from the CSS
       this.set('height', Math.max(0, new Number(e.detail.height - ($footer.clientHeight + 188))));
       this['cell-layout'] = new ZIndexedGrid($thead.clientWidth, 50);
       this.updateItems();

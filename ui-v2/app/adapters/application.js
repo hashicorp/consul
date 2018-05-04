@@ -8,7 +8,7 @@ export const REQUEST_CREATE = 'createRecord';
 export const REQUEST_READ = 'queryRecord';
 export const REQUEST_UPDATE = 'updateRecord';
 export const REQUEST_DELETE = 'deleteRecord';
-// export const REQUEST_READ_MULTIPLE = 'query'; // ?
+// export const REQUEST_READ_MULTIPLE = 'query';
 
 export const DATACENTER_KEY = 'dc';
 
@@ -30,9 +30,8 @@ export default Adapter.extend({
   isQueryRecord: function(url) {
     // this is ONLY if ALL api's using it
     // follow the 'last part of the url is the id' rule
-    const pathname = url// unslashify
-    .pathname
-      .split('/')
+    const pathname = url.pathname
+      .split('/') // unslashify
       // remove the last
       .slice(0, -1)
       // add and empty to ensure a trailing slash

@@ -52,7 +52,6 @@ export default Mixin.create(WithFeedback, {
         `There was an error deleting your ACL token.`
       );
     },
-    // TODO: This is frontend ??
     cancel: function(item) {
       this.transitionTo('dc.acls');
     },

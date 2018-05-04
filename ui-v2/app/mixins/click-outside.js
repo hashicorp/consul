@@ -28,7 +28,6 @@ export default Mixin.create({
   },
   willDestroyElement: function() {
     this._super(...arguments);
-    // TODO: Ask if there is a chance that this will be called after `next`
     document.removeEventListener('click', this.handler);
   },
 });

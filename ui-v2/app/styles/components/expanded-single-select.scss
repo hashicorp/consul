@@ -8,12 +8,6 @@
 %expanded-single-select label {
   height: 100%;
 }
-/* bulma
-%expanded-single-select {
-  @extend .column, .columns, .is-gapless;
-  padding: 0;
-}
-*/
 @media #{$--horizontal-selects} {
   %expanded-single-select {
     display: flex;

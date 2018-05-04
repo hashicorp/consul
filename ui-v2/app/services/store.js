@@ -1,11 +1,9 @@
 import Store from 'ember-data/store';
 
 export default Store.extend({
-  // luckily I do another query straight after this, so the cloned
-  // item will end up being loaded in via the api straight after this
-  // as long as this returns a promise on success we should be good
+  // cloning immediately refreshes the view
   clone: function(modelName, id) {
-    // no normalization, type it properly
+    // TODO: no normalization, type it properly for the moment
     const adapter = this.adapterFor(modelName);
     // passing empty options gives me a snapshot - ?
     const options = {};
@@ -16,12 +14,6 @@ export default Store.extend({
       id,
       this._internalModelForId(modelName, id).createSnapshot(options)
     );
-    // https://github.com/emberjs/data/blob/7b8019818526a17ee72747bd3c0041354e58371a/addon/-private/system/promise-proxies.js#L68
-    // .then(
-    //   function(internalModel) {
-    //     return internalModel;
-    //     return {promise: Promise.resolve(internalModel)}
-    //   }
-    // );
+    // TODO: See https://github.com/emberjs/data/blob/7b8019818526a17ee72747bd3c0041354e58371a/addon/-private/system/promise-proxies.js#L68
   },
 });

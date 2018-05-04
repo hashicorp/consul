@@ -6,14 +6,11 @@ export default Service.extend({
   findAllByDatacenter: function(dc) {
     return get(this, 'store')
       .query('service', { dc: dc })
-      .then(
-        // TODO: Do I actually need to do this?
-        function(items) {
-          return items.forEach(function(item) {
-            set(item, 'Datacenter', dc);
-          });
-        }
-      );
+      .then(function(items) {
+        return items.forEach(function(item) {
+          set(item, 'Datacenter', dc);
+        });
+      });
   },
   findBySlug: function(slug, dc) {
     return get(this, 'store')
@@ -26,7 +23,6 @@ export default Service.extend({
         const service = get(nodes, 'firstObject');
         set(service, 'Nodes', nodes);
         return service;
-        // return get(item, 'Nodes');
       });
   },
 });

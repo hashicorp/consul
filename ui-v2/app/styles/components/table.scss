@@ -16,7 +16,6 @@ td.folder {
   @extend %with-folder;
 }
 table {
-  // @extend .table;
   width: 100%;
 }
 td button {
@@ -67,7 +66,7 @@ td:not(.actions) a {
   text-overflow: ellipsis;
   overflow: hidden;
 }
-// this isn't specific to table
+// TODO: this isn't specific to table
 td dl {
   height: 100%;
 }
@@ -111,7 +110,6 @@ td dt.warning::before {
 td dt.warning::after {
   left: -2px;
   top: -1px;
-  // border-color: black;
 }
 td dt.critical {
   @extend %with-critical;

@@ -1,6 +1,6 @@
 import { helper } from '@ember/component/helper';
 
-export function split([array = [], separator = ','] /*, hash*/) {
+export function split([array = [], separator = ','], hash) {
   return array.split(separator);
 }
 

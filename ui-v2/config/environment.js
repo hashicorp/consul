@@ -48,7 +48,7 @@ module.exports = function(environment) {
     })(),
     CONSUL_DOCUMENTATION_URL: 'https://www.consul.io/docs',
     CONSUL_COPYRIGHT_URL: 'https://www.hashicorp.com',
-    CONSUL_COPYRIGHT_YEAR: '2018', // hardcode for now, could be auto-gen'ed on build
+    CONSUL_COPYRIGHT_YEAR: '2018',
   });
 
   if (environment === 'development') {

@@ -1,4 +1,4 @@
-/* eslint no-console: "off" */
+/* eslint no-console: "warn" */
 import Service, { inject as service } from '@ember/service';
 import { get } from '@ember/object';
 import $ from 'jquery';

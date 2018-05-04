@@ -16,9 +16,6 @@
   text-overflow: ellipsis;
   max-width: 100%;
 }
-%healthchecked-resource li:not(:last-child) span {
-  // line-height: 1.7;
-}
 %healthchecked-resource li:last-child:not(:only-child) {
   overflow: hidden;
   white-space: nowrap;

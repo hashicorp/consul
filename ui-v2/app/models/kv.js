@@ -4,8 +4,10 @@ import { computed, get } from '@ember/object';
 import isFolder from 'consul-ui/utils/isFolder';
 
 export const PRIMARY_KEY = 'uid';
-// not really a slug as it contains slashes
+// not really a slug as it contains slashes but all intents and purposes
+// its my 'slug'
 export const SLUG_KEY = 'Key';
+
 export default Model.extend({
   [PRIMARY_KEY]: attr('string'),
   [SLUG_KEY]: attr('string'),

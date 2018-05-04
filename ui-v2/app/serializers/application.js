@@ -15,7 +15,6 @@ export default Serializer.extend({
       requestType
     );
   },
-  // TODO: decide on whether this is a 'hook' or an 'overridable method'
   normalizePayload: function(payload, id, requestType) {
     return payload;
   },

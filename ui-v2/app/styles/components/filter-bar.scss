@@ -9,7 +9,7 @@
   border: 1px solid;
   border-radius: $radius-small;
 }
-// this doesn't make sense here
+// TODO: Move this elsewhere
 @media #{$--horizontal-selects} {
   %filter-bar label:not(:last-child) {
     border-right: 1px solid;
@@ -30,12 +30,6 @@
 }
 
 // layout
-/* bulma
-%filter-bar {
-  @extend .columns;
-  margin: 0 !important;
-}
-*/
 %filter-bar {
   padding: 14px;
   display: block;

@@ -14,7 +14,7 @@
 {{ else }}
     {{#each unhealthy as |check| }}
         <li class={{check.Status}}>
-            <a href={{href}}>{{! check.CheckID }}
+            <a href={{href}}>
                 <strong>{{ check.Status }}</strong>
                 <span>{{ check.Name }}</span>
             </a>

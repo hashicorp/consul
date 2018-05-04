@@ -1,8 +1,10 @@
 import Model from 'ember-data/model';
 import attr from 'ember-data/attr';
 import { computed, get } from '@ember/object';
+
 export const PRIMARY_KEY = 'uid';
 export const SLUG_KEY = 'Name';
+
 export default Model.extend({
   [PRIMARY_KEY]: attr('string'),
   [SLUG_KEY]: attr('string'),
@@ -26,9 +28,8 @@ export default Model.extend({
   Checks: attr(),
   passing: computed('ChecksPassing', 'Checks', function() {
     let num = 0;
+    // TODO: use typeof
     if (get(this, 'ChecksPassing') !== undefined) {
-      // TODO: if we don't need this then just return the filterBy array
-      // as it has a length
       num = get(this, 'ChecksPassing');
     } else {
       num = get(get(this, 'Checks').filterBy('Status', 'passing'), 'length');

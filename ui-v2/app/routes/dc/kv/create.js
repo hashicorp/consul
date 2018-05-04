@@ -29,7 +29,7 @@ export default Route.extend(WithKvActions, {
   },
   deactivate: function() {
     if (get(this.item, 'isNew')) {
-      // this.item.destroyRecord();
+      this.item.destroyRecord();
     }
   },
 });
