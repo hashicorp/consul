@@ -39,7 +39,7 @@
     "ember-cli-autoprefixer": "^0.8.1",
     "ember-cli-babel": "^6.6.0",
     "ember-cli-clipboard": "^0.9.0",
-    "ember-cli-code-coverage": "^0.4.2",
+    "ember-cli-code-coverage": "^1.0.0-beta.4",
     "ember-cli-dependency-checker": "^2.0.0",
     "ember-cli-eslint": "^4.2.1",
     "ember-cli-flash": "^1.6.3",
