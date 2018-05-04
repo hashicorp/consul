@@ -2723,7 +2723,7 @@ func (a *Agent) registerCache() {
 	}, &cache.RegisterOptions{
 		// Maintain a blocking query, retry dropped connections quickly
 		Refresh:        true,
-		RefreshTimer:   0,
+		RefreshTimer:   3 * time.Second,
 		RefreshTimeout: 10 * time.Minute,
 	})
 
@@ -2733,7 +2733,7 @@ func (a *Agent) registerCache() {
 	}, &cache.RegisterOptions{
 		// Maintain a blocking query, retry dropped connections quickly
 		Refresh:        true,
-		RefreshTimer:   0,
+		RefreshTimer:   3 * time.Second,
 		RefreshTimeout: 10 * time.Minute,
 	})
 
@@ -2742,7 +2742,7 @@ func (a *Agent) registerCache() {
 	}, &cache.RegisterOptions{
 		// Maintain a blocking query, retry dropped connections quickly
 		Refresh:        true,
-		RefreshTimer:   0,
+		RefreshTimer:   3 * time.Second,
 		RefreshTimeout: 10 * time.Minute,
 	})
 }
