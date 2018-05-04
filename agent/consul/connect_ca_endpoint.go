@@ -98,15 +98,9 @@ func (s *ConnectCA) ConfigurationSet(
 		return err
 	}
 
-	id, err := connect.CalculateCertFingerprint(newRootPEM)
+	newActiveRoot, err := parseCARoot(newRootPEM, args.Config.Provider)
 	if err != nil {
-		return fmt.Errorf("error parsing root fingerprint: %v", err)
-	}
-	newActiveRoot := &structs.CARoot{
-		ID:       id,
-		Name:     fmt.Sprintf("%s CA Root Cert", config.Provider),
-		RootCert: newRootPEM,
-		Active:   true,
+		return err
 	}
 
 	// Compare the new provider's root CA ID to the current one. If they
@@ -240,6 +234,10 @@ func (s *ConnectCA) Roots(
 				reply.Roots[i] = &structs.CARoot{
 					ID:                r.ID,
 					Name:              r.Name,
+					SerialNumber:      r.SerialNumber,
+					SigningKeyID:      r.SigningKeyID,
+					NotBefore:         r.NotBefore,
+					NotAfter:          r.NotAfter,
 					RootCert:          r.RootCert,
 					IntermediateCerts: r.IntermediateCerts,
 					RaftIndex:         r.RaftIndex,

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -427,15 +428,9 @@ func (s *Server) initializeCA() error {
 		return fmt.Errorf("error getting root cert: %v", err)
 	}
 
-	id, err := connect.CalculateCertFingerprint(rootPEM)
+	rootCA, err := parseCARoot(rootPEM, conf.Provider)
 	if err != nil {
-		return fmt.Errorf("error parsing root fingerprint: %v", err)
-	}
-	rootCA := &structs.CARoot{
-		ID:       id,
-		Name:     fmt.Sprintf("%s CA Root Cert", conf.Provider),
-		RootCert: rootPEM,
-		Active:   true,
+		return err
 	}
 
 	// Check if the CA root is already initialized and exit if it is.
@@ -476,6 +471,28 @@ func (s *Server) initializeCA() error {
 	s.logger.Printf("[INFO] connect: initialized CA with provider %q", conf.Provider)
 
 	return nil
+}
+
+// parseCARoot returns a filled-in structs.CARoot from a raw PEM value.
+func parseCARoot(pemValue, provider string) (*structs.CARoot, error) {
+	id, err := connect.CalculateCertFingerprint(pemValue)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing root fingerprint: %v", err)
+	}
+	rootCert, err := connect.ParseCert(pemValue)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing root cert: %v", err)
+	}
+	return &structs.CARoot{
+		ID:           id,
+		Name:         fmt.Sprintf("%s CA Root Cert", strings.Title(provider)),
+		SerialNumber: rootCert.SerialNumber.Uint64(),
+		SigningKeyID: connect.HexString(rootCert.AuthorityKeyId),
+		NotBefore:    rootCert.NotBefore,
+		NotAfter:     rootCert.NotAfter,
+		RootCert:     pemValue,
+		Active:       true,
+	}, nil
 }
 
 // createProvider returns a connect CA provider from the given config.

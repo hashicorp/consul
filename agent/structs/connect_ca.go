@@ -28,6 +28,17 @@ type CARoot struct {
 	// opaque to Consul and is not used for anything internally.
 	Name string
 
+	// SerialNumber is the x509 serial number of the certificate.
+	SerialNumber uint64
+
+	// SigningKeyID is the ID of the public key that corresponds to the
+	// private key used to sign the certificate.
+	SigningKeyID string
+
+	// Time validity bounds.
+	NotBefore time.Time
+	NotAfter  time.Time
+
 	// RootCert is the PEM-encoded public certificate.
 	RootCert string
 
