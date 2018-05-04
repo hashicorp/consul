@@ -368,6 +368,11 @@ func (a *Agent) Start() error {
 		// to allow setting the data dir for demos and so on for the agent,
 		// so do the check above instead.
 		a.proxyManager.DataDir = filepath.Join(a.config.DataDir, "proxy")
+
+		// Restore from our snapshot (if it exists)
+		if err := a.proxyManager.Restore(a.proxyManager.SnapshotPath()); err != nil {
+			a.logger.Printf("[WARN] agent: error restoring proxy state: %s", err)
+		}
 	}
 	go a.proxyManager.Run()
 
@@ -1289,7 +1294,7 @@ func (a *Agent) ShutdownAgent() error {
 
 	// Stop the proxy manager
 	// NOTE(mitchellh): we use Kill for now to kill the processes since
-	// snapshotting isn't implemented. This should change to Close later.
+	// there isn't a clean way to cleanup the managed proxies. This is coming
 	if err := a.proxyManager.Kill(); err != nil {
 		a.logger.Printf("[WARN] agent: error shutting down proxy manager: %s", err)
 	}
