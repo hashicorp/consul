@@ -437,7 +437,7 @@ collectLoop:
 			))
 		default:
 			if goroutineBudget <= 0 || len(collectors) == 0 {
-				// All collectors are aleady being worked on or
+				// All collectors are already being worked on or
 				// we have already as many goroutines started as
 				// there are collectors. Just process metrics
 				// from now on.
