@@ -9,26 +9,26 @@
         </g>
         <g class="lines">
     {{#each distances as |item|}}
-        <line transform="rotate({{item.rotate}})" y2="{{item.y2}}" data-node="{{item.d}}" data-distance="{{item.distance}}" data-segment="{{item.segment}}" onmouseover="tomographyMouseOver(this);"/>
+        <line transform="rotate({{item.rotate}})" y2="{{item.y2}}" data-node="{{item.d}}" data-distance="{{item.distance}}" data-segment="{{item.segment}}"/>
     {{/each}}
         </g>
         <g class="labels">
             <circle class="point" r="5"/>
             <g class="tick" transform="translate(0, {{labels.[0]}})">
                 <line x2="70"/>
-                <text x="75" y="0" dy=".32em">{{milliseconds.[0]}}ms</text>
+                <text x="75" y="0" dy=".32em">{{format-number milliseconds.[0] format='0.00'}}ms</text>
             </g>
             <g class="tick" transform="translate(0, {{labels.[1]}})">
                 <line x2="70"/>
-                <text x="75" y="0" dy=".32em">{{milliseconds.[1]}}ms</text>
+                <text x="75" y="0" dy=".32em">{{format-number milliseconds.[1] format='0.00'}}ms</text>
             </g>
             <g class="tick" transform="translate(0, {{labels.[2]}})">
                 <line x2="70"/>
-                <text x="75" y="0" dy=".32em">{{milliseconds.[2]}}ms</text>
+                <text x="75" y="0" dy=".32em">{{format-number milliseconds.[2] format='0.00'}}ms</text>
             </g>
             <g class="tick" transform="translate(0, {{labels.[3]}})">
                 <line x2="70"/>
-                <text x="75" y="0" dy=".32em">{{milliseconds.[3]}}ms</text>
+                <text x="75" y="0" dy=".32em">{{format-number milliseconds.[3] format='0.00'}}ms</text>
             </g>
         </g>
     </g>
