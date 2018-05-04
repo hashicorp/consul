@@ -151,8 +151,13 @@ func (m *Manager) Restore(path string) error {
 			return err
 		}
 
+		// Unmarshal the proxy. If there is an error we just continue on and
+		// ignore it. Errors restoring proxies should be exceptionally rare
+		// and only under scenarios where the proxy isn't running anymore or
+		// we won't have permission to access it. We log and continue.
 		if err := p.UnmarshalSnapshot(sp.Config); err != nil {
-			return err
+			m.Logger.Printf("[WARN] agent/proxy: error restoring proxy %q: %s", id, err)
+			continue
 		}
 
 		proxies[id] = p

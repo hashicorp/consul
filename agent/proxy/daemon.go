@@ -165,7 +165,25 @@ func (p *Daemon) keepAlive(stopCh <-chan struct{}, exitedCh chan<- struct{}) {
 
 		}
 
+		// Wait for the process to exit. Note that if we restored this proxy
+		// then Wait will always fail because we likely aren't the parent
+		// process. Therefore, we do an extra sanity check after to use other
+		// syscalls to verify the process is truly dead.
 		ps, err := process.Wait()
+		if _, err := findProcess(process.Pid); err == nil {
+			select {
+			case <-time.After(1 * time.Second):
+				// We want a busy loop, but not too busy. 1 second between
+				// detecting a process death seems reasonable.
+
+			case <-stopCh:
+				// If we receive a stop request we want to exit immediately.
+				return
+			}
+
+			continue
+		}
+
 		process = nil
 		if err != nil {
 			p.Logger.Printf("[INFO] agent/proxy: daemon exited with error: %s", err)
@@ -336,15 +354,10 @@ func (p *Daemon) UnmarshalSnapshot(m map[string]interface{}) error {
 		Env:  s.CommandEnv,
 	}
 
-	// For the pid, we want to find the process.
-	proc, err := os.FindProcess(s.Pid)
-	if err != nil {
-		return err
-	}
-
 	// FindProcess on many systems returns no error even if the process
 	// is now dead. We perform an extra check that the process is alive.
-	if err := processAlive(proc); err != nil {
+	proc, err := findProcess(s.Pid)
+	if err != nil {
 		return err
 	}
 
