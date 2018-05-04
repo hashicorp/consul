@@ -284,6 +284,7 @@ func (p *Daemon) Stop() error {
 // used only for tests.
 func (p *Daemon) stopKeepAlive() error {
 	p.lock.Lock()
+	defer p.lock.Unlock()
 
 	// If we're already stopped or never started, then no problem.
 	if p.stopped || p.process == nil {
@@ -295,7 +296,6 @@ func (p *Daemon) stopKeepAlive() error {
 	// Note that we've stopped
 	p.stopped = true
 	close(p.stopCh)
-	p.lock.Unlock()
 
 	return nil
 }

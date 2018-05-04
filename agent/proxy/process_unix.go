@@ -22,9 +22,9 @@ func findProcess(pid int) (*os.Process, error) {
 	// a 0 signal. This will do nothing to the process but will still
 	// return errors if the process is gone.
 	err = p.Signal(syscall.Signal(0))
-	if err == nil || err == syscall.EPERM {
+	if err == nil {
 		return p, nil
 	}
 
-	return nil, fmt.Errorf("process is dead")
+	return nil, fmt.Errorf("process %d is dead or running as another user", pid)
 }
