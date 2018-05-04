@@ -114,7 +114,7 @@ func NewConsulCAProvider(rawConfig map[string]interface{}, delegate ConsulCAStat
 }
 
 func ParseConsulCAConfig(raw map[string]interface{}) (*structs.ConsulCAProviderConfig, error) {
-	var config *structs.ConsulCAProviderConfig
+	var config structs.ConsulCAProviderConfig
 	if err := mapstructure.WeakDecode(raw, &config); err != nil {
 		return nil, fmt.Errorf("error decoding config: %s", err)
 	}
@@ -123,7 +123,7 @@ func ParseConsulCAConfig(raw map[string]interface{}) (*structs.ConsulCAProviderC
 		return nil, fmt.Errorf("must provide a private key when providing a root cert")
 	}
 
-	return config, nil
+	return &config, nil
 }
 
 // Return the active root CA and generate a new one if needed
