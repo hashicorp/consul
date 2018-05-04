@@ -108,6 +108,10 @@ func DevSource() Source {
 		ui = true
 		log_level = "DEBUG"
 		server = true
+
+		connect = {
+			enabled = true
+		}
 		performance = {
 			raft_multiplier = 1
 		}

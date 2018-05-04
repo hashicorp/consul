@@ -263,6 +263,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.AdvertiseAddrLAN = ipAddr("127.0.0.1")
 				rt.AdvertiseAddrWAN = ipAddr("127.0.0.1")
 				rt.BindAddr = ipAddr("127.0.0.1")
+				rt.ConnectEnabled = true
 				rt.DevMode = true
 				rt.DisableAnonymousSignature = true
 				rt.DisableKeyringFile = true
