@@ -1328,10 +1328,9 @@ func TestFSM_CABuiltinProvider(t *testing.T) {
 
 	// Provider state.
 	expected := &structs.CAConsulProviderState{
-		ID:          "foo",
-		PrivateKey:  "a",
-		RootCert:    "b",
-		SerialIndex: 2,
+		ID:         "foo",
+		PrivateKey: "a",
+		RootCert:   "b",
 		RaftIndex: structs.RaftIndex{
 			CreateIndex: 1,
 			ModifyIndex: 1,

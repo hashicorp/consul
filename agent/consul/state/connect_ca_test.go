@@ -356,10 +356,9 @@ func TestStore_CABuiltinProvider(t *testing.T) {
 
 	{
 		expected := &structs.CAConsulProviderState{
-			ID:          "foo",
-			PrivateKey:  "a",
-			RootCert:    "b",
-			SerialIndex: 1,
+			ID:         "foo",
+			PrivateKey: "a",
+			RootCert:   "b",
 		}
 
 		ok, err := s.CASetProviderState(0, expected)
@@ -374,10 +373,9 @@ func TestStore_CABuiltinProvider(t *testing.T) {
 
 	{
 		expected := &structs.CAConsulProviderState{
-			ID:          "bar",
-			PrivateKey:  "c",
-			RootCert:    "d",
-			SerialIndex: 2,
+			ID:         "bar",
+			PrivateKey: "c",
+			RootCert:   "d",
 		}
 
 		ok, err := s.CASetProviderState(1, expected)
@@ -398,16 +396,14 @@ func TestStore_CABuiltinProvider_Snapshot_Restore(t *testing.T) {
 	// Create multiple state entries.
 	before := []*structs.CAConsulProviderState{
 		{
-			ID:          "bar",
-			PrivateKey:  "y",
-			RootCert:    "z",
-			SerialIndex: 2,
+			ID:         "bar",
+			PrivateKey: "y",
+			RootCert:   "z",
 		},
 		{
-			ID:          "foo",
-			PrivateKey:  "a",
-			RootCert:    "b",
-			SerialIndex: 1,
+			ID:         "foo",
+			PrivateKey: "a",
+			RootCert:   "b",
 		},
 	}
 
@@ -423,10 +419,9 @@ func TestStore_CABuiltinProvider_Snapshot_Restore(t *testing.T) {
 
 	// Modify the state store.
 	after := &structs.CAConsulProviderState{
-		ID:          "foo",
-		PrivateKey:  "c",
-		RootCert:    "d",
-		SerialIndex: 1,
+		ID:         "foo",
+		PrivateKey: "c",
+		RootCert:   "d",
 	}
 	ok, err := s.CASetProviderState(100, after)
 	assert.NoError(err)

@@ -179,7 +179,7 @@ func (c *ConsulCAProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 
 	// Get the provider state
 	state := c.delegate.State()
-	_, providerState, err := state.CAProviderState(c.id)
+	idx, providerState, err := state.CAProviderState(c.id)
 	if err != nil {
 		return "", err
 	}
@@ -215,7 +215,7 @@ func (c *ConsulCAProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 
 	// Cert template for generation
 	sn := &big.Int{}
-	sn.SetUint64(providerState.SerialIndex + 1)
+	sn.SetUint64(idx + 1)
 	template := x509.Certificate{
 		SerialNumber:          sn,
 		Subject:               pkix.Name{CommonName: serviceId.Service},
@@ -252,7 +252,7 @@ func (c *ConsulCAProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 		return "", fmt.Errorf("error encoding private key: %s", err)
 	}
 
-	err = c.incrementSerialIndex(providerState)
+	err = c.incrementProviderIndex(providerState)
 	if err != nil {
 		return "", err
 	}
@@ -268,7 +268,7 @@ func (c *ConsulCAProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 
 	// Get the provider state
 	state := c.delegate.State()
-	_, providerState, err := state.CAProviderState(c.id)
+	idx, providerState, err := state.CAProviderState(c.id)
 	if err != nil {
 		return "", err
 	}
@@ -290,7 +290,7 @@ func (c *ConsulCAProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 
 	// Create the cross-signing template from the existing root CA
 	serialNum := &big.Int{}
-	serialNum.SetUint64(providerState.SerialIndex + 1)
+	serialNum.SetUint64(idx + 1)
 	template := *cert
 	template.SerialNumber = serialNum
 	template.SignatureAlgorithm = rootCA.SignatureAlgorithm
@@ -309,7 +309,7 @@ func (c *ConsulCAProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 		return "", fmt.Errorf("error encoding private key: %s", err)
 	}
 
-	err = c.incrementSerialIndex(providerState)
+	err = c.incrementProviderIndex(providerState)
 	if err != nil {
 		return "", err
 	}
@@ -317,11 +317,10 @@ func (c *ConsulCAProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 	return buf.String(), nil
 }
 
-// incrementSerialIndex increments the cert serial number index in the provider
-// state.
-func (c *ConsulCAProvider) incrementSerialIndex(providerState *structs.CAConsulProviderState) error {
+// incrementProviderIndex does a write to increment the provider state store table index
+// used for serial numbers when generating certificates.
+func (c *ConsulCAProvider) incrementProviderIndex(providerState *structs.CAConsulProviderState) error {
 	newState := *providerState
-	newState.SerialIndex++
 	args := &structs.CARequest{
 		Op:            structs.CAOpSetProviderState,
 		ProviderState: &newState,
