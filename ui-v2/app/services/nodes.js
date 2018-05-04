@@ -1,23 +1,8 @@
-/* eslint no-console: "warn" */
 import Service, { inject as service } from '@ember/service';
 import { get } from '@ember/object';
-import $ from 'jquery';
-import { Promise } from 'rsvp';
-const request = function() {
-  return new Promise((resolve, reject) => {
-    $.ajax(...arguments)
-      .then(function(res) {
-        resolve(res);
-        return res;
-      })
-      .fail(function(e) {
-        reject(e);
-        return e;
-      });
-  });
-};
 export default Service.extend({
   store: service('store'),
+  coordinates: service('coordinates'),
   findAllByDatacenter: function(dc) {
     return get(this, 'store').query('node', { dc: dc });
   },
@@ -28,14 +13,12 @@ export default Service.extend({
         dc: dc,
       })
       .then(node => {
-        return this.findAllCoordinatesByDatacenter(dc).then(function(res) {
-          node.coordinates = res;
-          return node;
-        });
+        return get(this, 'coordinates')
+          .findAllByDatacenter(dc)
+          .then(function(res) {
+            node.Coordinates = res;
+            return node;
+          });
       });
-  },
-  findAllCoordinatesByDatacenter: function(dc) {
-    console.warn('TODO: not ember-data');
-    return request('/v1/coordinate/nodes', dc);
   },
 });

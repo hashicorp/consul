@@ -27,12 +27,13 @@ export default Route.extend(WithFeedback, {
       size: 337,
     }).then(function(model) {
       // TODO: Consider loading this after initial page load
+      const coordinates = get(model.model, 'Coordinates');
       return hash({
         ...model,
         ...{
           tomography:
-            model.model.coordinates.length > 1
-              ? tomography(params.name, model.model.coordinates)
+            get(coordinates, 'length') > 1
+              ? tomography(params.name, coordinates.map(item => get(item, 'data')))
               : null,
           items: get(model.model, 'Services'),
           sessions: sessionRepo.findByNode(get(model.model, 'Node'), dc),
