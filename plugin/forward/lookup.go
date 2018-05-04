@@ -21,7 +21,7 @@ func (f *Forward) Forward(state request.Request) (*dns.Msg, error) {
 
 	fails := 0
 	var upstreamErr error
-	for _, proxy := range f.list() {
+	for _, proxy := range f.List() {
 		if proxy.Down(f.maxfails) {
 			fails++
 			if fails < len(f.proxies) {
@@ -29,10 +29,10 @@ func (f *Forward) Forward(state request.Request) (*dns.Msg, error) {
 			}
 			// All upstream proxies are dead, assume healtcheck is complete broken and randomly
 			// select an upstream to connect to.
-			proxy = f.list()[0]
+			proxy = f.List()[0]
 		}
 
-		ret, err := proxy.connect(context.Background(), state, f.forceTCP, true)
+		ret, err := proxy.Connect(context.Background(), state, f.forceTCP, true)
 
 		ret, err = truncated(state, ret, err)
 		upstreamErr = err

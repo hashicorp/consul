@@ -29,10 +29,10 @@ func TestProxyClose(t *testing.T) {
 		p := NewProxy(s.Addr, nil)
 		p.start(hcDuration)
 
-		go func() { p.connect(ctx, state, false, false) }()
-		go func() { p.connect(ctx, state, true, false) }()
-		go func() { p.connect(ctx, state, false, false) }()
-		go func() { p.connect(ctx, state, true, false) }()
+		go func() { p.Connect(ctx, state, false, false) }()
+		go func() { p.Connect(ctx, state, true, false) }()
+		go func() { p.Connect(ctx, state, false, false) }()
+		go func() { p.Connect(ctx, state, true, false) }()
 
 		p.close()
 	}

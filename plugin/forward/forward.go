@@ -68,7 +68,7 @@ func (f *Forward) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 	var upstreamErr error
 	span = ot.SpanFromContext(ctx)
 	i := 0
-	list := f.list()
+	list := f.List()
 	deadline := time.Now().Add(defaultTimeout)
 
 	for time.Now().Before(deadline) {
@@ -103,7 +103,7 @@ func (f *Forward) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 			err error
 		)
 		for {
-			ret, err = proxy.connect(ctx, state, f.forceTCP, true)
+			ret, err = proxy.Connect(ctx, state, f.forceTCP, true)
 			if err != nil && err == errCachedClosed { // Remote side closed conn, can only happen with TCP.
 				continue
 			}
@@ -176,8 +176,14 @@ func (f *Forward) isAllowedDomain(name string) bool {
 	return true
 }
 
+// From returns the base domain to match for the request to be forwarded.
+func (f *Forward) From() string { return f.from }
+
+// ForceTCP returns if TCP is forced to be used even when the request comes in over UDP.
+func (f *Forward) ForceTCP() bool { return f.forceTCP }
+
 // List returns a set of proxies to be used for this client depending on the policy in f.
-func (f *Forward) list() []*Proxy { return f.p.List(f.proxies) }
+func (f *Forward) List() []*Proxy { return f.p.List(f.proxies) }
 
 var (
 	errInvalidDomain = errors.New("invalid domain for forward")
