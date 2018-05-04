@@ -29,6 +29,14 @@ func TestRegisterRequestProxy(t testing.T) *RegisterRequest {
 	}
 }
 
+// TestNodeService returns a *NodeService representing a valid regular service.
+func TestNodeService(t testing.T) *NodeService {
+	return &NodeService{
+		Kind:    ServiceKindTypical,
+		Service: "web",
+	}
+}
+
 // TestNodeServiceProxy returns a *NodeService representing a valid
 // Connect proxy.
 func TestNodeServiceProxy(t testing.T) *NodeService {

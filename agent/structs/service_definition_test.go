@@ -2,10 +2,12 @@ package structs
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAgentStructs_CheckTypes(t *testing.T) {
@@ -52,5 +54,57 @@ func TestAgentStructs_CheckTypes(t *testing.T) {
 		if len(checks) != 0 {
 			t.Fatalf("bad: %#v", svc)
 		}
+	}
+}
+
+func TestServiceDefinitionValidate(t *testing.T) {
+	cases := []struct {
+		Name   string
+		Modify func(*ServiceDefinition)
+		Err    string
+	}{
+		{
+			"valid",
+			func(x *ServiceDefinition) {},
+			"",
+		},
+
+		{
+			"managed proxy with a port set",
+			func(x *ServiceDefinition) {
+				x.Port = 8080
+				x.Connect = &ServiceDefinitionConnect{
+					Proxy: &ServiceDefinitionConnectProxy{},
+				}
+			},
+			"",
+		},
+
+		{
+			"managed proxy with no port set",
+			func(x *ServiceDefinition) {
+				x.Connect = &ServiceDefinitionConnect{
+					Proxy: &ServiceDefinitionConnectProxy{},
+				}
+			},
+			"must have a port",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			require := require.New(t)
+			service := TestServiceDefinition(t)
+			tc.Modify(service)
+
+			err := service.Validate()
+			t.Logf("error: %s", err)
+			require.Equal(err != nil, tc.Err != "")
+			if err == nil {
+				return
+			}
+
+			require.Contains(strings.ToLower(err.Error()), strings.ToLower(tc.Err))
+		})
 	}
 }

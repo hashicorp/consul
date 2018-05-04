@@ -1,5 +1,11 @@
 package structs
 
+import (
+	"fmt"
+
+	"github.com/hashicorp/go-multierror"
+)
+
 // ServiceDefinition is used to JSON decode the Service definitions. For
 // documentation on specific fields see NodeService which is better documented.
 type ServiceDefinition struct {
@@ -66,6 +72,31 @@ func (s *ServiceDefinition) ConnectManagedProxy() (*ConnectManagedProxy, error) 
 	}
 
 	return p, nil
+}
+
+// Validate validates the service definition. This also calls the underlying
+// Validate method on the NodeService.
+//
+// NOTE(mitchellh): This currently only validates fields related to Connect
+// and is incomplete with regards to other fields.
+func (s *ServiceDefinition) Validate() error {
+	var result error
+
+	if s.Kind == ServiceKindTypical {
+		if s.Connect != nil && s.Connect.Proxy != nil {
+			if s.Port == 0 {
+				result = multierror.Append(result, fmt.Errorf(
+					"Services with a Connect managed proxy must have a port set"))
+			}
+		}
+	}
+
+	// Validate the NodeService which covers a lot
+	if err := s.NodeService().Validate(); err != nil {
+		result = multierror.Append(result, err)
+	}
+
+	return result
 }
 
 func (s *ServiceDefinition) CheckTypes() (checks CheckTypes, err error) {

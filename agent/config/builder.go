@@ -912,6 +912,13 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		return b.err
 	}
 
+	// Check for errors in the service definitions
+	for _, s := range rt.Services {
+		if err := s.Validate(); err != nil {
+			return fmt.Errorf("service %q: %s", s.Name, err)
+		}
+	}
+
 	// ----------------------------------------------------------------
 	// warnings
 	//
