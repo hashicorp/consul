@@ -1294,7 +1294,8 @@ func (a *Agent) ShutdownAgent() error {
 
 	// Stop the proxy manager
 	// NOTE(mitchellh): we use Kill for now to kill the processes since
-	// there isn't a clean way to cleanup the managed proxies. This is coming
+	// the local state isn't snapshotting meaning the proxy tokens are
+	// regenerated each time forcing the processes to restart anyways.
 	if err := a.proxyManager.Kill(); err != nil {
 		a.logger.Printf("[WARN] agent: error shutting down proxy manager: %s", err)
 	}
