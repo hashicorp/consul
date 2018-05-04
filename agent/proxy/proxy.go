@@ -7,6 +7,10 @@
 // for that is available in the "connect/proxy" package.
 package proxy
 
+import (
+	"github.com/hashicorp/consul/agent/structs"
+)
+
 // EnvProxyToken is the name of the environment variable that is passed
 // to managed proxies containing the proxy token.
 const EnvProxyToken = "CONNECT_PROXY_TOKEN"
@@ -16,6 +20,9 @@ const EnvProxyToken = "CONNECT_PROXY_TOKEN"
 // Calls to all the functions on this interface must be concurrency safe.
 // Please read the documentation carefully on top of each function for expected
 // behavior.
+//
+// Whenever a new proxy type is implemented, please also update proxyExecMode
+// and newProxyFromMode and newProxy to support the new proxy.
 type Proxy interface {
 	// Start starts the proxy. If an error is returned then the managed
 	// proxy registration is rejected. Therefore, this should only fail if
@@ -55,4 +62,18 @@ type Proxy interface {
 	// if the recovered process should be restarted or not.
 	MarshalSnapshot() map[string]interface{}
 	UnmarshalSnapshot(map[string]interface{}) error
+}
+
+// proxyExecMode returns the ProxyExecMode for a Proxy instance.
+func proxyExecMode(p Proxy) structs.ProxyExecMode {
+	switch p.(type) {
+	case *Daemon:
+		return structs.ProxyExecModeDaemon
+
+	case *Noop:
+		return structs.ProxyExecModeTest
+
+	default:
+		return structs.ProxyExecModeUnspecified
+	}
 }

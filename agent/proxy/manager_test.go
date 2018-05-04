@@ -261,8 +261,97 @@ func TestManagerRun_daemonPid(t *testing.T) {
 	require.NotEmpty(pidRaw)
 }
 
+// Test the Snapshot/Restore works.
+func TestManagerRun_snapshotRestore(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	state := local.TestState(t)
+	m, closer := testManager(t)
+	defer closer()
+	m.State = state
+	defer m.Kill()
+
+	// Add the proxy
+	td, closer := testTempDir(t)
+	defer closer()
+	path := filepath.Join(td, "file")
+	testStateProxy(t, state, "web", helperProcess("start-stop", path))
+
+	// Set a low snapshot period so we get a snapshot
+	m.SnapshotPeriod = 10 * time.Millisecond
+
+	// Start the manager
+	go m.Run()
+
+	// We should see the path appear shortly
+	retry.Run(t, func(r *retry.R) {
+		_, err := os.Stat(path)
+		if err == nil {
+			return
+		}
+		r.Fatalf("error waiting for path: %s", err)
+	})
+
+	// Wait for the snapshot
+	snapPath := m.SnapshotPath()
+	retry.Run(t, func(r *retry.R) {
+		raw, err := ioutil.ReadFile(snapPath)
+		if err != nil {
+			r.Fatalf("error waiting for path: %s", err)
+		}
+		if len(raw) < 30 {
+			r.Fatalf("snapshot too small")
+		}
+	})
+
+	// Stop the sync
+	require.NoError(m.Close())
+
+	// File should still exist
+	_, err := os.Stat(path)
+	require.NoError(err)
+
+	// Restore a manager from a snapshot
+	m2, closer := testManager(t)
+	m2.State = state
+	defer closer()
+	defer m2.Kill()
+	require.NoError(m2.Restore(snapPath))
+
+	// Start
+	go m2.Run()
+
+	// Add a second proxy so that we can determine when we're up
+	// and running.
+	path2 := filepath.Join(td, "file")
+	testStateProxy(t, state, "db", helperProcess("start-stop", path2))
+	retry.Run(t, func(r *retry.R) {
+		_, err := os.Stat(path2)
+		if err == nil {
+			return
+		}
+		r.Fatalf("error waiting for path: %s", err)
+	})
+
+	// Kill m2, which should kill our main process
+	require.NoError(m2.Kill())
+
+	// File should no longer exist
+	retry.Run(t, func(r *retry.R) {
+		_, err := os.Stat(path)
+		if err != nil {
+			return
+		}
+		r.Fatalf("file still exists")
+	})
+}
+
 func testManager(t *testing.T) (*Manager, func()) {
 	m := NewManager()
+
+	// Setup a default state
+	m.State = local.TestState(t)
 
 	// Set these periods low to speed up tests
 	m.CoalescePeriod = 1 * time.Millisecond

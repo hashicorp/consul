@@ -25,6 +25,11 @@ const (
 	// changes. Then the whole cycle resets.
 	ManagerCoalescePeriod  = 5 * time.Second
 	ManagerQuiescentPeriod = 500 * time.Millisecond
+
+	// ManagerSnapshotPeriod is the interval that snapshots are taken.
+	// The last snapshot state is preserved and if it matches a file isn't
+	// written, so its safe for this to be reasonably frequent.
+	ManagerSnapshotPeriod = 1 * time.Second
 )
 
 // Manager starts, stops, snapshots, and restores managed proxies.
@@ -64,9 +69,14 @@ type Manager struct {
 	//
 	DataDir string
 
-	// SnapshotDir is the path to the directory where snapshots will
-	// be written
-	SnapshotDir string
+	// SnapshotPeriod is the duration between snapshots. This can be set
+	// relatively low to ensure accuracy, because if the new snapshot matches
+	// the last snapshot taken, no file will be written. Therefore, setting
+	// this low causes only slight CPU/memory usage but doesn't result in
+	// disk IO. If this isn't set, ManagerSnapshotPeriod will be the default.
+	//
+	// This only has an effect if snapshots are enabled (DataDir is set).
+	SnapshotPeriod time.Duration
 
 	// CoalescePeriod and QuiescencePeriod control the timers for coalescing
 	// updates from the local state. See the defaults at the top of this
@@ -86,7 +96,8 @@ type Manager struct {
 	// for changes to this value.
 	runState managerRunState
 
-	proxies map[string]Proxy
+	proxies      map[string]Proxy
+	lastSnapshot *snapshot
 }
 
 // NewManager initializes a Manager. After initialization, the exported
@@ -96,6 +107,7 @@ func NewManager() *Manager {
 	var lock sync.Mutex
 	return &Manager{
 		Logger:          defaultLogger,
+		SnapshotPeriod:  ManagerSnapshotPeriod,
 		CoalescePeriod:  ManagerCoalescePeriod,
 		QuiescentPeriod: ManagerQuiescentPeriod,
 		lock:            &lock,
@@ -228,6 +240,12 @@ func (m *Manager) Run() {
 	m.State.NotifyProxy(notifyCh)
 	defer m.State.StopNotifyProxy(notifyCh)
 
+	// Start the timer for snapshots. We don't use a ticker because disk
+	// IO can be slow and we don't want overlapping notifications. So we only
+	// reset the timer once the snapshot is complete rather than continously.
+	snapshotTimer := time.NewTimer(m.SnapshotPeriod)
+	defer snapshotTimer.Stop()
+
 	m.Logger.Println("[DEBUG] agent/proxy: managed Connect proxy manager started")
 SYNC:
 	for {
@@ -260,6 +278,17 @@ SYNC:
 
 			case <-quiescent:
 				continue SYNC
+
+			case <-snapshotTimer.C:
+				// Perform a snapshot
+				if path := m.SnapshotPath(); path != "" {
+					if err := m.snapshot(path, true); err != nil {
+						m.Logger.Printf("[WARN] agent/proxy: failed to snapshot state: %s", err)
+					}
+				}
+
+				// Reset
+				snapshotTimer.Reset(m.SnapshotPeriod)
 
 			case <-stopCh:
 				// Stop immediately, no cleanup
@@ -342,10 +371,22 @@ func (m *Manager) newProxy(mp *local.ManagedProxy) (Proxy, error) {
 	if mp == nil || mp.Proxy == nil {
 		return nil, fmt.Errorf("internal error: nil *local.ManagedProxy or Proxy field")
 	}
-
 	p := mp.Proxy
-	switch p.ExecMode {
-	case structs.ProxyExecModeDaemon:
+
+	// We reuse the service ID a few times
+	id := p.ProxyService.ID
+
+	// Create the Proxy. We could just as easily switch on p.ExecMode
+	// but I wanted there to be only location where ExecMode => Proxy so
+	// it lowers the chance that is wrong.
+	proxy, err := m.newProxyFromMode(p.ExecMode, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Depending on the proxy type we configure the rest from our ManagedProxy
+	switch proxy := proxy.(type) {
+	case *Daemon:
 		command := p.Command
 
 		// This should never happen since validation should happen upstream
@@ -353,9 +394,6 @@ func (m *Manager) newProxy(mp *local.ManagedProxy) (Proxy, error) {
 		if len(command) == 0 {
 			return nil, fmt.Errorf("daemon mode managed proxy requires command")
 		}
-
-		// We reuse the service ID a few times
-		id := p.ProxyService.ID
 
 		// Build the command to execute.
 		var cmd exec.Cmd
@@ -366,15 +404,28 @@ func (m *Manager) newProxy(mp *local.ManagedProxy) (Proxy, error) {
 		}
 
 		// Build the daemon structure
-		return &Daemon{
-			Command:    &cmd,
-			ProxyToken: mp.ProxyToken,
-			Logger:     m.Logger,
-			PidPath:    pidPath(filepath.Join(m.DataDir, "pids"), id),
-		}, nil
+		proxy.Command = &cmd
+		proxy.ProxyToken = mp.ProxyToken
+		return proxy, nil
 
 	default:
 		return nil, fmt.Errorf("unsupported managed proxy type: %q", p.ExecMode)
+	}
+}
+
+// newProxyFromMode just initializes the proxy structure from only the mode
+// and the service ID. This is a shared method between newProxy and Restore
+// so that we only have one location where we turn ExecMode into a Proxy.
+func (m *Manager) newProxyFromMode(mode structs.ProxyExecMode, id string) (Proxy, error) {
+	switch mode {
+	case structs.ProxyExecModeDaemon:
+		return &Daemon{
+			Logger:  m.Logger,
+			PidPath: pidPath(filepath.Join(m.DataDir, "pids"), id),
+		}, nil
+
+	default:
+		return nil, fmt.Errorf("unsupported managed proxy type: %q", mode)
 	}
 }
 
