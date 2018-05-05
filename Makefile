@@ -78,6 +78,10 @@ core/zplugin.go core/dnsserver/zdirectives.go: plugin.cfg
 gen:
 	go generate coredns.go
 
+.PHONY: pb
+pb:
+	$(MAKE) -C pb
+
 .PHONY: linter
 linter:
 	go get -u github.com/alecthomas/gometalinter
