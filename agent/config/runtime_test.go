@@ -31,6 +31,7 @@ type configTest struct {
 	pre, post      func()
 	json, jsontail []string
 	hcl, hcltail   []string
+	skipformat     bool
 	privatev4      func() ([]*net.IPAddr, error)
 	publicv6       func() ([]*net.IPAddr, error)
 	patch          func(rt *RuntimeConfig)
@@ -2069,6 +2070,92 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DataDir = dataDir
 			},
 		},
+		{
+			desc: "HCL service managed proxy 'upstreams'",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			hcl: []string{
+				`service {
+					name = "web"
+					port = 8080
+					connect {
+						proxy {
+							config {
+								upstreams {
+									local_bind_port = 1234
+								}
+							}
+						}
+					}
+				}`,
+			},
+			skipformat: true, // skipping JSON cause we get slightly diff types (okay)
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.Services = []*structs.ServiceDefinition{
+					&structs.ServiceDefinition{
+						Name: "web",
+						Port: 8080,
+						Connect: &structs.ServiceDefinitionConnect{
+							Proxy: &structs.ServiceDefinitionConnectProxy{
+								Config: map[string]interface{}{
+									"upstreams": []map[string]interface{}{
+										map[string]interface{}{
+											"local_bind_port": 1234,
+										},
+									},
+								},
+							},
+						},
+					},
+				}
+			},
+		},
+		{
+			desc: "JSON service managed proxy 'upstreams'",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{
+				`{
+						"service": {
+							"name": "web",
+							"port": 8080,
+							"connect": {
+								"proxy": {
+									"config": {
+										"upstreams": [{
+											"local_bind_port": 1234
+										}]
+									}
+								}
+							}
+						}
+					}`,
+			},
+			skipformat: true, // skipping HCL cause we get slightly diff types (okay)
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.Services = []*structs.ServiceDefinition{
+					&structs.ServiceDefinition{
+						Name: "web",
+						Port: 8080,
+						Connect: &structs.ServiceDefinitionConnect{
+							Proxy: &structs.ServiceDefinitionConnectProxy{
+								Config: map[string]interface{}{
+									"upstreams": []interface{}{
+										map[string]interface{}{
+											"local_bind_port": float64(1234),
+										},
+									},
+								},
+							},
+						},
+					},
+				}
+			},
+		},
 	}
 
 	testConfig(t, tests, dataDir)
@@ -2090,7 +2177,7 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 
 			// json and hcl sources need to be in sync
 			// to make sure we're generating the same config
-			if len(tt.json) != len(tt.hcl) {
+			if len(tt.json) != len(tt.hcl) && !tt.skipformat {
 				t.Fatal(tt.desc, ": JSON and HCL test case out of sync")
 			}
 
@@ -2098,6 +2185,12 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 			srcs, tails := tt.json, tt.jsontail
 			if format == "hcl" {
 				srcs, tails = tt.hcl, tt.hcltail
+			}
+
+			// If we're skipping a format and the current format is empty,
+			// then skip it!
+			if tt.skipformat && len(srcs) == 0 {
+				continue
 			}
 
 			// build the description

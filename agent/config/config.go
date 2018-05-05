@@ -84,6 +84,7 @@ func Parse(data string, format string) (c Config, err error) {
 		"services",
 		"services.checks",
 		"watches",
+		"service.connect.proxy.config.upstreams",
 	})
 
 	// There is a difference of representation of some fields depending on
