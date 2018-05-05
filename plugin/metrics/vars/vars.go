@@ -59,6 +59,12 @@ var (
 		Name:      "response_rcode_count_total",
 		Help:      "Counter of response status codes.",
 	}, []string{"server", "zone", "rcode"})
+
+	Panic = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: plugin.Namespace,
+		Name:      "panic_count_total",
+		Help:      "A metrics that counts the number of panics.",
+	})
 )
 
 const (

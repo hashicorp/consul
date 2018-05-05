@@ -41,6 +41,7 @@ func New(addr string) *Metrics {
 
 	// Add all of our collectors
 	met.MustRegister(buildInfo)
+	met.MustRegister(vars.Panic)
 	met.MustRegister(vars.RequestCount)
 	met.MustRegister(vars.RequestDuration)
 	met.MustRegister(vars.RequestSize)
@@ -137,10 +138,8 @@ func keys(m map[string]bool) []string {
 // we listen on "localhost:0" and need to retrieve the actual address.
 var ListenAddr string
 
-var (
-	buildInfo = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: plugin.Namespace,
-		Name:      "build_info",
-		Help:      "A metric with a constant '1' value labeled by version, revision, and goversion from which CoreDNS was built.",
-	}, []string{"version", "revision", "goversion"})
-)
+var buildInfo = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+	Namespace: plugin.Namespace,
+	Name:      "build_info",
+	Help:      "A metric with a constant '1' value labeled by version, revision, and goversion from which CoreDNS was built.",
+}, []string{"version", "revision", "goversion"})
