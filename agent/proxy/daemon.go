@@ -33,6 +33,10 @@ type Daemon struct {
 	// be a Cmd that isn't yet started.
 	Command *exec.Cmd
 
+	// ProxyId is the ID of the proxy service. This is required for API
+	// requests (along with the token) and is passed via env var.
+	ProxyId string
+
 	// ProxyToken is the special local-only ACL token that allows a proxy
 	// to communicate to the Connect-specific endpoints.
 	ProxyToken string
@@ -204,7 +208,9 @@ func (p *Daemon) start() (*os.Process, error) {
 	// reference. We allocate an exactly sized slice.
 	cmd.Env = make([]string, len(p.Command.Env), len(p.Command.Env)+1)
 	copy(cmd.Env, p.Command.Env)
-	cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", EnvProxyToken, p.ProxyToken))
+	cmd.Env = append(cmd.Env,
+		fmt.Sprintf("%s=%s", EnvProxyId, p.ProxyId),
+		fmt.Sprintf("%s=%s", EnvProxyToken, p.ProxyToken))
 
 	// Args must always contain a 0 entry which is usually the executed binary.
 	// To be safe and a bit more robust we default this, but only to prevent
@@ -387,6 +393,9 @@ func (p *Daemon) UnmarshalSnapshot(m map[string]interface{}) error {
 }
 
 // daemonSnapshot is the structure of the marshalled data for snapshotting.
+//
+// Note we don't have to store the ProxyId because this is stored directly
+// within the manager snapshot and is restored automatically.
 type daemonSnapshot struct {
 	// Pid of the process. This is the only value actually required to
 	// regain mangement control. The remainder values are for Equal.

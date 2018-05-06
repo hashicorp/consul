@@ -11,9 +11,16 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-// EnvProxyToken is the name of the environment variable that is passed
-// to managed proxies containing the proxy token.
-const EnvProxyToken = "CONNECT_PROXY_TOKEN"
+const (
+	// EnvProxyId is the name of the environment variable that is set for
+	// managed proxies containing the proxy service ID. This is required along
+	// with the token to make API requests related to the proxy.
+	EnvProxyId = "CONNECT_PROXY_ID"
+
+	// EnvProxyToken is the name of the environment variable that is passed
+	// to managed proxies containing the proxy token.
+	EnvProxyToken = "CONNECT_PROXY_TOKEN"
+)
 
 // Proxy is the interface implemented by all types of managed proxies.
 //
@@ -50,6 +57,10 @@ type Proxy interface {
 	// MarshalSnapshot returns the state that will be stored in a snapshot
 	// so that Consul can recover the proxy process after a restart. The
 	// result should only contain primitive values and containers (lists/maps).
+	//
+	// MarshalSnapshot does NOT need to store the following fields, since they
+	// are part of the manager snapshot and will be automatically restored
+	// for any proxies: proxy ID.
 	//
 	// UnmarshalSnapshot is called to restore the receiving Proxy from its
 	// marshalled state. If UnmarshalSnapshot returns an error, the snapshot

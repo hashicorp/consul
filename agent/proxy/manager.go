@@ -411,6 +411,7 @@ func (m *Manager) newProxy(mp *local.ManagedProxy) (Proxy, error) {
 
 		// Build the daemon structure
 		proxy.Command = &cmd
+		proxy.ProxyId = id
 		proxy.ProxyToken = mp.ProxyToken
 		return proxy, nil
 

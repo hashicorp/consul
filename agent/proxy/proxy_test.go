@@ -78,7 +78,10 @@ func TestHelperProcess(t *testing.T) {
 		defer signal.Stop(ch)
 
 		path := args[0]
-		data := []byte(os.Getenv(EnvProxyToken))
+		var data []byte
+		data = append(data, []byte(os.Getenv(EnvProxyId))...)
+		data = append(data, ':')
+		data = append(data, []byte(os.Getenv(EnvProxyToken))...)
 
 		if err := ioutil.WriteFile(path, data, 0644); err != nil {
 			t.Fatalf("err: %s", err)

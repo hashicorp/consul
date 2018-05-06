@@ -30,10 +30,12 @@ func TestDaemonStartStop(t *testing.T) {
 
 	d := &Daemon{
 		Command:    helperProcess("start-stop", path),
+		ProxyId:    "tubes",
 		ProxyToken: uuid,
 		Logger:     testLogger,
 	}
 	require.NoError(d.Start())
+	defer d.Stop()
 
 	// Wait for the file to exist
 	retry.Run(t, func(r *retry.R) {
@@ -49,7 +51,7 @@ func TestDaemonStartStop(t *testing.T) {
 	// that we properly passed the token as an env var.
 	data, err := ioutil.ReadFile(path)
 	require.NoError(err)
-	require.Equal(uuid, string(data))
+	require.Equal("tubes:"+uuid, string(data))
 
 	// Stop the process
 	require.NoError(d.Stop())
