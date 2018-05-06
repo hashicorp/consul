@@ -7,7 +7,9 @@ import (
 	"log"
 	"net/http"
 	_ "net/http/pprof" // Expose pprof if configured
+	"os"
 
+	proxyAgent "github.com/hashicorp/consul/agent/proxy"
 	"github.com/hashicorp/consul/command/flags"
 	proxyImpl "github.com/hashicorp/consul/connect/proxy"
 
@@ -74,6 +76,10 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	// Load the proxy ID and token from env vars if they're set
+	if c.proxyID == "" {
+		c.proxyID = os.Getenv(proxyAgent.EnvProxyId)
+	}
 	// Setup the log outputs
 	logConfig := &logger.Config{
 		LogLevel: c.logLevel,

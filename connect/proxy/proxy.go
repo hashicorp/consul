@@ -68,7 +68,6 @@ func New(client *api.Client, proxyID string, logger *log.Logger) (*Proxy, error)
 
 // Serve the proxy instance until a fatal error occurs or proxy is closed.
 func (p *Proxy) Serve() error {
-
 	var cfg *Config
 
 	// Watch for config changes (initial setup happens on first "change")
