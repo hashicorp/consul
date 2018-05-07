@@ -356,96 +356,99 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 		return ErrQueryNotFound
 	}
 
-	// Execute the query for the local DC.
-	if err := p.execute(query, reply); err != nil {
-		return err
-	}
+	// Skip local datacenter query if requested
+	if query.Service.Failover.SkipLocalDatacenter == false {
+		// Execute the query for the local DC.
+		if err := p.execute(query, reply); err != nil {
+			return err
+		}
 
-	// If they supplied a token with the query, use that, otherwise use the
-	// token passed in with the request.
-	token := args.QueryOptions.Token
-	if query.Token != "" {
-		token = query.Token
-	}
-	if err := p.srv.filterACL(token, &reply.Nodes); err != nil {
-		return err
-	}
+		// If they supplied a token with the query, use that, otherwise use the
+		// token passed in with the request.
+		token := args.QueryOptions.Token
+		if query.Token != "" {
+			token = query.Token
+		}
+		if err := p.srv.filterACL(token, &reply.Nodes); err != nil {
+			return err
+		}
 
-	// TODO (slackpad) We could add a special case here that will avoid the
-	// fail over if we filtered everything due to ACLs. This seems like it
-	// might not be worth the code complexity and behavior differences,
-	// though, since this is essentially a misconfiguration.
+		// TODO (slackpad) We could add a special case here that will avoid the
+		// fail over if we filtered everything due to ACLs. This seems like it
+		// might not be worth the code complexity and behavior differences,
+		// though, since this is essentially a misconfiguration.
 
-	// Shuffle the results in case coordinates are not available if they
-	// requested an RTT sort.
-	reply.Nodes.Shuffle()
+		// Shuffle the results in case coordinates are not available if they
+		// requested an RTT sort.
+		reply.Nodes.Shuffle()
 
-	// Build the query source. This can be provided by the client, or by
-	// the prepared query. Client-specified takes priority.
-	qs := args.Source
-	if qs.Datacenter == "" {
-		qs.Datacenter = args.Agent.Datacenter
-	}
-	if query.Service.Near != "" && qs.Node == "" {
-		qs.Node = query.Service.Near
-	}
+		// Build the query source. This can be provided by the client, or by
+		// the prepared query. Client-specified takes priority.
+		qs := args.Source
+		if qs.Datacenter == "" {
+			qs.Datacenter = args.Agent.Datacenter
+		}
+		if query.Service.Near != "" && qs.Node == "" {
+			qs.Node = query.Service.Near
+		}
 
-	// Respect the magic "_agent" flag.
-	if qs.Node == "_agent" {
-		qs.Node = args.Agent.Node
-	} else if qs.Node == "_ip" {
-		if args.Source.Ip != "" {
-			_, nodes, err := state.Nodes(nil)
-			if err != nil {
-				return err
+		// Respect the magic "_agent" flag.
+		if qs.Node == "_agent" {
+			qs.Node = args.Agent.Node
+		} else if qs.Node == "_ip" {
+			if args.Source.Ip != "" {
+				_, nodes, err := state.Nodes(nil)
+				if err != nil {
+					return err
+				}
+
+				for _, node := range nodes {
+					if args.Source.Ip == node.Address {
+						qs.Node = node.Node
+						break
+					}
+				}
+			} else {
+				p.srv.logger.Printf("[WARN] Prepared Query using near=_ip requires " +
+					"the source IP to be set but none was provided. No distance " +
+					"sorting will be done.")
+
 			}
 
-			for _, node := range nodes {
-				if args.Source.Ip == node.Address {
-					qs.Node = node.Node
+			// Either a source IP was given but we couldnt find the associated node
+			// or no source ip was given. In both cases we should wipe the Node value
+			if qs.Node == "_ip" {
+				qs.Node = ""
+			}
+		}
+
+		// Perform the distance sort
+		err = p.srv.sortNodesByDistanceFrom(qs, reply.Nodes)
+		if err != nil {
+			return err
+		}
+
+		// If we applied a distance sort, make sure that the node queried for is in
+		// position 0, provided the results are from the same datacenter.
+		if qs.Node != "" && reply.Datacenter == qs.Datacenter {
+			for i, node := range reply.Nodes {
+				if node.Node.Node == qs.Node {
+					reply.Nodes[0], reply.Nodes[i] = reply.Nodes[i], reply.Nodes[0]
+					break
+				}
+
+				// Put a cap on the depth of the search. The local agent should
+				// never be further in than this if distance sorting was applied.
+				if i == 9 {
 					break
 				}
 			}
-		} else {
-			p.srv.logger.Printf("[WARN] Prepared Query using near=_ip requires " +
-				"the source IP to be set but none was provided. No distance " +
-				"sorting will be done.")
-
 		}
 
-		// Either a source IP was given but we couldnt find the associated node
-		// or no source ip was given. In both cases we should wipe the Node value
-		if qs.Node == "_ip" {
-			qs.Node = ""
+		// Apply the limit if given.
+		if args.Limit > 0 && len(reply.Nodes) > args.Limit {
+			reply.Nodes = reply.Nodes[:args.Limit]
 		}
-	}
-
-	// Perform the distance sort
-	err = p.srv.sortNodesByDistanceFrom(qs, reply.Nodes)
-	if err != nil {
-		return err
-	}
-
-	// If we applied a distance sort, make sure that the node queried for is in
-	// position 0, provided the results are from the same datacenter.
-	if qs.Node != "" && reply.Datacenter == qs.Datacenter {
-		for i, node := range reply.Nodes {
-			if node.Node.Node == qs.Node {
-				reply.Nodes[0], reply.Nodes[i] = reply.Nodes[i], reply.Nodes[0]
-				break
-			}
-
-			// Put a cap on the depth of the search. The local agent should
-			// never be further in than this if distance sorting was applied.
-			if i == 9 {
-				break
-			}
-		}
-	}
-
-	// Apply the limit if given.
-	if args.Limit > 0 && len(reply.Nodes) > args.Limit {
-		reply.Nodes = reply.Nodes[:args.Limit]
 	}
 
 	// In the happy path where we found some healthy nodes we go with that

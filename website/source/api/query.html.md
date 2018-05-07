@@ -191,10 +191,13 @@ The table below shows this endpoint's support for
   - `Service` `(string: <required>)` - Specifies the name of the service to
     query.
 
-  - `Failover` contains two fields, both of which are optional, and determine
+  - `Failover` contains three fields, all of which are optional, and determine
     what happens if no healthy nodes are available in the local datacenter when
     the query is executed. It allows the use of nodes in other datacenters with
     very little configuration.
+
+      - `SkipLocalDatacenter` `(bool)` - Specifies that the query should not be
+        executed on the local nodes and forwarded to the remote datacenters directly.
 
       - `NearestN` `(int: 0)` - Specifies that the query will be forwarded to up
         to `NearestN` other datacenters based on their estimated network round

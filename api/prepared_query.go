@@ -3,6 +3,9 @@ package api
 // QueryDatacenterOptions sets options about how we fail over if there are no
 // healthy nodes in the local datacenter.
 type QueryDatacenterOptions struct {
+	// Skip lookup in local datacenter
+	SkipLocalDatacenter bool
+
 	// NearestN is set to the number of remote datacenters to try, based on
 	// network coordinates.
 	NearestN int

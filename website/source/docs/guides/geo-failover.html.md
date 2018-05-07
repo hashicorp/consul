@@ -45,6 +45,8 @@ Using the techniques in this section we will develop prepared queries with failo
 
 Failover is just another policy choice for a prepared query, it works in the same manner as the previous example and is similarly transparent to applications. The failover policy is configured using the `Failover` structure, which contains two fields, both of which are optional, and determine what happens if no healthy nodes are available in the local datacenter when the query is executed.
 
+- `SkipLocalDatacenter` `(bool)` - Specifies that the query should not be executed on the local nodes and forwarded to the remote datacenters directly.
+
 - `NearestN` `(int: 0)` - Specifies that the query will be forwarded to up to `NearestN` other datacenters based on their estimated network round trip time using [network coordinates](/docs/internals/coordinates.html).
 
 - `Datacenters` `(array<string>: nil)` - Specifies a fixed list of remote datacenters to forward the query to if there are no healthy nodes in the local datacenter. Datacenters are queried in the order given in the list.
