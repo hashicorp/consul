@@ -2115,22 +2115,51 @@ func (a *Agent) RemoveProxy(proxyID string, persist bool) error {
 	return nil
 }
 
-// verifyProxyToken takes a proxy service ID and a token and verifies
-// that the token is allowed to access proxy-related information (leaf
+// verifyProxyToken takes a token and attempts to verify it against the
+// targetService name. If targetProxy is specified, then the local proxy
+// token must exactly match the given proxy ID.
 // cert, config, etc.).
 //
 // The given token may be a local-only proxy token or it may be an ACL
 // token. We will attempt to verify the local proxy token first.
-func (a *Agent) verifyProxyToken(proxyId, token string) error {
-	proxy := a.State.Proxy(proxyId)
-	if proxy == nil {
-		return fmt.Errorf("unknown proxy service ID: %q", proxyId)
+func (a *Agent) verifyProxyToken(token, targetService, targetProxy string) error {
+	// If we specify a target proxy, we look up that proxy directly. Otherwise,
+	// we resolve with any proxy we can find.
+	var proxy *local.ManagedProxy
+	if targetProxy != "" {
+		proxy = a.State.Proxy(targetProxy)
+		if proxy == nil {
+			return fmt.Errorf("unknown proxy service ID: %q", targetProxy)
+		}
+
+		// If the token DOESN'T match, then we reset the proxy which will
+		// cause the logic below to fall back to normal ACLs. Otherwise,
+		// we keep the proxy set because we also have to verify that the
+		// target service matches on the proxy.
+		if token != proxy.ProxyToken {
+			proxy = nil
+		}
+	} else {
+		proxy = a.resolveProxyToken(token)
 	}
 
-	// Easy case is if the token just matches our local proxy token.
-	// If this happens we can return without any requests.
-	if token == proxy.ProxyToken {
+	// The existence of a token isn't enough, we also need to verify
+	// that the service name of the matching proxy matches our target
+	// service.
+	if proxy != nil {
+		if proxy.Proxy.TargetServiceID != targetService {
+			return acl.ErrPermissionDenied
+		}
+
 		return nil
+	}
+
+	// Retrieve the service specified. This should always exist because
+	// we only call this function for proxies and leaf certs and both can
+	// only be called for local services.
+	service := a.State.Service(targetService)
+	if service == nil {
+		return fmt.Errorf("unknown service ID: %s", targetService)
 	}
 
 	// Doesn't match, we have to do a full token resolution. The required
@@ -2141,7 +2170,7 @@ func (a *Agent) verifyProxyToken(proxyId, token string) error {
 	if err != nil {
 		return err
 	}
-	if rule != nil && !rule.ServiceWrite(proxy.Proxy.TargetServiceID, nil) {
+	if rule != nil && !rule.ServiceWrite(service.Service, nil) {
 		return acl.ErrPermissionDenied
 	}
 

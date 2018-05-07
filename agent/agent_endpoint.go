@@ -925,14 +925,11 @@ func (s *HTTPServer) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.
 	}
 	args.MinQueryIndex = qOpts.MinQueryIndex
 
-	// Validate token
-	// TODO(banks): support correct proxy token checking too
-	rule, err := s.agent.resolveToken(qOpts.Token)
+	// Verify the proxy token. This will check both the local proxy token
+	// as well as the ACL if the token isn't local.
+	err := s.agent.verifyProxyToken(qOpts.Token, id, "")
 	if err != nil {
 		return nil, err
-	}
-	if rule != nil && !rule.ServiceWrite(service.Service, nil) {
-		return nil, acl.ErrPermissionDenied
 	}
 
 	raw, err := s.agent.cache.Get(cachetype.ConnectCALeafName, &args)
@@ -985,7 +982,8 @@ func (s *HTTPServer) AgentConnectProxyConfig(resp http.ResponseWriter, req *http
 			}
 
 			// Validate the ACL token
-			if err := s.agent.verifyProxyToken(id, token); err != nil {
+			err := s.agent.verifyProxyToken(token, proxy.Proxy.TargetServiceID, id)
+			if err != nil {
 				return "", nil, err
 			}
 
