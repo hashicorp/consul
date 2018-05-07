@@ -48,7 +48,7 @@ unique IDs should be provided.
 
 For Consul 0.9.3 and earlier you need to use `enableTagOverride`. Consul 1.0
 supports both `enable_tag_override` and `enableTagOverride` but the latter is
-deprecated and will be removed in Consul 1.1.
+deprecated and has been removed in Consul 1.1.
 
 The `tags` property is a list of values that are opaque to Consul but
 can be used to distinguish between `primary` or `secondary` nodes,
@@ -115,7 +115,7 @@ syncs](/docs/internals/anti-entropy.html) for more info.
 
 For Consul 0.9.3 and earlier you need to use `enableTagOverride`. Consul 1.0
 supports both `enable_tag_override` and `enableTagOverride` but the latter is
-deprecated and will be removed in Consul 1.1.
+deprecated and has been removed as of Consul 1.1.
 
 To configure a service, either provide it as a `-config-file` option to
 the agent or place it inside the `-config-dir` of the agent. The file

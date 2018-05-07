@@ -1986,7 +1986,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					"service": {
 						"name": "a",
 						"port": 80,
-						"EnableTagOverride": true,
+						"enable_tag_override": true,
 						"check": {
 							"id": "x",
 							"name": "y",
@@ -2001,7 +2001,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				`service = {
 					name = "a"
 					port = 80
-					EnableTagOverride = true
+					enable_tag_override = true
 					check = {
 						id = "x"
 						name = "y"
