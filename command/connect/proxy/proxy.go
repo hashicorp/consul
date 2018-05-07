@@ -80,6 +80,10 @@ func (c *cmd) Run(args []string) int {
 	if c.proxyID == "" {
 		c.proxyID = os.Getenv(proxyAgent.EnvProxyId)
 	}
+	if c.http.Token() == "" {
+		c.http.SetToken(os.Getenv(proxyAgent.EnvProxyToken))
+	}
+
 	// Setup the log outputs
 	logConfig := &logger.Config{
 		LogLevel: c.logLevel,
