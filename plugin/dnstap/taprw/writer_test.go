@@ -39,7 +39,7 @@ func TestClientQueryResponse(t *testing.T) {
 		return
 	}
 	if l := len(trapper.Trap); l != 2 {
-		t.Fatalf("%d msg trapped", l)
+		t.Fatalf("Mmsg %d trapped", l)
 		return
 	}
 	want, err := d.ToClientQuery()
@@ -48,7 +48,7 @@ func TestClientQueryResponse(t *testing.T) {
 	}
 	have := trapper.Trap[0]
 	if !test.MsgEqual(want, have) {
-		t.Fatalf("query: want: %v\nhave: %v", want, have)
+		t.Fatalf("Query: want: %v\nhave: %v", want, have)
 	}
 	want, err = d.ToClientResponse()
 	if err != nil {
@@ -56,7 +56,7 @@ func TestClientQueryResponse(t *testing.T) {
 	}
 	have = trapper.Trap[1]
 	if !test.MsgEqual(want, have) {
-		t.Fatalf("response: want: %v\nhave: %v", want, have)
+		t.Fatalf("Response: want: %v\nhave: %v", want, have)
 	}
 }
 

@@ -33,7 +33,7 @@ var entTestCases = []test.Case{
 func TestLookupEnt(t *testing.T) {
 	zone, err := Parse(strings.NewReader(dbMiekENTNL), testzone, "stdin", 0)
 	if err != nil {
-		t.Fatalf("expect no error when reading zone, got %q", err)
+		t.Fatalf("Expect no error when reading zone, got %q", err)
 	}
 
 	fm := File{Next: test.ErrorHandler(), Zones: Zones{Z: map[string]*Zone{testzone: zone}, Names: []string{testzone}}}

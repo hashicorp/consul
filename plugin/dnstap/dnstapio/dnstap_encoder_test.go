@@ -48,6 +48,6 @@ func TestEncoderCompatibility(t *testing.T) {
 
 	//compare results
 	if !bytes.Equal(fsW.Bytes(), dnstapW.Bytes()) {
-		t.Fatal("dnstapEncoder is not compatible with framestream Encoder")
+		t.Fatal("DnstapEncoder is not compatible with framestream Encoder")
 	}
 }

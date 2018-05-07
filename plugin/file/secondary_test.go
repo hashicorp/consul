@@ -23,16 +23,16 @@ func TestLess(t *testing.T) {
 	)
 
 	if less(min, max) {
-		t.Fatalf("less: should be false")
+		t.Fatalf("Less: should be false")
 	}
 	if !less(max, min) {
-		t.Fatalf("less: should be true")
+		t.Fatalf("Less: should be true")
 	}
 	if !less(high, low) {
-		t.Fatalf("less: should be true")
+		t.Fatalf("Less: should be true")
 	}
 	if !less(7, 9) {
-		t.Fatalf("less; should be true")
+		t.Fatalf("Less; should be true")
 	}
 }
 
@@ -76,7 +76,7 @@ func TestShouldTransfer(t *testing.T) {
 
 	s, addrstr, err := test.TCPServer("127.0.0.1:0")
 	if err != nil {
-		t.Fatalf("unable to run test server: %v", err)
+		t.Fatalf("Unable to run test server: %v", err)
 	}
 	defer s.Shutdown()
 
@@ -87,28 +87,28 @@ func TestShouldTransfer(t *testing.T) {
 	// when we have a nil SOA (initial state)
 	should, err := z.shouldTransfer()
 	if err != nil {
-		t.Fatalf("unable to run shouldTransfer: %v", err)
+		t.Fatalf("Unable to run shouldTransfer: %v", err)
 	}
 	if !should {
-		t.Fatalf("shouldTransfer should return true for serial: %d", soa.serial)
+		t.Fatalf("ShouldTransfer should return true for serial: %d", soa.serial)
 	}
 	// Serial smaller
 	z.Apex.SOA = test.SOA(fmt.Sprintf("%s IN SOA bla. bla. %d 0 0 0 0 ", testZone, soa.serial-1))
 	should, err = z.shouldTransfer()
 	if err != nil {
-		t.Fatalf("unable to run shouldTransfer: %v", err)
+		t.Fatalf("Unable to run shouldTransfer: %v", err)
 	}
 	if !should {
-		t.Fatalf("shouldTransfer should return true for serial: %q", soa.serial-1)
+		t.Fatalf("ShouldTransfer should return true for serial: %q", soa.serial-1)
 	}
 	// Serial equal
 	z.Apex.SOA = test.SOA(fmt.Sprintf("%s IN SOA bla. bla. %d 0 0 0 0 ", testZone, soa.serial))
 	should, err = z.shouldTransfer()
 	if err != nil {
-		t.Fatalf("unable to run shouldTransfer: %v", err)
+		t.Fatalf("Unable to run shouldTransfer: %v", err)
 	}
 	if should {
-		t.Fatalf("shouldTransfer should return false for serial: %d", soa.serial)
+		t.Fatalf("ShouldTransfer should return false for serial: %d", soa.serial)
 	}
 }
 
@@ -120,7 +120,7 @@ func TestTransferIn(t *testing.T) {
 
 	s, addrstr, err := test.TCPServer("127.0.0.1:0")
 	if err != nil {
-		t.Fatalf("unable to run test server: %v", err)
+		t.Fatalf("Unable to run test server: %v", err)
 	}
 	defer s.Shutdown()
 
@@ -131,10 +131,10 @@ func TestTransferIn(t *testing.T) {
 
 	err = z.TransferIn()
 	if err != nil {
-		t.Fatalf("unable to run TransferIn: %v", err)
+		t.Fatalf("Unable to run TransferIn: %v", err)
 	}
 	if z.Apex.SOA.String() != fmt.Sprintf("%s	3600	IN	SOA	bla. bla. 250 0 0 0 0", testZone) {
-		t.Fatalf("unknown SOA transferred")
+		t.Fatalf("Unknown SOA transferred")
 	}
 }
 
@@ -148,11 +148,11 @@ func TestIsNotify(t *testing.T) {
 
 	z.TransferFrom = []string{"10.240.0.1:53"} // IP from from testing/responseWriter
 	if !z.isNotify(state) {
-		t.Fatal("should have been valid notify")
+		t.Fatal("Should have been valid notify")
 	}
 	z.TransferFrom = []string{"10.240.0.2:53"}
 	if z.isNotify(state) {
-		t.Fatal("should have been invalid notify")
+		t.Fatal("Should have been invalid notify")
 	}
 }
 

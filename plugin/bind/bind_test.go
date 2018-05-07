@@ -25,21 +25,21 @@ func TestSetup(t *testing.T) {
 		err := setup(c)
 		if err != nil {
 			if !test.failing {
-				t.Fatalf("test %d, expected no errors, but got: %v", i, err)
+				t.Fatalf("Test %d, expected no errors, but got: %v", i, err)
 			}
 			continue
 		}
 		if test.failing {
-			t.Fatalf("test %d, expected to failed but did not, returned values", i)
+			t.Fatalf("Test %d, expected to failed but did not, returned values", i)
 		}
 		cfg := dnsserver.GetConfig(c)
 		if len(cfg.ListenHosts) != len(test.expected) {
-			t.Errorf("test %d : expected the config's ListenHosts size to be %d, was %d", i, len(test.expected), len(cfg.ListenHosts))
+			t.Errorf("Test %d : expected the config's ListenHosts size to be %d, was %d", i, len(test.expected), len(cfg.ListenHosts))
 			continue
 		}
 		for i, v := range test.expected {
 			if got, want := cfg.ListenHosts[i], v; got != want {
-				t.Errorf("test %d : expected the config's ListenHost to be %s, was %s", i, want, got)
+				t.Errorf("Test %d : expected the config's ListenHost to be %s, was %s", i, want, got)
 			}
 		}
 	}

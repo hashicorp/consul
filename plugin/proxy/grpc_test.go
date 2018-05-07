@@ -42,7 +42,7 @@ func buildPool(size int) ([]*healthcheck.UpstreamHost, func(), error) {
 		for _, e := range errs {
 			valErr += fmt.Sprintf("%v\n", e)
 		}
-		return nil, nil, fmt.Errorf("error at allocation of the pool : %v", valErr)
+		return nil, nil, fmt.Errorf("Error at allocation of the pool : %v", valErr)
 	}
 	return ups, stopIt, nil
 }
@@ -51,7 +51,7 @@ func TestGRPCStartupShutdown(t *testing.T) {
 
 	pool, closePool, err := buildPool(2)
 	if err != nil {
-		t.Fatalf("error creating the pool of upstream for the test : %s", err)
+		t.Fatalf("Error creating the pool of upstream for the test : %s", err)
 	}
 	defer closePool()
 
@@ -91,7 +91,7 @@ func TestGRPCRunAQuery(t *testing.T) {
 
 	pool, closePool, err := buildPool(2)
 	if err != nil {
-		t.Fatalf("error creating the pool of upstream for the test : %s", err)
+		t.Fatalf("Error creating the pool of upstream for the test : %s", err)
 	}
 	defer closePool()
 
@@ -131,7 +131,7 @@ func TestGRPCRunAQueryOnSecureLinkWithInvalidCert(t *testing.T) {
 
 	pool, closePool, err := buildPool(1)
 	if err != nil {
-		t.Fatalf("error creating the pool of upstream for the test : %s", err)
+		t.Fatalf("Error creating the pool of upstream for the test : %s", err)
 	}
 	defer closePool()
 

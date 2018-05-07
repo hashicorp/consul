@@ -23,7 +23,7 @@ var (
 func accept(t *testing.T, l net.Listener, count int) {
 	server, err := l.Accept()
 	if err != nil {
-		t.Fatalf("server accept: %s", err)
+		t.Fatalf("Server accepted: %s", err)
 		return
 	}
 
@@ -32,13 +32,13 @@ func accept(t *testing.T, l net.Listener, count int) {
 		Bidirectional: true,
 	})
 	if err != nil {
-		t.Fatalf("server decoder: %s", err)
+		t.Fatalf("Server decoder: %s", err)
 		return
 	}
 
 	for i := 0; i < count; i++ {
 		if _, err := dec.Decode(); err != nil {
-			t.Errorf("server decode: %s", err)
+			t.Errorf("Server decode: %s", err)
 		}
 	}
 

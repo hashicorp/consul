@@ -19,7 +19,7 @@ func testRequest(t *testing.T, expected Builder, r request.Request) {
 		d.SocketFam != expected.SocketFam ||
 		!reflect.DeepEqual(d.Address, expected.Address) ||
 		d.Port != expected.Port {
-		t.Fatalf("expected: %v, have: %v", expected, d)
+		t.Fatalf("Expected: %v, have: %v", expected, d)
 		return
 	}
 }

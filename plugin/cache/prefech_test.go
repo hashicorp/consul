@@ -117,20 +117,20 @@ func TestPrefetch(t *testing.T) {
 					select {
 					case <-fetchc:
 						if !v.fetch {
-							t.Fatalf("after %s: want request to trigger a prefetch", v.after)
+							t.Fatalf("After %s: want request to trigger a prefetch", v.after)
 						}
 					case <-time.After(time.Second):
-						t.Fatalf("after %s: want request to trigger a prefetch", v.after)
+						t.Fatalf("After %s: want request to trigger a prefetch", v.after)
 					}
 				}
 				if want, got := rec.Rcode, dns.RcodeSuccess; want != got {
-					t.Errorf("after %s: want rcode %d, got %d", v.after, want, got)
+					t.Errorf("After %s: want rcode %d, got %d", v.after, want, got)
 				}
 				if want, got := 1, len(rec.Msg.Answer); want != got {
-					t.Errorf("after %s: want %d answer RR, got %d", v.after, want, got)
+					t.Errorf("After %s: want %d answer RR, got %d", v.after, want, got)
 				}
 				if want, got := test.A(v.answer).String(), rec.Msg.Answer[0].String(); want != got {
-					t.Errorf("after %s: want answer %s, got %s", v.after, want, got)
+					t.Errorf("After %s: want answer %s, got %s", v.after, want, got)
 				}
 			}
 		})

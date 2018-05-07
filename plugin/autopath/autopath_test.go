@@ -52,7 +52,7 @@ func TestAutoPath(t *testing.T) {
 		rec := dnstest.NewRecorder(&test.ResponseWriter{})
 		_, err := ap.ServeDNS(ctx, rec, m)
 		if err != nil {
-			t.Errorf("expected no error, got %v\n", err)
+			t.Errorf("Expected no error, got %v\n", err)
 			continue
 		}
 
@@ -97,11 +97,11 @@ func TestAutoPathNoAnswer(t *testing.T) {
 		rec := dnstest.NewRecorder(&test.ResponseWriter{})
 		rcode, err := ap.ServeDNS(ctx, rec, m)
 		if err != nil {
-			t.Errorf("expected no error, got %v\n", err)
+			t.Errorf("Expected no error, got %v\n", err)
 			continue
 		}
 		if plugin.ClientWrite(rcode) {
-			t.Fatalf("expected no client write, got one for rcode %d", rcode)
+			t.Fatalf("Expected no client write, got one for rcode %d", rcode)
 		}
 	}
 }

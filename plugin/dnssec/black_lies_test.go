@@ -19,7 +19,7 @@ func TestZoneSigningBlackLies(t *testing.T) {
 	state := request.Request{Req: m, Zone: "miek.nl."}
 	m = d.Sign(state, time.Now().UTC(), server)
 	if !section(m.Ns, 2) {
-		t.Errorf("authority section should have 2 sig")
+		t.Errorf("Authority section should have 2 sigs")
 	}
 	var nsec *dns.NSEC
 	for _, r := range m.Ns {
@@ -28,16 +28,16 @@ func TestZoneSigningBlackLies(t *testing.T) {
 		}
 	}
 	if m.Rcode != dns.RcodeSuccess {
-		t.Errorf("expected rcode %d, got %d", dns.RcodeSuccess, m.Rcode)
+		t.Errorf("Expected rcode %d, got %d", dns.RcodeSuccess, m.Rcode)
 	}
 	if nsec == nil {
-		t.Fatalf("expected NSEC, got none")
+		t.Fatalf("Expected NSEC, got none")
 	}
 	if nsec.Hdr.Name != "ww.miek.nl." {
-		t.Errorf("expected %s, got %s", "ww.miek.nl.", nsec.Hdr.Name)
+		t.Errorf("Expected %s, got %s", "ww.miek.nl.", nsec.Hdr.Name)
 	}
 	if nsec.NextDomain != "\\000.ww.miek.nl." {
-		t.Errorf("expected %s, got %s", "\\000.ww.miek.nl.", nsec.NextDomain)
+		t.Errorf("Expected %s, got %s", "\\000.ww.miek.nl.", nsec.NextDomain)
 	}
 }
 

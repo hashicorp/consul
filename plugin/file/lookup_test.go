@@ -105,7 +105,7 @@ const (
 func TestLookup(t *testing.T) {
 	zone, err := Parse(strings.NewReader(dbMiekNL), testzone, "stdin", 0)
 	if err != nil {
-		t.Fatalf("expect no error when reading zone, got %q", err)
+		t.Fatalf("Expected no error when reading zone, got %q", err)
 	}
 
 	fm := File{Next: test.ErrorHandler(), Zones: Zones{Z: map[string]*Zone{testzone: zone}, Names: []string{testzone}}}

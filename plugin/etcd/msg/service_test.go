@@ -13,19 +13,19 @@ func TestSplit255(t *testing.T) {
 	}
 	xs = split255(s)
 	if len(xs) != 1 && xs[0] != s {
-		t.Errorf("failure to split 255 char long string")
+		t.Errorf("Failure to split 255 char long string")
 	}
 	s += "b"
 	xs = split255(s)
 	if len(xs) != 2 || xs[1] != "b" {
-		t.Errorf("failure to split 256 char long string: %d", len(xs))
+		t.Errorf("Failure to split 256 char long string: %d", len(xs))
 	}
 	for i := 0; i < 255; i++ {
 		s += "a"
 	}
 	xs = split255(s)
 	if len(xs) != 3 || xs[2] != "a" {
-		t.Errorf("failure to split 510 char long string: %d", len(xs))
+		t.Errorf("Failure to split 510 char long string: %d", len(xs))
 	}
 }
 
@@ -39,10 +39,10 @@ func TestGroup(t *testing.T) {
 	)
 	// Expecting to return the shortest key with a Group attribute.
 	if len(sx) != 1 {
-		t.Fatalf("failure to group zeroth set: %v", sx)
+		t.Fatalf("Failure to group zeroth set: %v", sx)
 	}
 	if sx[0].Key != "a/dom1/skydns/test" {
-		t.Fatalf("failure to group zeroth set: %v, wrong Key", sx)
+		t.Fatalf("Failure to group zeroth set: %v, wrong Key", sx)
 	}
 
 	// Groups disagree, so we will not do anything.
@@ -53,7 +53,7 @@ func TestGroup(t *testing.T) {
 		},
 	)
 	if len(sx) != 2 {
-		t.Fatalf("failure to group first set: %v", sx)
+		t.Fatalf("Failure to group first set: %v", sx)
 	}
 
 	// Group is g1, include only the top-level one.
@@ -64,7 +64,7 @@ func TestGroup(t *testing.T) {
 		},
 	)
 	if len(sx) != 1 {
-		t.Fatalf("failure to group second set: %v", sx)
+		t.Fatalf("Failure to group second set: %v", sx)
 	}
 
 	// Groupless services must be included.
@@ -76,7 +76,7 @@ func TestGroup(t *testing.T) {
 		},
 	)
 	if len(sx) != 2 {
-		t.Fatalf("failure to group third set: %v", sx)
+		t.Fatalf("Failure to group third set: %v", sx)
 	}
 
 	// Empty group on the highest level: include that one also.
@@ -88,7 +88,7 @@ func TestGroup(t *testing.T) {
 		},
 	)
 	if len(sx) != 2 {
-		t.Fatalf("failure to group fourth set: %v", sx)
+		t.Fatalf("Failure to group fourth set: %v", sx)
 	}
 
 	// Empty group on the highest level: include that one also, and the rest.
@@ -100,7 +100,7 @@ func TestGroup(t *testing.T) {
 		},
 	)
 	if len(sx) != 3 {
-		t.Fatalf("failure to group fith set: %v", sx)
+		t.Fatalf("Failure to group fith set: %v", sx)
 	}
 
 	// One group.
@@ -110,7 +110,7 @@ func TestGroup(t *testing.T) {
 		},
 	)
 	if len(sx) != 1 {
-		t.Fatalf("failure to group sixth set: %v", sx)
+		t.Fatalf("Failure to group sixth set: %v", sx)
 	}
 
 	// No group, once service
@@ -120,6 +120,6 @@ func TestGroup(t *testing.T) {
 		},
 	)
 	if len(sx) != 1 {
-		t.Fatalf("failure to group seventh set: %v", sx)
+		t.Fatalf("Failure to group seventh set: %v", sx)
 	}
 }

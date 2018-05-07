@@ -14,10 +14,10 @@ func BenchmarkFileParseInsert(b *testing.B) {
 func TestParseNoSOA(t *testing.T) {
 	_, err := Parse(strings.NewReader(dbNoSOA), "example.org.", "stdin", 0)
 	if err == nil {
-		t.Fatalf("zone %q should have failed to load", "example.org.")
+		t.Fatalf("Zone %q should have failed to load", "example.org.")
 	}
 	if !strings.Contains(err.Error(), "no SOA record") {
-		t.Fatalf("zone %q should have failed to load with no soa error: %s", "example.org.", err)
+		t.Fatalf("Zone %q should have failed to load with no soa error: %s", "example.org.", err)
 	}
 }
 

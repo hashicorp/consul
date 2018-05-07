@@ -228,7 +228,7 @@ func newKey(t *testing.T) (*DNSKEY, func(), func()) {
 
 	key, err := ParseKeyFile(fPub, fPriv)
 	if err != nil {
-		t.Fatalf("failed to parse key: %v\n", err)
+		t.Fatalf("Failed to parse key: %v\n", err)
 	}
 	return key, rmPriv, rmPub
 }

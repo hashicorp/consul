@@ -1,0 +1,14 @@
+#!/bin/bash
+
+echo "** presubmit/$(basename $0)"
+
+# Get the tests that call t.* without capitalizing the first char - seems we standardized on that.
+if egrep -r 't\.Fatal.?\("[a-z]' "$@"; then
+    echo "** presubmit/$(basename $0): please start with an upper case letter when using t.Fatal*()"
+    exit 1
+fi
+
+if egrep -r 't\.Log.?\("[a-z]' "$@"; then
+    echo "** presubmit/$(basename $0): please start with an upper case letter when using t.Log*()"
+    exit 1
+fi
