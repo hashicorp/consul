@@ -2115,6 +2115,39 @@ func (a *Agent) RemoveProxy(proxyID string, persist bool) error {
 	return nil
 }
 
+// verifyProxyToken takes a proxy service ID and a token and verifies
+// that the token is allowed to access proxy-related information (leaf
+// cert, config, etc.).
+//
+// The given token may be a local-only proxy token or it may be an ACL
+// token. We will attempt to verify the local proxy token first.
+func (a *Agent) verifyProxyToken(proxyId, token string) error {
+	proxy := a.State.Proxy(proxyId)
+	if proxy == nil {
+		return fmt.Errorf("unknown proxy service ID: %q", proxyId)
+	}
+
+	// Easy case is if the token just matches our local proxy token.
+	// If this happens we can return without any requests.
+	if token == proxy.ProxyToken {
+		return nil
+	}
+
+	// Doesn't match, we have to do a full token resolution. The required
+	// permission for any proxy-related endpont is service:write, since
+	// to register a proxy you require that permission and sensitive data
+	// is usually present in the configuration.
+	rule, err := a.resolveToken(token)
+	if err != nil {
+		return err
+	}
+	if rule != nil && !rule.ServiceWrite(proxy.Proxy.TargetServiceID, nil) {
+		return acl.ErrPermissionDenied
+	}
+
+	return nil
+}
+
 func (a *Agent) cancelCheckMonitors(checkID types.CheckID) {
 	// Stop any monitors
 	delete(a.checkReapAfter, checkID)

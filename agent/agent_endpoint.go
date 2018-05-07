@@ -965,6 +965,10 @@ func (s *HTTPServer) AgentConnectProxyConfig(resp http.ResponseWriter, req *http
 		return nil, nil
 	}
 
+	// Parse the token
+	var token string
+	s.parseToken(req, &token)
+
 	// Parse hash specially since it's only this endpoint that uses it currently.
 	// Eventually this should happen in parseWait and end up in QueryOptions but I
 	// didn't want to make very general changes right away.
@@ -978,6 +982,11 @@ func (s *HTTPServer) AgentConnectProxyConfig(resp http.ResponseWriter, req *http
 				resp.WriteHeader(http.StatusNotFound)
 				fmt.Fprintf(resp, "unknown proxy service ID: %s", id)
 				return "", nil, nil
+			}
+
+			// Validate the ACL token
+			if err := s.agent.verifyProxyToken(id, token); err != nil {
+				return "", nil, err
 			}
 
 			// Lookup the target service as a convenience

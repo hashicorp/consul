@@ -2517,6 +2517,217 @@ func TestAgentConnectProxyConfig_Blocking(t *testing.T) {
 	}
 }
 
+func TestAgentConnectProxyConfig_aclDefaultDeny(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	a := NewTestAgent(t.Name(), TestACLConfig()+`
+	connect {
+		enabled = true
+	}
+	`)
+	defer a.Shutdown()
+
+	// Register a service with a managed proxy
+	{
+		reg := &structs.ServiceDefinition{
+			ID:      "test-id",
+			Name:    "test",
+			Address: "127.0.0.1",
+			Port:    8000,
+			Check: structs.CheckType{
+				TTL: 15 * time.Second,
+			},
+			Connect: &structs.ServiceDefinitionConnect{
+				Proxy: &structs.ServiceDefinitionConnectProxy{},
+			},
+		}
+
+		req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(reg))
+		resp := httptest.NewRecorder()
+		_, err := a.srv.AgentRegisterService(resp, req)
+		require.NoError(err)
+		require.Equal(200, resp.Code, "body: %s", resp.Body.String())
+	}
+
+	req, _ := http.NewRequest("GET", "/v1/agent/connect/proxy/test-id-proxy", nil)
+	resp := httptest.NewRecorder()
+	_, err := a.srv.AgentConnectProxyConfig(resp, req)
+	require.True(acl.IsErrPermissionDenied(err))
+
+}
+
+func TestAgentConnectProxyConfig_aclProxyToken(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	a := NewTestAgent(t.Name(), TestACLConfig()+`
+	connect {
+		enabled = true
+	}
+	`)
+	defer a.Shutdown()
+
+	// Register a service with a managed proxy
+	{
+		reg := &structs.ServiceDefinition{
+			ID:      "test-id",
+			Name:    "test",
+			Address: "127.0.0.1",
+			Port:    8000,
+			Check: structs.CheckType{
+				TTL: 15 * time.Second,
+			},
+			Connect: &structs.ServiceDefinitionConnect{
+				Proxy: &structs.ServiceDefinitionConnectProxy{},
+			},
+		}
+
+		req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(reg))
+		resp := httptest.NewRecorder()
+		_, err := a.srv.AgentRegisterService(resp, req)
+		require.NoError(err)
+		require.Equal(200, resp.Code, "body: %s", resp.Body.String())
+	}
+
+	// Get the proxy token from the agent directly, since there is no API
+	// to expose this.
+	proxy := a.State.Proxy("test-id-proxy")
+	require.NotNil(proxy)
+	token := proxy.ProxyToken
+	require.NotEmpty(token)
+
+	req, _ := http.NewRequest(
+		"GET", "/v1/agent/connect/proxy/test-id-proxy?token="+token, nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.AgentConnectProxyConfig(resp, req)
+	require.NoError(err)
+	proxyCfg := obj.(*api.ConnectProxyConfig)
+	require.Equal("test-id-proxy", proxyCfg.ProxyServiceID)
+	require.Equal("test-id", proxyCfg.TargetServiceID)
+	require.Equal("test", proxyCfg.TargetServiceName)
+}
+
+func TestAgentConnectProxyConfig_aclServiceWrite(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	a := NewTestAgent(t.Name(), TestACLConfig()+`
+	connect {
+		enabled = true
+	}
+	`)
+	defer a.Shutdown()
+
+	// Register a service with a managed proxy
+	{
+		reg := &structs.ServiceDefinition{
+			ID:      "test-id",
+			Name:    "test",
+			Address: "127.0.0.1",
+			Port:    8000,
+			Check: structs.CheckType{
+				TTL: 15 * time.Second,
+			},
+			Connect: &structs.ServiceDefinitionConnect{
+				Proxy: &structs.ServiceDefinitionConnectProxy{},
+			},
+		}
+
+		req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(reg))
+		resp := httptest.NewRecorder()
+		_, err := a.srv.AgentRegisterService(resp, req)
+		require.NoError(err)
+		require.Equal(200, resp.Code, "body: %s", resp.Body.String())
+	}
+
+	// Create an ACL with service:write for our service
+	var token string
+	{
+		args := map[string]interface{}{
+			"Name":  "User Token",
+			"Type":  "client",
+			"Rules": `service "test" { policy = "write" }`,
+		}
+		req, _ := http.NewRequest("PUT", "/v1/acl/create?token=root", jsonReader(args))
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.ACLCreate(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		aclResp := obj.(aclCreateResponse)
+		token = aclResp.ID
+	}
+
+	req, _ := http.NewRequest(
+		"GET", "/v1/agent/connect/proxy/test-id-proxy?token="+token, nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.AgentConnectProxyConfig(resp, req)
+	require.NoError(err)
+	proxyCfg := obj.(*api.ConnectProxyConfig)
+	require.Equal("test-id-proxy", proxyCfg.ProxyServiceID)
+	require.Equal("test-id", proxyCfg.TargetServiceID)
+	require.Equal("test", proxyCfg.TargetServiceName)
+}
+
+func TestAgentConnectProxyConfig_aclServiceReadDeny(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	a := NewTestAgent(t.Name(), TestACLConfig()+`
+	connect {
+		enabled = true
+	}
+	`)
+	defer a.Shutdown()
+
+	// Register a service with a managed proxy
+	{
+		reg := &structs.ServiceDefinition{
+			ID:      "test-id",
+			Name:    "test",
+			Address: "127.0.0.1",
+			Port:    8000,
+			Check: structs.CheckType{
+				TTL: 15 * time.Second,
+			},
+			Connect: &structs.ServiceDefinitionConnect{
+				Proxy: &structs.ServiceDefinitionConnectProxy{},
+			},
+		}
+
+		req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(reg))
+		resp := httptest.NewRecorder()
+		_, err := a.srv.AgentRegisterService(resp, req)
+		require.NoError(err)
+		require.Equal(200, resp.Code, "body: %s", resp.Body.String())
+	}
+
+	// Create an ACL with service:read for our service
+	var token string
+	{
+		args := map[string]interface{}{
+			"Name":  "User Token",
+			"Type":  "client",
+			"Rules": `service "test" { policy = "read" }`,
+		}
+		req, _ := http.NewRequest("PUT", "/v1/acl/create?token=root", jsonReader(args))
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.ACLCreate(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		aclResp := obj.(aclCreateResponse)
+		token = aclResp.ID
+	}
+
+	req, _ := http.NewRequest(
+		"GET", "/v1/agent/connect/proxy/test-id-proxy?token="+token, nil)
+	resp := httptest.NewRecorder()
+	_, err := a.srv.AgentConnectProxyConfig(resp, req)
+	require.True(acl.IsErrPermissionDenied(err))
+}
+
 func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 	t.Parallel()
 
