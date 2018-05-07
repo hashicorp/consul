@@ -90,11 +90,6 @@ from `1`.
 
 -> **Note:** There is more information about [checks here](/docs/agent/checks.html).
 
--> **Note:** Consul 0.9.3 and before require the optional check ID for a check
-   that is embedded in a service definition to be configured via the `CheckID`
-   field. Consul 1.0 accepts both `id` and `CheckID` but the latter is
-   deprecated and will be removed in Consul 1.1.
-
 The `enable_tag_override` can optionally be specified to disable the
 anti-entropy feature for this service. If `enable_tag_override` is set to
 `TRUE` then external agents can update this service in the

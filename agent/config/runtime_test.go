@@ -1988,7 +1988,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 						"port": 80,
 						"EnableTagOverride": true,
 						"check": {
-							"CheckID": "x",
+							"id": "x",
 							"name": "y",
 							"DockerContainerID": "z",
 							"DeregisterCriticalServiceAfter": "10s",
@@ -2003,7 +2003,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					port = 80
 					EnableTagOverride = true
 					check = {
-						CheckID = "x"
+						id = "x"
 						name = "y"
 						DockerContainerID = "z"
 						DeregisterCriticalServiceAfter = "10s"
@@ -2445,7 +2445,7 @@ func TestFullConfig(t *testing.T) {
 				"port": 24237,
 				"enable_tag_override": true,
 				"check": {
-					"check_id": "RMi85Dv8",
+					"id": "RMi85Dv8",
 					"name": "iehanzuq",
 					"status": "rCvn53TH",
 					"notes": "fti5lfF3",
@@ -2523,7 +2523,7 @@ func TestFullConfig(t *testing.T) {
 					"port": 72219,
 					"enable_tag_override": true,
 					"check": {
-						"check_id": "qmfeO5if",
+						"id": "qmfeO5if",
 						"name": "atDGP7n5",
 						"status": "pDQKEhWL",
 						"notes": "Yt8EDLev",
@@ -2886,7 +2886,7 @@ func TestFullConfig(t *testing.T) {
 				port = 24237
 				enable_tag_override = true
 				check = {
-					check_id = "RMi85Dv8"
+					id = "RMi85Dv8"
 					name = "iehanzuq"
 					status = "rCvn53TH"
 					notes = "fti5lfF3"
@@ -2964,7 +2964,7 @@ func TestFullConfig(t *testing.T) {
 					port = 72219
 					enable_tag_override = true
 					check = {
-						check_id = "qmfeO5if"
+						id = "qmfeO5if"
 						name = "atDGP7n5"
 						status = "pDQKEhWL"
 						notes = "Yt8EDLev"

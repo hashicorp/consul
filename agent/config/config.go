@@ -94,14 +94,12 @@ func Parse(data string, format string) (c Config, err error) {
 	// CamelCase and snake_case. Since changing either format would break
 	// existing setups we have to support both and slowly transition to one of
 	// the formats. Also, there is at least one case where we use the "wrong"
-	// key and want to map that to the new key to support deprecation
-	// (`check.id` vs `service.check.CheckID`) See [GH-3179]. TranslateKeys
-	// maps potentially CamelCased values to the snake_case that is used in the
-	// config file parser. If both the CamelCase and snake_case values are set,
-	// the snake_case value is used and the other value is discarded.
+	// key and want to map that to the new key to support deprecation -
+	// see [GH-3179]. TranslateKeys maps potentially CamelCased values to the
+	// snake_case that is used in the config file parser. If both the CamelCase
+	// and snake_case values are set the snake_case value is used and the other
+	// value is discarded.
 	TranslateKeys(m, map[string]string{
-		"check_id":                       "id",
-		"checkid":                        "id",
 		"deregistercriticalserviceafter": "deregister_critical_service_after",
 		"dockercontainerid":              "docker_container_id",
 		"enabletagoverride":              "enable_tag_override",
