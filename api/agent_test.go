@@ -694,7 +694,7 @@ func TestAPI_AgentChecks_Docker(t *testing.T) {
 		ServiceID: "redis",
 		AgentServiceCheck: AgentServiceCheck{
 			DockerContainerID: "f972c95ebf0e",
-			Script:            "/bin/true",
+			Args:              []string{"/bin/true"},
 			Shell:             "/bin/bash",
 			Interval:          "10s",
 		},

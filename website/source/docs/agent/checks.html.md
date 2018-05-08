@@ -247,11 +247,6 @@ In Consul 0.9.0 and later, the agent must be configured with
 [`enable_script_checks`](/docs/agent/options.html#_enable_script_checks) set to `true`
 in order to enable script checks.
 
-Prior to Consul 1.0, checks used a single `script` field to define the command to run, and
-would always run in a shell. In Consul 1.0, the `args` array was added so that checks can be
-run without a shell. The `script` field is deprecated, and you should include the shell in
-the `args` to run under a shell, eg. `"args": ["sh", "-c", "..."]`.
-
 ## Initial Health Check Status
 
 By default, when checks are registered against a Consul agent, the state is set

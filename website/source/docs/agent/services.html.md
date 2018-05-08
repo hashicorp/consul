@@ -32,7 +32,7 @@ A service definition is a script that looks like:
     "enable_tag_override": false,
     "checks": [
       {
-        "script": "/usr/local/bin/check_redis.py",
+        "args": ["/usr/local/bin/check_redis.py"],
         "interval": "10s"
       }
     ]
@@ -80,7 +80,7 @@ node has any failing system-level check, the DNS interface will omit that
 node from any service query.
 
 The check must be of the script, HTTP, TCP or TTL type. If it is a script type,
-`script` and `interval` must be provided. If it is a HTTP type, `http` and
+`args` and `interval` must be provided. If it is a HTTP type, `http` and
 `interval` must be provided. If it is a TCP type, `tcp` and `interval` must be
 provided. If it is a TTL type, then only `ttl` must be provided. The check name
 is automatically generated as `service:<service-id>`. If there are multiple
@@ -142,7 +142,7 @@ Multiple services definitions can be provided at once using the plural
       "port": 6000,
       "checks": [
         {
-          "script": "/bin/check_redis -p 6000",
+          "args": ["/bin/check_redis", "-p", "6000"],
           "interval": "5s",
           "ttl": "20s"
         }
@@ -159,7 +159,7 @@ Multiple services definitions can be provided at once using the plural
       "port": 7000,
       "checks": [
         {
-          "script": "/bin/check_redis -p 7000",
+          "args": ["/bin/check_redis", "-p", "7000"],
           "interval": "30s",
           "ttl": "60s"
         }

@@ -967,7 +967,6 @@ func (b *Builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		ServiceID:         b.stringVal(v.ServiceID),
 		Token:             b.stringVal(v.Token),
 		Status:            b.stringVal(v.Status),
-		Script:            b.stringVal(v.Script),
 		ScriptArgs:        v.ScriptArgs,
 		HTTP:              b.stringVal(v.HTTP),
 		Header:            v.Header,
