@@ -40,7 +40,7 @@ a[rel='back'] {
 %copy-button {
   @extend %with-clipboard;
   color: $blue !important;
-  background-color: transparent !important;
+  background-color: transparent;
 }
 %copy-button:hover,
 %copy-button:focus,
