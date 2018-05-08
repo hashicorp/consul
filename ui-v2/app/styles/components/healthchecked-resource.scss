@@ -48,7 +48,7 @@
 %healthchecked-resource li::before {
   left: 11px;
   top: 50%;
-  margin-top: -0.5em;
+  margin-top: -0.49em !important;
 }
 %healthchecked-resource li.passing {
   @extend %with-passing;
