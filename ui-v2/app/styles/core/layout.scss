@@ -1,3 +1,7 @@
+html.template-with-vertical-menu,
+html.template-with-vertical-menu body {
+  overflow: hidden;
+}
 #wrapper {
   @extend .container;
   position: static;

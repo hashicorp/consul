@@ -8,6 +8,7 @@
   @extend %with-dot;
   right: 10px;
   left: auto !important;
+  top: 23px !important;
 }
 %header-nav-toggle-button::before {
   margin-top: -6px;
@@ -18,13 +19,24 @@
 %header-nav-toggle {
   display: none;
 }
+%header-nav-toggle-button {
+  top: 0;
+  position: absolute;
+}
 @media #{$--lt-horizontal-nav} {
   %header-nav-panel {
     background-color: $magenta-600;
   }
+  %header-nav-panel label span {
+    visibility: visible !important;
+    display: inline-block;
+    padding-right: 47px;
+    padding-top: 13px;
+  }
   %header-nav-panel {
     transition-timing-function: cubic-bezier(0.1, 0.1, 0.25, 0.9);
     transition-duration: 0.2s;
+    transition-property: width right;
   }
   %header-nav-panel {
     box-sizing: border-box;
@@ -32,35 +44,39 @@
     z-index: 10000;
     text-align: right;
   }
-  %header-nav-panel::before {
-    content: attr(data-close-text);
-    display: block;
-    color: $magenta-50;
-  }
   %header-nav-toggle-button {
     position: absolute;
     right: 0px;
     width: 100px;
     height: 40px;
-    z-index: 20000;
+    z-index: 2;
     cursor: pointer;
   }
-  %header-nav-toggle:checked + * {
-    transition-property: right;
-  }
-  %header-nav-toggle + * {
-    width: 100%;
+  %header-nav-panel {
+    width: 0%;
+    overflow: auto;
     height: 100%;
     position: absolute;
     top: 0px;
+    z-index: 3;
+    padding: 0;
+    padding-top: 15px;
     right: -100%;
   }
-  %header-nav-toggle:checked + * {
+  %header-nav-toggle:checked ~ div {
     width: 250px;
     right: 0;
+    padding: 15px 35px;
+  }
+  %header-nav-toggle:checked + label {
+    background-color: rgba($black, 0.4);
+    width: 100vw;
+    height: 100%;
+    left: 0;
+    top: 0;
   }
   %primary-nav {
-    margin-top: 30px;
+    margin-top: 45px;
   }
 }
 @media #{$--horizontal-nav} {

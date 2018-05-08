@@ -5,7 +5,7 @@
 %main-header > div {
   @extend %header-nav-panel;
 }
-%main-header > label {
+%main-header label[for='main-nav-toggle'] {
   @extend %header-nav-toggle-button;
 }
 %main-header > input {
