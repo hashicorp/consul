@@ -25,4 +25,13 @@ func TestNewServer(t *testing.T) {
 	if ret.Id != m.Id {
 		t.Fatalf("Msg ID's should match, expected %d, got %d", m.Id, ret.Id)
 	}
+
+	c.Net = "udp"
+	ret, _, err = c.Exchange(m, s.Addr)
+	if err != nil {
+		t.Fatalf("Could not send message to dnstest.Server: %s", err)
+	}
+	if ret.Id != m.Id {
+		t.Fatalf("Msg ID's should match, expected %d, got %d", m.Id, ret.Id)
+	}
 }
