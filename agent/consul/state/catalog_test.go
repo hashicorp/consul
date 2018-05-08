@@ -2132,6 +2132,7 @@ func TestStateStore_DeleteCheck(t *testing.T) {
 	// Register a node and a node-level health check.
 	testRegisterNode(t, s, 1, "node1")
 	testRegisterCheck(t, s, 2, "node1", "", "check1", api.HealthPassing)
+	testRegisterService(t, s, 2, "node1", "service1")
 
 	// Make sure the check is there.
 	ws := memdb.NewWatchSet()
@@ -2143,13 +2144,23 @@ func TestStateStore_DeleteCheck(t *testing.T) {
 		t.Fatalf("bad: %#v", checks)
 	}
 
+	ensureServiceVersion(t, s, ws, "service1", 2, 1)
+
 	// Delete the check.
 	if err := s.DeleteCheck(3, "node1", "check1"); err != nil {
 		t.Fatalf("err: %s", err)
 	}
+	if idx, check, err := s.NodeCheck("node1", "check1"); idx != 3 || err != nil || check != nil {
+		t.Fatalf("Node check should have been deleted idx=%d, node=%v, err=%s", idx, check, err)
+	}
+	if idx := s.maxIndex("checks"); idx != 3 {
+		t.Fatalf("bad index for checks: %d", idx)
+	}
 	if !watchFired(ws) {
 		t.Fatalf("bad")
 	}
+	// All services linked to this node should have their index updated
+	ensureServiceVersion(t, s, ws, "service1", 3, 1)
 
 	// Check is gone
 	ws = memdb.NewWatchSet()

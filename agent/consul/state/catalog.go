@@ -1089,6 +1089,21 @@ func (s *Store) EnsureCheck(idx uint64, hc *structs.HealthCheck) error {
 	return nil
 }
 
+// updateAllServiceIndexesOfNode updates the Raft index of all the services associated with this node
+func (s *Store) updateAllServiceIndexesOfNode(tx *memdb.Txn, idx uint64, nodeID string) error {
+	services, err := tx.Get("services", "node", nodeID)
+	if err != nil {
+		return fmt.Errorf("failed updating services for node %s: %s", nodeID, err)
+	}
+	for service := services.Next(); service != nil; service = services.Next() {
+		svc := service.(*structs.ServiceNode).ToNodeService()
+		if err := tx.Insert("index", &IndexEntry{serviceIndexName(svc.Service), idx}); err != nil {
+			return fmt.Errorf("failed updating index: %s", err)
+		}
+	}
+	return nil
+}
+
 // ensureCheckTransaction is used as the inner method to handle inserting
 // a health check into the state store. It ensures safety against inserting
 // checks with no matching node or service.
@@ -1142,15 +1157,9 @@ func (s *Store) ensureCheckTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthChec
 		}
 	} else {
 		// Update the status for all the services associated with this node
-		services, err := tx.Get("services", "node", hc.Node)
+		err = s.updateAllServiceIndexesOfNode(tx, idx, hc.Node)
 		if err != nil {
-			return fmt.Errorf("failed updating services for node %s: %s", hc.Node, err)
-		}
-		for service := services.Next(); service != nil; service = services.Next() {
-			svc := service.(*structs.ServiceNode).ToNodeService()
-			if err := tx.Insert("index", &IndexEntry{serviceIndexName(svc.Service), idx}); err != nil {
-				return fmt.Errorf("failed updating index: %s", err)
-			}
+			return err
 		}
 	}
 
@@ -1393,19 +1402,20 @@ func (s *Store) deleteCheckTxn(tx *memdb.Txn, idx uint64, node string, checkID t
 		return nil
 	}
 	existing := hc.(*structs.HealthCheck)
-	if existing != nil && existing.ServiceID != "" {
-		service, err := tx.First("services", "id", node, existing.ServiceID)
-		if err != nil {
-			return fmt.Errorf("failed service lookup: %s", err)
-		}
-		if service == nil {
-			return ErrMissingService
-		}
-
-		// Updated index of service
-		svc := service.(*structs.ServiceNode)
-		if err = tx.Insert("index", &IndexEntry{serviceIndexName(svc.ServiceName), idx}); err != nil {
-			return fmt.Errorf("failed updating index: %s", err)
+	if existing != nil {
+		// When no service is linked to this service, update all services of node
+		if existing.ServiceID != "" {
+			if err = tx.Insert("index", &IndexEntry{serviceIndexName(existing.ServiceName), idx}); err != nil {
+				return fmt.Errorf("failed updating index: %s", err)
+			}
+		} else {
+			err = s.updateAllServiceIndexesOfNode(tx, idx, existing.Node)
+			if err != nil {
+				return fmt.Errorf("Failed to update services linked to deleted healthcheck: %s", err)
+			}
+			if err := tx.Insert("index", &IndexEntry{"services", idx}); err != nil {
+				return fmt.Errorf("failed updating index: %s", err)
+			}
 		}
 	}
 
