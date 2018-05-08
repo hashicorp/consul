@@ -358,96 +358,8 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 
 	// Skip local datacenter query if requested
 	if query.Service.Failover.SkipLocalDatacenter == false {
-		// Execute the query for the local DC.
-		if err := p.execute(query, reply); err != nil {
+		if err := queryLocally(p, args, query, reply); err != nil {
 			return err
-		}
-
-		// If they supplied a token with the query, use that, otherwise use the
-		// token passed in with the request.
-		token := args.QueryOptions.Token
-		if query.Token != "" {
-			token = query.Token
-		}
-		if err := p.srv.filterACL(token, &reply.Nodes); err != nil {
-			return err
-		}
-
-		// TODO (slackpad) We could add a special case here that will avoid the
-		// fail over if we filtered everything due to ACLs. This seems like it
-		// might not be worth the code complexity and behavior differences,
-		// though, since this is essentially a misconfiguration.
-
-		// Shuffle the results in case coordinates are not available if they
-		// requested an RTT sort.
-		reply.Nodes.Shuffle()
-
-		// Build the query source. This can be provided by the client, or by
-		// the prepared query. Client-specified takes priority.
-		qs := args.Source
-		if qs.Datacenter == "" {
-			qs.Datacenter = args.Agent.Datacenter
-		}
-		if query.Service.Near != "" && qs.Node == "" {
-			qs.Node = query.Service.Near
-		}
-
-		// Respect the magic "_agent" flag.
-		if qs.Node == "_agent" {
-			qs.Node = args.Agent.Node
-		} else if qs.Node == "_ip" {
-			if args.Source.Ip != "" {
-				_, nodes, err := state.Nodes(nil)
-				if err != nil {
-					return err
-				}
-
-				for _, node := range nodes {
-					if args.Source.Ip == node.Address {
-						qs.Node = node.Node
-						break
-					}
-				}
-			} else {
-				p.srv.logger.Printf("[WARN] Prepared Query using near=_ip requires " +
-					"the source IP to be set but none was provided. No distance " +
-					"sorting will be done.")
-
-			}
-
-			// Either a source IP was given but we couldnt find the associated node
-			// or no source ip was given. In both cases we should wipe the Node value
-			if qs.Node == "_ip" {
-				qs.Node = ""
-			}
-		}
-
-		// Perform the distance sort
-		err = p.srv.sortNodesByDistanceFrom(qs, reply.Nodes)
-		if err != nil {
-			return err
-		}
-
-		// If we applied a distance sort, make sure that the node queried for is in
-		// position 0, provided the results are from the same datacenter.
-		if qs.Node != "" && reply.Datacenter == qs.Datacenter {
-			for i, node := range reply.Nodes {
-				if node.Node.Node == qs.Node {
-					reply.Nodes[0], reply.Nodes[i] = reply.Nodes[i], reply.Nodes[0]
-					break
-				}
-
-				// Put a cap on the depth of the search. The local agent should
-				// never be further in than this if distance sorting was applied.
-				if i == 9 {
-					break
-				}
-			}
-		}
-
-		// Apply the limit if given.
-		if args.Limit > 0 && len(reply.Nodes) > args.Limit {
-			reply.Nodes = reply.Nodes[:args.Limit]
 		}
 	}
 
@@ -456,9 +368,111 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 	// by the query setup.
 	if len(reply.Nodes) == 0 {
 		wrapper := &queryServerWrapper{p.srv}
-		if err := queryFailover(wrapper, query, args.Limit, args.QueryOptions, reply); err != nil {
+		if err := queryFailover(p, args, wrapper, query, reply); err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func queryLocally(p *PreparedQuery,
+	args *structs.PreparedQueryExecuteRequest,
+	query *structs.PreparedQuery,
+	reply *structs.PreparedQueryExecuteResponse) error {
+
+	state := p.srv.fsm.State()
+
+	// Execute the query for the local DC.
+	if err := p.execute(query, reply); err != nil {
+		return err
+	}
+
+	// If they supplied a token with the query, use that, otherwise use the
+	// token passed in with the request.
+	token := args.QueryOptions.Token
+	if query.Token != "" {
+		token = query.Token
+	}
+	if err := p.srv.filterACL(token, &reply.Nodes); err != nil {
+		return err
+	}
+
+	// TODO (slackpad) We could add a special case here that will avoid the
+	// fail over if we filtered everything due to ACLs. This seems like it
+	// might not be worth the code complexity and behavior differences,
+	// though, since this is essentially a misconfiguration.
+
+	// Shuffle the results in case coordinates are not available if they
+	// requested an RTT sort.
+	reply.Nodes.Shuffle()
+
+	// Build the query source. This can be provided by the client, or by
+	// the prepared query. Client-specified takes priority.
+	qs := args.Source
+	if qs.Datacenter == "" {
+		qs.Datacenter = args.Agent.Datacenter
+	}
+	if query.Service.Near != "" && qs.Node == "" {
+		qs.Node = query.Service.Near
+	}
+
+	// Respect the magic "_agent" flag.
+	if qs.Node == "_agent" {
+		qs.Node = args.Agent.Node
+	} else if qs.Node == "_ip" {
+		if args.Source.Ip != "" {
+			_, nodes, err := state.Nodes(nil)
+			if err != nil {
+				return err
+			}
+
+			for _, node := range nodes {
+				if args.Source.Ip == node.Address {
+					qs.Node = node.Node
+					break
+				}
+			}
+		} else {
+			p.srv.logger.Printf("[WARN] Prepared Query using near=_ip requires " +
+				"the source IP to be set but none was provided. No distance " +
+				"sorting will be done.")
+
+		}
+
+		// Either a source IP was given but we couldnt find the associated node
+		// or no source ip was given. In both cases we should wipe the Node value
+		if qs.Node == "_ip" {
+			qs.Node = ""
+		}
+	}
+
+	// Perform the distance sort
+	err := p.srv.sortNodesByDistanceFrom(qs, reply.Nodes)
+	if err != nil {
+		return err
+	}
+
+	// If we applied a distance sort, make sure that the node queried for is in
+	// position 0, provided the results are from the same datacenter.
+	if qs.Node != "" && reply.Datacenter == qs.Datacenter {
+		for i, node := range reply.Nodes {
+			if node.Node.Node == qs.Node {
+				reply.Nodes[0], reply.Nodes[i] = reply.Nodes[i], reply.Nodes[0]
+				break
+			}
+
+			// Put a cap on the depth of the search. The local agent should
+			// never be further in than this if distance sorting was applied.
+			if i == 9 {
+				break
+			}
+		}
+	}
+
+	// Apply the limit if given.
+	if args.Limit > 0 && len(reply.Nodes) > args.Limit {
+		reply.Nodes = reply.Nodes[:args.Limit]
 	}
 
 	return nil
@@ -657,8 +671,10 @@ func (q *queryServerWrapper) ForwardDC(method, dc string, args interface{}, repl
 
 // queryFailover runs an algorithm to determine which DCs to try and then calls
 // them to try to locate alternative services.
-func queryFailover(q queryServer, query *structs.PreparedQuery,
-	limit int, options structs.QueryOptions,
+func queryFailover(p *PreparedQuery,
+	args *structs.PreparedQueryExecuteRequest,
+	q queryServer,
+	query *structs.PreparedQuery,
 	reply *structs.PreparedQueryExecuteResponse) error {
 
 	// Pull the list of other DCs. This is sorted by RTT in case the user
@@ -694,8 +710,10 @@ func queryFailover(q queryServer, query *structs.PreparedQuery,
 		// This will prevent a log of other log spammage if we do not
 		// attempt to talk to datacenters we don't know about.
 		if _, ok := known[dc]; !ok {
-			q.GetLogger().Printf("[DEBUG] consul.prepared_query: Skipping unknown datacenter '%s' in prepared query", dc)
-			continue
+			if query.Service.Failover.SkipLocalDatacenter == false || dc != p.srv.config.Datacenter {
+				q.GetLogger().Printf("[DEBUG] consul.prepared_query: Skipping unknown datacenter '%s' in prepared query", dc)
+				continue
+			}
 		}
 
 		// This will make sure we don't re-try something that fails
@@ -719,19 +737,26 @@ func queryFailover(q queryServer, query *structs.PreparedQuery,
 		// through this slice across successive RPC calls.
 		reply.Nodes = nil
 
-		// Note that we pass along the limit since it can be applied
-		// remotely to save bandwidth. We also pass along the consistency
-		// mode information and token we were given, so that applies to
-		// the remote query as well.
-		remote := &structs.PreparedQueryExecuteRemoteRequest{
-			Datacenter:   dc,
-			Query:        *query,
-			Limit:        limit,
-			QueryOptions: options,
-		}
-		if err := q.ForwardDC("PreparedQuery.ExecuteRemote", dc, remote, reply); err != nil {
-			q.GetLogger().Printf("[WARN] consul.prepared_query: Failed querying for service '%s' in datacenter '%s': %s", query.Service.Service, dc, err)
-			continue
+		if query.Service.Failover.SkipLocalDatacenter == true && dc == p.srv.config.Datacenter {
+			if err := queryLocally(p, args, query, reply); err != nil {
+				q.GetLogger().Printf("[WARN] consul.prepared_query: Failed querying for service '%s' in local datacenter: %s", query.Service.Service, err)
+				continue
+			}
+		} else {
+			// Note that we pass along the limit since it can be applied
+			// remotely to save bandwidth. We also pass along the consistency
+			// mode information and token we were given, so that applies to
+			// the remote query as well.
+			remote := &structs.PreparedQueryExecuteRemoteRequest{
+				Datacenter:   dc,
+				Query:        *query,
+				Limit:        args.Limit,
+				QueryOptions: args.QueryOptions,
+			}
+			if err := q.ForwardDC("PreparedQuery.ExecuteRemote", dc, remote, reply); err != nil {
+				q.GetLogger().Printf("[WARN] consul.prepared_query: Failed querying for service '%s' in datacenter '%s': %s", query.Service.Service, dc, err)
+				continue
+			}
 		}
 
 		// We can stop if we found some nodes.
