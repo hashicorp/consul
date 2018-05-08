@@ -32,7 +32,7 @@ func newItem(m *dns.Msg, now time.Time, d time.Duration) *item {
 	i.Answer = m.Answer
 	i.Ns = m.Ns
 	i.Extra = make([]dns.RR, len(m.Extra))
-	// Don't copy OPT record as these are hop-by-hop.
+	// Don't copy OPT records as these are hop-by-hop.
 	j := 0
 	for _, e := range m.Extra {
 		if e.Header().Rrtype == dns.TypeOPT {
@@ -75,11 +75,10 @@ func (i *item) toMsg(m *dns.Msg, now time.Time) *dns.Msg {
 		m1.Ns[j] = dns.Copy(r)
 		m1.Ns[j].Header().Ttl = ttl
 	}
+	// newItem skips OPT records, so we can just use i.Extra as is.
 	for j, r := range i.Extra {
 		m1.Extra[j] = dns.Copy(r)
-		if m1.Extra[j].Header().Rrtype != dns.TypeOPT {
-			m1.Extra[j].Header().Ttl = ttl
-		}
+		m1.Extra[j].Header().Ttl = ttl
 	}
 	return m1
 }
