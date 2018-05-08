@@ -10,49 +10,95 @@ html.template-error div > a {
 button.copy-btn {
   @extend %copy-button;
 }
+main p a,
+main dd a {
+  @extend %link;
+}
 %button[type='submit'],
 %button.type-create {
   @extend %primary-button;
 }
-%button:hover,
-%button:focus {
-  @extend .is-hovered;
-}
-%primary-button {
-  @extend .is-primary;
+%link:hover,
+%link:focus {
+  text-decoration: underline;
 }
 %button {
   border-radius: $radius-small;
   box-shadow: 0 3px 1px 0 rgba(0, 0, 0, 0.12);
-  color: $text-blue;
-}
-%button:not([type='submit']),
-a[rel='back'] {
-  border-color: currentColor;
 }
 %primary-button {
   border: 0;
-  color: $white !important;
-}
-%dangerous-button {
-  color: $danger;
-}
-%copy-button {
-  @extend %with-clipboard;
-  color: $blue !important;
-  background-color: transparent;
-}
-%copy-button:hover,
-%copy-button:focus,
-%copy-button:active {
-  background-color: $gray;
 }
 %copy-button {
   border: 0 !important;
   box-shadow: none !important;
 }
+%copy-button {
+  @extend %with-clipboard;
+}
+%button:not([type='submit']),
+a[rel='back'] {
+  border-color: currentColor;
+}
+%link,
+%link:hover,
+%link:focus,
+%link:active {
+  color: $blue;
+}
 %button {
-  @extend .button;
+  color: $gray-500;
+}
+%button:hover,
+%button:focus {
+  color: $gray-700;
+}
+%button:active {
+  color: $gray-700;
+}
+%copy-button {
+  color: $blue !important;
+  background-color: $transparent;
+}
+%copy-button:hover,
+%copy-button:focus {
+  background-color: $gray-050;
+}
+%copy-button:active {
+  background-color: $gray-100;
+}
+%primary-button {
+  background-color: $blue-500;
+  color: $white !important;
+}
+%primary-button:hover,
+%primary-button:focus {
+  background-color: $blue-700;
+}
+%primary-button:active {
+  background-color: $blue-900;
+}
+%dangerous-button {
+  color: $dangerous-red;
+}
+%dangerous-button:hover,
+%dangerous-button:focus {
+  background-color: $red-500;
+  color: $white;
+  border-color: $red-500;
+}
+%dangerous-button:active {
+  background-color: $red-700;
+  color: $white;
+  border-color: $red-700;
+}
+%button {
+  display: inline-flex;
+  white-space: nowrap;
+  text-align: center;
+  user-select: none;
+  justify-content: center;
+  align-items: center;
   padding: calc(0.375em - 1px) calc(2.2em - 1px);
   height: 2.5em;
 }
