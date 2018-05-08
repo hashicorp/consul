@@ -1,11 +1,7 @@
-.input {
-  box-shadow: none;
-  border-radius: $radius-small;
-}
-
-%form-element,
-%radio-group {
-  margin-bottom: 0.75rem;
+.type-toggle {
+  @extend %toggle;
+  float: right;
+  margin-bottom: 0 !important;
 }
 %form-element > span {
   @extend .label;
@@ -17,6 +13,8 @@
 %form-element [type='text'],
 %form-element [type='password'] {
   @extend .input;
+  box-shadow: none;
+  border-radius: $radius-small;
 }
 %form-element textarea {
   @extend .textarea;
@@ -24,14 +22,51 @@
 .has-error > input {
   border: 1px solid;
 }
+%form-element [type='text'],
+%form-element [type='password'] {
+  color: $user-text-gray;
+}
+%form-element [type='text'],
+%form-element [type='password'],
+%form-element textarea {
+  background-color: $gray-050;
+}
+%form-element [type='text'],
+%form-element [type='password'],
+%form-element textarea {
+  border-color: $border-mid;
+}
+%form-element [type='text']:hover,
+%form-element [type='password']:hover,
+%form-element textarea:hover {
+  border-color: $blue;
+}
+%form-element [type='text']:focus,
+%form-element [type='password']:focus,
+%form-element textarea:focus {
+  outline: none;
+  box-shadow: none;
+  border-color: $border-dark;
+}
 .has-error > input {
-  border-color: red !important;
+  border-color: $dangerous-red !important;
 }
 %toggle input:checked + span::before {
   background-color: $green;
 }
 %toggle span {
   color: $text;
+}
+%form-element > em {
+  color: $text-note;
+}
+%toggle span::after {
+  border-radius: 100%;
+  background-color: $white;
+}
+%toggle span::before {
+  background-color: $border-blue;
+  border-radius: 7px;
 }
 %form-element,
 %form-element > em {
@@ -40,9 +75,6 @@
 %form-element > em {
   margin-left: 8px;
   margin-top: 10px;
-}
-%form-element > em {
-  color: $text-note;
 }
 %form-element,
 %radio-group {
@@ -73,15 +105,7 @@
 }
 %form-element [type='text'],
 %form-element [type='password'] {
-  color: $text-content-blue;
-  border-color: $text-field-blue;
-  background-color: $lightest-gray;
   padding: 17px 15px;
-}
-.type-toggle {
-  @extend %toggle;
-  float: right;
-  margin-bottom: 0 !important;
 }
 %toggle {
   position: relative;
@@ -106,16 +130,12 @@
   width: 20px;
   height: 12px;
   margin-top: -8px;
-  background-color: $border-blue;
-  border-radius: 7px;
 }
 %toggle span::after {
   left: 2px;
   margin-top: -6px;
   width: 8px;
   height: 8px;
-  border-radius: 100%;
-  background-color: $white;
 }
 %toggle input:checked + span::after {
   left: 10px;
