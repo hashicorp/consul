@@ -405,30 +405,6 @@ type Ports struct {
 	Server  *int `json:"server,omitempty" hcl:"server" mapstructure:"server"`
 }
 
-type RetryJoinAzure struct {
-	ClientID        *string `json:"client_id,omitempty" hcl:"client_id" mapstructure:"client_id"`
-	SecretAccessKey *string `json:"secret_access_key,omitempty" hcl:"secret_access_key" mapstructure:"secret_access_key"`
-	SubscriptionID  *string `json:"subscription_id,omitempty" hcl:"subscription_id" mapstructure:"subscription_id"`
-	TagName         *string `json:"tag_name,omitempty" hcl:"tag_name" mapstructure:"tag_name"`
-	TagValue        *string `json:"tag_value,omitempty" hcl:"tag_value" mapstructure:"tag_value"`
-	TenantID        *string `json:"tenant_id,omitempty" hcl:"tenant_id" mapstructure:"tenant_id"`
-}
-
-type RetryJoinEC2 struct {
-	AccessKeyID     *string `json:"access_key_id,omitempty" hcl:"access_key_id" mapstructure:"access_key_id"`
-	Region          *string `json:"region,omitempty" hcl:"region" mapstructure:"region"`
-	SecretAccessKey *string `json:"secret_access_key,omitempty" hcl:"secret_access_key" mapstructure:"secret_access_key"`
-	TagKey          *string `json:"tag_key,omitempty" hcl:"tag_key" mapstructure:"tag_key"`
-	TagValue        *string `json:"tag_value,omitempty" hcl:"tag_value" mapstructure:"tag_value"`
-}
-
-type RetryJoinGCE struct {
-	CredentialsFile *string `json:"credentials_file,omitempty" hcl:"credentials_file" mapstructure:"credentials_file"`
-	ProjectName     *string `json:"project_name,omitempty" hcl:"project_name" mapstructure:"project_name"`
-	TagValue        *string `json:"tag_value,omitempty" hcl:"tag_value" mapstructure:"tag_value"`
-	ZonePattern     *string `json:"zone_pattern,omitempty" hcl:"zone_pattern" mapstructure:"zone_pattern"`
-}
-
 type UnixSocket struct {
 	Group *string `json:"group,omitempty" hcl:"group" mapstructure:"group"`
 	Mode  *string `json:"mode,omitempty" hcl:"mode" mapstructure:"mode"`
