@@ -2,9 +2,12 @@ package consul
 
 import (
 	"crypto/x509"
+	"fmt"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/connect"
 	ca "github.com/hashicorp/consul/agent/connect/ca"
@@ -27,6 +30,7 @@ func TestConnectCARoots(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
+	require := require.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -41,17 +45,19 @@ func TestConnectCARoots(t *testing.T) {
 	ca2 := connect.TestCA(t, nil)
 	ca2.Active = false
 	idx, _, err := state.CARoots(nil)
-	assert.NoError(err)
+	require.NoError(err)
 	ok, err := state.CARootSetCAS(idx, idx, []*structs.CARoot{ca1, ca2})
 	assert.True(ok)
-	assert.NoError(err)
+	require.NoError(err)
+	_, caCfg, err := state.CAConfig()
+	require.NoError(err)
 
 	// Request
 	args := &structs.DCSpecificRequest{
 		Datacenter: "dc1",
 	}
 	var reply structs.IndexedCARoots
-	assert.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", args, &reply))
+	require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", args, &reply))
 
 	// Verify
 	assert.Equal(ca1.ID, reply.ActiveRootID)
@@ -61,6 +67,7 @@ func TestConnectCARoots(t *testing.T) {
 		assert.Equal("", r.SigningCert)
 		assert.Equal("", r.SigningKey)
 	}
+	assert.Equal(fmt.Sprintf("%s.consul", caCfg.ClusterID), reply.TrustDomain)
 }
 
 func TestConnectCAConfig_GetSet(t *testing.T) {

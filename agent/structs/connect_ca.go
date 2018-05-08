@@ -11,6 +11,21 @@ type IndexedCARoots struct {
 	// the process of being rotated out.
 	ActiveRootID string
 
+	// TrustDomain is the identification root for this Consul cluster. All
+	// certificates signed by the cluster's CA must have their identifying URI in
+	// this domain.
+	//
+	// This does not include the protocol (currently spiffe://) since we may
+	// implement other protocols in future with equivalent semantics. It should be
+	// compared against the "authority" section of a URI (i.e. host:port).
+	//
+	// NOTE(banks): Later we may support explicitly trusting external domains
+	// which may be encoded into the CARoot struct or a separate list but this
+	// domain identifier should be immutable and cluster-wide so deserves to be at
+	// the root of this response rather than duplicated through all CARoots that
+	// are not externally trusted entities.
+	TrustDomain string
+
 	// Roots is a list of root CA certs to trust.
 	Roots []*CARoot
 

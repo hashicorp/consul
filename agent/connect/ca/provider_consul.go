@@ -346,7 +346,7 @@ func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error
 	name := fmt.Sprintf("Consul CA %d", sn)
 
 	// The URI (SPIFFE compatible) for the cert
-	id := &connect.SpiffeIDSigning{ClusterID: config.ClusterID, Domain: "consul"}
+	id := connect.SpiffeIDSigningForCluster(config)
 	keyId, err := connect.KeyId(privKey.Public())
 	if err != nil {
 		return "", err

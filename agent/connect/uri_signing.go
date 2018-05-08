@@ -27,3 +27,15 @@ func (id *SpiffeIDSigning) Authorize(ixn *structs.Intention) (bool, bool) {
 	// Never authorize as a client.
 	return false, true
 }
+
+// SpiffeIDSigningForCluster returns the SPIFFE signing identifier (trust
+// domain) representation of the given CA config.
+//
+// NOTE(banks): we intentionally fix the tld `.consul` for now rather than tie
+// this to the `domain` config used for DNS because changing DNS domain can't
+// break all certificate validation. That does mean that DNS prefix might not
+// match the identity URIs and so the trust domain might not actually resolve
+// which we would like but don't actually need.
+func SpiffeIDSigningForCluster(config *structs.CAConfiguration) *SpiffeIDSigning {
+	return &SpiffeIDSigning{ClusterID: config.ClusterID, Domain: "consul"}
+}

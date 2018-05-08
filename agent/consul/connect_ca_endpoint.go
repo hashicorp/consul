@@ -211,6 +211,29 @@ func (s *ConnectCA) Roots(
 		return err
 	}
 
+	// Load the ClusterID to generate TrustDomain. We do this outside the loop
+	// since by definition this value should be immutable once set for lifetime of
+	// the cluster so we don't need to look it up more than once. We also don't
+	// have to worry about non-atomicity between the config fetch transaction and
+	// the CARoots transaction below since this field must remain immutable. Do
+	// not re-use this state/config for other logic that might care about changes
+	// of config during the blocking query below.
+	{
+		state := s.srv.fsm.State()
+		_, config, err := state.CAConfig()
+		if err != nil {
+			return err
+		}
+		// Build TrustDomain based on the ClusterID stored.
+		spiffeID := connect.SpiffeIDSigningForCluster(config)
+		uri := spiffeID.URI()
+		if uri == nil {
+			// Impossible(tm) but let's not panic
+			return errors.New("no trust domain found")
+		}
+		reply.TrustDomain = uri.Host
+	}
+
 	return s.srv.blockingQuery(
 		&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
