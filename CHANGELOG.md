@@ -10,6 +10,7 @@ BUG FIXES:
 * agent: Add support for the new Service Meta field in agent config [[GH-4045](https://github.com/hashicorp/consul/issues/4045)]
 * api: Add support for the new Service Meta field in API client [[GH-4045](https://github.com/hashicorp/consul/issues/4045)]
 * agent: Updated serf library for two bug fixes - allow enough time for leave intents to propagate [[GH-510](https://github.com/hashicorp/serf/pull/510)] and preventing a deadlock [[GH-507](https://github.com/hashicorp/serf/pull/510)]
+* agent: When node-level checks (e.g. maintenance mode) were deleted, some watchers currently in between blocking calls may have missed the change in index. See [[GH-3970](https://github.com/hashicorp/consul/pull/3970)]
 
 ## 1.0.7 (April 13, 2018)
 
