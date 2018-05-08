@@ -1,5 +1,5 @@
 <ul>
-{{#each model.Checks as |check| }}
+{{#each (sort-by (action 'sortChecksByImportance') model.Checks) as |check| }}
     {{healthcheck-status tagName='li' name=check.Name class=check.Status status=check.Status notes=check.Notes output=check.Output}}
 {{/each}}
 </ul>
