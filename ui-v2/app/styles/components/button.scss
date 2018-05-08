@@ -23,6 +23,7 @@ main dd a {
   text-decoration: underline;
 }
 %button {
+  border: 1px solid;
   border-radius: $radius-small;
   box-shadow: 0 3px 1px 0 rgba(0, 0, 0, 0.12);
 }
