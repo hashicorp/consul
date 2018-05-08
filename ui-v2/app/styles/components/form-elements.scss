@@ -4,23 +4,44 @@
   margin-bottom: 0 !important;
 }
 %form-element > span {
-  @extend .label;
-  color: $text-gray;
+  display: block;
+  margin-bottom: 0.5em;
 }
-%radio-group label {
-  @extend .radio;
+[type='radio'] {
+  cursor: pointer;
+}
+%form-element textarea {
+  display: block;
+  max-width: 100%;
+  min-width: 100%;
+  padding: 0.625em;
+  resize: vertical;
 }
 %form-element [type='text'],
 %form-element [type='password'] {
-  @extend .input;
+  max-width: 100%;
+  width: 100%;
+  display: inline-flex;
+  justify-content: flex-start;
+  height: 2.25em;
+  line-height: 1.5;
+}
+%form-element [type='text'],
+%form-element [type='password'] {
+  border: 1px solid;
+  -moz-appearance: none;
+  -webkit-appearance: none;
+}
+%form-element [type='text'],
+%form-element [type='password'] {
   box-shadow: none;
   border-radius: $radius-small;
 }
-%form-element textarea {
-  @extend .textarea;
-}
 .has-error > input {
   border: 1px solid;
+}
+%form-element > span {
+  color: $text-gray;
 }
 %form-element [type='text'],
 %form-element [type='password'] {
