@@ -23,6 +23,8 @@ main dd a {
   text-decoration: underline;
 }
 %button {
+  @extend %user-select-none;
+  white-space: nowrap;
   border: 1px solid;
   border-radius: $radius-small;
   box-shadow: 0 3px 1px 0 rgba(0, 0, 0, 0.12);
@@ -96,9 +98,7 @@ a[rel='back'] {
 }
 %button {
   display: inline-flex;
-  white-space: nowrap;
   text-align: center;
-  user-select: none;
   justify-content: center;
   align-items: center;
   padding: calc(0.375em - 1px) calc(2.2em - 1px);

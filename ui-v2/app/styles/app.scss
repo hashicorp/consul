@@ -1,9 +1,23 @@
+@charset 'utf-8';
+
 @import 'variables/index';
 
-@import 'ember-bulma-css/utilities/_all';
-@import 'ember-bulma-css/base/_all';
-@import 'ember-bulma-css/elements/container.sass';
+@import 'ember-bulma-css/utilities/initial-variables.sass';
+@import 'ember-bulma-css/utilities/functions.sass';
+@import 'ember-bulma-css/utilities/derived-variables.sass';
+@import 'ember-bulma-css/utilities/mixins.sass';
+@import 'ember-bulma-css/utilities/controls.sass';
+@import 'ember-bulma-css/base/minireset.sass';
+@import 'ember-bulma-css/base/generic.sass';
 @import 'ember-bulma-css/elements/form.sass';
+
+%user-select-none {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
 
 @import 'core/reset';
 @import 'core/typography';

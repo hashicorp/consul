@@ -14,7 +14,8 @@ h1 {
 %footer {
   letter-spacing: -0.05em;
 }
-h1 {
+h1,
+%header-drop-nav .is-active {
   font-weight: $weight-bold;
 }
 h2,
@@ -52,7 +53,8 @@ main label a[rel*='help'],
 h1 {
   font-size: $size-4;
 }
-h2 {
+h2,
+%header-drop-nav .is-active {
   font-size: $size-5;
 }
 body,

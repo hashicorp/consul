@@ -3,7 +3,7 @@ html.template-with-vertical-menu body {
   overflow: hidden;
 }
 #wrapper {
-  @extend .container;
+  margin: 0 auto;
   position: static;
   max-width: 1260px;
   padding: 0 1.9047619047619049%; // 24px
@@ -14,7 +14,6 @@ html.template-with-vertical-menu body {
   min-height: 100vh;
   flex-direction: column;
 }
-
 @media #{$--min-padding} {
   #wrapper {
     padding: 0 10px;

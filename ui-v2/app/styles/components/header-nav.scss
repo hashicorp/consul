@@ -162,10 +162,6 @@
   margin-top: -8px;
   right: 10px;
 }
-%header-drop-nav .is-active {
-  @extend .has-text-weight-bold;
-  font-size: $size-5;
-}
 %header-drop-nav li {
   border-bottom: 1px solid;
 }

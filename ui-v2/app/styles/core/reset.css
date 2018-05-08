@@ -3,5 +3,5 @@ fieldset {
   width: 100%;
 }
 label span {
-  user-select: none;
+  @extend %user-select-none;
 }
