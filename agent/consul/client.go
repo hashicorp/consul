@@ -249,10 +249,8 @@ TRY:
 	}
 
 	// Enforce the RPC limit.
-	metrics.IncrCounter([]string{"consul", "client", "rpc"}, 1)
 	metrics.IncrCounter([]string{"client", "rpc"}, 1)
 	if !c.rpcLimiter.Allow() {
-		metrics.IncrCounter([]string{"consul", "client", "rpc", "exceeded"}, 1)
 		metrics.IncrCounter([]string{"client", "rpc", "exceeded"}, 1)
 		return structs.ErrRPCRateExceeded
 	}
@@ -293,10 +291,8 @@ func (c *Client) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 	}
 
 	// Enforce the RPC limit.
-	metrics.IncrCounter([]string{"consul", "client", "rpc"}, 1)
 	metrics.IncrCounter([]string{"client", "rpc"}, 1)
 	if !c.rpcLimiter.Allow() {
-		metrics.IncrCounter([]string{"consul", "client", "rpc", "exceeded"}, 1)
 		metrics.IncrCounter([]string{"client", "rpc", "exceeded"}, 1)
 		return structs.ErrRPCRateExceeded
 	}

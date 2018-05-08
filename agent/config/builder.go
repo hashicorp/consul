@@ -511,14 +511,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		}
 	}
 
-	// Add a filter rule if needed for enabling the deprecated metric names
-	enableDeprecatedNames := b.boolVal(c.Telemetry.EnableDeprecatedNames)
-	if enableDeprecatedNames {
-		telemetryAllowedPrefixes = append(telemetryAllowedPrefixes, "consul.consul.")
-	} else {
-		telemetryBlockedPrefixes = append(telemetryBlockedPrefixes, "consul.consul.")
-	}
-
 	// raft performance scaling
 	performanceRaftMultiplier := b.intVal(c.Performance.RaftMultiplier)
 	if performanceRaftMultiplier < 1 || uint(performanceRaftMultiplier) > consul.MaxRaftMultiplier {

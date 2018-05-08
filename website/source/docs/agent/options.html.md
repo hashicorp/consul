@@ -1340,10 +1340,6 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
       The format is compatible natively with prometheus. When running in this mode, it is recommended to also enable the option
       <a href="#telemetry-disable_hostname">`disable_hostname`</a> to avoid having prefixed metrics with hostname.
 
-    * <a name="telemetry-enable_deprecated_names"></a><a href="#telemetry-enable_deprecated_names">`enable_deprecated_names`
-      </a>Added in Consul 1.0, this enables old metric names of the format `consul.consul...` to be sent alongside
-      other metrics. Defaults to false.
-
     * <a name="telemetry-statsd_address"></a><a href="#telemetry-statsd_address">`statsd_address`</a> This provides the
       address of a statsd instance in the format `host:port`. If provided, Consul will send various telemetry information to that instance for
       aggregation. This can be used to capture runtime information. This sends UDP packets only and can be used with

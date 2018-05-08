@@ -55,13 +55,10 @@ func (d *AutopilotDelegate) IsServer(m serf.Member) (*autopilot.ServerInfo, erro
 // Heartbeat a metric for monitoring if we're the leader
 func (d *AutopilotDelegate) NotifyHealth(health autopilot.OperatorHealthReply) {
 	if d.server.raft.State() == raft.Leader {
-		metrics.SetGauge([]string{"consul", "autopilot", "failure_tolerance"}, float32(health.FailureTolerance))
 		metrics.SetGauge([]string{"autopilot", "failure_tolerance"}, float32(health.FailureTolerance))
 		if health.Healthy {
-			metrics.SetGauge([]string{"consul", "autopilot", "healthy"}, 1)
 			metrics.SetGauge([]string{"autopilot", "healthy"}, 1)
 		} else {
-			metrics.SetGauge([]string{"consul", "autopilot", "healthy"}, 0)
 			metrics.SetGauge([]string{"autopilot", "healthy"}, 0)
 		}
 	}
