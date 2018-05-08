@@ -99,7 +99,32 @@ func minMsgTTL(m *dns.Msg, mt response.Type) time.Duration {
 	}
 
 	minTTL := maxTTL
-	for _, r := range append(append(m.Answer, m.Ns...), m.Extra...) {
+	for _, r := range m.Answer {
+		switch mt {
+		case response.NameError, response.NoData:
+			if r.Header().Rrtype == dns.TypeSOA {
+				minTTL = time.Duration(r.(*dns.SOA).Minttl) * time.Second
+			}
+		case response.NoError, response.Delegation:
+			if r.Header().Ttl < uint32(minTTL.Seconds()) {
+				minTTL = time.Duration(r.Header().Ttl) * time.Second
+			}
+		}
+	}
+	for _, r := range m.Ns {
+		switch mt {
+		case response.NameError, response.NoData:
+			if r.Header().Rrtype == dns.TypeSOA {
+				minTTL = time.Duration(r.(*dns.SOA).Minttl) * time.Second
+			}
+		case response.NoError, response.Delegation:
+			if r.Header().Ttl < uint32(minTTL.Seconds()) {
+				minTTL = time.Duration(r.Header().Ttl) * time.Second
+			}
+		}
+	}
+
+	for _, r := range m.Extra {
 		if r.Header().Rrtype == dns.TypeOPT {
 			// OPT records use TTL field for extended rcode and flags
 			continue
@@ -107,7 +132,7 @@ func minMsgTTL(m *dns.Msg, mt response.Type) time.Duration {
 		switch mt {
 		case response.NameError, response.NoData:
 			if r.Header().Rrtype == dns.TypeSOA {
-				return time.Duration(r.(*dns.SOA).Minttl) * time.Second
+				minTTL = time.Duration(r.(*dns.SOA).Minttl) * time.Second
 			}
 		case response.NoError, response.Delegation:
 			if r.Header().Ttl < uint32(minTTL.Seconds()) {

@@ -40,3 +40,33 @@ func TestMinMsgTTL(t *testing.T) {
 		t.Fatalf("Expected minttl duration to be %d, got %d", 3600, dur)
 	}
 }
+
+func BenchmarkMinMsgTTL(b *testing.B) {
+	m := new(dns.Msg)
+	m.SetQuestion("example.org.", dns.TypeA)
+	m.Ns = []dns.RR{
+		test.A("a.example.org. 	1800	IN	A 127.0.0.53"),
+		test.A("b.example.org. 	1900	IN	A 127.0.0.53"),
+		test.A("c.example.org. 	1600	IN	A 127.0.0.53"),
+		test.A("d.example.org. 	1100	IN	A 127.0.0.53"),
+		test.A("e.example.org. 	1000	IN	A 127.0.0.53"),
+	}
+	m.Extra = []dns.RR{
+		test.A("a.example.org. 	1800	IN	A 127.0.0.53"),
+		test.A("b.example.org. 	1600	IN	A 127.0.0.53"),
+		test.A("c.example.org. 	1400	IN	A 127.0.0.53"),
+		test.A("d.example.org. 	1200	IN	A 127.0.0.53"),
+		test.A("e.example.org. 	1100	IN	A 127.0.0.53"),
+	}
+
+	utc := time.Now().UTC()
+	mt, _ := response.Typify(m, utc)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		dur := minMsgTTL(m, mt)
+		if dur != 1000*time.Second {
+			b.Fatalf("Wrong minMsgTTL %d, expected %d", dur, 1000*time.Second)
+		}
+	}
+}
