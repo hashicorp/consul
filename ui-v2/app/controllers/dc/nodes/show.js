@@ -17,7 +17,7 @@ export default Controller.extend(WithFiltering, {
     return (
       get(item, 'Service')
         .toLowerCase()
-        .indexOf(s.toLowerCase()) === 0
+        .indexOf(s.toLowerCase()) !== -1
     );
   },
 });

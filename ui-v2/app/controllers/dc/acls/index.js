@@ -31,7 +31,7 @@ export default Controller.extend(WithFiltering, {
     return (
       get(item, 'Name')
         .toLowerCase()
-        .indexOf(s.toLowerCase()) === 0 &&
+        .indexOf(s.toLowerCase()) !== -1 &&
       (type === '' || get(item, 'Type') === type)
     );
   },

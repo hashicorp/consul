@@ -23,7 +23,7 @@ export default Controller.extend(WithHealthFiltering, {
     return (
       get(item, 'Node.Node')
         .toLowerCase()
-        .indexOf(s.toLowerCase()) === 0 && hasStatus(get(item, 'Checks'), status)
+        .indexOf(s.toLowerCase()) !== -1 && hasStatus(get(item, 'Checks'), status)
     );
   },
 });
