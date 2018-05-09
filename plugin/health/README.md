@@ -93,3 +93,10 @@ Set a lameduck duration of 1 second:
     }
 }
 ~~~
+
+## Bugs
+
+When reloading, the Health handler is stopped before the new server instance is started. 
+If that new server fails to start, then the initial server instance is still available and DNS queries still served, 
+but Health handler stays down. 
+Health will not reply HTTP request until a successful reload or a complete restart of CoreDNS.
