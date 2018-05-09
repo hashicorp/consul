@@ -19,3 +19,6 @@ approvers:
   - johnbelamaric
   - miekg
   - yongtang
+features:
+  - comments
+  - reviewers
