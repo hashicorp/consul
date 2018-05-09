@@ -3,10 +3,10 @@ import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
 import { next } from '@ember/runloop';
+const $html = document.documentElement;
 export default Route.extend({
   init: function() {
     this._super(...arguments);
-    document.documentElement.classList.remove('ember-loading');
   },
   repo: service('dc'),
   actions: {
@@ -17,13 +17,14 @@ export default Route.extend({
         dc = get(this, 'repo').getActive(model.dc.Name, model.dcs);
       }
       hash({
-        loading: true,
+        loading: !$html.classList.contains('ember-loading'),
         dc: dc,
       }).then(model => {
         next(() => {
           const controller = this.controllerFor('application');
           controller.setProperties(model);
           transition.promise.finally(function() {
+            $html.classList.remove('ember-loading');
             controller.setProperties({
               loading: false,
               dc: model.dc,

@@ -55,13 +55,12 @@ main p {
 }
 html body > svg {
   display: none;
+  position: absolute;
+  top: 50%;
+  margin-top: -26px;
+  left: 50%;
+  margin-left: -84px;
 }
 html.ember-loading body > svg {
   display: block;
-}
-html.ember-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
 }
