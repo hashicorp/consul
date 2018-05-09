@@ -17,12 +17,12 @@
             items=filtered as |item index|
         }}
             {{#block-slot 'header'}}
-                <th>Service</th>
-                <th>Node Health</th>
-                <th>Tags</th>
+                <th style={{remainingWidth}}>Service</th>
+                <th style={{thWidth}}>Node Health</th>
+                <th style={{remainingWidth}}>Tags</th>
             {{/block-slot}}
             {{#block-slot 'row'}}
-                <td data-test-service="{{item.Name}}">
+                <td data-test-service="{{item.Name}}" style={{remainingWidth}}>
                     <a href={{href-to 'dc.services.show' item.Name}}>{{item.Name}}</a>
                 </td>
                 <td>
@@ -35,7 +35,7 @@
                         <dd title="Critical" class={{if (lt item.ChecksCritical 1) 'zero'}} style={{criticalWidth}}>{{format_number item.ChecksCritical}}</dd>
                     </dl>
                 </td>
-                <td>
+                <td style={{remainingWidth}}>
                 {{#if (gt item.Tags.length 0)}}
                     {{join ', ' item.Tags}}
                 {{/if}}
