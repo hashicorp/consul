@@ -1159,8 +1159,30 @@ func (s *HTTPServer) AgentConnectAuthorize(resp http.ResponseWriter, req *http.R
 		return nil, acl.ErrPermissionDenied
 	}
 
-	// TODO(mitchellh): we need to verify more things here, such as the
-	// trust domain, blacklist lookup of the serial, etc.
+	// Validate the trust domain matches ours. Later we will support explicit
+	// external federation but not built yet.
+	rootArgs := &structs.DCSpecificRequest{Datacenter: s.agent.config.Datacenter}
+	raw, err := s.agent.cache.Get(cachetype.ConnectCARootName, rootArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	roots, ok := raw.(*structs.IndexedCARoots)
+	if !ok {
+		return nil, fmt.Errorf("internal error: roots response type not correct")
+	}
+	if roots.TrustDomain == "" {
+		return nil, fmt.Errorf("connect CA not bootstrapped yet")
+	}
+	if roots.TrustDomain != strings.ToLower(uriService.Host) {
+		return &connectAuthorizeResp{
+			Authorized: false,
+			Reason: fmt.Sprintf("Identity from an external trust domain: %s",
+				uriService.Host),
+		}, nil
+	}
+
+	// TODO(banks): Implement revocation list checking here.
 
 	// Get the intentions for this target service.
 	args := &structs.IntentionQueryRequest{
@@ -1177,7 +1199,7 @@ func (s *HTTPServer) AgentConnectAuthorize(resp http.ResponseWriter, req *http.R
 	}
 	args.Token = token
 
-	raw, err := s.agent.cache.Get(cachetype.IntentionMatchName, args)
+	raw, err = s.agent.cache.Get(cachetype.IntentionMatchName, args)
 	if err != nil {
 		return nil, err
 	}

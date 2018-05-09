@@ -6,8 +6,14 @@ import (
 
 // TestSpiffeIDService returns a SPIFFE ID representing a service.
 func TestSpiffeIDService(t testing.T, service string) *SpiffeIDService {
+	return TestSpiffeIDServiceWithHost(t, service, testClusterID+".consul")
+}
+
+// TestSpiffeIDServiceWithHost returns a SPIFFE ID representing a service with
+// the specified trust domain.
+func TestSpiffeIDServiceWithHost(t testing.T, service, host string) *SpiffeIDService {
 	return &SpiffeIDService{
-		Host:       testClusterID + ".consul",
+		Host:       host,
 		Namespace:  "default",
 		Datacenter: "dc1",
 		Service:    service,

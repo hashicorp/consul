@@ -72,7 +72,7 @@ type Cache struct {
 	// of "<DC>/<ACL token>/<Request key>" in order to properly partition
 	// requests to different datacenters and ACL tokens. This format has some
 	// big drawbacks: we can't evict by datacenter, ACL token, etc. For an
-	// initial implementaiton this works and the tests are agnostic to the
+	// initial implementation this works and the tests are agnostic to the
 	// internal storage format so changing this should be possible safely.
 	entriesLock       sync.RWMutex
 	entries           map[string]cacheEntry

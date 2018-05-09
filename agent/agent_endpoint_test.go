@@ -3286,6 +3286,17 @@ func TestAgentConnectAuthorize_idNotService(t *testing.T) {
 	assert.Contains(obj.Reason, "must be a valid")
 }
 
+func testFetchTrustDomain(t *testing.T, a *TestAgent) string {
+	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/roots", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.AgentConnectCARoots(resp, req)
+	require.NoError(t, err)
+
+	value := obj.(structs.IndexedCARoots)
+	require.NotEmpty(t, value.TrustDomain)
+	return value.TrustDomain
+}
+
 // Test when there is an intention allowing the connection
 func TestAgentConnectAuthorize_allow(t *testing.T) {
 	t.Parallel()
@@ -3295,6 +3306,8 @@ func TestAgentConnectAuthorize_allow(t *testing.T) {
 	defer a.Shutdown()
 
 	target := "db"
+
+	trustDomain := testFetchTrustDomain(t, a)
 
 	// Create some intentions
 	var ixnId string
@@ -3317,8 +3330,9 @@ func TestAgentConnectAuthorize_allow(t *testing.T) {
 	cacheHits := a.cache.Hits()
 
 	args := &structs.ConnectAuthorizeRequest{
-		Target:        target,
-		ClientCertURI: connect.TestSpiffeIDService(t, "web").URI().String(),
+		Target: target,
+		ClientCertURI: connect.TestSpiffeIDServiceWithHost(t, "web", trustDomain).
+			URI().String(),
 	}
 	req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
 	resp := httptest.NewRecorder()
@@ -3330,8 +3344,13 @@ func TestAgentConnectAuthorize_allow(t *testing.T) {
 	require.True(obj.Authorized)
 	require.Contains(obj.Reason, "Matched")
 
-	// That should've been a cache miss, so not hit change
-	require.Equal(cacheHits, a.cache.Hits())
+	// That should've been a cache miss, so no hit change, however since
+	// testFetchTrustDomain already called Roots and caused it to be in cache, the
+	// authorize call above will also call it and see a cache hit for the Roots
+	// RPC. In other words, there are 2 cached calls in /authorize and we always
+	// expect one of them to be a hit. So asserting only 1 happened is as close as
+	// we can get to verifying that the intention match RPC was a hit.
+	require.Equal(cacheHits+1, a.cache.Hits())
 
 	// Make the request again
 	{
@@ -3346,9 +3365,10 @@ func TestAgentConnectAuthorize_allow(t *testing.T) {
 		require.Contains(obj.Reason, "Matched")
 	}
 
-	// That should've been a cache hit
-	require.Equal(cacheHits+1, a.cache.Hits())
-	cacheHits++
+	// That should've been a cache hit. We add the one hit from Roots from first
+	// call as well as the 2 from this call (Roots + Intentions).
+	require.Equal(cacheHits+1+2, a.cache.Hits())
+	cacheHits = a.cache.Hits()
 
 	// Change the intention
 	{
@@ -3384,9 +3404,9 @@ func TestAgentConnectAuthorize_allow(t *testing.T) {
 	}
 
 	// That should've been a cache hit, too, since it updated in the
-	// background.
-	require.Equal(cacheHits+1, a.cache.Hits())
-	cacheHits++
+	// background. (again 2 hits for Roots + Intentions)
+	require.Equal(cacheHits+2, a.cache.Hits())
+	cacheHits += 2
 }
 
 // Test when there is an intention denying the connection
@@ -3398,6 +3418,8 @@ func TestAgentConnectAuthorize_deny(t *testing.T) {
 	defer a.Shutdown()
 
 	target := "db"
+
+	trustDomain := testFetchTrustDomain(t, a)
 
 	// Create some intentions
 	{
@@ -3417,8 +3439,9 @@ func TestAgentConnectAuthorize_deny(t *testing.T) {
 	}
 
 	args := &structs.ConnectAuthorizeRequest{
-		Target:        target,
-		ClientCertURI: connect.TestSpiffeIDService(t, "web").URI().String(),
+		Target: target,
+		ClientCertURI: connect.TestSpiffeIDServiceWithHost(t, "web", trustDomain).
+			URI().String(),
 	}
 	req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
 	resp := httptest.NewRecorder()
@@ -3431,6 +3454,53 @@ func TestAgentConnectAuthorize_deny(t *testing.T) {
 	assert.Contains(obj.Reason, "Matched")
 }
 
+// Test when there is an intention allowing service but for a different trust
+// domain.
+func TestAgentConnectAuthorize_denyTrustDomain(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	target := "db"
+
+	// Create some intentions
+	{
+		req := structs.IntentionRequest{
+			Datacenter: "dc1",
+			Op:         structs.IntentionOpCreate,
+			Intention:  structs.TestIntention(t),
+		}
+		req.Intention.SourceNS = structs.IntentionDefaultNamespace
+		req.Intention.SourceName = "web"
+		req.Intention.DestinationNS = structs.IntentionDefaultNamespace
+		req.Intention.DestinationName = target
+		req.Intention.Action = structs.IntentionActionAllow
+
+		var reply string
+		assert.Nil(a.RPC("Intention.Apply", &req, &reply))
+	}
+
+	{
+		args := &structs.ConnectAuthorizeRequest{
+			Target: target,
+			// Rely on the test trust domain this will choose to not match the random
+			// one picked on agent startup.
+			ClientCertURI: connect.TestSpiffeIDService(t, "web").URI().String(),
+		}
+		req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
+		resp := httptest.NewRecorder()
+		respRaw, err := a.srv.AgentConnectAuthorize(resp, req)
+		assert.Nil(err)
+		assert.Equal(200, resp.Code)
+
+		obj := respRaw.(*connectAuthorizeResp)
+		assert.False(obj.Authorized)
+		assert.Contains(obj.Reason, "Identity from an external trust domain")
+	}
+}
+
 func TestAgentConnectAuthorize_denyWildcard(t *testing.T) {
 	t.Parallel()
 
@@ -3439,6 +3509,8 @@ func TestAgentConnectAuthorize_denyWildcard(t *testing.T) {
 	defer a.Shutdown()
 
 	target := "db"
+
+	trustDomain := testFetchTrustDomain(t, a)
 
 	// Create some intentions
 	{
@@ -3477,8 +3549,9 @@ func TestAgentConnectAuthorize_denyWildcard(t *testing.T) {
 	// Web should be allowed
 	{
 		args := &structs.ConnectAuthorizeRequest{
-			Target:        target,
-			ClientCertURI: connect.TestSpiffeIDService(t, "web").URI().String(),
+			Target: target,
+			ClientCertURI: connect.TestSpiffeIDServiceWithHost(t, "web", trustDomain).
+				URI().String(),
 		}
 		req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
 		resp := httptest.NewRecorder()
@@ -3494,8 +3567,9 @@ func TestAgentConnectAuthorize_denyWildcard(t *testing.T) {
 	// API should be denied
 	{
 		args := &structs.ConnectAuthorizeRequest{
-			Target:        target,
-			ClientCertURI: connect.TestSpiffeIDService(t, "api").URI().String(),
+			Target: target,
+			ClientCertURI: connect.TestSpiffeIDServiceWithHost(t, "api", trustDomain).
+				URI().String(),
 		}
 		req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
 		resp := httptest.NewRecorder()
