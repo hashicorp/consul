@@ -23,10 +23,10 @@ export default Route.extend(WithFeedback, {
     const repo = get(this, 'repo');
     const sessionRepo = get(this, 'sessionRepo');
     return hash({
-      model: repo.findBySlug(params.name, dc),
+      item: repo.findBySlug(params.name, dc),
     }).then(function(model) {
       // TODO: Consider loading this after initial page load
-      const coordinates = get(model.model, 'Coordinates');
+      const coordinates = get(model.item, 'Coordinates');
       return hash({
         ...model,
         ...{
@@ -34,8 +34,8 @@ export default Route.extend(WithFeedback, {
             get(coordinates, 'length') > 1
               ? tomography(params.name, coordinates.map(item => get(item, 'data')))
               : null,
-          items: get(model.model, 'Services'),
-          sessions: sessionRepo.findByNode(get(model.model, 'Node'), dc),
+          items: get(model.item, 'Services'),
+          sessions: sessionRepo.findByNode(get(model.item, 'Node'), dc),
         },
       });
     });
