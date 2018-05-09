@@ -16,7 +16,7 @@ import (
 // Forward may be called with a nil f, an error is returned in that case.
 func (f *Forward) Forward(state request.Request) (*dns.Msg, error) {
 	if f == nil {
-		return nil, errNoForward
+		return nil, ErrNoForward
 	}
 
 	fails := 0
@@ -56,7 +56,7 @@ func (f *Forward) Forward(state request.Request) (*dns.Msg, error) {
 		return nil, upstreamErr
 	}
 
-	return nil, errNoHealthy
+	return nil, ErrNoHealthy
 }
 
 // Lookup will use name and type to forge a new message and will send that upstream. It will
@@ -64,7 +64,7 @@ func (f *Forward) Forward(state request.Request) (*dns.Msg, error) {
 // Lookup may be called with a nil f, an error is returned in that case.
 func (f *Forward) Lookup(state request.Request, name string, typ uint16) (*dns.Msg, error) {
 	if f == nil {
-		return nil, errNoForward
+		return nil, ErrNoForward
 	}
 
 	req := new(dns.Msg)

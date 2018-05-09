@@ -104,7 +104,7 @@ func (f *Forward) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 		)
 		for {
 			ret, err = proxy.Connect(ctx, state, f.forceTCP, true)
-			if err != nil && err == errCachedClosed { // Remote side closed conn, can only happen with TCP.
+			if err != nil && err == ErrCachedClosed { // Remote side closed conn, can only happen with TCP.
 				continue
 			}
 			break
@@ -150,7 +150,7 @@ func (f *Forward) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 		return dns.RcodeServerFailure, upstreamErr
 	}
 
-	return dns.RcodeServerFailure, errNoHealthy
+	return dns.RcodeServerFailure, ErrNoHealthy
 }
 
 func (f *Forward) match(state request.Request) bool {
@@ -186,10 +186,12 @@ func (f *Forward) ForceTCP() bool { return f.forceTCP }
 func (f *Forward) List() []*Proxy { return f.p.List(f.proxies) }
 
 var (
-	errInvalidDomain = errors.New("invalid domain for forward")
-	errNoHealthy     = errors.New("no healthy proxies")
-	errNoForward     = errors.New("no forwarder defined")
-	errCachedClosed  = errors.New("cached connection was closed by peer")
+	// ErrNoHealthy means no healthy proxies left
+	ErrNoHealthy = errors.New("no healthy proxies")
+	// ErrNoForward means no forwarder defined
+	ErrNoForward = errors.New("no forwarder defined")
+	// ErrCachedClosed means cached connection was closed by peer
+	ErrCachedClosed = errors.New("cached connection was closed by peer")
 )
 
 // policy tells forward what policy for selecting upstream it uses.

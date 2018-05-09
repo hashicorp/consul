@@ -63,6 +63,9 @@ func (p *Proxy) SetTLSConfig(cfg *tls.Config) {
 	p.client = dnsClient(cfg)
 }
 
+// IsTLS returns true if proxy uses tls.
+func (p *Proxy) IsTLS() bool { return p.transport.tlsConfig != nil }
+
 // SetExpire sets the expire duration in the lower p.transport.
 func (p *Proxy) SetExpire(expire time.Duration) { p.transport.SetExpire(expire) }
 

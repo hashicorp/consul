@@ -58,7 +58,7 @@ func (p *Proxy) Connect(ctx context.Context, state request.Request, forceTCP, me
 	if err := conn.WriteMsg(state.Req); err != nil {
 		conn.Close() // not giving it back
 		if err == io.EOF && cached {
-			return nil, errCachedClosed
+			return nil, ErrCachedClosed
 		}
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func (p *Proxy) Connect(ctx context.Context, state request.Request, forceTCP, me
 		p.updateRtt(timeout)
 		conn.Close() // not giving it back
 		if err == io.EOF && cached {
-			return nil, errCachedClosed
+			return nil, ErrCachedClosed
 		}
 		return ret, err
 	}
