@@ -3,5 +3,5 @@ import base64js from 'npm:base64-js';
 export default function(str, encoding = 'utf-8') {
   //decode
   const bytes = base64js.toByteArray(str);
-  return new (TextDecoder || TextDecoderLite)(encoding).decode(bytes);
+  return new (TextDecoder || TextEncoderLite)(encoding).decode(bytes);
 }
