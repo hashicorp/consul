@@ -488,9 +488,23 @@ func (s *Server) createCAProvider(conf *structs.CAConfiguration) (connect.CAProv
 }
 
 func (s *Server) getCAProvider() connect.CAProvider {
+	retries := 0
+
+RETRY_PROVIDER:
 	s.caProviderLock.RLock()
-	defer s.caProviderLock.RUnlock()
-	return s.caProvider
+	result := s.caProvider
+	s.caProviderLock.RUnlock()
+
+	// In cases where an agent is started with managed proxies, we may ask
+	// for the provider before establishLeadership completes. If we're the
+	// leader, then wait and get the provider again
+	if result == nil && s.IsLeader() && retries < 10 {
+		retries++
+		time.Sleep(50 * time.Millisecond)
+		goto RETRY_PROVIDER
+	}
+
+	return result
 }
 
 func (s *Server) setCAProvider(newProvider connect.CAProvider) {
