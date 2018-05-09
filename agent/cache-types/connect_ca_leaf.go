@@ -1,6 +1,7 @@
 package cachetype
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -9,9 +10,7 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-
 	// NOTE(mitcehllh): This is temporary while certs are stubbed out.
-	"github.com/mitchellh/go-testing-interface"
 )
 
 // Recommended name for registration.
@@ -97,16 +96,41 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 		// by the above channel).
 	}
 
-	// Create a CSR.
-	// TODO(mitchellh): This is obviously not production ready! The host
-	// needs a correct host ID, and we probably don't want to use TestCSR
-	// and want a non-test-specific way to create a CSR.
-	csr, pk := connect.TestCSR(&testing.RuntimeT{}, &connect.SpiffeIDService{
-		Host:       "11111111-2222-3333-4444-555555555555.consul",
-		Namespace:  "default",
+	// Need to lookup RootCAs response to discover trust domain. First just lookup
+	// with no blocking info - this should be a cache hit most of the time.
+	rawRoots, err := c.Cache.Get(ConnectCARootName, &structs.DCSpecificRequest{
 		Datacenter: reqReal.Datacenter,
-		Service:    reqReal.Service,
 	})
+	if err != nil {
+		return result, err
+	}
+	roots, ok := rawRoots.(*structs.IndexedCARoots)
+	if !ok {
+		return result, errors.New("invalid RootCA response type")
+	}
+	if roots.TrustDomain == "" {
+		return result, errors.New("cluster has no CA bootstrapped")
+	}
+
+	// Build the service ID
+	serviceID := &connect.SpiffeIDService{
+		Host:       roots.TrustDomain,
+		Datacenter: reqReal.Datacenter,
+		Namespace:  "default",
+		Service:    reqReal.Service,
+	}
+
+	// Create a new private key
+	pk, pkPEM, err := connect.GeneratePrivateKey()
+	if err != nil {
+		return result, err
+	}
+
+	// Create a CSR.
+	csr, err := connect.CreateCSR(serviceID, pk)
+	if err != nil {
+		return result, err
+	}
 
 	// Request signing
 	var reply structs.IssuedCert
@@ -117,7 +141,7 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 	if err := c.RPC.RPC("ConnectCA.Sign", &args, &reply); err != nil {
 		return result, err
 	}
-	reply.PrivateKeyPEM = pk
+	reply.PrivateKeyPEM = pkPEM
 
 	// Lock the issued certs map so we can insert it. We only insert if
 	// we didn't happen to get a newer one. This should never happen since

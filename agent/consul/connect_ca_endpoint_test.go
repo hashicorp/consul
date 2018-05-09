@@ -157,7 +157,7 @@ func TestConnectCAConfig_TriggerRotation(t *testing.T) {
 
 	// Update the provider config to use a new private key, which should
 	// cause a rotation.
-	newKey, err := connect.GeneratePrivateKey()
+	_, newKey, err := connect.GeneratePrivateKey()
 	assert.NoError(err)
 	newConfig := &structs.CAConfiguration{
 		Provider: "consul",

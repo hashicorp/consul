@@ -161,7 +161,10 @@ func TestLeaf(t testing.T, service string, root *structs.CARoot) (string, string
 	}
 
 	// Generate fresh private key
-	pkSigner, pkPEM := testPrivateKey(t)
+	pkSigner, pkPEM, err := GeneratePrivateKey()
+	if err != nil {
+		t.Fatalf("failed to generate private key: %s", err)
+	}
 
 	// Cert template for generation
 	template := x509.Certificate{

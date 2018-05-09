@@ -2106,13 +2106,14 @@ func TestAgentConnectCARoots_empty(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
+	require := require.New(t)
 	a := NewTestAgent(t.Name(), "connect { enabled = false }")
 	defer a.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/roots", nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.AgentConnectCARoots(resp, req)
-	assert.Nil(err)
+	require.NoError(err)
 
 	value := obj.(structs.IndexedCARoots)
 	assert.Equal(value.ActiveRootID, "")
@@ -2122,6 +2123,7 @@ func TestAgentConnectCARoots_empty(t *testing.T) {
 func TestAgentConnectCARoots_list(t *testing.T) {
 	t.Parallel()
 
+	assert := assert.New(t)
 	require := require.New(t)
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
@@ -2137,30 +2139,34 @@ func TestAgentConnectCARoots_list(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/roots", nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.AgentConnectCARoots(resp, req)
-	require.Nil(err)
+	require.NoError(err)
 
 	value := obj.(structs.IndexedCARoots)
-	require.Equal(value.ActiveRootID, ca2.ID)
-	require.Len(value.Roots, 2)
+	assert.Equal(value.ActiveRootID, ca2.ID)
+	// Would like to assert that it's the same as the TestAgent domain but the
+	// only way to access that state via this package is by RPC to the server
+	// implementation running in TestAgent which is more or less a tautology.
+	assert.NotEmpty(value.TrustDomain)
+	assert.Len(value.Roots, 2)
 
 	// We should never have the secret information
 	for _, r := range value.Roots {
-		require.Equal("", r.SigningCert)
-		require.Equal("", r.SigningKey)
+		assert.Equal("", r.SigningCert)
+		assert.Equal("", r.SigningKey)
 	}
 
 	// That should've been a cache miss, so no hit change
-	require.Equal(cacheHits, a.cache.Hits())
+	assert.Equal(cacheHits, a.cache.Hits())
 
 	// Test caching
 	{
 		// List it again
 		obj2, err := a.srv.AgentConnectCARoots(httptest.NewRecorder(), req)
-		require.Nil(err)
-		require.Equal(obj, obj2)
+		require.NoError(err)
+		assert.Equal(obj, obj2)
 
 		// Should cache hit this time and not make request
-		require.Equal(cacheHits+1, a.cache.Hits())
+		assert.Equal(cacheHits+1, a.cache.Hits())
 		cacheHits++
 	}
 

@@ -25,10 +25,11 @@ func TestConnectCALeaf_changingRoots(t *testing.T) {
 	defer close(rootsCh)
 	rootsCh <- structs.IndexedCARoots{
 		ActiveRootID: "1",
+		TrustDomain:  "fake-trust-domain.consul",
 		QueryMeta:    structs.QueryMeta{Index: 1},
 	}
 
-	// Instrument ConnectCA.Sign to
+	// Instrument ConnectCA.Sign to return signed cert
 	var resp *structs.IssuedCert
 	var idx uint64
 	rpc.On("RPC", "ConnectCA.Sign", mock.Anything, mock.Anything).Return(nil).
@@ -67,6 +68,7 @@ func TestConnectCALeaf_changingRoots(t *testing.T) {
 	// Let's send in new roots, which should trigger the sign req
 	rootsCh <- structs.IndexedCARoots{
 		ActiveRootID: "2",
+		TrustDomain:  "fake-trust-domain.consul",
 		QueryMeta:    structs.QueryMeta{Index: 2},
 	}
 	select {
@@ -101,6 +103,7 @@ func TestConnectCALeaf_expiringLeaf(t *testing.T) {
 	defer close(rootsCh)
 	rootsCh <- structs.IndexedCARoots{
 		ActiveRootID: "1",
+		TrustDomain:  "fake-trust-domain.consul",
 		QueryMeta:    structs.QueryMeta{Index: 1},
 	}
 

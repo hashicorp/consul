@@ -62,7 +62,8 @@ func (id *SpiffeIDSigning) CanSign(cu CertURI) bool {
 }
 
 // SpiffeIDSigningForCluster returns the SPIFFE signing identifier (trust
-// domain) representation of the given CA config.
+// domain) representation of the given CA config. If config is nil this function
+// will panic.
 //
 // NOTE(banks): we intentionally fix the tld `.consul` for now rather than tie
 // this to the `domain` config used for DNS because changing DNS domain can't

@@ -224,9 +224,17 @@ func (s *ConnectCA) Roots(
 		if err != nil {
 			return err
 		}
-		// Build TrustDomain based on the ClusterID stored.
-		signingID := connect.SpiffeIDSigningForCluster(config)
-		reply.TrustDomain = signingID.Host()
+		// Check CA is actually bootstrapped...
+		if config != nil {
+			// Build TrustDomain based on the ClusterID stored.
+			signingID := connect.SpiffeIDSigningForCluster(config)
+			if signingID == nil {
+				// If CA is bootstrapped at all then this should never happen but be
+				// defensive.
+				return errors.New("no cluster trust domain setup")
+			}
+			reply.TrustDomain = signingID.Host()
+		}
 	}
 
 	return s.srv.blockingQuery(

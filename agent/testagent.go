@@ -16,6 +16,8 @@ import (
 	"time"
 
 	metrics "github.com/armon/go-metrics"
+	uuid "github.com/hashicorp/go-uuid"
+
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
@@ -23,7 +25,6 @@ import (
 	"github.com/hashicorp/consul/lib/freeport"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testutil/retry"
-	uuid "github.com/hashicorp/go-uuid"
 )
 
 func init() {

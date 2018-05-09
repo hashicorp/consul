@@ -79,7 +79,7 @@ func NewConsulProvider(rawConfig map[string]interface{}, delegate ConsulProvider
 
 	// Generate a private key if needed
 	if conf.PrivateKey == "" {
-		pk, err := connect.GeneratePrivateKey()
+		_, pk, err := connect.GeneratePrivateKey()
 		if err != nil {
 			return nil, err
 		}
@@ -247,7 +247,7 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	}
 	err = pem.Encode(&buf, &pem.Block{Type: "CERTIFICATE", Bytes: bs})
 	if err != nil {
-		return "", fmt.Errorf("error encoding private key: %s", err)
+		return "", fmt.Errorf("error encoding certificate: %s", err)
 	}
 
 	err = c.incrementProviderIndex(providerState)
