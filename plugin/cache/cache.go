@@ -130,7 +130,6 @@ func (w *ResponseWriter) WriteMsg(res *dns.Msg) error {
 	}
 
 	if key != -1 && duration > 0 {
-
 		if w.state.Match(res) {
 			w.set(res, key, mt, duration)
 			cacheSize.WithLabelValues(w.server, Success).Set(float64(w.pcache.Len()))

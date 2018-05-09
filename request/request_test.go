@@ -162,6 +162,7 @@ func TestRequestScrubAnswerExact(t *testing.T) {
 func TestRequestMatch(t *testing.T) {
 	st := testRequest()
 	reply := new(dns.Msg)
+	reply.Response = true
 
 	reply.SetQuestion("example.com.", dns.TypeMX)
 	if b := st.Match(reply); b {

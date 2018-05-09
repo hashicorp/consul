@@ -380,6 +380,10 @@ func (r *Request) Match(reply *dns.Msg) bool {
 		return false
 	}
 
+	if reply.Response == false {
+		return false
+	}
+
 	if strings.ToLower(reply.Question[0].Name) != r.Name() {
 		return false
 	}
