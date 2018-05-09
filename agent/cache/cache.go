@@ -257,7 +257,7 @@ RETRY_GET:
 
 	// At this point, we know we either don't have a value at all or the
 	// value we have is too old. We need to wait for new data.
-	waiterCh, err := c.fetch(t, key, r, true)
+	waiterCh, err := c.fetch(t, key, r, true, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -287,7 +287,7 @@ func (c *Cache) entryKey(r *RequestInfo) string {
 // If allowNew is true then the fetch should create the cache entry
 // if it doesn't exist. If this is false, then fetch will do nothing
 // if the entry doesn't exist. This latter case is to support refreshing.
-func (c *Cache) fetch(t, key string, r Request, allowNew bool) (<-chan struct{}, error) {
+func (c *Cache) fetch(t, key string, r Request, allowNew bool, attempt uint8) (<-chan struct{}, error) {
 	// Get the type that we're fetching
 	c.typesLock.RLock()
 	tEntry, ok := c.types[t]
@@ -355,14 +355,14 @@ func (c *Cache) fetch(t, key string, r Request, allowNew bool) (<-chan struct{},
 			metrics.IncrCounter([]string{"consul", "cache", "fetch_success"}, 1)
 			metrics.IncrCounter([]string{"consul", "cache", t, "fetch_success"}, 1)
 
-			// Reset the attepts counter so we don't have any backoff
-			newEntry.ErrAttempts = 0
+			// Reset the attempts counter so we don't have any backoff
+			attempt = 0
 		} else {
 			metrics.IncrCounter([]string{"consul", "cache", "fetch_error"}, 1)
 			metrics.IncrCounter([]string{"consul", "cache", t, "fetch_error"}, 1)
 
-			// Always increment the attempts to control backoff
-			newEntry.ErrAttempts++
+			// Increment attempt counter
+			attempt++
 
 			// If the entry wasn't valid, we set an error. If it was valid,
 			// we don't set an error so that the prior value can continue
@@ -399,7 +399,7 @@ func (c *Cache) fetch(t, key string, r Request, allowNew bool) (<-chan struct{},
 		// If refresh is enabled, run the refresh in due time. The refresh
 		// below might block, but saves us from spawning another goroutine.
 		if tEntry.Opts.Refresh {
-			c.refresh(tEntry.Opts, newEntry.ErrAttempts, t, key, r)
+			c.refresh(tEntry.Opts, attempt, t, key, r)
 		}
 	}()
 
@@ -456,7 +456,7 @@ func (c *Cache) refresh(opts *RegisterOptions, attempt uint8, t string, key stri
 	// Trigger. The "allowNew" field is false because in the time we were
 	// waiting to refresh we may have expired and got evicted. If that
 	// happened, we don't want to create a new entry.
-	c.fetch(t, key, r, false)
+	c.fetch(t, key, r, false, attempt)
 }
 
 // runExpiryLoop is a blocking function that watches the expiration
