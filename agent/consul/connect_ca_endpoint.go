@@ -157,6 +157,9 @@ func (s *ConnectCA) ConfigurationSet(
 
 	// Have the old provider cross-sign the new intermediate
 	oldProvider := s.srv.getCAProvider()
+	if oldProvider == nil {
+		return fmt.Errorf("internal error: CA provider is nil")
+	}
 	xcCert, err := oldProvider.CrossSignCA(intermediateCA)
 	if err != nil {
 		return err
@@ -283,6 +286,9 @@ func (s *ConnectCA) Sign(
 	}
 
 	provider := s.srv.getCAProvider()
+	if provider == nil {
+		return fmt.Errorf("internal error: CA provider is nil")
+	}
 
 	// todo(kyhavlov): more validation on the CSR before signing
 	pem, err := provider.Sign(csr)
