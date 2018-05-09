@@ -1,13 +1,13 @@
 import Controller from '@ember/controller';
 import { get, set } from '@ember/object';
+import { inject as service } from '@ember/service';
 
 import Changeset from 'ember-changeset';
 import validations from 'consul-ui/validations/kv';
 import lookupValidator from 'ember-changeset-validations';
-// TODO: encoder
-const btoa = window.btoa;
 export default Controller.extend({
   json: false,
+  encoder: service('btoa'),
   setProperties: function(model) {
     // TODO: Potentially save whether json has been clicked to the model
     set(this, 'json', false);
@@ -32,7 +32,7 @@ export default Controller.extend({
           set(this, 'json', !get(this, 'json'));
           break;
         case 'value':
-          set(this, 'item.Value', btoa(target.value));
+          set(this, 'item.Value', get(this, 'encoder').execute(target.value));
           break;
       }
     },

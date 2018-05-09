@@ -8,6 +8,7 @@ import isFolder from 'consul-ui/utils/isFolder';
 import injectableRequestToJQueryAjaxHash from 'consul-ui/utils/injectableRequestToJQueryAjaxHash';
 import { typeOf } from '@ember/utils';
 import { get } from '@ember/object';
+import { inject as service } from '@ember/service';
 
 import keyToArray from 'consul-ui/utils/keyToArray';
 
@@ -40,7 +41,7 @@ export default Adapter.extend({
   _requestToJQueryAjaxHash: injectableRequestToJQueryAjaxHash({
     stringify: stringify,
   }),
-  atob: window.atob,
+  decoder: service('atob'),
   urlForQuery: function(query, modelName) {
     // append keys here otherwise query.keys will add an '='
     return this.appendURL('kv', keyToArray(query.id), {
@@ -122,7 +123,7 @@ export default Adapter.extend({
       case REQUEST_CREATE:
         value = data.kv.Value;
         if (typeof value === 'string') {
-          return get(this, 'atob')(value);
+          return get(this, 'decoder').execute(value);
         }
         return null;
     }
