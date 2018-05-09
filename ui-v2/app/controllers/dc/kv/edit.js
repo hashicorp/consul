@@ -7,7 +7,10 @@ import lookupValidator from 'ember-changeset-validations';
 // TODO: encoder
 const btoa = window.btoa;
 export default Controller.extend({
+  json: false,
   setProperties: function(model) {
+    // TODO: Potentially save whether json has been clicked to the model
+    set(this, 'json', false);
     this.changeset = new Changeset(model.item, lookupValidator(validations), validations);
     this._super({
       ...model,
@@ -16,7 +19,6 @@ export default Controller.extend({
       },
     });
   },
-  json: false,
   actions: {
     change: function(e) {
       const target = e.target || { name: 'value', value: e };
