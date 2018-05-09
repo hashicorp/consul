@@ -3,7 +3,7 @@
 {{#if create }}
         <label class="type-text{{if item.error.Key ' has-error'}}">
             <span>Key or folder</span>
-            <input type="text" value={{left-trim item.Key parent.Key}} name="additional" onkeyup={{action 'change'}} placeholder="Key or folder" />
+            <input autofocus="autofocus" type="text" value={{left-trim item.Key parent.Key}} name="additional" onkeyup={{action 'change'}} placeholder="Key or folder" />
             <em>To create a folder, end a key with <code>/</code></em>
         </label>
 {{/if}}
@@ -18,7 +18,7 @@
 {{#if json}}
                 {{ code-editor readonly=(if item.isLocked 'readonly') value=(atob item.Value) onkeyup=(action 'change') }}
 {{else}}
-                <input readonly={{if item.isLocked 'readonly' }} type="text" name="value" value={{atob item.Value}} onkeyup={{action 'change'}} />
+                <input autofocus={{not create}} readonly={{if item.isLocked 'readonly' }} type="text" name="value" value={{atob item.Value}} onkeyup={{action 'change'}} />
 {{/if}}
             </label>
         </div>
