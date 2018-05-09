@@ -79,6 +79,11 @@ a[rel='back'] {
 %primary-button:focus {
   background-color: $blue-700;
 }
+%primary-button:disabled {
+  color: rgba($white, 0.5);
+  background-color: rgba($blue-700, 0.5);
+  box-shadow: none;
+}
 %primary-button:active {
   background-color: $blue-900;
 }
@@ -90,6 +95,12 @@ a[rel='back'] {
   background-color: $red-500;
   color: $white;
   border-color: $red-500;
+}
+%dangerous-button:disabled {
+  color: rgba($red-500, 0.5);
+  border-color: rgba($red-500, 0.5);
+  background-color: $white;
+  box-shadow: none;
 }
 %dangerous-button:active {
   background-color: $red-700;
