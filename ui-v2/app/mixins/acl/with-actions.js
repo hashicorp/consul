@@ -1,8 +1,10 @@
 import Mixin from '@ember/object/mixin';
 import { get } from '@ember/object';
+import { inject as service } from '@ember/service';
 import WithFeedback from 'consul-ui/mixins/with-feedback';
 
 export default Mixin.create(WithFeedback, {
+  settings: service('settings'),
   actions: {
     create: function(item) {
       get(this, 'feedback').execute(
@@ -58,7 +60,7 @@ export default Mixin.create(WithFeedback, {
     use: function(item) {
       get(this, 'feedback').execute(
         () => {
-          get(this, 'settings')
+          return get(this, 'settings')
             .persist({ token: get(item, 'ID') })
             .then(() => {
               this.transitionTo('dc.services');
@@ -74,7 +76,12 @@ export default Mixin.create(WithFeedback, {
           return get(this, 'repo')
             .clone(item)
             .then(item => {
-              this.transitionTo('dc.acls');
+              switch (this.routeName) {
+                case 'dc.acls.index':
+                  return this.refresh();
+                default:
+                  return this.transitionTo('dc.acls');
+              }
             });
         },
         `Your ACL token was cloned.`,

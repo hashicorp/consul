@@ -36,6 +36,8 @@ export default Controller.extend(WithFiltering, {
     );
   },
   actions: {
-    clone: function() {},
+    sendClone: function(item) {
+      this.send('clone', item);
+    },
   },
 });

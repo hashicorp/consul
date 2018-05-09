@@ -1,4 +1,4 @@
-{{#app-view class="kv list"}}
+{{#app-view class="kv list" loading=isLoading}}
     {{#block-slot 'breadcrumbs'}}
         <ol>
 {{#if (not-eq parent.Key '/') }}

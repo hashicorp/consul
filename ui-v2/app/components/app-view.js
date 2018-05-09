@@ -6,15 +6,24 @@ const templatize = function(arr = []) {
   return arr.map(item => `template-${item}`);
 };
 export default Component.extend(SlotsMixin, {
+  loading: false,
   classNames: ['app-view'],
-  didInsertElement: function() {
-    const cls = get(this, 'class');
+  didReceiveAttrs: function() {
+    let cls = get(this, 'class') || '';
+    if (get(this, 'loading')) {
+      cls += ' loading';
+    } else {
+      $html.classList.remove(...templatize(['loading']));
+    }
     if (cls) {
       $html.classList.add(...templatize(cls.split(' ')));
     }
   },
+  didInsertElement: function() {
+    this.didReceiveAttrs();
+  },
   didDestroyElement: function() {
-    const cls = get(this, 'class');
+    const cls = get(this, 'class') + ' loading';
     if (cls) {
       $html.classList.remove(...templatize(cls.split(' ')));
     }

@@ -1,4 +1,5 @@
 {{yield}}
+{{#if (not loading)}}
 <header>
 {{#each flashMessages.queue as |flash|}}
     {{#flash-message flash=flash as |component flash|}}
@@ -19,6 +20,11 @@
     </div>
     {{#yield-slot 'toolbar'}}{{yield}}{{/yield-slot}}
 </header>
+{{/if}}
 <div>
-    {{#yield-slot 'content'}}{{yield}}{{/yield-slot}}
+    {{#if loading}}
+        {{partial 'consul-loading'}}
+    {{else}}
+        {{#yield-slot 'content'}}{{yield}}{{/yield-slot}}
+    {{/if}}
 </div>

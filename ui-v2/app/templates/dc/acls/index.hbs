@@ -1,4 +1,4 @@
-{{#app-view class="acl list"}}
+{{#app-view class="acl list" loading=isLoading}}
     {{#block-slot 'header'}}
         <h1>
             ACL Tokens
@@ -45,10 +45,10 @@
                                     <a onclick={{queue (action confirm 'use' item) (action change)}}>Use</a>
                                 </li>
                                 <li>
-                                    <a onclick={{queue (action 'clone')}}>Clone</a>
+                                    <a onclick={{action 'sendClone' item}}>Clone</a>
                                 </li>
                                 <li>
-                                    <a onclick={{queue (action confirm 'delete' item)}}>Delete</a>
+                                    <a onclick={{action confirm 'delete' item}}>Delete</a>
                                 </li>
                             </ul>
                         {{/action-group}}
