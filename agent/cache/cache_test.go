@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -334,6 +335,47 @@ func TestCacheGet_periodicRefresh(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 	resultCh = TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{Key: "hello"}))
 	TestCacheGetChResult(t, resultCh, 12)
+}
+
+// Test that a refresh performs a backoff.
+func TestCacheGet_periodicRefreshErrorBackoff(t *testing.T) {
+	t.Parallel()
+
+	typ := TestType(t)
+	defer typ.AssertExpectations(t)
+	c := TestCache(t)
+	c.RegisterType("t", typ, &RegisterOptions{
+		Refresh:        true,
+		RefreshTimer:   0,
+		RefreshTimeout: 5 * time.Minute,
+	})
+
+	// Configure the type
+	var retries uint32
+	fetchErr := fmt.Errorf("test fetch error")
+	typ.Static(FetchResult{Value: 1, Index: 4}, nil).Once()
+	typ.Static(FetchResult{Value: nil, Index: 5}, fetchErr).Run(func(args mock.Arguments) {
+		atomic.AddUint32(&retries, 1)
+	})
+
+	// Fetch
+	resultCh := TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{Key: "hello"}))
+	TestCacheGetChResult(t, resultCh, 1)
+
+	// Sleep a bit. The refresh will quietly fail in the background. What we
+	// want to verify is that it doesn't retry too much. "Too much" is hard
+	// to measure since its CPU dependent if this test is failing. But due
+	// to the short sleep below, we can calculate about what we'd expect if
+	// backoff IS working.
+	time.Sleep(500 * time.Millisecond)
+
+	// Fetch should work, we should get a 1 still. Errors are ignored.
+	resultCh = TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{Key: "hello"}))
+	TestCacheGetChResult(t, resultCh, 1)
+
+	// Check the number
+	actual := atomic.LoadUint32(&retries)
+	require.True(t, actual < 10, fmt.Sprintf("actual: %d", actual))
 }
 
 // Test that the backend fetch sets the proper timeout.

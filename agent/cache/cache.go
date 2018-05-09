@@ -26,6 +26,13 @@ import (
 
 //go:generate mockery -all -inpkg
 
+// Constants related to refresh backoff. We probably don't ever need to
+// make these configurable knobs since they primarily exist to lower load.
+const (
+	CacheRefreshBackoffMin = 3               // 3 attempts before backing off
+	CacheRefreshMaxWait    = 1 * time.Minute // maximum backoff wait time
+)
+
 // Cache is a agent-local cache of Consul data. Create a Cache using the
 // New function. A zero-value Cache is not ready for usage and will result
 // in a panic.
@@ -330,14 +337,6 @@ func (c *Cache) fetch(t, key string, r Request, allowNew bool) (<-chan struct{},
 			Timeout:  tEntry.Opts.RefreshTimeout,
 		}, r)
 
-		if err == nil {
-			metrics.IncrCounter([]string{"consul", "cache", "fetch_success"}, 1)
-			metrics.IncrCounter([]string{"consul", "cache", t, "fetch_success"}, 1)
-		} else {
-			metrics.IncrCounter([]string{"consul", "cache", "fetch_error"}, 1)
-			metrics.IncrCounter([]string{"consul", "cache", t, "fetch_error"}, 1)
-		}
-
 		// Copy the existing entry to start.
 		newEntry := entry
 		newEntry.Fetching = false
@@ -351,10 +350,26 @@ func (c *Cache) fetch(t, key string, r Request, allowNew bool) (<-chan struct{},
 			newEntry.Valid = true
 		}
 
-		// If we have an error and the prior entry wasn't valid, then we
-		// set the error at least.
-		if err != nil && !newEntry.Valid {
-			newEntry.Error = err
+		// Error handling
+		if err == nil {
+			metrics.IncrCounter([]string{"consul", "cache", "fetch_success"}, 1)
+			metrics.IncrCounter([]string{"consul", "cache", t, "fetch_success"}, 1)
+
+			// Reset the attepts counter so we don't have any backoff
+			newEntry.ErrAttempts = 0
+		} else {
+			metrics.IncrCounter([]string{"consul", "cache", "fetch_error"}, 1)
+			metrics.IncrCounter([]string{"consul", "cache", t, "fetch_error"}, 1)
+
+			// Always increment the attempts to control backoff
+			newEntry.ErrAttempts++
+
+			// If the entry wasn't valid, we set an error. If it was valid,
+			// we don't set an error so that the prior value can continue
+			// being used. This will be evicted if the TTL comes up.
+			if !newEntry.Valid {
+				newEntry.Error = err
+			}
 		}
 
 		// Create a new waiter that will be used for the next fetch.
@@ -384,7 +399,7 @@ func (c *Cache) fetch(t, key string, r Request, allowNew bool) (<-chan struct{},
 		// If refresh is enabled, run the refresh in due time. The refresh
 		// below might block, but saves us from spawning another goroutine.
 		if tEntry.Opts.Refresh {
-			c.refresh(tEntry.Opts, t, key, r)
+			c.refresh(tEntry.Opts, newEntry.ErrAttempts, t, key, r)
 		}
 	}()
 
@@ -417,10 +432,20 @@ func (c *Cache) fetchDirect(t string, r Request) (interface{}, error) {
 
 // refresh triggers a fetch for a specific Request according to the
 // registration options.
-func (c *Cache) refresh(opts *RegisterOptions, t string, key string, r Request) {
+func (c *Cache) refresh(opts *RegisterOptions, attempt uint8, t string, key string, r Request) {
 	// Sanity-check, we should not schedule anything that has refresh disabled
 	if !opts.Refresh {
 		return
+	}
+
+	// If we're over the attempt minimum, start an exponential backoff.
+	if attempt > CacheRefreshBackoffMin {
+		waitTime := (1 << (attempt - CacheRefreshBackoffMin)) * time.Second
+		if waitTime > CacheRefreshMaxWait {
+			waitTime = CacheRefreshMaxWait
+		}
+
+		time.Sleep(waitTime)
 	}
 
 	// If we have a timer, wait for it

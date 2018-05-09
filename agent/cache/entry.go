@@ -16,9 +16,10 @@ type cacheEntry struct {
 	Index uint64
 
 	// Metadata that is used for internal accounting
-	Valid    bool          // True if the Value is set
-	Fetching bool          // True if a fetch is already active
-	Waiter   chan struct{} // Closed when this entry is invalidated
+	Valid       bool          // True if the Value is set
+	Fetching    bool          // True if a fetch is already active
+	Waiter      chan struct{} // Closed when this entry is invalidated
+	ErrAttempts uint8         // Number of fetch errors since last success (Error may be nil)
 
 	// Expiry contains information about the expiration of this
 	// entry. This is a pointer as its shared as a value in the
