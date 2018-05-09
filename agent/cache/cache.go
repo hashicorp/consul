@@ -287,7 +287,7 @@ func (c *Cache) entryKey(r *RequestInfo) string {
 // If allowNew is true then the fetch should create the cache entry
 // if it doesn't exist. If this is false, then fetch will do nothing
 // if the entry doesn't exist. This latter case is to support refreshing.
-func (c *Cache) fetch(t, key string, r Request, allowNew bool, attempt uint8) (<-chan struct{}, error) {
+func (c *Cache) fetch(t, key string, r Request, allowNew bool, attempt uint) (<-chan struct{}, error) {
 	// Get the type that we're fetching
 	c.typesLock.RLock()
 	tEntry, ok := c.types[t]
@@ -432,7 +432,7 @@ func (c *Cache) fetchDirect(t string, r Request) (interface{}, error) {
 
 // refresh triggers a fetch for a specific Request according to the
 // registration options.
-func (c *Cache) refresh(opts *RegisterOptions, attempt uint8, t string, key string, r Request) {
+func (c *Cache) refresh(opts *RegisterOptions, attempt uint, t string, key string, r Request) {
 	// Sanity-check, we should not schedule anything that has refresh disabled
 	if !opts.Refresh {
 		return
