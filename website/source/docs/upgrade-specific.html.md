@@ -14,6 +14,18 @@ details provided for their upgrades as a result of new features or changed
 behavior. This page is used to document those details separately from the
 standard upgrade flow.
 
+## Consul 1.1.0
+
+### Removal of deprecated features
+
+The following previously deprecated fields and config options have been removed:
+
+ - `CheckID` has been removed from config file check definitions (use `id` instead).
+ - `script` has been removed from config file check definitions (use `args` instead).
+ - `enableTagOverride` is no longer valid in service definitions (use `enable_tag_override` instead).
+ - The deprecated set of metric names (beginning with `consul.consul.`) has been removed
+ along with the `enable_deprecated_names` option from the metrics configuration.
+
 ## Consul 1.0.1
 
 #### Carefully Check and Remove Stale Servers During Rolling Upgrades
