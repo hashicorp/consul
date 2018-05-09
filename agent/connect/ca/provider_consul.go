@@ -2,8 +2,6 @@ package connect
 
 import (
 	"bytes"
-	"crypto/ecdsa"
-	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -20,26 +18,26 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-type ConsulCAProvider struct {
+type ConsulProvider struct {
 	config   *structs.ConsulCAProviderConfig
 	id       string
-	delegate ConsulCAStateDelegate
+	delegate ConsulProviderStateDelegate
 	sync.RWMutex
 }
 
-type ConsulCAStateDelegate interface {
+type ConsulProviderStateDelegate interface {
 	State() *state.Store
 	ApplyCARequest(*structs.CARequest) error
 }
 
-// NewConsulCAProvider returns a new instance of the Consul CA provider,
+// NewConsulProvider returns a new instance of the Consul CA provider,
 // bootstrapping its state in the state store necessary
-func NewConsulCAProvider(rawConfig map[string]interface{}, delegate ConsulCAStateDelegate) (*ConsulCAProvider, error) {
+func NewConsulProvider(rawConfig map[string]interface{}, delegate ConsulProviderStateDelegate) (*ConsulProvider, error) {
 	conf, err := ParseConsulCAConfig(rawConfig)
 	if err != nil {
 		return nil, err
 	}
-	provider := &ConsulCAProvider{
+	provider := &ConsulProvider{
 		config:   conf,
 		delegate: delegate,
 		id:       fmt.Sprintf("%s,%s", conf.PrivateKey, conf.RootCert),
@@ -81,7 +79,7 @@ func NewConsulCAProvider(rawConfig map[string]interface{}, delegate ConsulCAStat
 
 	// Generate a private key if needed
 	if conf.PrivateKey == "" {
-		pk, err := GeneratePrivateKey()
+		pk, err := connect.GeneratePrivateKey()
 		if err != nil {
 			return nil, err
 		}
@@ -127,7 +125,7 @@ func ParseConsulCAConfig(raw map[string]interface{}) (*structs.ConsulCAProviderC
 }
 
 // Return the active root CA and generate a new one if needed
-func (c *ConsulCAProvider) ActiveRoot() (string, error) {
+func (c *ConsulProvider) ActiveRoot() (string, error) {
 	state := c.delegate.State()
 	_, providerState, err := state.CAProviderState(c.id)
 	if err != nil {
@@ -139,13 +137,13 @@ func (c *ConsulCAProvider) ActiveRoot() (string, error) {
 
 // We aren't maintaining separate root/intermediate CAs for the builtin
 // provider, so just return the root.
-func (c *ConsulCAProvider) ActiveIntermediate() (string, error) {
+func (c *ConsulProvider) ActiveIntermediate() (string, error) {
 	return c.ActiveRoot()
 }
 
 // We aren't maintaining separate root/intermediate CAs for the builtin
 // provider, so just generate a CSR for the active root.
-func (c *ConsulCAProvider) GenerateIntermediate() (string, error) {
+func (c *ConsulProvider) GenerateIntermediate() (string, error) {
 	ca, err := c.ActiveIntermediate()
 	if err != nil {
 		return "", err
@@ -157,7 +155,7 @@ func (c *ConsulCAProvider) GenerateIntermediate() (string, error) {
 }
 
 // Remove the state store entry for this provider instance.
-func (c *ConsulCAProvider) Cleanup() error {
+func (c *ConsulProvider) Cleanup() error {
 	args := &structs.CARequest{
 		Op:            structs.CAOpDeleteProviderState,
 		ProviderState: &structs.CAConsulProviderState{ID: c.id},
@@ -171,7 +169,7 @@ func (c *ConsulCAProvider) Cleanup() error {
 
 // Sign returns a new certificate valid for the given SpiffeIDService
 // using the current CA.
-func (c *ConsulCAProvider) Sign(csr *x509.CertificateRequest) (string, error) {
+func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	// Lock during the signing so we don't use the same index twice
 	// for different cert serial numbers.
 	c.Lock()
@@ -262,7 +260,7 @@ func (c *ConsulCAProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 }
 
 // CrossSignCA returns the given intermediate CA cert signed by the current active root.
-func (c *ConsulCAProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
+func (c *ConsulProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 	c.Lock()
 	defer c.Unlock()
 
@@ -319,7 +317,7 @@ func (c *ConsulCAProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 
 // incrementProviderIndex does a write to increment the provider state store table index
 // used for serial numbers when generating certificates.
-func (c *ConsulCAProvider) incrementProviderIndex(providerState *structs.CAConsulProviderState) error {
+func (c *ConsulProvider) incrementProviderIndex(providerState *structs.CAConsulProviderState) error {
 	newState := *providerState
 	args := &structs.CARequest{
 		Op:            structs.CAOpSetProviderState,
@@ -332,31 +330,8 @@ func (c *ConsulCAProvider) incrementProviderIndex(providerState *structs.CAConsu
 	return nil
 }
 
-// GeneratePrivateKey returns a new private key
-func GeneratePrivateKey() (string, error) {
-	var pk *ecdsa.PrivateKey
-
-	pk, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		return "", fmt.Errorf("error generating private key: %s", err)
-	}
-
-	bs, err := x509.MarshalECPrivateKey(pk)
-	if err != nil {
-		return "", fmt.Errorf("error generating private key: %s", err)
-	}
-
-	var buf bytes.Buffer
-	err = pem.Encode(&buf, &pem.Block{Type: "EC PRIVATE KEY", Bytes: bs})
-	if err != nil {
-		return "", fmt.Errorf("error encoding private key: %s", err)
-	}
-
-	return buf.String(), nil
-}
-
 // generateCA makes a new root CA using the current private key
-func (c *ConsulCAProvider) generateCA(privateKey string, sn uint64) (string, error) {
+func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error) {
 	state := c.delegate.State()
 	_, config, err := state.CAConfig()
 	if err != nil {

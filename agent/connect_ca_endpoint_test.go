@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/connect"
-	connect_ca "github.com/hashicorp/consul/agent/connect/ca"
+	ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/assert"
 )
@@ -77,7 +77,7 @@ func TestConnectCAConfig(t *testing.T) {
 		assert.NoError(err)
 
 		value := obj.(structs.CAConfiguration)
-		parsed, err := connect_ca.ParseConsulCAConfig(value.Config)
+		parsed, err := ca.ParseConsulCAConfig(value.Config)
 		assert.NoError(err)
 		assert.Equal("consul", value.Provider)
 		assert.Equal(expected, parsed)
@@ -107,8 +107,7 @@ func TestConnectCAConfig(t *testing.T) {
 		assert.NoError(err)
 
 		value := obj.(structs.CAConfiguration)
-		//t.Fatalf("%#v", value)
-		parsed, err := connect_ca.ParseConsulCAConfig(value.Config)
+		parsed, err := ca.ParseConsulCAConfig(value.Config)
 		assert.NoError(err)
 		assert.Equal("consul", value.Provider)
 		assert.Equal(expected, parsed)

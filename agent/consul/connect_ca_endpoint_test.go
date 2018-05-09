@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/connect"
-	connect_ca "github.com/hashicorp/consul/agent/connect/ca"
+	ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
@@ -83,9 +83,9 @@ func TestConnectCAConfig_GetSet(t *testing.T) {
 		var reply structs.CAConfiguration
 		assert.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationGet", args, &reply))
 
-		actual, err := connect_ca.ParseConsulCAConfig(reply.Config)
+		actual, err := ca.ParseConsulCAConfig(reply.Config)
 		assert.NoError(err)
-		expected, err := connect_ca.ParseConsulCAConfig(s1.config.CAConfig.Config)
+		expected, err := ca.ParseConsulCAConfig(s1.config.CAConfig.Config)
 		assert.NoError(err)
 		assert.Equal(reply.Provider, s1.config.CAConfig.Provider)
 		assert.Equal(actual, expected)
@@ -118,9 +118,9 @@ func TestConnectCAConfig_GetSet(t *testing.T) {
 		var reply structs.CAConfiguration
 		assert.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationGet", args, &reply))
 
-		actual, err := connect_ca.ParseConsulCAConfig(reply.Config)
+		actual, err := ca.ParseConsulCAConfig(reply.Config)
 		assert.NoError(err)
-		expected, err := connect_ca.ParseConsulCAConfig(newConfig.Config)
+		expected, err := ca.ParseConsulCAConfig(newConfig.Config)
 		assert.NoError(err)
 		assert.Equal(reply.Provider, newConfig.Provider)
 		assert.Equal(actual, expected)
@@ -150,7 +150,7 @@ func TestConnectCAConfig_TriggerRotation(t *testing.T) {
 
 	// Update the provider config to use a new private key, which should
 	// cause a rotation.
-	newKey, err := connect_ca.GeneratePrivateKey()
+	newKey, err := connect.GeneratePrivateKey()
 	assert.NoError(err)
 	newConfig := &structs.CAConfiguration{
 		Provider: "consul",
@@ -220,9 +220,9 @@ func TestConnectCAConfig_TriggerRotation(t *testing.T) {
 		var reply structs.CAConfiguration
 		assert.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationGet", args, &reply))
 
-		actual, err := connect_ca.ParseConsulCAConfig(reply.Config)
+		actual, err := ca.ParseConsulCAConfig(reply.Config)
 		assert.NoError(err)
-		expected, err := connect_ca.ParseConsulCAConfig(newConfig.Config)
+		expected, err := ca.ParseConsulCAConfig(newConfig.Config)
 		assert.NoError(err)
 		assert.Equal(reply.Provider, newConfig.Provider)
 		assert.Equal(actual, expected)

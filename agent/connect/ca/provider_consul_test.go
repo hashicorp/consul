@@ -74,7 +74,7 @@ func TestCAProvider_Bootstrap(t *testing.T) {
 	conf := testConsulCAConfig()
 	delegate := newMockDelegate(t, conf)
 
-	provider, err := NewConsulCAProvider(conf.Config, delegate)
+	provider, err := NewConsulProvider(conf.Config, delegate)
 	assert.NoError(err)
 
 	root, err := provider.ActiveRoot()
@@ -104,7 +104,7 @@ func TestCAProvider_Bootstrap_WithCert(t *testing.T) {
 	}
 	delegate := newMockDelegate(t, conf)
 
-	provider, err := NewConsulCAProvider(conf.Config, delegate)
+	provider, err := NewConsulProvider(conf.Config, delegate)
 	assert.NoError(err)
 
 	root, err := provider.ActiveRoot()
@@ -119,7 +119,7 @@ func TestCAProvider_SignLeaf(t *testing.T) {
 	conf := testConsulCAConfig()
 	delegate := newMockDelegate(t, conf)
 
-	provider, err := NewConsulCAProvider(conf.Config, delegate)
+	provider, err := NewConsulProvider(conf.Config, delegate)
 	assert.NoError(err)
 
 	spiffeService := &connect.SpiffeIDService{
@@ -143,7 +143,7 @@ func TestCAProvider_SignLeaf(t *testing.T) {
 		assert.NoError(err)
 		assert.Equal(parsed.URIs[0], spiffeService.URI())
 		assert.Equal(parsed.Subject.CommonName, "foo")
-		assert.Equal(parsed.SerialNumber.Uint64(), uint64(1))
+		assert.Equal(uint64(2), parsed.SerialNumber.Uint64())
 
 		// Ensure the cert is valid now and expires within the correct limit.
 		assert.True(parsed.NotAfter.Sub(time.Now()) < 3*24*time.Hour)
@@ -180,7 +180,7 @@ func TestCAProvider_CrossSignCA(t *testing.T) {
 	assert := assert.New(t)
 	conf := testConsulCAConfig()
 	delegate := newMockDelegate(t, conf)
-	provider, err := NewConsulCAProvider(conf.Config, delegate)
+	provider, err := NewConsulProvider(conf.Config, delegate)
 	assert.NoError(err)
 
 	// Make a new CA cert to get cross-signed.

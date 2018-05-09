@@ -11,7 +11,7 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
-	connect_ca "github.com/hashicorp/consul/agent/connect/ca"
+	ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
@@ -496,18 +496,18 @@ func parseCARoot(pemValue, provider string) (*structs.CARoot, error) {
 }
 
 // createProvider returns a connect CA provider from the given config.
-func (s *Server) createCAProvider(conf *structs.CAConfiguration) (connect_ca.Provider, error) {
+func (s *Server) createCAProvider(conf *structs.CAConfiguration) (ca.Provider, error) {
 	switch conf.Provider {
 	case structs.ConsulCAProvider:
-		return connect_ca.NewConsulCAProvider(conf.Config, &consulCADelegate{s})
+		return ca.NewConsulProvider(conf.Config, &consulCADelegate{s})
 	default:
 		return nil, fmt.Errorf("unknown CA provider %q", conf.Provider)
 	}
 }
 
-func (s *Server) getCAProvider() connect.CAProvider {
+func (s *Server) getCAProvider() ca.Provider {
 	retries := 0
-	var result connect.CAProvider
+	var result ca.Provider
 	for result == nil {
 		s.caProviderLock.RLock()
 		result = s.caProvider
@@ -528,7 +528,7 @@ func (s *Server) getCAProvider() connect.CAProvider {
 	return result
 }
 
-func (s *Server) setCAProvider(newProvider connect_ca.Provider) {
+func (s *Server) setCAProvider(newProvider ca.Provider) {
 	s.caProviderLock.Lock()
 	defer s.caProviderLock.Unlock()
 	s.caProvider = newProvider
