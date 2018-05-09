@@ -67,7 +67,7 @@ export default Adapter.extend({
     const query = {
       [API_DATACENTER_KEY]: snapshot.attr(DATACENTER_KEY),
     };
-    if (isFolder(id)) {
+    if (isFolder(snapshot.attr(SLUG_KEY))) {
       query.recurse = null;
     }
     return this.appendURL('kv', keyToArray(snapshot.attr(SLUG_KEY)), query);
