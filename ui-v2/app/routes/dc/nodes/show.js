@@ -24,7 +24,6 @@ export default Route.extend(WithFeedback, {
     const sessionRepo = get(this, 'sessionRepo');
     return hash({
       model: repo.findBySlug(params.name, dc),
-      size: 337,
     }).then(function(model) {
       // TODO: Consider loading this after initial page load
       const coordinates = get(model.model, 'Coordinates');

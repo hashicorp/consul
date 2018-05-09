@@ -10,7 +10,7 @@ const milliseconds = function(num, max) {
   return max > 0 ? parseInt(max * num) / 100 : 0;
 };
 export default Component.extend({
-  size: 336,
+  size: size,
   tomography: 0,
   max: -999999999,
   init: function() {
