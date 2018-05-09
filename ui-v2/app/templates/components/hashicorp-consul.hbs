@@ -18,7 +18,7 @@
                         <a href={{href-to 'dc.services' dc.Name }} data-test-datacenter-selected="{{dc.Name}}">{{dc.Name}}</a>
     {{/if}}
     {{#if isDropdownVisible}}
-                        {{datacenter-picker items=dcs selected=dc onchange=(action 'dropdown') onblur=(action 'change')}}
+                        {{datacenter-picker items=dcs selected=dc onchange=(action 'dropdown') onblur=(action 'dropdown')}}
     {{/if}}
                     </li>
                     <li data-test-main-nav-services class={{if (is-href 'dc.services' dc.Name) 'is-active'}}>
