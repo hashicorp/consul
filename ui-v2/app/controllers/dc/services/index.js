@@ -1,5 +1,6 @@
 import Controller from '@ember/controller';
 import { get, computed } from '@ember/object';
+import { htmlSafe } from '@ember/string';
 import WithHealthFiltering from 'consul-ui/mixins/with-health-filtering';
 const max = function(arr, prop) {
   return arr.reduce(function(prev, item) {
@@ -21,7 +22,7 @@ const width = function(num) {
   return commas * 4 + len * 10;
 };
 const widthDeclaration = function(num) {
-  return `width: ${num}px`.htmlSafe();
+  return htmlSafe(`width: ${num}px`);
 };
 export default Controller.extend(WithHealthFiltering, {
   filter: function(item, { s = '', status = '' }) {
@@ -41,7 +42,7 @@ export default Controller.extend(WithHealthFiltering, {
     return widthDeclaration(get(this, 'totalWidth'));
   }),
   remainingWidth: computed('totalWidth', function() {
-    return `width: calc(50% - ${Math.round(get(this, 'totalWidth') / 2)}px)`.htmlSafe();
+    return htmlSafe(`width: calc(50% - ${Math.round(get(this, 'totalWidth') / 2)}px)`);
   }),
   maxPassing: computed('items', function() {
     return max(get(this, 'items'), 'ChecksPassing');
