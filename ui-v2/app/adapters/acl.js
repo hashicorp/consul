@@ -106,6 +106,13 @@ export default Adapter.extend({
       ).pathname
     );
   },
+  isUpdateRecord: function(url) {
+    return (
+      url.pathname ===
+      this.parseURL(this.urlForUpdateRecord(null, 'acl', makeAttrable({ [DATACENTER_KEY]: '' })))
+        .pathname
+    );
+  },
   handleResponse: function(status, headers, payload, requestData) {
     let response = payload;
     if (status === HTTP_OK) {
@@ -126,6 +133,7 @@ export default Adapter.extend({
           break;
         case this.isCreateRecord(url):
         case this.isCloneRecord(url):
+        case this.isUpdateRecord(url):
           response = {
             ...response,
             ...{
