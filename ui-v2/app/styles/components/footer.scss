@@ -8,6 +8,9 @@
   border-color: $keyline-darker;
   background-color: $white;
 }
+%footer {
+  max-width: 1150px;
+}
 %footer > * {
   font-size: inherit;
   color: $text-note;
