@@ -225,13 +225,8 @@ func (s *ConnectCA) Roots(
 			return err
 		}
 		// Build TrustDomain based on the ClusterID stored.
-		spiffeID := connect.SpiffeIDSigningForCluster(config)
-		uri := spiffeID.URI()
-		if uri == nil {
-			// Impossible(tm) but let's not panic
-			return errors.New("no trust domain found")
-		}
-		reply.TrustDomain = uri.Host
+		signingID := connect.SpiffeIDSigningForCluster(config)
+		reply.TrustDomain = signingID.Host()
 	}
 
 	return s.srv.blockingQuery(
@@ -297,11 +292,11 @@ func (s *ConnectCA) Sign(
 	}
 
 	// Parse the SPIFFE ID
-	spiffeId, err := connect.ParseCertURI(csr.URIs[0])
+	spiffeID, err := connect.ParseCertURI(csr.URIs[0])
 	if err != nil {
 		return err
 	}
-	serviceId, ok := spiffeId.(*connect.SpiffeIDService)
+	serviceID, ok := spiffeID.(*connect.SpiffeIDService)
 	if !ok {
 		return fmt.Errorf("SPIFFE ID in CSR must be a service ID")
 	}
@@ -311,7 +306,35 @@ func (s *ConnectCA) Sign(
 		return fmt.Errorf("internal error: CA provider is nil")
 	}
 
-	// todo(kyhavlov): more validation on the CSR before signing
+	// Verify that the CSR entity is in the cluster's trust domain
+	state := s.srv.fsm.State()
+	_, config, err := state.CAConfig()
+	if err != nil {
+		return err
+	}
+	signingID := connect.SpiffeIDSigningForCluster(config)
+	if !signingID.CanSign(serviceID) {
+		return fmt.Errorf("SPIFFE ID in CSR from a different trust domain: %s, "+
+			"we are %s", serviceID.Host, signingID.Host())
+	}
+
+	// Verify that the ACL token provided has permission to act as this service
+	rule, err := s.srv.resolveToken(args.Token)
+	if err != nil {
+		return err
+	}
+	if rule != nil && !rule.ServiceWrite(serviceID.Service, nil) {
+		return acl.ErrPermissionDenied
+	}
+
+	// Verify that the DC in the service URI matches us. We might relax this
+	// requirement later but being restrictive for now is safer.
+	if serviceID.Datacenter != s.srv.config.Datacenter {
+		return fmt.Errorf("SPIFFE ID in CSR from a different datacenter: %s, "+
+			"we are %s", serviceID.Datacenter, s.srv.config.Datacenter)
+	}
+
+	// All seems to be in order, actually sign it.
 	pem, err := provider.Sign(csr)
 	if err != nil {
 		return err
@@ -322,9 +345,10 @@ func (s *ConnectCA) Sign(
 	// the built-in provider being supported and the implementation detail that we
 	// have to write a SerialIndex update to the provider config table for every
 	// cert issued so in all cases this index will be higher than any previous
-	// sign response. This has to happen after the provider.Sign call to observe
-	// the index update.
-	modIdx, _, err := s.srv.fsm.State().CAConfig()
+	// sign response. This has to be reloaded after the provider.Sign call to
+	// observe the index update.
+	state = s.srv.fsm.State()
+	modIdx, _, err := state.CAConfig()
 	if err != nil {
 		return err
 	}
@@ -338,7 +362,7 @@ func (s *ConnectCA) Sign(
 	*reply = structs.IssuedCert{
 		SerialNumber: connect.HexString(cert.SerialNumber.Bytes()),
 		CertPEM:      pem,
-		Service:      serviceId.Service,
+		Service:      serviceID.Service,
 		ServiceURI:   cert.URIs[0].String(),
 		ValidAfter:   cert.NotBefore,
 		ValidBefore:  cert.NotAfter,

@@ -3,6 +3,7 @@ package connect
 import (
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -18,14 +19,46 @@ type SpiffeIDSigning struct {
 func (id *SpiffeIDSigning) URI() *url.URL {
 	var result url.URL
 	result.Scheme = "spiffe"
-	result.Host = fmt.Sprintf("%s.%s", id.ClusterID, id.Domain)
+	result.Host = id.Host()
 	return &result
+}
+
+// Host is the canonical representation as a DNS-compatible hostname.
+func (id *SpiffeIDSigning) Host() string {
+	return strings.ToLower(fmt.Sprintf("%s.%s", id.ClusterID, id.Domain))
 }
 
 // CertURI impl.
 func (id *SpiffeIDSigning) Authorize(ixn *structs.Intention) (bool, bool) {
 	// Never authorize as a client.
 	return false, true
+}
+
+// CanSign takes any CertURI and returns whether or not this signing entity is
+// allowed to sign CSRs for that entity (i.e. represents the trust domain for
+// that entity).
+//
+// I choose to make this a fixed centralised method here for now rather than a
+// method on CertURI interface since we don't intend this to be extensible
+// outside and it's easier to reason about the security properties when they are
+// all in one place with "whitelist" semantics.
+func (id *SpiffeIDSigning) CanSign(cu CertURI) bool {
+	switch other := cu.(type) {
+	case *SpiffeIDSigning:
+		// We can only sign other CA certificates for the same trust domain. Note
+		// that we could open this up later for example to support external
+		// federation of roots and cross-signing external roots that have different
+		// URI structure but it's simpler to start off restrictive.
+		return id == other
+	case *SpiffeIDService:
+		// The host component of the service must be an exact match for now under
+		// ascii case folding (since hostnames are case-insensitive). Later we might
+		// worry about Unicode domains if we start allowing customisation beyond the
+		// built-in cluster ids.
+		return strings.ToLower(other.Host) == id.Host()
+	default:
+		return false
+	}
 }
 
 // SpiffeIDSigningForCluster returns the SPIFFE signing identifier (trust

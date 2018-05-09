@@ -1,6 +1,8 @@
 package connect
 
 import (
+	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -23,4 +25,99 @@ func TestSpiffeIDSigningForCluster(t *testing.T) {
 	}
 	id := SpiffeIDSigningForCluster(config)
 	assert.Equal(t, id.URI().String(), "spiffe://"+testClusterID+".consul")
+}
+
+// fakeCertURI is a CertURI implementation that our implementation doesn't know
+// about
+type fakeCertURI string
+
+func (f fakeCertURI) Authorize(*structs.Intention) (auth bool, match bool) {
+	return false, false
+}
+
+func (f fakeCertURI) URI() *url.URL {
+	u, _ := url.Parse(string(f))
+	return u
+}
+func TestSpiffeIDSigning_CanSign(t *testing.T) {
+
+	testSigning := &SpiffeIDSigning{
+		ClusterID: testClusterID,
+		Domain:    "consul",
+	}
+
+	tests := []struct {
+		name  string
+		id    *SpiffeIDSigning
+		input CertURI
+		want  bool
+	}{
+		{
+			name:  "same signing ID",
+			id:    testSigning,
+			input: testSigning,
+			want:  true,
+		},
+		{
+			name: "other signing ID",
+			id:   testSigning,
+			input: &SpiffeIDSigning{
+				ClusterID: "fakedomain",
+				Domain:    "consul",
+			},
+			want: false,
+		},
+		{
+			name: "different TLD signing ID",
+			id:   testSigning,
+			input: &SpiffeIDSigning{
+				ClusterID: testClusterID,
+				Domain:    "evil",
+			},
+			want: false,
+		},
+		{
+			name:  "nil",
+			id:    testSigning,
+			input: nil,
+			want:  false,
+		},
+		{
+			name:  "unrecognised  CertURI implementation",
+			id:    testSigning,
+			input: fakeCertURI("spiffe://foo.bar/baz"),
+			want:  false,
+		},
+		{
+			name:  "service - good",
+			id:    testSigning,
+			input: &SpiffeIDService{testClusterID + ".consul", "default", "dc1", "web"},
+			want:  true,
+		},
+		{
+			name:  "service - good midex case",
+			id:    testSigning,
+			input: &SpiffeIDService{strings.ToUpper(testClusterID) + ".CONsuL", "defAUlt", "dc1", "WEB"},
+			want:  true,
+		},
+		{
+			name:  "service - different cluster",
+			id:    testSigning,
+			input: &SpiffeIDService{"55555555-4444-3333-2222-111111111111.consul", "default", "dc1", "web"},
+			want:  false,
+		},
+		{
+			name:  "service - different TLD",
+			id:    testSigning,
+			input: &SpiffeIDService{testClusterID + ".fake", "default", "dc1", "web"},
+			want:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.id.CanSign(tt.input)
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }

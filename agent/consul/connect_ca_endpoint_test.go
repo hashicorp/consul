@@ -241,6 +241,7 @@ func TestConnectCASign(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
+	require := require.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -251,30 +252,133 @@ func TestConnectCASign(t *testing.T) {
 
 	// Generate a CSR and request signing
 	spiffeId := connect.TestSpiffeIDService(t, "web")
+	spiffeId.Host = testGetClusterTrustDomain(t, s1)
 	csr, _ := connect.TestCSR(t, spiffeId)
 	args := &structs.CASignRequest{
 		Datacenter: "dc1",
 		CSR:        csr,
 	}
 	var reply structs.IssuedCert
-	assert.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", args, &reply))
+	require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", args, &reply))
 
 	// Get the current CA
 	state := s1.fsm.State()
 	_, ca, err := state.CARootActive(nil)
-	assert.NoError(err)
+	require.NoError(err)
 
 	// Verify that the cert is signed by the CA
 	roots := x509.NewCertPool()
 	assert.True(roots.AppendCertsFromPEM([]byte(ca.RootCert)))
 	leaf, err := connect.ParseCert(reply.CertPEM)
-	assert.NoError(err)
+	require.NoError(err)
 	_, err = leaf.Verify(x509.VerifyOptions{
 		Roots: roots,
 	})
-	assert.NoError(err)
+	require.NoError(err)
 
 	// Verify other fields
 	assert.Equal("web", reply.Service)
 	assert.Equal(spiffeId.URI().String(), reply.ServiceURI)
+}
+
+func testGetClusterTrustDomain(t *testing.T, s *Server) string {
+	t.Helper()
+	state := s.fsm.State()
+	_, config, err := state.CAConfig()
+	require.NoError(t, err)
+	// Build TrustDomain based on the ClusterID stored.
+	signingID := connect.SpiffeIDSigningForCluster(config)
+	return signingID.Host()
+}
+
+func TestConnectCASignValidation(t *testing.T) {
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Create an ACL token with service:write for web*
+	var webToken string
+	{
+		arg := structs.ACLRequest{
+			Datacenter: "dc1",
+			Op:         structs.ACLSet,
+			ACL: structs.ACL{
+				Name: "User token",
+				Type: structs.ACLTypeClient,
+				Rules: `
+				service "web" {
+					policy = "write"
+				}`,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &webToken))
+	}
+
+	trustDomain := testGetClusterTrustDomain(t, s1)
+
+	tests := []struct {
+		name    string
+		id      connect.CertURI
+		wantErr string
+	}{
+		{
+			name: "different cluster",
+			id: &connect.SpiffeIDService{
+				"55555555-4444-3333-2222-111111111111.consul",
+				"default", "dc1", "web"},
+			wantErr: "different trust domain",
+		},
+		{
+			name: "same cluster should validate",
+			id: &connect.SpiffeIDService{
+				trustDomain,
+				"default", "dc1", "web"},
+			wantErr: "",
+		},
+		{
+			name: "same cluster, CSR for a different DC should NOT validate",
+			id: &connect.SpiffeIDService{
+				trustDomain,
+				"default", "dc2", "web"},
+			wantErr: "different datacenter",
+		},
+		{
+			name: "same cluster and DC, different service should not have perms",
+			id: &connect.SpiffeIDService{
+				trustDomain,
+				"default", "dc1", "db"},
+			wantErr: "Permission denied",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			csr, _ := connect.TestCSR(t, tt.id)
+			args := &structs.CASignRequest{
+				Datacenter:   "dc1",
+				CSR:          csr,
+				WriteRequest: structs.WriteRequest{Token: webToken},
+			}
+			var reply structs.IssuedCert
+			err := msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", args, &reply)
+			if tt.wantErr == "" {
+				require.NoError(t, err)
+				// No other validation that is handled in different tests
+			} else {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tt.wantErr)
+			}
+		})
+	}
 }
