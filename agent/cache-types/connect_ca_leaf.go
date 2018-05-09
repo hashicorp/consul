@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	// NOTE(mitcehllh): This is temporary while certs are stubbed out.
 )
 
 // Recommended name for registration.
