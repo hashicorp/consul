@@ -16,9 +16,9 @@
             <label class="type-text{{if item.error.Value ' has-error'}}">
                 <span>Value</span>
 {{#if json}}
-                {{ code-editor readonly=(if item.isLocked 'readonly') value=(atob item.Value) onkeyup=(action 'change') }}
+                {{ code-editor value=(atob item.Value) onkeyup=(action 'change') }}
 {{else}}
-                <input autofocus={{not create}} readonly={{if item.isLocked 'readonly' }} type="text" name="value" value={{atob item.Value}} onkeyup={{action 'change'}} />
+                <input autofocus={{not create}} type="text" name="value" value={{atob item.Value}} onkeyup={{action 'change'}} />
 {{/if}}
             </label>
         </div>
@@ -27,7 +27,6 @@
 {{#if create }}
     <button type="submit" {{ action "create" item parent}} disabled={{if item.isInvalid 'disabled'}}>Save</button>
 {{ else }}
-{{#if (not item.isLocked) }}
     <button type="submit" {{ action "update" item parent}} disabled={{if item.isInvalid 'disabled'}}>Save</button>
     <button type="reset" {{ action "cancel" item parent}}>Cancel changes</button>
     {{#confirmation-dialog message='Are you sure you want to delete this key?'}}
@@ -42,7 +41,6 @@
             <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
         {{/block-slot}}
     {{/confirmation-dialog}}
-{{/if}}
 {{/if}}
 </form>
 
