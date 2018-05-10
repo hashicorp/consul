@@ -42,11 +42,11 @@ type HTTPServer struct {
 	proto string
 }
 
-type RedirectFS struct {
+type redirectFS struct {
 	fs http.FileSystem
 }
 
-func (fs *RedirectFS) Open(name string) (http.File, error) {
+func (fs *redirectFS) Open(name string) (http.File, error) {
 	file, err := fs.fs.Open(name)
 	if err != nil {
 		file, err = fs.fs.Open("/index.html")
@@ -149,18 +149,11 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 	}
 
 	if s.IsUIEnabled() {
-		new_ui := false
-		switch strings.ToLower(os.Getenv("CONSUL_UI_BETA")) {
-			case "1":
-				fallthrough
-			case "true":
-				fallthrough
-			case "yes":
-				new_ui = true
-			default:
-				new_ui = false		
+		new_ui, err := strconv.ParseBool(os.Getenv("CONSUL_UI_BETA"))
+		if err != nil {
+			new_ui = false
 		}
-		var uifs http.FileSystem = nil;
+		var uifs http.FileSystem;
 
 		// Use the custom UI dir if provided.		
 		if s.agent.config.UIDir != "" {
@@ -177,7 +170,7 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 		}
 		
 		if new_ui {
-			uifs = &RedirectFS{fs:uifs}	
+			uifs = &redirectFS{fs:uifs}	
 		}
 		
 		mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(uifs)))
