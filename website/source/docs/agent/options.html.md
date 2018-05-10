@@ -43,13 +43,16 @@ configuration reload.
 
 The options below are all specified on the command-line.
 
-* <a name="_advertise"></a><a href="#_advertise">`-advertise`</a> - The advertise
-  address is used to change the address that we
-  advertise to other nodes in the cluster. By default, the [`-bind`](#_bind) address is
-  advertised. However, in some cases, there may be a routable address that cannot
-  be bound. This flag enables gossiping a different address to support this.
-  If this address is not routable, the node will be in a constant flapping state
-  as other nodes will treat the non-routability as a failure.
+* <a name="_advertise"></a><a href="#_advertise">`-advertise`</a> - The
+  advertise address is used to change the address that we advertise to other
+  nodes in the cluster. By default, the [`-bind`](#_bind) address is advertised.
+  However, in some cases, there may be a routable address that cannot be bound.
+  This flag enables gossiping a different address to support this. If this
+  address is not routable, the node will be in a constant flapping state as
+  other nodes will treat the non-routability as a failure. In Consul 1.0 and
+  later this can be set to a
+  [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
+  template.
 
 * <a name="_advertise-wan"></a><a href="#_advertise-wan">`-advertise-wan`</a> - The
   advertise WAN address is used to change the address that we advertise to server nodes
@@ -61,7 +64,10 @@ The options below are all specified on the command-line.
   nodes gossiping through the public network for the WAN while using private VLANs for gossiping
   to each other and their client agents, and it allows client agents to be reached at this
   address when being accessed from a remote datacenter if the remote datacenter is configured
-  with <a href="#translate_wan_addrs">`translate_wan_addrs`</a>.
+  with <a href="#translate_wan_addrs">`translate_wan_addrs`</a>. In Consul 1.0 and
+  later this can be set to a
+  [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
+  template
 
 * <a name="_bootstrap"></a><a href="#_bootstrap">`-bootstrap`</a> - This flag is used to control if a
   server is in "bootstrap" mode. It is important that
@@ -90,22 +96,37 @@ at startup. If you specify "[::]", Consul will
 IPv6 address. If there are multiple public IPv6 addresses available, Consul
 will exit with an error at startup.
   Consul uses both TCP and UDP and the same port for both. If you
-  have any firewalls, be sure to allow both protocols.
-
-* <a name="_serf_wan_bind"></a><a href="#_serf_wan_bind">`-serf-wan-bind`</a> - The address that should be bound to for Serf WAN gossip communications.
-  By default, the value follows the same rules as [`-bind` command-line flag](#_bind), and if this is not specified, the `-bind` option is used. This
-  is available in Consul 0.7.1 and later.
-
-* <a name="_serf_lan_bind"></a><a href="#_serf_lan_bind">`-serf-lan-bind`</a> - The address that should be bound to for Serf LAN gossip communications.
-  This is an IP address that should be reachable by all other LAN nodes in the cluster. By default, the value follows the same rules as
-  [`-bind` command-line flag](#_bind), and if this is not specified, the `-bind` option is used. This is available in Consul 0.7.1 and later.
-
-* <a name="_client"></a><a href="#_client">`-client`</a> - The address to which
-  Consul will bind client interfaces, including the HTTP and DNS servers. By default,
-  this is "127.0.0.1", allowing only loopback connections. In Consul 1.0 and later
+  have any firewalls, be sure to allow both protocols. In Consul 1.0 and later
   this can be set to a space-separated list of addresses to bind to, or a
   [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template) template
   that can potentially resolve to multiple addresses.
+
+* <a name="_serf_wan_bind"></a><a href="#_serf_wan_bind">`-serf-wan-bind`</a> -
+  The address that should be bound to for Serf WAN gossip communications. By
+  default, the value follows the same rules as [`-bind` command-line
+  flag](#_bind), and if this is not specified, the `-bind` option is used. This
+  is available in Consul 0.7.1 and later. In Consul 1.0 and later this can be
+  set to a
+  [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
+  template
+
+* <a name="_serf_lan_bind"></a><a href="#_serf_lan_bind">`-serf-lan-bind`</a> -
+  The address that should be bound to for Serf LAN gossip communications. This
+  is an IP address that should be reachable by all other LAN nodes in the
+  cluster. By default, the value follows the same rules as [`-bind` command-line
+  flag](#_bind), and if this is not specified, the `-bind` option is used. This
+  is available in Consul 0.7.1 and later. In Consul 1.0 and later this can be
+  set to a
+  [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
+  template
+
+* <a name="_client"></a><a href="#_client">`-client`</a> - The address to which
+  Consul will bind client interfaces, including the HTTP and DNS servers. By
+  default, this is "127.0.0.1", allowing only loopback connections. In Consul
+  1.0 and later this can be set to a space-separated list of addresses to bind
+  to, or a
+  [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
+  template that can potentially resolve to multiple addresses.
 
 * <a name="_config_file"></a><a href="#_config_file">`-config-file`</a> - A configuration file
   to load. For more information on
@@ -214,17 +235,23 @@ will exit with an error at startup.
   Note that using
   <a href="#retry_join">`retry_join`</a> could be more appropriate to help
   mitigate node startup race conditions when automating a Consul cluster
-  deployment.\
+  deployment.
+  
+  In Consul 1.1.0 and later this can be set to a
+  [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
+  template
 
 <a name="_retry_join"></a>
 
 * `-retry-join` - Similar to [`-join`](#_join) but allows retrying a join if the
   first attempt fails. This is useful for cases where you know the address will
-  eventually be available. The list can contain IPv4, IPv6, or DNS addresses. If
-  Consul is running on the non-default Serf LAN port, this must be specified as
-  well. IPv6 must use the "bracketed" syntax. If multiple values are given, they
-  are tried and retried in the order listed until the first succeeds. Here are
-  some examples:
+  eventually be available. The list can contain IPv4, IPv6, or DNS addresses. In
+  Consul 1.1.0 and later this can be set to a
+  [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
+  template. If Consul is running on the non-default Serf LAN port, this must be
+  specified as well. IPv6 must use the "bracketed" syntax. If multiple values
+  are given, they are tried and retried in the order listed until the first
+  succeeds. Here are some examples:
 
     ```sh
     # Using a DNS entry
@@ -510,16 +537,24 @@ will exit with an error at startup.
   with return code 1. By default, this is set to 0 which is interpreted as infinite
   retries.
 
-* <a name="_join_wan"></a><a href="#_join_wan">`-join-wan`</a> - Address of another
-  wan agent to join upon starting up. This can be
-  specified multiple times to specify multiple WAN agents to join. If Consul is
-  unable to join with any of the specified addresses, agent startup will
-  fail. By default, the agent won't [`-join-wan`](#_join_wan) any nodes when it starts up.
+* <a name="_join_wan"></a><a href="#_join_wan">`-join-wan`</a> - Address of
+  another wan agent to join upon starting up. This can be specified multiple
+  times to specify multiple WAN agents to join. If Consul is unable to join with
+  any of the specified addresses, agent startup will fail. By default, the agent
+  won't [`-join-wan`](#_join_wan) any nodes when it starts up.
+    
+  In Consul 1.1.0 and later this can be set to a
+  [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
+  template.
 
 * <a name="_retry_join_wan"></a><a href="#_retry_join_wan">`-retry-join-wan`</a> - Similar
   to [`retry-join`](#_retry_join) but allows retrying a wan join if the first attempt fails.
   This is useful for cases where we know the address will become available eventually.
   As of Consul 0.9.3 [Cloud Auto-Joining](#cloud-auto-joining) is supported as well.
+
+  In Consul 1.1.0 and later this can be set to a
+  [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
+  template
 
 * <a name="_retry_interval_wan"></a><a href="#_retry_interval_wan">`-retry-interval-wan`</a> - Time
   to wait between [`-join-wan`](#_join_wan) attempts.
