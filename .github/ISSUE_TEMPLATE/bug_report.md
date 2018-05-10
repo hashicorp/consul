@@ -21,20 +21,19 @@ Steps to reproduce this issue, eg:
 
 ### Consul info for both Client and Server
 
-The `consul info` command provides information for us
-about the agents running both as clients and servers.
-
-Client:
-
+<details>
+  <summary>Client info</summary>
 ```
-[Client `consul info` here]
+output from client 'consul info' command here
 ```
+<details>
 
-Server:
-
+<details>
+  <summary>Client info</summary>
 ```
-[Server `consul info` here]
+output from server 'consul info' command here
 ```
+<details>
 
 ### Operating system and Environment details
 
@@ -45,6 +44,7 @@ about the environment.
 
 Include appropriate Client or Server log fragments.
 If the log is longer than a few dozen lines, please
-include the URL to the [gist](https://gist.github.com/).
+include the URL to the [gist](https://gist.github.com/)
+of the log instead of posting it in the issue.
 
 Use `-log-level=TRACE` on the client and server to capture the maximum log detail.
