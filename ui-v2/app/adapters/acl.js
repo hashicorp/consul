@@ -131,9 +131,9 @@ export default Adapter.extend({
             },
           };
           break;
+        case this.isUpdateRecord(url):
         case this.isCreateRecord(url):
         case this.isCloneRecord(url):
-        case this.isUpdateRecord(url):
           response = {
             ...response,
             ...{
