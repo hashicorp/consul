@@ -15,6 +15,7 @@ import keyToArray from 'consul-ui/utils/keyToArray';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/kv';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 import { PUT as HTTP_PUT, DELETE as HTTP_DELETE } from 'consul-ui/utils/http/method';
+import { OK as HTTP_OK } from 'consul-ui/utils/http/status';
 
 const API_KEYS_KEY = 'keys';
 const stringify = function(obj) {
@@ -87,7 +88,7 @@ export default Adapter.extend({
   },
   handleResponse: function(status, headers, payload, requestData) {
     let response = payload;
-    if (status === 200) {
+    if (status === HTTP_OK) {
       const url = this.parseURL(requestData.url);
       switch (true) {
         case response === true:
