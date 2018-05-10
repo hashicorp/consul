@@ -32,7 +32,7 @@ export default Controller.extend(WithHealthFiltering, {
         .indexOf(s.toLowerCase()) !== -1 && item.hasStatus(status)
     );
   },
-  totalWidth: computed('maxPassing,maxWarning,maxCritical', function() {
+  totalWidth: computed('{maxPassing,maxWarning,maxCritical}', function() {
     const PADDING = 32 * 3 + 13;
     return ['maxPassing', 'maxWarning', 'maxCritical'].reduce((prev, item) => {
       return prev + width(get(this, item));
