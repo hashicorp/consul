@@ -435,22 +435,22 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	// expand addresses in start join lan configuration
 	startJoinLAN := make([]string, len(c.StartJoinAddrsLAN))
 
-	for _, configStartJoinAddrsLAN := range c.StartJoinAddrsLAN {
-		startJoinAddrs := b.expandOptionalAddrs("start_join", &configStartJoinAddrsLAN)
+	for _, a := range c.StartJoinAddrsLAN {
+		addrs := b.expandOptionalAddrs("start_join", &a)
 
-		if startJoinAddrs != nil {
-			startJoinLAN = append(startJoinLAN, startJoinAddrs...)
+		if addrs != nil {
+			startJoinLAN = append(startJoinLAN, addrs...)
 		}
 	}
 
 	// expand addresses in retry join lan configuration
-	retryJoinLan := make([]string, len(c.RetryJoinLAN))
+	retryJoinLAN := make([]string, len(c.RetryJoinLAN))
 
-	for _, retryJoinLanElement := range c.RetryJoinLAN {
-		retryJoinAddrs := b.expandOptionalAddrs("retry_join", &retryJoinLanElement)
+	for _, a := range c.RetryJoinLAN {
+		addrs := b.expandOptionalAddrs("retry_join", &a)
 
-		if retryJoinAddrs != nil {
-			retryJoinLan = append(retryJoinLan, retryJoinAddrs...)
+		if addrs != nil {
+			retryJoinLAN = append(retryJoinLAN, addrs...)
 		}
 	}
 
