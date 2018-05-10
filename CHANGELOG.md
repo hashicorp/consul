@@ -1,5 +1,13 @@
 ## UNRELEASED
 
+BREAKING CHANGES:
+
+* agent: The following previously deprecated fields and config options have been removed:
+  - `CheckID` has been removed from config file check definitions (use `id` instead).
+  - `script` has been removed from config file check definitions (use `args` instead).
+  - `enableTagOverride` is no longer valid in service definitions (use `enable_tag_override` instead).
+  - The [deprecated set of metric names](https://consul.io/docs/upgrade-specific.html#metric-names-updated) (beginning with `consul.consul.`) has been removed along with the `enable_deprecated_names` option from the metrics configuration.
+
 IMPROVEMENTS:
 * agent: Improve DNS performance on large clusters [[GH-4036](https://github.com/hashicorp/consul/issues/4036)]
 * api: Add support for Prometheus client format in metrics endpoint with `?format=prometheus` (see [docs](https://www.consul.io/api/agent.html#view-metrics)) [[GH-4014](https://github.com/hashicorp/consul/issues/4014)]
