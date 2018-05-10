@@ -2421,7 +2421,7 @@ func TestFullConfig(t *testing.T) {
 			},
 			"protocol": 30793,
 			"raft_protocol": 19016,
-            "raft_snapshot_threshold": 16384,
+			"raft_snapshot_threshold": 16384,
 			"reconnect_timeout": "23739s",
 			"reconnect_timeout_wan": "26694s",
 			"recursors": [ "63.38.39.58", "92.49.18.18" ],
@@ -2853,7 +2853,7 @@ func TestFullConfig(t *testing.T) {
 			}
 			protocol = 30793
 			raft_protocol = 19016
-            raft_snapshot_threshold = 16384
+			raft_snapshot_threshold = 16384
 			reconnect_timeout = "23739s"
 			reconnect_timeout_wan = "26694s"
 			recursors = [ "63.38.39.58", "92.49.18.18" ]
