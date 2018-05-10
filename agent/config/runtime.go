@@ -905,6 +905,11 @@ type RuntimeConfig struct {
 	// hcl: raft_snapshot_threshold = int
 	RaftSnapshotThreshold int
 
+	// RaftSnapshotInterval sets the interval to use when checking whether to create
+	// a new snapshot. Defaults to 5 seconds.
+	// hcl: raft_snapshot_threshold = int
+	RaftSnapshotInterval time.Duration
+
 	// ReconnectTimeoutLAN specifies the amount of time to wait to reconnect with
 	// another agent before deciding it's permanently gone. This can be used to
 	// control the time it takes to reap failed nodes from the cluster.

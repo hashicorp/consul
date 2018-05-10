@@ -674,6 +674,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		RPCRateLimit:                rate.Limit(b.float64Val(c.Limits.RPCRate)),
 		RaftProtocol:                b.intVal(c.RaftProtocol),
 		RaftSnapshotThreshold:       b.intVal(c.RaftSnapshotThreshold),
+		RaftSnapshotInterval:        b.durationVal("raft_snapshot_interval", c.RaftSnapshotInterval),
 		ReconnectTimeoutLAN:         b.durationVal("reconnect_timeout", c.ReconnectTimeoutLAN),
 		ReconnectTimeoutWAN:         b.durationVal("reconnect_timeout_wan", c.ReconnectTimeoutWAN),
 		RejoinAfterLeave:            b.boolVal(c.RejoinAfterLeave),

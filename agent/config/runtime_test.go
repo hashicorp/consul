@@ -2422,6 +2422,7 @@ func TestFullConfig(t *testing.T) {
 			"protocol": 30793,
 			"raft_protocol": 19016,
 			"raft_snapshot_threshold": 16384,
+			"raft_snapshot_interval": "30s",
 			"reconnect_timeout": "23739s",
 			"reconnect_timeout_wan": "26694s",
 			"recursors": [ "63.38.39.58", "92.49.18.18" ],
@@ -2854,6 +2855,7 @@ func TestFullConfig(t *testing.T) {
 			protocol = 30793
 			raft_protocol = 19016
 			raft_snapshot_threshold = 16384
+			raft_snapshot_interval = "30s"
 			reconnect_timeout = "23739s"
 			reconnect_timeout_wan = "26694s"
 			recursors = [ "63.38.39.58", "92.49.18.18" ]
@@ -3412,6 +3414,7 @@ func TestFullConfig(t *testing.T) {
 		RPCMaxBurst:               44848,
 		RaftProtocol:              19016,
 		RaftSnapshotThreshold:     16384,
+		RaftSnapshotInterval:      30 * time.Second,
 		ReconnectTimeoutLAN:       23739 * time.Second,
 		ReconnectTimeoutWAN:       26694 * time.Second,
 		RejoinAfterLeave:          true,
@@ -4092,6 +4095,7 @@ func TestSanitize(t *testing.T) {
     "RPCProtocol": 0,
     "RPCRateLimit": 0,
     "RaftProtocol": 0,
+    "RaftSnapshotInterval": "0s",
     "RaftSnapshotThreshold": 0,
     "ReconnectTimeoutLAN": "0s",
     "ReconnectTimeoutWAN": "0s",

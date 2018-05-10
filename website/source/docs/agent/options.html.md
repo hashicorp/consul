@@ -360,7 +360,10 @@ will exit with an error at startup.
   for more details.
 
 * <a name="_raft_snapshot_threshold"></a><a href="#_raft_snapshot_threshold">`-raft-snapshot-threshold`</a> - This
-  control the minimum number of raft commit entries between snapshots that are saved to disk.
+  controls the minimum number of raft commit entries between snapshots that are saved to disk.
+
+* <a name="_raft_snapshot_interval"></a><a href="#_raft_snapshot_interval">`-raft-snapshot-interval`</a> - This
+  controls how often servers check if they need to save a snapshot to disk.
 
 * <a name="_recursor"></a><a href="#_recursor">`-recursor`</a> - Specifies the address of an upstream DNS
   server. This option may be provided multiple times, and is functionally
@@ -939,7 +942,10 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   [`-raft-protocol` command-line flag](#_raft_protocol).
 
 * <a name="raft_snapshot_threshold"></a><a href="#raft_snapshot_threshold">`raft_snapshot_threshold`</a> Equivalent to the
-    [`-raft-snapshot-threshold` command-line flag](#_raft_snapshot_threshold).
+  [`-raft-snapshot-threshold` command-line flag](#_raft_snapshot_threshold).
+
+* <a name="raft_snapshot_interval"></a><a href="#raft_snapshot_interval">`raft_snapshot_interval`</a> Equivalent to the
+  [`-raft-snapshot-interval` command-line flag](#_raft_snapshot_interval).
 
 * <a name="reap"></a><a href="#reap">`reap`</a> This controls Consul's automatic reaping of child processes,
   which is useful if Consul is running as PID 1 in a Docker container. If this isn't specified, then Consul will

@@ -195,6 +195,7 @@ type Config struct {
 	RPCProtocol                 *int                     `json:"protocol,omitempty" hcl:"protocol" mapstructure:"protocol"`
 	RaftProtocol                *int                     `json:"raft_protocol,omitempty" hcl:"raft_protocol" mapstructure:"raft_protocol"`
 	RaftSnapshotThreshold       *int                     `json:"raft_snapshot_threshold,omitempty" hcl:"raft_snapshot_threshold" mapstructure:"raft_snapshot_threshold"`
+	RaftSnapshotInterval        *string                  `json:"raft_snapshot_interval,omitempty" hcl:"raft_snapshot_interval" mapstructure:"raft_snapshot_interval"`
 	ReconnectTimeoutLAN         *string                  `json:"reconnect_timeout,omitempty" hcl:"reconnect_timeout" mapstructure:"reconnect_timeout"`
 	ReconnectTimeoutWAN         *string                  `json:"reconnect_timeout_wan,omitempty" hcl:"reconnect_timeout_wan" mapstructure:"reconnect_timeout_wan"`
 	RejoinAfterLeave            *bool                    `json:"rejoin_after_leave,omitempty" hcl:"rejoin_after_leave" mapstructure:"rejoin_after_leave"`
