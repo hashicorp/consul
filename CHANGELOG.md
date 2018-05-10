@@ -1,5 +1,12 @@
 ## UNRELEASED
 
+FEATURES:
+
+* UI: The web UI has been completely redesigned and rebuilt and is in an opt-in beta period.
+Setting the `CONSUL_UI_BETA` environment variable to any value will replace the existing UI
+with the new one. The existing UI will be deprecated and removed in a future release.
+* api: Added support for Prometheus client format in metrics endpoint with `?format=prometheus` (see [docs](https://www.consul.io/api/agent.html#view-metrics)) [[GH-4014](https://github.com/hashicorp/consul/issues/4014)]
+
 BREAKING CHANGES:
 
 * agent: The following previously deprecated fields and config options have been removed:
@@ -9,8 +16,8 @@ BREAKING CHANGES:
   - The [deprecated set of metric names](https://consul.io/docs/upgrade-specific.html#metric-names-updated) (beginning with `consul.consul.`) has been removed along with the `enable_deprecated_names` option from the metrics configuration.
 
 IMPROVEMENTS:
+
 * agent: Improve DNS performance on large clusters [[GH-4036](https://github.com/hashicorp/consul/issues/4036)]
-* api: Add support for Prometheus client format in metrics endpoint with `?format=prometheus` (see [docs](https://www.consul.io/api/agent.html#view-metrics)) [[GH-4014](https://github.com/hashicorp/consul/issues/4014)]
 * agent: `start_join`, `start_join_wan`, `retry_join`, `retry_join_wan` config params now all support go-sockaddr templates [[GH-4102](https://github.com/hashicorp/consul/pull/4102)]
 
 BUG FIXES:
