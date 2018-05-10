@@ -383,13 +383,15 @@ func (s *Server) initializeCAConfig() (*structs.CAConfiguration, error) {
 		return config, nil
 	}
 
-	id, err := uuid.GenerateUUID()
-	if err != nil {
-		return nil, err
+	config = s.config.CAConfig
+	if config.ClusterID == "" {
+		id, err := uuid.GenerateUUID()
+		if err != nil {
+			return nil, err
+		}
+		config.ClusterID = id
 	}
 
-	config = s.config.CAConfig
-	config.ClusterID = id
 	req := structs.CARequest{
 		Op:     structs.CAOpSetConfig,
 		Config: config,

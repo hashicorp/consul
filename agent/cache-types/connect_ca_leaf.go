@@ -134,8 +134,9 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 	// Request signing
 	var reply structs.IssuedCert
 	args := structs.CASignRequest{
-		Datacenter: reqReal.Datacenter,
-		CSR:        csr,
+		WriteRequest: structs.WriteRequest{Token: reqReal.Token},
+		Datacenter:   reqReal.Datacenter,
+		CSR:          csr,
 	}
 	if err := c.RPC.RPC("ConnectCA.Sign", &args, &reply); err != nil {
 		return result, err
@@ -217,6 +218,7 @@ func (c *ConnectCALeaf) waitNewRootCA(datacenter string, ch chan<- error,
 // since this is only used for cache-related requests and not forwarded
 // directly to any Consul servers.
 type ConnectCALeafRequest struct {
+	Token         string
 	Datacenter    string
 	Service       string // Service name, not ID
 	MinQueryIndex uint64
@@ -224,6 +226,7 @@ type ConnectCALeafRequest struct {
 
 func (r *ConnectCALeafRequest) CacheInfo() cache.RequestInfo {
 	return cache.RequestInfo{
+		Token:      r.Token,
 		Key:        r.Service,
 		Datacenter: r.Datacenter,
 		MinIndex:   r.MinQueryIndex,

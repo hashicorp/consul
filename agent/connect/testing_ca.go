@@ -20,12 +20,8 @@ import (
 	"github.com/mitchellh/go-testing-interface"
 )
 
-// testClusterID is the Consul cluster ID for testing.
-//
-// NOTE(mitchellh): This might have to change some other constant for
-// real testing once we integrate the Cluster ID into the core. For now it
-// is unchecked.
-const testClusterID = "11111111-2222-3333-4444-555555555555"
+// TestClusterID is the Consul cluster ID for testing.
+const TestClusterID = "11111111-2222-3333-4444-555555555555"
 
 // testCACounter is just an atomically incremented counter for creating
 // unique names for the CA certs.
@@ -53,7 +49,7 @@ func TestCA(t testing.T, xc *structs.CARoot) *structs.CARoot {
 	}
 
 	// The URI (SPIFFE compatible) for the cert
-	id := &SpiffeIDSigning{ClusterID: testClusterID, Domain: "consul"}
+	id := &SpiffeIDSigning{ClusterID: TestClusterID, Domain: "consul"}
 
 	// Create the CA cert
 	template := x509.Certificate{
@@ -148,7 +144,7 @@ func TestLeaf(t testing.T, service string, root *structs.CARoot) (string, string
 
 	// Build the SPIFFE ID
 	spiffeId := &SpiffeIDService{
-		Host:       fmt.Sprintf("%s.consul", testClusterID),
+		Host:       fmt.Sprintf("%s.consul", TestClusterID),
 		Namespace:  "default",
 		Datacenter: "dc1",
 		Service:    service,

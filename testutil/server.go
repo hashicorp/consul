@@ -135,6 +135,13 @@ func defaultServerConfig() *TestServerConfig {
 			Server:  ports[5],
 		},
 		ReadyTimeout: 10 * time.Second,
+		Connect: map[string]interface{}{
+			"enabled": true,
+			"ca_config": map[string]interface{}{
+				// const TestClusterID causes import cycle so hard code it here.
+				"cluster_id": "11111111-2222-3333-4444-555555555555",
+			},
+		},
 	}
 }
 

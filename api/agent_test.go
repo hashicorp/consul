@@ -203,7 +203,7 @@ func TestAPI_AgentServices_ManagedConnectProxy(t *testing.T) {
 		Connect: &AgentServiceConnect{
 			Proxy: &AgentServiceConnectProxy{
 				ExecMode: ProxyExecModeScript,
-				Command:  "foo.rb",
+				Command:  []string{"foo.rb"},
 				Config: map[string]interface{}{
 					"foo": "bar",
 				},
@@ -1123,7 +1123,7 @@ func TestAPI_AgentConnectAuthorize(t *testing.T) {
 		Target:           "foo",
 		ClientCertSerial: "fake",
 		// Importing connect.TestSpiffeIDService creates an import cycle
-		ClientCertURI: "spiffe://123.consul/ns/default/dc/ny1/svc/web",
+		ClientCertURI: "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/ny1/svc/web",
 	}
 	auth, err := agent.ConnectAuthorize(params)
 	require.Nil(err)
@@ -1169,7 +1169,7 @@ func TestAPI_AgentConnectProxyConfig(t *testing.T) {
 		TargetServiceName: "foo",
 		ContentHash:       "e662ea8600d84cf0",
 		ExecMode:          "daemon",
-		Command:           "consul connect proxy",
+		Command:           []string{"consul connect proxy"},
 		Config: map[string]interface{}{
 			"bind_address": "127.0.0.1",
 			"bind_port":    float64(20000),

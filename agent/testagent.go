@@ -19,6 +19,7 @@ import (
 	uuid "github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -337,6 +338,9 @@ func TestConfig(sources ...config.Source) *config.RuntimeConfig {
 			node_name = "Node ` + nodeID + `"
 			connect {
 				enabled = true
+				ca_config {
+					cluster_id = "` + connect.TestClusterID + `"
+				}
 			}
 			performance {
 				raft_multiplier = 1

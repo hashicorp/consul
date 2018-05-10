@@ -252,7 +252,6 @@ func TestConnectCASign(t *testing.T) {
 
 	// Generate a CSR and request signing
 	spiffeId := connect.TestSpiffeIDService(t, "web")
-	spiffeId.Host = testGetClusterTrustDomain(t, s1)
 	csr, _ := connect.TestCSR(t, spiffeId)
 	args := &structs.CASignRequest{
 		Datacenter: "dc1",
@@ -279,16 +278,6 @@ func TestConnectCASign(t *testing.T) {
 	// Verify other fields
 	assert.Equal("web", reply.Service)
 	assert.Equal(spiffeId.URI().String(), reply.ServiceURI)
-}
-
-func testGetClusterTrustDomain(t *testing.T, s *Server) string {
-	t.Helper()
-	state := s.fsm.State()
-	_, config, err := state.CAConfig()
-	require.NoError(t, err)
-	// Build TrustDomain based on the ClusterID stored.
-	signingID := connect.SpiffeIDSigningForCluster(config)
-	return signingID.Host()
 }
 
 func TestConnectCASignValidation(t *testing.T) {
@@ -325,7 +314,7 @@ func TestConnectCASignValidation(t *testing.T) {
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &webToken))
 	}
 
-	trustDomain := testGetClusterTrustDomain(t, s1)
+	testWebID := connect.TestSpiffeIDService(t, "web")
 
 	tests := []struct {
 		name    string
@@ -335,29 +324,36 @@ func TestConnectCASignValidation(t *testing.T) {
 		{
 			name: "different cluster",
 			id: &connect.SpiffeIDService{
-				"55555555-4444-3333-2222-111111111111.consul",
-				"default", "dc1", "web"},
+				Host:       "55555555-4444-3333-2222-111111111111.consul",
+				Namespace:  testWebID.Namespace,
+				Datacenter: testWebID.Datacenter,
+				Service:    testWebID.Service,
+			},
 			wantErr: "different trust domain",
 		},
 		{
-			name: "same cluster should validate",
-			id: &connect.SpiffeIDService{
-				trustDomain,
-				"default", "dc1", "web"},
+			name:    "same cluster should validate",
+			id:      testWebID,
 			wantErr: "",
 		},
 		{
 			name: "same cluster, CSR for a different DC should NOT validate",
 			id: &connect.SpiffeIDService{
-				trustDomain,
-				"default", "dc2", "web"},
+				Host:       testWebID.Host,
+				Namespace:  testWebID.Namespace,
+				Datacenter: "dc2",
+				Service:    testWebID.Service,
+			},
 			wantErr: "different datacenter",
 		},
 		{
 			name: "same cluster and DC, different service should not have perms",
 			id: &connect.SpiffeIDService{
-				trustDomain,
-				"default", "dc1", "db"},
+				Host:       testWebID.Host,
+				Namespace:  testWebID.Namespace,
+				Datacenter: testWebID.Datacenter,
+				Service:    "db",
+			},
 			wantErr: "Permission denied",
 		},
 	}

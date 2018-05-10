@@ -7,6 +7,7 @@ import (
 // CARootList is the structure for the results of listing roots.
 type CARootList struct {
 	ActiveRootID string
+	TrustDomain  string
 	Roots        []*CARoot
 }
 

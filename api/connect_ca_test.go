@@ -3,24 +3,51 @@ package api
 import (
 	"testing"
 
+	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/stretchr/testify/require"
 )
-
-// NOTE(mitchellh): we don't have a way to test CA roots yet since there
-// is no API public way to configure the root certs. This wll be resolved
-// in the future and we can write tests then. This is tested in agent and
-// agent/consul which do have internal access to manually create roots.
 
 func TestAPI_ConnectCARoots_empty(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	c, s := makeClient(t)
+	c, s := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
+		// Don't bootstrap CA
+		c.Connect = nil
+	})
 	defer s.Stop()
 
 	connect := c.Connect()
 	list, meta, err := connect.CARoots(nil)
-	require.Nil(err)
+	require.NoError(err)
 	require.Equal(uint64(0), meta.LastIndex)
 	require.Len(list.Roots, 0)
+	require.Empty(list.TrustDomain)
+}
+
+func TestAPI_ConnectCARoots_list(t *testing.T) {
+	t.Parallel()
+
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	// This fails occasionally if server doesn't have time to bootstrap CA so
+	// retry
+	retry.Run(t, func(r *retry.R) {
+		connect := c.Connect()
+		list, meta, err := connect.CARoots(nil)
+		r.Check(err)
+		if meta.LastIndex <= 0 {
+			r.Fatalf("expected roots raft index to be > 0")
+		}
+		if v := len(list.Roots); v != 1 {
+			r.Fatalf("expected 1 root, got %d", v)
+		}
+		// connect.TestClusterID causes import cycle so hard code it
+		if list.TrustDomain != "11111111-2222-3333-4444-555555555555.consul" {
+			r.Fatalf("expected fixed trust domain got '%s'", list.TrustDomain)
+		}
+	})
+
 }

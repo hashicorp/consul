@@ -932,6 +932,25 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	if a.config.ConnectEnabled {
 		base.ConnectEnabled = true
 
+		// Allow config to specify cluster_id provided it's a valid UUID. This is
+		// meant only for tests where a deterministic ID makes fixtures much simpler
+		// to work with but since it's only read on initial cluster bootstrap it's not
+		// that much of a liability in production. The worst a user could do is
+		// configure logically separate clusters with same ID by mistake but we can
+		// avoid documenting this is even an option.
+		if clusterID, ok := a.config.ConnectCAConfig["cluster_id"]; ok {
+			if cIDStr, ok := clusterID.(string); ok {
+				if _, err := uuid.ParseUUID(cIDStr); err == nil {
+					// Valid UUID configured, use that
+					base.CAConfig.ClusterID = cIDStr
+				}
+			}
+			if base.CAConfig.ClusterID == "" {
+				a.logger.Println("[WARN] connect CA config cluster_id specified but ",
+					"is not a valid UUID, ignoring")
+			}
+		}
+
 		if a.config.ConnectCAProvider != "" {
 			base.CAConfig.Provider = a.config.ConnectCAProvider
 
@@ -2116,20 +2135,25 @@ func (a *Agent) RemoveProxy(proxyID string, persist bool) error {
 }
 
 // verifyProxyToken takes a token and attempts to verify it against the
-// targetService name. If targetProxy is specified, then the local proxy
-// token must exactly match the given proxy ID.
-// cert, config, etc.).
+// targetService name. If targetProxy is specified, then the local proxy token
+// must exactly match the given proxy ID. cert, config, etc.).
 //
-// The given token may be a local-only proxy token or it may be an ACL
-// token. We will attempt to verify the local proxy token first.
-func (a *Agent) verifyProxyToken(token, targetService, targetProxy string) error {
+// The given token may be a local-only proxy token or it may be an ACL token. We
+// will attempt to verify the local proxy token first.
+//
+// The effective ACL token is returned along with any error. In the case the
+// token matches a proxy token, then the ACL token used to register that proxy's
+// target service is returned for use in any RPC calls the proxy needs to make
+// on behalf of that service. If the token was an ACL token already then it is
+// always returned. Provided error is nil, a valid ACL token is always returned.
+func (a *Agent) verifyProxyToken(token, targetService, targetProxy string) (string, error) {
 	// If we specify a target proxy, we look up that proxy directly. Otherwise,
 	// we resolve with any proxy we can find.
 	var proxy *local.ManagedProxy
 	if targetProxy != "" {
 		proxy = a.State.Proxy(targetProxy)
 		if proxy == nil {
-			return fmt.Errorf("unknown proxy service ID: %q", targetProxy)
+			return "", fmt.Errorf("unknown proxy service ID: %q", targetProxy)
 		}
 
 		// If the token DOESN'T match, then we reset the proxy which will
@@ -2148,10 +2172,13 @@ func (a *Agent) verifyProxyToken(token, targetService, targetProxy string) error
 	// service.
 	if proxy != nil {
 		if proxy.Proxy.TargetServiceID != targetService {
-			return acl.ErrPermissionDenied
+			return "", acl.ErrPermissionDenied
 		}
 
-		return nil
+		// Resolve the actual ACL token used to register the proxy/service and
+		// return that for use in RPC calls.
+		aclToken := a.State.ServiceToken(targetService)
+		return aclToken, nil
 	}
 
 	// Retrieve the service specified. This should always exist because
@@ -2159,7 +2186,7 @@ func (a *Agent) verifyProxyToken(token, targetService, targetProxy string) error
 	// only be called for local services.
 	service := a.State.Service(targetService)
 	if service == nil {
-		return fmt.Errorf("unknown service ID: %s", targetService)
+		return "", fmt.Errorf("unknown service ID: %s", targetService)
 	}
 
 	// Doesn't match, we have to do a full token resolution. The required
@@ -2168,13 +2195,13 @@ func (a *Agent) verifyProxyToken(token, targetService, targetProxy string) error
 	// is usually present in the configuration.
 	rule, err := a.resolveToken(token)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if rule != nil && !rule.ServiceWrite(service.Service, nil) {
-		return acl.ErrPermissionDenied
+		return "", acl.ErrPermissionDenied
 	}
 
-	return nil
+	return token, nil
 }
 
 func (a *Agent) cancelCheckMonitors(checkID types.CheckID) {

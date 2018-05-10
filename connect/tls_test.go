@@ -147,7 +147,7 @@ func TestServerSideVerifier(t *testing.T) {
 	cfg := api.DefaultConfig()
 	cfg.Address = agent.HTTPAddr()
 	client, err := api.NewClient(cfg)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// Setup intentions to validate against. We actually default to allow so first
 	// setup a blanket deny rule for db, then only allow web.
@@ -162,7 +162,7 @@ func TestServerSideVerifier(t *testing.T) {
 		Meta:            map[string]string{},
 	}
 	id, _, err := connect.IntentionCreate(ixn, nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotEmpty(t, id)
 
 	ixn = &api.Intention{
@@ -175,7 +175,7 @@ func TestServerSideVerifier(t *testing.T) {
 		Meta:            map[string]string{},
 	}
 	id, _, err = connect.IntentionCreate(ixn, nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotEmpty(t, id)
 
 	tests := []struct {

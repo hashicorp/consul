@@ -15,7 +15,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/hashicorp/consul/agent/checks"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testutil"
@@ -48,6 +51,43 @@ func TestAgent_MultiStartStop(t *testing.T) {
 			a := NewTestAgent(t.Name(), "")
 			time.Sleep(250 * time.Millisecond)
 			a.Shutdown()
+		})
+	}
+}
+
+func TestAgent_ConnectClusterIDConfig(t *testing.T) {
+	tests := []struct {
+		name          string
+		hcl           string
+		wantClusterID string
+	}{
+		{
+			name:          "default TestAgent has fixed cluster id",
+			hcl:           "",
+			wantClusterID: connect.TestClusterID,
+		},
+		{
+			name:          "no cluster ID specified remains null",
+			hcl:           "connect { enabled = true }",
+			wantClusterID: "",
+		},
+		{
+			name: "non-UUID cluster_id is ignored",
+			hcl: `connect { 
+				enabled = true
+				ca_config {
+					cluster_id = "fake-id"
+				}
+			}`,
+			wantClusterID: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a := NewTestAgent("test", tt.hcl)
+			cfg := a.consulConfig()
+			assert.Equal(t, tt.wantClusterID, cfg.CAConfig.ClusterID)
 		})
 	}
 }

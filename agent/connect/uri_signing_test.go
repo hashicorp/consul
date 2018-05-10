@@ -21,10 +21,10 @@ func TestSpiffeIDSigningAuthorize(t *testing.T) {
 func TestSpiffeIDSigningForCluster(t *testing.T) {
 	// For now it should just append .consul to the ID.
 	config := &structs.CAConfiguration{
-		ClusterID: testClusterID,
+		ClusterID: TestClusterID,
 	}
 	id := SpiffeIDSigningForCluster(config)
-	assert.Equal(t, id.URI().String(), "spiffe://"+testClusterID+".consul")
+	assert.Equal(t, id.URI().String(), "spiffe://"+TestClusterID+".consul")
 }
 
 // fakeCertURI is a CertURI implementation that our implementation doesn't know
@@ -42,7 +42,7 @@ func (f fakeCertURI) URI() *url.URL {
 func TestSpiffeIDSigning_CanSign(t *testing.T) {
 
 	testSigning := &SpiffeIDSigning{
-		ClusterID: testClusterID,
+		ClusterID: TestClusterID,
 		Domain:    "consul",
 	}
 
@@ -71,7 +71,7 @@ func TestSpiffeIDSigning_CanSign(t *testing.T) {
 			name: "different TLD signing ID",
 			id:   testSigning,
 			input: &SpiffeIDSigning{
-				ClusterID: testClusterID,
+				ClusterID: TestClusterID,
 				Domain:    "evil",
 			},
 			want: false,
@@ -91,13 +91,13 @@ func TestSpiffeIDSigning_CanSign(t *testing.T) {
 		{
 			name:  "service - good",
 			id:    testSigning,
-			input: &SpiffeIDService{testClusterID + ".consul", "default", "dc1", "web"},
+			input: &SpiffeIDService{TestClusterID + ".consul", "default", "dc1", "web"},
 			want:  true,
 		},
 		{
 			name:  "service - good midex case",
 			id:    testSigning,
-			input: &SpiffeIDService{strings.ToUpper(testClusterID) + ".CONsuL", "defAUlt", "dc1", "WEB"},
+			input: &SpiffeIDService{strings.ToUpper(TestClusterID) + ".CONsuL", "defAUlt", "dc1", "WEB"},
 			want:  true,
 		},
 		{
@@ -109,7 +109,7 @@ func TestSpiffeIDSigning_CanSign(t *testing.T) {
 		{
 			name:  "service - different TLD",
 			id:    testSigning,
-			input: &SpiffeIDService{testClusterID + ".fake", "default", "dc1", "web"},
+			input: &SpiffeIDService{TestClusterID + ".fake", "default", "dc1", "web"},
 			want:  false,
 		},
 	}
