@@ -41,7 +41,6 @@ type aclCacheEntry struct {
 // assumes its running in the ACL datacenter, or in a non-ACL datacenter when
 // using its replicated ACLs during an outage.
 func (s *Server) aclLocalFault(id string) (string, string, error) {
-	defer metrics.MeasureSince([]string{"consul", "acl", "fault"}, time.Now())
 	defer metrics.MeasureSince([]string{"acl", "fault"}, time.Now())
 
 	// Query the state store.
@@ -75,7 +74,6 @@ func (s *Server) resolveToken(id string) (acl.ACL, error) {
 	if len(authDC) == 0 {
 		return nil, nil
 	}
-	defer metrics.MeasureSince([]string{"consul", "acl", "resolveToken"}, time.Now())
 	defer metrics.MeasureSince([]string{"acl", "resolveToken"}, time.Now())
 
 	// Handle the anonymous token
@@ -159,11 +157,9 @@ func (c *aclCache) lookupACL(id, authDC string) (acl.ACL, error) {
 
 	// Check for live cache.
 	if cached != nil && time.Now().Before(cached.Expires) {
-		metrics.IncrCounter([]string{"consul", "acl", "cache_hit"}, 1)
 		metrics.IncrCounter([]string{"acl", "cache_hit"}, 1)
 		return cached.ACL, nil
 	}
-	metrics.IncrCounter([]string{"consul", "acl", "cache_miss"}, 1)
 	metrics.IncrCounter([]string{"acl", "cache_miss"}, 1)
 
 	// Attempt to refresh the policy from the ACL datacenter via an RPC.
@@ -226,7 +222,6 @@ func (c *aclCache) lookupACL(id, authDC string) (acl.ACL, error) {
 		// Fake up an ACL datacenter reply and inject it into the cache.
 		// Note we use the local TTL here, so this'll be used for that
 		// amount of time even once the ACL datacenter becomes available.
-		metrics.IncrCounter([]string{"consul", "acl", "replication_hit"}, 1)
 		metrics.IncrCounter([]string{"acl", "replication_hit"}, 1)
 		reply.ETag = makeACLETag(parent, policy)
 		reply.TTL = c.config.ACLTTL

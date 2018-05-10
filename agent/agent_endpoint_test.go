@@ -717,14 +717,6 @@ func TestAgent_RegisterCheck_Scripts(t *testing.T) {
 		check map[string]interface{}
 	}{
 		{
-			"< Consul 1.0.0",
-			map[string]interface{}{
-				"Name":     "test",
-				"Interval": "2s",
-				"Script":   "true",
-			},
-		},
-		{
 			"== Consul 1.0.0",
 			map[string]interface{}{
 				"Name":       "test",

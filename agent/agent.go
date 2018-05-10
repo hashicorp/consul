@@ -1823,11 +1823,6 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 					check.CheckID, checks.MinInterval))
 				chkType.Interval = checks.MinInterval
 			}
-			if chkType.Script != "" {
-				a.logger.Printf("[WARN] agent: check %q has the 'script' field, which has been deprecated "+
-					"and replaced with the 'args' field. See https://www.consul.io/docs/agent/checks.html",
-					check.CheckID)
-			}
 
 			if a.dockerClient == nil {
 				dc, err := checks.NewDockerClient(os.Getenv("DOCKER_HOST"), checks.BufSize)
@@ -1844,7 +1839,6 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				CheckID:           check.CheckID,
 				DockerContainerID: chkType.DockerContainerID,
 				Shell:             chkType.Shell,
-				Script:            chkType.Script,
 				ScriptArgs:        chkType.ScriptArgs,
 				Interval:          chkType.Interval,
 				Logger:            a.logger,
@@ -1866,16 +1860,10 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 					check.CheckID, checks.MinInterval)
 				chkType.Interval = checks.MinInterval
 			}
-			if chkType.Script != "" {
-				a.logger.Printf("[WARN] agent: check %q has the 'script' field, which has been deprecated "+
-					"and replaced with the 'args' field. See https://www.consul.io/docs/agent/checks.html",
-					check.CheckID)
-			}
 
 			monitor := &checks.CheckMonitor{
 				Notify:     a.State,
 				CheckID:    check.CheckID,
-				Script:     chkType.Script,
 				ScriptArgs: chkType.ScriptArgs,
 				Interval:   chkType.Interval,
 				Timeout:    chkType.Timeout,

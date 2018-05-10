@@ -32,7 +32,6 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 	if done, err := p.srv.forward("PreparedQuery.Apply", args, args, reply); done {
 		return err
 	}
-	defer metrics.MeasureSince([]string{"consul", "prepared-query", "apply"}, time.Now())
 	defer metrics.MeasureSince([]string{"prepared-query", "apply"}, time.Now())
 
 	// Validate the ID. We must create new IDs before applying to the Raft
@@ -287,7 +286,6 @@ func (p *PreparedQuery) Explain(args *structs.PreparedQueryExecuteRequest,
 	if done, err := p.srv.forward("PreparedQuery.Explain", args, args, reply); done {
 		return err
 	}
-	defer metrics.MeasureSince([]string{"consul", "prepared-query", "explain"}, time.Now())
 	defer metrics.MeasureSince([]string{"prepared-query", "explain"}, time.Now())
 
 	// We have to do this ourselves since we are not doing a blocking RPC.
@@ -335,7 +333,6 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 	if done, err := p.srv.forward("PreparedQuery.Execute", args, args, reply); done {
 		return err
 	}
-	defer metrics.MeasureSince([]string{"consul", "prepared-query", "execute"}, time.Now())
 	defer metrics.MeasureSince([]string{"prepared-query", "execute"}, time.Now())
 
 	// We have to do this ourselves since we are not doing a blocking RPC.
@@ -471,7 +468,6 @@ func (p *PreparedQuery) ExecuteRemote(args *structs.PreparedQueryExecuteRemoteRe
 	if done, err := p.srv.forward("PreparedQuery.ExecuteRemote", args, args, reply); done {
 		return err
 	}
-	defer metrics.MeasureSince([]string{"consul", "prepared-query", "execute_remote"}, time.Now())
 	defer metrics.MeasureSince([]string{"prepared-query", "execute_remote"}, time.Now())
 
 	// We have to do this ourselves since we are not doing a blocking RPC.

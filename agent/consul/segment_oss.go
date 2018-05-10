@@ -59,7 +59,6 @@ func (s *Server) floodSegments(config *Config) {
 // all live nodes are registered, all failed nodes are marked as such, and all
 // left nodes are de-registered.
 func (s *Server) reconcile() (err error) {
-	defer metrics.MeasureSince([]string{"consul", "leader", "reconcile"}, time.Now())
 	defer metrics.MeasureSince([]string{"leader", "reconcile"}, time.Now())
 	members := s.serfLAN.Members()
 	knownMembers := make(map[string]struct{})

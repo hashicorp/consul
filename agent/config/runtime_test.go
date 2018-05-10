@@ -1851,27 +1851,9 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			patch: func(rt *RuntimeConfig) {
 				rt.DataDir = dataDir
 				rt.TelemetryAllowedPrefixes = []string{"foo"}
-				rt.TelemetryBlockedPrefixes = []string{"bar", "consul.consul."}
+				rt.TelemetryBlockedPrefixes = []string{"bar"}
 			},
 			warns: []string{`Filter rule must begin with either '+' or '-': "nix"`},
-		},
-		{
-			desc: "telemetry.enable_deprecated_names adds allow rule for whitelist",
-			args: []string{
-				`-data-dir=` + dataDir,
-			},
-			json: []string{`{
-					"telemetry": { "enable_deprecated_names": true, "filter_default": false }
-				}`},
-			hcl: []string{`
-					telemetry = { enable_deprecated_names = true filter_default = false }
-				`},
-			patch: func(rt *RuntimeConfig) {
-				rt.DataDir = dataDir
-				rt.TelemetryFilterDefault = false
-				rt.TelemetryAllowedPrefixes = []string{"consul.consul."}
-				rt.TelemetryBlockedPrefixes = []string{}
-			},
 		},
 		{
 			desc: "encrypt has invalid key",
@@ -1923,17 +1905,17 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				`-data-dir=` + dataDir,
 			},
 			json: []string{
-				`{ "check": { "name": "a", "script": "/bin/true" } }`,
-				`{ "check": { "name": "b", "script": "/bin/false" } }`,
+				`{ "check": { "name": "a", "args": ["/bin/true"] } }`,
+				`{ "check": { "name": "b", "args": ["/bin/false"] } }`,
 			},
 			hcl: []string{
-				`check = { name = "a" script = "/bin/true" }`,
-				`check = { name = "b" script = "/bin/false" }`,
+				`check = { name = "a" args = ["/bin/true"] }`,
+				`check = { name = "b" args = ["/bin/false"] }`,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Checks = []*structs.CheckDefinition{
-					&structs.CheckDefinition{Name: "a", Script: "/bin/true"},
-					&structs.CheckDefinition{Name: "b", Script: "/bin/false"},
+					&structs.CheckDefinition{Name: "a", ScriptArgs: []string{"/bin/true"}},
+					&structs.CheckDefinition{Name: "b", ScriptArgs: []string{"/bin/false"}},
 				}
 				rt.DataDir = dataDir
 			},
@@ -2026,9 +2008,9 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					"service": {
 						"name": "a",
 						"port": 80,
-						"EnableTagOverride": true,
+						"enable_tag_override": true,
 						"check": {
-							"CheckID": "x",
+							"id": "x",
 							"name": "y",
 							"DockerContainerID": "z",
 							"DeregisterCriticalServiceAfter": "10s",
@@ -2041,9 +2023,9 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				`service = {
 					name = "a"
 					port = 80
-					EnableTagOverride = true
+					enable_tag_override = true
 					check = {
-						CheckID = "x"
+						id = "x"
 						name = "y"
 						DockerContainerID = "z"
 						DeregisterCriticalServiceAfter = "10s"
@@ -2305,7 +2287,6 @@ func TestFullConfig(t *testing.T) {
 				"service_id": "L8G0QNmR",
 				"token": "oo4BCTgJ",
 				"status": "qLykAl5u",
-				"script": "dhGfIF8n",
 				"args": ["f3BemRjy", "e5zgpef7"],
 				"http": "29B93haH",
 				"header": {
@@ -2330,7 +2311,6 @@ func TestFullConfig(t *testing.T) {
 					"service_id": "lSulPcyz",
 					"token": "toO59sh8",
 					"status": "9RlWsXMV",
-					"script": "8qbd8tWw",
 					"args": ["4BAJttck", "4D2NPtTQ"],
 					"http": "dohLcyQ2",
 					"header": {
@@ -2354,7 +2334,6 @@ func TestFullConfig(t *testing.T) {
 					"service_id": "CmUUcRna",
 					"token": "a3nQzHuy",
 					"status": "irj26nf3",
-					"script": "FJsI1oXt",
 					"args": ["9s526ogY", "gSlOHj1w"],
 					"http": "yzhgsQ7Y",
 					"header": {
@@ -2485,11 +2464,10 @@ func TestFullConfig(t *testing.T) {
 				"port": 24237,
 				"enable_tag_override": true,
 				"check": {
-					"check_id": "RMi85Dv8",
+					"id": "RMi85Dv8",
 					"name": "iehanzuq",
 					"status": "rCvn53TH",
 					"notes": "fti5lfF3",
-					"script": "rtj34nfd",
 					"args": ["16WRUmwS", "QWk7j7ae"],
 					"http": "dl3Fgme3",
 					"header": {
@@ -2512,7 +2490,6 @@ func TestFullConfig(t *testing.T) {
 						"name": "sgV4F7Pk",
 						"notes": "yP5nKbW0",
 						"status": "7oLMEyfu",
-						"script": "NlUQ3nTE",
 						"args": ["5wEZtZpv", "0Ihyk8cS"],
 						"http": "KyDjGY9H",
 						"header": {
@@ -2534,7 +2511,6 @@ func TestFullConfig(t *testing.T) {
 						"name": "IEqrzrsd",
 						"notes": "SVqApqeM",
 						"status": "XXkVoZXt",
-						"script": "IXLZTM6E",
 						"args": ["wD05Bvao", "rLYB7kQC"],
 						"http": "kyICZsn8",
 						"header": {
@@ -2563,11 +2539,10 @@ func TestFullConfig(t *testing.T) {
 					"port": 72219,
 					"enable_tag_override": true,
 					"check": {
-						"check_id": "qmfeO5if",
+						"id": "qmfeO5if",
 						"name": "atDGP7n5",
 						"status": "pDQKEhWL",
 						"notes": "Yt8EDLev",
-						"script": "MDu7wjlD",
 						"args": ["81EDZLPa", "bPY5X8xd"],
 						"http": "qzHYvmJO",
 						"header": {
@@ -2599,7 +2574,6 @@ func TestFullConfig(t *testing.T) {
 							"name": "9OOS93ne",
 							"notes": "CQy86DH0",
 							"status": "P0SWDvrk",
-							"script": "6BhLJ7R9",
 							"args": ["EXvkYIuG", "BATOyt6h"],
 							"http": "u97ByEiW",
 							"header": {
@@ -2621,7 +2595,6 @@ func TestFullConfig(t *testing.T) {
 							"name": "PQSaPWlT",
 							"notes": "jKChDOdl",
 							"status": "5qFz6OZn",
-							"script": "PbdxFZ3K",
 							"args": ["NMtYWlT9", "vj74JXsm"],
 							"http": "1LBDJhw4",
 							"header": {
@@ -2669,7 +2642,6 @@ func TestFullConfig(t *testing.T) {
 				"dogstatsd_tags": [ "3N81zSUB","Xtj8AnXZ" ],
 				"filter_default": true,
 				"prefix_filter": [ "+oJotS8XJ","-cazlEhGn" ],
-				"enable_deprecated_names": true,
 				"metrics_prefix": "ftO6DySn",
 				"prometheus_retention_time": "15s",
 				"statsd_address": "drce87cy",
@@ -2746,7 +2718,6 @@ func TestFullConfig(t *testing.T) {
 				service_id = "L8G0QNmR"
 				token = "oo4BCTgJ"
 				status = "qLykAl5u"
-				script = "dhGfIF8n"
 				args = ["f3BemRjy", "e5zgpef7"]
 				http = "29B93haH"
 				header = {
@@ -2771,7 +2742,6 @@ func TestFullConfig(t *testing.T) {
 					service_id = "lSulPcyz"
 					token = "toO59sh8"
 					status = "9RlWsXMV"
-					script = "8qbd8tWw"
 					args = ["4BAJttck", "4D2NPtTQ"]
 					http = "dohLcyQ2"
 					header = {
@@ -2795,7 +2765,6 @@ func TestFullConfig(t *testing.T) {
 					service_id = "CmUUcRna"
 					token = "a3nQzHuy"
 					status = "irj26nf3"
-					script = "FJsI1oXt"
 					args = ["9s526ogY", "gSlOHj1w"]
 					http = "yzhgsQ7Y"
 					header = {
@@ -2926,11 +2895,10 @@ func TestFullConfig(t *testing.T) {
 				port = 24237
 				enable_tag_override = true
 				check = {
-					check_id = "RMi85Dv8"
+					id = "RMi85Dv8"
 					name = "iehanzuq"
 					status = "rCvn53TH"
 					notes = "fti5lfF3"
-					script = "rtj34nfd"
 					args = ["16WRUmwS", "QWk7j7ae"]
 					http = "dl3Fgme3"
 					header = {
@@ -2953,7 +2921,6 @@ func TestFullConfig(t *testing.T) {
 						name = "sgV4F7Pk"
 						notes = "yP5nKbW0"
 						status = "7oLMEyfu"
-						script = "NlUQ3nTE"
 						args = ["5wEZtZpv", "0Ihyk8cS"]
 						http = "KyDjGY9H"
 						header = {
@@ -2975,7 +2942,6 @@ func TestFullConfig(t *testing.T) {
 						name = "IEqrzrsd"
 						notes = "SVqApqeM"
 						status = "XXkVoZXt"
-						script = "IXLZTM6E"
 						args = ["wD05Bvao", "rLYB7kQC"]
 						http = "kyICZsn8"
 						header = {
@@ -3004,11 +2970,10 @@ func TestFullConfig(t *testing.T) {
 					port = 72219
 					enable_tag_override = true
 					check = {
-						check_id = "qmfeO5if"
+						id = "qmfeO5if"
 						name = "atDGP7n5"
 						status = "pDQKEhWL"
 						notes = "Yt8EDLev"
-						script = "MDu7wjlD"
 						args = ["81EDZLPa", "bPY5X8xd"]
 						http = "qzHYvmJO"
 						header = {
@@ -3040,7 +3005,6 @@ func TestFullConfig(t *testing.T) {
 							name = "9OOS93ne"
 							notes = "CQy86DH0"
 							status = "P0SWDvrk"
-							script = "6BhLJ7R9"
 							args = ["EXvkYIuG", "BATOyt6h"]
 							http = "u97ByEiW"
 							header = {
@@ -3062,7 +3026,6 @@ func TestFullConfig(t *testing.T) {
 							name = "PQSaPWlT"
 							notes = "jKChDOdl"
 							status = "5qFz6OZn"
-							script = "PbdxFZ3K"
 							args = ["NMtYWlT9", "vj74JXsm"]
 							http = "1LBDJhw4"
 							header = {
@@ -3110,7 +3073,6 @@ func TestFullConfig(t *testing.T) {
 				dogstatsd_tags = [ "3N81zSUB","Xtj8AnXZ" ]
 				filter_default = true
 				prefix_filter = [ "+oJotS8XJ","-cazlEhGn" ]
-				enable_deprecated_names = true
 				metrics_prefix = "ftO6DySn"
 				prometheus_retention_time = "15s"
 				statsd_address = "drce87cy"
@@ -3326,7 +3288,6 @@ func TestFullConfig(t *testing.T) {
 				ServiceID:  "lSulPcyz",
 				Token:      "toO59sh8",
 				Status:     "9RlWsXMV",
-				Script:     "8qbd8tWw",
 				ScriptArgs: []string{"4BAJttck", "4D2NPtTQ"},
 				HTTP:       "dohLcyQ2",
 				Header: map[string][]string{
@@ -3350,7 +3311,6 @@ func TestFullConfig(t *testing.T) {
 				ServiceID:  "CmUUcRna",
 				Token:      "a3nQzHuy",
 				Status:     "irj26nf3",
-				Script:     "FJsI1oXt",
 				ScriptArgs: []string{"9s526ogY", "gSlOHj1w"},
 				HTTP:       "yzhgsQ7Y",
 				Header: map[string][]string{
@@ -3374,7 +3334,6 @@ func TestFullConfig(t *testing.T) {
 				ServiceID:  "L8G0QNmR",
 				Token:      "oo4BCTgJ",
 				Status:     "qLykAl5u",
-				Script:     "dhGfIF8n",
 				ScriptArgs: []string{"f3BemRjy", "e5zgpef7"},
 				HTTP:       "29B93haH",
 				Header: map[string][]string{
@@ -3494,7 +3453,6 @@ func TestFullConfig(t *testing.T) {
 						Name:       "atDGP7n5",
 						Status:     "pDQKEhWL",
 						Notes:      "Yt8EDLev",
-						Script:     "MDu7wjlD",
 						ScriptArgs: []string{"81EDZLPa", "bPY5X8xd"},
 						HTTP:       "qzHYvmJO",
 						Header: map[string][]string{
@@ -3527,7 +3485,6 @@ func TestFullConfig(t *testing.T) {
 						Name:       "9OOS93ne",
 						Notes:      "CQy86DH0",
 						Status:     "P0SWDvrk",
-						Script:     "6BhLJ7R9",
 						ScriptArgs: []string{"EXvkYIuG", "BATOyt6h"},
 						HTTP:       "u97ByEiW",
 						Header: map[string][]string{
@@ -3549,7 +3506,6 @@ func TestFullConfig(t *testing.T) {
 						Name:       "PQSaPWlT",
 						Notes:      "jKChDOdl",
 						Status:     "5qFz6OZn",
-						Script:     "PbdxFZ3K",
 						ScriptArgs: []string{"NMtYWlT9", "vj74JXsm"},
 						HTTP:       "1LBDJhw4",
 						Header: map[string][]string{
@@ -3583,7 +3539,6 @@ func TestFullConfig(t *testing.T) {
 						Name:       "sgV4F7Pk",
 						Notes:      "yP5nKbW0",
 						Status:     "7oLMEyfu",
-						Script:     "NlUQ3nTE",
 						ScriptArgs: []string{"5wEZtZpv", "0Ihyk8cS"},
 						HTTP:       "KyDjGY9H",
 						Header: map[string][]string{
@@ -3605,7 +3560,6 @@ func TestFullConfig(t *testing.T) {
 						Name:       "IEqrzrsd",
 						Notes:      "SVqApqeM",
 						Status:     "XXkVoZXt",
-						Script:     "IXLZTM6E",
 						ScriptArgs: []string{"wD05Bvao", "rLYB7kQC"},
 						HTTP:       "kyICZsn8",
 						Header: map[string][]string{
@@ -3627,7 +3581,6 @@ func TestFullConfig(t *testing.T) {
 						Name:       "iehanzuq",
 						Status:     "rCvn53TH",
 						Notes:      "fti5lfF3",
-						Script:     "rtj34nfd",
 						ScriptArgs: []string{"16WRUmwS", "QWk7j7ae"},
 						HTTP:       "dl3Fgme3",
 						Header: map[string][]string{
@@ -3673,7 +3626,7 @@ func TestFullConfig(t *testing.T) {
 		TelemetryDogstatsdAddr:                      "0wSndumK",
 		TelemetryDogstatsdTags:                      []string{"3N81zSUB", "Xtj8AnXZ"},
 		TelemetryFilterDefault:                      true,
-		TelemetryAllowedPrefixes:                    []string{"oJotS8XJ", "consul.consul."},
+		TelemetryAllowedPrefixes:                    []string{"oJotS8XJ"},
 		TelemetryBlockedPrefixes:                    []string{"cazlEhGn"},
 		TelemetryMetricsPrefix:                      "ftO6DySn",
 		TelemetryPrometheusRetentionTime:            15 * time.Second,
@@ -4047,7 +4000,6 @@ func TestSanitize(t *testing.T) {
             "Method": "",
             "Name": "zoo",
             "Notes": "",
-            "Script": "",
             "ScriptArgs": [],
             "ServiceID": "",
             "Shell": "",
@@ -4179,7 +4131,6 @@ func TestSanitize(t *testing.T) {
                 "Method": "",
                 "Name": "blurb",
                 "Notes": "",
-                "Script": "",
                 "ScriptArgs": [],
                 "Shell": "",
                 "Status": "",

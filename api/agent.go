@@ -86,7 +86,6 @@ type AgentServiceCheck struct {
 	CheckID           string              `json:",omitempty"`
 	Name              string              `json:",omitempty"`
 	Args              []string            `json:"ScriptArgs,omitempty"`
-	Script            string              `json:",omitempty"` // Deprecated, use Args.
 	DockerContainerID string              `json:",omitempty"`
 	Shell             string              `json:",omitempty"` // Only supported for Docker.
 	Interval          string              `json:",omitempty"`

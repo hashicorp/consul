@@ -145,7 +145,6 @@ func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
 	if done, err := a.srv.forward("ACL.Apply", args, args, reply); done {
 		return err
 	}
-	defer metrics.MeasureSince([]string{"consul", "acl", "apply"}, time.Now())
 	defer metrics.MeasureSince([]string{"acl", "apply"}, time.Now())
 
 	// Verify we are allowed to serve this request

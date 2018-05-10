@@ -123,7 +123,6 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 			start := time.Now()
 			handler(resp, req)
 			key := append([]string{"http", req.Method}, parts...)
-			metrics.MeasureSince(append([]string{"consul"}, key...), start)
 			metrics.MeasureSince(key, start)
 		}
 
