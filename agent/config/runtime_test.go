@@ -1121,6 +1121,46 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DataDir = dataDir
 			},
 		},
+		{
+			desc: "start_join address template",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{ "start_join": ["{{ printf \"1.2.3.4 4.3.2.1\" }}"] }`},
+			hcl:  []string{`start_join = ["{{ printf \"1.2.3.4 4.3.2.1\" }}"]`},
+			patch: func(rt *RuntimeConfig) {
+				rt.StartJoinAddrsLAN = []string{"1.2.3.4", "4.3.2.1"}
+				rt.DataDir = dataDir
+			},
+		},
+		{
+			desc: "start_join_wan address template",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{ "start_join_wan": ["{{ printf \"1.2.3.4 4.3.2.1\" }}"] }`},
+			hcl:  []string{`start_join_wan = ["{{ printf \"1.2.3.4 4.3.2.1\" }}"]`},
+			patch: func(rt *RuntimeConfig) {
+				rt.StartJoinAddrsWAN = []string{"1.2.3.4", "4.3.2.1"}
+				rt.DataDir = dataDir
+			},
+		},
+		{
+			desc: "retry_join address template",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{ "retry_join": ["{{ printf \"1.2.3.4 4.3.2.1\" }}"] }`},
+			hcl:  []string{`retry_join = ["{{ printf \"1.2.3.4 4.3.2.1\" }}"]`},
+			patch: func(rt *RuntimeConfig) {
+				rt.RetryJoinLAN = []string{"1.2.3.4", "4.3.2.1"}
+				rt.DataDir = dataDir
+			},
+		},
+		{
+			desc: "retry_join_wan address template",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{ "retry_join_wan": ["{{ printf \"1.2.3.4 4.3.2.1\" }}"] }`},
+			hcl:  []string{`retry_join_wan = ["{{ printf \"1.2.3.4 4.3.2.1\" }}"]`},
+			patch: func(rt *RuntimeConfig) {
+				rt.RetryJoinWAN = []string{"1.2.3.4", "4.3.2.1"}
+				rt.DataDir = dataDir
+			},
+		},
 
 		// ------------------------------------------------------------
 		// precedence rules

@@ -438,28 +438,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		}
 	}
 
-	// expand addresses in start join lan configuration
-	startJoinLAN := make([]string, len(c.StartJoinAddrsLAN))
-
-	for _, configStartJoinAddrsLAN := range c.StartJoinAddrsLAN {
-		startJoinAddrs := b.expandOptionalAddrs("start_join", &configStartJoinAddrsLAN)
-
-		if startJoinAddrs != nil {
-			startJoinLAN = append(startJoinLAN, startJoinAddrs...)
-		}
-	}
-
-	// expand addresses in retry join lan configuration
-	retryJoinLan := make([]string, len(c.RetryJoinLAN))
-
-	for _, retryJoinLanElement := range c.RetryJoinLAN {
-		retryJoinAddrs := b.expandOptionalAddrs("retry_join", &retryJoinLanElement)
-
-		if retryJoinAddrs != nil {
-			retryJoinLan = append(retryJoinLan, retryJoinAddrs...)
-		}
-	}
-
 	// expand dns recursors
 	uniq := map[string]bool{}
 	dnsRecursors := []string{}
@@ -708,10 +686,10 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		RejoinAfterLeave:            b.boolVal(c.RejoinAfterLeave),
 		RetryJoinIntervalLAN:        b.durationVal("retry_interval", c.RetryJoinIntervalLAN),
 		RetryJoinIntervalWAN:        b.durationVal("retry_interval_wan", c.RetryJoinIntervalWAN),
-		RetryJoinLAN:                retryJoinLan,
+		RetryJoinLAN:                b.expandAllOptionalAddrs("retry_join", c.RetryJoinLAN),
 		RetryJoinMaxAttemptsLAN:     b.intVal(c.RetryJoinMaxAttemptsLAN),
 		RetryJoinMaxAttemptsWAN:     b.intVal(c.RetryJoinMaxAttemptsWAN),
-		RetryJoinWAN:                c.RetryJoinWAN,
+		RetryJoinWAN:                b.expandAllOptionalAddrs("retry_join_wan", c.RetryJoinWAN),
 		SegmentName:                 b.stringVal(c.SegmentName),
 		Segments:                    segments,
 		SerfAdvertiseAddrLAN:        serfAdvertiseAddrLAN,
@@ -726,8 +704,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		Services:                    services,
 		SessionTTLMin:               b.durationVal("session_ttl_min", c.SessionTTLMin),
 		SkipLeaveOnInt:              skipLeaveOnInt,
-		StartJoinAddrsLAN:           startJoinLAN,
-		StartJoinAddrsWAN:           c.StartJoinAddrsWAN,
+		StartJoinAddrsLAN:           b.expandAllOptionalAddrs("start_join", c.StartJoinAddrsLAN),
+		StartJoinAddrsWAN:           b.expandAllOptionalAddrs("start_join_wan", c.StartJoinAddrsWAN),
 		SyslogFacility:              b.stringVal(c.SyslogFacility),
 		TLSCipherSuites:             b.tlsCipherSuites("tls_cipher_suites", c.TLSCipherSuites),
 		TLSMinVersion:               b.stringVal(c.TLSMinVersion),
@@ -1178,6 +1156,17 @@ func (b *Builder) expandOptionalAddrs(name string, s *string) []string {
 		// No template has been expanded, pass through the input
 		return []string{*s}
 	}
+}
+
+func (b *Builder) expandAllOptionalAddrs(name string, addrs []string) []string {
+	out := make([]string, 0, len(addrs))
+	for _, a := range addrs {
+		expanded := b.expandOptionalAddrs(name, &a)
+		if expanded != nil {
+			out = append(out, expanded...)
+		}
+	}
+	return out
 }
 
 // expandIPs expands the go-sockaddr template in s and returns a list of
