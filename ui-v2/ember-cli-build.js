@@ -12,11 +12,6 @@ module.exports = function(defaults) {
         'transform-object-rest-spread'
       ]
     },
-    'ember-bootstrap': {
-      'bootstrapVersion': 3,
-      'importBootstrapFont': true,
-      'importBootstrapCSS': false
-    },
     'codemirror': {
       modes: ['javascript','ruby'],
       keyMaps: ['sublime']
