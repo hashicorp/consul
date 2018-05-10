@@ -899,6 +899,12 @@ type RuntimeConfig struct {
 	// hcl: raft_protocol = int
 	RaftProtocol int
 
+	// RaftSnapshotThreshold sets the minimum threshold of raft commits after which
+	// a snapshot is created. Defaults to 8192
+	//
+	// hcl: raft_snapshot_threshold = int
+	RaftSnapshotThreshold int
+
 	// ReconnectTimeoutLAN specifies the amount of time to wait to reconnect with
 	// another agent before deciding it's permanently gone. This can be used to
 	// control the time it takes to reap failed nodes from the cluster.

@@ -763,6 +763,9 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	if a.config.RaftProtocol != 0 {
 		base.RaftConfig.ProtocolVersion = raft.ProtocolVersion(a.config.RaftProtocol)
 	}
+	if a.config.RaftSnapshotThreshold != 0 {
+		base.RaftConfig.SnapshotThreshold = uint64(a.config.RaftSnapshotThreshold)
+	}
 	if a.config.ACLMasterToken != "" {
 		base.ACLMasterToken = a.config.ACLMasterToken
 	}

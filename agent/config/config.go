@@ -194,6 +194,7 @@ type Config struct {
 	Ports                       Ports                    `json:"ports,omitempty" hcl:"ports" mapstructure:"ports"`
 	RPCProtocol                 *int                     `json:"protocol,omitempty" hcl:"protocol" mapstructure:"protocol"`
 	RaftProtocol                *int                     `json:"raft_protocol,omitempty" hcl:"raft_protocol" mapstructure:"raft_protocol"`
+	RaftSnapshotThreshold       *int                     `json:"raft_snapshot_threshold,omitempty" hcl:"raft_snapshot_threshold" mapstructure:"raft_snapshot_threshold"`
 	ReconnectTimeoutLAN         *string                  `json:"reconnect_timeout,omitempty" hcl:"reconnect_timeout" mapstructure:"reconnect_timeout"`
 	ReconnectTimeoutWAN         *string                  `json:"reconnect_timeout_wan,omitempty" hcl:"reconnect_timeout_wan" mapstructure:"reconnect_timeout_wan"`
 	RejoinAfterLeave            *bool                    `json:"rejoin_after_leave,omitempty" hcl:"rejoin_after_leave" mapstructure:"rejoin_after_leave"`
@@ -264,6 +265,7 @@ type Consul struct {
 		ElectionTimeout    *string `json:"election_timeout,omitempty" hcl:"election_timeout" mapstructure:"election_timeout"`
 		HeartbeatTimeout   *string `json:"heartbeat_timeout,omitempty" hcl:"heartbeat_timeout" mapstructure:"heartbeat_timeout"`
 		LeaderLeaseTimeout *string `json:"leader_lease_timeout,omitempty" hcl:"leader_lease_timeout" mapstructure:"leader_lease_timeout"`
+		SnapshotThreshold  *int    `json:"snapshot_threshold,omitempty" hcl:"snapshot_threshold" mapstructure:"snapshot_threshold"`
 	} `json:"raft,omitempty" hcl:"raft" mapstructure:"raft"`
 
 	SerfLAN struct {
