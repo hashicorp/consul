@@ -97,6 +97,11 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	config.CAConfig = &structs.CAConfiguration{
 		ClusterID: connect.TestClusterID,
 		Provider:  structs.ConsulCAProvider,
+		Config: map[string]interface{}{
+			"PrivateKey":     "",
+			"RootCert":       "",
+			"RotationPeriod": 90 * 24 * time.Hour,
+		},
 	}
 
 	return dir, config

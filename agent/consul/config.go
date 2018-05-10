@@ -435,15 +435,6 @@ func DefaultConfig() *Config {
 
 		ServerHealthInterval: 2 * time.Second,
 		AutopilotInterval:    10 * time.Second,
-
-		CAConfig: &structs.CAConfiguration{
-			Provider: "consul",
-			Config: map[string]interface{}{
-				"PrivateKey":     "",
-				"RootCert":       "",
-				"RotationPeriod": 90 * 24 * time.Hour,
-			},
-		},
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.
