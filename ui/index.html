@@ -140,6 +140,28 @@
   </script>
 
   <script type="text/x-handlebars" data-template-name="dc">
+    {{#if isNotificationVisible}}
+      <div id="v2-notification">
+        <input type="checkbox" id="v2-notification-toggle" checked="checked" {{action "hideNotification"}} />
+        <div class="container">
+            <div class="col-md-12">
+                <div class="row">
+                    <div class="col-md-9 col-sm-8 col-xs-8 col-sm-offset-0 col-xs-offset-1">
+                        <p>
+                            We've redesigned the web interface for Consul. <span>You may opt-in to the new interface with a simple environment variable. In a future release, the new UI will become the default and this UI will be deprecated.</span>
+                        </p>
+                    </div>
+                    <div class="col-md-1 col-sm-4 col-xs-6">
+                        <a href="https://www.consul.io/intro/getting-started/ui.html#how-to-use-the-new-ui" target="_blank" rel="noopener noreferrer" class="btn btn-default col-xs-6"> Learn more</a>
+                    </div>
+                    <div class="col-md-1 col-sm-1 col-md-offset-1">
+                        <label for="v2-notification-toggle"></label>
+                    </div>
+                </div>
+            </div>
+        </div>
+      </div>
+    {{/if}}
     <div class="row">
       <div {{ bind-attr class=":col-md-12 :col-sm-12 :col-xs-12 :topbar" }}>
 
