@@ -8,31 +8,26 @@ import (
 
 func TestErrorsParse(t *testing.T) {
 	tests := []struct {
-		inputErrorsRules     string
-		shouldErr            bool
-		expectedErrorHandler errorHandler
+		inputErrorsRules string
+		shouldErr        bool
 	}{
-		{`errors`, false, errorHandler{LogFile: "stdout"}},
-		{`errors stdout`, false, errorHandler{LogFile: "stdout"}},
-		{`errors errors.txt`, true, errorHandler{LogFile: ""}},
-		{`errors visible`, true, errorHandler{LogFile: ""}},
-		{`errors { log visible }`, true, errorHandler{LogFile: "stdout"}},
+		{`errors`, false},
+		{`errors stdout`, false},
+		{`errors errors.txt`, true},
+		{`errors visible`, true},
+		{`errors { log visible }`, true},
 		{`errors
-		errors `, true, errorHandler{LogFile: "stdout"}},
-		{`errors a b`, true, errorHandler{LogFile: ""}},
+		errors `, true},
+		{`errors a b`, true},
 	}
 	for i, test := range tests {
 		c := caddy.NewTestController("dns", test.inputErrorsRules)
-		actualErrorsRule, err := errorsParse(c)
+		_, err := errorsParse(c)
 
 		if err == nil && test.shouldErr {
 			t.Errorf("Test %d didn't error, but it should have", i)
 		} else if err != nil && !test.shouldErr {
 			t.Errorf("Test %d errored, but it shouldn't have; got '%v'", i, err)
-		}
-		if actualErrorsRule.LogFile != test.expectedErrorHandler.LogFile {
-			t.Errorf("Test %d expected LogFile to be %s, but got %s",
-				i, test.expectedErrorHandler.LogFile, actualErrorsRule.LogFile)
 		}
 	}
 }

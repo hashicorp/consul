@@ -2,8 +2,6 @@ package errors
 
 import (
 	"fmt"
-	"log"
-	"os"
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
@@ -23,8 +21,6 @@ func setup(c *caddy.Controller) error {
 	if err != nil {
 		return plugin.Error("errors", err)
 	}
-
-	handler.Log = log.New(os.Stdout, "", 0)
 
 	dnsserver.GetConfig(c).AddPlugin(func(next plugin.Handler) plugin.Handler {
 		handler.Next = next
@@ -47,12 +43,10 @@ func errorsParse(c *caddy.Controller) (errorHandler, error) {
 		args := c.RemainingArgs()
 		switch len(args) {
 		case 0:
-			handler.LogFile = "stdout"
 		case 1:
 			if args[0] != "stdout" {
 				return handler, fmt.Errorf("invalid log file: %s", args[0])
 			}
-			handler.LogFile = args[0]
 		default:
 			return handler, c.ArgErr()
 		}
