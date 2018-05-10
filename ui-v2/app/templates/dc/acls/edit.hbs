@@ -1,0 +1,53 @@
+{{#app-view class="acl edit" loading=isLoading}}
+    {{#block-slot 'breadcrumbs'}}
+        <ol>
+            <li><a href={{href-to 'dc.acls'}}>All Tokens</a></li>
+        </ol>
+    {{/block-slot}}
+    {{#block-slot 'header'}}
+        <h1>
+{{#if item.Name }}
+            {{item.Name}}
+{{else}}
+            New token
+{{/if}}
+        </h1>
+    {{/block-slot}}
+    {{#block-slot 'actions'}}
+{{#if (not create) }}
+        {{#feedback-dialog type='inline'}}
+            {{#block-slot 'action' as |success error|}}
+                {{#copy-button success=(action success) error=(action error) clipboardText=item.ID title='copy token ID to clipboard'}}
+                    Copy token ID
+                {{/copy-button}}
+            {{/block-slot}}
+            {{#block-slot 'success'}}
+                <p>
+                    Copied token ID!
+                </p>
+            {{/block-slot}}
+            {{#block-slot 'error'}}
+                <p>
+                    Sorry, something went wrong!
+                </p>
+            {{/block-slot}}
+        {{/feedback-dialog}}
+        <button type="button" {{ action "clone" item }}>Clone token</button>
+        {{#confirmation-dialog message='Are you sure you want to use this ACL token?'}}
+            {{#block-slot 'action' as |confirm|}}
+                <button type="button" {{ action confirm 'use' item }}>Use token</button>
+            {{/block-slot}}
+            {{#block-slot 'dialog' as |execute cancel message|}}
+                <p>
+                    {{message}}
+                </p>
+                <button type="button" class="type-delete" {{action execute}}>Confirm Use</button>
+                <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
+            {{/block-slot}}
+        {{/confirmation-dialog}}
+{{/if}}
+    {{/block-slot}}
+    {{#block-slot 'content'}}
+        {{ partial 'dc/acls/form'}}
+    {{/block-slot}}
+{{/app-view}}

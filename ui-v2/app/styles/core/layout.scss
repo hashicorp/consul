@@ -1,0 +1,66 @@
+html.template-with-vertical-menu,
+html.template-with-vertical-menu body {
+  overflow: hidden;
+}
+#wrapper {
+  margin: 0 auto;
+  position: static;
+  max-width: 1260px;
+  padding: 0 1.9047619047619049%; // 24px
+  padding: 0 1.9047619047619049vw; // 24px
+  width: auto; // stop bulma jumping around
+
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+}
+@media #{$--min-padding} {
+  #wrapper {
+    padding: 0 10px;
+  }
+  main,
+  #wrapper > footer {
+    padding: 0 33px;
+  }
+}
+@media #{$--max-padding} {
+  #wrapper {
+    padding: 0 24px;
+  }
+  main,
+  #wrapper > footer {
+    padding: 0 33px;
+  }
+}
+main {
+  max-width: 1150px;
+}
+main,
+#wrapper > footer {
+  padding: 0 2.619047619047619%; //33px;
+  padding: 0 1.9047619047619049vw;
+}
+main {
+  flex: 1;
+}
+// workaround bulma's sweeping box-sizing
+#wrapper {
+  box-sizing: content-box;
+}
+main > * {
+  box-sizing: border-box;
+}
+main p {
+  margin-bottom: 1em;
+}
+html body > svg {
+  display: none;
+  position: absolute;
+  top: 50%;
+  margin-top: -26px;
+  left: 50%;
+  margin-left: -84px;
+}
+html.ember-loading body > svg {
+  display: block;
+}

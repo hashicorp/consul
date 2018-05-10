@@ -1,0 +1,8 @@
+<input type="radio" name="actions" id="actions_{{index}}" checked={{if (eq checked 'checked') 'checked' }} onchange={{action onchange}} value={{index}} />
+<label for="actions_{{index}}">
+    <span>Open</span>
+</label>
+<label for="actions_close">
+    <span>Close</span>
+</label>
+{{yield}}

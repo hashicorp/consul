@@ -1,0 +1,9 @@
+{{yield}}
+{{#if (eq state 'success') }}
+    {{#yield-slot 'success'}}{{yield}}{{/yield-slot}}
+{{else if (eq state 'error') }}
+    {{#yield-slot 'error'}}{{yield}}{{/yield-slot}}
+{{/if}}
+{{#if (or permanent (eq state 'ready')) }}
+    {{#yield-slot 'action' (block-params success error)}}{{yield}}{{message}}{{/yield-slot}}
+{{/if}}

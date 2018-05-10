@@ -1,0 +1,56 @@
+{{#app-view class="node list"}}
+    {{#block-slot 'header'}}
+        <h1>
+            Nodes
+        </h1>
+    {{/block-slot}}
+    {{#block-slot 'toolbar'}}
+{{#if (gt items.length 0) }}
+        {{catalog-filter filters=healthFilters search=filters.s status=filters.status onchange=(action 'filter')}}
+{{/if}}
+    {{/block-slot}}
+    {{#block-slot 'content'}}
+{{#if (gt unhealthy.length 0) }}
+        <div class="unhealthy">
+            <h2>Unhealthy Nodes</h2>
+            <div>
+                {{! think about 2 differing views here }}
+                <ol>
+    {{#each unhealthy as |item|}}
+                    {{healthchecked-resource
+                        tagName='li'
+                        data-test-node=item.Node
+                        href=(href-to 'dc.nodes.show' item.Node)
+                        name=item.Node
+                        address=item.Address
+                        checks=item.Checks
+                    }}
+    {{/each}}
+                </ol>
+            </div>
+        </div>
+{{/if}}
+{{#if (gt healthy.length 0) }}
+        <div class="healthy">
+            <h2>Healthy Nodes</h2>
+            {{#list-collection
+                items=healthy
+                cell-layout=(percentage-columns-layout healthy.length columns 100) as |item index|
+            }}
+                {{healthchecked-resource
+                    data-test-node=item.Node
+                    href=(href-to 'dc.nodes.show' item.Node)
+                    name=item.Node
+                    address=item.Address
+                    status=item.Checks.[0].Status
+                }}
+            {{/list-collection}}
+        </div>
+{{/if}}
+{{#if (and (eq healthy.length 0) (eq unhealthy.length 0)) }}
+    <p>
+        There are no nodes.
+    </p>
+{{/if}}
+    {{/block-slot}}
+{{/app-view}}

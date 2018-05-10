@@ -1,0 +1,10 @@
+/dist
+
+/tmp
+/node_modules
+
+/coverage/*
+/npm-debug.log*
+/yarn-error.log
+/testem.log
+

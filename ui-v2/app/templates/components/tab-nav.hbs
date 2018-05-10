@@ -1,0 +1,11 @@
+{{!<nav role="tablist">}}
+    <ul>
+{{#each items as |item|}}
+        <li class={{if (eq selected (slugify item)) 'selected' }}>
+            <label for="radiogroup_{{name}}_{{slugify item}}" data-test-radiobutton="{{name}}_{{slugify item}}" role="tab" aria-controls="radiogroup_{{name}}_{{slugify item}}_panel">
+                <a>{{item}}</a>
+            </label>
+        </li>
+{{/each}}
+    </ul>
+{{!</nav>}}
