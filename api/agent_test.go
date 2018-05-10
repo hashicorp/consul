@@ -1044,7 +1044,9 @@ func TestAPI_AgentConnectCARoots_empty(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	c, s := makeClient(t)
+	c, s := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
+		c.Connect = nil // disable connect to prevent CA beening bootstrapped
+	})
 	defer s.Stop()
 
 	agent := c.Agent()
@@ -1058,12 +1060,7 @@ func TestAPI_AgentConnectCARoots_list(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	c, s := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
-		// Force auto port range to 1 port so we have deterministic response.
-		c.Connect = map[string]interface{}{
-			"enabled": true,
-		}
-	})
+	c, s := makeClient(t)
 	defer s.Stop()
 
 	agent := c.Agent()
@@ -1077,12 +1074,7 @@ func TestAPI_AgentConnectCALeaf(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	c, s := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
-		// Force auto port range to 1 port so we have deterministic response.
-		c.Connect = map[string]interface{}{
-			"enabled": true,
-		}
-	})
+	c, s := makeClient(t)
 	defer s.Stop()
 
 	agent := c.Agent()
@@ -1109,9 +1101,6 @@ func TestAPI_AgentConnectCALeaf(t *testing.T) {
 	require.True(leaf.ValidBefore.After(time.Now()))
 }
 
-// TODO(banks): once we have CA stuff setup properly we can probably make this
-// much more complete. This is just a sanity check that the agent code basically
-// works.
 func TestAPI_AgentConnectAuthorize(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
@@ -1151,6 +1140,7 @@ func TestAPI_AgentConnectProxyConfig(t *testing.T) {
 		Port: 8000,
 		Connect: &AgentServiceConnect{
 			Proxy: &AgentServiceConnectProxy{
+				Command: []string{"consul connect proxy"},
 				Config: map[string]interface{}{
 					"foo": "bar",
 				},
@@ -1167,7 +1157,7 @@ func TestAPI_AgentConnectProxyConfig(t *testing.T) {
 		ProxyServiceID:    "foo-proxy",
 		TargetServiceID:   "foo",
 		TargetServiceName: "foo",
-		ContentHash:       "e662ea8600d84cf0",
+		ContentHash:       "93baee1d838888ae",
 		ExecMode:          "daemon",
 		Command:           []string{"consul connect proxy"},
 		Config: map[string]interface{}{
@@ -1178,5 +1168,5 @@ func TestAPI_AgentConnectProxyConfig(t *testing.T) {
 		},
 	}
 	require.Equal(t, expectConfig, config)
-	require.Equal(t, "e662ea8600d84cf0", qm.LastContentHash)
+	require.Equal(t, expectConfig.ContentHash, qm.LastContentHash)
 }

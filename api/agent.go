@@ -565,9 +565,6 @@ func (a *Agent) ForceLeave(node string) error {
 
 // ConnectAuthorize is used to authorize an incoming connection
 // to a natively integrated Connect service.
-//
-// TODO(mitchellh): we need to test this better once we have a way to
-// configure CAs from the API package (when the CA work is done).
 func (a *Agent) ConnectAuthorize(auth *AgentAuthorizeParams) (*AgentAuthorize, error) {
 	r := a.c.newRequest("POST", "/v1/agent/connect/authorize")
 	r.obj = auth
@@ -585,9 +582,6 @@ func (a *Agent) ConnectAuthorize(auth *AgentAuthorizeParams) (*AgentAuthorize, e
 }
 
 // ConnectCARoots returns the list of roots.
-//
-// TODO(mitchellh): we need to test this better once we have a way to
-// configure CAs from the API package (when the CA work is done).
 func (a *Agent) ConnectCARoots(q *QueryOptions) (*CARootList, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/agent/connect/ca/roots")
 	r.setQueryOptions(q)
