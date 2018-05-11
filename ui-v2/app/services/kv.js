@@ -10,9 +10,18 @@ export default Service.extend({
   // this one gives you the full object so key,values and meta
   findBySlug: function(key, dc) {
     if (isFolder(key)) {
-      return Promise.resolve({
-        Key: key,
-      });
+      const id = JSON.stringify([dc, key]);
+      let item = get(this, 'store').peekRecord('kv', id);
+      if (!item) {
+        item = this.create();
+        set(item, 'Key', key);
+        set(item, 'Datacenter', dc);
+      }
+      return Promise.resolve(item);
+      // return Promise.resolve({
+      //   Key: key,
+      //   Datacenter: dc
+      // });
     }
     return get(this, 'store')
       .queryRecord('kv', {

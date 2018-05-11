@@ -14,27 +14,32 @@ export default Route.extend(WithKvActions, {
     return hash({
       isLoading: false,
       parent: repo.findBySlug(key, dc),
-    }).then(function(model) {
+    }).then(model => {
       return hash({
         ...model,
         ...{
-          items: repo.findAllBySlug(get(model.parent, 'Key'), dc),
+          items: repo.findAllBySlug(get(model.parent, 'Key'), dc).catch(e => {
+            this.cleanFolder();
+            return this.transitionTo('dc.kv.index');
+          }),
         },
       });
     });
   },
+  cleanFolder: function() {
+    const params = this.paramsFor(this.routeName);
+    const dc = this.modelFor('dc').dc.Name;
+    const id = JSON.stringify([dc, params.key]);
+    const record = get(this, 'store').peekRecord('kv', id);
+    if (record) {
+      record.unloadRecord();
+    }
+  },
   actions: {
     error: function(e) {
       if (e.errors && e.errors[0] && e.errors[0].status == '404') {
-        const params = this.paramsFor(this.routeName);
-        const dc = this.modelFor('dc').dc.Name;
-        const id = JSON.stringify([dc, params.key]);
-        const record = get(this, 'store').peekRecord('kv', id);
-        if (record) {
-          record.unloadRecord();
-        }
-        this.transitionTo('dc.kv.index');
-        return false;
+        this.cleanFolder();
+        return this.transitionTo('dc.kv.index').followRedirects();
       }
       throw e;
     },
