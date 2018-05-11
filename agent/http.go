@@ -152,9 +152,9 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 		if err != nil {
 			new_ui = false
 		}
-		var uifs http.FileSystem;
+		var uifs http.FileSystem
 
-		// Use the custom UI dir if provided.		
+		// Use the custom UI dir if provided.
 		if s.agent.config.UIDir != "" {
 			uifs = http.Dir(s.agent.config.UIDir)
 		} else {
@@ -164,14 +164,14 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 				fs.Prefix += "/v2/"
 			} else {
 				fs.Prefix += "/v1/"
-			}		
+			}
 			uifs = fs
 		}
-		
+
 		if new_ui {
-			uifs = &redirectFS{fs:uifs}	
+			uifs = &redirectFS{fs: uifs}
 		}
-		
+
 		mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(uifs)))
 	}
 

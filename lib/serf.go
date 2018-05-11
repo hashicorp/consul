@@ -23,6 +23,5 @@ func SerfDefaultConfig() *serf.Config {
 	// (using https://www.serf.io/docs/internals/simulator.html).
 	base.LeavePropagateDelay = 3 * time.Second
 
-
 	return base
 }
