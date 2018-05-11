@@ -1135,7 +1135,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
       is overlap between two rules, the more specific rule will take precedence. Blocking will take priority if the same
       prefix is listed multiple times.
 
-    * <a name="telemetry-prometheus_retention_time"></a><a href="telemetry-prometheus_retention_time">prometheus_retention_time</a>
+    * <a name="telemetry-prometheus_retention_time"></a><a href="#telemetry-prometheus_retention_time">prometheus_retention_time</a>
       If the value is greater than `0s` (the default), this enables [Prometheus](https://prometheus.io/) export of metrics.
       The duration can be expressed using the duration semantics and will aggregates all counters for the duration specified
       (it might have an impact on Consul's memory usage). A good value for this parameter is at least 2 times the interval of scrape
