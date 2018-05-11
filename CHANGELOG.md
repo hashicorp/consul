@@ -21,6 +21,7 @@ IMPROVEMENTS:
 
 * agent: Improve DNS performance on large clusters [[GH-4036](https://github.com/hashicorp/consul/issues/4036)]
 * agent: `start_join`, `start_join_wan`, `retry_join`, `retry_join_wan` config params now all support go-sockaddr templates [[GH-4102](https://github.com/hashicorp/consul/pull/4102)]
+* server: Added new configuration options `raft_snapshot_interval` and `raft_snapshot_threshold` to allow operators to  configure how often servers take raft snapshots. The default values for these have been tuned for large and busy clusters with high write load. [[GH-4105](https://github.com/hashicorp/consul/pull/4105/)]
 
 BUG FIXES:
 
