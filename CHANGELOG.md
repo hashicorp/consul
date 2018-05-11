@@ -7,6 +7,7 @@ Setting the `CONSUL_UI_BETA` environment variable to `1` or `true` will replace 
 with the new one. The existing UI will be deprecated and removed in a future release. [[GH-4086](https://github.com/hashicorp/consul/pull/4086)]
 * api: Added support for Prometheus client format in metrics endpoint with `?format=prometheus` (see [docs](https://www.consul.io/api/agent.html#view-metrics)) [[GH-4014](https://github.com/hashicorp/consul/issues/4014)]
 * agent: New Cloud Auto-join provider: Joyent Triton. [[GH-4108](https://github.com/hashicorp/consul/pull/4108)]
+* agent: (Consul Enterprise) Implemented license management with license propagation within a datacenter.
 
 BREAKING CHANGES:
 
