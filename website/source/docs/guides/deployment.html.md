@@ -10,7 +10,7 @@ description: |-
 
 As applications are migrated to dynamically provisioned infrastructure, scaling services and managing the communications between them becomes challenging. Consul’s service discovery capabilities provide the connectivity between dynamic applications. Consul also monitors the health of each node and its applications to ensure that only healthy service instances are discovered. Consul’s distributed runtime configuration store allows updates across global infrastructure.
 
-The goal of this document is to recommend best practice approaches for Consul production deployments. The guide provides recommendations on system requirements, data center design, networking, and performance optimizations for Consul cluster based on the latest Consul (1.0.7) release.
+The goal of this document is to recommend best practice approaches for Consul production deployments. The guide provides recommendations on system requirements, datacenter design, networking, and performance optimizations for Consul cluster based on the latest Consul (1.0.7) release.
 
 This document assumes a basic working knowledge of Consul.
 
@@ -35,27 +35,41 @@ The **small size** instance configuration is appropriate for most initial produc
 
 ## 1.1 Datacenter Design
 
-A Consul cluster (typically 3 or 5 servers plus client agents) may be deployed in a single physical data center or it may span multiple data centers. For a large cluster with high runtime reads and writes, deploying the servers in the same physical location improves the performance. In cloud environments, a single data center may be deployed across multiple availability zones i.e. each server in a separate availability zone within a single EC2 instance. Consul also supports multi-data center deployments with two separate clusters joined by the WAN links or in some cases, based on the deployments, one may also deploy two or more Consul clusters in the same LAN environment.
+A Consul cluster (typically 3 or 5 servers plus client agents) may be deployed in a single physical datacenter or it may span multiple datacenters. For a large cluster with high runtime reads and writes, deploying servers in the same physical location improves performance. In cloud environments, a single datacenter may be deployed across multiple availability zones i.e. each server in a separate availability zone within a single EC2 instance. Consul also supports multi-datacenter deployments via two separate clusters joined by WAN links. In some cases, one may also deploy two or more Consul clusters in the same LAN environment.
+
+~> TODO Clarify third sentence above: datacenter, AZ, instance
 
 ### 1.1.1 Single Datacenter
 
-A single Consul cluster is recommended for applications deployed in the same data center. Consul supports traditional three tier applications as well as microservices.
+A single Consul cluster is recommended for applications deployed in the same datacenter. Consul supports traditional three-tier applications as well as microservices.
 
-Typically, there must be three or  five servers to balance between availability and performance. These servers together run the Raft driven consistent state store for catalog, sessions, prepared queries, ACLs and K/V updates.
+Typically, there must be three or five servers to balance between availability and performance. These servers together run the Raft-driven consistent state store for catalog, session, prepared query, ACL, and K/V updates.
 
-Recommended maximum cluster size for a single data center is about 5000 nodes. For a write-heavy and/or a read-heavy cluster, the sizing may need to  be reduced further, considering the impact of the number and the size of K/V values and the watches.The time taken The time taken for gossip to converge increases as more client machines are added.Similarly, time taken by the new server to join an existing multi-thousand node with a large K/V store and update rate may increase as they are replicated to the new server’s log.
+~> TODO Does the following mean `reduced` or `increased`? Also `size of K/V and watches` (is it the size of watches or the number?).
 
-If two services (green and blue) are running on the same cluster, appropriate service tags must be used to identify between them. If the query is made without the tags, nodes running both blue and green services may show up in the results of that query.
+The recommended maximum cluster size for a single datacenter is `5,000` nodes. For a write-heavy and/or a read-heavy cluster, the sizing may need to be reduced further, considering the impact of the number and the size of K/V values and the watches. The time taken for gossip to converge increases as more client machines are added. Similarly, the time taken by the new server to join an existing multi-thousand node cluster with a large K/V store and update rate may increase as they are replicated to the new server’s log.
 
-In use cases where there cannot be a full mesh among all the agents due to network segmentation, Consul’s network segments can be used.Network segments is an Enterprise feature that allows creation of multiple tenants sharing the raft servers in the same cluster. Each tenant has its own gossip pool and doesn’t communicate with the agents outside this pool. KV store, however, is shared between the tenants. Without network segments, the isolation between the agents can be accomplished by creating discrete Consul datacenters.
+One must take care to use service tags in a way that assists with the kinds of queries that will be run against the cluster. If two services (e.g. green and blue) are running on the same cluster, appropriate service tags must be used to identify between them. If a query is made without tags, nodes running both blue and green services may show up in the results of the query.
+
+~> TODO Might the above be something like a release number, or `current`, or is it something else?
+
+In cases where a full mesh among all agents cannot be established due to network segmentation, Consul’s own network segments can be used. Network segments is an Enterprise feature that allows the creation of multiple tenants which share Raft servers in the same cluster. Each tenant has its own gossip pool and doesn’t communicate with the agents outside this pool. The K/V store, however, is shared between all tenants. If Consul network segments cannot be used, isolation between agents can be accomplished by creating discrete Consul datacenters.
+
+~> TODO The above makes it sound like `Consul datacenter` is a feature. Does this mean `running Consul clusters in separate datacenters`?
 
 ### 1.1.2 Multiple Datacenters
 
-Consul clusters in different data centers running the same service can be joined by WAN links. The clusters operate independently and only the servers communicate over the WAN on port 8302.Unless explicitly called out in the CLI or the API, the consul server will only return results from the local data center. Consul does not replicate data between two data centers. Consul-replicate tool can be used to replicate the KV data periodically. Good practice is to enable TLS server name checking to avoid accidental cross-joining of agents.
+Consul clusters in different datacenters running the same service can be joined by WAN links. The clusters operate independently and only communicate over the WAN on port `8302`. Unless explicitly configured via CLI or API, the Consul server will only return results from the local datacenter. Consul does not replicate data between multiple datacenters. The Consul-replicate tool can be used to replicate the K/V data periodically.
 
-Advanced federation can be achieved by Network Areas (Enterprise).A typical use case here is datacenter1(dc1) hosts shared services like LDAP (or ACL datacenter) leveraged by all other datacenters. However, due to compliance issues, servers in dc2 must not connect with servers in dc3.This cannot be accomplished with the basic WAN federation.Basic federation requires that all the servers in dc1, dc2 and dc3 are connected in a full mesh and opens both gossip (8302 tcp/udp) and RPC (8300) ports for communication. Network areas allows peering between data centers to make the services discoverable over WAN. With network areas, servers in dc1 can communicate with those in dc2 and dc3. However, no connectivity needs to be established between dc2 and dc3 which meets the compliance requirement of the organization in this use case. Servers that are part of the network area communicate over RPC only. This removes the overhead of sharing and maintaining symmetric key used by gossip across data centers. It also reduces the attack surface at the gossip ports no longer need to be opened in the security gateways/firewalls.
+~> NOTE: A good practice is to enable TLS server name checking to avoid accidental cross-joining of agents.
 
-Consul’s prepared query allows clients to do a datacenter failover for service discovery. For e.g. if a service “foo” in the local data center dc1 goes down, prepared query lets users define a geo fall back order to the nearest data center to check for healthy instances of the same service. Consul clusters must be WAN linked for prepared query to take effect. Prepared query, by default, resolves the query in the local data center first. Querying K/V store features is not supported by the prepared query. Prepared query works with ACL. Prepared query config/templates are maintained consistently in raft and are executed on the servers.
+~> TODO Check capitalization of `consul-replicate`
+
+~> TODO RESUME EDITING
+
+Advanced federation can be achieved with Network Areas (Enterprise). A typical use case is datacenter1 (dc1) hosts shared services like LDAP (or ACL datacenter) leveraged by all other datacenters. However, due to compliance issues, servers in dc2 must not connect with servers in dc3. This cannot be accomplished with the basic WAN federation. Basic federation requires that all the servers in dc1, dc2 and dc3 are connected in a full mesh and opens both gossip (8302 tcp/udp) and RPC (8300) ports for communication. Network areas allows peering between datacenters to make the services discoverable over WAN. With network areas, servers in dc1 can communicate with those in dc2 and dc3. However, no connectivity needs to be established between dc2 and dc3 which meets the compliance requirement of the organization in this use case. Servers that are part of the network area communicate over RPC only. This removes the overhead of sharing and maintaining symmetric key used by gossip across datacenters. It also reduces the attack surface at the gossip ports no longer need to be opened in the security gateways/firewalls.
+
+Consul’s prepared query allows clients to do a datacenter failover for service discovery. For e.g. if a service “foo” in the local datacenter dc1 goes down, prepared query lets users define a geo fall back order to the nearest datacenter to check for healthy instances of the same service. Consul clusters must be WAN linked for prepared query to take effect. Prepared query, by default, resolves the query in the local datacenter first. Querying K/V store features is not supported by the prepared query. Prepared query works with ACL. Prepared query config/templates are maintained consistently in raft and are executed on the servers.
 
 ## 1.2 Network Connectivity
 
