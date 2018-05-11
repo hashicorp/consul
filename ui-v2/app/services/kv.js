@@ -18,10 +18,6 @@ export default Service.extend({
         set(item, 'Datacenter', dc);
       }
       return Promise.resolve(item);
-      // return Promise.resolve({
-      //   Key: key,
-      //   Datacenter: dc
-      // });
     }
     return get(this, 'store')
       .queryRecord('kv', {
