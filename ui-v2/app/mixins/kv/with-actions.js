@@ -2,7 +2,7 @@ import Mixin from '@ember/object/mixin';
 import { get, set } from '@ember/object';
 import WithFeedback from 'consul-ui/mixins/with-feedback';
 
-const transitionToList = function(key, transitionTo) {
+const transitionToList = function(key = '/', transitionTo) {
   if (key === '/') {
     return transitionTo('dc.kv.index');
   } else {
@@ -45,6 +45,7 @@ export default Mixin.create(WithFeedback, {
             .remove(item)
             .then(() => {
               switch (this.routeName) {
+                case 'dc.kv.folder':
                 case 'dc.kv.index':
                   return this.refresh();
                 default:

@@ -66,6 +66,6 @@ export default Service.extend({
     });
   },
   invalidate: function() {
-    get(this, 'store').unloadAll('kv');
+    return get(this, 'store').unloadAll('kv');
   },
 });
