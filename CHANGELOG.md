@@ -6,10 +6,11 @@ FEATURES:
 Setting the `CONSUL_UI_BETA` environment variable to any value will replace the existing UI
 with the new one. The existing UI will be deprecated and removed in a future release. [[GH-4086](https://github.com/hashicorp/consul/pull/4086)]
 * api: Added support for Prometheus client format in metrics endpoint with `?format=prometheus` (see [docs](https://www.consul.io/api/agent.html#view-metrics)) [[GH-4014](https://github.com/hashicorp/consul/issues/4014)]
+* agent: New Cloud Auto-join provider: Joyent Triton. [[GH-4108](https://github.com/hashicorp/consul/pull/4108)]
 
 BREAKING CHANGES:
 
-* agent: The following previously deprecated fields and config options have been removed:
+* agent: The following previously deprecated fields and config options have been removed [[GH-4097](https://github.com/hashicorp/consul/pull/4097)]:
   - `CheckID` has been removed from config file check definitions (use `id` instead).
   - `script` has been removed from config file check definitions (use `args` instead).
   - `enableTagOverride` is no longer valid in service definitions (use `enable_tag_override` instead).
