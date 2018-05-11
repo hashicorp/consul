@@ -123,9 +123,9 @@ func (s *HTTPServer) IntentionMatch(resp http.ResponseWriter, req *http.Request)
 }
 
 // GET /v1/connect/intentions/test
-func (s *HTTPServer) IntentionTest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPServer) IntentionCheck(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Prepare args
-	args := &structs.IntentionQueryRequest{Test: &structs.IntentionQueryTest{}}
+	args := &structs.IntentionQueryRequest{Check: &structs.IntentionQueryCheck{}}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
@@ -133,9 +133,9 @@ func (s *HTTPServer) IntentionTest(resp http.ResponseWriter, req *http.Request) 
 	q := req.URL.Query()
 
 	// Set the source type if set
-	args.Test.SourceType = structs.IntentionSourceConsul
+	args.Check.SourceType = structs.IntentionSourceConsul
 	if sourceType, ok := q["source-type"]; ok && len(sourceType) > 0 {
-		args.Test.SourceType = structs.IntentionSourceType(sourceType[0])
+		args.Check.SourceType = structs.IntentionSourceType(sourceType[0])
 	}
 
 	// Extract the source/destination
@@ -149,14 +149,14 @@ func (s *HTTPServer) IntentionTest(resp http.ResponseWriter, req *http.Request) 
 	}
 
 	// We parse them the same way as matches to extract namespace/name
-	args.Test.SourceName = source[0]
-	if args.Test.SourceType == structs.IntentionSourceConsul {
+	args.Check.SourceName = source[0]
+	if args.Check.SourceType == structs.IntentionSourceConsul {
 		entry, err := parseIntentionMatchEntry(source[0])
 		if err != nil {
 			return nil, fmt.Errorf("source %q is invalid: %s", source[0], err)
 		}
-		args.Test.SourceNS = entry.Namespace
-		args.Test.SourceName = entry.Name
+		args.Check.SourceNS = entry.Namespace
+		args.Check.SourceName = entry.Name
 	}
 
 	// The destination is always in the Consul format
@@ -164,11 +164,11 @@ func (s *HTTPServer) IntentionTest(resp http.ResponseWriter, req *http.Request) 
 	if err != nil {
 		return nil, fmt.Errorf("destination %q is invalid: %s", destination[0], err)
 	}
-	args.Test.DestinationNS = entry.Namespace
-	args.Test.DestinationName = entry.Name
+	args.Check.DestinationNS = entry.Namespace
+	args.Check.DestinationName = entry.Name
 
-	var reply structs.IntentionQueryTestResponse
-	if err := s.agent.RPC("Intention.Test", args, &reply); err != nil {
+	var reply structs.IntentionQueryCheckResponse
+	if err := s.agent.RPC("Intention.Check", args, &reply); err != nil {
 		return nil, err
 	}
 

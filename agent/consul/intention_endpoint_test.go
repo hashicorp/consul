@@ -1009,8 +1009,8 @@ service "bar" {
 	}
 }
 
-// Test the Test method defaults to allow with no ACL set.
-func TestIntentionTest_defaultNoACL(t *testing.T) {
+// Test the Check method defaults to allow with no ACL set.
+func TestIntentionCheck_defaultNoACL(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
@@ -1025,7 +1025,7 @@ func TestIntentionTest_defaultNoACL(t *testing.T) {
 	// Test
 	req := &structs.IntentionQueryRequest{
 		Datacenter: "dc1",
-		Test: &structs.IntentionQueryTest{
+		Check: &structs.IntentionQueryCheck{
 			SourceNS:        "foo",
 			SourceName:      "bar",
 			DestinationNS:   "foo",
@@ -1033,13 +1033,13 @@ func TestIntentionTest_defaultNoACL(t *testing.T) {
 			SourceType:      structs.IntentionSourceConsul,
 		},
 	}
-	var resp structs.IntentionQueryTestResponse
-	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Test", req, &resp))
+	var resp structs.IntentionQueryCheckResponse
+	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Check", req, &resp))
 	require.True(resp.Allowed)
 }
 
-// Test the Test method defaults to deny with whitelist ACLs.
-func TestIntentionTest_defaultACLDeny(t *testing.T) {
+// Test the Check method defaults to deny with whitelist ACLs.
+func TestIntentionCheck_defaultACLDeny(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
@@ -1055,10 +1055,10 @@ func TestIntentionTest_defaultACLDeny(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	// Test
+	// Check
 	req := &structs.IntentionQueryRequest{
 		Datacenter: "dc1",
-		Test: &structs.IntentionQueryTest{
+		Check: &structs.IntentionQueryCheck{
 			SourceNS:        "foo",
 			SourceName:      "bar",
 			DestinationNS:   "foo",
@@ -1067,13 +1067,13 @@ func TestIntentionTest_defaultACLDeny(t *testing.T) {
 		},
 	}
 	req.Token = "root"
-	var resp structs.IntentionQueryTestResponse
-	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Test", req, &resp))
+	var resp structs.IntentionQueryCheckResponse
+	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Check", req, &resp))
 	require.False(resp.Allowed)
 }
 
-// Test the Test method defaults to deny with blacklist ACLs.
-func TestIntentionTest_defaultACLAllow(t *testing.T) {
+// Test the Check method defaults to deny with blacklist ACLs.
+func TestIntentionCheck_defaultACLAllow(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
@@ -1089,10 +1089,10 @@ func TestIntentionTest_defaultACLAllow(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	// Test
+	// Check
 	req := &structs.IntentionQueryRequest{
 		Datacenter: "dc1",
-		Test: &structs.IntentionQueryTest{
+		Check: &structs.IntentionQueryCheck{
 			SourceNS:        "foo",
 			SourceName:      "bar",
 			DestinationNS:   "foo",
@@ -1101,13 +1101,13 @@ func TestIntentionTest_defaultACLAllow(t *testing.T) {
 		},
 	}
 	req.Token = "root"
-	var resp structs.IntentionQueryTestResponse
-	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Test", req, &resp))
+	var resp structs.IntentionQueryCheckResponse
+	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Check", req, &resp))
 	require.True(resp.Allowed)
 }
 
-// Test the Test method requires service:read permission.
-func TestIntentionTest_aclDeny(t *testing.T) {
+// Test the Check method requires service:read permission.
+func TestIntentionCheck_aclDeny(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
@@ -1144,10 +1144,10 @@ service "bar" {
 		require.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
 	}
 
-	// Test
+	// Check
 	req := &structs.IntentionQueryRequest{
 		Datacenter: "dc1",
-		Test: &structs.IntentionQueryTest{
+		Check: &structs.IntentionQueryCheck{
 			SourceNS:        "foo",
 			SourceName:      "qux",
 			DestinationNS:   "foo",
@@ -1156,13 +1156,13 @@ service "bar" {
 		},
 	}
 	req.Token = token
-	var resp structs.IntentionQueryTestResponse
-	err := msgpackrpc.CallWithCodec(codec, "Intention.Test", req, &resp)
+	var resp structs.IntentionQueryCheckResponse
+	err := msgpackrpc.CallWithCodec(codec, "Intention.Check", req, &resp)
 	require.True(acl.IsErrPermissionDenied(err))
 }
 
-// Test the Test method returns allow/deny properly.
-func TestIntentionTest_match(t *testing.T) {
+// Test the Check method returns allow/deny properly.
+func TestIntentionCheck_match(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
@@ -1227,10 +1227,10 @@ service "bar" {
 		}
 	}
 
-	// Test
+	// Check
 	req := &structs.IntentionQueryRequest{
 		Datacenter: "dc1",
-		Test: &structs.IntentionQueryTest{
+		Check: &structs.IntentionQueryCheck{
 			SourceNS:        "foo",
 			SourceName:      "qux",
 			DestinationNS:   "foo",
@@ -1239,15 +1239,15 @@ service "bar" {
 		},
 	}
 	req.Token = token
-	var resp structs.IntentionQueryTestResponse
-	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Test", req, &resp))
+	var resp structs.IntentionQueryCheckResponse
+	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Check", req, &resp))
 	require.True(resp.Allowed)
 
 	// Test no match for sanity
 	{
 		req := &structs.IntentionQueryRequest{
 			Datacenter: "dc1",
-			Test: &structs.IntentionQueryTest{
+			Check: &structs.IntentionQueryCheck{
 				SourceNS:        "baz",
 				SourceName:      "qux",
 				DestinationNS:   "foo",
@@ -1256,8 +1256,8 @@ service "bar" {
 			},
 		}
 		req.Token = token
-		var resp structs.IntentionQueryTestResponse
-		require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Test", req, &resp))
+		var resp structs.IntentionQueryCheckResponse
+		require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Check", req, &resp))
 		require.False(resp.Allowed)
 	}
 }

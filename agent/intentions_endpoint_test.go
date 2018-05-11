@@ -181,7 +181,7 @@ func TestIntentionsMatch_noName(t *testing.T) {
 	assert.Nil(obj)
 }
 
-func TestIntentionsTest_basic(t *testing.T) {
+func TestIntentionsCheck_basic(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
@@ -219,9 +219,9 @@ func TestIntentionsTest_basic(t *testing.T) {
 		req, _ := http.NewRequest("GET",
 			"/v1/connect/intentions/test?source=foo/bar&destination=foo/baz", nil)
 		resp := httptest.NewRecorder()
-		obj, err := a.srv.IntentionTest(resp, req)
+		obj, err := a.srv.IntentionCheck(resp, req)
 		require.Nil(err)
-		value := obj.(*structs.IntentionQueryTestResponse)
+		value := obj.(*structs.IntentionQueryCheckResponse)
 		require.False(value.Allowed)
 	}
 
@@ -230,14 +230,14 @@ func TestIntentionsTest_basic(t *testing.T) {
 		req, _ := http.NewRequest("GET",
 			"/v1/connect/intentions/test?source=foo/bar&destination=bar/qux", nil)
 		resp := httptest.NewRecorder()
-		obj, err := a.srv.IntentionTest(resp, req)
+		obj, err := a.srv.IntentionCheck(resp, req)
 		require.Nil(err)
-		value := obj.(*structs.IntentionQueryTestResponse)
+		value := obj.(*structs.IntentionQueryCheckResponse)
 		require.True(value.Allowed)
 	}
 }
 
-func TestIntentionsTest_noSource(t *testing.T) {
+func TestIntentionsCheck_noSource(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
@@ -248,13 +248,13 @@ func TestIntentionsTest_noSource(t *testing.T) {
 	req, _ := http.NewRequest("GET",
 		"/v1/connect/intentions/test?destination=B", nil)
 	resp := httptest.NewRecorder()
-	obj, err := a.srv.IntentionTest(resp, req)
+	obj, err := a.srv.IntentionCheck(resp, req)
 	require.NotNil(err)
 	require.Contains(err.Error(), "'source' not set")
 	require.Nil(obj)
 }
 
-func TestIntentionsTest_noDestination(t *testing.T) {
+func TestIntentionsCheck_noDestination(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
@@ -265,7 +265,7 @@ func TestIntentionsTest_noDestination(t *testing.T) {
 	req, _ := http.NewRequest("GET",
 		"/v1/connect/intentions/test?source=B", nil)
 	resp := httptest.NewRecorder()
-	obj, err := a.srv.IntentionTest(resp, req)
+	obj, err := a.srv.IntentionCheck(resp, req)
 	require.NotNil(err)
 	require.Contains(err.Error(), "'destination' not set")
 	require.Nil(obj)

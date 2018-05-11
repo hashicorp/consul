@@ -261,9 +261,9 @@ type IntentionQueryRequest struct {
 	// resolving wildcards.
 	Match *IntentionQueryMatch
 
-	// Test is non-nil if we're performing a test query. A test will
+	// Check is non-nil if we're performing a test query. A test will
 	// return allowed/deny based on an exact match.
-	Test *IntentionQueryTest
+	Check *IntentionQueryCheck
 
 	// Options for queries
 	QueryOptions
@@ -317,8 +317,8 @@ type IntentionMatchEntry struct {
 	Name      string
 }
 
-// IntentionQueryTest are the parameters for performing a test request.
-type IntentionQueryTest struct {
+// IntentionQueryCheck are the parameters for performing a test request.
+type IntentionQueryCheck struct {
 	// SourceNS, SourceName, DestinationNS, and DestinationName are the
 	// source and namespace, respectively, for the test. These must be
 	// exact values.
@@ -332,12 +332,12 @@ type IntentionQueryTest struct {
 // GetACLPrefix returns the prefix to look up the ACL policy for this
 // request, and a boolean noting whether the prefix is valid to check
 // or not. You must check the ok value before using the prefix.
-func (q *IntentionQueryTest) GetACLPrefix() (string, bool) {
+func (q *IntentionQueryCheck) GetACLPrefix() (string, bool) {
 	return q.DestinationName, q.DestinationName != ""
 }
 
-// IntentionQueryTestResponse is the response for a test request.
-type IntentionQueryTestResponse struct {
+// IntentionQueryCheckResponse is the response for a test request.
+type IntentionQueryCheckResponse struct {
 	Allowed bool
 }
 

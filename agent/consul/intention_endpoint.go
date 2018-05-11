@@ -254,24 +254,24 @@ func (s *Intention) Match(
 	)
 }
 
-// Test tests a source/destination and returns whether it would be allowed
+// Check tests a source/destination and returns whether it would be allowed
 // or denied based on the current ACL configuration.
 //
 // Note: Whenever the logic for this method is changed, you should take
 // a look at the agent authorize endpoint (agent/agent_endpoint.go) since
 // the logic there is similar.
-func (s *Intention) Test(
+func (s *Intention) Check(
 	args *structs.IntentionQueryRequest,
-	reply *structs.IntentionQueryTestResponse) error {
+	reply *structs.IntentionQueryCheckResponse) error {
 	// Forward maybe
-	if done, err := s.srv.forward("Intention.Test", args, args, reply); done {
+	if done, err := s.srv.forward("Intention.Check", args, args, reply); done {
 		return err
 	}
 
 	// Get the test args, and defensively guard against nil
-	query := args.Test
+	query := args.Check
 	if query == nil {
-		return errors.New("Test must be specified on args")
+		return errors.New("Check must be specified on args")
 	}
 
 	// Build the URI
@@ -322,7 +322,7 @@ func (s *Intention) Test(
 		return errors.New("internal error loading matches")
 	}
 
-	// Test the authorization for each match
+	// Check the authorization for each match
 	for _, ixn := range matches[0] {
 		if auth, ok := uri.Authorize(ixn); ok {
 			reply.Allowed = auth
