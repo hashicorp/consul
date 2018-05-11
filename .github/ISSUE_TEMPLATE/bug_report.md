@@ -29,7 +29,7 @@ output from client 'consul info' command here
 <details>
 
 <details>
-  <summary>Client info</summary>
+  <summary>Server info</summary>
 ```
 output from server 'consul info' command here
 ```
