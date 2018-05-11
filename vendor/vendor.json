@@ -110,6 +110,8 @@
 		{"path":"github.com/stretchr/testify/require","checksumSHA1":"KqYmXUcuGwsvBL6XVsQnXsFb3LI=","revision":"c679ae2cc0cb27ec3293fea7e254e47386f05d69","revisionTime":"2018-03-14T08:05:35Z"},
 		{"path":"github.com/tonnerre/golang-text","checksumSHA1":"t24KnvC9jRxiANVhpw2pqFpmEu8=","revision":"048ed3d792f7104850acbc8cfc01e5a6070f4c04","revisionTime":"2013-09-25T19:58:46Z"},
 		{"path":"golang.org/x/crypto/curve25519","checksumSHA1":"IQkUIOnvlf0tYloFx9mLaXSvXWQ=","revision":"2d027ae1dddd4694d54f7a8b6cbe78dca8720226","revisionTime":"2018-05-09T20:48:04Z"},
+		{"path":"golang.org/x/crypto/ed25519","checksumSHA1":"VqyzfAMKyP6SoLnPHcwhkrICBo0=","revision":"2d027ae1dddd4694d54f7a8b6cbe78dca8720226","revisionTime":"2018-05-09T20:48:04Z"},
+		{"path":"golang.org/x/crypto/ed25519/internal/edwards25519","checksumSHA1":"0JTAFXPkankmWcZGQJGScLDiaN8=","revision":"2d027ae1dddd4694d54f7a8b6cbe78dca8720226","revisionTime":"2018-05-09T20:48:04Z"},
 		{"path":"golang.org/x/crypto/internal/chacha20","checksumSHA1":"SEPNUEkZaGKt3dkO3B13pRAp6ho=","revision":"2d027ae1dddd4694d54f7a8b6cbe78dca8720226","revisionTime":"2018-05-09T20:48:04Z"},
 		{"path":"golang.org/x/crypto/poly1305","checksumSHA1":"kVKE0OX1Xdw5mG7XKT86DLLKE2I=","revision":"2d027ae1dddd4694d54f7a8b6cbe78dca8720226","revisionTime":"2018-05-09T20:48:04Z"},
 		{"path":"golang.org/x/crypto/ssh","checksumSHA1":"acLRVrKhcyCKY585ZGjamSwx2jQ=","revision":"2d027ae1dddd4694d54f7a8b6cbe78dca8720226","revisionTime":"2018-05-09T20:48:04Z"},
