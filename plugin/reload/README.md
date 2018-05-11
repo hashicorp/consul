@@ -6,6 +6,9 @@
 
 ## Description
 
+This plugin allows automatic reload of a changed _Corefile_.
+To enable automatic reloading of _zone file_ changes, use the `auto` plugin.
+
 This plugin periodically checks if the Corefile has changed by reading
 it and calculating its MD5 checksum. If the file has changed, it reloads
 CoreDNS with the new Corefile. This eliminates the need to send a SIGHUP
