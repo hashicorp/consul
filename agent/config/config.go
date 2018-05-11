@@ -266,7 +266,6 @@ type Consul struct {
 		ElectionTimeout    *string `json:"election_timeout,omitempty" hcl:"election_timeout" mapstructure:"election_timeout"`
 		HeartbeatTimeout   *string `json:"heartbeat_timeout,omitempty" hcl:"heartbeat_timeout" mapstructure:"heartbeat_timeout"`
 		LeaderLeaseTimeout *string `json:"leader_lease_timeout,omitempty" hcl:"leader_lease_timeout" mapstructure:"leader_lease_timeout"`
-		SnapshotThreshold  *int    `json:"snapshot_threshold,omitempty" hcl:"snapshot_threshold" mapstructure:"snapshot_threshold"`
 	} `json:"raft,omitempty" hcl:"raft" mapstructure:"raft"`
 
 	SerfLAN struct {
