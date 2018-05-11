@@ -165,7 +165,7 @@ Proxy everything except `example.org` using the host's `resolv.conf`'s nameserve
 ~~~ corefile
 . {
     proxy . /etc/resolv.conf {
-        except miek.nl example.org
+        except example.org
     }
 }
 ~~~
