@@ -1,7 +1,7 @@
 'use strict';
 
 const EmberApp = require('ember-cli/lib/broccoli/ember-app');
-
+const stew = require('broccoli-stew');
 module.exports = function(defaults) {
   let app = new EmberApp(defaults, {
     'ember-cli-babel': {
@@ -43,6 +43,9 @@ module.exports = function(defaults) {
   // modules that you would like to import into your application
   // please specify an object with the list of modules as keys
   // along with the exports of each module as its value.
-
-  return app.toTree();
+  let tree = app.toTree();
+  if (app.env === 'production') {
+    tree = stew.rm(tree, 'consul-api-double');
+  }
+  return tree;
 };
