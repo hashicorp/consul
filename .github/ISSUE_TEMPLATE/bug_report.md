@@ -23,17 +23,21 @@ Steps to reproduce this issue, eg:
 
 <details>
   <summary>Client info</summary>
+
 ```
 output from client 'consul info' command here
 ```
-<details>
+
+</details>
 
 <details>
   <summary>Server info</summary>
+
 ```
 output from server 'consul info' command here
 ```
-<details>
+
+</details>
 
 ### Operating system and Environment details
 
