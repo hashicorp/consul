@@ -261,6 +261,10 @@ type IntentionQueryRequest struct {
 	// resolving wildcards.
 	Match *IntentionQueryMatch
 
+	// Test is non-nil if we're performing a test query. A test will
+	// return allowed/deny based on an exact match.
+	Test *IntentionQueryTest
+
 	// Options for queries
 	QueryOptions
 }
@@ -311,6 +315,30 @@ type IntentionQueryMatch struct {
 type IntentionMatchEntry struct {
 	Namespace string
 	Name      string
+}
+
+// IntentionQueryTest are the parameters for performing a test request.
+type IntentionQueryTest struct {
+	// SourceNS, SourceName, DestinationNS, and DestinationName are the
+	// source and namespace, respectively, for the test. These must be
+	// exact values.
+	SourceNS, SourceName           string
+	DestinationNS, DestinationName string
+
+	// SourceType is the type of the value for the source.
+	SourceType IntentionSourceType
+}
+
+// GetACLPrefix returns the prefix to look up the ACL policy for this
+// request, and a boolean noting whether the prefix is valid to check
+// or not. You must check the ok value before using the prefix.
+func (q *IntentionQueryTest) GetACLPrefix() (string, bool) {
+	return q.DestinationName, q.DestinationName != ""
+}
+
+// IntentionQueryTestResponse is the response for a test request.
+type IntentionQueryTestResponse struct {
+	Allowed bool
 }
 
 // IntentionPrecedenceSorter takes a list of intentions and sorts them

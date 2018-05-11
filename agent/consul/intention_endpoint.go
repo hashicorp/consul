@@ -7,6 +7,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
@@ -251,4 +252,93 @@ func (s *Intention) Match(
 			return nil
 		},
 	)
+}
+
+// Test tests a source/destination and returns whether it would be allowed
+// or denied based on the current ACL configuration.
+func (s *Intention) Test(
+	args *structs.IntentionQueryRequest,
+	reply *structs.IntentionQueryTestResponse) error {
+	// Get the test args, and defensively guard against nil
+	query := args.Test
+	if query == nil {
+		return errors.New("Test must be specified on args")
+	}
+
+	// Build the URI
+	var uri connect.CertURI
+	switch query.SourceType {
+	case structs.IntentionSourceConsul:
+		uri = &connect.SpiffeIDService{
+			Namespace: query.SourceNS,
+			Service:   query.SourceName,
+		}
+
+	default:
+		return fmt.Errorf("unsupported SourceType: %q", query.SourceType)
+	}
+
+	// Get the ACL token for the request for the checks below.
+	rule, err := s.srv.resolveToken(args.Token)
+	if err != nil {
+		return err
+	}
+
+	// Perform the ACL check
+	if prefix, ok := query.GetACLPrefix(); ok {
+		if rule != nil && !rule.ServiceRead(prefix) {
+			s.srv.logger.Printf("[WARN] consul.intention: test on intention '%s' denied due to ACLs", prefix)
+			return acl.ErrPermissionDenied
+		}
+	}
+
+	// Get the matches for this destination
+	state := s.srv.fsm.State()
+	_, matches, err := state.IntentionMatch(nil, &structs.IntentionQueryMatch{
+		Type: structs.IntentionMatchDestination,
+		Entries: []structs.IntentionMatchEntry{
+			structs.IntentionMatchEntry{
+				Namespace: query.DestinationNS,
+				Name:      query.DestinationName,
+			},
+		},
+	})
+	if err != nil {
+		return err
+	}
+	if len(matches) != 1 {
+		// This should never happen since the documented behavior of the
+		// Match call is that it'll always return exactly the number of results
+		// as entries passed in. But we guard against misbehavior.
+		return errors.New("internal error loading matches")
+	}
+
+	// Test the authorization for each match
+	for _, ixn := range matches[0] {
+		if auth, ok := uri.Authorize(ixn); ok {
+			reply.Allowed = auth
+			return nil
+		}
+	}
+
+	// No match, we need to determine the default behavior. We do this by
+	// specifying the anonymous token token, which will get that behavior.
+	// The default behavior if ACLs are disabled is to allow connections
+	// to mimic the behavior of Consul itself: everything is allowed if
+	// ACLs are disabled.
+	//
+	// NOTE(mitchellh): This is the same behavior as the agent authorize
+	// endpoint. If this behavior is incorrect, we should also change it there
+	// which is much more important.
+	rule, err = s.srv.resolveToken("")
+	if err != nil {
+		return err
+	}
+
+	reply.Allowed = true
+	if rule != nil {
+		reply.Allowed = rule.IntentionDefaultAllow()
+	}
+
+	return nil
 }

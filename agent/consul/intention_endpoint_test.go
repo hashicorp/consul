@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // Test basic creation
@@ -1005,5 +1006,258 @@ service "bar" {
 		}
 
 		assert.Equal(expected, actual)
+	}
+}
+
+// Test the Test method defaults to allow with no ACL set.
+func TestIntentionTest_defaultNoACL(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Test
+	req := &structs.IntentionQueryRequest{
+		Datacenter: "dc1",
+		Test: &structs.IntentionQueryTest{
+			SourceNS:        "foo",
+			SourceName:      "bar",
+			DestinationNS:   "foo",
+			DestinationName: "qux",
+			SourceType:      structs.IntentionSourceConsul,
+		},
+	}
+	var resp structs.IntentionQueryTestResponse
+	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Test", req, &resp))
+	require.True(resp.Allowed)
+}
+
+// Test the Test method defaults to deny with whitelist ACLs.
+func TestIntentionTest_defaultACLDeny(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Test
+	req := &structs.IntentionQueryRequest{
+		Datacenter: "dc1",
+		Test: &structs.IntentionQueryTest{
+			SourceNS:        "foo",
+			SourceName:      "bar",
+			DestinationNS:   "foo",
+			DestinationName: "qux",
+			SourceType:      structs.IntentionSourceConsul,
+		},
+	}
+	req.Token = "root"
+	var resp structs.IntentionQueryTestResponse
+	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Test", req, &resp))
+	require.False(resp.Allowed)
+}
+
+// Test the Test method defaults to deny with blacklist ACLs.
+func TestIntentionTest_defaultACLAllow(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "allow"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Test
+	req := &structs.IntentionQueryRequest{
+		Datacenter: "dc1",
+		Test: &structs.IntentionQueryTest{
+			SourceNS:        "foo",
+			SourceName:      "bar",
+			DestinationNS:   "foo",
+			DestinationName: "qux",
+			SourceType:      structs.IntentionSourceConsul,
+		},
+	}
+	req.Token = "root"
+	var resp structs.IntentionQueryTestResponse
+	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Test", req, &resp))
+	require.True(resp.Allowed)
+}
+
+// Test the Test method requires service:read permission.
+func TestIntentionTest_aclDeny(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Create an ACL with service read permissions. This will grant permission.
+	var token string
+	{
+		var rules = `
+service "bar" {
+	policy = "read"
+}`
+
+		req := structs.ACLRequest{
+			Datacenter: "dc1",
+			Op:         structs.ACLSet,
+			ACL: structs.ACL{
+				Name:  "User token",
+				Type:  structs.ACLTypeClient,
+				Rules: rules,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		require.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
+	}
+
+	// Test
+	req := &structs.IntentionQueryRequest{
+		Datacenter: "dc1",
+		Test: &structs.IntentionQueryTest{
+			SourceNS:        "foo",
+			SourceName:      "qux",
+			DestinationNS:   "foo",
+			DestinationName: "baz",
+			SourceType:      structs.IntentionSourceConsul,
+		},
+	}
+	req.Token = token
+	var resp structs.IntentionQueryTestResponse
+	err := msgpackrpc.CallWithCodec(codec, "Intention.Test", req, &resp)
+	require.True(acl.IsErrPermissionDenied(err))
+}
+
+// Test the Test method returns allow/deny properly.
+func TestIntentionTest_match(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Create an ACL with service read permissions. This will grant permission.
+	var token string
+	{
+		var rules = `
+service "bar" {
+	policy = "read"
+}`
+
+		req := structs.ACLRequest{
+			Datacenter: "dc1",
+			Op:         structs.ACLSet,
+			ACL: structs.ACL{
+				Name:  "User token",
+				Type:  structs.ACLTypeClient,
+				Rules: rules,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		require.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
+	}
+
+	// Create some intentions
+	{
+		insert := [][]string{
+			{"foo", "*", "foo", "*"},
+			{"foo", "*", "foo", "bar"},
+			{"bar", "*", "foo", "bar"}, // duplicate destination different source
+		}
+
+		for _, v := range insert {
+			ixn := structs.IntentionRequest{
+				Datacenter: "dc1",
+				Op:         structs.IntentionOpCreate,
+				Intention: &structs.Intention{
+					SourceNS:        v[0],
+					SourceName:      v[1],
+					DestinationNS:   v[2],
+					DestinationName: v[3],
+					Action:          structs.IntentionActionAllow,
+				},
+			}
+			ixn.WriteRequest.Token = "root"
+
+			// Create
+			var reply string
+			require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
+		}
+	}
+
+	// Test
+	req := &structs.IntentionQueryRequest{
+		Datacenter: "dc1",
+		Test: &structs.IntentionQueryTest{
+			SourceNS:        "foo",
+			SourceName:      "qux",
+			DestinationNS:   "foo",
+			DestinationName: "bar",
+			SourceType:      structs.IntentionSourceConsul,
+		},
+	}
+	req.Token = token
+	var resp structs.IntentionQueryTestResponse
+	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Test", req, &resp))
+	require.True(resp.Allowed)
+
+	// Test no match for sanity
+	{
+		req := &structs.IntentionQueryRequest{
+			Datacenter: "dc1",
+			Test: &structs.IntentionQueryTest{
+				SourceNS:        "baz",
+				SourceName:      "qux",
+				DestinationNS:   "foo",
+				DestinationName: "bar",
+				SourceType:      structs.IntentionSourceConsul,
+			},
+		}
+		req.Token = token
+		var resp structs.IntentionQueryTestResponse
+		require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Test", req, &resp))
+		require.False(resp.Allowed)
 	}
 }
