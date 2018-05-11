@@ -256,6 +256,10 @@ func (s *Intention) Match(
 
 // Test tests a source/destination and returns whether it would be allowed
 // or denied based on the current ACL configuration.
+//
+// Note: Whenever the logic for this method is changed, you should take
+// a look at the agent authorize endpoint (agent/agent_endpoint.go) since
+// the logic there is similar.
 func (s *Intention) Test(
 	args *structs.IntentionQueryRequest,
 	reply *structs.IntentionQueryTestResponse) error {
