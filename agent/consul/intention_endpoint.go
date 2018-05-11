@@ -263,6 +263,11 @@ func (s *Intention) Match(
 func (s *Intention) Test(
 	args *structs.IntentionQueryRequest,
 	reply *structs.IntentionQueryTestResponse) error {
+	// Forward maybe
+	if done, err := s.srv.forward("Intention.Test", args, args, reply); done {
+		return err
+	}
+
 	// Get the test args, and defensively guard against nil
 	query := args.Test
 	if query == nil {
