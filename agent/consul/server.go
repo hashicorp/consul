@@ -32,7 +32,6 @@ import (
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/raft"
 	raftboltdb "github.com/hashicorp/raft-boltdb"
-	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -73,6 +72,10 @@ const (
 	// raftRemoveGracePeriod is how long we wait to allow a RemovePeer
 	// to replicate to gracefully leave the cluster.
 	raftRemoveGracePeriod = 5 * time.Second
+)
+
+var (
+	ErrWANFederationDisabled = fmt.Errorf("WAN Federation is disabled")
 )
 
 // Server is Consul server which manages the service discovery,
@@ -344,21 +347,23 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 	// created, so we can pull it out from there reliably, even though it's
 	// a little gross to be reading the updated config.
 
-	// Initialize the WAN Serf.
-	serfBindPortWAN := config.SerfWANConfig.MemberlistConfig.BindPort
-	s.serfWAN, err = s.setupSerf(config.SerfWANConfig, s.eventChWAN, serfWANSnapshot, true, serfBindPortWAN, "", s.Listener)
-	if err != nil {
-		s.Shutdown()
-		return nil, fmt.Errorf("Failed to start WAN Serf: %v", err)
-	}
-
-	// See big comment above why we are doing this.
-	if serfBindPortWAN == 0 {
+	// Initialize the WAN Serf if enabled
+	serfBindPortWAN := -1
+	if config.SerfWANConfig != nil {
 		serfBindPortWAN = config.SerfWANConfig.MemberlistConfig.BindPort
-		if serfBindPortWAN == 0 {
-			return nil, fmt.Errorf("Failed to get dynamic bind port for WAN Serf")
+		s.serfWAN, err = s.setupSerf(config.SerfWANConfig, s.eventChWAN, serfWANSnapshot, true, serfBindPortWAN, "", s.Listener)
+		if err != nil {
+			s.Shutdown()
+			return nil, fmt.Errorf("Failed to start WAN Serf: %v", err)
 		}
-		s.logger.Printf("[INFO] agent: Serf WAN TCP bound to port %d", serfBindPortWAN)
+		// See big comment above why we are doing this.
+		if serfBindPortWAN == 0 {
+			serfBindPortWAN = config.SerfWANConfig.MemberlistConfig.BindPort
+			if serfBindPortWAN == 0 {
+				return nil, fmt.Errorf("Failed to get dynamic bind port for WAN Serf")
+			}
+			s.logger.Printf("[INFO] agent: Serf WAN TCP bound to port %d", serfBindPortWAN)
+		}
 	}
 
 	// Initialize the LAN segments before the default LAN Serf so we have
@@ -380,20 +385,22 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 	s.floodSegments(config)
 
 	// Add a "static route" to the WAN Serf and hook it up to Serf events.
-	if err := s.router.AddArea(types.AreaWAN, s.serfWAN, s.connPool, s.config.VerifyOutgoing); err != nil {
-		s.Shutdown()
-		return nil, fmt.Errorf("Failed to add WAN serf route: %v", err)
-	}
-	go router.HandleSerfEvents(s.logger, s.router, types.AreaWAN, s.serfWAN.ShutdownCh(), s.eventChWAN)
-
-	// Fire up the LAN <-> WAN join flooder.
-	portFn := func(s *metadata.Server) (int, bool) {
-		if s.WanJoinPort > 0 {
-			return s.WanJoinPort, true
+	if s.serfWAN != nil {
+		if err := s.router.AddArea(types.AreaWAN, s.serfWAN, s.connPool, s.config.VerifyOutgoing); err != nil {
+			s.Shutdown()
+			return nil, fmt.Errorf("Failed to add WAN serf route: %v", err)
 		}
-		return 0, false
+		go router.HandleSerfEvents(s.logger, s.router, types.AreaWAN, s.serfWAN.ShutdownCh(), s.eventChWAN)
+
+		// Fire up the LAN <-> WAN join flooder.
+		portFn := func(s *metadata.Server) (int, bool) {
+			if s.WanJoinPort > 0 {
+				return s.WanJoinPort, true
+			}
+			return 0, false
+		}
+		go s.Flood(nil, portFn, s.serfWAN)
 	}
-	go s.Flood(nil, portFn, s.serfWAN)
 
 	// Start monitoring leadership. This must happen after Serf is set up
 	// since it can fire events when leadership is obtained.
@@ -831,6 +838,9 @@ func (s *Server) JoinLAN(addrs []string) (int, error) {
 // The target address should be another node listening on the
 // Serf WAN address
 func (s *Server) JoinWAN(addrs []string) (int, error) {
+	if s.serfWAN == nil {
+		return 0, ErrWANFederationDisabled
+	}
 	return s.serfWAN.Join(addrs, true)
 }
 
@@ -846,6 +856,9 @@ func (s *Server) LANMembers() []serf.Member {
 
 // WANMembers is used to return the members of the LAN cluster
 func (s *Server) WANMembers() []serf.Member {
+	if s.serfWAN == nil {
+		return nil
+	}
 	return s.serfWAN.Members()
 }
 
@@ -854,8 +867,10 @@ func (s *Server) RemoveFailedNode(node string) error {
 	if err := s.serfLAN.RemoveFailedNode(node); err != nil {
 		return err
 	}
-	if err := s.serfWAN.RemoveFailedNode(node); err != nil {
-		return err
+	if s.serfWAN != nil {
+		if err := s.serfWAN.RemoveFailedNode(node); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -877,7 +892,11 @@ func (s *Server) KeyManagerWAN() *serf.KeyManager {
 
 // Encrypted determines if gossip is encrypted
 func (s *Server) Encrypted() bool {
-	return s.serfLAN.EncryptionEnabled() && s.serfWAN.EncryptionEnabled()
+	LANEncrypted := s.serfLAN.EncryptionEnabled()
+	if s.serfWAN == nil {
+		return LANEncrypted
+	}
+	return LANEncrypted && s.serfWAN.EncryptionEnabled()
 }
 
 // LANSegments returns a map of LAN segments by name
@@ -995,8 +1014,10 @@ func (s *Server) Stats() map[string]map[string]string {
 		},
 		"raft":     s.raft.Stats(),
 		"serf_lan": s.serfLAN.Stats(),
-		"serf_wan": s.serfWAN.Stats(),
 		"runtime":  runtimeStats(),
+	}
+	if s.serfWAN != nil {
+		stats["serf_wan"] = s.serfWAN.Stats()
 	}
 	return stats
 }
@@ -1017,11 +1038,6 @@ func (s *Server) GetLANCoordinate() (lib.CoordinateSet, error) {
 		cs[name] = c
 	}
 	return cs, nil
-}
-
-// GetWANCoordinate returns the coordinate of the server in the WAN gossip pool.
-func (s *Server) GetWANCoordinate() (*coordinate.Coordinate, error) {
-	return s.serfWAN.GetCoordinate()
 }
 
 // Atomically sets a readiness state flag when leadership is obtained, to indicate that server is past its barrier write

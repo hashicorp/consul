@@ -70,23 +70,23 @@ func TestRTT_ComputeDistance(t *testing.T) {
 func TestRTT_Intersect(t *testing.T) {
 	// The numbers here don't matter, we just want a unique coordinate for
 	// each one.
-	server_1 := CoordinateSet{
+	server1 := CoordinateSet{
 		"":      GenerateCoordinate(1 * time.Millisecond),
 		"alpha": GenerateCoordinate(2 * time.Millisecond),
 		"beta":  GenerateCoordinate(3 * time.Millisecond),
 	}
-	server_2 := CoordinateSet{
+	server2 := CoordinateSet{
 		"":      GenerateCoordinate(4 * time.Millisecond),
 		"alpha": GenerateCoordinate(5 * time.Millisecond),
 		"beta":  GenerateCoordinate(6 * time.Millisecond),
 	}
-	client_alpha := CoordinateSet{
+	clientAlpha := CoordinateSet{
 		"alpha": GenerateCoordinate(7 * time.Millisecond),
 	}
-	client_beta_1 := CoordinateSet{
+	clientBeta1 := CoordinateSet{
 		"beta": GenerateCoordinate(8 * time.Millisecond),
 	}
-	client_beta_2 := CoordinateSet{
+	clientBeta2 := CoordinateSet{
 		"beta": GenerateCoordinate(9 * time.Millisecond),
 	}
 
@@ -104,43 +104,43 @@ func TestRTT_Intersect(t *testing.T) {
 		},
 		{
 			"two servers",
-			server_1, server_2,
-			server_1[""], server_2[""],
+			server1, server2,
+			server1[""], server2[""],
 		},
 		{
 			"two clients",
-			client_beta_1, client_beta_2,
-			client_beta_1["beta"], client_beta_2["beta"],
+			clientBeta1, clientBeta2,
+			clientBeta1["beta"], clientBeta2["beta"],
 		},
 		{
-			"server_1 and client alpha",
-			server_1, client_alpha,
-			server_1["alpha"], client_alpha["alpha"],
+			"server1 and client alpha",
+			server1, clientAlpha,
+			server1["alpha"], clientAlpha["alpha"],
 		},
 		{
-			"server_1 and client beta 1",
-			server_1, client_beta_1,
-			server_1["beta"], client_beta_1["beta"],
+			"server1 and client beta 1",
+			server1, clientBeta1,
+			server1["beta"], clientBeta1["beta"],
 		},
 		{
-			"server_1 and client alpha reversed",
-			client_alpha, server_1,
-			client_alpha["alpha"], server_1["alpha"],
+			"server1 and client alpha reversed",
+			clientAlpha, server1,
+			clientAlpha["alpha"], server1["alpha"],
 		},
 		{
-			"server_1 and client beta 1 reversed",
-			client_beta_1, server_1,
-			client_beta_1["beta"], server_1["beta"],
+			"server1 and client beta 1 reversed",
+			clientBeta1, server1,
+			clientBeta1["beta"], server1["beta"],
 		},
 		{
 			"nothing in common",
-			client_alpha, client_beta_1,
-			nil, client_beta_1["beta"],
+			clientAlpha, clientBeta1,
+			nil, clientBeta1["beta"],
 		},
 		{
 			"nothing in common reversed",
-			client_beta_1, client_alpha,
-			nil, client_alpha["alpha"],
+			clientBeta1, clientAlpha,
+			nil, clientAlpha["alpha"],
 		},
 	}
 	for _, tt := range tests {

@@ -129,7 +129,7 @@ func (m *Internal) KeyringOperation(
 	}
 
 	// Only perform WAN keyring querying and RPC forwarding once
-	if !args.Forwarded {
+	if !args.Forwarded && m.srv.serfWAN != nil {
 		args.Forwarded = true
 		m.executeKeyringOp(args, reply, true)
 		return m.srv.globalRPC("Internal.KeyringOperation", args, reply)

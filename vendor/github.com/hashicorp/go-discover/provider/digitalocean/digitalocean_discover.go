@@ -11,7 +11,13 @@ import (
 	"golang.org/x/oauth2"
 )
 
-type Provider struct{}
+type Provider struct {
+	userAgent string
+}
+
+func (p *Provider) SetUserAgent(s string) {
+	p.userAgent = s
+}
 
 func (p *Provider) Help() string {
 	return `DigitalOcean:
@@ -86,6 +92,9 @@ func (p *Provider) Addrs(args map[string]string, l *log.Logger) ([]string, error
 
 	oauthClient := oauth2.NewClient(context.TODO(), tokenSource)
 	client := godo.NewClient(oauthClient)
+	if p.userAgent != "" {
+		client.UserAgent = p.userAgent
+	}
 
 	droplets, err := listDropletsByTag(client, tagName)
 	if err != nil {

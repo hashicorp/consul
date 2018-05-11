@@ -1,0 +1,25 @@
+{{#feedback-dialog type='inline'}}
+    {{#block-slot 'action' as |success error|}}
+        {{#copy-button success=(action success) error=(action error) clipboardText=output title='copy output to clipboard'}}
+            Copy Output
+        {{/copy-button}}
+    {{/block-slot}}
+    {{#block-slot 'success'}}
+        <p>
+            Copied output!
+        </p>
+    {{/block-slot}}
+    {{#block-slot 'error'}}
+        <p>
+            Sorry, something went wrong!
+        </p>
+    {{/block-slot}}
+{{/feedback-dialog}}
+<dl>
+    <dt>{{name}}</dt>
+    <dd>{{notes}}</dd>
+    <dt>Output</dt>
+    <dd>
+        <pre><code>{{output}}</code></pre>
+    </dd>
+</dl>

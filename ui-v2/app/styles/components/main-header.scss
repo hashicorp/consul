@@ -1,0 +1,44 @@
+@import './header-nav';
+[role='banner'] {
+  @extend %main-header;
+}
+%main-header > div {
+  @extend %header-nav-panel;
+}
+%main-header label[for='main-nav-toggle'] {
+  @extend %header-nav-toggle-button;
+}
+%main-header > input {
+  @extend %header-nav-toggle;
+}
+%main-header nav:first-of-type {
+  @extend %primary-nav;
+}
+%main-header nav:last-of-type {
+  @extend %secondary-nav;
+}
+
+%main-header::before {
+  background-color: $magenta-600;
+}
+%main-header {
+  display: flex;
+}
+%main-header {
+  align-items: center;
+  height: 48px;
+}
+%main-header::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: 0;
+  width: 100vw;
+  height: 48px;
+}
+%main-header > a {
+  display: block;
+  margin-right: 12px;
+  line-height: 0;
+  font-size: 0;
+}

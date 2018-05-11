@@ -90,7 +90,7 @@ App.DcRoute = App.BaseRoute.extend({
   model: function(params) {
     var token = App.get('settings.token');
 
-    // Return a promise hash to retreieve the
+    // Return a promise hash to retrieve the
     // dcs and nodes used in the header
     return Ember.RSVP.hash({
       dc: params.dc,

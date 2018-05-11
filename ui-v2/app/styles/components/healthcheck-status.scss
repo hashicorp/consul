@@ -1,0 +1,68 @@
+@import './icons';
+.healthcheck-status {
+  @extend %healthcheck-status;
+}
+%healthcheck-status {
+  border: 1px solid;
+}
+%healthcheck-status,
+%healthcheck-status pre {
+  border-radius: $radius-small;
+}
+%healthcheck-status dd:first-of-type {
+  color: $text-note;
+}
+%healthcheck-status pre {
+  background-color: $black;
+  color: $white;
+}
+%healthcheck-status::before {
+  background-size: 55%;
+  width: 25px !important;
+  height: 25px !important;
+  left: 17px;
+  top: 20px !important;
+  margin-top: 0 !important;
+}
+%healthcheck-status.passing {
+  @extend %with-passing;
+  border-color: $border-blue;
+}
+%healthcheck-status.passing::before {
+  background-color: $green !important;
+}
+%healthcheck-status.critical {
+  @extend %with-critical;
+  border-color: $red;
+  background-color: rgba($red, 0.1);
+}
+%healthcheck-status.critical::before {
+  background-color: $red !important;
+}
+%healthcheck-status.warning {
+  @extend %with-warning;
+  border-color: $orange;
+  background-color: rgba($orange, 0.1);
+}
+%healthcheck-status.warning::before {
+  background-size: 100%;
+}
+%healthcheck-status {
+  padding: 20px 24px;
+  padding-bottom: 26px;
+  padding-left: 57px;
+  margin-bottom: 24px;
+  position: relative;
+}
+%healthcheck-status pre {
+  padding: 12px;
+}
+%healthcheck-status .with-feedback {
+  float: right;
+}
+%healthcheck-status dt {
+  margin-bottom: 0.2em;
+}
+%healthcheck-status dd:first-of-type {
+  margin-bottom: 0.6em;
+}

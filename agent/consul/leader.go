@@ -116,13 +116,17 @@ RECONCILE:
 		s.logger.Printf("[ERR] consul: failed to wait for barrier: %v", err)
 		goto WAIT
 	}
-	metrics.MeasureSince([]string{"consul", "leader", "barrier"}, start)
 	metrics.MeasureSince([]string{"leader", "barrier"}, start)
 
 	// Check if we need to handle initial leadership actions
 	if !establishedLeader {
 		if err := s.establishLeadership(); err != nil {
 			s.logger.Printf("[ERR] consul: failed to establish leadership: %v", err)
+			// Immediately revoke leadership since we didn't successfully
+			// establish leadership.
+			if err := s.revokeLeadership(); err != nil {
+				s.logger.Printf("[ERR] consul: failed to revoke leadership: %v", err)
+			}
 			goto WAIT
 		}
 		establishedLeader = true
@@ -437,7 +441,6 @@ func (s *Server) reconcileMember(member serf.Member) error {
 		s.logger.Printf("[WARN] consul: skipping reconcile of node %v", member)
 		return nil
 	}
-	defer metrics.MeasureSince([]string{"consul", "leader", "reconcileMember"}, time.Now())
 	defer metrics.MeasureSince([]string{"leader", "reconcileMember"}, time.Now())
 	var err error
 	switch member.Status {
@@ -798,7 +801,6 @@ func (s *Server) removeConsulServer(m serf.Member, port int) error {
 // through Raft to ensure consistency. We do this outside the leader loop
 // to avoid blocking.
 func (s *Server) reapTombstones(index uint64) {
-	defer metrics.MeasureSince([]string{"consul", "leader", "reapTombstones"}, time.Now())
 	defer metrics.MeasureSince([]string{"leader", "reapTombstones"}, time.Now())
 	req := structs.TombstoneRequest{
 		Datacenter: s.config.Datacenter,

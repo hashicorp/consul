@@ -87,6 +87,12 @@ func (f *HTTPFlags) Token() string {
 func (f *HTTPFlags) APIClient() (*api.Client, error) {
 	c := api.DefaultConfig()
 
+	f.MergeOntoConfig(c)
+
+	return api.NewClient(c)
+}
+
+func (f *HTTPFlags) MergeOntoConfig(c *api.Config) {
 	f.address.Merge(&c.Address)
 	f.token.Merge(&c.Token)
 	f.caFile.Merge(&c.TLSConfig.CAFile)
@@ -95,6 +101,4 @@ func (f *HTTPFlags) APIClient() (*api.Client, error) {
 	f.keyFile.Merge(&c.TLSConfig.KeyFile)
 	f.tlsServerName.Merge(&c.TLSConfig.Address)
 	f.datacenter.Merge(&c.Datacenter)
-
-	return api.NewClient(c)
 }

@@ -216,6 +216,9 @@ $ curl \
       "Service": "redis",
       "Tags": ["primary"],
       "Address": "10.1.10.12",
+      "Meta": {
+        "redis_version": "4.0"
+      },
       "Port": 8000
     },
     "Checks": [
@@ -265,7 +268,7 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `state` `(string: <required>)` - Specifies the state to query. Spported states
+- `state` `(string: <required>)` - Specifies the state to query. Supported states
   are `any`, `passing`, `warning`, or `critical`. The `any` state is a wildcard
   that can be used to return all checks.
 

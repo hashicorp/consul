@@ -547,6 +547,96 @@ func TestAgent_RemoveServiceRemovesAllChecks(t *testing.T) {
 	}
 }
 
+// TestAgent_IndexChurn is designed to detect a class of issues where
+// we would have unnecessary catalog churn from anti-entropy. See issues
+// #3259, #3642, #3845, and #3866.
+func TestAgent_IndexChurn(t *testing.T) {
+	t.Parallel()
+
+	t.Run("no tags", func(t *testing.T) {
+		verifyIndexChurn(t, nil)
+	})
+
+	t.Run("with tags", func(t *testing.T) {
+		verifyIndexChurn(t, []string{"foo", "bar"})
+	})
+}
+
+// verifyIndexChurn registers some things and runs anti-entropy a bunch of times
+// in a row to make sure there are no index bumps.
+func verifyIndexChurn(t *testing.T, tags []string) {
+	t.Helper()
+
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	svc := &structs.NodeService{
+		ID:      "redis",
+		Service: "redis",
+		Port:    8000,
+		Tags:    tags,
+	}
+	if err := a.AddService(svc, nil, true, ""); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	chk := &structs.HealthCheck{
+		CheckID:   "redis-check",
+		Name:      "Service-level check",
+		ServiceID: "redis",
+		Status:    api.HealthCritical,
+	}
+	chkt := &structs.CheckType{
+		TTL: time.Hour,
+	}
+	if err := a.AddCheck(chk, chkt, true, ""); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	chk = &structs.HealthCheck{
+		CheckID: "node-check",
+		Name:    "Node-level check",
+		Status:  api.HealthCritical,
+	}
+	chkt = &structs.CheckType{
+		TTL: time.Hour,
+	}
+	if err := a.AddCheck(chk, chkt, true, ""); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := a.sync.State.SyncFull(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	args := &structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "redis",
+	}
+	var before structs.IndexedCheckServiceNodes
+	if err := a.RPC("Health.ServiceNodes", args, &before); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if got, want := len(before.Nodes), 1; got != want {
+		t.Fatalf("got %d want %d", got, want)
+	}
+	if got, want := len(before.Nodes[0].Checks), 3; /* incl. serfHealth */ got != want {
+		t.Fatalf("got %d want %d", got, want)
+	}
+
+	for i := 0; i < 10; i++ {
+		if err := a.sync.State.SyncFull(); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	var after structs.IndexedCheckServiceNodes
+	if err := a.RPC("Health.ServiceNodes", args, &after); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	verify.Values(t, "", after, before)
+}
+
 func TestAgent_AddCheck(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), `
@@ -561,8 +651,8 @@ func TestAgent_AddCheck(t *testing.T) {
 		Status:  api.HealthCritical,
 	}
 	chk := &structs.CheckType{
-		Script:   "exit 0",
-		Interval: 15 * time.Second,
+		ScriptArgs: []string{"exit", "0"},
+		Interval:   15 * time.Second,
 	}
 	err := a.AddCheck(health, chk, false, "")
 	if err != nil {
@@ -600,8 +690,8 @@ func TestAgent_AddCheck_StartPassing(t *testing.T) {
 		Status:  api.HealthPassing,
 	}
 	chk := &structs.CheckType{
-		Script:   "exit 0",
-		Interval: 15 * time.Second,
+		ScriptArgs: []string{"exit", "0"},
+		Interval:   15 * time.Second,
 	}
 	err := a.AddCheck(health, chk, false, "")
 	if err != nil {
@@ -639,8 +729,8 @@ func TestAgent_AddCheck_MinInterval(t *testing.T) {
 		Status:  api.HealthCritical,
 	}
 	chk := &structs.CheckType{
-		Script:   "exit 0",
-		Interval: time.Microsecond,
+		ScriptArgs: []string{"exit", "0"},
+		Interval:   time.Microsecond,
 	}
 	err := a.AddCheck(health, chk, false, "")
 	if err != nil {
@@ -674,8 +764,8 @@ func TestAgent_AddCheck_MissingService(t *testing.T) {
 		ServiceID: "baz",
 	}
 	chk := &structs.CheckType{
-		Script:   "exit 0",
-		Interval: time.Microsecond,
+		ScriptArgs: []string{"exit", "0"},
+		Interval:   time.Microsecond,
 	}
 	err := a.AddCheck(health, chk, false, "")
 	if err == nil || err.Error() != `ServiceID "baz" does not exist` {
@@ -739,8 +829,8 @@ func TestAgent_AddCheck_ExecDisable(t *testing.T) {
 		Status:  api.HealthCritical,
 	}
 	chk := &structs.CheckType{
-		Script:   "exit 0",
-		Interval: 15 * time.Second,
+		ScriptArgs: []string{"exit", "0"},
+		Interval:   15 * time.Second,
 	}
 	err := a.AddCheck(health, chk, false, "")
 	if err == nil || !strings.Contains(err.Error(), "Scripts are disabled on this agent") {
@@ -750,6 +840,43 @@ func TestAgent_AddCheck_ExecDisable(t *testing.T) {
 	// Ensure we don't have a check mapping
 	if memChk := a.State.Checks()["mem"]; memChk != nil {
 		t.Fatalf("should be missing mem check")
+	}
+}
+
+func TestAgent_AddCheck_GRPC(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	health := &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "grpchealth",
+		Name:    "grpc health checking protocol",
+		Status:  api.HealthCritical,
+	}
+	chk := &structs.CheckType{
+		GRPC:     "localhost:12345/package.Service",
+		Interval: 15 * time.Second,
+	}
+	err := a.AddCheck(health, chk, false, "")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Ensure we have a check mapping
+	sChk, ok := a.State.Checks()["grpchealth"]
+	if !ok {
+		t.Fatalf("missing grpchealth check")
+	}
+
+	// Ensure our check is in the right state
+	if sChk.Status != api.HealthCritical {
+		t.Fatalf("check not critical")
+	}
+
+	// Ensure a check is setup
+	if _, ok := a.checkGRPCs["grpchealth"]; !ok {
+		t.Fatalf("missing grpchealth check")
 	}
 }
 
@@ -777,8 +904,8 @@ func TestAgent_RemoveCheck(t *testing.T) {
 		Status:  api.HealthCritical,
 	}
 	chk := &structs.CheckType{
-		Script:   "exit 0",
-		Interval: 15 * time.Second,
+		ScriptArgs: []string{"exit", "0"},
+		Interval:   15 * time.Second,
 	}
 	err := a.AddCheck(health, chk, false, "")
 	if err != nil {
@@ -1188,8 +1315,8 @@ func TestAgent_PersistCheck(t *testing.T) {
 		Status:  api.HealthPassing,
 	}
 	chkType := &structs.CheckType{
-		Script:   "/bin/true",
-		Interval: 10 * time.Second,
+		ScriptArgs: []string{"/bin/true"},
+		Interval:   10 * time.Second,
 	}
 
 	file := filepath.Join(a.Config.DataDir, checksDir, checkIDHash(check.CheckID))
@@ -1346,7 +1473,7 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 			id = "mem"
 			name = "memory check"
 			notes = "my cool notes"
-			script = "/bin/check-redis.py"
+			args = ["/bin/check-redis.py"]
 			interval = "30s"
 		}
 	`)

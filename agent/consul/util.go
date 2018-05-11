@@ -75,18 +75,18 @@ func CanServersUnderstandProtocol(members []serf.Member, version uint8) (bool, e
 		}
 		numServers++
 
-		vsn_min, err := strconv.Atoi(m.Tags["vsn_min"])
+		vsnMin, err := strconv.Atoi(m.Tags["vsn_min"])
 		if err != nil {
 			return false, err
 		}
 
-		vsn_max, err := strconv.Atoi(m.Tags["vsn_max"])
+		vsnMax, err := strconv.Atoi(m.Tags["vsn_max"])
 		if err != nil {
 			return false, err
 		}
 
 		v := int(version)
-		if (v >= vsn_min) && (v <= vsn_max) {
+		if (v >= vsnMin) && (v <= vsnMax) {
 			numWhoGrok++
 		}
 	}
@@ -103,8 +103,8 @@ func isConsulNode(m serf.Member) (bool, string) {
 }
 
 // Returns if the given IP is in a private block
-func isPrivateIP(ip_str string) bool {
-	ip := net.ParseIP(ip_str)
+func isPrivateIP(ipStr string) bool {
+	ip := net.ParseIP(ipStr)
 	for _, priv := range privateBlocks {
 		if priv.Contains(ip) {
 			return true

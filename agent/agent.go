@@ -130,6 +130,9 @@ type Agent struct {
 	// checkTCPs maps the check ID to an associated TCP check
 	checkTCPs map[types.CheckID]*checks.CheckTCP
 
+	// checkGRPCs maps the check ID to an associated GRPC check
+	checkGRPCs map[types.CheckID]*checks.CheckGRPC
+
 	// checkTTLs maps the check ID to an associated check TTL
 	checkTTLs map[types.CheckID]*checks.CheckTTL
 
@@ -212,6 +215,7 @@ func New(c *config.RuntimeConfig) (*Agent, error) {
 		checkTTLs:       make(map[types.CheckID]*checks.CheckTTL),
 		checkHTTPs:      make(map[types.CheckID]*checks.CheckHTTP),
 		checkTCPs:       make(map[types.CheckID]*checks.CheckTCP),
+		checkGRPCs:      make(map[types.CheckID]*checks.CheckGRPC),
 		checkDockers:    make(map[types.CheckID]*checks.CheckDocker),
 		eventCh:         make(chan serf.UserEvent, 1024),
 		eventBuf:        make([]*UserEvent, 256),
@@ -263,6 +267,17 @@ func (a *Agent) Start() error {
 	// agent, which depends on it.
 	if err := a.setupNodeID(c); err != nil {
 		return fmt.Errorf("Failed to setup node ID: %v", err)
+	}
+
+	// Warn if the node name is incompatible with DNS
+	if InvalidDnsRe.MatchString(a.config.NodeName) {
+		a.logger.Printf("[WARN] agent: Node name %q will not be discoverable "+
+			"via DNS due to invalid characters. Valid characters include "+
+			"all alpha-numerics and dashes.", a.config.NodeName)
+	} else if len(a.config.NodeName) > MaxDNSLabelLength {
+		a.logger.Printf("[WARN] agent: Node name %q will not be discoverable "+
+			"via DNS due to it being too long. Valid lengths are between "+
+			"1 and 63 bytes.", a.config.NodeName)
 	}
 
 	// create the local state
@@ -607,11 +622,12 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 		if raw, ok := args.([]interface{}); hasArgs && ok {
 			var parsed []string
 			for _, arg := range raw {
-				if v, ok := arg.(string); !ok {
+				v, ok := arg.(string)
+				if !ok {
 					return fmt.Errorf("Watch args must be a list of strings")
-				} else {
-					parsed = append(parsed, v)
 				}
+
+				parsed = append(parsed, v)
 			}
 			wp.Exempt["args"] = parsed
 		} else if hasArgs && !ok {
@@ -654,7 +670,7 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 			}
 			wp.LogOutput = a.LogOutput
 			if err := wp.Run(addr); err != nil {
-				a.logger.Printf("[ERR] Failed to run watch: %v", err)
+				a.logger.Printf("[ERR] agent: Failed to run watch: %v", err)
 			}
 		}(wp)
 	}
@@ -698,16 +714,21 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	base.SerfLANConfig.MemberlistConfig.ProbeTimeout = a.config.ConsulSerfLANProbeTimeout
 	base.SerfLANConfig.MemberlistConfig.SuspicionMult = a.config.ConsulSerfLANSuspicionMult
 
-	base.SerfWANConfig.MemberlistConfig.BindAddr = a.config.SerfBindAddrWAN.IP.String()
-	base.SerfWANConfig.MemberlistConfig.BindPort = a.config.SerfBindAddrWAN.Port
-	base.SerfWANConfig.MemberlistConfig.AdvertiseAddr = a.config.SerfAdvertiseAddrWAN.IP.String()
-	base.SerfWANConfig.MemberlistConfig.AdvertisePort = a.config.SerfAdvertiseAddrWAN.Port
-	base.SerfWANConfig.MemberlistConfig.GossipVerifyIncoming = a.config.EncryptVerifyIncoming
-	base.SerfWANConfig.MemberlistConfig.GossipVerifyOutgoing = a.config.EncryptVerifyOutgoing
-	base.SerfWANConfig.MemberlistConfig.GossipInterval = a.config.ConsulSerfWANGossipInterval
-	base.SerfWANConfig.MemberlistConfig.ProbeInterval = a.config.ConsulSerfWANProbeInterval
-	base.SerfWANConfig.MemberlistConfig.ProbeTimeout = a.config.ConsulSerfWANProbeTimeout
-	base.SerfWANConfig.MemberlistConfig.SuspicionMult = a.config.ConsulSerfWANSuspicionMult
+	if a.config.SerfBindAddrWAN != nil {
+		base.SerfWANConfig.MemberlistConfig.BindAddr = a.config.SerfBindAddrWAN.IP.String()
+		base.SerfWANConfig.MemberlistConfig.BindPort = a.config.SerfBindAddrWAN.Port
+		base.SerfWANConfig.MemberlistConfig.AdvertiseAddr = a.config.SerfAdvertiseAddrWAN.IP.String()
+		base.SerfWANConfig.MemberlistConfig.AdvertisePort = a.config.SerfAdvertiseAddrWAN.Port
+		base.SerfWANConfig.MemberlistConfig.GossipVerifyIncoming = a.config.EncryptVerifyIncoming
+		base.SerfWANConfig.MemberlistConfig.GossipVerifyOutgoing = a.config.EncryptVerifyOutgoing
+		base.SerfWANConfig.MemberlistConfig.GossipInterval = a.config.ConsulSerfWANGossipInterval
+		base.SerfWANConfig.MemberlistConfig.ProbeInterval = a.config.ConsulSerfWANProbeInterval
+		base.SerfWANConfig.MemberlistConfig.ProbeTimeout = a.config.ConsulSerfWANProbeTimeout
+		base.SerfWANConfig.MemberlistConfig.SuspicionMult = a.config.ConsulSerfWANSuspicionMult
+	} else {
+		// Disable serf WAN federation
+		base.SerfWANConfig = nil
+	}
 
 	base.RPCAddr = a.config.RPCBindAddr
 	base.RPCAdvertise = a.config.RPCAdvertiseAddr
@@ -741,6 +762,12 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	}
 	if a.config.RaftProtocol != 0 {
 		base.RaftConfig.ProtocolVersion = raft.ProtocolVersion(a.config.RaftProtocol)
+	}
+	if a.config.RaftSnapshotThreshold != 0 {
+		base.RaftConfig.SnapshotThreshold = uint64(a.config.RaftSnapshotThreshold)
+	}
+	if a.config.RaftSnapshotInterval != 0 {
+		base.RaftConfig.SnapshotInterval = a.config.RaftSnapshotInterval
 	}
 	if a.config.ACLMasterToken != "" {
 		base.ACLMasterToken = a.config.ACLMasterToken
@@ -903,7 +930,7 @@ func (a *Agent) makeRandomID() (string, error) {
 		return "", err
 	}
 
-	a.logger.Printf("[DEBUG] Using random ID %q as node ID", id)
+	a.logger.Printf("[DEBUG] agent: Using random ID %q as node ID", id)
 	return id, nil
 }
 
@@ -921,7 +948,7 @@ func (a *Agent) makeNodeID() (string, error) {
 	// Try to get a stable ID associated with the host itself.
 	info, err := host.Info()
 	if err != nil {
-		a.logger.Printf("[DEBUG] Couldn't get a unique ID from the host: %v", err)
+		a.logger.Printf("[DEBUG] agent: Couldn't get a unique ID from the host: %v", err)
 		return a.makeRandomID()
 	}
 
@@ -929,7 +956,7 @@ func (a *Agent) makeNodeID() (string, error) {
 	// control over this process.
 	id := strings.ToLower(info.HostID)
 	if _, err := uuid.ParseUUID(id); err != nil {
-		a.logger.Printf("[DEBUG] Unique ID %q from host isn't formatted as a UUID: %v",
+		a.logger.Printf("[DEBUG] agent: Unique ID %q from host isn't formatted as a UUID: %v",
 			id, err)
 		return a.makeRandomID()
 	}
@@ -945,7 +972,7 @@ func (a *Agent) makeNodeID() (string, error) {
 		buf[8:10],
 		buf[10:16])
 
-	a.logger.Printf("[DEBUG] Using unique ID %q from host as node ID", id)
+	a.logger.Printf("[DEBUG] agent: Using unique ID %q from host as node ID", id)
 	return id, nil
 }
 
@@ -1014,6 +1041,7 @@ func (a *Agent) setupNodeID(config *config.RuntimeConfig) error {
 func (a *Agent) setupBaseKeyrings(config *consul.Config) error {
 	// If the keyring file is disabled then just poke the provided key
 	// into the in-memory keyring.
+	federationEnabled := config.SerfWANConfig != nil
 	if a.config.DisableKeyringFile {
 		if a.config.EncryptKey == "" {
 			return nil
@@ -1023,7 +1051,7 @@ func (a *Agent) setupBaseKeyrings(config *consul.Config) error {
 		if err := loadKeyring(config.SerfLANConfig, keys); err != nil {
 			return err
 		}
-		if a.config.ServerMode {
+		if a.config.ServerMode && federationEnabled {
 			if err := loadKeyring(config.SerfWANConfig, keys); err != nil {
 				return err
 			}
@@ -1043,7 +1071,7 @@ func (a *Agent) setupBaseKeyrings(config *consul.Config) error {
 			return err
 		}
 	}
-	if a.config.ServerMode {
+	if a.config.ServerMode && federationEnabled {
 		if _, err := os.Stat(fileWAN); err != nil {
 			if err := initKeyring(fileWAN, a.config.EncryptKey); err != nil {
 				return err
@@ -1058,7 +1086,7 @@ LOAD:
 	if err := loadKeyringFile(config.SerfLANConfig); err != nil {
 		return err
 	}
-	if a.config.ServerMode {
+	if a.config.ServerMode && federationEnabled {
 		if _, err := os.Stat(fileWAN); err == nil {
 			config.SerfWANConfig.KeyringFile = fileWAN
 		}
@@ -1170,6 +1198,9 @@ func (a *Agent) ShutdownAgent() error {
 	for _, chk := range a.checkTCPs {
 		chk.Stop()
 	}
+	for _, chk := range a.checkGRPCs {
+		chk.Stop()
+	}
 	for _, chk := range a.checkDockers {
 		chk.Stop()
 	}
@@ -1196,12 +1227,12 @@ func (a *Agent) ShutdownAgent() error {
 }
 
 // ShutdownEndpoints terminates the HTTP and DNS servers. Should be
-// preceeded by ShutdownAgent.
+// preceded by ShutdownAgent.
 func (a *Agent) ShutdownEndpoints() {
 	a.shutdownLock.Lock()
 	defer a.shutdownLock.Unlock()
 
-	if len(a.dnsServers) == 0 || len(a.httpServers) == 0 {
+	if len(a.dnsServers) == 0 && len(a.httpServers) == 0 {
 		return
 	}
 
@@ -1272,10 +1303,10 @@ func (a *Agent) JoinWAN(addrs []string) (n int, err error) {
 
 // ForceLeave is used to remove a failed node from the cluster
 func (a *Agent) ForceLeave(node string) (err error) {
-	a.logger.Printf("[INFO] Force leaving node: %v", node)
+	a.logger.Printf("[INFO] agent: Force leaving node: %v", node)
 	err = a.delegate.RemoveFailedNode(node)
 	if err != nil {
-		a.logger.Printf("[WARN] Failed to remove node: %v", err)
+		a.logger.Printf("[WARN] agent: Failed to remove node: %v", err)
 	}
 	return err
 }
@@ -1392,7 +1423,7 @@ func (a *Agent) reapServicesInternal() {
 		}
 
 		// See if there's a timeout.
-		// todo(fs): this looks fishy... why is there anoter data structure in the agent with its own lock?
+		// todo(fs): this looks fishy... why is there another data structure in the agent with its own lock?
 		a.checkLock.Lock()
 		timeout := a.checkReapAfter[checkID]
 		a.checkLock.Unlock()
@@ -1538,17 +1569,25 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 
 	// Warn if the service name is incompatible with DNS
 	if InvalidDnsRe.MatchString(service.Service) {
-		a.logger.Printf("[WARN] Service name %q will not be discoverable "+
+		a.logger.Printf("[WARN] agent: Service name %q will not be discoverable "+
 			"via DNS due to invalid characters. Valid characters include "+
 			"all alpha-numerics and dashes.", service.Service)
+	} else if len(service.Service) > MaxDNSLabelLength {
+		a.logger.Printf("[WARN] agent: Service name %q will not be discoverable "+
+			"via DNS due to it being too long. Valid lengths are between "+
+			"1 and 63 bytes.", service.Service)
 	}
 
 	// Warn if any tags are incompatible with DNS
 	for _, tag := range service.Tags {
 		if InvalidDnsRe.MatchString(tag) {
-			a.logger.Printf("[DEBUG] Service tag %q will not be discoverable "+
+			a.logger.Printf("[DEBUG] agent: Service tag %q will not be discoverable "+
 				"via DNS due to invalid characters. Valid characters include "+
 				"all alpha-numerics and dashes.", tag)
+		} else if len(tag) > MaxDNSLabelLength {
+			a.logger.Printf("[DEBUG] agent: Service tag %q will not be discoverable "+
+				"via DNS due to it being too long. Valid lengths are between "+
+				"1 and 63 bytes.", tag)
 		}
 	}
 
@@ -1664,6 +1703,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			return fmt.Errorf("ServiceID %q does not exist", check.ServiceID)
 		}
 		check.ServiceName = s.Service
+		check.ServiceTags = s.Tags
 	}
 
 	a.checkLock.Lock()
@@ -1706,19 +1746,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				chkType.Interval = checks.MinInterval
 			}
 
-			// We re-use the API client's TLS structure since it
-			// closely aligns with Consul's internal configuration.
-			tlsConfig := &api.TLSConfig{
-				InsecureSkipVerify: chkType.TLSSkipVerify,
-			}
-			if a.config.EnableAgentTLSForChecks {
-				tlsConfig.Address = a.config.ServerName
-				tlsConfig.KeyFile = a.config.KeyFile
-				tlsConfig.CertFile = a.config.CertFile
-				tlsConfig.CAFile = a.config.CAFile
-				tlsConfig.CAPath = a.config.CAPath
-			}
-			tlsClientConfig, err := api.SetupTLSConfig(tlsConfig)
+			tlsClientConfig, err := a.setupTLSClientConfig(chkType.TLSSkipVerify)
 			if err != nil {
 				return fmt.Errorf("Failed to set up TLS: %v", err)
 			}
@@ -1759,6 +1787,38 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			tcp.Start()
 			a.checkTCPs[check.CheckID] = tcp
 
+		case chkType.IsGRPC():
+			if existing, ok := a.checkGRPCs[check.CheckID]; ok {
+				existing.Stop()
+				delete(a.checkGRPCs, check.CheckID)
+			}
+			if chkType.Interval < checks.MinInterval {
+				a.logger.Println(fmt.Sprintf("[WARN] agent: check '%s' has interval below minimum of %v",
+					check.CheckID, checks.MinInterval))
+				chkType.Interval = checks.MinInterval
+			}
+
+			var tlsClientConfig *tls.Config
+			if chkType.GRPCUseTLS {
+				var err error
+				tlsClientConfig, err = a.setupTLSClientConfig(chkType.TLSSkipVerify)
+				if err != nil {
+					return fmt.Errorf("Failed to set up TLS: %v", err)
+				}
+			}
+
+			grpc := &checks.CheckGRPC{
+				Notify:          a.State,
+				CheckID:         check.CheckID,
+				GRPC:            chkType.GRPC,
+				Interval:        chkType.Interval,
+				Timeout:         chkType.Timeout,
+				Logger:          a.logger,
+				TLSClientConfig: tlsClientConfig,
+			}
+			grpc.Start()
+			a.checkGRPCs[check.CheckID] = grpc
+
 		case chkType.IsDocker():
 			if existing, ok := a.checkDockers[check.CheckID]; ok {
 				existing.Stop()
@@ -1768,11 +1828,6 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				a.logger.Println(fmt.Sprintf("[WARN] agent: check '%s' has interval below minimum of %v",
 					check.CheckID, checks.MinInterval))
 				chkType.Interval = checks.MinInterval
-			}
-			if chkType.Script != "" {
-				a.logger.Printf("[WARN] agent: check %q has the 'script' field, which has been deprecated "+
-					"and replaced with the 'args' field. See https://www.consul.io/docs/agent/checks.html",
-					check.CheckID)
 			}
 
 			if a.dockerClient == nil {
@@ -1790,7 +1845,6 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				CheckID:           check.CheckID,
 				DockerContainerID: chkType.DockerContainerID,
 				Shell:             chkType.Shell,
-				Script:            chkType.Script,
 				ScriptArgs:        chkType.ScriptArgs,
 				Interval:          chkType.Interval,
 				Logger:            a.logger,
@@ -1812,16 +1866,10 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 					check.CheckID, checks.MinInterval)
 				chkType.Interval = checks.MinInterval
 			}
-			if chkType.Script != "" {
-				a.logger.Printf("[WARN] agent: check %q has the 'script' field, which has been deprecated "+
-					"and replaced with the 'args' field. See https://www.consul.io/docs/agent/checks.html",
-					check.CheckID)
-			}
 
 			monitor := &checks.CheckMonitor{
 				Notify:     a.State,
 				CheckID:    check.CheckID,
-				Script:     chkType.Script,
 				ScriptArgs: chkType.ScriptArgs,
 				Interval:   chkType.Interval,
 				Timeout:    chkType.Timeout,
@@ -1860,6 +1908,23 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 	}
 
 	return nil
+}
+
+func (a *Agent) setupTLSClientConfig(skipVerify bool) (tlsClientConfig *tls.Config, err error) {
+	// We re-use the API client's TLS structure since it
+	// closely aligns with Consul's internal configuration.
+	tlsConfig := &api.TLSConfig{
+		InsecureSkipVerify: skipVerify,
+	}
+	if a.config.EnableAgentTLSForChecks {
+		tlsConfig.Address = a.config.ServerName
+		tlsConfig.KeyFile = a.config.KeyFile
+		tlsConfig.CertFile = a.config.CertFile
+		tlsConfig.CAFile = a.config.CAFile
+		tlsConfig.CAPath = a.config.CAPath
+	}
+	tlsClientConfig, err = api.SetupTLSConfig(tlsConfig)
+	return
 }
 
 // RemoveCheck is used to remove a health check.
@@ -1904,6 +1969,10 @@ func (a *Agent) cancelCheckMonitors(checkID types.CheckID) {
 	if check, ok := a.checkTCPs[checkID]; ok {
 		check.Stop()
 		delete(a.checkTCPs, checkID)
+	}
+	if check, ok := a.checkGRPCs[checkID]; ok {
+		check.Stop()
+		delete(a.checkGRPCs, checkID)
 	}
 	if check, ok := a.checkTTLs[checkID]; ok {
 		check.Stop()
@@ -2132,7 +2201,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig) error {
 
 		// Skip all partially written temporary files
 		if strings.HasSuffix(fi.Name(), "tmp") {
-			a.logger.Printf("[WARN] Ignoring temporary service file %v", fi.Name())
+			a.logger.Printf("[WARN] agent: Ignoring temporary service file %v", fi.Name())
 			continue
 		}
 
@@ -2155,7 +2224,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig) error {
 		if err := json.Unmarshal(buf, &p); err != nil {
 			// Backwards-compatibility for pre-0.5.1 persisted services
 			if err := json.Unmarshal(buf, &p.Service); err != nil {
-				a.logger.Printf("[ERR] Failed decoding service file %q: %s", file, err)
+				a.logger.Printf("[ERR] agent: Failed decoding service file %q: %s", file, err)
 				continue
 			}
 		}
@@ -2235,7 +2304,7 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig) error {
 		// Decode the check
 		var p persistedCheck
 		if err := json.Unmarshal(buf, &p); err != nil {
-			a.logger.Printf("[ERR] Failed decoding check file %q: %s", file, err)
+			a.logger.Printf("[ERR] agent: Failed decoding check file %q: %s", file, err)
 			continue
 		}
 		checkID := p.Check.CheckID

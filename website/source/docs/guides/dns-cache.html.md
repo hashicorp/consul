@@ -24,30 +24,30 @@ customize how DNS queries are handled.
 ## Stale Reads
 
 Stale reads can be used to reduce latency and increase the throughput
-of DNS queries. By default, all reads are serviced by a
-[single leader node](/docs/internals/consensus.html).
-These reads are strongly consistent but are limited by the throughput
-of a single node. Doing a stale read allows any Consul server to
+of DNS queries. The [settings](/docs/agent/options.html) used to control stale reads
+are [`dns_config.allow_stale`](/docs/agent/options.html#allow_stale),
+which must be set to enable stale reads, and [`dns_config.max_stale`](/docs/agent/options.html#max_stale)
+which limits how stale results are allowed to be.
+
+Since Consul 0.7.1, [`allow_stale`](/docs/agent/options.html#allow_stale)
+is enabled by default, using a [`max_stale`](/docs/agent/options.html#max_stale)
+value that defaults to a near-indefinite threshold (10 years) to allow DNS queries to continue to be served in the event
+of a long outage with no leader. A new telemetry counter has also been added at
+`consul.dns.stale_queries` to track when agents serve DNS queries that are stale
+by more than 5 seconds.
+
+Doing a stale read allows any Consul server to
 service a query, but non-leader nodes may return data that is
 out-of-date. By allowing data to be slightly stale, we get horizontal
 read scalability. Now any Consul server can service the request, so we
 increase throughput by the number of servers in a cluster.
 
-The [settings](/docs/agent/options.html) used to control stale reads
-are [`dns_config.allow_stale`](/docs/agent/options.html#allow_stale),
-which must be set to enable stale reads, and
-[`dns_config.max_stale`](/docs/agent/options.html#max_stale)
-which limits how stale results are allowed to be.
-
-Starting from Consul 0.7, [`allow_stale`](/docs/agent/options.html#allow_stale)
-is enabled by default, using a [`max_stale`](/docs/agent/options.html#max_stale)
-value that defaults to 5 seconds, meaning that we will use data from
-any Consul server that is within 5 seconds of the leader. In Consul 0.7.1, the
-default for `max_stale` was been increased from 5 seconds to a near-indefinite
-threshold (10 years) to allow DNS queries to continue to be served in the event
-of a long outage with no leader. A new telemetry counter has also been added at
-`consul.dns.stale_queries` to track when agents serve DNS queries that are stale
-by more than 5 seconds.
+If you want to prevent
+stale reads or limit how stale they can be, you can set `allow_stale`
+to false or use a lower value for `max_stale`. Doing the first will ensure that
+all reads are serviced by a [single leader node](/docs/internals/consensus.html).
+The reads will then be strongly consistent but will be limited by the throughput
+of a single node. 
 
 ## Negative Response Caching
 

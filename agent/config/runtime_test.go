@@ -1065,7 +1065,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
-			desc: "serf wan port > 0",
+			desc: "allow disabling serf wan port",
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{
 				"ports": {
@@ -1079,7 +1079,17 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				}
 				advertise_addr_wan = "1.2.3.4"
 			`},
-			err: "ports.serf_wan must be a valid port from 1 to 65535",
+			patch: func(rt *RuntimeConfig) {
+				rt.AdvertiseAddrWAN = ipAddr("1.2.3.4")
+				rt.SerfAdvertiseAddrWAN = nil
+				rt.SerfBindAddrWAN = nil
+				rt.TaggedAddresses = map[string]string{
+					"lan": "10.0.0.1",
+					"wan": "1.2.3.4",
+				}
+				rt.DataDir = dataDir
+				rt.SerfPortWAN = -1
+			},
 		},
 		{
 			desc: "serf bind address lan template",
@@ -1108,6 +1118,46 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			hcl:  []string{`recursors = [ "{{ printf \"5.6.7.8:9999\" }}", "{{ printf \"1.2.3.4\" }}", "{{ printf \"5.6.7.8:9999\" }}" ] `},
 			patch: func(rt *RuntimeConfig) {
 				rt.DNSRecursors = []string{"5.6.7.8:9999", "1.2.3.4"}
+				rt.DataDir = dataDir
+			},
+		},
+		{
+			desc: "start_join address template",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{ "start_join": ["{{ printf \"1.2.3.4 4.3.2.1\" }}"] }`},
+			hcl:  []string{`start_join = ["{{ printf \"1.2.3.4 4.3.2.1\" }}"]`},
+			patch: func(rt *RuntimeConfig) {
+				rt.StartJoinAddrsLAN = []string{"1.2.3.4", "4.3.2.1"}
+				rt.DataDir = dataDir
+			},
+		},
+		{
+			desc: "start_join_wan address template",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{ "start_join_wan": ["{{ printf \"1.2.3.4 4.3.2.1\" }}"] }`},
+			hcl:  []string{`start_join_wan = ["{{ printf \"1.2.3.4 4.3.2.1\" }}"]`},
+			patch: func(rt *RuntimeConfig) {
+				rt.StartJoinAddrsWAN = []string{"1.2.3.4", "4.3.2.1"}
+				rt.DataDir = dataDir
+			},
+		},
+		{
+			desc: "retry_join address template",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{ "retry_join": ["{{ printf \"1.2.3.4 4.3.2.1\" }}"] }`},
+			hcl:  []string{`retry_join = ["{{ printf \"1.2.3.4 4.3.2.1\" }}"]`},
+			patch: func(rt *RuntimeConfig) {
+				rt.RetryJoinLAN = []string{"1.2.3.4", "4.3.2.1"}
+				rt.DataDir = dataDir
+			},
+		},
+		{
+			desc: "retry_join_wan address template",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{ "retry_join_wan": ["{{ printf \"1.2.3.4 4.3.2.1\" }}"] }`},
+			hcl:  []string{`retry_join_wan = ["{{ printf \"1.2.3.4 4.3.2.1\" }}"]`},
+			patch: func(rt *RuntimeConfig) {
+				rt.RetryJoinWAN = []string{"1.2.3.4", "4.3.2.1"}
 				rt.DataDir = dataDir
 			},
 		},
@@ -1596,6 +1646,15 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			err:  "dns_config.udp_answer_limit cannot be -1. Must be greater than or equal to zero",
 		},
 		{
+			desc: "dns_config.a_record_limit invalid",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{ "dns_config": { "a_record_limit": -1 } }`},
+			hcl:  []string{`dns_config = { a_record_limit = -1 }`},
+			err:  "dns_config.a_record_limit cannot be -1. Must be greater than or equal to zero",
+		},
+		{
 			desc: "performance.raft_multiplier < 0",
 			args: []string{
 				`-data-dir=` + dataDir,
@@ -1792,27 +1851,9 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			patch: func(rt *RuntimeConfig) {
 				rt.DataDir = dataDir
 				rt.TelemetryAllowedPrefixes = []string{"foo"}
-				rt.TelemetryBlockedPrefixes = []string{"bar", "consul.consul"}
+				rt.TelemetryBlockedPrefixes = []string{"bar"}
 			},
 			warns: []string{`Filter rule must begin with either '+' or '-': "nix"`},
-		},
-		{
-			desc: "telemetry.enable_deprecated_names adds allow rule for whitelist",
-			args: []string{
-				`-data-dir=` + dataDir,
-			},
-			json: []string{`{
-					"telemetry": { "enable_deprecated_names": true, "filter_default": false }
-				}`},
-			hcl: []string{`
-					telemetry = { enable_deprecated_names = true filter_default = false }
-				`},
-			patch: func(rt *RuntimeConfig) {
-				rt.DataDir = dataDir
-				rt.TelemetryFilterDefault = false
-				rt.TelemetryAllowedPrefixes = []string{"consul.consul"}
-				rt.TelemetryBlockedPrefixes = []string{}
-			},
 		},
 		{
 			desc: "encrypt has invalid key",
@@ -1864,17 +1905,35 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				`-data-dir=` + dataDir,
 			},
 			json: []string{
-				`{ "check": { "name": "a", "script": "/bin/true" } }`,
-				`{ "check": { "name": "b", "script": "/bin/false" } }`,
+				`{ "check": { "name": "a", "args": ["/bin/true"] } }`,
+				`{ "check": { "name": "b", "args": ["/bin/false"] } }`,
 			},
 			hcl: []string{
-				`check = { name = "a" script = "/bin/true" }`,
-				`check = { name = "b" script = "/bin/false" }`,
+				`check = { name = "a" args = ["/bin/true"] }`,
+				`check = { name = "b" args = ["/bin/false"] }`,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Checks = []*structs.CheckDefinition{
-					&structs.CheckDefinition{Name: "a", Script: "/bin/true"},
-					&structs.CheckDefinition{Name: "b", Script: "/bin/false"},
+					&structs.CheckDefinition{Name: "a", ScriptArgs: []string{"/bin/true"}},
+					&structs.CheckDefinition{Name: "b", ScriptArgs: []string{"/bin/false"}},
+				}
+				rt.DataDir = dataDir
+			},
+		},
+		{
+			desc: "grpc check",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{
+				`{ "check": { "name": "a", "grpc": "localhost:12345/foo", "grpc_use_tls": true } }`,
+			},
+			hcl: []string{
+				`check = { name = "a" grpc = "localhost:12345/foo", grpc_use_tls = true }`,
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.Checks = []*structs.CheckDefinition{
+					&structs.CheckDefinition{Name: "a", GRPC: "localhost:12345/foo", GRPCUseTLS: true},
 				}
 				rt.DataDir = dataDir
 			},
@@ -1886,19 +1945,58 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			json: []string{
 				`{ "service": { "name": "a", "port": 80 } }`,
-				`{ "service": { "name": "b", "port": 90 } }`,
+				`{ "service": { "name": "b", "port": 90, "meta": {"my": "value"} } }`,
 			},
 			hcl: []string{
 				`service = { name = "a" port = 80 }`,
-				`service = { name = "b" port = 90 }`,
+				`service = { name = "b" port = 90 meta={my="value"}}`,
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Services = []*structs.ServiceDefinition{
 					&structs.ServiceDefinition{Name: "a", Port: 80},
-					&structs.ServiceDefinition{Name: "b", Port: 90},
+					&structs.ServiceDefinition{Name: "b", Port: 90, Meta: map[string]string{"my": "value"}},
 				}
 				rt.DataDir = dataDir
 			},
+		},
+		{
+			desc: "service with wrong meta: too long key",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{
+				`{ "service": { "name": "a", "port": 80, "meta": { "` + randomString(520) + `": "metaValue" } } }`,
+			},
+			hcl: []string{
+				`service = { name = "a" port = 80, meta={` + randomString(520) + `="metaValue"} }`,
+			},
+			err: `Key is too long`,
+		},
+		{
+			desc: "service with wrong meta: too long value",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{
+				`{ "service": { "name": "a", "port": 80, "meta": { "a": "` + randomString(520) + `" } } }`,
+			},
+			hcl: []string{
+				`service = { name = "a" port = 80, meta={a="` + randomString(520) + `"} }`,
+			},
+			err: `Value is too long`,
+		},
+		{
+			desc: "service with wrong meta: too many meta",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{
+				`{ "service": { "name": "a", "port": 80, "meta": { ` + metaPairs(70, "json") + `} } }`,
+			},
+			hcl: []string{
+				`service = { name = "a" port = 80 meta={` + metaPairs(70, "hcl") + `} }`,
+			},
+			err: `invalid meta for service a: Node metadata cannot contain more than 64 key`,
 		},
 		{
 			desc: "translated keys",
@@ -1910,9 +2008,9 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					"service": {
 						"name": "a",
 						"port": 80,
-						"EnableTagOverride": true,
+						"enable_tag_override": true,
 						"check": {
-							"CheckID": "x",
+							"id": "x",
 							"name": "y",
 							"DockerContainerID": "z",
 							"DeregisterCriticalServiceAfter": "10s",
@@ -1925,9 +2023,9 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				`service = {
 					name = "a"
 					port = 80
-					EnableTagOverride = true
+					enable_tag_override = true
 					check = {
-						CheckID = "x"
+						id = "x"
 						name = "y"
 						DockerContainerID = "z"
 						DeregisterCriticalServiceAfter = "10s"
@@ -2189,7 +2287,6 @@ func TestFullConfig(t *testing.T) {
 				"service_id": "L8G0QNmR",
 				"token": "oo4BCTgJ",
 				"status": "qLykAl5u",
-				"script": "dhGfIF8n",
 				"args": ["f3BemRjy", "e5zgpef7"],
 				"http": "29B93haH",
 				"header": {
@@ -2214,7 +2311,6 @@ func TestFullConfig(t *testing.T) {
 					"service_id": "lSulPcyz",
 					"token": "toO59sh8",
 					"status": "9RlWsXMV",
-					"script": "8qbd8tWw",
 					"args": ["4BAJttck", "4D2NPtTQ"],
 					"http": "dohLcyQ2",
 					"header": {
@@ -2238,7 +2334,6 @@ func TestFullConfig(t *testing.T) {
 					"service_id": "CmUUcRna",
 					"token": "a3nQzHuy",
 					"status": "irj26nf3",
-					"script": "FJsI1oXt",
 					"args": ["9s526ogY", "gSlOHj1w"],
 					"http": "yzhgsQ7Y",
 					"header": {
@@ -2267,9 +2362,11 @@ func TestFullConfig(t *testing.T) {
 			"disable_remote_exec": true,
 			"disable_update_check": true,
 			"discard_check_output": true,
+			"discovery_max_stale": "5s",
 			"domain": "7W1xXSqd",
 			"dns_config": {
 				"allow_stale": true,
+				"a_record_limit": 29907,
 				"disable_compression": true,
 				"enable_truncate": true,
 				"max_stale": "29685s",
@@ -2324,6 +2421,8 @@ func TestFullConfig(t *testing.T) {
 			},
 			"protocol": 30793,
 			"raft_protocol": 19016,
+			"raft_snapshot_threshold": 16384,
+			"raft_snapshot_interval": "30s",
 			"reconnect_timeout": "23739s",
 			"reconnect_timeout_wan": "26694s",
 			"recursors": [ "63.38.39.58", "92.49.18.18" ],
@@ -2358,17 +2457,19 @@ func TestFullConfig(t *testing.T) {
 			"service": {
 				"id": "dLOXpSCI",
 				"name": "o1ynPkp0",
+				"meta": {
+					"mymeta": "data"
+				},
 				"tags": ["nkwshvM5", "NTDWn3ek"],
 				"address": "cOlSOhbp",
 				"token": "msy7iWER",
 				"port": 24237,
 				"enable_tag_override": true,
 				"check": {
-					"check_id": "RMi85Dv8",
+					"id": "RMi85Dv8",
 					"name": "iehanzuq",
 					"status": "rCvn53TH",
 					"notes": "fti5lfF3",
-					"script": "rtj34nfd",
 					"args": ["16WRUmwS", "QWk7j7ae"],
 					"http": "dl3Fgme3",
 					"header": {
@@ -2391,7 +2492,6 @@ func TestFullConfig(t *testing.T) {
 						"name": "sgV4F7Pk",
 						"notes": "yP5nKbW0",
 						"status": "7oLMEyfu",
-						"script": "NlUQ3nTE",
 						"args": ["5wEZtZpv", "0Ihyk8cS"],
 						"http": "KyDjGY9H",
 						"header": {
@@ -2413,7 +2513,6 @@ func TestFullConfig(t *testing.T) {
 						"name": "IEqrzrsd",
 						"notes": "SVqApqeM",
 						"status": "XXkVoZXt",
-						"script": "IXLZTM6E",
 						"args": ["wD05Bvao", "rLYB7kQC"],
 						"http": "kyICZsn8",
 						"header": {
@@ -2442,11 +2541,10 @@ func TestFullConfig(t *testing.T) {
 					"port": 72219,
 					"enable_tag_override": true,
 					"check": {
-						"check_id": "qmfeO5if",
+						"id": "qmfeO5if",
 						"name": "atDGP7n5",
 						"status": "pDQKEhWL",
 						"notes": "Yt8EDLev",
-						"script": "MDu7wjlD",
 						"args": ["81EDZLPa", "bPY5X8xd"],
 						"http": "qzHYvmJO",
 						"header": {
@@ -2478,7 +2576,6 @@ func TestFullConfig(t *testing.T) {
 							"name": "9OOS93ne",
 							"notes": "CQy86DH0",
 							"status": "P0SWDvrk",
-							"script": "6BhLJ7R9",
 							"args": ["EXvkYIuG", "BATOyt6h"],
 							"http": "u97ByEiW",
 							"header": {
@@ -2500,7 +2597,6 @@ func TestFullConfig(t *testing.T) {
 							"name": "PQSaPWlT",
 							"notes": "jKChDOdl",
 							"status": "5qFz6OZn",
-							"script": "PbdxFZ3K",
 							"args": ["NMtYWlT9", "vj74JXsm"],
 							"http": "1LBDJhw4",
 							"header": {
@@ -2548,12 +2644,12 @@ func TestFullConfig(t *testing.T) {
 				"dogstatsd_tags": [ "3N81zSUB","Xtj8AnXZ" ],
 				"filter_default": true,
 				"prefix_filter": [ "+oJotS8XJ","-cazlEhGn" ],
-				"enable_deprecated_names": true,
 				"metrics_prefix": "ftO6DySn",
+				"prometheus_retention_time": "15s",
 				"statsd_address": "drce87cy",
 				"statsite_address": "HpFwKB8R"
 			},
-			"tls_cipher_suites": "TLS_RSA_WITH_RC4_128_SHA,TLS_RSA_WITH_3DES_EDE_CBC_SHA",
+			"tls_cipher_suites": "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
 			"tls_min_version": "pAOWafkR",
 			"tls_prefer_server_cipher_suites": true,
 			"translate_wan_addrs": true,
@@ -2624,7 +2720,6 @@ func TestFullConfig(t *testing.T) {
 				service_id = "L8G0QNmR"
 				token = "oo4BCTgJ"
 				status = "qLykAl5u"
-				script = "dhGfIF8n"
 				args = ["f3BemRjy", "e5zgpef7"]
 				http = "29B93haH"
 				header = {
@@ -2649,7 +2744,6 @@ func TestFullConfig(t *testing.T) {
 					service_id = "lSulPcyz"
 					token = "toO59sh8"
 					status = "9RlWsXMV"
-					script = "8qbd8tWw"
 					args = ["4BAJttck", "4D2NPtTQ"]
 					http = "dohLcyQ2"
 					header = {
@@ -2673,7 +2767,6 @@ func TestFullConfig(t *testing.T) {
 					service_id = "CmUUcRna"
 					token = "a3nQzHuy"
 					status = "irj26nf3"
-					script = "FJsI1oXt"
 					args = ["9s526ogY", "gSlOHj1w"]
 					http = "yzhgsQ7Y"
 					header = {
@@ -2702,9 +2795,11 @@ func TestFullConfig(t *testing.T) {
 			disable_remote_exec = true
 			disable_update_check = true
 			discard_check_output = true
+			discovery_max_stale = "5s"
 			domain = "7W1xXSqd"
 			dns_config {
 				allow_stale = true
+				a_record_limit = 29907
 				disable_compression = true
 				enable_truncate = true
 				max_stale = "29685s"
@@ -2759,6 +2854,8 @@ func TestFullConfig(t *testing.T) {
 			}
 			protocol = 30793
 			raft_protocol = 19016
+			raft_snapshot_threshold = 16384
+			raft_snapshot_interval = "30s"
 			reconnect_timeout = "23739s"
 			reconnect_timeout_wan = "26694s"
 			recursors = [ "63.38.39.58", "92.49.18.18" ]
@@ -2793,17 +2890,19 @@ func TestFullConfig(t *testing.T) {
 			service = {
 				id = "dLOXpSCI"
 				name = "o1ynPkp0"
+				meta = {
+					mymeta = "data"
+				}
 				tags = ["nkwshvM5", "NTDWn3ek"]
 				address = "cOlSOhbp"
 				token = "msy7iWER"
 				port = 24237
 				enable_tag_override = true
 				check = {
-					check_id = "RMi85Dv8"
+					id = "RMi85Dv8"
 					name = "iehanzuq"
 					status = "rCvn53TH"
 					notes = "fti5lfF3"
-					script = "rtj34nfd"
 					args = ["16WRUmwS", "QWk7j7ae"]
 					http = "dl3Fgme3"
 					header = {
@@ -2826,7 +2925,6 @@ func TestFullConfig(t *testing.T) {
 						name = "sgV4F7Pk"
 						notes = "yP5nKbW0"
 						status = "7oLMEyfu"
-						script = "NlUQ3nTE"
 						args = ["5wEZtZpv", "0Ihyk8cS"]
 						http = "KyDjGY9H"
 						header = {
@@ -2848,7 +2946,6 @@ func TestFullConfig(t *testing.T) {
 						name = "IEqrzrsd"
 						notes = "SVqApqeM"
 						status = "XXkVoZXt"
-						script = "IXLZTM6E"
 						args = ["wD05Bvao", "rLYB7kQC"]
 						http = "kyICZsn8"
 						header = {
@@ -2877,11 +2974,10 @@ func TestFullConfig(t *testing.T) {
 					port = 72219
 					enable_tag_override = true
 					check = {
-						check_id = "qmfeO5if"
+						id = "qmfeO5if"
 						name = "atDGP7n5"
 						status = "pDQKEhWL"
 						notes = "Yt8EDLev"
-						script = "MDu7wjlD"
 						args = ["81EDZLPa", "bPY5X8xd"]
 						http = "qzHYvmJO"
 						header = {
@@ -2913,7 +3009,6 @@ func TestFullConfig(t *testing.T) {
 							name = "9OOS93ne"
 							notes = "CQy86DH0"
 							status = "P0SWDvrk"
-							script = "6BhLJ7R9"
 							args = ["EXvkYIuG", "BATOyt6h"]
 							http = "u97ByEiW"
 							header = {
@@ -2935,7 +3030,6 @@ func TestFullConfig(t *testing.T) {
 							name = "PQSaPWlT"
 							notes = "jKChDOdl"
 							status = "5qFz6OZn"
-							script = "PbdxFZ3K"
 							args = ["NMtYWlT9", "vj74JXsm"]
 							http = "1LBDJhw4"
 							header = {
@@ -2983,12 +3077,12 @@ func TestFullConfig(t *testing.T) {
 				dogstatsd_tags = [ "3N81zSUB","Xtj8AnXZ" ]
 				filter_default = true
 				prefix_filter = [ "+oJotS8XJ","-cazlEhGn" ]
-				enable_deprecated_names = true
 				metrics_prefix = "ftO6DySn"
+				prometheus_retention_time = "15s"
 				statsd_address = "drce87cy"
 				statsite_address = "HpFwKB8R"
 			}
-			tls_cipher_suites = "TLS_RSA_WITH_RC4_128_SHA,TLS_RSA_WITH_3DES_EDE_CBC_SHA"
+			tls_cipher_suites = "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384"
 			tls_min_version = "pAOWafkR"
 			tls_prefer_server_cipher_suites = true
 			translate_wan_addrs = true
@@ -3028,6 +3122,7 @@ func TestFullConfig(t *testing.T) {
 					"ae_interval": "10003s",
 					"check_deregister_interval_min": "27870s",
 					"check_reap_interval": "10662s",
+					"discovery_max_stale": "5s",
 					"segment_limit": 24705,
 					"segment_name_limit": 27046,
 					"sync_coordinate_interval_min": "27983s",
@@ -3082,6 +3177,7 @@ func TestFullConfig(t *testing.T) {
 					ae_interval = "10003s"
 					check_deregister_interval_min = "27870s"
 					check_reap_interval = "10662s"
+					discovery_max_stale = "5s"
 					segment_limit = 24705
 					segment_name_limit = 27046
 					sync_coordinate_interval_min = "27983s"
@@ -3196,7 +3292,6 @@ func TestFullConfig(t *testing.T) {
 				ServiceID:  "lSulPcyz",
 				Token:      "toO59sh8",
 				Status:     "9RlWsXMV",
-				Script:     "8qbd8tWw",
 				ScriptArgs: []string{"4BAJttck", "4D2NPtTQ"},
 				HTTP:       "dohLcyQ2",
 				Header: map[string][]string{
@@ -3220,7 +3315,6 @@ func TestFullConfig(t *testing.T) {
 				ServiceID:  "CmUUcRna",
 				Token:      "a3nQzHuy",
 				Status:     "irj26nf3",
-				Script:     "FJsI1oXt",
 				ScriptArgs: []string{"9s526ogY", "gSlOHj1w"},
 				HTTP:       "yzhgsQ7Y",
 				Header: map[string][]string{
@@ -3244,7 +3338,6 @@ func TestFullConfig(t *testing.T) {
 				ServiceID:  "L8G0QNmR",
 				Token:      "oo4BCTgJ",
 				Status:     "qLykAl5u",
-				Script:     "dhGfIF8n",
 				ScriptArgs: []string{"f3BemRjy", "e5zgpef7"},
 				HTTP:       "29B93haH",
 				Header: map[string][]string{
@@ -3265,6 +3358,7 @@ func TestFullConfig(t *testing.T) {
 		CheckUpdateInterval:       16507 * time.Second,
 		ClientAddrs:               []*net.IPAddr{ipAddr("93.83.18.19")},
 		DNSAddrs:                  []net.Addr{tcpAddr("93.95.95.81:7001"), udpAddr("93.95.95.81:7001")},
+		DNSARecordLimit:           29907,
 		DNSAllowStale:             true,
 		DNSDisableCompression:     true,
 		DNSDomain:                 "7W1xXSqd",
@@ -3287,6 +3381,7 @@ func TestFullConfig(t *testing.T) {
 		DisableRemoteExec:         true,
 		DisableUpdateCheck:        true,
 		DiscardCheckOutput:        true,
+		DiscoveryMaxStale:         5 * time.Second,
 		EnableACLReplication:      true,
 		EnableAgentTLSForChecks:   true,
 		EnableDebug:               true,
@@ -3318,6 +3413,8 @@ func TestFullConfig(t *testing.T) {
 		RPCRateLimit:              12029.43,
 		RPCMaxBurst:               44848,
 		RaftProtocol:              19016,
+		RaftSnapshotThreshold:     16384,
+		RaftSnapshotInterval:      30 * time.Second,
 		ReconnectTimeoutLAN:       23739 * time.Second,
 		ReconnectTimeoutWAN:       26694 * time.Second,
 		RejoinAfterLeave:          true,
@@ -3362,7 +3459,6 @@ func TestFullConfig(t *testing.T) {
 						Name:       "atDGP7n5",
 						Status:     "pDQKEhWL",
 						Notes:      "Yt8EDLev",
-						Script:     "MDu7wjlD",
 						ScriptArgs: []string{"81EDZLPa", "bPY5X8xd"},
 						HTTP:       "qzHYvmJO",
 						Header: map[string][]string{
@@ -3395,7 +3491,6 @@ func TestFullConfig(t *testing.T) {
 						Name:       "9OOS93ne",
 						Notes:      "CQy86DH0",
 						Status:     "P0SWDvrk",
-						Script:     "6BhLJ7R9",
 						ScriptArgs: []string{"EXvkYIuG", "BATOyt6h"},
 						HTTP:       "u97ByEiW",
 						Header: map[string][]string{
@@ -3417,7 +3512,6 @@ func TestFullConfig(t *testing.T) {
 						Name:       "PQSaPWlT",
 						Notes:      "jKChDOdl",
 						Status:     "5qFz6OZn",
-						Script:     "PbdxFZ3K",
 						ScriptArgs: []string{"NMtYWlT9", "vj74JXsm"},
 						HTTP:       "1LBDJhw4",
 						Header: map[string][]string{
@@ -3442,6 +3536,7 @@ func TestFullConfig(t *testing.T) {
 				Tags:              []string{"nkwshvM5", "NTDWn3ek"},
 				Address:           "cOlSOhbp",
 				Token:             "msy7iWER",
+				Meta:              map[string]string{"mymeta": "data"},
 				Port:              24237,
 				EnableTagOverride: true,
 				Checks: structs.CheckTypes{
@@ -3450,7 +3545,6 @@ func TestFullConfig(t *testing.T) {
 						Name:       "sgV4F7Pk",
 						Notes:      "yP5nKbW0",
 						Status:     "7oLMEyfu",
-						Script:     "NlUQ3nTE",
 						ScriptArgs: []string{"5wEZtZpv", "0Ihyk8cS"},
 						HTTP:       "KyDjGY9H",
 						Header: map[string][]string{
@@ -3472,7 +3566,6 @@ func TestFullConfig(t *testing.T) {
 						Name:       "IEqrzrsd",
 						Notes:      "SVqApqeM",
 						Status:     "XXkVoZXt",
-						Script:     "IXLZTM6E",
 						ScriptArgs: []string{"wD05Bvao", "rLYB7kQC"},
 						HTTP:       "kyICZsn8",
 						Header: map[string][]string{
@@ -3494,7 +3587,6 @@ func TestFullConfig(t *testing.T) {
 						Name:       "iehanzuq",
 						Status:     "rCvn53TH",
 						Notes:      "fti5lfF3",
-						Script:     "rtj34nfd",
 						ScriptArgs: []string{"16WRUmwS", "QWk7j7ae"},
 						HTTP:       "dl3Fgme3",
 						Header: map[string][]string{
@@ -3540,12 +3632,13 @@ func TestFullConfig(t *testing.T) {
 		TelemetryDogstatsdAddr:                      "0wSndumK",
 		TelemetryDogstatsdTags:                      []string{"3N81zSUB", "Xtj8AnXZ"},
 		TelemetryFilterDefault:                      true,
-		TelemetryAllowedPrefixes:                    []string{"oJotS8XJ", "consul.consul"},
+		TelemetryAllowedPrefixes:                    []string{"oJotS8XJ"},
 		TelemetryBlockedPrefixes:                    []string{"cazlEhGn"},
 		TelemetryMetricsPrefix:                      "ftO6DySn",
+		TelemetryPrometheusRetentionTime:            15 * time.Second,
 		TelemetryStatsdAddr:                         "drce87cy",
 		TelemetryStatsiteAddr:                       "HpFwKB8R",
-		TLSCipherSuites:                             []uint16{tls.TLS_RSA_WITH_RC4_128_SHA, tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA},
+		TLSCipherSuites:                             []uint16{tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305, tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384},
 		TLSMinVersion:                               "pAOWafkR",
 		TLSPreferServerCipherSuites:                 true,
 		TaggedAddresses: map[string]string{
@@ -3673,7 +3766,7 @@ func nonZero(name string, uniq map[interface{}]string, v interface{}) error {
 
 	isUnique := func(v interface{}) error {
 		if other := uniq[v]; other != "" {
-			return fmt.Errorf("%q and %q both use vaule %q", name, other, v)
+			return fmt.Errorf("%q and %q both use value %q", name, other, v)
 		}
 		uniq[v] = name
 		return nil
@@ -3904,6 +3997,8 @@ func TestSanitize(t *testing.T) {
         {
             "DeregisterCriticalServiceAfter": "0s",
             "DockerContainerID": "",
+            "GRPC": "",
+            "GRPCUseTLS": false,
             "HTTP": "",
             "Header": {},
             "ID": "",
@@ -3911,7 +4006,6 @@ func TestSanitize(t *testing.T) {
             "Method": "",
             "Name": "zoo",
             "Notes": "",
-            "Script": "",
             "ScriptArgs": [],
             "ServiceID": "",
             "Shell": "",
@@ -3939,6 +4033,7 @@ func TestSanitize(t *testing.T) {
     "ConsulSerfWANProbeTimeout": "0s",
     "ConsulSerfWANSuspicionMult": 0,
     "ConsulServerHealthInterval": "0s",
+    "DNSARecordLimit": 0,
     "DNSAddrs": [
         "tcp://1.2.3.4:5678",
         "udp://1.2.3.4:5678"
@@ -3965,6 +4060,7 @@ func TestSanitize(t *testing.T) {
     "DisableRemoteExec": false,
     "DisableUpdateCheck": false,
     "DiscardCheckOutput": false,
+    "DiscoveryMaxStale": "0s",
     "EnableACLReplication": false,
     "EnableAgentTLSForChecks": false,
     "EnableDebug": false,
@@ -3999,6 +4095,8 @@ func TestSanitize(t *testing.T) {
     "RPCProtocol": 0,
     "RPCRateLimit": 0,
     "RaftProtocol": 0,
+    "RaftSnapshotInterval": "0s",
+    "RaftSnapshotThreshold": 0,
     "ReconnectTimeoutLAN": "0s",
     "ReconnectTimeoutWAN": "0s",
     "RejoinAfterLeave": false,
@@ -4033,13 +4131,14 @@ func TestSanitize(t *testing.T) {
                 "CheckID": "",
                 "DeregisterCriticalServiceAfter": "0s",
                 "DockerContainerID": "",
+                "GRPC": "",
+                "GRPCUseTLS": false,
                 "HTTP": "",
                 "Header": {},
                 "Interval": "0s",
                 "Method": "",
                 "Name": "blurb",
                 "Notes": "",
-                "Script": "",
                 "ScriptArgs": [],
                 "Shell": "",
                 "Status": "",
@@ -4051,6 +4150,7 @@ func TestSanitize(t *testing.T) {
             "Checks": [],
             "EnableTagOverride": false,
             "ID": "",
+            "Meta": {},
             "Name": "foo",
             "Port": 0,
             "Tags": [],
@@ -4088,6 +4188,7 @@ func TestSanitize(t *testing.T) {
     "TelemetryDogstatsdTags": [],
     "TelemetryFilterDefault": false,
     "TelemetryMetricsPrefix": "",
+    "TelemetryPrometheusRetentionTime": "0s",
     "TelemetryStatsdAddr": "",
     "TelemetryStatsiteAddr": "",
     "TranslateWANAddrs": false,

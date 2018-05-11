@@ -23,6 +23,7 @@ type AgentService struct {
 	ID                string
 	Service           string
 	Tags              []string
+	Meta              map[string]string
 	Port              int
 	Address           string
 	EnableTagOverride bool
@@ -60,12 +61,13 @@ type MembersOpts struct {
 
 // AgentServiceRegistration is used to register a new service
 type AgentServiceRegistration struct {
-	ID                string   `json:",omitempty"`
-	Name              string   `json:",omitempty"`
-	Tags              []string `json:",omitempty"`
-	Port              int      `json:",omitempty"`
-	Address           string   `json:",omitempty"`
-	EnableTagOverride bool     `json:",omitempty"`
+	ID                string            `json:",omitempty"`
+	Name              string            `json:",omitempty"`
+	Tags              []string          `json:",omitempty"`
+	Port              int               `json:",omitempty"`
+	Address           string            `json:",omitempty"`
+	EnableTagOverride bool              `json:",omitempty"`
+	Meta              map[string]string `json:",omitempty"`
 	Check             *AgentServiceCheck
 	Checks            AgentServiceChecks
 }
@@ -84,7 +86,6 @@ type AgentServiceCheck struct {
 	CheckID           string              `json:",omitempty"`
 	Name              string              `json:",omitempty"`
 	Args              []string            `json:"ScriptArgs,omitempty"`
-	Script            string              `json:",omitempty"` // Deprecated, use Args.
 	DockerContainerID string              `json:",omitempty"`
 	Shell             string              `json:",omitempty"` // Only supported for Docker.
 	Interval          string              `json:",omitempty"`
@@ -97,6 +98,8 @@ type AgentServiceCheck struct {
 	Status            string              `json:",omitempty"`
 	Notes             string              `json:",omitempty"`
 	TLSSkipVerify     bool                `json:",omitempty"`
+	GRPC              string              `json:",omitempty"`
+	GRPCUseTLS        bool                `json:",omitempty"`
 
 	// In Consul 0.7 and later, checks that are associated with a service
 	// may also contain this optional DeregisterCriticalServiceAfter field,
@@ -584,36 +587,36 @@ func (a *Agent) Monitor(loglevel string, stopCh <-chan struct{}, q *QueryOptions
 
 // UpdateACLToken updates the agent's "acl_token". See updateToken for more
 // details.
-func (c *Agent) UpdateACLToken(token string, q *WriteOptions) (*WriteMeta, error) {
-	return c.updateToken("acl_token", token, q)
+func (a *Agent) UpdateACLToken(token string, q *WriteOptions) (*WriteMeta, error) {
+	return a.updateToken("acl_token", token, q)
 }
 
 // UpdateACLAgentToken updates the agent's "acl_agent_token". See updateToken
 // for more details.
-func (c *Agent) UpdateACLAgentToken(token string, q *WriteOptions) (*WriteMeta, error) {
-	return c.updateToken("acl_agent_token", token, q)
+func (a *Agent) UpdateACLAgentToken(token string, q *WriteOptions) (*WriteMeta, error) {
+	return a.updateToken("acl_agent_token", token, q)
 }
 
 // UpdateACLAgentMasterToken updates the agent's "acl_agent_master_token". See
 // updateToken for more details.
-func (c *Agent) UpdateACLAgentMasterToken(token string, q *WriteOptions) (*WriteMeta, error) {
-	return c.updateToken("acl_agent_master_token", token, q)
+func (a *Agent) UpdateACLAgentMasterToken(token string, q *WriteOptions) (*WriteMeta, error) {
+	return a.updateToken("acl_agent_master_token", token, q)
 }
 
 // UpdateACLReplicationToken updates the agent's "acl_replication_token". See
 // updateToken for more details.
-func (c *Agent) UpdateACLReplicationToken(token string, q *WriteOptions) (*WriteMeta, error) {
-	return c.updateToken("acl_replication_token", token, q)
+func (a *Agent) UpdateACLReplicationToken(token string, q *WriteOptions) (*WriteMeta, error) {
+	return a.updateToken("acl_replication_token", token, q)
 }
 
 // updateToken can be used to update an agent's ACL token after the agent has
 // started. The tokens are not persisted, so will need to be updated again if
 // the agent is restarted.
-func (c *Agent) updateToken(target, token string, q *WriteOptions) (*WriteMeta, error) {
-	r := c.c.newRequest("PUT", fmt.Sprintf("/v1/agent/token/%s", target))
+func (a *Agent) updateToken(target, token string, q *WriteOptions) (*WriteMeta, error) {
+	r := a.c.newRequest("PUT", fmt.Sprintf("/v1/agent/token/%s", target))
 	r.setWriteOptions(q)
 	r.obj = &AgentToken{Token: token}
-	rtt, resp, err := requireOK(c.c.doRequest(r))
+	rtt, resp, err := requireOK(a.c.doRequest(r))
 	if err != nil {
 		return nil, err
 	}

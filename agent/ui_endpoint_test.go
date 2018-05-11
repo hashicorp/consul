@@ -156,9 +156,11 @@ func TestSummarizeServices(t *testing.T) {
 			Services: []*structs.NodeService{
 				&structs.NodeService{
 					Service: "api",
+					Tags:    []string{"tag1", "tag2"},
 				},
 				&structs.NodeService{
 					Service: "web",
+					Tags:    []string{},
 				},
 			},
 			Checks: []*structs.HealthCheck{
@@ -182,6 +184,7 @@ func TestSummarizeServices(t *testing.T) {
 			Services: []*structs.NodeService{
 				&structs.NodeService{
 					Service: "web",
+					Tags:    []string{},
 				},
 			},
 			Checks: []*structs.HealthCheck{
@@ -197,6 +200,7 @@ func TestSummarizeServices(t *testing.T) {
 			Services: []*structs.NodeService{
 				&structs.NodeService{
 					Service: "cache",
+					Tags:    []string{},
 				},
 			},
 		},
@@ -209,6 +213,7 @@ func TestSummarizeServices(t *testing.T) {
 
 	expectAPI := &ServiceSummary{
 		Name:           "api",
+		Tags:           []string{"tag1", "tag2"},
 		Nodes:          []string{"foo"},
 		ChecksPassing:  1,
 		ChecksWarning:  1,
@@ -220,6 +225,7 @@ func TestSummarizeServices(t *testing.T) {
 
 	expectCache := &ServiceSummary{
 		Name:           "cache",
+		Tags:           []string{},
 		Nodes:          []string{"zip"},
 		ChecksPassing:  0,
 		ChecksWarning:  0,
@@ -231,6 +237,7 @@ func TestSummarizeServices(t *testing.T) {
 
 	expectWeb := &ServiceSummary{
 		Name:           "web",
+		Tags:           []string{},
 		Nodes:          []string{"bar", "foo"},
 		ChecksPassing:  2,
 		ChecksWarning:  0,

@@ -37,7 +37,7 @@ func IsErrNotFound(err error) bool {
 	return err != nil && strings.Contains(err.Error(), errNotFound)
 }
 
-// IsErrRootDenied checks if the given error messge is comparable to
+// IsErrRootDenied checks if the given error message is comparable to
 // ErrRootDenied.
 func IsErrRootDenied(err error) bool {
 	return err != nil && strings.Contains(err.Error(), errRootDenied)

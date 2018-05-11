@@ -256,7 +256,7 @@ func (m *Manager) NotifyFailedServer(s *metadata.Server) {
 	// the server to the end of the list.
 
 	// Only rotate the server list when there is more than one server
-	if len(l.servers) > 1 && l.servers[0] == s &&
+	if len(l.servers) > 1 && l.servers[0].Name == s.Name &&
 		// Use atomic.CAS to emulate a TryLock().
 		atomic.CompareAndSwapInt32(&m.notifyFailedBarrier, 0, 1) {
 		defer atomic.StoreInt32(&m.notifyFailedBarrier, 0)
@@ -267,9 +267,10 @@ func (m *Manager) NotifyFailedServer(s *metadata.Server) {
 		defer m.listLock.Unlock()
 		l = m.getServerList()
 
-		if len(l.servers) > 1 && l.servers[0] == s {
+		if len(l.servers) > 1 && l.servers[0].Name == s.Name {
 			l.servers = l.cycleServer()
 			m.saveServerList(l)
+			m.logger.Printf(`[DEBUG] manager: cycled away from server "%s"`, s.Name)
 		}
 	}
 }

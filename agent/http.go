@@ -7,11 +7,13 @@ import (
 	"net/http"
 	"net/http/pprof"
 	"net/url"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/NYTimes/gziphandler"
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -40,6 +42,18 @@ type HTTPServer struct {
 	proto string
 }
 
+type redirectFS struct {
+	fs http.FileSystem
+}
+
+func (fs *redirectFS) Open(name string) (http.File, error) {
+	file, err := fs.fs.Open(name)
+	if err != nil {
+		file, err = fs.fs.Open("/index.html")
+	}
+	return file, err
+}
+
 // endpoint is a Consul-specific HTTP handler that takes the usual arguments in
 // but returns a response object and error, both of which are handled in a
 // common manner by Consul's HTTP server.
@@ -51,16 +65,22 @@ type unboundEndpoint func(s *HTTPServer, resp http.ResponseWriter, req *http.Req
 // endpoints is a map from URL pattern to unbound endpoint.
 var endpoints map[string]unboundEndpoint
 
+// allowedMethods is a map from endpoint prefix to supported HTTP methods.
+// An empty slice means an endpoint handles OPTIONS requests and MethodNotFound errors itself.
+var allowedMethods map[string][]string
+
 // registerEndpoint registers a new endpoint, which should be done at package
 // init() time.
-func registerEndpoint(pattern string, fn unboundEndpoint) {
+func registerEndpoint(pattern string, methods []string, fn unboundEndpoint) {
 	if endpoints == nil {
 		endpoints = make(map[string]unboundEndpoint)
 	}
-	if endpoints[pattern] != nil {
+	if endpoints[pattern] != nil || allowedMethods[pattern] != nil {
 		panic(fmt.Errorf("Pattern %q is already registered", pattern))
 	}
+
 	endpoints[pattern] = fn
+	allowedMethods[pattern] = methods
 }
 
 // wrappedMux hangs on to the underlying mux for unit tests.
@@ -103,19 +123,22 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 			start := time.Now()
 			handler(resp, req)
 			key := append([]string{"http", req.Method}, parts...)
-			metrics.MeasureSince(append([]string{"consul"}, key...), start)
 			metrics.MeasureSince(key, start)
 		}
-		mux.HandleFunc(pattern, wrapper)
+
+		gzipWrapper, _ := gziphandler.GzipHandlerWithOpts(gziphandler.MinSize(0))
+		gzipHandler := gzipWrapper(http.HandlerFunc(wrapper))
+		mux.Handle(pattern, gzipHandler)
 	}
 
 	mux.HandleFunc("/", s.Index)
 	for pattern, fn := range endpoints {
 		thisFn := fn
+		methods, _ := allowedMethods[pattern]
 		bound := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 			return thisFn(s, resp, req)
 		}
-		handleFuncMetrics(pattern, s.wrap(bound))
+		handleFuncMetrics(pattern, s.wrap(bound, methods))
 	}
 	if enableDebug {
 		handleFuncMetrics("/debug/pprof/", pprof.Index)
@@ -124,11 +147,32 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 		handleFuncMetrics("/debug/pprof/symbol", pprof.Symbol)
 	}
 
-	// Use the custom UI dir if provided.
-	if s.agent.config.UIDir != "" {
-		mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(http.Dir(s.agent.config.UIDir))))
-	} else if s.agent.config.EnableUI {
-		mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(assetFS())))
+	if s.IsUIEnabled() {
+		new_ui, err := strconv.ParseBool(os.Getenv("CONSUL_UI_BETA"))
+		if err != nil {
+			new_ui = false
+		}
+		var uifs http.FileSystem
+
+		// Use the custom UI dir if provided.
+		if s.agent.config.UIDir != "" {
+			uifs = http.Dir(s.agent.config.UIDir)
+		} else {
+			fs := assetFS()
+
+			if new_ui {
+				fs.Prefix += "/v2/"
+			} else {
+				fs.Prefix += "/v1/"
+			}
+			uifs = fs
+		}
+
+		if new_ui {
+			uifs = &redirectFS{fs: uifs}
+		}
+
+		mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(uifs)))
 	}
 
 	// Wrap the whole mux with a handler that bans URLs with non-printable
@@ -168,7 +212,7 @@ var (
 )
 
 // wrap is used to wrap functions to make them more convenient
-func (s *HTTPServer) wrap(handler endpoint) http.HandlerFunc {
+func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
 		setHeaders(resp, s.agent.config.HTTPResponseHeaders)
 		setTranslateAddr(resp, s.agent.config.TranslateWANAddrs)
@@ -205,6 +249,10 @@ func (s *HTTPServer) wrap(handler endpoint) http.HandlerFunc {
 			return ok
 		}
 
+		addAllowHeader := func(methods []string) {
+			resp.Header().Add("Allow", strings.Join(methods, ","))
+		}
+
 		handleErr := func(err error) {
 			s.agent.logger.Printf("[ERR] http: Request %s %v, error: %v from=%s", req.Method, logURL, err, req.RemoteAddr)
 			switch {
@@ -218,7 +266,7 @@ func (s *HTTPServer) wrap(handler endpoint) http.HandlerFunc {
 				// MUST include an Allow header containing the list of valid
 				// methods for the requested resource.
 				// https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
-				resp.Header()["Allow"] = err.(MethodNotAllowedError).Allow
+				addAllowHeader(err.(MethodNotAllowedError).Allow)
 				resp.WriteHeader(http.StatusMethodNotAllowed) // 405
 				fmt.Fprint(resp, err.Error())
 			default:
@@ -227,12 +275,35 @@ func (s *HTTPServer) wrap(handler endpoint) http.HandlerFunc {
 			}
 		}
 
-		// Invoke the handler
 		start := time.Now()
 		defer func() {
 			s.agent.logger.Printf("[DEBUG] http: Request %s %v (%v) from=%s", req.Method, logURL, time.Since(start), req.RemoteAddr)
 		}()
-		obj, err := handler(resp, req)
+
+		var obj interface{}
+
+		// if this endpoint has declared methods, respond appropriately to OPTIONS requests. Otherwise let the endpoint handle that.
+		if req.Method == "OPTIONS" && len(methods) > 0 {
+			addAllowHeader(append([]string{"OPTIONS"}, methods...))
+			return
+		}
+
+		// if this endpoint has declared methods, check the request method. Otherwise let the endpoint handle that.
+		methodFound := len(methods) == 0
+		for _, method := range methods {
+			if method == req.Method {
+				methodFound = true
+				break
+			}
+		}
+
+		if !methodFound {
+			err = MethodNotAllowedError{req.Method, append([]string{"OPTIONS"}, methods...)}
+		} else {
+			// Invoke the handler
+			obj, err = handler(resp, req)
+		}
+
 		if err != nil {
 			handleErr(err)
 			return
@@ -333,6 +404,12 @@ func setKnownLeader(resp http.ResponseWriter, known bool) {
 	resp.Header().Set("X-Consul-KnownLeader", s)
 }
 
+func setConsistency(resp http.ResponseWriter, consistency string) {
+	if consistency != "" {
+		resp.Header().Set("X-Consul-Effective-Consistency", consistency)
+	}
+}
+
 // setLastContact is used to set the last contact header
 func setLastContact(resp http.ResponseWriter, last time.Duration) {
 	if last < 0 {
@@ -347,6 +424,7 @@ func setMeta(resp http.ResponseWriter, m *structs.QueryMeta) {
 	setIndex(resp, m.Index)
 	setLastContact(resp, m.LastContact)
 	setKnownLeader(resp, m.KnownLeader)
+	setConsistency(resp, m.ConsistencyLevel)
 }
 
 // setHeaders is used to set canonical response header fields
@@ -383,13 +461,42 @@ func parseWait(resp http.ResponseWriter, req *http.Request, b *structs.QueryOpti
 
 // parseConsistency is used to parse the ?stale and ?consistent query params.
 // Returns true on error
-func parseConsistency(resp http.ResponseWriter, req *http.Request, b *structs.QueryOptions) bool {
+func (s *HTTPServer) parseConsistency(resp http.ResponseWriter, req *http.Request, b *structs.QueryOptions) bool {
 	query := req.URL.Query()
+	defaults := true
 	if _, ok := query["stale"]; ok {
 		b.AllowStale = true
+		defaults = false
 	}
 	if _, ok := query["consistent"]; ok {
 		b.RequireConsistent = true
+		defaults = false
+	}
+	if _, ok := query["leader"]; ok {
+		defaults = false
+	}
+	if maxStale := query.Get("max_stale"); maxStale != "" {
+		dur, err := time.ParseDuration(maxStale)
+		if err != nil {
+			resp.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(resp, "Invalid max_stale value %q", maxStale)
+			return true
+		}
+		b.MaxStaleDuration = dur
+		if dur.Nanoseconds() > 0 {
+			b.AllowStale = true
+			defaults = false
+		}
+	}
+	// No specific Consistency has been specified by caller
+	if defaults {
+		path := req.URL.Path
+		if strings.HasPrefix(path, "/v1/catalog") || strings.HasPrefix(path, "/v1/health") {
+			if s.agent.config.DiscoveryMaxStale.Nanoseconds() > 0 {
+				b.MaxStaleDuration = s.agent.config.DiscoveryMaxStale
+				b.AllowStale = true
+			}
+		}
 	}
 	if b.AllowStale && b.RequireConsistent {
 		resp.WriteHeader(http.StatusBadRequest)
@@ -424,11 +531,35 @@ func (s *HTTPServer) parseToken(req *http.Request, token *string) {
 	*token = s.agent.tokens.UserToken()
 }
 
+func sourceAddrFromRequest(req *http.Request) string {
+	xff := req.Header.Get("X-Forwarded-For")
+	forwardHosts := strings.Split(xff, ",")
+	if len(forwardHosts) > 0 {
+		forwardIp := net.ParseIP(strings.TrimSpace(forwardHosts[0]))
+		if forwardIp != nil {
+			return forwardIp.String()
+		}
+	}
+
+	host, _, err := net.SplitHostPort(req.RemoteAddr)
+	if err != nil {
+		return ""
+	}
+
+	ip := net.ParseIP(host)
+	if ip != nil {
+		return ip.String()
+	} else {
+		return ""
+	}
+}
+
 // parseSource is used to parse the ?near=<node> query parameter, used for
 // sorting by RTT based on a source node. We set the source's DC to the target
 // DC in the request, if given, or else the agent's DC.
 func (s *HTTPServer) parseSource(req *http.Request, source *structs.QuerySource) {
 	s.parseDC(req, &source.Datacenter)
+	source.Ip = sourceAddrFromRequest(req)
 	if node := req.URL.Query().Get("near"); node != "" {
 		if node == "_agent" {
 			source.Node = s.agent.config.NodeName
@@ -457,7 +588,7 @@ func (s *HTTPServer) parseMetaFilter(req *http.Request) map[string]string {
 func (s *HTTPServer) parse(resp http.ResponseWriter, req *http.Request, dc *string, b *structs.QueryOptions) bool {
 	s.parseDC(req, dc)
 	s.parseToken(req, &b.Token)
-	if parseConsistency(resp, req, b) {
+	if s.parseConsistency(resp, req, b) {
 		return true
 	}
 	return parseWait(resp, req, b)

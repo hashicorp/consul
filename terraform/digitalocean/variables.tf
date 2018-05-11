@@ -21,6 +21,6 @@ variable "centos" {
 }
 
 variable "coreos" {
-  description = "Defaut Coreos"
+  description = "Default Coreos"
   default     = "coreos-899.17.0"
 }

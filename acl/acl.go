@@ -96,7 +96,7 @@ type ACL interface {
 	// functions can be used.
 	OperatorWrite() bool
 
-	// PrepardQueryRead determines if a specific prepared query can be read
+	// PreparedQueryRead determines if a specific prepared query can be read
 	// to show its contents (this is not used for execution).
 	PreparedQueryRead(string) bool
 

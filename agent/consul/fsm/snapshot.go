@@ -57,7 +57,6 @@ func registerRestorer(msg structs.MessageType, fn restorer) {
 
 // Persist saves the FSM snapshot out to the given sink.
 func (s *snapshot) Persist(sink raft.SnapshotSink) error {
-	defer metrics.MeasureSince([]string{"consul", "fsm", "persist"}, time.Now())
 	defer metrics.MeasureSince([]string{"fsm", "persist"}, time.Now())
 
 	// Write the header

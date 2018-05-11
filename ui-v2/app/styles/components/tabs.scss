@@ -1,0 +1,61 @@
+main header nav:last-child {
+  @extend %tab-nav;
+}
+.tab-section {
+  @extend %tab-section;
+}
+%tab-nav label {
+  cursor: pointer;
+}
+%tab-nav ul {
+  border: 0;
+}
+%tab-nav a {
+  border-bottom: $tabs-border-bottom-width $tabs-border-bottom-style;
+}
+%tab-nav a {
+  border-color: $tabs-border-bottom-color;
+  color: $tabs-link-color;
+}
+%tab-nav a:hover,
+%tab-nav a:focus,
+%tab-nav a:active,
+%tab-nav .selected a {
+  border-color: $tabs-border-active-bottom-color;
+  color: $tabs-link-active-color;
+}
+
+%tab-nav a {
+  white-space: nowrap;
+}
+@media #{$--horizontal-tabs} {
+  %tab-nav ul {
+    display: flex;
+    align-items: center;
+  }
+  %tab-nav ul li:not(:first-child) {
+    margin-left: 37px;
+  }
+  %tab-nav a {
+    padding-left: 5px;
+    padding-right: 5px;
+  }
+}
+@media #{$--lt-horizontal-tabs} {
+  %tab-nav li {
+    width: 100%;
+  }
+}
+%tab-nav a {
+  display: block;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+%tab-nav input[type='radio'],
+%tab-section > input[type='radio'],
+%tab-section > input[type='radio'] + * {
+  display: none;
+}
+%tab-section > input[type='radio']:checked + * {
+  display: block;
+}

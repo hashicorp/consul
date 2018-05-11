@@ -76,64 +76,64 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 	_, useTLS := m.Tags["use_tls"]
 
 	expect := 0
-	expect_str, ok := m.Tags["expect"]
+	expectStr, ok := m.Tags["expect"]
 	var err error
 	if ok {
-		expect, err = strconv.Atoi(expect_str)
+		expect, err = strconv.Atoi(expectStr)
 		if err != nil {
 			return false, nil
 		}
 	}
 
-	port_str := m.Tags["port"]
-	port, err := strconv.Atoi(port_str)
+	portStr := m.Tags["port"]
+	port, err := strconv.Atoi(portStr)
 	if err != nil {
 		return false, nil
 	}
 
-	segment_addrs := make(map[string]string)
-	segment_ports := make(map[string]int)
+	segmentAddrs := make(map[string]string)
+	segmentPorts := make(map[string]int)
 	for name, value := range m.Tags {
 		if strings.HasPrefix(name, "sl_") {
 			addr, port, err := net.SplitHostPort(value)
 			if err != nil {
 				return false, nil
 			}
-			segment_port, err := strconv.Atoi(port)
+			segmentPort, err := strconv.Atoi(port)
 			if err != nil {
 				return false, nil
 			}
 
-			segment_name := strings.TrimPrefix(name, "sl_")
-			segment_addrs[segment_name] = addr
-			segment_ports[segment_name] = segment_port
+			segmentName := strings.TrimPrefix(name, "sl_")
+			segmentAddrs[segmentName] = addr
+			segmentPorts[segmentName] = segmentPort
 		}
 	}
 
-	build_version, err := Build(&m)
+	buildVersion, err := Build(&m)
 	if err != nil {
 		return false, nil
 	}
 
-	wan_join_port := 0
-	wan_join_port_str, ok := m.Tags["wan_join_port"]
+	wanJoinPort := 0
+	wanJoinPortStr, ok := m.Tags["wan_join_port"]
 	if ok {
-		wan_join_port, err = strconv.Atoi(wan_join_port_str)
+		wanJoinPort, err = strconv.Atoi(wanJoinPortStr)
 		if err != nil {
 			return false, nil
 		}
 	}
 
-	vsn_str := m.Tags["vsn"]
-	vsn, err := strconv.Atoi(vsn_str)
+	vsnStr := m.Tags["vsn"]
+	vsn, err := strconv.Atoi(vsnStr)
 	if err != nil {
 		return false, nil
 	}
 
-	raft_vsn := 0
-	raft_vsn_str, ok := m.Tags["raft_vsn"]
+	raftVsn := 0
+	raftVsnStr, ok := m.Tags["raft_vsn"]
 	if ok {
-		raft_vsn, err = strconv.Atoi(raft_vsn_str)
+		raftVsn, err = strconv.Atoi(raftVsnStr)
 		if err != nil {
 			return false, nil
 		}
@@ -147,15 +147,15 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		Datacenter:   datacenter,
 		Segment:      segment,
 		Port:         port,
-		SegmentAddrs: segment_addrs,
-		SegmentPorts: segment_ports,
-		WanJoinPort:  wan_join_port,
+		SegmentAddrs: segmentAddrs,
+		SegmentPorts: segmentPorts,
+		WanJoinPort:  wanJoinPort,
 		Bootstrap:    bootstrap,
 		Expect:       expect,
 		Addr:         addr,
-		Build:        *build_version,
+		Build:        *buildVersion,
 		Version:      vsn,
-		RaftVersion:  raft_vsn,
+		RaftVersion:  raftVsn,
 		Status:       m.Status,
 		UseTLS:       useTLS,
 	}

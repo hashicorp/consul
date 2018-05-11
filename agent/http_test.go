@@ -298,7 +298,7 @@ func TestHTTPAPI_BlockEndpoints(t *testing.T) {
 	{
 		req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
 		resp := httptest.NewRecorder()
-		a.srv.wrap(handler)(resp, req)
+		a.srv.wrap(handler, []string{"GET"})(resp, req)
 		if got, want := resp.Code, http.StatusForbidden; got != want {
 			t.Fatalf("bad response code got %d want %d", got, want)
 		}
@@ -308,7 +308,7 @@ func TestHTTPAPI_BlockEndpoints(t *testing.T) {
 	{
 		req, _ := http.NewRequest("GET", "/v1/agent/checks", nil)
 		resp := httptest.NewRecorder()
-		a.srv.wrap(handler)(resp, req)
+		a.srv.wrap(handler, []string{"GET"})(resp, req)
 		if got, want := resp.Code, http.StatusOK; got != want {
 			t.Fatalf("bad response code got %d want %d", got, want)
 		}
@@ -340,7 +340,7 @@ func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
 		}
 
 		req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
-		a.srv.wrap(handler)(resp, req)
+		a.srv.wrap(handler, []string{"GET"})(resp, req)
 
 		translate := resp.Header().Get("X-Consul-Translate-Addresses")
 		if translate != "" {
@@ -361,7 +361,7 @@ func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
 		}
 
 		req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
-		a.srv.wrap(handler)(resp, req)
+		a.srv.wrap(handler, []string{"GET"})(resp, req)
 
 		translate := resp.Header().Get("X-Consul-Translate-Addresses")
 		if translate != "true" {
@@ -388,7 +388,7 @@ func TestHTTPAPIResponseHeaders(t *testing.T) {
 	}
 
 	req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
-	a.srv.wrap(handler)(resp, req)
+	a.srv.wrap(handler, []string{"GET"})(resp, req)
 
 	origin := resp.Header().Get("Access-Control-Allow-Origin")
 	if origin != "*" {
@@ -413,7 +413,7 @@ func TestContentTypeIsJSON(t *testing.T) {
 	}
 
 	req, _ := http.NewRequest("GET", "/v1/kv/key", nil)
-	a.srv.wrap(handler)(resp, req)
+	a.srv.wrap(handler, []string{"GET"})(resp, req)
 
 	contentType := resp.Header().Get("Content-Type")
 
@@ -467,7 +467,7 @@ func TestHTTP_wrap_obfuscateLog(t *testing.T) {
 		t.Run(url, func(t *testing.T) {
 			resp := httptest.NewRecorder()
 			req, _ := http.NewRequest("GET", url, nil)
-			a.srv.wrap(handler)(resp, req)
+			a.srv.wrap(handler, []string{"GET"})(resp, req)
 
 			if got := buf.String(); !strings.Contains(got, want) {
 				t.Fatalf("got %s want %s", got, want)
@@ -499,7 +499,7 @@ func testPrettyPrint(pretty string, t *testing.T) {
 
 	urlStr := "/v1/kv/key?" + pretty
 	req, _ := http.NewRequest("GET", urlStr, nil)
-	a.srv.wrap(handler)(resp, req)
+	a.srv.wrap(handler, []string{"GET"})(resp, req)
 
 	expected, _ := json.MarshalIndent(r, "", "    ")
 	expected = append(expected, "\n"...)
@@ -607,7 +607,9 @@ func TestParseConsistency(t *testing.T) {
 	var b structs.QueryOptions
 
 	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?stale", nil)
-	if d := parseConsistency(resp, req, &b); d {
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+	if d := a.srv.parseConsistency(resp, req, &b); d {
 		t.Fatalf("unexpected done")
 	}
 
@@ -620,7 +622,7 @@ func TestParseConsistency(t *testing.T) {
 
 	b = structs.QueryOptions{}
 	req, _ = http.NewRequest("GET", "/v1/catalog/nodes?consistent", nil)
-	if d := parseConsistency(resp, req, &b); d {
+	if d := a.srv.parseConsistency(resp, req, &b); d {
 		t.Fatalf("unexpected done")
 	}
 
@@ -632,13 +634,70 @@ func TestParseConsistency(t *testing.T) {
 	}
 }
 
+// ensureConsistency check if consistency modes are correctly applied
+// if maxStale < 0 => stale, without MaxStaleDuration
+// if maxStale == 0 => no stale
+// if maxStale > 0 => stale + check duration
+func ensureConsistency(t *testing.T, a *TestAgent, path string, maxStale time.Duration, requireConsistent bool) {
+	t.Helper()
+	req, _ := http.NewRequest("GET", path, nil)
+	var b structs.QueryOptions
+	resp := httptest.NewRecorder()
+	if d := a.srv.parseConsistency(resp, req, &b); d {
+		t.Fatalf("unexpected done")
+	}
+	allowStale := maxStale.Nanoseconds() != 0
+	if b.AllowStale != allowStale {
+		t.Fatalf("Bad Allow Stale")
+	}
+	if maxStale > 0 && b.MaxStaleDuration != maxStale {
+		t.Fatalf("Bad MaxStaleDuration: %d VS expected %d", b.MaxStaleDuration, maxStale)
+	}
+	if b.RequireConsistent != requireConsistent {
+		t.Fatal("Bad Consistent")
+	}
+}
+
+func TestParseConsistencyAndMaxStale(t *testing.T) {
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Default => Consistent
+	a.config.DiscoveryMaxStale = time.Duration(0)
+	ensureConsistency(t, a, "/v1/catalog/nodes", 0, false)
+	// Stale, without MaxStale
+	ensureConsistency(t, a, "/v1/catalog/nodes?stale", -1, false)
+	// Override explicitly
+	ensureConsistency(t, a, "/v1/catalog/nodes?max_stale=3s", 3*time.Second, false)
+	ensureConsistency(t, a, "/v1/catalog/nodes?stale&max_stale=3s", 3*time.Second, false)
+
+	// stale by defaul on discovery
+	a.config.DiscoveryMaxStale = time.Duration(7 * time.Second)
+	ensureConsistency(t, a, "/v1/catalog/nodes", a.config.DiscoveryMaxStale, false)
+	// Not in KV
+	ensureConsistency(t, a, "/v1/kv/my/path", 0, false)
+
+	// DiscoveryConsistencyLevel should apply
+	ensureConsistency(t, a, "/v1/health/service/one", a.config.DiscoveryMaxStale, false)
+	ensureConsistency(t, a, "/v1/catalog/service/one", a.config.DiscoveryMaxStale, false)
+	ensureConsistency(t, a, "/v1/catalog/services", a.config.DiscoveryMaxStale, false)
+
+	// Query path should be taken into account
+	ensureConsistency(t, a, "/v1/catalog/services?consistent", 0, true)
+	// Since stale is added, no MaxStale should be applied
+	ensureConsistency(t, a, "/v1/catalog/services?stale", -1, false)
+	ensureConsistency(t, a, "/v1/catalog/services?leader", 0, false)
+}
+
 func TestParseConsistency_Invalid(t *testing.T) {
 	t.Parallel()
 	resp := httptest.NewRecorder()
 	var b structs.QueryOptions
 
 	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?stale&consistent", nil)
-	if d := parseConsistency(resp, req, &b); !d {
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+	if d := a.srv.parseConsistency(resp, req, &b); !d {
 		t.Fatalf("expected done")
 	}
 
