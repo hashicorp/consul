@@ -122,6 +122,59 @@ func (s *HTTPServer) IntentionMatch(resp http.ResponseWriter, req *http.Request)
 	return response, nil
 }
 
+// GET /v1/connect/intentions/test
+func (s *HTTPServer) IntentionTest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Prepare args
+	args := &structs.IntentionQueryRequest{Test: &structs.IntentionQueryTest{}}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	q := req.URL.Query()
+
+	// Set the source type if set
+	args.Test.SourceType = structs.IntentionSourceConsul
+	if sourceType, ok := q["source-type"]; ok && len(sourceType) > 0 {
+		args.Test.SourceType = structs.IntentionSourceType(sourceType[0])
+	}
+
+	// Extract the source/destination
+	source, ok := q["source"]
+	if !ok || len(source) != 1 {
+		return nil, fmt.Errorf("required query parameter 'source' not set")
+	}
+	destination, ok := q["destination"]
+	if !ok || len(destination) != 1 {
+		return nil, fmt.Errorf("required query parameter 'destination' not set")
+	}
+
+	// We parse them the same way as matches to extract namespace/name
+	args.Test.SourceName = source[0]
+	if args.Test.SourceType == structs.IntentionSourceConsul {
+		entry, err := parseIntentionMatchEntry(source[0])
+		if err != nil {
+			return nil, fmt.Errorf("source %q is invalid: %s", source[0], err)
+		}
+		args.Test.SourceNS = entry.Namespace
+		args.Test.SourceName = entry.Name
+	}
+
+	// The destination is always in the Consul format
+	entry, err := parseIntentionMatchEntry(destination[0])
+	if err != nil {
+		return nil, fmt.Errorf("destination %q is invalid: %s", destination[0], err)
+	}
+	args.Test.DestinationNS = entry.Namespace
+	args.Test.DestinationName = entry.Name
+
+	var reply structs.IntentionQueryTestResponse
+	if err := s.agent.RPC("Intention.Test", args, &reply); err != nil {
+		return nil, err
+	}
+
+	return &reply, nil
+}
+
 // IntentionSpecific handles the endpoint for /v1/connection/intentions/:id
 func (s *HTTPServer) IntentionSpecific(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	id := strings.TrimPrefix(req.URL.Path, "/v1/connect/intentions/")

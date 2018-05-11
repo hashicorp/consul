@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestIntentionsList_empty(t *testing.T) {
@@ -178,6 +179,96 @@ func TestIntentionsMatch_noName(t *testing.T) {
 	assert.NotNil(err)
 	assert.Contains(err.Error(), "'name' not set")
 	assert.Nil(obj)
+}
+
+func TestIntentionsTest_basic(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Create some intentions
+	{
+		insert := [][]string{
+			{"foo", "*", "foo", "*"},
+			{"foo", "*", "foo", "bar"},
+			{"bar", "*", "foo", "bar"},
+		}
+
+		for _, v := range insert {
+			ixn := structs.IntentionRequest{
+				Datacenter: "dc1",
+				Op:         structs.IntentionOpCreate,
+				Intention:  structs.TestIntention(t),
+			}
+			ixn.Intention.SourceNS = v[0]
+			ixn.Intention.SourceName = v[1]
+			ixn.Intention.DestinationNS = v[2]
+			ixn.Intention.DestinationName = v[3]
+			ixn.Intention.Action = structs.IntentionActionDeny
+
+			// Create
+			var reply string
+			require.Nil(a.RPC("Intention.Apply", &ixn, &reply))
+		}
+	}
+
+	// Request matching intention
+	{
+		req, _ := http.NewRequest("GET",
+			"/v1/connect/intentions/test?source=foo/bar&destination=foo/baz", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.IntentionTest(resp, req)
+		require.Nil(err)
+		value := obj.(*structs.IntentionQueryTestResponse)
+		require.False(value.Allowed)
+	}
+
+	// Request non-matching intention
+	{
+		req, _ := http.NewRequest("GET",
+			"/v1/connect/intentions/test?source=foo/bar&destination=bar/qux", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.IntentionTest(resp, req)
+		require.Nil(err)
+		value := obj.(*structs.IntentionQueryTestResponse)
+		require.True(value.Allowed)
+	}
+}
+
+func TestIntentionsTest_noSource(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Request
+	req, _ := http.NewRequest("GET",
+		"/v1/connect/intentions/test?destination=B", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.IntentionTest(resp, req)
+	require.NotNil(err)
+	require.Contains(err.Error(), "'source' not set")
+	require.Nil(obj)
+}
+
+func TestIntentionsTest_noDestination(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Request
+	req, _ := http.NewRequest("GET",
+		"/v1/connect/intentions/test?source=B", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.IntentionTest(resp, req)
+	require.NotNil(err)
+	require.Contains(err.Error(), "'destination' not set")
+	require.Nil(obj)
 }
 
 func TestIntentionsCreate_good(t *testing.T) {
