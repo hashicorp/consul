@@ -1,7 +1,9 @@
-import { create, visitable, fillable, clickable } from 'ember-cli-page-object';
+import { create, clickable } from 'ember-cli-page-object';
+import { visitable } from 'consul-ui/tests/lib/page-object/visitable';
 
 export default create({
-  visit: visitable('/:dc/kv/:kv'),
-  fillIn: fillable('input, textarea, [contenteditable]'),
+  visit: visitable('/:dc/kv/:kv/edit', str => str),
+  // fillIn: fillable('input, textarea, [contenteditable]'),
+  // name: triggerable('keypress', '[name="additional"]'),
   submit: clickable('[type=submit]'),
 });
