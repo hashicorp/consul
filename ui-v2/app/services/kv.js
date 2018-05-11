@@ -54,6 +54,16 @@ export default Service.extend({
             set(item, 'Datacenter', dc);
             return item;
           });
+      })
+      .catch(e => {
+        if (e.errors && e.errors[0] && e.errors[0].status == '404') {
+          const id = JSON.stringify([dc, key]);
+          const record = get(this, 'store').peekRecord('kv', id);
+          if (record) {
+            record.destroyRecord();
+          }
+        }
+        throw e;
       });
   },
   create: function() {
