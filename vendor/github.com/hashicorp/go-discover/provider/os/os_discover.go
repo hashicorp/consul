@@ -18,7 +18,13 @@ import (
 	"github.com/gophercloud/gophercloud/pagination"
 )
 
-type Provider struct{}
+type Provider struct {
+	userAgent string
+}
+
+func (p *Provider) SetUserAgent(s string) {
+	p.userAgent = s
+}
 
 func (p *Provider) Help() string {
 	return `Openstack:
@@ -65,6 +71,10 @@ func (p *Provider) Addrs(args map[string]string, l *log.Logger) ([]string, error
 	client, err := newClient(args, l)
 	if err != nil {
 		return nil, err
+	}
+
+	if p.userAgent != "" {
+		client.UserAgent.Prepend(p.userAgent)
 	}
 
 	pager := servers.List(client, ListOpts{ListOpts: servers.ListOpts{Status: "ACTIVE"}, ProjectID: projectID})

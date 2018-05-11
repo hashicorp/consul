@@ -2,16 +2,24 @@
 package azure
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"log"
 
-	"github.com/Azure/azure-sdk-for-go/arm/network"
+	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2015-06-15/network"
 	"github.com/Azure/go-autorest/autorest"
+	"github.com/Azure/go-autorest/autorest/adal"
 	"github.com/Azure/go-autorest/autorest/azure"
 )
 
-type Provider struct{}
+type Provider struct {
+	userAgent string
+}
+
+func (p *Provider) SetUserAgent(s string) {
+	p.userAgent = s
+}
 
 func (p *Provider) Help() string {
 	return `Microsoft Azure:
@@ -23,19 +31,19 @@ func (p *Provider) Help() string {
    secret_access_key: The authentication credential
 
    Use these configuration parameters when using tags:
-   
+
    tag_name:          The name of the tag to filter on
    tag_value:         The value of the tag to filter on
 
    Use these configuration parameters when using Virtual Machine Scale Sets:
-   
+
    resource_group:    The name of the resource group to filter on
    vm_scale_set:      The name of the virtual machine scale set to filter on
 
    When using tags the only permission needed is the 'ListAll' method for
    'NetworkInterfaces'. When using Virtual Machine Scale Sets the only Role
    Action needed is 'Microsoft.Compute/virtualMachineScaleSets/*/read'.
-   
+
    It is recommended you make a dedicated key used only for auto-joining.
 `
 }
@@ -63,22 +71,25 @@ func (p *Provider) Addrs(args map[string]string, l *log.Logger) ([]string, error
 	vmScaleSet := args["vm_scale_set"]
 
 	// Only works for the Azure PublicCLoud for now; no ability to test other Environment
-	oauthConfig, err := azure.PublicCloud.OAuthConfigForTenant(tenantID)
+	oauthConfig, err := adal.NewOAuthConfig(azure.PublicCloud.ActiveDirectoryEndpoint, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("discover-azure: %s", err)
 	}
 
 	// Get the ServicePrincipalToken for use searching the NetworkInterfaces
-	sbt, err := azure.NewServicePrincipalToken(*oauthConfig, clientID, secretKey, azure.PublicCloud.ResourceManagerEndpoint)
+	sbt, err := adal.NewServicePrincipalToken(*oauthConfig, clientID, secretKey, azure.PublicCloud.ResourceManagerEndpoint)
 	if err != nil {
 		return nil, fmt.Errorf("discover-azure: %s", err)
 	}
 
 	// Setup the client using autorest; followed the structure from Terraform
 	vmnet := network.NewInterfacesClient(subscriptionID)
-	vmnet.Client.UserAgent = "Hashicorp-Consul"
 	vmnet.Sender = autorest.CreateSender(autorest.WithLogging(l))
-	vmnet.Authorizer = sbt
+	vmnet.Authorizer = autorest.NewBearerAuthorizer(sbt)
+
+	if p.userAgent != "" {
+		vmnet.Client.UserAgent = p.userAgent
+	}
 
 	if tagName != "" && tagValue != "" && resourceGroup == "" && vmScaleSet == "" {
 		l.Printf("[DEBUG] discover-azure: using tag method. tag_name: %s, tag_value: %s", tagName, tagValue)
@@ -97,24 +108,32 @@ func (p *Provider) Addrs(args map[string]string, l *log.Logger) ([]string, error
 func fetchAddrsWithTags(tagName string, tagValue string, vmnet network.InterfacesClient, l *log.Logger) ([]string, error) {
 	// Get all network interfaces across resource groups
 	// unless there is a compelling reason to restrict
-	netres, err := vmnet.ListAll()
+
+	ctx := context.Background()
+	netres, err := vmnet.ListAll(ctx)
+
 	if err != nil {
 		return nil, fmt.Errorf("discover-azure: %s", err)
 	}
 
-	if netres.Value == nil {
+	if len(netres.Values()) == 0 {
 		return nil, fmt.Errorf("discover-azure: no interfaces")
 	}
 
 	// Choose any PrivateIPAddress with the matching tag
 	var addrs []string
-	for _, v := range *netres.Value {
-		id := *v.ID
+	for _, v := range netres.Values() {
+		var id string
+		if v.ID != nil {
+			id = *v.ID
+		} else {
+			id = "ip address id not found"
+		}
 		if v.Tags == nil {
 			l.Printf("[DEBUG] discover-azure: Interface %s has no tags", id)
 			continue
 		}
-		tv := (*v.Tags)[tagName] // *string
+		tv := v.Tags[tagName] // *string
 		if tv == nil {
 			l.Printf("[DEBUG] discover-azure: Interface %s did not have tag: %s", id, tagName)
 			continue
@@ -143,19 +162,25 @@ func fetchAddrsWithTags(tagName string, tagValue string, vmnet network.Interface
 
 func fetchAddrsWithVmScaleSet(resourceGroup string, vmScaleSet string, vmnet network.InterfacesClient, l *log.Logger) ([]string, error) {
 	// Get all network interfaces for a specific virtual machine scale set
-	netres, err := vmnet.ListVirtualMachineScaleSetNetworkInterfaces(resourceGroup, vmScaleSet)
+	ctx := context.Background()
+	netres, err := vmnet.ListVirtualMachineScaleSetNetworkInterfaces(ctx, resourceGroup, vmScaleSet)
 	if err != nil {
 		return nil, fmt.Errorf("discover-azure: %s", err)
 	}
 
-	if netres.Value == nil {
+	if len(netres.Values()) == 0 {
 		return nil, fmt.Errorf("discover-azure: no interfaces")
 	}
 
 	// Get all of PrivateIPAddresses we can.
 	var addrs []string
-	for _, v := range *netres.Value {
-		id := *v.ID
+	for _, v := range netres.Values() {
+		var id string
+		if v.ID != nil {
+			id = *v.ID
+		} else {
+			id = "ip address id not found"
+		}
 		if v.IPConfigurations == nil {
 			l.Printf("[DEBUG] discover-azure: Interface %s had no ip configuration", id)
 			continue

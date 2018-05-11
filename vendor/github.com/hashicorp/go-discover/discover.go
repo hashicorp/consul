@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/go-discover/provider/os"
 	"github.com/hashicorp/go-discover/provider/scaleway"
 	"github.com/hashicorp/go-discover/provider/softlayer"
+	"github.com/hashicorp/go-discover/provider/triton"
 )
 
 // Provider has lookup functions for meta data in a
@@ -30,6 +31,13 @@ type Provider interface {
 	Help() string
 }
 
+// ProviderWithUserAgent is a provider that declares it's user agent. Not all
+// providers support this.
+type ProviderWithUserAgent interface {
+	// SetUserAgent sets the user agent on the provider to the provided string.
+	SetUserAgent(s string)
+}
+
 // Providers contains all available providers.
 var Providers = map[string]Provider{
 	"aliyun":       &aliyun.Provider{},
@@ -40,6 +48,7 @@ var Providers = map[string]Provider{
 	"os":           &os.Provider{},
 	"scaleway":     &scaleway.Provider{},
 	"softlayer":    &softlayer.Provider{},
+	"triton":       &triton.Provider{},
 }
 
 // Discover looks up metadata in different cloud environments.
@@ -48,8 +57,46 @@ type Discover struct {
 	// If nil, the default list of providers is used.
 	Providers map[string]Provider
 
+	// userAgent is the string to use for requests, when supported.
+	userAgent string
+
 	// once is used to initialize the actual list of providers.
 	once sync.Once
+}
+
+// Option is used as an initialization option/
+type Option func(*Discover) error
+
+// New creates a new discover client with the given options.
+func New(opts ...Option) (*Discover, error) {
+	d := new(Discover)
+
+	for _, opt := range opts {
+		if err := opt(d); err != nil {
+			return nil, err
+		}
+	}
+
+	d.once.Do(d.initProviders)
+
+	return d, nil
+}
+
+// WithUserAgent allows specifying a custom user agent option to send with
+// requests when the underlying client library supports it.
+func WithUserAgent(agent string) Option {
+	return func(d *Discover) error {
+		d.userAgent = agent
+		return nil
+	}
+}
+
+// WithProviders allows specifying your own set of providers.
+func WithProviders(m map[string]Provider) Option {
+	return func(d *Discover) error {
+		d.Providers = m
+		return nil
+	}
 }
 
 // initProviders sets the list of providers to the
@@ -119,6 +166,11 @@ func (d *Discover) Addrs(cfg string, l *log.Logger) ([]string, error) {
 		return nil, fmt.Errorf("discover: unknown provider " + name)
 	}
 	l.Printf("[DEBUG] discover: Using provider %q", name)
+
+	if typ, ok := p.(ProviderWithUserAgent); ok {
+		typ.SetUserAgent(d.userAgent)
+		return p.Addrs(args, l)
+	}
 
 	return p.Addrs(args, l)
 }
