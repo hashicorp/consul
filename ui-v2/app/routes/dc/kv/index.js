@@ -6,7 +6,6 @@ import WithKvActions from 'consul-ui/mixins/kv/with-actions';
 
 export default Route.extend(WithKvActions, {
   repo: service('kv'),
-  store: service('store'),
   model: function(params) {
     const key = params.key || '/';
     const dc = this.modelFor('dc').dc.Name;
