@@ -1,6 +1,9 @@
 div.with-confirmation {
   @extend %confirmation-dialog, %confirmation-dialog-inline;
 }
+table div.with-confirmation.confirming {
+  background-color: $white;
+}
 %confirmation-dialog-inline p {
   color: $text-note;
 }
@@ -15,4 +18,8 @@ div.with-confirmation {
   display: flex;
   align-items: center;
   line-height: 1;
+}
+table div.with-confirmation.confirming {
+  position: absolute;
+  right: 0;
 }

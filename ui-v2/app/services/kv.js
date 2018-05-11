@@ -10,9 +10,14 @@ export default Service.extend({
   // this one gives you the full object so key,values and meta
   findBySlug: function(key, dc) {
     if (isFolder(key)) {
-      return Promise.resolve({
-        Key: key,
-      });
+      const id = JSON.stringify([dc, key]);
+      let item = get(this, 'store').peekRecord('kv', id);
+      if (!item) {
+        item = this.create();
+        set(item, 'Key', key);
+        set(item, 'Datacenter', dc);
+      }
+      return Promise.resolve(item);
     }
     return get(this, 'store')
       .queryRecord('kv', {
@@ -45,6 +50,16 @@ export default Service.extend({
             set(item, 'Datacenter', dc);
             return item;
           });
+      })
+      .catch(e => {
+        if (e.errors && e.errors[0] && e.errors[0].status == '404') {
+          const id = JSON.stringify([dc, key]);
+          const record = get(this, 'store').peekRecord('kv', id);
+          if (record) {
+            record.destroyRecord();
+          }
+        }
+        throw e;
       });
   },
   create: function() {
@@ -66,6 +81,6 @@ export default Service.extend({
     });
   },
   invalidate: function() {
-    get(this, 'store').unloadAll('kv');
+    return get(this, 'store').unloadAll('kv');
   },
 });

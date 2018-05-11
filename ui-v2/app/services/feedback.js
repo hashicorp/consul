@@ -16,10 +16,17 @@ export default Service.extend({
         });
       })
       .catch(e => {
-        get(this, 'flashMessages').add({
-          type: 'error',
-          message: error,
-        });
+        if (e.name === 'TransitionAborted') {
+          get(this, 'flashMessages').add({
+            type: 'success',
+            message: success,
+          });
+        } else {
+          get(this, 'flashMessages').add({
+            type: 'error',
+            message: error,
+          });
+        }
       })
       .finally(function() {
         controller.set('isLoading', false);

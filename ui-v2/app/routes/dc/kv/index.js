@@ -13,22 +13,24 @@ export default Route.extend(WithKvActions, {
     return hash({
       isLoading: false,
       parent: repo.findBySlug(key, dc),
-    })
-      .then(function(model) {
-        return hash({
-          ...model,
-          ...{
-            items: repo.findAllBySlug(get(model.parent, 'Key'), dc),
-          },
-        });
-      })
-      .catch(e => {
-        if (e.errors && e.errors[0] && e.errors[0].status == '404') {
-          this.transitionTo('dc.kv.index');
-          return;
-        }
-        throw e;
+    }).then(model => {
+      return hash({
+        ...model,
+        ...{
+          items: repo.findAllBySlug(get(model.parent, 'Key'), dc).catch(e => {
+            return this.transitionTo('dc.kv.index');
+          }),
+        },
       });
+    });
+  },
+  actions: {
+    error: function(e) {
+      if (e.errors && e.errors[0] && e.errors[0].status == '404') {
+        return this.transitionTo('dc.kv.index');
+      }
+      throw e;
+    },
   },
   setupController: function(controller, model) {
     this._super(...arguments);
