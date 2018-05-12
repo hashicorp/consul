@@ -80,7 +80,8 @@ func (p *Proxy) Serve() error {
 				// Initial setup
 
 				// Setup Service instance now we know target ID etc
-				service, err := connect.NewService(newCfg.ProxiedServiceID, p.client)
+				service, err := connect.NewServiceWithLogger(newCfg.ProxiedServiceID,
+					p.client, p.logger)
 				if err != nil {
 					return err
 				}
