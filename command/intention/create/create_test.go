@@ -186,3 +186,66 @@ func TestCommand_FileNoExist(t *testing.T) {
 	require.Equal(1, c.Run(args), ui.ErrorWriter.String())
 	require.Contains(ui.ErrorWriter.String(), "no such file")
 }
+
+func TestCommand_replace(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	a := agent.NewTestAgent(t.Name(), ``)
+	defer a.Shutdown()
+	client := a.Client()
+
+	// Create the first
+	{
+		ui := cli.NewMockUi()
+		c := New(ui)
+
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"foo", "bar",
+		}
+		require.Equal(0, c.Run(args), ui.ErrorWriter.String())
+
+		ixns, _, err := client.Connect().Intentions(nil)
+		require.NoError(err)
+		require.Len(ixns, 1)
+		require.Equal("foo", ixns[0].SourceName)
+		require.Equal("bar", ixns[0].DestinationName)
+		require.Equal(api.IntentionActionAllow, ixns[0].Action)
+	}
+
+	// Don't replace, should be an error
+	{
+		ui := cli.NewMockUi()
+		c := New(ui)
+
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-deny",
+			"foo", "bar",
+		}
+		require.Equal(1, c.Run(args), ui.ErrorWriter.String())
+		require.Contains(ui.ErrorWriter.String(), "duplicate")
+	}
+
+	// Replace it
+	{
+		ui := cli.NewMockUi()
+		c := New(ui)
+
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-replace",
+			"-deny",
+			"foo", "bar",
+		}
+		require.Equal(0, c.Run(args), ui.ErrorWriter.String())
+
+		ixns, _, err := client.Connect().Intentions(nil)
+		require.NoError(err)
+		require.Len(ixns, 1)
+		require.Equal("foo", ixns[0].SourceName)
+		require.Equal("bar", ixns[0].DestinationName)
+		require.Equal(api.IntentionActionDeny, ixns[0].Action)
+	}
+}

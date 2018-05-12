@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
+	"github.com/hashicorp/consul/command/intention/finder"
 	"github.com/mitchellh/cli"
 )
 
@@ -44,7 +45,8 @@ func (c *cmd) init() {
 	c.flags.BoolVar(&c.flagFile, "file", false,
 		"Read intention data from one or more files.")
 	c.flags.BoolVar(&c.flagReplace, "replace", false,
-		"Replace matching intentions.")
+		"Replace matching intentions. This is not an atomic operation. "+
+			"If the insert fails, then the previous intention will still be deleted.")
 	c.flags.Var((*flags.FlagMapValue)(&c.flagMeta), "meta",
 		"Metadata to set on the intention, formatted as key=value. This flag "+
 			"may be specified multiple times to set multiple meta fields.")
@@ -86,8 +88,36 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	// Create the finder in case we need it
+	find := &finder.Finder{Client: client}
+
 	// Go through and create each intention
 	for _, ixn := range ixns {
+		// If replace is set to true, then find this intention and delete it.
+		if c.flagReplace {
+			ixn, err := find.Find(ixn.SourceString(), ixn.DestinationString())
+			if err != nil {
+				c.UI.Error(fmt.Sprintf(
+					"Error looking up intention for replacement with source %q "+
+						"and destination %q: %s",
+					ixn.SourceString(),
+					ixn.DestinationString(),
+					err))
+				return 1
+			}
+			if ixn != nil {
+				if _, err := client.Connect().IntentionDelete(ixn.ID, nil); err != nil {
+					c.UI.Error(fmt.Sprintf(
+						"Error deleting intention for replacement with source %q "+
+							"and destination %q: %s",
+						ixn.SourceString(),
+						ixn.DestinationString(),
+						err))
+					return 1
+				}
+			}
+		}
+
 		_, _, err := client.Connect().IntentionCreate(ixn, nil)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error creating intention %q: %s", ixn, err))
