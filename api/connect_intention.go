@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -48,6 +49,21 @@ type Intention struct {
 
 	CreateIndex uint64
 	ModifyIndex uint64
+}
+
+// String returns human-friendly output describing ths intention.
+func (i *Intention) String() string {
+	source := i.SourceName
+	if i.SourceNS != "" {
+		source = i.SourceNS + "/" + source
+	}
+
+	dest := i.DestinationName
+	if i.DestinationNS != "" {
+		dest = i.DestinationNS + "/" + dest
+	}
+
+	return fmt.Sprintf("%s => %s (%s)", source, dest, i.Action)
 }
 
 // IntentionAction is the action that the intention represents. This
