@@ -87,6 +87,55 @@ func TestAPI_ConnectIntentionMatch(t *testing.T) {
 	require.Equal(expected, actual)
 }
 
+func TestAPI_ConnectIntentionCheck(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	connect := c.Connect()
+
+	// Create
+	{
+		insert := [][]string{
+			{"foo", "*", "foo", "bar"},
+		}
+
+		for _, v := range insert {
+			ixn := testIntention()
+			ixn.SourceNS = v[0]
+			ixn.SourceName = v[1]
+			ixn.DestinationNS = v[2]
+			ixn.DestinationName = v[3]
+			ixn.Action = IntentionActionDeny
+			id, _, err := connect.IntentionCreate(ixn, nil)
+			require.Nil(err)
+			require.NotEmpty(id)
+		}
+	}
+
+	// Match it
+	{
+		result, _, err := connect.IntentionCheck(&IntentionCheck{
+			Source:      "foo/qux",
+			Destination: "foo/bar",
+		}, nil)
+		require.Nil(err)
+		require.False(result)
+	}
+
+	// Match it (non-matching)
+	{
+		result, _, err := connect.IntentionCheck(&IntentionCheck{
+			Source:      "bar/qux",
+			Destination: "foo/bar",
+		}, nil)
+		require.Nil(err)
+		require.True(result)
+	}
+}
+
 func testIntention() *Intention {
 	return &Intention{
 		SourceNS:        "eng",

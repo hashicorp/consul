@@ -83,6 +83,18 @@ const (
 	IntentionMatchDestination IntentionMatchType = "destination"
 )
 
+// IntentionCheck are the arguments for the intention check API. For
+// more documentation see the IntentionCheck function.
+type IntentionCheck struct {
+	// Source and Destination are the source and destination values to
+	// check. The destination is always a Consul service, but the source
+	// may be other values as defined by the SourceType.
+	Source, Destination string
+
+	// SourceType is the type of the value for the source.
+	SourceType IntentionSourceType
+}
+
 // Intentions returns the list of intentions.
 func (h *Connect) Intentions(q *QueryOptions) ([]*Intention, *QueryMeta, error) {
 	r := h.c.newRequest("GET", "/v1/connect/intentions")
@@ -154,6 +166,33 @@ func (h *Connect) IntentionMatch(args *IntentionMatch, q *QueryOptions) (map[str
 		return nil, nil, err
 	}
 	return out, qm, nil
+}
+
+// IntentionCheck returns whether a given source/destination would be allowed
+// or not given the current set of intentions and the configuration of Consul.
+func (h *Connect) IntentionCheck(args *IntentionCheck, q *QueryOptions) (bool, *QueryMeta, error) {
+	r := h.c.newRequest("GET", "/v1/connect/intentions/check")
+	r.setQueryOptions(q)
+	r.params.Set("source", args.Source)
+	r.params.Set("destination", args.Destination)
+	if args.SourceType != "" {
+		r.params.Set("source-type", string(args.SourceType))
+	}
+	rtt, resp, err := requireOK(h.c.doRequest(r))
+	if err != nil {
+		return false, nil, err
+	}
+	defer resp.Body.Close()
+
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
+
+	var out struct{ Allowed bool }
+	if err := decodeBody(resp, &out); err != nil {
+		return false, nil, err
+	}
+	return out.Allowed, qm, nil
 }
 
 // IntentionCreate will create a new intention. The ID in the given

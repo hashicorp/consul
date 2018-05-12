@@ -1159,7 +1159,7 @@ func TestAPI_AgentConnectProxyConfig(t *testing.T) {
 		TargetServiceName: "foo",
 		ContentHash:       "93baee1d838888ae",
 		ExecMode:          "daemon",
-		Command:           []string{"consul connect proxy"},
+		Command:           []string{"consul", "connect", "proxy"},
 		Config: map[string]interface{}{
 			"bind_address": "127.0.0.1",
 			"bind_port":    float64(20000),
