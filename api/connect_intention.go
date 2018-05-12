@@ -154,7 +154,7 @@ func (h *Connect) Intentions(q *QueryOptions) ([]*Intention, *QueryMeta, error) 
 func (h *Connect) IntentionGet(id string, q *QueryOptions) (*Intention, *QueryMeta, error) {
 	r := h.c.newRequest("GET", "/v1/connect/intentions/"+id)
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(h.c.doRequest(r))
+	rtt, resp, err := h.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -164,11 +164,33 @@ func (h *Connect) IntentionGet(id string, q *QueryOptions) (*Intention, *QueryMe
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
 
+	if resp.StatusCode == 404 {
+		return nil, qm, nil
+	} else if resp.StatusCode != 200 {
+		return nil, nil, fmt.Errorf("Unexpected response code: %d", resp.StatusCode)
+	}
+
 	var out Intention
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, nil, err
 	}
 	return &out, qm, nil
+}
+
+// IntentionDelete deletes a single intention.
+func (h *Connect) IntentionDelete(id string, q *WriteOptions) (*WriteMeta, error) {
+	r := h.c.newRequest("DELETE", "/v1/connect/intentions/"+id)
+	r.setWriteOptions(q)
+	rtt, resp, err := requireOK(h.c.doRequest(r))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	qm := &WriteMeta{}
+	qm.RequestTime = rtt
+
+	return qm, nil
 }
 
 // IntentionMatch returns the list of intentions that match a given source

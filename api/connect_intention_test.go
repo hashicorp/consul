@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAPI_ConnectIntentionCreateListGet(t *testing.T) {
+func TestAPI_ConnectIntentionCreateListGetDelete(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
@@ -38,6 +38,15 @@ func TestAPI_ConnectIntentionCreateListGet(t *testing.T) {
 	actual, _, err = connect.IntentionGet(id, nil)
 	require.Nil(err)
 	require.Equal(ixn, actual)
+
+	// Delete it
+	_, err = connect.IntentionDelete(id, nil)
+	require.Nil(err)
+
+	// Get it (should be gone)
+	actual, _, err = connect.IntentionGet(id, nil)
+	require.Nil(err)
+	require.Nil(actual)
 }
 
 func TestAPI_ConnectIntentionMatch(t *testing.T) {
