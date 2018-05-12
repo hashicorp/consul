@@ -1,16 +1,13 @@
-package get
+package delete
 
 import (
 	"flag"
 	"fmt"
 	"io"
-	"sort"
-	"time"
 
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/intention/finder"
 	"github.com/mitchellh/cli"
-	"github.com/ryanuber/columnize"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -58,37 +55,13 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	// Read the intention
-	ixn, _, err := client.Connect().IntentionGet(id, nil)
+	_, err = client.Connect().IntentionDelete(id, nil)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error reading the intention: %s", err))
 		return 1
 	}
 
-	// Format the tabular data
-	data := []string{
-		fmt.Sprintf("Source:|%s", ixn.SourceString()),
-		fmt.Sprintf("Destination:|%s", ixn.DestinationString()),
-		fmt.Sprintf("Action:|%s", ixn.Action),
-		fmt.Sprintf("ID:|%s", ixn.ID),
-	}
-	if v := ixn.Description; v != "" {
-		data = append(data, fmt.Sprintf("Description:|%s", v))
-	}
-	if len(ixn.Meta) > 0 {
-		var keys []string
-		for k := range ixn.Meta {
-			keys = append(keys, k)
-		}
-		sort.Strings(keys)
-		for _, k := range keys {
-			data = append(data, fmt.Sprintf("Meta[%s]:|%s", k, ixn.Meta[k]))
-		}
-	}
-	data = append(data,
-		fmt.Sprintf("Created At:|%s", ixn.CreatedAt.Local().Format(time.RFC850)),
-	)
-
-	c.UI.Output(columnize.SimpleFormat(data))
+	c.UI.Output(fmt.Sprintf("Intention deleted."))
 	return 0
 }
 
@@ -100,14 +73,14 @@ func (c *cmd) Help() string {
 	return c.help
 }
 
-const synopsis = "Show information about an intention."
+const synopsis = "Delete an intention."
 const help = `
-Usage: consul intention get [options] SRC DST
-Usage: consul intention get [options] ID
+Usage: consul intention delete [options] SRC DST
+Usage: consul intention delete [options] ID
 
-  Read and show the details about an intention. The intention can be looked
+  Delete an intention. This cannot be reversed. The intention can be looked
   up via an exact source/destination match or via the unique intention ID.
 
-      $ consul intention get web db
+      $ consul intention delete web db
 
 `
