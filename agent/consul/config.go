@@ -433,6 +433,15 @@ func DefaultConfig() *Config {
 			ServerStabilizationTime: 10 * time.Second,
 		},
 
+		CAConfig: &structs.CAConfiguration{
+			Provider: "consul",
+			Config: map[string]interface{}{
+				"PrivateKey":     "",
+				"RootCert":       "",
+				"RotationPeriod": 90 * 24 * time.Hour,
+			},
+		},
+
 		ServerHealthInterval: 2 * time.Second,
 		AutopilotInterval:    10 * time.Second,
 	}

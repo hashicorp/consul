@@ -138,9 +138,6 @@ func TestHelperProcess(t *testing.T) {
 			time.Sleep(25 * time.Millisecond)
 		}
 
-		// Run forever
-		<-make(chan struct{})
-
 	case "output":
 		fmt.Fprintf(os.Stdout, "hello stdout\n")
 		fmt.Fprintf(os.Stderr, "hello stderr\n")
