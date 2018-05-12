@@ -53,17 +53,30 @@ type Intention struct {
 
 // String returns human-friendly output describing ths intention.
 func (i *Intention) String() string {
-	source := i.SourceName
-	if i.SourceNS != "" {
-		source = i.SourceNS + "/" + source
+	return fmt.Sprintf("%s => %s (%s)",
+		i.SourceString(),
+		i.DestinationString(),
+		i.Action)
+}
+
+// SourceString returns the namespace/name format for the source, or
+// just "name" if the namespace is the default namespace.
+func (i *Intention) SourceString() string {
+	return i.partString(i.SourceNS, i.SourceName)
+}
+
+// DestinationString returns the namespace/name format for the source, or
+// just "name" if the namespace is the default namespace.
+func (i *Intention) DestinationString() string {
+	return i.partString(i.DestinationNS, i.DestinationName)
+}
+
+func (i *Intention) partString(ns, n string) string {
+	if ns != "" {
+		n = ns + "/" + n
 	}
 
-	dest := i.DestinationName
-	if i.DestinationNS != "" {
-		dest = i.DestinationNS + "/" + dest
-	}
-
-	return fmt.Sprintf("%s => %s (%s)", source, dest, i.Action)
+	return n
 }
 
 // IntentionAction is the action that the intention represents. This
