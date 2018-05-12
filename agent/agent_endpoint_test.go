@@ -56,7 +56,10 @@ func TestAgent_Services(t *testing.T) {
 		ID:      "mysql",
 		Service: "mysql",
 		Tags:    []string{"master"},
-		Port:    5000,
+		Meta: map[string]string{
+			"foo": "bar",
+		},
+		Port: 5000,
 	}
 	require.NoError(t, a.State.AddService(srv1, ""))
 
@@ -81,6 +84,7 @@ func TestAgent_Services(t *testing.T) {
 	val := obj.(map[string]*api.AgentService)
 	assert.Lenf(t, val, 1, "bad services: %v", obj)
 	assert.Equal(t, 5000, val["mysql"].Port)
+	assert.Equal(t, srv1.Meta, val["mysql"].Meta)
 	assert.NotNil(t, val["mysql"].Connect)
 	assert.NotNil(t, val["mysql"].Connect.Proxy)
 	assert.Equal(t, prxy1.ExecMode.String(), string(val["mysql"].Connect.Proxy.ExecMode))

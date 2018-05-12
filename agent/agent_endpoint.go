@@ -175,6 +175,7 @@ func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) 
 			ID:                s.ID,
 			Service:           s.Service,
 			Tags:              s.Tags,
+			Meta:              s.Meta,
 			Port:              s.Port,
 			Address:           s.Address,
 			EnableTagOverride: s.EnableTagOverride,
