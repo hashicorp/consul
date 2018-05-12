@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"sync"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/api"
@@ -73,11 +74,22 @@ type ConsulResolver struct {
 
 	// Datacenter to resolve in, empty indicates agent's local DC.
 	Datacenter string
+
+	// trustDomain stores the cluster's trust domain it's populated once on first
+	// Resolve call and blocks all resolutions.
+	trustDomain   string
+	trustDomainMu sync.Mutex
 }
 
 // Resolve performs service discovery against the local Consul agent and returns
 // the address and expected identity of a suitable service instance.
 func (cr *ConsulResolver) Resolve(ctx context.Context) (string, connect.CertURI, error) {
+	// Fetch trust domain if we've not done that yet
+	err := cr.ensureTrustDomain()
+	if err != nil {
+		return "", nil, err
+	}
+
 	switch cr.Type {
 	case ConsulResolverTypeService:
 		return cr.resolveService(ctx)
@@ -89,6 +101,27 @@ func (cr *ConsulResolver) Resolve(ctx context.Context) (string, connect.CertURI,
 	default:
 		return "", nil, fmt.Errorf("unknown resolver type")
 	}
+}
+
+func (cr *ConsulResolver) ensureTrustDomain() error {
+	cr.trustDomainMu.Lock()
+	defer cr.trustDomainMu.Unlock()
+
+	if cr.trustDomain != "" {
+		return nil
+	}
+
+	roots, _, err := cr.Client.Agent().ConnectCARoots(nil)
+	if err != nil {
+		return fmt.Errorf("failed fetching cluster trust domain: %s", err)
+	}
+
+	if roots.TrustDomain == "" {
+		return fmt.Errorf("cluster trust domain empty, connect not bootstrapped")
+	}
+
+	cr.trustDomain = roots.TrustDomain
+	return nil
 }
 
 func (cr *ConsulResolver) resolveService(ctx context.Context) (string, connect.CertURI, error) {
@@ -116,13 +149,8 @@ func (cr *ConsulResolver) resolveService(ctx context.Context) (string, connect.C
 	port := svcs[idx].Service.Port
 
 	// Generate the expected CertURI
-
-	// TODO(banks): when we've figured out the CA story around generating and
-	// propagating these trust domains we need to actually fetch the trust domain
-	// somehow. We also need to implement namespaces. Use of test function here is
-	// temporary pending the work on trust domains.
 	certURI := &connect.SpiffeIDService{
-		Host:       "11111111-2222-3333-4444-555555555555.consul",
+		Host:       cr.trustDomain,
 		Namespace:  "default",
 		Datacenter: svcs[idx].Node.Datacenter,
 		Service:    svcs[idx].Service.ProxyDestination,
