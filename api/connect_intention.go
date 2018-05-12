@@ -72,12 +72,17 @@ func (i *Intention) DestinationString() string {
 }
 
 func (i *Intention) partString(ns, n string) string {
-	if ns != "" {
+	// For now we omit the default namespace from the output. In the future
+	// we might want to look at this and show this in a multi-namespace world.
+	if ns != "" && ns != IntentionDefaultNamespace {
 		n = ns + "/" + n
 	}
 
 	return n
 }
+
+// IntentionDefaultNamespace is the default namespace value.
+const IntentionDefaultNamespace = "default"
 
 // IntentionAction is the action that the intention represents. This
 // can be "allow" or "deny" to whitelist or blacklist intentions.

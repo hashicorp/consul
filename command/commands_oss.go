@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/command/info"
 	"github.com/hashicorp/consul/command/intention"
 	ixncreate "github.com/hashicorp/consul/command/intention/create"
+	ixnget "github.com/hashicorp/consul/command/intention/get"
 	"github.com/hashicorp/consul/command/join"
 	"github.com/hashicorp/consul/command/keygen"
 	"github.com/hashicorp/consul/command/keyring"
@@ -69,7 +70,8 @@ func init() {
 	Register("force-leave", func(ui cli.Ui) (cli.Command, error) { return forceleave.New(ui), nil })
 	Register("info", func(ui cli.Ui) (cli.Command, error) { return info.New(ui), nil })
 	Register("intention", func(ui cli.Ui) (cli.Command, error) { return intention.New(), nil })
-	Register("intention create", func(ui cli.Ui) (cli.Command, error) { return ixncreate.New(), nil })
+	Register("intention create", func(ui cli.Ui) (cli.Command, error) { return ixncreate.New(ui), nil })
+	Register("intention get", func(ui cli.Ui) (cli.Command, error) { return ixnget.New(ui), nil })
 	Register("join", func(ui cli.Ui) (cli.Command, error) { return join.New(ui), nil })
 	Register("keygen", func(ui cli.Ui) (cli.Command, error) { return keygen.New(ui), nil })
 	Register("keyring", func(ui cli.Ui) (cli.Command, error) { return keyring.New(ui), nil })

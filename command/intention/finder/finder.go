@@ -1,6 +1,7 @@
 package finder
 
 import (
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/consul/api"
@@ -22,6 +23,9 @@ type Finder struct {
 // Find finds the intention that matches the given src and dst. This will
 // return nil when the result is not found.
 func (f *Finder) Find(src, dst string) (*api.Intention, error) {
+	src = StripDefaultNS(src)
+	dst = StripDefaultNS(dst)
+
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
@@ -43,4 +47,16 @@ func (f *Finder) Find(src, dst string) (*api.Intention, error) {
 	}
 
 	return nil, nil
+}
+
+// StripDefaultNS strips the default namespace from an argument. For now,
+// the API and lookups strip this value from string output so we strip it.
+func StripDefaultNS(v string) string {
+	if idx := strings.IndexByte(v, '/'); idx > 0 {
+		if v[:idx] == api.IntentionDefaultNamespace {
+			return v[:idx+1]
+		}
+	}
+
+	return v
 }
