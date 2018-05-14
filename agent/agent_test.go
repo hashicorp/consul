@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/consul/types"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -1350,6 +1351,187 @@ func TestAgent_PurgeServiceOnDuplicate(t *testing.T) {
 	}
 }
 
+func TestAgent_PersistProxy(t *testing.T) {
+	t.Parallel()
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	cfg := `
+		server = false
+		bootstrap = false
+		data_dir = "` + dataDir + `"
+	`
+	a := &TestAgent{Name: t.Name(), HCL: cfg, DataDir: dataDir}
+	a.Start()
+	defer os.RemoveAll(dataDir)
+	defer a.Shutdown()
+
+	require := require.New(t)
+	assert := assert.New(t)
+
+	// Add a service to proxy (precondition for AddProxy)
+	svc1 := &structs.NodeService{
+		ID:      "redis",
+		Service: "redis",
+		Tags:    []string{"foo"},
+		Port:    8000,
+	}
+	require.NoError(a.AddService(svc1, nil, true, ""))
+
+	// Add a proxy for it
+	proxy := &structs.ConnectManagedProxy{
+		TargetServiceID: svc1.ID,
+		Command:         []string{"/bin/sleep", "3600"},
+	}
+
+	file := filepath.Join(a.Config.DataDir, proxyDir, stringHash("redis-proxy"))
+
+	// Proxy is not persisted unless requested
+	require.NoError(a.AddProxy(proxy, false, ""))
+	_, err := os.Stat(file)
+	require.Error(err, "proxy should not be persisted")
+
+	// Proxy is  persisted if requested
+	require.NoError(a.AddProxy(proxy, true, ""))
+	_, err = os.Stat(file)
+	require.NoError(err, "proxy should be persisted")
+
+	content, err := ioutil.ReadFile(file)
+	require.NoError(err)
+
+	var gotProxy persistedProxy
+	require.NoError(json.Unmarshal(content, &gotProxy))
+	assert.Equal(proxy.Command, gotProxy.Proxy.Command)
+	assert.Len(gotProxy.ProxyToken, 36) // sanity check for UUID
+
+	// Updates service definition on disk
+	proxy.Config = map[string]interface{}{
+		"foo": "bar",
+	}
+	require.NoError(a.AddProxy(proxy, true, ""))
+
+	content, err = ioutil.ReadFile(file)
+	require.NoError(err)
+
+	require.NoError(json.Unmarshal(content, &gotProxy))
+	assert.Equal(gotProxy.Proxy.Command, proxy.Command)
+	assert.Equal(gotProxy.Proxy.Config, proxy.Config)
+	assert.Len(gotProxy.ProxyToken, 36) // sanity check for UUID
+
+	a.Shutdown()
+
+	// Should load it back during later start
+	a2 := &TestAgent{Name: t.Name(), HCL: cfg, DataDir: dataDir}
+	a2.Start()
+	defer a2.Shutdown()
+
+	restored := a2.State.Proxy("redis-proxy")
+	require.NotNil(restored)
+	assert.Equal(gotProxy.ProxyToken, restored.ProxyToken)
+	// Ensure the port that was auto picked at random is the same again
+	assert.Equal(gotProxy.Proxy.ProxyService.Port, restored.Proxy.ProxyService.Port)
+	assert.Equal(gotProxy.Proxy.Command, restored.Proxy.Command)
+}
+
+func TestAgent_PurgeProxy(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	require := require.New(t)
+
+	// Add a service to proxy (precondition for AddProxy)
+	svc1 := &structs.NodeService{
+		ID:      "redis",
+		Service: "redis",
+		Tags:    []string{"foo"},
+		Port:    8000,
+	}
+	require.NoError(a.AddService(svc1, nil, true, ""))
+
+	// Add a proxy for it
+	proxy := &structs.ConnectManagedProxy{
+		TargetServiceID: svc1.ID,
+		Command:         []string{"/bin/sleep", "3600"},
+	}
+	proxyID := "redis-proxy"
+	require.NoError(a.AddProxy(proxy, true, ""))
+
+	file := filepath.Join(a.Config.DataDir, proxyDir, stringHash("redis-proxy"))
+
+	// Not removed
+	require.NoError(a.RemoveProxy(proxyID, false))
+	_, err := os.Stat(file)
+	require.NoError(err, "should not be removed")
+
+	// Re-add the proxy
+	require.NoError(a.AddProxy(proxy, true, ""))
+
+	// Removed
+	require.NoError(a.RemoveProxy(proxyID, true))
+	_, err = os.Stat(file)
+	require.Error(err, "should be removed")
+}
+
+func TestAgent_PurgeProxyOnDuplicate(t *testing.T) {
+	t.Parallel()
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	cfg := `
+		data_dir = "` + dataDir + `"
+		server = false
+		bootstrap = false
+	`
+	a := &TestAgent{Name: t.Name(), HCL: cfg, DataDir: dataDir}
+	a.Start()
+	defer a.Shutdown()
+	defer os.RemoveAll(dataDir)
+
+	require := require.New(t)
+
+	// Add a service to proxy (precondition for AddProxy)
+	svc1 := &structs.NodeService{
+		ID:      "redis",
+		Service: "redis",
+		Tags:    []string{"foo"},
+		Port:    8000,
+	}
+	require.NoError(a.AddService(svc1, nil, true, ""))
+
+	// Add a proxy for it
+	proxy := &structs.ConnectManagedProxy{
+		TargetServiceID: svc1.ID,
+		Command:         []string{"/bin/sleep", "3600"},
+	}
+	proxyID := "redis-proxy"
+	require.NoError(a.AddProxy(proxy, true, ""))
+
+	a.Shutdown()
+
+	// Try bringing the agent back up with the service already
+	// existing in the config
+	a2 := &TestAgent{Name: t.Name() + "-a2", HCL: cfg + `
+		service = {
+			id = "redis"
+			name = "redis"
+			tags = ["bar"]
+			port = 9000
+			connect {
+				proxy {
+					command = ["/bin/sleep", "3600"]
+				}
+			}
+		}
+	`, DataDir: dataDir}
+	a2.Start()
+	defer a2.Shutdown()
+
+	file := filepath.Join(a.Config.DataDir, proxyDir, stringHash(proxyID))
+	_, err := os.Stat(file)
+	require.Error(err, "should have removed remote state")
+
+	result := a2.State.Proxy(proxyID)
+	require.NotNil(result)
+	require.Equal(proxy.Command, result.Proxy.Command)
+}
+
 func TestAgent_PersistCheck(t *testing.T) {
 	t.Parallel()
 	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
@@ -2482,7 +2664,7 @@ func TestAgent_AddProxy(t *testing.T) {
 		t.Run(tt.desc, func(t *testing.T) {
 			require := require.New(t)
 
-			err := a.AddProxy(tt.proxy, false)
+			err := a.AddProxy(tt.proxy, false, "")
 			if tt.wantErr {
 				require.Error(err)
 				return
@@ -2522,7 +2704,7 @@ func TestAgent_RemoveProxy(t *testing.T) {
 		ExecMode:        structs.ProxyExecModeDaemon,
 		Command:         []string{"foo"},
 	}
-	require.NoError(a.AddProxy(pReg, false))
+	require.NoError(a.AddProxy(pReg, false, ""))
 
 	// Test the ID was created as we expect.
 	gotProxy := a.State.Proxy("web-proxy")

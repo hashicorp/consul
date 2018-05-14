@@ -118,12 +118,19 @@ type ManagedProxy struct {
 
 	// ProxyToken is a special local-only security token that grants the bearer
 	// access to the proxy's config as well as allowing it to request certificates
-	// on behalf of the TargetService. Certain connect endpoints will validate
-	// against this token and if it matches will then use the TargetService.Token
-	// to actually authenticate the upstream RPC on behalf of the service. This
-	// token is passed securely to the proxy process via ENV vars and should never
-	// be exposed any other way. Unmanaged proxies will never see this and need to
-	// use service-scoped ACL tokens distributed externally.
+	// on behalf of the target service. Certain connect endpoints will validate
+	// against this token and if it matches will then use the target service's
+	// registration token to actually authenticate the upstream RPC on behalf of
+	// the service. This token is passed securely to the proxy process via ENV
+	// vars and should never be exposed any other way. Unmanaged proxies will
+	// never see this and need to use service-scoped ACL tokens distributed
+	// externally. It is persisted in the local state to allow authenticating
+	// running proxies after the agent restarts.
+	//
+	// TODO(banks): In theory we only need to persist this at all to _validate_
+	// which means we could keep only a hash in memory and on disk and only pass
+	// the actual token to the process on startup. That would require a bit of
+	// refactoring though to have the required interaction with the proxy manager.
 	ProxyToken string
 
 	// WatchCh is a close-only chan that is closed when the proxy is removed or
@@ -574,7 +581,13 @@ func (l *State) CriticalCheckStates() map[types.CheckID]*CheckState {
 // (since that has to do other book keeping). The token passed here is the ACL
 // token the service used to register itself so must have write on service
 // record. AddProxy returns the newly added proxy and an error.
-func (l *State) AddProxy(proxy *structs.ConnectManagedProxy, token string) (*ManagedProxy, error) {
+//
+// The restoredProxyToken argument should only be used when restoring proxy
+// definitions from disk; new proxies must leave it blank to get a new token
+// assigned. We need to restore from disk to enable to continue authenticating
+// running proxies that already had that credential injected.
+func (l *State) AddProxy(proxy *structs.ConnectManagedProxy, token,
+	restoredProxyToken string) (*ManagedProxy, error) {
 	if proxy == nil {
 		return nil, fmt.Errorf("no proxy")
 	}
@@ -603,19 +616,35 @@ func (l *State) AddProxy(proxy *structs.ConnectManagedProxy, token string) (*Man
 		Port:             cfg.BindPort,
 	}
 
-	pToken, err := uuid.GenerateUUID()
-	if err != nil {
-		return nil, err
-	}
-
 	// Lock now. We can't lock earlier as l.Service would deadlock and shouldn't
 	// anyway to minimise the critical section.
 	l.Lock()
 	defer l.Unlock()
 
+	pToken := restoredProxyToken
+
 	// Does this proxy instance allready exist?
 	if existing, ok := l.managedProxies[svc.ID]; ok {
-		svc.Port = existing.Proxy.ProxyService.Port
+		// Keep the existing proxy token so we don't have to restart proxy to
+		// re-inject token.
+		pToken = existing.ProxyToken
+		// If the user didn't explicitly change the port, use the old one instead of
+		// assigning new.
+		if svc.Port < 1 {
+			svc.Port = existing.Proxy.ProxyService.Port
+		}
+	} else if proxyService, ok := l.services[svc.ID]; ok {
+		// The proxy-service already exists so keep the port that got assigned. This
+		// happens on reload from disk since service definitions are reloaded first.
+		svc.Port = proxyService.Service.Port
+	}
+
+	// If this is a new instance, generate a token
+	if pToken == "" {
+		pToken, err = uuid.GenerateUUID()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Allocate port if needed (min and max inclusive).

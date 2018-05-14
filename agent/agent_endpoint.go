@@ -629,7 +629,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	}
 	// Add proxy (which will add proxy service so do it before we trigger sync)
 	if proxy != nil {
-		if err := s.agent.AddProxy(proxy, true); err != nil {
+		if err := s.agent.AddProxy(proxy, true, ""); err != nil {
 			return nil, err
 		}
 	}
