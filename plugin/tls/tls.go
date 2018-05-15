@@ -24,10 +24,10 @@ func setup(c *caddy.Controller) error {
 
 	for c.Next() {
 		args := c.RemainingArgs()
-		if len(args) != 3 {
+		if len(args) < 2 || len(args) > 3 {
 			return plugin.Error("tls", c.ArgErr())
 		}
-		tls, err := tls.NewTLSConfig(args[0], args[1], args[2])
+		tls, err := tls.NewTLSConfigFromArgs(args...)
 		if err != nil {
 			return plugin.Error("tls", err)
 		}
