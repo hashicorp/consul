@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/command/forceleave"
 	"github.com/hashicorp/consul/command/info"
 	"github.com/hashicorp/consul/command/intention"
+	ixncheck "github.com/hashicorp/consul/command/intention/check"
 	ixncreate "github.com/hashicorp/consul/command/intention/create"
 	ixndelete "github.com/hashicorp/consul/command/intention/delete"
 	ixnget "github.com/hashicorp/consul/command/intention/get"
@@ -71,6 +72,7 @@ func init() {
 	Register("force-leave", func(ui cli.Ui) (cli.Command, error) { return forceleave.New(ui), nil })
 	Register("info", func(ui cli.Ui) (cli.Command, error) { return info.New(ui), nil })
 	Register("intention", func(ui cli.Ui) (cli.Command, error) { return intention.New(), nil })
+	Register("intention check", func(ui cli.Ui) (cli.Command, error) { return ixncheck.New(ui), nil })
 	Register("intention create", func(ui cli.Ui) (cli.Command, error) { return ixncreate.New(ui), nil })
 	Register("intention delete", func(ui cli.Ui) (cli.Command, error) { return ixndelete.New(ui), nil })
 	Register("intention get", func(ui cli.Ui) (cli.Command, error) { return ixnget.New(ui), nil })
