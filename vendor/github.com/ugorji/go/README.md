@@ -1,6 +1,6 @@
-[![Sourcegraph](https://sourcegraph.com/github.com/ugorji/go/-/badge.svg)](https://sourcegraph.com/github.com/ugorji/go/-/blob/codec)
+[![Sourcegraph](https://sourcegraph.com/github.com/ugorji/go/-/badge.svg?v=2)](https://sourcegraph.com/github.com/ugorji/go/-/tree/codec)
 [![Build Status](https://travis-ci.org/ugorji/go.svg?branch=master)](https://travis-ci.org/ugorji/go)
-[![codecov](https://codecov.io/gh/ugorji/go/branch/master/graph/badge.svg)](https://codecov.io/gh/ugorji/go)
+[![codecov](https://codecov.io/gh/ugorji/go/branch/master/graph/badge.svg?v=2)](https://codecov.io/gh/ugorji/go)
 [![GoDoc](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](http://godoc.org/github.com/ugorji/go/codec)
 [![rcard](https://goreportcard.com/badge/github.com/ugorji/go/codec?v=2)](https://goreportcard.com/report/github.com/ugorji/go/codec)
 [![License](http://img.shields.io/badge/license-mit-blue.svg?style=flat-square)](https://raw.githubusercontent.com/ugorji/go/master/LICENSE)
@@ -24,4 +24,8 @@ For more information:
 Install using:
 
     go get github.com/ugorji/go/codec
+
+TODO:
+
+  - [ ] 2018-03-12 - Release v1.1.1 containing 32-bit fixes
 

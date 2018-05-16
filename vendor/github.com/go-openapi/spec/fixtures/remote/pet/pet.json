@@ -1,0 +1,42 @@
+{
+  "responses": {
+    "petResponse": {
+      "description": "pet response",
+      "schema": {
+        "$ref": "#/definitions/pet"
+      }
+    },
+    "stringResponse": {
+      "descripion": "string response",
+      "schema": {
+        "type": "string"
+      }
+    },
+    "circularB": {
+      "$ref": "#/responses/circularC"
+    },
+    "circularC": {
+      "$ref": "../all-the-things.json#/responses/circularA"
+    },
+    "anotherPet": {
+      "$ref": "#/responses/petResponse"
+    }
+  },
+  "definitions": {
+    "pet": {
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "name": {
+          "type": "string"
+        },
+        "tag": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

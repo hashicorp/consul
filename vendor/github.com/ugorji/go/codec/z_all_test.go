@@ -229,6 +229,11 @@ func testCodecGroup(t *testing.T) {
 	t.Run("TestMsgpackScalars", TestMsgpackScalars)
 	t.Run("TestBincScalars", TestBincScalars)
 	t.Run("TestSimpleScalars", TestSimpleScalars)
+	t.Run("TestJsonOmitempty", TestJsonOmitempty)
+	t.Run("TestCborOmitempty", TestCborOmitempty)
+	t.Run("TestMsgpackOmitempty", TestMsgpackOmitempty)
+	t.Run("TestBincOmitempty", TestBincOmitempty)
+	t.Run("TestSimpleOmitempty", TestSimpleOmitempty)
 	t.Run("TestJsonIntfMapping", TestJsonIntfMapping)
 	t.Run("TestCborIntfMapping", TestCborIntfMapping)
 	t.Run("TestMsgpackIntfMapping", TestMsgpackIntfMapping)
@@ -265,6 +270,7 @@ func testJsonGroup(t *testing.T) {
 	t.Run("TestJsonUintToInt", TestJsonUintToInt)
 	t.Run("TestJsonDifferentMapOrSliceType", TestJsonDifferentMapOrSliceType)
 	t.Run("TestJsonScalars", TestJsonScalars)
+	t.Run("TestJsonOmitempty", TestJsonOmitempty)
 	t.Run("TestJsonIntfMapping", TestJsonIntfMapping)
 }
 
@@ -289,6 +295,8 @@ func testBincGroup(t *testing.T) {
 	t.Run("TestBincUintToInt", TestBincUintToInt)
 	t.Run("TestBincDifferentMapOrSliceType", TestBincDifferentMapOrSliceType)
 	t.Run("TestBincScalars", TestBincScalars)
+	t.Run("TestBincOmitempty", TestBincOmitempty)
+	t.Run("TestBincIntfMapping", TestBincIntfMapping)
 }
 
 func testCborGroup(t *testing.T) {
@@ -313,7 +321,8 @@ func testCborGroup(t *testing.T) {
 	t.Run("TestCborUintToInt", TestCborUintToInt)
 	t.Run("TestCborDifferentMapOrSliceType", TestCborDifferentMapOrSliceType)
 	t.Run("TestCborScalars", TestCborScalars)
-
+	t.Run("TestCborOmitempty", TestCborOmitempty)
+	t.Run("TestCborIntfMapping", TestCborIntfMapping)
 	t.Run("TestCborHalfFloat", TestCborHalfFloat)
 }
 
@@ -337,6 +346,8 @@ func testMsgpackGroup(t *testing.T) {
 	t.Run("TestMsgpackUintToInt", TestMsgpackUintToInt)
 	t.Run("TestMsgpackDifferentMapOrSliceType", TestMsgpackDifferentMapOrSliceType)
 	t.Run("TestMsgpackScalars", TestMsgpackScalars)
+	t.Run("TestMsgpackOmitempty", TestMsgpackOmitempty)
+	t.Run("TestMsgpackIntfMapping", TestMsgpackIntfMapping)
 }
 
 func testSimpleGroup(t *testing.T) {
@@ -358,6 +369,8 @@ func testSimpleGroup(t *testing.T) {
 	t.Run("TestSimpleUintToInt", TestSimpleUintToInt)
 	t.Run("TestSimpleDifferentMapOrSliceType", TestSimpleDifferentMapOrSliceType)
 	t.Run("TestSimpleScalars", TestSimpleScalars)
+	t.Run("TestSimpleOmitempty", TestSimpleOmitempty)
+	t.Run("TestSimpleIntfMapping", TestSimpleIntfMapping)
 }
 
 func testSimpleMammothGroup(t *testing.T) {

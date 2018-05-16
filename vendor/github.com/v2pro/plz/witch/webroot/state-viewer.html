@@ -1,0 +1,165 @@
+<script type="text/x-template" id="state-node-template">
+    <div style="padding-left:18px">
+        <div @click="callbacks.onNodeClick(node)">
+        <span class="el-tree-node__expand-icon el-icon-caret-right"
+              :class="{ 'is-leaf': node.isLeaf, expanded: !node.isLeaf && callbacks.isExpanded(node) }"></span>
+        {{ node.label }}
+            <span v-if="node.value">: {{ node.value }}</span>
+            <el-button v-if="node.isDumpVar" size="mini" @click="callbacks.visualize(node,$event)">visualize</el-button>
+        </div>
+        <state-node v-for="child in node.children" :node="child"
+                    :callbacks="callbacks" :key="child.id"
+                    v-show="!node.isLeaf && callbacks.isExpanded(node)"/>
+    </div>
+</script>
+<script type="text/x-template" id="state-viewer-template">
+    <div>
+        <el-row>
+            <el-col :span="20">
+                <div v-show="selectedSnapshot === null">No snapshot to show, please click "Poll Current State"</div>
+                <div v-if="selectedSnapshot" style="margin-bottom: 8px;">Snapshot Taken
+                    At: {{ selectedSnapshot.timestamp }}</div>
+                <state-node v-for="node in tree.children" :node="node" :callbacks="callbacks" :key="node.id">
+                </state-node>
+            </el-col>
+            <el-col :span="4" style="pdding-right: 1em; padding-left: 1em;">
+                <snapshots ref="snapshots" :selectedSnapshot.sync="selectedSnapshot"></snapshots>
+            </el-col>
+        </el-row>
+        <el-dialog
+                :title="dialogTitle"
+                :visible.sync="dialogVisible"
+                :fullscreen="true">
+            <viz :addrMap="addrMap"></viz>
+        </el-dialog>
+    </div>
+</script>
+<script>
+    function Node(options) {
+        this.id = '';
+        this.label = '';
+        this.value = null;
+        this.isLeaf = false;
+        this.data = null;
+        this.indention = 0;
+        this.children = [];
+        this.root = null;
+        for (var k in options) {
+            this[k] = options[k];
+        }
+    }
+
+    Node.prototype.addChild = function (options) {
+        var child = new Node(options);
+        child.root = this.root;
+        child.id = this.id + '>' + options.label;
+        child.indention = this.indention + 18;
+        this.children.push(child);
+        this.root.all_nodes[child.id] = child;
+        return child;
+    };
+    Node.prototype.addObject = function (object, addrMap) {
+        var isArray = Array.isArray(object);
+        for (var k in object) {
+            var label = k;
+            if (isArray) {
+                label = '[' + label + ']';
+            }
+            var v = object[k];
+            if (Array.isArray(v)) {
+                var childNode = this.addChild({label: label, addrMap: addrMap});
+                childNode.addObject(v, addrMap);
+            } else if (v === null) {
+                this.addChild({label: label, addrMap: addrMap, value: '<null>', isLeaf: true});
+                break;
+            } else {
+                this.addValue(label, v, addrMap)
+            }
+        }
+    };
+    Node.prototype.addValue = function (label, v, addrMap) {
+        switch (typeof v) {
+            case 'string':
+                this.addChild({label: label, addrMap: addrMap, value: v, isLeaf: true});
+                break;
+            case 'boolean':
+                this.addChild({label: label, addrMap: addrMap, value: '' + v, isLeaf: true});
+                break;
+            case 'number':
+                this.addChild({label: label, addrMap: addrMap, value: '' + v, isLeaf: true});
+                break;
+            case 'object':
+                if (v.__root__) {
+                    var childNode = this.addChild({
+                        label: label, addrMap: v, isDumpVar: true, data: v.__root__
+                    });
+                    childNode.addObject(v.__root__, v);
+                } else if (v.__ptr__) {
+                    this.addChild({label: label, addrMap: addrMap, data: v})
+                } else {
+                    var childNode = this.addChild({label: label, addrMap: addrMap});
+                    childNode.addObject(v, addrMap);
+                }
+                break;
+        }
+    };
+    Vue.component('state-node', {
+        template: '#state-node-template',
+        props: ['node', 'callbacks']
+    });
+    Vue.component('state-viewer', {
+        template: '#state-viewer-template',
+        data: function () {
+            return {
+                tree: new Node(), // view model
+                selectedSnapshot: null,
+                callbacks: this,
+                expansion: {},
+                dialogVisible: false,
+                dialogTitle: '',
+                addrMap: null
+            }
+        },
+        watch: {
+            selectedSnapshot: function () {
+                this.tree = new Node({id: 'root'});
+                this.tree.root = this.tree;
+                this.tree.all_nodes = {};
+                this.tree.addObject(this.selectedSnapshot.data);
+                for (var nodeId in this.expansion) {
+                    var node = this.tree.all_nodes[nodeId];
+                    if (node) {
+                        this.expandPtr(node);
+                    }
+                }
+            }
+        },
+        methods: {
+            onNodeClick: function (node) {
+                Vue.set(this.expansion, node.id, !this.expansion[node.id]);
+                this.expandPtr(node);
+            },
+            expandPtr: function (node) {
+                if (node.data && node.data.__ptr__) {
+                    var objectAddr = node.data.__ptr__;
+                    node.data = null; // avoid reload children
+                    var object = node.addrMap[objectAddr];
+                    if ((typeof object) === 'object') {
+                        node.addObject(object, node.addrMap);
+                    } else {
+                        node.addValue('value', object, node.addrMap);
+                    }
+                }
+            },
+            isExpanded: function (node) {
+                return this.expansion[node.id];
+            },
+            visualize: function (node, event) {
+                event.stopPropagation();
+                this.addrMap = node.addrMap;
+                this.dialogTitle = node.label;
+                this.dialogVisible = true;
+            }
+        }
+    });
+</script>

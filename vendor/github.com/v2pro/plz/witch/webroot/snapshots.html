@@ -1,0 +1,49 @@
+<script type="text/x-template" id="snapshots-template">
+<div>
+    <el-button @click="pollCurrentState" style="margin-bottom: 8px;">Poll Current State</el-button>
+    <div v-for="snapshot in snapshots" @click="selectSnapshot(snapshot)"
+         :class="snapshot.is_selected ? 'selected-snapshot' : ''">
+        {{ formatTimestamp(snapshot.timestamp) }}
+    </div>
+</div>
+</script>
+<style>
+    .selected-snapshot {
+        background: #ADD8E6;
+    }
+</style>
+<script>
+    Vue.component('snapshots', {
+        template: '#snapshots-template',
+        props: ['selectedSnapshot'],
+        data: function () {
+            return {
+                snapshots: [],
+            };
+        },
+        methods: {
+            pollCurrentState: function() {
+                var me = this;
+                axios.get(window.location.href + '/expvar?ts=' + Date.now())
+                    .then(function (resp) {
+                        var snapshot = {timestamp: new Date(), data: resp.data, is_selected:false};
+                        me.snapshots = [snapshot].concat(me.snapshots);
+                        me.selectSnapshot(snapshot);
+                    });
+            },
+            formatTimestamp: function(val) {
+                return val.getHours() + ':' + val.getMinutes() + ':' + val.getSeconds() + '.' + val.getMilliseconds();
+            },
+            selectSnapshot: function(snapshot) {
+                for (var i in this.snapshots) {
+                    if (this.snapshots[i] === snapshot) {
+                        this.snapshots[i].is_selected = true;
+                    } else {
+                        this.snapshots[i].is_selected = false;
+                    }
+                }
+                this.$emit('update:selectedSnapshot', snapshot);
+            }
+        }
+    });
+</script>

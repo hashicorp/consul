@@ -1,0 +1,91 @@
+<script type="text/x-template" id="columns-template">
+    <div>
+        <h4>Columns <i class="el-icon-refresh" style="cursor: pointer" @click="clearColumns()"></i></h4>
+        <el-select
+                v-model="selection"
+                filterable
+                multiple
+                allow-create
+                placeholder="Columns..." style="margin-top: 8px;">
+            <el-option
+                    v-for="col in propKeys"
+                    :key="col"
+                    :label="col"
+                    :value="col">
+            </el-option>
+        </el-select>
+        <el-switch
+                v-model="expandAll"
+                active-text="Expand Details"
+                style="margin-top: 8px;">
+        </el-switch>
+    </div>
+</script>
+<script>
+    Vue.component('columns', {
+        template: '#columns-template',
+        props: ['columns', 'propKeys', 'showTimestamp', 'showLevel'],
+        data: function() {
+            var selection = ['timestamp', 'level'];
+            var expandAll = true;
+            var persistedModel = localStorage.getItem('columns::persistedModel');
+            if (persistedModel) {
+                var model = JSON.parse(persistedModel);
+                expandAll = model.expandAll;
+                selection = model.selection;
+            }
+            return {
+                selection: selection,
+                expandAll: expandAll
+            };
+        },
+        mounted: function() {
+            this.$emit('expandAll', this.expandAll);
+            this.onSelection();
+        },
+        watch: {
+            selection: function(val) {
+                this.onSelection();
+                this.persistModel();
+            },
+            expandAll: function(val) {
+                this.$emit('expandAll', val);
+                this.persistModel();
+            }
+        },
+        methods: {
+            persistModel: function() {
+                localStorage.setItem('columns::persistedModel', JSON.stringify({
+                    'expandAll': this.expandAll,
+                    'selection': this.selection
+                }));
+            },
+            clearColumns: function() {
+                this.selection = ['timestamp', 'level'];
+                this.expandAll = true;
+                this.$notify.info({
+                    title: 'info',
+                    message: 'columns reset'
+                });
+            },
+            onSelection: function() {
+                var userDefinedColumns = [];
+                var showTimestamp = false;
+                var showLevel = false;
+                for (var i in this.selection) {
+                    var propKey = this.selection[i];
+                    if (propKey === 'timestamp') {
+                        showTimestamp = true;
+                    } else if (propKey === 'level') {
+                        showLevel = true;
+                    } else {
+                        userDefinedColumns.push(propKey);
+                    }
+                }
+                this.$emit('update:showTimestamp', showTimestamp);
+                this.$emit('update:showLevel', showLevel);
+                this.$emit('update:columns', userDefinedColumns);
+            }
+        }
+    });
+</script>

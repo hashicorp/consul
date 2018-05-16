@@ -1,0 +1,265 @@
+<script type="text/x-template" id="viz-template">
+    <grid-layout
+            :layout="layout"
+            :col-num="24"
+            :row-height="24"
+            :is-draggable="true"
+            :is-resizable="true"
+            :is-mirrored="false"
+            :vertical-compact="false"
+            :margin="[24, 24]"
+            :use-css-transforms="false">
+        <grid-item v-for="item in layout"
+                   v-show="ptrState[item.i]"
+                   :x="item.x" :y="item.y"
+                   :w="item.w" :h="item.h"
+                   :i="item.i" :key="item.i" :ref="item.i"
+                   drag-allow-from=".vue-draggable-handle"
+                   drag-ignore-from=".no-drag"
+                   @move="onMove" @resize="onMove"
+                   @moved="onMoved" @resized="onMoved">
+            <viz-item :addrMap="addrMap" :ptr="item.i"
+                      @showPtr="showPtr" @hidePtr="hidePtr"/>
+        </grid-item>
+        <svg style="position:absolute;left:0px;top:0px;pointer-events: none;"
+             width="100%" height="100%">
+            <defs>
+                <marker id="triangle" viewBox="0 0 10 10" refX="0" refY="5"
+                        markerUnits="strokeWidth" markerWidth="10"
+                        markerHeight="8" orient="auto">
+                    <path d="M 0 0 L 10 5 L 0 10 z"></path>
+                </marker>
+            </defs>
+            <g v-for="(connector, connectorId) in connectors"
+               :key="connectorId" v-show="!connector.hidden">
+                <circle :cx="connector.x1" :cy="connector.y1" r="3" fill="#456"
+                        stroke="none"/>
+                <path :d="curve(connector)" fill="none" stroke="#456" marker-end="url(#triangle)"/>
+            </g>
+        </svg>
+    </grid-layout>
+</script>
+<style>
+    table.viz-item, .viz-item table, .viz-item th, .viz-item td {
+        border: 1px dashed #BBB;
+    }
+
+    table.viz-item, .viz-item table {
+        border-bottom: 0;
+        border-left: 0;
+    }
+
+    .viz-item td, .viz-item th {
+        border-top: 0;
+        border-right: 0;
+        padding-left: 4px;
+    }
+
+    .vue-draggable-handle {
+        position: absolute;
+        width: 24px;
+        height: 24px;
+        top: 0px;
+        left: 0px;
+        background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'><circle cx='5' cy='5' r='5' fill='#999999'/></svg>") no-repeat;
+        background-position: bottom right;
+        padding: 0 8px 8px 0;
+        background-repeat: no-repeat;
+        background-origin: content-box;
+        box-sizing: border-box;
+        cursor: pointer;
+    }
+</style>
+<script>
+    Vue.component('viz', {
+        template: '#viz-template',
+        props: ['addrMap'],
+        data: function () {
+            return {
+                layout: [{"x": 0, "y": 0, "w": 6, "h": 3, "i": "__root__"}],
+                connectors: {},
+                endpoints: {},
+                ptrState: {'__root__': true}
+            }
+        },
+        watch: {
+            'addrMap': function() {
+                Object.assign(this.$data, this.$options.data());
+            }
+        },
+        methods: {
+            showPtr: function (e) {
+                var connector = this.connectors[e.connectorId];
+                if (connector) {
+                    Vue.set(this.ptrState, e.targetPtr, true);
+                    connector.hidden = false;
+                    connector.deleted = false;
+                    return;
+                }
+                Vue.set(this.ptrState, e.targetPtr, true);
+                if (!this.endpoints[e.targetPtr]) {
+                    var srcComp = this.$refs[e.sourcePtr][0];
+                    var targetItem = {"x": 1, "y": srcComp.y + srcComp.h, "w": 2, "h": 2, "i": e.targetPtr};
+                    chooseX(this.layout, targetItem);
+                    this.layout.push(targetItem);
+                }
+                var me = this;
+                this.$nextTick(function () {
+                    var comp = me.$refs[e.targetPtr][0];
+                    var compEl = comp.$el.getElementsByTagName('table')[0];
+                    var colWidth = document.documentElement.clientWidth / 24;
+                    for (var i = 0; i < me.layout.length; i++) {
+                        if (me.layout[i].i === e.targetPtr) {
+                            me.layout[i].h = 1 + parseInt(compEl.offsetHeight / 48);
+                            if (me.layout[i].h < 3) {
+                                me.layout[i].h = 3
+                            }
+                            me.layout[i].w = 2 + parseInt(compEl.offsetWidth / colWidth);
+                        }
+                    }
+                    me.updatePosition(e);
+                    e.hidden = false;
+                    Vue.set(me.connectors, e.connectorId, e);
+                    var endpointConnectors = me.endpoints[e.sourcePtr];
+                    if (endpointConnectors) {
+                        endpointConnectors.push(e);
+                    } else {
+                        Vue.set(me.endpoints, e.sourcePtr, [e]);
+                    }
+                    endpointConnectors = me.endpoints[e.targetPtr];
+                    if (endpointConnectors) {
+                        endpointConnectors.push(e);
+                    } else {
+                        Vue.set(me.endpoints, e.targetPtr, [e]);
+                    }
+                });
+            },
+            hidePtr: function (e) {
+                var connector = this.connectors[e.connectorId];
+                if (!connector) {
+                    return;
+                }
+                connector.hidden = true;
+                connector.deleted = true;
+                var endpointConnectors = this.endpoints[e.targetPtr];
+                if (!endpointConnectors) {
+                    return;
+                }
+                var stillAlive = false;
+                for (var i = 0; i < endpointConnectors.length; i++) {
+                    var connector = endpointConnectors[i];
+                    if (connector.targetPtr === e.targetPtr && !connector.deleted) {
+                        stillAlive = true;
+                        break;
+                    }
+                }
+                if (!stillAlive) {
+                    for (var i = 0; i < endpointConnectors.length; i++) {
+                        var connector = endpointConnectors[i];
+                        if (connector.sourcePtr === e.targetPtr) {
+                            this.hidePtr(connector);
+                        }
+                    }
+                    Vue.set(this.ptrState, e.targetPtr, false);
+                }
+            },
+            onMove: function (ptr) {
+                var connectors = this.endpoints[ptr];
+                if (!connectors) {
+                    return;
+                }
+                for (var i = 0; i < connectors.length; i++) {
+                    connectors[i].hidden = true;
+                }
+            },
+            onMoved: function (ptr) {
+                var me = this;
+                window.setTimeout(function () {
+                    var connectors = me.endpoints[ptr];
+                    if (!connectors) {
+                        return;
+                    }
+                    for (var i = 0; i < connectors.length; i++) {
+                        var connector = connectors[i];
+                        if (!connector.deleted) {
+                            connector.hidden = false;
+                        }
+                        me.updatePosition(connector);
+                    }
+                }, 50);
+            },
+            updatePosition: function (connector) {
+                var sourceComp = this.$refs[connector.sourcePtr][0];
+                var sourceStyle = sourceComp.style;
+                var pos = relativePos(connector.sourceElem, sourceComp.$el);
+                var x1 = parseInt(sourceStyle.left.slice(0, -2));
+                connector.x1 = x1 + pos.left + connector.sourceElem.offsetWidth / 2;
+                var y1 = parseInt(sourceStyle.top.slice(0, -2));
+                connector.y1 = y1 + pos.top + connector.sourceElem.offsetHeight - 8;
+                var targetComp = this.$refs[connector.targetPtr][0];
+                var targetStyle = targetComp.style;
+                var x2 = parseInt(targetStyle.left.slice(0, -2));
+                connector.x2 = x2 + 8;
+                var y2 = parseInt(targetStyle.top.slice(0, -2));
+                connector.y2 = y2;
+            },
+            curve: function (connector) {
+                var tension = 0;
+                if (connector.x1 < connector.x2) {
+                    tension = 0.2
+                } else {
+                    tension = -0.2
+                }
+                var x1 = connector.x1;
+                var y1 = connector.y1;
+                var x2 = connector.x2;
+                var y2 = connector.y2;
+                var delta = (x2 - x1) * tension;
+                var hx1 = x1;
+                var hy1 = y1 + delta;
+                var hx2 = x2;
+                var hy2 = y2 - delta;
+                var path = "M " + x1 + " " + y1 +
+                        " C " + hx1 + " " + hy1
+                        + " " + hx2 + " " + hy2
+                        + " " + x2 + " " + y2;
+                return path;
+            }
+        }
+    });
+    function relativePos(child, ancestor) {
+        if (child === ancestor) {
+            return {left: 0, top: 0}
+        }
+        var offset = relativePos(child.offsetParent, ancestor);
+        offset.left += child.offsetLeft;
+        offset.top += child.offsetTop;
+        return offset;
+    }
+    function chooseX(layout, targetItem) {
+        for (var x = 1; x < 24; x++) {
+            targetItem.x = x;
+            if (!findCollision(layout, targetItem)) {
+                return
+            }
+        }
+        targetItem.x = 1;
+    }
+    function findCollision(layout, targetItem) {
+        for (var i = 0; i < layout.length; i++) {
+            var item = layout[i];
+            if (collides(item, targetItem)) {
+                return true
+            }
+        }
+        return false
+    }
+    function collides(l1, l2) {
+        if (l1 === l2) return false; // same element
+        if (l1.x + l1.w <= l2.x) return false; // l1 is left of l2
+        if (l1.x >= l2.x + l2.w) return false; // l1 is right of l2
+        if (l1.y + l1.h <= l2.y) return false; // l1 is above l2
+        if (l1.y >= l2.y + l2.h) return false; // l1 is below l2
+        return true; // boxes overlap
+    }
+</script>

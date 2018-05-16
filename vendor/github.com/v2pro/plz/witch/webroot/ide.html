@@ -1,0 +1,46 @@
+<script type="text/x-template" id="ide-template">
+    <div>
+        <el-menu ref="menu" default-active="1" :collapse="isCollapse"
+                 style="position:fixed; _position:absolute; top:8px; z-index:999">
+            <el-menu-item index="1" @click="switchView('log')">
+                <i class="el-icon-document"></i>
+                <span slot="title">Log</span>
+            </el-menu-item>
+            <el-menu-item index="2" @click="switchView('state')">
+                <i class="el-icon-share"></i>
+                <span slot="title">State</span>
+            </el-menu-item>
+            <el-menu-item index="3" @click="switchView('metrics')">
+                <i class="el-icon-view"></i>
+                <span slot="title">Metrics</span>
+            </el-menu-item>
+            <el-menu-item index="4" @click="scrollToTop()">
+                <i class="el-icon-upload2"></i>
+                <span slot="title">Back</span>
+            </el-menu-item>
+        </el-menu>
+        <div class="main">
+            <log-viewer v-show="currentView == 'log'"></log-viewer>
+            <state-viewer ref="stateViewer" v-show="currentView == 'state'"></state-viewer>
+        </div>
+    </div>
+</script>
+<script>
+    Vue.component('ide', {
+        template: '#ide-template',
+        data: function () {
+            return {
+                isCollapse: false,
+                currentView: 'log'
+            }
+        },
+        methods: {
+            switchView: function(view) {
+                this.currentView = view;
+            },
+            scrollToTop: function() {
+                window.scrollTo(0, 0);
+            }
+        }
+    })
+</script>

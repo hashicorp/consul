@@ -1,0 +1,9 @@
+<script type="text/x-template" id="viz-plain-template">
+    <div>{{ data }}</div>
+</script>
+<script>
+    Vue.component('viz-plain', {
+        template: '#viz-plain-template',
+        props: ['data','path']
+    });
+</script>

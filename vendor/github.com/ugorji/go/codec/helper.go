@@ -391,6 +391,10 @@ var immutableKindsSet = [32]bool{
 // Any type which implements Selfer will be able to encode or decode itself.
 // Consequently, during (en|de)code, this takes precedence over
 // (text|binary)(M|Unm)arshal or extension support.
+//
+// Note: *the first set of bytes of any value MUST NOT represent nil in the format*.
+// This is because, during each decode, we first check the the next set of bytes
+// represent nil, and if so, we just set the value to nil.
 type Selfer interface {
 	CodecEncodeSelf(*Encoder)
 	CodecDecodeSelf(*Decoder)
@@ -1543,20 +1547,13 @@ func isEmptyStruct(v reflect.Value, tinfos *TypeInfos, deref, checkStruct bool) 
 // }
 
 func panicToErr(h errstrDecorator, err *error) {
+	// Note: This method MUST be called directly from defer i.e. defer panicToErr ...
+	// else it seems the recover is not fully handled
 	if recoverPanicToErr {
 		if x := recover(); x != nil {
 			// fmt.Printf("panic'ing with: %v\n", x)
 			// debug.PrintStack()
 			panicValToErr(h, x, err)
-		}
-	}
-}
-
-func panicToErrs2(h errstrDecorator, err1, err2 *error) {
-	if recoverPanicToErr {
-		if x := recover(); x != nil {
-			panicValToErr(h, x, err1)
-			panicValToErr(h, x, err2)
 		}
 	}
 }

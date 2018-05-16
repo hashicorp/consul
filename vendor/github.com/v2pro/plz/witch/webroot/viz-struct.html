@@ -1,0 +1,25 @@
+<script type="text/x-template" id="viz-struct-template">
+    <table>
+        <tr>
+            <td v-for="(value, field) in data" :key="field">
+                <div>{{ field }}</div>
+                <viz-value :data="value" :path="path + ' > ' + field"
+                           @showPtr="showPtr" @hidePtr="hidePtr"/>
+            </td>
+        </tr>
+    </table>
+</script>
+<script>
+    Vue.component('viz-struct', {
+        template: '#viz-struct-template',
+        props: ['data','path'],
+        methods: {
+            showPtr: function (e) {
+                this.$emit('showPtr', e);
+            },
+            hidePtr: function (e) {
+                this.$emit('hidePtr', e);
+            }
+        }
+    });
+</script>

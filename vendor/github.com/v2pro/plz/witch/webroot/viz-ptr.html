@@ -1,0 +1,64 @@
+<script type="text/x-template" id="viz-ptr-template">
+    <div>
+        <span v-if="data.__ptr__ === '0'">NULL</span>
+        <el-button v-else-if="!(ptrState[data.__ptr__])"
+                   @click="showPtr(path, data.__ptr__, $event)"
+                   icon="el-icon-plus" size="mini">
+        {{data.__ptr__}}
+        </el-button>
+        <el-button v-else
+                   @click="hidePtr(path, data.__ptr__, $event)"
+                   icon="el-icon-minus" size="mini">
+        {{data.__ptr__}}
+        </el-button>
+    </div>
+</script>
+<script>
+    Vue.component('viz-ptr', {
+        template: '#viz-ptr-template',
+        props: ['data','path'],
+        data: function () {
+            return {
+                ptrState: {}
+            }
+        },
+        methods: {
+            ptrBtnIcon: function (ptr) {
+                if (this.ptrState[ptr]) {
+                    return 'el-icon-minus';
+                }
+                return 'el-icon-plus';
+            },
+            showPtr: function (path, ptr, event) {
+                Vue.set(this.ptrState, ptr, true);
+                var sourceElem = event.target.parentElement;
+                if (sourceElem.tagName !== 'TD') {
+                    sourceElem = sourceElem.parentElement;
+                }
+                if (sourceElem.tagName !== 'TD') {
+                    sourceElem = sourceElem.parentElement;
+                }
+                this.$emit('showPtr', {
+                    connectorId: this.path,
+                    targetPtr: ptr,
+                    sourceElem: sourceElem
+                });
+            },
+            hidePtr: function (path, ptr, event) {
+                Vue.set(this.ptrState, ptr, false);
+                var sourceElem = event.target.parentElement;
+                if (sourceElem.tagName !== 'TD') {
+                    sourceElem = sourceElem.parentElement;
+                }
+                if (sourceElem.tagName !== 'TD') {
+                    sourceElem = sourceElem.parentElement;
+                }
+                this.$emit('hidePtr', {
+                    connectorId: this.path,
+                    targetPtr: ptr,
+                    sourceElem: sourceElem
+                });
+            }
+        }
+    });
+</script>

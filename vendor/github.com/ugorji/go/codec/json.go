@@ -606,7 +606,7 @@ func (d *jsonDecDriver) ReadMapStart() int {
 	}
 	const xc uint8 = '{'
 	if d.tok != xc {
-		d.d.errorf("expect char '%c' but got char '%c'", xc, d.tok)
+		d.d.errorf("read map - expect char '%c' but got char '%c'", xc, d.tok)
 	}
 	d.tok = 0
 	d.c = containerMapStart
@@ -619,7 +619,7 @@ func (d *jsonDecDriver) ReadArrayStart() int {
 	}
 	const xc uint8 = '['
 	if d.tok != xc {
-		d.d.errorf("expect char '%c' but got char '%c'", xc, d.tok)
+		d.d.errorf("read array - expect char '%c' but got char '%c'", xc, d.tok)
 	}
 	d.tok = 0
 	d.c = containerArrayStart
@@ -638,9 +638,10 @@ func (d *jsonDecDriver) CheckBreak() bool {
 // - ReadArrayElem would become:
 //   readContainerState(containerArrayElem, ',', d.c != containerArrayStart)
 //
-// However, until mid-stack inlining (go 1.10?) comes, supporting inlining of
-// oneliners, we explicitly write them all 5 out to elide the extra func call.
-// TODO: For Go 1.10, if inlined, consider consolidating these.
+// However, until mid-stack inlining comes in go1.11 which supports inlining of
+// one-liners, we explicitly write them all 5 out to elide the extra func call.
+//
+// TODO: For Go 1.11, if inlined, consider consolidating these.
 
 func (d *jsonDecDriver) ReadArrayElem() {
 	const xc uint8 = ','
@@ -649,7 +650,7 @@ func (d *jsonDecDriver) ReadArrayElem() {
 	}
 	if d.c != containerArrayStart {
 		if d.tok != xc {
-			d.d.errorf("expect char '%c' but got char '%c'", xc, d.tok)
+			d.d.errorf("read array element - expect char '%c' but got char '%c'", xc, d.tok)
 		}
 		d.tok = 0
 	}
@@ -662,7 +663,7 @@ func (d *jsonDecDriver) ReadArrayEnd() {
 		d.tok = d.r.skip(&jsonCharWhitespaceSet)
 	}
 	if d.tok != xc {
-		d.d.errorf("expect char '%c' but got char '%c'", xc, d.tok)
+		d.d.errorf("read array end - expect char '%c' but got char '%c'", xc, d.tok)
 	}
 	d.tok = 0
 	d.c = containerArrayEnd
@@ -675,7 +676,7 @@ func (d *jsonDecDriver) ReadMapElemKey() {
 	}
 	if d.c != containerMapStart {
 		if d.tok != xc {
-			d.d.errorf("expect char '%c' but got char '%c'", xc, d.tok)
+			d.d.errorf("read map key - expect char '%c' but got char '%c'", xc, d.tok)
 		}
 		d.tok = 0
 	}
@@ -688,7 +689,7 @@ func (d *jsonDecDriver) ReadMapElemValue() {
 		d.tok = d.r.skip(&jsonCharWhitespaceSet)
 	}
 	if d.tok != xc {
-		d.d.errorf("expect char '%c' but got char '%c'", xc, d.tok)
+		d.d.errorf("read map value - expect char '%c' but got char '%c'", xc, d.tok)
 	}
 	d.tok = 0
 	d.c = containerMapValue
@@ -700,7 +701,7 @@ func (d *jsonDecDriver) ReadMapEnd() {
 		d.tok = d.r.skip(&jsonCharWhitespaceSet)
 	}
 	if d.tok != xc {
-		d.d.errorf("expect char '%c' but got char '%c'", xc, d.tok)
+		d.d.errorf("read map end - expect char '%c' but got char '%c'", xc, d.tok)
 	}
 	d.tok = 0
 	d.c = containerMapEnd
@@ -1267,7 +1268,7 @@ type JsonHandle struct {
 	// If not configured, raw bytes are encoded to/from base64 text.
 	RawBytesExt InterfaceExt
 
-	_ [3]uint64 // padding
+	_ [2]uint64 // padding
 }
 
 // Name returns the name of the handle: json

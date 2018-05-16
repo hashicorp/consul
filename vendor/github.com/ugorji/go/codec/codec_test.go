@@ -881,7 +881,7 @@ func testCodecMiscOne(t *testing.T, h Handle) {
 	} else {
 		logT(t, "------- b: size: %v, value: %s", len(b), b1)
 	}
-	ts2 := new(TestStrucFlex)
+	ts2 := emptyTestStrucFlex()
 	testUnmarshalErr(ts2, b, h, t, "pointer-to-struct")
 	if ts2.I64 != math.MaxInt64*2/3 {
 		logT(t, "------- Unmarshal wrong. Expect I64 = 64. Got: %v", ts2.I64)
@@ -1874,12 +1874,13 @@ func doTestLargeContainerLen(t *testing.T, h Handle) {
 		0, 1,
 		math.MaxInt8, math.MaxInt8 + 4, math.MaxInt8 - 4,
 		math.MaxInt16, math.MaxInt16 + 4, math.MaxInt16 - 4,
-		math.MaxInt32, math.MaxInt32 + 4, math.MaxInt32 - 4,
-		math.MaxInt64, math.MaxInt64 - 4,
+		math.MaxInt32, math.MaxInt32 - 4,
+		// math.MaxInt32 + 4, // bombs on 32-bit
+		// math.MaxInt64, math.MaxInt64 - 4, // bombs on 32-bit
 
 		math.MaxUint8, math.MaxUint8 + 4, math.MaxUint8 - 4,
 		math.MaxUint16, math.MaxUint16 + 4, math.MaxUint16 - 4,
-		math.MaxUint32, math.MaxUint32 + 4, math.MaxUint32 - 4,
+		// math.MaxUint32, math.MaxUint32 + 4, math.MaxUint32 - 4, // bombs on 32-bit
 	} {
 		m[i] = make([]struct{}, i)
 	}
@@ -2284,6 +2285,26 @@ func doTestIntfMapping(t *testing.T, name string, h Handle) {
 		testUnmarshalErr(&v2, b, h, t, name+"-dec-"+strconv.Itoa(i))
 		testDeepEqualErr(v1, v2, t, name+"-dec-eq-"+strconv.Itoa(i))
 	}
+}
+
+func doTestOmitempty(t *testing.T, name string, h Handle) {
+	testOnce.Do(testInitAll)
+	if h.getBasicHandle().StructToArray {
+		t.Skipf("Skipping OmitEmpty test when StructToArray=true")
+	}
+	type T1 struct {
+		A int  `codec:"a"`
+		B *int `codec:"b,omitempty"`
+		C int  `codec:"c,omitempty"`
+	}
+	type T2 struct {
+		A int `codec:"a"`
+	}
+	var v1 T1
+	var v2 T2
+	b1 := testMarshalErr(v1, h, t, name+"-omitempty")
+	b2 := testMarshalErr(v2, h, t, name+"-no-omitempty-trunc")
+	testDeepEqualErr(b1, b2, t, name+"-omitempty-cmp")
 }
 
 // -----------------
@@ -2921,6 +2942,26 @@ func TestBincScalars(t *testing.T) {
 
 func TestSimpleScalars(t *testing.T) {
 	doTestScalars(t, "simple", testSimpleH)
+}
+
+func TestJsonOmitempty(t *testing.T) {
+	doTestOmitempty(t, "json", testJsonH)
+}
+
+func TestCborOmitempty(t *testing.T) {
+	doTestOmitempty(t, "cbor", testCborH)
+}
+
+func TestMsgpackOmitempty(t *testing.T) {
+	doTestOmitempty(t, "msgpack", testMsgpackH)
+}
+
+func TestBincOmitempty(t *testing.T) {
+	doTestOmitempty(t, "binc", testBincH)
+}
+
+func TestSimpleOmitempty(t *testing.T) {
+	doTestOmitempty(t, "simple", testSimpleH)
 }
 
 func TestJsonIntfMapping(t *testing.T) {

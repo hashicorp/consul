@@ -6,21 +6,6 @@ ignored = [
     "github.com/miekg/dns",
     "github.com/prometheus/client_golang/prometheus",
     "github.com/prometheus/client_golang/prometheus/promhttp",
-    "golang.org/x/net/context",
-    "golang.org/x/net/context/ctxhttp",
-    "golang.org/x/net/http2",
-    "golang.org/x/net/http2/hpack",
-    "golang.org/x/net/idna",
-    "golang.org/x/net/internal/timeseries",
-    "golang.org/x/net/lex/httplex",
-    "golang.org/x/net/trace",
-    "golang.org/x/text/internal/gen",
-    "golang.org/x/text/internal/triegen",
-    "golang.org/x/text/internal/ucd",
-    "golang.org/x/text/transform",
-    "golang.org/x/text/unicode/cldr",
-    "golang.org/x/text/unicode/norm",
-    "golang.org/x/text/width",
 ]
 
 # client-go 6.0.0 uses apimachinery 180eddb345a5be3a157cea1c624700ad5bd27b8f
@@ -35,3 +20,6 @@ ignored = [
 [[override]]
     name = "k8s.io/api"
     revision = "11147472b7c934c474a2c484af3c0c5210b7a3af"
+[[override]]
+    name = "github.com/ugorji/go"
+    revision = "f3cacc17c85ecb7f1b6a9e373ee85d1480919868"

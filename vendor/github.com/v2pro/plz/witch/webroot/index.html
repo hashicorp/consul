@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="http://cdn.jsdeliver.net/npm/element-ui/lib/theme-chalk/index.css">
+    <style>
+        body {
+            font-family: Helvetica
+        }
+
+        .icon {
+            width: 1em;
+            height: 1em;
+            vertical-align: -0.15em;
+            fill: currentColor;
+            overflow: hidden;
+        }
+
+        .main {
+            margin-left: 130px;
+        }
+        .el-tag + .el-tag {
+            margin-left: 10px;
+        }
+        .el-tag {
+            line-height: 30px;
+        }
+        .button-new-tag {
+            margin-left: 10px;
+            height: 32px;
+            line-height: 30px;
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+        .input-new-tag {
+            width: 90px;
+            line-height: 30px;
+            margin-left: 10px;
+            vertical-align: bottom;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <ide ref="ide"></ide>
+</div>
+</body>
+<!-- 先引入 Vue -->
+<script src="http://cdn.jsdeliver.net/npm/vue/dist/vue.js"></script>
+<!-- 引入组件库 -->
+<script src="http://cdn.jsdeliver.net/npm/element-ui/lib/index.js"></script>
+<script src="http://cdn.jsdeliver.net/npm/vue-grid-layout/dist/vue-grid-layout.min.js"></script>
+<script src="http://cdn.jsdeliver.net/npm/vue-scrollto/vue-scrollto.js"></script>
+<script src="http://cdn.jsdeliver.net/npm/axios/dist/axios.min.js"></script>
+<!--http://www.iconfont.cn/collections/detail?spm=a313x.7781069.1998910419.d9df05512&cid=31-->
+<script src="//at.alicdn.com/t/font_479843_4u2fdrx8szsyk3xr.js"></script>
+{{ COMPONENTS }}
+<script>
+    Vue.use(VueScrollTo);
+    Vue.component('grid-layout', VueGridLayout.GridLayout);
+    Vue.component('grid-item', VueGridLayout.GridItem);
+    var $vue = new Vue({
+        el: '#app',
+        data: function() {
+            return { visible: false }
+        },
+        mounted: function() {
+            if (!window.isDebug) {
+                return
+            }
+            var ide = this.$refs.ide;
+            ide.switchView('state');
+            window.setTimeout(function() {
+                ide.$refs.stateViewer.$refs.snapshots.pollCurrentState();
+            }, 100)
+        }
+    });
+    axios.interceptors.response.use(function (response) {
+        return response;
+    }, function (error) {
+        $vue.$notify.error({
+            position: 'bottom-right',
+            title: error.message,
+            message: error.response
+        });
+        return error;
+    });
+
+</script>
+</html>
