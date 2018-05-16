@@ -745,9 +745,6 @@ func (d *DNSServer) trimTCPResponse(req, resp *dns.Msg) (trimmed bool) {
 	hasExtra := len(resp.Extra) > 0
 	// There is some overhead, 65535 does not work
 	maxSize := 65533 // 64k - 2 bytes
-	// In order to compute properly, we have to avoid compress first
-	compressed := resp.Compress
-	resp.Compress = false
 
 	// We avoid some function calls and allocations by only handling the
 	// extra data when necessary.
@@ -790,8 +787,6 @@ func (d *DNSServer) trimTCPResponse(req, resp *dns.Msg) (trimmed bool) {
 			req.Question,
 			len(resp.Answer), originalNumRecords, resp.Len(), originalSize)
 	}
-	// Restore compression if any
-	resp.Compress = compressed
 	return truncated
 }
 
@@ -821,7 +816,10 @@ func trimUDPResponse(req, resp *dns.Msg, udpAnswerLimit int) (trimmed bool) {
 
 	// This cuts UDP responses to a useful but limited number of responses.
 	maxAnswers := lib.MinInt(maxUDPAnswerLimit, udpAnswerLimit)
+	compress := resp.Compress
 	if maxSize == defaultMaxUDPSize && numAnswers > maxAnswers {
+		// We disable computation of Len ONLY for non-eDNS request (512 bytes)
+		resp.Compress = false
 		resp.Answer = resp.Answer[:maxAnswers]
 		if hasExtra {
 			syncExtra(index, resp)
@@ -834,9 +832,9 @@ func trimUDPResponse(req, resp *dns.Msg, udpAnswerLimit int) (trimmed bool) {
 	// that will not exceed 512 bytes uncompressed, which is more conservative and
 	// will allow our responses to be compliant even if some downstream server
 	// uncompresses them.
-	compress := resp.Compress
-	resp.Compress = false
-	for len(resp.Answer) > 0 && resp.Len() > maxSize {
+	// Even when size is too big for one single record, try to send it anyway
+	// (usefull for 512 bytes messages)
+	for len(resp.Answer) > 1 && resp.Len() > maxSize {
 		// More than 100 bytes, find with a binary search
 		if resp.Len()-maxSize > 100 {
 			bestIndex := dnsBinaryTruncate(resp, maxSize, index, hasExtra)
@@ -848,6 +846,8 @@ func trimUDPResponse(req, resp *dns.Msg, udpAnswerLimit int) (trimmed bool) {
 			syncExtra(index, resp)
 		}
 	}
+	// For 512 non-eDNS responses, while we compute size non-compressed,
+	// we send result compressed
 	resp.Compress = compress
 
 	return len(resp.Answer) < numAnswers
