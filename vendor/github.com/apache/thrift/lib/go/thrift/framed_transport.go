@@ -22,6 +22,7 @@ package thrift
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -135,7 +136,7 @@ func (p *TFramedTransport) WriteString(s string) (n int, err error) {
 	return p.buf.WriteString(s)
 }
 
-func (p *TFramedTransport) Flush() error {
+func (p *TFramedTransport) Flush(ctx context.Context) error {
 	size := p.buf.Len()
 	buf := p.buffer[:4]
 	binary.BigEndian.PutUint32(buf, uint32(size))
@@ -151,7 +152,7 @@ func (p *TFramedTransport) Flush() error {
 			return NewTTransportExceptionFromError(err)
 		}
 	}
-	err = p.transport.Flush()
+	err = p.transport.Flush(ctx)
 	return NewTTransportExceptionFromError(err)
 }
 

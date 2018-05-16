@@ -20,6 +20,7 @@
 package thrift
 
 import (
+	"context"
 	"net"
 	"time"
 )
@@ -148,7 +149,7 @@ func (p *TSocket) Write(buf []byte) (int, error) {
 	return p.conn.Write(buf)
 }
 
-func (p *TSocket) Flush() error {
+func (p *TSocket) Flush(ctx context.Context) error {
 	return nil
 }
 

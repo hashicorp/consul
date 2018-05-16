@@ -2,10 +2,12 @@ package jsoniter
 
 import (
 	"encoding/json"
+	"github.com/modern-go/concurrent"
+	"github.com/modern-go/reflect2"
 	"io"
-	"unsafe"
-	"github.com/v2pro/plz/reflect2"
+	"reflect"
 	"sync"
+	"unsafe"
 )
 
 // Config customize how the API should behave.
@@ -38,6 +40,8 @@ type API interface {
 	NewDecoder(reader io.Reader) *Decoder
 	Valid(data []byte) bool
 	RegisterExtension(extension Extension)
+	DecoderOf(typ reflect2.Type) ValDecoder
+	EncoderOf(typ reflect2.Type) ValEncoder
 }
 
 // ConfigDefault the default API
@@ -58,6 +62,63 @@ var ConfigFastest = Config{
 	MarshalFloatWith6Digits:       true, // will lose precession
 	ObjectFieldMustBeSimpleString: true, // do not unescape object field
 }.Froze()
+
+type frozenConfig struct {
+	configBeforeFrozen            Config
+	sortMapKeys                   bool
+	indentionStep                 int
+	objectFieldMustBeSimpleString bool
+	onlyTaggedField               bool
+	disallowUnknownFields         bool
+	decoderCache                  *concurrent.Map
+	encoderCache                  *concurrent.Map
+	extensions                    []Extension
+	streamPool                    *sync.Pool
+	iteratorPool                  *sync.Pool
+}
+
+func (cfg *frozenConfig) initCache() {
+	cfg.decoderCache = concurrent.NewMap()
+	cfg.encoderCache = concurrent.NewMap()
+}
+
+func (cfg *frozenConfig) addDecoderToCache(cacheKey uintptr, decoder ValDecoder) {
+	cfg.decoderCache.Store(cacheKey, decoder)
+}
+
+func (cfg *frozenConfig) addEncoderToCache(cacheKey uintptr, encoder ValEncoder) {
+	cfg.encoderCache.Store(cacheKey, encoder)
+}
+
+func (cfg *frozenConfig) getDecoderFromCache(cacheKey uintptr) ValDecoder {
+	decoder, found := cfg.decoderCache.Load(cacheKey)
+	if found {
+		return decoder.(ValDecoder)
+	}
+	return nil
+}
+
+func (cfg *frozenConfig) getEncoderFromCache(cacheKey uintptr) ValEncoder {
+	encoder, found := cfg.encoderCache.Load(cacheKey)
+	if found {
+		return encoder.(ValEncoder)
+	}
+	return nil
+}
+
+var cfgCache = concurrent.NewMap()
+
+func getFrozenConfigFromCache(cfg Config) *frozenConfig {
+	obj, found := cfgCache.Load(cfg)
+	if found {
+		return obj.(*frozenConfig)
+	}
+	return nil
+}
+
+func addFrozenConfigToCache(cfg Config, frozenConfig *frozenConfig) {
+	cfgCache.Store(cfg, frozenConfig)
+}
 
 // Froze forge API from config
 func (cfg Config) Froze() API {
@@ -133,6 +194,11 @@ func (cfg *frozenConfig) validateJsonRawMessage(extension EncoderExtension) {
 
 func (cfg *frozenConfig) useNumber(extension DecoderExtension) {
 	extension[reflect2.TypeOfPtr((*interface{})(nil)).Elem()] = &funcDecoder{func(ptr unsafe.Pointer, iter *Iterator) {
+		exitingValue := *((*interface{})(ptr))
+		if exitingValue != nil && reflect.TypeOf(exitingValue).Kind() == reflect.Ptr {
+			iter.ReadVal(exitingValue)
+			return
+		}
 		if iter.WhatIsNext() == NumberValue {
 			*((*interface{})(ptr)) = json.Number(iter.readNumberAsString())
 		} else {

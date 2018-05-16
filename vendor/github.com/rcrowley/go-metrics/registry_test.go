@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"sync"
 	"testing"
 )
 
@@ -11,6 +12,16 @@ func BenchmarkRegistry(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		r.Each(func(string, interface{}) {})
 	}
+}
+
+func BenchmarkRegistryParallel(b *testing.B) {
+	r := NewRegistry()
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			r.GetOrRegister("foo", NewCounter())
+		}
+	})
 }
 
 func TestRegistry(t *testing.T) {
@@ -301,5 +312,52 @@ func TestWalkRegistries(t *testing.T) {
 	if "prefix.prefix2." != prefix {
 		t.Fatal(prefix)
 	}
+}
 
+func TestConcurrentRegistryAccess(t *testing.T) {
+	r := NewRegistry()
+
+	counter := NewCounter()
+
+	signalChan := make(chan struct{})
+
+	var wg sync.WaitGroup
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func(dowork chan struct{}) {
+			defer wg.Done()
+			iface := r.GetOrRegister("foo", counter)
+			retCounter, ok := iface.(Counter)
+			if !ok {
+				t.Fatal("Expected a Counter type")
+			}
+			if retCounter != counter {
+				t.Fatal("Counter references don't match")
+			}
+		}(signalChan)
+	}
+
+	close(signalChan) // Closing will cause all go routines to execute at the same time
+	wg.Wait()         // Wait for all go routines to do their work
+
+	// At the end of the test we should still only have a single "foo" Counter
+	i := 0
+	r.Each(func(name string, iface interface{}) {
+		i++
+		if "foo" != name {
+			t.Fatal(name)
+		}
+		if _, ok := iface.(Counter); !ok {
+			t.Fatal(iface)
+		}
+	})
+	if 1 != i {
+		t.Fatal(i)
+	}
+	r.Unregister("foo")
+	i = 0
+	r.Each(func(string, interface{}) { i++ })
+	if 0 != i {
+		t.Fatal(i)
+	}
 }

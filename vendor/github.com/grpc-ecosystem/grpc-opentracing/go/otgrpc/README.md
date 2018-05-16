@@ -28,7 +28,9 @@ conn, err := grpc.Dial(
     address,
     ... // other options
     grpc.WithUnaryInterceptor(
-        otgrpc.OpenTracingClientInterceptor(tracer)))
+        otgrpc.OpenTracingClientInterceptor(tracer)),
+    grpc.WithStreamInterceptor(
+        otgrpc.OpenTracingStreamClientInterceptor(tracer)))
 
 // All future RPC activity involving `conn` will be automatically traced.
 ```
@@ -46,7 +48,9 @@ var tracer opentracing.Tracer = ...
 s := grpc.NewServer(
     ... // other options
     grpc.UnaryInterceptor(
-        otgrpc.OpenTracingServerInterceptor(tracer)))
+        otgrpc.OpenTracingServerInterceptor(tracer)),
+    grpc.StreamInterceptor(
+        otgrpc.OpenTracingStreamServerInterceptor(tracer)))
 
 // All future RPC activity involving `s` will be automatically traced.
 ```

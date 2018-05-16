@@ -1,6 +1,7 @@
 package zipkintracer
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -167,7 +168,7 @@ func deserializeSpan(t *testing.T, e sarama.Encoder) *zipkincore.Span {
 	s := zipkincore.NewSpan()
 	mb := thrift.NewTMemoryBufferLen(len(bytes))
 	_, _ = mb.Write(bytes)
-	_ = mb.Flush()
+	_ = mb.Flush(context.Background())
 	pt := thrift.NewTBinaryProtocolTransport(mb)
 	err = s.Read(pt)
 	if err != nil {

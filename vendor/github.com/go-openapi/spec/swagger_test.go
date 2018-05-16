@@ -20,6 +20,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/go-openapi/swag"
 	"github.com/stretchr/testify/assert"
 )
@@ -204,39 +206,10 @@ func assertSpecMaps(t testing.TB, actual, expected map[string]interface{}) bool 
 	return res
 }
 
-//
-// func compareSpecMaps(actual, expected map[string]interface{}) {
-// 	if id, ok := expected["id"]; ok {
-// 		So(actual["id"], ShouldEqual, id)
-// 	}
-// 	//So(actual["$schema"], ShouldEqual, SwaggerSchemaURL)
-// 	So(actual["consumes"], ShouldResemble, expected["consumes"])
-// 	So(actual["produces"], ShouldResemble, expected["produces"])
-// 	So(actual["schemes"], ShouldResemble, expected["schemes"])
-// 	So(actual["swagger"], ShouldEqual, expected["swagger"])
-// 	So(actual["info"], ShouldResemble, expected["info"])
-// 	So(actual["host"], ShouldEqual, expected["host"])
-// 	So(actual["basePath"], ShouldEqual, expected["basePath"])
-// 	So(actual["paths"], ShouldBeEquivalentTo, expected["paths"])
-// 	So(actual["definitions"], ShouldBeEquivalentTo, expected["definitions"])
-// 	So(actual["responses"], ShouldBeEquivalentTo, expected["responses"])
-// 	So(actual["securityDefinitions"], ShouldResemble, expected["securityDefinitions"])
-// 	So(actual["tags"], ShouldResemble, expected["tags"])
-// 	So(actual["externalDocs"], ShouldResemble, expected["externalDocs"])
-// 	So(actual["x-some-extension"], ShouldResemble, expected["x-some-extension"])
-// 	So(actual["x-schemes"], ShouldResemble, expected["x-schemes"])
-// }
-
 func assertSpecs(t testing.TB, actual, expected Swagger) bool {
 	expected.Swagger = "2.0"
 	return assert.Equal(t, actual, expected)
 }
-
-//
-// func compareSpecs(actual Swagger, spec Swagger) {
-// 	spec.Swagger = "2.0"
-// 	So(actual, ShouldBeEquivalentTo, spec)
-// }
 
 func assertSpecJSON(t testing.TB, specJSON []byte) bool {
 	var expected map[string]interface{}
@@ -259,34 +232,6 @@ func assertSpecJSON(t testing.TB, specJSON []byte) bool {
 	}
 	return assertSpecMaps(t, actual, expected)
 }
-
-// func verifySpecJSON(specJSON []byte) {
-// 	//Println()
-// 	//Println("json to verify", string(specJson))
-// 	var expected map[string]interface{}
-// 	err := json.Unmarshal(specJSON, &expected)
-// 	So(err, ShouldBeNil)
-//
-// 	obj := Swagger{}
-// 	err = json.Unmarshal(specJSON, &obj)
-// 	So(err, ShouldBeNil)
-//
-// 	//spew.Dump(obj)
-//
-// 	cb, err := json.MarshalIndent(obj, "", "  ")
-// 	So(err, ShouldBeNil)
-// 	//Println()
-// 	//Println("Marshalling to json returned", string(cb))
-//
-// 	var actual map[string]interface{}
-// 	err = json.Unmarshal(cb, &actual)
-// 	So(err, ShouldBeNil)
-// 	//Println()
-// 	//spew.Dump(expected)
-// 	//spew.Dump(actual)
-// 	//fmt.Printf("comparing %s\n\t%#v\nto\n\t%#+v\n", fileName, expected, actual)
-// 	compareSpecMaps(actual, expected)
-// }
 
 func TestSwaggerSpec_Serialize(t *testing.T) {
 	expected := make(map[string]interface{})
@@ -361,5 +306,64 @@ func TestOptionalSwaggerProps_Serialize(t *testing.T) {
 				assert.NotContains(t, ms, "externalDocs")
 			}
 		}
+	}
+}
+
+func TestSecurityRequirements(t *testing.T) {
+	minimalJsonSpec := []byte(`{
+		"swagger": "2.0",
+		"info": {
+			"version": "0.0.0",
+			"title": "Simple API"
+		},
+		"securityDefinitions": {
+			"basic": {
+				"type": "basic"
+			},
+			"apiKey": {
+				"type": "apiKey",
+				"in": "header",
+				"name": "X-API-KEY"
+			},
+			"queryKey": {
+				"type": "apiKey",
+				"in": "query",
+				"name": "api_key"
+			}
+		},
+		"paths": {
+			"/": {
+				"get": {
+					"security": [
+						{
+							"apiKey": [],
+							"basic": []
+						},
+						{},
+						{
+							"queryKey": [],
+							"basic": []
+						}
+					],
+					"responses": {
+						"200": {
+							"description": "OK"
+						}
+					}
+				}
+			}
+		}
+	}`)
+
+	var minimalSpec Swagger
+	err := json.Unmarshal(minimalJsonSpec, &minimalSpec)
+	if assert.NoError(t, err) {
+		sec := minimalSpec.Paths.Paths["/"].Get.Security
+		require.Len(t, sec, 3)
+		assert.Contains(t, sec[0], "basic")
+		assert.Contains(t, sec[0], "apiKey")
+		assert.NotNil(t, sec[1])
+		assert.Empty(t, sec[1])
+		assert.Contains(t, sec[2], "queryKey")
 	}
 }

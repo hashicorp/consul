@@ -161,6 +161,7 @@ func (r *Recorder) RecordSpan(sp RawSpan) {
 		default:
 			annotateBinary(span, zipkincore.LOCAL_COMPONENT, r.endpoint.GetServiceName(), r.endpoint)
 		}
+		delete(sp.Tags, string(otext.SpanKind))
 	} else {
 		annotateBinary(span, zipkincore.LOCAL_COMPONENT, r.endpoint.GetServiceName(), r.endpoint)
 	}

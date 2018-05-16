@@ -119,6 +119,47 @@ func TestFromErrorOK(t *testing.T) {
 	}
 }
 
+type customError struct {
+	Code    codes.Code
+	Message string
+	Details []*apb.Any
+}
+
+func (c customError) Error() string {
+	return fmt.Sprintf("rpc error: code = %s desc = %s", c.Code, c.Message)
+}
+
+func (c customError) GRPCStatus() *Status {
+	return &Status{
+		s: &spb.Status{
+			Code:    int32(c.Code),
+			Message: c.Message,
+			Details: c.Details,
+		},
+	}
+}
+
+func TestFromErrorImplementsInterface(t *testing.T) {
+	code, message := codes.Internal, "test description"
+	details := []*apb.Any{{
+		TypeUrl: "testUrl",
+		Value:   []byte("testValue"),
+	}}
+	err := customError{
+		Code:    code,
+		Message: message,
+		Details: details,
+	}
+	s, ok := FromError(err)
+	if !ok || s.Code() != code || s.Message() != message || s.Err() == nil {
+		t.Fatalf("FromError(%v) = %v, %v; want <Code()=%s, Message()=%q, Err()!=nil>, true", err, s, ok, code, message)
+	}
+	pd := s.Proto().GetDetails()
+	if len(pd) != 1 || !reflect.DeepEqual(pd[0], details[0]) {
+		t.Fatalf("s.Proto.GetDetails() = %v; want <Details()=%s>", pd, details)
+	}
+}
+
 func TestFromErrorUnknownError(t *testing.T) {
 	code, message := codes.Unknown, "unknown error"
 	err := errors.New("unknown error")

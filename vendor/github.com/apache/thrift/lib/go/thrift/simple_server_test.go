@@ -21,7 +21,8 @@ package thrift
 
 import (
 	"testing"
-	"time"
+	"errors"
+	"runtime"
 )
 
 type mockServerTransport struct {
@@ -122,6 +123,34 @@ func TestWaitRace(t *testing.T) {
 
 	serv := NewTSimpleServer2(proc, trans)
 	go serv.Serve()
-	time.Sleep(1)
+	runtime.Gosched()
+	serv.Stop()
+}
+
+func TestNoHangDuringStopFromDanglingLockAcquireDuringAcceptLoop(t *testing.T) {
+	proc := &mockProcessor{
+		ProcessFunc: func(in, out TProtocol) (bool, TException) {
+			return false, nil
+		},
+	}
+
+	trans := &mockServerTransport{
+		ListenFunc: func() error {
+			return nil
+		},
+		AcceptFunc: func() (TTransport, error) {
+			return nil, errors.New("no sir")
+		},
+		CloseFunc: func() error {
+			return nil
+		},
+		InterruptFunc: func() error {
+			return nil
+		},
+	}
+
+	serv := NewTSimpleServer2(proc, trans)
+	go serv.Serve()
+	runtime.Gosched()
 	serv.Stop()
 }

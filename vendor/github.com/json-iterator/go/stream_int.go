@@ -17,16 +17,16 @@ func init() {
 func writeFirstBuf(space []byte, v uint32) []byte {
 	start := v >> 24
 	if start == 0 {
-		space = append(space, byte(v >> 16), byte(v >> 8))
+		space = append(space, byte(v>>16), byte(v>>8))
 	} else if start == 1 {
-		space = append(space, byte(v >> 8))
+		space = append(space, byte(v>>8))
 	}
 	space = append(space, byte(v))
 	return space
 }
 
 func writeBuf(buf []byte, v uint32) []byte {
-	return append(buf, byte(v >> 16), byte(v >> 8), byte(v))
+	return append(buf, byte(v>>16), byte(v>>8), byte(v))
 }
 
 // WriteUint8 write uint8 to stream
@@ -91,7 +91,7 @@ func (stream *Stream) WriteUint32(val uint32) {
 		stream.buf = writeFirstBuf(stream.buf, digits[q2])
 	} else {
 		r3 := q2 - q3*1000
-		stream.buf = append(stream.buf, byte(q3 + '0'))
+		stream.buf = append(stream.buf, byte(q3+'0'))
 		stream.buf = writeBuf(stream.buf, digits[r3])
 	}
 	stream.buf = writeBuf(stream.buf, digits[r2])

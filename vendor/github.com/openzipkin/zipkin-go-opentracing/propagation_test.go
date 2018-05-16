@@ -142,3 +142,30 @@ func TestInvalidCarrier(t *testing.T) {
 		t.Fatalf("Expected: %s, got nil", opentracing.ErrInvalidCarrier)
 	}
 }
+
+func TestB3Hex(t *testing.T) {
+	recorder := zipkintracer.NewInMemoryRecorder()
+	tracer, err := zipkintracer.NewTracer(
+		recorder,
+		zipkintracer.TraceID128Bit(true),
+	)
+	if err != nil {
+		t.Fatalf("Unable to create Tracer: %+v", err)
+	}
+
+	for i := 0; i < 1000; i++ {
+		headers := http.Header{}
+		tmc := opentracing.HTTPHeadersCarrier(headers)
+		span := tracer.StartSpan("dummy")
+		if err := tracer.Inject(span.Context(), opentracing.TextMap, tmc); err != nil {
+			t.Fatalf("Expected nil, got error %+v", err)
+		}
+		if want1, want2, have := 32, 16, len(headers["X-B3-Traceid"][0]); want1 != have && want2 != have {
+			t.Errorf("X-B3-TraceId hex length expected %d or %d, got %d", want1, want2, have)
+		}
+		if want, have := 16, len(headers["X-B3-Spanid"][0]); want != have {
+			t.Errorf("X-B3-SpanId hex length expected %d, got %d", want, have)
+		}
+		span.Finish()
+	}
+}

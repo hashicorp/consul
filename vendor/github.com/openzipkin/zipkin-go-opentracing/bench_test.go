@@ -64,7 +64,7 @@ func BenchmarkSpan_100Events(b *testing.B) {
 }
 
 func BenchmarkSpan_1000Events(b *testing.B) {
-	benchmarkWithOps(b, 100, 0, 0)
+	benchmarkWithOps(b, 1000, 0, 0)
 }
 
 func BenchmarkSpan_100Tags(b *testing.B) {
@@ -72,7 +72,7 @@ func BenchmarkSpan_100Tags(b *testing.B) {
 }
 
 func BenchmarkSpan_1000Tags(b *testing.B) {
-	benchmarkWithOps(b, 0, 100, 0)
+	benchmarkWithOps(b, 0, 1000, 0)
 }
 
 func BenchmarkSpan_100BaggageItems(b *testing.B) {

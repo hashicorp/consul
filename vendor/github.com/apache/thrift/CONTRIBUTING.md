@@ -6,6 +6,43 @@ Thank you for your interest in contributing to the Apache Thrift project!  Infor
  * [Get involved!](http://www.apache.org/foundation/getinvolved.html)
  * [Legal aspects on Submission of Contributions (Patches)](http://www.apache.org/licenses/LICENSE-2.0.html#contributions)
 
+## GitHub pull requests ##
+
+This is the preferred method of submitting changes.  When you submit a pull request through github,
+it activates the continuous integration (CI) build systems at Appveyor and Travis to build your changesxi
+on a variety of Linux and Windows configurations and run all the test suites.  Follow these requirements 
+for a successful pull request:
+
+ 1. All code changes require an [Apache Jira THRIFT Issue](http://issues.apache.org/jira/browse/THRIFT) ticket.
+
+ 1. All pull requests should contain a single commit per issue, or we will ask you to squash it.
+ 1. The pull request title must begin with the Jira THRIFT ticket identifier, for example:
+
+        THRIFT-9999: an example pull request title
+        
+ 1. Commit messages must follow this pattern for code changes (deviations will not be merged):
+        
+        THRIFT-9999: [summary of fix, one line if possible]
+        Client: [language(s) affected, comma separated, use lib/ directory names please]
+
+Instructions:
+
+ 1. Create a fork in your GitHub account of http://github.com/apache/thrift
+ 1. Clone the fork to your development system.
+ 1. Create a branch for your changes (best practice is issue as branch name, e.g. THRIFT-9999).
+ 1. Modify the source to include the improvement/bugfix, and:
+
+    * Remember to provide *tests* for all submitted changes!
+    * Use test-driven development (TDD): add a test that will isolate the bug *before* applying the change that fixes it.
+    * Verify that you follow [Thrift Coding Standards](/docs/coding_standards) (you can run 'make style', which ensures proper format for some languages).
+    * [*optional*] Verify that your change works on other platforms by adding a GitHub service hook to [Travis CI](http://docs.travis-ci.com/user/getting-started/#Step-one%3A-Sign-in) and [AppVeyor](http://www.appveyor.com/docs).  You can use this technique to run the Thrift CI jobs in your account to check your changes before they are made public.  Every GitHub pull request into Thrift will run the full CI build and test suite on your changes.
+
+ 1. Squash your changes to a single commit.  This maintains clean change history.
+ 1. Commit and push changes to your branch (please use issue name and description as commit title, e.g. "THRIFT-9999: make it perfect"), with the affected languages on the next line of the description.
+ 1. Use GitHub to create a pull request going from your branch to apache:master.  Ensure that the Jira ticket number is at the beginning of the title of your pull request, same as the commit title.
+ 1. Wait for other contributors or committers to review your new addition, and for a CI build to complete.
+ 1. Wait for a committer to commit your patch.  You can nudge the committers if necessary by sending a message to the [Apache Thrift mailing list](https://thrift.apache.org/mailing).
+
 ## If you want to build the project locally ##
 
 For Windows systems, see our detailed instructions on the [CMake README](/build/cmake/README.md).
@@ -24,26 +61,6 @@ For unix systems, see our detailed instructions on the [Docker README](/build/do
  1. Check to see if the issue is already in the [Jira issue tracker](http://issues.apache.org/jira/browse/THRIFT).
  1. If not, create a ticket describing the change you're proposing in the Jira issue tracker.
  1. Contribute your code changes using the GitHub pull request method:
-
-## Contributing via GitHub pull requests ##
-
-This is the preferred method of submitting changes.  When you submit a pull request through github, it activates the continuous integration (CI) build systems at Appveyor and Travis to build your changes on a variety of Windows and Linux configurations and run all the test suites.
-
- 1. Create a fork in your GitHub account of http://github.com/apache/thrift
- 1. Clone the fork to your development system.
- 1. Create a branch for your changes (best practice is issue as branch name, e.g. THRIFT-9999).
- 1. Modify the source to include the improvement/bugfix, and:
-
-    * Remember to provide *tests* for all submitted changes!
-    * Use test-driven development (TDD): add a test that will isolate the bug *before* applying a  change that fixes it.
-    * Verify that you follow [Thrift Coding Standards](/docs/coding_standards) (you can run 'make style', which ensures proper format for some languages).
-    * [*optional*] Verify that your change works on other platforms by adding a GitHub service hook to [Travis CI](http://docs.travis-ci.com/user/getting-started/#Step-one%3A-Sign-in) and [AppVeyor](http://www.appveyor.com/docs).  You can use this technique to run the Thrift CI jobs in your account to check your changes before they are made public.  Every GitHub pull request into Thrift will run the full CI build and test suite on your changes.
-
- 1. Squash your changes to a single commit.  This is very important as it makes the process of applying your commit upstream much easier.
- 1. Commit and push changes to your branch (please use issue name and description as commit title, e.g. "THRIFT-9999: make it perfect").
- 1. Use GitHub to create a pull request going from your branch to apache:master.  Ensure that the Jira ticket number is at the beginning of the title of your pull request, same as the commit title.
- 1. Wait for other contributors or committers to review your new addition, and for a CI build to complete.
- 1. Wait for a committer to commit your patch.  You can nudge the committers if necessary by sending a message to the [Apache Thrift mailing list](https://thrift.apache.org/mailing).
 
 ## Contributing via Patch ##
 

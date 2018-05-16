@@ -1,5 +1,12 @@
 Apache Thrift Changelog
 
+Breaking Changes since 0.11.0 [for 0.12.0]:
+-------------------------------------------------------------------------------- 
+    * [THRIFT-4448] - Support for golang 1.6 and earlier has been dropped.
+    * [THRIFT-4474] - PHP now uses the PSR-4 loader by default instead of class maps.
+    * [THRIFT-4532] - method signatures changed in the compiler's t_oop_generator.
+
+
 Thrift 0.11.0
 --------------------------------------------------------------------------------
 ## Sub-task

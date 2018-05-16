@@ -1,10 +1,10 @@
 package jsoniter
 
 import (
-	"github.com/v2pro/plz/reflect2"
-	"unsafe"
 	"encoding"
 	"encoding/json"
+	"github.com/modern-go/reflect2"
+	"unsafe"
 )
 
 var marshalerType = reflect2.TypeOfPtr((*json.Marshaler)(nil)).Elem()

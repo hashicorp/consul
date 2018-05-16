@@ -5,10 +5,10 @@ package scribe
 
 import (
 	"bytes"
+	"context"
 	"reflect"
 	"database/sql/driver"
 	"errors"
-	"context"
 	"fmt"
 	"github.com/apache/thrift/lib/go/thrift"
 )
@@ -210,14 +210,12 @@ type ScribeClient struct {
   c thrift.TClient
 }
 
-// Deprecated: Use NewScribe instead
 func NewScribeClientFactory(t thrift.TTransport, f thrift.TProtocolFactory) *ScribeClient {
   return &ScribeClient{
     c: thrift.NewTStandardClient(f.GetProtocol(t), f.GetProtocol(t)),
   }
 }
 
-// Deprecated: Use NewScribe instead
 func NewScribeClientProtocol(t thrift.TTransport, iprot thrift.TProtocol, oprot thrift.TProtocol) *ScribeClient {
   return &ScribeClient{
     c: thrift.NewTStandardClient(iprot, oprot),
@@ -230,13 +228,16 @@ func NewScribeClient(c thrift.TClient) *ScribeClient {
   }
 }
 
+func (p *ScribeClient) Client_() thrift.TClient {
+  return p.c
+}
 // Parameters:
 //  - Messages
 func (p *ScribeClient) Log(ctx context.Context, messages []*LogEntry) (r ResultCode, err error) {
   var _args0 ScribeLogArgs
   _args0.Messages = messages
   var _result1 ScribeLogResult
-  if err = p.c.Call(ctx, "Log", &_args0, &_result1); err != nil {
+  if err = p.Client_().Call(ctx, "Log", &_args0, &_result1); err != nil {
     return
   }
   return _result1.GetSuccess(), nil
@@ -279,7 +280,7 @@ func (p *ScribeProcessor) Process(ctx context.Context, iprot, oprot thrift.TProt
   oprot.WriteMessageBegin(name, thrift.EXCEPTION, seqId)
   x3.Write(oprot)
   oprot.WriteMessageEnd()
-  oprot.Flush()
+  oprot.Flush(ctx)
   return false, x3
 
 }
@@ -296,7 +297,7 @@ func (p *scribeProcessorLog) Process(ctx context.Context, seqId int32, iprot, op
     oprot.WriteMessageBegin("Log", thrift.EXCEPTION, seqId)
     x.Write(oprot)
     oprot.WriteMessageEnd()
-    oprot.Flush()
+    oprot.Flush(ctx)
     return false, err
   }
 
@@ -309,7 +310,7 @@ var retval ResultCode
     oprot.WriteMessageBegin("Log", thrift.EXCEPTION, seqId)
     x.Write(oprot)
     oprot.WriteMessageEnd()
-    oprot.Flush()
+    oprot.Flush(ctx)
     return true, err2
   } else {
     result.Success = &retval
@@ -323,7 +324,7 @@ var retval ResultCode
   if err2 = oprot.WriteMessageEnd(); err == nil && err2 != nil {
     err = err2
   }
-  if err2 = oprot.Flush(); err == nil && err2 != nil {
+  if err2 = oprot.Flush(ctx); err == nil && err2 != nil {
     err = err2
   }
   if err != nil {

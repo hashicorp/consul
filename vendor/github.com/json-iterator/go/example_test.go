@@ -3,6 +3,7 @@ package jsoniter
 import (
 	"fmt"
 	"os"
+	"strings"
 )
 
 func ExampleMarshal() {
@@ -92,4 +93,29 @@ func ExampleGet() {
 	fmt.Printf(Get(val, "Colors", 0).ToString())
 	// Output:
 	// Crimson
+}
+
+func ExampleMapKey() {
+	hello := MyKey("hello")
+	output, _ := Marshal(map[*MyKey]string{&hello: "world"})
+	fmt.Println(string(output))
+	obj := map[*MyKey]string{}
+	Unmarshal(output, &obj)
+	for k, v := range obj {
+		fmt.Println(*k, v)
+	}
+	// Output:
+	// {"Hello":"world"}
+	// Hel world
+}
+
+type MyKey string
+
+func (m *MyKey) MarshalText() ([]byte, error) {
+	return []byte(strings.Replace(string(*m), "h", "H", -1)), nil
+}
+
+func (m *MyKey) UnmarshalText(text []byte) error {
+	*m = MyKey(text[:3])
+	return nil
 }

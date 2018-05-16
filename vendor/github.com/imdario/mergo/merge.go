@@ -8,7 +8,9 @@
 
 package mergo
 
-import "reflect"
+import (
+	"reflect"
+)
 
 func hasExportedField(dst reflect.Value) (exported bool) {
 	for i, n := 0, dst.NumField(); i < n; i++ {
@@ -22,20 +24,21 @@ func hasExportedField(dst reflect.Value) (exported bool) {
 	return
 }
 
-type config struct {
-	overwrite    bool
-	transformers transformers
+type Config struct {
+	Overwrite    bool
+	AppendSlice  bool
+	Transformers Transformers
 }
 
-type transformers interface {
+type Transformers interface {
 	Transformer(reflect.Type) func(dst, src reflect.Value) error
 }
 
 // Traverses recursively both values, assigning src's fields values to dst.
 // The map argument tracks comparisons that have already been seen, which allows
 // short circuiting on recursive types.
-func deepMerge(dst, src reflect.Value, visited map[uintptr]*visit, depth int, config *config) (err error) {
-	overwrite := config.overwrite
+func deepMerge(dst, src reflect.Value, visited map[uintptr]*visit, depth int, config *Config) (err error) {
+	overwrite := config.Overwrite
 
 	if !src.IsValid() {
 		return
@@ -54,8 +57,8 @@ func deepMerge(dst, src reflect.Value, visited map[uintptr]*visit, depth int, co
 		visited[h] = &visit{addr, typ, seen}
 	}
 
-	if config.transformers != nil && !isEmptyValue(dst) {
-		if fn := config.transformers.Transformer(dst.Type()); fn != nil {
+	if config.Transformers != nil && !isEmptyValue(dst) {
+		if fn := config.Transformers.Transformer(dst.Type()); fn != nil {
 			err = fn(dst, src)
 			return
 		}
@@ -75,9 +78,8 @@ func deepMerge(dst, src reflect.Value, visited map[uintptr]*visit, depth int, co
 			}
 		}
 	case reflect.Map:
-		if len(src.MapKeys()) == 0 && !src.IsNil() && len(dst.MapKeys()) == 0 {
+		if dst.IsNil() && !src.IsNil() {
 			dst.Set(reflect.MakeMap(dst.Type()))
-			return
 		}
 		for _, key := range src.MapKeys() {
 			srcElement := src.MapIndex(key)
@@ -86,7 +88,7 @@ func deepMerge(dst, src reflect.Value, visited map[uintptr]*visit, depth int, co
 			}
 			dstElement := dst.MapIndex(key)
 			switch srcElement.Kind() {
-			case reflect.Chan, reflect.Func, reflect.Map, reflect.Ptr, reflect.Interface, reflect.Slice:
+			case reflect.Chan, reflect.Func, reflect.Map, reflect.Interface, reflect.Slice:
 				if srcElement.IsNil() {
 					continue
 				}
@@ -122,7 +124,7 @@ func deepMerge(dst, src reflect.Value, visited map[uintptr]*visit, depth int, co
 				continue
 			}
 
-			if !isEmptyValue(srcElement) && (overwrite || (!dstElement.IsValid() || isEmptyValue(dst))) {
+			if srcElement.IsValid() && (overwrite || (!dstElement.IsValid() || isEmptyValue(dst))) {
 				if dst.IsNil() {
 					dst.Set(reflect.MakeMap(dst.Type()))
 				}
@@ -130,7 +132,14 @@ func deepMerge(dst, src reflect.Value, visited map[uintptr]*visit, depth int, co
 			}
 		}
 	case reflect.Slice:
-		dst.Set(reflect.AppendSlice(dst, src))
+		if !dst.CanSet() {
+			break
+		}
+		if !isEmptyValue(src) && (overwrite || isEmptyValue(dst)) && !config.AppendSlice {
+			dst.Set(src)
+		} else {
+			dst.Set(reflect.AppendSlice(dst, src))
+		}
 	case reflect.Ptr:
 		fallthrough
 	case reflect.Interface:
@@ -174,36 +183,41 @@ func deepMerge(dst, src reflect.Value, visited map[uintptr]*visit, depth int, co
 // src attributes if they themselves are not empty. dst and src must be valid same-type structs
 // and dst must be a pointer to struct.
 // It won't merge unexported (private) fields and will do recursively any exported field.
-func Merge(dst, src interface{}, opts ...func(*config)) error {
+func Merge(dst, src interface{}, opts ...func(*Config)) error {
 	return merge(dst, src, opts...)
 }
 
 // MergeWithOverwrite will do the same as Merge except that non-empty dst attributes will be overriden by
 // non-empty src attribute values.
 // Deprecated: use Merge(…) with WithOverride
-func MergeWithOverwrite(dst, src interface{}, opts ...func(*config)) error {
+func MergeWithOverwrite(dst, src interface{}, opts ...func(*Config)) error {
 	return merge(dst, src, append(opts, WithOverride)...)
 }
 
 // WithTransformers adds transformers to merge, allowing to customize the merging of some types.
-func WithTransformers(transformers transformers) func(*config) {
-	return func(config *config) {
-		config.transformers = transformers
+func WithTransformers(transformers Transformers) func(*Config) {
+	return func(config *Config) {
+		config.Transformers = transformers
 	}
 }
 
 // WithOverride will make merge override non-empty dst attributes with non-empty src attributes values.
-func WithOverride(config *config) {
-	config.overwrite = true
+func WithOverride(config *Config) {
+	config.Overwrite = true
 }
 
-func merge(dst, src interface{}, opts ...func(*config)) error {
+// WithAppendSlice will make merge append slices instead of overwriting it
+func WithAppendSlice(config *Config) {
+	config.AppendSlice = true
+}
+
+func merge(dst, src interface{}, opts ...func(*Config)) error {
 	var (
 		vDst, vSrc reflect.Value
 		err        error
 	)
 
-	config := &config{}
+	config := &Config{}
 
 	for _, opt := range opts {
 		opt(config)

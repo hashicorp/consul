@@ -21,6 +21,7 @@ package thrift
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -181,7 +182,7 @@ func (p *THttpClient) WriteString(s string) (n int, err error) {
 	return p.requestBuffer.WriteString(s)
 }
 
-func (p *THttpClient) Flush() error {
+func (p *THttpClient) Flush(ctx context.Context) error {
 	// Close any previous response body to avoid leaking connections.
 	p.closeResponse()
 
@@ -190,6 +191,9 @@ func (p *THttpClient) Flush() error {
 		return NewTTransportExceptionFromError(err)
 	}
 	req.Header = p.header
+	if ctx != nil {
+		req = req.WithContext(ctx)
+	}
 	response, err := p.client.Do(req)
 	if err != nil {
 		return NewTTransportExceptionFromError(err)

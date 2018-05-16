@@ -308,7 +308,7 @@ func TestFileScheme(t *testing.T) {
 	}
 
 	if r1.IsCanonical() != true {
-		t.Errorf("New(%v)::IsCanonical %v expect %v", in1, r1.IsCanonical, true)
+		t.Errorf("New(%v)::IsCanonical %v expect %v", in1, r1.IsCanonical(), true)
 	}
 
 	result, err := r1.Inherits(r2)

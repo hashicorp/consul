@@ -2,10 +2,10 @@ package jsoniter
 
 import (
 	"fmt"
+	"github.com/modern-go/reflect2"
 	"io"
 	"reflect"
 	"unsafe"
-	"github.com/v2pro/plz/reflect2"
 )
 
 func encoderOfStruct(ctx *ctx, typ reflect2.Type) ValEncoder {

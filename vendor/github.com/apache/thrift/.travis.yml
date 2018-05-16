@@ -35,7 +35,6 @@ install:
   - if [[ `uname` == "Linux" ]]; then build/docker/refresh.sh; fi
 
 stages:
-# - osx       # up front for now (for testing)
   - docker    # docker images
   - thrift    # thrift build jobs
 
@@ -43,8 +42,8 @@ env:
   global:
     - SCRIPT="cmake.sh"
     - BUILD_ARG=""
-    - BUILD_ENV="-e CC=clang -e CXX=clang++"
-    - DISTRO=ubuntu-xenial
+    - BUILD_ENV="-e CC=gcc -e CXX=g++ -e THRIFT_CROSSTEST_CONCURRENCY=4"
+    - DISTRO=ubuntu-artful
     - BUILD_LIBS="CPP C_GLIB HASKELL JAVA PYTHON TESTING TUTORIALS"  # only meaningful for CMake builds
     - TRAVIS_BUILD_STAGE=test
     # DOCKER_REPO (this works for all builds as a source for docker images - you can override for fork builds in your Travis settings)
@@ -54,20 +53,9 @@ env:
 
 jobs:
   include:
-    # ------------------------- phase: osx --------------------------
-    # - stage: osx
-    #   os: osx
-    #   osx_image: xcode9
-    #   script: build/docker/scripts/autotools.sh
-
     # ========================= stage: docker =========================
     - stage: docker
       script: true
-      env:
-        - JOB="Docker Build ubuntu-trusty 14.04"
-        - DISTRO=ubuntu-trusty
-        - TRAVIS_BUILD_STAGE=docker
-    - script: true
       env:
         - JOB="Docker Build ubuntu-xenial 16.04"
         - DISTRO=ubuntu-xenial
@@ -87,8 +75,6 @@ jobs:
       env:
         - JOB="Cross Language Tests"
         - SCRIPT="cross-test.sh"
-        - BUILD_ARG=""
-        - BUILD_ENV="-e CC=clang -e CXX=clang++ -e THRIFT_CROSSTEST_CONCURRENCY=4"
 
     # fork based PR builds cannot exceed 50 minutes per job
     - stage: thrift
@@ -98,7 +84,6 @@ jobs:
         - JOB="Cross Language Tests (Binary Protocol)"
         - SCRIPT="cross-test.sh"
         - BUILD_ARG="-'(binary)'"
-        - BUILD_ENV="-e CC=clang -e CXX=clang++ -e THRIFT_CROSSTEST_CONCURRENCY=4"
 
     - stage: thrift
       script: build/docker/run.sh
@@ -107,7 +92,6 @@ jobs:
         - JOB="Cross Language Tests (Header, JSON Protocols)"
         - SCRIPT="cross-test.sh"
         - BUILD_ARG="-'(header|json)'"
-        - BUILD_ENV="-e CC=clang -e CXX=clang++ -e THRIFT_CROSSTEST_CONCURRENCY=4"
 
     - stage: thrift
       script: build/docker/run.sh
@@ -116,7 +100,6 @@ jobs:
         - JOB="Cross Language Tests (Compact and Multiplexed Protocols)"
         - SCRIPT="cross-test.sh"
         - BUILD_ARG="-'(compact|multiplexed)'"
-        - BUILD_ENV="-e CC=clang -e CXX=clang++ -e THRIFT_CROSSTEST_CONCURRENCY=4"
 
     # ------------------------- phase: sca --------------------------
     # QA jobs for code analytics and metrics
@@ -125,7 +108,6 @@ jobs:
       env:
         - JOB="Static Code Analysis"
         - SCRIPT="sca.sh"
-        - DISTRO=ubuntu-artful
 
     # C and C++ undefined behavior.
     # A binary crashes if undefined behavior occurs and produces a stack trace.
@@ -134,13 +116,12 @@ jobs:
       env:
         - JOB="UBSan"
         - SCRIPT="ubsan.sh"
-        - DISTRO=ubuntu-artful
         - BUILD_ARG="--without-python --without-py3"
 
     # ------------------------- phase: cmake ------------------------
     - script: build/docker/run.sh
       env:
-        - JOB="CMake (Ubuntu Xenial)"
+        - JOB="CMake"
 
     # C++ specific options: compiler plug-in, threading model
     - script: build/docker/run.sh
@@ -149,7 +130,7 @@ jobs:
         - SCRIPT="cmake.sh"
         - BUILD_LIBS="CPP TESTING TUTORIALS"
         - BUILD_ARG="-DCMAKE_CXX_STANDARD=98 -DCMAKE_CXX_STANDARD_REQUIRED=ON -DCMAKE_CXX_EXTENSIONS=OFF --DWITH_BOOSTTHREADS=ON -DWITH_PYTHON=OFF -DWITH_C_GLIB=OFF -DWITH_JAVA=OFF -DWITH_HASKELL=OFF"
-        - BUILD_ENV=""
+        - BUILD_ENV="-e CC=clang -e CXX=clang++"
 
     - script: build/docker/run.sh
       env:
@@ -166,31 +147,29 @@ jobs:
         - JOB="Autotools (Ubuntu Artful)"
         - DISTRO=ubuntu-artful
         - SCRIPT="autotools.sh"
-        - BUILD_ENV="-e CC=gcc -e CXX=g++"
 
     - script: build/docker/run.sh
       env:
         - JOB="Autotools (Ubuntu Xenial)"
         - DISTRO=ubuntu-xenial
         - SCRIPT="autotools.sh"
-        - BUILD_ENV="-e CC=gcc -e CXX=g++"
-
-    - script: build/docker/run.sh
-      env:
-        - JOB="Autotools (Ubuntu Trusty)"
-        - DISTRO=ubuntu-trusty
-        - SCRIPT="autotools.sh"
-        - BUILD_ENV="-e CC=gcc -e CXX=g++"
 
     # ------------------------- phase: dist -------------------------
     - script: build/docker/run.sh
       env:
         - JOB="make dist"
+        - DISTRO=ubuntu-artful
         - SCRIPT="make-dist.sh"
-        - BUILD_ENV="-e CC=gcc -e CXX=g++"
 
     - script: build/docker/run.sh
       env:
         - JOB="Debian Packages"
+        - DISTRO=ubuntu-artful
         - SCRIPT="dpkg.sh"
-        - BUILD_ENV="-e CC=gcc -e CXX=g++"
+
+  ### ------------------------- phase: osx -------------------------
+  # disabled due to the time delays it imposes on build jobs
+  # - os: osx
+  #   osx_image: xcode9
+  #   script: build/docker/scripts/autotools.sh
+

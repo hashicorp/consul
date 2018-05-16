@@ -20,6 +20,7 @@ package grpc
 
 import (
 	"bytes"
+	"compress/gzip"
 	"io"
 	"math"
 	"reflect"
@@ -120,6 +121,26 @@ func TestEncode(t *testing.T) {
 }
 
 func TestCompress(t *testing.T) {
+
+	bestCompressor, err := NewGZIPCompressorWithLevel(gzip.BestCompression)
+	if err != nil {
+		t.Fatalf("Could not initialize gzip compressor with best compression.")
+	}
+	bestSpeedCompressor, err := NewGZIPCompressorWithLevel(gzip.BestSpeed)
+	if err != nil {
+		t.Fatalf("Could not initialize gzip compressor with best speed compression.")
+	}
+
+	defaultCompressor, err := NewGZIPCompressorWithLevel(gzip.BestSpeed)
+	if err != nil {
+		t.Fatalf("Could not initialize gzip compressor with default compression.")
+	}
+
+	level5, err := NewGZIPCompressorWithLevel(5)
+	if err != nil {
+		t.Fatalf("Could not initialize gzip compressor with level 5 compression.")
+	}
+
 	for _, test := range []struct {
 		// input
 		data []byte
@@ -129,6 +150,10 @@ func TestCompress(t *testing.T) {
 		err error
 	}{
 		{make([]byte, 1024), NewGZIPCompressor(), NewGZIPDecompressor(), nil},
+		{make([]byte, 1024), bestCompressor, NewGZIPDecompressor(), nil},
+		{make([]byte, 1024), bestSpeedCompressor, NewGZIPDecompressor(), nil},
+		{make([]byte, 1024), defaultCompressor, NewGZIPDecompressor(), nil},
+		{make([]byte, 1024), level5, NewGZIPDecompressor(), nil},
 	} {
 		b := new(bytes.Buffer)
 		if err := test.cp.Do(b, test.data); err != test.err {
@@ -159,6 +184,27 @@ func TestToRPCErr(t *testing.T) {
 		}
 		if !reflect.DeepEqual(err, test.errOut) {
 			t.Fatalf("toRPCErr{%v} = %v \nwant %v", test.errIn, err, test.errOut)
+		}
+	}
+}
+
+func TestParseDialTarget(t *testing.T) {
+	for _, test := range []struct {
+		target, wantNet, wantAddr string
+	}{
+		{"unix:etcd:0", "unix", "etcd:0"},
+		{"unix:///tmp/unix-3", "unix", "/tmp/unix-3"},
+		{"unix://domain", "unix", "domain"},
+		{"unix://etcd:0", "unix", "etcd:0"},
+		{"unix:///etcd:0", "unix", "/etcd:0"},
+		{"passthrough://unix://domain", "tcp", "passthrough://unix://domain"},
+		{"https://google.com:443", "tcp", "https://google.com:443"},
+		{"dns:///google.com", "tcp", "dns:///google.com"},
+		{"/unix/socket/address", "tcp", "/unix/socket/address"},
+	} {
+		gotNet, gotAddr := parseDialTarget(test.target)
+		if gotNet != test.wantNet || gotAddr != test.wantAddr {
+			t.Errorf("parseDialTarget(%q) = %s, %s want %s, %s", test.target, gotNet, gotAddr, test.wantNet, test.wantAddr)
 		}
 	}
 }

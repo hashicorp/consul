@@ -1,1 +1,0 @@
-minimal json marshaling lib without full feature compatibility with encoding/json

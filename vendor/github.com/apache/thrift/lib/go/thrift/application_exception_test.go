@@ -29,13 +29,13 @@ func TestTApplicationException(t *testing.T) {
 		t.Fatalf("Expected empty string for exception but found '%s'", exc.Error())
 	}
 	if exc.TypeId() != UNKNOWN_APPLICATION_EXCEPTION {
-		t.Fatalf("Expected type UNKNOWN for exception but found '%s'", exc.TypeId())
+		t.Fatalf("Expected type UNKNOWN for exception but found '%v'", exc.TypeId())
 	}
 	exc = NewTApplicationException(WRONG_METHOD_NAME, "junk_method")
 	if exc.Error() != "junk_method" {
 		t.Fatalf("Expected 'junk_method' for exception but found '%s'", exc.Error())
 	}
 	if exc.TypeId() != WRONG_METHOD_NAME {
-		t.Fatalf("Expected type WRONG_METHOD_NAME for exception but found '%s'", exc.TypeId())
+		t.Fatalf("Expected type WRONG_METHOD_NAME for exception but found '%v'", exc.TypeId())
 	}
 }

@@ -892,3 +892,45 @@ func TestResolveFunc(t *testing.T) {
 		}
 	}
 }
+
+func TestDisableServiceConfig(t *testing.T) {
+	defer leakcheck.Check(t)
+	tests := []struct {
+		target               string
+		scWant               string
+		disableServiceConfig bool
+	}{
+		{
+			"foo.bar.com",
+			generateSC("foo.bar.com"),
+			false,
+		},
+		{
+			"foo.bar.com",
+			"",
+			true,
+		},
+	}
+
+	for _, a := range tests {
+		b := NewBuilder()
+		cc := &testClientConn{target: a.target}
+		r, err := b.Build(resolver.Target{Endpoint: a.target}, cc, resolver.BuildOption{DisableServiceConfig: a.disableServiceConfig})
+		if err != nil {
+			t.Fatalf("%v\n", err)
+		}
+		var cnt int
+		var sc string
+		for {
+			sc, cnt = cc.getSc()
+			if cnt > 0 {
+				break
+			}
+			time.Sleep(time.Millisecond)
+		}
+		if !reflect.DeepEqual(a.scWant, sc) {
+			t.Errorf("Resolved service config of target: %q = %+v, want %+v\n", a.target, sc, a.scWant)
+		}
+		r.Close()
+	}
+}

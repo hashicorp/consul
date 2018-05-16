@@ -21,6 +21,7 @@ package thrift
 
 import (
 	"bufio"
+	"context"
 	"io"
 )
 
@@ -138,7 +139,7 @@ func (p *StreamTransport) Close() error {
 }
 
 // Flushes the underlying output stream if not null.
-func (p *StreamTransport) Flush() error {
+func (p *StreamTransport) Flush(ctx context.Context) error {
 	if p.Writer == nil {
 		return NewTTransportException(NOT_OPEN, "Cannot flush null outputStream")
 	}

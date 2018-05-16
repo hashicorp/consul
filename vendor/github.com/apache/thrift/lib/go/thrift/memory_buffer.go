@@ -21,6 +21,7 @@ package thrift
 
 import (
 	"bytes"
+	"context"
 )
 
 // Memory buffer-based implementation of the TTransport interface.
@@ -70,7 +71,7 @@ func (p *TMemoryBuffer) Close() error {
 }
 
 // Flushing a memory buffer is a no-op
-func (p *TMemoryBuffer) Flush() error {
+func (p *TMemoryBuffer) Flush(ctx context.Context) error {
 	return nil
 }
 

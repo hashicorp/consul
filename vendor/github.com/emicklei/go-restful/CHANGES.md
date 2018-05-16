@@ -1,5 +1,8 @@
 Change history of go-restful
 =
+v2.6.1
+- add JSONNewDecoderFunc to allow custom JSON Decoder usage (go 1.10+)
+
 v2.6.0
 - Make JSR 311 routing and path param processing consistent
 - Adding description to RouteBuilder.Reads()

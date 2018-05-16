@@ -19,25 +19,20 @@
 package grpc
 
 import (
+	"fmt"
+	"net"
 	"testing"
+	"time"
 
 	"google.golang.org/grpc/resolver"
 )
 
 func TestParseTarget(t *testing.T) {
 	for _, test := range []resolver.Target{
-		{"", "", ""},
-		{"a", "", ""},
-		{"", "a", ""},
-		{"", "", "a"},
-		{"a", "b", ""},
-		{"a", "", "b"},
-		{"", "a", "b"},
-		{"a", "b", "c"},
-		{"dns", "", "google.com"},
-		{"dns", "a.server.com", "google.com"},
-		{"dns", "a.server.com", "google.com/?a=b"},
-		{"", "", "/unix/socket/address"},
+		{Scheme: "dns", Authority: "", Endpoint: "google.com"},
+		{Scheme: "dns", Authority: "a.server.com", Endpoint: "google.com"},
+		{Scheme: "dns", Authority: "a.server.com", Endpoint: "google.com/?a=b"},
+		{Scheme: "passthrough", Authority: "", Endpoint: "/unix/socket/address"},
 	} {
 		str := test.Scheme + "://" + test.Authority + "/" + test.Endpoint
 		got := parseTarget(str)
@@ -52,28 +47,67 @@ func TestParseTargetString(t *testing.T) {
 		targetStr string
 		want      resolver.Target
 	}{
-		{"", resolver.Target{"", "", ""}},
-		{"://", resolver.Target{"", "", ""}},
-		{":///", resolver.Target{"", "", ""}},
-		{"a:///", resolver.Target{"a", "", ""}},
-		{"://a/", resolver.Target{"", "a", ""}},
-		{":///a", resolver.Target{"", "", "a"}},
-		{"a://b/", resolver.Target{"a", "b", ""}},
-		{"a:///b", resolver.Target{"a", "", "b"}},
-		{"://a/b", resolver.Target{"", "a", "b"}},
-		{"a://b/c", resolver.Target{"a", "b", "c"}},
-		{"dns:///google.com", resolver.Target{"dns", "", "google.com"}},
-		{"dns://a.server.com/google.com", resolver.Target{"dns", "a.server.com", "google.com"}},
-		{"dns://a.server.com/google.com/?a=b", resolver.Target{"dns", "a.server.com", "google.com/?a=b"}},
+		{targetStr: "", want: resolver.Target{Scheme: "", Authority: "", Endpoint: ""}},
+		{targetStr: ":///", want: resolver.Target{Scheme: "", Authority: "", Endpoint: ""}},
+		{targetStr: "a:///", want: resolver.Target{Scheme: "a", Authority: "", Endpoint: ""}},
+		{targetStr: "://a/", want: resolver.Target{Scheme: "", Authority: "a", Endpoint: ""}},
+		{targetStr: ":///a", want: resolver.Target{Scheme: "", Authority: "", Endpoint: "a"}},
+		{targetStr: "a://b/", want: resolver.Target{Scheme: "a", Authority: "b", Endpoint: ""}},
+		{targetStr: "a:///b", want: resolver.Target{Scheme: "a", Authority: "", Endpoint: "b"}},
+		{targetStr: "://a/b", want: resolver.Target{Scheme: "", Authority: "a", Endpoint: "b"}},
+		{targetStr: "a://b/c", want: resolver.Target{Scheme: "a", Authority: "b", Endpoint: "c"}},
+		{targetStr: "dns:///google.com", want: resolver.Target{Scheme: "dns", Authority: "", Endpoint: "google.com"}},
+		{targetStr: "dns://a.server.com/google.com", want: resolver.Target{Scheme: "dns", Authority: "a.server.com", Endpoint: "google.com"}},
+		{targetStr: "dns://a.server.com/google.com/?a=b", want: resolver.Target{Scheme: "dns", Authority: "a.server.com", Endpoint: "google.com/?a=b"}},
 
-		{"/", resolver.Target{"", "", "/"}},
-		{"google.com", resolver.Target{"", "", "google.com"}},
-		{"google.com/?a=b", resolver.Target{"", "", "google.com/?a=b"}},
-		{"/unix/socket/address", resolver.Target{"", "", "/unix/socket/address"}},
+		{targetStr: "/", want: resolver.Target{Scheme: "", Authority: "", Endpoint: "/"}},
+		{targetStr: "google.com", want: resolver.Target{Scheme: "", Authority: "", Endpoint: "google.com"}},
+		{targetStr: "google.com/?a=b", want: resolver.Target{Scheme: "", Authority: "", Endpoint: "google.com/?a=b"}},
+		{targetStr: "/unix/socket/address", want: resolver.Target{Scheme: "", Authority: "", Endpoint: "/unix/socket/address"}},
+
+		// If we can only parse part of the target.
+		{targetStr: "://", want: resolver.Target{Scheme: "", Authority: "", Endpoint: "://"}},
+		{targetStr: "unix://domain", want: resolver.Target{Scheme: "", Authority: "", Endpoint: "unix://domain"}},
+		{targetStr: "a:b", want: resolver.Target{Scheme: "", Authority: "", Endpoint: "a:b"}},
+		{targetStr: "a/b", want: resolver.Target{Scheme: "", Authority: "", Endpoint: "a/b"}},
+		{targetStr: "a:/b", want: resolver.Target{Scheme: "", Authority: "", Endpoint: "a:/b"}},
+		{targetStr: "a//b", want: resolver.Target{Scheme: "", Authority: "", Endpoint: "a//b"}},
+		{targetStr: "a://b", want: resolver.Target{Scheme: "", Authority: "", Endpoint: "a://b"}},
 	} {
 		got := parseTarget(test.targetStr)
 		if got != test.want {
 			t.Errorf("parseTarget(%q) = %+v, want %+v", test.targetStr, got, test.want)
+		}
+	}
+}
+
+// The target string with unknown scheme should be kept unchanged and passed to
+// the dialer.
+func TestDialParseTargetUnknownScheme(t *testing.T) {
+	for _, test := range []struct {
+		targetStr string
+		want      string
+	}{
+		{"/unix/socket/address", "/unix/socket/address"},
+
+		// Special test for "unix:///".
+		{"unix:///unix/socket/address", "unix:///unix/socket/address"},
+
+		// For known scheme.
+		{"passthrough://a.server.com/google.com", "google.com"},
+	} {
+		dialStrCh := make(chan string, 1)
+		cc, err := Dial(test.targetStr, WithInsecure(), WithDialer(func(t string, _ time.Duration) (net.Conn, error) {
+			dialStrCh <- t
+			return nil, fmt.Errorf("test dialer, always error")
+		}))
+		if err != nil {
+			t.Fatalf("Failed to create ClientConn: %v", err)
+		}
+		got := <-dialStrCh
+		cc.Close()
+		if got != test.want {
+			t.Errorf("Dial(%q), dialer got %q, want %q", test.targetStr, got, test.want)
 		}
 	}
 }

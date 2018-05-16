@@ -83,7 +83,7 @@ func TestRequestRecoverRetry5xx(t *testing.T) {
 	reqNum := 0
 	reqs := []http.Response{
 		{StatusCode: 500, Body: body(`{"__type":"UnknownError","message":"An error occurred."}`)},
-		{StatusCode: 501, Body: body(`{"__type":"UnknownError","message":"An error occurred."}`)},
+		{StatusCode: 502, Body: body(`{"__type":"UnknownError","message":"An error occurred."}`)},
 		{StatusCode: 200, Body: body(`{"data":"valid"}`)},
 	}
 
@@ -1084,5 +1084,38 @@ func TestRequestWillRetry_ByBody(t *testing.T) {
 		if e, a := 0, req.RetryCount; e != a {
 			t.Errorf("%d, expect retry count to be %d, got %d", i, e, a)
 		}
+	}
+}
+
+func Test501NotRetrying(t *testing.T) {
+	reqNum := 0
+	reqs := []http.Response{
+		{StatusCode: 500, Body: body(`{"__type":"UnknownError","message":"An error occurred."}`)},
+		{StatusCode: 501, Body: body(`{"__type":"NotImplemented","message":"An error occurred."}`)},
+		{StatusCode: 200, Body: body(`{"data":"valid"}`)},
+	}
+
+	s := awstesting.NewClient(aws.NewConfig().WithMaxRetries(10))
+	s.Handlers.Validate.Clear()
+	s.Handlers.Unmarshal.PushBack(unmarshal)
+	s.Handlers.UnmarshalError.PushBack(unmarshalError)
+	s.Handlers.Send.Clear() // mock sending
+	s.Handlers.Send.PushBack(func(r *request.Request) {
+		r.HTTPResponse = &reqs[reqNum]
+		reqNum++
+	})
+	out := &testData{}
+	r := s.NewRequest(&request.Operation{Name: "Operation"}, nil, out)
+	err := r.Send()
+	if err == nil {
+		t.Fatal("expect error, but got none")
+	}
+
+	aerr := err.(awserr.Error)
+	if e, a := "NotImplemented", aerr.Code(); e != a {
+		t.Errorf("expected error code %q, but received %q", e, a)
+	}
+	if e, a := 1, int(r.RetryCount); e != a {
+		t.Errorf("expect %d retry count, got %d", e, a)
 	}
 }

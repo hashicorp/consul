@@ -5,10 +5,10 @@ package zipkincore
 
 import (
 	"bytes"
+	"context"
 	"reflect"
 	"database/sql/driver"
 	"errors"
-	"context"
 	"fmt"
 	"github.com/apache/thrift/lib/go/thrift"
 )

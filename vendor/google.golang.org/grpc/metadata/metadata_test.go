@@ -20,6 +20,7 @@ package metadata
 
 import (
 	"reflect"
+	"strconv"
 	"testing"
 
 	"golang.org/x/net/context"
@@ -72,6 +73,90 @@ func TestJoin(t *testing.T) {
 	}
 }
 
+func TestGet(t *testing.T) {
+	for _, test := range []struct {
+		md       MD
+		key      string
+		wantVals []string
+	}{
+		{md: Pairs("My-Optional-Header", "42"), key: "My-Optional-Header", wantVals: []string{"42"}},
+		{md: Pairs("Header", "42", "Header", "43", "Header", "44", "other", "1"), key: "HEADER", wantVals: []string{"42", "43", "44"}},
+		{md: Pairs("HEADER", "10"), key: "HEADER", wantVals: []string{"10"}},
+	} {
+		vals := test.md.Get(test.key)
+		if !reflect.DeepEqual(vals, test.wantVals) {
+			t.Errorf("value of metadata %v is %v, want %v", test.key, vals, test.wantVals)
+		}
+	}
+}
+
+func TestSet(t *testing.T) {
+	for _, test := range []struct {
+		md      MD
+		setKey  string
+		setVals []string
+		want    MD
+	}{
+		{
+			md:      Pairs("My-Optional-Header", "42", "other-key", "999"),
+			setKey:  "Other-Key",
+			setVals: []string{"1"},
+			want:    Pairs("my-optional-header", "42", "other-key", "1"),
+		},
+		{
+			md:      Pairs("My-Optional-Header", "42"),
+			setKey:  "Other-Key",
+			setVals: []string{"1", "2", "3"},
+			want:    Pairs("my-optional-header", "42", "other-key", "1", "other-key", "2", "other-key", "3"),
+		},
+		{
+			md:      Pairs("My-Optional-Header", "42"),
+			setKey:  "Other-Key",
+			setVals: []string{},
+			want:    Pairs("my-optional-header", "42"),
+		},
+	} {
+		test.md.Set(test.setKey, test.setVals...)
+		if !reflect.DeepEqual(test.md, test.want) {
+			t.Errorf("value of metadata is %v, want %v", test.md, test.want)
+		}
+	}
+}
+
+func TestAppend(t *testing.T) {
+	for _, test := range []struct {
+		md         MD
+		appendKey  string
+		appendVals []string
+		want       MD
+	}{
+		{
+			md:         Pairs("My-Optional-Header", "42"),
+			appendKey:  "Other-Key",
+			appendVals: []string{"1"},
+			want:       Pairs("my-optional-header", "42", "other-key", "1"),
+		},
+		{
+			md:         Pairs("My-Optional-Header", "42"),
+			appendKey:  "my-OptIoNal-HeAder",
+			appendVals: []string{"1", "2", "3"},
+			want: Pairs("my-optional-header", "42", "my-optional-header", "1",
+				"my-optional-header", "2", "my-optional-header", "3"),
+		},
+		{
+			md:         Pairs("My-Optional-Header", "42"),
+			appendKey:  "my-OptIoNal-HeAder",
+			appendVals: []string{},
+			want:       Pairs("my-optional-header", "42"),
+		},
+	} {
+		test.md.Append(test.appendKey, test.appendVals...)
+		if !reflect.DeepEqual(test.md, test.want) {
+			t.Errorf("value of metadata is %v, want %v", test.md, test.want)
+		}
+	}
+}
+
 func TestAppendToOutgoingContext(t *testing.T) {
 	// Pre-existing metadata
 	ctx := NewOutgoingContext(context.Background(), Pairs("k1", "v1", "k2", "v2"))
@@ -98,19 +183,60 @@ func TestAppendToOutgoingContext(t *testing.T) {
 	}
 }
 
+func TestAppendToOutgoingContext_Repeated(t *testing.T) {
+	ctx := context.Background()
+
+	for i := 0; i < 100; i = i + 2 {
+		ctx1 := AppendToOutgoingContext(ctx, "k", strconv.Itoa(i))
+		ctx2 := AppendToOutgoingContext(ctx, "k", strconv.Itoa(i+1))
+
+		md1, _ := FromOutgoingContext(ctx1)
+		md2, _ := FromOutgoingContext(ctx2)
+
+		if reflect.DeepEqual(md1, md2) {
+			t.Fatalf("md1, md2 = %v, %v; should not be equal", md1, md2)
+		}
+
+		ctx = ctx1
+	}
+}
+
+func TestAppendToOutgoingContext_FromKVSlice(t *testing.T) {
+	const k, v = "a", "b"
+	kv := []string{k, v}
+	ctx := AppendToOutgoingContext(context.Background(), kv...)
+	md, _ := FromOutgoingContext(ctx)
+	if md[k][0] != v {
+		t.Fatalf("md[%q] = %q; want %q", k, md[k], v)
+	}
+	kv[1] = "xxx"
+	md, _ = FromOutgoingContext(ctx)
+	if md[k][0] != v {
+		t.Fatalf("md[%q] = %q; want %q", k, md[k], v)
+	}
+}
+
 // Old/slow approach to adding metadata to context
 func Benchmark_AddingMetadata_ContextManipulationApproach(b *testing.B) {
+	// TODO: Add in N=1-100 tests once Go1.6 support is removed.
+	const num = 10
 	for n := 0; n < b.N; n++ {
 		ctx := context.Background()
-		md, _ := FromOutgoingContext(ctx)
-		NewOutgoingContext(ctx, Join(Pairs("k1", "v1", "k2", "v2"), md))
+		for i := 0; i < num; i++ {
+			md, _ := FromOutgoingContext(ctx)
+			NewOutgoingContext(ctx, Join(Pairs("k1", "v1", "k2", "v2"), md))
+		}
 	}
 }
 
 // Newer/faster approach to adding metadata to context
 func BenchmarkAppendToOutgoingContext(b *testing.B) {
+	const num = 10
 	for n := 0; n < b.N; n++ {
-		AppendToOutgoingContext(context.Background(), "k1", "v1", "k2", "v2")
+		ctx := context.Background()
+		for i := 0; i < num; i++ {
+			ctx = AppendToOutgoingContext(ctx, "k1", "v1", "k2", "v2")
+		}
 	}
 }
 

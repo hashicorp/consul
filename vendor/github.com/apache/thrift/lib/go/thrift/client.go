@@ -1,6 +1,13 @@
 package thrift
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
+
+type TClient interface {
+	Call(ctx context.Context, method string, args, result TStruct) error
+}
 
 type TStandardClient struct {
 	seqId        int32
@@ -16,7 +23,7 @@ func NewTStandardClient(inputProtocol, outputProtocol TProtocol) *TStandardClien
 	}
 }
 
-func (p *TStandardClient) Send(oprot TProtocol, seqId int32, method string, args TStruct) error {
+func (p *TStandardClient) Send(ctx context.Context, oprot TProtocol, seqId int32, method string, args TStruct) error {
 	if err := oprot.WriteMessageBegin(method, CALL, seqId); err != nil {
 		return err
 	}
@@ -26,7 +33,7 @@ func (p *TStandardClient) Send(oprot TProtocol, seqId int32, method string, args
 	if err := oprot.WriteMessageEnd(); err != nil {
 		return err
 	}
-	return oprot.Flush()
+	return oprot.Flush(ctx)
 }
 
 func (p *TStandardClient) Recv(iprot TProtocol, seqId int32, method string, result TStruct) error {
@@ -61,11 +68,11 @@ func (p *TStandardClient) Recv(iprot TProtocol, seqId int32, method string, resu
 	return iprot.ReadMessageEnd()
 }
 
-func (p *TStandardClient) call(method string, args, result TStruct) error {
+func (p *TStandardClient) Call(ctx context.Context, method string, args, result TStruct) error {
 	p.seqId++
 	seqId := p.seqId
 
-	if err := p.Send(p.oprot, seqId, method, args); err != nil {
+	if err := p.Send(ctx, p.oprot, seqId, method, args); err != nil {
 		return err
 	}
 

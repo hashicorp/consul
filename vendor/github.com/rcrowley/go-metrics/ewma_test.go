@@ -1,6 +1,11 @@
 package metrics
 
-import "testing"
+import (
+	"math/rand"
+	"sync"
+	"testing"
+	"time"
+)
 
 func BenchmarkEWMA(b *testing.B) {
 	a := NewEWMA1()
@@ -9,6 +14,34 @@ func BenchmarkEWMA(b *testing.B) {
 		a.Update(1)
 		a.Tick()
 	}
+}
+
+func BenchmarkEWMAParallel(b *testing.B) {
+	a := NewEWMA1()
+	b.ResetTimer()
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			a.Update(1)
+			a.Tick()
+		}
+	})
+}
+
+// exercise race detector
+func TestEWMAConcurrency(t *testing.T) {
+	rand.Seed(time.Now().Unix())
+	a := NewEWMA1()
+	wg := &sync.WaitGroup{}
+	reps := 100
+	for i := 0; i < reps; i++ {
+		wg.Add(1)
+		go func(ewma EWMA, wg *sync.WaitGroup) {
+			a.Update(rand.Int63())
+			wg.Done()
+		}(a, wg)
+	}
+	wg.Wait()
 }
 
 func TestEWMA1(t *testing.T) {

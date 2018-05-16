@@ -55,6 +55,11 @@ func (stream *Stream) Buffer() []byte {
 	return stream.buf
 }
 
+// SetBuffer allows to append to the internal buffer directly
+func (stream *Stream) SetBuffer(buf []byte) {
+	stream.buf = buf
+}
+
 // Write writes the contents of p into the buffer.
 // It returns the number of bytes written.
 // If nn < len(p), it also returns an error explaining

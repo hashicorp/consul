@@ -7,6 +7,7 @@ package restful
 import (
 	"encoding/json"
 	"encoding/xml"
+	"io"
 	"strings"
 	"sync"
 )
@@ -126,11 +127,16 @@ type entityJSONAccess struct {
 	ContentType string
 }
 
+// JSONNewDecoderFunc can be used to inject a different configration for the json Decoder instance.
+var JSONNewDecoderFunc = func(r io.Reader) *json.Decoder {
+	decoder := json.NewDecoder(r)
+	decoder.UseNumber()
+	return decoder
+}
+
 // Read unmarshalls the value from JSON
 func (e entityJSONAccess) Read(req *Request, v interface{}) error {
-	decoder := json.NewDecoder(req.Request.Body)
-	decoder.UseNumber()
-	return decoder.Decode(v)
+	return JSONNewDecoderFunc(req.Request.Body).Decode(v)
 }
 
 // Write marshalls the value to JSON and set the Content-Type Header.

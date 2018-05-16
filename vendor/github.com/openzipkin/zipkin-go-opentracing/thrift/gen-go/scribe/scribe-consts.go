@@ -5,8 +5,8 @@ package scribe
 
 import (
 	"bytes"
-	"reflect"
 	"context"
+	"reflect"
 	"fmt"
 	"github.com/apache/thrift/lib/go/thrift"
 )

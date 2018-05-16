@@ -21,6 +21,7 @@ package thrift
 
 import (
 	"compress/zlib"
+	"context"
 	"io"
 	"log"
 )
@@ -91,11 +92,11 @@ func (z *TZlibTransport) Close() error {
 }
 
 // Flush flushes the writer and its underlying transport.
-func (z *TZlibTransport) Flush() error {
+func (z *TZlibTransport) Flush(ctx context.Context) error {
 	if err := z.writer.Flush(); err != nil {
 		return err
 	}
-	return z.transport.Flush()
+	return z.transport.Flush(ctx)
 }
 
 // IsOpen returns true if the transport is open

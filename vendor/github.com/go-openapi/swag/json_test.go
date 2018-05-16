@@ -160,4 +160,10 @@ func TestJSONConcatenation(t *testing.T) {
 	assert.Equal(t, ConcatJSON([]byte(`{"id":1}`), []byte(`{"name":"Rachel"}`), []byte(`{}`)), []byte(`{"id":1,"name":"Rachel"}`))
 	assert.Equal(t, ConcatJSON([]byte(`[{"id":1}]`), []byte(`[{"name":"Rachel"}]`), []byte(`[]`)), []byte(`[{"id":1},{"name":"Rachel"}]`))
 
+	// add test on null
+	assert.Equal(t, ConcatJSON([]byte(nil)), []byte(nil))
+	assert.Equal(t, ConcatJSON([]byte(`null`)), []byte(nil))
+	assert.Equal(t, ConcatJSON([]byte(nil), []byte(`null`)), []byte(nil))
+	assert.Equal(t, ConcatJSON([]byte(`{"id":null}`), []byte(`null`)), []byte(`{"id":null}`))
+	assert.Equal(t, ConcatJSON([]byte(`{"id":null}`), []byte(`null`), []byte(`{"name":"Rachel"}`)), []byte(`{"id":null,"name":"Rachel"}`))
 }

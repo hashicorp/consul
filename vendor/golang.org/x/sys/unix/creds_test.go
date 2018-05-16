@@ -11,7 +11,6 @@ import (
 	"go/build"
 	"net"
 	"os"
-	"syscall"
 	"testing"
 
 	"golang.org/x/sys/unix"
@@ -72,23 +71,6 @@ func TestSCMCredentials(t *testing.T) {
 		defer cli.Close()
 
 		var ucred unix.Ucred
-		if os.Getuid() != 0 {
-			ucred.Pid = int32(os.Getpid())
-			ucred.Uid = 0
-			ucred.Gid = 0
-			oob := unix.UnixCredentials(&ucred)
-			_, _, err := cli.(*net.UnixConn).WriteMsgUnix(nil, oob, nil)
-			if op, ok := err.(*net.OpError); ok {
-				err = op.Err
-			}
-			if sys, ok := err.(*os.SyscallError); ok {
-				err = sys.Err
-			}
-			if err != syscall.EPERM {
-				t.Fatalf("WriteMsgUnix failed with %v, want EPERM", err)
-			}
-		}
-
 		ucred.Pid = int32(os.Getpid())
 		ucred.Uid = uint32(os.Getuid())
 		ucred.Gid = uint32(os.Getgid())

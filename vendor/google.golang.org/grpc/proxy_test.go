@@ -113,7 +113,7 @@ func TestHTTPConnect(t *testing.T) {
 	}
 
 	msg := []byte{4, 3, 5, 2}
-	recvBuf := make([]byte, len(msg), len(msg))
+	recvBuf := make([]byte, len(msg))
 	done := make(chan struct{})
 	go func() {
 		in, err := blis.Accept()

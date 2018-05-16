@@ -19,7 +19,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/url"
 	"path/filepath"
 	"strings"
 	"time"
@@ -45,7 +44,10 @@ func LoadStrategy(path string, local, remote func(string) ([]byte, error)) func(
 		return remote
 	}
 	return func(pth string) ([]byte, error) {
-		upth, _ := url.PathUnescape(pth)
+		upth, err := pathUnescape(pth)
+		if err != nil {
+			return nil, err
+		}
 		return local(filepath.FromSlash(upth))
 	}
 }

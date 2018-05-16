@@ -1,11 +1,12 @@
 package jsoniter
 
 import (
+	"fmt"
+	"github.com/modern-go/reflect2"
+	"io"
 	"reflect"
 	"sort"
 	"unsafe"
-	"github.com/v2pro/plz/reflect2"
-	"fmt"
 )
 
 func decoderOfMap(ctx *ctx, typ reflect2.Type) ValDecoder {
@@ -38,6 +39,12 @@ func encoderOfMap(ctx *ctx, typ reflect2.Type) ValEncoder {
 }
 
 func decoderOfMapKey(ctx *ctx, typ reflect2.Type) ValDecoder {
+	for _, extension := range ctx.extensions {
+		decoder := extension.CreateMapKeyDecoder(typ)
+		if decoder != nil {
+			return decoder
+		}
+	}
 	switch typ.Kind() {
 	case reflect.String:
 		return decoderOfType(ctx, reflect2.DefaultTypeOfKind(reflect.String))
@@ -70,6 +77,12 @@ func decoderOfMapKey(ctx *ctx, typ reflect2.Type) ValDecoder {
 }
 
 func encoderOfMapKey(ctx *ctx, typ reflect2.Type) ValEncoder {
+	for _, extension := range ctx.extensions {
+		encoder := extension.CreateMapKeyEncoder(typ)
+		if encoder != nil {
+			return encoder
+		}
+	}
 	switch typ.Kind() {
 	case reflect.String:
 		return encoderOfType(ctx, reflect2.DefaultTypeOfKind(reflect.String))
@@ -94,6 +107,9 @@ func encoderOfMapKey(ctx *ctx, typ reflect2.Type) ValEncoder {
 				valType:       typ,
 				stringEncoder: ctx.EncoderOf(reflect2.TypeOf("")),
 			}
+		}
+		if typ.Kind() == reflect.Interface {
+			return &dynamicMapKeyEncoder{ctx, typ}
 		}
 		return &lazyErrorEncoder{err: fmt.Errorf("unsupported map key type: %v", typ)}
 	}
@@ -191,6 +207,21 @@ func (encoder *numericMapKeyEncoder) IsEmpty(ptr unsafe.Pointer) bool {
 	return false
 }
 
+type dynamicMapKeyEncoder struct {
+	ctx     *ctx
+	valType reflect2.Type
+}
+
+func (encoder *dynamicMapKeyEncoder) Encode(ptr unsafe.Pointer, stream *Stream) {
+	obj := encoder.valType.UnsafeIndirect(ptr)
+	encoderOfMapKey(encoder.ctx, reflect2.TypeOf(obj)).Encode(reflect2.PtrOf(obj), stream)
+}
+
+func (encoder *dynamicMapKeyEncoder) IsEmpty(ptr unsafe.Pointer) bool {
+	obj := encoder.valType.UnsafeIndirect(ptr)
+	return encoderOfMapKey(encoder.ctx, reflect2.TypeOf(obj)).IsEmpty(reflect2.PtrOf(obj))
+}
+
 type mapEncoder struct {
 	mapType     *reflect2.UnsafeMapType
 	keyEncoder  ValEncoder
@@ -241,6 +272,9 @@ func (encoder *sortKeysMapEncoder) Encode(ptr unsafe.Pointer, stream *Stream) {
 		subStream.buf = make([]byte, 0, 64)
 		key, elem := mapIter.UnsafeNext()
 		encoder.keyEncoder.Encode(key, subStream)
+		if subStream.Error != nil && subStream.Error != io.EOF && stream.Error == nil {
+			stream.Error = subStream.Error
+		}
 		encodedKey := subStream.Buffer()
 		subIter.ResetBytes(encodedKey)
 		decodedKey := subIter.ReadString()

@@ -10,6 +10,16 @@ func BenchmarkGuageFloat64(b *testing.B) {
 	}
 }
 
+func BenchmarkGuageFloat64Parallel(b *testing.B) {
+	g := NewGaugeFloat64()
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			g.Update(float64(1))
+		}
+	})
+}
+
 func TestGaugeFloat64(t *testing.T) {
 	g := NewGaugeFloat64()
 	g.Update(float64(47.0))

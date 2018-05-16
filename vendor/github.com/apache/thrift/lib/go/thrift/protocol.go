@@ -20,6 +20,7 @@
 package thrift
 
 import (
+	"context"
 	"errors"
 	"fmt"
 )
@@ -74,7 +75,7 @@ type TProtocol interface {
 	ReadBinary() (value []byte, err error)
 
 	Skip(fieldType TType) (err error)
-	Flush() (err error)
+	Flush(ctx context.Context) (err error)
 
 	Transport() TTransport
 }

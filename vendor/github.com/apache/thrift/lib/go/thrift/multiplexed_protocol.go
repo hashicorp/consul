@@ -19,6 +19,12 @@
 
 package thrift
 
+import (
+	"context"
+	"fmt"
+	"strings"
+)
+
 /*
 TMultiplexedProtocol is a protocol-independent concrete decorator
 that allows a Thrift client to communicate with a multiplexing Thrift server,
@@ -120,6 +126,31 @@ func (t *TMultiplexedProcessor) RegisterProcessor(name string, processor TProces
 		t.serviceProcessorMap = make(map[string]TProcessor)
 	}
 	t.serviceProcessorMap[name] = processor
+}
+
+func (t *TMultiplexedProcessor) Process(ctx context.Context, in, out TProtocol) (bool, TException) {
+	name, typeId, seqid, err := in.ReadMessageBegin()
+	if err != nil {
+		return false, err
+	}
+	if typeId != CALL && typeId != ONEWAY {
+		return false, fmt.Errorf("Unexpected message type %v", typeId)
+	}
+	//extract the service name
+	v := strings.SplitN(name, MULTIPLEXED_SEPARATOR, 2)
+	if len(v) != 2 {
+		if t.DefaultProcessor != nil {
+			smb := NewStoredMessageProtocol(in, name, typeId, seqid)
+			return t.DefaultProcessor.Process(ctx, smb, out)
+		}
+		return false, fmt.Errorf("Service name not found in message name: %s.  Did you forget to use a TMultiplexProtocol in your client?", name)
+	}
+	actualProcessor, ok := t.serviceProcessorMap[v[0]]
+	if !ok {
+		return false, fmt.Errorf("Service name not found: %s.  Did you forget to call registerProcessor()?", v[0])
+	}
+	smb := NewStoredMessageProtocol(in, v[1], typeId, seqid)
+	return actualProcessor.Process(ctx, smb, out)
 }
 
 //Protocol that use stored message for ReadMessageBegin
