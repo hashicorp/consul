@@ -84,7 +84,7 @@
 		{"path":"github.com/joyent/triton-go/errors","checksumSHA1":"d/Py6j/uMgOAFNFGpsQrNnSsO+k=","revision":"7283d1d02f7a297bf2f068178a084c5bd090002c","revisionTime":"2018-04-27T15:22:50Z"},
 		{"path":"github.com/mattn/go-isatty","checksumSHA1":"xZuhljnmBysJPta/lMyYmJdujCg=","revision":"66b8e73f3f5cda9f96b69efd03dd3d7fc4a5cdb8","revisionTime":"2016-08-06T12:27:52Z"},
 		{"path":"github.com/matttproud/golang_protobuf_extensions/pbutil","checksumSHA1":"bKMZjd2wPw13VwoE7mBeSv5djFA=","revision":"c12348ce28de40eed0136aa2b644d0ee0650e56c","revisionTime":"2016-04-24T11:30:07Z"},
-		{"path":"github.com/miekg/dns","checksumSHA1":"XTeOihCDhjG6ltUKExoJ2uEzShk=","revision":"5364553f1ee9cddc7ac8b62dce148309c386695b","revisionTime":"2018-01-25T10:38:03Z","version":"v1.0.4","versionExact":"v1.0.4"},
+                {"path":"github.com/miekg/dns","checksumSHA1":"ybBd9oDdeJEZj9YmIKGqaBVqZok=","revision":"e57bf427e68187a27e22adceac868350d7a7079b","revisionTime":"2018-05-16T07:59:02Z","version":"v1.0.7","versionExact":"v1.0.7"},
 		{"path":"github.com/mitchellh/cli","checksumSHA1":"GzfpPGtV2UJH9hFsKwzGjKrhp/A=","revision":"dff723fff508858a44c1f4bd0911f00d73b0202f","revisionTime":"2017-09-05T22:10:09Z"},
 		{"path":"github.com/mitchellh/copystructure","checksumSHA1":"86nE93o1VIND0Doe8PuhCXnhUx0=","revision":"cdac8253d00f2ecf0a0b19fbff173a9a72de4f82","revisionTime":"2016-08-04T03:23:30Z"},
 		{"path":"github.com/mitchellh/go-homedir","checksumSHA1":"V/quM7+em2ByJbWBLOsEwnY3j/Q=","revision":"b8bc1bf767474819792c23f32d8286a45736f1c6","revisionTime":"2016-12-03T19:45:07Z"},
