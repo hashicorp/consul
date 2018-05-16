@@ -51,24 +51,34 @@ func (c *cmd) Run(args []string) int {
 	args = c.flags.Args()
 	if len(args) != 1 {
 		c.UI.Error(fmt.Sprintf("Error: command requires exactly one argument: src or dst"))
-		return 2
+		return 1
+	}
+
+	if c.flagSource && c.flagDestination {
+		c.UI.Error(fmt.Sprintf("Error: only one of -source or -destination may be specified"))
+		return 1
+	}
+
+	by := api.IntentionMatchDestination
+	if c.flagSource {
+		by = api.IntentionMatchSource
 	}
 
 	// Create and test the HTTP client
 	client, err := c.http.APIClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
-		return 2
+		return 1
 	}
 
 	// Match the intention
 	matches, _, err := client.Connect().IntentionMatch(&api.IntentionMatch{
-		By:    api.IntentionMatchDestination,
+		By:    by,
 		Names: []string{args[0]},
 	}, nil)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error matching the connection: %s", err))
-		return 2
+		return 1
 	}
 
 	for _, ixn := range matches[args[0]] {
