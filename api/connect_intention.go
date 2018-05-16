@@ -273,3 +273,20 @@ func (c *Connect) IntentionCreate(ixn *Intention, q *WriteOptions) (string, *Wri
 	}
 	return out.ID, wm, nil
 }
+
+// IntentionUpdate will update an existing intention. The ID in the given
+// structure must be non-empty.
+func (c *Connect) IntentionUpdate(ixn *Intention, q *WriteOptions) (*WriteMeta, error) {
+	r := c.c.newRequest("PUT", "/v1/connect/intentions/"+ixn.ID)
+	r.setWriteOptions(q)
+	r.obj = ixn
+	rtt, resp, err := requireOK(c.c.doRequest(r))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	wm := &WriteMeta{}
+	wm.RequestTime = rtt
+	return wm, nil
+}

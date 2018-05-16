@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAPI_ConnectIntentionCreateListGetDelete(t *testing.T) {
+func TestAPI_ConnectIntentionCreateListGetUpdateDelete(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
@@ -37,6 +37,18 @@ func TestAPI_ConnectIntentionCreateListGetDelete(t *testing.T) {
 	// Get it
 	actual, _, err = connect.IntentionGet(id, nil)
 	require.Nil(err)
+	require.Equal(ixn, actual)
+
+	// Update it
+	ixn.SourceNS = ixn.SourceNS + "-different"
+	_, err = connect.IntentionUpdate(ixn, nil)
+	require.NoError(err)
+
+	// Get it
+	actual, _, err = connect.IntentionGet(id, nil)
+	require.NoError(err)
+	ixn.UpdatedAt = actual.UpdatedAt
+	ixn.ModifyIndex = actual.ModifyIndex
 	require.Equal(ixn, actual)
 
 	// Delete it
