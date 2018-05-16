@@ -45,8 +45,7 @@ func (c *cmd) init() {
 	c.flags.BoolVar(&c.flagFile, "file", false,
 		"Read intention data from one or more files.")
 	c.flags.BoolVar(&c.flagReplace, "replace", false,
-		"Replace matching intentions. This is not an atomic operation. "+
-			"If the insert fails, then the previous intention will still be deleted.")
+		"Replace matching intentions.")
 	c.flags.Var((*flags.FlagMapValue)(&c.flagMeta), "meta",
 		"Metadata to set on the intention, formatted as key=value. This flag "+
 			"may be specified multiple times to set multiple meta fields.")
@@ -95,7 +94,7 @@ func (c *cmd) Run(args []string) int {
 	for _, ixn := range ixns {
 		// If replace is set to true, then find this intention and delete it.
 		if c.flagReplace {
-			ixn, err := find.Find(ixn.SourceString(), ixn.DestinationString())
+			oldIxn, err := find.Find(ixn.SourceString(), ixn.DestinationString())
 			if err != nil {
 				c.UI.Error(fmt.Sprintf(
 					"Error looking up intention for replacement with source %q "+
@@ -105,16 +104,22 @@ func (c *cmd) Run(args []string) int {
 					err))
 				return 1
 			}
-			if ixn != nil {
-				if _, err := client.Connect().IntentionDelete(ixn.ID, nil); err != nil {
+			if oldIxn != nil {
+				// We set the ID of our intention so we overwrite it
+				ixn.ID = oldIxn.ID
+
+				if _, err := client.Connect().IntentionUpdate(ixn, nil); err != nil {
 					c.UI.Error(fmt.Sprintf(
-						"Error deleting intention for replacement with source %q "+
+						"Error replacing intention with source %q "+
 							"and destination %q: %s",
 						ixn.SourceString(),
 						ixn.DestinationString(),
 						err))
 					return 1
 				}
+
+				// Continue since we don't want to try to insert a new intention
+				continue
 			}
 		}
 
