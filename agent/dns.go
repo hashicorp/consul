@@ -744,7 +744,7 @@ func dnsBinaryTruncate(resp *dns.Msg, maxSize int, index map[string]dns.RR, hasE
 func (d *DNSServer) trimTCPResponse(req, resp *dns.Msg) (trimmed bool) {
 	hasExtra := len(resp.Extra) > 0
 	// There is some overhead, 65535 does not work
-	maxSize := 65533 // 64k - 2 bytes
+	maxSize := 65523 // 64k - 12 bytes DNS raw overhead
 
 	// We avoid some function calls and allocations by only handling the
 	// extra data when necessary.
@@ -769,7 +769,7 @@ func (d *DNSServer) trimTCPResponse(req, resp *dns.Msg) (trimmed bool) {
 	truncated := false
 
 	// This enforces the given limit on 64k, the max limit for DNS messages
-	for len(resp.Answer) > 0 && resp.Len() > maxSize {
+	for len(resp.Answer) > 1 && resp.Len() > maxSize {
 		truncated = true
 		// More than 100 bytes, find with a binary search
 		if resp.Len()-maxSize > 100 {
