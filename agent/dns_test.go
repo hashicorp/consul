@@ -3039,7 +3039,7 @@ func TestDNS_TCP_and_UDP_Truncate(t *testing.T) {
 			args := &structs.RegisterRequest{
 				Datacenter: "dc1",
 				Node:       fmt.Sprintf("%s-%d.acme.com", service, i),
-				Address:    fmt.Sprintf("127.%d.%d.%d", index, (i / 255), i%255),
+				Address:    fmt.Sprintf("127.%d.%d.%d", 0, (i / 255), i%255),
 				Service: &structs.NodeService{
 					Service: service,
 					Port:    8000,
