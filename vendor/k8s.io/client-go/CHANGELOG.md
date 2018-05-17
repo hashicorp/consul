@@ -2,6 +2,111 @@ TODO: This document was manually maintained so might be incomplete. The
 automation effort is tracked in
 https://github.com/kubernetes/client-go/issues/234.
 
+Changes in `k8s.io/api` and `k8s.io/apimachinery` are mentioned here
+because `k8s.io/client-go` depends on them.
+
+# v6.0.0
+
+**Breaking Changes:**
+
+* If you upgrade your client-go libs and use the `AppsV1() or Apps()` interface, please note that the default garbage collection behavior is changed.
+
+    * [https://github.com/kubernetes/kubernetes/pull/55148](https://github.com/kubernetes/kubernetes/pull/55148)
+
+* Swagger 1.2 retriever `DiscoveryClient.SwaggerSchema` was removed from the discovery client
+
+    * [https://github.com/kubernetes/kubernetes/pull/53441](https://github.com/kubernetes/kubernetes/pull/53441)
+
+* Informers got a NewFilteredSharedInformerFactory to e.g. filter by namespace
+
+    * [https://github.com/kubernetes/kubernetes/pull/54660](https://github.com/kubernetes/kubernetes/pull/54660)
+
+* [k8s.io/api] The dynamic admission webhook is split into two kinds, mutating and validating. 
+The kinds have changed completely and old code must be ported to `admissionregistration.k8s.io/v1beta1` - 
+`MutatingWebhookConfiguration` and `ValidatingWebhookConfiguration`
+
+    * [https://github.com/kubernetes/kubernetes/pull/55282](https://github.com/kubernetes/kubernetes/pull/55282)
+
+* [k8s.io/api] Renamed `core/v1.ScaleIOVolumeSource` to `ScaleIOPersistentVolumeSource`
+
+    * [https://github.com/kubernetes/kubernetes/pull/54013](https://github.com/kubernetes/kubernetes/pull/54013)
+
+* [k8s.io/api] Renamed `core/v1.RBDVolumeSource` to `RBDPersistentVolumeSource`
+
+    * [https://github.com/kubernetes/kubernetes/pull/54302](https://github.com/kubernetes/kubernetes/pull/54302)
+
+* [k8s.io/api] Removed `core/v1.CreatedByAnnotation`
+
+    * [https://github.com/kubernetes/kubernetes/pull/54445](https://github.com/kubernetes/kubernetes/pull/54445)
+
+* [k8s.io/api] Renamed `core/v1.StorageMediumHugepages` to `StorageMediumHugePages`
+
+    * [https://github.com/kubernetes/kubernetes/pull/54748](https://github.com/kubernetes/kubernetes/pull/54748)
+
+* [k8s.io/api] `core/v1.Taint.TimeAdded` became a pointer
+
+   * [https://github.com/kubernetes/kubernetes/pull/43016](https://github.com/kubernetes/kubernetes/pull/43016)
+
+* [k8s.io/api] `core/v1.DefaultHardPodAffinitySymmetricWeight` type changed from int to int32
+
+    * [https://github.com/kubernetes/kubernetes/pull/53850](https://github.com/kubernetes/kubernetes/pull/53850)
+
+* [k8s.io/apimachinery] `ObjectCopier` interface was removed (requires switch to new generators with DeepCopy methods)
+
+    * [https://github.com/kubernetes/kubernetes/pull/53525](https://github.com/kubernetes/kubernetes/pull/53525)
+
+**New Features:**
+
+* Certificate manager was moved from kubelet to `k8s.io/client-go/util/certificates`
+
+   * [https://github.com/kubernetes/kubernetes/pull/49654](https://github.com/kubernetes/kubernetes/pull/49654)
+
+* [k8s.io/api] Workloads api types are promoted to `apps/v1` version
+
+    * [https://github.com/kubernetes/kubernetes/pull/53679](https://github.com/kubernetes/kubernetes/pull/53679)
+
+* [k8s.io/api] Added `storage.k8s.io/v1alpha1` API group
+
+    * [https://github.com/kubernetes/kubernetes/pull/54463](https://github.com/kubernetes/kubernetes/pull/54463)
+
+* [k8s.io/api] Added support for conditions in StatefulSet status
+
+    * [https://github.com/kubernetes/kubernetes/pull/55268](https://github.com/kubernetes/kubernetes/pull/55268)
+
+* [k8s.io/api] Added support for conditions in DaemonSet status
+
+    * [https://github.com/kubernetes/kubernetes/pull/55272](https://github.com/kubernetes/kubernetes/pull/55272)
+
+* [k8s.io/apimachinery] Added polymorphic scale client in `k8s.io/client-go/scale`, which supports scaling of resources in arbitrary API groups
+
+    * [https://github.com/kubernetes/kubernetes/pull/53743](https://github.com/kubernetes/kubernetes/pull/53743)
+
+* [k8s.io/apimachinery] `meta.MetadataAccessor` got API chunking support
+
+    * [https://github.com/kubernetes/kubernetes/pull/53768](https://github.com/kubernetes/kubernetes/pull/53768)
+
+* [k8s.io/apimachinery] `unstructured.Unstructured` got getters and setters
+
+    * [https://github.com/kubernetes/kubernetes/pull/51940](https://github.com/kubernetes/kubernetes/pull/51940)
+
+**Bug fixes and Improvements:**
+
+* The body in glog output is not truncated with log level 10
+
+    * [https://github.com/kubernetes/kubernetes/pull/54801](https://github.com/kubernetes/kubernetes/pull/54801)
+
+* [k8s.io/api] Unset `creationTimestamp` field is output as null if encoded from an unstructured object
+
+    * [https://github.com/kubernetes/kubernetes/pull/53464](https://github.com/kubernetes/kubernetes/pull/53464)
+
+* [k8s.io/apimachinery] Redirect behavior is restored for proxy subresources
+
+    * [https://github.com/kubernetes/kubernetes/pull/52933](https://github.com/kubernetes/kubernetes/pull/52933)
+
+* [k8s.io/apimachinery] Random string generation functions are optimized
+
+    * [https://github.com/kubernetes/kubernetes/pull/53720](https://github.com/kubernetes/kubernetes/pull/53720)
+
 # v5.0.1
 
 Bug fix: picked up a security fix [kubernetes/kubernetes#53443](https://github.com/kubernetes/kubernetes/pull/53443) for `PodSecurityPolicy`.

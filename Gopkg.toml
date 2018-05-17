@@ -13,13 +13,13 @@ ignored = [
 # is unable to match Godep.json automatically so have to specify here.
 [[constraint]]
     name = "k8s.io/client-go"
-    version = "v6.0.0"
+    version = "v7.0.0"
 [[override]]
     name = "k8s.io/apimachinery"
-    revision = "180eddb345a5be3a157cea1c624700ad5bd27b8f"
+    revision = "302974c03f7e50f16561ba237db776ab93594ef6"
 [[override]]
     name = "k8s.io/api"
-    revision = "11147472b7c934c474a2c484af3c0c5210b7a3af"
+    revision = "73d903622b7391f3312dcbac6483fed484e185f8"
 [[override]]
     name = "github.com/apache/thrift"
     revision = "e59b73d3c2bf1c328ccb78e683c0462fa1a473c7"

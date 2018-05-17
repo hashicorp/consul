@@ -63,7 +63,7 @@ To install `client-go` and place its dependencies in your `$GOPATH`:
 ```sh
 go get k8s.io/client-go/...
 cd $GOPATH/src/k8s.io/client-go
-git checkout v2.0.0
+git checkout v6.0.0
 # cd 1.5 # only necessary with 1.5 and 1.4 clients.
 godep restore ./...
 ```
@@ -99,7 +99,7 @@ your project:
 package: ( your project's import path ) # e.g. github.com/foo/bar
 import:
 - package: k8s.io/client-go
-  version: v2.0.0
+  version: v6.0.0
 ```
 
 Second, add a Go file that imports `client-go` somewhere in your project,
@@ -132,7 +132,7 @@ requests can override the version manually in `glide.yaml`. For example:
 package: ( your project's import path ) # e.g. github.com/foo/bar
 import:
 - package: k8s.io/client-go
-  version: v2.0.0
+  version: v6.0.0
 # Use a newer version of go-spew even though client-go wants an old one.
 - package: github.com/davecgh/go-spew
   version: v1.1.0
