@@ -11,7 +11,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-// Erratic is a plugin that returns erratic repsonses to each client.
+// Erratic is a plugin that returns erratic responses to each client.
 type Erratic struct {
 	drop uint64
 
