@@ -2,6 +2,7 @@ package forward
 
 import (
 	"crypto/tls"
+	"runtime"
 	"sync/atomic"
 	"time"
 
@@ -36,6 +37,7 @@ func NewProxy(addr string, tlsConfig *tls.Config) *Proxy {
 		avgRtt:    int64(timeout / 2),
 	}
 	p.client = dnsClient(tlsConfig)
+	runtime.SetFinalizer(p, (*Proxy).finalizer)
 	return p
 }
 
@@ -91,6 +93,9 @@ func (p *Proxy) Down(maxfails uint32) bool {
 // close stops the health checking goroutine.
 func (p *Proxy) close() {
 	p.probe.Stop()
+}
+
+func (p *Proxy) finalizer() {
 	p.transport.Stop()
 }
 
