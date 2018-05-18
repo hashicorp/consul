@@ -90,9 +90,11 @@ var dnsTestCases = []test.Case{
 		Answer: []dns.RR{
 			test.A("hdls1.testns.svc.cluster.local.	5	IN	A	172.0.0.2"),
 			test.A("hdls1.testns.svc.cluster.local.	5	IN	A	172.0.0.3"),
+			test.A("hdls1.testns.svc.cluster.local.	5	IN	A	172.0.0.4"),
+			test.A("hdls1.testns.svc.cluster.local.	5	IN	A	172.0.0.5"),
 		},
 	},
-	// A pod ip
+	// An Endpoint ip
 	{
 		Qname: "172-0-0-2.hdls1.testns.svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeSuccess,
@@ -100,7 +102,7 @@ var dnsTestCases = []test.Case{
 			test.A("172-0-0-2.hdls1.testns.svc.cluster.local.	5	IN	A	172.0.0.2"),
 		},
 	},
-	// A pod ip
+	// A Endpoint ip
 	{
 		Qname: "172-0-0-3.hdls1.testns.svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeSuccess,
@@ -108,21 +110,34 @@ var dnsTestCases = []test.Case{
 			test.A("172-0-0-3.hdls1.testns.svc.cluster.local.	5	IN	A	172.0.0.3"),
 		},
 	},
+	// An Endpoint by name
+	{
+		Qname: "dup-name.hdls1.testns.svc.cluster.local.", Qtype: dns.TypeA,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.A("dup-name.hdls1.testns.svc.cluster.local.	5	IN	A	172.0.0.4"),
+			test.A("dup-name.hdls1.testns.svc.cluster.local.	5	IN	A	172.0.0.5"),
+		},
+	},
 	// SRV Service (Headless)
 	{
 		Qname: "_http._tcp.hdls1.testns.svc.cluster.local.", Qtype: dns.TypeSRV,
 		Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.SRV("_http._tcp.hdls1.testns.svc.cluster.local.	5	IN	SRV	0 25 80 172-0-0-2.hdls1.testns.svc.cluster.local."),
-			test.SRV("_http._tcp.hdls1.testns.svc.cluster.local.	5	IN	SRV	0 25 80 172-0-0-3.hdls1.testns.svc.cluster.local."),
-			test.SRV("_http._tcp.hdls1.testns.svc.cluster.local.	5	IN	SRV	0 25 80 5678-abcd--1.hdls1.testns.svc.cluster.local."),
-			test.SRV("_http._tcp.hdls1.testns.svc.cluster.local.	5	IN	SRV	0 25 80 5678-abcd--2.hdls1.testns.svc.cluster.local."),
+			test.SRV("_http._tcp.hdls1.testns.svc.cluster.local.	5	IN	SRV	0 16 80 172-0-0-2.hdls1.testns.svc.cluster.local."),
+			test.SRV("_http._tcp.hdls1.testns.svc.cluster.local.	5	IN	SRV	0 16 80 172-0-0-3.hdls1.testns.svc.cluster.local."),
+			test.SRV("_http._tcp.hdls1.testns.svc.cluster.local.	5	IN	SRV	0 16 80 5678-abcd--1.hdls1.testns.svc.cluster.local."),
+			test.SRV("_http._tcp.hdls1.testns.svc.cluster.local.	5	IN	SRV	0 16 80 5678-abcd--2.hdls1.testns.svc.cluster.local."),
+			test.SRV("_http._tcp.hdls1.testns.svc.cluster.local.	5	IN	SRV	0 16 80 dup-name.hdls1.testns.svc.cluster.local."),
 		},
 		Extra: []dns.RR{
 			test.A("172-0-0-2.hdls1.testns.svc.cluster.local.	5	IN	A	172.0.0.2"),
 			test.A("172-0-0-3.hdls1.testns.svc.cluster.local.	5	IN	A	172.0.0.3"),
 			test.AAAA("5678-abcd--1.hdls1.testns.svc.cluster.local.	5	IN	AAAA	5678:abcd::1"),
 			test.AAAA("5678-abcd--2.hdls1.testns.svc.cluster.local.	5	IN	AAAA	5678:abcd::2"),
+			test.A("dup-name.hdls1.testns.svc.cluster.local.	5	IN	A	172.0.0.4"),
+			test.A("dup-name.hdls1.testns.svc.cluster.local.	5	IN	A	172.0.0.5"),
+
 		},
 	},
 	// AAAA
@@ -231,6 +246,7 @@ var dnsTestCases = []test.Case{
 			test.AAAA("5678-abcd--1.hdls1.testns.svc.cluster.local.	5	IN	AAAA	5678:abcd::1"),
 		},
 	},
+
 	{
 		Qname: "svc.cluster.local.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeSuccess,
@@ -404,6 +420,14 @@ var epsIndex = map[string][]*api.Endpoints{
 					},
 					{
 						IP: "172.0.0.3",
+					},
+					{
+						IP: "172.0.0.4",
+						Hostname: "dup-name",
+					},
+					{
+						IP: "172.0.0.5",
+						Hostname: "dup-name",
 					},
 					{
 						IP: "5678:abcd::1",
