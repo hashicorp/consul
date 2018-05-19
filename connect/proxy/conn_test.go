@@ -64,6 +64,8 @@ func testConnPipelineSetup(t *testing.T) (net.Conn, net.Conn, *Conn, func()) {
 }
 
 func TestConn(t *testing.T) {
+	t.Parallel()
+
 	src, dst, c, stop := testConnPipelineSetup(t)
 	defer stop()
 
@@ -117,6 +119,8 @@ func TestConn(t *testing.T) {
 }
 
 func TestConnSrcClosing(t *testing.T) {
+	t.Parallel()
+
 	src, dst, c, stop := testConnPipelineSetup(t)
 	defer stop()
 
@@ -155,6 +159,8 @@ func TestConnSrcClosing(t *testing.T) {
 }
 
 func TestConnDstClosing(t *testing.T) {
+	t.Parallel()
+
 	src, dst, c, stop := testConnPipelineSetup(t)
 	defer stop()
 

@@ -15,23 +15,23 @@ import (
 )
 
 func TestPublicListener(t *testing.T) {
+	t.Parallel()
+
 	ca := agConnect.TestCA(t, nil)
-	ports := freeport.GetT(t, 2)
+	ports := freeport.GetT(t, 1)
+
+	testApp := NewTestTCPServer(t)
+	defer testApp.Close()
 
 	cfg := PublicListenerConfig{
 		BindAddress:           "127.0.0.1",
 		BindPort:              ports[0],
-		LocalServiceAddress:   TestLocalAddr(ports[1]),
+		LocalServiceAddress:   testApp.Addr().String(),
 		HandshakeTimeoutMs:    100,
 		LocalConnectTimeoutMs: 100,
 	}
 
-	testApp, err := NewTestTCPServer(t, cfg.LocalServiceAddress)
-	require.NoError(t, err)
-	defer testApp.Close()
-
 	svc := connect.TestService(t, "db", ca)
-
 	l := NewPublicListener(svc, cfg, log.New(os.Stderr, "", log.LstdFlags))
 
 	// Run proxy
@@ -53,6 +53,8 @@ func TestPublicListener(t *testing.T) {
 }
 
 func TestUpstreamListener(t *testing.T) {
+	t.Parallel()
+
 	ca := agConnect.TestCA(t, nil)
 	ports := freeport.GetT(t, 1)
 

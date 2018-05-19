@@ -15,6 +15,8 @@ import (
 )
 
 func TestParseConfigFile(t *testing.T) {
+	t.Parallel()
+
 	cfg, err := ParseConfigFile("testdata/config-kitchensink.hcl")
 	require.Nil(t, err)
 
@@ -54,6 +56,8 @@ func TestParseConfigFile(t *testing.T) {
 }
 
 func TestUpstreamResolverFromClient(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		cfg  UpstreamConfig
@@ -115,6 +119,8 @@ func TestUpstreamResolverFromClient(t *testing.T) {
 }
 
 func TestAgentConfigWatcher(t *testing.T) {
+	t.Parallel()
+
 	a := agent.NewTestAgent("agent_smith", "")
 	defer a.Shutdown()
 

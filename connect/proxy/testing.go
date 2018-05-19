@@ -7,6 +7,7 @@ import (
 	"net"
 	"sync/atomic"
 
+	"github.com/hashicorp/consul/lib/freeport"
 	"github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 )
@@ -26,17 +27,20 @@ type TestTCPServer struct {
 // NewTestTCPServer opens as a listening socket on the given address and returns
 // a TestTCPServer serving requests to it. The server is already started and can
 // be stopped by calling Close().
-func NewTestTCPServer(t testing.T, addr string) (*TestTCPServer, error) {
+func NewTestTCPServer(t testing.T) *TestTCPServer {
+	port := freeport.GetT(t, 1)
+	addr := TestLocalAddr(port[0])
+
 	l, err := net.Listen("tcp", addr)
-	if err != nil {
-		return nil, err
-	}
+	require.NoError(t, err)
+
 	log.Printf("test tcp server listening on %s", addr)
 	s := &TestTCPServer{
 		l: l,
 	}
 	go s.accept()
-	return s, nil
+
+	return s
 }
 
 // Close stops the server
@@ -45,6 +49,11 @@ func (s *TestTCPServer) Close() {
 	if s.l != nil {
 		s.l.Close()
 	}
+}
+
+// Addr returns the address that this server is listening on.
+func (s *TestTCPServer) Addr() net.Addr {
+	return s.l.Addr()
 }
 
 func (s *TestTCPServer) accept() error {
