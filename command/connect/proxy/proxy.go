@@ -8,6 +8,7 @@ import (
 	"net/http"
 	_ "net/http/pprof" // Expose pprof if configured
 	"os"
+	"sort"
 
 	proxyAgent "github.com/hashicorp/consul/agent/proxy"
 	"github.com/hashicorp/consul/api"
@@ -44,6 +45,9 @@ type cmd struct {
 	pprofAddr string
 	service   string
 	upstreams map[string]proxyImpl.UpstreamConfig
+
+	// test flags
+	testNoStart bool // don't start the proxy, just exit 0
 }
 
 func (c *cmd) init() {
@@ -84,6 +88,10 @@ func (c *cmd) init() {
 
 func (c *cmd) Run(args []string) int {
 	if err := c.flags.Parse(args); err != nil {
+		return 1
+	}
+	if len(c.flags.Args()) > 0 {
+		c.UI.Error(fmt.Sprintf("Should have no non-flag arguments."))
 		return 1
 	}
 
@@ -147,10 +155,11 @@ func (c *cmd) Run(args []string) int {
 	c.UI.Output("Log data will now stream in as it occurs:\n")
 	logGate.Flush()
 
-	// Run the proxy
-	err = p.Serve()
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Failed running proxy: %s", err))
+	// Run the proxy unless our tests require we don't
+	if !c.testNoStart {
+		if err := p.Serve(); err != nil {
+			c.UI.Error(fmt.Sprintf("Failed running proxy: %s", err))
+		}
 	}
 
 	c.UI.Output("Consul Connect proxy shutdown")
@@ -179,10 +188,17 @@ func (c *cmd) configWatcher(client *api.Client) (proxyImpl.ConfigWatcher, error)
 				"configure itself.")
 	}
 
-	// Convert our upstreams to a slice of configurations
+	// Convert our upstreams to a slice of configurations. We do this
+	// deterministically by alphabetizing the upstream keys. We do this so
+	// that tests can compare the upstream values.
+	upstreamKeys := make([]string, 0, len(c.upstreams))
+	for k := range c.upstreams {
+		upstreamKeys = append(upstreamKeys, k)
+	}
+	sort.Strings(upstreamKeys)
 	upstreams := make([]proxyImpl.UpstreamConfig, 0, len(c.upstreams))
-	for _, u := range c.upstreams {
-		upstreams = append(upstreams, u)
+	for _, k := range upstreamKeys {
+		upstreams = append(upstreams, c.upstreams[k])
 	}
 
 	return proxyImpl.NewStaticConfigWatcher(&proxyImpl.Config{
