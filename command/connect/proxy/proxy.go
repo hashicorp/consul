@@ -23,6 +23,13 @@ import (
 )
 
 func New(ui cli.Ui, shutdownCh <-chan struct{}) *cmd {
+	ui = &cli.PrefixedUi{
+		OutputPrefix: "==> ",
+		InfoPrefix:   "    ",
+		ErrorPrefix:  "==> ",
+		Ui:           ui,
+	}
+
 	c := &cmd{UI: ui, shutdownCh: shutdownCh}
 	c.init()
 	return c
@@ -49,6 +56,7 @@ type cmd struct {
 	serviceAddr string
 	upstreams   map[string]proxyImpl.UpstreamConfig
 	listen      string
+	register    bool
 
 	// test flags
 	testNoStart bool // don't start the proxy, just exit 0
@@ -91,6 +99,10 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.listen, "listen", "",
 		"Address to listen for inbound connections to the proxied service. "+
 			"Must be specified with -service and -service-addr.")
+
+	c.flags.BoolVar(&c.register, "register", false,
+		"Self-register with the local Consul agent. Only useful with "+
+			"-listen.")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -143,6 +155,10 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	// Output this first since the config watcher below will output
+	// other information.
+	c.UI.Output("Consul Connect proxy starting...")
+
 	// Get the proper configuration watcher
 	cfgWatcher, err := c.configWatcher(client)
 	if err != nil {
@@ -162,8 +178,7 @@ func (c *cmd) Run(args []string) int {
 		p.Close()
 	}()
 
-	c.UI.Output("Consul Connect proxy starting")
-
+	c.UI.Info("")
 	c.UI.Output("Log data will now stream in as it occurs:\n")
 	logGate.Flush()
 
@@ -185,11 +200,15 @@ func (c *cmd) configWatcher(client *api.Client) (proxyImpl.ConfigWatcher, error)
 		if err != nil {
 			return nil, err
 		}
+
+		c.UI.Info("Configuration mode: File")
 		return proxyImpl.NewStaticConfigWatcher(cfg), nil
 	}
 
 	// Use the configured proxy ID
 	if c.proxyID != "" {
+		c.UI.Info("Configuration mode: Agent API")
+		c.UI.Info(fmt.Sprintf("          Proxy ID: %s", c.proxyID))
 		return proxyImpl.NewAgentConfigWatcher(client, c.proxyID, c.logger)
 	}
 
@@ -199,6 +218,9 @@ func (c *cmd) configWatcher(client *api.Client) (proxyImpl.ConfigWatcher, error)
 			"-service or -proxy-id must be specified so that proxy can " +
 				"configure itself.")
 	}
+
+	c.UI.Info("Configuration mode: Flags")
+	c.UI.Info(fmt.Sprintf("           Service: %s", c.service))
 
 	// Convert our upstreams to a slice of configurations. We do this
 	// deterministically by alphabetizing the upstream keys. We do this so
@@ -210,7 +232,12 @@ func (c *cmd) configWatcher(client *api.Client) (proxyImpl.ConfigWatcher, error)
 	sort.Strings(upstreamKeys)
 	upstreams := make([]proxyImpl.UpstreamConfig, 0, len(c.upstreams))
 	for _, k := range upstreamKeys {
-		upstreams = append(upstreams, c.upstreams[k])
+		config := c.upstreams[k]
+
+		c.UI.Info(fmt.Sprintf(
+			"          Upstream: %s => %s:%d",
+			k, config.LocalBindAddress, config.LocalBindPort))
+		upstreams = append(upstreams, config)
 	}
 
 	// Parse out our listener if we have one
@@ -232,9 +259,12 @@ func (c *cmd) configWatcher(client *api.Client) (proxyImpl.ConfigWatcher, error)
 					"knows the backend service address.")
 		}
 
+		c.UI.Info(fmt.Sprintf("   Public listener: %s:%d => %s", host, int(port), c.serviceAddr))
 		listener.BindAddress = host
 		listener.BindPort = int(port)
 		listener.LocalServiceAddress = c.serviceAddr
+	} else {
+		c.UI.Info(fmt.Sprintf("   Public listener: Disabled"))
 	}
 
 	return proxyImpl.NewStaticConfigWatcher(&proxyImpl.Config{
