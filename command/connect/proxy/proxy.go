@@ -226,6 +226,12 @@ func (c *cmd) configWatcher(client *api.Client) (proxyImpl.ConfigWatcher, error)
 			return nil, err
 		}
 
+		if c.serviceAddr == "" {
+			return nil, fmt.Errorf(
+				"-service-addr must be specified with -listen so the proxy " +
+					"knows the backend service address.")
+		}
+
 		listener.BindAddress = host
 		listener.BindPort = int(port)
 		listener.LocalServiceAddress = c.serviceAddr
