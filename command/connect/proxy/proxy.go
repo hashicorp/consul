@@ -254,7 +254,34 @@ func (c *cmd) Help() string {
 
 const synopsis = "Runs a Consul Connect proxy"
 const help = `
-Usage: consul proxy [options]
+Usage: consul connect proxy [options]
 
   Starts a Consul Connect proxy and runs until an interrupt is received.
+  The proxy can be used to accept inbound connections for a service,
+  wrap outbound connections to upstream services, or both. This enables
+  a non-Connect-aware application to use Connect.
+
+  The proxy requires service:write permissions for the service it represents.
+
+  Consul can automatically start and manage this proxy by specifying the
+  "proxy" configuration within your service definition.
+
+  The example below shows how to start a local proxy for establishing outbound
+  connections to "db" representing the frontend service. Once running, any
+  process that creates a TCP connection to the specified port (8181) will
+  establish a mutual TLS connection to "db" identified as "frontend".
+
+    $ consul connect proxy -service frontend -upstream db:8181
+
+  The next example starts a local proxy that also accepts inbound connections
+  on port 8443, authorizes the connection, then proxies it to port 8080:
+
+    $ consul connect proxy \
+        -service frontend \
+        -service-addr 127.0.0.1:8080 \
+        -listen ':8443'
+
+  A proxy can accept both inbound connections as well as proxy to upstream
+  services by specifying both the "-listen" and "-upstream" flags.
+
 `
