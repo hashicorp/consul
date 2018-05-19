@@ -1107,7 +1107,7 @@ func (s *HTTPServer) agentLocalBlockingQuery(resp http.ResponseWriter, hash stri
 //
 // POST /v1/agent/connect/authorize
 //
-// Note: when this logic changes, consider if the Intention.Test RPC method
+// Note: when this logic changes, consider if the Intention.Check RPC method
 // also needs to be updated.
 func (s *HTTPServer) AgentConnectAuthorize(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Fetch the token

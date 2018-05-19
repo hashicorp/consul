@@ -293,7 +293,9 @@ func (s *Intention) Check(
 		return err
 	}
 
-	// Perform the ACL check
+	// Perform the ACL check. For Check we only require ServiceRead and
+	// NOT IntentionRead because the Check API only returns pass/fail and
+	// returns no other information about the intentions used.
 	if prefix, ok := query.GetACLPrefix(); ok {
 		if rule != nil && !rule.ServiceRead(prefix) {
 			s.srv.logger.Printf("[WARN] consul.intention: test on intention '%s' denied due to ACLs", prefix)

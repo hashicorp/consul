@@ -122,7 +122,7 @@ func (s *HTTPServer) IntentionMatch(resp http.ResponseWriter, req *http.Request)
 	return response, nil
 }
 
-// GET /v1/connect/intentions/test
+// GET /v1/connect/intentions/check
 func (s *HTTPServer) IntentionCheck(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Prepare args
 	args := &structs.IntentionQueryRequest{Check: &structs.IntentionQueryCheck{}}
