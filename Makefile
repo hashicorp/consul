@@ -85,6 +85,8 @@ linter:
 
 .PHONY: goimports
 goimports:
+	go get -u github.com/alecthomas/gometalinter
+	gometalinter --install goimports
 	( gometalinter --deadline=2m --disable-all --enable=goimports --vendor --exclude=^pb/ ./... || true )
 
 # Presubmit runs all scripts in .presubmit; any non 0 exit code will fail the build.
