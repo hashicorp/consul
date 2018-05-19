@@ -45,7 +45,7 @@ func (p *Proxy) Serve() error {
 				// Initial setup
 
 				// Setup Service instance now we know target ID etc
-				service, err := cfg.Service(p.client, p.logger)
+				service, err := newCfg.Service(p.client, p.logger)
 				if err != nil {
 					return err
 				}
