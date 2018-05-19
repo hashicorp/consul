@@ -2238,7 +2238,7 @@ func TestAgentConnectCALeafCert_aclDefaultDeny(t *testing.T) {
 		require.Equal(200, resp.Code, "body: %s", resp.Body.String())
 	}
 
-	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test-id", nil)
+	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
 	resp := httptest.NewRecorder()
 	_, err := a.srv.AgentConnectCALeafCert(resp, req)
 	require.Error(err)
@@ -2284,7 +2284,7 @@ func TestAgentConnectCALeafCert_aclProxyToken(t *testing.T) {
 	token := proxy.ProxyToken
 	require.NotEmpty(token)
 
-	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test-id?token="+token, nil)
+	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test?token="+token, nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.AgentConnectCALeafCert(resp, req)
 	require.NoError(err)
@@ -2355,7 +2355,7 @@ func TestAgentConnectCALeafCert_aclProxyTokenOther(t *testing.T) {
 	token := proxy.ProxyToken
 	require.NotEmpty(token)
 
-	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test-id?token="+token, nil)
+	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test?token="+token, nil)
 	resp := httptest.NewRecorder()
 	_, err := a.srv.AgentConnectCALeafCert(resp, req)
 	require.Error(err)
@@ -2413,7 +2413,7 @@ func TestAgentConnectCALeafCert_aclServiceWrite(t *testing.T) {
 		token = aclResp.ID
 	}
 
-	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test-id?token="+token, nil)
+	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test?token="+token, nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.AgentConnectCALeafCert(resp, req)
 	require.NoError(err)
@@ -2474,7 +2474,7 @@ func TestAgentConnectCALeafCert_aclServiceReadDeny(t *testing.T) {
 		token = aclResp.ID
 	}
 
-	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test-id?token="+token, nil)
+	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test?token="+token, nil)
 	resp := httptest.NewRecorder()
 	_, err := a.srv.AgentConnectCALeafCert(resp, req)
 	require.Error(err)
@@ -2517,7 +2517,113 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 	}
 
 	// List
-	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/foo", nil)
+	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.AgentConnectCALeafCert(resp, req)
+	require.NoError(err)
+
+	// Get the issued cert
+	issued, ok := obj.(*structs.IssuedCert)
+	assert.True(ok)
+
+	// Verify that the cert is signed by the CA
+	requireLeafValidUnderCA(t, issued, ca1)
+
+	// Verify blocking index
+	assert.True(issued.ModifyIndex > 0)
+	assert.Equal(fmt.Sprintf("%d", issued.ModifyIndex),
+		resp.Header().Get("X-Consul-Index"))
+
+	// That should've been a cache miss, so no hit change
+	require.Equal(cacheHits, a.cache.Hits())
+
+	// Test caching
+	{
+		// Fetch it again
+		obj2, err := a.srv.AgentConnectCALeafCert(httptest.NewRecorder(), req)
+		require.NoError(err)
+		require.Equal(obj, obj2)
+
+		// Should cache hit this time and not make request
+		require.Equal(cacheHits+1, a.cache.Hits())
+		cacheHits++
+	}
+
+	// Test that caching is updated in the background
+	{
+		// Set a new CA
+		ca := connect.TestCAConfigSet(t, a, nil)
+
+		retry.Run(t, func(r *retry.R) {
+			// Try and sign again (note no index/wait arg since cache should update in
+			// background even if we aren't actively blocking)
+			obj, err := a.srv.AgentConnectCALeafCert(httptest.NewRecorder(), req)
+			r.Check(err)
+
+			issued2 := obj.(*structs.IssuedCert)
+			if issued.CertPEM == issued2.CertPEM {
+				r.Fatalf("leaf has not updated")
+			}
+
+			// Got a new leaf. Sanity check it's a whole new key as well as differnt
+			// cert.
+			if issued.PrivateKeyPEM == issued2.PrivateKeyPEM {
+				r.Fatalf("new leaf has same private key as before")
+			}
+
+			// Verify that the cert is signed by the new CA
+			requireLeafValidUnderCA(t, issued2, ca)
+		})
+
+		// Should be a cache hit! The data should've updated in the cache
+		// in the background so this should've been fetched directly from
+		// the cache.
+		if v := a.cache.Hits(); v < cacheHits+1 {
+			t.Fatalf("expected at least one more cache hit, still at %d", v)
+		}
+		cacheHits = a.cache.Hits()
+	}
+}
+
+// Test we can request a leaf cert for a service we have permission for
+// but is not local to this agent.
+func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	require := require.New(t)
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// CA already setup by default by NewTestAgent but force a new one so we can
+	// verify it was signed easily.
+	ca1 := connect.TestCAConfigSet(t, a, nil)
+
+	// Grab the initial cache hit count
+	cacheHits := a.cache.Hits()
+
+	{
+		// Register a non-local service (central catalog)
+		args := &structs.RegisterRequest{
+			Node:    "foo",
+			Address: "127.0.0.1",
+			Service: &structs.NodeService{
+				Service: "test",
+				Address: "127.0.0.1",
+				Port:    8080,
+			},
+		}
+		req, _ := http.NewRequest("PUT", "/v1/catalog/register", jsonReader(args))
+		resp := httptest.NewRecorder()
+		_, err := a.srv.CatalogRegister(resp, req)
+		require.NoError(err)
+		if !assert.Equal(200, resp.Code) {
+			t.Log("Body: ", resp.Body.String())
+		}
+	}
+
+	// List
+	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.AgentConnectCALeafCert(resp, req)
 	require.NoError(err)

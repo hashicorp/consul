@@ -2177,21 +2177,22 @@ func (a *Agent) verifyProxyToken(token, targetService, targetProxy string) (stri
 	// that the service name of the matching proxy matches our target
 	// service.
 	if proxy != nil {
-		if proxy.Proxy.TargetServiceID != targetService {
+		// Get the target service since we only have the name. The nil
+		// check below should never be true since a proxy token always
+		// represents the existence of a local service.
+		target := a.State.Service(proxy.Proxy.TargetServiceID)
+		if target == nil {
+			return "", fmt.Errorf("proxy target service not found: %q",
+				proxy.Proxy.TargetServiceID)
+		}
+
+		if target.Service != targetService {
 			return "", acl.ErrPermissionDenied
 		}
 
 		// Resolve the actual ACL token used to register the proxy/service and
 		// return that for use in RPC calls.
-		return a.State.ServiceToken(targetService), nil
-	}
-
-	// Retrieve the service specified. This should always exist because
-	// we only call this function for proxies and leaf certs and both can
-	// only be called for local services.
-	service := a.State.Service(targetService)
-	if service == nil {
-		return "", fmt.Errorf("unknown service ID: %s", targetService)
+		return a.State.ServiceToken(proxy.Proxy.TargetServiceID), nil
 	}
 
 	// Doesn't match, we have to do a full token resolution. The required
@@ -2202,7 +2203,7 @@ func (a *Agent) verifyProxyToken(token, targetService, targetProxy string) (stri
 	if err != nil {
 		return "", err
 	}
-	if rule != nil && !rule.ServiceWrite(service.Service, nil) {
+	if rule != nil && !rule.ServiceWrite(targetService, nil) {
 		return "", acl.ErrPermissionDenied
 	}
 

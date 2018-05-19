@@ -908,16 +908,10 @@ func (s *HTTPServer) AgentConnectCARoots(resp http.ResponseWriter, req *http.Req
 // instance. This supports blocking queries to update the returned bundle.
 func (s *HTTPServer) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Get the service ID. Note that this is the ID of a service instance.
-	id := strings.TrimPrefix(req.URL.Path, "/v1/agent/connect/ca/leaf/")
-
-	// Retrieve the service specified
-	service := s.agent.State.Service(id)
-	if service == nil {
-		return nil, fmt.Errorf("unknown service ID: %s", id)
-	}
+	serviceName := strings.TrimPrefix(req.URL.Path, "/v1/agent/connect/ca/leaf/")
 
 	args := cachetype.ConnectCALeafRequest{
-		Service: service.Service, // Need name not ID
+		Service: serviceName, // Need name not ID
 	}
 	var qOpts structs.QueryOptions
 	// Store DC in the ConnectCALeafRequest but query opts separately
@@ -928,7 +922,7 @@ func (s *HTTPServer) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.
 
 	// Verify the proxy token. This will check both the local proxy token
 	// as well as the ACL if the token isn't local.
-	effectiveToken, err := s.agent.verifyProxyToken(qOpts.Token, id, "")
+	effectiveToken, err := s.agent.verifyProxyToken(qOpts.Token, serviceName, "")
 	if err != nil {
 		return nil, err
 	}
@@ -983,12 +977,6 @@ func (s *HTTPServer) AgentConnectProxyConfig(resp http.ResponseWriter, req *http
 				return "", nil, nil
 			}
 
-			// Validate the ACL token
-			_, err := s.agent.verifyProxyToken(token, proxy.Proxy.TargetServiceID, id)
-			if err != nil {
-				return "", nil, err
-			}
-
 			// Lookup the target service as a convenience
 			target := s.agent.State.Service(proxy.Proxy.TargetServiceID)
 			if target == nil {
@@ -997,6 +985,12 @@ func (s *HTTPServer) AgentConnectProxyConfig(resp http.ResponseWriter, req *http
 				resp.WriteHeader(http.StatusNotFound)
 				fmt.Fprintf(resp, "unknown target service ID: %s", proxy.Proxy.TargetServiceID)
 				return "", nil, nil
+			}
+
+			// Validate the ACL token
+			_, err := s.agent.verifyProxyToken(token, target.Service, id)
+			if err != nil {
+				return "", nil, err
 			}
 
 			// Watch the proxy for changes
