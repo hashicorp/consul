@@ -60,11 +60,15 @@ func (p *Proxy) Serve() error {
 					p.logger.Printf("[DEBUG] leaf: %s roots: %s", leaf.URIs[0], bytes.Join(tcfg.RootCAs.Subjects(), []byte(",")))
 				}()
 
-				newCfg.PublicListener.applyDefaults()
-				l := NewPublicListener(p.service, newCfg.PublicListener, p.logger)
-				err = p.startListener("public listener", l)
-				if err != nil {
-					return err
+				// Only start a listener if we have a port set. This allows
+				// the configuration to disable our public listener.
+				if newCfg.PublicListener.BindPort != 0 {
+					newCfg.PublicListener.applyDefaults()
+					l := NewPublicListener(p.service, newCfg.PublicListener, p.logger)
+					err = p.startListener("public listener", l)
+					if err != nil {
+						return err
+					}
 				}
 			}
 
