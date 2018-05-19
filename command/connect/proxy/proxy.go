@@ -42,6 +42,8 @@ type cmd struct {
 	cfgFile   string
 	proxyID   string
 	pprofAddr string
+	service   string
+	upstreams map[string]proxyImpl.UpstreamConfig
 }
 
 func (c *cmd) init() {
@@ -65,6 +67,14 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.pprofAddr, "pprof-addr", "",
 		"Enable debugging via pprof. Providing a host:port (or just ':port') "+
 			"enables profiling HTTP endpoints on that address.")
+
+	c.flags.StringVar(&c.service, "service", "",
+		"Name of the service this proxy is representing.")
+
+	c.flags.Var((*FlagUpstreams)(&c.upstreams), "upstream",
+		"Upstream service to support connecting to. The format should be "+
+			"'name:addr', such as 'db:8181'. This will make 'db' available "+
+			"on port 8181.")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -158,13 +168,27 @@ func (c *cmd) configWatcher(client *api.Client) (proxyImpl.ConfigWatcher, error)
 	}
 
 	// Use the configured proxy ID
-	if c.proxyID == "" {
+	if c.proxyID != "" {
+		return proxyImpl.NewAgentConfigWatcher(client, c.proxyID, c.logger)
+	}
+
+	// Otherwise, we're representing a manually specified service.
+	if c.service == "" {
 		return nil, fmt.Errorf(
 			"-service or -proxy-id must be specified so that proxy can " +
 				"configure itself.")
 	}
 
-	return proxyImpl.NewAgentConfigWatcher(client, c.proxyID, c.logger)
+	// Convert our upstreams to a slice of configurations
+	upstreams := make([]proxyImpl.UpstreamConfig, 0, len(c.upstreams))
+	for _, u := range c.upstreams {
+		upstreams = append(upstreams, u)
+	}
+
+	return proxyImpl.NewStaticConfigWatcher(&proxyImpl.Config{
+		ProxiedServiceName: c.service,
+		Upstreams:          upstreams,
+	}), nil
 }
 
 func (c *cmd) Synopsis() string {
