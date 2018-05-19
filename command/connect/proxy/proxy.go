@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	_ "net/http/pprof" // Expose pprof if configured
 	"os"
 	"sort"
+	"strconv"
 
 	proxyAgent "github.com/hashicorp/consul/agent/proxy"
 	"github.com/hashicorp/consul/api"
@@ -39,12 +41,14 @@ type cmd struct {
 	logger    *log.Logger
 
 	// flags
-	logLevel  string
-	cfgFile   string
-	proxyID   string
-	pprofAddr string
-	service   string
-	upstreams map[string]proxyImpl.UpstreamConfig
+	logLevel    string
+	cfgFile     string
+	proxyID     string
+	pprofAddr   string
+	service     string
+	serviceAddr string
+	upstreams   map[string]proxyImpl.UpstreamConfig
+	listen      string
 
 	// test flags
 	testNoStart bool // don't start the proxy, just exit 0
@@ -78,7 +82,15 @@ func (c *cmd) init() {
 	c.flags.Var((*FlagUpstreams)(&c.upstreams), "upstream",
 		"Upstream service to support connecting to. The format should be "+
 			"'name:addr', such as 'db:8181'. This will make 'db' available "+
-			"on port 8181.")
+			"on port 8181. This can be repeated multiple times.")
+
+	c.flags.StringVar(&c.serviceAddr, "service-addr", "",
+		"Address of the local service to proxy. Only useful if -listen "+
+			"and -service are both set.")
+
+	c.flags.StringVar(&c.listen, "listen", "",
+		"Address to listen for inbound connections to the proxied service. "+
+			"Must be specified with -service and -service-addr.")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -201,8 +213,27 @@ func (c *cmd) configWatcher(client *api.Client) (proxyImpl.ConfigWatcher, error)
 		upstreams = append(upstreams, c.upstreams[k])
 	}
 
+	// Parse out our listener if we have one
+	var listener proxyImpl.PublicListenerConfig
+	if c.listen != "" {
+		host, portRaw, err := net.SplitHostPort(c.listen)
+		if err != nil {
+			return nil, err
+		}
+
+		port, err := strconv.ParseInt(portRaw, 0, 0)
+		if err != nil {
+			return nil, err
+		}
+
+		listener.BindAddress = host
+		listener.BindPort = int(port)
+		listener.LocalServiceAddress = c.serviceAddr
+	}
+
 	return proxyImpl.NewStaticConfigWatcher(&proxyImpl.Config{
 		ProxiedServiceName: c.service,
+		PublicListener:     listener,
 		Upstreams:          upstreams,
 	}), nil
 }

@@ -41,6 +41,32 @@ func TestCommandConfigWatcher(t *testing.T) {
 				require.Equal(t, 2345, cfg.Upstreams[1].LocalBindPort)
 			},
 		},
+
+		{
+			"-service flag with -service-addr",
+			[]string{"-service", "web"},
+			func(t *testing.T, cfg *proxy.Config) {
+				// -service-addr has no affect since -listen isn't set
+				require.Equal(t, 0, cfg.PublicListener.BindPort)
+				require.Len(t, cfg.Upstreams, 0)
+			},
+		},
+
+		{
+			"-service, -service-addr, -listen",
+			[]string{
+				"-service", "web",
+				"-service-addr", "127.0.0.1:1234",
+				"-listen", ":4567",
+			},
+			func(t *testing.T, cfg *proxy.Config) {
+				require.Len(t, cfg.Upstreams, 0)
+
+				require.Equal(t, "", cfg.PublicListener.BindAddress)
+				require.Equal(t, 4567, cfg.PublicListener.BindPort)
+				require.Equal(t, "127.0.0.1:1234", cfg.PublicListener.LocalServiceAddress)
+			},
+		},
 	}
 
 	for _, tc := range cases {
