@@ -258,8 +258,8 @@ func connectRootsWatch(params map[string]interface{}) (WatcherFunc, error) {
 func connectLeafWatch(params map[string]interface{}) (WatcherFunc, error) {
 	// We don't support stale since certs are cached locally in the agent.
 
-	var serviceID string
-	if err := assignValue(params, "service_id", &serviceID); err != nil {
+	var serviceName string
+	if err := assignValue(params, "service", &serviceName); err != nil {
 		return nil, err
 	}
 
@@ -268,7 +268,7 @@ func connectLeafWatch(params map[string]interface{}) (WatcherFunc, error) {
 		opts := makeQueryOptionsWithContext(p, false)
 		defer p.cancelFunc()
 
-		leaf, meta, err := agent.ConnectCALeaf(serviceID, &opts)
+		leaf, meta, err := agent.ConnectCALeaf(serviceName, &opts)
 		if err != nil {
 			return nil, nil, err
 		}

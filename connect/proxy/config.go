@@ -19,18 +19,16 @@ import (
 // different locations (e.g. command line, agent config endpoint, agent
 // certificate endpoints).
 type Config struct {
-	// ProxyID is the identifier for this proxy as registered in Consul. It's only
-	// guaranteed to be unique per agent.
-	ProxyID string `json:"proxy_id" hcl:"proxy_id"`
-
 	// Token is the authentication token provided for queries to the local agent.
 	Token string `json:"token" hcl:"token"`
 
-	// ProxiedServiceID is the identifier of the service this proxy is representing.
-	ProxiedServiceID string `json:"proxied_service_id" hcl:"proxied_service_id"`
-
+	// ProxiedServiceName is the name of the service this proxy is representing.
+	// This is the service _name_ and not the service _id_. This allows the
+	// proxy to represent services not present in the local catalog.
+	//
 	// ProxiedServiceNamespace is the namespace of the service this proxy is
 	// representing.
+	ProxiedServiceName      string `json:"proxied_service_name" hcl:"proxied_service_name"`
 	ProxiedServiceNamespace string `json:"proxied_service_namespace" hcl:"proxied_service_namespace"`
 
 	// PublicListener configures the mTLS listener.
@@ -39,28 +37,34 @@ type Config struct {
 	// Upstreams configures outgoing proxies for remote connect services.
 	Upstreams []UpstreamConfig `json:"upstreams" hcl:"upstreams"`
 
-	// DevCAFile allows passing the file path to PEM encoded root certificate
-	// bundle to be used in development instead of the ones supplied by Connect.
-	DevCAFile string `json:"dev_ca_file" hcl:"dev_ca_file"`
-
-	// DevServiceCertFile allows passing the file path to PEM encoded service
-	// certificate (client and server) to be used in development instead of the
-	// ones supplied by Connect.
+	// DevCAFile, DevServiceCertFile, and DevServiceKeyFile allow configuring
+	// the certificate information from a static file. This is only for testing
+	// purposes. All or none must be specified.
+	DevCAFile          string `json:"dev_ca_file" hcl:"dev_ca_file"`
 	DevServiceCertFile string `json:"dev_service_cert_file" hcl:"dev_service_cert_file"`
+	DevServiceKeyFile  string `json:"dev_service_key_file" hcl:"dev_service_key_file"`
+}
 
-	// DevServiceKeyFile allows passing the file path to PEM encoded service
-	// private key to be used in development instead of the ones supplied by
-	// Connect.
-	DevServiceKeyFile string `json:"dev_service_key_file" hcl:"dev_service_key_file"`
+// Service returns the *connect.Service structure represented by this config.
+func (c *Config) Service(client *api.Client, logger *log.Logger) (*connect.Service, error) {
+	// If we aren't in dev mode, then we return the configured service.
+	if c.DevCAFile == "" {
+		return connect.NewServiceWithLogger(c.ProxiedServiceName, client, logger)
+	}
+
+	// Dev mode
+	return connect.NewDevServiceFromCertFiles(c.ProxiedServiceName,
+		logger, c.DevCAFile, c.DevServiceCertFile, c.DevServiceKeyFile)
 }
 
 // PublicListenerConfig contains the parameters needed for the incoming mTLS
 // listener.
 type PublicListenerConfig struct {
 	// BindAddress is the host/IP the public mTLS listener will bind to.
+	//
+	// BindPort is the port the public listener will bind to.
 	BindAddress string `json:"bind_address" hcl:"bind_address" mapstructure:"bind_address"`
-
-	BindPort int `json:"bind_port" hcl:"bind_port" mapstructure:"bind_port"`
+	BindPort    int    `json:"bind_port" hcl:"bind_port" mapstructure:"bind_port"`
 
 	// LocalServiceAddress is the host:port for the proxied application. This
 	// should be on loopback or otherwise protected as it's plain TCP.
@@ -265,9 +269,8 @@ func (w *AgentConfigWatcher) handler(blockVal watch.BlockingParamVal,
 
 	// Create proxy config from the response
 	cfg := &Config{
-		ProxyID: w.proxyID,
 		// Token should be already setup in the client
-		ProxiedServiceID:        resp.TargetServiceID,
+		ProxiedServiceName:      resp.TargetServiceName,
 		ProxiedServiceNamespace: "default",
 	}
 

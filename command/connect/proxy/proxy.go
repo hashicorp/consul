@@ -10,6 +10,7 @@ import (
 	"os"
 
 	proxyAgent "github.com/hashicorp/consul/agent/proxy"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	proxyImpl "github.com/hashicorp/consul/connect/proxy"
 
@@ -112,22 +113,17 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	var p *proxyImpl.Proxy
-	if c.cfgFile != "" {
-		c.UI.Info("Configuring proxy locally from " + c.cfgFile)
+	// Get the proper configuration watcher
+	cfgWatcher, err := c.configWatcher(client)
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error preparing configuration: %s", err))
+		return 1
+	}
 
-		p, err = proxyImpl.NewFromConfigFile(client, c.cfgFile, c.logger)
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Failed configuring from file: %s", err))
-			return 1
-		}
-
-	} else {
-		p, err = proxyImpl.New(client, c.proxyID, c.logger)
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Failed configuring from agent: %s", err))
-			return 1
-		}
+	p, err := proxyImpl.New(client, cfgWatcher, c.logger)
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Failed initializing proxy: %s", err))
+		return 1
 	}
 
 	// Hook the shutdownCh up to close the proxy
@@ -149,6 +145,26 @@ func (c *cmd) Run(args []string) int {
 
 	c.UI.Output("Consul Connect proxy shutdown")
 	return 0
+}
+
+func (c *cmd) configWatcher(client *api.Client) (proxyImpl.ConfigWatcher, error) {
+	// Manual configuration file is specified.
+	if c.cfgFile != "" {
+		cfg, err := proxyImpl.ParseConfigFile(c.cfgFile)
+		if err != nil {
+			return nil, err
+		}
+		return proxyImpl.NewStaticConfigWatcher(cfg), nil
+	}
+
+	// Use the configured proxy ID
+	if c.proxyID == "" {
+		return nil, fmt.Errorf(
+			"-service or -proxy-id must be specified so that proxy can " +
+				"configure itself.")
+	}
+
+	return proxyImpl.NewAgentConfigWatcher(client, c.proxyID, c.logger)
 }
 
 func (c *cmd) Synopsis() string {

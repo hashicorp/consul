@@ -112,9 +112,9 @@ func verifyServerCertMatchesURI(certs []*x509.Certificate,
 
 // newServerSideVerifier returns a verifierFunc that wraps the provided
 // api.Client to verify the TLS chain and perform AuthZ for the server end of
-// the connection. The service name provided is used as the target serviceID
+// the connection. The service name provided is used as the target service name
 // for the Authorization.
-func newServerSideVerifier(client *api.Client, serviceID string) verifierFunc {
+func newServerSideVerifier(client *api.Client, serviceName string) verifierFunc {
 	return func(tlsCfg *tls.Config, rawCerts [][]byte) error {
 		leaf, err := verifyChain(tlsCfg, rawCerts, false)
 		if err != nil {
@@ -142,14 +142,7 @@ func newServerSideVerifier(client *api.Client, serviceID string) verifierFunc {
 
 		// Perform AuthZ
 		req := &api.AgentAuthorizeParams{
-			// TODO(banks): this is jank, we have a serviceID from the Service setup
-			// but this needs to be a service name as the target. For now we are
-			// relying on them usually being the same but this will break when they
-			// are not. We either need to make Authorize endpoint optionally accept
-			// IDs somehow or rethink this as it will require fetching the service
-			// name sometime ahead of accepting requests (maybe along with TLS certs?)
-			// which feels gross and will take extra plumbing to expose it to here.
-			Target:           serviceID,
+			Target:           serviceName,
 			ClientCertURI:    certURI.URI().String(),
 			ClientCertSerial: connect.HexString(leaf.SerialNumber.Bytes()),
 		}

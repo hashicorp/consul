@@ -11,7 +11,6 @@ import (
 
 // Proxy implements the built-in connect proxy.
 type Proxy struct {
-	proxyID    string
 	client     *api.Client
 	cfgWatcher ConfigWatcher
 	stopChan   chan struct{}
@@ -19,51 +18,17 @@ type Proxy struct {
 	service    *connect.Service
 }
 
-// NewFromConfigFile returns a Proxy instance configured just from a local file.
-// This is intended mostly for development and bypasses the normal mechanisms
-// for fetching config and certificates from the local agent.
-func NewFromConfigFile(client *api.Client, filename string,
-	logger *log.Logger) (*Proxy, error) {
-	cfg, err := ParseConfigFile(filename)
-	if err != nil {
-		return nil, err
-	}
-
-	service, err := connect.NewDevServiceFromCertFiles(cfg.ProxiedServiceID,
-		logger, cfg.DevCAFile, cfg.DevServiceCertFile,
-		cfg.DevServiceKeyFile)
-	if err != nil {
-		return nil, err
-	}
-
-	p := &Proxy{
-		proxyID:    cfg.ProxyID,
-		client:     client,
-		cfgWatcher: NewStaticConfigWatcher(cfg),
-		stopChan:   make(chan struct{}),
-		logger:     logger,
-		service:    service,
-	}
-	return p, nil
-}
-
-// New returns a Proxy with the given id, consuming the provided (configured)
-// agent. It is ready to Run().
-func New(client *api.Client, proxyID string, logger *log.Logger) (*Proxy, error) {
-	cw, err := NewAgentConfigWatcher(client, proxyID, logger)
-	if err != nil {
-		return nil, err
-	}
-	p := &Proxy{
-		proxyID:    proxyID,
+// New returns a proxy with the given configuration source.
+//
+// The ConfigWatcher can be used to update the configuration of the proxy.
+// Whenever a new configuration is detected, the proxy will reconfigure itself.
+func New(client *api.Client, cw ConfigWatcher, logger *log.Logger) (*Proxy, error) {
+	return &Proxy{
 		client:     client,
 		cfgWatcher: cw,
 		stopChan:   make(chan struct{}),
 		logger:     logger,
-		// Can't load service yet as we only have the proxy's ID not the service's
-		// until initial config fetch happens.
-	}
-	return p, nil
+	}, nil
 }
 
 // Serve the proxy instance until a fatal error occurs or proxy is closed.
@@ -80,8 +45,7 @@ func (p *Proxy) Serve() error {
 				// Initial setup
 
 				// Setup Service instance now we know target ID etc
-				service, err := connect.NewServiceWithLogger(newCfg.ProxiedServiceID,
-					p.client, p.logger)
+				service, err := cfg.Service(p.client, p.logger)
 				if err != nil {
 					return err
 				}

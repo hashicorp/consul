@@ -19,9 +19,8 @@ func TestParseConfigFile(t *testing.T) {
 	require.Nil(t, err)
 
 	expect := &Config{
-		ProxyID:                 "foo",
 		Token:                   "11111111-2222-3333-4444-555555555555",
-		ProxiedServiceID:        "web",
+		ProxiedServiceName:      "web",
 		ProxiedServiceNamespace: "default",
 		PublicListener: PublicListenerConfig{
 			BindAddress:           "127.0.0.1",
@@ -117,6 +116,7 @@ func TestUpstreamResolverFromClient(t *testing.T) {
 
 func TestAgentConfigWatcher(t *testing.T) {
 	a := agent.NewTestAgent("agent_smith", "")
+	defer a.Shutdown()
 
 	client := a.Client()
 	agent := client.Agent()
@@ -153,8 +153,7 @@ func TestAgentConfigWatcher(t *testing.T) {
 	cfg := testGetConfigValTimeout(t, w, 500*time.Millisecond)
 
 	expectCfg := &Config{
-		ProxyID:                 w.proxyID,
-		ProxiedServiceID:        "web",
+		ProxiedServiceName:      "web",
 		ProxiedServiceNamespace: "default",
 		PublicListener: PublicListenerConfig{
 			BindAddress:           "10.10.10.10",

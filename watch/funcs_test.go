@@ -602,7 +602,7 @@ func TestConnectLeafWatch(t *testing.T) {
 
 	//invoke := makeInvokeCh()
 	invoke := make(chan error)
-	plan := mustParse(t, `{"type":"connect_leaf", "service_id":"web"}`)
+	plan := mustParse(t, `{"type":"connect_leaf", "service":"web"}`)
 	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
 			return // ignore

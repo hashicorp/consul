@@ -27,16 +27,12 @@ import (
 // service has been delivered valid certificates. Once built, document that here
 // too.
 type Service struct {
-	// serviceID is the unique ID for this service in the agent-local catalog.
-	// This is often but not always the service name. This is used to request
-	// Connect metadata. If the service with this ID doesn't exist on the local
-	// agent no error will be returned and the Service will retry periodically.
-	// This allows service startup and registration to happen in either order
-	// without coordination since they might be performed by separate processes.
-	serviceID string
+	// service is the name (not ID) for the Consul service. This is used to request
+	// Connect metadata.
+	service string
 
 	// client is the Consul API client. It must be configured with an appropriate
-	// Token that has `service:write` policy on the provided ServiceID. If an
+	// Token that has `service:write` policy on the provided service. If an
 	// insufficient token is provided, the Service will abort further attempts to
 	// fetch certificates and print a loud error message. It will not Close() or
 	// kill the process since that could lead to a crash loop in every service if
@@ -74,13 +70,13 @@ func NewService(serviceID string, client *api.Client) (*Service, error) {
 }
 
 // NewServiceWithLogger starts the service with a specified log.Logger.
-func NewServiceWithLogger(serviceID string, client *api.Client,
+func NewServiceWithLogger(serviceName string, client *api.Client,
 	logger *log.Logger) (*Service, error) {
 	s := &Service{
-		serviceID: serviceID,
-		client:    client,
-		logger:    logger,
-		tlsCfg:    newDynamicTLSConfig(defaultTLSConfig()),
+		service: serviceName,
+		client:  client,
+		logger:  logger,
+		tlsCfg:  newDynamicTLSConfig(defaultTLSConfig()),
 	}
 
 	// Set up root and leaf watches
@@ -94,8 +90,8 @@ func NewServiceWithLogger(serviceID string, client *api.Client,
 	s.rootsWatch.HybridHandler = s.rootsWatchHandler
 
 	p, err = watch.Parse(map[string]interface{}{
-		"type":       "connect_leaf",
-		"service_id": s.serviceID,
+		"type":    "connect_leaf",
+		"service": s.service,
 	})
 	if err != nil {
 		return nil, err
@@ -123,12 +119,12 @@ func NewDevServiceFromCertFiles(serviceID string, logger *log.Logger,
 
 // NewDevServiceWithTLSConfig creates a Service using static TLS config passed.
 // It's mostly useful for testing.
-func NewDevServiceWithTLSConfig(serviceID string, logger *log.Logger,
+func NewDevServiceWithTLSConfig(serviceName string, logger *log.Logger,
 	tlsCfg *tls.Config) (*Service, error) {
 	s := &Service{
-		serviceID: serviceID,
-		logger:    logger,
-		tlsCfg:    newDynamicTLSConfig(tlsCfg),
+		service: serviceName,
+		logger:  logger,
+		tlsCfg:  newDynamicTLSConfig(tlsCfg),
 	}
 	return s, nil
 }
@@ -144,7 +140,7 @@ func NewDevServiceWithTLSConfig(serviceID string, logger *log.Logger,
 // error during renewal. The listener will be able to accept connections again
 // once connectivity is restored provided the client's Token is valid.
 func (s *Service) ServerTLSConfig() *tls.Config {
-	return s.tlsCfg.Get(newServerSideVerifier(s.client, s.serviceID))
+	return s.tlsCfg.Get(newServerSideVerifier(s.client, s.service))
 }
 
 // Dial connects to a remote Connect-enabled server. The passed Resolver is used

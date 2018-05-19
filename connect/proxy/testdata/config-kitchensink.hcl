@@ -1,9 +1,8 @@
 # Example proxy config with everything specified
 
-proxy_id = "foo"
 token = "11111111-2222-3333-4444-555555555555"
 
-proxied_service_id = "web"
+proxied_service_name = "web"
 proxied_service_namespace = "default"
 
 # Assumes running consul in dev mode from the repo root...
