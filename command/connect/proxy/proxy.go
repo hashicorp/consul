@@ -57,6 +57,7 @@ type cmd struct {
 	upstreams   map[string]proxyImpl.UpstreamConfig
 	listen      string
 	register    bool
+	registerId  string
 
 	// test flags
 	testNoStart bool // don't start the proxy, just exit 0
@@ -103,6 +104,9 @@ func (c *cmd) init() {
 	c.flags.BoolVar(&c.register, "register", false,
 		"Self-register with the local Consul agent. Only useful with "+
 			"-listen.")
+
+	c.flags.StringVar(&c.registerId, "register-id", "",
+		"ID suffix for the service. Use this to disambiguate with other proxies.")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -178,6 +182,18 @@ func (c *cmd) Run(args []string) int {
 		p.Close()
 	}()
 
+	// Register the service if we requested it
+	if c.register {
+		monitor, err := c.registerMonitor(client)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Failed initializing registration: %s", err))
+			return 1
+		}
+
+		go monitor.Run()
+		defer monitor.Close()
+	}
+
 	c.UI.Info("")
 	c.UI.Output("Log data will now stream in as it occurs:\n")
 	logGate.Flush()
@@ -243,12 +259,7 @@ func (c *cmd) configWatcher(client *api.Client) (proxyImpl.ConfigWatcher, error)
 	// Parse out our listener if we have one
 	var listener proxyImpl.PublicListenerConfig
 	if c.listen != "" {
-		host, portRaw, err := net.SplitHostPort(c.listen)
-		if err != nil {
-			return nil, err
-		}
-
-		port, err := strconv.ParseInt(portRaw, 0, 0)
+		host, port, err := c.listenParts()
 		if err != nil {
 			return nil, err
 		}
@@ -259,9 +270,9 @@ func (c *cmd) configWatcher(client *api.Client) (proxyImpl.ConfigWatcher, error)
 					"knows the backend service address.")
 		}
 
-		c.UI.Info(fmt.Sprintf("   Public listener: %s:%d => %s", host, int(port), c.serviceAddr))
+		c.UI.Info(fmt.Sprintf("   Public listener: %s:%d => %s", host, port, c.serviceAddr))
 		listener.BindAddress = host
-		listener.BindPort = int(port)
+		listener.BindPort = port
 		listener.LocalServiceAddress = c.serviceAddr
 	} else {
 		c.UI.Info(fmt.Sprintf("   Public listener: Disabled"))
@@ -272,6 +283,43 @@ func (c *cmd) configWatcher(client *api.Client) (proxyImpl.ConfigWatcher, error)
 		PublicListener:     listener,
 		Upstreams:          upstreams,
 	}), nil
+}
+
+// registerMonitor returns the registration monitor ready to be started.
+func (c *cmd) registerMonitor(client *api.Client) (*RegisterMonitor, error) {
+	if c.service == "" || c.listen == "" {
+		return nil, fmt.Errorf("-register may only be specified with -service and -listen")
+	}
+
+	host, port, err := c.listenParts()
+	if err != nil {
+		return nil, err
+	}
+
+	m := NewRegisterMonitor()
+	m.Logger = c.logger
+	m.Client = client
+	m.Service = c.service
+	m.IDSuffix = c.registerId
+	m.LocalAddress = host
+	m.LocalPort = port
+	return m, nil
+}
+
+// listenParts returns the host and port parts of the -listen flag. The
+// -listen flag must be non-empty prior to calling this.
+func (c *cmd) listenParts() (string, int, error) {
+	host, portRaw, err := net.SplitHostPort(c.listen)
+	if err != nil {
+		return "", 0, err
+	}
+
+	port, err := strconv.ParseInt(portRaw, 0, 0)
+	if err != nil {
+		return "", 0, err
+	}
+
+	return host, int(port), nil
 }
 
 func (c *cmd) Synopsis() string {
