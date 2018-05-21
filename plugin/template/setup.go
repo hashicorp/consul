@@ -159,7 +159,7 @@ func templateParse(c *caddy.Controller) (handler Handler, err error) {
 			t.regex = append(t.regex, regexp.MustCompile(".*"))
 		}
 
-		if len(t.answer) == 0 && len(t.additional) == 0 && t.rcode == dns.RcodeSuccess {
+		if len(t.answer) == 0 && len(t.authority) == 0 && t.rcode == dns.RcodeSuccess {
 			return handler, c.Errf("no answer section for template found: %v", handler)
 		}
 

@@ -101,10 +101,18 @@ func TestSetupParse(t *testing.T) {
 			false,
 		},
 		{
+			`template ANY AAAA example.com {
+				match ip-(?P<a>[0-9]*)-(?P<b>[0-9]*)-(?P<c>[0-9]*)-(?P<d>[0-9]*)[.]example[.]com
+				authority "example.com 60 IN SOA ns.example.com hostmaster.example.com (1 60 60 60 60)"
+				fallthrough
+			}`,
+			false,
+		},
+		{
 			`template IN ANY example.com {
 				match "[.](example[.]com[.]dc1[.]example[.]com[.])$"
 				rcode NXDOMAIN
-				answer "{{ index .Match 1 }} 60 IN SOA a.{{ index .Match 1 }} b.{{ index .Match 1 }} (1 60 60 60 60)"
+				authority "{{ index .Match 1 }} 60 IN SOA ns.{{ index .Match 1 }} hostmaster.example.com (1 60 60 60 60)"
 				fallthrough example.com
 			}`,
 			false,
