@@ -1,16 +1,14 @@
 package put
 
 import (
-	"bytes"
 	"encoding/base64"
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"os"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
+	"github.com/hashicorp/consul/command/helpers"
 	"github.com/mitchellh/cli"
 )
 
@@ -173,11 +171,6 @@ func (c *cmd) Run(args []string) int {
 }
 
 func (c *cmd) dataFromArgs(args []string) (string, string, error) {
-	var stdin io.Reader = os.Stdin
-	if c.testStdin != nil {
-		stdin = c.testStdin
-	}
-
 	switch len(args) {
 	case 0:
 		return "", "", fmt.Errorf("Missing KEY argument")
@@ -189,30 +182,11 @@ func (c *cmd) dataFromArgs(args []string) (string, string, error) {
 	}
 
 	key := args[0]
-	data := args[1]
+	data, err := helpers.LoadDataSource(args[1], c.testStdin)
 
-	// Handle empty quoted shell parameters
-	if len(data) == 0 {
-		return key, "", nil
-	}
-
-	switch data[0] {
-	case '@':
-		data, err := ioutil.ReadFile(data[1:])
-		if err != nil {
-			return "", "", fmt.Errorf("Failed to read file: %s", err)
-		}
-		return key, string(data), nil
-	case '-':
-		if len(data) > 1 {
-			return key, data, nil
-		}
-		var b bytes.Buffer
-		if _, err := io.Copy(&b, stdin); err != nil {
-			return "", "", fmt.Errorf("Failed to read stdin: %s", err)
-		}
-		return key, b.String(), nil
-	default:
+	if err != nil {
+		return "", "", err
+	} else {
 		return key, data, nil
 	}
 }
