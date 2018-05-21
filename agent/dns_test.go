@@ -671,6 +671,196 @@ func TestDNS_ReverseLookup_IPV6(t *testing.T) {
 	}
 }
 
+func TestDNS_ServiceReverseLookup(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Register a node with a service.
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				Service: "db",
+				Tags:    []string{"master"},
+				Port:    12345,
+				Address: "127.0.0.2",
+			},
+		}
+
+		var out struct{}
+		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("2.0.0.127.in-addr.arpa.", dns.TypeANY)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, a.DNSAddr())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) != 1 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	ptrRec, ok := in.Answer[0].(*dns.PTR)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if ptrRec.Ptr != "db.service.consul." {
+		t.Fatalf("Bad: %#v", ptrRec)
+	}
+}
+
+func TestDNS_ServiceReverseLookup_IPV6(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Register a node with a service.
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "2001:db8::1",
+			Service: &structs.NodeService{
+				Service: "db",
+				Tags:    []string{"master"},
+				Port:    12345,
+				Address: "2001:db8::ff00:42:8329",
+			},
+		}
+
+		var out struct{}
+		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("9.2.3.8.2.4.0.0.0.0.f.f.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa.", dns.TypeANY)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, a.DNSAddr())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) != 1 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	ptrRec, ok := in.Answer[0].(*dns.PTR)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if ptrRec.Ptr != "db.service.consul." {
+		t.Fatalf("Bad: %#v", ptrRec)
+	}
+}
+
+func TestDNS_ServiceReverseLookup_CustomDomain(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), `
+		domain = "custom"
+	`)
+	defer a.Shutdown()
+
+	// Register a node with a service.
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				Service: "db",
+				Tags:    []string{"master"},
+				Port:    12345,
+				Address: "127.0.0.2",
+			},
+		}
+
+		var out struct{}
+		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("2.0.0.127.in-addr.arpa.", dns.TypeANY)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, a.DNSAddr())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) != 1 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	ptrRec, ok := in.Answer[0].(*dns.PTR)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if ptrRec.Ptr != "db.service.custom." {
+		t.Fatalf("Bad: %#v", ptrRec)
+	}
+}
+
+func TestDNS_ServiceReverseLookupNodeAddress(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Register a node with a service.
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				Service: "db",
+				Tags:    []string{"master"},
+				Port:    12345,
+				Address: "127.0.0.1",
+			},
+		}
+
+		var out struct{}
+		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("1.0.0.127.in-addr.arpa.", dns.TypeANY)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, a.DNSAddr())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) != 1 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	ptrRec, ok := in.Answer[0].(*dns.PTR)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if ptrRec.Ptr != "foo.node.dc1.consul." {
+		t.Fatalf("Bad: %#v", ptrRec)
+	}
+}
+
 func TestDNS_ServiceLookup(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
