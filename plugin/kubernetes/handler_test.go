@@ -137,7 +137,6 @@ var dnsTestCases = []test.Case{
 			test.AAAA("5678-abcd--2.hdls1.testns.svc.cluster.local.	5	IN	AAAA	5678:abcd::2"),
 			test.A("dup-name.hdls1.testns.svc.cluster.local.	5	IN	A	172.0.0.4"),
 			test.A("dup-name.hdls1.testns.svc.cluster.local.	5	IN	A	172.0.0.5"),
-
 		},
 	},
 	// AAAA
@@ -422,11 +421,11 @@ var epsIndex = map[string][]*api.Endpoints{
 						IP: "172.0.0.3",
 					},
 					{
-						IP: "172.0.0.4",
+						IP:       "172.0.0.4",
 						Hostname: "dup-name",
 					},
 					{
-						IP: "172.0.0.5",
+						IP:       "172.0.0.5",
 						Hostname: "dup-name",
 					},
 					{
