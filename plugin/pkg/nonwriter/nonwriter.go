@@ -2,6 +2,8 @@
 package nonwriter
 
 import (
+	"net"
+
 	"github.com/miekg/dns"
 )
 
@@ -9,6 +11,11 @@ import (
 type Writer struct {
 	dns.ResponseWriter
 	Msg *dns.Msg
+
+	// Raddr is the remote's address. This can be optionally set.
+	Raddr net.Addr
+	// Laddr is our address. This can be optionally set.
+	Laddr net.Addr
 }
 
 // New makes and returns a new NonWriter.
@@ -20,4 +27,8 @@ func (w *Writer) WriteMsg(res *dns.Msg) error {
 	return nil
 }
 
-func (w *Writer) Write(buf []byte) (int, error) { return len(buf), nil }
+// RemoteAddr returns the remote address.
+func (w *Writer) RemoteAddr() net.Addr { return w.Raddr }
+
+// LocalAddr returns the local address.
+func (w *Writer) LocalAddr() net.Addr { return w.Laddr }

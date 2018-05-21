@@ -71,6 +71,8 @@ func (h Host) Normalize() string {
 		s = s[len(TransportDNS+"://"):]
 	case strings.HasPrefix(s, TransportGRPC+"://"):
 		s = s[len(TransportGRPC+"://"):]
+	case strings.HasPrefix(s, TransportHTTPS+"://"):
+		s = s[len(TransportHTTPS+"://"):]
 	}
 
 	// The error can be ignore here, because this function is called after the corefile
@@ -138,7 +140,8 @@ func SplitHostPort(s string) (host, port string, ipnet *net.IPNet, err error) {
 
 // Duplicated from core/dnsserver/address.go !
 const (
-	TransportDNS  = "dns"
-	TransportTLS  = "tls"
-	TransportGRPC = "grpc"
+	TransportDNS   = "dns"
+	TransportTLS   = "tls"
+	TransportGRPC  = "grpc"
+	TransportHTTPS = "https"
 )

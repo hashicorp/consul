@@ -133,6 +133,12 @@ func (h *dnsContext) MakeServers() ([]caddy.Server, error) {
 			}
 			servers = append(servers, s)
 
+		case TransportHTTPS:
+			s, err := NewServerHTTPS(addr, group)
+			if err != nil {
+				return nil, err
+			}
+			servers = append(servers, s)
 		}
 
 	}
@@ -235,6 +241,8 @@ const (
 	TLSPort = "853"
 	// GRPCPort is the default port for DNS-over-gRPC.
 	GRPCPort = "443"
+	// HTTPSPort is the default port for DNS-over-HTTPS.
+	HTTPSPort = "443"
 )
 
 // These "soft defaults" are configurable by
