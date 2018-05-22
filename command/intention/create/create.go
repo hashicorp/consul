@@ -92,7 +92,7 @@ func (c *cmd) Run(args []string) int {
 
 	// Go through and create each intention
 	for _, ixn := range ixns {
-		// If replace is set to true, then find this intention and delete it.
+		// If replace is set to true, then perform an update operation.
 		if c.flagReplace {
 			oldIxn, err := find.Find(ixn.SourceString(), ixn.DestinationString())
 			if err != nil {

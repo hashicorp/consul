@@ -13,6 +13,10 @@ import (
 // caches them once, and searches in-memory for this. For now this works since
 // even with a very large number of intentions, the size of the data gzipped
 // over HTTP will be relatively small.
+//
+// The Finder will only downlaod the intentions one time. This struct is
+// not expected to be used over a long period of time. Though it may be
+// reused multile times, the intentions list is only downloaded once.
 type Finder struct {
 	// Client is the API client to use for any requests.
 	Client *api.Client

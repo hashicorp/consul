@@ -28,7 +28,7 @@ const help = `
 Usage: consul intention <subcommand> [options] [args]
 
   This command has subcommands for interacting with intentions. Intentions
-  are the permissions for what services are allowed to communicate via
+  are permissions describing which services are allowed to communicate via
   Connect. Here are some simple examples, and more detailed examples are
   available in the subcommands or the documentation.
 
