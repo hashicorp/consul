@@ -946,8 +946,12 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 				}
 			}
 			if base.CAConfig.ClusterID == "" {
-				a.logger.Println("[WARN] connect CA config cluster_id specified but ",
-					"is not a valid UUID, ignoring")
+				// If the tried to specify an ID but typoed it don't ignore as they will
+				// then bootstrap with a new ID and have to throw away the whole cluster
+				// and start again.
+				a.logger.Println("[ERR] connect CA config cluster_id specified but " +
+					"is not a valid UUID, aborting startup")
+				return nil, fmt.Errorf("cluster_id was supplied but was not a valid UUID")
 			}
 		}
 
@@ -1315,8 +1319,10 @@ func (a *Agent) ShutdownAgent() error {
 	// NOTE(mitchellh): we use Kill for now to kill the processes since
 	// the local state isn't snapshotting meaning the proxy tokens are
 	// regenerated each time forcing the processes to restart anyways.
-	if err := a.proxyManager.Kill(); err != nil {
-		a.logger.Printf("[WARN] agent: error shutting down proxy manager: %s", err)
+	if a.proxyManager != nil {
+		if err := a.proxyManager.Kill(); err != nil {
+			a.logger.Printf("[WARN] agent: error shutting down proxy manager: %s", err)
+		}
 	}
 
 	var err error
@@ -2177,8 +2183,7 @@ func (a *Agent) verifyProxyToken(token, targetService, targetProxy string) (stri
 
 		// Resolve the actual ACL token used to register the proxy/service and
 		// return that for use in RPC calls.
-		aclToken := a.State.ServiceToken(targetService)
-		return aclToken, nil
+		return a.State.ServiceToken(targetService), nil
 	}
 
 	// Retrieve the service specified. This should always exist because

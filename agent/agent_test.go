@@ -60,6 +60,7 @@ func TestAgent_ConnectClusterIDConfig(t *testing.T) {
 		name          string
 		hcl           string
 		wantClusterID string
+		wantPanic     bool
 	}{
 		{
 			name:          "default TestAgent has fixed cluster id",
@@ -72,22 +73,36 @@ func TestAgent_ConnectClusterIDConfig(t *testing.T) {
 			wantClusterID: "",
 		},
 		{
-			name: "non-UUID cluster_id is ignored",
-			hcl: `connect { 
-				enabled = true
-				ca_config {
-					cluster_id = "fake-id"
-				}
-			}`,
+			name: "non-UUID cluster_id is fatal",
+			hcl: `connect {
+	   enabled = true
+	   ca_config {
+	     cluster_id = "fake-id"
+	   }
+	 }`,
 			wantClusterID: "",
+			wantPanic:     true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			a := NewTestAgent("test", tt.hcl)
-			cfg := a.consulConfig()
-			assert.Equal(t, tt.wantClusterID, cfg.CAConfig.ClusterID)
+			// Indirection to support panic recovery cleanly
+			testFn := func() {
+				a := &TestAgent{Name: "test", HCL: tt.hcl}
+				a.ExpectConfigError = tt.wantPanic
+				a.Start()
+				defer a.Shutdown()
+
+				cfg := a.consulConfig()
+				assert.Equal(t, tt.wantClusterID, cfg.CAConfig.ClusterID)
+			}
+
+			if tt.wantPanic {
+				require.Panics(t, testFn)
+			} else {
+				testFn()
+			}
 		})
 	}
 }
@@ -95,7 +110,7 @@ func TestAgent_ConnectClusterIDConfig(t *testing.T) {
 func TestAgent_StartStop(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
-	// defer a.Shutdown()
+	defer a.Shutdown()
 
 	if err := a.Leave(); err != nil {
 		t.Fatalf("err: %v", err)

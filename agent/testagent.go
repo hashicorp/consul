@@ -45,6 +45,12 @@ type TestAgent struct {
 
 	HCL string
 
+	// ExpectConfigError can be set to prevent the agent retrying Start on errors
+	// and eventually blowing up with runtime.Goexit. This enables tests to assert
+	// that some specific bit of config actually does prevent startup entirely in
+	// a reasonable way without reproducing a lot of the boilerplate here.
+	ExpectConfigError bool
+
 	// Config is the agent configuration. If Config is nil then
 	// TestConfig() is used. If Config.DataDir is set then it is
 	// the callers responsibility to clean up the data directory.
@@ -159,6 +165,11 @@ func (a *TestAgent) Start() *TestAgent {
 		} else if i == 0 {
 			fmt.Println(id, a.Name, "Error starting agent:", err)
 			runtime.Goexit()
+		} else if a.ExpectConfigError {
+			// Panic the error since this can be caught if needed. Pretty gross way to
+			// detect errors but enough for now and this is a tiny edge case that I'd
+			// otherwise not have a way to test at all...
+			panic(err)
 		} else {
 			agent.ShutdownAgent()
 			agent.ShutdownEndpoints()
