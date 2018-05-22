@@ -1,12 +1,14 @@
 package proxy
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
 	"reflect"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -29,9 +31,12 @@ const (
 //
 // Consul will ensure that if the daemon crashes, that it is restarted.
 type Daemon struct {
-	// Command is the command to execute to start this daemon. This must
-	// be a Cmd that isn't yet started.
-	Command *exec.Cmd
+	// Path is the path to the executable to run
+	Path string
+
+	// Args are the arguments to run with, the first element should be the same as
+	// Path.
+	Args []string
 
 	// ProxyId is the ID of the proxy service. This is required for API
 	// requests (along with the token) and is passed via env var.
@@ -52,9 +57,29 @@ type Daemon struct {
 	// created but the error will be logged to the Logger.
 	PidPath string
 
-	// For tests, they can set this to change the default duration to wait
-	// for a graceful quit.
+	// StdoutPath, StderrPath are the paths to the files that stdout and stderr
+	// should be written to.
+	StdoutPath, StderrPath string
+
+	// gracefulWait can be set for tests and controls how long Stop() will wait
+	// for process to terminate before killing. If not set defaults to 5 seconds.
+	// If this is lowered for tests, it must remain higher than pollInterval
+	// (preferably a factor of 2 or more) or the tests will potentially return
+	// errors from Stop() where the process races to Kill() a process that was
+	// already stopped by SIGINT but we didn't yet detect the change since poll
+	// didn't occur.
 	gracefulWait time.Duration
+
+	// pollInterval can be set for tests and controls how frequently the child
+	// process is sent SIG 0 to check it's still running. If not set defaults to 1
+	// second.
+	pollInterval time.Duration
+
+	// daemonizePath is set only in tests to control the path to the daemonize
+	// command. The test executable itself will not respond to the consul command
+	// arguments we need to make this work so we rely on the current source being
+	// built and installed here to run the tests.
+	daemonizePath string
 
 	// process is the started process
 	lock     sync.Mutex
@@ -108,7 +133,7 @@ func (p *Daemon) keepAlive(stopCh <-chan struct{}, exitedCh chan<- struct{}) {
 	// attempts keeps track of the number of restart attempts we've had and
 	// is used to calculate the wait time using an exponential backoff.
 	var attemptsDeadline time.Time
-	var attempts uint
+	var attempts uint32
 
 	for {
 		if process == nil {
@@ -121,7 +146,15 @@ func (p *Daemon) keepAlive(stopCh <-chan struct{}, exitedCh chan<- struct{}) {
 
 			// Calculate the exponential backoff and wait if we have to
 			if attempts > DaemonRestartBackoffMin {
-				waitTime := (1 << (attempts - DaemonRestartBackoffMin)) * time.Second
+				delayedAttempts := attempts - DaemonRestartBackoffMin
+				waitTime := time.Duration(0)
+				if delayedAttempts > 31 {
+					// don't shift off the end of the uint32 if the process is in a crash
+					// loop forever
+					waitTime = DaemonRestartMaxWait
+				} else {
+					waitTime = (1 << delayedAttempts) * time.Second
+				}
 				if waitTime > DaemonRestartMaxWait {
 					waitTime = DaemonRestartMaxWait
 				}
@@ -153,8 +186,8 @@ func (p *Daemon) keepAlive(stopCh <-chan struct{}, exitedCh chan<- struct{}) {
 				return
 			}
 
-			// Process isn't started currently. We're restarting. Start it
-			// and save the process if we have it.
+			// Process isn't started currently. We're restarting. Start it and save
+			// the process if we have it.
 			var err error
 			process, err = p.start()
 			if err == nil {
@@ -166,34 +199,40 @@ func (p *Daemon) keepAlive(stopCh <-chan struct{}, exitedCh chan<- struct{}) {
 				p.Logger.Printf("[ERR] agent/proxy: error restarting daemon: %s", err)
 				continue
 			}
-
+			// NOTE: it is a postcondition of this method that we don't return while
+			// the process is still running. See NOTE below but it's essential that
+			// from here to the <-waitCh below nothing can cause this method to exit
+			// or loop if err is non-nil.
 		}
 
-		// Wait for the process to exit. Note that if we restored this proxy
-		// then Wait will always fail because we likely aren't the parent
-		// process. Therefore, we do an extra sanity check after to use other
-		// syscalls to verify the process is truly dead.
-		ps, err := process.Wait()
-		if _, err := findProcess(process.Pid); err == nil {
-			select {
-			case <-time.After(1 * time.Second):
-				// We want a busy loop, but not too busy. 1 second between
-				// detecting a process death seems reasonable.
-
-			case <-stopCh:
-				// If we receive a stop request we want to exit immediately.
-				return
-			}
-
-			continue
+		// Wait will never work since child is detached and released, so poll the
+		// PID with sig 0 to check it's still alive.
+		interval := p.pollInterval
+		if interval < 1 {
+			interval = 1 * time.Second
 		}
+		waitCh, closer := externalWait(process.Pid, interval)
+		defer closer()
 
+		// NOTE: we must not select on anything else here; Stop() requires the
+		// postcondition for this method to be that the managed process is not
+		// running when we return and the defer above closes p.exitedCh. If we
+		// select on stopCh or another signal here we introduce races where we might
+		// exit early and leave the actual process running (for example because
+		// SIGINT was ignored but Stop saw us exit and assumed all was good). That
+		// means that there is no way to stop the Daemon without killing the process
+		// but that's OK because agent Shutdown can just persist the state and exit
+		// without Stopping this and the right thing will happen. If we ever need to
+		// stop managing a process without killing it at a time when the agent
+		// process is not shutting down then we might have to re-think that.
+		<-waitCh
+
+		// Note that we don't need to call Release explicitly. It's a no-op for Unix
+		// but even on Windows it's called automatically by a Finalizer during
+		// garbage collection to free the process handle.
+		// (https://github.com/golang/go/blob/1174ad3a8f6f9d2318ac45fca3cd90f12915cf04/src/os/exec.go#L26)
 		process = nil
-		if err != nil {
-			p.Logger.Printf("[INFO] agent/proxy: daemon exited with error: %s", err)
-		} else if status, ok := exitStatus(ps); ok {
-			p.Logger.Printf("[INFO] agent/proxy: daemon exited with exit code: %d", status)
-		}
+		p.Logger.Printf("[INFO] agent/proxy: daemon exited")
 	}
 }
 
@@ -201,33 +240,66 @@ func (p *Daemon) keepAlive(stopCh <-chan struct{}, exitedCh chan<- struct{}) {
 // configured *exec.Command with the modifications documented on Daemon
 // such as setting the proxy token environmental variable.
 func (p *Daemon) start() (*os.Process, error) {
-	cmd := *p.Command
-
 	// Add the proxy token to the environment. We first copy the env because
 	// it is a slice and therefore the "copy" above will only copy the slice
 	// reference. We allocate an exactly sized slice.
-	cmd.Env = make([]string, len(p.Command.Env), len(p.Command.Env)+1)
-	copy(cmd.Env, p.Command.Env)
-	cmd.Env = append(cmd.Env,
+	baseEnv := os.Environ()
+	env := make([]string, len(baseEnv), len(baseEnv)+2)
+	copy(env, baseEnv)
+	env = append(env,
 		fmt.Sprintf("%s=%s", EnvProxyId, p.ProxyId),
 		fmt.Sprintf("%s=%s", EnvProxyToken, p.ProxyToken))
 
 	// Args must always contain a 0 entry which is usually the executed binary.
 	// To be safe and a bit more robust we default this, but only to prevent
 	// a panic below.
-	if len(cmd.Args) == 0 {
-		cmd.Args = []string{cmd.Path}
+	if len(p.Args) == 0 {
+		p.Args = []string{p.Path}
 	}
 
-	// Start it
-	p.Logger.Printf("[DEBUG] agent/proxy: starting proxy: %q %#v", cmd.Path, cmd.Args[1:])
-	if err := cmd.Start(); err != nil {
+	// Watch closely, we now swap out the exec.Cmd args for ones to run the same
+	// command via the connect daemonize command which takes care of correctly
+	// "double forking" to ensure the child is fully detached and adopted by the
+	// init process while the agent keeps running.
+	var daemonCmd exec.Cmd
+
+	dCmd, err := p.daemonizeCommand()
+	if err != nil {
 		return nil, err
+	}
+	daemonCmd.Path = dCmd[0]
+	// First arguments are for the stdout, stderr
+	daemonCmd.Args = append(dCmd, p.StdoutPath)
+	daemonCmd.Args = append(daemonCmd.Args, p.StdoutPath)
+	daemonCmd.Args = append(daemonCmd.Args, p.Args...)
+	daemonCmd.Env = env
+
+	// setup stdout so we can read the PID
+	var out bytes.Buffer
+	daemonCmd.Stdout = &out
+
+	// Run it to completion - it should exit immediately (this calls wait to
+	// ensure we don't leave the daemonize command as a zombie)
+	p.Logger.Printf("[DEBUG] agent/proxy: starting proxy: %q %#v", daemonCmd.Path,
+		daemonCmd.Args[1:])
+	if err := daemonCmd.Run(); err != nil {
+		return nil, err
+	}
+
+	// Read the PID from stdout
+	outStr, err := out.ReadString('\n')
+	if err != nil {
+		return nil, err
+	}
+	pid, err := strconv.Atoi(strings.TrimSpace(outStr))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse PID from output of daemonize: %s",
+			err)
 	}
 
 	// Write the pid file. This might error and that's okay.
 	if p.PidPath != "" {
-		pid := strconv.FormatInt(int64(cmd.Process.Pid), 10)
+		pid := strconv.Itoa(pid)
 		if err := file.WriteAtomic(p.PidPath, []byte(pid)); err != nil {
 			p.Logger.Printf(
 				"[DEBUG] agent/proxy: error writing pid file %q: %s",
@@ -235,7 +307,22 @@ func (p *Daemon) start() (*os.Process, error) {
 		}
 	}
 
-	return cmd.Process, nil
+	// Finally, adopt the process so we can send signals
+	return findProcess(pid)
+}
+
+// daemonizeCommand returns the daemonize command.
+func (p *Daemon) daemonizeCommand() ([]string, error) {
+	// Get the path to the current executable. This is cached once by the
+	// library so this is effectively just a variable read.
+	execPath, err := os.Executable()
+	if err != nil {
+		return nil, err
+	}
+	if p.daemonizePath != "" {
+		execPath = p.daemonizePath
+	}
+	return []string{execPath, "connect", "daemonize"}, nil
 }
 
 // Stop stops the daemon.
@@ -283,7 +370,7 @@ func (p *Daemon) Stop() error {
 		}()
 	}
 
-	// First, try a graceful stop
+	// First, try a graceful stop.
 	err := process.Signal(os.Interrupt)
 	if err == nil {
 		select {
@@ -293,11 +380,23 @@ func (p *Daemon) Stop() error {
 
 		case <-time.After(gracefulWait):
 			// Interrupt didn't work
+			p.Logger.Printf("[DEBUG] agent/proxy: gracefull wait of %s passed, "+
+				"killing", gracefulWait)
 		}
+	} else if isProcessAlreadyFinishedErr(err) {
+		// This can happen due to races between signals and polling.
+		return nil
+	} else {
+		p.Logger.Printf("[DEBUG] agent/proxy: sigint failed, killing: %s", err)
 	}
 
-	// Graceful didn't work, forcibly kill
-	return process.Kill()
+	// Graceful didn't work (e.g. on windows where SIGINT isn't implemented),
+	// forcibly kill
+	err = process.Kill()
+	if err != nil && isProcessAlreadyFinishedErr(err) {
+		return nil
+	}
+	return err
 }
 
 // stopKeepAlive is like Stop but keeps the process running. This is
@@ -329,10 +428,8 @@ func (p *Daemon) Equal(raw Proxy) bool {
 
 	// We compare equality on a subset of the command configuration
 	return p.ProxyToken == p2.ProxyToken &&
-		p.Command.Path == p2.Command.Path &&
-		p.Command.Dir == p2.Command.Dir &&
-		reflect.DeepEqual(p.Command.Args, p2.Command.Args) &&
-		reflect.DeepEqual(p.Command.Env, p2.Command.Env)
+		p.Path == p2.Path &&
+		reflect.DeepEqual(p.Args, p2.Args)
 }
 
 // MarshalSnapshot implements Proxy
@@ -346,12 +443,10 @@ func (p *Daemon) MarshalSnapshot() map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"Pid":         p.process.Pid,
-		"CommandPath": p.Command.Path,
-		"CommandArgs": p.Command.Args,
-		"CommandDir":  p.Command.Dir,
-		"CommandEnv":  p.Command.Env,
-		"ProxyToken":  p.ProxyToken,
+		"Pid":        p.process.Pid,
+		"Path":       p.Path,
+		"Args":       p.Args,
+		"ProxyToken": p.ProxyToken,
 	}
 }
 
@@ -367,12 +462,8 @@ func (p *Daemon) UnmarshalSnapshot(m map[string]interface{}) error {
 
 	// Set the basic fields
 	p.ProxyToken = s.ProxyToken
-	p.Command = &exec.Cmd{
-		Path: s.CommandPath,
-		Args: s.CommandArgs,
-		Dir:  s.CommandDir,
-		Env:  s.CommandEnv,
-	}
+	p.Path = s.Path
+	p.Args = s.Args
 
 	// FindProcess on many systems returns no error even if the process
 	// is now dead. We perform an extra check that the process is alive.
@@ -398,14 +489,12 @@ func (p *Daemon) UnmarshalSnapshot(m map[string]interface{}) error {
 // within the manager snapshot and is restored automatically.
 type daemonSnapshot struct {
 	// Pid of the process. This is the only value actually required to
-	// regain mangement control. The remainder values are for Equal.
+	// regain management control. The remainder values are for Equal.
 	Pid int
 
 	// Command information
-	CommandPath string
-	CommandArgs []string
-	CommandDir  string
-	CommandEnv  []string
+	Path string
+	Args []string
 
 	// NOTE(mitchellh): longer term there are discussions/plans to only
 	// store the hash of the token but for now we need the full token in

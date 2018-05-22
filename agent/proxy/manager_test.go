@@ -379,7 +379,7 @@ func testStateProxy(t *testing.T, state *local.State, service string, cmd *exec.
 		ExecMode:        structs.ProxyExecModeDaemon,
 		Command:         command,
 		TargetServiceID: service,
-	}, "token")
+	}, "token", "")
 	require.NoError(t, err)
 
 	return p.Proxy.ProxyService.ID

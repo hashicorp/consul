@@ -3,8 +3,8 @@ package proxy
 import (
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 
@@ -28,12 +28,10 @@ func TestDaemonStartStop(t *testing.T) {
 	uuid, err := uuid.GenerateUUID()
 	require.NoError(err)
 
-	d := &Daemon{
-		Command:    helperProcess("start-stop", path),
-		ProxyId:    "tubes",
-		ProxyToken: uuid,
-		Logger:     testLogger,
-	}
+	d := helperProcessDaemon("start-stop", path)
+	d.ProxyId = "tubes"
+	d.ProxyToken = uuid
+	d.Logger = testLogger
 	require.NoError(d.Start())
 	defer d.Stop()
 
@@ -68,6 +66,73 @@ func TestDaemonStartStop(t *testing.T) {
 	})
 }
 
+func TestDaemonDetachesChild(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	td, closer := testTempDir(t)
+	defer closer()
+
+	path := filepath.Join(td, "file")
+	pidPath := filepath.Join(td, "child.pid")
+
+	// Start the parent process wrapping a start-stop test. The parent is acting
+	// as our "agent". We need an extra indirection to be able to kill the "agent"
+	// and still be running the test process.
+	parentCmd := helperProcess("parent", pidPath, "start-stop", path)
+	require.NoError(parentCmd.Start())
+
+	// Wait for the pid file to exist so we know parent is running
+	retry.Run(t, func(r *retry.R) {
+		_, err := os.Stat(pidPath)
+		if err == nil {
+			return
+		}
+
+		r.Fatalf("error: %s", err)
+	})
+
+	// And wait for the actual file to be sure the child is running (it should be
+	// since parent doesn't write PID until child starts but the child might not
+	// have completed the write to disk yet which causes flakiness below).
+	retry.Run(t, func(r *retry.R) {
+		_, err := os.Stat(path)
+		if err == nil {
+			return
+		}
+
+		r.Fatalf("error: %s", err)
+	})
+
+	// Always cleanup child process after
+	defer func() {
+		_, err := os.Stat(pidPath)
+		if err != nil {
+			return
+		}
+		bs, err := ioutil.ReadFile(pidPath)
+		require.NoError(err)
+		pid, err := strconv.Atoi(string(bs))
+		require.NoError(err)
+		proc, err := os.FindProcess(pid)
+		if err != nil {
+			return
+		}
+		proc.Kill()
+	}()
+
+	// Now kill the parent and wait for it
+	require.NoError(parentCmd.Process.Kill())
+	_, err := parentCmd.Process.Wait()
+	require.NoError(err)
+
+	// The child should still be running so file should still be there
+	_, err = os.Stat(path)
+	require.NoError(err, "child should still be running")
+
+	// Let defer clean up the child process
+}
+
 func TestDaemonRestart(t *testing.T) {
 	t.Parallel()
 
@@ -76,10 +141,8 @@ func TestDaemonRestart(t *testing.T) {
 	defer closer()
 	path := filepath.Join(td, "file")
 
-	d := &Daemon{
-		Command: helperProcess("restart", path),
-		Logger:  testLogger,
-	}
+	d := helperProcessDaemon("restart", path)
+	d.Logger = testLogger
 	require.NoError(d.Start())
 	defer d.Stop()
 
@@ -111,12 +174,11 @@ func TestDaemonStop_kill(t *testing.T) {
 
 	path := filepath.Join(td, "file")
 
-	d := &Daemon{
-		Command:      helperProcess("stop-kill", path),
-		ProxyToken:   "hello",
-		Logger:       testLogger,
-		gracefulWait: 200 * time.Millisecond,
-	}
+	d := helperProcessDaemon("stop-kill", path)
+	d.ProxyToken = "hello"
+	d.Logger = testLogger
+	d.gracefulWait = 200 * time.Millisecond
+	d.pollInterval = 100 * time.Millisecond
 	require.NoError(d.Start())
 
 	// Wait for the file to exist
@@ -132,7 +194,7 @@ func TestDaemonStop_kill(t *testing.T) {
 	// Stop the process
 	require.NoError(d.Stop())
 
-	// State the file so that we can get the mtime
+	// Stat the file so that we can get the mtime
 	fi, err := os.Stat(path)
 	require.NoError(err)
 	mtime := fi.ModTime()
@@ -149,6 +211,7 @@ func TestDaemonStart_pidFile(t *testing.T) {
 
 	require := require.New(t)
 	td, closer := testTempDir(t)
+
 	defer closer()
 
 	path := filepath.Join(td, "file")
@@ -156,12 +219,10 @@ func TestDaemonStart_pidFile(t *testing.T) {
 	uuid, err := uuid.GenerateUUID()
 	require.NoError(err)
 
-	d := &Daemon{
-		Command:    helperProcess("start-once", path),
-		ProxyToken: uuid,
-		Logger:     testLogger,
-		PidPath:    pidPath,
-	}
+	d := helperProcessDaemon("start-once", path)
+	d.ProxyToken = uuid
+	d.Logger = testLogger
+	d.PidPath = pidPath
 	require.NoError(d.Start())
 	defer d.Stop()
 
@@ -198,11 +259,9 @@ func TestDaemonRestart_pidFile(t *testing.T) {
 	path := filepath.Join(td, "file")
 	pidPath := filepath.Join(td, "pid")
 
-	d := &Daemon{
-		Command: helperProcess("restart", path),
-		Logger:  testLogger,
-		PidPath: pidPath,
-	}
+	d := helperProcessDaemon("restart", path)
+	d.Logger = testLogger
+	d.PidPath = pidPath
 	require.NoError(d.Start())
 	defer d.Stop()
 
@@ -244,51 +303,32 @@ func TestDaemonEqual(t *testing.T) {
 	}{
 		{
 			"Different type",
-			&Daemon{
-				Command: &exec.Cmd{},
-			},
+			&Daemon{},
 			&Noop{},
 			false,
 		},
 
 		{
 			"Nil",
-			&Daemon{
-				Command: &exec.Cmd{},
-			},
+			&Daemon{},
 			nil,
 			false,
 		},
 
 		{
 			"Equal",
-			&Daemon{
-				Command: &exec.Cmd{},
-			},
-			&Daemon{
-				Command: &exec.Cmd{},
-			},
+			&Daemon{},
+			&Daemon{},
 			true,
 		},
 
 		{
 			"Different path",
 			&Daemon{
-				Command: &exec.Cmd{Path: "/foo"},
+				Path: "/foo",
 			},
 			&Daemon{
-				Command: &exec.Cmd{Path: "/bar"},
-			},
-			false,
-		},
-
-		{
-			"Different dir",
-			&Daemon{
-				Command: &exec.Cmd{Dir: "/foo"},
-			},
-			&Daemon{
-				Command: &exec.Cmd{Dir: "/bar"},
+				Path: "/bar",
 			},
 			false,
 		},
@@ -296,10 +336,10 @@ func TestDaemonEqual(t *testing.T) {
 		{
 			"Different args",
 			&Daemon{
-				Command: &exec.Cmd{Args: []string{"foo"}},
+				Args: []string{"foo"},
 			},
 			&Daemon{
-				Command: &exec.Cmd{Args: []string{"bar"}},
+				Args: []string{"bar"},
 			},
 			false,
 		},
@@ -307,11 +347,9 @@ func TestDaemonEqual(t *testing.T) {
 		{
 			"Different token",
 			&Daemon{
-				Command:    &exec.Cmd{},
 				ProxyToken: "one",
 			},
 			&Daemon{
-				Command:    &exec.Cmd{},
 				ProxyToken: "two",
 			},
 			false,
@@ -335,7 +373,7 @@ func TestDaemonMarshalSnapshot(t *testing.T) {
 		{
 			"stopped daemon",
 			&Daemon{
-				Command: &exec.Cmd{Path: "/foo"},
+				Path: "/foo",
 			},
 			nil,
 		},
@@ -343,16 +381,14 @@ func TestDaemonMarshalSnapshot(t *testing.T) {
 		{
 			"basic",
 			&Daemon{
-				Command: &exec.Cmd{Path: "/foo"},
+				Path:    "/foo",
 				process: &os.Process{Pid: 42},
 			},
 			map[string]interface{}{
-				"Pid":         42,
-				"CommandPath": "/foo",
-				"CommandArgs": []string(nil),
-				"CommandDir":  "",
-				"CommandEnv":  []string(nil),
-				"ProxyToken":  "",
+				"Pid":        42,
+				"Path":       "/foo",
+				"Args":       []string(nil),
+				"ProxyToken": "",
 			},
 		},
 	}
@@ -376,11 +412,9 @@ func TestDaemonUnmarshalSnapshot(t *testing.T) {
 	uuid, err := uuid.GenerateUUID()
 	require.NoError(err)
 
-	d := &Daemon{
-		Command:    helperProcess("start-stop", path),
-		ProxyToken: uuid,
-		Logger:     testLogger,
-	}
+	d := helperProcessDaemon("start-stop", path)
+	d.ProxyToken = uuid
+	d.Logger = testLogger
 	defer d.Stop()
 	require.NoError(d.Start())
 
@@ -430,11 +464,9 @@ func TestDaemonUnmarshalSnapshot_notRunning(t *testing.T) {
 	uuid, err := uuid.GenerateUUID()
 	require.NoError(err)
 
-	d := &Daemon{
-		Command:    helperProcess("start-stop", path),
-		ProxyToken: uuid,
-		Logger:     testLogger,
-	}
+	d := helperProcessDaemon("start-stop", path)
+	d.ProxyToken = uuid
+	d.Logger = testLogger
 	defer d.Stop()
 	require.NoError(d.Start())
 

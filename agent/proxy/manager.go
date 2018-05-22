@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sync"
 	"time"
@@ -401,16 +400,9 @@ func (m *Manager) newProxy(mp *local.ManagedProxy) (Proxy, error) {
 			return nil, fmt.Errorf("daemon mode managed proxy requires command")
 		}
 
-		// Build the command to execute.
-		var cmd exec.Cmd
-		cmd.Path = command[0]
-		cmd.Args = command // idx 0 is path but preserved since it should be
-		if err := m.configureLogDir(id, &cmd); err != nil {
-			return nil, fmt.Errorf("error configuring proxy logs: %s", err)
-		}
-
 		// Build the daemon structure
-		proxy.Command = &cmd
+		proxy.Path = command[0]
+		proxy.Args = command // idx 0 is path but preserved since it should be
 		proxy.ProxyId = id
 		proxy.ProxyToken = mp.ProxyToken
 		return proxy, nil
@@ -427,48 +419,15 @@ func (m *Manager) newProxyFromMode(mode structs.ProxyExecMode, id string) (Proxy
 	switch mode {
 	case structs.ProxyExecModeDaemon:
 		return &Daemon{
-			Logger:  m.Logger,
-			PidPath: pidPath(filepath.Join(m.DataDir, "pids"), id),
+			Logger:     m.Logger,
+			StdoutPath: logPath(filepath.Join(m.DataDir, "logs"), id, "stdout"),
+			StderrPath: logPath(filepath.Join(m.DataDir, "logs"), id, "stderr"),
+			PidPath:    pidPath(filepath.Join(m.DataDir, "pids"), id),
 		}, nil
 
 	default:
 		return nil, fmt.Errorf("unsupported managed proxy type: %q", mode)
 	}
-}
-
-// configureLogDir sets up the file descriptors to stdout/stderr so that
-// they log to the proper file path for the given service ID.
-func (m *Manager) configureLogDir(id string, cmd *exec.Cmd) error {
-	// Create the log directory
-	logDir := ""
-	if m.DataDir != "" {
-		logDir = filepath.Join(m.DataDir, "logs")
-		if err := os.MkdirAll(logDir, 0700); err != nil {
-			return err
-		}
-	}
-
-	// Configure the stdout, stderr paths
-	stdoutPath := logPath(logDir, id, "stdout")
-	stderrPath := logPath(logDir, id, "stderr")
-
-	// Open the files. We want to append to each. We expect these files
-	// to be rotated by some external process.
-	stdoutF, err := os.OpenFile(stdoutPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
-	if err != nil {
-		return fmt.Errorf("error creating stdout file: %s", err)
-	}
-	stderrF, err := os.OpenFile(stderrPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
-	if err != nil {
-		// Don't forget to close stdoutF which successfully opened
-		stdoutF.Close()
-
-		return fmt.Errorf("error creating stderr file: %s", err)
-	}
-
-	cmd.Stdout = stdoutF
-	cmd.Stderr = stderrF
-	return nil
 }
 
 // logPath is a helper to return the path to the log file for the given
