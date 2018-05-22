@@ -17,7 +17,6 @@ export default Route.extend(WithIntentionActions, {
       create: true,
       isLoading: false,
       item: this.item,
-      types: ['consul', 'externaluri'],
       intents: ['allow', 'deny'],
     });
   },

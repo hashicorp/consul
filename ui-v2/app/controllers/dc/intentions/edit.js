@@ -18,9 +18,6 @@ export default Controller.extend({
     change: function(e) {
       const target = e.target;
       switch (target.name) {
-        case 'SourceType':
-          set(this.changeset, target.name, target.value);
-          break;
         case 'Action':
           set(this.changeset, target.name, target.value);
           break;

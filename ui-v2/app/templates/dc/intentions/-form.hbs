@@ -5,21 +5,13 @@
             {{input value=item.SourceName name='source' autofocus='autofocus'}}
             <em>Choose a Consul Service, write in a future Consul Service, or write any Service URL</em>
         </label>
-        <div role="radiogroup" class={{if item.error.Type ' has-error'}}>
-            {{#each types as |type|}}
-                <label>
-                    <span>{{type}}</span>
-                    <input type="radio" name="SourceType" value="{{type}}" checked={{if (eq item.SourceType type) 'checked'}} onchange={{ action 'change' }}/>
-                </label>
-            {{/each}}
-        </div>
         <label class="type-text{{if item.error.DestinationName ' has-error'}}">
             <span>Destination Service</span>
             {{input value=item.DestinationName name='name'}}
             <em>Choose a Consul Service, write in a future Consul Service, or write any Service URL</em>
         </label>
         <div role="radiogroup" class={{if item.error.Action ' has-error'}}>
-            {{#each itents as |intent|}}
+            {{#each intents as |intent|}}
                 <label>
                     <span>{{intent}}</span>
                     <input type="radio" name="Action" value="{{intent}}" checked={{if (eq item.Action intent) 'checked'}} onchange={{ action 'change' }}/>

@@ -11,7 +11,6 @@ export default Route.extend(WithAclActions, {
     return hash({
       isLoading: false,
       item: get(this, 'repo').findBySlug(params.id, this.modelFor('dc').dc.Name),
-      types: ['consul', 'externaluri'],
       intents: ['allow', 'deny'],
     });
   },
