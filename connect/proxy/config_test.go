@@ -47,9 +47,6 @@ func TestParseConfigFile(t *testing.T) {
 				ConnectTimeoutMs:     10000,
 			},
 		},
-		DevCAFile:          "connect/testdata/ca1-ca-consul-internal.cert.pem",
-		DevServiceCertFile: "connect/testdata/ca1-svc-web.cert.pem",
-		DevServiceKeyFile:  "connect/testdata/ca1-svc-web.key.pem",
 	}
 
 	require.Equal(t, expect, cfg)

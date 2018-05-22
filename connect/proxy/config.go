@@ -36,25 +36,11 @@ type Config struct {
 
 	// Upstreams configures outgoing proxies for remote connect services.
 	Upstreams []UpstreamConfig `json:"upstreams" hcl:"upstreams"`
-
-	// DevCAFile, DevServiceCertFile, and DevServiceKeyFile allow configuring
-	// the certificate information from a static file. This is only for testing
-	// purposes. All or none must be specified.
-	DevCAFile          string `json:"dev_ca_file" hcl:"dev_ca_file"`
-	DevServiceCertFile string `json:"dev_service_cert_file" hcl:"dev_service_cert_file"`
-	DevServiceKeyFile  string `json:"dev_service_key_file" hcl:"dev_service_key_file"`
 }
 
 // Service returns the *connect.Service structure represented by this config.
 func (c *Config) Service(client *api.Client, logger *log.Logger) (*connect.Service, error) {
-	// If we aren't in dev mode, then we return the configured service.
-	if c.DevCAFile == "" {
-		return connect.NewServiceWithLogger(c.ProxiedServiceName, client, logger)
-	}
-
-	// Dev mode
-	return connect.NewDevServiceFromCertFiles(c.ProxiedServiceName,
-		logger, c.DevCAFile, c.DevServiceCertFile, c.DevServiceKeyFile)
+	return connect.NewServiceWithLogger(c.ProxiedServiceName, client, logger)
 }
 
 // PublicListenerConfig contains the parameters needed for the incoming mTLS
