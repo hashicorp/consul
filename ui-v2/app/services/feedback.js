@@ -1,35 +1,35 @@
-import Service from '@ember/service';
-import { inject as service } from '@ember/service';
-import { get } from '@ember/object';
+import Service, { inject as service } from '@ember/service';
+import { get, set } from '@ember/object';
 
 export default Service.extend({
-  // TODO: Why can't I name this `notify`?
-  flashMessages: service('flashMessages'),
-  execute: function(handle, success, error) {
-    const controller = this.controller;
-    controller.set('isLoading', true);
+  notify: service('flashMessages'),
+  logger: service('logger'),
+  execute: function(handle, success, error, controller) {
+    set(controller, 'isLoading', true);
+    const notify = get(this, 'notify');
     return handle()
       .then(() => {
-        get(this, 'flashMessages').add({
+        notify.add({
           type: 'success',
           message: success,
         });
       })
       .catch(e => {
+        get(this, 'logger').execute(e);
         if (e.name === 'TransitionAborted') {
-          get(this, 'flashMessages').add({
+          notify.add({
             type: 'success',
             message: success,
           });
         } else {
-          get(this, 'flashMessages').add({
+          notify.add({
             type: 'error',
             message: error,
           });
         }
       })
       .finally(function() {
-        controller.set('isLoading', false);
+        set(controller, 'isLoading', false);
       });
   },
 });
