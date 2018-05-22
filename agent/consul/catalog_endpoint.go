@@ -240,7 +240,7 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 	}
 
 	// Verify the arguments
-	if args.ServiceName == "" {
+	if args.ServiceName == "" && args.ServiceAddress == "" {
 		return fmt.Errorf("Must provide service name")
 	}
 
@@ -255,6 +255,9 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 				index, services, err = state.ServiceTagNodes(ws, args.ServiceName, args.ServiceTag)
 			} else {
 				index, services, err = state.ServiceNodes(ws, args.ServiceName)
+			}
+			if args.ServiceAddress != "" {
+				index, services, err = state.ServiceAddressNodes(ws, args.ServiceAddress)
 			}
 			if err != nil {
 				return err

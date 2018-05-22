@@ -12,6 +12,7 @@ import (
 	"regexp"
 
 	"github.com/armon/go-metrics"
+	"github.com/coredns/coredns/plugin/pkg/dnsutil"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
@@ -203,6 +204,34 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 				}
 				m.Answer = append(m.Answer, ptr)
 				break
+			}
+		}
+	}
+
+	// only look into the services if we didn't find a node
+	if len(m.Answer) == 0 {
+		// lookup the service address
+		serviceAddress := dnsutil.ExtractAddressFromReverse(qName)
+		sargs := structs.ServiceSpecificRequest{
+			Datacenter: datacenter,
+			QueryOptions: structs.QueryOptions{
+				Token:      d.agent.tokens.UserToken(),
+				AllowStale: d.config.AllowStale,
+			},
+			ServiceAddress: serviceAddress,
+		}
+
+		var sout structs.IndexedServiceNodes
+		if err := d.agent.RPC("Catalog.ServiceNodes", &sargs, &sout); err == nil {
+			for _, n := range sout.ServiceNodes {
+				if n.ServiceAddress == serviceAddress {
+					ptr := &dns.PTR{
+						Hdr: dns.RR_Header{Name: q.Name, Rrtype: dns.TypePTR, Class: dns.ClassINET, Ttl: 0},
+						Ptr: fmt.Sprintf("%s.service.%s", n.ServiceName, d.domain),
+					}
+					m.Answer = append(m.Answer, ptr)
+					break
+				}
 			}
 		}
 	}
