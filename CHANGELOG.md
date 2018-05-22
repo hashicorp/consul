@@ -1,3 +1,9 @@
+## UNRELEASED
+
+FEATURES:
+
+* dns: Enable PTR record lookups for services with IPs that have no registered node [[PR-4083](https://github.com/hashicorp/consul/pull/4083)]
+
 ## 1.1.0 (May 11, 2018)
 
 FEATURES:
