@@ -340,6 +340,8 @@ Usage: consul connect proxy [options]
   a non-Connect-aware application to use Connect.
 
   The proxy requires service:write permissions for the service it represents.
+  The token may be passed via the CLI or the CONSUL_TOKEN environment
+  variable.
 
   Consul can automatically start and manage this proxy by specifying the
   "proxy" configuration within your service definition.
