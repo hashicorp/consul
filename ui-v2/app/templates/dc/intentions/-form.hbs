@@ -1,0 +1,58 @@
+<form>
+    <fieldset>
+        <label class="type-text{{if item.error.SourceName ' has-error'}}">
+            <span>Source Service</span>
+            {{input value=item.SourceName name='source' autofocus='autofocus'}}
+            <em>Choose a Consul Service, write in a future Consul Service, or write any Service URL</em>
+        </label>
+        <div role="radiogroup" class={{if item.error.Type ' has-error'}}>
+            {{#each types as |type|}}
+                <label>
+                    <span>{{type}}</span>
+                    <input type="radio" name="SourceType" value="{{type}}" checked={{if (eq item.SourceType type) 'checked'}} onchange={{ action 'change' }}/>
+                </label>
+            {{/each}}
+        </div>
+        <label class="type-text{{if item.error.DestinationName ' has-error'}}">
+            <span>Destination Service</span>
+            {{input value=item.DestinationName name='name'}}
+            <em>Choose a Consul Service, write in a future Consul Service, or write any Service URL</em>
+        </label>
+        <div role="radiogroup" class={{if item.error.Action ' has-error'}}>
+            {{#each itents as |intent|}}
+                <label>
+                    <span>{{intent}}</span>
+                    <input type="radio" name="Action" value="{{intent}}" checked={{if (eq item.Action intent) 'checked'}} onchange={{ action 'change' }}/>
+                </label>
+            {{/each}}
+        </div>
+        <label class="type-text{{if item.error.Description ' has-error'}}">
+            <span>Description</span>
+            {{input value=item.Description name='description' placeholder="Description"}}
+            <em>Choose a Consul Service, write in a future Consul Service, or write any Service URL</em>
+        </label>
+    </fieldset>
+    <div>
+{{#if create }}
+        <button type="submit" {{ action "create" item}} disabled={{if item.isInvalid 'disabled'}}>Save</button>
+{{ else }}
+        <button type="submit" {{ action "update" item}} disabled={{if item.isInvalid 'disabled'}}>Save</button>
+{{/if}}
+        <button type="reset" {{ action "cancel" item}}>Cancel</button>
+{{# if (and item.ID (not-eq item.ID 'anonymous')) }}
+        {{#confirmation-dialog message='Are you sure you want to delete this Intention?'}}
+            {{#block-slot 'action' as |confirm|}}
+                <button type="button" class="type-delete" {{action confirm 'delete' item parent}}>Delete</button>
+            {{/block-slot}}
+            {{#block-slot 'dialog' as |execute cancel message|}}
+                <p>
+                    {{message}}
+                </p>
+                <button type="button" class="type-delete" {{action execute}}>Confirm Delete</button>
+                <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
+            {{/block-slot}}
+        {{/confirmation-dialog}}
+{{/if}}
+    </div>
+</form>
+

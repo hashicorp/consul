@@ -19,6 +19,9 @@ table tr > * {
 html.template-service.template-list main table tr {
   @extend %services-row;
 }
+html.template-intention.template-list main table tr {
+  @extend %intentions-row;
+}
 html.template-kv.template-list main table tr {
   @extend %kvs-row;
 }
@@ -64,6 +67,12 @@ html.template-node.template-show main table.sessions tr {
 }
 tr > * dl {
   float: left;
+}
+%intentions-row > * {
+  width: calc(25% - 60px);
+}
+%intentions-row > *:last-child {
+  width: 60px;
 }
 %kvs-row > *:first-child {
   width: calc(100% - 60px);

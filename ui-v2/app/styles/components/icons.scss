@@ -25,12 +25,13 @@
   pointer-events: none;
 }
 %with-folder {
-  position: relative;
   text-indent: 30px;
 }
 %with-hashicorp,
+%with-folder,
 %with-chevron,
-%with-clipboard {
+%with-clipboard,
+%with-right-arrow {
   position: relative;
 }
 %with-chevron {
@@ -141,6 +142,26 @@
 %with-warning-icon-grey {
   @extend %pseudo-icon;
   background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="14" height="14" xmlns="http://www.w3.org/2000/svg"><path d="M13.645 10.092c.24.409.365.88.365 1.37 0 1.392-1.027 2.527-2.294 2.538H2.322c-.824 0-1.592-.487-2.004-1.27a2.761 2.761 0 0 1 0-2.538l4.686-8.904C5.416.505 6.184.018 7.008.018c.824 0 1.592.487 2.004 1.27l4.633 8.804zm-5.989 1.264V9.607H6.344v1.749h1.312zm0-3.048v-4.37H6.344v4.37h1.312z" fill="%23949daa"/></svg>');
+}
+%with-right-arrow-green {
+  @extend %pseudo-icon;
+  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="16" height="14" xmlns="http://www.w3.org/2000/svg"><path d="M9.263.5L8.084 1.637l4.716 4.55H0v1.625h12.8l-4.716 4.55 1.18 1.138L16 7z" fill="%232EB039"/></svg>');
+  width: 16px;
+  height: 14px;
+  background-color: transparent;
+}
+%with-deny-icon {
+  @extend %pseudo-icon;
+  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="16" height="16" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd"><path fill="#282C2E" d="M8.79 4l-.737.71L11 7.556H3V8.57h8l-2.947 2.844.736.711L13 8.062z"/><rect stroke="#C73445" stroke-width="1.5" x=".75" y=".75" width="14.5" height="14.5" rx="7.25"/><path d="M3.5 3.5l9 9" stroke="#C73445" stroke-width="1.5" stroke-linecap="square"/></g></svg>');
+  width: 16px;
+  height: 16px;
+  background-color: transparent;
+}
+%with-deny::before {
+  @extend %with-deny-icon;
+}
+%with-allow::before {
+  @extend %with-right-arrow-green;
 }
 %with-passing::before {
   @extend %with-tick;

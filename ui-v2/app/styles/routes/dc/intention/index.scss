@@ -1,0 +1,8 @@
+td.intent-allow strong {
+  @extend %with-allow;
+  visibility: hidden;
+}
+td.intent-deny strong {
+  @extend %with-deny;
+  visibility: hidden;
+}
