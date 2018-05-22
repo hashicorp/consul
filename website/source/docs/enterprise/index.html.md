@@ -23,3 +23,11 @@ increases both scalability and resilience. Features include:
 
 These features are part of [Consul
 Enterprise](https://www.hashicorp.com/consul.html).
+
+## Licensing
+
+Licensing capabilities were added to Consul Enterprise v1.1.0. The license is set
+once for a datacenter and will automatically propagate to all nodes within the
+datacenter over a period of time scaled between 1 and 20 minutes depending on the
+number of nodes in the datacenter. The license can be set via the 
+[API](/api/operator/license.html) or the [CLI](/docs/commands/license.html).
