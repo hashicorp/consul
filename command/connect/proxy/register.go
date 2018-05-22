@@ -184,8 +184,11 @@ func (r *RegisterMonitor) register() {
 		}
 	}
 
-	// If we have a matching service, then do nothing
-	if currentService != nil {
+	// If we have a matching service, then we verify if we need to reregister
+	// by comparing if it matches what we expect.
+	if currentService != nil &&
+		currentService.ServiceAddress == r.LocalAddress &&
+		currentService.ServicePort == r.LocalPort {
 		r.Logger.Printf("[DEBUG] proxy: service already registered, not re-registering")
 		return
 	}
