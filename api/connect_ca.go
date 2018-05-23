@@ -1,8 +1,43 @@
 package api
 
 import (
+	"fmt"
 	"time"
+
+	"github.com/mitchellh/mapstructure"
 )
+
+// CAConfig is the structure for the Connect CA configuration.
+type CAConfig struct {
+	// Provider is the CA provider implementation to use.
+	Provider string
+
+	// Configuration is arbitrary configuration for the provider. This
+	// should only contain primitive values and containers (such as lists
+	// and maps).
+	Config map[string]interface{}
+
+	CreateIndex uint64
+	ModifyIndex uint64
+}
+
+// ConsulCAProviderConfig is the config for the built-in Consul CA provider.
+type ConsulCAProviderConfig struct {
+	PrivateKey     string
+	RootCert       string
+	RotationPeriod time.Duration
+}
+
+// ParseConsulCAConfig takes a raw config map and returns a parsed
+// ConsulCAProviderConfig.
+func ParseConsulCAConfig(raw map[string]interface{}) (*ConsulCAProviderConfig, error) {
+	var config ConsulCAProviderConfig
+	if err := mapstructure.WeakDecode(raw, &config); err != nil {
+		return nil, fmt.Errorf("error decoding config: %s", err)
+	}
+
+	return &config, nil
+}
 
 // CARootList is the structure for the results of listing roots.
 type CARootList struct {
@@ -78,4 +113,41 @@ func (h *Connect) CARoots(q *QueryOptions) (*CARootList, *QueryMeta, error) {
 		return nil, nil, err
 	}
 	return &out, qm, nil
+}
+
+// CAGetConfig returns the current CA configuration.
+func (h *Connect) CAGetConfig(q *QueryOptions) (*CAConfig, *QueryMeta, error) {
+	r := h.c.newRequest("GET", "/v1/connect/ca/configuration")
+	r.setQueryOptions(q)
+	rtt, resp, err := requireOK(h.c.doRequest(r))
+	if err != nil {
+		return nil, nil, err
+	}
+	defer resp.Body.Close()
+
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
+
+	var out CAConfig
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, nil, err
+	}
+	return &out, qm, nil
+}
+
+// CASetConfig sets the current CA configuration.
+func (h *Connect) CASetConfig(conf *CAConfig, q *WriteOptions) (*WriteMeta, error) {
+	r := h.c.newRequest("PUT", "/v1/connect/ca/configuration")
+	r.setWriteOptions(q)
+	r.obj = conf
+	rtt, resp, err := requireOK(h.c.doRequest(r))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	wm := &WriteMeta{}
+	wm.RequestTime = rtt
+	return wm, nil
 }

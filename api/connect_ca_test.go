@@ -2,6 +2,9 @@ package api
 
 import (
 	"testing"
+	"time"
+
+	"github.com/pascaldekloe/goe/verify"
 
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/testutil/retry"
@@ -50,4 +53,42 @@ func TestAPI_ConnectCARoots_list(t *testing.T) {
 		}
 	})
 
+}
+
+func TestAPI_ConnectCAConfig_get_set(t *testing.T) {
+	t.Parallel()
+
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	expected := &ConsulCAProviderConfig{
+		RotationPeriod: 90 * 24 * time.Hour,
+	}
+
+	// This fails occasionally if server doesn't have time to bootstrap CA so
+	// retry
+	retry.Run(t, func(r *retry.R) {
+		connect := c.Connect()
+
+		conf, _, err := connect.CAGetConfig(nil)
+		r.Check(err)
+		if conf.Provider != "consul" {
+			r.Fatalf("expected default provider, got %q", conf.Provider)
+		}
+		parsed, err := ParseConsulCAConfig(conf.Config)
+		r.Check(err)
+		verify.Values(r, "", parsed, expected)
+
+		// Change a config value and update
+		conf.Config["RotationPeriod"] = 120 * 24 * time.Hour
+		_, err = connect.CASetConfig(conf, nil)
+		r.Check(err)
+
+		updated, _, err := connect.CAGetConfig(nil)
+		r.Check(err)
+		expected.RotationPeriod = 120 * 24 * time.Hour
+		parsed, err = ParseConsulCAConfig(updated.Config)
+		r.Check(err)
+		verify.Values(r, "", parsed, expected)
+	})
 }
