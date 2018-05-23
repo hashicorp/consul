@@ -7,6 +7,9 @@ import (
 	catlistnodes "github.com/hashicorp/consul/command/catalog/list/nodes"
 	catlistsvc "github.com/hashicorp/consul/command/catalog/list/services"
 	"github.com/hashicorp/consul/command/connect"
+	"github.com/hashicorp/consul/command/connect/ca"
+	caget "github.com/hashicorp/consul/command/connect/ca/get"
+	caset "github.com/hashicorp/consul/command/connect/ca/set"
 	"github.com/hashicorp/consul/command/connect/proxy"
 	"github.com/hashicorp/consul/command/event"
 	"github.com/hashicorp/consul/command/exec"
@@ -67,6 +70,9 @@ func init() {
 	Register("catalog nodes", func(ui cli.Ui) (cli.Command, error) { return catlistnodes.New(ui), nil })
 	Register("catalog services", func(ui cli.Ui) (cli.Command, error) { return catlistsvc.New(ui), nil })
 	Register("connect", func(ui cli.Ui) (cli.Command, error) { return connect.New(), nil })
+	Register("connect ca", func(ui cli.Ui) (cli.Command, error) { return ca.New(), nil })
+	Register("connect ca get-config", func(ui cli.Ui) (cli.Command, error) { return caget.New(ui), nil })
+	Register("connect ca set-config", func(ui cli.Ui) (cli.Command, error) { return caset.New(ui), nil })
 	Register("connect proxy", func(ui cli.Ui) (cli.Command, error) { return proxy.New(ui, MakeShutdownCh()), nil })
 	Register("event", func(ui cli.Ui) (cli.Command, error) { return event.New(ui), nil })
 	Register("exec", func(ui cli.Ui) (cli.Command, error) { return exec.New(ui, MakeShutdownCh()), nil })
