@@ -79,6 +79,7 @@ type dnsControlOpts struct {
 	initPodCache       bool
 	initEndpointsCache bool
 	resyncPeriod       time.Duration
+	ignoreEmptyService bool
 	// Label handling.
 	labelSelector *meta.LabelSelector
 	selector      labels.Selector

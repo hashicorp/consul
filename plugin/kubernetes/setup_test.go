@@ -615,3 +615,73 @@ func TestKubernetesParseNoEndpoints(t *testing.T) {
 		}
 	}
 }
+
+func TestKubernetesParseIgnoreEmptyService(t *testing.T) {
+	tests := []struct {
+		input                 string // Corefile data as string
+		shouldErr             bool   // true if test case is exected to produce an error.
+		expectedErrContent    string // substring from the expected error. Empty for positive cases.
+		expectedEndpointsInit bool
+	}{
+		// valid
+		{
+			`kubernetes coredns.local {
+	ignore empty_service
+}`,
+			false,
+			"",
+			true,
+		},
+		// invalid
+		{
+			`kubernetes coredns.local {
+	ignore ixnay on the endpointsay
+}`,
+			true,
+			"unable to parse ignore value",
+			false,
+		},
+		{
+			`kubernetes coredns.local {
+	ignore empty_service ixnay on the endpointsay
+}`,
+			false,
+			"",
+			true,
+		},
+		// not set
+		{
+			`kubernetes coredns.local {
+}`,
+			false,
+			"",
+			false,
+		},
+	}
+
+	for i, test := range tests {
+		c := caddy.NewTestController("dns", test.input)
+		k8sController, err := kubernetesParse(c)
+
+		if test.shouldErr && err == nil {
+			t.Errorf("Test %d: Expected error, but did not find error for input '%s'. Error was: '%v'", i, test.input, err)
+		}
+
+		if err != nil {
+			if !test.shouldErr {
+				t.Errorf("Test %d: Expected no error but found one for input %s. Error was: %v", i, test.input, err)
+				continue
+			}
+
+			if !strings.Contains(err.Error(), test.expectedErrContent) {
+				t.Errorf("Test %d: Expected error to contain: %v, found error: %v, input: %s", i, test.expectedErrContent, err, test.input)
+			}
+			continue
+		}
+
+		foundIgnoreEmptyService := k8sController.opts.ignoreEmptyService
+		if foundIgnoreEmptyService != test.expectedEndpointsInit {
+			t.Errorf("Test %d: Expected kubernetes controller to be initialized with ignore empty_service '%v'. Instead found ignore empty_service watch '%v' for input '%s'", i, test.expectedEndpointsInit, foundIgnoreEmptyService, test.input)
+		}
+	}
+}

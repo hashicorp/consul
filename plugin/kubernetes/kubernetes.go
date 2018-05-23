@@ -89,7 +89,6 @@ var (
 
 // Services implements the ServiceBackend interface.
 func (k *Kubernetes) Services(state request.Request, exact bool, opt plugin.Options) (svcs []msg.Service, err error) {
-
 	// We're looking again at types, which we've already done in ServeDNS, but there are some types k8s just can't answer.
 	switch state.QType() {
 
@@ -240,7 +239,6 @@ func (k *Kubernetes) getClientConfig() (*rest.Config, error) {
 
 // InitKubeCache initializes a new Kubernetes cache.
 func (k *Kubernetes) InitKubeCache() (err error) {
-
 	config, err := k.getClientConfig()
 	if err != nil {
 		return err
@@ -398,7 +396,6 @@ func (k *Kubernetes) findServices(r recordRequest, zone string) (services []msg.
 	}
 
 	for _, svc := range serviceList {
-
 		if !(match(r.namespace, svc.Namespace) && match(r.service, svc.Name)) {
 			continue
 		}
@@ -407,6 +404,20 @@ func (k *Kubernetes) findServices(r recordRequest, zone string) (services []msg.
 		// (Namespaces without a wildcard were filtered before the call to this function.)
 		if wildcard(r.namespace) && !k.namespaceExposed(svc.Namespace) {
 			continue
+		}
+
+		if k.opts.ignoreEmptyService && svc.Spec.ClusterIP != api.ClusterIPNone {
+			// serve NXDOMAIN if no endpoint is able to answer
+			podsCount := 0
+			for _, ep := range endpointsListFunc() {
+				for _, eps := range ep.Subsets {
+					podsCount = podsCount + len(eps.Addresses)
+				}
+			}
+
+			if podsCount == 0 {
+				continue
+			}
 		}
 
 		// Endpoint query or headless service

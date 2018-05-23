@@ -115,6 +115,7 @@ func ParseStanza(c *caddy.Controller) (*Kubernetes, error) {
 
 	opts := dnsControlOpts{
 		initEndpointsCache: true,
+		ignoreEmptyService: false,
 		resyncPeriod:       defaultResyncPeriod,
 	}
 	k8s.opts = opts
@@ -249,10 +250,22 @@ func ParseStanza(c *caddy.Controller) (*Kubernetes, error) {
 				return nil, c.ArgErr()
 			}
 			k8s.opts.initEndpointsCache = false
+		case "ignore":
+			args := c.RemainingArgs()
+			if len(args) > 0 {
+				ignore := args[0]
+				if ignore == "empty_service" {
+					k8s.opts.ignoreEmptyService = true
+					continue
+				} else {
+					return nil, fmt.Errorf("unable to parse ignore value: '%v'", ignore)
+				}
+			}
 		default:
 			return nil, c.Errf("unknown property '%s'", c.Val())
 		}
 	}
+
 	return k8s, nil
 }
 
