@@ -171,21 +171,6 @@ The table below shows this endpoint's support for
   to the service being queried. If the client does not supply an ACL Token, the
   anonymous token will be used.
 
-- `Near` `(string: "")` - Specifies a node to sort near based on distance
-  sorting using [Network Coordinates](/docs/internals/coordinates.html). The
-  nearest instance to the specified node will be returned first, and subsequent
-  nodes in the response will be sorted in ascending order of estimated
-  round-trip times. If the node given does not exist, the nodes in the response
-  will be shuffled. If unspecified, the response will be shuffled by default.
-  
-    - `_agent` - Returns results nearest the agent servicing the request.
-    - `_ip` - Returns results nearest to the node associated with the source IP
-      where the query was executed from. For HTTP the source IP is the remote
-      peer's IP address or the value of the X-Forwarded-For header with the
-      header taking precedence. For DNS the source IP is the remote peer's IP
-      address or the value of the ENDS client IP with the EDNS client IP
-      taking precedence.
-
 - `Service` `(Service: <required>)` - Specifies the structure to define the query's behavior.
 
   - `Service` `(string: <required>)` - Specifies the name of the service to
@@ -223,6 +208,22 @@ The table below shows this endpoint's support for
     check filtering. If this is set to false, the results will include nodes
     with checks in the passing as well as the warning states. If this is set to
     true, only nodes with checks in the passing state will be returned.
+    
+  - `Near` `(string: "")` - Specifies a node to sort near based on distance
+     sorting using [Network Coordinates](/docs/internals/coordinates.html). The
+     nearest instance to the specified node will be returned first, and subsequent
+     nodes in the response will be sorted in ascending order of estimated
+     round-trip times. If the node given does not exist, the nodes in the response
+     will be shuffled. If unspecified, the response will be shuffled by default.
+  
+       - `_agent` - Returns results nearest the agent servicing the request.    
+       - `_ip` - Returns results nearest to the node associated with the source IP
+         where the query was executed from. For HTTP the source IP is the remote
+         peer's IP address or the value of the X-Forwarded-For header with the
+         header taking precedence. For DNS the source IP is the remote peer's IP
+         address or the value of the ENDS client IP with the EDNS client IP
+         taking precedence.
+
 
   - `Tags` `(array<string>: nil)` - Specifies a list of service tags to filter
     the query results. For a service to pass the tag filter it must have *all*
