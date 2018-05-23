@@ -3,7 +3,9 @@ import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
 
-export default Route.extend({
+import WithIntentionActions from 'consul-ui/mixins/intention/with-actions';
+
+export default Route.extend(WithIntentionActions, {
   repo: service('intentions'),
   queryParams: {
     s: {
