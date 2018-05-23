@@ -23,17 +23,15 @@ type cmd struct {
 }
 
 func (c *cmd) Run(args []string) int {
-	// Ignore initial `consul connect daemonize`
-	offset := 3
-	numArgs := len(os.Args) - offset
-	if numArgs < 4 {
+	numArgs := len(args)
+	if numArgs < 3 {
 		c.UI.Error("Need at least 3 arguments; stdoutPath, stdinPath, " +
 			"executablePath [arguments...]")
 		os.Exit(1)
 	}
 
-	c.stdoutPath, c.stderrPath = os.Args[offset], os.Args[offset+1]
-	c.cmdArgs = os.Args[offset+2:] // includes the executable as arg 0 as expected
+	c.stdoutPath, c.stderrPath = args[0], args[1]
+	c.cmdArgs = args[2:] // includes the executable as arg 0 as expected
 
 	// Open log files if specified
 	var stdoutF, stderrF *os.File

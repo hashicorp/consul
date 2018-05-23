@@ -102,6 +102,10 @@ type Manager struct {
 	// proxies (unlikely scenario).
 	lastSnapshot *snapshot
 
+	// daemonizeCmd is set only in tests to control the path and args to the
+	// daemonize command.
+	daemonizeCmd []string
+
 	proxies map[string]Proxy
 }
 
@@ -405,6 +409,7 @@ func (m *Manager) newProxy(mp *local.ManagedProxy) (Proxy, error) {
 		proxy.Args = command // idx 0 is path but preserved since it should be
 		proxy.ProxyId = id
 		proxy.ProxyToken = mp.ProxyToken
+		proxy.daemonizeCmd = m.daemonizeCmd
 		return proxy, nil
 
 	default:

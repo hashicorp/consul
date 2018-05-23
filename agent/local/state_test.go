@@ -1691,7 +1691,7 @@ func TestStateProxyManagement(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	_, err := state.AddProxy(&p1, "fake-token")
+	_, err := state.AddProxy(&p1, "fake-token", "")
 	require.Error(err, "should fail as the target service isn't registered")
 
 	// Sanity check done, lets add a couple of target services to the state
@@ -1710,7 +1710,7 @@ func TestStateProxyManagement(t *testing.T) {
 	require.NoError(err)
 
 	// Should work now
-	pstate, err := state.AddProxy(&p1, "fake-token")
+	pstate, err := state.AddProxy(&p1, "fake-token", "")
 	require.NoError(err)
 
 	svc := pstate.Proxy.ProxyService
@@ -1724,8 +1724,9 @@ func TestStateProxyManagement(t *testing.T) {
 
 	{
 		// Re-registering same proxy again should not pick a random port but re-use
-		// the assigned one.
-		pstateDup, err := state.AddProxy(&p1, "fake-token")
+		// the assigned one. It should also keep the same proxy token since we don't
+		// want to force restart for config change.
+		pstateDup, err := state.AddProxy(&p1, "fake-token", "")
 		require.NoError(err)
 		svcDup := pstateDup.Proxy.ProxyService
 
@@ -1736,6 +1737,8 @@ func TestStateProxyManagement(t *testing.T) {
 		assert.Equal("", svcDup.Address, "should have empty address by default")
 		// Port must be same as before
 		assert.Equal(svc.Port, svcDup.Port)
+		// Same ProxyToken
+		assert.Equal(pstate.ProxyToken, pstateDup.ProxyToken)
 	}
 
 	// Let's register a notifier now
@@ -1748,7 +1751,7 @@ func TestStateProxyManagement(t *testing.T) {
 	// Second proxy should claim other port
 	p2 := p1
 	p2.TargetServiceID = "cache"
-	pstate2, err := state.AddProxy(&p2, "fake-token")
+	pstate2, err := state.AddProxy(&p2, "fake-token", "")
 	require.NoError(err)
 	svc2 := pstate2.Proxy.ProxyService
 	assert.Contains([]int{20000, 20001}, svc2.Port)
@@ -1764,7 +1767,7 @@ func TestStateProxyManagement(t *testing.T) {
 	// Third proxy should fail as all ports are used
 	p3 := p1
 	p3.TargetServiceID = "db"
-	_, err = state.AddProxy(&p3, "fake-token")
+	_, err = state.AddProxy(&p3, "fake-token", "")
 	require.Error(err)
 
 	// Should have a notification but we'll do nothing so that the next
@@ -1775,7 +1778,7 @@ func TestStateProxyManagement(t *testing.T) {
 		"bind_port":    1234,
 		"bind_address": "0.0.0.0",
 	}
-	pstate3, err := state.AddProxy(&p3, "fake-token")
+	pstate3, err := state.AddProxy(&p3, "fake-token", "")
 	require.NoError(err)
 	svc3 := pstate3.Proxy.ProxyService
 	require.Equal("0.0.0.0", svc3.Address)
@@ -1793,7 +1796,7 @@ func TestStateProxyManagement(t *testing.T) {
 	require.NotNil(gotP3)
 	var ws memdb.WatchSet
 	ws.Add(gotP3.WatchCh)
-	pstate3, err = state.AddProxy(&p3updated, "fake-token")
+	pstate3, err = state.AddProxy(&p3updated, "fake-token", "")
 	require.NoError(err)
 	svc3 = pstate3.Proxy.ProxyService
 	require.Equal("0.0.0.0", svc3.Address)
@@ -1817,7 +1820,7 @@ func TestStateProxyManagement(t *testing.T) {
 	// Should be able to create a new proxy for that service with the port (it
 	// should have been "freed").
 	p4 := p2
-	pstate4, err := state.AddProxy(&p4, "fake-token")
+	pstate4, err := state.AddProxy(&p4, "fake-token", "")
 	require.NoError(err)
 	svc4 := pstate4.Proxy.ProxyService
 	assert.Contains([]int{20000, 20001}, svc2.Port)
@@ -1864,4 +1867,66 @@ func drainCh(ch chan struct{}) {
 			return
 		}
 	}
+}
+
+// Tests the logic for retaining tokens and ports through restore (i.e.
+// proxy-service already restored and token passed in externally)
+func TestStateProxyRestore(t *testing.T) {
+	t.Parallel()
+
+	state := local.NewState(local.Config{
+		// Wide random range to make it very unlikely to pass by chance
+		ProxyBindMinPort: 10000,
+		ProxyBindMaxPort: 20000,
+	}, log.New(os.Stderr, "", log.LstdFlags), &token.Store{})
+
+	// Stub state syncing
+	state.TriggerSyncChanges = func() {}
+
+	webSvc := structs.NodeService{
+		Service: "web",
+	}
+
+	p1 := structs.ConnectManagedProxy{
+		ExecMode:        structs.ProxyExecModeDaemon,
+		Command:         []string{"consul", "connect", "proxy"},
+		TargetServiceID: "web",
+	}
+
+	p2 := p1
+
+	require := require.New(t)
+	assert := assert.New(t)
+
+	// Add a target service
+	require.NoError(state.AddService(&webSvc, "fake-token-web"))
+
+	// Add the proxy for first time to get the proper service definition to
+	// register
+	pstate, err := state.AddProxy(&p1, "fake-token", "")
+	require.NoError(err)
+
+	// Now start again with a brand new state
+	state2 := local.NewState(local.Config{
+		// Wide random range to make it very unlikely to pass by chance
+		ProxyBindMinPort: 10000,
+		ProxyBindMaxPort: 20000,
+	}, log.New(os.Stderr, "", log.LstdFlags), &token.Store{})
+
+	// Stub state syncing
+	state2.TriggerSyncChanges = func() {}
+
+	// Register the target service
+	require.NoError(state2.AddService(&webSvc, "fake-token-web"))
+
+	// "Restore" the proxy service
+	require.NoError(state.AddService(p1.ProxyService, "fake-token-web"))
+
+	// Now we can AddProxy with the "restored" token
+	pstate2, err := state.AddProxy(&p2, "fake-token", pstate.ProxyToken)
+	require.NoError(err)
+
+	// Check it still has the same port and token as before
+	assert.Equal(pstate.ProxyToken, pstate2.ProxyToken)
+	assert.Equal(p1.ProxyService.Port, p2.ProxyService.Port)
 }

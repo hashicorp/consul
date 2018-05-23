@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path"
 	"reflect"
 	"strconv"
 	"strings"
@@ -75,11 +76,9 @@ type Daemon struct {
 	// second.
 	pollInterval time.Duration
 
-	// daemonizePath is set only in tests to control the path to the daemonize
-	// command. The test executable itself will not respond to the consul command
-	// arguments we need to make this work so we rely on the current source being
-	// built and installed here to run the tests.
-	daemonizePath string
+	// daemonizeCmd is set only in tests to control the path and args to the
+	// daemonize command.
+	daemonizeCmd []string
 
 	// process is the started process
 	lock     sync.Mutex
@@ -111,6 +110,18 @@ func (p *Daemon) Start() error {
 	exitedCh := make(chan struct{})
 	p.stopCh = stopCh
 	p.exitedCh = exitedCh
+
+	// Ensure log dirs exist
+	if p.StdoutPath != "" {
+		if err := os.MkdirAll(path.Dir(p.StdoutPath), 0755); err != nil {
+			return err
+		}
+	}
+	if p.StderrPath != "" {
+		if err := os.MkdirAll(path.Dir(p.StderrPath), 0755); err != nil {
+			return err
+		}
+	}
 
 	// Start the loop.
 	go p.keepAlive(stopCh, exitedCh)
@@ -270,19 +281,21 @@ func (p *Daemon) start() (*os.Process, error) {
 	daemonCmd.Path = dCmd[0]
 	// First arguments are for the stdout, stderr
 	daemonCmd.Args = append(dCmd, p.StdoutPath)
-	daemonCmd.Args = append(daemonCmd.Args, p.StdoutPath)
+	daemonCmd.Args = append(daemonCmd.Args, p.StderrPath)
 	daemonCmd.Args = append(daemonCmd.Args, p.Args...)
 	daemonCmd.Env = env
 
 	// setup stdout so we can read the PID
 	var out bytes.Buffer
 	daemonCmd.Stdout = &out
+	daemonCmd.Stderr = &out
 
 	// Run it to completion - it should exit immediately (this calls wait to
 	// ensure we don't leave the daemonize command as a zombie)
 	p.Logger.Printf("[DEBUG] agent/proxy: starting proxy: %q %#v", daemonCmd.Path,
 		daemonCmd.Args[1:])
 	if err := daemonCmd.Run(); err != nil {
+		p.Logger.Printf("[DEBUG] agent/proxy: daemonize output: %s", out.String())
 		return nil, err
 	}
 
@@ -313,14 +326,15 @@ func (p *Daemon) start() (*os.Process, error) {
 
 // daemonizeCommand returns the daemonize command.
 func (p *Daemon) daemonizeCommand() ([]string, error) {
+	// test override
+	if p.daemonizeCmd != nil {
+		return p.daemonizeCmd, nil
+	}
 	// Get the path to the current executable. This is cached once by the
 	// library so this is effectively just a variable read.
 	execPath, err := os.Executable()
 	if err != nil {
 		return nil, err
-	}
-	if p.daemonizePath != "" {
-		execPath = p.daemonizePath
 	}
 	return []string{execPath, "connect", "daemonize"}, nil
 }

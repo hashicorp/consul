@@ -10,6 +10,9 @@ import (
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/command/connect/daemonize"
+	"github.com/mitchellh/cli"
 )
 
 // testLogger is a logger that can be used by tests that require a
@@ -55,29 +58,17 @@ func helperProcess(s ...string) *exec.Cmd {
 // interactions. The Daemon has it's Path, Args and stdio paths populated but
 // other fields might need to be set depending on test requirements.
 //
-// NOTE: this relies on a sufficiently recent version on consul being installed
-// in your path so that the daemonize command can be used. That's gross but hard
-// to see how we can do better given that tests are separate binaries and we
-// need consul's daemonize mode to work correctly. I considered hacks around
-// building the local tree and getting the absolute path to the resulting binary
-// but that seems gross in a different way. This is the same or weaker
-// assumption our `api` test suit makes already...
+// This relies on the TestMainInterceptDaemonize hack being active.
 func helperProcessDaemon(s ...string) *Daemon {
 	cs := []string{os.Args[0], "-test.run=TestHelperProcess", "--", helperProcessSentinel}
 	cs = append(cs, s...)
 
-	path, err := exec.LookPath("consul")
-	if err != nil || path == "" {
-		panic("consul not found on $PATH - download and install " +
-			"consul or skip this test")
-	}
-
 	return &Daemon{
-		Path:          os.Args[0],
-		Args:          cs,
-		StdoutPath:    "_", // dev null them for now
-		StderrPath:    "_",
-		daemonizePath: path,
+		Path:         os.Args[0],
+		Args:         cs,
+		StdoutPath:   "_", // dev null them for now
+		StderrPath:   "_",
+		daemonizeCmd: helperProcess("daemonize").Args,
 	}
 }
 
@@ -213,6 +204,24 @@ func TestHelperProcess(t *testing.T) {
 		for {
 			time.Sleep(time.Hour)
 		}
+
+	case "daemonize":
+		// Run daemonize!
+		ui := &cli.BasicUi{Writer: os.Stdout, ErrorWriter: os.Stderr}
+		cli := &cli.CLI{
+			Args: append([]string{"daemonize"}, args...),
+			Commands: map[string]cli.CommandFactory{
+				"daemonize": func() (cli.Command, error) {
+					return daemonize.New(ui), nil
+				},
+			},
+		}
+
+		exitCode, err := cli.Run()
+		if err != nil {
+			log.Printf("[ERR] running hijacked daemonize command: %s", err)
+		}
+		os.Exit(exitCode)
 
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %q\n", cmd)

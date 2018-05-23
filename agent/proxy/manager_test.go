@@ -361,6 +361,10 @@ func testManager(t *testing.T) (*Manager, func()) {
 	td, closer := testTempDir(t)
 	m.DataDir = td
 
+	// Override daemonize command to use the built-in test binary. Note that Args
+	// includes the binary path as first arg.
+	m.daemonizeCmd = helperProcess("daemonize").Args
+
 	return m, func() { closer() }
 }
 
@@ -368,8 +372,9 @@ func testManager(t *testing.T) (*Manager, func()) {
 // (expected to be from the helperProcess function call). It returns the
 // ID for deregistration.
 func testStateProxy(t *testing.T, state *local.State, service string, cmd *exec.Cmd) string {
-	command := []string{cmd.Path}
-	command = append(command, cmd.Args...)
+	// Note that exec.Command already ensures the command name is the first
+	// argument in the list so no need to append again
+	command := cmd.Args
 
 	require.NoError(t, state.AddService(&structs.NodeService{
 		Service: service,
