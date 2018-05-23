@@ -47,6 +47,7 @@ func (s *HTTPServer) ConnectCAConfigurationGet(resp http.ResponseWriter, req *ht
 
 	var reply structs.CAConfiguration
 	err := s.agent.RPC("ConnectCA.ConfigurationGet", &args, &reply)
+	fixupConfig(&reply)
 	return reply, err
 }
 
@@ -66,4 +67,26 @@ func (s *HTTPServer) ConnectCAConfigurationSet(resp http.ResponseWriter, req *ht
 	var reply interface{}
 	err := s.agent.RPC("ConnectCA.ConfigurationSet", &args, &reply)
 	return nil, err
+}
+
+// A hack to fix up the config types inside of the map[string]interface{}
+// so that they get formatted correctly during json.Marshal. Without this,
+// duration values given as text like "24h" end up getting output back
+// to the user in base64-encoded form.
+func fixupConfig(conf *structs.CAConfiguration) {
+	if conf.Provider == structs.ConsulCAProvider {
+		if v, ok := conf.Config["RotationPeriod"]; ok {
+			if raw, ok := v.([]uint8); ok {
+				conf.Config["RotationPeriod"] = uint8ToString(raw)
+			}
+		}
+	}
+}
+
+func uint8ToString(bs []uint8) string {
+	b := make([]byte, len(bs))
+	for i, v := range bs {
+		b[i] = byte(v)
+	}
+	return string(b)
 }
