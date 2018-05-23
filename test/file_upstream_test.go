@@ -28,15 +28,14 @@ www 3600 IN CNAME   www.example.net.
 	}
 	defer rm()
 
-	// Corefile with for example without proxy section.
-	corefile := `example.org:0 {
-       file ` + name + ` {
+	corefile := `.:0 {
+	file ` + name + ` example.org {
 	       upstream
 	}
 	hosts {
-		10.0.0.1 www.example.net.
-		fallthrough
-	}
+               10.0.0.1 www.example.net.
+               fallthrough
+       }
 }
 `
 	i, udp, _, err := CoreDNSServerAndPorts(corefile)
@@ -56,5 +55,7 @@ www 3600 IN CNAME   www.example.net.
 	if r.Rcode == dns.RcodeServerFailure {
 		t.Fatalf("Rcode should not be dns.RcodeServerFailure")
 	}
-	t.Logf("%s", r)
+	if x := r.Answer[1].(*dns.A).A.String(); x != "10.0.0.1" {
+		t.Errorf("Failed to get address for CNAME, expected 10.0.0.1 got %s", x)
+	}
 }
