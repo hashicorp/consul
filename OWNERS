@@ -14,11 +14,20 @@ reviewers:
   - superq
   - varyoo
   - yongtang
+
 approvers:
   - chrisohaver
   - johnbelamaric
   - miekg
   - yongtang
+
 features:
   - comments
   - reviewers
+  - aliases
+  - branches
+
+aliases:
+  - |
+    /plugin: (.*) -> /label add: plugin/$1
+
