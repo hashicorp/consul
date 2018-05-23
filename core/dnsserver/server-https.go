@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/coredns/coredns/plugin/pkg/nonwriter"
 	"github.com/miekg/dns"
 )
 
@@ -119,12 +118,10 @@ func (s *ServerHTTPS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create a non-writer with the correct addresses in it.
-	dw := &nonwriter.Writer{Laddr: s.listenAddr}
+	// Create a DoHWriter with the correct addresses in it.
 	h, p, _ := net.SplitHostPort(r.RemoteAddr)
-	po, _ := strconv.Atoi(p)
-	ip := net.ParseIP(h)
-	dw.Raddr = &net.TCPAddr{IP: ip, Port: po}
+	port, _ := strconv.Atoi(p)
+	dw := &DoHWriter{laddr: s.listenAddr, raddr: &net.TCPAddr{IP: net.ParseIP(h), Port: port}}
 
 	// We just call the normal chain handler - all error handling is done there.
 	// We should expect a packet to be returned that we can send to the client.
