@@ -60,3 +60,5 @@ main label a[rel*='help'] {
 [role='tabpanel'] > p:only-child [rel*='help']::after {
   content: none;
 }
+
+@import 'ember-power-select';

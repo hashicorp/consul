@@ -2,6 +2,9 @@
     <fieldset>
         <label class="type-text{{if item.error.SourceName ' has-error'}}">
             <span>Source Service</span>
+            {{#power-select selected=item options=items onchange=(action 'change') as |service|}}
+              {{service.Name}}
+            {{/power-select}}
             {{input value=item.SourceName name='source' autofocus='autofocus'}}
             <em>Choose a Consul Service, write in a future Consul Service, or write any Service URL</em>
         </label>
