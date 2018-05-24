@@ -11,14 +11,14 @@
         <div>
             <label class="type-toggle">
                 <input type="checkbox" name="json" checked={{if json 'checked' }} onchange={{action 'change'}} />
-                <span>JSON</span>
+                <span>Code</span>
             </label>
             <label class="type-text{{if item.error.Value ' has-error'}}">
                 <span>Value</span>
 {{#if json}}
                 {{ code-editor value=(atob item.Value) onkeyup=(action 'change') }}
 {{else}}
-                <input autofocus={{not create}} type="text" name="value" value={{atob item.Value}} onkeyup={{action 'change'}} />
+                <textarea autofocus={{not create}} name="value" onkeyup={{action 'change'}}>{{atob item.Value}}</textarea>
 {{/if}}
             </label>
         </div>
