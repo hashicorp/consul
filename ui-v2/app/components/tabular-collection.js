@@ -62,7 +62,7 @@ export default Component.extend(SlotsMixin, {
     this._super(...arguments);
     this.change = change.bind(this);
     this.confirming = [];
-    // TODO: This should auto calculate properly from the CSS
+    // TODO: The row height should auto calculate properly from the CSS
     this['cell-layout'] = new ZIndexedGrid(get(this, 'width'), 50);
     this.handler = () => {
       this.resize(createSizeEvent());
@@ -86,12 +86,15 @@ export default Component.extend(SlotsMixin, {
     window.removeEventListener('resize', this.handler);
   },
   resize: function(e) {
-    const $footer = [...$$('#wrapper > footer')][0];
-    const $thead = [...$$('main > div')][0];
-    if ($thead) {
-      // TODO: This should auto calculate properly from the CSS
-      this.set('height', Math.max(0, new Number(e.detail.height - ($footer.clientHeight + 218))));
-      this['cell-layout'] = new ZIndexedGrid($thead.clientWidth, 50);
+    const $tbody = this.$('tbody').get(0);
+    if ($tbody) {
+      const rect = $tbody.getBoundingClientRect();
+      const $footer = [...$$('footer[role="contentinfo"]')][0];
+      const space = rect.top + $footer.clientHeight;
+      const height = new Number(e.detail.height - space);
+      this.set('height', Math.max(0, height));
+      // TODO: The row height should auto calculate properly from the CSS
+      this['cell-layout'] = new ZIndexedGrid($tbody.clientWidth, 50);
       this.updateItems();
       this.updateScrollPosition();
     }
