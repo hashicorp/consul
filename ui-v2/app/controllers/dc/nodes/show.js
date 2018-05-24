@@ -14,10 +14,15 @@ export default Controller.extend(WithFiltering, {
     set(this, 'selectedTab', 'health-checks');
   },
   filter: function(item, { s = '' }) {
+    const term = s.toLowerCase();
     return (
       get(item, 'Service')
         .toLowerCase()
-        .indexOf(s.toLowerCase()) !== -1
+        .indexOf(term) !== -1 ||
+      get(item, 'Port')
+        .toString()
+        .toLowerCase()
+        .indexOf(term) !== -1
     );
   },
   actions: {
