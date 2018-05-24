@@ -47,7 +47,6 @@ func TestDnstap(t *testing.T) {
 	tapq.SocketProto = tap.SocketProtocol_TCP
 	tapr.SocketProto = tap.SocketProtocol_TCP
 	testCase(t, newDNSExWithOption(Options{ForceTCP: true}), q, r, tapq, tapr)
-	testCase(t, newGoogle("", []string{"8.8.8.8:53", "8.8.4.4:53"}), q, r, tapq, tapr)
 }
 
 func TestNoDnstap(t *testing.T) {

@@ -165,12 +165,7 @@ func parseBlock(c *caddyfile.Dispenser, u *staticUpstream) error {
 				u.ex = newDNSEx()
 			}
 		case "https_google":
-			boot := []string{"8.8.8.8:53", "8.8.4.4:53"}
-			if len(encArgs) > 2 && encArgs[1] == "bootstrap" {
-				boot = encArgs[2:]
-			}
-
-			u.ex = newGoogle("", boot) // "" for default in google.go
+			// allow the config, but make noop
 		case "grpc":
 			if len(encArgs) == 2 && encArgs[1] == "insecure" {
 				u.ex = newGrpcClient(nil, u)

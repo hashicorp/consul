@@ -29,7 +29,7 @@ func init() {
 	flag.StringVar(&caddy.PidFile, "pidfile", "", "Path to write pid file")
 	flag.BoolVar(&version, "version", false, "Show version")
 	flag.BoolVar(&dnsserver.Quiet, "quiet", false, "Quiet mode (no initialization output)")
-	flag.BoolVar(&logfile, "log", false, "Log to standard output")
+	flag.BoolVar(&logfile, "log", false, "Log to standard output") // noop for 1.1.4; drop in 1.2.0.
 
 	caddy.RegisterCaddyfileLoader("flag", caddy.LoaderFunc(confLoader))
 	caddy.SetDefaultCaddyfileLoader("default", caddy.LoaderFunc(defaultLoader))
@@ -62,10 +62,7 @@ func Run() {
 		mustLogFatal(fmt.Errorf("extra command line arguments: %s", flag.Args()))
 	}
 
-	// Set up process log before anything bad happens
-	if logfile {
-		log.SetOutput(os.Stdout)
-	}
+	log.SetOutput(os.Stdout)
 	log.SetFlags(log.LstdFlags)
 
 	if version {

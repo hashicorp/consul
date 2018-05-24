@@ -20,7 +20,7 @@ import (
 )
 
 // removed has the names of the plugins that need to error on startup.
-var removed = []string{"startup", "shutdown"}
+var removed = []string{"reverse"}
 
 func setup(c *caddy.Controller) error {
 	c.Next()
