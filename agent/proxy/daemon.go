@@ -394,7 +394,7 @@ func (p *Daemon) Stop() error {
 
 		case <-time.After(gracefulWait):
 			// Interrupt didn't work
-			p.Logger.Printf("[DEBUG] agent/proxy: gracefull wait of %s passed, "+
+			p.Logger.Printf("[DEBUG] agent/proxy: graceful wait of %s passed, "+
 				"killing", gracefulWait)
 		}
 	} else if isProcessAlreadyFinishedErr(err) {
@@ -413,9 +413,9 @@ func (p *Daemon) Stop() error {
 	return err
 }
 
-// stopKeepAlive is like Stop but keeps the process running. This is
-// used only for tests.
-func (p *Daemon) stopKeepAlive() error {
+// Close implements Proxy by stopping the run loop but not killing the process.
+// One Close is called, Stop has no effect.
+func (p *Daemon) Close() error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
