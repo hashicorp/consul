@@ -17,12 +17,14 @@ rewrite [continue|stop] FIELD FROM TO
 ~~~
 
 * **FIELD** indicates what part of the request/response is being re-written.
-   * `type` - the type field of the request will be rewritten. FROM/TO must be a DNS record type (`A`, `MX`, etc); 
+
+   * `type` - the type field of the request will be rewritten. FROM/TO must be a DNS record type (`A`, `MX`, etc);
 e.g., to rewrite ANY queries to HINFO, use `rewrite type ANY HINFO`.
    * `class` - the class of the message will be rewritten. FROM/TO must be a DNS class type (`IN`, `CH`, or `HS`) e.g., to rewrite CH queries to IN use `rewrite class CH IN`.
    * `name` - the query name in the _request_ is rewritten; by default this is a full match of the name, e.g., `rewrite name miek.nl example.org`. Other match types are supported, see the **Name Field Rewrites** section below.
    * `answer name` - the query name in the _response_ is rewritten.  This option has special restrictions and requirements, in particular it must always combined with a `name` rewrite.  See below in the **Response Rewrites** section.
    *  `edns0` - an EDNS0 option can be appended to the request as described below in the **EDNS0 Options** section.
+
 * **FROM** is the name or type to match
 * **TO** is the destination name or type to rewrite to
 
@@ -240,4 +242,3 @@ rewrite [continue|stop] {type|class|edns0|name [exact|prefix|suffix|substring|re
 ~~~
 
 The syntax above doesn't cover the multi line block option for specifying a name request+response rewrite rule described in the **Response Rewrite** section.
-

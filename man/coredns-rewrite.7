@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-REWRITE" "7" "March 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-REWRITE" "7" "May 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIrewrite\fR \- performs internal message rewriting\.
@@ -10,35 +10,36 @@
 Rewrites are invisible to the client\. There are simple rewrites (fast) and complex rewrites (slower), but they\'re powerful enough to accommodate most dynamic back\-end applications\.
 .
 .SH "SYNTAX"
+A simplified/easy to digest syntax for \fIrewrite\fR is\.\.\. ~~~ rewrite [continue|stop] FIELD FROM TO ~~~
 .
-.nf
+.IP "\(bu" 4
+\fBFIELD\fR indicates what part of the request/response is being re\-written\.
+.
+.IP "\(bu" 4
+\fBtype\fR \- the type field of the request will be rewritten\. FROM/TO must be a DNS record type (\fBA\fR, \fBMX\fR, etc); e\.g\., to rewrite ANY queries to HINFO, use \fBrewrite type ANY HINFO\fR\.
+.
+.IP "\(bu" 4
+\fBclass\fR \- the class of the message will be rewritten\. FROM/TO must be a DNS class type (\fBIN\fR, \fBCH\fR, or \fBHS\fR) e\.g\., to rewrite CH queries to IN use \fBrewrite class CH IN\fR\.
+.
+.IP "\(bu" 4
+\fBname\fR \- the query name in the \fIrequest\fR is rewritten; by default this is a full match of the name, e\.g\., \fBrewrite name miek\.nl example\.org\fR\. Other match types are supported, see the \fBName Field Rewrites\fR section below\.
+.
+.IP "\(bu" 4
+\fBanswer name\fR \- the query name in the \fIresponse\fR is rewritten\. This option has special restrictions and requirements, in particular it must always combined with a \fBname\fR rewrite\. See below in the \fBResponse Rewrites\fR section\.
+.
+.IP "\(bu" 4
+\fBedns0\fR \- an EDNS0 option can be appended to the request as described below in the \fBEDNS0 Options\fR section\.
+.
+.IP "" 0
 
-rewrite [continue|stop] FIELD FROM TO
-.
-.fi
 .
 .IP "\(bu" 4
-\fBFIELD\fR is (\fBtype\fR, \fBclass\fR, \fBname\fR, \.\.\.)
-.
-.IP "\(bu" 4
-\fBFROM\fR is the exact name of type to match
+\fBFROM\fR is the name or type to match
 .
 .IP "\(bu" 4
 \fBTO\fR is the destination name or type to rewrite to
 .
 .IP "" 0
-.
-.P
-When the FIELD is \fBtype\fR and FROM is (\fBA\fR, \fBMX\fR, etc\.), the type of the message will be rewritten; e\.g\., to rewrite ANY queries to HINFO, use \fBrewrite type ANY HINFO\fR\.
-.
-.P
-When the FIELD is \fBclass\fR and FROM is (\fBIN\fR, \fBCH\fR, or \fBHS\fR) the class of the message will be rewritten; e\.g\., to rewrite CH queries to IN use \fBrewrite class CH IN\fR\.
-.
-.P
-When the FIELD is \fBname\fR the query name in the message is rewritten; this needs to be a full match of the name, e\.g\., \fBrewrite name miek\.nl example\.org\fR\.
-.
-.P
-When the FIELD is \fBedns0\fR an EDNS0 option can be appended to the request as described below\.
 .
 .P
 If you specify multiple rules and an incoming query matches on multiple rules, the rewrite will behave as following * \fBcontinue\fR will continue apply the next rule in the rule list\. * \fBstop\fR will consider the current rule is the last rule and will not continue\. Default behaviour for not specifying this rule processing mode is \fBstop\fR
@@ -222,7 +223,7 @@ ftp\-us\-west\-1\.coredns\.rocks\. 0    IN A    10\.30\.30\.30
 .IP "" 0
 .
 .P
-The syntax for the response of DNS request and response is as follows:
+The syntax for the rewrite of DNS request and response is as follows:
 .
 .IP "" 4
 .
@@ -232,6 +233,22 @@ rewrite [continue|stop] {
     name regex STRING STRING
     answer name STRING STRING
 }
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Note that the above syntax is strict\. For response rewrites only \fBname\fR rules are allowed to match the question section, and only by match type \fBregex\fR\. The answer rewrite must be after the name, as ordered in the syntax example\. There must only be two lines (a \fBname\fR follwed by an \fBanswer\fR) in the brackets, additional rules are not supported\.
+.
+.P
+An alternate syntax for the rewrite of DNS request and response is as follows:
+.
+.IP "" 4
+.
+.nf
+
+rewrite [continue|stop] name regex STRING STRING answer name STRING STRING
 .
 .fi
 .
@@ -332,4 +349,9 @@ If the query has source IP as IPv4, the first 24 bits in the IP will be the netw
 If the query has source IP as IPv6, the first 56 bits in the IP will be the network subnet\.
 .
 .IP "" 0
-
+.
+.SH "FULL SYNTAX"
+The full plugin usage syntax is harder to digest\.\.\. ~~~ rewrite [continue|stop] {type|class|edns0|name [exact|prefix|suffix|substring|regex [FROM TO answer name]]} FROM TO ~~~
+.
+.P
+The syntax above doesn\'t cover the multi line block option for specifying a name request+response rewrite rule described in the \fBResponse Rewrite\fR section\.

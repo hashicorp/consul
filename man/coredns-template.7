@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-TEMPLATE" "7" "April 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-TEMPLATE" "7" "May 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fItemplate\fR \- allows for dynamic responses based on the incoming query\.
@@ -97,18 +97,18 @@ The output of the template must be a RFC 1035 \fIhttps://tools\.ietf\.org/html/r
 If monitoring is enabled (via the \fIprometheus\fR directive) then the following metrics are exported:
 .
 .IP "\(bu" 4
-\fBcoredns_template_matches_total{regex}\fR the total number of matched requests by regex\.
+\fBcoredns_template_matches_total{server, regex}\fR the total number of matched requests by regex\.
 .
 .IP "\(bu" 4
-\fBcoredns_template_template_failures_total{regex,section,template}\fR the number of times the Go templating failed\. Regex, section and template label values can be used to map the error back to the config file\.
+\fBcoredns_template_template_failures_total{server, regex,section,template}\fR the number of times the Go templating failed\. Regex, section and template label values can be used to map the error back to the config file\.
 .
 .IP "\(bu" 4
-\fBcoredns_template_rr_failures_total{regex,section,template}\fR the number of times the templated resource record was invalid and could not be parsed\. Regex, section and template label values can be used to map the error back to the config file\.
+\fBcoredns_template_rr_failures_total{server, regex,section,template}\fR the number of times the templated resource record was invalid and could not be parsed\. Regex, section and template label values can be used to map the error back to the config file\.
 .
 .IP "" 0
 .
 .P
-Both failure cases indicate a problem with the template configuration\.
+Both failure cases indicate a problem with the template configuration\. The \fBserver\fR label indicates the server incrementing the metric, see the \fImetrics\fR plugin for details\.
 .
 .SH "EXAMPLES"
 .

@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-DNSSEC" "7" "April 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-DNSSEC" "7" "May 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIdnssec\fR \- enable on\-the\-fly DNSSEC signing of served data\.
@@ -56,18 +56,18 @@ generated private key \fBKexample\.org+013+45330\.private\fR
 If monitoring is enabled (via the \fIprometheus\fR directive) then the following metrics are exported:
 .
 .IP "\(bu" 4
-\fBcoredns_dnssec_cache_size{type}\fR \- total elements in the cache, type is "signature"\.
+\fBcoredns_dnssec_cache_size{server, type}\fR \- total elements in the cache, type is "signature"\.
 .
 .IP "\(bu" 4
-\fBcoredns_dnssec_cache_capacity{type}\fR \- total capacity of the cache, type is "signature"\.
+\fBcoredns_dnssec_cache_hits_total{server}\fR \- Counter of cache hits\.
 .
 .IP "\(bu" 4
-\fBcoredns_dnssec_cache_hits_total{}\fR \- Counter of cache hits\.
-.
-.IP "\(bu" 4
-\fBcoredns_dnssec_cache_misses_total{}\fR \- Counter of cache misses\.
+\fBcoredns_dnssec_cache_misses_total{server}\fR \- Counter of cache misses\.
 .
 .IP "" 0
+.
+.P
+The label \fBserver\fR indicated the server handling the request, see the \fImetrics\fR plugin for details\.
 .
 .SH "EXAMPLES"
 Sign responses for \fBexample\.org\fR with the key "Kexample\.org\.+013+45330\.key"\.

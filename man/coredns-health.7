@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-HEALTH" "7" "April 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-HEALTH" "7" "May 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIhealth\fR \- enables a health check endpoint\.
@@ -61,6 +61,23 @@ net {
 .
 .IP "" 0
 .
+.P
+Note that if you format this in one server block you will get an error on startup, that the second server can\'t setup the health plugin (on the same port)\.
+.
+.IP "" 4
+.
+.nf
+
+com net {
+    whoami
+    erratic
+    health :8080
+}
+.
+.fi
+.
+.IP "" 0
+.
 .SH "PLUGINS"
 Any plugin that implements the Healther interface will be used to report health\.
 .
@@ -106,4 +123,6 @@ Set a lameduck duration of 1 second:
 .fi
 .
 .IP "" 0
-
+.
+.SH "BUGS"
+When reloading, the Health handler is stopped before the new server instance is started\. If that new server fails to start, then the initial server instance is still available and DNS queries still served, but Health handler stays down\. Health will not reply HTTP request until a successful reload or a complete restart of CoreDNS\.

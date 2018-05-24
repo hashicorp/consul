@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-PROXY" "7" "April 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-PROXY" "7" "May 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIproxy\fR \- facilitates both a basic reverse proxy and a robust load balancer\.
@@ -225,7 +225,7 @@ Proxy everything except \fBexample\.org\fR using the host\'s \fBresolv\.conf\fR\
 
 \&\. {
     proxy \. /etc/resolv\.conf {
-        except miek\.nl example\.org
+        except example\.org
     }
 }
 .

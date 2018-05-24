@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-FORWARD" "7" "April 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-FORWARD" "7" "May 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIforward\fR \- facilitates proxying DNS messages to upstream resolvers\.
@@ -17,6 +17,9 @@ When \fIall\fR upstreams are down it assumes health checking as a mechanism has 
 .
 .P
 This plugin can only be used once per Server Block\.
+.
+.P
+How does \fIforward\fR relate to \fIproxy\fR? This plugin is the "new" version of \fIproxy\fR and is faster because it re\-uses connections to the upstreams\. It also does in\-band health checks \- using DNS instead of HTTP\. Since it is newer it has a little less (production) mileage on it\.
 .
 .SH "SYNTAX"
 In its most basic form, a simple forwarder uses this syntax:
@@ -138,7 +141,7 @@ If monitoring is enabled (via the \fIprometheus\fR directive) then the following
 Where \fBto\fR is one of the upstream servers (\fBTO\fR from the config), \fBproto\fR is the protocol used by the incoming query ("tcp" or "udp"), and family the transport family ("1" for IPv4, and "2" for IPv6)\.
 .
 .SH "EXAMPLES"
-Proxy all requests within example\.org\. to a nameserver running on a different port:
+Proxy all requests within \fBexample\.org\.\fR to a nameserver running on a different port:
 .
 .IP "" 4
 .
@@ -221,7 +224,7 @@ Proxy all requests to 9\.9\.9\.9 using the DNS\-over\-TLS protocol, and cache ev
 .IP "" 0
 .
 .SH "BUGS"
-The TLS config is global for the whole forwarding proxy if you need a different \fBtls_serveraame\fR for different upstreams you\'re out of luck\.
+The TLS config is global for the whole forwarding proxy if you need a different \fBtls_servername\fR for different upstreams you\'re out of luck\.
 .
 .SH "ALSO SEE"
 RFC 7858 \fIhttps://tools\.ietf\.org/html/rfc7858\fR for DNS over TLS\.

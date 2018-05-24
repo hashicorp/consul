@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-CACHE" "7" "April 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-CACHE" "7" "May 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIcache\fR \- enables a frontend cache\.
@@ -72,24 +72,21 @@ Eviction is done per shard \- i\.e\. when a shard reaches capacity, items are ev
 If monitoring is enabled (via the \fIprometheus\fR directive) then the following metrics are exported:
 .
 .IP "\(bu" 4
-\fBcoredns_cache_size{type}\fR \- Total elements in the cache by cache type\.
+\fBcoredns_cache_size{server, type}\fR \- Total elements in the cache by cache type\.
 .
 .IP "\(bu" 4
-\fBcoredns_cache_capacity{type}\fR \- Total capacity of the cache by cache type\.
+\fBcoredns_cache_hits_total{server, type}\fR \- Counter of cache hits by cache type\.
 .
 .IP "\(bu" 4
-\fBcoredns_cache_hits_total{type}\fR \- Counter of cache hits by cache type\.
+\fBcoredns_cache_misses_total{server}\fR \- Counter of cache misses\.
 .
 .IP "\(bu" 4
-\fBcoredns_cache_misses_total{}\fR \- Counter of cache misses\.
-.
-.IP "\(bu" 4
-\fBcoredns_cache_drops_total{}\fR \- Counter of dropped messages\.
+\fBcoredns_cache_drops_total{server}\fR \- Counter of dropped messages\.
 .
 .IP "" 0
 .
 .P
-Cache types are either "denial" or "success"\.
+Cache types are either "denial" or "success"\. \fBServer\fR is the server handling the request, see the metrics plugin for documentation\.
 .
 .SH "EXAMPLES"
 Enable caching for all zones, but cap everything to a TTL of 10 seconds:

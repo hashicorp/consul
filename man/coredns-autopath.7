@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-AUTOPATH" "7" "February 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-AUTOPATH" "7" "May 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIautopath\fR \- allows for server\-side search path completion\.
@@ -32,9 +32,12 @@ If a plugin implements the \fBAutoPather\fR interface then it can be used\.
 If monitoring is enabled (via the \fIprometheus\fR directive) then the following metric is exported:
 .
 .IP "\(bu" 4
-\fBcoredns_autopath_success_count_total{}\fR \- counter of successfully autopath\-ed queries\.
+\fBcoredns_autopath_success_count_total{server}\fR \- counter of successfully autopath\-ed queries\.
 .
 .IP "" 0
+.
+.P
+The \fBserver\fR label is explained in the \fImetrics\fR plugin documentation\.
 .
 .SH "EXAMPLES"
 .

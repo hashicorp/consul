@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-TLS" "7" "March 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-TLS" "7" "May 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fItls\fR \- allows you to configure the server certificates for the TLS and gRPC servers\.
@@ -22,9 +22,12 @@ The gRPC protobuffer is defined in \fBpb/dns\.proto\fR\. It defines the proto as
 .
 .nf
 
-tls CERT KEY CA
+tls CERT KEY [CA]
 .
 .fi
+.
+.P
+Parameter CA is optional\. If not set, system CAs can be used to verify the client certificate
 .
 .SH "EXAMPLES"
 Start a DNS\-over\-TLS server that picks up incoming DNS\-over\-TLS queries on port 5553 and uses the nameservers defined in \fB/etc/resolv\.conf\fR to resolve the query\. This proxy path uses plain old DNS\.

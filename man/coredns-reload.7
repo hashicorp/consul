@@ -1,12 +1,15 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-RELOAD" "7" "April 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-RELOAD" "7" "May 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIreload\fR \- allows automatic reload of a changed Corefile
 .
 .SH "DESCRIPTION"
+This plugin allows automatic reload of a changed \fICorefile\fR\. To enable automatic reloading of \fIzone file\fR changes, use the \fBauto\fR plugin\.
+.
+.P
 This plugin periodically checks if the Corefile has changed by reading it and calculating its MD5 checksum\. If the file has changed, it reloads CoreDNS with the new Corefile\. This eliminates the need to send a SIGHUP or SIGUSR1 after changing the Corefile\.
 .
 .P
