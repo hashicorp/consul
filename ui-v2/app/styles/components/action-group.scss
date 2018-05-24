@@ -70,18 +70,29 @@
 %action-group ul {
   position: absolute;
   right: -10px;
-  top: 35px;
   padding: 1px;
 }
 %action-group ul::before {
   position: absolute;
   right: 18px;
-  top: -6px;
   content: '';
   display: block;
   width: 10px;
   height: 10px;
+}
+%action-group ul:not(.above) {
+  top: 35px;
+}
+%action-group ul:not(.above)::before {
+  top: -6px;
   transform: rotate(45deg);
+}
+%action-group ul.above {
+  bottom: 35px;
+}
+%action-group ul.above::before {
+  bottom: -6px;
+  transform: rotate(225deg);
 }
 %action-group li {
   position: relative;
