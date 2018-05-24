@@ -62,6 +62,14 @@ type Daemon struct {
 	// should be written to.
 	StdoutPath, StderrPath string
 
+	// DisableDetach is used by tests that don't actually care about detached
+	// child behaviour (i.e. outside proxy package) to bypass detaching and
+	// daemonizing Daemons. This makes tests much simpler as they don't need to
+	// implement a test-binary mode to enable self-exec daemonizing etc. and there
+	// are fewer risks of detached processes being spawned and then not killed in
+	// face of missed teardown/panic/interrupt of test runs etc.
+	DisableDetach bool
+
 	// gracefulWait can be set for tests and controls how long Stop() will wait
 	// for process to terminate before killing. If not set defaults to 5 seconds.
 	// If this is lowered for tests, it must remain higher than pollInterval
@@ -268,6 +276,16 @@ func (p *Daemon) start() (*os.Process, error) {
 		p.Args = []string{p.Path}
 	}
 
+	// If we are running in a test mode that disabled detaching daemon processes
+	// for simplicity, just exec the thing directly. This should never be the case
+	// in real life since this config is not publically exposed but makes testing
+	// way cleaner outside of this package.
+	if p.DisableDetach {
+		cmd := exec.Command(p.Path, p.Args[1:]...)
+		err := cmd.Start()
+		return cmd.Process, err
+	}
+
 	// Watch closely, we now swap out the exec.Cmd args for ones to run the same
 	// command via the connect daemonize command which takes care of correctly
 	// "double forking" to ensure the child is fully detached and adopted by the
@@ -326,16 +344,31 @@ func (p *Daemon) start() (*os.Process, error) {
 
 // daemonizeCommand returns the daemonize command.
 func (p *Daemon) daemonizeCommand() ([]string, error) {
-	// test override
+	// Test override
 	if p.daemonizeCmd != nil {
 		return p.daemonizeCmd, nil
 	}
-	// Get the path to the current executable. This is cached once by the
-	// library so this is effectively just a variable read.
+	// Get the path to the current executable. This is cached once by the library
+	// so this is effectively just a variable read.
 	execPath, err := os.Executable()
 	if err != nil {
 		return nil, err
 	}
+	// Sanity check to prevent runaway test invocations because test didn't setup
+	// daemonizeCmd correctly. This is kinda jank but go doesn't have a way to
+	// detect and alter behaviour in test binaries by design. In this case though
+	// we really need to never allow tests to self-execute which can cause
+	// recursive explosion of test runs. This check seems safe for current go
+	// tooling based on https://github.com/golang/go/issues/12120. If you hit
+	// this, you need to find a way to configure your test
+	// agent/proxyManager/Daemon to use agent/proxy/TestHelperProcess to run
+	// daemonize in a safe way. TestAgent should do this automatically by default.
+	if strings.HasSuffix(execPath, ".test") ||
+		strings.HasSuffix(execPath, ".test.exe") {
+		panic("test did not setup daemonizeCmd override and will dangerously" +
+			" self-execute the test binary.")
+	}
+
 	return []string{execPath, "connect", "daemonize"}, nil
 }
 

@@ -4199,6 +4199,7 @@ func TestSanitize(t *testing.T) {
     "ClientAddrs": [],
     "ConnectCAConfig": {},
     "ConnectCAProvider": "",
+    "ConnectDisableDetachedDaemons": false,
     "ConnectEnabled": false,
     "ConnectProxyBindMaxPort": 0,
     "ConnectProxyBindMinPort": 0,

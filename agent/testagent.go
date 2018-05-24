@@ -376,6 +376,14 @@ func TestConfig(sources ...config.Source) *config.RuntimeConfig {
 		fmt.Println("WARNING:", w)
 	}
 
+	// Set internal flag to simplify connect daemon execution. We test the full
+	// daemonization behaviour explicitly in `proxy` package, everywhere else it's
+	// just super painful to setup self-executable daemonize commands etc. For now
+	// this is not overridable because it's simpler not to expose this config
+	// publically at all but we could revisit that later if there is a legitimate
+	// reason to want to test full detached daemon behaviour with a TestAgent.
+	cfg.ConnectDisableDetachedDaemons = true
+
 	return &cfg
 }
 

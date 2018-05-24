@@ -366,6 +366,7 @@ func (a *Agent) Start() error {
 	a.proxyManager = proxy.NewManager()
 	a.proxyManager.State = a.State
 	a.proxyManager.Logger = a.logger
+	a.proxyManager.DisableDetach = a.config.ConnectDisableDetachedDaemons
 	if a.config.DataDir != "" {
 		// DataDir is required for all non-dev mode agents, but we want
 		// to allow setting the data dir for demos and so on for the agent,

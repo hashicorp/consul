@@ -84,6 +84,16 @@ type Manager struct {
 	CoalescePeriod  time.Duration
 	QuiescentPeriod time.Duration
 
+	// DisableDetach is used by tests that don't actually care about detached
+	// child behaviour (i.e. outside proxy package) to bypass detaching and
+	// daemonizing Daemons. This makes tests much simpler as they don't need to
+	// implement a test-binary mode to enable self-exec daemonizing etc. and there
+	// are fewer risks of detached processes being spawned and then not killed in
+	// face of missed teardown/panic/interrupt of test runs etc. It's public since
+	// it needs to be configurable from the agent package when setting up the
+	// proxyManager instance.
+	DisableDetach bool
+
 	// lock is held while reading/writing any internal state of the manager.
 	// cond is a condition variable on lock that is broadcasted for runState
 	// changes.
@@ -422,6 +432,7 @@ func (m *Manager) newProxy(mp *local.ManagedProxy) (Proxy, error) {
 		proxy.ProxyId = id
 		proxy.ProxyToken = mp.ProxyToken
 		proxy.daemonizeCmd = m.daemonizeCmd
+		proxy.DisableDetach = m.DisableDetach
 		return proxy, nil
 
 	default:
