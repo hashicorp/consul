@@ -118,7 +118,7 @@ These mechanisms make it easy to use DNS along with application-level retries
 as the foundation for an auto-healing service oriented architecture.
 
 For standard services queries, both A, TXT, and SRV records are supported. TXT records
-values will match the service's metadata key-value paris according to
+values will match the service's metadata key-value pairs according to
 [RFC1464](https://www.ietf.org/rfc/rfc1464.txt).
 Alternatively, the TXT record will only include the node's metadata value when the
 services's metadata key starts with `rfc1035-`.
