@@ -100,7 +100,10 @@ func (p *Proxy) finalizer() {
 }
 
 // start starts the proxy's healthchecking.
-func (p *Proxy) start(duration time.Duration) { p.probe.Start(duration) }
+func (p *Proxy) start(duration time.Duration) {
+	p.probe.Start(duration)
+	p.transport.Start()
+}
 
 const (
 	dialTimeout = 4 * time.Second
