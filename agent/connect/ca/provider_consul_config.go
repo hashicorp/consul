@@ -37,14 +37,6 @@ func ParseConsulCAConfig(raw map[string]interface{}) (*structs.ConsulCAProviderC
 // ParseDurationFunc is a mapstructure hook for decoding a string or
 // []uint8 into a time.Duration value.
 func ParseDurationFunc() mapstructure.DecodeHookFunc {
-	uint8ToString := func(bs []uint8) string {
-		b := make([]byte, len(bs))
-		for i, v := range bs {
-			b[i] = byte(v)
-		}
-		return string(b)
-	}
-
 	return func(
 		f reflect.Type,
 		t reflect.Type,
@@ -63,7 +55,7 @@ func ParseDurationFunc() mapstructure.DecodeHookFunc {
 			}
 			return v, nil
 		case f == reflect.SliceOf(reflect.TypeOf(uint8(0))):
-			s := uint8ToString(data.([]uint8))
+			s := Uint8ToString(data.([]uint8))
 			if dur, err := time.ParseDuration(s); err != nil {
 				return nil, err
 			} else {
@@ -74,4 +66,12 @@ func ParseDurationFunc() mapstructure.DecodeHookFunc {
 			return data, nil
 		}
 	}
+}
+
+func Uint8ToString(bs []uint8) string {
+	b := make([]byte, len(bs))
+	for i, v := range bs {
+		b[i] = byte(v)
+	}
+	return string(b)
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -47,8 +48,12 @@ func (s *HTTPServer) ConnectCAConfigurationGet(resp http.ResponseWriter, req *ht
 
 	var reply structs.CAConfiguration
 	err := s.agent.RPC("ConnectCA.ConfigurationGet", &args, &reply)
+	if err != nil {
+		return nil, err
+	}
+
 	fixupConfig(&reply)
-	return reply, err
+	return reply, nil
 }
 
 // PUT /v1/connect/ca/configuration
@@ -77,16 +82,8 @@ func fixupConfig(conf *structs.CAConfiguration) {
 	if conf.Provider == structs.ConsulCAProvider {
 		if v, ok := conf.Config["RotationPeriod"]; ok {
 			if raw, ok := v.([]uint8); ok {
-				conf.Config["RotationPeriod"] = uint8ToString(raw)
+				conf.Config["RotationPeriod"] = ca.Uint8ToString(raw)
 			}
 		}
 	}
-}
-
-func uint8ToString(bs []uint8) string {
-	b := make([]byte, len(bs))
-	for i, v := range bs {
-		b[i] = byte(v)
-	}
-	return string(b)
 }
