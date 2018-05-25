@@ -69,9 +69,9 @@
   dependencies:
     "@glimmer/di" "^0.2.0"
 
-"@johncowen/api-double@^1.1.0":
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/@johncowen/api-double/-/api-double-1.1.0.tgz#748a87134cd6a0a4e136d262bebbf1c444d6d291"
+"@johncowen/api-double@^1.1.1":
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/@johncowen/api-double/-/api-double-1.1.1.tgz#e6e7dbd54bb9615ddf4bd7293cef976cffe640ef"
   dependencies:
     "@gardenhq/o" "^8.0.1"
     "@gardenhq/tick-control" "^2.0.0"
@@ -87,9 +87,9 @@
 
 "@johncowen/ember-cli-api-double@johncowen/ember-cli-api-double#master":
   version "1.0.0"
-  resolved "https://codeload.github.com/johncowen/ember-cli-api-double/tar.gz/1946b56945e2fc413311a5d782f7748fab0d500c"
+  resolved "https://codeload.github.com/johncowen/ember-cli-api-double/tar.gz/6819bd1c8026f5623a2c32cd45f704f76887771e"
   dependencies:
-    "@johncowen/api-double" "^1.1.0"
+    "@johncowen/api-double" "^1.1.1"
     array-range "^1.0.1"
     ember-cli-babel "^6.6.0"
     js-yaml "^3.11.0"
