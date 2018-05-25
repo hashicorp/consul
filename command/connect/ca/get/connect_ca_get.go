@@ -73,9 +73,9 @@ func (c *cmd) Help() string {
 	return c.help
 }
 
-const synopsis = "Display the current Connect CA configuration"
+const synopsis = "Display the current Connect Certificate Authority (CA) configuration"
 const help = `
 Usage: consul connect ca get-config [options]
 
-  Displays the current Connect CA configuration.
+  Displays the current Connect Certificate Authority (CA) configuration.
 `

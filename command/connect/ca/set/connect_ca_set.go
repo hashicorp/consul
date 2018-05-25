@@ -92,5 +92,5 @@ const synopsis = "Modify the current Connect CA configuration"
 const help = `
 Usage: consul connect ca set-config [options]
 
-  Modifies the current Connect CA configuration.
+  Modifies the current Connect Certificate Authority (CA) configuration.
 `
