@@ -91,7 +91,7 @@ The most simplistic template is
 
 ### Resolve .invalid as NXDOMAIN
 
-The `.invalid` domain is a reserved TLD (see [RFC-2606 Reserved Top Level DNS Names](https://tools.ietf.org/html/rfc2606#section-2)) to indicate invalid domains.
+The `.invalid` domain is a reserved TLD (see [RFC 2606 Reserved Top Level DNS Names](https://tools.ietf.org/html/rfc2606#section-2)) to indicate invalid domains.
 
 ~~~ corefile
 . {
@@ -246,7 +246,7 @@ Named capture groups can be used to template one response for multiple patterns.
 
 * [Go regexp](https://golang.org/pkg/regexp/) for details about the regex implementation
 * [RE2 syntax reference](https://github.com/google/re2/wiki/Syntax) for details about the regex syntax
-* [RFC-1034](https://tools.ietf.org/html/rfc1034#section-3.6.1) and [RFC 1035](https://tools.ietf.org/html/rfc1035#section-5) for the resource record format
+* [RFC 1034](https://tools.ietf.org/html/rfc1034#section-3.6.1) and [RFC 1035](https://tools.ietf.org/html/rfc1035#section-5) for the resource record format
 * [Go template](https://golang.org/pkg/text/template/) for the template language reference
 
 ## Bugs
