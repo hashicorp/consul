@@ -1,8 +1,7 @@
 import { helper } from '@ember/component/helper';
 
-export function rightTrim([str = '', search = ''], hash) {
-  const pos = str.length - search.length;
-  return str.indexOf(search) === pos ? str.substr(0, pos) : str;
-}
+import rightTrim from 'consul-ui/utils/right-trim';
 
-export default helper(rightTrim);
+export default helper(function([str = '', search = ''], hash) {
+  return rightTrim(str, search);
+});
