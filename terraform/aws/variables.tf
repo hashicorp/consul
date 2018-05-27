@@ -103,3 +103,42 @@ variable "vpc_id" {
   type = "string"
   description = "ID of the VPC to use - in case your account doesn't have default VPC"
 }
+
+variable "consul_client_bind" {
+  type = "string"
+  description = "address to bind on for client connections"
+  default = "127.0.0.1"
+}
+
+variable "consul_bind" {
+  type = "string"
+  description = "address to bind on"
+  default = "0.0.0.0"
+}
+
+variable "consul_version" {
+  type = "string"
+  description = "consul version to install"
+  default = "1.1.0"
+}
+
+variable "consul_join_tag_key" {
+  description = "The key of the tag to auto-jon on EC2."
+  default     = "consul_join"
+}
+
+variable "consul_join_tag_value" {
+  description = "The value of the tag to auto-join on EC2."
+  default     = "production"
+}
+
+variable "client_access_subnet" {
+  description = "Subnet that will have access to consul service via UI or RPC"
+  default     = "127.0.0.1/32"
+}
+
+variable "consul_datacenter" {
+  description = "datacenter name for consul"
+  default     = "dc1"
+}
+
