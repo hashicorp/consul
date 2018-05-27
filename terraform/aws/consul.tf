@@ -31,7 +31,7 @@ resource "aws_instance" "server" {
     provisioner "remote-exec" {
       inline = [
         "chmod +x /tmp/install.sh",
-        "/tmp/install.sh ${var.servers} ${var.consul_version} ${var.consul_bind} ${var.consul_client_bind} ${var.consul_join_tag_key} ${var.consul_join_tag_value}",
+        "/tmp/install.sh ${var.servers} ${var.consul_version} ${var.consul_bind} ${var.consul_client_bind} ${var.consul_join_tag_key} ${var.consul_join_tag_value} ${var.consul_datacenter}",
 
       ]
     }
