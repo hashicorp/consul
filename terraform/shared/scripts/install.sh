@@ -30,6 +30,7 @@ sudo mkdir -p /opt/consul/data
 
 # Write the flags to a temporary file
 cat >/tmp/consul_flags << EOF
+CONSUL_BETA_UI=true
 CONSUL_FLAGS="-server -ui -client ${CONSUL_CLIENT_BIND} -bind ${CONSUL_BIND} -bootstrap-expect=${CONSUL_SERVER_COUNT} -retry-join=\"provider=aws tag_key=${CONSUL_TAG_JOIN} tag_value=${CONSUL_TAG_VALUE}\" -data-dir=/opt/consul/data"
 EOF
 
