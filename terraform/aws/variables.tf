@@ -132,3 +132,8 @@ variable "consul_join_tag_value" {
   default     = "production"
 }
 
+variable "client_access_subnet" {
+  description = "Subnet that will have access to consul service via UI or RPC"
+  default     = "127.0.0.1"
+}
+
