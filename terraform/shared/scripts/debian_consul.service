@@ -6,7 +6,7 @@ After=network-online.target
 [Service]
 EnvironmentFile=-/etc/sysconfig/consul
 Restart=on-failure
-ExecStart=/usr/local/bin/consul agent $CONSUL_FLAGS -config-dir=/etc/systemd/system/consul.d
+ExecStart=CONSUL_UI_BETA=true /usr/local/bin/consul agent $CONSUL_FLAGS -config-dir=/etc/systemd/system/consul.d
 ExecReload=/bin/kill -HUP $MAINPID
 
 [Install]
