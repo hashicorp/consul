@@ -137,3 +137,8 @@ variable "client_access_subnet" {
   default     = "127.0.0.1/32"
 }
 
+variable "consul_datacenter" {
+  description = "datacenter name for consul"
+  default     = "dc1"
+}
+
