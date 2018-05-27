@@ -13,12 +13,6 @@ resource "aws_instance" "server" {
         private_key = "${file("${var.key_path}")}"
     }
 
-    #Instance tags
-    #tags {
-        #Name = "${var.tagName}-${count.index}"
-        #ConsulRole = "Server"
-    #}
-
     tags = "${map(
        "Name", "consul-server-${count.index}",
        var.consul_join_tag_key, var.consul_join_tag_value
@@ -29,14 +23,6 @@ resource "aws_instance" "server" {
         destination = "/tmp/${lookup(var.service_conf_dest, var.platform)}"
     }
 
-
-#    provisioner "remote-exec" {
-#        inline = [
-#            "echo ${var.servers} > /tmp/consul-server-count",
-#            "echo ${aws_instance.server.0.private_ip} > /tmp/consul-server-addr",
-#        ]
-#    }
-#
     provisioner "file" {
         source      = "${path.module}/../shared/scripts/install.sh",
         destination = "/tmp/install.sh"
