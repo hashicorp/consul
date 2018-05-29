@@ -70,6 +70,9 @@ The agent is responsible for managing the status of its local services, and for
 sending updates about its local services to the servers to keep the global
 catalog in sync.
 
+For "connect-proxy" kind services, the `service:write` ACL for the
+`ProxyDestination` value is also required to register the service.
+
 | Method | Path                         | Produces                   |
 | ------ | ---------------------------- | -------------------------- |
 | `PUT`  | `/agent/service/register`    | `application/json`         |
@@ -103,6 +106,16 @@ The table below shows this endpoint's support for
   linked to the service instance.
 
 - `Port` `(int: 0)` - Specifies the port of the service.
+
+- `Kind` `(string: "")` - The kind of service. Defaults to "" which is a
+  typical Consul service. This value may also be "connect-proxy" for
+  services that are [Connect-capable](/docs/connect/index.html)
+  proxies representing another service.
+
+- `ProxyDestination` `(string: "")` - For "connect-proxy" `Kind` services,
+  this must be set to the name of the service that the proxy represents. This
+  service doesn't need to be registered, but the caller must have an ACL token
+  with permissions for this service.
 
 - `Check` `(Check: nil)` - Specifies a check. Please see the
   [check documentation](/api/agent/check.html) for more information about the

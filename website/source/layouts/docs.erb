@@ -70,6 +70,17 @@
               </li>
             </ul>
           </li>
+          <li<%= sidebar_current("docs-commands-connect") %>>
+            <a href="/docs/commands/connect.html">connect</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-commands-connect-ca") %>>
+                <a href="/docs/commands/connect/ca.html">ca</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-connect-proxy") %>>
+                <a href="/docs/commands/connect/proxy.html">proxy</a>
+              </li>
+            </ul>
+          </li>
           <li<%= sidebar_current("docs-commands-event") %>>
             <a href="/docs/commands/event.html">event</a>
           </li>
@@ -82,6 +93,27 @@
           <li<%= sidebar_current("docs-commands-info") %>>
             <a href="/docs/commands/info.html">info</a>
           </li>
+          <li<%= sidebar_current("docs-commands-intention") %>>
+            <a href="/docs/commands/intention.html">intention</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-commands-intention-check") %>>
+                <a href="/docs/commands/intention/check.html">check</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-intention-create") %>>
+                <a href="/docs/commands/intention/create.html">create</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-intention-delete") %>>
+                <a href="/docs/commands/intention/delete.html">delete</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-intention-get") %>>
+                <a href="/docs/commands/intention/get.html">get</a>
+              </li>
+              <li<%= sidebar_current("docs-commands-intention-match") %>>
+                <a href="/docs/commands/intention/match.html">match</a>
+              </li>
+            </ul>
+          </li>
+
           <li<%= sidebar_current("docs-commands-join") %>>
             <a href="/docs/commands/join.html">join</a>
           </li>
@@ -212,6 +244,38 @@
           </li>
           <li<%= sidebar_current("docs-agent-watches") %>>
             <a href="/docs/agent/watches.html">Watches</a>
+          </li>
+        </ul>
+      </li>
+
+      <li<%= sidebar_current("docs-connect") %>>
+        <a href="/docs/connect/index.html">Connect (Service Segmentation)</a>
+        <ul class="nav">
+          <li<%= sidebar_current("docs-connect-config") %>>
+            <a href="/docs/connect/configuration.html">Configuration</a>
+          </li>
+          <li<%= sidebar_current("docs-connect-proxies") %>>
+            <a href="/docs/connect/proxies.html">Proxies</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-connect-proxies-integrate") %>>
+                <a href="/docs/connect/proxies/integrate.html">Proxy Integration</a>
+              </li>
+            </ul>
+          </li>
+          <li<%= sidebar_current("docs-connect-intentions") %>>
+            <a href="/docs/connect/intentions.html">Intentions</a>
+          </li>
+          <li<%= sidebar_current("docs-connect-ca") %>>
+            <a href="/docs/connect/ca.html">Certificate Management</a>
+          </li>
+          <li<%= sidebar_current("docs-connect-native") %>>
+            <a href="/docs/connect/native.html">Native App Integration</a>
+          </li>
+          <li<%= sidebar_current("docs-connect-dev") %>>
+            <a href="/docs/connect/dev.html">Develop and Debug</a>
+          </li>
+          <li<%= sidebar_current("docs-connect-security") %>>
+            <a href="/docs/connect/security.html">Security</a>
           </li>
         </ul>
       </li>

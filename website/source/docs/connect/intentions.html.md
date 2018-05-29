@@ -1,0 +1,134 @@
+---
+layout: "docs"
+page_title: "Connect - Intentions"
+sidebar_current: "docs-connect-intentions"
+description: |-
+  Intentions define access control for services via Connect and are used to control which services may establish connections. Intentions can be managed via the API, CLI, or UI.
+---
+
+# Intentions
+
+Intentions define access control for services via Connect and are used
+to control which services may establish connections. Intentions can be
+managed via the API, CLI, or UI.
+
+Intentions are enforced by the [proxy](/docs/connect/proxies.html)
+or [natively integrated application](/docs/connect/native.html) on
+inbound connections. After verifying the TLS client certificate, the
+[authorize API endpoint](#) is called which verifies the connection
+is allowed by testing the intentions. If authorize returns false the
+connection must be terminated.
+
+The default intention behavior is defined by the default
+[ACL policy](/docs/guides/acls.html). If the default ACL policy is "allow all",
+then all Connect connections are allowed by deafult. If the default ACL policy
+is "deny all", then all Connect connections are denied by default.
+
+## Intention Basics
+
+Intentions can be managed via the
+[API](#),
+[CLI](#),
+or UI. Please see the respective documentation for each for full details
+on options, flags, etc.
+Below is an example of a basic intention to show the basic attributes
+of an intention. The full data model of an intention can be found in the
+[API documentation](#).
+
+```
+$ consul intention create -deny web db
+Created: web => db (deny)
+```
+
+The intention above is a deny intention with a source of "web" and
+destination of "db". This says that connections from web to db are not
+allowed and the connection will be rejected.
+
+### Wildcard Intentions
+
+An intention source or destination may also be the special wildcard
+value `*`. This matches _any_ value and is used as a catch-all. Example:
+
+```
+$ consul intention create -deny web '*'
+Created: web => * (deny)
+```
+
+This example says that the "web" service cannot connect to _any_ service.
+
+### Metadata
+
+Arbitrary string key/value data may be associated with intentions. This
+is unused by Consul but can be used by external systems or for visibility
+in the UI.
+
+```
+$ consul intention create \
+  -deny \
+  -meta description='Hello there' \
+  web db
+...
+
+$ consul intention get web db
+Source:             web
+Destination:        db
+Action:             deny
+ID:                 31449e02-c787-f7f4-aa92-72b5d9b0d9ec
+Meta[description]:  Hello there
+Created At:         Friday, 25-May-18 02:07:51 CEST
+```
+
+## Precedence and Match Order
+
+Intentions are matched in an implicit order based on specificity, preferring
+deny over allow. The full precedence table is shown below and is evaluated
+top to bottom.
+
+TODO
+
+## Intention Management Permissions
+
+Intention management can be protected by [ACLs](/docs/guides/acls.html).
+Permissions for intentions are _destination-oriented_, meaning the ACLs
+for managing intentions are looked up based on the destination value
+of the intention, not the source.
+
+Intention permissions are first inherited from `service` management permissions.
+For example, the ACL below would allow _read_ access to intentions with a
+destination starting with "web":
+
+```hcl
+service "web" {
+  policy = "read"
+}
+```
+
+ACLs may also specify service-specific intention permissions. In the example
+below, the ACL token may register a "web"-prefixed service but _may not_ read or write
+intentions:
+
+```hcl
+service "web" {
+  policy = "read"
+  intention = "deny"
+}
+```
+
+## Performance and Intention Updates
+
+The intentions for services registered with a Consul agent are cached
+locally on that agent. They are then updated via a background blocking query
+against the Consul servers.
+
+Connect connection attempts require only local agent
+communication for authorization and generally impose only impose microseconds
+of latency to the connection. All actions in the data path of connections
+require only local data to ensure minimal performance overhead.
+
+Updates to intentions are propagated nearly instantly to agents since agents
+maintain a continuous blocking query in the background for intention updates
+for registered services.
+
+Because all the intention data is cached locally, the agents can fail open.
+Even if the agents are severed completely from the Consul servers, inbound
+connection authorization continues to work for a configured amount of time.
