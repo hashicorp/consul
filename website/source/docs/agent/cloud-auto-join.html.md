@@ -244,7 +244,7 @@ The configuration can also be provided by environment variables.
 ### Scaleway
 
 This returns the first private IP address of all servers for the given
-`region` with the given `tag_key` and `tag_value`.
+`region` with the given `tag_name`.
 
 ```sh
 $ consul agent -retry-join "provider=scaleway organization=my-org tag_name=consul-server token=... region=..."
@@ -259,8 +259,8 @@ $ consul agent -retry-join "provider=scaleway organization=my-org tag_name=consu
 - `provider` (required) - the name of the provider ("scaleway" in this case).
 - `region` (required) - the name of the region.
 - `tag_name` (required) - the name of the tag to auto-join on.
-- `organization` (optional) - the organization access key to use for auth.
-- `token` (optional) - the token to use for auth.
+- `organization` (required) - the organization access key to use for auth (equal to access key).
+- `token` (required) - the token to use for auth.
 
 ### Joyent Triton
 
