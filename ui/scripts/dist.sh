@@ -15,7 +15,11 @@ DEPLOY="../pkg/web_ui/v1"
 rm -rf $DEPLOY
 mkdir -p $DEPLOY
 
-bundle check >/dev/null 2>&1 || bundle install
+# If dependencies are missing, install them.
+# But show `bundle check` outputs (don't hide its output of which
+# gem dependencies are missing) to make life easier for
+# packagers that want to provide dependencies themselves.
+bundle check || bundle install
 bundle exec sass styles/base.scss static/base.css
 
 bundle exec ruby scripts/compile.rb
