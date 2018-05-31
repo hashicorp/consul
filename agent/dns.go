@@ -752,11 +752,12 @@ func (d *DNSServer) trimTCPResponse(req, resp *dns.Msg) (trimmed bool) {
 	originalSize := resp.Len()
 	originalNumRecords := len(resp.Answer)
 
-	// Beyond 2500 records, performance gets bad
-	// Limit the number of records at once, anyway, it won't fit in 64k
-	// For SRV Records, the max is around 500 records, for A, less than 2k
+	// It is not possible to return more than 4k records even with compression
+        // Since we are performing binary search it is not a big deal, but it
+        // improves a bit performance, even with binary search
 	truncateAt := 4096
 	if req.Question[0].Qtype == dns.TypeSRV {
+		// More than 1024 SRV records do not fit in 64k
 		truncateAt = 1024
 	}
 	if len(resp.Answer) > truncateAt {
