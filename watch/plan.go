@@ -20,10 +20,12 @@ const (
 )
 
 // Run is used to run a watch plan
-func (p *Plan) Run(address string) error {
+func (p *Plan) Run(address string, conf *consulapi.Config) error {
 	// Setup the client
 	p.address = address
-	conf := consulapi.DefaultConfig()
+	if conf == nil {
+		conf = consulapi.DefaultConfig()
+	}
 	conf.Address = address
 	conf.Datacenter = p.Datacenter
 	conf.Token = p.Token
