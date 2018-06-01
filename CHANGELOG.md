@@ -4,6 +4,10 @@ FEATURES:
 
 * dns: Enable PTR record lookups for services with IPs that have no registered node [[PR-4083](https://github.com/hashicorp/consul/pull/4083)]
 
+IMPROVEMENTS:
+
+* agent: A Consul user-agent string is now sent to providers when making retry-join requests [GH-4013](https://github.com/hashicorp/consul/pull/4013)
+
 BUG FIXES:
 
 * agent: Fixed an issue where watches were being duplicated on reload. [[GH-4179](https://github.com/hashicorp/consul/issues/4179)]
