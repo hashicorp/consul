@@ -16,7 +16,6 @@ Feature: components / kv-filter
     ---
     s: [Text]
     ---
-    And pause for 3000
     And I see 1 [Model] model with the name "[Text]"
 
   Where:
