@@ -1,6 +1,6 @@
 {{#if (gt items.length 0) }}
     <form class="filter-bar">
-        {{freetext-filter onchange=(action 'filter') value=filter.s placeholder="Search by name"}}
+        {{freetext-filter onchange=(action 'filter') value=filter.s placeholder="Search by name/port"}}
     </form>
 {{/if}}
 {{#if (gt filtered.length 0)}}
