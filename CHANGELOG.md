@@ -7,6 +7,7 @@ FEATURES:
 BUG FIXES:
 
 * agent: Fixed an issue where watches were being duplicated on reload. [[GH-4179](https://github.com/hashicorp/consul/issues/4179)]
+* agent: Fixed an issue with Agent watches on a HTTPS only agent would fail to use TLS. [[GH-4076](https://github.com/hashicorp/consul/issues/4076)]
 
 ## 1.1.0 (May 11, 2018)
 
