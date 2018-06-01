@@ -686,7 +686,7 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 				config.TLSConfig.Address = addr
 			}
 
-			if err := wp.Run(addr, config); err != nil {
+			if err := wp.RunWithConfig(addr, config); err != nil {
 				a.logger.Printf("[ERR] agent: Failed to run watch: %v", err)
 			}
 		}(wp)

@@ -64,7 +64,7 @@ func TestKeyWatch(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := plan.Run(a.HTTPAddr(), nil); err != nil {
+		if err := plan.Run(a.HTTPAddr()); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}()
@@ -118,7 +118,7 @@ func TestKeyWatch_With_PrefixDelete(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := plan.Run(a.HTTPAddr(), nil); err != nil {
+		if err := plan.Run(a.HTTPAddr()); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}()
@@ -171,7 +171,7 @@ func TestKeyPrefixWatch(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := plan.Run(a.HTTPAddr(), nil); err != nil {
+		if err := plan.Run(a.HTTPAddr()); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}()
@@ -225,7 +225,7 @@ func TestServicesWatch(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := plan.Run(a.HTTPAddr(), nil); err != nil {
+		if err := plan.Run(a.HTTPAddr()); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}()
@@ -276,7 +276,7 @@ func TestNodesWatch(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := plan.Run(a.HTTPAddr(), nil); err != nil {
+		if err := plan.Run(a.HTTPAddr()); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}()
@@ -332,7 +332,7 @@ func TestServiceWatch(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := plan.Run(a.HTTPAddr(), nil); err != nil {
+		if err := plan.Run(a.HTTPAddr()); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}()
@@ -393,7 +393,7 @@ func TestChecksWatch_State(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := plan.Run(a.HTTPAddr(), nil); err != nil {
+		if err := plan.Run(a.HTTPAddr()); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}()
@@ -459,7 +459,7 @@ func TestChecksWatch_Service(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := plan.Run(a.HTTPAddr(), nil); err != nil {
+		if err := plan.Run(a.HTTPAddr()); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}()
@@ -510,7 +510,7 @@ func TestEventWatch(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := plan.Run(a.HTTPAddr(), nil); err != nil {
+		if err := plan.Run(a.HTTPAddr()); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}()

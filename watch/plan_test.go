@@ -47,7 +47,7 @@ func TestRun_Stop(t *testing.T) {
 
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- plan.Run("127.0.0.1:8500", nil)
+		errCh <- plan.Run("127.0.0.1:8500")
 	}()
 
 	select {
