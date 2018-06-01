@@ -3,6 +3,7 @@
 package test
 
 import (
+	"context"
 	"io/ioutil"
 	"log"
 	"testing"
@@ -13,7 +14,6 @@ import (
 	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
-	"golang.org/x/net/context"
 )
 
 // uses some stuff from etcd_tests.go

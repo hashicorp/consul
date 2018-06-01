@@ -38,7 +38,7 @@ func TestProxyWithHTTPCheckOK(t *testing.T) {
 
 	name, rm, err := test.TempFile(".", exampleOrg)
 	if err != nil {
-		t.Fatalf("failed to create zone: %s", err)
+		t.Fatalf("Failed to create zone: %s", err)
 	}
 	defer rm()
 

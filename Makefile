@@ -5,7 +5,7 @@ SYSTEM:=
 CHECKS:=check godeps
 VERBOSE:=-v
 GOPATH?=$(HOME)/go
-PRESUBMIT:=core coremain plugin
+PRESUBMIT:=core coremain plugin test request
 
 all: coredns
 

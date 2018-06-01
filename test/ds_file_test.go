@@ -34,7 +34,7 @@ func TestLookupDS(t *testing.T) {
 	t.Parallel()
 	name, rm, err := TempFile(".", miekNL)
 	if err != nil {
-		t.Fatalf("failed to create zone: %s", err)
+		t.Fatalf("Failed to create zone: %s", err)
 	}
 	defer rm()
 

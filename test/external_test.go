@@ -36,7 +36,7 @@ func testExternalPluginCompile(t *testing.T) {
 	}
 
 	if !strings.Contains(string(out), "dns.example") {
-		t.Fatal("dns.example plugin should be there")
+		t.Fatal("Plugin dns.example should be there")
 	}
 }
 
@@ -44,7 +44,7 @@ func run(t *testing.T, c *exec.Cmd) ([]byte, error) {
 	c.Dir = ".."
 	out, err := c.Output()
 	if err != nil {
-		return nil, fmt.Errorf("run: failed to run %s %s: %q", c.Args[0], c.Args[1], err)
+		return nil, fmt.Errorf("Run: failed to run %s %s: %q", c.Args[0], c.Args[1], err)
 	}
 	return out, nil
 
