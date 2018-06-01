@@ -23,7 +23,7 @@ no arguments:
 
 ```text
 $ consul
-usage: consul [--version] [--help] <command> [<args>]
+Usage: consul [--version] [--help] <command> [<args>]
 
 Available commands are:
     agent          Runs a Consul agent
@@ -37,6 +37,7 @@ Available commands are:
     keyring        Manages gossip layer encryption keys
     kv             Interact with the key-value store
     leave          Gracefully leaves the Consul cluster and shuts down
+    license        Get/Put the Consul Enterprise license (Enterprise-only)
     lock           Execute a command holding a lock
     maint          Controls node or service maintenance mode
     members        Lists the members of a Consul cluster
