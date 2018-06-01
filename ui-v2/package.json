@@ -17,7 +17,7 @@
     "test": "ember test",
     "test:view": "ember test --server",
     "precommit": "lint-staged",
-    "postinstall": "cp -R ./node_modules/@johncowen/consul-api-double ./public/consul-api-double"
+    "postinstall": "rsync -aq ./node_modules/@hashicorp/consul-api-double/ ./public/consul-api-double/"
   },
   "lint-staged": {
     "{app,config,lib,server,tests}/**/*.js": [
@@ -33,8 +33,8 @@
 
   },
   "devDependencies": {
-    "@johncowen/ember-cli-api-double": "johncowen/ember-cli-api-double#master",
-    "@johncowen/consul-api-double": "johncowen/consul-api-double#master",
+    "@hashicorp/ember-cli-api-double": "^1.0.2",
+    "@hashicorp/consul-api-double": "^1.0.0",
     "babel-plugin-transform-object-rest-spread": "^6.26.0",
     "base64-js": "^1.3.0",
     "broccoli-asset-rev": "^2.4.5",
