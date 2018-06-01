@@ -101,7 +101,7 @@ const change = function(e) {
       // therefore we don't need to calculate
       if (e.currentTarget.getAttribute('id') !== 'actions_close') {
         const $tr = closest('tr', e.currentTarget);
-        const $group = [...$('~ ul', e.currentTarget)][0];
+        const $group = [...$$('~ ul', e.currentTarget)][0];
         const $footer = [...$$('footer[role="contentinfo"]')][0];
         const groupRect = $group.getBoundingClientRect();
         const footerRect = $footer.getBoundingClientRect();
@@ -166,14 +166,18 @@ export default Component.extend(SlotsMixin, {
   },
   resize: function(e) {
     const $tbody = [...$$('tbody', this.element)][0];
-    if ($tbody) {
+    const $appContent = [...$$('main > div')][0];
+    if ($appContent) {
+      // TODO: This is zero if the tabular collection is in a tab
+      // need to make sure this also is calculated when
+      // things become visible
       const rect = $tbody.getBoundingClientRect();
       const $footer = [...$$('footer[role="contentinfo"]')][0];
       const space = rect.top + $footer.clientHeight;
       const height = new Number(e.detail.height - space);
       this.set('height', Math.max(0, height));
       // TODO: The row height should auto calculate properly from the CSS
-      this['cell-layout'] = new ZIndexedGrid($tbody.clientWidth, 50);
+      this['cell-layout'] = new ZIndexedGrid($appContent.clientWidth, 50);
       this.updateItems();
       this.updateScrollPosition();
     }
