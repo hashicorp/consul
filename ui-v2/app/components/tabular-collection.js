@@ -6,16 +6,34 @@ import SlotsMixin from 'ember-block-slots';
 import style from 'ember-computed-style';
 
 import { computed, get, set } from '@ember/object';
+/**
+ * Heavily extended `ember-collection` component
+ * This adds support for z-index calculations to enable
+ * Popup menus to pop over either rows above or below
+ * the popup.
+ * Additionally adds calculations for figuring out what the height
+ * of the tabular component should be depending on the other elements
+ * in the page.
+ * Currently everything is here together for clarity, but to be split up
+ * in the future
+ */
 
+// basic DOM selecting utility, emeber doesn't like you using `$`
+// hence `$$`
 const $$ = function(sel, context = document) {
   return context.querySelectorAll(sel);
 };
+// basic pseudo CustomEvent interface
+// TODO: use actual custom events once I've reminded
+// myself re: support/polyfills
 const createSizeEvent = function(detail) {
   return {
     detail: { width: window.innerWidth, height: window.innerHeight },
   };
 };
-// need to copy this in wholesale as there is no way to import it
+// need to copy Cell in wholesale as there is no way to import it
+// there is no change made to `Cell` here, its only here as its
+// private in `ember-collection`
 // TODO: separate both Cell and ZIndexedGrid out
 class Cell {
   constructor(key, item, index, style) {
@@ -26,11 +44,17 @@ class Cell {
     this.style = style;
   }
 }
+// this is an amount of rows in the table NOT items
+// unlikely to have 10000 DOM rows ever :)
 const maxZIndex = 10000;
+// Adds z-index styling to the default Grid
 class ZIndexedGrid extends Grid {
   formatItemStyle(index, w, h, checked) {
     let style = super.formatItemStyle(index, w, h);
+    // count backwards from maxZIndex
     let zIndex = maxZIndex - index;
+    // apart from the row that contains an opened dropdown menu
+    // this one should be highest z-index, so use max plus 1
     if (checked == index) {
       zIndex = maxZIndex + 1;
     }
@@ -38,7 +62,8 @@ class ZIndexedGrid extends Grid {
     return style;
   }
 }
-// TODO instead of degrading gracefully
+// basic DOM closest utility to cope with no support
+// TODO: instead of degrading gracefully
 // add a while polyfill for closest
 const closest = function(sel, el) {
   try {
@@ -47,6 +72,22 @@ const closest = function(sel, el) {
     return;
   }
 };
+/**
+ * The tabular-collection can contain 'actions' the UI for which
+ * uses dropdown 'action groups', so a group of different actions.
+ * State makes use of native HTML state using radiogroups
+ * to ensure that only a single dropdown can be open at one time.
+ * Therefore we listen to change events to do anything extra when
+ * a dropdown is opened (the change function is bound to the instance of
+ * the `tabular-component` on init, hoisted here for visibility)
+ *
+ * The extra functionality we have here is to detect whether the opened
+ * dropdown menu would be cut off or not if it 'dropped down'.
+ * If it would be cut off we use CSS to 'drop it up' instead.
+ * We also set this row to have the max z-index here, and mark this
+ * row as the 'checked row' for when a scroll/grid re-calculation is
+ * performed
+ */
 const change = function(e) {
   if (e instanceof MouseEvent) {
     return;
@@ -56,6 +97,8 @@ const change = function(e) {
     const value = e.currentTarget.value;
     if (value != get(this, 'checked')) {
       set(this, 'checked', value);
+      // 'actions_close' would mean that all menus have been closed
+      // therefore we don't need to calculate
       if (e.currentTarget.getAttribute('id') !== 'actions_close') {
         const $tr = closest('tr', e.currentTarget);
         const $group = [...$('~ ul', e.currentTarget)][0];
@@ -113,6 +156,8 @@ export default Component.extend(SlotsMixin, {
   },
   didInsertElement: function() {
     this._super(...arguments);
+    // TODO: Consider moving all DOM lookups here
+    // this seems to be the earliest place I can get them
     window.addEventListener('resize', this.handler);
     this.handler();
   },
@@ -120,7 +165,7 @@ export default Component.extend(SlotsMixin, {
     window.removeEventListener('resize', this.handler);
   },
   resize: function(e) {
-    const $tbody = this.$('tbody').get(0);
+    const $tbody = [...$$('tbody', this.element)][0];
     if ($tbody) {
       const rect = $tbody.getBoundingClientRect();
       const $footer = [...$$('footer[role="contentinfo"]')][0];
@@ -133,6 +178,8 @@ export default Component.extend(SlotsMixin, {
       this.updateScrollPosition();
     }
   },
+  // `ember-collection` bug workaround
+  // https://github.com/emberjs/ember-collection/issues/138
   _needsRevalidate: function() {
     if (this.isDestroyed || this.isDestroying) {
       return;
@@ -144,7 +191,9 @@ export default Component.extend(SlotsMixin, {
     }
   },
   // need to overwrite this completely so I can pass through the checked index
-  // for `formatItemStyle` in 3 places
+  // unfortunately the nicest way I could think to do this is to copy this in wholesale
+  // to add an extra argument for `formatItemStyle` in 3 places
+  // tradeoff between changing as little code as possible in the original code
   updateCells: function() {
     if (!this._items) {
       return;
@@ -247,6 +296,9 @@ export default Component.extend(SlotsMixin, {
   },
   actions: {
     click: function(e) {
+      // click on row functionality
+      // so if you click the actual row but not a link
+      // find the first link and fire that instead
       const name = e.target.nodeName.toLowerCase();
       switch (name) {
         case 'input':
