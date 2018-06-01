@@ -364,14 +364,15 @@ will exit with an error at startup.
   rarely need to be changed. Very busy clusters experiencing excessive disk IO may increase this value to reduce disk IO, and minimize
   the chances of all servers taking snapshots at the same time. Increasing this trades off disk IO for disk space since the log will
   grow much larger and the space in the raft.db file can't be reclaimed till the next snapshot. Servers may take longer to recover from
-  crashes or failover if this is increased significantly as more logs will need to be replayed.
+  crashes or failover if this is increased significantly as more logs will need to be replayed. In Consul 1.1.0 and later this
+  defaults to 16384, and in prior versions it was set to 8192.
 
 * <a name="_raft_snapshot_interval"></a><a href="#_raft_snapshot_interval">`-raft-snapshot-interval`</a> - This controls how often servers
   check if they need to save a snapshot to disk. his is a low-level parameter that should rarely need to be changed. Very busy clusters
   experiencing excessive disk IO may increase this value to reduce disk IO, and minimize the chances of all servers taking snapshots at the same time.
   Increasing this trades off disk IO for disk space since the log will grow much larger and the space in the raft.db file can't be reclaimed
   till the next snapshot. Servers may take longer to recover from crashes or failover if this is increased significantly as more logs
-  will need to be replayed.
+  will need to be replayed. In Consul 1.1.0 and later this defaults to `30s`, and in prior versions it was set to `5s`.
 
 * <a name="_recursor"></a><a href="#_recursor">`-recursor`</a> - Specifies the address of an upstream DNS
   server. This option may be provided multiple times, and is functionally
