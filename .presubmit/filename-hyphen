@@ -1,0 +1,9 @@
+#!/bin/bash
+
+echo "** presubmit/$(basename $0)"
+
+for dir in "$@"; do
+    if find $dir | grep '-'; then
+        echo "** presubmit/$(basename $0): please use an underscore in filenames instead of a hyphen"
+    fi
+done
