@@ -13,5 +13,4 @@ Feature: Search services within nodes by name and port
     ---
     When I click services on the tabs
     And I see servicesIsSelected on the tabs
-    And then pause for 3000
 
