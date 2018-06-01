@@ -1,7 +1,7 @@
 /* eslint no-console: "off" */
 import yadda from './helpers/yadda';
 import { currentURL, click, triggerKeyEvent } from '@ember/test-helpers';
-import getDictionary from '@johncowen/ember-cli-api-double/dictionary';
+import getDictionary from '@hashicorp/ember-cli-api-double/dictionary';
 import pages from 'consul-ui/tests/pages';
 import api from 'consul-ui/tests/helpers/api';
 
