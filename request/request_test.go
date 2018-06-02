@@ -75,13 +75,13 @@ func TestRequestScrubAnswer(t *testing.T) {
 
 	_, got := req.Scrub(reply)
 	if want := ScrubAnswer; want != got {
-		t.Errorf("want scrub result %d, got %d", want, got)
+		t.Errorf("Want scrub result %d, got %d", want, got)
 	}
 	if want, got := req.Size(), reply.Len(); want < got {
-		t.Errorf("want scrub to reduce message length below %d bytes, got %d bytes", want, got)
+		t.Errorf("Want scrub to reduce message length below %d bytes, got %d bytes", want, got)
 	}
 	if !reply.Truncated {
-		t.Errorf("want scrub to set truncated bit")
+		t.Errorf("Want scrub to set truncated bit")
 	}
 }
 
@@ -99,13 +99,13 @@ func TestRequestScrubExtra(t *testing.T) {
 
 	_, got := req.Scrub(reply)
 	if want := ScrubExtra; want != got {
-		t.Errorf("want scrub result %d, got %d", want, got)
+		t.Errorf("Want scrub result %d, got %d", want, got)
 	}
 	if want, got := req.Size(), reply.Len(); want < got {
-		t.Errorf("want scrub to reduce message length below %d bytes, got %d bytes", want, got)
+		t.Errorf("Want scrub to reduce message length below %d bytes, got %d bytes", want, got)
 	}
 	if reply.Truncated {
-		t.Errorf("want scrub to not set truncated bit")
+		t.Errorf("Want scrub to not set truncated bit")
 	}
 }
 
@@ -124,13 +124,13 @@ func TestRequestScrubExtraEdns0(t *testing.T) {
 
 	_, got := req.Scrub(reply)
 	if want := ScrubExtra; want != got {
-		t.Errorf("want scrub result %d, got %d", want, got)
+		t.Errorf("Want scrub result %d, got %d", want, got)
 	}
 	if want, got := req.Size(), reply.Len(); want < got {
-		t.Errorf("want scrub to reduce message length below %d bytes, got %d bytes", want, got)
+		t.Errorf("Want scrub to reduce message length below %d bytes, got %d bytes", want, got)
 	}
 	if reply.Truncated {
-		t.Errorf("want scrub to not set truncated bit")
+		t.Errorf("Want scrub to not set truncated bit")
 	}
 	opt := reply.Extra[len(reply.Extra)-1]
 	if opt.Header().Rrtype != dns.TypeOPT {
@@ -152,10 +152,10 @@ func TestRequestScrubAnswerExact(t *testing.T) {
 
 	_, got := req.Scrub(reply)
 	if want := ScrubAnswer; want != got {
-		t.Errorf("want scrub result %d, got %d", want, got)
+		t.Errorf("Want scrub result %d, got %d", want, got)
 	}
 	if want, got := req.Size(), reply.Len(); want < got {
-		t.Errorf("want scrub to reduce message length below %d bytes, got %d bytes", want, got)
+		t.Errorf("Want scrub to reduce message length below %d bytes, got %d bytes", want, got)
 	}
 }
 
@@ -166,17 +166,17 @@ func TestRequestMatch(t *testing.T) {
 
 	reply.SetQuestion("example.com.", dns.TypeMX)
 	if b := st.Match(reply); b {
-		t.Errorf("failed to match %s %d, got %t, expected %t", "example.com.", dns.TypeMX, b, false)
+		t.Errorf("Failed to match %s %d, got %t, expected %t", "example.com.", dns.TypeMX, b, false)
 	}
 
 	reply.SetQuestion("example.com.", dns.TypeA)
 	if b := st.Match(reply); !b {
-		t.Errorf("failed to match %s %d, got %t, expected %t", "example.com.", dns.TypeA, b, true)
+		t.Errorf("Failed to match %s %d, got %t, expected %t", "example.com.", dns.TypeA, b, true)
 	}
 
 	reply.SetQuestion("example.org.", dns.TypeA)
 	if b := st.Match(reply); b {
-		t.Errorf("failed to match %s %d, got %t, expected %t", "example.org.", dns.TypeA, b, false)
+		t.Errorf("Failed to match %s %d, got %t, expected %t", "example.org.", dns.TypeA, b, false)
 	}
 }
 

@@ -52,7 +52,7 @@ func TestLookupBalanceRewriteCacheDnssec(t *testing.T) {
 		}
 	}
 	if sig == 0 {
-		t.Errorf("expected RRSIGs, got none")
+		t.Errorf("Expected RRSIGs, got none")
 		t.Logf("%v\n", res)
 	}
 }
