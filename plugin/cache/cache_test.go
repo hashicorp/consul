@@ -175,7 +175,7 @@ func TestCache(t *testing.T) {
 		ok := i != nil
 
 		if ok != tc.shouldCache {
-			t.Errorf("cached message that should not have been cached: %s", state.Name())
+			t.Errorf("Cached message that should not have been cached: %s", state.Name())
 			continue
 		}
 

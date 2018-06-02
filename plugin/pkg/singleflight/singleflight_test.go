@@ -48,7 +48,7 @@ func TestDoErr(t *testing.T) {
 		t.Errorf("Do error = %v; want someErr", err)
 	}
 	if v != nil {
-		t.Errorf("unexpected non-nil value %#v", v)
+		t.Errorf("Unexpected non-nil value %#v", v)
 	}
 }
 
@@ -71,7 +71,7 @@ func TestDoDupSuppress(t *testing.T) {
 				t.Errorf("Do error: %v", err)
 			}
 			if v.(string) != "bar" {
-				t.Errorf("got %q; want %q", v, "bar")
+				t.Errorf("Got %q; want %q", v, "bar")
 			}
 			wg.Done()
 		}()
@@ -80,6 +80,6 @@ func TestDoDupSuppress(t *testing.T) {
 	c <- "bar"
 	wg.Wait()
 	if got := atomic.LoadInt32(&calls); got != 1 {
-		t.Errorf("number of calls = %d; want 1", got)
+		t.Errorf("Number of calls = %d; want 1", got)
 	}
 }

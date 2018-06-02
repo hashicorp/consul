@@ -42,7 +42,7 @@ func (w *writer) Dnstap(e tap.Dnstap) {
 		w.t.Error("Message not expected.")
 	}
 	if !test.MsgEqual(w.queue[0], e.Message) {
-		w.t.Errorf("want: %v, have: %v", w.queue[0], e.Message)
+		w.t.Errorf("Want: %v, have: %v", w.queue[0], e.Message)
 	}
 	w.queue = w.queue[1:]
 }

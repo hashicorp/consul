@@ -118,7 +118,7 @@ func TestLookupZone(t *testing.T) {
 		rec := dnstest.NewRecorder(&test.ResponseWriter{})
 		_, err := dh.ServeDNS(ctx, rec, m)
 		if err != nil {
-			t.Errorf("expected no error, got %v\n", err)
+			t.Errorf("Expected no error, got %v\n", err)
 			return
 		}
 
@@ -141,7 +141,7 @@ func TestLookupDNSKEY(t *testing.T) {
 		rec := dnstest.NewRecorder(&test.ResponseWriter{})
 		_, err := dh.ServeDNS(ctx, rec, m)
 		if err != nil {
-			t.Errorf("expected no error, got %v\n", err)
+			t.Errorf("Expected no error, got %v\n", err)
 			return
 		}
 
@@ -157,7 +157,7 @@ func TestLookupDNSKEY(t *testing.T) {
 			if n, ok := rr.(*dns.NSEC); ok {
 				for i := range n.TypeBitMap {
 					if n.TypeBitMap[i] == tc.Qtype {
-						t.Errorf("bitmap contains qtype: %d", tc.Qtype)
+						t.Errorf("Bitmap contains qtype: %d", tc.Qtype)
 					}
 				}
 			}

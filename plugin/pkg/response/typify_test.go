@@ -14,7 +14,7 @@ func TestTypifyNilMsg(t *testing.T) {
 
 	ty, _ := Typify(m, time.Now().UTC())
 	if ty != OtherError {
-		t.Errorf("message wrongly typified, expected OtherError, got %s", ty)
+		t.Errorf("Message wrongly typified, expected OtherError, got %s", ty)
 	}
 }
 
@@ -22,7 +22,7 @@ func TestTypifyDelegation(t *testing.T) {
 	m := delegationMsg()
 	mt, _ := Typify(m, time.Now().UTC())
 	if mt != Delegation {
-		t.Errorf("message is wrongly typified, expected Delegation, got %s", mt)
+		t.Errorf("Message is wrongly typified, expected Delegation, got %s", mt)
 	}
 }
 
@@ -32,19 +32,19 @@ func TestTypifyRRSIG(t *testing.T) {
 
 	m := delegationMsgRRSIGOK()
 	if mt, _ := Typify(m, utc); mt != Delegation {
-		t.Errorf("message is wrongly typified, expected Delegation, got %s", mt)
+		t.Errorf("Message is wrongly typified, expected Delegation, got %s", mt)
 	}
 
 	// Still a Delegation because EDNS0 OPT DO bool is not set, so we won't check the sigs.
 	m = delegationMsgRRSIGFail()
 	if mt, _ := Typify(m, utc); mt != Delegation {
-		t.Errorf("message is wrongly typified, expected Delegation, got %s", mt)
+		t.Errorf("Message is wrongly typified, expected Delegation, got %s", mt)
 	}
 
 	m = delegationMsgRRSIGFail()
 	m = addOpt(m)
 	if mt, _ := Typify(m, utc); mt != OtherError {
-		t.Errorf("message is wrongly typified, expected OtherError, got %s", mt)
+		t.Errorf("Message is wrongly typified, expected OtherError, got %s", mt)
 	}
 }
 

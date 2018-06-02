@@ -58,7 +58,7 @@ func TestStubLookup(t *testing.T) {
 			continue
 		}
 		if err != nil {
-			t.Errorf("expected no error, got %v for %s\n", err, m.Question[0].Name)
+			t.Errorf("Expected no error, got %v for %s\n", err, m.Question[0].Name)
 		}
 		resp := rec.Msg
 		if resp == nil {

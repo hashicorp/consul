@@ -29,7 +29,7 @@ func TestConfig(t *testing.T) {
 		} else if err != nil || conf.target != c.path ||
 			conf.full != c.full || conf.socket != c.socket {
 
-			t.Errorf("expected: %+v\nhave: %+v\nerror: %s\n", c, conf, err)
+			t.Errorf("Expected: %+v\nhave: %+v\nerror: %s\n", c, conf, err)
 		}
 	}
 }

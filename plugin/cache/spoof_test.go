@@ -24,7 +24,7 @@ func TestSpoof(t *testing.T) {
 
 	qname := rec.Msg.Question[0].Name
 	if c.pcache.Len() != 0 {
-		t.Errorf("cached %s, while reply had %s", "example.org.", qname)
+		t.Errorf("Cached %s, while reply had %s", "example.org.", qname)
 	}
 
 	// qtype
@@ -35,7 +35,7 @@ func TestSpoof(t *testing.T) {
 
 	qtype := rec.Msg.Question[0].Qtype
 	if c.pcache.Len() != 0 {
-		t.Errorf("cached %s type %d, while reply had %d", "example.org.", dns.TypeMX, qtype)
+		t.Errorf("Cached %s type %d, while reply had %d", "example.org.", dns.TypeMX, qtype)
 	}
 }
 
@@ -51,7 +51,7 @@ func TestResponse(t *testing.T) {
 	c.ServeDNS(context.TODO(), rec, req)
 
 	if c.pcache.Len() != 0 {
-		t.Errorf("cached %s, while reply had response set to %t", "example.net.", rec.Msg.Response)
+		t.Errorf("Cached %s, while reply had response set to %t", "example.net.", rec.Msg.Response)
 	}
 }
 

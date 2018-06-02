@@ -51,11 +51,11 @@ func TestBlackLiesNoError(t *testing.T) {
 	m = d.Sign(state, time.Now().UTC(), server)
 
 	if m.Rcode != dns.RcodeSuccess {
-		t.Errorf("expected rcode %d, got %d", dns.RcodeSuccess, m.Rcode)
+		t.Errorf("Expected rcode %d, got %d", dns.RcodeSuccess, m.Rcode)
 	}
 
 	if len(m.Answer) != 2 {
-		t.Errorf("answer section should have 2 RRs")
+		t.Errorf("Answer section should have 2 RRs")
 	}
 	sig, txt := false, false
 	for _, rr := range m.Answer {
@@ -67,7 +67,7 @@ func TestBlackLiesNoError(t *testing.T) {
 		}
 	}
 	if !sig || !txt {
-		t.Errorf("expected RRSIG and TXT in answer section")
+		t.Errorf("Expected RRSIG and TXT in answer section")
 	}
 }
 

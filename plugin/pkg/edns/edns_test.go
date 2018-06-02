@@ -12,7 +12,7 @@ func TestVersion(t *testing.T) {
 
 	_, err := Version(m)
 	if err == nil {
-		t.Errorf("expected wrong version, but got OK")
+		t.Errorf("Expected wrong version, but got OK")
 	}
 }
 
@@ -22,7 +22,7 @@ func TestVersionNoEdns(t *testing.T) {
 
 	_, err := Version(m)
 	if err != nil {
-		t.Errorf("expected no error, but got one: %s", err)
+		t.Errorf("Expected no error, but got one: %s", err)
 	}
 }
 
