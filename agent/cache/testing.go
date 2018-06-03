@@ -44,7 +44,9 @@ func TestCacheGetChResult(t testing.T, ch <-chan interface{}, expected interface
 		if !reflect.DeepEqual(result, expected) {
 			t.Fatalf("Result doesn't match!\n\n%#v\n\n%#v", result, expected)
 		}
+
 	case <-time.After(50 * time.Millisecond):
+		t.Fatalf("Result not sent on channel")
 	}
 }
 

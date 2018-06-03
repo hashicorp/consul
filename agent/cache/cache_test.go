@@ -285,16 +285,10 @@ func TestCacheGet_blockingIndexBackoff(t *testing.T) {
 	resultCh := TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{Key: "hello"}))
 	TestCacheGetChResult(t, resultCh, 1)
 
-	// Fetch should block
+	// Fetch should not block and should return error
 	resultCh = TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{
 		Key: "hello", MinIndex: 7, Timeout: 1 * time.Minute}))
-
-	// Should block
-	select {
-	case <-resultCh:
-		t.Fatal("should block")
-	case <-time.After(50 * time.Millisecond):
-	}
+	TestCacheGetChResult(t, resultCh, nil)
 
 	// Wait a bit
 	time.Sleep(100 * time.Millisecond)
