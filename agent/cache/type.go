@@ -14,7 +14,8 @@ type Type interface {
 	// as part of Refresh behavior.
 	//
 	// The return value is a FetchResult which contains information about
-	// the fetch.
+	// the fetch. If an error is given, the FetchResult is ignored. The
+	// cache does not support backends that return partial values.
 	//
 	// On timeout, FetchResult can behave one of two ways. First, it can
 	// return the last known value. This is the default behavior of blocking
