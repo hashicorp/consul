@@ -264,8 +264,8 @@ func TestCacheGet_blockingIndexTimeout(t *testing.T) {
 }
 
 // Test a get with an index set with requests returning an error
-// will perform a backoff on retrying the fetch.
-func TestCacheGet_blockingIndexBackoff(t *testing.T) {
+// will return that error.
+func TestCacheGet_blockingIndexError(t *testing.T) {
 	t.Parallel()
 
 	typ := TestType(t)
