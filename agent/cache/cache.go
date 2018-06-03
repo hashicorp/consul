@@ -192,7 +192,7 @@ func (c *Cache) Get(t string, r Request) (interface{}, error) {
 	key := c.entryKey(&info)
 
 	// First time through
-	first := true
+	var attempt uint
 
 	// timeoutCh for watching our timeout
 	var timeoutCh <-chan time.Time
@@ -209,7 +209,7 @@ RETRY_GET:
 	// we have.
 	if ok && entry.Valid {
 		if info.MinIndex == 0 || info.MinIndex < entry.Index {
-			if first {
+			if attempt == 0 {
 				metrics.IncrCounter([]string{"consul", "cache", t, "hit"}, 1)
 				atomic.AddUint64(&c.hits, 1)
 			}
@@ -229,11 +229,11 @@ RETRY_GET:
 	// a retry loop getting the same error for the entire duration of the
 	// timeout. Instead, we make one effort to fetch a new value, and if
 	// there was an error, we return.
-	if !first && entry.Error != nil {
+	if attempt > 0 && entry.Error != nil {
 		return entry.Value, entry.Error
 	}
 
-	if first {
+	if attempt == 0 {
 		// Record the miss if its our first time through
 		atomic.AddUint64(&c.misses, 1)
 
@@ -248,7 +248,7 @@ RETRY_GET:
 	}
 
 	// No longer our first time through
-	first = false
+	attempt++
 
 	// Set our timeout channel if we must
 	if info.Timeout > 0 && timeoutCh == nil {
@@ -257,7 +257,7 @@ RETRY_GET:
 
 	// At this point, we know we either don't have a value at all or the
 	// value we have is too old. We need to wait for new data.
-	waiterCh, err := c.fetch(t, key, r, true, 0)
+	waiterCh, err := c.fetch(t, key, r, true, attempt)
 	if err != nil {
 		return nil, err
 	}
@@ -294,6 +294,16 @@ func (c *Cache) fetch(t, key string, r Request, allowNew bool, attempt uint) (<-
 	c.typesLock.RUnlock()
 	if !ok {
 		return nil, fmt.Errorf("unknown type in cache: %s", t)
+	}
+
+	// If we're over the attempt minimum, start an exponential backoff.
+	if attempt > CacheRefreshBackoffMin {
+		waitTime := (1 << (attempt - CacheRefreshBackoffMin)) * time.Second
+		if waitTime > CacheRefreshMaxWait {
+			waitTime = CacheRefreshMaxWait
+		}
+
+		time.Sleep(waitTime)
 	}
 
 	// We acquire a write lock because we may have to set Fetching to true.
@@ -398,7 +408,7 @@ func (c *Cache) fetch(t, key string, r Request, allowNew bool, attempt uint) (<-
 
 		// If refresh is enabled, run the refresh in due time. The refresh
 		// below might block, but saves us from spawning another goroutine.
-		if tEntry.Opts.Refresh {
+		if !ok && tEntry.Opts.Refresh {
 			c.refresh(tEntry.Opts, attempt, t, key, r)
 		}
 	}()
@@ -436,16 +446,6 @@ func (c *Cache) refresh(opts *RegisterOptions, attempt uint, t string, key strin
 	// Sanity-check, we should not schedule anything that has refresh disabled
 	if !opts.Refresh {
 		return
-	}
-
-	// If we're over the attempt minimum, start an exponential backoff.
-	if attempt > CacheRefreshBackoffMin {
-		waitTime := (1 << (attempt - CacheRefreshBackoffMin)) * time.Second
-		if waitTime > CacheRefreshMaxWait {
-			waitTime = CacheRefreshMaxWait
-		}
-
-		time.Sleep(waitTime)
 	}
 
 	// If we have a timer, wait for it

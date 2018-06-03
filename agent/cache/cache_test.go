@@ -263,6 +263,47 @@ func TestCacheGet_blockingIndexTimeout(t *testing.T) {
 	}
 }
 
+// Test a get with an index set with requests returning an error
+// will perform a backoff on retrying the fetch.
+func TestCacheGet_blockingIndexBackoff(t *testing.T) {
+	t.Parallel()
+
+	typ := TestType(t)
+	defer typ.AssertExpectations(t)
+	c := TestCache(t)
+	c.RegisterType("t", typ, nil)
+
+	// Configure the type
+	var retries uint32
+	fetchErr := fmt.Errorf("test fetch error")
+	typ.Static(FetchResult{Value: 1, Index: 4}, nil).Once()
+	typ.Static(FetchResult{Value: nil, Index: 5}, fetchErr).Run(func(args mock.Arguments) {
+		atomic.AddUint32(&retries, 1)
+	})
+
+	// First good fetch to populate catch
+	resultCh := TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{Key: "hello"}))
+	TestCacheGetChResult(t, resultCh, 1)
+
+	// Fetch should block
+	resultCh = TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{
+		Key: "hello", MinIndex: 7, Timeout: 1 * time.Minute}))
+
+	// Should block
+	select {
+	case <-resultCh:
+		t.Fatal("should block")
+	case <-time.After(50 * time.Millisecond):
+	}
+
+	// Wait a bit
+	time.Sleep(100 * time.Millisecond)
+
+	// Check the number
+	actual := atomic.LoadUint32(&retries)
+	require.True(t, actual < 10, fmt.Sprintf("actual: %d", actual))
+}
+
 // Test that if a Type returns an empty value on Fetch that the previous
 // value is preserved.
 func TestCacheGet_emptyFetchResult(t *testing.T) {
