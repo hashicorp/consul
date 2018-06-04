@@ -331,6 +331,7 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 	check(func() { other.EnableTagOverride = false }, func() { other.EnableTagOverride = true })
 	check(func() { other.Kind = ServiceKindConnectProxy }, func() { other.Kind = "" })
 	check(func() { other.ProxyDestination = "" }, func() { other.ProxyDestination = "db" })
+	check(func() { other.ConnectNative = true }, func() { other.ConnectNative = false })
 }
 
 func TestStructs_HealthCheck_IsSame(t *testing.T) {

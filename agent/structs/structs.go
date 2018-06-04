@@ -432,6 +432,7 @@ type ServiceNode struct {
 	ServicePort              int
 	ServiceEnableTagOverride bool
 	ServiceProxyDestination  string
+	ServiceConnectNative     bool
 
 	RaftIndex
 }
@@ -460,6 +461,7 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 		ServiceMeta:              nsmeta,
 		ServiceEnableTagOverride: s.ServiceEnableTagOverride,
 		ServiceProxyDestination:  s.ServiceProxyDestination,
+		ServiceConnectNative:     s.ServiceConnectNative,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,
@@ -479,6 +481,7 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 		Meta:              s.ServiceMeta,
 		EnableTagOverride: s.ServiceEnableTagOverride,
 		ProxyDestination:  s.ServiceProxyDestination,
+		ConnectNative:     s.ServiceConnectNative,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,
@@ -526,6 +529,9 @@ type NodeService struct {
 	// earlier than their target services.
 	ProxyDestination string
 
+	// ConnectNative is true if this service speaks the Connect protocol.
+	ConnectNative bool
+
 	RaftIndex
 }
 
@@ -567,7 +573,8 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 		!reflect.DeepEqual(s.Meta, other.Meta) ||
 		s.EnableTagOverride != other.EnableTagOverride ||
 		s.Kind != other.Kind ||
-		s.ProxyDestination != other.ProxyDestination {
+		s.ProxyDestination != other.ProxyDestination ||
+		s.ConnectNative != other.ConnectNative {
 		return false
 	}
 
@@ -590,6 +597,7 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 		ServiceMeta:              s.Meta,
 		ServiceEnableTagOverride: s.EnableTagOverride,
 		ServiceProxyDestination:  s.ProxyDestination,
+		ServiceConnectNative:     s.ConnectNative,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,
