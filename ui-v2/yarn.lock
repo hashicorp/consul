@@ -82,8 +82,8 @@
     js-yaml "^3.10.0"
 
 "@hashicorp/consul-api-double@^1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@hashicorp/consul-api-double/-/consul-api-double-1.0.0.tgz#1fffd85121516fe31dad32a196367ae9087f9838"
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@hashicorp/consul-api-double/-/consul-api-double-1.1.0.tgz#658f9e89208fa23f251ca66c66aeb7241a13f23f"
 
 "@hashicorp/ember-cli-api-double@^1.0.2":
   version "1.0.2"
