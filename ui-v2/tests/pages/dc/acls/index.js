@@ -3,9 +3,12 @@ import { create, visitable, collection, attribute, clickable } from 'ember-cli-p
 import filter from 'consul-ui/tests/pages/components/acl-filter';
 export default create({
   visit: visitable('/:dc/acls'),
-  acls: collection('[data-test-acl]', {
-    name: attribute('data-test-acl'),
+  acls: collection('[data-test-tabular-row]', {
+    name: attribute('data-test-acl', '[data-test-acl]'),
     acl: clickable('a'),
+    actions: clickable('label'),
+    delete: clickable('li:last-child a'),
+    confirmDelete: clickable('button.type-delete'),
   }),
   filter: filter,
 });

@@ -73,10 +73,18 @@ export default function(assert) {
       })
       .when('I click $prop on the $component', function(prop, component) {
         // Collection
+        var obj;
         if (typeof currentPage[component].objectAt === 'function') {
-          return currentPage[component].objectAt(0)[prop]();
+          obj = currentPage[component].objectAt(0);
         } else {
-          return currentPage[component][prop]();
+          obj = currentPage[component];
+        }
+        const func = obj[prop].bind(obj);
+        try {
+          return func();
+        } catch (e) {
+          console.error(e);
+          throw new Error(`The '${prop}' property on the '${component}' page object doesn't exist`);
         }
       })
       .when('I submit', function(selector) {
@@ -167,6 +175,19 @@ export default function(assert) {
           body,
           data,
           `Expected the request body to be ${body} but was ${request.requestBody}`
+        );
+      })
+      .then('a $method request is made to "$url"', function(method, url) {
+        const request = api.server.history[api.server.history.length - 2];
+        assert.equal(
+          request.method,
+          method,
+          `Expected the request method to be ${method} but was ${request.method}`
+        );
+        assert.equal(
+          request.url,
+          url,
+          `Expected the request url to be ${url} but was ${request.url}`
         );
       })
       .then('the url should be $url', function(url) {
