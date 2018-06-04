@@ -367,7 +367,11 @@ func (c *Cache) fetch(t, key string, r Request, allowNew bool, attempt uint) (<-
 			// Increment attempt counter
 			attempt++
 
-			// Set the error that should be used if the fetch is failing.
+			// Always set the error. We don't override the value here because
+			// if Valid is true, then we can reuse the Value in the case a
+			// specific index isn't requested. However, for blocking queries,
+			// we want Error to be set so that we can return early with the
+			// error.
 			newEntry.Error = err
 		}
 
