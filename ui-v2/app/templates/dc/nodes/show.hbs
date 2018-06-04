@@ -45,7 +45,7 @@
                 )
             ) as |panel|
         }}
-            {{#tab-section id=panel.id selected=(eq (if selectedTab selectedTab 'health-checks') panel.id) onchange=(action (mut selectedTab) value="target.value")}}
+            {{#tab-section id=panel.id selected=(eq (if selectedTab selectedTab 'health-checks') panel.id) onchange=(action "change")}}
                 {{partial panel.partial}}
             {{/tab-section}}
         {{/each}}

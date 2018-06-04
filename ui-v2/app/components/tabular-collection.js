@@ -4,6 +4,7 @@ import identity from 'ember-collection/utils/identity';
 import Grid from 'ember-collection/layouts/grid';
 import SlotsMixin from 'ember-block-slots';
 import style from 'ember-computed-style';
+import qsaFactory from 'consul-ui/utils/qsa-factory';
 
 import { computed, get, set } from '@ember/object';
 /**
@@ -18,11 +19,8 @@ import { computed, get, set } from '@ember/object';
  * in the future
  */
 
-// basic DOM selecting utility, emeber doesn't like you using `$`
-// hence `$$`
-const $$ = function(sel, context = document) {
-  return context.querySelectorAll(sel);
-};
+// ember doesn't like you using `$` hence `$$`
+const $$ = qsaFactory();
 // basic pseudo CustomEvent interface
 // TODO: use actual custom events once I've reminded
 // myself re: support/polyfills
@@ -159,18 +157,18 @@ export default Component.extend(SlotsMixin, {
     // TODO: Consider moving all DOM lookups here
     // this seems to be the earliest place I can get them
     window.addEventListener('resize', this.handler);
-    this.handler();
+    this.didAppear();
   },
   willDestroyElement: function() {
     window.removeEventListener('resize', this.handler);
+  },
+  didAppear: function() {
+    this.handler();
   },
   resize: function(e) {
     const $tbody = [...$$('tbody', this.element)][0];
     const $appContent = [...$$('main > div')][0];
     if ($appContent) {
-      // TODO: This is zero if the tabular collection is in a tab
-      // need to make sure this also is calculated when
-      // things become visible
       const rect = $tbody.getBoundingClientRect();
       const $footer = [...$$('footer[role="contentinfo"]')][0];
       const space = rect.top + $footer.clientHeight;
