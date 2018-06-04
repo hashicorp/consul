@@ -171,8 +171,7 @@
 		{"path":"google.golang.org/grpc/stats","checksumSHA1":"G9lgXNi7qClo5sM2s6TbTHLFR3g=","revision":"e975017b473bd9b2a3d5b23428a8549fe20b1153","revisionTime":"2018-01-04T19:16:47Z"},
 		{"path":"google.golang.org/grpc/status","checksumSHA1":"tUo+M0Cb0W9ZEIt5BH30wJz/Kjc=","revision":"e975017b473bd9b2a3d5b23428a8549fe20b1153","revisionTime":"2018-01-04T19:16:47Z"},
 		{"path":"google.golang.org/grpc/tap","checksumSHA1":"qvArRhlrww5WvRmbyMF2mUfbJew=","revision":"e975017b473bd9b2a3d5b23428a8549fe20b1153","revisionTime":"2018-01-04T19:16:47Z"},
-		{"path":"google.golang.org/grpc/transport","checksumSHA1":"iV2B3kx0Ifym+zumJt+9jLgwqK8=","revision":"e975017b473bd9b2a3d5b23428a8549fe20b1153","revisionTime":"2018-01-04T19:16:47Z"},
-		{"path":"https://github.com/hashicorp/yamux","revision":""}
+		{"path":"google.golang.org/grpc/transport","checksumSHA1":"iV2B3kx0Ifym+zumJt+9jLgwqK8=","revision":"e975017b473bd9b2a3d5b23428a8549fe20b1153","revisionTime":"2018-01-04T19:16:47Z"}
 	],
 	"rootPath": "github.com/hashicorp/consul"
 }
