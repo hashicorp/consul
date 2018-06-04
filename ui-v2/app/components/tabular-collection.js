@@ -70,6 +70,16 @@ const closest = function(sel, el) {
     return;
   }
 };
+const sibling = function(el, name) {
+  let sibling = el;
+  while ((sibling = sibling.nextSibling)) {
+    if (sibling.nodeType === 1) {
+      if (sibling.nodeName.toLowerCase() === name) {
+        return sibling;
+      }
+    }
+  }
+};
 /**
  * The tabular-collection can contain 'actions' the UI for which
  * uses dropdown 'action groups', so a group of different actions.
@@ -99,7 +109,7 @@ const change = function(e) {
       // therefore we don't need to calculate
       if (e.currentTarget.getAttribute('id') !== 'actions_close') {
         const $tr = closest('tr', e.currentTarget);
-        const $group = [...$$('~ ul', e.currentTarget)][0];
+        const $group = sibling(e.currentTarget, 'ul');
         const $footer = [...$$('footer[role="contentinfo"]')][0];
         const groupRect = $group.getBoundingClientRect();
         const footerRect = $footer.getBoundingClientRect();
