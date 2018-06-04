@@ -121,12 +121,17 @@ func TestDaemonDetachesChild(t *testing.T) {
 		proc.Kill()
 	}()
 
+	time.Sleep(20 * time.Second)
+
 	// Now kill the parent and wait for it
 	require.NoError(parentCmd.Process.Kill())
+
 	_, err := parentCmd.Process.Wait()
 	require.NoError(err)
 
-	// The child should still be running so file should still be there
+	time.Sleep(15 * time.Second)
+
+	// The child should still be running so file should still be there AND child processid should still be there
 	_, err = os.Stat(path)
 	require.NoError(err, "child should still be running")
 

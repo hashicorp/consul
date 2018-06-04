@@ -178,12 +178,13 @@ func TestHelperProcess(t *testing.T) {
 
 		<-make(chan struct{})
 
-	// Parent runs the given process in a Daemon and then exits. It exists to test
-	// that the Daemon-managed child process survives it's parent exiting which we
-	// can't test directly without exiting the test process so we need an extra
-	// level of indirection. The caller must pass a file path as the first
-	// argument for the child processes PID to be written and then must take care
-	// to clean up that PID later or the child will be left running forever.
+	// Parent runs the given process in a Daemon and then sleeps until the test
+	// code kills it. It exists to test that the Daemon-managed child process
+	// survives it's parent exiting which we can't test directly without exiting
+	// the test process so we need an extra level of indirection. The test code
+	// using this must pass a file path as the first argument for the child
+	// processes PID to be written and then must take care to clean up that PID
+	// later or the child will be left running forever.
 	case "parent":
 		// We will write the PID for the child to the file in the first argument
 		// then pass rest of args through to command.
@@ -197,10 +198,11 @@ func TestHelperProcess(t *testing.T) {
 		pidBs := []byte(strconv.Itoa(d.Process.Pid))
 		if err := ioutil.WriteFile(pidFile, pidBs, 0644); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+			// TODO: Also kill the detached process (once it is detached)
 			os.Exit(1)
 		}
 		// Wait "forever" (calling test chooses when we exit with signal/Wait to
-		// minimise coordination)
+		// minimise coordination).
 		for {
 			time.Sleep(time.Hour)
 		}
