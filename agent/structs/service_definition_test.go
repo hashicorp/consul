@@ -89,6 +89,18 @@ func TestServiceDefinitionValidate(t *testing.T) {
 			},
 			"must have a port",
 		},
+
+		{
+			"managed proxy with native set",
+			func(x *ServiceDefinition) {
+				x.Port = 8080
+				x.Connect = &ServiceDefinitionConnect{
+					Native: true,
+					Proxy:  &ServiceDefinitionConnectProxy{},
+				}
+			},
+			"may not have a proxy",
+		},
 	}
 
 	for _, tc := range cases {

@@ -36,6 +36,9 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 		EnableTagOverride: s.EnableTagOverride,
 		ProxyDestination:  s.ProxyDestination,
 	}
+	if s.Connect != nil {
+		ns.ConnectNative = s.Connect.Native
+	}
 	if ns.ID == "" && ns.Service != "" {
 		ns.ID = ns.Service
 	}
@@ -83,10 +86,17 @@ func (s *ServiceDefinition) Validate() error {
 	var result error
 
 	if s.Kind == ServiceKindTypical {
-		if s.Connect != nil && s.Connect.Proxy != nil {
-			if s.Port == 0 {
-				result = multierror.Append(result, fmt.Errorf(
-					"Services with a Connect managed proxy must have a port set"))
+		if s.Connect != nil {
+			if s.Connect.Proxy != nil {
+				if s.Connect.Native {
+					result = multierror.Append(result, fmt.Errorf(
+						"Services that are Connect native may not have a proxy configuration"))
+				}
+
+				if s.Port == 0 {
+					result = multierror.Append(result, fmt.Errorf(
+						"Services with a Connect managed proxy must have a port set"))
+				}
 			}
 		}
 	}
@@ -120,7 +130,9 @@ func (s *ServiceDefinition) CheckTypes() (checks CheckTypes, err error) {
 // Note this is duplicated in config.ServiceConnect and needs to be kept in
 // sync.
 type ServiceDefinitionConnect struct {
-	// TODO(banks) add way to specify that the app is connect-native
+	// Native is true when this service can natively understand Connect.
+	Native bool
+
 	// Proxy configures a connect proxy instance for the service
 	Proxy *ServiceDefinitionConnectProxy
 }

@@ -1519,6 +1519,40 @@ func TestAgent_RegisterService_UnmanagedConnectProxyInvalid(t *testing.T) {
 	assert.False(ok)
 }
 
+// Tests agent registration of a service that is connect native.
+func TestAgent_RegisterService_ConnectNative(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Register a proxy. Note that the destination doesn't exist here on
+	// this agent or in the catalog at all. This is intended and part
+	// of the design.
+	args := &structs.ServiceDefinition{
+		Name: "web",
+		Port: 8000,
+		Check: structs.CheckType{
+			TTL: 15 * time.Second,
+		},
+		Connect: &structs.ServiceDefinitionConnect{
+			Native: true,
+		},
+	}
+
+	req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.AgentRegisterService(resp, req)
+	assert.Nil(err)
+	assert.Nil(obj)
+
+	// Ensure the service
+	svc, ok := a.State.Services()["web"]
+	assert.True(ok, "has service")
+	assert.True(svc.ConnectNative)
+}
+
 func TestAgent_DeregisterService(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
