@@ -1,5 +1,5 @@
 @setupApplicationTest
-Feature: ACL Update
+Feature: dc / acls / update: ACL Update
   Scenario: Update to [Name], [Type], [Rules]
     Given 1 datacenter model with the value "datacenter"
     And 1 acl model from yaml
