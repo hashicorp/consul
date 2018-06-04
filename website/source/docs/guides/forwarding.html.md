@@ -16,7 +16,8 @@ running on an unprivileged port, from another DNS server or port redirect.
 In this guide, we will demonstrate forwarding from
 [BIND](https://www.isc.org/downloads/bind/) as well as
 [dnsmasq](http://www.thekelleys.org.uk/dnsmasq/doc.html),
-[Unbound](https://www.unbound.net/), and [iptables](http://www.netfilter.org/).
+[Unbound](https://www.unbound.net/),
+[systemd-resolved](https://www.freedesktop.org/wiki/Software/systemd/resolved/), and [iptables](http://www.netfilter.org/).
 For the sake of simplicity, BIND and Consul are running on the same machine in 
 this example. For iptables the rules must be set on the same host as the Consul
 instance and relay hosts should not be on the same host or the redirects will 
@@ -153,6 +154,29 @@ You may have to add the following line to the bottom of your
 
 ```text
 include: "/etc/unbound/unbound.conf.d/*.conf"
+```
+
+### systemd-resolved Setup
+
+systemd-resolved is typically configured with `/etc/systemd/resolved.conf`. 
+To configure systemd-resolved to send queries for the consul domain to
+Consul, configure resolved.conf to contain the following:
+
+```
+DNS=127.0.0.1
+Domains=~consul
+```
+
+The main limitation with this configuration is that the DNS field
+cannot contain ports. So for this to work either Consul must be
+[configured to listen on port 53](https://www.consul.io/docs/agent/options.html#dns_port)
+instead of 8600 or you can use iptables to map port 53 to 8600. 
+The following iptables commands are sufficient to do the port
+mapping.
+
+```
+[root@localhost ~]# iptables -t nat -A OUTPUT -d localhost -p udp -m udp --dport 53 -j REDIRECT --to-ports 8600
+[root@localhost ~]# iptables -t nat -A OUTPUT -d localhost -p tcp -m tcp --dport 53 -j REDIRECT --to-ports 8600
 ```
 
 ### iptables Setup
