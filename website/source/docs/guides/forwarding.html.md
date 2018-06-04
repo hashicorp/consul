@@ -179,6 +179,9 @@ mapping.
 [root@localhost ~]# iptables -t nat -A OUTPUT -d localhost -p tcp -m tcp --dport 53 -j REDIRECT --to-ports 8600
 ```
 
+Note: With this setup, PTR record queries will still be sent out
+to the other configured resolvers in addition to Consul. 
+
 ### iptables Setup
 
 On Linux systems that support it, incoming requests and requests to
