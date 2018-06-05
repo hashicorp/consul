@@ -249,7 +249,7 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 
 		{
 			"connect-proxy: ConnectNative set",
-			func(x *NodeService) { x.ConnectNative = true },
+			func(x *NodeService) { x.Connect.Native = true },
 			"cannot also be",
 		},
 	}
@@ -337,7 +337,7 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 	check(func() { other.EnableTagOverride = false }, func() { other.EnableTagOverride = true })
 	check(func() { other.Kind = ServiceKindConnectProxy }, func() { other.Kind = "" })
 	check(func() { other.ProxyDestination = "" }, func() { other.ProxyDestination = "db" })
-	check(func() { other.ConnectNative = true }, func() { other.ConnectNative = false })
+	check(func() { other.Connect.Native = true }, func() { other.Connect.Native = false })
 }
 
 func TestStructs_HealthCheck_IsSame(t *testing.T) {

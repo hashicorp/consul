@@ -1049,7 +1049,7 @@ func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 	}
 }
 
-func (b *Builder) serviceConnectVal(v *ServiceConnect) *structs.ServiceDefinitionConnect {
+func (b *Builder) serviceConnectVal(v *ServiceConnect) *structs.ServiceConnect {
 	if v == nil {
 		return nil
 	}
@@ -1063,7 +1063,7 @@ func (b *Builder) serviceConnectVal(v *ServiceConnect) *structs.ServiceDefinitio
 		}
 	}
 
-	return &structs.ServiceDefinitionConnect{
+	return &structs.ServiceConnect{
 		Proxy: proxy,
 	}
 }

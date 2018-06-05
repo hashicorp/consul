@@ -432,7 +432,7 @@ type ServiceNode struct {
 	ServicePort              int
 	ServiceEnableTagOverride bool
 	ServiceProxyDestination  string
-	ServiceConnectNative     bool
+	ServiceConnect           ServiceConnect
 
 	RaftIndex
 }
@@ -461,7 +461,7 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 		ServiceMeta:              nsmeta,
 		ServiceEnableTagOverride: s.ServiceEnableTagOverride,
 		ServiceProxyDestination:  s.ServiceProxyDestination,
-		ServiceConnectNative:     s.ServiceConnectNative,
+		ServiceConnect:           s.ServiceConnect,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,
@@ -481,7 +481,7 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 		Meta:              s.ServiceMeta,
 		EnableTagOverride: s.ServiceEnableTagOverride,
 		ProxyDestination:  s.ServiceProxyDestination,
-		ConnectNative:     s.ServiceConnectNative,
+		Connect:           s.ServiceConnect,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,
@@ -529,10 +529,23 @@ type NodeService struct {
 	// earlier than their target services.
 	ProxyDestination string
 
-	// ConnectNative is true if this service speaks the Connect protocol.
-	ConnectNative bool
+	// Connect are the Connect settings for a service. This is purposely NOT
+	// a pointer so that we never have to nil-check this.
+	Connect ServiceConnect
 
 	RaftIndex
+}
+
+// ServiceConnect are the shared Connect settings between all service
+// definitions from the agent to the state store.
+type ServiceConnect struct {
+	// Native is true when this service can natively understand Connect.
+	Native bool
+
+	// Proxy configures a connect proxy instance for the service. This is
+	// only used for agent service definitions and is invalid for non-agent
+	// (catalog API) definitions.
+	Proxy *ServiceDefinitionConnectProxy
 }
 
 // Validate validates the node service configuration.
@@ -556,7 +569,7 @@ func (s *NodeService) Validate() error {
 				"Port must be set for a Connect proxy"))
 		}
 
-		if s.ConnectNative {
+		if s.Connect.Native {
 			result = multierror.Append(result, fmt.Errorf(
 				"A Proxy cannot also be ConnectNative, only typical services"))
 		}
@@ -579,7 +592,7 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 		s.EnableTagOverride != other.EnableTagOverride ||
 		s.Kind != other.Kind ||
 		s.ProxyDestination != other.ProxyDestination ||
-		s.ConnectNative != other.ConnectNative {
+		s.Connect != other.Connect {
 		return false
 	}
 
@@ -602,7 +615,7 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 		ServiceMeta:              s.Meta,
 		ServiceEnableTagOverride: s.EnableTagOverride,
 		ServiceProxyDestination:  s.ProxyDestination,
-		ServiceConnectNative:     s.ConnectNative,
+		ServiceConnect:           s.Connect,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,

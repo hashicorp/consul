@@ -36,8 +36,8 @@ func TestIndexConnectService_FromObject(t *testing.T) {
 		{
 			"typical service, is native",
 			&structs.ServiceNode{
-				ServiceName:          "dB",
-				ServiceConnectNative: true,
+				ServiceName:    "dB",
+				ServiceConnect: structs.ServiceConnect{Native: true},
 			},
 			true,
 			[]byte("db\x00"),

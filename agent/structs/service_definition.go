@@ -21,7 +21,7 @@ type ServiceDefinition struct {
 	Token             string
 	EnableTagOverride bool
 	ProxyDestination  string
-	Connect           *ServiceDefinitionConnect
+	Connect           *ServiceConnect
 }
 
 func (s *ServiceDefinition) NodeService() *NodeService {
@@ -37,7 +37,7 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 		ProxyDestination:  s.ProxyDestination,
 	}
 	if s.Connect != nil {
-		ns.ConnectNative = s.Connect.Native
+		ns.Connect = *s.Connect
 	}
 	if ns.ID == "" && ns.Service != "" {
 		ns.ID = ns.Service
@@ -124,17 +124,6 @@ func (s *ServiceDefinition) CheckTypes() (checks CheckTypes, err error) {
 		checks = append(checks, check)
 	}
 	return checks, nil
-}
-
-// ServiceDefinitionConnect is the connect block within a service registration.
-// Note this is duplicated in config.ServiceConnect and needs to be kept in
-// sync.
-type ServiceDefinitionConnect struct {
-	// Native is true when this service can natively understand Connect.
-	Native bool
-
-	// Proxy configures a connect proxy instance for the service
-	Proxy *ServiceDefinitionConnectProxy
 }
 
 // ServiceDefinitionConnectProxy is the connect proxy config  within a service

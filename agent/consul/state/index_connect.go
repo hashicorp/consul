@@ -25,7 +25,7 @@ func (idx *IndexConnectService) FromObject(obj interface{}) (bool, []byte, error
 		// For proxies, this service supports Connect for the destination
 		result = []byte(strings.ToLower(sn.ServiceProxyDestination))
 
-	case sn.ServiceConnectNative:
+	case sn.ServiceConnect.Native:
 		// For native, this service supports Connect directly
 		result = []byte(strings.ToLower(sn.ServiceName))
 

@@ -456,7 +456,7 @@ func TestCatalog_Register_ConnectNative(t *testing.T) {
 	defer codec.Close()
 
 	args := structs.TestRegisterRequest(t)
-	args.Service.ConnectNative = true
+	args.Service.Connect.Native = true
 
 	// Register
 	var out struct{}
@@ -472,7 +472,7 @@ func TestCatalog_Register_ConnectNative(t *testing.T) {
 	assert.Len(resp.ServiceNodes, 1)
 	v := resp.ServiceNodes[0]
 	assert.Equal(structs.ServiceKindTypical, v.ServiceKind)
-	assert.True(v.ServiceConnectNative)
+	assert.True(v.ServiceConnect.Native)
 }
 
 func TestCatalog_Deregister(t *testing.T) {
@@ -1840,7 +1840,7 @@ func TestCatalog_ListServiceNodes_ConnectDestinationNative(t *testing.T) {
 
 	// Register the native service
 	args := structs.TestRegisterRequest(t)
-	args.Service.ConnectNative = true
+	args.Service.Connect.Native = true
 	var out struct{}
 	require.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
 
@@ -1965,7 +1965,7 @@ func TestCatalog_ListServiceNodes_ConnectNative(t *testing.T) {
 
 	// Register the service
 	args := structs.TestRegisterRequest(t)
-	args.Service.ConnectNative = true
+	args.Service.Connect.Native = true
 	var out struct{}
 	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
 
@@ -1979,7 +1979,7 @@ func TestCatalog_ListServiceNodes_ConnectNative(t *testing.T) {
 	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
 	assert.Len(resp.ServiceNodes, 1)
 	v := resp.ServiceNodes[0]
-	assert.Equal(args.Service.ConnectNative, v.ServiceConnectNative)
+	assert.Equal(args.Service.Connect.Native, v.ServiceConnect.Native)
 }
 
 func TestCatalog_NodeServices(t *testing.T) {
@@ -2090,7 +2090,7 @@ func TestCatalog_NodeServices_ConnectNative(t *testing.T) {
 
 	assert.Len(resp.NodeServices.Services, 1)
 	v := resp.NodeServices.Services[args.Service.Service]
-	assert.Equal(args.Service.ConnectNative, v.ConnectNative)
+	assert.Equal(args.Service.Connect.Native, v.Connect.Native)
 }
 
 // Used to check for a regression against a known bug

@@ -73,7 +73,7 @@ func TestServiceDefinitionValidate(t *testing.T) {
 			"managed proxy with a port set",
 			func(x *ServiceDefinition) {
 				x.Port = 8080
-				x.Connect = &ServiceDefinitionConnect{
+				x.Connect = &ServiceConnect{
 					Proxy: &ServiceDefinitionConnectProxy{},
 				}
 			},
@@ -83,7 +83,7 @@ func TestServiceDefinitionValidate(t *testing.T) {
 		{
 			"managed proxy with no port set",
 			func(x *ServiceDefinition) {
-				x.Connect = &ServiceDefinitionConnect{
+				x.Connect = &ServiceConnect{
 					Proxy: &ServiceDefinitionConnectProxy{},
 				}
 			},
@@ -94,7 +94,7 @@ func TestServiceDefinitionValidate(t *testing.T) {
 			"managed proxy with native set",
 			func(x *ServiceDefinition) {
 				x.Port = 8080
-				x.Connect = &ServiceDefinitionConnect{
+				x.Connect = &ServiceConnect{
 					Native: true,
 					Proxy:  &ServiceDefinitionConnectProxy{},
 				}

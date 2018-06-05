@@ -2097,7 +2097,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					&structs.ServiceDefinition{
 						Name: "web",
 						Port: 8080,
-						Connect: &structs.ServiceDefinitionConnect{
+						Connect: &structs.ServiceConnect{
 							Proxy: &structs.ServiceDefinitionConnectProxy{
 								Config: map[string]interface{}{
 									"upstreams": []map[string]interface{}{
@@ -2141,7 +2141,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					&structs.ServiceDefinition{
 						Name: "web",
 						Port: 8080,
-						Connect: &structs.ServiceDefinitionConnect{
+						Connect: &structs.ServiceConnect{
 							Proxy: &structs.ServiceDefinitionConnectProxy{
 								Config: map[string]interface{}{
 									"upstreams": []interface{}{
@@ -3699,7 +3699,7 @@ func TestFullConfig(t *testing.T) {
 						DeregisterCriticalServiceAfter: 68482 * time.Second,
 					},
 				},
-				Connect: &structs.ServiceDefinitionConnect{
+				Connect: &structs.ServiceConnect{
 					Proxy: &structs.ServiceDefinitionConnectProxy{
 						ExecMode: "daemon",
 						Command:  []string{"awesome-proxy"},
