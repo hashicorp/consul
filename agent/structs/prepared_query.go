@@ -203,6 +203,12 @@ type PreparedQueryExecuteRequest struct {
 	// Limit will trim the resulting list down to the given limit.
 	Limit int
 
+	// Connect will force results to be Connect-enabled nodes for the
+	// matching services. This is equivalent in semantics exactly to
+	// setting "Connect" in the query template itself, but allows callers
+	// to use any prepared query in a Connect setting.
+	Connect bool
+
 	// Source is used to sort the results relative to a given node using
 	// network coordinates.
 	Source QuerySource
@@ -233,6 +239,9 @@ type PreparedQueryExecuteRemoteRequest struct {
 
 	// Limit will trim the resulting list down to the given limit.
 	Limit int
+
+	// Connect is the same as ExecuteRequest.
+	Connect bool
 
 	// QueryOptions (unfortunately named here) controls the consistency
 	// settings for the the service lookups.

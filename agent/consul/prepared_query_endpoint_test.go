@@ -2699,6 +2699,37 @@ func TestPreparedQuery_Execute_ConnectExact(t *testing.T) {
 		require.True(reply.QueryMeta.KnownLeader, "queried leader")
 	}
 
+	// Run with the Connect setting specified on the request
+	{
+		req := structs.PreparedQueryExecuteRequest{
+			Datacenter:    "dc1",
+			QueryIDOrName: query.Query.ID,
+			Connect:       true,
+		}
+
+		var reply structs.PreparedQueryExecuteResponse
+		require.NoError(msgpackrpc.CallWithCodec(
+			codec, "PreparedQuery.Execute", &req, &reply))
+
+		// Result should have two because we should get the native AND
+		// the proxy (since the destination matches our service name).
+		require.Len(reply.Nodes, 2)
+		require.Equal(query.Query.Service.Service, reply.Service)
+		require.Equal(query.Query.DNS, reply.DNS)
+		require.True(reply.QueryMeta.KnownLeader, "queried leader")
+
+		// Make sure the native is the first one
+		if !reply.Nodes[0].Service.Connect.Native {
+			reply.Nodes[0], reply.Nodes[1] = reply.Nodes[1], reply.Nodes[0]
+		}
+
+		require.True(reply.Nodes[0].Service.Connect.Native, "native")
+		require.Equal(reply.Service, reply.Nodes[0].Service.Service)
+
+		require.Equal(structs.ServiceKindConnectProxy, reply.Nodes[1].Service.Kind)
+		require.Equal(reply.Service, reply.Nodes[1].Service.ProxyDestination)
+	}
+
 	// Update the query
 	query.Query.Service.Connect = true
 	require.NoError(msgpackrpc.CallWithCodec(
@@ -2943,7 +2974,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		if err := queryFailover(mock, query, 0, structs.QueryOptions{}, &reply); err != nil {
+		if err := queryFailover(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if len(reply.Nodes) != 0 || reply.Datacenter != "" || reply.Failovers != 0 {
@@ -2959,7 +2990,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		err := queryFailover(mock, query, 0, structs.QueryOptions{}, &reply)
+		err := queryFailover(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply)
 		if err == nil || !strings.Contains(err.Error(), "XXX") {
 			t.Fatalf("bad: %v", err)
 		}
@@ -2976,7 +3007,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		if err := queryFailover(mock, query, 0, structs.QueryOptions{}, &reply); err != nil {
+		if err := queryFailover(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if len(reply.Nodes) != 0 || reply.Datacenter != "" || reply.Failovers != 0 {
@@ -2999,7 +3030,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		if err := queryFailover(mock, query, 0, structs.QueryOptions{}, &reply); err != nil {
+		if err := queryFailover(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if len(reply.Nodes) != 3 ||
@@ -3027,7 +3058,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		if err := queryFailover(mock, query, 0, structs.QueryOptions{}, &reply); err != nil {
+		if err := queryFailover(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if len(reply.Nodes) != 3 ||
@@ -3048,7 +3079,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		if err := queryFailover(mock, query, 0, structs.QueryOptions{}, &reply); err != nil {
+		if err := queryFailover(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if len(reply.Nodes) != 0 ||
@@ -3077,7 +3108,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		if err := queryFailover(mock, query, 0, structs.QueryOptions{}, &reply); err != nil {
+		if err := queryFailover(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if len(reply.Nodes) != 3 ||
@@ -3106,7 +3137,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		if err := queryFailover(mock, query, 0, structs.QueryOptions{}, &reply); err != nil {
+		if err := queryFailover(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if len(reply.Nodes) != 3 ||
@@ -3135,7 +3166,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		if err := queryFailover(mock, query, 0, structs.QueryOptions{}, &reply); err != nil {
+		if err := queryFailover(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if len(reply.Nodes) != 3 ||
@@ -3170,7 +3201,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		if err := queryFailover(mock, query, 0, structs.QueryOptions{}, &reply); err != nil {
+		if err := queryFailover(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if len(reply.Nodes) != 3 ||
@@ -3202,7 +3233,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		if err := queryFailover(mock, query, 0, structs.QueryOptions{}, &reply); err != nil {
+		if err := queryFailover(mock, query, &structs.PreparedQueryExecuteRequest{}, &reply); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if len(reply.Nodes) != 3 ||
@@ -3238,7 +3269,10 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 		}
 
 		var reply structs.PreparedQueryExecuteResponse
-		if err := queryFailover(mock, query, 5, structs.QueryOptions{RequireConsistent: true}, &reply); err != nil {
+		if err := queryFailover(mock, query, &structs.PreparedQueryExecuteRequest{
+			Limit:        5,
+			QueryOptions: structs.QueryOptions{RequireConsistent: true},
+		}, &reply); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if len(reply.Nodes) != 3 ||
