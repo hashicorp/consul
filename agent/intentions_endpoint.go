@@ -50,9 +50,7 @@ func (s *HTTPServer) IntentionCreate(resp http.ResponseWriter, req *http.Request
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
 	if err := decodeBody(req, &args.Intention, nil); err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "Request decode failed: %v", err)
-		return nil, nil
+		return nil, fmt.Errorf("Failed to decode request body: %s", err)
 	}
 
 	var reply string

@@ -3,6 +3,7 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/http/pprof"
@@ -384,6 +385,13 @@ func (s *HTTPServer) Index(resp http.ResponseWriter, req *http.Request) {
 
 // decodeBody is used to decode a JSON request body
 func decodeBody(req *http.Request, out interface{}, cb func(interface{}) error) error {
+	// This generally only happens in tests since real HTTP requests set
+	// a non-nil body with no content. We guard against it anyways to prevent
+	// a panic. The EOF response is the same behavior as an empty reader.
+	if req.Body == nil {
+		return io.EOF
+	}
+
 	var raw interface{}
 	dec := json.NewDecoder(req.Body)
 	if err := dec.Decode(&raw); err != nil {

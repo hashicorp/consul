@@ -303,6 +303,19 @@ func TestIntentionsCreate_good(t *testing.T) {
 	}
 }
 
+func TestIntentionsCreate_noBody(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Create with no body
+	req, _ := http.NewRequest("POST", "/v1/connect/intentions", nil)
+	resp := httptest.NewRecorder()
+	_, err := a.srv.IntentionCreate(resp, req)
+	require.Error(t, err)
+}
+
 func TestIntentionsSpecificGet_good(t *testing.T) {
 	t.Parallel()
 
