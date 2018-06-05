@@ -2,15 +2,28 @@
     <fieldset>
         <label class="type-text{{if item.error.SourceName ' has-error'}}">
             <span>Source Service</span>
-            {{#power-select selected=item options=items onchange=(action 'change') as |service|}}
+            {{#power-select
+              options=items
+              searchField='Name'
+              selected=SourceName
+              searchPlaceholder='Type service name'
+              onchange=(action 'change' 'SourceName') as |service|
+            }}
               {{service.Name}}
             {{/power-select}}
-            {{input value=item.SourceName name='source' autofocus='autofocus'}}
             <em>Choose a Consul Service, write in a future Consul Service, or write any Service URL</em>
         </label>
         <label class="type-text{{if item.error.DestinationName ' has-error'}}">
             <span>Destination Service</span>
-            {{input value=item.DestinationName name='name'}}
+            {{#power-select
+              options=items
+              searchField='Name'
+              selected=DestinationName
+              searchPlaceholder='Type service name'
+              onchange=(action 'change' 'DestinationName') as |service|
+            }}
+              {{service.Name}}
+            {{/power-select}}
             <em>Choose a Consul Service, write in a future Consul Service, or write any Service URL</em>
         </label>
         <div role="radiogroup" class={{if item.error.Action ' has-error'}}>

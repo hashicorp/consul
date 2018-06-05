@@ -11,19 +11,23 @@ export default Controller.extend({
       ...model,
       ...{
         item: this.changeset,
+        SourceName: model.items.filterBy('Name', get(model.item, 'SourceName'))[0],
+        DestinationName: model.items.filterBy('Name', get(model.item, 'DestinationName'))[0],
       },
     });
   },
   actions: {
-    change: function(e) {
-      const target = e.target || { name: 'SourceName', value: e };
+    change: function(e, value, _target) {
+      const target = e.target || { ..._target, ...{ name: e, value: value } };
       switch (target.name) {
         case 'Action':
           set(this.changeset, target.name, target.value);
           break;
         case 'SourceName':
-          set(this.changeset, 'SourceName', get(target.value, 'Name'));
-          set(this.item, 'SourceName', get(target.value, 'Name'));
+        case 'DestinationName':
+          set(this.changeset, target.name, get(target.value, 'Name'));
+          set(this.item, target.name, get(target.value, 'Name'));
+          set(this, target.name, target.value);
           break;
       }
     },

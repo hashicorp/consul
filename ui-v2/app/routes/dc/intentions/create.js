@@ -7,6 +7,7 @@ import WithIntentionActions from 'consul-ui/mixins/intention/with-actions';
 export default Route.extend(WithIntentionActions, {
   templateName: 'dc/intentions/edit',
   repo: service('intentions'),
+  servicesRepo: service('services'),
   beforeModel: function() {
     get(this, 'repo').invalidate();
   },
@@ -17,6 +18,7 @@ export default Route.extend(WithIntentionActions, {
       create: true,
       isLoading: false,
       item: this.item,
+      items: get(this, 'servicesRepo').findAllByDatacenter(this.modelFor('dc').dc.Name),
       intents: ['allow', 'deny'],
     });
   },
