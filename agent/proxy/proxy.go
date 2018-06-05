@@ -40,17 +40,11 @@ type Proxy interface {
 	Start() error
 
 	// Stop stops the proxy and disallows it from ever being started again.
-	// This should also clean up any resources used by this Proxy.
 	//
 	// If the proxy is not started yet, this should not return an error, but
 	// it should disallow Start from working again. If the proxy is already
 	// stopped, this should not return an error.
 	Stop() error
-
-	// Close should clean up any resources associated with this proxy but
-	// keep it running in the background. Only one of Close or Stop can be
-	// called.
-	Close() error
 
 	// Equal returns true if the argument is equal to the proxy being called.
 	// This is called by the manager to determine if a change in configuration

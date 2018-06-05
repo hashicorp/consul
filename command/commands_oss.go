@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/consul/command/connect/ca"
 	caget "github.com/hashicorp/consul/command/connect/ca/get"
 	caset "github.com/hashicorp/consul/command/connect/ca/set"
-	"github.com/hashicorp/consul/command/connect/daemonize"
 	"github.com/hashicorp/consul/command/connect/proxy"
 	"github.com/hashicorp/consul/command/event"
 	"github.com/hashicorp/consul/command/exec"
@@ -75,7 +74,6 @@ func init() {
 	Register("connect ca get-config", func(ui cli.Ui) (cli.Command, error) { return caget.New(ui), nil })
 	Register("connect ca set-config", func(ui cli.Ui) (cli.Command, error) { return caset.New(ui), nil })
 	Register("connect proxy", func(ui cli.Ui) (cli.Command, error) { return proxy.New(ui, MakeShutdownCh()), nil })
-	RegisterHidden("connect daemonize", func(ui cli.Ui) (cli.Command, error) { return daemonize.New(ui), nil })
 	Register("event", func(ui cli.Ui) (cli.Command, error) { return event.New(ui), nil })
 	Register("exec", func(ui cli.Ui) (cli.Command, error) { return exec.New(ui, MakeShutdownCh()), nil })
 	Register("force-leave", func(ui cli.Ui) (cli.Command, error) { return forceleave.New(ui), nil })

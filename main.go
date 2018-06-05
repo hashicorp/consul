@@ -41,13 +41,6 @@ func realMain() int {
 		names = append(names, c)
 	}
 
-	// Add hidden command
-	hidden := command.MapHidden(ui)
-	for name, cmd := range hidden {
-		// Don't add names to help since they are hidden!
-		cmds[name] = cmd
-	}
-
 	cli := &cli.CLI{
 		Args:         args,
 		Commands:     cmds,

@@ -324,7 +324,7 @@ func TestManagerRun_snapshotRestore(t *testing.T) {
 
 	// Add a second proxy so that we can determine when we're up
 	// and running.
-	path2 := filepath.Join(td, "file2")
+	path2 := filepath.Join(td, "file")
 	testStateProxy(t, state, "db", helperProcess("start-stop", path2))
 	retry.Run(t, func(r *retry.R) {
 		_, err := os.Stat(path2)
@@ -343,7 +343,7 @@ func TestManagerRun_snapshotRestore(t *testing.T) {
 		if err != nil {
 			return
 		}
-		r.Fatalf("file still exists: %s", path)
+		r.Fatalf("file still exists")
 	})
 }
 
@@ -361,10 +361,6 @@ func testManager(t *testing.T) (*Manager, func()) {
 	td, closer := testTempDir(t)
 	m.DataDir = td
 
-	// Override daemonize command to use the built-in test binary. Note that Args
-	// includes the binary path as first arg.
-	m.daemonizeCmd = helperProcess("daemonize").Args
-
 	return m, func() { closer() }
 }
 
@@ -372,9 +368,8 @@ func testManager(t *testing.T) (*Manager, func()) {
 // (expected to be from the helperProcess function call). It returns the
 // ID for deregistration.
 func testStateProxy(t *testing.T, state *local.State, service string, cmd *exec.Cmd) string {
-	// Note that exec.Command already ensures the command name is the first
-	// argument in the list so no need to append again
-	command := cmd.Args
+	command := []string{cmd.Path}
+	command = append(command, cmd.Args...)
 
 	require.NoError(t, state.AddService(&structs.NodeService{
 		Service: service,
@@ -384,7 +379,7 @@ func testStateProxy(t *testing.T, state *local.State, service string, cmd *exec.
 		ExecMode:        structs.ProxyExecModeDaemon,
 		Command:         command,
 		TargetServiceID: service,
-	}, "token", "")
+	}, "token")
 	require.NoError(t, err)
 
 	return p.Proxy.ProxyService.ID

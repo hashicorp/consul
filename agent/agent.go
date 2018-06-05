@@ -366,7 +366,6 @@ func (a *Agent) Start() error {
 	a.proxyManager = proxy.NewManager()
 	a.proxyManager.State = a.State
 	a.proxyManager.Logger = a.logger
-	a.proxyManager.DisableDetach = a.config.ConnectDisableDetachedDaemons
 	if a.config.DataDir != "" {
 		// DataDir is required for all non-dev mode agents, but we want
 		// to allow setting the data dir for demos and so on for the agent,
@@ -1320,8 +1319,11 @@ func (a *Agent) ShutdownAgent() error {
 	}
 
 	// Stop the proxy manager
+	// NOTE(mitchellh): we use Kill for now to kill the processes since
+	// the local state isn't snapshotting meaning the proxy tokens are
+	// regenerated each time forcing the processes to restart anyways.
 	if a.proxyManager != nil {
-		if err := a.proxyManager.Close(); err != nil {
+		if err := a.proxyManager.Kill(); err != nil {
 			a.logger.Printf("[WARN] agent: error shutting down proxy manager: %s", err)
 		}
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sync"
 	"time"
@@ -84,16 +85,6 @@ type Manager struct {
 	CoalescePeriod  time.Duration
 	QuiescentPeriod time.Duration
 
-	// DisableDetach is used by tests that don't actually care about detached
-	// child behaviour (i.e. outside proxy package) to bypass detaching and
-	// daemonizing Daemons. This makes tests much simpler as they don't need to
-	// implement a test-binary mode to enable self-exec daemonizing etc. and there
-	// are fewer risks of detached processes being spawned and then not killed in
-	// face of missed teardown/panic/interrupt of test runs etc. It's public since
-	// it needs to be configurable from the agent package when setting up the
-	// proxyManager instance.
-	DisableDetach bool
-
 	// lock is held while reading/writing any internal state of the manager.
 	// cond is a condition variable on lock that is broadcasted for runState
 	// changes.
@@ -111,10 +102,6 @@ type Manager struct {
 	// large so keeping it in-memory should be cheap even for thousands of
 	// proxies (unlikely scenario).
 	lastSnapshot *snapshot
-
-	// daemonizeCmd is set only in tests to control the path and args to the
-	// daemonize command.
-	daemonizeCmd []string
 
 	proxies map[string]Proxy
 }
@@ -161,35 +148,7 @@ func (m *Manager) Close() error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
-	return m.stop(func(p Proxy) error {
-		return p.Close()
-	})
-}
-
-// Kill will Close the manager and Kill all proxies that were being managed.
-// Only ONE of Kill or Close must be called. If Close has been called already
-// then this will have no effect.
-func (m *Manager) Kill() error {
-	m.lock.Lock()
-	defer m.lock.Unlock()
-
-	return m.stop(func(p Proxy) error {
-		return p.Stop()
-	})
-}
-
-// stop stops the run loop and cleans up all the proxies by calling
-// the given cleaner. If the cleaner returns an error the proxy won't be
-// removed from the map.
-//
-// The lock must be held while this is called.
-func (m *Manager) stop(cleaner func(Proxy) error) error {
 	for {
-		// Special case state that exits the for loop
-		if m.runState == managerStateStopped {
-			break
-		}
-
 		switch m.runState {
 		case managerStateIdle:
 			// Idle so just set it to stopped and return. We notify
@@ -208,13 +167,29 @@ func (m *Manager) stop(cleaner func(Proxy) error) error {
 		case managerStateStopping:
 			// Still stopping, wait...
 			m.cond.Wait()
+
+		case managerStateStopped:
+			// Stopped, target state reached
+			return nil
 		}
 	}
+}
 
-	// Clean up all the proxies
+// Kill will Close the manager and Kill all proxies that were being managed.
+//
+// This is safe to call with Close already called since Close is idempotent.
+func (m *Manager) Kill() error {
+	// Close first so that we aren't getting changes in proxies
+	if err := m.Close(); err != nil {
+		return err
+	}
+
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
 	var err error
 	for id, proxy := range m.proxies {
-		if err := cleaner(proxy); err != nil {
+		if err := proxy.Stop(); err != nil {
 			err = multierror.Append(
 				err, fmt.Errorf("failed to stop proxy %q: %s", id, err))
 			continue
@@ -426,13 +401,18 @@ func (m *Manager) newProxy(mp *local.ManagedProxy) (Proxy, error) {
 			return nil, fmt.Errorf("daemon mode managed proxy requires command")
 		}
 
+		// Build the command to execute.
+		var cmd exec.Cmd
+		cmd.Path = command[0]
+		cmd.Args = command // idx 0 is path but preserved since it should be
+		if err := m.configureLogDir(id, &cmd); err != nil {
+			return nil, fmt.Errorf("error configuring proxy logs: %s", err)
+		}
+
 		// Build the daemon structure
-		proxy.Path = command[0]
-		proxy.Args = command // idx 0 is path but preserved since it should be
+		proxy.Command = &cmd
 		proxy.ProxyId = id
 		proxy.ProxyToken = mp.ProxyToken
-		proxy.daemonizeCmd = m.daemonizeCmd
-		proxy.DisableDetach = m.DisableDetach
 		return proxy, nil
 
 	default:
@@ -447,15 +427,48 @@ func (m *Manager) newProxyFromMode(mode structs.ProxyExecMode, id string) (Proxy
 	switch mode {
 	case structs.ProxyExecModeDaemon:
 		return &Daemon{
-			Logger:     m.Logger,
-			StdoutPath: logPath(filepath.Join(m.DataDir, "logs"), id, "stdout"),
-			StderrPath: logPath(filepath.Join(m.DataDir, "logs"), id, "stderr"),
-			PidPath:    pidPath(filepath.Join(m.DataDir, "pids"), id),
+			Logger:  m.Logger,
+			PidPath: pidPath(filepath.Join(m.DataDir, "pids"), id),
 		}, nil
 
 	default:
 		return nil, fmt.Errorf("unsupported managed proxy type: %q", mode)
 	}
+}
+
+// configureLogDir sets up the file descriptors to stdout/stderr so that
+// they log to the proper file path for the given service ID.
+func (m *Manager) configureLogDir(id string, cmd *exec.Cmd) error {
+	// Create the log directory
+	logDir := ""
+	if m.DataDir != "" {
+		logDir = filepath.Join(m.DataDir, "logs")
+		if err := os.MkdirAll(logDir, 0700); err != nil {
+			return err
+		}
+	}
+
+	// Configure the stdout, stderr paths
+	stdoutPath := logPath(logDir, id, "stdout")
+	stderrPath := logPath(logDir, id, "stderr")
+
+	// Open the files. We want to append to each. We expect these files
+	// to be rotated by some external process.
+	stdoutF, err := os.OpenFile(stdoutPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	if err != nil {
+		return fmt.Errorf("error creating stdout file: %s", err)
+	}
+	stderrF, err := os.OpenFile(stderrPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	if err != nil {
+		// Don't forget to close stdoutF which successfully opened
+		stdoutF.Close()
+
+		return fmt.Errorf("error creating stderr file: %s", err)
+	}
+
+	cmd.Stdout = stdoutF
+	cmd.Stderr = stderrF
+	return nil
 }
 
 // logPath is a helper to return the path to the log file for the given

@@ -621,16 +621,6 @@ type RuntimeConfig struct {
 	// that.
 	ConnectEnabled bool
 
-	// ConnectDisableDetachedDaemons is not exposed publically and is meant for
-	// testing where having processes outlive the test is inconvenient. It also
-	// allows tests outside of the `agent/proxy` package to ignore the unpleasant
-	// details of self-executing the test binary in order to correctly detach a
-	// process. It's set to true by default in TestAgent and setting it to false
-	// in any test requires several hoops to be jumped through to allow the test
-	// binary to behave as a daemonizer and for the agent to be configured to use
-	// the right invocation of the binary for it.
-	ConnectDisableDetachedDaemons bool
-
 	// ConnectProxyBindMinPort is the inclusive start of the range of ports
 	// allocated to the agent for starting proxy listeners on where no explicit
 	// port is specified.

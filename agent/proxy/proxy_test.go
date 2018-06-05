@@ -7,12 +7,8 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"strconv"
 	"testing"
 	"time"
-
-	"github.com/hashicorp/consul/command/connect/daemonize"
-	"github.com/mitchellh/cli"
 )
 
 // testLogger is a logger that can be used by tests that require a
@@ -51,25 +47,6 @@ func helperProcess(s ...string) *exec.Cmd {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd
-}
-
-// helperProcessDaemon returns a *Daemon that can be used to execute the
-// TestHelperProcess function below. This can be used to test multi-process
-// interactions. The Daemon has it's Path, Args and stdio paths populated but
-// other fields might need to be set depending on test requirements.
-//
-// This relies on the TestMainInterceptDaemonize hack being active.
-func helperProcessDaemon(s ...string) *Daemon {
-	cs := []string{os.Args[0], "-test.run=TestHelperProcess", "--", helperProcessSentinel}
-	cs = append(cs, s...)
-
-	return &Daemon{
-		Path:         os.Args[0],
-		Args:         cs,
-		StdoutPath:   "_", // dev null them for now
-		StderrPath:   "_",
-		daemonizeCmd: helperProcess("daemonize").Args,
-	}
 }
 
 // This is not a real test. This is just a helper process kicked off by tests
@@ -177,53 +154,6 @@ func TestHelperProcess(t *testing.T) {
 		}
 
 		<-make(chan struct{})
-
-	// Parent runs the given process in a Daemon and then sleeps until the test
-	// code kills it. It exists to test that the Daemon-managed child process
-	// survives it's parent exiting which we can't test directly without exiting
-	// the test process so we need an extra level of indirection. The test code
-	// using this must pass a file path as the first argument for the child
-	// processes PID to be written and then must take care to clean up that PID
-	// later or the child will be left running forever.
-	case "parent":
-		// We will write the PID for the child to the file in the first argument
-		// then pass rest of args through to command.
-		pidFile := args[0]
-		d := helperProcess(args[1:]...)
-		if err := d.Start(); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
-			os.Exit(1)
-		}
-		// Write PID
-		pidBs := []byte(strconv.Itoa(d.Process.Pid))
-		if err := ioutil.WriteFile(pidFile, pidBs, 0644); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
-			// TODO: Also kill the detached process (once it is detached)
-			os.Exit(1)
-		}
-		// Wait "forever" (calling test chooses when we exit with signal/Wait to
-		// minimise coordination).
-		for {
-			time.Sleep(time.Hour)
-		}
-
-	case "daemonize":
-		// Run daemonize!
-		ui := &cli.BasicUi{Writer: os.Stdout, ErrorWriter: os.Stderr}
-		cli := &cli.CLI{
-			Args: append([]string{"daemonize"}, args...),
-			Commands: map[string]cli.CommandFactory{
-				"daemonize": func() (cli.Command, error) {
-					return daemonize.New(ui), nil
-				},
-			},
-		}
-
-		exitCode, err := cli.Run()
-		if err != nil {
-			log.Printf("[ERR] running hijacked daemonize command: %s", err)
-		}
-		os.Exit(exitCode)
 
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %q\n", cmd)
