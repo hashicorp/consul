@@ -208,15 +208,15 @@ The table below shows this endpoint's support for
     check filtering. If this is set to false, the results will include nodes
     with checks in the passing as well as the warning states. If this is set to
     true, only nodes with checks in the passing state will be returned.
-    
+
   - `Near` `(string: "")` - Specifies a node to sort near based on distance
      sorting using [Network Coordinates](/docs/internals/coordinates.html). The
      nearest instance to the specified node will be returned first, and subsequent
      nodes in the response will be sorted in ascending order of estimated
      round-trip times. If the node given does not exist, the nodes in the response
      will be shuffled. If unspecified, the response will be shuffled by default.
-  
-       - `_agent` - Returns results nearest the agent servicing the request.    
+
+       - `_agent` - Returns results nearest the agent servicing the request.
        - `_ip` - Returns results nearest to the node associated with the source IP
          where the query was executed from. For HTTP the source IP is the remote
          peer's IP address or the value of the X-Forwarded-For header with the
@@ -232,6 +232,11 @@ The table below shows this endpoint's support for
   - `NodeMeta` `(map<string|string>: nil)` - Specifies a list of user-defined
     key/value pairs that will be used for filtering the query results to nodes
     with the given metadata values present.
+
+  - `Connect` `(bool: false)` - If true, only [Connect-capable](/docs/connect/index.html) services
+    for the specified service name will be returned. This includes both
+	natively integrated services and proxies. For proxies, the proxy name
+	may not match `Service`, because the proxy destination will.
 
 - `DNS` `(DNS: nil)` - Specifies DNS configuration
 
@@ -496,6 +501,11 @@ Token will be used.
 
 - `limit` `(int: 0)` - Limit the size of the list to the given number of nodes.
   This is applied after any sorting or shuffling.
+
+- `connect` `(bool: false)` - If true, limit results to nodes that are
+  Connect-capable only. This can also be specified directly on the template
+  itself to force all executions of a query to be Connect-only. See the
+  template documentation for more information.
 
 ### Sample Request
 

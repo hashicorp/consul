@@ -54,6 +54,14 @@ type ServiceQuery struct {
 	// pair is in this map it must be present on the node in order for the
 	// service entry to be returned.
 	NodeMeta map[string]string
+
+	// Connect if true will filter the prepared query results to only
+	// include Connect-capable services. These include both native services
+	// and proxies for matching services. Note that if a proxy matches,
+	// the constraints in the query above (Near, OnlyPassing, etc.) apply
+	// to the _proxy_ and not the service being proxied. In practice, proxies
+	// should be directly next to their services so this isn't an issue.
+	Connect bool
 }
 
 // QueryTemplate carries the arguments for creating a templated query.
@@ -201,4 +209,27 @@ func (c *PreparedQuery) Execute(queryIDOrName string, q *QueryOptions) (*Prepare
 		return nil, nil, err
 	}
 	return out, qm, nil
+}
+
+// ExecuteConnect is used to execute a specific prepared query and return
+// only Connect-capable nodes.
+func (c *PreparedQuery) ExecuteConnect(queryIDOrName string, q *QueryOptions) (*PreparedQueryExecuteResponse, *QueryMeta, error) {
+	r := c.c.newRequest("GET", "/v1/query/"+queryIDOrName+"/execute")
+	r.setQueryOptions(q)
+	r.params.Set("connect", "true")
+	rtt, resp, err := requireOK(c.c.doRequest(r))
+	if err != nil {
+		return nil, nil, err
+	}
+	defer resp.Body.Close()
+
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
+	var out PreparedQueryExecuteResponse
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, nil, err
+	}
+
+	return &out, qm, nil
 }
