@@ -236,7 +236,9 @@ The table below shows this endpoint's support for
   - `Connect` `(bool: false)` - If true, only [Connect-capable](/docs/connect/index.html) services
     for the specified service name will be returned. This includes both
 	natively integrated services and proxies. For proxies, the proxy name
-	may not match `Service`, because the proxy destination will.
+	may not match `Service`, because the proxy destination will. Any
+	constrains beyond the service name such as `Near`, `Tags`, and `NodeMeta`
+	are applied to Connect-capable service.
 
 - `DNS` `(DNS: nil)` - Specifies DNS configuration
 
