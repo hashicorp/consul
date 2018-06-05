@@ -511,7 +511,15 @@ func (p *PreparedQuery) ExecuteRemote(args *structs.PreparedQueryExecuteRemoteRe
 func (p *PreparedQuery) execute(query *structs.PreparedQuery,
 	reply *structs.PreparedQueryExecuteResponse) error {
 	state := p.srv.fsm.State()
-	_, nodes, err := state.CheckServiceNodes(nil, query.Service.Service)
+
+	// If we're requesting Connect-capable services, then switch the
+	// lookup to be the Connect function.
+	f := state.CheckServiceNodes
+	if query.Service.Connect {
+		f = state.CheckConnectServiceNodes
+	}
+
+	_, nodes, err := f(nil, query.Service.Service)
 	if err != nil {
 		return err
 	}
