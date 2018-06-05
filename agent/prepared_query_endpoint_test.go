@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/types"
+	"github.com/stretchr/testify/require"
 )
 
 // MockPreparedQuery is a fake endpoint that we inject into the Consul server
@@ -677,6 +678,28 @@ func TestPreparedQuery_Explain(t *testing.T) {
 		if resp.Code != 404 {
 			t.Fatalf("bad code: %d", resp.Code)
 		}
+	})
+
+	// Ensure that Connect is passed through
+	t.Run("", func(t *testing.T) {
+		a := NewTestAgent(t.Name(), "")
+		defer a.Shutdown()
+		require := require.New(t)
+
+		m := MockPreparedQuery{
+			executeFn: func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExecuteResponse) error {
+				require.True(args.Connect)
+				return nil
+			},
+		}
+		require.NoError(a.registerEndpoint("PreparedQuery", &m))
+
+		body := bytes.NewBuffer(nil)
+		req, _ := http.NewRequest("GET", "/v1/query/my-id/execute?connect=true", body)
+		resp := httptest.NewRecorder()
+		_, err := a.srv.PreparedQuerySpecific(resp, req)
+		require.NoError(err)
+		require.Equal(200, resp.Code)
 	})
 }
 
