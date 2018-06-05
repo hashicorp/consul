@@ -13,6 +13,9 @@ import (
 
 // Proxy defines an upstream host.
 type Proxy struct {
+	avgRtt int64
+	fails  uint32
+
 	addr   string
 	client *dns.Client
 
@@ -22,9 +25,6 @@ type Proxy struct {
 
 	// health checking
 	probe *up.Probe
-	fails uint32
-
-	avgRtt int64
 }
 
 // NewProxy returns a new proxy.
