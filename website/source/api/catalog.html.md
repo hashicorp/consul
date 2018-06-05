@@ -54,7 +54,7 @@ The table below shows this endpoint's support for
 - `Service` `(Service: nil)` - Specifies to register a service. If `ID` is not
   provided, it will be defaulted to the value of the `Service.Service` property.
   Only one service with a given `ID` may be present per node. The service
-  `Tags`, `Address`, `ServiceMeta` and `Port` fields are all optional.
+  `Tags`, `Address`, `ServiceMeta`, `Port`, `ConnectNative` fields are all optional.
 
 - `Check` `(Check: nil)` - Specifies to register a check. The register API
   manipulates the health check entry in the Catalog, but it does not setup the
@@ -484,6 +484,9 @@ $ curl \
 
 - `ServiceProxyDestination` is the name of the service that is being proxied,
   for "connect-proxy" type services.
+
+- `ServiceConnectNative` is true if this service supports Connect
+  [natively](/docs/connect/native.html).
 
 ## List Nodes for Connect-capable Service
 

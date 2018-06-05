@@ -117,6 +117,10 @@ The table below shows this endpoint's support for
   service doesn't need to be registered, but the caller must have an ACL token
   with permissions for this service.
 
+- `Connect` `(Connect: nil)` - Specifies the configuration for
+  [Connect](/docs/connect/index.html). See the [Connect structure](#connect-structure)
+  section for supported fields.
+
 - `Check` `(Check: nil)` - Specifies a check. Please see the
   [check documentation](/api/agent/check.html) for more information about the
   accepted fields. If you don't provide a name or id for the check then they
@@ -153,6 +157,15 @@ The table below shows this endpoint's support for
     another node. If `EnableTagOverride` is not specified the default value is
     `false`. See [anti-entropy syncs](/docs/internals/anti-entropy.html) for
     more info.
+
+#### Connect Structure
+
+For the `Connect` field, the parameters are:
+
+- `Native` `(bool: false)` - Specifies whether this service supports
+  the [Connect](/docs/connect/index.html) protocol [natively](/docs/connect/native.html).
+  If this is true, then Connect proxies, DNS queries, etc. will be able to
+  service discover this service.
 
 ### Sample Payload
 
