@@ -324,7 +324,7 @@ func TestManagerRun_snapshotRestore(t *testing.T) {
 
 	// Add a second proxy so that we can determine when we're up
 	// and running.
-	path2 := filepath.Join(td, "file")
+	path2 := filepath.Join(td, "file2")
 	testStateProxy(t, state, "db", helperProcess("start-stop", path2))
 	retry.Run(t, func(r *retry.R) {
 		_, err := os.Stat(path2)
@@ -343,7 +343,7 @@ func TestManagerRun_snapshotRestore(t *testing.T) {
 		if err != nil {
 			return
 		}
-		r.Fatalf("file still exists")
+		r.Fatalf("file still exists: %s", path)
 	})
 }
 
@@ -379,7 +379,7 @@ func testStateProxy(t *testing.T, state *local.State, service string, cmd *exec.
 		ExecMode:        structs.ProxyExecModeDaemon,
 		Command:         command,
 		TargetServiceID: service,
-	}, "token")
+	}, "token", "")
 	require.NoError(t, err)
 
 	return p.Proxy.ProxyService.ID

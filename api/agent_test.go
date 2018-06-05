@@ -1140,7 +1140,7 @@ func TestAPI_AgentConnectProxyConfig(t *testing.T) {
 		Port: 8000,
 		Connect: &AgentServiceConnect{
 			Proxy: &AgentServiceConnectProxy{
-				Command: []string{"consul connect proxy"},
+				Command: []string{"consul", "connect", "proxy"},
 				Config: map[string]interface{}{
 					"foo": "bar",
 				},
@@ -1157,7 +1157,7 @@ func TestAPI_AgentConnectProxyConfig(t *testing.T) {
 		ProxyServiceID:    "foo-proxy",
 		TargetServiceID:   "foo",
 		TargetServiceName: "foo",
-		ContentHash:       "93baee1d838888ae",
+		ContentHash:       "2a29f8237db69d0e",
 		ExecMode:          "daemon",
 		Command:           []string{"consul", "connect", "proxy"},
 		Config: map[string]interface{}{

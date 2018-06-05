@@ -293,16 +293,28 @@ func (p *Daemon) Stop() error {
 
 		case <-time.After(gracefulWait):
 			// Interrupt didn't work
+			p.Logger.Printf("[DEBUG] agent/proxy: graceful wait of %s passed, "+
+				"killing", gracefulWait)
 		}
+	} else if isProcessAlreadyFinishedErr(err) {
+		// This can happen due to races between signals and polling.
+		return nil
+	} else {
+		p.Logger.Printf("[DEBUG] agent/proxy: sigint failed, killing: %s", err)
 	}
 
-	// Graceful didn't work, forcibly kill
-	return process.Kill()
+	// Graceful didn't work (e.g. on windows where SIGINT isn't implemented),
+	// forcibly kill
+	err = process.Kill()
+	if err != nil && isProcessAlreadyFinishedErr(err) {
+		return nil
+	}
+	return err
 }
 
-// stopKeepAlive is like Stop but keeps the process running. This is
-// used only for tests.
-func (p *Daemon) stopKeepAlive() error {
+// Close implements Proxy by stopping the run loop but not killing the process.
+// One Close is called, Stop has no effect.
+func (p *Daemon) Close() error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 

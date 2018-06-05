@@ -398,7 +398,7 @@ func TestDaemonUnmarshalSnapshot(t *testing.T) {
 	snap := d.MarshalSnapshot()
 
 	// Stop the original daemon but keep it alive
-	require.NoError(d.stopKeepAlive())
+	require.NoError(d.Close())
 
 	// Restore the second daemon
 	d2 := &Daemon{Logger: testLogger}
