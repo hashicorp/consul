@@ -5,6 +5,7 @@
 *.swp
 *.test
 .DS_Store
+.fseventsd
 .vagrant/
 /pkg
 Thumbs.db

@@ -73,6 +73,7 @@ type delegate interface {
 	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error
 	Shutdown() error
 	Stats() map[string]map[string]string
+	enterpriseDelegate
 }
 
 // notifier is called after a successful JoinLAN.
