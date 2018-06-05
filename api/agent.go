@@ -69,7 +69,8 @@ type AgentService struct {
 
 // AgentServiceConnect represents the Connect configuration of a service.
 type AgentServiceConnect struct {
-	Proxy *AgentServiceConnectProxy
+	Native bool
+	Proxy  *AgentServiceConnectProxy
 }
 
 // AgentServiceConnectProxy represents the Connect Proxy configuration of a

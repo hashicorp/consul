@@ -310,6 +310,65 @@ func TestAPI_CatalogConnect(t *testing.T) {
 	})
 }
 
+func TestAPI_CatalogConnectNative(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	catalog := c.Catalog()
+
+	// Register service and proxy instances to test against.
+	service := &AgentService{
+		ID:      "redis1",
+		Service: "redis",
+		Port:    8000,
+		Connect: &AgentServiceConnect{Native: true},
+	}
+	check := &AgentCheck{
+		Node:      "foobar",
+		CheckID:   "service:redis1",
+		Name:      "Redis health check",
+		Notes:     "Script based health check",
+		Status:    HealthPassing,
+		ServiceID: "redis1",
+	}
+
+	reg := &CatalogRegistration{
+		Datacenter: "dc1",
+		Node:       "foobar",
+		Address:    "192.168.10.10",
+		Service:    service,
+		Check:      check,
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		if _, err := catalog.Register(reg, nil); err != nil {
+			r.Fatal(err)
+		}
+
+		services, meta, err := catalog.Connect("redis", "", nil)
+		if err != nil {
+			r.Fatal(err)
+		}
+
+		if meta.LastIndex == 0 {
+			r.Fatalf("Bad: %v", meta)
+		}
+
+		if len(services) == 0 {
+			r.Fatalf("Bad: %v", services)
+		}
+
+		if services[0].Datacenter != "dc1" {
+			r.Fatalf("Bad datacenter: %v", services[0])
+		}
+
+		if services[0].ServicePort != service.Port {
+			r.Fatalf("Returned port should be for proxy: %v", services[0])
+		}
+	})
+}
+
 func TestAPI_CatalogNode(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
