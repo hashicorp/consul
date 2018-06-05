@@ -158,7 +158,7 @@ include: "/etc/unbound/unbound.conf.d/*.conf"
 
 ### systemd-resolved Setup
 
-systemd-resolved is typically configured with `/etc/systemd/resolved.conf`. 
+`systemd-resolved` is typically configured with `/etc/systemd/resolved.conf`. 
 To configure systemd-resolved to send queries for the consul domain to
 Consul, configure resolved.conf to contain the following:
 
