@@ -132,21 +132,6 @@ docker-build: tar
 	    mkdir -p build/docker/linux/$$arch ;\
 	    tar -xzf release/$(NAME)_$(VERSION)_linux_$$arch.tgz -C build/docker/linux/$$arch ;\
 	    cp Dockerfile build/docker/linux/$$arch ;\
-	    if [ $$arch != amd64 ]; then \
-		case $$arch in \
-	        arm) \
-	            BASEIMAGE=arm32v6 ;\
-	            ;; \
-	        arm64) \
-	            BASEIMAGE=arm64v8 ;\
-	            ;; \
-	        *) \
-	            BASEIMAGE=$$arch ;\
-	            ;; \
-	        esac ;\
-	        sed -e "s/alpine:latest/$$BASEIMAGE\\/alpine:latest/" -i build/docker/linux/$$arch/Dockerfile ;\
-	        sed -e "s/^\\s*RUN/#RUN/" -i build/docker/linux/$$arch/Dockerfile ;\
-	    fi ;\
 	    docker build -t coredns build/docker/linux/$$arch ;\
 	    docker tag coredns $(DOCKER_IMAGE_NAME):coredns-$$arch ;\
 	done
