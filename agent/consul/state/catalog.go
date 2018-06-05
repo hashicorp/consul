@@ -91,14 +91,11 @@ func servicesTableSchema() *memdb.TableSchema {
 					Lowercase: true,
 				},
 			},
-			"proxy_destination": &memdb.IndexSchema{
-				Name:         "proxy_destination",
+			"connect": &memdb.IndexSchema{
+				Name:         "connect",
 				AllowMissing: true,
 				Unique:       false,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "ServiceProxyDestination",
-					Lowercase: true,
-				},
+				Indexer:      &IndexConnectService{},
 			},
 		},
 	}
@@ -819,7 +816,7 @@ func (s *Store) serviceNodes(ws memdb.WatchSet, serviceName string, connect bool
 		}
 	} else {
 		f = func() (memdb.ResultIterator, error) {
-			return tx.Get("services", "proxy_destination", serviceName)
+			return tx.Get("services", "connect", serviceName)
 		}
 	}
 
@@ -1540,7 +1537,7 @@ func (s *Store) checkServiceNodes(ws memdb.WatchSet, serviceName string, connect
 		}
 	} else {
 		f = func() (memdb.ResultIterator, error) {
-			return tx.Get("services", "proxy_destination", serviceName)
+			return tx.Get("services", "connect", serviceName)
 		}
 	}
 

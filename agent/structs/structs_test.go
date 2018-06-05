@@ -246,6 +246,12 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 			func(x *NodeService) { x.Port = 0 },
 			"Port must",
 		},
+
+		{
+			"connect-proxy: ConnectNative set",
+			func(x *NodeService) { x.ConnectNative = true },
+			"cannot also be",
+		},
 	}
 
 	for _, tc := range cases {

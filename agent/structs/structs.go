@@ -555,6 +555,11 @@ func (s *NodeService) Validate() error {
 			result = multierror.Append(result, fmt.Errorf(
 				"Port must be set for a Connect proxy"))
 		}
+
+		if s.ConnectNative {
+			result = multierror.Append(result, fmt.Errorf(
+				"A Proxy cannot also be ConnectNative, only typical services"))
+		}
 	}
 
 	return result

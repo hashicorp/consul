@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCatalog_Register(t *testing.T) {
@@ -1821,6 +1822,49 @@ func TestCatalog_ListServiceNodes_ConnectDestination(t *testing.T) {
 	v = resp.ServiceNodes[0]
 	assert.Equal(args.Service.ProxyDestination, v.ServiceName)
 	assert.Equal("", v.ServiceProxyDestination)
+}
+
+// Test that calling ServiceNodes with Connect: true will return
+// Connect native services.
+func TestCatalog_ListServiceNodes_ConnectDestinationNative(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Register the native service
+	args := structs.TestRegisterRequest(t)
+	args.Service.ConnectNative = true
+	var out struct{}
+	require.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
+
+	// List
+	req := structs.ServiceSpecificRequest{
+		Connect:     true,
+		Datacenter:  "dc1",
+		ServiceName: args.Service.Service,
+	}
+	var resp structs.IndexedServiceNodes
+	require.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	require.Len(resp.ServiceNodes, 1)
+	v := resp.ServiceNodes[0]
+	require.Equal(args.Service.Service, v.ServiceName)
+
+	// List by non-Connect
+	req = structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: args.Service.Service,
+	}
+	require.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	require.Len(resp.ServiceNodes, 1)
+	v = resp.ServiceNodes[0]
+	require.Equal(args.Service.Service, v.ServiceName)
 }
 
 func TestCatalog_ListServiceNodes_ConnectProxy_ACL(t *testing.T) {
