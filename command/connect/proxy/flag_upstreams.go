@@ -34,6 +34,23 @@ func (f *FlagUpstreams) Set(value string) error {
 		portRaw = portRaw[idx+1:]
 	}
 
+	destinationType := "service"
+	if idx := strings.Index(name, "."); idx != -1 {
+		typ := name[idx+1:]
+		name = name[:idx]
+		switch typ {
+		case "", "service":
+			destinationType = "service"
+
+		case "query":
+			destinationType = "prepared_query"
+
+		default:
+			return fmt.Errorf(
+				"Upstream type must be blank, 'service', or 'query'. Got: %q", typ)
+		}
+	}
+
 	port, err := strconv.ParseInt(portRaw, 0, 0)
 	if err != nil {
 		return err
@@ -47,7 +64,7 @@ func (f *FlagUpstreams) Set(value string) error {
 		LocalBindAddress: addr,
 		LocalBindPort:    int(port),
 		DestinationName:  name,
-		DestinationType:  "service",
+		DestinationType:  destinationType,
 	}
 
 	return nil

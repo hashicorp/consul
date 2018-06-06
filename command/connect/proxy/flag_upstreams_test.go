@@ -54,6 +54,26 @@ func TestFlagUpstreams(t *testing.T) {
 		},
 
 		{
+			"single value prepared query",
+			[]string{"db.query:8181"},
+			map[string]proxy.UpstreamConfig{
+				"db": proxy.UpstreamConfig{
+					LocalBindPort:   8181,
+					DestinationName: "db",
+					DestinationType: "prepared_query",
+				},
+			},
+			"",
+		},
+
+		{
+			"invalid type",
+			[]string{"db.bad:8181"},
+			nil,
+			"Upstream type",
+		},
+
+		{
 			"address specified",
 			[]string{"db:127.0.0.55:8181"},
 			map[string]proxy.UpstreamConfig{
