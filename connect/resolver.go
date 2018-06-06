@@ -148,12 +148,17 @@ func (cr *ConsulResolver) resolveService(ctx context.Context) (string, connect.C
 	}
 	port := svcs[idx].Service.Port
 
+	service := svcs[idx].Service.Service
+	if !svcs[idx].Service.Connect.Native {
+		service = svcs[idx].Service.ProxyDestination
+	}
+
 	// Generate the expected CertURI
 	certURI := &connect.SpiffeIDService{
 		Host:       cr.trustDomain,
 		Namespace:  "default",
 		Datacenter: svcs[idx].Node.Datacenter,
-		Service:    svcs[idx].Service.ProxyDestination,
+		Service:    service,
 	}
 
 	return fmt.Sprintf("%s:%d", addr, port), certURI, nil

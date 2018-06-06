@@ -73,6 +73,18 @@ func TestConsulResolver_Resolve(t *testing.T) {
 	err = client.Agent().ServiceRegister(regProxy)
 	require.Nil(t, err)
 
+	// Add a native service
+	{
+		regSrv := &api.AgentServiceRegistration{
+			Name: "db",
+			Port: 8080,
+			Connect: &api.AgentServiceConnect{
+				Native: true,
+			},
+		}
+		require.NoError(t, client.Agent().ServiceRegister(regSrv))
+	}
+
 	proxyAddrs := []string{
 		agent.Config.AdvertiseAddrLAN.String() + ":9090",
 		agent.Config.AdvertiseAddrLAN.String() + ":9091",
@@ -91,6 +103,7 @@ func TestConsulResolver_Resolve(t *testing.T) {
 		wantAddr    string
 		wantCertURI connect.CertURI
 		wantErr     bool
+		addrs       []string
 	}{
 		{
 			name: "basic service discovery",
@@ -100,6 +113,17 @@ func TestConsulResolver_Resolve(t *testing.T) {
 				Type:      ConsulResolverTypeService,
 			},
 			wantCertURI: connect.TestSpiffeIDService(t, "web"),
+			wantErr:     false,
+			addrs:       proxyAddrs,
+		},
+		{
+			name: "basic service with native service",
+			fields: fields{
+				Namespace: "default",
+				Name:      "db",
+				Type:      ConsulResolverTypeService,
+			},
+			wantCertURI: connect.TestSpiffeIDService(t, "db"),
 			wantErr:     false,
 		},
 		{
@@ -155,9 +179,10 @@ func TestConsulResolver_Resolve(t *testing.T) {
 			}
 
 			require.Nil(err)
-			// Address should be either of the registered proxy ports so check both
-			require.Contains(proxyAddrs, gotAddr)
 			require.Equal(tt.wantCertURI, gotCertURI)
+			if len(tt.addrs) > 0 {
+				require.Contains(tt.addrs, gotAddr)
+			}
 		})
 	}
 }
