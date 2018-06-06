@@ -236,7 +236,7 @@ will exit with an error at startup.
   <a href="#retry_join">`retry_join`</a> could be more appropriate to help
   mitigate node startup race conditions when automating a Consul cluster
   deployment.
-  
+
     In Consul 1.1.0 and later this can be set to a
     [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
     template
@@ -293,7 +293,7 @@ will exit with an error at startup.
   times to specify multiple WAN agents to join. If Consul is unable to join with
   any of the specified addresses, agent startup will fail. By default, the agent
   won't [`-join-wan`](#_join_wan) any nodes when it starts up.
-    
+
     In Consul 1.1.0 and later this can be set to a
     [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
     template.
@@ -688,7 +688,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   0.8 the default was changed to true, to make remote exec opt-in instead of opt-out.
 
 * <a name="disable_update_check"></a><a href="#disable_update_check">`disable_update_check`</a>
-  Disables automatic checking for security bulletins and new version releases. This is disabled in 
+  Disables automatic checking for security bulletins and new version releases. This is disabled in
   Consul Enterprise.
 
 * <a name="discard_check_output"></a><a href="#discard_check_output">`discard_check_output`</a>
@@ -760,7 +760,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 
     * <a name="udp_answer_limit"></a><a href="#udp_answer_limit">`udp_answer_limit`</a> - Limit the number of
       resource records contained in the answer section of a UDP-based DNS
-      response. This parameter applies only to UDP DNS queries that are less than 512 bytes. This setting is deprecated 
+      response. This parameter applies only to UDP DNS queries that are less than 512 bytes. This setting is deprecated
       and replaced in Consul 1.0.7 by <a href="#a_record_limit">`a_record_limit`</a>.
 
     * <a name="a_record_limit"></a><a href="#a_record_limit">`a_record_limit`</a> - Limit the number of
@@ -942,6 +942,8 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
       to disable. **Note**: this will disable WAN federation which is not recommended. Various catalog and WAN related
       endpoints will return errors or empty results.
     * <a name="server_rpc_port"></a><a href="#server_rpc_port">`server`</a> - Server RPC address. Default 8300.
+    * <a name="proxy_min_port"></a><a href="#proxy_min_port">`proxy_min_port`</a> - Minimum port number to use for automatically assigned [managed Connect proxies](/docs/connect/proxies.html). If Connect is disabled, managed proxies are unused, or ports are always specified, then this value is unused. Defaults to 20000.
+    * <a name="proxy_max_port"></a><a href="#proxy_max_port">`proxy_max_port`</a> - Maximum port number to use for automatically assigned [managed Connect proxies](/docs/connect/proxies.html). See [`proxy_min_port`](#proxy_mi_port) for more information. Defaults to 20255.
 
 * <a name="protocol"></a><a href="#protocol">`protocol`</a> Equivalent to the
   [`-protocol` command-line flag](#_protocol).

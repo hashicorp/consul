@@ -340,6 +340,12 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	serverPort := b.portVal("ports.server", c.Ports.Server)
 	serfPortLAN := b.portVal("ports.serf_lan", c.Ports.SerfLAN)
 	serfPortWAN := b.portVal("ports.serf_wan", c.Ports.SerfWAN)
+	proxyMinPort := b.portVal("ports.proxy_min_port", c.Ports.ProxyMinPort)
+	proxyMaxPort := b.portVal("ports.proxy_max_port", c.Ports.ProxyMaxPort)
+	if proxyMaxPort < proxyMinPort {
+		return RuntimeConfig{}, fmt.Errorf(
+			"proxy_min_port must be less than proxy_max_port. To disable, set both to zero.")
+	}
 
 	// determine the default bind and advertise address
 	//
@@ -521,7 +527,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	consulRaftLeaderLeaseTimeout := b.durationVal("consul.raft.leader_lease_timeout", c.Consul.Raft.LeaderLeaseTimeout) * time.Duration(performanceRaftMultiplier)
 
 	// Connect proxy defaults.
-	proxyBindMinPort, proxyBindMaxPort := b.connectProxyPortRange(c.Connect)
 	var connectEnabled bool
 	var connectCAProvider string
 	var connectCAConfig map[string]interface{}
@@ -663,8 +668,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		ConnectEnabled:                   connectEnabled,
 		ConnectCAProvider:                connectCAProvider,
 		ConnectCAConfig:                  connectCAConfig,
-		ConnectProxyBindMinPort:          proxyBindMinPort,
-		ConnectProxyBindMaxPort:          proxyBindMaxPort,
+		ConnectProxyBindMinPort:          proxyMinPort,
+		ConnectProxyBindMaxPort:          proxyMaxPort,
 		ConnectProxyDefaultExecMode:      proxyDefaultExecMode,
 		ConnectProxyDefaultDaemonCommand: proxyDefaultDaemonCommand,
 		ConnectProxyDefaultScriptCommand: proxyDefaultScriptCommand,
@@ -1066,35 +1071,6 @@ func (b *Builder) serviceConnectVal(v *ServiceConnect) *structs.ServiceConnect {
 	return &structs.ServiceConnect{
 		Proxy: proxy,
 	}
-}
-
-func (b *Builder) connectProxyPortRange(v *Connect) (int, int) {
-	// Choose this default range just because. There are zero "safe" ranges that
-	// don't have something somewhere that uses them which is why this is
-	// configurable. We rely on the host not having any of these ports for non
-	// agent managed proxies. I went with 20k because I know of at least one
-	// super-common server memcached that defaults to the 10k range.
-	start := 20000
-	end := 20256 // 256 proxies on a host is enough for anyone ;)
-
-	if v == nil || v.ProxyDefaults == nil {
-		return start, end
-	}
-
-	min, max := v.ProxyDefaults.BindMinPort, v.ProxyDefaults.BindMaxPort
-	if min == nil && max == nil {
-		return start, end
-	}
-
-	// If either was set show a warning if the overall range was invalid
-	if min == nil || max == nil || *max < *min {
-		b.warn("Connect proxy_defaults bind_min_port and bind_max_port must both "+
-			"be set with max >= min. To disable automatic port allocation set both "+
-			"to 0. Using default range %d..%d.", start, end)
-		return start, end
-	}
-
-	return *min, *max
 }
 
 func (b *Builder) boolVal(v *bool) bool {

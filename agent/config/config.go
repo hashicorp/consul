@@ -377,11 +377,6 @@ type Connect struct {
 
 // ConnectProxyDefaults is the agent-global connect proxy configuration.
 type ConnectProxyDefaults struct {
-	// BindMinPort, BindMaxPort are the inclusive lower and upper bounds on the
-	// port range allocated to the agent to assign to connect proxies that have no
-	// bind_port specified.
-	BindMinPort *int `json:"bind_min_port,omitempty" hcl:"bind_min_port" mapstructure:"bind_min_port"`
-	BindMaxPort *int `json:"bind_max_port,omitempty" hcl:"bind_max_port" mapstructure:"bind_max_port"`
 	// ExecMode is used where a registration doesn't include an exec_mode.
 	// Defaults to daemon.
 	ExecMode *string `json:"exec_mode,omitempty" hcl:"exec_mode" mapstructure:"exec_mode"`
@@ -445,12 +440,14 @@ type Telemetry struct {
 }
 
 type Ports struct {
-	DNS     *int `json:"dns,omitempty" hcl:"dns" mapstructure:"dns"`
-	HTTP    *int `json:"http,omitempty" hcl:"http" mapstructure:"http"`
-	HTTPS   *int `json:"https,omitempty" hcl:"https" mapstructure:"https"`
-	SerfLAN *int `json:"serf_lan,omitempty" hcl:"serf_lan" mapstructure:"serf_lan"`
-	SerfWAN *int `json:"serf_wan,omitempty" hcl:"serf_wan" mapstructure:"serf_wan"`
-	Server  *int `json:"server,omitempty" hcl:"server" mapstructure:"server"`
+	DNS          *int `json:"dns,omitempty" hcl:"dns" mapstructure:"dns"`
+	HTTP         *int `json:"http,omitempty" hcl:"http" mapstructure:"http"`
+	HTTPS        *int `json:"https,omitempty" hcl:"https" mapstructure:"https"`
+	SerfLAN      *int `json:"serf_lan,omitempty" hcl:"serf_lan" mapstructure:"serf_lan"`
+	SerfWAN      *int `json:"serf_wan,omitempty" hcl:"serf_wan" mapstructure:"serf_wan"`
+	Server       *int `json:"server,omitempty" hcl:"server" mapstructure:"server"`
+	ProxyMinPort *int `json:"proxy_min_port,omitempty" hcl:"proxy_min_port" mapstructure:"proxy_min_port"`
+	ProxyMaxPort *int `json:"proxy_max_port,omitempty" hcl:"proxy_max_port" mapstructure:"proxy_max_port"`
 }
 
 type UnixSocket struct {

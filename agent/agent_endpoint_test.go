@@ -3188,10 +3188,10 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 			bind_addr = "0.0.0.0"
 			connect {
 				enabled = true
-				proxy_defaults = {
-					bind_min_port = 10000
-					bind_max_port = 10000
-				}
+			}
+			ports {
+				proxy_min_port = 10000
+				proxy_max_port = 10000
 			}
 			`,
 			proxy:       structs.ServiceDefinitionConnectProxy{},
@@ -3210,11 +3210,13 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 			connect {
 				enabled = true
 				proxy_defaults = {
-					bind_min_port = 10000
-					bind_max_port = 10000
 					exec_mode = "script"
 					script_command = ["script.sh"]
 				}
+			}
+			ports {
+				proxy_min_port = 10000
+				proxy_max_port = 10000
 			}
 			`,
 			proxy:       structs.ServiceDefinitionConnectProxy{},
@@ -3233,11 +3235,13 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 			connect {
 				enabled = true
 				proxy_defaults = {
-					bind_min_port = 10000
-					bind_max_port = 10000
 					exec_mode = "daemon"
 					daemon_command = ["daemon.sh"]
 				}
+			}
+			ports {
+				proxy_min_port = 10000
+				proxy_max_port = 10000
 			}
 			`,
 			proxy:       structs.ServiceDefinitionConnectProxy{},
@@ -3256,12 +3260,14 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 			connect {
 				enabled = true
 				proxy_defaults = {
-					bind_min_port = 10000
-					bind_max_port = 10000
 					config = {
 						connect_timeout_ms = 1000
 					}
 				}
+			}
+			ports {
+				proxy_min_port = 10000
+				proxy_max_port = 10000
 			}
 			`,
 			proxy: structs.ServiceDefinitionConnectProxy{
@@ -3286,8 +3292,6 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 			connect {
 				enabled = true
 				proxy_defaults = {
-					bind_min_port = 10000
-					bind_max_port = 10000
 					exec_mode = "daemon"
 					daemon_command = ["daemon.sh"]
 					script_command = ["script.sh"]
@@ -3295,6 +3299,10 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 						connect_timeout_ms = 1000
 					}
 				}
+			}
+			ports {
+				proxy_min_port = 10000
+				proxy_max_port = 10000
 			}
 			`,
 			proxy: structs.ServiceDefinitionConnectProxy{

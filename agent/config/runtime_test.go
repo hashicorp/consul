@@ -2455,8 +2455,6 @@ func TestFullConfig(t *testing.T) {
 				},
 				"enabled": true,
 				"proxy_defaults": {
-					"bind_min_port": 2000,
-					"bind_max_port": 3000,
 					"exec_mode": "script",
 					"daemon_command": ["consul", "connect", "proxy"],
 					"script_command": ["proxyctl.sh"],
@@ -2531,7 +2529,9 @@ func TestFullConfig(t *testing.T) {
 				"dns": 7001,
 				"http": 7999,
 				"https": 15127,
-				"server": 3757
+				"server": 3757,
+				"proxy_min_port": 2000,
+				"proxy_max_port": 3000
 			},
 			"protocol": 30793,
 			"raft_protocol": 19016,
@@ -2917,8 +2917,6 @@ func TestFullConfig(t *testing.T) {
 				}
 				enabled = true
 				proxy_defaults {
-					bind_min_port = 2000
-					bind_max_port = 3000
 					exec_mode = "script"
 					daemon_command = ["consul", "connect", "proxy"]
 					script_command = ["proxyctl.sh"]
@@ -2996,6 +2994,8 @@ func TestFullConfig(t *testing.T) {
 				http = 7999,
 				https = 15127
 				server = 3757
+				proxy_min_port = 2000
+				proxy_max_port = 3000
 			}
 			protocol = 30793
 			raft_protocol = 19016
