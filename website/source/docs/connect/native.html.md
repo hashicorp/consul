@@ -19,13 +19,19 @@ can easily integrate with Connect. There is no custom protocol in use;
 any language that supports TLS can accept and establish Connect-based
 connections.
 
+We currently provide an easy-to-use [Go integration](/docs/connect/native/go.html)
+to assist with the getting the proper certificates, verifying connections,
+etc. We plan to add helper libraries for other languages in the future.
+However, without library support, it is still possible for any major language
+to integrate with Connect.
+
 ## Overview
 
 The primary work involved in natively integrating with Connect is
 [acquiring the proper TLS certificate](/api/agent/connect.html#service-leaf-certificate),
 [verifying TLS certificates](/api/agent/connect.html#certificate-authority-ca-roots),
 and [authorizing inbound connections](/api/agent/connect.html#authorize).
-All of this is done using Consul's HTTP API using the previously-linked APIs.
+All of this is done using the Consul HTTP APIs linked above.
 
 An overview of the sequence is shown below. The diagram and the following
 details may seem complex, but this is a _regular mutual TLS connection_ with

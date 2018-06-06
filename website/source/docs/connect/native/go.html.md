@@ -66,7 +66,8 @@ func main() {
 
 The first step is to create a Consul API client. This is almost always the
 default configuration with an ACL token set, since you want to communicate
-to the local agent. The Go library will use this client to request certificates,
+to the local agent. The default configuration will also read the ACL token
+from environment variables if set. The Go library will use this client to request certificates,
 authorize connections, and more.
 
 Next, `connect.NewService` is called to create a service structure representing
@@ -77,8 +78,8 @@ create one service and reuse that one service for all servers and clients.
 Finally, a standard `*http.Server` is created. The magic line is the `TLSConfig`
 value. This is set to a TLS configuration returned by the service structure.
 This TLS configuration is configured to automatically load certificates
-in the background, cache them, and authorize inbound connections. This
-also automatically handles maintaining blocking queries to update certificates
+in the background, cache them, and authorize inbound connections. The service
+structure automatically handles maintaining blocking queries to update certificates
 in the background if they change.
 
 Since the service returns a standard `*tls.Config`, _any_ server that supports
@@ -151,7 +152,7 @@ Next, we call `svc.HTTPClient()` to return a specially configured
 `*http.Client`. This client will automatically established Connect-based
 connections using Consul service discovery.
 
-Finally, we perform an HTTP `GET` request to a hypothetical user service.
+Finally, we perform an HTTP `GET` request to a hypothetical userinfo service.
 The HTTP client configuration automatically sends the correct client
 certificate, verifies the server certificate, and manages background
 goroutines for updating our certificates as necessary.
@@ -192,7 +193,7 @@ func main() {
   // Connect to the "userinfo" Consul service.
   conn, _ := svc.Dial(context.Background(), &connect.ConsulResolver{
     Client: client,
-	Name:   "userinfo",
+    Name:   "userinfo",
   })
 }
 ```
