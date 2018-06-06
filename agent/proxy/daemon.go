@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"strconv"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/hashicorp/consul/lib/file"
@@ -108,7 +109,11 @@ func (p *Daemon) keepAlive(stopCh <-chan struct{}, exitedCh chan<- struct{}) {
 	// attempts keeps track of the number of restart attempts we've had and
 	// is used to calculate the wait time using an exponential backoff.
 	var attemptsDeadline time.Time
-	var attempts uint
+	var attempts uint32
+
+	// Assume the process is adopted, we reset this when we start a new process
+	// ourselves below and use it to decide on a strategy for waiting.
+	adopted := true
 
 	for {
 		if process == nil {
@@ -121,7 +126,11 @@ func (p *Daemon) keepAlive(stopCh <-chan struct{}, exitedCh chan<- struct{}) {
 
 			// Calculate the exponential backoff and wait if we have to
 			if attempts > DaemonRestartBackoffMin {
-				waitTime := (1 << (attempts - DaemonRestartBackoffMin)) * time.Second
+				exponent := (attempts - DaemonRestartBackoffMin)
+				if exponent > 31 {
+					exponent = 31
+				}
+				waitTime := (1 << exponent) * time.Second
 				if waitTime > DaemonRestartMaxWait {
 					waitTime = DaemonRestartMaxWait
 				}
@@ -159,6 +168,7 @@ func (p *Daemon) keepAlive(stopCh <-chan struct{}, exitedCh chan<- struct{}) {
 			process, err = p.start()
 			if err == nil {
 				p.process = process
+				adopted = false
 			}
 			p.lock.Unlock()
 
@@ -169,25 +179,34 @@ func (p *Daemon) keepAlive(stopCh <-chan struct{}, exitedCh chan<- struct{}) {
 
 		}
 
-		// Wait for the process to exit. Note that if we restored this proxy
-		// then Wait will always fail because we likely aren't the parent
-		// process. Therefore, we do an extra sanity check after to use other
-		// syscalls to verify the process is truly dead.
-		ps, err := process.Wait()
-		if _, err := findProcess(process.Pid); err == nil {
-			select {
-			case <-time.After(1 * time.Second):
-				// We want a busy loop, but not too busy. 1 second between
-				// detecting a process death seems reasonable.
+		var ps *os.ProcessState
+		var err error
 
-			case <-stopCh:
-				// If we receive a stop request we want to exit immediately.
-				return
+		if adopted {
+			// assign to err outside scope
+			_, err = findProcess(process.Pid)
+			if err == nil {
+				// Process appears to be running still, wait a bit before we poll again.
+				// We want a busy loop, but not too busy. 1 second between detecting a
+				// process death seems reasonable.
+				//
+				// SUBTELTY: we must NOT select on stopCh here since the Stop function
+				// assumes that as soon as this method returns and closes exitedCh, that
+				// the process is no longer running. If we are polling then we don't
+				// know that is true until we've polled again so we have to keep polling
+				// until the process goes away even if we know the Daemon is stopping.
+				time.Sleep(1 * time.Second)
+
+				// Restart the loop, process is still set so we effectively jump back to
+				// the findProcess call above.
+				continue
 			}
-
-			continue
+		} else {
+			// Wait for child to exit
+			ps, err = process.Wait()
 		}
 
+		// Process exited somehow.
 		process = nil
 		if err != nil {
 			p.Logger.Printf("[INFO] agent/proxy: daemon exited with error: %s", err)
@@ -218,6 +237,10 @@ func (p *Daemon) start() (*os.Process, error) {
 	if len(cmd.Args) == 0 {
 		cmd.Args = []string{cmd.Path}
 	}
+
+	// Start it in a new sessions (and hence process group) so that killing agent
+	// (even with Ctrl-C) won't kill proxy.
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
 
 	// Start it
 	p.Logger.Printf("[DEBUG] agent/proxy: starting proxy: %q %#v", cmd.Path, cmd.Args[1:])

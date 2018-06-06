@@ -7,6 +7,8 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"strconv"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -74,7 +76,7 @@ func TestHelperProcess(t *testing.T) {
 	// and deletes it only when it is stopped.
 	case "start-stop":
 		ch := make(chan os.Signal, 1)
-		signal.Notify(ch, os.Interrupt)
+		signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
 		defer signal.Stop(ch)
 
 		path := args[0]
@@ -154,6 +156,64 @@ func TestHelperProcess(t *testing.T) {
 		}
 
 		<-make(chan struct{})
+
+	// Parent runs the given process in a Daemon and then sleeps until the test
+	// code kills it. It exists to test that the Daemon-managed child process
+	// survives it's parent exiting which we can't test directly without exiting
+	// the test process so we need an extra level of indirection. The test code
+	// using this must pass a file path as the first argument for the child
+	// processes PID to be written and then must take care to clean up that PID
+	// later or the child will be left running forever.
+	//
+	// If the PID file already exists, it will "adopt" the child rather than
+	// launch a new one.
+	case "parent":
+		// We will write the PID for the child to the file in the first argument
+		// then pass rest of args through to command.
+		pidFile := args[0]
+
+		d := &Daemon{
+			Command: helperProcess(args[1:]...),
+			Logger:  testLogger,
+			PidPath: pidFile,
+		}
+
+		_, err := os.Stat(pidFile)
+		if err == nil {
+			// pidFile exists, read it and "adopt" the process
+			bs, err := ioutil.ReadFile(pidFile)
+			if err != nil {
+				log.Printf("Error: %s", err)
+				os.Exit(1)
+			}
+			pid, err := strconv.Atoi(string(bs))
+			if err != nil {
+				log.Printf("Error: %s", err)
+				os.Exit(1)
+			}
+			// Make a fake snapshot to load
+			snapshot := map[string]interface{}{
+				"Pid":         pid,
+				"CommandPath": d.Command.Path,
+				"CommandArgs": d.Command.Args,
+				"CommandDir":  d.Command.Dir,
+				"CommandEnv":  d.Command.Env,
+				"ProxyToken":  "",
+			}
+			d.UnmarshalSnapshot(snapshot)
+		}
+
+		if err := d.Start(); err != nil {
+			log.Printf("Error: %s", err)
+			os.Exit(1)
+		}
+		log.Println("Started child")
+
+		// Wait "forever" (calling test chooses when we exit with signal/Wait to
+		// minimise coordination).
+		for {
+			time.Sleep(time.Hour)
+		}
 
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %q\n", cmd)
