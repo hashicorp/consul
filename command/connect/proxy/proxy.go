@@ -125,7 +125,7 @@ func (c *cmd) Run(args []string) int {
 
 	// Load the proxy ID and token from env vars if they're set
 	if c.proxyID == "" {
-		c.proxyID = os.Getenv(proxyAgent.EnvProxyId)
+		c.proxyID = os.Getenv(proxyAgent.EnvProxyID)
 	}
 	if c.http.Token() == "" {
 		c.http.SetToken(os.Getenv(proxyAgent.EnvProxyToken))

@@ -32,7 +32,7 @@ func TestDaemonStartStop(t *testing.T) {
 
 	d := &Daemon{
 		Command:    helperProcess("start-stop", path),
-		ProxyId:    "tubes",
+		ProxyID:    "tubes",
 		ProxyToken: uuid,
 		Logger:     testLogger,
 	}
@@ -496,6 +496,19 @@ func TestDaemonEqual(t *testing.T) {
 		},
 
 		{
+			"Different proxy ID",
+			&Daemon{
+				Command: &exec.Cmd{Path: "/foo"},
+				ProxyID: "web",
+			},
+			&Daemon{
+				Command: &exec.Cmd{Path: "/foo"},
+				ProxyID: "db",
+			},
+			false,
+		},
+
+		{
 			"Different path",
 			&Daemon{
 				Command: &exec.Cmd{Path: "/foo"},
@@ -568,6 +581,7 @@ func TestDaemonMarshalSnapshot(t *testing.T) {
 			"basic",
 			&Daemon{
 				Command: &exec.Cmd{Path: "/foo"},
+				ProxyID: "web",
 				process: &os.Process{Pid: 42},
 			},
 			map[string]interface{}{
@@ -577,6 +591,7 @@ func TestDaemonMarshalSnapshot(t *testing.T) {
 				"CommandDir":  "",
 				"CommandEnv":  []string(nil),
 				"ProxyToken":  "",
+				"ProxyID":     "web",
 			},
 		},
 	}

@@ -12,10 +12,10 @@ import (
 )
 
 const (
-	// EnvProxyId is the name of the environment variable that is set for
+	// EnvProxyID is the name of the environment variable that is set for
 	// managed proxies containing the proxy service ID. This is required along
 	// with the token to make API requests related to the proxy.
-	EnvProxyId = "CONNECT_PROXY_ID"
+	EnvProxyID = "CONNECT_PROXY_ID"
 
 	// EnvProxyToken is the name of the environment variable that is passed
 	// to managed proxies containing the proxy token.

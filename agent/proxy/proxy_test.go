@@ -81,7 +81,7 @@ func TestHelperProcess(t *testing.T) {
 
 		path := args[0]
 		var data []byte
-		data = append(data, []byte(os.Getenv(EnvProxyId))...)
+		data = append(data, []byte(os.Getenv(EnvProxyID))...)
 		data = append(data, ':')
 		data = append(data, []byte(os.Getenv(EnvProxyToken))...)
 

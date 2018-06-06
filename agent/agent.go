@@ -1104,7 +1104,7 @@ func (a *Agent) setupNodeID(config *config.RuntimeConfig) error {
 	}
 
 	// For dev mode we have no filesystem access so just make one.
-	if a.config.DevMode {
+	if a.config.DataDir == "" {
 		id, err := a.makeNodeID()
 		if err != nil {
 			return err
@@ -1320,8 +1320,17 @@ func (a *Agent) ShutdownAgent() error {
 
 	// Stop the proxy manager
 	if a.proxyManager != nil {
-		if err := a.proxyManager.Close(); err != nil {
-			a.logger.Printf("[WARN] agent: error shutting down proxy manager: %s", err)
+		// If persistence is disabled (implies DevMode but a subset of DevMode) then
+		// don't leave the proxies running since the agent will not be able to
+		// recover them later.
+		if a.config.DataDir == "" {
+			if err := a.proxyManager.Kill(); err != nil {
+				a.logger.Printf("[WARN] agent: error shutting down proxy manager: %s", err)
+			}
+		} else {
+			if err := a.proxyManager.Close(); err != nil {
+				a.logger.Printf("[WARN] agent: error shutting down proxy manager: %s", err)
+			}
 		}
 	}
 
@@ -1720,7 +1729,7 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 	a.State.AddService(service, token)
 
 	// Persist the service to a file
-	if persist && !a.config.DevMode {
+	if persist && a.config.DataDir != "" {
 		if err := a.persistService(service); err != nil {
 			return err
 		}
@@ -2019,7 +2028,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 	}
 
 	// Persist the check
-	if persist && !a.config.DevMode {
+	if persist && a.config.DataDir != "" {
 		return a.persistCheck(check, chkType)
 	}
 
@@ -2118,7 +2127,7 @@ func (a *Agent) AddProxy(proxy *structs.ConnectManagedProxy, persist bool,
 	}
 
 	// Persist the proxy
-	if persist && !a.config.DevMode {
+	if persist && a.config.DataDir != "" {
 		return a.persistProxy(proxyState)
 	}
 	return nil
@@ -2177,7 +2186,7 @@ func (a *Agent) RemoveProxy(proxyID string, persist bool) error {
 		return err
 	}
 
-	if persist && !a.config.DevMode {
+	if persist && a.config.DataDir != "" {
 		return a.purgeProxy(proxyID)
 	}
 
@@ -2298,7 +2307,7 @@ func (a *Agent) updateTTLCheck(checkID types.CheckID, status, output string) err
 	check.SetStatus(status, output)
 
 	// We don't write any files in dev mode so bail here.
-	if a.config.DevMode {
+	if a.config.DataDir == "" {
 		return nil
 	}
 

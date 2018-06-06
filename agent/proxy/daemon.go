@@ -34,9 +34,9 @@ type Daemon struct {
 	// be a Cmd that isn't yet started.
 	Command *exec.Cmd
 
-	// ProxyId is the ID of the proxy service. This is required for API
+	// ProxyID is the ID of the proxy service. This is required for API
 	// requests (along with the token) and is passed via env var.
-	ProxyId string
+	ProxyID string
 
 	// ProxyToken is the special local-only ACL token that allows a proxy
 	// to communicate to the Connect-specific endpoints.
@@ -121,6 +121,11 @@ func (p *Daemon) keepAlive(stopCh <-chan struct{}, exitedCh chan<- struct{}) {
 			if !attemptsDeadline.IsZero() && time.Now().After(attemptsDeadline) {
 				attempts = 0
 			}
+			// Set ourselves a deadline - we have to make it at least this long before
+			// we come around the loop to consider it to have been a "successful"
+			// daemon startup and rest the counter above. Note that if the daemon
+			// fails before this, we reset the deadline to zero below so that backoff
+			// sleeps in the loop don't count as "success" time.
 			attemptsDeadline = time.Now().Add(DaemonRestartHealthy)
 			attempts++
 
@@ -136,6 +141,10 @@ func (p *Daemon) keepAlive(stopCh <-chan struct{}, exitedCh chan<- struct{}) {
 				}
 
 				if waitTime > 0 {
+					// If we are waiting, reset the success deadline so we don't
+					// accidentally interpret backoff sleep as successful runtime.
+					attemptsDeadline = time.Time{}
+
 					p.Logger.Printf(
 						"[WARN] agent/proxy: waiting %s before restarting daemon",
 						waitTime)
@@ -224,14 +233,20 @@ func (p *Daemon) keepAlive(stopCh <-chan struct{}, exitedCh chan<- struct{}) {
 func (p *Daemon) start() (*os.Process, error) {
 	cmd := *p.Command
 
-	// Add the proxy token to the environment. We first copy the env because
-	// it is a slice and therefore the "copy" above will only copy the slice
-	// reference. We allocate an exactly sized slice.
-	cmd.Env = make([]string, len(p.Command.Env), len(p.Command.Env)+1)
+	// Add the proxy token to the environment. We first copy the env because it is
+	// a slice and therefore the "copy" above will only copy the slice reference.
+	// We allocate an exactly sized slice.
+	//
+	// Note that anything we add to the Env here is NOT persisted in the snapshot
+	// which only looks at p.Command.Env so it needs to be reconstructible exactly
+	// from data in the snapshot otherwise.
+	cmd.Env = make([]string, len(p.Command.Env), len(p.Command.Env)+2)
 	copy(cmd.Env, p.Command.Env)
 	cmd.Env = append(cmd.Env,
-		fmt.Sprintf("%s=%s", EnvProxyId, p.ProxyId),
+		fmt.Sprintf("%s=%s", EnvProxyID, p.ProxyID),
 		fmt.Sprintf("%s=%s", EnvProxyToken, p.ProxyToken))
+
+	// Update the Daemon env
 
 	// Args must always contain a 0 entry which is usually the executed binary.
 	// To be safe and a bit more robust we default this, but only to prevent
@@ -366,6 +381,7 @@ func (p *Daemon) Equal(raw Proxy) bool {
 
 	// We compare equality on a subset of the command configuration
 	return p.ProxyToken == p2.ProxyToken &&
+		p.ProxyID == p2.ProxyID &&
 		p.Command.Path == p2.Command.Path &&
 		p.Command.Dir == p2.Command.Dir &&
 		reflect.DeepEqual(p.Command.Args, p2.Command.Args) &&
@@ -389,6 +405,7 @@ func (p *Daemon) MarshalSnapshot() map[string]interface{} {
 		"CommandDir":  p.Command.Dir,
 		"CommandEnv":  p.Command.Env,
 		"ProxyToken":  p.ProxyToken,
+		"ProxyID":     p.ProxyID,
 	}
 }
 
@@ -404,6 +421,7 @@ func (p *Daemon) UnmarshalSnapshot(m map[string]interface{}) error {
 
 	// Set the basic fields
 	p.ProxyToken = s.ProxyToken
+	p.ProxyID = s.ProxyID
 	p.Command = &exec.Cmd{
 		Path: s.CommandPath,
 		Args: s.CommandArgs,
@@ -435,7 +453,7 @@ func (p *Daemon) UnmarshalSnapshot(m map[string]interface{}) error {
 // within the manager snapshot and is restored automatically.
 type daemonSnapshot struct {
 	// Pid of the process. This is the only value actually required to
-	// regain mangement control. The remainder values are for Equal.
+	// regain management control. The remainder values are for Equal.
 	Pid int
 
 	// Command information
@@ -448,4 +466,6 @@ type daemonSnapshot struct {
 	// store the hash of the token but for now we need the full token in
 	// case the process dies and has to be restarted.
 	ProxyToken string
+
+	ProxyID string
 }
