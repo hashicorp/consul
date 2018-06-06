@@ -66,12 +66,10 @@ func (c *cmd) Run(args []string) int {
 	if allowed {
 		c.UI.Output("Allowed")
 		return 0
-	} else {
-		c.UI.Output("Denied")
-		return 1
 	}
 
-	return 0
+	c.UI.Output("Denied")
+	return 1
 }
 
 func (c *cmd) Synopsis() string {
