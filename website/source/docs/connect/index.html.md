@@ -64,3 +64,54 @@ APIs are all made to the local Consul agent over a loopback interface, and all
 local caching, background updating, and support blocking queries. As a result,
 most API calls operate on purely local in-memory data and can respond
 in microseconds.
+
+## Agent Caching and Performance
+
+To enable microsecond-speed responses on
+[agent Connect API endpoints](/api/agent/connect.html), the Consul agent
+locally caches most Connect-related data and sets up background
+[blocking queries](/api/index.html#blocking-queries) against the server
+to update the cache in the background. This allows most API calls such
+as retrieving certificates or authorizing connections to use in-memory
+data and respond very quickly.
+
+All data cached locally by the agent is populated on demand. Therefore,
+if Connect is not used at all, the cache does not store any data. On first
+request, the data is loaded from the server and cached. The set of data cached
+is: public CA root certificates, leaf certificates, and intentions. For
+leaf certificates and intentions, only data related to the service requested
+is cached, not the full set of data.
+
+Further, the cache is partitioned by ACL token and datacenters. This is done
+to minimize the complexity of the cache and prevent bugs where an ACL token
+may see data it shouldn't from the cache. This results in higher memory usage
+for cached data since it is duplicated per ACL token, but with the benefit
+of simplicity and security.
+
+With Connect enabled, you'll likely see increased memory usage by the
+local Consul agent. The total memory is dependent on the number of intentions
+related to the services registered with the agent accepting Connect-based
+connections. The other data (leaf certificates and public CA certificates)
+is a relatively fixed size per service. In most cases, the overhead per
+service should be relatively small: single digit kilobytes at most.
+
+The cache does not evict entries due to memory pressure. If memory capacity
+is reached, the process will attempt to swap. If swap is disabled, the Consul
+agent may begin failing and eventually crash. Cache entries do have TTLs
+associated with them and will evict their entries if they're not used. Given
+a long period of inactivity (3 days by default), the cache will empty itself.
+
+## Multi-Datacenter
+
+Connect currently only works for service-to-service connections wtihin a
+single Consul datacenter. Connect may be enabled on multiple Consul datacenters,
+but only services within the same datacenters can establish Connect-based
+connections.
+CA configurations and intentions are both local to their respective datacenters;
+they are not replicated across datacenters.
+
+Multi-datacenter support for Connect is under development and will be
+released as a feature of Consul Enterprise in late 2018. This feature will
+facilitate intention replication, datacenter constraints on intentions,
+CA state replication, multi-datacenter certificate rotations, and more.
+

@@ -133,6 +133,12 @@ service.
 }
 ```
 
+-> **Note:** Connect does not currently support cross-datacenter
+service communication. Therefore, prepared queries with Connect should
+only be used to discover services within a single datacenter. See
+[Multi-Datacenter Connect](/docs/connect/index.html#multi-datacenter) for
+more information.
+
 ### Dynamic Upstreams
 
 If an application requires dynamic dependencies that are only available
