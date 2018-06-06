@@ -534,6 +534,13 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		connectEnabled = b.boolVal(c.Connect.Enabled)
 		connectCAProvider = b.stringVal(c.Connect.CAProvider)
 		connectCAConfig = c.Connect.CAConfig
+		if c.Connect.CAConfig != nil {
+			TranslateKeys(connectCAConfig, map[string]string{
+				"private_key":     "PrivateKey",
+				"root_cert":       "RootCert",
+				"rotation_period": "RotationPeriod",
+			})
+		}
 	}
 
 	proxyDefaultExecMode := ""
