@@ -3,7 +3,7 @@ layout: "docs"
 page_title: "Connect - Native Application Integration"
 sidebar_current: "docs-connect-native"
 description: |-
-  TODO
+  Applications can natively integrate with the Connect API to support accepting and establishing connections to other Connect services without the overhead of a proxy sidecar.
 ---
 
 # Connect-Native App Integration
