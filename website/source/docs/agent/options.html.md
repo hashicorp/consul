@@ -943,7 +943,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
       endpoints will return errors or empty results.
     * <a name="server_rpc_port"></a><a href="#server_rpc_port">`server`</a> - Server RPC address. Default 8300.
     * <a name="proxy_min_port"></a><a href="#proxy_min_port">`proxy_min_port`</a> - Minimum port number to use for automatically assigned [managed Connect proxies](/docs/connect/proxies.html). If Connect is disabled, managed proxies are unused, or ports are always specified, then this value is unused. Defaults to 20000.
-    * <a name="proxy_max_port"></a><a href="#proxy_max_port">`proxy_max_port`</a> - Maximum port number to use for automatically assigned [managed Connect proxies](/docs/connect/proxies.html). See [`proxy_min_port`](#proxy_mi_port) for more information. Defaults to 20255.
+    * <a name="proxy_max_port"></a><a href="#proxy_max_port">`proxy_max_port`</a> - Maximum port number to use for automatically assigned [managed Connect proxies](/docs/connect/proxies.html). See [`proxy_min_port`](#proxy_min_port) for more information. Defaults to 20255.
 
 * <a name="protocol"></a><a href="#protocol">`protocol`</a> Equivalent to the
   [`-protocol` command-line flag](#_protocol).
