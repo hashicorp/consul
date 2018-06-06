@@ -144,7 +144,7 @@ func (cr *ConsulResolver) resolveService(ctx context.Context) (string, connect.C
 }
 
 func (cr *ConsulResolver) resolveQuery(ctx context.Context) (string, connect.CertURI, error) {
-	resp, _, err := cr.Client.PreparedQuery().ExecuteConnect(cr.Name, cr.queryOptions(ctx))
+	resp, _, err := cr.Client.PreparedQuery().Execute(cr.Name, cr.queryOptions(ctx))
 	if err != nil {
 		return "", nil, err
 	}
@@ -193,6 +193,9 @@ func (cr *ConsulResolver) queryOptions(ctx context.Context) *api.QueryOptions {
 		// caching which is even more stale so...
 		AllowStale: true,
 		Datacenter: cr.Datacenter,
+
+		// For prepared queries
+		Connect: true,
 	}
 	return q.WithContext(ctx)
 }

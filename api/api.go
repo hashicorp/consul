@@ -112,6 +112,10 @@ type QueryOptions struct {
 	// a value from 0 to 5 (inclusive).
 	RelayFactor uint8
 
+	// Connect filters prepared query execution to only include Connect-capable
+	// services. This currently affects prepared query execution.
+	Connect bool
+
 	// ctx is an optional context pass through to the underlying HTTP
 	// request layer. Use Context() and WithContext() to manage this.
 	ctx context.Context
@@ -560,6 +564,9 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 	}
 	if q.RelayFactor != 0 {
 		r.params.Set("relay-factor", strconv.Itoa(int(q.RelayFactor)))
+	}
+	if q.Connect {
+		r.params.Set("connect", "true")
 	}
 	r.ctx = q.ctx
 }

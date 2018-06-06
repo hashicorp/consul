@@ -210,26 +210,3 @@ func (c *PreparedQuery) Execute(queryIDOrName string, q *QueryOptions) (*Prepare
 	}
 	return out, qm, nil
 }
-
-// ExecuteConnect is used to execute a specific prepared query and return
-// only Connect-capable nodes.
-func (c *PreparedQuery) ExecuteConnect(queryIDOrName string, q *QueryOptions) (*PreparedQueryExecuteResponse, *QueryMeta, error) {
-	r := c.c.newRequest("GET", "/v1/query/"+queryIDOrName+"/execute")
-	r.setQueryOptions(q)
-	r.params.Set("connect", "true")
-	rtt, resp, err := requireOK(c.c.doRequest(r))
-	if err != nil {
-		return nil, nil, err
-	}
-	defer resp.Body.Close()
-
-	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
-	qm.RequestTime = rtt
-	var out PreparedQueryExecuteResponse
-	if err := decodeBody(resp, &out); err != nil {
-		return nil, nil, err
-	}
-
-	return &out, qm, nil
-}
