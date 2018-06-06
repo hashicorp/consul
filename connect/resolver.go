@@ -95,10 +95,6 @@ func (cr *ConsulResolver) Resolve(ctx context.Context) (string, connect.CertURI,
 		return cr.resolveService(ctx)
 	case ConsulResolverTypePreparedQuery:
 		return cr.resolveQuery(ctx)
-		// TODO(banks): we need to figure out what API changes are needed for
-		// prepared queries to become connect-aware. How do we signal that we want
-		// connect-enabled endpoints vs the direct ones for the responses?
-		return "", nil, fmt.Errorf("not implemented")
 	default:
 		return "", nil, fmt.Errorf("unknown resolver type")
 	}
