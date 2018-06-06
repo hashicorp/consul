@@ -210,6 +210,8 @@ func (p *Daemon) keepAlive(stopCh <-chan struct{}, exitedCh chan<- struct{}) {
 		process = nil
 		if err != nil {
 			p.Logger.Printf("[INFO] agent/proxy: daemon exited with error: %s", err)
+		} else if ps != nil && !ps.Exited() {
+			p.Logger.Printf("[INFO] agent/proxy: daemon left running")
 		} else if status, ok := exitStatus(ps); ok {
 			p.Logger.Printf("[INFO] agent/proxy: daemon exited with exit code: %d", status)
 		}

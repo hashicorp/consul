@@ -148,7 +148,35 @@ func (m *Manager) Close() error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
+	return m.stop(func(p Proxy) error {
+		return p.Close()
+	})
+}
+
+// Kill will Close the manager and Kill all proxies that were being managed.
+// Only ONE of Kill or Close must be called. If Close has been called already
+// then this will have no effect.
+func (m *Manager) Kill() error {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	return m.stop(func(p Proxy) error {
+		return p.Stop()
+	})
+}
+
+// stop stops the run loop and cleans up all the proxies by calling
+// the given cleaner. If the cleaner returns an error the proxy won't be
+// removed from the map.
+//
+// The lock must be held while this is called.
+func (m *Manager) stop(cleaner func(Proxy) error) error {
 	for {
+		// Special case state that exits the for loop
+		if m.runState == managerStateStopped {
+			break
+		}
+
 		switch m.runState {
 		case managerStateIdle:
 			// Idle so just set it to stopped and return. We notify
@@ -167,29 +195,13 @@ func (m *Manager) Close() error {
 		case managerStateStopping:
 			// Still stopping, wait...
 			m.cond.Wait()
-
-		case managerStateStopped:
-			// Stopped, target state reached
-			return nil
 		}
 	}
-}
 
-// Kill will Close the manager and Kill all proxies that were being managed.
-//
-// This is safe to call with Close already called since Close is idempotent.
-func (m *Manager) Kill() error {
-	// Close first so that we aren't getting changes in proxies
-	if err := m.Close(); err != nil {
-		return err
-	}
-
-	m.lock.Lock()
-	defer m.lock.Unlock()
-
+	// Clean up all the proxies
 	var err error
 	for id, proxy := range m.proxies {
-		if err := proxy.Stop(); err != nil {
+		if err := cleaner(proxy); err != nil {
 			err = multierror.Append(
 				err, fmt.Errorf("failed to stop proxy %q: %s", id, err))
 			continue
