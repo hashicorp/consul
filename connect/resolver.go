@@ -94,6 +94,7 @@ func (cr *ConsulResolver) Resolve(ctx context.Context) (string, connect.CertURI,
 	case ConsulResolverTypeService:
 		return cr.resolveService(ctx)
 	case ConsulResolverTypePreparedQuery:
+		return cr.resolveQuery(ctx)
 		// TODO(banks): we need to figure out what API changes are needed for
 		// prepared queries to become connect-aware. How do we signal that we want
 		// connect-enabled endpoints vs the direct ones for the responses?
@@ -142,26 +143,52 @@ func (cr *ConsulResolver) resolveService(ctx context.Context) (string, connect.C
 		idx = rand.Intn(len(svcs))
 	}
 
-	addr := svcs[idx].Service.Address
-	if addr == "" {
-		addr = svcs[idx].Node.Address
-	}
-	port := svcs[idx].Service.Port
+	addr, certURI := cr.resolveServiceEntry(svcs[idx])
+	return addr, certURI, nil
+}
 
-	service := svcs[idx].Service.Service
-	if !svcs[idx].Service.Connect.Native {
-		service = svcs[idx].Service.ProxyDestination
+func (cr *ConsulResolver) resolveQuery(ctx context.Context) (string, connect.CertURI, error) {
+	resp, _, err := cr.Client.PreparedQuery().ExecuteConnect(cr.Name, cr.queryOptions(ctx))
+	if err != nil {
+		return "", nil, err
+	}
+
+	svcs := resp.Nodes
+	if len(svcs) < 1 {
+		return "", nil, fmt.Errorf("no healthy instances found")
+	}
+
+	// Services are not shuffled by HTTP API, pick one at (pseudo) random.
+	idx := 0
+	if len(svcs) > 1 {
+		idx = rand.Intn(len(svcs))
+	}
+
+	addr, certURI := cr.resolveServiceEntry(&svcs[idx])
+	return addr, certURI, nil
+}
+
+func (cr *ConsulResolver) resolveServiceEntry(entry *api.ServiceEntry) (string, connect.CertURI) {
+	addr := entry.Service.Address
+	if addr == "" {
+		addr = entry.Node.Address
+	}
+	port := entry.Service.Port
+
+	service := entry.Service.Service
+	if !entry.Service.Connect.Native {
+		service = entry.Service.ProxyDestination
 	}
 
 	// Generate the expected CertURI
 	certURI := &connect.SpiffeIDService{
 		Host:       cr.trustDomain,
 		Namespace:  "default",
-		Datacenter: svcs[idx].Node.Datacenter,
+		Datacenter: entry.Node.Datacenter,
 		Service:    service,
 	}
 
-	return fmt.Sprintf("%s:%d", addr, port), certURI, nil
+	return fmt.Sprintf("%s:%d", addr, port), certURI
 }
 
 func (cr *ConsulResolver) queryOptions(ctx context.Context) *api.QueryOptions {

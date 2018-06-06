@@ -85,6 +85,16 @@ func TestConsulResolver_Resolve(t *testing.T) {
 		require.NoError(t, client.Agent().ServiceRegister(regSrv))
 	}
 
+	// Add a prepared query
+	queryId, _, err := client.PreparedQuery().Create(&api.PreparedQueryDefinition{
+		Name: "test-query",
+		Service: api.ServiceQuery{
+			Service: "web",
+			Connect: true,
+		},
+	}, nil)
+	require.NoError(t, err)
+
 	proxyAddrs := []string{
 		agent.Config.AdvertiseAddrLAN.String() + ":9090",
 		agent.Config.AdvertiseAddrLAN.String() + ":9091",
@@ -153,6 +163,26 @@ func TestConsulResolver_Resolve(t *testing.T) {
 			},
 			timeout: 1 * time.Nanosecond,
 			wantErr: true,
+		},
+		{
+			name: "prepared query by id",
+			fields: fields{
+				Name: queryId,
+				Type: ConsulResolverTypePreparedQuery,
+			},
+			wantCertURI: connect.TestSpiffeIDService(t, "web"),
+			wantErr:     false,
+			addrs:       proxyAddrs,
+		},
+		{
+			name: "prepared query by name",
+			fields: fields{
+				Name: "test-query",
+				Type: ConsulResolverTypePreparedQuery,
+			},
+			wantCertURI: connect.TestSpiffeIDService(t, "web"),
+			wantErr:     false,
+			addrs:       proxyAddrs,
 		},
 	}
 	for _, tt := range tests {
