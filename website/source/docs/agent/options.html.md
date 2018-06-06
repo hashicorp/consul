@@ -669,6 +669,42 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="client_addr"></a><a href="#client_addr">`client_addr`</a> Equivalent to the
   [`-client` command-line flag](#_client).
 
+* <a name="connect"></a><a href="#connect">`connect`</a>
+    This object allows setting options for the Connect feature.
+
+    The following sub-keys are available:
+
+    * <a name="connect_enabled"></a><a href="#connect_enabled">`enabled`</a> Controls whether
+      Connect features are enabled on this agent. Should be enabled on all clients and
+      servers in the cluster in order for Connect to function properly. Defaults to false.
+
+    * <a name="connect_ca_provider"></a><a href="#connect_ca_provider">`ca_provider`</a> Controls
+      which CA provider to use for Connect's CA. Currently only `consul` is supported. This is only
+      used when initially bootstrapping the cluster. For an existing cluster, use the [Update CA
+      Configuration Endpoint](/api/connect/ca.html#update-ca-configuration).
+
+    * <a name="connect_ca_config"></a><a href="#connect_ca_config">`ca_config`</a> An object which
+      allows setting different config options based on the CA provider chosen. This is only
+      used when initially bootstrapping the cluster. For an existing cluster, use the [Update CA
+      Configuration Endpoint](/api/connect/ca.html#update-ca-configuration).
+
+        The following providers are supported:
+
+        ### Consul CA Provider
+
+        * <a name="consul_ca_private_key"></a><a href="#consul_ca_private_key">`private_key`</a> The
+        PEM contents of the private key to use for the CA.
+
+        * <a name="consul_ca_root_cert"></a><a href="#consul_ca_root_cert">`root_cert`</a> The
+        PEM contents of the root certificate to use for the CA.
+
+        * <a name="consul_ca_rotation_period"></a><a href="#consul_ca_rotation_period">`rotation_period`</a> The
+        frequency with which to re-generate and rotate the private key and root certificate, in the form of a
+        duration value such as `720h`. Only applies in the case where the private key or root certificate are
+        left blank. Defaults to `2160h` (90 days).
+
+    * <a name="connect_proxy_defaults"></a><a href="#connect_proxy_defaults">`proxy_defaults`</a> TODO
+
 * <a name="datacenter"></a><a href="#datacenter">`datacenter`</a> Equivalent to the
   [`-datacenter` command-line flag](#_datacenter).
 
