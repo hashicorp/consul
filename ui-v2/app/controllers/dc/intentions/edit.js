@@ -1,12 +1,13 @@
 import Controller from '@ember/controller';
 import { get, set } from '@ember/object';
-// import Changeset from 'ember-changeset';
-// import validations from 'consul-ui/validations/acl';
-// import lookupValidator from 'ember-changeset-validations';
+import Changeset from 'ember-changeset';
+import lookupValidator from 'ember-changeset-validations';
+
+import validations from 'consul-ui/validations/intention';
 
 export default Controller.extend({
   setProperties: function(model) {
-    this.changeset = model.item; //new Changeset(model.item, lookupValidator(validations), validations);
+    this.changeset = new Changeset(model.item, lookupValidator(validations), validations);
     this._super({
       ...model,
       ...{
@@ -18,15 +19,16 @@ export default Controller.extend({
   },
   actions: {
     change: function(e, value, _target) {
+      // normalize back to standard event
       const target = e.target || { ..._target, ...{ name: e, value: value } };
       switch (target.name) {
         case 'Action':
           set(this.changeset, target.name, target.value);
+          console.log(target.name, target.value, get(this.changeset, target.name));
           break;
         case 'SourceName':
         case 'DestinationName':
           set(this.changeset, target.name, get(target.value, 'Name'));
-          set(this.item, target.name, get(target.value, 'Name'));
           set(this, target.name, target.value);
           break;
       }
