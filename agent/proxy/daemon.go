@@ -8,7 +8,6 @@ import (
 	"reflect"
 	"strconv"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/hashicorp/consul/lib/file"
@@ -255,9 +254,9 @@ func (p *Daemon) start() (*os.Process, error) {
 		cmd.Args = []string{cmd.Path}
 	}
 
-	// Start it in a new sessions (and hence process group) so that killing agent
-	// (even with Ctrl-C) won't kill proxy.
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
+	// Perform system-specific setup. In particular, Unix-like systems
+	// shuld set sid so that killing the agent doesn't kill the daemon.
+	configureDaemon(&cmd)
 
 	// Start it
 	p.Logger.Printf("[DEBUG] agent/proxy: starting proxy: %q %#v", cmd.Path, cmd.Args[1:])

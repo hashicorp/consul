@@ -5,6 +5,7 @@ package proxy
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"syscall"
 )
 
@@ -27,4 +28,11 @@ func findProcess(pid int) (*os.Process, error) {
 	}
 
 	return nil, fmt.Errorf("process %d is dead or running as another user", pid)
+}
+
+// configureDaemon is called prior to Start to allow system-specific setup.
+func configureDaemon(cmd *exec.Cmd) {
+	// Start it in a new sessions (and hence process group) so that killing agent
+	// (even with Ctrl-C) won't kill proxy.
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
 }
