@@ -43,6 +43,11 @@ type Intention struct {
 	// opaque to Consul but is served in API responses.
 	Meta map[string]string
 
+	// Precedence is the order that the intention will be applied, with
+	// larger numbers being applied first. This is a read-only field, on
+	// any intention update it is updated.
+	Precedence int
+
 	// CreatedAt and UpdatedAt keep track of when this record was created
 	// or modified.
 	CreatedAt, UpdatedAt time.Time
