@@ -136,21 +136,15 @@ export default function(assert) {
         assert.equal(
           request.method,
           method,
-          `Expected the request method to be ${method} but was ${request.method}`
+          `Expected the request method to be ${method}, was ${request.method}`
         );
-        assert.equal(
-          request.url,
-          url,
-          `Expected the request url to be ${url} but was ${request.url}`
-        );
+        assert.equal(request.url, url, `Expected the request url to be ${url}, was ${request.url}`);
         const body = JSON.parse(request.requestBody);
         Object.keys(data).forEach(function(key, i, arr) {
           assert.equal(
             body[key],
             data[key],
-            `Expected the payload to contain ${key} to equal ${body[key]} but ${key} was ${
-              data[key]
-            }`
+            `Expected the payload to contain ${key} to equal ${body[key]}, ${key} was ${data[key]}`
           );
         });
       })
@@ -163,18 +157,14 @@ export default function(assert) {
         assert.equal(
           request.method,
           method,
-          `Expected the request method to be ${method} but was ${request.method}`
+          `Expected the request method to be ${method}, was ${request.method}`
         );
-        assert.equal(
-          request.url,
-          url,
-          `Expected the request url to be ${url} but was ${request.url}`
-        );
+        assert.equal(request.url, url, `Expected the request url to be ${url}, was ${request.url}`);
         const body = request.requestBody;
         assert.equal(
           body,
           data,
-          `Expected the request body to be ${body} but was ${request.requestBody}`
+          `Expected the request body to be ${body}, was ${request.requestBody}`
         );
       })
       .then('a $method request is made to "$url"', function(method, url) {
@@ -182,17 +172,13 @@ export default function(assert) {
         assert.equal(
           request.method,
           method,
-          `Expected the request method to be ${method} but was ${request.method}`
+          `Expected the request method to be ${method}, was ${request.method}`
         );
-        assert.equal(
-          request.url,
-          url,
-          `Expected the request url to be ${url} but was ${request.url}`
-        );
+        assert.equal(request.url, url, `Expected the request url to be ${url}, was ${request.url}`);
       })
       .then('the url should be $url', function(url) {
         const current = currentURL();
-        assert.equal(current, url, `Expected the url to be ${url} but was ${current}`);
+        assert.equal(current, url, `Expected the url to be ${url} was ${current}`);
       })
       .then(['I see $num $model', 'I see $num $model model', 'I see $num $model models'], function(
         num,
@@ -202,7 +188,7 @@ export default function(assert) {
           return item.isVisible;
         }).length;
 
-        assert.equal(len, num, `Expected ${num} ${model}s but saw ${len}`);
+        assert.equal(len, num, `Expected ${num} ${model}s, saw ${len}`);
       })
       .then(['I see $num $model model with the $property "$value"'], function(
         num,
@@ -216,7 +202,7 @@ export default function(assert) {
         assert.equal(
           len,
           num,
-          `Expected ${num} ${model}s with ${property} set to "${value}" but saw ${len}`
+          `Expected ${num} ${model}s with ${property} set to "${value}", saw ${len}`
         );
       })
       .then(['I see $property on the $component'], function(property, component) {
