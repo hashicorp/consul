@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/go-rootcerts"
@@ -68,6 +69,9 @@ type Config struct {
 	// Must be provided to serve TLS connections.
 	KeyFile string
 
+	// KeyLoader dynamically reloads TLS configuration.
+	KeyLoader *KeyLoader
+
 	// Node name is the name we use to advertise. Defaults to hostname.
 	NodeName string
 
@@ -87,6 +91,59 @@ type Config struct {
 	// PreferServerCipherSuites specifies whether to prefer the server's ciphersuite
 	// over the client ciphersuites.
 	PreferServerCipherSuites bool
+}
+
+type KeyLoader struct {
+	cacheLock   sync.Mutex
+	certificate *tls.Certificate
+}
+
+func (k *KeyLoader) LoadKeyPair(certFile, keyFile string) (*tls.Certificate, error) {
+	k.cacheLock.Lock()
+	defer k.cacheLock.Unlock()
+
+	// Allow downgrading
+	if certFile == "" && keyFile == "" {
+		k.certificate = nil
+		return nil, nil
+	}
+
+	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to load cert/key pair: %v", err)
+	}
+
+	k.certificate = &cert
+	return k.certificate, nil
+}
+
+// GetOutgoingCertificate fetches the currently-loaded certificate when
+// accepting a TLS connection. This currently does not consider information in
+// the ClientHello and only returns the certificate that was last loaded.
+func (k *KeyLoader) GetOutgoingCertificate(*tls.ClientHelloInfo) (*tls.Certificate, error) {
+	k.cacheLock.Lock()
+	defer k.cacheLock.Unlock()
+	return k.certificate, nil
+}
+
+// GetClientCertificate fetches the currently-loaded certificate when the Server
+// requests a certificate from the caller. This currently does not consider
+// information in the ClientHello and only returns the certificate that was last
+// loaded.
+func (k *KeyLoader) GetClientCertificate(*tls.CertificateRequestInfo) (*tls.Certificate, error) {
+	k.cacheLock.Lock()
+	defer k.cacheLock.Unlock()
+	return k.certificate, nil
+}
+
+func (k *KeyLoader) Copy() *KeyLoader {
+	if k == nil {
+		return nil
+	}
+
+	new := KeyLoader{}
+	new.certificate = k.certificate
+	return &new
 }
 
 // AppendCA opens and parses the CA file and adds the certificates to
@@ -109,21 +166,27 @@ func (c *Config) AppendCA(pool *x509.CertPool) error {
 	return nil
 }
 
-// KeyPair is used to open and parse a certificate and key file
-func (c *Config) KeyPair() (*tls.Certificate, error) {
+// LoadKeyPair is used to open and parse a certificate and key file
+func (c *Config) LoadKeyPair() (*tls.Certificate, error) {
 	if c.CertFile == "" || c.KeyFile == "" {
 		return nil, nil
 	}
-	cert, err := tls.LoadX509KeyPair(c.CertFile, c.KeyFile)
+
+	if c.KeyLoader == nil {
+		return nil, fmt.Errorf("No Keyloader object to perform LoadKeyPair")
+	}
+
+	cert, err := c.KeyLoader.LoadKeyPair(c.CertFile, c.KeyFile)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to load cert/key pair: %v", err)
 	}
-	return &cert, err
+	return cert, err
 }
 
 // OutgoingTLSConfig generates a TLS configuration for outgoing
 // requests. It will return a nil config if this configuration should
-// not use TLS for outgoing connections.
+// not use TLS for outgoing connections. Provides a callback to
+// fetch certificates, allowing for reloading on the fly.
 func (c *Config) OutgoingTLSConfig() (*tls.Config, error) {
 	// If VerifyServerHostname is true, that implies VerifyOutgoing
 	if c.VerifyServerHostname {
@@ -168,11 +231,12 @@ func (c *Config) OutgoingTLSConfig() (*tls.Config, error) {
 	}
 
 	// Add cert/key
-	cert, err := c.KeyPair()
+	cert, err := c.LoadKeyPair()
 	if err != nil {
 		return nil, err
 	} else if cert != nil {
-		tlsConfig.Certificates = []tls.Certificate{*cert}
+		tlsConfig.GetCertificate = c.KeyLoader.GetOutgoingCertificate
+		tlsConfig.GetClientCertificate = c.KeyLoader.GetClientCertificate
 	}
 
 	// Check if a minimum TLS version was set
@@ -321,11 +385,11 @@ func (c *Config) IncomingTLSConfig() (*tls.Config, error) {
 	}
 
 	// Add cert/key
-	cert, err := c.KeyPair()
+	cert, err := c.LoadKeyPair()
 	if err != nil {
 		return nil, err
 	} else if cert != nil {
-		tlsConfig.Certificates = []tls.Certificate{*cert}
+		tlsConfig.GetCertificate = c.KeyLoader.GetOutgoingCertificate
 	}
 
 	// Check if we require verification

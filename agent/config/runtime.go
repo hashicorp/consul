@@ -6,6 +6,7 @@ import (
 	"net"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -806,6 +807,11 @@ type RuntimeConfig struct {
 	// hcl: key_file = string
 	KeyFile string
 
+	// KeyLoader dynamically reloads TLS configuration.
+	KeyLoader *tlsutil.KeyLoader
+
+	keyloaderLock sync.Mutex
+
 	// LeaveDrainTime is used to wait after a server has left the LAN Serf
 	// pool for RPCs to drain and new requests to be sent to other servers.
 	//
@@ -1276,9 +1282,9 @@ type RuntimeConfig struct {
 	Watches []map[string]interface{}
 }
 
-// IncomingHTTPSConfig returns the TLS configuration for HTTPS
-// connections to consul.
-func (c *RuntimeConfig) IncomingHTTPSConfig() (*tls.Config, error) {
+// TLSConfig returns the full TLS configuration for both incoming and
+// outgoing connections.
+func (c *RuntimeConfig) TLSConfig() (*tlsutil.Config, error) {
 	tc := &tlsutil.Config{
 		VerifyIncoming:           c.VerifyIncoming || c.VerifyIncomingHTTPS,
 		VerifyOutgoing:           c.VerifyOutgoing,
@@ -1286,13 +1292,81 @@ func (c *RuntimeConfig) IncomingHTTPSConfig() (*tls.Config, error) {
 		CAPath:                   c.CAPath,
 		CertFile:                 c.CertFile,
 		KeyFile:                  c.KeyFile,
+		KeyLoader:                c.GetKeyLoader(),
 		NodeName:                 c.NodeName,
 		ServerName:               c.ServerName,
 		TLSMinVersion:            c.TLSMinVersion,
 		CipherSuites:             c.TLSCipherSuites,
 		PreferServerCipherSuites: c.TLSPreferServerCipherSuites,
 	}
+	return tc, nil
+}
+
+// IncomingHTTPSConfig returns the TLS configuration for HTTPS
+// connections to consul.
+func (c *RuntimeConfig) IncomingHTTPSConfig() (*tls.Config, error) {
+	tc, err := c.TLSConfig()
+
+	if err != nil {
+		return nil, err
+	}
+	if tc == nil {
+		return nil, fmt.Errorf("no TLS configuration available")
+	}
+
 	return tc.IncomingTLSConfig()
+}
+
+// OutgoingTLSConfig returns the TLS configuration for connections to agents.
+func (c *RuntimeConfig) OutgoingAgentTLSConfig() (*tls.Config, error) {
+	tc, err := c.TLSConfig()
+
+	if err != nil {
+		return nil, err
+	}
+	if tc == nil {
+		return nil, fmt.Errorf("no TLS configuration available")
+	}
+
+	return tc.OutgoingTLSConfig()
+}
+
+// OutgoingCheckTLSConfig returns the TLS configuration for check
+// connections from consul.
+func (c *RuntimeConfig) OutgoingCheckTLSConfig() (*tls.Config, error) {
+	// Start with the agent TLS information
+	tc, err := c.TLSConfig()
+
+	if err != nil {
+		return nil, err
+	}
+	if tc == nil {
+		return nil, fmt.Errorf("no TLS configuration available")
+	}
+
+	// Then remove key information if TLS is disabled for checks
+	if !c.EnableAgentTLSForChecks {
+		tc.VerifyOutgoing = false
+		tc.CAFile = ""
+		tc.CAPath = ""
+		tc.CertFile = ""
+		tc.KeyFile = ""
+	}
+
+	return tc.OutgoingTLSConfig()
+}
+
+// GetKeyLoader returns the keyloader for a RuntimeConfig object. If the
+// keyloader has not been initialized, it will first do so.
+func (c *RuntimeConfig) GetKeyLoader() *tlsutil.KeyLoader {
+	c.keyloaderLock.Lock()
+	defer c.keyloaderLock.Unlock()
+
+	// If the keyloader has not yet been initialized, do it here
+	if c.KeyLoader == nil {
+		c.KeyLoader = &tlsutil.KeyLoader{}
+	}
+	return c.KeyLoader
 }
 
 // Sanitized returns a JSON/HCL compatible representation of the runtime

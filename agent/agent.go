@@ -695,6 +695,61 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 	return nil
 }
 
+// reloadTLSConfig performs TLS config reloads. Must be called from HandleReload.
+// This currently only handles changes to the key pair (CertFile and KeyFile).
+func (a *Agent) reloadTLSConfig(newCfg *config.RuntimeConfig) error {
+	haveNewPair := newCfg.CertFile != "" && newCfg.KeyFile != ""
+	haveOldPair := a.config.CertFile != "" && a.config.KeyFile != ""
+
+	if haveNewPair != haveOldPair {
+		// unimplemented: enabling or disabling TLS while running
+		if haveNewPair {
+			return fmt.Errorf("Cannot enable TLS while running")
+		} else {
+			return fmt.Errorf("Cannot disable TLS while running")
+		}
+	}
+
+	if newCfg.VerifyIncoming != a.config.VerifyIncoming {
+		return fmt.Errorf("Cannot modify verify-incoming while running")
+	}
+	if newCfg.VerifyOutgoing != a.config.VerifyOutgoing {
+		return fmt.Errorf("Cannot modify verify-outgoing while running")
+	}
+
+	// TODO(ag) : Support reloading CA cert.
+	if newCfg.CAFile != a.config.CAFile || newCfg.CAPath != a.config.CAPath {
+		return fmt.Errorf("Cannot modify CA certs while running")
+	}
+
+	// TODO(ag) : Support reloading node/server name and TLS cipher config.
+	if newCfg.NodeName != a.config.NodeName {
+		return fmt.Errorf("Cannot modify node name while running")
+	}
+	if newCfg.ServerName != a.config.ServerName {
+		return fmt.Errorf("Cannot modify server name while running")
+	}
+	minverMismatch := newCfg.TLSMinVersion != a.config.TLSMinVersion
+	// cipher compare is not 100% correct, but should be fine for catching changes
+	cipherMismatch := len(newCfg.TLSCipherSuites) != len(a.config.TLSCipherSuites)
+	preferMismatch := newCfg.TLSPreferServerCipherSuites != a.config.TLSPreferServerCipherSuites
+	if minverMismatch || cipherMismatch || preferMismatch {
+		return fmt.Errorf("Cannot modify TLS cipher suites while running")
+	}
+
+	// Phew, everything is compatible, so reload key pair
+	_, err := a.config.GetKeyLoader().LoadKeyPair(newCfg.CertFile, newCfg.KeyFile)
+	if err != nil {
+		return err
+	}
+
+	// Successfully reloaded key pair, so update local config to reflect that
+	a.config.CertFile = newCfg.CertFile
+	a.config.KeyFile = newCfg.KeyFile
+
+	return nil
+}
+
 // consulConfig is used to return a consul configuration
 func (a *Agent) consulConfig() (*consul.Config, error) {
 	// Start with the provided config or default config
@@ -871,6 +926,7 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	base.CAPath = a.config.CAPath
 	base.CertFile = a.config.CertFile
 	base.KeyFile = a.config.KeyFile
+	base.KeyLoader = a.config.GetKeyLoader()
 	base.ServerName = a.config.ServerName
 	base.Domain = a.config.DNSDomain
 	base.TLSMinVersion = a.config.TLSMinVersion
@@ -1764,7 +1820,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				chkType.Interval = checks.MinInterval
 			}
 
-			tlsClientConfig, err := a.setupTLSClientConfig(chkType.TLSSkipVerify)
+			tlsClientConfig, err := a.setupCheckTLSClientConfig(chkType.TLSSkipVerify)
 			if err != nil {
 				return fmt.Errorf("Failed to set up TLS: %v", err)
 			}
@@ -1819,7 +1875,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			var tlsClientConfig *tls.Config
 			if chkType.GRPCUseTLS {
 				var err error
-				tlsClientConfig, err = a.setupTLSClientConfig(chkType.TLSSkipVerify)
+				tlsClientConfig, err = a.setupCheckTLSClientConfig(chkType.TLSSkipVerify)
 				if err != nil {
 					return fmt.Errorf("Failed to set up TLS: %v", err)
 				}
@@ -1928,21 +1984,44 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 	return nil
 }
 
-func (a *Agent) setupTLSClientConfig(skipVerify bool) (tlsClientConfig *tls.Config, err error) {
-	// We re-use the API client's TLS structure since it
-	// closely aligns with Consul's internal configuration.
-	tlsConfig := &api.TLSConfig{
-		InsecureSkipVerify: skipVerify,
+// setupAgentTLSClientConfig returns TLS client configuration for connecting
+// to agents.
+func (a *Agent) setupAgentTLSClientConfig(skipVerify bool) (*tls.Config, error) {
+	// Start with the outgoing TLS config for connecting to agents
+	tlscfg, err := a.config.OutgoingAgentTLSConfig()
+	if err != nil {
+		return tlscfg, err
 	}
-	if a.config.EnableAgentTLSForChecks {
-		tlsConfig.Address = a.config.ServerName
-		tlsConfig.KeyFile = a.config.KeyFile
-		tlsConfig.CertFile = a.config.CertFile
-		tlsConfig.CAFile = a.config.CAFile
-		tlsConfig.CAPath = a.config.CAPath
+
+	if tlscfg == nil {
+		// Agent TLS disabled, so no TLS config
+		return nil, nil
 	}
-	tlsClientConfig, err = api.SetupTLSConfig(tlsConfig)
-	return
+
+	// Modify it for skipVerify
+	tlscfg.InsecureSkipVerify = skipVerify
+
+	return tlscfg, err
+}
+
+// setupCheckTLSClientConfig returns TLS client configuration for performing
+// checks.
+func (a *Agent) setupCheckTLSClientConfig(skipVerify bool) (*tls.Config, error) {
+	// Start with the outgoing TLS config for connecting for checks
+	tlscfg, err := a.config.OutgoingCheckTLSConfig()
+	if err != nil {
+		return tlscfg, err
+	}
+
+	if tlscfg == nil {
+		// Check TLS disabled, so no TLS config
+		return nil, nil
+	}
+
+	// Modify it for skipVerify
+	tlscfg.InsecureSkipVerify = skipVerify
+
+	return tlscfg, err
 }
 
 // RemoveCheck is used to remove a health check.
@@ -2523,6 +2602,11 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 
 	if err := a.reloadWatches(newCfg); err != nil {
 		return fmt.Errorf("Failed reloading watches: %v", err)
+	}
+
+	// Reload TLS configuration.
+	if err := a.reloadTLSConfig(newCfg); err != nil {
+		return fmt.Errorf("Failed reloading TLS configuration: %s", err)
 	}
 
 	// Update filtered metrics
