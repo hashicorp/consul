@@ -55,7 +55,7 @@ func New(r *dns.Msg, rr *dnstest.Recorder, emptyValue string) Replacer {
 		}
 		rep.replacements["{rcode}"] = rcode
 		rep.replacements["{rsize}"] = strconv.Itoa(rr.Len)
-		rep.replacements["{duration}"] = time.Since(rr.Start).String()
+		rep.replacements["{duration}"] = strconv.FormatFloat(time.Since(rr.Start).Seconds(), 'f', -1, 64) + "s"
 		if rr.Msg != nil {
 			rep.replacements[headerReplacer+"rflags}"] = flagsToString(rr.Msg.MsgHdr)
 		}

@@ -1,6 +1,7 @@
 package replacer
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
@@ -29,6 +30,9 @@ func TestNewReplacer(t *testing.T) {
 		}
 		if v.replacements["{size}"] != "29" { // size of request
 			t.Errorf("Expected size to be 29, got %q", v.replacements["{size}"])
+		}
+		if !strings.Contains(v.replacements["{duration}"], "s") {
+			t.Errorf("Expected units of time to be in seconds")
 		}
 
 	default:
