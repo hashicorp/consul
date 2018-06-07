@@ -127,6 +127,9 @@ func (s *Intention) Apply(
 	// Validate. We do not validate on delete since it is valid to only
 	// send an ID in that case.
 	if args.Op != structs.IntentionOpDelete {
+		// Set the precedence
+		args.Intention.UpdatePrecedence()
+
 		if err := args.Intention.Validate(); err != nil {
 			return err
 		}

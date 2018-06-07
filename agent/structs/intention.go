@@ -61,6 +61,11 @@ type Intention struct {
 	// opaque to Consul but is served in API responses.
 	Meta map[string]string
 
+	// Precedence is the order that the intention will be applied, with
+	// larger numbers being applied first. This is a read-only field, on
+	// any intention update it is updated.
+	Precedence int
+
 	// CreatedAt and UpdatedAt keep track of when this record was created
 	// or modified.
 	CreatedAt, UpdatedAt time.Time `mapstructure:"-"`
@@ -158,6 +163,49 @@ func (x *Intention) Validate() error {
 	}
 
 	return result
+}
+
+// UpdatePrecedence sets the Precedence value based on the fields of this
+// structure.
+func (x *Intention) UpdatePrecedence() {
+	// Max maintains the maximum value that the precedence can be depending
+	// on the number of exact values in the destination.
+	var max int
+	switch x.countExact(x.DestinationNS, x.DestinationName) {
+	case 2:
+		max = 9
+	case 1:
+		max = 6
+	case 0:
+		max = 3
+	default:
+		// This shouldn't be possible, just set it to zero
+		x.Precedence = 0
+		return
+	}
+
+	// Given the maximum, the exact value is determined based on the
+	// number of source exact values.
+	countSrc := x.countExact(x.SourceNS, x.SourceName)
+	x.Precedence = max - (2 - countSrc)
+}
+
+// countExact counts the number of exact values (not wildcards) in
+// the given namespace and name.
+func (x *Intention) countExact(ns, n string) int {
+	// If NS is wildcard, it must be zero since wildcards only follow exact
+	if ns == IntentionWildcard {
+		return 0
+	}
+
+	// Same reasoning as above, a wildcard can only follow an exact value
+	// and an exact value cannot follow a wildcard, so if name is a wildcard
+	// we must have exactly one.
+	if n == IntentionWildcard {
+		return 1
+	}
+
+	return 2
 }
 
 // GetACLPrefix returns the prefix to look up the ACL policy for this
@@ -354,20 +402,8 @@ func (s IntentionPrecedenceSorter) Swap(i, j int) {
 
 func (s IntentionPrecedenceSorter) Less(i, j int) bool {
 	a, b := s[i], s[j]
-
-	// First test the # of exact values in destination, since precedence
-	// is destination-oriented.
-	aExact := s.countExact(a.DestinationNS, a.DestinationName)
-	bExact := s.countExact(b.DestinationNS, b.DestinationName)
-	if aExact != bExact {
-		return aExact > bExact
-	}
-
-	// Next test the # of exact values in source
-	aExact = s.countExact(a.SourceNS, a.SourceName)
-	bExact = s.countExact(b.SourceNS, b.SourceName)
-	if aExact != bExact {
-		return aExact > bExact
+	if a.Precedence != b.Precedence {
+		return a.Precedence > b.Precedence
 	}
 
 	// Tie break on lexicographic order of the 4-tuple in canonical form (SrcNS,
@@ -386,22 +422,4 @@ func (s IntentionPrecedenceSorter) Less(i, j int) bool {
 		return a.DestinationNS < b.DestinationNS
 	}
 	return a.DestinationName < b.DestinationName
-}
-
-// countExact counts the number of exact values (not wildcards) in
-// the given namespace and name.
-func (s IntentionPrecedenceSorter) countExact(ns, n string) int {
-	// If NS is wildcard, it must be zero since wildcards only follow exact
-	if ns == IntentionWildcard {
-		return 0
-	}
-
-	// Same reasoning as above, a wildcard can only follow an exact value
-	// and an exact value cannot follow a wildcard, so if name is a wildcard
-	// we must have exactly one.
-	if n == IntentionWildcard {
-		return 1
-	}
-
-	return 2
 }

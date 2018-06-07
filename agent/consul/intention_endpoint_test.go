@@ -67,6 +67,7 @@ func TestIntentionApply_new(t *testing.T) {
 		actual.CreateIndex, actual.ModifyIndex = 0, 0
 		actual.CreatedAt = ixn.Intention.CreatedAt
 		actual.UpdatedAt = ixn.Intention.UpdatedAt
+		ixn.Intention.UpdatePrecedence()
 		assert.Equal(ixn.Intention, actual)
 	}
 }
@@ -201,7 +202,7 @@ func TestIntentionApply_updateGood(t *testing.T) {
 	// Update
 	ixn.Op = structs.IntentionOpUpdate
 	ixn.Intention.ID = reply
-	ixn.Intention.SourceName = "bar"
+	ixn.Intention.SourceName = "*"
 	assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 
 	// Read
@@ -221,6 +222,7 @@ func TestIntentionApply_updateGood(t *testing.T) {
 		actual.CreateIndex, actual.ModifyIndex = 0, 0
 		actual.CreatedAt = ixn.Intention.CreatedAt
 		actual.UpdatedAt = ixn.Intention.UpdatedAt
+		ixn.Intention.UpdatePrecedence()
 		assert.Equal(ixn.Intention, actual)
 	}
 }
@@ -378,6 +380,7 @@ service "foo" {
 		actual.CreateIndex, actual.ModifyIndex = 0, 0
 		actual.CreatedAt = ixn.Intention.CreatedAt
 		actual.UpdatedAt = ixn.Intention.UpdatedAt
+		ixn.Intention.UpdatePrecedence()
 		assert.Equal(ixn.Intention, actual)
 	}
 }

@@ -232,6 +232,11 @@ func TestIntentionPrecedenceSorter(t *testing.T) {
 				})
 			}
 
+			// Set all the precedence values
+			for _, ixn := range input {
+				ixn.UpdatePrecedence()
+			}
+
 			// Sort
 			sort.Sort(IntentionPrecedenceSorter(input))
 
