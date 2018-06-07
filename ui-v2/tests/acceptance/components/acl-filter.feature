@@ -13,15 +13,15 @@ Feature: Acl Filter
     And I see allIsSelected on the filter
 
     When I click management on the filter
-    And I see managementIsSelected on the filter
+    Then I see managementIsSelected on the filter
     And I see 1 [Model] model
 
     When I click client on the filter
-    And I see clientIsSelected on the filter
+    Then I see clientIsSelected on the filter
     And I see 1 [Model] model
 
     When I click all on the filter
-    And I see allIsSelected on the filter
+    Then I see allIsSelected on the filter
     Then I type with yaml
     ---
     s: Anonymous Token
