@@ -81,10 +81,22 @@ Created At:         Friday, 25-May-18 02:07:51 CEST
 ## Precedence and Match Order
 
 Intentions are matched in an implicit order based on specificity, preferring
-deny over allow. The full precedence table is shown below and is evaluated
-top to bottom.
+deny over allow. Specificity is determined by whether a value is an exact
+specified value or is the wildcard value `*`.
+The full precedence table is shown below and is evaluated
+top to bottom, with larger numbers being evaluated first.
 
-TODO
+| Source Name | Destination Name | Precedence |
+| ----------- | ---------------- | ---------- |
+| Exact       | Exact            | 9          |
+| `*`         | Exact            | 8          |
+| Exact       | `*`              | 6          |
+| `*`         | `*`              | 5          |
+
+The precedence value can be read from the [API](/api/connect/intentions.html)
+after an intention is created.
+Precedence cannot be manually overridden today. This is a feature that will
+be added in a later version of Consul.
 
 ## Intention Management Permissions
 
