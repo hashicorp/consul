@@ -31,13 +31,13 @@ Feature: Page Navigation
     When I click [Item] on the [Model]
     Then the url should be [Url]
   Where:
-    ---------------------------------------------------
-    | Item     | Model    | Url                       |
-    | service  | services | /dc-1/services/service-0  |
-    | node     | nodes    | /dc-1/nodes/node-0        |
-    # | kv       | kvs      | /dc-1/kv/key-0            |
-    | acl       | acls      | /dc-1/acls/anonymous    |
-    ---------------------------------------------------
+    --------------------------------------------------------
+    | Item     | Model    | Url                            |
+    | service  | services | /dc-1/services/service-0       |
+    | node     | nodes    | /dc-1/nodes/node-0             |
+    | kv       | kvs      | /dc-1/kv/necessitatibus-0/edit |
+    | acl      | acls     | /dc-1/acls/anonymous           |
+    --------------------------------------------------------
 @ignore
-  Scenario: Clicking a kv in the kvs listing
+  Scenario: Clicking a kv in the kvs listing, without depending on the salt ^
     Then ok
