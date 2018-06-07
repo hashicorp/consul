@@ -2903,13 +2903,14 @@ func TestAgentConnectProxyConfig_Blocking(t *testing.T) {
 			"local_service_address": "127.0.0.1:8000",
 			"bind_port":             float64(1234),
 			"connect_timeout_ms":    float64(500),
+			"telemetry":             telemetryDefaults,
 		},
 	}
 
 	ur, err := copystructure.Copy(expectedResponse)
 	require.NoError(t, err)
 	updatedResponse := ur.(*api.ConnectProxyConfig)
-	updatedResponse.ContentHash = "23b5b6b3767601e1"
+	updatedResponse.ContentHash = "8f68aa2a4ba81b06"
 	upstreams := updatedResponse.Config["upstreams"].([]interface{})
 	upstreams = append(upstreams,
 		map[string]interface{}{
@@ -3247,6 +3248,11 @@ func TestAgentConnectProxyConfig_aclServiceReadDeny(t *testing.T) {
 	require.True(acl.IsErrPermissionDenied(err))
 }
 
+var telemetryDefaults = map[string]interface{}{
+	"FilterDefault": true,
+	"MetricsPrefix": "consul",
+}
+
 func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 	t.Parallel()
 
@@ -3298,6 +3304,7 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 				"bind_address":          "0.0.0.0",
 				"bind_port":             10000,            // "randomly" chosen from our range of 1
 				"local_service_address": "127.0.0.1:8000", // port from service reg
+				"telemetry":             telemetryDefaults,
 			},
 		},
 		{
@@ -3326,6 +3333,7 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 				"bind_address":          "0.0.0.0",
 				"bind_port":             10000,            // "randomly" chosen from our range of 1
 				"local_service_address": "127.0.0.1:8000", // port from service reg
+				"telemetry":             telemetryDefaults,
 			},
 		},
 		{
@@ -3354,6 +3362,7 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 				"bind_address":          "0.0.0.0",
 				"bind_port":             10000,            // "randomly" chosen from our range of 1
 				"local_service_address": "127.0.0.1:8000", // port from service reg
+				"telemetry":             telemetryDefaults,
 			},
 		},
 		{
@@ -3389,6 +3398,7 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 				"local_service_address": "127.0.0.1:8000", // port from service reg
 				"connect_timeout_ms":    1000,
 				"foo":                   "bar",
+				"telemetry":             telemetryDefaults,
 			},
 		},
 		{
@@ -3431,6 +3441,7 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 				"bind_port":             float64(1024),
 				"local_service_address": "127.0.0.1:9191",
 				"connect_timeout_ms":    float64(2000),
+				"telemetry":             telemetryDefaults,
 			},
 		},
 	}

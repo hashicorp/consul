@@ -428,6 +428,9 @@ type Performance struct {
 	RPCHoldTimeout *string `json:"rpc_hold_timeout" hcl:"rpc_hold_timeout" mapstructure:"rpc_hold_timeout"`
 }
 
+// Telemetry defines the configuration for logging telemetry. NOTE: that any
+// additions here that are reflected in RuntimeConfig also need to be added to
+// RuntimeConfig.TelemetryConfig.
 type Telemetry struct {
 	CirconusAPIApp                     *string  `json:"circonus_api_app,omitempty" hcl:"circonus_api_app" mapstructure:"circonus_api_app"`
 	CirconusAPIToken                   *string  `json:"circonus_api_token,omitempty" json:"-" hcl:"circonus_api_token" mapstructure:"circonus_api_token" json:"-"`

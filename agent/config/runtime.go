@@ -1331,6 +1331,69 @@ type RuntimeConfig struct {
 	Watches []map[string]interface{}
 }
 
+// TelemetryConfig returns all the Telemetry fields in a map for passing on to
+// other processes that need to share the same telemetry config. This method
+// must be kept in sync with additions to Telemetry* configs above. includeEmpty
+// is not really useful in practice but allows us to verify in tests using
+// reflection that new fields were not missed. This method avoids runtime
+// reflection however it's tests validate it's completeness using reflection.
+func (c *RuntimeConfig) TelemetryConfig(includeEmpty bool) map[string]interface{} {
+	t := make(map[string]interface{})
+
+	addString := func(key string, val string) {
+		if !includeEmpty && val == "" {
+			return
+		}
+		t[key] = val
+	}
+
+	addBool := func(key string, val bool) {
+		if !includeEmpty && !val {
+			return
+		}
+		t[key] = val
+	}
+
+	addDuration := func(key string, val time.Duration) {
+		if !includeEmpty && val == 0 {
+			return
+		}
+		t[key] = val
+	}
+
+	addStrSlice := func(key string, val []string) {
+		if !includeEmpty && len(val) == 0 {
+			return
+		}
+		t[key] = val
+	}
+
+	addString("CirconusAPIApp", c.TelemetryCirconusAPIApp)
+	addString("CirconusAPIToken", c.TelemetryCirconusAPIToken)
+	addString("CirconusAPIURL", c.TelemetryCirconusAPIURL)
+	addString("CirconusBrokerID", c.TelemetryCirconusBrokerID)
+	addString("CirconusBrokerSelectTag", c.TelemetryCirconusBrokerSelectTag)
+	addString("CirconusCheckDisplayName", c.TelemetryCirconusCheckDisplayName)
+	addString("CirconusCheckForceMetricActivation", c.TelemetryCirconusCheckForceMetricActivation)
+	addString("CirconusCheckID", c.TelemetryCirconusCheckID)
+	addString("CirconusCheckInstanceID", c.TelemetryCirconusCheckInstanceID)
+	addString("CirconusCheckSearchTag", c.TelemetryCirconusCheckSearchTag)
+	addString("CirconusCheckTags", c.TelemetryCirconusCheckTags)
+	addString("CirconusSubmissionInterval", c.TelemetryCirconusSubmissionInterval)
+	addString("CirconusSubmissionURL", c.TelemetryCirconusSubmissionURL)
+	addBool("DisableHostname", c.TelemetryDisableHostname)
+	addString("DogstatsdAddr", c.TelemetryDogstatsdAddr)
+	addStrSlice("DogstatsdTags", c.TelemetryDogstatsdTags)
+	addDuration("PrometheusRetentionTime", c.TelemetryPrometheusRetentionTime)
+	addBool("FilterDefault", c.TelemetryFilterDefault)
+	addStrSlice("AllowedPrefixes", c.TelemetryAllowedPrefixes)
+	addStrSlice("BlockedPrefixes", c.TelemetryBlockedPrefixes)
+	addString("MetricsPrefix", c.TelemetryMetricsPrefix)
+	addString("StatsdAddr", c.TelemetryStatsdAddr)
+	addString("StatsiteAddr", c.TelemetryStatsiteAddr)
+	return t
+}
+
 // IncomingHTTPSConfig returns the TLS configuration for HTTPS
 // connections to consul.
 func (c *RuntimeConfig) IncomingHTTPSConfig() (*tls.Config, error) {

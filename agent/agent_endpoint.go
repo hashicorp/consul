@@ -1061,6 +1061,12 @@ func (s *HTTPServer) AgentConnectProxyConfig(resp http.ResponseWriter, req *http
 					target.Port)
 			}
 
+			// Add telemetry config
+			telemetry := s.agent.config.TelemetryConfig(false)
+			if len(telemetry) > 0 {
+				config["telemetry"] = telemetry
+			}
+
 			reply := &api.ConnectProxyConfig{
 				ProxyServiceID:    proxy.Proxy.ProxyService.ID,
 				TargetServiceID:   target.ID,

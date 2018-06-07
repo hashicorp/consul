@@ -36,6 +36,11 @@ type Config struct {
 
 	// Upstreams configures outgoing proxies for remote connect services.
 	Upstreams []UpstreamConfig `json:"upstreams" hcl:"upstreams"`
+
+	// Telemetry stores configuration to configure go-metrics. It is typically
+	// passed the Telemetry block from the agent's config verbatim so that the
+	// proxy will log metrics to the same location(s) as the agent.
+	Telemetry map[string]interface{}
 }
 
 // Service returns the *connect.Service structure represented by this config.

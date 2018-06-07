@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/consul/types"
 	"github.com/pascaldekloe/goe/verify"
 	"github.com/sergi/go-diff/diffmatchpatch"
+	"github.com/stretchr/testify/require"
 )
 
 type configTest struct {
@@ -4530,5 +4531,77 @@ func metaPairs(n int, format string) string {
 		return strings.Join(s, " ")
 	default:
 		panic("invalid format: " + format)
+	}
+}
+
+func TestTelemetryConfig(t *testing.T) {
+
+	tests := []struct {
+		name         string
+		cfg          RuntimeConfig
+		includeEmpty bool
+	}{
+		{
+			name: "sanity check specific fields",
+			cfg: RuntimeConfig{
+				TelemetryAllowedPrefixes: []string{"foo", "bar"},
+				TelemetryStatsiteAddr:    "localhost:1234",
+				TelemetryDisableHostname: true,
+			},
+			includeEmpty: false,
+		},
+		{
+			name:         "verify all telemetry fields present",
+			cfg:          RuntimeConfig{},
+			includeEmpty: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Build expected response with reflection
+			cfgValue := reflect.ValueOf(tt.cfg)
+			structType := cfgValue.Type()
+			nFields := cfgValue.NumField()
+
+			expect := make(map[string]interface{})
+
+			for i := 0; i < nFields; i++ {
+				name := structType.Field(i).Name
+				if strings.HasPrefix(name, "Telemetry") {
+					val := cfgValue.Field(i)
+					if !tt.includeEmpty {
+						// No built in way to check for zero-values for all types so only
+						// implementing this for the types we actually have for now. The test
+						// failure will hopefully catch the case where we add new types later.
+						switch val.Kind() {
+						case reflect.Slice:
+							if val.IsNil() {
+								continue
+							}
+						case reflect.Int, reflect.Int64: // time.Duration == int64
+							if val.Int() == 0 {
+								continue
+							}
+						case reflect.String:
+							if val.String() == "" {
+								continue
+							}
+						case reflect.Bool:
+							if val.Bool() == false {
+								continue
+							}
+						default:
+							t.Fatalf("New type added to Telemetry* fields in RuntimeConfig." +
+								"Update this test.")
+						}
+					}
+					// non-zero values should be exported.
+					expect[strings.TrimPrefix(name, "Telemetry")] = val.Interface()
+				}
+			}
+
+			require.Equal(t, expect, tt.cfg.TelemetryConfig(tt.includeEmpty))
+		})
 	}
 }
