@@ -215,12 +215,6 @@ func TestService_HTTPClient(t *testing.T) {
 	}()
 	<-testSvr.Listening
 
-	// TODO(banks): this will talk http2 on both client and server. I hit some
-	// compatibility issues when testing though need to make sure that the http
-	// server with our TLSConfig can actually support HTTP/1.1 as well. Could make
-	// this a table test with all 4 permutations of client/server http version
-	// support.
-
 	// Still get connection refused some times so retry on those
 	retry.Run(t, func(r *retry.R) {
 		// Hook the service resolver to avoid needing full agent setup.

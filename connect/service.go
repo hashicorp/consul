@@ -20,8 +20,6 @@ import (
 // This can represent a service that only is a server, only is a client, or
 // both.
 //
-// TODO(banks): API for monitoring status of certs from app
-//
 // TODO(banks): Agent implicit health checks based on knowing which certs are
 // available should prevent clients being routed until the agent knows the
 // service has been delivered valid certificates. Once built, document that here
@@ -137,6 +135,14 @@ func NewDevServiceWithTLSConfig(serviceName string, logger *log.Logger,
 // to usable certificates due to not being initially setup yet or a prolonged
 // error during renewal. The listener will be able to accept connections again
 // once connectivity is restored provided the client's Token is valid.
+//
+// To prevent routing traffic to the app instance while it's certificates are
+// invalid or not populated yet you may use Ready in a health check endpoint
+// and/or ReadyWait during startup before starting the TLS listener. The latter
+// only prevents connections during initial bootstrap (including permission
+// issues where certs can never be issued due to bad credentials) but won't
+// handle the case that certificates expire and an error prevents timely
+// renewal.
 func (s *Service) ServerTLSConfig() *tls.Config {
 	return s.tlsCfg.Get(newServerSideVerifier(s.client, s.service))
 }
@@ -148,6 +154,10 @@ func (s *Service) ServerTLSConfig() *tls.Config {
 // depending on the Resolver implementation.
 //
 // Timeout can be managed via the Context.
+//
+// Calls to Dial made before the Service has loaded certificates from the agent
+// will fail. You can prevent this by using Ready or ReadyWait in app during
+// startup.
 func (s *Service) Dial(ctx context.Context, resolver Resolver) (net.Conn, error) {
 	addr, certURI, err := resolver.Resolve(ctx)
 	if err != nil {
@@ -289,9 +299,13 @@ func (s *Service) Ready() bool {
 }
 
 // ReadyWait returns a chan that is closed when the the Service becomes ready
-// for use. Note that if the Service is ready when it is called it returns a nil
-// chan. Ready means that it has root and leaf certificates configured which we
-// assume are valid.
+// for use for the first time. Note that if the Service is ready when it is
+// called it returns a nil chan. Ready means that it has root and leaf
+// certificates configured which we assume are valid. The service may
+// subsequently stop being "ready" if it's certificates expire or are revoked
+// and an error prevents new ones being loaded but this method will not stop
+// returning a nil chan in that case. It is only useful for initial startup. For
+// ongoing health Ready() should be used.
 func (s *Service) ReadyWait() <-chan struct{} {
 	return s.tlsCfg.ReadyWait()
 }

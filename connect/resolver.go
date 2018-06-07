@@ -28,16 +28,16 @@ type Resolver interface {
 	Resolve(ctx context.Context) (addr string, certURI connect.CertURI, err error)
 }
 
-// StaticResolver is a statically defined resolver. This can be used to connect
-// to an known-Connect endpoint without performing service discovery.
+// StaticResolver is a statically defined resolver. This can be used to Dial a
+// known Connect endpoint without performing service discovery.
 type StaticResolver struct {
 	// Addr is the network address (including port) of the instance. It must be
-	// the connect-enabled mTLS server and may be a proxy in front of the actual
+	// the connect-enabled mTLS listener and may be a proxy in front of the actual
 	// target service process. It is a string in any valid form for passing
-	// directly to `net.Dial("tcp", addr)`.
+	// directly to net.Dial("tcp", addr).
 	Addr string
 
-	// CertURL is the _identity_ we expect the server to present in it's TLS
+	// CertURL is the identity we expect the server to present in it's TLS
 	// certificate. It must be an exact URI string match or the connection will be
 	// rejected.
 	CertURI connect.CertURI

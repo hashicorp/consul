@@ -337,9 +337,14 @@ func (cfg *dynamicTLSConfig) Ready() bool {
 	return cfg.leaf != nil && cfg.roots != nil
 }
 
-// ReadyWait returns a chan that is closed when the the tlsConfig becomes Ready
-// for use. Note that if the config is ready when it is called it returns a nil
-// chan.
+// ReadyWait returns a chan that is closed when the the Service becomes ready
+// for use for the first time. Note that if the Service is ready when it is
+// called it returns a nil chan. Ready means that it has root and leaf
+// certificates configured which we assume are valid. The service may
+// subsequently stop being "ready" if it's certificates expire or are revoked
+// and an error prevents new ones being loaded but this method will not stop
+// returning a nil chan in that case. It is only useful for initial startup. For
+// ongoing health Ready() should be used.
 func (cfg *dynamicTLSConfig) ReadyWait() <-chan struct{} {
 	return cfg.readyCh
 }
