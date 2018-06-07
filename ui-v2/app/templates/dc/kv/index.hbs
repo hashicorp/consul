@@ -35,7 +35,7 @@
     {{#block-slot 'content'}}
 {{#if (gt filtered.length 0)}}
         {{#tabular-collection
-            items=(sort-by 'isFolder:desc' filtered) as |item index|
+            items=(sort-by 'isFolder:desc' 'Key:asc' filtered) as |item index|
         }}
             {{#block-slot 'header'}}
                 <th>Name</th>

@@ -205,6 +205,25 @@ export default function(assert) {
           `Expected ${num} ${model}s with ${property} set to "${value}", saw ${len}`
         );
       })
+      .then('I see $property on the $component like yaml\n$yaml', function(
+        property,
+        component,
+        yaml
+      ) {
+        const _component = currentPage[component];
+        const iterator = new Array(_component.length).fill(true);
+        iterator.forEach(function(item, i, arr) {
+          const actual = _component.objectAt(i)[property];
+          const expected = yaml[i];
+          assert.deepEqual(
+            actual,
+            expected,
+            `Expected to see ${property} on ${component}[${i}] as ${JSON.stringify(
+              expected
+            )}, was ${JSON.stringify(actual)}`
+          );
+        });
+      })
       .then(['I see $property on the $component'], function(property, component) {
         assert.ok(currentPage[component][property], `Expected to see ${property} on ${component}`);
       })
