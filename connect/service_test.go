@@ -171,7 +171,7 @@ func TestService_ServerTLSConfig(t *testing.T) {
 	// After some time, both root and leaves should be different but both should
 	// still be correct.
 	oldRootSubjects := bytes.Join(tlsCfg.RootCAs.Subjects(), []byte(", "))
-	//oldLeafSerial := connect.HexString(cert.SerialNumber.Bytes())
+	oldLeafSerial := connect.HexString(cert.SerialNumber.Bytes())
 	oldLeafKeyID := connect.HexString(cert.SubjectKeyId)
 	retry.Run(t, func(r *retry.R) {
 		updatedCfg := service.ServerTLSConfig()
@@ -188,14 +188,10 @@ func TestService_ServerTLSConfig(t *testing.T) {
 		cert, err := x509.ParseCertificate(leaf.Certificate[0])
 		r.Check(err)
 
-		// TODO(banks): Current CA implementation resets the serial index when CA
-		// config changes which means same serial is issued by new CA config failing
-		// this test. Re-enable once the CA is changed to fix that.
-
-		// if oldLeafSerial == connect.HexString(cert.SerialNumber.Bytes()) {
-		//  r.Fatalf("leaf certificate should have changed, got serial %s",
-		//    oldLeafSerial)
-		// }
+		if oldLeafSerial == connect.HexString(cert.SerialNumber.Bytes()) {
+			r.Fatalf("leaf certificate should have changed, got serial %s",
+				oldLeafSerial)
+		}
 		if oldLeafKeyID == connect.HexString(cert.SubjectKeyId) {
 			r.Fatalf("leaf should have a different key, got matching SubjectKeyID = %s",
 				oldLeafKeyID)

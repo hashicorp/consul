@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/pascaldekloe/goe/verify"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPI_HealthNode(t *testing.T) {
@@ -297,10 +297,7 @@ func TestAPI_HealthConnect(t *testing.T) {
 		Port: 8000,
 	}
 	err := agent.ServiceRegister(reg)
-	// TODO replace with require.Nil when we have it vendored in OSS and rebased
-	if !assert.Nil(t, err) {
-		return
-	}
+	require.NoError(t, err)
 	defer agent.ServiceDeregister("foo")
 
 	// Register the proxy
@@ -311,10 +308,7 @@ func TestAPI_HealthConnect(t *testing.T) {
 		ProxyDestination: "foo",
 	}
 	err = agent.ServiceRegister(proxyReg)
-	// TODO replace with require.Nil when we have it vendored in OSS and rebased
-	if !assert.Nil(t, err) {
-		return
-	}
+	require.NoError(t, err)
 	defer agent.ServiceDeregister("foo-proxy")
 
 	retry.Run(t, func(r *retry.R) {

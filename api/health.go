@@ -164,7 +164,7 @@ func (h *Health) Service(service, tag string, passingOnly bool, q *QueryOptions)
 
 // Connect is equivalent to Service except that it will only return services
 // which are Connect-enabled and will returns the connection address for Connect
-// client's to use which may be a proxy in front of the named service. TODO: If
+// client's to use which may be a proxy in front of the named service. If
 // passingOnly is true only instances where both the service and any proxy are
 // healthy will be returned.
 func (h *Health) Connect(service, tag string, passingOnly bool, q *QueryOptions) ([]*ServiceEntry, *QueryMeta, error) {

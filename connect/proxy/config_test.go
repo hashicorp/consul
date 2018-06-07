@@ -179,9 +179,6 @@ func TestAgentConfigWatcher(t *testing.T) {
 
 	assert.Equal(t, expectCfg, cfg)
 
-	// TODO(banks): Sanity check the service is viable and gets TLS certs eventually from
-	// the agent.
-
 	// Now keep watching and update the config.
 	go func() {
 		// Wait for watcher to be watching

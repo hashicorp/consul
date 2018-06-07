@@ -47,8 +47,6 @@ type Service struct {
 	// httpResolverFromAddr is a function that returns a Resolver from a string
 	// address for HTTP clients. It's privately pluggable to make testing easier
 	// but will default to a simple method to parse the host as a Consul DNS host.
-	//
-	// TODO(banks): write the proper implementation
 	httpResolverFromAddr func(addr string) (Resolver, error)
 
 	rootsWatch *watch.Plan
@@ -217,7 +215,7 @@ func (s *Service) HTTPDialTLS(network,
 func (s *Service) HTTPClient() *http.Client {
 	t := &http.Transport{
 		// Sadly we can't use DialContext hook since that is expected to return a
-		// plain TCP connection an http.Client tries to start a TLS handshake over
+		// plain TCP connection and http.Client tries to start a TLS handshake over
 		// it. We need to control the handshake to be able to do our validation.
 		// So we have to use the older DialTLS which means no context/timeout
 		// support.

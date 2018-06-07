@@ -617,8 +617,7 @@ type RuntimeConfig struct {
 	ClientAddrs []*net.IPAddr
 
 	// ConnectEnabled opts the agent into connect. It should be set on all clients
-	// and servers in a cluster for correct connect operation. TODO(banks) review
-	// that.
+	// and servers in a cluster for correct connect operation.
 	ConnectEnabled bool
 
 	// ConnectProxyBindMinPort is the inclusive start of the range of ports
