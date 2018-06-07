@@ -98,6 +98,11 @@ after an intention is created.
 Precedence cannot be manually overridden today. This is a feature that will
 be added in a later version of Consul.
 
+In the case the two precedence values match, Consul will evaluate
+intentions based on lexographical ordering of the destination name. For
+example, an intention with destination "bravo" will be applied before
+"charlie" if the precedence number matches.
+
 ## Intention Management Permissions
 
 Intention management can be protected by [ACLs](/docs/guides/acls.html).
