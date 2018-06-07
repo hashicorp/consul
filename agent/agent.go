@@ -1324,6 +1324,8 @@ func (a *Agent) ShutdownAgent() error {
 		// don't leave the proxies running since the agent will not be able to
 		// recover them later.
 		if a.config.DataDir == "" {
+			a.logger.Printf("[WARN] agent: dev mode disabled persistence, killing " +
+				"all proxies since we can't recover them")
 			if err := a.proxyManager.Kill(); err != nil {
 				a.logger.Printf("[WARN] agent: error shutting down proxy manager: %s", err)
 			}
