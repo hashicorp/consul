@@ -99,9 +99,16 @@ Precedence cannot be manually overridden today. This is a feature that will
 be added in a later version of Consul.
 
 In the case the two precedence values match, Consul will evaluate
-intentions based on lexographical ordering of the destination name. For
-example, an intention with destination "bravo" will be applied before
-"charlie" if the precedence number matches.
+intentions based on lexographical ordering of the destination then
+source name. In practice, this is a moot point since authorizing a connection
+has an exact source and destination value so its impossible for two
+valid non-wildcard intentions to match.
+
+The numbers in the table above are not stable. Their ordering will remain
+fixed but the actual number values may change in the future.
+The numbers are non-contiguous because there are
+some unused values in the middle in preparation for a future version of
+Consul supporting namespaces.
 
 ## Intention Management Permissions
 
