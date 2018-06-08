@@ -217,11 +217,11 @@ func (x *Intention) GetACLPrefix() (string, bool) {
 
 // String returns a human-friendly string for this intention.
 func (x *Intention) String() string {
-	return fmt.Sprintf("%s %s/%s => %s/%s (ID: %s)",
+	return fmt.Sprintf("%s %s/%s => %s/%s (ID: %s, Precedence: %d)",
 		strings.ToUpper(string(x.Action)),
 		x.SourceNS, x.SourceName,
 		x.DestinationNS, x.DestinationName,
-		x.ID)
+		x.ID, x.Precedence)
 }
 
 // IntentionAction is the action that the intention represents. This

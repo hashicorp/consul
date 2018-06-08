@@ -273,6 +273,9 @@ func TestStore_IntentionsList(t *testing.T) {
 			},
 		},
 	}
+	for i := range expected {
+		expected[i].UpdatePrecedence() // to match what is returned...
+	}
 	idx, actual, err := s.Intentions(nil)
 	assert.NoError(err)
 	assert.Equal(idx, uint64(2))
@@ -496,6 +499,8 @@ func TestStore_Intention_Snapshot_Restore(t *testing.T) {
 
 	// Verify the snapshot.
 	assert.Equal(snap.LastIndex(), uint64(6))
+
+	// Expect them sorted in insertion order
 	expected := structs.Intentions{
 		&structs.Intention{
 			ID:              ixns[0].ID,
@@ -525,6 +530,9 @@ func TestStore_Intention_Snapshot_Restore(t *testing.T) {
 			},
 		},
 	}
+	for i := range expected {
+		expected[i].UpdatePrecedence() // to match what is returned...
+	}
 	dump, err := snap.Intentions()
 	assert.NoError(err)
 	assert.Equal(expected, dump)
@@ -538,7 +546,10 @@ func TestStore_Intention_Snapshot_Restore(t *testing.T) {
 		}
 		restore.Commit()
 
-		// Read the restored values back out and verify that they match.
+		// Read the restored values back out and verify that they match. Note that
+		// Intentions are returned precedence sorted unlike the snapshot so we need
+		// to rearrange the expected slice some.
+		expected[0], expected[1], expected[2] = expected[1], expected[2], expected[0]
 		idx, actual, err := s.Intentions(nil)
 		assert.NoError(err)
 		assert.Equal(idx, uint64(6))

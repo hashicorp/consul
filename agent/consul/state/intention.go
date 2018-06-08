@@ -106,6 +106,11 @@ func (s *Snapshot) Intentions() (structs.Intentions, error) {
 
 	var ret structs.Intentions
 	for wrapped := ixns.Next(); wrapped != nil; wrapped = ixns.Next() {
+		// Update precedence values for consistency (i.e. the object returned should
+		// be usable/comparable to the ones returned from Intentions() and Match()
+		// etc.)
+		ixn := wrapped.(*structs.Intention)
+		ixn.UpdatePrecedence()
 		ret = append(ret, wrapped.(*structs.Intention))
 	}
 
@@ -142,7 +147,9 @@ func (s *Store) Intentions(ws memdb.WatchSet) (uint64, structs.Intentions, error
 
 	var results structs.Intentions
 	for ixn := iter.Next(); ixn != nil; ixn = iter.Next() {
-		results = append(results, ixn.(*structs.Intention))
+		ixnReal := ixn.(*structs.Intention)
+		ixnReal.UpdatePrecedence()
+		results = append(results, ixnReal)
 	}
 
 	// Sort by precedence just because that's nicer and probably what most clients
@@ -317,7 +324,9 @@ func (s *Store) IntentionMatch(ws memdb.WatchSet, args *structs.IntentionQueryMa
 			ws.Add(iter.WatchCh())
 
 			for ixn := iter.Next(); ixn != nil; ixn = iter.Next() {
-				ixns = append(ixns, ixn.(*structs.Intention))
+				ixnReal := ixn.(*structs.Intention)
+				ixnReal.UpdatePrecedence()
+				ixns = append(ixns, ixnReal)
 			}
 		}
 
