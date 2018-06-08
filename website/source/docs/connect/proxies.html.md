@@ -124,7 +124,7 @@ service.
       "config": {
         "upstreams": [{
             "destination_name": "nearest-redis",
-			"destination_type": "prepared_query",
+            "destination_type": "prepared_query",
             "local_bind_port": 1234
         }]
       }
@@ -146,6 +146,47 @@ at runtime, it must currently [natively integrate](/docs/connect/native.html)
 with Connect. After natively integrating, the HTTP API or
 [DNS interface](/docs/agent/dns.html#connect-capable-service-lookups)
 can be used.
+
+### Custom Managed Proxy
+
+[Custom proxies](/docs/connect/proxies/integrate.html) can also be
+configured to run as a managed proxy. To configure custom proxies, specify
+an alternate command to execute for the proxy:
+
+```
+{
+  "service": "web",
+  "connect": {
+    "proxy": {
+      "exec_mode": "daemon",
+      "command":   ["/usr/bin/my-proxy", "-flag-example"]
+      }
+    }
+  }
+}
+```
+
+The `exec_mode` value specifies how the proxy is executed. The only
+supported value at this time is "daemon". The command is the binary and
+any arguments to execute.
+The "daemon" mode expects a proxy to run as a long-running, blocking
+process. It should not double-fork into the background. The custom
+proxy should retrieve its configuration (such as the port to run on)
+via the [custom proxy integration APIs](/docs/connect/proxies/integrate.html).
+
+The default proxy command can be changed at an agent-global level
+in the agent configuration. An example in HCL format is shown below.
+
+```
+connect {
+  proxy_defaults {
+    command = ["/usr/bin/my-proxy"]
+  }
+}
+```
+
+With this configuration, all services registered without an explicit
+proxy command will use `my-proxy` instead of the default built-in proxy.
 
 ## Unmanaged Proxies
 

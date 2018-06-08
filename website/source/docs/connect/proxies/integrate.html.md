@@ -52,7 +52,8 @@ root certificates from the
 
 ## Managed Mode Support
 
-If the proxy could run as a managed proxy, then it should accept the following
+Any custom proxy can also run as a [custom managed proxy](/docs/connect/proxies.html#custom-managed-proxy).
+If you want the proxy you're integrating to support this mode, then it should accept
 two environment variables that Consul populates on process startup. These
 are both required to make the necessary API requests for configuration.
 
