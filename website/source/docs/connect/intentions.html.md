@@ -153,6 +153,8 @@ Updates to intentions are propagated nearly instantly to agents since agents
 maintain a continuous blocking query in the background for intention updates
 for registered services.
 
-Because all the intention data is cached locally, the agents can fail open.
+Because all the intention data is cached locally, the agents can fail static.
 Even if the agents are severed completely from the Consul servers, inbound
 connection authorization continues to work for a configured amount of time.
+Changes to intentions will not be picked up until the partition heals, but 
+will then automatically take effect when connectivity is restored.
