@@ -2,28 +2,40 @@
     <fieldset>
         <label class="type-text{{if item.error.SourceName ' has-error'}}">
             <span>Source Service</span>
-            {{#power-select
+            {{#power-select-with-create
               options=items
               searchField='Name'
               selected=SourceName
               searchPlaceholder='Type service name'
-              onchange=(action 'change' 'SourceName') as |service|
+              buildSuggestion=(action 'createNewLabel')
+              oncreate=(action 'change' 'SourceName')
+              onchange=(action 'change' 'SourceName') as |service search|
             }}
-              {{service.Name}}
-            {{/power-select}}
+              {{#if (eq service.Name '*') }}
+                * (All Services)
+              {{else}}
+                {{service.Name}}
+              {{/if}}
+            {{/power-select-with-create}}
             <em>Choose a Consul Service, write in a future Consul Service, or write any Service URL</em>
         </label>
         <label class="type-text{{if item.error.DestinationName ' has-error'}}">
             <span>Destination Service</span>
-            {{#power-select
+            {{#power-select-with-create
               options=items
               searchField='Name'
               selected=DestinationName
               searchPlaceholder='Type service name'
+              buildSuggestion=(action 'createNewLabel')
+              oncreate=(action 'change' 'DestinationName')
               onchange=(action 'change' 'DestinationName') as |service|
             }}
-              {{service.Name}}
-            {{/power-select}}
+              {{#if (eq service.Name '*') }}
+                * (All Services)
+              {{else}}
+                {{service.Name}}
+              {{/if}}
+            {{/power-select-with-create}}
             <em>Choose a Consul Service, write in a future Consul Service, or write any Service URL</em>
         </label>
         <div role="radiogroup" class={{if item.error.Action ' has-error'}}>

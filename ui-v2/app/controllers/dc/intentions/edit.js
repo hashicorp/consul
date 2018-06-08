@@ -18,18 +18,31 @@ export default Controller.extend({
     });
   },
   actions: {
+    createNewLabel: function(term) {
+      return `Use a future Consul Service called '${term}'`;
+    },
     change: function(e, value, _target) {
       // normalize back to standard event
       const target = e.target || { ..._target, ...{ name: e, value: value } };
       switch (target.name) {
         case 'Action':
           set(this.changeset, target.name, target.value);
-          console.log(target.name, target.value, get(this.changeset, target.name));
           break;
         case 'SourceName':
         case 'DestinationName':
-          set(this.changeset, target.name, get(target.value, 'Name'));
-          set(this, target.name, target.value);
+          let name = target.value;
+          let selected = target.value;
+          if (typeof name !== 'string') {
+            name = get(target.value, 'Name');
+          }
+          const match = get(this, 'items').filterBy('Name', name);
+          if (match.length === 0) {
+            selected = { Name: name };
+            const items = [selected].concat(this.items.toArray());
+            set(this, 'items', items);
+          }
+          set(this.changeset, target.name, name);
+          set(this, target.name, selected);
           break;
       }
     },

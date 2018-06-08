@@ -20,6 +20,13 @@ export default Route.extend(WithIntentionActions, {
       item: this.item,
       items: get(this, 'servicesRepo').findAllByDatacenter(this.modelFor('dc').dc.Name),
       intents: ['allow', 'deny'],
+    }).then(function(model) {
+      return {
+        ...model,
+        ...{
+          items: [{ Name: '*' }].concat(model.items.toArray()),
+        },
+      };
     });
   },
   setupController: function(controller, model) {

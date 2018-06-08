@@ -14,6 +14,13 @@ export default Route.extend(WithAclActions, {
       item: get(this, 'repo').findBySlug(params.id, this.modelFor('dc').dc.Name),
       items: get(this, 'servicesRepo').findAllByDatacenter(this.modelFor('dc').dc.Name),
       intents: ['allow', 'deny'],
+    }).then(function(model) {
+      return {
+        ...model,
+        ...{
+          items: [{ Name: '*' }].concat(model.items.toArray()),
+        },
+      };
     });
   },
   setupController: function(controller, model) {
