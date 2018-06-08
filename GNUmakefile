@@ -20,13 +20,27 @@ GOOS=$(shell go env GOOS)
 GOARCH=$(shell go env GOARCH)
 GOPATH=$(shell go env GOPATH)
 
+ASSETFS_PATH?=agent/bindata_assetfs.go
 # Get the git commit
-GIT_COMMIT=$(shell git rev-parse --short HEAD)
-GIT_DIRTY=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true)
-GIT_DESCRIBE=$(shell git describe --tags --always)
+GIT_COMMIT?=$(shell git rev-parse --short HEAD)
+GIT_DIRTY?=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true)
+GIT_DESCRIBE?=$(shell git describe --tags --always)
 GIT_IMPORT=github.com/hashicorp/consul/version
 GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY) -X $(GIT_IMPORT).GitDescribe=$(GIT_DESCRIBE)
 
+GO_BUILD_TAG?=consul-build-go
+UI_BUILD_TAG?=consul-build-ui
+UI_LEGACY_BUILD_TAG?=consul-build-ui-legacy
+BUILD_CONTAINER_NAME?=consul-builder
+
+export GO_BUILD_TAG
+export UI_BUILD_TAG
+export UI_LEGACY_BUILD_TAG
+export BUILD_CONTAINER_NAME
+export GIT_COMMIT
+export GIT_DIRTY
+export GIT_DESCRIBE
+export GOTAGS
 export GOLDFLAGS
 
 # all builds binaries for all targets
@@ -121,10 +135,37 @@ ui:
 # also run as part of the release build script when it verifies that there are no
 # changes to the UI assets that aren't checked in.
 static-assets:
-	@go-bindata-assetfs -pkg agent -prefix pkg -o agent/bindata_assetfs.go ./pkg/web_ui/...
+	@go-bindata-assetfs -pkg agent -prefix pkg -o $(ASSETFS_PATH) ./pkg/web_ui/...
 	$(MAKE) format
 
 tools:
 	go get -u -v $(GOTOOLS)
 
-.PHONY: all ci bin dev dist cov test cover format vet ui static-assets tools vendorfmt
+docker-images:
+	@$(MAKE) -C build-support/docker images
+
+go-build-image:
+	@$(MAKE) -C build-support/docker go-build-image
+	
+ui-build-image:
+	@$(MAKE) -C build-support/docker ui-build-image
+	
+ui-legacy-build-image:
+	@$(MAKE) -C build-support/docker ui-legacy-build-image
+
+static-assets-docker: go-build-image
+	@$(SHELL) $(CURDIR)/build-support/scripts/build.sh assetfs	
+	
+go-docker: go-build-image
+	@$(SHELL) $(CURDIR)/build-support/scripts/build.sh consul
+	
+ui-docker: ui-build-image
+	@$(SHELL) $(CURDIR)/build-support/scripts/build.sh ui
+	
+ui-legacy-docker: ui-legacy-build-image
+	@$(SHELL) $(CURDIR)/build-support/scripts/build.sh ui-legacy
+	
+release-docker: ui-docker ui-legacy-docker static-assets-docker go-docker
+	
+.PHONY: all ci bin dev dist cov test cover format vet ui static-assets tools vendorfmt 
+.PHONY: docker-images go-build-iamge ui-build-image ui-legacy-build-image static-assets-docker go-docker ui-docker ui-legacy-docker release-docker

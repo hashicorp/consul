@@ -29,12 +29,19 @@ module.exports = function(environment) {
   };
   ENV = Object.assign({}, ENV, {
     CONSUL_GIT_SHA: (function() {
+      if (process.env.CONSUL_GIT_SHA) {
+        return process.env.CONSUL_GIT_SHA
+      }
+      
       return require('child_process')
         .execSync('git rev-parse --short HEAD')
         .toString()
         .trim();
     })(),
     CONSUL_VERSION: (function() {
+      if (process.env.CONSUL_VERSION) {
+        return process.env.CONSUL_VERSION
+      }
       // see /scripts/dist.sh:8
       const version_go = `${path.dirname(path.dirname(__dirname))}/version/version.go`;
       const contents = fs.readFileSync(version_go).toString();
@@ -46,6 +53,13 @@ module.exports = function(environment) {
         .trim()
         .split('"')[1];
     })(),
+    CONSUL_BINARY_TYPE: (function() {
+      if (process.env.CONSUL_BINARY_TYPE) {
+        return process.env.CONSUL_BINARY_TYPE
+      }
+      
+      return "oss"
+    }),
     CONSUL_DOCUMENTATION_URL: 'https://www.consul.io/docs',
     CONSUL_COPYRIGHT_URL: 'https://www.hashicorp.com',
     CONSUL_COPYRIGHT_YEAR: '2018',
