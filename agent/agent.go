@@ -73,6 +73,7 @@ type delegate interface {
 	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error
 	Shutdown() error
 	Stats() map[string]map[string]string
+	enterpriseDelegate
 }
 
 // notifier is called after a successful JoinLAN.
@@ -646,14 +647,19 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 
 	// Determine the primary http(s) endpoint.
 	var netaddr net.Addr
+	https := false
 	if len(cfg.HTTPAddrs) > 0 {
 		netaddr = cfg.HTTPAddrs[0]
 	} else {
 		netaddr = cfg.HTTPSAddrs[0]
+		https = true
 	}
 	addr := netaddr.String()
 	if netaddr.Network() == "unix" {
 		addr = "unix://" + addr
+		https = false
+	} else if https {
+		addr = "https://" + addr
 	}
 
 	// Fire off a goroutine for each new watch plan.
@@ -669,7 +675,19 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 				wp.Handler = makeHTTPWatchHandler(a.LogOutput, httpConfig)
 			}
 			wp.LogOutput = a.LogOutput
-			if err := wp.Run(addr); err != nil {
+
+			config := api.DefaultConfig()
+			if https {
+				if a.config.CAPath != "" {
+					config.TLSConfig.CAPath = a.config.CAPath
+				}
+				if a.config.CAFile != "" {
+					config.TLSConfig.CAFile = a.config.CAFile
+				}
+				config.TLSConfig.Address = addr
+			}
+
+			if err := wp.RunWithConfig(addr, config); err != nil {
 				a.logger.Printf("[ERR] agent: Failed to run watch: %v", err)
 			}
 		}(wp)

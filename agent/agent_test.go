@@ -2206,3 +2206,23 @@ func TestAgent_reloadWatches(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 }
+
+func TestAgent_reloadWatchesHTTPS(t *testing.T) {
+	t.Parallel()
+	a := TestAgent{Name: t.Name(), UseTLS: true}
+	a.Start()
+	defer a.Shutdown()
+
+	// Normal watch with http addr set, should succeed
+	newConf := *a.config
+	newConf.Watches = []map[string]interface{}{
+		{
+			"type": "key",
+			"key":  "asdf",
+			"args": []interface{}{"ls"},
+		},
+	}
+	if err := a.reloadWatches(&newConf); err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+}

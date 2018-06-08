@@ -31,6 +31,15 @@ func (e MethodNotAllowedError) Error() string {
 	return fmt.Sprintf("method %s not allowed", e.Method)
 }
 
+// BadRequestError should be returned by a handler when parameters or the payload are not valid
+type BadRequestError struct {
+	Reason string
+}
+
+func (e BadRequestError) Error() string {
+	return fmt.Sprintf("Bad request: %s", e.Reason)
+}
+
 // HTTPServer provides an HTTP api for an agent.
 type HTTPServer struct {
 	*http.Server
@@ -249,6 +258,11 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 			return ok
 		}
 
+		isBadRequest := func(err error) bool {
+			_, ok := err.(BadRequestError)
+			return ok
+		}
+
 		addAllowHeader := func(methods []string) {
 			resp.Header().Add("Allow", strings.Join(methods, ","))
 		}
@@ -268,6 +282,9 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 				// https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
 				addAllowHeader(err.(MethodNotAllowedError).Allow)
 				resp.WriteHeader(http.StatusMethodNotAllowed) // 405
+				fmt.Fprint(resp, err.Error())
+			case isBadRequest(err):
+				resp.WriteHeader(http.StatusBadRequest)
 				fmt.Fprint(resp, err.Error())
 			default:
 				resp.WriteHeader(http.StatusInternalServerError)
