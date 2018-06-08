@@ -160,7 +160,6 @@ an alternate command to execute for the proxy:
     "proxy": {
       "exec_mode": "daemon",
       "command":   ["/usr/bin/my-proxy", "-flag-example"]
-      }
     }
   }
 }
