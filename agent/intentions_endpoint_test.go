@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"sort"
 	"testing"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -37,8 +36,9 @@ func TestIntentionsList_values(t *testing.T) {
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
-	// Create some intentions
-	for _, v := range []string{"foo", "bar"} {
+	// Create some intentions, note we create the lowest precedence first to test
+	// sorting.
+	for _, v := range []string{"*", "foo", "bar"} {
 		req := structs.IntentionRequest{
 			Datacenter: "dc1",
 			Op:         structs.IntentionOpCreate,
@@ -54,14 +54,17 @@ func TestIntentionsList_values(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/v1/connect/intentions", nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.IntentionList(resp, req)
-	assert.Nil(err)
+	assert.NoError(err)
 
 	value := obj.(structs.Intentions)
-	assert.Len(value, 2)
+	assert.Len(value, 3)
 
-	expected := []string{"bar", "foo"}
-	actual := []string{value[0].SourceName, value[1].SourceName}
-	sort.Strings(actual)
+	expected := []string{"bar", "foo", "*"}
+	actual := []string{
+		value[0].SourceName,
+		value[1].SourceName,
+		value[2].SourceName,
+	}
 	assert.Equal(expected, actual)
 }
 

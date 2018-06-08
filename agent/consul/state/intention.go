@@ -144,6 +144,11 @@ func (s *Store) Intentions(ws memdb.WatchSet) (uint64, structs.Intentions, error
 	for ixn := iter.Next(); ixn != nil; ixn = iter.Next() {
 		results = append(results, ixn.(*structs.Intention))
 	}
+
+	// Sort by precedence just because that's nicer and probably what most clients
+	// want for presentation.
+	sort.Sort(structs.IntentionPrecedenceSorter(results))
+
 	return idx, results, nil
 }
 
