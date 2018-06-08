@@ -417,6 +417,14 @@ func setTranslateAddr(resp http.ResponseWriter, active bool) {
 
 // setIndex is used to set the index response header
 func setIndex(resp http.ResponseWriter, index uint64) {
+	// If we ever return X-Consul-Index of 0 blocking clients will go into a busy
+	// loop and hammer us since ?index=0 will never block. It's always safe to
+	// return index=1 since the very first Raft write is always an internal one
+	// writing the raft config for the cluster so no user-facing blocking query
+	// will ever legitimately have an X-Consul-Index of 1.
+	if index == 0 {
+		index = 1
+	}
 	resp.Header().Set("X-Consul-Index", strconv.FormatUint(index, 10))
 }
 
