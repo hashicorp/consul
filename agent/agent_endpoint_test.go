@@ -2816,7 +2816,7 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 				r.Fatalf("leaf has not updated")
 			}
 
-			// Got a new leaf. Sanity check it's a whole new key as well as differnt
+			// Got a new leaf. Sanity check it's a whole new key as well as different
 			// cert.
 			if issued.PrivateKeyPEM == issued2.PrivateKeyPEM {
 				r.Fatalf("new leaf has same private key as before")
@@ -2903,14 +2903,14 @@ func TestAgentConnectProxyConfig_Blocking(t *testing.T) {
 			"local_service_address": "127.0.0.1:8000",
 			"bind_port":             float64(1234),
 			"connect_timeout_ms":    float64(500),
-			"telemetry":             telemetryDefaults,
+			"telemetry":             makeTelemetryDefaults("test"),
 		},
 	}
 
 	ur, err := copystructure.Copy(expectedResponse)
 	require.NoError(t, err)
 	updatedResponse := ur.(*api.ConnectProxyConfig)
-	updatedResponse.ContentHash = "8f68aa2a4ba81b06"
+	updatedResponse.ContentHash = "29d7e419862bc848"
 	upstreams := updatedResponse.Config["upstreams"].([]interface{})
 	upstreams = append(upstreams,
 		map[string]interface{}{
@@ -3248,9 +3248,11 @@ func TestAgentConnectProxyConfig_aclServiceReadDeny(t *testing.T) {
 	require.True(acl.IsErrPermissionDenied(err))
 }
 
-var telemetryDefaults = map[string]interface{}{
-	"FilterDefault": true,
-	"MetricsPrefix": "consul",
+func makeTelemetryDefaults(targetID string) map[string]interface{} {
+	return map[string]interface{}{
+		"FilterDefault": true,
+		"MetricsPrefix": "consul.proxy." + targetID,
+	}
 }
 
 func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
@@ -3304,7 +3306,7 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 				"bind_address":          "0.0.0.0",
 				"bind_port":             10000,            // "randomly" chosen from our range of 1
 				"local_service_address": "127.0.0.1:8000", // port from service reg
-				"telemetry":             telemetryDefaults,
+				"telemetry":             makeTelemetryDefaults(reg.ID),
 			},
 		},
 		{
@@ -3333,7 +3335,7 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 				"bind_address":          "0.0.0.0",
 				"bind_port":             10000,            // "randomly" chosen from our range of 1
 				"local_service_address": "127.0.0.1:8000", // port from service reg
-				"telemetry":             telemetryDefaults,
+				"telemetry":             makeTelemetryDefaults(reg.ID),
 			},
 		},
 		{
@@ -3362,7 +3364,7 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 				"bind_address":          "0.0.0.0",
 				"bind_port":             10000,            // "randomly" chosen from our range of 1
 				"local_service_address": "127.0.0.1:8000", // port from service reg
-				"telemetry":             telemetryDefaults,
+				"telemetry":             makeTelemetryDefaults(reg.ID),
 			},
 		},
 		{
@@ -3398,7 +3400,7 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 				"local_service_address": "127.0.0.1:8000", // port from service reg
 				"connect_timeout_ms":    1000,
 				"foo":                   "bar",
-				"telemetry":             telemetryDefaults,
+				"telemetry":             makeTelemetryDefaults(reg.ID),
 			},
 		},
 		{
@@ -3441,7 +3443,7 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 				"bind_port":             float64(1024),
 				"local_service_address": "127.0.0.1:9191",
 				"connect_timeout_ms":    float64(2000),
-				"telemetry":             telemetryDefaults,
+				"telemetry":             makeTelemetryDefaults(reg.ID),
 			},
 		},
 	}

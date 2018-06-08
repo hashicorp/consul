@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/connect"
+	"github.com/hashicorp/consul/lib"
 )
 
 // Proxy implements the built-in connect proxy.
@@ -43,6 +44,15 @@ func (p *Proxy) Serve() error {
 
 			if cfg == nil {
 				// Initial setup
+
+				// Setup telemetry if configured
+				if len(newCfg.Telemetry) > 0 {
+					p.logger.Printf("[DEBUG] got Telemetry confg: %v", newCfg.Telemetry)
+					_, err := lib.StartupTelemetry(newCfg.Telemetry)
+					if err != nil {
+						p.logger.Printf("[ERR] proxy telemetry config error: %s", err)
+					}
+				}
 
 				// Setup Service instance now we know target ID etc
 				service, err := newCfg.Service(p.client, p.logger)

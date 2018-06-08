@@ -265,6 +265,10 @@ func (w *AgentConfigWatcher) handler(blockVal watch.BlockingParamVal,
 		ProxiedServiceNamespace: "default",
 	}
 
+	if t, ok := resp.Config["telemetry"].(map[string]interface{}); ok {
+		cfg.Telemetry = t
+	}
+
 	// Unmarshal configs
 	err := mapstructure.Decode(resp.Config, &cfg.PublicListener)
 	if err != nil {

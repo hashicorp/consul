@@ -1064,6 +1064,9 @@ func (s *HTTPServer) AgentConnectProxyConfig(resp http.ResponseWriter, req *http
 			// Add telemetry config
 			telemetry := s.agent.config.TelemetryConfig(false)
 			if len(telemetry) > 0 {
+				// Rely on the fact that TelemetryConfig makes a new map each call to
+				// override the prefix here without affecting other callers.
+				telemetry["MetricsPrefix"] = "consul.proxy." + target.ID
 				config["telemetry"] = telemetry
 			}
 
