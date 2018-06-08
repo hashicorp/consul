@@ -8,12 +8,24 @@ import validations from 'consul-ui/validations/intention';
 export default Controller.extend({
   setProperties: function(model) {
     this.changeset = new Changeset(model.item, lookupValidator(validations), validations);
+    const sourceName = get(model.item, 'SourceName');
+    const destinationName = get(model.item, 'DestinationName');
+    let source = model.items.findBy('Name', sourceName);
+    let destination = model.items.findBy('Name', destinationName);
+    if (!source) {
+      source = { Name: sourceName };
+      model.items = [source].concat(model.items);
+    }
+    if (!destination) {
+      destination = { Name: destinationName };
+      model.items = [destination].concat(model.items);
+    }
     this._super({
       ...model,
       ...{
         item: this.changeset,
-        SourceName: model.items.filterBy('Name', get(model.item, 'SourceName'))[0],
-        DestinationName: model.items.filterBy('Name', get(model.item, 'DestinationName'))[0],
+        SourceName: source,
+        DestinationName: destination,
       },
     });
   },
