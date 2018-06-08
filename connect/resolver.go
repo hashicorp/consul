@@ -139,8 +139,7 @@ func (cr *ConsulResolver) resolveService(ctx context.Context) (string, connect.C
 		idx = rand.Intn(len(svcs))
 	}
 
-	addr, certURI := cr.resolveServiceEntry(svcs[idx])
-	return addr, certURI, nil
+	return cr.resolveServiceEntry(svcs[idx])
 }
 
 func (cr *ConsulResolver) resolveQuery(ctx context.Context) (string, connect.CertURI, error) {
@@ -160,11 +159,10 @@ func (cr *ConsulResolver) resolveQuery(ctx context.Context) (string, connect.Cer
 		idx = rand.Intn(len(svcs))
 	}
 
-	addr, certURI := cr.resolveServiceEntry(&svcs[idx])
-	return addr, certURI, nil
+	return cr.resolveServiceEntry(&svcs[idx])
 }
 
-func (cr *ConsulResolver) resolveServiceEntry(entry *api.ServiceEntry) (string, connect.CertURI) {
+func (cr *ConsulResolver) resolveServiceEntry(entry *api.ServiceEntry) (string, connect.CertURI, error) {
 	addr := entry.Service.Address
 	if addr == "" {
 		addr = entry.Node.Address
@@ -175,6 +173,11 @@ func (cr *ConsulResolver) resolveServiceEntry(entry *api.ServiceEntry) (string, 
 	if entry.Service.Connect != nil && entry.Service.Connect.Native {
 		service = entry.Service.Service
 	}
+	if service == "" {
+		// Shouldn't happen but to protect against bugs in agent API returning bad
+		// service response...
+		return "", nil, fmt.Errorf("not a valid connect service")
+	}
 
 	// Generate the expected CertURI
 	certURI := &connect.SpiffeIDService{
@@ -184,7 +187,7 @@ func (cr *ConsulResolver) resolveServiceEntry(entry *api.ServiceEntry) (string, 
 		Service:    service,
 	}
 
-	return fmt.Sprintf("%s:%d", addr, port), certURI
+	return fmt.Sprintf("%s:%d", addr, port), certURI, nil
 }
 
 func (cr *ConsulResolver) queryOptions(ctx context.Context) *api.QueryOptions {
