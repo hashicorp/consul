@@ -1848,11 +1848,6 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 					check.CheckID, checks.MinInterval))
 				chkType.Interval = checks.MinInterval
 			}
-			if chkType.Script != "" {
-				a.logger.Printf("[WARN] agent: check %q has the 'script' field, which has been deprecated "+
-					"and replaced with the 'args' field. See https://www.consul.io/docs/agent/checks.html",
-					check.CheckID)
-			}
 
 			if a.dockerClient == nil {
 				dc, err := checks.NewDockerClient(os.Getenv("DOCKER_HOST"), checks.BufSize)
@@ -1889,11 +1884,6 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				a.logger.Printf("[WARN] agent: check '%s' has interval below minimum of %v",
 					check.CheckID, checks.MinInterval)
 				chkType.Interval = checks.MinInterval
-			}
-			if chkType.Script != "" {
-				a.logger.Printf("[WARN] agent: check %q has the 'script' field, which has been deprecated "+
-					"and replaced with the 'args' field. See https://www.consul.io/docs/agent/checks.html",
-					check.CheckID)
 			}
 
 			monitor := &checks.CheckMonitor{
