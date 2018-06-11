@@ -32,6 +32,7 @@ import (
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logger"
+	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/watch"
 	"github.com/hashicorp/go-uuid"
@@ -194,6 +195,10 @@ type Agent struct {
 	// be updated at runtime, so should always be used instead of going to
 	// the configuration directly.
 	tokens *token.Store
+
+	// tlsLoader dynamically reloads TLS configuration.
+	tlsLoader     *tlsutil.Loader
+	tlsLoaderLock sync.Mutex
 }
 
 func New(c *config.RuntimeConfig) (*Agent, error) {
@@ -253,6 +258,19 @@ func LocalConfig(cfg *config.RuntimeConfig) local.Config {
 	return lc
 }
 
+// GetTLSLoader returns the TLS configuration loader for an Agent object.
+// If the loader has not been initialized, it will first do so.
+func (a *Agent) GetTLSLoader() *tlsutil.Loader {
+	a.tlsLoaderLock.Lock()
+	defer a.tlsLoaderLock.Unlock()
+
+	// If the loader has not yet been initialized, do it here
+	if a.tlsLoader == nil {
+		a.tlsLoader = &tlsutil.Loader{}
+	}
+	return a.tlsLoader
+}
+
 func (a *Agent) Start() error {
 	c := a.config
 
@@ -287,6 +305,14 @@ func (a *Agent) Start() error {
 	// create the state synchronization manager which performs
 	// regular and on-demand state synchronizations (anti-entropy).
 	a.sync = ae.NewStateSyncer(a.State, c.AEInterval, a.shutdownCh, a.logger)
+
+	tc, err := c.TLSConfig()
+	if err == nil {
+		err = a.GetTLSLoader().Reload(tc)
+	}
+	if err != nil {
+		return fmt.Errorf("Failed to setup TLS configuration: %v", err)
+	}
 
 	// create the config for the rpc server/client
 	consulCfg, err := a.consulConfig()
@@ -458,7 +484,7 @@ func (a *Agent) listenHTTP() ([]*HTTPServer, error) {
 				l = &tcpKeepAliveListener{l.(*net.TCPListener)}
 
 				if proto == "https" {
-					tlscfg, err = a.config.IncomingHTTPSConfig()
+					tlscfg, err = a.GetTLSLoader().IncomingTLSConfig()
 					if err != nil {
 						return err
 					}
@@ -698,56 +724,11 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 // reloadTLSConfig performs TLS config reloads. Must be called from HandleReload.
 // This currently only handles changes to the key pair (CertFile and KeyFile).
 func (a *Agent) reloadTLSConfig(newCfg *config.RuntimeConfig) error {
-	haveNewPair := newCfg.CertFile != "" && newCfg.KeyFile != ""
-	haveOldPair := a.config.CertFile != "" && a.config.KeyFile != ""
-
-	if haveNewPair != haveOldPair {
-		// unimplemented: enabling or disabling TLS while running
-		if haveNewPair {
-			return fmt.Errorf("Cannot enable TLS while running")
-		} else {
-			return fmt.Errorf("Cannot disable TLS while running")
-		}
+	tc, err := newCfg.TLSConfig()
+	if err == nil {
+		err = a.GetTLSLoader().Reload(tc)
 	}
-
-	if newCfg.VerifyIncoming != a.config.VerifyIncoming {
-		return fmt.Errorf("Cannot modify verify-incoming while running")
-	}
-	if newCfg.VerifyOutgoing != a.config.VerifyOutgoing {
-		return fmt.Errorf("Cannot modify verify-outgoing while running")
-	}
-
-	// TODO(ag) : Support reloading CA cert.
-	if newCfg.CAFile != a.config.CAFile || newCfg.CAPath != a.config.CAPath {
-		return fmt.Errorf("Cannot modify CA certs while running")
-	}
-
-	// TODO(ag) : Support reloading node/server name and TLS cipher config.
-	if newCfg.NodeName != a.config.NodeName {
-		return fmt.Errorf("Cannot modify node name while running")
-	}
-	if newCfg.ServerName != a.config.ServerName {
-		return fmt.Errorf("Cannot modify server name while running")
-	}
-	minverMismatch := newCfg.TLSMinVersion != a.config.TLSMinVersion
-	// cipher compare is not 100% correct, but should be fine for catching changes
-	cipherMismatch := len(newCfg.TLSCipherSuites) != len(a.config.TLSCipherSuites)
-	preferMismatch := newCfg.TLSPreferServerCipherSuites != a.config.TLSPreferServerCipherSuites
-	if minverMismatch || cipherMismatch || preferMismatch {
-		return fmt.Errorf("Cannot modify TLS cipher suites while running")
-	}
-
-	// Phew, everything is compatible, so reload key pair
-	_, err := a.config.GetKeyLoader().LoadKeyPair(newCfg.CertFile, newCfg.KeyFile)
-	if err != nil {
-		return err
-	}
-
-	// Successfully reloaded key pair, so update local config to reflect that
-	a.config.CertFile = newCfg.CertFile
-	a.config.KeyFile = newCfg.KeyFile
-
-	return nil
+	return err
 }
 
 // consulConfig is used to return a consul configuration
@@ -926,7 +907,6 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	base.CAPath = a.config.CAPath
 	base.CertFile = a.config.CertFile
 	base.KeyFile = a.config.KeyFile
-	base.KeyLoader = a.config.GetKeyLoader()
 	base.ServerName = a.config.ServerName
 	base.Domain = a.config.DNSDomain
 	base.TLSMinVersion = a.config.TLSMinVersion
@@ -2007,14 +1987,19 @@ func (a *Agent) setupAgentTLSClientConfig(skipVerify bool) (*tls.Config, error) 
 // setupCheckTLSClientConfig returns TLS client configuration for performing
 // checks.
 func (a *Agent) setupCheckTLSClientConfig(skipVerify bool) (*tls.Config, error) {
-	// Start with the outgoing TLS config for connecting for checks
-	tlscfg, err := a.config.OutgoingCheckTLSConfig()
+	if !a.config.EnableAgentTLSForChecks {
+		// Check TLS disabled, so return empty TLS configuration
+		return nil, nil
+	}
+
+	// Start with the outgoing TLS config
+	tlscfg, err := a.GetTLSLoader().OutgoingTLSConfig()
 	if err != nil {
 		return tlscfg, err
 	}
 
 	if tlscfg == nil {
-		// Check TLS disabled, so no TLS config
+		// Outgoing TLS disabled, so no TLS config
 		return nil, nil
 	}
 
@@ -2589,6 +2574,12 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	}
 	a.unloadMetadata()
 
+	// Reload TLS configuration before service/check definitions so that changes may
+	// take effect.
+	if err := a.reloadTLSConfig(newCfg); err != nil {
+		return fmt.Errorf("Failed reloading TLS configuration: %s", err)
+	}
+
 	// Reload service/check definitions and metadata.
 	if err := a.loadServices(newCfg); err != nil {
 		return fmt.Errorf("Failed reloading services: %s", err)
@@ -2602,11 +2593,6 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 
 	if err := a.reloadWatches(newCfg); err != nil {
 		return fmt.Errorf("Failed reloading watches: %v", err)
-	}
-
-	// Reload TLS configuration.
-	if err := a.reloadTLSConfig(newCfg); err != nil {
-		return fmt.Errorf("Failed reloading TLS configuration: %s", err)
 	}
 
 	// Update filtered metrics

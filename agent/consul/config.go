@@ -188,9 +188,6 @@ type Config struct {
 	// Must be provided to serve TLS connections.
 	KeyFile string
 
-	// KeyLoader dynamically reloads TLS configuration.
-	KeyLoader *tlsutil.KeyLoader
-
 	// ServerName is used with the TLS certificate to ensure the name we
 	// provide matches the certificate
 	ServerName string
@@ -471,7 +468,6 @@ func (c *Config) tlsConfig() *tlsutil.Config {
 		CAPath:                   c.CAPath,
 		CertFile:                 c.CertFile,
 		KeyFile:                  c.KeyFile,
-		KeyLoader:                c.KeyLoader,
 		NodeName:                 c.NodeName,
 		ServerName:               c.ServerName,
 		Domain:                   c.Domain,
