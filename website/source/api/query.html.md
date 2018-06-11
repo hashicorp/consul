@@ -25,7 +25,7 @@ section for more details about how prepared queries work with Consul's ACL syste
 ### Prepared Query Templates
 
 Consul 0.6.4 and later support prepared query templates. These are created
-similar to static templates, except with some additional fields and features.
+similar to static queries, except with some additional fields and features.
 Here is an example prepared query template:
 
 ```json
@@ -171,15 +171,6 @@ The table below shows this endpoint's support for
   to the service being queried. If the client does not supply an ACL Token, the
   anonymous token will be used.
 
-- `Near` `(string: "")` - Specifies a node to sort near based on distance
-  sorting using [Network Coordinates](/docs/internals/coordinates.html). The
-  nearest instance to the specified node will be returned first, and subsequent
-  nodes in the response will be sorted in ascending order of estimated
-  round-trip times. If the node given does not exist, the nodes in the response
-  will be shuffled. Using `_agent` is supported, and will automatically return
-  results nearest the agent servicing the request. If unspecified, the response
-  will be shuffled by default.
-
 - `Service` `(Service: <required>)` - Specifies the structure to define the query's behavior.
 
   - `Service` `(string: <required>)` - Specifies the name of the service to
@@ -206,10 +197,33 @@ The table below shows this endpoint's support for
         failover, even if it is selected by both `NearestN` and is listed in
         `Datacenters`.
 
+  - `IgnoreCheckIDs` `(array<string>: nil)` - Specifies a list of check IDs that
+    should be ignored when filtering unhealthy instances. This is mostly useful
+    in an emergency or as a temporary measure when a health check is found to be
+    unreliable. Being able to ignore it in centrally-defined queries can be
+    simpler than de-registering the check as an interim solution until the check
+    can be fixed.
+
   - `OnlyPassing` `(bool: false)` - Specifies the behavior of the query's health
     check filtering. If this is set to false, the results will include nodes
     with checks in the passing as well as the warning states. If this is set to
     true, only nodes with checks in the passing state will be returned.
+    
+  - `Near` `(string: "")` - Specifies a node to sort near based on distance
+     sorting using [Network Coordinates](/docs/internals/coordinates.html). The
+     nearest instance to the specified node will be returned first, and subsequent
+     nodes in the response will be sorted in ascending order of estimated
+     round-trip times. If the node given does not exist, the nodes in the response
+     will be shuffled. If unspecified, the response will be shuffled by default.
+  
+       - `_agent` - Returns results nearest the agent servicing the request.    
+       - `_ip` - Returns results nearest to the node associated with the source IP
+         where the query was executed from. For HTTP the source IP is the remote
+         peer's IP address or the value of the X-Forwarded-For header with the
+         header taking precedence. For DNS the source IP is the remote peer's IP
+         address or the value of the ENDS client IP with the EDNS client IP
+         taking precedence.
+
 
   - `Tags` `(array<string>: nil)` - Specifies a list of service tags to filter
     the query results. For a service to pass the tag filter it must have *all*
@@ -474,7 +488,9 @@ Token will be used.
 
 - `near` `(string: "")` - Specifies to sort the resulting list in ascending
   order based on the estimated round trip time from that node. Passing
-  `?near=_agent` will use the agent's node for the sort. If this is not present,
+  `?near=_agent` will use the agent's node for the sort. Passing `?near=_ip`
+  will use the source IP of the request or the value of the X-Forwarded-For
+  header to lookup the node to use for the sort. If this is not present,
   the default behavior will shuffle the nodes randomly each time the query is
   executed.
 

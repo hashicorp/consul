@@ -23,7 +23,8 @@ Additionally, if the [`telemetry` configuration options](/docs/agent/options.htm
 are provided, the telemetry information will be streamed to a
 [statsite](http://github.com/armon/statsite) or [statsd](http://github.com/etsy/statsd) server where
 it can be aggregated and flushed to Graphite or any other metrics store. This
-information can also be viewed with the [metrics endpoint](/api/agent.html#view-metrics)
+information can also be viewed with the [metrics endpoint](/api/agent.html#view-metrics) in JSON
+format or using [Prometheus](https://prometheus.io/) format.
 
 Below is sample output of a telemetry dump:
 
@@ -87,6 +88,12 @@ These metrics are used to monitor the health of specific Consul agents.
     <td>counter</td>
   </tr>
   <tr>
+    <td>`consul.client.rpc.error.catalog_register.<node>`</td>
+    <td>This increments whenever a Consul agent receives an RPC error for a catalog register request.</td>
+    <td>errors</td>
+    <td>counter</td>
+  </tr>
+  <tr>
     <td>`consul.client.api.catalog_deregister.<node>`</td>
     <td>This increments whenever a Consul agent receives a catalog de-register request.</td>
     <td>requests</td>
@@ -96,6 +103,12 @@ These metrics are used to monitor the health of specific Consul agents.
     <td>`consul.client.api.success.catalog_deregister.<node>`</td>
     <td>This increments whenever a Consul agent successfully responds to a catalog de-register request.</td>
     <td>requests</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.client.rpc.error.catalog_deregister.<node>`</td>
+    <td>This increments whenever a Consul agent receives an RPC error for a catalog de-register request.</td>
+    <td>errors</td>
     <td>counter</td>
   </tr>
   <tr>
@@ -111,6 +124,12 @@ These metrics are used to monitor the health of specific Consul agents.
     <td>counter</td>
   </tr>
   <tr>
+    <td>`consul.client.rpc.error.catalog_datacenters.<node>`</td>
+    <td>This increments whenever a Consul agent receives an RPC error for a request to list datacenters.</td>
+    <td>errors</td>
+    <td>counter</td>
+  </tr>
+  <tr>
     <td>`consul.client.api.catalog_nodes.<node>`</td>
     <td>This increments whenever a Consul agent receives a request to list nodes from the catalog.</td>
     <td>requests</td>
@@ -120,6 +139,12 @@ These metrics are used to monitor the health of specific Consul agents.
     <td>`consul.client.api.success.catalog_nodes.<node>`</td>
     <td>This increments whenever a Consul agent successfully responds to a request to list nodes.</td>
     <td>requests</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.client.rpc.error.catalog_nodes.<node>`</td>
+    <td>This increments whenever a Consul agent receives an RPC error for a request to list nodes.</td>
+    <td>errors</td>
     <td>counter</td>
   </tr>
   <tr>
@@ -135,6 +160,12 @@ These metrics are used to monitor the health of specific Consul agents.
     <td>counter</td>
   </tr>
   <tr>
+    <td>`consul.client.rpc.error.catalog_services.<node>`</td>
+    <td>This increments whenever a Consul agent receives an RPC error for a request to list services.</td>
+    <td>errors</td>
+    <td>counter</td>
+  </tr>
+  <tr>
     <td>`consul.client.api.catalog_service_nodes.<node>`</td>
     <td>This increments whenever a Consul agent receives a request to list nodes offering a service.</td>
     <td>requests</td>
@@ -147,6 +178,12 @@ These metrics are used to monitor the health of specific Consul agents.
     <td>counter</td>
   </tr>
   <tr>
+    <td>`consul.client.rpc.error.catalog_service_nodes.<node>`</td>
+    <td>This increments whenever a Consul agent receives an RPC error for a request to list nodes offering a service.</td>
+    <td>errors</td>
+    <td>counter</td>
+  </tr>
+  <tr>
     <td>`consul.client.api.catalog_node_services.<node>`</td>
     <td>This increments whenever a Consul agent receives a request to list services registered in a node.</td>
     <td>requests</td>
@@ -156,6 +193,12 @@ These metrics are used to monitor the health of specific Consul agents.
     <td>`consul.client.api.success.catalog_node_services.<node>`</td>
     <td>This increments whenever a Consul agent successfully responds to a request to list services in a service.</td>
     <td>requests</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.client.rpc.error.catalog_node_services.<node>`</td>
+    <td>This increments whenever a Consul agent receives an RPC error for a request to list services in a service.</td>
+    <td>errors</td>
     <td>counter</td>
   </tr>
   <tr>
@@ -442,7 +485,7 @@ These metrics are used to monitor the health of the Consul servers.
     <td>timer</td>
   </tr>
   <tr>
-    <td>`consul.prepared-query.execute`</td>
+    <td>`consul.prepared-query.execute_remote`</td>
     <td>This measures the time it takes to process a prepared query execute request that was forwarded to another datacenter.</td>
     <td>ms</td>
     <td>timer</td>
@@ -468,6 +511,12 @@ These metrics are used to monitor the health of the Consul servers.
   <tr>
     <td>`consul.rpc.query`</td>
     <td>This increments when a server receives a (potentially blocking) RPC query.</td>
+    <td>queries</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.rpc.cross-dc`</td>
+    <td>This increments when a server receives a (potentially blocking) cross datacenter RPC query.</td>
     <td>queries</td>
     <td>counter</td>
   </tr>

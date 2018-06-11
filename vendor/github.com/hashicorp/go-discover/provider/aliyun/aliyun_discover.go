@@ -10,7 +10,13 @@ import (
 	"github.com/denverdino/aliyungo/ecs"
 )
 
-type Provider struct{}
+type Provider struct {
+	userAgent string
+}
+
+func (p *Provider) SetUserAgent(s string) {
+	p.userAgent = s
+}
 
 func (p *Provider) Help() string {
 	return `Aliyun(Alibaba Cloud):
@@ -56,6 +62,10 @@ func (p *Provider) Addrs(args map[string]string, l *log.Logger) ([]string, error
 	l.Printf("[INFO] discover-aliyun: Region is %s", region)
 
 	svc := ecs.NewClient(accessKeyID, accessKeySecret)
+
+	if p.userAgent != "" {
+		svc.SetUserAgent(p.userAgent)
+	}
 
 	l.Printf("[INFO] discover-aliyun: Filter instances with %s=%s", tagKey, tagValue)
 	resp, err := svc.DescribeInstancesWithRaw(&ecs.DescribeInstancesArgs{

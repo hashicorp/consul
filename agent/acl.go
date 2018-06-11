@@ -143,11 +143,9 @@ func (m *aclManager) lookupACL(a *Agent, id string) (acl.ACL, error) {
 		cached = raw.(*aclCacheEntry)
 	}
 	if cached != nil && time.Now().Before(cached.Expires) {
-		metrics.IncrCounter([]string{"consul", "acl", "cache_hit"}, 1)
 		metrics.IncrCounter([]string{"acl", "cache_hit"}, 1)
 		return cached.ACL, nil
 	}
-	metrics.IncrCounter([]string{"consul", "acl", "cache_miss"}, 1)
 	metrics.IncrCounter([]string{"acl", "cache_miss"}, 1)
 
 	// At this point we might have a stale cached ACL, or none at all, so

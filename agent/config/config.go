@@ -94,17 +94,14 @@ func Parse(data string, format string) (c Config, err error) {
 	// CamelCase and snake_case. Since changing either format would break
 	// existing setups we have to support both and slowly transition to one of
 	// the formats. Also, there is at least one case where we use the "wrong"
-	// key and want to map that to the new key to support deprecation
-	// (`check.id` vs `service.check.CheckID`) See [GH-3179]. TranslateKeys
-	// maps potentially CamelCased values to the snake_case that is used in the
-	// config file parser. If both the CamelCase and snake_case values are set,
-	// the snake_case value is used and the other value is discarded.
+	// key and want to map that to the new key to support deprecation -
+	// see [GH-3179]. TranslateKeys maps potentially CamelCased values to the
+	// snake_case that is used in the config file parser. If both the CamelCase
+	// and snake_case values are set the snake_case value is used and the other
+	// value is discarded.
 	TranslateKeys(m, map[string]string{
-		"check_id":                       "id",
-		"checkid":                        "id",
 		"deregistercriticalserviceafter": "deregister_critical_service_after",
 		"dockercontainerid":              "docker_container_id",
-		"enabletagoverride":              "enable_tag_override",
 		"scriptargs":                     "args",
 		"serviceid":                      "service_id",
 		"tlsskipverify":                  "tls_skip_verify",
@@ -197,6 +194,8 @@ type Config struct {
 	Ports                       Ports                    `json:"ports,omitempty" hcl:"ports" mapstructure:"ports"`
 	RPCProtocol                 *int                     `json:"protocol,omitempty" hcl:"protocol" mapstructure:"protocol"`
 	RaftProtocol                *int                     `json:"raft_protocol,omitempty" hcl:"raft_protocol" mapstructure:"raft_protocol"`
+	RaftSnapshotThreshold       *int                     `json:"raft_snapshot_threshold,omitempty" hcl:"raft_snapshot_threshold" mapstructure:"raft_snapshot_threshold"`
+	RaftSnapshotInterval        *string                  `json:"raft_snapshot_interval,omitempty" hcl:"raft_snapshot_interval" mapstructure:"raft_snapshot_interval"`
 	ReconnectTimeoutLAN         *string                  `json:"reconnect_timeout,omitempty" hcl:"reconnect_timeout" mapstructure:"reconnect_timeout"`
 	ReconnectTimeoutWAN         *string                  `json:"reconnect_timeout_wan,omitempty" hcl:"reconnect_timeout_wan" mapstructure:"reconnect_timeout_wan"`
 	RejoinAfterLeave            *bool                    `json:"rejoin_after_leave,omitempty" hcl:"rejoin_after_leave" mapstructure:"rejoin_after_leave"`
@@ -319,6 +318,7 @@ type ServiceDefinition struct {
 	Name              *string           `json:"name,omitempty" hcl:"name" mapstructure:"name"`
 	Tags              []string          `json:"tags,omitempty" hcl:"tags" mapstructure:"tags"`
 	Address           *string           `json:"address,omitempty" hcl:"address" mapstructure:"address"`
+	Meta              map[string]string `json:"meta,omitempty" hcl:"meta" mapstructure:"meta"`
 	Port              *int              `json:"port,omitempty" hcl:"port" mapstructure:"port"`
 	Check             *CheckDefinition  `json:"check,omitempty" hcl:"check" mapstructure:"check"`
 	Checks            []CheckDefinition `json:"checks,omitempty" hcl:"checks" mapstructure:"checks"`
@@ -333,7 +333,6 @@ type CheckDefinition struct {
 	ServiceID                      *string             `json:"service_id,omitempty" hcl:"service_id" mapstructure:"service_id"`
 	Token                          *string             `json:"token,omitempty" hcl:"token" mapstructure:"token"`
 	Status                         *string             `json:"status,omitempty" hcl:"status" mapstructure:"status"`
-	Script                         *string             `json:"script,omitempty" hcl:"script" mapstructure:"script"`
 	ScriptArgs                     []string            `json:"args,omitempty" hcl:"args" mapstructure:"args"`
 	HTTP                           *string             `json:"http,omitempty" hcl:"http" mapstructure:"http"`
 	Header                         map[string][]string `json:"header,omitempty" hcl:"header" mapstructure:"header"`
@@ -394,9 +393,9 @@ type Telemetry struct {
 	FilterDefault                      *bool    `json:"filter_default,omitempty" hcl:"filter_default" mapstructure:"filter_default"`
 	PrefixFilter                       []string `json:"prefix_filter,omitempty" hcl:"prefix_filter" mapstructure:"prefix_filter"`
 	MetricsPrefix                      *string  `json:"metrics_prefix,omitempty" hcl:"metrics_prefix" mapstructure:"metrics_prefix"`
+	PrometheusRetentionTime            *string  `json:"prometheus_retention_time,omitempty" hcl:"prometheus_retention_time" mapstructure:"prometheus_retention_time"`
 	StatsdAddr                         *string  `json:"statsd_address,omitempty" hcl:"statsd_address" mapstructure:"statsd_address"`
 	StatsiteAddr                       *string  `json:"statsite_address,omitempty" hcl:"statsite_address" mapstructure:"statsite_address"`
-	EnableDeprecatedNames              *bool    `json:"enable_deprecated_names" hcl:"enable_deprecated_names" mapstructure:"enable_deprecated_names"`
 }
 
 type Ports struct {
@@ -406,30 +405,6 @@ type Ports struct {
 	SerfLAN *int `json:"serf_lan,omitempty" hcl:"serf_lan" mapstructure:"serf_lan"`
 	SerfWAN *int `json:"serf_wan,omitempty" hcl:"serf_wan" mapstructure:"serf_wan"`
 	Server  *int `json:"server,omitempty" hcl:"server" mapstructure:"server"`
-}
-
-type RetryJoinAzure struct {
-	ClientID        *string `json:"client_id,omitempty" hcl:"client_id" mapstructure:"client_id"`
-	SecretAccessKey *string `json:"secret_access_key,omitempty" hcl:"secret_access_key" mapstructure:"secret_access_key"`
-	SubscriptionID  *string `json:"subscription_id,omitempty" hcl:"subscription_id" mapstructure:"subscription_id"`
-	TagName         *string `json:"tag_name,omitempty" hcl:"tag_name" mapstructure:"tag_name"`
-	TagValue        *string `json:"tag_value,omitempty" hcl:"tag_value" mapstructure:"tag_value"`
-	TenantID        *string `json:"tenant_id,omitempty" hcl:"tenant_id" mapstructure:"tenant_id"`
-}
-
-type RetryJoinEC2 struct {
-	AccessKeyID     *string `json:"access_key_id,omitempty" hcl:"access_key_id" mapstructure:"access_key_id"`
-	Region          *string `json:"region,omitempty" hcl:"region" mapstructure:"region"`
-	SecretAccessKey *string `json:"secret_access_key,omitempty" hcl:"secret_access_key" mapstructure:"secret_access_key"`
-	TagKey          *string `json:"tag_key,omitempty" hcl:"tag_key" mapstructure:"tag_key"`
-	TagValue        *string `json:"tag_value,omitempty" hcl:"tag_value" mapstructure:"tag_value"`
-}
-
-type RetryJoinGCE struct {
-	CredentialsFile *string `json:"credentials_file,omitempty" hcl:"credentials_file" mapstructure:"credentials_file"`
-	ProjectName     *string `json:"project_name,omitempty" hcl:"project_name" mapstructure:"project_name"`
-	TagValue        *string `json:"tag_value,omitempty" hcl:"tag_value" mapstructure:"tag_value"`
-	ZonePattern     *string `json:"zone_pattern,omitempty" hcl:"zone_pattern" mapstructure:"zone_pattern"`
 }
 
 type UnixSocket struct {

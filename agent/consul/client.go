@@ -73,6 +73,9 @@ type Client struct {
 	shutdown     bool
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
+
+	// embedded struct to hold all the enterprise specific data
+	EnterpriseClient
 }
 
 // NewClient is used to construct a new Consul client from the
@@ -131,7 +134,12 @@ func NewClientLogger(config *Config, logger *log.Logger) (*Client, error) {
 		shutdownCh: make(chan struct{}),
 	}
 
-	c.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))
+    c.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))
+
+	if err := c.initEnterprise(); err != nil {
+		c.Shutdown()
+		return nil, err
+	}
 
 	// Initialize the LAN Serf
 	c.serf, err = c.setupSerf(config.SerfLANConfig,
@@ -148,6 +156,11 @@ func NewClientLogger(config *Config, logger *log.Logger) (*Client, error) {
 	// Start LAN event handlers after the router is complete since the event
 	// handlers depend on the router and the router depends on Serf.
 	go c.lanEventHandler()
+
+	if err := c.startEnterprise(); err != nil {
+		c.Shutdown()
+		return nil, err
+	}
 
 	return c, nil
 }
@@ -251,10 +264,8 @@ TRY:
 	}
 
 	// Enforce the RPC limit.
-	metrics.IncrCounter([]string{"consul", "client", "rpc"}, 1)
 	metrics.IncrCounter([]string{"client", "rpc"}, 1)
 	if !c.rpcLimiter.Load().(*rate.Limiter).Allow() {
-		metrics.IncrCounter([]string{"consul", "client", "rpc", "exceeded"}, 1)
 		metrics.IncrCounter([]string{"client", "rpc", "exceeded"}, 1)
 		return structs.ErrRPCRateExceeded
 	}
@@ -295,10 +306,8 @@ func (c *Client) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 	}
 
 	// Enforce the RPC limit.
-	metrics.IncrCounter([]string{"consul", "client", "rpc"}, 1)
 	metrics.IncrCounter([]string{"client", "rpc"}, 1)
 	if !c.rpcLimiter.Load().(*rate.Limiter).Allow() {
-		metrics.IncrCounter([]string{"consul", "client", "rpc", "exceeded"}, 1)
 		metrics.IncrCounter([]string{"client", "rpc", "exceeded"}, 1)
 		return structs.ErrRPCRateExceeded
 	}
@@ -348,6 +357,17 @@ func (c *Client) Stats() map[string]map[string]string {
 		"serf_lan": c.serf.Stats(),
 		"runtime":  runtimeStats(),
 	}
+
+	for outerKey, outerValue := range c.enterpriseStats() {
+		if _, ok := stats[outerKey]; ok {
+			for innerKey, innerValue := range outerValue {
+				stats[outerKey][innerKey] = innerValue
+			}
+		} else {
+			stats[outerKey] = outerValue
+		}
+	}
+
 	return stats
 }
 

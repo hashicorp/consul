@@ -1,0 +1,26 @@
+.list-collection {
+  height: 500px;
+  position: relative;
+}
+.unhealthy > div,
+.healthy > div {
+  @extend %card-grid;
+}
+.healthy > div {
+  width: calc(100% + 23px);
+}
+%card-grid {
+  margin-bottom: 20px;
+}
+%card-grid > ul,
+%card-grid > ol {
+  list-style-type: none;
+  display: grid;
+  grid-gap: 20px 2%;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-auto-rows: 12px;
+}
+.healthy > div > ul > li {
+  padding-right: 23px;
+  padding-bottom: 20px;
+}

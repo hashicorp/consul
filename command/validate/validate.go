@@ -45,12 +45,12 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error("Must specify at least one config file or directory")
 		return 1
 	}
-	
+
 	if c.configFormat != "" && c.configFormat != "json" && c.configFormat != "hcl" {
 		c.UI.Error("-config-format must be either 'hcl' or 'json")
-		return 1	
+		return 1
 	}
-	
+
 	b, err := config.NewBuilder(config.Flags{ConfigFiles: configFiles, ConfigFormat: &c.configFormat})
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Config validation failed: %v", err.Error()))

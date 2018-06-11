@@ -46,7 +46,6 @@ func (t *Txn) Apply(args *structs.TxnRequest, reply *structs.TxnResponse) error 
 	if done, err := t.srv.forward("Txn.Apply", args, args, reply); done {
 		return err
 	}
-	defer metrics.MeasureSince([]string{"consul", "txn", "apply"}, time.Now())
 	defer metrics.MeasureSince([]string{"txn", "apply"}, time.Now())
 
 	// Run the pre-checks before we send the transaction into Raft.
@@ -90,7 +89,6 @@ func (t *Txn) Read(args *structs.TxnReadRequest, reply *structs.TxnReadResponse)
 	if done, err := t.srv.forward("Txn.Read", args, args, reply); done {
 		return err
 	}
-	defer metrics.MeasureSince([]string{"consul", "txn", "read"}, time.Now())
 	defer metrics.MeasureSince([]string{"txn", "read"}, time.Now())
 
 	// We have to do this ourselves since we are not doing a blocking RPC.

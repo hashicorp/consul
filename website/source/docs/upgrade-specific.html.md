@@ -14,6 +14,29 @@ details provided for their upgrades as a result of new features or changed
 behavior. This page is used to document those details separately from the
 standard upgrade flow.
 
+## Consul 1.1.0
+
+#### Removal of Deprecated Features
+
+The following previously deprecated fields and config options have been removed:
+
+ - `CheckID` has been removed from config file check definitions (use `id` instead).
+ - `script` has been removed from config file check definitions (use `args` instead).
+ - `enableTagOverride` is no longer valid in service definitions (use `enable_tag_override` instead).
+ - The [deprecated set of metric names](/docs/upgrade-specific.html#metric-names-updated) (beginning with `consul.consul.`) has been removed
+ along with the `enable_deprecated_names` option from the metrics configuration.
+
+#### New defaults for Raft Snapshot Creation
+Consul 1.0.1 (and earlier versions of Consul) checked for raft snapshots every
+5 seconds, and created new snapshots for every 8192 writes. These defaults cause
+constant disk IO in large busy clusters. Consul 1.1.0 increases these to larger values,
+and makes them tunable via the [raft_snapshot_interval](/docs/agent/options.html#_raft_snapshot_interval) and
+[raft_snapshot_threshold](/docs/agent/options.html#_raft_snapshot_threshold) parameters. We recommend
+keeping the new defaults. However, operators can go back to the old defaults by changing their
+config if they prefer more frequent snapshots. See the documentation for [raft_snapshot_interval](/docs/agent/options.html#_raft_snapshot_interval)
+and [raft_snapshot_threshold](/docs/agent/options.html#_raft_snapshot_threshold) to understand the trade-offs
+when tuning these.
+
 ## Consul 1.0.1
 
 #### Carefully Check and Remove Stale Servers During Rolling Upgrades

@@ -7,17 +7,18 @@ import (
 	"net/http"
 	"net/http/pprof"
 	"net/url"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/NYTimes/gziphandler"
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/mitchellh/mapstructure"
-	"github.com/NYTimes/gziphandler"
 )
 
 // MethodNotAllowedError should be returned by a handler when the HTTP method is not allowed.
@@ -30,6 +31,15 @@ func (e MethodNotAllowedError) Error() string {
 	return fmt.Sprintf("method %s not allowed", e.Method)
 }
 
+// BadRequestError should be returned by a handler when parameters or the payload are not valid
+type BadRequestError struct {
+	Reason string
+}
+
+func (e BadRequestError) Error() string {
+	return fmt.Sprintf("Bad request: %s", e.Reason)
+}
+
 // HTTPServer provides an HTTP api for an agent.
 type HTTPServer struct {
 	*http.Server
@@ -39,6 +49,18 @@ type HTTPServer struct {
 
 	// proto is filled by the agent to "http" or "https".
 	proto string
+}
+
+type redirectFS struct {
+	fs http.FileSystem
+}
+
+func (fs *redirectFS) Open(name string) (http.File, error) {
+	file, err := fs.fs.Open(name)
+	if err != nil {
+		file, err = fs.fs.Open("/index.html")
+	}
+	return file, err
 }
 
 // endpoint is a Consul-specific HTTP handler that takes the usual arguments in
@@ -110,7 +132,6 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 			start := time.Now()
 			handler(resp, req)
 			key := append([]string{"http", req.Method}, parts...)
-			metrics.MeasureSince(append([]string{"consul"}, key...), start)
 			metrics.MeasureSince(key, start)
 		}
 
@@ -135,11 +156,32 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 		handleFuncMetrics("/debug/pprof/symbol", pprof.Symbol)
 	}
 
-	// Use the custom UI dir if provided.
-	if s.agent.config.UIDir != "" {
-		mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(http.Dir(s.agent.config.UIDir))))
-	} else if s.agent.config.EnableUI {
-		mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(assetFS())))
+	if s.IsUIEnabled() {
+		new_ui, err := strconv.ParseBool(os.Getenv("CONSUL_UI_BETA"))
+		if err != nil {
+			new_ui = false
+		}
+		var uifs http.FileSystem
+
+		// Use the custom UI dir if provided.
+		if s.agent.config.UIDir != "" {
+			uifs = http.Dir(s.agent.config.UIDir)
+		} else {
+			fs := assetFS()
+
+			if new_ui {
+				fs.Prefix += "/v2/"
+			} else {
+				fs.Prefix += "/v1/"
+			}
+			uifs = fs
+		}
+
+		if new_ui {
+			uifs = &redirectFS{fs: uifs}
+		}
+
+		mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(uifs)))
 	}
 
 	// Wrap the whole mux with a handler that bans URLs with non-printable
@@ -216,6 +258,11 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 			return ok
 		}
 
+		isBadRequest := func(err error) bool {
+			_, ok := err.(BadRequestError)
+			return ok
+		}
+
 		addAllowHeader := func(methods []string) {
 			resp.Header().Add("Allow", strings.Join(methods, ","))
 		}
@@ -235,6 +282,9 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 				// https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
 				addAllowHeader(err.(MethodNotAllowedError).Allow)
 				resp.WriteHeader(http.StatusMethodNotAllowed) // 405
+				fmt.Fprint(resp, err.Error())
+			case isBadRequest(err):
+				resp.WriteHeader(http.StatusBadRequest)
 				fmt.Fprint(resp, err.Error())
 			default:
 				resp.WriteHeader(http.StatusInternalServerError)
@@ -498,11 +548,35 @@ func (s *HTTPServer) parseToken(req *http.Request, token *string) {
 	*token = s.agent.tokens.UserToken()
 }
 
+func sourceAddrFromRequest(req *http.Request) string {
+	xff := req.Header.Get("X-Forwarded-For")
+	forwardHosts := strings.Split(xff, ",")
+	if len(forwardHosts) > 0 {
+		forwardIp := net.ParseIP(strings.TrimSpace(forwardHosts[0]))
+		if forwardIp != nil {
+			return forwardIp.String()
+		}
+	}
+
+	host, _, err := net.SplitHostPort(req.RemoteAddr)
+	if err != nil {
+		return ""
+	}
+
+	ip := net.ParseIP(host)
+	if ip != nil {
+		return ip.String()
+	} else {
+		return ""
+	}
+}
+
 // parseSource is used to parse the ?near=<node> query parameter, used for
 // sorting by RTT based on a source node. We set the source's DC to the target
 // DC in the request, if given, or else the agent's DC.
 func (s *HTTPServer) parseSource(req *http.Request, source *structs.QuerySource) {
 	s.parseDC(req, &source.Datacenter)
+	source.Ip = sourceAddrFromRequest(req)
 	if node := req.URL.Query().Get("near"); node != "" {
 		if node == "_agent" {
 			source.Node = s.agent.config.NodeName

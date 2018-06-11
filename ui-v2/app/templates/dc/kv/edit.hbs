@@ -1,0 +1,70 @@
+{{#app-view class="kv edit" loading=isLoading}}
+    {{#block-slot 'breadcrumbs'}}
+        <ol>
+            <li><a href={{href-to 'dc.kv.index'}}>Key / Values</a></li>
+{{#if (not-eq parent.Key '/') }}
+{{#each (slice 0 -1 (split parent.Key '/')) as |breadcrumb index|}}
+            <li><a href={{href-to 'dc.kv.folder' (join '/' (append (slice 0 (add index 1) (split parent.Key '/')) ''))}}>{{breadcrumb}}</a></li>
+{{/each}}
+{{/if}}
+        </ol>
+    {{/block-slot}}
+    {{#block-slot 'header'}}
+        <h1>
+{{#if item.Key }}
+            {{left-trim item.Key parent.Key }}
+{{else}}
+            New Key / Value
+{{/if}}
+        </h1>
+    {{/block-slot}}
+    {{#block-slot 'content'}}
+        {{#if session}}
+            <p class="notice warning"><strong>Warning.</strong> This KV has a lock session. You can edit KV's with lock sessions, but we recommend doing so with care, or not doing so at all. It may negatively impact the active node it's associated with. See below for more details on the Lock Session and see <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/internals/sessions.html" target="_blank" rel="noopener noreferrer">our documentation</a> for more information.</p>
+        {{/if}}
+        {{partial 'dc/kv/form'}}
+        {{#if session}}
+            <div>
+                <h2><a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/internals/sessions.html#session-design" rel="help noopener noreferrer" target="_blank">Lock Session</a></h2>
+                <dl>
+                    <dt>Name</dt>
+                    <dd>{{session.Name}}</dd>
+                    <dt>Agent</dt>
+                    <dd>
+                        <a href={{href-to 'dc.nodes.show' session.Node }}>{{session.Node}}</a>
+                    </dd>
+                    <dt>ID</dt>
+                    <dd>{{session.ID}}</dd>
+                    <dt>Behavior</dt>
+                    <dd><{{session.Behavior}}/dd>
+{{#if session.Delay }}
+                    <dt>Delay</dt>
+                    <dd><{{session.LockDelay}}/dd>
+{{/if}}
+{{#if session.TTL }}
+                    <dt>TTL</dt>
+                    <dd>{{session.TTL}}</dd>
+{{/if}}
+{{#if (gt session.Checks.length 0)}}
+                    <dt>Health Checks</dt>
+                    <dd>
+                        {{ join ', ' session.Checks}}
+                    </dd>
+{{/if}}
+                </dl>
+                {{#confirmation-dialog message='Are you sure you want to invalidate this session?'}}
+                    {{#block-slot 'action' as |confirm|}}
+                        <button type="button" class="type-delete" {{ action confirm "invalidateSession" session }}>Invalidate Session</button>
+                    {{/block-slot}}
+                    {{#block-slot 'dialog' as |execute cancel message|}}
+                        <p>
+                            {{message}}
+                        </p>
+                        <button type="button" class="type-delete" {{action execute}}>Confirm Invalidation</button>
+                        <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
+                    {{/block-slot}}
+                {{/confirmation-dialog}}
+            </div>
+        {{/if}}
+    {{/block-slot}}
+{{/app-view}}

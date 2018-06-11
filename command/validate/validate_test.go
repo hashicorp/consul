@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	require "github.com/stretchr/testify/require"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/mitchellh/cli"
+	require "github.com/stretchr/testify/require"
 )
 
 func TestValidateCommand_noTabs(t *testing.T) {
@@ -71,7 +71,6 @@ func TestValidateCommand_SucceedWithMinimalHCLConfigFormat(t *testing.T) {
 	fp := filepath.Join(td, "hcl.conf")
 	err := ioutil.WriteFile(fp, []byte("bind_addr = \"10.0.0.1\"\ndata_dir = \""+td+"\""), 0644)
 	require.Nilf(t, err, "err: %s", err)
-
 
 	cmd := New(cli.NewMockUi())
 	args := []string{"--config-format", "hcl", fp}

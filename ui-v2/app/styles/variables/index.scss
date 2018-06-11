@@ -1,0 +1,61 @@
+@import './custom-query';
+@import './color';
+
+// decoration
+$radius-small: 2px;
+$radius: 4px;
+
+// colors
+
+$keyline-light: rgba(#bdc4d0, 0.5); // h1
+$keyline-mid: #cdd3d7; // td
+$keyline-dark: #a5b0b7; // th
+$keyline-darker: #b9c1c7; //footer
+
+$border-mid: #b9c4d2;
+$border-dark: #8d9fad;
+
+$border-blue: #bbc4d1;
+
+$text-blue: #919fa8;
+$text-field-blue: #b9c4d2;
+$user-text-gray: #677877;
+// #6a7786;
+// #677887 input labels
+$text-gray: #77838a; // tab text
+$text-light: #828b9a;
+$text: #282828;
+
+$text-note: #929dab; // used for confirmations and footer
+
+$primary: $blue-500;
+$body-background-color: transparent;
+$navbar-background-color: $body-background-color;
+
+$tabs-border-active-bottom-color: $magenta-600;
+$tabs-link-color: $text-gray;
+$tabs-link-active-color: $magenta-600;
+$tabs-border-bottom-style: solid;
+$tabs-border-bottom-width: 3px;
+$tabs-border-bottom-color: transparent;
+
+// fonts
+
+/**
+ * Sizes don't use auto rem to px calculating
+*/
+html {
+  font-size: 16px;
+}
+// follow bulma and use 1, 2, 3, 4 etc for font sizes...
+$size-4: 1.5rem; // $size-large? 24
+$size-5: 1.125rem; // $size-medium? // 18
+$size-6: 0.875rem; // $size-normal? // 14
+$size-7: 0.8125rem; // $size-small? // 13
+$size-8: 0.75rem; // $size-small? // 12
+.is-size-8 {
+  font-size: $size-8;
+}
+$weight-medium: 500;
+$weight-semibold: 600;
+$weight-bold: 700;

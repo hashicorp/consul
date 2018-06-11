@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/coordinate"
 )
@@ -2074,6 +2075,41 @@ func TestPreparedQuery_Execute(t *testing.T) {
 				t.Fatalf("bad: %v", node)
 			}
 		}
+	}
+
+	// Make the query ignore all our health checks (which have "failing" ID
+	// implicitly from their name).
+	query.Query.Service.IgnoreCheckIDs = []types.CheckID{"failing"}
+	if err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &query, &query.Query.ID); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// We should end up with 10 nodes again
+	{
+		req := structs.PreparedQueryExecuteRequest{
+			Datacenter:    "dc1",
+			QueryIDOrName: query.Query.ID,
+			QueryOptions:  structs.QueryOptions{Token: execToken},
+		}
+
+		var reply structs.PreparedQueryExecuteResponse
+		if err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(reply.Nodes) != 10 ||
+			reply.Datacenter != "dc1" ||
+			reply.Service != query.Query.Service.Service ||
+			!reflect.DeepEqual(reply.DNS, query.Query.DNS) ||
+			!reply.QueryMeta.KnownLeader {
+			t.Fatalf("bad: %v", reply)
+		}
+	}
+
+	// Undo that so all the following tests aren't broken!
+	query.Query.Service.IgnoreCheckIDs = nil
+	if err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &query, &query.Query.ID); err != nil {
+		t.Fatalf("err: %v", err)
 	}
 
 	// Make the query more picky by adding a tag filter. This just proves we

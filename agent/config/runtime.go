@@ -425,6 +425,14 @@ type RuntimeConfig struct {
 	// hcl: telemetry { dogstatsd_tags = []string }
 	TelemetryDogstatsdTags []string
 
+	// PrometheusRetentionTime is the retention time for prometheus metrics if greater than 0.
+	// A value of 0 disable Prometheus support. Regarding Prometheus, it is considered a good
+	// practice to put large values here (such as a few days), and at least the interval between
+	// prometheus requests.
+	//
+	// hcl: telemetry { prometheus_retention_time = "duration" }
+	TelemetryPrometheusRetentionTime time.Duration
+
 	// TelemetryFilterDefault is the default for whether to allow a metric that's not
 	// covered by the filter.
 	//
@@ -890,6 +898,17 @@ type RuntimeConfig struct {
 	//
 	// hcl: raft_protocol = int
 	RaftProtocol int
+
+	// RaftSnapshotThreshold sets the minimum threshold of raft commits after which
+	// a snapshot is created. Defaults to 8192
+	//
+	// hcl: raft_snapshot_threshold = int
+	RaftSnapshotThreshold int
+
+	// RaftSnapshotInterval sets the interval to use when checking whether to create
+	// a new snapshot. Defaults to 5 seconds.
+	// hcl: raft_snapshot_threshold = int
+	RaftSnapshotInterval time.Duration
 
 	// ReconnectTimeoutLAN specifies the amount of time to wait to reconnect with
 	// another agent before deciding it's permanently gone. This can be used to

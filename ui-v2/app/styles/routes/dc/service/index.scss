@@ -1,0 +1,9 @@
+html.template-service.template-show main dl {
+  display: flex;
+  margin-bottom: 1.4em;
+}
+html.template-service.template-show main dt::after {
+  content: ':';
+  display: inline-block;
+  margin-right: 0.2em;
+}

@@ -8,6 +8,7 @@ App.DcController = Ember.Controller.extend({
   needs: ["application"],
   // Whether or not the dropdown menu can be seen
   isDropdownVisible: false,
+  isNotificationVisible: true,
 
   datacenter: Ember.computed.alias('content'),
 
@@ -58,11 +59,20 @@ App.DcController = Ember.Controller.extend({
   // Boolean if the datacenter has any failing checks.
   //
   hasFailingChecks: Ember.computed.gt('totalChecksFailing', 0),
-
+  
+  init: function() {
+    if(App.get('settings.v1-notification-hidden', true)) {
+      this.set('isNotificationVisible', false);
+    }
+  },
   actions: {
     // Hide and show the dropdown menu
     toggle: function(item){
       this.toggleProperty('isDropdownVisible');
+    },
+    hideNotification: function(e) {
+      App.set('settings.v1-notification-hidden', true);
+      this.set('isNotificationVisible', false);
     },
     // Just hide the dropdown menu
     hideDrop: function(item){

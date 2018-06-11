@@ -258,6 +258,7 @@ type QuerySource struct {
 	Datacenter string
 	Segment    string
 	Node       string
+	Ip         string
 }
 
 // DCSpecificRequest is used to query about a specific DC
@@ -278,6 +279,7 @@ type ServiceSpecificRequest struct {
 	NodeMetaFilters map[string]string
 	ServiceName     string
 	ServiceTag      string
+	ServiceAddress  string
 	TagFilter       bool // Controls tag filtering
 	Source          QuerySource
 	QueryOptions
@@ -580,16 +582,33 @@ func (nodes CheckServiceNodes) Shuffle() {
 // check if that option is selected). Note that this returns the filtered
 // results AND modifies the receiver for performance.
 func (nodes CheckServiceNodes) Filter(onlyPassing bool) CheckServiceNodes {
+	return nodes.FilterIgnore(onlyPassing, nil)
+}
+
+// FilterIgnore removes nodes that are failing health checks just like Filter.
+// It also ignores the status of any check with an ID present in ignoreCheckIDs
+// as if that check didn't exist. Note that this returns the filtered results
+// AND modifies the receiver for performance.
+func (nodes CheckServiceNodes) FilterIgnore(onlyPassing bool,
+	ignoreCheckIDs []types.CheckID) CheckServiceNodes {
 	n := len(nodes)
 OUTER:
 	for i := 0; i < n; i++ {
 		node := nodes[i]
+	INNER:
 		for _, check := range node.Checks {
+			for _, ignore := range ignoreCheckIDs {
+				if check.CheckID == ignore {
+					// Skip this _check_ but keep looking at other checks for this node.
+					continue INNER
+				}
+			}
 			if check.Status == api.HealthCritical ||
 				(onlyPassing && check.Status != api.HealthPassing) {
 				nodes[i], nodes[n-1] = nodes[n-1], CheckServiceNode{}
 				n--
 				i--
+				// Skip this _node_ now we've swapped it off the end of the list.
 				continue OUTER
 			}
 		}

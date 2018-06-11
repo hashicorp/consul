@@ -121,8 +121,7 @@ ui:
 # also run as part of the release build script when it verifies that there are no
 # changes to the UI assets that aren't checked in.
 static-assets:
-	@go-bindata-assetfs -pkg agent -prefix pkg ./pkg/web_ui/...
-	@mv bindata_assetfs.go agent/
+	@go-bindata-assetfs -pkg agent -prefix pkg -o agent/bindata_assetfs.go ./pkg/web_ui/...
 	$(MAKE) format
 
 tools:

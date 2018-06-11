@@ -70,7 +70,7 @@ func NewIntervalMetrics(intv time.Time) *IntervalMetrics {
 // about a sample
 type AggregateSample struct {
 	Count       int       // The count of emitted pairs
-	Rate        float64   `json:"-"` // The count of emitted pairs per time unit (usually 1 second)
+	Rate        float64   // The values rate per time unit (usually 1 second)
 	Sum         float64   // The sum of values
 	SumSq       float64   `json:"-"` // The sum of squared values
 	Min         float64   // Minimum value
@@ -107,7 +107,7 @@ func (a *AggregateSample) Ingest(v float64, rateDenom float64) {
 	if v > a.Max || a.Count == 1 {
 		a.Max = v
 	}
-	a.Rate = float64(a.Count) / rateDenom
+	a.Rate = float64(a.Sum) / rateDenom
 	a.LastUpdated = time.Now()
 }
 
@@ -232,8 +232,37 @@ func (i *InmemSink) Data() []*IntervalMetrics {
 	i.intervalLock.RLock()
 	defer i.intervalLock.RUnlock()
 
-	intervals := make([]*IntervalMetrics, len(i.intervals))
-	copy(intervals, i.intervals)
+	n := len(i.intervals)
+	intervals := make([]*IntervalMetrics, n)
+
+	copy(intervals[:n-1], i.intervals[:n-1])
+	current := i.intervals[n-1]
+
+	// make its own copy for current interval
+	intervals[n-1] = &IntervalMetrics{}
+	copyCurrent := intervals[n-1]
+	current.RLock()
+	*copyCurrent = *current
+
+	copyCurrent.Gauges = make(map[string]GaugeValue, len(current.Gauges))
+	for k, v := range current.Gauges {
+		copyCurrent.Gauges[k] = v
+	}
+	// saved values will be not change, just copy its link
+	copyCurrent.Points = make(map[string][]float32, len(current.Points))
+	for k, v := range current.Points {
+		copyCurrent.Points[k] = v
+	}
+	copyCurrent.Counters = make(map[string]SampledValue, len(current.Counters))
+	for k, v := range current.Counters {
+		copyCurrent.Counters[k] = v
+	}
+	copyCurrent.Samples = make(map[string]SampledValue, len(current.Samples))
+	for k, v := range current.Samples {
+		copyCurrent.Samples[k] = v
+	}
+	current.RUnlock()
+
 	return intervals
 }
 

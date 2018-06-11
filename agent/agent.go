@@ -74,6 +74,7 @@ type delegate interface {
 	Shutdown() error
 	Stats() map[string]map[string]string
 	ReloadConfig(config *consul.Config) error
+	enterpriseDelegate
 }
 
 // notifier is called after a successful JoinLAN.
@@ -647,14 +648,19 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 
 	// Determine the primary http(s) endpoint.
 	var netaddr net.Addr
+	https := false
 	if len(cfg.HTTPAddrs) > 0 {
 		netaddr = cfg.HTTPAddrs[0]
 	} else {
 		netaddr = cfg.HTTPSAddrs[0]
+		https = true
 	}
 	addr := netaddr.String()
 	if netaddr.Network() == "unix" {
 		addr = "unix://" + addr
+		https = false
+	} else if https {
+		addr = "https://" + addr
 	}
 
 	// Fire off a goroutine for each new watch plan.
@@ -670,7 +676,19 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 				wp.Handler = makeHTTPWatchHandler(a.LogOutput, httpConfig)
 			}
 			wp.LogOutput = a.LogOutput
-			if err := wp.Run(addr); err != nil {
+
+			config := api.DefaultConfig()
+			if https {
+				if a.config.CAPath != "" {
+					config.TLSConfig.CAPath = a.config.CAPath
+				}
+				if a.config.CAFile != "" {
+					config.TLSConfig.CAFile = a.config.CAFile
+				}
+				config.TLSConfig.Address = addr
+			}
+
+			if err := wp.RunWithConfig(addr, config); err != nil {
 				a.logger.Printf("[ERR] agent: Failed to run watch: %v", err)
 			}
 		}(wp)
@@ -763,6 +781,12 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	}
 	if a.config.RaftProtocol != 0 {
 		base.RaftConfig.ProtocolVersion = raft.ProtocolVersion(a.config.RaftProtocol)
+	}
+	if a.config.RaftSnapshotThreshold != 0 {
+		base.RaftConfig.SnapshotThreshold = uint64(a.config.RaftSnapshotThreshold)
+	}
+	if a.config.RaftSnapshotInterval != 0 {
+		base.RaftConfig.SnapshotInterval = a.config.RaftSnapshotInterval
 	}
 	if a.config.ACLMasterToken != "" {
 		base.ACLMasterToken = a.config.ACLMasterToken
@@ -1845,7 +1869,6 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				CheckID:           check.CheckID,
 				DockerContainerID: chkType.DockerContainerID,
 				Shell:             chkType.Shell,
-				Script:            chkType.Script,
 				ScriptArgs:        chkType.ScriptArgs,
 				Interval:          chkType.Interval,
 				Logger:            a.logger,
@@ -1876,7 +1899,6 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			monitor := &checks.CheckMonitor{
 				Notify:     a.State,
 				CheckID:    check.CheckID,
-				Script:     chkType.Script,
 				ScriptArgs: chkType.ScriptArgs,
 				Interval:   chkType.Interval,
 				Timeout:    chkType.Timeout,

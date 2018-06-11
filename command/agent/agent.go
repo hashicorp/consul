@@ -15,6 +15,7 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/circonus"
 	"github.com/armon/go-metrics/datadog"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/command/flags"
@@ -60,7 +61,6 @@ type cmd struct {
 	versionPrerelease string
 	versionHuman      string
 	shutdownCh        <-chan struct{}
-	args              []string
 	flagArgs          config.Flags
 	logFilter         *logutils.LevelFilter
 	logOutput         io.Writer
@@ -84,14 +84,6 @@ func (c *cmd) Run(args []string) int {
 // readConfig is responsible for setup of our configuration using
 // the command line and any file configs
 func (c *cmd) readConfig() *config.RuntimeConfig {
-	if err := c.flags.Parse(c.args); err != nil {
-		if !strings.Contains(err.Error(), "help requested") {
-			c.UI.Error(fmt.Sprintf("error parsing flags: %v", err))
-		}
-		return nil
-	}
-	c.flagArgs.Args = c.flags.Args()
-
 	b, err := config.NewBuilder(c.flagArgs)
 	if err != nil {
 		c.UI.Error(err.Error())
@@ -208,6 +200,20 @@ func dogstatdSink(config *config.RuntimeConfig, hostname string) (metrics.Metric
 	return sink, nil
 }
 
+func prometheusSink(config *config.RuntimeConfig, hostname string) (metrics.MetricSink, error) {
+	if config.TelemetryPrometheusRetentionTime.Nanoseconds() < 1 {
+		return nil, nil
+	}
+	prometheusOpts := prometheus.PrometheusOpts{
+		Expiration: config.TelemetryPrometheusRetentionTime,
+	}
+	sink, err := prometheus.NewPrometheusSinkFrom(prometheusOpts)
+	if err != nil {
+		return nil, err
+	}
+	return sink, nil
+}
+
 func circonusSink(config *config.RuntimeConfig, hostname string) (metrics.MetricSink, error) {
 	if config.TelemetryCirconusAPIToken == "" && config.TelemetryCirconusSubmissionURL == "" {
 		return nil, nil
@@ -284,6 +290,9 @@ func startupTelemetry(conf *config.RuntimeConfig) (*metrics.InmemSink, error) {
 	if err := addSink("circonus", circonusSink); err != nil {
 		return nil, err
 	}
+	if err := addSink("prometheus", prometheusSink); err != nil {
+		return nil, err
+	}
 
 	if len(sinks) > 0 {
 		sinks = append(sinks, memSink)
@@ -297,7 +306,13 @@ func startupTelemetry(conf *config.RuntimeConfig) (*metrics.InmemSink, error) {
 
 func (c *cmd) run(args []string) int {
 	// Parse our configs
-	c.args = args
+	if err := c.flags.Parse(args); err != nil {
+		if !strings.Contains(err.Error(), "help requested") {
+			c.UI.Error(fmt.Sprintf("error parsing flags: %v", err))
+		}
+		return 1
+	}
+	c.flagArgs.Args = c.flags.Args()
 	config := c.readConfig()
 	if config == nil {
 		return 1
@@ -385,7 +400,6 @@ func (c *cmd) run(args []string) int {
 
 	// wait for signal
 	signalCh := make(chan os.Signal, 10)
-	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE)
 
 	for {
@@ -489,7 +503,7 @@ func (c *cmd) handleReload(agent *agent.Agent, cfg *config.RuntimeConfig) (*conf
 			"Failed to reload configs: %v", err))
 	}
 
-	return cfg, errs
+	return newCfg, errs
 }
 
 func (c *cmd) Synopsis() string {

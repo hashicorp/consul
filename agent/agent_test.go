@@ -651,8 +651,8 @@ func TestAgent_AddCheck(t *testing.T) {
 		Status:  api.HealthCritical,
 	}
 	chk := &structs.CheckType{
-		Script:   "exit 0",
-		Interval: 15 * time.Second,
+		ScriptArgs: []string{"exit", "0"},
+		Interval:   15 * time.Second,
 	}
 	err := a.AddCheck(health, chk, false, "")
 	if err != nil {
@@ -690,8 +690,8 @@ func TestAgent_AddCheck_StartPassing(t *testing.T) {
 		Status:  api.HealthPassing,
 	}
 	chk := &structs.CheckType{
-		Script:   "exit 0",
-		Interval: 15 * time.Second,
+		ScriptArgs: []string{"exit", "0"},
+		Interval:   15 * time.Second,
 	}
 	err := a.AddCheck(health, chk, false, "")
 	if err != nil {
@@ -729,8 +729,8 @@ func TestAgent_AddCheck_MinInterval(t *testing.T) {
 		Status:  api.HealthCritical,
 	}
 	chk := &structs.CheckType{
-		Script:   "exit 0",
-		Interval: time.Microsecond,
+		ScriptArgs: []string{"exit", "0"},
+		Interval:   time.Microsecond,
 	}
 	err := a.AddCheck(health, chk, false, "")
 	if err != nil {
@@ -764,8 +764,8 @@ func TestAgent_AddCheck_MissingService(t *testing.T) {
 		ServiceID: "baz",
 	}
 	chk := &structs.CheckType{
-		Script:   "exit 0",
-		Interval: time.Microsecond,
+		ScriptArgs: []string{"exit", "0"},
+		Interval:   time.Microsecond,
 	}
 	err := a.AddCheck(health, chk, false, "")
 	if err == nil || err.Error() != `ServiceID "baz" does not exist` {
@@ -829,8 +829,8 @@ func TestAgent_AddCheck_ExecDisable(t *testing.T) {
 		Status:  api.HealthCritical,
 	}
 	chk := &structs.CheckType{
-		Script:   "exit 0",
-		Interval: 15 * time.Second,
+		ScriptArgs: []string{"exit", "0"},
+		Interval:   15 * time.Second,
 	}
 	err := a.AddCheck(health, chk, false, "")
 	if err == nil || !strings.Contains(err.Error(), "Scripts are disabled on this agent") {
@@ -904,8 +904,8 @@ func TestAgent_RemoveCheck(t *testing.T) {
 		Status:  api.HealthCritical,
 	}
 	chk := &structs.CheckType{
-		Script:   "exit 0",
-		Interval: 15 * time.Second,
+		ScriptArgs: []string{"exit", "0"},
+		Interval:   15 * time.Second,
 	}
 	err := a.AddCheck(health, chk, false, "")
 	if err != nil {
@@ -1315,8 +1315,8 @@ func TestAgent_PersistCheck(t *testing.T) {
 		Status:  api.HealthPassing,
 	}
 	chkType := &structs.CheckType{
-		Script:   "/bin/true",
-		Interval: 10 * time.Second,
+		ScriptArgs: []string{"/bin/true"},
+		Interval:   10 * time.Second,
 	}
 
 	file := filepath.Join(a.Config.DataDir, checksDir, checkIDHash(check.CheckID))
@@ -1473,7 +1473,7 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 			id = "mem"
 			name = "memory check"
 			notes = "my cool notes"
-			script = "/bin/check-redis.py"
+			args = ["/bin/check-redis.py"]
 			interval = "30s"
 		}
 	`)
@@ -2203,6 +2203,26 @@ func TestAgent_reloadWatches(t *testing.T) {
 		},
 	}
 	if err := a.reloadWatches(&newConf); err == nil || !strings.Contains(err.Error(), "watch plans require an HTTP or HTTPS endpoint") {
+		t.Fatalf("bad: %s", err)
+	}
+}
+
+func TestAgent_reloadWatchesHTTPS(t *testing.T) {
+	t.Parallel()
+	a := TestAgent{Name: t.Name(), UseTLS: true}
+	a.Start()
+	defer a.Shutdown()
+
+	// Normal watch with http addr set, should succeed
+	newConf := *a.config
+	newConf.Watches = []map[string]interface{}{
+		{
+			"type": "key",
+			"key":  "asdf",
+			"args": []interface{}{"ls"},
+		},
+	}
+	if err := a.reloadWatches(&newConf); err != nil {
 		t.Fatalf("bad: %s", err)
 	}
 }
