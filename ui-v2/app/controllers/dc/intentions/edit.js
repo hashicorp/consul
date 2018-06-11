@@ -33,6 +33,9 @@ export default Controller.extend({
     createNewLabel: function(term) {
       return `Use a future Consul Service called '${term}'`;
     },
+    isUnique: function(term) {
+      return !get(this, 'items').findBy('Name', term);
+    },
     change: function(e, value, _target) {
       // normalize back to standard event
       const target = e.target || { ..._target, ...{ name: e, value: value } };
