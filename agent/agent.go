@@ -722,7 +722,6 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 }
 
 // reloadTLSConfig performs TLS config reloads. Must be called from HandleReload.
-// This currently only handles changes to the key pair (CertFile and KeyFile).
 func (a *Agent) reloadTLSConfig(newCfg *config.RuntimeConfig) error {
 	tc, err := newCfg.TLSConfig()
 	if err == nil {
