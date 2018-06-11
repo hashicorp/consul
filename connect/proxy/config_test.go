@@ -175,6 +175,10 @@ func TestAgentConfigWatcher(t *testing.T) {
 				ConnectTimeoutMs:     10000, // from applyDefaults
 			},
 		},
+		Telemetry: map[string]interface{}{
+			"FilterDefault": true,
+			"MetricsPrefix": "consul.proxy.web",
+		},
 	}
 
 	assert.Equal(t, expectCfg, cfg)

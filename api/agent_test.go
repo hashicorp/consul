@@ -1124,12 +1124,8 @@ func TestAPI_AgentConnectProxyConfig(t *testing.T) {
 	t.Parallel()
 	c, s := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
 		// Force auto port range to 1 port so we have deterministic response.
-		c.Connect = map[string]interface{}{
-			"proxy_defaults": map[string]interface{}{
-				"bind_min_port": 20000,
-				"bind_max_port": 20000,
-			},
-		}
+		c.Ports.ProxyMinPort = 20000
+		c.Ports.ProxyMaxPort = 20000
 	})
 	defer s.Stop()
 
@@ -1165,6 +1161,10 @@ func TestAPI_AgentConnectProxyConfig(t *testing.T) {
 			"bind_port":    float64(20000),
 			"foo":          "bar",
 			"local_service_address": "127.0.0.1:8000",
+			"telemetry": map[string]interface{}{
+				"FilterDefault": true,
+				"MetricsPrefix": "consul.proxy.foo",
+			},
 		},
 	}
 	require.Equal(t, expectConfig, config)

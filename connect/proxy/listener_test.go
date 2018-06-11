@@ -20,8 +20,8 @@ import (
 )
 
 func testSetupMetrics(t *testing.T) *metrics.InmemSink {
-	// Record for ages so we can be confident that our assertions won't fail on
-	// silly long test runs due to dropped data.
+	// Record for ages (5 mins) so we can be confident that our assertions won't
+	// fail on silly long test runs due to dropped data.
 	s := metrics.NewInmemSink(10*time.Second, 300*time.Second)
 	cfg := metrics.DefaultConfig("consul.proxy.test")
 	cfg.EnableHostname = false
@@ -88,7 +88,7 @@ func assertAllTimeCounterValue(t *testing.T, sink *metrics.InmemSink,
 }
 
 func TestPublicListener(t *testing.T) {
-	t.Parallel()
+	// Can't enable t.Parallel since we rely on the global metrics instance.
 
 	ca := agConnect.TestCA(t, nil)
 	ports := freeport.GetT(t, 1)
@@ -141,7 +141,7 @@ func TestPublicListener(t *testing.T) {
 }
 
 func TestUpstreamListener(t *testing.T) {
-	t.Parallel()
+	// Can't enable t.Parallel since we rely on the global metrics instance.
 
 	ca := agConnect.TestCA(t, nil)
 	ports := freeport.GetT(t, 1)
@@ -188,6 +188,7 @@ func TestUpstreamListener(t *testing.T) {
 	conn, err := net.Dial("tcp",
 		fmt.Sprintf("%s:%d", cfg.LocalBindAddress, cfg.LocalBindPort))
 	require.NoError(t, err)
+
 	TestEchoConn(t, conn, "")
 
 	// Check active conn is tracked in gauges

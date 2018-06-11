@@ -160,6 +160,11 @@ func (l *Listener) handleConn(src net.Conn) {
 	// it closes.
 	defer l.trackConn()()
 
+	// Make sure Close() waits for this conn to be cleaned up. Note defer is
+	// before conn.Close() so runs after defer conn.Close().
+	l.connWG.Add(1)
+	defer l.connWG.Done()
+
 	// Note no need to defer dst.Close() since conn handles that for us.
 	conn := NewConn(src, dst)
 	defer conn.Close()
@@ -171,7 +176,6 @@ func (l *Listener) handleConn(src net.Conn) {
 		err = conn.CopyBytes()
 		if err != nil {
 			l.logger.Printf("[ERR] connection failed: %s", err)
-			return
 		}
 		close(connStop)
 	}()
@@ -215,13 +219,11 @@ func (l *Listener) handleConn(src net.Conn) {
 // trackConn increments the count of active conns and returns a func() that can
 // be deferred on to decrement the counter again on connection close.
 func (l *Listener) trackConn() func() {
-	l.connWG.Add(1)
 	c := atomic.AddInt64(&l.activeConns, 1)
 	metrics.SetGaugeWithLabels([]string{l.metricPrefix, "conns"}, float32(c),
 		l.metricLabels)
 
 	return func() {
-		l.connWG.Done()
 		c := atomic.AddInt64(&l.activeConns, -1)
 		metrics.SetGaugeWithLabels([]string{l.metricPrefix, "conns"}, float32(c),
 			l.metricLabels)

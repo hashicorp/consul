@@ -43,12 +43,14 @@ type TestPerformanceConfig struct {
 // TestPortConfig configures the various ports used for services
 // provided by the Consul server.
 type TestPortConfig struct {
-	DNS     int `json:"dns,omitempty"`
-	HTTP    int `json:"http,omitempty"`
-	HTTPS   int `json:"https,omitempty"`
-	SerfLan int `json:"serf_lan,omitempty"`
-	SerfWan int `json:"serf_wan,omitempty"`
-	Server  int `json:"server,omitempty"`
+	DNS          int `json:"dns,omitempty"`
+	HTTP         int `json:"http,omitempty"`
+	HTTPS        int `json:"https,omitempty"`
+	SerfLan      int `json:"serf_lan,omitempty"`
+	SerfWan      int `json:"serf_wan,omitempty"`
+	Server       int `json:"server,omitempty"`
+	ProxyMinPort int `json:"proxy_min_port,omitempty"`
+	ProxyMaxPort int `json:"proxy_max_port,omitempty"`
 }
 
 // TestAddressConfig contains the bind addresses for various
