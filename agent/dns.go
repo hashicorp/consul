@@ -51,6 +51,7 @@ type dnsConfig struct {
 	ServiceTTL      map[string]time.Duration
 	UDPAnswerLimit  int
 	ARecordLimit    int
+	NodeMetaTXT     bool
 }
 
 // DNSServer is used to wrap an Agent and expose various
@@ -109,6 +110,7 @@ func GetDNSConfig(conf *config.RuntimeConfig) *dnsConfig {
 		SegmentName:     conf.SegmentName,
 		ServiceTTL:      conf.DNSServiceTTL,
 		UDPAnswerLimit:  conf.DNSUDPAnswerLimit,
+		NodeMetaTXT:     conf.DNSNodeMetaTXT,
 	}
 }
 
@@ -671,7 +673,20 @@ func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qTy
 		}
 	}
 
-	if node != nil && (qType == dns.TypeANY || qType == dns.TypeTXT) {
+	node_meta_txt := true
+
+	if node == nil {
+		node_meta_txt = false
+	} else if qType == dns.TypeANY {
+		// Since any RR type is requested allow the configuration to
+		// determine whether or not node meta gets added as TXT records
+		node_meta_txt = d.config.NodeMetaTXT
+	} else if qType != dns.TypeTXT {
+		// qType isn't TXT or ANY so avoid emitting the TXT records
+		node_meta_txt = false
+	}
+
+	if node_meta_txt {
 		for key, value := range node.Meta {
 			txt := value
 			if !strings.HasPrefix(strings.ToLower(key), "rfc1035-") {
@@ -782,8 +797,8 @@ func (d *DNSServer) trimTCPResponse(req, resp *dns.Msg) (trimmed bool) {
 	originalNumRecords := len(resp.Answer)
 
 	// It is not possible to return more than 4k records even with compression
-        // Since we are performing binary search it is not a big deal, but it
-        // improves a bit performance, even with binary search
+	// Since we are performing binary search it is not a big deal, but it
+	// improves a bit performance, even with binary search
 	truncateAt := 4096
 	if req.Question[0].Qtype == dns.TypeSRV {
 		// More than 1024 SRV records do not fit in 64k

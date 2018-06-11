@@ -777,6 +777,11 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
       [RFC 6724](https://tools.ietf.org/html/rfc6724) and as a result it should
       be increasingly uncommon to need to change this value with modern
       resolvers).
+      
+    * <a name="additional_node_meta_txt"></a><a href="#additional_node_meta_txt">`additional_node_meta_txt`</a> - If set
+      to false, node metadata will not be synthesized into TXT records and returned except for queries specifically for
+      TXT records. By default, TXT records will be generated for node queries with an ANY query type or for SRV queries
+      of services.
 
 * <a name="domain"></a><a href="#domain">`domain`</a> Equivalent to the
   [`-domain` command-line flag](#_domain).
