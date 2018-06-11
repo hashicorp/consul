@@ -7,10 +7,17 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"sync"
 	"sync/atomic"
 	"time"
 
+	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/connect"
+)
+
+const (
+	publicListenerMetricPrefix = "inbound"
+	upstreamMetricPrefix       = "upstream"
 )
 
 // Listener is the implementation of a specific proxy listener. It has pluggable
@@ -38,6 +45,12 @@ type Listener struct {
 	listeningChan chan struct{}
 
 	logger *log.Logger
+
+	// Gauge to track current open connections
+	activeConns  int64
+	connWG       sync.WaitGroup
+	metricPrefix string
+	metricLabels []metrics.Label
 }
 
 // NewPublicListener returns a Listener setup to listen for public mTLS
@@ -58,6 +71,16 @@ func NewPublicListener(svc *connect.Service, cfg PublicListenerConfig,
 		stopChan:      make(chan struct{}),
 		listeningChan: make(chan struct{}),
 		logger:        logger,
+		metricPrefix:  publicListenerMetricPrefix,
+		// For now we only label ourselves as source - we could fetch the src
+		// service from cert on each connection and label metrics differently but it
+		// significaly complicates the active connection tracking here and it's not
+		// clear that it's very valuable - on aggregate looking at all _outbound_
+		// connections across all proxies gets you a full picture of src->dst
+		// traffic. We might expand this later for better debugging of which clients
+		// are abusing a particular service instance but we'll see how valuable that
+		// seems for the extra complication of tracking many gauges here.
+		metricLabels: []metrics.Label{{Name: "dst", Value: svc.Name()}},
 	}
 }
 
@@ -84,6 +107,13 @@ func NewUpstreamListener(svc *connect.Service, cfg UpstreamConfig,
 		stopChan:      make(chan struct{}),
 		listeningChan: make(chan struct{}),
 		logger:        logger,
+		metricPrefix:  upstreamMetricPrefix,
+		metricLabels: []metrics.Label{
+			{Name: "src", Value: svc.Name()},
+			// TODO(banks): namespace support
+			{Name: "dst_type", Value: cfg.DestinationType},
+			{Name: "dst", Value: cfg.DestinationName},
+		},
 	}
 }
 
@@ -125,19 +155,87 @@ func (l *Listener) handleConn(src net.Conn) {
 		l.logger.Printf("[ERR] failed to dial: %s", err)
 		return
 	}
+
+	// Track active conn now (first function call) and defer un-counting it when
+	// it closes.
+	defer l.trackConn()()
+
 	// Note no need to defer dst.Close() since conn handles that for us.
 	conn := NewConn(src, dst)
 	defer conn.Close()
 
-	err = conn.CopyBytes()
-	if err != nil {
-		l.logger.Printf("[ERR] connection failed: %s", err)
-		return
+	connStop := make(chan struct{})
+
+	// Run another goroutine to copy the bytes.
+	go func() {
+		err = conn.CopyBytes()
+		if err != nil {
+			l.logger.Printf("[ERR] connection failed: %s", err)
+			return
+		}
+		close(connStop)
+	}()
+
+	// Periodically copy stats from conn to metrics (to keep metrics calls out of
+	// the path of every single packet copy). 5 seconds is probably good enough
+	// resolution - statsd and most others tend to summarize with lower resolution
+	// anyway and this amortizes the cost more.
+	var tx, rx uint64
+	statsT := time.NewTicker(5 * time.Second)
+	defer statsT.Stop()
+
+	reportStats := func() {
+		newTx, newRx := conn.Stats()
+		if delta := newTx - tx; delta > 0 {
+			metrics.IncrCounterWithLabels([]string{l.metricPrefix, "tx_bytes"},
+				float32(newTx-tx), l.metricLabels)
+		}
+		if delta := newRx - rx; delta > 0 {
+			metrics.IncrCounterWithLabels([]string{l.metricPrefix, "rx_bytes"},
+				float32(newRx-rx), l.metricLabels)
+		}
+		tx, rx = newTx, newRx
+	}
+	// Always report final stats for the conn.
+	defer reportStats()
+
+	// Wait for conn to close
+	for {
+		select {
+		case <-connStop:
+			return
+		case <-l.stopChan:
+			return
+		case <-statsT.C:
+			reportStats()
+		}
+	}
+}
+
+// trackConn increments the count of active conns and returns a func() that can
+// be deferred on to decrement the counter again on connection close.
+func (l *Listener) trackConn() func() {
+	l.connWG.Add(1)
+	c := atomic.AddInt64(&l.activeConns, 1)
+	metrics.SetGaugeWithLabels([]string{l.metricPrefix, "conns"}, float32(c),
+		l.metricLabels)
+
+	return func() {
+		l.connWG.Done()
+		c := atomic.AddInt64(&l.activeConns, -1)
+		metrics.SetGaugeWithLabels([]string{l.metricPrefix, "conns"}, float32(c),
+			l.metricLabels)
 	}
 }
 
 // Close terminates the listener and all active connections.
 func (l *Listener) Close() error {
+	oldFlag := atomic.SwapInt32(&l.stopFlag, 1)
+	if oldFlag == 0 {
+		close(l.stopChan)
+		// Wait for all conns to close
+		l.connWG.Wait()
+	}
 	return nil
 }
 

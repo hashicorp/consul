@@ -67,7 +67,8 @@ func (p *Proxy) Serve() error {
 					tcfg := service.ServerTLSConfig()
 					cert, _ := tcfg.GetCertificate(nil)
 					leaf, _ := x509.ParseCertificate(cert.Certificate[0])
-					p.logger.Printf("[DEBUG] leaf: %s roots: %s", leaf.URIs[0], bytes.Join(tcfg.RootCAs.Subjects(), []byte(",")))
+					p.logger.Printf("[DEBUG] leaf: %s roots: %s", leaf.URIs[0],
+						bytes.Join(tcfg.RootCAs.Subjects(), []byte(",")))
 				}()
 
 				// Only start a listener if we have a port set. This allows
