@@ -1966,14 +1966,14 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 // setupAgentTLSClientConfig returns TLS client configuration for connecting
 // to agents.
 func (a *Agent) setupAgentTLSClientConfig(skipVerify bool) (*tls.Config, error) {
-	// Start with the outgoing TLS config for connecting to agents
-	tlscfg, err := a.config.OutgoingAgentTLSConfig()
+	// Start with the outgoing TLS config
+	tlscfg, err := a.GetTLSLoader().OutgoingTLSConfig()
 	if err != nil {
 		return tlscfg, err
 	}
 
 	if tlscfg == nil {
-		// Agent TLS disabled, so no TLS config
+		// Outgoing TLS disabled, so no TLS config
 		return nil, nil
 	}
 
