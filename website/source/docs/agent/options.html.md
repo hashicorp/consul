@@ -1483,3 +1483,4 @@ items which are reloaded include:
 * <a href="#node_meta">Node Metadata</a>
 * <a href="#telemetry-prefix_filter">Metric Prefix Filter</a>
 * <a href="#discard_check_output">Discard Check Output</a>
+* <a href="#limits">RPC rate limiting</a>
