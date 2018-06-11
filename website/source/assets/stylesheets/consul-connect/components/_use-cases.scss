@@ -1,0 +1,30 @@
+.g-use-cases {
+  display: flex;
+  justify-content: center;
+  margin: 0 (-$site-gutter-padding);
+
+  h3 {
+    margin: 40px 0 16px;
+    
+    span {
+      display: block;
+      font-weight: 300; //TODO: font weight doesn't exist currently
+    }
+  }
+
+  & > div {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 0 $site-gutter-padding;
+    position: relative;
+    text-align: center;
+    width: 33.33333%;
+  }
+
+  .g-btn {
+    font-size: 1.4rem;
+    margin-top: 22px;
+    padding: 8px 24px;
+  }
+}

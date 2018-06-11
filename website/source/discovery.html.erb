@@ -1,0 +1,142 @@
+---
+description: |-
+  Consul is a highly available and distributed service discovery and KV
+  store designed with support for the modern data center to make distributed
+  systems and configuration easy.
+---
+
+<div class='consul-connect'>
+
+  <section class='g-hero'>
+    <div class='g-container'>
+      <h1>Service discovery made easy.</h1>
+      <p>Service Registry enables services to register and discover each other in dymanic infrastructure.</p>
+      <a href="#" class="g-btn">Get Started</a>
+    </div>
+  </section>
+
+  <section class='g-section'>
+    <div class='g-container'>
+      <div class='g-timeline no-intro'>
+        <div>
+          <span class='dot'></span>
+          <h3>The Challenge</h3>
+          <span class='sub-heading'>Service load balancers aren't efficient in a dynamic world.</span>
+          <img src='//placehold.it/516x314'>
+          <p>Load balancers are often used to front a service tier and provide a static IP. These load balancers add cost, increase latency, introduce single points of failure, and must be updated as services scale up/down.</p>
+        </div>
+        <div>
+          <span class='line'>
+            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="15" viewBox="0 0 11 15">
+                <path fill="#CA2171" d="M0 0v15l5.499-3.751L11 7.5 5.499 3.749.002 0z"/>
+            </svg>
+          </span>
+          <span class='dot'></span>
+          <h3>The Solution</h3>
+          <span class='sub-heading'>Service discovery for dynamic infrastructure.</span>
+          <img src='//placehold.it/516x314'>
+          <p>Instead of load balancers, connectivity in dynamic infrastructure is best solved with service discovery. Service discovery uses a registry to keep a real-time list of services, their location, and their health. Services query the registry to discover the location of upstream services and then connect directly. This allows services to scale up/down and gracefully handle failure without a load balancer intermediary.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class='g-section border-top'>
+    <div class='g-container'>
+      <div class='intro'>
+        <h2>Features</h2>
+      </div>
+      <div class='g-text-image large reverse'>
+        <div>
+          <img src='/assets/images/consul-connect/service-registry.png' alt='Service Registry'>
+        </div>
+        <div>
+          <div>
+            <h3>Service Registry</h3>
+            <p>Consul provides a registry of all the running nodes and services, along with their current health status. This allows operators to understand the environment, and applications and automation tools to interact with dynamic infrastructure using an HTTP API.</p>
+            <p>
+              <a class="learn-more" href='#'>Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class='g-section border-top'>
+    <div class='g-container'>
+      <div class='g-text-image'>
+        <div>
+          <img class="shadow" src='/assets/images/consul-connect/code-sample-2.png' alt='DNS Query Interface'>
+        </div>
+        <div>
+          <div>
+            <h3>DNS Query Interface</h3>
+            <p>Consul enables service discovery using a built-in DNS server. This allows existing applications to easily integrate, as almost all applications support using DNS to resolve IP addresses. Using DNS instead of a static IP address allows services to scale up/down and route around failures easily.</p>
+            <p>
+              <a class="learn-more" href='#'>Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class='g-section border-top'>
+    <div class='g-container'>
+      <div class='g-text-image reverse'>
+        <div>
+          <img class="shadow"  src='/assets/images/consul-connect/code-sample-2.png' alt='HTTP API with Edge Triggers'>
+        </div>
+        <div>
+          <div>
+            <h3>HTTP API with Edge Triggers</h3>
+            <p>Consul provides an HTTP API to query the service registry for nodes, services, and health check information. The API also supports blocking queries, or long-polling for any changes. This allows automation tools to react to services being registered or health status changes to change configurations or traffic routing in real time.</p>
+            <p>
+              <a class="learn-more" href='#'>Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class='g-section border-top'>
+    <div class='g-container'>
+      <div class='g-text-image'>
+        <div>
+          <img class='shadow' src='/assets/images/consul-connect/code-sample-3.png' alt='Multi Datacenter'>
+        </div>
+        <div>
+          <div>
+            <h3>Multi Datacenter</h3>
+            <p>Consul supports to multiple datacenters out of the box with no complicated configuration. Look up services in other datacenters or keep the request local. Advanced features like Prepared Queries enable automatic failover to other datacenters.</p>
+            <p>
+              <a class="learn-more" href='#'>Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class='g-section border-top'>
+    <div class='g-container'>
+      <div class='g-text-image large reverse'>
+        <div>
+          <img src='/assets/images/consul-connect/health-checks.png' alt='Service Registry'>
+        </div>
+        <div>
+          <div>
+            <h3>Health Checks</h3>
+            <p>Pairing service discovery with health checking prevents routing requests to unhealthy hosts and enables services to easily provide circuit breakers.</p>
+            <p>
+              <a class="learn-more" href='#'>Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>

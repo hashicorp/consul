@@ -1,0 +1,83 @@
+.consul-connect {
+  font-size: 16px; // root is set to 10px
+
+  ul,
+  p {
+    font-size: 1.125em;
+    line-height: 1.75;
+    margin: 16px 0;
+  }
+
+  p {
+    margin: 1em 0;
+  }
+
+  a:hover {
+    text-decoration: none;
+  }
+
+  h3,
+  h2,
+  h1 {
+    font-family: $font-family-klavika;
+    font-kerning: normal;
+    font-weight: 500;
+  }
+
+  h1,
+  .h1 {
+    font-size: 3.5em;
+    font-weight: 600;
+    line-height: 1.2em;
+  }
+
+  h2,
+  .h2 {
+    font-size: 2.5em;
+    font-weight: 600;
+    margin: 1em 0;
+    line-height: 1.3em;
+    @media (max-width: 700px) {
+      font-size: 2.2em;
+    }
+  }
+
+  h3,
+  .h3 {
+    font-family: $font-family-open-sans;
+    font-weight: 600;
+    font-size: 1.5em;
+    line-height: 1.5em;
+    margin: 1em 0;
+    @media (max-width: 700px) {
+      font-size: 1.2em;
+    }
+    &.lighter {
+      font-weight: 100;
+    }
+  }
+
+  h6,
+  .h6 h5,
+  .h5 h4,
+  .h4 {
+    font-family: $font-family-open-sans;
+    font-weight: 600;
+  }
+
+  h4,
+  .h4 {
+    font-size: 1.5em;
+  }
+
+  h5,
+  .h5 {
+    font-size: 1.25em;
+  }
+
+  h6,
+  .h6 {
+    font-size: 1.125em;
+    margin: 1em 0;
+  }
+}

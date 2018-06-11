@@ -1,0 +1,23 @@
+.g-section {
+  overflow: hidden;
+  padding: 96px 0;
+
+  & .intro {
+    margin: 0 auto 64px;
+    max-width: 784px;
+    text-align: center;
+
+    & h2,
+    & h3 {
+      margin: 0 0 24px;
+    }
+  }
+
+  &.bg-light {
+    background: #f7f8fa !important; //TODO - !important is to override the `#page-home section` #fff background;
+  }
+
+  &.border-top {
+    border-top: 1px solid #e5e6eb;
+  }
+}

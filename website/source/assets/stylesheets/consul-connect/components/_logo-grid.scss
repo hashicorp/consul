@@ -1,0 +1,13 @@
+.g-logo-grid {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  max-width: $site-max-width - 180;
+  margin: 0 auto;
+  text-align: center;
+
+  & > div {
+    padding: 25px $site-gutter-padding;
+    width: 33%;
+  }
+}

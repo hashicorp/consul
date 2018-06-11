@@ -1,0 +1,124 @@
+---
+description: |-
+  Consul is a highly available and distributed service discovery and KV
+  store designed with support for the modern data center to make distributed
+  systems and configuration easy.
+---
+
+<div class='consul-connect'>
+
+  <section class='g-hero'>
+    <div class='g-container'>
+      <span>New Feature</span>
+      <h1>Service segmentation made easy.</h1>
+      <p>Secure service-to-service communication with automatic TLS encryption and identity-based authorization.</p>
+      <a href="#" class="g-btn">Get Started</a>
+    </div>
+  </section>
+
+  <section class='g-section'>
+    <div class='g-container'>
+      <div class='g-timeline no-intro'>
+        <div>
+          <span class='dot'></span>
+          <h3>The Challenge</h3>
+          <span class='sub-heading'>Securing service-to-service communication with firewalls doesn’t scale in dynamic settings.</span>
+          <img src='//placehold.it/516x314'>
+          <p>East-west firewalls are the main tool for networking security in a static world. They depend on constraining traffic flow and use IP based rules to control ingress and egress traffic. But in a dynamic world where services move across machines and machines are frequently created and destroyed, this perimeter-based approach is difficult to scale as it requires complex network topologies and a large number of short lived firewall rules.</p>
+        </div>
+        <div>
+          <span class='line'>
+            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="15" viewBox="0 0 11 15">
+                <path fill="#CA2171" d="M0 0v15l5.499-3.751L11 7.5 5.499 3.749.002 0z"/>
+            </svg>
+          </span>
+          <span class='dot'></span>
+          <h3>The Solution</h3>
+          <span class='sub-heading'>Service segmentation for dynamic service authorization.</span>
+          <img src='//placehold.it/516x314'>
+          <p>Service segmentation is a new approach to secure the service itself rather than relying on the network. Consul Connect enables high level rules to codify which services are allowed to communicate directly, without IP based rules or networking middleware.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class='g-section border-top'>
+    <div class='g-container'>
+      <div class='intro'>
+        <h2>Features</h2>
+      </div>
+      <div class='g-text-image large reverse'>
+        <div>
+          <img src='/assets/images/consul-connect/service-access-graph.png' alt='Service Access Graph '>
+        </div>
+        <div>
+          <div>
+            <h3>Service Access Graph </h3>
+            <p>Define and enforce service to service communication with a simple Intentions configuration. Service based rules, instead of IP based rules, make it easy to manage dynamic infrastructure with frequently changing IPs.</p>
+            <p>
+              <a class="learn-more" href='#'>Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class='g-section border-top'>
+    <div class='g-container'>
+      <div class='g-text-image'>
+        <div>
+          <img class="shadow" src='/assets/images/consul-connect/code-sample-2.png' alt='DNS Query Interface'>
+        </div>
+        <div>
+          <div>
+            <h3>Secure services across any runtime platform</h3>
+            <p>Secure communication between legacy and modern workloads. Sidecar proxies allow applications to be integrated without code changes and Layer 4 support provides nearly universal protocol compatibility.</p>
+            <p>
+              <a class="learn-more" href='#'>Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class='g-section border-top'>
+    <div class='g-container'>
+      <div class='g-text-image reverse'>
+        <div>
+          <img class="shadow" src='/assets/images/consul-connect/code-sample-2.png' alt='DNS Query Interface'>
+        </div>
+        <div>
+          <div>
+            <h3>Certificate-Based Service Identity</h3>
+            <p>TLS certificates are used to identify services and secure communications. Certificates use the SPIFFE format for interoperability with other platforms. Consul can be a certificate authority to simplify deployment, or integrate with external signing authorities like Vault.</p>
+            <p>
+              <a class="learn-more" href='#'>Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class='g-section border-top'>
+    <div class='g-container'>
+      <div class='g-text-image'>
+        <div>
+          <img class="shadow" src='/assets/images/consul-connect/code-sample-2.png' alt='DNS Query Interface'>
+        </div>
+        <div>
+          <div>
+            <h3>Encrypted communication</h3>
+            <p>All traffic between services is encrypted and authenticated with mutual TLS. Using TLS provides a strong guarantee of the identity of services communicating, and ensure all data in transit is encrypted.</p>
+            <p>
+              <a class="learn-more" href='#'>Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>

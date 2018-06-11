@@ -1,0 +1,30 @@
+.g-hero {
+  background: url("/assets/images/consul-connect/hero-bg.svg") no-repeat center
+    center;
+  background-size: cover;
+  padding: 121px 0;
+  text-align: center;
+
+  h1 {
+    margin: 0 0 16px;
+  }
+
+  p {
+    font-size: 1.5em;
+    max-width: 848px;
+    margin: 0 auto 40px;
+  }
+
+  span {
+    border: 1px solid #ca2171;
+    border-radius: 2px;
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    line-height: 20px;
+    margin-bottom: 16px;
+    padding: 2px 9px;
+    text-transform: uppercase;
+  }
+}

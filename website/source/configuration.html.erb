@@ -1,0 +1,142 @@
+---
+description: |-
+  Consul is a highly available and distributed service discovery and KV
+  store designed with support for the modern data center to make distributed
+  systems and configuration easy.
+---
+
+<div class='consul-connect'>
+
+  <section class='g-hero'>
+    <div class='g-container'>
+      <h1>Service configuration made easy.</h1>
+      <p>Feature rich key/value store lets you easily configure services.</p>
+      <a href="#" class="g-btn">Get Started</a>
+    </div>
+  </section>
+
+  <section class='g-section'>
+    <div class='g-container'>
+      <div class='g-timeline no-intro'>
+        <div>
+          <span class='dot'></span>
+          <h3>The Challenge</h3>
+          <span class='sub-heading'>Runtime configuration management loses performace at scale.</span>
+          <img src='//placehold.it/516x314'>
+          <p>Services have many runtime configurations, such as feature flags or maintenance modes, that need to be propagated in real time. Distributing these updates using configuration management or by re-deploying services can take minutes to hours. During these rollout periods, infrastructure can be out of sync and service configurations could be incorrect.</p>
+        </div>
+        <div>
+          <span class='line'>
+            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="15" viewBox="0 0 11 15">
+                <path fill="#CA2171" d="M0 0v15l5.499-3.751L11 7.5 5.499 3.749.002 0z"/>
+            </svg>
+          </span>
+          <span class='dot'></span>
+          <h3>The Solution</h3>
+          <span class='sub-heading'>Real-time runtime configuration for distributed applications.</span>
+          <img src='//placehold.it/516x314'>
+          <p>Consul can update service configurations across thousands of services in a globally distributed fleet in real time. Configuration can be stored in a hierarchical key/value store, and efficient edge triggers allow changes to be pushed to applications quickly.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class='g-section border-top'>
+    <div class='g-container'>
+      <div class='intro'>
+        <h2>Features</h2>
+      </div>
+      <div class='g-text-image reverse'>
+        <div>
+          <img class="shadow" src='/assets/images/consul-connect/code-sample-2.png' alt='Automation through Codification'>
+        </div>
+        <div>
+          <div>
+            <h3>Key/Value Store</h3>
+            <p>Feature rich  key/value store for dynamic service configuration data. Use it for feature flagging, maintenance modes, and more.</p>
+            <p>
+              <a class="learn-more" href='#'>Learn More <svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class='g-section border-top'>
+    <div class='g-container'>
+      <div class='g-text-image'>
+        <div>
+          <img src='/assets/images/consul-connect/code-sample-2.png' alt='Workflows, not Technologies'>
+        </div>
+        <div>
+          <div>
+            <h3>Transaction Support</h3>
+            <p>The key/value store supports both read and write transactions. This allows multiple keys to be updated or read as an atomic transaction. Changes to service configuration can be done atomically to minimize churn and avoid inconsistencies.</p>
+            <p>
+              <a class="learn-more" href='#'>Learn More <svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class='g-section border-top'>
+    <div class='g-container'>
+      <div class='g-text-image reverse'>
+        <div>
+          <img src='/assets/images/consul-connect/code-sample-2.png' alt='Open and Extensible'>
+        </div>
+        <div>
+          <div>
+            <h3>Blocking Queries / Edge-Triggered Requests</h3>
+            <p>The Consul API supports blocking queries, allowing edge triggered updates. Clients use this to get notified immediately of any changes. Tools like consul-template allow configuration files to be rendered in real-time to third-party sources when any configuration changes are made.</p>
+            <p>
+              <a class="learn-more" href='#'>Learn More <svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class='g-section border-top'>
+    <div class='g-container'>
+      <div class='g-text-image'>
+        <div>
+          <img src='/assets/images/consul-connect/code-sample-2.png' alt='Workflows, not Technologies'>
+        </div>
+        <div>
+          <div>
+            <h3>Watches</h3>
+            <p>Watches use blocking queries monitor for any configuration or health status updates and invoke user specified scripts to handle changes. This makes it easy to build reactive infrastructure.</p>
+            <p>
+              <a class="learn-more" href='#'>Learn More <svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class='g-section border-top'>
+    <div class='g-container'>
+      <div class='g-text-image large reverse'>
+        <div>
+          <img src='/assets/images/consul-connect/health-checks.png' alt='Service Registry'>
+        </div>
+        <div>
+          <div>
+            <h3>Distributed Locks and Semaphores</h3>
+            <p>The key/value store supports distributed locks and semaphores. This makes it easier for applications to perform leader election or manage access to shared resources.</p>
+            <p>
+              <a class="learn-more" href='#'>Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>

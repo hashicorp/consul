@@ -1,0 +1,52 @@
+.g-btn {
+  align-self: center;
+  background-color: $consul-red;
+  border-radius: 3px;
+  box-sizing: border-box;
+  color: $white;
+  display: inline-block;
+  font-size: 1em;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 24px;
+  outline: 0;
+  padding: 12px 30px;
+  position: relative;
+  text-align: center;
+  transition: all 0.25s ease;
+
+  &:after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.15);
+    opacity: 0;
+    transition: all 0.25s ease;
+  }
+
+  &:focus,
+  &:hover {
+    color: $white;
+    text-decoration: none;
+    transform: translateY(-1px);
+
+    &:after {
+      opacity: 1;
+    }
+  }
+
+  &.dark-outline {
+    background: none;
+    border: 2px solid $black;
+    padding: 10px 28px; /* subtracting the border, so sizes are even */
+    color: $black;
+
+    &:hover {
+      background-color: $black;
+      color: $white;
+    }
+  }
+}
