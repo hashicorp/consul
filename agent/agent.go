@@ -73,6 +73,7 @@ type delegate interface {
 	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error
 	Shutdown() error
 	Stats() map[string]map[string]string
+	ReloadConfig(config *consul.Config) error
 }
 
 // notifier is called after a successful JoinLAN.
@@ -2480,8 +2481,8 @@ func (a *Agent) DisableNodeMaintenance() {
 }
 
 func (a *Agent) loadLimits(conf *config.RuntimeConfig) {
-  a.config.RPCRateLimit = conf.RPCRateLimit
-  a.config.RPCMaxBurst = conf.RPCMaxBurst
+	a.config.RPCRateLimit = conf.RPCRateLimit
+	a.config.RPCMaxBurst = conf.RPCMaxBurst
 }
 
 func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
@@ -2518,7 +2519,17 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 		return fmt.Errorf("Failed reloading watches: %v", err)
 	}
 
-  a.loadLimits(newCfg)
+	a.loadLimits(newCfg)
+
+	// create the config for the rpc server/client
+	consulCfg, err := a.consulConfig()
+	if err != nil {
+		return err
+	}
+
+	if err := a.delegate.ReloadConfig(consulCfg); err != nil {
+		return err
+	}
 
 	// Update filtered metrics
 	metrics.UpdateFilter(newCfg.TelemetryAllowedPrefixes, newCfg.TelemetryBlockedPrefixes)

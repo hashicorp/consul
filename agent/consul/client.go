@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -56,7 +57,7 @@ type Client struct {
 
 	// rpcLimiter is used to rate limit the total number of RPCs initiated
 	// from an agent.
-	rpcLimiter *rate.Limiter
+	rpcLimiter atomic.Value
 
 	// eventCh is used to receive events from the
 	// serf cluster in the datacenter
@@ -125,11 +126,12 @@ func NewClientLogger(config *Config, logger *log.Logger) (*Client, error) {
 	c := &Client{
 		config:     config,
 		connPool:   connPool,
-		rpcLimiter: rate.NewLimiter(config.RPCRate, config.RPCMaxBurst),
 		eventCh:    make(chan serf.Event, serfEventBacklog),
 		logger:     logger,
 		shutdownCh: make(chan struct{}),
 	}
+
+	c.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))
 
 	// Initialize the LAN Serf
 	c.serf, err = c.setupSerf(config.SerfLANConfig,
@@ -251,7 +253,7 @@ TRY:
 	// Enforce the RPC limit.
 	metrics.IncrCounter([]string{"consul", "client", "rpc"}, 1)
 	metrics.IncrCounter([]string{"client", "rpc"}, 1)
-	if !c.rpcLimiter.Allow() {
+	if !c.rpcLimiter.Load().(*rate.Limiter).Allow() {
 		metrics.IncrCounter([]string{"consul", "client", "rpc", "exceeded"}, 1)
 		metrics.IncrCounter([]string{"client", "rpc", "exceeded"}, 1)
 		return structs.ErrRPCRateExceeded
@@ -295,7 +297,7 @@ func (c *Client) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 	// Enforce the RPC limit.
 	metrics.IncrCounter([]string{"consul", "client", "rpc"}, 1)
 	metrics.IncrCounter([]string{"client", "rpc"}, 1)
-	if !c.rpcLimiter.Allow() {
+	if !c.rpcLimiter.Load().(*rate.Limiter).Allow() {
 		metrics.IncrCounter([]string{"consul", "client", "rpc", "exceeded"}, 1)
 		metrics.IncrCounter([]string{"client", "rpc", "exceeded"}, 1)
 		return structs.ErrRPCRateExceeded
@@ -359,4 +361,11 @@ func (c *Client) GetLANCoordinate() (lib.CoordinateSet, error) {
 
 	cs := lib.CoordinateSet{c.config.Segment: lan}
 	return cs, nil
+}
+
+// ReloadConfig is used to have the Client do an online reload of
+// relevant configuration information
+func (c *Client) ReloadConfig(config *Config) error {
+	c.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))
+	return nil
 }
