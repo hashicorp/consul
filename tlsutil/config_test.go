@@ -55,7 +55,7 @@ func TestConfig_CAPath_Valid(t *testing.T) {
 
 func TestConfig_KeyPair_None(t *testing.T) {
 	conf := &Config{}
-	cert, err := conf.KeyPair()
+	cert, err := conf.LoadKeyPair()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -69,7 +69,7 @@ func TestConfig_KeyPair_Valid(t *testing.T) {
 		CertFile: "../test/key/ourdomain.cer",
 		KeyFile:  "../test/key/ourdomain.key",
 	}
-	cert, err := conf.KeyPair()
+	cert, err := conf.LoadKeyPair()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
