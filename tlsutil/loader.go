@@ -5,6 +5,7 @@ import (
 	"sync"
 )
 
+// Loader supports dynamic TLS reconfiguration.
 type Loader struct {
 	// serverConfig is the currently loaded TLS configuration for incoming connections
 	serverConfig *tls.Config
@@ -20,7 +21,6 @@ type Loader struct {
 
 	loaderLock sync.RWMutex
 }
-
 
 // GetConfigForClient returns the currently-loaded server TLS configuration when
 // the Server accepts an incoming connection. This currently does not consider
@@ -65,6 +65,7 @@ func (l *Loader) IncomingTLSConfig() (*tls.Config, error) {
 	return tlsConfig, nil
 }
 
+// OutgoingTLSConfig generates a TLS configuration for outgoing connections.
 func (l *Loader) OutgoingTLSConfig() (*tls.Config, error) {
 	l.loaderLock.RLock()
 	defer l.loaderLock.RUnlock()
