@@ -65,6 +65,8 @@ export default function(assert) {
         ['I visit the $name page for yaml\n$yaml', 'I visit the $name page for json\n$json'],
         function(name, data) {
           currentPage = pages[name];
+          // TODO: Consider putting an assertion here for testing the current url
+          // do I absolutely definitely need that all the time?
           return pages[name].visit(data);
         }
       )
