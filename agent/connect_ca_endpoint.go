@@ -85,7 +85,7 @@ func fixupConfig(conf *structs.CAConfiguration) {
 				conf.Config[k] = ca.Uint8ToString(raw)
 			}
 		}
-		if conf.Config["PrivateKey"] != "" {
+		if v, ok := conf.Config["PrivateKey"]; ok && v != "" {
 			conf.Config["PrivateKey"] = "hidden"
 		}
 	}
