@@ -24,8 +24,10 @@
         </div>
 {{/if}}
     </fieldset>
+    {{!TODO This has a <div> around it in acls, remove or add for consistency }}
 {{#if create }}
-    <button type="submit" {{ action "create" item parent}} disabled={{if item.isInvalid 'disabled'}}>Save</button>
+    {{! we only need to check for an empty keyname here as ember munges autofocus, once we have autofocus back revisit this}}
+    <button type="submit" {{ action "create" item parent}} disabled={{if (or item.isPristine item.isInvalid (eq (left-trim item.Key parent.Key) '')) 'disabled'}}>Save</button>
 {{ else }}
     <button type="submit" {{ action "update" item parent}} disabled={{if item.isInvalid 'disabled'}}>Save</button>
     <button type="reset" {{ action "cancel" item parent}}>Cancel changes</button>

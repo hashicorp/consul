@@ -11,6 +11,7 @@ Feature: dc / kvs / update: KV Update
       dc: datacenter
       kv: [Name]
     ---
+    Then the url should be /datacenter/kv/[Name]/edit
     Then I type with yaml
     ---
       value: [Value]

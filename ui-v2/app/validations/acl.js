@@ -2,5 +2,4 @@ import { validatePresence, validateLength } from 'ember-changeset-validations/va
 export default {
   Name: [validatePresence(true), validateLength({ min: 1 })],
   Type: validatePresence(true),
-  ID: validateLength({ min: 1 }),
 };

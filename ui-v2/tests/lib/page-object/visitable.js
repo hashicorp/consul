@@ -44,9 +44,22 @@ export function visitable(path, encoder = encodeURIComponent) {
       let executionContext = getExecutionContext(this);
 
       return executionContext.runAsync(context => {
-        let params = assign({}, dynamicSegmentsAndQueryParams);
-        let fullPath = fillInDynamicSegments(path, params, encoder);
-
+        var params;
+        let fullPath = (function _try(paths) {
+          const path = paths.shift();
+          params = assign({}, dynamicSegmentsAndQueryParams);
+          var fullPath;
+          try {
+            fullPath = fillInDynamicSegments(path, params, encoder);
+          } catch (e) {
+            if (paths.length > 0) {
+              fullPath = _try(paths);
+            } else {
+              throw e;
+            }
+          }
+          return fullPath;
+        })(typeof path === 'string' ? [path] : path.slice(0));
         fullPath = appendQueryParams(fullPath, params);
 
         return context.visit(fullPath);

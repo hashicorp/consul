@@ -13,6 +13,8 @@ export default Route.extend(WithAclActions, {
   },
   model: function(params) {
     this.item = get(this, 'repo').create();
+    // TODO: Why didn't I have to do this for KV's?
+    set(this.item, 'Name', '');
     set(this.item, 'Datacenter', this.modelFor('dc').dc.Name);
     return hash({
       create: true,
