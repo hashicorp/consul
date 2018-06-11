@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
+	"net/url"
 	"sync"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -81,14 +83,29 @@ func devTLSConfigFromFiles(caFile, certFile,
 	return cfg, nil
 }
 
-// verifyServerCertMatchesURI is used on tls connections dialled to a connect
-// server to ensure that the certificate it presented has the correct identity.
-func verifyServerCertMatchesURI(certs []*x509.Certificate,
-	expected connect.CertURI) error {
-	expectedStr := expected.URI().String()
+// CertURIFromConn is a helper to extract the service identifier URI from a
+// net.Conn. If the net.Conn is not a *tls.Conn then an error is always
+// returned. If the *tls.Conn didn't present a valid connect certificate, or is
+// not yet past the handshake, an error is returned.
+func CertURIFromConn(conn net.Conn) (connect.CertURI, error) {
+	tc, ok := conn.(*tls.Conn)
+	if !ok {
+		return nil, fmt.Errorf("invalid non-TLS connect client")
+	}
+	gotURI, err := extractCertURI(tc.ConnectionState().PeerCertificates)
+	if err != nil {
+		return nil, err
+	}
+	return connect.ParseCertURI(gotURI)
+}
 
+// extractCertURI returns the first URI SAN from the leaf certificate presented
+// in the slice. The slice is expected to be the passed from
+// tls.Conn.ConnectionState().PeerCertificates and requires that the leaf has at
+// least one URI and the first URI is the correct one to use.
+func extractCertURI(certs []*x509.Certificate) (*url.URL, error) {
 	if len(certs) < 1 {
-		return errors.New("peer certificate mismatch")
+		return nil, errors.New("no peer certificate presented")
 	}
 
 	// Only check the first cert assuming this is the only leaf. It's not clear if
@@ -98,16 +115,31 @@ func verifyServerCertMatchesURI(certs []*x509.Certificate,
 
 	// Our certs will only ever have a single URI for now so only check that
 	if len(cert.URIs) < 1 {
+		return nil, errors.New("peer certificate invalid")
+	}
+
+	return cert.URIs[0], nil
+}
+
+// verifyServerCertMatchesURI is used on tls connections dialled to a connect
+// server to ensure that the certificate it presented has the correct identity.
+func verifyServerCertMatchesURI(certs []*x509.Certificate,
+	expected connect.CertURI) error {
+	expectedStr := expected.URI().String()
+
+	gotURI, err := extractCertURI(certs)
+	if err != nil {
 		return errors.New("peer certificate mismatch")
 	}
+
 	// We may want to do better than string matching later in some special
 	// cases and/or encapsulate the "match" logic inside the CertURI
 	// implementation but for now this is all we need.
-	if cert.URIs[0].String() == expectedStr {
+	if gotURI.String() == expectedStr {
 		return nil
 	}
 	return fmt.Errorf("peer certificate mismatch got %s, want %s",
-		cert.URIs[0].String(), expectedStr)
+		gotURI.String(), expectedStr)
 }
 
 // newServerSideVerifier returns a verifierFunc that wraps the provided

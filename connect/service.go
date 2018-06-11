@@ -59,9 +59,9 @@ type Service struct {
 //
 // Caller must provide client which is already configured to speak to the local
 // Consul agent, and with an ACL token that has `service:write` privileges for
-// the serviceID specified.
-func NewService(serviceID string, client *api.Client) (*Service, error) {
-	return NewServiceWithLogger(serviceID, client,
+// the service specified.
+func NewService(serviceName string, client *api.Client) (*Service, error) {
+	return NewServiceWithLogger(serviceName, client,
 		log.New(os.Stderr, "", log.LstdFlags))
 }
 
@@ -123,6 +123,13 @@ func NewDevServiceWithTLSConfig(serviceName string, logger *log.Logger,
 		tlsCfg:  newDynamicTLSConfig(tlsCfg),
 	}
 	return s, nil
+}
+
+// Name returns the name of the service this object represents. Note it is the
+// service _name_ as used during discovery, not the ID used to uniquely identify
+// an instance of the service with an agent.
+func (s *Service) Name() string {
+	return s.service
 }
 
 // ServerTLSConfig returns a *tls.Config that allows any TCP listener to accept

@@ -13,6 +13,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/api"
@@ -22,6 +24,12 @@ import (
 
 // Assert io.Closer implementation
 var _ io.Closer = new(Service)
+
+func TestService_Name(t *testing.T) {
+	ca := connect.TestCA(t, nil)
+	s := TestService(t, "web", ca)
+	assert.Equal(t, "web", s.Name())
+}
 
 func TestService_Dial(t *testing.T) {
 	ca := connect.TestCA(t, nil)
