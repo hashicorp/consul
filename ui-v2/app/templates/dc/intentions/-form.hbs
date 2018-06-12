@@ -50,13 +50,13 @@
         </div>
         <label class="type-text{{if item.error.Description ' has-error'}}">
             <span>Description</span>
-            {{input value=item.Description name='description' placeholder="Description"}}
+            <input type="text" name="Description" value="{{item.Description}}" placeholder="Description" onchange={{action 'change'}} />
             <em>Choose a Consul Service, write in a future Consul Service, or write any Service URL</em>
         </label>
     </fieldset>
     <div>
 {{#if create }}
-        <button type="submit" {{ action "create" item}} disabled={{if item.isInvalid 'disabled'}}>Save</button>
+        <button type="submit" {{ action "create" item}} disabled={{if (or item.isPristine item.isInvalid) 'disabled'}}>Save</button>
 {{ else }}
         <button type="submit" {{ action "update" item}} disabled={{if item.isInvalid 'disabled'}}>Save</button>
 {{/if}}

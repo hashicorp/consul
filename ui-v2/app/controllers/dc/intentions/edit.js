@@ -40,6 +40,7 @@ export default Controller.extend({
       // normalize back to standard event
       const target = e.target || { ..._target, ...{ name: e, value: value } };
       switch (target.name) {
+        case 'Description':
         case 'Action':
           set(this.changeset, target.name, target.value);
           break;
@@ -60,6 +61,7 @@ export default Controller.extend({
           set(this, target.name, selected);
           break;
       }
+      this.changeset.validate();
     },
   },
 });
