@@ -160,7 +160,7 @@ type Config struct {
 	CheckUpdateInterval         *string                  `json:"check_update_interval,omitempty" hcl:"check_update_interval" mapstructure:"check_update_interval"`
 	Checks                      []CheckDefinition        `json:"checks,omitempty" hcl:"checks" mapstructure:"checks"`
 	ClientAddr                  *string                  `json:"client_addr,omitempty" hcl:"client_addr" mapstructure:"client_addr"`
-	Connect                     *Connect                 `json:"connect,omitempty" hcl:"connect" mapstructure:"connect"`
+	Connect                     Connect                  `json:"connect,omitempty" hcl:"connect" mapstructure:"connect"`
 	DNS                         DNS                      `json:"dns_config,omitempty" hcl:"dns_config" mapstructure:"dns_config"`
 	DNSDomain                   *string                  `json:"domain,omitempty" hcl:"domain" mapstructure:"domain"`
 	DNSRecursors                []string                 `json:"recursors,omitempty" hcl:"recursors" mapstructure:"recursors"`
@@ -370,12 +370,21 @@ type Connect struct {
 	// Enabled opts the agent into connect. It should be set on all clients and
 	// servers in a cluster for correct connect operation.
 	Enabled       *bool                  `json:"enabled,omitempty" hcl:"enabled" mapstructure:"enabled"`
-	ProxyDefaults *ConnectProxyDefaults  `json:"proxy_defaults,omitempty" hcl:"proxy_defaults" mapstructure:"proxy_defaults"`
+	Proxy         ConnectProxy           `json:"proxy,omitempty" hcl:"proxy" mapstructure:"proxy"`
+	ProxyDefaults ConnectProxyDefaults   `json:"proxy_defaults,omitempty" hcl:"proxy_defaults" mapstructure:"proxy_defaults"`
 	CAProvider    *string                `json:"ca_provider,omitempty" hcl:"ca_provider" mapstructure:"ca_provider"`
 	CAConfig      map[string]interface{} `json:"ca_config,omitempty" hcl:"ca_config" mapstructure:"ca_config"`
 }
 
-// ConnectProxyDefaults is the agent-global connect proxy configuration.
+// ConnectProxy is the agent-global connect proxy configuration.
+type ConnectProxy struct {
+	// Consul will not execute managed proxies if its EUID is 0 (root).
+	// If this is true, then Consul will execute proxies if Consul is
+	// running as root. This is not recommended.
+	AllowManagedRoot *bool `json:"allow_managed_root" hcl:"allow_managed_root" mapstructure:"allow_managed_root"`
+}
+
+// ConnectProxyDefaults is the agent-global defaults for managed Connect proxies.
 type ConnectProxyDefaults struct {
 	// ExecMode is used where a registration doesn't include an exec_mode.
 	// Defaults to daemon.

@@ -527,32 +527,21 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	consulRaftLeaderLeaseTimeout := b.durationVal("consul.raft.leader_lease_timeout", c.Consul.Raft.LeaderLeaseTimeout) * time.Duration(performanceRaftMultiplier)
 
 	// Connect proxy defaults.
-	var connectEnabled bool
-	var connectCAProvider string
-	var connectCAConfig map[string]interface{}
-	if c.Connect != nil {
-		connectEnabled = b.boolVal(c.Connect.Enabled)
-		connectCAProvider = b.stringVal(c.Connect.CAProvider)
-		connectCAConfig = c.Connect.CAConfig
-		if c.Connect.CAConfig != nil {
-			TranslateKeys(connectCAConfig, map[string]string{
-				"private_key":     "PrivateKey",
-				"root_cert":       "RootCert",
-				"rotation_period": "RotationPeriod",
-			})
-		}
+	connectEnabled := b.boolVal(c.Connect.Enabled)
+	connectCAProvider := b.stringVal(c.Connect.CAProvider)
+	connectCAConfig := c.Connect.CAConfig
+	if connectCAConfig != nil {
+		TranslateKeys(connectCAConfig, map[string]string{
+			"private_key":     "PrivateKey",
+			"root_cert":       "RootCert",
+			"rotation_period": "RotationPeriod",
+		})
 	}
 
-	proxyDefaultExecMode := ""
-	var proxyDefaultDaemonCommand []string
-	var proxyDefaultScriptCommand []string
-	proxyDefaultConfig := make(map[string]interface{})
-	if c.Connect != nil && c.Connect.ProxyDefaults != nil {
-		proxyDefaultExecMode = b.stringVal(c.Connect.ProxyDefaults.ExecMode)
-		proxyDefaultDaemonCommand = c.Connect.ProxyDefaults.DaemonCommand
-		proxyDefaultScriptCommand = c.Connect.ProxyDefaults.ScriptCommand
-		proxyDefaultConfig = c.Connect.ProxyDefaults.Config
-	}
+	proxyDefaultExecMode := b.stringVal(c.Connect.ProxyDefaults.ExecMode)
+	proxyDefaultDaemonCommand := c.Connect.ProxyDefaults.DaemonCommand
+	proxyDefaultScriptCommand := c.Connect.ProxyDefaults.ScriptCommand
+	proxyDefaultConfig := c.Connect.ProxyDefaults.Config
 
 	// ----------------------------------------------------------------
 	// build runtime config
@@ -675,6 +664,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		ConnectEnabled:                   connectEnabled,
 		ConnectCAProvider:                connectCAProvider,
 		ConnectCAConfig:                  connectCAConfig,
+		ConnectProxyAllowManagedRoot:     b.boolVal(c.Connect.Proxy.AllowManagedRoot),
 		ConnectProxyBindMinPort:          proxyMinPort,
 		ConnectProxyBindMaxPort:          proxyMaxPort,
 		ConnectProxyDefaultExecMode:      proxyDefaultExecMode,

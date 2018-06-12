@@ -2070,6 +2070,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DataDir = dataDir
 			},
 		},
+
 		{
 			desc: "HCL service managed proxy 'upstreams'",
 			args: []string{
@@ -2154,6 +2155,23 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 						},
 					},
 				}
+			},
+		},
+
+		{
+			desc: "enabling Connect allow_managed_root",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{
+				`{ "connect": { "proxy": { "allow_managed_root": true } } }`,
+			},
+			hcl: []string{
+				`connect { proxy { allow_managed_root = true } }`,
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.ConnectProxyAllowManagedRoot = true
 			},
 		},
 	}
@@ -3519,6 +3537,7 @@ func TestFullConfig(t *testing.T) {
 			"g4cvJyys": "IRLXE9Ds",
 			"hyMy9Oxn": "XeBp4Sis",
 		},
+		ConnectProxyAllowManagedRoot:     false,
 		ConnectProxyDefaultExecMode:      "script",
 		ConnectProxyDefaultDaemonCommand: []string{"consul", "connect", "proxy"},
 		ConnectProxyDefaultScriptCommand: []string{"proxyctl.sh"},
@@ -4200,6 +4219,7 @@ func TestSanitize(t *testing.T) {
     "ConnectCAConfig": {},
     "ConnectCAProvider": "",
     "ConnectEnabled": false,
+    "ConnectProxyAllowManagedRoot": false,
     "ConnectProxyBindMaxPort": 0,
     "ConnectProxyBindMinPort": 0,
     "ConnectProxyDefaultConfig": {},

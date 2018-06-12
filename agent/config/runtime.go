@@ -630,6 +630,10 @@ type RuntimeConfig struct {
 	// port is specified.
 	ConnectProxyBindMaxPort int
 
+	// ConnectProxyAllowManagedRoot is true if Consul can execute managed
+	// proxies when running as root (EUID == 0).
+	ConnectProxyAllowManagedRoot bool
+
 	// ConnectProxyDefaultExecMode is used where a registration doesn't include an
 	// exec_mode. Defaults to daemon.
 	ConnectProxyDefaultExecMode string
