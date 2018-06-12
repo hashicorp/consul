@@ -33,6 +33,10 @@ UI_BUILD_TAG?=consul-build-ui
 UI_LEGACY_BUILD_TAG?=consul-build-ui-legacy
 BUILD_CONTAINER_NAME?=consul-builder
 
+DIST_TAG?=1
+DIST_BUILD?=1
+DIST_SIGN?=1
+
 export GO_BUILD_TAG
 export UI_BUILD_TAG
 export UI_LEGACY_BUILD_TAG
@@ -47,18 +51,13 @@ export GOLDFLAGS
 all: bin
 
 bin: tools
-	@mkdir -p bin/
-	@GOTAGS='$(GOTAGS)' sh -c "'$(CURDIR)/scripts/build.sh'"
+	@$(SHELL) $(CURDIR)/build-support/scripts/build.sh consul-local
 
 # dev creates binaries for testing locally - these are put into ./bin and $GOPATH
 dev: changelogfmt vendorfmt dev-build
 
 dev-build:
-	@echo "--> Building consul"
-	mkdir -p pkg/$(GOOS)_$(GOARCH)/ bin/
-	go install -ldflags '$(GOLDFLAGS)' -tags '$(GOTAGS)'
-	cp $(GOPATH)/bin/consul bin/
-	cp $(GOPATH)/bin/consul pkg/$(GOOS)_$(GOARCH)
+	@$(SHELL) $(CURDIR)/build-support/scripts/build.sh consul-local -o '$(GOOS)' -a '$(GOARCH)'
 
 vendorfmt:
 	@echo "--> Formatting vendor/vendor.json"
@@ -71,12 +70,11 @@ changelogfmt:
 
 # linux builds a linux package independent of the source platform
 linux:
-	mkdir -p pkg/linux_amd64/
-	GOOS=linux GOARCH=amd64 go build -ldflags '$(GOLDFLAGS)' -tags '$(GOTAGS)' -o pkg/linux_amd64/consul
+	@$(SHELL) $(CURDIR)/build-support/scripts/build.sh consul-local -o linux -a amd64
 
 # dist builds binaries for all platforms and packages them for distribution
 dist:
-	@GOTAGS='$(GOTAGS)' sh -c "'$(CURDIR)/scripts/dist.sh'"
+	@$(SHELL) $(CURDIR)/build-support/scripts/build.sh release -t '$(DIST_TAG)' -b '$(DIST_BUILD)' -S '$(DIST_SIGN)'
 
 cov:
 	gocov test $(GOFILES) | gocov-html > /tmp/coverage.html
@@ -128,8 +126,7 @@ vet:
 # Build the static web ui and build static assets inside a Docker container, the
 # same way a release build works. This implicitly does a "make static-assets" at
 # the end.
-ui:
-	@sh -c "'$(CURDIR)/scripts/ui.sh'"
+ui: ui-legacy-docker ui-docker static-assets
 
 # If you've run "make ui" manually then this will get called for you. This is
 # also run as part of the release build script when it verifies that there are no
@@ -140,6 +137,12 @@ static-assets:
 
 tools:
 	go get -u -v $(GOTOOLS)
+
+version:
+	@echo -n "Version without release: "
+	@$(SHELL) $(CURDIR)/build-support/scripts/build.sh version 
+	@echo -n "Version with release:    "
+	@$(SHELL) $(CURDIR)/build-support/scripts/build.sh version -R
 
 docker-images:
 	@$(MAKE) -C build-support/docker images
@@ -156,7 +159,7 @@ ui-legacy-build-image:
 static-assets-docker: go-build-image
 	@$(SHELL) $(CURDIR)/build-support/scripts/build.sh assetfs	
 	
-go-docker: go-build-image
+consul-docker: go-build-image
 	@$(SHELL) $(CURDIR)/build-support/scripts/build.sh consul
 	
 ui-docker: ui-build-image
@@ -165,7 +168,6 @@ ui-docker: ui-build-image
 ui-legacy-docker: ui-legacy-build-image
 	@$(SHELL) $(CURDIR)/build-support/scripts/build.sh ui-legacy
 	
-release-docker: ui-docker ui-legacy-docker static-assets-docker go-docker
 	
 .PHONY: all ci bin dev dist cov test cover format vet ui static-assets tools vendorfmt 
-.PHONY: docker-images go-build-iamge ui-build-image ui-legacy-build-image static-assets-docker go-docker ui-docker ui-legacy-docker release-docker
+.PHONY: docker-images go-build-image ui-build-image ui-legacy-build-image static-assets-docker consul-docker ui-docker ui-legacy-docker version
