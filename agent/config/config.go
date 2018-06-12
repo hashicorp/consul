@@ -382,6 +382,11 @@ type ConnectProxy struct {
 	// If this is true, then Consul will execute proxies if Consul is
 	// running as root. This is not recommended.
 	AllowManagedRoot *bool `json:"allow_managed_root" hcl:"allow_managed_root" mapstructure:"allow_managed_root"`
+
+	// AllowManagedAPIRegistration enables managed proxy registration
+	// via the agent HTTP API. If this is false, only file configurations
+	// can be used.
+	AllowManagedAPIRegistration *bool `json:"allow_managed_api_registration" hcl:"allow_managed_api_registration" mapstructure:"allow_managed_api_registration"`
 }
 
 // ConnectProxyDefaults is the agent-global defaults for managed Connect proxies.

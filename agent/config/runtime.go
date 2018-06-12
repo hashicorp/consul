@@ -634,6 +634,11 @@ type RuntimeConfig struct {
 	// proxies when running as root (EUID == 0).
 	ConnectProxyAllowManagedRoot bool
 
+	// ConnectProxyAllowManagedAPIRegistration enables managed proxy registration
+	// via the agent HTTP API. If this is false, only file configurations
+	// can be used.
+	ConnectProxyAllowManagedAPIRegistration bool
+
 	// ConnectProxyDefaultExecMode is used where a registration doesn't include an
 	// exec_mode. Defaults to daemon.
 	ConnectProxyDefaultExecMode string

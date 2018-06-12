@@ -2174,6 +2174,23 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.ConnectProxyAllowManagedRoot = true
 			},
 		},
+
+		{
+			desc: "enabling Connect allow_managed_api_registration",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{
+				`{ "connect": { "proxy": { "allow_managed_api_registration": true } } }`,
+			},
+			hcl: []string{
+				`connect { proxy { allow_managed_api_registration = true } }`,
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.ConnectProxyAllowManagedAPIRegistration = true
+			},
+		},
 	}
 
 	testConfig(t, tests, dataDir)
@@ -3537,10 +3554,11 @@ func TestFullConfig(t *testing.T) {
 			"g4cvJyys": "IRLXE9Ds",
 			"hyMy9Oxn": "XeBp4Sis",
 		},
-		ConnectProxyAllowManagedRoot:     false,
-		ConnectProxyDefaultExecMode:      "script",
-		ConnectProxyDefaultDaemonCommand: []string{"consul", "connect", "proxy"},
-		ConnectProxyDefaultScriptCommand: []string{"proxyctl.sh"},
+		ConnectProxyAllowManagedRoot:            false,
+		ConnectProxyAllowManagedAPIRegistration: false,
+		ConnectProxyDefaultExecMode:             "script",
+		ConnectProxyDefaultDaemonCommand:        []string{"consul", "connect", "proxy"},
+		ConnectProxyDefaultScriptCommand:        []string{"proxyctl.sh"},
 		ConnectProxyDefaultConfig: map[string]interface{}{
 			"foo":                "bar",
 			"connect_timeout_ms": float64(1000),
@@ -4219,6 +4237,7 @@ func TestSanitize(t *testing.T) {
     "ConnectCAConfig": {},
     "ConnectCAProvider": "",
     "ConnectEnabled": false,
+    "ConnectProxyAllowManagedAPIRegistration": false,
     "ConnectProxyAllowManagedRoot": false,
     "ConnectProxyBindMaxPort": 0,
     "ConnectProxyBindMinPort": 0,
