@@ -19,6 +19,8 @@ func A(b ServiceBackend, zone string, state request.Request, previousRecords []d
 		return nil, err
 	}
 
+	dup := make(map[string]bool)
+
 	for _, serv := range services {
 
 		what, ip := serv.HostType()
@@ -67,10 +69,13 @@ func A(b ServiceBackend, zone string, state request.Request, previousRecords []d
 			continue
 
 		case dns.TypeA:
-			records = append(records, serv.NewA(state.QName(), ip))
+			if _, ok := dup[serv.Host]; !ok {
+				dup[serv.Host] = true
+				records = append(records, serv.NewA(state.QName(), ip))
+			}
 
 		case dns.TypeAAAA:
-			// nodata?
+			// nada
 		}
 	}
 	return records, nil
@@ -82,6 +87,8 @@ func AAAA(b ServiceBackend, zone string, state request.Request, previousRecords 
 	if err != nil {
 		return nil, err
 	}
+
+	dup := make(map[string]bool)
 
 	for _, serv := range services {
 
@@ -132,10 +139,13 @@ func AAAA(b ServiceBackend, zone string, state request.Request, previousRecords 
 			// both here again
 
 		case dns.TypeA:
-			// nada?
+			// nada
 
 		case dns.TypeAAAA:
-			records = append(records, serv.NewAAAA(state.QName(), ip))
+			if _, ok := dup[serv.Host]; !ok {
+				dup[serv.Host] = true
+				records = append(records, serv.NewAAAA(state.QName(), ip))
+			}
 		}
 	}
 	return records, nil
@@ -149,7 +159,18 @@ func SRV(b ServiceBackend, zone string, state request.Request, opt Options) (rec
 		return nil, nil, err
 	}
 
-	// Looping twice to get the right weight vs priority
+	type s struct {
+		n string
+		p uint16
+	}
+	dup := make(map[s]bool)
+	type a struct {
+		n string
+		a string
+	}
+	dupAddr := make(map[a]bool)
+
+	// Looping twice to get the right weight vs priority. This might break because we may drop duplicate SRV records latter on.
 	w := make(map[int]int)
 	for _, serv := range services {
 		weight := 100
@@ -212,11 +233,19 @@ func SRV(b ServiceBackend, zone string, state request.Request, opt Options) (rec
 			// IPv6 lookups here as well? AAAA(zone, state1, nil).
 
 		case dns.TypeA, dns.TypeAAAA:
+			addr := serv.Host
 			serv.Host = msg.Domain(serv.Key)
 			srv := serv.NewSRV(state.QName(), weight)
 
-			records = append(records, srv)
-			extra = append(extra, newAddress(serv, srv.Target, ip, what))
+			if _, ok := dup[s{srv.Target, srv.Port}]; !ok {
+				dup[s{srv.Target, srv.Port}] = true
+				records = append(records, srv)
+			}
+
+			if _, ok := dupAddr[a{srv.Target, addr}]; !ok {
+				dupAddr[a{srv.Target, addr}] = true
+				extra = append(extra, newAddress(serv, srv.Target, ip, what))
+			}
 		}
 	}
 	return records, extra, nil
@@ -228,6 +257,17 @@ func MX(b ServiceBackend, zone string, state request.Request, opt Options) (reco
 	if err != nil {
 		return nil, nil, err
 	}
+
+	type s struct {
+		n string
+		p uint16
+	}
+	dup := make(map[s]bool)
+	type a struct {
+		n string
+		a string
+	}
+	dupAddr := make(map[a]bool)
 
 	lookup := make(map[string]bool)
 	for _, serv := range services {
@@ -271,9 +311,19 @@ func MX(b ServiceBackend, zone string, state request.Request, opt Options) (reco
 			// e.AAAA as well
 
 		case dns.TypeA, dns.TypeAAAA:
+			addr := serv.Host
 			serv.Host = msg.Domain(serv.Key)
-			records = append(records, serv.NewMX(state.QName()))
-			extra = append(extra, newAddress(serv, serv.Host, ip, what))
+			mx := serv.NewMX(state.QName())
+
+			if _, ok := dup[s{mx.Mx, mx.Preference}]; !ok {
+				dup[s{mx.Mx, mx.Preference}] = true
+				records = append(records, mx)
+			}
+			// Fake port to be 0 for address...
+			if _, ok := dupAddr[a{serv.Host, addr}]; !ok {
+				dupAddr[a{serv.Host, addr}] = true
+				extra = append(extra, newAddress(serv, serv.Host, ip, what))
+			}
 		}
 	}
 	return records, extra, nil
@@ -318,9 +368,14 @@ func PTR(b ServiceBackend, zone string, state request.Request, opt Options) (rec
 		return nil, err
 	}
 
+	dup := make(map[string]bool)
+
 	for _, serv := range services {
 		if ip := net.ParseIP(serv.Host); ip == nil {
-			records = append(records, serv.NewPTR(state.QName(), serv.Host))
+			if _, ok := dup[serv.Host]; !ok {
+				dup[serv.Host] = true
+				records = append(records, serv.NewPTR(state.QName(), serv.Host))
+			}
 		}
 	}
 	return records, nil

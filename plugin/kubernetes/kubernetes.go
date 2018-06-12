@@ -107,7 +107,7 @@ func (k *Kubernetes) Services(state request.Request, exact bool, opt plugin.Opti
 		return []msg.Service{svc}, nil
 
 	case dns.TypeNS:
-		// We can only get here if the qname equal the zone, see ServeDNS in handler.go.
+		// We can only get here if the qname equals the zone, see ServeDNS in handler.go.
 		ns := k.nsAddr()
 		svc := msg.Service{Host: ns.A.String(), Key: msg.Path(state.QName(), "coredns")}
 		return []msg.Service{svc}, nil
