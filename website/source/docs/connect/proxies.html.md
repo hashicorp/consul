@@ -95,8 +95,8 @@ proxy configuration:
       "proxy": {
         "config": {
           "upstreams": [{
-              "destination_name": "redis",
-              "local_bind_port": 1234
+            "destination_name": "redis",
+            "local_bind_port": 1234
           }]
         }
       }
@@ -138,9 +138,9 @@ service.
       "proxy": {
         "config": {
           "upstreams": [{
-              "destination_name": "redis",
-              "destination_type": "prepared_query",
-              "local_bind_port": 1234
+            "destination_name": "redis",
+            "destination_type": "prepared_query",
+            "local_bind_port": 1234
           }]
         }
       }
