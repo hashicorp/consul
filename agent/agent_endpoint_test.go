@@ -1396,7 +1396,13 @@ func TestAgent_RegisterService_ManagedConnectProxy(t *testing.T) {
 
 	assert := assert.New(t)
 	require := require.New(t)
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t.Name(), `
+		connect {
+			proxy {
+				allow_managed_api_registration = true
+			}
+		}
+	`)
 	defer a.Shutdown()
 
 	// Register a proxy. Note that the destination doesn't exist here on
@@ -1445,6 +1451,42 @@ func TestAgent_RegisterService_ManagedConnectProxy(t *testing.T) {
 	// Ensure the token was configured
 	assert.Equal("abc123", a.State.ServiceToken("web"))
 	assert.Equal("abc123", a.State.ServiceToken("web-proxy"))
+}
+
+// This tests local agent service registration with a managed proxy with
+// API registration disabled (default).
+func TestAgent_RegisterService_ManagedConnectProxy_Disabled(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	a := NewTestAgent(t.Name(), ``)
+	defer a.Shutdown()
+
+	// Register a proxy. Note that the destination doesn't exist here on
+	// this agent or in the catalog at all. This is intended and part
+	// of the design.
+	args := &api.AgentServiceRegistration{
+		Name: "web",
+		Port: 8000,
+		Connect: &api.AgentServiceConnect{
+			Proxy: &api.AgentServiceConnectProxy{
+				ExecMode: "script",
+				Command:  []string{"proxy.sh"},
+				Config: map[string]interface{}{
+					"foo": "bar",
+				},
+			},
+		},
+	}
+
+	req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=abc123", jsonReader(args))
+	resp := httptest.NewRecorder()
+	_, err := a.srv.AgentRegisterService(resp, req)
+	assert.Error(err)
+
+	// Ensure the target service does not exist
+	_, ok := a.State.Services()["web"]
+	assert.False(ok, "does not has service")
 }
 
 // This tests local agent service registration of a unmanaged connect proxy.

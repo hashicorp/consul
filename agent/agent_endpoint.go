@@ -623,6 +623,12 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 		return nil, nil
 	}
 
+	// If we have a proxy, verify that we're allowed to add a proxy via the API
+	if proxy != nil && !s.agent.config.ConnectProxyAllowManagedAPIRegistration {
+		return nil, &BadRequestError{
+			Reason: "Managed proxy registration via the API is disallowed."}
+	}
+
 	// Add the service.
 	if err := s.agent.AddService(ns, chkTypes, true, token); err != nil {
 		return nil, err
