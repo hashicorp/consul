@@ -347,6 +347,41 @@ func TestManagerRun_snapshotRestore(t *testing.T) {
 	})
 }
 
+// Manager should not run any proxies if we're running as root. Tests
+// stub the value.
+func TestManagerRun_rootDisallow(t *testing.T) {
+	// Pretend we are root
+	defer testSetRootValue(true)()
+
+	state := local.TestState(t)
+	m, closer := testManager(t)
+	defer closer()
+	m.State = state
+	defer m.Kill()
+
+	// Add the proxy before we start the manager to verify initial sync
+	td, closer := testTempDir(t)
+	defer closer()
+	path := filepath.Join(td, "file")
+	testStateProxy(t, state, "web", helperProcess("restart", path))
+
+	// Start the manager
+	go m.Run()
+
+	// Sleep a bit just to verify
+	time.Sleep(100 * time.Millisecond)
+
+	// We should see the path appear shortly
+	retry.Run(t, func(r *retry.R) {
+		_, err := os.Stat(path)
+		if err != nil {
+			return
+		}
+
+		r.Fatalf("path exists")
+	})
+}
+
 func testManager(t *testing.T) (*Manager, func()) {
 	m := NewManager()
 

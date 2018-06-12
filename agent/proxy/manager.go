@@ -85,6 +85,12 @@ type Manager struct {
 	CoalescePeriod  time.Duration
 	QuiescentPeriod time.Duration
 
+	// AllowRoot configures whether proxies can be executed as root (EUID == 0).
+	// If this is false then the manager will run and proxies can be added
+	// and removed but none will be started an errors will be logged
+	// to the logger.
+	AllowRoot bool
+
 	// lock is held while reading/writing any internal state of the manager.
 	// cond is a condition variable on lock that is broadcasted for runState
 	// changes.
@@ -322,6 +328,12 @@ SYNC:
 func (m *Manager) sync() {
 	m.lock.Lock()
 	defer m.lock.Unlock()
+
+	// If we don't allow root and we're root, then log a high sev message.
+	if !m.AllowRoot && isRoot() {
+		m.Logger.Println("[WARN] agent/proxy: running as root, will not start managed proxies")
+		return
+	}
 
 	// Get the current set of proxies
 	state := m.State.Proxies()

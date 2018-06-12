@@ -364,6 +364,7 @@ func (a *Agent) Start() error {
 	// done here after the local state above is loaded in so we can have
 	// a more accurate initial state view.
 	a.proxyManager = proxy.NewManager()
+	a.proxyManager.AllowRoot = a.config.ConnectProxyAllowManagedRoot
 	a.proxyManager.State = a.State
 	a.proxyManager.Logger = a.logger
 	if a.config.DataDir != "" {
