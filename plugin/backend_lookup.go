@@ -122,12 +122,9 @@ func AAAA(b ServiceBackend, zone string, state request.Request, previousRecords 
 				}
 				continue
 			}
+
 			// This means we can not complete the CNAME, try to look else where.
 			target := newRecord.Target
-			if dns.IsSubDomain(zone, target) {
-				// We should already have found it
-				continue
-			}
 			m1, e1 := b.Lookup(state, target, state.QType())
 			if e1 != nil {
 				continue

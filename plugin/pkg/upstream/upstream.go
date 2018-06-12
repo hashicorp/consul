@@ -18,7 +18,8 @@ type Upstream struct {
 	Forward *proxy.Proxy
 }
 
-// NewUpstream creates a new Upstream for given destination(s)
+// NewUpstream creates a new Upstream for given destination(s). If dests is empty
+// it default to upstreaming to Self.
 func NewUpstream(dests []string) (Upstream, error) {
 	u := Upstream{}
 	if len(dests) == 0 {
@@ -35,21 +36,23 @@ func NewUpstream(dests []string) (Upstream, error) {
 	return u, nil
 }
 
-// Lookup routes lookups to Self or Forward
+// Lookup routes lookups to our selves or forward to a remote.
 func (u Upstream) Lookup(state request.Request, name string, typ uint16) (*dns.Msg, error) {
 	if u.self {
-		// lookup via self
 		req := new(dns.Msg)
 		req.SetQuestion(name, typ)
-		state.SizeAndDo(req)
+
 		nw := nonwriter.New(state.W)
-		state2 := request.Request{W: nw, Req: req}
 		server := state.Context.Value(dnsserver.Key{}).(*dnsserver.Server)
-		server.ServeDNS(state.Context, state2.W, req)
+
+		server.ServeDNS(state.Context, nw, req)
+
 		return nw.Msg, nil
 	}
+
 	if u.Forward != nil {
 		return u.Forward.Lookup(state, name, typ)
 	}
-	return &dns.Msg{}, nil
+
+	return nil, nil
 }
