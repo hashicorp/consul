@@ -368,6 +368,14 @@ func testManager(t *testing.T) (*Manager, func()) {
 // (expected to be from the helperProcess function call). It returns the
 // ID for deregistration.
 func testStateProxy(t *testing.T, state *local.State, service string, cmd *exec.Cmd) string {
+	// *exec.Cmd must manually set args[0] to the binary. We automatically
+	// set this when constructing the command for the proxy, so we must strip
+	// the zero index. We do this unconditionally (anytime len is > 0) because
+	// index zero should ALWAYS be the binary.
+	if len(cmd.Args) > 0 {
+		cmd.Args = cmd.Args[1:]
+	}
+
 	command := []string{cmd.Path}
 	command = append(command, cmd.Args...)
 
