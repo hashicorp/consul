@@ -63,8 +63,11 @@ default managed proxy and starts a listener for that service:
 
 ```json
 {
-  "service": "redis",
-  "connect": { "proxy": {} }
+  "service": {
+    "name": "redis",
+    "port": 6379,
+    "connect": { "proxy": {} }
+  }
 }
 ```
 
@@ -85,14 +88,17 @@ proxy configuration:
 
 ```json
 {
-  "service": "web",
-  "connect": {
-    "proxy": {
-      "config": {
-        "upstreams": [{
-            "destination_name": "redis",
-            "local_bind_port": 1234
-        }]
+  "service": {
+    "name": "web",
+    "port": 8080,
+    "connect": {
+      "proxy": {
+        "config": {
+          "upstreams": [{
+              "destination_name": "redis",
+              "local_bind_port": 1234
+          }]
+        }
       }
     }
   }
@@ -125,15 +131,18 @@ service.
 
 ```json
 {
-  "service": "web",
-  "connect": {
-    "proxy": {
-      "config": {
-        "upstreams": [{
-            "destination_name": "nearest-redis",
-            "destination_type": "prepared_query",
-            "local_bind_port": 1234
-        }]
+  "service": {
+    "name": "web",
+    "port": 8080,
+    "connect": {
+      "proxy": {
+        "config": {
+          "upstreams": [{
+              "destination_name": "redis",
+              "destination_type": "prepared_query",
+              "local_bind_port": 1234
+          }]
+        }
       }
     }
   }
@@ -160,13 +169,16 @@ can be used.
 configured to run as a managed proxy. To configure custom proxies, specify
 an alternate command to execute for the proxy:
 
-```
+```json
 {
-  "service": "web",
-  "connect": {
-    "proxy": {
-      "exec_mode": "daemon",
-      "command":   ["/usr/bin/my-proxy", "-flag-example"]
+  "service": {
+    "name": "web",
+    "port": 8080,
+    "connect": {
+      "proxy": {
+        "exec_mode": "daemon",
+        "command":   ["/usr/bin/my-proxy", "-flag-example"]
+      }
     }
   }
 }
