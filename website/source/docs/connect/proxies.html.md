@@ -47,6 +47,13 @@ integrating with advanced proxies in the near future to support more complex
 configurations and higher performance. The configuration below is all for
 the built-in proxy.
 
+-> **Security note:** 1.) Managed proxies can only be configured
+via agent configuration files. They _cannot_ be registered via the HTTP API.
+And 2.) Managed proxies are not started at all if Consul is running as root.
+Both of these default configurations help prevent arbitrary process
+execution or privilege escalation. This behavior can be configured
+[per-agent](/docs/agent/options.html#connect_proxy).
+
 ### Minimal Configuration
 
 Managed proxies are configured within a
