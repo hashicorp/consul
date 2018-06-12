@@ -61,6 +61,7 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 			ModifyIndex: 1,
 		},
 	}
+	expected.UpdatePrecedence()
 
 	ws = memdb.NewWatchSet()
 	idx, actual, err := s.IntentionGet(ws, ixn.ID)
