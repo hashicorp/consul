@@ -48,7 +48,6 @@ func helperProcess(s ...string) *exec.Cmd {
 	cmd := exec.Command(os.Args[0], cs...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	println(fmt.Sprintf("YO WHAT %#v", cmd.Args))
 	return cmd
 }
 
