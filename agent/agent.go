@@ -2185,7 +2185,14 @@ func (a *Agent) RemoveProxy(proxyID string, persist bool) error {
 	}
 
 	// Remove the proxy from the local state
-	if _, err := a.State.RemoveProxy(proxyID); err != nil {
+	p, err := a.State.RemoveProxy(proxyID)
+	if err != nil {
+		return err
+	}
+
+	// Remove the proxy service as well. The proxy ID is also the ID
+	// of the servie, but we might as well use the service pointer.
+	if err := a.RemoveService(p.Proxy.ProxyService.ID, persist); err != nil {
 		return err
 	}
 

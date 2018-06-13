@@ -2706,14 +2706,14 @@ func TestAgent_RemoveProxy(t *testing.T) {
 
 	// Test the ID was created as we expect.
 	gotProxy := a.State.Proxy("web-proxy")
-	gotProxy.Proxy.ProxyService = nil
-	require.Equal(pReg, gotProxy.Proxy)
+	require.NotNil(gotProxy)
 
 	err := a.RemoveProxy("web-proxy", false)
 	require.NoError(err)
 
 	gotProxy = a.State.Proxy("web-proxy")
 	require.Nil(gotProxy)
+	require.Nil(a.State.Service("web-proxy"), "web-proxy service")
 
 	// Removing invalid proxy should be an error
 	err = a.RemoveProxy("foobar", false)
