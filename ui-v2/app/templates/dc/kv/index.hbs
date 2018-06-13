@@ -18,6 +18,13 @@
             {{/if}}
         </h1>
     {{/block-slot}}
+    {{#block-slot 'toolbar'}}
+{{#if (gt items.length 0) }}
+      <form class="filter-bar">
+          {{freetext-filter onchange=(action 'filter') value=filter.s placeholder="Search by name"}}
+      </form>
+{{/if}}
+    {{/block-slot}}
     {{#block-slot 'actions'}}
 {{#if (not-eq parent.Key '/') }}
         <a href="{{href-to 'dc.kv.create' parent.Key}}" class="type-create">Create</a>
@@ -26,9 +33,9 @@
 {{/if}}
     {{/block-slot}}
     {{#block-slot 'content'}}
-{{#if (gt items.length 0)}}
+{{#if (gt filtered.length 0)}}
         {{#tabular-collection
-            items=(sort-by 'isFolder:desc' items) as |item index|
+            items=(sort-by 'isFolder:desc' 'Key:asc' filtered) as |item index|
         }}
             {{#block-slot 'header'}}
                 <th>Name</th>

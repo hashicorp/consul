@@ -5,6 +5,12 @@ import { get } from '@ember/object';
 import WithKvActions from 'consul-ui/mixins/kv/with-actions';
 
 export default Route.extend(WithKvActions, {
+  queryParams: {
+    s: {
+      as: 'filter',
+      replace: true,
+    },
+  },
   repo: service('kv'),
   model: function(params) {
     const key = params.key || '/';
