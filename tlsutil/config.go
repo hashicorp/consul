@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-rootcerts"
+	"golang.org/x/net/http2"
 )
 
 // DCWrapper is a function that is used to wrap a non-TLS connection
@@ -293,6 +294,7 @@ func (c *Config) IncomingTLSConfig() (*tls.Config, error) {
 		ServerName: c.ServerName,
 		ClientCAs:  x509.NewCertPool(),
 		ClientAuth: tls.NoClientCert,
+		NextProtos: []string{http2.NextProtoTLS},
 	}
 	if tlsConfig.ServerName == "" {
 		tlsConfig.ServerName = c.NodeName
