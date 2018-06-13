@@ -20,7 +20,7 @@ is allowed by testing the intentions. If authorize returns false the
 connection must be terminated.
 
 The default intention behavior is defined by the default
-[ACL policy](/docs/guides/acls.html). If the default ACL policy is "allow all",
+[ACL policy](/docs/guides/acl.html). If the default ACL policy is "allow all",
 then all Connect connections are allowed by default. If the default ACL policy
 is "deny all", then all Connect connections are denied by default.
 
