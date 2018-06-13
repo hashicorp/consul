@@ -326,6 +326,14 @@ func (c *Cache) fetch(t, key string, r Request, allowNew bool, attempt uint) (<-
 		entry = cacheEntry{Valid: false, Waiter: make(chan struct{})}
 	}
 
+	// We always specify an index greater than zero since index of zero
+	// means to always return immediately and we want to block if possible.
+	// Index 1 is always safe since Consul's own initialization always results
+	// in a higher index (around 10 or above).
+	if entry.Index == 0 {
+		entry.Index = 1
+	}
+
 	// Set that we're fetching to true, which makes it so that future
 	// identical calls to fetch will return the same waiter rather than
 	// perform multiple fetches.

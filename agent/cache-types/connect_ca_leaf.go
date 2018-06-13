@@ -168,12 +168,18 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 // reached (on timeout ErrTimeout is returned on the channel).
 func (c *ConnectCALeaf) waitNewRootCA(datacenter string, ch chan<- error,
 	timeout time.Duration) {
+	// We always want to block on at least an initial value. If this isn't
+	minIndex := atomic.LoadUint64(&c.caIndex)
+	if minIndex == 0 {
+		minIndex = 1
+	}
+
 	// Fetch some new roots. This will block until our MinQueryIndex is
 	// matched or the timeout is reached.
 	rawRoots, err := c.Cache.Get(ConnectCARootName, &structs.DCSpecificRequest{
 		Datacenter: datacenter,
 		QueryOptions: structs.QueryOptions{
-			MinQueryIndex: atomic.LoadUint64(&c.caIndex),
+			MinQueryIndex: minIndex,
 			MaxQueryTime:  timeout,
 		},
 	})

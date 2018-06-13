@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -411,6 +412,36 @@ func TestCacheGet_periodicRefreshErrorBackoff(t *testing.T) {
 	// Check the number
 	actual := atomic.LoadUint32(&retries)
 	require.True(t, actual < 10, fmt.Sprintf("actual: %d", actual))
+}
+
+// Test that fetching with no index actually sets to index to one, including
+// for background refreshes. This ensures we don't end up with any index 0
+// loops.
+func TestCacheGet_noIndexSetsOne(t *testing.T) {
+	t.Parallel()
+
+	typ := TestType(t)
+	defer typ.AssertExpectations(t)
+	c := TestCache(t)
+	c.RegisterType("t", typ, &RegisterOptions{
+		Refresh:        true,
+		RefreshTimer:   0,
+		RefreshTimeout: 5 * time.Minute,
+	})
+
+	// Configure the type
+	fetchErr := fmt.Errorf("test fetch error")
+	typ.Static(FetchResult{Value: 42, Index: 0}, fetchErr).Run(func(args mock.Arguments) {
+		opts := args.Get(0).(FetchOptions)
+		assert.True(t, opts.MinIndex > 0, "minIndex > 0")
+	})
+
+	// Fetch
+	resultCh := TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{Key: "hello"}))
+	TestCacheGetChResult(t, resultCh, 42)
+
+	// Sleep a bit so background refresh happens
+	time.Sleep(100 * time.Millisecond)
 }
 
 // Test that the backend fetch sets the proper timeout.
