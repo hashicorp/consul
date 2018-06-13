@@ -653,6 +653,14 @@ func (s *HTTPServer) AgentDeregisterService(resp http.ResponseWriter, req *http.
 		return nil, err
 	}
 
+	// Verify this isn't a proxy
+	if s.agent.State.Proxy(serviceID) != nil {
+		return nil, &BadRequestError{
+			Reason: "Managed proxy service cannot be deregistered directly. " +
+				"Deregister the service that has a managed proxy to automatically " +
+				"deregister the managed proxy itself."}
+	}
+
 	if err := s.agent.RemoveService(serviceID, true); err != nil {
 		return nil, err
 	}
