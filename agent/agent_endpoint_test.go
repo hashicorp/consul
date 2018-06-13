@@ -3386,6 +3386,9 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 				proxy_min_port = 10000
 				proxy_max_port = 10000
 			}
+			telemetry {
+				statsite_address = "localhost:8989"
+			}
 			`,
 			proxy: structs.ServiceDefinitionConnectProxy{
 				Config: map[string]interface{}{
@@ -3400,7 +3403,11 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 				"local_service_address": "127.0.0.1:8000", // port from service reg
 				"connect_timeout_ms":    1000,
 				"foo":                   "bar",
-				"telemetry":             makeTelemetryDefaults(reg.ID),
+				"telemetry": map[string]interface{}{
+					"FilterDefault": true,
+					"MetricsPrefix": "consul.proxy." + reg.ID,
+					"StatsiteAddr":  "localhost:8989",
+				},
 			},
 		},
 		{
@@ -3425,6 +3432,9 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 				proxy_min_port = 10000
 				proxy_max_port = 10000
 			}
+			telemetry {
+				statsite_address = "localhost:8989"
+			}
 			`,
 			proxy: structs.ServiceDefinitionConnectProxy{
 				ExecMode: "script",
@@ -3434,6 +3444,9 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 					"bind_address":          "127.0.0.1",
 					"bind_port":             1024,
 					"local_service_address": "127.0.0.1:9191",
+					"telemetry": map[string]interface{}{
+						"StatsiteAddr": "stats.it:10101",
+					},
 				},
 			},
 			wantMode:    api.ProxyExecModeScript,
@@ -3443,7 +3456,11 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 				"bind_port":             float64(1024),
 				"local_service_address": "127.0.0.1:9191",
 				"connect_timeout_ms":    float64(2000),
-				"telemetry":             makeTelemetryDefaults(reg.ID),
+				"telemetry": map[string]interface{}{
+					"FilterDefault": true,
+					"MetricsPrefix": "consul.proxy." + reg.ID,
+					"StatsiteAddr":  "stats.it:10101",
+				},
 			},
 		},
 	}

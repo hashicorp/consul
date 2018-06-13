@@ -1067,7 +1067,20 @@ func (s *HTTPServer) AgentConnectProxyConfig(resp http.ResponseWriter, req *http
 				// Rely on the fact that TelemetryConfig makes a new map each call to
 				// override the prefix here without affecting other callers.
 				telemetry["MetricsPrefix"] = "consul.proxy." + target.ID
-				config["telemetry"] = telemetry
+
+				// Merge with any config passed by the user to allow service definition
+				// to override.
+				if userRaw, ok := config["telemetry"]; ok {
+					if userT, ok := userRaw.(map[string]interface{}); ok {
+						for k, v := range telemetry {
+							if _, ok := userT[k]; !ok {
+								userT[k] = v
+							}
+						}
+					}
+				} else {
+					config["telemetry"] = telemetry
+				}
 			}
 
 			reply := &api.ConnectProxyConfig{
