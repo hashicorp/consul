@@ -1691,6 +1691,7 @@ func TestAgent_DeregisterService_withManagedProxy(t *testing.T) {
 	}
 
 	// Get the proxy ID
+	require.Len(a.State.Proxies(), 1)
 	var proxyID string
 	for _, p := range a.State.Proxies() {
 		proxyID = p.Proxy.ProxyService.ID
