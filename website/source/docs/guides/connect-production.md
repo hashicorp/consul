@@ -55,7 +55,7 @@ service is allowed to access.
 A secure ACL setup must meet these criteria:
 
  1. **[ACL default
-    policy](https://private-docs.consul.io/docs/agent/options.html#acl_default_policy)
+    policy](/docs/agent/options.html#acl_default_policy)
     must be `deny`.** It is technically sufficient to keep the default policy of
     `allow` but add an explicit ACL denying anonymous `service:write`. Note
     however that in this case the Connect intention graph will also default to
@@ -155,12 +155,12 @@ configure host or network firewalls to allow incoming connections to proxy
 ports.
 
 In addition to Consul agent's [communication
-ports](https://private-docs.consul.io/docs/agent/options.html#ports) any
+ports](/docs/agent/options.html#ports) any
 [managed proxies](/docs/connect/proxies.html#managed-proxies) will need to have
 ports open to accept incoming connections.
 
 Consul will by default assign them ports from [a configurable
-range](https://private-docs.consul.io/docs/agent/options.html#ports) the default
+range](/docs/agent/options.html#ports) the default
 range is 20000 - 20255. If this feature is used, the agent assumes all ports in
 that range are both free to use (no other processes listening on them) and are
 exposed in the firewall to accept connections from other service hosts.
@@ -169,7 +169,7 @@ Alternatively, managed proxies can have their public ports specified as part of
 the [proxy configuration](#TODO) in the service registration. It is possible to use
 this exclusively and prevent automated port selection by [configuring
 `proxy_min_port` and
-`proxy_max_port`](https://private-docs.consul.io/docs/agent/options.html#ports)
+`proxy_max_port`](/docs/agent/options.html#ports)
 to both be `0`, forcing any managed proxies to have an explicit port configured.
 
 It then becomes the same problem as opening ports necessary for any other
@@ -184,12 +184,12 @@ For on-disk configuration the `token` parameter of the service definition must
 be set.
 
 For registration via the API [the token is passed in the request
-header](https://private-docs.consul.io/api/index.html#acls) or by using the [Go
+header](/api/index.html#acls) or by using the [Go
 client configuration](https://godoc.org/github.com/hashicorp/consul/api#Config).
 Note that by default API registration will not allow managed proxies to be
 configured since it potentially opens a remote execution vulnerability if the
 agent API endpoints are publicly accessible. This can be [configured
-per-agent](https://private-docs.consul.io/docs/agent/options.html#connect_proxy).
+per-agent](/docs/agent/options.html#connect_proxy).
 
 For examples of service definitions with managed or unmanaged proxies see
 [proxies documentation](/docs/connect/proxies.html#managed-proxies).
