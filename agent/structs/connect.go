@@ -108,7 +108,7 @@ type ConnectManagedProxy struct {
 // ConnectManagedProxyConfig represents the parts of the proxy config the agent
 // needs to understand. It's bad UX to make the user specify these separately
 // just to make parsing simpler for us so this encapsulates the fields in
-// ConnectManagedProxy.Config that we care about. They are all optoinal anyway
+// ConnectManagedProxy.Config that we care about. They are all optional anyway
 // and this is used to decode them with mapstructure.
 type ConnectManagedProxyConfig struct {
 	BindAddress string `mapstructure:"bind_address"`

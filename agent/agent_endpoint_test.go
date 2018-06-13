@@ -2679,6 +2679,9 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 	obj, err := a.srv.AgentConnectCALeafCert(resp, req)
 	require.NoError(err)
 
+	// That should've been a cache miss, so no hit change.
+	require.Equal(cacheHits, a.cache.Hits())
+
 	// Get the issued cert
 	issued, ok := obj.(*structs.IssuedCert)
 	assert.True(ok)
@@ -2690,9 +2693,6 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 	assert.True(issued.ModifyIndex > 0)
 	assert.Equal(fmt.Sprintf("%d", issued.ModifyIndex),
 		resp.Header().Get("X-Consul-Index"))
-
-	// That should've been a cache miss, so no hit change
-	require.Equal(cacheHits, a.cache.Hits())
 
 	// Test caching
 	{
