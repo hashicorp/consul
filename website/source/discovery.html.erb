@@ -41,15 +41,18 @@ description: |-
     </div>
   </section>
 
+  <section class='g-section g-carousel-section bg-dark'>
+    <div class="intro">
+      <h3>Case Studies</h3>
+    </div>
+  </section>
+
   <section class='g-section border-top'>
     <div class='g-container'>
       <div class='intro'>
         <h2>Features</h2>
       </div>
-      <div class='g-text-image large reverse'>
-        <div>
-          <img src='/assets/images/consul-connect/service-registry.png' alt='Service Registry'>
-        </div>
+      <div class='g-text-asset large'>
         <div>
           <div>
             <h3>Service Registry</h3>
@@ -59,16 +62,16 @@ description: |-
             </p>
           </div>
         </div>
+        <div>
+          <img src='/assets/images/consul-connect/service-registry.png' alt='Service Registry'>
+        </div>
       </div>
     </div>
   </section>
 
   <section class='g-section border-top'>
     <div class='g-container'>
-      <div class='g-text-image'>
-        <div>
-          <img class="shadow" src='/assets/images/consul-connect/code-sample-2.png' alt='DNS Query Interface'>
-        </div>
+      <div class='g-text-asset reverse'>
         <div>
           <div>
             <h3>DNS Query Interface</h3>
@@ -78,16 +81,30 @@ description: |-
             </p>
           </div>
         </div>
+        <div class='code-sample'>
+          <div>
+            <span>Code Sample</span>
+            <div class='code'>
+              <code class='keyword'>$ curl \</code><code>
+  --request POST \
+  --data \
+'{
+  "Name": "api",
+  "Service": {
+    "Service": "api",
+    "Tags": ["v1.2.3"],
+    "Failover": {
+      "Datacenters": ["dc1", "dc2"]</code>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </section>
 
   <section class='g-section border-top'>
     <div class='g-container'>
-      <div class='g-text-image reverse'>
-        <div>
-          <img class="shadow"  src='/assets/images/consul-connect/code-sample-2.png' alt='HTTP API with Edge Triggers'>
-        </div>
+      <div class='g-text-asset'>
         <div>
           <div>
             <h3>HTTP API with Edge Triggers</h3>
@@ -97,16 +114,30 @@ description: |-
             </p>
           </div>
         </div>
+        <div class='code-sample'>
+          <div>
+            <span>Code Sample</span>
+            <div class='code'>
+              <code class='keyword'>$ curl \</code><code>
+  --request POST \
+  --data \
+'{
+  "Name": "api",
+  "Service": {
+    "Service": "api",
+    "Tags": ["v1.2.3"],
+    "Failover": {
+      "Datacenters": ["dc1", "dc2"]</code>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </section>
 
   <section class='g-section border-top'>
     <div class='g-container'>
-      <div class='g-text-image'>
-        <div>
-          <img class='shadow' src='/assets/images/consul-connect/code-sample-3.png' alt='Multi Datacenter'>
-        </div>
+      <div class='g-text-asset reverse'>
         <div>
           <div>
             <h3>Multi Datacenter</h3>
@@ -116,16 +147,30 @@ description: |-
             </p>
           </div>
         </div>
+        <div class='code-sample'>
+          <div>
+            <span>Code Sample</span>
+            <div class='code'>
+              <code class='keyword'>$ curl \</code><code>
+  --request POST \
+  --data \
+'{
+  "Name": "api",
+  "Service": {
+    "Service": "api",
+    "Tags": ["v1.2.3"],
+    "Failover": {
+      "Datacenters": ["dc1", "dc2"]</code>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </section>
 
   <section class='g-section border-top'>
     <div class='g-container'>
-      <div class='g-text-image large reverse'>
-        <div>
-          <img src='/assets/images/consul-connect/health-checks.png' alt='Service Registry'>
-        </div>
+      <div class='g-text-asset large'>
         <div>
           <div>
             <h3>Health Checks</h3>
@@ -134,6 +179,9 @@ description: |-
               <a class="learn-more" href='#'>Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
             </p>
           </div>
+        </div>
+        <div>
+          <img src='/assets/images/consul-connect/health-checks.png' alt='Service Registry'>
         </div>
       </div>
     </div>

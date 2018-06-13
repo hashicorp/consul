@@ -74,30 +74,28 @@ description: |-
       <div class='intro'>
         <h2>Principles of Consul</h2>
       </div>
-      <div class='g-text-image reverse'>
-        <div>
-          <img class='shadow' src='/assets/images/consul-connect/code-sample-1.png' alt='Automation through Codification'>
-        </div>
+      <div class='g-text-asset'>
         <div>
           <div>
             <h3>Automation through Codification</h3>
             <p>Codify and automate service authorization policy.</p>
           </div>
         </div>
-      </div>
-    </div>
-  </section>
-
-  <section class='g-section bg-light border-top'>
-    <div class='g-container'>
-      <div class='g-text-image'>
-        <div>
-          <img src='/assets/images/consul-connect/workflows-not-technologies.png' alt='Workflows, not Technologies'>
-        </div>
-        <div>
+        <div class='code-sample'>
           <div>
-            <h3>Workflows, not Technologies</h3>
-            <p>Connect services across any runtime platform and public or private cloud. Connect services from Kubernetes to VMs, Containers to Serverless functions.</p>
+            <span>Code Sample</span>
+            <div class="code">
+              <code>$ curl \
+  --request POST \
+  --data \
+'{
+  "Name": "api",
+  "Service": {
+    "Service": "api",
+    </code><code class='keyword'>"Tags"</code><code>: ["v1.2.3"],
+    "Failover": {
+      "Datacenters": ["dc1", "dc2"]</code>
+            </div>
           </div>
         </div>
       </div>
@@ -106,10 +104,23 @@ description: |-
 
   <section class='g-section bg-light border-top'>
     <div class='g-container'>
-      <div class='g-text-image reverse'>
+      <div class='g-text-asset reverse'>
         <div>
-          <img src='/assets/images/consul-connect/open-and-extensible.png' alt='Open and Extensible'>
+          <div>
+            <h3>Workflows, not Technologies</h3>
+            <p>Connect services across any runtime platform and public or private cloud. Connect services from Kubernetes to VMs, Containers to Serverless functions.</p>
+          </div>
         </div>
+        <div>
+          <img src='/assets/images/consul-connect/workflows-not-technologies.png' alt='Workflows, not Technologies'>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class='g-section bg-light border-top'>
+    <div class='g-container'>
+      <div class='g-text-asset'>
         <div>
           <div>
             <h3>Open and Extensible</h3>
@@ -119,6 +130,9 @@ description: |-
               <li>Serve TLS certificates pluggable Certificate Authorities.</li>
             </ul>
           </div>
+        </div>
+        <div>
+          <img src='/assets/images/consul-connect/open-and-extensible.png' alt='Open and Extensible'>
         </div>
       </div>
     </div>

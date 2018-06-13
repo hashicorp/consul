@@ -17,6 +17,11 @@
     background: #f7f8fa !important; //TODO - !important is to override the `#page-home section` #fff background;
   }
 
+  &.bg-dark {
+    background: #252937 !important; //TODO - !important is to override the `#page-home section` #fff background;
+    color: #fff;
+  }
+
   &.border-top {
     border-top: 1px solid #e5e6eb;
   }
