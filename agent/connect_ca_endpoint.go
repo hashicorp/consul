@@ -79,14 +79,15 @@ func (s *HTTPServer) ConnectCAConfigurationSet(resp http.ResponseWriter, req *ht
 // string values that get converted to []uint8 end up getting output back
 // to the user in base64-encoded form.
 func fixupConfig(conf *structs.CAConfiguration) {
-	if conf.Provider == structs.ConsulCAProvider {
-		for k, v := range conf.Config {
-			if raw, ok := v.([]uint8); ok {
-				conf.Config[k] = ca.Uint8ToString(raw)
-			}
+	for k, v := range conf.Config {
+		if raw, ok := v.([]uint8); ok {
+			conf.Config[k] = ca.Uint8ToString(raw)
 		}
-		if v, ok := conf.Config["PrivateKey"]; ok && v != "" {
-			conf.Config["PrivateKey"] = "hidden"
+		// todo(kyhavlov): should we be hiding this and the vault token?
+		if conf.Provider == structs.ConsulCAProvider {
+			if v, ok := conf.Config["PrivateKey"]; ok && v != "" {
+				conf.Config["PrivateKey"] = "hidden"
+			}
 		}
 	}
 }

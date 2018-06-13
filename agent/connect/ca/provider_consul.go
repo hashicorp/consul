@@ -128,16 +128,9 @@ func (c *ConsulProvider) ActiveIntermediate() (string, error) {
 }
 
 // We aren't maintaining separate root/intermediate CAs for the builtin
-// provider, so just generate a CSR for the active root.
+// provider, so just return the root.
 func (c *ConsulProvider) GenerateIntermediate() (string, error) {
-	ca, err := c.ActiveIntermediate()
-	if err != nil {
-		return "", err
-	}
-
-	// todo(kyhavlov): make a new intermediate here
-
-	return ca, err
+	return c.ActiveIntermediate()
 }
 
 // Remove the state store entry for this provider instance.

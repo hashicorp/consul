@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/ipaddr"
@@ -533,9 +534,16 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	connectCAConfig := c.Connect.CAConfig
 	if connectCAConfig != nil {
 		TranslateKeys(connectCAConfig, map[string]string{
+			// Consul CA config
 			"private_key":     "PrivateKey",
 			"root_cert":       "RootCert",
 			"rotation_period": "RotationPeriod",
+
+			// Vault CA config
+			"address":               "Address",
+			"token":                 "Token",
+			"root_pki_path":         "RootPKIPath",
+			"intermediate_pki_path": "IntermediatePKIPath",
 		})
 	}
 
@@ -922,6 +930,26 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	for _, s := range rt.Services {
 		if err := s.Validate(); err != nil {
 			return fmt.Errorf("service %q: %s", s.Name, err)
+		}
+	}
+
+	// Validate the given Connect CA provider config
+	validCAProviders := map[string]bool{
+		structs.ConsulCAProvider: true,
+		structs.VaultCAProvider:  true,
+	}
+	if _, ok := validCAProviders[rt.ConnectCAProvider]; !ok {
+		return fmt.Errorf("%s is not a valid CA provider", rt.ConnectCAProvider)
+	} else {
+		switch rt.ConnectCAProvider {
+		case structs.ConsulCAProvider:
+			if _, err := ca.ParseConsulCAConfig(rt.ConnectCAConfig); err != nil {
+				return err
+			}
+		case structs.VaultCAProvider:
+			if _, err := ca.ParseVaultCAConfig(rt.ConnectCAConfig); err != nil {
+				return err
+			}
 		}
 	}
 

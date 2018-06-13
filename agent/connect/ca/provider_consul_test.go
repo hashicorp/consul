@@ -67,7 +67,7 @@ func testConsulCAConfig() *structs.CAConfiguration {
 	}
 }
 
-func TestCAProvider_Bootstrap(t *testing.T) {
+func TestConsulCAProvider_Bootstrap(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
@@ -91,7 +91,7 @@ func TestCAProvider_Bootstrap(t *testing.T) {
 	assert.Equal(parsed.URIs[0].String(), fmt.Sprintf("spiffe://%s.consul", conf.ClusterID))
 }
 
-func TestCAProvider_Bootstrap_WithCert(t *testing.T) {
+func TestConsulCAProvider_Bootstrap_WithCert(t *testing.T) {
 	t.Parallel()
 
 	// Make sure setting a custom private key/root cert works.
@@ -112,7 +112,7 @@ func TestCAProvider_Bootstrap_WithCert(t *testing.T) {
 	assert.Equal(root, rootCA.RootCert)
 }
 
-func TestCAProvider_SignLeaf(t *testing.T) {
+func TestConsulCAProvider_SignLeaf(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
@@ -174,7 +174,7 @@ func TestCAProvider_SignLeaf(t *testing.T) {
 	}
 }
 
-func TestCAProvider_CrossSignCA(t *testing.T) {
+func TestConsulCAProvider_CrossSignCA(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)

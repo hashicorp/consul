@@ -168,6 +168,7 @@ func (q *CARequest) RequestDatacenter() string {
 
 const (
 	ConsulCAProvider = "consul"
+	VaultCAProvider  = "vault"
 )
 
 // CAConfiguration is the configuration for the current CA plugin.
@@ -199,4 +200,11 @@ type CAConsulProviderState struct {
 	RootCert   string
 
 	RaftIndex
+}
+
+type VaultCAProviderConfig struct {
+	Address             string
+	Token               string
+	RootPKIPath         string
+	IntermediatePKIPath string
 }
