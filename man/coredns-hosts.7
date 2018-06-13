@@ -1,16 +1,41 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-HOSTS" "7" "May 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-HOSTS" "7" "June 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIhosts\fR \- enables serving zone data from a \fB/etc/hosts\fR style file\.
 .
 .SH "DESCRIPTION"
-The hosts plugin is useful for serving zones from a /etc/hosts file\. It serves from a preloaded file that exists on disk\. It checks the file for changes and updates the zones accordingly\. This plugin only supports A, AAAA, and PTR records\. The hosts plugin can be used with readily available hosts files that block access to advertising servers\.
+The hosts plugin is useful for serving zones from a \fB/etc/hosts\fR file\. It serves from a preloaded file that exists on disk\. It checks the file for changes and updates the zones accordingly\. This plugin only supports A, AAAA, and PTR records\. The hosts plugin can be used with readily available hosts files that block access to advertising servers\.
 .
 .P
 This plugin can only be used once per Server Block\.
+.
+.SH "THE HOSTS FILE"
+Commonly the entries are of the from \fBIP_address canonical_hostname [aliases\.\.\.]\fR as explained by the hosts(5) man page\.
+.
+.P
+Examples:
+.
+.IP "" 4
+.
+.nf
+
+# THE FOLLOWING LINES ARE DESIRABLE FOR IPV4 CAPABLE HOSTS
+127\.0\.0\.1       localhost
+192\.168\.1\.10    example\.com            example
+
+# THE FOLLOWING LINES ARE DESIRABLE FOR IPV6 CAPABLE HOSTS
+::1                     localhost ip6\-localhost ip6\-loopback
+fdfc:a744:27b5:3b0e::1  example\.com example
+.
+.fi
+.
+.IP "" 0
+.
+.SS "PTR RECORDS"
+PTR records for reverse lookups are generated automatically by CoreDNS (based on the hosts file entries) and cannot be created manually\.
 .
 .SH "SYNTAX"
 .
@@ -101,4 +126,6 @@ Load hosts file inlined in Corefile\.
 .fi
 .
 .IP "" 0
-
+.
+.SH "SEE ALSO"
+The form of the entries in the \fB/etc/hosts\fR file are based on IETF RFC 952 \fIhttps://tools\.ietf\.org/html/rfc952\fR which was updated by IETF RFC 1123 \fIhttps://tools\.ietf\.org/html/rfc1123\fR\.

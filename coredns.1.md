@@ -1,6 +1,6 @@
 ## Name
 
-*coredns* - plugable DNS nameserver optimized for service discovery.
+*coredns* - plugable DNS nameserver optimized for service discovery and flexibility.
 
 ## Synopsis
 
@@ -10,7 +10,8 @@
 
 CoreDNS is a DNS server that chains plugins. Each plugin handles a DNS feature, like rewriting
 queries, kubernetes service discovery or just exporting metrics. There are many other plugins,
-each described on <https://coredns.io/plugins> and there respective manual pages.
+each described on <https://coredns.io/plugins> and there respective manual pages. Plugins not
+bundled in CoreDNS are listed on <https://coredns.io/explugins>.
 
 When started with no options CoreDNS will looks for a file names `Corefile` in the current
 directory, if found it will parse its contents and start up accordingly. If no `Corefile` is found
@@ -26,7 +27,7 @@ Available options:
 : specify maximum CPU capacity in percent.
 
 **-dns.port** **PORT**
-: override default port to listen on.
+: override default port (53) to listen on.
 
 **-pidfile** **FILE**
 : write PID to **FILE**.

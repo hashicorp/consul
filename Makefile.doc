@@ -3,7 +3,7 @@ RONN:=ronn -r
 PLUGINS:=$(wildcard plugin/*/README.md)
 READMES:=$(subst plugin/,,$(PLUGINS))
 READMES:=$(subst /README.md,,$(READMES))
-PLUGINS:=$(subst plugin/,corendns-,$(PLUGINS))
+PLUGINS:=$(subst plugin/,coredns-,$(PLUGINS))
 PLUGINS:=$(subst /README.md,(7),$(PLUGINS))
 
 ifeq (, $(shell which ronn))
