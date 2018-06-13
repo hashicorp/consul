@@ -67,9 +67,9 @@ func TestAgent_ConnectClusterIDConfig(t *testing.T) {
 			wantClusterID: connect.TestClusterID,
 		},
 		{
-			name:          "no cluster ID specified remains null",
+			name:          "no cluster ID specified sets to test ID",
 			hcl:           "connect { enabled = true }",
-			wantClusterID: "",
+			wantClusterID: connect.TestClusterID,
 		},
 		{
 			name: "non-UUID cluster_id is fatal",

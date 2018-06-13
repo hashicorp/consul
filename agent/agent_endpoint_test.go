@@ -2285,11 +2285,7 @@ func TestAgentConnectCALeafCert_aclDefaultDeny(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := NewTestAgent(t.Name(), TestACLConfig()+`
-	connect {
-		enabled = true
-	}
-	`)
+	a := NewTestAgent(t.Name(), TestACLConfig()+testAllowProxyConfig())
 	defer a.Shutdown()
 
 	// Register a service with a managed proxy
@@ -2325,11 +2321,7 @@ func TestAgentConnectCALeafCert_aclProxyToken(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := NewTestAgent(t.Name(), TestACLConfig()+`
-	connect {
-		enabled = true
-	}
-	`)
+	a := NewTestAgent(t.Name(), TestACLConfig()+testAllowProxyConfig())
 	defer a.Shutdown()
 
 	// Register a service with a managed proxy
@@ -2374,11 +2366,7 @@ func TestAgentConnectCALeafCert_aclProxyTokenOther(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := NewTestAgent(t.Name(), TestACLConfig()+`
-	connect {
-		enabled = true
-	}
-	`)
+	a := NewTestAgent(t.Name(), TestACLConfig()+testAllowProxyConfig())
 	defer a.Shutdown()
 
 	// Register a service with a managed proxy
@@ -2442,11 +2430,7 @@ func TestAgentConnectCALeafCert_aclServiceWrite(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := NewTestAgent(t.Name(), TestACLConfig()+`
-	connect {
-		enabled = true
-	}
-	`)
+	a := NewTestAgent(t.Name(), TestACLConfig()+testAllowProxyConfig())
 	defer a.Shutdown()
 
 	// Register a service with a managed proxy
@@ -2503,11 +2487,7 @@ func TestAgentConnectCALeafCert_aclServiceReadDeny(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := NewTestAgent(t.Name(), TestACLConfig()+`
-	connect {
-		enabled = true
-	}
-	`)
+	a := NewTestAgent(t.Name(), TestACLConfig()+testAllowProxyConfig())
 	defer a.Shutdown()
 
 	// Register a service with a managed proxy
@@ -2787,7 +2767,7 @@ func requireLeafValidUnderCA(t *testing.T, issued *structs.IssuedCert,
 func TestAgentConnectProxyConfig_Blocking(t *testing.T) {
 	t.Parallel()
 
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t.Name(), testAllowProxyConfig())
 	defer a.Shutdown()
 
 	// Define a local service with a managed proxy. It's registered in the test
@@ -2989,11 +2969,7 @@ func TestAgentConnectProxyConfig_aclDefaultDeny(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := NewTestAgent(t.Name(), TestACLConfig()+`
-	connect {
-		enabled = true
-	}
-	`)
+	a := NewTestAgent(t.Name(), TestACLConfig()+testAllowProxyConfig())
 	defer a.Shutdown()
 
 	// Register a service with a managed proxy
@@ -3028,11 +3004,7 @@ func TestAgentConnectProxyConfig_aclProxyToken(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := NewTestAgent(t.Name(), TestACLConfig()+`
-	connect {
-		enabled = true
-	}
-	`)
+	a := NewTestAgent(t.Name(), TestACLConfig()+testAllowProxyConfig())
 	defer a.Shutdown()
 
 	// Register a service with a managed proxy
@@ -3079,11 +3051,7 @@ func TestAgentConnectProxyConfig_aclServiceWrite(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := NewTestAgent(t.Name(), TestACLConfig()+`
-	connect {
-		enabled = true
-	}
-	`)
+	a := NewTestAgent(t.Name(), TestACLConfig()+testAllowProxyConfig())
 	defer a.Shutdown()
 
 	// Register a service with a managed proxy
@@ -3141,11 +3109,7 @@ func TestAgentConnectProxyConfig_aclServiceReadDeny(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := NewTestAgent(t.Name(), TestACLConfig()+`
-	connect {
-		enabled = true
-	}
-	`)
+	a := NewTestAgent(t.Name(), TestACLConfig()+testAllowProxyConfig())
 	defer a.Shutdown()
 
 	// Register a service with a managed proxy
@@ -3230,6 +3194,9 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 			bind_addr = "0.0.0.0"
 			connect {
 				enabled = true
+				proxy {
+					allow_managed_api_registration = true
+				}
 			}
 			ports {
 				proxy_min_port = 10000
@@ -3251,6 +3218,9 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 			bind_addr = "0.0.0.0"
 			connect {
 				enabled = true
+				proxy {
+					allow_managed_api_registration = true
+				}
 				proxy_defaults = {
 					exec_mode = "script"
 					script_command = ["script.sh"]
@@ -3276,6 +3246,9 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 			bind_addr = "0.0.0.0"
 			connect {
 				enabled = true
+				proxy {
+					allow_managed_api_registration = true
+				}
 				proxy_defaults = {
 					exec_mode = "daemon"
 					daemon_command = ["daemon.sh"]
@@ -3301,6 +3274,9 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 			bind_addr = "0.0.0.0"
 			connect {
 				enabled = true
+				proxy {
+					allow_managed_api_registration = true
+				}
 				proxy_defaults = {
 					config = {
 						connect_timeout_ms = 1000
@@ -3333,6 +3309,9 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 			bind_addr = "0.0.0.0"
 			connect {
 				enabled = true
+				proxy {
+					allow_managed_api_registration = true
+				}
 				proxy_defaults = {
 					exec_mode = "daemon"
 					daemon_command = ["daemon.sh"]
@@ -3837,4 +3816,18 @@ func TestAgentConnectAuthorize_defaultAllow(t *testing.T) {
 	obj := respRaw.(*connectAuthorizeResp)
 	assert.True(obj.Authorized)
 	assert.Contains(obj.Reason, "Default behavior")
+}
+
+// testAllowProxyConfig returns agent config to allow managed proxy API
+// registration.
+func testAllowProxyConfig() string {
+	return `
+		connect {
+			enabled = true
+
+			proxy {
+				allow_managed_api_registration = true
+			}
+		}
+	`
 }
