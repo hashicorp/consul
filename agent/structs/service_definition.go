@@ -180,7 +180,7 @@ var typMapIfaceIface = reflect.TypeOf(map[interface{}]interface{}{})
 // in the reflectwalk process, so that we can replace values. The key logic
 // is in Slice() and SliceElem().
 //
-// In particular we're looking to replace two cases HCL causes:
+// In particular we're looking to replace two cases the msgpack codec causes:
 //
 //   1.) String values get turned into byte slices. JSON will base64-encode
 //       this and we don't want that, so we convert them back to strings.
