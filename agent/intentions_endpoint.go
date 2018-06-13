@@ -248,7 +248,8 @@ func (s *HTTPServer) IntentionSpecificUpdate(id string, resp http.ResponseWriter
 		return nil, err
 	}
 
-	return nil, nil
+	// Update uses the same create response
+	return intentionCreateResponse{reply}, nil
 
 }
 
@@ -268,7 +269,7 @@ func (s *HTTPServer) IntentionSpecificDelete(id string, resp http.ResponseWriter
 		return nil, err
 	}
 
-	return nil, nil
+	return true, nil
 }
 
 // intentionCreateResponse is the response structure for creating an intention.

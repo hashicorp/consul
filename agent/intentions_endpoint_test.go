@@ -380,7 +380,9 @@ func TestIntentionsSpecificUpdate_good(t *testing.T) {
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.IntentionSpecific(resp, req)
 	assert.Nil(err)
-	assert.Nil(obj)
+
+	value := obj.(intentionCreateResponse)
+	assert.Equal(reply, value.ID)
 
 	// Read the value
 	{
@@ -436,7 +438,7 @@ func TestIntentionsSpecificDelete_good(t *testing.T) {
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.IntentionSpecific(resp, req)
 	assert.Nil(err)
-	assert.Nil(obj)
+	assert.Equal(true, obj)
 
 	// Verify the intention is gone
 	{
