@@ -1,6 +1,7 @@
 package structs
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
@@ -117,6 +118,89 @@ func TestServiceDefinitionValidate(t *testing.T) {
 			}
 
 			require.Contains(strings.ToLower(err.Error()), strings.ToLower(tc.Err))
+		})
+	}
+}
+
+func TestServiceDefinitionConnectProxy_json(t *testing.T) {
+	cases := []struct {
+		Name     string
+		Input    *ServiceDefinitionConnectProxy
+		Expected string
+		Err      string
+	}{
+		{
+			"no config",
+			&ServiceDefinitionConnectProxy{
+				Command:  []string{"foo"},
+				ExecMode: "bar",
+			},
+			`
+{
+	"Command": [
+		"foo"
+	],
+	"ExecMode": "bar"
+}
+			`,
+			"",
+		},
+
+		{
+			"basic config",
+			&ServiceDefinitionConnectProxy{
+				Config: map[string]interface{}{
+					"foo": "bar",
+				},
+			},
+			`
+{
+	"Config": {
+		"foo": "bar"
+	}
+}
+			`,
+			"",
+		},
+
+		{
+			"config with upstreams",
+			&ServiceDefinitionConnectProxy{
+				Config: map[string]interface{}{
+					"upstreams": []interface{}{
+						map[interface{}]interface{}{
+							"key": []byte("value"),
+						},
+					},
+				},
+			},
+			`
+{
+	"Config": {
+		"upstreams": [
+			{
+				"key": "value"
+			}
+		]
+	}
+}
+			`,
+			"",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			require := require.New(t)
+			result, err := json.MarshalIndent(tc.Input, "", "\t")
+			t.Logf("error: %s", err)
+			require.Equal(err != nil, tc.Err != "")
+			if err != nil {
+				require.Contains(strings.ToLower(err.Error()), strings.ToLower(tc.Err))
+				return
+			}
+
+			require.Equal(strings.TrimSpace(tc.Expected), strings.TrimSpace(string(result)))
 		})
 	}
 }
