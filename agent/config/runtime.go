@@ -1279,15 +1279,21 @@ type RuntimeConfig struct {
 // TLSConfig returns the full TLS configuration for both incoming and
 // outgoing connections.
 func (c *RuntimeConfig) TLSConfig() (*tlsutil.Config, error) {
+	useClientVerify := c.VerifyOutgoing || c.VerifyServerHostname
+	useClientCA := c.CAFile != "" || c.CAPath != ""
+
 	tc := &tlsutil.Config{
 		VerifyIncoming:           c.VerifyIncoming || c.VerifyIncomingHTTPS,
 		VerifyOutgoing:           c.VerifyOutgoing,
+		VerifyServerHostname:     c.VerifyServerHostname,
+		UseTLS:                   useClientVerify || useClientCA,
 		CAFile:                   c.CAFile,
 		CAPath:                   c.CAPath,
 		CertFile:                 c.CertFile,
 		KeyFile:                  c.KeyFile,
 		NodeName:                 c.NodeName,
 		ServerName:               c.ServerName,
+		Domain:                   c.DNSDomain,
 		TLSMinVersion:            c.TLSMinVersion,
 		CipherSuites:             c.TLSCipherSuites,
 		PreferServerCipherSuites: c.TLSPreferServerCipherSuites,
