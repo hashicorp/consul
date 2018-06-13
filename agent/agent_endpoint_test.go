@@ -1655,6 +1655,59 @@ func TestAgent_DeregisterService_ACLDeny(t *testing.T) {
 	})
 }
 
+func TestAgent_DeregisterService_withManagedProxy(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+	a := NewTestAgent(t.Name(), `
+		connect {
+			proxy {
+				allow_managed_api_registration = true
+			}
+		}
+		`)
+
+	defer a.Shutdown()
+
+	// Register a service with a managed proxy
+	{
+		reg := &structs.ServiceDefinition{
+			ID:      "test-id",
+			Name:    "test",
+			Address: "127.0.0.1",
+			Port:    8000,
+			Check: structs.CheckType{
+				TTL: 15 * time.Second,
+			},
+			Connect: &structs.ServiceConnect{
+				Proxy: &structs.ServiceDefinitionConnectProxy{},
+			},
+		}
+
+		req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(reg))
+		resp := httptest.NewRecorder()
+		_, err := a.srv.AgentRegisterService(resp, req)
+		require.NoError(err)
+		require.Equal(200, resp.Code, "body: %s", resp.Body.String())
+	}
+
+	// Get the proxy ID
+	var proxyID string
+	for _, p := range a.State.Proxies() {
+		proxyID = p.Proxy.ProxyService.ID
+	}
+
+	req, _ := http.NewRequest("PUT", "/v1/agent/service/deregister/test-id", nil)
+	obj, err := a.srv.AgentDeregisterService(nil, req)
+	require.NoError(err)
+	require.Nil(obj)
+
+	// Ensure we have no service, check, managed proxy, or proxy service
+	require.NotContains(a.State.Services(), "test-id")
+	require.NotContains(a.State.Checks(), "test-id")
+	require.NotContains(a.State.Services(), proxyID)
+	require.Len(a.State.Proxies(), 0)
+}
+
 func TestAgent_ServiceMaintenance_BadRequest(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")

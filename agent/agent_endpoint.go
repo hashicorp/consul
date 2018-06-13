@@ -656,6 +656,16 @@ func (s *HTTPServer) AgentDeregisterService(resp http.ResponseWriter, req *http.
 	if err := s.agent.RemoveService(serviceID, true); err != nil {
 		return nil, err
 	}
+
+	// Remove the associated managed proxy if it exists
+	for proxyID, p := range s.agent.State.Proxies() {
+		if p.Proxy.TargetServiceID == serviceID {
+			if err := s.agent.RemoveProxy(proxyID, true); err != nil {
+				return nil, err
+			}
+		}
+	}
+
 	s.syncChanges()
 	return nil, nil
 }
