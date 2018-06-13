@@ -1987,8 +1987,11 @@ func (a *Agent) setupAgentTLSClientConfig(skipVerify bool) (*tls.Config, error) 
 // checks.
 func (a *Agent) setupCheckTLSClientConfig(skipVerify bool) (*tls.Config, error) {
 	if !a.config.EnableAgentTLSForChecks {
-		// Check TLS disabled, so return empty TLS configuration
-		return nil, nil
+		// Re-use the API client's TLS structure, leaving key info blank
+		tlsConfig := &api.TLSConfig{
+			InsecureSkipVerify: skipVerify,
+		}
+		return api.SetupTLSConfig(tlsConfig)
 	}
 
 	// Start with the outgoing TLS config
