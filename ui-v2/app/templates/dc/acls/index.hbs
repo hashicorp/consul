@@ -47,9 +47,11 @@
                                 <li>
                                     <a onclick={{action 'sendClone' item}}>Clone</a>
                                 </li>
+{{# if (not-eq item.ID 'anonymous') }}
                                 <li>
                                     <a onclick={{action confirm 'delete' item}}>Delete</a>
                                 </li>
+{{/if}}
                             </ul>
                         {{/action-group}}
                     {{/block-slot}}
