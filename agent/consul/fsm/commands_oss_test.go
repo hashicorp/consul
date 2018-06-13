@@ -1166,6 +1166,7 @@ func TestFSM_Intention_CRUD(t *testing.T) {
 		Intention:  structs.TestIntention(t),
 	}
 	ixn.Intention.ID = generateUUID()
+	ixn.Intention.UpdatePrecedence()
 
 	{
 		buf, err := structs.Encode(structs.IntentionRequestType, ixn)

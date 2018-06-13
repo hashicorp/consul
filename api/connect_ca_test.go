@@ -24,7 +24,7 @@ func TestAPI_ConnectCARoots_empty(t *testing.T) {
 	connect := c.Connect()
 	list, meta, err := connect.CARoots(nil)
 	require.NoError(err)
-	require.Equal(uint64(0), meta.LastIndex)
+	require.Equal(uint64(1), meta.LastIndex)
 	require.Len(list.Roots, 0)
 	require.Empty(list.TrustDomain)
 }
