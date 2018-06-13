@@ -21,10 +21,10 @@ without being aware of Connect at all. Applications may also
 [natively integrate with Connect](/docs/connect/native.html)
 for optimal performance and security.
 
--> **Security note:** The getting started guide will show Connect features
-and focus on ease of use with a dev-mode agent. We will _not setup_ Connect in a
-production-recommended secure way. Please read the Connect reference
-documentation on security best practices to understand the tradeoffs.
+-> **Security note:** The getting started guide will show Connect features and
+focus on ease of use with a dev-mode agent. We will _not setup_ Connect in a
+production-recommended secure way. Please read the [Connect production
+guide](/docs/guides/connect-production.html) to understand the tradeoffs.
 
 ~> **Windows Support**: The proxy management feature was designed to run on all platforms but has a known issue on the Windows platform at Beta launch preventing it from starting proxy processes. This will be fixed in a future release.
 

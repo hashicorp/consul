@@ -9,20 +9,25 @@ description: |-
 ## Running Connect in Production
 
 Consul Connect can secure all inter-service communication via mutual TLS. It's
-designed to work with minimal configuration out of the box, but completing the
-[security checklist](/docs/connect/security.html) and understanding the [Consul
-security model](/docs/internals/security.html) are prerequisites for production
+designed to work with [minimal configuration out of the
+box](/intro/getting-started/connect.html), but completing the [security
+checklist](/docs/connect/security.html) and understanding the [Consul security
+model](/docs/internals/security.html) are prerequisites for production
 deployments.
 
 This guide aims to walk through the steps required to ensure the security
 guarantees hold.
 
 We assume a cluster is already running with an appropriate number of servers and
-clients. To follow along with this guide in a dev environment you can follow our
-[getting started guide](/intro/getting-started/install.html). For a production
-cluster we expect other reference material like the
+clients and that other reference material like the
 [deployment](/docs/guides/deployment.html) and
 [performance](/docs/guides/performance.html) guides have been followed.
+
+In practical deployments it may be necessary to incrementally adopt Connect
+service-by-service. In this case some or all of the advice below may not apply
+during the transition but should give a good understanding on which security
+properties have been sacrificed in the interim. The final deployment goal should
+be to end up compliant with all the advice below.
 
 The steps we need to get to a secure Connect cluster are:
 
@@ -55,8 +60,9 @@ A secure ACL setup must meet these criteria:
     `allow` but add an explicit ACL denying anonymous `service:write`. Note
     however that in this case the Connect intention graph will also default to
     `allow` and explicit `deny` intentions will be needed to restrict service
-    access. It is assumed for the remainder of this guide that ACL policy
-    defaults to `deny`.
+    access. Also note that explicit rules to limit who can manage intentions are
+    necessary in this case. It is assumed for the remainder of this guide that
+    ACL policy defaults to `deny`.
  2. **Each service must have a distinct ACL token** that is restricted to
     `service:write` only for the named service. Current Consul ACLs only support
     prefix matching but in a near-future release we will allow exact name
