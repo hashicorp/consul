@@ -7,6 +7,7 @@ FEATURES:
 IMPROVEMENTS:
 
 * agent: A Consul user-agent string is now sent to providers when making retry-join requests [GH-4013](https://github.com/hashicorp/consul/pull/4013)
+* client: Add metrics for failed RPCs [PR-4220](https://github.com/hashicorp/consul/pull/4220)
 
 BUG FIXES:
 
