@@ -75,6 +75,9 @@ linux:
 # dist builds binaries for all platforms and packages them for distribution
 dist:
 	@$(SHELL) $(CURDIR)/build-support/scripts/build.sh release -t '$(DIST_TAG)' -b '$(DIST_BUILD)' -S '$(DIST_SIGN)'
+	
+publish:
+	@$(SHELL) $(CURDIR)/build-support/scripts/build.sh publish
 
 cov:
 	gocov test $(GOFILES) | gocov-html > /tmp/coverage.html
@@ -139,11 +142,15 @@ tools:
 	go get -u -v $(GOTOOLS)
 
 version:
-	@echo -n "Version without release: "
+	@echo -n "Version:                    "
 	@$(SHELL) $(CURDIR)/build-support/scripts/build.sh version 
-	@echo -n "Version with release:    "
+	@echo -n "Version + release:          "
 	@$(SHELL) $(CURDIR)/build-support/scripts/build.sh version -R
-
+	@echo -n "Version + git:              "
+	@$(SHELL) $(CURDIR)/build-support/scripts/build.sh version -G
+	@echo -n "Version + release + git:    "
+		@$(SHELL) $(CURDIR)/build-support/scripts/build.sh version -R -G
+		
 docker-images:
 	@$(MAKE) -C build-support/docker images
 

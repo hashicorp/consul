@@ -77,7 +77,7 @@ function build_ui {
       docker rm ${container_id} > /dev/null
    fi
    
-   if test $ret -eq 0
+   if test ${ret} -eq 0
    then
       rm -rf ${1}/pkg/web_ui/v2
       cp -r ${1}/ui-v2/dist ${1}/pkg/web_ui/v2
@@ -124,7 +124,7 @@ function build_ui_legacy {
          status "Running build in container" && 
          docker start -i ${container_id} &&
          status "Copying back artifacts" && 
-         docker cp ${container_id}:/consul-src/pkg/web_ui ${sdir}/pkg/web_ui/v1
+         docker cp ${container_id}:/consul-src/pkg/web_ui/v1/. ${sdir}/pkg/web_ui/v1
       )
       ret=$?
       docker rm ${container_id} > /dev/null

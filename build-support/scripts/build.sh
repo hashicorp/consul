@@ -103,6 +103,11 @@ Subcommands:
             
             -a | --build-arch ARCH        Space separated string of architectures to build
       
+      publish:       Publishes a release build.
+      
+            -s | --source     DIR         Path to the source to build.
+                                          Defaults to "${SOURCE_DIR}"
+      
       release:       Performs a release build.
       
          Options:
@@ -163,6 +168,7 @@ function main {
    declare    build_os
    declare    build_arch
    declare -i vers_release
+   declare -i vers_git
 
    declare -i use_refresh=1
    declare -i default_refresh=0
@@ -178,19 +184,31 @@ function main {
    declare -i use_xc=0
    declare    default_build_os=""
    declare    default_build_arch=""
-   declare -i use_vers_rel
-   declare -i default_vers_rel=1
+   declare -i use_version_args
+   declare -i default_vers_rel=0 
+   declare -i default_vers_git=0
    
    declare    command="$1"
    shift
    
    case "${command}" in
+      assetfs )
+         use_image=1
+         default_image="${GO_BUILD_CONTAINER_DEFAULT}"         
+         ;;
       consul )      
          use_image=1
          default_image="${GO_BUILD_CONTAINER_DEFAULT}"         
          ;;
       consul-local )
          use_xc=1
+         ;;
+      publish )
+         use_refresh=0
+         ;;
+      release )
+         use_rel=1
+         use_refresh=0
          ;;
       ui )
          use_image=1
@@ -202,15 +220,7 @@ function main {
          ;;
       version )
          use_refresh=0
-         use_vers_rel=1
-         ;;
-      assetfs )
-         use_image=1
-         default_image="${GO_BUILD_CONTAINER_DEFAULT}"         
-         ;;
-      release )
-         use_rel=1
-         use_refresh=0
+         use_version_args=1
          ;;
       -h | --help)
          usage
@@ -232,6 +242,7 @@ function main {
    declare -i have_build_os_arg=0
    declare -i have_build_arch_arg=0
    declare -i have_vers_rel_arg=0
+   declare -i have_vers_git_arg=0
    
    while test $# -gt 0
    do 
@@ -251,9 +262,15 @@ function main {
             shift 2
             ;;
          -R | --release )
-            option_check "${use_vers_rel}" "${have_vers_rel_arg}" "${command}" "-R/--release" || return 1
+            option_check "${use_version_args}" "${have_vers_rel_arg}" "${command}" "-R/--release" || return 1
             have_vers_rel_arg=1
-            vers_release=0
+            vers_release=1
+            shift
+            ;;
+         -G | --git )
+            option_check "${use_version_args}" "${have_vers_git_arg}" "${command}" "-G/--git" || return 1
+            have_vers_git_arg=1
+            vers_git=1
             shift
             ;;
          -r | --refresh)
@@ -313,8 +330,19 @@ function main {
    test $have_build_os_arg -ne 1 && build_os="${default_build_os}"
    test $have_build_arch_arg -ne 1 && build_arch="${default_build_os}"
    test $have_vers_rel_arg -ne 1 && vers_release="${default_vers_rel}"
+   test $have_vers_git_arg -ne 1 && vers_git="${default_vers_git}"
    
     case "${command}" in
+       assetfs )
+         if is_set "${refresh_docker}"
+         then
+            status_stage "==> Refreshing Consul build container image"
+            export GO_BUILD_TAG="${image}"
+            refresh_docker_images ${sdir} go-build-image || return 1
+         fi
+         status_stage "==> Build Static Assets"
+         build_assetfs "${sdir}" "${image}" || return 1
+         ;;
       consul )
          if is_set "${refresh_docker}"
          then
@@ -327,6 +355,16 @@ function main {
          ;;
       consul-local )
          build_consul_local "${sdir}" "${build_os}" "${build_arch}" "" || return 1
+         ;;
+      publish )
+         publish_release "${sdir}" true true || return 1
+         ;;
+      release )
+         if is_set "${refresh_docker}"
+         then
+            refresh_docker_images ${sdir} || return 1
+         fi
+         build_release "${sdir}" "${rel_tag}" "${rel_build}" "${rel_sign}" "${rel_gpg_key}" || return 1
          ;;
       ui )
          
@@ -350,27 +388,10 @@ function main {
          build_ui_legacy "${sdir}" "${image}" || return 1
          ;;
       version )
-         parse_version "${sdir}" "${vers_release}"|| return 1
-         ;;
-      assetfs )
-         if is_set "${refresh_docker}"
-         then
-            status_stage "==> Refreshing Consul build container image"
-            export GO_BUILD_TAG="${image}"
-            refresh_docker_images ${sdir} go-build-image || return 1
-         fi
-         status_stage "==> Build Static Assets"
-         build_assetfs "${sdir}" "${image}" || return 1
-         ;;
-      release )
-         if is_set "${refresh_docker}"
-         then
-            refresh_docker_images ${sdir} || return 1
-         fi
-         build_release "${sdir}" "${rel_tag}" "${rel_build}" "${rel_sign}" "${rel_gpg_key}" || return 1
+         parse_version "${sdir}" "${vers_release}" "${vers_git}" || return 1
          ;;
       *)
-         err "Unkown subcommand: '$1' - possible values are 'consul', 'ui', 'ui-legacy', 'assetfs', version' and 'release'" 
+         err "Unkown subcommand: '$1' - possible values are 'assetfs', consul', 'consul-local' 'publish', 'release', 'ui', 'ui-legacy' and 'version'" 
          return 1
          ;;
    esac

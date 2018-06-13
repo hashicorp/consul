@@ -33,12 +33,17 @@ function tag_release {
    pushd "$1" > /dev/null
    local ret=0
    
+   local branch_to_tag=$(git_branch) || ret=1
+   
    # perform an usngined release if requested (mainly for testing locally)
-   if is_set "$RELEASE_UNSIGNED"
+   if test ${ret} -ne 0
+   then
+      err "ERROR: Failed to determine git branch to tag"
+   elif is_set "$RELEASE_UNSIGNED"
    then
       (
          git commit --allow-empty -a -m "Release v${2}" &&
-         git tag -a -m "Version ${2}" "v${2}" master
+         git tag -a -m "Version ${2}" "v${2}" "${branch_to_tag}"
       )
       ret=$?
    # perform a signed release (official releases should do this)
@@ -46,7 +51,7 @@ function tag_release {
    then   
       (
          git commit --allow-empty -a --gpg-sign=${gpg_key} -m "Release v${2}" &&
-         git tag -a -m "Version ${2}" -s -u ${gpg_key} "v${2}" master
+         git tag -a -m "Version ${2}" -s -u ${gpg_key} "v${2}" "${branch_to_tag}"
       )
       ret=$?
    # unsigned release not requested and gpg key isn't useable
@@ -72,11 +77,14 @@ function package_release {
       err "ERROR: '$1' is not a directory. package_release must be called with the path to the top level source as the first argument'" 
       return 1
    fi
-   
+
+   local sdir="${1}"
+   local ret=0   
    local vers="${2}"
+
    if test -z "${vers}"
    then
-      vers=$(get_version $1 true)
+      vers=$(get_version "${sdir}" true false)
       ret=$?
       if test "$ret" -ne 0
       then
@@ -85,9 +93,6 @@ function package_release {
       fi
    fi
    
-   local sdir="$1"
-   local ret=0
-
    rm -rf "${sdir}/pkg/dist" > /dev/null 2>&1 
    mkdir -p "${sdir}/pkg/dist" >/dev/null 2>&1 
    for platform in $(find "${sdir}/pkg/bin" -mindepth 1 -maxdepth 1 -type d)
@@ -154,8 +159,99 @@ function sign_release {
       gpg_key=$2
    fi
    
-   gpg --default-key "${gpg_key}" --detach-sig "$1"
+   gpg --default-key "${gpg_key}" --detach-sig --yes -v  "$1"
    return $?
+}
+
+function check_release {
+   # Arguments:
+   #   $1 - Path to the release files
+   #   $2 - Version to expect
+   #   $3 - boolean whether to expect the signature file
+   #
+   # Returns:
+   #   0 - success
+   #   * - failure
+   
+   declare -i ret=0
+   
+   declare -a expected_files
+   
+   expected_files+=("consul_${2}_SHA256SUMS")
+   echo "check sig: $3"
+   if is_set "$3"
+   then
+      expected_files+=("consul_${2}_SHA256SUMS.sig")
+   fi
+   
+   expected_files+=("consul_${2}_darwin_386.zip")
+   expected_files+=("consul_${2}_darwin_amd64.zip")
+   expected_files+=("consul_${2}_freebsd_386.zip")
+   expected_files+=("consul_${2}_freebsd_amd64.zip")
+   expected_files+=("consul_${2}_freebsd_arm.zip")
+   expected_files+=("consul_${2}_linux_386.zip")
+   expected_files+=("consul_${2}_linux_amd64.zip")
+   expected_files+=("consul_${2}_linux_arm.zip")
+   expected_files+=("consul_${2}_linux_arm64.zip")
+   expected_files+=("consul_${2}_solaris_amd64.zip")
+   expected_files+=("consul_${2}_windows_386.zip")
+   expected_files+=("consul_${2}_windows_amd64.zip")
+   
+   declare -a found_files
+   
+   status_stage "==> Verifying release contents - ${2}"
+   debug "Expecting Files:"
+   for fname in "${expected_files[@]}"
+   do
+      debug "    $fname"
+   done
+   
+   pushd "$1" > /dev/null
+   for actual_fname in $(ls)
+   do
+      local found=0
+      for i in "${!expected_files[@]}"
+      do
+         local expected_fname="${expected_files[i]}"
+         if test "${expected_fname}" == "${actual_fname}"
+         then
+            # remove from the expected_files array
+            unset 'expected_files[i]'
+            
+            # append to the list of found files
+            found_files+=("${expected_fname}")
+            
+            # mark it as found so we dont error
+            found=1
+            break
+         fi
+      done
+      
+      if test $found -ne 1
+      then
+         err "ERROR: Release build has an extra file: ${actual_fname}"
+         ret=1
+      fi
+   done
+   popd > /dev/null
+   
+   for fname in "${expected_files[@]}"
+   do      
+      err "ERROR: Release build is missing a file: $fname"
+      ret=1
+   done
+   
+   
+   if test $ret -eq 0
+   then
+      status "Release build contents:"
+      for fname in "${found_files[@]}"
+      do
+         echo "    $fname"
+      done
+   fi
+
+   return $ret
 }
 
 function build_consul_release {
@@ -192,11 +288,31 @@ function build_release {
    local do_sha256="$4"
    local gpg_key="$5"
    
-   local vers=$(get_version ${sdir} true)
+   if test -z "${gpg_key}"
+   then
+      gpg_key=${HASHICORP_GPG_KEY}
+   fi
+   
+   local vers="$(get_version ${sdir} true false)"
    if test $? -ne 0
    then
       err "Please specify a version (couldn't find one based on build tags)." 
       return 1
+   fi
+   
+   if ! is_git_clean "${sdir}" true && ! is_set "${ALLOW_DIRTY_GIT}"
+   then
+      err "ERROR: Refusing to build because Git is dirty. Set ALLOW_DIRTY_GIT=1 in the environment to proceed anyways"
+      return 1
+   fi
+   
+   if ! is_set "${RELEASE_UNSIGNED}"
+   then
+      if ! have_gpg_key "${gpg_key}"
+      then
+         err "ERROR: Aborting build because no useable GPG key is present. Set RELEASE_UNSIGNED=1 to bypass this check"
+         return 1 
+      fi
    fi
    
    # Make sure we arent in dev mode
@@ -295,5 +411,6 @@ function build_release {
       fi
    fi
          
-   return 0    
+   check_release "${sdir}/pkg/dist" "${vers}" "${do_sha256}"
+   return $?
 }
