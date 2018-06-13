@@ -76,6 +76,12 @@ These metrics are used to monitor the health of specific Consul agents.
     <td>counter</td>
   </tr>
   <tr>
+    <td>`consul.client.rpc.failed`</td>
+    <td>This increments whenever a Consul agent in client mode makes an RPC request to a Consul server and fails.</td>
+    <td>requests</td>
+    <td>counter</td>
+  </tr>
+  <tr>
     <td>`consul.client.api.catalog_register.<node>`</td>
     <td>This increments whenever a Consul agent receives a catalog register request.</td>
     <td>requests</td>

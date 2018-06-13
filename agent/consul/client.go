@@ -276,6 +276,7 @@ TRY:
 
 	// Move off to another server, and see if we can retry.
 	c.logger.Printf("[ERR] consul: %q RPC failed to server %s: %v", method, server.Addr, rpcErr)
+	metrics.IncrCounterWithLabels([]string{"client", "rpc", "failed"}, 1, []metrics.Label{{Name: "server", Value: server.Name}})
 	c.routers.NotifyFailedServer(server)
 	if retry := canRetry(args, rpcErr); !retry {
 		return rpcErr
