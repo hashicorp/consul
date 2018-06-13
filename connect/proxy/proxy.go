@@ -48,7 +48,7 @@ func (p *Proxy) Serve() error {
 				// Setup telemetry if configured
 				if len(newCfg.Telemetry) > 0 {
 					p.logger.Printf("[DEBUG] got Telemetry confg: %v", newCfg.Telemetry)
-					_, err := lib.StartupTelemetry(newCfg.Telemetry)
+					_, err := lib.InitTelemetry(newCfg.Telemetry)
 					if err != nil {
 						p.logger.Printf("[ERR] proxy telemetry config error: %s", err)
 					}

@@ -123,9 +123,9 @@ func cfgStrSliceVal(i interface{}) []string {
 	return nil
 }
 
-// StartupTelemetry configures go-metrics based on map of telemetry config
+// InitTelemetry configures go-metrics based on map of telemetry config
 // values as returned by RuntimecfgStringVal(cfg["Config"])().
-func StartupTelemetry(cfg map[string]interface{}) (*metrics.InmemSink, error) {
+func InitTelemetry(cfg map[string]interface{}) (*metrics.InmemSink, error) {
 	// Setup telemetry
 	// Aggregate on 10 second intervals for 1 minute. Expose the
 	// metrics over stderr when there is a SIGUSR1 received.
