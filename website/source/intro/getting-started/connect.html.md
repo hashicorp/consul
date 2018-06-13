@@ -134,11 +134,12 @@ $ cat <<EOF | sudo tee /etc/consul.d/web.json
 {
   "service": {
     "name": "web",
+    "port": 8080,
     "connect": {
       "proxy": {
         "config": {
           "upstreams": [{
-             "destination_name": "db",
+             "destination_name": "socat",
              "local_bind_port": 9191
           }]
         }
@@ -150,8 +151,8 @@ EOF
 ```
 
 This configures a Consul-managed proxy for the service "web" that
-is listening on port 9191 to establish connects to "db" as "web". The
-"web" service should then use that local port to talk to the DB rather than
+is listening on port 9191 to establish connects to "socat" as "web". The
+"web" service should then use that local port to talk to socat rather than
 directly attempting to connect.
 
 -> **Security note:** The Connect security model requires trusting
@@ -167,7 +168,7 @@ all" by default.
 Let's insert a rule to deny access from web to socat:
 
 ```sh
-$ consul intention create -deny web db
+$ consul intention create -deny web socat
 Created: web => socat (deny)
 ```
 
