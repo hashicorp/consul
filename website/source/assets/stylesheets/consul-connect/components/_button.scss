@@ -22,6 +22,10 @@
     transform: translateY(-1px);
   }
 
+  path {
+    fill: $white;
+  }
+
   &.white {
     background: $white;
     border: 2px solid $white;
@@ -32,10 +36,14 @@
       background: $consul-black;
       border-color: $consul-black;
       color: $white;
-      
+
       path {
         fill: $white;
       }
+    }
+
+    path {
+      fill: $consul-black;
     }
   }
 

@@ -27,4 +27,8 @@
     padding: 2px 9px;
     text-transform: uppercase;
   }
+
+  .g-btn + .g-btn {
+    margin-left: 20px;
+  }
 }
