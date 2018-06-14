@@ -39,6 +39,11 @@ export default Controller.extend({
     change: function(e, value, _target) {
       // normalize back to standard event
       const target = e.target || { ..._target, ...{ name: e, value: value } };
+      let name,
+        selected = target.value;
+      // TODO:
+      // linter needs this here?
+      let match;
       switch (target.name) {
         case 'Description':
         case 'Action':
@@ -46,14 +51,14 @@ export default Controller.extend({
           break;
         case 'SourceName':
         case 'DestinationName':
-          let name = target.value;
-          let selected = target.value;
           if (typeof name !== 'string') {
             name = get(target.value, 'Name');
           }
-          const match = get(this, 'items').filterBy('Name', name);
+          // linter doesn't like const here
+          match = get(this, 'items').filterBy('Name', name);
           if (match.length === 0) {
             selected = { Name: name };
+            // linter doesn't mind const here?
             const items = [selected].concat(this.items.toArray());
             set(this, 'items', items);
           }

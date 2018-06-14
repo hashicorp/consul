@@ -53,9 +53,9 @@ export default Adapter.extend({
       switch (true) {
         case this.isQueryRecord(url):
         case this.isUpdateRecord(url):
-        // TODO: We just need to upgrade this entire API to
-        // use a full request-like object
         case this.isCreateRecord(url, requestData.method):
+          // TODO: We just need to upgrade this (^^ sorry linter) entire API to
+          // use a full request-like object
           response = {
             ...response,
             ...{
