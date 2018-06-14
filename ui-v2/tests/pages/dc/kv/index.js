@@ -6,7 +6,7 @@ export default create({
     name: attribute('data-test-kv', '[data-test-kv]'),
     kv: clickable('a'),
     actions: clickable('label'),
-    delete: clickable('li:last-child a'),
+    delete: clickable('[data-test-delete]'),
     confirmDelete: clickable('button.type-delete'),
   }),
 });

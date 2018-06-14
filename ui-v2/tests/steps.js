@@ -227,7 +227,48 @@ export default function(assert) {
         });
       })
       .then(['I see $property on the $component'], function(property, component) {
-        assert.ok(currentPage[component][property], `Expected to see ${property} on ${component}`);
+        // TODO: Time to work on repetition
+        // Collection
+        var obj;
+        if (typeof currentPage[component].objectAt === 'function') {
+          obj = currentPage[component].objectAt(0);
+        } else {
+          obj = currentPage[component];
+        }
+        let _component;
+        if (typeof obj === 'function') {
+          const func = obj[property].bind(obj);
+          try {
+            _component = func();
+          } catch (e) {
+            console.error(e);
+            throw new Error(
+              `The '${property}' property on the '${component}' page object doesn't exist`
+            );
+          }
+        } else {
+          _component = obj;
+        }
+        assert.ok(_component[property], `Expected to see ${property} on ${component}`);
+      })
+      .then(["I don't see $property on the $component"], function(property, component) {
+        // Collection
+        var obj;
+        if (typeof currentPage[component].objectAt === 'function') {
+          obj = currentPage[component].objectAt(0);
+        } else {
+          obj = currentPage[component];
+        }
+        const func = obj[property].bind(obj);
+        assert.throws(
+          function() {
+            func();
+          },
+          function(e) {
+            return e.toString().indexOf('Element not found') !== -1;
+          },
+          `Expected to not see ${property} on ${component}`
+        );
       })
       .then(['I see $property'], function(property, component) {
         assert.ok(currentPage[property], `Expected to see ${property}`);
