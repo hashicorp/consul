@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/ipaddr"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	multierror "github.com/hashicorp/go-multierror"
@@ -625,29 +626,31 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		HTTPResponseHeaders: c.HTTPConfig.ResponseHeaders,
 
 		// Telemetry
-		TelemetryCirconusAPIApp:                     b.stringVal(c.Telemetry.CirconusAPIApp),
-		TelemetryCirconusAPIToken:                   b.stringVal(c.Telemetry.CirconusAPIToken),
-		TelemetryCirconusAPIURL:                     b.stringVal(c.Telemetry.CirconusAPIURL),
-		TelemetryCirconusBrokerID:                   b.stringVal(c.Telemetry.CirconusBrokerID),
-		TelemetryCirconusBrokerSelectTag:            b.stringVal(c.Telemetry.CirconusBrokerSelectTag),
-		TelemetryCirconusCheckDisplayName:           b.stringVal(c.Telemetry.CirconusCheckDisplayName),
-		TelemetryCirconusCheckForceMetricActivation: b.stringVal(c.Telemetry.CirconusCheckForceMetricActivation),
-		TelemetryCirconusCheckID:                    b.stringVal(c.Telemetry.CirconusCheckID),
-		TelemetryCirconusCheckInstanceID:            b.stringVal(c.Telemetry.CirconusCheckInstanceID),
-		TelemetryCirconusCheckSearchTag:             b.stringVal(c.Telemetry.CirconusCheckSearchTag),
-		TelemetryCirconusCheckTags:                  b.stringVal(c.Telemetry.CirconusCheckTags),
-		TelemetryCirconusSubmissionInterval:         b.stringVal(c.Telemetry.CirconusSubmissionInterval),
-		TelemetryCirconusSubmissionURL:              b.stringVal(c.Telemetry.CirconusSubmissionURL),
-		TelemetryDisableHostname:                    b.boolVal(c.Telemetry.DisableHostname),
-		TelemetryDogstatsdAddr:                      b.stringVal(c.Telemetry.DogstatsdAddr),
-		TelemetryDogstatsdTags:                      c.Telemetry.DogstatsdTags,
-		TelemetryPrometheusRetentionTime:            b.durationVal("prometheus_retention_time", c.Telemetry.PrometheusRetentionTime),
-		TelemetryFilterDefault:                      b.boolVal(c.Telemetry.FilterDefault),
-		TelemetryAllowedPrefixes:                    telemetryAllowedPrefixes,
-		TelemetryBlockedPrefixes:                    telemetryBlockedPrefixes,
-		TelemetryMetricsPrefix:                      b.stringVal(c.Telemetry.MetricsPrefix),
-		TelemetryStatsdAddr:                         b.stringVal(c.Telemetry.StatsdAddr),
-		TelemetryStatsiteAddr:                       b.stringVal(c.Telemetry.StatsiteAddr),
+		Telemetry: lib.TelemetryConfig{
+			CirconusAPIApp:                     b.stringVal(c.Telemetry.CirconusAPIApp),
+			CirconusAPIToken:                   b.stringVal(c.Telemetry.CirconusAPIToken),
+			CirconusAPIURL:                     b.stringVal(c.Telemetry.CirconusAPIURL),
+			CirconusBrokerID:                   b.stringVal(c.Telemetry.CirconusBrokerID),
+			CirconusBrokerSelectTag:            b.stringVal(c.Telemetry.CirconusBrokerSelectTag),
+			CirconusCheckDisplayName:           b.stringVal(c.Telemetry.CirconusCheckDisplayName),
+			CirconusCheckForceMetricActivation: b.stringVal(c.Telemetry.CirconusCheckForceMetricActivation),
+			CirconusCheckID:                    b.stringVal(c.Telemetry.CirconusCheckID),
+			CirconusCheckInstanceID:            b.stringVal(c.Telemetry.CirconusCheckInstanceID),
+			CirconusCheckSearchTag:             b.stringVal(c.Telemetry.CirconusCheckSearchTag),
+			CirconusCheckTags:                  b.stringVal(c.Telemetry.CirconusCheckTags),
+			CirconusSubmissionInterval:         b.stringVal(c.Telemetry.CirconusSubmissionInterval),
+			CirconusSubmissionURL:              b.stringVal(c.Telemetry.CirconusSubmissionURL),
+			DisableHostname:                    b.boolVal(c.Telemetry.DisableHostname),
+			DogstatsdAddr:                      b.stringVal(c.Telemetry.DogstatsdAddr),
+			DogstatsdTags:                      c.Telemetry.DogstatsdTags,
+			PrometheusRetentionTime:            b.durationVal("prometheus_retention_time", c.Telemetry.PrometheusRetentionTime),
+			FilterDefault:                      b.boolVal(c.Telemetry.FilterDefault),
+			AllowedPrefixes:                    telemetryAllowedPrefixes,
+			BlockedPrefixes:                    telemetryBlockedPrefixes,
+			MetricsPrefix:                      b.stringVal(c.Telemetry.MetricsPrefix),
+			StatsdAddr:                         b.stringVal(c.Telemetry.StatsdAddr),
+			StatsiteAddr:                       b.stringVal(c.Telemetry.StatsiteAddr),
+		},
 
 		// Agent
 		AdvertiseAddrLAN:                        advertiseAddrLAN,

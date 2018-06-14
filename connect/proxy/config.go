@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/connect"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/watch"
 	"github.com/hashicorp/hcl"
 )
@@ -40,7 +41,7 @@ type Config struct {
 	// Telemetry stores configuration for go-metrics. It is typically populated
 	// from the agent's runtime config via the proxy config endpoint so that the
 	// proxy will log metrics to the same location(s) as the agent.
-	Telemetry map[string]interface{}
+	Telemetry lib.TelemetryConfig
 }
 
 // Service returns the *connect.Service structure represented by this config.
@@ -265,8 +266,11 @@ func (w *AgentConfigWatcher) handler(blockVal watch.BlockingParamVal,
 		ProxiedServiceNamespace: "default",
 	}
 
-	if t, ok := resp.Config["telemetry"].(map[string]interface{}); ok {
-		cfg.Telemetry = t
+	if tRaw, ok := resp.Config["telemetry"]; ok {
+		err := mapstructure.Decode(tRaw, &cfg.Telemetry)
+		if err != nil {
+			w.logger.Printf("[WARN] proxy telemetry config failed to parse: %s", err)
+		}
 	}
 
 	// Unmarshal configs

@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/connect"
+	"github.com/hashicorp/consul/lib"
 	"github.com/stretchr/testify/require"
 )
 
@@ -118,7 +119,14 @@ func TestUpstreamResolverFromClient(t *testing.T) {
 func TestAgentConfigWatcher(t *testing.T) {
 	t.Parallel()
 
-	a := agent.NewTestAgent("agent_smith", "")
+	a := agent.NewTestAgent("agent_smith", `
+	connect {
+		enabled = true
+		proxy {
+			allow_managed_api_registration = true
+		}
+	}
+	`)
 	defer a.Shutdown()
 
 	client := a.Client()
@@ -175,9 +183,9 @@ func TestAgentConfigWatcher(t *testing.T) {
 				ConnectTimeoutMs:     10000, // from applyDefaults
 			},
 		},
-		Telemetry: map[string]interface{}{
-			"FilterDefault": true,
-			"MetricsPrefix": "consul.proxy.web",
+		Telemetry: lib.TelemetryConfig{
+			FilterDefault: true,
+			MetricsPrefix: "consul.proxy.web",
 		},
 	}
 

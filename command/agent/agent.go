@@ -198,7 +198,7 @@ func (c *cmd) run(args []string) int {
 	c.logOutput = logOutput
 	c.logger = log.New(logOutput, "", log.LstdFlags)
 
-	memSink, err := lib.InitTelemetry(config.TelemetryConfig(false))
+	memSink, err := lib.InitTelemetry(config.Telemetry)
 	if err != nil {
 		c.UI.Error(err.Error())
 		return 1

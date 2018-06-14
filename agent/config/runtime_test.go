@@ -19,10 +19,11 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/pascaldekloe/goe/verify"
-	"github.com/sergi/go-diff/diffmatchpatch"
+	"github.com/stretchr/testify/require"
 )
 
 type configTest struct {
@@ -1852,8 +1853,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				`},
 			patch: func(rt *RuntimeConfig) {
 				rt.DataDir = dataDir
-				rt.TelemetryAllowedPrefixes = []string{"foo"}
-				rt.TelemetryBlockedPrefixes = []string{"bar"}
+				rt.Telemetry.AllowedPrefixes = []string{"foo"}
+				rt.Telemetry.BlockedPrefixes = []string{"bar"}
 			},
 			warns: []string{`Filter rule must begin with either '+' or '-': "nix"`},
 		},
@@ -3822,41 +3823,43 @@ func TestFullConfig(t *testing.T) {
 				},
 			},
 		},
-		SerfAdvertiseAddrLAN:                        tcpAddr("17.99.29.16:8301"),
-		SerfAdvertiseAddrWAN:                        tcpAddr("78.63.37.19:8302"),
-		SerfBindAddrLAN:                             tcpAddr("99.43.63.15:8301"),
-		SerfBindAddrWAN:                             tcpAddr("67.88.33.19:8302"),
-		SessionTTLMin:                               26627 * time.Second,
-		SkipLeaveOnInt:                              true,
-		StartJoinAddrsLAN:                           []string{"LR3hGDoG", "MwVpZ4Up"},
-		StartJoinAddrsWAN:                           []string{"EbFSc3nA", "kwXTh623"},
-		SyslogFacility:                              "hHv79Uia",
-		TelemetryCirconusAPIApp:                     "p4QOTe9j",
-		TelemetryCirconusAPIToken:                   "E3j35V23",
-		TelemetryCirconusAPIURL:                     "mEMjHpGg",
-		TelemetryCirconusBrokerID:                   "BHlxUhed",
-		TelemetryCirconusBrokerSelectTag:            "13xy1gHm",
-		TelemetryCirconusCheckDisplayName:           "DRSlQR6n",
-		TelemetryCirconusCheckForceMetricActivation: "Ua5FGVYf",
-		TelemetryCirconusCheckID:                    "kGorutad",
-		TelemetryCirconusCheckInstanceID:            "rwoOL6R4",
-		TelemetryCirconusCheckSearchTag:             "ovT4hT4f",
-		TelemetryCirconusCheckTags:                  "prvO4uBl",
-		TelemetryCirconusSubmissionInterval:         "DolzaflP",
-		TelemetryCirconusSubmissionURL:              "gTcbS93G",
-		TelemetryDisableHostname:                    true,
-		TelemetryDogstatsdAddr:                      "0wSndumK",
-		TelemetryDogstatsdTags:                      []string{"3N81zSUB", "Xtj8AnXZ"},
-		TelemetryFilterDefault:                      true,
-		TelemetryAllowedPrefixes:                    []string{"oJotS8XJ"},
-		TelemetryBlockedPrefixes:                    []string{"cazlEhGn"},
-		TelemetryMetricsPrefix:                      "ftO6DySn",
-		TelemetryPrometheusRetentionTime:            15 * time.Second,
-		TelemetryStatsdAddr:                         "drce87cy",
-		TelemetryStatsiteAddr:                       "HpFwKB8R",
-		TLSCipherSuites:                             []uint16{tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305, tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384},
-		TLSMinVersion:                               "pAOWafkR",
-		TLSPreferServerCipherSuites:                 true,
+		SerfAdvertiseAddrLAN: tcpAddr("17.99.29.16:8301"),
+		SerfAdvertiseAddrWAN: tcpAddr("78.63.37.19:8302"),
+		SerfBindAddrLAN:      tcpAddr("99.43.63.15:8301"),
+		SerfBindAddrWAN:      tcpAddr("67.88.33.19:8302"),
+		SessionTTLMin:        26627 * time.Second,
+		SkipLeaveOnInt:       true,
+		StartJoinAddrsLAN:    []string{"LR3hGDoG", "MwVpZ4Up"},
+		StartJoinAddrsWAN:    []string{"EbFSc3nA", "kwXTh623"},
+		SyslogFacility:       "hHv79Uia",
+		Telemetry: lib.TelemetryConfig{
+			CirconusAPIApp:                     "p4QOTe9j",
+			CirconusAPIToken:                   "E3j35V23",
+			CirconusAPIURL:                     "mEMjHpGg",
+			CirconusBrokerID:                   "BHlxUhed",
+			CirconusBrokerSelectTag:            "13xy1gHm",
+			CirconusCheckDisplayName:           "DRSlQR6n",
+			CirconusCheckForceMetricActivation: "Ua5FGVYf",
+			CirconusCheckID:                    "kGorutad",
+			CirconusCheckInstanceID:            "rwoOL6R4",
+			CirconusCheckSearchTag:             "ovT4hT4f",
+			CirconusCheckTags:                  "prvO4uBl",
+			CirconusSubmissionInterval:         "DolzaflP",
+			CirconusSubmissionURL:              "gTcbS93G",
+			DisableHostname:                    true,
+			DogstatsdAddr:                      "0wSndumK",
+			DogstatsdTags:                      []string{"3N81zSUB", "Xtj8AnXZ"},
+			FilterDefault:                      true,
+			AllowedPrefixes:                    []string{"oJotS8XJ"},
+			BlockedPrefixes:                    []string{"cazlEhGn"},
+			MetricsPrefix:                      "ftO6DySn",
+			PrometheusRetentionTime:            15 * time.Second,
+			StatsdAddr:                         "drce87cy",
+			StatsiteAddr:                       "HpFwKB8R",
+		},
+		TLSCipherSuites:             []uint16{tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305, tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384},
+		TLSMinVersion:               "pAOWafkR",
+		TLSPreferServerCipherSuites: true,
 		TaggedAddresses: map[string]string{
 			"7MYgHrYH": "dALJAhLD",
 			"h6DdBy6K": "ebrr9zZ8",
@@ -4399,29 +4402,30 @@ func TestSanitize(t *testing.T) {
     "TLSMinVersion": "",
     "TLSPreferServerCipherSuites": false,
     "TaggedAddresses": {},
-    "TelemetryAllowedPrefixes": [],
-    "TelemetryBlockedPrefixes": [],
-    "TelemetryCirconusAPIApp": "",
-    "TelemetryCirconusAPIToken": "hidden",
-    "TelemetryCirconusAPIURL": "",
-    "TelemetryCirconusBrokerID": "",
-    "TelemetryCirconusBrokerSelectTag": "",
-    "TelemetryCirconusCheckDisplayName": "",
-    "TelemetryCirconusCheckForceMetricActivation": "",
-    "TelemetryCirconusCheckID": "",
-    "TelemetryCirconusCheckInstanceID": "",
-    "TelemetryCirconusCheckSearchTag": "",
-    "TelemetryCirconusCheckTags": "",
-    "TelemetryCirconusSubmissionInterval": "",
-    "TelemetryCirconusSubmissionURL": "",
-    "TelemetryDisableHostname": false,
-    "TelemetryDogstatsdAddr": "",
-    "TelemetryDogstatsdTags": [],
-    "TelemetryFilterDefault": false,
-    "TelemetryMetricsPrefix": "",
-    "TelemetryPrometheusRetentionTime": "0s",
-    "TelemetryStatsdAddr": "",
-    "TelemetryStatsiteAddr": "",
+    "Telemetry":{
+        "AllowedPrefixes": [],
+        "BlockedPrefixes": [],
+        "CirconusAPIApp": "",
+        "CirconusAPIToken": "hidden",
+        "CirconusAPIURL": "",
+        "CirconusBrokerID": "",
+        "CirconusBrokerSelectTag": "",
+        "CirconusCheckDisplayName": "",
+        "CirconusCheckForceMetricActivation": "",
+        "CirconusCheckID": "",
+        "CirconusCheckInstanceID": "",
+        "CirconusCheckSearchTag": "",
+        "CirconusCheckTags": "",
+        "CirconusSubmissionInterval": "",
+        "CirconusSubmissionURL": "",
+        "DisableHostname": false,
+        "DogstatsdAddr": "",
+        "DogstatsdTags": [],
+        "FilterDefault": false,
+        "MetricsPrefix": "",
+        "PrometheusRetentionTime": "0s",
+        "StatsdAddr": ""
+    },
     "TranslateWANAddrs": false,
     "UIDir": "",
     "UnixSocketGroup": "",
@@ -4441,11 +4445,7 @@ func TestSanitize(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := string(b), rtJSON; got != want {
-		dmp := diffmatchpatch.New()
-		diffs := dmp.DiffMain(want, got, false)
-		t.Fatal(dmp.DiffPrettyText(diffs))
-	}
+	require.JSONEq(t, rtJSON, string(b))
 }
 
 func splitIPPort(hostport string) (net.IP, int) {

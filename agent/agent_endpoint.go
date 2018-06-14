@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mitchellh/mapstructure"
+
 	"github.com/hashicorp/go-memdb"
 	"github.com/mitchellh/hashstructure"
 
@@ -104,7 +106,7 @@ func (s *HTTPServer) AgentMetrics(resp http.ResponseWriter, req *http.Request) (
 		return nil, acl.ErrPermissionDenied
 	}
 	if enablePrometheusOutput(req) {
-		if s.agent.config.TelemetryPrometheusRetentionTime < 1 {
+		if s.agent.config.Telemetry.PrometheusRetentionTime < 1 {
 			resp.WriteHeader(http.StatusUnsupportedMediaType)
 			fmt.Fprint(resp, "Prometheus is not enable since its retention time is not positive")
 			return nil, nil
@@ -1061,26 +1063,35 @@ func (s *HTTPServer) AgentConnectProxyConfig(resp http.ResponseWriter, req *http
 					target.Port)
 			}
 
-			// Add telemetry config
-			telemetry := s.agent.config.TelemetryConfig(false)
-			if len(telemetry) > 0 {
-				// Rely on the fact that TelemetryConfig makes a new map each call to
-				// override the prefix here without affecting other callers.
-				telemetry["MetricsPrefix"] = "consul.proxy." + target.ID
+			// Add telemetry config. Copy the global config so we can customize the
+			// prefix.
+			telemetryCfg := s.agent.config.Telemetry
+			telemetryCfg.MetricsPrefix = telemetryCfg.MetricsPrefix + ".proxy." + target.ID
 
-				// Merge with any config passed by the user to allow service definition
-				// to override.
-				if userRaw, ok := config["telemetry"]; ok {
-					if userT, ok := userRaw.(map[string]interface{}); ok {
-						for k, v := range telemetry {
-							if _, ok := userT[k]; !ok {
-								userT[k] = v
-							}
-						}
+			// First see if the user has specified telemetry
+			if userRaw, ok := config["telemetry"]; ok {
+				// User specified domething, see if it is compatible with agent
+				// telemetry config:
+				var uCfg lib.TelemetryConfig
+				dec, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+					Result: &uCfg,
+					// Make sure that if the user passes something that isn't just a
+					// simple override of a valid TelemetryConfig that we fail so that we
+					// don't clobber their custom config.
+					ErrorUnused: true,
+				})
+				if err == nil {
+					if err = dec.Decode(userRaw); err == nil {
+						// It did decode! Merge any unspecified fields from agent config.
+						uCfg.MergeDefaults(&telemetryCfg)
+						config["telemetry"] = uCfg
 					}
-				} else {
-					config["telemetry"] = telemetry
 				}
+				// Failed to decode, just keep user's config["telemetry"] verbatim
+				// with no agent merge.
+			} else {
+				// Add agent telemetry config.
+				config["telemetry"] = telemetryCfg
 			}
 
 			reply := &api.ConnectProxyConfig{

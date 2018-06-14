@@ -46,12 +46,9 @@ func (p *Proxy) Serve() error {
 				// Initial setup
 
 				// Setup telemetry if configured
-				if len(newCfg.Telemetry) > 0 {
-					p.logger.Printf("[DEBUG] got Telemetry confg: %v", newCfg.Telemetry)
-					_, err := lib.InitTelemetry(newCfg.Telemetry)
-					if err != nil {
-						p.logger.Printf("[ERR] proxy telemetry config error: %s", err)
-					}
+				_, err := lib.InitTelemetry(newCfg.Telemetry)
+				if err != nil {
+					p.logger.Printf("[ERR] proxy telemetry config error: %s", err)
 				}
 
 				// Setup Service instance now we know target ID etc

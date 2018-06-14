@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/types"
@@ -3248,10 +3249,10 @@ func TestAgentConnectProxyConfig_aclServiceReadDeny(t *testing.T) {
 	require.True(acl.IsErrPermissionDenied(err))
 }
 
-func makeTelemetryDefaults(targetID string) map[string]interface{} {
-	return map[string]interface{}{
-		"FilterDefault": true,
-		"MetricsPrefix": "consul.proxy." + targetID,
+func makeTelemetryDefaults(targetID string) lib.TelemetryConfig {
+	return lib.TelemetryConfig{
+		FilterDefault: true,
+		MetricsPrefix: "consul.proxy." + targetID,
 	}
 }
 
@@ -3403,10 +3404,10 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 				"local_service_address": "127.0.0.1:8000", // port from service reg
 				"connect_timeout_ms":    1000,
 				"foo":                   "bar",
-				"telemetry": map[string]interface{}{
-					"FilterDefault": true,
-					"MetricsPrefix": "consul.proxy." + reg.ID,
-					"StatsiteAddr":  "localhost:8989",
+				"telemetry": lib.TelemetryConfig{
+					FilterDefault: true,
+					MetricsPrefix: "consul.proxy." + reg.ID,
+					StatsiteAddr:  "localhost:8989",
 				},
 			},
 		},
@@ -3445,7 +3446,8 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 					"bind_port":             1024,
 					"local_service_address": "127.0.0.1:9191",
 					"telemetry": map[string]interface{}{
-						"StatsiteAddr": "stats.it:10101",
+						"statsite_address": "stats.it:10101",
+						"metrics_prefix":   "foo", // important! checks that our prefix logic respects user customization
 					},
 				},
 			},
@@ -3456,10 +3458,47 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 				"bind_port":             float64(1024),
 				"local_service_address": "127.0.0.1:9191",
 				"connect_timeout_ms":    float64(2000),
+				"telemetry": lib.TelemetryConfig{
+					FilterDefault: true,
+					MetricsPrefix: "foo",
+					StatsiteAddr:  "stats.it:10101",
+				},
+			},
+		},
+		{
+			name: "reg telemetry not compatible, preserved with no merge",
+			globalConfig: `
+			connect {
+				enabled = true
+				proxy {
+					allow_managed_api_registration = true
+				}
+			}
+			ports {
+				proxy_min_port = 10000
+				proxy_max_port = 10000
+			}
+			telemetry {
+				statsite_address = "localhost:8989"
+			}
+			`,
+			proxy: structs.ServiceDefinitionConnectProxy{
+				ExecMode: "script",
+				Command:  []string{"foo.sh"},
+				Config: map[string]interface{}{
+					"telemetry": map[string]interface{}{
+						"foo": "bar",
+					},
+				},
+			},
+			wantMode:    api.ProxyExecModeScript,
+			wantCommand: []string{"foo.sh"},
+			wantConfig: map[string]interface{}{
+				"bind_address":          "127.0.0.1",
+				"bind_port":             10000,            // "randomly" chosen from our range of 1
+				"local_service_address": "127.0.0.1:8000", // port from service reg
 				"telemetry": map[string]interface{}{
-					"FilterDefault": true,
-					"MetricsPrefix": "consul.proxy." + reg.ID,
-					"StatsiteAddr":  "stats.it:10101",
+					"foo": "bar",
 				},
 			},
 		},
