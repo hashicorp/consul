@@ -1,9 +1,11 @@
 package ca
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/agent/connect"
 	vaultapi "github.com/hashicorp/vault/api"
@@ -76,5 +78,73 @@ func TestVaultCAProvider_Bootstrap(t *testing.T) {
 		parsed, err := connect.ParseCert(cert)
 		require.NoError(err)
 		require.True(parsed.IsCA)
+		require.Len(parsed.URIs, 1)
+		require.Equal(parsed.URIs[0].String(), fmt.Sprintf("spiffe://%s.consul", provider.clusterId))
+	}
+}
+
+func TestVaultCAProvider_SignLeaf(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	provider, core, listener := testVaultCluster(t)
+	defer core.Shutdown()
+	defer listener.Close()
+	client, err := vaultapi.NewClient(&vaultapi.Config{
+		Address: "http://" + listener.Addr().String(),
+	})
+	require.NoError(err)
+	client.SetToken(provider.config.Token)
+
+	spiffeService := &connect.SpiffeIDService{
+		Host:       "node1",
+		Namespace:  "default",
+		Datacenter: "dc1",
+		Service:    "foo",
+	}
+
+	// Generate a leaf cert for the service.
+	var firstSerial uint64
+	{
+		raw, _ := connect.TestCSR(t, spiffeService)
+
+		csr, err := connect.ParseCSR(raw)
+		require.NoError(err)
+
+		cert, err := provider.Sign(csr)
+		require.NoError(err)
+
+		parsed, err := connect.ParseCert(cert)
+		require.NoError(err)
+		require.Equal(parsed.URIs[0], spiffeService.URI())
+		require.Equal(parsed.Subject.CommonName, "foo")
+		firstSerial = parsed.SerialNumber.Uint64()
+
+		// Ensure the cert is valid now and expires within the correct limit.
+		require.True(parsed.NotAfter.Sub(time.Now()) < 3*24*time.Hour)
+		require.True(parsed.NotBefore.Before(time.Now()))
+	}
+
+	// Generate a new cert for another service and make sure
+	// the serial number is unique.
+	spiffeService.Service = "bar"
+	{
+		raw, _ := connect.TestCSR(t, spiffeService)
+
+		csr, err := connect.ParseCSR(raw)
+		require.NoError(err)
+
+		cert, err := provider.Sign(csr)
+		require.NoError(err)
+
+		parsed, err := connect.ParseCert(cert)
+		require.NoError(err)
+		require.Equal(parsed.URIs[0], spiffeService.URI())
+		require.Equal(parsed.Subject.CommonName, "bar")
+		require.NotEqual(firstSerial, parsed.SerialNumber.Uint64())
+
+		// Ensure the cert is valid now and expires within the correct limit.
+		require.True(parsed.NotAfter.Sub(time.Now()) < 3*24*time.Hour)
+		require.True(parsed.NotBefore.Before(time.Now()))
 	}
 }

@@ -163,8 +163,9 @@ func (v *VaultProvider) GenerateIntermediate() (string, error) {
 	spiffeID := connect.SpiffeIDSigning{ClusterID: v.clusterId, Domain: "consul"}
 	if role == nil {
 		_, err := v.client.Logical().Write(rolePath, map[string]interface{}{
-			"allowed_domains":  spiffeID.Host(),
+			"allow_any_name":   true,
 			"allowed_uri_sans": "spiffe://*",
+			"key_type":         "any",
 			"max_ttl":          "72h",
 		})
 		if err != nil {
@@ -218,11 +219,10 @@ func (v *VaultProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 
 	// Use the leaf cert role to sign a new cert for this CSR.
 	response, err := v.client.Logical().Write(v.config.IntermediatePKIPath+"sign/"+VaultCALeafCertRole, map[string]interface{}{
-		"csr":         pemBuf.String(),
-		"common_name": csr.Subject.CommonName,
+		"csr": pemBuf.String(),
 	})
 	if err != nil {
-		return "", nil
+		return "", fmt.Errorf("error issuing cert: %v", err)
 	}
 	if response == nil || response.Data["certificate"] == "" || response.Data["issuing_ca"] == "" {
 		return "", fmt.Errorf("certificate info returned from Vault was blank")
