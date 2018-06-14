@@ -357,57 +357,6 @@ function find_git_remote {
    return $ret
 }
 
-function confirm_git_push_changes {
-   # Arguments:
-   #   $1 - Path to git repo
-   #
-   # Returns:
-   #   0 - success
-   #   * - error
-   #
-   
-   if ! test -d "$1"
-   then
-      err "ERROR: '$1' is not a directory. confirm_git_push_changes must be called with the path to a git repo as the first argument'" 
-      return 1
-   fi
-   
-   pushd "${1}" > /dev/null
-   
-   
-   declare -i ret=0
-   git_log_summary || ret=1
-   if test ${ret} -eq 0
-   then
-      # put a empty line between the git changes and the prompt
-      echo ""
-      
-      local answer=""
-      
-      while true
-      do
-         case "${answer}" in
-            [yY]* )
-               status "Changes Accepted"
-               ret=0
-               break
-               ;;
-            [nN]* )
-               err "Changes Rejected"
-               ret=1
-               break
-               ;;
-            * )
-               read -p "Are these changes correct? [y/n]: " answer
-               ;;
-         esac
-      done
-   fi
-   
-   popd > /dev/null
-   return $ret
-}
-
 function is_git_clean {
    # Arguments:
    #   $1 - Path to git repo

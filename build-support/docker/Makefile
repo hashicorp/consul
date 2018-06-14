@@ -7,15 +7,22 @@ GO_BUILD_TAG?=consul-build-go
 UI_BUILD_TAG?=consul-build-ui
 UI_LEGACY_BUILD_TAG?=consul-build-ui-legacy
 
+DOCKER_BUILD_QUIET?=1
+ifeq (${DOCKER_BUILD_QUIET},1)
+QUIET=-q
+else
+QUIET=
+endif
+
 images: go-build-image ui-build-image ui-legacy-build-image
 
 go-build-image:
-	docker build $(NOCACHE) -t $(GO_BUILD_TAG) -f Build-Go.dockerfile .
+	docker build $(NOCACHE) $(QUIET) -t $(GO_BUILD_TAG) -f Build-Go.dockerfile .
 	
 ui-build-image:
-	docker build $(NOCACHE) -t $(UI_BUILD_TAG) -f Build-UI.dockerfile .
+	docker build $(NOCACHE) $(QUIET) -t $(UI_BUILD_TAG) -f Build-UI.dockerfile .
 	
 ui-legacy-build-image:
-	docker build $(NOCACHE) -t $(UI_LEGACY_BUILD_TAG) -f Build-UI-Legacy.dockerfile .
+	docker build $(NOCACHE) $(QUIET) -t $(UI_LEGACY_BUILD_TAG) -f Build-UI-Legacy.dockerfile .
 	
 .PHONY: images go-build-image ui-build-image ui-legacy-build-image

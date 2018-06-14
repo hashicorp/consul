@@ -72,6 +72,115 @@ function push_git_release {
    return $ret
 }
 
+function confirm_git_push_changes {
+   # Arguments:
+   #   $1 - Path to git repo
+   #
+   # Returns:
+   #   0 - success
+   #   * - error
+   #
+   
+   if ! test -d "$1"
+   then
+      err "ERROR: '$1' is not a directory. confirm_git_push_changes must be called with the path to a git repo as the first argument'" 
+      return 1
+   fi
+   
+   pushd "${1}" > /dev/null
+   
+   
+   declare -i ret=0
+   git_log_summary || ret=1
+   if test ${ret} -eq 0
+   then
+      # put a empty line between the git changes and the prompt
+      echo ""
+      
+      local answer=""
+      
+      while true
+      do
+         case "${answer}" in
+            [yY]* )
+               status "Changes Accepted"
+               ret=0
+               break
+               ;;
+            [nN]* )
+               err "Changes Rejected"
+               ret=1
+               break
+               ;;
+            * )
+               read -p "Are these changes correct? [y/n]: " answer
+               ;;
+         esac
+      done
+   fi
+   
+   popd > /dev/null
+   return $ret
+}
+
+function confirm_consul_version {
+   # Arguments:
+   #   $1 - Path to the release files
+   #   $2 - Version to look for
+   #
+   # Returns:
+   #   0 - success
+   #   * - error
+   
+   local zfile="${1}/consul_${2}_$(go env GOOS)_$(go env GOARCH).zip"
+   
+   if ! test -f "${zfile}"
+   then
+      err "ERROR: File not found or is not a regular file: ${zfile}"
+      return 1
+   fi
+   
+   local ret=0
+   local tfile="$(mktemp) -t "consul_")"
+   
+   unzip -p "${zfile}" "consul" > "${tfile}"
+   if test $? -eq 0
+   then
+      chmod +x "${tfile}"
+      "${tfile}" version
+      
+      # put a empty line between the version output and the prompt
+      echo ""
+      
+      local answer=""
+      
+      while true
+      do
+         case "${answer}" in
+            [yY]* )
+               status "Version Accepted"
+               ret=0
+               break
+               ;;
+            [nN]* )
+               err "Version Rejected"
+               ret=1
+               break
+               ;;
+            * )
+               read -p "Is this Consul version correct? [y/n]: " answer
+               ;;
+         esac
+      done
+   else
+      err "ERROR: Failed to extract consul binary from the zip file"
+      ret=1
+   fi
+   
+   rm "${tfile}" > /dev/null 2>&1
+   return ${ret}      
+}
+
 
 function publish_release {
    # Arguments:
@@ -110,8 +219,11 @@ function publish_release {
       return 1
    fi
    
-   status_page "==> Verifying release files"
-   check_release "${sdir}/pkg/dist" "${vers}" true
+   status_stage "==> Verifying release files"
+   check_release "${sdir}/pkg/dist" "${vers}" true || return 1
+   
+   status_stage "==> Confirming Consul Version"
+   confirm_consul_version "${sdir}/pkg/dist" "${vers}" || return 1
    
    status_stage "==> Confirming Git is clean"
    is_git_clean "$1" true || return 1
