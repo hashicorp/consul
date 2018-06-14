@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/mitchellh/mapstructure"
@@ -29,24 +30,22 @@ type VaultProvider struct {
 // backends mounted and initialized. If the root backend is not set up already,
 // it will be mounted/generated as needed, but any existing state will not be
 // overwritten.
-func NewVaultProvider(rawConfig map[string]interface{}, clusterId string, client *vaultapi.Client) (*VaultProvider, error) {
+func NewVaultProvider(rawConfig map[string]interface{}, clusterId string) (*VaultProvider, error) {
 	conf, err := ParseVaultCAConfig(rawConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	// todo(kyhavlov): figure out the right way to pass the TLS config
-	if client == nil {
-		clientConf := &vaultapi.Config{
-			Address: conf.Address,
-		}
-		client, err = vaultapi.NewClient(clientConf)
-		if err != nil {
-			return nil, err
-		}
-
-		client.SetToken(conf.Token)
+	clientConf := &vaultapi.Config{
+		Address: conf.Address,
 	}
+	client, err := vaultapi.NewClient(clientConf)
+	if err != nil {
+		return nil, err
+	}
+
+	client.SetToken(conf.Token)
 
 	provider := &VaultProvider{
 		config:    conf,
@@ -72,8 +71,9 @@ func NewVaultProvider(rawConfig map[string]interface{}, clusterId string, client
 
 		fallthrough
 	case ErrBackendNotInitialized:
+		spiffeID := connect.SpiffeIDSigning{ClusterID: clusterId, Domain: "consul"}
 		_, err := client.Logical().Write(conf.RootPKIPath+"root/generate/internal", map[string]interface{}{
-			"alt_names": fmt.Sprintf("URI:spiffe://%s.consul", clusterId),
+			"uri_sans": spiffeID.URI().String(),
 		})
 		if err != nil {
 			return nil, err
@@ -160,10 +160,12 @@ func (v *VaultProvider) GenerateIntermediate() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	spiffeID := connect.SpiffeIDSigning{ClusterID: v.clusterId, Domain: "consul"}
 	if role == nil {
 		_, err := v.client.Logical().Write(rolePath, map[string]interface{}{
-			"allowed_domains": fmt.Sprintf("%s.consul", v.clusterId),
-			"max_ttl":         "72h",
+			"allowed_domains":  spiffeID.Host(),
+			"allowed_uri_sans": "spiffe://*",
+			"max_ttl":          "72h",
 		})
 		if err != nil {
 			return "", err
@@ -173,7 +175,7 @@ func (v *VaultProvider) GenerateIntermediate() (string, error) {
 	// Generate a new intermediate CSR for the root to sign.
 	csr, err := v.client.Logical().Write(v.config.IntermediatePKIPath+"intermediate/generate/internal", map[string]interface{}{
 		"common_name": "Vault CA Intermediate Authority",
-		"alt_names":   fmt.Sprintf("URI:spiffe://%s.consul", v.clusterId),
+		"uri_sans":    spiffeID.URI().String(),
 	})
 	if err != nil {
 		return "", err

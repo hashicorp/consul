@@ -1,52 +1,51 @@
 package ca
 
 import (
-	"fmt"
 	"io/ioutil"
+	"net"
 	"testing"
 
 	"github.com/hashicorp/consul/agent/connect"
+	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/hashicorp/vault/builtin/logical/pki"
 	vaulthttp "github.com/hashicorp/vault/http"
-	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/vault"
 	"github.com/stretchr/testify/require"
 )
 
-func testVaultCluster(t *testing.T) (*VaultProvider, *vault.TestCluster) {
-	coreConfig := &vault.CoreConfig{
-		LogicalBackends: map[string]logical.Factory{
-			"pki": pki.Factory,
-		},
+func testVaultCluster(t *testing.T) (*VaultProvider, *vault.Core, net.Listener) {
+	if err := vault.AddTestLogicalBackend("pki", pki.Factory); err != nil {
+		t.Fatal(err)
 	}
-	cluster := vault.NewTestCluster(t, coreConfig, &vault.TestClusterOptions{
-		HandlerFunc: vaulthttp.Handler,
-		NumCores:    1,
-	})
-	cluster.Start()
+	core, _, token := vault.TestCoreUnsealedRaw(t)
 
-	client := cluster.Cores[0].Client
+	ln, addr := vaulthttp.TestServer(t, core)
 
 	provider, err := NewVaultProvider(map[string]interface{}{
-		"Address":             client.Address(),
-		"Token":               cluster.RootToken,
+		"Address":             addr,
+		"Token":               token,
 		"RootPKIPath":         "pki-root/",
 		"IntermediatePKIPath": "pki-intermediate/",
-	}, "asdf", client)
+	}, "asdf")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	return provider, cluster
+	return provider, core, ln
 }
 
 func TestVaultCAProvider_Bootstrap(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	provider, vaultCluster := testVaultCluster(t)
-	defer vaultCluster.Cleanup()
-	client := vaultCluster.Cores[0].Client
+	provider, core, listener := testVaultCluster(t)
+	defer core.Shutdown()
+	defer listener.Close()
+	client, err := vaultapi.NewClient(&vaultapi.Config{
+		Address: "http://" + listener.Addr().String(),
+	})
+	require.NoError(err)
+	client.SetToken(provider.config.Token)
 
 	cases := []struct {
 		certFunc    func() (string, error)
@@ -66,16 +65,16 @@ func TestVaultCAProvider_Bootstrap(t *testing.T) {
 	for _, tc := range cases {
 		cert, err := tc.certFunc()
 		require.NoError(err)
-		req := client.NewRequest("GET", "v1/"+tc.backendPath+"ca/pem")
+		req := client.NewRequest("GET", "/v1/"+tc.backendPath+"ca/pem")
 		resp, err := client.RawRequest(req)
 		require.NoError(err)
 		bytes, err := ioutil.ReadAll(resp.Body)
 		require.NoError(err)
 		require.Equal(cert, string(bytes))
 
-		// Should be a valid cert
+		// Should be a valid CA cert
 		parsed, err := connect.ParseCert(cert)
 		require.NoError(err)
-		require.Equal(parsed.URIs[0].String(), fmt.Sprintf("spiffe://%s.consul", provider.clusterId))
+		require.True(parsed.IsCA)
 	}
 }

@@ -83,10 +83,14 @@ func fixupConfig(conf *structs.CAConfiguration) {
 		if raw, ok := v.([]uint8); ok {
 			conf.Config[k] = ca.Uint8ToString(raw)
 		}
-		// todo(kyhavlov): should we be hiding this and the vault token?
-		if conf.Provider == structs.ConsulCAProvider {
+		switch conf.Provider {
+		case structs.ConsulCAProvider:
 			if v, ok := conf.Config["PrivateKey"]; ok && v != "" {
 				conf.Config["PrivateKey"] = "hidden"
+			}
+		case structs.VaultCAProvider:
+			if v, ok := conf.Config["Token"]; ok && v != "" {
+				conf.Config["Token"] = "hidden"
 			}
 		}
 	}

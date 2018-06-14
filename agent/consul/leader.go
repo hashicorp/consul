@@ -512,7 +512,7 @@ func (s *Server) createCAProvider(conf *structs.CAConfiguration) (ca.Provider, e
 	case structs.ConsulCAProvider:
 		return ca.NewConsulProvider(conf.Config, &consulCADelegate{s})
 	case structs.VaultCAProvider:
-		return ca.NewVaultProvider(conf.Config, conf.ClusterID, nil)
+		return ca.NewVaultProvider(conf.Config, conf.ClusterID)
 	default:
 		return nil, fmt.Errorf("unknown CA provider %q", conf.Provider)
 	}
