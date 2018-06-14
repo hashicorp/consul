@@ -1,0 +1,21 @@
+.g-cta-section {
+  align-items: center;
+  background: $consul-red;
+  display: flex;
+  justify-content: center;
+  text-align: center;
+
+  h2 {
+    color: $white;
+    margin-top: 0;
+  }
+
+  .g-btn {
+    width: 144px;
+    padding: 10px 0;
+
+    & + .g-btn {
+      margin-left: 18px;
+    }
+  }
+}

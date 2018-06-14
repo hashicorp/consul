@@ -41,6 +41,14 @@
       }
     }
 
+    & > img {
+      width: 100%;
+  
+      &.shadow {
+        box-shadow: 0 40px 48px -20px rgba(63, 68, 85, 0.4);
+      }
+    }
+
     &.code-sample > div {
       box-shadow: 0 40px 48px -20px rgba(63, 68, 85, 0.4);
       color: $white;
@@ -91,13 +99,5 @@
 
   h3 {
     margin: 16px 0;
-  }
-
-  & > img {
-    width: 100%;
-
-    &.shadow {
-      box-shadow: 0 40px 48px -20px rgba(63, 68, 85, 0.4);
-    }
   }
 }

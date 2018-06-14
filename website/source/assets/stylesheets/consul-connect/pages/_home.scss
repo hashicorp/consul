@@ -1,3 +1,38 @@
 #page-home {
-    
+  .home-cta-section {
+    color: $white;
+    display: flex;
+
+    & > div {
+      display: flex;
+      justify-content: center;
+      width: 50%;
+
+      &:first-child {
+        background: $consul-red;
+      }
+
+      &:last-child {
+        background: $consul-black;
+      }
+
+      & > div {
+        display: flex;
+        flex-direction: column;
+        max-width: 564px;
+        padding: 96px 0;
+        text-align: center;
+
+        div:first-child {
+          height: 50px;
+          width: auto;
+        }
+
+        p {
+          flex: 1 0 auto;
+          margin: 24px 0 32px;
+        }
+      }
+    }
+  }
 }
