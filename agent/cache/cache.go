@@ -409,7 +409,7 @@ func (c *Cache) fetch(t, key string, r Request, allowNew bool, attempt uint) (<-
 
 		// If refresh is enabled, run the refresh in due time. The refresh
 		// below might block, but saves us from spawning another goroutine.
-		if !ok && tEntry.Opts.Refresh {
+		if tEntry.Opts.Refresh {
 			c.refresh(tEntry.Opts, attempt, t, key, r)
 		}
 	}()

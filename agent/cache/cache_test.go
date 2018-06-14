@@ -373,6 +373,55 @@ func TestCacheGet_periodicRefresh(t *testing.T) {
 	TestCacheGetChResult(t, resultCh, 12)
 }
 
+// Test that a type registered with a periodic refresh will perform
+// that refresh after the timer is up.
+func TestCacheGet_periodicRefreshMultiple(t *testing.T) {
+	t.Parallel()
+
+	typ := TestType(t)
+	defer typ.AssertExpectations(t)
+	c := TestCache(t)
+	c.RegisterType("t", typ, &RegisterOptions{
+		Refresh:        true,
+		RefreshTimer:   0 * time.Millisecond,
+		RefreshTimeout: 5 * time.Minute,
+	})
+
+	// This is a bit weird, but we do this to ensure that the final
+	// call to the Fetch (if it happens, depends on timing) just blocks.
+	trigger := make([]chan time.Time, 3)
+	for i := range trigger {
+		trigger[i] = make(chan time.Time)
+	}
+
+	// Configure the type
+	typ.Static(FetchResult{Value: 1, Index: 4}, nil).Once()
+	typ.Static(FetchResult{Value: 12, Index: 5}, nil).Once().WaitUntil(trigger[0])
+	typ.Static(FetchResult{Value: 24, Index: 6}, nil).Once().WaitUntil(trigger[1])
+	typ.Static(FetchResult{Value: 42, Index: 7}, nil).WaitUntil(trigger[2])
+
+	// Fetch should block
+	resultCh := TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{Key: "hello"}))
+	TestCacheGetChResult(t, resultCh, 1)
+
+	// Fetch again almost immediately should return old result
+	time.Sleep(5 * time.Millisecond)
+	resultCh = TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{Key: "hello"}))
+	TestCacheGetChResult(t, resultCh, 1)
+
+	// Trigger the next, sleep a bit, and verify we get the next result
+	close(trigger[0])
+	time.Sleep(100 * time.Millisecond)
+	resultCh = TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{Key: "hello"}))
+	TestCacheGetChResult(t, resultCh, 12)
+
+	// Trigger the next, sleep a bit, and verify we get the next result
+	close(trigger[1])
+	time.Sleep(100 * time.Millisecond)
+	resultCh = TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{Key: "hello"}))
+	TestCacheGetChResult(t, resultCh, 24)
+}
+
 // Test that a refresh performs a backoff.
 func TestCacheGet_periodicRefreshErrorBackoff(t *testing.T) {
 	t.Parallel()
