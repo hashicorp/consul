@@ -1045,7 +1045,7 @@ func TestAPI_AgentConnectCARoots_empty(t *testing.T) {
 
 	require := require.New(t)
 	c, s := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
-		c.Connect = nil // disable connect to prevent CA beening bootstrapped
+		c.Connect = nil // disable connect to prevent CA being bootstrapped
 	})
 	defer s.Stop()
 
@@ -1162,8 +1162,8 @@ func TestAPI_AgentConnectProxyConfig(t *testing.T) {
 			"foo":          "bar",
 			"local_service_address": "127.0.0.1:8000",
 			"telemetry": map[string]interface{}{
-				"FilterDefault": true,
-				"MetricsPrefix": "consul.proxy.foo",
+				"filter_default": true,
+				"metrics_prefix": "consul.proxy.foo",
 			},
 		},
 	}

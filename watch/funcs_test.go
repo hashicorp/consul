@@ -653,7 +653,14 @@ func TestConnectLeafWatch(t *testing.T) {
 
 func TestConnectProxyConfigWatch(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t.Name(), `
+	connect {
+		enabled = true
+		proxy {
+			allow_managed_api_registration = true
+		}
+	}
+	`)
 	defer a.Shutdown()
 
 	// Register a local agent service with a managed proxy

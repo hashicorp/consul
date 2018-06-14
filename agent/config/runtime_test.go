@@ -4424,7 +4424,8 @@ func TestSanitize(t *testing.T) {
         "FilterDefault": false,
         "MetricsPrefix": "",
         "PrometheusRetentionTime": "0s",
-        "StatsdAddr": ""
+        "StatsdAddr": "",
+        "StatsiteAddr": ""
     },
     "TranslateWANAddrs": false,
     "UIDir": "",
