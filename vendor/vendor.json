@@ -107,7 +107,6 @@
 		{"path":"github.com/prometheus/procfs/xfs","checksumSHA1":"yItvTQLUVqm/ArLEbvEhqG0T5a0=","revision":"8b1c2da0d56deffdbb9e48d4414b4e674bd8083e","revisionTime":"2018-04-08T09:29:02Z"},
 		{"path":"github.com/ryanuber/columnize","checksumSHA1":"ExnVEVNT8APpFTm26cUb5T09yR4=","comment":"v2.0.1-8-g983d3a5","revision":"9b3edd62028f107d7cabb19353292afd29311a4e","revisionTime":"2016-07-12T16:32:29Z"},
 		{"path":"github.com/sean-/seed","checksumSHA1":"A/YUMbGg1LHIeK2+NLZBt+MIAao=","revision":"3c72d44db0c567f7c901f9c5da5fe68392227750","revisionTime":"2017-02-08T16:47:21Z"},
-		{"path":"github.com/sergi/go-diff/diffmatchpatch","checksumSHA1":"v7C+aJ1D/z3MEeCte6bxvpoGjM4=","revision":"feef008d51ad2b3778f85d387ccf91735543008d","revisionTime":"2017-04-09T07:17:39Z"},
 		{"path":"github.com/shirou/gopsutil/cpu","checksumSHA1":"zW2k8E1gkuySzTz2eXuSEDhpffY=","revision":"32b6636de04b303274daac3ca2b10d3b0e4afc35","revisionTime":"2017-02-04T05:36:48Z"},
 		{"path":"github.com/shirou/gopsutil/host","checksumSHA1":"GsqEEmGv6sj8DreS2SYXRkoZ9NI=","revision":"b62e301a8b9958eebb7299683eb57fab229a9501","revisionTime":"2017-02-08T02:55:55Z"},
 		{"path":"github.com/shirou/gopsutil/internal/common","checksumSHA1":"hz9RxkaV3Tnju2eiHBWO/Yv7n5c=","revision":"32b6636de04b303274daac3ca2b10d3b0e4afc35","revisionTime":"2017-02-04T05:36:48Z"},
