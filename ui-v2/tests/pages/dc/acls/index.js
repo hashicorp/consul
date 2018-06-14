@@ -7,7 +7,7 @@ export default create({
     name: attribute('data-test-acl', '[data-test-acl]'),
     acl: clickable('a'),
     actions: clickable('label'),
-    delete: clickable('li:last-child a'),
+    delete: clickable('[data-test-delete]'),
     confirmDelete: clickable('button.type-delete'),
   }),
   filter: filter,

@@ -39,17 +39,17 @@
                         {{#action-group index=index onchange=(action change) checked=(if (eq checked index) 'checked')}}
                             <ul>
                                 <li>
-                                    <a href={{href-to 'dc.acls.edit' item.ID}}>Edit</a>
+                                    <a data-test-edit href={{href-to 'dc.acls.edit' item.ID}}>Edit</a>
                                 </li>
                                 <li>
-                                    <a onclick={{queue (action confirm 'use' item) (action change)}}>Use</a>
+                                    <a data-test-use onclick={{queue (action confirm 'use' item) (action change)}}>Use</a>
                                 </li>
                                 <li>
-                                    <a onclick={{action 'sendClone' item}}>Clone</a>
+                                    <a data-test-clone onclick={{action 'sendClone' item}}>Clone</a>
                                 </li>
 {{# if (not-eq item.ID 'anonymous') }}
                                 <li>
-                                    <a onclick={{action confirm 'delete' item}}>Delete</a>
+                                    <a data-test-delete onclick={{action confirm 'delete' item}}>Delete</a>
                                 </li>
 {{/if}}
                             </ul>

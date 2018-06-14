@@ -51,10 +51,10 @@
                         {{#action-group index=index onchange=(action change) checked=(if (eq checked index) 'checked')}}
                             <ul>
                                 <li>
-                                    <a href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key}}>{{if item.isFolder 'View' 'Edit'}}</a>
+                                    <a data-test-edit href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key}}>{{if item.isFolder 'View' 'Edit'}}</a>
                                 </li>
                                 <li>
-                                    <a onclick={{action confirm 'delete' item}}>Delete</a>
+                                    <a data-test-delete onclick={{action confirm 'delete' item}}>Delete</a>
                                 </li>
                             </ul>
                         {{/action-group}}
