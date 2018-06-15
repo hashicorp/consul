@@ -30,11 +30,19 @@ Feature: dc / components /acl filter: Acl Filter
     s: Anonymous Token
     ---
     And I see 1 [Model] model with the name "Anonymous Token"
+    Then the url should be [Url]?filter=Anonymous%20Token
+    Then I type with yaml
+    ---
+    s: Master|Anonymous
+    ---
+    And I see 2 [Model] models
+    Then the url should be [Url]?filter=Master%7CAnonymous
     Then I type with yaml
     ---
     s: secret
     ---
     And I see 1 [Model] model with the name "Master Token"
+    Then the url should be [Url]?filter=secret
 
   Where:
     -------------------------------------------------

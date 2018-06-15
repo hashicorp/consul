@@ -29,7 +29,7 @@ export default Controller.extend(WithHealthFiltering, {
     return (
       get(item, 'Name')
         .toLowerCase()
-        .indexOf(s.toLowerCase()) !== -1 && item.hasStatus(status)
+        .match(s.toLowerCase()) && item.hasStatus(status)
     );
   },
   totalWidth: computed('{maxPassing,maxWarning,maxCritical}', function() {

@@ -22,11 +22,11 @@ export default Controller.extend(WithFiltering, {
     return (
       get(item, 'Service')
         .toLowerCase()
-        .indexOf(term) !== -1 ||
+        .match(term) ||
       get(item, 'Port')
         .toString()
         .toLowerCase()
-        .indexOf(term) !== -1
+        .match(term)
     );
   },
   actions: {
