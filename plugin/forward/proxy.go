@@ -106,9 +106,8 @@ func (p *Proxy) start(duration time.Duration) {
 }
 
 const (
-	dialTimeout = 4 * time.Second
-	timeout     = 2 * time.Second
-	maxTimeout  = 2 * time.Second
-	minTimeout  = 10 * time.Millisecond
-	hcDuration  = 500 * time.Millisecond
+	timeout    = 2 * time.Second
+	maxTimeout = 2 * time.Second
+	minTimeout = 10 * time.Millisecond
+	hcDuration = 500 * time.Millisecond
 )

@@ -17,10 +17,11 @@ type persistConn struct {
 
 // transport hold the persistent cache.
 type transport struct {
-	conns     map[string][]*persistConn //  Buckets for udp, tcp and tcp-tls.
-	expire    time.Duration             // After this duration a connection is expired.
-	addr      string
-	tlsConfig *tls.Config
+	avgDialTime int64                     // kind of average time of dial time
+	conns       map[string][]*persistConn //  Buckets for udp, tcp and tcp-tls.
+	expire      time.Duration             // After this duration a connection is expired.
+	addr        string
+	tlsConfig   *tls.Config
 
 	dial  chan string
 	yield chan *dns.Conn
@@ -30,13 +31,14 @@ type transport struct {
 
 func newTransport(addr string, tlsConfig *tls.Config) *transport {
 	t := &transport{
-		conns:  make(map[string][]*persistConn),
-		expire: defaultExpire,
-		addr:   addr,
-		dial:   make(chan string),
-		yield:  make(chan *dns.Conn),
-		ret:    make(chan *dns.Conn),
-		stop:   make(chan bool),
+		avgDialTime: int64(defaultDialTimeout / 2),
+		conns:       make(map[string][]*persistConn),
+		expire:      defaultExpire,
+		addr:        addr,
+		dial:        make(chan string),
+		yield:       make(chan *dns.Conn),
+		ret:         make(chan *dns.Conn),
+		stop:        make(chan bool),
 	}
 	return t
 }
@@ -141,28 +143,6 @@ func (t *transport) cleanup(all bool) {
 	}
 }
 
-// Dial dials the address configured in transport, potentially reusing a connection or creating a new one.
-func (t *transport) Dial(proto string) (*dns.Conn, bool, error) {
-	// If tls has been configured; use it.
-	if t.tlsConfig != nil {
-		proto = "tcp-tls"
-	}
-
-	t.dial <- proto
-	c := <-t.ret
-
-	if c != nil {
-		return c, true, nil
-	}
-
-	if proto == "tcp-tls" {
-		conn, err := dns.DialTimeoutWithTLS("tcp", t.addr, t.tlsConfig, dialTimeout)
-		return conn, false, err
-	}
-	conn, err := dns.DialTimeout(proto, t.addr, dialTimeout)
-	return conn, false, err
-}
-
 // Yield return the connection to transport for reuse.
 func (t *transport) Yield(c *dns.Conn) { t.yield <- c }
 
@@ -178,4 +158,9 @@ func (t *transport) SetExpire(expire time.Duration) { t.expire = expire }
 // SetTLSConfig sets the TLS config in transport.
 func (t *transport) SetTLSConfig(cfg *tls.Config) { t.tlsConfig = cfg }
 
-const defaultExpire = 10 * time.Second
+const (
+	defaultExpire      = 10 * time.Second
+	minDialTimeout     = 100 * time.Millisecond
+	maxDialTimeout     = 30 * time.Second
+	defaultDialTimeout = 30 * time.Second
+)
