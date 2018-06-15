@@ -1,5 +1,6 @@
 .g-btn {
   background-color: $consul-red;
+  border: 2px solid $consul-red;
   border-radius: 3px;
   box-sizing: border-box;
   color: $white;
@@ -9,7 +10,7 @@
   letter-spacing: 0;
   line-height: 24px;
   outline: 0;
-  padding: 12px 30px;
+  padding: 10px 28px;
   position: relative;
   text-align: center;
   transition: all 0.25s ease;
@@ -17,6 +18,7 @@
   &:focus,
   &:hover {
     background-color: #ce4a86;
+    border-color: #ce4a86;
     color: $white;
     text-decoration: none;
     transform: translateY(-1px);
@@ -30,7 +32,6 @@
     background: $white;
     border: 2px solid $white;
     color: $consul-black;
-    padding: 10px 28px; /* subtracting the border, so sizes are even */
 
     &:hover {
       background: $consul-black;
@@ -50,7 +51,6 @@
   &.dark-outline {
     background: none;
     border: 2px solid $consul-black;
-    padding: 10px 28px; /* subtracting the border, so sizes are even */
     color: $consul-black;
 
     &:hover {
@@ -62,7 +62,6 @@
   &.white-outline {
     background: none;
     border: 2px solid $white;
-    padding: 10px 28px; /* subtracting the border, so sizes are even */
     color: $white;
 
     &:hover {

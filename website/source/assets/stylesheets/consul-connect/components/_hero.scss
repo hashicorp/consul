@@ -28,7 +28,12 @@
     text-transform: uppercase;
   }
 
-  .g-btn + .g-btn {
-    margin-left: 20px;
+  .g-btn {
+    min-width: 144px;
+    padding: 10px;
+
+    & + .g-btn {
+      margin-left: 20px;
+    }
   }
 }

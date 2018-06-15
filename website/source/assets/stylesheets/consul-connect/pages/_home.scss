@@ -1,4 +1,73 @@
 #page-home {
+  .home-hero {
+    overflow: hidden;
+    padding-top: 96px;
+
+    .g-container > div {
+      display: flex;
+      margin: 0 (-$site-gutter-padding);
+
+      & > div {
+        padding: 0 ($site-gutter-padding);
+        width: 50%;
+
+        &:first-child {
+          align-items: center;
+          display: flex;
+          justify-content: center;
+        }
+
+        .notification {
+          background: #fce2ee;
+          border-radius: 3px;
+          color: #650d34;
+          display: inline-block;
+          font-size: 1.4rem;
+          padding: 12px;
+
+          span {
+            background: $consul-red;
+            border-radius: 3px;
+            color: #fff;
+            font-size: 1.2rem;
+            font-weight: 700; // TODO - don't have access to this weight yet
+            margin-right: 8px;
+            padding: 2px 9px;
+            text-transform: uppercase;
+          }
+
+          svg {
+            margin-left: 4px;
+          }
+        }
+
+        h1 {
+          font-size: 4.8rem;
+          margin: 40px 0 16px;
+        }
+
+        p {
+          font-size: 2.4rem;
+          font-weight: 100; // TODO - don't have access to this weight yet
+          margin: 16px 0 40px;
+        }
+
+        img {
+          box-shadow: 0 40px 24px -10px rgba(63, 68, 85, 0.4);
+        }
+
+        .g-btn {
+          min-width: 144px;
+          padding: 10px;
+
+          & + .g-btn {
+            margin-left: 20px;
+          }
+        }
+      }
+    }
+  }
+
   .home-cta-section {
     color: $white;
     display: flex;
@@ -22,6 +91,7 @@
         max-width: 564px;
         padding: 96px 0;
         text-align: center;
+        width: 100%;
 
         div:first-child {
           height: 50px;
