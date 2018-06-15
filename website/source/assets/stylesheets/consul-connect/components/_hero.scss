@@ -22,12 +22,12 @@
   p {
     font-size: 1.8rem;
     max-width: 848px;
-    margin: 0 auto 40px;
+    margin: 0 auto 35px;
 
     @media (min-width: 768px) {
       font-size: 2rem;
     }
-    
+
     @media (min-width: 992px) {
       font-size: 2.4rem;
     }
@@ -50,12 +50,25 @@
     }
   }
 
-  .g-btn {
-    min-width: 144px;
-    padding: 10px;
+  & > div {
+    margin: 0 -30px;
 
-    & + .g-btn {
-      margin-left: 20px;
+    .g-btn {
+      min-width: 129px;
+      margin: 5px;
+
+      @media (min-width: 400px) {
+        margin: 5px 10px;
+      }
+      
+      @media (max-width: 767px) {
+        padding: 6px 5px;
+      }
+
+      @media (min-width: 768px) {
+        margin: 0 10px;
+        min-width: 144px;
+      }
     }
   }
 }
