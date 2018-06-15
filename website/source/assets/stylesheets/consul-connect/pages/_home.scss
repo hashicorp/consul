@@ -70,13 +70,28 @@
 
   .home-cta-section {
     color: $white;
-    display: flex;
+    
+    @media (min-width: 768px) {
+      display: flex;
+    }
 
     & > div {
       display: flex;
       justify-content: center;
+      padding: 64px 24px;
       overflow: hidden;
-      width: 50%;
+      
+      @media (min-width: 768px) {
+        padding-top: 80px;
+        padding-bottom: 80px;
+        width: 50%;
+      }
+
+      @media (min-width: 992px) {
+        padding-top: 96px;
+        padding-bottom: 96px;
+        width: 50%;
+      }
 
       &:first-child {
         background: $consul-red;
@@ -104,7 +119,6 @@
         display: flex;
         flex-direction: column;
         max-width: 564px;
-        padding: 96px 0;
         text-align: center;
         width: 100%;
         z-index: 1;
