@@ -1,30 +1,58 @@
 .g-use-cases {
-  display: flex;
-  justify-content: center;
-  margin: 0 (-$site-gutter-padding);
+  margin: 48px 0 8px;
+  
+
+  @media (min-width: 768px) {
+    display: flex;
+    justify-content: center;
+    margin: 0 (-$site-gutter-padding);
+  }
 
   h3 {
-    margin: 40px 0 16px;
-    
+    margin: 40px 0 0;
+
     span {
       display: block;
       font-weight: 300; //TODO: font weight doesn't exist currently
     }
   }
 
+  p {
+    margin-top: 0.5em;
+
+    @media (min-width: 768px) {
+      margin-top: 1em;
+    }
+  }
+
   & > div {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: 0 $site-gutter-padding;
+    padding: 0 16px;
     position: relative;
     text-align: center;
-    width: 33.33333%;
+
+    @media (min-width: 768px) {
+      padding: 0 $site-gutter-padding;
+      width: 33.33333%;
+    }
+
+    @media (min-width: 992px) {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    & + div {
+      margin-top: 56px;
+
+      @media (min-width: 768px) {
+        margin-top: 0;
+      }
+    }
   }
 
   .g-btn {
-    font-size: 1.4rem;
-    margin-top: 22px;
-    padding: 8px 24px;
+    @media (min-width: 768px) {
+      margin-top: 22px;
+    }
   }
 }
