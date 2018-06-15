@@ -1,0 +1,62 @@
+// TODO - currently overriding the main header
+// this will affect docs as well.  is that ok?
+#header {
+  background: transparent;
+
+  .navbar-toggle {
+    .icon-bar {
+      border: 1px solid $consul-black;
+    }
+  }
+
+  .navbar-brand {
+    a {
+      svg.logo {
+        opacity: 1;
+
+        path.text {
+          fill: $black;
+          opacity: 1;
+        }
+
+        path.center-c {
+          fill: $consul-red-dark;
+          opacity: 1;
+        }
+
+        path.circles {
+          fill: $consul-red;
+          opacity: 1;
+        }
+
+        path.c {
+          fill: $consul-red;
+          opacity: 1;
+        }
+      }
+    }
+  }
+
+  ul.nav {
+    li {
+      a {
+        color: $consul-black;
+
+        &:hover,
+        &:focus,
+        &:active {
+          background-color: transparent;
+          color: $black;
+
+          svg {
+            fill: $black;
+          }
+        }
+
+        svg {
+          fill: $consul-black;
+        }
+      }
+    }
+  }
+}

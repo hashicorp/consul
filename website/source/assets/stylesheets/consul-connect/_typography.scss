@@ -31,9 +31,17 @@
 
   h1,
   .h1 {
-    font-size: 3.5em;
+    font-size: 3.2rem;
     font-weight: 600;
     line-height: 1.2em;
+
+    @media (min-width: 768px) {
+      font-size: 4rem;
+    }
+    
+    @media (min-width: 992px) {
+      font-size: 5.6rem;
+    }
   }
 
   h2,
