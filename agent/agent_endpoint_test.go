@@ -2310,9 +2310,6 @@ func TestAgentConnectCARoots_list(t *testing.T) {
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
-	// Grab the initial cache hit count
-	cacheHits := a.cache.Hits()
-
 	// Set some CAs. Note that NewTestAgent already bootstraps one CA so this just
 	// adds a second and makes it active.
 	ca2 := connect.TestCAConfigSet(t, a, nil)
@@ -2337,19 +2334,18 @@ func TestAgentConnectCARoots_list(t *testing.T) {
 		assert.Equal("", r.SigningKey)
 	}
 
-	// That should've been a cache miss, so no hit change
-	assert.Equal(cacheHits, a.cache.Hits())
+	assert.Equal("MISS", resp.Header().Get("X-Cache"))
 
 	// Test caching
 	{
 		// List it again
-		obj2, err := a.srv.AgentConnectCARoots(httptest.NewRecorder(), req)
+		resp2 := httptest.NewRecorder()
+		obj2, err := a.srv.AgentConnectCARoots(resp2, req)
 		require.NoError(err)
 		assert.Equal(obj, obj2)
 
 		// Should cache hit this time and not make request
-		assert.Equal(cacheHits+1, a.cache.Hits())
-		cacheHits++
+		assert.Equal("HIT", resp2.Header().Get("X-Cache"))
 	}
 
 	// Test that caching is updated in the background
@@ -2359,7 +2355,8 @@ func TestAgentConnectCARoots_list(t *testing.T) {
 
 		retry.Run(t, func(r *retry.R) {
 			// List it again
-			obj, err := a.srv.AgentConnectCARoots(httptest.NewRecorder(), req)
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.AgentConnectCARoots(resp, req)
 			r.Check(err)
 
 			value := obj.(structs.IndexedCARoots)
@@ -2371,15 +2368,14 @@ func TestAgentConnectCARoots_list(t *testing.T) {
 			if len(value.Roots) != 3 {
 				r.Fatalf("bad len: %d", len(value.Roots))
 			}
-		})
 
-		// Should be a cache hit! The data should've updated in the cache
-		// in the background so this should've been fetched directly from
-		// the cache.
-		if v := a.cache.Hits(); v < cacheHits+1 {
-			t.Fatalf("expected at least one more cache hit, still at %d", v)
-		}
-		cacheHits = a.cache.Hits()
+			// Should be a cache hit! The data should've updated in the cache
+			// in the background so this should've been fetched directly from
+			// the cache.
+			if resp.Header().Get("X-Cache") != "HIT" {
+				r.Fatalf("should be a cache hit")
+			}
+		})
 	}
 }
 
@@ -2651,9 +2647,6 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 	// verify it was signed easily.
 	ca1 := connect.TestCAConfigSet(t, a, nil)
 
-	// Grab the initial cache hit count
-	cacheHits := a.cache.Hits()
-
 	{
 		// Register a local service
 		args := &structs.ServiceDefinition{
@@ -2679,9 +2672,7 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.AgentConnectCALeafCert(resp, req)
 	require.NoError(err)
-
-	// That should've been a cache miss, so no hit change.
-	require.Equal(cacheHits, a.cache.Hits())
+	require.Equal("MISS", resp.Header().Get("X-Cache"))
 
 	// Get the issued cert
 	issued, ok := obj.(*structs.IssuedCert)
@@ -2698,13 +2689,13 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 	// Test caching
 	{
 		// Fetch it again
-		obj2, err := a.srv.AgentConnectCALeafCert(httptest.NewRecorder(), req)
+		resp := httptest.NewRecorder()
+		obj2, err := a.srv.AgentConnectCALeafCert(resp, req)
 		require.NoError(err)
 		require.Equal(obj, obj2)
 
 		// Should cache hit this time and not make request
-		require.Equal(cacheHits+1, a.cache.Hits())
-		cacheHits++
+		require.Equal("HIT", resp.Header().Get("X-Cache"))
 	}
 
 	// Test that caching is updated in the background
@@ -2713,9 +2704,10 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 		ca := connect.TestCAConfigSet(t, a, nil)
 
 		retry.Run(t, func(r *retry.R) {
+			resp := httptest.NewRecorder()
 			// Try and sign again (note no index/wait arg since cache should update in
 			// background even if we aren't actively blocking)
-			obj, err := a.srv.AgentConnectCALeafCert(httptest.NewRecorder(), req)
+			obj, err := a.srv.AgentConnectCALeafCert(resp, req)
 			r.Check(err)
 
 			issued2 := obj.(*structs.IssuedCert)
@@ -2731,15 +2723,14 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 
 			// Verify that the cert is signed by the new CA
 			requireLeafValidUnderCA(t, issued2, ca)
-		})
 
-		// Should be a cache hit! The data should've updated in the cache
-		// in the background so this should've been fetched directly from
-		// the cache.
-		if v := a.cache.Hits(); v < cacheHits+1 {
-			t.Fatalf("expected at least one more cache hit, still at %d", v)
-		}
-		cacheHits = a.cache.Hits()
+			// Should be a cache hit! The data should've updated in the cache
+			// in the background so this should've been fetched directly from
+			// the cache.
+			if resp.Header().Get("X-Cache") != "HIT" {
+				r.Fatalf("should be a cache hit")
+			}
+		})
 	}
 }
 
@@ -2756,9 +2747,6 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 	// CA already setup by default by NewTestAgent but force a new one so we can
 	// verify it was signed easily.
 	ca1 := connect.TestCAConfigSet(t, a, nil)
-
-	// Grab the initial cache hit count
-	cacheHits := a.cache.Hits()
 
 	{
 		// Register a non-local service (central catalog)
@@ -2785,6 +2773,7 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.AgentConnectCALeafCert(resp, req)
 	require.NoError(err)
+	require.Equal("MISS", resp.Header().Get("X-Cache"))
 
 	// Get the issued cert
 	issued, ok := obj.(*structs.IssuedCert)
@@ -2798,19 +2787,16 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 	assert.Equal(fmt.Sprintf("%d", issued.ModifyIndex),
 		resp.Header().Get("X-Consul-Index"))
 
-	// That should've been a cache miss, so no hit change
-	require.Equal(cacheHits, a.cache.Hits())
-
 	// Test caching
 	{
 		// Fetch it again
-		obj2, err := a.srv.AgentConnectCALeafCert(httptest.NewRecorder(), req)
+		resp := httptest.NewRecorder()
+		obj2, err := a.srv.AgentConnectCALeafCert(resp, req)
 		require.NoError(err)
 		require.Equal(obj, obj2)
 
 		// Should cache hit this time and not make request
-		require.Equal(cacheHits+1, a.cache.Hits())
-		cacheHits++
+		require.Equal("HIT", resp.Header().Get("X-Cache"))
 	}
 
 	// Test that caching is updated in the background
@@ -2819,9 +2805,10 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 		ca := connect.TestCAConfigSet(t, a, nil)
 
 		retry.Run(t, func(r *retry.R) {
+			resp := httptest.NewRecorder()
 			// Try and sign again (note no index/wait arg since cache should update in
 			// background even if we aren't actively blocking)
-			obj, err := a.srv.AgentConnectCALeafCert(httptest.NewRecorder(), req)
+			obj, err := a.srv.AgentConnectCALeafCert(resp, req)
 			r.Check(err)
 
 			issued2 := obj.(*structs.IssuedCert)
@@ -2837,15 +2824,14 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 
 			// Verify that the cert is signed by the new CA
 			requireLeafValidUnderCA(t, issued2, ca)
-		})
 
-		// Should be a cache hit! The data should've updated in the cache
-		// in the background so this should've been fetched directly from
-		// the cache.
-		if v := a.cache.Hits(); v < cacheHits+1 {
-			t.Fatalf("expected at least one more cache hit, still at %d", v)
-		}
-		cacheHits = a.cache.Hits()
+			// Should be a cache hit! The data should've updated in the cache
+			// in the background so this should've been fetched directly from
+			// the cache.
+			if resp.Header().Get("X-Cache") != "HIT" {
+				r.Fatalf("should be a cache hit")
+			}
+		})
 	}
 }
 
@@ -3588,9 +3574,6 @@ func TestAgentConnectAuthorize_allow(t *testing.T) {
 		require.Nil(a.RPC("Intention.Apply", &req, &ixnId))
 	}
 
-	// Grab the initial cache hit count
-	cacheHits := a.cache.Hits()
-
 	args := &structs.ConnectAuthorizeRequest{
 		Target:        target,
 		ClientCertURI: connect.TestSpiffeIDService(t, "web").URI().String(),
@@ -3600,14 +3583,11 @@ func TestAgentConnectAuthorize_allow(t *testing.T) {
 	respRaw, err := a.srv.AgentConnectAuthorize(resp, req)
 	require.Nil(err)
 	require.Equal(200, resp.Code)
+	require.Equal("MISS", resp.Header().Get("X-Cache"))
 
 	obj := respRaw.(*connectAuthorizeResp)
 	require.True(obj.Authorized)
 	require.Contains(obj.Reason, "Matched")
-
-	// That should've been a cache miss (for both Intentions and Roots, so no hit
-	// change).
-	require.Equal(cacheHits, a.cache.Hits())
 
 	// Make the request again
 	{
@@ -3620,11 +3600,10 @@ func TestAgentConnectAuthorize_allow(t *testing.T) {
 		obj := respRaw.(*connectAuthorizeResp)
 		require.True(obj.Authorized)
 		require.Contains(obj.Reason, "Matched")
-	}
 
-	// That should've been a cache hit. We add 2 (Roots + Intentions).
-	require.Equal(cacheHits+2, a.cache.Hits())
-	cacheHits += 2
+		// That should've been a cache hit.
+		require.Equal("HIT", resp.Header().Get("X-Cache"))
+	}
 
 	// Change the intention
 	{
@@ -3657,12 +3636,11 @@ func TestAgentConnectAuthorize_allow(t *testing.T) {
 		obj := respRaw.(*connectAuthorizeResp)
 		require.False(obj.Authorized)
 		require.Contains(obj.Reason, "Matched")
-	}
 
-	// That should've been a cache hit, too, since it updated in the
-	// background. (again 2 hits for Roots + Intentions)
-	require.Equal(cacheHits+2, a.cache.Hits())
-	cacheHits += 2
+		// That should've been a cache hit, too, since it updated in the
+		// background.
+		require.Equal("HIT", resp.Header().Get("X-Cache"))
+	}
 }
 
 // Test when there is an intention denying the connection

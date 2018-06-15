@@ -20,7 +20,7 @@ func TestCache(t testing.T) *Cache {
 func TestCacheGetCh(t testing.T, c *Cache, typ string, r Request) <-chan interface{} {
 	resultCh := make(chan interface{})
 	go func() {
-		result, err := c.Get(typ, r)
+		result, _, err := c.Get(typ, r)
 		if err != nil {
 			t.Logf("Error: %s", err)
 			close(resultCh)

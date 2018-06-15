@@ -97,7 +97,7 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 
 	// Need to lookup RootCAs response to discover trust domain. First just lookup
 	// with no blocking info - this should be a cache hit most of the time.
-	rawRoots, err := c.Cache.Get(ConnectCARootName, &structs.DCSpecificRequest{
+	rawRoots, _, err := c.Cache.Get(ConnectCARootName, &structs.DCSpecificRequest{
 		Datacenter: reqReal.Datacenter,
 	})
 	if err != nil {
@@ -176,7 +176,7 @@ func (c *ConnectCALeaf) waitNewRootCA(datacenter string, ch chan<- error,
 
 	// Fetch some new roots. This will block until our MinQueryIndex is
 	// matched or the timeout is reached.
-	rawRoots, err := c.Cache.Get(ConnectCARootName, &structs.DCSpecificRequest{
+	rawRoots, _, err := c.Cache.Get(ConnectCARootName, &structs.DCSpecificRequest{
 		Datacenter: datacenter,
 		QueryOptions: structs.QueryOptions{
 			MinQueryIndex: minIndex,

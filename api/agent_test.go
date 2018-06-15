@@ -1052,7 +1052,7 @@ func TestAPI_AgentConnectCARoots_empty(t *testing.T) {
 	agent := c.Agent()
 	list, meta, err := agent.ConnectCARoots(nil)
 	require.NoError(err)
-	require.Equal(uint64(0), meta.LastIndex)
+	require.Equal(uint64(1), meta.LastIndex)
 	require.Len(list.Roots, 0)
 }
 

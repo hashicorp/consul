@@ -17,6 +17,7 @@ import (
 	"github.com/NYTimes/gziphandler"
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/mitchellh/mapstructure"
@@ -458,6 +459,15 @@ func setMeta(resp http.ResponseWriter, m *structs.QueryMeta) {
 	setLastContact(resp, m.LastContact)
 	setKnownLeader(resp, m.KnownLeader)
 	setConsistency(resp, m.ConsistencyLevel)
+}
+
+// setCacheMeta sets http response headers to indicate cache status.
+func setCacheMeta(resp http.ResponseWriter, m *cache.ResultMeta) {
+	str := "MISS"
+	if m != nil && m.Hit {
+		str = "HIT"
+	}
+	resp.Header().Set("X-Cache", str)
 }
 
 // setHeaders is used to set canonical response header fields

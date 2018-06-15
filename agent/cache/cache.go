@@ -18,7 +18,6 @@ import (
 	"container/heap"
 	"fmt"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -52,11 +51,6 @@ const (
 // searching for "metrics." to see the various metrics exposed. These can be
 // used to explore the performance of the cache.
 type Cache struct {
-	// Keeps track of the cache hits and misses in total. This is used by
-	// tests currently to verify cache behavior and is not meant for general
-	// analytics; for that, go-metrics emitted values are better.
-	hits, misses uint64
-
 	// types stores the list of data types that the cache knows how to service.
 	// These can be dynamically registered with RegisterType.
 	typesLock sync.RWMutex
@@ -83,6 +77,13 @@ type Cache struct {
 type typeEntry struct {
 	Type Type
 	Opts *RegisterOptions
+}
+
+// ResultMeta is returned from Get calls along with the value and can be used
+// to expose information about the cache status for debugging or testing.
+type ResultMeta struct {
+	// Return whether or not the request was a cache hit
+	Hit bool
 }
 
 // Options are options for the Cache.
@@ -178,7 +179,7 @@ func (c *Cache) RegisterType(n string, typ Type, opts *RegisterOptions) {
 // index is retrieved, the last known value (maybe nil) is returned. No
 // error is returned on timeout. This matches the behavior of Consul blocking
 // queries.
-func (c *Cache) Get(t string, r Request) (interface{}, error) {
+func (c *Cache) Get(t string, r Request) (interface{}, ResultMeta, error) {
 	info := r.CacheInfo()
 	if info.Key == "" {
 		metrics.IncrCounter([]string{"consul", "cache", "bypass"}, 1)
@@ -209,9 +210,10 @@ RETRY_GET:
 	// we have.
 	if ok && entry.Valid {
 		if info.MinIndex == 0 || info.MinIndex < entry.Index {
+			meta := ResultMeta{}
 			if first {
 				metrics.IncrCounter([]string{"consul", "cache", t, "hit"}, 1)
-				atomic.AddUint64(&c.hits, 1)
+				meta.Hit = true
 			}
 
 			// Touch the expiration and fix the heap.
@@ -224,7 +226,7 @@ RETRY_GET:
 			// only works with fetching values that either have a value
 			// or have an error, but not both. The Error may be non-nil
 			// in the entry because of this to note future fetch errors.
-			return entry.Value, nil
+			return entry.Value, meta, nil
 		}
 	}
 
@@ -234,13 +236,10 @@ RETRY_GET:
 	// timeout. Instead, we make one effort to fetch a new value, and if
 	// there was an error, we return.
 	if !first && entry.Error != nil {
-		return entry.Value, entry.Error
+		return entry.Value, ResultMeta{}, entry.Error
 	}
 
 	if first {
-		// Record the miss if its our first time through
-		atomic.AddUint64(&c.misses, 1)
-
 		// We increment two different counters for cache misses depending on
 		// whether we're missing because we didn't have the data at all,
 		// or if we're missing because we're blocking on a set index.
@@ -263,7 +262,7 @@ RETRY_GET:
 	// value we have is too old. We need to wait for new data.
 	waiterCh, err := c.fetch(t, key, r, true, 0)
 	if err != nil {
-		return nil, err
+		return nil, ResultMeta{}, err
 	}
 
 	select {
@@ -273,7 +272,7 @@ RETRY_GET:
 
 	case <-timeoutCh:
 		// Timeout on the cache read, just return whatever we have.
-		return entry.Value, nil
+		return entry.Value, ResultMeta{}, nil
 	}
 }
 
@@ -420,13 +419,13 @@ func (c *Cache) fetch(t, key string, r Request, allowNew bool, attempt uint) (<-
 // fetchDirect fetches the given request with no caching. Because this
 // bypasses the caching entirely, multiple matching requests will result
 // in multiple actual RPC calls (unlike fetch).
-func (c *Cache) fetchDirect(t string, r Request) (interface{}, error) {
+func (c *Cache) fetchDirect(t string, r Request) (interface{}, ResultMeta, error) {
 	// Get the type that we're fetching
 	c.typesLock.RLock()
 	tEntry, ok := c.types[t]
 	c.typesLock.RUnlock()
 	if !ok {
-		return nil, fmt.Errorf("unknown type in cache: %s", t)
+		return nil, ResultMeta{}, fmt.Errorf("unknown type in cache: %s", t)
 	}
 
 	// Fetch it with the min index specified directly by the request.
@@ -434,11 +433,11 @@ func (c *Cache) fetchDirect(t string, r Request) (interface{}, error) {
 		MinIndex: r.CacheInfo().MinIndex,
 	}, r)
 	if err != nil {
-		return nil, err
+		return nil, ResultMeta{}, err
 	}
 
 	// Return the result and ignore the rest
-	return result.Value, nil
+	return result.Value, ResultMeta{}, nil
 }
 
 // refresh triggers a fetch for a specific Request according to the
@@ -514,9 +513,4 @@ func (c *Cache) runExpiryLoop() {
 			c.entriesLock.Unlock()
 		}
 	}
-}
-
-// Returns the number of cache hits. Safe to call concurrently.
-func (c *Cache) Hits() uint64 {
-	return atomic.LoadUint64(&c.hits)
 }

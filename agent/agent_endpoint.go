@@ -913,10 +913,13 @@ func (s *HTTPServer) AgentConnectCARoots(resp http.ResponseWriter, req *http.Req
 		return nil, nil
 	}
 
-	raw, err := s.agent.cache.Get(cachetype.ConnectCARootName, &args)
+	raw, m, err := s.agent.cache.Get(cachetype.ConnectCARootName, &args)
 	if err != nil {
 		return nil, err
 	}
+	defer setCacheMeta(resp, &m)
+
+	// Add cache hit
 
 	reply, ok := raw.(*structs.IndexedCARoots)
 	if !ok {
@@ -953,10 +956,11 @@ func (s *HTTPServer) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.
 	}
 	args.Token = effectiveToken
 
-	raw, err := s.agent.cache.Get(cachetype.ConnectCALeafName, &args)
+	raw, m, err := s.agent.cache.Get(cachetype.ConnectCALeafName, &args)
 	if err != nil {
 		return nil, err
 	}
+	defer setCacheMeta(resp, &m)
 
 	reply, ok := raw.(*structs.IssuedCert)
 	if !ok {
@@ -1186,7 +1190,7 @@ func (s *HTTPServer) AgentConnectAuthorize(resp http.ResponseWriter, req *http.R
 	// Validate the trust domain matches ours. Later we will support explicit
 	// external federation but not built yet.
 	rootArgs := &structs.DCSpecificRequest{Datacenter: s.agent.config.Datacenter}
-	raw, err := s.agent.cache.Get(cachetype.ConnectCARootName, rootArgs)
+	raw, _, err := s.agent.cache.Get(cachetype.ConnectCARootName, rootArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -1223,10 +1227,11 @@ func (s *HTTPServer) AgentConnectAuthorize(resp http.ResponseWriter, req *http.R
 	}
 	args.Token = token
 
-	raw, err = s.agent.cache.Get(cachetype.IntentionMatchName, args)
+	raw, m, err := s.agent.cache.Get(cachetype.IntentionMatchName, args)
 	if err != nil {
 		return nil, err
 	}
+	setCacheMeta(resp, &m)
 
 	reply, ok := raw.(*structs.IndexedIntentionMatches)
 	if !ok {
