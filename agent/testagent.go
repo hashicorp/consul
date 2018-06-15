@@ -352,16 +352,6 @@ func TestConfig(sources ...config.Source) *config.RuntimeConfig {
 				ca_config {
 					cluster_id = "` + connect.TestClusterID + `"
 				}
-				proxy_defaults {
-					// Generally we don't actually need to test real proxy startup except
-					// in the Daemon package which explicitly manages how it starts things
-					// so making this a no-op long running command like /bin/sleep would
-					// be fine, but there is no such thing on windows etc. We hackily rely
-					// on the fact that if the executable doesn't exist, the Daemon
-					// manager will get an exec error and retry it with a backoff beningly
-					// until tests pass.
-				  daemon_command = ["/bin/sleep", "3600"]
-				}
 			}
 			performance {
 				raft_multiplier = 1
@@ -385,6 +375,10 @@ func TestConfig(sources ...config.Source) *config.RuntimeConfig {
 	for _, w := range b.Warnings {
 		fmt.Println("WARNING:", w)
 	}
+
+	// Disable connect proxy execution since it causes all kinds of problems with
+	// self-executing tests etc.
+	cfg.ConnectTestDisableManagedProxies = true
 
 	return &cfg
 }

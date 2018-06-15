@@ -363,22 +363,24 @@ func (a *Agent) Start() error {
 	// create the proxy process manager and start it. This is purposely
 	// done here after the local state above is loaded in so we can have
 	// a more accurate initial state view.
-	a.proxyManager = proxy.NewManager()
-	a.proxyManager.AllowRoot = a.config.ConnectProxyAllowManagedRoot
-	a.proxyManager.State = a.State
-	a.proxyManager.Logger = a.logger
-	if a.config.DataDir != "" {
-		// DataDir is required for all non-dev mode agents, but we want
-		// to allow setting the data dir for demos and so on for the agent,
-		// so do the check above instead.
-		a.proxyManager.DataDir = filepath.Join(a.config.DataDir, "proxy")
+	if !c.ConnectTestDisableManagedProxies {
+		a.proxyManager = proxy.NewManager()
+		a.proxyManager.AllowRoot = a.config.ConnectProxyAllowManagedRoot
+		a.proxyManager.State = a.State
+		a.proxyManager.Logger = a.logger
+		if a.config.DataDir != "" {
+			// DataDir is required for all non-dev mode agents, but we want
+			// to allow setting the data dir for demos and so on for the agent,
+			// so do the check above instead.
+			a.proxyManager.DataDir = filepath.Join(a.config.DataDir, "proxy")
 
-		// Restore from our snapshot (if it exists)
-		if err := a.proxyManager.Restore(a.proxyManager.SnapshotPath()); err != nil {
-			a.logger.Printf("[WARN] agent: error restoring proxy state: %s", err)
+			// Restore from our snapshot (if it exists)
+			if err := a.proxyManager.Restore(a.proxyManager.SnapshotPath()); err != nil {
+				a.logger.Printf("[WARN] agent: error restoring proxy state: %s", err)
+			}
 		}
+		go a.proxyManager.Run()
 	}
-	go a.proxyManager.Run()
 
 	// Start watching for critical services to deregister, based on their
 	// checks.

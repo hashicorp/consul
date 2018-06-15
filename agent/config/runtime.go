@@ -661,6 +661,16 @@ type RuntimeConfig struct {
 	// ConnectCAConfig is the config to use for the CA provider.
 	ConnectCAConfig map[string]interface{}
 
+	// ConnectTestDisableManagedProxies is not exposed to public config but us
+	// used by TestAgent to prevent self-executing the test binary in the
+	// background if a managed proxy is created for a test. The only place we
+	// actually want to test processes really being spun up and managed is in
+	// `agent/proxy` and it does it at a lower level. Note that this still allows
+	// registering managed proxies via API and other methods, and still creates
+	// all the agent state for them, just doesn't actually start external
+	// processes up.
+	ConnectTestDisableManagedProxies bool
+
 	// DNSAddrs contains the list of TCP and UDP addresses the DNS server will
 	// bind to. If the DNS endpoint is disabled (ports.dns <= 0) the list is
 	// empty.

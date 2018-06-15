@@ -4245,6 +4245,7 @@ func TestSanitize(t *testing.T) {
     "ConnectProxyDefaultDaemonCommand": [],
     "ConnectProxyDefaultExecMode": "",
     "ConnectProxyDefaultScriptCommand": [],
+    "ConnectTestDisableManagedProxies": false,
     "ConsulCoordinateUpdateBatchSize": 0,
     "ConsulCoordinateUpdateMaxBatches": 0,
     "ConsulCoordinateUpdatePeriod": "15s",
