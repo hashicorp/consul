@@ -63,6 +63,21 @@ else
 DIST_DATE_ARG=
 endif
 
+PUB_GIT?=1
+PUB_WEBSITE?=1
+
+ifeq ($(PUB_GIT),1)
+PUB_GIT_ARG=-g
+else
+PUB_GIT_ARG=
+endif
+
+ifeq ($(PUB_WEBSITE),1)
+PUB_WEBSITE_ARG=-g
+else
+PUB_WEBSITE_ARG=
+endif
+
 export GO_BUILD_TAG
 export UI_BUILD_TAG
 export UI_LEGACY_BUILD_TAG
@@ -105,7 +120,7 @@ dist:
 	@$(SHELL) $(CURDIR)/build-support/scripts/release.sh -t '$(DIST_TAG)' -b '$(DIST_BUILD)' -S '$(DIST_SIGN)' '$(DIST_VERSION_ARG)' '$(DIST_DATE_ARG)'
 	
 publish:
-	@$(SHELL) $(CURDIR)/build-support/scripts/publish.sh -g -w
+	@$(SHELL) $(CURDIR)/build-support/scripts/publish.sh '$(PUB_GIT_ARG)' '$(PUB_WEBSITE_ARG)'
 
 dev-tree:
 	@$(SHELL) $(CURDIR)/build-support/scripts/dev.sh

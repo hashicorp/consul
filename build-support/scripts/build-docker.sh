@@ -16,6 +16,10 @@ function usage {
 cat <<-EOF
 Usage: ${SCRIPT_NAME} (consul|ui|ui-legacy|static-assets) [<options ...>]
 
+Description:
+   This script will build the various Consul components within docker containers
+   and copy all the relevant artifacts out of the containers back to the source.
+
 Options:
    -i | --image      IMAGE       Alternative Docker image to run the build within.
                                
@@ -38,10 +42,7 @@ function main {
    declare    image=
    declare    sdir="${SOURCE_DIR}"
    declare -i refresh=0
-   declare    command="$1"
-   
-   # get rid of the subcommand
-   shift
+   declare    command=""
    
    while test $# -gt 0
    do
@@ -80,12 +81,22 @@ function main {
             refresh=1
             shift
             ;;
+         consul | ui | ui-legacy | static-assets )
+            command="$1"
+            shift
+            ;;
          * )
             err_usage "ERROR: Unknown argument '$1'"
             return 1
             ;;
       esac
    done
+   
+   if test -z "${command}"
+   then
+      err_usage "ERROR: No command specified"
+      return 1
+   fi
    
    case "${command}" in 
       consul )

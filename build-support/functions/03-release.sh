@@ -258,8 +258,6 @@ function build_consul_release {
    build_consul "$1" "" "$2"  
 }
 
-
-
 function build_release {
    # Arguments: (yeah there are lots)
    #   $1 - Path to the top level Consul source
@@ -328,7 +326,7 @@ function build_release {
       set_vers=$(get_version "${sdir}" false false)
    fi
    
-   if ! set_release_mode "${sdir}" "${set_vers}" "${set_date}"
+   if is_set "${do_tag}" && ! set_release_mode "${sdir}" "${set_vers}" "${set_date}"
    then
       err "ERROR: Failed to put source into release mode"
       return 1 
@@ -398,6 +396,8 @@ function build_release {
          err "ERROR: Failed to tag the release" 
          return 1
       fi
+      
+      update_git_env "${sdir}"
    fi
    
    if is_set "${do_build}"

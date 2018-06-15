@@ -16,6 +16,11 @@ function usage {
 cat <<-EOF
 Usage: ${SCRIPT_NAME}  [<options ...>]
 
+Description:
+
+   This script is just a convenience around discover what the Consul
+   version would be if you were to build it. 
+
 Options:                       
    -s | --source     DIR         Path to source to build.
                                  Defaults to "${SOURCE_DIR}"

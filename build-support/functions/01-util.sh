@@ -313,7 +313,7 @@ function normalize_git_url {
    url="${1#https://}"
    url="${url#git@}"
    url="${url%.git}"
-   url="$(sed ${SED_EXT} -e 's/\([^\/:]*\)[:\/]\(.*\)/\1:\2/' <<< "${url}")"
+   url="$(sed ${SED_EXT} -e 's/([^\/:]*)[:\/](.*)/\1:\2/' <<< "${url}")"
    echo "$url"
    return 0
 }
@@ -336,6 +336,7 @@ function find_git_remote {
    fi
    
    need_url=$(normalize_git_url "${PUBLISH_GIT_HOST}:${PUBLISH_GIT_REPO}")
+   debug "Required normalized remote: ${need_url}"
    
    pushd "$1" > /dev/null
    
@@ -345,6 +346,7 @@ function find_git_remote {
       url=$(git remote get-url --push ${remote}) || continue
       url=$(normalize_git_url "${url}")
       
+      debug "Testing Remote: ${remote}: ${url}"
       if test "${url}" == "${need_url}"
       then
          echo "${remote}"
@@ -354,7 +356,7 @@ function find_git_remote {
    done
    
    popd > /dev/null
-   return $ret
+   return ${ret}
 }
 
 function is_git_clean {
@@ -388,6 +390,113 @@ function is_git_clean {
    fi
    popd > /dev/null
    return ${ret}
+}
+
+function update_git_env {
+   # Arguments:
+   #   $1 - Path to git repo
+   #
+   # Returns:
+   #   0 - success
+   #   * - error
+   #
+   
+   if ! test -d "$1"
+   then
+      err "ERROR: '$1' is not a directory. is_git_clean must be called with the path to a git repo as the first argument'" 
+      return 1
+   fi
+   
+   export GIT_COMMIT=$(git rev-parse --short HEAD)
+   export GIT_DIRTY=$(test -n "$(git status --porcelain)" && echo "+CHANGES")
+   export GIT_DESCRIBE=$(git describe --tags --always)
+   export GIT_IMPORT=github.com/hashicorp/consul/version
+   export GOLDFLAGS="-X ${GIT_IMPORT}.GitCommit=${GIT_COMMIT}${GIT_DIRTY} -X ${GIT_IMPORT}.GitDescribe=${GIT_DESCRIBE}"
+   return 0
+}
+
+function git_push_ref {
+   # Arguments:
+   #   $1 - Path to the top level Consul source
+   #   $2 - Git ref (optional)
+   #
+   # Returns:
+   #   0 - success
+   #   * - error
+   
+   if ! test -d "$1"
+   then
+      err "ERROR: '$1' is not a directory. push_git_release must be called with the path to the top level source as the first argument'" 
+      return 1
+   fi
+   
+   local sdir="$1"
+   local ret=0
+   
+   # find the correct remote corresponding to the desired repo (basically prevent pushing enterprise to oss or oss to enterprise)
+   local remote=$(find_git_remote "${sdir}") || return 1
+   status "Using git remote: ${remote}"
+   
+   local ref=""
+   
+   pushd "${sdir}" > /dev/null
+   
+   if test -z "$2"
+   then
+      # If no git ref was provided we lookup the current local branch and its tracking branch
+      # It must have a tracking upstream and it must be tracking the sanctioned git remote
+      local head=$(git_branch "${sdir}") || return 1
+      local upstream=$(git_upstream "${sdir}") || return 1
+   
+      # upstream branch for this branch does not track the remote we need to push to
+      # basically this checks that the upstream (could be something like origin/master) references the correct remote
+      # if it doesn't then the string modification wont apply and the var will reamin unchanged and equal to itself.
+      if test "${upstream#${remote}/}" == "${upstream}"
+      then
+         err "ERROR: Upstream branch '${upstream}' does not track the correct remote '${remote}' - cannot push"
+         ret=1
+      fi
+      ref="refs/heads/${head}"
+   else
+      # A git ref was provided - get the full ref and make sure it isn't ambiguous and also to
+      # be able to determine whether its a branch or tag we are pushing
+      ref_out=$(git rev-parse --symbolic-full-name "$2" --)
+      
+      # -ne 2 because it should have the ref on one line followed by a line with '--'
+      if test "$(wc -l <<< "${ref_out}")" -ne 2
+      then
+         err "ERROR: Git ref '$2' is ambiguous"
+         debug "${ref_out}"
+         ret=1
+      else
+         ref=$(head -n 1 <<< "${ref_out}")   
+      fi
+   fi
+   
+   if test ${ret} -eq 0
+   then
+      case "${ref}" in
+         refs/tags/*)
+            status "Pushing tag ${ref#refs/tags/} to ${remote}"
+            ;;
+         refs/heads/*)
+            status "Pushing local branch ${ref#refs/tags/} to ${remote}"
+            ;;
+         *)
+            err "ERROR: git_push_ref func is refusing to push ref that isn't a branch or tag"
+            return 1
+      esac
+   
+      if ! git push "${remote}" "${ref}"
+      then
+         err "ERROR: Failed to push ${ref} to remote: ${remote}"
+         ret=1
+      fi
+   fi
+   
+   popd > /dev/null
+   
+   return $ret
 }
 
 function update_version {
@@ -577,4 +686,71 @@ function set_dev_mode {
    add_unreleased_to_changelog "${sdir}" || return 1
    
    return 0
+}
+
+function git_staging_empty {
+   # Arguments:
+   #   $1 - Path to git repo
+   #
+   # Returns:
+   #   0 - success (nothing staged)
+   #   * - error (staged files)
+   
+   if ! test -d "$1"
+   then
+      err "ERROR: '$1' is not a directory. commit_dev_mode must be called with the path to a git repo as the first argument'" 
+      return 1
+   fi
+   
+   pushd "$1" > /dev/null
+   
+   declare -i ret=0
+   
+   for status in $(git status --porcelain=v2 | awk '{print $2}' | cut -b 1)
+   do
+      if test "${status}" != "."
+      then 
+         ret=1
+         break
+      fi
+   done
+   
+   popd > /dev/null
+   return ${ret}   
+}
+
+function commit_dev_mode {
+   # Arguments:
+   #   $1 - Path to top level Consul source
+   #
+   # Returns:
+   #   0 - success
+   #   * - error
+   
+   if ! test -d "$1"
+   then
+      err "ERROR: '$1' is not a directory. commit_dev_mode must be called with the path to a git repo as the first argument'" 
+      return 1
+   fi
+   
+   status "Checking for previously staged files"
+   git_staging_empty "$1" || return 1
+   
+   declare -i ret=0
+   
+   pushd "$1" > /dev/null
+   
+   status "Staging CHANGELOG.md and version_*.go files"
+   git add CHANGELOG.md && git add version/version_*.go
+   ret=$?
+   
+   if test ${ret} -eq 0
+   then
+      status "Adding Commit"
+      git commit -m "Putting source back into Dev Mode"
+      ret=$?      
+   fi
+   
+   popd >/dev/null
+   return ${ret}
 }

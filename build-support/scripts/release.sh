@@ -16,11 +16,28 @@ function usage {
 cat <<-EOF
 Usage: ${SCRIPT_NAME}  [<options ...>]
 
+Description:
+   
+   This script will do a full release build of Consul. Building each component
+   is done within a docker container. In addition to building Consul this
+   script will do a few more things.
+   
+      * Update version/version*.go files
+      * Update CHANGELOG.md to put things into release mode
+      * Create a release commit. It changes in the commit include the CHANGELOG.md
+        version files and the assetfs.
+      * Tag the release
+      * Generate the SHA256SUMS file for the binaries
+      * Sign the SHA256SUMS file with a GPG key
+
+
 Options:                       
    -s | --source     DIR         Path to source to build.
                                  Defaults to "${SOURCE_DIR}"
                                  
-   -t | --tag        BOOL        Whether to add a release commit and tag the build
+   -t | --tag        BOOL        Whether to add a release commit and tag the build. 
+                                 This also controls whether we put the tree into
+                                 release mode
                                  Defaults to 1.
                                  
    -b | --build      BOOL        Whether to perform the build of the ui's, assetfs and

@@ -16,6 +16,11 @@ function usage {
 cat <<-EOF
 Usage: ${SCRIPT_NAME} [<options ...>]
 
+Description:
+   This script will build the Consul binary on the local system.
+   All the requisite tooling must be installed for this to be
+   successful.
+
 Options:
                        
    -s | --source     DIR         Path to source to build.

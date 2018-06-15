@@ -16,6 +16,13 @@ function usage {
 cat <<-EOF
 Usage: ${SCRIPT_NAME}  [<options ...>]
 
+Description:
+
+   This script will "publish" a Consul release. It expects a prebuilt release in 
+   pkg/dist matching the version in the repo and a clean git status. It will 
+   prompt you to confirm the consul version and git changes you are going to 
+   publish prior to pushing to git and to releases.hashicorp.com.
+
 Options:                       
    -s | --source     DIR         Path to source to build.
                                  Defaults to "${SOURCE_DIR}"

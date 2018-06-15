@@ -16,10 +16,17 @@ function usage {
 cat <<-EOF
 Usage: ${SCRIPT_NAME} [<options ...>]
 
+Description:
+
+   This script will put the source back into dev mode after a release.
+
 Options:
                        
    -s | --source     DIR         Path to source to build.
                                  Defaults to "${SOURCE_DIR}"
+                                 
+   --no-git                      Do not commit or attempt to push
+                                 the changes back to the upstream.
                                  
    -h | --help                   Print this help text.
 EOF
@@ -32,9 +39,10 @@ function err_usage {
 }
 
 function main {
-   declare sdir="${SOURCE_DIR}"
-   declare build_os=""
-   declare build_arch=""
+   declare    sdir="${SOURCE_DIR}"
+   declare    build_os=""
+   declare    build_arch=""
+   declare -i do_git=1
    
    
    while test $# -gt 0
@@ -60,6 +68,10 @@ function main {
             sdir="$2"
             shift 2
             ;;
+         --no-git )
+            do_git=0
+            shift
+            ;;
          * )
             err_usage "ERROR: Unknown argument: '$1'"
             return 1
@@ -68,6 +80,18 @@ function main {
    done
    
    set_dev_mode "${sdir}" || return 1
+   
+   if is_set "${do_git}"
+   then
+      status_stage "==> Commiting Dev Mode Changes"
+      commit_dev_mode "${sdir}" || return 1
+      
+      status_stage "==> Confirming Git Changes"
+      confirm_git_push_changes "${sdir}"
+      
+      status_stage "==> Pushing to Git"
+      git_push_ref "$1" || return 1
+   fi
    
    return 0
 }
