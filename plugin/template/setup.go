@@ -145,7 +145,7 @@ func templateParse(c *caddy.Controller) (handler Handler, err error) {
 
 			case "upstream":
 				args := c.RemainingArgs()
-				u, err := upstream.NewUpstream(args)
+				u, err := upstream.New(args)
 				if err != nil {
 					return handler, err
 				}

@@ -110,7 +110,7 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 
 			case "upstream":
 				args := c.RemainingArgs()
-				upstr, err = upstream.NewUpstream(args)
+				upstr, err = upstream.New(args)
 				if err != nil {
 					return Zones{}, err
 				}

@@ -74,7 +74,7 @@ func TestLookupCNAMEExternal(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no error when reading zone, got %q", err)
 	}
-	zone.Upstream, _ = upstream.NewUpstream([]string{"8.8.8.8:53"}) // TODO(miek): point to local instance
+	zone.Upstream, _ = upstream.New([]string{"8.8.8.8:53"}) // TODO(miek): point to local instance
 
 	fm := File{Next: test.ErrorHandler(), Zones: Zones{Z: map[string]*Zone{name: zone}, Names: []string{name}}}
 	ctx := context.TODO()

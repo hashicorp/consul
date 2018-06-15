@@ -41,3 +41,28 @@ func TestForward(t *testing.T) {
 		t.Errorf("Expected 127.0.0.1, got: %s", resp.Answer[0].(*dns.A).A.String())
 	}
 }
+
+func TestForwardRefused(t *testing.T) {
+	s := dnstest.NewServer(func(w dns.ResponseWriter, r *dns.Msg) {
+		ret := new(dns.Msg)
+		ret.SetReply(r)
+		ret.Rcode = dns.RcodeRefused
+		w.WriteMsg(ret)
+	})
+	defer s.Close()
+
+	p := NewProxy(s.Addr, nil)
+	f := New()
+	f.SetProxy(p)
+	defer f.Close()
+
+	state := request.Request{W: &test.ResponseWriter{}, Req: new(dns.Msg)}
+	state.Req.SetQuestion("example.org.", dns.TypeA)
+	resp, err := f.Forward(state)
+	if err != nil {
+		t.Fatal("Expected to receive reply, but didn't")
+	}
+	if resp.Rcode != dns.RcodeRefused {
+		t.Errorf("Expected rcode to be %d, got %d", dns.RcodeRefused, resp.Rcode)
+	}
+}

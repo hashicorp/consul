@@ -81,7 +81,7 @@ func secondaryParse(c *caddy.Controller) (file.Zones, error) {
 				case "upstream":
 					args := c.RemainingArgs()
 					var err error
-					upstr, err = upstream.NewUpstream(args)
+					upstr, err = upstream.New(args)
 					if err != nil {
 						return file.Zones{}, err
 					}

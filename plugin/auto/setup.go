@@ -153,7 +153,7 @@ func autoParse(c *caddy.Controller) (Auto, error) {
 					return a, c.ArgErr()
 				}
 				var err error
-				a.loader.upstream, err = upstream.NewUpstream(args)
+				a.loader.upstream, err = upstream.New(args)
 				if err != nil {
 					return a, err
 				}
