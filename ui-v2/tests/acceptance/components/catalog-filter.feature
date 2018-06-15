@@ -52,6 +52,13 @@ Feature: components / catalog-filter
     s: [Model]-0
     ---
     And I see 1 [Model] model with the name "[Model]-0"
+    Then the url should be [Url]?filter=[Model]-0
+    Then I type with yaml
+    ---
+    s: 1|2
+    ---
+    And I see 2 [Model] models
+    Then the url should be [Url]?filter=1%7C2
 
   Where:
     -------------------------------------------------
@@ -70,6 +77,7 @@ Feature: components / catalog-filter
       dc: dc1
       node: node-0
     ---
+    Then the url should be [Url]
     # And I see 3 healthcheck model with the name "Disk Util"
     # And then pause for 5000
     When I click services on the tabs
@@ -81,8 +89,15 @@ Feature: components / catalog-filter
     ---
     And I see 1 [Model] model
     And I see 1 [Model] model with the port "65535"
+    Then the url should be [Url]?filter=65535
+    Then I type with yaml
+    ---
+    s: -1|65535
+    ---
+    Then the url should be [Url]?filter=-1%7C65535
+    And I see 2 [Model] models
   Where:
     -------------------------------------------------
     | Model   | Page     | Url                       |
-    | service | node     | /dc-1/nodes/node-0        |
+    | service | node     | /dc1/nodes/node-0        |
     -------------------------------------------------

@@ -32,10 +32,10 @@ export default Controller.extend(WithFiltering, {
     return (
       (get(item, 'Name')
         .toLowerCase()
-        .indexOf(sLower) !== -1 ||
+        .match(sLower) ||
         get(item, 'ID')
           .toLowerCase()
-          .indexOf(sLower) !== -1) &&
+          .match(sLower)) &&
       (type === '' || get(item, 'Type') === type)
     );
   },

@@ -21,7 +21,7 @@ export default Controller.extend(WithHealthFiltering, {
     return (
       get(item, 'Node')
         .toLowerCase()
-        .indexOf(s.toLowerCase()) !== -1 && item.hasStatus(status)
+        .match(s.toLowerCase()) && item.hasStatus(status)
     );
   },
 });

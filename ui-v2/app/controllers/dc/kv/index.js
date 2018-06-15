@@ -13,6 +13,6 @@ export default Controller.extend(WithFiltering, {
     const key = rightTrim(get(item, 'Key'), '/')
       .split('/')
       .pop();
-    return key.toLowerCase().indexOf(s.toLowerCase()) !== -1;
+    return key.toLowerCase().match(s.toLowerCase());
   },
 });
