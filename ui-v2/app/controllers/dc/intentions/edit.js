@@ -39,8 +39,8 @@ export default Controller.extend({
     change: function(e, value, _target) {
       // normalize back to standard event
       const target = e.target || { ..._target, ...{ name: e, value: value } };
-      let name,
-        selected = target.value;
+      let name, selected;
+      name = selected = target.value;
       // TODO:
       // linter needs this here?
       let match;

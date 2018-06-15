@@ -1,6 +1,6 @@
 <form>
     <fieldset>
-        <label class="type-text{{if item.error.SourceName ' has-error'}}">
+        <label data-test-source-element class="type-text{{if item.error.SourceName ' has-error'}}">
             <span>Source Service</span>
             {{#power-select-with-create
               options=items
@@ -20,7 +20,7 @@
             {{/power-select-with-create}}
             <em>Choose a Consul Service, write in a future Consul Service, or write any Service URL</em>
         </label>
-        <label class="type-text{{if item.error.DestinationName ' has-error'}}">
+        <label data-test-destination-element class="type-text{{if item.error.DestinationName ' has-error'}}">
             <span>Destination Service</span>
             {{#power-select-with-create
               options=items
