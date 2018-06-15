@@ -141,6 +141,41 @@ Each Consul node should have the appropriate key (`-key.pem`) and certificate
 (`.pem`) file for its region and role. In addition each node needs the CA's
 public certificate (`consul-ca.pem`).
 
+Please note you will need the keys for the CLI if you choose to disable
+HTTP (in which case running the command `consul members` will return an error).
+This is because the Consul CLI defaults to communicating via HTTP instead of
+HTTPS. We can configure the local Consul client to connect using TLS and specify
+our custom keys and certificates using the command line:
+
+```shell
+$ consul members -ca-file=consul-ca.pem -client-cert=cli.pem -client-key=cli-key.pem -http-addr="https://localhost:9090" 
+```
+(The command is assuming HTTPS is configured to use port 9090. To see how
+you can change this, visit the [Configuration](/docs/agent/options.html) page)
+
+This process can be cumbersome to type each time, so the Consul CLI also
+searches environment variables for default values. Set the following
+environment variables in your shell:
+
+```shell
+$ export CONSUL_HTTP_ADDR=https://localhost:9090
+$ export CONSUL_CACERT=consul-ca.pem
+$ export CONSUL_CLIENT_CERT=cli.pem
+$ export CONSUL_CLIENT_KEY=cli-key.pem
+```
+
+* `CONSUL_HTTP_ADDR` is the URL of the Consul agent and sets the default for
+  `-http-addr`.
+* `CONSUL_CACERT` is the location of your CA certificate and sets the default
+  for `-ca-file`.
+* `CONSUL_CLIENT_CERT` is the location of your CLI certificate and sets the
+  default for `-client-cert`.
+* `CONSUL_CLIENT_KEY` is the location of your CLI key and sets the default for
+  `-client-key`.
+
+After these environment variables are correctly configured, the CLI will
+respond as expected
+
 [cfssl]: https://cfssl.org/
 [letsencrypt]: https://letsencrypt.org/
 [vault]: https://www.vaultproject.io/
