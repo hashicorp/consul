@@ -13,7 +13,7 @@
 		{"path":"github.com/Azure/go-autorest/autorest/to","checksumSHA1":"SbBb2GcJNm5GjuPKGL2777QywR4=","revision":"5cdef8c5dbd65369ef90f1b8d7ea2b7348ffc862","revisionTime":"2018-04-27T22:46:30Z"},
 		{"path":"github.com/Azure/go-autorest/autorest/validation","checksumSHA1":"5UH4IFIB/98iowPCzzVs4M4MXiQ=","revision":"5cdef8c5dbd65369ef90f1b8d7ea2b7348ffc862","revisionTime":"2018-04-27T22:46:30Z"},
 		{"path":"github.com/dgrijalva/jwt-go","checksumSHA1":"+TKtBzv23ywvmmqRiGEjUba4YmI=","revision":"dbeaa9332f19a944acb5736b4456cfcc02140e29","revisionTime":"2017-10-19T21:57:19Z"},
-		{"path":"github.com/hashicorp/go-discover/provider/azure","checksumSHA1":"F8qQlAbbXZWigahcusD+1FOgXuU=","revision":"c7c0eb3fc6b6f8024c39cb24f3fe254a72595dd4","revisionTime":"2018-04-27T00:43:23Z"},
+		{"path":"github.com/hashicorp/go-discover/provider/azure","checksumSHA1":"F8qQlAbbXZWigahcusD+1FOgXuU=","revision":"c7c0eb3fc6b6f8024c39cb24f3fe254a72595dd4","revisionTime":"2018-04-27T00:43:23Z"}
 	],
 	"rootPath": "github.com/hashicorp/go-discover/provider/azure"
 }
