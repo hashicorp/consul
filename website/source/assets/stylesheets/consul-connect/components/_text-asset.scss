@@ -35,6 +35,10 @@
     img {
       max-width: 140%;
       width: auto;
+
+      @media(min-width: 768px) {
+        max-width: none;
+      }
     }
   }
 
@@ -113,6 +117,7 @@
       .code {
         background: #1e212a;
         font-size: 1.4rem;
+        overflow: auto;
         padding: 16px 24px 32px;
         width: 100%;
 
