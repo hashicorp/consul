@@ -27,14 +27,14 @@
                     <li data-test-main-nav-nodes class={{if (is-href 'dc.nodes' dc.Name) 'is-active'}}>
                         <a href={{href-to 'dc.nodes' dc.Name}}>Nodes</a>
                     </li>
-                    <li data-test-main-nav-intentions class={{if (is-href 'dc.intentions' dc.Name) 'is-active'}}>
-                        <a href={{href-to 'dc.intentions' dc.Name}}>Intentions</a>
-                    </li>
                     <li data-test-main-nav-kvs class={{if (is-href 'dc.kv' dc.Name) 'is-active'}}>
                         <a href={{href-to 'dc.kv' dc.Name}}>Key/Value</a>
                     </li>
                     <li data-test-main-nav-acls class={{if (or (is-href 'dc.acls' dc.Name) (is-href 'dc.aclsdisabled') (is-href 'dc.unauthorized')) 'is-active'}}>
                         <a href={{href-to 'dc.acls' dc.Name}}>ACL</a>
+                    </li>
+                    <li data-test-main-nav-intentions class={{if (is-href 'dc.intentions' dc.Name) 'is-active'}}>
+                        <a href={{href-to 'dc.intentions' dc.Name}}>Intentions</a>
                     </li>
                 </ul>
 {{/if}}
