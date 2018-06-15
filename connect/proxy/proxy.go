@@ -36,9 +36,18 @@ func New(client *api.Client, cw ConfigWatcher, logger *log.Logger) (*Proxy, erro
 func (p *Proxy) Serve() error {
 	var cfg *Config
 
+	// failCh is used to stop Serve and return an error from another goroutine we
+	// spawn.
+	failCh := make(chan error, 1)
+
 	// Watch for config changes (initial setup happens on first "change")
 	for {
 		select {
+		case err := <-failCh:
+			// don't log here, we can log with better context at the point where we
+			// write the err to the chan
+			return err
+
 		case newCfg := <-p.cfgWatcher.Watch():
 			p.logger.Printf("[DEBUG] got new config")
 
@@ -64,20 +73,27 @@ func (p *Proxy) Serve() error {
 					tcfg := service.ServerTLSConfig()
 					cert, _ := tcfg.GetCertificate(nil)
 					leaf, _ := x509.ParseCertificate(cert.Certificate[0])
+<<<<<<< HEAD
 					p.logger.Printf("[DEBUG] leaf: %s roots: %s", leaf.URIs[0],
 						bytes.Join(tcfg.RootCAs.Subjects(), []byte(",")))
 				}()
+=======
+					p.logger.Printf("[DEBUG] leaf: %s roots: %s", leaf.URIs[0], bytes.Join(tcfg.RootCAs.Subjects(), []byte(",")))
+>>>>>>> Make proxy only listen after initial certs are fetched
 
-				// Only start a listener if we have a port set. This allows
-				// the configuration to disable our public listener.
-				if newCfg.PublicListener.BindPort != 0 {
-					newCfg.PublicListener.applyDefaults()
-					l := NewPublicListener(p.service, newCfg.PublicListener, p.logger)
-					err = p.startListener("public listener", l)
-					if err != nil {
-						return err
+					// Only start a listener if we have a port set. This allows
+					// the configuration to disable our public listener.
+					if newCfg.PublicListener.BindPort != 0 {
+						newCfg.PublicListener.applyDefaults()
+						l := NewPublicListener(p.service, newCfg.PublicListener, p.logger)
+						err = p.startListener("public listener", l)
+						if err != nil {
+							// This should probably be fatal.
+							p.logger.Printf("[ERR] failed to start public listener: %s", err)
+							failCh <- err
+						}
 					}
-				}
+				}()
 			}
 
 			// TODO(banks) update/remove upstreams properly based on a diff with current. Can

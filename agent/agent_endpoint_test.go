@@ -3260,7 +3260,7 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 	t.Parallel()
 
 	// Get the default command to compare below
-	defaultCommand, err := defaultProxyCommand()
+	defaultCommand, err := defaultProxyCommand(nil)
 	require.NoError(t, err)
 
 	// Define a local service with a managed proxy. It's registered in the test

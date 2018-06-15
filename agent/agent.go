@@ -2168,7 +2168,7 @@ func (a *Agent) applyProxyDefaults(proxy *structs.ConnectManagedProxy) error {
 	// If there is no globally configured default we need to get the
 	// default command so we can do "consul connect proxy"
 	if len(proxy.Command) == 0 {
-		command, err := defaultProxyCommand()
+		command, err := defaultProxyCommand(a.config)
 		if err != nil {
 			return err
 		}
@@ -2970,7 +2970,7 @@ func (a *Agent) registerCache() {
 }
 
 // defaultProxyCommand returns the default Connect managed proxy command.
-func defaultProxyCommand() ([]string, error) {
+func defaultProxyCommand(agentCfg *config.RuntimeConfig) ([]string, error) {
 	// Get the path to the current exectuable. This is cached once by the
 	// library so this is effectively just a variable read.
 	execPath, err := os.Executable()
@@ -2979,5 +2979,10 @@ func defaultProxyCommand() ([]string, error) {
 	}
 
 	// "consul connect proxy" default value for managed daemon proxy
-	return []string{execPath, "connect", "proxy"}, nil
+	cmd := []string{execPath, "connect", "proxy"}
+
+	if agentCfg != nil && agentCfg.LogLevel != "INFO" {
+		cmd = append(cmd, "-log-level", agentCfg.LogLevel)
+	}
+	return cmd, nil
 }
