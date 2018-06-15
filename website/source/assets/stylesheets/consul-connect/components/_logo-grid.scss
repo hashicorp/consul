@@ -2,20 +2,28 @@
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  max-width: $site-max-width - 180;
   margin: 0 auto;
+  max-width: $site-max-width - 180;
   text-align: center;
+  
+  @media (min-width: 768px) {
+    margin-top: -48px;
+  }
 
   & > div {
-    padding: 25px $site-gutter-padding;
     width: 50%;
-
+    
     @media (min-width: 768px) {
+      padding: 5px $site-gutter-padding;
       width: 33%;
+    }
+    
+    @media (min-width: 992px) {
+      padding: 25px $site-gutter-padding;
     }
   }
 
   img {
-    max-width: 100%;
+    width: 100%
   }
 }
