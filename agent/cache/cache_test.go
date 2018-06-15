@@ -471,10 +471,8 @@ func TestCacheGet_periodicRefreshErrorBackoff(t *testing.T) {
 	require.True(t, actual < 10, fmt.Sprintf("actual: %d", actual))
 }
 
-// Test that fetching with no index actually sets to index to one, including
-// for background refreshes. This ensures we don't end up with any index 0
-// loops.
-func TestCacheGet_noIndexSetsOne(t *testing.T) {
+// Test that a badly behaved RPC that returns 0 index will perform a backoff.
+func TestCacheGet_periodicRefreshBadRPCZeroIndexErrorBackoff(t *testing.T) {
 	t.Parallel()
 
 	typ := TestType(t)
@@ -487,18 +485,91 @@ func TestCacheGet_noIndexSetsOne(t *testing.T) {
 	})
 
 	// Configure the type
-	fetchErr := fmt.Errorf("test fetch error")
-	typ.Static(FetchResult{Value: 42, Index: 0}, fetchErr).Run(func(args mock.Arguments) {
-		opts := args.Get(0).(FetchOptions)
-		assert.True(t, opts.MinIndex > 0, "minIndex > 0")
+	var retries uint32
+	typ.Static(FetchResult{Value: 0, Index: 0}, nil).Run(func(args mock.Arguments) {
+		atomic.AddUint32(&retries, 1)
 	})
 
 	// Fetch
 	resultCh := TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{Key: "hello"}))
-	TestCacheGetChResult(t, resultCh, 42)
+	TestCacheGetChResult(t, resultCh, 0)
 
-	// Sleep a bit so background refresh happens
-	time.Sleep(100 * time.Millisecond)
+	// Sleep a bit. The refresh will quietly fail in the background. What we
+	// want to verify is that it doesn't retry too much. "Too much" is hard
+	// to measure since its CPU dependent if this test is failing. But due
+	// to the short sleep below, we can calculate about what we'd expect if
+	// backoff IS working.
+	time.Sleep(500 * time.Millisecond)
+
+	// Fetch should work, we should get a 0 still. Errors are ignored.
+	resultCh = TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{Key: "hello"}))
+	TestCacheGetChResult(t, resultCh, 0)
+
+	// Check the number
+	actual := atomic.LoadUint32(&retries)
+	require.True(t, actual < 10, fmt.Sprintf("%d retries, should be < 10", actual))
+}
+
+// Test that fetching with no index makes an initial request with no index, but
+// then ensures all background refreshes have > 0. This ensures we don't end up
+// with any index 0 loops from background refreshed while also returning
+// immediately on the initial request if there is no data written to that table
+// yet.
+func TestCacheGet_noIndexSetsOne(t *testing.T) {
+	t.Parallel()
+
+	typ := TestType(t)
+	defer typ.AssertExpectations(t)
+	c := TestCache(t)
+	c.RegisterType("t", typ, &RegisterOptions{
+		Refresh:        true,
+		RefreshTimer:   0,
+		RefreshTimeout: 5 * time.Minute,
+	})
+
+	// Simulate "well behaved" RPC with no data yet but returning 1
+	{
+		first := int32(1)
+
+		typ.Static(FetchResult{Value: 0, Index: 1}, nil).Run(func(args mock.Arguments) {
+			opts := args.Get(0).(FetchOptions)
+			isFirst := atomic.SwapInt32(&first, 0)
+			if isFirst == 1 {
+				assert.Equal(t, uint64(0), opts.MinIndex)
+			} else {
+				assert.True(t, opts.MinIndex > 0, "minIndex > 0")
+			}
+		})
+
+		// Fetch
+		resultCh := TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{Key: "hello"}))
+		TestCacheGetChResult(t, resultCh, 0)
+
+		// Sleep a bit so background refresh happens
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	// Same for "badly behaved" RPC that returns 0 index and no data
+	{
+		first := int32(1)
+
+		typ.Static(FetchResult{Value: 0, Index: 0}, nil).Run(func(args mock.Arguments) {
+			opts := args.Get(0).(FetchOptions)
+			isFirst := atomic.SwapInt32(&first, 0)
+			if isFirst == 1 {
+				assert.Equal(t, uint64(0), opts.MinIndex)
+			} else {
+				assert.True(t, opts.MinIndex > 0, "minIndex > 0")
+			}
+		})
+
+		// Fetch
+		resultCh := TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{Key: "hello"}))
+		TestCacheGetChResult(t, resultCh, 0)
+
+		// Sleep a bit so background refresh happens
+		time.Sleep(100 * time.Millisecond)
+	}
 }
 
 // Test that the backend fetch sets the proper timeout.

@@ -132,6 +132,9 @@ func (s *Store) Intentions(ws memdb.WatchSet) (uint64, structs.Intentions, error
 
 	// Get the index
 	idx := maxIndexTxn(tx, intentionsTableName)
+	if idx < 1 {
+		idx = 1
+	}
 
 	// Get all intentions
 	iter, err := tx.Get(intentionsTableName, "id")
@@ -228,6 +231,9 @@ func (s *Store) IntentionGet(ws memdb.WatchSet, id string) (uint64, *structs.Int
 
 	// Get the table index.
 	idx := maxIndexTxn(tx, intentionsTableName)
+	if idx < 1 {
+		idx = 1
+	}
 
 	// Look up by its ID.
 	watchCh, intention, err := tx.FirstWatch(intentionsTableName, "id", id)
@@ -295,6 +301,9 @@ func (s *Store) IntentionMatch(ws memdb.WatchSet, args *structs.IntentionQueryMa
 
 	// Get the table index.
 	idx := maxIndexTxn(tx, intentionsTableName)
+	if idx < 1 {
+		idx = 1
+	}
 
 	// Make all the calls and accumulate the results
 	results := make([]structs.Intentions, len(args.Entries))

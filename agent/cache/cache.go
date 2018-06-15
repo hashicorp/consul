@@ -325,14 +325,6 @@ func (c *Cache) fetch(t, key string, r Request, allowNew bool, attempt uint) (<-
 		entry = cacheEntry{Valid: false, Waiter: make(chan struct{})}
 	}
 
-	// We always specify an index greater than zero since index of zero
-	// means to always return immediately and we want to block if possible.
-	// Index 1 is always safe since Consul's own initialization always results
-	// in a higher index (around 10 or above).
-	if entry.Index == 0 {
-		entry.Index = 1
-	}
-
 	// Set that we're fetching to true, which makes it so that future
 	// identical calls to fetch will return the same waiter rather than
 	// perform multiple fetches.
@@ -355,6 +347,17 @@ func (c *Cache) fetch(t, key string, r Request, allowNew bool, attempt uint) (<-
 			// A new value was given, so we create a brand new entry.
 			newEntry.Value = result.Value
 			newEntry.Index = result.Index
+			if newEntry.Index < 1 {
+				// Less than one is invalid unless there was an error and in this case
+				// there wasn't since a value was returned. If a badly behaved RPC
+				// returns 0 when it has no data, we might get into a busy loop here. We
+				// set this to minimum of 1 which is safe because no valid user data can
+				// ever be written at raft index 1 due to the bootstrap process for
+				// raft. This insure that any subsequent background refresh request will
+				// always block, but allows the initial request to return immediately
+				// even if there is no data.
+				newEntry.Index = 1
+			}
 
 			// This is a valid entry with a result
 			newEntry.Valid = true
@@ -365,8 +368,25 @@ func (c *Cache) fetch(t, key string, r Request, allowNew bool, attempt uint) (<-
 			metrics.IncrCounter([]string{"consul", "cache", "fetch_success"}, 1)
 			metrics.IncrCounter([]string{"consul", "cache", t, "fetch_success"}, 1)
 
-			// Reset the attempts counter so we don't have any backoff
-			attempt = 0
+			if result.Index > 0 {
+				// Reset the attempts counter so we don't have any backoff
+				attempt = 0
+			} else {
+				// Result having a zero index is an implicit error case. There was no
+				// actual error but it implies the RPC found in index (nothing written
+				// yet for that type) but didn't take care to return safe "1" index. We
+				// don't want to actually treat it like an error by setting
+				// newEntry.Error to something non-nil, but we should guard against 100%
+				// CPU burn hot loops caused by that case which will never block but
+				// also won't backoff either. So we treat it as a failed attempt so that
+				// at least the failure backoff will save our CPU while still
+				// periodically refreshing so normal service can resume when the servers
+				// actually have something to return from the RPC. If we get in this
+				// state it can be considered a bug in the RPC implementation (to ever
+				// return a zero index) however since it can happen this is a safety net
+				// for the future.
+				attempt++
+			}
 		} else {
 			metrics.IncrCounter([]string{"consul", "cache", "fetch_error"}, 1)
 			metrics.IncrCounter([]string{"consul", "cache", t, "fetch_error"}, 1)

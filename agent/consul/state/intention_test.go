@@ -17,7 +17,7 @@ func TestStore_IntentionGet_none(t *testing.T) {
 	// Querying with no results returns nil.
 	ws := memdb.NewWatchSet()
 	idx, res, err := s.IntentionGet(ws, testUUID())
-	assert.Equal(idx, uint64(0))
+	assert.Equal(uint64(1), idx)
 	assert.Nil(res)
 	assert.Nil(err)
 }
@@ -231,7 +231,7 @@ func TestStore_IntentionsList(t *testing.T) {
 	idx, res, err := s.Intentions(ws)
 	assert.NoError(err)
 	assert.Nil(res)
-	assert.Equal(idx, uint64(0))
+	assert.Equal(uint64(1), idx)
 
 	// Create some intentions
 	ixns := structs.Intentions{
