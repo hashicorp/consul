@@ -148,3 +148,43 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 		require.True(parsed.NotBefore.Before(time.Now()))
 	}
 }
+
+func TestVaultCAProvider_CrossSignCA(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	provider1, core1, listener1 := testVaultCluster(t)
+	defer core1.Shutdown()
+	defer listener1.Close()
+
+	provider2, core2, listener2 := testVaultCluster(t)
+	defer core2.Shutdown()
+	defer listener2.Close()
+
+	// Have provider2 generate a cross-signing CSR
+	csr, err := provider2.GetCrossSigningCSR()
+	require.NoError(err)
+	oldSubject := csr.Subject.CommonName
+
+	// Have the provider cross sign our new CA cert.
+	xcPEM, err := provider1.CrossSignCA(csr)
+	require.NoError(err)
+	xc, err := connect.ParseCert(xcPEM)
+	require.NoError(err)
+
+	rootPEM, err := provider1.ActiveRoot()
+	require.NoError(err)
+	root, err := connect.ParseCert(rootPEM)
+	require.NoError(err)
+
+	// AuthorityKeyID should be the signing root's, SubjectKeyId should be different.
+	require.Equal(root.AuthorityKeyId, xc.AuthorityKeyId)
+	require.NotEqual(root.SubjectKeyId, xc.SubjectKeyId)
+
+	// Subject name should not have changed.
+	require.NotEqual(root.Subject.CommonName, xc.Subject.CommonName)
+	require.Equal(oldSubject, xc.Subject.CommonName)
+
+	// Issuer should be the signing root.
+	require.Equal(root.Issuer.CommonName, xc.Issuer.CommonName)
+}
