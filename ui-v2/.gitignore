@@ -8,3 +8,5 @@
 /yarn-error.log
 /testem.log
 
+/public/consul-api-double
+
