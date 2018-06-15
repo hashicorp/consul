@@ -28,6 +28,20 @@ GIT_DESCRIBE?=$(shell git describe --tags --always)
 GIT_IMPORT=github.com/hashicorp/consul/version
 GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY) -X $(GIT_IMPORT).GitDescribe=$(GIT_DESCRIBE)
 
+ifeq ($(FORCE_REBUILD),1)
+NOCACHE=--no-cache
+else
+NOCACHE=
+endif
+
+DOCKER_BUILD_QUIET?=1
+ifeq (${DOCKER_BUILD_QUIET},1)
+QUIET=-q
+else
+QUIET=
+endif
+
+CONSUL_DEV_IMAGE?=consul-dev
 GO_BUILD_TAG?=consul-build-go
 UI_BUILD_TAG?=consul-build-ui
 UI_LEGACY_BUILD_TAG?=consul-build-ui-legacy
@@ -36,6 +50,18 @@ BUILD_CONTAINER_NAME?=consul-builder
 DIST_TAG?=1
 DIST_BUILD?=1
 DIST_SIGN?=1
+
+ifdef DIST_VERSION
+DIST_VERSION_ARG=-v $(DIST_VERSION)
+else
+DIST_VERSION_ARG=
+endif
+
+ifdef DIST_RELEASE_DATE
+DIST_DATE_ARG=-d $(DIST_RELEASE_DATE)
+else
+DIST_DATE_ARG=
+endif
 
 export GO_BUILD_TAG
 export UI_BUILD_TAG
@@ -57,7 +83,11 @@ bin: tools
 dev: changelogfmt vendorfmt dev-build
 
 dev-build:
-	@$(SHELL) $(CURDIR)/build-support/scripts/build.sh consul-local -o '$(GOOS)' -a '$(GOARCH)'
+	@$(SHELL) $(CURDIR)/build-support/scripts/build-local.sh
+
+dev-docker:
+	@$(SHELL)
+	@docker build -t '$(CONSUL_DEV_IMAGE)' --build-arg 'GIT_COMMIT=$(GIT_COMMIT)' --build-arg 'GIT_DIRTY=$(GIT_DIRTY)' --build-arg 'GIT_DESCRIBE=$(GIT_DESCRIBE)' -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile $(CURDIR)
 
 vendorfmt:
 	@echo "--> Formatting vendor/vendor.json"
@@ -70,14 +100,14 @@ changelogfmt:
 
 # linux builds a linux package independent of the source platform
 linux:
-	@$(SHELL) $(CURDIR)/build-support/scripts/build.sh consul-local -o linux -a amd64
+	@$(SHELL) $(CURDIR)/build-support/scripts/build-local.sh -o linux -a amd64
 
 # dist builds binaries for all platforms and packages them for distribution
 dist:
-	@$(SHELL) $(CURDIR)/build-support/scripts/build.sh release -t '$(DIST_TAG)' -b '$(DIST_BUILD)' -S '$(DIST_SIGN)'
+	@$(SHELL) $(CURDIR)/build-support/scripts/release.sh -t '$(DIST_TAG)' -b '$(DIST_BUILD)' -S '$(DIST_SIGN)' '$(DIST_VERSION_ARG)' '$(DIST_DATE_ARG)'
 	
 publish:
-	@$(SHELL) $(CURDIR)/build-support/scripts/build.sh publish
+	@$(SHELL) $(CURDIR)/build-support/scripts/publish.sh -g -w
 
 cov:
 	gocov test $(GOFILES) | gocov-html > /tmp/coverage.html
@@ -143,37 +173,40 @@ tools:
 
 version:
 	@echo -n "Version:                    "
-	@$(SHELL) $(CURDIR)/build-support/scripts/build.sh version 
+	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh
 	@echo -n "Version + release:          "
-	@$(SHELL) $(CURDIR)/build-support/scripts/build.sh version -R
+	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh -r
 	@echo -n "Version + git:              "
-	@$(SHELL) $(CURDIR)/build-support/scripts/build.sh version -G
+	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh  -g
 	@echo -n "Version + release + git:    "
-		@$(SHELL) $(CURDIR)/build-support/scripts/build.sh version -R -G
+		@$(SHELL) $(CURDIR)/build-support/scripts/version.sh -r -g
 		
-docker-images:
-	@$(MAKE) -C build-support/docker images
+
+docker-images: go-build-image ui-build-image ui-legacy-build-image
 
 go-build-image:
-	@$(MAKE) -C build-support/docker go-build-image
+	@echo "Building Golang build container"
+	@docker build $(NOCACHE) $(QUIET) --build-arg 'GOTOOLS=$(GOTOOLS)' -t $(GO_BUILD_TAG) - < build-support/docker/Build-Go.dockerfile
 	
 ui-build-image:
-	@$(MAKE) -C build-support/docker ui-build-image
+	@echo "Building UI build container"
+	@docker build $(NOCACHE) $(QUIET) -t $(UI_BUILD_TAG) - < build-support/docker/Build-UI.dockerfile
 	
 ui-legacy-build-image:
-	@$(MAKE) -C build-support/docker ui-legacy-build-image
+	@echo "Building Legacy UI build container"
+	@docker build $(NOCACHE) $(QUIET) -t $(UI_LEGACY_BUILD_TAG) - < build-support/docker/Build-UI-Legacy.dockerfile
 
 static-assets-docker: go-build-image
-	@$(SHELL) $(CURDIR)/build-support/scripts/build.sh assetfs	
+	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh static-assets
 	
 consul-docker: go-build-image
-	@$(SHELL) $(CURDIR)/build-support/scripts/build.sh consul
+	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh consul
 	
 ui-docker: ui-build-image
-	@$(SHELL) $(CURDIR)/build-support/scripts/build.sh ui
+	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh ui
 	
 ui-legacy-docker: ui-legacy-build-image
-	@$(SHELL) $(CURDIR)/build-support/scripts/build.sh ui-legacy
+	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh ui-legacy
 	
 	
 .PHONY: all ci bin dev dist cov test cover format vet ui static-assets tools vendorfmt 

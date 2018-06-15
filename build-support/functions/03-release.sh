@@ -258,17 +258,29 @@ function build_consul_release {
    build_consul "$1" "" "$2"  
 }
 
+
+
 function build_release {
-   # Arguments:
+   # Arguments: (yeah there are lots)
    #   $1 - Path to the top level Consul source
    #   $2 - boolean whether to tag the release yet
    #   $3 - boolean whether to build the binaries
    #   $4 - boolean whether to generate the sha256 sums
-   #   $5 - alternative gpg key to use for signing operations (optional)
+   #   $5 - version to set within version.go and the changelog
+   #   $6 - release date to set within the changelog
+   #   $7 - alternative gpg key to use for signing operations (optional)
    #
    # Returns:
    #   0 - success
    #   * - error
+   
+   debug "Source Dir:    $1"
+   debug "Tag Release:   $2"
+   debug "Build Release: $3"
+   debug "Sign Release:  $4"
+   debug "Version:       $5"
+   debug "Release Date:  $6"
+   debug "GPG Key:       $7"
    
    if ! test -d "$1"
    then
@@ -286,24 +298,11 @@ function build_release {
    local do_tag="$2"
    local do_build="$3"
    local do_sha256="$4"
-   local gpg_key="$5"
+   local gpg_key="$7"
    
    if test -z "${gpg_key}"
    then
       gpg_key=${HASHICORP_GPG_KEY}
-   fi
-   
-   local vers="$(get_version ${sdir} true false)"
-   if test $? -ne 0
-   then
-      err "Please specify a version (couldn't find one based on build tags)." 
-      return 1
-   fi
-   
-   if ! is_git_clean "${sdir}" true && ! is_set "${ALLOW_DIRTY_GIT}"
-   then
-      err "ERROR: Refusing to build because Git is dirty. Set ALLOW_DIRTY_GIT=1 in the environment to proceed anyways"
-      return 1
    fi
    
    if ! is_set "${RELEASE_UNSIGNED}"
@@ -313,6 +312,33 @@ function build_release {
          err "ERROR: Aborting build because no useable GPG key is present. Set RELEASE_UNSIGNED=1 to bypass this check"
          return 1 
       fi
+   fi
+   
+   if ! is_git_clean "${sdir}" true && ! is_set "${ALLOW_DIRTY_GIT}"
+   then
+      err "ERROR: Refusing to build because Git is dirty. Set ALLOW_DIRTY_GIT=1 in the environment to proceed anyways"
+      return 1
+   fi
+   
+   local set_vers="$5"
+   local set_date="$6"
+   
+   if test -z "${set_vers}"
+   then
+      set_vers=$(get_version "${sdir}" false false)
+   fi
+   
+   if ! set_release_mode "${sdir}" "${set_vers}" "${set_date}"
+   then
+      err "ERROR: Failed to put source into release mode"
+      return 1 
+   fi
+   
+   local vers="$(get_version ${sdir} true false)"
+   if test $? -ne 0
+   then
+      err "Please specify a version (couldn't find one based on build tags)." 
+      return 1
    fi
    
    # Make sure we arent in dev mode

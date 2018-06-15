@@ -16,9 +16,9 @@ function refresh_docker_images {
    local sdir="$1"
    local targets="$2"
    
-   test -n "${targets}" || targets="images"
+   test -n "${targets}" || targets="docker-images"
    
-   make -C "${sdir}/build-support/docker" $targets
+   make -C "${sdir}" ${targets}
    return $?
 }
 
@@ -164,7 +164,7 @@ function build_assetfs {
    local ret=$?
    if test $ret -eq 0
    then
-      status "Copying the sources from '${sdir}/(pkg|GNUmakefile)' to /go/src/github.com/hashicorp/consul/pkg"
+      status "Copying the sources from '${sdir}/(pkg/web_ui|GNUmakefile)' to /go/src/github.com/hashicorp/consul/pkg"
       (
          tar -c pkg/web_ui GNUmakefile | docker cp - ${container_id}:/go/src/github.com/hashicorp/consul &&
          status "Running build in container" && docker start -i ${container_id} &&

@@ -313,7 +313,7 @@ function normalize_git_url {
    url="${1#https://}"
    url="${url#git@}"
    url="${url%.git}"
-   url="$(sed -e 's/\([^\/:]*\)[:\/]\(.*\)/\1:\2/' <<< "${url}")"
+   url="$(sed ${SED_EXT} -e 's/\([^\/:]*\)[:\/]\(.*\)/\1:\2/' <<< "${url}")"
    echo "$url"
    return 0
 }
@@ -388,4 +388,193 @@ function is_git_clean {
    fi
    popd > /dev/null
    return ${ret}
+}
+
+function update_version {
+   # Arguments:
+   #   $1 - Path to the version file
+   #   $2 - Version string
+   #   $3 - PreRelease version (if unset will become an empty string)
+   #
+   # Returns:
+   #   0 - success
+   #   * - error
+   
+   if ! test -f "$1"
+   then
+      err "ERROR: '$1' is not a regular file. update_version must be called with the path to a go version file" 
+      return 1
+   fi
+   
+   if test -z "$2"
+   then
+      err "ERROR: The version specified was empty"
+      return 1
+   fi
+   
+   local vfile="$1"
+   local version="$2"
+   local prerelease="$3"
+   
+   sed ${SED_EXT} -i "" -e "s/(Version[[:space:]]*=[[:space:]]*)\"[^\"]*\"/\1\"${version}\"/g" -e "s/(VersionPrerelease[[:space:]]*=[[:space:]]*)\"[^\"]*\"/\1\"${prerelease}\"/g" "${vfile}"
+   return $?
+}
+
+function set_changelog_version {
+   # Arguments:
+   #   $1 - Path to top level Consul source
+   #   $2 - Version to put into the Changelog
+   #   $3 - Release Date
+   #
+   # Returns:
+   #   0 - success
+   #   * - error
+   
+   local changelog="${1}/CHANGELOG.md"
+   local version="$2"
+   local rel_date="$3"
+   
+   if ! test -f "${changelog}"
+   then
+      err "ERROR: File not found: ${changelog}"
+      return 1
+   fi
+   
+   if test -z "${version}"
+   then
+      err "ERROR: Must specify a version to put into the changelog"
+      return 1
+   fi
+   
+   if test -z "${rel_date}"
+   then
+      rel_date=$(date +"%B %d, %Y")
+   fi
+   
+   sed ${SED_EXT} -i "" -e "s/## UNRELEASED/## ${version} (${rel_date})/" "${changelog}"
+   return $?
+}
+
+function unset_changelog_version {
+   # Arguments:
+   #   $1 - Path to top level Consul source
+   #
+   # Returns:
+   #   0 - success
+   #   * - error
+   
+   local changelog="${1}/CHANGELOG.md"
+   
+   if ! test -f "${changelog}"
+   then
+      err "ERROR: File not found: ${changelog}"
+      return 1
+   fi
+   
+   sed ${SED_EXT} -i "" -e "1 s/^## [0-9]+\.[0-9]+\.[0-9]+ \([^)]*\)/## UNRELEASED/" "${changelog}"
+   return $?
+}
+
+function add_unreleased_to_changelog {
+   # Arguments:
+   #   $1 - Path to top level Consul source
+   #
+   # Returns:
+   #   0 - success
+   #   * - error
+   
+   local changelog="${1}/CHANGELOG.md"
+   
+   if ! test -f "${changelog}"
+   then
+      err "ERROR: File not found: ${changelog}"
+      return 1
+   fi
+   
+   # Check if we are already in unreleased mode
+   if head -n 1 "${changelog}" | grep -q -c UNRELEASED
+   then
+      return 0
+   fi
+   
+   local tfile="$(mktemp) -t "CHANGELOG.md_")"
+   (
+      echo -e "## UNRELEASED\n" > "${tfile}" &&
+      cat "${changelog}" >> "${tfile}" &&
+      cp "${tfile}" "${changelog}"
+   )
+   local ret=$?
+   rm "${tfile}"
+   return $ret
+}
+
+function set_release_mode {
+   # Arguments:
+   #   $1 - Path to top level Consul source
+   #   $2 - The version of the release
+   #   $3 - The release date
+   #   
+   #
+   # Returns:
+   #   0 - success
+   #   * - error
+   
+   if ! test -d "$1"
+   then
+      err "ERROR: '$1' is not a directory. set_release_mode must be called with the path to a git repo as the first argument" 
+      return 1
+   fi
+   
+   if test -z "$2"
+   then
+      err "ERROR: The version specified was empty"
+      return 1
+   fi
+      
+   local sdir="$1"
+   local vers="$2"
+   local rel_date="$(date +"%B %d, %Y")"
+   
+   if test -n "$3"
+   then
+      rel_date="$3"
+   fi
+   
+   status_stage "==> Updating CHANGELOG.md with release info: ${vers} (${rel_date})"
+   set_changelog_version "${sdir}" "${vers}" "${rel_date}" || return 1
+   
+   status_stage "==> Updating version/version.go"
+   if ! update_version "${sdir}/version/version.go" "${vers}"
+   then
+      unset_changelog_version "${sdir}"
+      return 1
+   fi
+   
+   return 0     
+}
+
+function set_dev_mode {
+   # Arguments:
+   #   $1 - Path to top level Consul source
+   #
+   # Returns:
+   #   0 - success
+   #   * - error
+   
+   if ! test -d "$1"
+   then
+      err "ERROR: '$1' is not a directory. set_dev_mode must be called with the path to a git repo as the first argument'" 
+      return 1
+   fi
+   
+   local sdir="$1"
+   local vers="$(parse_version "${sdir}" false false)"
+   
+   status_stage "==> Setting VersionPreRelease back to 'dev'"
+   update_version "${sdir}/version/version.go" "${vers}" dev || return 1
+   
+   status_stage "==> Adding new UNRELEASED label in CHANGELOG.md"
+   add_unreleased_to_changelog "${sdir}" || return 1
+   
+   return 0
 }

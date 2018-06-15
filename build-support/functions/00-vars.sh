@@ -7,7 +7,10 @@ UI_LEGACY_BUILD_CONTAINER_DEFAULT="consul-build-ui-legacy"
 GO_BUILD_CONTAINER_DEFAULT="consul-build-go"
 
 # Whether to colorize shell output
-COLORIZE=1
+if test -z "${COLORIZE}"
+then
+   COLORIZE=1
+fi
 
 
 # determine GOPATH and the first GOPATH to use for intalling binaries
@@ -37,3 +40,11 @@ if test -z "${PUBLISH_GIT_REPO}"
 then
    PUBLISH_GIT_REPO=hashicorp/consul.git
 fi
+
+if test "$(uname)" == "Darwin"
+then
+   SED_EXT="-E"
+else
+   SED_EXT=""
+fi
+   
