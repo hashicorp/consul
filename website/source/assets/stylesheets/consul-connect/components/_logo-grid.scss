@@ -8,6 +8,14 @@
 
   & > div {
     padding: 25px $site-gutter-padding;
-    width: 33%;
+    width: 50%;
+
+    @media (min-width: 768px) {
+      width: 33%;
+    }
+  }
+
+  img {
+    max-width: 100%;
   }
 }

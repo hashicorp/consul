@@ -19,10 +19,14 @@
     border-top: 1px solid #e5e6eb;
   }
 
-  & .intro {
-    margin: 0 auto 64px;
+  & .intro { 
+    margin: 0 auto 24px;
     max-width: 784px;
     text-align: center;
+
+    @media (min-width: 767px) {
+      margin-bottom: 64px;
+    }
 
     & h2,
     & h3 {
