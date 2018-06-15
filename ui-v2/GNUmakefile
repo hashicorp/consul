@@ -7,6 +7,9 @@ dist:
 	yarn run build
 	mv dist ../pkg/web_ui/v2
 
+init:
+	yarn install
+
 lint:
 	yarn run lint:js
 format:
