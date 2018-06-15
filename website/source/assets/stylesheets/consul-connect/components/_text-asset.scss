@@ -33,12 +33,7 @@
     }
 
     img {
-      max-width: 140%;
-      width: auto;
-
-      @media(min-width: 768px) {
-        max-width: none;
-      }
+      width: 145%;
     }
   }
 
