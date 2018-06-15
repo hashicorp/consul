@@ -1,6 +1,10 @@
 .g-section {
   overflow: hidden;
-  padding: 96px 0;
+  padding: 56px 0;
+  
+  @media (min-width: 768px) {
+    padding: 96px 0;
+  }
 
   &.bg-light {
     background: #f7f8fa !important; //TODO - !important is to override the `#page-home section` #fff background;

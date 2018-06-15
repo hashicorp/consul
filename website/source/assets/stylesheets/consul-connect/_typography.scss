@@ -1,5 +1,5 @@
 .consul-connect {
-  font-size: 16px; // root is set to 10px
+  // TODO - root is set to 10px
 
   ul,
   p {
@@ -9,7 +9,12 @@
   }
 
   p {
+    font-size: 1.6rem;
     margin: 1em 0;
+
+    @media (min-width: 992px) {
+      font-size: 1.8rem;
+    }
   }
 
   a:hover {

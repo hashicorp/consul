@@ -1,49 +1,92 @@
 .g-text-asset {
-  align-content: space-between;
-  display: flex;
-  justify-content: center;
-  margin: 0 (-$site-gutter-padding);
+  text-align: center;
+
+  @media (min-width: 768px) {
+    align-content: space-between;
+    display: flex;
+    justify-content: center;
+    margin: 0 (-$site-gutter-padding);
+    text-align: left;
+  }
 
   &.reverse {
     flex-direction: row-reverse;
 
     & > div:first-child > div {
       margin-left: auto;
-      padding: 0 32px 0 0;
+
+      @media (min-width: 768px) {
+        padding: 0 24px 0 0;
+      }
+
+      @media (min-width: 992px) {
+        padding-right: 32px;
+      }
     }
   }
 
   &.large {
-    margin-bottom: -96px;
+    margin-bottom: -56px;
+
+    @media (min-width: 768px) {
+      margin-bottom: -96px;
+    }
 
     img {
+      max-width: 140%;
       width: auto;
     }
   }
 
   & > div {
-    align-items: center;
-    display: flex;
-    padding: 0 $site-gutter-padding;
-    width: 50%;
+    @media (min-width: 768px) {
+      align-items: center;
+      margin: 0 auto;
+      display: flex;
+      padding: 0 $site-gutter-padding;
+      width: 50%;
+    }
 
-    &:first-child > div {
-      margin-left: 0;
-      padding: 0 0 0 32px;
-      max-width: 454px;
+    &:first-child {
+      margin-bottom: 32px;
 
-      & a {
-        color: #1563ff;
+      @media (min-width: 768px) {
+        margin-bottom: 0;
       }
 
-      & svg {
-        margin-left: 10px;
+      & > div {
+        @media (min-width: 768px) {
+          margin-left: 0;
+          max-width: 454px;
+          padding: 0 0 0 24px;
+        }
+
+        @media (min-width: 992px) {
+          padding-left: 32px;
+        }
+
+        & a {
+          color: #1563ff;
+
+          &:focus,
+          &:hover {
+            color: #2c72fe;
+
+            & path {
+              fill: #2c72fe;
+            }
+          }
+
+          & svg {
+            margin-left: 10px;
+          }
+        }
       }
     }
 
     & > img {
       width: 100%;
-  
+
       &.shadow {
         box-shadow: 0 40px 48px -20px rgba(63, 68, 85, 0.4);
       }
@@ -53,14 +96,18 @@
       box-shadow: 0 40px 48px -20px rgba(63, 68, 85, 0.4);
       color: $white;
       margin: 0;
+      text-align: left;
       width: 100%;
 
       span {
         background: #252937;
         border-bottom: 1px solid rgba(255, 255, 255, 0.15);
         display: block;
-        font-size: 1.6rem;
-        padding: 13px 0 11px 24px;
+        height: 32px;
+
+        @media (min-width: 768px) {
+          height: 40px;
+        }
       }
 
       .code {
@@ -73,7 +120,12 @@
           background: #1e212a;
           border-radius: 0;
           color: $white;
+          font-size: 1.2rem;
           white-space: pre;
+
+          @media (min-width: 992px) {
+            font-size: 1.4rem;
+          }
 
           &.keyword {
             color: #be5580;
@@ -84,7 +136,7 @@
 
     &.logos {
       justify-content: center;
-      
+
       & > div {
         align-items: center;
         display: flex;
@@ -98,6 +150,10 @@
   }
 
   h3 {
-    margin: 16px 0;
+    margin: 0 0 16px 0;
+
+    @media (min-width: 768px) {
+      margin-top: 16px;
+    }
   }
 }
