@@ -76,8 +76,7 @@ export GOLDFLAGS
 # all builds binaries for all targets
 all: bin
 
-bin: tools
-	@$(SHELL) $(CURDIR)/build-support/scripts/build.sh consul-local
+bin: tools dev-build
 
 # dev creates binaries for testing locally - these are put into ./bin and $GOPATH
 dev: changelogfmt vendorfmt dev-build
@@ -86,7 +85,6 @@ dev-build:
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-local.sh
 
 dev-docker:
-	@$(SHELL)
 	@docker build -t '$(CONSUL_DEV_IMAGE)' --build-arg 'GIT_COMMIT=$(GIT_COMMIT)' --build-arg 'GIT_DIRTY=$(GIT_DIRTY)' --build-arg 'GIT_DESCRIBE=$(GIT_DESCRIBE)' -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile $(CURDIR)
 
 vendorfmt:
@@ -108,6 +106,9 @@ dist:
 	
 publish:
 	@$(SHELL) $(CURDIR)/build-support/scripts/publish.sh -g -w
+
+dev-tree:
+	@$(SHELL) $(CURDIR)/build-support/scripts/dev.sh
 
 cov:
 	gocov test $(GOFILES) | gocov-html > /tmp/coverage.html
@@ -156,17 +157,16 @@ vet:
 		exit 1; \
 	fi
 
-# Build the static web ui and build static assets inside a Docker container, the
-# same way a release build works. This implicitly does a "make static-assets" at
-# the end.
-ui: ui-legacy-docker ui-docker static-assets
-
 # If you've run "make ui" manually then this will get called for you. This is
 # also run as part of the release build script when it verifies that there are no
 # changes to the UI assets that aren't checked in.
 static-assets:
 	@go-bindata-assetfs -pkg agent -prefix pkg -o $(ASSETFS_PATH) ./pkg/web_ui/...
 	$(MAKE) format
+
+
+# Build the static web ui and build static assets inside a Docker container
+ui: ui-legacy-docker ui-docker static-assets-docker
 
 tools:
 	go get -u -v $(GOTOOLS)
@@ -179,7 +179,7 @@ version:
 	@echo -n "Version + git:              "
 	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh  -g
 	@echo -n "Version + release + git:    "
-		@$(SHELL) $(CURDIR)/build-support/scripts/version.sh -r -g
+	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh -r -g
 		
 
 docker-images: go-build-image ui-build-image ui-legacy-build-image
