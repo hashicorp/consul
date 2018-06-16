@@ -80,6 +80,7 @@ func TestAPI_ConnectCAConfig_get_set(t *testing.T) {
 		verify.Values(r, "", parsed, expected)
 
 		// Change a config value and update
+		conf.Config["PrivateKey"] = ""
 		conf.Config["RotationPeriod"] = 120 * 24 * time.Hour
 		_, err = connect.CASetConfig(conf, nil)
 		r.Check(err)

@@ -242,8 +242,53 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	return buf.String(), nil
 }
 
+// GetCrossSigningCSR creates a CSR from our root CA certificate to be signed
+// by another CA provider.
+func (c *ConsulProvider) GetCrossSigningCSR() (*x509.CertificateRequest, error) {
+	c.RLock()
+	defer c.RUnlock()
+
+	// Get the provider state
+	state := c.delegate.State()
+	_, providerState, err := state.CAProviderState(c.id)
+	if err != nil {
+		return nil, err
+	}
+	privKey, err := connect.ParseSigner(providerState.PrivateKey)
+	if err != nil {
+		return nil, err
+	}
+	rootCA, err := connect.ParseCert(providerState.RootCert)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create the CSR
+	template := &x509.CertificateRequest{
+		DNSNames:           rootCA.DNSNames,
+		EmailAddresses:     rootCA.EmailAddresses,
+		IPAddresses:        rootCA.IPAddresses,
+		URIs:               rootCA.URIs,
+		SignatureAlgorithm: rootCA.SignatureAlgorithm,
+		Subject:            rootCA.Subject,
+		Extensions:         rootCA.Extensions,
+		ExtraExtensions:    rootCA.ExtraExtensions,
+	}
+
+	bs, err := x509.CreateCertificateRequest(rand.Reader, template, privKey)
+	if err != nil {
+		return nil, err
+	}
+	csr, err := x509.ParseCertificateRequest(bs)
+	if err != nil {
+		return nil, err
+	}
+
+	return csr, nil
+}
+
 // CrossSignCA returns the given intermediate CA cert signed by the current active root.
-func (c *ConsulProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
+func (c *ConsulProvider) CrossSignCA(csr *x509.CertificateRequest) (string, error) {
 	c.Lock()
 	defer c.Unlock()
 
@@ -264,7 +309,12 @@ func (c *ConsulProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 		return "", err
 	}
 
-	keyId, err := connect.KeyId(privKey.Public())
+	authKeyId, err := connect.KeyId(privKey.Public())
+	if err != nil {
+		return "", err
+	}
+
+	subjKeyId, err := connect.KeyId(csr.PublicKey)
 	if err != nil {
 		return "", err
 	}
@@ -272,11 +322,26 @@ func (c *ConsulProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 	// Create the cross-signing template from the existing root CA
 	serialNum := &big.Int{}
 	serialNum.SetUint64(idx + 1)
-	template := *cert
-	template.SerialNumber = serialNum
-	template.SignatureAlgorithm = rootCA.SignatureAlgorithm
-	template.SubjectKeyId = keyId
-	template.AuthorityKeyId = keyId
+	template := &x509.Certificate{
+		SerialNumber:          serialNum,
+		SignatureAlgorithm:    rootCA.SignatureAlgorithm,
+		DNSNames:              csr.DNSNames,
+		EmailAddresses:        csr.EmailAddresses,
+		IPAddresses:           csr.IPAddresses,
+		URIs:                  csr.URIs,
+		SubjectKeyId:          subjKeyId,
+		AuthorityKeyId:        authKeyId,
+		Subject:               csr.Subject,
+		Extensions:            csr.Extensions,
+		ExtraExtensions:       csr.ExtraExtensions,
+		BasicConstraintsValid: true,
+		KeyUsage: x509.KeyUsageCertSign |
+			x509.KeyUsageCRLSign |
+			x509.KeyUsageDigitalSignature,
+		IsCA:      true,
+		NotAfter:  time.Now().Add(7 * 24 * time.Hour),
+		NotBefore: time.Now(),
+	}
 
 	// Sign the certificate valid from 1 minute in the past, this helps it be
 	// accepted right away even when nodes are not in close time sync accross the
@@ -290,7 +355,7 @@ func (c *ConsulProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 	template.NotAfter = effectiveNow.Add(7 * 24 * time.Hour)
 
 	bs, err := x509.CreateCertificate(
-		rand.Reader, &template, rootCA, cert.PublicKey, privKey)
+		rand.Reader, template, rootCA, csr.PublicKey, privKey)
 	if err != nil {
 		return "", fmt.Errorf("error generating CA certificate: %s", err)
 	}

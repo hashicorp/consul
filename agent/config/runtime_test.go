@@ -2484,10 +2484,9 @@ func TestFullConfig(t *testing.T) {
 			"check_update_interval": "16507s",
 			"client_addr": "93.83.18.19",
 			"connect": {
-				"ca_provider": "b8j4ynx9",
+				"ca_provider": "consul",
 				"ca_config": {
-					"g4cvJyys": "IRLXE9Ds",
-					"hyMy9Oxn": "XeBp4Sis"
+					"RotationPeriod": "90h"
 				},
 				"enabled": true,
 				"proxy_defaults": {
@@ -2946,10 +2945,9 @@ func TestFullConfig(t *testing.T) {
 			check_update_interval = "16507s"
 			client_addr = "93.83.18.19"
 			connect {
-				ca_provider = "b8j4ynx9"
+				ca_provider = "consul"
 				ca_config {
-					"g4cvJyys" = "IRLXE9Ds"
-					"hyMy9Oxn" = "XeBp4Sis"
+					"RotationPeriod" = "90h"
 				}
 				enabled = true
 				proxy_defaults {
@@ -3550,10 +3548,9 @@ func TestFullConfig(t *testing.T) {
 		ConnectEnabled:          true,
 		ConnectProxyBindMinPort: 2000,
 		ConnectProxyBindMaxPort: 3000,
-		ConnectCAProvider:       "b8j4ynx9",
+		ConnectCAProvider:       "consul",
 		ConnectCAConfig: map[string]interface{}{
-			"g4cvJyys": "IRLXE9Ds",
-			"hyMy9Oxn": "XeBp4Sis",
+			"RotationPeriod": "90h",
 		},
 		ConnectProxyAllowManagedRoot:            false,
 		ConnectProxyAllowManagedAPIRegistration: false,

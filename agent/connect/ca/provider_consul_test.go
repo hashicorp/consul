@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type consulCAMockDelegate struct {
@@ -52,7 +53,7 @@ func newMockDelegate(t *testing.T, conf *structs.CAConfiguration) *consulCAMockD
 	if s == nil {
 		t.Fatalf("missing state store")
 	}
-	if err := s.CASetConfig(0, conf); err != nil {
+	if err := s.CASetConfig(conf.RaftIndex.CreateIndex, conf); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -177,37 +178,44 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 func TestConsulCAProvider_CrossSignCA(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
-	conf := testConsulCAConfig()
-	delegate := newMockDelegate(t, conf)
-	provider, err := NewConsulProvider(conf.Config, delegate)
-	assert.NoError(err)
+	require := require.New(t)
 
-	// Make a new CA cert to get cross-signed.
-	rootCA := connect.TestCA(t, nil)
-	rootPEM, err := provider.ActiveRoot()
-	assert.NoError(err)
-	root, err := connect.ParseCert(rootPEM)
-	assert.NoError(err)
+	conf1 := testConsulCAConfig()
+	delegate1 := newMockDelegate(t, conf1)
+	provider1, err := NewConsulProvider(conf1.Config, delegate1)
+
+	conf2 := testConsulCAConfig()
+	conf2.CreateIndex = 10
+	delegate2 := newMockDelegate(t, conf2)
+	provider2, err := NewConsulProvider(conf2.Config, delegate2)
+	require.NoError(err)
+
+	require.NoError(err)
+
+	// Have provider2 generate a cross-signing CSR
+	csr, err := provider2.GetCrossSigningCSR()
+	require.NoError(err)
+	oldSubject := csr.Subject.CommonName
 
 	// Have the provider cross sign our new CA cert.
-	cert, err := connect.ParseCert(rootCA.RootCert)
-	assert.NoError(err)
-	oldSubject := cert.Subject.CommonName
-	xcPEM, err := provider.CrossSignCA(cert)
-	assert.NoError(err)
-
+	xcPEM, err := provider1.CrossSignCA(csr)
+	require.NoError(err)
 	xc, err := connect.ParseCert(xcPEM)
-	assert.NoError(err)
+	require.NoError(err)
 
-	// AuthorityKeyID and SubjectKeyID should be the signing root's.
-	assert.Equal(root.AuthorityKeyId, xc.AuthorityKeyId)
-	assert.Equal(root.SubjectKeyId, xc.SubjectKeyId)
+	rootPEM, err := provider1.ActiveRoot()
+	require.NoError(err)
+	root, err := connect.ParseCert(rootPEM)
+	require.NoError(err)
+
+	// AuthorityKeyID should be the signing root's, SubjectKeyId should be different.
+	require.Equal(root.AuthorityKeyId, xc.AuthorityKeyId)
+	require.NotEqual(root.SubjectKeyId, xc.SubjectKeyId)
 
 	// Subject name should not have changed.
-	assert.NotEqual(root.Subject.CommonName, xc.Subject.CommonName)
-	assert.Equal(oldSubject, xc.Subject.CommonName)
+	require.NotEqual(root.Subject.CommonName, xc.Subject.CommonName)
+	require.Equal(oldSubject, xc.Subject.CommonName)
 
 	// Issuer should be the signing root.
-	assert.Equal(root.Issuer.CommonName, xc.Issuer.CommonName)
+	require.Equal(root.Issuer.CommonName, xc.Issuer.CommonName)
 }

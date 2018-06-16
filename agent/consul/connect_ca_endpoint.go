@@ -140,22 +140,14 @@ func (s *ConnectCA) ConfigurationSet(
 	// to get the cross-signed intermediate
 	// 3. Get the active root for the new provider, append the intermediate from step 3
 	// to its list of intermediates
-	intermediatePEM, err := newProvider.GenerateIntermediate()
-	if err != nil {
-		return err
-	}
-
-	intermediateCA, err := connect.ParseCert(intermediatePEM)
-	if err != nil {
-		return err
-	}
+	csr, err := newProvider.GetCrossSigningCSR()
 
 	// Have the old provider cross-sign the new intermediate
 	oldProvider, _ := s.srv.getCAProvider()
 	if oldProvider == nil {
 		return fmt.Errorf("internal error: CA provider is nil")
 	}
-	xcCert, err := oldProvider.CrossSignCA(intermediateCA)
+	xcCert, err := oldProvider.CrossSignCA(csr)
 	if err != nil {
 		return err
 	}

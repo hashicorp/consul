@@ -210,10 +210,10 @@ func TestConnectCAConfig_TriggerRotation(t *testing.T) {
 				oldRootCert := testParseCert(t, oldRoot.RootCert)
 				newRootCert := testParseCert(t, r.RootCert)
 
-				// Should have the authority/subject key IDs and signature algo of the
+				// Should have the authority key ID and signature algo of the
 				// (old) signing CA.
 				assert.Equal(xc.AuthorityKeyId, oldRootCert.AuthorityKeyId)
-				assert.Equal(xc.SubjectKeyId, oldRootCert.SubjectKeyId)
+				assert.NotEqual(xc.SubjectKeyId, oldRootCert.SubjectKeyId)
 				assert.Equal(xc.SignatureAlgorithm, oldRootCert.SignatureAlgorithm)
 
 				// The common name and SAN should not have changed.

@@ -935,6 +935,7 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 
 	// Validate the given Connect CA provider config
 	validCAProviders := map[string]bool{
+		"": true,
 		structs.ConsulCAProvider: true,
 		structs.VaultCAProvider:  true,
 	}

@@ -82,15 +82,15 @@ func fixupConfig(conf *structs.CAConfiguration) {
 	for k, v := range conf.Config {
 		if raw, ok := v.([]uint8); ok {
 			conf.Config[k] = ca.Uint8ToString(raw)
-		}
-		switch conf.Provider {
-		case structs.ConsulCAProvider:
-			if v, ok := conf.Config["PrivateKey"]; ok && v != "" {
-				conf.Config["PrivateKey"] = "hidden"
-			}
-		case structs.VaultCAProvider:
-			if v, ok := conf.Config["Token"]; ok && v != "" {
-				conf.Config["Token"] = "hidden"
+			switch conf.Provider {
+			case structs.ConsulCAProvider:
+				if k == "PrivateKey" && ca.Uint8ToString(raw) != "" {
+					conf.Config["PrivateKey"] = "hidden"
+				}
+			case structs.VaultCAProvider:
+				if k == "Token" && ca.Uint8ToString(raw) != "" {
+					conf.Config["Token"] = "hidden"
+				}
 			}
 		}
 	}

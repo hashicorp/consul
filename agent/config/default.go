@@ -113,7 +113,6 @@ func DevSource() Source {
 
 		connect = {
 			enabled = true
-			ca_provider = "consul"
 		}
 		performance = {
 			raft_multiplier = 1
