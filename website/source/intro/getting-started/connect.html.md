@@ -185,6 +185,11 @@ connection again. Intentions allow services to be segmented via a centralized
 control plane (Consul). To learn more, read the reference documentation on
 [intentions](/docs/connect/intentions.html).
 
+Note that in the current release of Consul, changing intentions will not
+affect existing connections. Therefore, you must establish a new connection
+to see the effects of a changed intention. This will be addressed in the near
+term in a future version of Consul.
+
 ## Next Steps
 
 We've now configured a service on a single agent and used Connect for

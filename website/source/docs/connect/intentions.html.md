@@ -44,6 +44,11 @@ The intention above is a deny intention with a source of "web" and
 destination of "db". This says that connections from web to db are not
 allowed and the connection will be rejected.
 
+When an intention is modified, existing connections will not be affected.
+This means that changing a connection from "allow" to "deny" today
+_will not_ kill the connection. Addressing this shortcoming is on
+the near term roadmap for Consul.
+
 ### Wildcard Intentions
 
 An intention source or destination may also be the special wildcard
@@ -156,5 +161,5 @@ for registered services.
 Because all the intention data is cached locally, the agents can fail static.
 Even if the agents are severed completely from the Consul servers, inbound
 connection authorization continues to work for a configured amount of time.
-Changes to intentions will not be picked up until the partition heals, but 
+Changes to intentions will not be picked up until the partition heals, but
 will then automatically take effect when connectivity is restored.
