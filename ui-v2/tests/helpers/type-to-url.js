@@ -2,22 +2,30 @@ export default function(type) {
   let url = null;
   switch (type) {
     case 'dc':
-      url = '/v1/catalog/datacenters';
+      url = ['/v1/catalog/datacenters'];
       break;
     case 'service':
-      url = '/v1/internal/ui/services';
+      url = ['/v1/internal/ui/services', '/v1/health/service/'];
       break;
     case 'node':
-      url = '/v1/internal/ui/nodes';
-      // url = '/v1/health/service/_';
+      url = ['/v1/internal/ui/nodes'];
       break;
     case 'kv':
       url = '/v1/kv/';
       break;
     case 'acl':
-      url = '/v1/acl/list';
-      // url = '/v1/acl/info/_';
+      url = ['/v1/acl/list'];
       break;
   }
-  return url;
+  return function(actual) {
+    if (url === null) {
+      return false;
+    }
+    if (typeof url === 'string') {
+      return url === actual;
+    }
+    return url.some(function(item) {
+      return actual.indexOf(item) === 0;
+    });
+  };
 }
