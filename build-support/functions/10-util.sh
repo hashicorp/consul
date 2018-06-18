@@ -137,6 +137,7 @@ function parse_version {
    # Get the main version out of the source file
    version_main=$(awk '$1 == "Version" && $2 == "=" { gsub(/"/, "", $3); print $3 }' < ${vfile})
    release_main=$(awk '$1 == "VersionPrerelease" && $2 == "=" { gsub(/"/, "", $3); print $3 }' < ${vfile})
+
    
    # try to determine the version if we have build tags
    for tag in "$GOTAGS"
@@ -150,6 +151,7 @@ function parse_version {
          fi
       done
    done
+
    
    # override the version from source with the value of the GIT_DESCRIBE env var if present
    if test -n "${git_version}"
@@ -162,19 +164,19 @@ function parse_version {
    if is_set "${include_release}"
    then
       # Get the release version out of the source file
-      release="${release_main}"
+      rel_ver="${release_main}"
       
       # When no GIT_DESCRIBE env var is present and no release is in the source then we 
       # are definitely in dev mode
-      if test -z "${git_version}" -a -z "$release"
+      if test -z "${git_version}" -a -z "${rel_ver}"
       then
-         release="dev"
+         rel_ver="dev"
       fi
       
       # Add the release to the version
-      if test -n "$release"
+      if test -n "${rel_ver}"
       then
-         version="${version}-${release}"
+         version="${version}-${rel_ver}"
          
          # add the git commit to the version
          if test -n "${git_commit}"
