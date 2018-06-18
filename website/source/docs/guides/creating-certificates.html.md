@@ -39,6 +39,8 @@ signed by this CA will be allowed to communicate with the cluster.
 This guide assumes you have [cfssl][cfssl] installed (be sure to install
 cfssljson as well).
 
+## Steps
+
 ### Step 1: Create Certificate Authority
 
 There are a variety of tools for managing your own CA, [like the PKI secret
@@ -188,7 +190,7 @@ $ export CONSUL_CLIENT_KEY=cli-key.pem
   `-client-key`.
 
 After these environment variables are correctly configured, the CLI will
-respond as expected
+respond as expected.
 
 [cfssl]: https://cfssl.org/
 [letsencrypt]: https://letsencrypt.org/
