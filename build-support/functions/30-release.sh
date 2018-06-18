@@ -177,25 +177,25 @@ function check_release {
    
    declare -a expected_files
    
-   expected_files+=("consul_${2}_SHA256SUMS")
+   expected_files+=("${CONSUL_PKG_NAME}_${2}_SHA256SUMS")
    echo "check sig: $3"
    if is_set "$3"
    then
-      expected_files+=("consul_${2}_SHA256SUMS.sig")
+      expected_files+=("${CONSUL_PKG_NAME}_${2}_SHA256SUMS.sig")
    fi
    
-   expected_files+=("consul_${2}_darwin_386.zip")
-   expected_files+=("consul_${2}_darwin_amd64.zip")
-   expected_files+=("consul_${2}_freebsd_386.zip")
-   expected_files+=("consul_${2}_freebsd_amd64.zip")
-   expected_files+=("consul_${2}_freebsd_arm.zip")
-   expected_files+=("consul_${2}_linux_386.zip")
-   expected_files+=("consul_${2}_linux_amd64.zip")
-   expected_files+=("consul_${2}_linux_arm.zip")
-   expected_files+=("consul_${2}_linux_arm64.zip")
-   expected_files+=("consul_${2}_solaris_amd64.zip")
-   expected_files+=("consul_${2}_windows_386.zip")
-   expected_files+=("consul_${2}_windows_amd64.zip")
+   expected_files+=("${CONSUL_PKG_NAME}_${2}_darwin_386.zip")
+   expected_files+=("${CONSUL_PKG_NAME}_${2}_darwin_amd64.zip")
+   expected_files+=("${CONSUL_PKG_NAME}_${2}_freebsd_386.zip")
+   expected_files+=("${CONSUL_PKG_NAME}_${2}_freebsd_amd64.zip")
+   expected_files+=("${CONSUL_PKG_NAME}_${2}_freebsd_arm.zip")
+   expected_files+=("${CONSUL_PKG_NAME}_${2}_linux_386.zip")
+   expected_files+=("${CONSUL_PKG_NAME}_${2}_linux_amd64.zip")
+   expected_files+=("${CONSUL_PKG_NAME}_${2}_linux_arm.zip")
+   expected_files+=("${CONSUL_PKG_NAME}_${2}_linux_arm64.zip")
+   expected_files+=("${CONSUL_PKG_NAME}_${2}_solaris_amd64.zip")
+   expected_files+=("${CONSUL_PKG_NAME}_${2}_windows_386.zip")
+   expected_files+=("${CONSUL_PKG_NAME}_${2}_windows_amd64.zip")
    
    declare -a found_files
    
@@ -420,7 +420,7 @@ function build_release {
    fi
    
    status_stage "==> Generating SHA 256 Hashes for Binaries"
-   shasum_release "${sdir}/pkg/dist" "consul_${vers}_SHA256SUMS"
+   shasum_release "${sdir}/pkg/dist" "${CONSUL_PKG_NAME}_${vers}_SHA256SUMS"
    if test $? -ne 0
    then
       err "ERROR: Failed to generate SHA 256 hashes for the release"
@@ -429,7 +429,7 @@ function build_release {
    
    if is_set "${do_sha256}"
    then
-      sign_release "${sdir}/pkg/dist/consul_${vers}_SHA256SUMS" "${gpg_key}"
+      sign_release "${sdir}/pkg/dist/${CONSUL_PKG_NAME}_${vers}_SHA256SUMS" "${gpg_key}"
       if test $? -ne 0
       then
          err "ERROR: Failed to sign the SHA 256 hashes file"

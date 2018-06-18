@@ -27,6 +27,8 @@ PUBLISH_GIT_HOST="${PUBLISH_GIT_HOST-github.com}"
 # default publish repo is hashicorp/consul - useful to override for testing as well as in the enterprise repo
 PUBLISH_GIT_REPO="${PUBLISH_GIT_REPO-hashicorp/consul.git}"
 
+CONSUL_PKG_NAME="consul"
+
 if test "$(uname)" == "Darwin"
 then
    SED_EXT="-E"

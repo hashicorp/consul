@@ -79,7 +79,7 @@ function confirm_consul_version {
    #   0 - success
    #   * - error
    
-   local zfile="${1}/consul_${2}_$(go env GOOS)_$(go env GOARCH).zip"
+   local zfile="${1}/${CONSUL_PKG_NAME}_${2}_$(go env GOOS)_$(go env GOARCH).zip"
    
    if ! test -f "${zfile}"
    then
@@ -88,7 +88,7 @@ function confirm_consul_version {
    fi
    
    local ret=0
-   local tfile="$(mktemp) -t "consul_")"
+   local tfile="$(mktemp) -t "${CONSUL_PKG_NAME}_")"
    
    unzip -p "${zfile}" "consul" > "${tfile}"
    if test $? -eq 0
