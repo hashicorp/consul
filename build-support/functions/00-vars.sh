@@ -35,3 +35,5 @@ then
 else
    SED_EXT=""
 fi
+
+CONSUL_BINARY_TYPE=oss
