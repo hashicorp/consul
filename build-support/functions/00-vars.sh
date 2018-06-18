@@ -7,11 +7,7 @@ UI_LEGACY_BUILD_CONTAINER_DEFAULT="consul-build-ui-legacy"
 GO_BUILD_CONTAINER_DEFAULT="consul-build-go"
 
 # Whether to colorize shell output
-if test -z "${COLORIZE}"
-then
-   COLORIZE=1
-fi
-
+COLORIZE=${COLORIZE-1}
 
 # determine GOPATH and the first GOPATH to use for intalling binaries
 GOPATH=${GOPATH:-$(go env GOPATH)}
@@ -22,24 +18,14 @@ case $(uname) in
 esac
 MAIN_GOPATH=$(cut -d: -f1 <<< "${GOPATH}")
 
-
 # Build debugging output is off by default
-if test -z "${BUILD_DEBUG}"
-then
-   BUILD_DEBUG=0
-fi
+BUILD_DEBUG=${BUILD_DEBUG-0}
 
 # default publish host is github.com - only really useful to use something else for testing
-if test -z "${PUBLISH_GIT_HOST}"
-then
-   PUBLISH_GIT_HOST=github.com
-fi
+PUBLISH_GIT_HOST="${PUBLISH_GIT_HOST-github.com}"
 
 # default publish repo is hashicorp/consul - useful to override for testing as well as in the enterprise repo
-if test -z "${PUBLISH_GIT_REPO}"
-then
-   PUBLISH_GIT_REPO=hashicorp/consul.git
-fi
+PUBLISH_GIT_REPO="${PUBLISH_GIT_REPO-hashicorp/consul.git}"
 
 if test "$(uname)" == "Darwin"
 then
@@ -47,4 +33,3 @@ then
 else
    SED_EXT=""
 fi
-   
