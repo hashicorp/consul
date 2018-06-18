@@ -13,7 +13,8 @@ RUN apt-get update -y && \
             zip \
             zlib1g-dev \
             nodejs \
-            npm && \
+            npm \
+            rsync && \
     gem install bundler && \
     npm install --global yarn && \
     npm install --global ember-cli

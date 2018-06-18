@@ -14,8 +14,10 @@
   display: block;
   max-width: 100%;
   min-width: 100%;
-  padding: 0.625em;
+  min-height: 70px;
+  padding: 0.625em 15px;
   resize: vertical;
+  line-height: 1.5;
 }
 %form-element [type='text'],
 %form-element [type='password'] {
@@ -37,14 +39,16 @@
   box-shadow: none;
   border-radius: $radius-small;
 }
-.has-error > input {
+.has-error > input,
+.has-error > textarea {
   border: 1px solid;
 }
 %form-element > span {
   color: $text-gray;
 }
 %form-element [type='text'],
-%form-element [type='password'] {
+%form-element [type='password'],
+%form-element textarea {
   color: $user-text-gray;
 }
 %form-element [type='text'],

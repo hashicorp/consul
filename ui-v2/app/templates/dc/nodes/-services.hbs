@@ -1,10 +1,11 @@
 {{#if (gt items.length 0) }}
     <form class="filter-bar">
-        {{freetext-filter onchange=(action 'filter') value=filter.s placeholder="Search by name"}}
+        {{freetext-filter onchange=(action 'filter') value=filter.s placeholder="Search by name/port"}}
     </form>
 {{/if}}
 {{#if (gt filtered.length 0)}}
     {{#tabular-collection
+        data-test-services
         items=filtered as |item index|
     }}
         {{#block-slot 'header'}}
@@ -13,10 +14,10 @@
             <th>Tags</th>
         {{/block-slot}}
         {{#block-slot 'row'}}
-            <td>
+            <td data-test-service-name="{{item.Service}}">
                 <a href={{href-to 'dc.services.show' item.Service }}>{{item.Service}}</a>
             </td>
-            <td>
+            <td data-test-service-port="{{item.Port}}" class="port">
                 {{item.Port}}
             </td>
             <td>
