@@ -52,13 +52,13 @@ DIST_BUILD?=1
 DIST_SIGN?=1
 
 ifdef DIST_VERSION
-DIST_VERSION_ARG=-v $(DIST_VERSION)
+DIST_VERSION_ARG=-v "$(DIST_VERSION)"
 else
 DIST_VERSION_ARG=
 endif
 
 ifdef DIST_RELEASE_DATE
-DIST_DATE_ARG=-d $(DIST_RELEASE_DATE)
+DIST_DATE_ARG=-d "$(DIST_RELEASE_DATE)"
 else
 DIST_DATE_ARG=
 endif
@@ -117,10 +117,10 @@ linux:
 
 # dist builds binaries for all platforms and packages them for distribution
 dist:
-	@$(SHELL) $(CURDIR)/build-support/scripts/release.sh -t '$(DIST_TAG)' -b '$(DIST_BUILD)' -S '$(DIST_SIGN)' '$(DIST_VERSION_ARG)' '$(DIST_DATE_ARG)'
+	@$(SHELL) $(CURDIR)/build-support/scripts/release.sh -t '$(DIST_TAG)' -b '$(DIST_BUILD)' -S '$(DIST_SIGN)' $(DIST_VERSION_ARG) $(DIST_DATE_ARG)
 	
 publish:
-	@$(SHELL) $(CURDIR)/build-support/scripts/publish.sh '$(PUB_GIT_ARG)' '$(PUB_WEBSITE_ARG)'
+	@$(SHELL) $(CURDIR)/build-support/scripts/publish.sh $(PUB_GIT_ARG) $(PUB_WEBSITE_ARG)
 
 dev-tree:
 	@$(SHELL) $(CURDIR)/build-support/scripts/dev.sh
