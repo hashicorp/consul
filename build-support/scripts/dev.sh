@@ -87,7 +87,7 @@ function main {
       commit_dev_mode "${sdir}" || return 1
       
       status_stage "==> Confirming Git Changes"
-      confirm_git_push_changes "${sdir}"
+      confirm_git_push_changes "${sdir}" || return 1
       
       status_stage "==> Pushing to Git"
       git_push_ref "$1" || return 1
