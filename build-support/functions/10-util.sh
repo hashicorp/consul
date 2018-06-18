@@ -94,6 +94,7 @@ function parse_version {
    #   $1 - Path to the top level Consul source
    #   $2 - boolean value for whether the release version should be parsed from the source
    #   $3 - boolean whether to use GIT_DESCRIBE and GIT_COMMIT environment variables
+   #   $4 - boolean whether to omit the version part of the version string. (optional)
    #
    # Return:
    #   0 - success (will write the version to stdout)
@@ -114,6 +115,7 @@ function parse_version {
    
    local include_release="$2"
    local use_git_env="$3"
+   local omit_version="$4"
    
    local git_version=""
    local git_commit=""
@@ -152,18 +154,17 @@ function parse_version {
       done
    done
 
-   
+   local version="${version_main}"
    # override the version from source with the value of the GIT_DESCRIBE env var if present
    if test -n "${git_version}"
    then
       version="${git_version}"
-   else
-      version="${version_main}"
    fi
-      
+     
+   local rel_ver="" 
    if is_set "${include_release}"
    then
-      # Get the release version out of the source file
+      # Default to pre-release from the source
       rel_ver="${release_main}"
       
       # When no GIT_DESCRIBE env var is present and no release is in the source then we 
@@ -174,21 +175,28 @@ function parse_version {
       fi
       
       # Add the release to the version
-      if test -n "${rel_ver}"
+      if test -n "${rel_ver}" -a -n "${git_commit}"
       then
-         version="${version}-${rel_ver}"
-         
-         # add the git commit to the version
-         if test -n "${git_commit}"
-         then
-            version="${version} (${git_commit})"
-         fi
+         rel_ver="${rel_ver} (${git_commit})"
       fi
    fi
    
-   # Output the version
-   echo "$version" | tr -d "'"
-   return 0
+   if test -n "${rel_ver}"
+   then
+      if is_set "${omit_version}"
+      then
+         echo "${rel_ver}" | tr -d "'"
+      else
+         echo "${version}-${rel_ver}" | tr -d "'" 
+      fi
+      return 0
+   elif ! is_set "${omit_version}"
+   then
+      echo "${version}" | tr -d "'"
+      return 0
+   else
+      return 1
+   fi
 }
 
 function get_version {
@@ -624,6 +632,7 @@ function set_release_mode {
    #   $1 - Path to top level Consul source
    #   $2 - The version of the release
    #   $3 - The release date
+   #   $4 - The pre-release version
    #   
    #
    # Returns:
@@ -651,11 +660,17 @@ function set_release_mode {
       rel_date="$3"
    fi
    
-   status_stage "==> Updating CHANGELOG.md with release info: ${vers} (${rel_date})"
-   set_changelog_version "${sdir}" "${vers}" "${rel_date}" || return 1
+   local changelog_vers="${vers}"
+   if test -n "$4"
+   then
+      changelog_vers="${vers}-$4"
+   fi
+   
+   status_stage "==> Updating CHANGELOG.md with release info: ${changelog_vers} (${rel_date})"
+   set_changelog_version "${sdir}" "${changelog_vers}" "${rel_date}" || return 1
    
    status_stage "==> Updating version/version.go"
-   if ! update_version "${sdir}/version/version.go" "${vers}"
+   if ! update_version "${sdir}/version/version.go" "${vers}" "$4"
    then
       unset_changelog_version "${sdir}"
       return 1

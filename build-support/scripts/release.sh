@@ -53,6 +53,8 @@ Options:
                                  the version will be parsed from the source.
    
    -d | --date       DATE        The release date. Defaults to today.
+   
+   -r | --release    STRING      The prerelease version. Defaults to an empty pre-release.
                                  
    -h | --help                   Print this help text.
 EOF
@@ -81,6 +83,7 @@ function main {
    declare -i do_sign=1
    declare    gpg_key="${HASHICORP_GPG_KEY}"
    declare    version=""
+   declare    release_ver=""
    declare    release_date=$(date +"%B %d, %Y")
    
    while test $# -gt 0
@@ -128,9 +131,13 @@ function main {
             shift 2
             ;;
          -d | --date)
-            echo "$2"
             ensure_arg "-d/--date" "$2" || return 1
             release_date="$2"
+            shift 2
+            ;;
+         -r | --release)
+            ensure_arg "-r/--release" "$2" || return 1
+            release_ver="$2"
             shift 2
             ;;
          *)
@@ -140,7 +147,7 @@ function main {
       esac
    done
    
-   build_release "${sdir}" "${do_tag}" "${do_build}" "${do_sign}" "${version}" "${release_date}" "${gpg_key}"
+   build_release "${sdir}" "${do_tag}" "${do_build}" "${do_sign}" "${version}" "${release_date}" "${release_ver}" "${gpg_key}"
    return $?
 }
 

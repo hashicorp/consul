@@ -63,6 +63,12 @@ else
 DIST_DATE_ARG=
 endif
 
+ifdef DIST_PRERELEASE
+DIST_REL_ARG=-r "$(DIST_PRERELEASE)"
+else
+DIST_REL_ARG=
+endif
+
 PUB_GIT?=1
 PUB_WEBSITE?=1
 
@@ -117,7 +123,7 @@ linux:
 
 # dist builds binaries for all platforms and packages them for distribution
 dist:
-	@$(SHELL) $(CURDIR)/build-support/scripts/release.sh -t '$(DIST_TAG)' -b '$(DIST_BUILD)' -S '$(DIST_SIGN)' $(DIST_VERSION_ARG) $(DIST_DATE_ARG)
+	@$(SHELL) $(CURDIR)/build-support/scripts/release.sh -t '$(DIST_TAG)' -b '$(DIST_BUILD)' -S '$(DIST_SIGN)' $(DIST_VERSION_ARG) $(DIST_DATE_ARG) $(DIST_REL_ARG)
 	
 publish:
 	@$(SHELL) $(CURDIR)/build-support/scripts/publish.sh $(PUB_GIT_ARG) $(PUB_WEBSITE_ARG)

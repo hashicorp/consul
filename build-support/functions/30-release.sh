@@ -349,7 +349,8 @@ function build_release {
    #   $4 - boolean whether to generate the sha256 sums
    #   $5 - version to set within version.go and the changelog
    #   $6 - release date to set within the changelog
-   #   $7 - alternative gpg key to use for signing operations (optional)
+   #   $7 - release version to set
+   #   $8 - alternative gpg key to use for signing operations (optional)
    #
    # Returns:
    #   0 - success
@@ -361,7 +362,8 @@ function build_release {
    debug "Sign Release:  $4"
    debug "Version:       $5"
    debug "Release Date:  $6"
-   debug "GPG Key:       $7"
+   debug "Release Vers:  $7"
+   debug "GPG Key:       $8"
    
    if ! test -d "$1"
    then
@@ -379,7 +381,7 @@ function build_release {
    local do_tag="$2"
    local do_build="$3"
    local do_sha256="$4"
-   local gpg_key="$7"
+   local gpg_key="$8"
    
    if test -z "${gpg_key}"
    then
@@ -403,13 +405,15 @@ function build_release {
    
    local set_vers="$5"
    local set_date="$6"
+   local set_release="$7"
    
    if test -z "${set_vers}"
    then
       set_vers=$(get_version "${sdir}" false false)
+      set_release=$(parse_version "${sdir}" true false true)
    fi
    
-   if is_set "${do_tag}" && ! set_release_mode "${sdir}" "${set_vers}" "${set_date}"
+   if is_set "${do_tag}" && ! set_release_mode "${sdir}" "${set_vers}" "${set_date}" "${set_release}"
    then
       err "ERROR: Failed to put source into release mode"
       return 1 
