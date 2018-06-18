@@ -128,6 +128,7 @@ function main {
             shift 2
             ;;
          -d | --date)
+            echo "$2"
             ensure_arg "-d/--date" "$2" || return 1
             release_date="$2"
             shift 2
@@ -143,6 +144,6 @@ function main {
    return $?
 }
 
-main $@
+main "$@"
 exit $?
    
