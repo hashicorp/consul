@@ -98,10 +98,10 @@ function package_release {
    for platform in $(find "${sdir}/pkg/bin" -mindepth 1 -maxdepth 1 -type d)
    do
       local os_arch=$(basename $platform)
-      local dest="${sdir}/pkg/dist/consul_${vers}_${os_arch}.zip"
+      local dest="${sdir}/pkg/dist/${CONSUL_PKG_NAME}_${vers}_${os_arch}.zip"
       status "Compressing ${os_arch} directory into ${dest}"
       pushd "${platform}" > /dev/null
-      zip "${sdir}/pkg/dist/consul_${vers}_${os_arch}.zip" ./*
+      zip "${sdir}/pkg/dist/${CONSUL_PKG_NAME}_${vers}_${os_arch}.zip" ./*
       ret=$?
       popd > /dev/null
       
