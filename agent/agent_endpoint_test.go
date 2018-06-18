@@ -3274,13 +3274,16 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 		Check: structs.CheckType{
 			TTL: 15 * time.Second,
 		},
-		Connect: &structs.ServiceConnect{},
+		Connect: &structs.ServiceConnect{
+			// Proxy is populated with the definition in the table below.
+		},
 	}
 
 	tests := []struct {
 		name         string
 		globalConfig string
 		proxy        structs.ServiceDefinitionConnectProxy
+		useToken     string
 		wantMode     api.ProxyExecMode
 		wantCommand  []string
 		wantConfig   map[string]interface{}
@@ -3502,6 +3505,58 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:     "reg passed through with no agent config added if not proxy token auth",
+			useToken: "foo", // no actual ACLs set so this any token will work but has to be non-empty to be used below
+			globalConfig: `
+			bind_addr = "0.0.0.0"
+			connect {
+				enabled = true
+				proxy {
+					allow_managed_api_registration = true
+				}
+				proxy_defaults = {
+					exec_mode = "daemon"
+					daemon_command = ["daemon.sh"]
+					script_command = ["script.sh"]
+					config = {
+						connect_timeout_ms = 1000
+					}
+				}
+			}
+			ports {
+				proxy_min_port = 10000
+				proxy_max_port = 10000
+			}
+			telemetry {
+				statsite_address = "localhost:8989"
+			}
+			`,
+			proxy: structs.ServiceDefinitionConnectProxy{
+				ExecMode: "script",
+				Command:  []string{"foo.sh"},
+				Config: map[string]interface{}{
+					"connect_timeout_ms":    2000,
+					"bind_address":          "127.0.0.1",
+					"bind_port":             1024,
+					"local_service_address": "127.0.0.1:9191",
+					"telemetry": map[string]interface{}{
+						"metrics_prefix": "foo",
+					},
+				},
+			},
+			wantMode:    api.ProxyExecModeScript,
+			wantCommand: []string{"foo.sh"},
+			wantConfig: map[string]interface{}{
+				"bind_address":          "127.0.0.1",
+				"bind_port":             float64(1024),
+				"local_service_address": "127.0.0.1:9191",
+				"connect_timeout_ms":    float64(2000),
+				"telemetry": map[string]interface{}{ // No defaults merged
+					"metrics_prefix": "foo",
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -3522,7 +3577,16 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 				require.Equal(200, resp.Code, "body: %s", resp.Body.String())
 			}
 
+			proxy := a.State.Proxy("test-id-proxy")
+			require.NotNil(proxy)
+			require.NotEmpty(proxy.ProxyToken)
+
 			req, _ := http.NewRequest("GET", "/v1/agent/connect/proxy/test-id-proxy", nil)
+			if tt.useToken != "" {
+				req.Header.Set("X-Consul-Token", tt.useToken)
+			} else {
+				req.Header.Set("X-Consul-Token", proxy.ProxyToken)
+			}
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.AgentConnectProxyConfig(resp, req)
 			require.NoError(err)

@@ -2212,19 +2212,22 @@ func (a *Agent) RemoveProxy(proxyID string, persist bool) error {
 // The given token may be a local-only proxy token or it may be an ACL token. We
 // will attempt to verify the local proxy token first.
 //
-// The effective ACL token is returned along with any error. In the case the
-// token matches a proxy token, then the ACL token used to register that proxy's
-// target service is returned for use in any RPC calls the proxy needs to make
-// on behalf of that service. If the token was an ACL token already then it is
-// always returned. Provided error is nil, a valid ACL token is always returned.
-func (a *Agent) verifyProxyToken(token, targetService, targetProxy string) (string, error) {
+// The effective ACL token is returned along with a boolean which is true if the
+// match was against a proxy token rather than an ACL token, and any error. In
+// the case the token matches a proxy token, then the ACL token used to register
+// that proxy's target service is returned for use in any RPC calls the proxy
+// needs to make on behalf of that service. If the token was an ACL token
+// already then it is always returned. Provided error is nil, a valid ACL token
+// is always returned.
+func (a *Agent) verifyProxyToken(token, targetService,
+	targetProxy string) (string, bool, error) {
 	// If we specify a target proxy, we look up that proxy directly. Otherwise,
 	// we resolve with any proxy we can find.
 	var proxy *local.ManagedProxy
 	if targetProxy != "" {
 		proxy = a.State.Proxy(targetProxy)
 		if proxy == nil {
-			return "", fmt.Errorf("unknown proxy service ID: %q", targetProxy)
+			return "", false, fmt.Errorf("unknown proxy service ID: %q", targetProxy)
 		}
 
 		// If the token DOESN'T match, then we reset the proxy which will
@@ -2247,32 +2250,32 @@ func (a *Agent) verifyProxyToken(token, targetService, targetProxy string) (stri
 		// represents the existence of a local service.
 		target := a.State.Service(proxy.Proxy.TargetServiceID)
 		if target == nil {
-			return "", fmt.Errorf("proxy target service not found: %q",
+			return "", false, fmt.Errorf("proxy target service not found: %q",
 				proxy.Proxy.TargetServiceID)
 		}
 
 		if target.Service != targetService {
-			return "", acl.ErrPermissionDenied
+			return "", false, acl.ErrPermissionDenied
 		}
 
 		// Resolve the actual ACL token used to register the proxy/service and
 		// return that for use in RPC calls.
-		return a.State.ServiceToken(proxy.Proxy.TargetServiceID), nil
+		return a.State.ServiceToken(proxy.Proxy.TargetServiceID), true, nil
 	}
 
 	// Doesn't match, we have to do a full token resolution. The required
-	// permission for any proxy-related endpont is service:write, since
+	// permission for any proxy-related endpoint is service:write, since
 	// to register a proxy you require that permission and sensitive data
 	// is usually present in the configuration.
 	rule, err := a.resolveToken(token)
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 	if rule != nil && !rule.ServiceWrite(targetService, nil) {
-		return "", acl.ErrPermissionDenied
+		return "", false, acl.ErrPermissionDenied
 	}
 
-	return token, nil
+	return token, false, nil
 }
 
 func (a *Agent) cancelCheckMonitors(checkID types.CheckID) {

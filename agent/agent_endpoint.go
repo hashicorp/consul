@@ -952,7 +952,7 @@ func (s *HTTPServer) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.
 
 	// Verify the proxy token. This will check both the local proxy token
 	// as well as the ACL if the token isn't local.
-	effectiveToken, err := s.agent.verifyProxyToken(qOpts.Token, serviceName, "")
+	effectiveToken, _, err := s.agent.verifyProxyToken(qOpts.Token, serviceName, "")
 	if err != nil {
 		return nil, err
 	}
@@ -1019,7 +1019,7 @@ func (s *HTTPServer) AgentConnectProxyConfig(resp http.ResponseWriter, req *http
 			}
 
 			// Validate the ACL token
-			_, err := s.agent.verifyProxyToken(token, target.Service, id)
+			_, isProxyToken, err := s.agent.verifyProxyToken(token, target.Service, id)
 			if err != nil {
 				return "", nil, err
 			}
@@ -1063,35 +1063,45 @@ func (s *HTTPServer) AgentConnectProxyConfig(resp http.ResponseWriter, req *http
 					target.Port)
 			}
 
-			// Add telemetry config. Copy the global config so we can customize the
-			// prefix.
-			telemetryCfg := s.agent.config.Telemetry
-			telemetryCfg.MetricsPrefix = telemetryCfg.MetricsPrefix + ".proxy." + target.ID
+			// Only merge in telemetry config from agent if the requested is
+			// authorized with a proxy token. This prevents us leaking potentially
+			// sensitive config like Circonus API token via a public endpoint. Proxy
+			// tokens are only ever generated in-memory and passed via ENV to a child
+			// proxy process so potential for abuse here seems small. This endpoint in
+			// general is only useful for managed proxies now so it should _always_ be
+			// true that auth is via a proxy token but inconvenient for testing if we
+			// lock it down so strictly.
+			if isProxyToken {
+				// Add telemetry config. Copy the global config so we can customize the
+				// prefix.
+				telemetryCfg := s.agent.config.Telemetry
+				telemetryCfg.MetricsPrefix = telemetryCfg.MetricsPrefix + ".proxy." + target.ID
 
-			// First see if the user has specified telemetry
-			if userRaw, ok := config["telemetry"]; ok {
-				// User specified domething, see if it is compatible with agent
-				// telemetry config:
-				var uCfg lib.TelemetryConfig
-				dec, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-					Result: &uCfg,
-					// Make sure that if the user passes something that isn't just a
-					// simple override of a valid TelemetryConfig that we fail so that we
-					// don't clobber their custom config.
-					ErrorUnused: true,
-				})
-				if err == nil {
-					if err = dec.Decode(userRaw); err == nil {
-						// It did decode! Merge any unspecified fields from agent config.
-						uCfg.MergeDefaults(&telemetryCfg)
-						config["telemetry"] = uCfg
+				// First see if the user has specified telemetry
+				if userRaw, ok := config["telemetry"]; ok {
+					// User specified domething, see if it is compatible with agent
+					// telemetry config:
+					var uCfg lib.TelemetryConfig
+					dec, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+						Result: &uCfg,
+						// Make sure that if the user passes something that isn't just a
+						// simple override of a valid TelemetryConfig that we fail so that we
+						// don't clobber their custom config.
+						ErrorUnused: true,
+					})
+					if err == nil {
+						if err = dec.Decode(userRaw); err == nil {
+							// It did decode! Merge any unspecified fields from agent config.
+							uCfg.MergeDefaults(&telemetryCfg)
+							config["telemetry"] = uCfg
+						}
 					}
+					// Failed to decode, just keep user's config["telemetry"] verbatim
+					// with no agent merge.
+				} else {
+					// Add agent telemetry config.
+					config["telemetry"] = telemetryCfg
 				}
-				// Failed to decode, just keep user's config["telemetry"] verbatim
-				// with no agent merge.
-			} else {
-				// Add agent telemetry config.
-				config["telemetry"] = telemetryCfg
 			}
 
 			reply := &api.ConnectProxyConfig{
