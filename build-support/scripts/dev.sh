@@ -90,7 +90,7 @@ function main {
       confirm_git_push_changes "${sdir}" || return 1
       
       status_stage "==> Pushing to Git"
-      git_push_ref "$1" || return 1
+      git_push_ref "${sdir}" || return 1
    fi
    
    return 0
