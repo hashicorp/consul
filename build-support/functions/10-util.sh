@@ -168,7 +168,7 @@ function parse_version {
       
       # When no GIT_DESCRIBE env var is present and no release is in the source then we 
       # are definitely in dev mode
-      if test -z "${git_version}" -a -z "${rel_ver}"
+      if test -z "${git_version}" -a -z "${rel_ver}" && is_set "${use_git_env}"
       then
          rel_ver="dev"
       fi
