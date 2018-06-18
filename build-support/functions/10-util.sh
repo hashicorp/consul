@@ -141,9 +141,9 @@ function parse_version {
    # try to determine the version if we have build tags
    for tag in "$GOTAGS"
    do
-      for vfile in $(ls "${1}/version/version_*.go" 2> /dev/null| sort)
+      for vfile in $(find "${1}/version" -name "version_*.go" 2> /dev/null| sort)
       do
-         if grep -q "// +build $tag" $file
+         if grep -q "// +build $tag" "${vfile}"
          then
             version_main=$(awk '$1 == "Version" && $2 == "=" { gsub(/"/, "", $3); print $3 }' < ${vfile})
             release_main=$(awk '$1 == "VersionPrerelease" && $2 == "=" { gsub(/"/, "", $3); print $3 }' < ${vfile})
