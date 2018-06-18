@@ -25,7 +25,21 @@ signed by this CA will be allowed to communicate with the cluster.
 ~> Consul certificates may be signed by intermediate CAs as long as the root CA
    is the same. Append all intermediate CAs to the `cert_file`.
 
-### Certificate Authority
+
+## Reference Material
+
+- [Encryption](/docs/agent/encryption.html)
+
+## Estimated Time to Complete
+
+20 minutes
+
+## Prerequisites
+
+This guide assumes you have [cfssl][cfssl] installed (be sure to install
+cfssljson as well).
+
+### Step 1: Create Certificate Authority
 
 There are a variety of tools for managing your own CA, [like the PKI secret
 backend in Vault][vault-pki], but for the sake of simplicity this guide will
@@ -33,7 +47,7 @@ use [cfssl][cfssl]. You can generate a private CA certificate and key with
 [cfssl][cfssl]:
 
 ```shell
-$ # Generate a default CSR
+# Generate a default CSR
 $ cfssl print-defaults csr > ca-csr.json
 ```
 Change the `key` field to use RSA with a size of 2048
@@ -60,7 +74,7 @@ Change the `key` field to use RSA with a size of 2048
 ```
 
 ```shell
-$ # Generate the CA's private key and certificate
+# Generate the CA's private key and certificate
 $ cfssl gencert -initca ca-csr.json | cfssljson -bare consul-ca
 ```
 
@@ -69,7 +83,7 @@ nodes and must be kept private. The CA certificate (`consul-ca.pem`) contains
 the public key necessary to validate Consul certificates and therefore must be
 distributed to every node that requires access.
 
-### Node Certificates
+### Step 2: Generate and Sign Node Certificates
 
 Once you have a CA certificate and key you can generate and sign the
 certificates Consul will use directly. TLS certificates commonly use the
@@ -103,7 +117,7 @@ To create certificates for the client and server in the cluster with
 ```
 
 ```shell
-$ # Generate a certificate for the Consul server
+# Generate a certificate for the Consul server
 $ echo '{"key":{"algo":"rsa","size":2048}}' | cfssl gencert -ca=consul-ca.pem -ca-key=consul-ca-key.pem -config=cfssl.json \
     -hostname="server.node.global.consul,localhost,127.0.0.1" - | cfssljson -bare server
 
