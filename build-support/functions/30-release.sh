@@ -63,10 +63,54 @@ function tag_release {
    return $ret
 }
 
-function package_release {
+function package_binaries {
+   # Arguments:
+   #   $1 - Path to the directory containing the built binaries
+   #   $2 - Destination path of the packaged binaries
+   #   $3 - Version
+   #
+   # Returns:
+   #   0 - success
+   #   * - error
+   
+   local sdir="$1"
+   local ddir="$2"
+   local vers="$3"
+   local ret=0   
+
+   
+   if ! test -d "${sdir}"
+   then
+      err "ERROR: '$1' is not a directory. package_binaries must be called with the path to the directory containing the binaries" 
+      return 1
+   fi
+   
+   rm -rf "${ddir}" > /dev/null 2>&1 
+   mkdir -p "${ddir}" >/dev/null 2>&1 
+   for platform in $(find "${sdir}" -mindepth 1 -maxdepth 1 -type d)
+   do
+      local os_arch=$(basename $platform)
+      local dest="${ddir}/${CONSUL_PKG_NAME}_${vers}_${os_arch}.zip"
+      status "Compressing ${os_arch} directory into ${dest}"
+      pushd "${platform}" > /dev/null
+      zip "${ddir}/${CONSUL_PKG_NAME}_${vers}_${os_arch}.zip" ./*
+      ret=$?
+      popd > /dev/null
+      
+      if test "$ret" -ne 0
+      then
+         break
+      fi
+   done
+   
+   return ${ret}
+}
+
+function package_release_one {
    # Arguments:
    #   $1 - Path to the top level Consul source
    #   $2 - Version to use in the names of the zip files (optional)
+   #   $3 - Subdirectory under pkg/dist to use (optional)
    #
    # Returns:
    #   0 - success
@@ -78,9 +122,16 @@ function package_release {
       return 1
    fi
 
-   local sdir="${1}"
+   local sdir="$1"
    local ret=0   
-   local vers="${2}"
+   local vers="$2"
+   local extra_dir_name="$3"
+   local extra_dir=""
+   
+   if test -n "${extra_dir_name}"
+   then
+      extra_dir="${extra_dir_name}/"
+   fi
 
    if test -z "${vers}"
    then
@@ -93,81 +144,91 @@ function package_release {
       fi
    fi
    
-   rm -rf "${sdir}/pkg/dist" > /dev/null 2>&1 
-   mkdir -p "${sdir}/pkg/dist" >/dev/null 2>&1 
-   for platform in $(find "${sdir}/pkg/bin" -mindepth 1 -maxdepth 1 -type d)
-   do
-      local os_arch=$(basename $platform)
-      local dest="${sdir}/pkg/dist/${CONSUL_PKG_NAME}_${vers}_${os_arch}.zip"
-      status "Compressing ${os_arch} directory into ${dest}"
-      pushd "${platform}" > /dev/null
-      zip "${sdir}/pkg/dist/${CONSUL_PKG_NAME}_${vers}_${os_arch}.zip" ./*
-      ret=$?
-      popd > /dev/null
-      
-      if test "$ret" -ne 0
-      then
-         break
-      fi
-   done
+   package_binaries "${sdir}/pkg/bin/${extra_dir}" "${sdir}/pkg/dist/${extra_dir}" "${vers}"
+   return $?
+}
+
+function package_release {
+   # Arguments:
+   #   $1 - Path to the top level Consul source
+   #   $2 - Version to use in the names of the zip files (optional)
+   #
+   # Returns:
+   #   0 - success
+   #   * - error
    
-   return $ret
+   package_release_one "$1" "$2" ""
+   return $?
 }
 
 function shasum_release {
    # Arguments:
-   #   $1 - Path to directory containing the files to shasum
-   #   $2 - File to output sha sums to
+   #   $1 - Path to the dist directory
+   #   $2 - Version of the release
    #
    # Returns:
    #   0 - success
    #   * - failure
    
+   local sdir="$1"
+   local vers="$2"
+   
    if ! test -d "$1"
    then
-      err "ERROR: '$1' is not a directory and shasum_release requires passing a directory as the first argument"
+      err "ERROR: sign_release requires a path to the dist dir as the first argument"
       return 1
    fi
    
-   if test -z "$2"
+   if test -z "${vers}"
    then
-      err "ERROR: shasum_release requires a second argument to be the filename to output the shasums to but none was given"
-      return 1 
+      err "ERROR: sign_release requires a version to be specified as the second argument"
+      return 1
    fi
    
-   pushd $1 > /dev/null
-   shasum -a256 * > "$2"
-   ret=$?
-   popd >/dev/null
+   local hfile="${CONSUL_PKG_NAME}_${vers}_SHA256SUMS"
    
-   return $ret
+   shasum_directory "${sdir}" "${sdir}/${hfile}"
+   return $?
 }
 
 function sign_release {
    # Arguments:
-   #   $1 - File to sign
+   #   $1 - Path to distribution directory
+   #   $2 - Version
    #   $2 - Alternative GPG key to use for signing
    #
    # Returns:
    #   0 - success
    #   * - failure
    
-   # determine whether the gpg key to use is being overridden
-   local gpg_key=${HASHICORP_GPG_KEY}
-   if test -n "$2"
+   local sdir="$1"
+   local vers="$2"
+   
+   if ! test -d "${sdir}"
    then
-      gpg_key=$2
+      err "ERROR: sign_release requires a path to the dist dir as the first argument"
+      return 1
    fi
    
-   gpg --default-key "${gpg_key}" --detach-sig --yes -v  "$1"
-   return $?
+   if test -z "${vers}"
+   then
+      err "ERROR: sign_release requires a version to be specified as the second argument"
+      return 1
+   fi
+   
+   local hfile="${CONSUL_PKG_NAME}_${vers}_SHA256SUMS"
+   
+   status_stage "==> Signing ${hfile}"
+   gpg_detach_sign "${1}/${hfile}" "$2" || return 1
+   return 0
 }
 
-function check_release {
+function check_release_one {
    # Arguments:
    #   $1 - Path to the release files
    #   $2 - Version to expect
    #   $3 - boolean whether to expect the signature file
+   #   $4 - Release Name (optional)
    #
    # Returns:
    #   0 - success
@@ -176,6 +237,13 @@ function check_release {
    declare -i ret=0
    
    declare -a expected_files
+   
+   declare log_extra=""
+   
+   if test -n "$4"
+   then
+      log_extra="for $4 "
+   fi
    
    expected_files+=("${CONSUL_PKG_NAME}_${2}_SHA256SUMS")
    echo "check sig: $3"
@@ -199,7 +267,7 @@ function check_release {
    
    declare -a found_files
    
-   status_stage "==> Verifying release contents - ${2}"
+   status_stage "==> Verifying release contents ${log_extra}- ${2}"
    debug "Expecting Files:"
    for fname in "${expected_files[@]}"
    do
@@ -253,6 +321,21 @@ function check_release {
 
    return $ret
 }
+
+function check_release {
+   # Arguments:
+   #   $1 - Path to the release files
+   #   $2 - Version to expect
+   #   $3 - boolean whether to expect the signature file
+   #
+   # Returns:
+   #   0 - success
+   #   * - failure
+   
+   check_release_one "$1" "$2" "$3"
+   return ${ret}
+}
+   
 
 function build_consul_release {
    build_consul "$1" "" "$2"  
@@ -420,7 +503,7 @@ function build_release {
    fi
    
    status_stage "==> Generating SHA 256 Hashes for Binaries"
-   shasum_release "${sdir}/pkg/dist" "${CONSUL_PKG_NAME}_${vers}_SHA256SUMS"
+   shasum_release "${sdir}/pkg/dist" "${vers}"
    if test $? -ne 0
    then
       err "ERROR: Failed to generate SHA 256 hashes for the release"
@@ -429,7 +512,7 @@ function build_release {
    
    if is_set "${do_sha256}"
    then
-      sign_release "${sdir}/pkg/dist/${CONSUL_PKG_NAME}_${vers}_SHA256SUMS" "${gpg_key}"
+      sign_release "${sdir}/pkg/dist" "${vers}" "${gpg_key}"
       if test $? -ne 0
       then
          err "ERROR: Failed to sign the SHA 256 hashes file"

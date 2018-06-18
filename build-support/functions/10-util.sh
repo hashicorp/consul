@@ -754,3 +754,52 @@ function commit_dev_mode {
    popd >/dev/null
    return ${ret}
 }
+
+function gpg_detach_sign {
+   # Arguments:
+   #   $1 - File to sign
+   #   $2 - Alternative GPG key to use for signing
+   #
+   # Returns:
+   #   0 - success
+   #   * - failure
+   
+   # determine whether the gpg key to use is being overridden
+   local gpg_key=${HASHICORP_GPG_KEY}
+   if test -n "$2"
+   then
+      gpg_key=$2
+   fi
+   
+   gpg --default-key "${gpg_key}" --detach-sig --yes -v  "$1"
+   return $?
+}
+
+function shasum_directory {
+   # Arguments:
+   #   $1 - Path to directory containing the files to shasum
+   #   $2 - File to output sha sums to
+   #
+   # Returns:
+   #   0 - success
+   #   * - failure
+   
+   if ! test -d "$1"
+   then
+      err "ERROR: '$1' is not a directory and shasum_release requires passing a directory as the first argument"
+      return 1
+   fi
+   
+   if test -z "$2"
+   then
+      err "ERROR: shasum_release requires a second argument to be the filename to output the shasums to but none was given"
+      return 1 
+   fi
+   
+   pushd $1 > /dev/null
+   shasum -a256 * > "$2"
+   ret=$?
+   popd >/dev/null
+   
+   return $ret
+}

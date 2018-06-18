@@ -180,7 +180,7 @@ function build_assetfs {
 function build_consul_post {
    # Arguments
    #   $1 - Path to the top level Consul source
-   #   $2 - build suffix (Optional)
+   #   $2 - Subdirectory under pkg/bin (Optional)
    #
    # Returns:
    #   0 - success
@@ -199,17 +199,25 @@ function build_consul_post {
    
    local sdir="$1"
    
+   local extra_dir_name="$2"
+   local extra_dir=""
+   
+   if test -n "${extra_dir_name}"
+   then
+      extra_dir="${extra_dir_name}/"
+   fi
+   
    pushd "${sdir}" > /dev/null
    
    # recreate the pkg dir
-   rm -r pkg/bin/*${2} 2> /dev/null
-   mkdir -p pkg/bin 2> /dev/null
+   rm -r pkg/bin/${extra_dir}* 2> /dev/null
+   mkdir -p pkg/bin/${extra_dir} 2> /dev/null
 
    # move all files in pkg.new into pkg
-   cp -r pkg.bin.new/* pkg/bin/
+   cp -r pkg.bin.new/${extra_dir}* pkg/bin/${extra_dir}
    rm -r pkg.bin.new
       
-   DEV_PLATFORM="./pkg/bin/$(go env GOOS)_$(go env GOARCH)${2}"
+   DEV_PLATFORM="./pkg/bin/${extra_dir}$(go env GOOS)_$(go env GOARCH)"
    for F in $(find ${DEV_PLATFORM} -mindepth 1 -maxdepth 1 -type f)
    do
       # recreate the bin dir
@@ -228,7 +236,7 @@ function build_consul_post {
 function build_consul {
    # Arguments:
    #   $1 - Path to the top level Consul source
-   #   $2 - build suffix (optional - must specify if needing to specify the docker image)
+   #   $2 - Subdirectory to put binaries in under pkg/bin (optional - must specify if needing to specify the docker image)
    #   $3 - The docker image to run the build within (optional)
    #
    # Returns:
@@ -248,7 +256,8 @@ function build_consul {
    fi
    
    local sdir="$1"
-   local build_suffix="$2"
+   local extra_dir_name="$2"
+   local extra_dir=""
    local image_name=${GO_BUILD_CONTAINER_DEFAULT}
    if test -n "$3"
    then
@@ -271,15 +280,20 @@ function build_consul {
    fi
    XC_OS=${XC_OS:-"solaris darwin freebsd linux windows"}
    XC_ARCH=${XC_ARCH:-"386 amd64 arm arm64"}
+   
+   if test -n "${extra_dir_name}"
+   then
+      extra_dir="${extra_dir_name}/"
+   fi
 
-   local container_id=$(docker create -it -e CGO_ENABLED=0 ${image_name} gox -os="${XC_OS}" -arch="${XC_ARCH}" -osarch="!darwin/arm !darwin/arm64" -ldflags "${GOLDFLAGS}" -output "pkg/bin/{{.OS}}_{{.Arch}}${build_suffix}/consul" -tags="${GOTAGS}")
+   local container_id=$(docker create -it -e CGO_ENABLED=0 ${image_name} gox -os="${XC_OS}" -arch="${XC_ARCH}" -osarch="!darwin/arm !darwin/arm64" -ldflags "${GOLDFLAGS}" -output "pkg/bin/${extra_dir}{{.OS}}_{{.Arch}}/consul" -tags="${GOTAGS}")
    ret=$?
 
    if test $ret -eq 0
    then
-      status "Copying the source from '${sdir}' to /go/src/github.com/hashicorp/consul/pkg"
+      status "Copying the source from '${sdir}' to /go/src/github.com/hashicorp/consul"
       (
-         tar -c $(ls | grep -v "ui\|ui-v2\|website\|bin\|.git") | docker cp - ${container_id}:/go/src/github.com/hashicorp/consul &&
+         tar -c $(ls | grep -v "^(ui\|ui-v2\|website\|bin\|pkg\|.git)") | docker cp - ${container_id}:/go/src/github.com/hashicorp/consul &&
          status "Running build in container" &&
          docker start -i ${container_id} &&
          status "Copying back artifacts" &&
@@ -290,7 +304,7 @@ function build_consul {
       
       if test $ret -eq 0
       then
-         build_consul_post "${sdir}" "${build_suffix}"
+         build_consul_post "${sdir}" "${extra_dir_name}"
          ret=$?
       else
          rm -r pkg.bin.new 2> /dev/null
@@ -305,7 +319,7 @@ function build_consul_local {
    #   $1 - Path to the top level Consul source
    #   $2 - Space separated string of OSes to build. If empty will use env vars for determination.
    #   $3 - Space separated string of architectures to build. If empty will use env vars for determination.
-   #   $4 - build suffix (optional)
+   #   $4 - Subdirectory to put binaries in under pkg/bin (optional)
    #
    # Returns:
    #   0 - success
@@ -326,7 +340,13 @@ function build_consul_local {
    local sdir="$1"
    local build_os="$2"
    local build_arch="$3"
-   local build_suffix="$4"
+   local extra_dir_name="$4"
+   local extra_dir=""  
+   
+   if test -n "${extra_dir_name}"
+   then
+      extra_dir="${extra_dir_name}/"
+   fi 
    
    pushd ${sdir} > /dev/null
    if is_set "${CONSUL_DEV}"
@@ -361,7 +381,7 @@ function build_consul_local {
       -arch="${build_arch}" \
       -osarch="!darwin/arm !darwin/arm64" \
       -ldflags="${GOLDFLAGS}" \
-      -output "pkg.bin.new/{{.OS}}_{{.Arch}}${build_suffix}/consul" \
+      -output "pkg.bin.new/${extra_dir}{{.OS}}_{{.Arch}}${build_suffix}/consul" \
       -tags="${GOTAGS}" \
       .
 
@@ -372,7 +392,7 @@ function build_consul_local {
       return 1
    fi
 
-   build_consul_post "${sdir}" "${build_suffix}"
+   build_consul_post "${sdir}" "${extra_dir_name}"
    if test $? -ne 0
    then
       err "ERROR: Failed postprocessing Consul binaries"
