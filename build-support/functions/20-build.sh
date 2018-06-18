@@ -202,7 +202,7 @@ function build_consul_post {
    pushd "${sdir}" > /dev/null
    
    # recreate the pkg dir
-   rm -r pkg/bin/* 2> /dev/null
+   rm -r pkg/bin/*${2} 2> /dev/null
    mkdir -p pkg/bin 2> /dev/null
 
    # move all files in pkg.new into pkg
