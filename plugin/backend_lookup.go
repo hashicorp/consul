@@ -156,16 +156,8 @@ func SRV(b ServiceBackend, zone string, state request.Request, opt Options) (rec
 		return nil, nil, err
 	}
 
-	type s struct {
-		n string
-		p uint16
-	}
-	dup := make(map[s]bool)
-	type a struct {
-		n string
-		a string
-	}
-	dupAddr := make(map[a]bool)
+	dup := make(map[item]bool)
+	lookup := make(map[string]bool)
 
 	// Looping twice to get the right weight vs priority. This might break because we may drop duplicate SRV records latter on.
 	w := make(map[int]int)
@@ -180,7 +172,6 @@ func SRV(b ServiceBackend, zone string, state request.Request, opt Options) (rec
 		}
 		w[serv.Priority] += weight
 	}
-	lookup := make(map[string]bool)
 	for _, serv := range services {
 		w1 := 100.0 / float64(w[serv.Priority])
 		if serv.Weight == 0 {
@@ -227,20 +218,18 @@ func SRV(b ServiceBackend, zone string, state request.Request, opt Options) (rec
 			if e1 == nil {
 				extra = append(extra, addr...)
 			}
-			// IPv6 lookups here as well? AAAA(zone, state1, nil).
+			// TODO(miek): AAAA as well here.
 
 		case dns.TypeA, dns.TypeAAAA:
 			addr := serv.Host
 			serv.Host = msg.Domain(serv.Key)
 			srv := serv.NewSRV(state.QName(), weight)
 
-			if _, ok := dup[s{srv.Target, srv.Port}]; !ok {
-				dup[s{srv.Target, srv.Port}] = true
+			if ok := isDuplicate(dup, srv.Target, "", srv.Port); !ok {
 				records = append(records, srv)
 			}
 
-			if _, ok := dupAddr[a{srv.Target, addr}]; !ok {
-				dupAddr[a{srv.Target, addr}] = true
+			if ok := isDuplicate(dup, srv.Target, addr, 0); !ok {
 				extra = append(extra, newAddress(serv, srv.Target, ip, what))
 			}
 		}
@@ -255,17 +244,7 @@ func MX(b ServiceBackend, zone string, state request.Request, opt Options) (reco
 		return nil, nil, err
 	}
 
-	type s struct {
-		n string
-		p uint16
-	}
-	dup := make(map[s]bool)
-	type a struct {
-		n string
-		a string
-	}
-	dupAddr := make(map[a]bool)
-
+	dup := make(map[item]bool)
 	lookup := make(map[string]bool)
 	for _, serv := range services {
 		if !serv.Mail {
@@ -305,20 +284,18 @@ func MX(b ServiceBackend, zone string, state request.Request, opt Options) (reco
 			if e1 == nil {
 				extra = append(extra, addr...)
 			}
-			// e.AAAA as well
+			// TODO(miek): AAAA as well here.
 
 		case dns.TypeA, dns.TypeAAAA:
 			addr := serv.Host
 			serv.Host = msg.Domain(serv.Key)
 			mx := serv.NewMX(state.QName())
 
-			if _, ok := dup[s{mx.Mx, mx.Preference}]; !ok {
-				dup[s{mx.Mx, mx.Preference}] = true
+			if ok := isDuplicate(dup, mx.Mx, "", mx.Preference); !ok {
 				records = append(records, mx)
 			}
 			// Fake port to be 0 for address...
-			if _, ok := dupAddr[a{serv.Host, addr}]; !ok {
-				dupAddr[a{serv.Host, addr}] = true
+			if ok := isDuplicate(dup, serv.Host, addr, 0); !ok {
 				extra = append(extra, newAddress(serv, serv.Host, ip, what))
 			}
 		}
@@ -475,6 +452,30 @@ func checkForApex(b ServiceBackend, zone string, state request.Request, opt Opti
 
 	state.Req.Question[0].Name = old
 	return b.Services(state, false, opt)
+}
+
+// item holds records.
+type item struct {
+	name string // name of the record (either owner or something else unique).
+	port uint16 // port of the record (used for address records, A and AAAA).
+	addr string // address of the record (A and AAAA).
+}
+
+// isDuplicate uses m to see if the combo (name, addr, port) already exists. If it does
+// not exist already IsDuplicate will also add the record to the map.
+func isDuplicate(m map[item]bool, name, addr string, port uint16) bool {
+	if addr != "" {
+		_, ok := m[item{name, 0, addr}]
+		if !ok {
+			m[item{name, 0, addr}] = true
+		}
+		return ok
+	}
+	_, ok := m[item{name, port, ""}]
+	if !ok {
+		m[item{name, port, ""}] = true
+	}
+	return ok
 }
 
 const hostmaster = "hostmaster"
