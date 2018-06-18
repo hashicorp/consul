@@ -70,9 +70,9 @@ function confirm_git_push_changes {
    return $ret
 }
 
-function confirm_consul_version {
+function confirm_consul_version_zip {
    # Arguments:
-   #   $1 - Path to the release files
+   #   $1 - Path to the zipped binary to test
    #   $2 - Version to look for
    #
    # Returns:
@@ -126,6 +126,11 @@ function confirm_consul_version {
    
    rm "${tfile}" > /dev/null 2>&1
    return ${ret}      
+}
+
+function confirm_consul_version {
+   confirm_consul_version_zip "$1" "$2"
+   return $?
 }
 
 

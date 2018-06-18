@@ -219,7 +219,7 @@ function sign_release {
    local hfile="${CONSUL_PKG_NAME}_${vers}_SHA256SUMS"
    
    status_stage "==> Signing ${hfile}"
-   gpg_detach_sign "${1}/${hfile}" "$2" || return 1
+   gpg_detach_sign "${1}/${hfile}" "$3" || return 1
    return 0
 }
 
