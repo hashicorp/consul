@@ -218,7 +218,7 @@ function build_consul_post {
    rm -r pkg.bin.new
       
    DEV_PLATFORM="./pkg/bin/${extra_dir}$(go env GOOS)_$(go env GOARCH)"
-   for F in $(find ${DEV_PLATFORM} -mindepth 1 -maxdepth 1 -type f)
+   for F in $(find ${DEV_PLATFORM} -type f -mindepth 1 -maxdepth 1 )
    do
       # recreate the bin dir
       rm -r bin/* 2> /dev/null
@@ -330,6 +330,8 @@ function build_consul_local {
    #   If the CONSUL_DEV environment var is truthy only the local platform/architecture is built.
    #   If the XC_OS or the XC_ARCH environment vars are present then only those platforms/architectures
    #   will be built. Otherwise all supported platform/architectures are built
+   #   The NOGOX environment variable will be used if present. This will prevent using gox and instead
+   #   build with go install
    
    if ! test -d "$1"
    then
@@ -374,22 +376,54 @@ function build_consul_local {
       build_arch="${XC_ARCH}"
    fi
    
+   local use_gox=1
+   is_set "${NOGOX}" && use_gox=0
+   which gox > /dev/null || use_gox=0
+   
    status_stage "==> Building Consul - OSes: ${build_os}, Architectures: ${build_arch}"
    mkdir pkg.bin.new 2> /dev/null
-   CGO_ENABLED=0 gox \
-      -os="${build_os}" \
-      -arch="${build_arch}" \
-      -osarch="!darwin/arm !darwin/arm64" \
-      -ldflags="${GOLDFLAGS}" \
-      -output "pkg.bin.new/${extra_dir}{{.OS}}_{{.Arch}}${build_suffix}/consul" \
-      -tags="${GOTAGS}" \
-      .
+   if is_set "${use_gox}"
+   then 
+      status "Using gox for concurrent compilation"
+      
+      CGO_ENABLED=0 gox \
+         -os="${build_os}" \
+         -arch="${build_arch}" \
+         -osarch="!darwin/arm !darwin/arm64" \
+         -ldflags="${GOLDFLAGS}" \
+         -output "pkg.bin.new/${extra_dir}{{.OS}}_{{.Arch}}/consul" \
+         -tags="${GOTAGS}" \
+         .
 
-   if test $? -ne 0
-   then
-      err "ERROR: Failed to build Consul"
-      rm -r pkg.bin.new
-      return 1
+      if test $? -ne 0
+      then
+         err "ERROR: Failed to build Consul"
+         rm -r pkg.bin.new
+         return 1
+      fi
+   else
+      status "Building sequentially with go install"
+      for os in ${build_os}
+      do
+         for arch in ${build_arch}
+         do
+            outdir="pkg.bin.new/${extra_dir}${os}_${arch}"
+            osarch="${os}/${arch}"
+            if test "${osarch}" == "darwin/arm" -o "${osarch}" == "darwin/arm64"
+            then
+               continue
+            fi
+            
+            mkdir -p "${outdir}"
+            GOOS=${os} GOARCH=${arch} go install -ldflags "${GOLDFLAGS}" -tags "${GOTAGS}" && cp "${MAIN_GOPATH}/bin/consul" "${outdir}/consul"
+            if test $? -ne 0
+            then
+               err "ERROR: Failed to build Consul for ${osarch}"
+               rm -r pkg.bin.new
+               return 1
+            fi
+         done
+      done
    fi
 
    build_consul_post "${sdir}" "${extra_dir_name}"

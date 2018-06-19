@@ -16,8 +16,8 @@ GOTEST_PKGS ?= "./..."
 else
 GOTEST_PKGS=$(shell go list ./... | sed 's/github.com\/hashicorp\/consul/./' | egrep -v "^($(GOTEST_PKGS_EXCLUDE))$$")
 endif
-GOOS=$(shell go env GOOS)
-GOARCH=$(shell go env GOARCH)
+GOOS?=$(shell go env GOOS)
+GOARCH?=$(shell go env GOARCH)
 GOPATH=$(shell go env GOPATH)
 
 ASSETFS_PATH?=agent/bindata_assetfs.go
@@ -103,7 +103,7 @@ bin: tools dev-build
 dev: changelogfmt vendorfmt dev-build
 
 dev-build:
-	@$(SHELL) $(CURDIR)/build-support/scripts/build-local.sh
+	@$(SHELL) $(CURDIR)/build-support/scripts/build-local.sh -o $(GOOS) -a $(GOARCH)
 
 dev-docker:
 	@docker build -t '$(CONSUL_DEV_IMAGE)' --build-arg 'GIT_COMMIT=$(GIT_COMMIT)' --build-arg 'GIT_DIRTY=$(GIT_DIRTY)' --build-arg 'GIT_DESCRIBE=$(GIT_DESCRIBE)' -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile $(CURDIR)
