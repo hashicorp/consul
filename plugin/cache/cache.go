@@ -4,6 +4,7 @@ package cache
 import (
 	"encoding/binary"
 	"hash/fnv"
+	"net"
 	"time"
 
 	"github.com/coredns/coredns/plugin"
@@ -105,7 +106,40 @@ type ResponseWriter struct {
 	state  request.Request
 	server string // Server handling the request.
 
-	prefetch bool // When true write nothing back to the client.
+	prefetch   bool // When true write nothing back to the client.
+	remoteAddr net.Addr
+}
+
+// newPrefetchResponseWriter returns a Cache ResponseWriter to be used in
+// prefetch requests. It ensures RemoteAddr() can be called even after the
+// original connetion has already been closed.
+func newPrefetchResponseWriter(server string, state request.Request, c *Cache) *ResponseWriter {
+	// Resolve the address now, the connection might be already closed when the
+	// actual prefetch request is made.
+	addr := state.W.RemoteAddr()
+	// The protocol of the client triggering a cache prefetch doesn't matter.
+	// The address type is used by request.Proto to determine the response size,
+	// and using TCP ensures the message isn't unnecessarily truncated.
+	if u, ok := addr.(*net.UDPAddr); ok {
+		addr = &net.TCPAddr{IP: u.IP, Port: u.Port, Zone: u.Zone}
+	}
+
+	return &ResponseWriter{
+		ResponseWriter: state.W,
+		Cache:          c,
+		state:          state,
+		server:         server,
+		prefetch:       true,
+		remoteAddr:     addr,
+	}
+}
+
+// RemoteAddr implements the dns.ResponseWriter interface.
+func (w *ResponseWriter) RemoteAddr() net.Addr {
+	if w.remoteAddr != nil {
+		return w.remoteAddr
+	}
+	return w.ResponseWriter.RemoteAddr()
 }
 
 // WriteMsg implements the dns.ResponseWriter interface.
