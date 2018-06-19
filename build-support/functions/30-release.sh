@@ -87,7 +87,7 @@ function package_binaries {
    
    rm -rf "${ddir}" > /dev/null 2>&1 
    mkdir -p "${ddir}" >/dev/null 2>&1 
-   for platform in $(find -type d "${sdir}" -mindepth 1 -maxdepth 1 )
+   for platform in $(find "${sdir}" -mindepth 1 -maxdepth 1 -type d )
    do
       local os_arch=$(basename $platform)
       local dest="${ddir}/${CONSUL_PKG_NAME}_${vers}_${os_arch}.zip"

@@ -218,7 +218,7 @@ function build_consul_post {
    rm -r pkg.bin.new
       
    DEV_PLATFORM="./pkg/bin/${extra_dir}$(go env GOOS)_$(go env GOARCH)"
-   for F in $(find ${DEV_PLATFORM} -type f -mindepth 1 -maxdepth 1 )
+   for F in $(find ${DEV_PLATFORM} -mindepth 1 -maxdepth 1 -type f )
    do
       # recreate the bin dir
       rm -r bin/* 2> /dev/null

@@ -133,7 +133,7 @@ function main {
          if is_set "${refresh}"
          then
             status_stage "==> Refreshing Legacy UI build container image"
-            export UI_LEAGCY_BUILD_TAG="${image:-${UI_LEGACY_BUILD_CONTAINER_DEFAULT}}"
+            export UI_LEGACY_BUILD_TAG="${image:-${UI_LEGACY_BUILD_CONTAINER_DEFAULT}}"
             refresh_docker_images "${sdir}" ui-legacy-build-image || return 1
          fi
          status_stage "==> Building UI"
