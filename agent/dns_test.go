@@ -473,7 +473,7 @@ func TestDNS_NodeLookup_TXT(t *testing.T) {
 }
 
 func TestDNS_NodeLookup_TXT_DontSuppress(t *testing.T) {
-	a := NewTestAgent(t.Name(), `dns_config = { additional_node_meta_txt = false }`)
+	a := NewTestAgent(t.Name(), `dns_config = { enable_additional_node_meta_txt = false }`)
 	defer a.Shutdown()
 
 	args := &structs.RegisterRequest{
@@ -555,11 +555,10 @@ func TestDNS_NodeLookup_ANY(t *testing.T) {
 		},
 	}
 	verify.Values(t, "answer", in.Answer, wantAnswer)
-
 }
 
-func TestDNS_NodeLookup_ANY_SuppressTXT(t *testing.T) {
-	a := NewTestAgent(t.Name(), `dns_config = { additional_node_meta_txt = false }`)
+func TestDNS_NodeLookup_ANY_DontSuppressTXT(t *testing.T) {
+	a := NewTestAgent(t.Name(), `dns_config = { enable_additional_node_meta_txt = false }`)
 	defer a.Shutdown()
 
 	args := &structs.RegisterRequest{
@@ -589,6 +588,10 @@ func TestDNS_NodeLookup_ANY_SuppressTXT(t *testing.T) {
 		&dns.A{
 			Hdr: dns.RR_Header{Name: "bar.node.consul.", Rrtype: dns.TypeA, Class: dns.ClassINET, Rdlength: 0x4},
 			A:   []byte{0x7f, 0x0, 0x0, 0x1}, // 127.0.0.1
+		},
+		&dns.TXT{
+			Hdr: dns.RR_Header{Name: "bar.node.consul.", Rrtype: dns.TypeTXT, Class: dns.ClassINET, Rdlength: 0xa},
+			Txt: []string{"key=value"},
 		},
 	}
 	verify.Values(t, "answer", in.Answer, wantAnswer)
@@ -4695,7 +4698,7 @@ func TestDNS_ServiceLookup_FilterACL(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_MetaTXT(t *testing.T) {
-	a := NewTestAgent(t.Name(), `dns_config = { additional_node_meta_txt = true }`)
+	a := NewTestAgent(t.Name(), `dns_config = { enable_additional_node_meta_txt = true }`)
 	defer a.Shutdown()
 
 	args := &structs.RegisterRequest{
@@ -4740,7 +4743,7 @@ func TestDNS_ServiceLookup_MetaTXT(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_SuppressTXT(t *testing.T) {
-	a := NewTestAgent(t.Name(), `dns_config = { additional_node_meta_txt = false }`)
+	a := NewTestAgent(t.Name(), `dns_config = { enable_additional_node_meta_txt = false }`)
 	defer a.Shutdown()
 
 	// Register a node with a service.
