@@ -1033,34 +1033,10 @@ func (s *HTTPServer) AgentConnectProxyConfig(resp http.ResponseWriter, req *http
 			}
 			contentHash := fmt.Sprintf("%x", hash)
 
-			// Merge globals defaults
-			config := make(map[string]interface{})
-			for k, v := range s.agent.config.ConnectProxyDefaultConfig {
-				if _, ok := config[k]; !ok {
-					config[k] = v
-				}
-			}
-
-			// Set defaults for anything that is still not specified but required.
-			// Note that these are not included in the content hash. Since we expect
-			// them to be static in general but some like the default target service
-			// port might not be. In that edge case services can set that explicitly
-			// when they re-register which will be caught though.
-			for k, v := range proxy.Proxy.Config {
-				config[k] = v
-			}
-			if _, ok := config["bind_port"]; !ok {
-				config["bind_port"] = proxy.Proxy.ProxyService.Port
-			}
-			if _, ok := config["bind_address"]; !ok {
-				// Default to binding to the same address the agent is configured to
-				// bind to.
-				config["bind_address"] = s.agent.config.BindAddr.String()
-			}
-			if _, ok := config["local_service_address"]; !ok {
-				// Default to localhost and the port the service registered with
-				config["local_service_address"] = fmt.Sprintf("127.0.0.1:%d",
-					target.Port)
+			// Set defaults
+			config, err := s.agent.applyProxyConfigDefaults(proxy.Proxy)
+			if err != nil {
+				return "", nil, err
 			}
 
 			// Only merge in telemetry config from agent if the requested is

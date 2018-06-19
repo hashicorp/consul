@@ -2123,8 +2123,23 @@ func (a *Agent) AddProxy(proxy *structs.ConnectManagedProxy, persist bool,
 	}
 	proxyService := proxyState.Proxy.ProxyService
 
-	// TODO(banks): register proxy health checks.
-	err = a.AddService(proxyService, nil, persist, token)
+	// Register proxy TCP check. The built in proxy doesn't listen publically
+	// until it's loaded certs so this ensures we won't route traffic until it's
+	// ready.
+	proxyCfg, err := a.applyProxyConfigDefaults(proxyState.Proxy)
+	if err != nil {
+		return err
+	}
+	chkTypes := []*structs.CheckType{
+		&structs.CheckType{
+			Name:     "Connect Proxy Listening",
+			TCP:      fmt.Sprintf("%s:%d", proxyCfg["bind_address"],
+				proxyCfg["bind_port"]),
+			Interval: 10 * time.Second,
+		},
+	}
+
+	err = a.AddService(proxyService, chkTypes, persist, token)
 	if err != nil {
 		// Remove the state too
 		a.State.RemoveProxy(proxyService.ID)
@@ -2136,6 +2151,56 @@ func (a *Agent) AddProxy(proxy *structs.ConnectManagedProxy, persist bool,
 		return a.persistProxy(proxyState)
 	}
 	return nil
+}
+
+// applyProxyConfigDefaults takes a *structs.ConnectManagedProxy and returns
+// it's Config map merged with any defaults from the Agent's config. It would be
+// nicer if this were defined as a method on structs.ConnectManagedProxy but we
+// can't do that because ot the import cycle it causes with agent/config.
+func (a *Agent) applyProxyConfigDefaults(p *structs.ConnectManagedProxy) (map[string]interface{}, error) {
+	if p == nil || p.ProxyService == nil {
+		// Should never happen but protect from panic
+		return nil, fmt.Errorf("invalid proxy state")
+	}
+
+	// Lookup the target service
+	target := a.State.Service(p.TargetServiceID)
+	if target == nil {
+		// Can happen during deregistration race between proxy and scheduler.
+		return nil, fmt.Errorf("unknown target service ID: %s", p.TargetServiceID)
+	}
+
+	// Merge globals defaults
+	config := make(map[string]interface{})
+	for k, v := range a.config.ConnectProxyDefaultConfig {
+		if _, ok := config[k]; !ok {
+			config[k] = v
+		}
+	}
+
+	// Copy config from the proxy
+	for k, v := range p.Config {
+		config[k] = v
+	}
+
+	// Set defaults for anything that is still not specified but required.
+	// Note that these are not included in the content hash. Since we expect
+	// them to be static in general but some like the default target service
+	// port might not be. In that edge case services can set that explicitly
+	// when they re-register which will be caught though.
+	if _, ok := config["bind_port"]; !ok {
+		config["bind_port"] = p.ProxyService.Port
+	}
+	if _, ok := config["bind_address"]; !ok {
+		// Default to binding to the same address the agent is configured to
+		// bind to.
+		config["bind_address"] = a.config.BindAddr.String()
+	}
+	if _, ok := config["local_service_address"]; !ok {
+		// Default to localhost and the port the service registered with
+		config["local_service_address"] = fmt.Sprintf("127.0.0.1:%d", target.Port)
+	}
+	return config, nil
 }
 
 // applyProxyDefaults modifies the given proxy by applying any configured

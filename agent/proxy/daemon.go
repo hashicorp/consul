@@ -360,7 +360,6 @@ func (p *Daemon) Close() error {
 	// If we're already stopped or never started, then no problem.
 	if p.stopped || p.process == nil {
 		p.stopped = true
-		p.lock.Unlock()
 		return nil
 	}
 

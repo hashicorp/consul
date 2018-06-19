@@ -2577,6 +2577,11 @@ func TestAgent_AddProxy(t *testing.T) {
 				script_command = ["bar", "foo"]
 			}
 		}
+
+		ports {
+			proxy_min_port = 20000
+			proxy_max_port = 20000
+		}
 	`)
 	defer a.Shutdown()
 
@@ -2590,6 +2595,7 @@ func TestAgent_AddProxy(t *testing.T) {
 	tests := []struct {
 		desc             string
 		proxy, wantProxy *structs.ConnectManagedProxy
+		wantTCPCheck     string
 		wantErr          bool
 	}{
 		{
@@ -2606,7 +2612,7 @@ func TestAgent_AddProxy(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			desc: "basic proxy adding, unregistered service",
+			desc: "basic proxy adding, registered service",
 			proxy: &structs.ConnectManagedProxy{
 				ExecMode: structs.ProxyExecModeDaemon,
 				Command:  []string{"consul", "connect", "proxy"},
@@ -2656,6 +2662,21 @@ func TestAgent_AddProxy(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			desc: "managed proxy with custom bind port",
+			proxy: &structs.ConnectManagedProxy{
+				ExecMode: structs.ProxyExecModeDaemon,
+				Command:  []string{"consul", "connect", "proxy"},
+				Config: map[string]interface{}{
+					"foo":          "bar",
+					"bind_address": "127.10.10.10",
+					"bind_port":    1234,
+				},
+				TargetServiceID: "web",
+			},
+			wantTCPCheck: "127.10.10.10:1234",
+			wantErr:      false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -2677,6 +2698,26 @@ func TestAgent_AddProxy(t *testing.T) {
 			}
 			wantProxy.ProxyService = got.Proxy.ProxyService
 			require.Equal(wantProxy, got.Proxy)
+
+			// Ensure a TCP check was created for the service.
+			gotCheck := a.State.Check("service:web-proxy")
+			require.NotNil(gotCheck)
+			require.Equal("Connect Proxy Listening", gotCheck.Name)
+
+			// Confusingly, a.State.Check("service:web-proxy") will return the state
+			// but it's Definition field will be empty. This appears to be expected
+			// when adding Checks as part of `AddService`. Notice how `AddService`
+			// tests in this file don't assert on that state but instead look at the
+			// agent's check state directly to ensure the right thing was registered.
+			// We'll do the same for now.
+			gotTCP, ok := a.checkTCPs["service:web-proxy"]
+			require.True(ok)
+			wantTCPCheck := tt.wantTCPCheck
+			if wantTCPCheck == "" {
+				wantTCPCheck = "127.0.0.1:20000"
+			}
+			require.Equal(wantTCPCheck, gotTCP.TCP)
+			require.Equal(10*time.Second, gotTCP.Interval)
 		})
 	}
 }
