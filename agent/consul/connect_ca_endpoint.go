@@ -135,25 +135,35 @@ func (s *ConnectCA) ConfigurationSet(
 	// to use a different root certificate.
 
 	// If it's a config change that would trigger a rotation (different provider/root):
-	// 1. Get the intermediate from the new provider
-	// 2. Generate a CSR for the new intermediate, call SignCA on the old/current provider
-	// to get the cross-signed intermediate
-	// 3. Get the active root for the new provider, append the intermediate from step 3
-	// to its list of intermediates
-	csr, err := newProvider.GetCrossSigningCSR()
+	// 1. Get the root from the new provider.
+	// 2. Call CrossSignCA on the old provider to sign the new root with the old one to
+	// get a cross-signed certificate.
+	// 3. Take the active root for the new provider and append the intermediate from step 2
+	// to its list of intermediates.
+	newRoot, err := connect.ParseCert(newRootPEM)
+	if err != nil {
+		return err
+	}
 
 	// Have the old provider cross-sign the new intermediate
 	oldProvider, _ := s.srv.getCAProvider()
 	if oldProvider == nil {
 		return fmt.Errorf("internal error: CA provider is nil")
 	}
-	xcCert, err := oldProvider.CrossSignCA(csr)
+	xcCert, err := oldProvider.CrossSignCA(newRoot)
 	if err != nil {
 		return err
 	}
 
-	// Add the cross signed cert to the new root's intermediates
+	// Add the cross signed cert to the new root's intermediates.
 	newActiveRoot.IntermediateCerts = []string{xcCert}
+	intermediate, err := newProvider.GenerateIntermediate()
+	if err != nil {
+		return err
+	}
+	if intermediate != newRootPEM {
+		newActiveRoot.IntermediateCerts = append(newActiveRoot.IntermediateCerts, intermediate)
+	}
 
 	// Update the roots and CA config in the state store at the same time
 	idx, roots, err := state.CARoots(nil)

@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-uuid"
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/mitchellh/mapstructure"
 )
@@ -72,8 +73,13 @@ func NewVaultProvider(rawConfig map[string]interface{}, clusterId string) (*Vaul
 		fallthrough
 	case ErrBackendNotInitialized:
 		spiffeID := connect.SpiffeIDSigning{ClusterID: clusterId, Domain: "consul"}
-		_, err := client.Logical().Write(conf.RootPKIPath+"root/generate/internal", map[string]interface{}{
-			"uri_sans": spiffeID.URI().String(),
+		uuid, err := uuid.GenerateUUID()
+		if err != nil {
+			return nil, err
+		}
+		_, err = client.Logical().Write(conf.RootPKIPath+"root/generate/internal", map[string]interface{}{
+			"common_name": fmt.Sprintf("Vault CA Root Authority %s", uuid),
+			"uri_sans":    spiffeID.URI().String(),
 		})
 		if err != nil {
 			return nil, err
@@ -167,6 +173,7 @@ func (v *VaultProvider) GenerateIntermediate() (string, error) {
 			"allowed_uri_sans": "spiffe://*",
 			"key_type":         "any",
 			"max_ttl":          "72h",
+			"require_cn":       false,
 		})
 		if err != nil {
 			return "", err
@@ -240,48 +247,18 @@ func (v *VaultProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	return fmt.Sprintf("%s\n%s", cert, ca), nil
 }
 
-// GetCrossSigningCSR creates a CSR for an intermediate CA certificate to be signed
-// by another CA provider.
-func (v *VaultProvider) GetCrossSigningCSR() (*x509.CertificateRequest, error) {
-	// Generate a new intermediate CSR for the root to sign.
-	spiffeID := connect.SpiffeIDSigning{ClusterID: v.clusterId, Domain: "consul"}
-	csr, err := v.client.Logical().Write(v.config.IntermediatePKIPath+"intermediate/generate/internal", map[string]interface{}{
-		"common_name": "Vault CA Intermediate Authority",
-		"uri_sans":    spiffeID.URI().String(),
-	})
-	if err != nil {
-		return nil, err
-	}
-	if csr == nil || csr.Data["csr"] == "" {
-		return nil, fmt.Errorf("got empty value when generating intermediate CSR")
-	}
-
-	// Return the parsed CSR.
-	pem, ok := csr.Data["csr"].(string)
-	if !ok {
-		return nil, fmt.Errorf("CSR was not a string")
-	}
-	result, err := connect.ParseCSR(pem)
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}
-
-// CrossSignCA creates a CSR from the given CA certificate and uses the
-// configured root PKI backend to issue a cert from the request.
-func (v *VaultProvider) CrossSignCA(cert *x509.CertificateRequest) (string, error) {
-	var csrBuf bytes.Buffer
-	err := pem.Encode(&csrBuf, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: cert.Raw})
+// CrossSignCA takes a CA certificate and cross-signs it to form a trust chain
+// back to our active root.
+func (v *VaultProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
+	var pemBuf bytes.Buffer
+	err := pem.Encode(&pemBuf, &pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})
 	if err != nil {
 		return "", err
 	}
 
-	// Have the root PKI backend sign this CSR.
-	response, err := v.client.Logical().Write(v.config.RootPKIPath+"root/sign-intermediate", map[string]interface{}{
-		"csr":            csrBuf.String(),
-		"use_csr_values": true,
+	// Have the root PKI backend sign this cert.
+	response, err := v.client.Logical().Write(v.config.RootPKIPath+"root/sign-self-issued", map[string]interface{}{
+		"certificate": pemBuf.String(),
 	})
 	if err != nil {
 		return "", fmt.Errorf("error having Vault cross-sign cert: %v", err)

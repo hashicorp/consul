@@ -1,7 +1,6 @@
 package ca
 
 import (
-	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -118,7 +117,6 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 		parsed, err := connect.ParseCert(cert)
 		require.NoError(err)
 		require.Equal(parsed.URIs[0], spiffeService.URI())
-		require.Equal(parsed.Subject.CommonName, "foo")
 		firstSerial = parsed.SerialNumber.Uint64()
 
 		// Ensure the cert is valid now and expires within the correct limit.
@@ -141,7 +139,6 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 		parsed, err := connect.ParseCert(cert)
 		require.NoError(err)
 		require.Equal(parsed.URIs[0], spiffeService.URI())
-		require.Equal(parsed.Subject.CommonName, "bar")
 		require.NotEqual(firstSerial, parsed.SerialNumber.Uint64())
 
 		// Ensure the cert is valid now and expires within the correct limit.
@@ -153,7 +150,6 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	provider1, core1, listener1 := testVaultCluster(t)
 	defer core1.Shutdown()
 	defer listener1.Close()
@@ -162,65 +158,5 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 	defer core2.Shutdown()
 	defer listener2.Close()
 
-	// Have provider2 generate a cross-signing CSR
-	csr, err := provider2.GetCrossSigningCSR()
-	require.NoError(err)
-	oldSubject := csr.Subject.CommonName
-	_, err = provider2.GenerateIntermediate()
-	require.NoError(err)
-
-	// Have provider1 cross sign our new CA cert.
-	xcPEM, err := provider1.CrossSignCA(csr)
-	require.NoError(err)
-	xc, err := connect.ParseCert(xcPEM)
-	require.NoError(err)
-
-	rootPEM, err := provider1.ActiveRoot()
-	require.NoError(err)
-	root, err := connect.ParseCert(rootPEM)
-	require.NoError(err)
-
-	// AuthorityKeyID should be the signing root's, SubjectKeyId should be different.
-	require.Equal(root.AuthorityKeyId, xc.AuthorityKeyId)
-	require.NotEqual(root.SubjectKeyId, xc.SubjectKeyId)
-
-	// Subject name should not have changed.
-	require.NotEqual(root.Subject.CommonName, xc.Subject.CommonName)
-	require.Equal(oldSubject, xc.Subject.CommonName)
-
-	// Issuer should be the signing root.
-	require.Equal(root.Issuer.CommonName, xc.Issuer.CommonName)
-
-	// Get a leaf cert so we can verify against the cross-signed cert.
-	spiffeService := &connect.SpiffeIDService{
-		Host:       "node1",
-		Namespace:  "default",
-		Datacenter: "dc1",
-		Service:    "foo",
-	}
-	raw, _ := connect.TestCSR(t, spiffeService)
-
-	leafCsr, err := connect.ParseCSR(raw)
-	require.NoError(err)
-
-	leafPEM, err := provider2.Sign(leafCsr)
-	require.NoError(err)
-
-	cert, err := connect.ParseCert(leafPEM)
-	require.NoError(err)
-
-	intermediatePool := x509.NewCertPool()
-	intermediatePool.AddCert(xc)
-
-	rootPool := x509.NewCertPool()
-	rootPool.AddCert(root)
-
-	// Check that the leaf signed by the new cert can be verified by the
-	// chain of cross-signed cert + old root (as would be the case on any
-	// proxies that haven't received the new root yet) for backwards compatibility.
-	_, err = cert.Verify(x509.VerifyOptions{
-		Intermediates: intermediatePool,
-		Roots:         rootPool,
-	})
-	require.NoError(err)
+	testCrossSignProviders(t, provider1, provider2)
 }

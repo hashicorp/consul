@@ -201,15 +201,9 @@ func TestLeaf(t testing.T, service string, root *structs.CARoot) (string, string
 // TestCSR returns a CSR to sign the given service along with the PEM-encoded
 // private key for this certificate.
 func TestCSR(t testing.T, uri CertURI) (string, string) {
-	serviceId, ok := uri.(*SpiffeIDService)
-	if !ok {
-		t.Fatalf("SPIFFE ID in CSR must be a service ID")
-	}
-
 	template := &x509.CertificateRequest{
 		URIs:               []*url.URL{uri.URI()},
 		SignatureAlgorithm: x509.ECDSAWithSHA256,
-		Subject:            pkix.Name{CommonName: serviceId.Service},
 	}
 
 	// Create the private key we'll use

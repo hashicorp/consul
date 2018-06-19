@@ -179,46 +179,55 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 func TestConsulCAProvider_CrossSignCA(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
-
 	conf1 := testConsulCAConfig()
 	delegate1 := newMockDelegate(t, conf1)
 	provider1, err := NewConsulProvider(conf1.Config, delegate1)
+	require.NoError(t, err)
 
 	conf2 := testConsulCAConfig()
 	conf2.CreateIndex = 10
 	delegate2 := newMockDelegate(t, conf2)
 	provider2, err := NewConsulProvider(conf2.Config, delegate2)
+	require.NoError(t, err)
+
+	testCrossSignProviders(t, provider1, provider2)
+}
+
+func testCrossSignProviders(t *testing.T, provider1, provider2 Provider) {
+	require := require.New(t)
+
+	// Get the root from the new provider to be cross-signed.
+	newRootPEM, err := provider2.ActiveRoot()
+	require.NoError(err)
+	newRoot, err := connect.ParseCert(newRootPEM)
+	require.NoError(err)
+	oldSubject := newRoot.Subject.CommonName
+
+	newInterPEM, err := provider2.ActiveIntermediate()
+	require.NoError(err)
+	newIntermediate, err := connect.ParseCert(newInterPEM)
 	require.NoError(err)
 
-	require.NoError(err)
-
-	// Have provider2 generate a cross-signing CSR
-	csr, err := provider2.GetCrossSigningCSR()
-	require.NoError(err)
-	oldSubject := csr.Subject.CommonName
-
-	// Have provider1 cross sign our new CA cert.
-	xcPEM, err := provider1.CrossSignCA(csr)
+	// Have provider1 cross sign our new root cert.
+	xcPEM, err := provider1.CrossSignCA(newRoot)
 	require.NoError(err)
 	xc, err := connect.ParseCert(xcPEM)
 	require.NoError(err)
 
-	rootPEM, err := provider1.ActiveRoot()
+	oldRootPEM, err := provider1.ActiveRoot()
 	require.NoError(err)
-	root, err := connect.ParseCert(rootPEM)
+	oldRoot, err := connect.ParseCert(oldRootPEM)
 	require.NoError(err)
 
-	// AuthorityKeyID should be the signing root's, SubjectKeyId should be different.
-	require.Equal(root.AuthorityKeyId, xc.AuthorityKeyId)
-	require.NotEqual(root.SubjectKeyId, xc.SubjectKeyId)
+	// AuthorityKeyID should now be the signing root's, SubjectKeyId should be kept.
+	require.Equal(oldRoot.AuthorityKeyId, xc.AuthorityKeyId)
+	require.Equal(newRoot.SubjectKeyId, xc.SubjectKeyId)
 
 	// Subject name should not have changed.
-	require.NotEqual(root.Subject.CommonName, xc.Subject.CommonName)
 	require.Equal(oldSubject, xc.Subject.CommonName)
 
 	// Issuer should be the signing root.
-	require.Equal(root.Issuer.CommonName, xc.Issuer.CommonName)
+	require.Equal(oldRoot.Issuer.CommonName, xc.Issuer.CommonName)
 
 	// Get a leaf cert so we can verify against the cross-signed cert.
 	spiffeService := &connect.SpiffeIDService{
@@ -238,18 +247,20 @@ func TestConsulCAProvider_CrossSignCA(t *testing.T) {
 	cert, err := connect.ParseCert(leafPEM)
 	require.NoError(err)
 
+	// Check that the leaf signed by the new cert can be verified by either root
+	// certificate by using the new intermediate + cross-signed cert.
 	intermediatePool := x509.NewCertPool()
+	intermediatePool.AddCert(newIntermediate)
 	intermediatePool.AddCert(xc)
 
-	rootPool := x509.NewCertPool()
-	rootPool.AddCert(root)
+	for _, root := range []*x509.Certificate{oldRoot, newRoot} {
+		rootPool := x509.NewCertPool()
+		rootPool.AddCert(root)
 
-	// Check that the leaf signed by the new cert can be verified by the
-	// chain of cross-signed cert + old root (as would be the case on any
-	// proxies that haven't received the new root yet) for backwards compatibility.
-	_, err = cert.Verify(x509.VerifyOptions{
-		Intermediates: intermediatePool,
-		Roots:         rootPool,
-	})
-	require.NoError(err)
+		_, err = cert.Verify(x509.VerifyOptions{
+			Intermediates: intermediatePool,
+			Roots:         rootPool,
+		})
+		require.NoError(err)
+	}
 }
