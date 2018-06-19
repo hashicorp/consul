@@ -10,8 +10,8 @@
    </defs>
    <title>Service Configuration_Solution_dev</title>
    <g class="s-cls-1">
-      <g id="service-configuration-solution-dev">
-         <g id="dotted-lines">
+      <g id="s-service-configuration-solution-dev">
+         <g id="s-dotted-lines">
             <line class="s-cls-2" x1="136" y1="92" x2="136" y2="91.5" />
             <line class="s-cls-3" x1="136" y1="88.5" x2="136" y2="50" />
             <line class="s-cls-2" x1="136" y1="48.5" x2="136" y2="48" />
@@ -37,93 +37,93 @@
             <line class="s-cls-4" x1="75.31" y1="75.31" x2="103.27" y2="103.27" />
             <line class="s-cls-2" x1="104.36" y1="104.36" x2="104.72" y2="104.72" />
          </g>
-         <g id="configuration_lines" data-name="configuration lines">
-            <line id="line-1" class="s-cls-5" x1="136" y1="96" x2="136" y2="40" />
-            <line id="line-5" class="s-cls-5" x1="136" y1="176" x2="136" y2="232" />
-            <line id="line-3" class="s-cls-5" x1="176" y1="136" x2="232" y2="136" />
-            <line id="line-7" class="s-cls-5" x1="96" y1="136" x2="40" y2="136" />
-            <line id="line-2" class="s-cls-5" x1="164.28" y1="107.72" x2="205.23" y2="66.77" />
-            <line id="line-6" class="s-cls-5" x1="107.72" y1="164.28" x2="66.77" y2="205.23" />
-            <line id="line-4" class="s-cls-5" x1="164.28" y1="164.28" x2="205.23" y2="205.23" />
-            <line id="line-8" class="s-cls-5" x1="107.72" y1="107.72" x2="66.77" y2="66.77" />
+         <g id="s-configuration_lines" data-name="configuration lines">
+            <line id="s-line-1" class="s-cls-5" x1="136" y1="96" x2="136" y2="40" />
+            <line id="s-line-5" class="s-cls-5" x1="136" y1="176" x2="136" y2="232" />
+            <line id="s-line-3" class="s-cls-5" x1="176" y1="136" x2="232" y2="136" />
+            <line id="s-line-7" class="s-cls-5" x1="96" y1="136" x2="40" y2="136" />
+            <line id="s-line-2" class="s-cls-5" x1="164.28" y1="107.72" x2="205.23" y2="66.77" />
+            <line id="s-line-6" class="s-cls-5" x1="107.72" y1="164.28" x2="66.77" y2="205.23" />
+            <line id="s-line-4" class="s-cls-5" x1="164.28" y1="164.28" x2="205.23" y2="205.23" />
+            <line id="s-line-8" class="s-cls-5" x1="107.72" y1="107.72" x2="66.77" y2="66.77" />
          </g>
-         <g id="service-boxes">
-            <g id="service-box-8">
+         <g id="s-service-boxes">
+            <g id="s-service-box-8">
                <use class="s-cls-6" transform="translate(27 30)" xlink:href="#s-image" />
                <rect class="s-cls-7" x="36" y="36" width="32" height="32" rx="2" ry="2" />
-               <g id="check-8">
+               <g id="s-check-8">
                   <path class="s-cls-8" d="M59.8,45.53a.65.65,0,0,1,0,.94L52.47,53.8a.65.65,0,0,1-.94,0l-2-2a.66.66,0,0,1,.94-.94L52,52.39l6.86-6.86A.66.66,0,0,1,59.8,45.53ZM58,51.33a.67.67,0,0,0-.67.67v4.67a.67.67,0,0,1-.66.66H47.33a.67.67,0,0,1-.66-.66V47.33a.67.67,0,0,1,.66-.66h7.34a.67.67,0,0,0,0-1.34H47.33a2,2,0,0,0-2,2v9.34a2,2,0,0,0,2,2h9.34a2,2,0,0,0,2-2V52A.67.67,0,0,0,58,51.33Z" />
                   <rect class="s-cls-9" x="44" y="44" width="16" height="16" />
                </g>
             </g>
-            <g id="service-box-7">
+            <g id="s-service-box-7">
                <use class="s-cls-6" transform="translate(-1 114)" xlink:href="#s-image-2" />
                <rect class="s-cls-7" x="8" y="120.18" width="32" height="32" rx="2" ry="2" />
-               <g id="check-7">
+               <g id="s-check-7">
                   <path class="s-cls-8" d="M31.8,129.71a.65.65,0,0,1,0,.94L24.47,138a.65.65,0,0,1-.94,0l-2-2a.66.66,0,0,1,.94-.94L24,136.57l6.86-6.86A.66.66,0,0,1,31.8,129.71Zm-1.8,5.8a.67.67,0,0,0-.67.67v4.67a.67.67,0,0,1-.66.66H19.33a.67.67,0,0,1-.66-.66v-9.34a.67.67,0,0,1,.66-.66h7.34a.67.67,0,0,0,0-1.34H19.33a2,2,0,0,0-2,2v9.34a2,2,0,0,0,2,2h9.34a2,2,0,0,0,2-2v-4.67A.67.67,0,0,0,30,135.51Z" />
                   <rect class="s-cls-9" x="16" y="128.18" width="16" height="16" />
                </g>
             </g>
-            <g id="service-box-6">
+            <g id="s-service-box-6">
                <use class="s-cls-6" transform="translate(27 198)" xlink:href="#s-image" />
                <rect class="s-cls-7" x="36" y="204" width="32" height="32" rx="2" ry="2" />
-               <g id="check-6">
+               <g id="s-check-6">
                   <path class="s-cls-8" d="M59.8,213.53a.65.65,0,0,1,0,.94l-7.33,7.33a.65.65,0,0,1-.94,0l-2-2a.66.66,0,0,1,.94-.94L52,220.39l6.86-6.86A.66.66,0,0,1,59.8,213.53Zm-1.8,5.8a.67.67,0,0,0-.67.67v4.67a.67.67,0,0,1-.66.66H47.33a.67.67,0,0,1-.66-.66v-9.34a.67.67,0,0,1,.66-.66h7.34a.67.67,0,0,0,0-1.34H47.33a2,2,0,0,0-2,2v9.34a2,2,0,0,0,2,2h9.34a2,2,0,0,0,2-2V220A.67.67,0,0,0,58,219.33Z" />
                   <rect class="s-cls-9" x="44" y="212" width="16" height="16" />
                </g>
             </g>
-            <g id="service-box-5">
+            <g id="s-service-box-5">
                <use class="s-cls-6" transform="translate(111 226)" xlink:href="#s-image" />
                <rect class="s-cls-7" x="120" y="232" width="32" height="32" rx="2" ry="2" />
-               <g id="check-5">
+               <g id="s-check-5">
                   <path class="s-cls-8" d="M143.8,241.53a.65.65,0,0,1,0,.94l-7.33,7.33a.65.65,0,0,1-.94,0l-2-2a.66.66,0,0,1,.94-.94l1.53,1.53,6.86-6.86A.66.66,0,0,1,143.8,241.53Zm-1.8,5.8a.67.67,0,0,0-.67.67v4.67a.67.67,0,0,1-.66.66h-9.34a.67.67,0,0,1-.66-.66v-9.34a.67.67,0,0,1,.66-.66h7.34a.67.67,0,0,0,0-1.34h-7.34a2,2,0,0,0-2,2v9.34a2,2,0,0,0,2,2h9.34a2,2,0,0,0,2-2V248A.67.67,0,0,0,142,247.33Z" />
                   <rect class="s-cls-9" x="128" y="240" width="16" height="16" />
                </g>
             </g>
-            <g id="service-box-4">
+            <g id="s-service-box-4">
                <use class="s-cls-6" transform="translate(195 198)" xlink:href="#s-image" />
                <rect class="s-cls-7" x="204" y="204" width="32" height="32" rx="2" ry="2" />
-               <g id="check-4">
+               <g id="s-check-4">
                   <path class="s-cls-8" d="M227.8,213.53a.65.65,0,0,1,0,.94l-7.33,7.33a.65.65,0,0,1-.94,0l-2-2a.66.66,0,0,1,.94-.94l1.53,1.53,6.86-6.86A.66.66,0,0,1,227.8,213.53Zm-1.8,5.8a.67.67,0,0,0-.67.67v4.67a.67.67,0,0,1-.66.66h-9.34a.67.67,0,0,1-.66-.66v-9.34a.67.67,0,0,1,.66-.66h7.34a.67.67,0,0,0,0-1.34h-7.34a2,2,0,0,0-2,2v9.34a2,2,0,0,0,2,2h9.34a2,2,0,0,0,2-2V220A.67.67,0,0,0,226,219.33Z" />
                   <rect class="s-cls-9" x="212" y="212" width="16" height="16" />
                </g>
             </g>
-            <g id="service-box-3">
+            <g id="s-service-box-3">
                <use class="s-cls-6" transform="translate(223 114)" xlink:href="#s-image-2" />
                <rect class="s-cls-7" x="232" y="120.18" width="32" height="32" rx="2" ry="2" />
-               <g id="check-3">
+               <g id="s-check-3">
                   <path class="s-cls-8" d="M255.8,129.71a.65.65,0,0,1,0,.94L248.47,138a.65.65,0,0,1-.94,0l-2-2a.66.66,0,0,1,.94-.94l1.53,1.53,6.86-6.86A.66.66,0,0,1,255.8,129.71Zm-1.8,5.8a.67.67,0,0,0-.67.67v4.67a.67.67,0,0,1-.66.66h-9.34a.67.67,0,0,1-.66-.66v-9.34a.67.67,0,0,1,.66-.66h7.34a.67.67,0,0,0,0-1.34h-7.34a2,2,0,0,0-2,2v9.34a2,2,0,0,0,2,2h9.34a2,2,0,0,0,2-2v-4.67A.67.67,0,0,0,254,135.51Z" />
                   <rect class="s-cls-9" x="240" y="128.18" width="16" height="16" />
                </g>
             </g>
-            <g id="service-box-2">
+            <g id="s-service-box-2">
                <use class="s-cls-6" transform="translate(195 30)" xlink:href="#s-image" />
                <rect class="s-cls-7" x="204" y="36" width="32" height="32" rx="2" ry="2" />
-               <g id="check-2">
+               <g id="s-check-2">
                   <path class="s-cls-8" d="M227.8,45.53a.65.65,0,0,1,0,.94l-7.33,7.33a.65.65,0,0,1-.94,0l-2-2a.66.66,0,0,1,.94-.94L220,52.39l6.86-6.86A.66.66,0,0,1,227.8,45.53Zm-1.8,5.8a.67.67,0,0,0-.67.67v4.67a.67.67,0,0,1-.66.66h-9.34a.67.67,0,0,1-.66-.66V47.33a.67.67,0,0,1,.66-.66h7.34a.67.67,0,0,0,0-1.34h-7.34a2,2,0,0,0-2,2v9.34a2,2,0,0,0,2,2h9.34a2,2,0,0,0,2-2V52A.67.67,0,0,0,226,51.33Z" />
                   <rect class="s-cls-9" x="212" y="44" width="16" height="16" />
                </g>
             </g>
-            <g id="service-box-1">
+            <g id="s-service-box-1">
                <use class="s-cls-6" transform="translate(111 2)" xlink:href="#s-image" />
                <rect class="s-cls-7" x="120" y="8" width="32" height="32" rx="2" ry="2" />
-               <g id="check-1">
+               <g id="s-check-1">
                   <path class="s-cls-8" d="M143.8,17.53a.65.65,0,0,1,0,.94l-7.33,7.33a.65.65,0,0,1-.94,0l-2-2a.66.66,0,1,1,.94-.94L136,24.39l6.86-6.86A.66.66,0,0,1,143.8,17.53Zm-1.8,5.8a.67.67,0,0,0-.67.67v4.67a.67.67,0,0,1-.66.66h-9.34a.67.67,0,0,1-.66-.66V19.33a.67.67,0,0,1,.66-.66h7.34a.67.67,0,0,0,0-1.34h-7.34a2,2,0,0,0-2,2v9.34a2,2,0,0,0,2,2h9.34a2,2,0,0,0,2-2V24A.67.67,0,0,0,142,23.33Z" />
                   <rect class="s-cls-9" x="128" y="16" width="16" height="16" />
                </g>
             </g>
          </g>
-         <g id="dots">
-            <circle id="dot-8" class="s-cls-10" cx="67.13" cy="67.13" r="3.5" />
-            <circle id="dot-7" class="s-cls-10" cx="40.5" cy="136" r="3.5" />
-            <circle id="dot-6" class="s-cls-10" cx="67.13" cy="204.87" r="3.5" />
-            <circle id="dot-5" class="s-cls-10" cx="136" cy="231.5" r="3.5" />
-            <circle id="dot-4" class="s-cls-10" cx="204.87" cy="204.87" r="3.5" />
-            <circle id="dot-3" class="s-cls-10" cx="231.5" cy="136" r="3.5" />
-            <circle id="dot-2" class="s-cls-10" cx="204.87" cy="67.13" r="3.5" />
-            <circle id="dot-1" class="s-cls-10" cx="136" cy="40.5" r="3.5" />
+         <g id="s-dots">
+            <circle id="s-dot-8" class="s-cls-10" cx="67.13" cy="67.13" r="3.5" />
+            <circle id="s-dot-7" class="s-cls-10" cx="40.5" cy="136" r="3.5" />
+            <circle id="s-dot-6" class="s-cls-10" cx="67.13" cy="204.87" r="3.5" />
+            <circle id="s-dot-5" class="s-cls-10" cx="136" cy="231.5" r="3.5" />
+            <circle id="s-dot-4" class="s-cls-10" cx="204.87" cy="204.87" r="3.5" />
+            <circle id="s-dot-3" class="s-cls-10" cx="231.5" cy="136" r="3.5" />
+            <circle id="s-dot-2" class="s-cls-10" cx="204.87" cy="67.13" r="3.5" />
+            <circle id="s-dot-1" class="s-cls-10" cx="136" cy="40.5" r="3.5" />
          </g>
-         <g id="consul-service">
+         <g id="s-consul-service">
             <image class="s-cls-6" width="98" height="98" transform="translate(87 90)" xlink:href="data:image/png;base64,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" />
             <rect class="s-cls-11" x="96" y="96" width="80" height="80" rx="40" ry="40" />
             <g class="s-cls-12">
@@ -138,9 +138,9 @@
                <path class="s-cls-7" d="M136.06,140.59A12.59,12.59,0,1,1,143.7,118l-1.54,2a10.06,10.06,0,1,0,0,16l1.54,2A12.48,12.48,0,0,1,136.06,140.59Z" />
             </g>
          </g>
-         <g id="progress-bar">
-            <rect id="progress-bg" class="s-cls-15" x="116" y="152" width="40" height="4" />
-            <rect id="progress-indicator" class="s-cls-16" x="116" y="152" width="20" height="4" />
+         <g id="s-progress-bar">
+            <rect id="s-progress-bg" class="s-cls-15" x="116" y="152" width="40" height="4" />
+            <rect id="s-progress-indicator" class="s-cls-16" x="116" y="152" width="20" height="4" />
          </g>
       </g>
    </g>

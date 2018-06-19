@@ -1,11 +1,15 @@
+var qs = document.querySelector.bind(document)
+var qsa = document.querySelectorAll.bind(document)
+
 //
 // configuration challenge animation
 //
 
-var qs = document.querySelector.bind(document)
-var t = new TimelineLite({
+var configChallengeTimeline = new TimelineLite({
   onComplete: function() {
-    this.restart()
+    $configChallenge.classList.remove('active')
+    $configSolution.classList.add('active')
+    configSolutionTimeline.restart()
   }
 })
 
@@ -28,7 +32,8 @@ var box8 = qs('#c-box-8')
 var progressBar = qs('#c-loading-bar > rect:last-child')
 var cog = qs('#c-configuration-server > g > path')
 
-t
+configChallengeTimeline
+  .to(box1, 1, {})
   .staggerTo(
     [line1, line2, line3, line4, line5, line6, line7, line8],
     1.5,
@@ -63,4 +68,50 @@ t
     { opacity: 0.5 },
     'reset'
   )
-  .to(line1, 2, {})
+  .to(line1, 1, {})
+  .pause()
+
+//
+// configuration solution animation
+//
+
+var configSolutionTimeline = new TimelineLite({
+  onComplete: function() {
+    $configSolution.classList.remove('active')
+    $configChallenge.classList.add('active')
+    configChallengeTimeline.restart()
+  }
+})
+
+var lines = qsa(
+  '#s-line-1, #s-line-2, #s-line-3, #s-line-4, #s-line-5, #s-line-6, #s-line-7, #s-line-8'
+)
+var dots = qs('#s-dots')
+var boxes = qsa(
+  '#s-service-box-1, #s-service-box-2, #s-service-box-3, #s-service-box-4, #s-service-box-5, #s-service-box-6, #s-service-box-7, #s-service-box-8'
+)
+var progress = qs('#s-progress-indicator')
+
+configSolutionTimeline
+  .to(boxes, 1, {})
+  .to(lines, 1, { css: { strokeDashoffset: 0 } }, 'start')
+  .to(boxes, 0.5, { opacity: 1 }, '-=0.4')
+  .to(progress, 1, { width: 40 }, 'start')
+  .to(dots, 0.25, { opacity: 1 }, '-=0.5')
+  .to(progress, 1, {})
+  .to(lines, 1, { opacity: 0 }, 'reset')
+  .to(boxes, 1, { opacity: 0.5 }, 'reset')
+  .to(progress, 1, { opacity: 0 }, 'reset')
+  .to(dots, 1, { opacity: 0 }, 'reset')
+  .to(progress, 1, {})
+  .pause()
+
+//
+// configuration page
+//
+
+var $configChallenge = qs('#configuration-challenge-animation')
+var $configSolution = qs('#configuration-solution-animation')
+
+$configChallenge.classList.add('active')
+configChallengeTimeline.play()

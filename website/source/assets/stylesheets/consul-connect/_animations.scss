@@ -1,3 +1,14 @@
+.g-animation-block {
+  width: 70%;
+  margin: 0 auto;
+  opacity: 0.4;
+  transition: all 0.5s ease;
+
+  &.active {
+    opacity: 1;
+  }
+}
+
 #configuration-challenge-animation {
   & #c-line-8,
   & #c-line-7,
@@ -24,5 +35,35 @@
 
   & #c-loading-bar > rect:last-child {
     width: 0;
+  }
+}
+
+#configuration-solution-animation {
+  & #s-line-1,
+  & #s-line-2,
+  & #s-line-3,
+  & #s-line-4,
+  & #s-line-5,
+  & #s-line-6,
+  & #s-line-7,
+  & #s-line-8 {
+    stroke-dasharray: 58;
+    stroke-dashoffset: 58;
+  }
+  & #s-service-box-1,
+  & #s-service-box-2,
+  & #s-service-box-3,
+  & #s-service-box-4,
+  & #s-service-box-5,
+  & #s-service-box-6,
+  & #s-service-box-7,
+  & #s-service-box-8 {
+    opacity: 0.5;
+  }
+  & #s-progress-indicator {
+    width: 0;
+  }
+  & #s-dots {
+    opacity: 0;
   }
 }
