@@ -9,8 +9,9 @@ description: |-
 # Connect on Nomad
 
 Connect can be used with [Nomad](https://www.nomadproject.io) to provide
-secure service-to-service communication between Nomad jobs. The ability to
-use the dynamic port feature of Nomad makes Connect particularly easy to use.
+secure service-to-service communication between Nomad jobs and task groups. The ability to
+use the [dynamic port](https://www.nomadproject.io/docs/job-specification/network.html#dynamic-ports)
+feature of Nomad makes Connect particularly easy to use.
 
 Using Connect with Nomad today requires manually specifying the Connect
 sidecar proxy and managing intentions directly via Consul (outside of Nomad).
@@ -108,7 +109,8 @@ For the "db" task, there are a few important configurations:
     This isn't strictly necessary, but since we won't be connecting directly
     to this service, we also don't need to register it. We recommend registering
     the source service as well since Consul can then know the health of the
-    target service as well.
+    target service as well, which is used in determining if the proxy should
+	receive requests.
 
 Next, the "connect-proxy" task is colocated next to the "db" task. This is
 using "raw_exec" executing Consul directly. In the future this example will
