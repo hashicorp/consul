@@ -13,6 +13,7 @@ export default Model.extend({
       return [];
     },
   }),
+  Kind: attr('string'),
   Address: attr('string'),
   Port: attr('number'),
   EnableTagOverride: attr('boolean'),

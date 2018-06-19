@@ -18,7 +18,9 @@ export default Route.extend(WithAclActions, {
       return {
         ...model,
         ...{
-          items: [{ Name: '*' }].concat(model.items.toArray()),
+          items: [{ Name: '*' }].concat(
+            model.items.toArray().filter(item => get(item, 'Kind') === 'consul')
+          ),
         },
       };
     });
