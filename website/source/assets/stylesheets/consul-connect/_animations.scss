@@ -1,0 +1,28 @@
+#configuration-challenge-animation {
+  & #c-line-8,
+  & #c-line-7,
+  & #c-line-6,
+  & #c-line-5,
+  & #c-line-4,
+  & #c-line-3,
+  & #c-line-2,
+  & #c-line-1 {
+    stroke-dasharray: 64;
+    stroke-dashoffset: 64;
+  }
+
+  & #c-box-1,
+  & #c-box-2,
+  & #c-box-3,
+  & #c-box-4,
+  & #c-box-5,
+  & #c-box-6,
+  & #c-box-7,
+  & #c-box-8 {
+    opacity: 0.5;
+  }
+
+  & #c-loading-bar > rect:last-child {
+    width: 0;
+  }
+}

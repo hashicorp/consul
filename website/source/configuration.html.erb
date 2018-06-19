@@ -34,14 +34,18 @@ description: |-
           <span class='dot'></span>
           <h3>The Challenge</h3>
           <span class='sub-heading'>Runtime configuration management loses performace at scale.</span>
-          <img src='//placehold.it/516x314'>
+          <div id='configuration-challenge-animation'>
+            <%= inline_svg 'consul-connect/svgs/configuration-challenge.svg' %>
+          </div>
           <p>Services have many runtime configurations, such as feature flags or maintenance modes, that need to be propagated in real time. Distributing these updates using configuration management or by re-deploying services can take minutes to hours. During these rollout periods, infrastructure can be out of sync and service configurations could be incorrect.</p>
         </div>
         <div>
           <span class='dot'></span>
           <h3>The Solution</h3>
           <span class='sub-heading'>Real-time runtime configuration for distributed applications.</span>
-          <img src='//placehold.it/516x314'>
+          <div id='configuration-solution-animation'>
+            <%= inline_svg 'consul-connect/svgs/configuration-solution.svg' %>
+          </div>
           <p>Consul can update service configurations across thousands of services in a globally distributed fleet in real time. Configuration can be stored in a hierarchical key/value store, and efficient edge triggers allow changes to be pushed to applications quickly.</p>
         </div>
       </div>

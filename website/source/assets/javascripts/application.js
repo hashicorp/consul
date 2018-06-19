@@ -6,4 +6,5 @@
 //= require hashicorp/analytics
 
 //= require analytics
-
+//= require gsap-custom
+//= require animations
