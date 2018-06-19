@@ -109,7 +109,7 @@ For the "db" task, there are a few important configurations:
     This isn't strictly necessary, but since we won't be connecting directly
     to this service, we also don't need to register it. We recommend registering
     the source service as well since Consul can then know the health of the
-    target service as well, which is used in determining if the proxy should
+    target service, which is used in determining if the proxy should
 	receive requests.
 
 Next, the "connect-proxy" task is colocated next to the "db" task. This is
