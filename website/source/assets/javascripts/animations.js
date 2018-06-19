@@ -55,7 +55,7 @@ configChallengeTimeline
     { rotation: 360, svgOrigin: '136px 127px', ease: Power1.easeOut },
     'start'
   )
-  .to(line1, 1, {})
+  .to(line1, 2, {})
   .to(
     [line1, line2, line3, line4, line5, line6, line7, line8, progressBar],
     0.5,
@@ -68,7 +68,6 @@ configChallengeTimeline
     { opacity: 0.5 },
     'reset'
   )
-  .to(line1, 1, {})
   .pause()
 
 //
@@ -98,12 +97,11 @@ configSolutionTimeline
   .to(boxes, 0.5, { opacity: 1 }, '-=0.4')
   .to(progress, 1, { width: 40 }, 'start')
   .to(dots, 0.25, { opacity: 1 }, '-=0.5')
-  .to(progress, 1, {})
-  .to(lines, 1, { opacity: 0 }, 'reset')
-  .to(boxes, 1, { opacity: 0.5 }, 'reset')
-  .to(progress, 1, { opacity: 0 }, 'reset')
-  .to(dots, 1, { opacity: 0 }, 'reset')
-  .to(progress, 1, {})
+  .to(progress, 2, {})
+  .to(lines, 0.5, { opacity: 0 }, 'reset')
+  .to(boxes, 0.5, { opacity: 0.5 }, 'reset')
+  .to(progress, 0.5, { opacity: 0 }, 'reset')
+  .to(dots, 0.5, { opacity: 0 }, 'reset')
   .pause()
 
 //
