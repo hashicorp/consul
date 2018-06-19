@@ -6,3 +6,4 @@
 //= require hashicorp/analytics
 
 //= require analytics
+

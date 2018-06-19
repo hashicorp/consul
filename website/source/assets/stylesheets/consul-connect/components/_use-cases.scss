@@ -1,6 +1,5 @@
 .g-use-cases {
   margin: 48px 0 8px;
-  
 
   @media (min-width: 768px) {
     display: flex;
@@ -9,11 +8,12 @@
   }
 
   h3 {
+    font-weight: 800;
     margin: 40px 0 0;
 
     span {
       display: block;
-      font-weight: 300; //TODO: font weight doesn't exist currently
+      font-weight: 300;
     }
   }
 

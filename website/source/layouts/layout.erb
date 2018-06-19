@@ -27,11 +27,13 @@
     <title><%= title_for(current_page) %></title>
 
     <!-- Stylesheets -->
-    <link rel="stylesheet" href="https://use.typekit.net/wxf7mfi.css">
+    <link rel="stylesheet" href="https://use.typekit.net/ypp5bnp.css">
     <%= stylesheet_link_tag "application" %>
 
     <!-- Site scripts -->
     <!--[if lt IE 9]><%= javascript_include_tag "ie-compat", defer: true %><![endif]-->
+    <%= javascript_include_tag "consul-connect/vendor/siema.min", defer: true %>
+    <%= javascript_include_tag "consul-connect/application", defer: true %>
     <%= javascript_include_tag "application", defer: true %>
 
     <!-- Analytics scrpts -->
