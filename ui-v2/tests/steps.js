@@ -216,7 +216,12 @@ export default function(assert) {
         const iterator = new Array(_component.length).fill(true);
         iterator.forEach(function(item, i, arr) {
           const actual = _component.objectAt(i)[property];
-          const expected = yaml[i];
+          // anything coming from the DOM is going to be text/strings
+          // if the yaml has numbers, cast them to strings
+          // TODO: This would get problematic for deeper objects
+          // will have to look to do this recursively
+          const expected = typeof yaml[i] === 'number' ? yaml[i].toString() : yaml[i];
+
           assert.deepEqual(
             actual,
             expected,
