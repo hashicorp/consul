@@ -17,6 +17,9 @@ export default function(type, count, obj) {
       key = 'CONSUL_ACL_COUNT';
       obj['CONSUL_ENABLE_ACLS'] = 1;
       break;
+    case 'session':
+      key = 'CONSUL_SESSION_COUNT';
+      break;
   }
   if (key) {
     obj[key] = count;

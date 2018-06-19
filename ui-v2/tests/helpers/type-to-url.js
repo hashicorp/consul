@@ -16,6 +16,11 @@ export default function(type) {
     case 'acl':
       url = ['/v1/acl/list'];
       break;
+    case 'session':
+      url = function(url) {
+        return url.indexOf('/v1/session/node/') === 0;
+      };
+      break;
   }
   return function(actual) {
     if (url === null) {
