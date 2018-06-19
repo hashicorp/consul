@@ -441,3 +441,514 @@ if ($discoveryChallenge) {
   $discoveryChallenge.classList.add('active')
   discoveryChallengeTimeline.play()
 }
+
+//
+// discovery page
+//
+
+var $segmentationChallenge = qs('#segmentation-challenge-animation')
+var $segmentationSolution = qs('#segmentation-solution-animation')
+
+if ($segmentationChallenge) {
+  // challenge animation
+  var segmentationChallengeTimeline = new TimelineLite({
+    onComplete: function() {
+      $segmentationChallenge.classList.remove('active')
+      $segmentationSolution.classList.add('active')
+      segmentationSolutionTimeline.restart()
+    }
+  })
+
+  var computerUpdatePath = qs('#c-firewall-updates #c-update_path')
+  var computerUpdateBox = qs('#c-firewall-updates #c-edit')
+  var computer = qs('#c-computer')
+  var progressBars = qsa(
+    '#c-progress-indicator, #c-progress-indicator-2, #c-progress-indicator-3'
+  )
+  var progressBarBars = qsa(
+    '#c-progress-indicator > rect:last-child, #c-progress-indicator-2 > rect:last-child, #c-progress-indicator-3 > rect:last-child'
+  )
+  var brokenLinks = qsa('#c-broken-link-1, #c-broken-link-2, #c-broken-link-3')
+  var box2 = qs('#c-box-2')
+  var box2Border = qs('#c-box-2 > path')
+  var box4 = qs('#c-box-4')
+  var box4Border = qs('#c-box-4 > path')
+  var box6 = qs('#c-box-6')
+  var box6Border = qs('#c-box-6 > path')
+  var box7 = qs('#c-box-7')
+  var box7Border = qs('#c-box-7 > path')
+  var path1a = qs('#c-path-1 > *:nth-child(2)')
+  var path1b = qs('#c-path-1 > *:nth-child(3)')
+  var path1c = qs('#c-path-1 > *:nth-child(1)')
+  var path2a = qs('#c-path-2 > *:nth-child(1)')
+  var path2b = qs('#c-path-2 > *:nth-child(3)')
+  var path2c = qs('#c-path-2 > *:nth-child(2)')
+  var path3a = qs('#c-path-3 > *:nth-child(2)')
+  var path3b = qs('#c-path-3 > *:nth-child(3)')
+  var path3c = qs('#c-path-3 > *:nth-child(1)')
+
+  segmentationChallengeTimeline
+    .to(box2, 1, {})
+    // box 4 and 6 appear
+    .to(box4Border, 0.4, { css: { fill: '#000' } }, 'box4-in')
+    .fromTo(
+      box4,
+      0.3,
+      { scale: 0, rotation: 200, opacity: 0, svgOrigin: '291px 41px' },
+      { scale: 1, rotation: 360, opacity: 1 },
+      'box4-in'
+    )
+    .to(box6Border, 0.4, { css: { fill: '#000' } }, '-=0.2')
+    .fromTo(
+      box6,
+      0.3,
+      { scale: 0, rotation: 200, opacity: 0, svgOrigin: '195px 289px' },
+      { scale: 1, rotation: 360, opacity: 1 },
+      '-=0.4'
+    )
+    // wait for a moment
+    .to(box2, 1, {})
+    // computer appears and sends updates to firewalls
+    .to(computer, 0.5, { opacity: 1 })
+    .to(computerUpdateBox, 0.3, { opacity: 1 }, '-=0.2')
+    .to(computerUpdatePath, 0.3, { opacity: 1 }, '-=0.2')
+    // firewall progress bars
+    .to(progressBarBars, 0.01, { width: 0 })
+    .to(progressBars, 0.2, { opacity: 1 })
+    .staggerTo(progressBarBars, 0.6, { width: 40 }, 0.2)
+    // connection 1 made
+    .to(path1a, 0.3, { css: { strokeDashoffset: 0 }, ease: Linear.easeNone })
+    .to(path1b, 0.3, { css: { strokeDashoffset: 0 }, ease: Linear.easeNone })
+    .to(path1c, 0.3, { css: { strokeDashoffset: 0 }, ease: Linear.easeNone })
+    // progress bars and firewall update lines fade out
+    .to(progressBars, 0.7, { opacity: 0 }, 'resetComputer1')
+    .to(computerUpdateBox, 0.7, { opacity: 0 }, 'resetComputer1')
+    .to(computerUpdatePath, 0.7, { opacity: 0 }, 'resetComputer1')
+    // connection turns blue
+    .to(
+      [path1a, path1b, path1c],
+      0.5,
+      { css: { stroke: '#3969ED' } },
+      'resetComputer1'
+    )
+    .to(
+      [box4Border, box6Border],
+      0.5,
+      { css: { fill: '#3969ED' } },
+      'resetComputer1'
+    )
+    // second connection draws
+    .to(
+      path2a,
+      0.3,
+      { css: { strokeDashoffset: 0 }, ease: Linear.easeNone },
+      '-=0.3'
+    )
+    .to(path2b, 0.3, { css: { strokeDashoffset: 0 }, ease: Linear.easeNone })
+    .to(path2c, 0.2, { css: { strokeDashoffset: 0 }, ease: Linear.easeNone })
+    // second connection turns blue
+    .to([path2a, path2b, path2c], 0.5, { css: { stroke: '#3969ED' } }, '-=0.1')
+    .to(box7Border, 0.5, { css: { fill: '#3969ED' } }, '-=0.3')
+    // wait a moment
+    .to(box2, 2, {})
+    // blue elements fade back to gray
+    .to(
+      [path1a, path1b, path1c, path2a, path2b, path2c],
+      0.5,
+      {
+        css: { stroke: '#b5b8c4' }
+      },
+      'colorReset1'
+    )
+    .to(
+      [box7Border, box4Border, box6Border],
+      0.5,
+      { css: { fill: '#b5b8c4' } },
+      'colorReset1'
+    )
+    // box 2 appears
+    .to(box2Border, 0.4, { css: { fill: '#000' } }, 'colorReset1')
+    .fromTo(
+      box2,
+      0.3,
+      { scale: 0, rotation: 200, opacity: 0, svgOrigin: '195px 42px' },
+      { scale: 1, rotation: 360, opacity: 1 },
+      '-=0.4'
+    )
+    // wait a moment
+    .to(box2, 1, {})
+    // computer updates firewalls
+    .to(computerUpdateBox, 0.3, { opacity: 1 }, '-=0.2')
+    .to(computerUpdatePath, 0.3, { opacity: 1 }, '-=0.2')
+    // firewall progress bars
+    .to(progressBarBars, 0.01, { width: 0 })
+    .to(progressBars, 0.2, { opacity: 1 })
+    .staggerTo(progressBarBars, 0.6, { width: 40 }, 0.2)
+    // third connection made
+    .to(path3a, 0.3, { css: { strokeDashoffset: 0 }, ease: Linear.easeNone })
+    .to(path3b, 0.3, { css: { strokeDashoffset: 0 }, ease: Linear.easeNone })
+    .to(path3c, 0.3, { css: { strokeDashoffset: 0 }, ease: Linear.easeNone })
+    // progress bars & computer arrows fade out
+    .to(progressBars, 0.5, { opacity: 0 }, 'computerReset2')
+    .to(computerUpdateBox, 0.5, { opacity: 0 }, 'computerReset2')
+    .to(computerUpdatePath, 0.5, { opacity: 0 }, 'computerReset2')
+    // third connection turns blue
+    .to(
+      [path3a, path3b, path3c],
+      0.5,
+      { css: { stroke: '#3969ED' } },
+      'computerReset2'
+    )
+    .to(
+      [box2Border, box7Border],
+      0.5,
+      { css: { fill: '#3969ED' } },
+      'computerReset2'
+    )
+    // wait a bit
+    .to(box2, 2, {})
+    // third connection turns back to gray
+    .to(
+      [path3a, path3b, path3c],
+      0.5,
+      { css: { stroke: '#b5b8c4' } },
+      'colorReset2'
+    )
+    .to(
+      [box2Border, box7Border],
+      0.5,
+      { css: { fill: '#b5b8c4' } },
+      'colorReset2'
+    )
+    // boxes 2, 4, and 6 disappear
+    .to(
+      [box2, box4, box6],
+      0.6,
+      { scale: 0, rotation: 200, opacity: 0 },
+      '-=0.4'
+    )
+    // lines turn red and broken links appear
+    .to(
+      [path1a, path1b, path1c, path2a, path2b, path2c, path3a, path3b, path3c],
+      0.3,
+      { css: { stroke: '#ED4168' } },
+      '-=0.2'
+    )
+    .to(brokenLinks, 0.3, { opacity: 1 }, '-=0.3')
+    // wait a moment
+    .to(box2, 1, {})
+    // code sent to firewalls
+    .to(computerUpdateBox, 0.3, { opacity: 1 })
+    .to(computerUpdatePath, 0.3, { opacity: 1 })
+    // firewall progress bars
+    .to(progressBarBars, 0.01, { width: 0 })
+    .to(progressBars, 0.2, { opacity: 1 })
+    .staggerTo(progressBarBars, 0.6, { width: 40 }, 0.2)
+    .to(box2, 0.5, {})
+    // faulty connections removed
+    .to(
+      [
+        path1a,
+        path1b,
+        path1c,
+        path2a,
+        path2b,
+        path2c,
+        path3a,
+        path3b,
+        path3c
+      ].concat(brokenLinks),
+      0.7,
+      { opacity: 0 }
+    )
+    // progress bars and connection arrows fade out
+    .to(progressBars, 0.5, { opacity: 0 }, 'computerReset3')
+    .to(computerUpdateBox, 0.5, { opacity: 0 }, 'computerReset3')
+    .to(computerUpdatePath, 0.5, { opacity: 0 }, 'computerReset3')
+    .to(computer, 0.5, { opacity: 0 }, 'computerReset3')
+    // wait a moment before the loop
+    .to(box2, 1, {})
+    .pause()
+
+  // solution animation
+  var segmentationSolutionTimeline = new TimelineLite({
+    onComplete: function() {
+      $segmentationSolution.classList.remove('active')
+      $segmentationChallenge.classList.add('active')
+      segmentationChallengeTimeline.restart()
+    }
+  })
+
+  // service boxes
+  var box1 = qs('#s-service-2')
+  var box1Border = qs('#s-service-2 > path')
+  var box1Lock = qs('#s-service-2 #s-secure-indicator-2')
+  var box2 = qs('#s-service-4')
+  var box2Border = qs('#s-service-4 > path')
+  var box2Lock = qs('#s-service-4 #s-secure-indicator-4')
+  var box3 = qs('#s-service-6')
+  var box3Border = qs('#s-service-6 > path')
+  var box3Lock = qs('#s-service-6 #s-secure-indicator-6')
+
+  // connection paths
+  var path1a = qs('#s-connection-path-2')
+  var path1b = qs('#s-connection-path-8')
+  var path2a = qs('#s-connection-path-9')
+  var path2b = qs('#s-connection-path-10')
+  var path3a = qs('#s-connection-path-1')
+  var path3b = qs('#s-connection-path-4')
+  var path3c = qs('#s-connection-path-5')
+  var path3d = qs('#s-connection-path-6')
+
+  // inbound consul updates
+  var inboundPathLower = qs('#s-consul-inbound-paths-lower')
+  var inboundUpdateLower = qs('#s-dynamic-update-inbound-lower')
+  var inboundUpdateLowerSpinner = qs('#s-dynamic-update-inbound-lower > path')
+  var inboundPathUpper = qs('#s-consul-inbound-paths-upper')
+  var inboundUpdateUpper = qs('#s-dynamic-update-inbound-upper')
+  var inboundUpdateUpperSpinner = qs('#s-dynamic-update-inbound-upper > path')
+
+  // outbound consul updates
+  var outboundPathsLower = qsa(
+    '#s-consul-server-connection-lower, #s-consul-outbound-5, #s-consul-outbound-6, #s-consul-outbound-7'
+  )
+  var outboundUpdateLower = qsa(
+    '#s-dynamic-update-outbound-ower, #s-tls-cert-lower'
+  )
+  var outboundUpdateLowerSpinner = qs('#s-dynamic-update-outbound-ower > path')
+  var outboundPathsUpper1 = qsa(
+    '#s-consul-server-connection-upper, #s-consul-outbound-3, #s-consul-outbound-4'
+  )
+  var outboundPathsUpper2 = qsa(
+    '#s-consul-server-connection-upper, #s-consul-outbound-1, #s-soncul-outbound-2'
+  )
+  var outboundUpdateUpper = qsa(
+    '#s-tls-cert-upper, #s-dynamic-update-outbound-upper'
+  )
+  var outboundUpdateUpperSpinner = qs('#s-dynamic-update-outbound-upper > path')
+
+  segmentationSolutionTimeline
+    .to(box2, 1, {})
+    // boxes 2 and 3 appear
+    .fromTo(
+      box2,
+      0.3,
+      { scale: 0, rotation: 200, opacity: 0, svgOrigin: '281px 104px' },
+      { scale: 1, rotation: 360, opacity: 1 }
+    )
+    .fromTo(
+      box3,
+      0.3,
+      { scale: 0, rotation: 200, opacity: 0, svgOrigin: '185px 226px' },
+      { scale: 1, rotation: 360, opacity: 1 },
+      '-=0.1'
+    )
+    // wait a moment
+    .to(box1, 0.5, {})
+    // consul speaks to each box that needs a connection made
+    .to(outboundPathsUpper1, 0.5, { opacity: 1 })
+    .to(outboundPathsLower, 0.5, { opacity: 1 }, '-=0.3')
+    .to(outboundUpdateUpper, 0.3, { opacity: 1 }, '-=0.3')
+    .to(outboundUpdateLower, 0.3, { opacity: 1 }, '-=0.1')
+    .to(
+      outboundUpdateUpperSpinner,
+      0.7,
+      {
+        rotation: 360,
+        svgOrigin: '44px 99px'
+      },
+      '-=0.5'
+    )
+    .to(
+      outboundUpdateLowerSpinner,
+      0.7,
+      {
+        rotation: 360,
+        svgOrigin: '44px 246px'
+      },
+      '-=0.3'
+    )
+    // pink borders, locks, connections drawn, consul talk fades
+    .to(box2Lock, 0.3, { opacity: 1 }, 'connections-1')
+    .to(box2Border, 0.3, { fill: '#CA2270' }, 'connections-1')
+    .to(box3Lock, 0.3, { opacity: 1 }, 'connections-1')
+    .to(box3Border, 0.3, { fill: '#CA2270' }, 'connections-1')
+    .to(outboundPathsUpper1, 0.7, { opacity: 0 }, 'connections-1')
+    .to(outboundPathsLower, 0.7, { opacity: 0 }, 'connections-1')
+    .to(outboundUpdateUpper, 0.7, { opacity: 0 }, 'connections-1')
+    .to(outboundUpdateLower, 0.7, { opacity: 0 }, 'connections-1')
+    .to(
+      path1a,
+      0.5,
+      { css: { strokeDashoffset: 0, stroke: '#CA2270' } },
+      'connections-1'
+    )
+    .to(
+      path1b,
+      0.5,
+      { css: { strokeDashoffset: 0, stroke: '#CA2270' } },
+      'connections-1'
+    )
+    .to(
+      path2a,
+      0.5,
+      { css: { strokeDashoffset: 0, stroke: '#CA2270' } },
+      'connections-1'
+    )
+    .to(
+      path2b,
+      0.5,
+      { css: { strokeDashoffset: 0, stroke: '#CA2270' } },
+      'connections-1'
+    )
+    // wait a moment
+    .to(box1, 0.5, {})
+    // box 1 appears
+    .fromTo(
+      box1,
+      0.3,
+      { scale: 0, rotation: 200, opacity: 0, svgOrigin: '185px 104px' },
+      { scale: 1, rotation: 360, opacity: 1 },
+      '-=0.1'
+    )
+    // wait a moment, previous paths fade ('#EEB9D1')
+    .to(box1, 0.5, {}, 'stage-1-complete')
+    .to(box2Border, 0.5, { fill: '#EEB9D1' }, 'stage-1-complete')
+    .to(box3Border, 0.5, { fill: '#EEB9D1' }, 'stage-1-complete')
+    .to(path1a, 0.5, { css: { stroke: '#EEB9D1' } }, 'stage-1-complete')
+    .to(path1b, 0.5, { css: { stroke: '#EEB9D1' } }, 'stage-1-complete')
+    .to(path2a, 0.5, { css: { stroke: '#EEB9D1' } }, 'stage-1-complete')
+    .to(path2b, 0.5, { css: { stroke: '#EEB9D1' } }, 'stage-1-complete')
+    // consul speaks to each box that needs a connection made
+    .to(outboundPathsUpper2, 0.5, { opacity: 1 })
+    .to(outboundPathsLower, 0.5, { opacity: 1 }, '-=0.3')
+    .to(outboundUpdateUpper, 0.3, { opacity: 1 }, '-=0.3')
+    .to(outboundUpdateLower, 0.3, { opacity: 1 }, '-=0.1')
+    .to(
+      outboundUpdateUpperSpinner,
+      0.7,
+      {
+        rotation: 720,
+        svgOrigin: '44px 99px'
+      },
+      '-=0.5'
+    )
+    .to(
+      outboundUpdateLowerSpinner,
+      0.7,
+      {
+        rotation: 720,
+        svgOrigin: '44px 246px'
+      },
+      '-=0.3'
+    )
+    // connections drawn
+    .to(box1Lock, 0.3, { opacity: 1 }, 'connections-2')
+    .to(box1Border, 0.3, { fill: '#CA2270' }, 'connections-2')
+    .to(
+      path3a,
+      0.5,
+      { css: { strokeDashoffset: 0, stroke: '#CA2270' } },
+      'connections-2'
+    )
+    .to(
+      path3b,
+      0.5,
+      { css: { strokeDashoffset: 0, stroke: '#CA2270' } },
+      'connections-2'
+    )
+    .to(
+      path3c,
+      0.5,
+      { css: { strokeDashoffset: 0, stroke: '#CA2270' } },
+      'connections-2'
+    )
+    .to(
+      path3d,
+      0.5,
+      { css: { strokeDashoffset: 0, stroke: '#CA2270' } },
+      'connections-2'
+    )
+    .to(box1, 0.7, {}, 'stage-2-complete')
+    .to(outboundPathsUpper2, 0.7, { opacity: 0 }, 'stage-2-complete')
+    .to(outboundPathsLower, 0.7, { opacity: 0 }, 'stage-2-complete')
+    .to(outboundUpdateUpper, 0.7, { opacity: 0 }, 'stage-2-complete')
+    .to(outboundUpdateLower, 0.7, { opacity: 0 }, 'stage-2-complete')
+    .to(box1Border, 0.5, { fill: '#EEB9D1' }, 'path-fade-2')
+    .to(path3a, 0.5, { css: { stroke: '#EEB9D1' } }, 'path-fade-2')
+    .to(path3b, 0.5, { css: { stroke: '#EEB9D1' } }, 'path-fade-2')
+    .to(path3c, 0.5, { css: { stroke: '#EEB9D1' } }, 'path-fade-2')
+    .to(path3d, 0.5, { css: { stroke: '#EEB9D1' } }, 'path-fade-2')
+    // wait a moment
+    .to(box1, 1, {})
+    // all new boxes and connections fade
+    .to(
+      [
+        box1,
+        box2,
+        box3,
+        path1a,
+        path1b,
+        path2a,
+        path2b,
+        path3a,
+        path3b,
+        path3c,
+        path3d
+      ],
+      0.5,
+      { opacity: 0.3 }
+    )
+    // faded boxes speak to consul
+    .to(inboundPathLower, 0.5, { opacity: 1 }, 'inbound')
+    .to(inboundPathUpper, 0.5, { opacity: 1 }, 'inbound')
+    .to(inboundUpdateLower, 0.5, { opacity: 1 }, 'inbound')
+    .to(inboundUpdateUpper, 0.5, { opacity: 1 }, 'inbound')
+    .to(
+      inboundUpdateLowerSpinner,
+      0.7,
+      {
+        rotation: 360,
+        svgOrigin: '44px 237px'
+      },
+      '-=0.3'
+    )
+    .to(
+      inboundUpdateUpperSpinner,
+      0.7,
+      {
+        rotation: 360,
+        svgOrigin: '44px 91px'
+      },
+      '-=0.3'
+    )
+    // consul removes faded boxes and connections
+    .to(
+      [
+        box1,
+        box2,
+        box3,
+        path1a,
+        path1b,
+        path2a,
+        path2b,
+        path3a,
+        path3b,
+        path3c,
+        path3d,
+        inboundPathLower,
+        inboundPathUpper,
+        inboundUpdateLower,
+        inboundUpdateUpper
+      ],
+      0.5,
+      { opacity: 0.0 }
+    )
+    // wait a moment before the loop
+    .to(box1, 1, {})
+    .pause()
+
+  // kick it off
+  $segmentationChallenge.classList.add('active')
+  segmentationChallengeTimeline.play()
+}

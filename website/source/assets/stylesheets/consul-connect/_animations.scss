@@ -193,3 +193,163 @@
     opacity: 0;
   }
 }
+
+#segmentation-challenge-animation {
+  & #c-firewall-updates #c-update_path {
+    opacity: 0;
+  }
+  & #c-firewall-updates #c-edit {
+    opacity: 0;
+  }
+  & #c-computer {
+    opacity: 0;
+  }
+  & #c-progress-indicator,
+  & #c-progress-indicator-2,
+  & #c-progress-indicator-3 {
+    opacity: 0;
+  }
+  & #c-broken-link-1,
+  & #c-broken-link-2,
+  & #c-broken-link-3 {
+    opacity: 0;
+  }
+  & #c-box-2,
+  & #c-box-4,
+  & #c-box-6 {
+    opacity: 0;
+  }
+
+  & #c-path-1 > *:nth-child(1) {
+    stroke-dasharray: 50;
+    stroke-dashoffset: 50;
+  }
+  & #c-path-1 > *:nth-child(2) {
+    stroke-dasharray: 94;
+    stroke-dashoffset: 94;
+  }
+  & #c-path-1 > *:nth-child(3) {
+    stroke-dasharray: 102;
+    stroke-dashoffset: 102;
+  }
+  & #c-path-2 > *:nth-child(1) {
+    stroke-dasharray: 50;
+    stroke-dashoffset: 50;
+  }
+  & #c-path-2 > *:nth-child(2) {
+    stroke-dasharray: 32;
+    stroke-dashoffset: 32;
+  }
+  & #c-path-2 > *:nth-child(3) {
+    stroke-dasharray: 32;
+    stroke-dashoffset: 32;
+  }
+  & #c-path-2 > *:nth-child(3) {
+    stroke-dasharray: 148;
+    stroke-dashoffset: 148;
+  }
+  & #c-path-3 > *:nth-child(1) {
+    stroke-dasharray: 32;
+    stroke-dashoffset: 32;
+  }
+  & #c-path-3 > *:nth-child(2) {
+    stroke-dasharray: 54;
+    stroke-dashoffset: 54;
+  }
+  & #c-path-3 > *:nth-child(3) {
+    stroke-dasharray: 126;
+    stroke-dashoffset: 126;
+  }
+}
+
+#segmentation-solution-animation {
+  #s-service-2 {
+    opacity: 0;
+  }
+  #s-service-4 {
+    opacity: 0;
+  }
+  #s-service-6 {
+    opacity: 0;
+  }
+  #s-service-2 > path {
+    fill: #000;
+  }
+  #s-service-4 > path {
+    fill: #000;
+  }
+  #s-service-6 > path {
+    fill: #000;
+  }
+  #s-secure-indicator-2 {
+    opacity: 0;
+  }
+  #s-secure-indicator-4 {
+    opacity: 0;
+  }
+  #s-secure-indicator-6 {
+    opacity: 0;
+  }
+  #s-connection-path-6 {
+    stroke-dasharray: 161;
+    stroke-dashoffset: 161;
+  }
+  #s-connection-path-5 {
+    stroke-dasharray: 73;
+    stroke-dashoffset: 73;
+  }
+  #s-connection-path-4 {
+    stroke-dasharray: 115;
+    stroke-dashoffset: 115;
+  }
+  #s-connection-path-1 {
+    stroke-dasharray: 16;
+    stroke-dashoffset: 16;
+  }
+  #s-connection-path-2 {
+    stroke-dasharray: 16;
+    stroke-dashoffset: 16;
+  }
+  #s-connection-path-8 {
+    stroke-dasharray: 73;
+    stroke-dashoffset: 73;
+  }
+  #s-connection-path-10 {
+    stroke-dasharray: 64;
+    stroke-dashoffset: 64;
+  }
+  #s-connection-path-9 {
+    stroke-dasharray: 16;
+    stroke-dashoffset: 16;
+  }
+  #s-consul-inbound-paths-lower,
+  #s-dynamic-update-inbound-lower {
+    opacity: 0;
+  }
+  #s-consul-inbound-paths-upper,
+  #s-dynamic-update-inbound-upper {
+    opacity: 0;
+  }
+  #s-consul-server-connection-lower,
+  #s-consul-outbound-5,
+  #s-consul-outbound-6,
+  #s-consul-outbound-7 {
+    opacity: 0;
+  }
+  #s-tls-cert-lower,
+  #s-dynamic-update-outbound-ower {
+    opacity: 0;
+  }
+
+  #s-consul-server-connection-upper,
+  #s-consul-outbound-1,
+  #s-soncul-outbound-2,
+  #s-consul-outbound-3,
+  #s-consul-outbound-4 {
+    opacity: 0;
+  }
+  #s-tls-cert-upper,
+  #s-dynamic-update-outbound-upper {
+    opacity: 0;
+  }
+}

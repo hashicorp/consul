@@ -35,14 +35,18 @@ description: |-
           <span class='dot'></span>
           <h3>The Challenge</h3>
           <span class='sub-heading'>Securing service-to-service communication with firewalls doesn’t scale in dynamic settings.</span>
-          <img src='//placehold.it/516x314'>
+          <div id='segmentation-challenge-animation' class='g-animation-block'>
+            <%= inline_svg 'consul-connect/svgs/segmentation-challenge.svg' %>
+          </div>
           <p>East-west firewalls are the main tool for networking security in a static world. They depend on constraining traffic flow and use IP based rules to control ingress and egress traffic. But in a dynamic world where services move across machines and machines are frequently created and destroyed, this perimeter-based approach is difficult to scale as it requires complex network topologies and a large number of short lived firewall rules.</p>
         </div>
         <div>
           <span class='dot'></span>
           <h3>The Solution</h3>
           <span class='sub-heading'>Service segmentation for dynamic service authorization.</span>
-          <img src='//placehold.it/516x314'>
+          <div id='segmentation-solution-animation' class='g-animation-block'>
+            <%= inline_svg 'consul-connect/svgs/segmentation-solution.svg' %>
+          </div>
           <p>Service segmentation is a new approach to secure the service itself rather than relying on the network. Consul Connect enables high level rules to codify which services are allowed to communicate directly, without IP based rules or networking middleware.</p>
         </div>
       </div>
