@@ -48,7 +48,14 @@ party proxies such as Envoy. The ability to use the right proxy for the job
 allows flexible heterogeneous deployments where different proxies may be
 more correct for the applications they're proxying.
 
-Consul enforces authorization and identity to layer 4 only. We believe
+In addition to third party proxy support, applications can natively integrate
+with the Connect protocol. As a result, the performance overhead of introducing
+Connect is negligible. These "Connect-native" applications can interact with
+any other Connect-capable services, whether they're using a proxy or are
+also Connect-native.
+
+Consul enforces authorization and identity to layer 4 only -- either the TLS
+connection can be established or it can't. We believe
 service identity should be tied to layer 4, whereas layer 7 should be used
 for routing, telemetry, etc. We encourge users to use the pluggable data
 plane layer to use a proxy that supports the layer 7 features necessary

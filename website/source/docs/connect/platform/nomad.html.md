@@ -3,7 +3,7 @@ layout: "docs"
 page_title: "Connect - Nomad"
 sidebar_current: "docs-connect-platform-nomad"
 description: |-
-  Intentions define access control for services via Connect and are used to control which services may establish connections. Intentions can be managed via the API, CLI, or UI.
+  Connect can be used with [Nomad](https://www.nomadproject.io) to provide secure service-to-service communication between Nomad jobs. The ability to use the dynamic port feature of Nomad makes Connect particularly easy to use.
 ---
 
 # Connect on Nomad
@@ -102,14 +102,13 @@ For the "db" task, there are a few important configurations:
     the node that the database is running on.
 
   * The `tcp` port is dynamic. This removes any static constraints on the port,
-    allowing Nomad to allocate any available port for any allocation. Further,
-    it slightly increases security by not using a well-known port.
+    allowing Nomad to allocate any available port for any allocation.
 
   * The database is _not_ registered with Consul using a `service` block.
     This isn't strictly necessary, but since we won't be connecting directly
-    to this service, we also don't need to register it. You mauy want to
-    register this service still for health checks or if it isn't switching
-    to exclusively accept Connect connections.
+    to this service, we also don't need to register it. We recommend registering
+    the source service as well since Consul can then know the health of the
+    target service as well.
 
 Next, the "connect-proxy" task is colocated next to the "db" task. This is
 using "raw_exec" executing Consul directly. In the future this example will
@@ -131,7 +130,7 @@ The important configuration for this proxy:
     stanza, and this causes the proxy to register itself so it is discoverable.
 
 Following running this job specification, the DB will be started with a
-Conect proxy. The only public listener from the job is the proxy. This means
+Connect proxy. The only public listener from the job is the proxy. This means
 that only Connect connections can access the database from an external node.
 
 ## Connecting to Upstream Dependencies
@@ -184,7 +183,8 @@ are not specified. This prevents the proxy from registering itself as
 a valid listener for the given service.
 
 The `-upstream` flag is specified to configure a private listener to
-connect to the service "db" as "web". The port is dynamic.
+connect to the service "db" as "web". The port is dynamic. The listener
+will bind to a loopback address only.
 
 Finally, the "web" task is configured to use the localhost address to
 connect to the database. This will establish a connection to the remote
@@ -192,5 +192,6 @@ DB using Connect. Interpolation is used to retrieve the address dynamically
 since the port is dynamic.
 
 -> **Both -listen and -upstream can be specified** for services that both
-accept Connect connections as well as have upstream dependencies. This
+accept Connect connections as well as have upstream dependencies. Additionally,
+multiple `-upstream` flags can be specified for multiple upstream dependencies. This
 can be done on a single proxy instance rather than having multiple.

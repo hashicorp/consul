@@ -38,7 +38,7 @@ infrastructure. It provides several key features:
 * **Secure Service Communication**: Consul can generate and distribute TLS
   certificates for services to establish mutual TLS connections.
   [Intentions](/docs/connect/intentions.html)
-  can be used to define what services are allowed to communicate.
+  can be used to define which services are allowed to communicate.
 
 * **Multi Datacenter**: Consul supports multiple datacenters out of the box. This
   means users of Consul do not have to worry about building additional layers of
