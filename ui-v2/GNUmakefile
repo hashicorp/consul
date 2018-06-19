@@ -1,33 +1,28 @@
 ROOT:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
-server:
-	yarn run start
-
-dist:
+all: build
+	
+deps: node_modules
+	
+build: deps
 	yarn run build
-	mv dist ../pkg/web_ui/v2
-
-init:
-	yarn install
-
-lint:
-	yarn run lint:js
-format:
-	yarn run format:js
-
-.PHONY: server dist lint format
-
-.DEFAULT_GOAL=all
-.PHONY: deps test all build start
-all: deps
-deps: node_modules yarn.lock package.json
-node_modules:
-	yarn
-build:
-	yarn run build
-start:
+	
+start: deps
 	yarn run start
-test:
+	
+test: deps
 	yarn run test
-test-view:
+	
+test-view: deps
 	yarn run test:view
+		
+lint: deps
+	yarn run lint:js
+	
+format: deps
+	yarn run format:js
+		
+node_modules: yarn.lock package.json
+	yarn install
+	
+.PHONY: all deps build start test test-view lint format

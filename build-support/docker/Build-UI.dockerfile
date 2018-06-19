@@ -11,4 +11,4 @@ RUN apk update && \
     mkdir /consul-src
 
 WORKDIR /consul-src
-CMD make init build
+CMD make
