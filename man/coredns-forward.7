@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-FORWARD" "7" "May 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-FORWARD" "7" "June 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIforward\fR \- facilitates proxying DNS messages to upstream resolvers\.
@@ -113,6 +113,9 @@ forward FROM TO\.\.\. {
 .
 .P
 Also note the TLS config is "global" for the whole forwarding proxy if you need a different \fBtls\-name\fR for different upstreams you\'re out of luck\.
+.
+.P
+On each endpoint, the timeouts of the communication are set by default and automatically tuned depending early results\. \- dialTimeout by default is 30 sec, and can decrease automatically down to 100ms \- readTimeout by default is 2 sec, and can decrease automatically down to 10ms
 .
 .SH "METRICS"
 If monitoring is enabled (via the \fIprometheus\fR directive) then the following metric are exported:
