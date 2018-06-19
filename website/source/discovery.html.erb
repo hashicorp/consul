@@ -34,14 +34,18 @@ description: |-
           <span class='dot'></span>
           <h3>The Challenge</h3>
           <span class='sub-heading'>Service load balancers aren't efficient in a dynamic world.</span>
-          <img src='//placehold.it/516x314'>
+          <div id='discovery-challenge-animation' class='g-animation-block'>
+            <%= inline_svg 'consul-connect/svgs/discovery-challenge.svg' %>
+          </div>
           <p>Load balancers are often used to front a service tier and provide a static IP. These load balancers add cost, increase latency, introduce single points of failure, and must be updated as services scale up/down.</p>
         </div>
         <div>
           <span class='dot'></span>
           <h3>The Solution</h3>
           <span class='sub-heading'>Service discovery for dynamic infrastructure.</span>
-          <img src='//placehold.it/516x314'>
+          <div id='discovery-solution-animation' class='g-animation-block'>
+            <%= inline_svg 'consul-connect/svgs/discovery-solution.svg' %>
+          </div>
           <p>Instead of load balancers, connectivity in dynamic infrastructure is best solved with service discovery. Service discovery uses a registry to keep a real-time list of services, their location, and their health. Services query the registry to discover the location of upstream services and then connect directly. This allows services to scale up/down and gracefully handle failure without a load balancer intermediary.</p>
         </div>
       </div>

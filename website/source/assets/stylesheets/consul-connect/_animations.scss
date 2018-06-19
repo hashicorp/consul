@@ -67,3 +67,129 @@
     opacity: 0;
   }
 }
+
+#discovery-challenge-animation {
+  & #c-box-left-placement {
+    opacity: 0;
+  }
+
+  & #c-broken-link-left {
+    opacity: 0;
+  }
+
+  & #c-broken-link-right {
+    opacity: 0;
+  }
+
+  & #c-computer {
+    opacity: 0;
+  }
+
+  & #c-computer-to-load-balancers #c-arrow-down {
+    opacity: 0;
+  }
+
+  & #c-computer-to-load-balancers #c-arrow-right {
+    opacity: 0;
+  }
+
+  & #c-computer-to-load-balancers #c-arrow-left {
+    opacity: 0;
+  }
+
+  & #c-computer-to-load-balancers #c-circle {
+    opacity: 0;
+  }
+
+  & #c-computer-to-load-balancers #c-edit-box {
+    opacity: 0;
+  }
+
+  & #c-load-balancer-left > #c-progress-bar,
+  & #c-load-balancer-right > #c-progress-bar-2,
+  & #c-load-balancer-middle > #c-progress-bar-3 {
+    opacity: 0;
+  }
+
+  & #c-load-balancer-left > #c-progress-bar > *:last-child,
+  & #c-load-balancer-right > #c-progress-bar-2 > *:last-child,
+  & #c-load-balancer-middle > #c-progress-bar-3 > *:last-child {
+    width: 0;
+  }
+
+  & #c-line-horizontal-right {
+    stroke-dasharray: 65;
+    stroke-dashoffset: 65;
+  }
+
+  & #c-line-horizontal-right > line {
+    stroke: #000;
+  }
+
+  & #c-line-top-right {
+    stroke-dasharray: 17;
+    stroke-dashoffset: 17;
+  }
+
+  & #c-line-bottom-right {
+    stroke-dasharray: 80;
+    stroke-dashoffset: 80;
+  }
+
+  & #c-line-top-left {
+    stroke-dasharray: 17;
+    stroke-dashoffset: 0;
+  }
+
+  & #line-bottom-left {
+    stroke-dasharray: 56;
+    stroke-dashoffset: 0;
+  }
+
+  & #c-line-top-left > * {
+    stroke: #3969ed;
+  }
+  & #c-line-bottom-left > * {
+    stroke: #3969ed;
+  }
+  & #c-line-bottom-right > * {
+    stroke: #000;
+  }
+  & #c-box-far-left > path {
+    fill: #3969ed;
+  }
+}
+
+#discovery-solution-animation {
+  & #s-active-service-3 {
+    display: none;
+  }
+  & #s-connected-line-2 {
+    stroke-dasharray: 270;
+    stroke-dashoffset: 270;
+  }
+  & #s-connected-line-1 {
+    stroke-dasharray: 222;
+  }
+  & #s-dotted-line-left {
+    opacity: 0;
+  }
+  & #s-dotted-lines-right {
+    opacity: 0;
+  }
+  & #s-dotted-lines-right > path:last-child {
+    opacity: 0;
+  }
+  & #s-dynamic-sync-right {
+    opacity: 0;
+  }
+  & #s-dynamic-sync-left {
+    opacity: 0;
+  }
+  & #s-dynamic-sync-left > path {
+    transform-origin: 88px 127px;
+  }
+  & #s-dotted-service-box-2 {
+    opacity: 0;
+  }
+}
