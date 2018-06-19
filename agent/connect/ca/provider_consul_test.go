@@ -1,6 +1,7 @@
 package ca
 
 import (
+	"crypto/x509"
 	"fmt"
 	"testing"
 	"time"
@@ -197,7 +198,7 @@ func TestConsulCAProvider_CrossSignCA(t *testing.T) {
 	require.NoError(err)
 	oldSubject := csr.Subject.CommonName
 
-	// Have the provider cross sign our new CA cert.
+	// Have provider1 cross sign our new CA cert.
 	xcPEM, err := provider1.CrossSignCA(csr)
 	require.NoError(err)
 	xc, err := connect.ParseCert(xcPEM)
@@ -218,4 +219,37 @@ func TestConsulCAProvider_CrossSignCA(t *testing.T) {
 
 	// Issuer should be the signing root.
 	require.Equal(root.Issuer.CommonName, xc.Issuer.CommonName)
+
+	// Get a leaf cert so we can verify against the cross-signed cert.
+	spiffeService := &connect.SpiffeIDService{
+		Host:       "node1",
+		Namespace:  "default",
+		Datacenter: "dc1",
+		Service:    "foo",
+	}
+	raw, _ := connect.TestCSR(t, spiffeService)
+
+	leafCsr, err := connect.ParseCSR(raw)
+	require.NoError(err)
+
+	leafPEM, err := provider2.Sign(leafCsr)
+	require.NoError(err)
+
+	cert, err := connect.ParseCert(leafPEM)
+	require.NoError(err)
+
+	intermediatePool := x509.NewCertPool()
+	intermediatePool.AddCert(xc)
+
+	rootPool := x509.NewCertPool()
+	rootPool.AddCert(root)
+
+	// Check that the leaf signed by the new cert can be verified by the
+	// chain of cross-signed cert + old root (as would be the case on any
+	// proxies that haven't received the new root yet) for backwards compatibility.
+	_, err = cert.Verify(x509.VerifyOptions{
+		Intermediates: intermediatePool,
+		Roots:         rootPool,
+	})
+	require.NoError(err)
 }
