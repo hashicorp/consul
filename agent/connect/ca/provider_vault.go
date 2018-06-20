@@ -285,7 +285,18 @@ func (v *VaultProvider) Cleanup() error {
 func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderConfig, error) {
 	var config structs.VaultCAProviderConfig
 
-	if err := mapstructure.Decode(raw, &config); err != nil {
+	decodeConf := &mapstructure.DecoderConfig{
+		ErrorUnused:      true,
+		Result:           &config,
+		WeaklyTypedInput: true,
+	}
+
+	decoder, err := mapstructure.NewDecoder(decodeConf)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := decoder.Decode(raw); err != nil {
 		return nil, fmt.Errorf("error decoding config: %s", err)
 	}
 
