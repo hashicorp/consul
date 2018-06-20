@@ -68,9 +68,21 @@
     }
   }
 
+  #static-dynamic {
+    .static-callout {
+      width: 85%;
+    }
+  }
+
+  #use-cases {
+    .g-use-cases img {
+      width: 51%;
+    }
+  }
+
   .home-cta-section {
     color: $white;
-    
+
     @media (min-width: 768px) {
       display: flex;
     }
@@ -80,7 +92,7 @@
       justify-content: center;
       padding: 64px 24px;
       overflow: hidden;
-      
+
       @media (min-width: 768px) {
         padding-top: 80px;
         padding-bottom: 80px;
@@ -98,8 +110,8 @@
         position: relative;
 
         &:after {
-          content: "";
-          background: url("/assets/images/consul-connect/mesh.svg") top center;
+          content: '';
+          background: url('/assets/images/consul-connect/mesh.svg') top center;
           background-size: cover;
           position: absolute;
           top: 0;

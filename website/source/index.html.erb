@@ -33,7 +33,7 @@ description: |-
     </div>
   </section>
 
-  <section class='g-section bg-light'>
+  <section id='static-dynamic' class='g-section bg-light'>
     <div class='g-container'>
       <div class='intro'>
         <h2>A paradigm shift</h2>
@@ -50,19 +50,21 @@ description: |-
           <span class='dot'></span>
           <h3>Static</h3>
           <span class='sub-heading'>Host-based networking.</span>
-          <img src='//placehold.it/516x314'>
+          <img src='/assets/images/consul-connect/svgs/static.svg' alt='static, host-based networking' class='static-callout' />
         </div>
         <div>
           <span class='dot'></span>
           <h3>Dynamic</h3>
           <span class='sub-heading'>Service-based networking.</span>
-          <img src='//placehold.it/516x314'>
+          <div id='index-dynamic-animation'>
+            <%= inline_svg 'consul-connect/svgs/dynamic.svg' %>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <section class='g-section'>
+  <section id='use-cases' class='g-section'>
     <div class='g-container'>
       <div class='intro'>
         <h2>Use Cases</h2>
@@ -70,7 +72,7 @@ description: |-
       <div class='g-use-cases'>
         <div>
           <div>
-            <img src='//placehold.it/180x130'>
+            <img src='/assets/images/consul-connect/svgs/discovery-simple.svg'>
             <h3>Service Discovery <span>for connectivity</h3>
             <p>Service Registry enables services to register and discover each other.</p>
           </div>
@@ -80,7 +82,7 @@ description: |-
         </div>
         <div>
           <div>
-            <img src='//placehold.it/180x130'>
+            <img src='/assets/images/consul-connect/svgs/segmentation-simple.svg'>
             <h3>Service Segmentation <span>for security</h3>
             <p>Secure service-to-service communication with automatic TLS encryption and identity-based authorization.</p>
           </div>
@@ -90,7 +92,7 @@ description: |-
         </div>
         <div>
           <div>
-            <img src='//placehold.it/180x130'>
+            <img src='/assets/images/consul-connect/svgs/configuration-simple.svg'>
             <h3>Service Configuration <span>for runtime configuration</h3>
             <p>Feature rich Key/Value store lets you easily configure services.</p>
           </div>

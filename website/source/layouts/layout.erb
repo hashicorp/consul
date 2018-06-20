@@ -32,6 +32,7 @@
 
     <!-- Site scripts -->
     <!--[if lt IE 9]><%= javascript_include_tag "ie-compat", defer: true %><![endif]-->
+    <%= javascript_include_tag "consul-connect/vendor/intersection-observer-polyfill", defer: true %>
     <%= javascript_include_tag "consul-connect/vendor/siema.min", defer: true %>
     <%= javascript_include_tag "consul-connect/application", defer: true %>
     <%= javascript_include_tag "application", defer: true %>

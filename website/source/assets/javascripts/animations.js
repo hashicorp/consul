@@ -2,6 +2,35 @@ var qs = document.querySelector.bind(document)
 var qsa = document.querySelectorAll.bind(document)
 
 //
+// home page
+//
+
+var $indexDynamic = qs('#index-dynamic-animation')
+if ($indexDynamic) {
+  var initiated = false
+  var observer = new IntersectionObserver(
+    function(entries) {
+      if (!initiated && entries[0].isIntersecting) {
+        $indexDynamic.classList.add('active')
+        var lines = qsa(
+          '#lines-origin-aws > *, #lines-origin-azure > *, #lines-origin-gcp > *'
+        )
+        setTimeout(function() {
+          timer = setInterval(function() {
+            lines[parseInt(Math.random() * lines.length)].classList.toggle(
+              'off'
+            )
+          }, 800)
+        }, 3000)
+        initiated = true
+      }
+    },
+    { threshold: 0.5 }
+  )
+  observer.observe($indexDynamic)
+}
+
+//
 // configuration page
 //
 
