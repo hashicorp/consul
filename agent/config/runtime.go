@@ -281,6 +281,11 @@ type RuntimeConfig struct {
 	// hcl: dns_config { udp_answer_limit = int }
 	DNSUDPAnswerLimit int
 
+	// DNSNodeMetaTXT controls whether DNS queries will synthesize
+	// TXT records for the node metadata and add them when not specifically
+	// request (query type = TXT). If unset this will default to true
+	DNSNodeMetaTXT bool
+
 	// DNSRecursors can be set to allow the DNS servers to recursively
 	// resolve non-consul domains.
 	//

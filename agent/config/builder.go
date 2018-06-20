@@ -592,6 +592,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		DNSRecursors:          dnsRecursors,
 		DNSServiceTTL:         dnsServiceTTL,
 		DNSUDPAnswerLimit:     b.intVal(c.DNS.UDPAnswerLimit),
+		DNSNodeMetaTXT:        b.boolValWithDefault(c.DNS.NodeMetaTXT, true),
 
 		// HTTP
 		HTTPPort:            httpPort,
@@ -1010,11 +1011,16 @@ func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 	}
 }
 
-func (b *Builder) boolVal(v *bool) bool {
+func (b *Builder) boolValWithDefault(v *bool, default_val bool) bool {
 	if v == nil {
-		return false
+		return default_val
 	}
+
 	return *v
+}
+
+func (b *Builder) boolVal(v *bool) bool {
+	return b.boolValWithDefault(v, false)
 }
 
 func (b *Builder) durationVal(name string, v *string) (d time.Duration) {
