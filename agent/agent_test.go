@@ -626,11 +626,16 @@ func verifyIndexChurn(t *testing.T, tags []string) {
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
+	weights := &structs.Weights{
+		Passing: 1,
+		Warning: 0,
+	}
 	svc := &structs.NodeService{
 		ID:      "redis",
 		Service: "redis",
 		Port:    8000,
 		Tags:    tags,
+		Weights: weights,
 	}
 	if err := a.AddService(svc, nil, true, ""); err != nil {
 		t.Fatalf("err: %v", err)
