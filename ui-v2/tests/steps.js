@@ -1,6 +1,6 @@
 /* eslint no-console: "off" */
 import yadda from './helpers/yadda';
-import { currentURL, click, triggerKeyEvent } from '@ember/test-helpers';
+import { currentURL, click, triggerKeyEvent, find } from '@ember/test-helpers';
 import getDictionary from '@hashicorp/ember-cli-api-double/dictionary';
 import pages from 'consul-ui/tests/pages';
 import api from 'consul-ui/tests/helpers/api';
@@ -38,14 +38,14 @@ export default function(assert) {
       }, yadda)
     )
       // doubles
-      .given(['$number $model model', '$number $model models'], function(number, model) {
+      .given(['$number $model model[s]?', '$number $model models'], function(number, model) {
         return create(number, model);
       })
-      .given(['$number $model model with the value "$value"'], function(number, model, value) {
+      .given(['$number $model model[s]? with the value "$value"'], function(number, model, value) {
         return create(number, model, value);
       })
       .given(
-        ['$number $model model[s]? from yaml\n$yaml', '$number $model model from json\n$json'],
+        ['$number $model model[s]? from yaml\n$yaml', '$number $model model[s]? from json\n$json'],
         function(number, model, data) {
           return create(number, model, data);
         }
@@ -276,6 +276,12 @@ export default function(assert) {
       })
       .then(['I see $property'], function(property, component) {
         assert.ok(currentPage[property], `Expected to see ${property}`);
+      })
+      .then(['I see the text "$text" in "$selector"'], function(text, selector) {
+        assert.ok(
+          find(selector).textContent.indexOf(text) !== -1,
+          `Expected to see "${text}" in "${selector}"`
+        );
       })
       // TODO: Think of better language
       // TODO: These should be mergeable

@@ -15,11 +15,11 @@
 {{/if}}
     {{/block-slot}}
     {{#block-slot 'content'}}
-{{#if (gt item.Service.Tags.length 0)}}
+{{#if (gt item.Tags.length 0)}}
         <dl>
             <dt>Tags</dt>
-            <dd>
-                {{join ', ' item.Service.Tags}}
+            <dd data-test-tags>
+                {{join ', ' item.Tags}}
             </dd>
         </dl>
 {{/if}}
