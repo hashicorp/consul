@@ -200,6 +200,10 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	// Cert template for generation
 	sn := &big.Int{}
 	sn.SetUint64(idx + 1)
+	// Sign the certificate valid from 1 minute in the past, this helps it be
+	// accepted right away even when nodes are not in close time sync accross the
+	// cluster. A minute is more than enough for typical DC clock drift.
+	effectiveNow := time.Now().Add(-1 * time.Minute)
 	template := x509.Certificate{
 		SerialNumber:          sn,
 		Subject:               pkix.Name{CommonName: serviceId.Service},
@@ -218,8 +222,8 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 			x509.ExtKeyUsageServerAuth,
 		},
 		// todo(kyhavlov): add a way to set the cert lifetime here from the CA config
-		NotAfter:       time.Now().Add(3 * 24 * time.Hour),
-		NotBefore:      time.Now(),
+		NotAfter:       effectiveNow.Add(3 * 24 * time.Hour),
+		NotBefore:      effectiveNow,
 		AuthorityKeyId: keyId,
 		SubjectKeyId:   keyId,
 	}
@@ -280,6 +284,17 @@ func (c *ConsulProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 	template.SignatureAlgorithm = rootCA.SignatureAlgorithm
 	template.SubjectKeyId = keyId
 	template.AuthorityKeyId = keyId
+
+	// Sign the certificate valid from 1 minute in the past, this helps it be
+	// accepted right away even when nodes are not in close time sync accross the
+	// cluster. A minute is more than enough for typical DC clock drift.
+	effectiveNow := time.Now().Add(-1 * time.Minute)
+	template.NotBefore = effectiveNow
+	// This cross-signed cert is only needed during rotation, and only while old
+	// leaf certs are still in use. They expire within 3 days currently so 7 is
+	// safe. TODO(banks): make this be based on leaf expiry time when that is
+	// configurable.
+	template.NotAfter = effectiveNow.Add(7 * 24 * time.Hour)
 
 	bs, err := x509.CreateCertificate(
 		rand.Reader, &template, rootCA, cert.PublicKey, privKey)
