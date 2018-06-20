@@ -17,6 +17,8 @@ Feature: dc / services / show: Show Service
       dc: dc1
       service: service-0
     ---
-    Then I see the text "Tag1, Tag2, Tag3" in "[data-test-tags]"
-    Then ok
+    Then I see the text "Tag1" in "[data-test-tags] span:nth-child(1)"
+    Then I see the text "Tag2" in "[data-test-tags] span:nth-child(2)"
+    Then I see the text "Tag3" in "[data-test-tags] span:nth-child(3)"
+    Then pause for 5000
 
