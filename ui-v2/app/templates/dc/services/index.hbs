@@ -35,9 +35,11 @@
                         <dd title="Critical" class={{if (lt item.ChecksCritical 1) 'zero'}} style={{criticalWidth}}>{{format_number item.ChecksCritical}}</dd>
                     </dl>
                 </td>
-                <td style={{remainingWidth}}>
+                <td class="tags" style={{remainingWidth}}>
                 {{#if (gt item.Tags.length 0)}}
-                    {{join ', ' item.Tags}}
+                  {{#each item.Tags as |item|}}
+                    <span>{{item}}</span>
+                  {{/each}}
                 {{/if}}
                 </td>
             {{/block-slot}}
