@@ -157,9 +157,9 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 	}
 
 	if s.IsUIEnabled() {
-		new_ui, err := strconv.ParseBool(os.Getenv("CONSUL_UI_BETA"))
+		legacy_ui, err := strconv.ParseBool(os.Getenv("CONSUL_UI_LEGACY"))
 		if err != nil {
-			new_ui = false
+			legacy_ui = false
 		}
 		var uifs http.FileSystem
 
@@ -169,15 +169,15 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 		} else {
 			fs := assetFS()
 
-			if new_ui {
-				fs.Prefix += "/v2/"
-			} else {
+			if legacy_ui {
 				fs.Prefix += "/v1/"
+			} else {
+				fs.Prefix += "/v2/"
 			}
 			uifs = fs
 		}
 
-		if new_ui {
+		if !legacy_ui {
 			uifs = &redirectFS{fs: uifs}
 		}
 
