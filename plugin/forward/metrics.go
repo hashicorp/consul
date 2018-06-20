@@ -44,7 +44,7 @@ var (
 	SocketGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: plugin.Namespace,
 		Subsystem: "forward",
-		Name:      "socket_count_total",
+		Name:      "sockets_open",
 		Help:      "Gauge of open sockets per upstream.",
 	}, []string{"to"})
 )
