@@ -164,8 +164,6 @@ func parseBlock(c *caddyfile.Dispenser, u *staticUpstream) error {
 			} else {
 				u.ex = newDNSEx()
 			}
-		case "https_google":
-			// allow the config, but make noop
 		case "grpc":
 			if len(encArgs) == 2 && encArgs[1] == "insecure" {
 				u.ex = newGrpcClient(nil, u)
