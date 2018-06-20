@@ -242,6 +242,15 @@ export default function(assert) {
           `Expected ${num} ${model}s with ${property} set to "${value}", saw ${len}`
         );
       })
+      .then('I have settings like yaml\n$yaml', function(data) {
+        // TODO: Inject this
+        const settings = window.localStorage;
+        Object.keys(data).forEach(function(prop) {
+          const actual = settings.getItem(prop);
+          const expected = data[prop];
+          assert.strictEqual(actual, expected, `Expected settings to be ${expected} was ${actual}`);
+        });
+      })
       .then('I see $property on the $component like yaml\n$yaml', function(
         property,
         component,

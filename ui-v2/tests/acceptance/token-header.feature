@@ -12,7 +12,7 @@ Feature: token headers
     headers:
       X-Consul-Token: ''
     ---
-  Scenario: Set a token and then navigate to the index page
+  Scenario: Set the token to [Token] and then navigate to the index page
     Given 1 datacenter model with the value "datacenter"
     When I visit the settings page
     Then the url should be /settings

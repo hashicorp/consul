@@ -16,14 +16,18 @@ export default Service.extend({
     };
   },
   findAll: function(key) {
-    return Promise.resolve({ token: get(this, 'storage').getItem('token') });
+    const token = get(this, 'storage').getItem('token');
+    return Promise.resolve({ token: token === null ? '' : token });
   },
   findBySlug: function(slug) {
+    // TODO: Force localStorage to always be strings...
+    // const value = get(this, 'storage').getItem(slug);
     return Promise.resolve(get(this, 'storage').getItem(slug));
   },
   persist: function(obj) {
     const storage = get(this, 'storage');
     Object.keys(obj).forEach((item, i) => {
+      // TODO: ...everywhere
       storage.setItem(item, obj[item]);
     });
     return Promise.resolve(obj);
