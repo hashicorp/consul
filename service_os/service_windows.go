@@ -3,11 +3,12 @@
 package service_os
 
 import (
-	"os"
 	wsvc "golang.org/x/sys/windows/svc"
+	"os"
+	"time"
 )
 
-type serviceWindows struct {}
+type serviceWindows struct{}
 
 func init() {
 	interactive, err := wsvc.IsAnInteractiveSession()
@@ -19,6 +20,7 @@ func init() {
 	}
 	go func() {
 		_ = wsvc.Run("", serviceWindows{})
+		time.Sleep(4 * time.Second)
 		os.Exit(0)
 	}()
 }
@@ -34,6 +36,7 @@ func (serviceWindows) Execute(args []string, r <-chan wsvc.ChangeRequest, s chan
 		case wsvc.Interrogate:
 			s <- c.CurrentStatus
 		case wsvc.Stop, wsvc.Shutdown:
+			chanGraceExit <- 1
 			s <- wsvc.Status{State: wsvc.StopPending}
 			return false, 0
 		}
