@@ -97,8 +97,13 @@ function confirm_git_push_changes {
                ret=1
                break
                ;;
+            ?)
+               # bindata_assetfs.go will make these meaningless
+               git_diff "$(pwd)" ":!agent/bindata_assetfs.go"|| ret 1
+               answer=""
+               ;;
             * )
-               read -p "Are these changes correct? [y/n]: " answer
+               read -p "Are these changes correct? [y/n] (or type ? to show the diff output): " answer
                ;;
          esac
       done

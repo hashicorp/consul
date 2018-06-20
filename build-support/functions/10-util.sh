@@ -319,6 +319,39 @@ function git_log_summary {
    return $ret
 }
 
+function git_diff {
+   # Arguments:
+   #   $1 - Path to the git repo (optional - assumes pwd is git repo otherwise)
+   #   $2 .. $N - Optional path specification
+   #
+   # Returns:
+   #   0 - success
+   #   * - failure
+   #
+   
+   local gdir="$(pwd)"
+   if test -d "$1"
+   then
+      gdir="$1"
+   fi
+   
+   shift
+   
+   pushd "${gdir}" > /dev/null
+   
+   local ret=0
+   
+   local head=$(git_branch) || ret=1
+   local upstream=$(git_upstream) || ret=1
+   
+   if test ${ret} -eq 0
+   then
+      status "Git Diff - Paths: $@"
+      git diff ${HEAD} ${upstream} -- "$@" || ret=1
+   fi
+   return $ret
+}
+
 function normalize_git_url {
    url="${1#https://}"
    url="${url#git@}"
