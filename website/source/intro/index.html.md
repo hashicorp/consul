@@ -16,7 +16,7 @@ detailed reference of available features.
 
 ## What is Consul?
 
-Consul has multiple components, but as a whole, it is a tool for
+Consul is a service mesh solution that has multiple components for
 discovering, connecting, configuring, and securing services in your
 infrastructure. It provides several key features:
 
@@ -39,6 +39,9 @@ infrastructure. It provides several key features:
   certificates for services to establish mutual TLS connections.
   [Intentions](/docs/connect/intentions.html)
   can be used to define which services are allowed to communicate.
+  Service segmentation can be easily managed with intentions that can
+  be changed in real time instead of using complex network topologies
+  and static firewall rules.
 
 * **Multi Datacenter**: Consul supports multiple datacenters out of the box. This
   means users of Consul do not have to worry about building additional layers of

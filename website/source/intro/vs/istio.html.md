@@ -18,10 +18,10 @@ or others. At a minimum, three Istio-dedicated services along with at
 least one separate distributed system (in addition to Istio) must be
 configured for the full functionality of Istio.
 
-Istio is architected to work on any platform. However, the documentation
-and resources for installing and configuring Istio on non-Kubernetes systems
-are few and the number of moving pieces Istio requires poses a challenge for
-installation, configuration, and operation.
+Istio plans to work on any platform, but currently has a hard dependency
+on the Kubernetes API. While the documentation covers connecting non-Kubernetes
+services, it assumes that a Kubernetes deployment exists for the control
+plane.
 
 Istio provides layer 7 features for path-based routing, traffic shaping,
 load balancing, and telemetry. Access control policies can be configured
@@ -38,9 +38,12 @@ on any platform, including directly onto the machine.
 Consul uses an agent-based model where each node in the cluster runs a
 Consul Client. This client maintains a local cache that is efficiently updated
 from servers. As a result, all secure service communication APIs respond in
-microseconds and do not require any external communication. Further,
-service-to-service communication continues operating even if the Consul
-cluster is degraded.
+microseconds and do not require any external communication. This allows us to
+do connection enforcement at the edge without communicating to central
+servers. Istio flows requests to a central Mixer service and must push
+updates out via Pilot. This dramatically reduces the scalability of Istio,
+whereas Consul is able to efficiently distribute updates and perform all
+work on the edge.
 
 The data plane for Consul is pluggable. It includes a built-in proxy with
 a larger performance trade off for ease of use. But you may also use third
