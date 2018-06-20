@@ -179,7 +179,11 @@ export default function(assert) {
         assert.equal(request.url, url, `Expected the request url to be ${url}, was ${request.url}`);
       })
       .then('the url should be $url', function(url) {
-        const current = currentURL();
+        // TODO: nice! $url should be wrapped in ""
+        if (url === "''") {
+          url = '';
+        }
+        const current = currentURL() || '';
         assert.equal(current, url, `Expected the url to be ${url} was ${current}`);
       })
       .then(['I see $num $model', 'I see $num $model model', 'I see $num $model models'], function(
@@ -278,6 +282,15 @@ export default function(assert) {
           find(selector).textContent.indexOf(text) !== -1,
           `Expected to see "${text}" in "${selector}"`
         );
+      })
+      // TODO: Think of better language
+      // TODO: These should be mergeable
+      .then(['"$selector" has the "$class" class'], function(selector, cls) {
+        // because `find` doesn't work, guessing its sandboxed to ember's container
+        assert.ok(document.querySelector(selector).classList.contains(cls));
+      })
+      .then(['"$selector" doesn\'t have the "$class" class'], function(selector, cls) {
+        assert.ok(!document.querySelector(selector).classList.contains(cls));
       })
       .then('ok', function() {
         assert.ok(true);
