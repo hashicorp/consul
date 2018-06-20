@@ -72,6 +72,16 @@
     .static-callout {
       width: 85%;
     }
+
+    #index-dynamic-animation {
+      width: 85%;
+      margin: 0 auto;
+
+      svg {
+        width: 100%;
+        height: auto !important;
+      }
+    }
   }
 
   #use-cases {
