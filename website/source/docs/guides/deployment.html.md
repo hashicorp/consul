@@ -167,7 +167,7 @@ Failed nodes will be automatically removed after 72 hours. This can happen if a 
 
 This sequence can be accelerated with the [`force-leave`](https://www.consul.io/docs/commands/force-leave.html) command. Nodes running as servers will be removed from the Raft quorum. Force-leave may also be used to remove nodes that have accidentally joined the datacenter. Force-leave can only be applied to the nodes in its respective datacenter and cannot be executed on the nodes outside the datacenter.
 
-Alternately, nodes can also be removed using `remove-peer` if `force-leave` is not effective in removing the nodes.
+Alternately, server nodes can also be removed using `remove-peer` if `force-leave` is not effective in removing the nodes.
 
     $ consul operator raft remove-peer -address=x.x.x.x:8300
 
