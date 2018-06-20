@@ -679,9 +679,9 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
       servers in the cluster in order for Connect to function properly. Defaults to false.
 
     * <a name="connect_ca_provider"></a><a href="#connect_ca_provider">`ca_provider`</a> Controls
-      which CA provider to use for Connect's CA. Currently only `consul` is supported. This is only
-      used when initially bootstrapping the cluster. For an existing cluster, use the [Update CA
-      Configuration Endpoint](/api/connect/ca.html#update-ca-configuration).
+      which CA provider to use for Connect's CA. Currently only the `consul` and `vault` providers
+      are supported. This is only used when initially bootstrapping the cluster. For an existing 
+      cluster, use the [Update CA Configuration Endpoint](/api/connect/ca.html#update-ca-configuration).
 
     * <a name="connect_ca_config"></a><a href="#connect_ca_config">`ca_config`</a> An object which
       allows setting different config options based on the CA provider chosen. This is only
@@ -690,7 +690,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 
         The following providers are supported:
 
-        ### Consul CA Provider
+        #### Consul CA Provider (`ca_provider = "consul"`)
 
         * <a name="consul_ca_private_key"></a><a href="#consul_ca_private_key">`private_key`</a> The
         PEM contents of the private key to use for the CA.
@@ -702,6 +702,25 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
         frequency with which to re-generate and rotate the private key and root certificate, in the form of a
         duration value such as `720h`. Only applies in the case where the private key or root certificate are
         left blank. Defaults to `2160h` (90 days).
+
+        #### Vault CA Provider (`ca_provider = "vault"`)
+
+        * <a name="vault_ca_address"></a><a href="#vault_ca_address">`address`</a> The address of the Vault 
+        server to connect to.
+
+        * <a name="vault_ca_token"></a><a href="#vault_ca_token">`token`</a> The Vault token to use.
+
+        * <a name="vault_ca_root_pki"></a><a href="#vault_ca_root_pki">`root_pki_path`</a> The
+        path to use for the root CA pki backend in Vault. This can be an existing backend with a CA already
+        configured, or a blank/unmounted backend in which case Connect will automatically mount/generate the CA.
+        The Vault token given above must have `sudo` access to this backend, as well as permission to mount
+        the backend at this path if it is not already mounted.
+
+        * <a name="vault_ca_intermediate_pki"></a><a href="#vault_ca_intermediate_pki">`intermediate_pki_path`</a> 
+        The path to use for the temporary intermediate CA pki backend in Vault. *Connect will overwrite any data
+        at this path in order to generate a temporary intermediate CA*. The Vault token given above must have 
+        `write` access to this backend, as well as permission to mount the backend at this path if it is not 
+        already mounted.
 
     * <a name="connect_proxy"></a><a href="#connect_proxy">`proxy`</a> This object allows setting options for the Connect proxies. The following sub-keys are available:
 

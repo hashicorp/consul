@@ -193,6 +193,57 @@ $ curl localhost:8500/v1/connect/ca/roots
 The old root certificate will be automatically removed once enough time has elapsed
 for any leaf certificates signed by it to expire.
 
-### External CA (Certificate Authority) Providers (Vault)
+### External CA (Certificate Authority) Providers
 
-TODO
+#### Vault
+
+Currently, the only supported external CA (Certificate Authority) provider is Vault. The 
+Vault provider can be used by setting the `ca_provider = "vault"` field in the Connect 
+configuration:
+
+```hcl
+connect {
+    enabled = true
+    ca_provider = "vault"
+    ca_config {
+        address = "http://localhost:8200"
+        token = "..."
+        root_pki_path = "connect-root"
+        intermediate_pki_path = "connect-intermediate"
+    }
+}
+```
+
+The `root_pki_path` can be set to either a new or existing PKI backend; if no CA has been
+initialized at the path, a new root CA will be generated. From this root PKI, Connect will
+generate an intermediate CA at `intermediate_pki_path`. This intermediate CA is used so that
+Connect can manage its lifecycle/rotation - it will never touch or overwrite any existing data
+at `root_pki_path`. The intermediate CA is used for signing leaf certificates used by the 
+services and proxies in Connect to verify identity.
+
+To update the configuration for the Vault provider, the process is the same as for the Consul CA
+provider above: use the [Update CA Configuration endpoint](/api/connect/ca.html#update-ca-configuration)
+or the `consul connect ca set-config` command:
+
+```bash
+$ cat ca_config.json
+{
+  "Provider": "vault",
+  "Config": {
+    address = "http://localhost:8200"
+    token = "..."
+    root_pki_path = "connect-root-2"
+    intermediate_pki_path = "connect-intermediate"
+  }
+}
+
+$ consul connect ca set-config -config-file=ca_config.json
+
+...
+
+[INFO] connect: CA rotated to new root under provider "vault"
+``` 
+
+If the PKI backend at `connect-root-2` in this case has a different root certificate (or if it's
+unmounted and hasn't been initialized), the rotation process will be triggered, as described above
+in the [Root Certificate Rotation](#root-certificate-rotation) section.
