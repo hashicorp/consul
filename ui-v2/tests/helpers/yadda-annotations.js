@@ -64,6 +64,7 @@ function setupScenario(featureAnnotations, scenarioAnnotations) {
   }
   return function(model) {
     model.afterEach(function() {
+      window.localStorage.clear();
       api.server.reset();
     });
   };

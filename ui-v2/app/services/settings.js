@@ -7,8 +7,12 @@ export default Service.extend({
   storage: window.localStorage,
   findHeaders: function() {
     // TODO: if possible this should be a promise
+    const token = get(this, 'storage').getItem('token');
+    // TODO: The old UI always sent ?token=
+    // replicate the old functionality here
+    // but remove this to be cleaner if its not necessary
     return {
-      'X-Consul-Token': get(this, 'storage').getItem('token'),
+      'X-Consul-Token': token === null ? '' : token,
     };
   },
   findAll: function(key) {

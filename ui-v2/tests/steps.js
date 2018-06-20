@@ -150,6 +150,37 @@ export default function(assert) {
           );
         });
       })
+      // TODO: This one can replace the above one, it covers more use cases
+      // also DRY it out a bit
+      .then('a $method request is made to "$url" from yaml\n$yaml', function(method, url, yaml) {
+        const request = api.server.history[api.server.history.length - 2];
+        assert.equal(
+          request.method,
+          method,
+          `Expected the request method to be ${method}, was ${request.method}`
+        );
+        assert.equal(request.url, url, `Expected the request url to be ${url}, was ${request.url}`);
+        let data = yaml.body || {};
+        const body = JSON.parse(request.requestBody);
+        Object.keys(data).forEach(function(key, i, arr) {
+          assert.equal(
+            body[key],
+            data[key],
+            `Expected the payload to contain ${key} to equal ${body[key]}, ${key} was ${data[key]}`
+          );
+        });
+        data = yaml.headers || {};
+        const headers = request.requestHeaders;
+        Object.keys(data).forEach(function(key, i, arr) {
+          assert.equal(
+            headers[key],
+            data[key],
+            `Expected the payload to contain ${key} to equal ${headers[key]}, ${key} was ${
+              data[key]
+            }`
+          );
+        });
+      })
       .then('a $method request is made to "$url" with the body "$body"', function(
         method,
         url,

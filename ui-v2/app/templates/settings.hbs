@@ -13,7 +13,7 @@
                 <fieldset>
                     <label class="type-text">
                         <span>ACL Token</span>
-                        {{ input type='password' value=item.token }}
+                        {{ input type='password' value=item.token name="token" }}
                         <em>The token is sent with requests as the <code>X-Consul-Token</code> HTTP header parameter. This is used to control the ACL for the web UI.</em>
                     </label>
                 </fieldset>
