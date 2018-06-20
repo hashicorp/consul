@@ -4,6 +4,5 @@ html.template-service.template-show main dl {
 }
 html.template-service.template-show main dt::after {
   content: ':';
-  display: inline-block;
   margin-right: 0.2em;
 }
