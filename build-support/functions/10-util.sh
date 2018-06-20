@@ -328,6 +328,45 @@ function normalize_git_url {
    return 0
 }
 
+function git_remote_url {
+   # Arguments:
+   #   $1 - Path to the top level Consul source
+   #   $2 - Remote name
+   #
+   # Returns:
+   #   0 - success
+   #   * - error
+   #
+   # Note:
+   #   The push url for the git remote will be echoed to stdout
+    
+   if ! test -d "$1"
+   then
+      err "ERROR: '$1' is not a directory. git_remote_url must be called with the path to the top level source as the first argument'" 
+      return 1
+   fi
+   
+   if test -z "$2"
+   then
+      err "ERROR: git_remote_url must be called with a second argument that is the name of the remote"
+      return 1
+   fi
+   
+   local ret=0
+   
+   pushd "$1" > /dev/null
+   
+   local url=$(git remote get-url --push $2 2>&1) || ret=1
+   
+   popd > /dev/null
+   
+   if test "${ret}" -eq 0
+   then
+      echo "${url}"
+      return 0
+   fi
+}
+
 function find_git_remote {
    # Arguments:
    #   $1 - Path to the top level Consul source
@@ -429,6 +468,7 @@ function git_push_ref {
    # Arguments:
    #   $1 - Path to the top level Consul source
    #   $2 - Git ref (optional)
+   #   $3 - remote (optional - if not specified we will try to determine it)
    #
    # Returns:
    #   0 - success
@@ -442,10 +482,14 @@ function git_push_ref {
    
    local sdir="$1"
    local ret=0
+   local remote="$3"
    
    # find the correct remote corresponding to the desired repo (basically prevent pushing enterprise to oss or oss to enterprise)
-   local remote=$(find_git_remote "${sdir}") || return 1
-   status "Using git remote: ${remote}"
+   if test -z "${remote}"
+   then
+      local remote=$(find_git_remote "${sdir}") || return 1
+      status "Using git remote: ${remote}"
+   fi
    
    local ref=""
    

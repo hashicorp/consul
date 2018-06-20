@@ -19,6 +19,44 @@ function hashicorp_release {
    return 0
 }
 
+function confirm_git_remote {
+   # Arguments:
+   #   $1 - Path to git repo
+   #   $2 - remote name
+   #
+   # Returns:
+   #   0 - success
+   #   * - error
+   #
+   
+   local remote="$2"
+   local url=$(git_remote_url "$1" "${remote}")
+   
+   echo -e "\n\nConfigured Git Remote: ${remote}"
+   echo -e     "Configured Git URL:    ${url}\n"
+   
+   local answer=""
+      
+   while true
+   do
+      case "${answer}" in
+         [yY]* )
+            status "Remote Accepted"
+            return 0
+            break
+            ;;
+         [nN]* )
+            err "Remote Rejected"
+            return 1
+            break
+            ;;
+         * )
+            read -p "Is this Git Remote correct to push ${CONSUL_PKG_NAME} to? [y/n]: " answer
+            ;;
+      esac
+   done
+}
+
 function confirm_git_push_changes {
    # Arguments:
    #   $1 - Path to git repo
@@ -70,7 +108,7 @@ function confirm_git_push_changes {
    return $ret
 }
 
-function confirm_consul_version_zip {
+function extract_consul_local {
    # Arguments:
    #   $1 - Path to the zipped binary to test
    #   $2 - Version to look for
@@ -94,43 +132,129 @@ function confirm_consul_version_zip {
    if test $? -eq 0
    then
       chmod +x "${tfile}"
-      "${tfile}" version
-      
-      # put a empty line between the version output and the prompt
+      echo "${tfile}"
+      return 0
+   else
+      err "ERROR: Failed to extract consul binary from the zip file"
+      return 1
+   fi
+}
+
+function confirm_consul_version {
+   # Arguments:
+   #   $1 - consul exe to use
+   # 
+   # Returns:
+   #   0 - success
+   #   * - error
+   local consul_exe="$1"
+   
+   if ! test -x "${consul_exe}"
+   then
+      err "ERROR: '${consul_exe} is not an executable"
+      return 1
+   fi
+   
+   "${consul_exe}" version
+   
+   # put a empty line between the version output and the prompt
+   echo ""
+   
+   local answer=""
+   
+   while true
+   do
+      case "${answer}" in
+         [yY]* )
+            status "Version Accepted"
+            ret=0
+            break
+            ;;
+         [nN]* )
+            err "Version Rejected"
+            ret=1
+            break
+            ;;
+         * )
+            read -p "Is this Consul version correct? [y/n]: " answer
+            ;;
+      esac
+   done
+}
+
+function confirm_consul_info {
+   # Arguments:
+   #   $1 - Path to a consul exe that can be run on this system
+   #
+   # Returns:
+   #   0 - success
+   #   * - error
+   
+   local consul_exe="$1"
+   local log_file="$(mktemp) -t "consul_log_")"
+   "${consul_exe}" agent -dev > "${log_file}" 2>&1 &
+   local consul_pid=$!
+   sleep 1
+   status "First 25 lines/1s of the agents output:"
+   head -n 25 "${log_file}"
+   
+   echo ""
+   local ret=0
+   local answer=""
+   
+   while true
+   do
+      case "${answer}" in
+         [yY]* )
+            status "Consul Agent Output Accepted"
+            break
+            ;;
+         [nN]* )
+            err "Consul Agent Output Rejected"
+            ret=1
+            break
+            ;;
+         * )
+            read -p "Is this Consul Agent Output correct? [y/n]: " answer
+            ;;
+      esac
+   done
+   
+   if test "${ret}" -eq 0
+   then
+      status "Consul Info Output"
+      "${consul_exe}" info
       echo ""
-      
       local answer=""
       
       while true
       do
          case "${answer}" in
             [yY]* )
-               status "Version Accepted"
-               ret=0
+               status "Consul Info Output Accepted"
                break
                ;;
             [nN]* )
-               err "Version Rejected"
-               ret=1
+               err "Consul Info Output Rejected"
+               return 1
                break
                ;;
             * )
-               read -p "Is this Consul version correct? [y/n]: " answer
+               read -p "Is this Consul Info Output correct? [y/n]: " answer
                ;;
          esac
       done
-   else
-      err "ERROR: Failed to extract consul binary from the zip file"
-      ret=1
    fi
    
-   rm "${tfile}" > /dev/null 2>&1
-   return ${ret}      
+   status "Requesting Consul to leave the cluster / shutdown"
+   "${consul_exe}" leave
+   wait ${consul_pid} > /dev/null 2>&1
+   
+   return $?
 }
 
-function confirm_consul_version {
-   confirm_consul_version_zip "$1" "$2"
-   return $?
+function extract_consul {
+   extract_consul_local "$1" "$2"
 }
 
 
@@ -174,8 +298,16 @@ function publish_release {
    status_stage "==> Verifying release files"
    check_release "${sdir}/pkg/dist" "${vers}" true || return 1
    
+   status_stage "==> Extracting Consul version for local system"
+   local consul_exe=$(extract_consul "${sdir}/pkg/dist" "${vers}") || return 1
+   # make sure to remove the temp file
+   trap "rm '${consul_exe}'" EXIT
+   
    status_stage "==> Confirming Consul Version"
-   confirm_consul_version "${sdir}/pkg/dist" "${vers}" || return 1
+   confirm_consul_version "${consul_exe}" || return 1
+   
+   status_stage "==> Confirming Consul Agent Info"
+   confirm_consul_info "${consul_exe}" || return 1
    
    status_stage "==> Confirming Git is clean"
    is_git_clean "$1" true || return 1
@@ -183,11 +315,15 @@ function publish_release {
    status_stage "==> Confirming Git Changes"
    confirm_git_push_changes "$1" || return 1
    
+   status_stage "==> Confirming Git Remote"
+   local remote=$(find_git_remote "${sdir}") || return 1
+   confirm_git_remote "${sdir}" "${remote}" || return 1
+   
    if is_set "${pub_git}"
    then
       status_stage "==> Pushing to Git"
-      git_push_ref "$1" || return 1
-      git_push_ref "$1" "v${vers}" || return 1
+      git_push_ref "$1" "" "${remote}" || return 1
+      git_push_ref "$1" "v${vers}" "${remote}" || return 1
    fi
    
    if is_set "${pub_hc_releases}"
