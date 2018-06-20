@@ -81,6 +81,7 @@ func (s *ConnectCA) ConfigurationSet(
 	if err != nil {
 		return err
 	}
+	args.Config.ClusterID = config.ClusterID
 	if args.Config.Provider == config.Provider && reflect.DeepEqual(args.Config.Config, config.Config) {
 		return nil
 	}
