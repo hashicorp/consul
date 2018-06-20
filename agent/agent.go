@@ -73,6 +73,7 @@ type delegate interface {
 	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error
 	Shutdown() error
 	Stats() map[string]map[string]string
+	ReloadConfig(config *consul.Config) error
 	enterpriseDelegate
 }
 
@@ -2491,6 +2492,11 @@ func (a *Agent) DisableNodeMaintenance() {
 	a.logger.Printf("[INFO] agent: Node left maintenance mode")
 }
 
+func (a *Agent) loadLimits(conf *config.RuntimeConfig) {
+	a.config.RPCRateLimit = conf.RPCRateLimit
+	a.config.RPCMaxBurst = conf.RPCMaxBurst
+}
+
 func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	// Bulk update the services and checks
 	a.PauseSync()
@@ -2523,6 +2529,18 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 
 	if err := a.reloadWatches(newCfg); err != nil {
 		return fmt.Errorf("Failed reloading watches: %v", err)
+	}
+
+	a.loadLimits(newCfg)
+
+	// create the config for the rpc server/client
+	consulCfg, err := a.consulConfig()
+	if err != nil {
+		return err
+	}
+
+	if err := a.delegate.ReloadConfig(consulCfg); err != nil {
+		return err
 	}
 
 	// Update filtered metrics
