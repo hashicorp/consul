@@ -67,8 +67,6 @@ $ curl localhost:8500/v1/connect/ca/configuration
 {
     "Provider": "consul",
     "Config": {
-        "PrivateKey": null,
-        "RootCert": null,
         "RotationPeriod": "2160h"
     },
     "CreateIndex": 5,
@@ -77,8 +75,8 @@ $ curl localhost:8500/v1/connect/ca/configuration
 ```
 
 This is the default Connect CA configuration if nothing is explicitly set when
-Connect is enabled - the PrivateKey and RootCert fields are both empty, and have been
-generated (as seen above).
+Connect is enabled - the PrivateKey and RootCert fields have not been set, so those have
+been generated (as seen above in the roots list).
 
 There are two ways to have the Consul CA use a custom private key and root certificate:
 either through the `ca_config` section of the [Agent configuration]

@@ -81,14 +81,15 @@ func (s *HTTPServer) ConnectCAConfigurationSet(resp http.ResponseWriter, req *ht
 func fixupConfig(conf *structs.CAConfiguration) {
 	for k, v := range conf.Config {
 		if raw, ok := v.([]uint8); ok {
-			conf.Config[k] = ca.Uint8ToString(raw)
+			strVal := ca.Uint8ToString(raw)
+			conf.Config[k] = strVal
 			switch conf.Provider {
 			case structs.ConsulCAProvider:
-				if k == "PrivateKey" && ca.Uint8ToString(raw) != "" {
+				if k == "PrivateKey" && strVal != "" {
 					conf.Config["PrivateKey"] = "hidden"
 				}
 			case structs.VaultCAProvider:
-				if k == "Token" && ca.Uint8ToString(raw) != "" {
+				if k == "Token" && strVal != "" {
 					conf.Config["Token"] = "hidden"
 				}
 			}

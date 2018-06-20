@@ -436,8 +436,6 @@ func DefaultConfig() *Config {
 		CAConfig: &structs.CAConfiguration{
 			Provider: "consul",
 			Config: map[string]interface{}{
-				"PrivateKey":     "",
-				"RootCert":       "",
 				"RotationPeriod": "2160h",
 			},
 		},
