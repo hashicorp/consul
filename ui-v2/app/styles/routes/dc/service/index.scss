@@ -1,8 +1,13 @@
+@import '../../../components/tag';
 html.template-service.template-show main dl {
   display: flex;
   margin-bottom: 1.4em;
 }
-html.template-service.template-show main dt::after {
-  content: ':';
-  margin-right: 0.2em;
+html.template-service.template-show main dt {
+  display: none;
+}
+html.template-service.template-show main dd span {
+  @extend %tag;
+  background-color: $gray;
+  margin-bottom: 0.5em;
 }
