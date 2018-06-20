@@ -211,6 +211,7 @@ export default function(assert) {
           `Expected ${num} ${model}s with ${property} set to "${value}", saw ${len}`
         );
       })
+      // TODO: Make this accept a 'contains' word so you can search for text containing also
       .then('I see $property on the $component like yaml\n$yaml', function(
         property,
         component,

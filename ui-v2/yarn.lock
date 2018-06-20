@@ -86,13 +86,14 @@
   resolved "https://registry.yarnpkg.com/@hashicorp/consul-api-double/-/consul-api-double-1.1.0.tgz#658f9e89208fa23f251ca66c66aeb7241a13f23f"
 
 "@hashicorp/ember-cli-api-double@^1.0.2":
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/@hashicorp/ember-cli-api-double/-/ember-cli-api-double-1.0.2.tgz#684d418cc2a981254cc23035ceb452c86f0cd934"
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/@hashicorp/ember-cli-api-double/-/ember-cli-api-double-1.1.1.tgz#9380fdcf404f30f9d2e2a6422bfd83fe0dbe413f"
   dependencies:
     "@hashicorp/api-double" "^1.1.0"
     array-range "^1.0.1"
     ember-cli-babel "^6.6.0"
     js-yaml "^3.11.0"
+    merge-options "^1.0.1"
     pretender "^2.0.0"
 
 "@sinonjs/formatio@^2.0.0":
@@ -5483,6 +5484,10 @@ is-path-inside@^1.0.0:
   dependencies:
     path-is-inside "^1.0.1"
 
+is-plain-obj@^1.1:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/is-plain-obj/-/is-plain-obj-1.1.0.tgz#71a50c8429dfca773c92a390a4a03b39fcd51d3e"
+
 is-plain-object@^2.0.1, is-plain-object@^2.0.3, is-plain-object@^2.0.4:
   version "2.0.4"
   resolved "https://registry.yarnpkg.com/is-plain-object/-/is-plain-object-2.0.4.tgz#2c163b3fafb1b606d9d17928f05c2a1c38e07677"
@@ -6543,6 +6548,12 @@ meow@^3.4.0, meow@^3.7.0:
 merge-descriptors@1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/merge-descriptors/-/merge-descriptors-1.0.1.tgz#b00aaa556dd8b44568150ec9d1b953f3f90cbb61"
+
+merge-options@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/merge-options/-/merge-options-1.0.1.tgz#2a64b24457becd4e4dc608283247e94ce589aa32"
+  dependencies:
+    is-plain-obj "^1.1"
 
 merge-trees@^1.0.1:
   version "1.0.1"
