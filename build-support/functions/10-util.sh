@@ -441,6 +441,17 @@ function find_git_remote {
    return ${ret}
 }
 
+function git_remote_not_blacklisted {
+   # Arguments:
+   #   $1 - path to the repo
+   #   $2 - the remote name
+   #
+   # Returns:
+   #   0 - not blacklisted
+   #   * - blacklisted
+   return 0
+}
+
 function is_git_clean {
    # Arguments:
    #   $1 - Path to git repo

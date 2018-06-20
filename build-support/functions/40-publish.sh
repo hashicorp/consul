@@ -320,8 +320,11 @@ function publish_release {
    status_stage "==> Confirming Git Changes"
    confirm_git_push_changes "$1" || return 1
    
-   status_stage "==> Confirming Git Remote"
+   status_stage "==> Checking for blacklisted Git Remote"
    local remote=$(find_git_remote "${sdir}") || return 1
+   git_remote_not_blacklisted "${sdir}" "${remote}" || return 1
+   
+   status_stage "==> Confirming Git Remote"
    confirm_git_remote "${sdir}" "${remote}" || return 1
    
    if is_set "${pub_git}"
