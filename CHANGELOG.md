@@ -3,6 +3,7 @@
 FEATURES:
 
 * dns: Enable PTR record lookups for services with IPs that have no registered node [[PR-4083](https://github.com/hashicorp/consul/pull/4083)]
+* ui: Default to serving the new UI. Setting the `CONSUL_UI_LEGACY` environment variable to `1` of `true` will revert to serving the old UI
 
 IMPROVEMENTS:
 
