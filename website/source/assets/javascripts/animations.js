@@ -83,7 +83,13 @@ if ($configChallenge) {
       0.3,
       '-=2.5'
     )
-    .to(progressBar, 3.5, { width: 40 }, 'start')
+    .fromTo(
+      progressBar,
+      3.5,
+      { attr: { width: 0 } },
+      { attr: { width: 40 } },
+      'start'
+    )
     .to(
       cog,
       3.5,
@@ -128,7 +134,13 @@ if ($configChallenge) {
     .to(boxes, 1, {})
     .to(lines, 1, { css: { strokeDashoffset: 0 } }, 'start')
     .to(boxes, 0.5, { opacity: 1 }, '-=0.4')
-    .to(progress, 1, { width: 40 }, 'start')
+    .fromTo(
+      progress,
+      1,
+      { attr: { width: 0 } },
+      { attr: { width: 40 } },
+      'start'
+    )
     .to(dots, 0.25, { opacity: 1 }, '-=0.5')
     .to(progress, 2, {})
     .to(lines, 0.5, { opacity: 0 }, 'reset')
@@ -240,10 +252,16 @@ if ($discoveryChallenge) {
     .to(toLoadBalancerDown, 0.2, { css: { opacity: 1 } }, 'loadBalancerArrows')
     // load balancers progress bars, old broken link fades out
     .to(progressBars, 0.2, { css: { opacity: 1 } })
-    .staggerTo(progressBarsBars, 1.5, { css: { width: 40 } }, 0.3)
+    .staggerFromTo(
+      progressBarsBars,
+      1.5,
+      { attr: { width: 0 } },
+      { attr: { width: 40 } },
+      0.3
+    )
     .to(
       []
-        .concat([].slice.call(toLoadBalancerRest))
+        .concat(toLoadBalancerRest)
         .concat([].slice.call(toLoadBalancerDown))
         .concat([
           toLoadBalancerRight,
@@ -317,8 +335,8 @@ if ($discoveryChallenge) {
     )
     .to(toLoadBalancerDown, 0.2, { css: { opacity: 1 } }, 'loadBalancerArrows2')
     // load balancers progress bars, old broken link fades out
-    .to(progressBarsBars, 0.1, { css: { width: 0 } })
-    .to(progressBars, 0.2, { css: { opacity: 1 } })
+    .to(progressBarsBars, 0.1, { attr: { width: 0 } })
+    .to(progressBars, 0.2, { attr: { opacity: 1 } })
     .staggerFromTo(
       progressBarsBars,
       1.5,
@@ -328,7 +346,7 @@ if ($discoveryChallenge) {
     )
     .to(
       []
-        .concat([].slice.call(toLoadBalancerRest))
+        .concat(toLoadBalancerRest)
         .concat([].slice.call(toLoadBalancerDown))
         .concat([
           toLoadBalancerRight,
@@ -542,9 +560,9 @@ if ($segmentationChallenge) {
     .to(computerUpdateBox, 0.3, { opacity: 1 }, '-=0.2')
     .to(computerUpdatePath, 0.3, { opacity: 1 }, '-=0.2')
     // firewall progress bars
-    .to(progressBarBars, 0.01, { width: 0 })
+    .to(progressBarBars, 0.01, { attr: { width: 0 } })
     .to(progressBars, 0.2, { opacity: 1 })
-    .staggerTo(progressBarBars, 0.6, { width: 40 }, 0.2)
+    .staggerTo(progressBarBars, 0.6, { attr: { width: 40 } }, 0.2)
     // connection 1 made
     .to(path1a, 0.3, { css: { strokeDashoffset: 0 }, ease: Linear.easeNone })
     .to(path1b, 0.3, { css: { strokeDashoffset: 0 }, ease: Linear.easeNone })
