@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/connect"
-	"github.com/hashicorp/consul/lib"
 	"github.com/stretchr/testify/require"
 )
 
@@ -182,10 +181,6 @@ func TestAgentConfigWatcher(t *testing.T) {
 				LocalBindAddress:     "127.0.0.1",
 				ConnectTimeoutMs:     10000, // from applyDefaults
 			},
-		},
-		Telemetry: lib.TelemetryConfig{
-			FilterDefault: true,
-			MetricsPrefix: "consul.proxy.web",
 		},
 	}
 

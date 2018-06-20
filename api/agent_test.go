@@ -1161,10 +1161,6 @@ func TestAPI_AgentConnectProxyConfig(t *testing.T) {
 			"bind_port":    float64(20000),
 			"foo":          "bar",
 			"local_service_address": "127.0.0.1:8000",
-			"telemetry": map[string]interface{}{
-				"filter_default": true,
-				"metrics_prefix": "consul.proxy.foo",
-			},
 		},
 	}
 	require.Equal(t, expectConfig, config)

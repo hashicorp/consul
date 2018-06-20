@@ -2904,14 +2904,13 @@ func TestAgentConnectProxyConfig_Blocking(t *testing.T) {
 			"local_service_address": "127.0.0.1:8000",
 			"bind_port":             float64(1234),
 			"connect_timeout_ms":    float64(500),
-			"telemetry":             makeTelemetryDefaults("test"),
 		},
 	}
 
 	ur, err := copystructure.Copy(expectedResponse)
 	require.NoError(t, err)
 	updatedResponse := ur.(*api.ConnectProxyConfig)
-	updatedResponse.ContentHash = "8f2f6b5f2496acd8"
+	updatedResponse.ContentHash = "23b5b6b3767601e1"
 	upstreams := updatedResponse.Config["upstreams"].([]interface{})
 	upstreams = append(upstreams,
 		map[string]interface{}{
