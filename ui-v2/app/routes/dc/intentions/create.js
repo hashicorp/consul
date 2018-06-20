@@ -25,7 +25,7 @@ export default Route.extend(WithIntentionActions, {
         ...model,
         ...{
           items: [{ Name: '*' }].concat(
-            model.items.toArray().filter(item => get(item, 'Kind') === 'consul')
+            model.items.toArray().filter(item => get(item, 'Kind') !== 'connect-proxy')
           ),
         },
       };

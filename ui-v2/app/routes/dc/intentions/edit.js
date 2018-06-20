@@ -19,7 +19,7 @@ export default Route.extend(WithAclActions, {
         ...model,
         ...{
           items: [{ Name: '*' }].concat(
-            model.items.toArray().filter(item => get(item, 'Kind') === 'consul')
+            model.items.toArray().filter(item => get(item, 'Kind') !== 'connect-proxy')
           ),
         },
       };
