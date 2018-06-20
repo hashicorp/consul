@@ -4,6 +4,9 @@ import { hash } from 'rsvp';
 import { get } from '@ember/object';
 import { next } from '@ember/runloop';
 const $html = document.documentElement;
+const removeLoading = function() {
+  return $html.classList.remove('ember-loading');
+};
 export default Route.extend({
   init: function() {
     this._super(...arguments);
@@ -24,7 +27,7 @@ export default Route.extend({
           const controller = this.controllerFor('application');
           controller.setProperties(model);
           transition.promise.finally(function() {
-            $html.classList.remove('ember-loading');
+            removeLoading();
             controller.setProperties({
               loading: false,
               dc: model.dc,
@@ -51,11 +54,13 @@ export default Route.extend({
         dc: error.status.toString().indexOf('5') !== 0 ? get(this, 'repo').getActive() : null,
       })
         .then(model => {
+          removeLoading();
           next(() => {
             this.controllerFor('error').setProperties(model);
           });
         })
         .catch(e => {
+          removeLoading();
           next(() => {
             this.controllerFor('error').setProperties({ error: error });
           });

@@ -1,3 +1,6 @@
+body {
+  background-color: $white;
+}
 fieldset {
   border: 0;
   width: 100%;
