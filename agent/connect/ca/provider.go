@@ -13,15 +13,23 @@ type Provider interface {
 	// ActiveIntermediate()
 	ActiveRoot() (string, error)
 
-	// ActiveIntermediate returns the current signing cert used by this
-	// provider for generating SPIFFE leaf certs.
+	// ActiveIntermediate returns the current signing cert used by this provider
+	// for generating SPIFFE leaf certs. Note that this must not change except
+	// when Consul requests the change via GenerateIntermediate. Changing the
+	// signing cert will break Consul's assumptions about which validation paths
+	// are active.
 	ActiveIntermediate() (string, error)
 
-	// GenerateIntermediate returns a new intermediate signing cert and
-	// sets it to the active intermediate.
+	// GenerateIntermediate returns a new intermediate signing cert and sets it to
+	// the active intermediate. If multiple intermediates are needed to complete
+	// the chain from the signing certificate back to the active root, they should
+	// all by bundled here.
 	GenerateIntermediate() (string, error)
 
-	// Sign signs a leaf certificate used by Connect proxies from a CSR.
+	// Sign signs a leaf certificate used by Connect proxies from a CSR. The PEM
+	// returned should include only the leaf certificate as all Intermediates
+	// needed to validate it will be added by Consul based on the active
+	// intemediate and any cross-signed intermediates managed by Consul.
 	Sign(*x509.CertificateRequest) (string, error)
 
 	// CrossSignCA must accept a CA certificate signed by another CA's key

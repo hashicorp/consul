@@ -236,7 +236,7 @@ func (s *Server) revokeLeadership() error {
 		return err
 	}
 
-	s.setCAProvider(nil)
+	s.setCAProvider(nil, nil)
 
 	s.resetConsistentReadReady()
 	s.autopilot.Stop()
@@ -422,8 +422,6 @@ func (s *Server) initializeCA() error {
 		return err
 	}
 
-	s.setCAProvider(provider)
-
 	// Get the active root cert from the CA
 	rootPEM, err := provider.ActiveRoot()
 	if err != nil {
@@ -434,6 +432,8 @@ func (s *Server) initializeCA() error {
 	if err != nil {
 		return err
 	}
+
+	s.setCAProvider(provider, rootCA)
 
 	// Check if the CA root is already initialized and exit if it is.
 	// Every change to the CA after this initial bootstrapping should
@@ -507,12 +507,14 @@ func (s *Server) createCAProvider(conf *structs.CAConfiguration) (ca.Provider, e
 	}
 }
 
-func (s *Server) getCAProvider() ca.Provider {
+func (s *Server) getCAProvider() (ca.Provider, *structs.CARoot) {
 	retries := 0
 	var result ca.Provider
+	var resultRoot *structs.CARoot
 	for result == nil {
 		s.caProviderLock.RLock()
 		result = s.caProvider
+		resultRoot = s.caProviderRoot
 		s.caProviderLock.RUnlock()
 
 		// In cases where an agent is started with managed proxies, we may ask
@@ -527,13 +529,14 @@ func (s *Server) getCAProvider() ca.Provider {
 		break
 	}
 
-	return result
+	return result, resultRoot
 }
 
-func (s *Server) setCAProvider(newProvider ca.Provider) {
+func (s *Server) setCAProvider(newProvider ca.Provider, root *structs.CARoot) {
 	s.caProviderLock.Lock()
 	defer s.caProviderLock.Unlock()
 	s.caProvider = newProvider
+	s.caProviderRoot = root
 }
 
 // reconcileReaped is used to reconcile nodes that have failed and been reaped

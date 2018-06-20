@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
@@ -122,7 +123,7 @@ func (s *ConnectCA) ConfigurationSet(
 		}
 
 		// If the config has been committed, update the local provider instance
-		s.srv.setCAProvider(newProvider)
+		s.srv.setCAProvider(newProvider, newActiveRoot)
 
 		s.srv.logger.Printf("[INFO] connect: CA provider config updated")
 
@@ -150,7 +151,7 @@ func (s *ConnectCA) ConfigurationSet(
 	}
 
 	// Have the old provider cross-sign the new intermediate
-	oldProvider := s.srv.getCAProvider()
+	oldProvider, _ := s.srv.getCAProvider()
 	if oldProvider == nil {
 		return fmt.Errorf("internal error: CA provider is nil")
 	}
@@ -191,7 +192,7 @@ func (s *ConnectCA) ConfigurationSet(
 
 	// If the config has been committed, update the local provider instance
 	// and call teardown on the old provider
-	s.srv.setCAProvider(newProvider)
+	s.srv.setCAProvider(newProvider, newActiveRoot)
 
 	if err := oldProvider.Cleanup(); err != nil {
 		s.srv.logger.Printf("[WARN] connect: failed to clean up old provider %q", config.Provider)
@@ -309,7 +310,7 @@ func (s *ConnectCA) Sign(
 		return fmt.Errorf("SPIFFE ID in CSR must be a service ID")
 	}
 
-	provider := s.srv.getCAProvider()
+	provider, caRoot := s.srv.getCAProvider()
 	if provider == nil {
 		return fmt.Errorf("internal error: CA provider is nil")
 	}
@@ -346,6 +347,11 @@ func (s *ConnectCA) Sign(
 	pem, err := provider.Sign(csr)
 	if err != nil {
 		return err
+	}
+
+	// Append any intermediates needed by this root.
+	for _, p := range caRoot.IntermediateCerts {
+		pem = strings.TrimSpace(pem) + "\n" + p
 	}
 
 	// TODO(banks): when we implement IssuedCerts table we can use the insert to

@@ -99,7 +99,12 @@ type Server struct {
 
 	// caProvider is the current CA provider in use for Connect. This is
 	// only non-nil when we are the leader.
-	caProvider     ca.Provider
+	caProvider ca.Provider
+	// caProviderRoot is the CARoot that was stored along with the ca.Provider
+	// active. It's only updated in lock-step with the caProvider. This prevents
+	// races between state updates to active roots and the fetch of the provider
+	// instance.
+	caProviderRoot *structs.CARoot
 	caProviderLock sync.RWMutex
 
 	// Consul configuration

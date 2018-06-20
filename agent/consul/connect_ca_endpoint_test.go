@@ -2,6 +2,7 @@ package consul
 
 import (
 	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"os"
 	"testing"
@@ -138,6 +139,7 @@ func TestConnectCAConfig_TriggerRotation(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
+	require := require.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -151,7 +153,7 @@ func TestConnectCAConfig_TriggerRotation(t *testing.T) {
 		Datacenter: "dc1",
 	}
 	var rootList structs.IndexedCARoots
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", rootReq, &rootList))
+	require.Nil(msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", rootReq, &rootList))
 	assert.Len(rootList.Roots, 1)
 	oldRoot := rootList.Roots[0]
 
@@ -174,17 +176,18 @@ func TestConnectCAConfig_TriggerRotation(t *testing.T) {
 		}
 		var reply interface{}
 
-		assert.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply))
+		require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply))
 	}
 
 	// Make sure the new root has been added along with an intermediate
 	// cross-signed by the old root.
+	var newRootPEM string
 	{
 		args := &structs.DCSpecificRequest{
 			Datacenter: "dc1",
 		}
 		var reply structs.IndexedCARoots
-		assert.Nil(msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", args, &reply))
+		require.Nil(msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", args, &reply))
 		assert.Len(reply.Roots, 2)
 
 		for _, r := range reply.Roots {
@@ -197,6 +200,7 @@ func TestConnectCAConfig_TriggerRotation(t *testing.T) {
 				assert.Equal(r.SigningCert, oldRoot.SigningCert)
 				assert.Equal(r.IntermediateCerts, oldRoot.IntermediateCerts)
 			} else {
+				newRootPEM = r.RootCert
 				// The new root should have a valid cross-signed cert from the old
 				// root as an intermediate.
 				assert.True(r.Active)
@@ -225,14 +229,64 @@ func TestConnectCAConfig_TriggerRotation(t *testing.T) {
 			Datacenter: "dc1",
 		}
 		var reply structs.CAConfiguration
-		assert.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationGet", args, &reply))
+		require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationGet", args, &reply))
 
 		actual, err := ca.ParseConsulCAConfig(reply.Config)
-		assert.NoError(err)
+		require.NoError(err)
 		expected, err := ca.ParseConsulCAConfig(newConfig.Config)
-		assert.NoError(err)
+		require.NoError(err)
 		assert.Equal(reply.Provider, newConfig.Provider)
 		assert.Equal(actual, expected)
+	}
+
+	// Verify that new leaf certs get the cross-signed intermediate bundled
+	{
+		// Generate a CSR and request signing
+		spiffeId := connect.TestSpiffeIDService(t, "web")
+		csr, _ := connect.TestCSR(t, spiffeId)
+		args := &structs.CASignRequest{
+			Datacenter: "dc1",
+			CSR:        csr,
+		}
+		var reply structs.IssuedCert
+		require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", args, &reply))
+
+		// Verify that the cert is signed by the new CA
+		{
+			roots := x509.NewCertPool()
+			require.True(roots.AppendCertsFromPEM([]byte(newRootPEM)))
+			leaf, err := connect.ParseCert(reply.CertPEM)
+			require.NoError(err)
+			_, err = leaf.Verify(x509.VerifyOptions{
+				Roots: roots,
+			})
+			require.NoError(err)
+		}
+
+		// And that it validates via the intermediate
+		{
+			roots := x509.NewCertPool()
+			assert.True(roots.AppendCertsFromPEM([]byte(oldRoot.RootCert)))
+			leaf, err := connect.ParseCert(reply.CertPEM)
+			require.NoError(err)
+
+			// Make sure the intermediate was returned as well as leaf
+			_, rest := pem.Decode([]byte(reply.CertPEM))
+			require.NotEmpty(rest)
+
+			intermediates := x509.NewCertPool()
+			require.True(intermediates.AppendCertsFromPEM(rest))
+
+			_, err = leaf.Verify(x509.VerifyOptions{
+				Roots:         roots,
+				Intermediates: intermediates,
+			})
+			require.NoError(err)
+		}
+
+		// Verify other fields
+		assert.Equal("web", reply.Service)
+		assert.Equal(spiffeId.URI().String(), reply.ServiceURI)
 	}
 }
 
