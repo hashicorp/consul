@@ -27,7 +27,7 @@ func TestProxyClose(t *testing.T) {
 
 	for i := 0; i < 100; i++ {
 		p := NewProxy(s.Addr, nil)
-		p.start(hcDuration)
+		p.start(hcInterval)
 
 		go func() { p.Connect(ctx, state, false, false) }()
 		go func() { p.Connect(ctx, state, true, false) }()

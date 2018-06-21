@@ -97,7 +97,7 @@ func (p *Proxy) Connect(ctx context.Context, state request.Request, forceTCP, me
 		conn.UDPSize = 512
 	}
 
-	conn.SetWriteDeadline(time.Now().Add(timeout))
+	conn.SetWriteDeadline(time.Now().Add(maxTimeout))
 	reqTime := time.Now()
 	if err := conn.WriteMsg(state.Req); err != nil {
 		conn.Close() // not giving it back
@@ -110,7 +110,7 @@ func (p *Proxy) Connect(ctx context.Context, state request.Request, forceTCP, me
 	conn.SetReadDeadline(time.Now().Add(p.readTimeout()))
 	ret, err := conn.ReadMsg()
 	if err != nil {
-		p.updateRtt(timeout)
+		p.updateRtt(maxTimeout)
 		conn.Close() // not giving it back
 		if err == io.EOF && cached {
 			return nil, ErrCachedClosed

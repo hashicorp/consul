@@ -83,8 +83,9 @@ Also note the TLS config is "global" for the whole forwarding proxy if you need 
 `tls-name` for different upstreams you're out of luck.
 
 On each endpoint, the timeouts of the communication are set by default and automatically tuned depending early results.
-- dialTimeout by default is 30 sec, and can decrease automatically down to 100ms
-- readTimeout by default is 2 sec, and can decrease automatically down to 10ms
+
+* dialTimeout by default is 30 sec, and can decrease automatically down to 100ms
+* readTimeout by default is 2 sec, and can decrease automatically down to 200ms
 
 ## Metrics
 
