@@ -3,7 +3,9 @@ layout: "docs"
 page_title: "Connect - Security"
 sidebar_current: "docs-connect-security"
 description: |-
-  TODO
+  Connect enables secure service-to-service communication over mutual TLS. This
+  provides both in-transit data encryption as well as authorization. This page
+  will document how to secure Connect.
 ---
 
 # Connect Security
