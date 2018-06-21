@@ -149,7 +149,7 @@ func templateParse(c *caddy.Controller) (handler Handler, err error) {
 				if err != nil {
 					return handler, err
 				}
-				t.upstream = u
+				t.upstream = &u
 			default:
 				return handler, c.ArgErr()
 			}

@@ -92,6 +92,14 @@ func TestHandler(t *testing.T) {
 		fall:      fall.Root,
 		zones:     []string{"."},
 	}
+	cnameTemplate := template{
+		regex:  []*regexp.Regexp{regexp.MustCompile("example[.]net[.]")},
+		answer: []*gotmpl.Template{gotmpl.Must(gotmpl.New("answer").Parse("example.net 60 IN CNAME target.example.com"))},
+		qclass: dns.ClassANY,
+		qtype:  dns.TypeANY,
+		fall:   fall.Root,
+		zones:  []string{"."},
+	}
 
 	tests := []struct {
 		tmpl           template
@@ -250,6 +258,20 @@ func TestHandler(t *testing.T) {
 				}
 				if r.Answer[0].Header().Rrtype != dns.TypeSOA {
 					return fmt.Errorf("expected an SOA record anwser, got %v", dns.TypeToString[r.Answer[0].Header().Rrtype])
+				}
+				return nil
+			},
+		},
+		{
+			name:         "CNAMEWithoutUpstream",
+			tmpl:         cnameTemplate,
+			qclass:       dns.ClassINET,
+			qtype:        dns.TypeA,
+			qname:        "example.net.",
+			expectedCode: dns.RcodeSuccess,
+			verifyResponse: func(r *dns.Msg) error {
+				if len(r.Answer) != 1 {
+					return fmt.Errorf("expected 1 answer, got %v", len(r.Answer))
 				}
 				return nil
 			},
