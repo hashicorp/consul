@@ -14,7 +14,7 @@ import (
 // ServiceDefinition is used to JSON decode the Service definitions. For
 // documentation on specific fields see NodeService which is better documented.
 type ServiceDefinition struct {
-	Kind              ServiceKind
+	Kind              ServiceKind `json:",omitempty"`
 	ID                string
 	Name              string
 	Tags              []string

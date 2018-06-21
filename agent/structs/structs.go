@@ -512,7 +512,7 @@ type NodeService struct {
 	// Kind is the kind of service this is. Different kinds of services may
 	// have differing validation, DNS behavior, etc. An empty kind will default
 	// to the Default kind. See ServiceKind for the full list of kinds.
-	Kind ServiceKind
+	Kind ServiceKind `json:",omitempty"`
 
 	ID                string
 	Service           string
