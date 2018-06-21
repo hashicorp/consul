@@ -35,8 +35,12 @@ func GetHumanVersion() string {
 	if GitDescribe == "" && release == "" {
 		release = "dev"
 	}
+
 	if release != "" {
-		version += fmt.Sprintf("-%s", release)
+		if !strings.HasSuffix(version, "-"+release) {
+			// if we tagged a prerelease version then the release is in the version already
+			version += fmt.Sprintf("-%s", release)
+		}
 		if GitCommit != "" {
 			version += fmt.Sprintf(" (%s)", GitCommit)
 		}

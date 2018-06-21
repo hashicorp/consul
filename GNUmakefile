@@ -16,35 +16,97 @@ GOTEST_PKGS ?= "./..."
 else
 GOTEST_PKGS=$(shell go list ./... | sed 's/github.com\/hashicorp\/consul/./' | egrep -v "^($(GOTEST_PKGS_EXCLUDE))$$")
 endif
-GOOS=$(shell go env GOOS)
-GOARCH=$(shell go env GOARCH)
+GOOS?=$(shell go env GOOS)
+GOARCH?=$(shell go env GOARCH)
 GOPATH=$(shell go env GOPATH)
 
+ASSETFS_PATH?=agent/bindata_assetfs.go
 # Get the git commit
-GIT_COMMIT=$(shell git rev-parse --short HEAD)
-GIT_DIRTY=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true)
-GIT_DESCRIBE=$(shell git describe --tags --always)
+GIT_COMMIT?=$(shell git rev-parse --short HEAD)
+GIT_DIRTY?=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true)
+GIT_DESCRIBE?=$(shell git describe --tags --always)
 GIT_IMPORT=github.com/hashicorp/consul/version
 GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY) -X $(GIT_IMPORT).GitDescribe=$(GIT_DESCRIBE)
 
+ifeq ($(FORCE_REBUILD),1)
+NOCACHE=--no-cache
+else
+NOCACHE=
+endif
+
+DOCKER_BUILD_QUIET?=1
+ifeq (${DOCKER_BUILD_QUIET},1)
+QUIET=-q
+else
+QUIET=
+endif
+
+CONSUL_DEV_IMAGE?=consul-dev
+GO_BUILD_TAG?=consul-build-go
+UI_BUILD_TAG?=consul-build-ui
+UI_LEGACY_BUILD_TAG?=consul-build-ui-legacy
+BUILD_CONTAINER_NAME?=consul-builder
+
+DIST_TAG?=1
+DIST_BUILD?=1
+DIST_SIGN?=1
+
+ifdef DIST_VERSION
+DIST_VERSION_ARG=-v "$(DIST_VERSION)"
+else
+DIST_VERSION_ARG=
+endif
+
+ifdef DIST_RELEASE_DATE
+DIST_DATE_ARG=-d "$(DIST_RELEASE_DATE)"
+else
+DIST_DATE_ARG=
+endif
+
+ifdef DIST_PRERELEASE
+DIST_REL_ARG=-r "$(DIST_PRERELEASE)"
+else
+DIST_REL_ARG=
+endif
+
+PUB_GIT?=1
+PUB_WEBSITE?=1
+
+ifeq ($(PUB_GIT),1)
+PUB_GIT_ARG=-g
+else
+PUB_GIT_ARG=
+endif
+
+ifeq ($(PUB_WEBSITE),1)
+PUB_WEBSITE_ARG=-g
+else
+PUB_WEBSITE_ARG=
+endif
+
+export GO_BUILD_TAG
+export UI_BUILD_TAG
+export UI_LEGACY_BUILD_TAG
+export BUILD_CONTAINER_NAME
+export GIT_COMMIT
+export GIT_DIRTY
+export GIT_DESCRIBE
+export GOTAGS
 export GOLDFLAGS
 
 # all builds binaries for all targets
 all: bin
 
-bin: tools
-	@mkdir -p bin/
-	@GOTAGS='$(GOTAGS)' sh -c "'$(CURDIR)/scripts/build.sh'"
+bin: tools dev-build
 
 # dev creates binaries for testing locally - these are put into ./bin and $GOPATH
 dev: changelogfmt vendorfmt dev-build
 
 dev-build:
-	@echo "--> Building consul"
-	mkdir -p pkg/$(GOOS)_$(GOARCH)/ bin/
-	go install -ldflags '$(GOLDFLAGS)' -tags '$(GOTAGS)'
-	cp $(GOPATH)/bin/consul bin/
-	cp $(GOPATH)/bin/consul pkg/$(GOOS)_$(GOARCH)
+	@$(SHELL) $(CURDIR)/build-support/scripts/build-local.sh -o $(GOOS) -a $(GOARCH)
+
+dev-docker:
+	@docker build -t '$(CONSUL_DEV_IMAGE)' --build-arg 'GIT_COMMIT=$(GIT_COMMIT)' --build-arg 'GIT_DIRTY=$(GIT_DIRTY)' --build-arg 'GIT_DESCRIBE=$(GIT_DESCRIBE)' -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile $(CURDIR)
 
 vendorfmt:
 	@echo "--> Formatting vendor/vendor.json"
@@ -57,12 +119,17 @@ changelogfmt:
 
 # linux builds a linux package independent of the source platform
 linux:
-	mkdir -p pkg/linux_amd64/
-	GOOS=linux GOARCH=amd64 go build -ldflags '$(GOLDFLAGS)' -tags '$(GOTAGS)' -o pkg/linux_amd64/consul
+	@$(SHELL) $(CURDIR)/build-support/scripts/build-local.sh -o linux -a amd64
 
 # dist builds binaries for all platforms and packages them for distribution
 dist:
-	@GOTAGS='$(GOTAGS)' sh -c "'$(CURDIR)/scripts/dist.sh'"
+	@$(SHELL) $(CURDIR)/build-support/scripts/release.sh -t '$(DIST_TAG)' -b '$(DIST_BUILD)' -S '$(DIST_SIGN)' $(DIST_VERSION_ARG) $(DIST_DATE_ARG) $(DIST_REL_ARG)
+	
+publish:
+	@$(SHELL) $(CURDIR)/build-support/scripts/publish.sh $(PUB_GIT_ARG) $(PUB_WEBSITE_ARG)
+
+dev-tree:
+	@$(SHELL) $(CURDIR)/build-support/scripts/dev.sh
 
 cov:
 	gocov test $(GOFILES) | gocov-html > /tmp/coverage.html
@@ -111,20 +178,57 @@ vet:
 		exit 1; \
 	fi
 
-# Build the static web ui and build static assets inside a Docker container, the
-# same way a release build works. This implicitly does a "make static-assets" at
-# the end.
-ui:
-	@sh -c "'$(CURDIR)/scripts/ui.sh'"
-
 # If you've run "make ui" manually then this will get called for you. This is
 # also run as part of the release build script when it verifies that there are no
 # changes to the UI assets that aren't checked in.
 static-assets:
-	@go-bindata-assetfs -pkg agent -prefix pkg -o agent/bindata_assetfs.go ./pkg/web_ui/...
+	@go-bindata-assetfs -pkg agent -prefix pkg -o $(ASSETFS_PATH) ./pkg/web_ui/...
 	$(MAKE) format
+
+
+# Build the static web ui and build static assets inside a Docker container
+ui: ui-legacy-docker ui-docker static-assets-docker
 
 tools:
 	go get -u -v $(GOTOOLS)
 
-.PHONY: all ci bin dev dist cov test cover format vet ui static-assets tools vendorfmt
+version:
+	@echo -n "Version:                    "
+	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh
+	@echo -n "Version + release:          "
+	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh -r
+	@echo -n "Version + git:              "
+	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh  -g
+	@echo -n "Version + release + git:    "
+	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh -r -g
+		
+
+docker-images: go-build-image ui-build-image ui-legacy-build-image
+
+go-build-image:
+	@echo "Building Golang build container"
+	@docker build $(NOCACHE) $(QUIET) --build-arg 'GOTOOLS=$(GOTOOLS)' -t $(GO_BUILD_TAG) - < build-support/docker/Build-Go.dockerfile
+	
+ui-build-image:
+	@echo "Building UI build container"
+	@docker build $(NOCACHE) $(QUIET) -t $(UI_BUILD_TAG) - < build-support/docker/Build-UI.dockerfile
+	
+ui-legacy-build-image:
+	@echo "Building Legacy UI build container"
+	@docker build $(NOCACHE) $(QUIET) -t $(UI_LEGACY_BUILD_TAG) - < build-support/docker/Build-UI-Legacy.dockerfile
+
+static-assets-docker: go-build-image
+	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh static-assets
+	
+consul-docker: go-build-image
+	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh consul
+	
+ui-docker: ui-build-image
+	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh ui
+	
+ui-legacy-docker: ui-legacy-build-image
+	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh ui-legacy
+	
+	
+.PHONY: all ci bin dev dist cov test cover format vet ui static-assets tools vendorfmt 
+.PHONY: docker-images go-build-image ui-build-image ui-legacy-build-image static-assets-docker consul-docker ui-docker ui-legacy-docker version
