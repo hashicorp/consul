@@ -2,10 +2,11 @@ package agent
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/consul/agent/connect"
 	ca "github.com/hashicorp/consul/agent/connect/ca"
@@ -65,9 +66,8 @@ func TestConnectCAConfig(t *testing.T) {
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
-	expected := &structs.ConsulCAProviderConfig{
-		RotationPeriod: 90 * 24 * time.Hour,
-	}
+	root := connect.TestCA(t, nil)
+	expected := &structs.ConsulCAProviderConfig{}
 
 	// Get the initial config.
 	{
@@ -85,13 +85,17 @@ func TestConnectCAConfig(t *testing.T) {
 
 	// Set the config.
 	{
-		body := bytes.NewBuffer([]byte(`
-		{
-			"Provider": "consul",
-			"Config": {
-				"RotationPeriod": 3600000000000
-			}
-		}`))
+		conf := fmt.Sprintf(`
+			{
+				"Provider": "consul",
+				"Config": {
+					"PrivateKey": "%s",
+					"RootCert": "%s"
+				}
+			}`,
+			strings.Replace(root.SigningKey, "\n", "\\n", -1),
+			strings.Replace(root.RootCert, "\n", "\\n", -1))
+		body := bytes.NewBuffer([]byte(conf))
 		req, _ := http.NewRequest("PUT", "/v1/connect/ca/configuration", body)
 		resp := httptest.NewRecorder()
 		_, err := a.srv.ConnectCAConfiguration(resp, req)
@@ -100,7 +104,8 @@ func TestConnectCAConfig(t *testing.T) {
 
 	// The config should be updated now.
 	{
-		expected.RotationPeriod = time.Hour
+		expected.PrivateKey = "hidden"
+		expected.RootCert = root.RootCert
 		req, _ := http.NewRequest("GET", "/v1/connect/ca/configuration", nil)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.ConnectCAConfiguration(resp, req)

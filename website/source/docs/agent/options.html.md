@@ -698,11 +698,6 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
         * <a name="consul_ca_root_cert"></a><a href="#consul_ca_root_cert">`root_cert`</a> The
         PEM contents of the root certificate to use for the CA.
 
-        * <a name="consul_ca_rotation_period"></a><a href="#consul_ca_rotation_period">`rotation_period`</a> The
-        frequency with which to re-generate and rotate the private key and root certificate, in the form of a
-        duration value such as `720h`. Only applies in the case where the private key or root certificate are
-        left blank. Defaults to `2160h` (90 days).
-
         #### Vault CA Provider (`ca_provider = "vault"`)
 
         * <a name="vault_ca_address"></a><a href="#vault_ca_address">`address`</a> The address of the Vault 

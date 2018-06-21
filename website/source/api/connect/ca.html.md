@@ -135,7 +135,6 @@ providers, see [Provider Config](/docs/connect/ca.html).
     "Config": {
         "PrivateKey": "-----BEGIN RSA PRIVATE KEY-----...",
         "RootCert": "-----BEGIN CERTIFICATE-----...",
-        "RotationPeriod": "720h"
     }
 }
 ```
