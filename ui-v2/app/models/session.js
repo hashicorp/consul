@@ -13,7 +13,7 @@ export default Model.extend({
   ModifyIndex: attr('number'),
   LockDelay: attr('number'),
   Behavior: attr('string'),
-  TTL: attr('number'),
+  TTL: attr('string'),
   Checks: attr({
     defaultValue: function() {
       return [];
