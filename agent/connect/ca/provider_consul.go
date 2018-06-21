@@ -352,9 +352,7 @@ func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error
 		SerialNumber: serialNum,
 		Subject:      pkix.Name{CommonName: name},
 		URIs:         []*url.URL{id.URI()},
-		PermittedDNSDomainsCritical: true,
-		PermittedDNSDomains:         []string{id.URI().Hostname()},
-		BasicConstraintsValid:       true,
+		BasicConstraintsValid: true,
 		KeyUsage: x509.KeyUsageCertSign |
 			x509.KeyUsageCRLSign |
 			x509.KeyUsageDigitalSignature,

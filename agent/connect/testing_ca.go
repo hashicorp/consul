@@ -56,9 +56,7 @@ func TestCA(t testing.T, xc *structs.CARoot) *structs.CARoot {
 		SerialNumber: sn,
 		Subject:      pkix.Name{CommonName: result.Name},
 		URIs:         []*url.URL{id.URI()},
-		PermittedDNSDomainsCritical: true,
-		PermittedDNSDomains:         []string{id.URI().Hostname()},
-		BasicConstraintsValid:       true,
+		BasicConstraintsValid: true,
 		KeyUsage: x509.KeyUsageCertSign |
 			x509.KeyUsageCRLSign |
 			x509.KeyUsageDigitalSignature,
