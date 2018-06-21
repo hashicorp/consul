@@ -21,6 +21,9 @@ Consul supports both _managed_ and _unmanaged_ proxies. A managed proxy
 is started, configured, and stopped by Consul. An unmanaged proxy is the
 responsibility of the user, like any other Consul service.
 
+~> **Windows Support**: The built-in proxy will not currently run on the Windows platform,
+but compatibility will be added in a future Consul release.
+
 ## Managed Proxies
 
 Managed proxies are started, configured, and stopped by Consul. They are
