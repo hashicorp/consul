@@ -10,4 +10,7 @@ export default create({
   services: collection('#services [data-test-tabular-row]', {
     port: attribute('data-test-service-port', '.port'),
   }),
+  sessions: collection('#lock-sessions [data-test-tabular-row]', {
+    TTL: attribute('data-test-session-ttl', '[data-test-session-ttl]'),
+  }),
 });

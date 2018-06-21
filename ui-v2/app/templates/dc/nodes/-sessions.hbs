@@ -1,5 +1,6 @@
 {{#if (gt sessions.length 0)}}
     {{#tabular-collection
+        data-test-sessions
         class="sessions"
         items=sessions as |item index|
     }}
@@ -22,7 +23,7 @@
                 <td>
                     {{item.LockDelay}}
                 </td>
-                <td>
+                <td data-test-session-ttl="{{item.TTL}}">
                     {{item.TTL}}
                 </td>
                 <td>
