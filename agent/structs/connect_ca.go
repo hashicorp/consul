@@ -73,6 +73,11 @@ type CARoot struct {
 	// cannot be active.
 	Active bool
 
+	// RotateOutAt is the time at which this CA can be removed from the state.
+	// This will only be set on roots that have been rotated out from being the
+	// active one.
+	RotateOutAt time.Time `json:"-"`
+
 	RaftIndex
 }
 
