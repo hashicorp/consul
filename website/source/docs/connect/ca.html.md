@@ -228,10 +228,10 @@ $ cat ca_config.json
 {
   "Provider": "vault",
   "Config": {
-    address = "http://localhost:8200"
-    token = "..."
-    root_pki_path = "connect-root-2"
-    intermediate_pki_path = "connect-intermediate"
+    "Address": "http://localhost:8200",
+    "Token":  "...",
+    "RootPKIPath": "connect-root-2",
+    "IntermediatePKIPath": "connect-intermediate"
   }
 }
 
