@@ -6,6 +6,7 @@ CHECKS:=check godeps
 VERBOSE:=-v
 GOPATH?=$(HOME)/go
 PRESUBMIT:=core coremain plugin test request
+MAKEPWD:=$(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 
 all: coredns
 
@@ -14,7 +15,7 @@ coredns: $(CHECKS)
 	CGO_ENABLED=0 $(SYSTEM) go build $(VERBOSE) -ldflags="-s -w -X github.com/coredns/coredns/coremain.GitCommit=$(GITCOMMIT)" -o $(BINARY)
 
 .PHONY: check
-check: presubmit goimports core/zplugin.go core/dnsserver/zdirectives.go godeps linter
+check: presubmit goimports core/zplugin.go core/dnsserver/zdirectives.go godeps
 
 .PHONY: test
 test: check
@@ -26,9 +27,9 @@ testk8s: check
 
 .PHONY: godeps
 godeps:
-	# Not vendored so external plugin compile, avoiding:
-	# cannot use c (type *"github.com/mholt/caddy".Controller) as type
-	# *"github.com/coredns/coredns/vendor/github.com/mholt/caddy".Controller like errors.
+	@ # Not vendoring these, so external plugins compile, avoiding:
+	@ # cannot use c (type *"github.com/mholt/caddy".Controller) as type
+	@ # *"github.com/coredns/coredns/vendor/github.com/mholt/caddy".Controller like errors.
 	(cd $(GOPATH)/src/github.com/mholt/caddy 2>/dev/null              && git checkout -q master 2>/dev/null || true)
 	(cd $(GOPATH)/src/github.com/miekg/dns 2>/dev/null                && git checkout -q master 2>/dev/null || true)
 	(cd $(GOPATH)/src/github.com/prometheus/client_golang 2>/dev/null && git checkout -q master 2>/dev/null || true)
@@ -77,22 +78,16 @@ gen:
 pb:
 	$(MAKE) -C pb
 
-.PHONY: linter
-linter:
-	go get -u github.com/alecthomas/gometalinter
-	gometalinter --install golint
-	gometalinter --deadline=2m --disable-all --enable=gofmt --enable=golint --enable=vet --vendor --exclude=^pb/ ./...
-
 .PHONY: goimports
 goimports:
 	go get -u github.com/alecthomas/gometalinter
-	gometalinter --install goimports
-	( gometalinter --deadline=2m --disable-all --enable=goimports --vendor --exclude=^pb/ ./... || true )
+	gometalinter --install goimports > /dev/null
+	( gometalinter --deadline=2m --disable-all --enable=goimports --enable=golint --enable=vet --vendor --exclude=^pb/ ./... || true )
 
 # Presubmit runs all scripts in .presubmit; any non 0 exit code will fail the build.
 .PHONY: presubmit
 presubmit:
-	@for pre in $(PWD)/.presubmit/* ; do "$$pre" $(PRESUBMIT); done
+	@for pre in $(MAKEPWD)/.presubmit/* ; do "$$pre" $(PRESUBMIT); done
 
 .PHONY: clean
 clean:
