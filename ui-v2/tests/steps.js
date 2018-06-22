@@ -53,6 +53,10 @@ export default function(assert) {
           return create(number, model, data);
         }
       )
+      // TODO: Abstract this away from HTTP
+      .given(['the url "$url" responds with a $status status'], function(url, status) {
+        return api.server.respondWithStatus(url, parseInt(status));
+      })
       // interactions
       .when('I visit the $name page', function(name) {
         currentPage = pages[name];

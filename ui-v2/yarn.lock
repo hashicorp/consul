@@ -86,8 +86,8 @@
   resolved "https://registry.yarnpkg.com/@hashicorp/consul-api-double/-/consul-api-double-1.1.0.tgz#658f9e89208fa23f251ca66c66aeb7241a13f23f"
 
 "@hashicorp/ember-cli-api-double@^1.0.2":
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/@hashicorp/ember-cli-api-double/-/ember-cli-api-double-1.1.1.tgz#9380fdcf404f30f9d2e2a6422bfd83fe0dbe413f"
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/@hashicorp/ember-cli-api-double/-/ember-cli-api-double-1.2.0.tgz#aed3a9659abb3f3c56d77e400abc7fcbdcf2b78b"
   dependencies:
     "@hashicorp/api-double" "^1.1.0"
     array-range "^1.0.1"

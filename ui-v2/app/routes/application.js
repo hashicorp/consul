@@ -49,9 +49,16 @@ export default Route.extend({
       if (error.status === '') {
         error.message = 'Error';
       }
+      const model = this.modelFor('dc');
       hash({
         error: error,
-        dc: error.status.toString().indexOf('5') !== 0 ? get(this, 'repo').getActive() : null,
+        dc:
+          error.status.toString().indexOf('5') !== 0
+            ? get(this, 'repo').getActive()
+            : model && model.dc
+              ? model.dc
+              : { Name: 'Error' },
+        dcs: model && model.dcs ? model.dcs : [],
       })
         .then(model => {
           removeLoading();
