@@ -1,6 +1,3 @@
-//
-//
-// home video carousel
 var qs = document.querySelector.bind(document)
 var qsa = document.querySelectorAll.bind(document)
 
@@ -30,10 +27,11 @@ function initialiateVideoChange(index) {
     )
     loadingBar.style.transitionDuration = '0s'
 
-    // reset the current video and stop deactivation
+    // reset the current video 
     $$videos[currentIndex].currentTime = 0
     $$videoControls[currentIndex].classList.remove('playing')
 
+    // stop deactivation
     wrapper.classList.remove('deactivate')
 
     // check if the video is loaded
@@ -90,48 +88,4 @@ for (var i = 0; i < $$videoControls.length; i++) {
 // go to first video to start this thing
 if ($$videos.length > 0) {
   initialiateVideoChange(0)
-}
-
-//
-//
-// siema carousels
-var dots = qsa('.g-carousel .pagination li')
-var carousel = new Siema({
-  selector: '.siema',
-  duration: 200,
-  easing: 'ease-out',
-  perPage: 1,
-  startIndex: 0,
-  draggable: true,
-  multipleDrag: true,
-  threshold: 20,
-  loop: true,
-  rtl: false,
-  onChange: () => {
-    for (var i = 0; i < dots.length; i++) {
-      dots[i].classList.remove('active')
-    }
-    dots[carousel.currentSlide].classList.add('active')
-  }
-})
-
-// on previous button click
-document
-  .querySelector('.g-carousel .prev')
-  .addEventListener('click', function() {
-    carousel.prev()
-  })
-
-// on next button click
-document
-  .querySelector('.g-carousel .next')
-  .addEventListener('click', function() {
-    carousel.next()
-  })
-
-// on dot click
-for (let i = 0; i < dots.length; i++) {
-  dots[i].addEventListener('click', function() {
-    carousel.goTo(i)
-  })
 }
