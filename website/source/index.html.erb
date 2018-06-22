@@ -6,14 +6,13 @@ description: |-
 ---
 
 <div class='consul-connect'>
-
-  <section class='home-hero'>
-    <div class='g-container'>
+  <section id='home-hero'>
+    <div class="g-container">
       <div>
         <div>
           <div>
             <a class='notification' href='#'>
-              <span>New</span> Consul 1.0 release. Get the details <svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><path fill="#650D34" d="M1.138.529a.666.666 0 1 0-.942.943L3.724 5 .195 8.53a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></svg>
+              <span>New</span> Consul 1.0 release. Get the details <svg xmlns='http://www.w3.org/2000/svg' width='6' height='10' viewBox='0 0 6 10'><path fill='#650D34' d='M1.138.529a.666.666 0 1 0-.942.943L3.724 5 .195 8.53a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z'/></svg>
             </a>
             <h1>Service Mesh Made Easy</h1>
             <p>Connect, configure, and secure services in dynamic infrastructure.</p>
@@ -24,10 +23,46 @@ description: |-
               Download
             </a>
             <a href='#' class='g-btn dark-outline'>Get Started</a>
+            <div>
+              <a href='#' class='secondary-link'>View demo of web UI</a>
+            </div>
           </div>
         </div>
         <div>
-          <img src='/assets/images/consul-connect/feature.jpg' alt='Service Registry'>
+          <div class='controls'>
+            <div data-index='0'>
+              <span>CLI</span>
+              <div class='progress-bar'><span></span></div>
+            </div>
+            <div data-index='1'>
+              <span>UI</span>
+              <div class='progress-bar'><span></span></div>
+            </div>
+          </div>
+          <div class='videos'>
+            <div>
+              <div class='bar-buttons'>
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <div class='padded'>
+                <video muted='muted'>
+                  <source src='/assets/videos/connect-video-cli.mp4' type='video/mp4'>
+                </video>
+              </div>
+            </div>
+            <div>
+              <div class='bar-buttons'>
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <video muted='muted'>
+                <source src='/assets/videos/connect-video-ui.mp4' type='video/mp4'>
+              </video>
+            </div>
+          </div>
         </div>
       </div>
     </div>
