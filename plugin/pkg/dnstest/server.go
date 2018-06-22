@@ -23,18 +23,28 @@ func NewServer(f dns.HandlerFunc) *Server {
 	ch1 := make(chan bool)
 	ch2 := make(chan bool)
 
-	l, _ := net.Listen("tcp", ":0")
-	if l == nil {
-		return nil
+	s1 := &dns.Server{} // udp
+	s2 := &dns.Server{} // tcp
+
+	for i := 0; i < 5; i++ { // 5 attempts
+		s2.Listener, _ = net.Listen("tcp", ":0")
+		if s2.Listener == nil {
+			continue
+		}
+
+		s1.PacketConn, _ = net.ListenPacket("udp", s2.Listener.Addr().String())
+		if s1.PacketConn != nil {
+			break
+		}
+
+		// perhaps UPD port is in use, try again
+		s2.Listener.Close()
+		s2.Listener = nil
 	}
-	p, _ := net.ListenPacket("udp", l.Addr().String())
-	if p == nil {
-		l.Close()
-		return nil // yes, this may crash some test, but this is better than hanging
+	if s2.Listener == nil {
+		panic("dnstest.NewServer(): failed to create new server")
 	}
 
-	s1 := &dns.Server{PacketConn: p}
-	s2 := &dns.Server{Listener: l}
 	s1.NotifyStartedFunc = func() { close(ch1) }
 	s2.NotifyStartedFunc = func() { close(ch2) }
 	go s1.ActivateAndServe()
@@ -43,7 +53,7 @@ func NewServer(f dns.HandlerFunc) *Server {
 	<-ch1
 	<-ch2
 
-	return &Server{s1: s1, s2: s2, Addr: p.LocalAddr().String()}
+	return &Server{s1: s1, s2: s2, Addr: s2.Listener.Addr().String()}
 }
 
 // Close shuts down the server.
