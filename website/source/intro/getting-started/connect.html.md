@@ -26,8 +26,7 @@ and focus on ease of use with a dev-mode agent. We will _not setup_ Connect in a
 production-recommended secure way. Please read the Connect reference
 documentation on security best practices to understand the tradeoffs.
 
-~> **Windows Support**: The built-in proxy will not currently run on the Windows platform,
-but compatibility will be added in a future Consul release.
+~> **Windows Support**: The proxy management feature was designed to run on all platforms but has a known issue on the Windows platform at Beta launch preventing it from starting proxy processes. This will be fixed in a future release.
 
 ## Starting a Connect-unaware Service
 
