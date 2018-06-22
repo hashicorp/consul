@@ -1,8 +1,10 @@
 package api
 
 import (
-	"strings"
 	"testing"
+	"time"
+
+	"github.com/pascaldekloe/goe/verify"
 
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/testutil/retry"
@@ -59,6 +61,10 @@ func TestAPI_ConnectCAConfig_get_set(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
+	expected := &ConsulCAProviderConfig{
+		RotationPeriod: 90 * 24 * time.Hour,
+	}
+
 	// This fails occasionally if server doesn't have time to bootstrap CA so
 	// retry
 	retry.Run(t, func(r *retry.R) {
@@ -69,15 +75,21 @@ func TestAPI_ConnectCAConfig_get_set(t *testing.T) {
 		if conf.Provider != "consul" {
 			r.Fatalf("expected default provider, got %q", conf.Provider)
 		}
-		_, err = ParseConsulCAConfig(conf.Config)
+		parsed, err := ParseConsulCAConfig(conf.Config)
 		r.Check(err)
+		verify.Values(r, "", parsed, expected)
 
 		// Change a config value and update
-		conf.Config["PrivateKey"] = "invalid"
+		conf.Config["PrivateKey"] = ""
+		conf.Config["RotationPeriod"] = 120 * 24 * time.Hour
 		_, err = connect.CASetConfig(conf, nil)
-		if err == nil || !strings.Contains(err.Error(),
-			"error parsing private key \"invalid\": no PEM-encoded data found") {
-			r.Fatal(err)
-		}
+		r.Check(err)
+
+		updated, _, err := connect.CAGetConfig(nil)
+		r.Check(err)
+		expected.RotationPeriod = 120 * 24 * time.Hour
+		parsed, err = ParseConsulCAConfig(updated.Config)
+		r.Check(err)
+		verify.Values(r, "", parsed, expected)
 	})
 }

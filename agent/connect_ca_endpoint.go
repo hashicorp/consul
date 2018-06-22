@@ -88,10 +88,6 @@ func fixupConfig(conf *structs.CAConfiguration) {
 				if k == "PrivateKey" && strVal != "" {
 					conf.Config["PrivateKey"] = "hidden"
 				}
-				// todo(kyhavlov): add this back in when it's actually used
-				if k == "RotationPeriod" {
-					delete(conf.Config, k)
-				}
 			case structs.VaultCAProvider:
 				if k == "Token" && strVal != "" {
 					conf.Config["Token"] = "hidden"
