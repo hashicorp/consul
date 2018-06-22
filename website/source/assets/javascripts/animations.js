@@ -42,8 +42,7 @@ if ($configChallenge) {
 
   var configChallengeTimeline = new TimelineLite({
     onComplete: function() {
-      $configChallenge.classList.remove('active')
-      $configSolution.classList.add('active')
+      configChallengeTimeline.restart()
       configSolutionTimeline.restart()
     }
   })
@@ -96,6 +95,9 @@ if ($configChallenge) {
       { rotation: 360, svgOrigin: '136px 127px', ease: Power1.easeOut },
       'start'
     )
+    .call(function () {
+      configSolutionTimeline.resume(configSolutionTimeline.time())
+    })
     .to(line1, 2, {})
     .to(
       [line1, line2, line3, line4, line5, line6, line7, line8, progressBar],
@@ -113,13 +115,7 @@ if ($configChallenge) {
 
   // solution animation
 
-  var configSolutionTimeline = new TimelineLite({
-    onComplete: function() {
-      $configSolution.classList.remove('active')
-      $configChallenge.classList.add('active')
-      configChallengeTimeline.restart()
-    }
-  })
+  var configSolutionTimeline = new TimelineLite()
 
   var lines = qsa(
     '#s-line-1, #s-line-2, #s-line-3, #s-line-4, #s-line-5, #s-line-6, #s-line-7, #s-line-8'
@@ -142,6 +138,7 @@ if ($configChallenge) {
       'start'
     )
     .to(dots, 0.25, { opacity: 1 }, '-=0.5')
+    .addPause()
     .to(progress, 2, {})
     .to(lines, 0.5, { opacity: 0 }, 'reset')
     .to(boxes, 0.5, { opacity: 0.5 }, 'reset')
@@ -151,7 +148,9 @@ if ($configChallenge) {
 
   // kick off
   $configChallenge.classList.add('active')
+  $configSolution.classList.add('active')
   configChallengeTimeline.play()
+  configSolutionTimeline.play()
 }
 
 //
@@ -165,8 +164,7 @@ if ($discoveryChallenge) {
   // challenge animation
   var discoveryChallengeTimeline = new TimelineLite({
     onComplete: function() {
-      $discoveryChallenge.classList.remove('active')
-      $discoverySolution.classList.add('active')
+      discoveryChallengeTimeline.restart()
       discoverySolutionTimeline.restart()
     }
   })
@@ -266,7 +264,6 @@ if ($discoveryChallenge) {
         .concat([
           toLoadBalancerRight,
           toLoadBalancerLeft,
-          computer,
           brokenLinkLeft,
           leftConnectionTop,
           leftConnectionBottom
@@ -275,6 +272,7 @@ if ($discoveryChallenge) {
       { css: { opacity: 0 } },
       '-=0.75'
     )
+    .to(computer, 0.5, { css: { opacity: .12 } }, '-=0.75')
     .to(progressBars, 0.5, { css: { opacity: 0 } })
     // new connection is drawn
     .to(rightHorizontalConnection, 0.3, { css: { strokeDashoffset: 0 } })
@@ -351,7 +349,6 @@ if ($discoveryChallenge) {
         .concat([
           toLoadBalancerRight,
           toLoadBalancerLeft,
-          computer,
           brokenLinkRight,
           rightConnectionTop,
           rightConnectionBottom,
@@ -361,6 +358,7 @@ if ($discoveryChallenge) {
       { css: { opacity: 0 } },
       '-=0.75'
     )
+    .to(computer, 0.5, { css: { opacity: .12 } }, '-=0.75')
     .to(progressBars, 0.5, { css: { opacity: 0 } })
     // new connection is drawn
     .to(leftConnectionTop, 0.01, { css: { strokeDashoffset: 17 } })
@@ -379,17 +377,14 @@ if ($discoveryChallenge) {
     // connection lines turn blue
     .to(leftConnectionLinesStroke, 0.5, { css: { stroke: '#3969ED' } }, '-=0.3')
     .to(farLeftBoxBorder, 0.5, { css: { fill: '#3969ED' } }, '-=0.5')
+    .call(function () {
+      discoverySolutionTimeline.resume(discoverySolutionTimeline.time())
+    })
     .to(box, 2, {})
     .pause()
 
   // solution animation
-  var discoverySolutionTimeline = new TimelineLite({
-    onComplete: function() {
-      $discoverySolution.classList.remove('active')
-      $discoveryChallenge.classList.add('active')
-      discoveryChallengeTimeline.restart()
-    }
-  })
+  var discoverySolutionTimeline = new TimelineLite()
 
   var inactiveBox = qs('#s-active-service-1')
   var inactiveBoxStroke = qs('#s-active-service-1 > path')
@@ -480,13 +475,16 @@ if ($discoveryChallenge) {
     // box color changes to pink
     .to(activeBoxStroke, 0.25, { css: { fill: '#ca2171' } }, '-=0.2')
     .to(inactiveBoxStroke, 0.25, { css: { fill: '#ca2171' } }, '-=0.2')
+    .addPause()
     // wait three seconds
     .to(activeBox, 2, {})
     .pause()
 
   // kick it off
   $discoveryChallenge.classList.add('active')
+  $discoverySolution.classList.add('active')
   discoveryChallengeTimeline.play()
+  discoverySolutionTimeline.play()
 }
 
 //
@@ -500,8 +498,7 @@ if ($segmentationChallenge) {
   // challenge animation
   var segmentationChallengeTimeline = new TimelineLite({
     onComplete: function() {
-      $segmentationChallenge.classList.remove('active')
-      $segmentationSolution.classList.add('active')
+      segmentationChallengeTimeline.restart()
       segmentationSolutionTimeline.restart()
     }
   })
@@ -713,18 +710,15 @@ if ($segmentationChallenge) {
     .to(computerUpdateBox, 0.5, { opacity: 0 }, 'computerReset3')
     .to(computerUpdatePath, 0.5, { opacity: 0 }, 'computerReset3')
     .to(computer, 0.5, { opacity: 0 }, 'computerReset3')
+    .call(function () {
+      segmentationSolutionTimeline.resume(segmentationSolutionTimeline.time())
+    })
     // wait a moment before the loop
     .to(box2, 1, {})
     .pause()
 
   // solution animation
-  var segmentationSolutionTimeline = new TimelineLite({
-    onComplete: function() {
-      $segmentationSolution.classList.remove('active')
-      $segmentationChallenge.classList.add('active')
-      segmentationChallengeTimeline.restart()
-    }
-  })
+  var segmentationSolutionTimeline = new TimelineLite()
 
   // service boxes
   var box1 = qs('#s-service-2')
@@ -991,11 +985,14 @@ if ($segmentationChallenge) {
       0.5,
       { opacity: 0.0 }
     )
+    .addPause()
     // wait a moment before the loop
     .to(box1, 1, {})
     .pause()
 
   // kick it off
   $segmentationChallenge.classList.add('active')
+  $segmentationSolution.classList.add('active')
   segmentationChallengeTimeline.play()
+  segmentationSolutionTimeline.play()
 }
