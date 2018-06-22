@@ -118,6 +118,9 @@ static port will be able to masquerade as the source service ("web" in the
 example above). You must either trust any loopback access on that port or
 use namespacing techniques provided by your operating system.
 
+For full details of the configurable options available see the [built-in proxy
+configuration reference](/docs/connect/configuration.html#built-in-proxy-options).
+
 ### Prepared Query Upstreams
 
 The upstream destination may also be a
@@ -156,6 +159,9 @@ service communication. Therefore, prepared queries with Connect should
 only be used to discover services within a single datacenter. See
 [Multi-Datacenter Connect](/docs/connect/index.html#multi-datacenter) for
 more information.
+
+For full details of the configurable options available see the [built-in proxy
+configuration reference](/docs/connect/configuration.html#built-in-proxy-options).
 
 ### Dynamic Upstreams
 

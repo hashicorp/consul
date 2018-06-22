@@ -134,7 +134,7 @@ bootstrap a new CA and generate it's own private key which is written to the
 Raft state.
 
 Alternatively, an external private key can be provided via the [CA
-configuration](#TODO).
+configuration](/docs/connect/ca.html#specifying-a-private-key-and-root-certificate).
 
 ### External CAs
 
@@ -143,10 +143,9 @@ integrated. We will expand the external CA systems that are supported in the
 future and will allow seamless online migration to a different CA or
 bootstrapping with an external CA.
 
-For production workloads we recommend using Vault or another external CA once
+For production workloads we recommend using [Vault or another external
+CA](/docs/connect/ca.html#external-ca-certificate-authority-providers) once
 available such that the root key is not stored within Consul state at all.
-
-TODO: link to vault config docs?
 
 ## Setup Host Firewall
 
@@ -166,11 +165,12 @@ that range are both free to use (no other processes listening on them) and are
 exposed in the firewall to accept connections from other service hosts.
 
 Alternatively, managed proxies can have their public ports specified as part of
-the [proxy configuration](#TODO) in the service registration. It is possible to use
-this exclusively and prevent automated port selection by [configuring
-`proxy_min_port` and
-`proxy_max_port`](/docs/agent/options.html#ports)
-to both be `0`, forcing any managed proxies to have an explicit port configured.
+the [proxy
+configuration](/docs/connect/configuration.html#local_bind_port) in the
+service definition. It is possible to use this exclusively and prevent
+automated port selection by [configuring `proxy_min_port` and
+`proxy_max_port`](/docs/agent/options.html#ports) to both be `0`, forcing any
+managed proxies to have an explicit port configured.
 
 It then becomes the same problem as opening ports necessary for any other
 application and might be managed by configuration management or a scheduler.
