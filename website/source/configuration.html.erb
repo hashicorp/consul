@@ -8,8 +8,8 @@ description: |-
 <div class='consul-connect'>
 
   <section class='g-hero'>
-    <h1>Service configuration made easy.</h1>
-    <p>Feature rich key/value store lets you easily configure services.</p>
+    <h1>Service configuration made easy</h1>
+    <p>Feature rich key/value store to easily configure services</p>
     <div>
       <a href="#" class="g-btn download">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="22" viewBox="0 0 20 22">
@@ -46,7 +46,10 @@ description: |-
           <div id='configuration-solution-animation' class='g-animation-block'>
             <%= inline_svg 'consul-connect/svgs/configuration-solution.svg' %>
           </div>
-          <p>Consul can update service configurations across thousands of services in a globally distributed fleet in real time. Configuration can be stored in a hierarchical key/value store, and efficient edge triggers allow changes to be pushed to applications quickly.</p>
+          <p>Consul can update service configurations across thousands of
+            services in a globally distributed fleet in real-time. Configuration
+            is stored in a hierarchical key/value store, and efficient edge
+            triggers push changes out to applications quickly.</p>
         </div>
       </div>
     </div>
@@ -63,7 +66,7 @@ description: |-
             <h3>Key/Value Store</h3>
             <p>Feature rich  key/value store for dynamic service configuration data. Use it for feature flagging, maintenance modes, and more.</p>
             <p>
-              <a class="learn-more" href='#'>Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
+              <a class="learn-more" href='/intro/getting-started/kv.html'>Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
             </p>
           </div>
         </div>
@@ -82,7 +85,7 @@ description: |-
             <h3>Transaction Support</h3>
             <p>The key/value store supports both read and write transactions. This allows multiple keys to be updated or read as an atomic transaction. Changes to service configuration can be done atomically to minimize churn and avoid inconsistencies.</p>
             <p>
-              <a class="learn-more" href='#'>Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
+              <a class="learn-more" href='/api/kv.html'>Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
             </p>
           </div>
         </div>
@@ -115,7 +118,7 @@ description: |-
             <h3>Blocking Queries / Edge-Triggered Requests</h3>
             <p>The Consul API supports blocking queries, allowing edge triggered updates. Clients use this to get notified immediately of any changes. Tools like consul-template allow configuration files to be rendered in real-time to third-party sources when any configuration changes are made.</p>
             <p>
-              <a class="learn-more" href='#'>Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
+              <a class="learn-more" href='/api/index.html#blocking-queries'>Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
             </p>
           </div>
         </div>
@@ -148,7 +151,7 @@ description: |-
             <h3>Watches</h3>
             <p>Watches use blocking queries monitor for any configuration or health status updates and invoke user specified scripts to handle changes. This makes it easy to build reactive infrastructure.</p>
             <p>
-              <a class="learn-more" href='#'>Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
+              <a class="learn-more" href='/docs/agent/watches.html'>Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
             </p>
           </div>
         </div>
@@ -181,7 +184,7 @@ description: |-
             <h3>Distributed Locks and Semaphores</h3>
             <p>The key/value store supports distributed locks and semaphores. This makes it easier for applications to perform leader election or manage access to shared resources.</p>
             <p>
-              <a class="learn-more" href='#'>Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
+              <a class="learn-more" href='/docs/guides/semaphore.html'>Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
             </p>
           </div>
         </div>

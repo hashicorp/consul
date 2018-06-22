@@ -15,7 +15,7 @@ description: |-
               <span>New</span> Consul 1.0 release. Get the details <svg xmlns='http://www.w3.org/2000/svg' width='6' height='10' viewBox='0 0 6 10'><path fill='#650D34' d='M1.138.529a.666.666 0 1 0-.942.943L3.724 5 .195 8.53a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z'/></svg>
             </a>
             <h1>Service Mesh Made Easy</h1>
-            <p>Distributed service networking layer to connect, secure, and configure services across any runtime platform and public or private cloud</p>
+            <p>Consul is a distributed service mesh to connect, secure, and configure services across any runtime platform and public or private cloud</p>
             <a href='#' class='g-btn download'>
               <svg xmlns='http://www.w3.org/2000/svg' width='20' height='22' viewBox='0 0 20 22'>
                 <path d='M9.292 15.706a1 1 0 0 0 1.416 0l3.999-3.999a1 1 0 1 0-1.414-1.414L11 12.586V1a1 1 0 1 0-2 0v11.586l-2.293-2.293a1 1 0 1 0-1.414 1.414l3.999 3.999zM20 16v3c0 1.654-1.346 3-3 3H3c-1.654 0-3-1.346-3-3v-3a1 1 0 1 1 2 0v3c0 .551.448 1 1 1h14c.552 0 1-.449 1-1v-3a1 1 0 1 1 2 0z'/>
@@ -72,7 +72,11 @@ description: |-
     <div class='g-container'>
       <div class='intro'>
         <h2>Service-based networking for dynamic infrastructure</h2>
-        <p>The shift from static to dynamic infrastructure creates a challenge for connectivity and security. Consul is the service-based networking solution to connect, configure, and secure services in dynamic infrastructure.</p>
+        <p>The shift from static, on-prem infrastructure to dynamic, cloud
+          infrastructure changes the approach to networking from host-based to
+          service-based. Connectivity moves from the use of static IPs to
+          dynamic service discovery, and security moves from static firewalls to
+          dynamic service segmentation.</p>
       </div>
       <div class='g-timeline'>
         <div>
@@ -112,7 +116,7 @@ description: |-
             <p>Service Registry enables services to register and discover each other.</p>
           </div>
           <div>
-            <a href='#' class='g-btn dark-outline'>Learn more</a>
+            <a href='/discovery.html' class='g-btn dark-outline'>Learn more</a>
           </div>
         </div>
         <div>
@@ -122,7 +126,7 @@ description: |-
             <p>Secure service-to-service communication with automatic TLS encryption and identity-based authorization.</p>
           </div>
           <div>
-            <a href='#' class='g-btn dark-outline'>Learn more</a>
+            <a href='/segmentation.html' class='g-btn dark-outline'>Learn more</a>
           </div>
         </div>
         <div>
@@ -132,7 +136,7 @@ description: |-
             <p>Feature rich Key/Value store to easily configure services.</p>
           </div>
           <div>
-            <a href='#' class='g-btn dark-outline'>Learn more</a>
+            <a href='/configuration.html' class='g-btn dark-outline'>Learn more</a>
           </div>
         </div>
       </div>
@@ -147,8 +151,9 @@ description: |-
       <div class='g-text-asset'>
         <div>
           <div>
-            <h3>Automation through Codification</h3>
-            <p>Codify and automate service authorization policy.</p>
+            <h3>API-Driven</h3>
+            <p>Codify and automate service definitions, health checks, service
+              authorization policies, failover logic, and more.</p>
           </div>
         </div>
         <div class='code-sample'>
@@ -177,7 +182,7 @@ description: |-
       <div class='g-text-asset reverse'>
         <div>
           <div>
-            <h3>Workflows, not Technologies</h3>
+            <h3>Run and Connect Anywhere</h3>
             <p>Connect services across any runtime platform and public or private cloud. Connect services from Kubernetes to VMs, Containers to Serverless functions.</p>
           </div>
         </div>
@@ -193,11 +198,11 @@ description: |-
       <div class='g-text-asset'>
         <div>
           <div>
-            <h3>Open and Extensible</h3>
+            <h3>Extend and Integrate</h3>
             <ul>
               <li>Provision clusters on any infrastructure.</li>
               <li>Connect to services over TLS via proxy integrations.</li>
-              <li>Serve TLS certificates pluggable Certificate Authorities.</li>
+              <li>Serve TLS certificates with pluggable Certificate Authorities.</li>
             </ul>
           </div>
         </div>
