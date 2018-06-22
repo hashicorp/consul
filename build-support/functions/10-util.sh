@@ -623,7 +623,7 @@ function update_version {
    local version="$2"
    local prerelease="$3"
    
-   sed ${SED_EXT} -i "" -e "s/(Version[[:space:]]*=[[:space:]]*)\"[^\"]*\"/\1\"${version}\"/g" -e "s/(VersionPrerelease[[:space:]]*=[[:space:]]*)\"[^\"]*\"/\1\"${prerelease}\"/g" "${vfile}"
+   sed_i ${SED_EXT} -e "s/(Version[[:space:]]*=[[:space:]]*)\"[^\"]*\"/\1\"${version}\"/g" -e "s/(VersionPrerelease[[:space:]]*=[[:space:]]*)\"[^\"]*\"/\1\"${prerelease}\"/g" "${vfile}"
    return $?
 }
 
@@ -658,7 +658,7 @@ function set_changelog_version {
       rel_date=$(date +"%B %d, %Y")
    fi
    
-   sed ${SED_EXT} -i "" -e "s/## UNRELEASED/## ${version} (${rel_date})/" "${changelog}"
+   sed_i ${SED_EXT} -e "s/## UNRELEASED/## ${version} (${rel_date})/" "${changelog}"
    return $?
 }
 
@@ -678,7 +678,7 @@ function unset_changelog_version {
       return 1
    fi
    
-   sed ${SED_EXT} -i "" -e "1 s/^## [0-9]+\.[0-9]+\.[0-9]+ \([^)]*\)/## UNRELEASED/" "${changelog}"
+   sed_i ${SED_EXT} -e "1 s/^## [0-9]+\.[0-9]+\.[0-9]+ \([^)]*\)/## UNRELEASED/" "${changelog}"
    return $?
 }
 
