@@ -777,6 +777,12 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
       [RFC 6724](https://tools.ietf.org/html/rfc6724) and as a result it should
       be increasingly uncommon to need to change this value with modern
       resolvers).
+      
+    * <a name="enable_additional_node_meta_txt"></a><a href="#enable_additional_node_meta_txt">`enable_additional_node_meta_txt`</a> - 
+      When set to true, Consul will add TXT records for Node metadata into the Additional section of the DNS responses for several
+      query types such as SRV queries. When set to false those records are emitted. This does not impact the behavior of those
+      same TXT records when they would be added to the Answer section of the response like when querying with type TXT or ANY. This
+      defaults to true.
 
 * <a name="domain"></a><a href="#domain">`domain`</a> Equivalent to the
   [`-domain` command-line flag](#_domain).
@@ -1296,3 +1302,4 @@ items which are reloaded include:
 * <a href="#node_meta">Node Metadata</a>
 * <a href="#telemetry-prefix_filter">Metric Prefix Filter</a>
 * <a href="#discard_check_output">Discard Check Output</a>
+* <a href="#limits">RPC rate limiting</a>

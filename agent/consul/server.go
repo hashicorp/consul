@@ -1066,6 +1066,12 @@ func (s *Server) GetLANCoordinate() (lib.CoordinateSet, error) {
 	return cs, nil
 }
 
+// ReloadConfig is used to have the Server do an online reload of
+// relevant configuration information
+func (s *Server) ReloadConfig(config *Config) error {
+	return nil
+}
+
 // Atomically sets a readiness state flag when leadership is obtained, to indicate that server is past its barrier write
 func (s *Server) setConsistentReadReady() {
 	atomic.StoreInt32(&s.readyForConsistentReads, 1)

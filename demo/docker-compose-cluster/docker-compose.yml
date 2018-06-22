@@ -27,6 +27,7 @@ services:
       - "8400:8400"
       - "8500:8500"
       - "8600:8600"
+      - "8600:8600/udp"
     command: "agent -server -bootstrap-expect 3 -ui -client 0.0.0.0"
 
 networks:
