@@ -26,16 +26,26 @@
                 <th>Precedence</th>
             {{/block-slot}}
             {{#block-slot 'row'}}
-                <td data-test-intention="{{item.ID}}">
-                    <a href={{href-to 'dc.intentions.edit' item.ID}}>{{item.SourceName}}</a>
+                <td class="source" data-test-intention="{{item.ID}}">
+                  <a href={{href-to 'dc.intentions.edit' item.ID}}>
+                    {{#if (eq item.SourceName '*') }}
+                      All Services (*)
+                    {{else}}
+                      {{item.SourceName}}
+                    {{/if}}
+                  </a>
                 </td>
                 <td class="intent-{{item.Action}}">
                     <strong>{{item.Action}}</strong>
                 </td>
-                <td>
-                    {{item.DestinationName}}
+                <td class="destination">
+                    {{#if (eq item.DestinationName '*') }}
+                      All Services (*)
+                    {{else}}
+                      {{item.DestinationName}}
+                    {{/if}}
                 </td>
-                <td>
+                <td class="precedence">
                     {{item.Precedence}}
                 </td>
             {{/block-slot}}

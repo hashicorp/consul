@@ -32,13 +32,15 @@ export default Controller.extend(WithFiltering, {
     });
   }),
   filter: function(item, { s = '', action = '' }) {
+    const source = get(item, 'SourceName').toLowerCase();
+    const destination = get(item, 'DestinationName').toLowerCase();
+    const sLower = s.toLowerCase();
+    const allLabel = 'All Services (*)'.toLowerCase();
     return (
-      (get(item, 'SourceName')
-        .toLowerCase()
-        .indexOf(s.toLowerCase()) !== -1 ||
-        get(item, 'DestinationName')
-          .toLowerCase()
-          .indexOf(s.toLowerCase()) !== -1) &&
+      (source.indexOf(sLower) !== -1 ||
+        destination.indexOf(sLower) !== -1 ||
+        (source === '*' && allLabel.indexOf(sLower) !== -1) ||
+        (destination === '*' && allLabel.indexOf(sLower) !== -1)) &&
       (action === '' || get(item, 'Action') === action)
     );
   },
