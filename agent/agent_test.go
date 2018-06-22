@@ -2677,6 +2677,24 @@ func TestAgent_AddProxy(t *testing.T) {
 			wantTCPCheck: "127.10.10.10:1234",
 			wantErr:      false,
 		},
+
+		{
+			// This test is necessary since JSON and HCL both will parse
+			// numbers as a float64.
+			desc: "managed proxy with custom bind port (float64)",
+			proxy: &structs.ConnectManagedProxy{
+				ExecMode: structs.ProxyExecModeDaemon,
+				Command:  []string{"consul", "connect", "proxy"},
+				Config: map[string]interface{}{
+					"foo":          "bar",
+					"bind_address": "127.10.10.10",
+					"bind_port":    float64(1234),
+				},
+				TargetServiceID: "web",
+			},
+			wantTCPCheck: "127.10.10.10:1234",
+			wantErr:      false,
+		},
 	}
 
 	for _, tt := range tests {

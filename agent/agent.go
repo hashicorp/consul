@@ -2132,8 +2132,8 @@ func (a *Agent) AddProxy(proxy *structs.ConnectManagedProxy, persist bool,
 	}
 	chkTypes := []*structs.CheckType{
 		&structs.CheckType{
-			Name:     "Connect Proxy Listening",
-			TCP:      fmt.Sprintf("%s:%d", proxyCfg["bind_address"],
+			Name: "Connect Proxy Listening",
+			TCP: fmt.Sprintf("%s:%d", proxyCfg["bind_address"],
 				proxyCfg["bind_port"]),
 			Interval: 10 * time.Second,
 		},
@@ -2200,6 +2200,19 @@ func (a *Agent) applyProxyConfigDefaults(p *structs.ConnectManagedProxy) (map[st
 		// Default to localhost and the port the service registered with
 		config["local_service_address"] = fmt.Sprintf("127.0.0.1:%d", target.Port)
 	}
+
+	// Basic type conversions for expected types.
+	if raw, ok := config["bind_port"]; ok {
+		switch v := raw.(type) {
+		case float64:
+			// Common since HCL/JSON parse as float64
+			config["bind_port"] = int(v)
+
+			// NOTE(mitchellh): No default case since errors and validation
+			// are handled by the ServiceDefinition.Validate function.
+		}
+	}
+
 	return config, nil
 }
 
