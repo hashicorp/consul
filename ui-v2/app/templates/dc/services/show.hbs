@@ -19,7 +19,9 @@
         <dl>
             <dt>Tags</dt>
             <dd data-test-tags>
-                {{join ', ' item.Tags}}
+              {{#each item.Tags as |item|}}
+                <span>{{item}}</span>
+              {{/each}}
             </dd>
         </dl>
 {{/if}}

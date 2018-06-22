@@ -1,4 +1,9 @@
 @import './icons';
+@import './tag';
+td strong {
+  @extend %tag;
+  background-color: $gray;
+}
 th {
   color: $text-light !important;
 }
@@ -52,12 +57,6 @@ table td a {
 }
 tbody {
   overflow-x: visible !important;
-}
-td strong {
-  display: inline-block;
-  background-color: $gray;
-  padding: 1px 5px;
-  border-radius: $radius-small;
 }
 th,
 td:not(.actions),
