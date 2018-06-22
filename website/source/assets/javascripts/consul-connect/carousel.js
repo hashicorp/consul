@@ -11,7 +11,7 @@ var carousel = new Siema({
   threshold: 20,
   loop: true,
   rtl: false,
-  onChange: () => {
+  onChange: function() {
     for (var i = 0; i < dots.length; i++) {
       dots[i].classList.remove('active')
     }

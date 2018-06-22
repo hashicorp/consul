@@ -8,7 +8,7 @@
     }
 
     @media (min-width: 992px) {
-      padding-top: 120px;
+      padding-top: 80px;
       padding-bottom: 100px;
     }
 
@@ -131,7 +131,7 @@
           }
 
           .secondary-link {
-            border-bottom: 2px dashed $consul-red;
+            border-bottom: 1px dashed $consul-red;
             color: $consul-black;
             display: inline-block;
             font-size: 1.4rem;
@@ -233,6 +233,7 @@
       width: 100%;
 
       @media (min-width: 768px) {
+        margin-bottom: -152px;
         padding-top: calc((100% * 0.63569) + 38px);
       }
 
@@ -346,10 +347,9 @@
   }
 
   #static-dynamic {
-    padding-top: 158px;
-
-    @media (min-width: 992px) {
-      padding-top: 56px;
+    
+    @media (max-width: 991px) {
+      padding-top: 212px;
     }
 
     .static-callout {
@@ -364,12 +364,6 @@
         width: 100%;
         height: auto !important;
       }
-    }
-  }
-
-  #use-cases {
-    .g-use-cases img {
-      width: 51%;
     }
   }
 

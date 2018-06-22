@@ -32,6 +32,10 @@
       margin-bottom: -96px;
     }
 
+    @media (min-width: 992px) {
+      margin-bottom: -120px;
+    }
+
     img {
       width: 145%;
     }
@@ -143,7 +147,12 @@
         flex-direction: column;
 
         & img {
-          margin: 29px 0;
+          margin: 30px 0;
+
+          @media (max-width: 767px) {
+            margin: 15px 0;
+            max-width: 51%;
+          }
         }
       }
     }
