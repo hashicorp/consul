@@ -245,6 +245,7 @@ export default function(assert) {
           `Expected ${num} ${model}s with ${property} set to "${value}", saw ${len}`
         );
       })
+      // TODO: Make this accept a 'contains' word so you can search for text containing also
       .then('I have settings like yaml\n$yaml', function(data) {
         // TODO: Inject this
         const settings = window.localStorage;
