@@ -11,20 +11,20 @@ description: |-
       <div>
         <div>
           <div>
-            <a class='notification' href='#'>
-              <span>New</span> Consul 1.0 release. Get the details <svg xmlns='http://www.w3.org/2000/svg' width='6' height='10' viewBox='0 0 6 10'><path fill='#650D34' d='M1.138.529a.666.666 0 1 0-.942.943L3.724 5 .195 8.53a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z'/></svg>
+            <a class='notification' href='https://www.hashicorp.com/blog/consul-1-2-service-mesh'>
+              <span>New</span> HashiCorp Consul 1.2: Service Mesh. Read the blog post <svg xmlns='http://www.w3.org/2000/svg' width='6' height='10' viewBox='0 0 6 10'><path fill='#650D34' d='M1.138.529a.666.666 0 1 0-.942.943L3.724 5 .195 8.53a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z'/></svg>
             </a>
             <h1>Service Mesh Made Easy</h1>
             <p>Consul is a distributed service mesh to connect, secure, and configure services across any runtime platform and public or private cloud</p>
-            <a href='#' class='g-btn download'>
+            <a href='/downloads.html' class='g-btn download'>
               <svg xmlns='http://www.w3.org/2000/svg' width='20' height='22' viewBox='0 0 20 22'>
                 <path d='M9.292 15.706a1 1 0 0 0 1.416 0l3.999-3.999a1 1 0 1 0-1.414-1.414L11 12.586V1a1 1 0 1 0-2 0v11.586l-2.293-2.293a1 1 0 1 0-1.414 1.414l3.999 3.999zM20 16v3c0 1.654-1.346 3-3 3H3c-1.654 0-3-1.346-3-3v-3a1 1 0 1 1 2 0v3c0 .551.448 1 1 1h14c.552 0 1-.449 1-1v-3a1 1 0 1 1 2 0z'/>
               </svg>
               Download
             </a>
-            <a href='#' class='g-btn dark-outline'>Get Started</a>
+            <a href='/intro/getting-started/install.html' class='g-btn dark-outline'>Get Started</a>
             <div>
-              <a href='#' class='secondary-link'>View demo of web UI</a>
+              <a href='https://demo.consul.io/' class='secondary-link'>View demo of web UI</a>
             </div>
           </div>
         </div>
@@ -160,16 +160,18 @@ description: |-
           <div>
             <span></span>
             <div class='code'>
-              <code>$ curl \
-  --request POST \
-  --data \
-'{
-  "Name": "api",
-  "Service": {
-    "Service": "api",
-    </code><code class='keyword'>"Tags"</code><code>: ["v1.2.3"],
-    "Failover": {
-      "Datacenters": ["dc1", "dc2"]</code>
+              <code>$ curl <code class='keyword'>http://localhost:8500/v1/kv/deployment</code>
+[
+  {
+    "LockIndex": 1,
+    "Session": "1c3f5836-4df4-0e26-6697-90dcce78acd9",
+    "Value": "Zm9v",
+    "Flags": 0,
+    "Key": "deployment",
+    "CreateIndex": 13,
+    "ModifyIndex": 19
+  }
+]</code>
             </div>
           </div>
         </div>
@@ -249,7 +251,7 @@ description: |-
         </div>
         <p>Consul Open Source addresses the technical complexity of connecting services across distributed infrastructure.</p>
         <div>
-          <a href='#' class='g-btn white download'>
+          <a href='/downloads.html' class='g-btn white download'>
             <svg xmlns='http://www.w3.org/2000/svg' width='20' height='22' viewBox='0 0 20 22'>
               <path d='M9.292 15.706a1 1 0 0 0 1.416 0l3.999-3.999a1 1 0 1 0-1.414-1.414L11 12.586V1a1 1 0 1 0-2 0v11.586l-2.293-2.293a1 1 0 1 0-1.414 1.414l3.999 3.999zM20 16v3c0 1.654-1.346 3-3 3H3c-1.654 0-3-1.346-3-3v-3a1 1 0 1 1 2 0v3c0 .551.448 1 1 1h14c.552 0 1-.449 1-1v-3a1 1 0 1 1 2 0z'/>
             </svg>

@@ -12,13 +12,13 @@ description: |-
     <p>Service registry, integrated health checks, and DNS and HTTP interfaces
       enable any service to discover and be discovered by other services</p>
     <div>
-      <a href="#" class="g-btn download">
+      <a href="/downloads.html" class="g-btn download">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="22" viewBox="0 0 20 22">
           <path d="M9.292 15.706a1 1 0 0 0 1.416 0l3.999-3.999a1 1 0 1 0-1.414-1.414L11 12.586V1a1 1 0 1 0-2 0v11.586l-2.293-2.293a1 1 0 1 0-1.414 1.414l3.999 3.999zM20 16v3c0 1.654-1.346 3-3 3H3c-1.654 0-3-1.346-3-3v-3a1 1 0 1 1 2 0v3c0 .551.448 1 1 1h14c.552 0 1-.449 1-1v-3a1 1 0 1 1 2 0z"/>
         </svg>
         Download
       </a>
-      <a href="#" class="g-btn dark-outline">Explore Docs</a>
+      <a href="/intro/getting-started/services.html" class="g-btn dark-outline">Explore Docs</a>
     </div>
   </section>
 
@@ -90,17 +90,21 @@ description: |-
         <div class='code-sample'>
           <div>
             <span></span>
-            <div class='code'>
-              <code class='keyword'>$ curl \</code><code>
-  --request POST \
-  --data \
-'{
-  "Name": "api",
-  "Service": {
-    "Service": "api",
-    "Tags": ["v1.2.3"],
-    "Failover": {
-      "Datacenters": ["dc1", "dc2"]</code>
+            <div class='code'><code>
+$ dig <code class='keyword'>web-frontend.service.consul.</code> ANY
+
+; <<>> DiG 9.8.3-P1 <<>> web-frontend.service.consul. ANY
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 29981
+;; flags: qr aa rd ra; QUERY: 1, ANSWER: 2, AUTHORITY: 0, ADDITIONAL: 0
+
+;; QUESTION SECTION:
+;web-frontend.service.consul. IN ANY
+
+;; ANSWER SECTION:
+web-frontend.service.consul. 0 IN A <code class='keyword'>10.0.3.83</code>
+web-frontend.service.consul. 0 IN A <code class='keyword'>10.0.1.109</code></code>
             </div>
           </div>
         </div>
@@ -124,16 +128,20 @@ description: |-
           <div>
             <span></span>
             <div class='code'>
-              <code class='keyword'>$ curl \</code><code>
-  --request POST \
-  --data \
-'{
-  "Name": "api",
-  "Service": {
-    "Service": "api",
-    "Tags": ["v1.2.3"],
-    "Failover": {
-      "Datacenters": ["dc1", "dc2"]</code>
+              <code>$ curl <code class='keyword'>http://localhost:8500/v1/health/service/web?index=11&wait=30s</code>
+{
+  ...
+  "Node": "10-0-1-109",
+  "CheckID": "service:web",
+  "Name": "Service 'web' check",
+  "Status": <code class='keyword'>"critical"</code>,
+  "ServiceID": "web",
+  "ServiceName": "web",
+  "CreateIndex": 10,
+  "ModifyIndex": 20
+  ...
+}
+</code>
             </div>
           </div>
         </div>
@@ -157,16 +165,10 @@ description: |-
           <div>
             <span></span>
             <div class='code'>
-              <code class='keyword'>$ curl \</code><code>
-  --request POST \
-  --data \
-'{
-  "Name": "api",
-  "Service": {
-    "Service": "api",
-    "Tags": ["v1.2.3"],
-    "Failover": {
-      "Datacenters": ["dc1", "dc2"]</code>
+              <code>$ curl http://localhost:8500/v1/catalog/datacenters
+<code class='keyword'>["dc1", "dc2"]</code>
+$ curl http://localhost:8500/v1/catalog/nodes?<code class='keyword'>dc=dc2</code>
+...</code>
             </div>
           </div>
         </div>
