@@ -1,0 +1,6 @@
+// TODO: Generalize this, also see services/index
+html.template-node.template-show td.tags span {
+  @extend %tag;
+  background-color: $gray;
+  margin-bottom: 0.5em;
+}

@@ -1,0 +1,116 @@
+.action-group {
+  @extend %action-group;
+}
+%action-group label {
+  border-radius: $radius-small;
+  cursor: pointer;
+}
+
+%action-group input[type='radio']:checked + label:first-of-type,
+%action-group label:first-of-type:hover {
+  background-color: $gray;
+}
+%action-group label span {
+  display: none;
+}
+%action-group label::after,
+%action-group label::before,
+%action-group::before {
+  @extend %with-dot;
+}
+%action-group::before {
+  margin-left: -1px;
+}
+%action-group label::after {
+  margin-left: 5px;
+}
+%action-group label::before {
+  margin-left: -7px;
+}
+%action-group ul {
+  border: 1px solid;
+  border-radius: $radius-small;
+  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.21);
+}
+%action-group ul::before {
+  border-top: 1px solid;
+  border-left: 1px solid;
+}
+%action-group ul,
+%action-group ul::before {
+  border-color: $blue;
+}
+%action-group li a:hover {
+  background-color: $blue;
+  color: $white;
+}
+%action-group ul,
+%action-group ul::before {
+  background-color: $white;
+}
+%action-group {
+}
+%action-group {
+  width: 30px;
+  height: 30px;
+  position: absolute;
+  top: 8px;
+  right: 15px;
+}
+%action-group label {
+  display: block;
+  height: 100%;
+}
+%action-group label:last-of-type {
+  position: absolute;
+  width: 100%;
+  z-index: -1;
+  top: 0;
+}
+%action-group ul {
+  position: absolute;
+  right: -10px;
+  padding: 1px;
+}
+%action-group ul::before {
+  position: absolute;
+  right: 18px;
+  content: '';
+  display: block;
+  width: 10px;
+  height: 10px;
+}
+%action-group ul:not(.above) {
+  top: 35px;
+}
+%action-group ul:not(.above)::before {
+  top: -6px;
+  transform: rotate(45deg);
+}
+%action-group ul.above {
+  bottom: 35px;
+}
+%action-group ul.above::before {
+  bottom: -6px;
+  transform: rotate(225deg);
+}
+%action-group li {
+  position: relative;
+  z-index: 1;
+}
+%action-group li a {
+  width: 170px;
+  padding: 10px 10px;
+}
+%action-group input[type='radio'],
+%action-group input[type='radio'] ~ ul,
+%action-group input[type='radio'] ~ .with-confirmation > ul {
+  display: none;
+}
+%action-group input[type='radio']:checked ~ ul,
+%action-group input[type='radio']:checked ~ .with-confirmation > ul {
+  display: block;
+}
+%action-group input[type='radio']:checked ~ label:last-of-type {
+  z-index: 1;
+}

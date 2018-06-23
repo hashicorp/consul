@@ -208,6 +208,9 @@ type Server struct {
 	shutdown     bool
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
+
+	// embedded struct to hold all the enterprise specific data
+	EnterpriseServer
 }
 
 func NewServer(config *Config) (*Server, error) {
@@ -297,6 +300,12 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		shutdownCh:       shutdownCh,
 	}
 
+	// Initialize enterprise specific server functionality
+	if err := s.initEnterprise(); err != nil {
+		s.Shutdown()
+		return nil, err
+	}
+
 	// Initialize the stats fetcher that autopilot will use.
 	s.statsFetcher = NewStatsFetcher(logger, s.connPool, s.config.Datacenter)
 
@@ -336,6 +345,12 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 	if err := s.setupRaft(); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start Raft: %v", err)
+	}
+
+	// Start enterprise specific functionality
+	if err := s.startEnterprise(); err != nil {
+		s.Shutdown()
+		return nil, err
 	}
 
 	// Serf and dynamic bind ports
@@ -1019,6 +1034,17 @@ func (s *Server) Stats() map[string]map[string]string {
 	if s.serfWAN != nil {
 		stats["serf_wan"] = s.serfWAN.Stats()
 	}
+
+	for outerKey, outerValue := range s.enterpriseStats() {
+		if _, ok := stats[outerKey]; ok {
+			for innerKey, innerValue := range outerValue {
+				stats[outerKey][innerKey] = innerValue
+			}
+		} else {
+			stats[outerKey] = outerValue
+		}
+	}
+
 	return stats
 }
 
@@ -1038,6 +1064,12 @@ func (s *Server) GetLANCoordinate() (lib.CoordinateSet, error) {
 		cs[name] = c
 	}
 	return cs, nil
+}
+
+// ReloadConfig is used to have the Server do an online reload of
+// relevant configuration information
+func (s *Server) ReloadConfig(config *Config) error {
+	return nil
 }
 
 // Atomically sets a readiness state flag when leadership is obtained, to indicate that server is past its barrier write

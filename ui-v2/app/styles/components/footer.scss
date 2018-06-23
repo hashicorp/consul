@@ -1,0 +1,31 @@
+#wrapper > footer {
+  @extend %footer;
+}
+%footer {
+  border-top: 1px solid;
+}
+%footer {
+  border-color: $keyline-darker;
+  background-color: $white;
+}
+%footer {
+  max-width: 1150px;
+}
+%footer > * {
+  font-size: inherit;
+  color: $text-note;
+}
+%footer > a:first-child {
+  @extend %with-hashicorp;
+}
+%footer {
+  display: flex;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+  padding: 25px;
+}
+%footer > * {
+  display: block;
+  padding: 11px;
+}

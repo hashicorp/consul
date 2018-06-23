@@ -1,0 +1,98 @@
+{
+  "name": "consul-ui",
+  "version": "2.0.0",
+  "private": true,
+  "description": "The web ui for Consul, by HashiCorp.",
+  "directories": {
+    "doc": "doc",
+    "test": "tests"
+  },
+  "repository": "",
+  "scripts": {
+    "build": "ember build --environment production",
+    "lint:dev:js": "eslint -c .dev.eslintrc.js --fix ./*.js ./.*.js app config lib server tests",
+    "lint:js": "eslint -c .eslintrc.js --fix ./*.js ./.*.js app config lib server tests",
+    "format:js": "prettier --write \"{app,config,lib,server,tests}/**/*.js\" ./*.js ./.*.js",
+    "start": "ember serve",
+    "test:sync": "rsync -aq ./node_modules/@hashicorp/consul-api-double/ ./public/consul-api-double/",
+    "test": "yarn run test:sync;ember test",
+    "test:view": "yarn run test:sync;ember test --server",
+    "precommit": "lint-staged"
+  },
+  "lint-staged": {
+    "{app,config,lib,server,tests}/**/*.js": [
+      "prettier --write",
+      "git add"
+    ],
+    "app/styles/**/*.*": [
+      "prettier --write",
+      "git add"
+    ]
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@hashicorp/consul-api-double": "^1.0.0",
+    "@hashicorp/ember-cli-api-double": "^1.0.2",
+    "babel-plugin-transform-object-rest-spread": "^6.26.0",
+    "base64-js": "^1.3.0",
+    "broccoli-asset-rev": "^2.4.5",
+    "broccoli-stew": "^1.5.0",
+    "ember-ajax": "^3.0.0",
+    "ember-block-slots": "^1.1.11",
+    "ember-browserify": "^1.2.2",
+    "ember-bulma-css": "^0.2.1",
+    "ember-changeset-validations": "^1.2.11",
+    "ember-cli": "~2.18.2",
+    "ember-cli-app-version": "^3.0.0",
+    "ember-cli-autoprefixer": "^0.8.1",
+    "ember-cli-babel": "^6.6.0",
+    "ember-cli-cjs-transform": "^1.2.0",
+    "ember-cli-clipboard": "^0.9.0",
+    "ember-cli-code-coverage": "^1.0.0-beta.4",
+    "ember-cli-dependency-checker": "^2.0.0",
+    "ember-cli-eslint": "^4.2.1",
+    "ember-cli-flash": "^1.6.3",
+    "ember-cli-format-number": "^2.0.0",
+    "ember-cli-htmlbars": "^2.0.1",
+    "ember-cli-htmlbars-inline-precompile": "^1.0.0",
+    "ember-cli-inject-live-reload": "^1.4.1",
+    "ember-cli-page-object": "^1.15.0-beta.2",
+    "ember-cli-qunit": "^4.1.1",
+    "ember-cli-sass": "^7.1.4",
+    "ember-cli-shims": "^1.2.0",
+    "ember-cli-sri": "^2.1.0",
+    "ember-cli-uglify": "^2.0.0",
+    "ember-cli-yadda": "^0.4.0",
+    "ember-collection": "^1.0.0-alpha.7",
+    "ember-composable-helpers": "^2.1.0",
+    "ember-computed-style": "^0.2.0",
+    "ember-data": "^3.0.2",
+    "ember-export-application-global": "^2.0.0",
+    "ember-href-to": "^1.15.1",
+    "ember-load-initializers": "^1.0.0",
+    "ember-math-helpers": "^2.4.0",
+    "ember-pluralize": "^0.2.0",
+    "ember-resolver": "^4.0.0",
+    "ember-sinon-qunit": "^2.1.0",
+    "ember-source": "~2.18.2",
+    "ember-test-selectors": "^0.3.9",
+    "ember-truth-helpers": "^2.0.0",
+    "ember-url": "^0.6.0",
+    "eslint-plugin-ember": "^5.0.0",
+    "husky": "^0.14.3",
+    "ivy-codemirror": "^2.1.0",
+    "lint-staged": "^6.1.0",
+    "loader.js": "^4.2.3",
+    "prettier": "^1.10.2",
+    "svgo": "^1.0.5",
+    "text-encoder-lite": "^1.0.1"
+  },
+  "engines": {
+    "node": "^4.5 || 6.* || >= 7.*"
+  },
+  "ember-addon": {
+    "paths": [
+      "lib/startup"
+    ]
+  }
+}

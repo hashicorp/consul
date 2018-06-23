@@ -1,0 +1,100 @@
+@import './icons';
+.healthchecked-resource {
+  @extend %healthchecked-resource;
+}
+%healthchecked-resource {
+  border: 1px solid;
+  box-shadow: 0 4px 8px 0 rgba($black, 0.05);
+}
+%healthchecked-resource:hover,
+%healthchecked-resource:focus {
+  box-shadow: 0 8px 10px 0 rgba($black, 0.1);
+}
+%healthchecked-resource li {
+  border-top: 1px solid;
+}
+%healthchecked-resource header span,
+%healthchecked-resource li:not(:last-child) span {
+  overflow: hidden;
+  display: inline-block;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+%healthchecked-resource li:last-child:not(:only-child) {
+  overflow: hidden;
+  white-space: nowrap;
+}
+%healthchecked-resource,
+%healthchecked-resource li {
+  border-color: $border-blue;
+}
+%healthchecked-resource {
+  position: relative;
+  border-radius: $radius-small;
+}
+%healthchecked-resource header {
+  margin-bottom: 2em;
+  position: relative;
+}
+
+%healthchecked-resource header strong {
+  position: absolute;
+  bottom: -0.6em;
+  left: 15px;
+}
+%healthchecked-resource a,
+%healthchecked-resource header a > * {
+  display: block;
+}
+%healthchecked-resource li {
+  position: relative;
+}
+%healthchecked-resource li::before {
+  left: 11px;
+  top: 50%;
+  margin-top: -0.49em !important;
+}
+%healthchecked-resource li.passing {
+  @extend %with-passing;
+  color: $green;
+}
+%healthchecked-resource li.warning {
+  @extend %with-warning;
+  color: $orange;
+}
+%healthchecked-resource li.critical {
+  @extend %with-critical;
+  color: $red;
+}
+.healthy .healthchecked-resource header span {
+  padding-right: 20px;
+}
+.healthy .healthchecked-resource li {
+  position: absolute;
+  top: 8px;
+  right: 16px;
+  border: none;
+}
+.healthy .healthchecked-resource li::before {
+  left: 0;
+}
+.healthy .healthchecked-resource li span {
+  display: none;
+}
+.healthy .healthchecked-resource li a {
+  padding-left: 0;
+}
+%healthchecked-resource header a {
+  padding: 12px 15px;
+}
+%healthchecked-resource li a {
+  padding: 3px 15px;
+  padding-top: 5px;
+  padding-left: 39px;
+  height: 31px;
+}
+%healthchecked-resource li:not(:last-child) strong,
+.healthy .healthchecked-resource li:only-child strong {
+  display: none;
+}

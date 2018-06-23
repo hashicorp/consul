@@ -1,0 +1,18 @@
+main header nav:first-child {
+  @extend %breadcrumbs;
+}
+%breadcrumbs a {
+  @extend %with-chevron;
+  color: $blue;
+}
+%breadcrumbs {
+  position: absolute;
+  top: -35px; // %app-view:margin-top - 15px;
+}
+%breadcrumbs ol {
+  list-style-type: none;
+  display: flex;
+}
+%breadcrumbs li {
+  margin-right: 5px;
+}

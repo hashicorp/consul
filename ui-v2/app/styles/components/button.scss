@@ -1,0 +1,120 @@
+button,
+a[rel='back'],
+html.template-error div > a {
+  @extend %button;
+}
+%button.type-delete {
+  @extend %dangerous-button;
+}
+// no % all copy buttons WILL be buttons
+button.copy-btn {
+  @extend %copy-button;
+}
+main p a,
+main dd a {
+  @extend %link;
+}
+%button[type='submit'],
+%button.type-create {
+  @extend %primary-button;
+}
+%link:hover,
+%link:focus {
+  text-decoration: underline;
+}
+%button {
+  @extend %user-select-none;
+  white-space: nowrap;
+  border: 1px solid;
+  border-radius: $radius-small;
+  box-shadow: 0 3px 1px 0 rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+}
+%primary-button {
+  border: 0;
+}
+%copy-button {
+  border: 0 !important;
+  box-shadow: none !important;
+}
+%copy-button {
+  @extend %with-clipboard;
+}
+%button:not([type='submit']),
+a[rel='back'] {
+  border-color: currentColor;
+}
+%link,
+%link:hover,
+%link:focus,
+%link:active {
+  color: $blue;
+}
+%button {
+  color: $gray-500;
+}
+%button:hover,
+%button:focus {
+  color: $gray-700;
+}
+%button:active {
+  color: $gray-700;
+}
+%copy-button {
+  color: $blue !important;
+  background-color: $transparent;
+}
+%copy-button:hover,
+%copy-button:focus {
+  background-color: $gray-050;
+}
+%copy-button:active {
+  background-color: $gray-100;
+}
+%primary-button {
+  background-color: $blue-500;
+  color: $white !important;
+}
+%primary-button:hover,
+%primary-button:focus {
+  background-color: $blue-700;
+}
+%primary-button:disabled {
+  color: rgba($white, 0.5);
+  background-color: rgba($blue-700, 0.5);
+  box-shadow: none;
+}
+%primary-button:active {
+  background-color: $blue-900;
+}
+%dangerous-button {
+  color: $dangerous-red;
+}
+%dangerous-button:hover,
+%dangerous-button:focus {
+  background-color: $red-500;
+  color: $white;
+  border-color: $red-500;
+}
+%dangerous-button:disabled {
+  color: rgba($red-500, 0.5);
+  border-color: rgba($red-500, 0.5);
+  background-color: $white;
+  box-shadow: none;
+}
+%dangerous-button:active {
+  background-color: $red-700;
+  color: $white;
+  border-color: $red-700;
+}
+%button {
+  display: inline-flex;
+  text-align: center;
+  justify-content: center;
+  align-items: center;
+  padding: calc(0.375em - 1px) calc(2.2em - 1px);
+  height: 2.5em;
+}
+%button:not(:last-child) {
+  margin-right: 7px;
+}

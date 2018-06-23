@@ -144,14 +144,11 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 		labels := []metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "found", Value: strconv.FormatBool(numResults != 0)}}
 		if args.ServiceTag != "" {
 			labels = append(labels, metrics.Label{Name: "tag", Value: args.ServiceTag})
-			metrics.IncrCounterWithLabels([]string{"consul", "health", "service", "query-tag"}, 1, labels)
 			metrics.IncrCounterWithLabels([]string{"health", "service", "query-tag"}, 1, labels)
 		}
 		if numResults == 0 {
-			metrics.IncrCounterWithLabels([]string{"consul", "health", "service", "not-found"}, 1, labels)
 			metrics.IncrCounterWithLabels([]string{"health", "service", "not-found"}, 1, labels)
 		}
-		metrics.IncrCounterWithLabels([]string{"consul", "health", "service", "query"}, 1, labels)
 		metrics.IncrCounterWithLabels([]string{"health", "service", "query"}, 1, labels)
 	}
 	return err

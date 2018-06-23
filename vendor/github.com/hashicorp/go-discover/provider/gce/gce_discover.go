@@ -12,7 +12,13 @@ import (
 	compute "google.golang.org/api/compute/v1"
 )
 
-type Provider struct{}
+type Provider struct {
+	userAgent string
+}
+
+func (p *Provider) SetUserAgent(s string) {
+	p.userAgent = s
+}
 
 func (p *Provider) Help() string {
 	return `Google Cloud:
@@ -72,6 +78,9 @@ func (p *Provider) Addrs(args map[string]string, l *log.Logger) ([]string, error
 	svc, err := compute.New(client)
 	if err != nil {
 		return nil, fmt.Errorf("discover-gce: %s", err)
+	}
+	if p.userAgent != "" {
+		svc.UserAgent = p.userAgent
 	}
 
 	// lookup the project zones to look in

@@ -50,7 +50,7 @@ a copy of [`git`](https://www.git-scm.com/) in your `PATH`.
   needed to compile Consul:
 
     ```shell
-    $ make bootstrap
+    $ make tools
     ```
 
   1. Build Consul for your current system and put the binary in `./bin/`

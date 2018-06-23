@@ -81,7 +81,6 @@ func (k *KVS) Apply(args *structs.KVSRequest, reply *bool) error {
 	if done, err := k.srv.forward("KVS.Apply", args, args, reply); done {
 		return err
 	}
-	defer metrics.MeasureSince([]string{"consul", "kvs", "apply"}, time.Now())
 	defer metrics.MeasureSince([]string{"kvs", "apply"}, time.Now())
 
 	// Perform the pre-apply checks.

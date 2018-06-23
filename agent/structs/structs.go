@@ -279,6 +279,7 @@ type ServiceSpecificRequest struct {
 	NodeMetaFilters map[string]string
 	ServiceName     string
 	ServiceTag      string
+	ServiceAddress  string
 	TagFilter       bool // Controls tag filtering
 	Source          QuerySource
 	QueryOptions

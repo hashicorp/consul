@@ -1,0 +1,23 @@
+{{#hashicorp-consul id="wrapper" dcs=dcs dc=dc}}
+    {{#app-view class="error show"}}
+        {{#block-slot 'header'}}
+            <h1 data-test-error>
+{{#if error.status }}
+                {{error.status}} ({{error.message}})
+{{else}}
+                {{error.message}}
+{{/if}}
+            </h1>
+        {{/block-slot}}
+        {{#block-slot 'content'}}
+            <p>
+                Consul returned an error.
+                You may have visited a URL that is loading an unknown resource, so you can try going back to the root.
+                If your ACL token was not found you can reset it, and then you will be redirected to the settings page to enter a new ACL token.
+                Try looking in our <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/index.html" target="_blank">documentation</a>
+            </p>
+            <a href={{href-to 'settings'}}>Reset ACL token</a>
+            <a rel="home" href={{href-to 'index'}}>Go back to root</a>
+        {{/block-slot}}
+    {{/app-view}}
+{{/hashicorp-consul}}

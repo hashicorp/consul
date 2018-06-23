@@ -25,7 +25,7 @@ of their own.
 
 The agent is started with the [`consul agent`](/docs/commands/agent.html) command. This
 command blocks, running forever or until told to quit. The agent command takes a variety
-of configuration options, but most have sane defaults.
+of [`configuration options`](/docs/agent/options.html#command-line-options), but most have sane defaults.
 
 When running [`consul agent`](/docs/commands/agent.html), you should see output similar to this:
 

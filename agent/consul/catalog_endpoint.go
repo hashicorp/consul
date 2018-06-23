@@ -25,7 +25,6 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 	if done, err := c.srv.forward("Catalog.Register", args, args, reply); done {
 		return err
 	}
-	defer metrics.MeasureSince([]string{"consul", "catalog", "register"}, time.Now())
 	defer metrics.MeasureSince([]string{"catalog", "register"}, time.Now())
 
 	// Verify the args.
@@ -118,7 +117,6 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 	if done, err := c.srv.forward("Catalog.Deregister", args, args, reply); done {
 		return err
 	}
-	defer metrics.MeasureSince([]string{"consul", "catalog", "deregister"}, time.Now())
 	defer metrics.MeasureSince([]string{"catalog", "deregister"}, time.Now())
 
 	// Verify the args
@@ -243,7 +241,7 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 	}
 
 	// Verify the arguments
-	if args.ServiceName == "" {
+	if args.ServiceName == "" && args.ServiceAddress == "" {
 		return fmt.Errorf("Must provide service name")
 	}
 
@@ -258,6 +256,9 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 				index, services, err = state.ServiceTagNodes(ws, args.ServiceName, args.ServiceTag)
 			} else {
 				index, services, err = state.ServiceNodes(ws, args.ServiceName)
+			}
+			if args.ServiceAddress != "" {
+				index, services, err = state.ServiceAddressNodes(ws, args.ServiceAddress)
 			}
 			if err != nil {
 				return err
@@ -284,13 +285,10 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 		labels := []metrics.Label{{Name: "service", Value: args.ServiceName}, {Name: "found", Value: strconv.FormatBool(numResults != 0)}}
 		if args.ServiceTag != "" {
 			labels = append(labels, metrics.Label{Name: "tag", Value: args.ServiceTag})
-			metrics.IncrCounterWithLabels([]string{"consul", "catalog", "service", "query-tag"}, 1, labels)
 			metrics.IncrCounterWithLabels([]string{"catalog", "service", "query-tag"}, 1, labels)
 		}
-		metrics.IncrCounterWithLabels([]string{"consul", "catalog", "service", "query"}, 1, labels)
 		metrics.IncrCounterWithLabels([]string{"catalog", "service", "query"}, 1, labels)
 		if numResults == 0 {
-			metrics.IncrCounterWithLabels([]string{"consul", "catalog", "service", "not-found"}, 1, labels)
 			metrics.IncrCounterWithLabels([]string{"catalog", "service", "not-found"}, 1, labels)
 		}
 	}

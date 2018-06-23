@@ -111,7 +111,7 @@ of any excessive resource utilization before arbitrarily increasing the limits.
 
 ## Q: What is the per-key value size limitation for Consul's key/value store?
 
-The limit on a key's value size is 512KB. This is is strictly enforced and an
+The limit on a key's value size is 512KB. This is strictly enforced and an
 HTTP 413 status will be returned to any client that attempts to store more
 than that limit in a value. It should be noted that the Consul key/value store
 is not designed to be used as a general purpose database. See

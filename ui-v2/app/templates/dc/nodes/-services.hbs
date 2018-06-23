@@ -1,0 +1,36 @@
+{{#if (gt items.length 0) }}
+    <form class="filter-bar">
+        {{freetext-filter onchange=(action 'filter') value=filter.s placeholder="Search by name/port"}}
+    </form>
+{{/if}}
+{{#if (gt filtered.length 0)}}
+    {{#tabular-collection
+        data-test-services
+        items=filtered as |item index|
+    }}
+        {{#block-slot 'header'}}
+            <th>Service</th>
+            <th>Port</th>
+            <th>Tags</th>
+        {{/block-slot}}
+        {{#block-slot 'row'}}
+            <td data-test-service-name="{{item.Service}}">
+                <a href={{href-to 'dc.services.show' item.Service }}>{{item.Service}}</a>
+            </td>
+            <td data-test-service-port="{{item.Port}}" class="port">
+                {{item.Port}}
+            </td>
+            <td data-test-service-tags class="tags">
+                {{#if (gt item.Tags.length 0)}}
+                  {{#each item.Tags as |item|}}
+                    <span>{{item}}</span>
+                  {{/each}}
+                {{/if}}
+            </td>
+        {{/block-slot}}
+    {{/tabular-collection}}
+{{else}}
+    <p>
+        There are no services.
+    </p>
+{{/if}}

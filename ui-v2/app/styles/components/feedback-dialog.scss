@@ -1,0 +1,39 @@
+main .with-feedback {
+  @extend %feedback-dialog-inline;
+}
+%feedback-dialog-inline p,
+%feedback-dialog-inline p::after {
+  color: $white;
+  background-color: $carbon;
+}
+// %feedback-dialog-inline p {
+//   animation-name: feedback-dialog-out;
+// 	animation-fill-mode: forwards;
+// }
+// @keyframes feedback-dialog-out {
+// 	90% { opacity: 1; }
+// 	100% { opacity: 0; }
+// }
+%feedback-dialog-inline {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+%feedback-dialog-inline p::after {
+  content: '';
+  display: block;
+  position: absolute;
+  left: 50%;
+  margin-left: -5px;
+  bottom: -5px;
+  width: 10px;
+  height: 10px;
+  transform: rotate(45deg);
+}
+%feedback-dialog-inline p {
+  padding: 10px;
+  position: absolute;
+  bottom: 100%;
+  text-align: center;
+  white-space: nowrap; //temp
+}

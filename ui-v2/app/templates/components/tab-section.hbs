@@ -1,0 +1,4 @@
+<input onchange={{action onchange}} type="radio" name="radiogroup_{{name}}" id="radiogroup_{{name}}_{{slugify id}}" value="{{id}}" checked={{if selected 'checked'}} />
+<div role="tabpanel" id="radiogroup_{{name}}_{{id}}_panel">
+    {{yield}}
+</div>
