@@ -8,30 +8,53 @@ description: |-
 
 # Connect Certificate Management
 
-The certificate management in Connect is done centrally through the Consul
+Certificate management in Connect is done centrally through the Consul
 servers using the configured CA (Certificate Authority) provider. A CA provider
-controls the active root certificate and performs leaf certificate signing for 
-proxies to use for mutual TLS. Currently, the only supported provider is the 
-built-in Consul CA, which generates and stores the root certificate and key on
-the Consul servers and can be configured with a custom key/certificate if needed.
+manages root and intermediate certificates and performs certificate signing
+operations. The Consul leader orchestrates CA provider operations as necessary,
+such as when a service needs a new certificate or during CA rotation events.
 
-The CA provider is initialized either on cluster bootstrapping, or (if Connect is
-disabled initially) when a leader server is elected that has Connect enabled. 
-During the cluster's initial bootstrapping, the CA provider can be configured 
-through the [Agent configuration](docs/agent/options.html#connect_ca_config)
-and afterward can only be updated through the [Update CA Configuration endpoint]
-(/api/connect/ca.html#update-ca-configuration).
+The CA provider abstraction enables Consul to support multiple systems for
+storing and signing certificates. Consul ships with a
+[built-in CA](/docs/connect/ca/consul.html) which generates and stores the
+root certificate and private key on the Consul servers. Consul also also
+built-in support for
+[Vault as a CA](/docs/connect/ca/vault.html). With Vault, the root certificate
+and private key material remain with the Vault cluster. A future version of
+Consul will support pluggable CA systems using external binaries.
 
-### Consul CA (Certificate Authority) Provider
+## CA Bootstrapping
 
-By default, if no provider is configured when Connect is enabled, the Consul
-provider will be used and a private key/root certificate will be generated
-and used as the active root certificate for the cluster. To see this in action,
-start Consul in [dev mode](/docs/agent/options.html#_dev) and query the 
-[list CA Roots endpoint](/api/connect/ca.html#list-ca-root-certificates):
+CA initialization happens automatically when a new Consul leader is elected
+as long as
+[Connect is enabled](/docs/connect/configuration.html#enable-connect-on-the-cluster)
+and the CA system hasn't already been initialized. This initialization process
+will generate the initial root certificates and setup the internal Consul server
+state.
+
+For the initial bootstrap, the CA provider can be configured through the
+[Agent configuration](docs/agent/options.html#connect_ca_config). After
+initialization, the CA can only be updated through the
+[Update CA Configuration API endpoint](/api/connect/ca.html#update-ca-configuration).
+If a CA is already initialized, any changes to the CA configuration in the
+agent configuration file (including removing the configuration completely)
+will have no effect.
+
+If no specific provider is configured when Connect is enabled, the built-in
+Consul CA provider will be used and a private key and root certificate will
+be generated automatically.
+
+## Viewing Root Certificates
+
+Root certificates can be queried with the
+[list CA Roots endpoint](/api/connect/ca.html#list-ca-root-certificates).
+With this endpoint, you can see the list of currently trusted root certificates.
+When a cluster first initializes, this will only list one trusted root. Multiple
+roots may appear as part of
+[rotation](#).
 
 ```bash
-$ curl localhost:8500/v1/connect/ca/roots
+$ curl http://localhost:8500/v1/connect/ca/roots
 {
     "ActiveRootID": "31:6c:06:fb:49:94:42:d5:e4:55:cc:2e:27:b3:b2:2e:96:67:3e:7e",
     "TrustDomain": "36cb52cd-4058-f811-0432-6798a240c5d3.consul",
@@ -53,17 +76,15 @@ $ curl localhost:8500/v1/connect/ca/roots
 }
 ```
 
-#### Specifying a Private Key and Root Certificate
+## CA Configuration
 
-The above root certificate has been automatically generated during the cluster's
-bootstrap, but it is possible to configure the Consul CA provider to use a specific
-private key and root certificate.
-
-To view the current CA configuration, use the [Get CA Configuration endpoint]
-(/api/connect/ca.html#get-ca-configuration):
+After initialization, the CA provider configuration can be viewed with the
+[Get CA Configuration API endpoint](/api/connect/ca.html#get-ca-configuration).
+Consul will filter sensitive values from this endpoint depending on the
+provider in use, so the configuration may not be complete.
 
 ```bash
-$ curl localhost:8500/v1/connect/ca/configuration
+$ curl http://localhost:8500/v1/connect/ca/configuration
 {
     "Provider": "consul",
     "Config": {
@@ -74,66 +95,23 @@ $ curl localhost:8500/v1/connect/ca/configuration
 }
 ```
 
-This is the default Connect CA configuration if nothing is explicitly set when
-Connect is enabled - the PrivateKey and RootCert fields have not been set, so those have
-been generated (as seen above in the roots list).
+The CA provider can be reconfigured using the
+[Update CA Configuration API endpoint](/api/connect/ca.html#update-ca-configuration).
+Specific options for reconfiguration can be found in the specific
+CA provider documentation in the sidebar to the left.
 
-There are two ways to have the Consul CA use a custom private key and root certificate:
-either through the `ca_config` section of the [Agent configuration]
-(docs/agent/options.html#connect_ca_config) (which can only be used during the cluster's
-initial bootstrap) or through the [Update CA Configuration endpoint]
-(/api/connect/ca.html#update-ca-configuration).
-
-Currently consul requires that root certificates are valid [SPIFFE SVID Signing certificates]
-(https://github.com/spiffe/spiffe/blob/master/standards/X509-SVID.md) and that the URI encoded
-in the SAN is the cluster identifier created at bootstrap with the ".consul" TLD. In this 
-example, we will set the URI SAN to `spiffe://36cb52cd-4058-f811-0432-6798a240c5d3.consul`.
-
-In order to use the Update CA Configuration HTTP endpoint, the private key and certificate
-must be passed via JSON:
-
-```bash
-$ jq -n --arg key "$(cat root.key)"  --arg cert "$(cat root.crt)" '
-{
-    "Provider": "consul",
-    "Config": {
-        "PrivateKey": $key,
-        "RootCert": $cert,
-        "RotationPeriod": "2160h"
-    }
-}' > ca_config.json
-```
-
-The resulting `ca_config.json` file can then be used to update the active root certificate:
-
-```bash
-$ cat ca_config.json
-{
-  "Provider": "consul",
-  "Config": {
-    "PrivateKey": "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEArqiy1c3pbT3cSkjdEM1APALUareU...",
-    "RootCert": "-----BEGIN CERTIFICATE-----\nMIIDijCCAnKgAwIBAgIJAOFZ66em1qC7MA0GCSqGSIb3...",
-    "RotationPeriod": "2160h"
-  }
-}
-
-$ curl --request PUT --data @ca_config.json localhost:8500/v1/connect/ca/configuration
-
-...
-
-[INFO] connect: CA rotated to new root under provider "consul"
-``` 
-
-The cluster is now using the new private key and root certificate. Updating the CA config
-this way also triggered a certificate rotation, which will be covered in the next section.
-
-#### Root Certificate Rotation
+## Root Certificate Rotation
 
 Whenever the CA's configuration is updated in a way that causes the root key to
 change, a special rotation process will be triggered in order to smoothly transition to
-the new certificate.
+the new certificate. This rotation is automatically orchestrated by Consul.
 
-First, an intermediate CA certificate is requested from the new root, which is then
+This also automatically occurs when a completely different CA provider is
+configured (since this changes the root key). Therefore, this automatic rotation
+process can also be used to cleanly transition between CA providers. For example,
+updating Connect to use Vault instead of the built-in CA.
+
+During rotation, an intermediate CA certificate is requested from the new root, which is then
 cross-signed by the old root. This cross-signed certificate is then distributed
 alongside any newly-generated leaf certificates used by the proxies once the new root
 becomes active, and provides a chain of trust back to the old root certificate in the
@@ -145,9 +123,9 @@ certificate or CA provider has been set up, the new root becomes the active one
 and is immediately used for signing any new incoming certificate requests.
 
 If we check the [list CA roots endpoint](/api/connect/ca.html#list-ca-root-certificates)
-after the config update in the previous section, we can see both the old and new root
+after updating the configuration with a new root certificate, we can see both the old and new root
 certificates are present, and the currently active root has an intermediate certificate
-which has been generated and cross-signed automatically by the old root during the 
+which has been generated and cross-signed automatically by the old root during the
 rotation process:
 
 ```bash
@@ -190,58 +168,3 @@ $ curl localhost:8500/v1/connect/ca/roots
 
 The old root certificate will be automatically removed once enough time has elapsed
 for any leaf certificates signed by it to expire.
-
-### External CA (Certificate Authority) Providers
-
-#### Vault
-
-Currently, the only supported external CA (Certificate Authority) provider is Vault. The 
-Vault provider can be used by setting the `ca_provider = "vault"` field in the Connect 
-configuration:
-
-```hcl
-connect {
-    enabled = true
-    ca_provider = "vault"
-    ca_config {
-        address = "http://localhost:8200"
-        token = "..."
-        root_pki_path = "connect-root"
-        intermediate_pki_path = "connect-intermediate"
-    }
-}
-```
-
-The `root_pki_path` can be set to either a new or existing PKI backend; if no CA has been
-initialized at the path, a new root CA will be generated. From this root PKI, Connect will
-generate an intermediate CA at `intermediate_pki_path`. This intermediate CA is used so that
-Connect can manage its lifecycle/rotation - it will never touch or overwrite any existing data
-at `root_pki_path`. The intermediate CA is used for signing leaf certificates used by the 
-services and proxies in Connect to verify identity.
-
-To update the configuration for the Vault provider, the process is the same as for the Consul CA
-provider above: use the [Update CA Configuration endpoint](/api/connect/ca.html#update-ca-configuration)
-or the `consul connect ca set-config` command:
-
-```bash
-$ cat ca_config.json
-{
-  "Provider": "vault",
-  "Config": {
-    "Address": "http://localhost:8200",
-    "Token":  "...",
-    "RootPKIPath": "connect-root-2",
-    "IntermediatePKIPath": "connect-intermediate"
-  }
-}
-
-$ consul connect ca set-config -config-file=ca_config.json
-
-...
-
-[INFO] connect: CA rotated to new root under provider "vault"
-``` 
-
-If the PKI backend at `connect-root-2` in this case has a different root certificate (or if it's
-unmounted and hasn't been initialized), the rotation process will be triggered, as described above
-in the [Root Certificate Rotation](#root-certificate-rotation) section.
