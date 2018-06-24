@@ -46,8 +46,8 @@ EMPTY:=
 SPACE:=$(EMPTY) $(EMPTY)
 COMMA:=$(EMPTY),$(EMPTY)
 
-ifeq (, $(shell which gh-release))
-    $(error "No gh-release in $$PATH, install with: go get github.com/progrium/gh-release")
+ifeq (, $(shell which curl))
+    $(error "No curl in $$PATH, please install")
 endif
 
 ifeq (, $(shell which manifest-tool))
@@ -115,7 +115,14 @@ tar:
 .PHONY: upload
 upload:
 	@echo Releasing: $(VERSION)
-	gh-release create $(GITHUB)/$(NAME) $(VERSION)
+	$(eval RELEASE:=$(shell curl -s -d '{"tag_name": "v$(VERSION)", "name": "v$(VERSION)"}' "https://api.github.com/repos/$(GITHUB)/$(NAME)/releases?access_token=${GITHUB_ACCESS_TOKEN}" | grep -m 1 '"id"' | tr -cd '[[:digit:]]'))
+	@echo ReleaseID: $(RELEASE)
+	@for asset in `ls -A release`; do \
+	    curl -o /dev/null -X POST \
+	      -H "Content-Type: application/gzip" \
+	      --data-binary "@release/$$asset" \
+	      "https://uploads.github.com/repos/$(GITHUB)/$(NAME)/releases/$(RELEASE)/assets?name=$${asset}&access_token=${GITHUB_ACCESS_TOKEN}" ; \
+	done
 
 .PHONY: docker-build
 docker-build: tar
