@@ -49,7 +49,7 @@ Connect relies on to ensure it's security properties.
 A service's identity, in the form of an x.509 certificate, will only be issued
 to an API client that has `service:write` permission for that service. In other
 words, any client that has permission to _register_ an instance of a service
-will be able to identify as that service and access all of resources that that
+will be able to identify as that service and access all of the resources that that
 service is allowed to access.
 
 A secure ACL setup must meet these criteria:
@@ -77,13 +77,13 @@ sufficient for ACL tokens to only be unique per _service_ and shared between
 instances.
 
 It is much better though if ACL tokens are unique per service _instance_ because
-it limit the blast radius of a compromise.
+it limits the blast radius of a compromise.
 
 A future release of Connect will support revoking specific certificates that
 have been issued. For example if a single node in a datacenter has been
 compromised, it will be possible to find all certificates issued to the agent on
 that node and revoke them. This will block all access to the intruder without
-taking unaffected instances of the service(s) on that node offline too.
+taking instances of the service(s) on other nodes offline too.
 
 While this will work with service-unique tokens, there is nothing stopping an
 attacker from obtaining certificates while spoofing the agent ID or other
@@ -103,15 +103,19 @@ Vault](https://www.vaultproject.io/docs/secrets/consul/index.html).
 ## Configure Agent Transport Encryption
 
 Consul's gossip (UDP) and RPC (TCP) communications need to be encrypted
-otherwise attackers may be able to see tokens and private keys while in flight
-between the server and client agents or between client agent and application.
+otherwise attackers may be able to see ACL tokens while in flight
+between the server and client agents (RPC) or between client agent and 
+application (HTTP). Certificate private keys never leave the host they 
+are used on but are delivered to the application or proxy over local 
+HTTP so local agent traffic should be encrypted where potentially 
+untrusted parties might be able to observe localhost agent API traffic.
 
 Follow the [encryption documentation](/docs/agent/encryption.html) to ensure
-both gossip encryption and RPC TLS are configured securely.
+both gossip encryption and RPC/HTTP TLS are configured securely.
 
 For now client and server TLS certificates are still managed by manual
 configuration. In the future we plan to automate more of that with the same
-mechanisms connect offers to user applications.
+mechanisms Connect offers to user applications.
 
 ## Bootstrap Certificate Authority
 
