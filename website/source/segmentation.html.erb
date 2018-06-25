@@ -140,8 +140,30 @@ description: |-
         <div class='code-sample'>
           <div>
             <span></span>
-            <div class='code'>
-              <code class='keyword'>TODO</code>
+            <div class='code'><code>$ consul connect proxy -service web \
+        -service-addr 127.0.0.1:8000
+        -listen <code class="keyword">10.0.1.109:7200</code>
+==> Consul Connect proxy starting...
+    Configuration mode: Flags
+                Service: web
+        Public listener: <code class="keyword">10.0.1.109:7200</code> => 127.0.0.1:8000
+...
+$ tshark -V \
+        -Y "ssl.handshake.certificate" \
+        -O "ssl" \
+        -f <code class="keyword">"dst port 7200"</code>
+Frame 39: 899 bytes on wire (7192 bits), 899 bytes captured (7192 bits) on interface 0
+Internet Protocol Version 4, Src: 10.0.1.110, Dst: <code class="keyword">10.0.1.109</code>
+Transmission Control Protocol, Src Port: 61918, Dst Port: 7200, Seq: 136, Ack: 916, Len: 843
+Secure Sockets Layer
+    TLSv1.2 Record Layer: Handshake Protocol: Certificate
+        Version: TLS 1.2 (0x0303)
+        Handshake Protocol: Certificate
+          RDNSequence item: 1 item (id-at-commonName=<code class="keyword">Consul CA 7</code>)
+              RelativeDistinguishedName item (id-at-commonName=<code class="keyword">Consul CA 7</code>)
+                  Id: 2.5.4.3 (id-at-commonName)
+                  DirectoryString: printableString (1)
+                      printableString: <code class="keyword">Consul CA 7</code></code>
             </div>
           </div>
         </div>
