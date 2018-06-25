@@ -14,12 +14,7 @@
     width: 50%;
     
     @media (min-width: 768px) {
-      padding: 5px $site-gutter-padding;
       width: 33%;
-    }
-    
-    @media (min-width: 992px) {
-      padding: 25px $site-gutter-padding;
     }
   }
 

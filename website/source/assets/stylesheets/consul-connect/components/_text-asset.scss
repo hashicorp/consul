@@ -36,6 +36,10 @@
       margin-bottom: -120px;
     }
 
+    & > div:last-child {
+      justify-content: unset;
+    }
+
     img {
       width: 145%;
     }
@@ -87,12 +91,20 @@
       }
     }
 
+    &:last-child {
+      justify-content: center;
+    }
+
     & > img {
       width: 100%;
 
       &.shadow {
         box-shadow: 0 40px 48px -20px rgba(63, 68, 85, 0.4);
       }
+    }
+
+    & > svg {
+      max-width: 100%;
     }
 
     &.code-sample > div {
