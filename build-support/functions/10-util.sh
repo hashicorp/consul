@@ -58,6 +58,17 @@ function debug {
    fi
 }
 
+function sed_i {
+   if test "$(uname)" == "Darwin"
+   then
+      sed -i '' "$@"
+      return $?
+   else
+      sed -i "$@"
+      return $?
+   fi
+}
+
 function is_set {
    # Arguments:
    #   $1 - string value to check its truthiness
