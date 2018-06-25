@@ -13,7 +13,7 @@ Command: `consul connect ca`
 
 The CA connect command is used to interact with Consul Connect's Certificate Authority
 subsystem. The command can be used to view or modify the current CA configuration. See the
-[Connect CA Guide](/docs/guides/connect-ca.html) for more information.
+[Connect CA documentation](/docs/connect/ca.html) for more information.
 
 ```text
 Usage: consul connect ca <subcommand> [options] [args]
@@ -64,7 +64,7 @@ The output looks like this:
 ## set-config
 
 Modifies the current CA configuration. If this results in a new root certificate
-being used, the [Root Rotation](/docs/guides/connect-ca.html#rotation) process 
+being used, the [Root Rotation](/docs/connect/ca.html#root-certificate-rotation) process
 will be triggered.
 
 Usage: `consul connect ca set-config [options]`

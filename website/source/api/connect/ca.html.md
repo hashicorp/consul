@@ -14,7 +14,7 @@ Certificate Authority mechanism.
 
 ## List CA Root Certificates
 
-This endpoint returns the current list of trusted CA root certificates in 
+This endpoint returns the current list of trusted CA root certificates in
 the cluster.
 
 | Method | Path                         | Produces                   |
@@ -104,7 +104,7 @@ $ curl \
 
 This endpoint updates the configuration for the CA. If this results in a
 new root certificate being used, the [Root Rotation]
-(/docs/guides/connect-ca.html#rotation) process will be triggered.
+(/docs/connect/ca.html#root-certificate-rotation) process will be triggered.
 
 | Method | Path                         | Produces                   |
 | ------ | ---------------------------- | -------------------------- |

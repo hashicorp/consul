@@ -117,7 +117,7 @@ Consul supporting namespaces.
 
 ## Intention Management Permissions
 
-Intention management can be protected by [ACLs](/docs/guides/acls.html).
+Intention management can be protected by [ACLs](/docs/guides/acl.html).
 Permissions for intentions are _destination-oriented_, meaning the ACLs
 for managing intentions are looked up based on the destination value
 of the intention, not the source.

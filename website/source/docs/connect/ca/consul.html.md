@@ -82,7 +82,7 @@ been generated (as seen above in the roots list).
 
 There are two ways to have the Consul CA use a custom private key and root certificate:
 either through the `ca_config` section of the [Agent configuration]
-(docs/agent/options.html#connect_ca_config) (which can only be used during the cluster's
+(/docs/agent/options.html#connect_ca_config) (which can only be used during the cluster's
 initial bootstrap) or through the [Update CA Configuration endpoint]
 (/api/connect/ca.html#update-ca-configuration).
 
