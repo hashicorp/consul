@@ -454,6 +454,33 @@ func (f *aclFilter) filterCoordinates(coords *structs.Coordinates) {
 	*coords = c
 }
 
+// filterIntentions is used to filter intentions based on ACL rules.
+// We prune entries the user doesn't have access to, and we redact any tokens
+// if the user doesn't have a management token.
+func (f *aclFilter) filterIntentions(ixns *structs.Intentions) {
+	// Management tokens can see everything with no filtering.
+	if f.acl.ACLList() {
+		return
+	}
+
+	// Otherwise, we need to see what the token has access to.
+	ret := make(structs.Intentions, 0, len(*ixns))
+	for _, ixn := range *ixns {
+		// If no prefix ACL applies to this then filter it, since
+		// we know at this point the user doesn't have a management
+		// token, otherwise see what the policy says.
+		prefix, ok := ixn.GetACLPrefix()
+		if !ok || !f.acl.IntentionRead(prefix) {
+			f.logger.Printf("[DEBUG] consul: dropping intention %q from result due to ACLs", ixn.ID)
+			continue
+		}
+
+		ret = append(ret, ixn)
+	}
+
+	*ixns = ret
+}
+
 // filterNodeDump is used to filter through all parts of a node dump and
 // remove elements the provided ACL token cannot access.
 func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) {
@@ -597,6 +624,9 @@ func (s *Server) filterACL(token string, subj interface{}) error {
 
 	case *structs.IndexedHealthChecks:
 		filt.filterHealthChecks(&v.HealthChecks)
+
+	case *structs.IndexedIntentions:
+		filt.filterIntentions(&v.Intentions)
 
 	case *structs.IndexedNodeDump:
 		filt.filterNodeDump(&v.Dump)

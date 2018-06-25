@@ -135,6 +135,11 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	if strings.HasPrefix(wp.Type, "connect_") {
+		c.UI.Error(fmt.Sprintf("Type %s is not supported in the CLI tool", wp.Type))
+		return 1
+	}
+
 	// Create and test the HTTP client
 	client, err := c.http.APIClient()
 	if err != nil {

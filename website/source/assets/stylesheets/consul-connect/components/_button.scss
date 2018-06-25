@@ -1,0 +1,89 @@
+.g-btn {
+  background-color: $consul-red;
+  border: 2px solid $consul-red;
+  border-radius: 3px;
+  box-sizing: border-box;
+  color: $white;
+  display: inline-block;
+  font-size: 1.4rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 24px;
+  min-width: 129px;
+  outline: 0;
+  padding: 6px 5px;
+  position: relative;
+  text-align: center;
+  transition: all 0.25s ease;
+
+  @media (min-width: 768px) {
+    font-size: 1.6rem;
+    min-width: 144px;
+    padding: 10px 28px;
+  }
+
+  &:focus,
+  &:hover {
+    background-color: #ce4a86;
+    border-color: #ce4a86;
+    color: $white;
+    text-decoration: none;
+    transform: translateY(-1px);
+  }
+
+  path {
+    fill: $white;
+  }
+
+  &.white {
+    background: $white;
+    border: 2px solid $white;
+    color: $consul-black;
+
+    &:hover {
+      background: $consul-black;
+      border-color: $consul-black;
+      color: $white;
+
+      path {
+        fill: $white;
+      }
+    }
+
+    path {
+      fill: $consul-black;
+    }
+  }
+
+  &.dark-outline {
+    background: none;
+    border: 2px solid $consul-black;
+    color: $consul-black;
+
+    &:hover {
+      background: $consul-black;
+      color: $white;
+    }
+  }
+
+  &.white-outline {
+    background: none;
+    border: 2px solid $white;
+    color: $white;
+
+    &:hover {
+      background-color: $white;
+      color: $consul-black;
+    }
+  }
+
+  &.download {
+    svg {
+      margin: 0 4px -4px 0;
+
+      path {
+        transition: fill 0.25s ease;
+      }
+    }
+  }
+}

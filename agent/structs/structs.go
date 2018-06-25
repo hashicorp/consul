@@ -6,13 +6,17 @@ import (
 	"math/rand"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/coordinate"
+	"github.com/mitchellh/hashstructure"
 )
 
 type MessageType uint8
@@ -39,6 +43,8 @@ const (
 	AutopilotRequestType                  = 9
 	AreaRequestType                       = 10
 	ACLBootstrapRequestType               = 11 // FSM snapshots only.
+	IntentionRequestType                  = 12
+	ConnectCARequestType                  = 13
 )
 
 const (
@@ -273,6 +279,32 @@ func (r *DCSpecificRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
+func (r *DCSpecificRequest) CacheInfo() cache.RequestInfo {
+	info := cache.RequestInfo{
+		Token:      r.Token,
+		Datacenter: r.Datacenter,
+		MinIndex:   r.MinQueryIndex,
+		Timeout:    r.MaxQueryTime,
+	}
+
+	// To calculate the cache key we only hash the node filters. The
+	// datacenter is handled by the cache framework. The other fields are
+	// not, but should not be used in any cache types.
+	v, err := hashstructure.Hash(r.NodeMetaFilters, nil)
+	if err == nil {
+		// If there is an error, we don't set the key. A blank key forces
+		// no cache for this request so the request is forwarded directly
+		// to the server.
+		info.Key = strconv.FormatUint(v, 10)
+	}
+
+	return info
+}
+
+func (r *DCSpecificRequest) CacheMinIndex() uint64 {
+	return r.QueryOptions.MinQueryIndex
+}
+
 // ServiceSpecificRequest is used to query about a specific service
 type ServiceSpecificRequest struct {
 	Datacenter      string
@@ -282,6 +314,10 @@ type ServiceSpecificRequest struct {
 	ServiceAddress  string
 	TagFilter       bool // Controls tag filtering
 	Source          QuerySource
+
+	// Connect if true will only search for Connect-compatible services.
+	Connect bool
+
 	QueryOptions
 }
 
@@ -387,6 +423,7 @@ type ServiceNode struct {
 	Datacenter               string
 	TaggedAddresses          map[string]string
 	NodeMeta                 map[string]string
+	ServiceKind              ServiceKind
 	ServiceID                string
 	ServiceName              string
 	ServiceTags              []string
@@ -394,6 +431,8 @@ type ServiceNode struct {
 	ServiceMeta              map[string]string
 	ServicePort              int
 	ServiceEnableTagOverride bool
+	ServiceProxyDestination  string
+	ServiceConnect           ServiceConnect
 
 	RaftIndex
 }
@@ -413,6 +452,7 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 		Node: s.Node,
 		// Skip Address, see above.
 		// Skip TaggedAddresses, see above.
+		ServiceKind:              s.ServiceKind,
 		ServiceID:                s.ServiceID,
 		ServiceName:              s.ServiceName,
 		ServiceTags:              tags,
@@ -420,6 +460,8 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 		ServicePort:              s.ServicePort,
 		ServiceMeta:              nsmeta,
 		ServiceEnableTagOverride: s.ServiceEnableTagOverride,
+		ServiceProxyDestination:  s.ServiceProxyDestination,
+		ServiceConnect:           s.ServiceConnect,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,
@@ -430,6 +472,7 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 // ToNodeService converts the given service node to a node service.
 func (s *ServiceNode) ToNodeService() *NodeService {
 	return &NodeService{
+		Kind:              s.ServiceKind,
 		ID:                s.ServiceID,
 		Service:           s.ServiceName,
 		Tags:              s.ServiceTags,
@@ -437,6 +480,8 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 		Port:              s.ServicePort,
 		Meta:              s.ServiceMeta,
 		EnableTagOverride: s.ServiceEnableTagOverride,
+		ProxyDestination:  s.ServiceProxyDestination,
+		Connect:           s.ServiceConnect,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,
@@ -446,8 +491,29 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 
 type ServiceNodes []*ServiceNode
 
+// ServiceKind is the kind of service being registered.
+type ServiceKind string
+
+const (
+	// ServiceKindTypical is a typical, classic Consul service. This is
+	// represented by the absence of a value. This was chosen for ease of
+	// backwards compatibility: existing services in the catalog would
+	// default to the typical service.
+	ServiceKindTypical ServiceKind = ""
+
+	// ServiceKindConnectProxy is a proxy for the Connect feature. This
+	// service proxies another service within Consul and speaks the connect
+	// protocol.
+	ServiceKindConnectProxy ServiceKind = "connect-proxy"
+)
+
 // NodeService is a service provided by a node
 type NodeService struct {
+	// Kind is the kind of service this is. Different kinds of services may
+	// have differing validation, DNS behavior, etc. An empty kind will default
+	// to the Default kind. See ServiceKind for the full list of kinds.
+	Kind ServiceKind `json:",omitempty"`
+
 	ID                string
 	Service           string
 	Tags              []string
@@ -456,7 +522,60 @@ type NodeService struct {
 	Port              int
 	EnableTagOverride bool
 
+	// ProxyDestination is the name of the service that this service is
+	// a Connect proxy for. This is only valid if Kind is "connect-proxy".
+	// The destination may be a service that isn't present in the catalog.
+	// This is expected and allowed to allow for proxies to come up
+	// earlier than their target services.
+	ProxyDestination string
+
+	// Connect are the Connect settings for a service. This is purposely NOT
+	// a pointer so that we never have to nil-check this.
+	Connect ServiceConnect
+
 	RaftIndex
+}
+
+// ServiceConnect are the shared Connect settings between all service
+// definitions from the agent to the state store.
+type ServiceConnect struct {
+	// Native is true when this service can natively understand Connect.
+	Native bool
+
+	// Proxy configures a connect proxy instance for the service. This is
+	// only used for agent service definitions and is invalid for non-agent
+	// (catalog API) definitions.
+	Proxy *ServiceDefinitionConnectProxy
+}
+
+// Validate validates the node service configuration.
+//
+// NOTE(mitchellh): This currently only validates fields for a ConnectProxy.
+// Historically validation has been directly in the Catalog.Register RPC.
+// ConnectProxy validation was moved here for easier table testing, but
+// other validation still exists in Catalog.Register.
+func (s *NodeService) Validate() error {
+	var result error
+
+	// ConnectProxy validation
+	if s.Kind == ServiceKindConnectProxy {
+		if strings.TrimSpace(s.ProxyDestination) == "" {
+			result = multierror.Append(result, fmt.Errorf(
+				"ProxyDestination must be non-empty for Connect proxy services"))
+		}
+
+		if s.Port == 0 {
+			result = multierror.Append(result, fmt.Errorf(
+				"Port must be set for a Connect proxy"))
+		}
+
+		if s.Connect.Native {
+			result = multierror.Append(result, fmt.Errorf(
+				"A Proxy cannot also be ConnectNative, only typical services"))
+		}
+	}
+
+	return result
 }
 
 // IsSame checks if one NodeService is the same as another, without looking
@@ -470,7 +589,10 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 		s.Address != other.Address ||
 		s.Port != other.Port ||
 		!reflect.DeepEqual(s.Meta, other.Meta) ||
-		s.EnableTagOverride != other.EnableTagOverride {
+		s.EnableTagOverride != other.EnableTagOverride ||
+		s.Kind != other.Kind ||
+		s.ProxyDestination != other.ProxyDestination ||
+		s.Connect != other.Connect {
 		return false
 	}
 
@@ -484,6 +606,7 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 		Node: node,
 		// Skip Address, see ServiceNode definition.
 		// Skip TaggedAddresses, see ServiceNode definition.
+		ServiceKind:              s.Kind,
 		ServiceID:                s.ID,
 		ServiceName:              s.Service,
 		ServiceTags:              s.Tags,
@@ -491,6 +614,8 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 		ServicePort:              s.Port,
 		ServiceMeta:              s.Meta,
 		ServiceEnableTagOverride: s.EnableTagOverride,
+		ServiceProxyDestination:  s.ProxyDestination,
+		ServiceConnect:           s.Connect,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,

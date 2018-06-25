@@ -339,7 +339,7 @@ func (d *DNSServer) addSOA(msg *dns.Msg) {
 // nameservers returns the names and ip addresses of up to three random servers
 // in the current cluster which serve as authoritative name servers for zone.
 func (d *DNSServer) nameservers(edns bool) (ns []dns.RR, extra []dns.RR) {
-	out, err := d.lookupServiceNodes(d.agent.config.Datacenter, structs.ConsulServiceName, "")
+	out, err := d.lookupServiceNodes(d.agent.config.Datacenter, structs.ConsulServiceName, "", false)
 	if err != nil {
 		d.logger.Printf("[WARN] dns: Unable to get list of servers: %s", err)
 		return nil, nil
@@ -417,7 +417,7 @@ PARSE:
 		n = n + 1
 	}
 
-	switch labels[n-1] {
+	switch kind := labels[n-1]; kind {
 	case "service":
 		if n == 1 {
 			goto INVALID
@@ -435,7 +435,7 @@ PARSE:
 			}
 
 			// _name._tag.service.consul
-			d.serviceLookup(network, datacenter, labels[n-3][1:], tag, req, resp)
+			d.serviceLookup(network, datacenter, labels[n-3][1:], tag, false, req, resp)
 
 			// Consul 0.3 and prior format for SRV queries
 		} else {
@@ -447,8 +447,16 @@ PARSE:
 			}
 
 			// tag[.tag].name.service.consul
-			d.serviceLookup(network, datacenter, labels[n-2], tag, req, resp)
+			d.serviceLookup(network, datacenter, labels[n-2], tag, false, req, resp)
 		}
+
+	case "connect":
+		if n == 1 {
+			goto INVALID
+		}
+
+		// name.connect.consul
+		d.serviceLookup(network, datacenter, labels[n-2], "", true, req, resp)
 
 	case "node":
 		if n == 1 {
@@ -913,8 +921,9 @@ func (d *DNSServer) trimDNSResponse(network string, req, resp *dns.Msg) (trimmed
 }
 
 // lookupServiceNodes returns nodes with a given service.
-func (d *DNSServer) lookupServiceNodes(datacenter, service, tag string) (structs.IndexedCheckServiceNodes, error) {
+func (d *DNSServer) lookupServiceNodes(datacenter, service, tag string, connect bool) (structs.IndexedCheckServiceNodes, error) {
 	args := structs.ServiceSpecificRequest{
+		Connect:     connect,
 		Datacenter:  datacenter,
 		ServiceName: service,
 		ServiceTag:  tag,
@@ -950,8 +959,8 @@ func (d *DNSServer) lookupServiceNodes(datacenter, service, tag string) (structs
 }
 
 // serviceLookup is used to handle a service query
-func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, req, resp *dns.Msg) {
-	out, err := d.lookupServiceNodes(datacenter, service, tag)
+func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, connect bool, req, resp *dns.Msg) {
+	out, err := d.lookupServiceNodes(datacenter, service, tag, connect)
 	if err != nil {
 		d.logger.Printf("[ERR] dns: rpc error: %v", err)
 		resp.SetRcode(req, dns.RcodeServerFailure)

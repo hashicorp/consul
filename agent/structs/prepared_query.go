@@ -57,6 +57,14 @@ type ServiceQuery struct {
 	// pair is in this map it must be present on the node in order for the
 	// service entry to be returned.
 	NodeMeta map[string]string
+
+	// Connect if true will filter the prepared query results to only
+	// include Connect-capable services. These include both native services
+	// and proxies for matching services. Note that if a proxy matches,
+	// the constraints in the query above (Near, OnlyPassing, etc.) apply
+	// to the _proxy_ and not the service being proxied. In practice, proxies
+	// should be directly next to their services so this isn't an issue.
+	Connect bool
 }
 
 const (
@@ -195,6 +203,12 @@ type PreparedQueryExecuteRequest struct {
 	// Limit will trim the resulting list down to the given limit.
 	Limit int
 
+	// Connect will force results to be Connect-enabled nodes for the
+	// matching services. This is equivalent in semantics exactly to
+	// setting "Connect" in the query template itself, but allows callers
+	// to use any prepared query in a Connect setting.
+	Connect bool
+
 	// Source is used to sort the results relative to a given node using
 	// network coordinates.
 	Source QuerySource
@@ -225,6 +239,9 @@ type PreparedQueryExecuteRemoteRequest struct {
 
 	// Limit will trim the resulting list down to the given limit.
 	Limit int
+
+	// Connect is the same as ExecuteRequest.
+	Connect bool
 
 	// QueryOptions (unfortunately named here) controls the consistency
 	// settings for the the service lookups.

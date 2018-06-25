@@ -6,7 +6,7 @@
 }
 %flash-message p.success {
   border-color: $green;
-  background-color: rgba($green, 0.1);
+  background-color: $green-050;
 }
 %flash-message p {
   color: $green;
@@ -16,7 +16,7 @@
 }
 %flash-message p.error {
   border-color: $red;
-  background-color: rgba($red, 0.1);
+  background-color: $red-050;
 }
 %flash-message p.error {
   color: $red;
@@ -29,10 +29,12 @@
 %flash-message {
   display: flex;
   position: relative;
+  z-index: 2;
   justify-content: center;
+  margin: 0 15%;
 }
 %flash-message p {
-  bottom: -10px;
+  top: -46px;
   position: absolute;
   padding: 9px 15px;
 }
@@ -46,4 +48,5 @@
 }
 %flash-message p strong::before {
   left: 0;
+  margin-top: -0.5em !important;
 }

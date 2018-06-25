@@ -1,27 +1,28 @@
 // Colors
-$white: #FFFFFF;
+$white: #ffffff;
 $black: #000000;
 $gray-darker: #555555;
+$consul-black: #252937;
 
-$consul-red: #C62A71;
-$consul-red-dark: #8C1C59;
-$packer-blue: #1DAEFF;
-$packer-blue-dark: #1D94DD;
-$terraform-purple: #5C4EE5;
-$terraform-purple-dark: #4040B2;
-$vagrant-blue: #1563FF;
-$vagrant-blue-dark: #104EB2;
+$consul-red: #c62a71;
+$consul-red-dark: #8c1c59;
+$packer-blue: #1daeff;
+$packer-blue-dark: #1d94dd;
+$terraform-purple: #5c4ee5;
+$terraform-purple-dark: #4040b2;
+$vagrant-blue: #1563ff;
+$vagrant-blue-dark: #104eb2;
 $vault-black: #000000;
-$vault-blue: #00ABE0;
-$vault-gray: #919FA8;
+$vault-blue: #00abe0;
+$vault-gray: #919fa8;
 
 // Typography
-$font-family-klavika:   'klavika-web', Helvetica, sans-serif;
+$font-family-klavika: 'klavika-web', Helvetica, sans-serif;
 $font-family-open-sans: 'Open Sans', sans-serif;
 $font-family-monospace: 'Fira Mono', monospace;
-$font-size:             15px;
-$font-weight-reg:       400;
-$font-weight-bold:      600;
+$font-size: 15px;
+$font-weight-reg: 400;
+$font-weight-bold: 600;
 
 // Body
 $body-font-color: $gray-darker;
@@ -45,8 +46,8 @@ $sidebar-font-weight: $font-weight-reg;
 $header-background-color: $consul-red;
 $header-font-size: $font-size - 2;
 $header-height: 92px;
-$header-link-color: rgba($white, 0.85);
-$header-link-color-hover: $white;
+$header-link-color: rgba($black, 0.85);
+$header-link-color-hover: $black;
 $header-font-family: $font-family-klavika;
 
 // Footer
@@ -56,7 +57,7 @@ $footer-link-color-hover: $black;
 
 // Button
 $button-background: $white;
-$button-font-color: #7b8A8E;
+$button-font-color: #7b8a8e;
 $button-font-family: $font-family-klavika;
 $button-font-size: $font-size;
 $button-font-weight: $font-weight-bold;

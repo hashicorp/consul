@@ -68,6 +68,8 @@
   top: 50%;
   margin-top: -0.5em;
 }
+%filter-bar .value-allow span,
+%filter-bar .value-deny span,
 %filter-bar .value-passing span,
 %filter-bar .value-warning span,
 %filter-bar .value-critical span {
@@ -82,6 +84,18 @@
 }
 %filter-bar .value-warning span::before {
   @extend %with-warning-icon-grey;
+}
+%filter-bar .value-allow span {
+  @extend %with-allow;
+}
+%filter-bar .value-deny span {
+  @extend %with-deny;
+}
+%filter-bar .value-deny span::before {
+  @extend %with-deny-icon-grey;
+}
+%filter-bar .value-allow span::before {
+  @extend %with-right-arrow-grey;
 }
 %filter-bar .value-critical span {
   @extend %with-critical;

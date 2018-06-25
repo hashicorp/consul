@@ -20,6 +20,9 @@ export default function(type, count, obj) {
     case 'session':
       key = 'CONSUL_SESSION_COUNT';
       break;
+    case 'intention':
+      key = 'CONSUL_INTENTION_COUNT';
+      break;
   }
   if (key) {
     obj[key] = count;

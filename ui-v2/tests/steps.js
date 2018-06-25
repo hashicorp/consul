@@ -1,6 +1,6 @@
 /* eslint no-console: "off" */
 import yadda from './helpers/yadda';
-import { currentURL, click, triggerKeyEvent, find } from '@ember/test-helpers';
+import { currentURL, click, triggerKeyEvent, fillIn, find } from '@ember/test-helpers';
 import getDictionary from '@hashicorp/ember-cli-api-double/dictionary';
 import pages from 'consul-ui/tests/pages';
 import api from 'consul-ui/tests/helpers/api';
@@ -35,6 +35,9 @@ export default function(assert) {
             break;
           case 'sessions':
             model = 'session';
+            break;
+          case 'intentions':
+            model = 'intention';
             break;
         }
         cb(null, model);
@@ -107,6 +110,9 @@ export default function(assert) {
           return prev.fillIn(item, data[item]);
         }, currentPage);
       })
+      .then(['I type "$text" into "$selector"'], function(text, selector) {
+        return fillIn(selector, text);
+      })
       .then(['I type with yaml\n$yaml'], function(data) {
         const keys = Object.keys(data);
         return keys
@@ -116,7 +122,7 @@ export default function(assert) {
           .then(function() {
             return Promise.all(
               keys.map(function(item) {
-                return triggerKeyEvent(`[name="${item}"]`, 'keyup', 83);
+                return triggerKeyEvent(`[name="${item}"]`, 'keyup', 83); // TODO: This is 's', be more generic
               })
             );
           });

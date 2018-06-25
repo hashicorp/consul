@@ -3,6 +3,7 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/http/pprof"
@@ -16,6 +17,7 @@ import (
 	"github.com/NYTimes/gziphandler"
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/mitchellh/mapstructure"
@@ -384,6 +386,13 @@ func (s *HTTPServer) Index(resp http.ResponseWriter, req *http.Request) {
 
 // decodeBody is used to decode a JSON request body
 func decodeBody(req *http.Request, out interface{}, cb func(interface{}) error) error {
+	// This generally only happens in tests since real HTTP requests set
+	// a non-nil body with no content. We guard against it anyways to prevent
+	// a panic. The EOF response is the same behavior as an empty reader.
+	if req.Body == nil {
+		return io.EOF
+	}
+
 	var raw interface{}
 	dec := json.NewDecoder(req.Body)
 	if err := dec.Decode(&raw); err != nil {
@@ -409,6 +418,14 @@ func setTranslateAddr(resp http.ResponseWriter, active bool) {
 
 // setIndex is used to set the index response header
 func setIndex(resp http.ResponseWriter, index uint64) {
+	// If we ever return X-Consul-Index of 0 blocking clients will go into a busy
+	// loop and hammer us since ?index=0 will never block. It's always safe to
+	// return index=1 since the very first Raft write is always an internal one
+	// writing the raft config for the cluster so no user-facing blocking query
+	// will ever legitimately have an X-Consul-Index of 1.
+	if index == 0 {
+		index = 1
+	}
 	resp.Header().Set("X-Consul-Index", strconv.FormatUint(index, 10))
 }
 
@@ -442,6 +459,15 @@ func setMeta(resp http.ResponseWriter, m *structs.QueryMeta) {
 	setLastContact(resp, m.LastContact)
 	setKnownLeader(resp, m.KnownLeader)
 	setConsistency(resp, m.ConsistencyLevel)
+}
+
+// setCacheMeta sets http response headers to indicate cache status.
+func setCacheMeta(resp http.ResponseWriter, m *cache.ResultMeta) {
+	str := "MISS"
+	if m != nil && m.Hit {
+		str = "HIT"
+	}
+	resp.Header().Set("X-Cache", str)
 }
 
 // setHeaders is used to set canonical response header fields

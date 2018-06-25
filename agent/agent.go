@@ -21,16 +21,20 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/ae"
+	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/local"
+	"github.com/hashicorp/consul/agent/proxy"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/systemd"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/file"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/watch"
@@ -45,6 +49,9 @@ import (
 const (
 	// Path to save agent service definitions
 	servicesDir = "services"
+
+	// Path to save agent proxy definitions
+	proxyDir = "proxies"
 
 	// Path to save local agent checks
 	checksDir     = "checks"
@@ -118,6 +125,9 @@ type Agent struct {
 	// sync manages the synchronization of the local
 	// and the remote state.
 	sync *ae.StateSyncer
+
+	// cache is the in-memory cache for data the Agent requests.
+	cache *cache.Cache
 
 	// checkReapAfter maps the check ID to a timeout after which we should
 	// reap its associated service
@@ -195,6 +205,9 @@ type Agent struct {
 	// be updated at runtime, so should always be used instead of going to
 	// the configuration directly.
 	tokens *token.Store
+
+	// proxyManager is the proxy process manager for managed Connect proxies.
+	proxyManager *proxy.Manager
 }
 
 func New(c *config.RuntimeConfig) (*Agent, error) {
@@ -247,6 +260,8 @@ func LocalConfig(cfg *config.RuntimeConfig) local.Config {
 		NodeID:              cfg.NodeID,
 		NodeName:            cfg.NodeName,
 		TaggedAddresses:     map[string]string{},
+		ProxyBindMinPort:    cfg.ConnectProxyBindMinPort,
+		ProxyBindMaxPort:    cfg.ConnectProxyBindMaxPort,
 	}
 	for k, v := range cfg.TaggedAddresses {
 		lc.TaggedAddresses[k] = v
@@ -289,6 +304,9 @@ func (a *Agent) Start() error {
 	// regular and on-demand state synchronizations (anti-entropy).
 	a.sync = ae.NewStateSyncer(a.State, c.AEInterval, a.shutdownCh, a.logger)
 
+	// create the cache
+	a.cache = cache.New(nil)
+
 	// create the config for the rpc server/client
 	consulCfg, err := a.consulConfig()
 	if err != nil {
@@ -325,8 +343,15 @@ func (a *Agent) Start() error {
 	a.State.Delegate = a.delegate
 	a.State.TriggerSyncChanges = a.sync.SyncChanges.Trigger
 
+	// Register the cache. We do this much later so the delegate is
+	// populated from above.
+	a.registerCache()
+
 	// Load checks/services/metadata.
 	if err := a.loadServices(c); err != nil {
+		return err
+	}
+	if err := a.loadProxies(c); err != nil {
 		return err
 	}
 	if err := a.loadChecks(c); err != nil {
@@ -334,6 +359,28 @@ func (a *Agent) Start() error {
 	}
 	if err := a.loadMetadata(c); err != nil {
 		return err
+	}
+
+	// create the proxy process manager and start it. This is purposely
+	// done here after the local state above is loaded in so we can have
+	// a more accurate initial state view.
+	if !c.ConnectTestDisableManagedProxies {
+		a.proxyManager = proxy.NewManager()
+		a.proxyManager.AllowRoot = a.config.ConnectProxyAllowManagedRoot
+		a.proxyManager.State = a.State
+		a.proxyManager.Logger = a.logger
+		if a.config.DataDir != "" {
+			// DataDir is required for all non-dev mode agents, but we want
+			// to allow setting the data dir for demos and so on for the agent,
+			// so do the check above instead.
+			a.proxyManager.DataDir = filepath.Join(a.config.DataDir, "proxy")
+
+			// Restore from our snapshot (if it exists)
+			if err := a.proxyManager.Restore(a.proxyManager.SnapshotPath()); err != nil {
+				a.logger.Printf("[WARN] agent: error restoring proxy state: %s", err)
+			}
+		}
+		go a.proxyManager.Run()
 	}
 
 	// Start watching for critical services to deregister, based on their
@@ -603,6 +650,16 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 			params["handler_type"] = "script"
 		} else if handlerType != "http" && handlerType != "script" {
 			return fmt.Errorf("Handler type '%s' not recognized", params["handler_type"])
+		}
+
+		// Don't let people use connect watches via this mechanism for now as it
+		// needs thought about how to do securely and shouldn't be necessary. Note
+		// that if the type assertion fails an type is not a string then
+		// ParseExample below will error so we don't need to handle that case.
+		if typ, ok := params["type"].(string); ok {
+			if strings.HasPrefix(typ, "connect_") {
+				return fmt.Errorf("Watch type %s is not allowed in agent config", typ)
+			}
 		}
 
 		// Parse the watches, excluding 'handler' and 'args'
@@ -878,6 +935,47 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	base.TLSCipherSuites = a.config.TLSCipherSuites
 	base.TLSPreferServerCipherSuites = a.config.TLSPreferServerCipherSuites
 
+	// Copy the Connect CA bootstrap config
+	if a.config.ConnectEnabled {
+		base.ConnectEnabled = true
+
+		// Allow config to specify cluster_id provided it's a valid UUID. This is
+		// meant only for tests where a deterministic ID makes fixtures much simpler
+		// to work with but since it's only read on initial cluster bootstrap it's not
+		// that much of a liability in production. The worst a user could do is
+		// configure logically separate clusters with same ID by mistake but we can
+		// avoid documenting this is even an option.
+		if clusterID, ok := a.config.ConnectCAConfig["cluster_id"]; ok {
+			if cIDStr, ok := clusterID.(string); ok {
+				if _, err := uuid.ParseUUID(cIDStr); err == nil {
+					// Valid UUID configured, use that
+					base.CAConfig.ClusterID = cIDStr
+				}
+			}
+			if base.CAConfig.ClusterID == "" {
+				// If the tried to specify an ID but typoed it don't ignore as they will
+				// then bootstrap with a new ID and have to throw away the whole cluster
+				// and start again.
+				a.logger.Println("[ERR] connect CA config cluster_id specified but " +
+					"is not a valid UUID, aborting startup")
+				return nil, fmt.Errorf("cluster_id was supplied but was not a valid UUID")
+			}
+		}
+
+		if a.config.ConnectCAProvider != "" {
+			base.CAConfig.Provider = a.config.ConnectCAProvider
+
+			// Merge with the default config if it's the consul provider.
+			if a.config.ConnectCAProvider == "consul" {
+				for k, v := range a.config.ConnectCAConfig {
+					base.CAConfig.Config[k] = v
+				}
+			} else {
+				base.CAConfig.Config = a.config.ConnectCAConfig
+			}
+		}
+	}
+
 	// Setup the user event callback
 	base.UserEventHandler = func(e serf.UserEvent) {
 		select {
@@ -1010,7 +1108,7 @@ func (a *Agent) setupNodeID(config *config.RuntimeConfig) error {
 	}
 
 	// For dev mode we have no filesystem access so just make one.
-	if a.config.DevMode {
+	if a.config.DataDir == "" {
 		id, err := a.makeNodeID()
 		if err != nil {
 			return err
@@ -1222,6 +1320,24 @@ func (a *Agent) ShutdownAgent() error {
 	}
 	for _, chk := range a.checkDockers {
 		chk.Stop()
+	}
+
+	// Stop the proxy manager
+	if a.proxyManager != nil {
+		// If persistence is disabled (implies DevMode but a subset of DevMode) then
+		// don't leave the proxies running since the agent will not be able to
+		// recover them later.
+		if a.config.DataDir == "" {
+			a.logger.Printf("[WARN] agent: dev mode disabled persistence, killing " +
+				"all proxies since we can't recover them")
+			if err := a.proxyManager.Kill(); err != nil {
+				a.logger.Printf("[WARN] agent: error shutting down proxy manager: %s", err)
+			}
+		} else {
+			if err := a.proxyManager.Close(); err != nil {
+				a.logger.Printf("[WARN] agent: error shutting down proxy manager: %s", err)
+			}
+		}
 	}
 
 	var err error
@@ -1493,7 +1609,7 @@ func (a *Agent) persistService(service *structs.NodeService) error {
 		return err
 	}
 
-	return writeFileAtomic(svcPath, encoded)
+	return file.WriteAtomic(svcPath, encoded)
 }
 
 // purgeService removes a persisted service definition file from the data dir
@@ -1501,6 +1617,39 @@ func (a *Agent) purgeService(serviceID string) error {
 	svcPath := filepath.Join(a.config.DataDir, servicesDir, stringHash(serviceID))
 	if _, err := os.Stat(svcPath); err == nil {
 		return os.Remove(svcPath)
+	}
+	return nil
+}
+
+// persistedProxy is used to wrap a proxy definition and bundle it with an Proxy
+// token so we can continue to authenticate the running proxy after a restart.
+type persistedProxy struct {
+	ProxyToken string
+	Proxy      *structs.ConnectManagedProxy
+}
+
+// persistProxy saves a proxy definition to a JSON file in the data dir
+func (a *Agent) persistProxy(proxy *local.ManagedProxy) error {
+	proxyPath := filepath.Join(a.config.DataDir, proxyDir,
+		stringHash(proxy.Proxy.ProxyService.ID))
+
+	wrapped := persistedProxy{
+		ProxyToken: proxy.ProxyToken,
+		Proxy:      proxy.Proxy,
+	}
+	encoded, err := json.Marshal(wrapped)
+	if err != nil {
+		return err
+	}
+
+	return file.WriteAtomic(proxyPath, encoded)
+}
+
+// purgeProxy removes a persisted proxy definition file from the data dir
+func (a *Agent) purgeProxy(proxyID string) error {
+	proxyPath := filepath.Join(a.config.DataDir, proxyDir, stringHash(proxyID))
+	if _, err := os.Stat(proxyPath); err == nil {
+		return os.Remove(proxyPath)
 	}
 	return nil
 }
@@ -1521,7 +1670,7 @@ func (a *Agent) persistCheck(check *structs.HealthCheck, chkType *structs.CheckT
 		return err
 	}
 
-	return writeFileAtomic(checkPath, encoded)
+	return file.WriteAtomic(checkPath, encoded)
 }
 
 // purgeCheck removes a persisted check definition file from the data dir
@@ -1529,43 +1678,6 @@ func (a *Agent) purgeCheck(checkID types.CheckID) error {
 	checkPath := filepath.Join(a.config.DataDir, checksDir, checkIDHash(checkID))
 	if _, err := os.Stat(checkPath); err == nil {
 		return os.Remove(checkPath)
-	}
-	return nil
-}
-
-// writeFileAtomic writes the given contents to a temporary file in the same
-// directory, does an fsync and then renames the file to its real path
-func writeFileAtomic(path string, contents []byte) error {
-	uuid, err := uuid.GenerateUUID()
-	if err != nil {
-		return err
-	}
-	tempPath := fmt.Sprintf("%s-%s.tmp", path, uuid)
-
-	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
-		return err
-	}
-	fh, err := os.OpenFile(tempPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
-	if err != nil {
-		return err
-	}
-	if _, err := fh.Write(contents); err != nil {
-		fh.Close()
-		os.Remove(tempPath)
-		return err
-	}
-	if err := fh.Sync(); err != nil {
-		fh.Close()
-		os.Remove(tempPath)
-		return err
-	}
-	if err := fh.Close(); err != nil {
-		os.Remove(tempPath)
-		return err
-	}
-	if err := os.Rename(tempPath, path); err != nil {
-		os.Remove(tempPath)
-		return err
 	}
 	return nil
 }
@@ -1623,7 +1735,7 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 	a.State.AddService(service, token)
 
 	// Persist the service to a file
-	if persist && !a.config.DevMode {
+	if persist && a.config.DataDir != "" {
 		if err := a.persistService(service); err != nil {
 			return err
 		}
@@ -1922,7 +2034,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 	}
 
 	// Persist the check
-	if persist && !a.config.DevMode {
+	if persist && a.config.DataDir != "" {
 		return a.persistCheck(check, chkType)
 	}
 
@@ -1974,6 +2086,277 @@ func (a *Agent) RemoveCheck(checkID types.CheckID, persist bool) error {
 	return nil
 }
 
+// AddProxy adds a new local Connect Proxy instance to be managed by the agent.
+//
+// It REQUIRES that the service that is being proxied is already present in the
+// local state. Note that this is only used for agent-managed proxies so we can
+// ensure that we always make this true. For externally managed and registered
+// proxies we explicitly allow the proxy to be registered first to make
+// bootstrap ordering of a new service simpler but the same is not true here
+// since this is only ever called when setting up a _managed_ proxy which was
+// registered as part of a service registration either from config or HTTP API
+// call.
+//
+// The restoredProxyToken argument should only be used when restoring proxy
+// definitions from disk; new proxies must leave it blank to get a new token
+// assigned. We need to restore from disk to enable to continue authenticating
+// running proxies that already had that credential injected.
+func (a *Agent) AddProxy(proxy *structs.ConnectManagedProxy, persist bool,
+	restoredProxyToken string) error {
+	// Lookup the target service token in state if there is one.
+	token := a.State.ServiceToken(proxy.TargetServiceID)
+
+	// Copy the basic proxy structure so it isn't modified w/ defaults
+	proxyCopy := *proxy
+	proxy = &proxyCopy
+	if err := a.applyProxyDefaults(proxy); err != nil {
+		return err
+	}
+
+	// Add the proxy to local state first since we may need to assign a port which
+	// needs to be coordinate under state lock. AddProxy will generate the
+	// NodeService for the proxy populated with the allocated (or configured) port
+	// and an ID, but it doesn't add it to the agent directly since that could
+	// deadlock and we may need to coordinate adding it and persisting etc.
+	proxyState, err := a.State.AddProxy(proxy, token, restoredProxyToken)
+	if err != nil {
+		return err
+	}
+	proxyService := proxyState.Proxy.ProxyService
+
+	// Register proxy TCP check. The built in proxy doesn't listen publically
+	// until it's loaded certs so this ensures we won't route traffic until it's
+	// ready.
+	proxyCfg, err := a.applyProxyConfigDefaults(proxyState.Proxy)
+	if err != nil {
+		return err
+	}
+	chkTypes := []*structs.CheckType{
+		&structs.CheckType{
+			Name: "Connect Proxy Listening",
+			TCP: fmt.Sprintf("%s:%d", proxyCfg["bind_address"],
+				proxyCfg["bind_port"]),
+			Interval: 10 * time.Second,
+		},
+	}
+
+	err = a.AddService(proxyService, chkTypes, persist, token)
+	if err != nil {
+		// Remove the state too
+		a.State.RemoveProxy(proxyService.ID)
+		return err
+	}
+
+	// Persist the proxy
+	if persist && a.config.DataDir != "" {
+		return a.persistProxy(proxyState)
+	}
+	return nil
+}
+
+// applyProxyConfigDefaults takes a *structs.ConnectManagedProxy and returns
+// it's Config map merged with any defaults from the Agent's config. It would be
+// nicer if this were defined as a method on structs.ConnectManagedProxy but we
+// can't do that because ot the import cycle it causes with agent/config.
+func (a *Agent) applyProxyConfigDefaults(p *structs.ConnectManagedProxy) (map[string]interface{}, error) {
+	if p == nil || p.ProxyService == nil {
+		// Should never happen but protect from panic
+		return nil, fmt.Errorf("invalid proxy state")
+	}
+
+	// Lookup the target service
+	target := a.State.Service(p.TargetServiceID)
+	if target == nil {
+		// Can happen during deregistration race between proxy and scheduler.
+		return nil, fmt.Errorf("unknown target service ID: %s", p.TargetServiceID)
+	}
+
+	// Merge globals defaults
+	config := make(map[string]interface{})
+	for k, v := range a.config.ConnectProxyDefaultConfig {
+		if _, ok := config[k]; !ok {
+			config[k] = v
+		}
+	}
+
+	// Copy config from the proxy
+	for k, v := range p.Config {
+		config[k] = v
+	}
+
+	// Set defaults for anything that is still not specified but required.
+	// Note that these are not included in the content hash. Since we expect
+	// them to be static in general but some like the default target service
+	// port might not be. In that edge case services can set that explicitly
+	// when they re-register which will be caught though.
+	if _, ok := config["bind_port"]; !ok {
+		config["bind_port"] = p.ProxyService.Port
+	}
+	if _, ok := config["bind_address"]; !ok {
+		// Default to binding to the same address the agent is configured to
+		// bind to.
+		config["bind_address"] = a.config.BindAddr.String()
+	}
+	if _, ok := config["local_service_address"]; !ok {
+		// Default to localhost and the port the service registered with
+		config["local_service_address"] = fmt.Sprintf("127.0.0.1:%d", target.Port)
+	}
+
+	// Basic type conversions for expected types.
+	if raw, ok := config["bind_port"]; ok {
+		switch v := raw.(type) {
+		case float64:
+			// Common since HCL/JSON parse as float64
+			config["bind_port"] = int(v)
+
+			// NOTE(mitchellh): No default case since errors and validation
+			// are handled by the ServiceDefinition.Validate function.
+		}
+	}
+
+	return config, nil
+}
+
+// applyProxyDefaults modifies the given proxy by applying any configured
+// defaults, such as the default execution mode, command, etc.
+func (a *Agent) applyProxyDefaults(proxy *structs.ConnectManagedProxy) error {
+	// Set the default exec mode
+	if proxy.ExecMode == structs.ProxyExecModeUnspecified {
+		mode, err := structs.NewProxyExecMode(a.config.ConnectProxyDefaultExecMode)
+		if err != nil {
+			return err
+		}
+
+		proxy.ExecMode = mode
+	}
+	if proxy.ExecMode == structs.ProxyExecModeUnspecified {
+		proxy.ExecMode = structs.ProxyExecModeDaemon
+	}
+
+	// Set the default command to the globally configured default
+	if len(proxy.Command) == 0 {
+		switch proxy.ExecMode {
+		case structs.ProxyExecModeDaemon:
+			proxy.Command = a.config.ConnectProxyDefaultDaemonCommand
+
+		case structs.ProxyExecModeScript:
+			proxy.Command = a.config.ConnectProxyDefaultScriptCommand
+		}
+	}
+
+	// If there is no globally configured default we need to get the
+	// default command so we can do "consul connect proxy"
+	if len(proxy.Command) == 0 {
+		command, err := defaultProxyCommand(a.config)
+		if err != nil {
+			return err
+		}
+
+		proxy.Command = command
+	}
+
+	return nil
+}
+
+// RemoveProxy stops and removes a local proxy instance.
+func (a *Agent) RemoveProxy(proxyID string, persist bool) error {
+	// Validate proxyID
+	if proxyID == "" {
+		return fmt.Errorf("proxyID missing")
+	}
+
+	// Remove the proxy from the local state
+	p, err := a.State.RemoveProxy(proxyID)
+	if err != nil {
+		return err
+	}
+
+	// Remove the proxy service as well. The proxy ID is also the ID
+	// of the servie, but we might as well use the service pointer.
+	if err := a.RemoveService(p.Proxy.ProxyService.ID, persist); err != nil {
+		return err
+	}
+
+	if persist && a.config.DataDir != "" {
+		return a.purgeProxy(proxyID)
+	}
+
+	return nil
+}
+
+// verifyProxyToken takes a token and attempts to verify it against the
+// targetService name. If targetProxy is specified, then the local proxy token
+// must exactly match the given proxy ID. cert, config, etc.).
+//
+// The given token may be a local-only proxy token or it may be an ACL token. We
+// will attempt to verify the local proxy token first.
+//
+// The effective ACL token is returned along with a boolean which is true if the
+// match was against a proxy token rather than an ACL token, and any error. In
+// the case the token matches a proxy token, then the ACL token used to register
+// that proxy's target service is returned for use in any RPC calls the proxy
+// needs to make on behalf of that service. If the token was an ACL token
+// already then it is always returned. Provided error is nil, a valid ACL token
+// is always returned.
+func (a *Agent) verifyProxyToken(token, targetService,
+	targetProxy string) (string, bool, error) {
+	// If we specify a target proxy, we look up that proxy directly. Otherwise,
+	// we resolve with any proxy we can find.
+	var proxy *local.ManagedProxy
+	if targetProxy != "" {
+		proxy = a.State.Proxy(targetProxy)
+		if proxy == nil {
+			return "", false, fmt.Errorf("unknown proxy service ID: %q", targetProxy)
+		}
+
+		// If the token DOESN'T match, then we reset the proxy which will
+		// cause the logic below to fall back to normal ACLs. Otherwise,
+		// we keep the proxy set because we also have to verify that the
+		// target service matches on the proxy.
+		if token != proxy.ProxyToken {
+			proxy = nil
+		}
+	} else {
+		proxy = a.resolveProxyToken(token)
+	}
+
+	// The existence of a token isn't enough, we also need to verify
+	// that the service name of the matching proxy matches our target
+	// service.
+	if proxy != nil {
+		// Get the target service since we only have the name. The nil
+		// check below should never be true since a proxy token always
+		// represents the existence of a local service.
+		target := a.State.Service(proxy.Proxy.TargetServiceID)
+		if target == nil {
+			return "", false, fmt.Errorf("proxy target service not found: %q",
+				proxy.Proxy.TargetServiceID)
+		}
+
+		if target.Service != targetService {
+			return "", false, acl.ErrPermissionDenied
+		}
+
+		// Resolve the actual ACL token used to register the proxy/service and
+		// return that for use in RPC calls.
+		return a.State.ServiceToken(proxy.Proxy.TargetServiceID), true, nil
+	}
+
+	// Doesn't match, we have to do a full token resolution. The required
+	// permission for any proxy-related endpoint is service:write, since
+	// to register a proxy you require that permission and sensitive data
+	// is usually present in the configuration.
+	rule, err := a.resolveToken(token)
+	if err != nil {
+		return "", false, err
+	}
+	if rule != nil && !rule.ServiceWrite(targetService, nil) {
+		return "", false, acl.ErrPermissionDenied
+	}
+
+	return token, false, nil
+}
+
 func (a *Agent) cancelCheckMonitors(checkID types.CheckID) {
 	// Stop any monitors
 	delete(a.checkReapAfter, checkID)
@@ -2018,7 +2401,7 @@ func (a *Agent) updateTTLCheck(checkID types.CheckID, status, output string) err
 	check.SetStatus(status, output)
 
 	// We don't write any files in dev mode so bail here.
-	if a.config.DevMode {
+	if a.config.DataDir == "" {
 		return nil
 	}
 
@@ -2367,6 +2750,96 @@ func (a *Agent) unloadChecks() error {
 	return nil
 }
 
+// loadProxies will load connect proxy definitions from configuration and
+// persisted definitions on disk, and load them into the local agent.
+func (a *Agent) loadProxies(conf *config.RuntimeConfig) error {
+	for _, svc := range conf.Services {
+		if svc.Connect != nil {
+			proxy, err := svc.ConnectManagedProxy()
+			if err != nil {
+				return fmt.Errorf("failed adding proxy: %s", err)
+			}
+			if proxy == nil {
+				continue
+			}
+			if err := a.AddProxy(proxy, false, ""); err != nil {
+				return fmt.Errorf("failed adding proxy: %s", err)
+			}
+		}
+	}
+
+	// Load any persisted proxies
+	proxyDir := filepath.Join(a.config.DataDir, proxyDir)
+	files, err := ioutil.ReadDir(proxyDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("Failed reading proxies dir %q: %s", proxyDir, err)
+	}
+	for _, fi := range files {
+		// Skip all dirs
+		if fi.IsDir() {
+			continue
+		}
+
+		// Skip all partially written temporary files
+		if strings.HasSuffix(fi.Name(), "tmp") {
+			a.logger.Printf("[WARN] agent: Ignoring temporary proxy file %v", fi.Name())
+			continue
+		}
+
+		// Open the file for reading
+		file := filepath.Join(proxyDir, fi.Name())
+		fh, err := os.Open(file)
+		if err != nil {
+			return fmt.Errorf("failed opening proxy file %q: %s", file, err)
+		}
+
+		// Read the contents into a buffer
+		buf, err := ioutil.ReadAll(fh)
+		fh.Close()
+		if err != nil {
+			return fmt.Errorf("failed reading proxy file %q: %s", file, err)
+		}
+
+		// Try decoding the proxy definition
+		var p persistedProxy
+		if err := json.Unmarshal(buf, &p); err != nil {
+			a.logger.Printf("[ERR] agent: Failed decoding proxy file %q: %s", file, err)
+			continue
+		}
+		proxyID := p.Proxy.ProxyService.ID
+
+		if a.State.Proxy(proxyID) != nil {
+			// Purge previously persisted proxy. This allows config to be preferred
+			// over services persisted from the API.
+			a.logger.Printf("[DEBUG] agent: proxy %q exists, not restoring from %q",
+				proxyID, file)
+			if err := a.purgeProxy(proxyID); err != nil {
+				return fmt.Errorf("failed purging proxy %q: %s", proxyID, err)
+			}
+		} else {
+			a.logger.Printf("[DEBUG] agent: restored proxy definition %q from %q",
+				proxyID, file)
+			if err := a.AddProxy(p.Proxy, false, p.ProxyToken); err != nil {
+				return fmt.Errorf("failed adding proxy %q: %s", proxyID, err)
+			}
+		}
+	}
+	return nil
+}
+
+// unloadProxies will deregister all proxies known to the local agent.
+func (a *Agent) unloadProxies() error {
+	for id := range a.State.Proxies() {
+		if err := a.RemoveProxy(id, false); err != nil {
+			return fmt.Errorf("Failed deregistering proxy '%s': %s", id, err)
+		}
+	}
+	return nil
+}
+
 // snapshotCheckState is used to snapshot the current state of the health
 // checks. This is done before we reload our checks, so that we can properly
 // restore into the same state.
@@ -2508,6 +2981,9 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 
 	// First unload all checks, services, and metadata. This lets us begin the reload
 	// with a clean slate.
+	if err := a.unloadProxies(); err != nil {
+		return fmt.Errorf("Failed unloading proxies: %s", err)
+	}
 	if err := a.unloadServices(); err != nil {
 		return fmt.Errorf("Failed unloading services: %s", err)
 	}
@@ -2519,6 +2995,9 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	// Reload service/check definitions and metadata.
 	if err := a.loadServices(newCfg); err != nil {
 		return fmt.Errorf("Failed reloading services: %s", err)
+	}
+	if err := a.loadProxies(newCfg); err != nil {
+		return fmt.Errorf("Failed reloading proxies: %s", err)
 	}
 	if err := a.loadChecks(newCfg); err != nil {
 		return fmt.Errorf("Failed reloading checks: %s", err)
@@ -2544,9 +3023,62 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	}
 
 	// Update filtered metrics
-	metrics.UpdateFilter(newCfg.TelemetryAllowedPrefixes, newCfg.TelemetryBlockedPrefixes)
+	metrics.UpdateFilter(newCfg.Telemetry.AllowedPrefixes,
+		newCfg.Telemetry.BlockedPrefixes)
 
 	a.State.SetDiscardCheckOutput(newCfg.DiscardCheckOutput)
 
 	return nil
+}
+
+// registerCache configures the cache and registers all the supported
+// types onto the cache. This is NOT safe to call multiple times so
+// care should be taken to call this exactly once after the cache
+// field has been initialized.
+func (a *Agent) registerCache() {
+	a.cache.RegisterType(cachetype.ConnectCARootName, &cachetype.ConnectCARoot{
+		RPC: a.delegate,
+	}, &cache.RegisterOptions{
+		// Maintain a blocking query, retry dropped connections quickly
+		Refresh:        true,
+		RefreshTimer:   0 * time.Second,
+		RefreshTimeout: 10 * time.Minute,
+	})
+
+	a.cache.RegisterType(cachetype.ConnectCALeafName, &cachetype.ConnectCALeaf{
+		RPC:   a.delegate,
+		Cache: a.cache,
+	}, &cache.RegisterOptions{
+		// Maintain a blocking query, retry dropped connections quickly
+		Refresh:        true,
+		RefreshTimer:   0 * time.Second,
+		RefreshTimeout: 10 * time.Minute,
+	})
+
+	a.cache.RegisterType(cachetype.IntentionMatchName, &cachetype.IntentionMatch{
+		RPC: a.delegate,
+	}, &cache.RegisterOptions{
+		// Maintain a blocking query, retry dropped connections quickly
+		Refresh:        true,
+		RefreshTimer:   0 * time.Second,
+		RefreshTimeout: 10 * time.Minute,
+	})
+}
+
+// defaultProxyCommand returns the default Connect managed proxy command.
+func defaultProxyCommand(agentCfg *config.RuntimeConfig) ([]string, error) {
+	// Get the path to the current exectuable. This is cached once by the
+	// library so this is effectively just a variable read.
+	execPath, err := os.Executable()
+	if err != nil {
+		return nil, err
+	}
+
+	// "consul connect proxy" default value for managed daemon proxy
+	cmd := []string{execPath, "connect", "proxy"}
+
+	if agentCfg != nil && agentCfg.LogLevel != "INFO" {
+		cmd = append(cmd, "-log-level", agentCfg.LogLevel)
+	}
+	return cmd, nil
 }

@@ -7,16 +7,20 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	t.Parallel()
+
+	assert := assert.New(t)
 	fsm, err := New(nil, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -97,6 +101,27 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	if err := fsm.state.AutopilotSetConfig(15, autopilotConf); err != nil {
 		t.Fatalf("err: %s", err)
 	}
+
+	// Intentions
+	ixn := structs.TestIntention(t)
+	ixn.ID = generateUUID()
+	ixn.RaftIndex = structs.RaftIndex{
+		CreateIndex: 14,
+		ModifyIndex: 14,
+	}
+	assert.Nil(fsm.state.IntentionSet(14, ixn))
+
+	// CA Roots
+	roots := []*structs.CARoot{
+		connect.TestCA(t, nil),
+		connect.TestCA(t, nil),
+	}
+	for _, r := range roots[1:] {
+		r.Active = false
+	}
+	ok, err := fsm.state.CARootSetCAS(15, 0, roots)
+	assert.Nil(err)
+	assert.True(ok)
 
 	// Snapshot
 	snap, err := fsm.Snapshot()
@@ -259,6 +284,17 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	if !reflect.DeepEqual(restoredConf, autopilotConf) {
 		t.Fatalf("bad: %#v, %#v", restoredConf, autopilotConf)
 	}
+
+	// Verify intentions are restored.
+	_, ixns, err := fsm2.state.Intentions(nil)
+	assert.Nil(err)
+	assert.Len(ixns, 1)
+	assert.Equal(ixn, ixns[0])
+
+	// Verify CA roots are restored.
+	_, roots, err = fsm2.state.CARoots(nil)
+	assert.Nil(err)
+	assert.Len(roots, 2)
 
 	// Snapshot
 	snap, err = fsm2.Snapshot()

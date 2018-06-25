@@ -4,7 +4,84 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
+
+func TestParse_table(t *testing.T) {
+	// Note that the table tests are newer than other tests. Many of the
+	// other aspects of policy parsing are tested in older tests below. New
+	// parsing tests should be added to this table as its easier to maintain.
+	cases := []struct {
+		Name     string
+		Input    string
+		Expected *Policy
+		Err      string
+	}{
+		{
+			"service no intentions",
+			`
+service "foo" {
+	policy = "write"
+}
+			`,
+			&Policy{
+				Services: []*ServicePolicy{
+					{
+						Name:   "foo",
+						Policy: "write",
+					},
+				},
+			},
+			"",
+		},
+
+		{
+			"service intentions",
+			`
+service "foo" {
+	policy = "write"
+	intentions = "read"
+}
+			`,
+			&Policy{
+				Services: []*ServicePolicy{
+					{
+						Name:       "foo",
+						Policy:     "write",
+						Intentions: "read",
+					},
+				},
+			},
+			"",
+		},
+
+		{
+			"service intention: invalid value",
+			`
+service "foo" {
+	policy = "write"
+	intentions = "foo"
+}
+			`,
+			nil,
+			"service intentions",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			assert := assert.New(t)
+			actual, err := Parse(tc.Input, nil)
+			assert.Equal(tc.Err != "", err != nil, err)
+			if err != nil {
+				assert.Contains(err.Error(), tc.Err)
+				return
+			}
+			assert.Equal(tc.Expected, actual)
+		})
+	}
+}
 
 func TestACLPolicy_Parse_HCL(t *testing.T) {
 	inp := `

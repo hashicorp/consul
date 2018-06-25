@@ -46,6 +46,7 @@
 
 @import 'routes/dc/service/index';
 @import 'routes/dc/nodes/index';
+@import 'routes/dc/intention/index';
 @import 'routes/dc/kv/index';
 
 main a {
@@ -60,3 +61,5 @@ main label a[rel*='help'] {
 [role='tabpanel'] > p:only-child [rel*='help']::after {
   content: none;
 }
+
+@import 'ember-power-select';

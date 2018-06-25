@@ -1,0 +1,41 @@
+.g-section {
+  overflow: hidden;
+  padding: 56px 0;
+  
+  @media (min-width: 768px) {
+    padding: 96px 0;
+  }
+
+  @media (min-width: 992px) {
+    padding: 120px 0;
+  }
+
+  &.bg-light {
+    background: #f7f8fa !important; //TODO - !important is to override the `#page-home section` #fff background;
+  }
+
+  &.bg-dark {
+    background: #252937 !important; //TODO - !important is to override the `#page-home section` #fff background;
+    color: #fff;
+  }
+
+  &.border-top {
+    border-top: 1px solid #e5e6eb;
+  }
+
+  & .intro { 
+    margin: 0 auto 24px;
+    max-width: 784px;
+    padding: 0 16px; 
+    text-align: center;
+
+    @media (min-width: 767px) {
+      margin-bottom: 64px;
+    }
+
+    & h2,
+    & h3 {
+      margin: 0 0 24px;
+    }
+  }
+}

@@ -145,10 +145,16 @@ test: other-consul dev-build vet
 	@# _something_ to stop them terminating us due to inactivity...
 	{ go test $(GOTEST_FLAGS) -tags '$(GOTAGS)' -timeout 5m $(GOTEST_PKGS) 2>&1 ; echo $$? > exit-code ; } | tee test.log | egrep '^(ok|FAIL)\s*github.com/hashicorp/consul'
 	@echo "Exit code: $$(cat exit-code)" >> test.log
-	@grep -A5 'DATA RACE' test.log || true
-	@grep -A10 'panic: test timed out' test.log || true
-	@grep -A1 -- '--- SKIP:' test.log || true
-	@grep -A1 -- '--- FAIL:' test.log || true
+	@# This prints all the race report between ====== lines
+	@awk '/^WARNING: DATA RACE/ {do_print=1; print "=================="} do_print==1 {print} /^={10,}/ {do_print=0}' test.log || true
+	@grep -A10 'panic: ' test.log || true
+	@# Prints all the failure output until the next non-indented line - testify
+	@# helpers often output multiple lines for readability but useless if we can't
+	@# see them. Un-intuitive order of matches is necessary. No || true because
+	@# awk always returns true even if there is no match and it breaks non-bash
+	@# shells locally.
+	@awk '/^[^[:space:]]/ {do_print=0} /--- SKIP/ {do_print=1} do_print==1 {print}' test.log
+	@awk '/^[^[:space:]]/ {do_print=0} /--- FAIL/ {do_print=1} do_print==1 {print}' test.log
 	@grep '^FAIL' test.log || true
 	@if [ "$$(cat exit-code)" == "0" ] ; then echo "PASS" ; exit 0 ; else exit 1 ; fi
 

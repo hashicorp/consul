@@ -28,6 +28,14 @@ var (
 	// ErrMissingQueryID is returned when a Query set is called on
 	// a Query with an empty ID.
 	ErrMissingQueryID = errors.New("Missing Query ID")
+
+	// ErrMissingCARootID is returned when an CARoot set is called
+	// with an CARoot with an empty ID.
+	ErrMissingCARootID = errors.New("Missing CA Root ID")
+
+	// ErrMissingIntentionID is returned when an Intention set is called
+	// with an Intention with an empty ID.
+	ErrMissingIntentionID = errors.New("Missing Intention ID")
 )
 
 const (

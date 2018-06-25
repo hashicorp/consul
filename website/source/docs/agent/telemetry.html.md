@@ -722,3 +722,103 @@ These metrics give insight into the health of the cluster as a whole.
     <td>counter</td>
   </tr>
 </table>
+
+
+## Connect Built-in Proxy Metrics
+
+Consul Connect's built-in proxy is by default configured to log metrics to the
+same sink as the agent that starts it when running as a [managed
+proxy](/docs/connect/proxies.html#managed-proxies).
+
+When running in this mode it emits some basic metrics. These will be expanded
+upon in the future.
+
+All metrics are prefixed with `consul.proxy.<proxied-service-id>` to distinguish
+between multiple proxies on a given host. The table below use `web` as an
+example service name for brevity.
+
+### Labels
+
+Most labels have a `dst` label and some have a `src` label. When using metrics
+sinks and timeseries stores that support labels or tags, these allow aggregating
+the connections by service name.
+
+Assuming all services are using a managed built-in proxy, you can get a complete
+overview of both number of open connections and bytes sent and recieved between
+all services by aggregating over these metrics.
+
+For example aggregating over all `upstream` (i.e. outbound) connections which
+have both `src` and `dst` labels, you can get a sum of all the bandwidth in and
+out of a given service or the total number of connections between two services.
+
+
+### Metrics Reference
+
+The standard go runtime metrics are exported by `go-metrics` as with Consul
+agent. The table below describes the additional metrics exported by the proxy.
+
+<table class="table table-bordered table-striped">
+  <tr>
+    <th>Metric</th>
+    <th>Description</th>
+    <th>Unit</th>
+    <th>Type</th>
+  </tr>
+  <tr>
+    <td>`consul.proxy.web.runtime.*`</td>
+    <td>The same go runtime metrics as documented for the agent above.</td>
+    <td>mixed</td>
+    <td>mixed</td>
+  </tr>
+  <tr>
+    <td>`consul.proxy.web.inbound.conns`</td>
+    <td>Shows the current number of connections open from inbound requests to
+    the proxy. Where supported a `dst` label is added indicating the
+    service name the proxy represents.</td>
+    <td>connections</td>
+    <td>gauge</td>
+  </tr>
+  <tr>
+    <td>`consul.proxy.web.inbound.rx_bytes`</td>
+    <td>This increments by the number of bytes received from an inbound client
+    connection. Where supported a `dst` label is added indicating the
+    service name the proxy represents.</td>
+    <td>bytes</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.proxy.web.inbound.tx_bytes`</td>
+    <td>This increments by the number of bytes transfered to an inbound client
+    connection. Where supported a `dst` label is added indicating the
+    service name the proxy represents.</td>
+    <td>bytes</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.proxy.web.upstream.conns`</td>
+    <td>Shows the current number of connections open from a proxy instance to an
+    upstream. Where supported a `src` label is added indicating the
+    service name the proxy represents, and a `dst` label is added indicating the
+    service name the upstream is connecting to.</td>
+    <td>connections</td>
+    <td>gauge</td>
+  </tr>
+  <tr>
+    <td>`consul.proxy.web.inbound.rx_bytes`</td>
+    <td>This increments by the number of bytes received from an upstream
+    connection. Where supported a `src` label is added indicating the
+    service name the proxy represents, and a `dst` label is added indicating the
+    service name the upstream is connecting to.</td>
+    <td>bytes</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.proxy.web.inbound.tx_bytes`</td>
+    <td>This increments by the number of bytes transfered to an upstream
+    connection. Where supported a `src` label is added indicating the
+    service name the proxy represents, and a `dst` label is added indicating the
+    service name the upstream is connecting to.</td>
+    <td>bytes</td>
+    <td>counter</td>
+  </tr>
+</table>

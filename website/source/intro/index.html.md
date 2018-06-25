@@ -16,12 +16,12 @@ detailed reference of available features.
 
 ## What is Consul?
 
-Consul has multiple components, but as a whole, it is a tool for discovering
-and configuring services in your infrastructure. It provides several
-key features:
+Consul is a service mesh solution that has multiple components for
+discovering, connecting, configuring, and securing services in your
+infrastructure. It provides several key features:
 
-* **Service Discovery**: Clients of Consul can _provide_ a service, such as
-  `api` or `mysql`, and other clients can use Consul to _discover_ providers
+* **Service Discovery**: Clients of Consul can register a service, such as
+  `api` or `mysql`, and other clients can use Consul to discover providers
   of a given service. Using either DNS or HTTP, applications can easily find
   the services they depend upon.
 
@@ -34,6 +34,14 @@ key features:
 * **KV Store**: Applications can make use of Consul's hierarchical key/value
   store for any number of purposes, including dynamic configuration, feature flagging,
   coordination, leader election, and more. The simple HTTP API makes it easy to use.
+
+* **Secure Service Communication**: Consul can generate and distribute TLS
+  certificates for services to establish mutual TLS connections.
+  [Intentions](/docs/connect/intentions.html)
+  can be used to define which services are allowed to communicate.
+  Service segmentation can be easily managed with intentions that can
+  be changed in real time instead of using complex network topologies
+  and static firewall rules.
 
 * **Multi Datacenter**: Consul supports multiple datacenters out of the box. This
   means users of Consul do not have to worry about building additional layers of
