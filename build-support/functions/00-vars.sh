@@ -33,7 +33,7 @@ if test "$(uname)" == "Darwin"
 then
    SED_EXT="-E"
 else
-   SED_EXT=""
+   SED_EXT="-r"
 fi
 
 CONSUL_BINARY_TYPE=oss
