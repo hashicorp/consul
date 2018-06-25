@@ -1,3 +1,6 @@
+var qs = document.querySelector.bind(document)
+var qsa = document.querySelectorAll.bind(document)
+
 // siema carousels
 var dots = qsa('.g-carousel .pagination li')
 var carousel = new Siema({
@@ -20,15 +23,13 @@ var carousel = new Siema({
 })
 
 // on previous button click
-document
-  .querySelector('.g-carousel .prev')
+qs('.g-carousel .prev')
   .addEventListener('click', function() {
     carousel.prev()
   })
 
 // on next button click
-document
-  .querySelector('.g-carousel .next')
+qs('.g-carousel .next')
   .addEventListener('click', function() {
     carousel.next()
   })
