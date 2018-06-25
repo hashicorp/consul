@@ -85,7 +85,7 @@ network namespacing techniques provided by the underlying operating system.
 
 For scenarios where multiple services are running on the same machine
 without isolation, these services must all be trusted. We call this the
-**trusted multi-tenenacy** deployment model. Any service could theoretically
+**trusted multi-tenancy** deployment model. Any service could theoretically
 connect to any other service via the loopback listener, bypassing Connect
 completely. In this scenario, all services must be trusted _or_ isolation
 mechanisms must be used.
