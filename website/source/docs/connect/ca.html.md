@@ -17,7 +17,7 @@ such as when a service needs a new certificate or during CA rotation events.
 The CA provider abstraction enables Consul to support multiple systems for
 storing and signing certificates. Consul ships with a
 [built-in CA](/docs/connect/ca/consul.html) which generates and stores the
-root certificate and private key on the Consul servers. Consul also also
+root certificate and private key on the Consul servers. Consul also has
 built-in support for
 [Vault as a CA](/docs/connect/ca/vault.html). With Vault, the root certificate
 and private key material remain with the Vault cluster. A future version of

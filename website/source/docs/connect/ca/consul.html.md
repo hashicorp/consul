@@ -50,7 +50,8 @@ is used if configuring in an agent configuration file.
     must be a valid
     [SPIFFE SVID signing certificate](https://github.com/spiffe/spiffe/blob/master/standards/X509-SVID.md)
     and the URI in the SAN must match the cluster identifier created at
-    bootstrap with the ".consul" TLD.
+    bootstrap with the ".consul" TLD. The cluster identifier can be found
+    using the [CA List Roots endpoint](/api/connect/ca.html#list-ca-root-certificates).
 
 ## Specifying a Custom Private Key and Root Certificate
 
