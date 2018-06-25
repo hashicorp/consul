@@ -12,8 +12,7 @@ description: >
 # Consul Cluster
 
 We've started our first agent and registered and queried a service on that
-agent. This showed how easy it is to use Consul but didn't show how this could
-be extended to a scalable, production-grade service discovery infrastructure.
+agent. Additionally, we've configured Consul Connect to automatically authorize and encrypt connections between services. This showed how easy it is to use Consul but didn't show how this could be extended to a scalable, production-grade service mesh infrastructure.
 In this step, we'll create our first real cluster with multiple members.
 
 When a Consul agent is started, it begins without knowledge of any other node:
