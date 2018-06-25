@@ -27,8 +27,10 @@ function initialiateVideoChange(index) {
     )
     loadingBar.style.transitionDuration = '0s'
 
-    // reset the current video 
-    $$videos[currentIndex].currentTime = 0
+    // reset the current video
+    if (!isNaN($$videos[currentIndex].duration)) {
+      $$videos[currentIndex].currentTime = 0
+    }
     $$videoControls[currentIndex].classList.remove('playing')
 
     // stop deactivation
@@ -59,7 +61,8 @@ function playVideo(index, wrapper) {
 
   $$videoControls[index].querySelector(
     '.progress-bar span'
-  ).style.transitionDuration = `${Math.ceil($$videos[index].duration / playbackRate)}s`
+  ).style.transitionDuration =
+    Math.ceil($$videos[index].duration / playbackRate).toString() + 's'
 
   // set the currentIndex to be that of the current video's index
   currentIndex = index
