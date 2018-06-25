@@ -161,8 +161,7 @@ The table below shows this endpoint's support for
     "DeregisterCriticalServiceAfter": "90m",
     "Args": ["/usr/local/bin/check_redis.py"],
     "HTTP": "http://localhost:5000/health",
-    "Interval": "10s",
-    "TTL": "15s"
+    "Interval": "10s"
   }
 }
 ```
