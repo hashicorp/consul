@@ -32,10 +32,8 @@ CONSUL_PKG_NAME="consul"
 if test "$(uname)" == "Darwin"
 then
    SED_EXT="-E"
-   alias sed_i="sed -i ''"
 else
    SED_EXT=""
-   alias sed_i="sed -i"
 fi
 
 CONSUL_BINARY_TYPE=oss
