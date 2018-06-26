@@ -8,9 +8,11 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
+   "github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/stretchr/testify/assert"
+   "github.com/stretchr/testify/require"
 )
 
 func TestCatalogRegister_Service_InvalidAddress(t *testing.T) {
@@ -107,6 +109,34 @@ func TestCatalogNodes(t *testing.T) {
 	if len(nodes) != 2 {
 		t.Fatalf("bad: %v", obj)
 	}
+}
+
+func TestCatalog_RegisterNoID(t *testing.T) {
+   t.Parallel()
+   a := NewTestAgent(t.Name(), "")
+   defer a.Shutdown()
+
+   // Register node
+   args := &structs.RegisterRequest{
+      Datacenter: "dc1",
+      Node:       "foo",
+      Address:    "127.0.0.1",
+   }
+
+   var out struct{}
+   require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+   req, _ := http.NewRequest("GET", "/v1/catalog/node/foo", nil)
+   resp := httptest.NewRecorder()
+   obj, err := a.srv.CatalogNodeServices(resp, req)
+   require.NoError(t, err)
+
+   // Verify an index is set
+   assertIndex(t, resp)
+
+   node := obj.(*structs.NodeServices)
+   
+   require.NotEqual(t, types.NodeID(""), node.Node.ID)
 }
 
 func TestCatalogNodes_MetaFilter(t *testing.T) {
