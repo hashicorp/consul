@@ -25,6 +25,9 @@ Consul provides several key features:
 * **Multi-Datacenter** - Consul is built to be datacenter aware, and can
   support any number of regions without complex configuration.
 
+* **Service Segmentation** - Consul Connect enables secure service-to-service 
+communication with automatic TLS encryption and identity-based authorization.
+
 Consul runs on Linux, Mac OS X, FreeBSD, Solaris, and Windows. A commercial
 version called [Consul Enterprise](https://www.hashicorp.com/products/consul)
 is also available.
