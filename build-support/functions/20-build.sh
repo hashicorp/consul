@@ -67,7 +67,7 @@ function build_ui {
    # make sure we run within the ui dir
    pushd ${ui_dir} > /dev/null
    
-   status "Creating the UI Build Container with image: ${image_name} and embedding as version ${version}"
+   status "Creating the UI Build Container with image: ${image_name} and version '${version}'"
    local container_id=$(docker create -it -e "CONSUL_GIT_SHA=${commit_hash}" -e "CONSUL_VERSION=${version}" ${image_name})
    local ret=$?
    if test $ret -eq 0
@@ -85,10 +85,18 @@ function build_ui {
    
    if test ${ret} -eq 0
    then
-      rm -rf ${1}/pkg/web_ui/v2
-      mkdir -p ${1}/pkg/web_ui
-      cp -r ${1}/ui-v2/dist ${1}/pkg/web_ui/v2
+      local ui_vers=$(ui_version "${1}/ui-v2/dist/index.html")
+      if test "${version}" != "${ui_vers}"
+      then
+         err "ERROR: UI version mismatch. Expecting: '${version}' found '${ui_vers}'"
+         ret=1
+      else
+         rm -rf ${1}/pkg/web_ui/v2
+         mkdir -p ${1}/pkg/web_ui
+         cp -r ${1}/ui-v2/dist ${1}/pkg/web_ui/v2 
+      fi
    fi
+   
    popd > /dev/null
    return $ret
 }
