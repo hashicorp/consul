@@ -38,7 +38,7 @@ function err_usage {
 
 function main {
    declare    sdir="${SOURCE_DIR}" 
-   declare    vers="$(parse_version true false)"
+   declare    vers=""
    
    while test $# -gt 0
    do
@@ -79,6 +79,11 @@ function main {
             ;;
       esac
    done
+   
+   if test -z "${vers}"
+   then
+      vers=$(parse_version "${sdir}" true false)
+   fi
    
    status_stage "=> Starting release verification for version: ${version}"
    verify_release_build "${sdir}" "${vers}" || return 1
