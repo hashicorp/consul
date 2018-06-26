@@ -430,7 +430,7 @@ function build_consul_local {
             fi
             
             mkdir -p "${outdir}"
-            GOOS=${os} GOARCH=${arch} go install -ldflags "${GOLDFLAGS}" -tags "${GOTAGS}" && cp "${MAIN_GOPATH}/bin/consul" "${outdir}/consul"
+            CGO_ENABLED=0 GOOS=${os} GOARCH=${arch} go install -ldflags "${GOLDFLAGS}" -tags "${GOTAGS}" && cp "${MAIN_GOPATH}/bin/consul" "${outdir}/consul"
             if test $? -ne 0
             then
                err "ERROR: Failed to build Consul for ${osarch}"
