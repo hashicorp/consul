@@ -251,6 +251,47 @@ function confirm_consul_info {
       done
    fi
    
+   if test "${ret}" -eq 0
+   then
+      local tfile="$(mktemp) -t "${CONSUL_PKG_NAME}_")"
+      if ! curl -o "${tfile}" "http://localhost:8500/ui/"
+      then
+         err "ERROR: Failed to curl http://localhost:8500/ui/"
+         return 1
+      fi
+      
+      local ui_vers=$(ui_version "${tfile}")
+      if test $? -ne 0
+      then
+         err "ERROR: Failed to determine the ui version from the index.html file"
+         return 1
+      fi
+      
+      status "UI Version: ${ui_vers}"
+      echo ""
+      local answer=""
+      
+      while true
+      do
+         case "${answer}" in
+            [yY]* )
+               status "Consul UI Version Accepted"
+               break
+               ;;
+            [nN]* )
+               err "Consul UI Version Rejected"
+               return 1
+               break
+               ;;
+            * )
+               read -p "Is this Consul UI Version correct? [y/n]: " answer
+               ;;
+         esac
+      done
+   fi
+   
+
+   
    status "Requesting Consul to leave the cluster / shutdown"
    "${consul_exe}" leave
    wait ${consul_pid} > /dev/null 2>&1
@@ -262,6 +303,49 @@ function extract_consul {
    extract_consul_local "$1" "$2"
 }
 
+function verify_release_build {
+   # Arguments:
+   #   $1 - Path to top level Consul source
+   #   $2 - expected version (optional - will parse if empty)
+   #
+   # Returns:
+   #   0 - success
+   #   * - failure
+   
+   if ! test -d "$1"
+   then
+      err "ERROR: '$1' is not a directory. publish_release must be called with the path to the top level source as the first argument'" 
+      return 1
+   fi
+   
+   local sdir="$1"
+   
+   local vers="$(get_version ${sdir} true false)"
+   if test -n "$2"
+   then
+      vers="$2"
+   fi
+   
+   if test -z "${vers}"
+   then
+      err "Please specify a version (couldn't parse one from the source)." 
+      return 1
+   fi
+   
+   status_stage "==> Verifying release files"
+   check_release "${sdir}/pkg/dist" "${vers}" true || return 1
+   
+   status_stage "==> Extracting Consul version for local system"
+   local consul_exe=$(extract_consul "${sdir}/pkg/dist" "${vers}") || return 1
+   # make sure to remove the temp file
+   trap "rm '${consul_exe}'" EXIT
+   
+   status_stage "==> Confirming Consul Version"
+   confirm_consul_version "${consul_exe}" || return 1
+   
+   status_stage "==> Confirming Consul Agent Info"
+   confirm_consul_info "${consul_exe}" || return 1
+}
 
 function publish_release {
    # Arguments:
@@ -300,19 +384,7 @@ function publish_release {
       return 1
    fi
    
-   status_stage "==> Verifying release files"
-   check_release "${sdir}/pkg/dist" "${vers}" true || return 1
-   
-   status_stage "==> Extracting Consul version for local system"
-   local consul_exe=$(extract_consul "${sdir}/pkg/dist" "${vers}") || return 1
-   # make sure to remove the temp file
-   trap "rm '${consul_exe}'" EXIT
-   
-   status_stage "==> Confirming Consul Version"
-   confirm_consul_version "${consul_exe}" || return 1
-   
-   status_stage "==> Confirming Consul Agent Info"
-   confirm_consul_info "${consul_exe}" || return 1
+   verify_release_build "$1" "${vers}" || return 1
    
    status_stage "==> Confirming Git is clean"
    is_git_clean "$1" true || return 1
