@@ -448,7 +448,8 @@ function build_release {
       fi
       
       status_stage "==> Building UI for version ${vers}"
-      build_ui "${sdir}" "${UI_BUILD_TAG}"
+      # passing the version to override the version determined via tags
+      build_ui "${sdir}" "${UI_BUILD_TAG}" "${vers}"
       if test $? -ne 0
       then
          err "ERROR: Failed to build the ui" 

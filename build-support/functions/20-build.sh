@@ -26,6 +26,7 @@ function build_ui {
    # Arguments:
    #   $1 - Path to the top level Consul source
    #   $2 - The docker image to run the build within (optional)
+   #   $3 - Version override
    #
    # Returns:
    #   0 - success
@@ -51,6 +52,11 @@ function build_ui {
    
    # parse the version
    version=$(parse_version "${sdir}")
+   
+   if test -n "$3"
+   then
+      version="$3"
+   fi
    
    local commit_hash="${GIT_COMMIT}"
    if test -z "${commit_hash}"
