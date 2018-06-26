@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/serf/serf"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPI_AgentSelf(t *testing.T) {
@@ -181,6 +182,108 @@ func TestAPI_AgentServices(t *testing.T) {
 	}
 
 	if err := agent.ServiceDeregister("foo"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestAPI_AgentServices_ManagedConnectProxy(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	reg := &AgentServiceRegistration{
+		Name: "foo",
+		Tags: []string{"bar", "baz"},
+		Port: 8000,
+		Check: &AgentServiceCheck{
+			TTL: "15s",
+		},
+		Connect: &AgentServiceConnect{
+			Proxy: &AgentServiceConnectProxy{
+				ExecMode: ProxyExecModeScript,
+				Command:  []string{"foo.rb"},
+				Config: map[string]interface{}{
+					"foo": "bar",
+				},
+			},
+		},
+	}
+	if err := agent.ServiceRegister(reg); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	services, err := agent.Services()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, ok := services["foo"]; !ok {
+		t.Fatalf("missing service: %v", services)
+	}
+	checks, err := agent.Checks()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	chk, ok := checks["service:foo"]
+	if !ok {
+		t.Fatalf("missing check: %v", checks)
+	}
+
+	// Checks should default to critical
+	if chk.Status != HealthCritical {
+		t.Fatalf("Bad: %#v", chk)
+	}
+
+	// Proxy config should be present in response
+	require.Equal(t, reg.Connect, services["foo"].Connect)
+
+	if err := agent.ServiceDeregister("foo"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestAPI_AgentServices_ExternalConnectProxy(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	// Register service
+	reg := &AgentServiceRegistration{
+		Name: "foo",
+		Port: 8000,
+	}
+	if err := agent.ServiceRegister(reg); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	// Register proxy
+	reg = &AgentServiceRegistration{
+		Kind:             ServiceKindConnectProxy,
+		Name:             "foo-proxy",
+		Port:             8001,
+		ProxyDestination: "foo",
+	}
+	if err := agent.ServiceRegister(reg); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	services, err := agent.Services()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, ok := services["foo"]; !ok {
+		t.Fatalf("missing service: %v", services)
+	}
+	if _, ok := services["foo-proxy"]; !ok {
+		t.Fatalf("missing proxy service: %v", services)
+	}
+
+	if err := agent.ServiceDeregister("foo"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := agent.ServiceDeregister("foo-proxy"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 }
@@ -935,4 +1038,131 @@ func TestAPI_AgentUpdateToken(t *testing.T) {
 	if _, err := agent.UpdateACLReplicationToken("root", nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+}
+
+func TestAPI_AgentConnectCARoots_empty(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	c, s := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
+		c.Connect = nil // disable connect to prevent CA being bootstrapped
+	})
+	defer s.Stop()
+
+	agent := c.Agent()
+	list, meta, err := agent.ConnectCARoots(nil)
+	require.NoError(err)
+	require.Equal(uint64(1), meta.LastIndex)
+	require.Len(list.Roots, 0)
+}
+
+func TestAPI_AgentConnectCARoots_list(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+	list, meta, err := agent.ConnectCARoots(nil)
+	require.NoError(err)
+	require.True(meta.LastIndex > 0)
+	require.Len(list.Roots, 1)
+}
+
+func TestAPI_AgentConnectCALeaf(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+	// Setup service
+	reg := &AgentServiceRegistration{
+		Name: "foo",
+		Tags: []string{"bar", "baz"},
+		Port: 8000,
+	}
+	require.NoError(agent.ServiceRegister(reg))
+
+	leaf, meta, err := agent.ConnectCALeaf("foo", nil)
+	require.NoError(err)
+	require.True(meta.LastIndex > 0)
+	// Sanity checks here as we have actual certificate validation checks at many
+	// other levels.
+	require.NotEmpty(leaf.SerialNumber)
+	require.NotEmpty(leaf.CertPEM)
+	require.NotEmpty(leaf.PrivateKeyPEM)
+	require.Equal("foo", leaf.Service)
+	require.True(strings.HasSuffix(leaf.ServiceURI, "/svc/foo"))
+	require.True(leaf.ModifyIndex > 0)
+	require.True(leaf.ValidAfter.Before(time.Now()))
+	require.True(leaf.ValidBefore.After(time.Now()))
+}
+
+func TestAPI_AgentConnectAuthorize(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+	params := &AgentAuthorizeParams{
+		Target:           "foo",
+		ClientCertSerial: "fake",
+		// Importing connect.TestSpiffeIDService creates an import cycle
+		ClientCertURI: "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/ny1/svc/web",
+	}
+	auth, err := agent.ConnectAuthorize(params)
+	require.Nil(err)
+	require.True(auth.Authorized)
+	require.Equal(auth.Reason, "ACLs disabled, access is allowed by default")
+}
+
+func TestAPI_AgentConnectProxyConfig(t *testing.T) {
+	t.Parallel()
+	c, s := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
+		// Force auto port range to 1 port so we have deterministic response.
+		c.Ports.ProxyMinPort = 20000
+		c.Ports.ProxyMaxPort = 20000
+	})
+	defer s.Stop()
+
+	agent := c.Agent()
+	reg := &AgentServiceRegistration{
+		Name: "foo",
+		Tags: []string{"bar", "baz"},
+		Port: 8000,
+		Connect: &AgentServiceConnect{
+			Proxy: &AgentServiceConnectProxy{
+				Command: []string{"consul", "connect", "proxy"},
+				Config: map[string]interface{}{
+					"foo": "bar",
+				},
+			},
+		},
+	}
+	if err := agent.ServiceRegister(reg); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	config, qm, err := agent.ConnectProxyConfig("foo-proxy", nil)
+	require.NoError(t, err)
+	expectConfig := &ConnectProxyConfig{
+		ProxyServiceID:    "foo-proxy",
+		TargetServiceID:   "foo",
+		TargetServiceName: "foo",
+		ContentHash:       "2a29f8237db69d0e",
+		ExecMode:          "daemon",
+		Command:           []string{"consul", "connect", "proxy"},
+		Config: map[string]interface{}{
+			"bind_address": "127.0.0.1",
+			"bind_port":    float64(20000),
+			"foo":          "bar",
+			"local_service_address": "127.0.0.1:8000",
+		},
+	}
+	require.Equal(t, expectConfig, config)
+	require.Equal(t, expectConfig.ContentHash, qm.LastContentHash)
 }

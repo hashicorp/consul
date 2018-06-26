@@ -1,6 +1,6 @@
 /* eslint no-console: "off" */
 import yadda from './helpers/yadda';
-import { currentURL, click, triggerKeyEvent } from '@ember/test-helpers';
+import { currentURL, click, triggerKeyEvent, fillIn, find } from '@ember/test-helpers';
 import getDictionary from '@hashicorp/ember-cli-api-double/dictionary';
 import pages from 'consul-ui/tests/pages';
 import api from 'consul-ui/tests/helpers/api';
@@ -33,23 +33,33 @@ export default function(assert) {
           case 'acls':
             model = 'acl';
             break;
+          case 'sessions':
+            model = 'session';
+            break;
+          case 'intentions':
+            model = 'intention';
+            break;
         }
         cb(null, model);
       }, yadda)
     )
       // doubles
-      .given(['$number $model model', '$number $model models'], function(number, model) {
+      .given(['$number $model model[s]?', '$number $model models'], function(number, model) {
         return create(number, model);
       })
-      .given(['$number $model model with the value "$value"'], function(number, model, value) {
+      .given(['$number $model model[s]? with the value "$value"'], function(number, model, value) {
         return create(number, model, value);
       })
       .given(
-        ['$number $model model[s]? from yaml\n$yaml', '$number $model model from json\n$json'],
+        ['$number $model model[s]? from yaml\n$yaml', '$number $model model[s]? from json\n$json'],
         function(number, model, data) {
           return create(number, model, data);
         }
       )
+      // TODO: Abstract this away from HTTP
+      .given(['the url "$url" responds with a $status status'], function(url, status) {
+        return api.server.respondWithStatus(url, parseInt(status));
+      })
       // interactions
       .when('I visit the $name page', function(name) {
         currentPage = pages[name];
@@ -100,6 +110,9 @@ export default function(assert) {
           return prev.fillIn(item, data[item]);
         }, currentPage);
       })
+      .then(['I type "$text" into "$selector"'], function(text, selector) {
+        return fillIn(selector, text);
+      })
       .then(['I type with yaml\n$yaml'], function(data) {
         const keys = Object.keys(data);
         return keys
@@ -109,7 +122,7 @@ export default function(assert) {
           .then(function() {
             return Promise.all(
               keys.map(function(item) {
-                return triggerKeyEvent(`[name="${item}"]`, 'keyup', 83);
+                return triggerKeyEvent(`[name="${item}"]`, 'keyup', 83); // TODO: This is 's', be more generic
               })
             );
           });
@@ -150,6 +163,37 @@ export default function(assert) {
           );
         });
       })
+      // TODO: This one can replace the above one, it covers more use cases
+      // also DRY it out a bit
+      .then('a $method request is made to "$url" from yaml\n$yaml', function(method, url, yaml) {
+        const request = api.server.history[api.server.history.length - 2];
+        assert.equal(
+          request.method,
+          method,
+          `Expected the request method to be ${method}, was ${request.method}`
+        );
+        assert.equal(request.url, url, `Expected the request url to be ${url}, was ${request.url}`);
+        let data = yaml.body || {};
+        const body = JSON.parse(request.requestBody);
+        Object.keys(data).forEach(function(key, i, arr) {
+          assert.equal(
+            body[key],
+            data[key],
+            `Expected the payload to contain ${key} to equal ${body[key]}, ${key} was ${data[key]}`
+          );
+        });
+        data = yaml.headers || {};
+        const headers = request.requestHeaders;
+        Object.keys(data).forEach(function(key, i, arr) {
+          assert.equal(
+            headers[key],
+            data[key],
+            `Expected the payload to contain ${key} to equal ${headers[key]}, ${key} was ${
+              data[key]
+            }`
+          );
+        });
+      })
       .then('a $method request is made to "$url" with the body "$body"', function(
         method,
         url,
@@ -179,7 +223,11 @@ export default function(assert) {
         assert.equal(request.url, url, `Expected the request url to be ${url}, was ${request.url}`);
       })
       .then('the url should be $url', function(url) {
-        const current = currentURL();
+        // TODO: nice! $url should be wrapped in ""
+        if (url === "''") {
+          url = '';
+        }
+        const current = currentURL() || '';
         assert.equal(current, url, `Expected the url to be ${url} was ${current}`);
       })
       .then(['I see $num $model', 'I see $num $model model', 'I see $num $model models'], function(
@@ -207,6 +255,16 @@ export default function(assert) {
           `Expected ${num} ${model}s with ${property} set to "${value}", saw ${len}`
         );
       })
+      // TODO: Make this accept a 'contains' word so you can search for text containing also
+      .then('I have settings like yaml\n$yaml', function(data) {
+        // TODO: Inject this
+        const settings = window.localStorage;
+        Object.keys(data).forEach(function(prop) {
+          const actual = settings.getItem(prop);
+          const expected = data[prop];
+          assert.strictEqual(actual, expected, `Expected settings to be ${expected} was ${actual}`);
+        });
+      })
       .then('I see $property on the $component like yaml\n$yaml', function(
         property,
         component,
@@ -214,9 +272,16 @@ export default function(assert) {
       ) {
         const _component = currentPage[component];
         const iterator = new Array(_component.length).fill(true);
+        // this will catch if we get aren't managing to select a component
+        assert.ok(iterator.length > 0);
         iterator.forEach(function(item, i, arr) {
           const actual = _component.objectAt(i)[property];
-          const expected = yaml[i];
+          // anything coming from the DOM is going to be text/strings
+          // if the yaml has numbers, cast them to strings
+          // TODO: This would get problematic for deeper objects
+          // will have to look to do this recursively
+          const expected = typeof yaml[i] === 'number' ? yaml[i].toString() : yaml[i];
+
           assert.deepEqual(
             actual,
             expected,
@@ -272,6 +337,21 @@ export default function(assert) {
       })
       .then(['I see $property'], function(property, component) {
         assert.ok(currentPage[property], `Expected to see ${property}`);
+      })
+      .then(['I see the text "$text" in "$selector"'], function(text, selector) {
+        assert.ok(
+          find(selector).textContent.indexOf(text) !== -1,
+          `Expected to see "${text}" in "${selector}"`
+        );
+      })
+      // TODO: Think of better language
+      // TODO: These should be mergeable
+      .then(['"$selector" has the "$class" class'], function(selector, cls) {
+        // because `find` doesn't work, guessing its sandboxed to ember's container
+        assert.ok(document.querySelector(selector).classList.contains(cls));
+      })
+      .then(['"$selector" doesn\'t have the "$class" class'], function(selector, cls) {
+        assert.ok(!document.querySelector(selector).classList.contains(cls));
       })
       .then('ok', function() {
         assert.ok(true);

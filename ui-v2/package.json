@@ -72,6 +72,8 @@
     "ember-load-initializers": "^1.0.0",
     "ember-math-helpers": "^2.4.0",
     "ember-pluralize": "^0.2.0",
+    "ember-power-select": "^2.0.2",
+    "ember-power-select-with-create": "^0.6.0",
     "ember-resolver": "^4.0.0",
     "ember-sinon-qunit": "^2.1.0",
     "ember-source": "~2.18.2",
@@ -89,5 +91,10 @@
   },
   "engines": {
     "node": "^4.5 || 6.* || >= 7.*"
+  },
+  "ember-addon": {
+    "paths": [
+      "lib/startup"
+    ]
   }
 }

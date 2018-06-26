@@ -157,12 +157,27 @@ RETRY_ONCE:
 	return out.Services, nil
 }
 
+func (s *HTTPServer) CatalogConnectServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	return s.catalogServiceNodes(resp, req, true)
+}
+
 func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_service_nodes"}, 1,
+	return s.catalogServiceNodes(resp, req, false)
+}
+
+func (s *HTTPServer) catalogServiceNodes(resp http.ResponseWriter, req *http.Request, connect bool) (interface{}, error) {
+	metricsKey := "catalog_service_nodes"
+	pathPrefix := "/v1/catalog/service/"
+	if connect {
+		metricsKey = "catalog_connect_service_nodes"
+		pathPrefix = "/v1/catalog/connect/"
+	}
+
+	metrics.IncrCounterWithLabels([]string{"client", "api", metricsKey}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
 
 	// Set default DC
-	args := structs.ServiceSpecificRequest{}
+	args := structs.ServiceSpecificRequest{Connect: connect}
 	s.parseSource(req, &args.Source)
 	args.NodeMetaFilters = s.parseMetaFilter(req)
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
@@ -177,7 +192,7 @@ func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Req
 	}
 
 	// Pull out the service name
-	args.ServiceName = strings.TrimPrefix(req.URL.Path, "/v1/catalog/service/")
+	args.ServiceName = strings.TrimPrefix(req.URL.Path, pathPrefix)
 	if args.ServiceName == "" {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing service name")

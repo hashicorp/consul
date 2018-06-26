@@ -1,0 +1,8 @@
+{
+	"Provider": "consul",
+	"Config": {
+		"PrivateKey": "",
+		"RootCert": "",
+		"RotationPeriod": "24h"
+	}
+}

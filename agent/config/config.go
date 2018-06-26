@@ -84,6 +84,7 @@ func Parse(data string, format string) (c Config, err error) {
 		"services",
 		"services.checks",
 		"watches",
+		"service.connect.proxy.config.upstreams",
 	})
 
 	// There is a difference of representation of some fields depending on
@@ -159,6 +160,7 @@ type Config struct {
 	CheckUpdateInterval         *string                  `json:"check_update_interval,omitempty" hcl:"check_update_interval" mapstructure:"check_update_interval"`
 	Checks                      []CheckDefinition        `json:"checks,omitempty" hcl:"checks" mapstructure:"checks"`
 	ClientAddr                  *string                  `json:"client_addr,omitempty" hcl:"client_addr" mapstructure:"client_addr"`
+	Connect                     Connect                  `json:"connect,omitempty" hcl:"connect" mapstructure:"connect"`
 	DNS                         DNS                      `json:"dns_config,omitempty" hcl:"dns_config" mapstructure:"dns_config"`
 	DNSDomain                   *string                  `json:"domain,omitempty" hcl:"domain" mapstructure:"domain"`
 	DNSRecursors                []string                 `json:"recursors,omitempty" hcl:"recursors" mapstructure:"recursors"`
@@ -324,6 +326,7 @@ type ServiceDefinition struct {
 	Checks            []CheckDefinition `json:"checks,omitempty" hcl:"checks" mapstructure:"checks"`
 	Token             *string           `json:"token,omitempty" hcl:"token" mapstructure:"token"`
 	EnableTagOverride *bool             `json:"enable_tag_override,omitempty" hcl:"enable_tag_override" mapstructure:"enable_tag_override"`
+	Connect           *ServiceConnect   `json:"connect,omitempty" hcl:"connect" mapstructure:"connect"`
 }
 
 type CheckDefinition struct {
@@ -349,6 +352,58 @@ type CheckDefinition struct {
 	DeregisterCriticalServiceAfter *string             `json:"deregister_critical_service_after,omitempty" hcl:"deregister_critical_service_after" mapstructure:"deregister_critical_service_after"`
 }
 
+// ServiceConnect is the connect block within a service registration
+type ServiceConnect struct {
+	// TODO(banks) add way to specify that the app is connect-native
+	// Proxy configures a connect proxy instance for the service
+	Proxy *ServiceConnectProxy `json:"proxy,omitempty" hcl:"proxy" mapstructure:"proxy"`
+}
+
+type ServiceConnectProxy struct {
+	Command  []string               `json:"command,omitempty" hcl:"command" mapstructure:"command"`
+	ExecMode *string                `json:"exec_mode,omitempty" hcl:"exec_mode" mapstructure:"exec_mode"`
+	Config   map[string]interface{} `json:"config,omitempty" hcl:"config" mapstructure:"config"`
+}
+
+// Connect is the agent-global connect configuration.
+type Connect struct {
+	// Enabled opts the agent into connect. It should be set on all clients and
+	// servers in a cluster for correct connect operation.
+	Enabled       *bool                  `json:"enabled,omitempty" hcl:"enabled" mapstructure:"enabled"`
+	Proxy         ConnectProxy           `json:"proxy,omitempty" hcl:"proxy" mapstructure:"proxy"`
+	ProxyDefaults ConnectProxyDefaults   `json:"proxy_defaults,omitempty" hcl:"proxy_defaults" mapstructure:"proxy_defaults"`
+	CAProvider    *string                `json:"ca_provider,omitempty" hcl:"ca_provider" mapstructure:"ca_provider"`
+	CAConfig      map[string]interface{} `json:"ca_config,omitempty" hcl:"ca_config" mapstructure:"ca_config"`
+}
+
+// ConnectProxy is the agent-global connect proxy configuration.
+type ConnectProxy struct {
+	// Consul will not execute managed proxies if its EUID is 0 (root).
+	// If this is true, then Consul will execute proxies if Consul is
+	// running as root. This is not recommended.
+	AllowManagedRoot *bool `json:"allow_managed_root" hcl:"allow_managed_root" mapstructure:"allow_managed_root"`
+
+	// AllowManagedAPIRegistration enables managed proxy registration
+	// via the agent HTTP API. If this is false, only file configurations
+	// can be used.
+	AllowManagedAPIRegistration *bool `json:"allow_managed_api_registration" hcl:"allow_managed_api_registration" mapstructure:"allow_managed_api_registration"`
+}
+
+// ConnectProxyDefaults is the agent-global defaults for managed Connect proxies.
+type ConnectProxyDefaults struct {
+	// ExecMode is used where a registration doesn't include an exec_mode.
+	// Defaults to daemon.
+	ExecMode *string `json:"exec_mode,omitempty" hcl:"exec_mode" mapstructure:"exec_mode"`
+	// DaemonCommand is used to start proxy in exec_mode = daemon if not specified
+	// at registration time.
+	DaemonCommand []string `json:"daemon_command,omitempty" hcl:"daemon_command" mapstructure:"daemon_command"`
+	// ScriptCommand is used to start proxy in exec_mode = script if not specified
+	// at registration time.
+	ScriptCommand []string `json:"script_command,omitempty" hcl:"script_command" mapstructure:"script_command"`
+	// Config is merged into an Config specified at registration time.
+	Config map[string]interface{} `json:"config,omitempty" hcl:"config" mapstructure:"config"`
+}
+
 type DNS struct {
 	AllowStale         *bool             `json:"allow_stale,omitempty" hcl:"allow_stale" mapstructure:"allow_stale"`
 	ARecordLimit       *int              `json:"a_record_limit,omitempty" hcl:"a_record_limit" mapstructure:"a_record_limit"`
@@ -360,6 +415,7 @@ type DNS struct {
 	RecursorTimeout    *string           `json:"recursor_timeout,omitempty" hcl:"recursor_timeout" mapstructure:"recursor_timeout"`
 	ServiceTTL         map[string]string `json:"service_ttl,omitempty" hcl:"service_ttl" mapstructure:"service_ttl"`
 	UDPAnswerLimit     *int              `json:"udp_answer_limit,omitempty" hcl:"udp_answer_limit" mapstructure:"udp_answer_limit"`
+	NodeMetaTXT        *bool             `json:"enable_additional_node_meta_txt,omitempty" hcl:"enable_additional_node_meta_txt" mapstructure:"enable_additional_node_meta_txt"`
 }
 
 type HTTPConfig struct {
@@ -399,12 +455,14 @@ type Telemetry struct {
 }
 
 type Ports struct {
-	DNS     *int `json:"dns,omitempty" hcl:"dns" mapstructure:"dns"`
-	HTTP    *int `json:"http,omitempty" hcl:"http" mapstructure:"http"`
-	HTTPS   *int `json:"https,omitempty" hcl:"https" mapstructure:"https"`
-	SerfLAN *int `json:"serf_lan,omitempty" hcl:"serf_lan" mapstructure:"serf_lan"`
-	SerfWAN *int `json:"serf_wan,omitempty" hcl:"serf_wan" mapstructure:"serf_wan"`
-	Server  *int `json:"server,omitempty" hcl:"server" mapstructure:"server"`
+	DNS          *int `json:"dns,omitempty" hcl:"dns" mapstructure:"dns"`
+	HTTP         *int `json:"http,omitempty" hcl:"http" mapstructure:"http"`
+	HTTPS        *int `json:"https,omitempty" hcl:"https" mapstructure:"https"`
+	SerfLAN      *int `json:"serf_lan,omitempty" hcl:"serf_lan" mapstructure:"serf_lan"`
+	SerfWAN      *int `json:"serf_wan,omitempty" hcl:"serf_wan" mapstructure:"serf_wan"`
+	Server       *int `json:"server,omitempty" hcl:"server" mapstructure:"server"`
+	ProxyMinPort *int `json:"proxy_min_port,omitempty" hcl:"proxy_min_port" mapstructure:"proxy_min_port"`
+	ProxyMaxPort *int `json:"proxy_max_port,omitempty" hcl:"proxy_max_port" mapstructure:"proxy_max_port"`
 }
 
 type UnixSocket struct {

@@ -57,8 +57,8 @@ we can instead use `foo.node.consul.` This convention allows for terse
 syntax where appropriate while supporting queries of nodes in remote
 datacenters as necessary.
 
-For a node lookup, the only records returned are A and AAAA records 
-containing the IP address, and TXT records containing the 
+For a node lookup, the only records returned are A and AAAA records
+containing the IP address, and TXT records containing the
 `node_meta` values of the node.
 
 ```text
@@ -85,9 +85,9 @@ foo.node.consul.	0	IN	TXT	"value only"
 consul.			0	IN	SOA	ns.consul. postmaster.consul. 1392836399 3600 600 86400 0
 ```
 
-By default the TXT records value will match the node's metadata key-value 
-pairs according to [RFC1464](https://www.ietf.org/rfc/rfc1464.txt). 
-Alternatively, the TXT record will only include the node's metadata value when the 
+By default the TXT records value will match the node's metadata key-value
+pairs according to [RFC1464](https://www.ietf.org/rfc/rfc1464.txt).
+Alternatively, the TXT record will only include the node's metadata value when the
 node's metadata key starts with `rfc1035-`.
 
 ## Service Lookups
@@ -206,6 +206,27 @@ To allow for simple load balancing, the set of nodes returned is randomized each
 Both A and SRV records are supported. SRV records provide the port that a service is
 registered on, enabling clients to avoid relying on well-known ports. SRV records are
 only served if the client specifically requests them.
+
+### Connect-Capable Service Lookups
+
+To find Connect-capable services:
+
+    <service>.connect.<domain>
+
+This will find all [Connect-capable](/docs/connect/index.html)
+endpoints for the given `service`. A Connect-capable endpoint may be
+both a proxy for a service or a natively integrated Connect application.
+The DNS interface does not differentiate the two.
+
+Most services will use a [proxy](/docs/connect/proxies.html) that handles
+service discovery automatically and therefore won't use this DNS format.
+This DNS format is primarily useful for [Connect-native](/docs/connect/native.html)
+applications.
+
+This endpoint currently only finds services within the same datacenter
+and doesn't support tags. This DNS interface will be expanded over time.
+If you need more complex behavior, please use the
+[catalog API](/api/catalog.html).
 
 ### UDP Based DNS Queries
 

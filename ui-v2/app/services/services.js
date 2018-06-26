@@ -21,6 +21,12 @@ export default Service.extend({
       .then(function(item) {
         const nodes = get(item, 'Nodes');
         const service = get(nodes, 'firstObject');
+        const tags = nodes
+          .reduce(function(prev, item) {
+            return prev.concat(get(item, 'Service.Tags') || []);
+          }, [])
+          .uniq();
+        set(service, 'Tags', tags);
         set(service, 'Nodes', nodes);
         return service;
       });

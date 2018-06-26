@@ -1,8 +1,7 @@
 html {
-  height: 100%;
-  min-height: 100%;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 body {
@@ -12,8 +11,7 @@ body {
   font-size: $font-size;
   font-family: $font-family-open-sans;
   font-weight: $font-weight-reg;
-  height: 100%;
-  min-height: 100%;
+  overflow-x: hidden;
 }
 
 h1, h2, h3, h4, h5 {

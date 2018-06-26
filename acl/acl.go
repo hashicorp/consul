@@ -60,6 +60,17 @@ type ACL interface {
 	// EventWrite determines if a specific event may be fired.
 	EventWrite(string) bool
 
+	// IntentionDefaultAllow determines the default authorized behavior
+	// when no intentions match a Connect request.
+	IntentionDefaultAllow() bool
+
+	// IntentionRead determines if a specific intention can be read.
+	IntentionRead(string) bool
+
+	// IntentionWrite determines if a specific intention can be
+	// created, modified, or deleted.
+	IntentionWrite(string) bool
+
 	// KeyList checks for permission to list keys under a prefix
 	KeyList(string) bool
 
@@ -151,6 +162,18 @@ func (s *StaticACL) EventRead(string) bool {
 }
 
 func (s *StaticACL) EventWrite(string) bool {
+	return s.defaultAllow
+}
+
+func (s *StaticACL) IntentionDefaultAllow() bool {
+	return s.defaultAllow
+}
+
+func (s *StaticACL) IntentionRead(string) bool {
+	return s.defaultAllow
+}
+
+func (s *StaticACL) IntentionWrite(string) bool {
 	return s.defaultAllow
 }
 
@@ -275,6 +298,9 @@ type PolicyACL struct {
 	// agentRules contains the agent policies
 	agentRules *radix.Tree
 
+	// intentionRules contains the service intention policies
+	intentionRules *radix.Tree
+
 	// keyRules contains the key policies
 	keyRules *radix.Tree
 
@@ -308,6 +334,7 @@ func New(parent ACL, policy *Policy, sentinel sentinel.Evaluator) (*PolicyACL, e
 	p := &PolicyACL{
 		parent:             parent,
 		agentRules:         radix.New(),
+		intentionRules:     radix.New(),
 		keyRules:           radix.New(),
 		nodeRules:          radix.New(),
 		serviceRules:       radix.New(),
@@ -347,6 +374,25 @@ func New(parent ACL, policy *Policy, sentinel sentinel.Evaluator) (*PolicyACL, e
 			sentinelPolicy: sp.Sentinel,
 		}
 		p.serviceRules.Insert(sp.Name, policyRule)
+
+		// Determine the intention. The intention could be blank (not set).
+		// If the intention is not set, the value depends on the value of
+		// the service policy.
+		intention := sp.Intentions
+		if intention == "" {
+			switch sp.Policy {
+			case PolicyRead, PolicyWrite:
+				intention = PolicyRead
+			default:
+				intention = PolicyDeny
+			}
+		}
+
+		policyRule = PolicyRule{
+			aclPolicy:      intention,
+			sentinelPolicy: sp.Sentinel,
+		}
+		p.intentionRules.Insert(sp.Name, policyRule)
 	}
 
 	// Load the session policy
@@ -453,6 +499,51 @@ func (p *PolicyACL) EventWrite(name string) bool {
 
 	// No match, use parent
 	return p.parent.EventWrite(name)
+}
+
+// IntentionDefaultAllow returns whether the default behavior when there are
+// no matching intentions is to allow or deny.
+func (p *PolicyACL) IntentionDefaultAllow() bool {
+	// We always go up, this can't be determined by a policy.
+	return p.parent.IntentionDefaultAllow()
+}
+
+// IntentionRead checks if writing (creating, updating, or deleting) of an
+// intention is allowed.
+func (p *PolicyACL) IntentionRead(prefix string) bool {
+	// Check for an exact rule or catch-all
+	_, rule, ok := p.intentionRules.LongestPrefix(prefix)
+	if ok {
+		pr := rule.(PolicyRule)
+		switch pr.aclPolicy {
+		case PolicyRead, PolicyWrite:
+			return true
+		default:
+			return false
+		}
+	}
+
+	// No matching rule, use the parent.
+	return p.parent.IntentionRead(prefix)
+}
+
+// IntentionWrite checks if writing (creating, updating, or deleting) of an
+// intention is allowed.
+func (p *PolicyACL) IntentionWrite(prefix string) bool {
+	// Check for an exact rule or catch-all
+	_, rule, ok := p.intentionRules.LongestPrefix(prefix)
+	if ok {
+		pr := rule.(PolicyRule)
+		switch pr.aclPolicy {
+		case PolicyWrite:
+			return true
+		default:
+			return false
+		}
+	}
+
+	// No matching rule, use the parent.
+	return p.parent.IntentionWrite(prefix)
 }
 
 // KeyRead returns if a key is allowed to be read

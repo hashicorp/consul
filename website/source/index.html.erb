@@ -5,168 +5,276 @@ description: |-
   systems and configuration easy.
 ---
 
-<header>
-  <div class="container hero">
-    <div class="row">
-      <div class="col-md-offset-2 col-md-8">
-        <%= inline_svg "logo-hashicorp.svg", height: 120, class: "logo" %>
-
-        <h1>Service Discovery and Configuration Made Easy</h1>
-
-        <a class="button primary" href="/intro/index.html">Get Started</a>
-        <a class="button" href="/downloads.html">Download <%= latest_version %></a>
-      </div>
-    </div>
-  </div>
-</header>
-
-<section id="features" class="marketing pink">
-  <div class="container">
-    <div class="row">
-      <div class="col-md-6">
-        <div class="row">
-          <div class="col-sm-3 feature-icon">
-            <%= inline_svg "feature-discovery.svg", width: 100 %>
-          </div>
-          <div class="col-sm-9">
-            <h2>Service Discovery</h2>
-            <p>
-              HashiCorp Consul makes it simple for services to register themselves and to
-              discover other services via a DNS or HTTP interface. Register external
-              services such as SaaS providers as well.
-            </p>
+<div class='consul-connect'>
+  <section id='home-hero'>
+    <div class="g-container">
+      <div>
+        <div>
+          <div>
+            <a class='notification' href='https://www.hashicorp.com/blog/consul-1-2-service-mesh'>
+              <span>New</span> HashiCorp Consul 1.2: Service Mesh. Read the blog post <svg xmlns='http://www.w3.org/2000/svg' width='6' height='10' viewBox='0 0 6 10'><path fill='#650D34' d='M1.138.529a.666.666 0 1 0-.942.943L3.724 5 .195 8.53a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z'/></svg>
+            </a>
+            <h1>Service Mesh Made Easy</h1>
+            <p>Consul is a distributed service mesh to connect, secure, and configure services across any runtime platform and public or private cloud</p>
+            <a href='/downloads.html' class='g-btn download'>
+              <svg xmlns='http://www.w3.org/2000/svg' width='20' height='22' viewBox='0 0 20 22'>
+                <path d='M9.292 15.706a1 1 0 0 0 1.416 0l3.999-3.999a1 1 0 1 0-1.414-1.414L11 12.586V1a1 1 0 1 0-2 0v11.586l-2.293-2.293a1 1 0 1 0-1.414 1.414l3.999 3.999zM20 16v3c0 1.654-1.346 3-3 3H3c-1.654 0-3-1.346-3-3v-3a1 1 0 1 1 2 0v3c0 .551.448 1 1 1h14c.552 0 1-.449 1-1v-3a1 1 0 1 1 2 0z'/>
+              </svg>
+              Download
+            </a>
+            <a href='/intro/getting-started/install.html' class='g-btn dark-outline'>Get Started</a>
+            <div>
+              <a href='https://demo.consul.io/' class='secondary-link'>View demo of web UI</a>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="col-md-6">
-        <div class="row">
-          <div class="col-sm-3 feature-icon">
-            <%= inline_svg "feature-health.svg", width: 100 %>
+        <div>
+          <div class='controls'>
+            <div data-index='0'>
+              <span>CLI</span>
+              <div class='progress-bar'><span></span></div>
+            </div>
+            <div data-index='1'>
+              <span>UI</span>
+              <div class='progress-bar'><span></span></div>
+            </div>
           </div>
-          <div class="col-sm-9">
-            <h2>Failure Detection</h2>
-            <p>
-              Pairing service discovery with health checking prevents routing
-              requests to unhealthy hosts and enables services to easily provide
-              circuit breakers.
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="col-md-6">
-        <div class="row">
-          <div class="col-sm-3 feature-icon">
-            <%= inline_svg "feature-multi.svg", width: 100 %>
-          </div>
-          <div class="col-sm-9">
-            <h2>Multi Datacenter</h2>
-            <p>
-              Consul scales to multiple datacenters out of the box with no
-              complicated configuration. Look up services in other datacenters, or
-              keep the request local.
-            </p>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-6">
-        <div class="row">
-          <div class="col-sm-3 feature-icon">
-            <%= inline_svg "feature-config.svg", width: 85 %>
-          </div>
-          <div class="col-sm-9">
-            <h2>KV Storage</h2>
-            <p>
-              Flexible key/value store for dynamic configuration, feature flagging,
-              coordination, leader election and more. Long poll for near-instant
-              notification of configuration changes.
-            </p>
+          <div class='videos'>
+            <div>
+              <div class='bar-buttons'>
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <div class='padded'>
+                <video muted='muted'>
+                  <source src='//consul-static-asssets.global.ssl.fastly.net/videos/v1/connect-video-cli.mp4' type='video/mp4'>
+                </video>
+              </div>
+            </div>
+            <div>
+              <div class='bar-buttons'>
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <video muted='muted'>
+                <source src='//consul-static-asssets.global.ssl.fastly.net/videos/v1/connect-video-ui.mp4' type='video/mp4'>
+              </video>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<section id="simple" class="marketing">
-  <div class="container">
-    <div class="row">
-      <div class="col-md-12">
-        <h2>DNS Query Interface</h2>
-        <p>
-          Look up services using Consul's built-in DNS server. Support
-          existing infrastructure without any code change.
-        </p>
+  <section id='static-dynamic' class='g-section bg-light'>
+    <div class='g-container'>
+      <div class='intro'>
+        <h2>Service-based networking for dynamic infrastructure</h2>
+        <p>The shift from static infrastructure to dynamic
+          infrastructure changes the approach to networking from host-based to
+          service-based. Connectivity moves from the use of static IPs to
+          dynamic service discovery, and security moves from static firewalls to
+          dynamic service segmentation.</p>
       </div>
-    </div>
-    <div class="row">
-      <div class="col-md-12">
-        <div class="terminal">
-          <span class="circle"></span>
-          <span class="circle"></span>
-          <span class="circle"></span>
-          <div class="terminal-content">
-            <span><span class="text-pink">admin@hashicorp.com:</span> dig web-frontend.service.consul. ANY</span>
-            <span>; &lt;&lt;&gt;&gt; DiG 9.8.3-P1 &lt;&lt;&gt;&gt; web-frontend.service.consul. ANY</span>
-            <span>;; global options: +cmd</span>
-            <span>&nbsp;</span>
-            <span>;; Got answer:</span>
-            <span>;; -&gt;&gt;HEADER&lt;&lt;- opcode: QUERY, status: NOERROR, id: 29981</span>
-            <span>;; flags: qr aa rd ra; QUERY: 1, ANSWER: 2, AUTHORITY: 0, ADDITIONAL: 0</span>
-            <span> </span>
-            <span>;; QUESTION SECTION:</span>
-            <span>;web-frontend.service.consul. IN ANY</span>
-            <span>&nbsp;</span>
-            <span>;; ANSWER SECTION:</span>
-            <span>web-frontend.service.consul. 0 IN  A <span class="text-pink">10.0.3.83</span></span>
-            <span>web-frontend.service.consul. 0 IN  A <span class="text-pink">10.0.1.109</span></span>
+      <div class='g-timeline'>
+        <div>
+          <span class='line'></span>
+          <span class='line'>
+            <svg xmlns='http://www.w3.org/2000/svg' width='11' height='15' viewBox='0 0 11 15'>
+                <path fill='#CA2171' d='M0 0v15l5.499-3.751L11 7.5 5.499 3.749.002 0z'/>
+            </svg>
+          </span>
+          <span class='dot'></span>
+          <h3>Static</h3>
+          <span class='sub-heading'>Host-based networking</span>
+          <img src='/assets/images/consul-connect/svgs/static.svg' alt='static, host-based networking' class='static-callout' />
+        </div>
+        <div>
+          <span class='dot'></span>
+          <h3>Dynamic</h3>
+          <span class='sub-heading'>Service-based networking</span>
+          <div id='index-dynamic-animation'>
+            <%= inline_svg 'consul-connect/svgs/dynamic.svg' %>
           </div>
         </div>
       </div>
     </div>
-    <div class="row">
-      <div class="col-md-12">
-        <h2>Key Value Storage</h2>
-        <p>
-          Consul provides a hierarchical key/value store with a simple HTTP API.
-          Managing configuration has never been simpler.
-        </p>
+  </section>
+
+  <section id='use-cases' class='g-section'>
+    <div class='g-container'>
+      <div class='intro'>
+        <h2>Use Cases</h2>
       </div>
-    </div>
-    <div class="row">
-      <div class="col-md-12">
-        <div class="terminal">
-          <span class="circle"></span>
-          <span class="circle"></span>
-          <span class="circle"></span>
-          <div class="terminal-content">
-            <span><span class="text-pink">admin@hashicorp:</span> consul kv put foo bar</span>
-            <span>Success! Data written to: foo</span>
-            <span><span class="text-pink">admin@hashicorp:</span> consul kv get foo</span>
-            <span>bar</span>
-            <span><span class="text-pink">admin@hashicorp:</span> consul kv get -detailed foo</span>
-            <span>CreateIndex      5</span>
-            <span>Flags            0</span>
-            <span>Key              foo</span>
-            <span>LockIndex        0</span>
-            <span>ModifyIndex      5</span>
-            <span>Session          -</span>
-            <span>Value            bar</span>
-            <span><span class="text-pink">admin@hashicorp:</span> consul kv delete foo</span>
-            <span>Success! Deleted key: foo</span>
+      <div class='g-use-cases'>
+        <div>
+          <div>
+            <img src='/assets/images/consul-connect/svgs/discovery-simple.svg' alt='Service Discovery'>
+            <h3>Service Discovery <span>for connectivity</h3>
+            <p>Service Registry enables services to register and discover each other.</p>
+          </div>
+          <div>
+            <a href='/discovery.html' class='g-btn dark-outline'>Learn more</a>
+          </div>
+        </div>
+        <div>
+          <div>
+            <img src='/assets/images/consul-connect/svgs/segmentation-simple.svg' alt='Service Segmentation'>
+            <h3>Service Segmentation <span>for security</h3>
+            <p>Secure service-to-service communication with automatic TLS encryption and identity-based authorization.</p>
+          </div>
+          <div>
+            <a href='/segmentation.html' class='g-btn dark-outline'>Learn more</a>
+          </div>
+        </div>
+        <div>
+          <div>
+            <img src='/assets/images/consul-connect/svgs/configuration-simple.svg' alt='Service Configuration'>
+            <h3>Service Configuration <span>for runtime configuration</h3>
+            <p>Feature rich Key/Value store to easily configure services.</p>
+          </div>
+          <div>
+            <a href='/configuration.html' class='g-btn dark-outline'>Learn more</a>
           </div>
         </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<section id="cta" class="marketing">
-  <div class="container">
-    <div class="row">
-      <a class="button primary" href="/intro/index.html">Read the Introduction</a>
+  <section class='g-section bg-light'>
+    <div class='g-container'>
+      <div class='intro'>
+        <h2>Consul Principles</h2>
+      </div>
+      <div class='g-text-asset'>
+        <div>
+          <div>
+            <h3>API-Driven</h3>
+            <p>Codify and automate service definitions, health checks, service
+              authorization policies, failover logic, and more.</p>
+          </div>
+        </div>
+        <div class='code-sample'>
+          <div>
+            <span></span>
+            <div class='code'>
+              <code>$ curl <code class='keyword'>http://localhost:8500/v1/kv/deployment</code>
+[
+  {
+    "LockIndex": 1,
+    "Session": "1c3f5836-4df4-0e26-6697-90dcce78acd9",
+    "Value": "Zm9v",
+    "Flags": 0,
+    "Key": "deployment",
+    "CreateIndex": 13,
+    "ModifyIndex": 19
+  }
+]</code>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
-</section>
+  </section>
+
+  <section class='g-section bg-light border-top'>
+    <div class='g-container'>
+      <div class='g-text-asset reverse'>
+        <div>
+          <div>
+            <h3>Run and Connect Anywhere</h3>
+            <p>Connect services across any runtime platform and public or private cloud. Connect services from Kubernetes to VMs, Containers to Serverless functions.</p>
+          </div>
+        </div>
+        <div>
+          <img src='/assets/images/consul-connect/grid_1.png' alt='Run and Connect Anywhere'>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class='g-section bg-light border-top'>
+    <div class='g-container'>
+      <div class='g-text-asset'>
+        <div>
+          <div>
+            <h3>Extend and Integrate</h3>
+            <ul>
+              <li>Provision clusters on any infrastructure.</li>
+              <li>Connect to services over TLS via proxy integrations.</li>
+              <li>Serve TLS certificates with pluggable Certificate Authorities.</li>
+            </ul>
+          </div>
+        </div>
+        <div>
+          <img src='/assets/images/consul-connect/grid_2.png' alt='Extend and Integrate'>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class='g-section'>
+    <div class='g-container'>
+      <div class='intro'>
+        <h3>Companies that trust Consul</h3>
+      </div>
+      <div class='g-logo-grid'>
+        <div>
+          <img src='/assets/images/consul-connect/logos/logo_sap-ariba_space.svg' alt='SAP Ariba'>
+        </div>
+        <div>
+          <img src='/assets/images/consul-connect/logos/logo_citadel_space.svg' alt='Citadel'>
+        </div>
+        <div>
+          <img src='/assets/images/consul-connect/logos/logo_barclays_space.svg' alt='Barclays'>
+        </div>
+        <div>
+          <img src='/assets/images/consul-connect/logos/logo_itv_space.svg' alt='itv'>
+        </div>
+        <div>
+          <img src='/assets/images/consul-connect/logos/logo_spaceflight-industries_space.svg' alt='Spaceflight Industries'>
+        </div>
+        <div>
+          <img src='/assets/images/consul-connect/logos/logo_lotto-nz_space.svg' alt='MyLotto'>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class='home-cta-section'>
+    <div>
+      <div>
+        <div>
+          <%= inline_svg 'consul-connect/logos/consul-logo.svg' %>
+        </div>
+        <p>Consul Open Source addresses the technical complexity of connecting services across distributed infrastructure.</p>
+        <div>
+          <a href='/downloads.html' class='g-btn white download'>
+            <svg xmlns='http://www.w3.org/2000/svg' width='20' height='22' viewBox='0 0 20 22'>
+              <path d='M9.292 15.706a1 1 0 0 0 1.416 0l3.999-3.999a1 1 0 1 0-1.414-1.414L11 12.586V1a1 1 0 1 0-2 0v11.586l-2.293-2.293a1 1 0 1 0-1.414 1.414l3.999 3.999zM20 16v3c0 1.654-1.346 3-3 3H3c-1.654 0-3-1.346-3-3v-3a1 1 0 1 1 2 0v3c0 .551.448 1 1 1h14c.552 0 1-.449 1-1v-3a1 1 0 1 1 2 0z'/>
+            </svg>
+            Download
+          </a>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div>
+        <div>
+          <%= inline_svg 'consul-connect/logos/consul-enterprise-logo.svg' %>
+        </div>
+        <p>Consul Enterprise addresses the organizational complexity of large user bases and compliance requirements with collaboration and governance features.</p>
+        <div>
+          <a href='https://www.hashicorp.com/products/consul' class='g-btn white-outline'>Learn More</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<% content_for :scripts do %>
+  <script src='/assets/javascripts/consul-connect/home-hero.js' defer></script>
+<% end %>

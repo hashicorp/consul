@@ -1,0 +1,33 @@
+---
+layout: "docs"
+page_title: "Commands: Intention Get"
+sidebar_current: "docs-commands-intention-get"
+---
+
+# Consul Intention Get
+
+Command: `consul intention get`
+
+The `intention get` command shows a single intention.
+
+## Usage
+
+Usage:
+
+  * `consul intention get [options] SRC DST`
+  * `consul intention get [options] ID`
+
+#### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+
+## Examples
+
+```text
+$ consul intention get web db
+Source:       web
+Destination:  db
+Action:       deny
+ID:           20edfa56-9cd4-51db-8c22-db09fdec61ef
+Created At:   Thursday, 24-May-18 17:07:49 PDT
+```

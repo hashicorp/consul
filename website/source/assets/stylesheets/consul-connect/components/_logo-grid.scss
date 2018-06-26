@@ -1,0 +1,24 @@
+.g-logo-grid {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 auto;
+  max-width: $site-max-width - 180;
+  text-align: center;
+  
+  @media (min-width: 768px) {
+    margin-top: -48px;
+  }
+
+  & > div {
+    width: 50%;
+    
+    @media (min-width: 768px) {
+      width: 33%;
+    }
+  }
+
+  img {
+    width: 100%
+  }
+}

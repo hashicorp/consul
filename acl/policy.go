@@ -73,6 +73,11 @@ type ServicePolicy struct {
 	Name     string `hcl:",key"`
 	Policy   string
 	Sentinel Sentinel
+
+	// Intentions is the policy for intentions where this service is the
+	// destination. This may be empty, in which case the Policy determines
+	// the intentions policy.
+	Intentions string
 }
 
 func (s *ServicePolicy) GoString() string {
@@ -196,6 +201,9 @@ func Parse(rules string, sentinel sentinel.Evaluator) (*Policy, error) {
 	for _, sp := range p.Services {
 		if !isPolicyValid(sp.Policy) {
 			return nil, fmt.Errorf("Invalid service policy: %#v", sp)
+		}
+		if sp.Intentions != "" && !isPolicyValid(sp.Intentions) {
+			return nil, fmt.Errorf("Invalid service intentions policy: %#v", sp)
 		}
 		if err := isSentinelValid(sentinel, sp.Policy, sp.Sentinel); err != nil {
 			return nil, fmt.Errorf("Invalid service Sentinel policy: %#v, got error:%v", sp, err)

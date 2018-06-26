@@ -8,6 +8,7 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/golang-lru"
@@ -237,6 +238,18 @@ func (a *Agent) resolveToken(id string) (acl.ACL, error) {
 
 	// This will look in the cache and fetch from the servers if necessary.
 	return a.acls.lookupACL(a, id)
+}
+
+// resolveProxyToken attempts to resolve an ACL ID to a local proxy token.
+// If a local proxy isn't found with that token, nil is returned.
+func (a *Agent) resolveProxyToken(id string) *local.ManagedProxy {
+	for _, p := range a.State.Proxies() {
+		if p.ProxyToken == id {
+			return p
+		}
+	}
+
+	return nil
 }
 
 // vetServiceRegister makes sure the service registration action is allowed by

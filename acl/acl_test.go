@@ -53,6 +53,12 @@ func TestStaticACL(t *testing.T) {
 	if !all.EventWrite("foobar") {
 		t.Fatalf("should allow")
 	}
+	if !all.IntentionDefaultAllow() {
+		t.Fatalf("should allow")
+	}
+	if !all.IntentionWrite("foobar") {
+		t.Fatalf("should allow")
+	}
 	if !all.KeyRead("foobar") {
 		t.Fatalf("should allow")
 	}
@@ -123,6 +129,12 @@ func TestStaticACL(t *testing.T) {
 	if none.EventWrite("") {
 		t.Fatalf("should not allow")
 	}
+	if none.IntentionDefaultAllow() {
+		t.Fatalf("should not allow")
+	}
+	if none.IntentionWrite("foo") {
+		t.Fatalf("should not allow")
+	}
 	if none.KeyRead("foobar") {
 		t.Fatalf("should not allow")
 	}
@@ -185,6 +197,12 @@ func TestStaticACL(t *testing.T) {
 		t.Fatalf("should allow")
 	}
 	if !manage.EventWrite("foobar") {
+		t.Fatalf("should allow")
+	}
+	if !manage.IntentionDefaultAllow() {
+		t.Fatalf("should allow")
+	}
+	if !manage.IntentionWrite("foobar") {
 		t.Fatalf("should allow")
 	}
 	if !manage.KeyRead("foobar") {
@@ -305,8 +323,14 @@ func TestPolicyACL(t *testing.T) {
 				Policy: PolicyDeny,
 			},
 			&ServicePolicy{
-				Name:   "barfoo",
-				Policy: PolicyWrite,
+				Name:       "barfoo",
+				Policy:     PolicyWrite,
+				Intentions: PolicyWrite,
+			},
+			&ServicePolicy{
+				Name:       "intbaz",
+				Policy:     PolicyWrite,
+				Intentions: PolicyDeny,
 			},
 		},
 	}
@@ -341,6 +365,31 @@ func TestPolicyACL(t *testing.T) {
 		}
 		if c.writePrefix != acl.KeyWritePrefix(c.inp) {
 			t.Fatalf("Write prefix fail: %#v", c)
+		}
+	}
+
+	// Test the intentions
+	type intentioncase struct {
+		inp   string
+		read  bool
+		write bool
+	}
+	icases := []intentioncase{
+		{"other", true, false},
+		{"foo", true, false},
+		{"bar", false, false},
+		{"foobar", true, false},
+		{"barfo", false, false},
+		{"barfoo", true, true},
+		{"barfoo2", true, true},
+		{"intbaz", false, false},
+	}
+	for _, c := range icases {
+		if c.read != acl.IntentionRead(c.inp) {
+			t.Fatalf("Read fail: %#v", c)
+		}
+		if c.write != acl.IntentionWrite(c.inp) {
+			t.Fatalf("Write fail: %#v", c)
 		}
 	}
 
@@ -413,6 +462,11 @@ func TestPolicyACL(t *testing.T) {
 		if c.write != acl.PreparedQueryWrite(c.inp) {
 			t.Fatalf("Prepared query fail: %#v", c)
 		}
+	}
+
+	// Check default intentions bubble up
+	if !acl.IntentionDefaultAllow() {
+		t.Fatal("should allow")
 	}
 }
 
@@ -566,6 +620,11 @@ func TestPolicyACL_Parent(t *testing.T) {
 	}
 	if acl.Snapshot() {
 		t.Fatalf("should not allow")
+	}
+
+	// Check default intentions
+	if acl.IntentionDefaultAllow() {
+		t.Fatal("should not allow")
 	}
 }
 

@@ -19,6 +19,11 @@ Router.map(function() {
       // Show an individual node
       this.route('show', { path: '/:name' });
     });
+    // Intentions represent a consul intention
+    this.route('intentions', { path: '/intentions' }, function() {
+      this.route('edit', { path: '/:id' });
+      this.route('create', { path: '/create' });
+    });
     // Key/Value
     this.route('kv', { path: '/kv' }, function() {
       this.route('folder', { path: '/*key' });

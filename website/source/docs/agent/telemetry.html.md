@@ -48,13 +48,88 @@ Below is sample output of a telemetry dump:
 
 # Key Metrics
 
+These are some metrics emitted that can help you understand the health of your cluster at a glance. For a full list of metrics emitted by Consul, see [Metrics Reference](#metrics-reference)
+
+### Transaction timing
+
+| Metric Name              | Description |
+| :----------------------- | :---------- |
+| `consul.kvs.apply`       | This measures the time it takes to complete an update to the KV store. |
+| `consul.txn.apply`       | This measures the time spent applying a transaction operation. |
+| `consul.raft.apply`      | This counts the number of Raft transactions occurring over the interval. |
+| `consul.raft.commitTime` | This measures the time it takes to commit a new entry to the Raft log on the leader. |
+
+**Why they're important:** Taken together, these metrics indicate how long it takes to complete write operations in various parts of the Consul cluster. Generally these should all be fairly consistent and no more than a few milliseconds. Sudden changes in any of the timing values could be due to unexpected load on the Consul servers, or due to problems on the servers themselves.
+
+**What to look for:** Deviations (in any of these metrics) of more than 50% from baseline over the previous hour.
+
+### Leadership changes
+
+| Metric Name | Description |
+| :---------- | :---------- |
+| `consul.raft.leader.lastContact` | Measures the time since the leader was last able to contact the follower nodes when checking its leader lease. |
+| `consul.raft.state.candidate` | This increments whenever a Consul server starts an election. |
+| `consul.raft.state.leader` | This increments whenever a Consul server becomes a leader. |
+
+**Why they're important:** Normally, your Consul cluster should have a stable leader. If there are frequent elections or leadership changes, it would likely indicate network issues between the Consul servers, or that the Consul servers themselves are unable to keep up with the load.
+
+**What to look for:** For a healthy cluster, you're looking for a `lastContact` lower than 200ms, `leader` > 0 and `candidate` == 0. Deviations from this might indicate flapping leadership.
+
+### Autopilot
+
+| Metric Name | Description |
+| :---------- | :---------- |
+| `consul.autopilot.healthy` | This tracks the overall health of the local server cluster. If all servers are considered healthy by Autopilot, this will be set to 1. If any are unhealthy, this will be 0. |
+
+**Why it's important:** Obviously, you want your cluster to be healthy.
+
+**What to look for:** Alert if `healthy` is 0.
+
+### Memory usage
+
+| Metric Name | Description |
+| :---------- | :---------- |
+| `consul.runtime.alloc_bytes` | This measures the number of bytes allocated by the Consul process. |
+| `consul.runtime.sys_bytes`   | This is the total number of bytes of memory obtained from the OS.  |
+
+**Why they're important:** Consul keeps all of its data in memory. If Consul consumes all available memory, it will crash.
+
+**What to look for:** If `consul.runtime.sys_bytes` exceeds 90% of total avaliable system memory.
+
+### Garbage collection
+
+| Metric Name | Description |
+| :---------- | :---------- |
+| `consul.runtime.total_gc_pause_ns` | Number of nanoseconds consumed by stop-the-world garbage collection (GC) pauses since Consul started. |
+
+**Why it's important:** GC pause is a "stop-the-world" event, meaning that all runtime threads are blocked until GC completes. Normally these pauses last only a few nanoseconds. But if memory usage is high, the Go runtime may GC so frequently that it starts to slow down Consul.
+
+**What to look for:** Warning if `total_gc_pause_ns` exceeds 2 seconds/minute, critical if it exceeds 5 seconds/minute.
+
+**NOTE:** `total_gc_pause_ns` is a cumulative counter, so in order to calculate rates (such as GC/minute),
+you will need to apply a function such as InfluxDB's [`non_negative_difference()`](https://docs.influxdata.com/influxdb/v1.5/query_language/functions/#non-negative-difference).
+
+### Network activity - RPC Count
+
+| Metric Name | Description |
+| :---------- | :---------- |
+| `consul.client.rpc` | Increments whenever a Consul agent in client mode makes an RPC request to a Consul server |
+| `consul.client.rpc.exceeded` | Increments whenever a Consul agent in client mode makes an RPC request to a Consul server gets rate limited by that agent's [`limits`](/docs/agent/options.html#limits) configuration.  |
+| `consul.client.rpc.failed` | Increments whenever a Consul agent in client mode makes an RPC request to a Consul server and fails.  |
+
+**Why they're important:** These measurements indicate the current load created from a Consul agent, including when the load becomes high enough to be rate limited. A high RPC count, especially from `consul.client.rpcexceeded` meaning that the requests are being rate-limited, could imply a misconfigured Consul agent.
+
+**What to look for:**
+Sudden large changes to the `consul.client.rpc` metrics (greater than 50% deviation from baseline).
+`consul.client.rpc.exceeded` or `consul.client.rpc.failed` count > 0, as it implies that an agent is being rate-limited or fails to make an RPC request to a Consul server
+
 When telemetry is being streamed to an external metrics store, the interval is defined to
 be that store's flush interval. Otherwise, the interval can be assumed to be 10 seconds
 when retrieving metrics from the built-in store using the above described signals.
 
-## Agent Health
+## Metrics Reference
 
-These metrics are used to monitor the health of specific Consul agents.
+This is a full list of metrics emitted by Consul.
 
 <table class="table table-bordered table-striped">
   <tr>
@@ -644,6 +719,106 @@ These metrics give insight into the health of the cluster as a whole.
     <td>`consul.health.service.not-found.<service>`</td>
     <td>This increments for each health query where the given service could not be found.</td>
     <td>queries</td>
+    <td>counter</td>
+  </tr>
+</table>
+
+
+## Connect Built-in Proxy Metrics
+
+Consul Connect's built-in proxy is by default configured to log metrics to the
+same sink as the agent that starts it when running as a [managed
+proxy](/docs/connect/proxies.html#managed-proxies).
+
+When running in this mode it emits some basic metrics. These will be expanded
+upon in the future.
+
+All metrics are prefixed with `consul.proxy.<proxied-service-id>` to distinguish
+between multiple proxies on a given host. The table below use `web` as an
+example service name for brevity.
+
+### Labels
+
+Most labels have a `dst` label and some have a `src` label. When using metrics
+sinks and timeseries stores that support labels or tags, these allow aggregating
+the connections by service name.
+
+Assuming all services are using a managed built-in proxy, you can get a complete
+overview of both number of open connections and bytes sent and recieved between
+all services by aggregating over these metrics.
+
+For example aggregating over all `upstream` (i.e. outbound) connections which
+have both `src` and `dst` labels, you can get a sum of all the bandwidth in and
+out of a given service or the total number of connections between two services.
+
+
+### Metrics Reference
+
+The standard go runtime metrics are exported by `go-metrics` as with Consul
+agent. The table below describes the additional metrics exported by the proxy.
+
+<table class="table table-bordered table-striped">
+  <tr>
+    <th>Metric</th>
+    <th>Description</th>
+    <th>Unit</th>
+    <th>Type</th>
+  </tr>
+  <tr>
+    <td>`consul.proxy.web.runtime.*`</td>
+    <td>The same go runtime metrics as documented for the agent above.</td>
+    <td>mixed</td>
+    <td>mixed</td>
+  </tr>
+  <tr>
+    <td>`consul.proxy.web.inbound.conns`</td>
+    <td>Shows the current number of connections open from inbound requests to
+    the proxy. Where supported a `dst` label is added indicating the
+    service name the proxy represents.</td>
+    <td>connections</td>
+    <td>gauge</td>
+  </tr>
+  <tr>
+    <td>`consul.proxy.web.inbound.rx_bytes`</td>
+    <td>This increments by the number of bytes received from an inbound client
+    connection. Where supported a `dst` label is added indicating the
+    service name the proxy represents.</td>
+    <td>bytes</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.proxy.web.inbound.tx_bytes`</td>
+    <td>This increments by the number of bytes transfered to an inbound client
+    connection. Where supported a `dst` label is added indicating the
+    service name the proxy represents.</td>
+    <td>bytes</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.proxy.web.upstream.conns`</td>
+    <td>Shows the current number of connections open from a proxy instance to an
+    upstream. Where supported a `src` label is added indicating the
+    service name the proxy represents, and a `dst` label is added indicating the
+    service name the upstream is connecting to.</td>
+    <td>connections</td>
+    <td>gauge</td>
+  </tr>
+  <tr>
+    <td>`consul.proxy.web.inbound.rx_bytes`</td>
+    <td>This increments by the number of bytes received from an upstream
+    connection. Where supported a `src` label is added indicating the
+    service name the proxy represents, and a `dst` label is added indicating the
+    service name the upstream is connecting to.</td>
+    <td>bytes</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.proxy.web.inbound.tx_bytes`</td>
+    <td>This increments by the number of bytes transfered to an upstream
+    connection. Where supported a `src` label is added indicating the
+    service name the proxy represents, and a `dst` label is added indicating the
+    service name the upstream is connecting to.</td>
+    <td>bytes</td>
     <td>counter</td>
   </tr>
 </table>

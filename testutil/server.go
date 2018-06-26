@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"os"
@@ -42,12 +43,14 @@ type TestPerformanceConfig struct {
 // TestPortConfig configures the various ports used for services
 // provided by the Consul server.
 type TestPortConfig struct {
-	DNS     int `json:"dns,omitempty"`
-	HTTP    int `json:"http,omitempty"`
-	HTTPS   int `json:"https,omitempty"`
-	SerfLan int `json:"serf_lan,omitempty"`
-	SerfWan int `json:"serf_wan,omitempty"`
-	Server  int `json:"server,omitempty"`
+	DNS          int `json:"dns,omitempty"`
+	HTTP         int `json:"http,omitempty"`
+	HTTPS        int `json:"https,omitempty"`
+	SerfLan      int `json:"serf_lan,omitempty"`
+	SerfWan      int `json:"serf_wan,omitempty"`
+	Server       int `json:"server,omitempty"`
+	ProxyMinPort int `json:"proxy_min_port,omitempty"`
+	ProxyMaxPort int `json:"proxy_max_port,omitempty"`
 }
 
 // TestAddressConfig contains the bind addresses for various
@@ -94,6 +97,7 @@ type TestServerConfig struct {
 	VerifyIncomingHTTPS bool                   `json:"verify_incoming_https,omitempty"`
 	VerifyOutgoing      bool                   `json:"verify_outgoing,omitempty"`
 	EnableScriptChecks  bool                   `json:"enable_script_checks,omitempty"`
+	Connect             map[string]interface{} `json:"connect,omitempty"`
 	ReadyTimeout        time.Duration          `json:"-"`
 	Stdout, Stderr      io.Writer              `json:"-"`
 	Args                []string               `json:"-"`
@@ -133,6 +137,16 @@ func defaultServerConfig() *TestServerConfig {
 			Server:  ports[5],
 		},
 		ReadyTimeout: 10 * time.Second,
+		Connect: map[string]interface{}{
+			"enabled": true,
+			"ca_config": map[string]interface{}{
+				// const TestClusterID causes import cycle so hard code it here.
+				"cluster_id": "11111111-2222-3333-4444-555555555555",
+			},
+			"proxy": map[string]interface{}{
+				"allow_managed_api_registration": true,
+			},
+		},
 	}
 }
 
@@ -211,6 +225,7 @@ func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, e
 		return nil, errors.Wrap(err, "failed marshaling json")
 	}
 
+	log.Printf("CONFIG JSON: %s", string(b))
 	configFile := filepath.Join(tmpdir, "config.json")
 	if err := ioutil.WriteFile(configFile, b, 0644); err != nil {
 		defer os.RemoveAll(tmpdir)

@@ -51,6 +51,7 @@ type dnsConfig struct {
 	ServiceTTL      map[string]time.Duration
 	UDPAnswerLimit  int
 	ARecordLimit    int
+	NodeMetaTXT     bool
 }
 
 // DNSServer is used to wrap an Agent and expose various
@@ -109,6 +110,7 @@ func GetDNSConfig(conf *config.RuntimeConfig) *dnsConfig {
 		SegmentName:     conf.SegmentName,
 		ServiceTTL:      conf.DNSServiceTTL,
 		UDPAnswerLimit:  conf.DNSUDPAnswerLimit,
+		NodeMetaTXT:     conf.DNSNodeMetaTXT,
 	}
 }
 
@@ -337,7 +339,7 @@ func (d *DNSServer) addSOA(msg *dns.Msg) {
 // nameservers returns the names and ip addresses of up to three random servers
 // in the current cluster which serve as authoritative name servers for zone.
 func (d *DNSServer) nameservers(edns bool) (ns []dns.RR, extra []dns.RR) {
-	out, err := d.lookupServiceNodes(d.agent.config.Datacenter, structs.ConsulServiceName, "")
+	out, err := d.lookupServiceNodes(d.agent.config.Datacenter, structs.ConsulServiceName, "", false)
 	if err != nil {
 		d.logger.Printf("[WARN] dns: Unable to get list of servers: %s", err)
 		return nil, nil
@@ -374,7 +376,7 @@ func (d *DNSServer) nameservers(edns bool) (ns []dns.RR, extra []dns.RR) {
 		}
 		ns = append(ns, nsrr)
 
-		glue := d.formatNodeRecord(nil, addr, fqdn, dns.TypeANY, d.config.NodeTTL, edns)
+		glue := d.formatNodeRecord(nil, addr, fqdn, dns.TypeANY, d.config.NodeTTL, edns, false)
 		extra = append(extra, glue...)
 
 		// don't provide more than 3 servers
@@ -415,7 +417,7 @@ PARSE:
 		n = n + 1
 	}
 
-	switch labels[n-1] {
+	switch kind := labels[n-1]; kind {
 	case "service":
 		if n == 1 {
 			goto INVALID
@@ -433,7 +435,7 @@ PARSE:
 			}
 
 			// _name._tag.service.consul
-			d.serviceLookup(network, datacenter, labels[n-3][1:], tag, req, resp)
+			d.serviceLookup(network, datacenter, labels[n-3][1:], tag, false, req, resp)
 
 			// Consul 0.3 and prior format for SRV queries
 		} else {
@@ -445,8 +447,16 @@ PARSE:
 			}
 
 			// tag[.tag].name.service.consul
-			d.serviceLookup(network, datacenter, labels[n-2], tag, req, resp)
+			d.serviceLookup(network, datacenter, labels[n-2], tag, false, req, resp)
 		}
+
+	case "connect":
+		if n == 1 {
+			goto INVALID
+		}
+
+		// name.connect.consul
+		d.serviceLookup(network, datacenter, labels[n-2], "", true, req, resp)
 
 	case "node":
 		if n == 1 {
@@ -582,7 +592,7 @@ RPC:
 	n := out.NodeServices.Node
 	edns := req.IsEdns0() != nil
 	addr := d.agent.TranslateAddress(datacenter, n.Address, n.TaggedAddresses)
-	records := d.formatNodeRecord(out.NodeServices.Node, addr, req.Question[0].Name, qType, d.config.NodeTTL, edns)
+	records := d.formatNodeRecord(out.NodeServices.Node, addr, req.Question[0].Name, qType, d.config.NodeTTL, edns, true)
 	if records != nil {
 		resp.Answer = append(resp.Answer, records...)
 	}
@@ -610,7 +620,7 @@ func encodeKVasRFC1464(key, value string) (txt string) {
 }
 
 // formatNodeRecord takes a Node and returns an A, AAAA, TXT or CNAME record
-func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qType uint16, ttl time.Duration, edns bool) (records []dns.RR) {
+func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qType uint16, ttl time.Duration, edns, answer bool) (records []dns.RR) {
 	// Parse the IP
 	ip := net.ParseIP(addr)
 	var ipv4 net.IP
@@ -671,7 +681,20 @@ func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qTy
 		}
 	}
 
-	if node != nil && (qType == dns.TypeANY || qType == dns.TypeTXT) {
+	node_meta_txt := false
+
+	if node == nil {
+		node_meta_txt = false
+	} else if answer {
+		node_meta_txt = true
+	} else {
+		// Use configuration when the TXT RR would
+		// end up in the Additional section of the
+		// DNS response
+		node_meta_txt = d.config.NodeMetaTXT
+	}
+
+	if node_meta_txt {
 		for key, value := range node.Meta {
 			txt := value
 			if !strings.HasPrefix(strings.ToLower(key), "rfc1035-") {
@@ -782,8 +805,8 @@ func (d *DNSServer) trimTCPResponse(req, resp *dns.Msg) (trimmed bool) {
 	originalNumRecords := len(resp.Answer)
 
 	// It is not possible to return more than 4k records even with compression
-        // Since we are performing binary search it is not a big deal, but it
-        // improves a bit performance, even with binary search
+	// Since we are performing binary search it is not a big deal, but it
+	// improves a bit performance, even with binary search
 	truncateAt := 4096
 	if req.Question[0].Qtype == dns.TypeSRV {
 		// More than 1024 SRV records do not fit in 64k
@@ -898,8 +921,9 @@ func (d *DNSServer) trimDNSResponse(network string, req, resp *dns.Msg) (trimmed
 }
 
 // lookupServiceNodes returns nodes with a given service.
-func (d *DNSServer) lookupServiceNodes(datacenter, service, tag string) (structs.IndexedCheckServiceNodes, error) {
+func (d *DNSServer) lookupServiceNodes(datacenter, service, tag string, connect bool) (structs.IndexedCheckServiceNodes, error) {
 	args := structs.ServiceSpecificRequest{
+		Connect:     connect,
 		Datacenter:  datacenter,
 		ServiceName: service,
 		ServiceTag:  tag,
@@ -935,8 +959,8 @@ func (d *DNSServer) lookupServiceNodes(datacenter, service, tag string) (structs
 }
 
 // serviceLookup is used to handle a service query
-func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, req, resp *dns.Msg) {
-	out, err := d.lookupServiceNodes(datacenter, service, tag)
+func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, connect bool, req, resp *dns.Msg) {
+	out, err := d.lookupServiceNodes(datacenter, service, tag, connect)
 	if err != nil {
 		d.logger.Printf("[ERR] dns: rpc error: %v", err)
 		resp.SetRcode(req, dns.RcodeServerFailure)
@@ -1143,7 +1167,7 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 		handled[addr] = struct{}{}
 
 		// Add the node record
-		records := d.formatNodeRecord(node.Node, addr, qName, qType, ttl, edns)
+		records := d.formatNodeRecord(node.Node, addr, qName, qType, ttl, edns, true)
 		if records != nil {
 			resp.Answer = append(resp.Answer, records...)
 			count++
@@ -1192,7 +1216,7 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes
 		}
 
 		// Add the extra record
-		records := d.formatNodeRecord(node.Node, addr, srvRec.Target, dns.TypeANY, ttl, edns)
+		records := d.formatNodeRecord(node.Node, addr, srvRec.Target, dns.TypeANY, ttl, edns, false)
 		if len(records) > 0 {
 			// Use the node address if it doesn't differ from the service address
 			if addr == node.Node.Address {

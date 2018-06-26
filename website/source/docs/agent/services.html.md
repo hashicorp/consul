@@ -17,7 +17,15 @@ or added at runtime over the HTTP interface.
 
 ## Service Definition
 
-A service definition is a script that looks like:
+To configure a service, either provide the service definition as a `-config-file` option to
+the agent or place it inside the `-config-dir` of the agent. The file
+must end in the `.json` or `.hcl` extension to be loaded by Consul. Check
+definitions can be updated by sending a `SIGHUP` to the agent.
+Alternatively, the service can be registered dynamically using the [HTTP
+API](/api/index.html).
+
+A service definition is a configuration that looks like the following. This
+example shows all possible fields, but note that only a few are required.
 
 ```javascript
 {
@@ -35,7 +43,14 @@ A service definition is a script that looks like:
         "args": ["/usr/local/bin/check_redis.py"],
         "interval": "10s"
       }
-    ]
+    ],
+    "connect": {
+      "native": false,
+      "proxy": {
+        "command": [],
+        "config": {}
+      }
+    }
   }
 }
 ```
@@ -117,12 +132,14 @@ For Consul 0.9.3 and earlier you need to use `enableTagOverride`. Consul 1.0
 supports both `enable_tag_override` and `enableTagOverride` but the latter is
 deprecated and has been removed as of Consul 1.1.
 
-To configure a service, either provide it as a `-config-file` option to
-the agent or place it inside the `-config-dir` of the agent. The file
-must end in the `.json` or `.hcl` extension to be loaded by Consul. Check
-definitions can be updated by sending a `SIGHUP` to the agent.
-Alternatively, the service can be registered dynamically using the [HTTP
-API](/api/index.html).
+The `connect` field can be specified to configure [Connect](/docs/connect/index.html)
+for a service. This field is available in Consul 1.2 and later. The `native`
+value can be set to true to advertise the service as
+[Connect-native](/docs/connect/native.html). If the `proxy` field is set
+(even to an empty object), then this will enable a
+[managed proxy](/docs/connect/proxies.html) for the service. The fields within
+`proxy` are used to configure the proxy and are specified in the
+[proxy docs](/docs/connect/proxies.html).
 
 ## Multiple Service Definitions
 

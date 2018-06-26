@@ -84,6 +84,10 @@ func (f *HTTPFlags) Token() string {
 	return f.token.String()
 }
 
+func (f *HTTPFlags) SetToken(v string) error {
+	return f.token.Set(v)
+}
+
 func (f *HTTPFlags) APIClient() (*api.Client, error) {
 	c := api.DefaultConfig()
 

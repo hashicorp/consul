@@ -19,7 +19,10 @@ $syntax-dark-gray: #535f73;
 
 $syntax-gutter-grey: #2a2f36;
 $syntax-yellow: $yellow;
-
+.CodeMirror {
+  min-height: 300px;
+  height: auto;
+}
 .CodeMirror-lint-tooltip {
   background-color: #f9f9fa;
   border: 1px solid $syntax-light-gray;

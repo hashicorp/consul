@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/miekg/dns"
 	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -472,6 +473,51 @@ func TestDNS_NodeLookup_TXT(t *testing.T) {
 	}
 }
 
+func TestDNS_NodeLookup_TXT_DontSuppress(t *testing.T) {
+	a := NewTestAgent(t.Name(), `dns_config = { enable_additional_node_meta_txt = false }`)
+	defer a.Shutdown()
+
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "google",
+		Address:    "127.0.0.1",
+		NodeMeta: map[string]string{
+			"rfc1035-00": "value0",
+			"key0":       "value1",
+		},
+	}
+
+	var out struct{}
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("google.node.consul.", dns.TypeTXT)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, a.DNSAddr())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should have the 1 TXT record reply
+	if len(in.Answer) != 2 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	txtRec, ok := in.Answer[0].(*dns.TXT)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if len(txtRec.Txt) != 1 {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if txtRec.Txt[0] != "value0" && txtRec.Txt[0] != "key0=value1" {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+}
+
 func TestDNS_NodeLookup_ANY(t *testing.T) {
 	a := NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
@@ -510,7 +556,46 @@ func TestDNS_NodeLookup_ANY(t *testing.T) {
 		},
 	}
 	verify.Values(t, "answer", in.Answer, wantAnswer)
+}
 
+func TestDNS_NodeLookup_ANY_DontSuppressTXT(t *testing.T) {
+	a := NewTestAgent(t.Name(), `dns_config = { enable_additional_node_meta_txt = false }`)
+	defer a.Shutdown()
+
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "bar",
+		Address:    "127.0.0.1",
+		NodeMeta: map[string]string{
+			"key": "value",
+		},
+	}
+
+	var out struct{}
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("bar.node.consul.", dns.TypeANY)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, a.DNSAddr())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	wantAnswer := []dns.RR{
+		&dns.A{
+			Hdr: dns.RR_Header{Name: "bar.node.consul.", Rrtype: dns.TypeA, Class: dns.ClassINET, Rdlength: 0x4},
+			A:   []byte{0x7f, 0x0, 0x0, 0x1}, // 127.0.0.1
+		},
+		&dns.TXT{
+			Hdr: dns.RR_Header{Name: "bar.node.consul.", Rrtype: dns.TypeTXT, Class: dns.ClassINET, Rdlength: 0xa},
+			Txt: []string{"key=value"},
+		},
+	}
+	verify.Values(t, "answer", in.Answer, wantAnswer)
 }
 
 func TestDNS_EDNS0(t *testing.T) {
@@ -1039,6 +1124,51 @@ func TestDNS_ServiceLookupWithInternalServiceAddress(t *testing.T) {
 		},
 	}
 	verify.Values(t, "extra", in.Extra, wantExtra)
+}
+
+func TestDNS_ConnectServiceLookup(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Register
+	{
+		args := structs.TestRegisterRequestProxy(t)
+		args.Address = "127.0.0.55"
+		args.Service.ProxyDestination = "db"
+		args.Service.Address = ""
+		args.Service.Port = 12345
+		var out struct{}
+		assert.Nil(a.RPC("Catalog.Register", args, &out))
+	}
+
+	// Look up the service
+	questions := []string{
+		"db.connect.consul.",
+	}
+	for _, question := range questions {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeSRV)
+
+		c := new(dns.Client)
+		in, _, err := c.Exchange(m, a.DNSAddr())
+		assert.Nil(err)
+		assert.Len(in.Answer, 1)
+
+		srvRec, ok := in.Answer[0].(*dns.SRV)
+		assert.True(ok)
+		assert.Equal(uint16(12345), srvRec.Port)
+		assert.Equal("foo.node.dc1.consul.", srvRec.Target)
+		assert.Equal(uint32(0), srvRec.Hdr.Ttl)
+
+		cnameRec, ok := in.Extra[0].(*dns.A)
+		assert.True(ok)
+		assert.Equal("foo.node.dc1.consul.", cnameRec.Hdr.Name)
+		assert.Equal(uint32(0), srvRec.Hdr.Ttl)
+		assert.Equal("127.0.0.55", cnameRec.A.String())
+	}
 }
 
 func TestDNS_ExternalServiceLookup(t *testing.T) {
@@ -4611,6 +4741,93 @@ func TestDNS_ServiceLookup_FilterACL(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestDNS_ServiceLookup_MetaTXT(t *testing.T) {
+	a := NewTestAgent(t.Name(), `dns_config = { enable_additional_node_meta_txt = true }`)
+	defer a.Shutdown()
+
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "bar",
+		Address:    "127.0.0.1",
+		NodeMeta: map[string]string{
+			"key": "value",
+		},
+		Service: &structs.NodeService{
+			Service: "db",
+			Tags:    []string{"master"},
+			Port:    12345,
+		},
+	}
+
+	var out struct{}
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("db.service.consul.", dns.TypeSRV)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, a.DNSAddr())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	wantAdditional := []dns.RR{
+		&dns.A{
+			Hdr: dns.RR_Header{Name: "bar.node.dc1.consul.", Rrtype: dns.TypeA, Class: dns.ClassINET, Rdlength: 0x4},
+			A:   []byte{0x7f, 0x0, 0x0, 0x1}, // 127.0.0.1
+		},
+		&dns.TXT{
+			Hdr: dns.RR_Header{Name: "bar.node.dc1.consul.", Rrtype: dns.TypeTXT, Class: dns.ClassINET, Rdlength: 0xa},
+			Txt: []string{"key=value"},
+		},
+	}
+	verify.Values(t, "additional", in.Extra, wantAdditional)
+}
+
+func TestDNS_ServiceLookup_SuppressTXT(t *testing.T) {
+	a := NewTestAgent(t.Name(), `dns_config = { enable_additional_node_meta_txt = false }`)
+	defer a.Shutdown()
+
+	// Register a node with a service.
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "bar",
+		Address:    "127.0.0.1",
+		NodeMeta: map[string]string{
+			"key": "value",
+		},
+		Service: &structs.NodeService{
+			Service: "db",
+			Tags:    []string{"master"},
+			Port:    12345,
+		},
+	}
+
+	var out struct{}
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("db.service.consul.", dns.TypeSRV)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, a.DNSAddr())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	wantAdditional := []dns.RR{
+		&dns.A{
+			Hdr: dns.RR_Header{Name: "bar.node.dc1.consul.", Rrtype: dns.TypeA, Class: dns.ClassINET, Rdlength: 0x4},
+			A:   []byte{0x7f, 0x0, 0x0, 0x1}, // 127.0.0.1
+		},
+	}
+	verify.Values(t, "additional", in.Extra, wantAdditional)
 }
 
 func TestDNS_AddressLookup(t *testing.T) {

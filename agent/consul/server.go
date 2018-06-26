@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
+	ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -95,6 +96,16 @@ type Server struct {
 
 	// autopilotWaitGroup is used to block until Autopilot shuts down.
 	autopilotWaitGroup sync.WaitGroup
+
+	// caProvider is the current CA provider in use for Connect. This is
+	// only non-nil when we are the leader.
+	caProvider ca.Provider
+	// caProviderRoot is the CARoot that was stored along with the ca.Provider
+	// active. It's only updated in lock-step with the caProvider. This prevents
+	// races between state updates to active roots and the fetch of the provider
+	// instance.
+	caProviderRoot *structs.CARoot
+	caProviderLock sync.RWMutex
 
 	// Consul configuration
 	config *Config
@@ -1064,6 +1075,12 @@ func (s *Server) GetLANCoordinate() (lib.CoordinateSet, error) {
 		cs[name] = c
 	}
 	return cs, nil
+}
+
+// ReloadConfig is used to have the Server do an online reload of
+// relevant configuration information
+func (s *Server) ReloadConfig(config *Config) error {
+	return nil
 }
 
 // Atomically sets a readiness state flag when leadership is obtained, to indicate that server is past its barrier write

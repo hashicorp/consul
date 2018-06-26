@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/consul/autopilot"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -346,6 +347,13 @@ type Config struct {
 	// autopilot tasks, such as promoting eligible non-voters and removing
 	// dead servers.
 	AutopilotInterval time.Duration
+
+	// ConnectEnabled is whether to enable Connect features such as the CA.
+	ConnectEnabled bool
+
+	// CAConfig is used to apply the initial Connect CA configuration when
+	// bootstrapping.
+	CAConfig *structs.CAConfiguration
 }
 
 // CheckProtocolVersion validates the protocol version.
@@ -423,6 +431,13 @@ func DefaultConfig() *Config {
 			LastContactThreshold:    200 * time.Millisecond,
 			MaxTrailingLogs:         250,
 			ServerStabilizationTime: 10 * time.Second,
+		},
+
+		CAConfig: &structs.CAConfiguration{
+			Provider: "consul",
+			Config: map[string]interface{}{
+				"RotationPeriod": "2160h",
+			},
 		},
 
 		ServerHealthInterval: 2 * time.Second,

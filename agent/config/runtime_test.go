@@ -19,10 +19,11 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/pascaldekloe/goe/verify"
-	"github.com/sergi/go-diff/diffmatchpatch"
+	"github.com/stretchr/testify/require"
 )
 
 type configTest struct {
@@ -31,6 +32,7 @@ type configTest struct {
 	pre, post      func()
 	json, jsontail []string
 	hcl, hcltail   []string
+	skipformat     bool
 	privatev4      func() ([]*net.IPAddr, error)
 	publicv6       func() ([]*net.IPAddr, error)
 	patch          func(rt *RuntimeConfig)
@@ -263,6 +265,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.AdvertiseAddrLAN = ipAddr("127.0.0.1")
 				rt.AdvertiseAddrWAN = ipAddr("127.0.0.1")
 				rt.BindAddr = ipAddr("127.0.0.1")
+				rt.ConnectEnabled = true
 				rt.DevMode = true
 				rt.DisableAnonymousSignature = true
 				rt.DisableKeyringFile = true
@@ -1850,8 +1853,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				`},
 			patch: func(rt *RuntimeConfig) {
 				rt.DataDir = dataDir
-				rt.TelemetryAllowedPrefixes = []string{"foo"}
-				rt.TelemetryBlockedPrefixes = []string{"bar"}
+				rt.Telemetry.AllowedPrefixes = []string{"foo"}
+				rt.Telemetry.BlockedPrefixes = []string{"bar"}
 			},
 			warns: []string{`Filter rule must begin with either '+' or '-': "nix"`},
 		},
@@ -2068,6 +2071,127 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DataDir = dataDir
 			},
 		},
+
+		{
+			desc: "HCL service managed proxy 'upstreams'",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			hcl: []string{
+				`service {
+					name = "web"
+					port = 8080
+					connect {
+						proxy {
+							config {
+								upstreams {
+									local_bind_port = 1234
+								}
+							}
+						}
+					}
+				}`,
+			},
+			skipformat: true, // skipping JSON cause we get slightly diff types (okay)
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.Services = []*structs.ServiceDefinition{
+					&structs.ServiceDefinition{
+						Name: "web",
+						Port: 8080,
+						Connect: &structs.ServiceConnect{
+							Proxy: &structs.ServiceDefinitionConnectProxy{
+								Config: map[string]interface{}{
+									"upstreams": []map[string]interface{}{
+										map[string]interface{}{
+											"local_bind_port": 1234,
+										},
+									},
+								},
+							},
+						},
+					},
+				}
+			},
+		},
+		{
+			desc: "JSON service managed proxy 'upstreams'",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{
+				`{
+						"service": {
+							"name": "web",
+							"port": 8080,
+							"connect": {
+								"proxy": {
+									"config": {
+										"upstreams": [{
+											"local_bind_port": 1234
+										}]
+									}
+								}
+							}
+						}
+					}`,
+			},
+			skipformat: true, // skipping HCL cause we get slightly diff types (okay)
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.Services = []*structs.ServiceDefinition{
+					&structs.ServiceDefinition{
+						Name: "web",
+						Port: 8080,
+						Connect: &structs.ServiceConnect{
+							Proxy: &structs.ServiceDefinitionConnectProxy{
+								Config: map[string]interface{}{
+									"upstreams": []interface{}{
+										map[string]interface{}{
+											"local_bind_port": float64(1234),
+										},
+									},
+								},
+							},
+						},
+					},
+				}
+			},
+		},
+
+		{
+			desc: "enabling Connect allow_managed_root",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{
+				`{ "connect": { "proxy": { "allow_managed_root": true } } }`,
+			},
+			hcl: []string{
+				`connect { proxy { allow_managed_root = true } }`,
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.ConnectProxyAllowManagedRoot = true
+			},
+		},
+
+		{
+			desc: "enabling Connect allow_managed_api_registration",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{
+				`{ "connect": { "proxy": { "allow_managed_api_registration": true } } }`,
+			},
+			hcl: []string{
+				`connect { proxy { allow_managed_api_registration = true } }`,
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.ConnectProxyAllowManagedAPIRegistration = true
+			},
+		},
 	}
 
 	testConfig(t, tests, dataDir)
@@ -2089,7 +2213,7 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 
 			// json and hcl sources need to be in sync
 			// to make sure we're generating the same config
-			if len(tt.json) != len(tt.hcl) {
+			if len(tt.json) != len(tt.hcl) && !tt.skipformat {
 				t.Fatal(tt.desc, ": JSON and HCL test case out of sync")
 			}
 
@@ -2097,6 +2221,12 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 			srcs, tails := tt.json, tt.jsontail
 			if format == "hcl" {
 				srcs, tails = tt.hcl, tt.hcltail
+			}
+
+			// If we're skipping a format and the current format is empty,
+			// then skip it!
+			if tt.skipformat && len(srcs) == 0 {
+				continue
 			}
 
 			// build the description
@@ -2353,6 +2483,23 @@ func TestFullConfig(t *testing.T) {
 			],
 			"check_update_interval": "16507s",
 			"client_addr": "93.83.18.19",
+			"connect": {
+				"ca_provider": "consul",
+				"ca_config": {
+					"RotationPeriod": "90h"
+				},
+				"enabled": true,
+				"proxy_defaults": {
+					"exec_mode": "script",
+					"daemon_command": ["consul", "connect", "proxy"],
+					"script_command": ["proxyctl.sh"],
+					"config": {
+						"foo": "bar",
+						"connect_timeout_ms": 1000,
+						"pedantic_mode": true
+					}
+				}
+			},
 			"data_dir": "` + dataDir + `",
 			"datacenter": "rzo029wg",
 			"disable_anonymous_signature": true,
@@ -2417,7 +2564,9 @@ func TestFullConfig(t *testing.T) {
 				"dns": 7001,
 				"http": 7999,
 				"https": 15127,
-				"server": 3757
+				"server": 3757,
+				"proxy_min_port": 2000,
+				"proxy_max_port": 3000
 			},
 			"protocol": 30793,
 			"raft_protocol": 19016,
@@ -2613,7 +2762,16 @@ func TestFullConfig(t *testing.T) {
 							"ttl": "11222s",
 							"deregister_critical_service_after": "68482s"
 						}
-					]
+					],
+					"connect": {
+						"proxy": {
+							"exec_mode": "daemon",
+							"command": ["awesome-proxy"],
+							"config": {
+								"foo": "qux"
+							}
+						}
+					}
 				}
 			],
 			"session_ttl_min": "26627s",
@@ -2786,6 +2944,25 @@ func TestFullConfig(t *testing.T) {
 			]
 			check_update_interval = "16507s"
 			client_addr = "93.83.18.19"
+			connect {
+				ca_provider = "consul"
+				ca_config {
+					"RotationPeriod" = "90h"
+				}
+				enabled = true
+				proxy_defaults {
+					exec_mode = "script"
+					daemon_command = ["consul", "connect", "proxy"]
+					script_command = ["proxyctl.sh"]
+					config = {
+						foo = "bar"
+						# hack float since json parses numbers as float and we have to
+						# assert against the same thing
+						connect_timeout_ms = 1000.0
+						pedantic_mode = true
+					}
+				}
+			}
 			data_dir = "` + dataDir + `"
 			datacenter = "rzo029wg"
 			disable_anonymous_signature = true
@@ -2851,6 +3028,8 @@ func TestFullConfig(t *testing.T) {
 				http = 7999,
 				https = 15127
 				server = 3757
+				proxy_min_port = 2000
+				proxy_max_port = 3000
 			}
 			protocol = 30793
 			raft_protocol = 19016
@@ -3047,6 +3226,15 @@ func TestFullConfig(t *testing.T) {
 							deregister_critical_service_after = "68482s"
 						}
 					]
+					connect {
+						proxy {
+							exec_mode = "daemon"
+							command = ["awesome-proxy"]
+							config = {
+								foo = "qux"
+							}
+						}
+					}
 				}
 			]
 			session_ttl_min = "26627s"
@@ -3355,8 +3543,25 @@ func TestFullConfig(t *testing.T) {
 				DeregisterCriticalServiceAfter: 13209 * time.Second,
 			},
 		},
-		CheckUpdateInterval:       16507 * time.Second,
-		ClientAddrs:               []*net.IPAddr{ipAddr("93.83.18.19")},
+		CheckUpdateInterval:     16507 * time.Second,
+		ClientAddrs:             []*net.IPAddr{ipAddr("93.83.18.19")},
+		ConnectEnabled:          true,
+		ConnectProxyBindMinPort: 2000,
+		ConnectProxyBindMaxPort: 3000,
+		ConnectCAProvider:       "consul",
+		ConnectCAConfig: map[string]interface{}{
+			"RotationPeriod": "90h",
+		},
+		ConnectProxyAllowManagedRoot:            false,
+		ConnectProxyAllowManagedAPIRegistration: false,
+		ConnectProxyDefaultExecMode:             "script",
+		ConnectProxyDefaultDaemonCommand:        []string{"consul", "connect", "proxy"},
+		ConnectProxyDefaultScriptCommand:        []string{"proxyctl.sh"},
+		ConnectProxyDefaultConfig: map[string]interface{}{
+			"foo":                "bar",
+			"connect_timeout_ms": float64(1000),
+			"pedantic_mode":      true,
+		},
 		DNSAddrs:                  []net.Addr{tcpAddr("93.95.95.81:7001"), udpAddr("93.95.95.81:7001")},
 		DNSARecordLimit:           29907,
 		DNSAllowStale:             true,
@@ -3371,6 +3576,7 @@ func TestFullConfig(t *testing.T) {
 		DNSRecursors:              []string{"63.38.39.58", "92.49.18.18"},
 		DNSServiceTTL:             map[string]time.Duration{"*": 32030 * time.Second},
 		DNSUDPAnswerLimit:         29909,
+		DNSNodeMetaTXT:            true,
 		DataDir:                   dataDir,
 		Datacenter:                "rzo029wg",
 		DevMode:                   true,
@@ -3529,6 +3735,15 @@ func TestFullConfig(t *testing.T) {
 						DeregisterCriticalServiceAfter: 68482 * time.Second,
 					},
 				},
+				Connect: &structs.ServiceConnect{
+					Proxy: &structs.ServiceDefinitionConnectProxy{
+						ExecMode: "daemon",
+						Command:  []string{"awesome-proxy"},
+						Config: map[string]interface{}{
+							"foo": "qux",
+						},
+					},
+				},
 			},
 			{
 				ID:                "dLOXpSCI",
@@ -3606,41 +3821,43 @@ func TestFullConfig(t *testing.T) {
 				},
 			},
 		},
-		SerfAdvertiseAddrLAN:                        tcpAddr("17.99.29.16:8301"),
-		SerfAdvertiseAddrWAN:                        tcpAddr("78.63.37.19:8302"),
-		SerfBindAddrLAN:                             tcpAddr("99.43.63.15:8301"),
-		SerfBindAddrWAN:                             tcpAddr("67.88.33.19:8302"),
-		SessionTTLMin:                               26627 * time.Second,
-		SkipLeaveOnInt:                              true,
-		StartJoinAddrsLAN:                           []string{"LR3hGDoG", "MwVpZ4Up"},
-		StartJoinAddrsWAN:                           []string{"EbFSc3nA", "kwXTh623"},
-		SyslogFacility:                              "hHv79Uia",
-		TelemetryCirconusAPIApp:                     "p4QOTe9j",
-		TelemetryCirconusAPIToken:                   "E3j35V23",
-		TelemetryCirconusAPIURL:                     "mEMjHpGg",
-		TelemetryCirconusBrokerID:                   "BHlxUhed",
-		TelemetryCirconusBrokerSelectTag:            "13xy1gHm",
-		TelemetryCirconusCheckDisplayName:           "DRSlQR6n",
-		TelemetryCirconusCheckForceMetricActivation: "Ua5FGVYf",
-		TelemetryCirconusCheckID:                    "kGorutad",
-		TelemetryCirconusCheckInstanceID:            "rwoOL6R4",
-		TelemetryCirconusCheckSearchTag:             "ovT4hT4f",
-		TelemetryCirconusCheckTags:                  "prvO4uBl",
-		TelemetryCirconusSubmissionInterval:         "DolzaflP",
-		TelemetryCirconusSubmissionURL:              "gTcbS93G",
-		TelemetryDisableHostname:                    true,
-		TelemetryDogstatsdAddr:                      "0wSndumK",
-		TelemetryDogstatsdTags:                      []string{"3N81zSUB", "Xtj8AnXZ"},
-		TelemetryFilterDefault:                      true,
-		TelemetryAllowedPrefixes:                    []string{"oJotS8XJ"},
-		TelemetryBlockedPrefixes:                    []string{"cazlEhGn"},
-		TelemetryMetricsPrefix:                      "ftO6DySn",
-		TelemetryPrometheusRetentionTime:            15 * time.Second,
-		TelemetryStatsdAddr:                         "drce87cy",
-		TelemetryStatsiteAddr:                       "HpFwKB8R",
-		TLSCipherSuites:                             []uint16{tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305, tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384},
-		TLSMinVersion:                               "pAOWafkR",
-		TLSPreferServerCipherSuites:                 true,
+		SerfAdvertiseAddrLAN: tcpAddr("17.99.29.16:8301"),
+		SerfAdvertiseAddrWAN: tcpAddr("78.63.37.19:8302"),
+		SerfBindAddrLAN:      tcpAddr("99.43.63.15:8301"),
+		SerfBindAddrWAN:      tcpAddr("67.88.33.19:8302"),
+		SessionTTLMin:        26627 * time.Second,
+		SkipLeaveOnInt:       true,
+		StartJoinAddrsLAN:    []string{"LR3hGDoG", "MwVpZ4Up"},
+		StartJoinAddrsWAN:    []string{"EbFSc3nA", "kwXTh623"},
+		SyslogFacility:       "hHv79Uia",
+		Telemetry: lib.TelemetryConfig{
+			CirconusAPIApp:                     "p4QOTe9j",
+			CirconusAPIToken:                   "E3j35V23",
+			CirconusAPIURL:                     "mEMjHpGg",
+			CirconusBrokerID:                   "BHlxUhed",
+			CirconusBrokerSelectTag:            "13xy1gHm",
+			CirconusCheckDisplayName:           "DRSlQR6n",
+			CirconusCheckForceMetricActivation: "Ua5FGVYf",
+			CirconusCheckID:                    "kGorutad",
+			CirconusCheckInstanceID:            "rwoOL6R4",
+			CirconusCheckSearchTag:             "ovT4hT4f",
+			CirconusCheckTags:                  "prvO4uBl",
+			CirconusSubmissionInterval:         "DolzaflP",
+			CirconusSubmissionURL:              "gTcbS93G",
+			DisableHostname:                    true,
+			DogstatsdAddr:                      "0wSndumK",
+			DogstatsdTags:                      []string{"3N81zSUB", "Xtj8AnXZ"},
+			FilterDefault:                      true,
+			AllowedPrefixes:                    []string{"oJotS8XJ"},
+			BlockedPrefixes:                    []string{"cazlEhGn"},
+			MetricsPrefix:                      "ftO6DySn",
+			PrometheusRetentionTime:            15 * time.Second,
+			StatsdAddr:                         "drce87cy",
+			StatsiteAddr:                       "HpFwKB8R",
+		},
+		TLSCipherSuites:             []uint16{tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305, tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384},
+		TLSMinVersion:               "pAOWafkR",
+		TLSPreferServerCipherSuites: true,
 		TaggedAddresses: map[string]string{
 			"7MYgHrYH": "dALJAhLD",
 			"h6DdBy6K": "ebrr9zZ8",
@@ -4018,6 +4235,18 @@ func TestSanitize(t *testing.T) {
         }
     ],
     "ClientAddrs": [],
+    "ConnectCAConfig": {},
+    "ConnectCAProvider": "",
+    "ConnectEnabled": false,
+    "ConnectProxyAllowManagedAPIRegistration": false,
+    "ConnectProxyAllowManagedRoot": false,
+    "ConnectProxyBindMaxPort": 0,
+    "ConnectProxyBindMinPort": 0,
+    "ConnectProxyDefaultConfig": {},
+    "ConnectProxyDefaultDaemonCommand": [],
+    "ConnectProxyDefaultExecMode": "",
+    "ConnectProxyDefaultScriptCommand": [],
+    "ConnectTestDisableManagedProxies": false,
     "ConsulCoordinateUpdateBatchSize": 0,
     "ConsulCoordinateUpdateMaxBatches": 0,
     "ConsulCoordinateUpdatePeriod": "15s",
@@ -4043,6 +4272,7 @@ func TestSanitize(t *testing.T) {
     "DNSDomain": "",
     "DNSEnableTruncate": false,
     "DNSMaxStale": "0s",
+    "DNSNodeMetaTXT": false,
     "DNSNodeTTL": "0s",
     "DNSOnlyPassing": false,
     "DNSPort": 0,
@@ -4148,11 +4378,14 @@ func TestSanitize(t *testing.T) {
                 "Timeout": "0s"
             },
             "Checks": [],
+            "Connect": null,
             "EnableTagOverride": false,
             "ID": "",
+            "Kind": "",
             "Meta": {},
             "Name": "foo",
             "Port": 0,
+            "ProxyDestination": "",
             "Tags": [],
             "Token": "hidden"
         }
@@ -4168,29 +4401,31 @@ func TestSanitize(t *testing.T) {
     "TLSMinVersion": "",
     "TLSPreferServerCipherSuites": false,
     "TaggedAddresses": {},
-    "TelemetryAllowedPrefixes": [],
-    "TelemetryBlockedPrefixes": [],
-    "TelemetryCirconusAPIApp": "",
-    "TelemetryCirconusAPIToken": "hidden",
-    "TelemetryCirconusAPIURL": "",
-    "TelemetryCirconusBrokerID": "",
-    "TelemetryCirconusBrokerSelectTag": "",
-    "TelemetryCirconusCheckDisplayName": "",
-    "TelemetryCirconusCheckForceMetricActivation": "",
-    "TelemetryCirconusCheckID": "",
-    "TelemetryCirconusCheckInstanceID": "",
-    "TelemetryCirconusCheckSearchTag": "",
-    "TelemetryCirconusCheckTags": "",
-    "TelemetryCirconusSubmissionInterval": "",
-    "TelemetryCirconusSubmissionURL": "",
-    "TelemetryDisableHostname": false,
-    "TelemetryDogstatsdAddr": "",
-    "TelemetryDogstatsdTags": [],
-    "TelemetryFilterDefault": false,
-    "TelemetryMetricsPrefix": "",
-    "TelemetryPrometheusRetentionTime": "0s",
-    "TelemetryStatsdAddr": "",
-    "TelemetryStatsiteAddr": "",
+    "Telemetry":{
+        "AllowedPrefixes": [],
+        "BlockedPrefixes": [],
+        "CirconusAPIApp": "",
+        "CirconusAPIToken": "hidden",
+        "CirconusAPIURL": "",
+        "CirconusBrokerID": "",
+        "CirconusBrokerSelectTag": "",
+        "CirconusCheckDisplayName": "",
+        "CirconusCheckForceMetricActivation": "",
+        "CirconusCheckID": "",
+        "CirconusCheckInstanceID": "",
+        "CirconusCheckSearchTag": "",
+        "CirconusCheckTags": "",
+        "CirconusSubmissionInterval": "",
+        "CirconusSubmissionURL": "",
+        "DisableHostname": false,
+        "DogstatsdAddr": "",
+        "DogstatsdTags": [],
+        "FilterDefault": false,
+        "MetricsPrefix": "",
+        "PrometheusRetentionTime": "0s",
+        "StatsdAddr": "",
+        "StatsiteAddr": ""
+    },
     "TranslateWANAddrs": false,
     "UIDir": "",
     "UnixSocketGroup": "",
@@ -4210,11 +4445,7 @@ func TestSanitize(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := string(b), rtJSON; got != want {
-		dmp := diffmatchpatch.New()
-		diffs := dmp.DiffMain(want, got, false)
-		t.Fatal(dmp.DiffPrettyText(diffs))
-	}
+	require.JSONEq(t, rtJSON, string(b))
 }
 
 func splitIPPort(hostport string) (net.IP, int) {

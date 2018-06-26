@@ -1,0 +1,11 @@
+html.template-intention.template-list td.intent-allow strong {
+  @extend %with-allow;
+  visibility: hidden;
+}
+html.template-intention.template-list td.intent-deny strong {
+  @extend %with-deny;
+  visibility: hidden;
+}
+html.template-intention.template-list td.destination {
+  font-weight: $weight-semibold;
+}

@@ -8,13 +8,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/coordinate"
+	"github.com/mitchellh/mapstructure"
 	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/assert"
 )
 
 func generateUUID() (ret string) {
@@ -1146,5 +1149,211 @@ func TestFSM_Autopilot(t *testing.T) {
 	}
 	if !config.CleanupDeadServers {
 		t.Fatalf("bad: %v", config.CleanupDeadServers)
+	}
+}
+
+func TestFSM_Intention_CRUD(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	fsm, err := New(nil, os.Stderr)
+	assert.Nil(err)
+
+	// Create a new intention.
+	ixn := structs.IntentionRequest{
+		Datacenter: "dc1",
+		Op:         structs.IntentionOpCreate,
+		Intention:  structs.TestIntention(t),
+	}
+	ixn.Intention.ID = generateUUID()
+	ixn.Intention.UpdatePrecedence()
+
+	{
+		buf, err := structs.Encode(structs.IntentionRequestType, ixn)
+		assert.Nil(err)
+		assert.Nil(fsm.Apply(makeLog(buf)))
+	}
+
+	// Verify it's in the state store.
+	{
+		_, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
+		assert.Nil(err)
+
+		actual.CreateIndex, actual.ModifyIndex = 0, 0
+		actual.CreatedAt = ixn.Intention.CreatedAt
+		actual.UpdatedAt = ixn.Intention.UpdatedAt
+		assert.Equal(ixn.Intention, actual)
+	}
+
+	// Make an update
+	ixn.Op = structs.IntentionOpUpdate
+	ixn.Intention.SourceName = "api"
+	{
+		buf, err := structs.Encode(structs.IntentionRequestType, ixn)
+		assert.Nil(err)
+		assert.Nil(fsm.Apply(makeLog(buf)))
+	}
+
+	// Verify the update.
+	{
+		_, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
+		assert.Nil(err)
+
+		actual.CreateIndex, actual.ModifyIndex = 0, 0
+		actual.CreatedAt = ixn.Intention.CreatedAt
+		actual.UpdatedAt = ixn.Intention.UpdatedAt
+		assert.Equal(ixn.Intention, actual)
+	}
+
+	// Delete
+	ixn.Op = structs.IntentionOpDelete
+	{
+		buf, err := structs.Encode(structs.IntentionRequestType, ixn)
+		assert.Nil(err)
+		assert.Nil(fsm.Apply(makeLog(buf)))
+	}
+
+	// Make sure it's gone.
+	{
+		_, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
+		assert.Nil(err)
+		assert.Nil(actual)
+	}
+}
+
+func TestFSM_CAConfig(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	fsm, err := New(nil, os.Stderr)
+	assert.Nil(err)
+
+	// Set the autopilot config using a request.
+	req := structs.CARequest{
+		Op: structs.CAOpSetConfig,
+		Config: &structs.CAConfiguration{
+			Provider: "consul",
+			Config: map[string]interface{}{
+				"PrivateKey":     "asdf",
+				"RootCert":       "qwer",
+				"RotationPeriod": 90 * 24 * time.Hour,
+			},
+		},
+	}
+	buf, err := structs.Encode(structs.ConnectCARequestType, req)
+	assert.Nil(err)
+	resp := fsm.Apply(makeLog(buf))
+	if _, ok := resp.(error); ok {
+		t.Fatalf("bad: %v", resp)
+	}
+
+	// Verify key is set directly in the state store.
+	_, config, err := fsm.state.CAConfig()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	var conf *structs.ConsulCAProviderConfig
+	if err := mapstructure.WeakDecode(config.Config, &conf); err != nil {
+		t.Fatalf("error decoding config: %s, %v", err, config.Config)
+	}
+	if got, want := config.Provider, req.Config.Provider; got != want {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+	if got, want := conf.PrivateKey, "asdf"; got != want {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+	if got, want := conf.RootCert, "qwer"; got != want {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+	if got, want := conf.RotationPeriod, 90*24*time.Hour; got != want {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+
+	// Now use CAS and provide an old index
+	req.Config.Provider = "static"
+	req.Config.ModifyIndex = config.ModifyIndex - 1
+	buf, err = structs.Encode(structs.ConnectCARequestType, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp = fsm.Apply(makeLog(buf))
+	if _, ok := resp.(error); ok {
+		t.Fatalf("bad: %v", resp)
+	}
+
+	_, config, err = fsm.state.CAConfig()
+	assert.Nil(err)
+	if config.Provider != "static" {
+		t.Fatalf("bad: %v", config.Provider)
+	}
+}
+
+func TestFSM_CARoots(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	fsm, err := New(nil, os.Stderr)
+	assert.Nil(err)
+
+	// Roots
+	ca1 := connect.TestCA(t, nil)
+	ca2 := connect.TestCA(t, nil)
+	ca2.Active = false
+
+	// Create a new request.
+	req := structs.CARequest{
+		Op:    structs.CAOpSetRoots,
+		Roots: []*structs.CARoot{ca1, ca2},
+	}
+
+	{
+		buf, err := structs.Encode(structs.ConnectCARequestType, req)
+		assert.Nil(err)
+		assert.True(fsm.Apply(makeLog(buf)).(bool))
+	}
+
+	// Verify it's in the state store.
+	{
+		_, roots, err := fsm.state.CARoots(nil)
+		assert.Nil(err)
+		assert.Len(roots, 2)
+	}
+}
+
+func TestFSM_CABuiltinProvider(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	fsm, err := New(nil, os.Stderr)
+	assert.Nil(err)
+
+	// Provider state.
+	expected := &structs.CAConsulProviderState{
+		ID:         "foo",
+		PrivateKey: "a",
+		RootCert:   "b",
+		RaftIndex: structs.RaftIndex{
+			CreateIndex: 1,
+			ModifyIndex: 1,
+		},
+	}
+
+	// Create a new request.
+	req := structs.CARequest{
+		Op:            structs.CAOpSetProviderState,
+		ProviderState: expected,
+	}
+
+	{
+		buf, err := structs.Encode(structs.ConnectCARequestType, req)
+		assert.Nil(err)
+		assert.True(fsm.Apply(makeLog(buf)).(bool))
+	}
+
+	// Verify it's in the state store.
+	{
+		_, state, err := fsm.state.CAProviderState("foo")
+		assert.Nil(err)
+		assert.Equal(expected, state)
 	}
 }

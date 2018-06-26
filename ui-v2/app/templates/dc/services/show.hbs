@@ -15,16 +15,18 @@
 {{/if}}
     {{/block-slot}}
     {{#block-slot 'content'}}
-{{#if (gt item.Service.Tags.length 0)}}
+{{#if (gt item.Tags.length 0)}}
         <dl>
             <dt>Tags</dt>
-            <dd>
-                {{join ', ' item.Service.Tags}}
+            <dd data-test-tags>
+              {{#each item.Tags as |item|}}
+                <span>{{item}}</span>
+              {{/each}}
             </dd>
         </dl>
 {{/if}}
 {{#if (gt unhealthy.length 0) }}
-        <div class="unhealthy">
+        <div data-test-unhealthy class="unhealthy">
             <h2>Unhealthy Nodes</h2>
             <div>
                 <ul>
@@ -34,7 +36,7 @@
                         data-test-node=item.Node.Node
                         href=(href-to 'dc.nodes.show' item.Node.Node)
                         name=item.Node.Node
-                        address=item.Node.Address
+                        address=(concat item.Node.Address ':' item.Service.Port)
                         checks=item.Checks
                     }}
     {{/each}}
@@ -43,7 +45,7 @@
         </div>
 {{/if}}
 {{#if (gt healthy.length 0) }}
-        <div class="healthy">
+        <div data-test-healthy class="healthy">
             <h2>Healthy Nodes</h2>
             {{#list-collection
                 items=healthy
@@ -53,7 +55,7 @@
                     href=(href-to 'dc.nodes.show' item.Node.Node)
                     data-test-node=item.Node.Node
                     name=item.Node.Node
-                    address=item.Node.Address
+                    address=(concat item.Node.Address ':' item.Service.Port)
                     checks=item.Checks
                     status=item.Checks.[0].Status
                 }}
