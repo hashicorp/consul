@@ -37,10 +37,8 @@
           }
 
           & > div {
-            padding-left: 21px;
-
-            @media (min-width: 1200px) {
-              padding-left: 0;
+            @media (min-width: 992px) and (max-width: 1199px) {
+              padding-left: 21px;
             }
           }
 
@@ -77,21 +75,34 @@
             display: inline-block;
             font-size: 1.4rem;
             padding: 16px;
+            line-height: 1.7;
 
             @media (min-width: 992px) {
+              line-height: 1.4;
               padding-left: 12px;
               padding-right: 12px;
             }
 
             span {
-              background: $consul-red;
-              border-radius: 3px;
-              color: #fff;
-              font-size: 1.2rem;
-              font-weight: 700;
-              margin-right: 8px;
-              padding: 2px 9px;
-              text-transform: uppercase;
+              &:first-child {
+                background: $consul-red;
+                border-radius: 3px;
+                color: #fff;
+                font-size: 1.2rem;
+                font-weight: 700;
+                margin-right: 4px;
+                padding: 2px 9px;
+                text-transform: uppercase;
+
+                @media (min-width: 992px) {
+                  float: left;
+                  margin-right: 8px;
+                }
+              }
+
+              &:last-child {
+                display: inline-block;
+              }
             }
 
             svg {
