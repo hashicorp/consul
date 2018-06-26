@@ -79,7 +79,7 @@ PUB_GIT_ARG=
 endif
 
 ifeq ($(PUB_WEBSITE),1)
-PUB_WEBSITE_ARG=-g
+PUB_WEBSITE_ARG=-w
 else
 PUB_WEBSITE_ARG=
 endif
