@@ -94,6 +94,13 @@ export GIT_DESCRIBE
 export GOTAGS
 export GOLDFLAGS
 
+DEV_PUSH?=0
+ifeq ($(DEV_PUSH),1)
+DEV_PUSH_ARG=
+else
+DEV_PUSH_ARG=--no-push
+endif
+
 # all builds binaries for all targets
 all: bin
 
@@ -129,7 +136,7 @@ publish:
 	@$(SHELL) $(CURDIR)/build-support/scripts/publish.sh $(PUB_GIT_ARG) $(PUB_WEBSITE_ARG)
 
 dev-tree:
-	@$(SHELL) $(CURDIR)/build-support/scripts/dev.sh
+	@$(SHELL) $(CURDIR)/build-support/scripts/dev.sh $(DEV_PUSH_ARG)
 
 cov:
 	gocov test $(GOFILES) | gocov-html > /tmp/coverage.html

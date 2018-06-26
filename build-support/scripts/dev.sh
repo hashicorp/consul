@@ -43,6 +43,7 @@ function main {
    declare    build_os=""
    declare    build_arch=""
    declare -i do_git=1
+   declare -i do_push=1
    
    
    while test $# -gt 0
@@ -72,6 +73,10 @@ function main {
             do_git=0
             shift
             ;;
+         --no-push )
+            do_push=0
+            shift
+            ;;
          * )
             err_usage "ERROR: Unknown argument: '$1'"
             return 1
@@ -86,11 +91,14 @@ function main {
       status_stage "==> Commiting Dev Mode Changes"
       commit_dev_mode "${sdir}" || return 1
       
-      status_stage "==> Confirming Git Changes"
-      confirm_git_push_changes "${sdir}" || return 1
-      
-      status_stage "==> Pushing to Git"
-      git_push_ref "${sdir}" || return 1
+      if is_set "${do_push}"
+      then
+         status_stage "==> Confirming Git Changes"
+         confirm_git_push_changes "${sdir}" || return 1
+         
+         status_stage "==> Pushing to Git"
+         git_push_ref "${sdir}" || return 1
+      fi
    fi
    
    return 0
