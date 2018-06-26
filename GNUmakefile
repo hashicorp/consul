@@ -84,6 +84,9 @@ else
 PUB_WEBSITE_ARG=
 endif
 
+NOGOX?=1
+
+export NOGOX
 export GO_BUILD_TAG
 export UI_BUILD_TAG
 export UI_LEGACY_BUILD_TAG
@@ -93,6 +96,7 @@ export GIT_DIRTY
 export GIT_DESCRIBE
 export GOTAGS
 export GOLDFLAGS
+
 
 DEV_PUSH?=0
 ifeq ($(DEV_PUSH),1)
