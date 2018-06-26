@@ -14,14 +14,10 @@ To enable the full functionality of Istio, multiple services must
 be deployed. For the control plane: Pilot, Mixer, and Citadel must be
 deployed and for the data plane an Envoy sidecar is deployed. Additionally,
 Istio requires a 3rd party service catalog from Kubernetes, Consul, Eureka,
-or others. At a minimum, three Istio-dedicated services along with at
+or others. Finally, Istio requires an external system for storing state,
+typically etcd. At a minimum, three Istio-dedicated services along with at
 least one separate distributed system (in addition to Istio) must be
-configured for the full functionality of Istio.
-
-Istio plans to work on any platform, but currently has a hard dependency
-on the Kubernetes API. While the documentation covers connecting non-Kubernetes
-services, it assumes that a Kubernetes deployment exists for the control
-plane.
+configured to use the full functionality of Istio.
 
 Istio provides layer 7 features for path-based routing, traffic shaping,
 load balancing, and telemetry. Access control policies can be configured
@@ -75,3 +71,9 @@ Because Consul's service connection feature "Connect" is built-in, it
 inherits the operational stability of Consul. Consul has been in production
 for large companies since 2014 and is known to be deployed on as many as
 50,000 nodes in a single cluster.
+
+This comparison is based on our own limited usage of Istio as well as
+talking to Istio users. If you feel there are inaccurate statements in this
+comparison, please click "Edit This Page" in the footer of this page and
+propose edits. We strive for technical accuracy and will review and update
+this post for inaccuracies as quickly as possible.
