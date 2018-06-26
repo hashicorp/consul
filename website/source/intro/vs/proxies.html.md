@@ -49,7 +49,7 @@ by the user.
 
 Further, by supporting a pluggable data plane model, the right proxy can be
 deployed as needed. For non-performance critical applications, the built-in
-proxy can be used. For performance critical applicaiotns, Envoy can be used.
+proxy can be used. For performance critical applications, Envoy can be used.
 For some applications that may require hardware, a hardware load balancer
 such an F5 appliance may be deployed. Consul provides an API for all of these
 solutions to be integrated.
