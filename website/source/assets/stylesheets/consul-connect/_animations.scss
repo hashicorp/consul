@@ -32,10 +32,6 @@
   & #c-box-8 {
     opacity: 0.5;
   }
-
-  & #c-loading-bar > rect:last-child {
-    width: 0;
-  }
 }
 
 #configuration-solution-animation {
@@ -60,9 +56,6 @@
   & #s-service-box-8 {
     opacity: 0.5;
   }
-  & #s-progress-indicator {
-    width: 0;
-  }
   & #s-dots {
     opacity: 0;
   }
@@ -82,7 +75,7 @@
   }
 
   & #c-computer {
-    opacity: .12;
+    opacity: 0.12;
   }
 
   & #c-computer-to-load-balancers #c-arrow-down {
