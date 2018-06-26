@@ -128,6 +128,7 @@ function main {
          fi
          status_stage "==> Building UI"
          build_ui "${sdir}" "${image}" || return 1
+         status_stage "==> UI V2 Built with embedded version: $(cat ${sdir}/pkg/web_ui/v2/index.html | sed -n -e 's/.*CONSUL_VERSION%22%3A%22//p' | sed -n -e 's/%22%2C%22.*//p')"
          ;;
       ui-legacy )
          if is_set "${refresh}"
