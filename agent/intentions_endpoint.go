@@ -212,6 +212,14 @@ func (s *HTTPServer) IntentionSpecificGet(id string, resp http.ResponseWriter, r
 			return nil, nil
 		}
 
+		// Not ideal, but there are a number of error scenarios that are not
+		// user error (400). We look for a specific case of invalid UUID
+		// to detect a parameter error and return a 400 response. The error
+		// is not a constant type or message, so we have to use strings.Contains
+		if strings.Contains(err.Error(), "UUID") {
+			return nil, BadRequestError{Reason: err.Error()}
+		}
+
 		return nil, err
 	}
 
