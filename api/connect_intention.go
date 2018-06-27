@@ -1,7 +1,9 @@
 package api
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"time"
 )
 
@@ -172,7 +174,10 @@ func (h *Connect) IntentionGet(id string, q *QueryOptions) (*Intention, *QueryMe
 	if resp.StatusCode == 404 {
 		return nil, qm, nil
 	} else if resp.StatusCode != 200 {
-		return nil, nil, fmt.Errorf("Unexpected response code: %d", resp.StatusCode)
+		var buf bytes.Buffer
+		io.Copy(&buf, resp.Body)
+		return nil, nil, fmt.Errorf(
+			"Unexpected response %d: %s", resp.StatusCode, buf.String())
 	}
 
 	var out Intention
