@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/coredns/coredns/plugin/cache/freq"
-	"github.com/coredns/coredns/plugin/pkg/response"
 	"github.com/miekg/dns"
 )
 
@@ -86,59 +85,4 @@ func (i *item) toMsg(m *dns.Msg, now time.Time) *dns.Msg {
 func (i *item) ttl(now time.Time) int {
 	ttl := int(i.origTTL) - int(now.UTC().Sub(i.stored).Seconds())
 	return ttl
-}
-
-func minMsgTTL(m *dns.Msg, mt response.Type) time.Duration {
-	if mt != response.NoError && mt != response.NameError && mt != response.NoData {
-		return 0
-	}
-
-	// No data to examine, return a short ttl as a fail safe.
-	if len(m.Answer)+len(m.Ns)+len(m.Extra) == 0 {
-		return failSafeTTL
-	}
-
-	minTTL := maxTTL
-	for _, r := range m.Answer {
-		switch mt {
-		case response.NameError, response.NoData:
-			if r.Header().Rrtype == dns.TypeSOA {
-				minTTL = time.Duration(r.(*dns.SOA).Minttl) * time.Second
-			}
-		case response.NoError, response.Delegation:
-			if r.Header().Ttl < uint32(minTTL.Seconds()) {
-				minTTL = time.Duration(r.Header().Ttl) * time.Second
-			}
-		}
-	}
-	for _, r := range m.Ns {
-		switch mt {
-		case response.NameError, response.NoData:
-			if r.Header().Rrtype == dns.TypeSOA {
-				minTTL = time.Duration(r.(*dns.SOA).Minttl) * time.Second
-			}
-		case response.NoError, response.Delegation:
-			if r.Header().Ttl < uint32(minTTL.Seconds()) {
-				minTTL = time.Duration(r.Header().Ttl) * time.Second
-			}
-		}
-	}
-
-	for _, r := range m.Extra {
-		if r.Header().Rrtype == dns.TypeOPT {
-			// OPT records use TTL field for extended rcode and flags
-			continue
-		}
-		switch mt {
-		case response.NameError, response.NoData:
-			if r.Header().Rrtype == dns.TypeSOA {
-				minTTL = time.Duration(r.(*dns.SOA).Minttl) * time.Second
-			}
-		case response.NoError, response.Delegation:
-			if r.Header().Ttl < uint32(minTTL.Seconds()) {
-				minTTL = time.Duration(r.Header().Ttl) * time.Second
-			}
-		}
-	}
-	return minTTL
 }

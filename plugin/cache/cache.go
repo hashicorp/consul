@@ -9,6 +9,7 @@ import (
 
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/pkg/cache"
+	"github.com/coredns/coredns/plugin/pkg/dnsutil"
 	"github.com/coredns/coredns/plugin/pkg/response"
 	"github.com/coredns/coredns/request"
 
@@ -158,7 +159,7 @@ func (w *ResponseWriter) WriteMsg(res *dns.Msg) error {
 		duration = w.nttl
 	}
 
-	msgTTL := minMsgTTL(res, mt)
+	msgTTL := dnsutil.MinimalTTL(res, mt)
 	if msgTTL < duration {
 		duration = msgTTL
 	}
@@ -226,9 +227,8 @@ func (w *ResponseWriter) Write(buf []byte) (int, error) {
 }
 
 const (
-	maxTTL      = 1 * time.Hour
-	maxNTTL     = 30 * time.Minute
-	failSafeTTL = 5 * time.Second
+	maxTTL  = dnsutil.MaximumDefaulTTL
+	maxNTTL = dnsutil.MaximumDefaulTTL / 2
 
 	defaultCap = 10000 // default capacity of the cache.
 

@@ -7,6 +7,10 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+	"time"
+
+	"github.com/coredns/coredns/plugin/pkg/dnsutil"
+	"github.com/coredns/coredns/plugin/pkg/response"
 
 	"github.com/miekg/dns"
 )
@@ -129,8 +133,11 @@ func (s *ServerHTTPS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	buf, _ := dw.Msg.Pack()
 
+	mt, _ := response.Typify(dw.Msg, time.Now().UTC())
+	age := dnsutil.MinimalTTL(dw.Msg, mt)
+
 	w.Header().Set("Content-Type", mimeTypeDOH)
-	w.Header().Set("Cache-Control", "max-age=128") // TODO(issues/1823): implement proper fix.
+	w.Header().Set("Cache-Control", fmt.Sprintf("max-age=%f", age.Seconds()))
 	w.Header().Set("Content-Length", strconv.Itoa(len(buf)))
 	w.WriteHeader(http.StatusOK)
 

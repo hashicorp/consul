@@ -1,4 +1,4 @@
-package cache
+package dnsutil
 
 import (
 	"testing"
@@ -12,7 +12,7 @@ import (
 
 // See https://github.com/kubernetes/dns/issues/121, add some specific tests for those use cases.
 
-func TestMinMsgTTL(t *testing.T) {
+func TestMinimalTTL(t *testing.T) {
 	m := new(dns.Msg)
 	m.SetQuestion("z.alm.im.", dns.TypeA)
 	m.Ns = []dns.RR{
@@ -25,7 +25,7 @@ func TestMinMsgTTL(t *testing.T) {
 	if mt != response.NoData {
 		t.Fatalf("Expected type to be response.NoData, got %s", mt)
 	}
-	dur := minMsgTTL(m, mt) // minTTL on msg is 3600 (neg. ttl on SOA)
+	dur := MinimalTTL(m, mt) // minTTL on msg is 3600 (neg. ttl on SOA)
 	if dur != time.Duration(3600*time.Second) {
 		t.Fatalf("Expected minttl duration to be %d, got %d", 3600, dur)
 	}
@@ -35,13 +35,13 @@ func TestMinMsgTTL(t *testing.T) {
 	if mt != response.NameError {
 		t.Fatalf("Expected type to be response.NameError, got %s", mt)
 	}
-	dur = minMsgTTL(m, mt) // minTTL on msg is 3600 (neg. ttl on SOA)
+	dur = MinimalTTL(m, mt) // minTTL on msg is 3600 (neg. ttl on SOA)
 	if dur != time.Duration(3600*time.Second) {
 		t.Fatalf("Expected minttl duration to be %d, got %d", 3600, dur)
 	}
 }
 
-func BenchmarkMinMsgTTL(b *testing.B) {
+func BenchmarkMinimalTTL(b *testing.B) {
 	m := new(dns.Msg)
 	m.SetQuestion("example.org.", dns.TypeA)
 	m.Ns = []dns.RR{
@@ -64,9 +64,9 @@ func BenchmarkMinMsgTTL(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		dur := minMsgTTL(m, mt)
+		dur := MinimalTTL(m, mt)
 		if dur != 1000*time.Second {
-			b.Fatalf("Wrong minMsgTTL %d, expected %d", dur, 1000*time.Second)
+			b.Fatalf("Wrong MinimalTTL %d, expected %d", dur, 1000*time.Second)
 		}
 	}
 }
