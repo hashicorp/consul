@@ -424,10 +424,17 @@ function build_consul_local {
          do
             outdir="pkg.bin.new/${extra_dir}${os}_${arch}"
             osarch="${os}/${arch}"
-            if test "${osarch}" == "darwin/arm" -o "${osarch}" == "darwin/arm64"
+            if test "${osarch}" == "darwin/arm" -o "${osarch}" == "darwin/arm64" -o "${osarch}" == "freebsd/arm64" -o "${osarch}" == "windows/arm" -o "${osarch}" == "windows/arm64"
             then
                continue
             fi
+            
+            if test "${os}" == "solaris" -a "${arch}" != "amd64"
+            then
+               continue 
+            fi
+            
+            echo "--->   ${osarch}"
             
             mkdir -p "${outdir}"
             CGO_ENABLED=0 GOOS=${os} GOARCH=${arch} go install -ldflags "${GOLDFLAGS}" -tags "${GOTAGS}" && cp "${MAIN_GOPATH}/bin/consul" "${outdir}/consul"

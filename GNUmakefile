@@ -108,7 +108,8 @@ endif
 # all builds binaries for all targets
 all: bin
 
-bin: tools dev-build
+bin: tools
+	@$(SHELL) $(CURDIR)/build-support/scripts/build-local.sh
 
 # dev creates binaries for testing locally - these are put into ./bin and $GOPATH
 dev: changelogfmt vendorfmt dev-build
