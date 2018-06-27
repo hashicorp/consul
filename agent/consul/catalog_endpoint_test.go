@@ -50,6 +50,37 @@ func TestCatalog_Register(t *testing.T) {
 	}
 }
 
+func TestCatalog_RegisterNoID(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	arg := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "db",
+			Tags:    []string{"master"},
+			Port:    8000,
+		},
+	}
+	var out struct{}
+
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
+
+	var ns structs.IndexedNodeServices
+	nodeArgs := structs.NodeSpecificRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+	}
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &nodeArgs, &ns))
+	require.NotEqual(t, types.NodeID(""), ns.NodeServices.Node.ID)
+}
+
 func TestCatalog_RegisterService_InvalidAddress(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServer(t)
