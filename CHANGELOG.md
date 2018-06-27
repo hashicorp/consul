@@ -1,5 +1,9 @@
 ## UNRELEASED
 
+BUG FIXES:
+
+* catalog: Ensure all registered services have IDs and auto-gen them if need be. [[GH-4249](https://github.com/hashicorp/consul/issues/4249)]
+
 ## 1.2.0 (June 26, 2018)
 
 FEATURES:
