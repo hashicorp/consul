@@ -2,6 +2,7 @@ package federation
 
 import (
 	"github.com/coredns/coredns/plugin/kubernetes"
+	"github.com/coredns/coredns/plugin/pkg/watch"
 
 	api "k8s.io/api/core/v1"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,6 +16,9 @@ func (APIConnFederationTest) Stop() error                            { return ni
 func (APIConnFederationTest) SvcIndexReverse(string) []*api.Service  { return nil }
 func (APIConnFederationTest) EpIndexReverse(string) []*api.Endpoints { return nil }
 func (APIConnFederationTest) Modified() int64                        { return 0 }
+func (APIConnFederationTest) SetWatchChan(watch.Chan)                {}
+func (APIConnFederationTest) Watch(string) error                     { return nil }
+func (APIConnFederationTest) StopWatching(string)                    {}
 
 func (APIConnFederationTest) PodIndex(string) []*api.Pod {
 	a := []*api.Pod{{

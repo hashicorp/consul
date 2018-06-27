@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
+	"github.com/coredns/coredns/plugin/pkg/watch"
 	"github.com/coredns/coredns/plugin/test"
 
 	"github.com/miekg/dns"
@@ -22,6 +23,9 @@ func (APIConnReverseTest) EpIndex(string) []*api.Endpoints { return nil }
 func (APIConnReverseTest) EndpointsList() []*api.Endpoints { return nil }
 func (APIConnReverseTest) ServiceList() []*api.Service     { return nil }
 func (APIConnReverseTest) Modified() int64                 { return 0 }
+func (APIConnReverseTest) SetWatchChan(watch.Chan)         {}
+func (APIConnReverseTest) Watch(string) error              { return nil }
+func (APIConnReverseTest) StopWatching(string)             {}
 
 func (APIConnReverseTest) SvcIndex(svc string) []*api.Service {
 	if svc != "svc1.testns" {
