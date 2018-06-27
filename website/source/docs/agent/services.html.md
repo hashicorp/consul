@@ -35,7 +35,7 @@ example shows all possible fields, but note that only a few are required.
     "address": "",
     "meta": {
       "meta": "for my service"
-    }
+    },
     "port": 8000,
     "enable_tag_override": false,
     "checks": [
