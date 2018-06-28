@@ -125,6 +125,7 @@
     img {
       max-height: 240px;
       object-fit: cover;
+      font-family: 'object-fit: cover;';
       width: 100%;
 
       @media (min-width: 450px) {
@@ -151,25 +152,22 @@
 
       span {
         display: inline-block;
-        padding-left: 30px;
         position: relative;
 
-        &:before {
-          content: "";
-          background: url("/assets/images/consul-connect/icons/video.svg")
-            no-repeat center center;
-          width: 20px;
-          height: 20px;
-          position: absolute;
-          top: 0;
-          left: 0;
+        &:first-child {
+          padding-left: 30px;
+
+          &:before {
+            content: "";
+            background: url("/assets/images/consul-connect/icons/video.svg")
+              no-repeat center center;
+            width: 20px;
+            height: 20px;
+            position: absolute;
+            top: 0;
+            left: 0;
+          }
         }
-      }
-
-      a {
-        color: $consul-black;
-        display: inline-block;
-        position: relative;
 
         &:last-child {
           font-weight: 600;

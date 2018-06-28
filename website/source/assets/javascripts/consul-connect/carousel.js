@@ -1,3 +1,5 @@
+objectFitImages()
+
 var qs = document.querySelector.bind(document)
 var qsa = document.querySelectorAll.bind(document)
 

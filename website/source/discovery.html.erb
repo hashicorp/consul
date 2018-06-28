@@ -233,8 +233,8 @@ web-frontend.service.consul. 0 IN A <code class='keyword'>10.0.1.109</code></cod
         <h2>Case Studies</h2>
       </div>
       <div class='g-carousel'>
-        <div class="siema">
-          <div class='card' href='#'>
+        <div class='siema'>
+          <a class='card' href='https://www.hashicorp.com/resources/twitch-driving-towards-a-modern-infrastructure'>
             <div>
               <img src='/assets/images/consul-connect/case-studies/case-study_01.jpg' alt=''>
             </div>
@@ -242,10 +242,10 @@ web-frontend.service.consul. 0 IN A <code class='keyword'>10.0.1.109</code></cod
               <span class='tag video'>Video</span>
               <h4>Twitch - Driving Towards a Modern Infrastructure</h4>
               <p>In this talk from HashiConf 2015, Tarrant Rollins discusses how Twitch uses HashiCorp Consul to overcome legacy infrastructure and solve complex problems.</p>
-              <a href='https://www.hashicorp.com/resources/twitch-driving-towards-a-modern-infrastructure'>Watch</a>
+              <span>Watch</span>
             </div>
-          </div>
-          <div class='card' href='#'>
+          </a>
+          <a class='card' href='https://www.hashicorp.com/resources/jet-com-nomad-auto-proxy-consul-template-nginx'>
             <div>
               <img src='/assets/images/consul-connect/case-studies/case-study_02.jpg' alt=''>
             </div>
@@ -253,9 +253,9 @@ web-frontend.service.consul. 0 IN A <code class='keyword'>10.0.1.109</code></cod
               <span class='tag video'>Video</span>
               <h4>Jet.com - Nomad Auto-Proxy with Consul-Template and NGINX</h4>
               <p>Justen Walker explains how Jet.com uses HashiCorp Consul and Nomad to allow hundreds of developers to have self-service access, despite relying on NGINX static configs—and with a remarkably small DevOps team.</p>
-              <a href='https://www.hashicorp.com/resources/jet-com-nomad-auto-proxy-consul-template-nginx'>Watch</a>
+              <span>Watch</span>
             </div>
-          </div>
+          </a>
         </div>
         <ul class='pagination'>
           <li class='active'></li>
@@ -287,5 +287,6 @@ web-frontend.service.consul. 0 IN A <code class='keyword'>10.0.1.109</code></cod
 </div>
 
 <% content_for :scripts do %>
+  <script src='/assets/javascripts/consul-connect/vendor/object-fit-images.min.js' defer></script>
   <script src='/assets/javascripts/consul-connect/carousel.js' defer></script>
 <% end %>
