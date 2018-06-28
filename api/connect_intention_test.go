@@ -61,6 +61,22 @@ func TestAPI_ConnectIntentionCreateListGetUpdateDelete(t *testing.T) {
 	require.Nil(actual)
 }
 
+func TestAPI_ConnectIntentionGet_invalidId(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	connect := c.Connect()
+
+	// Get it
+	actual, _, err := connect.IntentionGet("hello", nil)
+	require.Nil(actual)
+	require.Error(err)
+	require.Contains(err.Error(), "UUID") // verify it contains the message
+}
+
 func TestAPI_ConnectIntentionMatch(t *testing.T) {
 	t.Parallel()
 

@@ -355,6 +355,23 @@ func TestIntentionsSpecificGet_good(t *testing.T) {
 	assert.Equal(ixn, value)
 }
 
+func TestIntentionsSpecificGet_invalidId(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Read intention with bad ID
+	req, _ := http.NewRequest("GET", "/v1/connect/intentions/hello", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.IntentionSpecific(resp, req)
+	require.Nil(obj)
+	require.Error(err)
+	require.IsType(BadRequestError{}, err)
+	require.Contains(err.Error(), "UUID")
+}
+
 func TestIntentionsSpecificUpdate_good(t *testing.T) {
 	t.Parallel()
 
