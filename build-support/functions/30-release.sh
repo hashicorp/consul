@@ -301,7 +301,6 @@ function check_release_one {
          ret=1
       fi
    done
-   popd > /dev/null
    
    for fname in "${expected_files[@]}"
    do      
@@ -309,6 +308,24 @@ function check_release_one {
       ret=1
    done
    
+   if test $ret -eq 0
+   then
+      if ! shasum -c -s "${CONSUL_PKG_NAME}_${2}_SHA256SUMS" 
+      then
+         err "ERROR: Failed SHA-256 hash verification"
+         shasum -c "${CONSUL_PKG_NAME}_${2}_SHA256SUMS"
+         ret=1
+      fi
+   fi
+   
+   if test $ret -eq 0 && is_set "${3}"
+   then
+      if ! gpg --verify "${CONSUL_PKG_NAME}_${2}_SHA256SUMS.sig" "${CONSUL_PKG_NAME}_${2}_SHA256SUMS" > /dev/null 2>&1
+      then
+         err "ERROR: Failed GPG verification of SHA256SUMS signature"
+         ret=1
+      fi
+   fi
    
    if test $ret -eq 0
    then
@@ -318,6 +335,8 @@ function check_release_one {
          echo "    $fname"
       done
    fi
+
+   popd > /dev/null
 
    return $ret
 }
@@ -448,12 +467,14 @@ function build_release {
       fi
       
       status_stage "==> Building UI for version ${vers}"
-      build_ui "${sdir}" "${UI_BUILD_TAG}"
+      # passing the version to override the version determined via tags
+      build_ui "${sdir}" "${UI_BUILD_TAG}" "${vers}"
       if test $? -ne 0
       then
          err "ERROR: Failed to build the ui" 
          return 1
       fi
+      status "UI Built with Version: $(ui_version "${sdir}/pkg/web_ui/v2/index.html")"
       
       status_stage "==> Building Static Assets for version ${vers}"
       build_assetfs "${sdir}" "${GO_BUILD_TAG}"

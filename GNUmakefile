@@ -79,11 +79,14 @@ PUB_GIT_ARG=
 endif
 
 ifeq ($(PUB_WEBSITE),1)
-PUB_WEBSITE_ARG=-g
+PUB_WEBSITE_ARG=-w
 else
 PUB_WEBSITE_ARG=
 endif
 
+NOGOX?=1
+
+export NOGOX
 export GO_BUILD_TAG
 export UI_BUILD_TAG
 export UI_LEGACY_BUILD_TAG
@@ -94,10 +97,19 @@ export GIT_DESCRIBE
 export GOTAGS
 export GOLDFLAGS
 
+
+DEV_PUSH?=0
+ifeq ($(DEV_PUSH),1)
+DEV_PUSH_ARG=
+else
+DEV_PUSH_ARG=--no-push
+endif
+
 # all builds binaries for all targets
 all: bin
 
-bin: tools dev-build
+bin: tools
+	@$(SHELL) $(CURDIR)/build-support/scripts/build-local.sh
 
 # dev creates binaries for testing locally - these are put into ./bin and $GOPATH
 dev: changelogfmt vendorfmt dev-build
@@ -124,12 +136,15 @@ linux:
 # dist builds binaries for all platforms and packages them for distribution
 dist:
 	@$(SHELL) $(CURDIR)/build-support/scripts/release.sh -t '$(DIST_TAG)' -b '$(DIST_BUILD)' -S '$(DIST_SIGN)' $(DIST_VERSION_ARG) $(DIST_DATE_ARG) $(DIST_REL_ARG)
-	
+
+verify:
+	@$(SHELL) $(CURDIR)/build-support/scripts/verify.sh	
+
 publish:
 	@$(SHELL) $(CURDIR)/build-support/scripts/publish.sh $(PUB_GIT_ARG) $(PUB_WEBSITE_ARG)
 
 dev-tree:
-	@$(SHELL) $(CURDIR)/build-support/scripts/dev.sh
+	@$(SHELL) $(CURDIR)/build-support/scripts/dev.sh $(DEV_PUSH_ARG)
 
 cov:
 	gocov test $(GOFILES) | gocov-html > /tmp/coverage.html

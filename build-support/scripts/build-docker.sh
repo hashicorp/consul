@@ -128,6 +128,7 @@ function main {
          fi
          status_stage "==> Building UI"
          build_ui "${sdir}" "${image}" || return 1
+         status "==> UI Built with Version: $(ui_version ${sdir}/pkg/web_ui/v2/index.html)"
          ;;
       ui-legacy )
          if is_set "${refresh}"
