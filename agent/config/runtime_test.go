@@ -2160,6 +2160,65 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		},
 
 		{
+			desc: "JSON multiple services managed proxy 'upstreams'",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{
+				`{
+						"services": [{
+							"name": "web",
+							"port": 8080,
+							"connect": {
+								"proxy": {
+									"config": {
+										"upstreams": [{
+											"local_bind_port": 1234
+										}, {
+											"local_bind_port": 2345
+										}]
+									}
+								}
+							}
+						},{
+							"name": "service-A2",
+							"port": 81,
+							"tags": [],
+							"checks": []
+						}]
+					}`,
+			},
+			skipformat: true, // skipping HCL cause we get slightly diff types (okay)
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.Services = []*structs.ServiceDefinition{
+					&structs.ServiceDefinition{
+						Name: "web",
+						Port: 8080,
+						Connect: &structs.ServiceConnect{
+							Proxy: &structs.ServiceDefinitionConnectProxy{
+								Config: map[string]interface{}{
+									"upstreams": []interface{}{
+										map[string]interface{}{
+											"local_bind_port": float64(1234),
+										},
+										map[string]interface{}{
+											"local_bind_port": float64(2345),
+										},
+									},
+								},
+							},
+						},
+					},
+					&structs.ServiceDefinition{
+						Name: "service-A2",
+						Port: 81,
+					},
+				}
+			},
+		},
+
+		{
 			desc: "enabling Connect allow_managed_root",
 			args: []string{
 				`-data-dir=` + dataDir,
