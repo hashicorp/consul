@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/coredns/coredns/plugin/test"
+	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
 )
@@ -20,12 +21,12 @@ func (m testProvider) MetadataVarNames() []string {
 	return keys
 }
 
-func (m testProvider) Metadata(ctx context.Context, w dns.ResponseWriter, r *dns.Msg, key string) (val interface{}, ok bool) {
+func (m testProvider) Metadata(ctx context.Context, state request.Request, key string) (val interface{}, ok bool) {
 	value, ok := m[key]
 	return value, ok
 }
 
-// testHandler implements plugin.Handler
+// testHandler implements plugin.Handler.
 type testHandler struct{ ctx context.Context }
 
 func (m *testHandler) Name() string { return "testHandler" }
@@ -35,7 +36,7 @@ func (m *testHandler) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns
 	return 0, nil
 }
 
-func TestMetadataServDns(t *testing.T) {
+func TestMetadataServeDNS(t *testing.T) {
 	expectedMetadata := []testProvider{
 		testProvider{"testkey1": "testvalue1"},
 		testProvider{"testkey2": 2, "testkey3": "testvalue3"},
@@ -45,9 +46,8 @@ func TestMetadataServDns(t *testing.T) {
 	for _, e := range expectedMetadata {
 		providers = append(providers, e)
 	}
-	// Fake handler which stores the resulting context
-	next := &testHandler{}
 
+	next := &testHandler{} // fake handler which stores the resulting context
 	metadata := Metadata{
 		Zones:     []string{"."},
 		Providers: providers,

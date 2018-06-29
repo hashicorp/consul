@@ -3,7 +3,7 @@ package metadata
 import (
 	"context"
 
-	"github.com/miekg/dns"
+	"github.com/coredns/coredns/request"
 )
 
 // Provider interface needs to be implemented by each plugin willing to provide
@@ -16,38 +16,32 @@ type Provider interface {
 	// Metadata is expected to return a value with metadata information by the key
 	// from 4th argument. Value can be later retrieved from context by any other plugin.
 	// If value is not available by some reason returned boolean value should be false.
-	Metadata(context.Context, dns.ResponseWriter, *dns.Msg, string) (interface{}, bool)
+	Metadata(ctx context.Context, state request.Request, variable string) (interface{}, bool)
 }
 
-// MD is metadata information storage
-type MD map[string]interface{}
+// M is metadata information storage.
+type M map[string]interface{}
 
-// metadataKey defines the type of key that is used to save metadata into the context
-type metadataKey struct{}
-
-// newMD initializes MD and attaches it to context
-func newMD(ctx context.Context) (MD, context.Context) {
-	m := MD{}
-	return m, context.WithValue(ctx, metadataKey{}, m)
-}
-
-// FromContext retrieves MD struct from context.
-func FromContext(ctx context.Context) (md MD, ok bool) {
+// FromContext retrieves the metadata from the context.
+func FromContext(ctx context.Context) (M, bool) {
 	if metadata := ctx.Value(metadataKey{}); metadata != nil {
-		if md, ok := metadata.(MD); ok {
-			return md, true
+		if m, ok := metadata.(M); ok {
+			return m, true
 		}
 	}
-	return MD{}, false
+	return M{}, false
 }
 
 // Value returns metadata value by key.
-func (m MD) Value(key string) (value interface{}, ok bool) {
+func (m M) Value(key string) (value interface{}, ok bool) {
 	value, ok = m[key]
 	return value, ok
 }
 
-// setValue adds metadata value.
-func (m MD) setValue(key string, val interface{}) {
+// SetValue sets the metadata value under key.
+func (m M) SetValue(key string, val interface{}) {
 	m[key] = val
 }
+
+// metadataKey defines the type of key that is used to save metadata into the context.
+type metadataKey struct{}

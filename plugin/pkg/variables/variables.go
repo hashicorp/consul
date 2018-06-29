@@ -7,8 +7,6 @@ import (
 	"strconv"
 
 	"github.com/coredns/coredns/request"
-
-	"github.com/miekg/dns"
 )
 
 const (
@@ -26,35 +24,32 @@ var All = []string{queryName, queryType, clientIP, clientPort, protocol, serverI
 
 // GetValue calculates and returns the data specified by the variable name.
 // Supported varNames are listed in allProvidedVars.
-func GetValue(varName string, w dns.ResponseWriter, r *dns.Msg) ([]byte, error) {
-	req := request.Request{W: w, Req: r}
+func GetValue(state request.Request, varName string) ([]byte, error) {
 	switch varName {
 	case queryName:
-		//Query name is written as ascii string
-		return []byte(req.QName()), nil
+		return []byte(state.QName()), nil
 
 	case queryType:
-		return uint16ToWire(req.QType()), nil
+		return uint16ToWire(state.QType()), nil
 
 	case clientIP:
-		return ipToWire(req.Family(), req.IP())
+		return ipToWire(state.Family(), state.IP())
 
 	case clientPort:
-		return portToWire(req.Port())
+		return portToWire(state.Port())
 
 	case protocol:
-		// Proto is written as ascii string
-		return []byte(req.Proto()), nil
+		return []byte(state.Proto()), nil
 
 	case serverIP:
-		ip, _, err := net.SplitHostPort(w.LocalAddr().String())
+		ip, _, err := net.SplitHostPort(state.W.LocalAddr().String())
 		if err != nil {
-			ip = w.RemoteAddr().String()
+			ip = state.W.RemoteAddr().String()
 		}
-		return ipToWire(family(w.RemoteAddr()), ip)
+		return ipToWire(state.Family(), ip)
 
 	case serverPort:
-		_, port, err := net.SplitHostPort(w.LocalAddr().String())
+		_, port, err := net.SplitHostPort(state.W.LocalAddr().String())
 		if err != nil {
 			port = "0"
 		}

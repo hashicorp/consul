@@ -25,23 +25,24 @@ func TestMD(t *testing.T) {
 
 	// Using one same md and ctx for all test cases
 	ctx := context.TODO()
-	md, ctx := newMD(ctx)
+	ctx = context.WithValue(ctx, metadataKey{}, M{})
+	m, _ := FromContext(ctx)
 
 	for i, tc := range tests {
 		for k, v := range tc.addValues {
-			md.setValue(k, v)
+			m.SetValue(k, v)
 		}
-		if !reflect.DeepEqual(tc.expectedValues, map[string]interface{}(md)) {
-			t.Errorf("Test %d: Expected %v but got %v", i, tc.expectedValues, md)
+		if !reflect.DeepEqual(tc.expectedValues, map[string]interface{}(m)) {
+			t.Errorf("Test %d: Expected %v but got %v", i, tc.expectedValues, m)
 		}
 
-		// Make sure that MD is recieved from context successfullly
-		mdFromContext, ok := FromContext(ctx)
+		// Make sure that md is recieved from context successfullly
+		mFromContext, ok := FromContext(ctx)
 		if !ok {
-			t.Errorf("Test %d: MD is not recieved from the context", i)
+			t.Errorf("Test %d: md is not recieved from the context", i)
 		}
-		if !reflect.DeepEqual(md, mdFromContext) {
-			t.Errorf("Test %d: MD recieved from context differs from initial. Initial: %v, from context: %v", i, md, mdFromContext)
+		if !reflect.DeepEqual(m, mFromContext) {
+			t.Errorf("Test %d: md recieved from context differs from initial. Initial: %v, from context: %v", i, m, mFromContext)
 		}
 	}
 }

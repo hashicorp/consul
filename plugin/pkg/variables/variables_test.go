@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/coredns/coredns/plugin/test"
+	"github.com/coredns/coredns/request"
+
 	"github.com/miekg/dns"
 )
 
@@ -63,8 +65,9 @@ func TestGetValue(t *testing.T) {
 		m := new(dns.Msg)
 		m.SetQuestion("example.com.", dns.TypeA)
 		m.Question[0].Qclass = dns.ClassINET
+		state := request.Request{W: &test.ResponseWriter{}, Req: m}
 
-		value, err := GetValue(tc.varName, &test.ResponseWriter{}, m)
+		value, err := GetValue(state, tc.varName)
 
 		if tc.shouldErr && err == nil {
 			t.Errorf("Test %d: Expected error, but didn't recieve", i)
