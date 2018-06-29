@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREFILE" "5" "May 2018" "CoreDNS" "CoreDNS"
+.TH "COREFILE" "5" "June 2018" "CoreDNS" "CoreDNS"
 .
 .SH "NAME"
 \fBcorefile\fR
@@ -25,22 +25,25 @@ A \fIcorefile\fR specifies the (internal) servers CoreDNS should run and what pl
 .IP "" 0
 .
 .P
-The \fBZONE\fR defines for which name this server should be called, multiple zones are allowed and should be \fIwhite space\fR separated\. You can use a "reverse" syntax to specify a reverse zone (i\.e\. ip6\.arpa and in\-addr\.arpa), but using an IP address in the CIDR notation\. The optional \fBSCHEME\fR defaults to \fBdns://\fR, but can also be \fBtls://\fR (DNS over TLS) or \fBgrpc://\fR (DNS over gRPC)\.
+The \fBZONE\fR defines for which name this server should be called, multiple zones are allowed and should be \fIwhite space\fR separated\. You can use a "reverse" syntax to specify a reverse zone (i\.e\. ip6\.arpa and in\-addr\.arpa), by using an IP address in the CIDR notation\.
 .
 .P
-Specifying a \fBZONE\fR \fIand\fR \fBPORT\fR combination multiple time for \fIdifferent\fR servers will lead to an error on startup\.
-.
-.P
-When a query comes in it is matched again all zones for all servers, the server with the longest match on the query name will receive the query\.
+The optional \fBSCHEME\fR defaults to \fBdns://\fR, but can also be \fBtls://\fR (DNS over TLS), \fBgrpc://\fR (DNS over gRPC) or \fBhttps://\fR (DNS over HTTP/2)\.
 .
 .P
 The optional \fBPORT\fR controls on which port the server will bind, this default to 53\. If you use a port number here, you \fIcan\'t\fR override it with \fB\-dns\.port\fR (coredns(1))\.
 .
 .P
-\fBPLUGIN\fR defines the plugin(s) we want to load into this server\. This is optional as well, but as server with no plugins will just return SERVFAIL for all queries\. Each plugin can have a number of properties than can have arguments, see documentation for each plugin\.
+Specifying a \fBZONE\fR \fIand\fR \fBPORT\fR combination multiple time for \fIdifferent\fR servers will lead to an error on startup\.
 .
 .P
-Comments begin with an unquoted hash \fB#\fR and continue to the end of the line\. Comments may be started anywhere on a line\.
+When a query comes in, it is matched again all zones for all servers, the server with the longest match on the query name will receive the query\.
+.
+.P
+\fBPLUGIN\fR defines the plugin(s) we want to load into this server\. This is optional as well, but as server with no plugins will just return SERVFAIL for all queries\. Each plugin can have a number of properties than can have arguments, see the documentation for each plugin\.
+.
+.P
+Comments are allowed and begin with an unquoted hash \fB#\fR and continue to the end of the line\. Comments may be started anywhere on a line\.
 .
 .P
 Enviroment variables are supported and either the Unix or Windows form may be used: \fB{$ENV_VAR_1}\fR or \fB{%ENV_VAR_2%}\fR\.

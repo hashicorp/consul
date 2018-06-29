@@ -15,24 +15,26 @@ should chain. The syntax is as follows:
 
 The **ZONE** defines for which name this server should be called, multiple zones are allowed and
 should be *white space* separated. You can use a "reverse" syntax to specify a reverse zone (i.e.
-ip6.arpa and in-addr.arpa), but using an IP address in the CIDR notation. The optional **SCHEME**
-defaults to `dns://`, but can also be `tls://` (DNS over TLS) or `grpc://` (DNS over gRPC).
+ip6.arpa and in-addr.arpa), by using an IP address in the CIDR notation.
 
-Specifying a **ZONE** *and* **PORT** combination multiple time for *different* servers will lead to
-an error on startup.
-
-When a query comes in it is matched again all zones for all servers, the server with the longest
-match on the query name will receive the query.
+The optional **SCHEME** defaults to `dns://`, but can also be `tls://` (DNS over TLS), `grpc://`
+(DNS over gRPC) or `https://` (DNS over HTTP/2).
 
 The optional **PORT** controls on which port the server will bind, this default to 53. If you use
 a port number here, you *can't* override it with `-dns.port` (coredns(1)).
 
+Specifying a **ZONE** *and* **PORT** combination multiple time for *different* servers will lead to
+an error on startup.
+
+When a query comes in, it is matched again all zones for all servers, the server with the longest
+match on the query name will receive the query.
+
 **PLUGIN** defines the plugin(s) we want to load into this server. This is optional as well, but as
 server with no plugins will just return SERVFAIL for all queries. Each plugin can have a number of
-properties than can have arguments, see documentation for each plugin.
+properties than can have arguments, see the documentation for each plugin.
 
-Comments begin with an unquoted hash `#` and continue to the end of the line. Comments may be
-started anywhere on a line.
+Comments are allowed and begin with an unquoted hash `#` and continue to the end of the line.
+Comments may be started anywhere on a line.
 
 Enviroment variables are supported and either the Unix or Windows form may be used: `{$ENV_VAR_1}`
 or `{%ENV_VAR_2%}`.

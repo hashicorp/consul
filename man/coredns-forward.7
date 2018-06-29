@@ -115,7 +115,15 @@ forward FROM TO\.\.\. {
 Also note the TLS config is "global" for the whole forwarding proxy if you need a different \fBtls\-name\fR for different upstreams you\'re out of luck\.
 .
 .P
-On each endpoint, the timeouts of the communication are set by default and automatically tuned depending early results\. \- dialTimeout by default is 30 sec, and can decrease automatically down to 100ms \- readTimeout by default is 2 sec, and can decrease automatically down to 10ms
+On each endpoint, the timeouts of the communication are set by default and automatically tuned depending early results\.
+.
+.IP "\(bu" 4
+dialTimeout by default is 30 sec, and can decrease automatically down to 100ms
+.
+.IP "\(bu" 4
+readTimeout by default is 2 sec, and can decrease automatically down to 200ms
+.
+.IP "" 0
 .
 .SH "METRICS"
 If monitoring is enabled (via the \fIprometheus\fR directive) then the following metric are exported:

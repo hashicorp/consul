@@ -107,6 +107,9 @@ kubernetes [ZONES\.\.\.] {
 .SH "HEALTH"
 This plugin implements dynamic health checking\. Currently this is limited to reporting healthy when the API has synced\.
 .
+.SH "WATCH"
+This plugin implements watch\. A client that connects to CoreDNS using \fBcoredns/client\fR can be notified of changes to A, AAAA, and SRV records for Kubernetes services and endpoints\.
+.
 .SH "EXAMPLES"
 Handle all queries in the \fBcluster\.local\fR zone\. Connect to Kubernetes in\-cluster\. Also handle all \fBin\-addr\.arpa\fR \fBPTR\fR requests for \fB10\.0\.0\.0/17\fR \. Verify the existence of pods when answering pod requests\. Resolve upstream records against \fB10\.102\.3\.10\fR\. Note we show the entire server block here:
 .
