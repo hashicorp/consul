@@ -90,16 +90,13 @@ The options below are all specified on the command-line.
   By default, this is "0.0.0.0", meaning Consul will bind to all addresses on
 the local machine and will [advertise](/docs/agent/options.html#_advertise)
 the first available private IPv4 address to the rest of the cluster. If there
-are multiple private IPv4 addresses available, Consul will exit with an error
+are **multiple private IPv4 addresses** available, Consul will exit with an error
 at startup. If you specify "[::]", Consul will
 [advertise](/docs/agent/options.html#_advertise) the first available public
-IPv6 address. If there are multiple public IPv6 addresses available, Consul
+IPv6 address. If there are **multiple public IPv6 addresses** available, Consul
 will exit with an error at startup.
   Consul uses both TCP and UDP and the same port for both. If you
-  have any firewalls, be sure to allow both protocols. In Consul 1.0 and later
-  this can be set to a space-separated list of addresses to bind to, or a
-  [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template) template
-  that can potentially resolve to multiple addresses.
+  have any firewalls, be sure to allow both protocols. **In Consul 1.0 and later this can be set to a [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template) template that needs to resolve to a single address.**
 
 * <a name="_serf_wan_bind"></a><a href="#_serf_wan_bind">`-serf-wan-bind`</a> -
   The address that should be bound to for Serf WAN gossip communications. By
