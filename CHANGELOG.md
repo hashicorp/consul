@@ -4,6 +4,7 @@ BUG FIXES:
 
 * api: Intention APIs parse error response body for error message. [[GH-4297](https://github.com/hashicorp/consul/issues/4297)]
 * agent: Intention read endpoint returns a 400 on invalid UUID [[GH-4297](https://github.com/hashicorp/consul/issues/4297)]
+* agent: Service registration with "services" does not error on Connect upstream configuration. [[GH-4308](https://github.com/hashicorp/consul/issues/4308)]
 * catalog: Ensure all registered services have IDs and auto-gen them if need be. [[GH-4249](https://github.com/hashicorp/consul/issues/4249)]
 
 ## 1.2.0 (June 26, 2018)
