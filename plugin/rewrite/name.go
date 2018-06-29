@@ -1,6 +1,7 @@
 package rewrite
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -56,7 +57,7 @@ const (
 
 // Rewrite rewrites the current request based upon exact match of the name
 // in the question section of the request
-func (rule *nameRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result {
+func (rule *nameRule) Rewrite(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) Result {
 	if rule.From == r.Question[0].Name {
 		r.Question[0].Name = rule.To
 		return RewriteDone
@@ -65,7 +66,7 @@ func (rule *nameRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result {
 }
 
 // Rewrite rewrites the current request when the name begins with the matching string
-func (rule *prefixNameRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result {
+func (rule *prefixNameRule) Rewrite(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) Result {
 	if strings.HasPrefix(r.Question[0].Name, rule.Prefix) {
 		r.Question[0].Name = rule.Replacement + strings.TrimLeft(r.Question[0].Name, rule.Prefix)
 		return RewriteDone
@@ -74,7 +75,7 @@ func (rule *prefixNameRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result {
 }
 
 // Rewrite rewrites the current request when the name ends with the matching string
-func (rule *suffixNameRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result {
+func (rule *suffixNameRule) Rewrite(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) Result {
 	if strings.HasSuffix(r.Question[0].Name, rule.Suffix) {
 		r.Question[0].Name = strings.TrimRight(r.Question[0].Name, rule.Suffix) + rule.Replacement
 		return RewriteDone
@@ -84,7 +85,7 @@ func (rule *suffixNameRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result {
 
 // Rewrite rewrites the current request based upon partial match of the
 // name in the question section of the request
-func (rule *substringNameRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result {
+func (rule *substringNameRule) Rewrite(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) Result {
 	if strings.Contains(r.Question[0].Name, rule.Substring) {
 		r.Question[0].Name = strings.Replace(r.Question[0].Name, rule.Substring, rule.Replacement, -1)
 		return RewriteDone
@@ -94,7 +95,7 @@ func (rule *substringNameRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result 
 
 // Rewrite rewrites the current request when the name in the question
 // section of the request matches a regular expression
-func (rule *regexNameRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result {
+func (rule *regexNameRule) Rewrite(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) Result {
 	regexGroups := rule.Pattern.FindStringSubmatch(r.Question[0].Name)
 	if len(regexGroups) == 0 {
 		return RewriteIgnored
