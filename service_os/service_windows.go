@@ -4,8 +4,6 @@ package service_os
 
 import (
 	wsvc "golang.org/x/sys/windows/svc"
-	"os"
-	"time"
 )
 
 type serviceWindows struct{}
@@ -20,8 +18,6 @@ func init() {
 	}
 	go func() {
 		_ = wsvc.Run("", serviceWindows{})
-		time.Sleep(4 * time.Second)
-		os.Exit(0)
 	}()
 }
 

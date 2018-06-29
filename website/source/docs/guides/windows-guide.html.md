@@ -3,7 +3,7 @@ layout: "docs"
 page_title: "Windows Service"
 sidebar_current: "docs-guides-windows-service"
 description: |-
-  For our friends running Consul on Windows, we have good news. By using the _sc_ command either on Powershell or 
+  By using the _sc_ command either on Powershell or 
   the Windows command line, you can make Consul run as a service. For more details about the _sc_ command
   the Windows page for [sc](https://msdn.microsoft.com/en-us/library/windows/desktop/ms682107(v=vs.85).aspx)
   should help you get started.
@@ -11,24 +11,23 @@ description: |-
 ---
 
 # Overview
-For our friends running Consul on Windows, we have good news. By using the _sc_ command either on Powershell or 
+By using the _sc_ command either on Powershell or 
 the Windows command line, you can make Consul run as a service. For more details about the _sc_ command
 the Windows page for [sc](https://msdn.microsoft.com/en-us/library/windows/desktop/ms682107(v=vs.85).aspx)
 should help you get started.
 
-Please remember to create a permanent directory for storing the configuration files,
-as it would be handy, if you're starting Consul with the _-config-dir_ argument. 
+Please remember to create a permanent directory for storing the configuration files. It is always
+advisable to start Consul with the _-config-dir_ option.
 
-The steps presented here assume, that the user has launched **Powershell** with _Adminstrator_ capabilities.
+The steps presented here , we assume that the user has launched Powershell with _Adminstrator_ capabilities.
 
-If you come across bugs while using Consul for Windows, do not hesitate to open an issue [here](https://github.com/hashicorp/consul/issues).
+## Running Consul run as a service on Windows
 
-## Detailed steps involved in making Consul run as a service on Windows
+### Installing Consul as a Service
+
 Download the Consul binary for your architecture.
 
-Setup your environmental _path_ variable, so that Windows can find 
-the Consul binary. (Will be handy for quick Consul commands)
-Use the _sc_ command to create a Service named **Consul**, which starts in the _dev_ mode.
+  Use the _sc_ command to create a Service named **Consul**, which starts in the _dev_ mode.
 
    ```text
    sc.exe create "Consul" binPath="Path to the Consul.exe arg1 arg2 ...argN"
@@ -44,7 +43,10 @@ Use the _sc_ command to create a Service named **Consul**, which starts in the _
    you have specified the proper path to the binary and check if you've entered the arguments correctly for the Consul
    service.
 
-After this step there are two ways to start the service:
+
+### Running Consul as a service
+
+You have two ways to start the service.
 
 * Go to the Windows Service Manager, and look for **Consul** under the 
   service name. Click the _start_ button to start the service.
@@ -64,6 +66,6 @@ After this step there are two ways to start the service:
             PID                : 8008
             FLAGS              : 
      ```
-If you followed the steps above, congratulations, you have successful made Consul 
-run as a service on Windows. The service automatically starts up during/after boot, so you don't need to
+
+The service automatically starts up during/after boot, so you don't need to
 launch Consul from the command-line again. 
