@@ -47,7 +47,7 @@ func (r *Request) IP() string {
 	return ip
 }
 
-// Port gets the (remote) Port of the client making the request.
+// Port gets the (remote) port of the client making the request.
 func (r *Request) Port() string {
 	_, port, err := net.SplitHostPort(r.W.RemoteAddr().String())
 	if err != nil {
@@ -56,10 +56,20 @@ func (r *Request) Port() string {
 	return port
 }
 
-// RemoteAddr returns the net.Addr of the client that sent the current request.
-func (r *Request) RemoteAddr() string {
-	return r.W.RemoteAddr().String()
+// LocalPort gets the local port of the server handling the request.
+func (r *Request) LocalPort() string {
+	_, port, err := net.SplitHostPort(r.W.LocalAddr().String())
+	if err != nil {
+		return "0"
+	}
+	return port
 }
+
+// RemoteAddr returns the net.Addr of the client that sent the current request.
+func (r *Request) RemoteAddr() string { return r.W.RemoteAddr().String() }
+
+// LocalAddr returns the net.Addr of the server handling the current request.
+func (r *Request) LocalAddr() string { return r.W.LocalAddr().String() }
 
 // Proto gets the protocol used as the transport. This will be udp or tcp.
 func (r *Request) Proto() string { return Proto(r.W) }
