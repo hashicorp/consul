@@ -19,7 +19,7 @@ import (
 func TestCheckAlias_remoteErrBackoff(t *testing.T) {
 	t.Parallel()
 
-	notify := mock.NewNotify()
+	notify := newMockAliasNotify()
 	chkID := types.CheckID("foo")
 	rpc := &mockRPC{}
 	chk := &CheckAlias{
@@ -45,7 +45,7 @@ func TestCheckAlias_remoteErrBackoff(t *testing.T) {
 func TestCheckAlias_remoteNoChecks(t *testing.T) {
 	t.Parallel()
 
-	notify := mock.NewNotify()
+	notify := newMockAliasNotify()
 	chkID := types.CheckID("foo")
 	rpc := &mockRPC{}
 	chk := &CheckAlias{
@@ -71,7 +71,7 @@ func TestCheckAlias_remoteNoChecks(t *testing.T) {
 func TestCheckAlias_remoteNodeFailure(t *testing.T) {
 	t.Parallel()
 
-	notify := mock.NewNotify()
+	notify := newMockAliasNotify()
 	chkID := types.CheckID("foo")
 	rpc := &mockRPC{}
 	chk := &CheckAlias{
@@ -120,7 +120,7 @@ func TestCheckAlias_remoteNodeFailure(t *testing.T) {
 func TestCheckAlias_remotePassing(t *testing.T) {
 	t.Parallel()
 
-	notify := mock.NewNotify()
+	notify := newMockAliasNotify()
 	chkID := types.CheckID("foo")
 	rpc := &mockRPC{}
 	chk := &CheckAlias{
@@ -169,7 +169,7 @@ func TestCheckAlias_remotePassing(t *testing.T) {
 func TestCheckAlias_remoteCritical(t *testing.T) {
 	t.Parallel()
 
-	notify := mock.NewNotify()
+	notify := newMockAliasNotify()
 	chkID := types.CheckID("foo")
 	rpc := &mockRPC{}
 	chk := &CheckAlias{
@@ -224,7 +224,7 @@ func TestCheckAlias_remoteCritical(t *testing.T) {
 func TestCheckAlias_remoteWarning(t *testing.T) {
 	t.Parallel()
 
-	notify := mock.NewNotify()
+	notify := newMockAliasNotify()
 	chkID := types.CheckID("foo")
 	rpc := &mockRPC{}
 	chk := &CheckAlias{
@@ -273,6 +273,27 @@ func TestCheckAlias_remoteWarning(t *testing.T) {
 			r.Fatalf("got state %q want %q", got, want)
 		}
 	})
+}
+
+type mockAliasNotify struct {
+	*mock.Notify
+}
+
+func newMockAliasNotify() *mockAliasNotify {
+	return &mockAliasNotify{
+		Notify: mock.NewNotify(),
+	}
+}
+
+func (m *mockAliasNotify) AddAliasCheck(chkID types.CheckID, serviceID string, ch chan<- struct{}) error {
+	return nil
+}
+
+func (m *mockAliasNotify) RemoveAliasCheck(chkID types.CheckID, serviceID string) {
+}
+
+func (m *mockAliasNotify) Checks() map[types.CheckID]*structs.HealthCheck {
+	return nil
 }
 
 // mockRPC is an implementation of RPC that can be used for tests. The
