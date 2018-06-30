@@ -25,9 +25,10 @@ type CheckAlias struct {
 	Node      string // Node name of the service. If empty, assumed to be this node.
 	ServiceID string // ID (not name) of the service to alias
 
-	CheckID types.CheckID // ID of this check
-	RPC     RPC           // Used to query remote server if necessary
-	Notify  CheckNotifier // For updating the check state
+	CheckID types.CheckID               // ID of this check
+	RPC     RPC                         // Used to query remote server if necessary
+	RPCReq  structs.NodeSpecificRequest // Base request
+	Notify  CheckNotifier               // For updating the check state
 
 	stop     bool
 	stopCh   chan struct{}
@@ -55,7 +56,8 @@ func (c *CheckAlias) Stop() {
 
 // run is invoked in a goroutine until Stop() is called.
 func (c *CheckAlias) run(stopCh chan struct{}) {
-	args := structs.NodeSpecificRequest{Node: c.Node}
+	args := c.RPCReq
+	args.Node = c.Node
 	args.AllowStale = true
 	args.MaxQueryTime = 1 * time.Minute
 
@@ -112,7 +114,12 @@ func (c *CheckAlias) run(stopCh chan struct{}) {
 			msg = "No checks found."
 		}
 		for _, chk := range out.HealthChecks {
-			if chk.ServiceID != c.ServiceID || chk.Node != c.Node {
+			if chk.Node != c.Node {
+				continue
+			}
+
+			// We allow ServiceID == "" so that we also check node checks
+			if chk.ServiceID != "" && chk.ServiceID != c.ServiceID {
 				continue
 			}
 

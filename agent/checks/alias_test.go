@@ -67,6 +67,55 @@ func TestCheckAlias_remoteNoChecks(t *testing.T) {
 	})
 }
 
+// If the node is critical then the check is critical
+func TestCheckAlias_remoteNodeFailure(t *testing.T) {
+	t.Parallel()
+
+	notify := mock.NewNotify()
+	chkID := types.CheckID("foo")
+	rpc := &mockRPC{}
+	chk := &CheckAlias{
+		Node:      "remote",
+		ServiceID: "web",
+		CheckID:   chkID,
+		Notify:    notify,
+		RPC:       rpc,
+	}
+
+	rpc.Reply.Store(structs.IndexedHealthChecks{
+		HealthChecks: []*structs.HealthCheck{
+			// Should ignore non-matching node
+			&structs.HealthCheck{
+				Node:      "A",
+				ServiceID: "web",
+				Status:    api.HealthCritical,
+			},
+
+			// Node failure
+			&structs.HealthCheck{
+				Node:      "remote",
+				ServiceID: "",
+				Status:    api.HealthCritical,
+			},
+
+			// Match
+			&structs.HealthCheck{
+				Node:      "remote",
+				ServiceID: "web",
+				Status:    api.HealthPassing,
+			},
+		},
+	})
+
+	chk.Start()
+	defer chk.Stop()
+	retry.Run(t, func(r *retry.R) {
+		if got, want := notify.State(chkID), api.HealthCritical; got != want {
+			r.Fatalf("got state %q want %q", got, want)
+		}
+	})
+}
+
 // Only passing should result in passing
 func TestCheckAlias_remotePassing(t *testing.T) {
 	t.Parallel()
