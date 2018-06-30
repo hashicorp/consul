@@ -175,7 +175,13 @@ web-frontend.service.consul. 0 IN A <code class='keyword'>10.0.1.109</code></cod
           <div>
             <span></span>
             <div class='code'>
-              <code>$ curl http://localhost:8500/v1/catalog/nodes?<code class='keyword'>dc=dc2</code>
+              <code>
+$ curl http://localhost:8500/v1/catalog/datacenters
+<code class='keyword'>[
+  "dc1",
+  "dc2"
+]</code>
+$ curl http://localhost:8500/v1/catalog/nodes?<code class='keyword'>dc=dc2</code>
 [
     {
         "ID": "7081dcdf-fdc0-0432-f2e8-a357d36084e1",
