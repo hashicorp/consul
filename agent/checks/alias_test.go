@@ -281,6 +281,100 @@ func TestCheckAlias_remoteWarning(t *testing.T) {
 	})
 }
 
+// Only passing should result in passing for node-only checks
+func TestCheckAlias_remoteNodeOnlyPassing(t *testing.T) {
+	t.Parallel()
+
+	notify := newMockAliasNotify()
+	chkID := types.CheckID("foo")
+	rpc := &mockRPC{}
+	chk := &CheckAlias{
+		Node:    "remote",
+		CheckID: chkID,
+		Notify:  notify,
+		RPC:     rpc,
+	}
+
+	rpc.Reply.Store(structs.IndexedHealthChecks{
+		HealthChecks: []*structs.HealthCheck{
+			// Should ignore non-matching node
+			&structs.HealthCheck{
+				Node:      "A",
+				ServiceID: "web",
+				Status:    api.HealthCritical,
+			},
+
+			// Should ignore any services
+			&structs.HealthCheck{
+				Node:      "remote",
+				ServiceID: "db",
+				Status:    api.HealthCritical,
+			},
+
+			// Match
+			&structs.HealthCheck{
+				Node:   "remote",
+				Status: api.HealthPassing,
+			},
+		},
+	})
+
+	chk.Start()
+	defer chk.Stop()
+	retry.Run(t, func(r *retry.R) {
+		if got, want := notify.State(chkID), api.HealthPassing; got != want {
+			r.Fatalf("got state %q want %q", got, want)
+		}
+	})
+}
+
+// Only critical should result in passing for node-only checks
+func TestCheckAlias_remoteNodeOnlyCritical(t *testing.T) {
+	t.Parallel()
+
+	notify := newMockAliasNotify()
+	chkID := types.CheckID("foo")
+	rpc := &mockRPC{}
+	chk := &CheckAlias{
+		Node:    "remote",
+		CheckID: chkID,
+		Notify:  notify,
+		RPC:     rpc,
+	}
+
+	rpc.Reply.Store(structs.IndexedHealthChecks{
+		HealthChecks: []*structs.HealthCheck{
+			// Should ignore non-matching node
+			&structs.HealthCheck{
+				Node:      "A",
+				ServiceID: "web",
+				Status:    api.HealthCritical,
+			},
+
+			// Should ignore any services
+			&structs.HealthCheck{
+				Node:      "remote",
+				ServiceID: "db",
+				Status:    api.HealthCritical,
+			},
+
+			// Match
+			&structs.HealthCheck{
+				Node:   "remote",
+				Status: api.HealthCritical,
+			},
+		},
+	})
+
+	chk.Start()
+	defer chk.Stop()
+	retry.Run(t, func(r *retry.R) {
+		if got, want := notify.State(chkID), api.HealthCritical; got != want {
+			r.Fatalf("got state %q want %q", got, want)
+		}
+	})
+}
+
 type mockAliasNotify struct {
 	*mock.Notify
 }
