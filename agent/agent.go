@@ -2029,11 +2029,6 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				existing.Stop()
 				delete(a.checkAliases, check.CheckID)
 			}
-			if chkType.Interval < checks.MinInterval {
-				a.logger.Printf("[WARN] agent: check '%s' has interval below minimum of %v",
-					check.CheckID, checks.MinInterval)
-				chkType.Interval = checks.MinInterval
-			}
 
 			var rpcReq structs.NodeSpecificRequest
 			rpcReq.Datacenter = a.config.Datacenter
