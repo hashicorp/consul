@@ -1,1 +1,0 @@
-These are protobuf-generated classes to be used for testing purposes only.
