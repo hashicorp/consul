@@ -77,7 +77,7 @@ func (c *CheckType) Empty() bool {
 
 // IsAlias checks if this is an alias check.
 func (c *CheckType) IsAlias() bool {
-	return c.AliasService != ""
+	return c.AliasNode != "" || c.AliasService != ""
 }
 
 // IsScript checks if this is a check that execs some kind of script.
