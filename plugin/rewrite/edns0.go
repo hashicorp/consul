@@ -12,6 +12,7 @@ import (
 	"github.com/coredns/coredns/plugin/metadata"
 	"github.com/coredns/coredns/plugin/pkg/variables"
 	"github.com/coredns/coredns/request"
+
 	"github.com/miekg/dns"
 )
 
@@ -287,8 +288,7 @@ func newEdns0SubnetRule(mode, action, v4BitMaskLen, v6BitMaskLen string) (*edns0
 }
 
 // fillEcsData sets the subnet data into the ecs option
-func (rule *edns0SubnetRule) fillEcsData(w dns.ResponseWriter, r *dns.Msg,
-	ecs *dns.EDNS0_SUBNET) error {
+func (rule *edns0SubnetRule) fillEcsData(w dns.ResponseWriter, r *dns.Msg, ecs *dns.EDNS0_SUBNET) error {
 
 	req := request.Request{W: w, Req: r}
 	family := req.Family()

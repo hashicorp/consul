@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/coredns/coredns/plugin"
+
 	"github.com/miekg/dns"
 )
 

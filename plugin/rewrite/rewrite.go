@@ -18,9 +18,6 @@ const (
 	RewriteIgnored Result = iota
 	// RewriteDone is returned when rewrite is done on request.
 	RewriteDone
-	// RewriteStatus is returned when rewrite is not needed and status code should be set
-	// for the request.
-	RewriteStatus
 )
 
 // These are defined processing mode.
@@ -57,11 +54,6 @@ func (rw Rewrite) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 			}
 		case RewriteIgnored:
 			break
-		case RewriteStatus:
-			// only valid for complex rules.
-			// if cRule, ok := rule.(*ComplexRule); ok && cRule.Status != 0 {
-			// return cRule.Status, nil
-			// }
 		}
 	}
 	if rw.noRevert || len(wr.ResponseRules) == 0 {
