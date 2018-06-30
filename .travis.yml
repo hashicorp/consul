@@ -15,10 +15,10 @@ git:
   depth: 3
 
 env:
-  - TEST_TYPE=coverage ETCD_VERSION=2.3.1
-  - TEST_TYPE=integration ETCD_VERSION=2.3.1
-  - TEST_TYPE=core ETCD_VERSION=2.3.1
-  - TEST_TYPE=plugin ETCD_VERSION=2.3.1
+  - TEST_TYPE=coverage ETCD_VERSION=3.3.8
+  - TEST_TYPE=integration ETCD_VERSION=3.3.8
+  - TEST_TYPE=core ETCD_VERSION=3.3.8
+  - TEST_TYPE=plugin ETCD_VERSION=3.3.8
 
 # In the Travis VM-based build environment, IPv6 networking is not
 # enabled by default. The sysctl operations below enable IPv6.

@@ -15,7 +15,6 @@ import (
 	"github.com/coredns/coredns/plugin/proxy"
 	"github.com/coredns/coredns/plugin/test"
 
-	etcdc "github.com/coreos/etcd/client"
 	"github.com/miekg/dns"
 )
 
@@ -300,12 +299,12 @@ func set(t *testing.T, e *Etcd, k string, ttl time.Duration, m *msg.Service) {
 		t.Fatal(err)
 	}
 	path, _ := msg.PathWithWildcard(k, e.PathPrefix)
-	e.Client.Set(ctxt, path, string(b), &etcdc.SetOptions{TTL: ttl})
+	e.Client.KV.Put(ctxt, path, string(b))
 }
 
 func delete(t *testing.T, e *Etcd, k string) {
 	path, _ := msg.PathWithWildcard(k, e.PathPrefix)
-	e.Client.Delete(ctxt, path, &etcdc.DeleteOptions{Recursive: false})
+	e.Client.Delete(ctxt, path)
 }
 
 func TestLookup(t *testing.T) {

@@ -65,8 +65,7 @@ func (e *Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 		// Do a fake A lookup, so we can distinguish between NODATA and NXDOMAIN
 		_, err = plugin.A(e, zone, state, nil, opt)
 	}
-
-	if e.IsNameError(err) {
+	if err != nil && e.IsNameError(err) {
 		if e.Fall.Through(state.Name()) {
 			return plugin.NextOrFailure(e.Name(), e.Next, ctx, w, r)
 		}

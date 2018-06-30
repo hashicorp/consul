@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package otgrpc.testing;
+
+message SimpleRequest {
+  int32 payload = 1;
+}
+
+message SimpleResponse {
+  int32 payload = 1;
+}
+
+service TestService {
+  rpc UnaryCall(SimpleRequest) returns (SimpleResponse);
+
+  rpc StreamingOutputCall(SimpleRequest) returns (stream SimpleResponse);
+
+  rpc StreamingInputCall(stream SimpleRequest) returns (SimpleResponse);
+
+  rpc StreamingBidirectionalCall(stream SimpleRequest) returns (stream SimpleResponse);
+}

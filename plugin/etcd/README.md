@@ -2,11 +2,11 @@
 
 ## Name
 
-*etcd* - enables reading zone data from an etcd instance.
+*etcd* - enables reading zone data from an etcd version 3 instance.
 
 ## Description
 
-The data in etcd has to be encoded as
+The data in etcd instance has to be encoded as
 a [message](https://github.com/skynetservices/skydns/blob/2fcff74cdc9f9a7dd64189a447ef27ac354b725f/msg/service.go#L26)
 like [SkyDNS](https://github.com/skynetservices/skydns). It should also work just like SkyDNS.
 
@@ -21,7 +21,7 @@ etcd [ZONES...]
 
 * **ZONES** zones etcd should be authoritative for.
 
-The path will default to `/skydns` the local etcd proxy (http://localhost:2379). If no zones are
+The path will default to `/skydns` the local etcd3 proxy (http://localhost:2379). If no zones are
 specified the block's zone will be used as the zone.
 
 If you want to `round robin` A and AAAA responses look at the `loadbalance` plugin.
@@ -169,7 +169,3 @@ dig +short skydns.local AAAA @localhost
 2003::8:1
 2003::8:2
 ~~~
-
-## Bugs
-
-Only the etcdv2 protocol is supported.

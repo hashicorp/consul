@@ -1,0 +1,13 @@
+blib/.*$
+build-cpan-dist.sh
+FixupDist.pl
+MANIFEST.bak
+MANIFEST.SKIP
+MYMETA.json
+Makefile
+Makefile.am
+Makefile.in
+pm_to_blib
+test/Makefile.am
+test/Makefile.in
+tools/FixupDist.pl

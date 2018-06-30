@@ -60,7 +60,12 @@
 [[projects]]
   name = "github.com/coreos/etcd"
   packages = [
+    "auth/authpb",
     "client",
+    "clientv3",
+    "etcdserver/api/v3rpc/rpctypes",
+    "etcdserver/etcdserverpb",
+    "mvcc/mvccpb",
     "pkg/pathutil",
     "pkg/srv",
     "pkg/types",
@@ -132,7 +137,9 @@
 [[projects]]
   name = "github.com/gogo/protobuf"
   packages = [
+    "gogoproto",
     "proto",
+    "protoc-gen-gogo/descriptor",
     "sortkeys"
   ]
   revision = "1adfc126b41513cc696b209667c8656ea7aac67c"
@@ -391,6 +398,7 @@
     "encoding/proto",
     "grpclb/grpc_lb_v1/messages",
     "grpclog",
+    "health/grpc_health_v1",
     "internal",
     "keepalive",
     "metadata",
@@ -560,6 +568,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "dbbdcbcd4c0e11f040230e43a145f113ed7e67ff2c52b2a5830e117c16a23630"
+  inputs-digest = "435926fcc83a4f1a93fd257248f2b1256eaa5a212159b07743408b8cafdbffff"
   solver-name = "gps-cdcl"
   solver-version = 1

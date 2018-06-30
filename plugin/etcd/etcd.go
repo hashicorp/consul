@@ -1,9 +1,10 @@
-// Package etcd provides the etcd backend plugin.
+// Package etcd provides the etcd version 3 backend plugin.
 package etcd
 
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -15,9 +16,18 @@ import (
 	"github.com/coredns/coredns/request"
 
 	"github.com/coredns/coredns/plugin/pkg/upstream"
-	etcdc "github.com/coreos/etcd/client"
+	etcdcv3 "github.com/coreos/etcd/clientv3"
+	"github.com/coreos/etcd/mvcc/mvccpb"
 	"github.com/miekg/dns"
 )
+
+const (
+	priority    = 10  // default priority when nothing is set
+	ttl         = 300 // default ttl when nothing is set
+	etcdTimeout = 5 * time.Second
+)
+
+var errKeyNotFound = errors.New("Key not found")
 
 // Etcd is a plugin talks to an etcd cluster.
 type Etcd struct {
@@ -26,7 +36,7 @@ type Etcd struct {
 	Zones      []string
 	PathPrefix string
 	Upstream   upstream.Upstream // Proxy for looking up names during the resolution process
-	Client     etcdc.KeysAPI
+	Client     *etcdcv3.Client
 	Ctx        context.Context
 	Stubmap    *map[string]proxy.Proxy // list of proxies for stub resolving.
 
@@ -56,10 +66,7 @@ func (e *Etcd) Lookup(state request.Request, name string, typ uint16) (*dns.Msg,
 
 // IsNameError implements the ServiceBackend interface.
 func (e *Etcd) IsNameError(err error) bool {
-	if ee, ok := err.(etcdc.Error); ok && ee.Code == etcdc.ErrorCodeKeyNotFound {
-		return true
-	}
-	return false
+	return err == errKeyNotFound
 }
 
 // Records looks up records in etcd. If exact is true, it will lookup just this
@@ -73,51 +80,50 @@ func (e *Etcd) Records(state request.Request, exact bool) ([]msg.Service, error)
 		return nil, err
 	}
 	segments := strings.Split(msg.Path(name, e.PathPrefix), "/")
-	switch {
-	case exact && r.Node.Dir:
-		return nil, nil
-	case r.Node.Dir:
-		return e.loopNodes(r.Node.Nodes, segments, star, nil)
-	default:
-		return e.loopNodes([]*etcdc.Node{r.Node}, segments, false, nil)
-	}
+	return e.loopNodes(r.Kvs, segments, star)
 }
 
-// get is a wrapper for client.Get
-func (e *Etcd) get(path string, recursive bool) (*etcdc.Response, error) {
+func (e *Etcd) get(path string, recursive bool) (*etcdcv3.GetResponse, error) {
 	ctx, cancel := context.WithTimeout(e.Ctx, etcdTimeout)
 	defer cancel()
-	r, err := e.Client.Get(ctx, path, &etcdc.GetOptions{Sort: false, Recursive: recursive})
+	if recursive == true {
+		if !strings.HasSuffix(path, "/") {
+			path = path + "/"
+		}
+		r, err := e.Client.Get(ctx, path, etcdcv3.WithPrefix())
+		if err != nil {
+			return nil, err
+		}
+		if r.Count == 0 {
+			path = strings.TrimSuffix(path, "/")
+			r, err = e.Client.Get(ctx, path)
+			if err != nil {
+				return nil, err
+			}
+			if r.Count == 0 {
+				return nil, errKeyNotFound
+			}
+		}
+		return r, nil
+	}
+
+	r, err := e.Client.Get(ctx, path)
 	if err != nil {
 		return nil, err
+	}
+	if r.Count == 0 {
+		return nil, errKeyNotFound
 	}
 	return r, nil
 }
 
-// skydns/local/skydns/east/staging/web
-// skydns/local/skydns/west/production/web
-//
-// skydns/local/skydns/*/*/web
-// skydns/local/skydns/*/web
-
-// loopNodes recursively loops through the nodes and returns all the values. The nodes' keyname
-// will be match against any wildcards when star is true.
-func (e *Etcd) loopNodes(ns []*etcdc.Node, nameParts []string, star bool, bx map[msg.Service]bool) (sx []msg.Service, err error) {
-	if bx == nil {
-		bx = make(map[msg.Service]bool)
-	}
+func (e *Etcd) loopNodes(kv []*mvccpb.KeyValue, nameParts []string, star bool) (sx []msg.Service, err error) {
+	bx := make(map[msg.Service]bool)
 Nodes:
-	for _, n := range ns {
-		if n.Dir {
-			nodes, err := e.loopNodes(n.Nodes, nameParts, star, bx)
-			if err != nil {
-				return nil, err
-			}
-			sx = append(sx, nodes...)
-			continue
-		}
+	for _, n := range kv {
 		if star {
-			keyParts := strings.Split(n.Key, "/")
+			s := string(n.Key)
+			keyParts := strings.Split(s, "/")
 			for i, n := range nameParts {
 				if i > len(keyParts)-1 {
 					// name is longer than key
@@ -132,16 +138,16 @@ Nodes:
 			}
 		}
 		serv := new(msg.Service)
-		if err := json.Unmarshal([]byte(n.Value), serv); err != nil {
+		if err := json.Unmarshal(n.Value, serv); err != nil {
 			return nil, fmt.Errorf("%s: %s", n.Key, err.Error())
 		}
-		b := msg.Service{Host: serv.Host, Port: serv.Port, Priority: serv.Priority, Weight: serv.Weight, Text: serv.Text, Key: n.Key}
+		b := msg.Service{Host: serv.Host, Port: serv.Port, Priority: serv.Priority, Weight: serv.Weight, Text: serv.Text, Key: string(n.Key)}
 		if _, ok := bx[b]; ok {
 			continue
 		}
 		bx[b] = true
 
-		serv.Key = n.Key
+		serv.Key = string(n.Key)
 		serv.TTL = e.TTL(n, serv)
 		if serv.Priority == 0 {
 			serv.Priority = priority
@@ -153,8 +159,8 @@ Nodes:
 
 // TTL returns the smaller of the etcd TTL and the service's
 // TTL. If neither of these are set (have a zero value), a default is used.
-func (e *Etcd) TTL(node *etcdc.Node, serv *msg.Service) uint32 {
-	etcdTTL := uint32(node.TTL)
+func (e *Etcd) TTL(kv *mvccpb.KeyValue, serv *msg.Service) uint32 {
+	etcdTTL := uint32(kv.Lease)
 
 	if etcdTTL == 0 && serv.TTL == 0 {
 		return ttl
@@ -170,9 +176,3 @@ func (e *Etcd) TTL(node *etcdc.Node, serv *msg.Service) uint32 {
 	}
 	return serv.TTL
 }
-
-const (
-	priority    = 10  // default priority when nothing is set
-	ttl         = 300 // default ttl when nothing is set
-	etcdTimeout = 5 * time.Second
-)

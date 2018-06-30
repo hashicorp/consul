@@ -16,17 +16,16 @@ import (
 	"github.com/coredns/coredns/plugin/test"
 	"github.com/coredns/coredns/request"
 
-	etcdc "github.com/coreos/etcd/client"
+	etcdcv3 "github.com/coreos/etcd/clientv3"
 	"github.com/miekg/dns"
 )
 
 func etcdPlugin() *etcd.Etcd {
-	etcdCfg := etcdc.Config{
+	etcdCfg := etcdcv3.Config{
 		Endpoints: []string{"http://localhost:2379"},
 	}
-	cli, _ := etcdc.New(etcdCfg)
-	client := etcdc.NewKeysAPI(cli)
-	return &etcd.Etcd{Client: client, PathPrefix: "/skydns"}
+	cli, _ := etcdcv3.New(etcdCfg)
+	return &etcd.Etcd{Client: cli, PathPrefix: "/skydns"}
 }
 
 // This test starts two coredns servers (and needs etcd). Configure a stubzones in both (that will loop) and
@@ -94,11 +93,11 @@ func set(ctx context.Context, t *testing.T, e *etcd.Etcd, k string, ttl time.Dur
 		t.Fatal(err)
 	}
 	path, _ := msg.PathWithWildcard(k, e.PathPrefix)
-	e.Client.Set(ctx, path, string(b), &etcdc.SetOptions{TTL: ttl})
+	e.Client.KV.Put(ctx, path, string(b))
 }
 
 // Copied from plugin/etcd/setup_test.go
 func delete(ctx context.Context, t *testing.T, e *etcd.Etcd, k string) {
 	path, _ := msg.PathWithWildcard(k, e.PathPrefix)
-	e.Client.Delete(ctx, path, &etcdc.DeleteOptions{Recursive: false})
+	e.Client.Delete(ctx, path)
 }
