@@ -2918,7 +2918,7 @@ func TestAgentConnectProxyConfig_Blocking(t *testing.T) {
 			},
 			"bind_address":          "127.0.0.1",
 			"local_service_address": "127.0.0.1:8000",
-			"bind_port":             float64(1234),
+			"bind_port":             int(1234),
 			"connect_timeout_ms":    float64(500),
 		},
 	}
@@ -3473,7 +3473,7 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 			wantCommand: []string{"foo.sh"},
 			wantConfig: map[string]interface{}{
 				"bind_address":          "127.0.0.1",
-				"bind_port":             float64(1024),
+				"bind_port":             int(1024),
 				"local_service_address": "127.0.0.1:9191",
 				"connect_timeout_ms":    float64(2000),
 				"telemetry": lib.TelemetryConfig{
@@ -3564,7 +3564,7 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 			wantCommand: []string{"foo.sh"},
 			wantConfig: map[string]interface{}{
 				"bind_address":          "127.0.0.1",
-				"bind_port":             float64(1024),
+				"bind_port":             int(1024),
 				"local_service_address": "127.0.0.1:9191",
 				"connect_timeout_ms":    float64(2000),
 				"telemetry": map[string]interface{}{ // No defaults merged
