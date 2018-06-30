@@ -935,6 +935,42 @@ func TestAgent_AddCheck_GRPC(t *testing.T) {
 	}
 }
 
+func TestAgent_AddCheck_Alias(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	health := &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "aliashealth",
+		Name:    "Alias health check",
+		Status:  api.HealthCritical,
+	}
+	chk := &structs.CheckType{
+		AliasService: "foo",
+	}
+	err := a.AddCheck(health, chk, false, "")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Ensure we have a check mapping
+	sChk, ok := a.State.Checks()["aliashealth"]
+	if !ok {
+		t.Fatalf("missing aliashealth check")
+	}
+
+	// Ensure our check is in the right state
+	if sChk.Status != api.HealthCritical {
+		t.Fatalf("check not critical")
+	}
+
+	// Ensure a check is setup
+	if _, ok := a.checkAliases["aliashealth"]; !ok {
+		t.Fatalf("missing aliashealth check")
+	}
+}
+
 func TestAgent_RemoveCheck(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), `
