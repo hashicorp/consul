@@ -31,7 +31,7 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 type AuthorizationConfig struct {
 	// The name of the authorization provider, such as
 	// firebaserules.googleapis.com.
-	Provider             string   `protobuf:"bytes,1,opt,name=provider" json:"provider,omitempty"`
+	Provider             string   `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -41,7 +41,7 @@ func (m *AuthorizationConfig) Reset()         { *m = AuthorizationConfig{} }
 func (m *AuthorizationConfig) String() string { return proto.CompactTextString(m) }
 func (*AuthorizationConfig) ProtoMessage()    {}
 func (*AuthorizationConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_authorization_config_8049bd02b6508303, []int{0}
+	return fileDescriptor_authorization_config_aed97ac7a3a4cb16, []int{0}
 }
 func (m *AuthorizationConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AuthorizationConfig.Unmarshal(m, b)
@@ -73,10 +73,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("google/api/experimental/authorization_config.proto", fileDescriptor_authorization_config_8049bd02b6508303)
+	proto.RegisterFile("google/api/experimental/authorization_config.proto", fileDescriptor_authorization_config_aed97ac7a3a4cb16)
 }
 
-var fileDescriptor_authorization_config_8049bd02b6508303 = []byte{
+var fileDescriptor_authorization_config_aed97ac7a3a4cb16 = []byte{
 	// 180 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x32, 0x4a, 0xcf, 0xcf, 0x4f,
 	0xcf, 0x49, 0xd5, 0x4f, 0x2c, 0xc8, 0xd4, 0x4f, 0xad, 0x28, 0x48, 0x2d, 0xca, 0xcc, 0x4d, 0xcd,

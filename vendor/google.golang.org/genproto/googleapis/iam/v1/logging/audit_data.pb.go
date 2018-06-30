@@ -25,7 +25,7 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 // `AuditLog` message.
 type AuditData struct {
 	// Policy delta between the original policy and the newly set policy.
-	PolicyDelta          *v1.PolicyDelta `protobuf:"bytes,2,opt,name=policy_delta,json=policyDelta" json:"policy_delta,omitempty"`
+	PolicyDelta          *v1.PolicyDelta `protobuf:"bytes,2,opt,name=policy_delta,json=policyDelta,proto3" json:"policy_delta,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
 	XXX_unrecognized     []byte          `json:"-"`
 	XXX_sizecache        int32           `json:"-"`

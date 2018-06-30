@@ -23,7 +23,7 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 type SourceContext struct {
 	// The path-qualified name of the .proto file that contained the associated
 	// protobuf element.  For example: `"google/protobuf/source_context.proto"`.
-	FileName             string   `protobuf:"bytes,1,opt,name=file_name,json=fileName" json:"file_name,omitempty"`
+	FileName             string   `protobuf:"bytes,1,opt,name=file_name,json=fileName,proto3" json:"file_name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

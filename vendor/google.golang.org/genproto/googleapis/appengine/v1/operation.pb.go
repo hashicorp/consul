@@ -26,24 +26,24 @@ type OperationMetadataV1 struct {
 	// `google.appengine.v1.Versions.CreateVersion`.
 	//
 	// @OutputOnly
-	Method string `protobuf:"bytes,1,opt,name=method" json:"method,omitempty"`
+	Method string `protobuf:"bytes,1,opt,name=method,proto3" json:"method,omitempty"`
 	// Time that this operation was created.
 	//
 	// @OutputOnly
-	InsertTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=insert_time,json=insertTime" json:"insert_time,omitempty"`
+	InsertTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=insert_time,json=insertTime,proto3" json:"insert_time,omitempty"`
 	// Time that this operation completed.
 	//
 	// @OutputOnly
-	EndTime *timestamp.Timestamp `protobuf:"bytes,3,opt,name=end_time,json=endTime" json:"end_time,omitempty"`
+	EndTime *timestamp.Timestamp `protobuf:"bytes,3,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
 	// User who requested this operation.
 	//
 	// @OutputOnly
-	User string `protobuf:"bytes,4,opt,name=user" json:"user,omitempty"`
+	User string `protobuf:"bytes,4,opt,name=user,proto3" json:"user,omitempty"`
 	// Name of the resource that this operation is acting on. Example:
 	// `apps/myapp/services/default`.
 	//
 	// @OutputOnly
-	Target               string   `protobuf:"bytes,5,opt,name=target" json:"target,omitempty"`
+	Target               string   `protobuf:"bytes,5,opt,name=target,proto3" json:"target,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

@@ -103,9 +103,9 @@ type IndexField struct {
 	// by [google.firestore.v1beta1.Document.fields][fields].
 	// Special field path `__name__` may be used by itself or at the end of a
 	// path. `__type__` may be used only at the end of path.
-	FieldPath string `protobuf:"bytes,1,opt,name=field_path,json=fieldPath" json:"field_path,omitempty"`
+	FieldPath string `protobuf:"bytes,1,opt,name=field_path,json=fieldPath,proto3" json:"field_path,omitempty"`
 	// The field's mode.
-	Mode                 IndexField_Mode `protobuf:"varint,2,opt,name=mode,enum=google.firestore.admin.v1beta1.IndexField_Mode" json:"mode,omitempty"`
+	Mode                 IndexField_Mode `protobuf:"varint,2,opt,name=mode,proto3,enum=google.firestore.admin.v1beta1.IndexField_Mode" json:"mode,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
 	XXX_unrecognized     []byte          `json:"-"`
 	XXX_sizecache        int32           `json:"-"`
@@ -153,14 +153,14 @@ func (m *IndexField) GetMode() IndexField_Mode {
 type Index struct {
 	// The resource name of the index.
 	// Output only.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The collection ID to which this index applies. Required.
-	CollectionId string `protobuf:"bytes,2,opt,name=collection_id,json=collectionId" json:"collection_id,omitempty"`
+	CollectionId string `protobuf:"bytes,2,opt,name=collection_id,json=collectionId,proto3" json:"collection_id,omitempty"`
 	// The fields to index.
-	Fields []*IndexField `protobuf:"bytes,3,rep,name=fields" json:"fields,omitempty"`
+	Fields []*IndexField `protobuf:"bytes,3,rep,name=fields,proto3" json:"fields,omitempty"`
 	// The state of the index.
 	// Output only.
-	State                Index_State `protobuf:"varint,6,opt,name=state,enum=google.firestore.admin.v1beta1.Index_State" json:"state,omitempty"`
+	State                Index_State `protobuf:"varint,6,opt,name=state,proto3,enum=google.firestore.admin.v1beta1.Index_State" json:"state,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
 	XXX_unrecognized     []byte      `json:"-"`
 	XXX_sizecache        int32       `json:"-"`

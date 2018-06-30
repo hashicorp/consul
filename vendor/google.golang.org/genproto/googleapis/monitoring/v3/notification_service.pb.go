@@ -38,15 +38,15 @@ type ListNotificationChannelDescriptorsRequest struct {
 	// descriptors; to retrieve a single descriptor by name, use the
 	// [GetNotificationChannelDescriptor][google.monitoring.v3.NotificationChannelService.GetNotificationChannelDescriptor]
 	// operation, instead.
-	Name string `protobuf:"bytes,4,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
 	// The maximum number of results to return in a single response. If
 	// not set to a positive number, a reasonable value will be chosen by the
 	// service.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// If non-empty, `page_token` must contain a value returned as the
 	// `next_page_token` in a previous response to request the next set
 	// of results.
-	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -103,12 +103,12 @@ func (m *ListNotificationChannelDescriptorsRequest) GetPageToken() string {
 type ListNotificationChannelDescriptorsResponse struct {
 	// The monitored resource descriptors supported for the specified
 	// project, optionally filtered.
-	ChannelDescriptors []*NotificationChannelDescriptor `protobuf:"bytes,1,rep,name=channel_descriptors,json=channelDescriptors" json:"channel_descriptors,omitempty"`
+	ChannelDescriptors []*NotificationChannelDescriptor `protobuf:"bytes,1,rep,name=channel_descriptors,json=channelDescriptors,proto3" json:"channel_descriptors,omitempty"`
 	// If not empty, indicates that there may be more results that match
 	// the request. Use the value in the `page_token` field in a
 	// subsequent request to fetch the next set of results. If empty,
 	// all results have been returned.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -160,7 +160,7 @@ func (m *ListNotificationChannelDescriptorsResponse) GetNextPageToken() string {
 type GetNotificationChannelDescriptorRequest struct {
 	// The channel type for which to execute the request. The format is
 	// `projects/[PROJECT_ID]/notificationChannelDescriptors/{channel_type}`.
-	Name                 string   `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -209,9 +209,9 @@ type CreateNotificationChannelRequest struct {
 	// written. This does not name the newly created channel. The resulting
 	// channel's name will have a normalized version of this field as a prefix,
 	// but will add `/notificationChannels/[CHANNEL_ID]` to identify the channel.
-	Name string `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	// The definition of the `NotificationChannel` to create.
-	NotificationChannel  *NotificationChannel `protobuf:"bytes,2,opt,name=notification_channel,json=notificationChannel" json:"notification_channel,omitempty"`
+	NotificationChannel  *NotificationChannel `protobuf:"bytes,2,opt,name=notification_channel,json=notificationChannel,proto3" json:"notification_channel,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -263,28 +263,28 @@ type ListNotificationChannelsRequest struct {
 	// specific channel. To query a specific channel by REST resource name, use
 	// the
 	// [`GetNotificationChannel`][google.monitoring.v3.NotificationChannelService.GetNotificationChannel] operation.
-	Name string `protobuf:"bytes,5,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,5,opt,name=name,proto3" json:"name,omitempty"`
 	// If provided, this field specifies the criteria that must be met by
 	// notification channels to be included in the response.
 	//
 	// For more details, see [sorting and
 	// filtering](/monitoring/api/v3/sorting-and-filtering).
-	Filter string `protobuf:"bytes,6,opt,name=filter" json:"filter,omitempty"`
+	Filter string `protobuf:"bytes,6,opt,name=filter,proto3" json:"filter,omitempty"`
 	// A comma-separated list of fields by which to sort the result. Supports
 	// the same set of fields as in `filter`. Entries can be prefixed with
 	// a minus sign to sort in descending rather than ascending order.
 	//
 	// For more details, see [sorting and
 	// filtering](/monitoring/api/v3/sorting-and-filtering).
-	OrderBy string `protobuf:"bytes,7,opt,name=order_by,json=orderBy" json:"order_by,omitempty"`
+	OrderBy string `protobuf:"bytes,7,opt,name=order_by,json=orderBy,proto3" json:"order_by,omitempty"`
 	// The maximum number of results to return in a single response. If
 	// not set to a positive number, a reasonable value will be chosen by the
 	// service.
-	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// If non-empty, `page_token` must contain a value returned as the
 	// `next_page_token` in a previous response to request the next set
 	// of results.
-	PageToken            string   `protobuf:"bytes,4,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -352,12 +352,12 @@ func (m *ListNotificationChannelsRequest) GetPageToken() string {
 // The `ListNotificationChannels` response.
 type ListNotificationChannelsResponse struct {
 	// The notification channels defined for the specified project.
-	NotificationChannels []*NotificationChannel `protobuf:"bytes,3,rep,name=notification_channels,json=notificationChannels" json:"notification_channels,omitempty"`
+	NotificationChannels []*NotificationChannel `protobuf:"bytes,3,rep,name=notification_channels,json=notificationChannels,proto3" json:"notification_channels,omitempty"`
 	// If not empty, indicates that there may be more results that match
 	// the request. Use the value in the `page_token` field in a
 	// subsequent request to fetch the next set of results. If empty,
 	// all results have been returned.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -405,7 +405,7 @@ func (m *ListNotificationChannelsResponse) GetNextPageToken() string {
 type GetNotificationChannelRequest struct {
 	// The channel for which to execute the request. The format is
 	// `projects/[PROJECT_ID]/notificationChannels/[CHANNEL_ID]`.
-	Name                 string   `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -445,12 +445,12 @@ func (m *GetNotificationChannelRequest) GetName() string {
 // The `UpdateNotificationChannel` request.
 type UpdateNotificationChannelRequest struct {
 	// The fields to update.
-	UpdateMask *field_mask.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask *field_mask.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	// A description of the changes to be applied to the specified
 	// notification channel. The description must provide a definition for
 	// fields to be updated; the names of these fields should also be
 	// included in the `update_mask`.
-	NotificationChannel  *NotificationChannel `protobuf:"bytes,3,opt,name=notification_channel,json=notificationChannel" json:"notification_channel,omitempty"`
+	NotificationChannel  *NotificationChannel `protobuf:"bytes,3,opt,name=notification_channel,json=notificationChannel,proto3" json:"notification_channel,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -498,12 +498,12 @@ func (m *UpdateNotificationChannelRequest) GetNotificationChannel() *Notificatio
 type DeleteNotificationChannelRequest struct {
 	// The channel for which to execute the request. The format is
 	// `projects/[PROJECT_ID]/notificationChannels/[CHANNEL_ID]`.
-	Name string `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	// If true, the notification channel will be deleted regardless of its
 	// use in alert policies (the policies will be updated to remove the
 	// channel). If false, channels that are still referenced by an existing
 	// alerting policy will fail to be deleted in a delete operation.
-	Force                bool     `protobuf:"varint,5,opt,name=force" json:"force,omitempty"`
+	Force                bool     `protobuf:"varint,5,opt,name=force,proto3" json:"force,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -550,7 +550,7 @@ func (m *DeleteNotificationChannelRequest) GetForce() bool {
 // The `SendNotificationChannelVerificationCode` request.
 type SendNotificationChannelVerificationCodeRequest struct {
 	// The notification channel to which to send a verification code.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -596,7 +596,7 @@ type GetNotificationChannelVerificationCodeRequest struct {
 	// The notification channel for which a verification code is to be generated
 	// and retrieved. This must name a channel that is already verified; if
 	// the specified channel is not verified, the request will fail.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The desired expiration time. If specified, the API will guarantee that
 	// the returned code will not be valid after the specified timestamp;
 	// however, the API cannot guarantee that the returned code will be
@@ -606,7 +606,7 @@ type GetNotificationChannelVerificationCodeRequest struct {
 	// permissible expiration (so specifying an expiration may extend the
 	// code's lifetime over omitting an expiration, even though the API does
 	// impose an upper limit on the maximum expiration that is permitted).
-	ExpireTime           *timestamp.Timestamp `protobuf:"bytes,2,opt,name=expire_time,json=expireTime" json:"expire_time,omitempty"`
+	ExpireTime           *timestamp.Timestamp `protobuf:"bytes,2,opt,name=expire_time,json=expireTime,proto3" json:"expire_time,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -660,11 +660,11 @@ type GetNotificationChannelVerificationCodeResponse struct {
 	// that have an equivalent identity (i.e. other channels of the same
 	// type with the same fingerprint such as other email channels with
 	// the same email address or other sms channels with the same number).
-	Code string `protobuf:"bytes,1,opt,name=code" json:"code,omitempty"`
+	Code string `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
 	// The expiration time associated with the code that was returned. If
 	// an expiration was provided in the request, this is the minimum of the
 	// requested expiration in the request and the max permitted expiration.
-	ExpireTime           *timestamp.Timestamp `protobuf:"bytes,2,opt,name=expire_time,json=expireTime" json:"expire_time,omitempty"`
+	ExpireTime           *timestamp.Timestamp `protobuf:"bytes,2,opt,name=expire_time,json=expireTime,proto3" json:"expire_time,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -715,7 +715,7 @@ func (m *GetNotificationChannelVerificationCodeResponse) GetExpireTime() *timest
 // The `VerifyNotificationChannel` request.
 type VerifyNotificationChannelRequest struct {
 	// The notification channel to verify.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The verification code that was delivered to the channel as
 	// a result of invoking the `SendNotificationChannelVerificationCode` API
 	// method or that was retrieved from a verified channel via
@@ -723,7 +723,7 @@ type VerifyNotificationChannelRequest struct {
 	// "G-123456" or "TKNZGhhd2EyN3I1MnRnMjRv" (in general, one is only
 	// guaranteed that the code is valid UTF-8; one should not
 	// make any assumptions regarding the structure or format of the code).
-	Code                 string   `protobuf:"bytes,2,opt,name=code" json:"code,omitempty"`
+	Code                 string   `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -946,8 +946,7 @@ func (c *notificationChannelServiceClient) VerifyNotificationChannel(ctx context
 	return out, nil
 }
 
-// Server API for NotificationChannelService service
-
+// NotificationChannelServiceServer is the server API for NotificationChannelService service.
 type NotificationChannelServiceServer interface {
 	// Lists the descriptors for supported channel types. The use of descriptors
 	// makes it possible for new channel types to be dynamically added.

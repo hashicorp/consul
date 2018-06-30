@@ -22,11 +22,11 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 // Describes a shell-style task to execute.
 type CommandTask struct {
 	// The inputs to the task.
-	Inputs *CommandTask_Inputs `protobuf:"bytes,1,opt,name=inputs" json:"inputs,omitempty"`
+	Inputs *CommandTask_Inputs `protobuf:"bytes,1,opt,name=inputs,proto3" json:"inputs,omitempty"`
 	// The expected outputs from the task.
-	ExpectedOutputs *CommandTask_Outputs `protobuf:"bytes,4,opt,name=expected_outputs,json=expectedOutputs" json:"expected_outputs,omitempty"`
+	ExpectedOutputs *CommandTask_Outputs `protobuf:"bytes,4,opt,name=expected_outputs,json=expectedOutputs,proto3" json:"expected_outputs,omitempty"`
 	// The timeouts of this task.
-	Timeouts             *CommandTask_Timeouts `protobuf:"bytes,5,opt,name=timeouts" json:"timeouts,omitempty"`
+	Timeouts             *CommandTask_Timeouts `protobuf:"bytes,5,opt,name=timeouts,proto3" json:"timeouts,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -80,7 +80,7 @@ func (m *CommandTask) GetTimeouts() *CommandTask_Timeouts {
 // Describes the inputs to a shell-style task.
 type CommandTask_Inputs struct {
 	// The command itself to run (e.g., argv)
-	Arguments []string `protobuf:"bytes,1,rep,name=arguments" json:"arguments,omitempty"`
+	Arguments []string `protobuf:"bytes,1,rep,name=arguments,proto3" json:"arguments,omitempty"`
 	// The input filesystem to be set up prior to the task beginning. The
 	// contents should be a repeated set of FileMetadata messages though other
 	// formats are allowed if better for the implementation (eg, a LUCI-style
@@ -90,9 +90,9 @@ type CommandTask_Inputs struct {
 	// metadata, in which case it may be useful to break up portions of the
 	// filesystem that change frequently (eg, specific input files) from those
 	// that don't (eg, standard header files).
-	Files []*Digest `protobuf:"bytes,2,rep,name=files" json:"files,omitempty"`
+	Files []*Digest `protobuf:"bytes,2,rep,name=files,proto3" json:"files,omitempty"`
 	// All environment variables required by the task.
-	EnvironmentVariables []*CommandTask_Inputs_EnvironmentVariable `protobuf:"bytes,3,rep,name=environment_variables,json=environmentVariables" json:"environment_variables,omitempty"`
+	EnvironmentVariables []*CommandTask_Inputs_EnvironmentVariable `protobuf:"bytes,3,rep,name=environment_variables,json=environmentVariables,proto3" json:"environment_variables,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                                  `json:"-"`
 	XXX_unrecognized     []byte                                    `json:"-"`
 	XXX_sizecache        int32                                     `json:"-"`
@@ -146,9 +146,9 @@ func (m *CommandTask_Inputs) GetEnvironmentVariables() []*CommandTask_Inputs_Env
 // An environment variable required by this task.
 type CommandTask_Inputs_EnvironmentVariable struct {
 	// The envvar name.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The envvar value.
-	Value                string   `protobuf:"bytes,2,opt,name=value" json:"value,omitempty"`
+	Value                string   `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -197,9 +197,9 @@ func (m *CommandTask_Inputs_EnvironmentVariable) GetValue() string {
 // Describes the expected outputs of the command.
 type CommandTask_Outputs struct {
 	// A list of expected files, relative to the execution root.
-	Files []string `protobuf:"bytes,1,rep,name=files" json:"files,omitempty"`
+	Files []string `protobuf:"bytes,1,rep,name=files,proto3" json:"files,omitempty"`
 	// A list of expected directories, relative to the execution root.
-	Directories          []string `protobuf:"bytes,2,rep,name=directories" json:"directories,omitempty"`
+	Directories          []string `protobuf:"bytes,2,rep,name=directories,proto3" json:"directories,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -248,19 +248,19 @@ type CommandTask_Timeouts struct {
 	// This specifies the maximum time that the task can run, excluding the
 	// time required to download inputs or upload outputs. That is, the worker
 	// will terminate the task if it runs longer than this.
-	Execution *duration.Duration `protobuf:"bytes,1,opt,name=execution" json:"execution,omitempty"`
+	Execution *duration.Duration `protobuf:"bytes,1,opt,name=execution,proto3" json:"execution,omitempty"`
 	// This specifies the maximum amount of time the task can be idle - that is,
 	// go without generating some output in either stdout or stderr. If the
 	// process is silent for more than the specified time, the worker will
 	// terminate the task.
-	Idle *duration.Duration `protobuf:"bytes,2,opt,name=idle" json:"idle,omitempty"`
+	Idle *duration.Duration `protobuf:"bytes,2,opt,name=idle,proto3" json:"idle,omitempty"`
 	// If the execution or IO timeouts are exceeded, the worker will try to
 	// gracefully terminate the task and return any existing logs. However,
 	// tasks may be hard-frozen in which case this process will fail. This
 	// timeout specifies how long to wait for a terminated task to shut down
 	// gracefully (e.g. via SIGTERM) before we bring down the hammer (e.g.
 	// SIGKILL on *nix, CTRL_BREAK_EVENT on Windows).
-	Shutdown             *duration.Duration `protobuf:"bytes,3,opt,name=shutdown" json:"shutdown,omitempty"`
+	Shutdown             *duration.Duration `protobuf:"bytes,3,opt,name=shutdown,proto3" json:"shutdown,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
 	XXX_unrecognized     []byte             `json:"-"`
 	XXX_sizecache        int32              `json:"-"`
@@ -317,12 +317,12 @@ type CommandOutputs struct {
 	// exceeded its deadline or was cancelled, the process may still produce an
 	// exit code as it is cancelled, and this will be populated, but a successful
 	// (zero) is unlikely to be correct unless the status code is OK.
-	ExitCode int32 `protobuf:"varint,1,opt,name=exit_code,json=exitCode" json:"exit_code,omitempty"`
+	ExitCode int32 `protobuf:"varint,1,opt,name=exit_code,json=exitCode,proto3" json:"exit_code,omitempty"`
 	// The output files. The blob referenced by the digest should contain
 	// one of the following (implementation-dependent):
 	//    * A marshalled DirectoryMetadata of the returned filesystem
 	//    * A LUCI-style .isolated file
-	Outputs              *Digest  `protobuf:"bytes,2,opt,name=outputs" json:"outputs,omitempty"`
+	Outputs              *Digest  `protobuf:"bytes,2,opt,name=outputs,proto3" json:"outputs,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -372,10 +372,10 @@ type CommandOverhead struct {
 	// The elapsed time between calling Accept and Complete. The server will also
 	// have its own idea of what this should be, but this excludes the overhead of
 	// the RPCs and the bot response time.
-	Duration *duration.Duration `protobuf:"bytes,1,opt,name=duration" json:"duration,omitempty"`
+	Duration *duration.Duration `protobuf:"bytes,1,opt,name=duration,proto3" json:"duration,omitempty"`
 	// The amount of time *not* spent executing the command (ie
 	// uploading/downloading files).
-	Overhead             *duration.Duration `protobuf:"bytes,2,opt,name=overhead" json:"overhead,omitempty"`
+	Overhead             *duration.Duration `protobuf:"bytes,2,opt,name=overhead,proto3" json:"overhead,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
 	XXX_unrecognized     []byte             `json:"-"`
 	XXX_sizecache        int32              `json:"-"`
@@ -427,15 +427,15 @@ type FileMetadata struct {
 	// root and must correspond to an entry in CommandTask.outputs.files. If this
 	// message is part of a Directory message, then the path is relative to the
 	// root of that directory.
-	Path string `protobuf:"bytes,1,opt,name=path" json:"path,omitempty"`
+	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
 	// A pointer to the contents of the file. The method by which a client
 	// retrieves the contents from a CAS system is not defined here.
-	Digest *Digest `protobuf:"bytes,2,opt,name=digest" json:"digest,omitempty"`
+	Digest *Digest `protobuf:"bytes,2,opt,name=digest,proto3" json:"digest,omitempty"`
 	// If the file is small enough, its contents may also or alternatively be
 	// listed here.
 	Contents []byte `protobuf:"bytes,3,opt,name=contents,proto3" json:"contents,omitempty"`
 	// Properties of the file
-	IsExecutable         bool     `protobuf:"varint,4,opt,name=is_executable,json=isExecutable" json:"is_executable,omitempty"`
+	IsExecutable         bool     `protobuf:"varint,4,opt,name=is_executable,json=isExecutable,proto3" json:"is_executable,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -497,10 +497,10 @@ func (m *FileMetadata) GetIsExecutable() bool {
 // Execution API.
 type DirectoryMetadata struct {
 	// The path of the directory, as in [FileMetadata.path][google.devtools.remoteworkers.v1test2.FileMetadata.path].
-	Path string `protobuf:"bytes,1,opt,name=path" json:"path,omitempty"`
+	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
 	// A pointer to the contents of the directory, in the form of a marshalled
 	// Directory message.
-	Digest               *Digest  `protobuf:"bytes,2,opt,name=digest" json:"digest,omitempty"`
+	Digest               *Digest  `protobuf:"bytes,2,opt,name=digest,proto3" json:"digest,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -550,12 +550,12 @@ func (m *DirectoryMetadata) GetDigest() *Digest {
 type Digest struct {
 	// A string-encoded hash (eg "1a2b3c", not the byte array [0x1a, 0x2b, 0x3c])
 	// using an implementation-defined hash algorithm (eg SHA-256).
-	Hash string `protobuf:"bytes,1,opt,name=hash" json:"hash,omitempty"`
+	Hash string `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
 	// The size of the contents. While this is not strictly required as part of an
 	// identifier (after all, any given hash will have exactly one canonical
 	// size), it's useful in almost all cases when one might want to send or
 	// retrieve blobs of content and is included here for this reason.
-	SizeBytes            int64    `protobuf:"varint,2,opt,name=size_bytes,json=sizeBytes" json:"size_bytes,omitempty"`
+	SizeBytes            int64    `protobuf:"varint,2,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -603,9 +603,9 @@ func (m *Digest) GetSizeBytes() int64 {
 // Execution API.
 type Directory struct {
 	// The files in this directory
-	Files []*FileMetadata `protobuf:"bytes,1,rep,name=files" json:"files,omitempty"`
+	Files []*FileMetadata `protobuf:"bytes,1,rep,name=files,proto3" json:"files,omitempty"`
 	// Any subdirectories
-	Directories          []*DirectoryMetadata `protobuf:"bytes,2,rep,name=directories" json:"directories,omitempty"`
+	Directories          []*DirectoryMetadata `protobuf:"bytes,2,rep,name=directories,proto3" json:"directories,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`

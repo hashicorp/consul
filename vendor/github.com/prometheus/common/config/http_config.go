@@ -85,9 +85,6 @@ func (c *HTTPClientConfig) Validate() error {
 	if c.BasicAuth != nil && (len(c.BearerToken) > 0 || len(c.BearerTokenFile) > 0) {
 		return fmt.Errorf("at most one of basic_auth, bearer_token & bearer_token_file must be configured")
 	}
-	if c.BasicAuth != nil && c.BasicAuth.Username == "" {
-		return fmt.Errorf("basic_auth requires a username")
-	}
 	if c.BasicAuth != nil && (string(c.BasicAuth.Password) != "" && c.BasicAuth.PasswordFile != "") {
 		return fmt.Errorf("at most one of basic_auth password & password_file must be configured")
 	}

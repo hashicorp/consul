@@ -28,7 +28,7 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 type Document struct {
 	// The resource name of the document, for example
 	// `projects/{project_id}/databases/{database_id}/documents/{document_path}`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The document's fields.
 	//
 	// The map keys represent field names.
@@ -53,19 +53,19 @@ type Document struct {
 	// may contain any character. Some characters, including `` ` ``, must be
 	// escaped using a `\`. For example, `` `x&y` `` represents `x&y` and
 	// `` `bak\`tik` `` represents `` bak`tik ``.
-	Fields map[string]*Value `protobuf:"bytes,2,rep,name=fields" json:"fields,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Fields map[string]*Value `protobuf:"bytes,2,rep,name=fields,proto3" json:"fields,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// Output only. The time at which the document was created.
 	//
 	// This value increases monotonically when a document is deleted then
 	// recreated. It can also be compared to values from other documents and
 	// the `read_time` of a query.
-	CreateTime *timestamp.Timestamp `protobuf:"bytes,3,opt,name=create_time,json=createTime" json:"create_time,omitempty"`
+	CreateTime *timestamp.Timestamp `protobuf:"bytes,3,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	// Output only. The time at which the document was last changed.
 	//
 	// This value is initally set to the `create_time` then increases
 	// monotonically with each change to the document. It can also be
 	// compared to values from other documents and the `read_time` of a query.
-	UpdateTime           *timestamp.Timestamp `protobuf:"bytes,4,opt,name=update_time,json=updateTime" json:"update_time,omitempty"`
+	UpdateTime           *timestamp.Timestamp `protobuf:"bytes,4,opt,name=update_time,json=updateTime,proto3" json:"update_time,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -174,37 +174,37 @@ type isValue_ValueType interface {
 }
 
 type Value_NullValue struct {
-	NullValue _struct.NullValue `protobuf:"varint,11,opt,name=null_value,json=nullValue,enum=google.protobuf.NullValue,oneof"`
+	NullValue _struct.NullValue `protobuf:"varint,11,opt,name=null_value,json=nullValue,proto3,enum=google.protobuf.NullValue,oneof"`
 }
 type Value_BooleanValue struct {
-	BooleanValue bool `protobuf:"varint,1,opt,name=boolean_value,json=booleanValue,oneof"`
+	BooleanValue bool `protobuf:"varint,1,opt,name=boolean_value,json=booleanValue,proto3,oneof"`
 }
 type Value_IntegerValue struct {
-	IntegerValue int64 `protobuf:"varint,2,opt,name=integer_value,json=integerValue,oneof"`
+	IntegerValue int64 `protobuf:"varint,2,opt,name=integer_value,json=integerValue,proto3,oneof"`
 }
 type Value_DoubleValue struct {
-	DoubleValue float64 `protobuf:"fixed64,3,opt,name=double_value,json=doubleValue,oneof"`
+	DoubleValue float64 `protobuf:"fixed64,3,opt,name=double_value,json=doubleValue,proto3,oneof"`
 }
 type Value_TimestampValue struct {
-	TimestampValue *timestamp.Timestamp `protobuf:"bytes,10,opt,name=timestamp_value,json=timestampValue,oneof"`
+	TimestampValue *timestamp.Timestamp `protobuf:"bytes,10,opt,name=timestamp_value,json=timestampValue,proto3,oneof"`
 }
 type Value_StringValue struct {
-	StringValue string `protobuf:"bytes,17,opt,name=string_value,json=stringValue,oneof"`
+	StringValue string `protobuf:"bytes,17,opt,name=string_value,json=stringValue,proto3,oneof"`
 }
 type Value_BytesValue struct {
 	BytesValue []byte `protobuf:"bytes,18,opt,name=bytes_value,json=bytesValue,proto3,oneof"`
 }
 type Value_ReferenceValue struct {
-	ReferenceValue string `protobuf:"bytes,5,opt,name=reference_value,json=referenceValue,oneof"`
+	ReferenceValue string `protobuf:"bytes,5,opt,name=reference_value,json=referenceValue,proto3,oneof"`
 }
 type Value_GeoPointValue struct {
-	GeoPointValue *latlng.LatLng `protobuf:"bytes,8,opt,name=geo_point_value,json=geoPointValue,oneof"`
+	GeoPointValue *latlng.LatLng `protobuf:"bytes,8,opt,name=geo_point_value,json=geoPointValue,proto3,oneof"`
 }
 type Value_ArrayValue struct {
-	ArrayValue *ArrayValue `protobuf:"bytes,9,opt,name=array_value,json=arrayValue,oneof"`
+	ArrayValue *ArrayValue `protobuf:"bytes,9,opt,name=array_value,json=arrayValue,proto3,oneof"`
 }
 type Value_MapValue struct {
-	MapValue *MapValue `protobuf:"bytes,6,opt,name=map_value,json=mapValue,oneof"`
+	MapValue *MapValue `protobuf:"bytes,6,opt,name=map_value,json=mapValue,proto3,oneof"`
 }
 
 func (*Value_NullValue) isValue_ValueType()      {}
@@ -523,7 +523,7 @@ func _Value_OneofSizer(msg proto.Message) (n int) {
 // An array value.
 type ArrayValue struct {
 	// Values in the array.
-	Values               []*Value `protobuf:"bytes,1,rep,name=values" json:"values,omitempty"`
+	Values               []*Value `protobuf:"bytes,1,rep,name=values,proto3" json:"values,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -568,7 +568,7 @@ type MapValue struct {
 	// expression `__.*__` are reserved. Reserved field names are forbidden except
 	// in certain documented contexts. The map keys, represented as UTF-8, must
 	// not exceed 1,500 bytes and cannot be empty.
-	Fields               map[string]*Value `protobuf:"bytes,1,rep,name=fields" json:"fields,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Fields               map[string]*Value `protobuf:"bytes,1,rep,name=fields,proto3" json:"fields,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`

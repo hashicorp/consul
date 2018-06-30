@@ -1,695 +1,695 @@
 {
-  "version": "1.0",
-  "examples": {
-    "AbortEnvironmentUpdate": [
+  "version":"1.0",
+  "examples":{
+    "AbortEnvironmentUpdate":[
       {
-        "input": {
-          "EnvironmentName": "my-env"
+        "input":{
+          "EnvironmentName":"my-env"
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
+          "output":{
           }
         },
-        "description": "The following code aborts a running application version deployment for an environment named my-env:",
-        "id": "to-abort-a-deployment-1456267848227",
-        "title": "To abort a deployment"
+        "description":"The following code aborts a running application version deployment for an environment named my-env:",
+        "id":"to-abort-a-deployment-1456267848227",
+        "title":"To abort a deployment"
       }
     ],
-    "CheckDNSAvailability": [
+    "CheckDNSAvailability":[
       {
-        "input": {
-          "CNAMEPrefix": "my-cname"
+        "input":{
+          "CNAMEPrefix":"my-cname"
         },
-        "output": {
-          "Available": true,
-          "FullyQualifiedCNAME": "my-cname.us-west-2.elasticbeanstalk.com"
+        "output":{
+          "Available":true,
+          "FullyQualifiedCNAME":"my-cname.us-west-2.elasticbeanstalk.com"
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
+          "output":{
           }
         },
-        "description": "The following operation checks the availability of the subdomain my-cname:",
-        "id": "to-check-the-availability-of-a-cname-1456268589537",
-        "title": "To check the availability of a CNAME"
+        "description":"The following operation checks the availability of the subdomain my-cname:",
+        "id":"to-check-the-availability-of-a-cname-1456268589537",
+        "title":"To check the availability of a CNAME"
       }
     ],
-    "CreateApplication": [
+    "CreateApplication":[
       {
-        "input": {
-          "ApplicationName": "my-app",
-          "Description": "my application"
+        "input":{
+          "ApplicationName":"my-app",
+          "Description":"my application"
         },
-        "output": {
-          "Application": {
-            "ApplicationName": "my-app",
-            "ConfigurationTemplates": [
+        "output":{
+          "Application":{
+            "ApplicationName":"my-app",
+            "ConfigurationTemplates":[
 
             ],
-            "DateCreated": "2015-02-12T18:32:21.181Z",
-            "DateUpdated": "2015-02-12T18:32:21.181Z",
-            "Description": "my application"
+            "DateCreated":"2015-02-12T18:32:21.181Z",
+            "DateUpdated":"2015-02-12T18:32:21.181Z",
+            "Description":"my application"
           }
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
+          "output":{
           }
         },
-        "description": "The following operation creates a new application named my-app:",
-        "id": "to-create-a-new-application-1456268895683",
-        "title": "To create a new application"
+        "description":"The following operation creates a new application named my-app:",
+        "id":"to-create-a-new-application-1456268895683",
+        "title":"To create a new application"
       }
     ],
-    "CreateApplicationVersion": [
+    "CreateApplicationVersion":[
       {
-        "input": {
-          "ApplicationName": "my-app",
-          "AutoCreateApplication": true,
-          "Description": "my-app-v1",
-          "Process": true,
-          "SourceBundle": {
-            "S3Bucket": "my-bucket",
-            "S3Key": "sample.war"
+        "input":{
+          "ApplicationName":"my-app",
+          "AutoCreateApplication":true,
+          "Description":"my-app-v1",
+          "Process":true,
+          "SourceBundle":{
+            "S3Bucket":"my-bucket",
+            "S3Key":"sample.war"
           },
-          "VersionLabel": "v1"
+          "VersionLabel":"v1"
         },
-        "output": {
-          "ApplicationVersion": {
-            "ApplicationName": "my-app",
-            "DateCreated": "2015-02-03T23:01:25.412Z",
-            "DateUpdated": "2015-02-03T23:01:25.412Z",
-            "Description": "my-app-v1",
-            "SourceBundle": {
-              "S3Bucket": "my-bucket",
-              "S3Key": "sample.war"
+        "output":{
+          "ApplicationVersion":{
+            "ApplicationName":"my-app",
+            "DateCreated":"2015-02-03T23:01:25.412Z",
+            "DateUpdated":"2015-02-03T23:01:25.412Z",
+            "Description":"my-app-v1",
+            "SourceBundle":{
+              "S3Bucket":"my-bucket",
+              "S3Key":"sample.war"
             },
-            "VersionLabel": "v1"
+            "VersionLabel":"v1"
           }
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
+          "output":{
           }
         },
-        "description": "The following operation creates a new version (v1) of an application named my-app:",
-        "id": "to-create-a-new-application-1456268895683",
-        "title": "To create a new application"
+        "description":"The following operation creates a new version (v1) of an application named my-app:",
+        "id":"to-create-a-new-application-1456268895683",
+        "title":"To create a new application"
       }
     ],
-    "CreateConfigurationTemplate": [
+    "CreateConfigurationTemplate":[
       {
-        "input": {
-          "ApplicationName": "my-app",
-          "EnvironmentId": "e-rpqsewtp2j",
-          "TemplateName": "my-app-v1"
+        "input":{
+          "ApplicationName":"my-app",
+          "EnvironmentId":"e-rpqsewtp2j",
+          "TemplateName":"my-app-v1"
         },
-        "output": {
-          "ApplicationName": "my-app",
-          "DateCreated": "2015-08-12T18:40:39Z",
-          "DateUpdated": "2015-08-12T18:40:39Z",
-          "SolutionStackName": "64bit Amazon Linux 2015.03 v2.0.0 running Tomcat 8 Java 8",
-          "TemplateName": "my-app-v1"
+        "output":{
+          "ApplicationName":"my-app",
+          "DateCreated":"2015-08-12T18:40:39Z",
+          "DateUpdated":"2015-08-12T18:40:39Z",
+          "SolutionStackName":"64bit Amazon Linux 2015.03 v2.0.0 running Tomcat 8 Java 8",
+          "TemplateName":"my-app-v1"
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
+          "output":{
           }
         },
-        "description": "The following operation creates a configuration template named my-app-v1 from the settings applied to an environment with the id e-rpqsewtp2j:",
-        "id": "to-create-a-configuration-template-1456269283586",
-        "title": "To create a configuration template"
+        "description":"The following operation creates a configuration template named my-app-v1 from the settings applied to an environment with the id e-rpqsewtp2j:",
+        "id":"to-create-a-configuration-template-1456269283586",
+        "title":"To create a configuration template"
       }
     ],
-    "CreateEnvironment": [
+    "CreateEnvironment":[
       {
-        "input": {
-          "ApplicationName": "my-app",
-          "CNAMEPrefix": "my-app",
-          "EnvironmentName": "my-env",
-          "SolutionStackName": "64bit Amazon Linux 2015.03 v2.0.0 running Tomcat 8 Java 8",
-          "VersionLabel": "v1"
+        "input":{
+          "ApplicationName":"my-app",
+          "CNAMEPrefix":"my-app",
+          "EnvironmentName":"my-env",
+          "SolutionStackName":"64bit Amazon Linux 2015.03 v2.0.0 running Tomcat 8 Java 8",
+          "VersionLabel":"v1"
         },
-        "output": {
-          "ApplicationName": "my-app",
-          "CNAME": "my-app.elasticbeanstalk.com",
-          "DateCreated": "2015-02-03T23:04:54.479Z",
-          "DateUpdated": "2015-02-03T23:04:54.479Z",
-          "EnvironmentId": "e-izqpassy4h",
-          "EnvironmentName": "my-env",
-          "Health": "Grey",
-          "SolutionStackName": "64bit Amazon Linux 2015.03 v2.0.0 running Tomcat 8 Java 8",
-          "Status": "Launching",
-          "Tier": {
-            "Name": "WebServer",
-            "Type": "Standard",
-            "Version": " "
+        "output":{
+          "ApplicationName":"my-app",
+          "CNAME":"my-app.elasticbeanstalk.com",
+          "DateCreated":"2015-02-03T23:04:54.479Z",
+          "DateUpdated":"2015-02-03T23:04:54.479Z",
+          "EnvironmentId":"e-izqpassy4h",
+          "EnvironmentName":"my-env",
+          "Health":"Grey",
+          "SolutionStackName":"64bit Amazon Linux 2015.03 v2.0.0 running Tomcat 8 Java 8",
+          "Status":"Launching",
+          "Tier":{
+            "Name":"WebServer",
+            "Type":"Standard",
+            "Version":" "
           },
-          "VersionLabel": "v1"
+          "VersionLabel":"v1"
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
+          "output":{
           }
         },
-        "description": "The following operation creates a new environment for version v1 of a java application named my-app:",
-        "id": "to-create-a-new-environment-for-an-application-1456269380396",
-        "title": "To create a new environment for an application"
+        "description":"The following operation creates a new environment for version v1 of a java application named my-app:",
+        "id":"to-create-a-new-environment-for-an-application-1456269380396",
+        "title":"To create a new environment for an application"
       }
     ],
-    "CreateStorageLocation": [
+    "CreateStorageLocation":[
       {
-        "output": {
-          "S3Bucket": "elasticbeanstalk-us-west-2-0123456789012"
+        "output":{
+          "S3Bucket":"elasticbeanstalk-us-west-2-0123456789012"
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
+          "output":{
           }
         },
-        "description": "The following operation creates a new environment for version v1 of a java application named my-app:",
-        "id": "to-create-a-new-environment-for-an-application-1456269380396",
-        "title": "To create a new environment for an application"
+        "description":"The following operation creates a new environment for version v1 of a java application named my-app:",
+        "id":"to-create-a-new-environment-for-an-application-1456269380396",
+        "title":"To create a new environment for an application"
       }
     ],
-    "DeleteApplication": [
+    "DeleteApplication":[
       {
-        "input": {
-          "ApplicationName": "my-app"
+        "input":{
+          "ApplicationName":"my-app"
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
+          "output":{
           }
         },
-        "description": "The following operation deletes an application named my-app:",
-        "id": "to-delete-an-application-1456269699366",
-        "title": "To delete an application"
+        "description":"The following operation deletes an application named my-app:",
+        "id":"to-delete-an-application-1456269699366",
+        "title":"To delete an application"
       }
     ],
-    "DeleteApplicationVersion": [
+    "DeleteApplicationVersion":[
       {
-        "input": {
-          "ApplicationName": "my-app",
-          "DeleteSourceBundle": true,
-          "VersionLabel": "22a0-stage-150819_182129"
+        "input":{
+          "ApplicationName":"my-app",
+          "DeleteSourceBundle":true,
+          "VersionLabel":"22a0-stage-150819_182129"
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
+          "output":{
           }
         },
-        "description": "The following operation deletes an application version named 22a0-stage-150819_182129 for an application named my-app:",
-        "id": "to-delete-an-application-version-1456269792956",
-        "title": "To delete an application version"
+        "description":"The following operation deletes an application version named 22a0-stage-150819_182129 for an application named my-app:",
+        "id":"to-delete-an-application-version-1456269792956",
+        "title":"To delete an application version"
       }
     ],
-    "DeleteConfigurationTemplate": [
+    "DeleteConfigurationTemplate":[
       {
-        "input": {
-          "ApplicationName": "my-app",
-          "TemplateName": "my-template"
+        "input":{
+          "ApplicationName":"my-app",
+          "TemplateName":"my-template"
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
+          "output":{
           }
         },
-        "description": "The following operation deletes a configuration template named my-template for an application named my-app:",
-        "id": "to-delete-a-configuration-template-1456269836701",
-        "title": "To delete a configuration template"
+        "description":"The following operation deletes a configuration template named my-template for an application named my-app:",
+        "id":"to-delete-a-configuration-template-1456269836701",
+        "title":"To delete a configuration template"
       }
     ],
-    "DeleteEnvironmentConfiguration": [
+    "DeleteEnvironmentConfiguration":[
       {
-        "input": {
-          "ApplicationName": "my-app",
-          "EnvironmentName": "my-env"
+        "input":{
+          "ApplicationName":"my-app",
+          "EnvironmentName":"my-env"
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
+          "output":{
           }
         },
-        "description": "The following operation deletes a draft configuration for an environment named my-env:",
-        "id": "to-delete-a-draft-configuration-1456269886654",
-        "title": "To delete a draft configuration"
+        "description":"The following operation deletes a draft configuration for an environment named my-env:",
+        "id":"to-delete-a-draft-configuration-1456269886654",
+        "title":"To delete a draft configuration"
       }
     ],
-    "DescribeApplicationVersions": [
+    "DescribeApplicationVersions":[
       {
-        "input": {
-          "ApplicationName": "my-app",
-          "VersionLabels": [
+        "input":{
+          "ApplicationName":"my-app",
+          "VersionLabels":[
             "v2"
           ]
         },
-        "output": {
-          "ApplicationVersions": [
+        "output":{
+          "ApplicationVersions":[
             {
-              "ApplicationName": "my-app",
-              "DateCreated": "2015-07-23T01:32:26.079Z",
-              "DateUpdated": "2015-07-23T01:32:26.079Z",
-              "Description": "update cover page",
-              "SourceBundle": {
-                "S3Bucket": "elasticbeanstalk-us-west-2-015321684451",
-                "S3Key": "my-app/5026-stage-150723_224258.war"
+              "ApplicationName":"my-app",
+              "DateCreated":"2015-07-23T01:32:26.079Z",
+              "DateUpdated":"2015-07-23T01:32:26.079Z",
+              "Description":"update cover page",
+              "SourceBundle":{
+                "S3Bucket":"elasticbeanstalk-us-west-2-015321684451",
+                "S3Key":"my-app/5026-stage-150723_224258.war"
               },
-              "VersionLabel": "v2"
+              "VersionLabel":"v2"
             },
             {
-              "ApplicationName": "my-app",
-              "DateCreated": "2015-07-23T22:26:10.816Z",
-              "DateUpdated": "2015-07-23T22:26:10.816Z",
-              "Description": "initial version",
-              "SourceBundle": {
-                "S3Bucket": "elasticbeanstalk-us-west-2-015321684451",
-                "S3Key": "my-app/5026-stage-150723_222618.war"
+              "ApplicationName":"my-app",
+              "DateCreated":"2015-07-23T22:26:10.816Z",
+              "DateUpdated":"2015-07-23T22:26:10.816Z",
+              "Description":"initial version",
+              "SourceBundle":{
+                "S3Bucket":"elasticbeanstalk-us-west-2-015321684451",
+                "S3Key":"my-app/5026-stage-150723_222618.war"
               },
-              "VersionLabel": "v1"
+              "VersionLabel":"v1"
             }
           ]
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
+          "output":{
           }
         },
-        "description": "The following operation retrieves information about an application version labeled v2:",
-        "id": "to-view-information-about-an-application-version-1456269947428",
-        "title": "To view information about an application version"
+        "description":"The following operation retrieves information about an application version labeled v2:",
+        "id":"to-view-information-about-an-application-version-1456269947428",
+        "title":"To view information about an application version"
       }
     ],
-    "DescribeApplications": [
+    "DescribeApplications":[
       {
-        "input": {
+        "input":{
         },
-        "output": {
-          "Applications": [
+        "output":{
+          "Applications":[
             {
-              "ApplicationName": "ruby",
-              "ConfigurationTemplates": [
+              "ApplicationName":"ruby",
+              "ConfigurationTemplates":[
 
               ],
-              "DateCreated": "2015-08-13T21:05:44.376Z",
-              "DateUpdated": "2015-08-13T21:05:44.376Z",
-              "Versions": [
+              "DateCreated":"2015-08-13T21:05:44.376Z",
+              "DateUpdated":"2015-08-13T21:05:44.376Z",
+              "Versions":[
                 "Sample Application"
               ]
             },
             {
-              "ApplicationName": "pythonsample",
-              "ConfigurationTemplates": [
+              "ApplicationName":"pythonsample",
+              "ConfigurationTemplates":[
 
               ],
-              "DateCreated": "2015-08-13T19:05:43.637Z",
-              "DateUpdated": "2015-08-13T19:05:43.637Z",
-              "Description": "Application created from the EB CLI using \"eb init\"",
-              "Versions": [
+              "DateCreated":"2015-08-13T19:05:43.637Z",
+              "DateUpdated":"2015-08-13T19:05:43.637Z",
+              "Description":"Application created from the EB CLI using \"eb init\"",
+              "Versions":[
                 "Sample Application"
               ]
             },
             {
-              "ApplicationName": "nodejs-example",
-              "ConfigurationTemplates": [
+              "ApplicationName":"nodejs-example",
+              "ConfigurationTemplates":[
 
               ],
-              "DateCreated": "2015-08-06T17:50:02.486Z",
-              "DateUpdated": "2015-08-06T17:50:02.486Z",
-              "Versions": [
+              "DateCreated":"2015-08-06T17:50:02.486Z",
+              "DateUpdated":"2015-08-06T17:50:02.486Z",
+              "Versions":[
                 "add elasticache",
                 "First Release"
               ]
             }
           ]
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
+          "output":{
           }
         },
-        "description": "The following operation retrieves information about applications in the current region:",
-        "id": "to-view-a-list-of-applications-1456270027373",
-        "title": "To view a list of applications"
+        "description":"The following operation retrieves information about applications in the current region:",
+        "id":"to-view-a-list-of-applications-1456270027373",
+        "title":"To view a list of applications"
       }
     ],
-    "DescribeConfigurationOptions": [
+    "DescribeConfigurationOptions":[
       {
-        "input": {
-          "ApplicationName": "my-app",
-          "EnvironmentName": "my-env"
+        "input":{
+          "ApplicationName":"my-app",
+          "EnvironmentName":"my-env"
         },
-        "output": {
-          "Options": [
+        "output":{
+          "Options":[
             {
-              "ChangeSeverity": "NoInterruption",
-              "DefaultValue": "30",
-              "MaxValue": 300,
-              "MinValue": 5,
-              "Name": "Interval",
-              "Namespace": "aws:elb:healthcheck",
-              "UserDefined": false,
-              "ValueType": "Scalar"
+              "ChangeSeverity":"NoInterruption",
+              "DefaultValue":"30",
+              "MaxValue":300,
+              "MinValue":5,
+              "Name":"Interval",
+              "Namespace":"aws:elb:healthcheck",
+              "UserDefined":false,
+              "ValueType":"Scalar"
             },
             {
-              "ChangeSeverity": "NoInterruption",
-              "DefaultValue": "2000000",
-              "MinValue": 0,
-              "Name": "LowerThreshold",
-              "Namespace": "aws:autoscaling:trigger",
-              "UserDefined": false,
-              "ValueType": "Scalar"
+              "ChangeSeverity":"NoInterruption",
+              "DefaultValue":"2000000",
+              "MinValue":0,
+              "Name":"LowerThreshold",
+              "Namespace":"aws:autoscaling:trigger",
+              "UserDefined":false,
+              "ValueType":"Scalar"
             }
           ]
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
+          "output":{
           }
         },
-        "description": "The following operation retrieves descriptions of all available configuration options for an environment named my-env:",
-        "id": "to-view-configuration-options-for-an-environment-1456276763917",
-        "title": "To view configuration options for an environment"
+        "description":"The following operation retrieves descriptions of all available configuration options for an environment named my-env:",
+        "id":"to-view-configuration-options-for-an-environment-1456276763917",
+        "title":"To view configuration options for an environment"
       }
     ],
-    "DescribeConfigurationSettings": [
+    "DescribeConfigurationSettings":[
       {
-        "input": {
-          "ApplicationName": "my-app",
-          "EnvironmentName": "my-env"
+        "input":{
+          "ApplicationName":"my-app",
+          "EnvironmentName":"my-env"
         },
-        "output": {
-          "ConfigurationSettings": [
+        "output":{
+          "ConfigurationSettings":[
             {
-              "ApplicationName": "my-app",
-              "DateCreated": "2015-08-13T19:16:25Z",
-              "DateUpdated": "2015-08-13T23:30:07Z",
-              "DeploymentStatus": "deployed",
-              "Description": "Environment created from the EB CLI using \"eb create\"",
-              "EnvironmentName": "my-env",
-              "OptionSettings": [
+              "ApplicationName":"my-app",
+              "DateCreated":"2015-08-13T19:16:25Z",
+              "DateUpdated":"2015-08-13T23:30:07Z",
+              "DeploymentStatus":"deployed",
+              "Description":"Environment created from the EB CLI using \"eb create\"",
+              "EnvironmentName":"my-env",
+              "OptionSettings":[
                 {
-                  "Namespace": "aws:autoscaling:asg",
-                  "OptionName": "Availability Zones",
-                  "ResourceName": "AWSEBAutoScalingGroup",
-                  "Value": "Any"
+                  "Namespace":"aws:autoscaling:asg",
+                  "OptionName":"Availability Zones",
+                  "ResourceName":"AWSEBAutoScalingGroup",
+                  "Value":"Any"
                 },
                 {
-                  "Namespace": "aws:autoscaling:asg",
-                  "OptionName": "Cooldown",
-                  "ResourceName": "AWSEBAutoScalingGroup",
-                  "Value": "360"
+                  "Namespace":"aws:autoscaling:asg",
+                  "OptionName":"Cooldown",
+                  "ResourceName":"AWSEBAutoScalingGroup",
+                  "Value":"360"
                 },
                 {
-                  "Namespace": "aws:elb:policies",
-                  "OptionName": "ConnectionDrainingTimeout",
-                  "ResourceName": "AWSEBLoadBalancer",
-                  "Value": "20"
+                  "Namespace":"aws:elb:policies",
+                  "OptionName":"ConnectionDrainingTimeout",
+                  "ResourceName":"AWSEBLoadBalancer",
+                  "Value":"20"
                 },
                 {
-                  "Namespace": "aws:elb:policies",
-                  "OptionName": "ConnectionSettingIdleTimeout",
-                  "ResourceName": "AWSEBLoadBalancer",
-                  "Value": "60"
+                  "Namespace":"aws:elb:policies",
+                  "OptionName":"ConnectionSettingIdleTimeout",
+                  "ResourceName":"AWSEBLoadBalancer",
+                  "Value":"60"
                 }
               ],
-              "SolutionStackName": "64bit Amazon Linux 2015.03 v2.0.0 running Tomcat 8 Java 8"
+              "SolutionStackName":"64bit Amazon Linux 2015.03 v2.0.0 running Tomcat 8 Java 8"
             }
           ]
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
-            "abbreviated": "Output is abbreviated"
+          "output":{
+            "abbreviated":"Output is abbreviated"
           }
         },
-        "description": "The following operation retrieves configuration settings for an environment named my-env:",
-        "id": "to-view-configurations-settings-for-an-environment-1456276924537",
-        "title": "To view configurations settings for an environment"
+        "description":"The following operation retrieves configuration settings for an environment named my-env:",
+        "id":"to-view-configurations-settings-for-an-environment-1456276924537",
+        "title":"To view configurations settings for an environment"
       }
     ],
-    "DescribeEnvironmentHealth": [
+    "DescribeEnvironmentHealth":[
       {
-        "input": {
-          "AttributeNames": [
+        "input":{
+          "AttributeNames":[
             "All"
           ],
-          "EnvironmentName": "my-env"
+          "EnvironmentName":"my-env"
         },
-        "output": {
-          "ApplicationMetrics": {
-            "Duration": 10,
-            "Latency": {
-              "P10": 0.001,
-              "P50": 0.001,
-              "P75": 0.002,
-              "P85": 0.003,
-              "P90": 0.003,
-              "P95": 0.004,
-              "P99": 0.004,
-              "P999": 0.004
+        "output":{
+          "ApplicationMetrics":{
+            "Duration":10,
+            "Latency":{
+              "P10":0.001,
+              "P50":0.001,
+              "P75":0.002,
+              "P85":0.003,
+              "P90":0.003,
+              "P95":0.004,
+              "P99":0.004,
+              "P999":0.004
             },
-            "RequestCount": 45,
-            "StatusCodes": {
-              "Status2xx": 45,
-              "Status3xx": 0,
-              "Status4xx": 0,
-              "Status5xx": 0
+            "RequestCount":45,
+            "StatusCodes":{
+              "Status2xx":45,
+              "Status3xx":0,
+              "Status4xx":0,
+              "Status5xx":0
             }
           },
-          "Causes": [
+          "Causes":[
 
           ],
-          "Color": "Green",
-          "EnvironmentName": "my-env",
-          "HealthStatus": "Ok",
-          "InstancesHealth": {
-            "Degraded": 0,
-            "Info": 0,
-            "NoData": 0,
-            "Ok": 1,
-            "Pending": 0,
-            "Severe": 0,
-            "Unknown": 0,
-            "Warning": 0
+          "Color":"Green",
+          "EnvironmentName":"my-env",
+          "HealthStatus":"Ok",
+          "InstancesHealth":{
+            "Degraded":0,
+            "Info":0,
+            "NoData":0,
+            "Ok":1,
+            "Pending":0,
+            "Severe":0,
+            "Unknown":0,
+            "Warning":0
           },
-          "RefreshedAt": "2015-08-20T21:09:18Z"
+          "RefreshedAt":"2015-08-20T21:09:18Z"
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
+          "output":{
           }
         },
-        "description": "The following operation retrieves overall health information for an environment named my-env:",
-        "id": "to-view-environment-health-1456277109510",
-        "title": "To view environment health"
+        "description":"The following operation retrieves overall health information for an environment named my-env:",
+        "id":"to-view-environment-health-1456277109510",
+        "title":"To view environment health"
       }
     ],
-    "DescribeEnvironmentResources": [
+    "DescribeEnvironmentResources":[
       {
-        "input": {
-          "EnvironmentName": "my-env"
+        "input":{
+          "EnvironmentName":"my-env"
         },
-        "output": {
-          "EnvironmentResources": {
-            "AutoScalingGroups": [
+        "output":{
+          "EnvironmentResources":{
+            "AutoScalingGroups":[
               {
-                "Name": "awseb-e-qu3fyyjyjs-stack-AWSEBAutoScalingGroup-QSB2ZO88SXZT"
+                "Name":"awseb-e-qu3fyyjyjs-stack-AWSEBAutoScalingGroup-QSB2ZO88SXZT"
               }
             ],
-            "EnvironmentName": "my-env",
-            "Instances": [
+            "EnvironmentName":"my-env",
+            "Instances":[
               {
-                "Id": "i-0c91c786"
+                "Id":"i-0c91c786"
               }
             ],
-            "LaunchConfigurations": [
+            "LaunchConfigurations":[
               {
-                "Name": "awseb-e-qu3fyyjyjs-stack-AWSEBAutoScalingLaunchConfiguration-1UUVQIBC96TQ2"
+                "Name":"awseb-e-qu3fyyjyjs-stack-AWSEBAutoScalingLaunchConfiguration-1UUVQIBC96TQ2"
               }
             ],
-            "LoadBalancers": [
+            "LoadBalancers":[
               {
-                "Name": "awseb-e-q-AWSEBLoa-1EEPZ0K98BIF0"
+                "Name":"awseb-e-q-AWSEBLoa-1EEPZ0K98BIF0"
               }
             ],
-            "Queues": [
+            "Queues":[
 
             ],
-            "Triggers": [
+            "Triggers":[
 
             ]
           }
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
+          "output":{
           }
         },
-        "description": "The following operation retrieves information about resources in an environment named my-env:",
-        "id": "to-view-information-about-the-aws-resources-in-your-environment-1456277206232",
-        "title": "To view information about the AWS resources in your environment"
+        "description":"The following operation retrieves information about resources in an environment named my-env:",
+        "id":"to-view-information-about-the-aws-resources-in-your-environment-1456277206232",
+        "title":"To view information about the AWS resources in your environment"
       }
     ],
-    "DescribeEnvironments": [
+    "DescribeEnvironments":[
       {
-        "input": {
-          "EnvironmentNames": [
+        "input":{
+          "EnvironmentNames":[
             "my-env"
           ]
         },
-        "output": {
-          "Environments": [
+        "output":{
+          "Environments":[
             {
-              "AbortableOperationInProgress": false,
-              "ApplicationName": "my-app",
-              "CNAME": "my-env.elasticbeanstalk.com",
-              "DateCreated": "2015-08-07T20:48:49.599Z",
-              "DateUpdated": "2015-08-12T18:16:55.019Z",
-              "EndpointURL": "awseb-e-w-AWSEBLoa-1483140XB0Q4L-109QXY8121.us-west-2.elb.amazonaws.com",
-              "EnvironmentId": "e-rpqsewtp2j",
-              "EnvironmentName": "my-env",
-              "Health": "Green",
-              "SolutionStackName": "64bit Amazon Linux 2015.03 v2.0.0 running Tomcat 8 Java 8",
-              "Status": "Ready",
-              "Tier": {
-                "Name": "WebServer",
-                "Type": "Standard",
-                "Version": " "
+              "AbortableOperationInProgress":false,
+              "ApplicationName":"my-app",
+              "CNAME":"my-env.elasticbeanstalk.com",
+              "DateCreated":"2015-08-07T20:48:49.599Z",
+              "DateUpdated":"2015-08-12T18:16:55.019Z",
+              "EndpointURL":"awseb-e-w-AWSEBLoa-1483140XB0Q4L-109QXY8121.us-west-2.elb.amazonaws.com",
+              "EnvironmentId":"e-rpqsewtp2j",
+              "EnvironmentName":"my-env",
+              "Health":"Green",
+              "SolutionStackName":"64bit Amazon Linux 2015.03 v2.0.0 running Tomcat 8 Java 8",
+              "Status":"Ready",
+              "Tier":{
+                "Name":"WebServer",
+                "Type":"Standard",
+                "Version":" "
               },
-              "VersionLabel": "7f58-stage-150812_025409"
+              "VersionLabel":"7f58-stage-150812_025409"
             }
           ]
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
+          "output":{
           }
         },
-        "description": "The following operation retrieves information about an environment named my-env:",
-        "id": "to-view-information-about-an-environment-1456277288662",
-        "title": "To view information about an environment"
+        "description":"The following operation retrieves information about an environment named my-env:",
+        "id":"to-view-information-about-an-environment-1456277288662",
+        "title":"To view information about an environment"
       }
     ],
-    "DescribeEvents": [
+    "DescribeEvents":[
       {
-        "input": {
-          "EnvironmentName": "my-env"
+        "input":{
+          "EnvironmentName":"my-env"
         },
-        "output": {
-          "Events": [
+        "output":{
+          "Events":[
             {
-              "ApplicationName": "my-app",
-              "EnvironmentName": "my-env",
-              "EventDate": "2015-08-20T07:06:53.535Z",
-              "Message": "Environment health has transitioned from Info to Ok.",
-              "Severity": "INFO"
+              "ApplicationName":"my-app",
+              "EnvironmentName":"my-env",
+              "EventDate":"2015-08-20T07:06:53.535Z",
+              "Message":"Environment health has transitioned from Info to Ok.",
+              "Severity":"INFO"
             },
             {
-              "ApplicationName": "my-app",
-              "EnvironmentName": "my-env",
-              "EventDate": "2015-08-20T07:06:02.049Z",
-              "Message": "Environment update completed successfully.",
-              "RequestId": "b7f3960b-4709-11e5-ba1e-07e16200da41",
-              "Severity": "INFO"
+              "ApplicationName":"my-app",
+              "EnvironmentName":"my-env",
+              "EventDate":"2015-08-20T07:06:02.049Z",
+              "Message":"Environment update completed successfully.",
+              "RequestId":"b7f3960b-4709-11e5-ba1e-07e16200da41",
+              "Severity":"INFO"
             },
             {
-              "ApplicationName": "my-app",
-              "EnvironmentName": "my-env",
-              "EventDate": "2015-08-13T19:16:27.561Z",
-              "Message": "Using elasticbeanstalk-us-west-2-012445113685 as Amazon S3 storage bucket for environment data.",
-              "RequestId": "ca8dfbf6-41ef-11e5-988b-651aa638f46b",
-              "Severity": "INFO"
+              "ApplicationName":"my-app",
+              "EnvironmentName":"my-env",
+              "EventDate":"2015-08-13T19:16:27.561Z",
+              "Message":"Using elasticbeanstalk-us-west-2-012445113685 as Amazon S3 storage bucket for environment data.",
+              "RequestId":"ca8dfbf6-41ef-11e5-988b-651aa638f46b",
+              "Severity":"INFO"
             },
             {
-              "ApplicationName": "my-app",
-              "EnvironmentName": "my-env",
-              "EventDate": "2015-08-13T19:16:26.581Z",
-              "Message": "createEnvironment is starting.",
-              "RequestId": "cdfba8f6-41ef-11e5-988b-65638f41aa6b",
-              "Severity": "INFO"
+              "ApplicationName":"my-app",
+              "EnvironmentName":"my-env",
+              "EventDate":"2015-08-13T19:16:26.581Z",
+              "Message":"createEnvironment is starting.",
+              "RequestId":"cdfba8f6-41ef-11e5-988b-65638f41aa6b",
+              "Severity":"INFO"
             }
           ]
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
+          "output":{
           }
         },
-        "description": "The following operation retrieves events for an environment named my-env:",
-        "id": "to-view-events-for-an-environment-1456277367589",
-        "title": "To view events for an environment"
+        "description":"The following operation retrieves events for an environment named my-env:",
+        "id":"to-view-events-for-an-environment-1456277367589",
+        "title":"To view events for an environment"
       }
     ],
-    "DescribeInstancesHealth": [
+    "DescribeInstancesHealth":[
       {
-        "input": {
-          "AttributeNames": [
+        "input":{
+          "AttributeNames":[
             "All"
           ],
-          "EnvironmentName": "my-env"
+          "EnvironmentName":"my-env"
         },
-        "output": {
-          "InstanceHealthList": [
+        "output":{
+          "InstanceHealthList":[
             {
-              "ApplicationMetrics": {
-                "Duration": 10,
-                "Latency": {
-                  "P10": 0,
-                  "P50": 0.001,
-                  "P75": 0.002,
-                  "P85": 0.003,
-                  "P90": 0.004,
-                  "P95": 0.005,
-                  "P99": 0.006,
-                  "P999": 0.006
+              "ApplicationMetrics":{
+                "Duration":10,
+                "Latency":{
+                  "P10":0,
+                  "P50":0.001,
+                  "P75":0.002,
+                  "P85":0.003,
+                  "P90":0.004,
+                  "P95":0.005,
+                  "P99":0.006,
+                  "P999":0.006
                 },
-                "RequestCount": 48,
-                "StatusCodes": {
-                  "Status2xx": 47,
-                  "Status3xx": 0,
-                  "Status4xx": 1,
-                  "Status5xx": 0
+                "RequestCount":48,
+                "StatusCodes":{
+                  "Status2xx":47,
+                  "Status3xx":0,
+                  "Status4xx":1,
+                  "Status5xx":0
                 }
               },
-              "Causes": [
+              "Causes":[
 
               ],
-              "Color": "Green",
-              "HealthStatus": "Ok",
-              "InstanceId": "i-08691cc7",
-              "LaunchedAt": "2015-08-13T19:17:09Z",
-              "System": {
-                "CPUUtilization": {
-                  "IOWait": 0.2,
-                  "IRQ": 0,
-                  "Idle": 97.8,
-                  "Nice": 0.1,
-                  "SoftIRQ": 0.1,
-                  "System": 0.3,
-                  "User": 1.5
+              "Color":"Green",
+              "HealthStatus":"Ok",
+              "InstanceId":"i-08691cc7",
+              "LaunchedAt":"2015-08-13T19:17:09Z",
+              "System":{
+                "CPUUtilization":{
+                  "IOWait":0.2,
+                  "IRQ":0,
+                  "Idle":97.8,
+                  "Nice":0.1,
+                  "SoftIRQ":0.1,
+                  "System":0.3,
+                  "User":1.5
                 },
-                "LoadAverage": [
+                "LoadAverage":[
                   0,
                   0.02,
                   0.05
@@ -697,31 +697,31 @@
               }
             }
           ],
-          "RefreshedAt": "2015-08-20T21:09:08Z"
+          "RefreshedAt":"2015-08-20T21:09:08Z"
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
+          "output":{
           }
         },
-        "description": "The following operation retrieves health information for instances in an environment named my-env:",
-        "id": "to-view-environment-health-1456277424757",
-        "title": "To view environment health"
+        "description":"The following operation retrieves health information for instances in an environment named my-env:",
+        "id":"to-view-environment-health-1456277424757",
+        "title":"To view environment health"
       }
     ],
-    "ListAvailableSolutionStacks": [
+    "ListAvailableSolutionStacks":[
       {
-        "output": {
-          "SolutionStackDetails": [
+        "output":{
+          "SolutionStackDetails":[
             {
-              "PermittedFileTypes": [
+              "PermittedFileTypes":[
                 "zip"
               ],
-              "SolutionStackName": "64bit Amazon Linux 2015.03 v2.0.0 running Node.js"
+              "SolutionStackName":"64bit Amazon Linux 2015.03 v2.0.0 running Node.js"
             }
           ],
-          "SolutionStacks": [
+          "SolutionStacks":[
             "64bit Amazon Linux 2015.03 v2.0.0 running Node.js",
             "64bit Amazon Linux 2015.03 v2.0.0 running PHP 5.6",
             "64bit Amazon Linux 2015.03 v2.0.0 running PHP 5.5",
@@ -752,160 +752,160 @@
             "64bit Debian jessie v2.0.0 running Python 3.4 (Preconfigured - Docker)"
           ]
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
+          "output":{
           }
         },
-        "description": "The following operation lists solution stacks for all currently available platform configurations and any that you have used in the past:",
-        "id": "to-view-solution-stacks-1456277504811",
-        "title": "To view solution stacks"
+        "description":"The following operation lists solution stacks for all currently available platform configurations and any that you have used in the past:",
+        "id":"to-view-solution-stacks-1456277504811",
+        "title":"To view solution stacks"
       }
     ],
-    "RebuildEnvironment": [
+    "RebuildEnvironment":[
       {
-        "input": {
-          "EnvironmentName": "my-env"
+        "input":{
+          "EnvironmentName":"my-env"
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
+          "output":{
           }
         },
-        "description": "The following operation terminates and recreates the resources in an environment named my-env:",
-        "id": "to-rebuild-an-environment-1456277600918",
-        "title": "To rebuild an environment"
+        "description":"The following operation terminates and recreates the resources in an environment named my-env:",
+        "id":"to-rebuild-an-environment-1456277600918",
+        "title":"To rebuild an environment"
       }
     ],
-    "RequestEnvironmentInfo": [
+    "RequestEnvironmentInfo":[
       {
-        "input": {
-          "EnvironmentName": "my-env",
-          "InfoType": "tail"
+        "input":{
+          "EnvironmentName":"my-env",
+          "InfoType":"tail"
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
+          "output":{
           }
         },
-        "description": "The following operation requests logs from an environment named my-env:",
-        "id": "to-request-tailed-logs-1456277657045",
-        "title": "To request tailed logs"
+        "description":"The following operation requests logs from an environment named my-env:",
+        "id":"to-request-tailed-logs-1456277657045",
+        "title":"To request tailed logs"
       }
     ],
-    "RestartAppServer": [
+    "RestartAppServer":[
       {
-        "input": {
-          "EnvironmentName": "my-env"
+        "input":{
+          "EnvironmentName":"my-env"
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
+          "output":{
           }
         },
-        "description": "The following operation restarts application servers on all instances in an environment named my-env:",
-        "id": "to-restart-application-servers-1456277739302",
-        "title": "To restart application servers"
+        "description":"The following operation restarts application servers on all instances in an environment named my-env:",
+        "id":"to-restart-application-servers-1456277739302",
+        "title":"To restart application servers"
       }
     ],
-    "RetrieveEnvironmentInfo": [
+    "RetrieveEnvironmentInfo":[
       {
-        "input": {
-          "EnvironmentName": "my-env",
-          "InfoType": "tail"
+        "input":{
+          "EnvironmentName":"my-env",
+          "InfoType":"tail"
         },
-        "output": {
-          "EnvironmentInfo": [
+        "output":{
+          "EnvironmentInfo":[
             {
-              "Ec2InstanceId": "i-09c1c867",
-              "InfoType": "tail",
-              "Message": "https://elasticbeanstalk-us-west-2-0123456789012.s3.amazonaws.com/resources/environments/logs/tail/e-fyqyju3yjs/i-09c1c867/TailLogs-1440109397703.out?AWSAccessKeyId=AKGPT4J56IAJ2EUBL5CQ&Expires=1440195891&Signature=n%2BEalOV6A2HIOx4Rcfb7LT16bBM%3D",
-              "SampleTimestamp": "2015-08-20T22:23:17.703Z"
+              "Ec2InstanceId":"i-09c1c867",
+              "InfoType":"tail",
+              "Message":"https://elasticbeanstalk-us-west-2-0123456789012.s3.amazonaws.com/resources/environments/logs/tail/e-fyqyju3yjs/i-09c1c867/TailLogs-1440109397703.out?AWSAccessKeyId=AKGPT4J56IAJ2EUBL5CQ&Expires=1440195891&Signature=n%2BEalOV6A2HIOx4Rcfb7LT16bBM%3D",
+              "SampleTimestamp":"2015-08-20T22:23:17.703Z"
             }
           ]
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
+          "output":{
           }
         },
-        "description": "The following operation retrieves a link to logs from an environment named my-env:",
-        "id": "to-retrieve-tailed-logs-1456277792734",
-        "title": "To retrieve tailed logs"
+        "description":"The following operation retrieves a link to logs from an environment named my-env:",
+        "id":"to-retrieve-tailed-logs-1456277792734",
+        "title":"To retrieve tailed logs"
       }
     ],
-    "SwapEnvironmentCNAMEs": [
+    "SwapEnvironmentCNAMEs":[
       {
-        "input": {
-          "DestinationEnvironmentName": "my-env-green",
-          "SourceEnvironmentName": "my-env-blue"
+        "input":{
+          "DestinationEnvironmentName":"my-env-green",
+          "SourceEnvironmentName":"my-env-blue"
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
+          "output":{
           }
         },
-        "description": "The following operation swaps the assigned subdomains of two environments:",
-        "id": "to-swap-environment-cnames-1456277839438",
-        "title": "To swap environment CNAMES"
+        "description":"The following operation swaps the assigned subdomains of two environments:",
+        "id":"to-swap-environment-cnames-1456277839438",
+        "title":"To swap environment CNAMES"
       }
     ],
-    "TerminateEnvironment": [
+    "TerminateEnvironment":[
       {
-        "input": {
-          "EnvironmentName": "my-env"
+        "input":{
+          "EnvironmentName":"my-env"
         },
-        "output": {
-          "AbortableOperationInProgress": false,
-          "ApplicationName": "my-app",
-          "CNAME": "my-env.elasticbeanstalk.com",
-          "DateCreated": "2015-08-12T18:52:53.622Z",
-          "DateUpdated": "2015-08-12T19:05:54.744Z",
-          "EndpointURL": "awseb-e-f-AWSEBLoa-1I9XUMP4-8492WNUP202574.us-west-2.elb.amazonaws.com",
-          "EnvironmentId": "e-fh2eravpns",
-          "EnvironmentName": "my-env",
-          "Health": "Grey",
-          "SolutionStackName": "64bit Amazon Linux 2015.03 v2.0.0 running Tomcat 8 Java 8",
-          "Status": "Terminating",
-          "Tier": {
-            "Name": "WebServer",
-            "Type": "Standard",
-            "Version": " "
+        "output":{
+          "AbortableOperationInProgress":false,
+          "ApplicationName":"my-app",
+          "CNAME":"my-env.elasticbeanstalk.com",
+          "DateCreated":"2015-08-12T18:52:53.622Z",
+          "DateUpdated":"2015-08-12T19:05:54.744Z",
+          "EndpointURL":"awseb-e-f-AWSEBLoa-1I9XUMP4-8492WNUP202574.us-west-2.elb.amazonaws.com",
+          "EnvironmentId":"e-fh2eravpns",
+          "EnvironmentName":"my-env",
+          "Health":"Grey",
+          "SolutionStackName":"64bit Amazon Linux 2015.03 v2.0.0 running Tomcat 8 Java 8",
+          "Status":"Terminating",
+          "Tier":{
+            "Name":"WebServer",
+            "Type":"Standard",
+            "Version":" "
           }
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
+          "output":{
           }
         },
-        "description": "The following operation terminates an Elastic Beanstalk environment named my-env:",
-        "id": "to-terminate-an-environment-1456277888556",
-        "title": "To terminate an environment"
+        "description":"The following operation terminates an Elastic Beanstalk environment named my-env:",
+        "id":"to-terminate-an-environment-1456277888556",
+        "title":"To terminate an environment"
       }
     ],
-    "UpdateApplication": [
+    "UpdateApplication":[
       {
-        "input": {
-          "ApplicationName": "my-app",
-          "Description": "my Elastic Beanstalk application"
+        "input":{
+          "ApplicationName":"my-app",
+          "Description":"my Elastic Beanstalk application"
         },
-        "output": {
-          "Application": {
-            "ApplicationName": "my-app",
-            "ConfigurationTemplates": [
+        "output":{
+          "Application":{
+            "ApplicationName":"my-app",
+            "ConfigurationTemplates":[
 
             ],
-            "DateCreated": "2015-08-13T19:15:50.449Z",
-            "DateUpdated": "2015-08-20T22:34:56.195Z",
-            "Description": "my Elastic Beanstalk application",
-            "Versions": [
+            "DateCreated":"2015-08-13T19:15:50.449Z",
+            "DateUpdated":"2015-08-20T22:34:56.195Z",
+            "Description":"my Elastic Beanstalk application",
+            "Versions":[
               "2fba-stage-150819_234450",
               "bf07-stage-150820_214945",
               "93f8",
@@ -914,195 +914,195 @@
             ]
           }
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
+          "output":{
           }
         },
-        "description": "The following operation updates the description of an application named my-app:",
-        "id": "to-change-an-applications-description-1456277957075",
-        "title": "To change an application's description"
+        "description":"The following operation updates the description of an application named my-app:",
+        "id":"to-change-an-applications-description-1456277957075",
+        "title":"To change an application's description"
       }
     ],
-    "UpdateApplicationVersion": [
+    "UpdateApplicationVersion":[
       {
-        "input": {
-          "ApplicationName": "my-app",
-          "Description": "new description",
-          "VersionLabel": "22a0-stage-150819_185942"
+        "input":{
+          "ApplicationName":"my-app",
+          "Description":"new description",
+          "VersionLabel":"22a0-stage-150819_185942"
         },
-        "output": {
-          "ApplicationVersion": {
-            "ApplicationName": "my-app",
-            "DateCreated": "2015-08-19T18:59:17.646Z",
-            "DateUpdated": "2015-08-20T22:53:28.871Z",
-            "Description": "new description",
-            "SourceBundle": {
-              "S3Bucket": "elasticbeanstalk-us-west-2-0123456789012",
-              "S3Key": "my-app/22a0-stage-150819_185942.war"
+        "output":{
+          "ApplicationVersion":{
+            "ApplicationName":"my-app",
+            "DateCreated":"2015-08-19T18:59:17.646Z",
+            "DateUpdated":"2015-08-20T22:53:28.871Z",
+            "Description":"new description",
+            "SourceBundle":{
+              "S3Bucket":"elasticbeanstalk-us-west-2-0123456789012",
+              "S3Key":"my-app/22a0-stage-150819_185942.war"
             },
-            "VersionLabel": "22a0-stage-150819_185942"
+            "VersionLabel":"22a0-stage-150819_185942"
           }
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
+          "output":{
           }
         },
-        "description": "The following operation updates the description of an application version named 22a0-stage-150819_185942:",
-        "id": "to-change-an-application-versions-description-1456278019237",
-        "title": "To change an application version's description"
+        "description":"The following operation updates the description of an application version named 22a0-stage-150819_185942:",
+        "id":"to-change-an-application-versions-description-1456278019237",
+        "title":"To change an application version's description"
       }
     ],
-    "UpdateConfigurationTemplate": [
+    "UpdateConfigurationTemplate":[
       {
-        "input": {
-          "ApplicationName": "my-app",
-          "OptionsToRemove": [
+        "input":{
+          "ApplicationName":"my-app",
+          "OptionsToRemove":[
             {
-              "Namespace": "aws:elasticbeanstalk:healthreporting:system",
-              "OptionName": "ConfigDocument"
+              "Namespace":"aws:elasticbeanstalk:healthreporting:system",
+              "OptionName":"ConfigDocument"
             }
           ],
-          "TemplateName": "my-template"
+          "TemplateName":"my-template"
         },
-        "output": {
-          "ApplicationName": "my-app",
-          "DateCreated": "2015-08-20T22:39:31Z",
-          "DateUpdated": "2015-08-20T22:43:11Z",
-          "SolutionStackName": "64bit Amazon Linux 2015.03 v2.0.0 running Tomcat 8 Java 8",
-          "TemplateName": "my-template"
+        "output":{
+          "ApplicationName":"my-app",
+          "DateCreated":"2015-08-20T22:39:31Z",
+          "DateUpdated":"2015-08-20T22:43:11Z",
+          "SolutionStackName":"64bit Amazon Linux 2015.03 v2.0.0 running Tomcat 8 Java 8",
+          "TemplateName":"my-template"
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
+          "output":{
           }
         },
-        "description": "The following operation removes the configured CloudWatch custom health metrics configuration ConfigDocument from a saved configuration template named my-template:",
-        "id": "to-update-a-configuration-template-1456278075300",
-        "title": "To update a configuration template"
+        "description":"The following operation removes the configured CloudWatch custom health metrics configuration ConfigDocument from a saved configuration template named my-template:",
+        "id":"to-update-a-configuration-template-1456278075300",
+        "title":"To update a configuration template"
       }
     ],
-    "UpdateEnvironment": [
+    "UpdateEnvironment":[
       {
-        "input": {
-          "EnvironmentName": "my-env",
-          "VersionLabel": "v2"
+        "input":{
+          "EnvironmentName":"my-env",
+          "VersionLabel":"v2"
         },
-        "output": {
-          "ApplicationName": "my-app",
-          "CNAME": "my-env.elasticbeanstalk.com",
-          "DateCreated": "2015-02-03T23:04:54.453Z",
-          "DateUpdated": "2015-02-03T23:12:29.119Z",
-          "EndpointURL": "awseb-e-i-AWSEBLoa-1RDLX6TC9VUAO-0123456789.us-west-2.elb.amazonaws.com",
-          "EnvironmentId": "e-szqipays4h",
-          "EnvironmentName": "my-env",
-          "Health": "Grey",
-          "SolutionStackName": "64bit Amazon Linux running Tomcat 7",
-          "Status": "Updating",
-          "Tier": {
-            "Name": "WebServer",
-            "Type": "Standard",
-            "Version": " "
+        "output":{
+          "ApplicationName":"my-app",
+          "CNAME":"my-env.elasticbeanstalk.com",
+          "DateCreated":"2015-02-03T23:04:54.453Z",
+          "DateUpdated":"2015-02-03T23:12:29.119Z",
+          "EndpointURL":"awseb-e-i-AWSEBLoa-1RDLX6TC9VUAO-0123456789.us-west-2.elb.amazonaws.com",
+          "EnvironmentId":"e-szqipays4h",
+          "EnvironmentName":"my-env",
+          "Health":"Grey",
+          "SolutionStackName":"64bit Amazon Linux running Tomcat 7",
+          "Status":"Updating",
+          "Tier":{
+            "Name":"WebServer",
+            "Type":"Standard",
+            "Version":" "
           },
-          "VersionLabel": "v2"
+          "VersionLabel":"v2"
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
+          "output":{
           }
         },
-        "description": "The following operation updates an environment named \"my-env\" to version \"v2\" of the application to which it belongs:",
-        "id": "to-update-an-environment-to-a-new-version-1456278210718",
-        "title": "To update an environment to a new version"
+        "description":"The following operation updates an environment named \"my-env\" to version \"v2\" of the application to which it belongs:",
+        "id":"to-update-an-environment-to-a-new-version-1456278210718",
+        "title":"To update an environment to a new version"
       },
       {
-        "input": {
-          "EnvironmentName": "my-env",
-          "OptionSettings": [
+        "input":{
+          "EnvironmentName":"my-env",
+          "OptionSettings":[
             {
-              "Namespace": "aws:elb:healthcheck",
-              "OptionName": "Interval",
-              "Value": "15"
+              "Namespace":"aws:elb:healthcheck",
+              "OptionName":"Interval",
+              "Value":"15"
             },
             {
-              "Namespace": "aws:elb:healthcheck",
-              "OptionName": "Timeout",
-              "Value": "8"
+              "Namespace":"aws:elb:healthcheck",
+              "OptionName":"Timeout",
+              "Value":"8"
             },
             {
-              "Namespace": "aws:elb:healthcheck",
-              "OptionName": "HealthyThreshold",
-              "Value": "2"
+              "Namespace":"aws:elb:healthcheck",
+              "OptionName":"HealthyThreshold",
+              "Value":"2"
             },
             {
-              "Namespace": "aws:elb:healthcheck",
-              "OptionName": "UnhealthyThreshold",
-              "Value": "3"
+              "Namespace":"aws:elb:healthcheck",
+              "OptionName":"UnhealthyThreshold",
+              "Value":"3"
             }
           ]
         },
-        "output": {
-          "AbortableOperationInProgress": true,
-          "ApplicationName": "my-app",
-          "CNAME": "my-env.elasticbeanstalk.com",
-          "DateCreated": "2015-08-07T20:48:49.599Z",
-          "DateUpdated": "2015-08-12T18:15:23.804Z",
-          "EndpointURL": "awseb-e-w-AWSEBLoa-14XB83101Q4L-104QXY80921.sa-east-1.elb.amazonaws.com",
-          "EnvironmentId": "e-wtp2rpqsej",
-          "EnvironmentName": "my-env",
-          "Health": "Grey",
-          "SolutionStackName": "64bit Amazon Linux 2015.03 v2.0.0 running Tomcat 8 Java 8",
-          "Status": "Updating",
-          "Tier": {
-            "Name": "WebServer",
-            "Type": "Standard",
-            "Version": " "
+        "output":{
+          "AbortableOperationInProgress":true,
+          "ApplicationName":"my-app",
+          "CNAME":"my-env.elasticbeanstalk.com",
+          "DateCreated":"2015-08-07T20:48:49.599Z",
+          "DateUpdated":"2015-08-12T18:15:23.804Z",
+          "EndpointURL":"awseb-e-w-AWSEBLoa-14XB83101Q4L-104QXY80921.sa-east-1.elb.amazonaws.com",
+          "EnvironmentId":"e-wtp2rpqsej",
+          "EnvironmentName":"my-env",
+          "Health":"Grey",
+          "SolutionStackName":"64bit Amazon Linux 2015.03 v2.0.0 running Tomcat 8 Java 8",
+          "Status":"Updating",
+          "Tier":{
+            "Name":"WebServer",
+            "Type":"Standard",
+            "Version":" "
           },
-          "VersionLabel": "7f58-stage-150812_025409"
+          "VersionLabel":"7f58-stage-150812_025409"
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
+          "output":{
           }
         },
-        "description": "The following operation configures several options in the aws:elb:loadbalancer namespace:",
-        "id": "to-configure-option-settings-1456278286349",
-        "title": "To configure option settings"
+        "description":"The following operation configures several options in the aws:elb:loadbalancer namespace:",
+        "id":"to-configure-option-settings-1456278286349",
+        "title":"To configure option settings"
       }
     ],
-    "ValidateConfigurationSettings": [
+    "ValidateConfigurationSettings":[
       {
-        "input": {
-          "ApplicationName": "my-app",
-          "EnvironmentName": "my-env",
-          "OptionSettings": [
+        "input":{
+          "ApplicationName":"my-app",
+          "EnvironmentName":"my-env",
+          "OptionSettings":[
             {
-              "Namespace": "aws:elasticbeanstalk:healthreporting:system",
-              "OptionName": "ConfigDocument",
-              "Value": "{\"CloudWatchMetrics\": {\"Environment\": {\"ApplicationLatencyP99.9\": null,\"InstancesSevere\": 60,\"ApplicationLatencyP90\": 60,\"ApplicationLatencyP99\": null,\"ApplicationLatencyP95\": 60,\"InstancesUnknown\": 60,\"ApplicationLatencyP85\": 60,\"InstancesInfo\": null,\"ApplicationRequests2xx\": null,\"InstancesDegraded\": null,\"InstancesWarning\": 60,\"ApplicationLatencyP50\": 60,\"ApplicationRequestsTotal\": null,\"InstancesNoData\": null,\"InstancesPending\": 60,\"ApplicationLatencyP10\": null,\"ApplicationRequests5xx\": null,\"ApplicationLatencyP75\": null,\"InstancesOk\": 60,\"ApplicationRequests3xx\": null,\"ApplicationRequests4xx\": null},\"Instance\": {\"ApplicationLatencyP99.9\": null,\"ApplicationLatencyP90\": 60,\"ApplicationLatencyP99\": null,\"ApplicationLatencyP95\": null,\"ApplicationLatencyP85\": null,\"CPUUser\": 60,\"ApplicationRequests2xx\": null,\"CPUIdle\": null,\"ApplicationLatencyP50\": null,\"ApplicationRequestsTotal\": 60,\"RootFilesystemUtil\": null,\"LoadAverage1min\": null,\"CPUIrq\": null,\"CPUNice\": 60,\"CPUIowait\": 60,\"ApplicationLatencyP10\": null,\"LoadAverage5min\": null,\"ApplicationRequests5xx\": null,\"ApplicationLatencyP75\": 60,\"CPUSystem\": 60,\"ApplicationRequests3xx\": 60,\"ApplicationRequests4xx\": null,\"InstanceHealth\": null,\"CPUSoftirq\": 60}},\"Version\": 1}"
+              "Namespace":"aws:elasticbeanstalk:healthreporting:system",
+              "OptionName":"ConfigDocument",
+              "Value":"{\"CloudWatchMetrics\": {\"Environment\": {\"ApplicationLatencyP99.9\": null,\"InstancesSevere\": 60,\"ApplicationLatencyP90\": 60,\"ApplicationLatencyP99\": null,\"ApplicationLatencyP95\": 60,\"InstancesUnknown\": 60,\"ApplicationLatencyP85\": 60,\"InstancesInfo\": null,\"ApplicationRequests2xx\": null,\"InstancesDegraded\": null,\"InstancesWarning\": 60,\"ApplicationLatencyP50\": 60,\"ApplicationRequestsTotal\": null,\"InstancesNoData\": null,\"InstancesPending\": 60,\"ApplicationLatencyP10\": null,\"ApplicationRequests5xx\": null,\"ApplicationLatencyP75\": null,\"InstancesOk\": 60,\"ApplicationRequests3xx\": null,\"ApplicationRequests4xx\": null},\"Instance\": {\"ApplicationLatencyP99.9\": null,\"ApplicationLatencyP90\": 60,\"ApplicationLatencyP99\": null,\"ApplicationLatencyP95\": null,\"ApplicationLatencyP85\": null,\"CPUUser\": 60,\"ApplicationRequests2xx\": null,\"CPUIdle\": null,\"ApplicationLatencyP50\": null,\"ApplicationRequestsTotal\": 60,\"RootFilesystemUtil\": null,\"LoadAverage1min\": null,\"CPUIrq\": null,\"CPUNice\": 60,\"CPUIowait\": 60,\"ApplicationLatencyP10\": null,\"LoadAverage5min\": null,\"ApplicationRequests5xx\": null,\"ApplicationLatencyP75\": 60,\"CPUSystem\": 60,\"ApplicationRequests3xx\": 60,\"ApplicationRequests4xx\": null,\"InstanceHealth\": null,\"CPUSoftirq\": 60}},\"Version\": 1}"
             }
           ]
         },
-        "output": {
-          "Messages": [
+        "output":{
+          "Messages":[
 
           ]
         },
-        "comments": {
-          "input": {
+        "comments":{
+          "input":{
           },
-          "output": {
+          "output":{
           }
         },
-        "description": "The following operation validates a CloudWatch custom metrics config document:",
-        "id": "to-validate-configuration-settings-1456278393654",
-        "title": "To validate configuration settings"
+        "description":"The following operation validates a CloudWatch custom metrics config document:",
+        "id":"to-validate-configuration-settings-1456278393654",
+        "title":"To validate configuration settings"
       }
     ]
   }

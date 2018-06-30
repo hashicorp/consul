@@ -28,7 +28,7 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 type DocumentMask struct {
 	// The list of field paths in the mask. See [Document.fields][google.firestore.v1beta1.Document.fields] for a field
 	// path syntax reference.
-	FieldPaths           []string `protobuf:"bytes,1,rep,name=field_paths,json=fieldPaths" json:"field_paths,omitempty"`
+	FieldPaths           []string `protobuf:"bytes,1,rep,name=field_paths,json=fieldPaths,proto3" json:"field_paths,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -107,10 +107,10 @@ type isPrecondition_ConditionType interface {
 }
 
 type Precondition_Exists struct {
-	Exists bool `protobuf:"varint,1,opt,name=exists,oneof"`
+	Exists bool `protobuf:"varint,1,opt,name=exists,proto3,oneof"`
 }
 type Precondition_UpdateTime struct {
-	UpdateTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=update_time,json=updateTime,oneof"`
+	UpdateTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=update_time,json=updateTime,proto3,oneof"`
 }
 
 func (*Precondition_Exists) isPrecondition_ConditionType()     {}
@@ -252,10 +252,10 @@ type isTransactionOptions_Mode interface {
 }
 
 type TransactionOptions_ReadOnly_ struct {
-	ReadOnly *TransactionOptions_ReadOnly `protobuf:"bytes,2,opt,name=read_only,json=readOnly,oneof"`
+	ReadOnly *TransactionOptions_ReadOnly `protobuf:"bytes,2,opt,name=read_only,json=readOnly,proto3,oneof"`
 }
 type TransactionOptions_ReadWrite_ struct {
-	ReadWrite *TransactionOptions_ReadWrite `protobuf:"bytes,3,opt,name=read_write,json=readWrite,oneof"`
+	ReadWrite *TransactionOptions_ReadWrite `protobuf:"bytes,3,opt,name=read_write,json=readWrite,proto3,oneof"`
 }
 
 func (*TransactionOptions_ReadOnly_) isTransactionOptions_Mode()  {}
@@ -438,7 +438,7 @@ type isTransactionOptions_ReadOnly_ConsistencySelector interface {
 }
 
 type TransactionOptions_ReadOnly_ReadTime struct {
-	ReadTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=read_time,json=readTime,oneof"`
+	ReadTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=read_time,json=readTime,proto3,oneof"`
 }
 
 func (*TransactionOptions_ReadOnly_ReadTime) isTransactionOptions_ReadOnly_ConsistencySelector() {}

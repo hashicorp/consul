@@ -31,11 +31,7 @@ var (
 		'1', '0', '0', '0',
 		2,                   // a topic
 		0, 3, 'b', 'a', 'r', // topic name: foo
-		0, 0, 0, 2, //2 config
-		0, 10, // 10 chars
-		's', 'e', 'g', 'm', 'e', 'n', 't', '.', 'm', 's',
-		0, 4,
-		'1', '0', '0', '0',
+		0, 0, 0, 1, //2 config
 		0, 12, // 12 chars
 		'r', 'e', 't', 'e', 'n', 't', 'i', 'o', 'n', '.', 'm', 's',
 		0, 4,
@@ -80,7 +76,6 @@ func TestAlterConfigsRequest(t *testing.T) {
 				Type: TopicResource,
 				Name: "bar",
 				ConfigEntries: map[string]*string{
-					"segment.ms":   &configValue,
 					"retention.ms": &configValue,
 				},
 			},

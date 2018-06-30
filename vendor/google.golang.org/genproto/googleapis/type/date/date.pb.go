@@ -28,12 +28,12 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 type Date struct {
 	// Year of date. Must be from 1 to 9999, or 0 if specifying a date without
 	// a year.
-	Year int32 `protobuf:"varint,1,opt,name=year" json:"year,omitempty"`
+	Year int32 `protobuf:"varint,1,opt,name=year,proto3" json:"year,omitempty"`
 	// Month of year. Must be from 1 to 12.
-	Month int32 `protobuf:"varint,2,opt,name=month" json:"month,omitempty"`
+	Month int32 `protobuf:"varint,2,opt,name=month,proto3" json:"month,omitempty"`
 	// Day of month. Must be from 1 to 31 and valid for the year and month, or 0
 	// if specifying a year/month where the day is not significant.
-	Day                  int32    `protobuf:"varint,3,opt,name=day" json:"day,omitempty"`
+	Day                  int32    `protobuf:"varint,3,opt,name=day,proto3" json:"day,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

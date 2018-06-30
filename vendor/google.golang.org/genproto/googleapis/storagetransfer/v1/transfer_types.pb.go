@@ -105,7 +105,7 @@ func (TransferOperation_Status) EnumDescriptor() ([]byte, []int) {
 // Google service account
 type GoogleServiceAccount struct {
 	// Required.
-	AccountEmail         string   `protobuf:"bytes,1,opt,name=account_email,json=accountEmail" json:"account_email,omitempty"`
+	AccountEmail         string   `protobuf:"bytes,1,opt,name=account_email,json=accountEmail,proto3" json:"account_email,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -147,10 +147,10 @@ func (m *GoogleServiceAccount) GetAccountEmail() string {
 type AwsAccessKey struct {
 	// AWS access key ID.
 	// Required.
-	AccessKeyId string `protobuf:"bytes,1,opt,name=access_key_id,json=accessKeyId" json:"access_key_id,omitempty"`
+	AccessKeyId string `protobuf:"bytes,1,opt,name=access_key_id,json=accessKeyId,proto3" json:"access_key_id,omitempty"`
 	// AWS secret access key. This field is not returned in RPC responses.
 	// Required.
-	SecretAccessKey      string   `protobuf:"bytes,2,opt,name=secret_access_key,json=secretAccessKey" json:"secret_access_key,omitempty"`
+	SecretAccessKey      string   `protobuf:"bytes,2,opt,name=secret_access_key,json=secretAccessKey,proto3" json:"secret_access_key,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -203,10 +203,10 @@ type ObjectConditions struct {
 	// `NOW` - `maxTimeElapsedSinceLastModification` and less than
 	// `NOW` - `minTimeElapsedSinceLastModification`, or not have a
 	// `lastModificationTime`.
-	MinTimeElapsedSinceLastModification *duration.Duration `protobuf:"bytes,1,opt,name=min_time_elapsed_since_last_modification,json=minTimeElapsedSinceLastModification" json:"min_time_elapsed_since_last_modification,omitempty"`
+	MinTimeElapsedSinceLastModification *duration.Duration `protobuf:"bytes,1,opt,name=min_time_elapsed_since_last_modification,json=minTimeElapsedSinceLastModification,proto3" json:"min_time_elapsed_since_last_modification,omitempty"`
 	// `maxTimeElapsedSinceLastModification` is the complement to
 	// `minTimeElapsedSinceLastModification`.
-	MaxTimeElapsedSinceLastModification *duration.Duration `protobuf:"bytes,2,opt,name=max_time_elapsed_since_last_modification,json=maxTimeElapsedSinceLastModification" json:"max_time_elapsed_since_last_modification,omitempty"`
+	MaxTimeElapsedSinceLastModification *duration.Duration `protobuf:"bytes,2,opt,name=max_time_elapsed_since_last_modification,json=maxTimeElapsedSinceLastModification,proto3" json:"max_time_elapsed_since_last_modification,omitempty"`
 	// If `includePrefixes` is specified, objects that satisfy the object
 	// conditions must have names that start with one of the `includePrefixes`
 	// and that do not start with any of the `excludePrefixes`. If `includePrefixes`
@@ -240,12 +240,12 @@ type ObjectConditions struct {
 	//     with the value of a path explicitly included by `includePrefixes`.
 	//
 	// The max size of `includePrefixes` is 1000.
-	IncludePrefixes []string `protobuf:"bytes,3,rep,name=include_prefixes,json=includePrefixes" json:"include_prefixes,omitempty"`
+	IncludePrefixes []string `protobuf:"bytes,3,rep,name=include_prefixes,json=includePrefixes,proto3" json:"include_prefixes,omitempty"`
 	// `excludePrefixes` must follow the requirements described for
 	// `includePrefixes`.
 	//
 	// The max size of `excludePrefixes` is 1000.
-	ExcludePrefixes      []string `protobuf:"bytes,4,rep,name=exclude_prefixes,json=excludePrefixes" json:"exclude_prefixes,omitempty"`
+	ExcludePrefixes      []string `protobuf:"bytes,4,rep,name=exclude_prefixes,json=excludePrefixes,proto3" json:"exclude_prefixes,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -310,7 +310,7 @@ type GcsData struct {
 	// Google Cloud Storage bucket name (see
 	// [Bucket Name Requirements](https://cloud.google.com/storage/docs/bucket-naming#requirements)).
 	// Required.
-	BucketName           string   `protobuf:"bytes,1,opt,name=bucket_name,json=bucketName" json:"bucket_name,omitempty"`
+	BucketName           string   `protobuf:"bytes,1,opt,name=bucket_name,json=bucketName,proto3" json:"bucket_name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -353,12 +353,12 @@ type AwsS3Data struct {
 	// S3 Bucket name (see
 	// [Creating a bucket](http://docs.aws.amazon.com/AmazonS3/latest/dev/create-bucket-get-location-example.html)).
 	// Required.
-	BucketName string `protobuf:"bytes,1,opt,name=bucket_name,json=bucketName" json:"bucket_name,omitempty"`
+	BucketName string `protobuf:"bytes,1,opt,name=bucket_name,json=bucketName,proto3" json:"bucket_name,omitempty"`
 	// AWS access key used to sign the API requests to the AWS S3 bucket.
 	// Permissions on the bucket must be granted to the access ID of the
 	// AWS access key.
 	// Required.
-	AwsAccessKey         *AwsAccessKey `protobuf:"bytes,2,opt,name=aws_access_key,json=awsAccessKey" json:"aws_access_key,omitempty"`
+	AwsAccessKey         *AwsAccessKey `protobuf:"bytes,2,opt,name=aws_access_key,json=awsAccessKey,proto3" json:"aws_access_key,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
 	XXX_unrecognized     []byte        `json:"-"`
 	XXX_sizecache        int32         `json:"-"`
@@ -448,7 +448,7 @@ type HttpData struct {
 	// This file must allow public access.  Currently, only URLs with HTTP and
 	// HTTPS schemes are supported.
 	// Required.
-	ListUrl              string   `protobuf:"bytes,1,opt,name=list_url,json=listUrl" json:"list_url,omitempty"`
+	ListUrl              string   `protobuf:"bytes,1,opt,name=list_url,json=listUrl,proto3" json:"list_url,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -489,15 +489,15 @@ func (m *HttpData) GetListUrl() string {
 // to be performed on objects in a transfer.
 type TransferOptions struct {
 	// Whether overwriting objects that already exist in the sink is allowed.
-	OverwriteObjectsAlreadyExistingInSink bool `protobuf:"varint,1,opt,name=overwrite_objects_already_existing_in_sink,json=overwriteObjectsAlreadyExistingInSink" json:"overwrite_objects_already_existing_in_sink,omitempty"`
+	OverwriteObjectsAlreadyExistingInSink bool `protobuf:"varint,1,opt,name=overwrite_objects_already_existing_in_sink,json=overwriteObjectsAlreadyExistingInSink,proto3" json:"overwrite_objects_already_existing_in_sink,omitempty"`
 	// Whether objects that exist only in the sink should be deleted.  Note that
 	// this option and `deleteObjectsFromSourceAfterTransfer` are mutually
 	// exclusive.
-	DeleteObjectsUniqueInSink bool `protobuf:"varint,2,opt,name=delete_objects_unique_in_sink,json=deleteObjectsUniqueInSink" json:"delete_objects_unique_in_sink,omitempty"`
+	DeleteObjectsUniqueInSink bool `protobuf:"varint,2,opt,name=delete_objects_unique_in_sink,json=deleteObjectsUniqueInSink,proto3" json:"delete_objects_unique_in_sink,omitempty"`
 	// Whether objects should be deleted from the source after they are
 	// transferred to the sink.  Note that this option and
 	// `deleteObjectsUniqueInSink` are mutually exclusive.
-	DeleteObjectsFromSourceAfterTransfer bool     `protobuf:"varint,3,opt,name=delete_objects_from_source_after_transfer,json=deleteObjectsFromSourceAfterTransfer" json:"delete_objects_from_source_after_transfer,omitempty"`
+	DeleteObjectsFromSourceAfterTransfer bool     `protobuf:"varint,3,opt,name=delete_objects_from_source_after_transfer,json=deleteObjectsFromSourceAfterTransfer,proto3" json:"delete_objects_from_source_after_transfer,omitempty"`
 	XXX_NoUnkeyedLiteral                 struct{} `json:"-"`
 	XXX_unrecognized                     []byte   `json:"-"`
 	XXX_sizecache                        int32    `json:"-"`
@@ -565,11 +565,11 @@ type TransferSpec struct {
 	// Only objects that satisfy these object conditions are included in the set
 	// of data source and data sink objects.  Object conditions based on
 	// objects' `lastModificationTime` do not exclude objects in a data sink.
-	ObjectConditions *ObjectConditions `protobuf:"bytes,5,opt,name=object_conditions,json=objectConditions" json:"object_conditions,omitempty"`
+	ObjectConditions *ObjectConditions `protobuf:"bytes,5,opt,name=object_conditions,json=objectConditions,proto3" json:"object_conditions,omitempty"`
 	// If the option `deleteObjectsUniqueInSink` is `true`, object conditions
 	// based on objects' `lastModificationTime` are ignored and do not exclude
 	// objects in a data source or a data sink.
-	TransferOptions      *TransferOptions `protobuf:"bytes,6,opt,name=transfer_options,json=transferOptions" json:"transfer_options,omitempty"`
+	TransferOptions      *TransferOptions `protobuf:"bytes,6,opt,name=transfer_options,json=transferOptions,proto3" json:"transfer_options,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
 	XXX_unrecognized     []byte           `json:"-"`
 	XXX_sizecache        int32            `json:"-"`
@@ -607,16 +607,16 @@ type isTransferSpec_DataSink interface {
 }
 
 type TransferSpec_GcsDataSource struct {
-	GcsDataSource *GcsData `protobuf:"bytes,1,opt,name=gcs_data_source,json=gcsDataSource,oneof"`
+	GcsDataSource *GcsData `protobuf:"bytes,1,opt,name=gcs_data_source,json=gcsDataSource,proto3,oneof"`
 }
 type TransferSpec_AwsS3DataSource struct {
-	AwsS3DataSource *AwsS3Data `protobuf:"bytes,2,opt,name=aws_s3_data_source,json=awsS3DataSource,oneof"`
+	AwsS3DataSource *AwsS3Data `protobuf:"bytes,2,opt,name=aws_s3_data_source,json=awsS3DataSource,proto3,oneof"`
 }
 type TransferSpec_HttpDataSource struct {
-	HttpDataSource *HttpData `protobuf:"bytes,3,opt,name=http_data_source,json=httpDataSource,oneof"`
+	HttpDataSource *HttpData `protobuf:"bytes,3,opt,name=http_data_source,json=httpDataSource,proto3,oneof"`
 }
 type TransferSpec_GcsDataSink struct {
-	GcsDataSink *GcsData `protobuf:"bytes,4,opt,name=gcs_data_sink,json=gcsDataSink,oneof"`
+	GcsDataSink *GcsData `protobuf:"bytes,4,opt,name=gcs_data_sink,json=gcsDataSink,proto3,oneof"`
 }
 
 func (*TransferSpec_GcsDataSource) isTransferSpec_DataSource()   {}
@@ -809,11 +809,11 @@ type Schedule struct {
 	// `scheduleStartDate` is in the past, the transfer will run for the first
 	// time on the following day.
 	// Required.
-	ScheduleStartDate *date.Date `protobuf:"bytes,1,opt,name=schedule_start_date,json=scheduleStartDate" json:"schedule_start_date,omitempty"`
+	ScheduleStartDate *date.Date `protobuf:"bytes,1,opt,name=schedule_start_date,json=scheduleStartDate,proto3" json:"schedule_start_date,omitempty"`
 	// The last day the recurring transfer will be run. If `scheduleEndDate`
 	// is the same as `scheduleStartDate`, the transfer will be executed only
 	// once.
-	ScheduleEndDate *date.Date `protobuf:"bytes,2,opt,name=schedule_end_date,json=scheduleEndDate" json:"schedule_end_date,omitempty"`
+	ScheduleEndDate *date.Date `protobuf:"bytes,2,opt,name=schedule_end_date,json=scheduleEndDate,proto3" json:"schedule_end_date,omitempty"`
 	// The time in UTC at which the transfer will be scheduled to start in a day.
 	// Transfers may start later than this time. If not specified, recurring and
 	// one-time transfers that are scheduled to run today will run immediately;
@@ -821,7 +821,7 @@ type Schedule struct {
 	// at approximately midnight UTC on that date. Note that when configuring a
 	// transfer with the Cloud Platform Console, the transfer's start time in a
 	// day is specified in your local timezone.
-	StartTimeOfDay       *timeofday.TimeOfDay `protobuf:"bytes,3,opt,name=start_time_of_day,json=startTimeOfDay" json:"start_time_of_day,omitempty"`
+	StartTimeOfDay       *timeofday.TimeOfDay `protobuf:"bytes,3,opt,name=start_time_of_day,json=startTimeOfDay,proto3" json:"start_time_of_day,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -879,16 +879,16 @@ type TransferJob struct {
 	// job is created. This field should be left empty in requests to create a new
 	// transfer job; otherwise, the requests result in an `INVALID_ARGUMENT`
 	// error.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// A description provided by the user for the job. Its max length is 1024
 	// bytes when Unicode-encoded.
-	Description string `protobuf:"bytes,2,opt,name=description" json:"description,omitempty"`
+	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
 	// The ID of the Google Cloud Platform Console project that owns the job.
-	ProjectId string `protobuf:"bytes,3,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,3,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// Transfer specification.
-	TransferSpec *TransferSpec `protobuf:"bytes,4,opt,name=transfer_spec,json=transferSpec" json:"transfer_spec,omitempty"`
+	TransferSpec *TransferSpec `protobuf:"bytes,4,opt,name=transfer_spec,json=transferSpec,proto3" json:"transfer_spec,omitempty"`
 	// Schedule specification.
-	Schedule *Schedule `protobuf:"bytes,5,opt,name=schedule" json:"schedule,omitempty"`
+	Schedule *Schedule `protobuf:"bytes,5,opt,name=schedule,proto3" json:"schedule,omitempty"`
 	// Status of the job. This value MUST be specified for
 	// `CreateTransferJobRequests`.
 	//
@@ -896,13 +896,13 @@ type TransferJob struct {
 	// run. For example, if you change the job status from `ENABLED` to
 	// `DISABLED`, and an operation spawned by the transfer is running, the status
 	// change would not affect the current operation.
-	Status TransferJob_Status `protobuf:"varint,6,opt,name=status,enum=google.storagetransfer.v1.TransferJob_Status" json:"status,omitempty"`
+	Status TransferJob_Status `protobuf:"varint,6,opt,name=status,proto3,enum=google.storagetransfer.v1.TransferJob_Status" json:"status,omitempty"`
 	// This field cannot be changed by user requests.
-	CreationTime *timestamp.Timestamp `protobuf:"bytes,7,opt,name=creation_time,json=creationTime" json:"creation_time,omitempty"`
+	CreationTime *timestamp.Timestamp `protobuf:"bytes,7,opt,name=creation_time,json=creationTime,proto3" json:"creation_time,omitempty"`
 	// This field cannot be changed by user requests.
-	LastModificationTime *timestamp.Timestamp `protobuf:"bytes,8,opt,name=last_modification_time,json=lastModificationTime" json:"last_modification_time,omitempty"`
+	LastModificationTime *timestamp.Timestamp `protobuf:"bytes,8,opt,name=last_modification_time,json=lastModificationTime,proto3" json:"last_modification_time,omitempty"`
 	// This field cannot be changed by user requests.
-	DeletionTime         *timestamp.Timestamp `protobuf:"bytes,9,opt,name=deletion_time,json=deletionTime" json:"deletion_time,omitempty"`
+	DeletionTime         *timestamp.Timestamp `protobuf:"bytes,9,opt,name=deletion_time,json=deletionTime,proto3" json:"deletion_time,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -1000,9 +1000,9 @@ type ErrorLogEntry struct {
 	// A URL that refers to the target (a data source, a data sink,
 	// or an object) with which the error is associated.
 	// Required.
-	Url string `protobuf:"bytes,1,opt,name=url" json:"url,omitempty"`
+	Url string `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
 	// A list of messages that carry the error details.
-	ErrorDetails         []string `protobuf:"bytes,3,rep,name=error_details,json=errorDetails" json:"error_details,omitempty"`
+	ErrorDetails         []string `protobuf:"bytes,3,rep,name=error_details,json=errorDetails,proto3" json:"error_details,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1050,12 +1050,12 @@ func (m *ErrorLogEntry) GetErrorDetails() []string {
 // entries.
 type ErrorSummary struct {
 	// Required.
-	ErrorCode code.Code `protobuf:"varint,1,opt,name=error_code,json=errorCode,enum=google.rpc.Code" json:"error_code,omitempty"`
+	ErrorCode code.Code `protobuf:"varint,1,opt,name=error_code,json=errorCode,proto3,enum=google.rpc.Code" json:"error_code,omitempty"`
 	// Count of this type of error.
 	// Required.
-	ErrorCount int64 `protobuf:"varint,2,opt,name=error_count,json=errorCount" json:"error_count,omitempty"`
+	ErrorCount int64 `protobuf:"varint,2,opt,name=error_count,json=errorCount,proto3" json:"error_count,omitempty"`
 	// Error samples.
-	ErrorLogEntries      []*ErrorLogEntry `protobuf:"bytes,3,rep,name=error_log_entries,json=errorLogEntries" json:"error_log_entries,omitempty"`
+	ErrorLogEntries      []*ErrorLogEntry `protobuf:"bytes,3,rep,name=error_log_entries,json=errorLogEntries,proto3" json:"error_log_entries,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
 	XXX_unrecognized     []byte           `json:"-"`
 	XXX_sizecache        int32            `json:"-"`
@@ -1111,41 +1111,41 @@ type TransferCounters struct {
 	// Objects found in the data source that are scheduled to be transferred,
 	// excluding any that are filtered based on object conditions or skipped due
 	// to sync.
-	ObjectsFoundFromSource int64 `protobuf:"varint,1,opt,name=objects_found_from_source,json=objectsFoundFromSource" json:"objects_found_from_source,omitempty"`
+	ObjectsFoundFromSource int64 `protobuf:"varint,1,opt,name=objects_found_from_source,json=objectsFoundFromSource,proto3" json:"objects_found_from_source,omitempty"`
 	// Bytes found in the data source that are scheduled to be transferred,
 	// excluding any that are filtered based on object conditions or skipped due
 	// to sync.
-	BytesFoundFromSource int64 `protobuf:"varint,2,opt,name=bytes_found_from_source,json=bytesFoundFromSource" json:"bytes_found_from_source,omitempty"`
+	BytesFoundFromSource int64 `protobuf:"varint,2,opt,name=bytes_found_from_source,json=bytesFoundFromSource,proto3" json:"bytes_found_from_source,omitempty"`
 	// Objects found only in the data sink that are scheduled to be deleted.
-	ObjectsFoundOnlyFromSink int64 `protobuf:"varint,3,opt,name=objects_found_only_from_sink,json=objectsFoundOnlyFromSink" json:"objects_found_only_from_sink,omitempty"`
+	ObjectsFoundOnlyFromSink int64 `protobuf:"varint,3,opt,name=objects_found_only_from_sink,json=objectsFoundOnlyFromSink,proto3" json:"objects_found_only_from_sink,omitempty"`
 	// Bytes found only in the data sink that are scheduled to be deleted.
-	BytesFoundOnlyFromSink int64 `protobuf:"varint,4,opt,name=bytes_found_only_from_sink,json=bytesFoundOnlyFromSink" json:"bytes_found_only_from_sink,omitempty"`
+	BytesFoundOnlyFromSink int64 `protobuf:"varint,4,opt,name=bytes_found_only_from_sink,json=bytesFoundOnlyFromSink,proto3" json:"bytes_found_only_from_sink,omitempty"`
 	// Objects in the data source that are not transferred because they already
 	// exist in the data sink.
-	ObjectsFromSourceSkippedBySync int64 `protobuf:"varint,5,opt,name=objects_from_source_skipped_by_sync,json=objectsFromSourceSkippedBySync" json:"objects_from_source_skipped_by_sync,omitempty"`
+	ObjectsFromSourceSkippedBySync int64 `protobuf:"varint,5,opt,name=objects_from_source_skipped_by_sync,json=objectsFromSourceSkippedBySync,proto3" json:"objects_from_source_skipped_by_sync,omitempty"`
 	// Bytes in the data source that are not transferred because they already
 	// exist in the data sink.
-	BytesFromSourceSkippedBySync int64 `protobuf:"varint,6,opt,name=bytes_from_source_skipped_by_sync,json=bytesFromSourceSkippedBySync" json:"bytes_from_source_skipped_by_sync,omitempty"`
+	BytesFromSourceSkippedBySync int64 `protobuf:"varint,6,opt,name=bytes_from_source_skipped_by_sync,json=bytesFromSourceSkippedBySync,proto3" json:"bytes_from_source_skipped_by_sync,omitempty"`
 	// Objects that are copied to the data sink.
-	ObjectsCopiedToSink int64 `protobuf:"varint,7,opt,name=objects_copied_to_sink,json=objectsCopiedToSink" json:"objects_copied_to_sink,omitempty"`
+	ObjectsCopiedToSink int64 `protobuf:"varint,7,opt,name=objects_copied_to_sink,json=objectsCopiedToSink,proto3" json:"objects_copied_to_sink,omitempty"`
 	// Bytes that are copied to the data sink.
-	BytesCopiedToSink int64 `protobuf:"varint,8,opt,name=bytes_copied_to_sink,json=bytesCopiedToSink" json:"bytes_copied_to_sink,omitempty"`
+	BytesCopiedToSink int64 `protobuf:"varint,8,opt,name=bytes_copied_to_sink,json=bytesCopiedToSink,proto3" json:"bytes_copied_to_sink,omitempty"`
 	// Objects that are deleted from the data source.
-	ObjectsDeletedFromSource int64 `protobuf:"varint,9,opt,name=objects_deleted_from_source,json=objectsDeletedFromSource" json:"objects_deleted_from_source,omitempty"`
+	ObjectsDeletedFromSource int64 `protobuf:"varint,9,opt,name=objects_deleted_from_source,json=objectsDeletedFromSource,proto3" json:"objects_deleted_from_source,omitempty"`
 	// Bytes that are deleted from the data source.
-	BytesDeletedFromSource int64 `protobuf:"varint,10,opt,name=bytes_deleted_from_source,json=bytesDeletedFromSource" json:"bytes_deleted_from_source,omitempty"`
+	BytesDeletedFromSource int64 `protobuf:"varint,10,opt,name=bytes_deleted_from_source,json=bytesDeletedFromSource,proto3" json:"bytes_deleted_from_source,omitempty"`
 	// Objects that are deleted from the data sink.
-	ObjectsDeletedFromSink int64 `protobuf:"varint,11,opt,name=objects_deleted_from_sink,json=objectsDeletedFromSink" json:"objects_deleted_from_sink,omitempty"`
+	ObjectsDeletedFromSink int64 `protobuf:"varint,11,opt,name=objects_deleted_from_sink,json=objectsDeletedFromSink,proto3" json:"objects_deleted_from_sink,omitempty"`
 	// Bytes that are deleted from the data sink.
-	BytesDeletedFromSink int64 `protobuf:"varint,12,opt,name=bytes_deleted_from_sink,json=bytesDeletedFromSink" json:"bytes_deleted_from_sink,omitempty"`
+	BytesDeletedFromSink int64 `protobuf:"varint,12,opt,name=bytes_deleted_from_sink,json=bytesDeletedFromSink,proto3" json:"bytes_deleted_from_sink,omitempty"`
 	// Objects in the data source that failed during the transfer.
-	ObjectsFromSourceFailed int64 `protobuf:"varint,13,opt,name=objects_from_source_failed,json=objectsFromSourceFailed" json:"objects_from_source_failed,omitempty"`
+	ObjectsFromSourceFailed int64 `protobuf:"varint,13,opt,name=objects_from_source_failed,json=objectsFromSourceFailed,proto3" json:"objects_from_source_failed,omitempty"`
 	// Bytes in the data source that failed during the transfer.
-	BytesFromSourceFailed int64 `protobuf:"varint,14,opt,name=bytes_from_source_failed,json=bytesFromSourceFailed" json:"bytes_from_source_failed,omitempty"`
+	BytesFromSourceFailed int64 `protobuf:"varint,14,opt,name=bytes_from_source_failed,json=bytesFromSourceFailed,proto3" json:"bytes_from_source_failed,omitempty"`
 	// Objects that failed to be deleted from the data sink.
-	ObjectsFailedToDeleteFromSink int64 `protobuf:"varint,15,opt,name=objects_failed_to_delete_from_sink,json=objectsFailedToDeleteFromSink" json:"objects_failed_to_delete_from_sink,omitempty"`
+	ObjectsFailedToDeleteFromSink int64 `protobuf:"varint,15,opt,name=objects_failed_to_delete_from_sink,json=objectsFailedToDeleteFromSink,proto3" json:"objects_failed_to_delete_from_sink,omitempty"`
 	// Bytes that failed to be deleted from the data sink.
-	BytesFailedToDeleteFromSink int64    `protobuf:"varint,16,opt,name=bytes_failed_to_delete_from_sink,json=bytesFailedToDeleteFromSink" json:"bytes_failed_to_delete_from_sink,omitempty"`
+	BytesFailedToDeleteFromSink int64    `protobuf:"varint,16,opt,name=bytes_failed_to_delete_from_sink,json=bytesFailedToDeleteFromSink,proto3" json:"bytes_failed_to_delete_from_sink,omitempty"`
 	XXX_NoUnkeyedLiteral        struct{} `json:"-"`
 	XXX_unrecognized            []byte   `json:"-"`
 	XXX_sizecache               int32    `json:"-"`
@@ -1290,25 +1290,25 @@ func (m *TransferCounters) GetBytesFailedToDeleteFromSink() int64 {
 // A description of the execution of a transfer.
 type TransferOperation struct {
 	// A globally unique ID assigned by the system.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The ID of the Google Cloud Platform Console project that owns the operation.
 	// Required.
-	ProjectId string `protobuf:"bytes,2,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// Transfer specification.
 	// Required.
-	TransferSpec *TransferSpec `protobuf:"bytes,3,opt,name=transfer_spec,json=transferSpec" json:"transfer_spec,omitempty"`
+	TransferSpec *TransferSpec `protobuf:"bytes,3,opt,name=transfer_spec,json=transferSpec,proto3" json:"transfer_spec,omitempty"`
 	// Start time of this transfer execution.
-	StartTime *timestamp.Timestamp `protobuf:"bytes,4,opt,name=start_time,json=startTime" json:"start_time,omitempty"`
+	StartTime *timestamp.Timestamp `protobuf:"bytes,4,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
 	// End time of this transfer execution.
-	EndTime *timestamp.Timestamp `protobuf:"bytes,5,opt,name=end_time,json=endTime" json:"end_time,omitempty"`
+	EndTime *timestamp.Timestamp `protobuf:"bytes,5,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
 	// Status of the transfer operation.
-	Status TransferOperation_Status `protobuf:"varint,6,opt,name=status,enum=google.storagetransfer.v1.TransferOperation_Status" json:"status,omitempty"`
+	Status TransferOperation_Status `protobuf:"varint,6,opt,name=status,proto3,enum=google.storagetransfer.v1.TransferOperation_Status" json:"status,omitempty"`
 	// Information about the progress of the transfer operation.
-	Counters *TransferCounters `protobuf:"bytes,7,opt,name=counters" json:"counters,omitempty"`
+	Counters *TransferCounters `protobuf:"bytes,7,opt,name=counters,proto3" json:"counters,omitempty"`
 	// Summarizes errors encountered with sample error log entries.
-	ErrorBreakdowns []*ErrorSummary `protobuf:"bytes,8,rep,name=error_breakdowns,json=errorBreakdowns" json:"error_breakdowns,omitempty"`
+	ErrorBreakdowns []*ErrorSummary `protobuf:"bytes,8,rep,name=error_breakdowns,json=errorBreakdowns,proto3" json:"error_breakdowns,omitempty"`
 	// The name of the transfer job that triggers this transfer operation.
-	TransferJobName      string   `protobuf:"bytes,9,opt,name=transfer_job_name,json=transferJobName" json:"transfer_job_name,omitempty"`
+	TransferJobName      string   `protobuf:"bytes,9,opt,name=transfer_job_name,json=transferJobName,proto3" json:"transfer_job_name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

@@ -102,12 +102,12 @@ func (ListTracesRequest_ViewType) EnumDescriptor() ([]byte, []int) {
 // timed event within the operation.
 type Trace struct {
 	// Project ID of the Cloud project where the trace data is stored.
-	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// Globally unique identifier for the trace. This identifier is a 128-bit
 	// numeric value formatted as a 32-byte hex string.
-	TraceId string `protobuf:"bytes,2,opt,name=trace_id,json=traceId" json:"trace_id,omitempty"`
+	TraceId string `protobuf:"bytes,2,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`
 	// Collection of spans in the trace.
-	Spans                []*TraceSpan `protobuf:"bytes,3,rep,name=spans" json:"spans,omitempty"`
+	Spans                []*TraceSpan `protobuf:"bytes,3,rep,name=spans,proto3" json:"spans,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
 	XXX_unrecognized     []byte       `json:"-"`
 	XXX_sizecache        int32        `json:"-"`
@@ -161,7 +161,7 @@ func (m *Trace) GetSpans() []*TraceSpan {
 // List of new or updated traces.
 type Traces struct {
 	// List of traces.
-	Traces               []*Trace `protobuf:"bytes,1,rep,name=traces" json:"traces,omitempty"`
+	Traces               []*Trace `protobuf:"bytes,1,rep,name=traces,proto3" json:"traces,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -206,11 +206,11 @@ func (m *Traces) GetTraces() []*Trace {
 type TraceSpan struct {
 	// Identifier for the span. Must be a 64-bit integer other than 0 and
 	// unique within a trace.
-	SpanId uint64 `protobuf:"fixed64,1,opt,name=span_id,json=spanId" json:"span_id,omitempty"`
+	SpanId uint64 `protobuf:"fixed64,1,opt,name=span_id,json=spanId,proto3" json:"span_id,omitempty"`
 	// Distinguishes between spans generated in a particular context. For example,
 	// two spans with the same name may be distinguished using `RPC_CLIENT`
 	// and `RPC_SERVER` to identify queueing latency associated with the span.
-	Kind TraceSpan_SpanKind `protobuf:"varint,2,opt,name=kind,enum=google.devtools.cloudtrace.v1.TraceSpan_SpanKind" json:"kind,omitempty"`
+	Kind TraceSpan_SpanKind `protobuf:"varint,2,opt,name=kind,proto3,enum=google.devtools.cloudtrace.v1.TraceSpan_SpanKind" json:"kind,omitempty"`
 	// Name of the span. Must be less than 128 bytes. The span name is sanitized
 	// and displayed in the Stackdriver Trace tool in the
 	// {% dynamic print site_values.console_name %}.
@@ -218,13 +218,13 @@ type TraceSpan struct {
 	// For the same executable and the same call point, a best practice is
 	// to use a consistent name, which makes it easier to correlate
 	// cross-trace spans.
-	Name string `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	// Start time of the span in nanoseconds from the UNIX epoch.
-	StartTime *timestamp.Timestamp `protobuf:"bytes,4,opt,name=start_time,json=startTime" json:"start_time,omitempty"`
+	StartTime *timestamp.Timestamp `protobuf:"bytes,4,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
 	// End time of the span in nanoseconds from the UNIX epoch.
-	EndTime *timestamp.Timestamp `protobuf:"bytes,5,opt,name=end_time,json=endTime" json:"end_time,omitempty"`
+	EndTime *timestamp.Timestamp `protobuf:"bytes,5,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
 	// ID of the parent span, if any. Optional.
-	ParentSpanId uint64 `protobuf:"fixed64,6,opt,name=parent_span_id,json=parentSpanId" json:"parent_span_id,omitempty"`
+	ParentSpanId uint64 `protobuf:"fixed64,6,opt,name=parent_span_id,json=parentSpanId,proto3" json:"parent_span_id,omitempty"`
 	// Collection of labels associated with the span. Label keys must be less than
 	// 128 bytes. Label values must be less than 16 kilobytes (10MB for
 	// `/stacktrace` values).
@@ -260,7 +260,7 @@ type TraceSpan struct {
 	// *   `/pid`
 	// *   `/stacktrace`
 	// *   `/tid`
-	Labels               map[string]string `protobuf:"bytes,7,rep,name=labels" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Labels               map[string]string `protobuf:"bytes,7,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -343,23 +343,23 @@ func (m *TraceSpan) GetLabels() map[string]string {
 // unless specified.
 type ListTracesRequest struct {
 	// ID of the Cloud project where the trace data is stored.
-	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// Type of data returned for traces in the list. Optional. Default is
 	// `MINIMAL`.
-	View ListTracesRequest_ViewType `protobuf:"varint,2,opt,name=view,enum=google.devtools.cloudtrace.v1.ListTracesRequest_ViewType" json:"view,omitempty"`
+	View ListTracesRequest_ViewType `protobuf:"varint,2,opt,name=view,proto3,enum=google.devtools.cloudtrace.v1.ListTracesRequest_ViewType" json:"view,omitempty"`
 	// Maximum number of traces to return. If not specified or <= 0, the
 	// implementation selects a reasonable value.  The implementation may
 	// return fewer traces than the requested page size. Optional.
-	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Token identifying the page of results to return. If provided, use the
 	// value of the `next_page_token` field from a previous request. Optional.
-	PageToken string `protobuf:"bytes,4,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// Start of the time interval (inclusive) during which the trace data was
 	// collected from the application.
-	StartTime *timestamp.Timestamp `protobuf:"bytes,5,opt,name=start_time,json=startTime" json:"start_time,omitempty"`
+	StartTime *timestamp.Timestamp `protobuf:"bytes,5,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
 	// End of the time interval (inclusive) during which the trace data was
 	// collected from the application.
-	EndTime *timestamp.Timestamp `protobuf:"bytes,6,opt,name=end_time,json=endTime" json:"end_time,omitempty"`
+	EndTime *timestamp.Timestamp `protobuf:"bytes,6,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
 	// An optional filter against labels for the request.
 	//
 	// By default, searches use prefix matching. To specify exact match, prepend
@@ -390,7 +390,7 @@ type ListTracesRequest struct {
 	//     specified.
 	// *   `method:VALUE`: Equivalent to `/http/method:VALUE`.
 	// *   `url:VALUE`: Equivalent to `/http/url:VALUE`.
-	Filter string `protobuf:"bytes,7,opt,name=filter" json:"filter,omitempty"`
+	Filter string `protobuf:"bytes,7,opt,name=filter,proto3" json:"filter,omitempty"`
 	// Field used to sort the returned traces. Optional.
 	// Can be one of the following:
 	//
@@ -404,7 +404,7 @@ type ListTracesRequest struct {
 	// (for example, `name desc`).
 	//
 	// Only one sort field is permitted.
-	OrderBy              string   `protobuf:"bytes,8,opt,name=order_by,json=orderBy" json:"order_by,omitempty"`
+	OrderBy              string   `protobuf:"bytes,8,opt,name=order_by,json=orderBy,proto3" json:"order_by,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -493,11 +493,11 @@ func (m *ListTracesRequest) GetOrderBy() string {
 // The response message for the `ListTraces` method.
 type ListTracesResponse struct {
 	// List of trace records returned.
-	Traces []*Trace `protobuf:"bytes,1,rep,name=traces" json:"traces,omitempty"`
+	Traces []*Trace `protobuf:"bytes,1,rep,name=traces,proto3" json:"traces,omitempty"`
 	// If defined, indicates that there are more traces that match the request
 	// and that this value should be passed to the next request to continue
 	// retrieving additional traces.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -544,9 +544,9 @@ func (m *ListTracesResponse) GetNextPageToken() string {
 // The request message for the `GetTrace` method.
 type GetTraceRequest struct {
 	// ID of the Cloud project where the trace data is stored.
-	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// ID of the trace to return.
-	TraceId              string   `protobuf:"bytes,2,opt,name=trace_id,json=traceId" json:"trace_id,omitempty"`
+	TraceId              string   `protobuf:"bytes,2,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -593,9 +593,9 @@ func (m *GetTraceRequest) GetTraceId() string {
 // The request message for the `PatchTraces` method.
 type PatchTracesRequest struct {
 	// ID of the Cloud project where the trace data is stored.
-	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// The body of the message.
-	Traces               *Traces  `protobuf:"bytes,2,opt,name=traces" json:"traces,omitempty"`
+	Traces               *Traces  `protobuf:"bytes,2,opt,name=traces,proto3" json:"traces,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -711,8 +711,7 @@ func (c *traceServiceClient) PatchTraces(ctx context.Context, in *PatchTracesReq
 	return out, nil
 }
 
-// Server API for TraceService service
-
+// TraceServiceServer is the server API for TraceService service.
 type TraceServiceServer interface {
 	// Returns of a list of traces that match the specified filter conditions.
 	ListTraces(context.Context, *ListTracesRequest) (*ListTracesResponse, error)

@@ -125,7 +125,7 @@ func (StreamId_BuildComponent) EnumDescriptor() ([]byte, []int) {
 // message does not include field for uniquely identifying an event.
 type BuildEvent struct {
 	// The timestamp of this event.
-	EventTime *timestamp.Timestamp `protobuf:"bytes,1,opt,name=event_time,json=eventTime" json:"event_time,omitempty"`
+	EventTime *timestamp.Timestamp `protobuf:"bytes,1,opt,name=event_time,json=eventTime,proto3" json:"event_time,omitempty"`
 	// //////////////////////////////////////////////////////////////////////////
 	// Events that indicate a state change of a build request in the build
 	// queue.
@@ -175,31 +175,31 @@ type isBuildEvent_Event interface {
 }
 
 type BuildEvent_InvocationAttemptStarted_ struct {
-	InvocationAttemptStarted *BuildEvent_InvocationAttemptStarted `protobuf:"bytes,51,opt,name=invocation_attempt_started,json=invocationAttemptStarted,oneof"`
+	InvocationAttemptStarted *BuildEvent_InvocationAttemptStarted `protobuf:"bytes,51,opt,name=invocation_attempt_started,json=invocationAttemptStarted,proto3,oneof"`
 }
 type BuildEvent_InvocationAttemptFinished_ struct {
-	InvocationAttemptFinished *BuildEvent_InvocationAttemptFinished `protobuf:"bytes,52,opt,name=invocation_attempt_finished,json=invocationAttemptFinished,oneof"`
+	InvocationAttemptFinished *BuildEvent_InvocationAttemptFinished `protobuf:"bytes,52,opt,name=invocation_attempt_finished,json=invocationAttemptFinished,proto3,oneof"`
 }
 type BuildEvent_BuildEnqueued_ struct {
-	BuildEnqueued *BuildEvent_BuildEnqueued `protobuf:"bytes,53,opt,name=build_enqueued,json=buildEnqueued,oneof"`
+	BuildEnqueued *BuildEvent_BuildEnqueued `protobuf:"bytes,53,opt,name=build_enqueued,json=buildEnqueued,proto3,oneof"`
 }
 type BuildEvent_BuildFinished_ struct {
-	BuildFinished *BuildEvent_BuildFinished `protobuf:"bytes,55,opt,name=build_finished,json=buildFinished,oneof"`
+	BuildFinished *BuildEvent_BuildFinished `protobuf:"bytes,55,opt,name=build_finished,json=buildFinished,proto3,oneof"`
 }
 type BuildEvent_ConsoleOutput_ struct {
-	ConsoleOutput *BuildEvent_ConsoleOutput `protobuf:"bytes,56,opt,name=console_output,json=consoleOutput,oneof"`
+	ConsoleOutput *BuildEvent_ConsoleOutput `protobuf:"bytes,56,opt,name=console_output,json=consoleOutput,proto3,oneof"`
 }
 type BuildEvent_ComponentStreamFinished struct {
-	ComponentStreamFinished *BuildEvent_BuildComponentStreamFinished `protobuf:"bytes,59,opt,name=component_stream_finished,json=componentStreamFinished,oneof"`
+	ComponentStreamFinished *BuildEvent_BuildComponentStreamFinished `protobuf:"bytes,59,opt,name=component_stream_finished,json=componentStreamFinished,proto3,oneof"`
 }
 type BuildEvent_BazelEvent struct {
-	BazelEvent *any.Any `protobuf:"bytes,60,opt,name=bazel_event,json=bazelEvent,oneof"`
+	BazelEvent *any.Any `protobuf:"bytes,60,opt,name=bazel_event,json=bazelEvent,proto3,oneof"`
 }
 type BuildEvent_BuildExecutionEvent struct {
-	BuildExecutionEvent *any.Any `protobuf:"bytes,61,opt,name=build_execution_event,json=buildExecutionEvent,oneof"`
+	BuildExecutionEvent *any.Any `protobuf:"bytes,61,opt,name=build_execution_event,json=buildExecutionEvent,proto3,oneof"`
 }
 type BuildEvent_SourceFetchEvent struct {
-	SourceFetchEvent *any.Any `protobuf:"bytes,62,opt,name=source_fetch_event,json=sourceFetchEvent,oneof"`
+	SourceFetchEvent *any.Any `protobuf:"bytes,62,opt,name=source_fetch_event,json=sourceFetchEvent,proto3,oneof"`
 }
 
 func (*BuildEvent_InvocationAttemptStarted_) isBuildEvent_Event()  {}
@@ -501,7 +501,7 @@ type BuildEvent_InvocationAttemptStarted struct {
 	// The number of the invocation attempt, starting at 1 and increasing by 1
 	// for each new attempt. Can be used to determine if there is a later
 	// invocation attempt replacing the current one a client is processing.
-	AttemptNumber        int64    `protobuf:"varint,1,opt,name=attempt_number,json=attemptNumber" json:"attempt_number,omitempty"`
+	AttemptNumber        int64    `protobuf:"varint,1,opt,name=attempt_number,json=attemptNumber,proto3" json:"attempt_number,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -541,9 +541,9 @@ func (m *BuildEvent_InvocationAttemptStarted) GetAttemptNumber() int64 {
 // Notification that an invocation attempt has finished.
 type BuildEvent_InvocationAttemptFinished struct {
 	// The exit code of the build tool.
-	ExitCode *wrappers.Int32Value `protobuf:"bytes,2,opt,name=exit_code,json=exitCode" json:"exit_code,omitempty"`
+	ExitCode *wrappers.Int32Value `protobuf:"bytes,2,opt,name=exit_code,json=exitCode,proto3" json:"exit_code,omitempty"`
 	// Final status of the invocation.
-	InvocationStatus     *BuildStatus `protobuf:"bytes,3,opt,name=invocation_status,json=invocationStatus" json:"invocation_status,omitempty"`
+	InvocationStatus     *BuildStatus `protobuf:"bytes,3,opt,name=invocation_status,json=invocationStatus,proto3" json:"invocation_status,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
 	XXX_unrecognized     []byte       `json:"-"`
 	XXX_sizecache        int32        `json:"-"`
@@ -626,7 +626,7 @@ var xxx_messageInfo_BuildEvent_BuildEnqueued proto.InternalMessageInfo
 // Individual invocations trigger InvocationFinished when they finish.
 type BuildEvent_BuildFinished struct {
 	// Final status of the build.
-	Status               *BuildStatus `protobuf:"bytes,1,opt,name=status" json:"status,omitempty"`
+	Status               *BuildStatus `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
 	XXX_unrecognized     []byte       `json:"-"`
 	XXX_sizecache        int32        `json:"-"`
@@ -666,7 +666,7 @@ func (m *BuildEvent_BuildFinished) GetStatus() *BuildStatus {
 // Textual output written to standard output or standard error.
 type BuildEvent_ConsoleOutput struct {
 	// The output stream type.
-	Type ConsoleOutputStream `protobuf:"varint,1,opt,name=type,enum=google.devtools.build.v1.ConsoleOutputStream" json:"type,omitempty"`
+	Type ConsoleOutputStream `protobuf:"varint,1,opt,name=type,proto3,enum=google.devtools.build.v1.ConsoleOutputStream" json:"type,omitempty"`
 	// The output stream content.
 	//
 	// Types that are valid to be assigned to Output:
@@ -707,7 +707,7 @@ type isBuildEvent_ConsoleOutput_Output interface {
 }
 
 type BuildEvent_ConsoleOutput_TextOutput struct {
-	TextOutput string `protobuf:"bytes,2,opt,name=text_output,json=textOutput,oneof"`
+	TextOutput string `protobuf:"bytes,2,opt,name=text_output,json=textOutput,proto3,oneof"`
 }
 type BuildEvent_ConsoleOutput_BinaryOutput struct {
 	BinaryOutput []byte `protobuf:"bytes,3,opt,name=binary_output,json=binaryOutput,proto3,oneof"`
@@ -814,7 +814,7 @@ func _BuildEvent_ConsoleOutput_OneofSizer(msg proto.Message) (n int) {
 // component other than CONTROLLER (See StreamId.BuildComponents).
 type BuildEvent_BuildComponentStreamFinished struct {
 	// How the event stream finished.
-	Type                 BuildEvent_BuildComponentStreamFinished_FinishType `protobuf:"varint,1,opt,name=type,enum=google.devtools.build.v1.BuildEvent_BuildComponentStreamFinished_FinishType" json:"type,omitempty"`
+	Type                 BuildEvent_BuildComponentStreamFinished_FinishType `protobuf:"varint,1,opt,name=type,proto3,enum=google.devtools.build.v1.BuildEvent_BuildComponentStreamFinished_FinishType" json:"type,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                                           `json:"-"`
 	XXX_unrecognized     []byte                                             `json:"-"`
 	XXX_sizecache        int32                                              `json:"-"`
@@ -856,12 +856,12 @@ func (m *BuildEvent_BuildComponentStreamFinished) GetType() BuildEvent_BuildComp
 // Unique identifier for a build event stream.
 type StreamId struct {
 	// The id of a Build message.
-	BuildId string `protobuf:"bytes,1,opt,name=build_id,json=buildId" json:"build_id,omitempty"`
+	BuildId string `protobuf:"bytes,1,opt,name=build_id,json=buildId,proto3" json:"build_id,omitempty"`
 	// The unique invocation ID within this build.
 	// It should be the same as {invocation} (below) during the migration.
-	InvocationId string `protobuf:"bytes,6,opt,name=invocation_id,json=invocationId" json:"invocation_id,omitempty"`
+	InvocationId string `protobuf:"bytes,6,opt,name=invocation_id,json=invocationId,proto3" json:"invocation_id,omitempty"`
 	// The component that emitted this event.
-	Component            StreamId_BuildComponent `protobuf:"varint,3,opt,name=component,enum=google.devtools.build.v1.StreamId_BuildComponent" json:"component,omitempty"`
+	Component            StreamId_BuildComponent `protobuf:"varint,3,opt,name=component,proto3,enum=google.devtools.build.v1.StreamId_BuildComponent" json:"component,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                `json:"-"`
 	XXX_unrecognized     []byte                  `json:"-"`
 	XXX_sizecache        int32                   `json:"-"`

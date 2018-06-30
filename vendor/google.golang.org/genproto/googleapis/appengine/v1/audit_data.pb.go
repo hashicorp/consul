@@ -64,10 +64,10 @@ type isAuditData_Method interface {
 }
 
 type AuditData_UpdateService struct {
-	UpdateService *UpdateServiceMethod `protobuf:"bytes,1,opt,name=update_service,json=updateService,oneof"`
+	UpdateService *UpdateServiceMethod `protobuf:"bytes,1,opt,name=update_service,json=updateService,proto3,oneof"`
 }
 type AuditData_CreateVersion struct {
-	CreateVersion *CreateVersionMethod `protobuf:"bytes,2,opt,name=create_version,json=createVersion,oneof"`
+	CreateVersion *CreateVersionMethod `protobuf:"bytes,2,opt,name=create_version,json=createVersion,proto3,oneof"`
 }
 
 func (*AuditData_UpdateService) isAuditData_Method() {}
@@ -171,7 +171,7 @@ func _AuditData_OneofSizer(msg proto.Message) (n int) {
 // Detailed information about UpdateService call.
 type UpdateServiceMethod struct {
 	// Update service request.
-	Request              *UpdateServiceRequest `protobuf:"bytes,1,opt,name=request" json:"request,omitempty"`
+	Request              *UpdateServiceRequest `protobuf:"bytes,1,opt,name=request,proto3" json:"request,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -211,7 +211,7 @@ func (m *UpdateServiceMethod) GetRequest() *UpdateServiceRequest {
 // Detailed information about CreateVersion call.
 type CreateVersionMethod struct {
 	// Create version request.
-	Request              *CreateVersionRequest `protobuf:"bytes,1,opt,name=request" json:"request,omitempty"`
+	Request              *CreateVersionRequest `protobuf:"bytes,1,opt,name=request,proto3" json:"request,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`

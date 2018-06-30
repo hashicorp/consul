@@ -24,12 +24,12 @@ type Deployment struct {
 	// Manifest of the files stored in Google Cloud Storage that are included
 	// as part of this version. All files must be readable using the
 	// credentials supplied with this call.
-	Files map[string]*FileInfo `protobuf:"bytes,1,rep,name=files" json:"files,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Files map[string]*FileInfo `protobuf:"bytes,1,rep,name=files,proto3" json:"files,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// A Docker image that App Engine uses to run the version.
 	// Only applicable for instances in App Engine flexible environment.
-	Container *ContainerInfo `protobuf:"bytes,2,opt,name=container" json:"container,omitempty"`
+	Container *ContainerInfo `protobuf:"bytes,2,opt,name=container,proto3" json:"container,omitempty"`
 	// The zip file for this deployment, if this is a zip deployment.
-	Zip                  *ZipInfo `protobuf:"bytes,3,opt,name=zip" json:"zip,omitempty"`
+	Zip                  *ZipInfo `protobuf:"bytes,3,opt,name=zip,proto3" json:"zip,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -86,13 +86,13 @@ type FileInfo struct {
 	// URL source to use to fetch this file. Must be a URL to a resource in
 	// Google Cloud Storage in the form
 	// 'http(s)://storage.googleapis.com/\<bucket\>/\<object\>'.
-	SourceUrl string `protobuf:"bytes,1,opt,name=source_url,json=sourceUrl" json:"source_url,omitempty"`
+	SourceUrl string `protobuf:"bytes,1,opt,name=source_url,json=sourceUrl,proto3" json:"source_url,omitempty"`
 	// The SHA1 hash of the file, in hex.
-	Sha1Sum string `protobuf:"bytes,2,opt,name=sha1_sum,json=sha1Sum" json:"sha1_sum,omitempty"`
+	Sha1Sum string `protobuf:"bytes,2,opt,name=sha1_sum,json=sha1Sum,proto3" json:"sha1_sum,omitempty"`
 	// The MIME type of the file.
 	//
 	// Defaults to the value from Google Cloud Storage.
-	MimeType             string   `protobuf:"bytes,3,opt,name=mime_type,json=mimeType" json:"mime_type,omitempty"`
+	MimeType             string   `protobuf:"bytes,3,opt,name=mime_type,json=mimeType,proto3" json:"mime_type,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -149,7 +149,7 @@ type ContainerInfo struct {
 	// URI to the hosted container image in a Docker repository. The URI must be
 	// fully qualified and include a tag or digest.
 	// Examples: "gcr.io/my-project/image:tag" or "gcr.io/my-project/image@digest"
-	Image                string   `protobuf:"bytes,1,opt,name=image" json:"image,omitempty"`
+	Image                string   `protobuf:"bytes,1,opt,name=image,proto3" json:"image,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -190,11 +190,11 @@ type ZipInfo struct {
 	// URL of the zip file to deploy from. Must be a URL to a resource in
 	// Google Cloud Storage in the form
 	// 'http(s)://storage.googleapis.com/\<bucket\>/\<object\>'.
-	SourceUrl string `protobuf:"bytes,3,opt,name=source_url,json=sourceUrl" json:"source_url,omitempty"`
+	SourceUrl string `protobuf:"bytes,3,opt,name=source_url,json=sourceUrl,proto3" json:"source_url,omitempty"`
 	// An estimate of the number of files in a zip for a zip deployment.
 	// If set, must be greater than or equal to the actual number of files.
 	// Used for optimizing performance; if not provided, deployment may be slow.
-	FilesCount           int32    `protobuf:"varint,4,opt,name=files_count,json=filesCount" json:"files_count,omitempty"`
+	FilesCount           int32    `protobuf:"varint,4,opt,name=files_count,json=filesCount,proto3" json:"files_count,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

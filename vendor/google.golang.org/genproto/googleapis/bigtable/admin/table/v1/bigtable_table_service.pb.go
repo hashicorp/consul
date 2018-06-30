@@ -149,8 +149,7 @@ func (c *bigtableTableServiceClient) BulkDeleteRows(ctx context.Context, in *Bul
 	return out, nil
 }
 
-// Server API for BigtableTableService service
-
+// BigtableTableServiceServer is the server API for BigtableTableService service.
 type BigtableTableServiceServer interface {
 	// Creates a new table, to be served from a specified cluster.
 	// The table can be created with a full set of initial column families,

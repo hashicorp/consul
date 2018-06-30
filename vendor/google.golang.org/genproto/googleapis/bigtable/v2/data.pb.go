@@ -27,7 +27,7 @@ type Row struct {
 	Key []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
 	// May be empty, but only if the entire row is empty.
 	// The mutual ordering of column families is not specified.
-	Families             []*Family `protobuf:"bytes,2,rep,name=families" json:"families,omitempty"`
+	Families             []*Family `protobuf:"bytes,2,rep,name=families,proto3" json:"families,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -37,7 +37,7 @@ func (m *Row) Reset()         { *m = Row{} }
 func (m *Row) String() string { return proto.CompactTextString(m) }
 func (*Row) ProtoMessage()    {}
 func (*Row) Descriptor() ([]byte, []int) {
-	return fileDescriptor_data_e6079216d37f14fa, []int{0}
+	return fileDescriptor_data_b0430eb990758496, []int{0}
 }
 func (m *Row) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Row.Unmarshal(m, b)
@@ -80,9 +80,9 @@ type Family struct {
 	// Must match `[-_.a-zA-Z0-9]+`, except that AggregatingRowProcessors may
 	// produce cells in a sentinel family with an empty name.
 	// Must be no greater than 64 characters in length.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Must not be empty. Sorted in order of increasing "qualifier".
-	Columns              []*Column `protobuf:"bytes,2,rep,name=columns" json:"columns,omitempty"`
+	Columns              []*Column `protobuf:"bytes,2,rep,name=columns,proto3" json:"columns,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -92,7 +92,7 @@ func (m *Family) Reset()         { *m = Family{} }
 func (m *Family) String() string { return proto.CompactTextString(m) }
 func (*Family) ProtoMessage()    {}
 func (*Family) Descriptor() ([]byte, []int) {
-	return fileDescriptor_data_e6079216d37f14fa, []int{1}
+	return fileDescriptor_data_b0430eb990758496, []int{1}
 }
 func (m *Family) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Family.Unmarshal(m, b)
@@ -136,7 +136,7 @@ type Column struct {
 	// length.
 	Qualifier []byte `protobuf:"bytes,1,opt,name=qualifier,proto3" json:"qualifier,omitempty"`
 	// Must not be empty. Sorted in order of decreasing "timestamp_micros".
-	Cells                []*Cell  `protobuf:"bytes,2,rep,name=cells" json:"cells,omitempty"`
+	Cells                []*Cell  `protobuf:"bytes,2,rep,name=cells,proto3" json:"cells,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -146,7 +146,7 @@ func (m *Column) Reset()         { *m = Column{} }
 func (m *Column) String() string { return proto.CompactTextString(m) }
 func (*Column) ProtoMessage()    {}
 func (*Column) Descriptor() ([]byte, []int) {
-	return fileDescriptor_data_e6079216d37f14fa, []int{2}
+	return fileDescriptor_data_b0430eb990758496, []int{2}
 }
 func (m *Column) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Column.Unmarshal(m, b)
@@ -188,13 +188,13 @@ type Cell struct {
 	// a coarser granularity to further restrict the allowed values. For
 	// example, a table which specifies millisecond granularity will only allow
 	// values of `timestamp_micros` which are multiples of 1000.
-	TimestampMicros int64 `protobuf:"varint,1,opt,name=timestamp_micros,json=timestampMicros" json:"timestamp_micros,omitempty"`
+	TimestampMicros int64 `protobuf:"varint,1,opt,name=timestamp_micros,json=timestampMicros,proto3" json:"timestamp_micros,omitempty"`
 	// The value stored in the cell.
 	// May contain any byte string, including the empty string, up to 100MiB in
 	// length.
 	Value []byte `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
 	// Labels applied to the cell by a [RowFilter][google.bigtable.v2.RowFilter].
-	Labels               []string `protobuf:"bytes,3,rep,name=labels" json:"labels,omitempty"`
+	Labels               []string `protobuf:"bytes,3,rep,name=labels,proto3" json:"labels,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -204,7 +204,7 @@ func (m *Cell) Reset()         { *m = Cell{} }
 func (m *Cell) String() string { return proto.CompactTextString(m) }
 func (*Cell) ProtoMessage()    {}
 func (*Cell) Descriptor() ([]byte, []int) {
-	return fileDescriptor_data_e6079216d37f14fa, []int{3}
+	return fileDescriptor_data_b0430eb990758496, []int{3}
 }
 func (m *Cell) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Cell.Unmarshal(m, b)
@@ -270,7 +270,7 @@ func (m *RowRange) Reset()         { *m = RowRange{} }
 func (m *RowRange) String() string { return proto.CompactTextString(m) }
 func (*RowRange) ProtoMessage()    {}
 func (*RowRange) Descriptor() ([]byte, []int) {
-	return fileDescriptor_data_e6079216d37f14fa, []int{4}
+	return fileDescriptor_data_b0430eb990758496, []int{4}
 }
 func (m *RowRange) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RowRange.Unmarshal(m, b)
@@ -469,7 +469,7 @@ type RowSet struct {
 	// Single rows included in the set.
 	RowKeys [][]byte `protobuf:"bytes,1,rep,name=row_keys,json=rowKeys,proto3" json:"row_keys,omitempty"`
 	// Contiguous row ranges included in the set.
-	RowRanges            []*RowRange `protobuf:"bytes,2,rep,name=row_ranges,json=rowRanges" json:"row_ranges,omitempty"`
+	RowRanges            []*RowRange `protobuf:"bytes,2,rep,name=row_ranges,json=rowRanges,proto3" json:"row_ranges,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
 	XXX_unrecognized     []byte      `json:"-"`
 	XXX_sizecache        int32       `json:"-"`
@@ -479,7 +479,7 @@ func (m *RowSet) Reset()         { *m = RowSet{} }
 func (m *RowSet) String() string { return proto.CompactTextString(m) }
 func (*RowSet) ProtoMessage()    {}
 func (*RowSet) Descriptor() ([]byte, []int) {
-	return fileDescriptor_data_e6079216d37f14fa, []int{5}
+	return fileDescriptor_data_b0430eb990758496, []int{5}
 }
 func (m *RowSet) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RowSet.Unmarshal(m, b)
@@ -519,7 +519,7 @@ func (m *RowSet) GetRowRanges() []*RowRange {
 // inclusive or exclusive.
 type ColumnRange struct {
 	// The name of the column family within which this range falls.
-	FamilyName string `protobuf:"bytes,1,opt,name=family_name,json=familyName" json:"family_name,omitempty"`
+	FamilyName string `protobuf:"bytes,1,opt,name=family_name,json=familyName,proto3" json:"family_name,omitempty"`
 	// The column qualifier at which to start the range (within `column_family`).
 	// If neither field is set, interpreted as the empty string, inclusive.
 	//
@@ -543,7 +543,7 @@ func (m *ColumnRange) Reset()         { *m = ColumnRange{} }
 func (m *ColumnRange) String() string { return proto.CompactTextString(m) }
 func (*ColumnRange) ProtoMessage()    {}
 func (*ColumnRange) Descriptor() ([]byte, []int) {
-	return fileDescriptor_data_e6079216d37f14fa, []int{6}
+	return fileDescriptor_data_b0430eb990758496, []int{6}
 }
 func (m *ColumnRange) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ColumnRange.Unmarshal(m, b)
@@ -747,9 +747,9 @@ func _ColumnRange_OneofSizer(msg proto.Message) (n int) {
 // Specified a contiguous range of microsecond timestamps.
 type TimestampRange struct {
 	// Inclusive lower bound. If left empty, interpreted as 0.
-	StartTimestampMicros int64 `protobuf:"varint,1,opt,name=start_timestamp_micros,json=startTimestampMicros" json:"start_timestamp_micros,omitempty"`
+	StartTimestampMicros int64 `protobuf:"varint,1,opt,name=start_timestamp_micros,json=startTimestampMicros,proto3" json:"start_timestamp_micros,omitempty"`
 	// Exclusive upper bound. If left empty, interpreted as infinity.
-	EndTimestampMicros   int64    `protobuf:"varint,2,opt,name=end_timestamp_micros,json=endTimestampMicros" json:"end_timestamp_micros,omitempty"`
+	EndTimestampMicros   int64    `protobuf:"varint,2,opt,name=end_timestamp_micros,json=endTimestampMicros,proto3" json:"end_timestamp_micros,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -759,7 +759,7 @@ func (m *TimestampRange) Reset()         { *m = TimestampRange{} }
 func (m *TimestampRange) String() string { return proto.CompactTextString(m) }
 func (*TimestampRange) ProtoMessage()    {}
 func (*TimestampRange) Descriptor() ([]byte, []int) {
-	return fileDescriptor_data_e6079216d37f14fa, []int{7}
+	return fileDescriptor_data_b0430eb990758496, []int{7}
 }
 func (m *TimestampRange) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_TimestampRange.Unmarshal(m, b)
@@ -818,7 +818,7 @@ func (m *ValueRange) Reset()         { *m = ValueRange{} }
 func (m *ValueRange) String() string { return proto.CompactTextString(m) }
 func (*ValueRange) ProtoMessage()    {}
 func (*ValueRange) Descriptor() ([]byte, []int) {
-	return fileDescriptor_data_e6079216d37f14fa, []int{8}
+	return fileDescriptor_data_b0430eb990758496, []int{8}
 }
 func (m *ValueRange) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ValueRange.Unmarshal(m, b)
@@ -1079,7 +1079,7 @@ func (m *RowFilter) Reset()         { *m = RowFilter{} }
 func (m *RowFilter) String() string { return proto.CompactTextString(m) }
 func (*RowFilter) ProtoMessage()    {}
 func (*RowFilter) Descriptor() ([]byte, []int) {
-	return fileDescriptor_data_e6079216d37f14fa, []int{9}
+	return fileDescriptor_data_b0430eb990758496, []int{9}
 }
 func (m *RowFilter) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RowFilter.Unmarshal(m, b)
@@ -1104,61 +1104,61 @@ type isRowFilter_Filter interface {
 }
 
 type RowFilter_Chain_ struct {
-	Chain *RowFilter_Chain `protobuf:"bytes,1,opt,name=chain,oneof"`
+	Chain *RowFilter_Chain `protobuf:"bytes,1,opt,name=chain,proto3,oneof"`
 }
 type RowFilter_Interleave_ struct {
-	Interleave *RowFilter_Interleave `protobuf:"bytes,2,opt,name=interleave,oneof"`
+	Interleave *RowFilter_Interleave `protobuf:"bytes,2,opt,name=interleave,proto3,oneof"`
 }
 type RowFilter_Condition_ struct {
-	Condition *RowFilter_Condition `protobuf:"bytes,3,opt,name=condition,oneof"`
+	Condition *RowFilter_Condition `protobuf:"bytes,3,opt,name=condition,proto3,oneof"`
 }
 type RowFilter_Sink struct {
-	Sink bool `protobuf:"varint,16,opt,name=sink,oneof"`
+	Sink bool `protobuf:"varint,16,opt,name=sink,proto3,oneof"`
 }
 type RowFilter_PassAllFilter struct {
-	PassAllFilter bool `protobuf:"varint,17,opt,name=pass_all_filter,json=passAllFilter,oneof"`
+	PassAllFilter bool `protobuf:"varint,17,opt,name=pass_all_filter,json=passAllFilter,proto3,oneof"`
 }
 type RowFilter_BlockAllFilter struct {
-	BlockAllFilter bool `protobuf:"varint,18,opt,name=block_all_filter,json=blockAllFilter,oneof"`
+	BlockAllFilter bool `protobuf:"varint,18,opt,name=block_all_filter,json=blockAllFilter,proto3,oneof"`
 }
 type RowFilter_RowKeyRegexFilter struct {
 	RowKeyRegexFilter []byte `protobuf:"bytes,4,opt,name=row_key_regex_filter,json=rowKeyRegexFilter,proto3,oneof"`
 }
 type RowFilter_RowSampleFilter struct {
-	RowSampleFilter float64 `protobuf:"fixed64,14,opt,name=row_sample_filter,json=rowSampleFilter,oneof"`
+	RowSampleFilter float64 `protobuf:"fixed64,14,opt,name=row_sample_filter,json=rowSampleFilter,proto3,oneof"`
 }
 type RowFilter_FamilyNameRegexFilter struct {
-	FamilyNameRegexFilter string `protobuf:"bytes,5,opt,name=family_name_regex_filter,json=familyNameRegexFilter,oneof"`
+	FamilyNameRegexFilter string `protobuf:"bytes,5,opt,name=family_name_regex_filter,json=familyNameRegexFilter,proto3,oneof"`
 }
 type RowFilter_ColumnQualifierRegexFilter struct {
 	ColumnQualifierRegexFilter []byte `protobuf:"bytes,6,opt,name=column_qualifier_regex_filter,json=columnQualifierRegexFilter,proto3,oneof"`
 }
 type RowFilter_ColumnRangeFilter struct {
-	ColumnRangeFilter *ColumnRange `protobuf:"bytes,7,opt,name=column_range_filter,json=columnRangeFilter,oneof"`
+	ColumnRangeFilter *ColumnRange `protobuf:"bytes,7,opt,name=column_range_filter,json=columnRangeFilter,proto3,oneof"`
 }
 type RowFilter_TimestampRangeFilter struct {
-	TimestampRangeFilter *TimestampRange `protobuf:"bytes,8,opt,name=timestamp_range_filter,json=timestampRangeFilter,oneof"`
+	TimestampRangeFilter *TimestampRange `protobuf:"bytes,8,opt,name=timestamp_range_filter,json=timestampRangeFilter,proto3,oneof"`
 }
 type RowFilter_ValueRegexFilter struct {
 	ValueRegexFilter []byte `protobuf:"bytes,9,opt,name=value_regex_filter,json=valueRegexFilter,proto3,oneof"`
 }
 type RowFilter_ValueRangeFilter struct {
-	ValueRangeFilter *ValueRange `protobuf:"bytes,15,opt,name=value_range_filter,json=valueRangeFilter,oneof"`
+	ValueRangeFilter *ValueRange `protobuf:"bytes,15,opt,name=value_range_filter,json=valueRangeFilter,proto3,oneof"`
 }
 type RowFilter_CellsPerRowOffsetFilter struct {
-	CellsPerRowOffsetFilter int32 `protobuf:"varint,10,opt,name=cells_per_row_offset_filter,json=cellsPerRowOffsetFilter,oneof"`
+	CellsPerRowOffsetFilter int32 `protobuf:"varint,10,opt,name=cells_per_row_offset_filter,json=cellsPerRowOffsetFilter,proto3,oneof"`
 }
 type RowFilter_CellsPerRowLimitFilter struct {
-	CellsPerRowLimitFilter int32 `protobuf:"varint,11,opt,name=cells_per_row_limit_filter,json=cellsPerRowLimitFilter,oneof"`
+	CellsPerRowLimitFilter int32 `protobuf:"varint,11,opt,name=cells_per_row_limit_filter,json=cellsPerRowLimitFilter,proto3,oneof"`
 }
 type RowFilter_CellsPerColumnLimitFilter struct {
-	CellsPerColumnLimitFilter int32 `protobuf:"varint,12,opt,name=cells_per_column_limit_filter,json=cellsPerColumnLimitFilter,oneof"`
+	CellsPerColumnLimitFilter int32 `protobuf:"varint,12,opt,name=cells_per_column_limit_filter,json=cellsPerColumnLimitFilter,proto3,oneof"`
 }
 type RowFilter_StripValueTransformer struct {
-	StripValueTransformer bool `protobuf:"varint,13,opt,name=strip_value_transformer,json=stripValueTransformer,oneof"`
+	StripValueTransformer bool `protobuf:"varint,13,opt,name=strip_value_transformer,json=stripValueTransformer,proto3,oneof"`
 }
 type RowFilter_ApplyLabelTransformer struct {
-	ApplyLabelTransformer string `protobuf:"bytes,19,opt,name=apply_label_transformer,json=applyLabelTransformer,oneof"`
+	ApplyLabelTransformer string `protobuf:"bytes,19,opt,name=apply_label_transformer,json=applyLabelTransformer,proto3,oneof"`
 }
 
 func (*RowFilter_Chain_) isRowFilter_Filter()                     {}
@@ -1679,7 +1679,7 @@ type RowFilter_Chain struct {
 	// The elements of "filters" are chained together to process the input row:
 	// in row -> f(0) -> intermediate row -> f(1) -> ... -> f(N) -> out row
 	// The full chain is executed atomically.
-	Filters              []*RowFilter `protobuf:"bytes,1,rep,name=filters" json:"filters,omitempty"`
+	Filters              []*RowFilter `protobuf:"bytes,1,rep,name=filters,proto3" json:"filters,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
 	XXX_unrecognized     []byte       `json:"-"`
 	XXX_sizecache        int32        `json:"-"`
@@ -1689,7 +1689,7 @@ func (m *RowFilter_Chain) Reset()         { *m = RowFilter_Chain{} }
 func (m *RowFilter_Chain) String() string { return proto.CompactTextString(m) }
 func (*RowFilter_Chain) ProtoMessage()    {}
 func (*RowFilter_Chain) Descriptor() ([]byte, []int) {
-	return fileDescriptor_data_e6079216d37f14fa, []int{9, 0}
+	return fileDescriptor_data_b0430eb990758496, []int{9, 0}
 }
 func (m *RowFilter_Chain) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RowFilter_Chain.Unmarshal(m, b)
@@ -1744,7 +1744,7 @@ type RowFilter_Interleave struct {
 	//     6:                      far,blah,5,x   // identical to #5
 	//
 	// All interleaved filters are executed atomically.
-	Filters              []*RowFilter `protobuf:"bytes,1,rep,name=filters" json:"filters,omitempty"`
+	Filters              []*RowFilter `protobuf:"bytes,1,rep,name=filters,proto3" json:"filters,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
 	XXX_unrecognized     []byte       `json:"-"`
 	XXX_sizecache        int32        `json:"-"`
@@ -1754,7 +1754,7 @@ func (m *RowFilter_Interleave) Reset()         { *m = RowFilter_Interleave{} }
 func (m *RowFilter_Interleave) String() string { return proto.CompactTextString(m) }
 func (*RowFilter_Interleave) ProtoMessage()    {}
 func (*RowFilter_Interleave) Descriptor() ([]byte, []int) {
-	return fileDescriptor_data_e6079216d37f14fa, []int{9, 1}
+	return fileDescriptor_data_b0430eb990758496, []int{9, 1}
 }
 func (m *RowFilter_Interleave) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RowFilter_Interleave.Unmarshal(m, b)
@@ -1791,14 +1791,14 @@ func (m *RowFilter_Interleave) GetFilters() []*RowFilter {
 type RowFilter_Condition struct {
 	// If `predicate_filter` outputs any cells, then `true_filter` will be
 	// evaluated on the input row. Otherwise, `false_filter` will be evaluated.
-	PredicateFilter *RowFilter `protobuf:"bytes,1,opt,name=predicate_filter,json=predicateFilter" json:"predicate_filter,omitempty"`
+	PredicateFilter *RowFilter `protobuf:"bytes,1,opt,name=predicate_filter,json=predicateFilter,proto3" json:"predicate_filter,omitempty"`
 	// The filter to apply to the input row if `predicate_filter` returns any
 	// results. If not provided, no results will be returned in the true case.
-	TrueFilter *RowFilter `protobuf:"bytes,2,opt,name=true_filter,json=trueFilter" json:"true_filter,omitempty"`
+	TrueFilter *RowFilter `protobuf:"bytes,2,opt,name=true_filter,json=trueFilter,proto3" json:"true_filter,omitempty"`
 	// The filter to apply to the input row if `predicate_filter` does not
 	// return any results. If not provided, no results will be returned in the
 	// false case.
-	FalseFilter          *RowFilter `protobuf:"bytes,3,opt,name=false_filter,json=falseFilter" json:"false_filter,omitempty"`
+	FalseFilter          *RowFilter `protobuf:"bytes,3,opt,name=false_filter,json=falseFilter,proto3" json:"false_filter,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
 	XXX_unrecognized     []byte     `json:"-"`
 	XXX_sizecache        int32      `json:"-"`
@@ -1808,7 +1808,7 @@ func (m *RowFilter_Condition) Reset()         { *m = RowFilter_Condition{} }
 func (m *RowFilter_Condition) String() string { return proto.CompactTextString(m) }
 func (*RowFilter_Condition) ProtoMessage()    {}
 func (*RowFilter_Condition) Descriptor() ([]byte, []int) {
-	return fileDescriptor_data_e6079216d37f14fa, []int{9, 2}
+	return fileDescriptor_data_b0430eb990758496, []int{9, 2}
 }
 func (m *RowFilter_Condition) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RowFilter_Condition.Unmarshal(m, b)
@@ -1868,7 +1868,7 @@ func (m *Mutation) Reset()         { *m = Mutation{} }
 func (m *Mutation) String() string { return proto.CompactTextString(m) }
 func (*Mutation) ProtoMessage()    {}
 func (*Mutation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_data_e6079216d37f14fa, []int{10}
+	return fileDescriptor_data_b0430eb990758496, []int{10}
 }
 func (m *Mutation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Mutation.Unmarshal(m, b)
@@ -1893,16 +1893,16 @@ type isMutation_Mutation interface {
 }
 
 type Mutation_SetCell_ struct {
-	SetCell *Mutation_SetCell `protobuf:"bytes,1,opt,name=set_cell,json=setCell,oneof"`
+	SetCell *Mutation_SetCell `protobuf:"bytes,1,opt,name=set_cell,json=setCell,proto3,oneof"`
 }
 type Mutation_DeleteFromColumn_ struct {
-	DeleteFromColumn *Mutation_DeleteFromColumn `protobuf:"bytes,2,opt,name=delete_from_column,json=deleteFromColumn,oneof"`
+	DeleteFromColumn *Mutation_DeleteFromColumn `protobuf:"bytes,2,opt,name=delete_from_column,json=deleteFromColumn,proto3,oneof"`
 }
 type Mutation_DeleteFromFamily_ struct {
-	DeleteFromFamily *Mutation_DeleteFromFamily `protobuf:"bytes,3,opt,name=delete_from_family,json=deleteFromFamily,oneof"`
+	DeleteFromFamily *Mutation_DeleteFromFamily `protobuf:"bytes,3,opt,name=delete_from_family,json=deleteFromFamily,proto3,oneof"`
 }
 type Mutation_DeleteFromRow_ struct {
-	DeleteFromRow *Mutation_DeleteFromRow `protobuf:"bytes,4,opt,name=delete_from_row,json=deleteFromRow,oneof"`
+	DeleteFromRow *Mutation_DeleteFromRow `protobuf:"bytes,4,opt,name=delete_from_row,json=deleteFromRow,proto3,oneof"`
 }
 
 func (*Mutation_SetCell_) isMutation_Mutation()          {}
@@ -2061,7 +2061,7 @@ func _Mutation_OneofSizer(msg proto.Message) (n int) {
 type Mutation_SetCell struct {
 	// The name of the family into which new data should be written.
 	// Must match `[-_.a-zA-Z0-9]+`
-	FamilyName string `protobuf:"bytes,1,opt,name=family_name,json=familyName" json:"family_name,omitempty"`
+	FamilyName string `protobuf:"bytes,1,opt,name=family_name,json=familyName,proto3" json:"family_name,omitempty"`
 	// The qualifier of the column into which new data should be written.
 	// Can be any byte string, including the empty string.
 	ColumnQualifier []byte `protobuf:"bytes,2,opt,name=column_qualifier,json=columnQualifier,proto3" json:"column_qualifier,omitempty"`
@@ -2070,7 +2070,7 @@ type Mutation_SetCell struct {
 	// Otherwise, the client should set this value itself, noting that the
 	// default value is a timestamp of zero if the field is left unspecified.
 	// Values must match the granularity of the table (e.g. micros, millis).
-	TimestampMicros int64 `protobuf:"varint,3,opt,name=timestamp_micros,json=timestampMicros" json:"timestamp_micros,omitempty"`
+	TimestampMicros int64 `protobuf:"varint,3,opt,name=timestamp_micros,json=timestampMicros,proto3" json:"timestamp_micros,omitempty"`
 	// The value to be written into the specified cell.
 	Value                []byte   `protobuf:"bytes,4,opt,name=value,proto3" json:"value,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -2082,7 +2082,7 @@ func (m *Mutation_SetCell) Reset()         { *m = Mutation_SetCell{} }
 func (m *Mutation_SetCell) String() string { return proto.CompactTextString(m) }
 func (*Mutation_SetCell) ProtoMessage()    {}
 func (*Mutation_SetCell) Descriptor() ([]byte, []int) {
-	return fileDescriptor_data_e6079216d37f14fa, []int{10, 0}
+	return fileDescriptor_data_b0430eb990758496, []int{10, 0}
 }
 func (m *Mutation_SetCell) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Mutation_SetCell.Unmarshal(m, b)
@@ -2135,12 +2135,12 @@ func (m *Mutation_SetCell) GetValue() []byte {
 type Mutation_DeleteFromColumn struct {
 	// The name of the family from which cells should be deleted.
 	// Must match `[-_.a-zA-Z0-9]+`
-	FamilyName string `protobuf:"bytes,1,opt,name=family_name,json=familyName" json:"family_name,omitempty"`
+	FamilyName string `protobuf:"bytes,1,opt,name=family_name,json=familyName,proto3" json:"family_name,omitempty"`
 	// The qualifier of the column from which cells should be deleted.
 	// Can be any byte string, including the empty string.
 	ColumnQualifier []byte `protobuf:"bytes,2,opt,name=column_qualifier,json=columnQualifier,proto3" json:"column_qualifier,omitempty"`
 	// The range of timestamps within which cells should be deleted.
-	TimeRange            *TimestampRange `protobuf:"bytes,3,opt,name=time_range,json=timeRange" json:"time_range,omitempty"`
+	TimeRange            *TimestampRange `protobuf:"bytes,3,opt,name=time_range,json=timeRange,proto3" json:"time_range,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
 	XXX_unrecognized     []byte          `json:"-"`
 	XXX_sizecache        int32           `json:"-"`
@@ -2150,7 +2150,7 @@ func (m *Mutation_DeleteFromColumn) Reset()         { *m = Mutation_DeleteFromCo
 func (m *Mutation_DeleteFromColumn) String() string { return proto.CompactTextString(m) }
 func (*Mutation_DeleteFromColumn) ProtoMessage()    {}
 func (*Mutation_DeleteFromColumn) Descriptor() ([]byte, []int) {
-	return fileDescriptor_data_e6079216d37f14fa, []int{10, 1}
+	return fileDescriptor_data_b0430eb990758496, []int{10, 1}
 }
 func (m *Mutation_DeleteFromColumn) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Mutation_DeleteFromColumn.Unmarshal(m, b)
@@ -2195,7 +2195,7 @@ func (m *Mutation_DeleteFromColumn) GetTimeRange() *TimestampRange {
 type Mutation_DeleteFromFamily struct {
 	// The name of the family from which cells should be deleted.
 	// Must match `[-_.a-zA-Z0-9]+`
-	FamilyName           string   `protobuf:"bytes,1,opt,name=family_name,json=familyName" json:"family_name,omitempty"`
+	FamilyName           string   `protobuf:"bytes,1,opt,name=family_name,json=familyName,proto3" json:"family_name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -2205,7 +2205,7 @@ func (m *Mutation_DeleteFromFamily) Reset()         { *m = Mutation_DeleteFromFa
 func (m *Mutation_DeleteFromFamily) String() string { return proto.CompactTextString(m) }
 func (*Mutation_DeleteFromFamily) ProtoMessage()    {}
 func (*Mutation_DeleteFromFamily) Descriptor() ([]byte, []int) {
-	return fileDescriptor_data_e6079216d37f14fa, []int{10, 2}
+	return fileDescriptor_data_b0430eb990758496, []int{10, 2}
 }
 func (m *Mutation_DeleteFromFamily) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Mutation_DeleteFromFamily.Unmarshal(m, b)
@@ -2243,7 +2243,7 @@ func (m *Mutation_DeleteFromRow) Reset()         { *m = Mutation_DeleteFromRow{}
 func (m *Mutation_DeleteFromRow) String() string { return proto.CompactTextString(m) }
 func (*Mutation_DeleteFromRow) ProtoMessage()    {}
 func (*Mutation_DeleteFromRow) Descriptor() ([]byte, []int) {
-	return fileDescriptor_data_e6079216d37f14fa, []int{10, 3}
+	return fileDescriptor_data_b0430eb990758496, []int{10, 3}
 }
 func (m *Mutation_DeleteFromRow) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Mutation_DeleteFromRow.Unmarshal(m, b)
@@ -2268,7 +2268,7 @@ var xxx_messageInfo_Mutation_DeleteFromRow proto.InternalMessageInfo
 type ReadModifyWriteRule struct {
 	// The name of the family to which the read/modify/write should be applied.
 	// Must match `[-_.a-zA-Z0-9]+`
-	FamilyName string `protobuf:"bytes,1,opt,name=family_name,json=familyName" json:"family_name,omitempty"`
+	FamilyName string `protobuf:"bytes,1,opt,name=family_name,json=familyName,proto3" json:"family_name,omitempty"`
 	// The qualifier of the column to which the read/modify/write should be
 	// applied.
 	// Can be any byte string, including the empty string.
@@ -2289,7 +2289,7 @@ func (m *ReadModifyWriteRule) Reset()         { *m = ReadModifyWriteRule{} }
 func (m *ReadModifyWriteRule) String() string { return proto.CompactTextString(m) }
 func (*ReadModifyWriteRule) ProtoMessage()    {}
 func (*ReadModifyWriteRule) Descriptor() ([]byte, []int) {
-	return fileDescriptor_data_e6079216d37f14fa, []int{11}
+	return fileDescriptor_data_b0430eb990758496, []int{11}
 }
 func (m *ReadModifyWriteRule) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReadModifyWriteRule.Unmarshal(m, b)
@@ -2317,7 +2317,7 @@ type ReadModifyWriteRule_AppendValue struct {
 	AppendValue []byte `protobuf:"bytes,3,opt,name=append_value,json=appendValue,proto3,oneof"`
 }
 type ReadModifyWriteRule_IncrementAmount struct {
-	IncrementAmount int64 `protobuf:"varint,4,opt,name=increment_amount,json=incrementAmount,oneof"`
+	IncrementAmount int64 `protobuf:"varint,4,opt,name=increment_amount,json=incrementAmount,proto3,oneof"`
 }
 
 func (*ReadModifyWriteRule_AppendValue) isReadModifyWriteRule_Rule()     {}
@@ -2445,9 +2445,9 @@ func init() {
 	proto.RegisterType((*ReadModifyWriteRule)(nil), "google.bigtable.v2.ReadModifyWriteRule")
 }
 
-func init() { proto.RegisterFile("google/bigtable/v2/data.proto", fileDescriptor_data_e6079216d37f14fa) }
+func init() { proto.RegisterFile("google/bigtable/v2/data.proto", fileDescriptor_data_b0430eb990758496) }
 
-var fileDescriptor_data_e6079216d37f14fa = []byte{
+var fileDescriptor_data_b0430eb990758496 = []byte{
 	// 1444 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x57, 0xdb, 0x72, 0x1b, 0x45,
 	0x13, 0xd6, 0x5a, 0xb6, 0x2c, 0xf5, 0xca, 0x96, 0x32, 0x71, 0x1c, 0x45, 0x7f, 0xfc, 0xc7, 0xa5,

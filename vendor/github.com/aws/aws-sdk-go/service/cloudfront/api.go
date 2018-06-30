@@ -72,7 +72,7 @@ func (c *CloudFront) CreateCloudFrontOriginAccessIdentityRequest(input *CreateCl
 // API operation CreateCloudFrontOriginAccessIdentity for usage and error information.
 //
 // Returned Error Codes:
-//   * ErrCodeOriginAccessIdentityAlreadyExists "OriginAccessIdentityAlreadyExists"
+//   * ErrCodeOriginAccessIdentityAlreadyExists "CloudFrontOriginAccessIdentityAlreadyExists"
 //   If the CallerReference is a value you already sent in a previous request
 //   to create an identity but the content of the CloudFrontOriginAccessIdentityConfig
 //   is different from the original request, CloudFront returns a CloudFrontOriginAccessIdentityAlreadyExists
@@ -1239,7 +1239,7 @@ func (c *CloudFront) DeleteCloudFrontOriginAccessIdentityRequest(input *DeleteCl
 //   The precondition given in one or more of the request-header fields evaluated
 //   to false.
 //
-//   * ErrCodeOriginAccessIdentityInUse "OriginAccessIdentityInUse"
+//   * ErrCodeOriginAccessIdentityInUse "CloudFrontOriginAccessIdentityInUse"
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-10-30/DeleteCloudFrontOriginAccessIdentity
 func (c *CloudFront) DeleteCloudFrontOriginAccessIdentity(input *DeleteCloudFrontOriginAccessIdentityInput) (*DeleteCloudFrontOriginAccessIdentityOutput, error) {
@@ -1633,92 +1633,6 @@ func (c *CloudFront) DeletePublicKey(input *DeletePublicKeyInput) (*DeletePublic
 // for more information on using Contexts.
 func (c *CloudFront) DeletePublicKeyWithContext(ctx aws.Context, input *DeletePublicKeyInput, opts ...request.Option) (*DeletePublicKeyOutput, error) {
 	req, out := c.DeletePublicKeyRequest(input)
-	req.SetContext(ctx)
-	req.ApplyOptions(opts...)
-	return out, req.Send()
-}
-
-const opDeleteServiceLinkedRole = "DeleteServiceLinkedRole2017_10_30"
-
-// DeleteServiceLinkedRoleRequest generates a "aws/request.Request" representing the
-// client's request for the DeleteServiceLinkedRole operation. The "output" return
-// value will be populated with the request's response once the request completes
-// successfuly.
-//
-// Use "Send" method on the returned Request to send the API call to the service.
-// the "output" return value is not valid until after Send returns without error.
-//
-// See DeleteServiceLinkedRole for more information on using the DeleteServiceLinkedRole
-// API call, and error handling.
-//
-// This method is useful when you want to inject custom logic or configuration
-// into the SDK's request lifecycle. Such as custom headers, or retry logic.
-//
-//
-//    // Example sending a request using the DeleteServiceLinkedRoleRequest method.
-//    req, resp := client.DeleteServiceLinkedRoleRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
-//
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-10-30/DeleteServiceLinkedRole
-func (c *CloudFront) DeleteServiceLinkedRoleRequest(input *DeleteServiceLinkedRoleInput) (req *request.Request, output *DeleteServiceLinkedRoleOutput) {
-	op := &request.Operation{
-		Name:       opDeleteServiceLinkedRole,
-		HTTPMethod: "DELETE",
-		HTTPPath:   "/2017-10-30/service-linked-role/{RoleName}",
-	}
-
-	if input == nil {
-		input = &DeleteServiceLinkedRoleInput{}
-	}
-
-	output = &DeleteServiceLinkedRoleOutput{}
-	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	return
-}
-
-// DeleteServiceLinkedRole API operation for Amazon CloudFront.
-//
-// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
-// with awserr.Error's Code and Message methods to get detailed information about
-// the error.
-//
-// See the AWS API reference guide for Amazon CloudFront's
-// API operation DeleteServiceLinkedRole for usage and error information.
-//
-// Returned Error Codes:
-//   * ErrCodeInvalidArgument "InvalidArgument"
-//   The argument is invalid.
-//
-//   * ErrCodeAccessDenied "AccessDenied"
-//   Access denied.
-//
-//   * ErrCodeResourceInUse "ResourceInUse"
-//
-//   * ErrCodeNoSuchResource "NoSuchResource"
-//
-// See also, https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-10-30/DeleteServiceLinkedRole
-func (c *CloudFront) DeleteServiceLinkedRole(input *DeleteServiceLinkedRoleInput) (*DeleteServiceLinkedRoleOutput, error) {
-	req, out := c.DeleteServiceLinkedRoleRequest(input)
-	return out, req.Send()
-}
-
-// DeleteServiceLinkedRoleWithContext is the same as DeleteServiceLinkedRole with the addition of
-// the ability to pass a context and additional request options.
-//
-// See DeleteServiceLinkedRole for details on how to use this API operation.
-//
-// The context must be non-nil and will be used for request cancellation. If
-// the context is nil a panic will occur. In the future the SDK may create
-// sub-contexts for http.Requests. See https://golang.org/pkg/context/
-// for more information on using Contexts.
-func (c *CloudFront) DeleteServiceLinkedRoleWithContext(ctx aws.Context, input *DeleteServiceLinkedRoleInput, opts ...request.Option) (*DeleteServiceLinkedRoleOutput, error) {
-	req, out := c.DeleteServiceLinkedRoleRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -7548,56 +7462,6 @@ func (s DeletePublicKeyOutput) String() string {
 
 // GoString returns the string representation
 func (s DeletePublicKeyOutput) GoString() string {
-	return s.String()
-}
-
-type DeleteServiceLinkedRoleInput struct {
-	_ struct{} `type:"structure"`
-
-	// RoleName is a required field
-	RoleName *string `location:"uri" locationName:"RoleName" type:"string" required:"true"`
-}
-
-// String returns the string representation
-func (s DeleteServiceLinkedRoleInput) String() string {
-	return awsutil.Prettify(s)
-}
-
-// GoString returns the string representation
-func (s DeleteServiceLinkedRoleInput) GoString() string {
-	return s.String()
-}
-
-// Validate inspects the fields of the type to determine if they are valid.
-func (s *DeleteServiceLinkedRoleInput) Validate() error {
-	invalidParams := request.ErrInvalidParams{Context: "DeleteServiceLinkedRoleInput"}
-	if s.RoleName == nil {
-		invalidParams.Add(request.NewErrParamRequired("RoleName"))
-	}
-
-	if invalidParams.Len() > 0 {
-		return invalidParams
-	}
-	return nil
-}
-
-// SetRoleName sets the RoleName field's value.
-func (s *DeleteServiceLinkedRoleInput) SetRoleName(v string) *DeleteServiceLinkedRoleInput {
-	s.RoleName = &v
-	return s
-}
-
-type DeleteServiceLinkedRoleOutput struct {
-	_ struct{} `type:"structure"`
-}
-
-// String returns the string representation
-func (s DeleteServiceLinkedRoleOutput) String() string {
-	return awsutil.Prettify(s)
-}
-
-// GoString returns the string representation
-func (s DeleteServiceLinkedRoleOutput) GoString() string {
 	return s.String()
 }
 

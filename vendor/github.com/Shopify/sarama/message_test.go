@@ -1,8 +1,6 @@
 package sarama
 
 import (
-	"runtime"
-	"strings"
 	"testing"
 	"time"
 )
@@ -31,17 +29,6 @@ var (
 		0xFF, 0xFF, 0xFF, 0xFF} // value
 
 	emptyGzipMessage = []byte{
-		97, 79, 149, 90, //CRC
-		0x00,                   // magic version byte
-		0x01,                   // attribute flags
-		0xFF, 0xFF, 0xFF, 0xFF, // key
-		// value
-		0x00, 0x00, 0x00, 0x17,
-		0x1f, 0x8b,
-		0x08,
-		0, 0, 9, 110, 136, 0, 255, 1, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0}
-
-	emptyGzipMessage18 = []byte{
 		132, 99, 80, 148, //CRC
 		0x00,                   // magic version byte
 		0x01,                   // attribute flags
@@ -107,11 +94,7 @@ func TestMessageEncoding(t *testing.T) {
 
 	message.Value = []byte{}
 	message.Codec = CompressionGZIP
-	if strings.HasPrefix(runtime.Version(), "go1.8") || strings.HasPrefix(runtime.Version(), "go1.9") {
-		testEncodable(t, "empty gzip", &message, emptyGzipMessage18)
-	} else {
-		testEncodable(t, "empty gzip", &message, emptyGzipMessage)
-	}
+	testEncodable(t, "empty gzip", &message, emptyGzipMessage)
 
 	message.Value = []byte{}
 	message.Codec = CompressionLZ4

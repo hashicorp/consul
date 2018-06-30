@@ -61,7 +61,7 @@ func (VersionView) EnumDescriptor() ([]byte, []int) {
 // Request message for `Applications.GetApplication`.
 type GetApplicationRequest struct {
 	// Name of the Application resource to get. Example: `apps/myapp`.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -101,7 +101,7 @@ func (m *GetApplicationRequest) GetName() string {
 // Request message for 'Applications.RepairApplication'.
 type RepairApplicationRequest struct {
 	// Name of the application to repair. Example: `apps/myapp`
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -141,11 +141,11 @@ func (m *RepairApplicationRequest) GetName() string {
 // Request message for `Services.ListServices`.
 type ListServicesRequest struct {
 	// Name of the parent Application resource. Example: `apps/myapp`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Maximum results to return per page.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Continuation token for fetching the next page of results.
-	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -199,9 +199,9 @@ func (m *ListServicesRequest) GetPageToken() string {
 // Response message for `Services.ListServices`.
 type ListServicesResponse struct {
 	// The services belonging to the requested application.
-	Services []*Service `protobuf:"bytes,1,rep,name=services" json:"services,omitempty"`
+	Services []*Service `protobuf:"bytes,1,rep,name=services,proto3" json:"services,omitempty"`
 	// Continuation token for fetching the next page of results.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -248,7 +248,7 @@ func (m *ListServicesResponse) GetNextPageToken() string {
 // Request message for `Services.GetService`.
 type GetServiceRequest struct {
 	// Name of the resource requested. Example: `apps/myapp/services/default`.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -288,12 +288,12 @@ func (m *GetServiceRequest) GetName() string {
 // Request message for `Services.UpdateService`.
 type UpdateServiceRequest struct {
 	// Name of the resource to update. Example: `apps/myapp/services/default`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// A Service resource containing the updated service. Only fields set in the
 	// field mask will be updated.
-	Service *Service `protobuf:"bytes,2,opt,name=service" json:"service,omitempty"`
+	Service *Service `protobuf:"bytes,2,opt,name=service,proto3" json:"service,omitempty"`
 	// Standard field mask for the set of fields to be updated.
-	UpdateMask *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	// Set to `true` to gradually shift traffic from one version to another
 	// single version. By default, traffic is shifted immediately.
 	// For gradual traffic migration, the target version
@@ -306,7 +306,7 @@ type UpdateServiceRequest struct {
 	// field in the Service resource. Gradual traffic migration is not
 	// supported in the App Engine flexible environment. For examples, see
 	// [Migrating and Splitting Traffic](https://cloud.google.com/appengine/docs/admin-api/migrating-splitting-traffic).
-	MigrateTraffic       bool     `protobuf:"varint,4,opt,name=migrate_traffic,json=migrateTraffic" json:"migrate_traffic,omitempty"`
+	MigrateTraffic       bool     `protobuf:"varint,4,opt,name=migrate_traffic,json=migrateTraffic,proto3" json:"migrate_traffic,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -367,7 +367,7 @@ func (m *UpdateServiceRequest) GetMigrateTraffic() bool {
 // Request message for `Services.DeleteService`.
 type DeleteServiceRequest struct {
 	// Name of the resource requested. Example: `apps/myapp/services/default`.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -408,13 +408,13 @@ func (m *DeleteServiceRequest) GetName() string {
 type ListVersionsRequest struct {
 	// Name of the parent Service resource. Example:
 	// `apps/myapp/services/default`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Controls the set of fields returned in the `List` response.
-	View VersionView `protobuf:"varint,2,opt,name=view,enum=google.appengine.v1.VersionView" json:"view,omitempty"`
+	View VersionView `protobuf:"varint,2,opt,name=view,proto3,enum=google.appengine.v1.VersionView" json:"view,omitempty"`
 	// Maximum results to return per page.
-	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Continuation token for fetching the next page of results.
-	PageToken            string   `protobuf:"bytes,4,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -475,9 +475,9 @@ func (m *ListVersionsRequest) GetPageToken() string {
 // Response message for `Versions.ListVersions`.
 type ListVersionsResponse struct {
 	// The versions belonging to the requested service.
-	Versions []*Version `protobuf:"bytes,1,rep,name=versions" json:"versions,omitempty"`
+	Versions []*Version `protobuf:"bytes,1,rep,name=versions,proto3" json:"versions,omitempty"`
 	// Continuation token for fetching the next page of results.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -525,9 +525,9 @@ func (m *ListVersionsResponse) GetNextPageToken() string {
 type GetVersionRequest struct {
 	// Name of the resource requested. Example:
 	// `apps/myapp/services/default/versions/v1`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Controls the set of fields returned in the `Get` response.
-	View                 VersionView `protobuf:"varint,2,opt,name=view,enum=google.appengine.v1.VersionView" json:"view,omitempty"`
+	View                 VersionView `protobuf:"varint,2,opt,name=view,proto3,enum=google.appengine.v1.VersionView" json:"view,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
 	XXX_unrecognized     []byte      `json:"-"`
 	XXX_sizecache        int32       `json:"-"`
@@ -575,9 +575,9 @@ func (m *GetVersionRequest) GetView() VersionView {
 type CreateVersionRequest struct {
 	// Name of the parent resource to create this version under. Example:
 	// `apps/myapp/services/default`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Application deployment configuration.
-	Version              *Version `protobuf:"bytes,2,opt,name=version" json:"version,omitempty"`
+	Version              *Version `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -625,12 +625,12 @@ func (m *CreateVersionRequest) GetVersion() *Version {
 type UpdateVersionRequest struct {
 	// Name of the resource to update. Example:
 	// `apps/myapp/services/default/versions/1`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// A Version containing the updated resource. Only fields set in the field
 	// mask will be updated.
-	Version *Version `protobuf:"bytes,2,opt,name=version" json:"version,omitempty"`
+	Version *Version `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
 	// Standard field mask for the set of fields to be updated.
-	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -685,7 +685,7 @@ func (m *UpdateVersionRequest) GetUpdateMask() *field_mask.FieldMask {
 type DeleteVersionRequest struct {
 	// Name of the resource requested. Example:
 	// `apps/myapp/services/default/versions/v1`.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -726,11 +726,11 @@ func (m *DeleteVersionRequest) GetName() string {
 type ListInstancesRequest struct {
 	// Name of the parent Version resource. Example:
 	// `apps/myapp/services/default/versions/v1`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Maximum results to return per page.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Continuation token for fetching the next page of results.
-	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -784,9 +784,9 @@ func (m *ListInstancesRequest) GetPageToken() string {
 // Response message for `Instances.ListInstances`.
 type ListInstancesResponse struct {
 	// The instances belonging to the requested version.
-	Instances []*Instance `protobuf:"bytes,1,rep,name=instances" json:"instances,omitempty"`
+	Instances []*Instance `protobuf:"bytes,1,rep,name=instances,proto3" json:"instances,omitempty"`
 	// Continuation token for fetching the next page of results.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -834,7 +834,7 @@ func (m *ListInstancesResponse) GetNextPageToken() string {
 type GetInstanceRequest struct {
 	// Name of the resource requested. Example:
 	// `apps/myapp/services/default/versions/v1/instances/instance-1`.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -875,7 +875,7 @@ func (m *GetInstanceRequest) GetName() string {
 type DeleteInstanceRequest struct {
 	// Name of the resource requested. Example:
 	// `apps/myapp/services/default/versions/v1/instances/instance-1`.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -916,7 +916,7 @@ func (m *DeleteInstanceRequest) GetName() string {
 type DebugInstanceRequest struct {
 	// Name of the resource requested. Example:
 	// `apps/myapp/services/default/versions/v1/instances/instance-1`.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1048,8 +1048,7 @@ func (c *instancesClient) DebugInstance(ctx context.Context, in *DebugInstanceRe
 	return out, nil
 }
 
-// Server API for Instances service
-
+// InstancesServer is the server API for Instances service.
 type InstancesServer interface {
 	// Lists the instances of a version.
 	ListInstances(context.Context, *ListInstancesRequest) (*ListInstancesResponse, error)
@@ -1254,8 +1253,7 @@ func (c *versionsClient) DeleteVersion(ctx context.Context, in *DeleteVersionReq
 	return out, nil
 }
 
-// Server API for Versions service
-
+// VersionsServer is the server API for Versions service.
 type VersionsServer interface {
 	// Lists the versions of a service.
 	ListVersions(context.Context, *ListVersionsRequest) (*ListVersionsResponse, error)
@@ -1466,8 +1464,7 @@ func (c *servicesClient) DeleteService(ctx context.Context, in *DeleteServiceReq
 	return out, nil
 }
 
-// Server API for Services service
-
+// ServicesServer is the server API for Services service.
 type ServicesServer interface {
 	// Lists all the services in the application.
 	ListServices(context.Context, *ListServicesRequest) (*ListServicesResponse, error)
@@ -1619,8 +1616,7 @@ func (c *applicationsClient) RepairApplication(ctx context.Context, in *RepairAp
 	return out, nil
 }
 
-// Server API for Applications service
-
+// ApplicationsServer is the server API for Applications service.
 type ApplicationsServer interface {
 	// Gets information about an application.
 	GetApplication(context.Context, *GetApplicationRequest) (*Application, error)

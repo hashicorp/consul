@@ -30,10 +30,10 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 type BatchWriteSpansRequest struct {
 	// Required. The name of the project where the spans belong. The format is
 	// `projects/[PROJECT_ID]`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// A list of new spans. The span names must not match existing
 	// spans, or the results are undefined.
-	Spans                []*Span  `protobuf:"bytes,2,rep,name=spans" json:"spans,omitempty"`
+	Spans                []*Span  `protobuf:"bytes,2,rep,name=spans,proto3" json:"spans,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -126,8 +126,7 @@ func (c *traceServiceClient) CreateSpan(ctx context.Context, in *Span, opts ...g
 	return out, nil
 }
 
-// Server API for TraceService service
-
+// TraceServiceServer is the server API for TraceService service.
 type TraceServiceServer interface {
 	// Sends new spans to new or existing traces. You cannot update
 	// existing spans.

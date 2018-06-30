@@ -24,14 +24,14 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 type TimeOfDay struct {
 	// Hours of day in 24 hour format. Should be from 0 to 23. An API may choose
 	// to allow the value "24:00:00" for scenarios like business closing time.
-	Hours int32 `protobuf:"varint,1,opt,name=hours" json:"hours,omitempty"`
+	Hours int32 `protobuf:"varint,1,opt,name=hours,proto3" json:"hours,omitempty"`
 	// Minutes of hour of day. Must be from 0 to 59.
-	Minutes int32 `protobuf:"varint,2,opt,name=minutes" json:"minutes,omitempty"`
+	Minutes int32 `protobuf:"varint,2,opt,name=minutes,proto3" json:"minutes,omitempty"`
 	// Seconds of minutes of the time. Must normally be from 0 to 59. An API may
 	// allow the value 60 if it allows leap-seconds.
-	Seconds int32 `protobuf:"varint,3,opt,name=seconds" json:"seconds,omitempty"`
+	Seconds int32 `protobuf:"varint,3,opt,name=seconds,proto3" json:"seconds,omitempty"`
 	// Fractions of seconds in nanoseconds. Must be from 0 to 999,999,999.
-	Nanos                int32    `protobuf:"varint,4,opt,name=nanos" json:"nanos,omitempty"`
+	Nanos                int32    `protobuf:"varint,4,opt,name=nanos,proto3" json:"nanos,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

@@ -111,17 +111,17 @@ func (CommonMetadata_State) EnumDescriptor() ([]byte, []int) {
 // Metadata common to all Datastore Admin operations.
 type CommonMetadata struct {
 	// The time that work began on the operation.
-	StartTime *timestamp.Timestamp `protobuf:"bytes,1,opt,name=start_time,json=startTime" json:"start_time,omitempty"`
+	StartTime *timestamp.Timestamp `protobuf:"bytes,1,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
 	// The time the operation ended, either successfully or otherwise.
-	EndTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=end_time,json=endTime" json:"end_time,omitempty"`
+	EndTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
 	// The type of the operation. Can be used as a filter in
 	// ListOperationsRequest.
-	OperationType OperationType `protobuf:"varint,3,opt,name=operation_type,json=operationType,enum=google.datastore.admin.v1.OperationType" json:"operation_type,omitempty"`
+	OperationType OperationType `protobuf:"varint,3,opt,name=operation_type,json=operationType,proto3,enum=google.datastore.admin.v1.OperationType" json:"operation_type,omitempty"`
 	// The client-assigned labels which were provided when the operation was
 	// created. May also include additional labels.
-	Labels map[string]string `protobuf:"bytes,4,rep,name=labels" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Labels map[string]string `protobuf:"bytes,4,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// The current state of the Operation.
-	State                CommonMetadata_State `protobuf:"varint,5,opt,name=state,enum=google.datastore.admin.v1.CommonMetadata_State" json:"state,omitempty"`
+	State                CommonMetadata_State `protobuf:"varint,5,opt,name=state,proto3,enum=google.datastore.admin.v1.CommonMetadata_State" json:"state,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -190,10 +190,10 @@ func (m *CommonMetadata) GetState() CommonMetadata_State {
 type Progress struct {
 	// The amount of work that has been completed. Note that this may be greater
 	// than work_estimated.
-	WorkCompleted int64 `protobuf:"varint,1,opt,name=work_completed,json=workCompleted" json:"work_completed,omitempty"`
+	WorkCompleted int64 `protobuf:"varint,1,opt,name=work_completed,json=workCompleted,proto3" json:"work_completed,omitempty"`
 	// An estimate of how much work needs to be performed. May be zero if the
 	// work estimate is unavailable.
-	WorkEstimated        int64    `protobuf:"varint,2,opt,name=work_estimated,json=workEstimated" json:"work_estimated,omitempty"`
+	WorkEstimated        int64    `protobuf:"varint,2,opt,name=work_estimated,json=workEstimated,proto3" json:"work_estimated,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -241,11 +241,11 @@ func (m *Progress) GetWorkEstimated() int64 {
 // [google.datastore.admin.v1.DatastoreAdmin.ExportEntities][google.datastore.admin.v1.DatastoreAdmin.ExportEntities].
 type ExportEntitiesRequest struct {
 	// Project ID against which to make the request.
-	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// Client-assigned labels.
-	Labels map[string]string `protobuf:"bytes,2,rep,name=labels" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Labels map[string]string `protobuf:"bytes,2,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// Description of what data from the project is included in the export.
-	EntityFilter *EntityFilter `protobuf:"bytes,3,opt,name=entity_filter,json=entityFilter" json:"entity_filter,omitempty"`
+	EntityFilter *EntityFilter `protobuf:"bytes,3,opt,name=entity_filter,json=entityFilter,proto3" json:"entity_filter,omitempty"`
 	// Location for the export metadata and data files.
 	//
 	// The full resource URL of the external storage location. Currently, only
@@ -264,7 +264,7 @@ type ExportEntitiesRequest struct {
 	//
 	// By nesting the data files deeper, the same Cloud Storage bucket can be used
 	// in multiple ExportEntities operations without conflict.
-	OutputUrlPrefix      string   `protobuf:"bytes,4,opt,name=output_url_prefix,json=outputUrlPrefix" json:"output_url_prefix,omitempty"`
+	OutputUrlPrefix      string   `protobuf:"bytes,4,opt,name=output_url_prefix,json=outputUrlPrefix,proto3" json:"output_url_prefix,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -326,9 +326,9 @@ func (m *ExportEntitiesRequest) GetOutputUrlPrefix() string {
 // [google.datastore.admin.v1.DatastoreAdmin.ImportEntities][google.datastore.admin.v1.DatastoreAdmin.ImportEntities].
 type ImportEntitiesRequest struct {
 	// Project ID against which to make the request.
-	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// Client-assigned labels.
-	Labels map[string]string `protobuf:"bytes,2,rep,name=labels" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Labels map[string]string `protobuf:"bytes,2,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// The full resource URL of the external storage location. Currently, only
 	// Google Cloud Storage is supported. So input_url should be of the form:
 	// `gs://BUCKET_NAME[/NAMESPACE_PATH]/OVERALL_EXPORT_METADATA_FILE`, where
@@ -342,12 +342,12 @@ type ImportEntitiesRequest struct {
 	//
 	// For more information, see
 	// [google.datastore.admin.v1.ExportEntitiesResponse.output_url][google.datastore.admin.v1.ExportEntitiesResponse.output_url].
-	InputUrl string `protobuf:"bytes,3,opt,name=input_url,json=inputUrl" json:"input_url,omitempty"`
+	InputUrl string `protobuf:"bytes,3,opt,name=input_url,json=inputUrl,proto3" json:"input_url,omitempty"`
 	// Optionally specify which kinds/namespaces are to be imported. If provided,
 	// the list must be a subset of the EntityFilter used in creating the export,
 	// otherwise a FAILED_PRECONDITION error will be returned. If no filter is
 	// specified then all entities from the export are imported.
-	EntityFilter         *EntityFilter `protobuf:"bytes,4,opt,name=entity_filter,json=entityFilter" json:"entity_filter,omitempty"`
+	EntityFilter         *EntityFilter `protobuf:"bytes,4,opt,name=entity_filter,json=entityFilter,proto3" json:"entity_filter,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
 	XXX_unrecognized     []byte        `json:"-"`
 	XXX_sizecache        int32         `json:"-"`
@@ -412,7 +412,7 @@ type ExportEntitiesResponse struct {
 	// into Cloud Datastore (this project or another project). See
 	// [google.datastore.admin.v1.ImportEntitiesRequest.input_url][google.datastore.admin.v1.ImportEntitiesRequest.input_url].
 	// Only present if the operation completed successfully.
-	OutputUrl            string   `protobuf:"bytes,1,opt,name=output_url,json=outputUrl" json:"output_url,omitempty"`
+	OutputUrl            string   `protobuf:"bytes,1,opt,name=output_url,json=outputUrl,proto3" json:"output_url,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -452,19 +452,19 @@ func (m *ExportEntitiesResponse) GetOutputUrl() string {
 // Metadata for ExportEntities operations.
 type ExportEntitiesMetadata struct {
 	// Metadata common to all Datastore Admin operations.
-	Common *CommonMetadata `protobuf:"bytes,1,opt,name=common" json:"common,omitempty"`
+	Common *CommonMetadata `protobuf:"bytes,1,opt,name=common,proto3" json:"common,omitempty"`
 	// An estimate of the number of entities processed.
-	ProgressEntities *Progress `protobuf:"bytes,2,opt,name=progress_entities,json=progressEntities" json:"progress_entities,omitempty"`
+	ProgressEntities *Progress `protobuf:"bytes,2,opt,name=progress_entities,json=progressEntities,proto3" json:"progress_entities,omitempty"`
 	// An estimate of the number of bytes processed.
-	ProgressBytes *Progress `protobuf:"bytes,3,opt,name=progress_bytes,json=progressBytes" json:"progress_bytes,omitempty"`
+	ProgressBytes *Progress `protobuf:"bytes,3,opt,name=progress_bytes,json=progressBytes,proto3" json:"progress_bytes,omitempty"`
 	// Description of which entities are being exported.
-	EntityFilter *EntityFilter `protobuf:"bytes,4,opt,name=entity_filter,json=entityFilter" json:"entity_filter,omitempty"`
+	EntityFilter *EntityFilter `protobuf:"bytes,4,opt,name=entity_filter,json=entityFilter,proto3" json:"entity_filter,omitempty"`
 	// Location for the export metadata and data files. This will be the same
 	// value as the
 	// [google.datastore.admin.v1.ExportEntitiesRequest.output_url_prefix][google.datastore.admin.v1.ExportEntitiesRequest.output_url_prefix]
 	// field. The final output location is provided in
 	// [google.datastore.admin.v1.ExportEntitiesResponse.output_url][google.datastore.admin.v1.ExportEntitiesResponse.output_url].
-	OutputUrlPrefix      string   `protobuf:"bytes,5,opt,name=output_url_prefix,json=outputUrlPrefix" json:"output_url_prefix,omitempty"`
+	OutputUrlPrefix      string   `protobuf:"bytes,5,opt,name=output_url_prefix,json=outputUrlPrefix,proto3" json:"output_url_prefix,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -532,16 +532,16 @@ func (m *ExportEntitiesMetadata) GetOutputUrlPrefix() string {
 // Metadata for ImportEntities operations.
 type ImportEntitiesMetadata struct {
 	// Metadata common to all Datastore Admin operations.
-	Common *CommonMetadata `protobuf:"bytes,1,opt,name=common" json:"common,omitempty"`
+	Common *CommonMetadata `protobuf:"bytes,1,opt,name=common,proto3" json:"common,omitempty"`
 	// An estimate of the number of entities processed.
-	ProgressEntities *Progress `protobuf:"bytes,2,opt,name=progress_entities,json=progressEntities" json:"progress_entities,omitempty"`
+	ProgressEntities *Progress `protobuf:"bytes,2,opt,name=progress_entities,json=progressEntities,proto3" json:"progress_entities,omitempty"`
 	// An estimate of the number of bytes processed.
-	ProgressBytes *Progress `protobuf:"bytes,3,opt,name=progress_bytes,json=progressBytes" json:"progress_bytes,omitempty"`
+	ProgressBytes *Progress `protobuf:"bytes,3,opt,name=progress_bytes,json=progressBytes,proto3" json:"progress_bytes,omitempty"`
 	// Description of which entities are being imported.
-	EntityFilter *EntityFilter `protobuf:"bytes,4,opt,name=entity_filter,json=entityFilter" json:"entity_filter,omitempty"`
+	EntityFilter *EntityFilter `protobuf:"bytes,4,opt,name=entity_filter,json=entityFilter,proto3" json:"entity_filter,omitempty"`
 	// The location of the import metadata file. This will be the same value as
 	// the [google.datastore.admin.v1.ExportEntitiesResponse.output_url][google.datastore.admin.v1.ExportEntitiesResponse.output_url] field.
-	InputUrl             string   `protobuf:"bytes,5,opt,name=input_url,json=inputUrl" json:"input_url,omitempty"`
+	InputUrl             string   `protobuf:"bytes,5,opt,name=input_url,json=inputUrl,proto3" json:"input_url,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -627,7 +627,7 @@ func (m *ImportEntitiesMetadata) GetInputUrl() string {
 //   kinds=[], namespace_ids=['Baz']
 type EntityFilter struct {
 	// If empty, then this represents all kinds.
-	Kinds []string `protobuf:"bytes,1,rep,name=kinds" json:"kinds,omitempty"`
+	Kinds []string `protobuf:"bytes,1,rep,name=kinds,proto3" json:"kinds,omitempty"`
 	// An empty list represents all namespaces. This is the preferred
 	// usage for projects that don't use namespaces.
 	//
@@ -635,7 +635,7 @@ type EntityFilter struct {
 	// used if the project has data in non-default namespaces, but doesn't want to
 	// include them.
 	// Each namespace in this list must be unique.
-	NamespaceIds         []string `protobuf:"bytes,2,rep,name=namespace_ids,json=namespaceIds" json:"namespace_ids,omitempty"`
+	NamespaceIds         []string `protobuf:"bytes,2,rep,name=namespace_ids,json=namespaceIds,proto3" json:"namespace_ids,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -750,8 +750,7 @@ func (c *datastoreAdminClient) ImportEntities(ctx context.Context, in *ImportEnt
 	return out, nil
 }
 
-// Server API for DatastoreAdmin service
-
+// DatastoreAdminServer is the server API for DatastoreAdmin service.
 type DatastoreAdminServer interface {
 	// Exports a copy of all or a subset of entities from Google Cloud Datastore
 	// to another storage system, such as Google Cloud Storage. Recent updates to

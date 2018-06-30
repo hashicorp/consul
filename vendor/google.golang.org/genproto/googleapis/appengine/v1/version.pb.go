@@ -116,11 +116,11 @@ type Version struct {
 	// `apps/myapp/services/default/versions/v1`.
 	//
 	// @OutputOnly
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Relative name of the version within the service.  Example: `v1`.
 	// Version names can contain only lowercase letters, numbers, or hyphens.
 	// Reserved names: "default", "latest", and any name with the prefix "ah-".
-	Id string `protobuf:"bytes,2,opt,name=id" json:"id,omitempty"`
+	Id string `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
 	// Controls how instances are created.
 	//
 	// Defaults to `AutomaticScaling`.
@@ -132,100 +132,100 @@ type Version struct {
 	Scaling isVersion_Scaling `protobuf_oneof:"scaling"`
 	// Before an application can receive email or XMPP messages, the application
 	// must be configured to enable the service.
-	InboundServices []InboundServiceType `protobuf:"varint,6,rep,packed,name=inbound_services,json=inboundServices,enum=google.appengine.v1.InboundServiceType" json:"inbound_services,omitempty"`
+	InboundServices []InboundServiceType `protobuf:"varint,6,rep,packed,name=inbound_services,json=inboundServices,proto3,enum=google.appengine.v1.InboundServiceType" json:"inbound_services,omitempty"`
 	// Instance class that is used to run this version. Valid values are:
 	// * AutomaticScaling: `F1`, `F2`, `F4`, `F4_1G`
 	// * ManualScaling or BasicScaling: `B1`, `B2`, `B4`, `B8`, `B4_1G`
 	//
 	// Defaults to `F1` for AutomaticScaling and `B1` for ManualScaling or
 	// BasicScaling.
-	InstanceClass string `protobuf:"bytes,7,opt,name=instance_class,json=instanceClass" json:"instance_class,omitempty"`
+	InstanceClass string `protobuf:"bytes,7,opt,name=instance_class,json=instanceClass,proto3" json:"instance_class,omitempty"`
 	// Extra network settings. Only applicable for VM runtimes.
-	Network *Network `protobuf:"bytes,8,opt,name=network" json:"network,omitempty"`
+	Network *Network `protobuf:"bytes,8,opt,name=network,proto3" json:"network,omitempty"`
 	// Machine resources for this version. Only applicable for VM runtimes.
-	Resources *Resources `protobuf:"bytes,9,opt,name=resources" json:"resources,omitempty"`
+	Resources *Resources `protobuf:"bytes,9,opt,name=resources,proto3" json:"resources,omitempty"`
 	// Desired runtime. Example: `python27`.
-	Runtime string `protobuf:"bytes,10,opt,name=runtime" json:"runtime,omitempty"`
+	Runtime string `protobuf:"bytes,10,opt,name=runtime,proto3" json:"runtime,omitempty"`
 	// Whether multiple requests can be dispatched to this version at once.
-	Threadsafe bool `protobuf:"varint,11,opt,name=threadsafe" json:"threadsafe,omitempty"`
+	Threadsafe bool `protobuf:"varint,11,opt,name=threadsafe,proto3" json:"threadsafe,omitempty"`
 	// Whether to deploy this version in a container on a virtual machine.
-	Vm bool `protobuf:"varint,12,opt,name=vm" json:"vm,omitempty"`
+	Vm bool `protobuf:"varint,12,opt,name=vm,proto3" json:"vm,omitempty"`
 	// Metadata settings that are supplied to this version to enable
 	// beta runtime features.
-	BetaSettings map[string]string `protobuf:"bytes,13,rep,name=beta_settings,json=betaSettings" json:"beta_settings,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	BetaSettings map[string]string `protobuf:"bytes,13,rep,name=beta_settings,json=betaSettings,proto3" json:"beta_settings,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// App Engine execution environment for this version.
 	//
 	// Defaults to `standard`.
-	Env string `protobuf:"bytes,14,opt,name=env" json:"env,omitempty"`
+	Env string `protobuf:"bytes,14,opt,name=env,proto3" json:"env,omitempty"`
 	// Current serving status of this version. Only the versions with a
 	// `SERVING` status create instances and can be billed.
 	//
 	// `SERVING_STATUS_UNSPECIFIED` is an invalid value. Defaults to `SERVING`.
-	ServingStatus ServingStatus `protobuf:"varint,15,opt,name=serving_status,json=servingStatus,enum=google.appengine.v1.ServingStatus" json:"serving_status,omitempty"`
+	ServingStatus ServingStatus `protobuf:"varint,15,opt,name=serving_status,json=servingStatus,proto3,enum=google.appengine.v1.ServingStatus" json:"serving_status,omitempty"`
 	// Email address of the user who created this version.
 	//
 	// @OutputOnly
-	CreatedBy string `protobuf:"bytes,16,opt,name=created_by,json=createdBy" json:"created_by,omitempty"`
+	CreatedBy string `protobuf:"bytes,16,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"`
 	// Time that this version was created.
 	//
 	// @OutputOnly
-	CreateTime *timestamp.Timestamp `protobuf:"bytes,17,opt,name=create_time,json=createTime" json:"create_time,omitempty"`
+	CreateTime *timestamp.Timestamp `protobuf:"bytes,17,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	// Total size in bytes of all the files that are included in this version
 	// and curerntly hosted on the App Engine disk.
 	//
 	// @OutputOnly
-	DiskUsageBytes int64 `protobuf:"varint,18,opt,name=disk_usage_bytes,json=diskUsageBytes" json:"disk_usage_bytes,omitempty"`
+	DiskUsageBytes int64 `protobuf:"varint,18,opt,name=disk_usage_bytes,json=diskUsageBytes,proto3" json:"disk_usage_bytes,omitempty"`
 	// An ordered list of URL-matching patterns that should be applied to incoming
 	// requests. The first matching URL handles the request and other request
 	// handlers are not attempted.
 	//
 	// Only returned in `GET` requests if `view=FULL` is set.
-	Handlers []*UrlMap `protobuf:"bytes,100,rep,name=handlers" json:"handlers,omitempty"`
+	Handlers []*UrlMap `protobuf:"bytes,100,rep,name=handlers,proto3" json:"handlers,omitempty"`
 	// Custom static error pages. Limited to 10KB per page.
 	//
 	// Only returned in `GET` requests if `view=FULL` is set.
-	ErrorHandlers []*ErrorHandler `protobuf:"bytes,101,rep,name=error_handlers,json=errorHandlers" json:"error_handlers,omitempty"`
+	ErrorHandlers []*ErrorHandler `protobuf:"bytes,101,rep,name=error_handlers,json=errorHandlers,proto3" json:"error_handlers,omitempty"`
 	// Configuration for third-party Python runtime libraries that are required
 	// by the application.
 	//
 	// Only returned in `GET` requests if `view=FULL` is set.
-	Libraries []*Library `protobuf:"bytes,102,rep,name=libraries" json:"libraries,omitempty"`
+	Libraries []*Library `protobuf:"bytes,102,rep,name=libraries,proto3" json:"libraries,omitempty"`
 	// Serving configuration for
 	// [Google Cloud Endpoints](https://cloud.google.com/appengine/docs/python/endpoints/).
 	//
 	// Only returned in `GET` requests if `view=FULL` is set.
-	ApiConfig *ApiConfigHandler `protobuf:"bytes,103,opt,name=api_config,json=apiConfig" json:"api_config,omitempty"`
+	ApiConfig *ApiConfigHandler `protobuf:"bytes,103,opt,name=api_config,json=apiConfig,proto3" json:"api_config,omitempty"`
 	// Environment variables available to the application.
 	//
 	// Only returned in `GET` requests if `view=FULL` is set.
-	EnvVariables map[string]string `protobuf:"bytes,104,rep,name=env_variables,json=envVariables" json:"env_variables,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	EnvVariables map[string]string `protobuf:"bytes,104,rep,name=env_variables,json=envVariables,proto3" json:"env_variables,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// Duration that static files should be cached by web proxies and browsers.
 	// Only applicable if the corresponding
 	// [StaticFilesHandler](https://cloud.google.com/appengine/docs/admin-api/reference/rest/v1/apps.services.versions#staticfileshandler)
 	// does not specify its own expiration time.
 	//
 	// Only returned in `GET` requests if `view=FULL` is set.
-	DefaultExpiration *duration.Duration `protobuf:"bytes,105,opt,name=default_expiration,json=defaultExpiration" json:"default_expiration,omitempty"`
+	DefaultExpiration *duration.Duration `protobuf:"bytes,105,opt,name=default_expiration,json=defaultExpiration,proto3" json:"default_expiration,omitempty"`
 	// Configures health checking for VM instances. Unhealthy instances are
 	// stopped and replaced with new instances. Only applicable for VM
 	// runtimes.
 	//
 	// Only returned in `GET` requests if `view=FULL` is set.
-	HealthCheck *HealthCheck `protobuf:"bytes,106,opt,name=health_check,json=healthCheck" json:"health_check,omitempty"`
+	HealthCheck *HealthCheck `protobuf:"bytes,106,opt,name=health_check,json=healthCheck,proto3" json:"health_check,omitempty"`
 	// Files that match this pattern will not be built into this version.
 	// Only applicable for Go runtimes.
 	//
 	// Only returned in `GET` requests if `view=FULL` is set.
-	NobuildFilesRegex string `protobuf:"bytes,107,opt,name=nobuild_files_regex,json=nobuildFilesRegex" json:"nobuild_files_regex,omitempty"`
+	NobuildFilesRegex string `protobuf:"bytes,107,opt,name=nobuild_files_regex,json=nobuildFilesRegex,proto3" json:"nobuild_files_regex,omitempty"`
 	// Code and application artifacts that make up this version.
 	//
 	// Only returned in `GET` requests if `view=FULL` is set.
-	Deployment *Deployment `protobuf:"bytes,108,opt,name=deployment" json:"deployment,omitempty"`
+	Deployment *Deployment `protobuf:"bytes,108,opt,name=deployment,proto3" json:"deployment,omitempty"`
 	// Serving URL for this version. Example:
 	// "https://myversion-dot-myservice-dot-myapp.appspot.com"
 	//
 	// @OutputOnly
-	VersionUrl           string   `protobuf:"bytes,109,opt,name=version_url,json=versionUrl" json:"version_url,omitempty"`
+	VersionUrl           string   `protobuf:"bytes,109,opt,name=version_url,json=versionUrl,proto3" json:"version_url,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -260,13 +260,13 @@ type isVersion_Scaling interface {
 }
 
 type Version_AutomaticScaling struct {
-	AutomaticScaling *AutomaticScaling `protobuf:"bytes,3,opt,name=automatic_scaling,json=automaticScaling,oneof"`
+	AutomaticScaling *AutomaticScaling `protobuf:"bytes,3,opt,name=automatic_scaling,json=automaticScaling,proto3,oneof"`
 }
 type Version_BasicScaling struct {
-	BasicScaling *BasicScaling `protobuf:"bytes,4,opt,name=basic_scaling,json=basicScaling,oneof"`
+	BasicScaling *BasicScaling `protobuf:"bytes,4,opt,name=basic_scaling,json=basicScaling,proto3,oneof"`
 }
 type Version_ManualScaling struct {
-	ManualScaling *ManualScaling `protobuf:"bytes,5,opt,name=manual_scaling,json=manualScaling,oneof"`
+	ManualScaling *ManualScaling `protobuf:"bytes,5,opt,name=manual_scaling,json=manualScaling,proto3,oneof"`
 }
 
 func (*Version_AutomaticScaling) isVersion_Scaling() {}
@@ -576,36 +576,36 @@ type AutomaticScaling struct {
 	// [Autoscaler](https://cloud.google.com/compute/docs/autoscaler/)
 	// should wait between changes to the number of virtual machines.
 	// Only applicable for VM runtimes.
-	CoolDownPeriod *duration.Duration `protobuf:"bytes,1,opt,name=cool_down_period,json=coolDownPeriod" json:"cool_down_period,omitempty"`
+	CoolDownPeriod *duration.Duration `protobuf:"bytes,1,opt,name=cool_down_period,json=coolDownPeriod,proto3" json:"cool_down_period,omitempty"`
 	// Target scaling by CPU usage.
-	CpuUtilization *CpuUtilization `protobuf:"bytes,2,opt,name=cpu_utilization,json=cpuUtilization" json:"cpu_utilization,omitempty"`
+	CpuUtilization *CpuUtilization `protobuf:"bytes,2,opt,name=cpu_utilization,json=cpuUtilization,proto3" json:"cpu_utilization,omitempty"`
 	// Number of concurrent requests an automatic scaling instance can accept
 	// before the scheduler spawns a new instance.
 	//
 	// Defaults to a runtime-specific value.
-	MaxConcurrentRequests int32 `protobuf:"varint,3,opt,name=max_concurrent_requests,json=maxConcurrentRequests" json:"max_concurrent_requests,omitempty"`
+	MaxConcurrentRequests int32 `protobuf:"varint,3,opt,name=max_concurrent_requests,json=maxConcurrentRequests,proto3" json:"max_concurrent_requests,omitempty"`
 	// Maximum number of idle instances that should be maintained for this
 	// version.
-	MaxIdleInstances int32 `protobuf:"varint,4,opt,name=max_idle_instances,json=maxIdleInstances" json:"max_idle_instances,omitempty"`
+	MaxIdleInstances int32 `protobuf:"varint,4,opt,name=max_idle_instances,json=maxIdleInstances,proto3" json:"max_idle_instances,omitempty"`
 	// Maximum number of instances that should be started to handle requests.
-	MaxTotalInstances int32 `protobuf:"varint,5,opt,name=max_total_instances,json=maxTotalInstances" json:"max_total_instances,omitempty"`
+	MaxTotalInstances int32 `protobuf:"varint,5,opt,name=max_total_instances,json=maxTotalInstances,proto3" json:"max_total_instances,omitempty"`
 	// Maximum amount of time that a request should wait in the pending queue
 	// before starting a new instance to handle it.
-	MaxPendingLatency *duration.Duration `protobuf:"bytes,6,opt,name=max_pending_latency,json=maxPendingLatency" json:"max_pending_latency,omitempty"`
+	MaxPendingLatency *duration.Duration `protobuf:"bytes,6,opt,name=max_pending_latency,json=maxPendingLatency,proto3" json:"max_pending_latency,omitempty"`
 	// Minimum number of idle instances that should be maintained for
 	// this version. Only applicable for the default version of a service.
-	MinIdleInstances int32 `protobuf:"varint,7,opt,name=min_idle_instances,json=minIdleInstances" json:"min_idle_instances,omitempty"`
+	MinIdleInstances int32 `protobuf:"varint,7,opt,name=min_idle_instances,json=minIdleInstances,proto3" json:"min_idle_instances,omitempty"`
 	// Minimum number of instances that should be maintained for this version.
-	MinTotalInstances int32 `protobuf:"varint,8,opt,name=min_total_instances,json=minTotalInstances" json:"min_total_instances,omitempty"`
+	MinTotalInstances int32 `protobuf:"varint,8,opt,name=min_total_instances,json=minTotalInstances,proto3" json:"min_total_instances,omitempty"`
 	// Minimum amount of time a request should wait in the pending queue before
 	// starting a new instance to handle it.
-	MinPendingLatency *duration.Duration `protobuf:"bytes,9,opt,name=min_pending_latency,json=minPendingLatency" json:"min_pending_latency,omitempty"`
+	MinPendingLatency *duration.Duration `protobuf:"bytes,9,opt,name=min_pending_latency,json=minPendingLatency,proto3" json:"min_pending_latency,omitempty"`
 	// Target scaling by request utilization.
-	RequestUtilization *RequestUtilization `protobuf:"bytes,10,opt,name=request_utilization,json=requestUtilization" json:"request_utilization,omitempty"`
+	RequestUtilization *RequestUtilization `protobuf:"bytes,10,opt,name=request_utilization,json=requestUtilization,proto3" json:"request_utilization,omitempty"`
 	// Target scaling by disk usage.
-	DiskUtilization *DiskUtilization `protobuf:"bytes,11,opt,name=disk_utilization,json=diskUtilization" json:"disk_utilization,omitempty"`
+	DiskUtilization *DiskUtilization `protobuf:"bytes,11,opt,name=disk_utilization,json=diskUtilization,proto3" json:"disk_utilization,omitempty"`
 	// Target scaling by network usage.
-	NetworkUtilization   *NetworkUtilization `protobuf:"bytes,12,opt,name=network_utilization,json=networkUtilization" json:"network_utilization,omitempty"`
+	NetworkUtilization   *NetworkUtilization `protobuf:"bytes,12,opt,name=network_utilization,json=networkUtilization,proto3" json:"network_utilization,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
 	XXX_unrecognized     []byte              `json:"-"`
 	XXX_sizecache        int32               `json:"-"`
@@ -726,9 +726,9 @@ func (m *AutomaticScaling) GetNetworkUtilization() *NetworkUtilization {
 type BasicScaling struct {
 	// Duration of time after the last request that an instance must wait before
 	// the instance is shut down.
-	IdleTimeout *duration.Duration `protobuf:"bytes,1,opt,name=idle_timeout,json=idleTimeout" json:"idle_timeout,omitempty"`
+	IdleTimeout *duration.Duration `protobuf:"bytes,1,opt,name=idle_timeout,json=idleTimeout,proto3" json:"idle_timeout,omitempty"`
 	// Maximum number of instances to create for this version.
-	MaxInstances         int32    `protobuf:"varint,2,opt,name=max_instances,json=maxInstances" json:"max_instances,omitempty"`
+	MaxInstances         int32    `protobuf:"varint,2,opt,name=max_instances,json=maxInstances,proto3" json:"max_instances,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -779,7 +779,7 @@ type ManualScaling struct {
 	// can later be altered by using the
 	// [Modules API](https://cloud.google.com/appengine/docs/python/modules/functions)
 	// `set_num_instances()` function.
-	Instances            int32    `protobuf:"varint,1,opt,name=instances" json:"instances,omitempty"`
+	Instances            int32    `protobuf:"varint,1,opt,name=instances,proto3" json:"instances,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -819,10 +819,10 @@ func (m *ManualScaling) GetInstances() int32 {
 // Target scaling by CPU usage.
 type CpuUtilization struct {
 	// Period of time over which CPU utilization is calculated.
-	AggregationWindowLength *duration.Duration `protobuf:"bytes,1,opt,name=aggregation_window_length,json=aggregationWindowLength" json:"aggregation_window_length,omitempty"`
+	AggregationWindowLength *duration.Duration `protobuf:"bytes,1,opt,name=aggregation_window_length,json=aggregationWindowLength,proto3" json:"aggregation_window_length,omitempty"`
 	// Target CPU utilization ratio to maintain when scaling. Must be between 0
 	// and 1.
-	TargetUtilization    float64  `protobuf:"fixed64,2,opt,name=target_utilization,json=targetUtilization" json:"target_utilization,omitempty"`
+	TargetUtilization    float64  `protobuf:"fixed64,2,opt,name=target_utilization,json=targetUtilization,proto3" json:"target_utilization,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -869,9 +869,9 @@ func (m *CpuUtilization) GetTargetUtilization() float64 {
 // Target scaling by request utilization. Only applicable for VM runtimes.
 type RequestUtilization struct {
 	// Target requests per second.
-	TargetRequestCountPerSecond int32 `protobuf:"varint,1,opt,name=target_request_count_per_second,json=targetRequestCountPerSecond" json:"target_request_count_per_second,omitempty"`
+	TargetRequestCountPerSecond int32 `protobuf:"varint,1,opt,name=target_request_count_per_second,json=targetRequestCountPerSecond,proto3" json:"target_request_count_per_second,omitempty"`
 	// Target number of concurrent requests.
-	TargetConcurrentRequests int32    `protobuf:"varint,2,opt,name=target_concurrent_requests,json=targetConcurrentRequests" json:"target_concurrent_requests,omitempty"`
+	TargetConcurrentRequests int32    `protobuf:"varint,2,opt,name=target_concurrent_requests,json=targetConcurrentRequests,proto3" json:"target_concurrent_requests,omitempty"`
 	XXX_NoUnkeyedLiteral     struct{} `json:"-"`
 	XXX_unrecognized         []byte   `json:"-"`
 	XXX_sizecache            int32    `json:"-"`
@@ -918,13 +918,13 @@ func (m *RequestUtilization) GetTargetConcurrentRequests() int32 {
 // Target scaling by disk usage. Only applicable for VM runtimes.
 type DiskUtilization struct {
 	// Target bytes written per second.
-	TargetWriteBytesPerSecond int32 `protobuf:"varint,14,opt,name=target_write_bytes_per_second,json=targetWriteBytesPerSecond" json:"target_write_bytes_per_second,omitempty"`
+	TargetWriteBytesPerSecond int32 `protobuf:"varint,14,opt,name=target_write_bytes_per_second,json=targetWriteBytesPerSecond,proto3" json:"target_write_bytes_per_second,omitempty"`
 	// Target ops written per second.
-	TargetWriteOpsPerSecond int32 `protobuf:"varint,15,opt,name=target_write_ops_per_second,json=targetWriteOpsPerSecond" json:"target_write_ops_per_second,omitempty"`
+	TargetWriteOpsPerSecond int32 `protobuf:"varint,15,opt,name=target_write_ops_per_second,json=targetWriteOpsPerSecond,proto3" json:"target_write_ops_per_second,omitempty"`
 	// Target bytes read per second.
-	TargetReadBytesPerSecond int32 `protobuf:"varint,16,opt,name=target_read_bytes_per_second,json=targetReadBytesPerSecond" json:"target_read_bytes_per_second,omitempty"`
+	TargetReadBytesPerSecond int32 `protobuf:"varint,16,opt,name=target_read_bytes_per_second,json=targetReadBytesPerSecond,proto3" json:"target_read_bytes_per_second,omitempty"`
 	// Target ops read per seconds.
-	TargetReadOpsPerSecond int32    `protobuf:"varint,17,opt,name=target_read_ops_per_second,json=targetReadOpsPerSecond" json:"target_read_ops_per_second,omitempty"`
+	TargetReadOpsPerSecond int32    `protobuf:"varint,17,opt,name=target_read_ops_per_second,json=targetReadOpsPerSecond,proto3" json:"target_read_ops_per_second,omitempty"`
 	XXX_NoUnkeyedLiteral   struct{} `json:"-"`
 	XXX_unrecognized       []byte   `json:"-"`
 	XXX_sizecache          int32    `json:"-"`
@@ -985,13 +985,13 @@ func (m *DiskUtilization) GetTargetReadOpsPerSecond() int32 {
 // Target scaling by network usage. Only applicable for VM runtimes.
 type NetworkUtilization struct {
 	// Target bytes sent per second.
-	TargetSentBytesPerSecond int32 `protobuf:"varint,1,opt,name=target_sent_bytes_per_second,json=targetSentBytesPerSecond" json:"target_sent_bytes_per_second,omitempty"`
+	TargetSentBytesPerSecond int32 `protobuf:"varint,1,opt,name=target_sent_bytes_per_second,json=targetSentBytesPerSecond,proto3" json:"target_sent_bytes_per_second,omitempty"`
 	// Target packets sent per second.
-	TargetSentPacketsPerSecond int32 `protobuf:"varint,11,opt,name=target_sent_packets_per_second,json=targetSentPacketsPerSecond" json:"target_sent_packets_per_second,omitempty"`
+	TargetSentPacketsPerSecond int32 `protobuf:"varint,11,opt,name=target_sent_packets_per_second,json=targetSentPacketsPerSecond,proto3" json:"target_sent_packets_per_second,omitempty"`
 	// Target bytes received per second.
-	TargetReceivedBytesPerSecond int32 `protobuf:"varint,12,opt,name=target_received_bytes_per_second,json=targetReceivedBytesPerSecond" json:"target_received_bytes_per_second,omitempty"`
+	TargetReceivedBytesPerSecond int32 `protobuf:"varint,12,opt,name=target_received_bytes_per_second,json=targetReceivedBytesPerSecond,proto3" json:"target_received_bytes_per_second,omitempty"`
 	// Target packets received per second.
-	TargetReceivedPacketsPerSecond int32    `protobuf:"varint,13,opt,name=target_received_packets_per_second,json=targetReceivedPacketsPerSecond" json:"target_received_packets_per_second,omitempty"`
+	TargetReceivedPacketsPerSecond int32    `protobuf:"varint,13,opt,name=target_received_packets_per_second,json=targetReceivedPacketsPerSecond,proto3" json:"target_received_packets_per_second,omitempty"`
 	XXX_NoUnkeyedLiteral           struct{} `json:"-"`
 	XXX_unrecognized               []byte   `json:"-"`
 	XXX_sizecache                  int32    `json:"-"`
@@ -1053,14 +1053,14 @@ func (m *NetworkUtilization) GetTargetReceivedPacketsPerSecond() int32 {
 type Network struct {
 	// List of ports, or port pairs, to forward from the virtual machine to the
 	// application container.
-	ForwardedPorts []string `protobuf:"bytes,1,rep,name=forwarded_ports,json=forwardedPorts" json:"forwarded_ports,omitempty"`
+	ForwardedPorts []string `protobuf:"bytes,1,rep,name=forwarded_ports,json=forwardedPorts,proto3" json:"forwarded_ports,omitempty"`
 	// Tag to apply to the VM instance during creation.
-	InstanceTag string `protobuf:"bytes,2,opt,name=instance_tag,json=instanceTag" json:"instance_tag,omitempty"`
+	InstanceTag string `protobuf:"bytes,2,opt,name=instance_tag,json=instanceTag,proto3" json:"instance_tag,omitempty"`
 	// Google Cloud Platform network where the virtual machines are created.
 	// Specify the short name, not the resource path.
 	//
 	// Defaults to `default`.
-	Name                 string   `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1114,11 +1114,11 @@ func (m *Network) GetName() string {
 // Machine resources for a version.
 type Resources struct {
 	// Number of CPU cores needed.
-	Cpu float64 `protobuf:"fixed64,1,opt,name=cpu" json:"cpu,omitempty"`
+	Cpu float64 `protobuf:"fixed64,1,opt,name=cpu,proto3" json:"cpu,omitempty"`
 	// Disk size (GB) needed.
-	DiskGb float64 `protobuf:"fixed64,2,opt,name=disk_gb,json=diskGb" json:"disk_gb,omitempty"`
+	DiskGb float64 `protobuf:"fixed64,2,opt,name=disk_gb,json=diskGb,proto3" json:"disk_gb,omitempty"`
 	// Memory (GB) needed.
-	MemoryGb             float64  `protobuf:"fixed64,3,opt,name=memory_gb,json=memoryGb" json:"memory_gb,omitempty"`
+	MemoryGb             float64  `protobuf:"fixed64,3,opt,name=memory_gb,json=memoryGb,proto3" json:"memory_gb,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

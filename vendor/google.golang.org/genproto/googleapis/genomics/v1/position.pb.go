@@ -25,12 +25,12 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 // determination of forward or reverse strand.
 type Position struct {
 	// The name of the reference in whatever reference set is being used.
-	ReferenceName string `protobuf:"bytes,1,opt,name=reference_name,json=referenceName" json:"reference_name,omitempty"`
+	ReferenceName string `protobuf:"bytes,1,opt,name=reference_name,json=referenceName,proto3" json:"reference_name,omitempty"`
 	// The 0-based offset from the start of the forward strand for that reference.
-	Position int64 `protobuf:"varint,2,opt,name=position" json:"position,omitempty"`
+	Position int64 `protobuf:"varint,2,opt,name=position,proto3" json:"position,omitempty"`
 	// Whether this position is on the reverse strand, as opposed to the forward
 	// strand.
-	ReverseStrand        bool     `protobuf:"varint,3,opt,name=reverse_strand,json=reverseStrand" json:"reverse_strand,omitempty"`
+	ReverseStrand        bool     `protobuf:"varint,3,opt,name=reverse_strand,json=reverseStrand,proto3" json:"reverse_strand,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

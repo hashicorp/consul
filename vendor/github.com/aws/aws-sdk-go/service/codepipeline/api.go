@@ -2809,6 +2809,10 @@ func (c *CodePipeline) UpdatePipelineRequest(input *UpdatePipelineInput) (req *r
 //   * ErrCodeInvalidStructureException "InvalidStructureException"
 //   The specified structure was specified in an invalid format.
 //
+//   * ErrCodeLimitExceededException "LimitExceededException"
+//   The number of pipelines associated with the AWS account has exceeded the
+//   limit allowed for the account.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/codepipeline-2015-07-09/UpdatePipeline
 func (c *CodePipeline) UpdatePipeline(input *UpdatePipelineInput) (*UpdatePipelineOutput, error) {
 	req, out := c.UpdatePipelineRequest(input)

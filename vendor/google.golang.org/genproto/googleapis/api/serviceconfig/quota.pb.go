@@ -72,12 +72,12 @@ type Quota struct {
 	// List of `QuotaLimit` definitions for the service.
 	//
 	// Used by metric-based quotas only.
-	Limits []*QuotaLimit `protobuf:"bytes,3,rep,name=limits" json:"limits,omitempty"`
+	Limits []*QuotaLimit `protobuf:"bytes,3,rep,name=limits,proto3" json:"limits,omitempty"`
 	// List of `MetricRule` definitions, each one mapping a selected method to one
 	// or more metrics.
 	//
 	// Used by metric-based quotas only.
-	MetricRules          []*MetricRule `protobuf:"bytes,4,rep,name=metric_rules,json=metricRules" json:"metric_rules,omitempty"`
+	MetricRules          []*MetricRule `protobuf:"bytes,4,rep,name=metric_rules,json=metricRules,proto3" json:"metric_rules,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
 	XXX_unrecognized     []byte        `json:"-"`
 	XXX_sizecache        int32         `json:"-"`
@@ -130,14 +130,14 @@ type MetricRule struct {
 	// Selects the methods to which this rule applies.
 	//
 	// Refer to [selector][google.api.DocumentationRule.selector] for syntax details.
-	Selector string `protobuf:"bytes,1,opt,name=selector" json:"selector,omitempty"`
+	Selector string `protobuf:"bytes,1,opt,name=selector,proto3" json:"selector,omitempty"`
 	// Metrics to update when the selected methods are called, and the associated
 	// cost applied to each metric.
 	//
 	// The key of the map is the metric name, and the values are the amount
 	// increased for the metric against which the quota limits are defined.
 	// The value must not be negative.
-	MetricCosts          map[string]int64 `protobuf:"bytes,2,rep,name=metric_costs,json=metricCosts" json:"metric_costs,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
+	MetricCosts          map[string]int64 `protobuf:"bytes,2,rep,name=metric_costs,json=metricCosts,proto3" json:"metric_costs,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
 	XXX_unrecognized     []byte           `json:"-"`
 	XXX_sizecache        int32            `json:"-"`
@@ -203,11 +203,11 @@ type QuotaLimit struct {
 	// immutable. You can use the display_name field to provide a user-friendly
 	// name for the limit. The display name can be evolved over time without
 	// affecting the identity of the limit.
-	Name string `protobuf:"bytes,6,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,6,opt,name=name,proto3" json:"name,omitempty"`
 	// Optional. User-visible, extended description for this quota limit.
 	// Should be used only when more context is needed to understand this limit
 	// than provided by the limit's display name (see: `display_name`).
-	Description string `protobuf:"bytes,2,opt,name=description" json:"description,omitempty"`
+	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
 	// Default number of tokens that can be consumed during the specified
 	// duration. This is the number of tokens assigned when a client
 	// application developer activates the service for his/her project.
@@ -218,7 +218,7 @@ type QuotaLimit struct {
 	// negative values are allowed.
 	//
 	// Used by group-based quotas only.
-	DefaultLimit int64 `protobuf:"varint,3,opt,name=default_limit,json=defaultLimit" json:"default_limit,omitempty"`
+	DefaultLimit int64 `protobuf:"varint,3,opt,name=default_limit,json=defaultLimit,proto3" json:"default_limit,omitempty"`
 	// Maximum number of tokens that can be consumed during the specified
 	// duration. Client application developers can override the default limit up
 	// to this maximum. If specified, this value cannot be set to a value less
@@ -228,7 +228,7 @@ type QuotaLimit struct {
 	// indicating unlimited maximum quota.
 	//
 	// Used by group-based quotas only.
-	MaxLimit int64 `protobuf:"varint,4,opt,name=max_limit,json=maxLimit" json:"max_limit,omitempty"`
+	MaxLimit int64 `protobuf:"varint,4,opt,name=max_limit,json=maxLimit,proto3" json:"max_limit,omitempty"`
 	// Free tier value displayed in the Developers Console for this limit.
 	// The free tier is the number of tokens that will be subtracted from the
 	// billed amount when billing is enabled.
@@ -237,20 +237,20 @@ type QuotaLimit struct {
 	// defaults to 0, indicating that there is no free tier for this service.
 	//
 	// Used by group-based quotas only.
-	FreeTier int64 `protobuf:"varint,7,opt,name=free_tier,json=freeTier" json:"free_tier,omitempty"`
+	FreeTier int64 `protobuf:"varint,7,opt,name=free_tier,json=freeTier,proto3" json:"free_tier,omitempty"`
 	// Duration of this limit in textual notation. Example: "100s", "24h", "1d".
 	// For duration longer than a day, only multiple of days is supported. We
 	// support only "100s" and "1d" for now. Additional support will be added in
 	// the future. "0" indicates indefinite duration.
 	//
 	// Used by group-based quotas only.
-	Duration string `protobuf:"bytes,5,opt,name=duration" json:"duration,omitempty"`
+	Duration string `protobuf:"bytes,5,opt,name=duration,proto3" json:"duration,omitempty"`
 	// The name of the metric this quota limit applies to. The quota limits with
 	// the same metric will be checked together during runtime. The metric must be
 	// defined within the service config.
 	//
 	// Used by metric-based quotas only.
-	Metric string `protobuf:"bytes,8,opt,name=metric" json:"metric,omitempty"`
+	Metric string `protobuf:"bytes,8,opt,name=metric,proto3" json:"metric,omitempty"`
 	// Specify the unit of the quota limit. It uses the same syntax as
 	// [Metric.unit][]. The supported unit kinds are determined by the quota
 	// backend system.
@@ -282,7 +282,7 @@ type QuotaLimit struct {
 	// The "1" at the beginning is required to follow the metric unit syntax.
 	//
 	// Used by metric-based quotas only.
-	Unit string `protobuf:"bytes,9,opt,name=unit" json:"unit,omitempty"`
+	Unit string `protobuf:"bytes,9,opt,name=unit,proto3" json:"unit,omitempty"`
 	// Tiered limit values. Also allows for regional or zone overrides for these
 	// values if "/{region}" or "/{zone}" is specified in the unit field.
 	//
@@ -315,12 +315,12 @@ type QuotaLimit struct {
 	// tier as well.
 	//
 	// Used by metric-based quotas only.
-	Values map[string]int64 `protobuf:"bytes,10,rep,name=values" json:"values,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
+	Values map[string]int64 `protobuf:"bytes,10,rep,name=values,proto3" json:"values,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
 	// User-visible display name for this limit.
 	// Optional. If not set, the UI will provide a default display name based on
 	// the quota configuration. This field can be used to override the default
 	// display name generated from the configuration.
-	DisplayName          string   `protobuf:"bytes,12,opt,name=display_name,json=displayName" json:"display_name,omitempty"`
+	DisplayName          string   `protobuf:"bytes,12,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

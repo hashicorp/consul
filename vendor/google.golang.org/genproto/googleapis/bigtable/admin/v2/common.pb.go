@@ -47,7 +47,7 @@ func (x StorageType) String() string {
 	return proto.EnumName(StorageType_name, int32(x))
 }
 func (StorageType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_common_a615f4766e498da1, []int{0}
+	return fileDescriptor_common_193eca34a1716695, []int{0}
 }
 
 func init() {
@@ -55,10 +55,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("google/bigtable/admin/v2/common.proto", fileDescriptor_common_a615f4766e498da1)
+	proto.RegisterFile("google/bigtable/admin/v2/common.proto", fileDescriptor_common_193eca34a1716695)
 }
 
-var fileDescriptor_common_a615f4766e498da1 = []byte{
+var fileDescriptor_common_193eca34a1716695 = []byte{
 	// 270 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x74, 0xd0, 0xcf, 0x4b, 0xc3, 0x30,
 	0x14, 0x07, 0x70, 0x3b, 0x41, 0x21, 0xbb, 0x94, 0x9e, 0xc6, 0x28, 0x7a, 0xf2, 0xe2, 0x21, 0x81,

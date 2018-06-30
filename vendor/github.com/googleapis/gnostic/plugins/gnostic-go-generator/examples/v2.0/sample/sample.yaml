@@ -1,0 +1,67 @@
+swagger: '2.0'
+schemes:
+  - https
+host: sample.io
+basePath: /
+info:
+  title: sample.io
+  version: '1.0'
+consumes:
+  - application/json
+produces:
+  - application/json;charset=UTF-8
+securityDefinitions:
+  api_key:
+    in: query
+    name: key
+    type: apiKey
+paths:
+  /sample/{id}:
+    get:
+      operationId: "GetSample"
+      parameters:
+      - description: identifier
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        '200':
+          description: sample response
+          schema:
+            $ref: '#/definitions/Sample'
+        '401':
+          description: User doesn't have a valid session.
+          schema:
+            $ref: '#/definitions/APIError'
+        '404':
+          description: Unable to find supplied extractor ID.
+          schema:
+            $ref: '#/definitions/APIError'
+      security:
+        - api_key: []
+      summary: Get a sample response
+      tags:
+        - sample
+        - demo
+definitions:
+  APIError:
+    properties:
+      code:
+        description: Internal error code
+        format: int
+        type: integer
+      message:
+        description: A message containing a brief description of the error
+        type: string
+    type: object
+  Sample:
+    properties:
+      id:
+        type: string
+      thing:
+        type: object
+      count:
+        format: int32
+        type: integer
+    type: object

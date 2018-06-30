@@ -32,17 +32,17 @@ type LogDescriptor struct {
 	// include the following characters: upper- and lower-case alphanumeric
 	// characters [A-Za-z0-9], and punctuation characters including
 	// slash, underscore, hyphen, period [/_-.].
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The set of labels that are available to describe a specific log entry.
 	// Runtime requests that contain labels not specified here are
 	// considered invalid.
-	Labels []*label.LabelDescriptor `protobuf:"bytes,2,rep,name=labels" json:"labels,omitempty"`
+	Labels []*label.LabelDescriptor `protobuf:"bytes,2,rep,name=labels,proto3" json:"labels,omitempty"`
 	// A human-readable description of this log. This information appears in
 	// the documentation and can contain details.
-	Description string `protobuf:"bytes,3,opt,name=description" json:"description,omitempty"`
+	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	// The human-readable name for this log. This information appears on
 	// the user interface and should be concise.
-	DisplayName          string   `protobuf:"bytes,4,opt,name=display_name,json=displayName" json:"display_name,omitempty"`
+	DisplayName          string   `protobuf:"bytes,4,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -52,7 +52,7 @@ func (m *LogDescriptor) Reset()         { *m = LogDescriptor{} }
 func (m *LogDescriptor) String() string { return proto.CompactTextString(m) }
 func (*LogDescriptor) ProtoMessage()    {}
 func (*LogDescriptor) Descriptor() ([]byte, []int) {
-	return fileDescriptor_log_7121ad8ed535f35a, []int{0}
+	return fileDescriptor_log_de92a25ed5c88332, []int{0}
 }
 func (m *LogDescriptor) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_LogDescriptor.Unmarshal(m, b)
@@ -104,9 +104,9 @@ func init() {
 	proto.RegisterType((*LogDescriptor)(nil), "google.api.LogDescriptor")
 }
 
-func init() { proto.RegisterFile("google/api/log.proto", fileDescriptor_log_7121ad8ed535f35a) }
+func init() { proto.RegisterFile("google/api/log.proto", fileDescriptor_log_de92a25ed5c88332) }
 
-var fileDescriptor_log_7121ad8ed535f35a = []byte{
+var fileDescriptor_log_de92a25ed5c88332 = []byte{
 	// 238 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x54, 0x8f, 0xc1, 0x4a, 0xc3, 0x40,
 	0x10, 0x86, 0x49, 0x1b, 0x8a, 0x6e, 0xd5, 0xc3, 0x22, 0x12, 0xf4, 0x12, 0x3d, 0xf5, 0xb4, 0x01,

@@ -1838,6 +1838,9 @@ func (c *RDS) CreateDBSecurityGroupRequest(input *CreateDBSecurityGroupInput) (r
 // Creates a new DB security group. DB security groups control access to a DB
 // instance.
 //
+// A DB security group controls access to EC2-Classic DB instances that are
+// not in a VPC.
+//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -8858,6 +8861,10 @@ func (c *RDS) RestoreDBClusterFromSnapshotRequest(input *RestoreDBClusterFromSna
 //   * ErrCodeKMSKeyNotAccessibleFault "KMSKeyNotAccessibleFault"
 //   An error occurred accessing an AWS KMS key.
 //
+//   * ErrCodeDBClusterParameterGroupNotFoundFault "DBClusterParameterGroupNotFound"
+//   DBClusterParameterGroupName doesn't refer to an existing DB cluster parameter
+//   group.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/RestoreDBClusterFromSnapshot
 func (c *RDS) RestoreDBClusterFromSnapshot(input *RestoreDBClusterFromSnapshotInput) (*RestoreDBClusterFromSnapshotOutput, error) {
 	req, out := c.RestoreDBClusterFromSnapshotRequest(input)
@@ -9001,6 +9008,10 @@ func (c *RDS) RestoreDBClusterToPointInTimeRequest(input *RestoreDBClusterToPoin
 //   * ErrCodeStorageQuotaExceededFault "StorageQuotaExceeded"
 //   The request would result in the user exceeding the allowed amount of storage
 //   available across all DB instances.
+//
+//   * ErrCodeDBClusterParameterGroupNotFoundFault "DBClusterParameterGroupNotFound"
+//   DBClusterParameterGroupName doesn't refer to an existing DB cluster parameter
+//   group.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/RestoreDBClusterToPointInTime
 func (c *RDS) RestoreDBClusterToPointInTime(input *RestoreDBClusterToPointInTimeInput) (*RestoreDBClusterToPointInTimeOutput, error) {
@@ -9161,6 +9172,9 @@ func (c *RDS) RestoreDBInstanceFromDBSnapshotRequest(input *RestoreDBInstanceFro
 //
 //   * ErrCodeDomainNotFoundFault "DomainNotFoundFault"
 //   Domain doesn't refer to an existing Active Directory domain.
+//
+//   * ErrCodeDBParameterGroupNotFoundFault "DBParameterGroupNotFound"
+//   DBParameterGroupName doesn't refer to an existing DB parameter group.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/RestoreDBInstanceFromDBSnapshot
 func (c *RDS) RestoreDBInstanceFromDBSnapshot(input *RestoreDBInstanceFromDBSnapshotInput) (*RestoreDBInstanceFromDBSnapshotOutput, error) {
@@ -9374,7 +9388,7 @@ func (c *RDS) RestoreDBInstanceToPointInTimeRequest(input *RestoreDBInstanceToPo
 // the BackupRetentionPeriod property.
 //
 // The target database is created with most of the original configuration, but
-// in a system-selected availability zone, with the default security group,
+// in a system-selected Availability Zone, with the default security group,
 // the default subnet group, and the default DB parameter group. By default,
 // the new DB instance is created as a single-AZ deployment except when the
 // instance is a SQL Server instance that has an option group that is associated
@@ -9458,6 +9472,9 @@ func (c *RDS) RestoreDBInstanceToPointInTimeRequest(input *RestoreDBInstanceToPo
 //
 //   * ErrCodeDomainNotFoundFault "DomainNotFoundFault"
 //   Domain doesn't refer to an existing Active Directory domain.
+//
+//   * ErrCodeDBParameterGroupNotFoundFault "DBParameterGroupNotFound"
+//   DBParameterGroupName doesn't refer to an existing DB parameter group.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/RestoreDBInstanceToPointInTime
 func (c *RDS) RestoreDBInstanceToPointInTime(input *RestoreDBInstanceToPointInTimeInput) (*RestoreDBInstanceToPointInTimeOutput, error) {
@@ -10279,7 +10296,7 @@ func (s *AuthorizeDBSecurityGroupIngressOutput) SetDBSecurityGroup(v *DBSecurity
 type AvailabilityZone struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the availability zone.
+	// The name of the Availability Zone.
 	Name *string `type:"string"`
 }
 
@@ -10295,6 +10312,53 @@ func (s AvailabilityZone) GoString() string {
 
 // SetName sets the Name field's value.
 func (s *AvailabilityZone) SetName(v string) *AvailabilityZone {
+	s.Name = &v
+	return s
+}
+
+// Contains the available processor feature information for the DB instance
+// class of a DB instance.
+//
+// For more information, see Configuring the Processor of the DB Instance Class
+// (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.DBInstanceClass.html#USER_ConfigureProcessor)
+// in the Amazon RDS User Guide.
+type AvailableProcessorFeature struct {
+	_ struct{} `type:"structure"`
+
+	// The allowed values for the processor feature of the DB instance class.
+	AllowedValues *string `type:"string"`
+
+	// The default value for the processor feature of the DB instance class.
+	DefaultValue *string `type:"string"`
+
+	// The name of the processor feature. Valid names are coreCount and threadsPerCore.
+	Name *string `type:"string"`
+}
+
+// String returns the string representation
+func (s AvailableProcessorFeature) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AvailableProcessorFeature) GoString() string {
+	return s.String()
+}
+
+// SetAllowedValues sets the AllowedValues field's value.
+func (s *AvailableProcessorFeature) SetAllowedValues(v string) *AvailableProcessorFeature {
+	s.AllowedValues = &v
+	return s
+}
+
+// SetDefaultValue sets the DefaultValue field's value.
+func (s *AvailableProcessorFeature) SetDefaultValue(v string) *AvailableProcessorFeature {
+	s.DefaultValue = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *AvailableProcessorFeature) SetName(v string) *AvailableProcessorFeature {
 	s.Name = &v
 	return s
 }
@@ -11506,6 +11570,10 @@ type CreateDBClusterInput struct {
 	// DestinationRegion is used for presigning the request to a given region.
 	DestinationRegion *string `type:"string"`
 
+	// The list of log types that need to be enabled for exporting to CloudWatch
+	// Logs.
+	EnableCloudwatchLogsExports []*string `type:"list"`
+
 	// True to enable mapping of AWS Identity and Access Management (IAM) accounts
 	// to database accounts, and otherwise false.
 	//
@@ -11746,6 +11814,12 @@ func (s *CreateDBClusterInput) SetDatabaseName(v string) *CreateDBClusterInput {
 // SetDestinationRegion sets the DestinationRegion field's value.
 func (s *CreateDBClusterInput) SetDestinationRegion(v string) *CreateDBClusterInput {
 	s.DestinationRegion = &v
+	return s
+}
+
+// SetEnableCloudwatchLogsExports sets the EnableCloudwatchLogsExports field's value.
+func (s *CreateDBClusterInput) SetEnableCloudwatchLogsExports(v []*string) *CreateDBClusterInput {
+	s.EnableCloudwatchLogsExports = v
 	return s
 }
 
@@ -12376,6 +12450,9 @@ type CreateDBInstanceInput struct {
 	EnableIAMDatabaseAuthentication *bool `type:"boolean"`
 
 	// True to enable Performance Insights for the DB instance, and otherwise false.
+	//
+	// For more information, see Using Amazon Performance Insights (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_PerfInsights.html)
+	// in the Amazon Relational Database Service User Guide.
 	EnablePerformanceInsights *bool `type:"boolean"`
 
 	// The name of the database engine to be used for this instance.
@@ -12417,9 +12494,11 @@ type CreateDBInstanceInput struct {
 
 	// The version number of the database engine to use.
 	//
-	// The following are the database engines and major and minor versions that
-	// are available with Amazon RDS. Not every database engine is available for
-	// every AWS Region.
+	// For a list of valid engine versions, call DescribeDBEngineVersions.
+	//
+	// The following are the database engines and links to information about the
+	// major and minor versions that are available with Amazon RDS. Not every database
+	// engine is available for every AWS Region.
 	//
 	// Amazon Aurora
 	//
@@ -12428,98 +12507,28 @@ type CreateDBInstanceInput struct {
 	//
 	// MariaDB
 	//
-	//    * 10.2.12 (supported in all AWS Regions)
+	// See MariaDB on Amazon RDS Versions (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_MariaDB.html#MariaDB.Concepts.VersionMgmt)
+	// in the Amazon RDS User Guide.
 	//
-	//    * 10.2.11 (supported in all AWS Regions)
+	// Microsoft SQL Server
 	//
-	// 10.1.31 (supported in all AWS Regions)
-	//
-	//    * 10.1.26 (supported in all AWS Regions)
-	//
-	//    * 10.1.23 (supported in all AWS Regions)
-	//
-	//    * 10.1.19 (supported in all AWS Regions)
-	//
-	//    * 10.1.14 (supported in all AWS Regions except us-east-2)
-	//
-	//    * 10.0.34 (supported in all AWS Regions)
-	//
-	//    * 10.0.32 (supported in all AWS Regions)
-	//
-	//    * 10.0.31 (supported in all AWS Regions)
-	//
-	//    * 10.0.28 (supported in all AWS Regions)
-	//
-	//    * 10.0.24 (supported in all AWS Regions)
-	//
-	//    * 10.0.17 (supported in all AWS Regions except us-east-2, ca-central-1,
-	//    eu-west-2)
-	//
-	// Microsoft SQL Server 2017
-	//
-	//    * 14.00.1000.169.v1 (supported for all editions, and all AWS Regions)
-	//
-	// Microsoft SQL Server 2016
-	//
-	//    * 13.00.4451.0.v1 (supported for all editions, and all AWS Regions)
-	//
-	//    * 13.00.4422.0.v1 (supported for all editions, and all AWS Regions)
-	//
-	//    * 13.00.2164.0.v1 (supported for all editions, and all AWS Regions)
-	//
-	// Microsoft SQL Server 2014
-	//
-	//    * 12.00.5546.0.v1 (supported for all editions, and all AWS Regions)
-	//
-	//    * 12.00.5000.0.v1 (supported for all editions, and all AWS Regions)
-	//
-	//    * 12.00.4422.0.v1 (supported for all editions except Enterprise Edition,
-	//    and all AWS Regions except ca-central-1 and eu-west-2)
-	//
-	// Microsoft SQL Server 2012
-	//
-	//    * 11.00.6594.0.v1 (supported for all editions, and all AWS Regions)
-	//
-	//    * 11.00.6020.0.v1 (supported for all editions, and all AWS Regions)
-	//
-	//    * 11.00.5058.0.v1 (supported for all editions, and all AWS Regions except
-	//    us-east-2, ca-central-1, and eu-west-2)
-	//
-	//    * 11.00.2100.60.v1 (supported for all editions, and all AWS Regions except
-	//    us-east-2, ca-central-1, and eu-west-2)
-	//
-	// Microsoft SQL Server 2008 R2
-	//
-	//    * 10.50.6529.0.v1 (supported for all editions, and all AWS Regions except
-	//    us-east-2, ca-central-1, and eu-west-2)
-	//
-	//    * 10.50.6000.34.v1 (supported for all editions, and all AWS Regions except
-	//    us-east-2, ca-central-1, and eu-west-2)
-	//
-	//    * 10.50.2789.0.v1 (supported for all editions, and all AWS Regions except
-	//    us-east-2, ca-central-1, and eu-west-2)
+	// See Version and Feature Support on Amazon RDS (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_SQLServer.html#SQLServer.Concepts.General.FeatureSupport)
+	// in the Amazon RDS User Guide.
 	//
 	// MySQL
 	//
-	//    * 5.7.21 (supported in all AWS regions)
+	// See MySQL on Amazon RDS Versions (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_MySQL.html#MySQL.Concepts.VersionMgmt)
+	// in the Amazon RDS User Guide.
 	//
-	//    * 5.7.19 (supported in all AWS regions)
+	// Oracle
 	//
-	//    * 5.7.17 (supported in all AWS regions)
+	// See Oracle Database Engine Release Notes (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Appendix.Oracle.PatchComposition.html)
+	// in the Amazon RDS User Guide.
 	//
-	//    * 5.7.16 (supported in all AWS regions)
+	// PostgreSQL
 	//
-	// 5.6.39(supported in all AWS Regions)
-	//
-	// 5.6.37(supported in all AWS Regions)
-	//
-	// 5.6.35(supported in all AWS Regions)
-	//
-	// 5.6.34(supported in all AWS Regions)
-	//
-	// 5.6.29(supported in all AWS Regions)
-	//
-	// 5.6.27
+	// See Supported PostgreSQL Database Versions (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_PostgreSQL.html#PostgreSQL.Concepts.General.DBVersions)
+	// in the Amazon RDS User Guide.
 	EngineVersion *string `type:"string"`
 
 	// The amount of Provisioned IOPS (input/output operations per second) to be
@@ -12687,6 +12696,10 @@ type CreateDBInstanceInput struct {
 	// KMS key alias for the KMS encryption key.
 	PerformanceInsightsKMSKeyId *string `type:"string"`
 
+	// The amount of time, in days, to retain Performance Insights data. Valid values
+	// are 7 or 731 (2 years).
+	PerformanceInsightsRetentionPeriod *int64 `type:"integer"`
+
 	// The port number on which the database accepts connections.
 	//
 	// MySQL
@@ -12772,6 +12785,10 @@ type CreateDBInstanceInput struct {
 	//
 	// Constraints: Minimum 30-minute window.
 	PreferredMaintenanceWindow *string `type:"string"`
+
+	// The number of CPU cores and the number of threads per core for the DB instance
+	// class of the DB instance.
+	ProcessorFeatures []*ProcessorFeature `locationNameList:"ProcessorFeature" type:"list"`
 
 	// A value that specifies the order in which an Aurora Replica is promoted to
 	// the primary instance after a failure of the existing primary instance. For
@@ -13053,6 +13070,12 @@ func (s *CreateDBInstanceInput) SetPerformanceInsightsKMSKeyId(v string) *Create
 	return s
 }
 
+// SetPerformanceInsightsRetentionPeriod sets the PerformanceInsightsRetentionPeriod field's value.
+func (s *CreateDBInstanceInput) SetPerformanceInsightsRetentionPeriod(v int64) *CreateDBInstanceInput {
+	s.PerformanceInsightsRetentionPeriod = &v
+	return s
+}
+
 // SetPort sets the Port field's value.
 func (s *CreateDBInstanceInput) SetPort(v int64) *CreateDBInstanceInput {
 	s.Port = &v
@@ -13068,6 +13091,12 @@ func (s *CreateDBInstanceInput) SetPreferredBackupWindow(v string) *CreateDBInst
 // SetPreferredMaintenanceWindow sets the PreferredMaintenanceWindow field's value.
 func (s *CreateDBInstanceInput) SetPreferredMaintenanceWindow(v string) *CreateDBInstanceInput {
 	s.PreferredMaintenanceWindow = &v
+	return s
+}
+
+// SetProcessorFeatures sets the ProcessorFeatures field's value.
+func (s *CreateDBInstanceInput) SetProcessorFeatures(v []*ProcessorFeature) *CreateDBInstanceInput {
+	s.ProcessorFeatures = v
 	return s
 }
 
@@ -13234,6 +13263,9 @@ type CreateDBInstanceReadReplicaInput struct {
 	EnableIAMDatabaseAuthentication *bool `type:"boolean"`
 
 	// True to enable Performance Insights for the read replica, and otherwise false.
+	//
+	// For more information, see Using Amazon Performance Insights (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_PerfInsights.html)
+	// in the Amazon Relational Database Service User Guide.
 	EnablePerformanceInsights *bool `type:"boolean"`
 
 	// The amount of Provisioned IOPS (input/output operations per second) to be
@@ -13293,6 +13325,10 @@ type CreateDBInstanceReadReplicaInput struct {
 	// KMS key alias for the KMS encryption key.
 	PerformanceInsightsKMSKeyId *string `type:"string"`
 
+	// The amount of time, in days, to retain Performance Insights data. Valid values
+	// are 7 or 731 (2 years).
+	PerformanceInsightsRetentionPeriod *int64 `type:"integer"`
+
 	// The port number that the DB instance uses for connections.
 	//
 	// Default: Inherits from the source DB instance
@@ -13342,6 +13378,10 @@ type CreateDBInstanceReadReplicaInput struct {
 	// Requests: Using Query Parameters (AWS Signature Version 4) (http://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html)
 	// and Signature Version 4 Signing Process (http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
 	PreSignedUrl *string `type:"string"`
+
+	// The number of CPU cores and the number of threads per core for the DB instance
+	// class of the DB instance.
+	ProcessorFeatures []*ProcessorFeature `locationNameList:"ProcessorFeature" type:"list"`
 
 	// Specifies the accessibility options for the DB instance. A value of true
 	// specifies an Internet-facing instance with a publicly resolvable DNS name,
@@ -13405,6 +13445,10 @@ type CreateDBInstanceReadReplicaInput struct {
 
 	// A list of tags. For more information, see Tagging Amazon RDS Resources (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Tagging.html).
 	Tags []*Tag `locationNameList:"Tag" type:"list"`
+
+	// A value that specifies that the DB instance class of the DB instance uses
+	// its default processor features.
+	UseDefaultProcessorFeatures *bool `type:"boolean"`
 }
 
 // String returns the string representation
@@ -13535,6 +13579,12 @@ func (s *CreateDBInstanceReadReplicaInput) SetPerformanceInsightsKMSKeyId(v stri
 	return s
 }
 
+// SetPerformanceInsightsRetentionPeriod sets the PerformanceInsightsRetentionPeriod field's value.
+func (s *CreateDBInstanceReadReplicaInput) SetPerformanceInsightsRetentionPeriod(v int64) *CreateDBInstanceReadReplicaInput {
+	s.PerformanceInsightsRetentionPeriod = &v
+	return s
+}
+
 // SetPort sets the Port field's value.
 func (s *CreateDBInstanceReadReplicaInput) SetPort(v int64) *CreateDBInstanceReadReplicaInput {
 	s.Port = &v
@@ -13544,6 +13594,12 @@ func (s *CreateDBInstanceReadReplicaInput) SetPort(v int64) *CreateDBInstanceRea
 // SetPreSignedUrl sets the PreSignedUrl field's value.
 func (s *CreateDBInstanceReadReplicaInput) SetPreSignedUrl(v string) *CreateDBInstanceReadReplicaInput {
 	s.PreSignedUrl = &v
+	return s
+}
+
+// SetProcessorFeatures sets the ProcessorFeatures field's value.
+func (s *CreateDBInstanceReadReplicaInput) SetProcessorFeatures(v []*ProcessorFeature) *CreateDBInstanceReadReplicaInput {
+	s.ProcessorFeatures = v
 	return s
 }
 
@@ -13574,6 +13630,12 @@ func (s *CreateDBInstanceReadReplicaInput) SetStorageType(v string) *CreateDBIns
 // SetTags sets the Tags field's value.
 func (s *CreateDBInstanceReadReplicaInput) SetTags(v []*Tag) *CreateDBInstanceReadReplicaInput {
 	s.Tags = v
+	return s
+}
+
+// SetUseDefaultProcessorFeatures sets the UseDefaultProcessorFeatures field's value.
+func (s *CreateDBInstanceReadReplicaInput) SetUseDefaultProcessorFeatures(v bool) *CreateDBInstanceReadReplicaInput {
+	s.UseDefaultProcessorFeatures = &v
 	return s
 }
 
@@ -13609,6 +13671,13 @@ type CreateDBParameterGroupInput struct {
 	// with one and only one DB parameter group family, and can be applied only
 	// to a DB instance running a database engine and engine version compatible
 	// with that DB parameter group family.
+	//
+	// To list all of the available parameter group families, use the following
+	// command:
+	//
+	// aws rds describe-db-engine-versions --query "DBEngineVersions[].DBParameterGroupFamily"
+	//
+	// The output contains duplicates.
 	//
 	// DBParameterGroupFamily is a required field
 	DBParameterGroupFamily *string `type:"string" required:"true"`
@@ -14380,6 +14449,10 @@ type DBCluster struct {
 	// restore.
 	EarliestRestorableTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
 
+	// A list of log types that this DB cluster is configured to export to CloudWatch
+	// Logs.
+	EnabledCloudwatchLogsExports []*string `type:"list"`
+
 	// Specifies the connection endpoint for the primary instance of the DB cluster.
 	Endpoint *string `type:"string"`
 
@@ -14576,6 +14649,12 @@ func (s *DBCluster) SetEarliestBacktrackTime(v time.Time) *DBCluster {
 // SetEarliestRestorableTime sets the EarliestRestorableTime field's value.
 func (s *DBCluster) SetEarliestRestorableTime(v time.Time) *DBCluster {
 	s.EarliestRestorableTime = &v
+	return s
+}
+
+// SetEnabledCloudwatchLogsExports sets the EnabledCloudwatchLogsExports field's value.
+func (s *DBCluster) SetEnabledCloudwatchLogsExports(v []*string) *DBCluster {
+	s.EnabledCloudwatchLogsExports = v
 	return s
 }
 
@@ -15502,6 +15581,10 @@ type DBInstance struct {
 	// KMS key alias for the KMS encryption key.
 	PerformanceInsightsKMSKeyId *string `type:"string"`
 
+	// The amount of time, in days, to retain Performance Insights data. Valid values
+	// are 7 or 731 (2 years).
+	PerformanceInsightsRetentionPeriod *int64 `type:"integer"`
+
 	// Specifies the daily time range during which automated backups are created
 	// if automated backups are enabled, as determined by the BackupRetentionPeriod.
 	PreferredBackupWindow *string `type:"string"`
@@ -15509,6 +15592,10 @@ type DBInstance struct {
 	// Specifies the weekly time range during which system maintenance can occur,
 	// in Universal Coordinated Time (UTC).
 	PreferredMaintenanceWindow *string `type:"string"`
+
+	// The number of CPU cores and the number of threads per core for the DB instance
+	// class of the DB instance.
+	ProcessorFeatures []*ProcessorFeature `locationNameList:"ProcessorFeature" type:"list"`
 
 	// A value that specifies the order in which an Aurora Replica is promoted to
 	// the primary instance after a failure of the existing primary instance. For
@@ -15811,6 +15898,12 @@ func (s *DBInstance) SetPerformanceInsightsKMSKeyId(v string) *DBInstance {
 	return s
 }
 
+// SetPerformanceInsightsRetentionPeriod sets the PerformanceInsightsRetentionPeriod field's value.
+func (s *DBInstance) SetPerformanceInsightsRetentionPeriod(v int64) *DBInstance {
+	s.PerformanceInsightsRetentionPeriod = &v
+	return s
+}
+
 // SetPreferredBackupWindow sets the PreferredBackupWindow field's value.
 func (s *DBInstance) SetPreferredBackupWindow(v string) *DBInstance {
 	s.PreferredBackupWindow = &v
@@ -15820,6 +15913,12 @@ func (s *DBInstance) SetPreferredBackupWindow(v string) *DBInstance {
 // SetPreferredMaintenanceWindow sets the PreferredMaintenanceWindow field's value.
 func (s *DBInstance) SetPreferredMaintenanceWindow(v string) *DBInstance {
 	s.PreferredMaintenanceWindow = &v
+	return s
+}
+
+// SetProcessorFeatures sets the ProcessorFeatures field's value.
+func (s *DBInstance) SetProcessorFeatures(v []*ProcessorFeature) *DBInstance {
+	s.ProcessorFeatures = v
 	return s
 }
 
@@ -16261,6 +16360,10 @@ type DBSnapshot struct {
 	// of the snapshot.
 	Port *int64 `type:"integer"`
 
+	// The number of CPU cores and the number of threads per core for the DB instance
+	// class of the DB instance when the DB snapshot was created.
+	ProcessorFeatures []*ProcessorFeature `locationNameList:"ProcessorFeature" type:"list"`
+
 	// Provides the time when the snapshot was taken, in Universal Coordinated Time
 	// (UTC).
 	SnapshotCreateTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
@@ -16402,6 +16505,12 @@ func (s *DBSnapshot) SetPercentProgress(v int64) *DBSnapshot {
 // SetPort sets the Port field's value.
 func (s *DBSnapshot) SetPort(v int64) *DBSnapshot {
 	s.Port = &v
+	return s
+}
+
+// SetProcessorFeatures sets the ProcessorFeatures field's value.
+func (s *DBSnapshot) SetProcessorFeatures(v []*ProcessorFeature) *DBSnapshot {
+	s.ProcessorFeatures = v
 	return s
 }
 
@@ -20846,7 +20955,9 @@ type DescribeReservedDBInstancesOfferingsInput struct {
 	OfferingType *string `type:"string"`
 
 	// Product description filter value. Specify this parameter to show only the
-	// available offerings matching the specified product description.
+	// available offerings that contain the specified product description.
+	//
+	// The results show offerings that partially match the filter value.
 	ProductDescription *string `type:"string"`
 
 	// The offering identifier filter value. Specify this parameter to show only
@@ -22082,6 +22193,10 @@ type ModifyDBClusterInput struct {
 	//    * Must be a value from 1 to 35
 	BackupRetentionPeriod *int64 `type:"integer"`
 
+	// The configuration setting for the log types to be enabled for export to CloudWatch
+	// Logs for a specific DB cluster.
+	CloudwatchLogsExportConfiguration *CloudwatchLogsExportConfiguration `type:"structure"`
+
 	// The DB cluster identifier for the cluster being modified. This parameter
 	// is not case-sensitive.
 	//
@@ -22105,7 +22220,7 @@ type ModifyDBClusterInput struct {
 	// this parameter results in an outage. The change is applied during the next
 	// maintenance window unless the ApplyImmediately parameter is set to true.
 	//
-	// For a list of valid engine versions, see CreateDBInstance, or call DescribeDBEngineVersions.
+	// For a list of valid engine versions, see CreateDBCluster, or call DescribeDBEngineVersions.
 	EngineVersion *string `type:"string"`
 
 	// The new password for the master database user. This password can contain
@@ -22224,6 +22339,12 @@ func (s *ModifyDBClusterInput) SetBacktrackWindow(v int64) *ModifyDBClusterInput
 // SetBackupRetentionPeriod sets the BackupRetentionPeriod field's value.
 func (s *ModifyDBClusterInput) SetBackupRetentionPeriod(v int64) *ModifyDBClusterInput {
 	s.BackupRetentionPeriod = &v
+	return s
+}
+
+// SetCloudwatchLogsExportConfiguration sets the CloudwatchLogsExportConfiguration field's value.
+func (s *ModifyDBClusterInput) SetCloudwatchLogsExportConfiguration(v *CloudwatchLogsExportConfiguration) *ModifyDBClusterInput {
+	s.CloudwatchLogsExportConfiguration = v
 	return s
 }
 
@@ -22566,7 +22687,7 @@ type ModifyDBInstanceInput struct {
 	CACertificateIdentifier *string `type:"string"`
 
 	// The configuration setting for the log types to be enabled for export to CloudWatch
-	// Logs for a specific DB instance or DB cluster.
+	// Logs for a specific DB instance.
 	CloudwatchLogsExportConfiguration *CloudwatchLogsExportConfiguration `type:"structure"`
 
 	// True to copy all tags from the DB instance to snapshots of the DB instance,
@@ -22708,6 +22829,9 @@ type ModifyDBInstanceInput struct {
 	EnableIAMDatabaseAuthentication *bool `type:"boolean"`
 
 	// True to enable Performance Insights for the DB instance, and otherwise false.
+	//
+	// For more information, see Using Amazon Performance Insights (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_PerfInsights.html)
+	// in the Amazon Relational Database Service User Guide.
 	EnablePerformanceInsights *bool `type:"boolean"`
 
 	// The version number of the database engine to upgrade to. Changing this parameter
@@ -22719,7 +22843,8 @@ type ModifyDBInstanceInput struct {
 	// new engine version must be specified. The new DB parameter group can be the
 	// default for that DB parameter group family.
 	//
-	// For a list of valid engine versions, see CreateDBInstance.
+	// For information about valid engine versions, see CreateDBInstance, or call
+	// DescribeDBEngineVersions.
 	EngineVersion *string `type:"string"`
 
 	// The new Provisioned IOPS (I/O operations per second) value for the RDS instance.
@@ -22855,6 +22980,10 @@ type ModifyDBInstanceInput struct {
 	// KMS key alias for the KMS encryption key.
 	PerformanceInsightsKMSKeyId *string `type:"string"`
 
+	// The amount of time, in days, to retain Performance Insights data. Valid values
+	// are 7 or 731 (2 years).
+	PerformanceInsightsRetentionPeriod *int64 `type:"integer"`
+
 	// The daily time range during which automated backups are created if automated
 	// backups are enabled, as determined by the BackupRetentionPeriod parameter.
 	// Changing this parameter doesn't result in an outage and the change is asynchronously
@@ -22893,6 +23022,10 @@ type ModifyDBInstanceInput struct {
 	//
 	// Constraints: Must be at least 30 minutes
 	PreferredMaintenanceWindow *string `type:"string"`
+
+	// The number of CPU cores and the number of threads per core for the DB instance
+	// class of the DB instance.
+	ProcessorFeatures []*ProcessorFeature `locationNameList:"ProcessorFeature" type:"list"`
 
 	// A value that specifies the order in which an Aurora Replica is promoted to
 	// the primary instance after a failure of the existing primary instance. For
@@ -22948,6 +23081,10 @@ type ModifyDBInstanceInput struct {
 	// The password for the given ARN from the key store in order to access the
 	// device.
 	TdeCredentialPassword *string `type:"string"`
+
+	// A value that specifies that the DB instance class of the DB instance uses
+	// its default processor features.
+	UseDefaultProcessorFeatures *bool `type:"boolean"`
 
 	// A list of EC2 VPC security groups to authorize on this DB instance. This
 	// change is asynchronously applied as soon as possible.
@@ -23154,6 +23291,12 @@ func (s *ModifyDBInstanceInput) SetPerformanceInsightsKMSKeyId(v string) *Modify
 	return s
 }
 
+// SetPerformanceInsightsRetentionPeriod sets the PerformanceInsightsRetentionPeriod field's value.
+func (s *ModifyDBInstanceInput) SetPerformanceInsightsRetentionPeriod(v int64) *ModifyDBInstanceInput {
+	s.PerformanceInsightsRetentionPeriod = &v
+	return s
+}
+
 // SetPreferredBackupWindow sets the PreferredBackupWindow field's value.
 func (s *ModifyDBInstanceInput) SetPreferredBackupWindow(v string) *ModifyDBInstanceInput {
 	s.PreferredBackupWindow = &v
@@ -23163,6 +23306,12 @@ func (s *ModifyDBInstanceInput) SetPreferredBackupWindow(v string) *ModifyDBInst
 // SetPreferredMaintenanceWindow sets the PreferredMaintenanceWindow field's value.
 func (s *ModifyDBInstanceInput) SetPreferredMaintenanceWindow(v string) *ModifyDBInstanceInput {
 	s.PreferredMaintenanceWindow = &v
+	return s
+}
+
+// SetProcessorFeatures sets the ProcessorFeatures field's value.
+func (s *ModifyDBInstanceInput) SetProcessorFeatures(v []*ProcessorFeature) *ModifyDBInstanceInput {
+	s.ProcessorFeatures = v
 	return s
 }
 
@@ -23193,6 +23342,12 @@ func (s *ModifyDBInstanceInput) SetTdeCredentialArn(v string) *ModifyDBInstanceI
 // SetTdeCredentialPassword sets the TdeCredentialPassword field's value.
 func (s *ModifyDBInstanceInput) SetTdeCredentialPassword(v string) *ModifyDBInstanceInput {
 	s.TdeCredentialPassword = &v
+	return s
+}
+
+// SetUseDefaultProcessorFeatures sets the UseDefaultProcessorFeatures field's value.
+func (s *ModifyDBInstanceInput) SetUseDefaultProcessorFeatures(v bool) *ModifyDBInstanceInput {
+	s.UseDefaultProcessorFeatures = &v
 	return s
 }
 
@@ -24504,6 +24659,10 @@ type OrderableDBInstanceOption struct {
 	// A list of Availability Zones for a DB instance.
 	AvailabilityZones []*AvailabilityZone `locationNameList:"AvailabilityZone" type:"list"`
 
+	// A list of the available processor features for the DB instance class of a
+	// DB instance.
+	AvailableProcessorFeatures []*AvailableProcessorFeature `locationNameList:"AvailableProcessorFeature" type:"list"`
+
 	// The DB instance class for a DB instance.
 	DBInstanceClass *string `type:"string"`
 
@@ -24576,6 +24735,12 @@ func (s OrderableDBInstanceOption) GoString() string {
 // SetAvailabilityZones sets the AvailabilityZones field's value.
 func (s *OrderableDBInstanceOption) SetAvailabilityZones(v []*AvailabilityZone) *OrderableDBInstanceOption {
 	s.AvailabilityZones = v
+	return s
+}
+
+// SetAvailableProcessorFeatures sets the AvailableProcessorFeatures field's value.
+func (s *OrderableDBInstanceOption) SetAvailableProcessorFeatures(v []*AvailableProcessorFeature) *OrderableDBInstanceOption {
+	s.AvailableProcessorFeatures = v
 	return s
 }
 
@@ -24970,6 +25135,10 @@ type PendingModifiedValues struct {
 	// Specifies the pending port for the DB instance.
 	Port *int64 `type:"integer"`
 
+	// The number of CPU cores and the number of threads per core for the DB instance
+	// class of the DB instance.
+	ProcessorFeatures []*ProcessorFeature `locationNameList:"ProcessorFeature" type:"list"`
+
 	// Specifies the storage type to be associated with the DB instance.
 	StorageType *string `type:"string"`
 }
@@ -25062,9 +25231,82 @@ func (s *PendingModifiedValues) SetPort(v int64) *PendingModifiedValues {
 	return s
 }
 
+// SetProcessorFeatures sets the ProcessorFeatures field's value.
+func (s *PendingModifiedValues) SetProcessorFeatures(v []*ProcessorFeature) *PendingModifiedValues {
+	s.ProcessorFeatures = v
+	return s
+}
+
 // SetStorageType sets the StorageType field's value.
 func (s *PendingModifiedValues) SetStorageType(v string) *PendingModifiedValues {
 	s.StorageType = &v
+	return s
+}
+
+// Contains the processor features of a DB instance class.
+//
+// To specify the number of CPU cores, use the coreCount feature name for the
+// Name parameter. To specify the number of threads per core, use the threadsPerCore
+// feature name for the Name parameter.
+//
+// You can set the processor features of the DB instance class for a DB instance
+// when you call one of the following actions:
+//
+//    * CreateDBInstance
+//
+//    * ModifyDBInstance
+//
+//    * RestoreDBInstanceFromDBSnapshot
+//
+//    * RestoreDBInstanceFromS3
+//
+//    * RestoreDBInstanceToPointInTime
+//
+// You can view the valid processor values for a particular instance class by
+// calling the DescribeOrderableDBInstanceOptions action and specifying the
+// instance class for the DBInstanceClass parameter.
+//
+// In addition, you can use the following actions for DB instance class processor
+// information:
+//
+//    * DescribeDBInstances
+//
+//    * DescribeDBSnapshots
+//
+//    * DescribeValidDBInstanceModifications
+//
+// For more information, see Configuring the Processor of the DB Instance Class
+// (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.DBInstanceClass.html#USER_ConfigureProcessor)
+// in the Amazon RDS User Guide.
+type ProcessorFeature struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the processor feature. Valid names are coreCount and threadsPerCore.
+	Name *string `type:"string"`
+
+	// The value of a processor feature name.
+	Value *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ProcessorFeature) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ProcessorFeature) GoString() string {
+	return s.String()
+}
+
+// SetName sets the Name field's value.
+func (s *ProcessorFeature) SetName(v string) *ProcessorFeature {
+	s.Name = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *ProcessorFeature) SetValue(v string) *ProcessorFeature {
+	s.Value = &v
 	return s
 }
 
@@ -26218,6 +26460,10 @@ type RestoreDBClusterFromS3Input struct {
 	// The database name for the restored DB cluster.
 	DatabaseName *string `type:"string"`
 
+	// The list of logs that the restored DB cluster is to export to CloudWatch
+	// Logs.
+	EnableCloudwatchLogsExports []*string `type:"list"`
+
 	// True to enable mapping of AWS Identity and Access Management (IAM) accounts
 	// to database accounts, and otherwise false.
 	//
@@ -26462,6 +26708,12 @@ func (s *RestoreDBClusterFromS3Input) SetDatabaseName(v string) *RestoreDBCluste
 	return s
 }
 
+// SetEnableCloudwatchLogsExports sets the EnableCloudwatchLogsExports field's value.
+func (s *RestoreDBClusterFromS3Input) SetEnableCloudwatchLogsExports(v []*string) *RestoreDBClusterFromS3Input {
+	s.EnableCloudwatchLogsExports = v
+	return s
+}
+
 // SetEnableIAMDatabaseAuthentication sets the EnableIAMDatabaseAuthentication field's value.
 func (s *RestoreDBClusterFromS3Input) SetEnableIAMDatabaseAuthentication(v bool) *RestoreDBClusterFromS3Input {
 	s.EnableIAMDatabaseAuthentication = &v
@@ -26639,6 +26891,10 @@ type RestoreDBClusterFromSnapshotInput struct {
 	// The database name for the restored DB cluster.
 	DatabaseName *string `type:"string"`
 
+	// The list of logs that the restored DB cluster is to export to CloudWatch
+	// Logs.
+	EnableCloudwatchLogsExports []*string `type:"list"`
+
 	// True to enable mapping of AWS Identity and Access Management (IAM) accounts
 	// to database accounts, and otherwise false.
 	//
@@ -26765,6 +27021,12 @@ func (s *RestoreDBClusterFromSnapshotInput) SetDatabaseName(v string) *RestoreDB
 	return s
 }
 
+// SetEnableCloudwatchLogsExports sets the EnableCloudwatchLogsExports field's value.
+func (s *RestoreDBClusterFromSnapshotInput) SetEnableCloudwatchLogsExports(v []*string) *RestoreDBClusterFromSnapshotInput {
+	s.EnableCloudwatchLogsExports = v
+	return s
+}
+
 // SetEnableIAMDatabaseAuthentication sets the EnableIAMDatabaseAuthentication field's value.
 func (s *RestoreDBClusterFromSnapshotInput) SetEnableIAMDatabaseAuthentication(v bool) *RestoreDBClusterFromSnapshotInput {
 	s.EnableIAMDatabaseAuthentication = &v
@@ -26878,6 +27140,10 @@ type RestoreDBClusterToPointInTimeInput struct {
 	// Example: mySubnetgroup
 	DBSubnetGroupName *string `type:"string"`
 
+	// The list of logs that the restored DB cluster is to export to CloudWatch
+	// Logs.
+	EnableCloudwatchLogsExports []*string `type:"list"`
+
 	// True to enable mapping of AWS Identity and Access Management (IAM) accounts
 	// to database accounts, and otherwise false.
 	//
@@ -26915,9 +27181,9 @@ type RestoreDBClusterToPointInTimeInput struct {
 
 	// The port number on which the new DB cluster accepts connections.
 	//
-	// Constraints: Value must be 1150-65535
+	// Constraints: A value from 1150-65535.
 	//
-	// Default: The same port as the original DB cluster.
+	// Default: The default port for the engine.
 	Port *int64 `type:"integer"`
 
 	// The date and time to restore the DB cluster to.
@@ -27018,6 +27284,12 @@ func (s *RestoreDBClusterToPointInTimeInput) SetDBClusterIdentifier(v string) *R
 // SetDBSubnetGroupName sets the DBSubnetGroupName field's value.
 func (s *RestoreDBClusterToPointInTimeInput) SetDBSubnetGroupName(v string) *RestoreDBClusterToPointInTimeInput {
 	s.DBSubnetGroupName = &v
+	return s
+}
+
+// SetEnableCloudwatchLogsExports sets the EnableCloudwatchLogsExports field's value.
+func (s *RestoreDBClusterToPointInTimeInput) SetEnableCloudwatchLogsExports(v []*string) *RestoreDBClusterToPointInTimeInput {
+	s.EnableCloudwatchLogsExports = v
 	return s
 }
 
@@ -27272,6 +27544,10 @@ type RestoreDBInstanceFromDBSnapshotInput struct {
 	// Constraints: Value must be 1150-65535
 	Port *int64 `type:"integer"`
 
+	// The number of CPU cores and the number of threads per core for the DB instance
+	// class of the DB instance.
+	ProcessorFeatures []*ProcessorFeature `locationNameList:"ProcessorFeature" type:"list"`
+
 	// Specifies the accessibility options for the DB instance. A value of true
 	// specifies an Internet-facing instance with a publicly resolvable DNS name,
 	// which resolves to a public IP address. A value of false specifies an internal
@@ -27308,6 +27584,10 @@ type RestoreDBInstanceFromDBSnapshotInput struct {
 	// The password for the given ARN from the key store in order to access the
 	// device.
 	TdeCredentialPassword *string `type:"string"`
+
+	// A value that specifies that the DB instance class of the DB instance uses
+	// its default processor features.
+	UseDefaultProcessorFeatures *bool `type:"boolean"`
 }
 
 // String returns the string representation
@@ -27444,6 +27724,12 @@ func (s *RestoreDBInstanceFromDBSnapshotInput) SetPort(v int64) *RestoreDBInstan
 	return s
 }
 
+// SetProcessorFeatures sets the ProcessorFeatures field's value.
+func (s *RestoreDBInstanceFromDBSnapshotInput) SetProcessorFeatures(v []*ProcessorFeature) *RestoreDBInstanceFromDBSnapshotInput {
+	s.ProcessorFeatures = v
+	return s
+}
+
 // SetPubliclyAccessible sets the PubliclyAccessible field's value.
 func (s *RestoreDBInstanceFromDBSnapshotInput) SetPubliclyAccessible(v bool) *RestoreDBInstanceFromDBSnapshotInput {
 	s.PubliclyAccessible = &v
@@ -27471,6 +27757,12 @@ func (s *RestoreDBInstanceFromDBSnapshotInput) SetTdeCredentialArn(v string) *Re
 // SetTdeCredentialPassword sets the TdeCredentialPassword field's value.
 func (s *RestoreDBInstanceFromDBSnapshotInput) SetTdeCredentialPassword(v string) *RestoreDBInstanceFromDBSnapshotInput {
 	s.TdeCredentialPassword = &v
+	return s
+}
+
+// SetUseDefaultProcessorFeatures sets the UseDefaultProcessorFeatures field's value.
+func (s *RestoreDBInstanceFromDBSnapshotInput) SetUseDefaultProcessorFeatures(v bool) *RestoreDBInstanceFromDBSnapshotInput {
+	s.UseDefaultProcessorFeatures = &v
 	return s
 }
 
@@ -27596,6 +27888,9 @@ type RestoreDBInstanceFromS3Input struct {
 	EnableIAMDatabaseAuthentication *bool `type:"boolean"`
 
 	// True to enable Performance Insights for the DB instance, and otherwise false.
+	//
+	// For more information, see Using Amazon Performance Insights (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_PerfInsights.html)
+	// in the Amazon Relational Database Service User Guide.
 	EnablePerformanceInsights *bool `type:"boolean"`
 
 	// The name of the database engine to be used for this instance.
@@ -27606,7 +27901,8 @@ type RestoreDBInstanceFromS3Input struct {
 	Engine *string `type:"string" required:"true"`
 
 	// The version number of the database engine to use. Choose the latest minor
-	// version of your database engine as specified in CreateDBInstance.
+	// version of your database engine. For information about engine versions, see
+	// CreateDBInstance, or call DescribeDBEngineVersions.
 	EngineVersion *string `type:"string"`
 
 	// The amount of Provisioned IOPS (input/output operations per second) to allocate
@@ -27682,6 +27978,10 @@ type RestoreDBInstanceFromS3Input struct {
 	// the KMS key alias for the KMS encryption key.
 	PerformanceInsightsKMSKeyId *string `type:"string"`
 
+	// The amount of time, in days, to retain Performance Insights data. Valid values
+	// are 7 or 731 (2 years).
+	PerformanceInsightsRetentionPeriod *int64 `type:"integer"`
+
 	// The port number on which the database accepts connections.
 	//
 	// Type: Integer
@@ -27721,6 +28021,10 @@ type RestoreDBInstanceFromS3Input struct {
 	//
 	//    * Must be at least 30 minutes.
 	PreferredMaintenanceWindow *string `type:"string"`
+
+	// The number of CPU cores and the number of threads per core for the DB instance
+	// class of the DB instance.
+	ProcessorFeatures []*ProcessorFeature `locationNameList:"ProcessorFeature" type:"list"`
 
 	// Specifies whether the DB instance is publicly accessible or not. For more
 	// information, see CreateDBInstance.
@@ -27769,6 +28073,10 @@ type RestoreDBInstanceFromS3Input struct {
 	// A list of tags to associate with this DB instance. For more information,
 	// see Tagging Amazon RDS Resources (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Tagging.html).
 	Tags []*Tag `locationNameList:"Tag" type:"list"`
+
+	// A value that specifies that the DB instance class of the DB instance uses
+	// its default processor features.
+	UseDefaultProcessorFeatures *bool `type:"boolean"`
 
 	// A list of VPC security groups to associate with this DB instance.
 	VpcSecurityGroupIds []*string `locationNameList:"VpcSecurityGroupId" type:"list"`
@@ -27971,6 +28279,12 @@ func (s *RestoreDBInstanceFromS3Input) SetPerformanceInsightsKMSKeyId(v string) 
 	return s
 }
 
+// SetPerformanceInsightsRetentionPeriod sets the PerformanceInsightsRetentionPeriod field's value.
+func (s *RestoreDBInstanceFromS3Input) SetPerformanceInsightsRetentionPeriod(v int64) *RestoreDBInstanceFromS3Input {
+	s.PerformanceInsightsRetentionPeriod = &v
+	return s
+}
+
 // SetPort sets the Port field's value.
 func (s *RestoreDBInstanceFromS3Input) SetPort(v int64) *RestoreDBInstanceFromS3Input {
 	s.Port = &v
@@ -27986,6 +28300,12 @@ func (s *RestoreDBInstanceFromS3Input) SetPreferredBackupWindow(v string) *Resto
 // SetPreferredMaintenanceWindow sets the PreferredMaintenanceWindow field's value.
 func (s *RestoreDBInstanceFromS3Input) SetPreferredMaintenanceWindow(v string) *RestoreDBInstanceFromS3Input {
 	s.PreferredMaintenanceWindow = &v
+	return s
+}
+
+// SetProcessorFeatures sets the ProcessorFeatures field's value.
+func (s *RestoreDBInstanceFromS3Input) SetProcessorFeatures(v []*ProcessorFeature) *RestoreDBInstanceFromS3Input {
+	s.ProcessorFeatures = v
 	return s
 }
 
@@ -28040,6 +28360,12 @@ func (s *RestoreDBInstanceFromS3Input) SetStorageType(v string) *RestoreDBInstan
 // SetTags sets the Tags field's value.
 func (s *RestoreDBInstanceFromS3Input) SetTags(v []*Tag) *RestoreDBInstanceFromS3Input {
 	s.Tags = v
+	return s
+}
+
+// SetUseDefaultProcessorFeatures sets the UseDefaultProcessorFeatures field's value.
+func (s *RestoreDBInstanceFromS3Input) SetUseDefaultProcessorFeatures(v bool) *RestoreDBInstanceFromS3Input {
+	s.UseDefaultProcessorFeatures = &v
 	return s
 }
 
@@ -28207,6 +28533,10 @@ type RestoreDBInstanceToPointInTimeInput struct {
 	// Default: The same port as the original DB instance.
 	Port *int64 `type:"integer"`
 
+	// The number of CPU cores and the number of threads per core for the DB instance
+	// class of the DB instance.
+	ProcessorFeatures []*ProcessorFeature `locationNameList:"ProcessorFeature" type:"list"`
+
 	// Specifies the accessibility options for the DB instance. A value of true
 	// specifies an Internet-facing instance with a publicly resolvable DNS name,
 	// which resolves to a public IP address. A value of false specifies an internal
@@ -28278,6 +28608,10 @@ type RestoreDBInstanceToPointInTimeInput struct {
 	// The password for the given ARN from the key store in order to access the
 	// device.
 	TdeCredentialPassword *string `type:"string"`
+
+	// A value that specifies that the DB instance class of the DB instance uses
+	// its default processor features.
+	UseDefaultProcessorFeatures *bool `type:"boolean"`
 
 	// Specifies whether (true) or not (false) the DB instance is restored from
 	// the latest backup time.
@@ -28410,6 +28744,12 @@ func (s *RestoreDBInstanceToPointInTimeInput) SetPort(v int64) *RestoreDBInstanc
 	return s
 }
 
+// SetProcessorFeatures sets the ProcessorFeatures field's value.
+func (s *RestoreDBInstanceToPointInTimeInput) SetProcessorFeatures(v []*ProcessorFeature) *RestoreDBInstanceToPointInTimeInput {
+	s.ProcessorFeatures = v
+	return s
+}
+
 // SetPubliclyAccessible sets the PubliclyAccessible field's value.
 func (s *RestoreDBInstanceToPointInTimeInput) SetPubliclyAccessible(v bool) *RestoreDBInstanceToPointInTimeInput {
 	s.PubliclyAccessible = &v
@@ -28455,6 +28795,12 @@ func (s *RestoreDBInstanceToPointInTimeInput) SetTdeCredentialArn(v string) *Res
 // SetTdeCredentialPassword sets the TdeCredentialPassword field's value.
 func (s *RestoreDBInstanceToPointInTimeInput) SetTdeCredentialPassword(v string) *RestoreDBInstanceToPointInTimeInput {
 	s.TdeCredentialPassword = &v
+	return s
+}
+
+// SetUseDefaultProcessorFeatures sets the UseDefaultProcessorFeatures field's value.
+func (s *RestoreDBInstanceToPointInTimeInput) SetUseDefaultProcessorFeatures(v bool) *RestoreDBInstanceToPointInTimeInput {
+	s.UseDefaultProcessorFeatures = &v
 	return s
 }
 
@@ -28959,6 +29305,9 @@ type ValidDBInstanceModificationsMessage struct {
 
 	// Valid storage options for your DB instance.
 	Storage []*ValidStorageOptions `locationNameList:"ValidStorageOptions" type:"list"`
+
+	// Valid processor features for your DB instance.
+	ValidProcessorFeatures []*AvailableProcessorFeature `locationNameList:"AvailableProcessorFeature" type:"list"`
 }
 
 // String returns the string representation
@@ -28974,6 +29323,12 @@ func (s ValidDBInstanceModificationsMessage) GoString() string {
 // SetStorage sets the Storage field's value.
 func (s *ValidDBInstanceModificationsMessage) SetStorage(v []*ValidStorageOptions) *ValidDBInstanceModificationsMessage {
 	s.Storage = v
+	return s
+}
+
+// SetValidProcessorFeatures sets the ValidProcessorFeatures field's value.
+func (s *ValidDBInstanceModificationsMessage) SetValidProcessorFeatures(v []*AvailableProcessorFeature) *ValidDBInstanceModificationsMessage {
+	s.ValidProcessorFeatures = v
 	return s
 }
 

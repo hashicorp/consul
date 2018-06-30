@@ -68,17 +68,17 @@ func (ImportReadGroupSetsRequest_PartitionStrategy) EnumDescriptor() ([]byte, []
 type SearchReadGroupSetsRequest struct {
 	// Restricts this query to read group sets within the given datasets. At least
 	// one ID must be provided.
-	DatasetIds []string `protobuf:"bytes,1,rep,name=dataset_ids,json=datasetIds" json:"dataset_ids,omitempty"`
+	DatasetIds []string `protobuf:"bytes,1,rep,name=dataset_ids,json=datasetIds,proto3" json:"dataset_ids,omitempty"`
 	// Only return read group sets for which a substring of the name matches this
 	// string.
-	Name string `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	// The continuation token, which is used to page through large result sets.
 	// To get the next page of results, set this parameter to the value of
 	// `nextPageToken` from the previous response.
-	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// The maximum number of results to return in a single page. If unspecified,
 	// defaults to 256. The maximum value is 1024.
-	PageSize             int32    `protobuf:"varint,4,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize             int32    `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -139,11 +139,11 @@ func (m *SearchReadGroupSetsRequest) GetPageSize() int32 {
 // The read group set search response.
 type SearchReadGroupSetsResponse struct {
 	// The list of matching read group sets.
-	ReadGroupSets []*ReadGroupSet `protobuf:"bytes,1,rep,name=read_group_sets,json=readGroupSets" json:"read_group_sets,omitempty"`
+	ReadGroupSets []*ReadGroupSet `protobuf:"bytes,1,rep,name=read_group_sets,json=readGroupSets,proto3" json:"read_group_sets,omitempty"`
 	// The continuation token, which is used to page through large result sets.
 	// Provide this value in a subsequent request to return the next page of
 	// results. This field will be empty if there aren't any additional results.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -191,12 +191,12 @@ func (m *SearchReadGroupSetsResponse) GetNextPageToken() string {
 type ImportReadGroupSetsRequest struct {
 	// Required. The ID of the dataset these read group sets will belong to. The
 	// caller must have WRITE permissions to this dataset.
-	DatasetId string `protobuf:"bytes,1,opt,name=dataset_id,json=datasetId" json:"dataset_id,omitempty"`
+	DatasetId string `protobuf:"bytes,1,opt,name=dataset_id,json=datasetId,proto3" json:"dataset_id,omitempty"`
 	// The reference set to which the imported read group sets are aligned to, if
 	// any. The reference names of this reference set must be a superset of those
 	// found in the imported file headers. If no reference set id is provided, a
 	// best effort is made to associate with a matching reference set.
-	ReferenceSetId string `protobuf:"bytes,4,opt,name=reference_set_id,json=referenceSetId" json:"reference_set_id,omitempty"`
+	ReferenceSetId string `protobuf:"bytes,4,opt,name=reference_set_id,json=referenceSetId,proto3" json:"reference_set_id,omitempty"`
 	// A list of URIs pointing at [BAM
 	// files](https://samtools.github.io/hts-specs/SAMv1.pdf)
 	// in Google Cloud Storage.
@@ -207,10 +207,10 @@ type ImportReadGroupSetsRequest struct {
 	// consistent: files added may be not be immediately visible to
 	// everyone. Thus, if using a wildcard it is preferable not to start
 	// the import immediately after the files are created.
-	SourceUris []string `protobuf:"bytes,2,rep,name=source_uris,json=sourceUris" json:"source_uris,omitempty"`
+	SourceUris []string `protobuf:"bytes,2,rep,name=source_uris,json=sourceUris,proto3" json:"source_uris,omitempty"`
 	// The partition strategy describes how read groups are partitioned into read
 	// group sets.
-	PartitionStrategy    ImportReadGroupSetsRequest_PartitionStrategy `protobuf:"varint,5,opt,name=partition_strategy,json=partitionStrategy,enum=google.genomics.v1.ImportReadGroupSetsRequest_PartitionStrategy" json:"partition_strategy,omitempty"`
+	PartitionStrategy    ImportReadGroupSetsRequest_PartitionStrategy `protobuf:"varint,5,opt,name=partition_strategy,json=partitionStrategy,proto3,enum=google.genomics.v1.ImportReadGroupSetsRequest_PartitionStrategy" json:"partition_strategy,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                                     `json:"-"`
 	XXX_unrecognized     []byte                                       `json:"-"`
 	XXX_sizecache        int32                                        `json:"-"`
@@ -271,7 +271,7 @@ func (m *ImportReadGroupSetsRequest) GetPartitionStrategy() ImportReadGroupSetsR
 // The read group set import response.
 type ImportReadGroupSetsResponse struct {
 	// IDs of the read group sets that were created.
-	ReadGroupSetIds      []string `protobuf:"bytes,1,rep,name=read_group_set_ids,json=readGroupSetIds" json:"read_group_set_ids,omitempty"`
+	ReadGroupSetIds      []string `protobuf:"bytes,1,rep,name=read_group_set_ids,json=readGroupSetIds,proto3" json:"read_group_set_ids,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -312,18 +312,18 @@ func (m *ImportReadGroupSetsResponse) GetReadGroupSetIds() []string {
 type ExportReadGroupSetRequest struct {
 	// Required. The Google Cloud project ID that owns this
 	// export. The caller must have WRITE access to this project.
-	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// Required. A Google Cloud Storage URI for the exported BAM file.
 	// The currently authenticated user must have write access to the new file.
 	// An error will be returned if the URI already contains data.
-	ExportUri string `protobuf:"bytes,2,opt,name=export_uri,json=exportUri" json:"export_uri,omitempty"`
+	ExportUri string `protobuf:"bytes,2,opt,name=export_uri,json=exportUri,proto3" json:"export_uri,omitempty"`
 	// Required. The ID of the read group set to export. The caller must have
 	// READ access to this read group set.
-	ReadGroupSetId string `protobuf:"bytes,3,opt,name=read_group_set_id,json=readGroupSetId" json:"read_group_set_id,omitempty"`
+	ReadGroupSetId string `protobuf:"bytes,3,opt,name=read_group_set_id,json=readGroupSetId,proto3" json:"read_group_set_id,omitempty"`
 	// The reference names to export. If this is not specified, all reference
 	// sequences, including unmapped reads, are exported.
 	// Use `*` to export only unmapped reads.
-	ReferenceNames       []string `protobuf:"bytes,4,rep,name=reference_names,json=referenceNames" json:"reference_names,omitempty"`
+	ReferenceNames       []string `protobuf:"bytes,4,rep,name=reference_names,json=referenceNames,proto3" json:"reference_names,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -384,10 +384,10 @@ func (m *ExportReadGroupSetRequest) GetReferenceNames() []string {
 type UpdateReadGroupSetRequest struct {
 	// The ID of the read group set to be updated. The caller must have WRITE
 	// permissions to the dataset associated with this read group set.
-	ReadGroupSetId string `protobuf:"bytes,1,opt,name=read_group_set_id,json=readGroupSetId" json:"read_group_set_id,omitempty"`
+	ReadGroupSetId string `protobuf:"bytes,1,opt,name=read_group_set_id,json=readGroupSetId,proto3" json:"read_group_set_id,omitempty"`
 	// The new read group set data. See `updateMask` for details on mutability of
 	// fields.
-	ReadGroupSet *ReadGroupSet `protobuf:"bytes,2,opt,name=read_group_set,json=readGroupSet" json:"read_group_set,omitempty"`
+	ReadGroupSet *ReadGroupSet `protobuf:"bytes,2,opt,name=read_group_set,json=readGroupSet,proto3" json:"read_group_set,omitempty"`
 	// An optional mask specifying which fields to update. Supported fields:
 	//
 	// * [name][google.genomics.v1.ReadGroupSet.name].
@@ -395,7 +395,7 @@ type UpdateReadGroupSetRequest struct {
 	//
 	// Leaving `updateMask` unset is equivalent to specifying all mutable
 	// fields.
-	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -449,7 +449,7 @@ func (m *UpdateReadGroupSetRequest) GetUpdateMask() *field_mask.FieldMask {
 type DeleteReadGroupSetRequest struct {
 	// The ID of the read group set to be deleted. The caller must have WRITE
 	// permissions to the dataset associated with this read group set.
-	ReadGroupSetId       string   `protobuf:"bytes,1,opt,name=read_group_set_id,json=readGroupSetId" json:"read_group_set_id,omitempty"`
+	ReadGroupSetId       string   `protobuf:"bytes,1,opt,name=read_group_set_id,json=readGroupSetId,proto3" json:"read_group_set_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -488,7 +488,7 @@ func (m *DeleteReadGroupSetRequest) GetReadGroupSetId() string {
 
 type GetReadGroupSetRequest struct {
 	// The ID of the read group set.
-	ReadGroupSetId       string   `protobuf:"bytes,1,opt,name=read_group_set_id,json=readGroupSetId" json:"read_group_set_id,omitempty"`
+	ReadGroupSetId       string   `protobuf:"bytes,1,opt,name=read_group_set_id,json=readGroupSetId,proto3" json:"read_group_set_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -527,17 +527,17 @@ func (m *GetReadGroupSetRequest) GetReadGroupSetId() string {
 
 type ListCoverageBucketsRequest struct {
 	// Required. The ID of the read group set over which coverage is requested.
-	ReadGroupSetId string `protobuf:"bytes,1,opt,name=read_group_set_id,json=readGroupSetId" json:"read_group_set_id,omitempty"`
+	ReadGroupSetId string `protobuf:"bytes,1,opt,name=read_group_set_id,json=readGroupSetId,proto3" json:"read_group_set_id,omitempty"`
 	// The name of the reference to query, within the reference set associated
 	// with this query. Optional.
-	ReferenceName string `protobuf:"bytes,3,opt,name=reference_name,json=referenceName" json:"reference_name,omitempty"`
+	ReferenceName string `protobuf:"bytes,3,opt,name=reference_name,json=referenceName,proto3" json:"reference_name,omitempty"`
 	// The start position of the range on the reference, 0-based inclusive. If
 	// specified, `referenceName` must also be specified. Defaults to 0.
-	Start int64 `protobuf:"varint,4,opt,name=start" json:"start,omitempty"`
+	Start int64 `protobuf:"varint,4,opt,name=start,proto3" json:"start,omitempty"`
 	// The end position of the range on the reference, 0-based exclusive. If
 	// specified, `referenceName` must also be specified. If unset or 0, defaults
 	// to the length of the reference.
-	End int64 `protobuf:"varint,5,opt,name=end" json:"end,omitempty"`
+	End int64 `protobuf:"varint,5,opt,name=end,proto3" json:"end,omitempty"`
 	// The desired width of each reported coverage bucket in base pairs. This
 	// will be rounded down to the nearest precomputed bucket width; the value
 	// of which is returned as `bucketWidth` in the response. Defaults
@@ -545,14 +545,14 @@ type ListCoverageBucketsRequest struct {
 	// of the target range, if specified. The smallest precomputed
 	// `bucketWidth` is currently 2048 base pairs; this is subject to
 	// change.
-	TargetBucketWidth int64 `protobuf:"varint,6,opt,name=target_bucket_width,json=targetBucketWidth" json:"target_bucket_width,omitempty"`
+	TargetBucketWidth int64 `protobuf:"varint,6,opt,name=target_bucket_width,json=targetBucketWidth,proto3" json:"target_bucket_width,omitempty"`
 	// The continuation token, which is used to page through large result sets.
 	// To get the next page of results, set this parameter to the value of
 	// `nextPageToken` from the previous response.
-	PageToken string `protobuf:"bytes,7,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,7,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// The maximum number of results to return in a single page. If unspecified,
 	// defaults to 1024. The maximum value is 2048.
-	PageSize             int32    `protobuf:"varint,8,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize             int32    `protobuf:"varint,8,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -635,10 +635,10 @@ func (m *ListCoverageBucketsRequest) GetPageSize() int32 {
 // to a specific range of the reference sequence.
 type CoverageBucket struct {
 	// The genomic coordinate range spanned by this bucket.
-	Range *Range `protobuf:"bytes,1,opt,name=range" json:"range,omitempty"`
+	Range *Range `protobuf:"bytes,1,opt,name=range,proto3" json:"range,omitempty"`
 	// The average number of reads which are aligned to each individual
 	// reference base in this bucket.
-	MeanCoverage         float32  `protobuf:"fixed32,2,opt,name=mean_coverage,json=meanCoverage" json:"mean_coverage,omitempty"`
+	MeanCoverage         float32  `protobuf:"fixed32,2,opt,name=mean_coverage,json=meanCoverage,proto3" json:"mean_coverage,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -687,16 +687,16 @@ type ListCoverageBucketsResponse struct {
 	// end of a reference sequence may be shorter. This value is omitted if the
 	// bucket width is infinity (the default behaviour, with no range or
 	// `targetBucketWidth`).
-	BucketWidth int64 `protobuf:"varint,1,opt,name=bucket_width,json=bucketWidth" json:"bucket_width,omitempty"`
+	BucketWidth int64 `protobuf:"varint,1,opt,name=bucket_width,json=bucketWidth,proto3" json:"bucket_width,omitempty"`
 	// The coverage buckets. The list of buckets is sparse; a bucket with 0
 	// overlapping reads is not returned. A bucket never crosses more than one
 	// reference sequence. Each bucket has width `bucketWidth`, unless
 	// its end is the end of the reference sequence.
-	CoverageBuckets []*CoverageBucket `protobuf:"bytes,2,rep,name=coverage_buckets,json=coverageBuckets" json:"coverage_buckets,omitempty"`
+	CoverageBuckets []*CoverageBucket `protobuf:"bytes,2,rep,name=coverage_buckets,json=coverageBuckets,proto3" json:"coverage_buckets,omitempty"`
 	// The continuation token, which is used to page through large result sets.
 	// Provide this value in a subsequent request to return the next page of
 	// results. This field will be empty if there aren't any additional results.
-	NextPageToken        string   `protobuf:"bytes,3,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,3,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -753,28 +753,28 @@ type SearchReadsRequest struct {
 	// specified read group sets must be aligned against a common set of reference
 	// sequences; this defines the genomic coordinates for the query. Must specify
 	// one of `readGroupSetIds` or `readGroupIds`.
-	ReadGroupSetIds []string `protobuf:"bytes,1,rep,name=read_group_set_ids,json=readGroupSetIds" json:"read_group_set_ids,omitempty"`
+	ReadGroupSetIds []string `protobuf:"bytes,1,rep,name=read_group_set_ids,json=readGroupSetIds,proto3" json:"read_group_set_ids,omitempty"`
 	// The IDs of the read groups within which to search for reads. All specified
 	// read groups must belong to the same read group sets. Must specify one of
 	// `readGroupSetIds` or `readGroupIds`.
-	ReadGroupIds []string `protobuf:"bytes,5,rep,name=read_group_ids,json=readGroupIds" json:"read_group_ids,omitempty"`
+	ReadGroupIds []string `protobuf:"bytes,5,rep,name=read_group_ids,json=readGroupIds,proto3" json:"read_group_ids,omitempty"`
 	// The reference sequence name, for example `chr1`, `1`, or `chrX`. If set to
 	// `*`, only unmapped reads are returned. If unspecified, all reads (mapped
 	// and unmapped) are returned.
-	ReferenceName string `protobuf:"bytes,7,opt,name=reference_name,json=referenceName" json:"reference_name,omitempty"`
+	ReferenceName string `protobuf:"bytes,7,opt,name=reference_name,json=referenceName,proto3" json:"reference_name,omitempty"`
 	// The start position of the range on the reference, 0-based inclusive. If
 	// specified, `referenceName` must also be specified.
-	Start int64 `protobuf:"varint,8,opt,name=start" json:"start,omitempty"`
+	Start int64 `protobuf:"varint,8,opt,name=start,proto3" json:"start,omitempty"`
 	// The end position of the range on the reference, 0-based exclusive. If
 	// specified, `referenceName` must also be specified.
-	End int64 `protobuf:"varint,9,opt,name=end" json:"end,omitempty"`
+	End int64 `protobuf:"varint,9,opt,name=end,proto3" json:"end,omitempty"`
 	// The continuation token, which is used to page through large result sets.
 	// To get the next page of results, set this parameter to the value of
 	// `nextPageToken` from the previous response.
-	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// The maximum number of results to return in a single page. If unspecified,
 	// defaults to 256. The maximum value is 2048.
-	PageSize             int32    `protobuf:"varint,4,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize             int32    `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -859,11 +859,11 @@ type SearchReadsResponse struct {
 	// if any, ascending in position within the same reference. Unmapped reads,
 	// which have no position, are returned contiguously and are sorted in
 	// ascending lexicographic order by fragment name.
-	Alignments []*Read `protobuf:"bytes,1,rep,name=alignments" json:"alignments,omitempty"`
+	Alignments []*Read `protobuf:"bytes,1,rep,name=alignments,proto3" json:"alignments,omitempty"`
 	// The continuation token, which is used to page through large result sets.
 	// Provide this value in a subsequent request to return the next page of
 	// results. This field will be empty if there aren't any additional results.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -912,19 +912,19 @@ type StreamReadsRequest struct {
 	// The Google Cloud project ID which will be billed
 	// for this access. The caller must have WRITE access to this project.
 	// Required.
-	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// The ID of the read group set from which to stream reads.
-	ReadGroupSetId string `protobuf:"bytes,2,opt,name=read_group_set_id,json=readGroupSetId" json:"read_group_set_id,omitempty"`
+	ReadGroupSetId string `protobuf:"bytes,2,opt,name=read_group_set_id,json=readGroupSetId,proto3" json:"read_group_set_id,omitempty"`
 	// The reference sequence name, for example `chr1`,
 	// `1`, or `chrX`. If set to *, only unmapped reads are
 	// returned.
-	ReferenceName string `protobuf:"bytes,3,opt,name=reference_name,json=referenceName" json:"reference_name,omitempty"`
+	ReferenceName string `protobuf:"bytes,3,opt,name=reference_name,json=referenceName,proto3" json:"reference_name,omitempty"`
 	// The start position of the range on the reference, 0-based inclusive. If
 	// specified, `referenceName` must also be specified.
-	Start int64 `protobuf:"varint,4,opt,name=start" json:"start,omitempty"`
+	Start int64 `protobuf:"varint,4,opt,name=start,proto3" json:"start,omitempty"`
 	// The end position of the range on the reference, 0-based exclusive. If
 	// specified, `referenceName` must also be specified.
-	End int64 `protobuf:"varint,5,opt,name=end" json:"end,omitempty"`
+	End int64 `protobuf:"varint,5,opt,name=end,proto3" json:"end,omitempty"`
 	// Restricts results to a shard containing approximately `1/totalShards`
 	// of the normal response payload for this query. Results from a sharded
 	// request are disjoint from those returned by all queries which differ only
@@ -932,7 +932,7 @@ type StreamReadsRequest struct {
 	// likely for large values of `totalShards`.
 	//
 	// Valid values are `[0, totalShards)`.
-	Shard int32 `protobuf:"varint,6,opt,name=shard" json:"shard,omitempty"`
+	Shard int32 `protobuf:"varint,6,opt,name=shard,proto3" json:"shard,omitempty"`
 	// Specifying `totalShards` causes a disjoint subset of the normal response
 	// payload to be returned for each query with a unique `shard` parameter
 	// specified. A best effort is made to yield equally sized shards. Sharding
@@ -945,7 +945,7 @@ type StreamReadsRequest struct {
 	// share shard boundaries. For example, streaming `shard` 2 of 5
 	// `totalShards` yields the same results as streaming `shard`s 4 and 5 of 10
 	// `totalShards`. This property can be leveraged for adaptive retries.
-	TotalShards          int32    `protobuf:"varint,7,opt,name=total_shards,json=totalShards" json:"total_shards,omitempty"`
+	TotalShards          int32    `protobuf:"varint,7,opt,name=total_shards,json=totalShards,proto3" json:"total_shards,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1025,7 +1025,7 @@ func (m *StreamReadsRequest) GetTotalShards() int32 {
 }
 
 type StreamReadsResponse struct {
-	Alignments           []*Read  `protobuf:"bytes,1,rep,name=alignments" json:"alignments,omitempty"`
+	Alignments           []*Read  `protobuf:"bytes,1,rep,name=alignments,proto3" json:"alignments,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1138,8 +1138,7 @@ func (x *streamingReadServiceStreamReadsClient) Recv() (*StreamReadsResponse, er
 	return m, nil
 }
 
-// Server API for StreamingReadService service
-
+// StreamingReadServiceServer is the server API for StreamingReadService service.
 type StreamingReadServiceServer interface {
 	// Returns a stream of all the reads matching the search request, ordered
 	// by reference name, position, and ID.
@@ -1369,8 +1368,7 @@ func (c *readServiceV1Client) SearchReads(ctx context.Context, in *SearchReadsRe
 	return out, nil
 }
 
-// Server API for ReadServiceV1 service
-
+// ReadServiceV1Server is the server API for ReadServiceV1 service.
 type ReadServiceV1Server interface {
 	// Creates read group sets by asynchronously importing the provided
 	// information.

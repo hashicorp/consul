@@ -36,22 +36,22 @@ type Model struct {
 	// Required. The name specified for the model when it was created.
 	//
 	// The model name must be unique within the project it is created in.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Optional. The description specified for the model when it was created.
-	Description string `protobuf:"bytes,2,opt,name=description" json:"description,omitempty"`
+	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
 	// Output only. The default version of the model. This version will be used to
 	// handle prediction requests that do not specify a version.
 	//
 	// You can change the default version by calling
 	// [projects.methods.versions.setDefault](/ml/reference/rest/v1/projects.models.versions/setDefault).
-	DefaultVersion *Version `protobuf:"bytes,3,opt,name=default_version,json=defaultVersion" json:"default_version,omitempty"`
+	DefaultVersion *Version `protobuf:"bytes,3,opt,name=default_version,json=defaultVersion,proto3" json:"default_version,omitempty"`
 	// Optional. The list of regions where the model is going to be deployed.
 	// Currently only one region per model is supported.
 	// Defaults to 'us-central1' if nothing is set.
-	Regions []string `protobuf:"bytes,4,rep,name=regions" json:"regions,omitempty"`
+	Regions []string `protobuf:"bytes,4,rep,name=regions,proto3" json:"regions,omitempty"`
 	// Optional. If true, enables StackDriver Logging for online prediction.
 	// Default is false.
-	OnlinePredictionLogging bool     `protobuf:"varint,5,opt,name=online_prediction_logging,json=onlinePredictionLogging" json:"online_prediction_logging,omitempty"`
+	OnlinePredictionLogging bool     `protobuf:"varint,5,opt,name=online_prediction_logging,json=onlinePredictionLogging,proto3" json:"online_prediction_logging,omitempty"`
 	XXX_NoUnkeyedLiteral    struct{} `json:"-"`
 	XXX_unrecognized        []byte   `json:"-"`
 	XXX_sizecache           int32    `json:"-"`
@@ -126,15 +126,15 @@ type Version struct {
 	// Required.The name specified for the version when it was created.
 	//
 	// The version name must be unique within the model it is created in.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Optional. The description specified for the version when it was created.
-	Description string `protobuf:"bytes,2,opt,name=description" json:"description,omitempty"`
+	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
 	// Output only. If true, this version will be used to handle prediction
 	// requests that do not specify a version.
 	//
 	// You can change the default version by calling
 	// [projects.methods.versions.setDefault](/ml/reference/rest/v1/projects.models.versions/setDefault).
-	IsDefault bool `protobuf:"varint,3,opt,name=is_default,json=isDefault" json:"is_default,omitempty"`
+	IsDefault bool `protobuf:"varint,3,opt,name=is_default,json=isDefault,proto3" json:"is_default,omitempty"`
 	// Required. The Google Cloud Storage location of the trained model used to
 	// create the version. See the
 	// [overview of model deployment](/ml/docs/concepts/deployment-overview) for
@@ -145,21 +145,21 @@ type Version struct {
 	// the model service uses the specified location as the source of the model.
 	// Once deployed, the model version is hosted by the prediction service, so
 	// this location is useful only as a historical record.
-	DeploymentUri string `protobuf:"bytes,4,opt,name=deployment_uri,json=deploymentUri" json:"deployment_uri,omitempty"`
+	DeploymentUri string `protobuf:"bytes,4,opt,name=deployment_uri,json=deploymentUri,proto3" json:"deployment_uri,omitempty"`
 	// Output only. The time the version was created.
-	CreateTime *timestamp.Timestamp `protobuf:"bytes,5,opt,name=create_time,json=createTime" json:"create_time,omitempty"`
+	CreateTime *timestamp.Timestamp `protobuf:"bytes,5,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	// Output only. The time the version was last used for prediction.
-	LastUseTime *timestamp.Timestamp `protobuf:"bytes,6,opt,name=last_use_time,json=lastUseTime" json:"last_use_time,omitempty"`
+	LastUseTime *timestamp.Timestamp `protobuf:"bytes,6,opt,name=last_use_time,json=lastUseTime,proto3" json:"last_use_time,omitempty"`
 	// Optional. The Google Cloud ML runtime version to use for this deployment.
 	// If not set, Google Cloud ML will choose a version.
-	RuntimeVersion string `protobuf:"bytes,8,opt,name=runtime_version,json=runtimeVersion" json:"runtime_version,omitempty"`
+	RuntimeVersion string `protobuf:"bytes,8,opt,name=runtime_version,json=runtimeVersion,proto3" json:"runtime_version,omitempty"`
 	// Optional. Manually select the number of nodes to use for serving the
 	// model. If unset (i.e., by default), the number of nodes used to serve
 	// the model automatically scales with traffic. However, care should be
 	// taken to ramp up traffic according to the model's ability to scale. If
 	// your model needs to handle bursts of traffic beyond it's ability to
 	// scale, it is recommended you set this field appropriately.
-	ManualScaling        *ManualScaling `protobuf:"bytes,9,opt,name=manual_scaling,json=manualScaling" json:"manual_scaling,omitempty"`
+	ManualScaling        *ManualScaling `protobuf:"bytes,9,opt,name=manual_scaling,json=manualScaling,proto3" json:"manual_scaling,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
 	XXX_unrecognized     []byte         `json:"-"`
 	XXX_sizecache        int32          `json:"-"`
@@ -251,7 +251,7 @@ type ManualScaling struct {
 	// starting from the time the model is deployed, so the cost of operating
 	// this model will be proportional to nodes * number of hours since
 	// deployment.
-	Nodes                int32    `protobuf:"varint,1,opt,name=nodes" json:"nodes,omitempty"`
+	Nodes                int32    `protobuf:"varint,1,opt,name=nodes,proto3" json:"nodes,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -293,9 +293,9 @@ type CreateModelRequest struct {
 	// Required. The project name.
 	//
 	// Authorization: requires `Editor` role on the specified project.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Required. The model to create.
-	Model                *Model   `protobuf:"bytes,2,opt,name=model" json:"model,omitempty"`
+	Model                *Model   `protobuf:"bytes,2,opt,name=model,proto3" json:"model,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -344,18 +344,18 @@ type ListModelsRequest struct {
 	// Required. The name of the project whose models are to be listed.
 	//
 	// Authorization: requires `Viewer` role on the specified project.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Optional. A page token to request the next page of results.
 	//
 	// You get the token from the `next_page_token` field of the response from
 	// the previous call.
-	PageToken string `protobuf:"bytes,4,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// Optional. The number of models to retrieve per "page" of results. If there
 	// are more remaining results than this number, the response message will
 	// contain a valid value in the `next_page_token` field.
 	//
 	// The default value is 20, and the maximum page size is 100.
-	PageSize             int32    `protobuf:"varint,5,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize             int32    `protobuf:"varint,5,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -409,10 +409,10 @@ func (m *ListModelsRequest) GetPageSize() int32 {
 // Response message for the ListModels method.
 type ListModelsResponse struct {
 	// The list of models.
-	Models []*Model `protobuf:"bytes,1,rep,name=models" json:"models,omitempty"`
+	Models []*Model `protobuf:"bytes,1,rep,name=models,proto3" json:"models,omitempty"`
 	// Optional. Pass this token as the `page_token` field of the request for a
 	// subsequent call.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -461,7 +461,7 @@ type GetModelRequest struct {
 	// Required. The name of the model.
 	//
 	// Authorization: requires `Viewer` role on the parent project.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -503,7 +503,7 @@ type DeleteModelRequest struct {
 	// Required. The name of the model.
 	//
 	// Authorization: requires `Editor` role on the parent project.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -545,9 +545,9 @@ type CreateVersionRequest struct {
 	// Required. The name of the model.
 	//
 	// Authorization: requires `Editor` role on the parent project.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Required. The version details.
-	Version              *Version `protobuf:"bytes,2,opt,name=version" json:"version,omitempty"`
+	Version              *Version `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -596,18 +596,18 @@ type ListVersionsRequest struct {
 	// Required. The name of the model for which to list the version.
 	//
 	// Authorization: requires `Viewer` role on the parent project.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Optional. A page token to request the next page of results.
 	//
 	// You get the token from the `next_page_token` field of the response from
 	// the previous call.
-	PageToken string `protobuf:"bytes,4,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// Optional. The number of versions to retrieve per "page" of results. If
 	// there are more remaining results than this number, the response message
 	// will contain a valid value in the `next_page_token` field.
 	//
 	// The default value is 20, and the maximum page size is 100.
-	PageSize             int32    `protobuf:"varint,5,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize             int32    `protobuf:"varint,5,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -661,10 +661,10 @@ func (m *ListVersionsRequest) GetPageSize() int32 {
 // Response message for the ListVersions method.
 type ListVersionsResponse struct {
 	// The list of versions.
-	Versions []*Version `protobuf:"bytes,1,rep,name=versions" json:"versions,omitempty"`
+	Versions []*Version `protobuf:"bytes,1,rep,name=versions,proto3" json:"versions,omitempty"`
 	// Optional. Pass this token as the `page_token` field of the request for a
 	// subsequent call.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -713,7 +713,7 @@ type GetVersionRequest struct {
 	// Required. The name of the version.
 	//
 	// Authorization: requires `Viewer` role on the parent project.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -757,7 +757,7 @@ type DeleteVersionRequest struct {
 	// [projects.models.versions.list](/ml/reference/rest/v1/projects.models.versions/list).
 	//
 	// Authorization: requires `Editor` role on the parent project.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -801,7 +801,7 @@ type SetDefaultVersionRequest struct {
 	// [projects.models.versions.list](/ml/reference/rest/v1/projects.models.versions/list).
 	//
 	// Authorization: requires `Editor` role on the parent project.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1018,8 +1018,7 @@ func (c *modelServiceClient) SetDefaultVersion(ctx context.Context, in *SetDefau
 	return out, nil
 }
 
-// Server API for ModelService service
-
+// ModelServiceServer is the server API for ModelService service.
 type ModelServiceServer interface {
 	// Creates a model which will later contain one or more versions.
 	//

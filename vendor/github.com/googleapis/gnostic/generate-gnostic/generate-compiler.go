@@ -804,44 +804,44 @@ func (domain *Domain) generateToRawInfoMethodForType(code *printer.Code, typeNam
 				propertyName := propertyModel.Name
 				if !propertyModel.Repeated {
 					code.Print("if m.%s != \"\" {", propertyModel.FieldName())
-					code.Print("info = append(info, yaml.MapItem{\"%s\", m.%s})", propertyName, propertyModel.FieldName())
+					code.Print("info = append(info, yaml.MapItem{Key:\"%s\", Value:m.%s})", propertyName, propertyModel.FieldName())
 					code.Print("}")
 				} else {
 					code.Print("if len(m.%s) != 0 {", propertyModel.FieldName())
-					code.Print("info = append(info, yaml.MapItem{\"%s\", m.%s})", propertyName, propertyModel.FieldName())
+					code.Print("info = append(info, yaml.MapItem{Key:\"%s\", Value:m.%s})", propertyName, propertyModel.FieldName())
 					code.Print("}")
 				}
 			case "bool":
 				propertyName := propertyModel.Name
 				if !propertyModel.Repeated {
 					code.Print("if m.%s != false {", propertyModel.FieldName())
-					code.Print("info = append(info, yaml.MapItem{\"%s\", m.%s})", propertyName, propertyModel.FieldName())
+					code.Print("info = append(info, yaml.MapItem{Key:\"%s\", Value:m.%s})", propertyName, propertyModel.FieldName())
 					code.Print("}")
 				} else {
 					code.Print("if len(m.%s) != 0 {", propertyModel.FieldName())
-					code.Print("info = append(info, yaml.MapItem{\"%s\", m.%s})", propertyName, propertyModel.FieldName())
+					code.Print("info = append(info, yaml.MapItem{Key:\"%s\", Value:m.%s})", propertyName, propertyModel.FieldName())
 					code.Print("}")
 				}
 			case "int":
 				propertyName := propertyModel.Name
 				if !propertyModel.Repeated {
 					code.Print("if m.%s != 0 {", propertyModel.FieldName())
-					code.Print("info = append(info, yaml.MapItem{\"%s\", m.%s})", propertyName, propertyModel.FieldName())
+					code.Print("info = append(info, yaml.MapItem{Key:\"%s\", Value:m.%s})", propertyName, propertyModel.FieldName())
 					code.Print("}")
 				} else {
 					code.Print("if len(m.%s) != 0 {", propertyModel.FieldName())
-					code.Print("info = append(info, yaml.MapItem{\"%s\", m.%s})", propertyName, propertyModel.FieldName())
+					code.Print("info = append(info, yaml.MapItem{Key:\"%s\", Value:m.%s})", propertyName, propertyModel.FieldName())
 					code.Print("}")
 				}
 			case "float":
 				propertyName := propertyModel.Name
 				if !propertyModel.Repeated {
 					code.Print("if m.%s != 0.0 {", propertyModel.FieldName())
-					code.Print("info = append(info, yaml.MapItem{\"%s\", m.%s})", propertyName, propertyModel.FieldName())
+					code.Print("info = append(info, yaml.MapItem{Key:\"%s\", Value:m.%s})", propertyName, propertyModel.FieldName())
 					code.Print("}")
 				} else {
 					code.Print("if len(m.%s) != 0 {", propertyModel.FieldName())
-					code.Print("info = append(info, yaml.MapItem{\"%s\", m.%s})", propertyName, propertyModel.FieldName())
+					code.Print("info = append(info, yaml.MapItem{Key:\"%s\", Value:m.%s})", propertyName, propertyModel.FieldName())
 					code.Print("}")
 				}
 			default:
@@ -852,9 +852,9 @@ func (domain *Domain) generateToRawInfoMethodForType(code *printer.Code, typeNam
 					code.Print("if m.%s != nil {", propertyModel.FieldName())
 					if propertyModel.Type == "TypeItem" {
 						code.Print("if len(m.Type.Value) == 1 {")
-						code.Print("info = append(info, yaml.MapItem{\"type\", m.Type.Value[0]})")
+						code.Print("info = append(info, yaml.MapItem{Key:\"type\", Value:m.Type.Value[0]})")
 						code.Print("} else {")
-						code.Print("info = append(info, yaml.MapItem{\"type\", m.Type.Value})")
+						code.Print("info = append(info, yaml.MapItem{Key:\"type\", Value:m.Type.Value})")
 						code.Print("}")
 					} else if propertyModel.Type == "ItemsItem" {
 						code.Print("items := make([]interface{}, 0)")
@@ -865,9 +865,9 @@ func (domain *Domain) generateToRawInfoMethodForType(code *printer.Code, typeNam
 						}
 						code.Print("	items = append(items, item.ToRawInfo())")
 						code.Print("}")
-						code.Print("info = append(info, yaml.MapItem{\"items\", items[0]})")
+						code.Print("info = append(info, yaml.MapItem{Key:\"items\", Value:items[0]})")
 					} else {
-						code.Print("info = append(info, yaml.MapItem{\"%s\", m.%s.ToRawInfo()})",
+						code.Print("info = append(info, yaml.MapItem{Key:\"%s\", Value:m.%s.ToRawInfo()})",
 							propertyName, propertyModel.FieldName())
 					}
 					code.Print("}")
@@ -877,7 +877,7 @@ func (domain *Domain) generateToRawInfoMethodForType(code *printer.Code, typeNam
 				} else if propertyModel.MapType != "" {
 					code.Print("if m.%s != nil {", propertyModel.FieldName())
 					code.Print("for _, item := range m.%s {", propertyModel.FieldName())
-					code.Print("info = append(info, yaml.MapItem{item.Name, item.Value.ToRawInfo()})")
+					code.Print("info = append(info, yaml.MapItem{Key:item.Name, Value:item.Value.ToRawInfo()})")
 					code.Print("}")
 					code.Print("}")
 					code.Print("// %+v", propertyModel)
@@ -887,7 +887,7 @@ func (domain *Domain) generateToRawInfoMethodForType(code *printer.Code, typeNam
 					code.Print("for _, item := range m.%s {", propertyModel.FieldName())
 					code.Print("items = append(items, item.ToRawInfo())")
 					code.Print("}")
-					code.Print("info = append(info, yaml.MapItem{\"%s\", items})", propertyName)
+					code.Print("info = append(info, yaml.MapItem{Key:\"%s\", Value:items})", propertyName)
 					code.Print("}")
 					code.Print("// %+v", propertyModel)
 				}

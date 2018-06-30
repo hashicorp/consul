@@ -31,23 +31,18 @@ type ReadRowsRequest struct {
 	// The unique name of the table from which to read.
 	// Values are of the form
 	// `projects/<project>/instances/<instance>/tables/<table>`.
-	TableName string `protobuf:"bytes,1,opt,name=table_name,json=tableName" json:"table_name,omitempty"`
-	// This is a private alpha release of Cloud Bigtable replication. This feature
-	// is not currently available to most Cloud Bigtable customers. This feature
-	// might be changed in backward-incompatible ways and is not recommended for
-	// production use. It is not subject to any SLA or deprecation policy.
-	//
+	TableName string `protobuf:"bytes,1,opt,name=table_name,json=tableName,proto3" json:"table_name,omitempty"`
 	// This value specifies routing for replication. If not specified, the
 	// "default" application profile will be used.
-	AppProfileId string `protobuf:"bytes,5,opt,name=app_profile_id,json=appProfileId" json:"app_profile_id,omitempty"`
+	AppProfileId string `protobuf:"bytes,5,opt,name=app_profile_id,json=appProfileId,proto3" json:"app_profile_id,omitempty"`
 	// The row keys and/or ranges to read. If not specified, reads from all rows.
-	Rows *RowSet `protobuf:"bytes,2,opt,name=rows" json:"rows,omitempty"`
+	Rows *RowSet `protobuf:"bytes,2,opt,name=rows,proto3" json:"rows,omitempty"`
 	// The filter to apply to the contents of the specified row(s). If unset,
 	// reads the entirety of each row.
-	Filter *RowFilter `protobuf:"bytes,3,opt,name=filter" json:"filter,omitempty"`
+	Filter *RowFilter `protobuf:"bytes,3,opt,name=filter,proto3" json:"filter,omitempty"`
 	// The read will terminate after committing to N rows' worth of results. The
 	// default (zero) is to return all results.
-	RowsLimit            int64    `protobuf:"varint,4,opt,name=rows_limit,json=rowsLimit" json:"rows_limit,omitempty"`
+	RowsLimit            int64    `protobuf:"varint,4,opt,name=rows_limit,json=rowsLimit,proto3" json:"rows_limit,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -57,7 +52,7 @@ func (m *ReadRowsRequest) Reset()         { *m = ReadRowsRequest{} }
 func (m *ReadRowsRequest) String() string { return proto.CompactTextString(m) }
 func (*ReadRowsRequest) ProtoMessage()    {}
 func (*ReadRowsRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_5207bf1d2c849e53, []int{0}
+	return fileDescriptor_bigtable_8d6dd9ae311e02dd, []int{0}
 }
 func (m *ReadRowsRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReadRowsRequest.Unmarshal(m, b)
@@ -114,7 +109,7 @@ func (m *ReadRowsRequest) GetRowsLimit() int64 {
 
 // Response message for Bigtable.ReadRows.
 type ReadRowsResponse struct {
-	Chunks []*ReadRowsResponse_CellChunk `protobuf:"bytes,1,rep,name=chunks" json:"chunks,omitempty"`
+	Chunks []*ReadRowsResponse_CellChunk `protobuf:"bytes,1,rep,name=chunks,proto3" json:"chunks,omitempty"`
 	// Optionally the server might return the row key of the last row it
 	// has scanned.  The client can use this to construct a more
 	// efficient retry request if needed: any row keys or portions of
@@ -132,7 +127,7 @@ func (m *ReadRowsResponse) Reset()         { *m = ReadRowsResponse{} }
 func (m *ReadRowsResponse) String() string { return proto.CompactTextString(m) }
 func (*ReadRowsResponse) ProtoMessage()    {}
 func (*ReadRowsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_5207bf1d2c849e53, []int{1}
+	return fileDescriptor_bigtable_8d6dd9ae311e02dd, []int{1}
 }
 func (m *ReadRowsResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReadRowsResponse.Unmarshal(m, b)
@@ -180,13 +175,13 @@ type ReadRowsResponse_CellChunk struct {
 	// column family name in a response so clients must check
 	// explicitly for the presence of this message, not just for
 	// `family_name.value` being non-empty.
-	FamilyName *wrappers.StringValue `protobuf:"bytes,2,opt,name=family_name,json=familyName" json:"family_name,omitempty"`
+	FamilyName *wrappers.StringValue `protobuf:"bytes,2,opt,name=family_name,json=familyName,proto3" json:"family_name,omitempty"`
 	// The column qualifier for this chunk of data.  If this message
 	// is not present, this CellChunk is a continuation of the same column
 	// as the previous CellChunk.  Column qualifiers may be empty so
 	// clients must check for the presence of this message, not just
 	// for `qualifier.value` being non-empty.
-	Qualifier *wrappers.BytesValue `protobuf:"bytes,3,opt,name=qualifier" json:"qualifier,omitempty"`
+	Qualifier *wrappers.BytesValue `protobuf:"bytes,3,opt,name=qualifier,proto3" json:"qualifier,omitempty"`
 	// The cell's stored timestamp, which also uniquely identifies it
 	// within its column.  Values are always expressed in
 	// microseconds, but individual tables may set a coarser
@@ -195,11 +190,11 @@ type ReadRowsResponse_CellChunk struct {
 	// only allow values of `timestamp_micros` which are multiples of
 	// 1000.  Timestamps are only set in the first CellChunk per cell
 	// (for cells split into multiple chunks).
-	TimestampMicros int64 `protobuf:"varint,4,opt,name=timestamp_micros,json=timestampMicros" json:"timestamp_micros,omitempty"`
+	TimestampMicros int64 `protobuf:"varint,4,opt,name=timestamp_micros,json=timestampMicros,proto3" json:"timestamp_micros,omitempty"`
 	// Labels applied to the cell by a
 	// [RowFilter][google.bigtable.v2.RowFilter].  Labels are only set
 	// on the first CellChunk per cell.
-	Labels []string `protobuf:"bytes,5,rep,name=labels" json:"labels,omitempty"`
+	Labels []string `protobuf:"bytes,5,rep,name=labels,proto3" json:"labels,omitempty"`
 	// The value stored in the cell.  Cell values can be split across
 	// multiple CellChunks.  In that case only the value field will be
 	// set in CellChunks after the first: the timestamp and labels
@@ -210,7 +205,7 @@ type ReadRowsResponse_CellChunk struct {
 	// not the final chunk of that cell, value_size will be set to the
 	// total length of the cell value.  The client can use this size
 	// to pre-allocate memory to hold the full cell value.
-	ValueSize int32 `protobuf:"varint,7,opt,name=value_size,json=valueSize" json:"value_size,omitempty"`
+	ValueSize int32 `protobuf:"varint,7,opt,name=value_size,json=valueSize,proto3" json:"value_size,omitempty"`
 	// Types that are valid to be assigned to RowStatus:
 	//	*ReadRowsResponse_CellChunk_ResetRow
 	//	*ReadRowsResponse_CellChunk_CommitRow
@@ -224,7 +219,7 @@ func (m *ReadRowsResponse_CellChunk) Reset()         { *m = ReadRowsResponse_Cel
 func (m *ReadRowsResponse_CellChunk) String() string { return proto.CompactTextString(m) }
 func (*ReadRowsResponse_CellChunk) ProtoMessage()    {}
 func (*ReadRowsResponse_CellChunk) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_5207bf1d2c849e53, []int{1, 0}
+	return fileDescriptor_bigtable_8d6dd9ae311e02dd, []int{1, 0}
 }
 func (m *ReadRowsResponse_CellChunk) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReadRowsResponse_CellChunk.Unmarshal(m, b)
@@ -249,10 +244,10 @@ type isReadRowsResponse_CellChunk_RowStatus interface {
 }
 
 type ReadRowsResponse_CellChunk_ResetRow struct {
-	ResetRow bool `protobuf:"varint,8,opt,name=reset_row,json=resetRow,oneof"`
+	ResetRow bool `protobuf:"varint,8,opt,name=reset_row,json=resetRow,proto3,oneof"`
 }
 type ReadRowsResponse_CellChunk_CommitRow struct {
-	CommitRow bool `protobuf:"varint,9,opt,name=commit_row,json=commitRow,oneof"`
+	CommitRow bool `protobuf:"varint,9,opt,name=commit_row,json=commitRow,proto3,oneof"`
 }
 
 func (*ReadRowsResponse_CellChunk_ResetRow) isReadRowsResponse_CellChunk_RowStatus()  {}
@@ -405,15 +400,10 @@ type SampleRowKeysRequest struct {
 	// The unique name of the table from which to sample row keys.
 	// Values are of the form
 	// `projects/<project>/instances/<instance>/tables/<table>`.
-	TableName string `protobuf:"bytes,1,opt,name=table_name,json=tableName" json:"table_name,omitempty"`
-	// This is a private alpha release of Cloud Bigtable replication. This feature
-	// is not currently available to most Cloud Bigtable customers. This feature
-	// might be changed in backward-incompatible ways and is not recommended for
-	// production use. It is not subject to any SLA or deprecation policy.
-	//
+	TableName string `protobuf:"bytes,1,opt,name=table_name,json=tableName,proto3" json:"table_name,omitempty"`
 	// This value specifies routing for replication. If not specified, the
 	// "default" application profile will be used.
-	AppProfileId         string   `protobuf:"bytes,2,opt,name=app_profile_id,json=appProfileId" json:"app_profile_id,omitempty"`
+	AppProfileId         string   `protobuf:"bytes,2,opt,name=app_profile_id,json=appProfileId,proto3" json:"app_profile_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -423,7 +413,7 @@ func (m *SampleRowKeysRequest) Reset()         { *m = SampleRowKeysRequest{} }
 func (m *SampleRowKeysRequest) String() string { return proto.CompactTextString(m) }
 func (*SampleRowKeysRequest) ProtoMessage()    {}
 func (*SampleRowKeysRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_5207bf1d2c849e53, []int{2}
+	return fileDescriptor_bigtable_8d6dd9ae311e02dd, []int{2}
 }
 func (m *SampleRowKeysRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SampleRowKeysRequest.Unmarshal(m, b)
@@ -471,7 +461,7 @@ type SampleRowKeysResponse struct {
 	// `row_key`. Buffering the contents of all rows between two subsequent
 	// samples would require space roughly equal to the difference in their
 	// `offset_bytes` fields.
-	OffsetBytes          int64    `protobuf:"varint,2,opt,name=offset_bytes,json=offsetBytes" json:"offset_bytes,omitempty"`
+	OffsetBytes          int64    `protobuf:"varint,2,opt,name=offset_bytes,json=offsetBytes,proto3" json:"offset_bytes,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -481,7 +471,7 @@ func (m *SampleRowKeysResponse) Reset()         { *m = SampleRowKeysResponse{} }
 func (m *SampleRowKeysResponse) String() string { return proto.CompactTextString(m) }
 func (*SampleRowKeysResponse) ProtoMessage()    {}
 func (*SampleRowKeysResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_5207bf1d2c849e53, []int{3}
+	return fileDescriptor_bigtable_8d6dd9ae311e02dd, []int{3}
 }
 func (m *SampleRowKeysResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SampleRowKeysResponse.Unmarshal(m, b)
@@ -520,21 +510,16 @@ type MutateRowRequest struct {
 	// The unique name of the table to which the mutation should be applied.
 	// Values are of the form
 	// `projects/<project>/instances/<instance>/tables/<table>`.
-	TableName string `protobuf:"bytes,1,opt,name=table_name,json=tableName" json:"table_name,omitempty"`
-	// This is a private alpha release of Cloud Bigtable replication. This feature
-	// is not currently available to most Cloud Bigtable customers. This feature
-	// might be changed in backward-incompatible ways and is not recommended for
-	// production use. It is not subject to any SLA or deprecation policy.
-	//
+	TableName string `protobuf:"bytes,1,opt,name=table_name,json=tableName,proto3" json:"table_name,omitempty"`
 	// This value specifies routing for replication. If not specified, the
 	// "default" application profile will be used.
-	AppProfileId string `protobuf:"bytes,4,opt,name=app_profile_id,json=appProfileId" json:"app_profile_id,omitempty"`
+	AppProfileId string `protobuf:"bytes,4,opt,name=app_profile_id,json=appProfileId,proto3" json:"app_profile_id,omitempty"`
 	// The key of the row to which the mutation should be applied.
 	RowKey []byte `protobuf:"bytes,2,opt,name=row_key,json=rowKey,proto3" json:"row_key,omitempty"`
 	// Changes to be atomically applied to the specified row. Entries are applied
 	// in order, meaning that earlier mutations can be masked by later ones.
 	// Must contain at least one entry and at most 100000.
-	Mutations            []*Mutation `protobuf:"bytes,3,rep,name=mutations" json:"mutations,omitempty"`
+	Mutations            []*Mutation `protobuf:"bytes,3,rep,name=mutations,proto3" json:"mutations,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
 	XXX_unrecognized     []byte      `json:"-"`
 	XXX_sizecache        int32       `json:"-"`
@@ -544,7 +529,7 @@ func (m *MutateRowRequest) Reset()         { *m = MutateRowRequest{} }
 func (m *MutateRowRequest) String() string { return proto.CompactTextString(m) }
 func (*MutateRowRequest) ProtoMessage()    {}
 func (*MutateRowRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_5207bf1d2c849e53, []int{4}
+	return fileDescriptor_bigtable_8d6dd9ae311e02dd, []int{4}
 }
 func (m *MutateRowRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MutateRowRequest.Unmarshal(m, b)
@@ -603,7 +588,7 @@ func (m *MutateRowResponse) Reset()         { *m = MutateRowResponse{} }
 func (m *MutateRowResponse) String() string { return proto.CompactTextString(m) }
 func (*MutateRowResponse) ProtoMessage()    {}
 func (*MutateRowResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_5207bf1d2c849e53, []int{5}
+	return fileDescriptor_bigtable_8d6dd9ae311e02dd, []int{5}
 }
 func (m *MutateRowResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MutateRowResponse.Unmarshal(m, b)
@@ -626,21 +611,16 @@ var xxx_messageInfo_MutateRowResponse proto.InternalMessageInfo
 // Request message for BigtableService.MutateRows.
 type MutateRowsRequest struct {
 	// The unique name of the table to which the mutations should be applied.
-	TableName string `protobuf:"bytes,1,opt,name=table_name,json=tableName" json:"table_name,omitempty"`
-	// This is a private alpha release of Cloud Bigtable replication. This feature
-	// is not currently available to most Cloud Bigtable customers. This feature
-	// might be changed in backward-incompatible ways and is not recommended for
-	// production use. It is not subject to any SLA or deprecation policy.
-	//
+	TableName string `protobuf:"bytes,1,opt,name=table_name,json=tableName,proto3" json:"table_name,omitempty"`
 	// This value specifies routing for replication. If not specified, the
 	// "default" application profile will be used.
-	AppProfileId string `protobuf:"bytes,3,opt,name=app_profile_id,json=appProfileId" json:"app_profile_id,omitempty"`
+	AppProfileId string `protobuf:"bytes,3,opt,name=app_profile_id,json=appProfileId,proto3" json:"app_profile_id,omitempty"`
 	// The row keys and corresponding mutations to be applied in bulk.
 	// Each entry is applied as an atomic mutation, but the entries may be
 	// applied in arbitrary order (even between entries for the same row).
 	// At least one entry must be specified, and in total the entries can
 	// contain at most 100000 mutations.
-	Entries              []*MutateRowsRequest_Entry `protobuf:"bytes,2,rep,name=entries" json:"entries,omitempty"`
+	Entries              []*MutateRowsRequest_Entry `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                   `json:"-"`
 	XXX_unrecognized     []byte                     `json:"-"`
 	XXX_sizecache        int32                      `json:"-"`
@@ -650,7 +630,7 @@ func (m *MutateRowsRequest) Reset()         { *m = MutateRowsRequest{} }
 func (m *MutateRowsRequest) String() string { return proto.CompactTextString(m) }
 func (*MutateRowsRequest) ProtoMessage()    {}
 func (*MutateRowsRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_5207bf1d2c849e53, []int{6}
+	return fileDescriptor_bigtable_8d6dd9ae311e02dd, []int{6}
 }
 func (m *MutateRowsRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MutateRowsRequest.Unmarshal(m, b)
@@ -698,7 +678,7 @@ type MutateRowsRequest_Entry struct {
 	// applied in order, meaning that earlier mutations can be masked by
 	// later ones.
 	// You must specify at least one mutation.
-	Mutations            []*Mutation `protobuf:"bytes,2,rep,name=mutations" json:"mutations,omitempty"`
+	Mutations            []*Mutation `protobuf:"bytes,2,rep,name=mutations,proto3" json:"mutations,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
 	XXX_unrecognized     []byte      `json:"-"`
 	XXX_sizecache        int32       `json:"-"`
@@ -708,7 +688,7 @@ func (m *MutateRowsRequest_Entry) Reset()         { *m = MutateRowsRequest_Entry
 func (m *MutateRowsRequest_Entry) String() string { return proto.CompactTextString(m) }
 func (*MutateRowsRequest_Entry) ProtoMessage()    {}
 func (*MutateRowsRequest_Entry) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_5207bf1d2c849e53, []int{6, 0}
+	return fileDescriptor_bigtable_8d6dd9ae311e02dd, []int{6, 0}
 }
 func (m *MutateRowsRequest_Entry) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MutateRowsRequest_Entry.Unmarshal(m, b)
@@ -745,7 +725,7 @@ func (m *MutateRowsRequest_Entry) GetMutations() []*Mutation {
 // Response message for BigtableService.MutateRows.
 type MutateRowsResponse struct {
 	// One or more results for Entries from the batch request.
-	Entries              []*MutateRowsResponse_Entry `protobuf:"bytes,1,rep,name=entries" json:"entries,omitempty"`
+	Entries              []*MutateRowsResponse_Entry `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                    `json:"-"`
 	XXX_unrecognized     []byte                      `json:"-"`
 	XXX_sizecache        int32                       `json:"-"`
@@ -755,7 +735,7 @@ func (m *MutateRowsResponse) Reset()         { *m = MutateRowsResponse{} }
 func (m *MutateRowsResponse) String() string { return proto.CompactTextString(m) }
 func (*MutateRowsResponse) ProtoMessage()    {}
 func (*MutateRowsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_5207bf1d2c849e53, []int{7}
+	return fileDescriptor_bigtable_8d6dd9ae311e02dd, []int{7}
 }
 func (m *MutateRowsResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MutateRowsResponse.Unmarshal(m, b)
@@ -785,12 +765,12 @@ func (m *MutateRowsResponse) GetEntries() []*MutateRowsResponse_Entry {
 type MutateRowsResponse_Entry struct {
 	// The index into the original request's `entries` list of the Entry
 	// for which a result is being reported.
-	Index int64 `protobuf:"varint,1,opt,name=index" json:"index,omitempty"`
+	Index int64 `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`
 	// The result of the request Entry identified by `index`.
 	// Depending on how requests are batched during execution, it is possible
 	// for one Entry to fail due to an error with another Entry. In the event
 	// that this occurs, the same error will be reported for both entries.
-	Status               *status.Status `protobuf:"bytes,2,opt,name=status" json:"status,omitempty"`
+	Status               *status.Status `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
 	XXX_unrecognized     []byte         `json:"-"`
 	XXX_sizecache        int32          `json:"-"`
@@ -800,7 +780,7 @@ func (m *MutateRowsResponse_Entry) Reset()         { *m = MutateRowsResponse_Ent
 func (m *MutateRowsResponse_Entry) String() string { return proto.CompactTextString(m) }
 func (*MutateRowsResponse_Entry) ProtoMessage()    {}
 func (*MutateRowsResponse_Entry) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_5207bf1d2c849e53, []int{7, 0}
+	return fileDescriptor_bigtable_8d6dd9ae311e02dd, []int{7, 0}
 }
 func (m *MutateRowsResponse_Entry) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MutateRowsResponse_Entry.Unmarshal(m, b)
@@ -840,34 +820,29 @@ type CheckAndMutateRowRequest struct {
 	// applied.
 	// Values are of the form
 	// `projects/<project>/instances/<instance>/tables/<table>`.
-	TableName string `protobuf:"bytes,1,opt,name=table_name,json=tableName" json:"table_name,omitempty"`
-	// This is a private alpha release of Cloud Bigtable replication. This feature
-	// is not currently available to most Cloud Bigtable customers. This feature
-	// might be changed in backward-incompatible ways and is not recommended for
-	// production use. It is not subject to any SLA or deprecation policy.
-	//
+	TableName string `protobuf:"bytes,1,opt,name=table_name,json=tableName,proto3" json:"table_name,omitempty"`
 	// This value specifies routing for replication. If not specified, the
 	// "default" application profile will be used.
-	AppProfileId string `protobuf:"bytes,7,opt,name=app_profile_id,json=appProfileId" json:"app_profile_id,omitempty"`
+	AppProfileId string `protobuf:"bytes,7,opt,name=app_profile_id,json=appProfileId,proto3" json:"app_profile_id,omitempty"`
 	// The key of the row to which the conditional mutation should be applied.
 	RowKey []byte `protobuf:"bytes,2,opt,name=row_key,json=rowKey,proto3" json:"row_key,omitempty"`
 	// The filter to be applied to the contents of the specified row. Depending
 	// on whether or not any results are yielded, either `true_mutations` or
 	// `false_mutations` will be executed. If unset, checks that the row contains
 	// any values at all.
-	PredicateFilter *RowFilter `protobuf:"bytes,6,opt,name=predicate_filter,json=predicateFilter" json:"predicate_filter,omitempty"`
+	PredicateFilter *RowFilter `protobuf:"bytes,6,opt,name=predicate_filter,json=predicateFilter,proto3" json:"predicate_filter,omitempty"`
 	// Changes to be atomically applied to the specified row if `predicate_filter`
 	// yields at least one cell when applied to `row_key`. Entries are applied in
 	// order, meaning that earlier mutations can be masked by later ones.
 	// Must contain at least one entry if `false_mutations` is empty, and at most
 	// 100000.
-	TrueMutations []*Mutation `protobuf:"bytes,4,rep,name=true_mutations,json=trueMutations" json:"true_mutations,omitempty"`
+	TrueMutations []*Mutation `protobuf:"bytes,4,rep,name=true_mutations,json=trueMutations,proto3" json:"true_mutations,omitempty"`
 	// Changes to be atomically applied to the specified row if `predicate_filter`
 	// does not yield any cells when applied to `row_key`. Entries are applied in
 	// order, meaning that earlier mutations can be masked by later ones.
 	// Must contain at least one entry if `true_mutations` is empty, and at most
 	// 100000.
-	FalseMutations       []*Mutation `protobuf:"bytes,5,rep,name=false_mutations,json=falseMutations" json:"false_mutations,omitempty"`
+	FalseMutations       []*Mutation `protobuf:"bytes,5,rep,name=false_mutations,json=falseMutations,proto3" json:"false_mutations,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
 	XXX_unrecognized     []byte      `json:"-"`
 	XXX_sizecache        int32       `json:"-"`
@@ -877,7 +852,7 @@ func (m *CheckAndMutateRowRequest) Reset()         { *m = CheckAndMutateRowReque
 func (m *CheckAndMutateRowRequest) String() string { return proto.CompactTextString(m) }
 func (*CheckAndMutateRowRequest) ProtoMessage()    {}
 func (*CheckAndMutateRowRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_5207bf1d2c849e53, []int{8}
+	return fileDescriptor_bigtable_8d6dd9ae311e02dd, []int{8}
 }
 func (m *CheckAndMutateRowRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CheckAndMutateRowRequest.Unmarshal(m, b)
@@ -943,7 +918,7 @@ func (m *CheckAndMutateRowRequest) GetFalseMutations() []*Mutation {
 type CheckAndMutateRowResponse struct {
 	// Whether or not the request's `predicate_filter` yielded any results for
 	// the specified row.
-	PredicateMatched     bool     `protobuf:"varint,1,opt,name=predicate_matched,json=predicateMatched" json:"predicate_matched,omitempty"`
+	PredicateMatched     bool     `protobuf:"varint,1,opt,name=predicate_matched,json=predicateMatched,proto3" json:"predicate_matched,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -953,7 +928,7 @@ func (m *CheckAndMutateRowResponse) Reset()         { *m = CheckAndMutateRowResp
 func (m *CheckAndMutateRowResponse) String() string { return proto.CompactTextString(m) }
 func (*CheckAndMutateRowResponse) ProtoMessage()    {}
 func (*CheckAndMutateRowResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_5207bf1d2c849e53, []int{9}
+	return fileDescriptor_bigtable_8d6dd9ae311e02dd, []int{9}
 }
 func (m *CheckAndMutateRowResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CheckAndMutateRowResponse.Unmarshal(m, b)
@@ -986,21 +961,16 @@ type ReadModifyWriteRowRequest struct {
 	// applied.
 	// Values are of the form
 	// `projects/<project>/instances/<instance>/tables/<table>`.
-	TableName string `protobuf:"bytes,1,opt,name=table_name,json=tableName" json:"table_name,omitempty"`
-	// This is a private alpha release of Cloud Bigtable replication. This feature
-	// is not currently available to most Cloud Bigtable customers. This feature
-	// might be changed in backward-incompatible ways and is not recommended for
-	// production use. It is not subject to any SLA or deprecation policy.
-	//
+	TableName string `protobuf:"bytes,1,opt,name=table_name,json=tableName,proto3" json:"table_name,omitempty"`
 	// This value specifies routing for replication. If not specified, the
 	// "default" application profile will be used.
-	AppProfileId string `protobuf:"bytes,4,opt,name=app_profile_id,json=appProfileId" json:"app_profile_id,omitempty"`
+	AppProfileId string `protobuf:"bytes,4,opt,name=app_profile_id,json=appProfileId,proto3" json:"app_profile_id,omitempty"`
 	// The key of the row to which the read/modify/write rules should be applied.
 	RowKey []byte `protobuf:"bytes,2,opt,name=row_key,json=rowKey,proto3" json:"row_key,omitempty"`
 	// Rules specifying how the specified row's contents are to be transformed
 	// into writes. Entries are applied in order, meaning that earlier rules will
 	// affect the results of later ones.
-	Rules                []*ReadModifyWriteRule `protobuf:"bytes,3,rep,name=rules" json:"rules,omitempty"`
+	Rules                []*ReadModifyWriteRule `protobuf:"bytes,3,rep,name=rules,proto3" json:"rules,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
 	XXX_unrecognized     []byte                 `json:"-"`
 	XXX_sizecache        int32                  `json:"-"`
@@ -1010,7 +980,7 @@ func (m *ReadModifyWriteRowRequest) Reset()         { *m = ReadModifyWriteRowReq
 func (m *ReadModifyWriteRowRequest) String() string { return proto.CompactTextString(m) }
 func (*ReadModifyWriteRowRequest) ProtoMessage()    {}
 func (*ReadModifyWriteRowRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_5207bf1d2c849e53, []int{10}
+	return fileDescriptor_bigtable_8d6dd9ae311e02dd, []int{10}
 }
 func (m *ReadModifyWriteRowRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReadModifyWriteRowRequest.Unmarshal(m, b)
@@ -1061,7 +1031,7 @@ func (m *ReadModifyWriteRowRequest) GetRules() []*ReadModifyWriteRule {
 // Response message for Bigtable.ReadModifyWriteRow.
 type ReadModifyWriteRowResponse struct {
 	// A Row containing the new contents of all cells modified by the request.
-	Row                  *Row     `protobuf:"bytes,1,opt,name=row" json:"row,omitempty"`
+	Row                  *Row     `protobuf:"bytes,1,opt,name=row,proto3" json:"row,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1071,7 +1041,7 @@ func (m *ReadModifyWriteRowResponse) Reset()         { *m = ReadModifyWriteRowRe
 func (m *ReadModifyWriteRowResponse) String() string { return proto.CompactTextString(m) }
 func (*ReadModifyWriteRowResponse) ProtoMessage()    {}
 func (*ReadModifyWriteRowResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_5207bf1d2c849e53, []int{11}
+	return fileDescriptor_bigtable_8d6dd9ae311e02dd, []int{11}
 }
 func (m *ReadModifyWriteRowResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReadModifyWriteRowResponse.Unmarshal(m, b)
@@ -1287,8 +1257,7 @@ func (c *bigtableClient) ReadModifyWriteRow(ctx context.Context, in *ReadModifyW
 	return out, nil
 }
 
-// Server API for Bigtable service
-
+// BigtableServer is the server API for Bigtable service.
 type BigtableServer interface {
 	// Streams back the contents of all requested rows in key order, optionally
 	// applying the same Reader filter to each. Depending on their size,
@@ -1477,10 +1446,10 @@ var _Bigtable_serviceDesc = grpc.ServiceDesc{
 }
 
 func init() {
-	proto.RegisterFile("google/bigtable/v2/bigtable.proto", fileDescriptor_bigtable_5207bf1d2c849e53)
+	proto.RegisterFile("google/bigtable/v2/bigtable.proto", fileDescriptor_bigtable_8d6dd9ae311e02dd)
 }
 
-var fileDescriptor_bigtable_5207bf1d2c849e53 = []byte{
+var fileDescriptor_bigtable_8d6dd9ae311e02dd = []byte{
 	// 1210 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xbc, 0x57, 0x41, 0x6f, 0x1b, 0x45,
 	0x14, 0x66, 0xec, 0xd8, 0xf1, 0xbe, 0xa4, 0x4d, 0x32, 0x84, 0x76, 0x6b, 0x5a, 0x70, 0x97, 0x16,

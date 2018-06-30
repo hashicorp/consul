@@ -22,10 +22,10 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 type AuditData struct {
 	// Text description of the admin event.
 	// This is the "Event" column in Admin Console's Admin Logs.
-	EventMessage string `protobuf:"bytes,1,opt,name=event_message,json=eventMessage" json:"event_message,omitempty"`
+	EventMessage string `protobuf:"bytes,1,opt,name=event_message,json=eventMessage,proto3" json:"event_message,omitempty"`
 	// Arbitrary event data.
 	// This is the "Result" column in Admin Console's Admin Logs.
-	EventData            map[string]string `protobuf:"bytes,2,rep,name=event_data,json=eventData" json:"event_data,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	EventData            map[string]string `protobuf:"bytes,2,rep,name=event_data,json=eventData,proto3" json:"event_data,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`

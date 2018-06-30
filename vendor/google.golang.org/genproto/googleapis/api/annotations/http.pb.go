@@ -25,14 +25,14 @@ type Http struct {
 	// A list of HTTP configuration rules that apply to individual API methods.
 	//
 	// **NOTE:** All service configuration rules follow "last one wins" order.
-	Rules []*HttpRule `protobuf:"bytes,1,rep,name=rules" json:"rules,omitempty"`
+	Rules []*HttpRule `protobuf:"bytes,1,rep,name=rules,proto3" json:"rules,omitempty"`
 	// When set to true, URL path parmeters will be fully URI-decoded except in
 	// cases of single segment matches in reserved expansion, where "%2F" will be
 	// left encoded.
 	//
 	// The default behavior is to not decode RFC 6570 reserved characters in multi
 	// segment matches.
-	FullyDecodeReservedExpansion bool     `protobuf:"varint,2,opt,name=fully_decode_reserved_expansion,json=fullyDecodeReservedExpansion" json:"fully_decode_reserved_expansion,omitempty"`
+	FullyDecodeReservedExpansion bool     `protobuf:"varint,2,opt,name=fully_decode_reserved_expansion,json=fullyDecodeReservedExpansion,proto3" json:"fully_decode_reserved_expansion,omitempty"`
 	XXX_NoUnkeyedLiteral         struct{} `json:"-"`
 	XXX_unrecognized             []byte   `json:"-"`
 	XXX_sizecache                int32    `json:"-"`
@@ -297,7 +297,7 @@ type HttpRule struct {
 	// Selects methods to which this rule applies.
 	//
 	// Refer to [selector][google.api.DocumentationRule.selector] for syntax details.
-	Selector string `protobuf:"bytes,1,opt,name=selector" json:"selector,omitempty"`
+	Selector string `protobuf:"bytes,1,opt,name=selector,proto3" json:"selector,omitempty"`
 	// Determines the URL pattern is matched by this rules. This pattern can be
 	// used with any of the {get|put|post|delete|patch} methods. A custom method
 	// can be defined using the 'custom' field.
@@ -314,11 +314,11 @@ type HttpRule struct {
 	// `*` for mapping all fields not captured by the path pattern to the HTTP
 	// body. NOTE: the referred field must not be a repeated field and must be
 	// present at the top-level of request message type.
-	Body string `protobuf:"bytes,7,opt,name=body" json:"body,omitempty"`
+	Body string `protobuf:"bytes,7,opt,name=body,proto3" json:"body,omitempty"`
 	// Additional HTTP bindings for the selector. Nested bindings must
 	// not contain an `additional_bindings` field themselves (that is,
 	// the nesting may only be one level deep).
-	AdditionalBindings   []*HttpRule `protobuf:"bytes,11,rep,name=additional_bindings,json=additionalBindings" json:"additional_bindings,omitempty"`
+	AdditionalBindings   []*HttpRule `protobuf:"bytes,11,rep,name=additional_bindings,json=additionalBindings,proto3" json:"additional_bindings,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
 	XXX_unrecognized     []byte      `json:"-"`
 	XXX_sizecache        int32       `json:"-"`
@@ -353,22 +353,22 @@ type isHttpRule_Pattern interface {
 }
 
 type HttpRule_Get struct {
-	Get string `protobuf:"bytes,2,opt,name=get,oneof"`
+	Get string `protobuf:"bytes,2,opt,name=get,proto3,oneof"`
 }
 type HttpRule_Put struct {
-	Put string `protobuf:"bytes,3,opt,name=put,oneof"`
+	Put string `protobuf:"bytes,3,opt,name=put,proto3,oneof"`
 }
 type HttpRule_Post struct {
-	Post string `protobuf:"bytes,4,opt,name=post,oneof"`
+	Post string `protobuf:"bytes,4,opt,name=post,proto3,oneof"`
 }
 type HttpRule_Delete struct {
-	Delete string `protobuf:"bytes,5,opt,name=delete,oneof"`
+	Delete string `protobuf:"bytes,5,opt,name=delete,proto3,oneof"`
 }
 type HttpRule_Patch struct {
-	Patch string `protobuf:"bytes,6,opt,name=patch,oneof"`
+	Patch string `protobuf:"bytes,6,opt,name=patch,proto3,oneof"`
 }
 type HttpRule_Custom struct {
-	Custom *CustomHttpPattern `protobuf:"bytes,8,opt,name=custom,oneof"`
+	Custom *CustomHttpPattern `protobuf:"bytes,8,opt,name=custom,proto3,oneof"`
 }
 
 func (*HttpRule_Get) isHttpRule_Pattern()    {}
@@ -581,9 +581,9 @@ func _HttpRule_OneofSizer(msg proto.Message) (n int) {
 // A custom pattern is used for defining custom HTTP verb.
 type CustomHttpPattern struct {
 	// The name of this custom HTTP verb.
-	Kind string `protobuf:"bytes,1,opt,name=kind" json:"kind,omitempty"`
+	Kind string `protobuf:"bytes,1,opt,name=kind,proto3" json:"kind,omitempty"`
 	// The path matched by this custom verb.
-	Path                 string   `protobuf:"bytes,2,opt,name=path" json:"path,omitempty"`
+	Path                 string   `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

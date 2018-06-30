@@ -6,6 +6,8 @@ package messages // import "google.golang.org/grpc/grpclb/grpc_lb_v1/messages"
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
+import duration "github.com/golang/protobuf/ptypes/duration"
+import timestamp "github.com/golang/protobuf/ptypes/timestamp"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -17,113 +19,6 @@ var _ = math.Inf
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
-
-type Duration struct {
-	// Signed seconds of the span of time. Must be from -315,576,000,000
-	// to +315,576,000,000 inclusive.
-	Seconds int64 `protobuf:"varint,1,opt,name=seconds" json:"seconds,omitempty"`
-	// Signed fractions of a second at nanosecond resolution of the span
-	// of time. Durations less than one second are represented with a 0
-	// `seconds` field and a positive or negative `nanos` field. For durations
-	// of one second or more, a non-zero value for the `nanos` field must be
-	// of the same sign as the `seconds` field. Must be from -999,999,999
-	// to +999,999,999 inclusive.
-	Nanos                int32    `protobuf:"varint,2,opt,name=nanos" json:"nanos,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *Duration) Reset()         { *m = Duration{} }
-func (m *Duration) String() string { return proto.CompactTextString(m) }
-func (*Duration) ProtoMessage()    {}
-func (*Duration) Descriptor() ([]byte, []int) {
-	return fileDescriptor_messages_b81c731f0e83edbd, []int{0}
-}
-func (m *Duration) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_Duration.Unmarshal(m, b)
-}
-func (m *Duration) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_Duration.Marshal(b, m, deterministic)
-}
-func (dst *Duration) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Duration.Merge(dst, src)
-}
-func (m *Duration) XXX_Size() int {
-	return xxx_messageInfo_Duration.Size(m)
-}
-func (m *Duration) XXX_DiscardUnknown() {
-	xxx_messageInfo_Duration.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_Duration proto.InternalMessageInfo
-
-func (m *Duration) GetSeconds() int64 {
-	if m != nil {
-		return m.Seconds
-	}
-	return 0
-}
-
-func (m *Duration) GetNanos() int32 {
-	if m != nil {
-		return m.Nanos
-	}
-	return 0
-}
-
-type Timestamp struct {
-	// Represents seconds of UTC time since Unix epoch
-	// 1970-01-01T00:00:00Z. Must be from 0001-01-01T00:00:00Z to
-	// 9999-12-31T23:59:59Z inclusive.
-	Seconds int64 `protobuf:"varint,1,opt,name=seconds" json:"seconds,omitempty"`
-	// Non-negative fractions of a second at nanosecond resolution. Negative
-	// second values with fractions must still have non-negative nanos values
-	// that count forward in time. Must be from 0 to 999,999,999
-	// inclusive.
-	Nanos                int32    `protobuf:"varint,2,opt,name=nanos" json:"nanos,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *Timestamp) Reset()         { *m = Timestamp{} }
-func (m *Timestamp) String() string { return proto.CompactTextString(m) }
-func (*Timestamp) ProtoMessage()    {}
-func (*Timestamp) Descriptor() ([]byte, []int) {
-	return fileDescriptor_messages_b81c731f0e83edbd, []int{1}
-}
-func (m *Timestamp) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_Timestamp.Unmarshal(m, b)
-}
-func (m *Timestamp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_Timestamp.Marshal(b, m, deterministic)
-}
-func (dst *Timestamp) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Timestamp.Merge(dst, src)
-}
-func (m *Timestamp) XXX_Size() int {
-	return xxx_messageInfo_Timestamp.Size(m)
-}
-func (m *Timestamp) XXX_DiscardUnknown() {
-	xxx_messageInfo_Timestamp.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_Timestamp proto.InternalMessageInfo
-
-func (m *Timestamp) GetSeconds() int64 {
-	if m != nil {
-		return m.Seconds
-	}
-	return 0
-}
-
-func (m *Timestamp) GetNanos() int32 {
-	if m != nil {
-		return m.Nanos
-	}
-	return 0
-}
 
 type LoadBalanceRequest struct {
 	// Types that are valid to be assigned to LoadBalanceRequestType:
@@ -139,7 +34,7 @@ func (m *LoadBalanceRequest) Reset()         { *m = LoadBalanceRequest{} }
 func (m *LoadBalanceRequest) String() string { return proto.CompactTextString(m) }
 func (*LoadBalanceRequest) ProtoMessage()    {}
 func (*LoadBalanceRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_messages_b81c731f0e83edbd, []int{2}
+	return fileDescriptor_messages_b3d89fcb5aa158f8, []int{0}
 }
 func (m *LoadBalanceRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_LoadBalanceRequest.Unmarshal(m, b)
@@ -164,10 +59,10 @@ type isLoadBalanceRequest_LoadBalanceRequestType interface {
 }
 
 type LoadBalanceRequest_InitialRequest struct {
-	InitialRequest *InitialLoadBalanceRequest `protobuf:"bytes,1,opt,name=initial_request,json=initialRequest,oneof"`
+	InitialRequest *InitialLoadBalanceRequest `protobuf:"bytes,1,opt,name=initial_request,json=initialRequest,proto3,oneof"`
 }
 type LoadBalanceRequest_ClientStats struct {
-	ClientStats *ClientStats `protobuf:"bytes,2,opt,name=client_stats,json=clientStats,oneof"`
+	ClientStats *ClientStats `protobuf:"bytes,2,opt,name=client_stats,json=clientStats,proto3,oneof"`
 }
 
 func (*LoadBalanceRequest_InitialRequest) isLoadBalanceRequest_LoadBalanceRequestType() {}
@@ -269,9 +164,9 @@ func _LoadBalanceRequest_OneofSizer(msg proto.Message) (n int) {
 }
 
 type InitialLoadBalanceRequest struct {
-	// Name of load balanced service (IE, balancer.service.com)
+	// Name of load balanced service (IE, balancer.service.com). Its
 	// length should be less than 256 bytes.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -281,7 +176,7 @@ func (m *InitialLoadBalanceRequest) Reset()         { *m = InitialLoadBalanceReq
 func (m *InitialLoadBalanceRequest) String() string { return proto.CompactTextString(m) }
 func (*InitialLoadBalanceRequest) ProtoMessage()    {}
 func (*InitialLoadBalanceRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_messages_b81c731f0e83edbd, []int{3}
+	return fileDescriptor_messages_b3d89fcb5aa158f8, []int{1}
 }
 func (m *InitialLoadBalanceRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_InitialLoadBalanceRequest.Unmarshal(m, b)
@@ -308,36 +203,81 @@ func (m *InitialLoadBalanceRequest) GetName() string {
 	return ""
 }
 
+// Contains the number of calls finished for a particular load balance token.
+type ClientStatsPerToken struct {
+	// See Server.load_balance_token.
+	LoadBalanceToken string `protobuf:"bytes,1,opt,name=load_balance_token,json=loadBalanceToken,proto3" json:"load_balance_token,omitempty"`
+	// The total number of RPCs that finished associated with the token.
+	NumCalls             int64    `protobuf:"varint,2,opt,name=num_calls,json=numCalls,proto3" json:"num_calls,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ClientStatsPerToken) Reset()         { *m = ClientStatsPerToken{} }
+func (m *ClientStatsPerToken) String() string { return proto.CompactTextString(m) }
+func (*ClientStatsPerToken) ProtoMessage()    {}
+func (*ClientStatsPerToken) Descriptor() ([]byte, []int) {
+	return fileDescriptor_messages_b3d89fcb5aa158f8, []int{2}
+}
+func (m *ClientStatsPerToken) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ClientStatsPerToken.Unmarshal(m, b)
+}
+func (m *ClientStatsPerToken) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ClientStatsPerToken.Marshal(b, m, deterministic)
+}
+func (dst *ClientStatsPerToken) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ClientStatsPerToken.Merge(dst, src)
+}
+func (m *ClientStatsPerToken) XXX_Size() int {
+	return xxx_messageInfo_ClientStatsPerToken.Size(m)
+}
+func (m *ClientStatsPerToken) XXX_DiscardUnknown() {
+	xxx_messageInfo_ClientStatsPerToken.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ClientStatsPerToken proto.InternalMessageInfo
+
+func (m *ClientStatsPerToken) GetLoadBalanceToken() string {
+	if m != nil {
+		return m.LoadBalanceToken
+	}
+	return ""
+}
+
+func (m *ClientStatsPerToken) GetNumCalls() int64 {
+	if m != nil {
+		return m.NumCalls
+	}
+	return 0
+}
+
 // Contains client level statistics that are useful to load balancing. Each
 // count except the timestamp should be reset to zero after reporting the stats.
 type ClientStats struct {
 	// The timestamp of generating the report.
-	Timestamp *Timestamp `protobuf:"bytes,1,opt,name=timestamp" json:"timestamp,omitempty"`
+	Timestamp *timestamp.Timestamp `protobuf:"bytes,1,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	// The total number of RPCs that started.
-	NumCallsStarted int64 `protobuf:"varint,2,opt,name=num_calls_started,json=numCallsStarted" json:"num_calls_started,omitempty"`
+	NumCallsStarted int64 `protobuf:"varint,2,opt,name=num_calls_started,json=numCallsStarted,proto3" json:"num_calls_started,omitempty"`
 	// The total number of RPCs that finished.
-	NumCallsFinished int64 `protobuf:"varint,3,opt,name=num_calls_finished,json=numCallsFinished" json:"num_calls_finished,omitempty"`
-	// The total number of RPCs that were dropped by the client because of rate
-	// limiting.
-	NumCallsFinishedWithDropForRateLimiting int64 `protobuf:"varint,4,opt,name=num_calls_finished_with_drop_for_rate_limiting,json=numCallsFinishedWithDropForRateLimiting" json:"num_calls_finished_with_drop_for_rate_limiting,omitempty"`
-	// The total number of RPCs that were dropped by the client because of load
-	// balancing.
-	NumCallsFinishedWithDropForLoadBalancing int64 `protobuf:"varint,5,opt,name=num_calls_finished_with_drop_for_load_balancing,json=numCallsFinishedWithDropForLoadBalancing" json:"num_calls_finished_with_drop_for_load_balancing,omitempty"`
+	NumCallsFinished int64 `protobuf:"varint,3,opt,name=num_calls_finished,json=numCallsFinished,proto3" json:"num_calls_finished,omitempty"`
 	// The total number of RPCs that failed to reach a server except dropped RPCs.
-	NumCallsFinishedWithClientFailedToSend int64 `protobuf:"varint,6,opt,name=num_calls_finished_with_client_failed_to_send,json=numCallsFinishedWithClientFailedToSend" json:"num_calls_finished_with_client_failed_to_send,omitempty"`
+	NumCallsFinishedWithClientFailedToSend int64 `protobuf:"varint,6,opt,name=num_calls_finished_with_client_failed_to_send,json=numCallsFinishedWithClientFailedToSend,proto3" json:"num_calls_finished_with_client_failed_to_send,omitempty"`
 	// The total number of RPCs that finished and are known to have been received
 	// by a server.
-	NumCallsFinishedKnownReceived int64    `protobuf:"varint,7,opt,name=num_calls_finished_known_received,json=numCallsFinishedKnownReceived" json:"num_calls_finished_known_received,omitempty"`
-	XXX_NoUnkeyedLiteral          struct{} `json:"-"`
-	XXX_unrecognized              []byte   `json:"-"`
-	XXX_sizecache                 int32    `json:"-"`
+	NumCallsFinishedKnownReceived int64 `protobuf:"varint,7,opt,name=num_calls_finished_known_received,json=numCallsFinishedKnownReceived,proto3" json:"num_calls_finished_known_received,omitempty"`
+	// The list of dropped calls.
+	CallsFinishedWithDrop []*ClientStatsPerToken `protobuf:"bytes,8,rep,name=calls_finished_with_drop,json=callsFinishedWithDrop,proto3" json:"calls_finished_with_drop,omitempty"`
+	XXX_NoUnkeyedLiteral  struct{}               `json:"-"`
+	XXX_unrecognized      []byte                 `json:"-"`
+	XXX_sizecache         int32                  `json:"-"`
 }
 
 func (m *ClientStats) Reset()         { *m = ClientStats{} }
 func (m *ClientStats) String() string { return proto.CompactTextString(m) }
 func (*ClientStats) ProtoMessage()    {}
 func (*ClientStats) Descriptor() ([]byte, []int) {
-	return fileDescriptor_messages_b81c731f0e83edbd, []int{4}
+	return fileDescriptor_messages_b3d89fcb5aa158f8, []int{3}
 }
 func (m *ClientStats) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ClientStats.Unmarshal(m, b)
@@ -357,7 +297,7 @@ func (m *ClientStats) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_ClientStats proto.InternalMessageInfo
 
-func (m *ClientStats) GetTimestamp() *Timestamp {
+func (m *ClientStats) GetTimestamp() *timestamp.Timestamp {
 	if m != nil {
 		return m.Timestamp
 	}
@@ -378,20 +318,6 @@ func (m *ClientStats) GetNumCallsFinished() int64 {
 	return 0
 }
 
-func (m *ClientStats) GetNumCallsFinishedWithDropForRateLimiting() int64 {
-	if m != nil {
-		return m.NumCallsFinishedWithDropForRateLimiting
-	}
-	return 0
-}
-
-func (m *ClientStats) GetNumCallsFinishedWithDropForLoadBalancing() int64 {
-	if m != nil {
-		return m.NumCallsFinishedWithDropForLoadBalancing
-	}
-	return 0
-}
-
 func (m *ClientStats) GetNumCallsFinishedWithClientFailedToSend() int64 {
 	if m != nil {
 		return m.NumCallsFinishedWithClientFailedToSend
@@ -404,6 +330,13 @@ func (m *ClientStats) GetNumCallsFinishedKnownReceived() int64 {
 		return m.NumCallsFinishedKnownReceived
 	}
 	return 0
+}
+
+func (m *ClientStats) GetCallsFinishedWithDrop() []*ClientStatsPerToken {
+	if m != nil {
+		return m.CallsFinishedWithDrop
+	}
+	return nil
 }
 
 type LoadBalanceResponse struct {
@@ -420,7 +353,7 @@ func (m *LoadBalanceResponse) Reset()         { *m = LoadBalanceResponse{} }
 func (m *LoadBalanceResponse) String() string { return proto.CompactTextString(m) }
 func (*LoadBalanceResponse) ProtoMessage()    {}
 func (*LoadBalanceResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_messages_b81c731f0e83edbd, []int{5}
+	return fileDescriptor_messages_b3d89fcb5aa158f8, []int{4}
 }
 func (m *LoadBalanceResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_LoadBalanceResponse.Unmarshal(m, b)
@@ -445,10 +378,10 @@ type isLoadBalanceResponse_LoadBalanceResponseType interface {
 }
 
 type LoadBalanceResponse_InitialResponse struct {
-	InitialResponse *InitialLoadBalanceResponse `protobuf:"bytes,1,opt,name=initial_response,json=initialResponse,oneof"`
+	InitialResponse *InitialLoadBalanceResponse `protobuf:"bytes,1,opt,name=initial_response,json=initialResponse,proto3,oneof"`
 }
 type LoadBalanceResponse_ServerList struct {
-	ServerList *ServerList `protobuf:"bytes,2,opt,name=server_list,json=serverList,oneof"`
+	ServerList *ServerList `protobuf:"bytes,2,opt,name=server_list,json=serverList,proto3,oneof"`
 }
 
 func (*LoadBalanceResponse_InitialResponse) isLoadBalanceResponse_LoadBalanceResponseType() {}
@@ -555,21 +488,21 @@ type InitialLoadBalanceResponse struct {
 	// the response, the client should open a separate connection to the
 	// load_balancer_delegate and call the BalanceLoad method. Its length should
 	// be less than 64 bytes.
-	LoadBalancerDelegate string `protobuf:"bytes,1,opt,name=load_balancer_delegate,json=loadBalancerDelegate" json:"load_balancer_delegate,omitempty"`
+	LoadBalancerDelegate string `protobuf:"bytes,1,opt,name=load_balancer_delegate,json=loadBalancerDelegate,proto3" json:"load_balancer_delegate,omitempty"`
 	// This interval defines how often the client should send the client stats
 	// to the load balancer. Stats should only be reported when the duration is
 	// positive.
-	ClientStatsReportInterval *Duration `protobuf:"bytes,2,opt,name=client_stats_report_interval,json=clientStatsReportInterval" json:"client_stats_report_interval,omitempty"`
-	XXX_NoUnkeyedLiteral      struct{}  `json:"-"`
-	XXX_unrecognized          []byte    `json:"-"`
-	XXX_sizecache             int32     `json:"-"`
+	ClientStatsReportInterval *duration.Duration `protobuf:"bytes,2,opt,name=client_stats_report_interval,json=clientStatsReportInterval,proto3" json:"client_stats_report_interval,omitempty"`
+	XXX_NoUnkeyedLiteral      struct{}           `json:"-"`
+	XXX_unrecognized          []byte             `json:"-"`
+	XXX_sizecache             int32              `json:"-"`
 }
 
 func (m *InitialLoadBalanceResponse) Reset()         { *m = InitialLoadBalanceResponse{} }
 func (m *InitialLoadBalanceResponse) String() string { return proto.CompactTextString(m) }
 func (*InitialLoadBalanceResponse) ProtoMessage()    {}
 func (*InitialLoadBalanceResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_messages_b81c731f0e83edbd, []int{6}
+	return fileDescriptor_messages_b3d89fcb5aa158f8, []int{5}
 }
 func (m *InitialLoadBalanceResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_InitialLoadBalanceResponse.Unmarshal(m, b)
@@ -596,7 +529,7 @@ func (m *InitialLoadBalanceResponse) GetLoadBalancerDelegate() string {
 	return ""
 }
 
-func (m *InitialLoadBalanceResponse) GetClientStatsReportInterval() *Duration {
+func (m *InitialLoadBalanceResponse) GetClientStatsReportInterval() *duration.Duration {
 	if m != nil {
 		return m.ClientStatsReportInterval
 	}
@@ -608,7 +541,7 @@ type ServerList struct {
 	// be updated when server resolutions change or as needed to balance load
 	// across more servers. The client should consume the server list in order
 	// unless instructed otherwise via the client_config.
-	Servers              []*Server `protobuf:"bytes,1,rep,name=servers" json:"servers,omitempty"`
+	Servers              []*Server `protobuf:"bytes,1,rep,name=servers,proto3" json:"servers,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -618,7 +551,7 @@ func (m *ServerList) Reset()         { *m = ServerList{} }
 func (m *ServerList) String() string { return proto.CompactTextString(m) }
 func (*ServerList) ProtoMessage()    {}
 func (*ServerList) Descriptor() ([]byte, []int) {
-	return fileDescriptor_messages_b81c731f0e83edbd, []int{7}
+	return fileDescriptor_messages_b3d89fcb5aa158f8, []int{6}
 }
 func (m *ServerList) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ServerList.Unmarshal(m, b)
@@ -645,29 +578,24 @@ func (m *ServerList) GetServers() []*Server {
 	return nil
 }
 
-// Contains server information. When none of the [drop_for_*] fields are true,
-// use the other fields. When drop_for_rate_limiting is true, ignore all other
-// fields. Use drop_for_load_balancing only when it is true and
-// drop_for_rate_limiting is false.
+// Contains server information. When the drop field is not true, use the other
+// fields.
 type Server struct {
 	// A resolved address for the server, serialized in network-byte-order. It may
 	// either be an IPv4 or IPv6 address.
 	IpAddress []byte `protobuf:"bytes,1,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address,omitempty"`
 	// A resolved port number for the server.
-	Port int32 `protobuf:"varint,2,opt,name=port" json:"port,omitempty"`
+	Port int32 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
 	// An opaque but printable token given to the frontend for each pick. All
 	// frontend requests for that pick must include the token in its initial
 	// metadata. The token is used by the backend to verify the request and to
-	// allow the backend to report load to the gRPC LB system.
-	//
-	// Its length is variable but less than 50 bytes.
-	LoadBalanceToken string `protobuf:"bytes,3,opt,name=load_balance_token,json=loadBalanceToken" json:"load_balance_token,omitempty"`
-	// Indicates whether this particular request should be dropped by the client
-	// for rate limiting.
-	DropForRateLimiting bool `protobuf:"varint,4,opt,name=drop_for_rate_limiting,json=dropForRateLimiting" json:"drop_for_rate_limiting,omitempty"`
-	// Indicates whether this particular request should be dropped by the client
-	// for load balancing.
-	DropForLoadBalancing bool     `protobuf:"varint,5,opt,name=drop_for_load_balancing,json=dropForLoadBalancing" json:"drop_for_load_balancing,omitempty"`
+	// allow the backend to report load to the gRPC LB system. The token is also
+	// used in client stats for reporting dropped calls.
+	LoadBalanceToken string `protobuf:"bytes,3,opt,name=load_balance_token,json=loadBalanceToken,proto3" json:"load_balance_token,omitempty"`
+	// Indicates whether this particular request should be dropped by the client.
+	// If the request is dropped, there will be a corresponding entry in
+	// ClientStats.calls_finished_with_drop.
+	Drop                 bool     `protobuf:"varint,4,opt,name=drop,proto3" json:"drop,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -677,7 +605,7 @@ func (m *Server) Reset()         { *m = Server{} }
 func (m *Server) String() string { return proto.CompactTextString(m) }
 func (*Server) ProtoMessage()    {}
 func (*Server) Descriptor() ([]byte, []int) {
-	return fileDescriptor_messages_b81c731f0e83edbd, []int{8}
+	return fileDescriptor_messages_b3d89fcb5aa158f8, []int{7}
 }
 func (m *Server) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Server.Unmarshal(m, b)
@@ -718,25 +646,17 @@ func (m *Server) GetLoadBalanceToken() string {
 	return ""
 }
 
-func (m *Server) GetDropForRateLimiting() bool {
+func (m *Server) GetDrop() bool {
 	if m != nil {
-		return m.DropForRateLimiting
-	}
-	return false
-}
-
-func (m *Server) GetDropForLoadBalancing() bool {
-	if m != nil {
-		return m.DropForLoadBalancing
+		return m.Drop
 	}
 	return false
 }
 
 func init() {
-	proto.RegisterType((*Duration)(nil), "grpc.lb.v1.Duration")
-	proto.RegisterType((*Timestamp)(nil), "grpc.lb.v1.Timestamp")
 	proto.RegisterType((*LoadBalanceRequest)(nil), "grpc.lb.v1.LoadBalanceRequest")
 	proto.RegisterType((*InitialLoadBalanceRequest)(nil), "grpc.lb.v1.InitialLoadBalanceRequest")
+	proto.RegisterType((*ClientStatsPerToken)(nil), "grpc.lb.v1.ClientStatsPerToken")
 	proto.RegisterType((*ClientStats)(nil), "grpc.lb.v1.ClientStats")
 	proto.RegisterType((*LoadBalanceResponse)(nil), "grpc.lb.v1.LoadBalanceResponse")
 	proto.RegisterType((*InitialLoadBalanceResponse)(nil), "grpc.lb.v1.InitialLoadBalanceResponse")
@@ -745,55 +665,54 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("grpc_lb_v1/messages/messages.proto", fileDescriptor_messages_b81c731f0e83edbd)
+	proto.RegisterFile("grpc_lb_v1/messages/messages.proto", fileDescriptor_messages_b3d89fcb5aa158f8)
 }
 
-var fileDescriptor_messages_b81c731f0e83edbd = []byte{
-	// 731 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x55, 0xdd, 0x4e, 0x1b, 0x39,
-	0x14, 0x26, 0x9b, 0x00, 0xc9, 0x09, 0x5a, 0xb2, 0x26, 0x0b, 0x81, 0x05, 0x89, 0x1d, 0x69, 0xd9,
-	0x68, 0xc5, 0x4e, 0x04, 0xd9, 0xbd, 0xe8, 0xcf, 0x45, 0x1b, 0x10, 0x0a, 0x2d, 0x17, 0x95, 0x43,
-	0x55, 0xa9, 0x52, 0x65, 0x39, 0x19, 0x33, 0x58, 0x38, 0xf6, 0xd4, 0x76, 0x82, 0xfa, 0x08, 0x7d,
-	0x94, 0x3e, 0x46, 0xd5, 0x67, 0xe8, 0xfb, 0x54, 0xe3, 0x99, 0xc9, 0x0c, 0x10, 0x40, 0xbd, 0x89,
-	0xec, 0xe3, 0xef, 0x7c, 0xdf, 0xf1, 0x89, 0xbf, 0x33, 0xe0, 0x85, 0x3a, 0x1a, 0x11, 0x31, 0x24,
-	0xd3, 0x83, 0xce, 0x98, 0x19, 0x43, 0x43, 0x66, 0x66, 0x0b, 0x3f, 0xd2, 0xca, 0x2a, 0x04, 0x31,
-	0xc6, 0x17, 0x43, 0x7f, 0x7a, 0xe0, 0x3d, 0x85, 0xea, 0xf1, 0x44, 0x53, 0xcb, 0x95, 0x44, 0x2d,
-	0x58, 0x36, 0x6c, 0xa4, 0x64, 0x60, 0x5a, 0xa5, 0xdd, 0x52, 0xbb, 0x8c, 0xb3, 0x2d, 0x6a, 0xc2,
-	0xa2, 0xa4, 0x52, 0x99, 0xd6, 0x2f, 0xbb, 0xa5, 0xf6, 0x22, 0x4e, 0x36, 0xde, 0x33, 0xa8, 0x9d,
-	0xf3, 0x31, 0x33, 0x96, 0x8e, 0xa3, 0x9f, 0x4e, 0xfe, 0x5a, 0x02, 0x74, 0xa6, 0x68, 0xd0, 0xa3,
-	0x82, 0xca, 0x11, 0xc3, 0xec, 0xe3, 0x84, 0x19, 0x8b, 0xde, 0xc0, 0x2a, 0x97, 0xdc, 0x72, 0x2a,
-	0x88, 0x4e, 0x42, 0x8e, 0xae, 0x7e, 0xf8, 0x97, 0x9f, 0x57, 0xed, 0x9f, 0x26, 0x90, 0xbb, 0xf9,
-	0xfd, 0x05, 0xfc, 0x6b, 0x9a, 0x9f, 0x31, 0x3e, 0x87, 0x95, 0x91, 0xe0, 0x4c, 0x5a, 0x62, 0x2c,
-	0xb5, 0x49, 0x15, 0xf5, 0xc3, 0x8d, 0x22, 0xdd, 0x91, 0x3b, 0x1f, 0xc4, 0xc7, 0xfd, 0x05, 0x5c,
-	0x1f, 0xe5, 0xdb, 0xde, 0x1f, 0xb0, 0x29, 0x14, 0x0d, 0xc8, 0x30, 0x91, 0xc9, 0x8a, 0x22, 0xf6,
-	0x53, 0xc4, 0xbc, 0x0e, 0x6c, 0xde, 0x5b, 0x09, 0x42, 0x50, 0x91, 0x74, 0xcc, 0x5c, 0xf9, 0x35,
-	0xec, 0xd6, 0xde, 0xe7, 0x0a, 0xd4, 0x0b, 0x62, 0xa8, 0x0b, 0x35, 0x9b, 0x75, 0x30, 0xbd, 0xe7,
-	0xef, 0xc5, 0xc2, 0x66, 0xed, 0xc5, 0x39, 0x0e, 0xfd, 0x03, 0xbf, 0xc9, 0xc9, 0x98, 0x8c, 0xa8,
-	0x10, 0x26, 0xbe, 0x93, 0xb6, 0x2c, 0x70, 0xb7, 0x2a, 0xe3, 0x55, 0x39, 0x19, 0x1f, 0xc5, 0xf1,
-	0x41, 0x12, 0x46, 0xfb, 0x80, 0x72, 0xec, 0x05, 0x97, 0xdc, 0x5c, 0xb2, 0xa0, 0x55, 0x76, 0xe0,
-	0x46, 0x06, 0x3e, 0x49, 0xe3, 0x88, 0x80, 0x7f, 0x17, 0x4d, 0xae, 0xb9, 0xbd, 0x24, 0x81, 0x56,
-	0x11, 0xb9, 0x50, 0x9a, 0x68, 0x6a, 0x19, 0x11, 0x7c, 0xcc, 0x2d, 0x97, 0x61, 0xab, 0xe2, 0x98,
-	0xfe, 0xbe, 0xcd, 0xf4, 0x8e, 0xdb, 0xcb, 0x63, 0xad, 0xa2, 0x13, 0xa5, 0x31, 0xb5, 0xec, 0x2c,
-	0x85, 0x23, 0x0a, 0x9d, 0x47, 0x05, 0x0a, 0xed, 0x8e, 0x15, 0x16, 0x9d, 0x42, 0xfb, 0x01, 0x85,
-	0xbc, 0xf7, 0xb1, 0xc4, 0x07, 0xf8, 0xf7, 0x3e, 0x89, 0xf4, 0x19, 0x5c, 0x50, 0x2e, 0x58, 0x40,
-	0xac, 0x22, 0x86, 0xc9, 0xa0, 0xb5, 0xe4, 0x04, 0xf6, 0xe6, 0x09, 0x24, 0x7f, 0xd5, 0x89, 0xc3,
-	0x9f, 0xab, 0x01, 0x93, 0x01, 0xea, 0xc3, 0x9f, 0x73, 0xe8, 0xaf, 0xa4, 0xba, 0x96, 0x44, 0xb3,
-	0x11, 0xe3, 0x53, 0x16, 0xb4, 0x96, 0x1d, 0xe5, 0xce, 0x6d, 0xca, 0xd7, 0x31, 0x0a, 0xa7, 0x20,
-	0xef, 0x5b, 0x09, 0xd6, 0x6e, 0x3c, 0x1b, 0x13, 0x29, 0x69, 0x18, 0x1a, 0x40, 0x23, 0x77, 0x40,
-	0x12, 0x4b, 0x9f, 0xc6, 0xde, 0x63, 0x16, 0x48, 0xd0, 0xfd, 0x05, 0xbc, 0x3a, 0xf3, 0x40, 0x4a,
-	0xfa, 0x04, 0xea, 0x86, 0xe9, 0x29, 0xd3, 0x44, 0x70, 0x63, 0x53, 0x0f, 0xac, 0x17, 0xf9, 0x06,
-	0xee, 0xf8, 0x8c, 0x3b, 0x0f, 0x81, 0x99, 0xed, 0x7a, 0xdb, 0xb0, 0x75, 0xcb, 0x01, 0x09, 0x67,
-	0x62, 0x81, 0x2f, 0x25, 0xd8, 0xba, 0xbf, 0x14, 0xf4, 0x1f, 0xac, 0x17, 0x93, 0x35, 0x09, 0x98,
-	0x60, 0x21, 0xb5, 0x99, 0x2d, 0x9a, 0x22, 0x4f, 0xd2, 0xc7, 0xe9, 0x19, 0x7a, 0x0b, 0xdb, 0x45,
-	0xcb, 0x12, 0xcd, 0x22, 0xa5, 0x2d, 0xe1, 0xd2, 0x32, 0x3d, 0xa5, 0x22, 0x2d, 0xbf, 0x59, 0x2c,
-	0x3f, 0x1b, 0x62, 0x78, 0xb3, 0xe0, 0x5e, 0xec, 0xf2, 0x4e, 0xd3, 0x34, 0xef, 0x05, 0x40, 0x7e,
-	0x4b, 0xb4, 0x1f, 0x0f, 0xac, 0x78, 0x17, 0x0f, 0xac, 0x72, 0xbb, 0x7e, 0x88, 0xee, 0xb6, 0x03,
-	0x67, 0x90, 0x57, 0x95, 0x6a, 0xb9, 0x51, 0xf1, 0xbe, 0x97, 0x60, 0x29, 0x39, 0x41, 0x3b, 0x00,
-	0x3c, 0x22, 0x34, 0x08, 0x34, 0x33, 0xc9, 0xc8, 0x5b, 0xc1, 0x35, 0x1e, 0xbd, 0x4c, 0x02, 0xb1,
-	0xfb, 0x63, 0xed, 0x74, 0xe6, 0xb9, 0x75, 0x6c, 0xc6, 0x1b, 0x9d, 0xb4, 0xea, 0x8a, 0x49, 0x67,
-	0xc6, 0x1a, 0x6e, 0x14, 0x1a, 0x71, 0x1e, 0xc7, 0x51, 0x17, 0xd6, 0x1f, 0x30, 0x5d, 0x15, 0xaf,
-	0x05, 0x73, 0x0c, 0xf6, 0x3f, 0x6c, 0x3c, 0x64, 0xa4, 0x2a, 0x6e, 0x06, 0x73, 0x4c, 0xd3, 0xeb,
-	0xbe, 0x3f, 0x08, 0x95, 0x0a, 0x05, 0xf3, 0x43, 0x25, 0xa8, 0x0c, 0x7d, 0xa5, 0xc3, 0x4e, 0xdc,
-	0x0d, 0xf7, 0x23, 0x86, 0x9d, 0x39, 0x5f, 0x95, 0xe1, 0x92, 0xfb, 0x9a, 0x74, 0x7f, 0x04, 0x00,
-	0x00, 0xff, 0xff, 0x8e, 0xd0, 0x70, 0xb7, 0x73, 0x06, 0x00, 0x00,
+var fileDescriptor_messages_b3d89fcb5aa158f8 = []byte{
+	// 708 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x54, 0x61, 0x4f, 0xf3, 0x36,
+	0x10, 0x26, 0x6b, 0xe8, 0xdb, 0x5e, 0x5f, 0x8d, 0xce, 0x6c, 0x2c, 0x2d, 0x30, 0x58, 0xa4, 0x21,
+	0x34, 0xb1, 0x54, 0xc0, 0x3e, 0x6c, 0xd2, 0x3e, 0x6c, 0x05, 0xa1, 0xc2, 0xf8, 0x80, 0x52, 0xa4,
+	0x4d, 0x48, 0x93, 0xe7, 0x36, 0x26, 0x58, 0xb8, 0x76, 0x66, 0xbb, 0x45, 0xfb, 0xbc, 0xff, 0x33,
+	0xed, 0x2f, 0x4c, 0xfb, 0x63, 0x53, 0xec, 0xa4, 0x0d, 0x2d, 0xd5, 0xfb, 0x25, 0x72, 0xee, 0x9e,
+	0x7b, 0xee, 0xce, 0x77, 0x8f, 0x21, 0x4c, 0x55, 0x36, 0xc6, 0x7c, 0x84, 0x67, 0xa7, 0xbd, 0x09,
+	0xd5, 0x9a, 0xa4, 0x54, 0xcf, 0x0f, 0x51, 0xa6, 0xa4, 0x91, 0x08, 0x72, 0x4c, 0xc4, 0x47, 0xd1,
+	0xec, 0xb4, 0xfb, 0x45, 0x2a, 0x65, 0xca, 0x69, 0xcf, 0x7a, 0x46, 0xd3, 0xc7, 0x5e, 0x32, 0x55,
+	0xc4, 0x30, 0x29, 0x1c, 0xb6, 0x7b, 0xb0, 0xec, 0x37, 0x6c, 0x42, 0xb5, 0x21, 0x93, 0xcc, 0x01,
+	0xc2, 0x7f, 0x3d, 0x40, 0xb7, 0x92, 0x24, 0x7d, 0xc2, 0x89, 0x18, 0xd3, 0x98, 0xfe, 0x31, 0xa5,
+	0xda, 0xa0, 0x3b, 0xd8, 0x62, 0x82, 0x19, 0x46, 0x38, 0x56, 0xce, 0x14, 0x78, 0x87, 0xde, 0x71,
+	0xeb, 0xec, 0xab, 0x68, 0x91, 0x3d, 0xba, 0x76, 0x90, 0xd5, 0xf8, 0xc1, 0x46, 0xfc, 0x71, 0x11,
+	0x5f, 0x32, 0xfe, 0x00, 0xef, 0xc7, 0x9c, 0x51, 0x61, 0xb0, 0x36, 0xc4, 0xe8, 0xe0, 0x23, 0x4b,
+	0xf7, 0x79, 0x95, 0xee, 0xc2, 0xfa, 0x87, 0xb9, 0x7b, 0xb0, 0x11, 0xb7, 0xc6, 0x8b, 0xdf, 0xfe,
+	0x2e, 0x74, 0xb8, 0x24, 0x09, 0x1e, 0xb9, 0x34, 0x65, 0x51, 0xd8, 0xfc, 0x99, 0xd1, 0xb0, 0x07,
+	0x9d, 0xb5, 0x95, 0x20, 0x04, 0xbe, 0x20, 0x13, 0x6a, 0xcb, 0x6f, 0xc6, 0xf6, 0x1c, 0xfe, 0x0e,
+	0xdb, 0x95, 0x5c, 0x77, 0x54, 0xdd, 0xcb, 0x67, 0x2a, 0xd0, 0x09, 0xa0, 0x57, 0x49, 0x4c, 0x6e,
+	0x2d, 0x02, 0xdb, 0x7c, 0x41, 0xed, 0xd0, 0xbb, 0xd0, 0x14, 0xd3, 0x09, 0x1e, 0x13, 0xce, 0x5d,
+	0x37, 0xb5, 0xb8, 0x21, 0xa6, 0x93, 0x8b, 0xfc, 0x3f, 0xfc, 0xa7, 0x06, 0xad, 0x4a, 0x0a, 0xf4,
+	0x1d, 0x34, 0xe7, 0x37, 0x5f, 0xdc, 0x64, 0x37, 0x72, 0xb3, 0x89, 0xca, 0xd9, 0x44, 0xf7, 0x25,
+	0x22, 0x5e, 0x80, 0xd1, 0xd7, 0xf0, 0xc9, 0x3c, 0x4d, 0x7e, 0x75, 0xca, 0xd0, 0xa4, 0x48, 0xb7,
+	0x55, 0xa6, 0x1b, 0x3a, 0x73, 0xde, 0xc0, 0x02, 0xfb, 0xc8, 0x04, 0xd3, 0x4f, 0x34, 0x09, 0x6a,
+	0x16, 0xdc, 0x2e, 0xc1, 0x57, 0x85, 0x1d, 0xfd, 0x06, 0xdf, 0xac, 0xa2, 0xf1, 0x0b, 0x33, 0x4f,
+	0xb8, 0x98, 0xd4, 0x23, 0x61, 0x9c, 0x26, 0xd8, 0x48, 0xac, 0xa9, 0x48, 0x82, 0xba, 0x25, 0x3a,
+	0x5a, 0x26, 0xfa, 0x85, 0x99, 0x27, 0xd7, 0xeb, 0x95, 0xc5, 0xdf, 0xcb, 0x21, 0x15, 0x09, 0x1a,
+	0xc0, 0x97, 0x6f, 0xd0, 0x3f, 0x0b, 0xf9, 0x22, 0xb0, 0xa2, 0x63, 0xca, 0x66, 0x34, 0x09, 0xde,
+	0x59, 0xca, 0xfd, 0x65, 0xca, 0x9f, 0x73, 0x54, 0x5c, 0x80, 0xd0, 0xaf, 0x10, 0xbc, 0x55, 0x64,
+	0xa2, 0x64, 0x16, 0x34, 0x0e, 0x6b, 0xc7, 0xad, 0xb3, 0x83, 0x35, 0x6b, 0x54, 0x8e, 0x36, 0xfe,
+	0x6c, 0xbc, 0x5c, 0xf1, 0xa5, 0x92, 0xd9, 0x8d, 0xdf, 0xf0, 0xdb, 0x9b, 0x37, 0x7e, 0x63, 0xb3,
+	0x5d, 0x0f, 0xff, 0xf3, 0x60, 0xfb, 0xd5, 0xfe, 0xe8, 0x4c, 0x0a, 0x4d, 0xd1, 0x10, 0xda, 0x0b,
+	0x29, 0x38, 0x5b, 0x31, 0xc1, 0xa3, 0x0f, 0x69, 0xc1, 0xa1, 0x07, 0x1b, 0xf1, 0xd6, 0x5c, 0x0c,
+	0x05, 0xe9, 0xf7, 0xd0, 0xd2, 0x54, 0xcd, 0xa8, 0xc2, 0x9c, 0x69, 0x53, 0x88, 0x61, 0xa7, 0xca,
+	0x37, 0xb4, 0xee, 0x5b, 0x66, 0xc5, 0x04, 0x7a, 0xfe, 0xd7, 0xdf, 0x83, 0xee, 0x92, 0x14, 0x1c,
+	0xa7, 0xd3, 0xc2, 0xdf, 0x1e, 0x74, 0xd7, 0x97, 0x82, 0xbe, 0x85, 0x9d, 0x6a, 0xb0, 0xc2, 0x09,
+	0xe5, 0x34, 0x25, 0xa6, 0xd4, 0xc7, 0xa7, 0x95, 0x35, 0x57, 0x97, 0x85, 0x0f, 0x3d, 0xc0, 0x5e,
+	0x55, 0xbb, 0x58, 0xd1, 0x4c, 0x2a, 0x83, 0x99, 0x30, 0x54, 0xcd, 0x08, 0x2f, 0xca, 0xef, 0xac,
+	0x2c, 0xf4, 0x65, 0xf1, 0x18, 0xc5, 0x9d, 0x8a, 0x96, 0x63, 0x1b, 0x7c, 0x5d, 0xc4, 0x86, 0x3f,
+	0x02, 0x2c, 0x5a, 0x45, 0x27, 0xf0, 0xce, 0xb5, 0xaa, 0x03, 0xcf, 0x4e, 0x16, 0xad, 0xde, 0x49,
+	0x5c, 0x42, 0x6e, 0xfc, 0x46, 0xad, 0xed, 0x87, 0x7f, 0x79, 0x50, 0x77, 0x1e, 0xb4, 0x0f, 0xc0,
+	0x32, 0x4c, 0x92, 0x44, 0x51, 0xad, 0x6d, 0x4b, 0xef, 0xe3, 0x26, 0xcb, 0x7e, 0x72, 0x86, 0xfc,
+	0x2d, 0xc8, 0x73, 0xdb, 0x7a, 0x37, 0x63, 0x7b, 0x5e, 0x23, 0xfa, 0xda, 0x1a, 0xd1, 0x23, 0xf0,
+	0xed, 0xda, 0xf9, 0x87, 0xde, 0x71, 0x23, 0xb6, 0x67, 0xb7, 0x3e, 0xfd, 0xf3, 0x87, 0xd3, 0xa2,
+	0xfd, 0x54, 0x72, 0x22, 0xd2, 0x48, 0xaa, 0xb4, 0x97, 0xd7, 0x6e, 0x3f, 0x7c, 0xd4, 0x7b, 0xe3,
+	0x65, 0x1f, 0xd5, 0xed, 0x55, 0x9d, 0xff, 0x1f, 0x00, 0x00, 0xff, 0xff, 0xc8, 0x88, 0xe6, 0xf4,
+	0xf7, 0x05, 0x00, 0x00,
 }

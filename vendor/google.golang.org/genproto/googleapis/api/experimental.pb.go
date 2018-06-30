@@ -23,7 +23,7 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 // only be used by whitelisted users.
 type Experimental struct {
 	// Authorization configuration.
-	Authorization        *AuthorizationConfig `protobuf:"bytes,8,opt,name=authorization" json:"authorization,omitempty"`
+	Authorization        *AuthorizationConfig `protobuf:"bytes,8,opt,name=authorization,proto3" json:"authorization,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -33,7 +33,7 @@ func (m *Experimental) Reset()         { *m = Experimental{} }
 func (m *Experimental) String() string { return proto.CompactTextString(m) }
 func (*Experimental) ProtoMessage()    {}
 func (*Experimental) Descriptor() ([]byte, []int) {
-	return fileDescriptor_experimental_8d531d4162396b31, []int{0}
+	return fileDescriptor_experimental_bcdc809cb0848cf0, []int{0}
 }
 func (m *Experimental) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Experimental.Unmarshal(m, b)
@@ -65,10 +65,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("google/api/experimental/experimental.proto", fileDescriptor_experimental_8d531d4162396b31)
+	proto.RegisterFile("google/api/experimental/experimental.proto", fileDescriptor_experimental_bcdc809cb0848cf0)
 }
 
-var fileDescriptor_experimental_8d531d4162396b31 = []byte{
+var fileDescriptor_experimental_bcdc809cb0848cf0 = []byte{
 	// 204 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xd2, 0x4a, 0xcf, 0xcf, 0x4f,
 	0xcf, 0x49, 0xd5, 0x4f, 0x2c, 0xc8, 0xd4, 0x4f, 0xad, 0x28, 0x48, 0x2d, 0xca, 0xcc, 0x4d, 0xcd,

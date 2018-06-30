@@ -31,13 +31,13 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 type ListConfigsRequest struct {
 	// The [project ID](https://support.google.com/cloud/answer/6158840?hl=en&ref_topic=6158848)
 	// for this request, in the format `projects/[PROJECT_ID]`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Specifies the number of results to return per page. If there are fewer
 	// elements than the specified number, returns all elements.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Specifies a page token to use. Set `pageToken` to a `nextPageToken`
 	// returned by a previous list request to get the next page of results.
-	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -93,13 +93,13 @@ func (m *ListConfigsRequest) GetPageToken() string {
 type ListConfigsResponse struct {
 	// A list of the configurations in the project. The order of returned
 	// objects is arbitrary; that is, it is not ordered in any particular way.
-	Configs []*RuntimeConfig `protobuf:"bytes,1,rep,name=configs" json:"configs,omitempty"`
+	Configs []*RuntimeConfig `protobuf:"bytes,1,rep,name=configs,proto3" json:"configs,omitempty"`
 	// This token allows you to get the next page of results for list requests.
 	// If the number of results is larger than `pageSize`, use the `nextPageToken`
 	// as a value for the query parameter `pageToken` in the next list request.
 	// Subsequent list requests will have their own `nextPageToken` to continue
 	// paging through the results
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -148,7 +148,7 @@ type GetConfigRequest struct {
 	// The name of the RuntimeConfig resource to retrieve, in the format:
 	//
 	// `projects/[PROJECT_ID]/configs/[CONFIG_NAME]`
-	Name                 string   `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -189,9 +189,9 @@ func (m *GetConfigRequest) GetName() string {
 type CreateConfigRequest struct {
 	// The [project ID](https://support.google.com/cloud/answer/6158840?hl=en&ref_topic=6158848)
 	// for this request, in the format `projects/[PROJECT_ID]`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// The RuntimeConfig to create.
-	Config *RuntimeConfig `protobuf:"bytes,2,opt,name=config" json:"config,omitempty"`
+	Config *RuntimeConfig `protobuf:"bytes,2,opt,name=config,proto3" json:"config,omitempty"`
 	// An optional but recommended unique `request_id`. If the server
 	// receives two `create()` requests  with the same
 	// `request_id`, then the second request will be ignored and the
@@ -202,7 +202,7 @@ type CreateConfigRequest struct {
 	// `request_id` strings.
 	//
 	// `request_id` strings are limited to 64 characters.
-	RequestId            string   `protobuf:"bytes,3,opt,name=request_id,json=requestId" json:"request_id,omitempty"`
+	RequestId            string   `protobuf:"bytes,3,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -258,9 +258,9 @@ type UpdateConfigRequest struct {
 	// The name of the RuntimeConfig resource to update, in the format:
 	//
 	// `projects/[PROJECT_ID]/configs/[CONFIG_NAME]`
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The config resource to update.
-	Config               *RuntimeConfig `protobuf:"bytes,2,opt,name=config" json:"config,omitempty"`
+	Config               *RuntimeConfig `protobuf:"bytes,2,opt,name=config,proto3" json:"config,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
 	XXX_unrecognized     []byte         `json:"-"`
 	XXX_sizecache        int32          `json:"-"`
@@ -309,7 +309,7 @@ type DeleteConfigRequest struct {
 	// The RuntimeConfig resource to delete, in the format:
 	//
 	// `projects/[PROJECT_ID]/configs/[CONFIG_NAME]`
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -352,21 +352,21 @@ type ListVariablesRequest struct {
 	// The configuration must exist beforehand; the path must by in the format:
 	//
 	// `projects/[PROJECT_ID]/configs/[CONFIG_NAME]`
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Filters variables by matching the specified filter. For example:
 	//
 	// `projects/example-project/config/[CONFIG_NAME]/variables/example-variable`.
-	Filter string `protobuf:"bytes,2,opt,name=filter" json:"filter,omitempty"`
+	Filter string `protobuf:"bytes,2,opt,name=filter,proto3" json:"filter,omitempty"`
 	// Specifies the number of results to return per page. If there are fewer
 	// elements than the specified number, returns all elements.
-	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Specifies a page token to use. Set `pageToken` to a `nextPageToken`
 	// returned by a previous list request to get the next page of results.
-	PageToken string `protobuf:"bytes,4,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// The flag indicates whether the user wants to return values of variables.
 	// If true, then only those variables that user has IAM GetVariable permission
 	// will be returned along with their values.
-	ReturnValues         bool     `protobuf:"varint,5,opt,name=return_values,json=returnValues" json:"return_values,omitempty"`
+	ReturnValues         bool     `protobuf:"varint,5,opt,name=return_values,json=returnValues,proto3" json:"return_values,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -435,13 +435,13 @@ func (m *ListVariablesRequest) GetReturnValues() bool {
 type ListVariablesResponse struct {
 	// A list of variables and their values. The order of returned variable
 	// objects is arbitrary.
-	Variables []*Variable `protobuf:"bytes,1,rep,name=variables" json:"variables,omitempty"`
+	Variables []*Variable `protobuf:"bytes,1,rep,name=variables,proto3" json:"variables,omitempty"`
 	// This token allows you to get the next page of results for list requests.
 	// If the number of results is larger than `pageSize`, use the `nextPageToken`
 	// as a value for the query parameter `pageToken` in the next list request.
 	// Subsequent list requests will have their own `nextPageToken` to continue
 	// paging through the results
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -490,14 +490,14 @@ type WatchVariableRequest struct {
 	// The name of the variable to watch, in the format:
 	//
 	// `projects/[PROJECT_ID]/configs/[CONFIG_NAME]`
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// If specified, checks the current timestamp of the variable and if the
 	// current timestamp is newer than `newerThan` timestamp, the method returns
 	// immediately.
 	//
 	// If not specified or the variable has an older timestamp, the watcher waits
 	// for a the value to change before returning.
-	NewerThan            *timestamp.Timestamp `protobuf:"bytes,4,opt,name=newer_than,json=newerThan" json:"newer_than,omitempty"`
+	NewerThan            *timestamp.Timestamp `protobuf:"bytes,4,opt,name=newer_than,json=newerThan,proto3" json:"newer_than,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -546,7 +546,7 @@ type GetVariableRequest struct {
 	// The name of the variable to return, in the format:
 	//
 	// `projects/[PROJECT_ID]/configs/[CONFIG_NAME]/variables/[VARIBLE_NAME]`
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -589,9 +589,9 @@ type CreateVariableRequest struct {
 	// The configuration must exist beforehand; the path must by in the format:
 	//
 	// `projects/[PROJECT_ID]/configs/[CONFIG_NAME]`
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// The variable to create.
-	Variable *Variable `protobuf:"bytes,2,opt,name=variable" json:"variable,omitempty"`
+	Variable *Variable `protobuf:"bytes,2,opt,name=variable,proto3" json:"variable,omitempty"`
 	// An optional but recommended unique `request_id`. If the server
 	// receives two `create()` requests  with the same
 	// `request_id`, then the second request will be ignored and the
@@ -602,7 +602,7 @@ type CreateVariableRequest struct {
 	// `request_id` strings.
 	//
 	// `request_id` strings are limited to 64 characters.
-	RequestId            string   `protobuf:"bytes,3,opt,name=request_id,json=requestId" json:"request_id,omitempty"`
+	RequestId            string   `protobuf:"bytes,3,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -658,9 +658,9 @@ type UpdateVariableRequest struct {
 	// The name of the variable to update, in the format:
 	//
 	// `projects/[PROJECT_ID]/configs/[CONFIG_NAME]/variables/[VARIABLE_NAME]`
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The variable to update.
-	Variable             *Variable `protobuf:"bytes,2,opt,name=variable" json:"variable,omitempty"`
+	Variable             *Variable `protobuf:"bytes,2,opt,name=variable,proto3" json:"variable,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -709,10 +709,10 @@ type DeleteVariableRequest struct {
 	// The name of the variable to delete, in the format:
 	//
 	// `projects/[PROJECT_ID]/configs/[CONFIG_NAME]/variables/[VARIABLE_NAME]`
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Set to `true` to recursively delete multiple variables with the same
 	// prefix.
-	Recursive            bool     `protobuf:"varint,2,opt,name=recursive" json:"recursive,omitempty"`
+	Recursive            bool     `protobuf:"varint,2,opt,name=recursive,proto3" json:"recursive,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -762,13 +762,13 @@ type ListWaitersRequest struct {
 	// The configuration must exist beforehand; the path must by in the format:
 	//
 	// `projects/[PROJECT_ID]/configs/[CONFIG_NAME]`
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Specifies the number of results to return per page. If there are fewer
 	// elements than the specified number, returns all elements.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Specifies a page token to use. Set `pageToken` to a `nextPageToken`
 	// returned by a previous list request to get the next page of results.
-	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -823,13 +823,13 @@ func (m *ListWaitersRequest) GetPageToken() string {
 // Order of returned waiter objects is arbitrary.
 type ListWaitersResponse struct {
 	// Found waiters in the project.
-	Waiters []*Waiter `protobuf:"bytes,1,rep,name=waiters" json:"waiters,omitempty"`
+	Waiters []*Waiter `protobuf:"bytes,1,rep,name=waiters,proto3" json:"waiters,omitempty"`
 	// This token allows you to get the next page of results for list requests.
 	// If the number of results is larger than `pageSize`, use the `nextPageToken`
 	// as a value for the query parameter `pageToken` in the next list request.
 	// Subsequent list requests will have their own `nextPageToken` to continue
 	// paging through the results
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -879,7 +879,7 @@ type GetWaiterRequest struct {
 	// format:
 	//
 	// `projects/[PROJECT_ID]/configs/[CONFIG_NAME]/waiters/[WAITER_NAME]`
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -922,9 +922,9 @@ type CreateWaiterRequest struct {
 	// The configuration must exist beforehand; the path must by in the format:
 	//
 	// `projects/[PROJECT_ID]/configs/[CONFIG_NAME]`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// The Waiter resource to create.
-	Waiter *Waiter `protobuf:"bytes,2,opt,name=waiter" json:"waiter,omitempty"`
+	Waiter *Waiter `protobuf:"bytes,2,opt,name=waiter,proto3" json:"waiter,omitempty"`
 	// An optional but recommended unique `request_id`. If the server
 	// receives two `create()` requests  with the same
 	// `request_id`, then the second request will be ignored and the
@@ -935,7 +935,7 @@ type CreateWaiterRequest struct {
 	// `request_id` strings.
 	//
 	// `request_id` strings are limited to 64 characters.
-	RequestId            string   `protobuf:"bytes,3,opt,name=request_id,json=requestId" json:"request_id,omitempty"`
+	RequestId            string   `protobuf:"bytes,3,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -991,7 +991,7 @@ type DeleteWaiterRequest struct {
 	// The Waiter resource to delete, in the format:
 	//
 	//  `projects/[PROJECT_ID]/configs/[CONFIG_NAME]/waiters/[WAITER_NAME]`
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1267,8 +1267,7 @@ func (c *runtimeConfigManagerClient) DeleteWaiter(ctx context.Context, in *Delet
 	return out, nil
 }
 
-// Server API for RuntimeConfigManager service
-
+// RuntimeConfigManagerServer is the server API for RuntimeConfigManager service.
 type RuntimeConfigManagerServer interface {
 	// Lists all the RuntimeConfig resources within project.
 	ListConfigs(context.Context, *ListConfigsRequest) (*ListConfigsResponse, error)

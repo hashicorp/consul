@@ -67,12 +67,14 @@ func (x ClusterStatus_State) String() string {
 	return proto.EnumName(ClusterStatus_State_name, int32(x))
 }
 func (ClusterStatus_State) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_clusters_11ad3d3844eb379a, []int{9, 0}
+	return fileDescriptor_clusters_92d23f68998e82a3, []int{9, 0}
 }
 
+// The cluster substate.
 type ClusterStatus_Substate int32
 
 const (
+	// The cluster substate is unknown.
 	ClusterStatus_UNSPECIFIED ClusterStatus_Substate = 0
 	// The cluster is known to be in an unhealthy state
 	// (for example, critical daemons are not running or HDFS capacity is
@@ -102,39 +104,39 @@ func (x ClusterStatus_Substate) String() string {
 	return proto.EnumName(ClusterStatus_Substate_name, int32(x))
 }
 func (ClusterStatus_Substate) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_clusters_11ad3d3844eb379a, []int{9, 1}
+	return fileDescriptor_clusters_92d23f68998e82a3, []int{9, 1}
 }
 
 // Describes the identifying information, config, and status of
-// a cluster of Google Compute Engine instances.
+// a cluster of Compute Engine instances.
 type Cluster struct {
 	// Required. The Google Cloud Platform project ID that the cluster belongs to.
-	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// Required. The cluster name. Cluster names within a project must be
 	// unique. Names of deleted clusters can be reused.
-	ClusterName string `protobuf:"bytes,2,opt,name=cluster_name,json=clusterName" json:"cluster_name,omitempty"`
+	ClusterName string `protobuf:"bytes,2,opt,name=cluster_name,json=clusterName,proto3" json:"cluster_name,omitempty"`
 	// Required. The cluster config. Note that Cloud Dataproc may set
 	// default values, and values may change when clusters are updated.
-	Config *ClusterConfig `protobuf:"bytes,3,opt,name=config" json:"config,omitempty"`
+	Config *ClusterConfig `protobuf:"bytes,3,opt,name=config,proto3" json:"config,omitempty"`
 	// Optional. The labels to associate with this cluster.
 	// Label **keys** must contain 1 to 63 characters, and must conform to
 	// [RFC 1035](https://www.ietf.org/rfc/rfc1035.txt).
 	// Label **values** may be empty, but, if present, must contain 1 to 63
 	// characters, and must conform to [RFC 1035](https://www.ietf.org/rfc/rfc1035.txt).
 	// No more than 32 labels can be associated with a cluster.
-	Labels map[string]string `protobuf:"bytes,8,rep,name=labels" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Output-only. Cluster status.
-	Status *ClusterStatus `protobuf:"bytes,4,opt,name=status" json:"status,omitempty"`
-	// Output-only. The previous cluster status.
-	StatusHistory []*ClusterStatus `protobuf:"bytes,7,rep,name=status_history,json=statusHistory" json:"status_history,omitempty"`
-	// Output-only. A cluster UUID (Unique Universal Identifier). Cloud Dataproc
+	Labels map[string]string `protobuf:"bytes,8,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	// Output only. Cluster status.
+	Status *ClusterStatus `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
+	// Output only. The previous cluster status.
+	StatusHistory []*ClusterStatus `protobuf:"bytes,7,rep,name=status_history,json=statusHistory,proto3" json:"status_history,omitempty"`
+	// Output only. A cluster UUID (Unique Universal Identifier). Cloud Dataproc
 	// generates this value when it creates the cluster.
-	ClusterUuid string `protobuf:"bytes,6,opt,name=cluster_uuid,json=clusterUuid" json:"cluster_uuid,omitempty"`
+	ClusterUuid string `protobuf:"bytes,6,opt,name=cluster_uuid,json=clusterUuid,proto3" json:"cluster_uuid,omitempty"`
 	// Contains cluster daemon metrics such as HDFS and YARN stats.
 	//
 	// **Beta Feature**: This report is available for testing purposes only. It may
 	// be changed before final release.
-	Metrics              *ClusterMetrics `protobuf:"bytes,9,opt,name=metrics" json:"metrics,omitempty"`
+	Metrics              *ClusterMetrics `protobuf:"bytes,9,opt,name=metrics,proto3" json:"metrics,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
 	XXX_unrecognized     []byte          `json:"-"`
 	XXX_sizecache        int32           `json:"-"`
@@ -144,7 +146,7 @@ func (m *Cluster) Reset()         { *m = Cluster{} }
 func (m *Cluster) String() string { return proto.CompactTextString(m) }
 func (*Cluster) ProtoMessage()    {}
 func (*Cluster) Descriptor() ([]byte, []int) {
-	return fileDescriptor_clusters_11ad3d3844eb379a, []int{0}
+	return fileDescriptor_clusters_92d23f68998e82a3, []int{0}
 }
 func (m *Cluster) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Cluster.Unmarshal(m, b)
@@ -222,29 +224,29 @@ func (m *Cluster) GetMetrics() *ClusterMetrics {
 
 // The cluster config.
 type ClusterConfig struct {
-	// Optional. A Google Cloud Storage staging bucket used for sharing generated
+	// Optional. A Cloud Storage staging bucket used for sharing generated
 	// SSH keys and config. If you do not specify a staging bucket, Cloud
 	// Dataproc will determine an appropriate Cloud Storage location (US,
 	// ASIA, or EU) for your cluster's staging bucket according to the Google
 	// Compute Engine zone where your cluster is deployed, and then it will create
 	// and manage this project-level, per-location bucket for you.
-	ConfigBucket string `protobuf:"bytes,1,opt,name=config_bucket,json=configBucket" json:"config_bucket,omitempty"`
-	// Required. The shared Google Compute Engine config settings for
+	ConfigBucket string `protobuf:"bytes,1,opt,name=config_bucket,json=configBucket,proto3" json:"config_bucket,omitempty"`
+	// Required. The shared Compute Engine config settings for
 	// all instances in a cluster.
-	GceClusterConfig *GceClusterConfig `protobuf:"bytes,8,opt,name=gce_cluster_config,json=gceClusterConfig" json:"gce_cluster_config,omitempty"`
-	// Optional. The Google Compute Engine config settings for
+	GceClusterConfig *GceClusterConfig `protobuf:"bytes,8,opt,name=gce_cluster_config,json=gceClusterConfig,proto3" json:"gce_cluster_config,omitempty"`
+	// Optional. The Compute Engine config settings for
 	// the master instance in a cluster.
-	MasterConfig *InstanceGroupConfig `protobuf:"bytes,9,opt,name=master_config,json=masterConfig" json:"master_config,omitempty"`
-	// Optional. The Google Compute Engine config settings for
+	MasterConfig *InstanceGroupConfig `protobuf:"bytes,9,opt,name=master_config,json=masterConfig,proto3" json:"master_config,omitempty"`
+	// Optional. The Compute Engine config settings for
 	// worker instances in a cluster.
-	WorkerConfig *InstanceGroupConfig `protobuf:"bytes,10,opt,name=worker_config,json=workerConfig" json:"worker_config,omitempty"`
-	// Optional. The Google Compute Engine config settings for
+	WorkerConfig *InstanceGroupConfig `protobuf:"bytes,10,opt,name=worker_config,json=workerConfig,proto3" json:"worker_config,omitempty"`
+	// Optional. The Compute Engine config settings for
 	// additional worker instances in a cluster.
-	SecondaryWorkerConfig *InstanceGroupConfig `protobuf:"bytes,12,opt,name=secondary_worker_config,json=secondaryWorkerConfig" json:"secondary_worker_config,omitempty"`
+	SecondaryWorkerConfig *InstanceGroupConfig `protobuf:"bytes,12,opt,name=secondary_worker_config,json=secondaryWorkerConfig,proto3" json:"secondary_worker_config,omitempty"`
 	// Optional. The config settings for software inside the cluster.
-	SoftwareConfig *SoftwareConfig `protobuf:"bytes,13,opt,name=software_config,json=softwareConfig" json:"software_config,omitempty"`
+	SoftwareConfig *SoftwareConfig `protobuf:"bytes,13,opt,name=software_config,json=softwareConfig,proto3" json:"software_config,omitempty"`
 	// Optional. The config setting for auto delete cluster schedule.
-	LifecycleConfig *LifecycleConfig `protobuf:"bytes,14,opt,name=lifecycle_config,json=lifecycleConfig" json:"lifecycle_config,omitempty"`
+	LifecycleConfig *LifecycleConfig `protobuf:"bytes,14,opt,name=lifecycle_config,json=lifecycleConfig,proto3" json:"lifecycle_config,omitempty"`
 	// Optional. Commands to execute on each node after config is
 	// completed. By default, executables are run on master and all worker nodes.
 	// You can test a node's <code>role</code> metadata to run an executable on
@@ -256,7 +258,7 @@ type ClusterConfig struct {
 	//     else
 	//       ... worker specific actions ...
 	//     fi
-	InitializationActions []*NodeInitializationAction `protobuf:"bytes,11,rep,name=initialization_actions,json=initializationActions" json:"initialization_actions,omitempty"`
+	InitializationActions []*NodeInitializationAction `protobuf:"bytes,11,rep,name=initialization_actions,json=initializationActions,proto3" json:"initialization_actions,omitempty"`
 	XXX_NoUnkeyedLiteral  struct{}                    `json:"-"`
 	XXX_unrecognized      []byte                      `json:"-"`
 	XXX_sizecache         int32                       `json:"-"`
@@ -266,7 +268,7 @@ func (m *ClusterConfig) Reset()         { *m = ClusterConfig{} }
 func (m *ClusterConfig) String() string { return proto.CompactTextString(m) }
 func (*ClusterConfig) ProtoMessage()    {}
 func (*ClusterConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_clusters_11ad3d3844eb379a, []int{1}
+	return fileDescriptor_clusters_92d23f68998e82a3, []int{1}
 }
 func (m *ClusterConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ClusterConfig.Unmarshal(m, b)
@@ -342,10 +344,10 @@ func (m *ClusterConfig) GetInitializationActions() []*NodeInitializationAction {
 	return nil
 }
 
-// Common config settings for resources of Google Compute Engine cluster
+// Common config settings for resources of Compute Engine cluster
 // instances, applicable to all instances in the cluster.
 type GceClusterConfig struct {
-	// Optional. The zone where the Google Compute Engine cluster will be located.
+	// Optional. The zone where the Compute Engine cluster will be located.
 	// On a create request, it is required in the "global" region. If omitted
 	// in a non-global Cloud Dataproc region, the service will pick a zone in the
 	// corresponding Compute Engine region. On a get request, zone will always be
@@ -356,8 +358,8 @@ type GceClusterConfig struct {
 	// * `https://www.googleapis.com/compute/v1/projects/[project_id]/zones/[zone]`
 	// * `projects/[project_id]/zones/[zone]`
 	// * `us-central1-f`
-	ZoneUri string `protobuf:"bytes,1,opt,name=zone_uri,json=zoneUri" json:"zone_uri,omitempty"`
-	// Optional. The Google Compute Engine network to be used for machine
+	ZoneUri string `protobuf:"bytes,1,opt,name=zone_uri,json=zoneUri,proto3" json:"zone_uri,omitempty"`
+	// Optional. The Compute Engine network to be used for machine
 	// communications. Cannot be specified with subnetwork_uri. If neither
 	// `network_uri` nor `subnetwork_uri` is specified, the "default" network of
 	// the project is used, if it exists. Cannot be a "Custom Subnet Network" (see
@@ -368,8 +370,8 @@ type GceClusterConfig struct {
 	// * `https://www.googleapis.com/compute/v1/projects/[project_id]/regions/global/default`
 	// * `projects/[project_id]/regions/global/default`
 	// * `default`
-	NetworkUri string `protobuf:"bytes,2,opt,name=network_uri,json=networkUri" json:"network_uri,omitempty"`
-	// Optional. The Google Compute Engine subnetwork to be used for machine
+	NetworkUri string `protobuf:"bytes,2,opt,name=network_uri,json=networkUri,proto3" json:"network_uri,omitempty"`
+	// Optional. The Compute Engine subnetwork to be used for machine
 	// communications. Cannot be specified with network_uri.
 	//
 	// A full URL, partial URI, or short name are valid. Examples:
@@ -377,17 +379,17 @@ type GceClusterConfig struct {
 	// * `https://www.googleapis.com/compute/v1/projects/[project_id]/regions/us-east1/sub0`
 	// * `projects/[project_id]/regions/us-east1/sub0`
 	// * `sub0`
-	SubnetworkUri string `protobuf:"bytes,6,opt,name=subnetwork_uri,json=subnetworkUri" json:"subnetwork_uri,omitempty"`
+	SubnetworkUri string `protobuf:"bytes,6,opt,name=subnetwork_uri,json=subnetworkUri,proto3" json:"subnetwork_uri,omitempty"`
 	// Optional. If true, all instances in the cluster will only have internal IP
 	// addresses. By default, clusters are not restricted to internal IP addresses,
 	// and will have ephemeral external IP addresses assigned to each instance.
 	// This `internal_ip_only` restriction can only be enabled for subnetwork
 	// enabled networks, and all off-cluster dependencies must be configured to be
 	// accessible without external IP addresses.
-	InternalIpOnly bool `protobuf:"varint,7,opt,name=internal_ip_only,json=internalIpOnly" json:"internal_ip_only,omitempty"`
+	InternalIpOnly bool `protobuf:"varint,7,opt,name=internal_ip_only,json=internalIpOnly,proto3" json:"internal_ip_only,omitempty"`
 	// Optional. The service account of the instances. Defaults to the default
-	// Google Compute Engine service account. Custom service accounts need
-	// permissions equivalent to the folloing IAM roles:
+	// Compute Engine service account. Custom service accounts need
+	// permissions equivalent to the following IAM roles:
 	//
 	// * roles/logging.logWriter
 	// * roles/storage.objectAdmin
@@ -395,8 +397,8 @@ type GceClusterConfig struct {
 	// (see https://cloud.google.com/compute/docs/access/service-accounts#custom_service_accounts
 	// for more information).
 	// Example: `[account_id]@[project_id].iam.gserviceaccount.com`
-	ServiceAccount string `protobuf:"bytes,8,opt,name=service_account,json=serviceAccount" json:"service_account,omitempty"`
-	// Optional. The URIs of service account scopes to be included in Google
+	ServiceAccount string `protobuf:"bytes,8,opt,name=service_account,json=serviceAccount,proto3" json:"service_account,omitempty"`
+	// Optional. The URIs of service account scopes to be included in
 	// Compute Engine instances. The following base set of scopes is always
 	// included:
 	//
@@ -410,13 +412,13 @@ type GceClusterConfig struct {
 	// * https://www.googleapis.com/auth/bigtable.admin.table
 	// * https://www.googleapis.com/auth/bigtable.data
 	// * https://www.googleapis.com/auth/devstorage.full_control
-	ServiceAccountScopes []string `protobuf:"bytes,3,rep,name=service_account_scopes,json=serviceAccountScopes" json:"service_account_scopes,omitempty"`
-	// The Google Compute Engine tags to add to all instances (see
+	ServiceAccountScopes []string `protobuf:"bytes,3,rep,name=service_account_scopes,json=serviceAccountScopes,proto3" json:"service_account_scopes,omitempty"`
+	// The Compute Engine tags to add to all instances (see
 	// [Tagging instances](/compute/docs/label-or-tag-resources#tags)).
-	Tags []string `protobuf:"bytes,4,rep,name=tags" json:"tags,omitempty"`
-	// The Google Compute Engine metadata entries to add to all instances (see
+	Tags []string `protobuf:"bytes,4,rep,name=tags,proto3" json:"tags,omitempty"`
+	// The Compute Engine metadata entries to add to all instances (see
 	// [Project and instance metadata](https://cloud.google.com/compute/docs/storing-retrieving-metadata#project_and_instance_metadata)).
-	Metadata             map[string]string `protobuf:"bytes,5,rep,name=metadata" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Metadata             map[string]string `protobuf:"bytes,5,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -426,7 +428,7 @@ func (m *GceClusterConfig) Reset()         { *m = GceClusterConfig{} }
 func (m *GceClusterConfig) String() string { return proto.CompactTextString(m) }
 func (*GceClusterConfig) ProtoMessage()    {}
 func (*GceClusterConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_clusters_11ad3d3844eb379a, []int{2}
+	return fileDescriptor_clusters_92d23f68998e82a3, []int{2}
 }
 func (m *GceClusterConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GceClusterConfig.Unmarshal(m, b)
@@ -502,51 +504,59 @@ func (m *GceClusterConfig) GetMetadata() map[string]string {
 	return nil
 }
 
-// Optional. The config settings for Google Compute Engine resources in
+// Optional. The config settings for Compute Engine resources in
 // an instance group, such as a master or worker group.
 type InstanceGroupConfig struct {
 	// Optional. The number of VM instances in the instance group.
 	// For master instance groups, must be set to 1.
-	NumInstances int32 `protobuf:"varint,1,opt,name=num_instances,json=numInstances" json:"num_instances,omitempty"`
-	// Optional. The list of instance names. Cloud Dataproc derives the names from
-	// `cluster_name`, `num_instances`, and the instance group if not set by user
-	// (recommended practice is to let Cloud Dataproc derive the name).
-	InstanceNames []string `protobuf:"bytes,2,rep,name=instance_names,json=instanceNames" json:"instance_names,omitempty"`
-	// Output-only. The Google Compute Engine image resource used for cluster
+	NumInstances int32 `protobuf:"varint,1,opt,name=num_instances,json=numInstances,proto3" json:"num_instances,omitempty"`
+	// Output only. The list of instance names. Cloud Dataproc derives the names
+	// from `cluster_name`, `num_instances`, and the instance group.
+	InstanceNames []string `protobuf:"bytes,2,rep,name=instance_names,json=instanceNames,proto3" json:"instance_names,omitempty"`
+	// Output only. The Compute Engine image resource used for cluster
 	// instances. Inferred from `SoftwareConfig.image_version`.
-	ImageUri string `protobuf:"bytes,3,opt,name=image_uri,json=imageUri" json:"image_uri,omitempty"`
-	// Optional. The Google Compute Engine machine type used for cluster instances.
+	ImageUri string `protobuf:"bytes,3,opt,name=image_uri,json=imageUri,proto3" json:"image_uri,omitempty"`
+	// Optional. The Compute Engine machine type used for cluster instances.
 	//
 	// A full URL, partial URI, or short name are valid. Examples:
 	//
 	// * `https://www.googleapis.com/compute/v1/projects/[project_id]/zones/us-east1-a/machineTypes/n1-standard-2`
 	// * `projects/[project_id]/zones/us-east1-a/machineTypes/n1-standard-2`
 	// * `n1-standard-2`
-	MachineTypeUri string `protobuf:"bytes,4,opt,name=machine_type_uri,json=machineTypeUri" json:"machine_type_uri,omitempty"`
+	//
+	// **Auto Zone Exception**: If you are using the Cloud Dataproc
+	// [Auto Zone Placement](/dataproc/docs/concepts/configuring-clusters/auto-zone#using_auto_zone_placement)
+	// feature, you must use the short name of the machine type
+	// resource, for example, `n1-standard-2`.
+	MachineTypeUri string `protobuf:"bytes,4,opt,name=machine_type_uri,json=machineTypeUri,proto3" json:"machine_type_uri,omitempty"`
 	// Optional. Disk option config settings.
-	DiskConfig *DiskConfig `protobuf:"bytes,5,opt,name=disk_config,json=diskConfig" json:"disk_config,omitempty"`
+	DiskConfig *DiskConfig `protobuf:"bytes,5,opt,name=disk_config,json=diskConfig,proto3" json:"disk_config,omitempty"`
 	// Optional. Specifies that this instance group contains preemptible instances.
-	IsPreemptible bool `protobuf:"varint,6,opt,name=is_preemptible,json=isPreemptible" json:"is_preemptible,omitempty"`
-	// Output-only. The config for Google Compute Engine Instance Group
+	IsPreemptible bool `protobuf:"varint,6,opt,name=is_preemptible,json=isPreemptible,proto3" json:"is_preemptible,omitempty"`
+	// Output only. The config for Compute Engine Instance Group
 	// Manager that manages this group.
 	// This is only used for preemptible instance groups.
-	ManagedGroupConfig *ManagedGroupConfig `protobuf:"bytes,7,opt,name=managed_group_config,json=managedGroupConfig" json:"managed_group_config,omitempty"`
-	// Optional. The Google Compute Engine accelerator configuration for these
+	ManagedGroupConfig *ManagedGroupConfig `protobuf:"bytes,7,opt,name=managed_group_config,json=managedGroupConfig,proto3" json:"managed_group_config,omitempty"`
+	// Optional. The Compute Engine accelerator configuration for these
 	// instances.
 	//
 	// **Beta Feature**: This feature is still under development. It may be
 	// changed before final release.
-	Accelerators         []*AcceleratorConfig `protobuf:"bytes,8,rep,name=accelerators" json:"accelerators,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
-	XXX_unrecognized     []byte               `json:"-"`
-	XXX_sizecache        int32                `json:"-"`
+	Accelerators []*AcceleratorConfig `protobuf:"bytes,8,rep,name=accelerators,proto3" json:"accelerators,omitempty"`
+	// Optional. Specifies the minimum cpu platform for the Instance Group.
+	// See [Cloud Dataproc&rarr;Minimum CPU Platform]
+	// (/dataproc/docs/concepts/compute/dataproc-min-cpu).
+	MinCpuPlatform       string   `protobuf:"bytes,9,opt,name=min_cpu_platform,json=minCpuPlatform,proto3" json:"min_cpu_platform,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
 func (m *InstanceGroupConfig) Reset()         { *m = InstanceGroupConfig{} }
 func (m *InstanceGroupConfig) String() string { return proto.CompactTextString(m) }
 func (*InstanceGroupConfig) ProtoMessage()    {}
 func (*InstanceGroupConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_clusters_11ad3d3844eb379a, []int{3}
+	return fileDescriptor_clusters_92d23f68998e82a3, []int{3}
 }
 func (m *InstanceGroupConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_InstanceGroupConfig.Unmarshal(m, b)
@@ -622,13 +632,20 @@ func (m *InstanceGroupConfig) GetAccelerators() []*AcceleratorConfig {
 	return nil
 }
 
+func (m *InstanceGroupConfig) GetMinCpuPlatform() string {
+	if m != nil {
+		return m.MinCpuPlatform
+	}
+	return ""
+}
+
 // Specifies the resources used to actively manage an instance group.
 type ManagedGroupConfig struct {
-	// Output-only. The name of the Instance Template used for the Managed
+	// Output only. The name of the Instance Template used for the Managed
 	// Instance Group.
-	InstanceTemplateName string `protobuf:"bytes,1,opt,name=instance_template_name,json=instanceTemplateName" json:"instance_template_name,omitempty"`
-	// Output-only. The name of the Instance Group Manager for this group.
-	InstanceGroupManagerName string   `protobuf:"bytes,2,opt,name=instance_group_manager_name,json=instanceGroupManagerName" json:"instance_group_manager_name,omitempty"`
+	InstanceTemplateName string `protobuf:"bytes,1,opt,name=instance_template_name,json=instanceTemplateName,proto3" json:"instance_template_name,omitempty"`
+	// Output only. The name of the Instance Group Manager for this group.
+	InstanceGroupManagerName string   `protobuf:"bytes,2,opt,name=instance_group_manager_name,json=instanceGroupManagerName,proto3" json:"instance_group_manager_name,omitempty"`
 	XXX_NoUnkeyedLiteral     struct{} `json:"-"`
 	XXX_unrecognized         []byte   `json:"-"`
 	XXX_sizecache            int32    `json:"-"`
@@ -638,7 +655,7 @@ func (m *ManagedGroupConfig) Reset()         { *m = ManagedGroupConfig{} }
 func (m *ManagedGroupConfig) String() string { return proto.CompactTextString(m) }
 func (*ManagedGroupConfig) ProtoMessage()    {}
 func (*ManagedGroupConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_clusters_11ad3d3844eb379a, []int{4}
+	return fileDescriptor_clusters_92d23f68998e82a3, []int{4}
 }
 func (m *ManagedGroupConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ManagedGroupConfig.Unmarshal(m, b)
@@ -676,16 +693,21 @@ func (m *ManagedGroupConfig) GetInstanceGroupManagerName() string {
 // of an instance group (see [GPUs on Compute Engine](/compute/docs/gpus/)).
 type AcceleratorConfig struct {
 	// Full URL, partial URI, or short name of the accelerator type resource to
-	// expose to this instance. See [Google Compute Engine AcceleratorTypes](
+	// expose to this instance. See [Compute Engine AcceleratorTypes](
 	// /compute/docs/reference/beta/acceleratorTypes)
 	//
 	// Examples
 	// * `https://www.googleapis.com/compute/beta/projects/[project_id]/zones/us-east1-a/acceleratorTypes/nvidia-tesla-k80`
 	// * `projects/[project_id]/zones/us-east1-a/acceleratorTypes/nvidia-tesla-k80`
 	// * `nvidia-tesla-k80`
-	AcceleratorTypeUri string `protobuf:"bytes,1,opt,name=accelerator_type_uri,json=acceleratorTypeUri" json:"accelerator_type_uri,omitempty"`
+	//
+	// **Auto Zone Exception**: If you are using the Cloud Dataproc
+	// [Auto Zone Placement](/dataproc/docs/concepts/configuring-clusters/auto-zone#using_auto_zone_placement)
+	// feature, you must use the short name of the accelerator type
+	// resource, for example, `nvidia-tesla-k80`.
+	AcceleratorTypeUri string `protobuf:"bytes,1,opt,name=accelerator_type_uri,json=acceleratorTypeUri,proto3" json:"accelerator_type_uri,omitempty"`
 	// The number of the accelerator cards of this type exposed to this instance.
-	AcceleratorCount     int32    `protobuf:"varint,2,opt,name=accelerator_count,json=acceleratorCount" json:"accelerator_count,omitempty"`
+	AcceleratorCount     int32    `protobuf:"varint,2,opt,name=accelerator_count,json=acceleratorCount,proto3" json:"accelerator_count,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -695,7 +717,7 @@ func (m *AcceleratorConfig) Reset()         { *m = AcceleratorConfig{} }
 func (m *AcceleratorConfig) String() string { return proto.CompactTextString(m) }
 func (*AcceleratorConfig) ProtoMessage()    {}
 func (*AcceleratorConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_clusters_11ad3d3844eb379a, []int{5}
+	return fileDescriptor_clusters_92d23f68998e82a3, []int{5}
 }
 func (m *AcceleratorConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AcceleratorConfig.Unmarshal(m, b)
@@ -731,15 +753,19 @@ func (m *AcceleratorConfig) GetAcceleratorCount() int32 {
 
 // Specifies the config of disk options for a group of VM instances.
 type DiskConfig struct {
+	// Optional. Type of the boot disk (default is "pd-standard").
+	// Valid values: "pd-ssd" (Persistent Disk Solid State Drive) or
+	// "pd-standard" (Persistent Disk Hard Disk Drive).
+	BootDiskType string `protobuf:"bytes,3,opt,name=boot_disk_type,json=bootDiskType,proto3" json:"boot_disk_type,omitempty"`
 	// Optional. Size in GB of the boot disk (default is 500GB).
-	BootDiskSizeGb int32 `protobuf:"varint,1,opt,name=boot_disk_size_gb,json=bootDiskSizeGb" json:"boot_disk_size_gb,omitempty"`
+	BootDiskSizeGb int32 `protobuf:"varint,1,opt,name=boot_disk_size_gb,json=bootDiskSizeGb,proto3" json:"boot_disk_size_gb,omitempty"`
 	// Optional. Number of attached SSDs, from 0 to 4 (default is 0).
 	// If SSDs are not attached, the boot disk is used to store runtime logs and
 	// [HDFS](https://hadoop.apache.org/docs/r1.2.1/hdfs_user_guide.html) data.
 	// If one or more SSDs are attached, this runtime bulk
 	// data is spread across them, and the boot disk contains only basic
 	// config and installed binaries.
-	NumLocalSsds         int32    `protobuf:"varint,2,opt,name=num_local_ssds,json=numLocalSsds" json:"num_local_ssds,omitempty"`
+	NumLocalSsds         int32    `protobuf:"varint,2,opt,name=num_local_ssds,json=numLocalSsds,proto3" json:"num_local_ssds,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -749,7 +775,7 @@ func (m *DiskConfig) Reset()         { *m = DiskConfig{} }
 func (m *DiskConfig) String() string { return proto.CompactTextString(m) }
 func (*DiskConfig) ProtoMessage()    {}
 func (*DiskConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_clusters_11ad3d3844eb379a, []int{6}
+	return fileDescriptor_clusters_92d23f68998e82a3, []int{6}
 }
 func (m *DiskConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DiskConfig.Unmarshal(m, b)
@@ -769,6 +795,13 @@ func (m *DiskConfig) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_DiskConfig proto.InternalMessageInfo
 
+func (m *DiskConfig) GetBootDiskType() string {
+	if m != nil {
+		return m.BootDiskType
+	}
+	return ""
+}
+
 func (m *DiskConfig) GetBootDiskSizeGb() int32 {
 	if m != nil {
 		return m.BootDiskSizeGb
@@ -787,7 +820,10 @@ func (m *DiskConfig) GetNumLocalSsds() int32 {
 type LifecycleConfig struct {
 	// Optional. The longest duration that cluster would keep alive while staying
 	//  idle; passing this threshold will cause cluster to be auto-deleted.
-	IdleDeleteTtl *duration.Duration `protobuf:"bytes,1,opt,name=idle_delete_ttl,json=idleDeleteTtl" json:"idle_delete_ttl,omitempty"`
+	IdleDeleteTtl *duration.Duration `protobuf:"bytes,1,opt,name=idle_delete_ttl,json=idleDeleteTtl,proto3" json:"idle_delete_ttl,omitempty"`
+	// Optional. Either the exact time the cluster should be deleted at or
+	// the cluster maximum age.
+	//
 	// Types that are valid to be assigned to Ttl:
 	//	*LifecycleConfig_AutoDeleteTime
 	//	*LifecycleConfig_AutoDeleteTtl
@@ -801,7 +837,7 @@ func (m *LifecycleConfig) Reset()         { *m = LifecycleConfig{} }
 func (m *LifecycleConfig) String() string { return proto.CompactTextString(m) }
 func (*LifecycleConfig) ProtoMessage()    {}
 func (*LifecycleConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_clusters_11ad3d3844eb379a, []int{7}
+	return fileDescriptor_clusters_92d23f68998e82a3, []int{7}
 }
 func (m *LifecycleConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_LifecycleConfig.Unmarshal(m, b)
@@ -826,10 +862,10 @@ type isLifecycleConfig_Ttl interface {
 }
 
 type LifecycleConfig_AutoDeleteTime struct {
-	AutoDeleteTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=auto_delete_time,json=autoDeleteTime,oneof"`
+	AutoDeleteTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=auto_delete_time,json=autoDeleteTime,proto3,oneof"`
 }
 type LifecycleConfig_AutoDeleteTtl struct {
-	AutoDeleteTtl *duration.Duration `protobuf:"bytes,3,opt,name=auto_delete_ttl,json=autoDeleteTtl,oneof"`
+	AutoDeleteTtl *duration.Duration `protobuf:"bytes,3,opt,name=auto_delete_ttl,json=autoDeleteTtl,proto3,oneof"`
 }
 
 func (*LifecycleConfig_AutoDeleteTime) isLifecycleConfig_Ttl() {}
@@ -940,13 +976,13 @@ func _LifecycleConfig_OneofSizer(msg proto.Message) (n int) {
 // Specifies an executable to run on a fully configured node and a
 // timeout period for executable completion.
 type NodeInitializationAction struct {
-	// Required. Google Cloud Storage URI of executable file.
-	ExecutableFile string `protobuf:"bytes,1,opt,name=executable_file,json=executableFile" json:"executable_file,omitempty"`
+	// Required. Cloud Storage URI of executable file.
+	ExecutableFile string `protobuf:"bytes,1,opt,name=executable_file,json=executableFile,proto3" json:"executable_file,omitempty"`
 	// Optional. Amount of time executable has to complete. Default is
 	// 10 minutes. Cluster creation fails with an explanatory error message (the
 	// name of the executable that caused the error and the exceeded timeout
 	// period) if the executable is not completed at end of the timeout period.
-	ExecutionTimeout     *duration.Duration `protobuf:"bytes,2,opt,name=execution_timeout,json=executionTimeout" json:"execution_timeout,omitempty"`
+	ExecutionTimeout     *duration.Duration `protobuf:"bytes,2,opt,name=execution_timeout,json=executionTimeout,proto3" json:"execution_timeout,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
 	XXX_unrecognized     []byte             `json:"-"`
 	XXX_sizecache        int32              `json:"-"`
@@ -956,7 +992,7 @@ func (m *NodeInitializationAction) Reset()         { *m = NodeInitializationActi
 func (m *NodeInitializationAction) String() string { return proto.CompactTextString(m) }
 func (*NodeInitializationAction) ProtoMessage()    {}
 func (*NodeInitializationAction) Descriptor() ([]byte, []int) {
-	return fileDescriptor_clusters_11ad3d3844eb379a, []int{8}
+	return fileDescriptor_clusters_92d23f68998e82a3, []int{8}
 }
 func (m *NodeInitializationAction) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_NodeInitializationAction.Unmarshal(m, b)
@@ -992,15 +1028,15 @@ func (m *NodeInitializationAction) GetExecutionTimeout() *duration.Duration {
 
 // The status of a cluster and its instances.
 type ClusterStatus struct {
-	// Output-only. The cluster's state.
-	State ClusterStatus_State `protobuf:"varint,1,opt,name=state,enum=google.cloud.dataproc.v1beta2.ClusterStatus_State" json:"state,omitempty"`
-	// Output-only. Optional details of cluster's state.
-	Detail string `protobuf:"bytes,2,opt,name=detail" json:"detail,omitempty"`
-	// Output-only. Time when this state was entered.
-	StateStartTime *timestamp.Timestamp `protobuf:"bytes,3,opt,name=state_start_time,json=stateStartTime" json:"state_start_time,omitempty"`
-	// Output-only. Additional state information that includes
+	// Output only. The cluster's state.
+	State ClusterStatus_State `protobuf:"varint,1,opt,name=state,proto3,enum=google.cloud.dataproc.v1beta2.ClusterStatus_State" json:"state,omitempty"`
+	// Output only. Optional details of cluster's state.
+	Detail string `protobuf:"bytes,2,opt,name=detail,proto3" json:"detail,omitempty"`
+	// Output only. Time when this state was entered.
+	StateStartTime *timestamp.Timestamp `protobuf:"bytes,3,opt,name=state_start_time,json=stateStartTime,proto3" json:"state_start_time,omitempty"`
+	// Output only. Additional state information that includes
 	// status reported by the agent.
-	Substate             ClusterStatus_Substate `protobuf:"varint,4,opt,name=substate,enum=google.cloud.dataproc.v1beta2.ClusterStatus_Substate" json:"substate,omitempty"`
+	Substate             ClusterStatus_Substate `protobuf:"varint,4,opt,name=substate,proto3,enum=google.cloud.dataproc.v1beta2.ClusterStatus_Substate" json:"substate,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
 	XXX_unrecognized     []byte                 `json:"-"`
 	XXX_sizecache        int32                  `json:"-"`
@@ -1010,7 +1046,7 @@ func (m *ClusterStatus) Reset()         { *m = ClusterStatus{} }
 func (m *ClusterStatus) String() string { return proto.CompactTextString(m) }
 func (*ClusterStatus) ProtoMessage()    {}
 func (*ClusterStatus) Descriptor() ([]byte, []int) {
-	return fileDescriptor_clusters_11ad3d3844eb379a, []int{9}
+	return fileDescriptor_clusters_92d23f68998e82a3, []int{9}
 }
 func (m *ClusterStatus) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ClusterStatus.Unmarshal(m, b)
@@ -1060,10 +1096,12 @@ func (m *ClusterStatus) GetSubstate() ClusterStatus_Substate {
 
 // Specifies the selection and config of software inside the cluster.
 type SoftwareConfig struct {
-	// Optional. The version of software inside the cluster. It must match the
-	// regular expression `[0-9]+\.[0-9]+`. If unspecified, it defaults to the
-	// latest version (see [Cloud Dataproc Versioning](/dataproc/versioning)).
-	ImageVersion string `protobuf:"bytes,1,opt,name=image_version,json=imageVersion" json:"image_version,omitempty"`
+	// Optional. The version of software inside the cluster. It must be one of the supported
+	// [Cloud Dataproc Versions](/dataproc/docs/concepts/versioning/dataproc-versions#supported_cloud_dataproc_versions),
+	// such as "1.2" (including a subminor version, such as "1.2.29"), or the
+	// ["preview" version](/dataproc/docs/concepts/versioning/dataproc-versions#other_versions).
+	// If unspecified, it defaults to the latest version.
+	ImageVersion string `protobuf:"bytes,1,opt,name=image_version,json=imageVersion,proto3" json:"image_version,omitempty"`
 	// Optional. The properties to set on daemon config files.
 	//
 	// Property keys are specified in `prefix:property` format, such as
@@ -1082,7 +1120,7 @@ type SoftwareConfig struct {
 	//
 	// For more information, see
 	// [Cluster properties](/dataproc/docs/concepts/cluster-properties).
-	Properties           map[string]string `protobuf:"bytes,2,rep,name=properties" json:"properties,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Properties           map[string]string `protobuf:"bytes,2,rep,name=properties,proto3" json:"properties,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -1092,7 +1130,7 @@ func (m *SoftwareConfig) Reset()         { *m = SoftwareConfig{} }
 func (m *SoftwareConfig) String() string { return proto.CompactTextString(m) }
 func (*SoftwareConfig) ProtoMessage()    {}
 func (*SoftwareConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_clusters_11ad3d3844eb379a, []int{10}
+	return fileDescriptor_clusters_92d23f68998e82a3, []int{10}
 }
 func (m *SoftwareConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SoftwareConfig.Unmarshal(m, b)
@@ -1132,9 +1170,9 @@ func (m *SoftwareConfig) GetProperties() map[string]string {
 // be changed before final release.
 type ClusterMetrics struct {
 	// The HDFS metrics.
-	HdfsMetrics map[string]int64 `protobuf:"bytes,1,rep,name=hdfs_metrics,json=hdfsMetrics" json:"hdfs_metrics,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
+	HdfsMetrics map[string]int64 `protobuf:"bytes,1,rep,name=hdfs_metrics,json=hdfsMetrics,proto3" json:"hdfs_metrics,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
 	// The YARN metrics.
-	YarnMetrics          map[string]int64 `protobuf:"bytes,2,rep,name=yarn_metrics,json=yarnMetrics" json:"yarn_metrics,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
+	YarnMetrics          map[string]int64 `protobuf:"bytes,2,rep,name=yarn_metrics,json=yarnMetrics,proto3" json:"yarn_metrics,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
 	XXX_unrecognized     []byte           `json:"-"`
 	XXX_sizecache        int32            `json:"-"`
@@ -1144,7 +1182,7 @@ func (m *ClusterMetrics) Reset()         { *m = ClusterMetrics{} }
 func (m *ClusterMetrics) String() string { return proto.CompactTextString(m) }
 func (*ClusterMetrics) ProtoMessage()    {}
 func (*ClusterMetrics) Descriptor() ([]byte, []int) {
-	return fileDescriptor_clusters_11ad3d3844eb379a, []int{11}
+	return fileDescriptor_clusters_92d23f68998e82a3, []int{11}
 }
 func (m *ClusterMetrics) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ClusterMetrics.Unmarshal(m, b)
@@ -1182,11 +1220,23 @@ func (m *ClusterMetrics) GetYarnMetrics() map[string]int64 {
 type CreateClusterRequest struct {
 	// Required. The ID of the Google Cloud Platform project that the cluster
 	// belongs to.
-	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// Required. The Cloud Dataproc region in which to handle the request.
-	Region string `protobuf:"bytes,3,opt,name=region" json:"region,omitempty"`
+	Region string `protobuf:"bytes,3,opt,name=region,proto3" json:"region,omitempty"`
 	// Required. The cluster to create.
-	Cluster              *Cluster `protobuf:"bytes,2,opt,name=cluster" json:"cluster,omitempty"`
+	Cluster *Cluster `protobuf:"bytes,2,opt,name=cluster,proto3" json:"cluster,omitempty"`
+	// Optional. A unique id used to identify the request. If the server
+	// receives two [CreateClusterRequest][google.cloud.dataproc.v1beta2.CreateClusterRequest] requests  with the same
+	// id, then the second request will be ignored and the
+	// first [google.longrunning.Operation][google.longrunning.Operation] created and stored in the backend
+	// is returned.
+	//
+	// It is recommended to always set this value to a
+	// [UUID](https://en.wikipedia.org/wiki/Universally_unique_identifier).
+	//
+	// The id must contain only letters (a-z, A-Z), numbers (0-9),
+	// underscores (_), and hyphens (-). The maximum length is 40 characters.
+	RequestId            string   `protobuf:"bytes,4,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1196,7 +1246,7 @@ func (m *CreateClusterRequest) Reset()         { *m = CreateClusterRequest{} }
 func (m *CreateClusterRequest) String() string { return proto.CompactTextString(m) }
 func (*CreateClusterRequest) ProtoMessage()    {}
 func (*CreateClusterRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_clusters_11ad3d3844eb379a, []int{12}
+	return fileDescriptor_clusters_92d23f68998e82a3, []int{12}
 }
 func (m *CreateClusterRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CreateClusterRequest.Unmarshal(m, b)
@@ -1237,17 +1287,24 @@ func (m *CreateClusterRequest) GetCluster() *Cluster {
 	return nil
 }
 
+func (m *CreateClusterRequest) GetRequestId() string {
+	if m != nil {
+		return m.RequestId
+	}
+	return ""
+}
+
 // A request to update a cluster.
 type UpdateClusterRequest struct {
 	// Required. The ID of the Google Cloud Platform project the
 	// cluster belongs to.
-	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// Required. The Cloud Dataproc region in which to handle the request.
-	Region string `protobuf:"bytes,5,opt,name=region" json:"region,omitempty"`
+	Region string `protobuf:"bytes,5,opt,name=region,proto3" json:"region,omitempty"`
 	// Required. The cluster name.
-	ClusterName string `protobuf:"bytes,2,opt,name=cluster_name,json=clusterName" json:"cluster_name,omitempty"`
+	ClusterName string `protobuf:"bytes,2,opt,name=cluster_name,json=clusterName,proto3" json:"cluster_name,omitempty"`
 	// Required. The changes to the cluster.
-	Cluster *Cluster `protobuf:"bytes,3,opt,name=cluster" json:"cluster,omitempty"`
+	Cluster *Cluster `protobuf:"bytes,3,opt,name=cluster,proto3" json:"cluster,omitempty"`
 	// Optional. Timeout for graceful YARN decomissioning. Graceful
 	// decommissioning allows removing nodes from the cluster without
 	// interrupting jobs in progress. Timeout specifies how long to wait for jobs
@@ -1256,11 +1313,11 @@ type UpdateClusterRequest struct {
 	// the maximum allowed timeout is 1 day.
 	//
 	// Only supported on Dataproc image versions 1.2 and higher.
-	GracefulDecommissionTimeout *duration.Duration `protobuf:"bytes,6,opt,name=graceful_decommission_timeout,json=gracefulDecommissionTimeout" json:"graceful_decommission_timeout,omitempty"`
-	// Required. Specifies the path, relative to <code>Cluster</code>, of
+	GracefulDecommissionTimeout *duration.Duration `protobuf:"bytes,6,opt,name=graceful_decommission_timeout,json=gracefulDecommissionTimeout,proto3" json:"graceful_decommission_timeout,omitempty"`
+	// Required. Specifies the path, relative to `Cluster`, of
 	// the field to update. For example, to change the number of workers
-	// in a cluster to 5, the <code>update_mask</code> parameter would be
-	// specified as <code>config.worker_config.num_instances</code>,
+	// in a cluster to 5, the `update_mask` parameter would be
+	// specified as `config.worker_config.num_instances`,
 	// and the `PATCH` request body would specify the new value, as follows:
 	//
 	//     {
@@ -1270,8 +1327,9 @@ type UpdateClusterRequest struct {
 	//         }
 	//       }
 	//     }
+	//
 	// Similarly, to change the number of preemptible workers in a cluster to 5, the
-	// <code>update_mask</code> parameter would be <code>config.secondary_worker_config.num_instances</code>,
+	// `update_mask` parameter would be `config.secondary_worker_config.num_instances`,
 	// and the `PATCH` request body would be set as follows:
 	//
 	//     {
@@ -1281,22 +1339,54 @@ type UpdateClusterRequest struct {
 	//         }
 	//       }
 	//     }
-	// <strong>Note:</strong> currently only some fields can be updated:
-	// |Mask|Purpose|
-	// |`labels`|Updates labels|
-	// |`config.worker_config.num_instances`|Resize primary worker group|
-	// |`config.secondary_worker_config.num_instances`|Resize secondary worker group|
-	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,4,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
-	XXX_unrecognized     []byte                `json:"-"`
-	XXX_sizecache        int32                 `json:"-"`
+	// <strong>Note:</strong> currently only the following fields can be updated:
+	//
+	// <table>
+	// <tr>
+	// <td><strong>Mask</strong></td><td><strong>Purpose</strong></td>
+	// </tr>
+	// <tr>
+	// <td>labels</td><td>Updates labels</td>
+	// </tr>
+	// <tr>
+	// <td>config.worker_config.num_instances</td><td>Resize primary worker group</td>
+	// </tr>
+	// <tr>
+	// <td>config.secondary_worker_config.num_instances</td><td>Resize secondary worker group</td>
+	// </tr>
+	// <tr>
+	// <td>config.lifecycle_config.auto_delete_ttl</td><td>Reset MAX TTL duration</td>
+	// </tr>
+	// <tr>
+	// <td>config.lifecycle_config.auto_delete_time</td><td>Update MAX TTL deletion timestamp</td>
+	// </tr>
+	// <tr>
+	// <td>config.lifecycle_config.idle_delete_ttl</td><td>Update Idle TTL duration</td>
+	// </tr>
+	// </table>
+	UpdateMask *field_mask.FieldMask `protobuf:"bytes,4,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
+	// Optional. A unique id used to identify the request. If the server
+	// receives two [UpdateClusterRequest][google.cloud.dataproc.v1beta2.UpdateClusterRequest] requests  with the same
+	// id, then the second request will be ignored and the
+	// first [google.longrunning.Operation][google.longrunning.Operation] created and stored in the
+	// backend is returned.
+	//
+	// It is recommended to always set this value to a
+	// [UUID](https://en.wikipedia.org/wiki/Universally_unique_identifier).
+	//
+	// The id must contain only letters (a-z, A-Z), numbers (0-9),
+	// underscores (_), and hyphens (-). The maximum length is 40 characters.
+	RequestId            string   `protobuf:"bytes,7,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
 func (m *UpdateClusterRequest) Reset()         { *m = UpdateClusterRequest{} }
 func (m *UpdateClusterRequest) String() string { return proto.CompactTextString(m) }
 func (*UpdateClusterRequest) ProtoMessage()    {}
 func (*UpdateClusterRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_clusters_11ad3d3844eb379a, []int{13}
+	return fileDescriptor_clusters_92d23f68998e82a3, []int{13}
 }
 func (m *UpdateClusterRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UpdateClusterRequest.Unmarshal(m, b)
@@ -1358,18 +1448,37 @@ func (m *UpdateClusterRequest) GetUpdateMask() *field_mask.FieldMask {
 	return nil
 }
 
+func (m *UpdateClusterRequest) GetRequestId() string {
+	if m != nil {
+		return m.RequestId
+	}
+	return ""
+}
+
 // A request to delete a cluster.
 type DeleteClusterRequest struct {
 	// Required. The ID of the Google Cloud Platform project that the cluster
 	// belongs to.
-	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// Required. The Cloud Dataproc region in which to handle the request.
-	Region string `protobuf:"bytes,3,opt,name=region" json:"region,omitempty"`
+	Region string `protobuf:"bytes,3,opt,name=region,proto3" json:"region,omitempty"`
 	// Required. The cluster name.
-	ClusterName string `protobuf:"bytes,2,opt,name=cluster_name,json=clusterName" json:"cluster_name,omitempty"`
+	ClusterName string `protobuf:"bytes,2,opt,name=cluster_name,json=clusterName,proto3" json:"cluster_name,omitempty"`
 	// Optional. Specifying the `cluster_uuid` means the RPC should fail
 	// (with error NOT_FOUND) if cluster with specified UUID does not exist.
-	ClusterUuid          string   `protobuf:"bytes,4,opt,name=cluster_uuid,json=clusterUuid" json:"cluster_uuid,omitempty"`
+	ClusterUuid string `protobuf:"bytes,4,opt,name=cluster_uuid,json=clusterUuid,proto3" json:"cluster_uuid,omitempty"`
+	// Optional. A unique id used to identify the request. If the server
+	// receives two [DeleteClusterRequest][google.cloud.dataproc.v1beta2.DeleteClusterRequest] requests  with the same
+	// id, then the second request will be ignored and the
+	// first [google.longrunning.Operation][google.longrunning.Operation] created and stored in the
+	// backend is returned.
+	//
+	// It is recommended to always set this value to a
+	// [UUID](https://en.wikipedia.org/wiki/Universally_unique_identifier).
+	//
+	// The id must contain only letters (a-z, A-Z), numbers (0-9),
+	// underscores (_), and hyphens (-). The maximum length is 40 characters.
+	RequestId            string   `protobuf:"bytes,5,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1379,7 +1488,7 @@ func (m *DeleteClusterRequest) Reset()         { *m = DeleteClusterRequest{} }
 func (m *DeleteClusterRequest) String() string { return proto.CompactTextString(m) }
 func (*DeleteClusterRequest) ProtoMessage()    {}
 func (*DeleteClusterRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_clusters_11ad3d3844eb379a, []int{14}
+	return fileDescriptor_clusters_92d23f68998e82a3, []int{14}
 }
 func (m *DeleteClusterRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeleteClusterRequest.Unmarshal(m, b)
@@ -1427,15 +1536,22 @@ func (m *DeleteClusterRequest) GetClusterUuid() string {
 	return ""
 }
 
+func (m *DeleteClusterRequest) GetRequestId() string {
+	if m != nil {
+		return m.RequestId
+	}
+	return ""
+}
+
 // Request to get the resource representation for a cluster in a project.
 type GetClusterRequest struct {
 	// Required. The ID of the Google Cloud Platform project that the cluster
 	// belongs to.
-	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// Required. The Cloud Dataproc region in which to handle the request.
-	Region string `protobuf:"bytes,3,opt,name=region" json:"region,omitempty"`
+	Region string `protobuf:"bytes,3,opt,name=region,proto3" json:"region,omitempty"`
 	// Required. The cluster name.
-	ClusterName          string   `protobuf:"bytes,2,opt,name=cluster_name,json=clusterName" json:"cluster_name,omitempty"`
+	ClusterName          string   `protobuf:"bytes,2,opt,name=cluster_name,json=clusterName,proto3" json:"cluster_name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1445,7 +1561,7 @@ func (m *GetClusterRequest) Reset()         { *m = GetClusterRequest{} }
 func (m *GetClusterRequest) String() string { return proto.CompactTextString(m) }
 func (*GetClusterRequest) ProtoMessage()    {}
 func (*GetClusterRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_clusters_11ad3d3844eb379a, []int{15}
+	return fileDescriptor_clusters_92d23f68998e82a3, []int{15}
 }
 func (m *GetClusterRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetClusterRequest.Unmarshal(m, b)
@@ -1490,9 +1606,9 @@ func (m *GetClusterRequest) GetClusterName() string {
 type ListClustersRequest struct {
 	// Required. The ID of the Google Cloud Platform project that the cluster
 	// belongs to.
-	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// Required. The Cloud Dataproc region in which to handle the request.
-	Region string `protobuf:"bytes,4,opt,name=region" json:"region,omitempty"`
+	Region string `protobuf:"bytes,4,opt,name=region,proto3" json:"region,omitempty"`
 	// Optional. A filter constraining the clusters to list. Filters are
 	// case-sensitive and have the following syntax:
 	//
@@ -1512,11 +1628,11 @@ type ListClustersRequest struct {
 	//
 	// status.state = ACTIVE AND clusterName = mycluster
 	// AND labels.env = staging AND labels.starred = *
-	Filter string `protobuf:"bytes,5,opt,name=filter" json:"filter,omitempty"`
+	Filter string `protobuf:"bytes,5,opt,name=filter,proto3" json:"filter,omitempty"`
 	// Optional. The standard List page size.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Optional. The standard List page token.
-	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1526,7 +1642,7 @@ func (m *ListClustersRequest) Reset()         { *m = ListClustersRequest{} }
 func (m *ListClustersRequest) String() string { return proto.CompactTextString(m) }
 func (*ListClustersRequest) ProtoMessage()    {}
 func (*ListClustersRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_clusters_11ad3d3844eb379a, []int{16}
+	return fileDescriptor_clusters_92d23f68998e82a3, []int{16}
 }
 func (m *ListClustersRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListClustersRequest.Unmarshal(m, b)
@@ -1583,12 +1699,12 @@ func (m *ListClustersRequest) GetPageToken() string {
 
 // The list of all clusters in a project.
 type ListClustersResponse struct {
-	// Output-only. The clusters in the project.
-	Clusters []*Cluster `protobuf:"bytes,1,rep,name=clusters" json:"clusters,omitempty"`
-	// Output-only. This token is included in the response if there are more
+	// Output only. The clusters in the project.
+	Clusters []*Cluster `protobuf:"bytes,1,rep,name=clusters,proto3" json:"clusters,omitempty"`
+	// Output only. This token is included in the response if there are more
 	// results to fetch. To fetch additional results, provide this value as the
 	// `page_token` in a subsequent <code>ListClustersRequest</code>.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1598,7 +1714,7 @@ func (m *ListClustersResponse) Reset()         { *m = ListClustersResponse{} }
 func (m *ListClustersResponse) String() string { return proto.CompactTextString(m) }
 func (*ListClustersResponse) ProtoMessage()    {}
 func (*ListClustersResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_clusters_11ad3d3844eb379a, []int{17}
+	return fileDescriptor_clusters_92d23f68998e82a3, []int{17}
 }
 func (m *ListClustersResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListClustersResponse.Unmarshal(m, b)
@@ -1636,11 +1752,11 @@ func (m *ListClustersResponse) GetNextPageToken() string {
 type DiagnoseClusterRequest struct {
 	// Required. The ID of the Google Cloud Platform project that the cluster
 	// belongs to.
-	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// Required. The Cloud Dataproc region in which to handle the request.
-	Region string `protobuf:"bytes,3,opt,name=region" json:"region,omitempty"`
+	Region string `protobuf:"bytes,3,opt,name=region,proto3" json:"region,omitempty"`
 	// Required. The cluster name.
-	ClusterName          string   `protobuf:"bytes,2,opt,name=cluster_name,json=clusterName" json:"cluster_name,omitempty"`
+	ClusterName          string   `protobuf:"bytes,2,opt,name=cluster_name,json=clusterName,proto3" json:"cluster_name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1650,7 +1766,7 @@ func (m *DiagnoseClusterRequest) Reset()         { *m = DiagnoseClusterRequest{}
 func (m *DiagnoseClusterRequest) String() string { return proto.CompactTextString(m) }
 func (*DiagnoseClusterRequest) ProtoMessage()    {}
 func (*DiagnoseClusterRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_clusters_11ad3d3844eb379a, []int{18}
+	return fileDescriptor_clusters_92d23f68998e82a3, []int{18}
 }
 func (m *DiagnoseClusterRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DiagnoseClusterRequest.Unmarshal(m, b)
@@ -1693,10 +1809,10 @@ func (m *DiagnoseClusterRequest) GetClusterName() string {
 
 // The location of diagnostic output.
 type DiagnoseClusterResults struct {
-	// Output-only. The Google Cloud Storage URI of the diagnostic output.
+	// Output only. The Cloud Storage URI of the diagnostic output.
 	// The output report is a plain text file with a summary of collected
 	// diagnostics.
-	OutputUri            string   `protobuf:"bytes,1,opt,name=output_uri,json=outputUri" json:"output_uri,omitempty"`
+	OutputUri            string   `protobuf:"bytes,1,opt,name=output_uri,json=outputUri,proto3" json:"output_uri,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1706,7 +1822,7 @@ func (m *DiagnoseClusterResults) Reset()         { *m = DiagnoseClusterResults{}
 func (m *DiagnoseClusterResults) String() string { return proto.CompactTextString(m) }
 func (*DiagnoseClusterResults) ProtoMessage()    {}
 func (*DiagnoseClusterResults) Descriptor() ([]byte, []int) {
-	return fileDescriptor_clusters_11ad3d3844eb379a, []int{19}
+	return fileDescriptor_clusters_92d23f68998e82a3, []int{19}
 }
 func (m *DiagnoseClusterResults) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DiagnoseClusterResults.Unmarshal(m, b)
@@ -1853,8 +1969,7 @@ func (c *clusterControllerClient) DiagnoseCluster(ctx context.Context, in *Diagn
 	return out, nil
 }
 
-// Server API for ClusterController service
-
+// ClusterControllerServer is the server API for ClusterController service.
 type ClusterControllerServer interface {
 	// Creates a cluster in a project.
 	CreateCluster(context.Context, *CreateClusterRequest) (*longrunning.Operation, error)
@@ -2018,140 +2133,145 @@ var _ClusterController_serviceDesc = grpc.ServiceDesc{
 }
 
 func init() {
-	proto.RegisterFile("google/cloud/dataproc/v1beta2/clusters.proto", fileDescriptor_clusters_11ad3d3844eb379a)
+	proto.RegisterFile("google/cloud/dataproc/v1beta2/clusters.proto", fileDescriptor_clusters_92d23f68998e82a3)
 }
 
-var fileDescriptor_clusters_11ad3d3844eb379a = []byte{
-	// 2093 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xbc, 0x59, 0xcd, 0x72, 0x1b, 0xc7,
-	0x11, 0xd6, 0x12, 0x04, 0x09, 0x36, 0x08, 0x10, 0x1c, 0xd3, 0x0c, 0x4c, 0x45, 0xb1, 0xbc, 0x4e,
-	0x1c, 0xda, 0x71, 0x00, 0x9b, 0x8a, 0xcb, 0x8e, 0x14, 0xb9, 0x4c, 0x91, 0x14, 0x49, 0x87, 0xa2,
-	0x98, 0x05, 0x20, 0x45, 0x49, 0xa9, 0xb6, 0x06, 0xbb, 0x43, 0x68, 0xcc, 0xfd, 0xcb, 0xce, 0xac,
-	0x6c, 0x48, 0xa5, 0x8b, 0x6f, 0xa9, 0x1c, 0x72, 0xf0, 0x03, 0xc4, 0xe7, 0x1c, 0x72, 0x4a, 0x55,
-	0x2a, 0x87, 0xdc, 0x72, 0xce, 0xc5, 0xa9, 0x3c, 0x41, 0x0e, 0x79, 0x84, 0x1c, 0x53, 0xf3, 0xb3,
-	0xc0, 0x2e, 0x48, 0x69, 0x09, 0x46, 0xe5, 0x13, 0x76, 0x7a, 0xfa, 0xe7, 0x9b, 0xee, 0x9e, 0x9e,
-	0x9e, 0x01, 0xbc, 0x3b, 0x08, 0xc3, 0x81, 0x47, 0xda, 0x8e, 0x17, 0x26, 0x6e, 0xdb, 0xc5, 0x1c,
-	0x47, 0x71, 0xe8, 0xb4, 0x1f, 0xbf, 0xdf, 0x27, 0x1c, 0x6f, 0xb4, 0x1d, 0x2f, 0x61, 0x9c, 0xc4,
-	0xac, 0x15, 0xc5, 0x21, 0x0f, 0xd1, 0x15, 0xc5, 0xdd, 0x92, 0xdc, 0xad, 0x94, 0xbb, 0xa5, 0xb9,
-	0xd7, 0xbe, 0xab, 0x95, 0xe1, 0x88, 0xb6, 0x71, 0x10, 0x84, 0x1c, 0x73, 0x1a, 0x06, 0x5a, 0x78,
-	0xed, 0x4d, 0x3d, 0xeb, 0x85, 0xc1, 0x20, 0x4e, 0x82, 0x80, 0x06, 0x83, 0x76, 0x18, 0x91, 0x38,
-	0xc7, 0xf4, 0x3d, 0xcd, 0x24, 0x47, 0xfd, 0xe4, 0xb8, 0xed, 0x26, 0x8a, 0x41, 0xcf, 0x5f, 0x9d,
-	0x9c, 0x3f, 0xa6, 0xc4, 0x73, 0x6d, 0x1f, 0xb3, 0x13, 0xcd, 0xf1, 0xfa, 0x24, 0x07, 0xa7, 0x3e,
-	0x61, 0x1c, 0xfb, 0x91, 0x62, 0x30, 0xff, 0x30, 0x0b, 0xf3, 0x5b, 0x6a, 0x5d, 0xe8, 0x0a, 0x40,
-	0x14, 0x87, 0x9f, 0x11, 0x87, 0xdb, 0xd4, 0x6d, 0x1a, 0x57, 0x8d, 0xf5, 0x05, 0x6b, 0x41, 0x53,
-	0xf6, 0x5d, 0xf4, 0x06, 0x2c, 0x6a, 0x0f, 0xd8, 0x01, 0xf6, 0x49, 0x73, 0x46, 0x32, 0x54, 0x35,
-	0xed, 0x10, 0xfb, 0x04, 0x6d, 0xc3, 0x9c, 0x13, 0x06, 0xc7, 0x74, 0xd0, 0x2c, 0x5d, 0x35, 0xd6,
-	0xab, 0x1b, 0xef, 0xb6, 0x5e, 0xe8, 0xa3, 0x96, 0xb6, 0xbc, 0x25, 0x65, 0x2c, 0x2d, 0x8b, 0x3e,
-	0x85, 0x39, 0x0f, 0xf7, 0x89, 0xc7, 0x9a, 0x95, 0xab, 0xa5, 0xf5, 0xea, 0xc6, 0xc6, 0xf9, 0xb4,
-	0xb4, 0x0e, 0xa4, 0xd0, 0x4e, 0xc0, 0xe3, 0xa1, 0xa5, 0x35, 0x08, 0x44, 0x8c, 0x63, 0x9e, 0xb0,
-	0xe6, 0xec, 0x34, 0x88, 0x3a, 0x52, 0xc6, 0xd2, 0xb2, 0xa8, 0x03, 0x75, 0xf5, 0x65, 0x3f, 0xa2,
-	0x8c, 0x87, 0xf1, 0xb0, 0x39, 0x2f, 0x91, 0x4d, 0xa7, 0xad, 0xa6, 0x74, 0xec, 0x29, 0x15, 0x59,
-	0x7f, 0x26, 0x09, 0x75, 0x9b, 0x73, 0x39, 0x7f, 0xf6, 0x12, 0xea, 0xa2, 0x5d, 0x98, 0xf7, 0x09,
-	0x8f, 0xa9, 0xc3, 0x9a, 0x0b, 0x12, 0xfe, 0x8f, 0xcf, 0x67, 0xf0, 0x8e, 0x12, 0xb2, 0x52, 0xe9,
-	0xb5, 0x9f, 0x42, 0x35, 0xe3, 0x1d, 0xd4, 0x80, 0xd2, 0x09, 0x19, 0xea, 0x10, 0x8b, 0x4f, 0xb4,
-	0x02, 0xe5, 0xc7, 0xd8, 0x4b, 0xd2, 0xa8, 0xaa, 0xc1, 0xf5, 0x99, 0x8f, 0x0c, 0xf3, 0x9f, 0x65,
-	0xa8, 0xe5, 0xe2, 0x84, 0xde, 0x84, 0x9a, 0x8a, 0x94, 0xdd, 0x4f, 0x9c, 0x13, 0xc2, 0xb5, 0x9e,
-	0x45, 0x45, 0xbc, 0x25, 0x69, 0xe8, 0x21, 0xa0, 0x81, 0x43, 0xec, 0x74, 0x85, 0x3a, 0x2d, 0x2a,
-	0x72, 0x15, 0xed, 0x82, 0x55, 0xec, 0x3a, 0x24, 0x9f, 0x19, 0x8d, 0xc1, 0x04, 0x05, 0xdd, 0x87,
-	0x9a, 0x8f, 0xb3, 0x9a, 0x95, 0x7f, 0x8a, 0x52, 0x65, 0x3f, 0x60, 0x1c, 0x07, 0x0e, 0xd9, 0x8d,
-	0xc3, 0x24, 0xd2, 0xca, 0x17, 0x95, 0xa2, 0xb1, 0xe2, 0xcf, 0xc3, 0xf8, 0x64, 0xac, 0x18, 0x2e,
-	0xae, 0x58, 0x29, 0xd2, 0x8a, 0x3f, 0x83, 0xef, 0x30, 0xe2, 0x84, 0x81, 0x8b, 0xe3, 0xa1, 0x9d,
-	0x37, 0xb1, 0x78, 0x61, 0x13, 0xaf, 0x8e, 0x54, 0xde, 0xcf, 0xda, 0xba, 0x07, 0x4b, 0x2c, 0x3c,
-	0xe6, 0x9f, 0xe3, 0x98, 0xa4, 0x36, 0x6a, 0xe7, 0xca, 0x9f, 0x8e, 0x96, 0xd2, 0xea, 0xeb, 0x2c,
-	0x37, 0x46, 0x0f, 0xa0, 0xe1, 0xd1, 0x63, 0xe2, 0x0c, 0x1d, 0x6f, 0xa4, 0xb8, 0x2e, 0x15, 0xb7,
-	0x0a, 0x14, 0x1f, 0xa4, 0x62, 0x5a, 0xf3, 0x92, 0x97, 0x27, 0xa0, 0x00, 0x56, 0x69, 0x40, 0x39,
-	0xc5, 0x1e, 0x7d, 0x22, 0x6b, 0x9c, 0x8d, 0x1d, 0x59, 0x0b, 0x9b, 0x55, 0xb9, 0xd5, 0x3e, 0x2c,
-	0x30, 0x70, 0x18, 0xba, 0x64, 0x3f, 0xa7, 0x60, 0x53, 0xca, 0x5b, 0xaf, 0xd2, 0x33, 0xa8, 0xcc,
-	0xfc, 0x63, 0x09, 0x1a, 0x93, 0x79, 0x86, 0x5e, 0x83, 0xca, 0x93, 0x30, 0x20, 0x76, 0x12, 0x53,
-	0x9d, 0xd4, 0xf3, 0x62, 0xdc, 0x8b, 0x29, 0x7a, 0x1d, 0xaa, 0x01, 0xe1, 0x22, 0x6e, 0x72, 0x56,
-	0x6d, 0x13, 0xd0, 0x24, 0xc1, 0xf0, 0x03, 0xa8, 0xb3, 0xa4, 0x9f, 0xe5, 0x51, 0x1b, 0xba, 0x36,
-	0xa6, 0x0a, 0xb6, 0x75, 0x68, 0xd0, 0x80, 0x93, 0x38, 0xc0, 0x9e, 0x4d, 0x23, 0x3b, 0x0c, 0x3c,
-	0x51, 0x4c, 0x8c, 0xf5, 0x8a, 0x55, 0x4f, 0xe9, 0xfb, 0xd1, 0xdd, 0xc0, 0x1b, 0xa2, 0x1f, 0xc2,
-	0x12, 0x23, 0xf1, 0x63, 0xea, 0x10, 0x1b, 0x3b, 0x4e, 0x98, 0x04, 0x5c, 0x6e, 0x9f, 0x05, 0xab,
-	0xae, 0xc9, 0x9b, 0x8a, 0x8a, 0x7e, 0x02, 0xab, 0x13, 0x8c, 0x36, 0x73, 0xc2, 0x88, 0xb0, 0x66,
-	0xe9, 0x6a, 0x69, 0x7d, 0xc1, 0x5a, 0xc9, 0xf3, 0x77, 0xe4, 0x1c, 0x42, 0x30, 0xcb, 0xf1, 0x40,
-	0xd4, 0x45, 0xc1, 0x23, 0xbf, 0xd1, 0x03, 0xa8, 0xf8, 0x84, 0x63, 0xe1, 0xdc, 0x66, 0x59, 0xba,
-	0xfd, 0xe6, 0x94, 0x5b, 0xb5, 0x75, 0x47, 0xcb, 0xab, 0x32, 0x3c, 0x52, 0xb7, 0x76, 0x03, 0x6a,
-	0xb9, 0xa9, 0xa9, 0x6a, 0xd0, 0xbf, 0x4a, 0xf0, 0xca, 0x19, 0xe9, 0x2f, 0x2a, 0x51, 0x90, 0xf8,
-	0x36, 0xd5, 0x53, 0x4c, 0x6a, 0x2b, 0x5b, 0x8b, 0x41, 0xe2, 0xa7, 0xec, 0x4c, 0x04, 0x26, 0x65,
-	0x90, 0x07, 0x17, 0x6b, 0xce, 0xc8, 0x25, 0xd7, 0x52, 0xaa, 0x38, 0xba, 0x18, 0xba, 0x0c, 0x0b,
-	0xd4, 0xc7, 0x03, 0x15, 0xfc, 0x92, 0x44, 0x50, 0x91, 0x04, 0x1d, 0x35, 0x1f, 0x3b, 0x8f, 0x68,
-	0x40, 0x6c, 0x3e, 0x8c, 0x14, 0xcf, 0xac, 0x0a, 0x86, 0xa6, 0x77, 0x87, 0x91, 0xe4, 0xfc, 0x14,
-	0xaa, 0x2e, 0x65, 0x27, 0xe9, 0xee, 0x28, 0xcb, 0xdd, 0xf1, 0x76, 0x81, 0x17, 0xb7, 0x29, 0x3b,
-	0xd1, 0x1b, 0x03, 0xdc, 0xd1, 0xb7, 0x44, 0xce, 0xec, 0x28, 0x26, 0xc4, 0x8f, 0x38, 0xed, 0x7b,
-	0x44, 0xa6, 0x54, 0xc5, 0xaa, 0x51, 0x76, 0x34, 0x26, 0x22, 0x07, 0x56, 0x7c, 0x1c, 0xe0, 0x01,
-	0x71, 0xed, 0x81, 0x70, 0x4e, 0x6a, 0x7b, 0x5e, 0xda, 0x7e, 0xbf, 0xc0, 0xf6, 0x1d, 0x25, 0x9a,
-	0xad, 0x2a, 0xc8, 0x3f, 0x45, 0x43, 0x5d, 0x58, 0xc4, 0x8e, 0x43, 0x3c, 0xd1, 0xa2, 0x84, 0x71,
-	0x7a, 0x34, 0xbf, 0x57, 0xa0, 0x7c, 0x73, 0x2c, 0x92, 0x16, 0xc5, 0xac, 0x16, 0xf3, 0xb7, 0x06,
-	0xa0, 0xd3, 0x00, 0x44, 0x46, 0x8f, 0x42, 0xc6, 0x89, 0x1f, 0x79, 0x98, 0xab, 0xd8, 0xe9, 0x74,
-	0x59, 0x49, 0x67, 0xbb, 0x7a, 0x52, 0x76, 0x1f, 0x37, 0xe1, 0xf2, 0x48, 0x4a, 0x39, 0x42, 0xad,
-	0x23, 0xd7, 0xaf, 0x34, 0x69, 0x36, 0x8f, 0x94, 0x6d, 0xd9, 0xbc, 0x98, 0x31, 0x2c, 0x9f, 0x82,
-	0x8b, 0xde, 0x83, 0x95, 0x0c, 0xe0, 0x71, 0xf0, 0x15, 0x0e, 0x94, 0x99, 0x4b, 0x13, 0xe0, 0x47,
-	0xb0, 0x9c, 0x95, 0x50, 0x1b, 0x77, 0x46, 0xe6, 0x65, 0x03, 0x67, 0xf5, 0x27, 0x01, 0x37, 0x1f,
-	0x02, 0x8c, 0x63, 0x8f, 0xde, 0x86, 0xe5, 0x7e, 0x18, 0x72, 0x5b, 0x26, 0x10, 0xa3, 0x4f, 0x88,
-	0x3d, 0xe8, 0xeb, 0x94, 0xae, 0x8b, 0x09, 0xc1, 0xda, 0xa1, 0x4f, 0xc8, 0x6e, 0x1f, 0x7d, 0x1f,
-	0xea, 0x22, 0xf3, 0xbd, 0xd0, 0xc1, 0x9e, 0xcd, 0x98, 0xcb, 0xb4, 0x09, 0x91, 0xfa, 0x07, 0x82,
-	0xd8, 0x61, 0x2e, 0x33, 0xff, 0x63, 0xc0, 0xd2, 0x44, 0xe5, 0x45, 0x9b, 0xb0, 0x44, 0x5d, 0x8f,
-	0xd8, 0x2e, 0xf1, 0x08, 0x27, 0x36, 0xe7, 0x9e, 0x34, 0x51, 0xdd, 0x78, 0x2d, 0x8d, 0x65, 0xda,
-	0x2c, 0xb6, 0xb6, 0x75, 0xbb, 0x69, 0xd5, 0x84, 0xc4, 0xb6, 0x14, 0xe8, 0x72, 0x0f, 0xdd, 0x86,
-	0x06, 0x4e, 0x78, 0x38, 0x52, 0x41, 0xb5, 0x77, 0xab, 0x1b, 0x6b, 0xa7, 0x74, 0x74, 0xd3, 0x86,
-	0x73, 0xef, 0x92, 0x55, 0x17, 0x52, 0x5a, 0x0d, 0xf5, 0x09, 0xda, 0x82, 0xa5, 0x9c, 0x1e, 0xee,
-	0xe9, 0xbe, 0xf1, 0xf9, 0x50, 0xf6, 0x2e, 0x59, 0xb5, 0x8c, 0x16, 0xee, 0xdd, 0x2a, 0x43, 0x89,
-	0x73, 0xcf, 0xfc, 0x9d, 0x01, 0xcd, 0xe7, 0x9d, 0x01, 0xa2, 0x94, 0x92, 0x2f, 0x88, 0x93, 0x70,
-	0xdc, 0xf7, 0x88, 0x7d, 0x4c, 0xbd, 0x34, 0x91, 0xea, 0x63, 0xf2, 0x6d, 0xea, 0x11, 0x74, 0x1b,
-	0x96, 0x15, 0x45, 0x1c, 0x40, 0x62, 0x5d, 0x61, 0xc2, 0xf5, 0xd2, 0x5e, 0xe0, 0x9e, 0xc6, 0x48,
-	0xa6, 0xab, 0x44, 0xcc, 0xaf, 0x4b, 0xa3, 0xa6, 0x49, 0x35, 0x7f, 0x68, 0x0f, 0xca, 0xa2, 0xfd,
-	0x53, 0x86, 0xeb, 0xe7, 0xed, 0x69, 0x95, 0x70, 0x4b, 0xfc, 0x10, 0x4b, 0x29, 0x40, 0xab, 0x30,
-	0xe7, 0x12, 0x8e, 0xa9, 0xa7, 0x33, 0x5a, 0x8f, 0xd0, 0x36, 0x34, 0x24, 0x83, 0xcd, 0x38, 0x8e,
-	0xb9, 0x8a, 0x4a, 0xa9, 0x28, 0x2a, 0x96, 0x6c, 0x6c, 0x49, 0x47, 0x88, 0xc8, 0x98, 0xfc, 0x02,
-	0x2a, 0x2c, 0xe9, 0x2b, 0xa8, 0xb3, 0x12, 0xea, 0x07, 0xd3, 0x41, 0xd5, 0xc2, 0xd6, 0x48, 0x8d,
-	0x79, 0x0f, 0xca, 0x72, 0x01, 0xa8, 0x0a, 0xf3, 0xbd, 0xc3, 0x9f, 0x1f, 0xde, 0xbd, 0x7f, 0xd8,
-	0xb8, 0x84, 0x16, 0xa1, 0xb2, 0x65, 0xed, 0x6c, 0x76, 0xf7, 0x0f, 0x77, 0x1b, 0x86, 0x98, 0xb2,
-	0x7a, 0x87, 0x87, 0x62, 0x30, 0x83, 0x16, 0xa0, 0xbc, 0x63, 0x59, 0x77, 0xad, 0x46, 0x49, 0x70,
-	0x6d, 0xef, 0x1c, 0xec, 0x48, 0xae, 0x59, 0x31, 0xea, 0x1d, 0x6d, 0x2b, 0x99, 0xb2, 0xf9, 0x33,
-	0xa8, 0xa4, 0xd6, 0xd0, 0x12, 0x54, 0x7b, 0x87, 0x9d, 0xa3, 0x9d, 0xad, 0xfd, 0xdb, 0xfb, 0x3b,
-	0xdb, 0x8d, 0x4b, 0xa8, 0x06, 0x0b, 0xbd, 0xc3, 0xbd, 0x9d, 0xcd, 0x83, 0xee, 0xde, 0x83, 0x86,
-	0x81, 0x1a, 0xb0, 0xd8, 0xe9, 0x6e, 0x1e, 0xec, 0xd8, 0x9d, 0xee, 0x66, 0xb7, 0xd7, 0x69, 0xcc,
-	0x98, 0xdf, 0x18, 0x50, 0xcf, 0xb7, 0x3b, 0xe2, 0x38, 0x51, 0x47, 0xc0, 0x63, 0x12, 0x33, 0x1a,
-	0x06, 0x69, 0x63, 0x2b, 0x89, 0xf7, 0x14, 0x0d, 0x3d, 0x94, 0xb7, 0xa4, 0x88, 0xc4, 0x9c, 0xea,
-	0xa3, 0xa4, 0xf8, 0x94, 0xcc, 0xdb, 0x69, 0x1d, 0x8d, 0xe4, 0xd5, 0x29, 0x99, 0x51, 0xb8, 0x76,
-	0x13, 0x96, 0x26, 0xa6, 0xa7, 0x3b, 0x29, 0x67, 0xa0, 0x9e, 0xbf, 0x04, 0x20, 0x0c, 0x8b, 0x8f,
-	0xdc, 0x63, 0x66, 0xa7, 0x37, 0x09, 0x43, 0x42, 0xfe, 0x78, 0xaa, 0x9b, 0x44, 0x6b, 0xcf, 0x3d,
-	0x66, 0xfa, 0x5b, 0x61, 0xae, 0x3e, 0x1a, 0x53, 0x84, 0x89, 0x21, 0x8e, 0x83, 0x91, 0x89, 0x99,
-	0x8b, 0x98, 0x78, 0x80, 0xe3, 0x20, 0x6f, 0x62, 0x38, 0xa6, 0xac, 0x7d, 0x0c, 0x8d, 0x49, 0x0c,
-	0x45, 0x8e, 0x29, 0x65, 0x1c, 0x23, 0xe4, 0x27, 0x0d, 0x4c, 0x23, 0x6f, 0xfe, 0xde, 0x80, 0x95,
-	0xad, 0x98, 0x60, 0x9e, 0xf6, 0x3b, 0x16, 0xf9, 0x4d, 0x42, 0x18, 0x2f, 0xba, 0x35, 0xaf, 0xc2,
-	0x5c, 0x4c, 0x06, 0x22, 0x99, 0x54, 0x4f, 0xa1, 0x47, 0xe8, 0x13, 0x98, 0xd7, 0x77, 0x23, 0x5d,
-	0x5f, 0xde, 0x3a, 0x9f, 0xb7, 0xac, 0x54, 0xcc, 0xfc, 0xc7, 0x0c, 0xac, 0xf4, 0x22, 0xf7, 0xff,
-	0x40, 0x54, 0xce, 0x21, 0x3a, 0xc7, 0xfd, 0x3e, 0x03, 0xba, 0x74, 0x21, 0xd0, 0xe8, 0x21, 0x5c,
-	0x19, 0xc4, 0xd8, 0x21, 0xc7, 0x89, 0x67, 0xbb, 0xc4, 0x09, 0x7d, 0x9f, 0x32, 0x96, 0x2d, 0xb6,
-	0x73, 0x45, 0xc5, 0xf6, 0x72, 0x2a, 0xbf, 0x9d, 0x11, 0xd7, 0x75, 0x17, 0xdd, 0x80, 0x6a, 0x22,
-	0x5d, 0x22, 0x1f, 0x41, 0xf4, 0x9d, 0xff, 0x74, 0xf9, 0xbb, 0x4d, 0x89, 0xe7, 0xde, 0xc1, 0xec,
-	0xc4, 0x02, 0xc5, 0x2e, 0xbe, 0xcd, 0xaf, 0x0c, 0x58, 0x51, 0xe7, 0xca, 0xcb, 0x09, 0xf1, 0x39,
-	0x1c, 0x3a, 0xf9, 0x06, 0x30, 0x7b, 0xea, 0x0d, 0xc0, 0xf4, 0x61, 0x79, 0x97, 0xf0, 0x6f, 0x0b,
-	0x91, 0xf9, 0xb5, 0x01, 0xaf, 0x1c, 0x50, 0x96, 0x1a, 0x64, 0x53, 0x5b, 0x9c, 0xcd, 0x59, 0x5c,
-	0x85, 0xb9, 0x63, 0xea, 0x89, 0x84, 0xd1, 0xc9, 0xa6, 0x46, 0xa2, 0xdb, 0x8e, 0x44, 0xa5, 0x15,
-	0x5d, 0x8e, 0x6e, 0x5d, 0x2a, 0x82, 0x20, 0xda, 0x1b, 0x69, 0x4b, 0x4c, 0xf2, 0xf0, 0x84, 0xa4,
-	0x4b, 0x90, 0xec, 0x5d, 0x41, 0x30, 0xbf, 0x34, 0x60, 0x25, 0x0f, 0x91, 0x45, 0x61, 0xc0, 0x08,
-	0xba, 0x05, 0x95, 0xf4, 0x8d, 0x4e, 0x57, 0xb9, 0xf3, 0xe6, 0xe7, 0x48, 0x0e, 0xbd, 0x05, 0x4b,
-	0x01, 0xf9, 0x82, 0xdb, 0x19, 0x00, 0xca, 0x4b, 0x35, 0x41, 0x3e, 0x1a, 0x81, 0x88, 0x61, 0x75,
-	0x9b, 0xe2, 0x41, 0x10, 0xb2, 0x6f, 0x2d, 0x5b, 0xcc, 0x0f, 0xcf, 0xb0, 0xc9, 0x12, 0x8f, 0x33,
-	0x61, 0x33, 0x4c, 0x78, 0x94, 0xf0, 0x4c, 0x73, 0xba, 0xa0, 0x28, 0xbd, 0x98, 0x6e, 0xfc, 0xb7,
-	0x02, 0xcb, 0xe3, 0x6b, 0x1a, 0x8f, 0x43, 0xcf, 0x23, 0x31, 0xfa, 0x93, 0x01, 0xb5, 0x5c, 0x49,
-	0x43, 0xd7, 0x8a, 0xdc, 0x75, 0x46, 0x01, 0x5c, 0xbb, 0x92, 0x0a, 0x65, 0xde, 0x32, 0x5b, 0x77,
-	0xd3, 0xb7, 0x4c, 0x73, 0xff, 0xcb, 0x6f, 0xfe, 0xfd, 0xd5, 0xcc, 0x96, 0xf9, 0xd1, 0xe8, 0x1d,
-	0x55, 0xfb, 0x82, 0xb5, 0x9f, 0x8e, 0xfd, 0xf4, 0xac, 0xad, 0xdc, 0xc0, 0xda, 0x4f, 0xd5, 0xc7,
-	0xb3, 0xd1, 0x73, 0xeb, 0xf5, 0x51, 0xf1, 0xf8, 0x9b, 0x01, 0xb5, 0x5c, 0xc5, 0x2b, 0x04, 0x7c,
-	0x56, 0x7d, 0x2c, 0x02, 0xfc, 0x4b, 0x09, 0xd8, 0xda, 0xd8, 0xbd, 0x28, 0xe0, 0xf6, 0xd3, 0x6c,
-	0x20, 0x9f, 0x8d, 0xf1, 0xff, 0xd9, 0x80, 0x5a, 0xae, 0xc0, 0x14, 0xe2, 0x3f, 0xab, 0x1c, 0x15,
-	0xe1, 0xbf, 0x2b, 0xf1, 0xef, 0xbf, 0xf3, 0xb2, 0xf0, 0xa3, 0xbf, 0x18, 0x00, 0xe3, 0x12, 0x84,
-	0x8a, 0xee, 0x7c, 0xa7, 0xaa, 0xd5, 0xda, 0x39, 0x77, 0x61, 0x8a, 0x1c, 0xbd, 0x34, 0xe4, 0x7f,
-	0x35, 0x60, 0x31, 0x5b, 0x29, 0xd0, 0x46, 0xe1, 0x33, 0xd5, 0xa9, 0xca, 0xb7, 0x76, 0x6d, 0x2a,
-	0x19, 0x55, 0x8a, 0xcc, 0x4f, 0xe4, 0x52, 0xae, 0xa3, 0x0b, 0x67, 0x3d, 0xfa, 0xbb, 0x01, 0x4b,
-	0x13, 0xbb, 0x1d, 0x7d, 0x50, 0xf8, 0x8e, 0x70, 0x56, 0x45, 0x2a, 0x4a, 0x98, 0x5f, 0x4b, 0xac,
-	0x3d, 0xf3, 0xe8, 0x65, 0x25, 0xbc, 0xab, 0x61, 0x5c, 0x37, 0xde, 0xb9, 0xf5, 0x14, 0xde, 0x70,
-	0x42, 0xff, 0xc5, 0xb8, 0x6f, 0xa5, 0x77, 0x25, 0x76, 0x24, 0x4e, 0xe8, 0x23, 0xe3, 0x57, 0x3b,
-	0x9a, 0x7f, 0x10, 0x7a, 0x38, 0x18, 0xb4, 0xc2, 0x78, 0xd0, 0x1e, 0x90, 0x40, 0x9e, 0xdf, 0x6d,
-	0x35, 0x85, 0x23, 0xca, 0x9e, 0xf3, 0x47, 0xcd, 0x8d, 0x94, 0xd0, 0x9f, 0x93, 0x12, 0xd7, 0xfe,
-	0x17, 0x00, 0x00, 0xff, 0xff, 0x82, 0x2f, 0x0d, 0xbd, 0xd9, 0x19, 0x00, 0x00,
+var fileDescriptor_clusters_92d23f68998e82a3 = []byte{
+	// 2165 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xbc, 0x59, 0x4f, 0x73, 0x1c, 0x47,
+	0x15, 0xf7, 0x68, 0xb5, 0xd2, 0xea, 0xed, 0x1f, 0xad, 0x3a, 0x8a, 0xd8, 0x28, 0x98, 0x38, 0x13,
+	0x08, 0x4a, 0x08, 0xbb, 0x89, 0x4c, 0x2a, 0xc1, 0xc6, 0xa9, 0xc8, 0x92, 0x2c, 0x29, 0xc8, 0xb2,
+	0x98, 0xdd, 0xb5, 0x31, 0x94, 0x6b, 0xaa, 0x77, 0xa6, 0x77, 0xdd, 0xd1, 0xfc, 0x63, 0xba, 0xc7,
+	0x89, 0xec, 0x72, 0x15, 0x15, 0x4e, 0x14, 0x47, 0x3e, 0x00, 0x39, 0x73, 0xc8, 0x81, 0xa2, 0x8a,
+	0xe2, 0xc0, 0x8d, 0x6f, 0x10, 0x8a, 0x4f, 0xc0, 0x81, 0x0b, 0x77, 0x8e, 0x54, 0xff, 0x99, 0xdd,
+	0x99, 0x95, 0xec, 0x91, 0x84, 0x2b, 0x27, 0xed, 0xbc, 0x7e, 0xef, 0xf7, 0x7e, 0xfd, 0xfa, 0xf5,
+	0xeb, 0xd7, 0x2d, 0x78, 0x67, 0x14, 0x86, 0x23, 0x8f, 0x74, 0x1c, 0x2f, 0x4c, 0xdc, 0x8e, 0x8b,
+	0x39, 0x8e, 0xe2, 0xd0, 0xe9, 0x3c, 0x7a, 0x6f, 0x40, 0x38, 0x5e, 0xef, 0x38, 0x5e, 0xc2, 0x38,
+	0x89, 0x59, 0x3b, 0x8a, 0x43, 0x1e, 0xa2, 0xcb, 0x4a, 0xbb, 0x2d, 0xb5, 0xdb, 0xa9, 0x76, 0x5b,
+	0x6b, 0xaf, 0x7e, 0x5b, 0x83, 0xe1, 0x88, 0x76, 0x70, 0x10, 0x84, 0x1c, 0x73, 0x1a, 0x06, 0xda,
+	0x78, 0xf5, 0xed, 0xe7, 0xbb, 0x62, 0x0f, 0x71, 0x4c, 0x5c, 0xad, 0xfb, 0x86, 0xd6, 0xf5, 0xc2,
+	0x60, 0x14, 0x27, 0x41, 0x40, 0x83, 0x51, 0x27, 0x8c, 0x48, 0x9c, 0x03, 0xfc, 0x8e, 0x56, 0x92,
+	0x5f, 0x83, 0x64, 0xd8, 0x71, 0x13, 0xa5, 0xa0, 0xc7, 0xaf, 0x4c, 0x8f, 0x0f, 0x29, 0xf1, 0x5c,
+	0xdb, 0xc7, 0xec, 0x48, 0x6b, 0xbc, 0x36, 0xad, 0xc1, 0xa9, 0x4f, 0x18, 0xc7, 0x7e, 0xa4, 0x14,
+	0xcc, 0x3f, 0xcc, 0xc2, 0xfc, 0xa6, 0x8a, 0x01, 0xba, 0x0c, 0x10, 0xc5, 0xe1, 0xa7, 0xc4, 0xe1,
+	0x36, 0x75, 0x5b, 0xc6, 0x15, 0x63, 0x6d, 0xc1, 0x5a, 0xd0, 0x92, 0x3d, 0x17, 0xbd, 0x0e, 0x35,
+	0x1d, 0x2d, 0x3b, 0xc0, 0x3e, 0x69, 0xcd, 0x48, 0x85, 0xaa, 0x96, 0x1d, 0x60, 0x9f, 0xa0, 0x2d,
+	0x98, 0x73, 0xc2, 0x60, 0x48, 0x47, 0xad, 0xd2, 0x15, 0x63, 0xad, 0xba, 0xfe, 0x4e, 0xfb, 0xb9,
+	0xf1, 0x6c, 0x6b, 0xcf, 0x9b, 0xd2, 0xc6, 0xd2, 0xb6, 0xe8, 0x13, 0x98, 0xf3, 0xf0, 0x80, 0x78,
+	0xac, 0x55, 0xb9, 0x52, 0x5a, 0xab, 0xae, 0xaf, 0x9f, 0x0d, 0xa5, 0xbd, 0x2f, 0x8d, 0xb6, 0x03,
+	0x1e, 0x1f, 0x5b, 0x1a, 0x41, 0x30, 0x62, 0x1c, 0xf3, 0x84, 0xb5, 0x66, 0xcf, 0xc3, 0xa8, 0x2b,
+	0x6d, 0x2c, 0x6d, 0x8b, 0xba, 0xd0, 0x50, 0xbf, 0xec, 0x87, 0x94, 0xf1, 0x30, 0x3e, 0x6e, 0xcd,
+	0x4b, 0x66, 0xe7, 0x43, 0xab, 0x2b, 0x8c, 0x5d, 0x05, 0x91, 0x8d, 0x67, 0x92, 0x50, 0xb7, 0x35,
+	0x97, 0x8b, 0x67, 0x3f, 0xa1, 0x2e, 0xda, 0x81, 0x79, 0x9f, 0xf0, 0x98, 0x3a, 0xac, 0xb5, 0x20,
+	0xe9, 0xff, 0xf0, 0x6c, 0x0e, 0x6f, 0x2b, 0x23, 0x2b, 0xb5, 0x5e, 0xfd, 0x31, 0x54, 0x33, 0xd1,
+	0x41, 0x4d, 0x28, 0x1d, 0x91, 0x63, 0xbd, 0xc4, 0xe2, 0x27, 0x5a, 0x86, 0xf2, 0x23, 0xec, 0x25,
+	0xe9, 0xaa, 0xaa, 0x8f, 0x6b, 0x33, 0x1f, 0x1a, 0xe6, 0x3f, 0xca, 0x50, 0xcf, 0xad, 0x13, 0x7a,
+	0x03, 0xea, 0x6a, 0xa5, 0xec, 0x41, 0xe2, 0x1c, 0x11, 0xae, 0x71, 0x6a, 0x4a, 0x78, 0x53, 0xca,
+	0xd0, 0x03, 0x40, 0x23, 0x87, 0xd8, 0xe9, 0x0c, 0x75, 0x5a, 0x54, 0xe4, 0x2c, 0x3a, 0x05, 0xb3,
+	0xd8, 0x71, 0x48, 0x3e, 0x33, 0x9a, 0xa3, 0x29, 0x09, 0xba, 0x07, 0x75, 0x1f, 0x67, 0x91, 0x55,
+	0x7c, 0x8a, 0x52, 0x65, 0x2f, 0x60, 0x1c, 0x07, 0x0e, 0xd9, 0x89, 0xc3, 0x24, 0xd2, 0xe0, 0x35,
+	0x05, 0x34, 0x01, 0xfe, 0x2c, 0x8c, 0x8f, 0x26, 0xc0, 0x70, 0x71, 0x60, 0x05, 0xa4, 0x81, 0x3f,
+	0x85, 0x6f, 0x31, 0xe2, 0x84, 0x81, 0x8b, 0xe3, 0x63, 0x3b, 0xef, 0xa2, 0x76, 0x61, 0x17, 0x2f,
+	0x8f, 0x21, 0xef, 0x65, 0x7d, 0xdd, 0x85, 0x45, 0x16, 0x0e, 0xf9, 0x67, 0x38, 0x26, 0xa9, 0x8f,
+	0xfa, 0x99, 0xf2, 0xa7, 0xab, 0xad, 0x34, 0x7c, 0x83, 0xe5, 0xbe, 0xd1, 0x7d, 0x68, 0x7a, 0x74,
+	0x48, 0x9c, 0x63, 0xc7, 0x1b, 0x03, 0x37, 0x24, 0x70, 0xbb, 0x00, 0x78, 0x3f, 0x35, 0xd3, 0xc8,
+	0x8b, 0x5e, 0x5e, 0x80, 0x02, 0x58, 0xa1, 0x01, 0xe5, 0x14, 0x7b, 0xf4, 0xb1, 0xac, 0x71, 0x36,
+	0x76, 0x64, 0x2d, 0x6c, 0x55, 0xe5, 0x56, 0xfb, 0xa0, 0xc0, 0xc1, 0x41, 0xe8, 0x92, 0xbd, 0x1c,
+	0xc0, 0x86, 0xb4, 0xb7, 0x5e, 0xa6, 0xa7, 0x48, 0x99, 0xf9, 0xc7, 0x12, 0x34, 0xa7, 0xf3, 0x0c,
+	0xbd, 0x02, 0x95, 0xc7, 0x61, 0x40, 0xec, 0x24, 0xa6, 0x3a, 0xa9, 0xe7, 0xc5, 0x77, 0x3f, 0xa6,
+	0xe8, 0x35, 0xa8, 0x06, 0x84, 0x8b, 0x75, 0x93, 0xa3, 0x6a, 0x9b, 0x80, 0x16, 0x09, 0x85, 0xef,
+	0x41, 0x83, 0x25, 0x83, 0xac, 0x8e, 0xda, 0xd0, 0xf5, 0x89, 0x54, 0xa8, 0xad, 0x41, 0x93, 0x06,
+	0x9c, 0xc4, 0x01, 0xf6, 0x6c, 0x1a, 0xd9, 0x61, 0xe0, 0x89, 0x62, 0x62, 0xac, 0x55, 0xac, 0x46,
+	0x2a, 0xdf, 0x8b, 0xee, 0x04, 0xde, 0x31, 0xfa, 0x3e, 0x2c, 0x32, 0x12, 0x3f, 0xa2, 0x0e, 0xb1,
+	0xb1, 0xe3, 0x84, 0x49, 0xc0, 0xe5, 0xf6, 0x59, 0xb0, 0x1a, 0x5a, 0xbc, 0xa1, 0xa4, 0xe8, 0x47,
+	0xb0, 0x32, 0xa5, 0x68, 0x33, 0x27, 0x8c, 0x08, 0x6b, 0x95, 0xae, 0x94, 0xd6, 0x16, 0xac, 0xe5,
+	0xbc, 0x7e, 0x57, 0x8e, 0x21, 0x04, 0xb3, 0x1c, 0x8f, 0x44, 0x5d, 0x14, 0x3a, 0xf2, 0x37, 0xba,
+	0x0f, 0x15, 0x9f, 0x70, 0x2c, 0x82, 0xdb, 0x2a, 0xcb, 0xb0, 0xdf, 0x38, 0xe7, 0x56, 0x6d, 0xdf,
+	0xd6, 0xf6, 0xaa, 0x0c, 0x8f, 0xe1, 0x56, 0xaf, 0x43, 0x3d, 0x37, 0x74, 0xae, 0x1a, 0xf4, 0xeb,
+	0x59, 0x78, 0xe9, 0x94, 0xf4, 0x17, 0x95, 0x28, 0x48, 0x7c, 0x9b, 0xea, 0x21, 0x26, 0xd1, 0xca,
+	0x56, 0x2d, 0x48, 0xfc, 0x54, 0x9d, 0x89, 0x85, 0x49, 0x15, 0xe4, 0xc1, 0xc5, 0x5a, 0x33, 0x72,
+	0xca, 0xf5, 0x54, 0x2a, 0x8e, 0x2e, 0x86, 0x5e, 0x85, 0x05, 0xea, 0xe3, 0x91, 0x5a, 0xfc, 0x92,
+	0x64, 0x50, 0x91, 0x02, 0xbd, 0x6a, 0x3e, 0x76, 0x1e, 0xd2, 0x80, 0xd8, 0xfc, 0x38, 0x52, 0x3a,
+	0xb3, 0x6a, 0x31, 0xb4, 0xbc, 0x77, 0x1c, 0x49, 0xcd, 0x4f, 0xa0, 0xea, 0x52, 0x76, 0x94, 0xee,
+	0x8e, 0xb2, 0xdc, 0x1d, 0x6f, 0x15, 0x44, 0x71, 0x8b, 0xb2, 0x23, 0xbd, 0x31, 0xc0, 0x1d, 0xff,
+	0x96, 0xcc, 0x99, 0x1d, 0xc5, 0x84, 0xf8, 0x11, 0xa7, 0x03, 0x8f, 0xc8, 0x94, 0xaa, 0x58, 0x75,
+	0xca, 0x0e, 0x27, 0x42, 0xe4, 0xc0, 0xb2, 0x8f, 0x03, 0x3c, 0x22, 0xae, 0x3d, 0x12, 0xc1, 0x49,
+	0x7d, 0xcf, 0x4b, 0xdf, 0xef, 0x15, 0xf8, 0xbe, 0xad, 0x4c, 0xb3, 0x55, 0x05, 0xf9, 0x27, 0x64,
+	0xa8, 0x07, 0x35, 0xec, 0x38, 0xc4, 0x13, 0x2d, 0x4a, 0x18, 0xa7, 0x47, 0xf3, 0xbb, 0x05, 0xe0,
+	0x1b, 0x13, 0x93, 0xb4, 0x28, 0x66, 0x51, 0x64, 0x5c, 0x69, 0x60, 0x3b, 0x51, 0x62, 0x47, 0x1e,
+	0xe6, 0xc3, 0x30, 0xf6, 0x65, 0x25, 0x17, 0x71, 0xa5, 0xc1, 0x66, 0x94, 0x1c, 0x6a, 0xa9, 0xf9,
+	0x5b, 0x03, 0xd0, 0x49, 0xaa, 0x22, 0xf7, 0xc7, 0x8b, 0xcb, 0x89, 0x2f, 0x40, 0xd4, 0x2a, 0xeb,
+	0xc4, 0x5a, 0x4e, 0x47, 0x7b, 0x7a, 0x50, 0xf6, 0x29, 0x37, 0xe0, 0xd5, 0xb1, 0x95, 0x0a, 0x99,
+	0x9a, 0x71, 0xae, 0xb3, 0x69, 0xd1, 0x6c, 0xc6, 0x29, 0xdf, 0xb2, 0xcd, 0x31, 0x63, 0x58, 0x3a,
+	0x31, 0x31, 0xf4, 0x2e, 0x2c, 0x67, 0xa6, 0x36, 0x49, 0x13, 0xc5, 0x03, 0x65, 0xc6, 0xd2, 0x54,
+	0xf9, 0x01, 0x2c, 0x65, 0x2d, 0xd4, 0x16, 0x9f, 0x91, 0x19, 0xdc, 0xc4, 0x59, 0xfc, 0x24, 0xe0,
+	0xe6, 0x6f, 0x0c, 0x80, 0x49, 0x9a, 0xa0, 0xef, 0x42, 0x63, 0x10, 0x86, 0xdc, 0x96, 0xb9, 0x26,
+	0x7c, 0xe9, 0x94, 0xad, 0x09, 0xa9, 0xd0, 0x13, 0x4e, 0xd0, 0x5b, 0xb0, 0x34, 0xd1, 0x62, 0xf4,
+	0x31, 0xb1, 0x47, 0x03, 0xbd, 0x47, 0x1a, 0xa9, 0x62, 0x97, 0x3e, 0x26, 0x3b, 0x03, 0x01, 0x28,
+	0xb6, 0x92, 0x17, 0x3a, 0xd8, 0xb3, 0x19, 0x73, 0x99, 0x66, 0x22, 0xf6, 0xd2, 0xbe, 0x10, 0x76,
+	0x99, 0xcb, 0xcc, 0x7f, 0x1b, 0xb0, 0x38, 0x55, 0xca, 0xd1, 0x06, 0x2c, 0x52, 0xd7, 0x23, 0xb6,
+	0x4b, 0x3c, 0xc2, 0x89, 0xcd, 0xb9, 0x27, 0x5d, 0x54, 0xd7, 0x5f, 0x49, 0x93, 0x23, 0xed, 0x3e,
+	0xdb, 0x5b, 0xba, 0x7f, 0xb5, 0xea, 0xc2, 0x62, 0x4b, 0x1a, 0xf4, 0xb8, 0x87, 0x6e, 0x41, 0x13,
+	0x27, 0x3c, 0x1c, 0x43, 0x50, 0xbd, 0x08, 0xd5, 0xf5, 0xd5, 0x13, 0x18, 0xbd, 0xb4, 0x83, 0xdd,
+	0xbd, 0x64, 0x35, 0x84, 0x95, 0x86, 0xa1, 0x3e, 0x41, 0x9b, 0xb0, 0x98, 0xc3, 0xe1, 0x9e, 0x6e,
+	0x44, 0x9f, 0x4d, 0x65, 0xf7, 0x92, 0x55, 0xcf, 0xa0, 0x70, 0xef, 0x66, 0x19, 0x4a, 0x9c, 0x7b,
+	0xe6, 0xef, 0x0c, 0x68, 0x3d, 0xeb, 0x50, 0x11, 0xb5, 0x99, 0x7c, 0x4e, 0x9c, 0x84, 0xe3, 0x81,
+	0x47, 0xec, 0x21, 0xf5, 0xd2, 0x7c, 0x6b, 0x4c, 0xc4, 0xb7, 0xa8, 0x47, 0xd0, 0x2d, 0x58, 0x52,
+	0x12, 0x71, 0xa2, 0x89, 0x79, 0x85, 0x09, 0xd7, 0x53, 0x7b, 0x4e, 0x78, 0x9a, 0x63, 0x9b, 0x9e,
+	0x32, 0x31, 0xbf, 0x2c, 0x8d, 0xbb, 0x30, 0xd5, 0x4d, 0xa2, 0x5d, 0x28, 0x8b, 0x7e, 0x52, 0x39,
+	0x6e, 0x9c, 0xb5, 0x49, 0x56, 0xc6, 0x6d, 0xf1, 0x87, 0x58, 0x0a, 0x00, 0xad, 0xc0, 0x9c, 0x4b,
+	0x38, 0xa6, 0x9e, 0x4e, 0x7c, 0xfd, 0x85, 0xb6, 0xa0, 0x29, 0x15, 0x6c, 0xc6, 0x71, 0xcc, 0xd5,
+	0xaa, 0x94, 0x8a, 0x56, 0xc5, 0x92, 0x9d, 0x32, 0xe9, 0x0a, 0x13, 0xb9, 0x26, 0x3f, 0x83, 0x0a,
+	0x4b, 0x06, 0x8a, 0xea, 0xac, 0xa4, 0xfa, 0xfe, 0xf9, 0xa8, 0x6a, 0x63, 0x6b, 0x0c, 0x63, 0xde,
+	0x85, 0xb2, 0x9c, 0x00, 0xaa, 0xc2, 0x7c, 0xff, 0xe0, 0xa7, 0x07, 0x77, 0xee, 0x1d, 0x34, 0x2f,
+	0xa1, 0x1a, 0x54, 0x36, 0xad, 0xed, 0x8d, 0xde, 0xde, 0xc1, 0x4e, 0xd3, 0x10, 0x43, 0x56, 0xff,
+	0xe0, 0x40, 0x7c, 0xcc, 0xa0, 0x05, 0x28, 0x6f, 0x5b, 0xd6, 0x1d, 0xab, 0x59, 0x12, 0x5a, 0x5b,
+	0xdb, 0xfb, 0xdb, 0x52, 0x6b, 0x56, 0x7c, 0xf5, 0x0f, 0xb7, 0x94, 0x4d, 0xd9, 0xfc, 0x09, 0x54,
+	0x52, 0x6f, 0x68, 0x11, 0xaa, 0xfd, 0x83, 0xee, 0xe1, 0xf6, 0xe6, 0xde, 0xad, 0xbd, 0xed, 0xad,
+	0xe6, 0x25, 0x54, 0x87, 0x85, 0xfe, 0xc1, 0xee, 0xf6, 0xc6, 0x7e, 0x6f, 0xf7, 0x7e, 0xd3, 0x40,
+	0x4d, 0xa8, 0x75, 0x7b, 0x1b, 0xfb, 0xdb, 0x76, 0xb7, 0xb7, 0xd1, 0xeb, 0x77, 0x9b, 0x33, 0xe6,
+	0xd7, 0x06, 0x34, 0xf2, 0xfd, 0x93, 0x38, 0x9f, 0xd4, 0x99, 0xf2, 0x88, 0xc4, 0x8c, 0x86, 0x41,
+	0xda, 0x29, 0x4b, 0xe1, 0x5d, 0x25, 0x43, 0x0f, 0xe4, 0xb5, 0x2b, 0x22, 0x31, 0xa7, 0xfa, 0x6c,
+	0x2a, 0x3e, 0x76, 0xf3, 0x7e, 0xda, 0x87, 0x63, 0x7b, 0x75, 0xec, 0x66, 0x00, 0x57, 0x6f, 0xc0,
+	0xe2, 0xd4, 0xf0, 0xb9, 0x8e, 0xde, 0x7f, 0xce, 0x40, 0x23, 0x7f, 0xab, 0x40, 0x18, 0x6a, 0x0f,
+	0xdd, 0x21, 0xb3, 0xd3, 0xab, 0x89, 0x21, 0x29, 0x7f, 0x74, 0xae, 0xab, 0x49, 0x7b, 0xd7, 0x1d,
+	0x32, 0xfd, 0x5b, 0x71, 0xae, 0x3e, 0x9c, 0x48, 0x84, 0x8b, 0x63, 0x1c, 0x07, 0x63, 0x17, 0x33,
+	0x17, 0x71, 0x71, 0x1f, 0xc7, 0x41, 0xde, 0xc5, 0xf1, 0x44, 0xb2, 0xfa, 0x11, 0x34, 0xa7, 0x39,
+	0x14, 0x05, 0xa6, 0x94, 0x09, 0x8c, 0xb0, 0x9f, 0x76, 0x70, 0x1e, 0x7b, 0xf3, 0x2b, 0x03, 0x96,
+	0x37, 0x63, 0x82, 0x79, 0xda, 0x40, 0x59, 0xe4, 0x57, 0x09, 0x61, 0xbc, 0xe8, 0x1a, 0xbe, 0x02,
+	0x73, 0x31, 0x19, 0x89, 0x64, 0x52, 0x15, 0x5f, 0x7f, 0xa1, 0x8f, 0x61, 0x5e, 0x5f, 0xb6, 0x74,
+	0x7d, 0x79, 0xf3, 0x6c, 0xd1, 0xb2, 0x52, 0x33, 0xe1, 0x38, 0x56, 0x1c, 0x84, 0x63, 0xd5, 0xde,
+	0x2c, 0x68, 0xc9, 0x9e, 0x6b, 0xfe, 0x67, 0x06, 0x96, 0xfb, 0x91, 0xfb, 0x7f, 0x10, 0x2e, 0xe7,
+	0x08, 0x9f, 0xe1, 0x3d, 0x21, 0x33, 0xa7, 0xd2, 0xc5, 0xe6, 0xf4, 0x00, 0x2e, 0x8f, 0x62, 0xec,
+	0x90, 0x61, 0xe2, 0xd9, 0x2e, 0x71, 0x42, 0xdf, 0xa7, 0x8c, 0x65, 0x6b, 0xf1, 0x5c, 0x51, 0x2d,
+	0x7e, 0x35, 0xb5, 0xdf, 0xca, 0x98, 0xeb, 0xb2, 0x8c, 0xae, 0x43, 0x35, 0x91, 0x21, 0x91, 0x8f,
+	0x2e, 0xfa, 0x8d, 0xe1, 0x64, 0x75, 0xbc, 0x45, 0x89, 0xe7, 0xde, 0xc6, 0xec, 0xc8, 0x02, 0xa5,
+	0x2e, 0x7e, 0x4f, 0xc5, 0x7b, 0x7e, 0x3a, 0xde, 0x7f, 0x32, 0x60, 0x59, 0x9d, 0x4a, 0x2f, 0x26,
+	0x41, 0xce, 0x10, 0xef, 0xe9, 0x27, 0x89, 0xd9, 0x93, 0x4f, 0x12, 0x79, 0xd2, 0xe5, 0x69, 0xd2,
+	0x3e, 0x2c, 0xed, 0x10, 0xfe, 0x4d, 0x11, 0x36, 0xbf, 0x34, 0xe0, 0xa5, 0x7d, 0xca, 0x52, 0x87,
+	0xec, 0xdc, 0x1e, 0x67, 0x73, 0x1e, 0x57, 0x60, 0x6e, 0x48, 0x3d, 0x91, 0x6e, 0x3a, 0x55, 0xd5,
+	0x97, 0xb8, 0x1b, 0x44, 0xa2, 0x8c, 0x8b, 0x16, 0x4a, 0xf7, 0x45, 0x15, 0x21, 0x10, 0xbd, 0x93,
+	0xf4, 0x25, 0x06, 0x79, 0x78, 0x44, 0xd2, 0x29, 0x48, 0xf5, 0x9e, 0x10, 0x98, 0x5f, 0x18, 0xb0,
+	0x9c, 0xa7, 0xc8, 0xa2, 0x30, 0x60, 0x04, 0xdd, 0x84, 0x4a, 0xfa, 0xfa, 0xa8, 0x4b, 0xe8, 0x59,
+	0xb3, 0x7b, 0x6c, 0x87, 0xde, 0x84, 0xc5, 0x80, 0x7c, 0xce, 0xed, 0x0c, 0x01, 0x15, 0xa5, 0xba,
+	0x10, 0x1f, 0x8e, 0x49, 0xc4, 0xb0, 0xb2, 0x45, 0xf1, 0x28, 0x08, 0xd9, 0x37, 0x96, 0x4c, 0xe6,
+	0x07, 0xa7, 0xf8, 0x64, 0x89, 0xc7, 0x99, 0xf0, 0x19, 0x26, 0x3c, 0x4a, 0x78, 0xa6, 0x41, 0x5e,
+	0x50, 0x92, 0x7e, 0x4c, 0xd7, 0xff, 0x5b, 0x81, 0xa5, 0xc9, 0xa5, 0x92, 0xc7, 0xa1, 0xe7, 0x91,
+	0x18, 0x7d, 0x65, 0x40, 0x3d, 0x57, 0x2f, 0xd1, 0xd5, 0xa2, 0x70, 0x9d, 0x52, 0x5d, 0x57, 0x2f,
+	0xa7, 0x46, 0x99, 0x97, 0xd7, 0xf6, 0x9d, 0xf4, 0xe5, 0xd5, 0xdc, 0xfb, 0xe2, 0xeb, 0x7f, 0xfd,
+	0x7e, 0x66, 0xd3, 0xfc, 0x70, 0xfc, 0x6c, 0xab, 0x63, 0xc1, 0x3a, 0x4f, 0x26, 0x71, 0x7a, 0xda,
+	0x51, 0x61, 0x60, 0x9d, 0x27, 0xea, 0xc7, 0xd3, 0xf1, 0x43, 0xf2, 0xb5, 0x71, 0xe9, 0xf9, 0x9b,
+	0x01, 0xf5, 0x5c, 0xbd, 0x2c, 0x24, 0x7c, 0x5a, 0x75, 0x2d, 0x22, 0xfc, 0x73, 0x49, 0xd8, 0x5a,
+	0xdf, 0xb9, 0x28, 0xe1, 0xce, 0x93, 0xec, 0x42, 0x3e, 0x9d, 0xf0, 0xff, 0xb3, 0x01, 0xf5, 0x5c,
+	0xfd, 0x29, 0xe4, 0x7f, 0x5a, 0xb5, 0x2a, 0xe2, 0x7f, 0x47, 0xf2, 0xdf, 0x7b, 0xfb, 0x45, 0xf1,
+	0x47, 0x7f, 0x31, 0x00, 0x26, 0x25, 0x08, 0x15, 0xdd, 0x50, 0x4f, 0x54, 0xab, 0xd5, 0x33, 0xee,
+	0xc2, 0x94, 0x39, 0x7a, 0x61, 0xcc, 0xff, 0x6a, 0x40, 0x2d, 0x5b, 0x29, 0xd0, 0x7a, 0xe1, 0xa3,
+	0xda, 0x89, 0xca, 0xb7, 0x7a, 0xf5, 0x5c, 0x36, 0xaa, 0x14, 0x99, 0x1f, 0xcb, 0xa9, 0x5c, 0x43,
+	0x17, 0xce, 0x7a, 0xf4, 0x77, 0x03, 0x16, 0xa7, 0x76, 0x3b, 0x7a, 0xbf, 0xf0, 0xd5, 0xe3, 0xb4,
+	0x8a, 0x54, 0x94, 0x30, 0xbf, 0x94, 0x5c, 0xfb, 0xe6, 0xe1, 0x8b, 0x4a, 0x78, 0x57, 0xd3, 0xb8,
+	0x66, 0xbc, 0x7d, 0xf3, 0x09, 0xbc, 0xee, 0x84, 0xfe, 0xf3, 0x79, 0xdf, 0x4c, 0x2f, 0x62, 0xec,
+	0x50, 0x9c, 0xef, 0x87, 0xc6, 0x2f, 0xb6, 0xb5, 0xfe, 0x28, 0xf4, 0x70, 0x30, 0x6a, 0x87, 0xf1,
+	0xa8, 0x33, 0x22, 0x81, 0x3c, 0xfd, 0x3b, 0x6a, 0x08, 0x47, 0x94, 0x3d, 0xe3, 0xff, 0x42, 0xd7,
+	0x53, 0xc1, 0x60, 0x4e, 0x5a, 0x5c, 0xfd, 0x5f, 0x00, 0x00, 0x00, 0xff, 0xff, 0x4a, 0xea, 0xcc,
+	0x54, 0xb3, 0x1a, 0x00, 0x00,
 }

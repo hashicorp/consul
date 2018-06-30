@@ -85,19 +85,19 @@ var xxx_messageInfo_PackageManager proto.InternalMessageInfo
 type PackageManager_Distribution struct {
 	// The cpe_uri in [cpe format](https://cpe.mitre.org/specification/)
 	// denoting the package manager version distributing a package.
-	CpeUri string `protobuf:"bytes,1,opt,name=cpe_uri,json=cpeUri" json:"cpe_uri,omitempty"`
+	CpeUri string `protobuf:"bytes,1,opt,name=cpe_uri,json=cpeUri,proto3" json:"cpe_uri,omitempty"`
 	// The CPU architecture for which packages in this distribution
 	// channel were built
-	Architecture PackageManager_Architecture `protobuf:"varint,2,opt,name=architecture,enum=google.devtools.containeranalysis.v1alpha1.PackageManager_Architecture" json:"architecture,omitempty"`
+	Architecture PackageManager_Architecture `protobuf:"varint,2,opt,name=architecture,proto3,enum=google.devtools.containeranalysis.v1alpha1.PackageManager_Architecture" json:"architecture,omitempty"`
 	// The latest available version of this package in
 	// this distribution channel.
-	LatestVersion *VulnerabilityType_Version `protobuf:"bytes,3,opt,name=latest_version,json=latestVersion" json:"latest_version,omitempty"`
+	LatestVersion *VulnerabilityType_Version `protobuf:"bytes,3,opt,name=latest_version,json=latestVersion,proto3" json:"latest_version,omitempty"`
 	// A freeform string denoting the maintainer of this package.
-	Maintainer string `protobuf:"bytes,4,opt,name=maintainer" json:"maintainer,omitempty"`
+	Maintainer string `protobuf:"bytes,4,opt,name=maintainer,proto3" json:"maintainer,omitempty"`
 	// The distribution channel-specific homepage for this package.
-	Url string `protobuf:"bytes,6,opt,name=url" json:"url,omitempty"`
+	Url string `protobuf:"bytes,6,opt,name=url,proto3" json:"url,omitempty"`
 	// The distribution channel-specific description of this package.
-	Description          string   `protobuf:"bytes,7,opt,name=description" json:"description,omitempty"`
+	Description          string   `protobuf:"bytes,7,opt,name=description,proto3" json:"description,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -175,11 +175,11 @@ func (m *PackageManager_Distribution) GetDescription() string {
 type PackageManager_Location struct {
 	// The cpe_uri in [cpe format](https://cpe.mitre.org/specification/)
 	// denoting the package manager version distributing a package.
-	CpeUri string `protobuf:"bytes,1,opt,name=cpe_uri,json=cpeUri" json:"cpe_uri,omitempty"`
+	CpeUri string `protobuf:"bytes,1,opt,name=cpe_uri,json=cpeUri,proto3" json:"cpe_uri,omitempty"`
 	// The version installed at this location.
-	Version *VulnerabilityType_Version `protobuf:"bytes,2,opt,name=version" json:"version,omitempty"`
+	Version *VulnerabilityType_Version `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
 	// The path from which we gathered that this package/version is installed.
-	Path                 string   `protobuf:"bytes,3,opt,name=path" json:"path,omitempty"`
+	Path                 string   `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -235,9 +235,9 @@ func (m *PackageManager_Location) GetPath() string {
 // e.g. glibc (aka libc6) is distributed by many, at various versions.
 type PackageManager_Package struct {
 	// The name of the package.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The various channels by which a package is distributed.
-	Distribution         []*PackageManager_Distribution `protobuf:"bytes,10,rep,name=distribution" json:"distribution,omitempty"`
+	Distribution         []*PackageManager_Distribution `protobuf:"bytes,10,rep,name=distribution,proto3" json:"distribution,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                       `json:"-"`
 	XXX_unrecognized     []byte                         `json:"-"`
 	XXX_sizecache        int32                          `json:"-"`
@@ -285,10 +285,10 @@ func (m *PackageManager_Package) GetDistribution() []*PackageManager_Distributio
 // a system.
 type PackageManager_Installation struct {
 	// Output only. The name of the installed package.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// All of the places within the filesystem versions of this package
 	// have been found.
-	Location             []*PackageManager_Location `protobuf:"bytes,2,rep,name=location" json:"location,omitempty"`
+	Location             []*PackageManager_Location `protobuf:"bytes,2,rep,name=location,proto3" json:"location,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                   `json:"-"`
 	XXX_unrecognized     []byte                     `json:"-"`
 	XXX_sizecache        int32                      `json:"-"`

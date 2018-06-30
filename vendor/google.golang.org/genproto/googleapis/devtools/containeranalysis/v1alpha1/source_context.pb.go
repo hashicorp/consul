@@ -65,7 +65,7 @@ type SourceContext struct {
 	//	*SourceContext_Git
 	Context isSourceContext_Context `protobuf_oneof:"context"`
 	// Labels with user defined metadata.
-	Labels               map[string]string `protobuf:"bytes,4,rep,name=labels" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Labels               map[string]string `protobuf:"bytes,4,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -100,13 +100,13 @@ type isSourceContext_Context interface {
 }
 
 type SourceContext_CloudRepo struct {
-	CloudRepo *CloudRepoSourceContext `protobuf:"bytes,1,opt,name=cloud_repo,json=cloudRepo,oneof"`
+	CloudRepo *CloudRepoSourceContext `protobuf:"bytes,1,opt,name=cloud_repo,json=cloudRepo,proto3,oneof"`
 }
 type SourceContext_Gerrit struct {
-	Gerrit *GerritSourceContext `protobuf:"bytes,2,opt,name=gerrit,oneof"`
+	Gerrit *GerritSourceContext `protobuf:"bytes,2,opt,name=gerrit,proto3,oneof"`
 }
 type SourceContext_Git struct {
-	Git *GitSourceContext `protobuf:"bytes,3,opt,name=git,oneof"`
+	Git *GitSourceContext `protobuf:"bytes,3,opt,name=git,proto3,oneof"`
 }
 
 func (*SourceContext_CloudRepo) isSourceContext_Context() {}
@@ -244,9 +244,9 @@ func _SourceContext_OneofSizer(msg proto.Message) (n int) {
 // An alias to a repo revision.
 type AliasContext struct {
 	// The alias kind.
-	Kind AliasContext_Kind `protobuf:"varint,1,opt,name=kind,enum=google.devtools.containeranalysis.v1alpha1.AliasContext_Kind" json:"kind,omitempty"`
+	Kind AliasContext_Kind `protobuf:"varint,1,opt,name=kind,proto3,enum=google.devtools.containeranalysis.v1alpha1.AliasContext_Kind" json:"kind,omitempty"`
 	// The alias name.
-	Name                 string   `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -294,7 +294,7 @@ func (m *AliasContext) GetName() string {
 // Source Repo.
 type CloudRepoSourceContext struct {
 	// The ID of the repo.
-	RepoId *RepoId `protobuf:"bytes,1,opt,name=repo_id,json=repoId" json:"repo_id,omitempty"`
+	RepoId *RepoId `protobuf:"bytes,1,opt,name=repo_id,json=repoId,proto3" json:"repo_id,omitempty"`
 	// A revision in a Cloud Repo can be identified by either its revision ID or
 	// its alias.
 	//
@@ -336,10 +336,10 @@ type isCloudRepoSourceContext_Revision interface {
 }
 
 type CloudRepoSourceContext_RevisionId struct {
-	RevisionId string `protobuf:"bytes,2,opt,name=revision_id,json=revisionId,oneof"`
+	RevisionId string `protobuf:"bytes,2,opt,name=revision_id,json=revisionId,proto3,oneof"`
 }
 type CloudRepoSourceContext_AliasContext struct {
-	AliasContext *AliasContext `protobuf:"bytes,3,opt,name=alias_context,json=aliasContext,oneof"`
+	AliasContext *AliasContext `protobuf:"bytes,3,opt,name=alias_context,json=aliasContext,proto3,oneof"`
 }
 
 func (*CloudRepoSourceContext_RevisionId) isCloudRepoSourceContext_Revision()   {}
@@ -446,11 +446,11 @@ func _CloudRepoSourceContext_OneofSizer(msg proto.Message) (n int) {
 // A SourceContext referring to a Gerrit project.
 type GerritSourceContext struct {
 	// The URI of a running Gerrit instance.
-	HostUri string `protobuf:"bytes,1,opt,name=host_uri,json=hostUri" json:"host_uri,omitempty"`
+	HostUri string `protobuf:"bytes,1,opt,name=host_uri,json=hostUri,proto3" json:"host_uri,omitempty"`
 	// The full project name within the host. Projects may be nested, so
 	// "project/subproject" is a valid project name. The "repo name" is
 	// the hostURI/project.
-	GerritProject string `protobuf:"bytes,2,opt,name=gerrit_project,json=gerritProject" json:"gerrit_project,omitempty"`
+	GerritProject string `protobuf:"bytes,2,opt,name=gerrit_project,json=gerritProject,proto3" json:"gerrit_project,omitempty"`
 	// A revision in a Gerrit project can be identified by either its revision ID
 	// or its alias.
 	//
@@ -492,10 +492,10 @@ type isGerritSourceContext_Revision interface {
 }
 
 type GerritSourceContext_RevisionId struct {
-	RevisionId string `protobuf:"bytes,3,opt,name=revision_id,json=revisionId,oneof"`
+	RevisionId string `protobuf:"bytes,3,opt,name=revision_id,json=revisionId,proto3,oneof"`
 }
 type GerritSourceContext_AliasContext struct {
-	AliasContext *AliasContext `protobuf:"bytes,4,opt,name=alias_context,json=aliasContext,oneof"`
+	AliasContext *AliasContext `protobuf:"bytes,4,opt,name=alias_context,json=aliasContext,proto3,oneof"`
 }
 
 func (*GerritSourceContext_RevisionId) isGerritSourceContext_Revision()   {}
@@ -610,10 +610,10 @@ func _GerritSourceContext_OneofSizer(msg proto.Message) (n int) {
 // repository (e.g., GitHub).
 type GitSourceContext struct {
 	// Git repository URL.
-	Url string `protobuf:"bytes,1,opt,name=url" json:"url,omitempty"`
+	Url string `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
 	// Required.
 	// Git commit hash.
-	RevisionId           string   `protobuf:"bytes,2,opt,name=revision_id,json=revisionId" json:"revision_id,omitempty"`
+	RevisionId           string   `protobuf:"bytes,2,opt,name=revision_id,json=revisionId,proto3" json:"revision_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -700,10 +700,10 @@ type isRepoId_Id interface {
 }
 
 type RepoId_ProjectRepoId struct {
-	ProjectRepoId *ProjectRepoId `protobuf:"bytes,1,opt,name=project_repo_id,json=projectRepoId,oneof"`
+	ProjectRepoId *ProjectRepoId `protobuf:"bytes,1,opt,name=project_repo_id,json=projectRepoId,proto3,oneof"`
 }
 type RepoId_Uid struct {
-	Uid string `protobuf:"bytes,2,opt,name=uid,oneof"`
+	Uid string `protobuf:"bytes,2,opt,name=uid,proto3,oneof"`
 }
 
 func (*RepoId_ProjectRepoId) isRepoId_Id() {}
@@ -804,9 +804,9 @@ func _RepoId_OneofSizer(msg proto.Message) (n int) {
 // winged-cargo-31) and a repo name within that project.
 type ProjectRepoId struct {
 	// The ID of the project.
-	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// The name of the repo. Leave empty for the default repo.
-	RepoName             string   `protobuf:"bytes,2,opt,name=repo_name,json=repoName" json:"repo_name,omitempty"`
+	RepoName             string   `protobuf:"bytes,2,opt,name=repo_name,json=repoName,proto3" json:"repo_name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

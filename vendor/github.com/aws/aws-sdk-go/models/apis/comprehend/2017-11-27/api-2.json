@@ -76,6 +76,66 @@
         {"shape":"InternalServerException"}
       ]
     },
+    "DescribeDominantLanguageDetectionJob":{
+      "name":"DescribeDominantLanguageDetectionJob",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeDominantLanguageDetectionJobRequest"},
+      "output":{"shape":"DescribeDominantLanguageDetectionJobResponse"},
+      "errors":[
+        {"shape":"InvalidRequestException"},
+        {"shape":"JobNotFoundException"},
+        {"shape":"TooManyRequestsException"},
+        {"shape":"InternalServerException"}
+      ]
+    },
+    "DescribeEntitiesDetectionJob":{
+      "name":"DescribeEntitiesDetectionJob",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeEntitiesDetectionJobRequest"},
+      "output":{"shape":"DescribeEntitiesDetectionJobResponse"},
+      "errors":[
+        {"shape":"InvalidRequestException"},
+        {"shape":"JobNotFoundException"},
+        {"shape":"TooManyRequestsException"},
+        {"shape":"InternalServerException"}
+      ]
+    },
+    "DescribeKeyPhrasesDetectionJob":{
+      "name":"DescribeKeyPhrasesDetectionJob",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeKeyPhrasesDetectionJobRequest"},
+      "output":{"shape":"DescribeKeyPhrasesDetectionJobResponse"},
+      "errors":[
+        {"shape":"InvalidRequestException"},
+        {"shape":"JobNotFoundException"},
+        {"shape":"TooManyRequestsException"},
+        {"shape":"InternalServerException"}
+      ]
+    },
+    "DescribeSentimentDetectionJob":{
+      "name":"DescribeSentimentDetectionJob",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeSentimentDetectionJobRequest"},
+      "output":{"shape":"DescribeSentimentDetectionJobResponse"},
+      "errors":[
+        {"shape":"InvalidRequestException"},
+        {"shape":"JobNotFoundException"},
+        {"shape":"TooManyRequestsException"},
+        {"shape":"InternalServerException"}
+      ]
+    },
     "DescribeTopicsDetectionJob":{
       "name":"DescribeTopicsDetectionJob",
       "http":{
@@ -150,6 +210,66 @@
         {"shape":"InternalServerException"}
       ]
     },
+    "ListDominantLanguageDetectionJobs":{
+      "name":"ListDominantLanguageDetectionJobs",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListDominantLanguageDetectionJobsRequest"},
+      "output":{"shape":"ListDominantLanguageDetectionJobsResponse"},
+      "errors":[
+        {"shape":"InvalidRequestException"},
+        {"shape":"TooManyRequestsException"},
+        {"shape":"InvalidFilterException"},
+        {"shape":"InternalServerException"}
+      ]
+    },
+    "ListEntitiesDetectionJobs":{
+      "name":"ListEntitiesDetectionJobs",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListEntitiesDetectionJobsRequest"},
+      "output":{"shape":"ListEntitiesDetectionJobsResponse"},
+      "errors":[
+        {"shape":"InvalidRequestException"},
+        {"shape":"TooManyRequestsException"},
+        {"shape":"InvalidFilterException"},
+        {"shape":"InternalServerException"}
+      ]
+    },
+    "ListKeyPhrasesDetectionJobs":{
+      "name":"ListKeyPhrasesDetectionJobs",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListKeyPhrasesDetectionJobsRequest"},
+      "output":{"shape":"ListKeyPhrasesDetectionJobsResponse"},
+      "errors":[
+        {"shape":"InvalidRequestException"},
+        {"shape":"TooManyRequestsException"},
+        {"shape":"InvalidFilterException"},
+        {"shape":"InternalServerException"}
+      ]
+    },
+    "ListSentimentDetectionJobs":{
+      "name":"ListSentimentDetectionJobs",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListSentimentDetectionJobsRequest"},
+      "output":{"shape":"ListSentimentDetectionJobsResponse"},
+      "errors":[
+        {"shape":"InvalidRequestException"},
+        {"shape":"TooManyRequestsException"},
+        {"shape":"InvalidFilterException"},
+        {"shape":"InternalServerException"}
+      ]
+    },
     "ListTopicsDetectionJobs":{
       "name":"ListTopicsDetectionJobs",
       "http":{
@@ -165,6 +285,62 @@
         {"shape":"InternalServerException"}
       ]
     },
+    "StartDominantLanguageDetectionJob":{
+      "name":"StartDominantLanguageDetectionJob",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"StartDominantLanguageDetectionJobRequest"},
+      "output":{"shape":"StartDominantLanguageDetectionJobResponse"},
+      "errors":[
+        {"shape":"InvalidRequestException"},
+        {"shape":"TooManyRequestsException"},
+        {"shape":"InternalServerException"}
+      ]
+    },
+    "StartEntitiesDetectionJob":{
+      "name":"StartEntitiesDetectionJob",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"StartEntitiesDetectionJobRequest"},
+      "output":{"shape":"StartEntitiesDetectionJobResponse"},
+      "errors":[
+        {"shape":"InvalidRequestException"},
+        {"shape":"TooManyRequestsException"},
+        {"shape":"InternalServerException"}
+      ]
+    },
+    "StartKeyPhrasesDetectionJob":{
+      "name":"StartKeyPhrasesDetectionJob",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"StartKeyPhrasesDetectionJobRequest"},
+      "output":{"shape":"StartKeyPhrasesDetectionJobResponse"},
+      "errors":[
+        {"shape":"InvalidRequestException"},
+        {"shape":"TooManyRequestsException"},
+        {"shape":"InternalServerException"}
+      ]
+    },
+    "StartSentimentDetectionJob":{
+      "name":"StartSentimentDetectionJob",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"StartSentimentDetectionJobRequest"},
+      "output":{"shape":"StartSentimentDetectionJobResponse"},
+      "errors":[
+        {"shape":"InvalidRequestException"},
+        {"shape":"TooManyRequestsException"},
+        {"shape":"InternalServerException"}
+      ]
+    },
     "StartTopicsDetectionJob":{
       "name":"StartTopicsDetectionJob",
       "http":{
@@ -176,6 +352,62 @@
       "errors":[
         {"shape":"InvalidRequestException"},
         {"shape":"TooManyRequestsException"},
+        {"shape":"InternalServerException"}
+      ]
+    },
+    "StopDominantLanguageDetectionJob":{
+      "name":"StopDominantLanguageDetectionJob",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"StopDominantLanguageDetectionJobRequest"},
+      "output":{"shape":"StopDominantLanguageDetectionJobResponse"},
+      "errors":[
+        {"shape":"InvalidRequestException"},
+        {"shape":"JobNotFoundException"},
+        {"shape":"InternalServerException"}
+      ]
+    },
+    "StopEntitiesDetectionJob":{
+      "name":"StopEntitiesDetectionJob",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"StopEntitiesDetectionJobRequest"},
+      "output":{"shape":"StopEntitiesDetectionJobResponse"},
+      "errors":[
+        {"shape":"InvalidRequestException"},
+        {"shape":"JobNotFoundException"},
+        {"shape":"InternalServerException"}
+      ]
+    },
+    "StopKeyPhrasesDetectionJob":{
+      "name":"StopKeyPhrasesDetectionJob",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"StopKeyPhrasesDetectionJobRequest"},
+      "output":{"shape":"StopKeyPhrasesDetectionJobResponse"},
+      "errors":[
+        {"shape":"InvalidRequestException"},
+        {"shape":"JobNotFoundException"},
+        {"shape":"InternalServerException"}
+      ]
+    },
+    "StopSentimentDetectionJob":{
+      "name":"StopSentimentDetectionJob",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"StopSentimentDetectionJobRequest"},
+      "output":{"shape":"StopSentimentDetectionJobResponse"},
+      "errors":[
+        {"shape":"InvalidRequestException"},
+        {"shape":"JobNotFoundException"},
         {"shape":"InternalServerException"}
       ]
     }
@@ -222,7 +454,7 @@
       ],
       "members":{
         "TextList":{"shape":"StringList"},
-        "LanguageCode":{"shape":"String"}
+        "LanguageCode":{"shape":"LanguageCode"}
       }
     },
     "BatchDetectEntitiesResponse":{
@@ -251,7 +483,7 @@
       ],
       "members":{
         "TextList":{"shape":"StringList"},
-        "LanguageCode":{"shape":"String"}
+        "LanguageCode":{"shape":"LanguageCode"}
       }
     },
     "BatchDetectKeyPhrasesResponse":{
@@ -281,7 +513,7 @@
       ],
       "members":{
         "TextList":{"shape":"StringList"},
-        "LanguageCode":{"shape":"String"}
+        "LanguageCode":{"shape":"LanguageCode"}
       }
     },
     "BatchDetectSentimentResponse":{
@@ -319,6 +551,58 @@
       "max":64,
       "min":1,
       "pattern":"^[a-zA-Z0-9-]+$"
+    },
+    "DescribeDominantLanguageDetectionJobRequest":{
+      "type":"structure",
+      "required":["JobId"],
+      "members":{
+        "JobId":{"shape":"JobId"}
+      }
+    },
+    "DescribeDominantLanguageDetectionJobResponse":{
+      "type":"structure",
+      "members":{
+        "DominantLanguageDetectionJobProperties":{"shape":"DominantLanguageDetectionJobProperties"}
+      }
+    },
+    "DescribeEntitiesDetectionJobRequest":{
+      "type":"structure",
+      "required":["JobId"],
+      "members":{
+        "JobId":{"shape":"JobId"}
+      }
+    },
+    "DescribeEntitiesDetectionJobResponse":{
+      "type":"structure",
+      "members":{
+        "EntitiesDetectionJobProperties":{"shape":"EntitiesDetectionJobProperties"}
+      }
+    },
+    "DescribeKeyPhrasesDetectionJobRequest":{
+      "type":"structure",
+      "required":["JobId"],
+      "members":{
+        "JobId":{"shape":"JobId"}
+      }
+    },
+    "DescribeKeyPhrasesDetectionJobResponse":{
+      "type":"structure",
+      "members":{
+        "KeyPhrasesDetectionJobProperties":{"shape":"KeyPhrasesDetectionJobProperties"}
+      }
+    },
+    "DescribeSentimentDetectionJobRequest":{
+      "type":"structure",
+      "required":["JobId"],
+      "members":{
+        "JobId":{"shape":"JobId"}
+      }
+    },
+    "DescribeSentimentDetectionJobResponse":{
+      "type":"structure",
+      "members":{
+        "SentimentDetectionJobProperties":{"shape":"SentimentDetectionJobProperties"}
+      }
     },
     "DescribeTopicsDetectionJobRequest":{
       "type":"structure",
@@ -404,6 +688,59 @@
         "LanguageCode":{"shape":"String"},
         "Score":{"shape":"Float"}
       }
+    },
+    "DominantLanguageDetectionJobFilter":{
+      "type":"structure",
+      "members":{
+        "JobName":{"shape":"JobName"},
+        "JobStatus":{"shape":"JobStatus"},
+        "SubmitTimeBefore":{"shape":"Timestamp"},
+        "SubmitTimeAfter":{"shape":"Timestamp"}
+      }
+    },
+    "DominantLanguageDetectionJobProperties":{
+      "type":"structure",
+      "members":{
+        "JobId":{"shape":"JobId"},
+        "JobName":{"shape":"JobName"},
+        "JobStatus":{"shape":"JobStatus"},
+        "Message":{"shape":"AnyLengthString"},
+        "SubmitTime":{"shape":"Timestamp"},
+        "EndTime":{"shape":"Timestamp"},
+        "InputDataConfig":{"shape":"InputDataConfig"},
+        "OutputDataConfig":{"shape":"OutputDataConfig"}
+      }
+    },
+    "DominantLanguageDetectionJobPropertiesList":{
+      "type":"list",
+      "member":{"shape":"DominantLanguageDetectionJobProperties"}
+    },
+    "EntitiesDetectionJobFilter":{
+      "type":"structure",
+      "members":{
+        "JobName":{"shape":"JobName"},
+        "JobStatus":{"shape":"JobStatus"},
+        "SubmitTimeBefore":{"shape":"Timestamp"},
+        "SubmitTimeAfter":{"shape":"Timestamp"}
+      }
+    },
+    "EntitiesDetectionJobProperties":{
+      "type":"structure",
+      "members":{
+        "JobId":{"shape":"JobId"},
+        "JobName":{"shape":"JobName"},
+        "JobStatus":{"shape":"JobStatus"},
+        "Message":{"shape":"AnyLengthString"},
+        "SubmitTime":{"shape":"Timestamp"},
+        "EndTime":{"shape":"Timestamp"},
+        "InputDataConfig":{"shape":"InputDataConfig"},
+        "OutputDataConfig":{"shape":"OutputDataConfig"},
+        "LanguageCode":{"shape":"LanguageCode"}
+      }
+    },
+    "EntitiesDetectionJobPropertiesList":{
+      "type":"list",
+      "member":{"shape":"EntitiesDetectionJobProperties"}
     },
     "Entity":{
       "type":"structure",
@@ -496,7 +833,9 @@
         "SUBMITTED",
         "IN_PROGRESS",
         "COMPLETED",
-        "FAILED"
+        "FAILED",
+        "STOP_REQUESTED",
+        "STOPPED"
       ]
     },
     "KeyPhrase":{
@@ -508,12 +847,84 @@
         "EndOffset":{"shape":"Integer"}
       }
     },
+    "KeyPhrasesDetectionJobFilter":{
+      "type":"structure",
+      "members":{
+        "JobName":{"shape":"JobName"},
+        "JobStatus":{"shape":"JobStatus"},
+        "SubmitTimeBefore":{"shape":"Timestamp"},
+        "SubmitTimeAfter":{"shape":"Timestamp"}
+      }
+    },
+    "KeyPhrasesDetectionJobProperties":{
+      "type":"structure",
+      "members":{
+        "JobId":{"shape":"JobId"},
+        "JobName":{"shape":"JobName"},
+        "JobStatus":{"shape":"JobStatus"},
+        "Message":{"shape":"AnyLengthString"},
+        "SubmitTime":{"shape":"Timestamp"},
+        "EndTime":{"shape":"Timestamp"},
+        "InputDataConfig":{"shape":"InputDataConfig"},
+        "OutputDataConfig":{"shape":"OutputDataConfig"},
+        "LanguageCode":{"shape":"LanguageCode"}
+      }
+    },
+    "KeyPhrasesDetectionJobPropertiesList":{
+      "type":"list",
+      "member":{"shape":"KeyPhrasesDetectionJobProperties"}
+    },
     "LanguageCode":{
       "type":"string",
       "enum":[
         "en",
         "es"
       ]
+    },
+    "ListDominantLanguageDetectionJobsRequest":{
+      "type":"structure",
+      "members":{
+        "Filter":{"shape":"DominantLanguageDetectionJobFilter"},
+        "NextToken":{"shape":"String"},
+        "MaxResults":{"shape":"MaxResultsInteger"}
+      }
+    },
+    "ListDominantLanguageDetectionJobsResponse":{
+      "type":"structure",
+      "members":{
+        "DominantLanguageDetectionJobPropertiesList":{"shape":"DominantLanguageDetectionJobPropertiesList"},
+        "NextToken":{"shape":"String"}
+      }
+    },
+    "ListEntitiesDetectionJobsRequest":{
+      "type":"structure",
+      "members":{
+        "Filter":{"shape":"EntitiesDetectionJobFilter"},
+        "NextToken":{"shape":"String"},
+        "MaxResults":{"shape":"MaxResultsInteger"}
+      }
+    },
+    "ListEntitiesDetectionJobsResponse":{
+      "type":"structure",
+      "members":{
+        "EntitiesDetectionJobPropertiesList":{"shape":"EntitiesDetectionJobPropertiesList"},
+        "NextToken":{"shape":"String"}
+      }
+    },
+    "ListKeyPhrasesDetectionJobsRequest":{
+      "type":"structure",
+      "members":{
+        "Filter":{"shape":"KeyPhrasesDetectionJobFilter"},
+        "NextToken":{"shape":"String"},
+        "MaxResults":{"shape":"MaxResultsInteger"}
+      }
+    },
+    "ListKeyPhrasesDetectionJobsResponse":{
+      "type":"structure",
+      "members":{
+        "KeyPhrasesDetectionJobPropertiesList":{"shape":"KeyPhrasesDetectionJobPropertiesList"},
+        "NextToken":{"shape":"String"}
+      }
     },
     "ListOfDetectDominantLanguageResult":{
       "type":"list",
@@ -542,6 +953,21 @@
     "ListOfKeyPhrases":{
       "type":"list",
       "member":{"shape":"KeyPhrase"}
+    },
+    "ListSentimentDetectionJobsRequest":{
+      "type":"structure",
+      "members":{
+        "Filter":{"shape":"SentimentDetectionJobFilter"},
+        "NextToken":{"shape":"String"},
+        "MaxResults":{"shape":"MaxResultsInteger"}
+      }
+    },
+    "ListSentimentDetectionJobsResponse":{
+      "type":"structure",
+      "members":{
+        "SentimentDetectionJobPropertiesList":{"shape":"SentimentDetectionJobPropertiesList"},
+        "NextToken":{"shape":"String"}
+      }
     },
     "ListTopicsDetectionJobsRequest":{
       "type":"structure",
@@ -578,7 +1004,34 @@
     "S3Uri":{
       "type":"string",
       "max":1024,
-      "pattern":"s3://([^/]+)(/.*)?"
+      "pattern":"s3://[a-z0-9][\\.\\-a-z0-9]{1,61}[a-z0-9](/.*)?"
+    },
+    "SentimentDetectionJobFilter":{
+      "type":"structure",
+      "members":{
+        "JobName":{"shape":"JobName"},
+        "JobStatus":{"shape":"JobStatus"},
+        "SubmitTimeBefore":{"shape":"Timestamp"},
+        "SubmitTimeAfter":{"shape":"Timestamp"}
+      }
+    },
+    "SentimentDetectionJobProperties":{
+      "type":"structure",
+      "members":{
+        "JobId":{"shape":"JobId"},
+        "JobName":{"shape":"JobName"},
+        "JobStatus":{"shape":"JobStatus"},
+        "Message":{"shape":"AnyLengthString"},
+        "SubmitTime":{"shape":"Timestamp"},
+        "EndTime":{"shape":"Timestamp"},
+        "InputDataConfig":{"shape":"InputDataConfig"},
+        "OutputDataConfig":{"shape":"OutputDataConfig"},
+        "LanguageCode":{"shape":"LanguageCode"}
+      }
+    },
+    "SentimentDetectionJobPropertiesList":{
+      "type":"list",
+      "member":{"shape":"SentimentDetectionJobProperties"}
     },
     "SentimentScore":{
       "type":"structure",
@@ -597,6 +1050,112 @@
         "NEUTRAL",
         "MIXED"
       ]
+    },
+    "StartDominantLanguageDetectionJobRequest":{
+      "type":"structure",
+      "required":[
+        "InputDataConfig",
+        "OutputDataConfig",
+        "DataAccessRoleArn"
+      ],
+      "members":{
+        "InputDataConfig":{"shape":"InputDataConfig"},
+        "OutputDataConfig":{"shape":"OutputDataConfig"},
+        "DataAccessRoleArn":{"shape":"IamRoleArn"},
+        "JobName":{"shape":"JobName"},
+        "ClientRequestToken":{
+          "shape":"ClientRequestTokenString",
+          "idempotencyToken":true
+        }
+      }
+    },
+    "StartDominantLanguageDetectionJobResponse":{
+      "type":"structure",
+      "members":{
+        "JobId":{"shape":"JobId"},
+        "JobStatus":{"shape":"JobStatus"}
+      }
+    },
+    "StartEntitiesDetectionJobRequest":{
+      "type":"structure",
+      "required":[
+        "InputDataConfig",
+        "OutputDataConfig",
+        "DataAccessRoleArn",
+        "LanguageCode"
+      ],
+      "members":{
+        "InputDataConfig":{"shape":"InputDataConfig"},
+        "OutputDataConfig":{"shape":"OutputDataConfig"},
+        "DataAccessRoleArn":{"shape":"IamRoleArn"},
+        "JobName":{"shape":"JobName"},
+        "LanguageCode":{"shape":"LanguageCode"},
+        "ClientRequestToken":{
+          "shape":"ClientRequestTokenString",
+          "idempotencyToken":true
+        }
+      }
+    },
+    "StartEntitiesDetectionJobResponse":{
+      "type":"structure",
+      "members":{
+        "JobId":{"shape":"JobId"},
+        "JobStatus":{"shape":"JobStatus"}
+      }
+    },
+    "StartKeyPhrasesDetectionJobRequest":{
+      "type":"structure",
+      "required":[
+        "InputDataConfig",
+        "OutputDataConfig",
+        "DataAccessRoleArn",
+        "LanguageCode"
+      ],
+      "members":{
+        "InputDataConfig":{"shape":"InputDataConfig"},
+        "OutputDataConfig":{"shape":"OutputDataConfig"},
+        "DataAccessRoleArn":{"shape":"IamRoleArn"},
+        "JobName":{"shape":"JobName"},
+        "LanguageCode":{"shape":"LanguageCode"},
+        "ClientRequestToken":{
+          "shape":"ClientRequestTokenString",
+          "idempotencyToken":true
+        }
+      }
+    },
+    "StartKeyPhrasesDetectionJobResponse":{
+      "type":"structure",
+      "members":{
+        "JobId":{"shape":"JobId"},
+        "JobStatus":{"shape":"JobStatus"}
+      }
+    },
+    "StartSentimentDetectionJobRequest":{
+      "type":"structure",
+      "required":[
+        "InputDataConfig",
+        "OutputDataConfig",
+        "DataAccessRoleArn",
+        "LanguageCode"
+      ],
+      "members":{
+        "InputDataConfig":{"shape":"InputDataConfig"},
+        "OutputDataConfig":{"shape":"OutputDataConfig"},
+        "DataAccessRoleArn":{"shape":"IamRoleArn"},
+        "JobName":{"shape":"JobName"},
+        "LanguageCode":{"shape":"LanguageCode"},
+        "ClientRequestToken":{
+          "shape":"ClientRequestTokenString",
+          "idempotencyToken":true
+        }
+      }
+    },
+    "StartSentimentDetectionJobResponse":{
+      "type":"structure",
+      "members":{
+        "JobId":{"shape":"JobId"},
+        "JobStatus":{"shape":"JobStatus"}
+      }
     },
     "StartTopicsDetectionJobRequest":{
       "type":"structure",
@@ -618,6 +1177,62 @@
       }
     },
     "StartTopicsDetectionJobResponse":{
+      "type":"structure",
+      "members":{
+        "JobId":{"shape":"JobId"},
+        "JobStatus":{"shape":"JobStatus"}
+      }
+    },
+    "StopDominantLanguageDetectionJobRequest":{
+      "type":"structure",
+      "required":["JobId"],
+      "members":{
+        "JobId":{"shape":"JobId"}
+      }
+    },
+    "StopDominantLanguageDetectionJobResponse":{
+      "type":"structure",
+      "members":{
+        "JobId":{"shape":"JobId"},
+        "JobStatus":{"shape":"JobStatus"}
+      }
+    },
+    "StopEntitiesDetectionJobRequest":{
+      "type":"structure",
+      "required":["JobId"],
+      "members":{
+        "JobId":{"shape":"JobId"}
+      }
+    },
+    "StopEntitiesDetectionJobResponse":{
+      "type":"structure",
+      "members":{
+        "JobId":{"shape":"JobId"},
+        "JobStatus":{"shape":"JobStatus"}
+      }
+    },
+    "StopKeyPhrasesDetectionJobRequest":{
+      "type":"structure",
+      "required":["JobId"],
+      "members":{
+        "JobId":{"shape":"JobId"}
+      }
+    },
+    "StopKeyPhrasesDetectionJobResponse":{
+      "type":"structure",
+      "members":{
+        "JobId":{"shape":"JobId"},
+        "JobStatus":{"shape":"JobStatus"}
+      }
+    },
+    "StopSentimentDetectionJobRequest":{
+      "type":"structure",
+      "required":["JobId"],
+      "members":{
+        "JobId":{"shape":"JobId"}
+      }
+    },
+    "StopSentimentDetectionJobResponse":{
       "type":"structure",
       "members":{
         "JobId":{"shape":"JobId"},

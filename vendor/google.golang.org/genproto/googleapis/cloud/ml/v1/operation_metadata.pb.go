@@ -57,19 +57,19 @@ func (OperationMetadata_OperationType) EnumDescriptor() ([]byte, []int) {
 // Represents the metadata of the long-running operation.
 type OperationMetadata struct {
 	// The time the operation was submitted.
-	CreateTime *timestamp.Timestamp `protobuf:"bytes,1,opt,name=create_time,json=createTime" json:"create_time,omitempty"`
+	CreateTime *timestamp.Timestamp `protobuf:"bytes,1,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	// The time operation processing started.
-	StartTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=start_time,json=startTime" json:"start_time,omitempty"`
+	StartTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
 	// The time operation processing completed.
-	EndTime *timestamp.Timestamp `protobuf:"bytes,3,opt,name=end_time,json=endTime" json:"end_time,omitempty"`
+	EndTime *timestamp.Timestamp `protobuf:"bytes,3,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
 	// Indicates whether a request to cancel this operation has been made.
-	IsCancellationRequested bool `protobuf:"varint,4,opt,name=is_cancellation_requested,json=isCancellationRequested" json:"is_cancellation_requested,omitempty"`
+	IsCancellationRequested bool `protobuf:"varint,4,opt,name=is_cancellation_requested,json=isCancellationRequested,proto3" json:"is_cancellation_requested,omitempty"`
 	// The operation type.
-	OperationType OperationMetadata_OperationType `protobuf:"varint,5,opt,name=operation_type,json=operationType,enum=google.cloud.ml.v1.OperationMetadata_OperationType" json:"operation_type,omitempty"`
+	OperationType OperationMetadata_OperationType `protobuf:"varint,5,opt,name=operation_type,json=operationType,proto3,enum=google.cloud.ml.v1.OperationMetadata_OperationType" json:"operation_type,omitempty"`
 	// Contains the name of the model associated with the operation.
-	ModelName string `protobuf:"bytes,6,opt,name=model_name,json=modelName" json:"model_name,omitempty"`
+	ModelName string `protobuf:"bytes,6,opt,name=model_name,json=modelName,proto3" json:"model_name,omitempty"`
 	// Contains the version associated with the operation.
-	Version              *Version `protobuf:"bytes,7,opt,name=version" json:"version,omitempty"`
+	Version              *Version `protobuf:"bytes,7,opt,name=version,proto3" json:"version,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

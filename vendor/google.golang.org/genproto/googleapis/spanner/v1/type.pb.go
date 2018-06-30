@@ -98,13 +98,13 @@ func (TypeCode) EnumDescriptor() ([]byte, []int) {
 // table cell or returned from an SQL query.
 type Type struct {
 	// Required. The [TypeCode][google.spanner.v1.TypeCode] for this type.
-	Code TypeCode `protobuf:"varint,1,opt,name=code,enum=google.spanner.v1.TypeCode" json:"code,omitempty"`
+	Code TypeCode `protobuf:"varint,1,opt,name=code,proto3,enum=google.spanner.v1.TypeCode" json:"code,omitempty"`
 	// If [code][google.spanner.v1.Type.code] == [ARRAY][google.spanner.v1.TypeCode.ARRAY], then `array_element_type`
 	// is the type of the array elements.
-	ArrayElementType *Type `protobuf:"bytes,2,opt,name=array_element_type,json=arrayElementType" json:"array_element_type,omitempty"`
+	ArrayElementType *Type `protobuf:"bytes,2,opt,name=array_element_type,json=arrayElementType,proto3" json:"array_element_type,omitempty"`
 	// If [code][google.spanner.v1.Type.code] == [STRUCT][google.spanner.v1.TypeCode.STRUCT], then `struct_type`
 	// provides type information for the struct's fields.
-	StructType           *StructType `protobuf:"bytes,3,opt,name=struct_type,json=structType" json:"struct_type,omitempty"`
+	StructType           *StructType `protobuf:"bytes,3,opt,name=struct_type,json=structType,proto3" json:"struct_type,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
 	XXX_unrecognized     []byte      `json:"-"`
 	XXX_sizecache        int32       `json:"-"`
@@ -163,7 +163,7 @@ type StructType struct {
 	// fields in the [StructType][google.spanner.v1.StructType]. In turn, the order of fields
 	// matches the order of columns in a read request, or the order of
 	// fields in the `SELECT` clause of a query.
-	Fields               []*StructType_Field `protobuf:"bytes,1,rep,name=fields" json:"fields,omitempty"`
+	Fields               []*StructType_Field `protobuf:"bytes,1,rep,name=fields,proto3" json:"fields,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
 	XXX_unrecognized     []byte              `json:"-"`
 	XXX_sizecache        int32               `json:"-"`
@@ -209,9 +209,9 @@ type StructType_Field struct {
 	// columns might have an empty name (e.g., !"SELECT
 	// UPPER(ColName)"`). Note that a query result can contain
 	// multiple fields with the same name.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The type of the field.
-	Type                 *Type    `protobuf:"bytes,2,opt,name=type" json:"type,omitempty"`
+	Type                 *Type    `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

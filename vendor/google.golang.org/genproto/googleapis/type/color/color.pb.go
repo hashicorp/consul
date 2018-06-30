@@ -135,11 +135,11 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 //     // ...
 type Color struct {
 	// The amount of red in the color as a value in the interval [0, 1].
-	Red float32 `protobuf:"fixed32,1,opt,name=red" json:"red,omitempty"`
+	Red float32 `protobuf:"fixed32,1,opt,name=red,proto3" json:"red,omitempty"`
 	// The amount of green in the color as a value in the interval [0, 1].
-	Green float32 `protobuf:"fixed32,2,opt,name=green" json:"green,omitempty"`
+	Green float32 `protobuf:"fixed32,2,opt,name=green,proto3" json:"green,omitempty"`
 	// The amount of blue in the color as a value in the interval [0, 1].
-	Blue float32 `protobuf:"fixed32,3,opt,name=blue" json:"blue,omitempty"`
+	Blue float32 `protobuf:"fixed32,3,opt,name=blue,proto3" json:"blue,omitempty"`
 	// The fraction of this color that should be applied to the pixel. That is,
 	// the final pixel color is defined by the equation:
 	//
@@ -151,7 +151,7 @@ type Color struct {
 	// possible to distinguish between a default value and the value being unset.
 	// If omitted, this color object is to be rendered as a solid color
 	// (as if the alpha value had been explicitly given with a value of 1.0).
-	Alpha                *wrappers.FloatValue `protobuf:"bytes,4,opt,name=alpha" json:"alpha,omitempty"`
+	Alpha                *wrappers.FloatValue `protobuf:"bytes,4,opt,name=alpha,proto3" json:"alpha,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`

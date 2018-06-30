@@ -22,7 +22,7 @@ const (
 	// "ImageTooLargeException".
 	//
 	// The input image size exceeds the allowed limit. For more information, see
-	// limits.
+	// Limits in Amazon Rekognition in the Amazon Rekognition Developer Guide.
 	ErrCodeImageTooLargeException = "ImageTooLargeException"
 
 	// ErrCodeInternalServerError for service response error code
@@ -60,10 +60,10 @@ const (
 	// "LimitExceededException".
 	//
 	// An Amazon Rekognition service limit was exceeded. For example, if you start
-	// too many Rekognition Video jobs concurrently, calls to start operations (StartLabelDetection,
-	// for example) will raise a LimitExceededException exception (HTTP status code:
-	// 400) until the number of concurrently running jobs is below the Amazon Rekognition
-	// service limit.
+	// too many Amazon Rekognition Video jobs concurrently, calls to start operations
+	// (StartLabelDetection, for example) will raise a LimitExceededException exception
+	// (HTTP status code: 400) until the number of concurrently running jobs is
+	// below the Amazon Rekognition service limit.
 	ErrCodeLimitExceededException = "LimitExceededException"
 
 	// ErrCodeProvisionedThroughputExceededException for service response error code

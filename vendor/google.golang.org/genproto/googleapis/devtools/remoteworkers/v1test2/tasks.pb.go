@@ -38,17 +38,17 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 // overhead.
 type Task struct {
 	// The name of this task. Output only.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The actual task to perform. For example, this could be CommandTask to run a
 	// command line.
-	Description *any.Any `protobuf:"bytes,2,opt,name=description" json:"description,omitempty"`
+	Description *any.Any `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
 	// Handles to logs. The key is a human-readable name like `stdout`, and the
 	// handle is a resource name that can be passed to ByteStream or other
 	// accessors.
 	//
 	// An implementation may define some logs by default (like `stdout`), and may
 	// allow clients to add new logs via AddTaskLog.
-	Logs                 map[string]string `protobuf:"bytes,3,rep,name=logs" json:"logs,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Logs                 map[string]string `protobuf:"bytes,3,rep,name=logs,proto3" json:"logs,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -103,7 +103,7 @@ func (m *Task) GetLogs() map[string]string {
 type TaskResult struct {
 	// The name of the task result; must be a name of a `Task` followed by
 	// `/result`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The result may be updated several times; the client must only set
 	// `complete` to true to indicate that no further updates are allowed.
 	// If this is not true, the `status` field must not be examined since its zero
@@ -111,17 +111,17 @@ type TaskResult struct {
 	//
 	// Once a task is completed, it must not be updated with further results,
 	// though the implementation may choose to continue to receive logs.
-	Complete bool `protobuf:"varint,2,opt,name=complete" json:"complete,omitempty"`
+	Complete bool `protobuf:"varint,2,opt,name=complete,proto3" json:"complete,omitempty"`
 	// The final status of the task itself. For example, if task.description
 	// included a timeout which was violated, status.code may be
 	// DEADLINE_EXCEEDED. This field can only be read if `complete` is true.
-	Status *status.Status `protobuf:"bytes,3,opt,name=status" json:"status,omitempty"`
+	Status *status.Status `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
 	// Any non-log output, such as output files and exit codes. See
 	// CommandResult as an example.
-	Output *any.Any `protobuf:"bytes,4,opt,name=output" json:"output,omitempty"`
+	Output *any.Any `protobuf:"bytes,4,opt,name=output,proto3" json:"output,omitempty"`
 	// Any information about how the command was executed, eg runtime. See
 	// CommandOverhead as an example.
-	Meta                 *any.Any `protobuf:"bytes,5,opt,name=meta" json:"meta,omitempty"`
+	Meta                 *any.Any `protobuf:"bytes,5,opt,name=meta,proto3" json:"meta,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -189,7 +189,7 @@ func (m *TaskResult) GetMeta() *any.Any {
 // Request message for `GetTask`.
 type GetTaskRequest struct {
 	// The task name.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -229,15 +229,15 @@ func (m *GetTaskRequest) GetName() string {
 // Request message for `UpdateTaskResult`.
 type UpdateTaskResultRequest struct {
 	// The task result name; must match `result.name`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The result being updated.
-	Result *TaskResult `protobuf:"bytes,2,opt,name=result" json:"result,omitempty"`
+	Result *TaskResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	// The fields within `result` that are specified.
-	UpdateMask *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	// If this is being updated by a bot from BotManager, the source should be
 	// bot.session_id. That way, if two bots accidentally get the same name, we'll
 	// know to reject updates from the older one.
-	Source               string   `protobuf:"bytes,4,opt,name=source" json:"source,omitempty"`
+	Source               string   `protobuf:"bytes,4,opt,name=source,proto3" json:"source,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -298,9 +298,9 @@ func (m *UpdateTaskResultRequest) GetSource() string {
 // Request message for `AddTaskLog`.
 type AddTaskLogRequest struct {
 	// The name of the task that will own the new log.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The human-readable name of the log, like `stdout` or a relative file path.
-	LogId                string   `protobuf:"bytes,2,opt,name=log_id,json=logId" json:"log_id,omitempty"`
+	LogId                string   `protobuf:"bytes,2,opt,name=log_id,json=logId,proto3" json:"log_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -347,7 +347,7 @@ func (m *AddTaskLogRequest) GetLogId() string {
 // Response message for `AddTaskLog`.
 type AddTaskLogResponse struct {
 	// The handle for the new log, as would be returned in Task.logs.
-	Handle               string   `protobuf:"bytes,1,opt,name=handle" json:"handle,omitempty"`
+	Handle               string   `protobuf:"bytes,1,opt,name=handle,proto3" json:"handle,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -454,8 +454,7 @@ func (c *tasksClient) AddTaskLog(ctx context.Context, in *AddTaskLogRequest, opt
 	return out, nil
 }
 
-// Server API for Tasks service
-
+// TasksServer is the server API for Tasks service.
 type TasksServer interface {
 	// GetTask reads the current state of the task. Tasks must be created through
 	// some other interface, and should be immutable once created and exposed to

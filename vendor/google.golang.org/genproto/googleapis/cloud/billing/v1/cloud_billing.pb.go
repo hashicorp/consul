@@ -32,14 +32,14 @@ type BillingAccount struct {
 	// `billingAccounts/{billing_account_id}`. For example,
 	// `billingAccounts/012345-567890-ABCDEF` would be the resource name for
 	// billing account `012345-567890-ABCDEF`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// True if the billing account is open, and will therefore be charged for any
 	// usage on associated projects. False if the billing account is closed, and
 	// therefore projects associated with it will be unable to use paid services.
-	Open bool `protobuf:"varint,2,opt,name=open" json:"open,omitempty"`
+	Open bool `protobuf:"varint,2,opt,name=open,proto3" json:"open,omitempty"`
 	// The display name given to the billing account, such as `My Billing
 	// Account`. This name is displayed in the Google Cloud Console.
-	DisplayName          string   `protobuf:"bytes,3,opt,name=display_name,json=displayName" json:"display_name,omitempty"`
+	DisplayName          string   `protobuf:"bytes,3,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -98,19 +98,19 @@ type ProjectBillingInfo struct {
 	// `projects/{project_id}/billingInfo`. For example, the resource name for the
 	// billing information for project `tokyo-rain-123` would be
 	// `projects/tokyo-rain-123/billingInfo`. This field is read-only.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The ID of the project that this `ProjectBillingInfo` represents, such as
 	// `tokyo-rain-123`. This is a convenience field so that you don't need to
 	// parse the `name` field to obtain a project ID. This field is read-only.
-	ProjectId string `protobuf:"bytes,2,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// The resource name of the billing account associated with the project, if
 	// any. For example, `billingAccounts/012345-567890-ABCDEF`.
-	BillingAccountName string `protobuf:"bytes,3,opt,name=billing_account_name,json=billingAccountName" json:"billing_account_name,omitempty"`
+	BillingAccountName string `protobuf:"bytes,3,opt,name=billing_account_name,json=billingAccountName,proto3" json:"billing_account_name,omitempty"`
 	// True if the project is associated with an open billing account, to which
 	// usage on the project is charged. False if the project is associated with a
 	// closed billing account, or no billing account at all, and therefore cannot
 	// use paid services. This field is read-only.
-	BillingEnabled       bool     `protobuf:"varint,4,opt,name=billing_enabled,json=billingEnabled" json:"billing_enabled,omitempty"`
+	BillingEnabled       bool     `protobuf:"varint,4,opt,name=billing_enabled,json=billingEnabled,proto3" json:"billing_enabled,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -172,7 +172,7 @@ func (m *ProjectBillingInfo) GetBillingEnabled() bool {
 type GetBillingAccountRequest struct {
 	// The resource name of the billing account to retrieve. For example,
 	// `billingAccounts/012345-567890-ABCDEF`.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -213,11 +213,11 @@ func (m *GetBillingAccountRequest) GetName() string {
 type ListBillingAccountsRequest struct {
 	// Requested page size. The maximum page size is 100; this is also the
 	// default.
-	PageSize int32 `protobuf:"varint,1,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// A token identifying a page of results to return. This should be a
 	// `next_page_token` value returned from a previous `ListBillingAccounts`
 	// call. If unspecified, the first page of results is returned.
-	PageToken            string   `protobuf:"bytes,2,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -264,11 +264,11 @@ func (m *ListBillingAccountsRequest) GetPageToken() string {
 // Response message for `ListBillingAccounts`.
 type ListBillingAccountsResponse struct {
 	// A list of billing accounts.
-	BillingAccounts []*BillingAccount `protobuf:"bytes,1,rep,name=billing_accounts,json=billingAccounts" json:"billing_accounts,omitempty"`
+	BillingAccounts []*BillingAccount `protobuf:"bytes,1,rep,name=billing_accounts,json=billingAccounts,proto3" json:"billing_accounts,omitempty"`
 	// A token to retrieve the next page of results. To retrieve the next page,
 	// call `ListBillingAccounts` again with the `page_token` field set to this
 	// value. This field is empty if there are no more results to retrieve.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -316,14 +316,14 @@ func (m *ListBillingAccountsResponse) GetNextPageToken() string {
 type ListProjectBillingInfoRequest struct {
 	// The resource name of the billing account associated with the projects that
 	// you want to list. For example, `billingAccounts/012345-567890-ABCDEF`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Requested page size. The maximum page size is 100; this is also the
 	// default.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// A token identifying a page of results to be returned. This should be a
 	// `next_page_token` value returned from a previous `ListProjectBillingInfo`
 	// call. If unspecified, the first page of results is returned.
-	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -378,11 +378,11 @@ func (m *ListProjectBillingInfoRequest) GetPageToken() string {
 type ListProjectBillingInfoResponse struct {
 	// A list of `ProjectBillingInfo` resources representing the projects
 	// associated with the billing account.
-	ProjectBillingInfo []*ProjectBillingInfo `protobuf:"bytes,1,rep,name=project_billing_info,json=projectBillingInfo" json:"project_billing_info,omitempty"`
+	ProjectBillingInfo []*ProjectBillingInfo `protobuf:"bytes,1,rep,name=project_billing_info,json=projectBillingInfo,proto3" json:"project_billing_info,omitempty"`
 	// A token to retrieve the next page of results. To retrieve the next page,
 	// call `ListProjectBillingInfo` again with the `page_token` field set to this
 	// value. This field is empty if there are no more results to retrieve.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -430,7 +430,7 @@ func (m *ListProjectBillingInfoResponse) GetNextPageToken() string {
 type GetProjectBillingInfoRequest struct {
 	// The resource name of the project for which billing information is
 	// retrieved. For example, `projects/tokyo-rain-123`.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -471,10 +471,10 @@ func (m *GetProjectBillingInfoRequest) GetName() string {
 type UpdateProjectBillingInfoRequest struct {
 	// The resource name of the project associated with the billing information
 	// that you want to update. For example, `projects/tokyo-rain-123`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The new billing information for the project. Read-only fields are ignored;
 	// thus, you may leave empty all fields except `billing_account_name`.
-	ProjectBillingInfo   *ProjectBillingInfo `protobuf:"bytes,2,opt,name=project_billing_info,json=projectBillingInfo" json:"project_billing_info,omitempty"`
+	ProjectBillingInfo   *ProjectBillingInfo `protobuf:"bytes,2,opt,name=project_billing_info,json=projectBillingInfo,proto3" json:"project_billing_info,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
 	XXX_unrecognized     []byte              `json:"-"`
 	XXX_sizecache        int32               `json:"-"`
@@ -645,8 +645,7 @@ func (c *cloudBillingClient) UpdateProjectBillingInfo(ctx context.Context, in *U
 	return out, nil
 }
 
-// Server API for CloudBilling service
-
+// CloudBillingServer is the server API for CloudBilling service.
 type CloudBillingServer interface {
 	// Gets information about a billing account. The current authenticated user
 	// must be an [owner of the billing

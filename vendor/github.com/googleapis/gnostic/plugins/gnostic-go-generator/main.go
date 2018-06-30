@@ -21,7 +21,9 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/golang/protobuf/proto"
 	plugins "github.com/googleapis/gnostic/plugins"
+	surface "github.com/googleapis/gnostic/surface"
 )
 
 // This is the main function for the code generation plugin.
@@ -42,30 +44,33 @@ func main() {
 		files = []string{"client.go", "server.go", "provider.go", "types.go", "constants.go"}
 	}
 
-	// Get the code surface model.
-	model := env.Request.Surface
+	for _, model := range env.Request.Models {
+		switch model.TypeUrl {
+		case "surface.v1.Model":
+			surfaceModel := &surface.Model{}
+			err = proto.Unmarshal(model.Value, surfaceModel)
+			if err == nil {
+				// Customize the code surface model for Go
+				NewGoLanguageModel().Prepare(surfaceModel)
 
-	if model == nil {
-		err = errors.New("No generated code surface model is available.")
-		env.RespondAndExitIfError(err)
+				modelJSON, _ := json.MarshalIndent(surfaceModel, "", "  ")
+				modelFile := &plugins.File{Name: "model.json", Data: modelJSON}
+				env.Response.Files = append(env.Response.Files, modelFile)
+
+				// Create the renderer.
+				renderer, err := NewServiceRenderer(surfaceModel)
+				renderer.Package = packageName
+				env.RespondAndExitIfError(err)
+
+				// Run the renderer to generate files and add them to the response object.
+				err = renderer.Render(env.Response, files)
+				env.RespondAndExitIfError(err)
+
+				// Return with success.
+				env.RespondAndExit()
+			}
+		}
 	}
-
-	// Customize the code surface model for Go
-	NewGoLanguageModel().Prepare(model)
-
-	modelJSON, _ := json.MarshalIndent(model, "", "  ")
-	modelFile := &plugins.File{Name: "model.json", Data: modelJSON}
-	env.Response.Files = append(env.Response.Files, modelFile)
-
-	// Create the renderer.
-	renderer, err := NewServiceRenderer(model)
-	renderer.Package = packageName
+	err = errors.New("No generated code surface model is available.")
 	env.RespondAndExitIfError(err)
-
-	// Run the renderer to generate files and add them to the response object.
-	err = renderer.Render(env.Response, files)
-	env.RespondAndExitIfError(err)
-
-	// Return with success.
-	env.RespondAndExit()
 }

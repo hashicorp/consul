@@ -28,6 +28,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	apb "github.com/golang/protobuf/ptypes/any"
 	dpb "github.com/golang/protobuf/ptypes/duration"
+	"golang.org/x/net/context"
 	cpb "google.golang.org/genproto/googleapis/rpc/code"
 	epb "google.golang.org/genproto/googleapis/rpc/errdetails"
 	spb "google.golang.org/genproto/googleapis/rpc/status"
@@ -326,4 +327,22 @@ func mustMarshalAny(msg proto.Message) *apb.Any {
 		panic(fmt.Sprintf("ptypes.MarshalAny(%+v) failed: %v", msg, err))
 	}
 	return any
+}
+
+func TestFromContextError(t *testing.T) {
+	testCases := []struct {
+		in   error
+		want *Status
+	}{
+		{in: nil, want: New(codes.OK, "")},
+		{in: context.DeadlineExceeded, want: New(codes.DeadlineExceeded, context.DeadlineExceeded.Error())},
+		{in: context.Canceled, want: New(codes.Canceled, context.Canceled.Error())},
+		{in: errors.New("other"), want: New(codes.Unknown, "other")},
+	}
+	for _, tc := range testCases {
+		got := FromContextError(tc.in)
+		if got.Code() != tc.want.Code() || got.Message() != tc.want.Message() {
+			t.Errorf("FromContextError(%v) = %v; want %v", tc.in, got, tc.want)
+		}
+	}
 }

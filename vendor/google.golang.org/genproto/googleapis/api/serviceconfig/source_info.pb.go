@@ -22,7 +22,7 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 // Source information used to create a Service Config
 type SourceInfo struct {
 	// All files used during config generation.
-	SourceFiles          []*any.Any `protobuf:"bytes,1,rep,name=source_files,json=sourceFiles" json:"source_files,omitempty"`
+	SourceFiles          []*any.Any `protobuf:"bytes,1,rep,name=source_files,json=sourceFiles,proto3" json:"source_files,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
 	XXX_unrecognized     []byte     `json:"-"`
 	XXX_sizecache        int32      `json:"-"`
@@ -32,7 +32,7 @@ func (m *SourceInfo) Reset()         { *m = SourceInfo{} }
 func (m *SourceInfo) String() string { return proto.CompactTextString(m) }
 func (*SourceInfo) ProtoMessage()    {}
 func (*SourceInfo) Descriptor() ([]byte, []int) {
-	return fileDescriptor_source_info_5bff73c4b21f6f4f, []int{0}
+	return fileDescriptor_source_info_7a3c15eb7da8e642, []int{0}
 }
 func (m *SourceInfo) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SourceInfo.Unmarshal(m, b)
@@ -64,10 +64,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("google/api/source_info.proto", fileDescriptor_source_info_5bff73c4b21f6f4f)
+	proto.RegisterFile("google/api/source_info.proto", fileDescriptor_source_info_7a3c15eb7da8e642)
 }
 
-var fileDescriptor_source_info_5bff73c4b21f6f4f = []byte{
+var fileDescriptor_source_info_7a3c15eb7da8e642 = []byte{
 	// 198 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x92, 0x49, 0xcf, 0xcf, 0x4f,
 	0xcf, 0x49, 0xd5, 0x4f, 0x2c, 0xc8, 0xd4, 0x2f, 0xce, 0x2f, 0x2d, 0x4a, 0x4e, 0x8d, 0xcf, 0xcc,

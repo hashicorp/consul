@@ -17,6 +17,18 @@
       "output_token": "NextToken",
       "limit_key": "MaxResults",
       "result_key": "InputSecurityGroups"
+    },
+    "ListOfferings": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "Offerings"
+    },
+    "ListReservations": {
+      "input_token": "NextToken",
+      "output_token": "NextToken",
+      "limit_key": "MaxResults",
+      "result_key": "Reservations"
     }
   }
 }

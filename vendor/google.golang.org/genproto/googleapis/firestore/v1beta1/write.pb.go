@@ -65,11 +65,11 @@ type Write struct {
 	// Fields referenced in the mask, but not present in the input document, are
 	// deleted from the document on the server.
 	// The field paths in this mask must not contain a reserved field name.
-	UpdateMask *DocumentMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask *DocumentMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	// An optional precondition on the document.
 	//
 	// The write will fail if this is set and not met by the target document.
-	CurrentDocument      *Precondition `protobuf:"bytes,4,opt,name=current_document,json=currentDocument" json:"current_document,omitempty"`
+	CurrentDocument      *Precondition `protobuf:"bytes,4,opt,name=current_document,json=currentDocument,proto3" json:"current_document,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
 	XXX_unrecognized     []byte        `json:"-"`
 	XXX_sizecache        int32         `json:"-"`
@@ -104,13 +104,13 @@ type isWrite_Operation interface {
 }
 
 type Write_Update struct {
-	Update *Document `protobuf:"bytes,1,opt,name=update,oneof"`
+	Update *Document `protobuf:"bytes,1,opt,name=update,proto3,oneof"`
 }
 type Write_Delete struct {
-	Delete string `protobuf:"bytes,2,opt,name=delete,oneof"`
+	Delete string `protobuf:"bytes,2,opt,name=delete,proto3,oneof"`
 }
 type Write_Transform struct {
-	Transform *DocumentTransform `protobuf:"bytes,6,opt,name=transform,oneof"`
+	Transform *DocumentTransform `protobuf:"bytes,6,opt,name=transform,proto3,oneof"`
 }
 
 func (*Write_Update) isWrite_Operation()    {}
@@ -251,11 +251,11 @@ func _Write_OneofSizer(msg proto.Message) (n int) {
 // A transformation of a document.
 type DocumentTransform struct {
 	// The name of the document to transform.
-	Document string `protobuf:"bytes,1,opt,name=document" json:"document,omitempty"`
+	Document string `protobuf:"bytes,1,opt,name=document,proto3" json:"document,omitempty"`
 	// The list of transformations to apply to the fields of the document, in
 	// order.
 	// This must not be empty.
-	FieldTransforms      []*DocumentTransform_FieldTransform `protobuf:"bytes,2,rep,name=field_transforms,json=fieldTransforms" json:"field_transforms,omitempty"`
+	FieldTransforms      []*DocumentTransform_FieldTransform `protobuf:"bytes,2,rep,name=field_transforms,json=fieldTransforms,proto3" json:"field_transforms,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                            `json:"-"`
 	XXX_unrecognized     []byte                              `json:"-"`
 	XXX_sizecache        int32                               `json:"-"`
@@ -303,7 +303,7 @@ func (m *DocumentTransform) GetFieldTransforms() []*DocumentTransform_FieldTrans
 type DocumentTransform_FieldTransform struct {
 	// The path of the field. See [Document.fields][google.firestore.v1beta1.Document.fields] for the field path syntax
 	// reference.
-	FieldPath string `protobuf:"bytes,1,opt,name=field_path,json=fieldPath" json:"field_path,omitempty"`
+	FieldPath string `protobuf:"bytes,1,opt,name=field_path,json=fieldPath,proto3" json:"field_path,omitempty"`
 	// The transformation to apply on the field.
 	//
 	// Types that are valid to be assigned to TransformType:
@@ -343,7 +343,7 @@ type isDocumentTransform_FieldTransform_TransformType interface {
 }
 
 type DocumentTransform_FieldTransform_SetToServerValue struct {
-	SetToServerValue DocumentTransform_FieldTransform_ServerValue `protobuf:"varint,2,opt,name=set_to_server_value,json=setToServerValue,enum=google.firestore.v1beta1.DocumentTransform_FieldTransform_ServerValue,oneof"`
+	SetToServerValue DocumentTransform_FieldTransform_ServerValue `protobuf:"varint,2,opt,name=set_to_server_value,json=setToServerValue,proto3,enum=google.firestore.v1beta1.DocumentTransform_FieldTransform_ServerValue,oneof"`
 }
 
 func (*DocumentTransform_FieldTransform_SetToServerValue) isDocumentTransform_FieldTransform_TransformType() {
@@ -427,10 +427,10 @@ type WriteResult struct {
 	//
 	// If the write did not actually change the document, this will be the
 	// previous update_time.
-	UpdateTime *timestamp.Timestamp `protobuf:"bytes,1,opt,name=update_time,json=updateTime" json:"update_time,omitempty"`
+	UpdateTime *timestamp.Timestamp `protobuf:"bytes,1,opt,name=update_time,json=updateTime,proto3" json:"update_time,omitempty"`
 	// The results of applying each [DocumentTransform.FieldTransform][google.firestore.v1beta1.DocumentTransform.FieldTransform], in the
 	// same order.
-	TransformResults     []*Value `protobuf:"bytes,2,rep,name=transform_results,json=transformResults" json:"transform_results,omitempty"`
+	TransformResults     []*Value `protobuf:"bytes,2,rep,name=transform_results,json=transformResults,proto3" json:"transform_results,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -485,11 +485,11 @@ type DocumentChange struct {
 	// The new state of the [Document][google.firestore.v1beta1.Document].
 	//
 	// If `mask` is set, contains only fields that were updated or added.
-	Document *Document `protobuf:"bytes,1,opt,name=document" json:"document,omitempty"`
+	Document *Document `protobuf:"bytes,1,opt,name=document,proto3" json:"document,omitempty"`
 	// A set of target IDs of targets that match this document.
-	TargetIds []int32 `protobuf:"varint,5,rep,packed,name=target_ids,json=targetIds" json:"target_ids,omitempty"`
+	TargetIds []int32 `protobuf:"varint,5,rep,packed,name=target_ids,json=targetIds,proto3" json:"target_ids,omitempty"`
 	// A set of target IDs for targets that no longer match this document.
-	RemovedTargetIds     []int32  `protobuf:"varint,6,rep,packed,name=removed_target_ids,json=removedTargetIds" json:"removed_target_ids,omitempty"`
+	RemovedTargetIds     []int32  `protobuf:"varint,6,rep,packed,name=removed_target_ids,json=removedTargetIds,proto3" json:"removed_target_ids,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -549,13 +549,13 @@ func (m *DocumentChange) GetRemovedTargetIds() []int32 {
 // delete, if multiple targets are affected.
 type DocumentDelete struct {
 	// The resource name of the [Document][google.firestore.v1beta1.Document] that was deleted.
-	Document string `protobuf:"bytes,1,opt,name=document" json:"document,omitempty"`
+	Document string `protobuf:"bytes,1,opt,name=document,proto3" json:"document,omitempty"`
 	// A set of target IDs for targets that previously matched this entity.
-	RemovedTargetIds []int32 `protobuf:"varint,6,rep,packed,name=removed_target_ids,json=removedTargetIds" json:"removed_target_ids,omitempty"`
+	RemovedTargetIds []int32 `protobuf:"varint,6,rep,packed,name=removed_target_ids,json=removedTargetIds,proto3" json:"removed_target_ids,omitempty"`
 	// The read timestamp at which the delete was observed.
 	//
 	// Greater or equal to the `commit_time` of the delete.
-	ReadTime             *timestamp.Timestamp `protobuf:"bytes,4,opt,name=read_time,json=readTime" json:"read_time,omitempty"`
+	ReadTime             *timestamp.Timestamp `protobuf:"bytes,4,opt,name=read_time,json=readTime,proto3" json:"read_time,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -616,13 +616,13 @@ func (m *DocumentDelete) GetReadTime() *timestamp.Timestamp {
 // write or delete, if multiple targets are affected.
 type DocumentRemove struct {
 	// The resource name of the [Document][google.firestore.v1beta1.Document] that has gone out of view.
-	Document string `protobuf:"bytes,1,opt,name=document" json:"document,omitempty"`
+	Document string `protobuf:"bytes,1,opt,name=document,proto3" json:"document,omitempty"`
 	// A set of target IDs for targets that previously matched this document.
-	RemovedTargetIds []int32 `protobuf:"varint,2,rep,packed,name=removed_target_ids,json=removedTargetIds" json:"removed_target_ids,omitempty"`
+	RemovedTargetIds []int32 `protobuf:"varint,2,rep,packed,name=removed_target_ids,json=removedTargetIds,proto3" json:"removed_target_ids,omitempty"`
 	// The read timestamp at which the remove was observed.
 	//
 	// Greater or equal to the `commit_time` of the change/delete/remove.
-	ReadTime             *timestamp.Timestamp `protobuf:"bytes,4,opt,name=read_time,json=readTime" json:"read_time,omitempty"`
+	ReadTime             *timestamp.Timestamp `protobuf:"bytes,4,opt,name=read_time,json=readTime,proto3" json:"read_time,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -676,12 +676,12 @@ func (m *DocumentRemove) GetReadTime() *timestamp.Timestamp {
 // A digest of all the documents that match a given target.
 type ExistenceFilter struct {
 	// The target ID to which this filter applies.
-	TargetId int32 `protobuf:"varint,1,opt,name=target_id,json=targetId" json:"target_id,omitempty"`
+	TargetId int32 `protobuf:"varint,1,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
 	// The total count of documents that match [target_id][google.firestore.v1beta1.ExistenceFilter.target_id].
 	//
 	// If different from the count of documents in the client that match, the
 	// client must manually determine which documents no longer match the target.
-	Count                int32    `protobuf:"varint,2,opt,name=count" json:"count,omitempty"`
+	Count                int32    `protobuf:"varint,2,opt,name=count,proto3" json:"count,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

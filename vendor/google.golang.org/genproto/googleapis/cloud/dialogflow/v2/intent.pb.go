@@ -241,63 +241,63 @@ type Intent struct {
 	// automatically.
 	// The unique identifier of this intent.
 	// Format: `projects/<Project ID>/agent/intents/<Intent ID>`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Required. The name of this intent.
-	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName" json:"display_name,omitempty"`
+	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	// Required. Indicates whether webhooks are enabled for the intent.
-	WebhookState Intent_WebhookState `protobuf:"varint,6,opt,name=webhook_state,json=webhookState,enum=google.cloud.dialogflow.v2.Intent_WebhookState" json:"webhook_state,omitempty"`
+	WebhookState Intent_WebhookState `protobuf:"varint,6,opt,name=webhook_state,json=webhookState,proto3,enum=google.cloud.dialogflow.v2.Intent_WebhookState" json:"webhook_state,omitempty"`
 	// Optional. The priority of this intent. Higher numbers represent higher
 	// priorities. Zero or negative numbers mean that the intent is disabled.
-	Priority int32 `protobuf:"varint,3,opt,name=priority" json:"priority,omitempty"`
+	Priority int32 `protobuf:"varint,3,opt,name=priority,proto3" json:"priority,omitempty"`
 	// Optional. Indicates whether this is a fallback intent.
-	IsFallback bool `protobuf:"varint,4,opt,name=is_fallback,json=isFallback" json:"is_fallback,omitempty"`
+	IsFallback bool `protobuf:"varint,4,opt,name=is_fallback,json=isFallback,proto3" json:"is_fallback,omitempty"`
 	// Optional. Indicates whether Machine Learning is disabled for the intent.
 	// Note: If `ml_diabled` setting is set to true, then this intent is not
 	// taken into account during inference in `ML ONLY` match mode. Also,
 	// auto-markup in the UI is turned off.
-	MlDisabled bool `protobuf:"varint,19,opt,name=ml_disabled,json=mlDisabled" json:"ml_disabled,omitempty"`
+	MlDisabled bool `protobuf:"varint,19,opt,name=ml_disabled,json=mlDisabled,proto3" json:"ml_disabled,omitempty"`
 	// Optional. The list of context names required for this intent to be
 	// triggered.
 	// Format: `projects/<Project ID>/agent/sessions/-/contexts/<Context ID>`.
-	InputContextNames []string `protobuf:"bytes,7,rep,name=input_context_names,json=inputContextNames" json:"input_context_names,omitempty"`
+	InputContextNames []string `protobuf:"bytes,7,rep,name=input_context_names,json=inputContextNames,proto3" json:"input_context_names,omitempty"`
 	// Optional. The collection of event names that trigger the intent.
 	// If the collection of input contexts is not empty, all of the contexts must
 	// be present in the active user session for an event to trigger this intent.
-	Events []string `protobuf:"bytes,8,rep,name=events" json:"events,omitempty"`
+	Events []string `protobuf:"bytes,8,rep,name=events,proto3" json:"events,omitempty"`
 	// Optional. The collection of examples/templates that the agent is
 	// trained on.
-	TrainingPhrases []*Intent_TrainingPhrase `protobuf:"bytes,9,rep,name=training_phrases,json=trainingPhrases" json:"training_phrases,omitempty"`
+	TrainingPhrases []*Intent_TrainingPhrase `protobuf:"bytes,9,rep,name=training_phrases,json=trainingPhrases,proto3" json:"training_phrases,omitempty"`
 	// Optional. The name of the action associated with the intent.
-	Action string `protobuf:"bytes,10,opt,name=action" json:"action,omitempty"`
+	Action string `protobuf:"bytes,10,opt,name=action,proto3" json:"action,omitempty"`
 	// Optional. The collection of contexts that are activated when the intent
 	// is matched. Context messages in this collection should not set the
 	// parameters field. Setting the `lifespan_count` to 0 will reset the context
 	// when the intent is matched.
 	// Format: `projects/<Project ID>/agent/sessions/-/contexts/<Context ID>`.
-	OutputContexts []*Context `protobuf:"bytes,11,rep,name=output_contexts,json=outputContexts" json:"output_contexts,omitempty"`
+	OutputContexts []*Context `protobuf:"bytes,11,rep,name=output_contexts,json=outputContexts,proto3" json:"output_contexts,omitempty"`
 	// Optional. Indicates whether to delete all contexts in the current
 	// session when this intent is matched.
-	ResetContexts bool `protobuf:"varint,12,opt,name=reset_contexts,json=resetContexts" json:"reset_contexts,omitempty"`
+	ResetContexts bool `protobuf:"varint,12,opt,name=reset_contexts,json=resetContexts,proto3" json:"reset_contexts,omitempty"`
 	// Optional. The collection of parameters associated with the intent.
-	Parameters []*Intent_Parameter `protobuf:"bytes,13,rep,name=parameters" json:"parameters,omitempty"`
+	Parameters []*Intent_Parameter `protobuf:"bytes,13,rep,name=parameters,proto3" json:"parameters,omitempty"`
 	// Optional. The collection of rich messages corresponding to the
 	// `Response` field in the Dialogflow console.
-	Messages []*Intent_Message `protobuf:"bytes,14,rep,name=messages" json:"messages,omitempty"`
+	Messages []*Intent_Message `protobuf:"bytes,14,rep,name=messages,proto3" json:"messages,omitempty"`
 	// Optional. The list of platforms for which the first response will be
 	// taken from among the messages assigned to the DEFAULT_PLATFORM.
-	DefaultResponsePlatforms []Intent_Message_Platform `protobuf:"varint,15,rep,packed,name=default_response_platforms,json=defaultResponsePlatforms,enum=google.cloud.dialogflow.v2.Intent_Message_Platform" json:"default_response_platforms,omitempty"`
+	DefaultResponsePlatforms []Intent_Message_Platform `protobuf:"varint,15,rep,packed,name=default_response_platforms,json=defaultResponsePlatforms,proto3,enum=google.cloud.dialogflow.v2.Intent_Message_Platform" json:"default_response_platforms,omitempty"`
 	// The unique identifier of the root intent in the chain of followup intents.
 	// It identifies the correct followup intents chain for this intent.
 	// Format: `projects/<Project ID>/agent/intents/<Intent ID>`.
-	RootFollowupIntentName string `protobuf:"bytes,16,opt,name=root_followup_intent_name,json=rootFollowupIntentName" json:"root_followup_intent_name,omitempty"`
+	RootFollowupIntentName string `protobuf:"bytes,16,opt,name=root_followup_intent_name,json=rootFollowupIntentName,proto3" json:"root_followup_intent_name,omitempty"`
 	// The unique identifier of the parent intent in the chain of followup
 	// intents.
 	// It identifies the parent followup intent.
 	// Format: `projects/<Project ID>/agent/intents/<Intent ID>`.
-	ParentFollowupIntentName string `protobuf:"bytes,17,opt,name=parent_followup_intent_name,json=parentFollowupIntentName" json:"parent_followup_intent_name,omitempty"`
+	ParentFollowupIntentName string `protobuf:"bytes,17,opt,name=parent_followup_intent_name,json=parentFollowupIntentName,proto3" json:"parent_followup_intent_name,omitempty"`
 	// Optional. Collection of information about all followup intents that have
 	// name of this intent as a root_name.
-	FollowupIntentInfo   []*Intent_FollowupIntentInfo `protobuf:"bytes,18,rep,name=followup_intent_info,json=followupIntentInfo" json:"followup_intent_info,omitempty"`
+	FollowupIntentInfo   []*Intent_FollowupIntentInfo `protobuf:"bytes,18,rep,name=followup_intent_info,json=followupIntentInfo,proto3" json:"followup_intent_info,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                     `json:"-"`
 	XXX_unrecognized     []byte                       `json:"-"`
 	XXX_sizecache        int32                        `json:"-"`
@@ -456,17 +456,17 @@ func (m *Intent) GetFollowupIntentInfo() []*Intent_FollowupIntentInfo {
 // Represents an example or template that the agent is trained on.
 type Intent_TrainingPhrase struct {
 	// Required. The unique identifier of this training phrase.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Required. The type of the training phrase.
-	Type Intent_TrainingPhrase_Type `protobuf:"varint,2,opt,name=type,enum=google.cloud.dialogflow.v2.Intent_TrainingPhrase_Type" json:"type,omitempty"`
+	Type Intent_TrainingPhrase_Type `protobuf:"varint,2,opt,name=type,proto3,enum=google.cloud.dialogflow.v2.Intent_TrainingPhrase_Type" json:"type,omitempty"`
 	// Required. The collection of training phrase parts (can be annotated).
 	// Fields: `entity_type`, `alias` and `user_defined` should be populated
 	// only for the annotated parts of the training phrase.
-	Parts []*Intent_TrainingPhrase_Part `protobuf:"bytes,3,rep,name=parts" json:"parts,omitempty"`
+	Parts []*Intent_TrainingPhrase_Part `protobuf:"bytes,3,rep,name=parts,proto3" json:"parts,omitempty"`
 	// Optional. Indicates how many times this example or template was added to
 	// the intent. Each time a developer adds an existing sample by editing an
 	// intent or training, this counter is increased.
-	TimesAddedCount      int32    `protobuf:"varint,4,opt,name=times_added_count,json=timesAddedCount" json:"times_added_count,omitempty"`
+	TimesAddedCount      int32    `protobuf:"varint,4,opt,name=times_added_count,json=timesAddedCount,proto3" json:"times_added_count,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -529,17 +529,17 @@ type Intent_TrainingPhrase_Part struct {
 	// Required. The text corresponding to the example or template,
 	// if there are no annotations. For
 	// annotated examples, it is the text for one of the example's parts.
-	Text string `protobuf:"bytes,1,opt,name=text" json:"text,omitempty"`
+	Text string `protobuf:"bytes,1,opt,name=text,proto3" json:"text,omitempty"`
 	// Optional. The entity type name prefixed with `@`. This field is
 	// required for the annotated part of the text and applies only to
 	// examples.
-	EntityType string `protobuf:"bytes,2,opt,name=entity_type,json=entityType" json:"entity_type,omitempty"`
+	EntityType string `protobuf:"bytes,2,opt,name=entity_type,json=entityType,proto3" json:"entity_type,omitempty"`
 	// Optional. The parameter name for the value extracted from the
 	// annotated part of the example.
-	Alias string `protobuf:"bytes,3,opt,name=alias" json:"alias,omitempty"`
+	Alias string `protobuf:"bytes,3,opt,name=alias,proto3" json:"alias,omitempty"`
 	// Optional. Indicates whether the text was manually annotated by the
 	// developer.
-	UserDefined          bool     `protobuf:"varint,4,opt,name=user_defined,json=userDefined" json:"user_defined,omitempty"`
+	UserDefined          bool     `protobuf:"varint,4,opt,name=user_defined,json=userDefined,proto3" json:"user_defined,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -600,34 +600,34 @@ func (m *Intent_TrainingPhrase_Part) GetUserDefined() bool {
 // Represents intent parameters.
 type Intent_Parameter struct {
 	// The unique identifier of this parameter.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Required. The name of the parameter.
-	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName" json:"display_name,omitempty"`
+	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	// Optional. The definition of the parameter value. It can be:
 	// - a constant string,
 	// - a parameter value defined as `$parameter_name`,
 	// - an original parameter value defined as `$parameter_name.original`,
 	// - a parameter value from some context defined as
 	//   `#context_name.parameter_name`.
-	Value string `protobuf:"bytes,3,opt,name=value" json:"value,omitempty"`
+	Value string `protobuf:"bytes,3,opt,name=value,proto3" json:"value,omitempty"`
 	// Optional. The default value to use when the `value` yields an empty
 	// result.
 	// Default values can be extracted from contexts by using the following
 	// syntax: `#context_name.parameter_name`.
-	DefaultValue string `protobuf:"bytes,4,opt,name=default_value,json=defaultValue" json:"default_value,omitempty"`
+	DefaultValue string `protobuf:"bytes,4,opt,name=default_value,json=defaultValue,proto3" json:"default_value,omitempty"`
 	// Optional. The name of the entity type, prefixed with `@`, that
 	// describes values of the parameter. If the parameter is
 	// required, this must be provided.
-	EntityTypeDisplayName string `protobuf:"bytes,5,opt,name=entity_type_display_name,json=entityTypeDisplayName" json:"entity_type_display_name,omitempty"`
+	EntityTypeDisplayName string `protobuf:"bytes,5,opt,name=entity_type_display_name,json=entityTypeDisplayName,proto3" json:"entity_type_display_name,omitempty"`
 	// Optional. Indicates whether the parameter is required. That is,
 	// whether the intent cannot be completed without collecting the parameter
 	// value.
-	Mandatory bool `protobuf:"varint,6,opt,name=mandatory" json:"mandatory,omitempty"`
+	Mandatory bool `protobuf:"varint,6,opt,name=mandatory,proto3" json:"mandatory,omitempty"`
 	// Optional. The collection of prompts that the agent can present to the
 	// user in order to collect value for the parameter.
-	Prompts []string `protobuf:"bytes,7,rep,name=prompts" json:"prompts,omitempty"`
+	Prompts []string `protobuf:"bytes,7,rep,name=prompts,proto3" json:"prompts,omitempty"`
 	// Optional. Indicates whether the parameter represents a list of values.
-	IsList               bool     `protobuf:"varint,8,opt,name=is_list,json=isList" json:"is_list,omitempty"`
+	IsList               bool     `protobuf:"varint,8,opt,name=is_list,json=isList,proto3" json:"is_list,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -731,7 +731,7 @@ type Intent_Message struct {
 	//	*Intent_Message_CarouselSelect_
 	Message isIntent_Message_Message `protobuf_oneof:"message"`
 	// Optional. The platform that this message is intended for.
-	Platform             Intent_Message_Platform `protobuf:"varint,6,opt,name=platform,enum=google.cloud.dialogflow.v2.Intent_Message_Platform" json:"platform,omitempty"`
+	Platform             Intent_Message_Platform `protobuf:"varint,6,opt,name=platform,proto3,enum=google.cloud.dialogflow.v2.Intent_Message_Platform" json:"platform,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                `json:"-"`
 	XXX_unrecognized     []byte                  `json:"-"`
 	XXX_sizecache        int32                   `json:"-"`
@@ -766,37 +766,37 @@ type isIntent_Message_Message interface {
 }
 
 type Intent_Message_Text_ struct {
-	Text *Intent_Message_Text `protobuf:"bytes,1,opt,name=text,oneof"`
+	Text *Intent_Message_Text `protobuf:"bytes,1,opt,name=text,proto3,oneof"`
 }
 type Intent_Message_Image_ struct {
-	Image *Intent_Message_Image `protobuf:"bytes,2,opt,name=image,oneof"`
+	Image *Intent_Message_Image `protobuf:"bytes,2,opt,name=image,proto3,oneof"`
 }
 type Intent_Message_QuickReplies_ struct {
-	QuickReplies *Intent_Message_QuickReplies `protobuf:"bytes,3,opt,name=quick_replies,json=quickReplies,oneof"`
+	QuickReplies *Intent_Message_QuickReplies `protobuf:"bytes,3,opt,name=quick_replies,json=quickReplies,proto3,oneof"`
 }
 type Intent_Message_Card_ struct {
-	Card *Intent_Message_Card `protobuf:"bytes,4,opt,name=card,oneof"`
+	Card *Intent_Message_Card `protobuf:"bytes,4,opt,name=card,proto3,oneof"`
 }
 type Intent_Message_Payload struct {
-	Payload *_struct.Struct `protobuf:"bytes,5,opt,name=payload,oneof"`
+	Payload *_struct.Struct `protobuf:"bytes,5,opt,name=payload,proto3,oneof"`
 }
 type Intent_Message_SimpleResponses_ struct {
-	SimpleResponses *Intent_Message_SimpleResponses `protobuf:"bytes,7,opt,name=simple_responses,json=simpleResponses,oneof"`
+	SimpleResponses *Intent_Message_SimpleResponses `protobuf:"bytes,7,opt,name=simple_responses,json=simpleResponses,proto3,oneof"`
 }
 type Intent_Message_BasicCard_ struct {
-	BasicCard *Intent_Message_BasicCard `protobuf:"bytes,8,opt,name=basic_card,json=basicCard,oneof"`
+	BasicCard *Intent_Message_BasicCard `protobuf:"bytes,8,opt,name=basic_card,json=basicCard,proto3,oneof"`
 }
 type Intent_Message_Suggestions_ struct {
-	Suggestions *Intent_Message_Suggestions `protobuf:"bytes,9,opt,name=suggestions,oneof"`
+	Suggestions *Intent_Message_Suggestions `protobuf:"bytes,9,opt,name=suggestions,proto3,oneof"`
 }
 type Intent_Message_LinkOutSuggestion_ struct {
-	LinkOutSuggestion *Intent_Message_LinkOutSuggestion `protobuf:"bytes,10,opt,name=link_out_suggestion,json=linkOutSuggestion,oneof"`
+	LinkOutSuggestion *Intent_Message_LinkOutSuggestion `protobuf:"bytes,10,opt,name=link_out_suggestion,json=linkOutSuggestion,proto3,oneof"`
 }
 type Intent_Message_ListSelect_ struct {
-	ListSelect *Intent_Message_ListSelect `protobuf:"bytes,11,opt,name=list_select,json=listSelect,oneof"`
+	ListSelect *Intent_Message_ListSelect `protobuf:"bytes,11,opt,name=list_select,json=listSelect,proto3,oneof"`
 }
 type Intent_Message_CarouselSelect_ struct {
-	CarouselSelect *Intent_Message_CarouselSelect `protobuf:"bytes,12,opt,name=carousel_select,json=carouselSelect,oneof"`
+	CarouselSelect *Intent_Message_CarouselSelect `protobuf:"bytes,12,opt,name=carousel_select,json=carouselSelect,proto3,oneof"`
 }
 
 func (*Intent_Message_Text_) isIntent_Message_Message()              {}
@@ -1150,7 +1150,7 @@ func _Intent_Message_OneofSizer(msg proto.Message) (n int) {
 // The text response message.
 type Intent_Message_Text struct {
 	// Optional. The collection of the agent's responses.
-	Text                 []string `protobuf:"bytes,1,rep,name=text" json:"text,omitempty"`
+	Text                 []string `protobuf:"bytes,1,rep,name=text,proto3" json:"text,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1190,10 +1190,10 @@ func (m *Intent_Message_Text) GetText() []string {
 // The image response message.
 type Intent_Message_Image struct {
 	// Optional. The public URI to an image file.
-	ImageUri string `protobuf:"bytes,1,opt,name=image_uri,json=imageUri" json:"image_uri,omitempty"`
+	ImageUri string `protobuf:"bytes,1,opt,name=image_uri,json=imageUri,proto3" json:"image_uri,omitempty"`
 	// Optional. A text description of the image to be used for accessibility,
 	// e.g., screen readers.
-	AccessibilityText    string   `protobuf:"bytes,2,opt,name=accessibility_text,json=accessibilityText" json:"accessibility_text,omitempty"`
+	AccessibilityText    string   `protobuf:"bytes,2,opt,name=accessibility_text,json=accessibilityText,proto3" json:"accessibility_text,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1240,9 +1240,9 @@ func (m *Intent_Message_Image) GetAccessibilityText() string {
 // The quick replies response message.
 type Intent_Message_QuickReplies struct {
 	// Optional. The title of the collection of quick replies.
-	Title string `protobuf:"bytes,1,opt,name=title" json:"title,omitempty"`
+	Title string `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
 	// Optional. The collection of quick replies.
-	QuickReplies         []string `protobuf:"bytes,2,rep,name=quick_replies,json=quickReplies" json:"quick_replies,omitempty"`
+	QuickReplies         []string `protobuf:"bytes,2,rep,name=quick_replies,json=quickReplies,proto3" json:"quick_replies,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1289,13 +1289,13 @@ func (m *Intent_Message_QuickReplies) GetQuickReplies() []string {
 // The card response message.
 type Intent_Message_Card struct {
 	// Optional. The title of the card.
-	Title string `protobuf:"bytes,1,opt,name=title" json:"title,omitempty"`
+	Title string `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
 	// Optional. The subtitle of the card.
-	Subtitle string `protobuf:"bytes,2,opt,name=subtitle" json:"subtitle,omitempty"`
+	Subtitle string `protobuf:"bytes,2,opt,name=subtitle,proto3" json:"subtitle,omitempty"`
 	// Optional. The public URI to an image file for the card.
-	ImageUri string `protobuf:"bytes,3,opt,name=image_uri,json=imageUri" json:"image_uri,omitempty"`
+	ImageUri string `protobuf:"bytes,3,opt,name=image_uri,json=imageUri,proto3" json:"image_uri,omitempty"`
 	// Optional. The collection of card buttons.
-	Buttons              []*Intent_Message_Card_Button `protobuf:"bytes,4,rep,name=buttons" json:"buttons,omitempty"`
+	Buttons              []*Intent_Message_Card_Button `protobuf:"bytes,4,rep,name=buttons,proto3" json:"buttons,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                      `json:"-"`
 	XXX_unrecognized     []byte                        `json:"-"`
 	XXX_sizecache        int32                         `json:"-"`
@@ -1356,10 +1356,10 @@ func (m *Intent_Message_Card) GetButtons() []*Intent_Message_Card_Button {
 // Optional. Contains information about a button.
 type Intent_Message_Card_Button struct {
 	// Optional. The text to show on the button.
-	Text string `protobuf:"bytes,1,opt,name=text" json:"text,omitempty"`
+	Text string `protobuf:"bytes,1,opt,name=text,proto3" json:"text,omitempty"`
 	// Optional. The text to send back to the Dialogflow API or a URI to
 	// open.
-	Postback             string   `protobuf:"bytes,2,opt,name=postback" json:"postback,omitempty"`
+	Postback             string   `protobuf:"bytes,2,opt,name=postback,proto3" json:"postback,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1407,13 +1407,13 @@ func (m *Intent_Message_Card_Button) GetPostback() string {
 type Intent_Message_SimpleResponse struct {
 	// One of text_to_speech or ssml must be provided. The plain text of the
 	// speech output. Mutually exclusive with ssml.
-	TextToSpeech string `protobuf:"bytes,1,opt,name=text_to_speech,json=textToSpeech" json:"text_to_speech,omitempty"`
+	TextToSpeech string `protobuf:"bytes,1,opt,name=text_to_speech,json=textToSpeech,proto3" json:"text_to_speech,omitempty"`
 	// One of text_to_speech or ssml must be provided. Structured spoken
 	// response to the user in the SSML format. Mutually exclusive with
 	// text_to_speech.
-	Ssml string `protobuf:"bytes,2,opt,name=ssml" json:"ssml,omitempty"`
+	Ssml string `protobuf:"bytes,2,opt,name=ssml,proto3" json:"ssml,omitempty"`
 	// Optional. The text to display.
-	DisplayText          string   `protobuf:"bytes,3,opt,name=display_text,json=displayText" json:"display_text,omitempty"`
+	DisplayText          string   `protobuf:"bytes,3,opt,name=display_text,json=displayText,proto3" json:"display_text,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1470,7 +1470,7 @@ func (m *Intent_Message_SimpleResponse) GetDisplayText() string {
 // `SimpleResponse`.
 type Intent_Message_SimpleResponses struct {
 	// Required. The list of simple responses.
-	SimpleResponses      []*Intent_Message_SimpleResponse `protobuf:"bytes,1,rep,name=simple_responses,json=simpleResponses" json:"simple_responses,omitempty"`
+	SimpleResponses      []*Intent_Message_SimpleResponse `protobuf:"bytes,1,rep,name=simple_responses,json=simpleResponses,proto3" json:"simple_responses,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                         `json:"-"`
 	XXX_unrecognized     []byte                           `json:"-"`
 	XXX_sizecache        int32                            `json:"-"`
@@ -1510,15 +1510,15 @@ func (m *Intent_Message_SimpleResponses) GetSimpleResponses() []*Intent_Message_
 // The basic card message. Useful for displaying information.
 type Intent_Message_BasicCard struct {
 	// Optional. The title of the card.
-	Title string `protobuf:"bytes,1,opt,name=title" json:"title,omitempty"`
+	Title string `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
 	// Optional. The subtitle of the card.
-	Subtitle string `protobuf:"bytes,2,opt,name=subtitle" json:"subtitle,omitempty"`
+	Subtitle string `protobuf:"bytes,2,opt,name=subtitle,proto3" json:"subtitle,omitempty"`
 	// Required, unless image is present. The body text of the card.
-	FormattedText string `protobuf:"bytes,3,opt,name=formatted_text,json=formattedText" json:"formatted_text,omitempty"`
+	FormattedText string `protobuf:"bytes,3,opt,name=formatted_text,json=formattedText,proto3" json:"formatted_text,omitempty"`
 	// Optional. The image for the card.
-	Image *Intent_Message_Image `protobuf:"bytes,4,opt,name=image" json:"image,omitempty"`
+	Image *Intent_Message_Image `protobuf:"bytes,4,opt,name=image,proto3" json:"image,omitempty"`
 	// Optional. The collection of card buttons.
-	Buttons              []*Intent_Message_BasicCard_Button `protobuf:"bytes,5,rep,name=buttons" json:"buttons,omitempty"`
+	Buttons              []*Intent_Message_BasicCard_Button `protobuf:"bytes,5,rep,name=buttons,proto3" json:"buttons,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                           `json:"-"`
 	XXX_unrecognized     []byte                             `json:"-"`
 	XXX_sizecache        int32                              `json:"-"`
@@ -1586,9 +1586,9 @@ func (m *Intent_Message_BasicCard) GetButtons() []*Intent_Message_BasicCard_Butt
 // The button object that appears at the bottom of a card.
 type Intent_Message_BasicCard_Button struct {
 	// Required. The title of the button.
-	Title string `protobuf:"bytes,1,opt,name=title" json:"title,omitempty"`
+	Title string `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
 	// Required. Action to take when a user taps on the button.
-	OpenUriAction        *Intent_Message_BasicCard_Button_OpenUriAction `protobuf:"bytes,2,opt,name=open_uri_action,json=openUriAction" json:"open_uri_action,omitempty"`
+	OpenUriAction        *Intent_Message_BasicCard_Button_OpenUriAction `protobuf:"bytes,2,opt,name=open_uri_action,json=openUriAction,proto3" json:"open_uri_action,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                                       `json:"-"`
 	XXX_unrecognized     []byte                                         `json:"-"`
 	XXX_sizecache        int32                                          `json:"-"`
@@ -1635,7 +1635,7 @@ func (m *Intent_Message_BasicCard_Button) GetOpenUriAction() *Intent_Message_Bas
 // Opens the given URI.
 type Intent_Message_BasicCard_Button_OpenUriAction struct {
 	// Required. The HTTP or HTTPS scheme URI.
-	Uri                  string   `protobuf:"bytes,1,opt,name=uri" json:"uri,omitempty"`
+	Uri                  string   `protobuf:"bytes,1,opt,name=uri,proto3" json:"uri,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1680,7 +1680,7 @@ func (m *Intent_Message_BasicCard_Button_OpenUriAction) GetUri() string {
 // to the conversation.
 type Intent_Message_Suggestion struct {
 	// Required. The text shown the in the suggestion chip.
-	Title                string   `protobuf:"bytes,1,opt,name=title" json:"title,omitempty"`
+	Title                string   `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1720,7 +1720,7 @@ func (m *Intent_Message_Suggestion) GetTitle() string {
 // The collection of suggestions.
 type Intent_Message_Suggestions struct {
 	// Required. The list of suggested replies.
-	Suggestions          []*Intent_Message_Suggestion `protobuf:"bytes,1,rep,name=suggestions" json:"suggestions,omitempty"`
+	Suggestions          []*Intent_Message_Suggestion `protobuf:"bytes,1,rep,name=suggestions,proto3" json:"suggestions,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                     `json:"-"`
 	XXX_unrecognized     []byte                       `json:"-"`
 	XXX_sizecache        int32                        `json:"-"`
@@ -1761,10 +1761,10 @@ func (m *Intent_Message_Suggestions) GetSuggestions() []*Intent_Message_Suggesti
 // or website associated with this agent.
 type Intent_Message_LinkOutSuggestion struct {
 	// Required. The name of the app or site this chip is linking to.
-	DestinationName string `protobuf:"bytes,1,opt,name=destination_name,json=destinationName" json:"destination_name,omitempty"`
+	DestinationName string `protobuf:"bytes,1,opt,name=destination_name,json=destinationName,proto3" json:"destination_name,omitempty"`
 	// Required. The URI of the app or site to open when the user taps the
 	// suggestion chip.
-	Uri                  string   `protobuf:"bytes,2,opt,name=uri" json:"uri,omitempty"`
+	Uri                  string   `protobuf:"bytes,2,opt,name=uri,proto3" json:"uri,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1811,9 +1811,9 @@ func (m *Intent_Message_LinkOutSuggestion) GetUri() string {
 // The card for presenting a list of options to select from.
 type Intent_Message_ListSelect struct {
 	// Optional. The overall title of the list.
-	Title string `protobuf:"bytes,1,opt,name=title" json:"title,omitempty"`
+	Title string `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
 	// Required. List items.
-	Items                []*Intent_Message_ListSelect_Item `protobuf:"bytes,2,rep,name=items" json:"items,omitempty"`
+	Items                []*Intent_Message_ListSelect_Item `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                          `json:"-"`
 	XXX_unrecognized     []byte                            `json:"-"`
 	XXX_sizecache        int32                             `json:"-"`
@@ -1860,13 +1860,13 @@ func (m *Intent_Message_ListSelect) GetItems() []*Intent_Message_ListSelect_Item
 // An item in the list.
 type Intent_Message_ListSelect_Item struct {
 	// Required. Additional information about this option.
-	Info *Intent_Message_SelectItemInfo `protobuf:"bytes,1,opt,name=info" json:"info,omitempty"`
+	Info *Intent_Message_SelectItemInfo `protobuf:"bytes,1,opt,name=info,proto3" json:"info,omitempty"`
 	// Required. The title of the list item.
-	Title string `protobuf:"bytes,2,opt,name=title" json:"title,omitempty"`
+	Title string `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
 	// Optional. The main text describing the item.
-	Description string `protobuf:"bytes,3,opt,name=description" json:"description,omitempty"`
+	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	// Optional. The image to display.
-	Image                *Intent_Message_Image `protobuf:"bytes,4,opt,name=image" json:"image,omitempty"`
+	Image                *Intent_Message_Image `protobuf:"bytes,4,opt,name=image,proto3" json:"image,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -1927,7 +1927,7 @@ func (m *Intent_Message_ListSelect_Item) GetImage() *Intent_Message_Image {
 // The card for presenting a carousel of options to select from.
 type Intent_Message_CarouselSelect struct {
 	// Required. Carousel items.
-	Items                []*Intent_Message_CarouselSelect_Item `protobuf:"bytes,1,rep,name=items" json:"items,omitempty"`
+	Items                []*Intent_Message_CarouselSelect_Item `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                              `json:"-"`
 	XXX_unrecognized     []byte                                `json:"-"`
 	XXX_sizecache        int32                                 `json:"-"`
@@ -1967,13 +1967,13 @@ func (m *Intent_Message_CarouselSelect) GetItems() []*Intent_Message_CarouselSel
 // An item in the carousel.
 type Intent_Message_CarouselSelect_Item struct {
 	// Required. Additional info about the option item.
-	Info *Intent_Message_SelectItemInfo `protobuf:"bytes,1,opt,name=info" json:"info,omitempty"`
+	Info *Intent_Message_SelectItemInfo `protobuf:"bytes,1,opt,name=info,proto3" json:"info,omitempty"`
 	// Required. Title of the carousel item.
-	Title string `protobuf:"bytes,2,opt,name=title" json:"title,omitempty"`
+	Title string `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
 	// Optional. The body text of the card.
-	Description string `protobuf:"bytes,3,opt,name=description" json:"description,omitempty"`
+	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	// Optional. The image to display.
-	Image                *Intent_Message_Image `protobuf:"bytes,4,opt,name=image" json:"image,omitempty"`
+	Image                *Intent_Message_Image `protobuf:"bytes,4,opt,name=image,proto3" json:"image,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -2036,10 +2036,10 @@ func (m *Intent_Message_CarouselSelect_Item) GetImage() *Intent_Message_Image {
 type Intent_Message_SelectItemInfo struct {
 	// Required. A unique key that will be sent back to the agent if this
 	// response is given.
-	Key string `protobuf:"bytes,1,opt,name=key" json:"key,omitempty"`
+	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
 	// Optional. A list of synonyms that can also be used to trigger this
 	// item in dialog.
-	Synonyms             []string `protobuf:"bytes,2,rep,name=synonyms" json:"synonyms,omitempty"`
+	Synonyms             []string `protobuf:"bytes,2,rep,name=synonyms,proto3" json:"synonyms,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -2087,10 +2087,10 @@ func (m *Intent_Message_SelectItemInfo) GetSynonyms() []string {
 type Intent_FollowupIntentInfo struct {
 	// The unique identifier of the followup intent.
 	// Format: `projects/<Project ID>/agent/intents/<Intent ID>`.
-	FollowupIntentName string `protobuf:"bytes,1,opt,name=followup_intent_name,json=followupIntentName" json:"followup_intent_name,omitempty"`
+	FollowupIntentName string `protobuf:"bytes,1,opt,name=followup_intent_name,json=followupIntentName,proto3" json:"followup_intent_name,omitempty"`
 	// The unique identifier of the followup intent parent.
 	// Format: `projects/<Project ID>/agent/intents/<Intent ID>`.
-	ParentFollowupIntentName string   `protobuf:"bytes,2,opt,name=parent_followup_intent_name,json=parentFollowupIntentName" json:"parent_followup_intent_name,omitempty"`
+	ParentFollowupIntentName string   `protobuf:"bytes,2,opt,name=parent_followup_intent_name,json=parentFollowupIntentName,proto3" json:"parent_followup_intent_name,omitempty"`
 	XXX_NoUnkeyedLiteral     struct{} `json:"-"`
 	XXX_unrecognized         []byte   `json:"-"`
 	XXX_sizecache            int32    `json:"-"`
@@ -2138,20 +2138,20 @@ func (m *Intent_FollowupIntentInfo) GetParentFollowupIntentName() string {
 type ListIntentsRequest struct {
 	// Required. The agent to list all intents from.
 	// Format: `projects/<Project ID>/agent`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Optional. The language to list training phrases, parameters and rich
 	// messages for. If not specified, the agent's default language is used.
 	// [More than a dozen
 	// languages](https://dialogflow.com/docs/reference/language) are supported.
 	// Note: languages must be enabled in the agent before they can be used.
-	LanguageCode string `protobuf:"bytes,2,opt,name=language_code,json=languageCode" json:"language_code,omitempty"`
+	LanguageCode string `protobuf:"bytes,2,opt,name=language_code,json=languageCode,proto3" json:"language_code,omitempty"`
 	// Optional. The resource view to apply to the returned intent.
-	IntentView IntentView `protobuf:"varint,3,opt,name=intent_view,json=intentView,enum=google.cloud.dialogflow.v2.IntentView" json:"intent_view,omitempty"`
+	IntentView IntentView `protobuf:"varint,3,opt,name=intent_view,json=intentView,proto3,enum=google.cloud.dialogflow.v2.IntentView" json:"intent_view,omitempty"`
 	// Optional. The maximum number of items to return in a single page. By
 	// default 100 and at most 1000.
-	PageSize int32 `protobuf:"varint,4,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Optional. The next_page_token value returned from a previous list request.
-	PageToken            string   `protobuf:"bytes,5,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,5,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -2220,10 +2220,10 @@ func (m *ListIntentsRequest) GetPageToken() string {
 type ListIntentsResponse struct {
 	// The list of agent intents. There will be a maximum number of items
 	// returned based on the page_size field in the request.
-	Intents []*Intent `protobuf:"bytes,1,rep,name=intents" json:"intents,omitempty"`
+	Intents []*Intent `protobuf:"bytes,1,rep,name=intents,proto3" json:"intents,omitempty"`
 	// Token to retrieve the next page of results, or empty if there are no
 	// more results in the list.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -2271,15 +2271,15 @@ func (m *ListIntentsResponse) GetNextPageToken() string {
 type GetIntentRequest struct {
 	// Required. The name of the intent.
 	// Format: `projects/<Project ID>/agent/intents/<Intent ID>`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Optional. The language to retrieve training phrases, parameters and rich
 	// messages for. If not specified, the agent's default language is used.
 	// [More than a dozen
 	// languages](https://dialogflow.com/docs/reference/language) are supported.
 	// Note: languages must be enabled in the agent, before they can be used.
-	LanguageCode string `protobuf:"bytes,2,opt,name=language_code,json=languageCode" json:"language_code,omitempty"`
+	LanguageCode string `protobuf:"bytes,2,opt,name=language_code,json=languageCode,proto3" json:"language_code,omitempty"`
 	// Optional. The resource view to apply to the returned intent.
-	IntentView           IntentView `protobuf:"varint,3,opt,name=intent_view,json=intentView,enum=google.cloud.dialogflow.v2.IntentView" json:"intent_view,omitempty"`
+	IntentView           IntentView `protobuf:"varint,3,opt,name=intent_view,json=intentView,proto3,enum=google.cloud.dialogflow.v2.IntentView" json:"intent_view,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
 	XXX_unrecognized     []byte     `json:"-"`
 	XXX_sizecache        int32      `json:"-"`
@@ -2334,17 +2334,17 @@ func (m *GetIntentRequest) GetIntentView() IntentView {
 type CreateIntentRequest struct {
 	// Required. The agent to create a intent for.
 	// Format: `projects/<Project ID>/agent`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Required. The intent to create.
-	Intent *Intent `protobuf:"bytes,2,opt,name=intent" json:"intent,omitempty"`
+	Intent *Intent `protobuf:"bytes,2,opt,name=intent,proto3" json:"intent,omitempty"`
 	// Optional. The language of training phrases, parameters and rich messages
 	// defined in `intent`. If not specified, the agent's default language is
 	// used. [More than a dozen
 	// languages](https://dialogflow.com/docs/reference/language) are supported.
 	// Note: languages must be enabled in the agent, before they can be used.
-	LanguageCode string `protobuf:"bytes,3,opt,name=language_code,json=languageCode" json:"language_code,omitempty"`
+	LanguageCode string `protobuf:"bytes,3,opt,name=language_code,json=languageCode,proto3" json:"language_code,omitempty"`
 	// Optional. The resource view to apply to the returned intent.
-	IntentView           IntentView `protobuf:"varint,4,opt,name=intent_view,json=intentView,enum=google.cloud.dialogflow.v2.IntentView" json:"intent_view,omitempty"`
+	IntentView           IntentView `protobuf:"varint,4,opt,name=intent_view,json=intentView,proto3,enum=google.cloud.dialogflow.v2.IntentView" json:"intent_view,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
 	XXX_unrecognized     []byte     `json:"-"`
 	XXX_sizecache        int32      `json:"-"`
@@ -2406,17 +2406,17 @@ func (m *CreateIntentRequest) GetIntentView() IntentView {
 type UpdateIntentRequest struct {
 	// Required. The intent to update.
 	// Format: `projects/<Project ID>/agent/intents/<Intent ID>`.
-	Intent *Intent `protobuf:"bytes,1,opt,name=intent" json:"intent,omitempty"`
+	Intent *Intent `protobuf:"bytes,1,opt,name=intent,proto3" json:"intent,omitempty"`
 	// Optional. The language of training phrases, parameters and rich messages
 	// defined in `intent`. If not specified, the agent's default language is
 	// used. [More than a dozen
 	// languages](https://dialogflow.com/docs/reference/language) are supported.
 	// Note: languages must be enabled in the agent, before they can be used.
-	LanguageCode string `protobuf:"bytes,2,opt,name=language_code,json=languageCode" json:"language_code,omitempty"`
+	LanguageCode string `protobuf:"bytes,2,opt,name=language_code,json=languageCode,proto3" json:"language_code,omitempty"`
 	// Optional. The mask to control which fields get updated.
-	UpdateMask *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	// Optional. The resource view to apply to the returned intent.
-	IntentView           IntentView `protobuf:"varint,4,opt,name=intent_view,json=intentView,enum=google.cloud.dialogflow.v2.IntentView" json:"intent_view,omitempty"`
+	IntentView           IntentView `protobuf:"varint,4,opt,name=intent_view,json=intentView,proto3,enum=google.cloud.dialogflow.v2.IntentView" json:"intent_view,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
 	XXX_unrecognized     []byte     `json:"-"`
 	XXX_sizecache        int32      `json:"-"`
@@ -2478,7 +2478,7 @@ func (m *UpdateIntentRequest) GetIntentView() IntentView {
 type DeleteIntentRequest struct {
 	// Required. The name of the intent to delete.
 	// Format: `projects/<Project ID>/agent/intents/<Intent ID>`.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -2519,7 +2519,7 @@ func (m *DeleteIntentRequest) GetName() string {
 type BatchUpdateIntentsRequest struct {
 	// Required. The name of the agent to update or create intents in.
 	// Format: `projects/<Project ID>/agent`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Required. The source of the intent batch.
 	//
 	// Types that are valid to be assigned to IntentBatch:
@@ -2531,11 +2531,11 @@ type BatchUpdateIntentsRequest struct {
 	// used. [More than a dozen
 	// languages](https://dialogflow.com/docs/reference/language) are supported.
 	// Note: languages must be enabled in the agent, before they can be used.
-	LanguageCode string `protobuf:"bytes,4,opt,name=language_code,json=languageCode" json:"language_code,omitempty"`
+	LanguageCode string `protobuf:"bytes,4,opt,name=language_code,json=languageCode,proto3" json:"language_code,omitempty"`
 	// Optional. The mask to control which fields get updated.
-	UpdateMask *field_mask.FieldMask `protobuf:"bytes,5,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask *field_mask.FieldMask `protobuf:"bytes,5,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	// Optional. The resource view to apply to the returned intent.
-	IntentView           IntentView `protobuf:"varint,6,opt,name=intent_view,json=intentView,enum=google.cloud.dialogflow.v2.IntentView" json:"intent_view,omitempty"`
+	IntentView           IntentView `protobuf:"varint,6,opt,name=intent_view,json=intentView,proto3,enum=google.cloud.dialogflow.v2.IntentView" json:"intent_view,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
 	XXX_unrecognized     []byte     `json:"-"`
 	XXX_sizecache        int32      `json:"-"`
@@ -2570,10 +2570,10 @@ type isBatchUpdateIntentsRequest_IntentBatch interface {
 }
 
 type BatchUpdateIntentsRequest_IntentBatchUri struct {
-	IntentBatchUri string `protobuf:"bytes,2,opt,name=intent_batch_uri,json=intentBatchUri,oneof"`
+	IntentBatchUri string `protobuf:"bytes,2,opt,name=intent_batch_uri,json=intentBatchUri,proto3,oneof"`
 }
 type BatchUpdateIntentsRequest_IntentBatchInline struct {
-	IntentBatchInline *IntentBatch `protobuf:"bytes,3,opt,name=intent_batch_inline,json=intentBatchInline,oneof"`
+	IntentBatchInline *IntentBatch `protobuf:"bytes,3,opt,name=intent_batch_inline,json=intentBatchInline,proto3,oneof"`
 }
 
 func (*BatchUpdateIntentsRequest_IntentBatchUri) isBatchUpdateIntentsRequest_IntentBatch()    {}
@@ -2701,7 +2701,7 @@ func _BatchUpdateIntentsRequest_OneofSizer(msg proto.Message) (n int) {
 // The response message for [Intents.BatchUpdateIntents][google.cloud.dialogflow.v2.Intents.BatchUpdateIntents].
 type BatchUpdateIntentsResponse struct {
 	// The collection of updated or created intents.
-	Intents              []*Intent `protobuf:"bytes,1,rep,name=intents" json:"intents,omitempty"`
+	Intents              []*Intent `protobuf:"bytes,1,rep,name=intents,proto3" json:"intents,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -2742,10 +2742,10 @@ func (m *BatchUpdateIntentsResponse) GetIntents() []*Intent {
 type BatchDeleteIntentsRequest struct {
 	// Required. The name of the agent to delete all entities types for. Format:
 	// `projects/<Project ID>/agent`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Required. The collection of intents to delete. Only intent `name` must be
 	// filled in.
-	Intents              []*Intent `protobuf:"bytes,2,rep,name=intents" json:"intents,omitempty"`
+	Intents              []*Intent `protobuf:"bytes,2,rep,name=intents,proto3" json:"intents,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -2792,7 +2792,7 @@ func (m *BatchDeleteIntentsRequest) GetIntents() []*Intent {
 // This message is a wrapper around a collection of intents.
 type IntentBatch struct {
 	// A collection of intents.
-	Intents              []*Intent `protobuf:"bytes,1,rep,name=intents" json:"intents,omitempty"`
+	Intents              []*Intent `protobuf:"bytes,1,rep,name=intents,proto3" json:"intents,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -2973,8 +2973,7 @@ func (c *intentsClient) BatchDeleteIntents(ctx context.Context, in *BatchDeleteI
 	return out, nil
 }
 
-// Server API for Intents service
-
+// IntentsServer is the server API for Intents service.
 type IntentsServer interface {
 	// Returns the list of all intents in the specified agent.
 	ListIntents(context.Context, *ListIntentsRequest) (*ListIntentsResponse, error)

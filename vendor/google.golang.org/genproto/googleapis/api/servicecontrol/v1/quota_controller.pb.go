@@ -120,13 +120,13 @@ type AllocateQuotaRequest struct {
 	// `"pubsub.googleapis.com"`.
 	//
 	// See [google.api.Service][google.api.Service] for the definition of a service name.
-	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName" json:"service_name,omitempty"`
+	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
 	// Operation that describes the quota allocation.
-	AllocateOperation *QuotaOperation `protobuf:"bytes,2,opt,name=allocate_operation,json=allocateOperation" json:"allocate_operation,omitempty"`
+	AllocateOperation *QuotaOperation `protobuf:"bytes,2,opt,name=allocate_operation,json=allocateOperation,proto3" json:"allocate_operation,omitempty"`
 	// Specifies which version of service configuration should be used to process
 	// the request. If unspecified or no matching version can be found, the latest
 	// one will be used.
-	ServiceConfigId      string   `protobuf:"bytes,4,opt,name=service_config_id,json=serviceConfigId" json:"service_config_id,omitempty"`
+	ServiceConfigId      string   `protobuf:"bytes,4,opt,name=service_config_id,json=serviceConfigId,proto3" json:"service_config_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -187,7 +187,7 @@ type QuotaOperation struct {
 	// operation is computed from existing information and an idempotent id is
 	// desirable for deduplication purpose, UUID version 5 is recommended. See
 	// RFC 4122 for details.
-	OperationId string `protobuf:"bytes,1,opt,name=operation_id,json=operationId" json:"operation_id,omitempty"`
+	OperationId string `protobuf:"bytes,1,opt,name=operation_id,json=operationId,proto3" json:"operation_id,omitempty"`
 	// Fully qualified name of the API method for which this quota operation is
 	// requested. This name is used for matching quota rules or metric rules and
 	// billing status rules defined in service configuration. This field is not
@@ -195,16 +195,16 @@ type QuotaOperation struct {
 	//
 	// Example of an RPC method name:
 	//     google.example.library.v1.LibraryService.CreateShelf
-	MethodName string `protobuf:"bytes,2,opt,name=method_name,json=methodName" json:"method_name,omitempty"`
+	MethodName string `protobuf:"bytes,2,opt,name=method_name,json=methodName,proto3" json:"method_name,omitempty"`
 	// Identity of the consumer for whom this quota operation is being performed.
 	//
 	// This can be in one of the following formats:
 	//   project:<project_id>,
 	//   project_number:<project_number>,
 	//   api_key:<api_key>.
-	ConsumerId string `protobuf:"bytes,3,opt,name=consumer_id,json=consumerId" json:"consumer_id,omitempty"`
+	ConsumerId string `protobuf:"bytes,3,opt,name=consumer_id,json=consumerId,proto3" json:"consumer_id,omitempty"`
 	// Labels describing the operation.
-	Labels map[string]string `protobuf:"bytes,4,rep,name=labels" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Labels map[string]string `protobuf:"bytes,4,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// Represents information about this operation. Each MetricValueSet
 	// corresponds to a metric defined in the service configuration.
 	// The data type used in the MetricValueSet must agree with
@@ -215,9 +215,9 @@ type QuotaOperation struct {
 	// label value combinations. If a request has such duplicated MetricValue
 	// instances, the entire request is rejected with
 	// an invalid argument error.
-	QuotaMetrics []*MetricValueSet `protobuf:"bytes,5,rep,name=quota_metrics,json=quotaMetrics" json:"quota_metrics,omitempty"`
+	QuotaMetrics []*MetricValueSet `protobuf:"bytes,5,rep,name=quota_metrics,json=quotaMetrics,proto3" json:"quota_metrics,omitempty"`
 	// Quota mode for this operation.
-	QuotaMode            QuotaOperation_QuotaMode `protobuf:"varint,6,opt,name=quota_mode,json=quotaMode,enum=google.api.servicecontrol.v1.QuotaOperation_QuotaMode" json:"quota_mode,omitempty"`
+	QuotaMode            QuotaOperation_QuotaMode `protobuf:"varint,6,opt,name=quota_mode,json=quotaMode,proto3,enum=google.api.servicecontrol.v1.QuotaOperation_QuotaMode" json:"quota_mode,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                 `json:"-"`
 	XXX_unrecognized     []byte                   `json:"-"`
 	XXX_sizecache        int32                    `json:"-"`
@@ -293,9 +293,9 @@ func (m *QuotaOperation) GetQuotaMode() QuotaOperation_QuotaMode {
 type AllocateQuotaResponse struct {
 	// The same operation_id value used in the AllocateQuotaRequest. Used for
 	// logging and diagnostics purposes.
-	OperationId string `protobuf:"bytes,1,opt,name=operation_id,json=operationId" json:"operation_id,omitempty"`
+	OperationId string `protobuf:"bytes,1,opt,name=operation_id,json=operationId,proto3" json:"operation_id,omitempty"`
 	// Indicates the decision of the allocate.
-	AllocateErrors []*QuotaError `protobuf:"bytes,2,rep,name=allocate_errors,json=allocateErrors" json:"allocate_errors,omitempty"`
+	AllocateErrors []*QuotaError `protobuf:"bytes,2,rep,name=allocate_errors,json=allocateErrors,proto3" json:"allocate_errors,omitempty"`
 	// Quota metrics to indicate the result of allocation. Depending on the
 	// request, one or more of the following metrics will be included:
 	//
@@ -306,9 +306,9 @@ type AllocateQuotaResponse struct {
 	// 2. The quota limit reached condition will be specified using the following
 	// boolean metric :
 	//   "serviceruntime.googleapis.com/quota/exceeded"
-	QuotaMetrics []*MetricValueSet `protobuf:"bytes,3,rep,name=quota_metrics,json=quotaMetrics" json:"quota_metrics,omitempty"`
+	QuotaMetrics []*MetricValueSet `protobuf:"bytes,3,rep,name=quota_metrics,json=quotaMetrics,proto3" json:"quota_metrics,omitempty"`
 	// ID of the actual config used to process the request.
-	ServiceConfigId      string   `protobuf:"bytes,4,opt,name=service_config_id,json=serviceConfigId" json:"service_config_id,omitempty"`
+	ServiceConfigId      string   `protobuf:"bytes,4,opt,name=service_config_id,json=serviceConfigId,proto3" json:"service_config_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -369,13 +369,13 @@ func (m *AllocateQuotaResponse) GetServiceConfigId() string {
 // Represents error information for [QuotaOperation][google.api.servicecontrol.v1.QuotaOperation].
 type QuotaError struct {
 	// Error code.
-	Code QuotaError_Code `protobuf:"varint,1,opt,name=code,enum=google.api.servicecontrol.v1.QuotaError_Code" json:"code,omitempty"`
+	Code QuotaError_Code `protobuf:"varint,1,opt,name=code,proto3,enum=google.api.servicecontrol.v1.QuotaError_Code" json:"code,omitempty"`
 	// Subject to whom this error applies. See the specific enum for more details
 	// on this field. For example, "clientip:<ip address of client>" or
 	// "project:<Google developer project id>".
-	Subject string `protobuf:"bytes,2,opt,name=subject" json:"subject,omitempty"`
+	Subject string `protobuf:"bytes,2,opt,name=subject,proto3" json:"subject,omitempty"`
 	// Free-form text that provides details on the cause of the error.
-	Description          string   `protobuf:"bytes,3,opt,name=description" json:"description,omitempty"`
+	Description          string   `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -479,8 +479,7 @@ func (c *quotaControllerClient) AllocateQuota(ctx context.Context, in *AllocateQ
 	return out, nil
 }
 
-// Server API for QuotaController service
-
+// QuotaControllerServer is the server API for QuotaController service.
 type QuotaControllerServer interface {
 	// Attempts to allocate quota for the specified consumer. It should be called
 	// before the operation is executed.

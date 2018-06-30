@@ -60,9 +60,9 @@ type Operation struct {
 	// In scenarios where an operation is computed from existing information
 	// and an idempotent id is desirable for deduplication purpose, UUID version 5
 	// is recommended. See RFC 4122 for details.
-	OperationId string `protobuf:"bytes,1,opt,name=operation_id,json=operationId" json:"operation_id,omitempty"`
+	OperationId string `protobuf:"bytes,1,opt,name=operation_id,json=operationId,proto3" json:"operation_id,omitempty"`
 	// Fully qualified name of the operation. Reserved for future use.
-	OperationName string `protobuf:"bytes,2,opt,name=operation_name,json=operationName" json:"operation_name,omitempty"`
+	OperationName string `protobuf:"bytes,2,opt,name=operation_name,json=operationName,proto3" json:"operation_name,omitempty"`
 	// Identity of the consumer who is using the service.
 	// This field should be filled in for the operations initiated by a
 	// consumer, but not for service-initiated operations that are
@@ -72,13 +72,13 @@ type Operation struct {
 	//   project:<project_id>,
 	//   project_number:<project_number>,
 	//   api_key:<api_key>.
-	ConsumerId string `protobuf:"bytes,3,opt,name=consumer_id,json=consumerId" json:"consumer_id,omitempty"`
+	ConsumerId string `protobuf:"bytes,3,opt,name=consumer_id,json=consumerId,proto3" json:"consumer_id,omitempty"`
 	// Required. Start time of the operation.
-	StartTime *timestamp.Timestamp `protobuf:"bytes,4,opt,name=start_time,json=startTime" json:"start_time,omitempty"`
+	StartTime *timestamp.Timestamp `protobuf:"bytes,4,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
 	// End time of the operation.
 	// Required when the operation is used in [ServiceController.Report][google.api.servicecontrol.v1.ServiceController.Report],
 	// but optional when the operation is used in [ServiceController.Check][google.api.servicecontrol.v1.ServiceController.Check].
-	EndTime *timestamp.Timestamp `protobuf:"bytes,5,opt,name=end_time,json=endTime" json:"end_time,omitempty"`
+	EndTime *timestamp.Timestamp `protobuf:"bytes,5,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
 	// Labels describing the operation. Only the following labels are allowed:
 	//
 	// - Labels describing monitored resources as defined in
@@ -94,7 +94,7 @@ type Operation struct {
 	//        used to handle the API request (e.g. ESP),
 	//     - `servicecontrol.googleapis.com/platform` describing the platform
 	//        where the API is served (e.g. GAE, GCE, GKE).
-	Labels map[string]string `protobuf:"bytes,6,rep,name=labels" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Labels map[string]string `protobuf:"bytes,6,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// Represents information about this operation. Each MetricValueSet
 	// corresponds to a metric defined in the service configuration.
 	// The data type used in the MetricValueSet must agree with
@@ -105,11 +105,11 @@ type Operation struct {
 	// label value combinations. If a request has such duplicated MetricValue
 	// instances, the entire request is rejected with
 	// an invalid argument error.
-	MetricValueSets []*MetricValueSet `protobuf:"bytes,7,rep,name=metric_value_sets,json=metricValueSets" json:"metric_value_sets,omitempty"`
+	MetricValueSets []*MetricValueSet `protobuf:"bytes,7,rep,name=metric_value_sets,json=metricValueSets,proto3" json:"metric_value_sets,omitempty"`
 	// Represents information to be logged.
-	LogEntries []*LogEntry `protobuf:"bytes,8,rep,name=log_entries,json=logEntries" json:"log_entries,omitempty"`
+	LogEntries []*LogEntry `protobuf:"bytes,8,rep,name=log_entries,json=logEntries,proto3" json:"log_entries,omitempty"`
 	// DO NOT USE. This is an experimental field.
-	Importance           Operation_Importance `protobuf:"varint,11,opt,name=importance,enum=google.api.servicecontrol.v1.Operation_Importance" json:"importance,omitempty"`
+	Importance           Operation_Importance `protobuf:"varint,11,opt,name=importance,proto3,enum=google.api.servicecontrol.v1.Operation_Importance" json:"importance,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`

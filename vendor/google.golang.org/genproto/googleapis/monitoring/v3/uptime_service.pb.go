@@ -31,16 +31,16 @@ type ListUptimeCheckConfigsRequest struct {
 	// The project whose uptime check configurations are listed. The format is
 	//
 	//   `projects/[PROJECT_ID]`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// The maximum number of results to return in a single response. The server
 	// may further constrain the maximum number of results returned in a single
 	// page. If the page_size is <=0, the server will decide the number of results
 	// to be returned.
-	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// If this field is not empty then it must contain the `nextPageToken` value
 	// returned by a previous call to this method.  Using this field causes the
 	// method to return more results from the previous method call.
-	PageToken            string   `protobuf:"bytes,4,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -94,13 +94,13 @@ func (m *ListUptimeCheckConfigsRequest) GetPageToken() string {
 // The protocol for the `ListUptimeCheckConfigs` response.
 type ListUptimeCheckConfigsResponse struct {
 	// The returned uptime check configurations.
-	UptimeCheckConfigs []*UptimeCheckConfig `protobuf:"bytes,1,rep,name=uptime_check_configs,json=uptimeCheckConfigs" json:"uptime_check_configs,omitempty"`
+	UptimeCheckConfigs []*UptimeCheckConfig `protobuf:"bytes,1,rep,name=uptime_check_configs,json=uptimeCheckConfigs,proto3" json:"uptime_check_configs,omitempty"`
 	// This field represents the pagination token to retrieve the next page of
 	// results. If the value is empty, it means no further results for the
 	// request. To retrieve the next page of results, the value of the
 	// next_page_token is passed to the subsequent List method call (in the
 	// request message's page_token field).
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -149,7 +149,7 @@ type GetUptimeCheckConfigRequest struct {
 	// The uptime check configuration to retrieve. The format is
 	//
 	//   `projects/[PROJECT_ID]/uptimeCheckConfigs/[UPTIME_CHECK_ID]`.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -191,9 +191,9 @@ type CreateUptimeCheckConfigRequest struct {
 	// The project in which to create the uptime check. The format is:
 	//
 	//   `projects/[PROJECT_ID]`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// The new uptime check configuration.
-	UptimeCheckConfig    *UptimeCheckConfig `protobuf:"bytes,2,opt,name=uptime_check_config,json=uptimeCheckConfig" json:"uptime_check_config,omitempty"`
+	UptimeCheckConfig    *UptimeCheckConfig `protobuf:"bytes,2,opt,name=uptime_check_config,json=uptimeCheckConfig,proto3" json:"uptime_check_config,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
 	XXX_unrecognized     []byte             `json:"-"`
 	XXX_sizecache        int32              `json:"-"`
@@ -243,7 +243,7 @@ type UpdateUptimeCheckConfigRequest struct {
 	// configuration are updated with values from the new configuration. If this
 	// field is empty, then the current configuration is completely replaced with
 	// the new configuration.
-	UpdateMask *field_mask.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask *field_mask.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	// Required. If an `"updateMask"` has been specified, this field gives
 	// the values for the set of fields mentioned in the `"updateMask"`. If an
 	// `"updateMask"` has not been given, this uptime check configuration replaces
@@ -251,7 +251,7 @@ type UpdateUptimeCheckConfigRequest struct {
 	// the corresonding field is omitted in this partial uptime check
 	// configuration, it has the effect of deleting/clearing the field from the
 	// configuration on the server.
-	UptimeCheckConfig    *UptimeCheckConfig `protobuf:"bytes,3,opt,name=uptime_check_config,json=uptimeCheckConfig" json:"uptime_check_config,omitempty"`
+	UptimeCheckConfig    *UptimeCheckConfig `protobuf:"bytes,3,opt,name=uptime_check_config,json=uptimeCheckConfig,proto3" json:"uptime_check_config,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
 	XXX_unrecognized     []byte             `json:"-"`
 	XXX_sizecache        int32              `json:"-"`
@@ -300,7 +300,7 @@ type DeleteUptimeCheckConfigRequest struct {
 	// The uptime check configuration to delete. The format is
 	//
 	//   `projects/[PROJECT_ID]/uptimeCheckConfigs/[UPTIME_CHECK_ID]`.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -344,12 +344,12 @@ type ListUptimeCheckIpsRequest struct {
 	// page. If the page_size is <=0, the server will decide the number of results
 	// to be returned.
 	// NOTE: this field is not yet implemented
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// If this field is not empty then it must contain the `nextPageToken` value
 	// returned by a previous call to this method.  Using this field causes the
 	// method to return more results from the previous method call.
 	// NOTE: this field is not yet implemented
-	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -397,14 +397,14 @@ func (m *ListUptimeCheckIpsRequest) GetPageToken() string {
 type ListUptimeCheckIpsResponse struct {
 	// The returned list of IP addresses (including region and location) that the
 	// checkers run from.
-	UptimeCheckIps []*UptimeCheckIp `protobuf:"bytes,1,rep,name=uptime_check_ips,json=uptimeCheckIps" json:"uptime_check_ips,omitempty"`
+	UptimeCheckIps []*UptimeCheckIp `protobuf:"bytes,1,rep,name=uptime_check_ips,json=uptimeCheckIps,proto3" json:"uptime_check_ips,omitempty"`
 	// This field represents the pagination token to retrieve the next page of
 	// results. If the value is empty, it means no further results for the
 	// request. To retrieve the next page of results, the value of the
 	// next_page_token is passed to the subsequent List method call (in the
 	// request message's page_token field).
 	// NOTE: this field is not yet implemented
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -553,8 +553,7 @@ func (c *uptimeCheckServiceClient) ListUptimeCheckIps(ctx context.Context, in *L
 	return out, nil
 }
 
-// Server API for UptimeCheckService service
-
+// UptimeCheckServiceServer is the server API for UptimeCheckService service.
 type UptimeCheckServiceServer interface {
 	// Lists the existing valid uptime check configurations for the project,
 	// leaving out any invalid configurations.

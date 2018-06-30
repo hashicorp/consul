@@ -31,8 +31,9 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
-// Client API for BenchmarkService service
-
+// BenchmarkServiceClient is the client API for BenchmarkService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type BenchmarkServiceClient interface {
 	// One request followed by one response.
 	// The server returns the client payload as-is.
@@ -52,7 +53,7 @@ func NewBenchmarkServiceClient(cc *grpc.ClientConn) BenchmarkServiceClient {
 
 func (c *benchmarkServiceClient) UnaryCall(ctx context.Context, in *SimpleRequest, opts ...grpc.CallOption) (*SimpleResponse, error) {
 	out := new(SimpleResponse)
-	err := grpc.Invoke(ctx, "/grpc.testing.BenchmarkService/UnaryCall", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/grpc.testing.BenchmarkService/UnaryCall", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +61,7 @@ func (c *benchmarkServiceClient) UnaryCall(ctx context.Context, in *SimpleReques
 }
 
 func (c *benchmarkServiceClient) StreamingCall(ctx context.Context, opts ...grpc.CallOption) (BenchmarkService_StreamingCallClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_BenchmarkService_serviceDesc.Streams[0], c.cc, "/grpc.testing.BenchmarkService/StreamingCall", opts...)
+	stream, err := c.cc.NewStream(ctx, &_BenchmarkService_serviceDesc.Streams[0], "/grpc.testing.BenchmarkService/StreamingCall", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -90,8 +91,7 @@ func (x *benchmarkServiceStreamingCallClient) Recv() (*SimpleResponse, error) {
 	return m, nil
 }
 
-// Server API for BenchmarkService service
-
+// BenchmarkServiceServer is the server API for BenchmarkService service.
 type BenchmarkServiceServer interface {
 	// One request followed by one response.
 	// The server returns the client payload as-is.
@@ -169,8 +169,9 @@ var _BenchmarkService_serviceDesc = grpc.ServiceDesc{
 	Metadata: "services.proto",
 }
 
-// Client API for WorkerService service
-
+// WorkerServiceClient is the client API for WorkerService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type WorkerServiceClient interface {
 	// Start server with specified workload.
 	// First request sent specifies the ServerConfig followed by ServerStatus
@@ -201,7 +202,7 @@ func NewWorkerServiceClient(cc *grpc.ClientConn) WorkerServiceClient {
 }
 
 func (c *workerServiceClient) RunServer(ctx context.Context, opts ...grpc.CallOption) (WorkerService_RunServerClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_WorkerService_serviceDesc.Streams[0], c.cc, "/grpc.testing.WorkerService/RunServer", opts...)
+	stream, err := c.cc.NewStream(ctx, &_WorkerService_serviceDesc.Streams[0], "/grpc.testing.WorkerService/RunServer", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -232,7 +233,7 @@ func (x *workerServiceRunServerClient) Recv() (*ServerStatus, error) {
 }
 
 func (c *workerServiceClient) RunClient(ctx context.Context, opts ...grpc.CallOption) (WorkerService_RunClientClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_WorkerService_serviceDesc.Streams[1], c.cc, "/grpc.testing.WorkerService/RunClient", opts...)
+	stream, err := c.cc.NewStream(ctx, &_WorkerService_serviceDesc.Streams[1], "/grpc.testing.WorkerService/RunClient", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -264,7 +265,7 @@ func (x *workerServiceRunClientClient) Recv() (*ClientStatus, error) {
 
 func (c *workerServiceClient) CoreCount(ctx context.Context, in *CoreRequest, opts ...grpc.CallOption) (*CoreResponse, error) {
 	out := new(CoreResponse)
-	err := grpc.Invoke(ctx, "/grpc.testing.WorkerService/CoreCount", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/grpc.testing.WorkerService/CoreCount", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -273,15 +274,14 @@ func (c *workerServiceClient) CoreCount(ctx context.Context, in *CoreRequest, op
 
 func (c *workerServiceClient) QuitWorker(ctx context.Context, in *Void, opts ...grpc.CallOption) (*Void, error) {
 	out := new(Void)
-	err := grpc.Invoke(ctx, "/grpc.testing.WorkerService/QuitWorker", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/grpc.testing.WorkerService/QuitWorker", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// Server API for WorkerService service
-
+// WorkerServiceServer is the server API for WorkerService service.
 type WorkerServiceServer interface {
 	// Start server with specified workload.
 	// First request sent specifies the ServerConfig followed by ServerStatus

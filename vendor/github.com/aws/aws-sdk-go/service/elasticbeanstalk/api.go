@@ -152,7 +152,7 @@ func (c *ElasticBeanstalk) ApplyEnvironmentManagedActionRequest(input *ApplyEnvi
 // API operation ApplyEnvironmentManagedAction for usage and error information.
 //
 // Returned Error Codes:
-//   * ErrCodeServiceException "ServiceException"
+//   * ErrCodeServiceException "ElasticBeanstalkServiceException"
 //   A generic service exception has occurred.
 //
 //   * ErrCodeManagedActionInvalidStateException "ManagedActionInvalidStateException"
@@ -776,7 +776,7 @@ func (c *ElasticBeanstalk) CreatePlatformVersionRequest(input *CreatePlatformVer
 //   The specified account does not have sufficient privileges for one or more
 //   AWS services.
 //
-//   * ErrCodeServiceException "ServiceException"
+//   * ErrCodeServiceException "ElasticBeanstalkServiceException"
 //   A generic service exception has occurred.
 //
 //   * ErrCodeTooManyPlatformsException "TooManyPlatformsException"
@@ -1315,7 +1315,7 @@ func (c *ElasticBeanstalk) DeletePlatformVersionRequest(input *DeletePlatformVer
 //   The specified account does not have sufficient privileges for one or more
 //   AWS services.
 //
-//   * ErrCodeServiceException "ServiceException"
+//   * ErrCodeServiceException "ElasticBeanstalkServiceException"
 //   A generic service exception has occurred.
 //
 //   * ErrCodePlatformVersionStillReferencedException "PlatformVersionStillReferencedException"
@@ -1809,7 +1809,7 @@ func (c *ElasticBeanstalk) DescribeEnvironmentHealthRequest(input *DescribeEnvir
 //   One or more input parameters is not valid. Please correct the input parameters
 //   and try the operation again.
 //
-//   * ErrCodeServiceException "ServiceException"
+//   * ErrCodeServiceException "ElasticBeanstalkServiceException"
 //   A generic service exception has occurred.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeEnvironmentHealth
@@ -1888,7 +1888,7 @@ func (c *ElasticBeanstalk) DescribeEnvironmentManagedActionHistoryRequest(input 
 // API operation DescribeEnvironmentManagedActionHistory for usage and error information.
 //
 // Returned Error Codes:
-//   * ErrCodeServiceException "ServiceException"
+//   * ErrCodeServiceException "ElasticBeanstalkServiceException"
 //   A generic service exception has occurred.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeEnvironmentManagedActionHistory
@@ -1967,7 +1967,7 @@ func (c *ElasticBeanstalk) DescribeEnvironmentManagedActionsRequest(input *Descr
 // API operation DescribeEnvironmentManagedActions for usage and error information.
 //
 // Returned Error Codes:
-//   * ErrCodeServiceException "ServiceException"
+//   * ErrCodeServiceException "ElasticBeanstalkServiceException"
 //   A generic service exception has occurred.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeEnvironmentManagedActions
@@ -2322,8 +2322,8 @@ func (c *ElasticBeanstalk) DescribeInstancesHealthRequest(input *DescribeInstanc
 
 // DescribeInstancesHealth API operation for AWS Elastic Beanstalk.
 //
-// Retrives detailed information about the health of instances in your AWS Elastic
-// Beanstalk. This operation requires enhanced health reporting (http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/health-enhanced.html).
+// Retrieves detailed information about the health of instances in your AWS
+// Elastic Beanstalk. This operation requires enhanced health reporting (http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/health-enhanced.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2337,7 +2337,7 @@ func (c *ElasticBeanstalk) DescribeInstancesHealthRequest(input *DescribeInstanc
 //   One or more input parameters is not valid. Please correct the input parameters
 //   and try the operation again.
 //
-//   * ErrCodeServiceException "ServiceException"
+//   * ErrCodeServiceException "ElasticBeanstalkServiceException"
 //   A generic service exception has occurred.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeInstancesHealth
@@ -2420,7 +2420,7 @@ func (c *ElasticBeanstalk) DescribePlatformVersionRequest(input *DescribePlatfor
 //   The specified account does not have sufficient privileges for one or more
 //   AWS services.
 //
-//   * ErrCodeServiceException "ServiceException"
+//   * ErrCodeServiceException "ElasticBeanstalkServiceException"
 //   A generic service exception has occurred.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribePlatformVersion
@@ -2578,7 +2578,7 @@ func (c *ElasticBeanstalk) ListPlatformVersionsRequest(input *ListPlatformVersio
 //   The specified account does not have sufficient privileges for one or more
 //   AWS services.
 //
-//   * ErrCodeServiceException "ServiceException"
+//   * ErrCodeServiceException "ElasticBeanstalkServiceException"
 //   A generic service exception has occurred.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ListPlatformVersions
@@ -4039,6 +4039,14 @@ type ApplicationResourceLifecycleConfig struct {
 	_ struct{} `type:"structure"`
 
 	// The ARN of an IAM service role that Elastic Beanstalk has permission to assume.
+	//
+	// The ServiceRole property is required the first time that you provide a VersionLifecycleConfig
+	// for the application in one of the supporting calls (CreateApplication or
+	// UpdateApplicationResourceLifecycle). After you provide it once, in either
+	// one of the calls, Elastic Beanstalk persists the Service Role with the application,
+	// and you don't need to specify it again in subsequent UpdateApplicationResourceLifecycle
+	// calls. You can, however, specify it in subsequent calls to change the Service
+	// Role to another value.
 	ServiceRole *string `type:"string"`
 
 	// The application version lifecycle configuration.
@@ -4112,7 +4120,25 @@ type ApplicationVersionDescription struct {
 	// S3.
 	SourceBundle *S3Location `type:"structure"`
 
-	// The processing status of the application version.
+	// The processing status of the application version. Reflects the state of the
+	// application version during its creation. Many of the values are only applicable
+	// if you specified True for the Process parameter of the CreateApplicationVersion
+	// action. The following list describes the possible values.
+	//
+	//    * Unprocessed – Application version wasn't pre-processed or validated.
+	//    Elastic Beanstalk will validate configuration files during deployment
+	//    of the application version to an environment.
+	//
+	//    * Processing – Elastic Beanstalk is currently processing the application
+	//    version.
+	//
+	//    * Building – Application version is currently undergoing an AWS CodeBuild
+	//    build.
+	//
+	//    * Processed – Elastic Beanstalk was successfully pre-processed and validated.
+	//
+	//    * Failed – Either the AWS CodeBuild build failed or configuration files
+	//    didn't pass validation. This application version isn't usable.
 	Status *string `type:"string" enum:"ApplicationVersionStatus"`
 
 	// A unique identifier for the application version.
@@ -5180,10 +5206,14 @@ type CreateApplicationVersionInput struct {
 	// Describes this version.
 	Description *string `type:"string"`
 
-	// Preprocesses and validates the environment manifest (env.yaml) and configuration
+	// Pre-processes and validates the environment manifest (env.yaml) and configuration
 	// files (*.config files in the .ebextensions folder) in the source bundle.
 	// Validating configuration files can identify issues prior to deploying the
 	// application version to an environment.
+	//
+	// You must turn processing on for application versions that you create using
+	// AWS CodeBuild or AWS CodeCommit. For application versions built from a source
+	// bundle in Amazon S3, processing is optional.
 	//
 	// The Process option validates Elastic Beanstalk configuration files. It doesn't
 	// validate your application's configuration files, like proxy server or Docker
@@ -5518,6 +5548,9 @@ type CreateEnvironmentInput struct {
 	// This is an alternative to specifying a template name. If specified, AWS Elastic
 	// Beanstalk sets the configuration values to the default values associated
 	// with the specified solution stack.
+	//
+	// For a list of current solution stacks, see Elastic Beanstalk Supported Platforms
+	// (http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/concepts.platforms.html).
 	SolutionStackName *string `type:"string"`
 
 	// This specifies the tags applied to resources in the environment.
@@ -8063,7 +8096,11 @@ type EnvironmentTier struct {
 	// The type of this environment tier.
 	Type *string `type:"string"`
 
-	// The version of this environment tier.
+	// The version of this environment tier. When you don't set a value to it, Elastic
+	// Beanstalk uses the latest compatible worker tier version.
+	//
+	// This member is deprecated. Any specific version that you set may become out
+	// of date. We recommend leaving it unspecified.
 	Version *string `type:"string"`
 }
 
@@ -11512,6 +11549,9 @@ const (
 
 	// EnvironmentHealthStatusSevere is a EnvironmentHealthStatus enum value
 	EnvironmentHealthStatusSevere = "Severe"
+
+	// EnvironmentHealthStatusSuspended is a EnvironmentHealthStatus enum value
+	EnvironmentHealthStatusSuspended = "Suspended"
 )
 
 const (

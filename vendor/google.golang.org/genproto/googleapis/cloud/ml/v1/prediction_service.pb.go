@@ -215,10 +215,10 @@ type PredictRequest struct {
 	// Required. The resource name of a model or a version.
 	//
 	// Authorization: requires `Viewer` role on the parent project.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	//
 	// Required. The prediction request body.
-	HttpBody             *httpbody.HttpBody `protobuf:"bytes,2,opt,name=http_body,json=httpBody" json:"http_body,omitempty"`
+	HttpBody             *httpbody.HttpBody `protobuf:"bytes,2,opt,name=http_body,json=httpBody,proto3" json:"http_body,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
 	XXX_unrecognized     []byte             `json:"-"`
 	XXX_sizecache        int32              `json:"-"`
@@ -301,8 +301,7 @@ func (c *onlinePredictionServiceClient) Predict(ctx context.Context, in *Predict
 	return out, nil
 }
 
-// Server API for OnlinePredictionService service
-
+// OnlinePredictionServiceServer is the server API for OnlinePredictionService service.
 type OnlinePredictionServiceServer interface {
 	// Performs prediction on the data in the request.
 	//

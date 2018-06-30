@@ -102,12 +102,31 @@ func TestEncodeGrpcMessage(t *testing.T) {
 	}{
 		{"", ""},
 		{"Hello", "Hello"},
-		{"my favorite character is \u0000", "my favorite character is %00"},
-		{"my favorite character is %", "my favorite character is %25"},
+		{"\u0000", "%00"},
+		{"%", "%25"},
+		{"系统", "%E7%B3%BB%E7%BB%9F"},
+		{string([]byte{0xff, 0xfe, 0xfd}), "%EF%BF%BD%EF%BF%BD%EF%BF%BD"},
 	} {
 		actual := encodeGrpcMessage(tt.input)
 		if tt.expected != actual {
-			t.Errorf("encodeGrpcMessage(%v) = %v, want %v", tt.input, actual, tt.expected)
+			t.Errorf("encodeGrpcMessage(%q) = %q, want %q", tt.input, actual, tt.expected)
+		}
+	}
+
+	// make sure that all the visible ASCII chars except '%' are not percent encoded.
+	for i := ' '; i <= '~' && i != '%'; i++ {
+		output := encodeGrpcMessage(string(i))
+		if output != string(i) {
+			t.Errorf("encodeGrpcMessage(%v) = %v, want %v", string(i), output, string(i))
+		}
+	}
+
+	// make sure that all the invisible ASCII chars and '%' are percent encoded.
+	for i := rune(0); i == '%' || (i >= rune(0) && i < ' ') || (i > '~' && i <= rune(127)); i++ {
+		output := encodeGrpcMessage(string(i))
+		expected := fmt.Sprintf("%%%02X", i)
+		if output != expected {
+			t.Errorf("encodeGrpcMessage(%v) = %v, want %v", string(i), output, expected)
 		}
 	}
 }
@@ -123,10 +142,52 @@ func TestDecodeGrpcMessage(t *testing.T) {
 		{"H%6", "H%6"},
 		{"%G0", "%G0"},
 		{"%E7%B3%BB%E7%BB%9F", "系统"},
+		{"%EF%BF%BD", "�"},
 	} {
 		actual := decodeGrpcMessage(tt.input)
 		if tt.expected != actual {
-			t.Errorf("dncodeGrpcMessage(%v) = %v, want %v", tt.input, actual, tt.expected)
+			t.Errorf("decodeGrpcMessage(%q) = %q, want %q", tt.input, actual, tt.expected)
+		}
+	}
+
+	// make sure that all the visible ASCII chars except '%' are not percent decoded.
+	for i := ' '; i <= '~' && i != '%'; i++ {
+		output := decodeGrpcMessage(string(i))
+		if output != string(i) {
+			t.Errorf("decodeGrpcMessage(%v) = %v, want %v", string(i), output, string(i))
+		}
+	}
+
+	// make sure that all the invisible ASCII chars and '%' are percent decoded.
+	for i := rune(0); i == '%' || (i >= rune(0) && i < ' ') || (i > '~' && i <= rune(127)); i++ {
+		output := decodeGrpcMessage(fmt.Sprintf("%%%02X", i))
+		if output != string(i) {
+			t.Errorf("decodeGrpcMessage(%v) = %v, want %v", fmt.Sprintf("%%%02X", i), output, string(i))
+		}
+	}
+}
+
+// Decode an encoded string should get the same thing back, except for invalid
+// utf8 chars.
+func TestDecodeEncodeGrpcMessage(t *testing.T) {
+	testCases := []struct {
+		orig string
+		want string
+	}{
+		{"", ""},
+		{"hello", "hello"},
+		{"h%6", "h%6"},
+		{"%G0", "%G0"},
+		{"系统", "系统"},
+		{"Hello, 世界", "Hello, 世界"},
+
+		{string([]byte{0xff, 0xfe, 0xfd}), "���"},
+		{string([]byte{0xff}) + "Hello" + string([]byte{0xfe}) + "世界" + string([]byte{0xfd}), "�Hello�世界�"},
+	}
+	for _, tC := range testCases {
+		got := decodeGrpcMessage(encodeGrpcMessage(tC.orig))
+		if got != tC.want {
+			t.Errorf("decodeGrpcMessage(encodeGrpcMessage(%q)) = %q, want %q", tC.orig, got, tC.want)
 		}
 	}
 }

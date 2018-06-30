@@ -144,9 +144,9 @@ var xxx_messageInfo_DockerImage proto.InternalMessageInfo
 // Layer holds metadata specific to a layer of a Docker image.
 type DockerImage_Layer struct {
 	// The recovered Dockerfile directive used to construct this layer.
-	Directive DockerImage_Layer_Directive `protobuf:"varint,1,opt,name=directive,enum=google.devtools.containeranalysis.v1alpha1.DockerImage_Layer_Directive" json:"directive,omitempty"`
+	Directive DockerImage_Layer_Directive `protobuf:"varint,1,opt,name=directive,proto3,enum=google.devtools.containeranalysis.v1alpha1.DockerImage_Layer_Directive" json:"directive,omitempty"`
 	// The recovered arguments to the Dockerfile directive.
-	Arguments            string   `protobuf:"bytes,2,opt,name=arguments" json:"arguments,omitempty"`
+	Arguments            string   `protobuf:"bytes,2,opt,name=arguments,proto3" json:"arguments,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -195,15 +195,15 @@ type DockerImage_Fingerprint struct {
 	// The layer-id of the final layer in the Docker image's v1
 	// representation.
 	// This field can be used as a filter in list requests.
-	V1Name string `protobuf:"bytes,1,opt,name=v1_name,json=v1Name" json:"v1_name,omitempty"`
+	V1Name string `protobuf:"bytes,1,opt,name=v1_name,json=v1Name,proto3" json:"v1_name,omitempty"`
 	// The ordered list of v2 blobs that represent a given image.
-	V2Blob []string `protobuf:"bytes,2,rep,name=v2_blob,json=v2Blob" json:"v2_blob,omitempty"`
+	V2Blob []string `protobuf:"bytes,2,rep,name=v2_blob,json=v2Blob,proto3" json:"v2_blob,omitempty"`
 	// Output only. The name of the image's v2 blobs computed via:
 	//   [bottom] := v2_blob[bottom]
 	//   [N] := sha256(v2_blob[N] + " " + v2_name[N+1])
 	// Only the name of the final blob is kept.
 	// This field can be used as a filter in list requests.
-	V2Name               string   `protobuf:"bytes,3,opt,name=v2_name,json=v2Name" json:"v2_name,omitempty"`
+	V2Name               string   `protobuf:"bytes,3,opt,name=v2_name,json=v2Name,proto3" json:"v2_name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -262,9 +262,9 @@ func (m *DockerImage_Fingerprint) GetV2Name() string {
 type DockerImage_Basis struct {
 	// The resource_url for the resource representing the basis of
 	// associated occurrence images.
-	ResourceUrl string `protobuf:"bytes,1,opt,name=resource_url,json=resourceUrl" json:"resource_url,omitempty"`
+	ResourceUrl string `protobuf:"bytes,1,opt,name=resource_url,json=resourceUrl,proto3" json:"resource_url,omitempty"`
 	// The fingerprint of the base image.
-	Fingerprint          *DockerImage_Fingerprint `protobuf:"bytes,2,opt,name=fingerprint" json:"fingerprint,omitempty"`
+	Fingerprint          *DockerImage_Fingerprint `protobuf:"bytes,2,opt,name=fingerprint,proto3" json:"fingerprint,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                 `json:"-"`
 	XXX_unrecognized     []byte                   `json:"-"`
 	XXX_sizecache        int32                    `json:"-"`
@@ -313,17 +313,17 @@ func (m *DockerImage_Basis) GetFingerprint() *DockerImage_Fingerprint {
 // with FROM <DockerImage.Basis in attached Note>.
 type DockerImage_Derived struct {
 	// The fingerprint of the derived image.
-	Fingerprint *DockerImage_Fingerprint `protobuf:"bytes,1,opt,name=fingerprint" json:"fingerprint,omitempty"`
+	Fingerprint *DockerImage_Fingerprint `protobuf:"bytes,1,opt,name=fingerprint,proto3" json:"fingerprint,omitempty"`
 	// Output only. The number of layers by which this image differs from the
 	// associated image basis.
-	Distance uint32 `protobuf:"varint,2,opt,name=distance" json:"distance,omitempty"`
+	Distance uint32 `protobuf:"varint,2,opt,name=distance,proto3" json:"distance,omitempty"`
 	// This contains layer-specific metadata, if populated it has length
 	// "distance" and is ordered with [distance] being the layer immediately
 	// following the base image and [1] being the final layer.
-	LayerInfo []*DockerImage_Layer `protobuf:"bytes,3,rep,name=layer_info,json=layerInfo" json:"layer_info,omitempty"`
+	LayerInfo []*DockerImage_Layer `protobuf:"bytes,3,rep,name=layer_info,json=layerInfo,proto3" json:"layer_info,omitempty"`
 	// Output only. This contains the base image URL for the derived image
 	// occurrence.
-	BaseResourceUrl      string   `protobuf:"bytes,4,opt,name=base_resource_url,json=baseResourceUrl" json:"base_resource_url,omitempty"`
+	BaseResourceUrl      string   `protobuf:"bytes,4,opt,name=base_resource_url,json=baseResourceUrl,proto3" json:"base_resource_url,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

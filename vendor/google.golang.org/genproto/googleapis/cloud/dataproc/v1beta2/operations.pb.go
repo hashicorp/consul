@@ -51,19 +51,19 @@ func (x ClusterOperationStatus_State) String() string {
 	return proto.EnumName(ClusterOperationStatus_State_name, int32(x))
 }
 func (ClusterOperationStatus_State) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_operations_06b6b1222ad2529d, []int{0, 0}
+	return fileDescriptor_operations_54f6cccb1783f6c3, []int{0, 0}
 }
 
 // The status of the operation.
 type ClusterOperationStatus struct {
-	// Output-only. A message containing the operation state.
-	State ClusterOperationStatus_State `protobuf:"varint,1,opt,name=state,enum=google.cloud.dataproc.v1beta2.ClusterOperationStatus_State" json:"state,omitempty"`
-	// Output-only. A message containing the detailed operation state.
-	InnerState string `protobuf:"bytes,2,opt,name=inner_state,json=innerState" json:"inner_state,omitempty"`
-	// Output-only.A message containing any operation metadata details.
-	Details string `protobuf:"bytes,3,opt,name=details" json:"details,omitempty"`
-	// Output-only. The time this state was entered.
-	StateStartTime       *timestamp.Timestamp `protobuf:"bytes,4,opt,name=state_start_time,json=stateStartTime" json:"state_start_time,omitempty"`
+	// Output only. A message containing the operation state.
+	State ClusterOperationStatus_State `protobuf:"varint,1,opt,name=state,proto3,enum=google.cloud.dataproc.v1beta2.ClusterOperationStatus_State" json:"state,omitempty"`
+	// Output only. A message containing the detailed operation state.
+	InnerState string `protobuf:"bytes,2,opt,name=inner_state,json=innerState,proto3" json:"inner_state,omitempty"`
+	// Output only. A message containing any operation metadata details.
+	Details string `protobuf:"bytes,3,opt,name=details,proto3" json:"details,omitempty"`
+	// Output only. The time this state was entered.
+	StateStartTime       *timestamp.Timestamp `protobuf:"bytes,4,opt,name=state_start_time,json=stateStartTime,proto3" json:"state_start_time,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -73,7 +73,7 @@ func (m *ClusterOperationStatus) Reset()         { *m = ClusterOperationStatus{}
 func (m *ClusterOperationStatus) String() string { return proto.CompactTextString(m) }
 func (*ClusterOperationStatus) ProtoMessage()    {}
 func (*ClusterOperationStatus) Descriptor() ([]byte, []int) {
-	return fileDescriptor_operations_06b6b1222ad2529d, []int{0}
+	return fileDescriptor_operations_54f6cccb1783f6c3, []int{0}
 }
 func (m *ClusterOperationStatus) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ClusterOperationStatus.Unmarshal(m, b)
@@ -123,22 +123,22 @@ func (m *ClusterOperationStatus) GetStateStartTime() *timestamp.Timestamp {
 
 // Metadata describing the operation.
 type ClusterOperationMetadata struct {
-	// Output-only. Name of the cluster for the operation.
-	ClusterName string `protobuf:"bytes,7,opt,name=cluster_name,json=clusterName" json:"cluster_name,omitempty"`
-	// Output-only. Cluster UUID for the operation.
-	ClusterUuid string `protobuf:"bytes,8,opt,name=cluster_uuid,json=clusterUuid" json:"cluster_uuid,omitempty"`
-	// Output-only. Current operation status.
-	Status *ClusterOperationStatus `protobuf:"bytes,9,opt,name=status" json:"status,omitempty"`
-	// Output-only. The previous operation status.
-	StatusHistory []*ClusterOperationStatus `protobuf:"bytes,10,rep,name=status_history,json=statusHistory" json:"status_history,omitempty"`
-	// Output-only. The operation type.
-	OperationType string `protobuf:"bytes,11,opt,name=operation_type,json=operationType" json:"operation_type,omitempty"`
-	// Output-only. Short description of operation.
-	Description string `protobuf:"bytes,12,opt,name=description" json:"description,omitempty"`
-	// Output-only. Labels associated with the operation
-	Labels map[string]string `protobuf:"bytes,13,rep,name=labels" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Output-only. Errors encountered during operation execution.
-	Warnings             []string `protobuf:"bytes,14,rep,name=warnings" json:"warnings,omitempty"`
+	// Output only. Name of the cluster for the operation.
+	ClusterName string `protobuf:"bytes,7,opt,name=cluster_name,json=clusterName,proto3" json:"cluster_name,omitempty"`
+	// Output only. Cluster UUID for the operation.
+	ClusterUuid string `protobuf:"bytes,8,opt,name=cluster_uuid,json=clusterUuid,proto3" json:"cluster_uuid,omitempty"`
+	// Output only. Current operation status.
+	Status *ClusterOperationStatus `protobuf:"bytes,9,opt,name=status,proto3" json:"status,omitempty"`
+	// Output only. The previous operation status.
+	StatusHistory []*ClusterOperationStatus `protobuf:"bytes,10,rep,name=status_history,json=statusHistory,proto3" json:"status_history,omitempty"`
+	// Output only. The operation type.
+	OperationType string `protobuf:"bytes,11,opt,name=operation_type,json=operationType,proto3" json:"operation_type,omitempty"`
+	// Output only. Short description of operation.
+	Description string `protobuf:"bytes,12,opt,name=description,proto3" json:"description,omitempty"`
+	// Output only. Labels associated with the operation
+	Labels map[string]string `protobuf:"bytes,13,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	// Output only. Errors encountered during operation execution.
+	Warnings             []string `protobuf:"bytes,14,rep,name=warnings,proto3" json:"warnings,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -148,7 +148,7 @@ func (m *ClusterOperationMetadata) Reset()         { *m = ClusterOperationMetada
 func (m *ClusterOperationMetadata) String() string { return proto.CompactTextString(m) }
 func (*ClusterOperationMetadata) ProtoMessage()    {}
 func (*ClusterOperationMetadata) Descriptor() ([]byte, []int) {
-	return fileDescriptor_operations_06b6b1222ad2529d, []int{1}
+	return fileDescriptor_operations_54f6cccb1783f6c3, []int{1}
 }
 func (m *ClusterOperationMetadata) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ClusterOperationMetadata.Unmarshal(m, b)
@@ -232,10 +232,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("google/cloud/dataproc/v1beta2/operations.proto", fileDescriptor_operations_06b6b1222ad2529d)
+	proto.RegisterFile("google/cloud/dataproc/v1beta2/operations.proto", fileDescriptor_operations_54f6cccb1783f6c3)
 }
 
-var fileDescriptor_operations_06b6b1222ad2529d = []byte{
+var fileDescriptor_operations_54f6cccb1783f6c3 = []byte{
 	// 537 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x54, 0x5f, 0x8b, 0xd3, 0x4e,
 	0x14, 0xfd, 0xa5, 0xff, 0x7b, 0xb3, 0xed, 0xaf, 0x0c, 0x22, 0x43, 0x51, 0x36, 0x5b, 0x10, 0xfa,

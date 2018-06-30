@@ -1,6 +1,8 @@
 package sarama
 
-import "testing"
+import (
+	"testing"
+)
 
 var (
 	consumerMetadataRequestEmpty = []byte{
@@ -12,8 +14,10 @@ var (
 
 func TestConsumerMetadataRequest(t *testing.T) {
 	request := new(ConsumerMetadataRequest)
-	testRequest(t, "empty string", request, consumerMetadataRequestEmpty)
+	testEncodable(t, "empty string", request, consumerMetadataRequestEmpty)
+	testVersionDecodable(t, "empty string", request, consumerMetadataRequestEmpty, 0)
 
 	request.ConsumerGroup = "foobar"
-	testRequest(t, "with string", request, consumerMetadataRequestString)
+	testEncodable(t, "with string", request, consumerMetadataRequestString)
+	testVersionDecodable(t, "with string", request, consumerMetadataRequestString, 0)
 }

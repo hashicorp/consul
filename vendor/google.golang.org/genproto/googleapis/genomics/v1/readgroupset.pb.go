@@ -33,21 +33,21 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 // Genomics](https://cloud.google.com/genomics/fundamentals-of-google-genomics)
 type ReadGroupSet struct {
 	// The server-generated read group set ID, unique for all read group sets.
-	Id string `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// The dataset to which this read group set belongs.
-	DatasetId string `protobuf:"bytes,2,opt,name=dataset_id,json=datasetId" json:"dataset_id,omitempty"`
+	DatasetId string `protobuf:"bytes,2,opt,name=dataset_id,json=datasetId,proto3" json:"dataset_id,omitempty"`
 	// The reference set to which the reads in this read group set are aligned.
-	ReferenceSetId string `protobuf:"bytes,3,opt,name=reference_set_id,json=referenceSetId" json:"reference_set_id,omitempty"`
+	ReferenceSetId string `protobuf:"bytes,3,opt,name=reference_set_id,json=referenceSetId,proto3" json:"reference_set_id,omitempty"`
 	// The read group set name. By default this will be initialized to the sample
 	// name of the sequenced data contained in this set.
-	Name string `protobuf:"bytes,4,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
 	// The filename of the original source file for this read group set, if any.
-	Filename string `protobuf:"bytes,5,opt,name=filename" json:"filename,omitempty"`
+	Filename string `protobuf:"bytes,5,opt,name=filename,proto3" json:"filename,omitempty"`
 	// The read groups in this set. There are typically 1-10 read groups in a read
 	// group set.
-	ReadGroups []*ReadGroup `protobuf:"bytes,6,rep,name=read_groups,json=readGroups" json:"read_groups,omitempty"`
+	ReadGroups []*ReadGroup `protobuf:"bytes,6,rep,name=read_groups,json=readGroups,proto3" json:"read_groups,omitempty"`
 	// A map of additional read group set information.
-	Info                 map[string]*_struct.ListValue `protobuf:"bytes,7,rep,name=info" json:"info,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Info                 map[string]*_struct.ListValue `protobuf:"bytes,7,rep,name=info,proto3" json:"info,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}                      `json:"-"`
 	XXX_unrecognized     []byte                        `json:"-"`
 	XXX_sizecache        int32                         `json:"-"`

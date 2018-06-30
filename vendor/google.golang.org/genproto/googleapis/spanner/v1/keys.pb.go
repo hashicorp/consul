@@ -157,16 +157,16 @@ type isKeyRange_EndKeyType interface {
 }
 
 type KeyRange_StartClosed struct {
-	StartClosed *_struct.ListValue `protobuf:"bytes,1,opt,name=start_closed,json=startClosed,oneof"`
+	StartClosed *_struct.ListValue `protobuf:"bytes,1,opt,name=start_closed,json=startClosed,proto3,oneof"`
 }
 type KeyRange_StartOpen struct {
-	StartOpen *_struct.ListValue `protobuf:"bytes,2,opt,name=start_open,json=startOpen,oneof"`
+	StartOpen *_struct.ListValue `protobuf:"bytes,2,opt,name=start_open,json=startOpen,proto3,oneof"`
 }
 type KeyRange_EndClosed struct {
-	EndClosed *_struct.ListValue `protobuf:"bytes,3,opt,name=end_closed,json=endClosed,oneof"`
+	EndClosed *_struct.ListValue `protobuf:"bytes,3,opt,name=end_closed,json=endClosed,proto3,oneof"`
 }
 type KeyRange_EndOpen struct {
-	EndOpen *_struct.ListValue `protobuf:"bytes,4,opt,name=end_open,json=endOpen,oneof"`
+	EndOpen *_struct.ListValue `protobuf:"bytes,4,opt,name=end_open,json=endOpen,proto3,oneof"`
 }
 
 func (*KeyRange_StartClosed) isKeyRange_StartKeyType() {}
@@ -351,14 +351,14 @@ type KeySet struct {
 	// many elements as there are columns in the primary or index key
 	// with which this `KeySet` is used.  Individual key values are
 	// encoded as described [here][google.spanner.v1.TypeCode].
-	Keys []*_struct.ListValue `protobuf:"bytes,1,rep,name=keys" json:"keys,omitempty"`
+	Keys []*_struct.ListValue `protobuf:"bytes,1,rep,name=keys,proto3" json:"keys,omitempty"`
 	// A list of key ranges. See [KeyRange][google.spanner.v1.KeyRange] for more information about
 	// key range specifications.
-	Ranges []*KeyRange `protobuf:"bytes,2,rep,name=ranges" json:"ranges,omitempty"`
+	Ranges []*KeyRange `protobuf:"bytes,2,rep,name=ranges,proto3" json:"ranges,omitempty"`
 	// For convenience `all` can be set to `true` to indicate that this
 	// `KeySet` matches all keys in the table or index. Note that any keys
 	// specified in `keys` or `ranges` are only yielded once.
-	All                  bool     `protobuf:"varint,3,opt,name=all" json:"all,omitempty"`
+	All                  bool     `protobuf:"varint,3,opt,name=all,proto3" json:"all,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

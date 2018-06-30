@@ -63,15 +63,15 @@ type Service struct {
 	// Example: `apps/myapp/services/default`.
 	//
 	// @OutputOnly
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Relative name of the service within the application.
 	// Example: `default`.
 	//
 	// @OutputOnly
-	Id string `protobuf:"bytes,2,opt,name=id" json:"id,omitempty"`
+	Id string `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
 	// Mapping that defines fractional HTTP traffic diversion to
 	// different versions within the service.
-	Split                *TrafficSplit `protobuf:"bytes,3,opt,name=split" json:"split,omitempty"`
+	Split                *TrafficSplit `protobuf:"bytes,3,opt,name=split,proto3" json:"split,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
 	XXX_unrecognized     []byte        `json:"-"`
 	XXX_sizecache        int32         `json:"-"`
@@ -128,7 +128,7 @@ type TrafficSplit struct {
 	// Mechanism used to determine which version a request is sent to.
 	// The traffic selection algorithm will
 	// be stable for either type until allocations are changed.
-	ShardBy TrafficSplit_ShardBy `protobuf:"varint,1,opt,name=shard_by,json=shardBy,enum=google.appengine.v1.TrafficSplit_ShardBy" json:"shard_by,omitempty"`
+	ShardBy TrafficSplit_ShardBy `protobuf:"varint,1,opt,name=shard_by,json=shardBy,proto3,enum=google.appengine.v1.TrafficSplit_ShardBy" json:"shard_by,omitempty"`
 	// Mapping from version IDs within the service to fractional
 	// (0.000, 1] allocations of traffic for that version. Each version can
 	// be specified only once, but some versions in the service may not
@@ -137,7 +137,7 @@ type TrafficSplit struct {
 	// their traffic allocation is removed. Allocations must sum to 1.
 	// Up to two decimal place precision is supported for IP-based splits and
 	// up to three decimal places is supported for cookie-based splits.
-	Allocations          map[string]float64 `protobuf:"bytes,2,rep,name=allocations" json:"allocations,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"fixed64,2,opt,name=value"`
+	Allocations          map[string]float64 `protobuf:"bytes,2,rep,name=allocations,proto3" json:"allocations,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"fixed64,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
 	XXX_unrecognized     []byte             `json:"-"`
 	XXX_sizecache        int32              `json:"-"`

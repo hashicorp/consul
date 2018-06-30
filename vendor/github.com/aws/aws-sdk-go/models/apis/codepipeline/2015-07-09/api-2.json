@@ -450,7 +450,8 @@
         {"shape":"InvalidStageDeclarationException"},
         {"shape":"InvalidActionDeclarationException"},
         {"shape":"InvalidBlockerDeclarationException"},
-        {"shape":"InvalidStructureException"}
+        {"shape":"InvalidStructureException"},
+        {"shape":"LimitExceededException"}
       ]
     }
   },

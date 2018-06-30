@@ -203,7 +203,7 @@ func (QueryResultBatch_MoreResultsType) EnumDescriptor() ([]byte, []int) {
 // The result of fetching an entity from Datastore.
 type EntityResult struct {
 	// The resulting entity.
-	Entity *Entity `protobuf:"bytes,1,opt,name=entity" json:"entity,omitempty"`
+	Entity *Entity `protobuf:"bytes,1,opt,name=entity,proto3" json:"entity,omitempty"`
 	// The version of the entity, a strictly positive number that monotonically
 	// increases with changes to the entity.
 	//
@@ -213,7 +213,7 @@ type EntityResult struct {
 	// For [missing][google.datastore.v1beta3.LookupResponse.missing] entities in `LookupResponse`, this
 	// is the version of the snapshot that was used to look up the entity, and it
 	// is always set except for eventually consistent reads.
-	Version int64 `protobuf:"varint,4,opt,name=version" json:"version,omitempty"`
+	Version int64 `protobuf:"varint,4,opt,name=version,proto3" json:"version,omitempty"`
 	// A cursor that points to the position after the result entity.
 	// Set only when the `EntityResult` is part of a `QueryResultBatch` message.
 	Cursor               []byte   `protobuf:"bytes,3,opt,name=cursor,proto3" json:"cursor,omitempty"`
@@ -270,18 +270,18 @@ func (m *EntityResult) GetCursor() []byte {
 // A query for entities.
 type Query struct {
 	// The projection to return. Defaults to returning all properties.
-	Projection []*Projection `protobuf:"bytes,2,rep,name=projection" json:"projection,omitempty"`
+	Projection []*Projection `protobuf:"bytes,2,rep,name=projection,proto3" json:"projection,omitempty"`
 	// The kinds to query (if empty, returns entities of all kinds).
 	// Currently at most 1 kind may be specified.
-	Kind []*KindExpression `protobuf:"bytes,3,rep,name=kind" json:"kind,omitempty"`
+	Kind []*KindExpression `protobuf:"bytes,3,rep,name=kind,proto3" json:"kind,omitempty"`
 	// The filter to apply.
-	Filter *Filter `protobuf:"bytes,4,opt,name=filter" json:"filter,omitempty"`
+	Filter *Filter `protobuf:"bytes,4,opt,name=filter,proto3" json:"filter,omitempty"`
 	// The order to apply to the query results (if empty, order is unspecified).
-	Order []*PropertyOrder `protobuf:"bytes,5,rep,name=order" json:"order,omitempty"`
+	Order []*PropertyOrder `protobuf:"bytes,5,rep,name=order,proto3" json:"order,omitempty"`
 	// The properties to make distinct. The query results will contain the first
 	// result for each distinct combination of values for the given properties
 	// (if empty, all results are returned).
-	DistinctOn []*PropertyReference `protobuf:"bytes,6,rep,name=distinct_on,json=distinctOn" json:"distinct_on,omitempty"`
+	DistinctOn []*PropertyReference `protobuf:"bytes,6,rep,name=distinct_on,json=distinctOn,proto3" json:"distinct_on,omitempty"`
 	// A starting point for the query results. Query cursors are
 	// returned in query result batches and
 	// [can only be used to continue the same query](https://cloud.google.com/datastore/docs/concepts/queries#cursors_limits_and_offsets).
@@ -292,12 +292,12 @@ type Query struct {
 	EndCursor []byte `protobuf:"bytes,8,opt,name=end_cursor,json=endCursor,proto3" json:"end_cursor,omitempty"`
 	// The number of results to skip. Applies before limit, but after all other
 	// constraints. Optional. Must be >= 0 if specified.
-	Offset int32 `protobuf:"varint,10,opt,name=offset" json:"offset,omitempty"`
+	Offset int32 `protobuf:"varint,10,opt,name=offset,proto3" json:"offset,omitempty"`
 	// The maximum number of results to return. Applies after all other
 	// constraints. Optional.
 	// Unspecified is interpreted as no limit.
 	// Must be >= 0 if specified.
-	Limit                *wrappers.Int32Value `protobuf:"bytes,12,opt,name=limit" json:"limit,omitempty"`
+	Limit                *wrappers.Int32Value `protobuf:"bytes,12,opt,name=limit,proto3" json:"limit,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -393,7 +393,7 @@ func (m *Query) GetLimit() *wrappers.Int32Value {
 // A representation of a kind.
 type KindExpression struct {
 	// The name of the kind.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -434,7 +434,7 @@ func (m *KindExpression) GetName() string {
 type PropertyReference struct {
 	// The name of the property.
 	// If name includes "."s, it may be interpreted as a property name path.
-	Name                 string   `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -474,7 +474,7 @@ func (m *PropertyReference) GetName() string {
 // A representation of a property in a projection.
 type Projection struct {
 	// The property to project.
-	Property             *PropertyReference `protobuf:"bytes,1,opt,name=property" json:"property,omitempty"`
+	Property             *PropertyReference `protobuf:"bytes,1,opt,name=property,proto3" json:"property,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
 	XXX_unrecognized     []byte             `json:"-"`
 	XXX_sizecache        int32              `json:"-"`
@@ -514,9 +514,9 @@ func (m *Projection) GetProperty() *PropertyReference {
 // The desired order for a specific property.
 type PropertyOrder struct {
 	// The property to order by.
-	Property *PropertyReference `protobuf:"bytes,1,opt,name=property" json:"property,omitempty"`
+	Property *PropertyReference `protobuf:"bytes,1,opt,name=property,proto3" json:"property,omitempty"`
 	// The direction to order by. Defaults to `ASCENDING`.
-	Direction            PropertyOrder_Direction `protobuf:"varint,2,opt,name=direction,enum=google.datastore.v1beta3.PropertyOrder_Direction" json:"direction,omitempty"`
+	Direction            PropertyOrder_Direction `protobuf:"varint,2,opt,name=direction,proto3,enum=google.datastore.v1beta3.PropertyOrder_Direction" json:"direction,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                `json:"-"`
 	XXX_unrecognized     []byte                  `json:"-"`
 	XXX_sizecache        int32                   `json:"-"`
@@ -602,10 +602,10 @@ type isFilter_FilterType interface {
 }
 
 type Filter_CompositeFilter struct {
-	CompositeFilter *CompositeFilter `protobuf:"bytes,1,opt,name=composite_filter,json=compositeFilter,oneof"`
+	CompositeFilter *CompositeFilter `protobuf:"bytes,1,opt,name=composite_filter,json=compositeFilter,proto3,oneof"`
 }
 type Filter_PropertyFilter struct {
-	PropertyFilter *PropertyFilter `protobuf:"bytes,2,opt,name=property_filter,json=propertyFilter,oneof"`
+	PropertyFilter *PropertyFilter `protobuf:"bytes,2,opt,name=property_filter,json=propertyFilter,proto3,oneof"`
 }
 
 func (*Filter_CompositeFilter) isFilter_FilterType() {}
@@ -709,10 +709,10 @@ func _Filter_OneofSizer(msg proto.Message) (n int) {
 // A filter that merges multiple other filters using the given operator.
 type CompositeFilter struct {
 	// The operator for combining multiple filters.
-	Op CompositeFilter_Operator `protobuf:"varint,1,opt,name=op,enum=google.datastore.v1beta3.CompositeFilter_Operator" json:"op,omitempty"`
+	Op CompositeFilter_Operator `protobuf:"varint,1,opt,name=op,proto3,enum=google.datastore.v1beta3.CompositeFilter_Operator" json:"op,omitempty"`
 	// The list of filters to combine.
 	// Must contain at least one filter.
-	Filters              []*Filter `protobuf:"bytes,2,rep,name=filters" json:"filters,omitempty"`
+	Filters              []*Filter `protobuf:"bytes,2,rep,name=filters,proto3" json:"filters,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -759,11 +759,11 @@ func (m *CompositeFilter) GetFilters() []*Filter {
 // A filter on a specific property.
 type PropertyFilter struct {
 	// The property to filter by.
-	Property *PropertyReference `protobuf:"bytes,1,opt,name=property" json:"property,omitempty"`
+	Property *PropertyReference `protobuf:"bytes,1,opt,name=property,proto3" json:"property,omitempty"`
 	// The operator to filter by.
-	Op PropertyFilter_Operator `protobuf:"varint,2,opt,name=op,enum=google.datastore.v1beta3.PropertyFilter_Operator" json:"op,omitempty"`
+	Op PropertyFilter_Operator `protobuf:"varint,2,opt,name=op,proto3,enum=google.datastore.v1beta3.PropertyFilter_Operator" json:"op,omitempty"`
 	// The value to compare the property to.
-	Value                *Value   `protobuf:"bytes,3,opt,name=value" json:"value,omitempty"`
+	Value                *Value   `protobuf:"bytes,3,opt,name=value,proto3" json:"value,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -818,24 +818,24 @@ func (m *PropertyFilter) GetValue() *Value {
 type GqlQuery struct {
 	// A string of the format described
 	// [here](https://cloud.google.com/datastore/docs/apis/gql/gql_reference).
-	QueryString string `protobuf:"bytes,1,opt,name=query_string,json=queryString" json:"query_string,omitempty"`
+	QueryString string `protobuf:"bytes,1,opt,name=query_string,json=queryString,proto3" json:"query_string,omitempty"`
 	// When false, the query string must not contain any literals and instead must
 	// bind all values. For example,
 	// `SELECT * FROM Kind WHERE a = 'string literal'` is not allowed, while
 	// `SELECT * FROM Kind WHERE a = @value` is.
-	AllowLiterals bool `protobuf:"varint,2,opt,name=allow_literals,json=allowLiterals" json:"allow_literals,omitempty"`
+	AllowLiterals bool `protobuf:"varint,2,opt,name=allow_literals,json=allowLiterals,proto3" json:"allow_literals,omitempty"`
 	// For each non-reserved named binding site in the query string, there must be
 	// a named parameter with that name, but not necessarily the inverse.
 	//
 	// Key must match regex `[A-Za-z_$][A-Za-z_$0-9]*`, must not match regex
 	// `__.*__`, and must not be `""`.
-	NamedBindings map[string]*GqlQueryParameter `protobuf:"bytes,5,rep,name=named_bindings,json=namedBindings" json:"named_bindings,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	NamedBindings map[string]*GqlQueryParameter `protobuf:"bytes,5,rep,name=named_bindings,json=namedBindings,proto3" json:"named_bindings,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// Numbered binding site @1 references the first numbered parameter,
 	// effectively using 1-based indexing, rather than the usual 0.
 	//
 	// For each binding site numbered i in `query_string`, there must be an i-th
 	// numbered parameter. The inverse must also be true.
-	PositionalBindings   []*GqlQueryParameter `protobuf:"bytes,4,rep,name=positional_bindings,json=positionalBindings" json:"positional_bindings,omitempty"`
+	PositionalBindings   []*GqlQueryParameter `protobuf:"bytes,4,rep,name=positional_bindings,json=positionalBindings,proto3" json:"positional_bindings,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -935,7 +935,7 @@ type isGqlQueryParameter_ParameterType interface {
 }
 
 type GqlQueryParameter_Value struct {
-	Value *Value `protobuf:"bytes,2,opt,name=value,oneof"`
+	Value *Value `protobuf:"bytes,2,opt,name=value,proto3,oneof"`
 }
 type GqlQueryParameter_Cursor struct {
 	Cursor []byte `protobuf:"bytes,3,opt,name=cursor,proto3,oneof"`
@@ -1038,18 +1038,18 @@ func _GqlQueryParameter_OneofSizer(msg proto.Message) (n int) {
 // A batch of results produced by a query.
 type QueryResultBatch struct {
 	// The number of results skipped, typically because of an offset.
-	SkippedResults int32 `protobuf:"varint,6,opt,name=skipped_results,json=skippedResults" json:"skipped_results,omitempty"`
+	SkippedResults int32 `protobuf:"varint,6,opt,name=skipped_results,json=skippedResults,proto3" json:"skipped_results,omitempty"`
 	// A cursor that points to the position after the last skipped result.
 	// Will be set when `skipped_results` != 0.
 	SkippedCursor []byte `protobuf:"bytes,3,opt,name=skipped_cursor,json=skippedCursor,proto3" json:"skipped_cursor,omitempty"`
 	// The result type for every entity in `entity_results`.
-	EntityResultType EntityResult_ResultType `protobuf:"varint,1,opt,name=entity_result_type,json=entityResultType,enum=google.datastore.v1beta3.EntityResult_ResultType" json:"entity_result_type,omitempty"`
+	EntityResultType EntityResult_ResultType `protobuf:"varint,1,opt,name=entity_result_type,json=entityResultType,proto3,enum=google.datastore.v1beta3.EntityResult_ResultType" json:"entity_result_type,omitempty"`
 	// The results for this batch.
-	EntityResults []*EntityResult `protobuf:"bytes,2,rep,name=entity_results,json=entityResults" json:"entity_results,omitempty"`
+	EntityResults []*EntityResult `protobuf:"bytes,2,rep,name=entity_results,json=entityResults,proto3" json:"entity_results,omitempty"`
 	// A cursor that points to the position after the last result in the batch.
 	EndCursor []byte `protobuf:"bytes,4,opt,name=end_cursor,json=endCursor,proto3" json:"end_cursor,omitempty"`
 	// The state of the query after the current batch.
-	MoreResults QueryResultBatch_MoreResultsType `protobuf:"varint,5,opt,name=more_results,json=moreResults,enum=google.datastore.v1beta3.QueryResultBatch_MoreResultsType" json:"more_results,omitempty"`
+	MoreResults QueryResultBatch_MoreResultsType `protobuf:"varint,5,opt,name=more_results,json=moreResults,proto3,enum=google.datastore.v1beta3.QueryResultBatch_MoreResultsType" json:"more_results,omitempty"`
 	// The version number of the snapshot this batch was returned from.
 	// This applies to the range of results from the query's `start_cursor` (or
 	// the beginning of the query if no cursor was given) to this batch's
@@ -1059,7 +1059,7 @@ type QueryResultBatch struct {
 	// can have a greater snapshot version number. Each batch's snapshot version
 	// is valid for all preceding batches.
 	// The value will be zero for eventually consistent queries.
-	SnapshotVersion      int64    `protobuf:"varint,7,opt,name=snapshot_version,json=snapshotVersion" json:"snapshot_version,omitempty"`
+	SnapshotVersion      int64    `protobuf:"varint,7,opt,name=snapshot_version,json=snapshotVersion,proto3" json:"snapshot_version,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

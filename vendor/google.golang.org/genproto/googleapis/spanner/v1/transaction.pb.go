@@ -279,10 +279,10 @@ type isTransactionOptions_Mode interface {
 }
 
 type TransactionOptions_ReadWrite_ struct {
-	ReadWrite *TransactionOptions_ReadWrite `protobuf:"bytes,1,opt,name=read_write,json=readWrite,oneof"`
+	ReadWrite *TransactionOptions_ReadWrite `protobuf:"bytes,1,opt,name=read_write,json=readWrite,proto3,oneof"`
 }
 type TransactionOptions_ReadOnly_ struct {
-	ReadOnly *TransactionOptions_ReadOnly `protobuf:"bytes,2,opt,name=read_only,json=readOnly,oneof"`
+	ReadOnly *TransactionOptions_ReadOnly `protobuf:"bytes,2,opt,name=read_only,json=readOnly,proto3,oneof"`
 }
 
 func (*TransactionOptions_ReadWrite_) isTransactionOptions_Mode() {}
@@ -428,7 +428,7 @@ type TransactionOptions_ReadOnly struct {
 	TimestampBound isTransactionOptions_ReadOnly_TimestampBound `protobuf_oneof:"timestamp_bound"`
 	// If true, the Cloud Spanner-selected read timestamp is included in
 	// the [Transaction][google.spanner.v1.Transaction] message that describes the transaction.
-	ReturnReadTimestamp  bool     `protobuf:"varint,6,opt,name=return_read_timestamp,json=returnReadTimestamp" json:"return_read_timestamp,omitempty"`
+	ReturnReadTimestamp  bool     `protobuf:"varint,6,opt,name=return_read_timestamp,json=returnReadTimestamp,proto3" json:"return_read_timestamp,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -463,19 +463,19 @@ type isTransactionOptions_ReadOnly_TimestampBound interface {
 }
 
 type TransactionOptions_ReadOnly_Strong struct {
-	Strong bool `protobuf:"varint,1,opt,name=strong,oneof"`
+	Strong bool `protobuf:"varint,1,opt,name=strong,proto3,oneof"`
 }
 type TransactionOptions_ReadOnly_MinReadTimestamp struct {
-	MinReadTimestamp *timestamp.Timestamp `protobuf:"bytes,2,opt,name=min_read_timestamp,json=minReadTimestamp,oneof"`
+	MinReadTimestamp *timestamp.Timestamp `protobuf:"bytes,2,opt,name=min_read_timestamp,json=minReadTimestamp,proto3,oneof"`
 }
 type TransactionOptions_ReadOnly_MaxStaleness struct {
-	MaxStaleness *duration.Duration `protobuf:"bytes,3,opt,name=max_staleness,json=maxStaleness,oneof"`
+	MaxStaleness *duration.Duration `protobuf:"bytes,3,opt,name=max_staleness,json=maxStaleness,proto3,oneof"`
 }
 type TransactionOptions_ReadOnly_ReadTimestamp struct {
-	ReadTimestamp *timestamp.Timestamp `protobuf:"bytes,4,opt,name=read_timestamp,json=readTimestamp,oneof"`
+	ReadTimestamp *timestamp.Timestamp `protobuf:"bytes,4,opt,name=read_timestamp,json=readTimestamp,proto3,oneof"`
 }
 type TransactionOptions_ReadOnly_ExactStaleness struct {
-	ExactStaleness *duration.Duration `protobuf:"bytes,5,opt,name=exact_staleness,json=exactStaleness,oneof"`
+	ExactStaleness *duration.Duration `protobuf:"bytes,5,opt,name=exact_staleness,json=exactStaleness,proto3,oneof"`
 }
 
 func (*TransactionOptions_ReadOnly_Strong) isTransactionOptions_ReadOnly_TimestampBound()           {}
@@ -680,7 +680,7 @@ type Transaction struct {
 	//
 	// A timestamp in RFC3339 UTC \"Zulu\" format, accurate to nanoseconds.
 	// Example: `"2014-10-02T15:01:23.045123456Z"`.
-	ReadTimestamp        *timestamp.Timestamp `protobuf:"bytes,2,opt,name=read_timestamp,json=readTimestamp" json:"read_timestamp,omitempty"`
+	ReadTimestamp        *timestamp.Timestamp `protobuf:"bytes,2,opt,name=read_timestamp,json=readTimestamp,proto3" json:"read_timestamp,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -772,13 +772,13 @@ type isTransactionSelector_Selector interface {
 }
 
 type TransactionSelector_SingleUse struct {
-	SingleUse *TransactionOptions `protobuf:"bytes,1,opt,name=single_use,json=singleUse,oneof"`
+	SingleUse *TransactionOptions `protobuf:"bytes,1,opt,name=single_use,json=singleUse,proto3,oneof"`
 }
 type TransactionSelector_Id struct {
 	Id []byte `protobuf:"bytes,2,opt,name=id,proto3,oneof"`
 }
 type TransactionSelector_Begin struct {
-	Begin *TransactionOptions `protobuf:"bytes,3,opt,name=begin,oneof"`
+	Begin *TransactionOptions `protobuf:"bytes,3,opt,name=begin,proto3,oneof"`
 }
 
 func (*TransactionSelector_SingleUse) isTransactionSelector_Selector() {}

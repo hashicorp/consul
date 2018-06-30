@@ -476,6 +476,32 @@ func TestBasicAuthNoPassword(t *testing.T) {
 	}
 }
 
+func TestBasicAuthNoUsername(t *testing.T) {
+	cfg, _, err := LoadHTTPConfigFile("testdata/http.conf.basic-auth.no-username.yaml")
+	if err != nil {
+		t.Errorf("Error loading HTTP client config: %v", err)
+	}
+	client, err := NewClientFromConfig(*cfg, "test")
+	if err != nil {
+		t.Errorf("Error creating HTTP Client: %v", err)
+	}
+
+	rt, ok := client.Transport.(*basicAuthRoundTripper)
+	if !ok {
+		t.Fatalf("Error casting to basic auth transport, %v", client.Transport)
+	}
+
+	if rt.username != "" {
+		t.Errorf("Got unexpected username: %s", rt.username)
+	}
+	if string(rt.password) != "secret" {
+		t.Errorf("Unexpected HTTP client password: %s", string(rt.password))
+	}
+	if string(rt.passwordFile) != "" {
+		t.Errorf("Expected empty HTTP client passwordFile: %s", rt.passwordFile)
+	}
+}
+
 func TestBasicAuthPasswordFile(t *testing.T) {
 	cfg, _, err := LoadHTTPConfigFile("testdata/http.conf.basic-auth.good.yaml")
 	if err != nil {

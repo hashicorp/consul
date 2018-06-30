@@ -45,17 +45,17 @@ func (Table_TimestampGranularity) EnumDescriptor() ([]byte, []int) {
 type Table struct {
 	// A unique identifier of the form
 	// <cluster_name>/tables/[_a-zA-Z0-9][-_.a-zA-Z0-9]*
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// If this Table is in the process of being created, the Operation used to
 	// track its progress. As long as this operation is present, the Table will
 	// not accept any Table Admin or Read/Write requests.
-	CurrentOperation *longrunning.Operation `protobuf:"bytes,2,opt,name=current_operation,json=currentOperation" json:"current_operation,omitempty"`
+	CurrentOperation *longrunning.Operation `protobuf:"bytes,2,opt,name=current_operation,json=currentOperation,proto3" json:"current_operation,omitempty"`
 	// The column families configured for this table, mapped by column family id.
-	ColumnFamilies map[string]*ColumnFamily `protobuf:"bytes,3,rep,name=column_families,json=columnFamilies" json:"column_families,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	ColumnFamilies map[string]*ColumnFamily `protobuf:"bytes,3,rep,name=column_families,json=columnFamilies,proto3" json:"column_families,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// The granularity (e.g. MILLIS, MICROS) at which timestamps are stored in
 	// this table. Timestamps not matching the granularity will be rejected.
 	// Cannot be changed once the table is created.
-	Granularity          Table_TimestampGranularity `protobuf:"varint,4,opt,name=granularity,enum=google.bigtable.admin.table.v1.Table_TimestampGranularity" json:"granularity,omitempty"`
+	Granularity          Table_TimestampGranularity `protobuf:"varint,4,opt,name=granularity,proto3,enum=google.bigtable.admin.table.v1.Table_TimestampGranularity" json:"granularity,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                   `json:"-"`
 	XXX_unrecognized     []byte                     `json:"-"`
 	XXX_sizecache        int32                      `json:"-"`
@@ -118,7 +118,7 @@ type ColumnFamily struct {
 	// A unique identifier of the form <table_name>/columnFamilies/[-_.a-zA-Z0-9]+
 	// The last segment is the same as the "name" field in
 	// google.bigtable.v1.Family.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Garbage collection expression specified by the following grammar:
 	//   GC = EXPR
 	//      | "" ;
@@ -144,7 +144,7 @@ type ColumnFamily struct {
 	// Garbage collection executes opportunistically in the background, and so
 	// it's possible for reads to return a cell even if it matches the active GC
 	// expression for its family.
-	GcExpression string `protobuf:"bytes,2,opt,name=gc_expression,json=gcExpression" json:"gc_expression,omitempty"`
+	GcExpression string `protobuf:"bytes,2,opt,name=gc_expression,json=gcExpression,proto3" json:"gc_expression,omitempty"`
 	// Garbage collection rule specified as a protobuf.
 	// Supersedes `gc_expression`.
 	// Must serialize to at most 500 bytes.
@@ -152,7 +152,7 @@ type ColumnFamily struct {
 	// NOTE: Garbage collection executes opportunistically in the background, and
 	// so it's possible for reads to return a cell even if it matches the active
 	// GC expression for its family.
-	GcRule               *GcRule  `protobuf:"bytes,3,opt,name=gc_rule,json=gcRule" json:"gc_rule,omitempty"`
+	GcRule               *GcRule  `protobuf:"bytes,3,opt,name=gc_rule,json=gcRule,proto3" json:"gc_rule,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -245,16 +245,16 @@ type isGcRule_Rule interface {
 }
 
 type GcRule_MaxNumVersions struct {
-	MaxNumVersions int32 `protobuf:"varint,1,opt,name=max_num_versions,json=maxNumVersions,oneof"`
+	MaxNumVersions int32 `protobuf:"varint,1,opt,name=max_num_versions,json=maxNumVersions,proto3,oneof"`
 }
 type GcRule_MaxAge struct {
-	MaxAge *duration.Duration `protobuf:"bytes,2,opt,name=max_age,json=maxAge,oneof"`
+	MaxAge *duration.Duration `protobuf:"bytes,2,opt,name=max_age,json=maxAge,proto3,oneof"`
 }
 type GcRule_Intersection_ struct {
-	Intersection *GcRule_Intersection `protobuf:"bytes,3,opt,name=intersection,oneof"`
+	Intersection *GcRule_Intersection `protobuf:"bytes,3,opt,name=intersection,proto3,oneof"`
 }
 type GcRule_Union_ struct {
-	Union *GcRule_Union `protobuf:"bytes,4,opt,name=union,oneof"`
+	Union *GcRule_Union `protobuf:"bytes,4,opt,name=union,proto3,oneof"`
 }
 
 func (*GcRule_MaxNumVersions) isGcRule_Rule() {}
@@ -407,7 +407,7 @@ func _GcRule_OneofSizer(msg proto.Message) (n int) {
 // A GcRule which deletes cells matching all of the given rules.
 type GcRule_Intersection struct {
 	// Only delete cells which would be deleted by every element of `rules`.
-	Rules                []*GcRule `protobuf:"bytes,1,rep,name=rules" json:"rules,omitempty"`
+	Rules                []*GcRule `protobuf:"bytes,1,rep,name=rules,proto3" json:"rules,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -447,7 +447,7 @@ func (m *GcRule_Intersection) GetRules() []*GcRule {
 // A GcRule which deletes cells matching any of the given rules.
 type GcRule_Union struct {
 	// Delete cells which would be deleted by any element of `rules`.
-	Rules                []*GcRule `protobuf:"bytes,1,rep,name=rules" json:"rules,omitempty"`
+	Rules                []*GcRule `protobuf:"bytes,1,rep,name=rules,proto3" json:"rules,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`

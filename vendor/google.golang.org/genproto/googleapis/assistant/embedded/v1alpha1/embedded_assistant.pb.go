@@ -168,11 +168,11 @@ func (ConverseResponse_EventType) EnumDescriptor() ([]byte, []int) {
 // Specifies how to process the `ConverseRequest` messages.
 type ConverseConfig struct {
 	// *Required* Specifies how to process the subsequent incoming audio.
-	AudioInConfig *AudioInConfig `protobuf:"bytes,1,opt,name=audio_in_config,json=audioInConfig" json:"audio_in_config,omitempty"`
+	AudioInConfig *AudioInConfig `protobuf:"bytes,1,opt,name=audio_in_config,json=audioInConfig,proto3" json:"audio_in_config,omitempty"`
 	// *Required* Specifies how to format the audio that will be returned.
-	AudioOutConfig *AudioOutConfig `protobuf:"bytes,2,opt,name=audio_out_config,json=audioOutConfig" json:"audio_out_config,omitempty"`
+	AudioOutConfig *AudioOutConfig `protobuf:"bytes,2,opt,name=audio_out_config,json=audioOutConfig,proto3" json:"audio_out_config,omitempty"`
 	// *Required* Represents the current dialog state.
-	ConverseState        *ConverseState `protobuf:"bytes,3,opt,name=converse_state,json=converseState" json:"converse_state,omitempty"`
+	ConverseState        *ConverseState `protobuf:"bytes,3,opt,name=converse_state,json=converseState,proto3" json:"converse_state,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
 	XXX_unrecognized     []byte         `json:"-"`
 	XXX_sizecache        int32          `json:"-"`
@@ -228,13 +228,13 @@ func (m *ConverseConfig) GetConverseState() *ConverseState {
 // [best practices](https://developers.google.com/assistant/sdk/develop/grpc/best-practices/audio).
 type AudioInConfig struct {
 	// *Required* Encoding of audio data sent in all `audio_in` messages.
-	Encoding AudioInConfig_Encoding `protobuf:"varint,1,opt,name=encoding,enum=google.assistant.embedded.v1alpha1.AudioInConfig_Encoding" json:"encoding,omitempty"`
+	Encoding AudioInConfig_Encoding `protobuf:"varint,1,opt,name=encoding,proto3,enum=google.assistant.embedded.v1alpha1.AudioInConfig_Encoding" json:"encoding,omitempty"`
 	// *Required* Sample rate (in Hertz) of the audio data sent in all `audio_in`
 	// messages. Valid values are from 16000-24000, but 16000 is optimal.
 	// For best results, set the sampling rate of the audio source to 16000 Hz.
 	// If that's not possible, use the native sample rate of the audio source
 	// (instead of re-sampling).
-	SampleRateHertz      int32    `protobuf:"varint,2,opt,name=sample_rate_hertz,json=sampleRateHertz" json:"sample_rate_hertz,omitempty"`
+	SampleRateHertz      int32    `protobuf:"varint,2,opt,name=sample_rate_hertz,json=sampleRateHertz,proto3" json:"sample_rate_hertz,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -283,13 +283,13 @@ func (m *AudioInConfig) GetSampleRateHertz() int32 {
 type AudioOutConfig struct {
 	// *Required* The encoding of audio data to be returned in all `audio_out`
 	// messages.
-	Encoding AudioOutConfig_Encoding `protobuf:"varint,1,opt,name=encoding,enum=google.assistant.embedded.v1alpha1.AudioOutConfig_Encoding" json:"encoding,omitempty"`
+	Encoding AudioOutConfig_Encoding `protobuf:"varint,1,opt,name=encoding,proto3,enum=google.assistant.embedded.v1alpha1.AudioOutConfig_Encoding" json:"encoding,omitempty"`
 	// *Required* The sample rate in Hertz of the audio data returned in
 	// `audio_out` messages. Valid values are: 16000-24000.
-	SampleRateHertz int32 `protobuf:"varint,2,opt,name=sample_rate_hertz,json=sampleRateHertz" json:"sample_rate_hertz,omitempty"`
+	SampleRateHertz int32 `protobuf:"varint,2,opt,name=sample_rate_hertz,json=sampleRateHertz,proto3" json:"sample_rate_hertz,omitempty"`
 	// *Required* Current volume setting of the device's audio output.
 	// Valid values are 1 to 100 (corresponding to 1% to 100%).
-	VolumePercentage     int32    `protobuf:"varint,3,opt,name=volume_percentage,json=volumePercentage" json:"volume_percentage,omitempty"`
+	VolumePercentage     int32    `protobuf:"varint,3,opt,name=volume_percentage,json=volumePercentage,proto3" json:"volume_percentage,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -430,10 +430,10 @@ func (m *AudioOut) GetAudioData() []byte {
 // The semantic result for the user's spoken query.
 type ConverseResult struct {
 	// *Output-only* The recognized transcript of what the user said.
-	SpokenRequestText string `protobuf:"bytes,1,opt,name=spoken_request_text,json=spokenRequestText" json:"spoken_request_text,omitempty"`
+	SpokenRequestText string `protobuf:"bytes,1,opt,name=spoken_request_text,json=spokenRequestText,proto3" json:"spoken_request_text,omitempty"`
 	// *Output-only* The text of the assistant's spoken response. This is only
 	// returned for an IFTTT action.
-	SpokenResponseText string `protobuf:"bytes,2,opt,name=spoken_response_text,json=spokenResponseText" json:"spoken_response_text,omitempty"`
+	SpokenResponseText string `protobuf:"bytes,2,opt,name=spoken_response_text,json=spokenResponseText,proto3" json:"spoken_response_text,omitempty"`
 	// *Output-only* State information for subsequent `ConverseRequest`. This
 	// value should be saved in the client and returned in the
 	// `conversation_state` with the next `ConverseRequest`. (The client does not
@@ -442,7 +442,7 @@ type ConverseResult struct {
 	ConversationState []byte `protobuf:"bytes,3,opt,name=conversation_state,json=conversationState,proto3" json:"conversation_state,omitempty"`
 	// *Output-only* Specifies the mode of the microphone after this `Converse`
 	// RPC is processed.
-	MicrophoneMode ConverseResult_MicrophoneMode `protobuf:"varint,4,opt,name=microphone_mode,json=microphoneMode,enum=google.assistant.embedded.v1alpha1.ConverseResult_MicrophoneMode" json:"microphone_mode,omitempty"`
+	MicrophoneMode ConverseResult_MicrophoneMode `protobuf:"varint,4,opt,name=microphone_mode,json=microphoneMode,proto3,enum=google.assistant.embedded.v1alpha1.ConverseResult_MicrophoneMode" json:"microphone_mode,omitempty"`
 	// *Output-only* Updated volume level. The value will be 0 or omitted
 	// (indicating no change) unless a voice command such as "Increase the volume"
 	// or "Set volume level 4" was recognized, in which case the value will be
@@ -452,7 +452,7 @@ type ConverseResult struct {
 	// supply it in the `AudioOutConfig` of the next `ConverseRequest`. (Some
 	// clients may also implement other ways to allow the current volume level to
 	// be changed, for example, by providing a knob that the user can turn.)
-	VolumePercentage     int32    `protobuf:"varint,5,opt,name=volume_percentage,json=volumePercentage" json:"volume_percentage,omitempty"`
+	VolumePercentage     int32    `protobuf:"varint,5,opt,name=volume_percentage,json=volumePercentage,proto3" json:"volume_percentage,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -563,7 +563,7 @@ type isConverseRequest_ConverseRequest interface {
 }
 
 type ConverseRequest_Config struct {
-	Config *ConverseConfig `protobuf:"bytes,1,opt,name=config,oneof"`
+	Config *ConverseConfig `protobuf:"bytes,1,opt,name=config,proto3,oneof"`
 }
 type ConverseRequest_AudioIn struct {
 	AudioIn []byte `protobuf:"bytes,2,opt,name=audio_in,json=audioIn,proto3,oneof"`
@@ -708,16 +708,16 @@ type isConverseResponse_ConverseResponse interface {
 }
 
 type ConverseResponse_Error struct {
-	Error *status.Status `protobuf:"bytes,1,opt,name=error,oneof"`
+	Error *status.Status `protobuf:"bytes,1,opt,name=error,proto3,oneof"`
 }
 type ConverseResponse_EventType_ struct {
-	EventType ConverseResponse_EventType `protobuf:"varint,2,opt,name=event_type,json=eventType,enum=google.assistant.embedded.v1alpha1.ConverseResponse_EventType,oneof"`
+	EventType ConverseResponse_EventType `protobuf:"varint,2,opt,name=event_type,json=eventType,proto3,enum=google.assistant.embedded.v1alpha1.ConverseResponse_EventType,oneof"`
 }
 type ConverseResponse_AudioOut struct {
-	AudioOut *AudioOut `protobuf:"bytes,3,opt,name=audio_out,json=audioOut,oneof"`
+	AudioOut *AudioOut `protobuf:"bytes,3,opt,name=audio_out,json=audioOut,proto3,oneof"`
 }
 type ConverseResponse_Result struct {
-	Result *ConverseResult `protobuf:"bytes,5,opt,name=result,oneof"`
+	Result *ConverseResult `protobuf:"bytes,5,opt,name=result,proto3,oneof"`
 }
 
 func (*ConverseResponse_Error) isConverseResponse_ConverseResponse()      {}
@@ -977,8 +977,7 @@ func (x *embeddedAssistantConverseClient) Recv() (*ConverseResponse, error) {
 	return m, nil
 }
 
-// Server API for EmbeddedAssistant service
-
+// EmbeddedAssistantServer is the server API for EmbeddedAssistant service.
 type EmbeddedAssistantServer interface {
 	// Initiates or continues a conversation with the embedded assistant service.
 	// Each call performs one round-trip, sending an audio request to the service

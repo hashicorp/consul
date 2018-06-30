@@ -218,16 +218,16 @@ func (UrlMap_RedirectHttpResponseCode) EnumDescriptor() ([]byte, []int) {
 type ApiConfigHandler struct {
 	// Action to take when users access resources that require
 	// authentication. Defaults to `redirect`.
-	AuthFailAction AuthFailAction `protobuf:"varint,1,opt,name=auth_fail_action,json=authFailAction,enum=google.appengine.v1.AuthFailAction" json:"auth_fail_action,omitempty"`
+	AuthFailAction AuthFailAction `protobuf:"varint,1,opt,name=auth_fail_action,json=authFailAction,proto3,enum=google.appengine.v1.AuthFailAction" json:"auth_fail_action,omitempty"`
 	// Level of login required to access this resource. Defaults to
 	// `optional`.
-	Login LoginRequirement `protobuf:"varint,2,opt,name=login,enum=google.appengine.v1.LoginRequirement" json:"login,omitempty"`
+	Login LoginRequirement `protobuf:"varint,2,opt,name=login,proto3,enum=google.appengine.v1.LoginRequirement" json:"login,omitempty"`
 	// Path to the script from the application root directory.
-	Script string `protobuf:"bytes,3,opt,name=script" json:"script,omitempty"`
+	Script string `protobuf:"bytes,3,opt,name=script,proto3" json:"script,omitempty"`
 	// Security (HTTPS) enforcement for this URL.
-	SecurityLevel SecurityLevel `protobuf:"varint,4,opt,name=security_level,json=securityLevel,enum=google.appengine.v1.SecurityLevel" json:"security_level,omitempty"`
+	SecurityLevel SecurityLevel `protobuf:"varint,4,opt,name=security_level,json=securityLevel,proto3,enum=google.appengine.v1.SecurityLevel" json:"security_level,omitempty"`
 	// URL to serve the endpoint at.
-	Url                  string   `protobuf:"bytes,5,opt,name=url" json:"url,omitempty"`
+	Url                  string   `protobuf:"bytes,5,opt,name=url,proto3" json:"url,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -295,11 +295,11 @@ func (m *ApiConfigHandler) GetUrl() string {
 // Custom static error page to be served when an error occurs.
 type ErrorHandler struct {
 	// Error condition this handler applies to.
-	ErrorCode ErrorHandler_ErrorCode `protobuf:"varint,1,opt,name=error_code,json=errorCode,enum=google.appengine.v1.ErrorHandler_ErrorCode" json:"error_code,omitempty"`
+	ErrorCode ErrorHandler_ErrorCode `protobuf:"varint,1,opt,name=error_code,json=errorCode,proto3,enum=google.appengine.v1.ErrorHandler_ErrorCode" json:"error_code,omitempty"`
 	// Static file content to be served for this error.
-	StaticFile string `protobuf:"bytes,2,opt,name=static_file,json=staticFile" json:"static_file,omitempty"`
+	StaticFile string `protobuf:"bytes,2,opt,name=static_file,json=staticFile,proto3" json:"static_file,omitempty"`
 	// MIME type of file. Defaults to `text/html`.
-	MimeType             string   `protobuf:"bytes,3,opt,name=mime_type,json=mimeType" json:"mime_type,omitempty"`
+	MimeType             string   `protobuf:"bytes,3,opt,name=mime_type,json=mimeType,proto3" json:"mime_type,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -358,7 +358,7 @@ type UrlMap struct {
 	// special characters must be escaped, but should not contain groupings.
 	// All URLs that begin with this prefix are handled by this handler, using the
 	// portion of the URL after the prefix as part of the file path.
-	UrlRegex string `protobuf:"bytes,1,opt,name=url_regex,json=urlRegex" json:"url_regex,omitempty"`
+	UrlRegex string `protobuf:"bytes,1,opt,name=url_regex,json=urlRegex,proto3" json:"url_regex,omitempty"`
 	// Type of handler for this URL pattern.
 	//
 	// Types that are valid to be assigned to HandlerType:
@@ -367,15 +367,15 @@ type UrlMap struct {
 	//	*UrlMap_ApiEndpoint
 	HandlerType isUrlMap_HandlerType `protobuf_oneof:"handler_type"`
 	// Security (HTTPS) enforcement for this URL.
-	SecurityLevel SecurityLevel `protobuf:"varint,5,opt,name=security_level,json=securityLevel,enum=google.appengine.v1.SecurityLevel" json:"security_level,omitempty"`
+	SecurityLevel SecurityLevel `protobuf:"varint,5,opt,name=security_level,json=securityLevel,proto3,enum=google.appengine.v1.SecurityLevel" json:"security_level,omitempty"`
 	// Level of login required to access this resource.
-	Login LoginRequirement `protobuf:"varint,6,opt,name=login,enum=google.appengine.v1.LoginRequirement" json:"login,omitempty"`
+	Login LoginRequirement `protobuf:"varint,6,opt,name=login,proto3,enum=google.appengine.v1.LoginRequirement" json:"login,omitempty"`
 	// Action to take when users access resources that require
 	// authentication. Defaults to `redirect`.
-	AuthFailAction AuthFailAction `protobuf:"varint,7,opt,name=auth_fail_action,json=authFailAction,enum=google.appengine.v1.AuthFailAction" json:"auth_fail_action,omitempty"`
+	AuthFailAction AuthFailAction `protobuf:"varint,7,opt,name=auth_fail_action,json=authFailAction,proto3,enum=google.appengine.v1.AuthFailAction" json:"auth_fail_action,omitempty"`
 	// `30x` code to use when performing redirects for the `secure` field.
 	// Defaults to `302`.
-	RedirectHttpResponseCode UrlMap_RedirectHttpResponseCode `protobuf:"varint,8,opt,name=redirect_http_response_code,json=redirectHttpResponseCode,enum=google.appengine.v1.UrlMap_RedirectHttpResponseCode" json:"redirect_http_response_code,omitempty"`
+	RedirectHttpResponseCode UrlMap_RedirectHttpResponseCode `protobuf:"varint,8,opt,name=redirect_http_response_code,json=redirectHttpResponseCode,proto3,enum=google.appengine.v1.UrlMap_RedirectHttpResponseCode" json:"redirect_http_response_code,omitempty"`
 	XXX_NoUnkeyedLiteral     struct{}                        `json:"-"`
 	XXX_unrecognized         []byte                          `json:"-"`
 	XXX_sizecache            int32                           `json:"-"`
@@ -410,13 +410,13 @@ type isUrlMap_HandlerType interface {
 }
 
 type UrlMap_StaticFiles struct {
-	StaticFiles *StaticFilesHandler `protobuf:"bytes,2,opt,name=static_files,json=staticFiles,oneof"`
+	StaticFiles *StaticFilesHandler `protobuf:"bytes,2,opt,name=static_files,json=staticFiles,proto3,oneof"`
 }
 type UrlMap_Script struct {
-	Script *ScriptHandler `protobuf:"bytes,3,opt,name=script,oneof"`
+	Script *ScriptHandler `protobuf:"bytes,3,opt,name=script,proto3,oneof"`
 }
 type UrlMap_ApiEndpoint struct {
-	ApiEndpoint *ApiEndpointHandler `protobuf:"bytes,4,opt,name=api_endpoint,json=apiEndpoint,oneof"`
+	ApiEndpoint *ApiEndpointHandler `protobuf:"bytes,4,opt,name=api_endpoint,json=apiEndpoint,proto3,oneof"`
 }
 
 func (*UrlMap_StaticFiles) isUrlMap_HandlerType() {}
@@ -587,29 +587,29 @@ type StaticFilesHandler struct {
 	// Path to the static files matched by the URL pattern, from the
 	// application root directory. The path can refer to text matched in groupings
 	// in the URL pattern.
-	Path string `protobuf:"bytes,1,opt,name=path" json:"path,omitempty"`
+	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
 	// Regular expression that matches the file paths for all files that should be
 	// referenced by this handler.
-	UploadPathRegex string `protobuf:"bytes,2,opt,name=upload_path_regex,json=uploadPathRegex" json:"upload_path_regex,omitempty"`
+	UploadPathRegex string `protobuf:"bytes,2,opt,name=upload_path_regex,json=uploadPathRegex,proto3" json:"upload_path_regex,omitempty"`
 	// HTTP headers to use for all responses from these URLs.
-	HttpHeaders map[string]string `protobuf:"bytes,3,rep,name=http_headers,json=httpHeaders" json:"http_headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	HttpHeaders map[string]string `protobuf:"bytes,3,rep,name=http_headers,json=httpHeaders,proto3" json:"http_headers,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// MIME type used to serve all files served by this handler.
 	//
 	// Defaults to file-specific MIME types, which are derived from each file's
 	// filename extension.
-	MimeType string `protobuf:"bytes,4,opt,name=mime_type,json=mimeType" json:"mime_type,omitempty"`
+	MimeType string `protobuf:"bytes,4,opt,name=mime_type,json=mimeType,proto3" json:"mime_type,omitempty"`
 	// Time a static file served by this handler should be cached
 	// by web proxies and browsers.
-	Expiration *duration.Duration `protobuf:"bytes,5,opt,name=expiration" json:"expiration,omitempty"`
+	Expiration *duration.Duration `protobuf:"bytes,5,opt,name=expiration,proto3" json:"expiration,omitempty"`
 	// Whether this handler should match the request if the file
 	// referenced by the handler does not exist.
-	RequireMatchingFile bool `protobuf:"varint,6,opt,name=require_matching_file,json=requireMatchingFile" json:"require_matching_file,omitempty"`
+	RequireMatchingFile bool `protobuf:"varint,6,opt,name=require_matching_file,json=requireMatchingFile,proto3" json:"require_matching_file,omitempty"`
 	// Whether files should also be uploaded as code data. By default, files
 	// declared in static file handlers are uploaded as static
 	// data and are only served to end users; they cannot be read by the
 	// application. If enabled, uploads are charged against both your code and
 	// static data storage resource quotas.
-	ApplicationReadable  bool     `protobuf:"varint,7,opt,name=application_readable,json=applicationReadable" json:"application_readable,omitempty"`
+	ApplicationReadable  bool     `protobuf:"varint,7,opt,name=application_readable,json=applicationReadable,proto3" json:"application_readable,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -691,7 +691,7 @@ func (m *StaticFilesHandler) GetApplicationReadable() bool {
 // Executes a script to handle the request that matches the URL pattern.
 type ScriptHandler struct {
 	// Path to the script from the application root directory.
-	ScriptPath           string   `protobuf:"bytes,1,opt,name=script_path,json=scriptPath" json:"script_path,omitempty"`
+	ScriptPath           string   `protobuf:"bytes,1,opt,name=script_path,json=scriptPath,proto3" json:"script_path,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -731,7 +731,7 @@ func (m *ScriptHandler) GetScriptPath() string {
 // Uses Google Cloud Endpoints to handle requests.
 type ApiEndpointHandler struct {
 	// Path to the script from the application root directory.
-	ScriptPath           string   `protobuf:"bytes,1,opt,name=script_path,json=scriptPath" json:"script_path,omitempty"`
+	ScriptPath           string   `protobuf:"bytes,1,opt,name=script_path,json=scriptPath,proto3" json:"script_path,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -773,23 +773,23 @@ func (m *ApiEndpointHandler) GetScriptPath() string {
 // instances in App Engine flexible environment.
 type HealthCheck struct {
 	// Whether to explicitly disable health checks for this instance.
-	DisableHealthCheck bool `protobuf:"varint,1,opt,name=disable_health_check,json=disableHealthCheck" json:"disable_health_check,omitempty"`
+	DisableHealthCheck bool `protobuf:"varint,1,opt,name=disable_health_check,json=disableHealthCheck,proto3" json:"disable_health_check,omitempty"`
 	// Host header to send when performing an HTTP health check.
 	// Example: "myapp.appspot.com"
-	Host string `protobuf:"bytes,2,opt,name=host" json:"host,omitempty"`
+	Host string `protobuf:"bytes,2,opt,name=host,proto3" json:"host,omitempty"`
 	// Number of consecutive successful health checks required before receiving
 	// traffic.
-	HealthyThreshold uint32 `protobuf:"varint,3,opt,name=healthy_threshold,json=healthyThreshold" json:"healthy_threshold,omitempty"`
+	HealthyThreshold uint32 `protobuf:"varint,3,opt,name=healthy_threshold,json=healthyThreshold,proto3" json:"healthy_threshold,omitempty"`
 	// Number of consecutive failed health checks required before removing
 	// traffic.
-	UnhealthyThreshold uint32 `protobuf:"varint,4,opt,name=unhealthy_threshold,json=unhealthyThreshold" json:"unhealthy_threshold,omitempty"`
+	UnhealthyThreshold uint32 `protobuf:"varint,4,opt,name=unhealthy_threshold,json=unhealthyThreshold,proto3" json:"unhealthy_threshold,omitempty"`
 	// Number of consecutive failed health checks required before an instance is
 	// restarted.
-	RestartThreshold uint32 `protobuf:"varint,5,opt,name=restart_threshold,json=restartThreshold" json:"restart_threshold,omitempty"`
+	RestartThreshold uint32 `protobuf:"varint,5,opt,name=restart_threshold,json=restartThreshold,proto3" json:"restart_threshold,omitempty"`
 	// Interval between health checks.
-	CheckInterval *duration.Duration `protobuf:"bytes,6,opt,name=check_interval,json=checkInterval" json:"check_interval,omitempty"`
+	CheckInterval *duration.Duration `protobuf:"bytes,6,opt,name=check_interval,json=checkInterval,proto3" json:"check_interval,omitempty"`
 	// Time before the health check is considered failed.
-	Timeout              *duration.Duration `protobuf:"bytes,7,opt,name=timeout" json:"timeout,omitempty"`
+	Timeout              *duration.Duration `protobuf:"bytes,7,opt,name=timeout,proto3" json:"timeout,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
 	XXX_unrecognized     []byte             `json:"-"`
 	XXX_sizecache        int32              `json:"-"`
@@ -871,9 +871,9 @@ func (m *HealthCheck) GetTimeout() *duration.Duration {
 // Third-party Python runtime library that is required by the application.
 type Library struct {
 	// Name of the library. Example: "django".
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Version of the library to select, or "latest".
-	Version              string   `protobuf:"bytes,2,opt,name=version" json:"version,omitempty"`
+	Version              string   `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

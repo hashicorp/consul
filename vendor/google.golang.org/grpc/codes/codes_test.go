@@ -62,3 +62,23 @@ func TestUnmarshalJSON_UnknownInput(t *testing.T) {
 		}
 	}
 }
+
+func TestUnmarshalJSON_MarshalUnmarshal(t *testing.T) {
+	for i := 0; i < _maxCode; i++ {
+		var cUnMarshaled Code
+		c := Code(i)
+
+		cJSON, err := json.Marshal(c)
+		if err != nil {
+			t.Errorf("marshalling %q failed: %v", c, err)
+		}
+
+		if err := json.Unmarshal(cJSON, &cUnMarshaled); err != nil {
+			t.Errorf("unmarshalling code failed: %s", err)
+		}
+
+		if c != cUnMarshaled {
+			t.Errorf("code is %q after marshalling/unmarshalling, expected %q", cUnMarshaled, c)
+		}
+	}
+}

@@ -272,26 +272,26 @@ type SupportAccount struct {
 	// The resource name for a support account in format
 	// `supportAccounts/{account_id}`.
 	// Output only.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Identifier for this entity that gets persisted in storage system. The
 	// resource name is populated using this field in format
 	// `supportAccounts/{account_id}`.
-	AccountId string `protobuf:"bytes,2,opt,name=account_id,json=accountId" json:"account_id,omitempty"`
+	AccountId string `protobuf:"bytes,2,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
 	// The Cloud resource with which this support account is associated.
-	CloudResource string `protobuf:"bytes,3,opt,name=cloud_resource,json=cloudResource" json:"cloud_resource,omitempty"`
+	CloudResource string `protobuf:"bytes,3,opt,name=cloud_resource,json=cloudResource,proto3" json:"cloud_resource,omitempty"`
 	// A user friendly display name assigned to this support account.
-	DisplayName string `protobuf:"bytes,4,opt,name=display_name,json=displayName" json:"display_name,omitempty"`
+	DisplayName string `protobuf:"bytes,4,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	// Indicates the current state of an account.
-	State SupportAccount_State `protobuf:"varint,5,opt,name=state,enum=google.cloud.support.common.SupportAccount_State" json:"state,omitempty"`
+	State SupportAccount_State `protobuf:"varint,5,opt,name=state,proto3,enum=google.cloud.support.common.SupportAccount_State" json:"state,omitempty"`
 	// Time when this account was created.
 	// Output only.
-	CreateTime *timestamp.Timestamp `protobuf:"bytes,6,opt,name=create_time,json=createTime" json:"create_time,omitempty"`
+	CreateTime *timestamp.Timestamp `protobuf:"bytes,6,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	// The resource name of a billing account associated with this support
 	// account. For example, `billingAccounts/ABCDEF-012345-567890`.
-	BillingAccountName string `protobuf:"bytes,7,opt,name=billing_account_name,json=billingAccountName" json:"billing_account_name,omitempty"`
-	UnifyAccountId     string `protobuf:"bytes,8,opt,name=unify_account_id,json=unifyAccountId" json:"unify_account_id,omitempty"`
+	BillingAccountName string `protobuf:"bytes,7,opt,name=billing_account_name,json=billingAccountName,proto3" json:"billing_account_name,omitempty"`
+	UnifyAccountId     string `protobuf:"bytes,8,opt,name=unify_account_id,json=unifyAccountId,proto3" json:"unify_account_id,omitempty"`
 	// The PricingModel applicable to this support account.
-	PricingModel         SupportAccount_PricingModel `protobuf:"varint,9,opt,name=pricing_model,json=pricingModel,enum=google.cloud.support.common.SupportAccount_PricingModel" json:"pricing_model,omitempty"`
+	PricingModel         SupportAccount_PricingModel `protobuf:"varint,9,opt,name=pricing_model,json=pricingModel,proto3,enum=google.cloud.support.common.SupportAccount_PricingModel" json:"pricing_model,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                    `json:"-"`
 	XXX_unrecognized     []byte                      `json:"-"`
 	XXX_sizecache        int32                       `json:"-"`
@@ -388,41 +388,41 @@ func (m *SupportAccount) GetPricingModel() SupportAccount_PricingModel {
 type Case struct {
 	// The resource name for the Case in format
 	// `supportAccounts/{account_id}/cases/{case_id}`
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The short summary of the issue reported in this case.
-	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName" json:"display_name,omitempty"`
+	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	// The board description of issue provided with initial summary.
-	Description string `protobuf:"bytes,3,opt,name=description" json:"description,omitempty"`
+	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	// The product component for which this Case is reported.
-	Component string `protobuf:"bytes,4,opt,name=component" json:"component,omitempty"`
+	Component string `protobuf:"bytes,4,opt,name=component,proto3" json:"component,omitempty"`
 	// The product subcomponent for which this Case is reported.
-	Subcomponent string `protobuf:"bytes,5,opt,name=subcomponent" json:"subcomponent,omitempty"`
+	Subcomponent string `protobuf:"bytes,5,opt,name=subcomponent,proto3" json:"subcomponent,omitempty"`
 	// Timezone the client sending this request is in.
 	// It should be in a format IANA recognizes: https://www.iana.org/time-zone
 	// There is no additional validation done by the API.
-	ClientTimezone string `protobuf:"bytes,6,opt,name=client_timezone,json=clientTimezone" json:"client_timezone,omitempty"`
+	ClientTimezone string `protobuf:"bytes,6,opt,name=client_timezone,json=clientTimezone,proto3" json:"client_timezone,omitempty"`
 	// The email addresses that can be copied to receive updates on this case.
 	// Users can specify a maximum of 10 email addresses.
-	CcAddresses []string `protobuf:"bytes,7,rep,name=cc_addresses,json=ccAddresses" json:"cc_addresses,omitempty"`
+	CcAddresses []string `protobuf:"bytes,7,rep,name=cc_addresses,json=ccAddresses,proto3" json:"cc_addresses,omitempty"`
 	// The Google Cloud Platform project ID for which this case is created.
-	ProjectId string `protobuf:"bytes,8,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,8,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// List of customer issues associated with this case.
-	Issues []*CustomerIssue `protobuf:"bytes,10,rep,name=issues" json:"issues,omitempty"`
+	Issues []*CustomerIssue `protobuf:"bytes,10,rep,name=issues,proto3" json:"issues,omitempty"`
 	// The current priority of this case.
-	Priority Case_Priority `protobuf:"varint,11,opt,name=priority,enum=google.cloud.support.common.Case_Priority" json:"priority,omitempty"`
+	Priority Case_Priority `protobuf:"varint,11,opt,name=priority,proto3,enum=google.cloud.support.common.Case_Priority" json:"priority,omitempty"`
 	// The current state of this case.
-	State Case_State `protobuf:"varint,12,opt,name=state,enum=google.cloud.support.common.Case_State" json:"state,omitempty"`
+	State Case_State `protobuf:"varint,12,opt,name=state,proto3,enum=google.cloud.support.common.Case_State" json:"state,omitempty"`
 	// Time when this case was created.
 	// Output only.
-	CreateTime *timestamp.Timestamp `protobuf:"bytes,13,opt,name=create_time,json=createTime" json:"create_time,omitempty"`
+	CreateTime *timestamp.Timestamp `protobuf:"bytes,13,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	// Time when this case was last updated.
 	// Output only.
-	UpdateTime *timestamp.Timestamp `protobuf:"bytes,14,opt,name=update_time,json=updateTime" json:"update_time,omitempty"`
+	UpdateTime *timestamp.Timestamp `protobuf:"bytes,14,opt,name=update_time,json=updateTime,proto3" json:"update_time,omitempty"`
 	// Email address of user who created this case.
 	// Output only. It is inferred from credentials supplied during case creation.
-	CreatorEmail string `protobuf:"bytes,15,opt,name=creator_email,json=creatorEmail" json:"creator_email,omitempty"`
+	CreatorEmail string `protobuf:"bytes,15,opt,name=creator_email,json=creatorEmail,proto3" json:"creator_email,omitempty"`
 	// The issue category applicable to this case.
-	Category             string   `protobuf:"bytes,16,opt,name=category" json:"category,omitempty"`
+	Category             string   `protobuf:"bytes,16,opt,name=category,proto3" json:"category,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -563,19 +563,19 @@ func (m *Case) GetCategory() string {
 type CustomerIssue struct {
 	// Unique identifier for the internal issue.
 	// Output only.
-	IssueId string `protobuf:"bytes,1,opt,name=issue_id,json=issueId" json:"issue_id,omitempty"`
+	IssueId string `protobuf:"bytes,1,opt,name=issue_id,json=issueId,proto3" json:"issue_id,omitempty"`
 	// Represents current status of the internal ticket.
 	// Output only.
-	State CustomerIssue_IssueState `protobuf:"varint,2,opt,name=state,enum=google.cloud.support.common.CustomerIssue_IssueState" json:"state,omitempty"`
+	State CustomerIssue_IssueState `protobuf:"varint,2,opt,name=state,proto3,enum=google.cloud.support.common.CustomerIssue_IssueState" json:"state,omitempty"`
 	// Time when the internal issue was created.
 	// Output only.
-	CreateTime *timestamp.Timestamp `protobuf:"bytes,3,opt,name=create_time,json=createTime" json:"create_time,omitempty"`
+	CreateTime *timestamp.Timestamp `protobuf:"bytes,3,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	// Time when the internal issue was marked as resolved.
 	// Output only.
-	ResolveTime *timestamp.Timestamp `protobuf:"bytes,4,opt,name=resolve_time,json=resolveTime" json:"resolve_time,omitempty"`
+	ResolveTime *timestamp.Timestamp `protobuf:"bytes,4,opt,name=resolve_time,json=resolveTime,proto3" json:"resolve_time,omitempty"`
 	// Time when the internal issue was last updated.
 	// Output only.
-	UpdateTime           *timestamp.Timestamp `protobuf:"bytes,5,opt,name=update_time,json=updateTime" json:"update_time,omitempty"`
+	UpdateTime           *timestamp.Timestamp `protobuf:"bytes,5,opt,name=update_time,json=updateTime,proto3" json:"update_time,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -644,9 +644,9 @@ func (m *CustomerIssue) GetUpdateTime() *timestamp.Timestamp {
 // account.
 type SupportRole struct {
 	// Email address of user being added through this Role.
-	Email string `protobuf:"bytes,1,opt,name=email" json:"email,omitempty"`
+	Email string `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
 	// The type of role assigned to user.
-	Role                 SupportRole_Role `protobuf:"varint,2,opt,name=role,enum=google.cloud.support.common.SupportRole_Role" json:"role,omitempty"`
+	Role                 SupportRole_Role `protobuf:"varint,2,opt,name=role,proto3,enum=google.cloud.support.common.SupportRole_Role" json:"role,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
 	XXX_unrecognized     []byte           `json:"-"`
 	XXX_sizecache        int32            `json:"-"`
@@ -693,17 +693,17 @@ func (m *SupportRole) GetRole() SupportRole_Role {
 // The comment text associated with a `Case`.
 type Comment struct {
 	// Text containing a maximum of 3000 characters.
-	Text string `protobuf:"bytes,1,opt,name=text" json:"text,omitempty"`
+	Text string `protobuf:"bytes,1,opt,name=text,proto3" json:"text,omitempty"`
 	// Time when this update was created.
 	// Output only.
-	CreateTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=create_time,json=createTime" json:"create_time,omitempty"`
+	CreateTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	// The email address/name of user who created this comment.
 	// Output only.
-	Author string `protobuf:"bytes,3,opt,name=author" json:"author,omitempty"`
+	Author string `protobuf:"bytes,3,opt,name=author,proto3" json:"author,omitempty"`
 	// The resource name for this comment in format
 	// `supportAccounts/{account_id}/cases/{case_id}/{comment_id}`.
 	// Output only.
-	Name                 string   `protobuf:"bytes,4,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -767,7 +767,7 @@ func (m *Comment) GetName() string {
 // `Case.component` and `Case.subcomponent` fields respectively.
 type IssueTaxonomy struct {
 	// Map of available categories.
-	Categories           map[string]*IssueTaxonomy_Category `protobuf:"bytes,1,rep,name=categories" json:"categories,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Categories           map[string]*IssueTaxonomy_Category `protobuf:"bytes,1,rep,name=categories,proto3" json:"categories,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}                           `json:"-"`
 	XXX_unrecognized     []byte                             `json:"-"`
 	XXX_sizecache        int32                              `json:"-"`
@@ -813,14 +813,14 @@ func (m *IssueTaxonomy) GetCategories() map[string]*IssueTaxonomy_Category {
 // (e.g., Google App Engine > Memcache).
 type IssueTaxonomy_Component struct {
 	// User friendly name of this component.
-	DisplayName string `protobuf:"bytes,1,opt,name=display_name,json=displayName" json:"display_name,omitempty"`
+	DisplayName string `protobuf:"bytes,1,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	// List of languages in which a support case can be created under this
 	// component. Represented by language codes in ISO_639-1 standard.
-	Languages []string `protobuf:"bytes,2,rep,name=languages" json:"languages,omitempty"`
+	Languages []string `protobuf:"bytes,2,rep,name=languages,proto3" json:"languages,omitempty"`
 	// Template to be used while filling the description of a support case.
-	Template string `protobuf:"bytes,3,opt,name=template" json:"template,omitempty"`
+	Template string `protobuf:"bytes,3,opt,name=template,proto3" json:"template,omitempty"`
 	// List of subcomponents under this component.
-	Subcomponents        []*IssueTaxonomy_Component `protobuf:"bytes,4,rep,name=subcomponents" json:"subcomponents,omitempty"`
+	Subcomponents        []*IssueTaxonomy_Component `protobuf:"bytes,4,rep,name=subcomponents,proto3" json:"subcomponents,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                   `json:"-"`
 	XXX_unrecognized     []byte                     `json:"-"`
 	XXX_sizecache        int32                      `json:"-"`
@@ -882,9 +882,9 @@ func (m *IssueTaxonomy_Component) GetSubcomponents() []*IssueTaxonomy_Component 
 // reported through a support case.
 type IssueTaxonomy_Category struct {
 	// User friendly name of this category.
-	DisplayName string `protobuf:"bytes,1,opt,name=display_name,json=displayName" json:"display_name,omitempty"`
+	DisplayName string `protobuf:"bytes,1,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	// Map of product components under this category.
-	Components           map[string]*IssueTaxonomy_Component `protobuf:"bytes,2,rep,name=components" json:"components,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Components           map[string]*IssueTaxonomy_Component `protobuf:"bytes,2,rep,name=components,proto3" json:"components,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}                            `json:"-"`
 	XXX_unrecognized     []byte                              `json:"-"`
 	XXX_sizecache        int32                               `json:"-"`

@@ -20,6 +20,7 @@ package test
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"sync"
 	"testing"
@@ -27,7 +28,7 @@ import (
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/test/leakcheck"
+	"google.golang.org/grpc/internal/leakcheck"
 
 	testpb "google.golang.org/grpc/test/grpc_testing"
 )
@@ -50,7 +51,12 @@ func (d *delayListener) Accept() (net.Conn, error) {
 		return nil, fmt.Errorf("listener is closed")
 	default:
 		close(d.acceptCalled)
-		return d.Listener.Accept()
+		conn, err := d.Listener.Accept()
+		// Allow closing of listener only after accept.
+		// Note: Dial can return successfully, yet Accept
+		// might now have finished.
+		d.allowClose()
+		return conn, err
 	}
 }
 
@@ -86,38 +92,18 @@ func (d *delayListener) Dial(to time.Duration) (net.Conn, error) {
 	return d.cc, nil
 }
 
-func (d *delayListener) clientWriteCalledChan() <-chan struct{} {
-	return d.cc.writeCalledChan()
-}
-
 type delayConn struct {
 	net.Conn
-	blockRead   chan struct{}
-	mu          sync.Mutex
-	writeCalled chan struct{}
+	blockRead chan struct{}
 }
 
-func (d *delayConn) writeCalledChan() <-chan struct{} {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	d.writeCalled = make(chan struct{})
-	return d.writeCalled
-}
 func (d *delayConn) allowRead() {
 	close(d.blockRead)
 }
+
 func (d *delayConn) Read(b []byte) (n int, err error) {
 	<-d.blockRead
 	return d.Conn.Read(b)
-}
-func (d *delayConn) Write(b []byte) (n int, err error) {
-	d.mu.Lock()
-	if d.writeCalled != nil {
-		close(d.writeCalled)
-		d.writeCalled = nil
-	}
-	d.mu.Unlock()
-	return d.Conn.Write(b)
 }
 
 func TestGracefulStop(t *testing.T) {
@@ -148,10 +134,16 @@ func TestGracefulStop(t *testing.T) {
 		allowCloseCh: make(chan struct{}),
 	}
 	d := func(_ string, to time.Duration) (net.Conn, error) { return dlis.Dial(to) }
+	serverGotReq := make(chan struct{})
 
 	ss := &stubServer{
-		emptyCall: func(ctx context.Context, in *testpb.Empty) (*testpb.Empty, error) {
-			return &testpb.Empty{}, nil
+		fullDuplexCall: func(stream testpb.TestService_FullDuplexCallServer) error {
+			close(serverGotReq)
+			_, err := stream.Recv()
+			if err != nil {
+				return err
+			}
+			return stream.Send(&testpb.StreamingOutputCallResponse{})
 		},
 	}
 	s := grpc.NewServer()
@@ -182,33 +174,38 @@ func TestGracefulStop(t *testing.T) {
 
 	// Now dial.  The listener's Accept method will return a valid connection,
 	// even though GracefulStop has closed the listener.
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, dialCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer dialCancel()
 	cc, err := grpc.DialContext(ctx, "", grpc.WithInsecure(), grpc.WithBlock(), grpc.WithDialer(d))
 	if err != nil {
 		t.Fatalf("grpc.Dial(%q) = %v", lis.Addr().String(), err)
 	}
-	cancel()
 	client := testpb.NewTestServiceClient(cc)
 	defer cc.Close()
-
-	dlis.allowClose()
-
-	wcch := dlis.clientWriteCalledChan()
-	go func() {
-		// 5. Allow the client to read the GoAway.  The RPC should complete
-		//    successfully.
-		<-wcch
-		dlis.allowClientRead()
-	}()
 
 	// 4. Send an RPC on the new connection.
 	// The server would send a GOAWAY first, but we are delaying the server's
 	// writes for now until the client writes more than the preface.
-	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
-	if _, err := client.EmptyCall(ctx, &testpb.Empty{}); err != nil {
-		t.Fatalf("EmptyCall() = %v; want <nil>", err)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	stream, err := client.FullDuplexCall(ctx)
+	if err != nil {
+		t.Fatalf("FullDuplexCall= _, %v; want _, <nil>", err)
 	}
-
+	go func() {
+		// 5. Allow the client to read the GoAway.  The RPC should complete
+		//    successfully.
+		<-serverGotReq
+		dlis.allowClientRead()
+	}()
+	if err := stream.Send(&testpb.StreamingOutputCallRequest{}); err != nil {
+		t.Fatalf("stream.Send(_) = %v, want <nil>", err)
+	}
+	if _, err := stream.Recv(); err != nil {
+		t.Fatalf("stream.Recv() = _, %v, want _, <nil>", err)
+	}
+	if _, err := stream.Recv(); err != io.EOF {
+		t.Fatalf("stream.Recv() = _, %v, want _, io.EOF", err)
+	}
 	// 5. happens above, then we finish the call.
 	cancel()
 	wg.Wait()

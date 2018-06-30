@@ -108,7 +108,8 @@
         {"shape":"ServiceException"},
         {"shape":"ResourceNotFoundException"},
         {"shape":"InvalidParameterValueException"},
-        {"shape":"TooManyRequestsException"}
+        {"shape":"TooManyRequestsException"},
+        {"shape":"ResourceInUseException"}
       ]
     },
     "DeleteFunction":{
@@ -473,7 +474,8 @@
         {"shape":"ResourceNotFoundException"},
         {"shape":"InvalidParameterValueException"},
         {"shape":"TooManyRequestsException"},
-        {"shape":"ResourceConflictException"}
+        {"shape":"ResourceConflictException"},
+        {"shape":"ResourceInUseException"}
       ]
     },
     "UpdateFunctionCode":{
@@ -663,8 +665,7 @@
       "type":"structure",
       "required":[
         "EventSourceArn",
-        "FunctionName",
-        "StartingPosition"
+        "FunctionName"
       ],
       "members":{
         "EventSourceArn":{"shape":"Arn"},
@@ -1524,6 +1525,15 @@
         "message":{"shape":"String"}
       },
       "error":{"httpStatusCode":409},
+      "exception":true
+    },
+    "ResourceInUseException":{
+      "type":"structure",
+      "members":{
+        "Type":{"shape":"String"},
+        "Message":{"shape":"String"}
+      },
+      "error":{"httpStatusCode":400},
       "exception":true
     },
     "ResourceNotFoundException":{

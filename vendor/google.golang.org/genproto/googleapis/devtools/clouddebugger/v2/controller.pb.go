@@ -30,7 +30,7 @@ type RegisterDebuggeeRequest struct {
 	// Debuggee information to register.
 	// The fields `project`, `uniquifier`, `description` and `agent_version`
 	// of the debuggee must be set.
-	Debuggee             *Debuggee `protobuf:"bytes,1,opt,name=debuggee" json:"debuggee,omitempty"`
+	Debuggee             *Debuggee `protobuf:"bytes,1,opt,name=debuggee,proto3" json:"debuggee,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -74,7 +74,7 @@ type RegisterDebuggeeResponse struct {
 	// If the field `is_disabled` is set to `true`, the agent should disable
 	// itself by removing all breakpoints and detaching from the application.
 	// It should however continue to poll `RegisterDebuggee` until reenabled.
-	Debuggee             *Debuggee `protobuf:"bytes,1,opt,name=debuggee" json:"debuggee,omitempty"`
+	Debuggee             *Debuggee `protobuf:"bytes,1,opt,name=debuggee,proto3" json:"debuggee,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -114,19 +114,19 @@ func (m *RegisterDebuggeeResponse) GetDebuggee() *Debuggee {
 // Request to list active breakpoints.
 type ListActiveBreakpointsRequest struct {
 	// Identifies the debuggee.
-	DebuggeeId string `protobuf:"bytes,1,opt,name=debuggee_id,json=debuggeeId" json:"debuggee_id,omitempty"`
+	DebuggeeId string `protobuf:"bytes,1,opt,name=debuggee_id,json=debuggeeId,proto3" json:"debuggee_id,omitempty"`
 	// A token that, if specified, blocks the method call until the list
 	// of active breakpoints has changed, or a server-selected timeout has
 	// expired. The value should be set from the `next_wait_token` field in
 	// the last response. The initial value should be set to `"init"`.
-	WaitToken string `protobuf:"bytes,2,opt,name=wait_token,json=waitToken" json:"wait_token,omitempty"`
+	WaitToken string `protobuf:"bytes,2,opt,name=wait_token,json=waitToken,proto3" json:"wait_token,omitempty"`
 	// If set to `true` (recommended), returns `google.rpc.Code.OK` status and
 	// sets the `wait_expired` response field to `true` when the server-selected
 	// timeout has expired.
 	//
 	// If set to `false` (deprecated), returns `google.rpc.Code.ABORTED` status
 	// when the server-selected timeout has expired.
-	SuccessOnTimeout     bool     `protobuf:"varint,3,opt,name=success_on_timeout,json=successOnTimeout" json:"success_on_timeout,omitempty"`
+	SuccessOnTimeout     bool     `protobuf:"varint,3,opt,name=success_on_timeout,json=successOnTimeout,proto3" json:"success_on_timeout,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -181,14 +181,14 @@ func (m *ListActiveBreakpointsRequest) GetSuccessOnTimeout() bool {
 type ListActiveBreakpointsResponse struct {
 	// List of all active breakpoints.
 	// The fields `id` and `location` are guaranteed to be set on each breakpoint.
-	Breakpoints []*Breakpoint `protobuf:"bytes,1,rep,name=breakpoints" json:"breakpoints,omitempty"`
+	Breakpoints []*Breakpoint `protobuf:"bytes,1,rep,name=breakpoints,proto3" json:"breakpoints,omitempty"`
 	// A token that can be used in the next method call to block until
 	// the list of breakpoints changes.
-	NextWaitToken string `protobuf:"bytes,2,opt,name=next_wait_token,json=nextWaitToken" json:"next_wait_token,omitempty"`
+	NextWaitToken string `protobuf:"bytes,2,opt,name=next_wait_token,json=nextWaitToken,proto3" json:"next_wait_token,omitempty"`
 	// If set to `true`, indicates that there is no change to the
 	// list of active breakpoints and the server-selected timeout has expired.
 	// The `breakpoints` field would be empty and should be ignored.
-	WaitExpired          bool     `protobuf:"varint,3,opt,name=wait_expired,json=waitExpired" json:"wait_expired,omitempty"`
+	WaitExpired          bool     `protobuf:"varint,3,opt,name=wait_expired,json=waitExpired,proto3" json:"wait_expired,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -242,11 +242,11 @@ func (m *ListActiveBreakpointsResponse) GetWaitExpired() bool {
 // Request to update an active breakpoint.
 type UpdateActiveBreakpointRequest struct {
 	// Identifies the debuggee being debugged.
-	DebuggeeId string `protobuf:"bytes,1,opt,name=debuggee_id,json=debuggeeId" json:"debuggee_id,omitempty"`
+	DebuggeeId string `protobuf:"bytes,1,opt,name=debuggee_id,json=debuggeeId,proto3" json:"debuggee_id,omitempty"`
 	// Updated breakpoint information.
 	// The field `id` must be set.
 	// The agent must echo all Breakpoint specification fields in the update.
-	Breakpoint           *Breakpoint `protobuf:"bytes,2,opt,name=breakpoint" json:"breakpoint,omitempty"`
+	Breakpoint           *Breakpoint `protobuf:"bytes,2,opt,name=breakpoint,proto3" json:"breakpoint,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
 	XXX_unrecognized     []byte      `json:"-"`
 	XXX_sizecache        int32       `json:"-"`
@@ -414,8 +414,7 @@ func (c *controller2Client) UpdateActiveBreakpoint(ctx context.Context, in *Upda
 	return out, nil
 }
 
-// Server API for Controller2 service
-
+// Controller2Server is the server API for Controller2 service.
 type Controller2Server interface {
 	// Registers the debuggee with the controller service.
 	//

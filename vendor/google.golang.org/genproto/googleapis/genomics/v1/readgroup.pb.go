@@ -25,30 +25,30 @@ type ReadGroup struct {
 	// The server-generated read group ID, unique for all read groups.
 	// Note: This is different than the @RG ID field in the SAM spec. For that
 	// value, see [name][google.genomics.v1.ReadGroup.name].
-	Id string `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// The dataset to which this read group belongs.
-	DatasetId string `protobuf:"bytes,2,opt,name=dataset_id,json=datasetId" json:"dataset_id,omitempty"`
+	DatasetId string `protobuf:"bytes,2,opt,name=dataset_id,json=datasetId,proto3" json:"dataset_id,omitempty"`
 	// The read group name. This corresponds to the @RG ID field in the SAM spec.
-	Name string `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	// A free-form text description of this read group.
-	Description string `protobuf:"bytes,4,opt,name=description" json:"description,omitempty"`
+	Description string `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
 	// A client-supplied sample identifier for the reads in this read group.
-	SampleId string `protobuf:"bytes,5,opt,name=sample_id,json=sampleId" json:"sample_id,omitempty"`
+	SampleId string `protobuf:"bytes,5,opt,name=sample_id,json=sampleId,proto3" json:"sample_id,omitempty"`
 	// The experiment used to generate this read group.
-	Experiment *ReadGroup_Experiment `protobuf:"bytes,6,opt,name=experiment" json:"experiment,omitempty"`
+	Experiment *ReadGroup_Experiment `protobuf:"bytes,6,opt,name=experiment,proto3" json:"experiment,omitempty"`
 	// The predicted insert size of this read group. The insert size is the length
 	// the sequenced DNA fragment from end-to-end, not including the adapters.
-	PredictedInsertSize int32 `protobuf:"varint,7,opt,name=predicted_insert_size,json=predictedInsertSize" json:"predicted_insert_size,omitempty"`
+	PredictedInsertSize int32 `protobuf:"varint,7,opt,name=predicted_insert_size,json=predictedInsertSize,proto3" json:"predicted_insert_size,omitempty"`
 	// The programs used to generate this read group. Programs are always
 	// identical for all read groups within a read group set. For this reason,
 	// only the first read group in a returned set will have this field
 	// populated.
-	Programs []*ReadGroup_Program `protobuf:"bytes,10,rep,name=programs" json:"programs,omitempty"`
+	Programs []*ReadGroup_Program `protobuf:"bytes,10,rep,name=programs,proto3" json:"programs,omitempty"`
 	// The reference set the reads in this read group are aligned to.
-	ReferenceSetId string `protobuf:"bytes,11,opt,name=reference_set_id,json=referenceSetId" json:"reference_set_id,omitempty"`
+	ReferenceSetId string `protobuf:"bytes,11,opt,name=reference_set_id,json=referenceSetId,proto3" json:"reference_set_id,omitempty"`
 	// A map of additional read group information. This must be of the form
 	// map<string, string[]> (string key mapping to a list of string values).
-	Info                 map[string]*_struct.ListValue `protobuf:"bytes,12,rep,name=info" json:"info,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Info                 map[string]*_struct.ListValue `protobuf:"bytes,12,rep,name=info,proto3" json:"info,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}                      `json:"-"`
 	XXX_unrecognized     []byte                        `json:"-"`
 	XXX_sizecache        int32                         `json:"-"`
@@ -153,16 +153,16 @@ type ReadGroup_Experiment struct {
 	// fragments which have been prepared for sequencing from a sample. This
 	// field is important for quality control as error or bias can be introduced
 	// during sample preparation.
-	LibraryId string `protobuf:"bytes,1,opt,name=library_id,json=libraryId" json:"library_id,omitempty"`
+	LibraryId string `protobuf:"bytes,1,opt,name=library_id,json=libraryId,proto3" json:"library_id,omitempty"`
 	// The platform unit used as part of this experiment, for example
 	// flowcell-barcode.lane for Illumina or slide for SOLiD. Corresponds to the
 	// @RG PU field in the SAM spec.
-	PlatformUnit string `protobuf:"bytes,2,opt,name=platform_unit,json=platformUnit" json:"platform_unit,omitempty"`
+	PlatformUnit string `protobuf:"bytes,2,opt,name=platform_unit,json=platformUnit,proto3" json:"platform_unit,omitempty"`
 	// The sequencing center used as part of this experiment.
-	SequencingCenter string `protobuf:"bytes,3,opt,name=sequencing_center,json=sequencingCenter" json:"sequencing_center,omitempty"`
+	SequencingCenter string `protobuf:"bytes,3,opt,name=sequencing_center,json=sequencingCenter,proto3" json:"sequencing_center,omitempty"`
 	// The instrument model used as part of this experiment. This maps to
 	// sequencing technology in the SAM spec.
-	InstrumentModel      string   `protobuf:"bytes,4,opt,name=instrument_model,json=instrumentModel" json:"instrument_model,omitempty"`
+	InstrumentModel      string   `protobuf:"bytes,4,opt,name=instrument_model,json=instrumentModel,proto3" json:"instrument_model,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -222,17 +222,17 @@ func (m *ReadGroup_Experiment) GetInstrumentModel() string {
 
 type ReadGroup_Program struct {
 	// The command line used to run this program.
-	CommandLine string `protobuf:"bytes,1,opt,name=command_line,json=commandLine" json:"command_line,omitempty"`
+	CommandLine string `protobuf:"bytes,1,opt,name=command_line,json=commandLine,proto3" json:"command_line,omitempty"`
 	// The user specified locally unique ID of the program. Used along with
 	// `prevProgramId` to define an ordering between programs.
-	Id string `protobuf:"bytes,2,opt,name=id" json:"id,omitempty"`
+	Id string `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
 	// The display name of the program. This is typically the colloquial name of
 	// the tool used, for example 'bwa' or 'picard'.
-	Name string `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	// The ID of the program run before this one.
-	PrevProgramId string `protobuf:"bytes,4,opt,name=prev_program_id,json=prevProgramId" json:"prev_program_id,omitempty"`
+	PrevProgramId string `protobuf:"bytes,4,opt,name=prev_program_id,json=prevProgramId,proto3" json:"prev_program_id,omitempty"`
 	// The version of the program run.
-	Version              string   `protobuf:"bytes,5,opt,name=version" json:"version,omitempty"`
+	Version              string   `protobuf:"bytes,5,opt,name=version,proto3" json:"version,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

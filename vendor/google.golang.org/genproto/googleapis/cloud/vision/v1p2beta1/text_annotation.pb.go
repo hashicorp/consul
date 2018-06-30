@@ -113,9 +113,9 @@ func (Block_BlockType) EnumDescriptor() ([]byte, []int) {
 // detail.
 type TextAnnotation struct {
 	// List of pages detected by OCR.
-	Pages []*Page `protobuf:"bytes,1,rep,name=pages" json:"pages,omitempty"`
+	Pages []*Page `protobuf:"bytes,1,rep,name=pages,proto3" json:"pages,omitempty"`
 	// UTF-8 text detected on the pages.
-	Text                 string   `protobuf:"bytes,2,opt,name=text" json:"text,omitempty"`
+	Text                 string   `protobuf:"bytes,2,opt,name=text,proto3" json:"text,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -164,9 +164,9 @@ type TextAnnotation_DetectedLanguage struct {
 	// The BCP-47 language code, such as "en-US" or "sr-Latn". For more
 	// information, see
 	// http://www.unicode.org/reports/tr35/#Unicode_locale_identifier.
-	LanguageCode string `protobuf:"bytes,1,opt,name=language_code,json=languageCode" json:"language_code,omitempty"`
+	LanguageCode string `protobuf:"bytes,1,opt,name=language_code,json=languageCode,proto3" json:"language_code,omitempty"`
 	// Confidence of detected language. Range [0, 1].
-	Confidence           float32  `protobuf:"fixed32,2,opt,name=confidence" json:"confidence,omitempty"`
+	Confidence           float32  `protobuf:"fixed32,2,opt,name=confidence,proto3" json:"confidence,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -213,9 +213,9 @@ func (m *TextAnnotation_DetectedLanguage) GetConfidence() float32 {
 // Detected start or end of a structural component.
 type TextAnnotation_DetectedBreak struct {
 	// Detected break type.
-	Type TextAnnotation_DetectedBreak_BreakType `protobuf:"varint,1,opt,name=type,enum=google.cloud.vision.v1p2beta1.TextAnnotation_DetectedBreak_BreakType" json:"type,omitempty"`
+	Type TextAnnotation_DetectedBreak_BreakType `protobuf:"varint,1,opt,name=type,proto3,enum=google.cloud.vision.v1p2beta1.TextAnnotation_DetectedBreak_BreakType" json:"type,omitempty"`
 	// True if break prepends the element.
-	IsPrefix             bool     `protobuf:"varint,2,opt,name=is_prefix,json=isPrefix" json:"is_prefix,omitempty"`
+	IsPrefix             bool     `protobuf:"varint,2,opt,name=is_prefix,json=isPrefix,proto3" json:"is_prefix,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -262,9 +262,9 @@ func (m *TextAnnotation_DetectedBreak) GetIsPrefix() bool {
 // Additional information detected on the structural component.
 type TextAnnotation_TextProperty struct {
 	// A list of detected languages together with confidence.
-	DetectedLanguages []*TextAnnotation_DetectedLanguage `protobuf:"bytes,1,rep,name=detected_languages,json=detectedLanguages" json:"detected_languages,omitempty"`
+	DetectedLanguages []*TextAnnotation_DetectedLanguage `protobuf:"bytes,1,rep,name=detected_languages,json=detectedLanguages,proto3" json:"detected_languages,omitempty"`
 	// Detected start or end of a text segment.
-	DetectedBreak        *TextAnnotation_DetectedBreak `protobuf:"bytes,2,opt,name=detected_break,json=detectedBreak" json:"detected_break,omitempty"`
+	DetectedBreak        *TextAnnotation_DetectedBreak `protobuf:"bytes,2,opt,name=detected_break,json=detectedBreak,proto3" json:"detected_break,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                      `json:"-"`
 	XXX_unrecognized     []byte                        `json:"-"`
 	XXX_sizecache        int32                         `json:"-"`
@@ -311,17 +311,17 @@ func (m *TextAnnotation_TextProperty) GetDetectedBreak() *TextAnnotation_Detecte
 // Detected page from OCR.
 type Page struct {
 	// Additional information detected on the page.
-	Property *TextAnnotation_TextProperty `protobuf:"bytes,1,opt,name=property" json:"property,omitempty"`
+	Property *TextAnnotation_TextProperty `protobuf:"bytes,1,opt,name=property,proto3" json:"property,omitempty"`
 	// Page width. For PDFs the unit is points. For images (including
 	// TIFFs) the unit is pixels.
-	Width int32 `protobuf:"varint,2,opt,name=width" json:"width,omitempty"`
+	Width int32 `protobuf:"varint,2,opt,name=width,proto3" json:"width,omitempty"`
 	// Page height. For PDFs the unit is points. For images (including
 	// TIFFs) the unit is pixels.
-	Height int32 `protobuf:"varint,3,opt,name=height" json:"height,omitempty"`
+	Height int32 `protobuf:"varint,3,opt,name=height,proto3" json:"height,omitempty"`
 	// List of blocks of text, images etc on this page.
-	Blocks []*Block `protobuf:"bytes,4,rep,name=blocks" json:"blocks,omitempty"`
+	Blocks []*Block `protobuf:"bytes,4,rep,name=blocks,proto3" json:"blocks,omitempty"`
 	// Confidence of the OCR results on the page. Range [0, 1].
-	Confidence           float32  `protobuf:"fixed32,5,opt,name=confidence" json:"confidence,omitempty"`
+	Confidence           float32  `protobuf:"fixed32,5,opt,name=confidence,proto3" json:"confidence,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -389,7 +389,7 @@ func (m *Page) GetConfidence() float32 {
 // Logical element on the page.
 type Block struct {
 	// Additional information detected for the block.
-	Property *TextAnnotation_TextProperty `protobuf:"bytes,1,opt,name=property" json:"property,omitempty"`
+	Property *TextAnnotation_TextProperty `protobuf:"bytes,1,opt,name=property,proto3" json:"property,omitempty"`
 	// The bounding box for the block.
 	// The vertices are in the order of top-left, top-right, bottom-right,
 	// bottom-left. When a rotation of the bounding box is detected the rotation
@@ -410,13 +410,13 @@ type Block struct {
 	//         1----0
 	//
 	//   and the vertice order will still be (0, 1, 2, 3).
-	BoundingBox *BoundingPoly `protobuf:"bytes,2,opt,name=bounding_box,json=boundingBox" json:"bounding_box,omitempty"`
+	BoundingBox *BoundingPoly `protobuf:"bytes,2,opt,name=bounding_box,json=boundingBox,proto3" json:"bounding_box,omitempty"`
 	// List of paragraphs in this block (if this blocks is of type text).
-	Paragraphs []*Paragraph `protobuf:"bytes,3,rep,name=paragraphs" json:"paragraphs,omitempty"`
+	Paragraphs []*Paragraph `protobuf:"bytes,3,rep,name=paragraphs,proto3" json:"paragraphs,omitempty"`
 	// Detected block type (text, image etc) for this block.
-	BlockType Block_BlockType `protobuf:"varint,4,opt,name=block_type,json=blockType,enum=google.cloud.vision.v1p2beta1.Block_BlockType" json:"block_type,omitempty"`
+	BlockType Block_BlockType `protobuf:"varint,4,opt,name=block_type,json=blockType,proto3,enum=google.cloud.vision.v1p2beta1.Block_BlockType" json:"block_type,omitempty"`
 	// Confidence of the OCR results on the block. Range [0, 1].
-	Confidence           float32  `protobuf:"fixed32,5,opt,name=confidence" json:"confidence,omitempty"`
+	Confidence           float32  `protobuf:"fixed32,5,opt,name=confidence,proto3" json:"confidence,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -484,7 +484,7 @@ func (m *Block) GetConfidence() float32 {
 // Structural unit of text representing a number of words in certain order.
 type Paragraph struct {
 	// Additional information detected for the paragraph.
-	Property *TextAnnotation_TextProperty `protobuf:"bytes,1,opt,name=property" json:"property,omitempty"`
+	Property *TextAnnotation_TextProperty `protobuf:"bytes,1,opt,name=property,proto3" json:"property,omitempty"`
 	// The bounding box for the paragraph.
 	// The vertices are in the order of top-left, top-right, bottom-right,
 	// bottom-left. When a rotation of the bounding box is detected the rotation
@@ -500,11 +500,11 @@ type Paragraph struct {
 	//      |    |
 	//      1----0
 	//   and the vertice order will still be (0, 1, 2, 3).
-	BoundingBox *BoundingPoly `protobuf:"bytes,2,opt,name=bounding_box,json=boundingBox" json:"bounding_box,omitempty"`
+	BoundingBox *BoundingPoly `protobuf:"bytes,2,opt,name=bounding_box,json=boundingBox,proto3" json:"bounding_box,omitempty"`
 	// List of words in this paragraph.
-	Words []*Word `protobuf:"bytes,3,rep,name=words" json:"words,omitempty"`
+	Words []*Word `protobuf:"bytes,3,rep,name=words,proto3" json:"words,omitempty"`
 	// Confidence of the OCR results for the paragraph. Range [0, 1].
-	Confidence           float32  `protobuf:"fixed32,4,opt,name=confidence" json:"confidence,omitempty"`
+	Confidence           float32  `protobuf:"fixed32,4,opt,name=confidence,proto3" json:"confidence,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -565,7 +565,7 @@ func (m *Paragraph) GetConfidence() float32 {
 // A word representation.
 type Word struct {
 	// Additional information detected for the word.
-	Property *TextAnnotation_TextProperty `protobuf:"bytes,1,opt,name=property" json:"property,omitempty"`
+	Property *TextAnnotation_TextProperty `protobuf:"bytes,1,opt,name=property,proto3" json:"property,omitempty"`
 	// The bounding box for the word.
 	// The vertices are in the order of top-left, top-right, bottom-right,
 	// bottom-left. When a rotation of the bounding box is detected the rotation
@@ -581,12 +581,12 @@ type Word struct {
 	//      |    |
 	//      1----0
 	//   and the vertice order will still be (0, 1, 2, 3).
-	BoundingBox *BoundingPoly `protobuf:"bytes,2,opt,name=bounding_box,json=boundingBox" json:"bounding_box,omitempty"`
+	BoundingBox *BoundingPoly `protobuf:"bytes,2,opt,name=bounding_box,json=boundingBox,proto3" json:"bounding_box,omitempty"`
 	// List of symbols in the word.
 	// The order of the symbols follows the natural reading order.
-	Symbols []*Symbol `protobuf:"bytes,3,rep,name=symbols" json:"symbols,omitempty"`
+	Symbols []*Symbol `protobuf:"bytes,3,rep,name=symbols,proto3" json:"symbols,omitempty"`
 	// Confidence of the OCR results for the word. Range [0, 1].
-	Confidence           float32  `protobuf:"fixed32,4,opt,name=confidence" json:"confidence,omitempty"`
+	Confidence           float32  `protobuf:"fixed32,4,opt,name=confidence,proto3" json:"confidence,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -647,7 +647,7 @@ func (m *Word) GetConfidence() float32 {
 // A single symbol representation.
 type Symbol struct {
 	// Additional information detected for the symbol.
-	Property *TextAnnotation_TextProperty `protobuf:"bytes,1,opt,name=property" json:"property,omitempty"`
+	Property *TextAnnotation_TextProperty `protobuf:"bytes,1,opt,name=property,proto3" json:"property,omitempty"`
 	// The bounding box for the symbol.
 	// The vertices are in the order of top-left, top-right, bottom-right,
 	// bottom-left. When a rotation of the bounding box is detected the rotation
@@ -663,11 +663,11 @@ type Symbol struct {
 	//      |    |
 	//      1----0
 	//   and the vertice order will still be (0, 1, 2, 3).
-	BoundingBox *BoundingPoly `protobuf:"bytes,2,opt,name=bounding_box,json=boundingBox" json:"bounding_box,omitempty"`
+	BoundingBox *BoundingPoly `protobuf:"bytes,2,opt,name=bounding_box,json=boundingBox,proto3" json:"bounding_box,omitempty"`
 	// The actual UTF-8 representation of the symbol.
-	Text string `protobuf:"bytes,3,opt,name=text" json:"text,omitempty"`
+	Text string `protobuf:"bytes,3,opt,name=text,proto3" json:"text,omitempty"`
 	// Confidence of the OCR results for the symbol. Range [0, 1].
-	Confidence           float32  `protobuf:"fixed32,4,opt,name=confidence" json:"confidence,omitempty"`
+	Confidence           float32  `protobuf:"fixed32,4,opt,name=confidence,proto3" json:"confidence,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

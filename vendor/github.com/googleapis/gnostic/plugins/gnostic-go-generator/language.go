@@ -16,8 +16,8 @@ package main
 
 import (
 	surface "github.com/googleapis/gnostic/surface"
-	"unicode"
 	"strings"
+	"unicode"
 )
 
 type GoLanguageModel struct{}
@@ -49,7 +49,7 @@ func (language *GoLanguageModel) Prepare(model *surface.Model) {
 					f.NativeType = "int64"
 				}
 			case "object":
-				f.NativeType = "{}interface"
+				f.NativeType = "interface{}"
 			case "string":
 				f.NativeType = "string"
 			default:
@@ -88,6 +88,8 @@ func goFieldName(name string) string {
 	// avoid integers
 	if name == "200" {
 		return "OK"
+	} else if unicode.IsDigit(rune(name[0])) {
+		return "Code" + name
 	}
 	return name
 }

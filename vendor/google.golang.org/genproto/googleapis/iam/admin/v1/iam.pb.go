@@ -313,22 +313,22 @@ type ServiceAccount struct {
 	//
 	// In responses the resource name will always be in the format
 	// `projects/{PROJECT_ID}/serviceAccounts/{SERVICE_ACCOUNT_EMAIL}`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// @OutputOnly The id of the project that owns the service account.
-	ProjectId string `protobuf:"bytes,2,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// @OutputOnly The unique and stable id of the service account.
-	UniqueId string `protobuf:"bytes,4,opt,name=unique_id,json=uniqueId" json:"unique_id,omitempty"`
+	UniqueId string `protobuf:"bytes,4,opt,name=unique_id,json=uniqueId,proto3" json:"unique_id,omitempty"`
 	// @OutputOnly The email address of the service account.
-	Email string `protobuf:"bytes,5,opt,name=email" json:"email,omitempty"`
+	Email string `protobuf:"bytes,5,opt,name=email,proto3" json:"email,omitempty"`
 	// Optional. A user-specified description of the service account.  Must be
 	// fewer than 100 UTF-8 bytes.
-	DisplayName string `protobuf:"bytes,6,opt,name=display_name,json=displayName" json:"display_name,omitempty"`
+	DisplayName string `protobuf:"bytes,6,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	// Used to perform a consistent read-modify-write.
 	Etag []byte `protobuf:"bytes,7,opt,name=etag,proto3" json:"etag,omitempty"`
 	// @OutputOnly. The OAuth2 client id for the service account.
 	// This is used in conjunction with the OAuth2 clientconfig API to make
 	// three legged OAuth2 (3LO) flows to access the data of Google users.
-	Oauth2ClientId       string   `protobuf:"bytes,9,opt,name=oauth2_client_id,json=oauth2ClientId" json:"oauth2_client_id,omitempty"`
+	Oauth2ClientId       string   `protobuf:"bytes,9,opt,name=oauth2_client_id,json=oauth2ClientId,proto3" json:"oauth2_client_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -411,16 +411,16 @@ func (m *ServiceAccount) GetOauth2ClientId() string {
 type CreateServiceAccountRequest struct {
 	// Required. The resource name of the project associated with the service
 	// accounts, such as `projects/my-project-123`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Required. The account id that is used to generate the service account
 	// email address and a stable unique id. It is unique within a project,
 	// must be 6-30 characters long, and match the regular expression
 	// `[a-z]([-a-z0-9]*[a-z0-9])` to comply with RFC1035.
-	AccountId string `protobuf:"bytes,2,opt,name=account_id,json=accountId" json:"account_id,omitempty"`
+	AccountId string `protobuf:"bytes,2,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
 	// The [ServiceAccount][google.iam.admin.v1.ServiceAccount] resource to create.
 	// Currently, only the following values are user assignable:
 	// `display_name` .
-	ServiceAccount       *ServiceAccount `protobuf:"bytes,3,opt,name=service_account,json=serviceAccount" json:"service_account,omitempty"`
+	ServiceAccount       *ServiceAccount `protobuf:"bytes,3,opt,name=service_account,json=serviceAccount,proto3" json:"service_account,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
 	XXX_unrecognized     []byte          `json:"-"`
 	XXX_sizecache        int32           `json:"-"`
@@ -475,15 +475,15 @@ func (m *CreateServiceAccountRequest) GetServiceAccount() *ServiceAccount {
 type ListServiceAccountsRequest struct {
 	// Required. The resource name of the project associated with the service
 	// accounts, such as `projects/my-project-123`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Optional limit on the number of service accounts to include in the
 	// response. Further accounts can subsequently be obtained by including the
 	// [ListServiceAccountsResponse.next_page_token][google.iam.admin.v1.ListServiceAccountsResponse.next_page_token]
 	// in a subsequent request.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Optional pagination token returned in an earlier
 	// [ListServiceAccountsResponse.next_page_token][google.iam.admin.v1.ListServiceAccountsResponse.next_page_token].
-	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -537,11 +537,11 @@ func (m *ListServiceAccountsRequest) GetPageToken() string {
 // The service account list response.
 type ListServiceAccountsResponse struct {
 	// The list of matching service accounts.
-	Accounts []*ServiceAccount `protobuf:"bytes,1,rep,name=accounts" json:"accounts,omitempty"`
+	Accounts []*ServiceAccount `protobuf:"bytes,1,rep,name=accounts,proto3" json:"accounts,omitempty"`
 	// To retrieve the next page of results, set
 	// [ListServiceAccountsRequest.page_token][google.iam.admin.v1.ListServiceAccountsRequest.page_token]
 	// to this value.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -592,7 +592,7 @@ type GetServiceAccountRequest struct {
 	// Using `-` as a wildcard for the project will infer the project from
 	// the account. The `account` value can be the `email` address or the
 	// `unique_id` of the service account.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -636,7 +636,7 @@ type DeleteServiceAccountRequest struct {
 	// Using `-` as a wildcard for the project will infer the project from
 	// the account. The `account` value can be the `email` address or the
 	// `unique_id` of the service account.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -681,11 +681,11 @@ type ListServiceAccountKeysRequest struct {
 	// Using `-` as a wildcard for the project, will infer the project from
 	// the account. The `account` value can be the `email` address or the
 	// `unique_id` of the service account.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Filters the types of keys the user wants to include in the list
 	// response. Duplicate key types are not allowed. If no key type
 	// is provided, all keys are returned.
-	KeyTypes             []ListServiceAccountKeysRequest_KeyType `protobuf:"varint,2,rep,packed,name=key_types,json=keyTypes,enum=google.iam.admin.v1.ListServiceAccountKeysRequest_KeyType" json:"key_types,omitempty"`
+	KeyTypes             []ListServiceAccountKeysRequest_KeyType `protobuf:"varint,2,rep,packed,name=key_types,json=keyTypes,proto3,enum=google.iam.admin.v1.ListServiceAccountKeysRequest_KeyType" json:"key_types,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                                `json:"-"`
 	XXX_unrecognized     []byte                                  `json:"-"`
 	XXX_sizecache        int32                                   `json:"-"`
@@ -732,7 +732,7 @@ func (m *ListServiceAccountKeysRequest) GetKeyTypes() []ListServiceAccountKeysRe
 // The service account keys list response.
 type ListServiceAccountKeysResponse struct {
 	// The public keys for the service account.
-	Keys                 []*ServiceAccountKey `protobuf:"bytes,1,rep,name=keys" json:"keys,omitempty"`
+	Keys                 []*ServiceAccountKey `protobuf:"bytes,1,rep,name=keys,proto3" json:"keys,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -777,10 +777,10 @@ type GetServiceAccountKeyRequest struct {
 	// Using `-` as a wildcard for the project will infer the project from
 	// the account. The `account` value can be the `email` address or the
 	// `unique_id` of the service account.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The output format of the public key requested.
 	// X509_PEM is the default output format.
-	PublicKeyType        ServiceAccountPublicKeyType `protobuf:"varint,2,opt,name=public_key_type,json=publicKeyType,enum=google.iam.admin.v1.ServiceAccountPublicKeyType" json:"public_key_type,omitempty"`
+	PublicKeyType        ServiceAccountPublicKeyType `protobuf:"varint,2,opt,name=public_key_type,json=publicKeyType,proto3,enum=google.iam.admin.v1.ServiceAccountPublicKeyType" json:"public_key_type,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                    `json:"-"`
 	XXX_unrecognized     []byte                      `json:"-"`
 	XXX_sizecache        int32                       `json:"-"`
@@ -843,16 +843,16 @@ func (m *GetServiceAccountKeyRequest) GetPublicKeyType() ServiceAccountPublicKey
 type ServiceAccountKey struct {
 	// The resource name of the service account key in the following format
 	// `projects/{PROJECT_ID}/serviceAccounts/{SERVICE_ACCOUNT_EMAIL}/keys/{key}`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The output format for the private key.
 	// Only provided in `CreateServiceAccountKey` responses, not
 	// in `GetServiceAccountKey` or `ListServiceAccountKey` responses.
 	//
 	// Google never exposes system-managed private keys, and never retains
 	// user-managed private keys.
-	PrivateKeyType ServiceAccountPrivateKeyType `protobuf:"varint,2,opt,name=private_key_type,json=privateKeyType,enum=google.iam.admin.v1.ServiceAccountPrivateKeyType" json:"private_key_type,omitempty"`
+	PrivateKeyType ServiceAccountPrivateKeyType `protobuf:"varint,2,opt,name=private_key_type,json=privateKeyType,proto3,enum=google.iam.admin.v1.ServiceAccountPrivateKeyType" json:"private_key_type,omitempty"`
 	// Specifies the algorithm (and possibly key size) for the key.
-	KeyAlgorithm ServiceAccountKeyAlgorithm `protobuf:"varint,8,opt,name=key_algorithm,json=keyAlgorithm,enum=google.iam.admin.v1.ServiceAccountKeyAlgorithm" json:"key_algorithm,omitempty"`
+	KeyAlgorithm ServiceAccountKeyAlgorithm `protobuf:"varint,8,opt,name=key_algorithm,json=keyAlgorithm,proto3,enum=google.iam.admin.v1.ServiceAccountKeyAlgorithm" json:"key_algorithm,omitempty"`
 	// The private key data. Only provided in `CreateServiceAccountKey`
 	// responses. Make sure to keep the private key data secure because it
 	// allows for the assertion of the service account identity.
@@ -864,9 +864,9 @@ type ServiceAccountKey struct {
 	// The public key data. Only provided in `GetServiceAccountKey` responses.
 	PublicKeyData []byte `protobuf:"bytes,7,opt,name=public_key_data,json=publicKeyData,proto3" json:"public_key_data,omitempty"`
 	// The key can be used after this timestamp.
-	ValidAfterTime *timestamp.Timestamp `protobuf:"bytes,4,opt,name=valid_after_time,json=validAfterTime" json:"valid_after_time,omitempty"`
+	ValidAfterTime *timestamp.Timestamp `protobuf:"bytes,4,opt,name=valid_after_time,json=validAfterTime,proto3" json:"valid_after_time,omitempty"`
 	// The key can be used before this timestamp.
-	ValidBeforeTime      *timestamp.Timestamp `protobuf:"bytes,5,opt,name=valid_before_time,json=validBeforeTime" json:"valid_before_time,omitempty"`
+	ValidBeforeTime      *timestamp.Timestamp `protobuf:"bytes,5,opt,name=valid_before_time,json=validBeforeTime,proto3" json:"valid_before_time,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -952,14 +952,14 @@ type CreateServiceAccountKeyRequest struct {
 	// Using `-` as a wildcard for the project will infer the project from
 	// the account. The `account` value can be the `email` address or the
 	// `unique_id` of the service account.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The output format of the private key. `GOOGLE_CREDENTIALS_FILE` is the
 	// default output format.
-	PrivateKeyType ServiceAccountPrivateKeyType `protobuf:"varint,2,opt,name=private_key_type,json=privateKeyType,enum=google.iam.admin.v1.ServiceAccountPrivateKeyType" json:"private_key_type,omitempty"`
+	PrivateKeyType ServiceAccountPrivateKeyType `protobuf:"varint,2,opt,name=private_key_type,json=privateKeyType,proto3,enum=google.iam.admin.v1.ServiceAccountPrivateKeyType" json:"private_key_type,omitempty"`
 	// Which type of key and algorithm to use for the key.
 	// The default is currently a 2K RSA key.  However this may change in the
 	// future.
-	KeyAlgorithm         ServiceAccountKeyAlgorithm `protobuf:"varint,3,opt,name=key_algorithm,json=keyAlgorithm,enum=google.iam.admin.v1.ServiceAccountKeyAlgorithm" json:"key_algorithm,omitempty"`
+	KeyAlgorithm         ServiceAccountKeyAlgorithm `protobuf:"varint,3,opt,name=key_algorithm,json=keyAlgorithm,proto3,enum=google.iam.admin.v1.ServiceAccountKeyAlgorithm" json:"key_algorithm,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                   `json:"-"`
 	XXX_unrecognized     []byte                     `json:"-"`
 	XXX_sizecache        int32                      `json:"-"`
@@ -1017,7 +1017,7 @@ type DeleteServiceAccountKeyRequest struct {
 	// Using `-` as a wildcard for the project will infer the project from
 	// the account. The `account` value can be the `email` address or the
 	// `unique_id` of the service account.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1061,7 +1061,7 @@ type SignBlobRequest struct {
 	// Using `-` as a wildcard for the project will infer the project from
 	// the account. The `account` value can be the `email` address or the
 	// `unique_id` of the service account.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The bytes to sign.
 	BytesToSign          []byte   `protobuf:"bytes,2,opt,name=bytes_to_sign,json=bytesToSign,proto3" json:"bytes_to_sign,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -1110,7 +1110,7 @@ func (m *SignBlobRequest) GetBytesToSign() []byte {
 // The service account sign blob response.
 type SignBlobResponse struct {
 	// The id of the key used to sign the blob.
-	KeyId string `protobuf:"bytes,1,opt,name=key_id,json=keyId" json:"key_id,omitempty"`
+	KeyId string `protobuf:"bytes,1,opt,name=key_id,json=keyId,proto3" json:"key_id,omitempty"`
 	// The signed blob.
 	Signature            []byte   `protobuf:"bytes,2,opt,name=signature,proto3" json:"signature,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -1163,9 +1163,9 @@ type SignJwtRequest struct {
 	// Using `-` as a wildcard for the project will infer the project from
 	// the account. The `account` value can be the `email` address or the
 	// `unique_id` of the service account.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The JWT payload to sign, a JSON JWT Claim set.
-	Payload              string   `protobuf:"bytes,2,opt,name=payload" json:"payload,omitempty"`
+	Payload              string   `protobuf:"bytes,2,opt,name=payload,proto3" json:"payload,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1212,9 +1212,9 @@ func (m *SignJwtRequest) GetPayload() string {
 // The service account sign JWT response.
 type SignJwtResponse struct {
 	// The id of the key used to sign the JWT.
-	KeyId string `protobuf:"bytes,1,opt,name=key_id,json=keyId" json:"key_id,omitempty"`
+	KeyId string `protobuf:"bytes,1,opt,name=key_id,json=keyId,proto3" json:"key_id,omitempty"`
 	// The signed JWT.
-	SignedJwt            string   `protobuf:"bytes,2,opt,name=signed_jwt,json=signedJwt" json:"signed_jwt,omitempty"`
+	SignedJwt            string   `protobuf:"bytes,2,opt,name=signed_jwt,json=signedJwt,proto3" json:"signed_jwt,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1267,21 +1267,21 @@ type Role struct {
 	// When Role is used in output and other input such as UpdateRole, the role
 	// name is the complete path, e.g., roles/logging.viewer for curated roles
 	// and organizations/{ORGANIZATION_ID}/roles/logging.viewer for custom roles.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Optional.  A human-readable title for the role.  Typically this
 	// is limited to 100 UTF-8 bytes.
-	Title string `protobuf:"bytes,2,opt,name=title" json:"title,omitempty"`
+	Title string `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
 	// Optional.  A human-readable description for the role.
-	Description string `protobuf:"bytes,3,opt,name=description" json:"description,omitempty"`
+	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	// The names of the permissions this role grants when bound in an IAM policy.
-	IncludedPermissions []string `protobuf:"bytes,7,rep,name=included_permissions,json=includedPermissions" json:"included_permissions,omitempty"`
+	IncludedPermissions []string `protobuf:"bytes,7,rep,name=included_permissions,json=includedPermissions,proto3" json:"included_permissions,omitempty"`
 	// The current launch stage of the role.
-	Stage Role_RoleLaunchStage `protobuf:"varint,8,opt,name=stage,enum=google.iam.admin.v1.Role_RoleLaunchStage" json:"stage,omitempty"`
+	Stage Role_RoleLaunchStage `protobuf:"varint,8,opt,name=stage,proto3,enum=google.iam.admin.v1.Role_RoleLaunchStage" json:"stage,omitempty"`
 	// Used to perform a consistent read-modify-write.
 	Etag []byte `protobuf:"bytes,9,opt,name=etag,proto3" json:"etag,omitempty"`
 	// The current deleted state of the role. This field is read only.
 	// It will be ignored in calls to CreateRole and UpdateRole.
-	Deleted              bool     `protobuf:"varint,11,opt,name=deleted" json:"deleted,omitempty"`
+	Deleted              bool     `protobuf:"varint,11,opt,name=deleted,proto3" json:"deleted,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1367,13 +1367,13 @@ type QueryGrantableRolesRequest struct {
 	// The name follows the Google Cloud Platform resource format.
 	// For example, a Cloud Platform project with id `my-project` will be named
 	// `//cloudresourcemanager.googleapis.com/projects/my-project`.
-	FullResourceName string   `protobuf:"bytes,1,opt,name=full_resource_name,json=fullResourceName" json:"full_resource_name,omitempty"`
-	View             RoleView `protobuf:"varint,2,opt,name=view,enum=google.iam.admin.v1.RoleView" json:"view,omitempty"`
+	FullResourceName string   `protobuf:"bytes,1,opt,name=full_resource_name,json=fullResourceName,proto3" json:"full_resource_name,omitempty"`
+	View             RoleView `protobuf:"varint,2,opt,name=view,proto3,enum=google.iam.admin.v1.RoleView" json:"view,omitempty"`
 	// Optional limit on the number of roles to include in the response.
-	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Optional pagination token returned in an earlier
 	// QueryGrantableRolesResponse.
-	PageToken            string   `protobuf:"bytes,4,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1434,10 +1434,10 @@ func (m *QueryGrantableRolesRequest) GetPageToken() string {
 // The grantable role query response.
 type QueryGrantableRolesResponse struct {
 	// The list of matching roles.
-	Roles []*Role `protobuf:"bytes,1,rep,name=roles" json:"roles,omitempty"`
+	Roles []*Role `protobuf:"bytes,1,rep,name=roles,proto3" json:"roles,omitempty"`
 	// To retrieve the next page of results, set
 	// `QueryGrantableRolesRequest.page_token` to this value.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1487,15 +1487,15 @@ type ListRolesRequest struct {
 	// `` (empty string) -- this refers to curated roles.
 	// `organizations/{ORGANIZATION_ID}`
 	// `projects/{PROJECT_ID}`
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Optional limit on the number of roles to include in the response.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Optional pagination token returned in an earlier ListRolesResponse.
-	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// Optional view for the returned Role objects.
-	View RoleView `protobuf:"varint,4,opt,name=view,enum=google.iam.admin.v1.RoleView" json:"view,omitempty"`
+	View RoleView `protobuf:"varint,4,opt,name=view,proto3,enum=google.iam.admin.v1.RoleView" json:"view,omitempty"`
 	// Include Roles that have been deleted.
-	ShowDeleted          bool     `protobuf:"varint,6,opt,name=show_deleted,json=showDeleted" json:"show_deleted,omitempty"`
+	ShowDeleted          bool     `protobuf:"varint,6,opt,name=show_deleted,json=showDeleted,proto3" json:"show_deleted,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1563,10 +1563,10 @@ func (m *ListRolesRequest) GetShowDeleted() bool {
 // The response containing the roles defined under a resource.
 type ListRolesResponse struct {
 	// The Roles defined on this resource.
-	Roles []*Role `protobuf:"bytes,1,rep,name=roles" json:"roles,omitempty"`
+	Roles []*Role `protobuf:"bytes,1,rep,name=roles,proto3" json:"roles,omitempty"`
 	// To retrieve the next page of results, set
 	// `ListRolesRequest.page_token` to this value.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1616,7 +1616,7 @@ type GetRoleRequest struct {
 	// `roles/{ROLE_NAME}`
 	// `organizations/{ORGANIZATION_ID}/roles/{ROLE_NAME}`
 	// `projects/{PROJECT_ID}/roles/{ROLE_NAME}`
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1658,11 +1658,11 @@ type CreateRoleRequest struct {
 	// The resource name of the parent resource in one of the following formats:
 	// `organizations/{ORGANIZATION_ID}`
 	// `projects/{PROJECT_ID}`
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// The role id to use for this role.
-	RoleId string `protobuf:"bytes,2,opt,name=role_id,json=roleId" json:"role_id,omitempty"`
+	RoleId string `protobuf:"bytes,2,opt,name=role_id,json=roleId,proto3" json:"role_id,omitempty"`
 	// The Role resource to create.
-	Role                 *Role    `protobuf:"bytes,3,opt,name=role" json:"role,omitempty"`
+	Role                 *Role    `protobuf:"bytes,3,opt,name=role,proto3" json:"role,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1719,11 +1719,11 @@ type UpdateRoleRequest struct {
 	// `roles/{ROLE_NAME}`
 	// `organizations/{ORGANIZATION_ID}/roles/{ROLE_NAME}`
 	// `projects/{PROJECT_ID}/roles/{ROLE_NAME}`
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The updated role.
-	Role *Role `protobuf:"bytes,2,opt,name=role" json:"role,omitempty"`
+	Role *Role `protobuf:"bytes,2,opt,name=role,proto3" json:"role,omitempty"`
 	// A mask describing which fields in the Role have changed.
-	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -1779,7 +1779,7 @@ type DeleteRoleRequest struct {
 	// The resource name of the role in one of the following formats:
 	// `organizations/{ORGANIZATION_ID}/roles/{ROLE_NAME}`
 	// `projects/{PROJECT_ID}/roles/{ROLE_NAME}`
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Used to perform a consistent read-modify-write.
 	Etag                 []byte   `protobuf:"bytes,2,opt,name=etag,proto3" json:"etag,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -1830,7 +1830,7 @@ type UndeleteRoleRequest struct {
 	// The resource name of the role in one of the following formats:
 	// `organizations/{ORGANIZATION_ID}/roles/{ROLE_NAME}`
 	// `projects/{PROJECT_ID}/roles/{ROLE_NAME}`
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Used to perform a consistent read-modify-write.
 	Etag                 []byte   `protobuf:"bytes,2,opt,name=etag,proto3" json:"etag,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -1879,17 +1879,17 @@ func (m *UndeleteRoleRequest) GetEtag() []byte {
 // A permission which can be included by a role.
 type Permission struct {
 	// The name of this Permission.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The title of this Permission.
-	Title string `protobuf:"bytes,2,opt,name=title" json:"title,omitempty"`
+	Title string `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
 	// A brief description of what this Permission is used for.
-	Description string `protobuf:"bytes,3,opt,name=description" json:"description,omitempty"`
+	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	// This permission can ONLY be used in predefined roles.
-	OnlyInPredefinedRoles bool `protobuf:"varint,4,opt,name=only_in_predefined_roles,json=onlyInPredefinedRoles" json:"only_in_predefined_roles,omitempty"`
+	OnlyInPredefinedRoles bool `protobuf:"varint,4,opt,name=only_in_predefined_roles,json=onlyInPredefinedRoles,proto3" json:"only_in_predefined_roles,omitempty"`
 	// The current launch stage of the permission.
-	Stage Permission_PermissionLaunchStage `protobuf:"varint,5,opt,name=stage,enum=google.iam.admin.v1.Permission_PermissionLaunchStage" json:"stage,omitempty"`
+	Stage Permission_PermissionLaunchStage `protobuf:"varint,5,opt,name=stage,proto3,enum=google.iam.admin.v1.Permission_PermissionLaunchStage" json:"stage,omitempty"`
 	// The current custom role support level.
-	CustomRolesSupportLevel Permission_CustomRolesSupportLevel `protobuf:"varint,6,opt,name=custom_roles_support_level,json=customRolesSupportLevel,enum=google.iam.admin.v1.Permission_CustomRolesSupportLevel" json:"custom_roles_support_level,omitempty"`
+	CustomRolesSupportLevel Permission_CustomRolesSupportLevel `protobuf:"varint,6,opt,name=custom_roles_support_level,json=customRolesSupportLevel,proto3,enum=google.iam.admin.v1.Permission_CustomRolesSupportLevel" json:"custom_roles_support_level,omitempty"`
 	XXX_NoUnkeyedLiteral    struct{}                           `json:"-"`
 	XXX_unrecognized        []byte                             `json:"-"`
 	XXX_sizecache           int32                              `json:"-"`
@@ -1969,12 +1969,12 @@ type QueryTestablePermissionsRequest struct {
 	// The name follows the Google Cloud Platform resource format.
 	// For example, a Cloud Platform project with id `my-project` will be named
 	// `//cloudresourcemanager.googleapis.com/projects/my-project`.
-	FullResourceName string `protobuf:"bytes,1,opt,name=full_resource_name,json=fullResourceName" json:"full_resource_name,omitempty"`
+	FullResourceName string `protobuf:"bytes,1,opt,name=full_resource_name,json=fullResourceName,proto3" json:"full_resource_name,omitempty"`
 	// Optional limit on the number of permissions to include in the response.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Optional pagination token returned in an earlier
 	// QueryTestablePermissionsRequest.
-	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -2028,10 +2028,10 @@ func (m *QueryTestablePermissionsRequest) GetPageToken() string {
 // The response containing permissions which can be tested on a resource.
 type QueryTestablePermissionsResponse struct {
 	// The Permissions testable on the requested resource.
-	Permissions []*Permission `protobuf:"bytes,1,rep,name=permissions" json:"permissions,omitempty"`
+	Permissions []*Permission `protobuf:"bytes,1,rep,name=permissions,proto3" json:"permissions,omitempty"`
 	// To retrieve the next page of results, set
 	// `QueryTestableRolesRequest.page_token` to this value.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -2402,8 +2402,7 @@ func (c *iAMClient) QueryTestablePermissions(ctx context.Context, in *QueryTesta
 	return out, nil
 }
 
-// Server API for IAM service
-
+// IAMServer is the server API for IAM service.
 type IAMServer interface {
 	// Lists [ServiceAccounts][google.iam.admin.v1.ServiceAccount] for a project.
 	ListServiceAccounts(context.Context, *ListServiceAccountsRequest) (*ListServiceAccountsResponse, error)

@@ -31,16 +31,16 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 type Context struct {
 	// Required. The unique identifier of the context. Format:
 	// `projects/<Project ID>/agent/sessions/<Session ID>/contexts/<Context ID>`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Optional. The number of conversational query requests after which the
 	// context expires. If set to `0` (the default) the context expires
 	// immediately. Contexts expire automatically after 10 minutes even if there
 	// are no matching queries.
-	LifespanCount int32 `protobuf:"varint,2,opt,name=lifespan_count,json=lifespanCount" json:"lifespan_count,omitempty"`
+	LifespanCount int32 `protobuf:"varint,2,opt,name=lifespan_count,json=lifespanCount,proto3" json:"lifespan_count,omitempty"`
 	// Optional. The collection of parameters associated with this context.
 	// Refer to [this doc](https://dialogflow.com/docs/actions-and-parameters) for
 	// syntax.
-	Parameters           *_struct.Struct `protobuf:"bytes,3,opt,name=parameters" json:"parameters,omitempty"`
+	Parameters           *_struct.Struct `protobuf:"bytes,3,opt,name=parameters,proto3" json:"parameters,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
 	XXX_unrecognized     []byte          `json:"-"`
 	XXX_sizecache        int32           `json:"-"`
@@ -95,12 +95,12 @@ func (m *Context) GetParameters() *_struct.Struct {
 type ListContextsRequest struct {
 	// Required. The session to list all contexts from.
 	// Format: `projects/<Project ID>/agent/sessions/<Session ID>`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Optional. The maximum number of items to return in a single page. By
 	// default 100 and at most 1000.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Optional. The next_page_token value returned from a previous list request.
-	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -155,10 +155,10 @@ func (m *ListContextsRequest) GetPageToken() string {
 type ListContextsResponse struct {
 	// The list of contexts. There will be a maximum number of items
 	// returned based on the page_size field in the request.
-	Contexts []*Context `protobuf:"bytes,1,rep,name=contexts" json:"contexts,omitempty"`
+	Contexts []*Context `protobuf:"bytes,1,rep,name=contexts,proto3" json:"contexts,omitempty"`
 	// Token to retrieve the next page of results, or empty if there are no
 	// more results in the list.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -206,7 +206,7 @@ func (m *ListContextsResponse) GetNextPageToken() string {
 type GetContextRequest struct {
 	// Required. The name of the context. Format:
 	// `projects/<Project ID>/agent/sessions/<Session ID>/contexts/<Context ID>`.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -247,9 +247,9 @@ func (m *GetContextRequest) GetName() string {
 type CreateContextRequest struct {
 	// Required. The session to create a context for.
 	// Format: `projects/<Project ID>/agent/sessions/<Session ID>`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Required. The context to create.
-	Context              *Context `protobuf:"bytes,2,opt,name=context" json:"context,omitempty"`
+	Context              *Context `protobuf:"bytes,2,opt,name=context,proto3" json:"context,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -296,9 +296,9 @@ func (m *CreateContextRequest) GetContext() *Context {
 // The request message for [Contexts.UpdateContext][google.cloud.dialogflow.v2.Contexts.UpdateContext].
 type UpdateContextRequest struct {
 	// Required. The context to update.
-	Context *Context `protobuf:"bytes,1,opt,name=context" json:"context,omitempty"`
+	Context *Context `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
 	// Optional. The mask to control which fields get updated.
-	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -346,7 +346,7 @@ func (m *UpdateContextRequest) GetUpdateMask() *field_mask.FieldMask {
 type DeleteContextRequest struct {
 	// Required. The name of the context to delete. Format:
 	// `projects/<Project ID>/agent/sessions/<Session ID>/contexts/<Context ID>`.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -387,7 +387,7 @@ func (m *DeleteContextRequest) GetName() string {
 type DeleteAllContextsRequest struct {
 	// Required. The name of the session to delete all contexts from. Format:
 	// `projects/<Project ID>/agent/sessions/<Session ID>`.
-	Parent               string   `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent               string   `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -523,8 +523,7 @@ func (c *contextsClient) DeleteAllContexts(ctx context.Context, in *DeleteAllCon
 	return out, nil
 }
 
-// Server API for Contexts service
-
+// ContextsServer is the server API for Contexts service.
 type ContextsServer interface {
 	// Returns the list of all contexts in the specified session.
 	ListContexts(context.Context, *ListContextsRequest) (*ListContextsResponse, error)

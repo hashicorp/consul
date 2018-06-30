@@ -30,13 +30,13 @@ type Book struct {
 	// The resource name of the book.
 	// Book names have the form `shelves/{shelf_id}/books/{book_id}`.
 	// The name is ignored when creating a book.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The name of the book author.
-	Author string `protobuf:"bytes,2,opt,name=author" json:"author,omitempty"`
+	Author string `protobuf:"bytes,2,opt,name=author,proto3" json:"author,omitempty"`
 	// The title of the book.
-	Title string `protobuf:"bytes,3,opt,name=title" json:"title,omitempty"`
+	Title string `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
 	// Value indicating whether the book has been read.
-	Read                 bool     `protobuf:"varint,4,opt,name=read" json:"read,omitempty"`
+	Read                 bool     `protobuf:"varint,4,opt,name=read,proto3" json:"read,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -99,9 +99,9 @@ type Shelf struct {
 	// The resource name of the shelf.
 	// Shelf names have the form `shelves/{shelf_id}`.
 	// The name is ignored when creating a shelf.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The theme of the shelf
-	Theme                string   `protobuf:"bytes,2,opt,name=theme" json:"theme,omitempty"`
+	Theme                string   `protobuf:"bytes,2,opt,name=theme,proto3" json:"theme,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -148,7 +148,7 @@ func (m *Shelf) GetTheme() string {
 // Request message for LibraryService.CreateShelf.
 type CreateShelfRequest struct {
 	// The shelf to create.
-	Shelf                *Shelf   `protobuf:"bytes,1,opt,name=shelf" json:"shelf,omitempty"`
+	Shelf                *Shelf   `protobuf:"bytes,1,opt,name=shelf,proto3" json:"shelf,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -188,7 +188,7 @@ func (m *CreateShelfRequest) GetShelf() *Shelf {
 // Request message for LibraryService.GetShelf.
 type GetShelfRequest struct {
 	// The name of the shelf to retrieve.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -229,12 +229,12 @@ func (m *GetShelfRequest) GetName() string {
 type ListShelvesRequest struct {
 	// Requested page size. Server may return fewer shelves than requested.
 	// If unspecified, server will pick an appropriate default.
-	PageSize int32 `protobuf:"varint,1,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// A token identifying a page of results the server should return.
 	// Typically, this is the value of
 	// [ListShelvesResponse.next_page_token][google.example.library.v1.ListShelvesResponse.next_page_token]
 	// returned from the previous call to `ListShelves` method.
-	PageToken            string   `protobuf:"bytes,2,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -281,13 +281,13 @@ func (m *ListShelvesRequest) GetPageToken() string {
 // Response message for LibraryService.ListShelves.
 type ListShelvesResponse struct {
 	// The list of shelves.
-	Shelves []*Shelf `protobuf:"bytes,1,rep,name=shelves" json:"shelves,omitempty"`
+	Shelves []*Shelf `protobuf:"bytes,1,rep,name=shelves,proto3" json:"shelves,omitempty"`
 	// A token to retrieve next page of results.
 	// Pass this value in the
 	// [ListShelvesRequest.page_token][google.example.library.v1.ListShelvesRequest.page_token]
 	// field in the subsequent call to `ListShelves` method to retrieve the next
 	// page of results.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -334,7 +334,7 @@ func (m *ListShelvesResponse) GetNextPageToken() string {
 // Request message for LibraryService.DeleteShelf.
 type DeleteShelfRequest struct {
 	// The name of the shelf to delete.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -375,9 +375,9 @@ func (m *DeleteShelfRequest) GetName() string {
 // (name) in this merge.
 type MergeShelvesRequest struct {
 	// The name of the shelf we're adding books to.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The name of the shelf we're removing books from and deleting.
-	OtherShelfName       string   `protobuf:"bytes,2,opt,name=other_shelf_name,json=otherShelfName" json:"other_shelf_name,omitempty"`
+	OtherShelfName       string   `protobuf:"bytes,2,opt,name=other_shelf_name,json=otherShelfName,proto3" json:"other_shelf_name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -424,9 +424,9 @@ func (m *MergeShelvesRequest) GetOtherShelfName() string {
 // Request message for LibraryService.CreateBook.
 type CreateBookRequest struct {
 	// The name of the shelf in which the book is created.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The book to create.
-	Book                 *Book    `protobuf:"bytes,2,opt,name=book" json:"book,omitempty"`
+	Book                 *Book    `protobuf:"bytes,2,opt,name=book,proto3" json:"book,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -473,7 +473,7 @@ func (m *CreateBookRequest) GetBook() *Book {
 // Request message for LibraryService.GetBook.
 type GetBookRequest struct {
 	// The name of the book to retrieve.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -513,15 +513,15 @@ func (m *GetBookRequest) GetName() string {
 // Request message for LibraryService.ListBooks.
 type ListBooksRequest struct {
 	// The name of the shelf whose books we'd like to list.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Requested page size. Server may return fewer books than requested.
 	// If unspecified, server will pick an appropriate default.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// A token identifying a page of results the server should return.
 	// Typically, this is the value of
 	// [ListBooksResponse.next_page_token][google.example.library.v1.ListBooksResponse.next_page_token].
 	// returned from the previous call to `ListBooks` method.
-	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -575,13 +575,13 @@ func (m *ListBooksRequest) GetPageToken() string {
 // Response message for LibraryService.ListBooks.
 type ListBooksResponse struct {
 	// The list of books.
-	Books []*Book `protobuf:"bytes,1,rep,name=books" json:"books,omitempty"`
+	Books []*Book `protobuf:"bytes,1,rep,name=books,proto3" json:"books,omitempty"`
 	// A token to retrieve next page of results.
 	// Pass this value in the
 	// [ListBooksRequest.page_token][google.example.library.v1.ListBooksRequest.page_token]
 	// field in the subsequent call to `ListBooks` method to retrieve the next
 	// page of results.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -628,9 +628,9 @@ func (m *ListBooksResponse) GetNextPageToken() string {
 // Request message for LibraryService.UpdateBook.
 type UpdateBookRequest struct {
 	// The name of the book to update.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The book to update with. The name must match or be empty.
-	Book                 *Book    `protobuf:"bytes,2,opt,name=book" json:"book,omitempty"`
+	Book                 *Book    `protobuf:"bytes,2,opt,name=book,proto3" json:"book,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -677,7 +677,7 @@ func (m *UpdateBookRequest) GetBook() *Book {
 // Request message for LibraryService.DeleteBook.
 type DeleteBookRequest struct {
 	// The name of the book to delete.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -718,9 +718,9 @@ func (m *DeleteBookRequest) GetName() string {
 // to (other_shelf_name).
 type MoveBookRequest struct {
 	// The name of the book to move.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The name of the destination shelf.
-	OtherShelfName       string   `protobuf:"bytes,2,opt,name=other_shelf_name,json=otherShelfName" json:"other_shelf_name,omitempty"`
+	OtherShelfName       string   `protobuf:"bytes,2,opt,name=other_shelf_name,json=otherShelfName,proto3" json:"other_shelf_name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -936,8 +936,7 @@ func (c *libraryServiceClient) MoveBook(ctx context.Context, in *MoveBookRequest
 	return out, nil
 }
 
-// Server API for LibraryService service
-
+// LibraryServiceServer is the server API for LibraryService service.
 type LibraryServiceServer interface {
 	// Creates a shelf, and returns the new Shelf.
 	CreateShelf(context.Context, *CreateShelfRequest) (*Shelf, error)

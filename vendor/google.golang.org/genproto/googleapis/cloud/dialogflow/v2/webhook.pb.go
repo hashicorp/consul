@@ -25,16 +25,16 @@ type WebhookRequest struct {
 	// The unique identifier of detectIntent request session.
 	// Can be used to identify end-user inside webhook implementation.
 	// Format: `projects/<Project ID>/agent/sessions/<Session ID>`.
-	Session string `protobuf:"bytes,4,opt,name=session" json:"session,omitempty"`
+	Session string `protobuf:"bytes,4,opt,name=session,proto3" json:"session,omitempty"`
 	// The unique identifier of the response. Contains the same value as
 	// `[Streaming]DetectIntentResponse.response_id`.
-	ResponseId string `protobuf:"bytes,1,opt,name=response_id,json=responseId" json:"response_id,omitempty"`
+	ResponseId string `protobuf:"bytes,1,opt,name=response_id,json=responseId,proto3" json:"response_id,omitempty"`
 	// The result of the conversational query or event processing. Contains the
 	// same value as `[Streaming]DetectIntentResponse.query_result`.
-	QueryResult *QueryResult `protobuf:"bytes,2,opt,name=query_result,json=queryResult" json:"query_result,omitempty"`
+	QueryResult *QueryResult `protobuf:"bytes,2,opt,name=query_result,json=queryResult,proto3" json:"query_result,omitempty"`
 	// Optional. The contents of the original request that was passed to
 	// `[Streaming]DetectIntent` call.
-	OriginalDetectIntentRequest *OriginalDetectIntentRequest `protobuf:"bytes,3,opt,name=original_detect_intent_request,json=originalDetectIntentRequest" json:"original_detect_intent_request,omitempty"`
+	OriginalDetectIntentRequest *OriginalDetectIntentRequest `protobuf:"bytes,3,opt,name=original_detect_intent_request,json=originalDetectIntentRequest,proto3" json:"original_detect_intent_request,omitempty"`
 	XXX_NoUnkeyedLiteral        struct{}                     `json:"-"`
 	XXX_unrecognized            []byte                       `json:"-"`
 	XXX_sizecache               int32                        `json:"-"`
@@ -96,12 +96,12 @@ func (m *WebhookRequest) GetOriginalDetectIntentRequest() *OriginalDetectIntentR
 type WebhookResponse struct {
 	// Optional. The text to be shown on the screen. This value is passed directly
 	// to `QueryResult.fulfillment_text`.
-	FulfillmentText string `protobuf:"bytes,1,opt,name=fulfillment_text,json=fulfillmentText" json:"fulfillment_text,omitempty"`
+	FulfillmentText string `protobuf:"bytes,1,opt,name=fulfillment_text,json=fulfillmentText,proto3" json:"fulfillment_text,omitempty"`
 	// Optional. The collection of rich messages to present to the user. This
 	// value is passed directly to `QueryResult.fulfillment_messages`.
-	FulfillmentMessages []*Intent_Message `protobuf:"bytes,2,rep,name=fulfillment_messages,json=fulfillmentMessages" json:"fulfillment_messages,omitempty"`
+	FulfillmentMessages []*Intent_Message `protobuf:"bytes,2,rep,name=fulfillment_messages,json=fulfillmentMessages,proto3" json:"fulfillment_messages,omitempty"`
 	// Optional. This value is passed directly to `QueryResult.webhook_source`.
-	Source string `protobuf:"bytes,3,opt,name=source" json:"source,omitempty"`
+	Source string `protobuf:"bytes,3,opt,name=source,proto3" json:"source,omitempty"`
 	// Optional. This value is passed directly to `QueryResult.webhook_payload`.
 	// See the related `fulfillment_messages[i].payload field`, which may be used
 	// as an alternative to this field.
@@ -125,13 +125,13 @@ type WebhookResponse struct {
 	//     }
 	//   }
 	// }</pre>
-	Payload *_struct.Struct `protobuf:"bytes,4,opt,name=payload" json:"payload,omitempty"`
+	Payload *_struct.Struct `protobuf:"bytes,4,opt,name=payload,proto3" json:"payload,omitempty"`
 	// Optional. The collection of output contexts. This value is passed directly
 	// to `QueryResult.output_contexts`.
-	OutputContexts []*Context `protobuf:"bytes,5,rep,name=output_contexts,json=outputContexts" json:"output_contexts,omitempty"`
+	OutputContexts []*Context `protobuf:"bytes,5,rep,name=output_contexts,json=outputContexts,proto3" json:"output_contexts,omitempty"`
 	// Optional. Makes the platform immediately invoke another `DetectIntent` call
 	// internally with the specified event as input.
-	FollowupEventInput   *EventInput `protobuf:"bytes,6,opt,name=followup_event_input,json=followupEventInput" json:"followup_event_input,omitempty"`
+	FollowupEventInput   *EventInput `protobuf:"bytes,6,opt,name=followup_event_input,json=followupEventInput,proto3" json:"followup_event_input,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
 	XXX_unrecognized     []byte      `json:"-"`
 	XXX_sizecache        int32       `json:"-"`
@@ -208,10 +208,10 @@ func (m *WebhookResponse) GetFollowupEventInput() *EventInput {
 type OriginalDetectIntentRequest struct {
 	// The source of this request, e.g., `google`, `facebook`, `slack`. It is set
 	// by Dialogflow-owned servers.
-	Source string `protobuf:"bytes,1,opt,name=source" json:"source,omitempty"`
+	Source string `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
 	// Optional. This field is set to the value of `QueryParameters.payload` field
 	// passed in the request.
-	Payload              *_struct.Struct `protobuf:"bytes,3,opt,name=payload" json:"payload,omitempty"`
+	Payload              *_struct.Struct `protobuf:"bytes,3,opt,name=payload,proto3" json:"payload,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
 	XXX_unrecognized     []byte          `json:"-"`
 	XXX_sizecache        int32           `json:"-"`

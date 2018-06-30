@@ -25,49 +25,49 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 // information MUST be defined in a separate message.
 type HttpRequest struct {
 	// The request method. Examples: `"GET"`, `"HEAD"`, `"PUT"`, `"POST"`.
-	RequestMethod string `protobuf:"bytes,1,opt,name=request_method,json=requestMethod" json:"request_method,omitempty"`
+	RequestMethod string `protobuf:"bytes,1,opt,name=request_method,json=requestMethod,proto3" json:"request_method,omitempty"`
 	// The scheme (http, https), the host name, the path and the query
 	// portion of the URL that was requested.
 	// Example: `"http://example.com/some/info?color=red"`.
-	RequestUrl string `protobuf:"bytes,2,opt,name=request_url,json=requestUrl" json:"request_url,omitempty"`
+	RequestUrl string `protobuf:"bytes,2,opt,name=request_url,json=requestUrl,proto3" json:"request_url,omitempty"`
 	// The size of the HTTP request message in bytes, including the request
 	// headers and the request body.
-	RequestSize int64 `protobuf:"varint,3,opt,name=request_size,json=requestSize" json:"request_size,omitempty"`
+	RequestSize int64 `protobuf:"varint,3,opt,name=request_size,json=requestSize,proto3" json:"request_size,omitempty"`
 	// The response code indicating the status of response.
 	// Examples: 200, 404.
-	Status int32 `protobuf:"varint,4,opt,name=status" json:"status,omitempty"`
+	Status int32 `protobuf:"varint,4,opt,name=status,proto3" json:"status,omitempty"`
 	// The size of the HTTP response message sent back to the client, in bytes,
 	// including the response headers and the response body.
-	ResponseSize int64 `protobuf:"varint,5,opt,name=response_size,json=responseSize" json:"response_size,omitempty"`
+	ResponseSize int64 `protobuf:"varint,5,opt,name=response_size,json=responseSize,proto3" json:"response_size,omitempty"`
 	// The user agent sent by the client. Example:
 	// `"Mozilla/4.0 (compatible; MSIE 6.0; Windows 98; Q312461; .NET CLR 1.0.3705)"`.
-	UserAgent string `protobuf:"bytes,6,opt,name=user_agent,json=userAgent" json:"user_agent,omitempty"`
+	UserAgent string `protobuf:"bytes,6,opt,name=user_agent,json=userAgent,proto3" json:"user_agent,omitempty"`
 	// The IP address (IPv4 or IPv6) of the client that issued the HTTP
 	// request. Examples: `"192.168.1.1"`, `"FE80::0202:B3FF:FE1E:8329"`.
-	RemoteIp string `protobuf:"bytes,7,opt,name=remote_ip,json=remoteIp" json:"remote_ip,omitempty"`
+	RemoteIp string `protobuf:"bytes,7,opt,name=remote_ip,json=remoteIp,proto3" json:"remote_ip,omitempty"`
 	// The IP address (IPv4 or IPv6) of the origin server that the request was
 	// sent to.
-	ServerIp string `protobuf:"bytes,13,opt,name=server_ip,json=serverIp" json:"server_ip,omitempty"`
+	ServerIp string `protobuf:"bytes,13,opt,name=server_ip,json=serverIp,proto3" json:"server_ip,omitempty"`
 	// The referer URL of the request, as defined in
 	// [HTTP/1.1 Header Field Definitions](http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html).
-	Referer string `protobuf:"bytes,8,opt,name=referer" json:"referer,omitempty"`
+	Referer string `protobuf:"bytes,8,opt,name=referer,proto3" json:"referer,omitempty"`
 	// The request processing latency on the server, from the time the request was
 	// received until the response was sent.
-	Latency *duration.Duration `protobuf:"bytes,14,opt,name=latency" json:"latency,omitempty"`
+	Latency *duration.Duration `protobuf:"bytes,14,opt,name=latency,proto3" json:"latency,omitempty"`
 	// Whether or not a cache lookup was attempted.
-	CacheLookup bool `protobuf:"varint,11,opt,name=cache_lookup,json=cacheLookup" json:"cache_lookup,omitempty"`
+	CacheLookup bool `protobuf:"varint,11,opt,name=cache_lookup,json=cacheLookup,proto3" json:"cache_lookup,omitempty"`
 	// Whether or not an entity was served from cache
 	// (with or without validation).
-	CacheHit bool `protobuf:"varint,9,opt,name=cache_hit,json=cacheHit" json:"cache_hit,omitempty"`
+	CacheHit bool `protobuf:"varint,9,opt,name=cache_hit,json=cacheHit,proto3" json:"cache_hit,omitempty"`
 	// Whether or not the response was validated with the origin server before
 	// being served from cache. This field is only meaningful if `cache_hit` is
 	// True.
-	CacheValidatedWithOriginServer bool `protobuf:"varint,10,opt,name=cache_validated_with_origin_server,json=cacheValidatedWithOriginServer" json:"cache_validated_with_origin_server,omitempty"`
+	CacheValidatedWithOriginServer bool `protobuf:"varint,10,opt,name=cache_validated_with_origin_server,json=cacheValidatedWithOriginServer,proto3" json:"cache_validated_with_origin_server,omitempty"`
 	// The number of HTTP response bytes inserted into cache. Set only when a
 	// cache fill was attempted.
-	CacheFillBytes int64 `protobuf:"varint,12,opt,name=cache_fill_bytes,json=cacheFillBytes" json:"cache_fill_bytes,omitempty"`
+	CacheFillBytes int64 `protobuf:"varint,12,opt,name=cache_fill_bytes,json=cacheFillBytes,proto3" json:"cache_fill_bytes,omitempty"`
 	// Protocol used for the request. Examples: "HTTP/1.1", "HTTP/2", "websocket"
-	Protocol             string   `protobuf:"bytes,15,opt,name=protocol" json:"protocol,omitempty"`
+	Protocol             string   `protobuf:"bytes,15,opt,name=protocol,proto3" json:"protocol,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -77,7 +77,7 @@ func (m *HttpRequest) Reset()         { *m = HttpRequest{} }
 func (m *HttpRequest) String() string { return proto.CompactTextString(m) }
 func (*HttpRequest) ProtoMessage()    {}
 func (*HttpRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_http_request_512b09169cdf78ff, []int{0}
+	return fileDescriptor_http_request_e718ea9739c965d6, []int{0}
 }
 func (m *HttpRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_HttpRequest.Unmarshal(m, b)
@@ -207,10 +207,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("google/logging/type/http_request.proto", fileDescriptor_http_request_512b09169cdf78ff)
+	proto.RegisterFile("google/logging/type/http_request.proto", fileDescriptor_http_request_e718ea9739c965d6)
 }
 
-var fileDescriptor_http_request_512b09169cdf78ff = []byte{
+var fileDescriptor_http_request_e718ea9739c965d6 = []byte{
 	// 511 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x92, 0x5b, 0x6b, 0x14, 0x31,
 	0x18, 0x86, 0x99, 0x1e, 0xf6, 0x90, 0x3d, 0x58, 0x22, 0x68, 0xba, 0x6a, 0x5d, 0x2b, 0xca, 0x5c,

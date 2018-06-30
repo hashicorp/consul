@@ -36,11 +36,11 @@ type CreateAlertPolicyRequest struct {
 	// policy that is returned will have a name that contains a normalized
 	// representation of this name as a prefix but adds a suffix of the form
 	// `/alertPolicies/[POLICY_ID]`, identifying the policy in the container.
-	Name string `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	// The requested alerting policy. You should omit the `name` field in this
 	// policy. The name will be returned in the new policy, including
 	// a new [ALERT_POLICY_ID] value.
-	AlertPolicy          *AlertPolicy `protobuf:"bytes,2,opt,name=alert_policy,json=alertPolicy" json:"alert_policy,omitempty"`
+	AlertPolicy          *AlertPolicy `protobuf:"bytes,2,opt,name=alert_policy,json=alertPolicy,proto3" json:"alert_policy,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
 	XXX_unrecognized     []byte       `json:"-"`
 	XXX_sizecache        int32        `json:"-"`
@@ -89,7 +89,7 @@ type GetAlertPolicyRequest struct {
 	// The alerting policy to retrieve. The format is
 	//
 	//     projects/[PROJECT_ID]/alertPolicies/[ALERT_POLICY_ID]
-	Name                 string   `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -137,26 +137,26 @@ type ListAlertPoliciesRequest struct {
 	// by name, use the
 	// [GetAlertPolicy][google.monitoring.v3.AlertPolicyService.GetAlertPolicy]
 	// operation, instead.
-	Name string `protobuf:"bytes,4,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
 	// If provided, this field specifies the criteria that must be met by
 	// alert policies to be included in the response.
 	//
 	// For more details, see [sorting and
 	// filtering](/monitoring/api/v3/sorting-and-filtering).
-	Filter string `protobuf:"bytes,5,opt,name=filter" json:"filter,omitempty"`
+	Filter string `protobuf:"bytes,5,opt,name=filter,proto3" json:"filter,omitempty"`
 	// A comma-separated list of fields by which to sort the result. Supports
 	// the same set of field references as the `filter` field. Entries can be
 	// prefixed with a minus sign to sort by the field in descending order.
 	//
 	// For more details, see [sorting and
 	// filtering](/monitoring/api/v3/sorting-and-filtering).
-	OrderBy string `protobuf:"bytes,6,opt,name=order_by,json=orderBy" json:"order_by,omitempty"`
+	OrderBy string `protobuf:"bytes,6,opt,name=order_by,json=orderBy,proto3" json:"order_by,omitempty"`
 	// The maximum number of results to return in a single response.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// If this field is not empty then it must contain the `nextPageToken` value
 	// returned by a previous call to this method.  Using this field causes the
 	// method to return more results from the previous method call.
-	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -224,11 +224,11 @@ func (m *ListAlertPoliciesRequest) GetPageToken() string {
 // The protocol for the `ListAlertPolicies` response.
 type ListAlertPoliciesResponse struct {
 	// The returned alert policies.
-	AlertPolicies []*AlertPolicy `protobuf:"bytes,3,rep,name=alert_policies,json=alertPolicies" json:"alert_policies,omitempty"`
+	AlertPolicies []*AlertPolicy `protobuf:"bytes,3,rep,name=alert_policies,json=alertPolicies,proto3" json:"alert_policies,omitempty"`
 	// If there might be more results than were returned, then this field is set
 	// to a non-empty value. To see the additional results,
 	// use that value as `pageToken` in the next call to this method.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -295,12 +295,12 @@ type UpdateAlertPolicyRequest struct {
 	//     the supplied condition includes the `name` field with that
 	//     `[CONDITION_ID]`. If the supplied condition omits the `name` field,
 	//     then a new `[CONDITION_ID]` is created.
-	UpdateMask *field_mask.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask *field_mask.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	// Required. The updated alerting policy or the updated values for the
 	// fields listed in `update_mask`.
 	// If `update_mask` is not empty, any fields in this policy that are
 	// not in `update_mask` are ignored.
-	AlertPolicy          *AlertPolicy `protobuf:"bytes,3,opt,name=alert_policy,json=alertPolicy" json:"alert_policy,omitempty"`
+	AlertPolicy          *AlertPolicy `protobuf:"bytes,3,opt,name=alert_policy,json=alertPolicy,proto3" json:"alert_policy,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
 	XXX_unrecognized     []byte       `json:"-"`
 	XXX_sizecache        int32        `json:"-"`
@@ -351,7 +351,7 @@ type DeleteAlertPolicyRequest struct {
 	//     projects/[PROJECT_ID]/alertPolicies/[ALERT_POLICY_ID]
 	//
 	// For more information, see [AlertPolicy][google.monitoring.v3.AlertPolicy].
-	Name                 string   `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -477,8 +477,7 @@ func (c *alertPolicyServiceClient) UpdateAlertPolicy(ctx context.Context, in *Up
 	return out, nil
 }
 
-// Server API for AlertPolicyService service
-
+// AlertPolicyServiceServer is the server API for AlertPolicyService service.
 type AlertPolicyServiceServer interface {
 	// Lists the existing alerting policies for the project.
 	ListAlertPolicies(context.Context, *ListAlertPoliciesRequest) (*ListAlertPoliciesResponse, error)

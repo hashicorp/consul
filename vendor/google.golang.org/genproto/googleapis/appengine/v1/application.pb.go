@@ -27,22 +27,22 @@ type Application struct {
 	// Example: `apps/myapp`.
 	//
 	// @OutputOnly
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Identifier of the Application resource. This identifier is equivalent
 	// to the project ID of the Google Cloud Platform project where you want to
 	// deploy your application.
 	// Example: `myapp`.
-	Id string `protobuf:"bytes,2,opt,name=id" json:"id,omitempty"`
+	Id string `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
 	// HTTP path dispatch rules for requests to the application that do not
 	// explicitly target a service or version. Rules are order-dependent.
 	//
 	// @OutputOnly
-	DispatchRules []*UrlDispatchRule `protobuf:"bytes,3,rep,name=dispatch_rules,json=dispatchRules" json:"dispatch_rules,omitempty"`
+	DispatchRules []*UrlDispatchRule `protobuf:"bytes,3,rep,name=dispatch_rules,json=dispatchRules,proto3" json:"dispatch_rules,omitempty"`
 	// Google Apps authentication domain that controls which users can access
 	// this application.
 	//
 	// Defaults to open access for any Google Account.
-	AuthDomain string `protobuf:"bytes,6,opt,name=auth_domain,json=authDomain" json:"auth_domain,omitempty"`
+	AuthDomain string `protobuf:"bytes,6,opt,name=auth_domain,json=authDomain,proto3" json:"auth_domain,omitempty"`
 	// Location from which this application will be run. Application instances
 	// will run out of data centers in the chosen location, which is also where
 	// all of the application's end user content is stored.
@@ -56,26 +56,26 @@ type Application struct {
 	// `europe-west` - Western Europe
 	//
 	// `us-east1` - Eastern US
-	LocationId string `protobuf:"bytes,7,opt,name=location_id,json=locationId" json:"location_id,omitempty"`
+	LocationId string `protobuf:"bytes,7,opt,name=location_id,json=locationId,proto3" json:"location_id,omitempty"`
 	// Google Cloud Storage bucket that can be used for storing files
 	// associated with this application. This bucket is associated with the
 	// application and can be used by the gcloud deployment commands.
 	//
 	// @OutputOnly
-	CodeBucket string `protobuf:"bytes,8,opt,name=code_bucket,json=codeBucket" json:"code_bucket,omitempty"`
+	CodeBucket string `protobuf:"bytes,8,opt,name=code_bucket,json=codeBucket,proto3" json:"code_bucket,omitempty"`
 	// Cookie expiration policy for this application.
 	//
 	// @OutputOnly
-	DefaultCookieExpiration *duration.Duration `protobuf:"bytes,9,opt,name=default_cookie_expiration,json=defaultCookieExpiration" json:"default_cookie_expiration,omitempty"`
+	DefaultCookieExpiration *duration.Duration `protobuf:"bytes,9,opt,name=default_cookie_expiration,json=defaultCookieExpiration,proto3" json:"default_cookie_expiration,omitempty"`
 	// Hostname used to reach this application, as resolved by App Engine.
 	//
 	// @OutputOnly
-	DefaultHostname string `protobuf:"bytes,11,opt,name=default_hostname,json=defaultHostname" json:"default_hostname,omitempty"`
+	DefaultHostname string `protobuf:"bytes,11,opt,name=default_hostname,json=defaultHostname,proto3" json:"default_hostname,omitempty"`
 	// Google Cloud Storage bucket that can be used by this application to store
 	// content.
 	//
 	// @OutputOnly
-	DefaultBucket        string   `protobuf:"bytes,12,opt,name=default_bucket,json=defaultBucket" json:"default_bucket,omitempty"`
+	DefaultBucket        string   `protobuf:"bytes,12,opt,name=default_bucket,json=defaultBucket,proto3" json:"default_bucket,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -174,16 +174,16 @@ type UrlDispatchRule struct {
 	// specified before a period: "`*.`".
 	//
 	// Defaults to matching all domains: "`*`".
-	Domain string `protobuf:"bytes,1,opt,name=domain" json:"domain,omitempty"`
+	Domain string `protobuf:"bytes,1,opt,name=domain,proto3" json:"domain,omitempty"`
 	// Pathname within the host. Must start with a "`/`". A
 	// single "`*`" can be included at the end of the path. The sum
 	// of the lengths of the domain and path may not exceed 100
 	// characters.
-	Path string `protobuf:"bytes,2,opt,name=path" json:"path,omitempty"`
+	Path string `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
 	// Resource ID of a service in this application that should
 	// serve the matched request. The service must already
 	// exist. Example: `default`.
-	Service              string   `protobuf:"bytes,3,opt,name=service" json:"service,omitempty"`
+	Service              string   `protobuf:"bytes,3,opt,name=service,proto3" json:"service,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

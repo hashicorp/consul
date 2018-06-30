@@ -72,6 +72,10 @@ type InspectorAPI interface {
 	CreateAssessmentTemplateWithContext(aws.Context, *inspector.CreateAssessmentTemplateInput, ...request.Option) (*inspector.CreateAssessmentTemplateOutput, error)
 	CreateAssessmentTemplateRequest(*inspector.CreateAssessmentTemplateInput) (*request.Request, *inspector.CreateAssessmentTemplateOutput)
 
+	CreateExclusionsPreview(*inspector.CreateExclusionsPreviewInput) (*inspector.CreateExclusionsPreviewOutput, error)
+	CreateExclusionsPreviewWithContext(aws.Context, *inspector.CreateExclusionsPreviewInput, ...request.Option) (*inspector.CreateExclusionsPreviewOutput, error)
+	CreateExclusionsPreviewRequest(*inspector.CreateExclusionsPreviewInput) (*request.Request, *inspector.CreateExclusionsPreviewOutput)
+
 	CreateResourceGroup(*inspector.CreateResourceGroupInput) (*inspector.CreateResourceGroupOutput, error)
 	CreateResourceGroupWithContext(aws.Context, *inspector.CreateResourceGroupInput, ...request.Option) (*inspector.CreateResourceGroupOutput, error)
 	CreateResourceGroupRequest(*inspector.CreateResourceGroupInput) (*request.Request, *inspector.CreateResourceGroupOutput)
@@ -104,6 +108,10 @@ type InspectorAPI interface {
 	DescribeCrossAccountAccessRoleWithContext(aws.Context, *inspector.DescribeCrossAccountAccessRoleInput, ...request.Option) (*inspector.DescribeCrossAccountAccessRoleOutput, error)
 	DescribeCrossAccountAccessRoleRequest(*inspector.DescribeCrossAccountAccessRoleInput) (*request.Request, *inspector.DescribeCrossAccountAccessRoleOutput)
 
+	DescribeExclusions(*inspector.DescribeExclusionsInput) (*inspector.DescribeExclusionsOutput, error)
+	DescribeExclusionsWithContext(aws.Context, *inspector.DescribeExclusionsInput, ...request.Option) (*inspector.DescribeExclusionsOutput, error)
+	DescribeExclusionsRequest(*inspector.DescribeExclusionsInput) (*request.Request, *inspector.DescribeExclusionsOutput)
+
 	DescribeFindings(*inspector.DescribeFindingsInput) (*inspector.DescribeFindingsOutput, error)
 	DescribeFindingsWithContext(aws.Context, *inspector.DescribeFindingsInput, ...request.Option) (*inspector.DescribeFindingsOutput, error)
 	DescribeFindingsRequest(*inspector.DescribeFindingsInput) (*request.Request, *inspector.DescribeFindingsOutput)
@@ -119,6 +127,13 @@ type InspectorAPI interface {
 	GetAssessmentReport(*inspector.GetAssessmentReportInput) (*inspector.GetAssessmentReportOutput, error)
 	GetAssessmentReportWithContext(aws.Context, *inspector.GetAssessmentReportInput, ...request.Option) (*inspector.GetAssessmentReportOutput, error)
 	GetAssessmentReportRequest(*inspector.GetAssessmentReportInput) (*request.Request, *inspector.GetAssessmentReportOutput)
+
+	GetExclusionsPreview(*inspector.GetExclusionsPreviewInput) (*inspector.GetExclusionsPreviewOutput, error)
+	GetExclusionsPreviewWithContext(aws.Context, *inspector.GetExclusionsPreviewInput, ...request.Option) (*inspector.GetExclusionsPreviewOutput, error)
+	GetExclusionsPreviewRequest(*inspector.GetExclusionsPreviewInput) (*request.Request, *inspector.GetExclusionsPreviewOutput)
+
+	GetExclusionsPreviewPages(*inspector.GetExclusionsPreviewInput, func(*inspector.GetExclusionsPreviewOutput, bool) bool) error
+	GetExclusionsPreviewPagesWithContext(aws.Context, *inspector.GetExclusionsPreviewInput, func(*inspector.GetExclusionsPreviewOutput, bool) bool, ...request.Option) error
 
 	GetTelemetryMetadata(*inspector.GetTelemetryMetadataInput) (*inspector.GetTelemetryMetadataOutput, error)
 	GetTelemetryMetadataWithContext(aws.Context, *inspector.GetTelemetryMetadataInput, ...request.Option) (*inspector.GetTelemetryMetadataOutput, error)
@@ -158,6 +173,13 @@ type InspectorAPI interface {
 
 	ListEventSubscriptionsPages(*inspector.ListEventSubscriptionsInput, func(*inspector.ListEventSubscriptionsOutput, bool) bool) error
 	ListEventSubscriptionsPagesWithContext(aws.Context, *inspector.ListEventSubscriptionsInput, func(*inspector.ListEventSubscriptionsOutput, bool) bool, ...request.Option) error
+
+	ListExclusions(*inspector.ListExclusionsInput) (*inspector.ListExclusionsOutput, error)
+	ListExclusionsWithContext(aws.Context, *inspector.ListExclusionsInput, ...request.Option) (*inspector.ListExclusionsOutput, error)
+	ListExclusionsRequest(*inspector.ListExclusionsInput) (*request.Request, *inspector.ListExclusionsOutput)
+
+	ListExclusionsPages(*inspector.ListExclusionsInput, func(*inspector.ListExclusionsOutput, bool) bool) error
+	ListExclusionsPagesWithContext(aws.Context, *inspector.ListExclusionsInput, func(*inspector.ListExclusionsOutput, bool) bool, ...request.Option) error
 
 	ListFindings(*inspector.ListFindingsInput) (*inspector.ListFindingsOutput, error)
 	ListFindingsWithContext(aws.Context, *inspector.ListFindingsInput, ...request.Option) (*inspector.ListFindingsOutput, error)

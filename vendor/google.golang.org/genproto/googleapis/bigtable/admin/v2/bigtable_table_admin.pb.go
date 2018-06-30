@@ -33,12 +33,12 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 type CreateTableRequest struct {
 	// The unique name of the instance in which to create the table.
 	// Values are of the form `projects/<project>/instances/<instance>`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// The name by which the new table should be referred to within the parent
 	// instance, e.g., `foobar` rather than `<parent>/tables/foobar`.
-	TableId string `protobuf:"bytes,2,opt,name=table_id,json=tableId" json:"table_id,omitempty"`
+	TableId string `protobuf:"bytes,2,opt,name=table_id,json=tableId,proto3" json:"table_id,omitempty"`
 	// The Table to create.
-	Table *Table `protobuf:"bytes,3,opt,name=table" json:"table,omitempty"`
+	Table *Table `protobuf:"bytes,3,opt,name=table,proto3" json:"table,omitempty"`
 	// The optional list of row keys that will be used to initially split the
 	// table into several tablets (tablets are similar to HBase regions).
 	// Given two split keys, `s1` and `s2`, three tablets will be created,
@@ -55,7 +55,7 @@ type CreateTableRequest struct {
 	//     - Tablet 3 `[customer_1, customer_2) => {"customer_1"}.`
 	//     - Tablet 4 `[customer_2, other)      => {"customer_2"}.`
 	//     - Tablet 5 `[other, )                => {"other", "zz"}.`
-	InitialSplits        []*CreateTableRequest_Split `protobuf:"bytes,4,rep,name=initial_splits,json=initialSplits" json:"initial_splits,omitempty"`
+	InitialSplits        []*CreateTableRequest_Split `protobuf:"bytes,4,rep,name=initial_splits,json=initialSplits,proto3" json:"initial_splits,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                    `json:"-"`
 	XXX_unrecognized     []byte                      `json:"-"`
 	XXX_sizecache        int32                       `json:"-"`
@@ -65,7 +65,7 @@ func (m *CreateTableRequest) Reset()         { *m = CreateTableRequest{} }
 func (m *CreateTableRequest) String() string { return proto.CompactTextString(m) }
 func (*CreateTableRequest) ProtoMessage()    {}
 func (*CreateTableRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_table_admin_67b5438a794c6471, []int{0}
+	return fileDescriptor_bigtable_table_admin_5562daab61d38018, []int{0}
 }
 func (m *CreateTableRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CreateTableRequest.Unmarshal(m, b)
@@ -126,7 +126,7 @@ func (m *CreateTableRequest_Split) Reset()         { *m = CreateTableRequest_Spl
 func (m *CreateTableRequest_Split) String() string { return proto.CompactTextString(m) }
 func (*CreateTableRequest_Split) ProtoMessage()    {}
 func (*CreateTableRequest_Split) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_table_admin_67b5438a794c6471, []int{0, 0}
+	return fileDescriptor_bigtable_table_admin_5562daab61d38018, []int{0, 0}
 }
 func (m *CreateTableRequest_Split) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CreateTableRequest_Split.Unmarshal(m, b)
@@ -153,25 +153,25 @@ func (m *CreateTableRequest_Split) GetKey() []byte {
 	return nil
 }
 
-// This is a private alpha release of Cloud Bigtable snapshots. This feature
-// is not currently available to most Cloud Bigtable customers. This feature
-// might be changed in backward-incompatible ways and is not recommended for
-// production use. It is not subject to any SLA or deprecation policy.
-//
 // Request message for
 // [google.bigtable.admin.v2.BigtableTableAdmin.CreateTableFromSnapshot][google.bigtable.admin.v2.BigtableTableAdmin.CreateTableFromSnapshot]
+//
+// Note: This is a private alpha release of Cloud Bigtable snapshots. This
+// feature is not currently available to most Cloud Bigtable customers. This
+// feature might be changed in backward-incompatible ways and is not recommended
+// for production use. It is not subject to any SLA or deprecation policy.
 type CreateTableFromSnapshotRequest struct {
 	// The unique name of the instance in which to create the table.
 	// Values are of the form `projects/<project>/instances/<instance>`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// The name by which the new table should be referred to within the parent
 	// instance, e.g., `foobar` rather than `<parent>/tables/foobar`.
-	TableId string `protobuf:"bytes,2,opt,name=table_id,json=tableId" json:"table_id,omitempty"`
+	TableId string `protobuf:"bytes,2,opt,name=table_id,json=tableId,proto3" json:"table_id,omitempty"`
 	// The unique name of the snapshot from which to restore the table. The
 	// snapshot and the table must be in the same instance.
 	// Values are of the form
 	// `projects/<project>/instances/<instance>/clusters/<cluster>/snapshots/<snapshot>`.
-	SourceSnapshot       string   `protobuf:"bytes,3,opt,name=source_snapshot,json=sourceSnapshot" json:"source_snapshot,omitempty"`
+	SourceSnapshot       string   `protobuf:"bytes,3,opt,name=source_snapshot,json=sourceSnapshot,proto3" json:"source_snapshot,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -181,7 +181,7 @@ func (m *CreateTableFromSnapshotRequest) Reset()         { *m = CreateTableFromS
 func (m *CreateTableFromSnapshotRequest) String() string { return proto.CompactTextString(m) }
 func (*CreateTableFromSnapshotRequest) ProtoMessage()    {}
 func (*CreateTableFromSnapshotRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_table_admin_67b5438a794c6471, []int{1}
+	return fileDescriptor_bigtable_table_admin_5562daab61d38018, []int{1}
 }
 func (m *CreateTableFromSnapshotRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CreateTableFromSnapshotRequest.Unmarshal(m, b)
@@ -228,7 +228,7 @@ type DropRowRangeRequest struct {
 	// The unique name of the table on which to drop a range of rows.
 	// Values are of the form
 	// `projects/<project>/instances/<instance>/tables/<table>`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Delete all rows or by prefix.
 	//
 	// Types that are valid to be assigned to Target:
@@ -244,7 +244,7 @@ func (m *DropRowRangeRequest) Reset()         { *m = DropRowRangeRequest{} }
 func (m *DropRowRangeRequest) String() string { return proto.CompactTextString(m) }
 func (*DropRowRangeRequest) ProtoMessage()    {}
 func (*DropRowRangeRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_table_admin_67b5438a794c6471, []int{2}
+	return fileDescriptor_bigtable_table_admin_5562daab61d38018, []int{2}
 }
 func (m *DropRowRangeRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DropRowRangeRequest.Unmarshal(m, b)
@@ -272,7 +272,7 @@ type DropRowRangeRequest_RowKeyPrefix struct {
 	RowKeyPrefix []byte `protobuf:"bytes,2,opt,name=row_key_prefix,json=rowKeyPrefix,proto3,oneof"`
 }
 type DropRowRangeRequest_DeleteAllDataFromTable struct {
-	DeleteAllDataFromTable bool `protobuf:"varint,3,opt,name=delete_all_data_from_table,json=deleteAllDataFromTable,oneof"`
+	DeleteAllDataFromTable bool `protobuf:"varint,3,opt,name=delete_all_data_from_table,json=deleteAllDataFromTable,proto3,oneof"`
 }
 
 func (*DropRowRangeRequest_RowKeyPrefix) isDropRowRangeRequest_Target()           {}
@@ -380,12 +380,12 @@ func _DropRowRangeRequest_OneofSizer(msg proto.Message) (n int) {
 type ListTablesRequest struct {
 	// The unique name of the instance for which tables should be listed.
 	// Values are of the form `projects/<project>/instances/<instance>`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// The view to be applied to the returned tables' fields.
 	// Defaults to `NAME_ONLY` if unspecified; no others are currently supported.
-	View Table_View `protobuf:"varint,2,opt,name=view,enum=google.bigtable.admin.v2.Table_View" json:"view,omitempty"`
+	View Table_View `protobuf:"varint,2,opt,name=view,proto3,enum=google.bigtable.admin.v2.Table_View" json:"view,omitempty"`
 	// The value of `next_page_token` returned by a previous call.
-	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -395,7 +395,7 @@ func (m *ListTablesRequest) Reset()         { *m = ListTablesRequest{} }
 func (m *ListTablesRequest) String() string { return proto.CompactTextString(m) }
 func (*ListTablesRequest) ProtoMessage()    {}
 func (*ListTablesRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_table_admin_67b5438a794c6471, []int{3}
+	return fileDescriptor_bigtable_table_admin_5562daab61d38018, []int{3}
 }
 func (m *ListTablesRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListTablesRequest.Unmarshal(m, b)
@@ -440,11 +440,11 @@ func (m *ListTablesRequest) GetPageToken() string {
 // [google.bigtable.admin.v2.BigtableTableAdmin.ListTables][google.bigtable.admin.v2.BigtableTableAdmin.ListTables]
 type ListTablesResponse struct {
 	// The tables present in the requested instance.
-	Tables []*Table `protobuf:"bytes,1,rep,name=tables" json:"tables,omitempty"`
+	Tables []*Table `protobuf:"bytes,1,rep,name=tables,proto3" json:"tables,omitempty"`
 	// Set if not all tables could be returned in a single response.
 	// Pass this value to `page_token` in another request to get the next
 	// page of results.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -454,7 +454,7 @@ func (m *ListTablesResponse) Reset()         { *m = ListTablesResponse{} }
 func (m *ListTablesResponse) String() string { return proto.CompactTextString(m) }
 func (*ListTablesResponse) ProtoMessage()    {}
 func (*ListTablesResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_table_admin_67b5438a794c6471, []int{4}
+	return fileDescriptor_bigtable_table_admin_5562daab61d38018, []int{4}
 }
 func (m *ListTablesResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListTablesResponse.Unmarshal(m, b)
@@ -494,10 +494,10 @@ type GetTableRequest struct {
 	// The unique name of the requested table.
 	// Values are of the form
 	// `projects/<project>/instances/<instance>/tables/<table>`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The view to be applied to the returned table's fields.
 	// Defaults to `SCHEMA_VIEW` if unspecified.
-	View                 Table_View `protobuf:"varint,2,opt,name=view,enum=google.bigtable.admin.v2.Table_View" json:"view,omitempty"`
+	View                 Table_View `protobuf:"varint,2,opt,name=view,proto3,enum=google.bigtable.admin.v2.Table_View" json:"view,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
 	XXX_unrecognized     []byte     `json:"-"`
 	XXX_sizecache        int32      `json:"-"`
@@ -507,7 +507,7 @@ func (m *GetTableRequest) Reset()         { *m = GetTableRequest{} }
 func (m *GetTableRequest) String() string { return proto.CompactTextString(m) }
 func (*GetTableRequest) ProtoMessage()    {}
 func (*GetTableRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_table_admin_67b5438a794c6471, []int{5}
+	return fileDescriptor_bigtable_table_admin_5562daab61d38018, []int{5}
 }
 func (m *GetTableRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetTableRequest.Unmarshal(m, b)
@@ -547,7 +547,7 @@ type DeleteTableRequest struct {
 	// The unique name of the table to be deleted.
 	// Values are of the form
 	// `projects/<project>/instances/<instance>/tables/<table>`.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -557,7 +557,7 @@ func (m *DeleteTableRequest) Reset()         { *m = DeleteTableRequest{} }
 func (m *DeleteTableRequest) String() string { return proto.CompactTextString(m) }
 func (*DeleteTableRequest) ProtoMessage()    {}
 func (*DeleteTableRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_table_admin_67b5438a794c6471, []int{6}
+	return fileDescriptor_bigtable_table_admin_5562daab61d38018, []int{6}
 }
 func (m *DeleteTableRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeleteTableRequest.Unmarshal(m, b)
@@ -590,12 +590,12 @@ type ModifyColumnFamiliesRequest struct {
 	// The unique name of the table whose families should be modified.
 	// Values are of the form
 	// `projects/<project>/instances/<instance>/tables/<table>`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Modifications to be atomically applied to the specified table's families.
 	// Entries are applied in order, meaning that earlier modifications can be
 	// masked by later ones (in the case of repeated updates to the same family,
 	// for example).
-	Modifications        []*ModifyColumnFamiliesRequest_Modification `protobuf:"bytes,2,rep,name=modifications" json:"modifications,omitempty"`
+	Modifications        []*ModifyColumnFamiliesRequest_Modification `protobuf:"bytes,2,rep,name=modifications,proto3" json:"modifications,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                                    `json:"-"`
 	XXX_unrecognized     []byte                                      `json:"-"`
 	XXX_sizecache        int32                                       `json:"-"`
@@ -605,7 +605,7 @@ func (m *ModifyColumnFamiliesRequest) Reset()         { *m = ModifyColumnFamilie
 func (m *ModifyColumnFamiliesRequest) String() string { return proto.CompactTextString(m) }
 func (*ModifyColumnFamiliesRequest) ProtoMessage()    {}
 func (*ModifyColumnFamiliesRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_table_admin_67b5438a794c6471, []int{7}
+	return fileDescriptor_bigtable_table_admin_5562daab61d38018, []int{7}
 }
 func (m *ModifyColumnFamiliesRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ModifyColumnFamiliesRequest.Unmarshal(m, b)
@@ -642,7 +642,7 @@ func (m *ModifyColumnFamiliesRequest) GetModifications() []*ModifyColumnFamilies
 // A create, update, or delete of a particular column family.
 type ModifyColumnFamiliesRequest_Modification struct {
 	// The ID of the column family to be modified.
-	Id string `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// Column familiy modifications.
 	//
 	// Types that are valid to be assigned to Mod:
@@ -661,7 +661,7 @@ func (m *ModifyColumnFamiliesRequest_Modification) Reset() {
 func (m *ModifyColumnFamiliesRequest_Modification) String() string { return proto.CompactTextString(m) }
 func (*ModifyColumnFamiliesRequest_Modification) ProtoMessage()    {}
 func (*ModifyColumnFamiliesRequest_Modification) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_table_admin_67b5438a794c6471, []int{7, 0}
+	return fileDescriptor_bigtable_table_admin_5562daab61d38018, []int{7, 0}
 }
 func (m *ModifyColumnFamiliesRequest_Modification) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ModifyColumnFamiliesRequest_Modification.Unmarshal(m, b)
@@ -686,13 +686,13 @@ type isModifyColumnFamiliesRequest_Modification_Mod interface {
 }
 
 type ModifyColumnFamiliesRequest_Modification_Create struct {
-	Create *ColumnFamily `protobuf:"bytes,2,opt,name=create,oneof"`
+	Create *ColumnFamily `protobuf:"bytes,2,opt,name=create,proto3,oneof"`
 }
 type ModifyColumnFamiliesRequest_Modification_Update struct {
-	Update *ColumnFamily `protobuf:"bytes,3,opt,name=update,oneof"`
+	Update *ColumnFamily `protobuf:"bytes,3,opt,name=update,proto3,oneof"`
 }
 type ModifyColumnFamiliesRequest_Modification_Drop struct {
-	Drop bool `protobuf:"varint,4,opt,name=drop,oneof"`
+	Drop bool `protobuf:"varint,4,opt,name=drop,proto3,oneof"`
 }
 
 func (*ModifyColumnFamiliesRequest_Modification_Create) isModifyColumnFamiliesRequest_Modification_Mod() {
@@ -829,18 +829,13 @@ func _ModifyColumnFamiliesRequest_Modification_OneofSizer(msg proto.Message) (n 
 	return n
 }
 
-// This is a private alpha release of Cloud Bigtable replication. This feature
-// is not currently available to most Cloud Bigtable customers. This feature
-// might be changed in backward-incompatible ways and is not recommended for
-// production use. It is not subject to any SLA or deprecation policy.
-//
 // Request message for
 // [google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken][google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken]
 type GenerateConsistencyTokenRequest struct {
 	// The unique name of the Table for which to create a consistency token.
 	// Values are of the form
 	// `projects/<project>/instances/<instance>/tables/<table>`.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -850,7 +845,7 @@ func (m *GenerateConsistencyTokenRequest) Reset()         { *m = GenerateConsist
 func (m *GenerateConsistencyTokenRequest) String() string { return proto.CompactTextString(m) }
 func (*GenerateConsistencyTokenRequest) ProtoMessage()    {}
 func (*GenerateConsistencyTokenRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_table_admin_67b5438a794c6471, []int{8}
+	return fileDescriptor_bigtable_table_admin_5562daab61d38018, []int{8}
 }
 func (m *GenerateConsistencyTokenRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GenerateConsistencyTokenRequest.Unmarshal(m, b)
@@ -877,16 +872,11 @@ func (m *GenerateConsistencyTokenRequest) GetName() string {
 	return ""
 }
 
-// This is a private alpha release of Cloud Bigtable replication. This feature
-// is not currently available to most Cloud Bigtable customers. This feature
-// might be changed in backward-incompatible ways and is not recommended for
-// production use. It is not subject to any SLA or deprecation policy.
-//
 // Response message for
 // [google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken][google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken]
 type GenerateConsistencyTokenResponse struct {
 	// The generated consistency token.
-	ConsistencyToken     string   `protobuf:"bytes,1,opt,name=consistency_token,json=consistencyToken" json:"consistency_token,omitempty"`
+	ConsistencyToken     string   `protobuf:"bytes,1,opt,name=consistency_token,json=consistencyToken,proto3" json:"consistency_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -896,7 +886,7 @@ func (m *GenerateConsistencyTokenResponse) Reset()         { *m = GenerateConsis
 func (m *GenerateConsistencyTokenResponse) String() string { return proto.CompactTextString(m) }
 func (*GenerateConsistencyTokenResponse) ProtoMessage()    {}
 func (*GenerateConsistencyTokenResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_table_admin_67b5438a794c6471, []int{9}
+	return fileDescriptor_bigtable_table_admin_5562daab61d38018, []int{9}
 }
 func (m *GenerateConsistencyTokenResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GenerateConsistencyTokenResponse.Unmarshal(m, b)
@@ -923,20 +913,15 @@ func (m *GenerateConsistencyTokenResponse) GetConsistencyToken() string {
 	return ""
 }
 
-// This is a private alpha release of Cloud Bigtable replication. This feature
-// is not currently available to most Cloud Bigtable customers. This feature
-// might be changed in backward-incompatible ways and is not recommended for
-// production use. It is not subject to any SLA or deprecation policy.
-//
 // Request message for
 // [google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency][google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency]
 type CheckConsistencyRequest struct {
 	// The unique name of the Table for which to check replication consistency.
 	// Values are of the form
 	// `projects/<project>/instances/<instance>/tables/<table>`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The token created using GenerateConsistencyToken for the Table.
-	ConsistencyToken     string   `protobuf:"bytes,2,opt,name=consistency_token,json=consistencyToken" json:"consistency_token,omitempty"`
+	ConsistencyToken     string   `protobuf:"bytes,2,opt,name=consistency_token,json=consistencyToken,proto3" json:"consistency_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -946,7 +931,7 @@ func (m *CheckConsistencyRequest) Reset()         { *m = CheckConsistencyRequest
 func (m *CheckConsistencyRequest) String() string { return proto.CompactTextString(m) }
 func (*CheckConsistencyRequest) ProtoMessage()    {}
 func (*CheckConsistencyRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_table_admin_67b5438a794c6471, []int{10}
+	return fileDescriptor_bigtable_table_admin_5562daab61d38018, []int{10}
 }
 func (m *CheckConsistencyRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CheckConsistencyRequest.Unmarshal(m, b)
@@ -980,17 +965,12 @@ func (m *CheckConsistencyRequest) GetConsistencyToken() string {
 	return ""
 }
 
-// This is a private alpha release of Cloud Bigtable replication. This feature
-// is not currently available to most Cloud Bigtable customers. This feature
-// might be changed in backward-incompatible ways and is not recommended for
-// production use. It is not subject to any SLA or deprecation policy.
-//
 // Response message for
 // [google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency][google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency]
 type CheckConsistencyResponse struct {
 	// True only if the token is consistent. A token is consistent if replication
 	// has caught up with the restrictions specified in the request.
-	Consistent           bool     `protobuf:"varint,1,opt,name=consistent" json:"consistent,omitempty"`
+	Consistent           bool     `protobuf:"varint,1,opt,name=consistent,proto3" json:"consistent,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1000,7 +980,7 @@ func (m *CheckConsistencyResponse) Reset()         { *m = CheckConsistencyRespon
 func (m *CheckConsistencyResponse) String() string { return proto.CompactTextString(m) }
 func (*CheckConsistencyResponse) ProtoMessage()    {}
 func (*CheckConsistencyResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_table_admin_67b5438a794c6471, []int{11}
+	return fileDescriptor_bigtable_table_admin_5562daab61d38018, []int{11}
 }
 func (m *CheckConsistencyResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CheckConsistencyResponse.Unmarshal(m, b)
@@ -1027,34 +1007,34 @@ func (m *CheckConsistencyResponse) GetConsistent() bool {
 	return false
 }
 
-// This is a private alpha release of Cloud Bigtable snapshots. This feature
-// is not currently available to most Cloud Bigtable customers. This feature
-// might be changed in backward-incompatible ways and is not recommended for
-// production use. It is not subject to any SLA or deprecation policy.
-//
 // Request message for
 // [google.bigtable.admin.v2.BigtableTableAdmin.SnapshotTable][google.bigtable.admin.v2.BigtableTableAdmin.SnapshotTable]
+//
+// Note: This is a private alpha release of Cloud Bigtable snapshots. This
+// feature is not currently available to most Cloud Bigtable customers. This
+// feature might be changed in backward-incompatible ways and is not recommended
+// for production use. It is not subject to any SLA or deprecation policy.
 type SnapshotTableRequest struct {
 	// The unique name of the table to have the snapshot taken.
 	// Values are of the form
 	// `projects/<project>/instances/<instance>/tables/<table>`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The name of the cluster where the snapshot will be created in.
 	// Values are of the form
 	// `projects/<project>/instances/<instance>/clusters/<cluster>`.
-	Cluster string `protobuf:"bytes,2,opt,name=cluster" json:"cluster,omitempty"`
+	Cluster string `protobuf:"bytes,2,opt,name=cluster,proto3" json:"cluster,omitempty"`
 	// The ID by which the new snapshot should be referred to within the parent
 	// cluster, e.g., `mysnapshot` of the form: `[_a-zA-Z0-9][-_.a-zA-Z0-9]*`
 	// rather than
 	// `projects/<project>/instances/<instance>/clusters/<cluster>/snapshots/mysnapshot`.
-	SnapshotId string `protobuf:"bytes,3,opt,name=snapshot_id,json=snapshotId" json:"snapshot_id,omitempty"`
+	SnapshotId string `protobuf:"bytes,3,opt,name=snapshot_id,json=snapshotId,proto3" json:"snapshot_id,omitempty"`
 	// The amount of time that the new snapshot can stay active after it is
 	// created. Once 'ttl' expires, the snapshot will get deleted. The maximum
 	// amount of time a snapshot can stay active is 7 days. If 'ttl' is not
 	// specified, the default value of 24 hours will be used.
-	Ttl *duration.Duration `protobuf:"bytes,4,opt,name=ttl" json:"ttl,omitempty"`
+	Ttl *duration.Duration `protobuf:"bytes,4,opt,name=ttl,proto3" json:"ttl,omitempty"`
 	// Description of the snapshot.
-	Description          string   `protobuf:"bytes,5,opt,name=description" json:"description,omitempty"`
+	Description          string   `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1064,7 +1044,7 @@ func (m *SnapshotTableRequest) Reset()         { *m = SnapshotTableRequest{} }
 func (m *SnapshotTableRequest) String() string { return proto.CompactTextString(m) }
 func (*SnapshotTableRequest) ProtoMessage()    {}
 func (*SnapshotTableRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_table_admin_67b5438a794c6471, []int{12}
+	return fileDescriptor_bigtable_table_admin_5562daab61d38018, []int{12}
 }
 func (m *SnapshotTableRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SnapshotTableRequest.Unmarshal(m, b)
@@ -1119,18 +1099,18 @@ func (m *SnapshotTableRequest) GetDescription() string {
 	return ""
 }
 
-// This is a private alpha release of Cloud Bigtable snapshots. This feature
-// is not currently available to most Cloud Bigtable customers. This feature
-// might be changed in backward-incompatible ways and is not recommended for
-// production use. It is not subject to any SLA or deprecation policy.
-//
 // Request message for
 // [google.bigtable.admin.v2.BigtableTableAdmin.GetSnapshot][google.bigtable.admin.v2.BigtableTableAdmin.GetSnapshot]
+//
+// Note: This is a private alpha release of Cloud Bigtable snapshots. This
+// feature is not currently available to most Cloud Bigtable customers. This
+// feature might be changed in backward-incompatible ways and is not recommended
+// for production use. It is not subject to any SLA or deprecation policy.
 type GetSnapshotRequest struct {
 	// The unique name of the requested snapshot.
 	// Values are of the form
 	// `projects/<project>/instances/<instance>/clusters/<cluster>/snapshots/<snapshot>`.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1140,7 +1120,7 @@ func (m *GetSnapshotRequest) Reset()         { *m = GetSnapshotRequest{} }
 func (m *GetSnapshotRequest) String() string { return proto.CompactTextString(m) }
 func (*GetSnapshotRequest) ProtoMessage()    {}
 func (*GetSnapshotRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_table_admin_67b5438a794c6471, []int{13}
+	return fileDescriptor_bigtable_table_admin_5562daab61d38018, []int{13}
 }
 func (m *GetSnapshotRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetSnapshotRequest.Unmarshal(m, b)
@@ -1167,24 +1147,24 @@ func (m *GetSnapshotRequest) GetName() string {
 	return ""
 }
 
-// This is a private alpha release of Cloud Bigtable snapshots. This feature
-// is not currently available to most Cloud Bigtable customers. This feature
-// might be changed in backward-incompatible ways and is not recommended for
-// production use. It is not subject to any SLA or deprecation policy.
-//
 // Request message for
 // [google.bigtable.admin.v2.BigtableTableAdmin.ListSnapshots][google.bigtable.admin.v2.BigtableTableAdmin.ListSnapshots]
+//
+// Note: This is a private alpha release of Cloud Bigtable snapshots. This
+// feature is not currently available to most Cloud Bigtable customers. This
+// feature might be changed in backward-incompatible ways and is not recommended
+// for production use. It is not subject to any SLA or deprecation policy.
 type ListSnapshotsRequest struct {
 	// The unique name of the cluster for which snapshots should be listed.
 	// Values are of the form
 	// `projects/<project>/instances/<instance>/clusters/<cluster>`.
 	// Use `<cluster> = '-'` to list snapshots for all clusters in an instance,
 	// e.g., `projects/<project>/instances/<instance>/clusters/-`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// The maximum number of snapshots to return.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The value of `next_page_token` returned by a previous call.
-	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1194,7 +1174,7 @@ func (m *ListSnapshotsRequest) Reset()         { *m = ListSnapshotsRequest{} }
 func (m *ListSnapshotsRequest) String() string { return proto.CompactTextString(m) }
 func (*ListSnapshotsRequest) ProtoMessage()    {}
 func (*ListSnapshotsRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_table_admin_67b5438a794c6471, []int{14}
+	return fileDescriptor_bigtable_table_admin_5562daab61d38018, []int{14}
 }
 func (m *ListSnapshotsRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListSnapshotsRequest.Unmarshal(m, b)
@@ -1235,20 +1215,20 @@ func (m *ListSnapshotsRequest) GetPageToken() string {
 	return ""
 }
 
-// This is a private alpha release of Cloud Bigtable snapshots. This feature
-// is not currently available to most Cloud Bigtable customers. This feature
-// might be changed in backward-incompatible ways and is not recommended for
-// production use. It is not subject to any SLA or deprecation policy.
-//
 // Response message for
 // [google.bigtable.admin.v2.BigtableTableAdmin.ListSnapshots][google.bigtable.admin.v2.BigtableTableAdmin.ListSnapshots]
+//
+// Note: This is a private alpha release of Cloud Bigtable snapshots. This
+// feature is not currently available to most Cloud Bigtable customers. This
+// feature might be changed in backward-incompatible ways and is not recommended
+// for production use. It is not subject to any SLA or deprecation policy.
 type ListSnapshotsResponse struct {
 	// The snapshots present in the requested cluster.
-	Snapshots []*Snapshot `protobuf:"bytes,1,rep,name=snapshots" json:"snapshots,omitempty"`
+	Snapshots []*Snapshot `protobuf:"bytes,1,rep,name=snapshots,proto3" json:"snapshots,omitempty"`
 	// Set if not all snapshots could be returned in a single response.
 	// Pass this value to `page_token` in another request to get the next
 	// page of results.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1258,7 +1238,7 @@ func (m *ListSnapshotsResponse) Reset()         { *m = ListSnapshotsResponse{} }
 func (m *ListSnapshotsResponse) String() string { return proto.CompactTextString(m) }
 func (*ListSnapshotsResponse) ProtoMessage()    {}
 func (*ListSnapshotsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_table_admin_67b5438a794c6471, []int{15}
+	return fileDescriptor_bigtable_table_admin_5562daab61d38018, []int{15}
 }
 func (m *ListSnapshotsResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListSnapshotsResponse.Unmarshal(m, b)
@@ -1292,18 +1272,18 @@ func (m *ListSnapshotsResponse) GetNextPageToken() string {
 	return ""
 }
 
-// This is a private alpha release of Cloud Bigtable snapshots. This feature
-// is not currently available to most Cloud Bigtable customers. This feature
-// might be changed in backward-incompatible ways and is not recommended for
-// production use. It is not subject to any SLA or deprecation policy.
-//
 // Request message for
 // [google.bigtable.admin.v2.BigtableTableAdmin.DeleteSnapshot][google.bigtable.admin.v2.BigtableTableAdmin.DeleteSnapshot]
+//
+// Note: This is a private alpha release of Cloud Bigtable snapshots. This
+// feature is not currently available to most Cloud Bigtable customers. This
+// feature might be changed in backward-incompatible ways and is not recommended
+// for production use. It is not subject to any SLA or deprecation policy.
 type DeleteSnapshotRequest struct {
 	// The unique name of the snapshot to be deleted.
 	// Values are of the form
 	// `projects/<project>/instances/<instance>/clusters/<cluster>/snapshots/<snapshot>`.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1313,7 +1293,7 @@ func (m *DeleteSnapshotRequest) Reset()         { *m = DeleteSnapshotRequest{} }
 func (m *DeleteSnapshotRequest) String() string { return proto.CompactTextString(m) }
 func (*DeleteSnapshotRequest) ProtoMessage()    {}
 func (*DeleteSnapshotRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_table_admin_67b5438a794c6471, []int{16}
+	return fileDescriptor_bigtable_table_admin_5562daab61d38018, []int{16}
 }
 func (m *DeleteSnapshotRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeleteSnapshotRequest.Unmarshal(m, b)
@@ -1340,19 +1320,19 @@ func (m *DeleteSnapshotRequest) GetName() string {
 	return ""
 }
 
-// This is a private alpha release of Cloud Bigtable snapshots. This feature
-// is not currently available to most Cloud Bigtable customers. This feature
-// might be changed in backward-incompatible ways and is not recommended for
-// production use. It is not subject to any SLA or deprecation policy.
-//
 // The metadata for the Operation returned by SnapshotTable.
+//
+// Note: This is a private alpha release of Cloud Bigtable snapshots. This
+// feature is not currently available to most Cloud Bigtable customers. This
+// feature might be changed in backward-incompatible ways and is not recommended
+// for production use. It is not subject to any SLA or deprecation policy.
 type SnapshotTableMetadata struct {
 	// The request that prompted the initiation of this SnapshotTable operation.
-	OriginalRequest *SnapshotTableRequest `protobuf:"bytes,1,opt,name=original_request,json=originalRequest" json:"original_request,omitempty"`
+	OriginalRequest *SnapshotTableRequest `protobuf:"bytes,1,opt,name=original_request,json=originalRequest,proto3" json:"original_request,omitempty"`
 	// The time at which the original request was received.
-	RequestTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=request_time,json=requestTime" json:"request_time,omitempty"`
+	RequestTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=request_time,json=requestTime,proto3" json:"request_time,omitempty"`
 	// The time at which the operation failed or was completed successfully.
-	FinishTime           *timestamp.Timestamp `protobuf:"bytes,3,opt,name=finish_time,json=finishTime" json:"finish_time,omitempty"`
+	FinishTime           *timestamp.Timestamp `protobuf:"bytes,3,opt,name=finish_time,json=finishTime,proto3" json:"finish_time,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -1362,7 +1342,7 @@ func (m *SnapshotTableMetadata) Reset()         { *m = SnapshotTableMetadata{} }
 func (m *SnapshotTableMetadata) String() string { return proto.CompactTextString(m) }
 func (*SnapshotTableMetadata) ProtoMessage()    {}
 func (*SnapshotTableMetadata) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_table_admin_67b5438a794c6471, []int{17}
+	return fileDescriptor_bigtable_table_admin_5562daab61d38018, []int{17}
 }
 func (m *SnapshotTableMetadata) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SnapshotTableMetadata.Unmarshal(m, b)
@@ -1403,20 +1383,20 @@ func (m *SnapshotTableMetadata) GetFinishTime() *timestamp.Timestamp {
 	return nil
 }
 
-// This is a private alpha release of Cloud Bigtable snapshots. This feature
-// is not currently available to most Cloud Bigtable customers. This feature
-// might be changed in backward-incompatible ways and is not recommended for
-// production use. It is not subject to any SLA or deprecation policy.
-//
 // The metadata for the Operation returned by CreateTableFromSnapshot.
+//
+// Note: This is a private alpha release of Cloud Bigtable snapshots. This
+// feature is not currently available to most Cloud Bigtable customers. This
+// feature might be changed in backward-incompatible ways and is not recommended
+// for production use. It is not subject to any SLA or deprecation policy.
 type CreateTableFromSnapshotMetadata struct {
 	// The request that prompted the initiation of this CreateTableFromSnapshot
 	// operation.
-	OriginalRequest *CreateTableFromSnapshotRequest `protobuf:"bytes,1,opt,name=original_request,json=originalRequest" json:"original_request,omitempty"`
+	OriginalRequest *CreateTableFromSnapshotRequest `protobuf:"bytes,1,opt,name=original_request,json=originalRequest,proto3" json:"original_request,omitempty"`
 	// The time at which the original request was received.
-	RequestTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=request_time,json=requestTime" json:"request_time,omitempty"`
+	RequestTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=request_time,json=requestTime,proto3" json:"request_time,omitempty"`
 	// The time at which the operation failed or was completed successfully.
-	FinishTime           *timestamp.Timestamp `protobuf:"bytes,3,opt,name=finish_time,json=finishTime" json:"finish_time,omitempty"`
+	FinishTime           *timestamp.Timestamp `protobuf:"bytes,3,opt,name=finish_time,json=finishTime,proto3" json:"finish_time,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -1426,7 +1406,7 @@ func (m *CreateTableFromSnapshotMetadata) Reset()         { *m = CreateTableFrom
 func (m *CreateTableFromSnapshotMetadata) String() string { return proto.CompactTextString(m) }
 func (*CreateTableFromSnapshotMetadata) ProtoMessage()    {}
 func (*CreateTableFromSnapshotMetadata) Descriptor() ([]byte, []int) {
-	return fileDescriptor_bigtable_table_admin_67b5438a794c6471, []int{18}
+	return fileDescriptor_bigtable_table_admin_5562daab61d38018, []int{18}
 }
 func (m *CreateTableFromSnapshotMetadata) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CreateTableFromSnapshotMetadata.Unmarshal(m, b)
@@ -1507,13 +1487,14 @@ type BigtableTableAdminClient interface {
 	// The table can be created with a full set of initial column families,
 	// specified in the request.
 	CreateTable(ctx context.Context, in *CreateTableRequest, opts ...grpc.CallOption) (*Table, error)
-	// This is a private alpha release of Cloud Bigtable snapshots. This feature
-	// is not currently available to most Cloud Bigtable customers. This feature
-	// might be changed in backward-incompatible ways and is not recommended for
-	// production use. It is not subject to any SLA or deprecation policy.
-	//
 	// Creates a new table from the specified snapshot. The target table must
 	// not exist. The snapshot and the table must be in the same instance.
+	//
+	// Note: This is a private alpha release of Cloud Bigtable snapshots. This
+	// feature is not currently available to most Cloud Bigtable customers. This
+	// feature might be changed in backward-incompatible ways and is not
+	// recommended for production use. It is not subject to any SLA or deprecation
+	// policy.
 	CreateTableFromSnapshot(ctx context.Context, in *CreateTableFromSnapshotRequest, opts ...grpc.CallOption) (*longrunning.Operation, error)
 	// Lists all tables served from a specified instance.
 	ListTables(ctx context.Context, in *ListTablesRequest, opts ...grpc.CallOption) (*ListTablesResponse, error)
@@ -1530,53 +1511,47 @@ type BigtableTableAdminClient interface {
 	// specify whether to delete all rows in a table, or only those that match a
 	// particular prefix.
 	DropRowRange(ctx context.Context, in *DropRowRangeRequest, opts ...grpc.CallOption) (*empty.Empty, error)
-	// This is a private alpha release of Cloud Bigtable replication. This feature
-	// is not currently available to most Cloud Bigtable customers. This feature
-	// might be changed in backward-incompatible ways and is not recommended for
-	// production use. It is not subject to any SLA or deprecation policy.
-	//
 	// Generates a consistency token for a Table, which can be used in
 	// CheckConsistency to check whether mutations to the table that finished
 	// before this call started have been replicated. The tokens will be available
 	// for 90 days.
 	GenerateConsistencyToken(ctx context.Context, in *GenerateConsistencyTokenRequest, opts ...grpc.CallOption) (*GenerateConsistencyTokenResponse, error)
-	// This is a private alpha release of Cloud Bigtable replication. This feature
-	// is not currently available to most Cloud Bigtable customers. This feature
-	// might be changed in backward-incompatible ways and is not recommended for
-	// production use. It is not subject to any SLA or deprecation policy.
-	//
 	// Checks replication consistency based on a consistency token, that is, if
 	// replication has caught up based on the conditions specified in the token
 	// and the check request.
 	CheckConsistency(ctx context.Context, in *CheckConsistencyRequest, opts ...grpc.CallOption) (*CheckConsistencyResponse, error)
-	// This is a private alpha release of Cloud Bigtable snapshots. This feature
-	// is not currently available to most Cloud Bigtable customers. This feature
-	// might be changed in backward-incompatible ways and is not recommended for
-	// production use. It is not subject to any SLA or deprecation policy.
-	//
 	// Creates a new snapshot in the specified cluster from the specified
 	// source table. The cluster and the table must be in the same instance.
+	//
+	// Note: This is a private alpha release of Cloud Bigtable snapshots. This
+	// feature is not currently available to most Cloud Bigtable customers. This
+	// feature might be changed in backward-incompatible ways and is not
+	// recommended for production use. It is not subject to any SLA or deprecation
+	// policy.
 	SnapshotTable(ctx context.Context, in *SnapshotTableRequest, opts ...grpc.CallOption) (*longrunning.Operation, error)
-	// This is a private alpha release of Cloud Bigtable snapshots. This feature
-	// is not currently available to most Cloud Bigtable customers. This feature
-	// might be changed in backward-incompatible ways and is not recommended for
-	// production use. It is not subject to any SLA or deprecation policy.
-	//
 	// Gets metadata information about the specified snapshot.
+	//
+	// Note: This is a private alpha release of Cloud Bigtable snapshots. This
+	// feature is not currently available to most Cloud Bigtable customers. This
+	// feature might be changed in backward-incompatible ways and is not
+	// recommended for production use. It is not subject to any SLA or deprecation
+	// policy.
 	GetSnapshot(ctx context.Context, in *GetSnapshotRequest, opts ...grpc.CallOption) (*Snapshot, error)
-	// This is a private alpha release of Cloud Bigtable snapshots. This feature
-	// is not currently available to most Cloud Bigtable customers. This feature
-	// might be changed in backward-incompatible ways and is not recommended for
-	// production use. It is not subject to any SLA or deprecation policy.
-	//
 	// Lists all snapshots associated with the specified cluster.
-	ListSnapshots(ctx context.Context, in *ListSnapshotsRequest, opts ...grpc.CallOption) (*ListSnapshotsResponse, error)
-	// This is a private alpha release of Cloud Bigtable snapshots. This feature
-	// is not currently available to most Cloud Bigtable customers. This feature
-	// might be changed in backward-incompatible ways and is not recommended for
-	// production use. It is not subject to any SLA or deprecation policy.
 	//
+	// Note: This is a private alpha release of Cloud Bigtable snapshots. This
+	// feature is not currently available to most Cloud Bigtable customers. This
+	// feature might be changed in backward-incompatible ways and is not
+	// recommended for production use. It is not subject to any SLA or deprecation
+	// policy.
+	ListSnapshots(ctx context.Context, in *ListSnapshotsRequest, opts ...grpc.CallOption) (*ListSnapshotsResponse, error)
 	// Permanently deletes the specified snapshot.
+	//
+	// Note: This is a private alpha release of Cloud Bigtable snapshots. This
+	// feature is not currently available to most Cloud Bigtable customers. This
+	// feature might be changed in backward-incompatible ways and is not
+	// recommended for production use. It is not subject to any SLA or deprecation
+	// policy.
 	DeleteSnapshot(ctx context.Context, in *DeleteSnapshotRequest, opts ...grpc.CallOption) (*empty.Empty, error)
 }
 
@@ -1705,20 +1680,20 @@ func (c *bigtableTableAdminClient) DeleteSnapshot(ctx context.Context, in *Delet
 	return out, nil
 }
 
-// Server API for BigtableTableAdmin service
-
+// BigtableTableAdminServer is the server API for BigtableTableAdmin service.
 type BigtableTableAdminServer interface {
 	// Creates a new table in the specified instance.
 	// The table can be created with a full set of initial column families,
 	// specified in the request.
 	CreateTable(context.Context, *CreateTableRequest) (*Table, error)
-	// This is a private alpha release of Cloud Bigtable snapshots. This feature
-	// is not currently available to most Cloud Bigtable customers. This feature
-	// might be changed in backward-incompatible ways and is not recommended for
-	// production use. It is not subject to any SLA or deprecation policy.
-	//
 	// Creates a new table from the specified snapshot. The target table must
 	// not exist. The snapshot and the table must be in the same instance.
+	//
+	// Note: This is a private alpha release of Cloud Bigtable snapshots. This
+	// feature is not currently available to most Cloud Bigtable customers. This
+	// feature might be changed in backward-incompatible ways and is not
+	// recommended for production use. It is not subject to any SLA or deprecation
+	// policy.
 	CreateTableFromSnapshot(context.Context, *CreateTableFromSnapshotRequest) (*longrunning.Operation, error)
 	// Lists all tables served from a specified instance.
 	ListTables(context.Context, *ListTablesRequest) (*ListTablesResponse, error)
@@ -1735,53 +1710,47 @@ type BigtableTableAdminServer interface {
 	// specify whether to delete all rows in a table, or only those that match a
 	// particular prefix.
 	DropRowRange(context.Context, *DropRowRangeRequest) (*empty.Empty, error)
-	// This is a private alpha release of Cloud Bigtable replication. This feature
-	// is not currently available to most Cloud Bigtable customers. This feature
-	// might be changed in backward-incompatible ways and is not recommended for
-	// production use. It is not subject to any SLA or deprecation policy.
-	//
 	// Generates a consistency token for a Table, which can be used in
 	// CheckConsistency to check whether mutations to the table that finished
 	// before this call started have been replicated. The tokens will be available
 	// for 90 days.
 	GenerateConsistencyToken(context.Context, *GenerateConsistencyTokenRequest) (*GenerateConsistencyTokenResponse, error)
-	// This is a private alpha release of Cloud Bigtable replication. This feature
-	// is not currently available to most Cloud Bigtable customers. This feature
-	// might be changed in backward-incompatible ways and is not recommended for
-	// production use. It is not subject to any SLA or deprecation policy.
-	//
 	// Checks replication consistency based on a consistency token, that is, if
 	// replication has caught up based on the conditions specified in the token
 	// and the check request.
 	CheckConsistency(context.Context, *CheckConsistencyRequest) (*CheckConsistencyResponse, error)
-	// This is a private alpha release of Cloud Bigtable snapshots. This feature
-	// is not currently available to most Cloud Bigtable customers. This feature
-	// might be changed in backward-incompatible ways and is not recommended for
-	// production use. It is not subject to any SLA or deprecation policy.
-	//
 	// Creates a new snapshot in the specified cluster from the specified
 	// source table. The cluster and the table must be in the same instance.
+	//
+	// Note: This is a private alpha release of Cloud Bigtable snapshots. This
+	// feature is not currently available to most Cloud Bigtable customers. This
+	// feature might be changed in backward-incompatible ways and is not
+	// recommended for production use. It is not subject to any SLA or deprecation
+	// policy.
 	SnapshotTable(context.Context, *SnapshotTableRequest) (*longrunning.Operation, error)
-	// This is a private alpha release of Cloud Bigtable snapshots. This feature
-	// is not currently available to most Cloud Bigtable customers. This feature
-	// might be changed in backward-incompatible ways and is not recommended for
-	// production use. It is not subject to any SLA or deprecation policy.
-	//
 	// Gets metadata information about the specified snapshot.
+	//
+	// Note: This is a private alpha release of Cloud Bigtable snapshots. This
+	// feature is not currently available to most Cloud Bigtable customers. This
+	// feature might be changed in backward-incompatible ways and is not
+	// recommended for production use. It is not subject to any SLA or deprecation
+	// policy.
 	GetSnapshot(context.Context, *GetSnapshotRequest) (*Snapshot, error)
-	// This is a private alpha release of Cloud Bigtable snapshots. This feature
-	// is not currently available to most Cloud Bigtable customers. This feature
-	// might be changed in backward-incompatible ways and is not recommended for
-	// production use. It is not subject to any SLA or deprecation policy.
-	//
 	// Lists all snapshots associated with the specified cluster.
-	ListSnapshots(context.Context, *ListSnapshotsRequest) (*ListSnapshotsResponse, error)
-	// This is a private alpha release of Cloud Bigtable snapshots. This feature
-	// is not currently available to most Cloud Bigtable customers. This feature
-	// might be changed in backward-incompatible ways and is not recommended for
-	// production use. It is not subject to any SLA or deprecation policy.
 	//
+	// Note: This is a private alpha release of Cloud Bigtable snapshots. This
+	// feature is not currently available to most Cloud Bigtable customers. This
+	// feature might be changed in backward-incompatible ways and is not
+	// recommended for production use. It is not subject to any SLA or deprecation
+	// policy.
+	ListSnapshots(context.Context, *ListSnapshotsRequest) (*ListSnapshotsResponse, error)
 	// Permanently deletes the specified snapshot.
+	//
+	// Note: This is a private alpha release of Cloud Bigtable snapshots. This
+	// feature is not currently available to most Cloud Bigtable customers. This
+	// feature might be changed in backward-incompatible ways and is not
+	// recommended for production use. It is not subject to any SLA or deprecation
+	// policy.
 	DeleteSnapshot(context.Context, *DeleteSnapshotRequest) (*empty.Empty, error)
 }
 
@@ -2085,10 +2054,10 @@ var _BigtableTableAdmin_serviceDesc = grpc.ServiceDesc{
 }
 
 func init() {
-	proto.RegisterFile("google/bigtable/admin/v2/bigtable_table_admin.proto", fileDescriptor_bigtable_table_admin_67b5438a794c6471)
+	proto.RegisterFile("google/bigtable/admin/v2/bigtable_table_admin.proto", fileDescriptor_bigtable_table_admin_5562daab61d38018)
 }
 
-var fileDescriptor_bigtable_table_admin_67b5438a794c6471 = []byte{
+var fileDescriptor_bigtable_table_admin_5562daab61d38018 = []byte{
 	// 1514 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xcc, 0x58, 0xcb, 0x6f, 0xdc, 0x54,
 	0x17, 0xaf, 0x27, 0x8f, 0x26, 0x67, 0xf2, 0xea, 0xfd, 0xd2, 0x76, 0x3a, 0x6d, 0x93, 0xc8, 0x5f,

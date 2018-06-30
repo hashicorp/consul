@@ -58,11 +58,11 @@ func (OperationType) EnumDescriptor() ([]byte, []int) {
 type OperationMetadataV1Beta2 struct {
 	// Target of the operation - for example
 	// projects/project-1/locations/region-1/functions/function-1
-	Target string `protobuf:"bytes,1,opt,name=target" json:"target,omitempty"`
+	Target string `protobuf:"bytes,1,opt,name=target,proto3" json:"target,omitempty"`
 	// Type of operation.
-	Type OperationType `protobuf:"varint,2,opt,name=type,enum=google.cloud.functions.v1beta2.OperationType" json:"type,omitempty"`
+	Type OperationType `protobuf:"varint,2,opt,name=type,proto3,enum=google.cloud.functions.v1beta2.OperationType" json:"type,omitempty"`
 	// The original request that started the operation.
-	Request              *any.Any `protobuf:"bytes,3,opt,name=request" json:"request,omitempty"`
+	Request              *any.Any `protobuf:"bytes,3,opt,name=request,proto3" json:"request,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

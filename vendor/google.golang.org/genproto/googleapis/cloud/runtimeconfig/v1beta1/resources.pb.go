@@ -69,9 +69,9 @@ type RuntimeConfig struct {
 	// You pick the RuntimeConfig resource name, but the server will validate that
 	// the name adheres to this format. After you create the resource, you cannot
 	// change the resource's name.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// An optional description of the RuntimeConfig object.
-	Description          string   `protobuf:"bytes,2,opt,name=description" json:"description,omitempty"`
+	Description          string   `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -137,7 +137,7 @@ type Variable struct {
 	// The length of a `[VARIABLE_NAME]` must be less than 256 bytes.
 	//
 	// Once you create a variable, you cannot change the variable name.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The the value of the variable. It can be either a binary or a string
 	// value. You must specify one of either `value` or `text`. Specifying both
 	// will cause the server to return an error.
@@ -147,11 +147,11 @@ type Variable struct {
 	//	*Variable_Text
 	Contents isVariable_Contents `protobuf_oneof:"contents"`
 	// [Output Only] The time of the last variable update.
-	UpdateTime *timestamp.Timestamp `protobuf:"bytes,3,opt,name=update_time,json=updateTime" json:"update_time,omitempty"`
+	UpdateTime *timestamp.Timestamp `protobuf:"bytes,3,opt,name=update_time,json=updateTime,proto3" json:"update_time,omitempty"`
 	// [Ouput only] The current state of the variable. The variable state indicates
 	// the outcome of the `variables().watch` call and is visible through the
 	// `get` and `list` calls.
-	State                VariableState `protobuf:"varint,4,opt,name=state,enum=google.cloud.runtimeconfig.v1beta1.VariableState" json:"state,omitempty"`
+	State                VariableState `protobuf:"varint,4,opt,name=state,proto3,enum=google.cloud.runtimeconfig.v1beta1.VariableState" json:"state,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
 	XXX_unrecognized     []byte        `json:"-"`
 	XXX_sizecache        int32         `json:"-"`
@@ -189,7 +189,7 @@ type Variable_Value struct {
 	Value []byte `protobuf:"bytes,2,opt,name=value,proto3,oneof"`
 }
 type Variable_Text struct {
-	Text string `protobuf:"bytes,5,opt,name=text,oneof"`
+	Text string `protobuf:"bytes,5,opt,name=text,proto3,oneof"`
 }
 
 func (*Variable_Value) isVariable_Contents() {}
@@ -345,7 +345,7 @@ type isEndCondition_Condition interface {
 }
 
 type EndCondition_Cardinality_ struct {
-	Cardinality *EndCondition_Cardinality `protobuf:"bytes,1,opt,name=cardinality,oneof"`
+	Cardinality *EndCondition_Cardinality `protobuf:"bytes,1,opt,name=cardinality,proto3,oneof"`
 }
 
 func (*EndCondition_Cardinality_) isEndCondition_Condition() {}
@@ -435,10 +435,10 @@ func _EndCondition_OneofSizer(msg proto.Message) (n int) {
 // path prefix are counted.
 type EndCondition_Cardinality struct {
 	// The root of the variable subtree to monitor. For example, `/foo`.
-	Path string `protobuf:"bytes,1,opt,name=path" json:"path,omitempty"`
+	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
 	// The number variables under the `path` that must exist to meet this
 	// condition. Defaults to 1 if not specified.
-	Number               int32    `protobuf:"varint,2,opt,name=number" json:"number,omitempty"`
+	Number               int32    `protobuf:"varint,2,opt,name=number,proto3" json:"number,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -508,36 +508,36 @@ type Waiter struct {
 	// of `[WAITER_NAME]` must be less than 64 bytes.
 	//
 	// After you create a Waiter resource, you cannot change the resource name.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// [Required] Specifies the timeout of the waiter in seconds, beginning from
 	// the instant that `waiters().create` method is called. If this time elapses
 	// before the success or failure conditions are met, the waiter fails and sets
 	// the `error` code to `DEADLINE_EXCEEDED`.
-	Timeout *duration.Duration `protobuf:"bytes,2,opt,name=timeout" json:"timeout,omitempty"`
+	Timeout *duration.Duration `protobuf:"bytes,2,opt,name=timeout,proto3" json:"timeout,omitempty"`
 	// [Optional] The failure condition of this waiter. If this condition is met,
 	// `done` will be set to `true` and the `error` code will be set to `ABORTED`.
 	// The failure condition takes precedence over the success condition. If both
 	// conditions are met, a failure will be indicated. This value is optional; if
 	// no failure condition is set, the only failure scenario will be a timeout.
-	Failure *EndCondition `protobuf:"bytes,3,opt,name=failure" json:"failure,omitempty"`
+	Failure *EndCondition `protobuf:"bytes,3,opt,name=failure,proto3" json:"failure,omitempty"`
 	// [Required] The success condition. If this condition is met, `done` will be
 	// set to `true` and the `error` value will remain unset. The failure condition
 	// takes precedence over the success condition. If both conditions are met, a
 	// failure will be indicated.
-	Success *EndCondition `protobuf:"bytes,4,opt,name=success" json:"success,omitempty"`
+	Success *EndCondition `protobuf:"bytes,4,opt,name=success,proto3" json:"success,omitempty"`
 	// [Output Only] The instant at which this Waiter resource was created. Adding
 	// the value of `timeout` to this instant yields the timeout deadline for the
 	// waiter.
-	CreateTime *timestamp.Timestamp `protobuf:"bytes,5,opt,name=create_time,json=createTime" json:"create_time,omitempty"`
+	CreateTime *timestamp.Timestamp `protobuf:"bytes,5,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	// [Output Only] If the value is `false`, it means the waiter is still waiting
 	// for one of its conditions to be met.
 	//
 	// If true, the waiter has finished. If the waiter finished due to a timeout
 	// or failure, `error` will be set.
-	Done bool `protobuf:"varint,6,opt,name=done" json:"done,omitempty"`
+	Done bool `protobuf:"varint,6,opt,name=done,proto3" json:"done,omitempty"`
 	// [Output Only] If the waiter ended due to a failure or timeout, this value
 	// will be set.
-	Error                *status.Status `protobuf:"bytes,7,opt,name=error" json:"error,omitempty"`
+	Error                *status.Status `protobuf:"bytes,7,opt,name=error,proto3" json:"error,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
 	XXX_unrecognized     []byte         `json:"-"`
 	XXX_sizecache        int32          `json:"-"`

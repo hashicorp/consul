@@ -1,3 +1,5 @@
+# IntelliJ IDEA
+.idea
 # Eclipse
 .checkstyle
 .project
@@ -5,6 +7,10 @@
 # Swift
 .build
 Packages
+# Node
+node_modules
+package-lock.json
+bundle.json
 # vi
 *.swp
 # vscode
@@ -12,3 +18,4 @@ Packages
 .DS_Store
 *~
 Package.resolved
+extensions/sample/generated

@@ -26,15 +26,15 @@ type MetricValue struct {
 	// The labels describing the metric value.
 	// See comments on [google.api.servicecontrol.v1.Operation.labels][google.api.servicecontrol.v1.Operation.labels] for
 	// the overriding relationship.
-	Labels map[string]string `protobuf:"bytes,1,rep,name=labels" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Labels map[string]string `protobuf:"bytes,1,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// The start of the time period over which this metric value's measurement
 	// applies. The time period has different semantics for different metric
 	// types (cumulative, delta, and gauge). See the metric definition
 	// documentation in the service configuration for details.
-	StartTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=start_time,json=startTime" json:"start_time,omitempty"`
+	StartTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
 	// The end of the time period over which this metric value's measurement
 	// applies.
-	EndTime *timestamp.Timestamp `protobuf:"bytes,3,opt,name=end_time,json=endTime" json:"end_time,omitempty"`
+	EndTime *timestamp.Timestamp `protobuf:"bytes,3,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
 	// The value. The type of value used in the request must
 	// agree with the metric definition in the service configuration, otherwise
 	// the MetricValue is rejected.
@@ -80,19 +80,19 @@ type isMetricValue_Value interface {
 }
 
 type MetricValue_BoolValue struct {
-	BoolValue bool `protobuf:"varint,4,opt,name=bool_value,json=boolValue,oneof"`
+	BoolValue bool `protobuf:"varint,4,opt,name=bool_value,json=boolValue,proto3,oneof"`
 }
 type MetricValue_Int64Value struct {
-	Int64Value int64 `protobuf:"varint,5,opt,name=int64_value,json=int64Value,oneof"`
+	Int64Value int64 `protobuf:"varint,5,opt,name=int64_value,json=int64Value,proto3,oneof"`
 }
 type MetricValue_DoubleValue struct {
-	DoubleValue float64 `protobuf:"fixed64,6,opt,name=double_value,json=doubleValue,oneof"`
+	DoubleValue float64 `protobuf:"fixed64,6,opt,name=double_value,json=doubleValue,proto3,oneof"`
 }
 type MetricValue_StringValue struct {
-	StringValue string `protobuf:"bytes,7,opt,name=string_value,json=stringValue,oneof"`
+	StringValue string `protobuf:"bytes,7,opt,name=string_value,json=stringValue,proto3,oneof"`
 }
 type MetricValue_DistributionValue struct {
-	DistributionValue *Distribution `protobuf:"bytes,8,opt,name=distribution_value,json=distributionValue,oneof"`
+	DistributionValue *Distribution `protobuf:"bytes,8,opt,name=distribution_value,json=distributionValue,proto3,oneof"`
 }
 
 func (*MetricValue_BoolValue) isMetricValue_Value()         {}
@@ -285,9 +285,9 @@ func _MetricValue_OneofSizer(msg proto.Message) (n int) {
 // end time, and label values.
 type MetricValueSet struct {
 	// The metric name defined in the service configuration.
-	MetricName string `protobuf:"bytes,1,opt,name=metric_name,json=metricName" json:"metric_name,omitempty"`
+	MetricName string `protobuf:"bytes,1,opt,name=metric_name,json=metricName,proto3" json:"metric_name,omitempty"`
 	// The values in this metric.
-	MetricValues         []*MetricValue `protobuf:"bytes,2,rep,name=metric_values,json=metricValues" json:"metric_values,omitempty"`
+	MetricValues         []*MetricValue `protobuf:"bytes,2,rep,name=metric_values,json=metricValues,proto3" json:"metric_values,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
 	XXX_unrecognized     []byte         `json:"-"`
 	XXX_sizecache        int32          `json:"-"`

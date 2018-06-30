@@ -79,12 +79,12 @@ func (ProfileType) EnumDescriptor() ([]byte, []int) {
 // field must be identical to the deployment in the profile.
 type CreateProfileRequest struct {
 	// Deployment details.
-	Deployment *Deployment `protobuf:"bytes,1,opt,name=deployment" json:"deployment,omitempty"`
+	Deployment *Deployment `protobuf:"bytes,1,opt,name=deployment,proto3" json:"deployment,omitempty"`
 	// Online mode: One or more profile types that the agent is capable of
 	// providing.
-	ProfileType []ProfileType `protobuf:"varint,2,rep,packed,name=profile_type,json=profileType,enum=google.devtools.cloudprofiler.v2.ProfileType" json:"profile_type,omitempty"`
+	ProfileType []ProfileType `protobuf:"varint,2,rep,packed,name=profile_type,json=profileType,proto3,enum=google.devtools.cloudprofiler.v2.ProfileType" json:"profile_type,omitempty"`
 	// Offline mode: Contents of the profile to create.
-	Profile              *Profile `protobuf:"bytes,3,opt,name=profile" json:"profile,omitempty"`
+	Profile              *Profile `protobuf:"bytes,3,opt,name=profile,proto3" json:"profile,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -138,7 +138,7 @@ func (m *CreateProfileRequest) GetProfile() *Profile {
 // UpdateProfileRequest contains the profile to update.
 type UpdateProfileRequest struct {
 	// Profile to update
-	Profile              *Profile `protobuf:"bytes,1,opt,name=profile" json:"profile,omitempty"`
+	Profile              *Profile `protobuf:"bytes,1,opt,name=profile,proto3" json:"profile,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -179,19 +179,19 @@ func (m *UpdateProfileRequest) GetProfile() *Profile {
 type Profile struct {
 	// Opaque, server-assigned, unique ID for this profile.
 	// Output only.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Type of profile.
 	// Input (for the offline mode) or output (for the online mode).
-	ProfileType ProfileType `protobuf:"varint,2,opt,name=profile_type,json=profileType,enum=google.devtools.cloudprofiler.v2.ProfileType" json:"profile_type,omitempty"`
+	ProfileType ProfileType `protobuf:"varint,2,opt,name=profile_type,json=profileType,proto3,enum=google.devtools.cloudprofiler.v2.ProfileType" json:"profile_type,omitempty"`
 	// Deployment this profile corresponds to.
-	Deployment *Deployment `protobuf:"bytes,3,opt,name=deployment" json:"deployment,omitempty"`
+	Deployment *Deployment `protobuf:"bytes,3,opt,name=deployment,proto3" json:"deployment,omitempty"`
 	// Duration of the profiling session.
 	// Input (for the offline mode) or output (for the online mode).
 	// The field represents requested profiling duration. It may slightly differ
 	// from the effective profiling duration, which is recorded in the profile
 	// data, in case the profiling can't be stopped immediately (e.g. in case
 	// stopping the profiling is handled asynchronously).
-	Duration *duration.Duration `protobuf:"bytes,4,opt,name=duration" json:"duration,omitempty"`
+	Duration *duration.Duration `protobuf:"bytes,4,opt,name=duration,proto3" json:"duration,omitempty"`
 	// Profile bytes, as a gzip compressed serialized proto, the format is
 	// https://github.com/google/pprof/blob/master/proto/profile.proto.
 	ProfileBytes []byte `protobuf:"bytes,5,opt,name=profile_bytes,json=profileBytes,proto3" json:"profile_bytes,omitempty"`
@@ -199,7 +199,7 @@ type Profile struct {
 	// with the deployment labels for the final data set.
 	// See documentation on deployment labels for validation rules and limits.
 	// Input only, will not be populated on responses.
-	Labels               map[string]string `protobuf:"bytes,6,rep,name=labels" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Labels               map[string]string `protobuf:"bytes,6,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -275,14 +275,14 @@ func (m *Profile) GetLabels() map[string]string {
 type Deployment struct {
 	// Project ID is the ID of a cloud project.
 	// Validation regex: `^[a-z][-a-z0-9:.]{4,61}[a-z0-9]$`.
-	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// Target is the service name used to group related deployments:
 	// * Service name for GAE Flex / Standard.
 	// * Cluster and container name for GKE.
 	// * User-specified string for direct GCE profiling (e.g. Java).
 	// * Job name for Dataflow.
 	// Validation regex: `^[a-z]([-a-z0-9_.]{0,253}[a-z0-9])?$`.
-	Target string `protobuf:"bytes,2,opt,name=target" json:"target,omitempty"`
+	Target string `protobuf:"bytes,2,opt,name=target,proto3" json:"target,omitempty"`
 	// Labels identify the deployment within the user universe and same target.
 	// Validation regex for label names: `^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$`.
 	// Value for an individual label must be <= 512 bytes, the total
@@ -296,7 +296,7 @@ type Deployment struct {
 	// should be present describing the deployment location. An example of a zone
 	// is "us-central1-a", an example of a region is "us-central1" or
 	// "us-central".
-	Labels               map[string]string `protobuf:"bytes,3,rep,name=labels" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Labels               map[string]string `protobuf:"bytes,3,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -418,8 +418,7 @@ func (c *profilerServiceClient) UpdateProfile(ctx context.Context, in *UpdatePro
 	return out, nil
 }
 
-// Server API for ProfilerService service
-
+// ProfilerServiceServer is the server API for ProfilerService service.
 type ProfilerServiceServer interface {
 	// CreateProfile creates a new profile resource.
 	//

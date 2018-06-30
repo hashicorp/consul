@@ -143,15 +143,15 @@ type TransferConfig struct {
 	// Where `config_id` is usually a uuid, even though it is not
 	// guaranteed or required. The name is ignored when creating a transfer
 	// config.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The BigQuery target dataset id.
-	DestinationDatasetId string `protobuf:"bytes,2,opt,name=destination_dataset_id,json=destinationDatasetId" json:"destination_dataset_id,omitempty"`
+	DestinationDatasetId string `protobuf:"bytes,2,opt,name=destination_dataset_id,json=destinationDatasetId,proto3" json:"destination_dataset_id,omitempty"`
 	// User specified display name for the data transfer.
-	DisplayName string `protobuf:"bytes,3,opt,name=display_name,json=displayName" json:"display_name,omitempty"`
+	DisplayName string `protobuf:"bytes,3,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	// Data source id. Cannot be changed once data transfer is created.
-	DataSourceId string `protobuf:"bytes,5,opt,name=data_source_id,json=dataSourceId" json:"data_source_id,omitempty"`
+	DataSourceId string `protobuf:"bytes,5,opt,name=data_source_id,json=dataSourceId,proto3" json:"data_source_id,omitempty"`
 	// Data transfer specific parameters.
-	Params *_struct.Struct `protobuf:"bytes,9,opt,name=params" json:"params,omitempty"`
+	Params *_struct.Struct `protobuf:"bytes,9,opt,name=params,proto3" json:"params,omitempty"`
 	// Data transfer schedule.
 	// If the data source does not support a custom schedule, this should be
 	// empty. If it is empty, the default value for the data source will be
@@ -164,31 +164,31 @@ type TransferConfig struct {
 	// See more explanation about the format here:
 	// https://cloud.google.com/appengine/docs/flexible/python/scheduling-jobs-with-cron-yaml#the_schedule_format
 	// NOTE: the granularity should be at least 8 hours, or less frequent.
-	Schedule string `protobuf:"bytes,7,opt,name=schedule" json:"schedule,omitempty"`
+	Schedule string `protobuf:"bytes,7,opt,name=schedule,proto3" json:"schedule,omitempty"`
 	// The number of days to look back to automatically refresh the data.
 	// For example, if `data_refresh_window_days = 10`, then every day
 	// BigQuery reingests data for [today-10, today-1], rather than ingesting data
 	// for just [today-1].
 	// Only valid if the data source supports the feature. Set the value to  0
 	// to use the default value.
-	DataRefreshWindowDays int32 `protobuf:"varint,12,opt,name=data_refresh_window_days,json=dataRefreshWindowDays" json:"data_refresh_window_days,omitempty"`
+	DataRefreshWindowDays int32 `protobuf:"varint,12,opt,name=data_refresh_window_days,json=dataRefreshWindowDays,proto3" json:"data_refresh_window_days,omitempty"`
 	// Is this config disabled. When set to true, no runs are scheduled
 	// for a given transfer.
-	Disabled bool `protobuf:"varint,13,opt,name=disabled" json:"disabled,omitempty"`
+	Disabled bool `protobuf:"varint,13,opt,name=disabled,proto3" json:"disabled,omitempty"`
 	// Output only. Data transfer modification time. Ignored by server on input.
-	UpdateTime *timestamp.Timestamp `protobuf:"bytes,4,opt,name=update_time,json=updateTime" json:"update_time,omitempty"`
+	UpdateTime *timestamp.Timestamp `protobuf:"bytes,4,opt,name=update_time,json=updateTime,proto3" json:"update_time,omitempty"`
 	// Output only. Next time when data transfer will run.
-	NextRunTime *timestamp.Timestamp `protobuf:"bytes,8,opt,name=next_run_time,json=nextRunTime" json:"next_run_time,omitempty"`
+	NextRunTime *timestamp.Timestamp `protobuf:"bytes,8,opt,name=next_run_time,json=nextRunTime,proto3" json:"next_run_time,omitempty"`
 	// Output only. State of the most recently updated transfer run.
-	State TransferState `protobuf:"varint,10,opt,name=state,enum=google.cloud.bigquery.datatransfer.v1.TransferState" json:"state,omitempty"`
+	State TransferState `protobuf:"varint,10,opt,name=state,proto3,enum=google.cloud.bigquery.datatransfer.v1.TransferState" json:"state,omitempty"`
 	// Output only. Unique ID of the user on whose behalf transfer is done.
 	// Applicable only to data sources that do not support service accounts.
 	// When set to 0, the data source service account credentials are used.
 	// May be negative. Note, that this identifier is not stable.
 	// It may change over time even for the same user.
-	UserId int64 `protobuf:"varint,11,opt,name=user_id,json=userId" json:"user_id,omitempty"`
+	UserId int64 `protobuf:"varint,11,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	// Output only. Region in which BigQuery dataset is located.
-	DatasetRegion        string   `protobuf:"bytes,14,opt,name=dataset_region,json=datasetRegion" json:"dataset_region,omitempty"`
+	DatasetRegion        string   `protobuf:"bytes,14,opt,name=dataset_region,json=datasetRegion,proto3" json:"dataset_region,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -315,42 +315,42 @@ type TransferRun struct {
 	// Transfer run names have the form
 	// `projects/{project_id}/locations/{location}/transferConfigs/{config_id}/runs/{run_id}`.
 	// The name is ignored when creating a transfer run.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Minimum time after which a transfer run can be started.
-	ScheduleTime *timestamp.Timestamp `protobuf:"bytes,3,opt,name=schedule_time,json=scheduleTime" json:"schedule_time,omitempty"`
+	ScheduleTime *timestamp.Timestamp `protobuf:"bytes,3,opt,name=schedule_time,json=scheduleTime,proto3" json:"schedule_time,omitempty"`
 	// For batch transfer runs, specifies the date and time that
 	// data should be ingested.
-	RunTime *timestamp.Timestamp `protobuf:"bytes,10,opt,name=run_time,json=runTime" json:"run_time,omitempty"`
+	RunTime *timestamp.Timestamp `protobuf:"bytes,10,opt,name=run_time,json=runTime,proto3" json:"run_time,omitempty"`
 	// Status of the transfer run.
-	ErrorStatus *status.Status `protobuf:"bytes,21,opt,name=error_status,json=errorStatus" json:"error_status,omitempty"`
+	ErrorStatus *status.Status `protobuf:"bytes,21,opt,name=error_status,json=errorStatus,proto3" json:"error_status,omitempty"`
 	// Output only. Time when transfer run was started.
 	// Parameter ignored by server for input requests.
-	StartTime *timestamp.Timestamp `protobuf:"bytes,4,opt,name=start_time,json=startTime" json:"start_time,omitempty"`
+	StartTime *timestamp.Timestamp `protobuf:"bytes,4,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
 	// Output only. Time when transfer run ended.
 	// Parameter ignored by server for input requests.
-	EndTime *timestamp.Timestamp `protobuf:"bytes,5,opt,name=end_time,json=endTime" json:"end_time,omitempty"`
+	EndTime *timestamp.Timestamp `protobuf:"bytes,5,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
 	// Output only. Last time the data transfer run state was updated.
-	UpdateTime *timestamp.Timestamp `protobuf:"bytes,6,opt,name=update_time,json=updateTime" json:"update_time,omitempty"`
+	UpdateTime *timestamp.Timestamp `protobuf:"bytes,6,opt,name=update_time,json=updateTime,proto3" json:"update_time,omitempty"`
 	// Output only. Data transfer specific parameters.
-	Params *_struct.Struct `protobuf:"bytes,9,opt,name=params" json:"params,omitempty"`
+	Params *_struct.Struct `protobuf:"bytes,9,opt,name=params,proto3" json:"params,omitempty"`
 	// Output only. The BigQuery target dataset id.
-	DestinationDatasetId string `protobuf:"bytes,2,opt,name=destination_dataset_id,json=destinationDatasetId" json:"destination_dataset_id,omitempty"`
+	DestinationDatasetId string `protobuf:"bytes,2,opt,name=destination_dataset_id,json=destinationDatasetId,proto3" json:"destination_dataset_id,omitempty"`
 	// Output only. Data source id.
-	DataSourceId string `protobuf:"bytes,7,opt,name=data_source_id,json=dataSourceId" json:"data_source_id,omitempty"`
+	DataSourceId string `protobuf:"bytes,7,opt,name=data_source_id,json=dataSourceId,proto3" json:"data_source_id,omitempty"`
 	// Data transfer run state. Ignored for input requests.
-	State TransferState `protobuf:"varint,8,opt,name=state,enum=google.cloud.bigquery.datatransfer.v1.TransferState" json:"state,omitempty"`
+	State TransferState `protobuf:"varint,8,opt,name=state,proto3,enum=google.cloud.bigquery.datatransfer.v1.TransferState" json:"state,omitempty"`
 	// Output only. Unique ID of the user on whose behalf transfer is done.
 	// Applicable only to data sources that do not support service accounts.
 	// When set to 0, the data source service account credentials are used.
 	// May be negative. Note, that this identifier is not stable.
 	// It may change over time even for the same user.
-	UserId int64 `protobuf:"varint,11,opt,name=user_id,json=userId" json:"user_id,omitempty"`
+	UserId int64 `protobuf:"varint,11,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	// Output only. Describes the schedule of this transfer run if it was
 	// created as part of a regular schedule. For batch transfer runs that are
 	// scheduled manually, this is empty.
 	// NOTE: the system might choose to delay the schedule depending on the
 	// current load, so `schedule_time` doesn't always matches this.
-	Schedule             string   `protobuf:"bytes,12,opt,name=schedule" json:"schedule,omitempty"`
+	Schedule             string   `protobuf:"bytes,12,opt,name=schedule,proto3" json:"schedule,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -474,11 +474,11 @@ func (m *TransferRun) GetSchedule() string {
 // Represents a user facing message for a particular data transfer run.
 type TransferMessage struct {
 	// Time when message was logged.
-	MessageTime *timestamp.Timestamp `protobuf:"bytes,1,opt,name=message_time,json=messageTime" json:"message_time,omitempty"`
+	MessageTime *timestamp.Timestamp `protobuf:"bytes,1,opt,name=message_time,json=messageTime,proto3" json:"message_time,omitempty"`
 	// Message severity.
-	Severity TransferMessage_MessageSeverity `protobuf:"varint,2,opt,name=severity,enum=google.cloud.bigquery.datatransfer.v1.TransferMessage_MessageSeverity" json:"severity,omitempty"`
+	Severity TransferMessage_MessageSeverity `protobuf:"varint,2,opt,name=severity,proto3,enum=google.cloud.bigquery.datatransfer.v1.TransferMessage_MessageSeverity" json:"severity,omitempty"`
 	// Message text.
-	MessageText          string   `protobuf:"bytes,3,opt,name=message_text,json=messageText" json:"message_text,omitempty"`
+	MessageText          string   `protobuf:"bytes,3,opt,name=message_text,json=messageText,proto3" json:"message_text,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

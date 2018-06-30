@@ -31,7 +31,7 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 type GetSupportAccountRequest struct {
 	// The resource name of the support accounts. For example:
 	// `supportAccounts/accountA`.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -74,12 +74,12 @@ type ListSupportAccountsRequest struct {
 	// account list by a cloud_resource. For example, to filter results by support
 	// accounts associated with an Organization, its value should be:
 	// "cloud_resource:organizations/<organization_id>"
-	Filter string `protobuf:"bytes,1,opt,name=filter" json:"filter,omitempty"`
+	Filter string `protobuf:"bytes,1,opt,name=filter,proto3" json:"filter,omitempty"`
 	// Maximum number of accounts fetched with each request.
-	PageSize int64 `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int64 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// A token identifying the page of results to return. If unspecified, the
 	// first page is retrieved.
-	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -133,11 +133,11 @@ func (m *ListSupportAccountsRequest) GetPageToken() string {
 // The response message for `ListSupportAccount`.
 type ListSupportAccountsResponse struct {
 	// A list of support accounts.
-	Accounts []*common.SupportAccount `protobuf:"bytes,1,rep,name=accounts" json:"accounts,omitempty"`
+	Accounts []*common.SupportAccount `protobuf:"bytes,1,rep,name=accounts,proto3" json:"accounts,omitempty"`
 	// A token to retrieve the next page of results. This should be passed on in
 	// `page_token` field of `ListSupportAccountRequest` for next request. If
 	// unspecified, there are no more results to retrieve.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -185,7 +185,7 @@ func (m *ListSupportAccountsResponse) GetNextPageToken() string {
 type GetCaseRequest struct {
 	// Name of case resource requested.
 	// For example: "supportAccounts/accountA/cases/123"
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -226,15 +226,15 @@ func (m *GetCaseRequest) GetName() string {
 type ListCasesRequest struct {
 	// Name of the account resource for which cases are requested. For example:
 	// "supportAccounts/accountA"
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The filter applied to the search results. Currently it only accepts "OPEN"
 	// or "CLOSED" strings, filtering out cases that are open or resolved.
-	Filter string `protobuf:"bytes,2,opt,name=filter" json:"filter,omitempty"`
+	Filter string `protobuf:"bytes,2,opt,name=filter,proto3" json:"filter,omitempty"`
 	// Maximum number of cases fetched with each request.
-	PageSize int64 `protobuf:"varint,3,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int64 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// A token identifying the page of results to return. If unspecified, the
 	// first page is retrieved.
-	PageToken            string   `protobuf:"bytes,4,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -295,11 +295,11 @@ func (m *ListCasesRequest) GetPageToken() string {
 // The response message for `ListCase` method.
 type ListCasesResponse struct {
 	// A list of cases.
-	Cases []*common.Case `protobuf:"bytes,1,rep,name=cases" json:"cases,omitempty"`
+	Cases []*common.Case `protobuf:"bytes,1,rep,name=cases,proto3" json:"cases,omitempty"`
 	// A token to retrieve the next page of results. This should be passed on in
 	// `page_token` field of `ListCaseRequest` for next request. If unspecified,
 	// there are no more results to retrieve.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -346,7 +346,7 @@ func (m *ListCasesResponse) GetNextPageToken() string {
 // The request message for `ListComments` method.
 type ListCommentsRequest struct {
 	// The resource name of case for which comments should be listed.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -386,7 +386,7 @@ func (m *ListCommentsRequest) GetName() string {
 // The response message for `ListComments` method.
 type ListCommentsResponse struct {
 	// A list of comments.
-	Comments             []*common.Comment `protobuf:"bytes,1,rep,name=comments" json:"comments,omitempty"`
+	Comments             []*common.Comment `protobuf:"bytes,1,rep,name=comments,proto3" json:"comments,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -426,9 +426,9 @@ func (m *ListCommentsResponse) GetComments() []*common.Comment {
 // The request message for `CreateCase` method.
 type CreateCaseRequest struct {
 	// The resource name for `SupportAccount` under which this case is created.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// The case resource to create.
-	Case                 *common.Case `protobuf:"bytes,2,opt,name=case" json:"case,omitempty"`
+	Case                 *common.Case `protobuf:"bytes,2,opt,name=case,proto3" json:"case,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
 	XXX_unrecognized     []byte       `json:"-"`
 	XXX_sizecache        int32        `json:"-"`
@@ -475,10 +475,10 @@ func (m *CreateCaseRequest) GetCase() *common.Case {
 // The request message for `UpdateCase` method.
 type UpdateCaseRequest struct {
 	// The case resource to update.
-	Case *common.Case `protobuf:"bytes,1,opt,name=case" json:"case,omitempty"`
+	Case *common.Case `protobuf:"bytes,1,opt,name=case,proto3" json:"case,omitempty"`
 	// A field that represents attributes of a Case object that should be updated
 	// as part of this request.
-	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -525,9 +525,9 @@ func (m *UpdateCaseRequest) GetUpdateMask() *field_mask.FieldMask {
 // The request message for `CreateComment` method.
 type CreateCommentRequest struct {
 	// The resource name of case to which this comment should be added.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The `Comment` to be added to this case.
-	Comment              *common.Comment `protobuf:"bytes,2,opt,name=comment" json:"comment,omitempty"`
+	Comment              *common.Comment `protobuf:"bytes,2,opt,name=comment,proto3" json:"comment,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
 	XXX_unrecognized     []byte          `json:"-"`
 	XXX_sizecache        int32           `json:"-"`
@@ -747,8 +747,7 @@ func (c *cloudSupportClient) GetIssueTaxonomy(ctx context.Context, in *GetIssueT
 	return out, nil
 }
 
-// Server API for CloudSupport service
-
+// CloudSupportServer is the server API for CloudSupport service.
 type CloudSupportServer interface {
 	// Retrieves the support account details given an account identifier.
 	// The authenticated user calling this method must be the account owner.

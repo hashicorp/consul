@@ -53,8 +53,10 @@ import (
 	_ "google.golang.org/grpc/encoding/gzip"
 	_ "google.golang.org/grpc/grpclog/glogger"
 	"google.golang.org/grpc/health"
+	healthgrpc "google.golang.org/grpc/health/grpc_health_v1"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/internal"
+	"google.golang.org/grpc/internal/leakcheck"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
@@ -65,7 +67,6 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/tap"
 	testpb "google.golang.org/grpc/test/grpc_testing"
-	"google.golang.org/grpc/test/leakcheck"
 	"google.golang.org/grpc/testdata"
 )
 
@@ -601,7 +602,7 @@ func (te *test) listenAndServe(ts testpb.TestServiceServer, listen func(network,
 		internal.TestingUseHandlerImpl(s)
 	}
 	if te.healthServer != nil {
-		healthpb.RegisterHealthServer(s, te.healthServer)
+		healthgrpc.RegisterHealthServer(s, te.healthServer)
 	}
 	if te.testServer != nil {
 		testpb.RegisterTestServiceServer(s, te.testServer)
@@ -2252,7 +2253,7 @@ func testTap(t *testing.T, e env) {
 func healthCheck(d time.Duration, cc *grpc.ClientConn, serviceName string) (*healthpb.HealthCheckResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), d)
 	defer cancel()
-	hc := healthpb.NewHealthClient(cc)
+	hc := healthgrpc.NewHealthClient(cc)
 	req := &healthpb.HealthCheckRequest{
 		Service: serviceName,
 	}
@@ -6139,6 +6140,73 @@ func TestServeExitsWhenListenerClosed(t *testing.T) {
 		return
 	case <-timer.C:
 		t.Fatalf("Serve did not return after %v", timeout)
+	}
+}
+
+// Service handler returns status with invalid utf8 message.
+func TestStatusInvalidUTF8Message(t *testing.T) {
+	defer leakcheck.Check(t)
+
+	var (
+		origMsg = string([]byte{0xff, 0xfe, 0xfd})
+		wantMsg = "���"
+	)
+
+	ss := &stubServer{
+		emptyCall: func(ctx context.Context, in *testpb.Empty) (*testpb.Empty, error) {
+			return nil, status.Errorf(codes.Internal, origMsg)
+		},
+	}
+	if err := ss.Start(nil); err != nil {
+		t.Fatalf("Error starting endpoint server: %v", err)
+	}
+	defer ss.Stop()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	if _, err := ss.client.EmptyCall(ctx, &testpb.Empty{}); status.Convert(err).Message() != wantMsg {
+		t.Fatalf("ss.client.EmptyCall(_, _) = _, %v (msg %q); want _, err with msg %q", err, status.Convert(err).Message(), wantMsg)
+	}
+}
+
+// Service handler returns status with details and invalid utf8 message. Proto
+// will fail to marshal the status because of the invalid utf8 message. Details
+// will be dropped when sending.
+func TestStatusInvalidUTF8Details(t *testing.T) {
+	defer leakcheck.Check(t)
+
+	var (
+		origMsg = string([]byte{0xff, 0xfe, 0xfd})
+		wantMsg = "���"
+	)
+
+	ss := &stubServer{
+		emptyCall: func(ctx context.Context, in *testpb.Empty) (*testpb.Empty, error) {
+			st := status.New(codes.Internal, origMsg)
+			st, err := st.WithDetails(&testpb.Empty{})
+			if err != nil {
+				return nil, err
+			}
+			return nil, st.Err()
+		},
+	}
+	if err := ss.Start(nil); err != nil {
+		t.Fatalf("Error starting endpoint server: %v", err)
+	}
+	defer ss.Stop()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	_, err := ss.client.EmptyCall(ctx, &testpb.Empty{})
+	st := status.Convert(err)
+	if st.Message() != wantMsg {
+		t.Fatalf("ss.client.EmptyCall(_, _) = _, %v (msg %q); want _, err with msg %q", err, st.Message(), wantMsg)
+	}
+	if len(st.Details()) != 0 {
+		// Details should be dropped on the server side.
+		t.Fatalf("RPC status contain details: %v, want no details", st.Details())
 	}
 }
 

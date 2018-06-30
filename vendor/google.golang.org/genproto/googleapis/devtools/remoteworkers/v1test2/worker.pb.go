@@ -56,7 +56,7 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 type Worker struct {
 	// A list of devices; the first device is the primary device. See the `Device`
 	// message for more information.
-	Devices []*Device `protobuf:"bytes,1,rep,name=devices" json:"devices,omitempty"`
+	Devices []*Device `protobuf:"bytes,1,rep,name=devices,proto3" json:"devices,omitempty"`
 	// A worker may contain "global" properties. For example, certain machines
 	// might be reserved for certain types of jobs, like short-running compilation
 	// versus long-running integration tests. This property is known as a "pool"
@@ -64,7 +64,7 @@ type Worker struct {
 	// to the worker as a whole.
 	//
 	// The behaviour of repeated keys is identical to that of Device.Property.
-	Properties           []*Worker_Property `protobuf:"bytes,2,rep,name=properties" json:"properties,omitempty"`
+	Properties           []*Worker_Property `protobuf:"bytes,2,rep,name=properties,proto3" json:"properties,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
 	XXX_unrecognized     []byte             `json:"-"`
 	XXX_sizecache        int32              `json:"-"`
@@ -120,9 +120,9 @@ type Worker_Property struct {
 	// throughput. To support this, the server can assign different values for
 	// `pool` (such as "itest" and "utest") to different workers, and then have
 	// jobs request workers from those pools.
-	Key string `protobuf:"bytes,1,opt,name=key" json:"key,omitempty"`
+	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
 	// The property's value.
-	Value                string   `protobuf:"bytes,2,opt,name=value" json:"value,omitempty"`
+	Value                string   `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -179,7 +179,7 @@ type Device struct {
 	// logical name expected by the task to a machine-readable name that the task
 	// can actually use, such as a USB address. The method by which this mapping
 	// is communicated to the task is not covered in this API.
-	Handle string `protobuf:"bytes,1,opt,name=handle" json:"handle,omitempty"`
+	Handle string `protobuf:"bytes,1,opt,name=handle,proto3" json:"handle,omitempty"`
 	// Properties of this device that don't change based on the tasks that are
 	// running on it, e.g. OS, CPU architecture, etc.
 	//
@@ -189,7 +189,7 @@ type Device struct {
 	//    example, an "ISA" property might include "x86", "x86-64" and "sse4".
 	//
 	//    * Request context: the device *must* support *all* of the listed values.
-	Properties           []*Device_Property `protobuf:"bytes,2,rep,name=properties" json:"properties,omitempty"`
+	Properties           []*Device_Property `protobuf:"bytes,2,rep,name=properties,proto3" json:"properties,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
 	XXX_unrecognized     []byte             `json:"-"`
 	XXX_sizecache        int32              `json:"-"`
@@ -246,9 +246,9 @@ type Device_Property struct {
 	//
 	// * has-docker: "true" if the bot has Docker installed. This will be
 	// replaced in the future by a more structured message for Docker support.
-	Key string `protobuf:"bytes,1,opt,name=key" json:"key,omitempty"`
+	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
 	// The property's value.
-	Value                string   `protobuf:"bytes,2,opt,name=value" json:"value,omitempty"`
+	Value                string   `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

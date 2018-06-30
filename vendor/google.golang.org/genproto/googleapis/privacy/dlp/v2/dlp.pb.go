@@ -59,7 +59,7 @@ func (x ContentOption) String() string {
 	return proto.EnumName(ContentOption_name, int32(x))
 }
 func (ContentOption) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{0}
+	return fileDescriptor_dlp_536657b46c30097f, []int{0}
 }
 
 // Parts of the APIs which use certain infoTypes.
@@ -88,7 +88,7 @@ func (x InfoTypeSupportedBy) String() string {
 	return proto.EnumName(InfoTypeSupportedBy_name, int32(x))
 }
 func (InfoTypeSupportedBy) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{1}
+	return fileDescriptor_dlp_536657b46c30097f, []int{1}
 }
 
 // Operators available for comparing the value of fields.
@@ -137,7 +137,7 @@ func (x RelationalOperator) String() string {
 	return proto.EnumName(RelationalOperator_name, int32(x))
 }
 func (RelationalOperator) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{2}
+	return fileDescriptor_dlp_536657b46c30097f, []int{2}
 }
 
 // An enum to represent the various type of DLP jobs.
@@ -166,7 +166,7 @@ func (x DlpJobType) String() string {
 	return proto.EnumName(DlpJobType_name, int32(x))
 }
 func (DlpJobType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{3}
+	return fileDescriptor_dlp_536657b46c30097f, []int{3}
 }
 
 type ByteContentItem_BytesType int32
@@ -204,7 +204,7 @@ func (x ByteContentItem_BytesType) String() string {
 	return proto.EnumName(ByteContentItem_BytesType_name, int32(x))
 }
 func (ByteContentItem_BytesType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{1, 0}
+	return fileDescriptor_dlp_536657b46c30097f, []int{1, 0}
 }
 
 // Predefined schemas for storing findings.
@@ -246,7 +246,7 @@ func (x OutputStorageConfig_OutputSchema) String() string {
 	return proto.EnumName(OutputStorageConfig_OutputSchema_name, int32(x))
 }
 func (OutputStorageConfig_OutputSchema) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{23, 0}
+	return fileDescriptor_dlp_536657b46c30097f, []int{23, 0}
 }
 
 type TimePartConfig_TimePart int32
@@ -290,7 +290,7 @@ func (x TimePartConfig_TimePart) String() string {
 	return proto.EnumName(TimePartConfig_TimePart_name, int32(x))
 }
 func (TimePartConfig_TimePart) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{38, 0}
+	return fileDescriptor_dlp_536657b46c30097f, []int{40, 0}
 }
 
 type CharsToIgnore_CommonCharsToIgnore int32
@@ -330,7 +330,7 @@ func (x CharsToIgnore_CommonCharsToIgnore) String() string {
 	return proto.EnumName(CharsToIgnore_CommonCharsToIgnore_name, int32(x))
 }
 func (CharsToIgnore_CommonCharsToIgnore) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{43, 0}
+	return fileDescriptor_dlp_536657b46c30097f, []int{45, 0}
 }
 
 // These are commonly used subsets of the alphabet that the FFX mode
@@ -369,7 +369,7 @@ func (x CryptoReplaceFfxFpeConfig_FfxCommonNativeAlphabet) String() string {
 	return proto.EnumName(CryptoReplaceFfxFpeConfig_FfxCommonNativeAlphabet_name, int32(x))
 }
 func (CryptoReplaceFfxFpeConfig_FfxCommonNativeAlphabet) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{47, 0}
+	return fileDescriptor_dlp_536657b46c30097f, []int{49, 0}
 }
 
 type RecordCondition_Expressions_LogicalOperator int32
@@ -392,7 +392,7 @@ func (x RecordCondition_Expressions_LogicalOperator) String() string {
 	return proto.EnumName(RecordCondition_Expressions_LogicalOperator_name, int32(x))
 }
 func (RecordCondition_Expressions_LogicalOperator) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{57, 2, 0}
+	return fileDescriptor_dlp_536657b46c30097f, []int{59, 2, 0}
 }
 
 // Possible outcomes of transformations.
@@ -419,7 +419,7 @@ func (x TransformationSummary_TransformationResultCode) String() string {
 	return proto.EnumName(TransformationSummary_TransformationResultCode_name, int32(x))
 }
 func (TransformationSummary_TransformationResultCode) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{59, 0}
+	return fileDescriptor_dlp_536657b46c30097f, []int{61, 0}
 }
 
 // Whether the trigger is currently active. If PAUSED or CANCELLED, no jobs
@@ -455,7 +455,7 @@ func (x JobTrigger_Status) String() string {
 	return proto.EnumName(JobTrigger_Status_name, int32(x))
 }
 func (JobTrigger_Status) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{64, 0}
+	return fileDescriptor_dlp_536657b46c30097f, []int{66, 0}
 }
 
 type DlpJob_JobState int32
@@ -495,7 +495,7 @@ func (x DlpJob_JobState) String() string {
 	return proto.EnumName(DlpJob_JobState_name, int32(x))
 }
 func (DlpJob_JobState) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{80, 0}
+	return fileDescriptor_dlp_536657b46c30097f, []int{82, 0}
 }
 
 // Configuration description of the scanning process.
@@ -503,22 +503,29 @@ func (DlpJob_JobState) EnumDescriptor() ([]byte, []int) {
 // used.
 type InspectConfig struct {
 	// Restricts what info_types to look for. The values must correspond to
-	// InfoType values returned by ListInfoTypes or found in documentation.
-	InfoTypes []*InfoType `protobuf:"bytes,1,rep,name=info_types,json=infoTypes" json:"info_types,omitempty"`
+	// InfoType values returned by ListInfoTypes or listed at
+	// https://cloud.google.com/dlp/docs/infotypes-reference.
+	//
+	// When no InfoTypes or CustomInfoTypes are specified in a request, the
+	// system may automatically choose what detectors to run. By default this may
+	// be all types, but may change over time as detectors are updated.
+	InfoTypes []*InfoType `protobuf:"bytes,1,rep,name=info_types,json=infoTypes,proto3" json:"info_types,omitempty"`
 	// Only returns findings equal or above this threshold. The default is
 	// POSSIBLE.
-	MinLikelihood Likelihood                   `protobuf:"varint,2,opt,name=min_likelihood,json=minLikelihood,enum=google.privacy.dlp.v2.Likelihood" json:"min_likelihood,omitempty"`
-	Limits        *InspectConfig_FindingLimits `protobuf:"bytes,3,opt,name=limits" json:"limits,omitempty"`
+	// See https://cloud.google.com/dlp/docs/likelihood to learn more.
+	MinLikelihood Likelihood                   `protobuf:"varint,2,opt,name=min_likelihood,json=minLikelihood,proto3,enum=google.privacy.dlp.v2.Likelihood" json:"min_likelihood,omitempty"`
+	Limits        *InspectConfig_FindingLimits `protobuf:"bytes,3,opt,name=limits,proto3" json:"limits,omitempty"`
 	// When true, a contextual quote from the data that triggered a finding is
 	// included in the response; see Finding.quote.
-	IncludeQuote bool `protobuf:"varint,4,opt,name=include_quote,json=includeQuote" json:"include_quote,omitempty"`
+	IncludeQuote bool `protobuf:"varint,4,opt,name=include_quote,json=includeQuote,proto3" json:"include_quote,omitempty"`
 	// When true, excludes type information of the findings.
-	ExcludeInfoTypes bool `protobuf:"varint,5,opt,name=exclude_info_types,json=excludeInfoTypes" json:"exclude_info_types,omitempty"`
-	// Custom infoTypes provided by the user.
-	CustomInfoTypes []*CustomInfoType `protobuf:"bytes,6,rep,name=custom_info_types,json=customInfoTypes" json:"custom_info_types,omitempty"`
+	ExcludeInfoTypes bool `protobuf:"varint,5,opt,name=exclude_info_types,json=excludeInfoTypes,proto3" json:"exclude_info_types,omitempty"`
+	// CustomInfoTypes provided by the user. See
+	// https://cloud.google.com/dlp/docs/creating-custom-infotypes to learn more.
+	CustomInfoTypes []*CustomInfoType `protobuf:"bytes,6,rep,name=custom_info_types,json=customInfoTypes,proto3" json:"custom_info_types,omitempty"`
 	// List of options defining data content to scan.
 	// If empty, text, images, and other content will be included.
-	ContentOptions       []ContentOption `protobuf:"varint,8,rep,packed,name=content_options,json=contentOptions,enum=google.privacy.dlp.v2.ContentOption" json:"content_options,omitempty"`
+	ContentOptions       []ContentOption `protobuf:"varint,8,rep,packed,name=content_options,json=contentOptions,proto3,enum=google.privacy.dlp.v2.ContentOption" json:"content_options,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
 	XXX_unrecognized     []byte          `json:"-"`
 	XXX_sizecache        int32           `json:"-"`
@@ -528,7 +535,7 @@ func (m *InspectConfig) Reset()         { *m = InspectConfig{} }
 func (m *InspectConfig) String() string { return proto.CompactTextString(m) }
 func (*InspectConfig) ProtoMessage()    {}
 func (*InspectConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{0}
+	return fileDescriptor_dlp_536657b46c30097f, []int{0}
 }
 func (m *InspectConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_InspectConfig.Unmarshal(m, b)
@@ -602,13 +609,13 @@ type InspectConfig_FindingLimits struct {
 	// When set within `InspectDataSourceRequest`,
 	// the maximum returned is 1000 regardless if this is set higher.
 	// When set within `InspectContentRequest`, this field is ignored.
-	MaxFindingsPerItem int32 `protobuf:"varint,1,opt,name=max_findings_per_item,json=maxFindingsPerItem" json:"max_findings_per_item,omitempty"`
+	MaxFindingsPerItem int32 `protobuf:"varint,1,opt,name=max_findings_per_item,json=maxFindingsPerItem,proto3" json:"max_findings_per_item,omitempty"`
 	// Max number of findings that will be returned per request/job.
 	// When set within `InspectContentRequest`, the maximum returned is 1000
 	// regardless if this is set higher.
-	MaxFindingsPerRequest int32 `protobuf:"varint,2,opt,name=max_findings_per_request,json=maxFindingsPerRequest" json:"max_findings_per_request,omitempty"`
+	MaxFindingsPerRequest int32 `protobuf:"varint,2,opt,name=max_findings_per_request,json=maxFindingsPerRequest,proto3" json:"max_findings_per_request,omitempty"`
 	// Configuration of findings limit given for specified infoTypes.
-	MaxFindingsPerInfoType []*InspectConfig_FindingLimits_InfoTypeLimit `protobuf:"bytes,3,rep,name=max_findings_per_info_type,json=maxFindingsPerInfoType" json:"max_findings_per_info_type,omitempty"`
+	MaxFindingsPerInfoType []*InspectConfig_FindingLimits_InfoTypeLimit `protobuf:"bytes,3,rep,name=max_findings_per_info_type,json=maxFindingsPerInfoType,proto3" json:"max_findings_per_info_type,omitempty"`
 	XXX_NoUnkeyedLiteral   struct{}                                     `json:"-"`
 	XXX_unrecognized       []byte                                       `json:"-"`
 	XXX_sizecache          int32                                        `json:"-"`
@@ -618,7 +625,7 @@ func (m *InspectConfig_FindingLimits) Reset()         { *m = InspectConfig_Findi
 func (m *InspectConfig_FindingLimits) String() string { return proto.CompactTextString(m) }
 func (*InspectConfig_FindingLimits) ProtoMessage()    {}
 func (*InspectConfig_FindingLimits) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{0, 0}
+	return fileDescriptor_dlp_536657b46c30097f, []int{0, 0}
 }
 func (m *InspectConfig_FindingLimits) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_InspectConfig_FindingLimits.Unmarshal(m, b)
@@ -666,9 +673,9 @@ type InspectConfig_FindingLimits_InfoTypeLimit struct {
 	// info_type should be provided. If InfoTypeLimit does not have an
 	// info_type, the DLP API applies the limit against all info_types that
 	// are found but not specified in another InfoTypeLimit.
-	InfoType *InfoType `protobuf:"bytes,1,opt,name=info_type,json=infoType" json:"info_type,omitempty"`
+	InfoType *InfoType `protobuf:"bytes,1,opt,name=info_type,json=infoType,proto3" json:"info_type,omitempty"`
 	// Max findings limit for the given infoType.
-	MaxFindings          int32    `protobuf:"varint,2,opt,name=max_findings,json=maxFindings" json:"max_findings,omitempty"`
+	MaxFindings          int32    `protobuf:"varint,2,opt,name=max_findings,json=maxFindings,proto3" json:"max_findings,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -680,7 +687,7 @@ func (m *InspectConfig_FindingLimits_InfoTypeLimit) Reset() {
 func (m *InspectConfig_FindingLimits_InfoTypeLimit) String() string { return proto.CompactTextString(m) }
 func (*InspectConfig_FindingLimits_InfoTypeLimit) ProtoMessage()    {}
 func (*InspectConfig_FindingLimits_InfoTypeLimit) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{0, 0, 0}
+	return fileDescriptor_dlp_536657b46c30097f, []int{0, 0, 0}
 }
 func (m *InspectConfig_FindingLimits_InfoTypeLimit) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_InspectConfig_FindingLimits_InfoTypeLimit.Unmarshal(m, b)
@@ -717,7 +724,7 @@ func (m *InspectConfig_FindingLimits_InfoTypeLimit) GetMaxFindings() int32 {
 // Container for bytes to inspect or redact.
 type ByteContentItem struct {
 	// The type of data stored in the bytes string. Default will be TEXT_UTF8.
-	Type ByteContentItem_BytesType `protobuf:"varint,1,opt,name=type,enum=google.privacy.dlp.v2.ByteContentItem_BytesType" json:"type,omitempty"`
+	Type ByteContentItem_BytesType `protobuf:"varint,1,opt,name=type,proto3,enum=google.privacy.dlp.v2.ByteContentItem_BytesType" json:"type,omitempty"`
 	// Content data to inspect or redact.
 	Data                 []byte   `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -729,7 +736,7 @@ func (m *ByteContentItem) Reset()         { *m = ByteContentItem{} }
 func (m *ByteContentItem) String() string { return proto.CompactTextString(m) }
 func (*ByteContentItem) ProtoMessage()    {}
 func (*ByteContentItem) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{1}
+	return fileDescriptor_dlp_536657b46c30097f, []int{1}
 }
 func (m *ByteContentItem) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ByteContentItem.Unmarshal(m, b)
@@ -781,7 +788,7 @@ func (m *ContentItem) Reset()         { *m = ContentItem{} }
 func (m *ContentItem) String() string { return proto.CompactTextString(m) }
 func (*ContentItem) ProtoMessage()    {}
 func (*ContentItem) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{2}
+	return fileDescriptor_dlp_536657b46c30097f, []int{2}
 }
 func (m *ContentItem) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ContentItem.Unmarshal(m, b)
@@ -806,13 +813,13 @@ type isContentItem_DataItem interface {
 }
 
 type ContentItem_Value struct {
-	Value string `protobuf:"bytes,3,opt,name=value,oneof"`
+	Value string `protobuf:"bytes,3,opt,name=value,proto3,oneof"`
 }
 type ContentItem_Table struct {
-	Table *Table `protobuf:"bytes,4,opt,name=table,oneof"`
+	Table *Table `protobuf:"bytes,4,opt,name=table,proto3,oneof"`
 }
 type ContentItem_ByteItem struct {
-	ByteItem *ByteContentItem `protobuf:"bytes,5,opt,name=byte_item,json=byteItem,oneof"`
+	ByteItem *ByteContentItem `protobuf:"bytes,5,opt,name=byte_item,json=byteItem,proto3,oneof"`
 }
 
 func (*ContentItem_Value) isContentItem_DataItem()    {}
@@ -937,9 +944,11 @@ func _ContentItem_OneofSizer(msg proto.Message) (n int) {
 }
 
 // Structured content to inspect. Up to 50,000 `Value`s per request allowed.
+// See https://cloud.google.com/dlp/docs/inspecting-text#inspecting_a_table to
+// learn more.
 type Table struct {
-	Headers              []*FieldId   `protobuf:"bytes,1,rep,name=headers" json:"headers,omitempty"`
-	Rows                 []*Table_Row `protobuf:"bytes,2,rep,name=rows" json:"rows,omitempty"`
+	Headers              []*FieldId   `protobuf:"bytes,1,rep,name=headers,proto3" json:"headers,omitempty"`
+	Rows                 []*Table_Row `protobuf:"bytes,2,rep,name=rows,proto3" json:"rows,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
 	XXX_unrecognized     []byte       `json:"-"`
 	XXX_sizecache        int32        `json:"-"`
@@ -949,7 +958,7 @@ func (m *Table) Reset()         { *m = Table{} }
 func (m *Table) String() string { return proto.CompactTextString(m) }
 func (*Table) ProtoMessage()    {}
 func (*Table) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{3}
+	return fileDescriptor_dlp_536657b46c30097f, []int{3}
 }
 func (m *Table) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Table.Unmarshal(m, b)
@@ -984,7 +993,7 @@ func (m *Table) GetRows() []*Table_Row {
 }
 
 type Table_Row struct {
-	Values               []*Value `protobuf:"bytes,1,rep,name=values" json:"values,omitempty"`
+	Values               []*Value `protobuf:"bytes,1,rep,name=values,proto3" json:"values,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -994,7 +1003,7 @@ func (m *Table_Row) Reset()         { *m = Table_Row{} }
 func (m *Table_Row) String() string { return proto.CompactTextString(m) }
 func (*Table_Row) ProtoMessage()    {}
 func (*Table_Row) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{3, 0}
+	return fileDescriptor_dlp_536657b46c30097f, []int{3, 0}
 }
 func (m *Table_Row) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Table_Row.Unmarshal(m, b)
@@ -1024,14 +1033,14 @@ func (m *Table_Row) GetValues() []*Value {
 // All the findings for a single scanned item.
 type InspectResult struct {
 	// List of findings for an item.
-	Findings []*Finding `protobuf:"bytes,1,rep,name=findings" json:"findings,omitempty"`
+	Findings []*Finding `protobuf:"bytes,1,rep,name=findings,proto3" json:"findings,omitempty"`
 	// If true, then this item might have more findings than were returned,
 	// and the findings returned are an arbitrary subset of all findings.
 	// The findings list might be truncated because the input items were too
 	// large, or because the server reached the maximum amount of resources
 	// allowed for a single API call. For best results, divide the input into
 	// smaller batches.
-	FindingsTruncated    bool     `protobuf:"varint,2,opt,name=findings_truncated,json=findingsTruncated" json:"findings_truncated,omitempty"`
+	FindingsTruncated    bool     `protobuf:"varint,2,opt,name=findings_truncated,json=findingsTruncated,proto3" json:"findings_truncated,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1041,7 +1050,7 @@ func (m *InspectResult) Reset()         { *m = InspectResult{} }
 func (m *InspectResult) String() string { return proto.CompactTextString(m) }
 func (*InspectResult) ProtoMessage()    {}
 func (*InspectResult) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{4}
+	return fileDescriptor_dlp_536657b46c30097f, []int{4}
 }
 func (m *InspectResult) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_InspectResult.Unmarshal(m, b)
@@ -1079,23 +1088,23 @@ func (m *InspectResult) GetFindingsTruncated() bool {
 type Finding struct {
 	// The content that was found. Even if the content is not textual, it
 	// may be converted to a textual representation here.
-	// Provided if requested by the `InspectConfig` and the finding is
+	// Provided if `include_quote` is true and the finding is
 	// less than or equal to 4096 bytes long. If the finding exceeds 4096 bytes
 	// in length, the quote may be omitted.
-	Quote string `protobuf:"bytes,1,opt,name=quote" json:"quote,omitempty"`
+	Quote string `protobuf:"bytes,1,opt,name=quote,proto3" json:"quote,omitempty"`
 	// The type of content that might have been found.
-	// Provided if requested by the `InspectConfig`.
-	InfoType *InfoType `protobuf:"bytes,2,opt,name=info_type,json=infoType" json:"info_type,omitempty"`
-	// Estimate of how likely it is that the `info_type` is correct.
-	Likelihood Likelihood `protobuf:"varint,3,opt,name=likelihood,enum=google.privacy.dlp.v2.Likelihood" json:"likelihood,omitempty"`
+	// Provided if `excluded_types` is false.
+	InfoType *InfoType `protobuf:"bytes,2,opt,name=info_type,json=infoType,proto3" json:"info_type,omitempty"`
+	// Confidence of how likely it is that the `info_type` is correct.
+	Likelihood Likelihood `protobuf:"varint,3,opt,name=likelihood,proto3,enum=google.privacy.dlp.v2.Likelihood" json:"likelihood,omitempty"`
 	// Where the content was found.
-	Location *Location `protobuf:"bytes,4,opt,name=location" json:"location,omitempty"`
+	Location *Location `protobuf:"bytes,4,opt,name=location,proto3" json:"location,omitempty"`
 	// Timestamp when finding was detected.
-	CreateTime *timestamp.Timestamp `protobuf:"bytes,6,opt,name=create_time,json=createTime" json:"create_time,omitempty"`
+	CreateTime *timestamp.Timestamp `protobuf:"bytes,6,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	// Contains data parsed from quotes. Only populated if include_quote was set
 	// to true and a supported infoType was requested. Currently supported
 	// infoTypes: DATE, DATE_OF_BIRTH and TIME.
-	QuoteInfo            *QuoteInfo `protobuf:"bytes,7,opt,name=quote_info,json=quoteInfo" json:"quote_info,omitempty"`
+	QuoteInfo            *QuoteInfo `protobuf:"bytes,7,opt,name=quote_info,json=quoteInfo,proto3" json:"quote_info,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
 	XXX_unrecognized     []byte     `json:"-"`
 	XXX_sizecache        int32      `json:"-"`
@@ -1105,7 +1114,7 @@ func (m *Finding) Reset()         { *m = Finding{} }
 func (m *Finding) String() string { return proto.CompactTextString(m) }
 func (*Finding) ProtoMessage()    {}
 func (*Finding) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{5}
+	return fileDescriptor_dlp_536657b46c30097f, []int{5}
 }
 func (m *Finding) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Finding.Unmarshal(m, b)
@@ -1174,14 +1183,14 @@ type Location struct {
 	// Note that when the content is not textual, this references
 	// the UTF-8 encoded textual representation of the content.
 	// Omitted if content is an image.
-	ByteRange *Range `protobuf:"bytes,1,opt,name=byte_range,json=byteRange" json:"byte_range,omitempty"`
+	ByteRange *Range `protobuf:"bytes,1,opt,name=byte_range,json=byteRange,proto3" json:"byte_range,omitempty"`
 	// Unicode character offsets delimiting the finding.
 	// These are relative to the finding's containing element.
 	// Provided when the content is text.
-	CodepointRange *Range `protobuf:"bytes,2,opt,name=codepoint_range,json=codepointRange" json:"codepoint_range,omitempty"`
+	CodepointRange *Range `protobuf:"bytes,2,opt,name=codepoint_range,json=codepointRange,proto3" json:"codepoint_range,omitempty"`
 	// List of nested objects pointing to the precise location of the finding
 	// within the file or record.
-	ContentLocations     []*ContentLocation `protobuf:"bytes,7,rep,name=content_locations,json=contentLocations" json:"content_locations,omitempty"`
+	ContentLocations     []*ContentLocation `protobuf:"bytes,7,rep,name=content_locations,json=contentLocations,proto3" json:"content_locations,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
 	XXX_unrecognized     []byte             `json:"-"`
 	XXX_sizecache        int32              `json:"-"`
@@ -1191,7 +1200,7 @@ func (m *Location) Reset()         { *m = Location{} }
 func (m *Location) String() string { return proto.CompactTextString(m) }
 func (*Location) ProtoMessage()    {}
 func (*Location) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{6}
+	return fileDescriptor_dlp_536657b46c30097f, []int{6}
 }
 func (m *Location) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Location.Unmarshal(m, b)
@@ -1238,7 +1247,7 @@ type ContentLocation struct {
 	// The top level name is the source file name or table name. Nested names
 	// could be absent if the embedded object has no string identifier
 	// (for an example an image contained within a document).
-	ContainerName string `protobuf:"bytes,1,opt,name=container_name,json=containerName" json:"container_name,omitempty"`
+	ContainerName string `protobuf:"bytes,1,opt,name=container_name,json=containerName,proto3" json:"container_name,omitempty"`
 	// Type of the container within the file with location of the finding.
 	//
 	// Types that are valid to be assigned to Location:
@@ -1250,10 +1259,10 @@ type ContentLocation struct {
 	// For Google Cloud Storage contains last file modification timestamp.
 	// For BigQuery table contains last_modified_time property.
 	// For Datastore - not populated.
-	ContainerTimestamp *timestamp.Timestamp `protobuf:"bytes,6,opt,name=container_timestamp,json=containerTimestamp" json:"container_timestamp,omitempty"`
+	ContainerTimestamp *timestamp.Timestamp `protobuf:"bytes,6,opt,name=container_timestamp,json=containerTimestamp,proto3" json:"container_timestamp,omitempty"`
 	// Findings container version, if available
 	// ("generation" for Google Cloud Storage).
-	ContainerVersion     string   `protobuf:"bytes,7,opt,name=container_version,json=containerVersion" json:"container_version,omitempty"`
+	ContainerVersion     string   `protobuf:"bytes,7,opt,name=container_version,json=containerVersion,proto3" json:"container_version,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1263,7 +1272,7 @@ func (m *ContentLocation) Reset()         { *m = ContentLocation{} }
 func (m *ContentLocation) String() string { return proto.CompactTextString(m) }
 func (*ContentLocation) ProtoMessage()    {}
 func (*ContentLocation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{7}
+	return fileDescriptor_dlp_536657b46c30097f, []int{7}
 }
 func (m *ContentLocation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ContentLocation.Unmarshal(m, b)
@@ -1288,13 +1297,13 @@ type isContentLocation_Location interface {
 }
 
 type ContentLocation_RecordLocation struct {
-	RecordLocation *RecordLocation `protobuf:"bytes,2,opt,name=record_location,json=recordLocation,oneof"`
+	RecordLocation *RecordLocation `protobuf:"bytes,2,opt,name=record_location,json=recordLocation,proto3,oneof"`
 }
 type ContentLocation_ImageLocation struct {
-	ImageLocation *ImageLocation `protobuf:"bytes,3,opt,name=image_location,json=imageLocation,oneof"`
+	ImageLocation *ImageLocation `protobuf:"bytes,3,opt,name=image_location,json=imageLocation,proto3,oneof"`
 }
 type ContentLocation_DocumentLocation struct {
-	DocumentLocation *DocumentLocation `protobuf:"bytes,5,opt,name=document_location,json=documentLocation,oneof"`
+	DocumentLocation *DocumentLocation `protobuf:"bytes,5,opt,name=document_location,json=documentLocation,proto3,oneof"`
 }
 
 func (*ContentLocation_RecordLocation) isContentLocation_Location()   {}
@@ -1447,7 +1456,7 @@ func _ContentLocation_OneofSizer(msg proto.Message) (n int) {
 type DocumentLocation struct {
 	// Offset of the line, from the beginning of the file, where the finding
 	// is located.
-	FileOffset           int64    `protobuf:"varint,1,opt,name=file_offset,json=fileOffset" json:"file_offset,omitempty"`
+	FileOffset           int64    `protobuf:"varint,1,opt,name=file_offset,json=fileOffset,proto3" json:"file_offset,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1457,7 +1466,7 @@ func (m *DocumentLocation) Reset()         { *m = DocumentLocation{} }
 func (m *DocumentLocation) String() string { return proto.CompactTextString(m) }
 func (*DocumentLocation) ProtoMessage()    {}
 func (*DocumentLocation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{8}
+	return fileDescriptor_dlp_536657b46c30097f, []int{8}
 }
 func (m *DocumentLocation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DocumentLocation.Unmarshal(m, b)
@@ -1487,11 +1496,11 @@ func (m *DocumentLocation) GetFileOffset() int64 {
 // Location of a finding within a row or record.
 type RecordLocation struct {
 	// Key of the finding.
-	RecordKey *RecordKey `protobuf:"bytes,1,opt,name=record_key,json=recordKey" json:"record_key,omitempty"`
+	RecordKey *RecordKey `protobuf:"bytes,1,opt,name=record_key,json=recordKey,proto3" json:"record_key,omitempty"`
 	// Field id of the field containing the finding.
-	FieldId *FieldId `protobuf:"bytes,2,opt,name=field_id,json=fieldId" json:"field_id,omitempty"`
+	FieldId *FieldId `protobuf:"bytes,2,opt,name=field_id,json=fieldId,proto3" json:"field_id,omitempty"`
 	// Location within a `ContentItem.Table`.
-	TableLocation        *TableLocation `protobuf:"bytes,3,opt,name=table_location,json=tableLocation" json:"table_location,omitempty"`
+	TableLocation        *TableLocation `protobuf:"bytes,3,opt,name=table_location,json=tableLocation,proto3" json:"table_location,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
 	XXX_unrecognized     []byte         `json:"-"`
 	XXX_sizecache        int32          `json:"-"`
@@ -1501,7 +1510,7 @@ func (m *RecordLocation) Reset()         { *m = RecordLocation{} }
 func (m *RecordLocation) String() string { return proto.CompactTextString(m) }
 func (*RecordLocation) ProtoMessage()    {}
 func (*RecordLocation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{9}
+	return fileDescriptor_dlp_536657b46c30097f, []int{9}
 }
 func (m *RecordLocation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RecordLocation.Unmarshal(m, b)
@@ -1545,7 +1554,7 @@ func (m *RecordLocation) GetTableLocation() *TableLocation {
 // Location of a finding within a table.
 type TableLocation struct {
 	// The zero-based index of the row where the finding is located.
-	RowIndex             int64    `protobuf:"varint,1,opt,name=row_index,json=rowIndex" json:"row_index,omitempty"`
+	RowIndex             int64    `protobuf:"varint,1,opt,name=row_index,json=rowIndex,proto3" json:"row_index,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1555,7 +1564,7 @@ func (m *TableLocation) Reset()         { *m = TableLocation{} }
 func (m *TableLocation) String() string { return proto.CompactTextString(m) }
 func (*TableLocation) ProtoMessage()    {}
 func (*TableLocation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{10}
+	return fileDescriptor_dlp_536657b46c30097f, []int{10}
 }
 func (m *TableLocation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_TableLocation.Unmarshal(m, b)
@@ -1585,9 +1594,9 @@ func (m *TableLocation) GetRowIndex() int64 {
 // Generic half-open interval [start, end)
 type Range struct {
 	// Index of the first character of the range (inclusive).
-	Start int64 `protobuf:"varint,1,opt,name=start" json:"start,omitempty"`
+	Start int64 `protobuf:"varint,1,opt,name=start,proto3" json:"start,omitempty"`
 	// Index of the last character of the range (exclusive).
-	End                  int64    `protobuf:"varint,2,opt,name=end" json:"end,omitempty"`
+	End                  int64    `protobuf:"varint,2,opt,name=end,proto3" json:"end,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1597,7 +1606,7 @@ func (m *Range) Reset()         { *m = Range{} }
 func (m *Range) String() string { return proto.CompactTextString(m) }
 func (*Range) ProtoMessage()    {}
 func (*Range) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{11}
+	return fileDescriptor_dlp_536657b46c30097f, []int{11}
 }
 func (m *Range) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Range.Unmarshal(m, b)
@@ -1634,7 +1643,7 @@ func (m *Range) GetEnd() int64 {
 // Location of the finding within an image.
 type ImageLocation struct {
 	// Bounding boxes locating the pixels within the image containing the finding.
-	BoundingBoxes        []*BoundingBox `protobuf:"bytes,1,rep,name=bounding_boxes,json=boundingBoxes" json:"bounding_boxes,omitempty"`
+	BoundingBoxes        []*BoundingBox `protobuf:"bytes,1,rep,name=bounding_boxes,json=boundingBoxes,proto3" json:"bounding_boxes,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
 	XXX_unrecognized     []byte         `json:"-"`
 	XXX_sizecache        int32          `json:"-"`
@@ -1644,7 +1653,7 @@ func (m *ImageLocation) Reset()         { *m = ImageLocation{} }
 func (m *ImageLocation) String() string { return proto.CompactTextString(m) }
 func (*ImageLocation) ProtoMessage()    {}
 func (*ImageLocation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{12}
+	return fileDescriptor_dlp_536657b46c30097f, []int{12}
 }
 func (m *ImageLocation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ImageLocation.Unmarshal(m, b)
@@ -1674,13 +1683,13 @@ func (m *ImageLocation) GetBoundingBoxes() []*BoundingBox {
 // Bounding box encompassing detected text within an image.
 type BoundingBox struct {
 	// Top coordinate of the bounding box. (0,0) is upper left.
-	Top int32 `protobuf:"varint,1,opt,name=top" json:"top,omitempty"`
+	Top int32 `protobuf:"varint,1,opt,name=top,proto3" json:"top,omitempty"`
 	// Left coordinate of the bounding box. (0,0) is upper left.
-	Left int32 `protobuf:"varint,2,opt,name=left" json:"left,omitempty"`
+	Left int32 `protobuf:"varint,2,opt,name=left,proto3" json:"left,omitempty"`
 	// Width of the bounding box in pixels.
-	Width int32 `protobuf:"varint,3,opt,name=width" json:"width,omitempty"`
+	Width int32 `protobuf:"varint,3,opt,name=width,proto3" json:"width,omitempty"`
 	// Height of the bounding box in pixels.
-	Height               int32    `protobuf:"varint,4,opt,name=height" json:"height,omitempty"`
+	Height               int32    `protobuf:"varint,4,opt,name=height,proto3" json:"height,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1690,7 +1699,7 @@ func (m *BoundingBox) Reset()         { *m = BoundingBox{} }
 func (m *BoundingBox) String() string { return proto.CompactTextString(m) }
 func (*BoundingBox) ProtoMessage()    {}
 func (*BoundingBox) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{13}
+	return fileDescriptor_dlp_536657b46c30097f, []int{13}
 }
 func (m *BoundingBox) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BoundingBox.Unmarshal(m, b)
@@ -1738,17 +1747,20 @@ func (m *BoundingBox) GetHeight() int32 {
 	return 0
 }
 
-// Request to search for potentially sensitive info in a list of items
-// and replace it with a default or provided content.
+// Request to search for potentially sensitive info in an image and redact it
+// by covering it with a colored rectangle.
 type RedactImageRequest struct {
 	// The parent resource name, for example projects/my-project-id.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Configuration for the inspector.
-	InspectConfig *InspectConfig `protobuf:"bytes,2,opt,name=inspect_config,json=inspectConfig" json:"inspect_config,omitempty"`
+	InspectConfig *InspectConfig `protobuf:"bytes,2,opt,name=inspect_config,json=inspectConfig,proto3" json:"inspect_config,omitempty"`
 	// The configuration for specifying what content to redact from images.
-	ImageRedactionConfigs []*RedactImageRequest_ImageRedactionConfig `protobuf:"bytes,5,rep,name=image_redaction_configs,json=imageRedactionConfigs" json:"image_redaction_configs,omitempty"`
+	ImageRedactionConfigs []*RedactImageRequest_ImageRedactionConfig `protobuf:"bytes,5,rep,name=image_redaction_configs,json=imageRedactionConfigs,proto3" json:"image_redaction_configs,omitempty"`
+	// Whether the response should include findings along with the redacted
+	// image.
+	IncludeFindings bool `protobuf:"varint,6,opt,name=include_findings,json=includeFindings,proto3" json:"include_findings,omitempty"`
 	// The content must be PNG, JPEG, SVG or BMP.
-	ByteItem             *ByteContentItem `protobuf:"bytes,7,opt,name=byte_item,json=byteItem" json:"byte_item,omitempty"`
+	ByteItem             *ByteContentItem `protobuf:"bytes,7,opt,name=byte_item,json=byteItem,proto3" json:"byte_item,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
 	XXX_unrecognized     []byte           `json:"-"`
 	XXX_sizecache        int32            `json:"-"`
@@ -1758,7 +1770,7 @@ func (m *RedactImageRequest) Reset()         { *m = RedactImageRequest{} }
 func (m *RedactImageRequest) String() string { return proto.CompactTextString(m) }
 func (*RedactImageRequest) ProtoMessage()    {}
 func (*RedactImageRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{14}
+	return fileDescriptor_dlp_536657b46c30097f, []int{14}
 }
 func (m *RedactImageRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RedactImageRequest.Unmarshal(m, b)
@@ -1799,6 +1811,13 @@ func (m *RedactImageRequest) GetImageRedactionConfigs() []*RedactImageRequest_Im
 	return nil
 }
 
+func (m *RedactImageRequest) GetIncludeFindings() bool {
+	if m != nil {
+		return m.IncludeFindings
+	}
+	return false
+}
+
 func (m *RedactImageRequest) GetByteItem() *ByteContentItem {
 	if m != nil {
 		return m.ByteItem
@@ -1816,7 +1835,7 @@ type RedactImageRequest_ImageRedactionConfig struct {
 	Target isRedactImageRequest_ImageRedactionConfig_Target `protobuf_oneof:"target"`
 	// The color to use when redacting content from an image. If not specified,
 	// the default is black.
-	RedactionColor       *Color   `protobuf:"bytes,3,opt,name=redaction_color,json=redactionColor" json:"redaction_color,omitempty"`
+	RedactionColor       *Color   `protobuf:"bytes,3,opt,name=redaction_color,json=redactionColor,proto3" json:"redaction_color,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1828,7 +1847,7 @@ func (m *RedactImageRequest_ImageRedactionConfig) Reset() {
 func (m *RedactImageRequest_ImageRedactionConfig) String() string { return proto.CompactTextString(m) }
 func (*RedactImageRequest_ImageRedactionConfig) ProtoMessage()    {}
 func (*RedactImageRequest_ImageRedactionConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{14, 0}
+	return fileDescriptor_dlp_536657b46c30097f, []int{14, 0}
 }
 func (m *RedactImageRequest_ImageRedactionConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RedactImageRequest_ImageRedactionConfig.Unmarshal(m, b)
@@ -1853,10 +1872,10 @@ type isRedactImageRequest_ImageRedactionConfig_Target interface {
 }
 
 type RedactImageRequest_ImageRedactionConfig_InfoType struct {
-	InfoType *InfoType `protobuf:"bytes,1,opt,name=info_type,json=infoType,oneof"`
+	InfoType *InfoType `protobuf:"bytes,1,opt,name=info_type,json=infoType,proto3,oneof"`
 }
 type RedactImageRequest_ImageRedactionConfig_RedactAllText struct {
-	RedactAllText bool `protobuf:"varint,2,opt,name=redact_all_text,json=redactAllText,oneof"`
+	RedactAllText bool `protobuf:"varint,2,opt,name=redact_all_text,json=redactAllText,proto3,oneof"`
 }
 
 func (*RedactImageRequest_ImageRedactionConfig_InfoType) isRedactImageRequest_ImageRedactionConfig_Target() {
@@ -1968,11 +1987,11 @@ func _RedactImageRequest_ImageRedactionConfig_OneofSizer(msg proto.Message) (n i
 // Represents a color in the RGB color space.
 type Color struct {
 	// The amount of red in the color as a value in the interval [0, 1].
-	Red float32 `protobuf:"fixed32,1,opt,name=red" json:"red,omitempty"`
+	Red float32 `protobuf:"fixed32,1,opt,name=red,proto3" json:"red,omitempty"`
 	// The amount of green in the color as a value in the interval [0, 1].
-	Green float32 `protobuf:"fixed32,2,opt,name=green" json:"green,omitempty"`
+	Green float32 `protobuf:"fixed32,2,opt,name=green,proto3" json:"green,omitempty"`
 	// The amount of blue in the color as a value in the interval [0, 1].
-	Blue                 float32  `protobuf:"fixed32,3,opt,name=blue" json:"blue,omitempty"`
+	Blue                 float32  `protobuf:"fixed32,3,opt,name=blue,proto3" json:"blue,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1982,7 +2001,7 @@ func (m *Color) Reset()         { *m = Color{} }
 func (m *Color) String() string { return proto.CompactTextString(m) }
 func (*Color) ProtoMessage()    {}
 func (*Color) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{15}
+	return fileDescriptor_dlp_536657b46c30097f, []int{15}
 }
 func (m *Color) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Color.Unmarshal(m, b)
@@ -2030,17 +2049,19 @@ type RedactImageResponse struct {
 	// If an image was being inspected and the InspectConfig's include_quote was
 	// set to true, then this field will include all text, if any, that was found
 	// in the image.
-	ExtractedText        string   `protobuf:"bytes,2,opt,name=extracted_text,json=extractedText" json:"extracted_text,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	ExtractedText string `protobuf:"bytes,2,opt,name=extracted_text,json=extractedText,proto3" json:"extracted_text,omitempty"`
+	// The findings. Populated when include_findings in the request is true.
+	InspectResult        *InspectResult `protobuf:"bytes,3,opt,name=inspect_result,json=inspectResult,proto3" json:"inspect_result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
+	XXX_unrecognized     []byte         `json:"-"`
+	XXX_sizecache        int32          `json:"-"`
 }
 
 func (m *RedactImageResponse) Reset()         { *m = RedactImageResponse{} }
 func (m *RedactImageResponse) String() string { return proto.CompactTextString(m) }
 func (*RedactImageResponse) ProtoMessage()    {}
 func (*RedactImageResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{16}
+	return fileDescriptor_dlp_536657b46c30097f, []int{16}
 }
 func (m *RedactImageResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RedactImageResponse.Unmarshal(m, b)
@@ -2074,32 +2095,39 @@ func (m *RedactImageResponse) GetExtractedText() string {
 	return ""
 }
 
+func (m *RedactImageResponse) GetInspectResult() *InspectResult {
+	if m != nil {
+		return m.InspectResult
+	}
+	return nil
+}
+
 // Request to de-identify a list of items.
 type DeidentifyContentRequest struct {
 	// The parent resource name, for example projects/my-project-id.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Configuration for the de-identification of the content item.
 	// Items specified here will override the template referenced by the
 	// deidentify_template_name argument.
-	DeidentifyConfig *DeidentifyConfig `protobuf:"bytes,2,opt,name=deidentify_config,json=deidentifyConfig" json:"deidentify_config,omitempty"`
+	DeidentifyConfig *DeidentifyConfig `protobuf:"bytes,2,opt,name=deidentify_config,json=deidentifyConfig,proto3" json:"deidentify_config,omitempty"`
 	// Configuration for the inspector.
 	// Items specified here will override the template referenced by the
 	// inspect_template_name argument.
-	InspectConfig *InspectConfig `protobuf:"bytes,3,opt,name=inspect_config,json=inspectConfig" json:"inspect_config,omitempty"`
+	InspectConfig *InspectConfig `protobuf:"bytes,3,opt,name=inspect_config,json=inspectConfig,proto3" json:"inspect_config,omitempty"`
 	// The item to de-identify. Will be treated as text.
-	Item *ContentItem `protobuf:"bytes,4,opt,name=item" json:"item,omitempty"`
+	Item *ContentItem `protobuf:"bytes,4,opt,name=item,proto3" json:"item,omitempty"`
 	// Optional template to use. Any configuration directly specified in
 	// inspect_config will override those set in the template. Singular fields
 	// that are set in this request will replace their corresponding fields in the
 	// template. Repeated fields are appended. Singular sub-messages and groups
 	// are recursively merged.
-	InspectTemplateName string `protobuf:"bytes,5,opt,name=inspect_template_name,json=inspectTemplateName" json:"inspect_template_name,omitempty"`
+	InspectTemplateName string `protobuf:"bytes,5,opt,name=inspect_template_name,json=inspectTemplateName,proto3" json:"inspect_template_name,omitempty"`
 	// Optional template to use. Any configuration directly specified in
 	// deidentify_config will override those set in the template. Singular fields
 	// that are set in this request will replace their corresponding fields in the
 	// template. Repeated fields are appended. Singular sub-messages and groups
 	// are recursively merged.
-	DeidentifyTemplateName string   `protobuf:"bytes,6,opt,name=deidentify_template_name,json=deidentifyTemplateName" json:"deidentify_template_name,omitempty"`
+	DeidentifyTemplateName string   `protobuf:"bytes,6,opt,name=deidentify_template_name,json=deidentifyTemplateName,proto3" json:"deidentify_template_name,omitempty"`
 	XXX_NoUnkeyedLiteral   struct{} `json:"-"`
 	XXX_unrecognized       []byte   `json:"-"`
 	XXX_sizecache          int32    `json:"-"`
@@ -2109,7 +2137,7 @@ func (m *DeidentifyContentRequest) Reset()         { *m = DeidentifyContentReque
 func (m *DeidentifyContentRequest) String() string { return proto.CompactTextString(m) }
 func (*DeidentifyContentRequest) ProtoMessage()    {}
 func (*DeidentifyContentRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{17}
+	return fileDescriptor_dlp_536657b46c30097f, []int{17}
 }
 func (m *DeidentifyContentRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeidentifyContentRequest.Unmarshal(m, b)
@@ -2174,9 +2202,9 @@ func (m *DeidentifyContentRequest) GetDeidentifyTemplateName() string {
 // Results of de-identifying a ContentItem.
 type DeidentifyContentResponse struct {
 	// The de-identified item.
-	Item *ContentItem `protobuf:"bytes,1,opt,name=item" json:"item,omitempty"`
+	Item *ContentItem `protobuf:"bytes,1,opt,name=item,proto3" json:"item,omitempty"`
 	// An overview of the changes that were made on the `item`.
-	Overview             *TransformationOverview `protobuf:"bytes,2,opt,name=overview" json:"overview,omitempty"`
+	Overview             *TransformationOverview `protobuf:"bytes,2,opt,name=overview,proto3" json:"overview,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                `json:"-"`
 	XXX_unrecognized     []byte                  `json:"-"`
 	XXX_sizecache        int32                   `json:"-"`
@@ -2186,7 +2214,7 @@ func (m *DeidentifyContentResponse) Reset()         { *m = DeidentifyContentResp
 func (m *DeidentifyContentResponse) String() string { return proto.CompactTextString(m) }
 func (*DeidentifyContentResponse) ProtoMessage()    {}
 func (*DeidentifyContentResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{18}
+	return fileDescriptor_dlp_536657b46c30097f, []int{18}
 }
 func (m *DeidentifyContentResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeidentifyContentResponse.Unmarshal(m, b)
@@ -2223,7 +2251,7 @@ func (m *DeidentifyContentResponse) GetOverview() *TransformationOverview {
 // Request to re-identify an item.
 type ReidentifyContentRequest struct {
 	// The parent resource name.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Configuration for the re-identification of the content item.
 	// This field shares the same proto message type that is used for
 	// de-identification, however its usage here is for the reversal of the
@@ -2233,24 +2261,24 @@ type ReidentifyContentRequest struct {
 	// be provided here. The reversible transformations are:
 	//
 	//  - `CryptoReplaceFfxFpeConfig`
-	ReidentifyConfig *DeidentifyConfig `protobuf:"bytes,2,opt,name=reidentify_config,json=reidentifyConfig" json:"reidentify_config,omitempty"`
+	ReidentifyConfig *DeidentifyConfig `protobuf:"bytes,2,opt,name=reidentify_config,json=reidentifyConfig,proto3" json:"reidentify_config,omitempty"`
 	// Configuration for the inspector.
-	InspectConfig *InspectConfig `protobuf:"bytes,3,opt,name=inspect_config,json=inspectConfig" json:"inspect_config,omitempty"`
+	InspectConfig *InspectConfig `protobuf:"bytes,3,opt,name=inspect_config,json=inspectConfig,proto3" json:"inspect_config,omitempty"`
 	// The item to re-identify. Will be treated as text.
-	Item *ContentItem `protobuf:"bytes,4,opt,name=item" json:"item,omitempty"`
+	Item *ContentItem `protobuf:"bytes,4,opt,name=item,proto3" json:"item,omitempty"`
 	// Optional template to use. Any configuration directly specified in
 	// `inspect_config` will override those set in the template. Singular fields
 	// that are set in this request will replace their corresponding fields in the
 	// template. Repeated fields are appended. Singular sub-messages and groups
 	// are recursively merged.
-	InspectTemplateName string `protobuf:"bytes,5,opt,name=inspect_template_name,json=inspectTemplateName" json:"inspect_template_name,omitempty"`
+	InspectTemplateName string `protobuf:"bytes,5,opt,name=inspect_template_name,json=inspectTemplateName,proto3" json:"inspect_template_name,omitempty"`
 	// Optional template to use. References an instance of `DeidentifyTemplate`.
 	// Any configuration directly specified in `reidentify_config` or
 	// `inspect_config` will override those set in the template. Singular fields
 	// that are set in this request will replace their corresponding fields in the
 	// template. Repeated fields are appended. Singular sub-messages and groups
 	// are recursively merged.
-	ReidentifyTemplateName string   `protobuf:"bytes,6,opt,name=reidentify_template_name,json=reidentifyTemplateName" json:"reidentify_template_name,omitempty"`
+	ReidentifyTemplateName string   `protobuf:"bytes,6,opt,name=reidentify_template_name,json=reidentifyTemplateName,proto3" json:"reidentify_template_name,omitempty"`
 	XXX_NoUnkeyedLiteral   struct{} `json:"-"`
 	XXX_unrecognized       []byte   `json:"-"`
 	XXX_sizecache          int32    `json:"-"`
@@ -2260,7 +2288,7 @@ func (m *ReidentifyContentRequest) Reset()         { *m = ReidentifyContentReque
 func (m *ReidentifyContentRequest) String() string { return proto.CompactTextString(m) }
 func (*ReidentifyContentRequest) ProtoMessage()    {}
 func (*ReidentifyContentRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{19}
+	return fileDescriptor_dlp_536657b46c30097f, []int{19}
 }
 func (m *ReidentifyContentRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReidentifyContentRequest.Unmarshal(m, b)
@@ -2325,9 +2353,9 @@ func (m *ReidentifyContentRequest) GetReidentifyTemplateName() string {
 // Results of re-identifying a item.
 type ReidentifyContentResponse struct {
 	// The re-identified item.
-	Item *ContentItem `protobuf:"bytes,1,opt,name=item" json:"item,omitempty"`
+	Item *ContentItem `protobuf:"bytes,1,opt,name=item,proto3" json:"item,omitempty"`
 	// An overview of the changes that were made to the `item`.
-	Overview             *TransformationOverview `protobuf:"bytes,2,opt,name=overview" json:"overview,omitempty"`
+	Overview             *TransformationOverview `protobuf:"bytes,2,opt,name=overview,proto3" json:"overview,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                `json:"-"`
 	XXX_unrecognized     []byte                  `json:"-"`
 	XXX_sizecache        int32                   `json:"-"`
@@ -2337,7 +2365,7 @@ func (m *ReidentifyContentResponse) Reset()         { *m = ReidentifyContentResp
 func (m *ReidentifyContentResponse) String() string { return proto.CompactTextString(m) }
 func (*ReidentifyContentResponse) ProtoMessage()    {}
 func (*ReidentifyContentResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{20}
+	return fileDescriptor_dlp_536657b46c30097f, []int{20}
 }
 func (m *ReidentifyContentResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReidentifyContentResponse.Unmarshal(m, b)
@@ -2374,18 +2402,18 @@ func (m *ReidentifyContentResponse) GetOverview() *TransformationOverview {
 // Request to search for potentially sensitive info in a ContentItem.
 type InspectContentRequest struct {
 	// The parent resource name, for example projects/my-project-id.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Configuration for the inspector. What specified here will override
 	// the template referenced by the inspect_template_name argument.
-	InspectConfig *InspectConfig `protobuf:"bytes,2,opt,name=inspect_config,json=inspectConfig" json:"inspect_config,omitempty"`
+	InspectConfig *InspectConfig `protobuf:"bytes,2,opt,name=inspect_config,json=inspectConfig,proto3" json:"inspect_config,omitempty"`
 	// The item to inspect.
-	Item *ContentItem `protobuf:"bytes,3,opt,name=item" json:"item,omitempty"`
+	Item *ContentItem `protobuf:"bytes,3,opt,name=item,proto3" json:"item,omitempty"`
 	// Optional template to use. Any configuration directly specified in
 	// inspect_config will override those set in the template. Singular fields
 	// that are set in this request will replace their corresponding fields in the
 	// template. Repeated fields are appended. Singular sub-messages and groups
 	// are recursively merged.
-	InspectTemplateName  string   `protobuf:"bytes,4,opt,name=inspect_template_name,json=inspectTemplateName" json:"inspect_template_name,omitempty"`
+	InspectTemplateName  string   `protobuf:"bytes,4,opt,name=inspect_template_name,json=inspectTemplateName,proto3" json:"inspect_template_name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -2395,7 +2423,7 @@ func (m *InspectContentRequest) Reset()         { *m = InspectContentRequest{} }
 func (m *InspectContentRequest) String() string { return proto.CompactTextString(m) }
 func (*InspectContentRequest) ProtoMessage()    {}
 func (*InspectContentRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{21}
+	return fileDescriptor_dlp_536657b46c30097f, []int{21}
 }
 func (m *InspectContentRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_InspectContentRequest.Unmarshal(m, b)
@@ -2446,7 +2474,7 @@ func (m *InspectContentRequest) GetInspectTemplateName() string {
 // Results of inspecting an item.
 type InspectContentResponse struct {
 	// The findings.
-	Result               *InspectResult `protobuf:"bytes,1,opt,name=result" json:"result,omitempty"`
+	Result               *InspectResult `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
 	XXX_unrecognized     []byte         `json:"-"`
 	XXX_sizecache        int32          `json:"-"`
@@ -2456,7 +2484,7 @@ func (m *InspectContentResponse) Reset()         { *m = InspectContentResponse{}
 func (m *InspectContentResponse) String() string { return proto.CompactTextString(m) }
 func (*InspectContentResponse) ProtoMessage()    {}
 func (*InspectContentResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{22}
+	return fileDescriptor_dlp_536657b46c30097f, []int{22}
 }
 func (m *InspectContentResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_InspectContentResponse.Unmarshal(m, b)
@@ -2488,14 +2516,15 @@ type OutputStorageConfig struct {
 	// Types that are valid to be assigned to Type:
 	//	*OutputStorageConfig_Table
 	Type isOutputStorageConfig_Type `protobuf_oneof:"type"`
-	// Schema used for writing the findings. Columns are derived from the
-	// `Finding` object. If appending to an existing table, any columns from the
-	// predefined schema that are missing will be added. No columns in the
-	// existing table will be deleted.
+	// Schema used for writing the findings for Inspect jobs. This field is only
+	// used for Inspect and must be unspecified for Risk jobs. Columns are derived
+	// from the `Finding` object. If appending to an existing table, any columns
+	// from the predefined schema that are missing will be added. No columns in
+	// the existing table will be deleted.
 	//
 	// If unspecified, then all available columns will be used for a new table,
 	// and no changes will be made to an existing table.
-	OutputSchema         OutputStorageConfig_OutputSchema `protobuf:"varint,3,opt,name=output_schema,json=outputSchema,enum=google.privacy.dlp.v2.OutputStorageConfig_OutputSchema" json:"output_schema,omitempty"`
+	OutputSchema         OutputStorageConfig_OutputSchema `protobuf:"varint,3,opt,name=output_schema,json=outputSchema,proto3,enum=google.privacy.dlp.v2.OutputStorageConfig_OutputSchema" json:"output_schema,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                         `json:"-"`
 	XXX_unrecognized     []byte                           `json:"-"`
 	XXX_sizecache        int32                            `json:"-"`
@@ -2505,7 +2534,7 @@ func (m *OutputStorageConfig) Reset()         { *m = OutputStorageConfig{} }
 func (m *OutputStorageConfig) String() string { return proto.CompactTextString(m) }
 func (*OutputStorageConfig) ProtoMessage()    {}
 func (*OutputStorageConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{23}
+	return fileDescriptor_dlp_536657b46c30097f, []int{23}
 }
 func (m *OutputStorageConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_OutputStorageConfig.Unmarshal(m, b)
@@ -2530,7 +2559,7 @@ type isOutputStorageConfig_Type interface {
 }
 
 type OutputStorageConfig_Table struct {
-	Table *BigQueryTable `protobuf:"bytes,1,opt,name=table,oneof"`
+	Table *BigQueryTable `protobuf:"bytes,1,opt,name=table,proto3,oneof"`
 }
 
 func (*OutputStorageConfig_Table) isOutputStorageConfig_Type() {}
@@ -2614,9 +2643,9 @@ func _OutputStorageConfig_OneofSizer(msg proto.Message) (n int) {
 // Statistics regarding a specific InfoType.
 type InfoTypeStats struct {
 	// The type of finding this stat is for.
-	InfoType *InfoType `protobuf:"bytes,1,opt,name=info_type,json=infoType" json:"info_type,omitempty"`
+	InfoType *InfoType `protobuf:"bytes,1,opt,name=info_type,json=infoType,proto3" json:"info_type,omitempty"`
 	// Number of findings for this infoType.
-	Count                int64    `protobuf:"varint,2,opt,name=count" json:"count,omitempty"`
+	Count                int64    `protobuf:"varint,2,opt,name=count,proto3" json:"count,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -2626,7 +2655,7 @@ func (m *InfoTypeStats) Reset()         { *m = InfoTypeStats{} }
 func (m *InfoTypeStats) String() string { return proto.CompactTextString(m) }
 func (*InfoTypeStats) ProtoMessage()    {}
 func (*InfoTypeStats) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{24}
+	return fileDescriptor_dlp_536657b46c30097f, []int{24}
 }
 func (m *InfoTypeStats) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_InfoTypeStats.Unmarshal(m, b)
@@ -2663,9 +2692,9 @@ func (m *InfoTypeStats) GetCount() int64 {
 // The results of an inspect DataSource job.
 type InspectDataSourceDetails struct {
 	// The configuration used for this job.
-	RequestedOptions *InspectDataSourceDetails_RequestedOptions `protobuf:"bytes,2,opt,name=requested_options,json=requestedOptions" json:"requested_options,omitempty"`
+	RequestedOptions *InspectDataSourceDetails_RequestedOptions `protobuf:"bytes,2,opt,name=requested_options,json=requestedOptions,proto3" json:"requested_options,omitempty"`
 	// A summary of the outcome of this inspect job.
-	Result               *InspectDataSourceDetails_Result `protobuf:"bytes,3,opt,name=result" json:"result,omitempty"`
+	Result               *InspectDataSourceDetails_Result `protobuf:"bytes,3,opt,name=result,proto3" json:"result,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                         `json:"-"`
 	XXX_unrecognized     []byte                           `json:"-"`
 	XXX_sizecache        int32                            `json:"-"`
@@ -2675,7 +2704,7 @@ func (m *InspectDataSourceDetails) Reset()         { *m = InspectDataSourceDetai
 func (m *InspectDataSourceDetails) String() string { return proto.CompactTextString(m) }
 func (*InspectDataSourceDetails) ProtoMessage()    {}
 func (*InspectDataSourceDetails) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{25}
+	return fileDescriptor_dlp_536657b46c30097f, []int{25}
 }
 func (m *InspectDataSourceDetails) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_InspectDataSourceDetails.Unmarshal(m, b)
@@ -2712,8 +2741,8 @@ func (m *InspectDataSourceDetails) GetResult() *InspectDataSourceDetails_Result 
 type InspectDataSourceDetails_RequestedOptions struct {
 	// If run with an InspectTemplate, a snapshot of its state at the time of
 	// this run.
-	SnapshotInspectTemplate *InspectTemplate  `protobuf:"bytes,1,opt,name=snapshot_inspect_template,json=snapshotInspectTemplate" json:"snapshot_inspect_template,omitempty"`
-	JobConfig               *InspectJobConfig `protobuf:"bytes,3,opt,name=job_config,json=jobConfig" json:"job_config,omitempty"`
+	SnapshotInspectTemplate *InspectTemplate  `protobuf:"bytes,1,opt,name=snapshot_inspect_template,json=snapshotInspectTemplate,proto3" json:"snapshot_inspect_template,omitempty"`
+	JobConfig               *InspectJobConfig `protobuf:"bytes,3,opt,name=job_config,json=jobConfig,proto3" json:"job_config,omitempty"`
 	XXX_NoUnkeyedLiteral    struct{}          `json:"-"`
 	XXX_unrecognized        []byte            `json:"-"`
 	XXX_sizecache           int32             `json:"-"`
@@ -2725,7 +2754,7 @@ func (m *InspectDataSourceDetails_RequestedOptions) Reset() {
 func (m *InspectDataSourceDetails_RequestedOptions) String() string { return proto.CompactTextString(m) }
 func (*InspectDataSourceDetails_RequestedOptions) ProtoMessage()    {}
 func (*InspectDataSourceDetails_RequestedOptions) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{25, 0}
+	return fileDescriptor_dlp_536657b46c30097f, []int{25, 0}
 }
 func (m *InspectDataSourceDetails_RequestedOptions) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_InspectDataSourceDetails_RequestedOptions.Unmarshal(m, b)
@@ -2761,12 +2790,12 @@ func (m *InspectDataSourceDetails_RequestedOptions) GetJobConfig() *InspectJobCo
 
 type InspectDataSourceDetails_Result struct {
 	// Total size in bytes that were processed.
-	ProcessedBytes int64 `protobuf:"varint,1,opt,name=processed_bytes,json=processedBytes" json:"processed_bytes,omitempty"`
+	ProcessedBytes int64 `protobuf:"varint,1,opt,name=processed_bytes,json=processedBytes,proto3" json:"processed_bytes,omitempty"`
 	// Estimate of the number of bytes to process.
-	TotalEstimatedBytes int64 `protobuf:"varint,2,opt,name=total_estimated_bytes,json=totalEstimatedBytes" json:"total_estimated_bytes,omitempty"`
+	TotalEstimatedBytes int64 `protobuf:"varint,2,opt,name=total_estimated_bytes,json=totalEstimatedBytes,proto3" json:"total_estimated_bytes,omitempty"`
 	// Statistics of how many instances of each info type were found during
 	// inspect job.
-	InfoTypeStats        []*InfoTypeStats `protobuf:"bytes,3,rep,name=info_type_stats,json=infoTypeStats" json:"info_type_stats,omitempty"`
+	InfoTypeStats        []*InfoTypeStats `protobuf:"bytes,3,rep,name=info_type_stats,json=infoTypeStats,proto3" json:"info_type_stats,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
 	XXX_unrecognized     []byte           `json:"-"`
 	XXX_sizecache        int32            `json:"-"`
@@ -2776,7 +2805,7 @@ func (m *InspectDataSourceDetails_Result) Reset()         { *m = InspectDataSour
 func (m *InspectDataSourceDetails_Result) String() string { return proto.CompactTextString(m) }
 func (*InspectDataSourceDetails_Result) ProtoMessage()    {}
 func (*InspectDataSourceDetails_Result) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{25, 1}
+	return fileDescriptor_dlp_536657b46c30097f, []int{25, 1}
 }
 func (m *InspectDataSourceDetails_Result) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_InspectDataSourceDetails_Result.Unmarshal(m, b)
@@ -2820,11 +2849,11 @@ func (m *InspectDataSourceDetails_Result) GetInfoTypeStats() []*InfoTypeStats {
 // InfoType description.
 type InfoTypeDescription struct {
 	// Internal name of the infoType.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Human readable form of the infoType name.
-	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName" json:"display_name,omitempty"`
+	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	// Which parts of the API supports this InfoType.
-	SupportedBy          []InfoTypeSupportedBy `protobuf:"varint,3,rep,packed,name=supported_by,json=supportedBy,enum=google.privacy.dlp.v2.InfoTypeSupportedBy" json:"supported_by,omitempty"`
+	SupportedBy          []InfoTypeSupportedBy `protobuf:"varint,3,rep,packed,name=supported_by,json=supportedBy,proto3,enum=google.privacy.dlp.v2.InfoTypeSupportedBy" json:"supported_by,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -2834,7 +2863,7 @@ func (m *InfoTypeDescription) Reset()         { *m = InfoTypeDescription{} }
 func (m *InfoTypeDescription) String() string { return proto.CompactTextString(m) }
 func (*InfoTypeDescription) ProtoMessage()    {}
 func (*InfoTypeDescription) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{26}
+	return fileDescriptor_dlp_536657b46c30097f, []int{26}
 }
 func (m *InfoTypeDescription) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_InfoTypeDescription.Unmarshal(m, b)
@@ -2880,10 +2909,10 @@ type ListInfoTypesRequest struct {
 	// Optional BCP-47 language code for localized infoType friendly
 	// names. If omitted, or if localized strings are not available,
 	// en-US strings will be returned.
-	LanguageCode string `protobuf:"bytes,1,opt,name=language_code,json=languageCode" json:"language_code,omitempty"`
+	LanguageCode string `protobuf:"bytes,1,opt,name=language_code,json=languageCode,proto3" json:"language_code,omitempty"`
 	// Optional filter to only return infoTypes supported by certain parts of the
 	// API. Defaults to supported_by=INSPECT.
-	Filter               string   `protobuf:"bytes,2,opt,name=filter" json:"filter,omitempty"`
+	Filter               string   `protobuf:"bytes,2,opt,name=filter,proto3" json:"filter,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -2893,7 +2922,7 @@ func (m *ListInfoTypesRequest) Reset()         { *m = ListInfoTypesRequest{} }
 func (m *ListInfoTypesRequest) String() string { return proto.CompactTextString(m) }
 func (*ListInfoTypesRequest) ProtoMessage()    {}
 func (*ListInfoTypesRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{27}
+	return fileDescriptor_dlp_536657b46c30097f, []int{27}
 }
 func (m *ListInfoTypesRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListInfoTypesRequest.Unmarshal(m, b)
@@ -2930,7 +2959,7 @@ func (m *ListInfoTypesRequest) GetFilter() string {
 // Response to the ListInfoTypes request.
 type ListInfoTypesResponse struct {
 	// Set of sensitive infoTypes.
-	InfoTypes            []*InfoTypeDescription `protobuf:"bytes,1,rep,name=info_types,json=infoTypes" json:"info_types,omitempty"`
+	InfoTypes            []*InfoTypeDescription `protobuf:"bytes,1,rep,name=info_types,json=infoTypes,proto3" json:"info_types,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
 	XXX_unrecognized     []byte                 `json:"-"`
 	XXX_sizecache        int32                  `json:"-"`
@@ -2940,7 +2969,7 @@ func (m *ListInfoTypesResponse) Reset()         { *m = ListInfoTypesResponse{} }
 func (m *ListInfoTypesResponse) String() string { return proto.CompactTextString(m) }
 func (*ListInfoTypesResponse) ProtoMessage()    {}
 func (*ListInfoTypesResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{28}
+	return fileDescriptor_dlp_536657b46c30097f, []int{28}
 }
 func (m *ListInfoTypesResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListInfoTypesResponse.Unmarshal(m, b)
@@ -2967,15 +2996,16 @@ func (m *ListInfoTypesResponse) GetInfoTypes() []*InfoTypeDescription {
 	return nil
 }
 
-// Configuration for a risk analysis job.
+// Configuration for a risk analysis job. See
+// https://cloud.google.com/dlp/docs/concepts-risk-analysis to learn more.
 type RiskAnalysisJobConfig struct {
 	// Privacy metric to compute.
-	PrivacyMetric *PrivacyMetric `protobuf:"bytes,1,opt,name=privacy_metric,json=privacyMetric" json:"privacy_metric,omitempty"`
+	PrivacyMetric *PrivacyMetric `protobuf:"bytes,1,opt,name=privacy_metric,json=privacyMetric,proto3" json:"privacy_metric,omitempty"`
 	// Input dataset to compute metrics over.
-	SourceTable *BigQueryTable `protobuf:"bytes,2,opt,name=source_table,json=sourceTable" json:"source_table,omitempty"`
+	SourceTable *BigQueryTable `protobuf:"bytes,2,opt,name=source_table,json=sourceTable,proto3" json:"source_table,omitempty"`
 	// Actions to execute at the completion of the job. Are executed in the order
 	// provided.
-	Actions              []*Action `protobuf:"bytes,3,rep,name=actions" json:"actions,omitempty"`
+	Actions              []*Action `protobuf:"bytes,3,rep,name=actions,proto3" json:"actions,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -2985,7 +3015,7 @@ func (m *RiskAnalysisJobConfig) Reset()         { *m = RiskAnalysisJobConfig{} }
 func (m *RiskAnalysisJobConfig) String() string { return proto.CompactTextString(m) }
 func (*RiskAnalysisJobConfig) ProtoMessage()    {}
 func (*RiskAnalysisJobConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{29}
+	return fileDescriptor_dlp_536657b46c30097f, []int{29}
 }
 func (m *RiskAnalysisJobConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RiskAnalysisJobConfig.Unmarshal(m, b)
@@ -3026,6 +3056,304 @@ func (m *RiskAnalysisJobConfig) GetActions() []*Action {
 	return nil
 }
 
+// A column with a semantic tag attached.
+type QuasiId struct {
+	// Identifies the column. [required]
+	Field *FieldId `protobuf:"bytes,1,opt,name=field,proto3" json:"field,omitempty"`
+	// Semantic tag that identifies what a column contains, to determine which
+	// statistical model to use to estimate the reidentifiability of each
+	// value. [required]
+	//
+	// Types that are valid to be assigned to Tag:
+	//	*QuasiId_InfoType
+	//	*QuasiId_CustomTag
+	//	*QuasiId_Inferred
+	Tag                  isQuasiId_Tag `protobuf_oneof:"tag"`
+	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
+	XXX_unrecognized     []byte        `json:"-"`
+	XXX_sizecache        int32         `json:"-"`
+}
+
+func (m *QuasiId) Reset()         { *m = QuasiId{} }
+func (m *QuasiId) String() string { return proto.CompactTextString(m) }
+func (*QuasiId) ProtoMessage()    {}
+func (*QuasiId) Descriptor() ([]byte, []int) {
+	return fileDescriptor_dlp_536657b46c30097f, []int{30}
+}
+func (m *QuasiId) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_QuasiId.Unmarshal(m, b)
+}
+func (m *QuasiId) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_QuasiId.Marshal(b, m, deterministic)
+}
+func (dst *QuasiId) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QuasiId.Merge(dst, src)
+}
+func (m *QuasiId) XXX_Size() int {
+	return xxx_messageInfo_QuasiId.Size(m)
+}
+func (m *QuasiId) XXX_DiscardUnknown() {
+	xxx_messageInfo_QuasiId.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QuasiId proto.InternalMessageInfo
+
+type isQuasiId_Tag interface {
+	isQuasiId_Tag()
+}
+
+type QuasiId_InfoType struct {
+	InfoType *InfoType `protobuf:"bytes,2,opt,name=info_type,json=infoType,proto3,oneof"`
+}
+type QuasiId_CustomTag struct {
+	CustomTag string `protobuf:"bytes,3,opt,name=custom_tag,json=customTag,proto3,oneof"`
+}
+type QuasiId_Inferred struct {
+	Inferred *empty.Empty `protobuf:"bytes,4,opt,name=inferred,proto3,oneof"`
+}
+
+func (*QuasiId_InfoType) isQuasiId_Tag()  {}
+func (*QuasiId_CustomTag) isQuasiId_Tag() {}
+func (*QuasiId_Inferred) isQuasiId_Tag()  {}
+
+func (m *QuasiId) GetTag() isQuasiId_Tag {
+	if m != nil {
+		return m.Tag
+	}
+	return nil
+}
+
+func (m *QuasiId) GetField() *FieldId {
+	if m != nil {
+		return m.Field
+	}
+	return nil
+}
+
+func (m *QuasiId) GetInfoType() *InfoType {
+	if x, ok := m.GetTag().(*QuasiId_InfoType); ok {
+		return x.InfoType
+	}
+	return nil
+}
+
+func (m *QuasiId) GetCustomTag() string {
+	if x, ok := m.GetTag().(*QuasiId_CustomTag); ok {
+		return x.CustomTag
+	}
+	return ""
+}
+
+func (m *QuasiId) GetInferred() *empty.Empty {
+	if x, ok := m.GetTag().(*QuasiId_Inferred); ok {
+		return x.Inferred
+	}
+	return nil
+}
+
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*QuasiId) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
+	return _QuasiId_OneofMarshaler, _QuasiId_OneofUnmarshaler, _QuasiId_OneofSizer, []interface{}{
+		(*QuasiId_InfoType)(nil),
+		(*QuasiId_CustomTag)(nil),
+		(*QuasiId_Inferred)(nil),
+	}
+}
+
+func _QuasiId_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*QuasiId)
+	// tag
+	switch x := m.Tag.(type) {
+	case *QuasiId_InfoType:
+		b.EncodeVarint(2<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.InfoType); err != nil {
+			return err
+		}
+	case *QuasiId_CustomTag:
+		b.EncodeVarint(3<<3 | proto.WireBytes)
+		b.EncodeStringBytes(x.CustomTag)
+	case *QuasiId_Inferred:
+		b.EncodeVarint(4<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Inferred); err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return fmt.Errorf("QuasiId.Tag has unexpected type %T", x)
+	}
+	return nil
+}
+
+func _QuasiId_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*QuasiId)
+	switch tag {
+	case 2: // tag.info_type
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(InfoType)
+		err := b.DecodeMessage(msg)
+		m.Tag = &QuasiId_InfoType{msg}
+		return true, err
+	case 3: // tag.custom_tag
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		x, err := b.DecodeStringBytes()
+		m.Tag = &QuasiId_CustomTag{x}
+		return true, err
+	case 4: // tag.inferred
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(empty.Empty)
+		err := b.DecodeMessage(msg)
+		m.Tag = &QuasiId_Inferred{msg}
+		return true, err
+	default:
+		return false, nil
+	}
+}
+
+func _QuasiId_OneofSizer(msg proto.Message) (n int) {
+	m := msg.(*QuasiId)
+	// tag
+	switch x := m.Tag.(type) {
+	case *QuasiId_InfoType:
+		s := proto.Size(x.InfoType)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *QuasiId_CustomTag:
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(len(x.CustomTag)))
+		n += len(x.CustomTag)
+	case *QuasiId_Inferred:
+		s := proto.Size(x.Inferred)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case nil:
+	default:
+		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
+	}
+	return n
+}
+
+// An auxiliary table containing statistical information on the relative
+// frequency of different quasi-identifiers values. It has one or several
+// quasi-identifiers columns, and one column that indicates the relative
+// frequency of each quasi-identifier tuple.
+// If a tuple is present in the data but not in the auxiliary table, the
+// corresponding relative frequency is assumed to be zero (and thus, the
+// tuple is highly reidentifiable).
+type StatisticalTable struct {
+	// Auxiliary table location. [required]
+	Table *BigQueryTable `protobuf:"bytes,3,opt,name=table,proto3" json:"table,omitempty"`
+	// Quasi-identifier columns. [required]
+	QuasiIds []*StatisticalTable_QuasiIdentifierField `protobuf:"bytes,1,rep,name=quasi_ids,json=quasiIds,proto3" json:"quasi_ids,omitempty"`
+	// The relative frequency column must contain a floating-point number
+	// between 0 and 1 (inclusive). Null values are assumed to be zero.
+	// [required]
+	RelativeFrequency    *FieldId `protobuf:"bytes,2,opt,name=relative_frequency,json=relativeFrequency,proto3" json:"relative_frequency,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *StatisticalTable) Reset()         { *m = StatisticalTable{} }
+func (m *StatisticalTable) String() string { return proto.CompactTextString(m) }
+func (*StatisticalTable) ProtoMessage()    {}
+func (*StatisticalTable) Descriptor() ([]byte, []int) {
+	return fileDescriptor_dlp_536657b46c30097f, []int{31}
+}
+func (m *StatisticalTable) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_StatisticalTable.Unmarshal(m, b)
+}
+func (m *StatisticalTable) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_StatisticalTable.Marshal(b, m, deterministic)
+}
+func (dst *StatisticalTable) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_StatisticalTable.Merge(dst, src)
+}
+func (m *StatisticalTable) XXX_Size() int {
+	return xxx_messageInfo_StatisticalTable.Size(m)
+}
+func (m *StatisticalTable) XXX_DiscardUnknown() {
+	xxx_messageInfo_StatisticalTable.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_StatisticalTable proto.InternalMessageInfo
+
+func (m *StatisticalTable) GetTable() *BigQueryTable {
+	if m != nil {
+		return m.Table
+	}
+	return nil
+}
+
+func (m *StatisticalTable) GetQuasiIds() []*StatisticalTable_QuasiIdentifierField {
+	if m != nil {
+		return m.QuasiIds
+	}
+	return nil
+}
+
+func (m *StatisticalTable) GetRelativeFrequency() *FieldId {
+	if m != nil {
+		return m.RelativeFrequency
+	}
+	return nil
+}
+
+// A quasi-identifier column has a custom_tag, used to know which column
+// in the data corresponds to which column in the statistical model.
+type StatisticalTable_QuasiIdentifierField struct {
+	Field                *FieldId `protobuf:"bytes,1,opt,name=field,proto3" json:"field,omitempty"`
+	CustomTag            string   `protobuf:"bytes,2,opt,name=custom_tag,json=customTag,proto3" json:"custom_tag,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *StatisticalTable_QuasiIdentifierField) Reset()         { *m = StatisticalTable_QuasiIdentifierField{} }
+func (m *StatisticalTable_QuasiIdentifierField) String() string { return proto.CompactTextString(m) }
+func (*StatisticalTable_QuasiIdentifierField) ProtoMessage()    {}
+func (*StatisticalTable_QuasiIdentifierField) Descriptor() ([]byte, []int) {
+	return fileDescriptor_dlp_536657b46c30097f, []int{31, 0}
+}
+func (m *StatisticalTable_QuasiIdentifierField) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_StatisticalTable_QuasiIdentifierField.Unmarshal(m, b)
+}
+func (m *StatisticalTable_QuasiIdentifierField) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_StatisticalTable_QuasiIdentifierField.Marshal(b, m, deterministic)
+}
+func (dst *StatisticalTable_QuasiIdentifierField) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_StatisticalTable_QuasiIdentifierField.Merge(dst, src)
+}
+func (m *StatisticalTable_QuasiIdentifierField) XXX_Size() int {
+	return xxx_messageInfo_StatisticalTable_QuasiIdentifierField.Size(m)
+}
+func (m *StatisticalTable_QuasiIdentifierField) XXX_DiscardUnknown() {
+	xxx_messageInfo_StatisticalTable_QuasiIdentifierField.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_StatisticalTable_QuasiIdentifierField proto.InternalMessageInfo
+
+func (m *StatisticalTable_QuasiIdentifierField) GetField() *FieldId {
+	if m != nil {
+		return m.Field
+	}
+	return nil
+}
+
+func (m *StatisticalTable_QuasiIdentifierField) GetCustomTag() string {
+	if m != nil {
+		return m.CustomTag
+	}
+	return ""
+}
+
 // Privacy metric to compute for reidentification risk analysis.
 type PrivacyMetric struct {
 	// Types that are valid to be assigned to Type:
@@ -3034,6 +3362,7 @@ type PrivacyMetric struct {
 	//	*PrivacyMetric_KAnonymityConfig_
 	//	*PrivacyMetric_LDiversityConfig_
 	//	*PrivacyMetric_KMapEstimationConfig_
+	//	*PrivacyMetric_DeltaPresenceEstimationConfig_
 	Type                 isPrivacyMetric_Type `protobuf_oneof:"type"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
@@ -3044,7 +3373,7 @@ func (m *PrivacyMetric) Reset()         { *m = PrivacyMetric{} }
 func (m *PrivacyMetric) String() string { return proto.CompactTextString(m) }
 func (*PrivacyMetric) ProtoMessage()    {}
 func (*PrivacyMetric) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{30}
+	return fileDescriptor_dlp_536657b46c30097f, []int{32}
 }
 func (m *PrivacyMetric) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PrivacyMetric.Unmarshal(m, b)
@@ -3069,26 +3398,30 @@ type isPrivacyMetric_Type interface {
 }
 
 type PrivacyMetric_NumericalStatsConfig_ struct {
-	NumericalStatsConfig *PrivacyMetric_NumericalStatsConfig `protobuf:"bytes,1,opt,name=numerical_stats_config,json=numericalStatsConfig,oneof"`
+	NumericalStatsConfig *PrivacyMetric_NumericalStatsConfig `protobuf:"bytes,1,opt,name=numerical_stats_config,json=numericalStatsConfig,proto3,oneof"`
 }
 type PrivacyMetric_CategoricalStatsConfig_ struct {
-	CategoricalStatsConfig *PrivacyMetric_CategoricalStatsConfig `protobuf:"bytes,2,opt,name=categorical_stats_config,json=categoricalStatsConfig,oneof"`
+	CategoricalStatsConfig *PrivacyMetric_CategoricalStatsConfig `protobuf:"bytes,2,opt,name=categorical_stats_config,json=categoricalStatsConfig,proto3,oneof"`
 }
 type PrivacyMetric_KAnonymityConfig_ struct {
-	KAnonymityConfig *PrivacyMetric_KAnonymityConfig `protobuf:"bytes,3,opt,name=k_anonymity_config,json=kAnonymityConfig,oneof"`
+	KAnonymityConfig *PrivacyMetric_KAnonymityConfig `protobuf:"bytes,3,opt,name=k_anonymity_config,json=kAnonymityConfig,proto3,oneof"`
 }
 type PrivacyMetric_LDiversityConfig_ struct {
-	LDiversityConfig *PrivacyMetric_LDiversityConfig `protobuf:"bytes,4,opt,name=l_diversity_config,json=lDiversityConfig,oneof"`
+	LDiversityConfig *PrivacyMetric_LDiversityConfig `protobuf:"bytes,4,opt,name=l_diversity_config,json=lDiversityConfig,proto3,oneof"`
 }
 type PrivacyMetric_KMapEstimationConfig_ struct {
-	KMapEstimationConfig *PrivacyMetric_KMapEstimationConfig `protobuf:"bytes,5,opt,name=k_map_estimation_config,json=kMapEstimationConfig,oneof"`
+	KMapEstimationConfig *PrivacyMetric_KMapEstimationConfig `protobuf:"bytes,5,opt,name=k_map_estimation_config,json=kMapEstimationConfig,proto3,oneof"`
+}
+type PrivacyMetric_DeltaPresenceEstimationConfig_ struct {
+	DeltaPresenceEstimationConfig *PrivacyMetric_DeltaPresenceEstimationConfig `protobuf:"bytes,6,opt,name=delta_presence_estimation_config,json=deltaPresenceEstimationConfig,proto3,oneof"`
 }
 
-func (*PrivacyMetric_NumericalStatsConfig_) isPrivacyMetric_Type()   {}
-func (*PrivacyMetric_CategoricalStatsConfig_) isPrivacyMetric_Type() {}
-func (*PrivacyMetric_KAnonymityConfig_) isPrivacyMetric_Type()       {}
-func (*PrivacyMetric_LDiversityConfig_) isPrivacyMetric_Type()       {}
-func (*PrivacyMetric_KMapEstimationConfig_) isPrivacyMetric_Type()   {}
+func (*PrivacyMetric_NumericalStatsConfig_) isPrivacyMetric_Type()          {}
+func (*PrivacyMetric_CategoricalStatsConfig_) isPrivacyMetric_Type()        {}
+func (*PrivacyMetric_KAnonymityConfig_) isPrivacyMetric_Type()              {}
+func (*PrivacyMetric_LDiversityConfig_) isPrivacyMetric_Type()              {}
+func (*PrivacyMetric_KMapEstimationConfig_) isPrivacyMetric_Type()          {}
+func (*PrivacyMetric_DeltaPresenceEstimationConfig_) isPrivacyMetric_Type() {}
 
 func (m *PrivacyMetric) GetType() isPrivacyMetric_Type {
 	if m != nil {
@@ -3132,6 +3465,13 @@ func (m *PrivacyMetric) GetKMapEstimationConfig() *PrivacyMetric_KMapEstimationC
 	return nil
 }
 
+func (m *PrivacyMetric) GetDeltaPresenceEstimationConfig() *PrivacyMetric_DeltaPresenceEstimationConfig {
+	if x, ok := m.GetType().(*PrivacyMetric_DeltaPresenceEstimationConfig_); ok {
+		return x.DeltaPresenceEstimationConfig
+	}
+	return nil
+}
+
 // XXX_OneofFuncs is for the internal use of the proto package.
 func (*PrivacyMetric) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
 	return _PrivacyMetric_OneofMarshaler, _PrivacyMetric_OneofUnmarshaler, _PrivacyMetric_OneofSizer, []interface{}{
@@ -3140,6 +3480,7 @@ func (*PrivacyMetric) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer)
 		(*PrivacyMetric_KAnonymityConfig_)(nil),
 		(*PrivacyMetric_LDiversityConfig_)(nil),
 		(*PrivacyMetric_KMapEstimationConfig_)(nil),
+		(*PrivacyMetric_DeltaPresenceEstimationConfig_)(nil),
 	}
 }
 
@@ -3170,6 +3511,11 @@ func _PrivacyMetric_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
 	case *PrivacyMetric_KMapEstimationConfig_:
 		b.EncodeVarint(5<<3 | proto.WireBytes)
 		if err := b.EncodeMessage(x.KMapEstimationConfig); err != nil {
+			return err
+		}
+	case *PrivacyMetric_DeltaPresenceEstimationConfig_:
+		b.EncodeVarint(6<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.DeltaPresenceEstimationConfig); err != nil {
 			return err
 		}
 	case nil:
@@ -3222,6 +3568,14 @@ func _PrivacyMetric_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.
 		err := b.DecodeMessage(msg)
 		m.Type = &PrivacyMetric_KMapEstimationConfig_{msg}
 		return true, err
+	case 6: // type.delta_presence_estimation_config
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(PrivacyMetric_DeltaPresenceEstimationConfig)
+		err := b.DecodeMessage(msg)
+		m.Type = &PrivacyMetric_DeltaPresenceEstimationConfig_{msg}
+		return true, err
 	default:
 		return false, nil
 	}
@@ -3256,6 +3610,11 @@ func _PrivacyMetric_OneofSizer(msg proto.Message) (n int) {
 		n += 1 // tag and wire
 		n += proto.SizeVarint(uint64(s))
 		n += s
+	case *PrivacyMetric_DeltaPresenceEstimationConfig_:
+		s := proto.Size(x.DeltaPresenceEstimationConfig)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
 	case nil:
 	default:
 		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
@@ -3268,7 +3627,7 @@ func _PrivacyMetric_OneofSizer(msg proto.Message) (n int) {
 type PrivacyMetric_NumericalStatsConfig struct {
 	// Field to compute numerical stats on. Supported types are
 	// integer, float, date, datetime, timestamp, time.
-	Field                *FieldId `protobuf:"bytes,1,opt,name=field" json:"field,omitempty"`
+	Field                *FieldId `protobuf:"bytes,1,opt,name=field,proto3" json:"field,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -3278,7 +3637,7 @@ func (m *PrivacyMetric_NumericalStatsConfig) Reset()         { *m = PrivacyMetri
 func (m *PrivacyMetric_NumericalStatsConfig) String() string { return proto.CompactTextString(m) }
 func (*PrivacyMetric_NumericalStatsConfig) ProtoMessage()    {}
 func (*PrivacyMetric_NumericalStatsConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{30, 0}
+	return fileDescriptor_dlp_536657b46c30097f, []int{32, 0}
 }
 func (m *PrivacyMetric_NumericalStatsConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PrivacyMetric_NumericalStatsConfig.Unmarshal(m, b)
@@ -3312,7 +3671,7 @@ type PrivacyMetric_CategoricalStatsConfig struct {
 	// supported except for arrays and structs. However, it may be more
 	// informative to use NumericalStats when the field type is supported,
 	// depending on the data.
-	Field                *FieldId `protobuf:"bytes,1,opt,name=field" json:"field,omitempty"`
+	Field                *FieldId `protobuf:"bytes,1,opt,name=field,proto3" json:"field,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -3322,7 +3681,7 @@ func (m *PrivacyMetric_CategoricalStatsConfig) Reset()         { *m = PrivacyMet
 func (m *PrivacyMetric_CategoricalStatsConfig) String() string { return proto.CompactTextString(m) }
 func (*PrivacyMetric_CategoricalStatsConfig) ProtoMessage()    {}
 func (*PrivacyMetric_CategoricalStatsConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{30, 1}
+	return fileDescriptor_dlp_536657b46c30097f, []int{32, 1}
 }
 func (m *PrivacyMetric_CategoricalStatsConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PrivacyMetric_CategoricalStatsConfig.Unmarshal(m, b)
@@ -3356,7 +3715,7 @@ type PrivacyMetric_KAnonymityConfig struct {
 	// repeated data types are not supported; however, nested fields are
 	// supported so long as they are not structs themselves or nested within
 	// a repeated field.
-	QuasiIds []*FieldId `protobuf:"bytes,1,rep,name=quasi_ids,json=quasiIds" json:"quasi_ids,omitempty"`
+	QuasiIds []*FieldId `protobuf:"bytes,1,rep,name=quasi_ids,json=quasiIds,proto3" json:"quasi_ids,omitempty"`
 	// Optional message indicating that multiple rows might be associated to a
 	// single individual. If the same entity_id is associated to multiple
 	// quasi-identifier tuples over distict rows, we consider the entire
@@ -3367,7 +3726,7 @@ type PrivacyMetric_KAnonymityConfig struct {
 	// Important note: a maximum of 1000 rows can be associated to a single
 	// entity ID. If more rows are associated with the same entity ID, some
 	// might be ignored.
-	EntityId             *EntityId `protobuf:"bytes,2,opt,name=entity_id,json=entityId" json:"entity_id,omitempty"`
+	EntityId             *EntityId `protobuf:"bytes,2,opt,name=entity_id,json=entityId,proto3" json:"entity_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -3377,7 +3736,7 @@ func (m *PrivacyMetric_KAnonymityConfig) Reset()         { *m = PrivacyMetric_KA
 func (m *PrivacyMetric_KAnonymityConfig) String() string { return proto.CompactTextString(m) }
 func (*PrivacyMetric_KAnonymityConfig) ProtoMessage()    {}
 func (*PrivacyMetric_KAnonymityConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{30, 2}
+	return fileDescriptor_dlp_536657b46c30097f, []int{32, 2}
 }
 func (m *PrivacyMetric_KAnonymityConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PrivacyMetric_KAnonymityConfig.Unmarshal(m, b)
@@ -3416,9 +3775,9 @@ type PrivacyMetric_LDiversityConfig struct {
 	// Set of quasi-identifiers indicating how equivalence classes are
 	// defined for the l-diversity computation. When multiple fields are
 	// specified, they are considered a single composite key.
-	QuasiIds []*FieldId `protobuf:"bytes,1,rep,name=quasi_ids,json=quasiIds" json:"quasi_ids,omitempty"`
+	QuasiIds []*FieldId `protobuf:"bytes,1,rep,name=quasi_ids,json=quasiIds,proto3" json:"quasi_ids,omitempty"`
 	// Sensitive field for computing the l-value.
-	SensitiveAttribute   *FieldId `protobuf:"bytes,2,opt,name=sensitive_attribute,json=sensitiveAttribute" json:"sensitive_attribute,omitempty"`
+	SensitiveAttribute   *FieldId `protobuf:"bytes,2,opt,name=sensitive_attribute,json=sensitiveAttribute,proto3" json:"sensitive_attribute,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -3428,7 +3787,7 @@ func (m *PrivacyMetric_LDiversityConfig) Reset()         { *m = PrivacyMetric_LD
 func (m *PrivacyMetric_LDiversityConfig) String() string { return proto.CompactTextString(m) }
 func (*PrivacyMetric_LDiversityConfig) ProtoMessage()    {}
 func (*PrivacyMetric_LDiversityConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{30, 3}
+	return fileDescriptor_dlp_536657b46c30097f, []int{32, 3}
 }
 func (m *PrivacyMetric_LDiversityConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PrivacyMetric_LDiversityConfig.Unmarshal(m, b)
@@ -3468,18 +3827,19 @@ func (m *PrivacyMetric_LDiversityConfig) GetSensitiveAttribute() *FieldId {
 // using publicly available data (like the US Census), or using a custom
 // statistical model (indicated as one or several BigQuery tables), or by
 // extrapolating from the distribution of values in the input dataset.
+// A column with a semantic tag attached.
 type PrivacyMetric_KMapEstimationConfig struct {
 	// Fields considered to be quasi-identifiers. No two columns can have the
 	// same tag. [required]
-	QuasiIds []*PrivacyMetric_KMapEstimationConfig_TaggedField `protobuf:"bytes,1,rep,name=quasi_ids,json=quasiIds" json:"quasi_ids,omitempty"`
+	QuasiIds []*PrivacyMetric_KMapEstimationConfig_TaggedField `protobuf:"bytes,1,rep,name=quasi_ids,json=quasiIds,proto3" json:"quasi_ids,omitempty"`
 	// ISO 3166-1 alpha-2 region code to use in the statistical modeling.
 	// Required if no column is tagged with a region-specific InfoType (like
 	// US_ZIP_5) or a region code.
-	RegionCode string `protobuf:"bytes,2,opt,name=region_code,json=regionCode" json:"region_code,omitempty"`
+	RegionCode string `protobuf:"bytes,2,opt,name=region_code,json=regionCode,proto3" json:"region_code,omitempty"`
 	// Several auxiliary tables can be used in the analysis. Each custom_tag
 	// used to tag a quasi-identifiers column must appear in exactly one column
 	// of one auxiliary table.
-	AuxiliaryTables      []*PrivacyMetric_KMapEstimationConfig_AuxiliaryTable `protobuf:"bytes,3,rep,name=auxiliary_tables,json=auxiliaryTables" json:"auxiliary_tables,omitempty"`
+	AuxiliaryTables      []*PrivacyMetric_KMapEstimationConfig_AuxiliaryTable `protobuf:"bytes,3,rep,name=auxiliary_tables,json=auxiliaryTables,proto3" json:"auxiliary_tables,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                                             `json:"-"`
 	XXX_unrecognized     []byte                                               `json:"-"`
 	XXX_sizecache        int32                                                `json:"-"`
@@ -3489,7 +3849,7 @@ func (m *PrivacyMetric_KMapEstimationConfig) Reset()         { *m = PrivacyMetri
 func (m *PrivacyMetric_KMapEstimationConfig) String() string { return proto.CompactTextString(m) }
 func (*PrivacyMetric_KMapEstimationConfig) ProtoMessage()    {}
 func (*PrivacyMetric_KMapEstimationConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{30, 4}
+	return fileDescriptor_dlp_536657b46c30097f, []int{32, 4}
 }
 func (m *PrivacyMetric_KMapEstimationConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PrivacyMetric_KMapEstimationConfig.Unmarshal(m, b)
@@ -3530,10 +3890,9 @@ func (m *PrivacyMetric_KMapEstimationConfig) GetAuxiliaryTables() []*PrivacyMetr
 	return nil
 }
 
-// A column with a semantic tag attached.
 type PrivacyMetric_KMapEstimationConfig_TaggedField struct {
 	// Identifies the column. [required]
-	Field *FieldId `protobuf:"bytes,1,opt,name=field" json:"field,omitempty"`
+	Field *FieldId `protobuf:"bytes,1,opt,name=field,proto3" json:"field,omitempty"`
 	// Semantic tag that identifies what a column contains, to determine which
 	// statistical model to use to estimate the reidentifiability of each
 	// value. [required]
@@ -3556,7 +3915,7 @@ func (m *PrivacyMetric_KMapEstimationConfig_TaggedField) String() string {
 }
 func (*PrivacyMetric_KMapEstimationConfig_TaggedField) ProtoMessage() {}
 func (*PrivacyMetric_KMapEstimationConfig_TaggedField) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{30, 4, 0}
+	return fileDescriptor_dlp_536657b46c30097f, []int{32, 4, 0}
 }
 func (m *PrivacyMetric_KMapEstimationConfig_TaggedField) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PrivacyMetric_KMapEstimationConfig_TaggedField.Unmarshal(m, b)
@@ -3581,13 +3940,13 @@ type isPrivacyMetric_KMapEstimationConfig_TaggedField_Tag interface {
 }
 
 type PrivacyMetric_KMapEstimationConfig_TaggedField_InfoType struct {
-	InfoType *InfoType `protobuf:"bytes,2,opt,name=info_type,json=infoType,oneof"`
+	InfoType *InfoType `protobuf:"bytes,2,opt,name=info_type,json=infoType,proto3,oneof"`
 }
 type PrivacyMetric_KMapEstimationConfig_TaggedField_CustomTag struct {
-	CustomTag string `protobuf:"bytes,3,opt,name=custom_tag,json=customTag,oneof"`
+	CustomTag string `protobuf:"bytes,3,opt,name=custom_tag,json=customTag,proto3,oneof"`
 }
 type PrivacyMetric_KMapEstimationConfig_TaggedField_Inferred struct {
-	Inferred *empty.Empty `protobuf:"bytes,4,opt,name=inferred,oneof"`
+	Inferred *empty.Empty `protobuf:"bytes,4,opt,name=inferred,proto3,oneof"`
 }
 
 func (*PrivacyMetric_KMapEstimationConfig_TaggedField_InfoType) isPrivacyMetric_KMapEstimationConfig_TaggedField_Tag() {
@@ -3730,13 +4089,13 @@ func _PrivacyMetric_KMapEstimationConfig_TaggedField_OneofSizer(msg proto.Messag
 // tuple is highly reidentifiable).
 type PrivacyMetric_KMapEstimationConfig_AuxiliaryTable struct {
 	// Auxiliary table location. [required]
-	Table *BigQueryTable `protobuf:"bytes,3,opt,name=table" json:"table,omitempty"`
+	Table *BigQueryTable `protobuf:"bytes,3,opt,name=table,proto3" json:"table,omitempty"`
 	// Quasi-identifier columns. [required]
-	QuasiIds []*PrivacyMetric_KMapEstimationConfig_AuxiliaryTable_QuasiIdField `protobuf:"bytes,1,rep,name=quasi_ids,json=quasiIds" json:"quasi_ids,omitempty"`
+	QuasiIds []*PrivacyMetric_KMapEstimationConfig_AuxiliaryTable_QuasiIdField `protobuf:"bytes,1,rep,name=quasi_ids,json=quasiIds,proto3" json:"quasi_ids,omitempty"`
 	// The relative frequency column must contain a floating-point number
 	// between 0 and 1 (inclusive). Null values are assumed to be zero.
 	// [required]
-	RelativeFrequency    *FieldId `protobuf:"bytes,2,opt,name=relative_frequency,json=relativeFrequency" json:"relative_frequency,omitempty"`
+	RelativeFrequency    *FieldId `protobuf:"bytes,2,opt,name=relative_frequency,json=relativeFrequency,proto3" json:"relative_frequency,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -3750,7 +4109,7 @@ func (m *PrivacyMetric_KMapEstimationConfig_AuxiliaryTable) String() string {
 }
 func (*PrivacyMetric_KMapEstimationConfig_AuxiliaryTable) ProtoMessage() {}
 func (*PrivacyMetric_KMapEstimationConfig_AuxiliaryTable) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{30, 4, 1}
+	return fileDescriptor_dlp_536657b46c30097f, []int{32, 4, 1}
 }
 func (m *PrivacyMetric_KMapEstimationConfig_AuxiliaryTable) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PrivacyMetric_KMapEstimationConfig_AuxiliaryTable.Unmarshal(m, b)
@@ -3794,8 +4153,8 @@ func (m *PrivacyMetric_KMapEstimationConfig_AuxiliaryTable) GetRelativeFrequency
 // A quasi-identifier column has a custom_tag, used to know which column
 // in the data corresponds to which column in the statistical model.
 type PrivacyMetric_KMapEstimationConfig_AuxiliaryTable_QuasiIdField struct {
-	Field                *FieldId `protobuf:"bytes,1,opt,name=field" json:"field,omitempty"`
-	CustomTag            string   `protobuf:"bytes,2,opt,name=custom_tag,json=customTag" json:"custom_tag,omitempty"`
+	Field                *FieldId `protobuf:"bytes,1,opt,name=field,proto3" json:"field,omitempty"`
+	CustomTag            string   `protobuf:"bytes,2,opt,name=custom_tag,json=customTag,proto3" json:"custom_tag,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -3809,7 +4168,7 @@ func (m *PrivacyMetric_KMapEstimationConfig_AuxiliaryTable_QuasiIdField) String(
 }
 func (*PrivacyMetric_KMapEstimationConfig_AuxiliaryTable_QuasiIdField) ProtoMessage() {}
 func (*PrivacyMetric_KMapEstimationConfig_AuxiliaryTable_QuasiIdField) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{30, 4, 1, 0}
+	return fileDescriptor_dlp_536657b46c30097f, []int{32, 4, 1, 0}
 }
 func (m *PrivacyMetric_KMapEstimationConfig_AuxiliaryTable_QuasiIdField) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PrivacyMetric_KMapEstimationConfig_AuxiliaryTable_QuasiIdField.Unmarshal(m, b)
@@ -3843,12 +4202,82 @@ func (m *PrivacyMetric_KMapEstimationConfig_AuxiliaryTable_QuasiIdField) GetCust
 	return ""
 }
 
+// δ-presence metric, used to estimate how likely it is for an attacker to
+// figure out that one given individual appears in a de-identified dataset.
+// Similarly to the k-map metric, we cannot compute δ-presence exactly without
+// knowing the attack dataset, so we use a statistical model instead.
+type PrivacyMetric_DeltaPresenceEstimationConfig struct {
+	// Fields considered to be quasi-identifiers. No two fields can have the
+	// same tag. [required]
+	QuasiIds []*QuasiId `protobuf:"bytes,1,rep,name=quasi_ids,json=quasiIds,proto3" json:"quasi_ids,omitempty"`
+	// ISO 3166-1 alpha-2 region code to use in the statistical modeling.
+	// Required if no column is tagged with a region-specific InfoType (like
+	// US_ZIP_5) or a region code.
+	RegionCode string `protobuf:"bytes,2,opt,name=region_code,json=regionCode,proto3" json:"region_code,omitempty"`
+	// Several auxiliary tables can be used in the analysis. Each custom_tag
+	// used to tag a quasi-identifiers field must appear in exactly one
+	// field of one auxiliary table.
+	AuxiliaryTables      []*StatisticalTable `protobuf:"bytes,3,rep,name=auxiliary_tables,json=auxiliaryTables,proto3" json:"auxiliary_tables,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
+	XXX_unrecognized     []byte              `json:"-"`
+	XXX_sizecache        int32               `json:"-"`
+}
+
+func (m *PrivacyMetric_DeltaPresenceEstimationConfig) Reset() {
+	*m = PrivacyMetric_DeltaPresenceEstimationConfig{}
+}
+func (m *PrivacyMetric_DeltaPresenceEstimationConfig) String() string {
+	return proto.CompactTextString(m)
+}
+func (*PrivacyMetric_DeltaPresenceEstimationConfig) ProtoMessage() {}
+func (*PrivacyMetric_DeltaPresenceEstimationConfig) Descriptor() ([]byte, []int) {
+	return fileDescriptor_dlp_536657b46c30097f, []int{32, 5}
+}
+func (m *PrivacyMetric_DeltaPresenceEstimationConfig) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_PrivacyMetric_DeltaPresenceEstimationConfig.Unmarshal(m, b)
+}
+func (m *PrivacyMetric_DeltaPresenceEstimationConfig) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_PrivacyMetric_DeltaPresenceEstimationConfig.Marshal(b, m, deterministic)
+}
+func (dst *PrivacyMetric_DeltaPresenceEstimationConfig) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PrivacyMetric_DeltaPresenceEstimationConfig.Merge(dst, src)
+}
+func (m *PrivacyMetric_DeltaPresenceEstimationConfig) XXX_Size() int {
+	return xxx_messageInfo_PrivacyMetric_DeltaPresenceEstimationConfig.Size(m)
+}
+func (m *PrivacyMetric_DeltaPresenceEstimationConfig) XXX_DiscardUnknown() {
+	xxx_messageInfo_PrivacyMetric_DeltaPresenceEstimationConfig.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PrivacyMetric_DeltaPresenceEstimationConfig proto.InternalMessageInfo
+
+func (m *PrivacyMetric_DeltaPresenceEstimationConfig) GetQuasiIds() []*QuasiId {
+	if m != nil {
+		return m.QuasiIds
+	}
+	return nil
+}
+
+func (m *PrivacyMetric_DeltaPresenceEstimationConfig) GetRegionCode() string {
+	if m != nil {
+		return m.RegionCode
+	}
+	return ""
+}
+
+func (m *PrivacyMetric_DeltaPresenceEstimationConfig) GetAuxiliaryTables() []*StatisticalTable {
+	if m != nil {
+		return m.AuxiliaryTables
+	}
+	return nil
+}
+
 // Result of a risk analysis operation request.
 type AnalyzeDataSourceRiskDetails struct {
 	// Privacy metric to compute.
-	RequestedPrivacyMetric *PrivacyMetric `protobuf:"bytes,1,opt,name=requested_privacy_metric,json=requestedPrivacyMetric" json:"requested_privacy_metric,omitempty"`
+	RequestedPrivacyMetric *PrivacyMetric `protobuf:"bytes,1,opt,name=requested_privacy_metric,json=requestedPrivacyMetric,proto3" json:"requested_privacy_metric,omitempty"`
 	// Input dataset to compute metrics over.
-	RequestedSourceTable *BigQueryTable `protobuf:"bytes,2,opt,name=requested_source_table,json=requestedSourceTable" json:"requested_source_table,omitempty"`
+	RequestedSourceTable *BigQueryTable `protobuf:"bytes,2,opt,name=requested_source_table,json=requestedSourceTable,proto3" json:"requested_source_table,omitempty"`
 	// Values associated with this metric.
 	//
 	// Types that are valid to be assigned to Result:
@@ -3857,6 +4286,7 @@ type AnalyzeDataSourceRiskDetails struct {
 	//	*AnalyzeDataSourceRiskDetails_KAnonymityResult_
 	//	*AnalyzeDataSourceRiskDetails_LDiversityResult_
 	//	*AnalyzeDataSourceRiskDetails_KMapEstimationResult_
+	//	*AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_
 	Result               isAnalyzeDataSourceRiskDetails_Result `protobuf_oneof:"result"`
 	XXX_NoUnkeyedLiteral struct{}                              `json:"-"`
 	XXX_unrecognized     []byte                                `json:"-"`
@@ -3867,7 +4297,7 @@ func (m *AnalyzeDataSourceRiskDetails) Reset()         { *m = AnalyzeDataSourceR
 func (m *AnalyzeDataSourceRiskDetails) String() string { return proto.CompactTextString(m) }
 func (*AnalyzeDataSourceRiskDetails) ProtoMessage()    {}
 func (*AnalyzeDataSourceRiskDetails) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{31}
+	return fileDescriptor_dlp_536657b46c30097f, []int{33}
 }
 func (m *AnalyzeDataSourceRiskDetails) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AnalyzeDataSourceRiskDetails.Unmarshal(m, b)
@@ -3892,19 +4322,22 @@ type isAnalyzeDataSourceRiskDetails_Result interface {
 }
 
 type AnalyzeDataSourceRiskDetails_NumericalStatsResult_ struct {
-	NumericalStatsResult *AnalyzeDataSourceRiskDetails_NumericalStatsResult `protobuf:"bytes,3,opt,name=numerical_stats_result,json=numericalStatsResult,oneof"`
+	NumericalStatsResult *AnalyzeDataSourceRiskDetails_NumericalStatsResult `protobuf:"bytes,3,opt,name=numerical_stats_result,json=numericalStatsResult,proto3,oneof"`
 }
 type AnalyzeDataSourceRiskDetails_CategoricalStatsResult_ struct {
-	CategoricalStatsResult *AnalyzeDataSourceRiskDetails_CategoricalStatsResult `protobuf:"bytes,4,opt,name=categorical_stats_result,json=categoricalStatsResult,oneof"`
+	CategoricalStatsResult *AnalyzeDataSourceRiskDetails_CategoricalStatsResult `protobuf:"bytes,4,opt,name=categorical_stats_result,json=categoricalStatsResult,proto3,oneof"`
 }
 type AnalyzeDataSourceRiskDetails_KAnonymityResult_ struct {
-	KAnonymityResult *AnalyzeDataSourceRiskDetails_KAnonymityResult `protobuf:"bytes,5,opt,name=k_anonymity_result,json=kAnonymityResult,oneof"`
+	KAnonymityResult *AnalyzeDataSourceRiskDetails_KAnonymityResult `protobuf:"bytes,5,opt,name=k_anonymity_result,json=kAnonymityResult,proto3,oneof"`
 }
 type AnalyzeDataSourceRiskDetails_LDiversityResult_ struct {
-	LDiversityResult *AnalyzeDataSourceRiskDetails_LDiversityResult `protobuf:"bytes,6,opt,name=l_diversity_result,json=lDiversityResult,oneof"`
+	LDiversityResult *AnalyzeDataSourceRiskDetails_LDiversityResult `protobuf:"bytes,6,opt,name=l_diversity_result,json=lDiversityResult,proto3,oneof"`
 }
 type AnalyzeDataSourceRiskDetails_KMapEstimationResult_ struct {
-	KMapEstimationResult *AnalyzeDataSourceRiskDetails_KMapEstimationResult `protobuf:"bytes,7,opt,name=k_map_estimation_result,json=kMapEstimationResult,oneof"`
+	KMapEstimationResult *AnalyzeDataSourceRiskDetails_KMapEstimationResult `protobuf:"bytes,7,opt,name=k_map_estimation_result,json=kMapEstimationResult,proto3,oneof"`
+}
+type AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_ struct {
+	DeltaPresenceEstimationResult *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult `protobuf:"bytes,9,opt,name=delta_presence_estimation_result,json=deltaPresenceEstimationResult,proto3,oneof"`
 }
 
 func (*AnalyzeDataSourceRiskDetails_NumericalStatsResult_) isAnalyzeDataSourceRiskDetails_Result()   {}
@@ -3912,6 +4345,8 @@ func (*AnalyzeDataSourceRiskDetails_CategoricalStatsResult_) isAnalyzeDataSource
 func (*AnalyzeDataSourceRiskDetails_KAnonymityResult_) isAnalyzeDataSourceRiskDetails_Result()       {}
 func (*AnalyzeDataSourceRiskDetails_LDiversityResult_) isAnalyzeDataSourceRiskDetails_Result()       {}
 func (*AnalyzeDataSourceRiskDetails_KMapEstimationResult_) isAnalyzeDataSourceRiskDetails_Result()   {}
+func (*AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_) isAnalyzeDataSourceRiskDetails_Result() {
+}
 
 func (m *AnalyzeDataSourceRiskDetails) GetResult() isAnalyzeDataSourceRiskDetails_Result {
 	if m != nil {
@@ -3969,6 +4404,13 @@ func (m *AnalyzeDataSourceRiskDetails) GetKMapEstimationResult() *AnalyzeDataSou
 	return nil
 }
 
+func (m *AnalyzeDataSourceRiskDetails) GetDeltaPresenceEstimationResult() *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult {
+	if x, ok := m.GetResult().(*AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_); ok {
+		return x.DeltaPresenceEstimationResult
+	}
+	return nil
+}
+
 // XXX_OneofFuncs is for the internal use of the proto package.
 func (*AnalyzeDataSourceRiskDetails) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
 	return _AnalyzeDataSourceRiskDetails_OneofMarshaler, _AnalyzeDataSourceRiskDetails_OneofUnmarshaler, _AnalyzeDataSourceRiskDetails_OneofSizer, []interface{}{
@@ -3977,6 +4419,7 @@ func (*AnalyzeDataSourceRiskDetails) XXX_OneofFuncs() (func(msg proto.Message, b
 		(*AnalyzeDataSourceRiskDetails_KAnonymityResult_)(nil),
 		(*AnalyzeDataSourceRiskDetails_LDiversityResult_)(nil),
 		(*AnalyzeDataSourceRiskDetails_KMapEstimationResult_)(nil),
+		(*AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_)(nil),
 	}
 }
 
@@ -4007,6 +4450,11 @@ func _AnalyzeDataSourceRiskDetails_OneofMarshaler(msg proto.Message, b *proto.Bu
 	case *AnalyzeDataSourceRiskDetails_KMapEstimationResult_:
 		b.EncodeVarint(7<<3 | proto.WireBytes)
 		if err := b.EncodeMessage(x.KMapEstimationResult); err != nil {
+			return err
+		}
+	case *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_:
+		b.EncodeVarint(9<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.DeltaPresenceEstimationResult); err != nil {
 			return err
 		}
 	case nil:
@@ -4059,6 +4507,14 @@ func _AnalyzeDataSourceRiskDetails_OneofUnmarshaler(msg proto.Message, tag, wire
 		err := b.DecodeMessage(msg)
 		m.Result = &AnalyzeDataSourceRiskDetails_KMapEstimationResult_{msg}
 		return true, err
+	case 9: // result.delta_presence_estimation_result
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult)
+		err := b.DecodeMessage(msg)
+		m.Result = &AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_{msg}
+		return true, err
 	default:
 		return false, nil
 	}
@@ -4093,6 +4549,11 @@ func _AnalyzeDataSourceRiskDetails_OneofSizer(msg proto.Message) (n int) {
 		n += 1 // tag and wire
 		n += proto.SizeVarint(uint64(s))
 		n += s
+	case *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_:
+		s := proto.Size(x.DeltaPresenceEstimationResult)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
 	case nil:
 	default:
 		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
@@ -4103,12 +4564,12 @@ func _AnalyzeDataSourceRiskDetails_OneofSizer(msg proto.Message) (n int) {
 // Result of the numerical stats computation.
 type AnalyzeDataSourceRiskDetails_NumericalStatsResult struct {
 	// Minimum value appearing in the column.
-	MinValue *Value `protobuf:"bytes,1,opt,name=min_value,json=minValue" json:"min_value,omitempty"`
+	MinValue *Value `protobuf:"bytes,1,opt,name=min_value,json=minValue,proto3" json:"min_value,omitempty"`
 	// Maximum value appearing in the column.
-	MaxValue *Value `protobuf:"bytes,2,opt,name=max_value,json=maxValue" json:"max_value,omitempty"`
+	MaxValue *Value `protobuf:"bytes,2,opt,name=max_value,json=maxValue,proto3" json:"max_value,omitempty"`
 	// List of 99 values that partition the set of field values into 100 equal
 	// sized buckets.
-	QuantileValues       []*Value `protobuf:"bytes,4,rep,name=quantile_values,json=quantileValues" json:"quantile_values,omitempty"`
+	QuantileValues       []*Value `protobuf:"bytes,4,rep,name=quantile_values,json=quantileValues,proto3" json:"quantile_values,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -4122,7 +4583,7 @@ func (m *AnalyzeDataSourceRiskDetails_NumericalStatsResult) String() string {
 }
 func (*AnalyzeDataSourceRiskDetails_NumericalStatsResult) ProtoMessage() {}
 func (*AnalyzeDataSourceRiskDetails_NumericalStatsResult) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{31, 0}
+	return fileDescriptor_dlp_536657b46c30097f, []int{33, 0}
 }
 func (m *AnalyzeDataSourceRiskDetails_NumericalStatsResult) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AnalyzeDataSourceRiskDetails_NumericalStatsResult.Unmarshal(m, b)
@@ -4166,7 +4627,7 @@ func (m *AnalyzeDataSourceRiskDetails_NumericalStatsResult) GetQuantileValues() 
 // Result of the categorical stats computation.
 type AnalyzeDataSourceRiskDetails_CategoricalStatsResult struct {
 	// Histogram of value frequencies in the column.
-	ValueFrequencyHistogramBuckets []*AnalyzeDataSourceRiskDetails_CategoricalStatsResult_CategoricalStatsHistogramBucket `protobuf:"bytes,5,rep,name=value_frequency_histogram_buckets,json=valueFrequencyHistogramBuckets" json:"value_frequency_histogram_buckets,omitempty"`
+	ValueFrequencyHistogramBuckets []*AnalyzeDataSourceRiskDetails_CategoricalStatsResult_CategoricalStatsHistogramBucket `protobuf:"bytes,5,rep,name=value_frequency_histogram_buckets,json=valueFrequencyHistogramBuckets,proto3" json:"value_frequency_histogram_buckets,omitempty"`
 	XXX_NoUnkeyedLiteral           struct{}                                                                               `json:"-"`
 	XXX_unrecognized               []byte                                                                                 `json:"-"`
 	XXX_sizecache                  int32                                                                                  `json:"-"`
@@ -4180,7 +4641,7 @@ func (m *AnalyzeDataSourceRiskDetails_CategoricalStatsResult) String() string {
 }
 func (*AnalyzeDataSourceRiskDetails_CategoricalStatsResult) ProtoMessage() {}
 func (*AnalyzeDataSourceRiskDetails_CategoricalStatsResult) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{31, 1}
+	return fileDescriptor_dlp_536657b46c30097f, []int{33, 1}
 }
 func (m *AnalyzeDataSourceRiskDetails_CategoricalStatsResult) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AnalyzeDataSourceRiskDetails_CategoricalStatsResult.Unmarshal(m, b)
@@ -4209,16 +4670,16 @@ func (m *AnalyzeDataSourceRiskDetails_CategoricalStatsResult) GetValueFrequencyH
 
 type AnalyzeDataSourceRiskDetails_CategoricalStatsResult_CategoricalStatsHistogramBucket struct {
 	// Lower bound on the value frequency of the values in this bucket.
-	ValueFrequencyLowerBound int64 `protobuf:"varint,1,opt,name=value_frequency_lower_bound,json=valueFrequencyLowerBound" json:"value_frequency_lower_bound,omitempty"`
+	ValueFrequencyLowerBound int64 `protobuf:"varint,1,opt,name=value_frequency_lower_bound,json=valueFrequencyLowerBound,proto3" json:"value_frequency_lower_bound,omitempty"`
 	// Upper bound on the value frequency of the values in this bucket.
-	ValueFrequencyUpperBound int64 `protobuf:"varint,2,opt,name=value_frequency_upper_bound,json=valueFrequencyUpperBound" json:"value_frequency_upper_bound,omitempty"`
+	ValueFrequencyUpperBound int64 `protobuf:"varint,2,opt,name=value_frequency_upper_bound,json=valueFrequencyUpperBound,proto3" json:"value_frequency_upper_bound,omitempty"`
 	// Total number of values in this bucket.
-	BucketSize int64 `protobuf:"varint,3,opt,name=bucket_size,json=bucketSize" json:"bucket_size,omitempty"`
+	BucketSize int64 `protobuf:"varint,3,opt,name=bucket_size,json=bucketSize,proto3" json:"bucket_size,omitempty"`
 	// Sample of value frequencies in this bucket. The total number of
 	// values returned per bucket is capped at 20.
-	BucketValues []*ValueFrequency `protobuf:"bytes,4,rep,name=bucket_values,json=bucketValues" json:"bucket_values,omitempty"`
+	BucketValues []*ValueFrequency `protobuf:"bytes,4,rep,name=bucket_values,json=bucketValues,proto3" json:"bucket_values,omitempty"`
 	// Total number of distinct values in this bucket.
-	BucketValueCount     int64    `protobuf:"varint,5,opt,name=bucket_value_count,json=bucketValueCount" json:"bucket_value_count,omitempty"`
+	BucketValueCount     int64    `protobuf:"varint,5,opt,name=bucket_value_count,json=bucketValueCount,proto3" json:"bucket_value_count,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -4233,7 +4694,7 @@ func (m *AnalyzeDataSourceRiskDetails_CategoricalStatsResult_CategoricalStatsHis
 func (*AnalyzeDataSourceRiskDetails_CategoricalStatsResult_CategoricalStatsHistogramBucket) ProtoMessage() {
 }
 func (*AnalyzeDataSourceRiskDetails_CategoricalStatsResult_CategoricalStatsHistogramBucket) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{31, 1, 0}
+	return fileDescriptor_dlp_536657b46c30097f, []int{33, 1, 0}
 }
 func (m *AnalyzeDataSourceRiskDetails_CategoricalStatsResult_CategoricalStatsHistogramBucket) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AnalyzeDataSourceRiskDetails_CategoricalStatsResult_CategoricalStatsHistogramBucket.Unmarshal(m, b)
@@ -4291,7 +4752,7 @@ func (m *AnalyzeDataSourceRiskDetails_CategoricalStatsResult_CategoricalStatsHis
 // Result of the k-anonymity computation.
 type AnalyzeDataSourceRiskDetails_KAnonymityResult struct {
 	// Histogram of k-anonymity equivalence classes.
-	EquivalenceClassHistogramBuckets []*AnalyzeDataSourceRiskDetails_KAnonymityResult_KAnonymityHistogramBucket `protobuf:"bytes,5,rep,name=equivalence_class_histogram_buckets,json=equivalenceClassHistogramBuckets" json:"equivalence_class_histogram_buckets,omitempty"`
+	EquivalenceClassHistogramBuckets []*AnalyzeDataSourceRiskDetails_KAnonymityResult_KAnonymityHistogramBucket `protobuf:"bytes,5,rep,name=equivalence_class_histogram_buckets,json=equivalenceClassHistogramBuckets,proto3" json:"equivalence_class_histogram_buckets,omitempty"`
 	XXX_NoUnkeyedLiteral             struct{}                                                                   `json:"-"`
 	XXX_unrecognized                 []byte                                                                     `json:"-"`
 	XXX_sizecache                    int32                                                                      `json:"-"`
@@ -4305,7 +4766,7 @@ func (m *AnalyzeDataSourceRiskDetails_KAnonymityResult) String() string {
 }
 func (*AnalyzeDataSourceRiskDetails_KAnonymityResult) ProtoMessage() {}
 func (*AnalyzeDataSourceRiskDetails_KAnonymityResult) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{31, 2}
+	return fileDescriptor_dlp_536657b46c30097f, []int{33, 2}
 }
 func (m *AnalyzeDataSourceRiskDetails_KAnonymityResult) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AnalyzeDataSourceRiskDetails_KAnonymityResult.Unmarshal(m, b)
@@ -4337,10 +4798,10 @@ type AnalyzeDataSourceRiskDetails_KAnonymityResult_KAnonymityEquivalenceClass st
 	// Set of values defining the equivalence class. One value per
 	// quasi-identifier column in the original KAnonymity metric message.
 	// The order is always the same as the original request.
-	QuasiIdsValues []*Value `protobuf:"bytes,1,rep,name=quasi_ids_values,json=quasiIdsValues" json:"quasi_ids_values,omitempty"`
+	QuasiIdsValues []*Value `protobuf:"bytes,1,rep,name=quasi_ids_values,json=quasiIdsValues,proto3" json:"quasi_ids_values,omitempty"`
 	// Size of the equivalence class, for example number of rows with the
 	// above set of values.
-	EquivalenceClassSize int64    `protobuf:"varint,2,opt,name=equivalence_class_size,json=equivalenceClassSize" json:"equivalence_class_size,omitempty"`
+	EquivalenceClassSize int64    `protobuf:"varint,2,opt,name=equivalence_class_size,json=equivalenceClassSize,proto3" json:"equivalence_class_size,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -4354,7 +4815,7 @@ func (m *AnalyzeDataSourceRiskDetails_KAnonymityResult_KAnonymityEquivalenceClas
 }
 func (*AnalyzeDataSourceRiskDetails_KAnonymityResult_KAnonymityEquivalenceClass) ProtoMessage() {}
 func (*AnalyzeDataSourceRiskDetails_KAnonymityResult_KAnonymityEquivalenceClass) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{31, 2, 0}
+	return fileDescriptor_dlp_536657b46c30097f, []int{33, 2, 0}
 }
 func (m *AnalyzeDataSourceRiskDetails_KAnonymityResult_KAnonymityEquivalenceClass) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AnalyzeDataSourceRiskDetails_KAnonymityResult_KAnonymityEquivalenceClass.Unmarshal(m, b)
@@ -4390,16 +4851,16 @@ func (m *AnalyzeDataSourceRiskDetails_KAnonymityResult_KAnonymityEquivalenceClas
 
 type AnalyzeDataSourceRiskDetails_KAnonymityResult_KAnonymityHistogramBucket struct {
 	// Lower bound on the size of the equivalence classes in this bucket.
-	EquivalenceClassSizeLowerBound int64 `protobuf:"varint,1,opt,name=equivalence_class_size_lower_bound,json=equivalenceClassSizeLowerBound" json:"equivalence_class_size_lower_bound,omitempty"`
+	EquivalenceClassSizeLowerBound int64 `protobuf:"varint,1,opt,name=equivalence_class_size_lower_bound,json=equivalenceClassSizeLowerBound,proto3" json:"equivalence_class_size_lower_bound,omitempty"`
 	// Upper bound on the size of the equivalence classes in this bucket.
-	EquivalenceClassSizeUpperBound int64 `protobuf:"varint,2,opt,name=equivalence_class_size_upper_bound,json=equivalenceClassSizeUpperBound" json:"equivalence_class_size_upper_bound,omitempty"`
+	EquivalenceClassSizeUpperBound int64 `protobuf:"varint,2,opt,name=equivalence_class_size_upper_bound,json=equivalenceClassSizeUpperBound,proto3" json:"equivalence_class_size_upper_bound,omitempty"`
 	// Total number of equivalence classes in this bucket.
-	BucketSize int64 `protobuf:"varint,3,opt,name=bucket_size,json=bucketSize" json:"bucket_size,omitempty"`
+	BucketSize int64 `protobuf:"varint,3,opt,name=bucket_size,json=bucketSize,proto3" json:"bucket_size,omitempty"`
 	// Sample of equivalence classes in this bucket. The total number of
 	// classes returned per bucket is capped at 20.
-	BucketValues []*AnalyzeDataSourceRiskDetails_KAnonymityResult_KAnonymityEquivalenceClass `protobuf:"bytes,4,rep,name=bucket_values,json=bucketValues" json:"bucket_values,omitempty"`
+	BucketValues []*AnalyzeDataSourceRiskDetails_KAnonymityResult_KAnonymityEquivalenceClass `protobuf:"bytes,4,rep,name=bucket_values,json=bucketValues,proto3" json:"bucket_values,omitempty"`
 	// Total number of distinct equivalence classes in this bucket.
-	BucketValueCount     int64    `protobuf:"varint,5,opt,name=bucket_value_count,json=bucketValueCount" json:"bucket_value_count,omitempty"`
+	BucketValueCount     int64    `protobuf:"varint,5,opt,name=bucket_value_count,json=bucketValueCount,proto3" json:"bucket_value_count,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -4413,7 +4874,7 @@ func (m *AnalyzeDataSourceRiskDetails_KAnonymityResult_KAnonymityHistogramBucket
 }
 func (*AnalyzeDataSourceRiskDetails_KAnonymityResult_KAnonymityHistogramBucket) ProtoMessage() {}
 func (*AnalyzeDataSourceRiskDetails_KAnonymityResult_KAnonymityHistogramBucket) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{31, 2, 1}
+	return fileDescriptor_dlp_536657b46c30097f, []int{33, 2, 1}
 }
 func (m *AnalyzeDataSourceRiskDetails_KAnonymityResult_KAnonymityHistogramBucket) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AnalyzeDataSourceRiskDetails_KAnonymityResult_KAnonymityHistogramBucket.Unmarshal(m, b)
@@ -4471,7 +4932,7 @@ func (m *AnalyzeDataSourceRiskDetails_KAnonymityResult_KAnonymityHistogramBucket
 // Result of the l-diversity computation.
 type AnalyzeDataSourceRiskDetails_LDiversityResult struct {
 	// Histogram of l-diversity equivalence class sensitive value frequencies.
-	SensitiveValueFrequencyHistogramBuckets []*AnalyzeDataSourceRiskDetails_LDiversityResult_LDiversityHistogramBucket `protobuf:"bytes,5,rep,name=sensitive_value_frequency_histogram_buckets,json=sensitiveValueFrequencyHistogramBuckets" json:"sensitive_value_frequency_histogram_buckets,omitempty"`
+	SensitiveValueFrequencyHistogramBuckets []*AnalyzeDataSourceRiskDetails_LDiversityResult_LDiversityHistogramBucket `protobuf:"bytes,5,rep,name=sensitive_value_frequency_histogram_buckets,json=sensitiveValueFrequencyHistogramBuckets,proto3" json:"sensitive_value_frequency_histogram_buckets,omitempty"`
 	XXX_NoUnkeyedLiteral                    struct{}                                                                   `json:"-"`
 	XXX_unrecognized                        []byte                                                                     `json:"-"`
 	XXX_sizecache                           int32                                                                      `json:"-"`
@@ -4485,7 +4946,7 @@ func (m *AnalyzeDataSourceRiskDetails_LDiversityResult) String() string {
 }
 func (*AnalyzeDataSourceRiskDetails_LDiversityResult) ProtoMessage() {}
 func (*AnalyzeDataSourceRiskDetails_LDiversityResult) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{31, 3}
+	return fileDescriptor_dlp_536657b46c30097f, []int{33, 3}
 }
 func (m *AnalyzeDataSourceRiskDetails_LDiversityResult) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AnalyzeDataSourceRiskDetails_LDiversityResult.Unmarshal(m, b)
@@ -4516,13 +4977,13 @@ func (m *AnalyzeDataSourceRiskDetails_LDiversityResult) GetSensitiveValueFrequen
 type AnalyzeDataSourceRiskDetails_LDiversityResult_LDiversityEquivalenceClass struct {
 	// Quasi-identifier values defining the k-anonymity equivalence
 	// class. The order is always the same as the original request.
-	QuasiIdsValues []*Value `protobuf:"bytes,1,rep,name=quasi_ids_values,json=quasiIdsValues" json:"quasi_ids_values,omitempty"`
+	QuasiIdsValues []*Value `protobuf:"bytes,1,rep,name=quasi_ids_values,json=quasiIdsValues,proto3" json:"quasi_ids_values,omitempty"`
 	// Size of the k-anonymity equivalence class.
-	EquivalenceClassSize int64 `protobuf:"varint,2,opt,name=equivalence_class_size,json=equivalenceClassSize" json:"equivalence_class_size,omitempty"`
+	EquivalenceClassSize int64 `protobuf:"varint,2,opt,name=equivalence_class_size,json=equivalenceClassSize,proto3" json:"equivalence_class_size,omitempty"`
 	// Number of distinct sensitive values in this equivalence class.
-	NumDistinctSensitiveValues int64 `protobuf:"varint,3,opt,name=num_distinct_sensitive_values,json=numDistinctSensitiveValues" json:"num_distinct_sensitive_values,omitempty"`
+	NumDistinctSensitiveValues int64 `protobuf:"varint,3,opt,name=num_distinct_sensitive_values,json=numDistinctSensitiveValues,proto3" json:"num_distinct_sensitive_values,omitempty"`
 	// Estimated frequencies of top sensitive values.
-	TopSensitiveValues   []*ValueFrequency `protobuf:"bytes,4,rep,name=top_sensitive_values,json=topSensitiveValues" json:"top_sensitive_values,omitempty"`
+	TopSensitiveValues   []*ValueFrequency `protobuf:"bytes,4,rep,name=top_sensitive_values,json=topSensitiveValues,proto3" json:"top_sensitive_values,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -4536,7 +4997,7 @@ func (m *AnalyzeDataSourceRiskDetails_LDiversityResult_LDiversityEquivalenceClas
 }
 func (*AnalyzeDataSourceRiskDetails_LDiversityResult_LDiversityEquivalenceClass) ProtoMessage() {}
 func (*AnalyzeDataSourceRiskDetails_LDiversityResult_LDiversityEquivalenceClass) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{31, 3, 0}
+	return fileDescriptor_dlp_536657b46c30097f, []int{33, 3, 0}
 }
 func (m *AnalyzeDataSourceRiskDetails_LDiversityResult_LDiversityEquivalenceClass) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AnalyzeDataSourceRiskDetails_LDiversityResult_LDiversityEquivalenceClass.Unmarshal(m, b)
@@ -4587,17 +5048,17 @@ func (m *AnalyzeDataSourceRiskDetails_LDiversityResult_LDiversityEquivalenceClas
 type AnalyzeDataSourceRiskDetails_LDiversityResult_LDiversityHistogramBucket struct {
 	// Lower bound on the sensitive value frequencies of the equivalence
 	// classes in this bucket.
-	SensitiveValueFrequencyLowerBound int64 `protobuf:"varint,1,opt,name=sensitive_value_frequency_lower_bound,json=sensitiveValueFrequencyLowerBound" json:"sensitive_value_frequency_lower_bound,omitempty"`
+	SensitiveValueFrequencyLowerBound int64 `protobuf:"varint,1,opt,name=sensitive_value_frequency_lower_bound,json=sensitiveValueFrequencyLowerBound,proto3" json:"sensitive_value_frequency_lower_bound,omitempty"`
 	// Upper bound on the sensitive value frequencies of the equivalence
 	// classes in this bucket.
-	SensitiveValueFrequencyUpperBound int64 `protobuf:"varint,2,opt,name=sensitive_value_frequency_upper_bound,json=sensitiveValueFrequencyUpperBound" json:"sensitive_value_frequency_upper_bound,omitempty"`
+	SensitiveValueFrequencyUpperBound int64 `protobuf:"varint,2,opt,name=sensitive_value_frequency_upper_bound,json=sensitiveValueFrequencyUpperBound,proto3" json:"sensitive_value_frequency_upper_bound,omitempty"`
 	// Total number of equivalence classes in this bucket.
-	BucketSize int64 `protobuf:"varint,3,opt,name=bucket_size,json=bucketSize" json:"bucket_size,omitempty"`
+	BucketSize int64 `protobuf:"varint,3,opt,name=bucket_size,json=bucketSize,proto3" json:"bucket_size,omitempty"`
 	// Sample of equivalence classes in this bucket. The total number of
 	// classes returned per bucket is capped at 20.
-	BucketValues []*AnalyzeDataSourceRiskDetails_LDiversityResult_LDiversityEquivalenceClass `protobuf:"bytes,4,rep,name=bucket_values,json=bucketValues" json:"bucket_values,omitempty"`
+	BucketValues []*AnalyzeDataSourceRiskDetails_LDiversityResult_LDiversityEquivalenceClass `protobuf:"bytes,4,rep,name=bucket_values,json=bucketValues,proto3" json:"bucket_values,omitempty"`
 	// Total number of distinct equivalence classes in this bucket.
-	BucketValueCount     int64    `protobuf:"varint,5,opt,name=bucket_value_count,json=bucketValueCount" json:"bucket_value_count,omitempty"`
+	BucketValueCount     int64    `protobuf:"varint,5,opt,name=bucket_value_count,json=bucketValueCount,proto3" json:"bucket_value_count,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -4611,7 +5072,7 @@ func (m *AnalyzeDataSourceRiskDetails_LDiversityResult_LDiversityHistogramBucket
 }
 func (*AnalyzeDataSourceRiskDetails_LDiversityResult_LDiversityHistogramBucket) ProtoMessage() {}
 func (*AnalyzeDataSourceRiskDetails_LDiversityResult_LDiversityHistogramBucket) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{31, 3, 1}
+	return fileDescriptor_dlp_536657b46c30097f, []int{33, 3, 1}
 }
 func (m *AnalyzeDataSourceRiskDetails_LDiversityResult_LDiversityHistogramBucket) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AnalyzeDataSourceRiskDetails_LDiversityResult_LDiversityHistogramBucket.Unmarshal(m, b)
@@ -4677,7 +5138,7 @@ type AnalyzeDataSourceRiskDetails_KMapEstimationResult struct {
 	//   {min_anonymity: 5, max_anonymity: 10, frequency: 99}
 	// mean that there are no record with an estimated anonymity of 4, 5, or
 	// larger than 10.
-	KMapEstimationHistogram []*AnalyzeDataSourceRiskDetails_KMapEstimationResult_KMapEstimationHistogramBucket `protobuf:"bytes,1,rep,name=k_map_estimation_histogram,json=kMapEstimationHistogram" json:"k_map_estimation_histogram,omitempty"`
+	KMapEstimationHistogram []*AnalyzeDataSourceRiskDetails_KMapEstimationResult_KMapEstimationHistogramBucket `protobuf:"bytes,1,rep,name=k_map_estimation_histogram,json=kMapEstimationHistogram,proto3" json:"k_map_estimation_histogram,omitempty"`
 	XXX_NoUnkeyedLiteral    struct{}                                                                           `json:"-"`
 	XXX_unrecognized        []byte                                                                             `json:"-"`
 	XXX_sizecache           int32                                                                              `json:"-"`
@@ -4691,7 +5152,7 @@ func (m *AnalyzeDataSourceRiskDetails_KMapEstimationResult) String() string {
 }
 func (*AnalyzeDataSourceRiskDetails_KMapEstimationResult) ProtoMessage() {}
 func (*AnalyzeDataSourceRiskDetails_KMapEstimationResult) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{31, 4}
+	return fileDescriptor_dlp_536657b46c30097f, []int{33, 4}
 }
 func (m *AnalyzeDataSourceRiskDetails_KMapEstimationResult) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AnalyzeDataSourceRiskDetails_KMapEstimationResult.Unmarshal(m, b)
@@ -4721,9 +5182,9 @@ func (m *AnalyzeDataSourceRiskDetails_KMapEstimationResult) GetKMapEstimationHis
 // A tuple of values for the quasi-identifier columns.
 type AnalyzeDataSourceRiskDetails_KMapEstimationResult_KMapEstimationQuasiIdValues struct {
 	// The quasi-identifier values.
-	QuasiIdsValues []*Value `protobuf:"bytes,1,rep,name=quasi_ids_values,json=quasiIdsValues" json:"quasi_ids_values,omitempty"`
+	QuasiIdsValues []*Value `protobuf:"bytes,1,rep,name=quasi_ids_values,json=quasiIdsValues,proto3" json:"quasi_ids_values,omitempty"`
 	// The estimated anonymity for these quasi-identifier values.
-	EstimatedAnonymity   int64    `protobuf:"varint,2,opt,name=estimated_anonymity,json=estimatedAnonymity" json:"estimated_anonymity,omitempty"`
+	EstimatedAnonymity   int64    `protobuf:"varint,2,opt,name=estimated_anonymity,json=estimatedAnonymity,proto3" json:"estimated_anonymity,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -4737,7 +5198,7 @@ func (m *AnalyzeDataSourceRiskDetails_KMapEstimationResult_KMapEstimationQuasiId
 }
 func (*AnalyzeDataSourceRiskDetails_KMapEstimationResult_KMapEstimationQuasiIdValues) ProtoMessage() {}
 func (*AnalyzeDataSourceRiskDetails_KMapEstimationResult_KMapEstimationQuasiIdValues) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{31, 4, 0}
+	return fileDescriptor_dlp_536657b46c30097f, []int{33, 4, 0}
 }
 func (m *AnalyzeDataSourceRiskDetails_KMapEstimationResult_KMapEstimationQuasiIdValues) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AnalyzeDataSourceRiskDetails_KMapEstimationResult_KMapEstimationQuasiIdValues.Unmarshal(m, b)
@@ -4781,16 +5242,16 @@ func (m *AnalyzeDataSourceRiskDetails_KMapEstimationResult_KMapEstimationQuasiId
 // corresponds to the number of uniquely identifiable records.
 type AnalyzeDataSourceRiskDetails_KMapEstimationResult_KMapEstimationHistogramBucket struct {
 	// Always positive.
-	MinAnonymity int64 `protobuf:"varint,1,opt,name=min_anonymity,json=minAnonymity" json:"min_anonymity,omitempty"`
+	MinAnonymity int64 `protobuf:"varint,1,opt,name=min_anonymity,json=minAnonymity,proto3" json:"min_anonymity,omitempty"`
 	// Always greater than or equal to min_anonymity.
-	MaxAnonymity int64 `protobuf:"varint,2,opt,name=max_anonymity,json=maxAnonymity" json:"max_anonymity,omitempty"`
+	MaxAnonymity int64 `protobuf:"varint,2,opt,name=max_anonymity,json=maxAnonymity,proto3" json:"max_anonymity,omitempty"`
 	// Number of records within these anonymity bounds.
-	BucketSize int64 `protobuf:"varint,5,opt,name=bucket_size,json=bucketSize" json:"bucket_size,omitempty"`
+	BucketSize int64 `protobuf:"varint,5,opt,name=bucket_size,json=bucketSize,proto3" json:"bucket_size,omitempty"`
 	// Sample of quasi-identifier tuple values in this bucket. The total
 	// number of classes returned per bucket is capped at 20.
-	BucketValues []*AnalyzeDataSourceRiskDetails_KMapEstimationResult_KMapEstimationQuasiIdValues `protobuf:"bytes,6,rep,name=bucket_values,json=bucketValues" json:"bucket_values,omitempty"`
+	BucketValues []*AnalyzeDataSourceRiskDetails_KMapEstimationResult_KMapEstimationQuasiIdValues `protobuf:"bytes,6,rep,name=bucket_values,json=bucketValues,proto3" json:"bucket_values,omitempty"`
 	// Total number of distinct quasi-identifier tuple values in this bucket.
-	BucketValueCount     int64    `protobuf:"varint,7,opt,name=bucket_value_count,json=bucketValueCount" json:"bucket_value_count,omitempty"`
+	BucketValueCount     int64    `protobuf:"varint,7,opt,name=bucket_value_count,json=bucketValueCount,proto3" json:"bucket_value_count,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -4805,7 +5266,7 @@ func (m *AnalyzeDataSourceRiskDetails_KMapEstimationResult_KMapEstimationHistogr
 func (*AnalyzeDataSourceRiskDetails_KMapEstimationResult_KMapEstimationHistogramBucket) ProtoMessage() {
 }
 func (*AnalyzeDataSourceRiskDetails_KMapEstimationResult_KMapEstimationHistogramBucket) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{31, 4, 1}
+	return fileDescriptor_dlp_536657b46c30097f, []int{33, 4, 1}
 }
 func (m *AnalyzeDataSourceRiskDetails_KMapEstimationResult_KMapEstimationHistogramBucket) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AnalyzeDataSourceRiskDetails_KMapEstimationResult_KMapEstimationHistogramBucket.Unmarshal(m, b)
@@ -4860,12 +5321,215 @@ func (m *AnalyzeDataSourceRiskDetails_KMapEstimationResult_KMapEstimationHistogr
 	return 0
 }
 
+// Result of the δ-presence computation. Note that these results are an
+// estimation, not exact values.
+type AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult struct {
+	// The intervals [min_probability, max_probability) do not overlap. If a
+	// value doesn't correspond to any such interval, the associated frequency
+	// is zero. For example, the following records:
+	//   {min_probability: 0, max_probability: 0.1, frequency: 17}
+	//   {min_probability: 0.2, max_probability: 0.3, frequency: 42}
+	//   {min_probability: 0.3, max_probability: 0.4, frequency: 99}
+	// mean that there are no record with an estimated probability in [0.1, 0.2)
+	// nor larger or equal to 0.4.
+	DeltaPresenceEstimationHistogram []*AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationHistogramBucket `protobuf:"bytes,1,rep,name=delta_presence_estimation_histogram,json=deltaPresenceEstimationHistogram,proto3" json:"delta_presence_estimation_histogram,omitempty"`
+	XXX_NoUnkeyedLiteral             struct{}                                                                                             `json:"-"`
+	XXX_unrecognized                 []byte                                                                                               `json:"-"`
+	XXX_sizecache                    int32                                                                                                `json:"-"`
+}
+
+func (m *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult) Reset() {
+	*m = AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult{}
+}
+func (m *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult) String() string {
+	return proto.CompactTextString(m)
+}
+func (*AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult) ProtoMessage() {}
+func (*AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult) Descriptor() ([]byte, []int) {
+	return fileDescriptor_dlp_536657b46c30097f, []int{33, 5}
+}
+func (m *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult.Unmarshal(m, b)
+}
+func (m *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult.Marshal(b, m, deterministic)
+}
+func (dst *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult.Merge(dst, src)
+}
+func (m *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult) XXX_Size() int {
+	return xxx_messageInfo_AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult.Size(m)
+}
+func (m *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult) XXX_DiscardUnknown() {
+	xxx_messageInfo_AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult proto.InternalMessageInfo
+
+func (m *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult) GetDeltaPresenceEstimationHistogram() []*AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationHistogramBucket {
+	if m != nil {
+		return m.DeltaPresenceEstimationHistogram
+	}
+	return nil
+}
+
+// A tuple of values for the quasi-identifier columns.
+type AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationQuasiIdValues struct {
+	// The quasi-identifier values.
+	QuasiIdsValues []*Value `protobuf:"bytes,1,rep,name=quasi_ids_values,json=quasiIdsValues,proto3" json:"quasi_ids_values,omitempty"`
+	// The estimated probability that a given individual sharing these
+	// quasi-identifier values is in the dataset. This value, typically called
+	// δ, is the ratio between the number of records in the dataset with these
+	// quasi-identifier values, and the total number of individuals (inside
+	// *and* outside the dataset) with these quasi-identifier values.
+	// For example, if there are 15 individuals in the dataset who share the
+	// same quasi-identifier values, and an estimated 100 people in the entire
+	// population with these values, then δ is 0.15.
+	EstimatedProbability float64  `protobuf:"fixed64,2,opt,name=estimated_probability,json=estimatedProbability,proto3" json:"estimated_probability,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationQuasiIdValues) Reset() {
+	*m = AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationQuasiIdValues{}
+}
+func (m *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationQuasiIdValues) String() string {
+	return proto.CompactTextString(m)
+}
+func (*AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationQuasiIdValues) ProtoMessage() {
+}
+func (*AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationQuasiIdValues) Descriptor() ([]byte, []int) {
+	return fileDescriptor_dlp_536657b46c30097f, []int{33, 5, 0}
+}
+func (m *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationQuasiIdValues) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationQuasiIdValues.Unmarshal(m, b)
+}
+func (m *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationQuasiIdValues) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationQuasiIdValues.Marshal(b, m, deterministic)
+}
+func (dst *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationQuasiIdValues) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationQuasiIdValues.Merge(dst, src)
+}
+func (m *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationQuasiIdValues) XXX_Size() int {
+	return xxx_messageInfo_AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationQuasiIdValues.Size(m)
+}
+func (m *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationQuasiIdValues) XXX_DiscardUnknown() {
+	xxx_messageInfo_AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationQuasiIdValues.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationQuasiIdValues proto.InternalMessageInfo
+
+func (m *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationQuasiIdValues) GetQuasiIdsValues() []*Value {
+	if m != nil {
+		return m.QuasiIdsValues
+	}
+	return nil
+}
+
+func (m *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationQuasiIdValues) GetEstimatedProbability() float64 {
+	if m != nil {
+		return m.EstimatedProbability
+	}
+	return 0
+}
+
+// A DeltaPresenceEstimationHistogramBucket message with the following
+// values:
+//   min_probability: 0.1
+//   max_probability: 0.2
+//   frequency: 42
+// means that there are 42 records for which δ is in [0.1, 0.2). An
+// important particular case is when min_probability = max_probability = 1:
+// then, every individual who shares this quasi-identifier combination is in
+// the dataset.
+type AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationHistogramBucket struct {
+	// Between 0 and 1.
+	MinProbability float64 `protobuf:"fixed64,1,opt,name=min_probability,json=minProbability,proto3" json:"min_probability,omitempty"`
+	// Always greater than or equal to min_probability.
+	MaxProbability float64 `protobuf:"fixed64,2,opt,name=max_probability,json=maxProbability,proto3" json:"max_probability,omitempty"`
+	// Number of records within these probability bounds.
+	BucketSize int64 `protobuf:"varint,5,opt,name=bucket_size,json=bucketSize,proto3" json:"bucket_size,omitempty"`
+	// Sample of quasi-identifier tuple values in this bucket. The total
+	// number of classes returned per bucket is capped at 20.
+	BucketValues []*AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationQuasiIdValues `protobuf:"bytes,6,rep,name=bucket_values,json=bucketValues,proto3" json:"bucket_values,omitempty"`
+	// Total number of distinct quasi-identifier tuple values in this bucket.
+	BucketValueCount     int64    `protobuf:"varint,7,opt,name=bucket_value_count,json=bucketValueCount,proto3" json:"bucket_value_count,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationHistogramBucket) Reset() {
+	*m = AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationHistogramBucket{}
+}
+func (m *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationHistogramBucket) String() string {
+	return proto.CompactTextString(m)
+}
+func (*AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationHistogramBucket) ProtoMessage() {
+}
+func (*AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationHistogramBucket) Descriptor() ([]byte, []int) {
+	return fileDescriptor_dlp_536657b46c30097f, []int{33, 5, 1}
+}
+func (m *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationHistogramBucket) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationHistogramBucket.Unmarshal(m, b)
+}
+func (m *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationHistogramBucket) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationHistogramBucket.Marshal(b, m, deterministic)
+}
+func (dst *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationHistogramBucket) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationHistogramBucket.Merge(dst, src)
+}
+func (m *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationHistogramBucket) XXX_Size() int {
+	return xxx_messageInfo_AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationHistogramBucket.Size(m)
+}
+func (m *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationHistogramBucket) XXX_DiscardUnknown() {
+	xxx_messageInfo_AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationHistogramBucket.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationHistogramBucket proto.InternalMessageInfo
+
+func (m *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationHistogramBucket) GetMinProbability() float64 {
+	if m != nil {
+		return m.MinProbability
+	}
+	return 0
+}
+
+func (m *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationHistogramBucket) GetMaxProbability() float64 {
+	if m != nil {
+		return m.MaxProbability
+	}
+	return 0
+}
+
+func (m *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationHistogramBucket) GetBucketSize() int64 {
+	if m != nil {
+		return m.BucketSize
+	}
+	return 0
+}
+
+func (m *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationHistogramBucket) GetBucketValues() []*AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationQuasiIdValues {
+	if m != nil {
+		return m.BucketValues
+	}
+	return nil
+}
+
+func (m *AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationHistogramBucket) GetBucketValueCount() int64 {
+	if m != nil {
+		return m.BucketValueCount
+	}
+	return 0
+}
+
 // A value of a field, including its frequency.
 type ValueFrequency struct {
 	// A value contained in the field in question.
-	Value *Value `protobuf:"bytes,1,opt,name=value" json:"value,omitempty"`
+	Value *Value `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
 	// How many times the value is contained in the field.
-	Count                int64    `protobuf:"varint,2,opt,name=count" json:"count,omitempty"`
+	Count                int64    `protobuf:"varint,2,opt,name=count,proto3" json:"count,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -4875,7 +5539,7 @@ func (m *ValueFrequency) Reset()         { *m = ValueFrequency{} }
 func (m *ValueFrequency) String() string { return proto.CompactTextString(m) }
 func (*ValueFrequency) ProtoMessage()    {}
 func (*ValueFrequency) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{32}
+	return fileDescriptor_dlp_536657b46c30097f, []int{34}
 }
 func (m *ValueFrequency) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ValueFrequency.Unmarshal(m, b)
@@ -4935,7 +5599,7 @@ func (m *Value) Reset()         { *m = Value{} }
 func (m *Value) String() string { return proto.CompactTextString(m) }
 func (*Value) ProtoMessage()    {}
 func (*Value) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{33}
+	return fileDescriptor_dlp_536657b46c30097f, []int{35}
 }
 func (m *Value) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Value.Unmarshal(m, b)
@@ -4960,28 +5624,28 @@ type isValue_Type interface {
 }
 
 type Value_IntegerValue struct {
-	IntegerValue int64 `protobuf:"varint,1,opt,name=integer_value,json=integerValue,oneof"`
+	IntegerValue int64 `protobuf:"varint,1,opt,name=integer_value,json=integerValue,proto3,oneof"`
 }
 type Value_FloatValue struct {
-	FloatValue float64 `protobuf:"fixed64,2,opt,name=float_value,json=floatValue,oneof"`
+	FloatValue float64 `protobuf:"fixed64,2,opt,name=float_value,json=floatValue,proto3,oneof"`
 }
 type Value_StringValue struct {
-	StringValue string `protobuf:"bytes,3,opt,name=string_value,json=stringValue,oneof"`
+	StringValue string `protobuf:"bytes,3,opt,name=string_value,json=stringValue,proto3,oneof"`
 }
 type Value_BooleanValue struct {
-	BooleanValue bool `protobuf:"varint,4,opt,name=boolean_value,json=booleanValue,oneof"`
+	BooleanValue bool `protobuf:"varint,4,opt,name=boolean_value,json=booleanValue,proto3,oneof"`
 }
 type Value_TimestampValue struct {
-	TimestampValue *timestamp.Timestamp `protobuf:"bytes,5,opt,name=timestamp_value,json=timestampValue,oneof"`
+	TimestampValue *timestamp.Timestamp `protobuf:"bytes,5,opt,name=timestamp_value,json=timestampValue,proto3,oneof"`
 }
 type Value_TimeValue struct {
-	TimeValue *timeofday.TimeOfDay `protobuf:"bytes,6,opt,name=time_value,json=timeValue,oneof"`
+	TimeValue *timeofday.TimeOfDay `protobuf:"bytes,6,opt,name=time_value,json=timeValue,proto3,oneof"`
 }
 type Value_DateValue struct {
-	DateValue *date.Date `protobuf:"bytes,7,opt,name=date_value,json=dateValue,oneof"`
+	DateValue *date.Date `protobuf:"bytes,7,opt,name=date_value,json=dateValue,proto3,oneof"`
 }
 type Value_DayOfWeekValue struct {
-	DayOfWeekValue dayofweek.DayOfWeek `protobuf:"varint,8,opt,name=day_of_week_value,json=dayOfWeekValue,enum=google.type.DayOfWeek,oneof"`
+	DayOfWeekValue dayofweek.DayOfWeek `protobuf:"varint,8,opt,name=day_of_week_value,json=dayOfWeekValue,proto3,enum=google.type.DayOfWeek,oneof"`
 }
 
 func (*Value_IntegerValue) isValue_Type()   {}
@@ -5240,7 +5904,7 @@ func (m *QuoteInfo) Reset()         { *m = QuoteInfo{} }
 func (m *QuoteInfo) String() string { return proto.CompactTextString(m) }
 func (*QuoteInfo) ProtoMessage()    {}
 func (*QuoteInfo) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{34}
+	return fileDescriptor_dlp_536657b46c30097f, []int{36}
 }
 func (m *QuoteInfo) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_QuoteInfo.Unmarshal(m, b)
@@ -5265,7 +5929,7 @@ type isQuoteInfo_ParsedQuote interface {
 }
 
 type QuoteInfo_DateTime struct {
-	DateTime *DateTime `protobuf:"bytes,2,opt,name=date_time,json=dateTime,oneof"`
+	DateTime *DateTime `protobuf:"bytes,2,opt,name=date_time,json=dateTime,proto3,oneof"`
 }
 
 func (*QuoteInfo_DateTime) isQuoteInfo_ParsedQuote() {}
@@ -5343,10 +6007,10 @@ func _QuoteInfo_OneofSizer(msg proto.Message) (n int) {
 type DateTime struct {
 	// One or more of the following must be set. All fields are optional, but
 	// when set must be valid date or time values.
-	Date                 *date.Date           `protobuf:"bytes,1,opt,name=date" json:"date,omitempty"`
-	DayOfWeek            dayofweek.DayOfWeek  `protobuf:"varint,2,opt,name=day_of_week,json=dayOfWeek,enum=google.type.DayOfWeek" json:"day_of_week,omitempty"`
-	Time                 *timeofday.TimeOfDay `protobuf:"bytes,3,opt,name=time" json:"time,omitempty"`
-	TimeZone             *DateTime_TimeZone   `protobuf:"bytes,4,opt,name=time_zone,json=timeZone" json:"time_zone,omitempty"`
+	Date                 *date.Date           `protobuf:"bytes,1,opt,name=date,proto3" json:"date,omitempty"`
+	DayOfWeek            dayofweek.DayOfWeek  `protobuf:"varint,2,opt,name=day_of_week,json=dayOfWeek,proto3,enum=google.type.DayOfWeek" json:"day_of_week,omitempty"`
+	Time                 *timeofday.TimeOfDay `protobuf:"bytes,3,opt,name=time,proto3" json:"time,omitempty"`
+	TimeZone             *DateTime_TimeZone   `protobuf:"bytes,4,opt,name=time_zone,json=timeZone,proto3" json:"time_zone,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -5356,7 +6020,7 @@ func (m *DateTime) Reset()         { *m = DateTime{} }
 func (m *DateTime) String() string { return proto.CompactTextString(m) }
 func (*DateTime) ProtoMessage()    {}
 func (*DateTime) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{35}
+	return fileDescriptor_dlp_536657b46c30097f, []int{37}
 }
 func (m *DateTime) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DateTime.Unmarshal(m, b)
@@ -5407,7 +6071,7 @@ func (m *DateTime) GetTimeZone() *DateTime_TimeZone {
 type DateTime_TimeZone struct {
 	// Set only if the offset can be determined. Positive for time ahead of UTC.
 	// E.g. For "UTC-9", this value is -540.
-	OffsetMinutes        int32    `protobuf:"varint,1,opt,name=offset_minutes,json=offsetMinutes" json:"offset_minutes,omitempty"`
+	OffsetMinutes        int32    `protobuf:"varint,1,opt,name=offset_minutes,json=offsetMinutes,proto3" json:"offset_minutes,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -5417,7 +6081,7 @@ func (m *DateTime_TimeZone) Reset()         { *m = DateTime_TimeZone{} }
 func (m *DateTime_TimeZone) String() string { return proto.CompactTextString(m) }
 func (*DateTime_TimeZone) ProtoMessage()    {}
 func (*DateTime_TimeZone) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{35, 0}
+	return fileDescriptor_dlp_536657b46c30097f, []int{37, 0}
 }
 func (m *DateTime_TimeZone) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DateTime_TimeZone.Unmarshal(m, b)
@@ -5459,7 +6123,7 @@ func (m *DeidentifyConfig) Reset()         { *m = DeidentifyConfig{} }
 func (m *DeidentifyConfig) String() string { return proto.CompactTextString(m) }
 func (*DeidentifyConfig) ProtoMessage()    {}
 func (*DeidentifyConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{36}
+	return fileDescriptor_dlp_536657b46c30097f, []int{38}
 }
 func (m *DeidentifyConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeidentifyConfig.Unmarshal(m, b)
@@ -5484,10 +6148,10 @@ type isDeidentifyConfig_Transformation interface {
 }
 
 type DeidentifyConfig_InfoTypeTransformations struct {
-	InfoTypeTransformations *InfoTypeTransformations `protobuf:"bytes,1,opt,name=info_type_transformations,json=infoTypeTransformations,oneof"`
+	InfoTypeTransformations *InfoTypeTransformations `protobuf:"bytes,1,opt,name=info_type_transformations,json=infoTypeTransformations,proto3,oneof"`
 }
 type DeidentifyConfig_RecordTransformations struct {
-	RecordTransformations *RecordTransformations `protobuf:"bytes,2,opt,name=record_transformations,json=recordTransformations,oneof"`
+	RecordTransformations *RecordTransformations `protobuf:"bytes,2,opt,name=record_transformations,json=recordTransformations,proto3,oneof"`
 }
 
 func (*DeidentifyConfig_InfoTypeTransformations) isDeidentifyConfig_Transformation() {}
@@ -5611,7 +6275,7 @@ func (m *PrimitiveTransformation) Reset()         { *m = PrimitiveTransformation
 func (m *PrimitiveTransformation) String() string { return proto.CompactTextString(m) }
 func (*PrimitiveTransformation) ProtoMessage()    {}
 func (*PrimitiveTransformation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{37}
+	return fileDescriptor_dlp_536657b46c30097f, []int{39}
 }
 func (m *PrimitiveTransformation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PrimitiveTransformation.Unmarshal(m, b)
@@ -5636,34 +6300,34 @@ type isPrimitiveTransformation_Transformation interface {
 }
 
 type PrimitiveTransformation_ReplaceConfig struct {
-	ReplaceConfig *ReplaceValueConfig `protobuf:"bytes,1,opt,name=replace_config,json=replaceConfig,oneof"`
+	ReplaceConfig *ReplaceValueConfig `protobuf:"bytes,1,opt,name=replace_config,json=replaceConfig,proto3,oneof"`
 }
 type PrimitiveTransformation_RedactConfig struct {
-	RedactConfig *RedactConfig `protobuf:"bytes,2,opt,name=redact_config,json=redactConfig,oneof"`
+	RedactConfig *RedactConfig `protobuf:"bytes,2,opt,name=redact_config,json=redactConfig,proto3,oneof"`
 }
 type PrimitiveTransformation_CharacterMaskConfig struct {
-	CharacterMaskConfig *CharacterMaskConfig `protobuf:"bytes,3,opt,name=character_mask_config,json=characterMaskConfig,oneof"`
+	CharacterMaskConfig *CharacterMaskConfig `protobuf:"bytes,3,opt,name=character_mask_config,json=characterMaskConfig,proto3,oneof"`
 }
 type PrimitiveTransformation_CryptoReplaceFfxFpeConfig struct {
-	CryptoReplaceFfxFpeConfig *CryptoReplaceFfxFpeConfig `protobuf:"bytes,4,opt,name=crypto_replace_ffx_fpe_config,json=cryptoReplaceFfxFpeConfig,oneof"`
+	CryptoReplaceFfxFpeConfig *CryptoReplaceFfxFpeConfig `protobuf:"bytes,4,opt,name=crypto_replace_ffx_fpe_config,json=cryptoReplaceFfxFpeConfig,proto3,oneof"`
 }
 type PrimitiveTransformation_FixedSizeBucketingConfig struct {
-	FixedSizeBucketingConfig *FixedSizeBucketingConfig `protobuf:"bytes,5,opt,name=fixed_size_bucketing_config,json=fixedSizeBucketingConfig,oneof"`
+	FixedSizeBucketingConfig *FixedSizeBucketingConfig `protobuf:"bytes,5,opt,name=fixed_size_bucketing_config,json=fixedSizeBucketingConfig,proto3,oneof"`
 }
 type PrimitiveTransformation_BucketingConfig struct {
-	BucketingConfig *BucketingConfig `protobuf:"bytes,6,opt,name=bucketing_config,json=bucketingConfig,oneof"`
+	BucketingConfig *BucketingConfig `protobuf:"bytes,6,opt,name=bucketing_config,json=bucketingConfig,proto3,oneof"`
 }
 type PrimitiveTransformation_ReplaceWithInfoTypeConfig struct {
-	ReplaceWithInfoTypeConfig *ReplaceWithInfoTypeConfig `protobuf:"bytes,7,opt,name=replace_with_info_type_config,json=replaceWithInfoTypeConfig,oneof"`
+	ReplaceWithInfoTypeConfig *ReplaceWithInfoTypeConfig `protobuf:"bytes,7,opt,name=replace_with_info_type_config,json=replaceWithInfoTypeConfig,proto3,oneof"`
 }
 type PrimitiveTransformation_TimePartConfig struct {
-	TimePartConfig *TimePartConfig `protobuf:"bytes,8,opt,name=time_part_config,json=timePartConfig,oneof"`
+	TimePartConfig *TimePartConfig `protobuf:"bytes,8,opt,name=time_part_config,json=timePartConfig,proto3,oneof"`
 }
 type PrimitiveTransformation_CryptoHashConfig struct {
-	CryptoHashConfig *CryptoHashConfig `protobuf:"bytes,9,opt,name=crypto_hash_config,json=cryptoHashConfig,oneof"`
+	CryptoHashConfig *CryptoHashConfig `protobuf:"bytes,9,opt,name=crypto_hash_config,json=cryptoHashConfig,proto3,oneof"`
 }
 type PrimitiveTransformation_DateShiftConfig struct {
-	DateShiftConfig *DateShiftConfig `protobuf:"bytes,11,opt,name=date_shift_config,json=dateShiftConfig,oneof"`
+	DateShiftConfig *DateShiftConfig `protobuf:"bytes,11,opt,name=date_shift_config,json=dateShiftConfig,proto3,oneof"`
 }
 
 func (*PrimitiveTransformation_ReplaceConfig) isPrimitiveTransformation_Transformation()             {}
@@ -5983,7 +6647,7 @@ func _PrimitiveTransformation_OneofSizer(msg proto.Message) (n int) {
 // For use with `Date`, `Timestamp`, and `TimeOfDay`, extract or preserve a
 // portion of the value.
 type TimePartConfig struct {
-	PartToExtract        TimePartConfig_TimePart `protobuf:"varint,1,opt,name=part_to_extract,json=partToExtract,enum=google.privacy.dlp.v2.TimePartConfig_TimePart" json:"part_to_extract,omitempty"`
+	PartToExtract        TimePartConfig_TimePart `protobuf:"varint,1,opt,name=part_to_extract,json=partToExtract,proto3,enum=google.privacy.dlp.v2.TimePartConfig_TimePart" json:"part_to_extract,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                `json:"-"`
 	XXX_unrecognized     []byte                  `json:"-"`
 	XXX_sizecache        int32                   `json:"-"`
@@ -5993,7 +6657,7 @@ func (m *TimePartConfig) Reset()         { *m = TimePartConfig{} }
 func (m *TimePartConfig) String() string { return proto.CompactTextString(m) }
 func (*TimePartConfig) ProtoMessage()    {}
 func (*TimePartConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{38}
+	return fileDescriptor_dlp_536657b46c30097f, []int{40}
 }
 func (m *TimePartConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_TimePartConfig.Unmarshal(m, b)
@@ -6028,7 +6692,7 @@ func (m *TimePartConfig) GetPartToExtract() TimePartConfig_TimePart {
 // Currently, only string and integer values can be hashed.
 type CryptoHashConfig struct {
 	// The key used by the hash function.
-	CryptoKey            *CryptoKey `protobuf:"bytes,1,opt,name=crypto_key,json=cryptoKey" json:"crypto_key,omitempty"`
+	CryptoKey            *CryptoKey `protobuf:"bytes,1,opt,name=crypto_key,json=cryptoKey,proto3" json:"crypto_key,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
 	XXX_unrecognized     []byte     `json:"-"`
 	XXX_sizecache        int32      `json:"-"`
@@ -6038,7 +6702,7 @@ func (m *CryptoHashConfig) Reset()         { *m = CryptoHashConfig{} }
 func (m *CryptoHashConfig) String() string { return proto.CompactTextString(m) }
 func (*CryptoHashConfig) ProtoMessage()    {}
 func (*CryptoHashConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{39}
+	return fileDescriptor_dlp_536657b46c30097f, []int{41}
 }
 func (m *CryptoHashConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CryptoHashConfig.Unmarshal(m, b)
@@ -6068,7 +6732,7 @@ func (m *CryptoHashConfig) GetCryptoKey() *CryptoKey {
 // Replace each input value with a given `Value`.
 type ReplaceValueConfig struct {
 	// Value to replace it with.
-	NewValue             *Value   `protobuf:"bytes,1,opt,name=new_value,json=newValue" json:"new_value,omitempty"`
+	NewValue             *Value   `protobuf:"bytes,1,opt,name=new_value,json=newValue,proto3" json:"new_value,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -6078,7 +6742,7 @@ func (m *ReplaceValueConfig) Reset()         { *m = ReplaceValueConfig{} }
 func (m *ReplaceValueConfig) String() string { return proto.CompactTextString(m) }
 func (*ReplaceValueConfig) ProtoMessage()    {}
 func (*ReplaceValueConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{40}
+	return fileDescriptor_dlp_536657b46c30097f, []int{42}
 }
 func (m *ReplaceValueConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReplaceValueConfig.Unmarshal(m, b)
@@ -6116,7 +6780,7 @@ func (m *ReplaceWithInfoTypeConfig) Reset()         { *m = ReplaceWithInfoTypeCo
 func (m *ReplaceWithInfoTypeConfig) String() string { return proto.CompactTextString(m) }
 func (*ReplaceWithInfoTypeConfig) ProtoMessage()    {}
 func (*ReplaceWithInfoTypeConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{41}
+	return fileDescriptor_dlp_536657b46c30097f, []int{43}
 }
 func (m *ReplaceWithInfoTypeConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReplaceWithInfoTypeConfig.Unmarshal(m, b)
@@ -6149,7 +6813,7 @@ func (m *RedactConfig) Reset()         { *m = RedactConfig{} }
 func (m *RedactConfig) String() string { return proto.CompactTextString(m) }
 func (*RedactConfig) ProtoMessage()    {}
 func (*RedactConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{42}
+	return fileDescriptor_dlp_536657b46c30097f, []int{44}
 }
 func (m *RedactConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RedactConfig.Unmarshal(m, b)
@@ -6185,7 +6849,7 @@ func (m *CharsToIgnore) Reset()         { *m = CharsToIgnore{} }
 func (m *CharsToIgnore) String() string { return proto.CompactTextString(m) }
 func (*CharsToIgnore) ProtoMessage()    {}
 func (*CharsToIgnore) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{43}
+	return fileDescriptor_dlp_536657b46c30097f, []int{45}
 }
 func (m *CharsToIgnore) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CharsToIgnore.Unmarshal(m, b)
@@ -6210,10 +6874,10 @@ type isCharsToIgnore_Characters interface {
 }
 
 type CharsToIgnore_CharactersToSkip struct {
-	CharactersToSkip string `protobuf:"bytes,1,opt,name=characters_to_skip,json=charactersToSkip,oneof"`
+	CharactersToSkip string `protobuf:"bytes,1,opt,name=characters_to_skip,json=charactersToSkip,proto3,oneof"`
 }
 type CharsToIgnore_CommonCharactersToIgnore struct {
-	CommonCharactersToIgnore CharsToIgnore_CommonCharsToIgnore `protobuf:"varint,2,opt,name=common_characters_to_ignore,json=commonCharactersToIgnore,enum=google.privacy.dlp.v2.CharsToIgnore_CommonCharsToIgnore,oneof"`
+	CommonCharactersToIgnore CharsToIgnore_CommonCharsToIgnore `protobuf:"varint,2,opt,name=common_characters_to_ignore,json=commonCharactersToIgnore,proto3,enum=google.privacy.dlp.v2.CharsToIgnore_CommonCharsToIgnore,oneof"`
 }
 
 func (*CharsToIgnore_CharactersToSkip) isCharsToIgnore_Characters()         {}
@@ -6316,20 +6980,20 @@ type CharacterMaskConfig struct {
 	// alphabetic string such as name, or "0" for a numeric string such as ZIP
 	// code or credit card number. String must have length 1. If not supplied, we
 	// will default to "*" for strings, 0 for digits.
-	MaskingCharacter string `protobuf:"bytes,1,opt,name=masking_character,json=maskingCharacter" json:"masking_character,omitempty"`
+	MaskingCharacter string `protobuf:"bytes,1,opt,name=masking_character,json=maskingCharacter,proto3" json:"masking_character,omitempty"`
 	// Number of characters to mask. If not set, all matching chars will be
 	// masked. Skipped characters do not count towards this tally.
-	NumberToMask int32 `protobuf:"varint,2,opt,name=number_to_mask,json=numberToMask" json:"number_to_mask,omitempty"`
+	NumberToMask int32 `protobuf:"varint,2,opt,name=number_to_mask,json=numberToMask,proto3" json:"number_to_mask,omitempty"`
 	// Mask characters in reverse order. For example, if `masking_character` is
 	// '0', number_to_mask is 14, and `reverse_order` is false, then
 	// 1234-5678-9012-3456 -> 00000000000000-3456
 	// If `masking_character` is '*', `number_to_mask` is 3, and `reverse_order`
 	// is true, then 12345 -> 12***
-	ReverseOrder bool `protobuf:"varint,3,opt,name=reverse_order,json=reverseOrder" json:"reverse_order,omitempty"`
+	ReverseOrder bool `protobuf:"varint,3,opt,name=reverse_order,json=reverseOrder,proto3" json:"reverse_order,omitempty"`
 	// When masking a string, items in this list will be skipped when replacing.
 	// For example, if your string is 555-555-5555 and you ask us to skip `-` and
 	// mask 5 chars with * we would produce ***-*55-5555.
-	CharactersToIgnore   []*CharsToIgnore `protobuf:"bytes,4,rep,name=characters_to_ignore,json=charactersToIgnore" json:"characters_to_ignore,omitempty"`
+	CharactersToIgnore   []*CharsToIgnore `protobuf:"bytes,4,rep,name=characters_to_ignore,json=charactersToIgnore,proto3" json:"characters_to_ignore,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
 	XXX_unrecognized     []byte           `json:"-"`
 	XXX_sizecache        int32            `json:"-"`
@@ -6339,7 +7003,7 @@ func (m *CharacterMaskConfig) Reset()         { *m = CharacterMaskConfig{} }
 func (m *CharacterMaskConfig) String() string { return proto.CompactTextString(m) }
 func (*CharacterMaskConfig) ProtoMessage()    {}
 func (*CharacterMaskConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{44}
+	return fileDescriptor_dlp_536657b46c30097f, []int{46}
 }
 func (m *CharacterMaskConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CharacterMaskConfig.Unmarshal(m, b)
@@ -6401,21 +7065,23 @@ func (m *CharacterMaskConfig) GetCharactersToIgnore() []*CharsToIgnore {
 // If the bound Value type differs from the type of data
 // being transformed, we will first attempt converting the type of the data to
 // be transformed to match the type of the bound before comparing.
+//
+// See https://cloud.google.com/dlp/docs/concepts-bucketing to learn more.
 type FixedSizeBucketingConfig struct {
 	// Lower bound value of buckets. All values less than `lower_bound` are
 	// grouped together into a single bucket; for example if `lower_bound` = 10,
 	// then all values less than 10 are replaced with the value “-10”. [Required].
-	LowerBound *Value `protobuf:"bytes,1,opt,name=lower_bound,json=lowerBound" json:"lower_bound,omitempty"`
+	LowerBound *Value `protobuf:"bytes,1,opt,name=lower_bound,json=lowerBound,proto3" json:"lower_bound,omitempty"`
 	// Upper bound value of buckets. All values greater than upper_bound are
 	// grouped together into a single bucket; for example if `upper_bound` = 89,
 	// then all values greater than 89 are replaced with the value “89+”.
 	// [Required].
-	UpperBound *Value `protobuf:"bytes,2,opt,name=upper_bound,json=upperBound" json:"upper_bound,omitempty"`
+	UpperBound *Value `protobuf:"bytes,2,opt,name=upper_bound,json=upperBound,proto3" json:"upper_bound,omitempty"`
 	// Size of each bucket (except for minimum and maximum buckets). So if
 	// `lower_bound` = 10, `upper_bound` = 89, and `bucket_size` = 10, then the
 	// following buckets would be used: -10, 10-20, 20-30, 30-40, 40-50, 50-60,
 	// 60-70, 70-80, 80-89, 89+. Precision up to 2 decimals works. [Required].
-	BucketSize           float64  `protobuf:"fixed64,3,opt,name=bucket_size,json=bucketSize" json:"bucket_size,omitempty"`
+	BucketSize           float64  `protobuf:"fixed64,3,opt,name=bucket_size,json=bucketSize,proto3" json:"bucket_size,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -6425,7 +7091,7 @@ func (m *FixedSizeBucketingConfig) Reset()         { *m = FixedSizeBucketingConf
 func (m *FixedSizeBucketingConfig) String() string { return proto.CompactTextString(m) }
 func (*FixedSizeBucketingConfig) ProtoMessage()    {}
 func (*FixedSizeBucketingConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{45}
+	return fileDescriptor_dlp_536657b46c30097f, []int{47}
 }
 func (m *FixedSizeBucketingConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_FixedSizeBucketingConfig.Unmarshal(m, b)
@@ -6474,9 +7140,10 @@ func (m *FixedSizeBucketingConfig) GetBucketSize() float64 {
 // If the bound `Value` type differs from the type of data being transformed, we
 // will first attempt converting the type of the data to be transformed to match
 // the type of the bound before comparing.
+// See https://cloud.google.com/dlp/docs/concepts-bucketing to learn more.
 type BucketingConfig struct {
 	// Set of buckets. Ranges must be non-overlapping.
-	Buckets              []*BucketingConfig_Bucket `protobuf:"bytes,1,rep,name=buckets" json:"buckets,omitempty"`
+	Buckets              []*BucketingConfig_Bucket `protobuf:"bytes,1,rep,name=buckets,proto3" json:"buckets,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                  `json:"-"`
 	XXX_unrecognized     []byte                    `json:"-"`
 	XXX_sizecache        int32                     `json:"-"`
@@ -6486,7 +7153,7 @@ func (m *BucketingConfig) Reset()         { *m = BucketingConfig{} }
 func (m *BucketingConfig) String() string { return proto.CompactTextString(m) }
 func (*BucketingConfig) ProtoMessage()    {}
 func (*BucketingConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{46}
+	return fileDescriptor_dlp_536657b46c30097f, []int{48}
 }
 func (m *BucketingConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BucketingConfig.Unmarshal(m, b)
@@ -6517,12 +7184,12 @@ func (m *BucketingConfig) GetBuckets() []*BucketingConfig_Bucket {
 type BucketingConfig_Bucket struct {
 	// Lower bound of the range, inclusive. Type should be the same as max if
 	// used.
-	Min *Value `protobuf:"bytes,1,opt,name=min" json:"min,omitempty"`
+	Min *Value `protobuf:"bytes,1,opt,name=min,proto3" json:"min,omitempty"`
 	// Upper bound of the range, exclusive; type must match min.
-	Max *Value `protobuf:"bytes,2,opt,name=max" json:"max,omitempty"`
+	Max *Value `protobuf:"bytes,2,opt,name=max,proto3" json:"max,omitempty"`
 	// Replacement value for this bucket. If not provided
 	// the default behavior will be to hyphenate the min-max range.
-	ReplacementValue     *Value   `protobuf:"bytes,3,opt,name=replacement_value,json=replacementValue" json:"replacement_value,omitempty"`
+	ReplacementValue     *Value   `protobuf:"bytes,3,opt,name=replacement_value,json=replacementValue,proto3" json:"replacement_value,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -6532,7 +7199,7 @@ func (m *BucketingConfig_Bucket) Reset()         { *m = BucketingConfig_Bucket{}
 func (m *BucketingConfig_Bucket) String() string { return proto.CompactTextString(m) }
 func (*BucketingConfig_Bucket) ProtoMessage()    {}
 func (*BucketingConfig_Bucket) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{46, 0}
+	return fileDescriptor_dlp_536657b46c30097f, []int{48, 0}
 }
 func (m *BucketingConfig_Bucket) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BucketingConfig_Bucket.Unmarshal(m, b)
@@ -6582,10 +7249,10 @@ func (m *BucketingConfig_Bucket) GetReplacementValue() *Value {
 // replaced with the same surrogate.
 // Identifiers must be at least two characters long.
 // In the case that the identifier is the empty string, it will be skipped.
-// See [Pseudonymization](/dlp/docs/pseudonymization) for example usage.
+// See https://cloud.google.com/dlp/docs/pseudonymization to learn more.
 type CryptoReplaceFfxFpeConfig struct {
 	// The key used by the encryption algorithm. [required]
-	CryptoKey *CryptoKey `protobuf:"bytes,1,opt,name=crypto_key,json=cryptoKey" json:"crypto_key,omitempty"`
+	CryptoKey *CryptoKey `protobuf:"bytes,1,opt,name=crypto_key,json=cryptoKey,proto3" json:"crypto_key,omitempty"`
 	// The 'tweak', a context may be used for higher security since the same
 	// identifier in two different contexts won't be given the same surrogate. If
 	// the context is not set, a default tweak will be used.
@@ -6605,9 +7272,8 @@ type CryptoReplaceFfxFpeConfig struct {
 	// such that:
 	//
 	// - a 64 bit integer is encoded followed by a single byte of value 1
-	// - a string is encoded in UTF-8 format followed by a single byte of value
-	//  å 2
-	Context *FieldId `protobuf:"bytes,2,opt,name=context" json:"context,omitempty"`
+	// - a string is encoded in UTF-8 format followed by a single byte of value 2
+	Context *FieldId `protobuf:"bytes,2,opt,name=context,proto3" json:"context,omitempty"`
 	// Types that are valid to be assigned to Alphabet:
 	//	*CryptoReplaceFfxFpeConfig_CommonAlphabet
 	//	*CryptoReplaceFfxFpeConfig_CustomAlphabet
@@ -6638,7 +7304,7 @@ type CryptoReplaceFfxFpeConfig struct {
 	// For example, assuming your data is entered from a regular ASCII keyboard,
 	// the symbol with the hex code point 29DD might be used like so:
 	// ⧝MY_TOKEN_TYPE
-	SurrogateInfoType    *InfoType `protobuf:"bytes,8,opt,name=surrogate_info_type,json=surrogateInfoType" json:"surrogate_info_type,omitempty"`
+	SurrogateInfoType    *InfoType `protobuf:"bytes,8,opt,name=surrogate_info_type,json=surrogateInfoType,proto3" json:"surrogate_info_type,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -6648,7 +7314,7 @@ func (m *CryptoReplaceFfxFpeConfig) Reset()         { *m = CryptoReplaceFfxFpeCo
 func (m *CryptoReplaceFfxFpeConfig) String() string { return proto.CompactTextString(m) }
 func (*CryptoReplaceFfxFpeConfig) ProtoMessage()    {}
 func (*CryptoReplaceFfxFpeConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{47}
+	return fileDescriptor_dlp_536657b46c30097f, []int{49}
 }
 func (m *CryptoReplaceFfxFpeConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CryptoReplaceFfxFpeConfig.Unmarshal(m, b)
@@ -6673,13 +7339,13 @@ type isCryptoReplaceFfxFpeConfig_Alphabet interface {
 }
 
 type CryptoReplaceFfxFpeConfig_CommonAlphabet struct {
-	CommonAlphabet CryptoReplaceFfxFpeConfig_FfxCommonNativeAlphabet `protobuf:"varint,4,opt,name=common_alphabet,json=commonAlphabet,enum=google.privacy.dlp.v2.CryptoReplaceFfxFpeConfig_FfxCommonNativeAlphabet,oneof"`
+	CommonAlphabet CryptoReplaceFfxFpeConfig_FfxCommonNativeAlphabet `protobuf:"varint,4,opt,name=common_alphabet,json=commonAlphabet,proto3,enum=google.privacy.dlp.v2.CryptoReplaceFfxFpeConfig_FfxCommonNativeAlphabet,oneof"`
 }
 type CryptoReplaceFfxFpeConfig_CustomAlphabet struct {
-	CustomAlphabet string `protobuf:"bytes,5,opt,name=custom_alphabet,json=customAlphabet,oneof"`
+	CustomAlphabet string `protobuf:"bytes,5,opt,name=custom_alphabet,json=customAlphabet,proto3,oneof"`
 }
 type CryptoReplaceFfxFpeConfig_Radix struct {
-	Radix int32 `protobuf:"varint,6,opt,name=radix,oneof"`
+	Radix int32 `protobuf:"varint,6,opt,name=radix,proto3,oneof"`
 }
 
 func (*CryptoReplaceFfxFpeConfig_CommonAlphabet) isCryptoReplaceFfxFpeConfig_Alphabet() {}
@@ -6834,7 +7500,7 @@ func (m *CryptoKey) Reset()         { *m = CryptoKey{} }
 func (m *CryptoKey) String() string { return proto.CompactTextString(m) }
 func (*CryptoKey) ProtoMessage()    {}
 func (*CryptoKey) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{48}
+	return fileDescriptor_dlp_536657b46c30097f, []int{50}
 }
 func (m *CryptoKey) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CryptoKey.Unmarshal(m, b)
@@ -6859,13 +7525,13 @@ type isCryptoKey_Source interface {
 }
 
 type CryptoKey_Transient struct {
-	Transient *TransientCryptoKey `protobuf:"bytes,1,opt,name=transient,oneof"`
+	Transient *TransientCryptoKey `protobuf:"bytes,1,opt,name=transient,proto3,oneof"`
 }
 type CryptoKey_Unwrapped struct {
-	Unwrapped *UnwrappedCryptoKey `protobuf:"bytes,2,opt,name=unwrapped,oneof"`
+	Unwrapped *UnwrappedCryptoKey `protobuf:"bytes,2,opt,name=unwrapped,proto3,oneof"`
 }
 type CryptoKey_KmsWrapped struct {
-	KmsWrapped *KmsWrappedCryptoKey `protobuf:"bytes,3,opt,name=kms_wrapped,json=kmsWrapped,oneof"`
+	KmsWrapped *KmsWrappedCryptoKey `protobuf:"bytes,3,opt,name=kms_wrapped,json=kmsWrapped,proto3,oneof"`
 }
 
 func (*CryptoKey_Transient) isCryptoKey_Source()  {}
@@ -7002,7 +7668,7 @@ type TransientCryptoKey struct {
 	// protos share the same generated key if their names are the same.
 	// When the data crypto key is generated, this name is not used in any way
 	// (repeating the api call will result in a different key being generated).
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -7012,7 +7678,7 @@ func (m *TransientCryptoKey) Reset()         { *m = TransientCryptoKey{} }
 func (m *TransientCryptoKey) String() string { return proto.CompactTextString(m) }
 func (*TransientCryptoKey) ProtoMessage()    {}
 func (*TransientCryptoKey) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{49}
+	return fileDescriptor_dlp_536657b46c30097f, []int{51}
 }
 func (m *TransientCryptoKey) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_TransientCryptoKey.Unmarshal(m, b)
@@ -7053,7 +7719,7 @@ func (m *UnwrappedCryptoKey) Reset()         { *m = UnwrappedCryptoKey{} }
 func (m *UnwrappedCryptoKey) String() string { return proto.CompactTextString(m) }
 func (*UnwrappedCryptoKey) ProtoMessage()    {}
 func (*UnwrappedCryptoKey) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{50}
+	return fileDescriptor_dlp_536657b46c30097f, []int{52}
 }
 func (m *UnwrappedCryptoKey) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UnwrappedCryptoKey.Unmarshal(m, b)
@@ -7088,7 +7754,7 @@ type KmsWrappedCryptoKey struct {
 	// The wrapped data crypto key. [required]
 	WrappedKey []byte `protobuf:"bytes,1,opt,name=wrapped_key,json=wrappedKey,proto3" json:"wrapped_key,omitempty"`
 	// The resource name of the KMS CryptoKey to use for unwrapping. [required]
-	CryptoKeyName        string   `protobuf:"bytes,2,opt,name=crypto_key_name,json=cryptoKeyName" json:"crypto_key_name,omitempty"`
+	CryptoKeyName        string   `protobuf:"bytes,2,opt,name=crypto_key_name,json=cryptoKeyName,proto3" json:"crypto_key_name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -7098,7 +7764,7 @@ func (m *KmsWrappedCryptoKey) Reset()         { *m = KmsWrappedCryptoKey{} }
 func (m *KmsWrappedCryptoKey) String() string { return proto.CompactTextString(m) }
 func (*KmsWrappedCryptoKey) ProtoMessage()    {}
 func (*KmsWrappedCryptoKey) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{51}
+	return fileDescriptor_dlp_536657b46c30097f, []int{53}
 }
 func (m *KmsWrappedCryptoKey) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_KmsWrappedCryptoKey.Unmarshal(m, b)
@@ -7133,7 +7799,8 @@ func (m *KmsWrappedCryptoKey) GetCryptoKeyName() string {
 }
 
 // Shifts dates by random number of days, with option to be consistent for the
-// same context.
+// same context. See https://cloud.google.com/dlp/docs/concepts-date-shifting
+// to learn more.
 type DateShiftConfig struct {
 	// Range of shift in days. Actual shift will be selected at random within this
 	// range (inclusive ends). Negative means shift to earlier in time. Must not
@@ -7141,14 +7808,14 @@ type DateShiftConfig struct {
 	//
 	// For example, 3 means shift date to at most 3 days into the future.
 	// [Required]
-	UpperBoundDays int32 `protobuf:"varint,1,opt,name=upper_bound_days,json=upperBoundDays" json:"upper_bound_days,omitempty"`
+	UpperBoundDays int32 `protobuf:"varint,1,opt,name=upper_bound_days,json=upperBoundDays,proto3" json:"upper_bound_days,omitempty"`
 	// For example, -5 means shift date to at most 5 days back in the past.
 	// [Required]
-	LowerBoundDays int32 `protobuf:"varint,2,opt,name=lower_bound_days,json=lowerBoundDays" json:"lower_bound_days,omitempty"`
+	LowerBoundDays int32 `protobuf:"varint,2,opt,name=lower_bound_days,json=lowerBoundDays,proto3" json:"lower_bound_days,omitempty"`
 	// Points to the field that contains the context, for example, an entity id.
 	// If set, must also set method. If set, shift will be consistent for the
 	// given context.
-	Context *FieldId `protobuf:"bytes,3,opt,name=context" json:"context,omitempty"`
+	Context *FieldId `protobuf:"bytes,3,opt,name=context,proto3" json:"context,omitempty"`
 	// Method for calculating shift that takes context into consideration. If
 	// set, must also set context. Can only be applied to table items.
 	//
@@ -7164,7 +7831,7 @@ func (m *DateShiftConfig) Reset()         { *m = DateShiftConfig{} }
 func (m *DateShiftConfig) String() string { return proto.CompactTextString(m) }
 func (*DateShiftConfig) ProtoMessage()    {}
 func (*DateShiftConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{52}
+	return fileDescriptor_dlp_536657b46c30097f, []int{54}
 }
 func (m *DateShiftConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DateShiftConfig.Unmarshal(m, b)
@@ -7189,7 +7856,7 @@ type isDateShiftConfig_Method interface {
 }
 
 type DateShiftConfig_CryptoKey struct {
-	CryptoKey *CryptoKey `protobuf:"bytes,4,opt,name=crypto_key,json=cryptoKey,oneof"`
+	CryptoKey *CryptoKey `protobuf:"bytes,4,opt,name=crypto_key,json=cryptoKey,proto3,oneof"`
 }
 
 func (*DateShiftConfig_CryptoKey) isDateShiftConfig_Method() {}
@@ -7291,7 +7958,7 @@ func _DateShiftConfig_OneofSizer(msg proto.Message) (n int) {
 type InfoTypeTransformations struct {
 	// Transformation for each infoType. Cannot specify more than one
 	// for a given infoType. [required]
-	Transformations      []*InfoTypeTransformations_InfoTypeTransformation `protobuf:"bytes,1,rep,name=transformations" json:"transformations,omitempty"`
+	Transformations      []*InfoTypeTransformations_InfoTypeTransformation `protobuf:"bytes,1,rep,name=transformations,proto3" json:"transformations,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                                          `json:"-"`
 	XXX_unrecognized     []byte                                            `json:"-"`
 	XXX_sizecache        int32                                             `json:"-"`
@@ -7301,7 +7968,7 @@ func (m *InfoTypeTransformations) Reset()         { *m = InfoTypeTransformations
 func (m *InfoTypeTransformations) String() string { return proto.CompactTextString(m) }
 func (*InfoTypeTransformations) ProtoMessage()    {}
 func (*InfoTypeTransformations) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{53}
+	return fileDescriptor_dlp_536657b46c30097f, []int{55}
 }
 func (m *InfoTypeTransformations) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_InfoTypeTransformations.Unmarshal(m, b)
@@ -7331,11 +7998,12 @@ func (m *InfoTypeTransformations) GetTransformations() []*InfoTypeTransformation
 // A transformation to apply to text that is identified as a specific
 // info_type.
 type InfoTypeTransformations_InfoTypeTransformation struct {
-	// InfoTypes to apply the transformation to. Empty list will match all
-	// available infoTypes for this transformation.
-	InfoTypes []*InfoType `protobuf:"bytes,1,rep,name=info_types,json=infoTypes" json:"info_types,omitempty"`
+	// InfoTypes to apply the transformation to. An empty list will cause
+	// this transformation to apply to all findings that correspond to
+	// infoTypes that were requested in `InspectConfig`.
+	InfoTypes []*InfoType `protobuf:"bytes,1,rep,name=info_types,json=infoTypes,proto3" json:"info_types,omitempty"`
 	// Primitive transformation to apply to the infoType. [required]
-	PrimitiveTransformation *PrimitiveTransformation `protobuf:"bytes,2,opt,name=primitive_transformation,json=primitiveTransformation" json:"primitive_transformation,omitempty"`
+	PrimitiveTransformation *PrimitiveTransformation `protobuf:"bytes,2,opt,name=primitive_transformation,json=primitiveTransformation,proto3" json:"primitive_transformation,omitempty"`
 	XXX_NoUnkeyedLiteral    struct{}                 `json:"-"`
 	XXX_unrecognized        []byte                   `json:"-"`
 	XXX_sizecache           int32                    `json:"-"`
@@ -7349,7 +8017,7 @@ func (m *InfoTypeTransformations_InfoTypeTransformation) String() string {
 }
 func (*InfoTypeTransformations_InfoTypeTransformation) ProtoMessage() {}
 func (*InfoTypeTransformations_InfoTypeTransformation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{53, 0}
+	return fileDescriptor_dlp_536657b46c30097f, []int{55, 0}
 }
 func (m *InfoTypeTransformations_InfoTypeTransformation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_InfoTypeTransformations_InfoTypeTransformation.Unmarshal(m, b)
@@ -7386,7 +8054,7 @@ func (m *InfoTypeTransformations_InfoTypeTransformation) GetPrimitiveTransformat
 // The transformation to apply to the field.
 type FieldTransformation struct {
 	// Input field(s) to apply the transformation to. [required]
-	Fields []*FieldId `protobuf:"bytes,1,rep,name=fields" json:"fields,omitempty"`
+	Fields []*FieldId `protobuf:"bytes,1,rep,name=fields,proto3" json:"fields,omitempty"`
 	// Only apply the transformation if the condition evaluates to true for the
 	// given `RecordCondition`. The conditions are allowed to reference fields
 	// that are not used in the actual transformation. [optional]
@@ -7396,7 +8064,7 @@ type FieldTransformation struct {
 	// - Apply a different bucket transformation to an age column if the zip code
 	// column for the same record is within a specific range.
 	// - Redact a field if the date of birth field is greater than 85.
-	Condition *RecordCondition `protobuf:"bytes,3,opt,name=condition" json:"condition,omitempty"`
+	Condition *RecordCondition `protobuf:"bytes,3,opt,name=condition,proto3" json:"condition,omitempty"`
 	// Transformation to apply. [required]
 	//
 	// Types that are valid to be assigned to Transformation:
@@ -7412,7 +8080,7 @@ func (m *FieldTransformation) Reset()         { *m = FieldTransformation{} }
 func (m *FieldTransformation) String() string { return proto.CompactTextString(m) }
 func (*FieldTransformation) ProtoMessage()    {}
 func (*FieldTransformation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{54}
+	return fileDescriptor_dlp_536657b46c30097f, []int{56}
 }
 func (m *FieldTransformation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_FieldTransformation.Unmarshal(m, b)
@@ -7437,10 +8105,10 @@ type isFieldTransformation_Transformation interface {
 }
 
 type FieldTransformation_PrimitiveTransformation struct {
-	PrimitiveTransformation *PrimitiveTransformation `protobuf:"bytes,4,opt,name=primitive_transformation,json=primitiveTransformation,oneof"`
+	PrimitiveTransformation *PrimitiveTransformation `protobuf:"bytes,4,opt,name=primitive_transformation,json=primitiveTransformation,proto3,oneof"`
 }
 type FieldTransformation_InfoTypeTransformations struct {
-	InfoTypeTransformations *InfoTypeTransformations `protobuf:"bytes,5,opt,name=info_type_transformations,json=infoTypeTransformations,oneof"`
+	InfoTypeTransformations *InfoTypeTransformations `protobuf:"bytes,5,opt,name=info_type_transformations,json=infoTypeTransformations,proto3,oneof"`
 }
 
 func (*FieldTransformation_PrimitiveTransformation) isFieldTransformation_Transformation() {}
@@ -7559,10 +8227,10 @@ func _FieldTransformation_OneofSizer(msg proto.Message) (n int) {
 // table.
 type RecordTransformations struct {
 	// Transform the record by applying various field transformations.
-	FieldTransformations []*FieldTransformation `protobuf:"bytes,1,rep,name=field_transformations,json=fieldTransformations" json:"field_transformations,omitempty"`
+	FieldTransformations []*FieldTransformation `protobuf:"bytes,1,rep,name=field_transformations,json=fieldTransformations,proto3" json:"field_transformations,omitempty"`
 	// Configuration defining which records get suppressed entirely. Records that
 	// match any suppression rule are omitted from the output [optional].
-	RecordSuppressions   []*RecordSuppression `protobuf:"bytes,2,rep,name=record_suppressions,json=recordSuppressions" json:"record_suppressions,omitempty"`
+	RecordSuppressions   []*RecordSuppression `protobuf:"bytes,2,rep,name=record_suppressions,json=recordSuppressions,proto3" json:"record_suppressions,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -7572,7 +8240,7 @@ func (m *RecordTransformations) Reset()         { *m = RecordTransformations{} }
 func (m *RecordTransformations) String() string { return proto.CompactTextString(m) }
 func (*RecordTransformations) ProtoMessage()    {}
 func (*RecordTransformations) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{55}
+	return fileDescriptor_dlp_536657b46c30097f, []int{57}
 }
 func (m *RecordTransformations) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RecordTransformations.Unmarshal(m, b)
@@ -7611,7 +8279,7 @@ func (m *RecordTransformations) GetRecordSuppressions() []*RecordSuppression {
 type RecordSuppression struct {
 	// A condition that when it evaluates to true will result in the record being
 	// evaluated to be suppressed from the transformed content.
-	Condition            *RecordCondition `protobuf:"bytes,1,opt,name=condition" json:"condition,omitempty"`
+	Condition            *RecordCondition `protobuf:"bytes,1,opt,name=condition,proto3" json:"condition,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
 	XXX_unrecognized     []byte           `json:"-"`
 	XXX_sizecache        int32            `json:"-"`
@@ -7621,7 +8289,7 @@ func (m *RecordSuppression) Reset()         { *m = RecordSuppression{} }
 func (m *RecordSuppression) String() string { return proto.CompactTextString(m) }
 func (*RecordSuppression) ProtoMessage()    {}
 func (*RecordSuppression) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{56}
+	return fileDescriptor_dlp_536657b46c30097f, []int{58}
 }
 func (m *RecordSuppression) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RecordSuppression.Unmarshal(m, b)
@@ -7652,7 +8320,7 @@ func (m *RecordSuppression) GetCondition() *RecordCondition {
 // a field.
 type RecordCondition struct {
 	// An expression.
-	Expressions          *RecordCondition_Expressions `protobuf:"bytes,3,opt,name=expressions" json:"expressions,omitempty"`
+	Expressions          *RecordCondition_Expressions `protobuf:"bytes,3,opt,name=expressions,proto3" json:"expressions,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                     `json:"-"`
 	XXX_unrecognized     []byte                       `json:"-"`
 	XXX_sizecache        int32                        `json:"-"`
@@ -7662,7 +8330,7 @@ func (m *RecordCondition) Reset()         { *m = RecordCondition{} }
 func (m *RecordCondition) String() string { return proto.CompactTextString(m) }
 func (*RecordCondition) ProtoMessage()    {}
 func (*RecordCondition) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{57}
+	return fileDescriptor_dlp_536657b46c30097f, []int{59}
 }
 func (m *RecordCondition) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RecordCondition.Unmarshal(m, b)
@@ -7709,11 +8377,11 @@ func (m *RecordCondition) GetExpressions() *RecordCondition_Expressions {
 // the condition will evaluate to false.
 type RecordCondition_Condition struct {
 	// Field within the record this condition is evaluated against. [required]
-	Field *FieldId `protobuf:"bytes,1,opt,name=field" json:"field,omitempty"`
+	Field *FieldId `protobuf:"bytes,1,opt,name=field,proto3" json:"field,omitempty"`
 	// Operator used to compare the field or infoType to the value. [required]
-	Operator RelationalOperator `protobuf:"varint,3,opt,name=operator,enum=google.privacy.dlp.v2.RelationalOperator" json:"operator,omitempty"`
+	Operator RelationalOperator `protobuf:"varint,3,opt,name=operator,proto3,enum=google.privacy.dlp.v2.RelationalOperator" json:"operator,omitempty"`
 	// Value to compare against. [Required, except for `EXISTS` tests.]
-	Value                *Value   `protobuf:"bytes,4,opt,name=value" json:"value,omitempty"`
+	Value                *Value   `protobuf:"bytes,4,opt,name=value,proto3" json:"value,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -7723,7 +8391,7 @@ func (m *RecordCondition_Condition) Reset()         { *m = RecordCondition_Condi
 func (m *RecordCondition_Condition) String() string { return proto.CompactTextString(m) }
 func (*RecordCondition_Condition) ProtoMessage()    {}
 func (*RecordCondition_Condition) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{57, 0}
+	return fileDescriptor_dlp_536657b46c30097f, []int{59, 0}
 }
 func (m *RecordCondition_Condition) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RecordCondition_Condition.Unmarshal(m, b)
@@ -7766,7 +8434,7 @@ func (m *RecordCondition_Condition) GetValue() *Value {
 
 // A collection of conditions.
 type RecordCondition_Conditions struct {
-	Conditions           []*RecordCondition_Condition `protobuf:"bytes,1,rep,name=conditions" json:"conditions,omitempty"`
+	Conditions           []*RecordCondition_Condition `protobuf:"bytes,1,rep,name=conditions,proto3" json:"conditions,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                     `json:"-"`
 	XXX_unrecognized     []byte                       `json:"-"`
 	XXX_sizecache        int32                        `json:"-"`
@@ -7776,7 +8444,7 @@ func (m *RecordCondition_Conditions) Reset()         { *m = RecordCondition_Cond
 func (m *RecordCondition_Conditions) String() string { return proto.CompactTextString(m) }
 func (*RecordCondition_Conditions) ProtoMessage()    {}
 func (*RecordCondition_Conditions) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{57, 1}
+	return fileDescriptor_dlp_536657b46c30097f, []int{59, 1}
 }
 func (m *RecordCondition_Conditions) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RecordCondition_Conditions.Unmarshal(m, b)
@@ -7807,7 +8475,7 @@ func (m *RecordCondition_Conditions) GetConditions() []*RecordCondition_Conditio
 type RecordCondition_Expressions struct {
 	// The operator to apply to the result of conditions. Default and currently
 	// only supported value is `AND`.
-	LogicalOperator RecordCondition_Expressions_LogicalOperator `protobuf:"varint,1,opt,name=logical_operator,json=logicalOperator,enum=google.privacy.dlp.v2.RecordCondition_Expressions_LogicalOperator" json:"logical_operator,omitempty"`
+	LogicalOperator RecordCondition_Expressions_LogicalOperator `protobuf:"varint,1,opt,name=logical_operator,json=logicalOperator,proto3,enum=google.privacy.dlp.v2.RecordCondition_Expressions_LogicalOperator" json:"logical_operator,omitempty"`
 	// Types that are valid to be assigned to Type:
 	//	*RecordCondition_Expressions_Conditions
 	Type                 isRecordCondition_Expressions_Type `protobuf_oneof:"type"`
@@ -7820,7 +8488,7 @@ func (m *RecordCondition_Expressions) Reset()         { *m = RecordCondition_Exp
 func (m *RecordCondition_Expressions) String() string { return proto.CompactTextString(m) }
 func (*RecordCondition_Expressions) ProtoMessage()    {}
 func (*RecordCondition_Expressions) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{57, 2}
+	return fileDescriptor_dlp_536657b46c30097f, []int{59, 2}
 }
 func (m *RecordCondition_Expressions) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RecordCondition_Expressions.Unmarshal(m, b)
@@ -7845,7 +8513,7 @@ type isRecordCondition_Expressions_Type interface {
 }
 
 type RecordCondition_Expressions_Conditions struct {
-	Conditions *RecordCondition_Conditions `protobuf:"bytes,3,opt,name=conditions,oneof"`
+	Conditions *RecordCondition_Conditions `protobuf:"bytes,3,opt,name=conditions,proto3,oneof"`
 }
 
 func (*RecordCondition_Expressions_Conditions) isRecordCondition_Expressions_Type() {}
@@ -7929,9 +8597,9 @@ func _RecordCondition_Expressions_OneofSizer(msg proto.Message) (n int) {
 // Overview of the modifications that occurred.
 type TransformationOverview struct {
 	// Total size in bytes that were transformed in some way.
-	TransformedBytes int64 `protobuf:"varint,2,opt,name=transformed_bytes,json=transformedBytes" json:"transformed_bytes,omitempty"`
+	TransformedBytes int64 `protobuf:"varint,2,opt,name=transformed_bytes,json=transformedBytes,proto3" json:"transformed_bytes,omitempty"`
 	// Transformations applied to the dataset.
-	TransformationSummaries []*TransformationSummary `protobuf:"bytes,3,rep,name=transformation_summaries,json=transformationSummaries" json:"transformation_summaries,omitempty"`
+	TransformationSummaries []*TransformationSummary `protobuf:"bytes,3,rep,name=transformation_summaries,json=transformationSummaries,proto3" json:"transformation_summaries,omitempty"`
 	XXX_NoUnkeyedLiteral    struct{}                 `json:"-"`
 	XXX_unrecognized        []byte                   `json:"-"`
 	XXX_sizecache           int32                    `json:"-"`
@@ -7941,7 +8609,7 @@ func (m *TransformationOverview) Reset()         { *m = TransformationOverview{}
 func (m *TransformationOverview) String() string { return proto.CompactTextString(m) }
 func (*TransformationOverview) ProtoMessage()    {}
 func (*TransformationOverview) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{58}
+	return fileDescriptor_dlp_536657b46c30097f, []int{60}
 }
 func (m *TransformationOverview) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_TransformationOverview.Unmarshal(m, b)
@@ -7980,20 +8648,20 @@ func (m *TransformationOverview) GetTransformationSummaries() []*TransformationS
 // will be set.
 type TransformationSummary struct {
 	// Set if the transformation was limited to a specific info_type.
-	InfoType *InfoType `protobuf:"bytes,1,opt,name=info_type,json=infoType" json:"info_type,omitempty"`
+	InfoType *InfoType `protobuf:"bytes,1,opt,name=info_type,json=infoType,proto3" json:"info_type,omitempty"`
 	// Set if the transformation was limited to a specific FieldId.
-	Field *FieldId `protobuf:"bytes,2,opt,name=field" json:"field,omitempty"`
+	Field *FieldId `protobuf:"bytes,2,opt,name=field,proto3" json:"field,omitempty"`
 	// The specific transformation these stats apply to.
-	Transformation *PrimitiveTransformation `protobuf:"bytes,3,opt,name=transformation" json:"transformation,omitempty"`
+	Transformation *PrimitiveTransformation `protobuf:"bytes,3,opt,name=transformation,proto3" json:"transformation,omitempty"`
 	// The field transformation that was applied.
 	// If multiple field transformations are requested for a single field,
 	// this list will contain all of them; otherwise, only one is supplied.
-	FieldTransformations []*FieldTransformation `protobuf:"bytes,5,rep,name=field_transformations,json=fieldTransformations" json:"field_transformations,omitempty"`
+	FieldTransformations []*FieldTransformation `protobuf:"bytes,5,rep,name=field_transformations,json=fieldTransformations,proto3" json:"field_transformations,omitempty"`
 	// The specific suppression option these stats apply to.
-	RecordSuppress *RecordSuppression                     `protobuf:"bytes,6,opt,name=record_suppress,json=recordSuppress" json:"record_suppress,omitempty"`
-	Results        []*TransformationSummary_SummaryResult `protobuf:"bytes,4,rep,name=results" json:"results,omitempty"`
+	RecordSuppress *RecordSuppression                     `protobuf:"bytes,6,opt,name=record_suppress,json=recordSuppress,proto3" json:"record_suppress,omitempty"`
+	Results        []*TransformationSummary_SummaryResult `protobuf:"bytes,4,rep,name=results,proto3" json:"results,omitempty"`
 	// Total size in bytes that were transformed in some way.
-	TransformedBytes     int64    `protobuf:"varint,7,opt,name=transformed_bytes,json=transformedBytes" json:"transformed_bytes,omitempty"`
+	TransformedBytes     int64    `protobuf:"varint,7,opt,name=transformed_bytes,json=transformedBytes,proto3" json:"transformed_bytes,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -8003,7 +8671,7 @@ func (m *TransformationSummary) Reset()         { *m = TransformationSummary{} }
 func (m *TransformationSummary) String() string { return proto.CompactTextString(m) }
 func (*TransformationSummary) ProtoMessage()    {}
 func (*TransformationSummary) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{59}
+	return fileDescriptor_dlp_536657b46c30097f, []int{61}
 }
 func (m *TransformationSummary) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_TransformationSummary.Unmarshal(m, b)
@@ -8075,11 +8743,11 @@ func (m *TransformationSummary) GetTransformedBytes() int64 {
 // A collection that informs the user the number of times a particular
 // `TransformationResultCode` and error details occurred.
 type TransformationSummary_SummaryResult struct {
-	Count int64                                          `protobuf:"varint,1,opt,name=count" json:"count,omitempty"`
-	Code  TransformationSummary_TransformationResultCode `protobuf:"varint,2,opt,name=code,enum=google.privacy.dlp.v2.TransformationSummary_TransformationResultCode" json:"code,omitempty"`
+	Count int64                                          `protobuf:"varint,1,opt,name=count,proto3" json:"count,omitempty"`
+	Code  TransformationSummary_TransformationResultCode `protobuf:"varint,2,opt,name=code,proto3,enum=google.privacy.dlp.v2.TransformationSummary_TransformationResultCode" json:"code,omitempty"`
 	// A place for warnings or errors to show up if a transformation didn't
 	// work as expected.
-	Details              string   `protobuf:"bytes,3,opt,name=details" json:"details,omitempty"`
+	Details              string   `protobuf:"bytes,3,opt,name=details,proto3" json:"details,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -8089,7 +8757,7 @@ func (m *TransformationSummary_SummaryResult) Reset()         { *m = Transformat
 func (m *TransformationSummary_SummaryResult) String() string { return proto.CompactTextString(m) }
 func (*TransformationSummary_SummaryResult) ProtoMessage()    {}
 func (*TransformationSummary_SummaryResult) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{59, 0}
+	return fileDescriptor_dlp_536657b46c30097f, []int{61, 0}
 }
 func (m *TransformationSummary_SummaryResult) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_TransformationSummary_SummaryResult.Unmarshal(m, b)
@@ -8144,7 +8812,7 @@ func (m *Schedule) Reset()         { *m = Schedule{} }
 func (m *Schedule) String() string { return proto.CompactTextString(m) }
 func (*Schedule) ProtoMessage()    {}
 func (*Schedule) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{60}
+	return fileDescriptor_dlp_536657b46c30097f, []int{62}
 }
 func (m *Schedule) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Schedule.Unmarshal(m, b)
@@ -8169,7 +8837,7 @@ type isSchedule_Option interface {
 }
 
 type Schedule_RecurrencePeriodDuration struct {
-	RecurrencePeriodDuration *duration.Duration `protobuf:"bytes,1,opt,name=recurrence_period_duration,json=recurrencePeriodDuration,oneof"`
+	RecurrencePeriodDuration *duration.Duration `protobuf:"bytes,1,opt,name=recurrence_period_duration,json=recurrencePeriodDuration,proto3,oneof"`
 }
 
 func (*Schedule_RecurrencePeriodDuration) isSchedule_Option() {}
@@ -8245,24 +8913,25 @@ func _Schedule_OneofSizer(msg proto.Message) (n int) {
 
 // The inspectTemplate contains a configuration (set of types of sensitive data
 // to be detected) to be used anywhere you otherwise would normally specify
-// InspectConfig.
+// InspectConfig. See https://cloud.google.com/dlp/docs/concepts-templates
+// to learn more.
 type InspectTemplate struct {
 	// The template name. Output only.
 	//
 	// The template will have one of the following formats:
 	// `projects/PROJECT_ID/inspectTemplates/TEMPLATE_ID` OR
 	// `organizations/ORGANIZATION_ID/inspectTemplates/TEMPLATE_ID`
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Display name (max 256 chars).
-	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName" json:"display_name,omitempty"`
+	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	// Short description (max 256 chars).
-	Description string `protobuf:"bytes,3,opt,name=description" json:"description,omitempty"`
+	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	// The creation timestamp of a inspectTemplate, output only field.
-	CreateTime *timestamp.Timestamp `protobuf:"bytes,4,opt,name=create_time,json=createTime" json:"create_time,omitempty"`
+	CreateTime *timestamp.Timestamp `protobuf:"bytes,4,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	// The last update timestamp of a inspectTemplate, output only field.
-	UpdateTime *timestamp.Timestamp `protobuf:"bytes,5,opt,name=update_time,json=updateTime" json:"update_time,omitempty"`
+	UpdateTime *timestamp.Timestamp `protobuf:"bytes,5,opt,name=update_time,json=updateTime,proto3" json:"update_time,omitempty"`
 	// The core content of the template. Configuration of the scanning process.
-	InspectConfig        *InspectConfig `protobuf:"bytes,6,opt,name=inspect_config,json=inspectConfig" json:"inspect_config,omitempty"`
+	InspectConfig        *InspectConfig `protobuf:"bytes,6,opt,name=inspect_config,json=inspectConfig,proto3" json:"inspect_config,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
 	XXX_unrecognized     []byte         `json:"-"`
 	XXX_sizecache        int32          `json:"-"`
@@ -8272,7 +8941,7 @@ func (m *InspectTemplate) Reset()         { *m = InspectTemplate{} }
 func (m *InspectTemplate) String() string { return proto.CompactTextString(m) }
 func (*InspectTemplate) ProtoMessage()    {}
 func (*InspectTemplate) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{61}
+	return fileDescriptor_dlp_536657b46c30097f, []int{63}
 }
 func (m *InspectTemplate) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_InspectTemplate.Unmarshal(m, b)
@@ -8335,23 +9004,24 @@ func (m *InspectTemplate) GetInspectConfig() *InspectConfig {
 }
 
 // The DeidentifyTemplates contains instructions on how to deidentify content.
+// See https://cloud.google.com/dlp/docs/concepts-templates to learn more.
 type DeidentifyTemplate struct {
 	// The template name. Output only.
 	//
 	// The template will have one of the following formats:
 	// `projects/PROJECT_ID/deidentifyTemplates/TEMPLATE_ID` OR
 	// `organizations/ORGANIZATION_ID/deidentifyTemplates/TEMPLATE_ID`
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Display name (max 256 chars).
-	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName" json:"display_name,omitempty"`
+	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	// Short description (max 256 chars).
-	Description string `protobuf:"bytes,3,opt,name=description" json:"description,omitempty"`
+	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	// The creation timestamp of a inspectTemplate, output only field.
-	CreateTime *timestamp.Timestamp `protobuf:"bytes,4,opt,name=create_time,json=createTime" json:"create_time,omitempty"`
+	CreateTime *timestamp.Timestamp `protobuf:"bytes,4,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	// The last update timestamp of a inspectTemplate, output only field.
-	UpdateTime *timestamp.Timestamp `protobuf:"bytes,5,opt,name=update_time,json=updateTime" json:"update_time,omitempty"`
+	UpdateTime *timestamp.Timestamp `protobuf:"bytes,5,opt,name=update_time,json=updateTime,proto3" json:"update_time,omitempty"`
 	// ///////////// // The core content of the template  // ///////////////
-	DeidentifyConfig     *DeidentifyConfig `protobuf:"bytes,6,opt,name=deidentify_config,json=deidentifyConfig" json:"deidentify_config,omitempty"`
+	DeidentifyConfig     *DeidentifyConfig `protobuf:"bytes,6,opt,name=deidentify_config,json=deidentifyConfig,proto3" json:"deidentify_config,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -8361,7 +9031,7 @@ func (m *DeidentifyTemplate) Reset()         { *m = DeidentifyTemplate{} }
 func (m *DeidentifyTemplate) String() string { return proto.CompactTextString(m) }
 func (*DeidentifyTemplate) ProtoMessage()    {}
 func (*DeidentifyTemplate) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{62}
+	return fileDescriptor_dlp_536657b46c30097f, []int{64}
 }
 func (m *DeidentifyTemplate) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeidentifyTemplate.Unmarshal(m, b)
@@ -8427,9 +9097,9 @@ func (m *DeidentifyTemplate) GetDeidentifyConfig() *DeidentifyConfig {
 // the results of an unsuccessful activation of the JobTrigger.
 // Output only field.
 type Error struct {
-	Details *status.Status `protobuf:"bytes,1,opt,name=details" json:"details,omitempty"`
+	Details *status.Status `protobuf:"bytes,1,opt,name=details,proto3" json:"details,omitempty"`
 	// The times the error occurred.
-	Timestamps           []*timestamp.Timestamp `protobuf:"bytes,2,rep,name=timestamps" json:"timestamps,omitempty"`
+	Timestamps           []*timestamp.Timestamp `protobuf:"bytes,2,rep,name=timestamps,proto3" json:"timestamps,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
 	XXX_unrecognized     []byte                 `json:"-"`
 	XXX_sizecache        int32                  `json:"-"`
@@ -8439,7 +9109,7 @@ func (m *Error) Reset()         { *m = Error{} }
 func (m *Error) String() string { return proto.CompactTextString(m) }
 func (*Error) ProtoMessage()    {}
 func (*Error) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{63}
+	return fileDescriptor_dlp_536657b46c30097f, []int{65}
 }
 func (m *Error) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Error.Unmarshal(m, b)
@@ -8474,15 +9144,16 @@ func (m *Error) GetTimestamps() []*timestamp.Timestamp {
 }
 
 // Contains a configuration to make dlp api calls on a repeating basis.
+// See https://cloud.google.com/dlp/docs/concepts-job-triggers to learn more.
 type JobTrigger struct {
 	// Unique resource name for the triggeredJob, assigned by the service when the
 	// triggeredJob is created, for example
 	// `projects/dlp-test-project/triggeredJobs/53234423`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Display name (max 100 chars)
-	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName" json:"display_name,omitempty"`
+	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	// User provided description (max 256 chars)
-	Description string `protobuf:"bytes,3,opt,name=description" json:"description,omitempty"`
+	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	// The configuration details for the specific type of job to run.
 	//
 	// Types that are valid to be assigned to Job:
@@ -8491,20 +9162,20 @@ type JobTrigger struct {
 	// A list of triggers which will be OR'ed together. Only one in the list
 	// needs to trigger for a job to be started. The list may contain only
 	// a single Schedule trigger and must have at least one object.
-	Triggers []*JobTrigger_Trigger `protobuf:"bytes,5,rep,name=triggers" json:"triggers,omitempty"`
+	Triggers []*JobTrigger_Trigger `protobuf:"bytes,5,rep,name=triggers,proto3" json:"triggers,omitempty"`
 	// A stream of errors encountered when the trigger was activated. Repeated
 	// errors may result in the JobTrigger automaticaly being paused.
 	// Will return the last 100 errors. Whenever the JobTrigger is modified
 	// this list will be cleared. Output only field.
-	Errors []*Error `protobuf:"bytes,6,rep,name=errors" json:"errors,omitempty"`
+	Errors []*Error `protobuf:"bytes,6,rep,name=errors,proto3" json:"errors,omitempty"`
 	// The creation timestamp of a triggeredJob, output only field.
-	CreateTime *timestamp.Timestamp `protobuf:"bytes,7,opt,name=create_time,json=createTime" json:"create_time,omitempty"`
+	CreateTime *timestamp.Timestamp `protobuf:"bytes,7,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	// The last update timestamp of a triggeredJob, output only field.
-	UpdateTime *timestamp.Timestamp `protobuf:"bytes,8,opt,name=update_time,json=updateTime" json:"update_time,omitempty"`
+	UpdateTime *timestamp.Timestamp `protobuf:"bytes,8,opt,name=update_time,json=updateTime,proto3" json:"update_time,omitempty"`
 	// The timestamp of the last time this trigger executed, output only field.
-	LastRunTime *timestamp.Timestamp `protobuf:"bytes,9,opt,name=last_run_time,json=lastRunTime" json:"last_run_time,omitempty"`
+	LastRunTime *timestamp.Timestamp `protobuf:"bytes,9,opt,name=last_run_time,json=lastRunTime,proto3" json:"last_run_time,omitempty"`
 	// A status for this trigger. [required]
-	Status               JobTrigger_Status `protobuf:"varint,10,opt,name=status,enum=google.privacy.dlp.v2.JobTrigger_Status" json:"status,omitempty"`
+	Status               JobTrigger_Status `protobuf:"varint,10,opt,name=status,proto3,enum=google.privacy.dlp.v2.JobTrigger_Status" json:"status,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -8514,7 +9185,7 @@ func (m *JobTrigger) Reset()         { *m = JobTrigger{} }
 func (m *JobTrigger) String() string { return proto.CompactTextString(m) }
 func (*JobTrigger) ProtoMessage()    {}
 func (*JobTrigger) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{64}
+	return fileDescriptor_dlp_536657b46c30097f, []int{66}
 }
 func (m *JobTrigger) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_JobTrigger.Unmarshal(m, b)
@@ -8539,7 +9210,7 @@ type isJobTrigger_Job interface {
 }
 
 type JobTrigger_InspectJob struct {
-	InspectJob *InspectJobConfig `protobuf:"bytes,4,opt,name=inspect_job,json=inspectJob,oneof"`
+	InspectJob *InspectJobConfig `protobuf:"bytes,4,opt,name=inspect_job,json=inspectJob,proto3,oneof"`
 }
 
 func (*JobTrigger_InspectJob) isJobTrigger_Job() {}
@@ -8690,7 +9361,7 @@ func (m *JobTrigger_Trigger) Reset()         { *m = JobTrigger_Trigger{} }
 func (m *JobTrigger_Trigger) String() string { return proto.CompactTextString(m) }
 func (*JobTrigger_Trigger) ProtoMessage()    {}
 func (*JobTrigger_Trigger) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{64, 0}
+	return fileDescriptor_dlp_536657b46c30097f, []int{66, 0}
 }
 func (m *JobTrigger_Trigger) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_JobTrigger_Trigger.Unmarshal(m, b)
@@ -8715,7 +9386,7 @@ type isJobTrigger_Trigger_Trigger interface {
 }
 
 type JobTrigger_Trigger_Schedule struct {
-	Schedule *Schedule `protobuf:"bytes,1,opt,name=schedule,oneof"`
+	Schedule *Schedule `protobuf:"bytes,1,opt,name=schedule,proto3,oneof"`
 }
 
 func (*JobTrigger_Trigger_Schedule) isJobTrigger_Trigger_Trigger() {}
@@ -8790,6 +9461,7 @@ func _JobTrigger_Trigger_OneofSizer(msg proto.Message) (n int) {
 }
 
 // A task to execute on the completion of a job.
+// See https://cloud.google.com/dlp/docs/concepts-actions to learn more.
 type Action struct {
 	// Types that are valid to be assigned to Action:
 	//	*Action_SaveFindings_
@@ -8805,7 +9477,7 @@ func (m *Action) Reset()         { *m = Action{} }
 func (m *Action) String() string { return proto.CompactTextString(m) }
 func (*Action) ProtoMessage()    {}
 func (*Action) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{65}
+	return fileDescriptor_dlp_536657b46c30097f, []int{67}
 }
 func (m *Action) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Action.Unmarshal(m, b)
@@ -8830,13 +9502,13 @@ type isAction_Action interface {
 }
 
 type Action_SaveFindings_ struct {
-	SaveFindings *Action_SaveFindings `protobuf:"bytes,1,opt,name=save_findings,json=saveFindings,oneof"`
+	SaveFindings *Action_SaveFindings `protobuf:"bytes,1,opt,name=save_findings,json=saveFindings,proto3,oneof"`
 }
 type Action_PubSub struct {
-	PubSub *Action_PublishToPubSub `protobuf:"bytes,2,opt,name=pub_sub,json=pubSub,oneof"`
+	PubSub *Action_PublishToPubSub `protobuf:"bytes,2,opt,name=pub_sub,json=pubSub,proto3,oneof"`
 }
 type Action_PublishSummaryToCscc_ struct {
-	PublishSummaryToCscc *Action_PublishSummaryToCscc `protobuf:"bytes,3,opt,name=publish_summary_to_cscc,json=publishSummaryToCscc,oneof"`
+	PublishSummaryToCscc *Action_PublishSummaryToCscc `protobuf:"bytes,3,opt,name=publish_summary_to_cscc,json=publishSummaryToCscc,proto3,oneof"`
 }
 
 func (*Action_SaveFindings_) isAction_Action()         {}
@@ -8967,9 +9639,9 @@ func _Action_OneofSizer(msg proto.Message) (n int) {
 // If set, the detailed findings will be persisted to the specified
 // OutputStorageConfig. Only a single instance of this action can be
 // specified.
-// Compatible with: Inspect
+// Compatible with: Inspect, Risk
 type Action_SaveFindings struct {
-	OutputConfig         *OutputStorageConfig `protobuf:"bytes,1,opt,name=output_config,json=outputConfig" json:"output_config,omitempty"`
+	OutputConfig         *OutputStorageConfig `protobuf:"bytes,1,opt,name=output_config,json=outputConfig,proto3" json:"output_config,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -8979,7 +9651,7 @@ func (m *Action_SaveFindings) Reset()         { *m = Action_SaveFindings{} }
 func (m *Action_SaveFindings) String() string { return proto.CompactTextString(m) }
 func (*Action_SaveFindings) ProtoMessage()    {}
 func (*Action_SaveFindings) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{65, 0}
+	return fileDescriptor_dlp_536657b46c30097f, []int{67, 0}
 }
 func (m *Action_SaveFindings) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Action_SaveFindings.Unmarshal(m, b)
@@ -9013,7 +9685,7 @@ type Action_PublishToPubSub struct {
 	// publishing access rights to the DLP API service account executing
 	// the long running DlpJob sending the notifications.
 	// Format is projects/{project}/topics/{topic}.
-	Topic                string   `protobuf:"bytes,1,opt,name=topic" json:"topic,omitempty"`
+	Topic                string   `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -9023,7 +9695,7 @@ func (m *Action_PublishToPubSub) Reset()         { *m = Action_PublishToPubSub{}
 func (m *Action_PublishToPubSub) String() string { return proto.CompactTextString(m) }
 func (*Action_PublishToPubSub) ProtoMessage()    {}
 func (*Action_PublishToPubSub) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{65, 1}
+	return fileDescriptor_dlp_536657b46c30097f, []int{67, 1}
 }
 func (m *Action_PublishToPubSub) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Action_PublishToPubSub.Unmarshal(m, b)
@@ -9070,7 +9742,7 @@ func (m *Action_PublishSummaryToCscc) Reset()         { *m = Action_PublishSumma
 func (m *Action_PublishSummaryToCscc) String() string { return proto.CompactTextString(m) }
 func (*Action_PublishSummaryToCscc) ProtoMessage()    {}
 func (*Action_PublishSummaryToCscc) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{65, 2}
+	return fileDescriptor_dlp_536657b46c30097f, []int{67, 2}
 }
 func (m *Action_PublishSummaryToCscc) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Action_PublishSummaryToCscc.Unmarshal(m, b)
@@ -9094,14 +9766,14 @@ var xxx_messageInfo_Action_PublishSummaryToCscc proto.InternalMessageInfo
 type CreateInspectTemplateRequest struct {
 	// The parent resource name, for example projects/my-project-id or
 	// organizations/my-org-id.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// The InspectTemplate to create.
-	InspectTemplate *InspectTemplate `protobuf:"bytes,2,opt,name=inspect_template,json=inspectTemplate" json:"inspect_template,omitempty"`
+	InspectTemplate *InspectTemplate `protobuf:"bytes,2,opt,name=inspect_template,json=inspectTemplate,proto3" json:"inspect_template,omitempty"`
 	// The template id can contain uppercase and lowercase letters,
 	// numbers, and hyphens; that is, it must match the regular
 	// expression: `[a-zA-Z\\d-]+`. The maximum length is 100
 	// characters. Can be empty to allow the system to generate one.
-	TemplateId           string   `protobuf:"bytes,3,opt,name=template_id,json=templateId" json:"template_id,omitempty"`
+	TemplateId           string   `protobuf:"bytes,3,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -9111,7 +9783,7 @@ func (m *CreateInspectTemplateRequest) Reset()         { *m = CreateInspectTempl
 func (m *CreateInspectTemplateRequest) String() string { return proto.CompactTextString(m) }
 func (*CreateInspectTemplateRequest) ProtoMessage()    {}
 func (*CreateInspectTemplateRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{66}
+	return fileDescriptor_dlp_536657b46c30097f, []int{68}
 }
 func (m *CreateInspectTemplateRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CreateInspectTemplateRequest.Unmarshal(m, b)
@@ -9157,11 +9829,11 @@ type UpdateInspectTemplateRequest struct {
 	// Resource name of organization and inspectTemplate to be updated, for
 	// example `organizations/433245324/inspectTemplates/432452342` or
 	// projects/project-id/inspectTemplates/432452342.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// New InspectTemplate value.
-	InspectTemplate *InspectTemplate `protobuf:"bytes,2,opt,name=inspect_template,json=inspectTemplate" json:"inspect_template,omitempty"`
+	InspectTemplate *InspectTemplate `protobuf:"bytes,2,opt,name=inspect_template,json=inspectTemplate,proto3" json:"inspect_template,omitempty"`
 	// Mask to control which fields get updated.
-	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -9171,7 +9843,7 @@ func (m *UpdateInspectTemplateRequest) Reset()         { *m = UpdateInspectTempl
 func (m *UpdateInspectTemplateRequest) String() string { return proto.CompactTextString(m) }
 func (*UpdateInspectTemplateRequest) ProtoMessage()    {}
 func (*UpdateInspectTemplateRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{67}
+	return fileDescriptor_dlp_536657b46c30097f, []int{69}
 }
 func (m *UpdateInspectTemplateRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UpdateInspectTemplateRequest.Unmarshal(m, b)
@@ -9217,7 +9889,7 @@ type GetInspectTemplateRequest struct {
 	// Resource name of the organization and inspectTemplate to be read, for
 	// example `organizations/433245324/inspectTemplates/432452342` or
 	// projects/project-id/inspectTemplates/432452342.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -9227,7 +9899,7 @@ func (m *GetInspectTemplateRequest) Reset()         { *m = GetInspectTemplateReq
 func (m *GetInspectTemplateRequest) String() string { return proto.CompactTextString(m) }
 func (*GetInspectTemplateRequest) ProtoMessage()    {}
 func (*GetInspectTemplateRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{68}
+	return fileDescriptor_dlp_536657b46c30097f, []int{70}
 }
 func (m *GetInspectTemplateRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetInspectTemplateRequest.Unmarshal(m, b)
@@ -9258,13 +9930,13 @@ func (m *GetInspectTemplateRequest) GetName() string {
 type ListInspectTemplatesRequest struct {
 	// The parent resource name, for example projects/my-project-id or
 	// organizations/my-org-id.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Optional page token to continue retrieval. Comes from previous call
 	// to `ListInspectTemplates`.
-	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// Optional size of the page, can be limited by server. If zero server returns
 	// a page of max size 100.
-	PageSize             int32    `protobuf:"varint,3,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize             int32    `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -9274,7 +9946,7 @@ func (m *ListInspectTemplatesRequest) Reset()         { *m = ListInspectTemplate
 func (m *ListInspectTemplatesRequest) String() string { return proto.CompactTextString(m) }
 func (*ListInspectTemplatesRequest) ProtoMessage()    {}
 func (*ListInspectTemplatesRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{69}
+	return fileDescriptor_dlp_536657b46c30097f, []int{71}
 }
 func (m *ListInspectTemplatesRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListInspectTemplatesRequest.Unmarshal(m, b)
@@ -9318,10 +9990,10 @@ func (m *ListInspectTemplatesRequest) GetPageSize() int32 {
 // Response message for ListInspectTemplates.
 type ListInspectTemplatesResponse struct {
 	// List of inspectTemplates, up to page_size in ListInspectTemplatesRequest.
-	InspectTemplates []*InspectTemplate `protobuf:"bytes,1,rep,name=inspect_templates,json=inspectTemplates" json:"inspect_templates,omitempty"`
+	InspectTemplates []*InspectTemplate `protobuf:"bytes,1,rep,name=inspect_templates,json=inspectTemplates,proto3" json:"inspect_templates,omitempty"`
 	// If the next page is available then the next page token to be used
 	// in following ListInspectTemplates request.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -9331,7 +10003,7 @@ func (m *ListInspectTemplatesResponse) Reset()         { *m = ListInspectTemplat
 func (m *ListInspectTemplatesResponse) String() string { return proto.CompactTextString(m) }
 func (*ListInspectTemplatesResponse) ProtoMessage()    {}
 func (*ListInspectTemplatesResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{70}
+	return fileDescriptor_dlp_536657b46c30097f, []int{72}
 }
 func (m *ListInspectTemplatesResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListInspectTemplatesResponse.Unmarshal(m, b)
@@ -9370,7 +10042,7 @@ type DeleteInspectTemplateRequest struct {
 	// Resource name of the organization and inspectTemplate to be deleted, for
 	// example `organizations/433245324/inspectTemplates/432452342` or
 	// projects/project-id/inspectTemplates/432452342.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -9380,7 +10052,7 @@ func (m *DeleteInspectTemplateRequest) Reset()         { *m = DeleteInspectTempl
 func (m *DeleteInspectTemplateRequest) String() string { return proto.CompactTextString(m) }
 func (*DeleteInspectTemplateRequest) ProtoMessage()    {}
 func (*DeleteInspectTemplateRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{71}
+	return fileDescriptor_dlp_536657b46c30097f, []int{73}
 }
 func (m *DeleteInspectTemplateRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeleteInspectTemplateRequest.Unmarshal(m, b)
@@ -9410,14 +10082,14 @@ func (m *DeleteInspectTemplateRequest) GetName() string {
 // Request message for CreateJobTrigger.
 type CreateJobTriggerRequest struct {
 	// The parent resource name, for example projects/my-project-id.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// The JobTrigger to create.
-	JobTrigger *JobTrigger `protobuf:"bytes,2,opt,name=job_trigger,json=jobTrigger" json:"job_trigger,omitempty"`
+	JobTrigger *JobTrigger `protobuf:"bytes,2,opt,name=job_trigger,json=jobTrigger,proto3" json:"job_trigger,omitempty"`
 	// The trigger id can contain uppercase and lowercase letters,
 	// numbers, and hyphens; that is, it must match the regular
 	// expression: `[a-zA-Z\\d-]+`. The maximum length is 100
 	// characters. Can be empty to allow the system to generate one.
-	TriggerId            string   `protobuf:"bytes,3,opt,name=trigger_id,json=triggerId" json:"trigger_id,omitempty"`
+	TriggerId            string   `protobuf:"bytes,3,opt,name=trigger_id,json=triggerId,proto3" json:"trigger_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -9427,7 +10099,7 @@ func (m *CreateJobTriggerRequest) Reset()         { *m = CreateJobTriggerRequest
 func (m *CreateJobTriggerRequest) String() string { return proto.CompactTextString(m) }
 func (*CreateJobTriggerRequest) ProtoMessage()    {}
 func (*CreateJobTriggerRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{72}
+	return fileDescriptor_dlp_536657b46c30097f, []int{74}
 }
 func (m *CreateJobTriggerRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CreateJobTriggerRequest.Unmarshal(m, b)
@@ -9472,11 +10144,11 @@ func (m *CreateJobTriggerRequest) GetTriggerId() string {
 type UpdateJobTriggerRequest struct {
 	// Resource name of the project and the triggeredJob, for example
 	// `projects/dlp-test-project/jobTriggers/53234423`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// New JobTrigger value.
-	JobTrigger *JobTrigger `protobuf:"bytes,2,opt,name=job_trigger,json=jobTrigger" json:"job_trigger,omitempty"`
+	JobTrigger *JobTrigger `protobuf:"bytes,2,opt,name=job_trigger,json=jobTrigger,proto3" json:"job_trigger,omitempty"`
 	// Mask to control which fields get updated.
-	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -9486,7 +10158,7 @@ func (m *UpdateJobTriggerRequest) Reset()         { *m = UpdateJobTriggerRequest
 func (m *UpdateJobTriggerRequest) String() string { return proto.CompactTextString(m) }
 func (*UpdateJobTriggerRequest) ProtoMessage()    {}
 func (*UpdateJobTriggerRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{73}
+	return fileDescriptor_dlp_536657b46c30097f, []int{75}
 }
 func (m *UpdateJobTriggerRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UpdateJobTriggerRequest.Unmarshal(m, b)
@@ -9531,7 +10203,7 @@ func (m *UpdateJobTriggerRequest) GetUpdateMask() *field_mask.FieldMask {
 type GetJobTriggerRequest struct {
 	// Resource name of the project and the triggeredJob, for example
 	// `projects/dlp-test-project/jobTriggers/53234423`.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -9541,7 +10213,7 @@ func (m *GetJobTriggerRequest) Reset()         { *m = GetJobTriggerRequest{} }
 func (m *GetJobTriggerRequest) String() string { return proto.CompactTextString(m) }
 func (*GetJobTriggerRequest) ProtoMessage()    {}
 func (*GetJobTriggerRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{74}
+	return fileDescriptor_dlp_536657b46c30097f, []int{76}
 }
 func (m *GetJobTriggerRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetJobTriggerRequest.Unmarshal(m, b)
@@ -9573,7 +10245,7 @@ func (m *GetJobTriggerRequest) GetName() string {
 // Storage.
 type CreateDlpJobRequest struct {
 	// The parent resource name, for example projects/my-project-id.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// The configuration details for the specific type of job to run.
 	//
 	// Types that are valid to be assigned to Job:
@@ -9584,7 +10256,7 @@ type CreateDlpJobRequest struct {
 	// numbers, and hyphens; that is, it must match the regular
 	// expression: `[a-zA-Z\\d-]+`. The maximum length is 100
 	// characters. Can be empty to allow the system to generate one.
-	JobId                string   `protobuf:"bytes,4,opt,name=job_id,json=jobId" json:"job_id,omitempty"`
+	JobId                string   `protobuf:"bytes,4,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -9594,7 +10266,7 @@ func (m *CreateDlpJobRequest) Reset()         { *m = CreateDlpJobRequest{} }
 func (m *CreateDlpJobRequest) String() string { return proto.CompactTextString(m) }
 func (*CreateDlpJobRequest) ProtoMessage()    {}
 func (*CreateDlpJobRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{75}
+	return fileDescriptor_dlp_536657b46c30097f, []int{77}
 }
 func (m *CreateDlpJobRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CreateDlpJobRequest.Unmarshal(m, b)
@@ -9619,10 +10291,10 @@ type isCreateDlpJobRequest_Job interface {
 }
 
 type CreateDlpJobRequest_InspectJob struct {
-	InspectJob *InspectJobConfig `protobuf:"bytes,2,opt,name=inspect_job,json=inspectJob,oneof"`
+	InspectJob *InspectJobConfig `protobuf:"bytes,2,opt,name=inspect_job,json=inspectJob,proto3,oneof"`
 }
 type CreateDlpJobRequest_RiskJob struct {
-	RiskJob *RiskAnalysisJobConfig `protobuf:"bytes,3,opt,name=risk_job,json=riskJob,oneof"`
+	RiskJob *RiskAnalysisJobConfig `protobuf:"bytes,3,opt,name=risk_job,json=riskJob,proto3,oneof"`
 }
 
 func (*CreateDlpJobRequest_InspectJob) isCreateDlpJobRequest_Job() {}
@@ -9739,28 +10411,27 @@ func _CreateDlpJobRequest_OneofSizer(msg proto.Message) (n int) {
 
 // Request message for ListJobTriggers.
 type ListJobTriggersRequest struct {
-	// The parent resource name, for example projects/my-project-id.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	// The parent resource name, for example `projects/my-project-id`.
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Optional page token to continue retrieval. Comes from previous call
-	// to ListJobTriggers. `order_by` and `filter` should not change for
-	// subsequent calls, but can be omitted if token is specified.
-	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	// to ListJobTriggers. `order_by` field must not
+	// change for subsequent calls.
+	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// Optional size of the page, can be limited by a server.
-	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Optional comma separated list of triggeredJob fields to order by,
-	// followed by 'asc/desc' postfix, i.e.
-	// `"create_time asc,name desc,schedule_mode asc"`. This list is
-	// case-insensitive.
+	// followed by `asc` or `desc` postfix. This list is case-insensitive,
+	// default sorting order is ascending, redundant space characters are
+	// insignificant.
 	//
-	// Example: `"name asc,schedule_mode desc, status desc"`
+	// Example: `name asc,update_time, create_time desc`
 	//
-	// Supported filters keys and values are:
+	// Supported fields are:
 	//
 	// - `create_time`: corresponds to time the triggeredJob was created.
 	// - `update_time`: corresponds to time the triggeredJob was last updated.
-	// - `name`: corresponds to JobTrigger's display name.
-	// - `status`: corresponds to the triggeredJob status.
-	OrderBy              string   `protobuf:"bytes,4,opt,name=order_by,json=orderBy" json:"order_by,omitempty"`
+	// - `name`: corresponds to JobTrigger's name.
+	OrderBy              string   `protobuf:"bytes,4,opt,name=order_by,json=orderBy,proto3" json:"order_by,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -9770,7 +10441,7 @@ func (m *ListJobTriggersRequest) Reset()         { *m = ListJobTriggersRequest{}
 func (m *ListJobTriggersRequest) String() string { return proto.CompactTextString(m) }
 func (*ListJobTriggersRequest) ProtoMessage()    {}
 func (*ListJobTriggersRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{76}
+	return fileDescriptor_dlp_536657b46c30097f, []int{78}
 }
 func (m *ListJobTriggersRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListJobTriggersRequest.Unmarshal(m, b)
@@ -9821,10 +10492,10 @@ func (m *ListJobTriggersRequest) GetOrderBy() string {
 // Response message for ListJobTriggers.
 type ListJobTriggersResponse struct {
 	// List of triggeredJobs, up to page_size in ListJobTriggersRequest.
-	JobTriggers []*JobTrigger `protobuf:"bytes,1,rep,name=job_triggers,json=jobTriggers" json:"job_triggers,omitempty"`
+	JobTriggers []*JobTrigger `protobuf:"bytes,1,rep,name=job_triggers,json=jobTriggers,proto3" json:"job_triggers,omitempty"`
 	// If the next page is available then the next page token to be used
 	// in following ListJobTriggers request.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -9834,7 +10505,7 @@ func (m *ListJobTriggersResponse) Reset()         { *m = ListJobTriggersResponse
 func (m *ListJobTriggersResponse) String() string { return proto.CompactTextString(m) }
 func (*ListJobTriggersResponse) ProtoMessage()    {}
 func (*ListJobTriggersResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{77}
+	return fileDescriptor_dlp_536657b46c30097f, []int{79}
 }
 func (m *ListJobTriggersResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListJobTriggersResponse.Unmarshal(m, b)
@@ -9872,7 +10543,7 @@ func (m *ListJobTriggersResponse) GetNextPageToken() string {
 type DeleteJobTriggerRequest struct {
 	// Resource name of the project and the triggeredJob, for example
 	// `projects/dlp-test-project/jobTriggers/53234423`.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -9882,7 +10553,7 @@ func (m *DeleteJobTriggerRequest) Reset()         { *m = DeleteJobTriggerRequest
 func (m *DeleteJobTriggerRequest) String() string { return proto.CompactTextString(m) }
 func (*DeleteJobTriggerRequest) ProtoMessage()    {}
 func (*DeleteJobTriggerRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{78}
+	return fileDescriptor_dlp_536657b46c30097f, []int{80}
 }
 func (m *DeleteJobTriggerRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeleteJobTriggerRequest.Unmarshal(m, b)
@@ -9911,16 +10582,16 @@ func (m *DeleteJobTriggerRequest) GetName() string {
 
 type InspectJobConfig struct {
 	// The data to scan.
-	StorageConfig *StorageConfig `protobuf:"bytes,1,opt,name=storage_config,json=storageConfig" json:"storage_config,omitempty"`
+	StorageConfig *StorageConfig `protobuf:"bytes,1,opt,name=storage_config,json=storageConfig,proto3" json:"storage_config,omitempty"`
 	// How and what to scan for.
-	InspectConfig *InspectConfig `protobuf:"bytes,2,opt,name=inspect_config,json=inspectConfig" json:"inspect_config,omitempty"`
+	InspectConfig *InspectConfig `protobuf:"bytes,2,opt,name=inspect_config,json=inspectConfig,proto3" json:"inspect_config,omitempty"`
 	// If provided, will be used as the default for all values in InspectConfig.
 	// `inspect_config` will be merged into the values persisted as part of the
 	// template.
-	InspectTemplateName string `protobuf:"bytes,3,opt,name=inspect_template_name,json=inspectTemplateName" json:"inspect_template_name,omitempty"`
+	InspectTemplateName string `protobuf:"bytes,3,opt,name=inspect_template_name,json=inspectTemplateName,proto3" json:"inspect_template_name,omitempty"`
 	// Actions to execute at the completion of the job. Are executed in the order
 	// provided.
-	Actions              []*Action `protobuf:"bytes,4,rep,name=actions" json:"actions,omitempty"`
+	Actions              []*Action `protobuf:"bytes,4,rep,name=actions,proto3" json:"actions,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -9930,7 +10601,7 @@ func (m *InspectJobConfig) Reset()         { *m = InspectJobConfig{} }
 func (m *InspectJobConfig) String() string { return proto.CompactTextString(m) }
 func (*InspectJobConfig) ProtoMessage()    {}
 func (*InspectJobConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{79}
+	return fileDescriptor_dlp_536657b46c30097f, []int{81}
 }
 func (m *InspectJobConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_InspectJobConfig.Unmarshal(m, b)
@@ -9981,26 +10652,26 @@ func (m *InspectJobConfig) GetActions() []*Action {
 // Combines all of the information about a DLP job.
 type DlpJob struct {
 	// The server-assigned name.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The type of job.
-	Type DlpJobType `protobuf:"varint,2,opt,name=type,enum=google.privacy.dlp.v2.DlpJobType" json:"type,omitempty"`
+	Type DlpJobType `protobuf:"varint,2,opt,name=type,proto3,enum=google.privacy.dlp.v2.DlpJobType" json:"type,omitempty"`
 	// State of a job.
-	State DlpJob_JobState `protobuf:"varint,3,opt,name=state,enum=google.privacy.dlp.v2.DlpJob_JobState" json:"state,omitempty"`
+	State DlpJob_JobState `protobuf:"varint,3,opt,name=state,proto3,enum=google.privacy.dlp.v2.DlpJob_JobState" json:"state,omitempty"`
 	// Types that are valid to be assigned to Details:
 	//	*DlpJob_RiskDetails
 	//	*DlpJob_InspectDetails
 	Details isDlpJob_Details `protobuf_oneof:"details"`
 	// Time when the job was created.
-	CreateTime *timestamp.Timestamp `protobuf:"bytes,6,opt,name=create_time,json=createTime" json:"create_time,omitempty"`
+	CreateTime *timestamp.Timestamp `protobuf:"bytes,6,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	// Time when the job started.
-	StartTime *timestamp.Timestamp `protobuf:"bytes,7,opt,name=start_time,json=startTime" json:"start_time,omitempty"`
+	StartTime *timestamp.Timestamp `protobuf:"bytes,7,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
 	// Time when the job finished.
-	EndTime *timestamp.Timestamp `protobuf:"bytes,8,opt,name=end_time,json=endTime" json:"end_time,omitempty"`
+	EndTime *timestamp.Timestamp `protobuf:"bytes,8,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
 	// If created by a job trigger, the resource name of the trigger that
 	// instantiated the job.
-	JobTriggerName string `protobuf:"bytes,10,opt,name=job_trigger_name,json=jobTriggerName" json:"job_trigger_name,omitempty"`
+	JobTriggerName string `protobuf:"bytes,10,opt,name=job_trigger_name,json=jobTriggerName,proto3" json:"job_trigger_name,omitempty"`
 	// A stream of errors encountered running the job.
-	Errors               []*Error `protobuf:"bytes,11,rep,name=errors" json:"errors,omitempty"`
+	Errors               []*Error `protobuf:"bytes,11,rep,name=errors,proto3" json:"errors,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -10010,7 +10681,7 @@ func (m *DlpJob) Reset()         { *m = DlpJob{} }
 func (m *DlpJob) String() string { return proto.CompactTextString(m) }
 func (*DlpJob) ProtoMessage()    {}
 func (*DlpJob) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{80}
+	return fileDescriptor_dlp_536657b46c30097f, []int{82}
 }
 func (m *DlpJob) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DlpJob.Unmarshal(m, b)
@@ -10035,10 +10706,10 @@ type isDlpJob_Details interface {
 }
 
 type DlpJob_RiskDetails struct {
-	RiskDetails *AnalyzeDataSourceRiskDetails `protobuf:"bytes,4,opt,name=risk_details,json=riskDetails,oneof"`
+	RiskDetails *AnalyzeDataSourceRiskDetails `protobuf:"bytes,4,opt,name=risk_details,json=riskDetails,proto3,oneof"`
 }
 type DlpJob_InspectDetails struct {
-	InspectDetails *InspectDataSourceDetails `protobuf:"bytes,5,opt,name=inspect_details,json=inspectDetails,oneof"`
+	InspectDetails *InspectDataSourceDetails `protobuf:"bytes,5,opt,name=inspect_details,json=inspectDetails,proto3,oneof"`
 }
 
 func (*DlpJob_RiskDetails) isDlpJob_Details()    {}
@@ -10198,7 +10869,7 @@ func _DlpJob_OneofSizer(msg proto.Message) (n int) {
 // The request message for [DlpJobs.GetDlpJob][].
 type GetDlpJobRequest struct {
 	// The name of the DlpJob resource.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -10208,7 +10879,7 @@ func (m *GetDlpJobRequest) Reset()         { *m = GetDlpJobRequest{} }
 func (m *GetDlpJobRequest) String() string { return proto.CompactTextString(m) }
 func (*GetDlpJobRequest) ProtoMessage()    {}
 func (*GetDlpJobRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{81}
+	return fileDescriptor_dlp_536657b46c30097f, []int{83}
 }
 func (m *GetDlpJobRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetDlpJobRequest.Unmarshal(m, b)
@@ -10238,7 +10909,7 @@ func (m *GetDlpJobRequest) GetName() string {
 // The request message for listing DLP jobs.
 type ListDlpJobsRequest struct {
 	// The parent resource name, for example projects/my-project-id.
-	Parent string `protobuf:"bytes,4,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,4,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Optional. Allows filtering.
 	//
 	// Supported syntax:
@@ -10262,13 +10933,13 @@ type ListDlpJobsRequest struct {
 	// * inspected_storage = cloud_storage AND (state = done OR state = canceled)
 	//
 	// The length of this field should be no more than 500 characters.
-	Filter string `protobuf:"bytes,1,opt,name=filter" json:"filter,omitempty"`
+	Filter string `protobuf:"bytes,1,opt,name=filter,proto3" json:"filter,omitempty"`
 	// The standard list page size.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The standard list page token.
-	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// The type of job. Defaults to `DlpJobType.INSPECT`
-	Type                 DlpJobType `protobuf:"varint,5,opt,name=type,enum=google.privacy.dlp.v2.DlpJobType" json:"type,omitempty"`
+	Type                 DlpJobType `protobuf:"varint,5,opt,name=type,proto3,enum=google.privacy.dlp.v2.DlpJobType" json:"type,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
 	XXX_unrecognized     []byte     `json:"-"`
 	XXX_sizecache        int32      `json:"-"`
@@ -10278,7 +10949,7 @@ func (m *ListDlpJobsRequest) Reset()         { *m = ListDlpJobsRequest{} }
 func (m *ListDlpJobsRequest) String() string { return proto.CompactTextString(m) }
 func (*ListDlpJobsRequest) ProtoMessage()    {}
 func (*ListDlpJobsRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{82}
+	return fileDescriptor_dlp_536657b46c30097f, []int{84}
 }
 func (m *ListDlpJobsRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListDlpJobsRequest.Unmarshal(m, b)
@@ -10336,9 +11007,9 @@ func (m *ListDlpJobsRequest) GetType() DlpJobType {
 // The response message for listing DLP jobs.
 type ListDlpJobsResponse struct {
 	// A list of DlpJobs that matches the specified filter in the request.
-	Jobs []*DlpJob `protobuf:"bytes,1,rep,name=jobs" json:"jobs,omitempty"`
+	Jobs []*DlpJob `protobuf:"bytes,1,rep,name=jobs,proto3" json:"jobs,omitempty"`
 	// The standard List next-page token.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -10348,7 +11019,7 @@ func (m *ListDlpJobsResponse) Reset()         { *m = ListDlpJobsResponse{} }
 func (m *ListDlpJobsResponse) String() string { return proto.CompactTextString(m) }
 func (*ListDlpJobsResponse) ProtoMessage()    {}
 func (*ListDlpJobsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{83}
+	return fileDescriptor_dlp_536657b46c30097f, []int{85}
 }
 func (m *ListDlpJobsResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListDlpJobsResponse.Unmarshal(m, b)
@@ -10385,7 +11056,7 @@ func (m *ListDlpJobsResponse) GetNextPageToken() string {
 // The request message for canceling a DLP job.
 type CancelDlpJobRequest struct {
 	// The name of the DlpJob resource to be cancelled.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -10395,7 +11066,7 @@ func (m *CancelDlpJobRequest) Reset()         { *m = CancelDlpJobRequest{} }
 func (m *CancelDlpJobRequest) String() string { return proto.CompactTextString(m) }
 func (*CancelDlpJobRequest) ProtoMessage()    {}
 func (*CancelDlpJobRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{84}
+	return fileDescriptor_dlp_536657b46c30097f, []int{86}
 }
 func (m *CancelDlpJobRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CancelDlpJobRequest.Unmarshal(m, b)
@@ -10425,7 +11096,7 @@ func (m *CancelDlpJobRequest) GetName() string {
 // The request message for deleting a DLP job.
 type DeleteDlpJobRequest struct {
 	// The name of the DlpJob resource to be deleted.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -10435,7 +11106,7 @@ func (m *DeleteDlpJobRequest) Reset()         { *m = DeleteDlpJobRequest{} }
 func (m *DeleteDlpJobRequest) String() string { return proto.CompactTextString(m) }
 func (*DeleteDlpJobRequest) ProtoMessage()    {}
 func (*DeleteDlpJobRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{85}
+	return fileDescriptor_dlp_536657b46c30097f, []int{87}
 }
 func (m *DeleteDlpJobRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeleteDlpJobRequest.Unmarshal(m, b)
@@ -10466,14 +11137,14 @@ func (m *DeleteDlpJobRequest) GetName() string {
 type CreateDeidentifyTemplateRequest struct {
 	// The parent resource name, for example projects/my-project-id or
 	// organizations/my-org-id.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// The DeidentifyTemplate to create.
-	DeidentifyTemplate *DeidentifyTemplate `protobuf:"bytes,2,opt,name=deidentify_template,json=deidentifyTemplate" json:"deidentify_template,omitempty"`
+	DeidentifyTemplate *DeidentifyTemplate `protobuf:"bytes,2,opt,name=deidentify_template,json=deidentifyTemplate,proto3" json:"deidentify_template,omitempty"`
 	// The template id can contain uppercase and lowercase letters,
 	// numbers, and hyphens; that is, it must match the regular
 	// expression: `[a-zA-Z\\d-]+`. The maximum length is 100
 	// characters. Can be empty to allow the system to generate one.
-	TemplateId           string   `protobuf:"bytes,3,opt,name=template_id,json=templateId" json:"template_id,omitempty"`
+	TemplateId           string   `protobuf:"bytes,3,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -10483,7 +11154,7 @@ func (m *CreateDeidentifyTemplateRequest) Reset()         { *m = CreateDeidentif
 func (m *CreateDeidentifyTemplateRequest) String() string { return proto.CompactTextString(m) }
 func (*CreateDeidentifyTemplateRequest) ProtoMessage()    {}
 func (*CreateDeidentifyTemplateRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{86}
+	return fileDescriptor_dlp_536657b46c30097f, []int{88}
 }
 func (m *CreateDeidentifyTemplateRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CreateDeidentifyTemplateRequest.Unmarshal(m, b)
@@ -10529,11 +11200,11 @@ type UpdateDeidentifyTemplateRequest struct {
 	// Resource name of organization and deidentify template to be updated, for
 	// example `organizations/433245324/deidentifyTemplates/432452342` or
 	// projects/project-id/deidentifyTemplates/432452342.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// New DeidentifyTemplate value.
-	DeidentifyTemplate *DeidentifyTemplate `protobuf:"bytes,2,opt,name=deidentify_template,json=deidentifyTemplate" json:"deidentify_template,omitempty"`
+	DeidentifyTemplate *DeidentifyTemplate `protobuf:"bytes,2,opt,name=deidentify_template,json=deidentifyTemplate,proto3" json:"deidentify_template,omitempty"`
 	// Mask to control which fields get updated.
-	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -10543,7 +11214,7 @@ func (m *UpdateDeidentifyTemplateRequest) Reset()         { *m = UpdateDeidentif
 func (m *UpdateDeidentifyTemplateRequest) String() string { return proto.CompactTextString(m) }
 func (*UpdateDeidentifyTemplateRequest) ProtoMessage()    {}
 func (*UpdateDeidentifyTemplateRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{87}
+	return fileDescriptor_dlp_536657b46c30097f, []int{89}
 }
 func (m *UpdateDeidentifyTemplateRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UpdateDeidentifyTemplateRequest.Unmarshal(m, b)
@@ -10589,7 +11260,7 @@ type GetDeidentifyTemplateRequest struct {
 	// Resource name of the organization and deidentify template to be read, for
 	// example `organizations/433245324/deidentifyTemplates/432452342` or
 	// projects/project-id/deidentifyTemplates/432452342.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -10599,7 +11270,7 @@ func (m *GetDeidentifyTemplateRequest) Reset()         { *m = GetDeidentifyTempl
 func (m *GetDeidentifyTemplateRequest) String() string { return proto.CompactTextString(m) }
 func (*GetDeidentifyTemplateRequest) ProtoMessage()    {}
 func (*GetDeidentifyTemplateRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{88}
+	return fileDescriptor_dlp_536657b46c30097f, []int{90}
 }
 func (m *GetDeidentifyTemplateRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetDeidentifyTemplateRequest.Unmarshal(m, b)
@@ -10630,13 +11301,13 @@ func (m *GetDeidentifyTemplateRequest) GetName() string {
 type ListDeidentifyTemplatesRequest struct {
 	// The parent resource name, for example projects/my-project-id or
 	// organizations/my-org-id.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Optional page token to continue retrieval. Comes from previous call
 	// to `ListDeidentifyTemplates`.
-	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// Optional size of the page, can be limited by server. If zero server returns
 	// a page of max size 100.
-	PageSize             int32    `protobuf:"varint,3,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize             int32    `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -10646,7 +11317,7 @@ func (m *ListDeidentifyTemplatesRequest) Reset()         { *m = ListDeidentifyTe
 func (m *ListDeidentifyTemplatesRequest) String() string { return proto.CompactTextString(m) }
 func (*ListDeidentifyTemplatesRequest) ProtoMessage()    {}
 func (*ListDeidentifyTemplatesRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{89}
+	return fileDescriptor_dlp_536657b46c30097f, []int{91}
 }
 func (m *ListDeidentifyTemplatesRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListDeidentifyTemplatesRequest.Unmarshal(m, b)
@@ -10691,10 +11362,10 @@ func (m *ListDeidentifyTemplatesRequest) GetPageSize() int32 {
 type ListDeidentifyTemplatesResponse struct {
 	// List of deidentify templates, up to page_size in
 	// ListDeidentifyTemplatesRequest.
-	DeidentifyTemplates []*DeidentifyTemplate `protobuf:"bytes,1,rep,name=deidentify_templates,json=deidentifyTemplates" json:"deidentify_templates,omitempty"`
+	DeidentifyTemplates []*DeidentifyTemplate `protobuf:"bytes,1,rep,name=deidentify_templates,json=deidentifyTemplates,proto3" json:"deidentify_templates,omitempty"`
 	// If the next page is available then the next page token to be used
 	// in following ListDeidentifyTemplates request.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -10704,7 +11375,7 @@ func (m *ListDeidentifyTemplatesResponse) Reset()         { *m = ListDeidentifyT
 func (m *ListDeidentifyTemplatesResponse) String() string { return proto.CompactTextString(m) }
 func (*ListDeidentifyTemplatesResponse) ProtoMessage()    {}
 func (*ListDeidentifyTemplatesResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{90}
+	return fileDescriptor_dlp_536657b46c30097f, []int{92}
 }
 func (m *ListDeidentifyTemplatesResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListDeidentifyTemplatesResponse.Unmarshal(m, b)
@@ -10743,7 +11414,7 @@ type DeleteDeidentifyTemplateRequest struct {
 	// Resource name of the organization and deidentify template to be deleted,
 	// for example `organizations/433245324/deidentifyTemplates/432452342` or
 	// projects/project-id/deidentifyTemplates/432452342.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -10753,7 +11424,7 @@ func (m *DeleteDeidentifyTemplateRequest) Reset()         { *m = DeleteDeidentif
 func (m *DeleteDeidentifyTemplateRequest) String() string { return proto.CompactTextString(m) }
 func (*DeleteDeidentifyTemplateRequest) ProtoMessage()    {}
 func (*DeleteDeidentifyTemplateRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dlp_beb477e7efffa071, []int{91}
+	return fileDescriptor_dlp_536657b46c30097f, []int{93}
 }
 func (m *DeleteDeidentifyTemplateRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeleteDeidentifyTemplateRequest.Unmarshal(m, b)
@@ -10817,6 +11488,9 @@ func init() {
 	proto.RegisterType((*ListInfoTypesRequest)(nil), "google.privacy.dlp.v2.ListInfoTypesRequest")
 	proto.RegisterType((*ListInfoTypesResponse)(nil), "google.privacy.dlp.v2.ListInfoTypesResponse")
 	proto.RegisterType((*RiskAnalysisJobConfig)(nil), "google.privacy.dlp.v2.RiskAnalysisJobConfig")
+	proto.RegisterType((*QuasiId)(nil), "google.privacy.dlp.v2.QuasiId")
+	proto.RegisterType((*StatisticalTable)(nil), "google.privacy.dlp.v2.StatisticalTable")
+	proto.RegisterType((*StatisticalTable_QuasiIdentifierField)(nil), "google.privacy.dlp.v2.StatisticalTable.QuasiIdentifierField")
 	proto.RegisterType((*PrivacyMetric)(nil), "google.privacy.dlp.v2.PrivacyMetric")
 	proto.RegisterType((*PrivacyMetric_NumericalStatsConfig)(nil), "google.privacy.dlp.v2.PrivacyMetric.NumericalStatsConfig")
 	proto.RegisterType((*PrivacyMetric_CategoricalStatsConfig)(nil), "google.privacy.dlp.v2.PrivacyMetric.CategoricalStatsConfig")
@@ -10826,6 +11500,7 @@ func init() {
 	proto.RegisterType((*PrivacyMetric_KMapEstimationConfig_TaggedField)(nil), "google.privacy.dlp.v2.PrivacyMetric.KMapEstimationConfig.TaggedField")
 	proto.RegisterType((*PrivacyMetric_KMapEstimationConfig_AuxiliaryTable)(nil), "google.privacy.dlp.v2.PrivacyMetric.KMapEstimationConfig.AuxiliaryTable")
 	proto.RegisterType((*PrivacyMetric_KMapEstimationConfig_AuxiliaryTable_QuasiIdField)(nil), "google.privacy.dlp.v2.PrivacyMetric.KMapEstimationConfig.AuxiliaryTable.QuasiIdField")
+	proto.RegisterType((*PrivacyMetric_DeltaPresenceEstimationConfig)(nil), "google.privacy.dlp.v2.PrivacyMetric.DeltaPresenceEstimationConfig")
 	proto.RegisterType((*AnalyzeDataSourceRiskDetails)(nil), "google.privacy.dlp.v2.AnalyzeDataSourceRiskDetails")
 	proto.RegisterType((*AnalyzeDataSourceRiskDetails_NumericalStatsResult)(nil), "google.privacy.dlp.v2.AnalyzeDataSourceRiskDetails.NumericalStatsResult")
 	proto.RegisterType((*AnalyzeDataSourceRiskDetails_CategoricalStatsResult)(nil), "google.privacy.dlp.v2.AnalyzeDataSourceRiskDetails.CategoricalStatsResult")
@@ -10839,6 +11514,9 @@ func init() {
 	proto.RegisterType((*AnalyzeDataSourceRiskDetails_KMapEstimationResult)(nil), "google.privacy.dlp.v2.AnalyzeDataSourceRiskDetails.KMapEstimationResult")
 	proto.RegisterType((*AnalyzeDataSourceRiskDetails_KMapEstimationResult_KMapEstimationQuasiIdValues)(nil), "google.privacy.dlp.v2.AnalyzeDataSourceRiskDetails.KMapEstimationResult.KMapEstimationQuasiIdValues")
 	proto.RegisterType((*AnalyzeDataSourceRiskDetails_KMapEstimationResult_KMapEstimationHistogramBucket)(nil), "google.privacy.dlp.v2.AnalyzeDataSourceRiskDetails.KMapEstimationResult.KMapEstimationHistogramBucket")
+	proto.RegisterType((*AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult)(nil), "google.privacy.dlp.v2.AnalyzeDataSourceRiskDetails.DeltaPresenceEstimationResult")
+	proto.RegisterType((*AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationQuasiIdValues)(nil), "google.privacy.dlp.v2.AnalyzeDataSourceRiskDetails.DeltaPresenceEstimationResult.DeltaPresenceEstimationQuasiIdValues")
+	proto.RegisterType((*AnalyzeDataSourceRiskDetails_DeltaPresenceEstimationResult_DeltaPresenceEstimationHistogramBucket)(nil), "google.privacy.dlp.v2.AnalyzeDataSourceRiskDetails.DeltaPresenceEstimationResult.DeltaPresenceEstimationHistogramBucket")
 	proto.RegisterType((*ValueFrequency)(nil), "google.privacy.dlp.v2.ValueFrequency")
 	proto.RegisterType((*Value)(nil), "google.privacy.dlp.v2.Value")
 	proto.RegisterType((*QuoteInfo)(nil), "google.privacy.dlp.v2.QuoteInfo")
@@ -10939,70 +11617,121 @@ const _ = grpc.SupportPackageIsVersion4
 type DlpServiceClient interface {
 	// Finds potentially sensitive info in content.
 	// This method has limits on input size, processing time, and output size.
-	// [How-to guide for text](/dlp/docs/inspecting-text), [How-to guide for
-	// images](/dlp/docs/inspecting-images)
+	//
+	// When no InfoTypes or CustomInfoTypes are specified in this request, the
+	// system will automatically choose what detectors to run. By default this may
+	// be all types, but may change over time as detectors are updated.
+	//
+	// For how to guides, see https://cloud.google.com/dlp/docs/inspecting-images
+	// and https://cloud.google.com/dlp/docs/inspecting-text,
 	InspectContent(ctx context.Context, in *InspectContentRequest, opts ...grpc.CallOption) (*InspectContentResponse, error)
 	// Redacts potentially sensitive info from an image.
 	// This method has limits on input size, processing time, and output size.
-	// [How-to guide](/dlp/docs/redacting-sensitive-data-images)
+	// See https://cloud.google.com/dlp/docs/redacting-sensitive-data-images to
+	// learn more.
+	//
+	// When no InfoTypes or CustomInfoTypes are specified in this request, the
+	// system will automatically choose what detectors to run. By default this may
+	// be all types, but may change over time as detectors are updated.
 	RedactImage(ctx context.Context, in *RedactImageRequest, opts ...grpc.CallOption) (*RedactImageResponse, error)
 	// De-identifies potentially sensitive info from a ContentItem.
 	// This method has limits on input size and output size.
-	// [How-to guide](/dlp/docs/deidentify-sensitive-data)
+	// See https://cloud.google.com/dlp/docs/deidentify-sensitive-data to
+	// learn more.
+	//
+	// When no InfoTypes or CustomInfoTypes are specified in this request, the
+	// system will automatically choose what detectors to run. By default this may
+	// be all types, but may change over time as detectors are updated.
 	DeidentifyContent(ctx context.Context, in *DeidentifyContentRequest, opts ...grpc.CallOption) (*DeidentifyContentResponse, error)
 	// Re-identifies content that has been de-identified.
+	// See
+	// https://cloud.google.com/dlp/docs/pseudonymization#re-identification_in_free_text_code_example
+	// to learn more.
 	ReidentifyContent(ctx context.Context, in *ReidentifyContentRequest, opts ...grpc.CallOption) (*ReidentifyContentResponse, error)
 	// Returns a list of the sensitive information types that the DLP API
-	// supports. For more information, see [Listing supported predefined
-	// infoTypes](/dlp/docs/listing-infotypes).
+	// supports. See https://cloud.google.com/dlp/docs/infotypes-reference to
+	// learn more.
 	ListInfoTypes(ctx context.Context, in *ListInfoTypesRequest, opts ...grpc.CallOption) (*ListInfoTypesResponse, error)
 	// Creates an InspectTemplate for re-using frequently used configuration
 	// for inspecting content, images, and storage.
+	// See https://cloud.google.com/dlp/docs/creating-templates to learn more.
 	CreateInspectTemplate(ctx context.Context, in *CreateInspectTemplateRequest, opts ...grpc.CallOption) (*InspectTemplate, error)
 	// Updates the InspectTemplate.
+	// See https://cloud.google.com/dlp/docs/creating-templates to learn more.
 	UpdateInspectTemplate(ctx context.Context, in *UpdateInspectTemplateRequest, opts ...grpc.CallOption) (*InspectTemplate, error)
 	// Gets an InspectTemplate.
+	// See https://cloud.google.com/dlp/docs/creating-templates to learn more.
 	GetInspectTemplate(ctx context.Context, in *GetInspectTemplateRequest, opts ...grpc.CallOption) (*InspectTemplate, error)
 	// Lists InspectTemplates.
+	// See https://cloud.google.com/dlp/docs/creating-templates to learn more.
 	ListInspectTemplates(ctx context.Context, in *ListInspectTemplatesRequest, opts ...grpc.CallOption) (*ListInspectTemplatesResponse, error)
 	// Deletes an InspectTemplate.
+	// See https://cloud.google.com/dlp/docs/creating-templates to learn more.
 	DeleteInspectTemplate(ctx context.Context, in *DeleteInspectTemplateRequest, opts ...grpc.CallOption) (*empty.Empty, error)
 	// Creates a DeidentifyTemplate for re-using frequently used configuration
 	// for de-identifying content, images, and storage.
+	// See https://cloud.google.com/dlp/docs/creating-templates-deid to learn
+	// more.
 	CreateDeidentifyTemplate(ctx context.Context, in *CreateDeidentifyTemplateRequest, opts ...grpc.CallOption) (*DeidentifyTemplate, error)
 	// Updates the DeidentifyTemplate.
+	// See https://cloud.google.com/dlp/docs/creating-templates-deid to learn
+	// more.
 	UpdateDeidentifyTemplate(ctx context.Context, in *UpdateDeidentifyTemplateRequest, opts ...grpc.CallOption) (*DeidentifyTemplate, error)
 	// Gets a DeidentifyTemplate.
+	// See https://cloud.google.com/dlp/docs/creating-templates-deid to learn
+	// more.
 	GetDeidentifyTemplate(ctx context.Context, in *GetDeidentifyTemplateRequest, opts ...grpc.CallOption) (*DeidentifyTemplate, error)
 	// Lists DeidentifyTemplates.
+	// See https://cloud.google.com/dlp/docs/creating-templates-deid to learn
+	// more.
 	ListDeidentifyTemplates(ctx context.Context, in *ListDeidentifyTemplatesRequest, opts ...grpc.CallOption) (*ListDeidentifyTemplatesResponse, error)
 	// Deletes a DeidentifyTemplate.
+	// See https://cloud.google.com/dlp/docs/creating-templates-deid to learn
+	// more.
 	DeleteDeidentifyTemplate(ctx context.Context, in *DeleteDeidentifyTemplateRequest, opts ...grpc.CallOption) (*empty.Empty, error)
 	// Creates a job trigger to run DLP actions such as scanning storage for
 	// sensitive information on a set schedule.
+	// See https://cloud.google.com/dlp/docs/creating-job-triggers to learn more.
 	CreateJobTrigger(ctx context.Context, in *CreateJobTriggerRequest, opts ...grpc.CallOption) (*JobTrigger, error)
 	// Updates a job trigger.
+	// See https://cloud.google.com/dlp/docs/creating-job-triggers to learn more.
 	UpdateJobTrigger(ctx context.Context, in *UpdateJobTriggerRequest, opts ...grpc.CallOption) (*JobTrigger, error)
 	// Gets a job trigger.
+	// See https://cloud.google.com/dlp/docs/creating-job-triggers to learn more.
 	GetJobTrigger(ctx context.Context, in *GetJobTriggerRequest, opts ...grpc.CallOption) (*JobTrigger, error)
 	// Lists job triggers.
+	// See https://cloud.google.com/dlp/docs/creating-job-triggers to learn more.
 	ListJobTriggers(ctx context.Context, in *ListJobTriggersRequest, opts ...grpc.CallOption) (*ListJobTriggersResponse, error)
 	// Deletes a job trigger.
+	// See https://cloud.google.com/dlp/docs/creating-job-triggers to learn more.
 	DeleteJobTrigger(ctx context.Context, in *DeleteJobTriggerRequest, opts ...grpc.CallOption) (*empty.Empty, error)
 	// Creates a new job to inspect storage or calculate risk metrics.
-	// [How-to guide](/dlp/docs/compute-risk-analysis).
+	// See https://cloud.google.com/dlp/docs/inspecting-storage and
+	// https://cloud.google.com/dlp/docs/compute-risk-analysis to learn more.
+	//
+	// When no InfoTypes or CustomInfoTypes are specified in inspect jobs, the
+	// system will automatically choose what detectors to run. By default this may
+	// be all types, but may change over time as detectors are updated.
 	CreateDlpJob(ctx context.Context, in *CreateDlpJobRequest, opts ...grpc.CallOption) (*DlpJob, error)
 	// Lists DlpJobs that match the specified filter in the request.
+	// See https://cloud.google.com/dlp/docs/inspecting-storage and
+	// https://cloud.google.com/dlp/docs/compute-risk-analysis to learn more.
 	ListDlpJobs(ctx context.Context, in *ListDlpJobsRequest, opts ...grpc.CallOption) (*ListDlpJobsResponse, error)
 	// Gets the latest state of a long-running DlpJob.
+	// See https://cloud.google.com/dlp/docs/inspecting-storage and
+	// https://cloud.google.com/dlp/docs/compute-risk-analysis to learn more.
 	GetDlpJob(ctx context.Context, in *GetDlpJobRequest, opts ...grpc.CallOption) (*DlpJob, error)
 	// Deletes a long-running DlpJob. This method indicates that the client is
 	// no longer interested in the DlpJob result. The job will be cancelled if
 	// possible.
+	// See https://cloud.google.com/dlp/docs/inspecting-storage and
+	// https://cloud.google.com/dlp/docs/compute-risk-analysis to learn more.
 	DeleteDlpJob(ctx context.Context, in *DeleteDlpJobRequest, opts ...grpc.CallOption) (*empty.Empty, error)
 	// Starts asynchronous cancellation on a long-running DlpJob. The server
 	// makes a best effort to cancel the DlpJob, but success is not
 	// guaranteed.
+	// See https://cloud.google.com/dlp/docs/inspecting-storage and
+	// https://cloud.google.com/dlp/docs/compute-risk-analysis to learn more.
 	CancelDlpJob(ctx context.Context, in *CancelDlpJobRequest, opts ...grpc.CallOption) (*empty.Empty, error)
 }
 
@@ -11239,75 +11968,125 @@ func (c *dlpServiceClient) CancelDlpJob(ctx context.Context, in *CancelDlpJobReq
 	return out, nil
 }
 
-// Server API for DlpService service
-
+// DlpServiceServer is the server API for DlpService service.
 type DlpServiceServer interface {
 	// Finds potentially sensitive info in content.
 	// This method has limits on input size, processing time, and output size.
-	// [How-to guide for text](/dlp/docs/inspecting-text), [How-to guide for
-	// images](/dlp/docs/inspecting-images)
+	//
+	// When no InfoTypes or CustomInfoTypes are specified in this request, the
+	// system will automatically choose what detectors to run. By default this may
+	// be all types, but may change over time as detectors are updated.
+	//
+	// For how to guides, see https://cloud.google.com/dlp/docs/inspecting-images
+	// and https://cloud.google.com/dlp/docs/inspecting-text,
 	InspectContent(context.Context, *InspectContentRequest) (*InspectContentResponse, error)
 	// Redacts potentially sensitive info from an image.
 	// This method has limits on input size, processing time, and output size.
-	// [How-to guide](/dlp/docs/redacting-sensitive-data-images)
+	// See https://cloud.google.com/dlp/docs/redacting-sensitive-data-images to
+	// learn more.
+	//
+	// When no InfoTypes or CustomInfoTypes are specified in this request, the
+	// system will automatically choose what detectors to run. By default this may
+	// be all types, but may change over time as detectors are updated.
 	RedactImage(context.Context, *RedactImageRequest) (*RedactImageResponse, error)
 	// De-identifies potentially sensitive info from a ContentItem.
 	// This method has limits on input size and output size.
-	// [How-to guide](/dlp/docs/deidentify-sensitive-data)
+	// See https://cloud.google.com/dlp/docs/deidentify-sensitive-data to
+	// learn more.
+	//
+	// When no InfoTypes or CustomInfoTypes are specified in this request, the
+	// system will automatically choose what detectors to run. By default this may
+	// be all types, but may change over time as detectors are updated.
 	DeidentifyContent(context.Context, *DeidentifyContentRequest) (*DeidentifyContentResponse, error)
 	// Re-identifies content that has been de-identified.
+	// See
+	// https://cloud.google.com/dlp/docs/pseudonymization#re-identification_in_free_text_code_example
+	// to learn more.
 	ReidentifyContent(context.Context, *ReidentifyContentRequest) (*ReidentifyContentResponse, error)
 	// Returns a list of the sensitive information types that the DLP API
-	// supports. For more information, see [Listing supported predefined
-	// infoTypes](/dlp/docs/listing-infotypes).
+	// supports. See https://cloud.google.com/dlp/docs/infotypes-reference to
+	// learn more.
 	ListInfoTypes(context.Context, *ListInfoTypesRequest) (*ListInfoTypesResponse, error)
 	// Creates an InspectTemplate for re-using frequently used configuration
 	// for inspecting content, images, and storage.
+	// See https://cloud.google.com/dlp/docs/creating-templates to learn more.
 	CreateInspectTemplate(context.Context, *CreateInspectTemplateRequest) (*InspectTemplate, error)
 	// Updates the InspectTemplate.
+	// See https://cloud.google.com/dlp/docs/creating-templates to learn more.
 	UpdateInspectTemplate(context.Context, *UpdateInspectTemplateRequest) (*InspectTemplate, error)
 	// Gets an InspectTemplate.
+	// See https://cloud.google.com/dlp/docs/creating-templates to learn more.
 	GetInspectTemplate(context.Context, *GetInspectTemplateRequest) (*InspectTemplate, error)
 	// Lists InspectTemplates.
+	// See https://cloud.google.com/dlp/docs/creating-templates to learn more.
 	ListInspectTemplates(context.Context, *ListInspectTemplatesRequest) (*ListInspectTemplatesResponse, error)
 	// Deletes an InspectTemplate.
+	// See https://cloud.google.com/dlp/docs/creating-templates to learn more.
 	DeleteInspectTemplate(context.Context, *DeleteInspectTemplateRequest) (*empty.Empty, error)
 	// Creates a DeidentifyTemplate for re-using frequently used configuration
 	// for de-identifying content, images, and storage.
+	// See https://cloud.google.com/dlp/docs/creating-templates-deid to learn
+	// more.
 	CreateDeidentifyTemplate(context.Context, *CreateDeidentifyTemplateRequest) (*DeidentifyTemplate, error)
 	// Updates the DeidentifyTemplate.
+	// See https://cloud.google.com/dlp/docs/creating-templates-deid to learn
+	// more.
 	UpdateDeidentifyTemplate(context.Context, *UpdateDeidentifyTemplateRequest) (*DeidentifyTemplate, error)
 	// Gets a DeidentifyTemplate.
+	// See https://cloud.google.com/dlp/docs/creating-templates-deid to learn
+	// more.
 	GetDeidentifyTemplate(context.Context, *GetDeidentifyTemplateRequest) (*DeidentifyTemplate, error)
 	// Lists DeidentifyTemplates.
+	// See https://cloud.google.com/dlp/docs/creating-templates-deid to learn
+	// more.
 	ListDeidentifyTemplates(context.Context, *ListDeidentifyTemplatesRequest) (*ListDeidentifyTemplatesResponse, error)
 	// Deletes a DeidentifyTemplate.
+	// See https://cloud.google.com/dlp/docs/creating-templates-deid to learn
+	// more.
 	DeleteDeidentifyTemplate(context.Context, *DeleteDeidentifyTemplateRequest) (*empty.Empty, error)
 	// Creates a job trigger to run DLP actions such as scanning storage for
 	// sensitive information on a set schedule.
+	// See https://cloud.google.com/dlp/docs/creating-job-triggers to learn more.
 	CreateJobTrigger(context.Context, *CreateJobTriggerRequest) (*JobTrigger, error)
 	// Updates a job trigger.
+	// See https://cloud.google.com/dlp/docs/creating-job-triggers to learn more.
 	UpdateJobTrigger(context.Context, *UpdateJobTriggerRequest) (*JobTrigger, error)
 	// Gets a job trigger.
+	// See https://cloud.google.com/dlp/docs/creating-job-triggers to learn more.
 	GetJobTrigger(context.Context, *GetJobTriggerRequest) (*JobTrigger, error)
 	// Lists job triggers.
+	// See https://cloud.google.com/dlp/docs/creating-job-triggers to learn more.
 	ListJobTriggers(context.Context, *ListJobTriggersRequest) (*ListJobTriggersResponse, error)
 	// Deletes a job trigger.
+	// See https://cloud.google.com/dlp/docs/creating-job-triggers to learn more.
 	DeleteJobTrigger(context.Context, *DeleteJobTriggerRequest) (*empty.Empty, error)
 	// Creates a new job to inspect storage or calculate risk metrics.
-	// [How-to guide](/dlp/docs/compute-risk-analysis).
+	// See https://cloud.google.com/dlp/docs/inspecting-storage and
+	// https://cloud.google.com/dlp/docs/compute-risk-analysis to learn more.
+	//
+	// When no InfoTypes or CustomInfoTypes are specified in inspect jobs, the
+	// system will automatically choose what detectors to run. By default this may
+	// be all types, but may change over time as detectors are updated.
 	CreateDlpJob(context.Context, *CreateDlpJobRequest) (*DlpJob, error)
 	// Lists DlpJobs that match the specified filter in the request.
+	// See https://cloud.google.com/dlp/docs/inspecting-storage and
+	// https://cloud.google.com/dlp/docs/compute-risk-analysis to learn more.
 	ListDlpJobs(context.Context, *ListDlpJobsRequest) (*ListDlpJobsResponse, error)
 	// Gets the latest state of a long-running DlpJob.
+	// See https://cloud.google.com/dlp/docs/inspecting-storage and
+	// https://cloud.google.com/dlp/docs/compute-risk-analysis to learn more.
 	GetDlpJob(context.Context, *GetDlpJobRequest) (*DlpJob, error)
 	// Deletes a long-running DlpJob. This method indicates that the client is
 	// no longer interested in the DlpJob result. The job will be cancelled if
 	// possible.
+	// See https://cloud.google.com/dlp/docs/inspecting-storage and
+	// https://cloud.google.com/dlp/docs/compute-risk-analysis to learn more.
 	DeleteDlpJob(context.Context, *DeleteDlpJobRequest) (*empty.Empty, error)
 	// Starts asynchronous cancellation on a long-running DlpJob. The server
 	// makes a best effort to cancel the DlpJob, but success is not
 	// guaranteed.
+	// See https://cloud.google.com/dlp/docs/inspecting-storage and
+	// https://cloud.google.com/dlp/docs/compute-risk-analysis to learn more.
 	CancelDlpJob(context.Context, *CancelDlpJobRequest) (*empty.Empty, error)
 }
 
@@ -11875,512 +12654,531 @@ var _DlpService_serviceDesc = grpc.ServiceDesc{
 }
 
 func init() {
-	proto.RegisterFile("google/privacy/dlp/v2/dlp.proto", fileDescriptor_dlp_beb477e7efffa071)
+	proto.RegisterFile("google/privacy/dlp/v2/dlp.proto", fileDescriptor_dlp_536657b46c30097f)
 }
 
-var fileDescriptor_dlp_beb477e7efffa071 = []byte{
-	// 8047 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xdc, 0x7d, 0x6b, 0x6c, 0x1b, 0x59,
-	0x77, 0x98, 0x86, 0x14, 0x25, 0xf2, 0xf0, 0x21, 0xea, 0xea, 0x61, 0x99, 0xb6, 0xd7, 0xde, 0xf1,
-	0xae, 0xd7, 0xab, 0xb5, 0xa5, 0x5d, 0xed, 0xe3, 0xdb, 0xf5, 0xee, 0xb7, 0x09, 0x45, 0xd2, 0x26,
-	0xbd, 0x92, 0x28, 0x0f, 0x29, 0xef, 0xda, 0x59, 0xec, 0x74, 0x44, 0x5e, 0x51, 0x63, 0x91, 0x33,
-	0xf4, 0xcc, 0xd0, 0x96, 0x36, 0x49, 0xf1, 0xa5, 0x48, 0x1b, 0xa4, 0xe8, 0x87, 0x06, 0x68, 0xbf,
-	0x7e, 0x68, 0xd2, 0x06, 0x69, 0xfb, 0xa3, 0x40, 0x80, 0xb4, 0x28, 0xda, 0x26, 0x68, 0x9b, 0xe6,
-	0x47, 0x5a, 0xb4, 0x45, 0x51, 0x14, 0x5f, 0xf0, 0xfd, 0x2a, 0x8a, 0x02, 0xed, 0xd7, 0x07, 0x0a,
-	0x6c, 0xfe, 0x14, 0xe8, 0x8f, 0x3e, 0x80, 0xa2, 0xb8, 0x8f, 0x79, 0x72, 0x86, 0x0f, 0xd9, 0x8b,
-	0x04, 0xf9, 0x25, 0xce, 0xb9, 0xe7, 0x9c, 0x7b, 0xee, 0x39, 0xe7, 0x9e, 0x7b, 0xef, 0xb9, 0x0f,
-	0xc1, 0xd5, 0x8e, 0xae, 0x77, 0xba, 0x78, 0xb3, 0x6f, 0xa8, 0xcf, 0x94, 0xd6, 0xd9, 0x66, 0xbb,
-	0xdb, 0xdf, 0x7c, 0xb6, 0x45, 0xfe, 0x6c, 0xf4, 0x0d, 0xdd, 0xd2, 0xd1, 0x0a, 0x43, 0xd8, 0xe0,
-	0x08, 0x1b, 0xa4, 0xe4, 0xd9, 0x56, 0xe1, 0x32, 0xa7, 0x53, 0xfa, 0xea, 0xa6, 0xa2, 0x69, 0xba,
-	0xa5, 0x58, 0xaa, 0xae, 0x99, 0x8c, 0xa8, 0x70, 0x3d, 0x9c, 0xab, 0x69, 0xe9, 0x86, 0xd2, 0xc1,
-	0x1c, 0xe9, 0x15, 0x07, 0x49, 0xb7, 0xf4, 0xc3, 0xc1, 0xd1, 0x66, 0x7b, 0x60, 0x50, 0x2e, 0xbc,
-	0xfc, 0x52, 0xb0, 0x1c, 0xf7, 0xfa, 0xd6, 0x19, 0x2f, 0xbc, 0x16, 0x2c, 0x3c, 0x52, 0x71, 0xb7,
-	0x2d, 0xf7, 0x14, 0xf3, 0x84, 0x63, 0x5c, 0x0d, 0x62, 0x58, 0x6a, 0x0f, 0x9b, 0x96, 0xd2, 0xe3,
-	0x2d, 0x2b, 0x5c, 0xe0, 0x08, 0x46, 0xbf, 0xb5, 0x69, 0x5a, 0x8a, 0x35, 0xb0, 0xa5, 0x5f, 0xe5,
-	0x05, 0xd6, 0x59, 0x1f, 0x6f, 0xb6, 0x15, 0x0b, 0x07, 0x04, 0xe2, 0xf0, 0x33, 0xfd, 0xe8, 0x39,
-	0xc6, 0x27, 0x61, 0x85, 0xa4, 0x2a, 0xfd, 0xa8, 0xad, 0x70, 0x69, 0xc5, 0x7f, 0x35, 0x07, 0xd9,
-	0x9a, 0x66, 0xf6, 0x71, 0xcb, 0x2a, 0xe9, 0xda, 0x91, 0xda, 0x41, 0x9f, 0x02, 0xa8, 0xda, 0x91,
-	0x2e, 0x13, 0x74, 0x73, 0x4d, 0xb8, 0x16, 0xbf, 0x99, 0xde, 0xba, 0xba, 0x11, 0xaa, 0xeb, 0x8d,
-	0x9a, 0x76, 0xa4, 0x37, 0xcf, 0xfa, 0x58, 0x4a, 0xa9, 0xfc, 0x97, 0x89, 0xaa, 0x90, 0xeb, 0xa9,
-	0x9a, 0xdc, 0x55, 0x4f, 0x70, 0x57, 0x3d, 0xd6, 0xf5, 0xf6, 0x5a, 0xec, 0x9a, 0x70, 0x33, 0xb7,
-	0xf5, 0x6a, 0x04, 0x8f, 0x1d, 0x07, 0x51, 0xca, 0xf6, 0x54, 0xcd, 0xfd, 0x44, 0xf7, 0x61, 0xae,
-	0xab, 0xf6, 0x54, 0xcb, 0x5c, 0x8b, 0x5f, 0x13, 0x6e, 0xa6, 0xb7, 0xb6, 0x22, 0xa5, 0xf0, 0xc8,
-	0xbf, 0x71, 0x57, 0xd5, 0xda, 0xaa, 0xd6, 0xd9, 0xa1, 0x94, 0x12, 0xe7, 0x80, 0xae, 0x43, 0x56,
-	0xd5, 0x5a, 0xdd, 0x41, 0x1b, 0xcb, 0x4f, 0x07, 0xba, 0x85, 0xd7, 0x66, 0xaf, 0x09, 0x37, 0x93,
-	0x52, 0x86, 0x03, 0x1f, 0x10, 0x18, 0xba, 0x05, 0x08, 0x9f, 0x32, 0x24, 0x8f, 0x0a, 0x12, 0x14,
-	0x33, 0xcf, 0x4b, 0x6a, 0x4e, 0x43, 0x1f, 0xc0, 0x62, 0x6b, 0x60, 0x5a, 0x7a, 0xcf, 0x8b, 0x3c,
-	0x47, 0xf5, 0xf5, 0x7a, 0x84, 0xa4, 0x25, 0x8a, 0xef, 0x68, 0x6d, 0xa1, 0xe5, 0xfb, 0x36, 0xd1,
-	0x2e, 0x2c, 0xb4, 0x74, 0xcd, 0xc2, 0x9a, 0x25, 0xeb, 0x7d, 0xea, 0xb6, 0x6b, 0xc9, 0x6b, 0xf1,
-	0x9b, 0xb9, 0xad, 0xd7, 0xa2, 0x18, 0x32, 0xec, 0x3a, 0x45, 0x96, 0x72, 0x2d, 0xef, 0xa7, 0x59,
-	0xf8, 0x26, 0x06, 0x59, 0x9f, 0x3a, 0xd0, 0x3b, 0xb0, 0xd2, 0x53, 0x4e, 0xe5, 0x23, 0x06, 0x34,
-	0xe5, 0x3e, 0x36, 0x64, 0xd5, 0xc2, 0xbd, 0x35, 0xe1, 0x9a, 0x70, 0x33, 0x21, 0xa1, 0x9e, 0x72,
-	0xca, 0x09, 0xcc, 0x7d, 0x6c, 0xd4, 0x2c, 0xdc, 0x43, 0xdf, 0x81, 0xb5, 0x21, 0x12, 0x03, 0x3f,
-	0x1d, 0x60, 0xd3, 0xa2, 0x96, 0x4d, 0x48, 0x2b, 0x7e, 0x2a, 0x89, 0x15, 0xa2, 0x9f, 0x83, 0xc2,
-	0x70, 0x5d, 0xb6, 0xa6, 0xd6, 0xe2, 0x54, 0x51, 0x3f, 0x3d, 0xbd, 0x49, 0x1d, 0xa7, 0xa3, 0x9f,
-	0xd2, 0x6a, 0x40, 0x64, 0x5e, 0x58, 0xe8, 0x13, 0xbf, 0xf6, 0x20, 0xa2, 0x4f, 0x20, 0xe5, 0xd6,
-	0x2e, 0x50, 0x87, 0x1a, 0xeb, 0xd6, 0x49, 0xdb, 0xad, 0xd1, 0xab, 0x90, 0xf1, 0x36, 0x86, 0xb7,
-	0x3c, 0xed, 0xa9, 0x5c, 0xfc, 0x46, 0x80, 0x85, 0xed, 0x33, 0x0b, 0x73, 0x9b, 0x50, 0xe5, 0x95,
-	0x61, 0xd6, 0xa9, 0x2f, 0xb7, 0xf5, 0x76, 0x44, 0x7d, 0x01, 0x2a, 0xfa, 0x6d, 0x52, 0x01, 0x28,
-	0x35, 0x42, 0x30, 0xdb, 0x56, 0x2c, 0x85, 0x56, 0x9a, 0x91, 0xe8, 0x6f, 0xf1, 0x4f, 0x43, 0xca,
-	0x41, 0x43, 0x05, 0x58, 0xdd, 0x7e, 0xd4, 0xac, 0x34, 0xe4, 0xe6, 0xa3, 0xfd, 0x8a, 0x7c, 0xb0,
-	0xd7, 0xd8, 0xaf, 0x94, 0x6a, 0x77, 0x6b, 0x95, 0x72, 0x7e, 0x06, 0xa5, 0x20, 0x51, 0xdb, 0x2d,
-	0xde, 0xab, 0xe4, 0xe7, 0x50, 0x0e, 0x80, 0xfe, 0x94, 0xef, 0xef, 0x57, 0xee, 0xe5, 0x05, 0x94,
-	0x85, 0x14, 0xfb, 0xde, 0xde, 0xdd, 0xcf, 0xc7, 0xdc, 0xcf, 0xfd, 0xbd, 0x7b, 0xf9, 0xb8, 0xfb,
-	0xd9, 0x78, 0x78, 0x2f, 0x3f, 0x4b, 0x3e, 0x9b, 0x95, 0x2f, 0x9a, 0xf2, 0x41, 0xf3, 0xee, 0x87,
-	0xf9, 0x84, 0xf8, 0x77, 0x05, 0x48, 0x7b, 0x5b, 0xba, 0x0a, 0x89, 0x67, 0x4a, 0x77, 0x80, 0x69,
-	0x5f, 0x4d, 0x55, 0x67, 0x24, 0xf6, 0x89, 0xde, 0x83, 0x84, 0xa5, 0x1c, 0x76, 0x59, 0x87, 0x4b,
-	0x6f, 0x5d, 0x8e, 0x50, 0x41, 0x93, 0xe0, 0x10, 0x2a, 0x8a, 0x8c, 0x2a, 0x90, 0x3a, 0x3c, 0xb3,
-	0x30, 0xf3, 0xcd, 0x04, 0xa5, 0xbc, 0x31, 0x99, 0xf2, 0xaa, 0x33, 0x52, 0x92, 0x90, 0x92, 0xdf,
-	0xdb, 0x69, 0x48, 0x11, 0x65, 0x51, 0x36, 0xe2, 0x3f, 0x10, 0x20, 0x41, 0xab, 0x41, 0x1f, 0xc2,
-	0xfc, 0x31, 0x56, 0xda, 0xd8, 0xb0, 0xe3, 0xdb, 0x2b, 0x11, 0xbc, 0xef, 0x92, 0xd0, 0x5d, 0x6b,
-	0x4b, 0x36, 0x3a, 0x7a, 0x0f, 0x66, 0x0d, 0xfd, 0x39, 0x31, 0x3f, 0x21, 0xbb, 0x36, 0xaa, 0x31,
-	0x1b, 0x92, 0xfe, 0x5c, 0xa2, 0xd8, 0x85, 0x8f, 0x21, 0x2e, 0xe9, 0xcf, 0xd1, 0x7b, 0x30, 0x47,
-	0x75, 0x62, 0xd7, 0x1a, 0xa5, 0x8b, 0x87, 0x04, 0x49, 0xe2, 0xb8, 0xe2, 0xd7, 0x4e, 0x80, 0x96,
-	0xb0, 0x39, 0xe8, 0x5a, 0xe8, 0x0e, 0x24, 0x1d, 0x37, 0x1c, 0x27, 0x3e, 0x45, 0x93, 0x1c, 0x7c,
-	0x74, 0x1b, 0x90, 0xd3, 0x1f, 0x2d, 0x63, 0xa0, 0xb5, 0x14, 0x0b, 0xb3, 0x00, 0x9d, 0x94, 0x16,
-	0xed, 0x92, 0xa6, 0x5d, 0x20, 0xfe, 0xfb, 0x18, 0xcc, 0x73, 0x26, 0x68, 0x19, 0x12, 0x2c, 0x72,
-	0x12, 0x5f, 0x4e, 0x49, 0xec, 0xc3, 0xdf, 0xab, 0x62, 0xd3, 0xf6, 0xaa, 0x22, 0x80, 0x67, 0x9c,
-	0x88, 0x4f, 0x3a, 0x4e, 0x78, 0x88, 0xd0, 0xc7, 0x90, 0xec, 0xea, 0x2d, 0x3a, 0x3a, 0x73, 0x17,
-	0x8b, 0xaa, 0x7f, 0x87, 0xa3, 0x49, 0x0e, 0x01, 0xfa, 0x18, 0xd2, 0x2d, 0x03, 0x2b, 0x16, 0x96,
-	0xc9, 0xb8, 0xb8, 0x36, 0x47, 0xe9, 0x0b, 0x2e, 0x3d, 0x1b, 0x9f, 0x37, 0x9a, 0xf6, 0xf8, 0x2c,
-	0x01, 0x43, 0x27, 0x00, 0xf4, 0x53, 0x00, 0x54, 0x07, 0x34, 0xa8, 0xad, 0xcd, 0x53, 0xda, 0x28,
-	0x8f, 0xa0, 0xe3, 0x0b, 0x51, 0x80, 0x94, 0x7a, 0x6a, 0xff, 0x14, 0xff, 0xb3, 0x00, 0xc9, 0x1d,
-	0x57, 0x14, 0xa0, 0x1e, 0x6f, 0x28, 0x5a, 0xc7, 0x8e, 0x4f, 0x51, 0x0e, 0x22, 0x11, 0x1c, 0x89,
-	0xf6, 0x10, 0xfa, 0x13, 0x55, 0xc8, 0xb8, 0xd1, 0xc6, 0x7d, 0x5d, 0xd5, 0x2c, 0xce, 0x21, 0x36,
-	0x01, 0x87, 0x9c, 0x43, 0xc4, 0xd8, 0x34, 0x60, 0xd1, 0x1e, 0x7e, 0x6c, 0x15, 0x99, 0x6b, 0xf3,
-	0xd4, 0xc5, 0x6e, 0x8c, 0x1e, 0x80, 0x1c, 0xdd, 0xe6, 0x5b, 0x7e, 0x80, 0x29, 0xfe, 0x4e, 0x1c,
-	0x16, 0x02, 0x58, 0xe8, 0x75, 0xa0, 0x43, 0x95, 0xa2, 0x6a, 0xd8, 0x90, 0x35, 0xa5, 0x67, 0x3b,
-	0x55, 0xd6, 0x81, 0xee, 0x29, 0x3d, 0x8c, 0xf6, 0x61, 0xc1, 0xc0, 0x2d, 0xdd, 0x68, 0x3b, 0xe2,
-	0xf0, 0x66, 0x45, 0x8d, 0xaf, 0x12, 0xc5, 0xb6, 0xab, 0xa9, 0xce, 0x48, 0x39, 0xc3, 0x07, 0x41,
-	0xbb, 0x90, 0x53, 0x7b, 0x4a, 0x07, 0xbb, 0x0c, 0xd9, 0xd4, 0x22, 0x6a, 0x7c, 0xad, 0x11, 0x64,
-	0x0f, 0xbf, 0xac, 0xea, 0x05, 0xa0, 0x87, 0xb0, 0xd8, 0xd6, 0x5b, 0x83, 0x9e, 0x57, 0x63, 0x3c,
-	0x5c, 0xbd, 0x11, 0xc1, 0xb1, 0xcc, 0xf1, 0x3d, 0x4c, 0xf3, 0xed, 0x00, 0x0c, 0x7d, 0x06, 0x4b,
-	0xae, 0x7e, 0x9c, 0xd9, 0xe1, 0x04, 0xfe, 0x89, 0x1c, 0x32, 0x07, 0x86, 0xde, 0x62, 0x56, 0x65,
-	0xcc, 0x9e, 0x61, 0xc3, 0x24, 0x42, 0xce, 0x53, 0x7d, 0xe7, 0x9d, 0x82, 0x87, 0x0c, 0xbe, 0x0d,
-	0x6e, 0x77, 0x12, 0xdf, 0x85, 0x7c, 0x50, 0x5a, 0x74, 0x15, 0xd2, 0x47, 0x6a, 0x17, 0xcb, 0xfa,
-	0xd1, 0x91, 0x89, 0x2d, 0x6a, 0xb6, 0xb8, 0x04, 0x04, 0x54, 0xa7, 0x10, 0xf1, 0xdf, 0x09, 0x90,
-	0xf3, 0x9b, 0x81, 0x74, 0x14, 0x6e, 0xc6, 0x13, 0x7c, 0xc6, 0x5d, 0xfb, 0xda, 0x48, 0x0b, 0x7e,
-	0x86, 0xcf, 0xa4, 0x94, 0x61, 0xff, 0x44, 0x1f, 0x91, 0x88, 0x47, 0x26, 0xd1, 0x6a, 0x9b, 0x3b,
-	0xc0, 0xd8, 0x80, 0x7d, 0xc4, 0x7e, 0xa0, 0xcf, 0x20, 0x47, 0x47, 0x94, 0x49, 0x0d, 0x4e, 0x43,
-	0xb7, 0xe3, 0xcd, 0x59, 0xcb, 0xfb, 0x29, 0xde, 0x82, 0xac, 0xaf, 0x1c, 0x5d, 0x82, 0x94, 0xa1,
-	0x3f, 0x97, 0x55, 0xad, 0x8d, 0x4f, 0xb9, 0x2e, 0x92, 0x86, 0xfe, 0xbc, 0x46, 0xbe, 0xc5, 0x4d,
-	0x48, 0xb0, 0x6e, 0xb5, 0x0c, 0x09, 0xd3, 0x52, 0x0c, 0x5b, 0x5b, 0xec, 0x03, 0xe5, 0x21, 0x8e,
-	0x35, 0xd6, 0x9e, 0xb8, 0x44, 0x7e, 0x8a, 0x8f, 0x21, 0xeb, 0xf3, 0x37, 0x54, 0x83, 0xdc, 0xa1,
-	0x3e, 0xa0, 0xe1, 0x57, 0x3e, 0xd4, 0x4f, 0x9d, 0x81, 0x43, 0x8c, 0x1a, 0x0a, 0x39, 0xf2, 0xb6,
-	0x7e, 0x2a, 0x65, 0x0f, 0xdd, 0x0f, 0x6c, 0x8a, 0x0a, 0xa4, 0x3d, 0xa5, 0xa4, 0x72, 0x4b, 0xef,
-	0xf3, 0x59, 0x1f, 0xf9, 0x49, 0xe6, 0x18, 0x5d, 0x7c, 0x64, 0x4f, 0xe9, 0xe8, 0x6f, 0x22, 0xf8,
-	0x73, 0xb5, 0x6d, 0x1d, 0x53, 0x9d, 0x25, 0x24, 0xf6, 0x81, 0x56, 0x61, 0xee, 0x18, 0xab, 0x9d,
-	0x63, 0x8b, 0xc6, 0xdb, 0x84, 0xc4, 0xbf, 0xc4, 0x3f, 0x3f, 0x0b, 0x48, 0xc2, 0x6d, 0xa5, 0x65,
-	0xd1, 0x56, 0xd8, 0xd3, 0xc0, 0x55, 0x98, 0xeb, 0x2b, 0x06, 0xd6, 0x2c, 0xde, 0xc7, 0xf9, 0x17,
-	0xb1, 0x8c, 0xca, 0xc6, 0x35, 0xb9, 0x45, 0xa7, 0x79, 0xdc, 0xb4, 0xaf, 0x4d, 0x32, 0x25, 0x94,
-	0xb2, 0xaa, 0x6f, 0xd1, 0xf2, 0x0c, 0x2e, 0xb0, 0x7e, 0x6d, 0x50, 0x01, 0x54, 0x5d, 0xe3, 0x4c,
-	0xc9, 0xf4, 0x9d, 0xa8, 0xec, 0xd3, 0x48, 0x7f, 0x0b, 0x0a, 0xbc, 0xc1, 0x3f, 0x38, 0x1f, 0x5e,
-	0xdf, 0x8a, 0x1a, 0x02, 0x35, 0x51, 0xc9, 0x3b, 0x4f, 0x99, 0x9f, 0x66, 0x9e, 0xe2, 0xce, 0x52,
-	0x0a, 0x7f, 0x20, 0xc0, 0x72, 0x58, 0xa5, 0xe8, 0xd3, 0xe9, 0xa7, 0xac, 0x64, 0xfa, 0xe3, 0x0c,
-	0xaf, 0x37, 0x49, 0xfc, 0x24, 0x2c, 0x65, 0xa5, 0xdb, 0x95, 0x2d, 0x7c, 0xca, 0xcc, 0x9b, 0x24,
-	0x81, 0x8c, 0x15, 0x14, 0xbb, 0xdd, 0x26, 0x3e, 0xb5, 0xc8, 0x00, 0xe2, 0xd5, 0x5c, 0x57, 0x37,
-	0x78, 0x3f, 0xb9, 0x1c, 0x19, 0xf7, 0xbb, 0xba, 0x41, 0xc2, 0xab, 0x23, 0x71, 0x57, 0x37, 0xb6,
-	0x93, 0x30, 0x67, 0x29, 0x46, 0x07, 0x5b, 0x62, 0x09, 0x12, 0x14, 0x44, 0x3c, 0xcd, 0xc0, 0x6d,
-	0x2a, 0x7d, 0x4c, 0x22, 0x3f, 0x89, 0x57, 0x75, 0x0c, 0x8c, 0x59, 0x2c, 0x8f, 0x49, 0xec, 0x83,
-	0xf8, 0xdf, 0xa1, 0x3d, 0x7d, 0x8c, 0x49, 0xf4, 0xb7, 0xd8, 0x82, 0x25, 0x9f, 0x7d, 0xcc, 0xbe,
-	0xae, 0x99, 0x98, 0x8c, 0x1e, 0xac, 0x5e, 0xdc, 0x96, 0xa9, 0x59, 0x28, 0xf7, 0x8c, 0xdd, 0x26,
-	0xdc, 0xa6, 0xe8, 0x04, 0x0d, 0x9f, 0x5a, 0x06, 0xc3, 0x73, 0x1a, 0x9f, 0x92, 0xb2, 0x0e, 0x94,
-	0x34, 0x5d, 0xfc, 0xbf, 0x31, 0x58, 0x2b, 0x63, 0xb5, 0x8d, 0x35, 0x4b, 0x3d, 0x3a, 0xe3, 0x16,
-	0x1a, 0xe7, 0xbc, 0x4d, 0x58, 0x6c, 0x3b, 0x34, 0x7e, 0xff, 0x8d, 0x0c, 0xfc, 0xde, 0x3a, 0x88,
-	0x4b, 0xe5, 0xdb, 0x01, 0x48, 0x48, 0x97, 0x88, 0x9f, 0xbf, 0x4b, 0x7c, 0x00, 0xb3, 0xd4, 0x2b,
-	0xd9, 0xa4, 0x48, 0x1c, 0x3d, 0x7e, 0x53, 0x8f, 0xa4, 0xf8, 0x68, 0x0b, 0x56, 0x6c, 0x21, 0x2c,
-	0xdc, 0xeb, 0x77, 0xc9, 0xec, 0x88, 0x0e, 0xd1, 0x09, 0xaa, 0x81, 0x25, 0x5e, 0xd8, 0xe4, 0x65,
-	0x74, 0xa0, 0xfe, 0x10, 0xd6, 0x3c, 0xea, 0xf0, 0x93, 0xcd, 0x51, 0xb2, 0x55, 0xb7, 0xdc, 0x4b,
-	0x29, 0xfe, 0xba, 0x00, 0x17, 0x43, 0xb4, 0xcf, 0x2d, 0x6d, 0xb7, 0x41, 0x98, 0xb2, 0x0d, 0x35,
-	0x48, 0xea, 0xcf, 0xb0, 0xf1, 0x4c, 0xc5, 0xcf, 0xb9, 0x55, 0x6e, 0x47, 0xc5, 0x7b, 0x43, 0xd1,
-	0xcc, 0x23, 0xdd, 0xe8, 0xd1, 0x88, 0x5b, 0xe7, 0x44, 0x92, 0x43, 0x4e, 0xdd, 0x43, 0x3a, 0x87,
-	0x7b, 0x18, 0x2f, 0xec, 0x1e, 0xc6, 0x9f, 0x24, 0xf7, 0x30, 0xc6, 0xb8, 0x87, 0x11, 0xed, 0x1e,
-	0xd2, 0x1f, 0x67, 0xf7, 0xf8, 0xef, 0x02, 0xac, 0xb8, 0x7a, 0x9e, 0xc4, 0x37, 0x5e, 0xea, 0xb8,
-	0x67, 0x6b, 0x20, 0xfe, 0xb2, 0xac, 0x38, 0x1b, 0x69, 0x45, 0xf1, 0x21, 0xac, 0x06, 0x5b, 0xca,
-	0xed, 0xf0, 0x09, 0xcc, 0x19, 0x74, 0x6d, 0xca, 0x2d, 0x31, 0xa6, 0x29, 0x6c, 0x1d, 0x2b, 0x71,
-	0x1a, 0xf1, 0xdf, 0xc4, 0x60, 0xa9, 0x3e, 0xb0, 0xfa, 0x03, 0xab, 0xc1, 0xb2, 0xb0, 0xbc, 0x6d,
-	0x9f, 0xd8, 0x99, 0x83, 0xd1, 0x4c, 0xb7, 0xd5, 0xce, 0x83, 0x01, 0x36, 0xce, 0x02, 0x19, 0x84,
-	0x2f, 0x21, 0xab, 0x53, 0xa6, 0xb2, 0xd9, 0x3a, 0xc6, 0x3d, 0x85, 0xaf, 0x2e, 0xbf, 0x13, 0xc1,
-	0x25, 0x44, 0x00, 0x1b, 0x46, 0xc9, 0xa5, 0x8c, 0xee, 0xf9, 0x12, 0x7f, 0x45, 0x80, 0x8c, 0xb7,
-	0x18, 0x5d, 0x81, 0x8b, 0xf5, 0x83, 0xe6, 0xfe, 0x41, 0x53, 0x6e, 0x94, 0xaa, 0x95, 0xdd, 0x62,
-	0x20, 0x09, 0xb3, 0x08, 0xd9, 0xed, 0x62, 0xa3, 0x56, 0x92, 0x4b, 0xf5, 0x9d, 0x83, 0xdd, 0xbd,
-	0x46, 0x5e, 0x40, 0x0b, 0x90, 0xbe, 0x57, 0x6a, 0x38, 0x80, 0x18, 0x5a, 0x81, 0xc5, 0x72, 0xb1,
-	0x59, 0x6c, 0x34, 0xeb, 0x52, 0xc5, 0x01, 0xc7, 0x09, 0x78, 0xbb, 0x76, 0x4f, 0x7e, 0x70, 0x50,
-	0x91, 0x1e, 0x39, 0xe0, 0x59, 0x42, 0x5e, 0xdc, 0xd9, 0x71, 0x00, 0x89, 0xed, 0x39, 0x96, 0x6a,
-	0x12, 0x5b, 0x6e, 0xe2, 0xab, 0x61, 0x29, 0x96, 0xf9, 0x82, 0x89, 0xaf, 0x65, 0x48, 0xb4, 0xf4,
-	0x81, 0x66, 0xf1, 0x89, 0x2a, 0xfb, 0x10, 0x7f, 0x34, 0x0b, 0x6b, 0xdc, 0x9a, 0x65, 0xc5, 0x52,
-	0x1a, 0xfa, 0xc0, 0x68, 0xe1, 0x32, 0xb6, 0x14, 0xb5, 0x6b, 0xa2, 0x1e, 0x89, 0x7e, 0xb4, 0x13,
-	0xe0, 0xb6, 0x93, 0xc7, 0x64, 0x4e, 0x3e, 0x26, 0xdf, 0x37, 0xc4, 0x6b, 0x43, 0xb2, 0x19, 0xf1,
-	0x9c, 0x26, 0x09, 0x8b, 0x7e, 0x08, 0xda, 0x73, 0xbc, 0x8f, 0xf5, 0x82, 0x0f, 0xa6, 0xaf, 0xc3,
-	0xeb, 0x8f, 0x85, 0xdf, 0x13, 0x20, 0x1f, 0xac, 0x16, 0x1d, 0xc2, 0x45, 0x53, 0x53, 0xfa, 0xe6,
-	0xb1, 0x6e, 0xc9, 0xc1, 0x9e, 0xc3, 0x95, 0x7a, 0x63, 0x74, 0xbd, 0x76, 0x5f, 0x92, 0x2e, 0xd8,
-	0x8c, 0x02, 0x05, 0xe8, 0x2e, 0xc0, 0x13, 0xfd, 0xd0, 0x1f, 0xdb, 0xdf, 0x18, 0xcd, 0xf4, 0xbe,
-	0x7e, 0xc8, 0x03, 0x43, 0xea, 0x89, 0xfd, 0xb3, 0xf0, 0xf7, 0x05, 0x98, 0xe3, 0xb9, 0xa2, 0x37,
-	0x60, 0xa1, 0x6f, 0xe8, 0x2d, 0x6c, 0x9a, 0xb8, 0x2d, 0x93, 0x09, 0xa7, 0xc9, 0x17, 0x21, 0x39,
-	0x07, 0x4c, 0xb3, 0x88, 0x24, 0x20, 0x58, 0xba, 0xa5, 0x74, 0x65, 0x6c, 0x5a, 0x6a, 0x4f, 0xb1,
-	0x1c, 0x74, 0x66, 0xf6, 0x25, 0x5a, 0x58, 0xb1, 0xcb, 0x18, 0xcd, 0x0e, 0x2c, 0x38, 0x8e, 0x25,
-	0x9b, 0xc4, 0xd7, 0x78, 0x56, 0xf7, 0xb5, 0x31, 0xee, 0x45, 0xfd, 0x92, 0x84, 0x32, 0xcf, 0xa7,
-	0xf8, 0x6b, 0x02, 0x2c, 0xd9, 0x08, 0x65, 0x6c, 0xb6, 0x0c, 0x95, 0xaa, 0x9e, 0x4c, 0x0c, 0x3d,
-	0x19, 0x02, 0xfa, 0x1b, 0xbd, 0x0a, 0x99, 0xb6, 0x6a, 0xf6, 0xbb, 0xca, 0x19, 0x8b, 0x5a, 0x6c,
-	0x62, 0x97, 0xe6, 0x30, 0x3a, 0xe6, 0xec, 0x42, 0xc6, 0x1c, 0xf4, 0xfb, 0xba, 0xc1, 0x9a, 0x42,
-	0x25, 0xcb, 0x6d, 0xad, 0x8f, 0x93, 0xcc, 0x26, 0xd9, 0x3e, 0x93, 0xd2, 0xa6, 0xfb, 0x21, 0x36,
-	0x60, 0x79, 0x47, 0x35, 0x2d, 0x27, 0x55, 0x6f, 0x47, 0xf9, 0xeb, 0x90, 0xed, 0x2a, 0x5a, 0x67,
-	0x40, 0xd6, 0x1e, 0x2d, 0xbd, 0x6d, 0x8b, 0x99, 0xb1, 0x81, 0x25, 0xbd, 0x8d, 0xc9, 0x50, 0x70,
-	0xa4, 0x76, 0x2d, 0x6c, 0x70, 0x41, 0xf9, 0x97, 0x78, 0x08, 0x2b, 0x01, 0xa6, 0x3c, 0xa0, 0xd6,
-	0x42, 0xf6, 0x60, 0xc6, 0x89, 0xee, 0xd1, 0x99, 0x67, 0x3b, 0x46, 0xfc, 0x6f, 0x02, 0xac, 0x48,
-	0xaa, 0x79, 0x52, 0xd4, 0x94, 0xee, 0x99, 0xa9, 0x9a, 0x8e, 0xc7, 0x90, 0x81, 0x88, 0xb3, 0x92,
-	0x7b, 0xd8, 0x32, 0xd4, 0xd6, 0x98, 0x40, 0xbb, 0xcf, 0x3e, 0x77, 0x29, 0xae, 0x94, 0xed, 0x7b,
-	0x3f, 0xd1, 0x3d, 0xc8, 0x98, 0xb4, 0x53, 0xc9, 0x2c, 0x66, 0xc7, 0x26, 0x8f, 0xd9, 0x52, 0x9a,
-	0x51, 0xb2, 0xdc, 0xec, 0x77, 0x60, 0x9e, 0xad, 0x28, 0x6c, 0x67, 0xba, 0x12, 0xc1, 0xa3, 0x48,
-	0xb1, 0x24, 0x1b, 0x5b, 0xfc, 0xc5, 0x05, 0xc8, 0xfa, 0x44, 0x44, 0x4f, 0x61, 0x55, 0x1b, 0xf4,
-	0xb0, 0xa1, 0xb6, 0x94, 0x2e, 0xf3, 0x4f, 0xbb, 0x6f, 0xb1, 0x86, 0x7e, 0x34, 0x49, 0x43, 0x37,
-	0xf6, 0x6c, 0x16, 0xd4, 0x4d, 0x99, 0xee, 0xaa, 0x33, 0xd2, 0xb2, 0x16, 0x02, 0x47, 0xcf, 0x61,
-	0xad, 0xa5, 0x58, 0xb8, 0xa3, 0x87, 0x54, 0xca, 0x54, 0xf2, 0xf1, 0x44, 0x95, 0x96, 0x5c, 0x26,
-	0xfe, 0x6a, 0x57, 0x5b, 0xa1, 0x25, 0x08, 0x03, 0x3a, 0x91, 0x15, 0x4d, 0xd7, 0xce, 0x7a, 0xaa,
-	0x75, 0xe6, 0x8f, 0x21, 0xef, 0x4f, 0x54, 0xe5, 0x67, 0x45, 0x9b, 0xda, 0xa9, 0x2c, 0x7f, 0x12,
-	0x80, 0x91, 0x6a, 0xba, 0x72, 0x5b, 0xa5, 0x59, 0x24, 0xb7, 0x9a, 0xd9, 0x29, 0xaa, 0xd9, 0x29,
-	0xdb, 0xd4, 0x6e, 0x35, 0xdd, 0x00, 0x0c, 0x19, 0x70, 0xe1, 0x44, 0xee, 0x29, 0x7d, 0x3b, 0x1a,
-	0xb9, 0xeb, 0x79, 0x9e, 0x5d, 0x9b, 0xcc, 0x74, 0x9f, 0xed, 0x2a, 0xfd, 0x8a, 0xc3, 0xc1, 0x35,
-	0xdd, 0x49, 0x08, 0xbc, 0xb0, 0x03, 0xcb, 0x61, 0xa6, 0x46, 0xef, 0x41, 0x82, 0x26, 0x93, 0xb8,
-	0xd3, 0x8c, 0xcb, 0x3c, 0x31, 0xe4, 0xc2, 0x1e, 0xac, 0x86, 0xdb, 0xf0, 0x9c, 0xfc, 0xbe, 0x2f,
-	0x40, 0x3e, 0x68, 0x21, 0xf4, 0x31, 0xa4, 0x9e, 0x0e, 0x14, 0x53, 0x95, 0xd5, 0xf6, 0xa4, 0x3b,
-	0x19, 0x49, 0x4a, 0x50, 0x6b, 0xd3, 0x69, 0x01, 0x99, 0x55, 0x5b, 0x67, 0x6e, 0x56, 0x2d, 0x6a,
-	0x5a, 0x50, 0xa1, 0x78, 0x84, 0x1a, 0xf3, 0x5f, 0x85, 0xdf, 0x10, 0x20, 0x1f, 0x34, 0xe5, 0x8b,
-	0xc9, 0x53, 0x87, 0x25, 0x13, 0x6b, 0xa6, 0x6a, 0xa9, 0xcf, 0xb0, 0xac, 0x58, 0x96, 0xa1, 0x1e,
-	0x0e, 0x2c, 0x3c, 0x61, 0xbe, 0x0f, 0x39, 0xa4, 0x45, 0x9b, 0xb2, 0xf0, 0xcd, 0x1c, 0x2c, 0x87,
-	0x79, 0x00, 0x3a, 0x1c, 0x16, 0xb3, 0x72, 0x6e, 0x7f, 0xda, 0x68, 0x2a, 0x9d, 0x0e, 0x6e, 0x53,
-	0x41, 0x3c, 0xad, 0xb9, 0x0a, 0x69, 0x03, 0x77, 0x98, 0xdf, 0xb6, 0xed, 0x01, 0x0a, 0x18, 0x88,
-	0x8e, 0x09, 0x26, 0xe4, 0x95, 0xc1, 0xa9, 0xda, 0x55, 0x15, 0xe3, 0x8c, 0xc5, 0x4c, 0x3b, 0xe0,
-	0x55, 0xcf, 0x2f, 0x4b, 0xd1, 0xe6, 0xc8, 0x02, 0xeb, 0x82, 0xe2, 0xfb, 0x36, 0x0b, 0xff, 0x49,
-	0x80, 0xb4, 0x47, 0xde, 0xf3, 0xf9, 0xa2, 0x3f, 0x2d, 0x15, 0x9b, 0x3e, 0x2d, 0x75, 0x15, 0x80,
-	0x6f, 0x9c, 0x5b, 0x4a, 0xc7, 0xd9, 0x2f, 0x4c, 0x31, 0x58, 0x53, 0x21, 0x5d, 0x84, 0x20, 0x63,
-	0xc3, 0xc0, 0x6d, 0x1e, 0x5b, 0x56, 0x87, 0x72, 0xde, 0x95, 0x5e, 0xdf, 0x3a, 0xe3, 0x6c, 0x29,
-	0xe6, 0x76, 0x02, 0xe2, 0x96, 0xd2, 0x29, 0xfc, 0xcf, 0x18, 0xe4, 0xfc, 0x7a, 0x40, 0x77, 0xec,
-	0x95, 0x44, 0x7c, 0x8a, 0x51, 0x89, 0xaf, 0x23, 0x8c, 0x61, 0x67, 0x39, 0x78, 0x59, 0x06, 0xda,
-	0x78, 0xc0, 0xdc, 0x25, 0xe8, 0x3c, 0xbb, 0x80, 0x0c, 0xdc, 0x55, 0x68, 0x4f, 0x38, 0xa2, 0xf3,
-	0x5d, 0xad, 0x75, 0x36, 0x61, 0x4f, 0x58, 0xb4, 0x29, 0xef, 0xda, 0x84, 0x85, 0x16, 0x64, 0xbc,
-	0x15, 0x9d, 0xd3, 0xea, 0x57, 0x7c, 0x56, 0x63, 0x0e, 0xed, 0xda, 0xcc, 0x59, 0x7e, 0xfc, 0xaf,
-	0x57, 0xe0, 0x32, 0x9d, 0x6b, 0x7c, 0x8d, 0xdd, 0x99, 0x36, 0x99, 0x80, 0xd8, 0xab, 0x83, 0xaf,
-	0x60, 0xcd, 0x5d, 0x1d, 0xbc, 0xc0, 0x04, 0x64, 0xd5, 0xe1, 0xe2, 0x1f, 0xf5, 0x1f, 0x83, 0x5b,
-	0x22, 0x9f, 0x7b, 0x4e, 0xb2, 0xec, 0xf0, 0x68, 0x78, 0x26, 0x27, 0xdf, 0x13, 0x86, 0xa7, 0x14,
-	0xbe, 0xb5, 0x47, 0x54, 0xdf, 0x1d, 0xa5, 0x91, 0xc0, 0x0c, 0x83, 0xcd, 0xdc, 0x87, 0x67, 0x18,
-	0x7c, 0x46, 0xff, 0xe7, 0x84, 0xb0, 0x29, 0x06, 0x17, 0x82, 0x75, 0x96, 0xfb, 0xe7, 0x11, 0x22,
-	0x38, 0x5a, 0x39, 0x62, 0x0c, 0xcd, 0x38, 0xb8, 0x20, 0x96, 0x7f, 0xc6, 0xc1, 0x25, 0x60, 0xc3,
-	0x73, 0xf9, 0x3c, 0x12, 0xb8, 0xc3, 0x9b, 0x53, 0xb7, 0x67, 0x02, 0xe2, 0xd6, 0xea, 0x9d, 0x80,
-	0xf0, 0x5a, 0xe7, 0xce, 0x5f, 0xab, 0x3b, 0x88, 0xb9, 0xb5, 0x76, 0x03, 0x30, 0xf4, 0x0b, 0x42,
-	0xc8, 0x84, 0x84, 0xd7, 0x3d, 0x7f, 0x7e, 0xc3, 0xfb, 0x43, 0x84, 0x6b, 0xf8, 0x93, 0x10, 0x78,
-	0xe1, 0xc7, 0x42, 0x70, 0x82, 0xc2, 0x85, 0xfb, 0x08, 0x52, 0x3d, 0x55, 0x93, 0xd9, 0xe9, 0x8b,
-	0xd1, 0x1b, 0xc7, 0xec, 0x64, 0x41, 0xb2, 0xa7, 0x6a, 0xf4, 0x17, 0x25, 0x55, 0x4e, 0x39, 0x69,
-	0x6c, 0x22, 0x52, 0xe5, 0x94, 0x91, 0x56, 0x60, 0xe1, 0xe9, 0x40, 0xd1, 0x2c, 0xb5, 0x8b, 0x65,
-	0x7e, 0xaa, 0x61, 0x76, 0x82, 0x53, 0x0d, 0x39, 0x9b, 0x88, 0x7e, 0x9a, 0x85, 0xef, 0xcf, 0x0e,
-	0x4f, 0x94, 0x78, 0xbb, 0xfe, 0xa1, 0x00, 0xaf, 0x52, 0xce, 0x6e, 0x0c, 0x94, 0x8f, 0x55, 0xd3,
-	0xd2, 0x3b, 0x86, 0xd2, 0x93, 0x0f, 0x07, 0xad, 0x13, 0x6c, 0xd9, 0xdb, 0x3b, 0x4f, 0x5e, 0x9e,
-	0xcb, 0x0f, 0x81, 0xab, 0x76, 0x9d, 0xdb, 0xb4, 0x4a, 0xe9, 0x15, 0x2a, 0x94, 0x13, 0x5e, 0x03,
-	0xc5, 0x66, 0xe1, 0x1f, 0xc7, 0xe0, 0xea, 0x18, 0x1e, 0xe8, 0xbb, 0x70, 0x29, 0xd8, 0xb4, 0xae,
-	0xfe, 0x1c, 0x1b, 0x32, 0xdd, 0xb5, 0xe3, 0x6b, 0xf4, 0x35, 0x7f, 0x45, 0x3b, 0x04, 0x81, 0x6e,
-	0xe2, 0x85, 0x91, 0x0f, 0xfa, 0x7d, 0x87, 0x3c, 0x16, 0x46, 0x7e, 0x40, 0x10, 0x18, 0xf9, 0x55,
-	0x48, 0x33, 0xf5, 0xc9, 0xa6, 0xfa, 0x35, 0x1b, 0x15, 0xe3, 0x12, 0x30, 0x50, 0x43, 0xfd, 0x1a,
-	0xa3, 0xfb, 0x90, 0xe5, 0x08, 0x3e, 0xd3, 0xbe, 0x3e, 0xca, 0xb4, 0x4e, 0x45, 0x52, 0x86, 0xd1,
-	0x32, 0x0b, 0xa3, 0x5b, 0x80, 0xbc, 0xbc, 0x64, 0x96, 0x4d, 0x4a, 0xd0, 0x3a, 0xf3, 0x1e, 0xcc,
-	0x12, 0x81, 0x17, 0xbe, 0x49, 0x78, 0xe7, 0xb9, 0xdc, 0x13, 0x7e, 0x4b, 0x80, 0xeb, 0xf8, 0xe9,
-	0x40, 0x7d, 0xa6, 0x74, 0xb1, 0xd6, 0xc2, 0x72, 0xab, 0xab, 0x98, 0x66, 0xa4, 0x2f, 0x7c, 0xf5,
-	0x32, 0x82, 0x8f, 0x07, 0x10, 0xb4, 0xff, 0x35, 0x8f, 0x28, 0x25, 0x22, 0xc9, 0x90, 0x07, 0xfc,
-	0xaa, 0x00, 0x05, 0x97, 0xbe, 0x12, 0x40, 0x47, 0x77, 0x21, 0xef, 0x4c, 0x29, 0xe4, 0x29, 0x4e,
-	0x04, 0xe5, 0xec, 0x09, 0x02, 0xd7, 0xec, 0x7b, 0xb0, 0x3a, 0xac, 0x15, 0x6a, 0x51, 0xe6, 0x00,
-	0xcb, 0x41, 0x41, 0x89, 0x6d, 0x0b, 0xbf, 0x1c, 0x87, 0x8b, 0x91, 0x8d, 0x43, 0xf7, 0x41, 0x0c,
-	0xe7, 0x19, 0xe2, 0x9f, 0xaf, 0x84, 0xf1, 0xf7, 0x78, 0x69, 0x34, 0xaf, 0x61, 0x67, 0x0d, 0xe5,
-	0x35, 0x8d, 0xcb, 0xfe, 0xa2, 0x10, 0xee, 0xb3, 0xf2, 0x4b, 0xf6, 0x86, 0xa0, 0x35, 0x5f, 0xc8,
-	0xdb, 0xff, 0xe6, 0xbc, 0x77, 0x15, 0xc5, 0xbd, 0xfd, 0x77, 0x05, 0x78, 0xcb, 0x5d, 0x09, 0x4d,
-	0x1a, 0x01, 0xbf, 0x7a, 0x19, 0x83, 0x9f, 0x07, 0x10, 0xf4, 0xfa, 0x37, 0x1c, 0x91, 0x1e, 0x8e,
-	0x0e, 0x7f, 0xbf, 0x1d, 0x83, 0x82, 0xcb, 0xe6, 0x8f, 0x97, 0xf3, 0xa3, 0x22, 0x5c, 0xd1, 0x06,
-	0x3d, 0xb9, 0xad, 0x9a, 0x96, 0xaa, 0xb5, 0x2c, 0x39, 0xa0, 0x67, 0x93, 0x3b, 0x56, 0x41, 0x1b,
-	0xf4, 0xca, 0x1c, 0xa7, 0xe1, 0x6b, 0xb7, 0x89, 0x3e, 0x87, 0x65, 0x4b, 0xef, 0x0f, 0x53, 0x4e,
-	0x15, 0x22, 0x91, 0xa5, 0xf7, 0x03, 0x8c, 0x0b, 0x3f, 0x88, 0xc3, 0xc5, 0x48, 0xfd, 0xa3, 0x7d,
-	0x78, 0x3d, 0xda, 0x29, 0x86, 0xfb, 0xe6, 0xab, 0x11, 0xe6, 0xf2, 0x74, 0xcf, 0x91, 0x1c, 0x87,
-	0x7b, 0x68, 0x14, 0xc7, 0x3f, 0xb2, 0x4e, 0x3a, 0xc2, 0x79, 0x5f, 0x6a, 0x27, 0xfd, 0x6b, 0x89,
-	0x60, 0x1e, 0x81, 0x77, 0xd4, 0xbf, 0x25, 0x40, 0x61, 0x68, 0x56, 0xe8, 0xf4, 0x4f, 0xee, 0xd5,
-	0x47, 0x2f, 0x6b, 0x62, 0x18, 0x00, 0x06, 0xfb, 0xe7, 0x85, 0x93, 0xf0, 0xe2, 0xc2, 0x5f, 0x11,
-	0xe0, 0x92, 0x9f, 0x94, 0x2f, 0x06, 0xb9, 0x32, 0x5e, 0x56, 0x87, 0xdc, 0x84, 0x25, 0x77, 0xef,
-	0xc0, 0x59, 0x17, 0x70, 0xe7, 0x41, 0x4e, 0x91, 0x13, 0x48, 0x0b, 0xff, 0x3c, 0x06, 0x57, 0x46,
-	0xb6, 0x09, 0x5d, 0x87, 0x2c, 0x99, 0xd9, 0xba, 0xcc, 0x98, 0x6f, 0x67, 0x7a, 0xaa, 0xe6, 0xb0,
-	0xa1, 0x48, 0xca, 0xe9, 0x50, 0x8d, 0x99, 0x9e, 0x72, 0xea, 0x22, 0x05, 0x3c, 0x33, 0x31, 0xe4,
-	0x99, 0xbf, 0x3c, 0xe4, 0x99, 0xec, 0x24, 0x7f, 0xfb, 0x5b, 0x32, 0x9f, 0xcf, 0x06, 0x13, 0xb9,
-	0xe7, 0x7c, 0xb8, 0x7b, 0x6e, 0x27, 0xed, 0xed, 0x2f, 0xf1, 0x31, 0xe4, 0xfc, 0x5d, 0x13, 0x6d,
-	0xd9, 0x87, 0xb2, 0x27, 0x59, 0x16, 0xf0, 0x03, 0xdb, 0xe1, 0x1b, 0x7e, 0xbf, 0x1e, 0x87, 0x04,
-	0x9b, 0xf8, 0xbf, 0x0e, 0x59, 0x55, 0xb3, 0x70, 0x07, 0x1b, 0x9e, 0x25, 0x47, 0xbc, 0x3a, 0x23,
-	0x65, 0x38, 0x98, 0xa1, 0xbd, 0x0a, 0xe9, 0xa3, 0xae, 0xae, 0x58, 0x9e, 0xc5, 0x85, 0x50, 0x9d,
-	0x91, 0x80, 0x02, 0x19, 0xca, 0x75, 0xc8, 0x98, 0x96, 0xa1, 0x6a, 0x1d, 0xd9, 0x7f, 0x72, 0x3c,
-	0xcd, 0xa0, 0x4e, 0x75, 0x87, 0xba, 0xde, 0xc5, 0x8a, 0xbd, 0xc2, 0x99, 0xe5, 0x27, 0x98, 0x32,
-	0x1c, 0xec, 0x2c, 0x47, 0x9c, 0x73, 0x92, 0x1c, 0x31, 0x31, 0xee, 0xb4, 0x64, 0x75, 0x46, 0xca,
-	0x39, 0x44, 0x8c, 0xcd, 0x77, 0x00, 0x08, 0x84, 0x73, 0x98, 0xf3, 0xe7, 0x9e, 0xac, 0xb3, 0x3e,
-	0xa6, 0xd4, 0xf5, 0xa3, 0xb2, 0x72, 0x56, 0x9d, 0x91, 0x52, 0x04, 0x97, 0x11, 0x6e, 0x01, 0xb4,
-	0x15, 0xcb, 0x26, 0x64, 0x6b, 0xc2, 0x45, 0x1f, 0x61, 0x59, 0xb1, 0x30, 0xa1, 0x21, 0x68, 0x8c,
-	0xa6, 0x04, 0x8b, 0x6d, 0xe5, 0x4c, 0xd6, 0x8f, 0xe4, 0xe7, 0x18, 0x9f, 0x70, 0xd2, 0x24, 0xdd,
-	0xa6, 0x5e, 0x0d, 0x90, 0x9e, 0xd5, 0x8f, 0x3e, 0xc7, 0xf8, 0x84, 0x48, 0xdc, 0xb6, 0x3f, 0x28,
-	0x13, 0x27, 0xef, 0xf2, 0x33, 0x90, 0x72, 0x0e, 0x19, 0xa3, 0x4f, 0xe9, 0xb9, 0x77, 0x7e, 0xaa,
-	0x79, 0x74, 0x86, 0xae, 0xcc, 0x8f, 0x33, 0x57, 0x67, 0xa4, 0x64, 0x9b, 0xff, 0xde, 0xce, 0x41,
-	0xa6, 0xaf, 0x18, 0x26, 0x6e, 0xb3, 0xcb, 0x32, 0xe2, 0x5f, 0x8c, 0x41, 0xd2, 0x46, 0x44, 0xaf,
-	0xd3, 0xdb, 0x08, 0xb6, 0x4f, 0x0d, 0x37, 0x92, 0x5e, 0x50, 0xc0, 0xe8, 0x03, 0x48, 0x7b, 0x5a,
-	0xc7, 0x2f, 0x01, 0x45, 0xb4, 0x8b, 0x68, 0x85, 0xff, 0x44, 0xeb, 0x30, 0x4b, 0xc5, 0x8e, 0x8f,
-	0x52, 0xbe, 0x44, 0x71, 0x50, 0x05, 0xa8, 0x09, 0xe4, 0xaf, 0x75, 0xcd, 0xbe, 0x60, 0x70, 0x73,
-	0x4c, 0x3b, 0x29, 0x8f, 0xc7, 0xba, 0x86, 0xa5, 0xa4, 0xc5, 0x7f, 0x15, 0xde, 0x81, 0xa4, 0x0d,
-	0x45, 0xaf, 0x43, 0x8e, 0x9d, 0x6d, 0x95, 0x7b, 0xaa, 0x36, 0xb0, 0x37, 0x4c, 0x13, 0x52, 0x96,
-	0x41, 0x77, 0x19, 0x50, 0xfc, 0xdf, 0x02, 0xe4, 0x83, 0x47, 0x76, 0x50, 0x17, 0x2e, 0xba, 0x1b,
-	0xa2, 0x96, 0xef, 0xe8, 0x88, 0xc9, 0xd5, 0xb5, 0x31, 0x26, 0x51, 0xea, 0x3f, 0x70, 0x62, 0x56,
-	0x67, 0xa4, 0x0b, 0x6a, 0x78, 0x11, 0xc2, 0xb0, 0xca, 0x8f, 0xd5, 0x06, 0xab, 0x62, 0x16, 0xbf,
-	0x35, 0xf2, 0x88, 0xed, 0x70, 0x45, 0x2b, 0x46, 0x58, 0xc1, 0x76, 0x1e, 0x72, 0x7e, 0xfe, 0xe2,
-	0x4f, 0xe6, 0xe1, 0xc2, 0xbe, 0xa1, 0xf6, 0xe8, 0x64, 0xc0, 0x8f, 0x8e, 0x24, 0xc8, 0x19, 0xb8,
-	0xdf, 0x55, 0xc8, 0x94, 0xcc, 0xbb, 0xd7, 0xf6, 0x66, 0xa4, 0x30, 0x14, 0x99, 0xc7, 0x33, 0xbe,
-	0x41, 0x93, 0xe5, 0x2c, 0xb8, 0x5a, 0xef, 0x03, 0x3f, 0xd9, 0xe7, 0xdf, 0x49, 0xbb, 0x3e, 0xf2,
-	0x48, 0xa7, 0xc3, 0x2c, 0x63, 0x78, 0xbe, 0xd1, 0x9f, 0x82, 0x95, 0xd6, 0xb1, 0x42, 0x8f, 0xff,
-	0x19, 0xf4, 0x4e, 0x9e, 0x7f, 0xab, 0x2c, 0x6a, 0x93, 0xb5, 0x64, 0xd3, 0xec, 0x2a, 0xe6, 0x89,
-	0xc3, 0x7a, 0xa9, 0x35, 0x0c, 0x46, 0x16, 0x5c, 0x69, 0x19, 0x67, 0x7d, 0x4b, 0x97, 0x6d, 0x45,
-	0x1c, 0x1d, 0x9d, 0xca, 0x47, 0x7d, 0xec, 0xdf, 0x2d, 0x8b, 0xba, 0x0b, 0x54, 0xa2, 0xb4, 0x5c,
-	0x2d, 0x77, 0x8f, 0x4e, 0xef, 0xf6, 0x5d, 0xbd, 0x5c, 0x6c, 0x45, 0x15, 0xa2, 0x3e, 0x5c, 0x3a,
-	0x52, 0x4f, 0x71, 0x9b, 0xad, 0xaf, 0xd8, 0x20, 0x41, 0x22, 0xab, 0x6f, 0xd7, 0x6c, 0x33, 0x32,
-	0xd3, 0x7b, 0x8a, 0xdb, 0x64, 0x18, 0xdc, 0xb6, 0xe9, 0x9c, 0x2a, 0xd7, 0x8e, 0x22, 0xca, 0x50,
-	0x03, 0xf2, 0x43, 0xd5, 0xcc, 0x8d, 0x3e, 0x01, 0x3b, 0xc4, 0x7d, 0xe1, 0x30, 0xc0, 0xd4, 0x82,
-	0x2b, 0xb6, 0xd6, 0x9e, 0xab, 0xd6, 0xb1, 0x7b, 0x5f, 0xcc, 0xae, 0x61, 0x7e, 0xa4, 0xf2, 0xb8,
-	0x66, 0x3e, 0x57, 0xad, 0x63, 0xbb, 0x43, 0xb9, 0xca, 0x33, 0xa2, 0x0a, 0xd1, 0x03, 0xc8, 0xd3,
-	0x30, 0xd2, 0x57, 0x0c, 0xc7, 0xc7, 0x92, 0x23, 0x2f, 0x1a, 0x90, 0x70, 0xb1, 0xaf, 0x18, 0xae,
-	0x97, 0xd1, 0x81, 0xc4, 0x85, 0xa0, 0xcf, 0x01, 0x71, 0x2f, 0x38, 0x56, 0xcc, 0x63, 0x9b, 0x69,
-	0x6a, 0xe4, 0x99, 0x0e, 0x66, 0xfa, 0xaa, 0x62, 0x1e, 0xbb, 0x5b, 0xa3, 0xad, 0x00, 0x8c, 0x9e,
-	0x3c, 0x25, 0xa1, 0xdd, 0x3c, 0x56, 0x8f, 0x1c, 0x61, 0xd3, 0x23, 0xf5, 0x4e, 0x42, 0x5f, 0x83,
-	0xa0, 0xbb, 0x7a, 0x6f, 0xfb, 0x41, 0x21, 0x9d, 0xfc, 0x1b, 0x01, 0x72, 0xfe, 0x56, 0xa2, 0x87,
-	0xb0, 0x40, 0x35, 0x64, 0xe9, 0x32, 0x3f, 0x42, 0xcb, 0xef, 0xb5, 0x6d, 0x4c, 0xa4, 0x25, 0xe7,
-	0x53, 0xca, 0x12, 0x36, 0x4d, 0xbd, 0xc2, 0x98, 0x88, 0xdf, 0x13, 0x58, 0xfc, 0x25, 0x65, 0xe8,
-	0x22, 0xac, 0x34, 0x6b, 0xbb, 0x15, 0x79, 0xbf, 0x28, 0x35, 0x03, 0x87, 0xa8, 0x92, 0x30, 0xfb,
-	0xa8, 0x52, 0x94, 0xf2, 0x02, 0x4a, 0x41, 0x62, 0xb7, 0xbe, 0xd7, 0xac, 0xe6, 0x63, 0x28, 0x0f,
-	0x99, 0x72, 0xf1, 0x91, 0x5c, 0xbf, 0x2b, 0x33, 0x48, 0x1c, 0x2d, 0x40, 0x9a, 0x43, 0x3e, 0xaf,
-	0x54, 0x3e, 0xcb, 0xcf, 0x12, 0x14, 0xf2, 0x8b, 0x40, 0x28, 0x7d, 0x82, 0xa0, 0x54, 0xeb, 0x07,
-	0x12, 0x81, 0x94, 0x8b, 0x8f, 0xf2, 0x73, 0x62, 0x03, 0xf2, 0x41, 0xed, 0xa3, 0x9f, 0x02, 0xe0,
-	0x26, 0x1c, 0x7f, 0x6d, 0x81, 0x11, 0xd3, 0x6b, 0x0b, 0x2d, 0xfb, 0xa7, 0x58, 0x07, 0x34, 0x1c,
-	0xde, 0xd0, 0x47, 0x90, 0xd2, 0xf0, 0xf3, 0x69, 0xd2, 0xb5, 0x1a, 0x7e, 0x4e, 0x7f, 0x89, 0x97,
-	0xe0, 0x62, 0xa4, 0x87, 0x8b, 0x39, 0xc8, 0x78, 0x23, 0x9f, 0xf8, 0x93, 0x18, 0x64, 0x49, 0xd8,
-	0x32, 0x9b, 0x7a, 0xad, 0xa3, 0xe9, 0x06, 0x46, 0x1b, 0x80, 0x9c, 0x80, 0x65, 0x12, 0x2b, 0x9a,
-	0x27, 0x2a, 0xbb, 0x03, 0x90, 0xa2, 0xae, 0xe6, 0x94, 0x35, 0xf5, 0xc6, 0x89, 0xda, 0x47, 0x67,
-	0x70, 0xa9, 0xa5, 0xf7, 0x7a, 0xba, 0x26, 0xfb, 0xc9, 0x54, 0xca, 0x8e, 0x8f, 0xe8, 0x1f, 0x8e,
-	0x88, 0x98, 0x4e, 0xd5, 0x1b, 0x25, 0xca, 0xc7, 0x07, 0x23, 0xc1, 0xa5, 0xe5, 0x80, 0xed, 0x8a,
-	0x59, 0x99, 0xf8, 0x43, 0x01, 0x96, 0x42, 0x68, 0xd0, 0x0d, 0x10, 0x4b, 0xf5, 0xdd, 0xdd, 0xfa,
-	0x9e, 0x5c, 0xaa, 0x16, 0xa5, 0x86, 0xdc, 0xac, 0xcb, 0xb5, 0x7b, 0x7b, 0x75, 0x29, 0x78, 0xe9,
-	0x31, 0x0d, 0xf3, 0x7b, 0x07, 0xbb, 0x15, 0xa9, 0x56, 0xca, 0x0b, 0x68, 0x19, 0xf2, 0xc5, 0x9d,
-	0xfd, 0x6a, 0x51, 0x3e, 0xd8, 0xdf, 0xaf, 0x48, 0x72, 0xa9, 0xd8, 0xa8, 0xe4, 0x63, 0x2e, 0x74,
-	0xa7, 0xfe, 0xb9, 0x0d, 0xa5, 0xce, 0xb3, 0x7f, 0xb0, 0x57, 0x6a, 0x1e, 0x14, 0x9b, 0xb5, 0xfa,
-	0x5e, 0x7e, 0x16, 0xe5, 0x00, 0x3e, 0xaf, 0xd6, 0x9a, 0x95, 0xc6, 0x7e, 0xb1, 0x54, 0xc9, 0x27,
-	0xb6, 0x33, 0x00, 0xae, 0x36, 0xc4, 0xff, 0x4a, 0xe4, 0x0c, 0x19, 0x04, 0xde, 0x82, 0x45, 0x32,
-	0xb8, 0xd0, 0xd0, 0x68, 0x17, 0xf3, 0xa3, 0x41, 0x79, 0x5e, 0xe0, 0x90, 0xa1, 0xd7, 0x20, 0xa7,
-	0x0d, 0x7a, 0x87, 0xd8, 0x20, 0xca, 0x25, 0xa5, 0xfc, 0x12, 0x46, 0x86, 0x41, 0x9b, 0x3a, 0x61,
-	0x4c, 0xd6, 0x39, 0x06, 0x26, 0xeb, 0x5b, 0x2c, 0xeb, 0x46, 0x1b, 0xb3, 0x03, 0xfa, 0x49, 0x32,
-	0xbc, 0x51, 0x60, 0x9d, 0xc0, 0xd0, 0x43, 0x58, 0x0e, 0xb5, 0xd5, 0xec, 0xc8, 0x73, 0x59, 0x3e,
-	0x1d, 0x4b, 0xa8, 0x35, 0x6c, 0x8f, 0x7f, 0x24, 0xc0, 0x5a, 0xd4, 0x28, 0x81, 0xbe, 0x0b, 0xe9,
-	0x60, 0x02, 0x62, 0x9c, 0x4f, 0x43, 0xd7, 0x9b, 0xcc, 0x4e, 0x07, 0xb3, 0x0d, 0x63, 0xc9, 0x07,
-	0x23, 0x93, 0x0e, 0x82, 0x77, 0x69, 0x27, 0xfe, 0x4a, 0x0c, 0x16, 0x82, 0x22, 0xdf, 0x83, 0x79,
-	0x3b, 0x7d, 0xc6, 0xd6, 0xba, 0xb7, 0x27, 0x1b, 0xb3, 0xf8, 0xb7, 0x64, 0x53, 0xd3, 0xb3, 0x76,
-	0x7c, 0xb5, 0xba, 0x01, 0xf1, 0x9e, 0xaa, 0x4d, 0xd4, 0x7c, 0x82, 0x48, 0xf1, 0x95, 0xd3, 0x89,
-	0xda, 0x4b, 0x10, 0x51, 0x0d, 0x16, 0xf9, 0x10, 0x46, 0xef, 0x9b, 0xb9, 0x6b, 0xa6, 0x71, 0xd4,
-	0x79, 0x0f, 0x19, 0x0b, 0x24, 0xbf, 0x3f, 0x0b, 0x17, 0x23, 0x27, 0x1a, 0x2f, 0x1c, 0xf8, 0xd0,
-	0x87, 0x30, 0x4f, 0xaf, 0x01, 0xf2, 0x2b, 0x17, 0x13, 0x5c, 0xd7, 0xe2, 0xe8, 0xc8, 0x84, 0x05,
-	0x1e, 0x72, 0x94, 0x6e, 0xff, 0x58, 0x39, 0xc4, 0x6c, 0x4f, 0x33, 0x17, 0xb9, 0xbf, 0x16, 0xd9,
-	0x8a, 0x8d, 0xbb, 0x47, 0xa7, 0x2c, 0x82, 0xec, 0xd1, 0xed, 0xf0, 0x22, 0xe7, 0x47, 0xc6, 0x6a,
-	0x56, 0x85, 0x0d, 0x41, 0x6f, 0x02, 0xbf, 0x88, 0xef, 0x56, 0x9a, 0xe0, 0x41, 0x31, 0xc7, 0x0a,
-	0x1c, 0xd4, 0x55, 0x48, 0x18, 0x4a, 0x5b, 0x3d, 0xa5, 0x33, 0x9d, 0x44, 0x75, 0x46, 0x62, 0x9f,
-	0xf4, 0xf0, 0xca, 0xc0, 0x30, 0xf4, 0x8e, 0x62, 0x79, 0xde, 0x0e, 0xe0, 0x93, 0x88, 0xb1, 0xa7,
-	0x6d, 0x17, 0x1d, 0x5a, 0x1b, 0x24, 0xfe, 0x65, 0x01, 0x2e, 0x44, 0xb4, 0x00, 0xad, 0xc3, 0x8d,
-	0xbb, 0x77, 0xbf, 0x90, 0x79, 0x20, 0xdc, 0x2b, 0x36, 0x6b, 0x0f, 0x2b, 0x32, 0x8d, 0x65, 0xdb,
-	0x95, 0xe6, 0xa8, 0x40, 0x48, 0x86, 0xbd, 0xca, 0x17, 0xc5, 0x72, 0xa5, 0x54, 0xdb, 0x2d, 0xee,
-	0xe4, 0x63, 0xe8, 0x32, 0xac, 0xb9, 0x31, 0x91, 0xb1, 0x90, 0x6d, 0xf4, 0x38, 0x5a, 0x84, 0xac,
-	0x1f, 0x34, 0xbb, 0x0d, 0x90, 0xb4, 0x75, 0x24, 0xfe, 0x1f, 0x01, 0x52, 0x8e, 0xf9, 0x51, 0x0d,
-	0x52, 0x74, 0x06, 0xa1, 0xda, 0x27, 0xde, 0xa3, 0xe7, 0xfc, 0x4d, 0x1b, 0xcf, 0xa1, 0xa6, 0x6b,
-	0x69, 0x1b, 0x4a, 0x58, 0x0d, 0xb4, 0xe7, 0x86, 0xd2, 0xef, 0x63, 0x3b, 0x1c, 0x44, 0xb1, 0x3a,
-	0xb0, 0xf1, 0x7c, 0xac, 0x1c, 0x6a, 0xb4, 0x0b, 0xe9, 0x93, 0x9e, 0x29, 0xdb, 0xcc, 0x46, 0x4f,
-	0xf2, 0x3f, 0xeb, 0x99, 0x9f, 0x0f, 0x73, 0x83, 0x13, 0x07, 0xbc, 0x9d, 0x84, 0x39, 0x76, 0xa2,
-	0x40, 0xbc, 0x09, 0x68, 0xb8, 0x19, 0x61, 0x67, 0x55, 0xc5, 0x1b, 0x80, 0x86, 0xa5, 0x44, 0x79,
-	0x88, 0xdb, 0x9d, 0x2b, 0x23, 0x91, 0x9f, 0xe2, 0x57, 0xb0, 0x14, 0x22, 0x00, 0x09, 0x6f, 0x9c,
-	0x58, 0x76, 0x09, 0x80, 0x83, 0x08, 0xc2, 0x0d, 0x58, 0x70, 0x7b, 0xab, 0xf7, 0x38, 0x6c, 0xd6,
-	0xe9, 0x90, 0xf4, 0xf8, 0xfe, 0x1f, 0x0a, 0xb0, 0x10, 0x98, 0x09, 0xa2, 0x9b, 0x90, 0xf7, 0x84,
-	0x5e, 0xb9, 0xad, 0x9c, 0xd9, 0xcb, 0xdd, 0x9c, 0x1b, 0x61, 0xcb, 0xca, 0x99, 0x49, 0x30, 0x3d,
-	0x31, 0x9e, 0x61, 0xb2, 0x51, 0x2a, 0xe7, 0x86, 0x72, 0x8a, 0xe9, 0xe9, 0xfc, 0xf1, 0xe9, 0x3a,
-	0x7f, 0xd1, 0x17, 0x77, 0x66, 0x27, 0x8b, 0x3b, 0xf4, 0xe4, 0x90, 0xfd, 0x41, 0x0c, 0xd4, 0xc3,
-	0xd6, 0xb1, 0xde, 0x16, 0x7f, 0x14, 0x83, 0x0b, 0x11, 0x8b, 0x6a, 0xa4, 0xc3, 0xc2, 0xf0, 0xea,
-	0x7c, 0xd4, 0x31, 0xb0, 0x08, 0x46, 0x11, 0x70, 0x29, 0xc8, 0xbd, 0xf0, 0xcf, 0x04, 0x58, 0x0d,
-	0xc7, 0x7d, 0xe1, 0xe7, 0x56, 0x54, 0x58, 0xeb, 0xdb, 0x6b, 0xf1, 0x40, 0x22, 0x80, 0xf7, 0x9d,
-	0x8d, 0xe8, 0xe3, 0x34, 0x61, 0x4b, 0x78, 0xe9, 0x42, 0x3f, 0xbc, 0x40, 0xfc, 0x5e, 0x1c, 0x96,
-	0xa8, 0xd1, 0x02, 0x4d, 0xf8, 0x00, 0xe6, 0xe8, 0x11, 0xa1, 0x49, 0xcf, 0xfc, 0x71, 0x6c, 0x54,
-	0x86, 0x54, 0x4b, 0xd7, 0xda, 0xaa, 0xe7, 0x5a, 0xee, 0x8d, 0x91, 0x39, 0x8b, 0x92, 0x8d, 0x2d,
-	0xb9, 0x84, 0xe8, 0x64, 0x84, 0x02, 0x66, 0xcf, 0xa3, 0x80, 0xea, 0x4c, 0xa4, 0x0a, 0x46, 0x67,
-	0x78, 0x12, 0x2f, 0x39, 0xc3, 0x13, 0xb2, 0x2a, 0xfb, 0xb1, 0x00, 0x2b, 0xa1, 0xf9, 0x1b, 0x24,
-	0xc3, 0x0a, 0xbb, 0x23, 0x1d, 0xee, 0xd9, 0xeb, 0xa3, 0x6c, 0x12, 0x70, 0x80, 0xe5, 0xa3, 0x61,
-	0xa0, 0x89, 0x1e, 0xc1, 0x12, 0x4f, 0x37, 0x99, 0x83, 0x7e, 0xdf, 0xc0, 0xa6, 0xc9, 0x73, 0x4d,
-	0xf1, 0x11, 0x59, 0x37, 0x26, 0x6b, 0xc3, 0x25, 0x90, 0x90, 0x11, 0x04, 0x99, 0xe2, 0x23, 0x58,
-	0x1c, 0x42, 0xf4, 0x7b, 0x87, 0x70, 0x4e, 0xef, 0x10, 0x7f, 0x23, 0x01, 0x0b, 0x81, 0x62, 0xd4,
-	0x84, 0x34, 0x3e, 0x75, 0x5b, 0x30, 0xfa, 0x71, 0xa1, 0x00, 0xf1, 0x46, 0xc5, 0xa5, 0x94, 0xbc,
-	0x6c, 0x0a, 0xbf, 0x4b, 0x86, 0x43, 0xa7, 0x8e, 0xf3, 0x9d, 0xb1, 0xab, 0x40, 0x52, 0xef, 0x63,
-	0x43, 0xb1, 0xf8, 0xfd, 0xdb, 0xdc, 0x88, 0xbc, 0x59, 0x97, 0xda, 0x45, 0xe9, 0xd6, 0x39, 0x81,
-	0xe4, 0x90, 0xba, 0x69, 0xff, 0xd9, 0x89, 0xd3, 0xfe, 0x85, 0xaf, 0x00, 0x1c, 0xe9, 0x4d, 0xb4,
-	0x0f, 0xe0, 0xe8, 0xd0, 0x76, 0xa1, 0xb7, 0x27, 0xd4, 0x90, 0x6b, 0x07, 0x0f, 0x8f, 0xc2, 0x0f,
-	0x63, 0x90, 0xf6, 0xe8, 0x0e, 0xf5, 0xc8, 0x80, 0xd2, 0xa1, 0x47, 0xd8, 0x9c, 0x26, 0xb3, 0x6c,
-	0xc2, 0xf6, 0xf4, 0x96, 0xd8, 0xd8, 0x61, 0xac, 0x1c, 0x5d, 0x2c, 0x74, 0xfd, 0x00, 0xd4, 0xf0,
-	0x35, 0x88, 0x99, 0xfc, 0x9d, 0x69, 0x1b, 0x44, 0x3a, 0xab, 0x87, 0x8d, 0xf8, 0x09, 0x2c, 0x04,
-	0x2a, 0x46, 0xd7, 0xe0, 0xf2, 0x4e, 0xfd, 0x5e, 0xad, 0x54, 0xdc, 0x91, 0xeb, 0xfb, 0x15, 0xa9,
-	0xd8, 0xac, 0x4b, 0x81, 0x19, 0xd9, 0x3c, 0xc4, 0x8b, 0x7b, 0xe5, 0xbc, 0xe0, 0x64, 0xee, 0xff,
-	0x8e, 0x00, 0xab, 0xe1, 0xf7, 0x0c, 0xc9, 0x32, 0xd2, 0xe9, 0xce, 0x81, 0x1b, 0x39, 0x79, 0x4f,
-	0x01, 0xbb, 0x8e, 0xd3, 0x81, 0x35, 0x7f, 0xdf, 0x97, 0xcd, 0x41, 0xaf, 0xa7, 0x18, 0xaa, 0x73,
-	0xb2, 0xf8, 0xd6, 0x44, 0xb7, 0x1c, 0x1b, 0x94, 0xea, 0x4c, 0xba, 0x60, 0x85, 0x80, 0x55, 0x6c,
-	0x8a, 0x3f, 0x9c, 0x83, 0x95, 0x50, 0x92, 0x17, 0xbc, 0x6a, 0xe6, 0xf4, 0x99, 0xd8, 0x34, 0x7d,
-	0xe6, 0x61, 0x30, 0x48, 0x72, 0xeb, 0x4e, 0x3b, 0xec, 0x05, 0xb8, 0x44, 0x07, 0xd4, 0xc4, 0x4b,
-	0x0a, 0xa8, 0x0f, 0x9c, 0xd7, 0x4d, 0xec, 0x80, 0xca, 0xf3, 0xa7, 0x93, 0x07, 0xd3, 0x9c, 0x3f,
-	0x98, 0xa2, 0x26, 0xcc, 0xb3, 0xbd, 0x40, 0x7b, 0x63, 0xfd, 0xce, 0x34, 0x16, 0xdf, 0xb0, 0x2d,
-	0xcf, 0xee, 0xc3, 0xd9, 0xac, 0xc2, 0xbd, 0x70, 0x3e, 0xdc, 0x0b, 0x0b, 0xbf, 0x2a, 0x40, 0xd6,
-	0xc7, 0xc7, 0xdd, 0x50, 0x14, 0x3c, 0x1b, 0x8a, 0xe8, 0x11, 0xcc, 0x3a, 0x27, 0xe3, 0x73, 0x91,
-	0x13, 0xaf, 0x70, 0x39, 0x03, 0xea, 0xa5, 0xd5, 0x94, 0xf4, 0x36, 0x96, 0x28, 0x4b, 0xb4, 0x06,
-	0xf3, 0x6d, 0xb6, 0x13, 0xcb, 0xb6, 0x14, 0x25, 0xfb, 0x53, 0xfc, 0x0a, 0xd6, 0xa2, 0x68, 0xc9,
-	0xaa, 0xaa, 0x29, 0x15, 0xf7, 0x1a, 0x77, 0xeb, 0xd2, 0x2e, 0x4d, 0xfe, 0xc8, 0x52, 0xa5, 0x71,
-	0xb0, 0xd3, 0x94, 0x4b, 0xf5, 0x72, 0x48, 0x7a, 0xa9, 0x71, 0x50, 0x2a, 0x55, 0x1a, 0x0d, 0x96,
-	0x8c, 0xac, 0x48, 0x52, 0x5d, 0xca, 0xc7, 0x44, 0x1d, 0x92, 0x8d, 0xd6, 0x31, 0x6e, 0x0f, 0xba,
-	0x18, 0x3d, 0x82, 0x82, 0x81, 0x5b, 0x03, 0xc3, 0xa0, 0xe7, 0x53, 0xfa, 0xd8, 0x50, 0xf5, 0xb6,
-	0x6c, 0x3f, 0x24, 0xc8, 0x3b, 0xc7, 0xc5, 0xa1, 0xcd, 0xc9, 0x32, 0x47, 0xa8, 0xce, 0x48, 0x6b,
-	0x2e, 0xf9, 0x3e, 0xa5, 0xb6, 0xcb, 0xc8, 0x2c, 0x97, 0x5d, 0xab, 0x14, 0xff, 0x5e, 0x0c, 0x16,
-	0x82, 0xd7, 0x08, 0xcf, 0x79, 0x61, 0xee, 0x1a, 0xa4, 0xdb, 0xee, 0x15, 0x32, 0xae, 0x39, 0x2f,
-	0x28, 0xf8, 0x5a, 0xd2, 0xec, 0x54, 0xaf, 0x25, 0x7d, 0x0c, 0xe9, 0x41, 0xdf, 0xdd, 0x94, 0x4c,
-	0x8c, 0x27, 0x66, 0xe8, 0x94, 0x78, 0xf8, 0xce, 0xf4, 0xdc, 0xb9, 0xef, 0x4c, 0x8b, 0xff, 0x34,
-	0x06, 0xa8, 0x3c, 0x74, 0xdd, 0xfc, 0x4f, 0xa2, 0xda, 0x42, 0x5f, 0xa9, 0x98, 0x7b, 0xc1, 0x57,
-	0x2a, 0xc4, 0xa7, 0x90, 0xa8, 0x18, 0x86, 0x6e, 0xa0, 0x5b, 0x6e, 0x3f, 0x63, 0xee, 0x8c, 0x6c,
-	0xa6, 0x46, 0xbf, 0xb5, 0xd1, 0xa0, 0x0f, 0x57, 0x3a, 0x7d, 0x0f, 0xdd, 0x61, 0x5b, 0xeb, 0x54,
-	0x4a, 0x7b, 0xda, 0x38, 0xb2, 0x21, 0x2e, 0xb6, 0xf8, 0xa3, 0x04, 0xc0, 0x7d, 0xfd, 0xb0, 0x69,
-	0xa8, 0x9d, 0x0e, 0x36, 0xbe, 0x3d, 0x53, 0xdd, 0x87, 0xb4, 0xed, 0x67, 0x4f, 0xf4, 0x43, 0x6e,
-	0xaa, 0x49, 0xaf, 0xe0, 0x92, 0xc9, 0x81, 0xea, 0xc0, 0xc8, 0x5c, 0xce, 0x62, 0xf2, 0xda, 0x43,
-	0x46, 0xd4, 0x5c, 0xce, 0x6d, 0xd9, 0x06, 0xff, 0x2b, 0x39, 0xa4, 0xe8, 0x3d, 0x98, 0xc3, 0x44,
-	0xdb, 0xf6, 0x81, 0x94, 0xa8, 0xc9, 0x1c, 0x35, 0x89, 0xc4, 0x71, 0x83, 0x3e, 0x37, 0xff, 0x22,
-	0x3e, 0x97, 0x9c, 0xca, 0xe7, 0x3e, 0x85, 0x6c, 0x57, 0x31, 0x2d, 0xd9, 0x18, 0x68, 0x8c, 0x3c,
-	0x35, 0x96, 0x3c, 0x4d, 0x08, 0xa4, 0x81, 0x46, 0xe9, 0x7f, 0x1a, 0xe6, 0xd8, 0x93, 0xa7, 0x6b,
-	0x40, 0x47, 0x86, 0x9b, 0xe3, 0x95, 0xc6, 0x3d, 0x8d, 0xd3, 0x15, 0x1a, 0x30, 0x6f, 0x3b, 0xca,
-	0x77, 0x21, 0x69, 0xf2, 0x78, 0x3c, 0x66, 0x3a, 0x62, 0x87, 0xed, 0xea, 0x8c, 0xe4, 0x90, 0x6c,
-	0xa7, 0x60, 0x9e, 0xdb, 0x41, 0xac, 0xc2, 0x1c, 0xab, 0x06, 0xad, 0x02, 0x6a, 0x34, 0x8b, 0xcd,
-	0x83, 0xc6, 0xf0, 0x98, 0x50, 0xad, 0x14, 0x77, 0x9a, 0xd5, 0x47, 0x79, 0x01, 0x01, 0xcc, 0xed,
-	0x17, 0x0f, 0x1a, 0x95, 0x32, 0x7b, 0x56, 0xb1, 0x54, 0xdc, 0x2b, 0x55, 0x76, 0x76, 0x2a, 0xe5,
-	0x7c, 0x7c, 0x3b, 0x01, 0xf1, 0x27, 0xfa, 0xa1, 0xf8, 0x7b, 0x71, 0x98, 0x63, 0x57, 0x58, 0xd1,
-	0x03, 0xc8, 0x9a, 0xca, 0x33, 0x2c, 0x7b, 0x5e, 0xf5, 0x1b, 0x95, 0xa6, 0x62, 0x54, 0x1b, 0x0d,
-	0xe5, 0x19, 0xb6, 0xdf, 0x9e, 0xac, 0xce, 0x48, 0x19, 0xd3, 0xf3, 0x8d, 0xaa, 0x30, 0xdf, 0x1f,
-	0x1c, 0xca, 0xe6, 0xe0, 0x70, 0xcc, 0x03, 0x17, 0x9c, 0xd9, 0xfe, 0xe0, 0xb0, 0xab, 0x9a, 0xc7,
-	0x4d, 0x7d, 0x7f, 0x70, 0xd8, 0x18, 0x1c, 0x56, 0x67, 0xa4, 0xb9, 0x3e, 0xfd, 0x85, 0x4e, 0xe0,
-	0x42, 0x9f, 0x15, 0xf2, 0xe9, 0xe4, 0x99, 0x6c, 0xe9, 0x72, 0xcb, 0x6c, 0xb5, 0xc6, 0x2c, 0x9c,
-	0xfc, 0x9c, 0xf9, 0xd0, 0xdd, 0xd4, 0x4b, 0x66, 0xab, 0x55, 0x9d, 0x91, 0x96, 0xfb, 0x21, 0xf0,
-	0x82, 0x0c, 0x19, 0x6f, 0xb3, 0x50, 0xdd, 0x79, 0xc4, 0xc1, 0x77, 0x98, 0x60, 0x7d, 0xf2, 0x47,
-	0x1c, 0xec, 0x77, 0x1b, 0xf8, 0x25, 0xcf, 0x37, 0x60, 0x21, 0xd0, 0x54, 0x32, 0x3d, 0xb1, 0xf4,
-	0x3e, 0xbf, 0x7c, 0x94, 0x92, 0xd8, 0x47, 0x61, 0x15, 0x96, 0xc3, 0x24, 0x27, 0x43, 0x2f, 0xbb,
-	0x70, 0x2c, 0xfe, 0xa6, 0x00, 0x97, 0x4b, 0xb4, 0xd3, 0x04, 0x2f, 0xf8, 0x8f, 0x79, 0x00, 0xe4,
-	0x01, 0xe4, 0x87, 0x5e, 0x10, 0x88, 0x4d, 0xf5, 0x82, 0xc0, 0x42, 0xe0, 0x79, 0x0e, 0x74, 0x15,
-	0xd2, 0xce, 0x33, 0x1e, 0x6a, 0x9b, 0x47, 0x36, 0xb0, 0x41, 0xb5, 0xb6, 0xf8, 0xfb, 0x02, 0x5c,
-	0x3e, 0xa0, 0x9d, 0x34, 0x42, 0xd8, 0xb0, 0x90, 0xfa, 0x2d, 0x08, 0xea, 0x86, 0x16, 0xba, 0xcf,
-	0x15, 0x8f, 0x88, 0x0d, 0x74, 0x12, 0xbd, 0xab, 0x98, 0x27, 0x76, 0x68, 0x21, 0xbf, 0xc5, 0x4d,
-	0xb8, 0x78, 0x0f, 0x5b, 0x93, 0x37, 0x40, 0x7c, 0x0a, 0x97, 0xd8, 0xfd, 0x7a, 0x1f, 0x85, 0x39,
-	0xce, 0x40, 0x57, 0x00, 0xfa, 0x4a, 0x07, 0xcb, 0x96, 0x7e, 0xc2, 0x5f, 0xa9, 0x4a, 0x49, 0x29,
-	0x02, 0x69, 0x12, 0x00, 0xba, 0x04, 0xf4, 0xc3, 0xdd, 0x6e, 0x4a, 0x48, 0x49, 0x02, 0xa0, 0x9b,
-	0x4d, 0xbf, 0x26, 0xc0, 0xe5, 0xf0, 0x3a, 0xf9, 0xd5, 0xfe, 0x06, 0x2c, 0x06, 0x95, 0x6a, 0x2f,
-	0xb0, 0x27, 0xd5, 0x6a, 0x3e, 0xa0, 0x55, 0x13, 0xdd, 0x80, 0x05, 0x0d, 0x9f, 0x5a, 0xf2, 0x90,
-	0xd8, 0x59, 0x02, 0xde, 0xb7, 0x45, 0x17, 0xb7, 0xe0, 0x72, 0x19, 0x77, 0xf1, 0x34, 0x5e, 0x40,
-	0x77, 0x22, 0x98, 0x9f, 0xbb, 0x21, 0x77, 0x9c, 0x06, 0xb7, 0x21, 0xfd, 0x44, 0x3f, 0x94, 0x79,
-	0xf0, 0xe4, 0x4e, 0xf3, 0xea, 0xd8, 0x48, 0x2e, 0xc1, 0x13, 0x77, 0x90, 0xbf, 0x02, 0xc0, 0xe9,
-	0x5d, 0x97, 0x4e, 0x71, 0x48, 0xad, 0x4d, 0x56, 0xcd, 0x17, 0x98, 0x47, 0x0f, 0x8b, 0x15, 0xe6,
-	0xcc, 0x2f, 0x43, 0xa4, 0x17, 0xf2, 0xde, 0x75, 0x58, 0xbe, 0x87, 0xad, 0x89, 0x84, 0x15, 0x7f,
-	0x22, 0xc0, 0x12, 0xd3, 0x79, 0xb9, 0xdb, 0xbf, 0xaf, 0x1f, 0x8e, 0xd3, 0x77, 0x60, 0xde, 0x12,
-	0x7b, 0x91, 0x79, 0x4b, 0x0d, 0x92, 0x86, 0x6a, 0x9e, 0x50, 0x46, 0xf1, 0xd1, 0x07, 0xc9, 0xc2,
-	0x9e, 0x95, 0xa8, 0xce, 0x48, 0xf3, 0x84, 0x9e, 0xb0, 0x5a, 0x81, 0x39, 0xa2, 0x73, 0xb5, 0xcd,
-	0x9f, 0x15, 0x4a, 0x3c, 0xd1, 0x0f, 0x6b, 0x6d, 0x7b, 0x04, 0xfc, 0x25, 0x01, 0x56, 0x49, 0x57,
-	0x71, 0x55, 0xf2, 0x6d, 0xf6, 0x4c, 0x74, 0x11, 0x92, 0x74, 0xdf, 0x5c, 0x3e, 0x3c, 0xe3, 0xe2,
-	0xcc, 0xd3, 0xef, 0xed, 0x33, 0x22, 0xc9, 0x85, 0x21, 0x49, 0x78, 0x7f, 0x2d, 0x43, 0xc6, 0xe3,
-	0x37, 0x76, 0x57, 0x9d, 0xc0, 0x71, 0xd2, 0xae, 0xe3, 0x4c, 0xde, 0x41, 0x6f, 0xc3, 0x05, 0xd6,
-	0x41, 0x27, 0xf3, 0x93, 0xbf, 0x1a, 0x83, 0x7c, 0xd0, 0x9c, 0x64, 0xb1, 0xc4, 0x9f, 0xb3, 0xf7,
-	0x8f, 0x9a, 0x51, 0x8b, 0x25, 0xff, 0x78, 0x99, 0x35, 0x7d, 0x8f, 0x30, 0xbd, 0xd4, 0xd7, 0xaa,
-	0x22, 0x5f, 0x9d, 0x8a, 0x47, 0xbf, 0x1d, 0xe6, 0x79, 0x0f, 0x64, 0x76, 0xaa, 0xf7, 0x40, 0xfe,
-	0x45, 0x02, 0xe6, 0x58, 0xef, 0x09, 0x8d, 0x07, 0xef, 0xf3, 0x97, 0xb9, 0x47, 0x3f, 0x4e, 0xcf,
-	0x18, 0x78, 0x9e, 0xe2, 0xfe, 0x84, 0xbe, 0xe5, 0x69, 0x61, 0x9e, 0x9e, 0xbd, 0x31, 0x92, 0x8e,
-	0xb8, 0x03, 0x99, 0x35, 0x62, 0x89, 0x11, 0xa1, 0x2f, 0x20, 0x43, 0xfb, 0x96, 0xbd, 0x6c, 0x62,
-	0x0b, 0x8c, 0x77, 0xcf, 0x71, 0xc6, 0xbc, 0x3a, 0x23, 0xa5, 0x0d, 0xcf, 0xad, 0xea, 0xc7, 0x60,
-	0x8f, 0xb5, 0x0e, 0xf3, 0xd1, 0x67, 0xfe, 0xa2, 0x5e, 0x43, 0xaa, 0xce, 0x48, 0xb6, 0xc5, 0x6d,
-	0xde, 0x2f, 0xf4, 0x4a, 0xf2, 0x47, 0x00, 0xf4, 0xbd, 0xd3, 0x49, 0x17, 0x22, 0x29, 0x8a, 0x4d,
-	0x49, 0xdf, 0x87, 0x24, 0xd6, 0xda, 0x93, 0x2e, 0x42, 0xe6, 0xb1, 0xd6, 0xa6, 0x64, 0x37, 0x21,
-	0xef, 0xe9, 0xb1, 0xcc, 0xc1, 0x80, 0x5a, 0x3e, 0xe7, 0x76, 0x49, 0xea, 0x5b, 0xee, 0xda, 0x2a,
-	0x3d, 0xf9, 0xda, 0x4a, 0x6c, 0x41, 0xd2, 0xb6, 0x2b, 0xba, 0x08, 0x2b, 0xf7, 0xeb, 0xdb, 0x32,
-	0x59, 0x10, 0x84, 0xe4, 0x88, 0xf6, 0x2b, 0x7b, 0xe5, 0xda, 0xde, 0xbd, 0xbc, 0x40, 0x3e, 0xa4,
-	0x83, 0xbd, 0x3d, 0xf2, 0x11, 0x43, 0x49, 0x98, 0x2d, 0xd7, 0xf7, 0x2a, 0xf9, 0x38, 0xca, 0x40,
-	0x92, 0x2d, 0x0d, 0x2a, 0xe5, 0xfc, 0x2c, 0x59, 0x34, 0xdc, 0x2d, 0xd6, 0xc8, 0xef, 0x04, 0x59,
-	0x7a, 0xd8, 0x49, 0xab, 0x1b, 0x90, 0xbf, 0x87, 0x2d, 0xff, 0x40, 0x10, 0x16, 0x0c, 0x7e, 0x47,
-	0x00, 0x44, 0xa2, 0x18, 0xc3, 0x0c, 0x89, 0xa5, 0xb3, 0xbe, 0x58, 0xea, 0x3e, 0x4a, 0x24, 0x78,
-	0x1f, 0x25, 0xf2, 0x07, 0xd1, 0x58, 0x20, 0x88, 0xfa, 0x03, 0x70, 0x3c, 0x18, 0x80, 0xed, 0x4e,
-	0x95, 0x98, 0xaa, 0x53, 0x89, 0x7d, 0x58, 0xf2, 0x09, 0xce, 0x43, 0xef, 0x3b, 0x30, 0xfb, 0x44,
-	0x3f, 0xb4, 0x43, 0xee, 0x95, 0x91, 0xdc, 0x24, 0x8a, 0x3a, 0x71, 0x9c, 0x7d, 0x13, 0x96, 0x4a,
-	0x8a, 0xd6, 0xc2, 0xdd, 0xf1, 0x6a, 0x7d, 0x13, 0x96, 0x58, 0x48, 0x1e, 0x8f, 0xfa, 0xdb, 0x02,
-	0x5c, 0xe5, 0xc3, 0xf6, 0x50, 0x7e, 0x69, 0xdc, 0xd0, 0xf6, 0x18, 0x96, 0x42, 0x9e, 0xd0, 0x1c,
-	0x73, 0xfc, 0x21, 0xa4, 0x1a, 0x34, 0xfc, 0xd0, 0xe6, 0xf8, 0xe5, 0xc1, 0xbf, 0x15, 0xe0, 0x2a,
-	0x9b, 0x4c, 0x45, 0x0b, 0x1e, 0x16, 0x44, 0xbf, 0x4d, 0xa1, 0x5f, 0x68, 0xb2, 0xb5, 0x05, 0x97,
-	0x49, 0x9f, 0x99, 0xa6, 0x31, 0xa2, 0x05, 0xaf, 0x50, 0x2f, 0x1c, 0x22, 0xfa, 0x56, 0x17, 0x0c,
-	0x7f, 0x5b, 0x80, 0xab, 0x91, 0xd5, 0xf2, 0x8e, 0xf0, 0x25, 0x2c, 0x87, 0xa8, 0xd9, 0xee, 0x18,
-	0x53, 0xe8, 0x79, 0x69, 0x58, 0xcf, 0x93, 0xf7, 0x99, 0xf7, 0xe1, 0x2a, 0xef, 0x08, 0xd3, 0xa8,
-	0x75, 0x7d, 0x17, 0xb2, 0xbe, 0xff, 0x52, 0x82, 0x2e, 0xc0, 0x52, 0xa9, 0xbe, 0xd7, 0xac, 0xec,
-	0x05, 0xcf, 0x2a, 0xe5, 0x21, 0x63, 0x17, 0x34, 0x2b, 0x5f, 0x34, 0xf3, 0x02, 0x5a, 0x84, 0xac,
-	0x0d, 0x61, 0xff, 0xc3, 0x22, 0xb6, 0xbe, 0xef, 0xbe, 0x12, 0xe7, 0x79, 0xac, 0x8d, 0x04, 0xe2,
-	0xca, 0xde, 0xc1, 0x6e, 0xd8, 0x3f, 0xc0, 0x48, 0xc3, 0x7c, 0x8d, 0x02, 0x38, 0x47, 0xa9, 0xd6,
-	0xf8, 0x4c, 0x2e, 0xee, 0x15, 0x77, 0x1e, 0x35, 0x6a, 0x8d, 0x7c, 0x6c, 0xfd, 0x9f, 0x08, 0x80,
-	0x86, 0xb7, 0x53, 0xd1, 0x75, 0xb8, 0x2a, 0x55, 0x76, 0xe8, 0x4e, 0x40, 0xf4, 0x66, 0x5e, 0x06,
-	0x92, 0x95, 0x07, 0x07, 0xc5, 0x1d, 0xb9, 0x59, 0xcf, 0x0b, 0xa4, 0x01, 0x7b, 0xf5, 0xa6, 0xec,
-	0x40, 0xe8, 0xe9, 0xe4, 0x7b, 0x52, 0xa5, 0xd8, 0xac, 0x48, 0x72, 0xb3, 0x5a, 0xdc, 0x63, 0xff,
-	0x55, 0x63, 0xa7, 0xd2, 0x68, 0xb0, 0xcf, 0x59, 0x54, 0x80, 0x55, 0x2f, 0x82, 0x5c, 0x97, 0x18,
-	0x79, 0x23, 0x9f, 0x20, 0x8a, 0x72, 0x50, 0x3d, 0x05, 0x73, 0x64, 0xa0, 0xa8, 0x7c, 0x51, 0x6b,
-	0x34, 0x1b, 0xf9, 0xf9, 0x75, 0x09, 0xc0, 0x8d, 0xa7, 0xe8, 0x32, 0xac, 0x95, 0x77, 0xf6, 0x65,
-	0x32, 0x26, 0x85, 0x68, 0x62, 0x01, 0xd2, 0x5c, 0x13, 0x04, 0x23, 0x2f, 0xa0, 0x15, 0x58, 0xf4,
-	0x69, 0x83, 0x82, 0x63, 0x5b, 0xff, 0x4f, 0xa4, 0x4c, 0x1b, 0xd8, 0x78, 0xa6, 0xb6, 0x30, 0xfa,
-	0x1b, 0x02, 0xe4, 0xfc, 0x2f, 0x7f, 0xa2, 0x5b, 0x63, 0xa7, 0x7f, 0x9e, 0xa7, 0x50, 0x0b, 0xb7,
-	0x27, 0xc4, 0x66, 0xee, 0x2e, 0x6e, 0xfd, 0x99, 0x1f, 0xff, 0x97, 0xbf, 0x14, 0xbb, 0x25, 0xbe,
-	0xb1, 0xf9, 0x6c, 0x6b, 0xf3, 0x67, 0x59, 0x1f, 0xfb, 0x6e, 0xdf, 0xd0, 0x9f, 0xe0, 0x96, 0x65,
-	0x6e, 0xae, 0xff, 0xfc, 0x26, 0xff, 0x1f, 0x03, 0x77, 0xf8, 0x3c, 0xe5, 0x8e, 0xb0, 0x8e, 0x7e,
-	0x20, 0x40, 0xda, 0xf3, 0x56, 0x34, 0x7a, 0x73, 0xe2, 0xf7, 0xbe, 0x0b, 0xeb, 0x93, 0xa0, 0x72,
-	0xd1, 0x36, 0xa9, 0x68, 0x6f, 0x8a, 0xaf, 0x45, 0x89, 0x46, 0xdf, 0xa3, 0xbe, 0xc3, 0xae, 0x9c,
-	0x10, 0xb9, 0x7e, 0x4b, 0x80, 0xc5, 0xa1, 0xf7, 0x8d, 0xd1, 0xe6, 0x24, 0xd9, 0x77, 0xaf, 0x06,
-	0xdf, 0x9e, 0x9c, 0x80, 0x4b, 0xfa, 0x3e, 0x95, 0x74, 0x53, 0x5c, 0x1f, 0xa7, 0x44, 0x37, 0x24,
-	0xd8, 0xf2, 0x4a, 0x13, 0xcb, 0x2b, 0x4d, 0x2b, 0xaf, 0xf4, 0xe2, 0xf2, 0x1a, 0x3e, 0x79, 0x7f,
-	0x41, 0x80, 0xac, 0xef, 0x0d, 0x45, 0xf4, 0x56, 0xe4, 0xff, 0x0f, 0x19, 0x7e, 0xbe, 0xb1, 0x70,
-	0x6b, 0x32, 0x64, 0x2e, 0xe3, 0x0a, 0x95, 0x71, 0x01, 0x65, 0x89, 0x8c, 0xee, 0x11, 0xac, 0xff,
-	0x20, 0xc0, 0x4a, 0x68, 0x26, 0x10, 0xbd, 0x1b, 0x79, 0x7a, 0x2d, 0x3a, 0x6f, 0x58, 0x98, 0x30,
-	0x0d, 0x24, 0x76, 0xa8, 0x34, 0x8a, 0x78, 0xdb, 0xab, 0x31, 0xdd, 0xe8, 0x28, 0x9a, 0xfa, 0x35,
-	0xdb, 0x62, 0xa6, 0x0e, 0x19, 0xc8, 0x15, 0xdd, 0x11, 0xd6, 0x1f, 0xdf, 0x16, 0x6f, 0x46, 0xfa,
-	0xef, 0x30, 0x3a, 0x6d, 0x5f, 0x68, 0xf2, 0x30, 0xb2, 0x7d, 0xa3, 0x52, 0x8d, 0xd3, 0xb6, 0x6f,
-	0x8b, 0xb5, 0x8f, 0x8c, 0x25, 0xc1, 0xd6, 0x0d, 0x49, 0xbb, 0xb9, 0xfe, 0xf3, 0xb4, 0x7d, 0x5b,
-	0x37, 0x5d, 0x1a, 0xb7, 0x75, 0x11, 0xe8, 0xe8, 0x0f, 0x04, 0x40, 0xc3, 0x89, 0x45, 0x14, 0xe5,
-	0xc3, 0x91, 0x39, 0xc8, 0x89, 0x5b, 0xa6, 0xd0, 0x96, 0xfd, 0x0c, 0x9a, 0xae, 0x65, 0x8f, 0xd7,
-	0xd1, 0xc4, 0xcd, 0x42, 0x3f, 0x11, 0xec, 0x07, 0x4b, 0x03, 0xa9, 0xc2, 0xad, 0x91, 0x1e, 0x1f,
-	0x9a, 0x28, 0x2d, 0xbc, 0x3b, 0x15, 0x0d, 0xef, 0x2c, 0xfe, 0x46, 0x4e, 0xea, 0x9e, 0x4e, 0x23,
-	0x27, 0xf0, 0x4d, 0xf4, 0x2f, 0x05, 0x58, 0x09, 0xcd, 0x67, 0x46, 0x3a, 0xe6, 0xa8, 0xec, 0x67,
-	0x21, 0xe2, 0x91, 0x39, 0xbb, 0x25, 0xeb, 0xd3, 0x9a, 0x6b, 0x7d, 0x72, 0x73, 0xfd, 0xa1, 0x00,
-	0x6b, 0x51, 0x2b, 0x07, 0xf4, 0xc1, 0xc8, 0x28, 0x12, 0x39, 0x1b, 0x2b, 0x4c, 0x3e, 0x31, 0x14,
-	0x7b, 0xb4, 0x89, 0x1d, 0xf1, 0xed, 0x91, 0xc6, 0x0a, 0x99, 0x3d, 0x92, 0xee, 0xf6, 0xb6, 0xf8,
-	0x56, 0x94, 0xc9, 0xc2, 0x29, 0x68, 0x73, 0xa3, 0xd6, 0x1b, 0x91, 0xcd, 0x1d, 0xb3, 0x40, 0x39,
-	0x47, 0x73, 0xb7, 0xde, 0x8e, 0xb6, 0x68, 0x88, 0xe4, 0x3c, 0xba, 0xbc, 0xbd, 0xf5, 0x56, 0xa8,
-	0x5d, 0x23, 0x29, 0xd0, 0x7f, 0x14, 0x60, 0x25, 0x74, 0x39, 0x12, 0xe9, 0xa7, 0xa3, 0x16, 0x2f,
-	0xd3, 0x34, 0x94, 0xc7, 0x50, 0x34, 0x75, 0x43, 0x1f, 0xdf, 0x46, 0xd3, 0xb4, 0x12, 0xfd, 0x0f,
-	0x9e, 0x42, 0x0d, 0x59, 0xc6, 0xa0, 0xf7, 0x47, 0x84, 0x8f, 0xe8, 0xd5, 0x56, 0xe1, 0x83, 0x69,
-	0xc9, 0x78, 0xe0, 0xf1, 0xb7, 0x79, 0x0a, 0x5f, 0x76, 0xda, 0x3c, 0x99, 0x23, 0xa3, 0x1f, 0x0b,
-	0xb0, 0x16, 0xb5, 0x22, 0x8a, 0xf4, 0xe2, 0x31, 0x4b, 0xa8, 0xc8, 0x20, 0xc4, 0x5b, 0xb5, 0x7e,
-	0x0e, 0x4b, 0xae, 0x4f, 0x65, 0xc9, 0x1f, 0x08, 0x90, 0x0f, 0xee, 0xf7, 0xa0, 0x8d, 0x91, 0x21,
-	0x68, 0x28, 0x59, 0x5d, 0x18, 0x9f, 0x1f, 0x17, 0x37, 0x68, 0x83, 0x6e, 0x8a, 0xd7, 0xa3, 0x54,
-	0xee, 0xc9, 0x9f, 0xf3, 0x19, 0x7e, 0x3e, 0xb8, 0xe1, 0x13, 0x29, 0x57, 0xc4, 0xce, 0xd0, 0x14,
-	0x72, 0x6d, 0x5d, 0x0f, 0x55, 0x9a, 0x47, 0x28, 0xde, 0xb9, 0xff, 0x82, 0x00, 0x59, 0xdf, 0xc6,
-	0x4e, 0xe4, 0x0c, 0x34, 0x6c, 0xfb, 0x67, 0x12, 0x89, 0xde, 0xa2, 0x12, 0xbd, 0x8e, 0x26, 0x91,
-	0x08, 0xfd, 0x75, 0x01, 0x16, 0x02, 0x7b, 0x19, 0xe8, 0xf6, 0x88, 0x9e, 0x34, 0xbc, 0xfb, 0x52,
-	0xd8, 0x98, 0x14, 0x9d, 0x77, 0x38, 0xbf, 0x7c, 0xa3, 0x2d, 0x89, 0x7e, 0x89, 0x3e, 0x9c, 0xe0,
-	0xdf, 0xe2, 0x88, 0x34, 0x63, 0xc4, 0x5e, 0x48, 0x64, 0x27, 0xe1, 0x92, 0xac, 0x4f, 0xa4, 0xa9,
-	0x3f, 0x2b, 0x40, 0xc6, 0xbb, 0xc9, 0x86, 0xd6, 0x47, 0x8f, 0xb3, 0xde, 0xf4, 0x5f, 0x61, 0x74,
-	0x36, 0x52, 0x5c, 0xa7, 0x82, 0xbc, 0x26, 0x5e, 0x8d, 0x8c, 0x27, 0x2c, 0xd7, 0x49, 0x1c, 0xe8,
-	0xfb, 0x02, 0xa4, 0x3d, 0xe9, 0xcf, 0xc8, 0xa5, 0xeb, 0x70, 0x6e, 0x37, 0x72, 0xe9, 0x1a, 0x92,
-	0x4d, 0x15, 0xdf, 0xa0, 0x22, 0xbd, 0x8a, 0xc6, 0x89, 0x84, 0x7e, 0x0e, 0x52, 0x4e, 0xbe, 0x19,
-	0xbd, 0x31, 0x62, 0x80, 0x9a, 0x46, 0x21, 0xfe, 0xda, 0x87, 0x42, 0x11, 0xab, 0x9a, 0x58, 0xe5,
-	0x67, 0x21, 0xe3, 0x4d, 0xb7, 0x46, 0x1a, 0x25, 0x24, 0x27, 0x1b, 0xe9, 0x16, 0xbc, 0xf2, 0xf5,
-	0xb1, 0x95, 0x53, 0x97, 0xf0, 0xe4, 0x85, 0xa3, 0x5d, 0x62, 0x38, 0x79, 0x1c, 0x59, 0xfb, 0x3b,
-	0xb4, 0xf6, 0xb7, 0xc4, 0x1b, 0x63, 0x6a, 0xbf, 0xd3, 0xa2, 0x4c, 0xef, 0x08, 0xeb, 0xdb, 0xdf,
-	0x17, 0xe0, 0x62, 0x4b, 0xef, 0x85, 0x57, 0xbe, 0x9d, 0x2c, 0x77, 0xfb, 0xfb, 0xa4, 0x8e, 0x7d,
-	0xe1, 0xf1, 0x87, 0x1c, 0xa5, 0xa3, 0x77, 0x15, 0xad, 0xb3, 0xa1, 0x1b, 0x9d, 0xcd, 0x0e, 0xd6,
-	0xa8, 0x04, 0x9b, 0xac, 0x48, 0xe9, 0xab, 0x66, 0xe0, 0xdf, 0x5d, 0x7f, 0xdc, 0xee, 0xf6, 0x7f,
-	0x33, 0xb6, 0x74, 0x8f, 0x91, 0x96, 0xba, 0xfa, 0xa0, 0x4d, 0xec, 0xb4, 0xf1, 0x70, 0xeb, 0x5f,
-	0xdb, 0xd0, 0x2f, 0x29, 0xf4, 0xcb, 0x72, 0xb7, 0xff, 0xe5, 0xc3, 0xad, 0xc3, 0x39, 0xca, 0xf0,
-	0xdd, 0xff, 0x1f, 0x00, 0x00, 0xff, 0xff, 0x68, 0x82, 0x86, 0x5c, 0x94, 0x7b, 0x00, 0x00,
+var fileDescriptor_dlp_536657b46c30097f = []byte{
+	// 8339 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xdc, 0x7d, 0x6d, 0x6c, 0x1b, 0xd9,
+	0x76, 0x98, 0x86, 0x14, 0x29, 0xf2, 0x50, 0xa4, 0xa8, 0xab, 0x0f, 0xcb, 0xb4, 0xbd, 0xf6, 0x8e,
+	0x77, 0x6d, 0xaf, 0xd6, 0x96, 0x76, 0xb5, 0x1f, 0x6f, 0xd7, 0xbb, 0x6f, 0x13, 0x8a, 0xa4, 0x4d,
+	0x7a, 0x25, 0x51, 0x1e, 0x52, 0xde, 0xb5, 0xb3, 0xd8, 0xe9, 0x90, 0xbc, 0xa2, 0xc6, 0x22, 0x39,
+	0xf4, 0xcc, 0xd0, 0x96, 0x36, 0x49, 0x91, 0x14, 0x6d, 0x83, 0x00, 0x5d, 0x34, 0x40, 0xfa, 0xfa,
+	0xd0, 0xbc, 0x34, 0x48, 0x9b, 0x1f, 0x05, 0x02, 0xa4, 0x1f, 0x68, 0x93, 0xa0, 0x6d, 0x9a, 0x1f,
+	0x69, 0xd1, 0x14, 0x45, 0x51, 0xbc, 0x87, 0xf7, 0xab, 0x28, 0x02, 0xb4, 0xaf, 0x4d, 0x1b, 0x60,
+	0xf3, 0xa7, 0x40, 0xff, 0xa4, 0x05, 0x8a, 0xe2, 0x7e, 0xcc, 0x27, 0x67, 0xf8, 0x21, 0xdb, 0x6d,
+	0xf0, 0x7e, 0x89, 0xf7, 0xdc, 0x73, 0xce, 0x3d, 0xf7, 0xdc, 0x73, 0xcf, 0x3d, 0xf7, 0xcc, 0xbd,
+	0x57, 0x70, 0xb9, 0xad, 0x69, 0xed, 0x0e, 0xde, 0xec, 0xeb, 0xea, 0x53, 0xa5, 0x79, 0xba, 0xd9,
+	0xea, 0xf4, 0x37, 0x9f, 0x6e, 0x91, 0x3f, 0x1b, 0x7d, 0x5d, 0x33, 0x35, 0xb4, 0xc2, 0x10, 0x36,
+	0x38, 0xc2, 0x06, 0xa9, 0x79, 0xba, 0x95, 0xbb, 0xc8, 0xe9, 0x94, 0xbe, 0xba, 0xa9, 0xf4, 0x7a,
+	0x9a, 0xa9, 0x98, 0xaa, 0xd6, 0x33, 0x18, 0x51, 0xee, 0x6a, 0x30, 0x57, 0xc3, 0xd4, 0x74, 0xa5,
+	0x8d, 0x39, 0xd2, 0x2b, 0x36, 0x92, 0x66, 0x6a, 0x8d, 0xc1, 0xe1, 0x66, 0x6b, 0xa0, 0x53, 0x2e,
+	0xbc, 0xfe, 0x82, 0xbf, 0x1e, 0x77, 0xfb, 0xe6, 0x29, 0xaf, 0xbc, 0xe2, 0xaf, 0x3c, 0x54, 0x71,
+	0xa7, 0x25, 0x77, 0x15, 0xe3, 0x98, 0x63, 0x5c, 0xf6, 0x63, 0x98, 0x6a, 0x17, 0x1b, 0xa6, 0xd2,
+	0xe5, 0x3d, 0xcb, 0x9d, 0xe3, 0x08, 0x7a, 0xbf, 0xb9, 0x69, 0x98, 0x8a, 0x39, 0xb0, 0xa4, 0x5f,
+	0xe5, 0x15, 0xe6, 0x69, 0x1f, 0x6f, 0xb6, 0x14, 0x13, 0xfb, 0x04, 0xe2, 0xf0, 0x53, 0xed, 0xf0,
+	0x19, 0xc6, 0xc7, 0x41, 0x95, 0xa4, 0x29, 0xed, 0xb0, 0xa5, 0x70, 0x69, 0xc5, 0x7f, 0x13, 0x87,
+	0x74, 0xa5, 0x67, 0xf4, 0x71, 0xd3, 0x2c, 0x68, 0xbd, 0x43, 0xb5, 0x8d, 0x3e, 0x01, 0x50, 0x7b,
+	0x87, 0x9a, 0x4c, 0xd0, 0x8d, 0x35, 0xe1, 0x4a, 0xf4, 0x46, 0x6a, 0xeb, 0xf2, 0x46, 0xa0, 0xae,
+	0x37, 0x2a, 0xbd, 0x43, 0xad, 0x7e, 0xda, 0xc7, 0x52, 0x52, 0xe5, 0xbf, 0x0c, 0x54, 0x86, 0x4c,
+	0x57, 0xed, 0xc9, 0x1d, 0xf5, 0x18, 0x77, 0xd4, 0x23, 0x4d, 0x6b, 0xad, 0x45, 0xae, 0x08, 0x37,
+	0x32, 0x5b, 0xaf, 0x86, 0xf0, 0xd8, 0xb1, 0x11, 0xa5, 0x74, 0x57, 0xed, 0x39, 0x45, 0x74, 0x0f,
+	0xe2, 0x1d, 0xb5, 0xab, 0x9a, 0xc6, 0x5a, 0xf4, 0x8a, 0x70, 0x23, 0xb5, 0xb5, 0x15, 0x2a, 0x85,
+	0x4b, 0xfe, 0x8d, 0x3b, 0x6a, 0xaf, 0xa5, 0xf6, 0xda, 0x3b, 0x94, 0x52, 0xe2, 0x1c, 0xd0, 0x55,
+	0x48, 0xab, 0xbd, 0x66, 0x67, 0xd0, 0xc2, 0xf2, 0x93, 0x81, 0x66, 0xe2, 0xb5, 0xd9, 0x2b, 0xc2,
+	0x8d, 0x84, 0x34, 0xcf, 0x81, 0xf7, 0x09, 0x0c, 0xdd, 0x04, 0x84, 0x4f, 0x18, 0x92, 0x4b, 0x05,
+	0x31, 0x8a, 0x99, 0xe5, 0x35, 0x15, 0xbb, 0xa3, 0xf7, 0x61, 0xb1, 0x39, 0x30, 0x4c, 0xad, 0xeb,
+	0x46, 0x8e, 0x53, 0x7d, 0xbd, 0x1e, 0x22, 0x69, 0x81, 0xe2, 0xdb, 0x5a, 0x5b, 0x68, 0x7a, 0xca,
+	0x06, 0xda, 0x85, 0x85, 0xa6, 0xd6, 0x33, 0x71, 0xcf, 0x94, 0xb5, 0x3e, 0x35, 0xdb, 0xb5, 0xc4,
+	0x95, 0xe8, 0x8d, 0xcc, 0xd6, 0x6b, 0x61, 0x0c, 0x19, 0x76, 0x95, 0x22, 0x4b, 0x99, 0xa6, 0xbb,
+	0x68, 0xe4, 0xbe, 0x89, 0x40, 0xda, 0xa3, 0x0e, 0xf4, 0x36, 0xac, 0x74, 0x95, 0x13, 0xf9, 0x90,
+	0x01, 0x0d, 0xb9, 0x8f, 0x75, 0x59, 0x35, 0x71, 0x77, 0x4d, 0xb8, 0x22, 0xdc, 0x88, 0x49, 0xa8,
+	0xab, 0x9c, 0x70, 0x02, 0x63, 0x1f, 0xeb, 0x15, 0x13, 0x77, 0xd1, 0xb7, 0x60, 0x6d, 0x88, 0x44,
+	0xc7, 0x4f, 0x06, 0xd8, 0x30, 0xe9, 0xc8, 0xc6, 0xa4, 0x15, 0x2f, 0x95, 0xc4, 0x2a, 0xd1, 0xcf,
+	0x40, 0x6e, 0xb8, 0x2d, 0x4b, 0x53, 0x6b, 0x51, 0xaa, 0xa8, 0x9f, 0x9c, 0x7e, 0x48, 0x6d, 0xa3,
+	0xa3, 0x45, 0x69, 0xd5, 0x27, 0x32, 0xaf, 0xcc, 0xf5, 0x89, 0x5d, 0xbb, 0x10, 0xd1, 0xc7, 0x90,
+	0x74, 0x5a, 0x17, 0xa8, 0x41, 0x8d, 0x35, 0xeb, 0x84, 0x65, 0xd6, 0xe8, 0x55, 0x98, 0x77, 0x77,
+	0x86, 0xf7, 0x3c, 0xe5, 0x6a, 0x5c, 0xfc, 0x46, 0x80, 0x85, 0xed, 0x53, 0x13, 0xf3, 0x31, 0xa1,
+	0xca, 0x2b, 0xc2, 0xac, 0xdd, 0x5e, 0x66, 0xeb, 0xad, 0x90, 0xf6, 0x7c, 0x54, 0xb4, 0x6c, 0x50,
+	0x01, 0x28, 0x35, 0x42, 0x30, 0xdb, 0x52, 0x4c, 0x85, 0x36, 0x3a, 0x2f, 0xd1, 0xdf, 0xe2, 0x5f,
+	0x84, 0xa4, 0x8d, 0x86, 0x72, 0xb0, 0xba, 0xfd, 0xb0, 0x5e, 0xaa, 0xc9, 0xf5, 0x87, 0xfb, 0x25,
+	0xf9, 0x60, 0xaf, 0xb6, 0x5f, 0x2a, 0x54, 0xee, 0x54, 0x4a, 0xc5, 0xec, 0x0c, 0x4a, 0x42, 0xac,
+	0xb2, 0x9b, 0xbf, 0x5b, 0xca, 0xc6, 0x51, 0x06, 0x80, 0xfe, 0x94, 0xef, 0xed, 0x97, 0xee, 0x66,
+	0x05, 0x94, 0x86, 0x24, 0x2b, 0x6f, 0xef, 0xee, 0x67, 0x23, 0x4e, 0x71, 0x7f, 0xef, 0x6e, 0x36,
+	0xea, 0x14, 0x6b, 0x0f, 0xee, 0x66, 0x67, 0x49, 0xb1, 0x5e, 0xfa, 0xbc, 0x2e, 0x1f, 0xd4, 0xef,
+	0x7c, 0x90, 0x8d, 0x89, 0xff, 0x40, 0x80, 0x94, 0xbb, 0xa7, 0xab, 0x10, 0x7b, 0xaa, 0x74, 0x06,
+	0x98, 0xce, 0xd5, 0x64, 0x79, 0x46, 0x62, 0x45, 0xf4, 0x2e, 0xc4, 0x4c, 0xa5, 0xd1, 0x61, 0x13,
+	0x2e, 0xb5, 0x75, 0x31, 0x44, 0x05, 0x75, 0x82, 0x43, 0xa8, 0x28, 0x32, 0x2a, 0x41, 0xb2, 0x71,
+	0x6a, 0x62, 0x66, 0x9b, 0x31, 0x4a, 0x79, 0x6d, 0x32, 0xe5, 0x95, 0x67, 0xa4, 0x04, 0x21, 0x25,
+	0xbf, 0xb7, 0x53, 0x90, 0x24, 0xca, 0xa2, 0x6c, 0xc4, 0x7f, 0x22, 0x40, 0x8c, 0x36, 0x83, 0x3e,
+	0x80, 0xb9, 0x23, 0xac, 0xb4, 0xb0, 0x6e, 0xf9, 0xb7, 0x57, 0x42, 0x78, 0xdf, 0x21, 0xae, 0xbb,
+	0xd2, 0x92, 0x2c, 0x74, 0xf4, 0x2e, 0xcc, 0xea, 0xda, 0x33, 0x32, 0xfc, 0x84, 0xec, 0xca, 0xa8,
+	0xce, 0x6c, 0x48, 0xda, 0x33, 0x89, 0x62, 0xe7, 0x3e, 0x82, 0xa8, 0xa4, 0x3d, 0x43, 0xef, 0x42,
+	0x9c, 0xea, 0xc4, 0x6a, 0x35, 0x4c, 0x17, 0x0f, 0x08, 0x92, 0xc4, 0x71, 0xc5, 0xaf, 0x6c, 0x07,
+	0x2d, 0x61, 0x63, 0xd0, 0x31, 0xd1, 0x6d, 0x48, 0xd8, 0x66, 0x38, 0x4e, 0x7c, 0x8a, 0x26, 0xd9,
+	0xf8, 0xe8, 0x16, 0x20, 0x7b, 0x3e, 0x9a, 0xfa, 0xa0, 0xd7, 0x54, 0x4c, 0xcc, 0x1c, 0x74, 0x42,
+	0x5a, 0xb4, 0x6a, 0xea, 0x56, 0x85, 0xf8, 0x1f, 0x23, 0x30, 0xc7, 0x99, 0xa0, 0x65, 0x88, 0x31,
+	0xcf, 0x49, 0x6c, 0x39, 0x29, 0xb1, 0x82, 0x77, 0x56, 0x45, 0xa6, 0x9d, 0x55, 0x79, 0x00, 0xd7,
+	0x3a, 0x11, 0x9d, 0x74, 0x9d, 0x70, 0x11, 0xa1, 0x8f, 0x20, 0xd1, 0xd1, 0x9a, 0x74, 0x75, 0xe6,
+	0x26, 0x16, 0xd6, 0xfe, 0x0e, 0x47, 0x93, 0x6c, 0x02, 0xf4, 0x11, 0xa4, 0x9a, 0x3a, 0x56, 0x4c,
+	0x2c, 0x93, 0x75, 0x71, 0x2d, 0x4e, 0xe9, 0x73, 0x0e, 0x3d, 0x5b, 0x9f, 0x37, 0xea, 0xd6, 0xfa,
+	0x2c, 0x01, 0x43, 0x27, 0x00, 0xf4, 0x13, 0x00, 0x54, 0x07, 0xd4, 0xa9, 0xad, 0xcd, 0x51, 0xda,
+	0x30, 0x8b, 0xa0, 0xeb, 0x0b, 0x51, 0x80, 0x94, 0x7c, 0x62, 0xfd, 0x14, 0xff, 0x8b, 0x00, 0x89,
+	0x1d, 0x47, 0x14, 0xa0, 0x16, 0xaf, 0x2b, 0xbd, 0xb6, 0xe5, 0x9f, 0xc2, 0x0c, 0x44, 0x22, 0x38,
+	0x12, 0x9d, 0x21, 0xf4, 0x27, 0x2a, 0x91, 0x75, 0xa3, 0x85, 0xfb, 0x9a, 0xda, 0x33, 0x39, 0x87,
+	0xc8, 0x04, 0x1c, 0x32, 0x36, 0x11, 0x63, 0x53, 0x83, 0x45, 0x6b, 0xf9, 0xb1, 0x54, 0x64, 0xac,
+	0xcd, 0x51, 0x13, 0xbb, 0x36, 0x7a, 0x01, 0xb2, 0x75, 0x9b, 0x6d, 0x7a, 0x01, 0x86, 0xf8, 0xbb,
+	0x51, 0x58, 0xf0, 0x61, 0xa1, 0xd7, 0x81, 0x2e, 0x55, 0x8a, 0xda, 0xc3, 0xba, 0xdc, 0x53, 0xba,
+	0x96, 0x51, 0xa5, 0x6d, 0xe8, 0x9e, 0xd2, 0xc5, 0x68, 0x1f, 0x16, 0x74, 0xdc, 0xd4, 0xf4, 0x96,
+	0x2d, 0x0e, 0xef, 0x56, 0xd8, 0xfa, 0x2a, 0x51, 0x6c, 0xab, 0x99, 0xf2, 0x8c, 0x94, 0xd1, 0x3d,
+	0x10, 0xb4, 0x0b, 0x19, 0xb5, 0xab, 0xb4, 0xb1, 0xc3, 0x90, 0x85, 0x16, 0x61, 0xeb, 0x6b, 0x85,
+	0x20, 0xbb, 0xf8, 0xa5, 0x55, 0x37, 0x00, 0x3d, 0x80, 0xc5, 0x96, 0xd6, 0x1c, 0x74, 0xdd, 0x1a,
+	0xe3, 0xee, 0xea, 0x7a, 0x08, 0xc7, 0x22, 0xc7, 0x77, 0x31, 0xcd, 0xb6, 0x7c, 0x30, 0xf4, 0x29,
+	0x2c, 0x39, 0xfa, 0xb1, 0xa3, 0xc3, 0x09, 0xec, 0x13, 0xd9, 0x64, 0x36, 0x0c, 0xbd, 0xc9, 0x46,
+	0x95, 0x31, 0x7b, 0x8a, 0x75, 0x83, 0x08, 0x39, 0x47, 0xf5, 0x9d, 0xb5, 0x2b, 0x1e, 0x30, 0xf8,
+	0x36, 0x38, 0xd3, 0x49, 0x7c, 0x07, 0xb2, 0x7e, 0x69, 0xd1, 0x65, 0x48, 0x1d, 0xaa, 0x1d, 0x2c,
+	0x6b, 0x87, 0x87, 0x06, 0x36, 0xe9, 0xb0, 0x45, 0x25, 0x20, 0xa0, 0x2a, 0x85, 0x88, 0xff, 0x41,
+	0x80, 0x8c, 0x77, 0x18, 0xc8, 0x44, 0xe1, 0xc3, 0x78, 0x8c, 0x4f, 0xb9, 0x69, 0x5f, 0x19, 0x39,
+	0x82, 0x9f, 0xe2, 0x53, 0x29, 0xa9, 0x5b, 0x3f, 0xd1, 0x87, 0xc4, 0xe3, 0x91, 0x20, 0x5a, 0x6d,
+	0x71, 0x03, 0x18, 0xeb, 0xb0, 0x0f, 0xd9, 0x0f, 0xf4, 0x29, 0x64, 0xe8, 0x8a, 0x32, 0xe9, 0x80,
+	0x53, 0xd7, 0x6d, 0x5b, 0x73, 0xda, 0x74, 0x17, 0xc5, 0x9b, 0x90, 0xf6, 0xd4, 0xa3, 0x0b, 0x90,
+	0xd4, 0xb5, 0x67, 0xb2, 0xda, 0x6b, 0xe1, 0x13, 0xae, 0x8b, 0x84, 0xae, 0x3d, 0xab, 0x90, 0xb2,
+	0xb8, 0x09, 0x31, 0x36, 0xad, 0x96, 0x21, 0x66, 0x98, 0x8a, 0x6e, 0x69, 0x8b, 0x15, 0x50, 0x16,
+	0xa2, 0xb8, 0xc7, 0xfa, 0x13, 0x95, 0xc8, 0x4f, 0xf1, 0x11, 0xa4, 0x3d, 0xf6, 0x86, 0x2a, 0x90,
+	0x69, 0x68, 0x03, 0xea, 0x7e, 0xe5, 0x86, 0x76, 0x62, 0x2f, 0x1c, 0x62, 0xd8, 0x52, 0xc8, 0x91,
+	0xb7, 0xb5, 0x13, 0x29, 0xdd, 0x70, 0x0a, 0xd8, 0x10, 0x15, 0x48, 0xb9, 0x6a, 0x49, 0xe3, 0xa6,
+	0xd6, 0xe7, 0x51, 0x1f, 0xf9, 0x49, 0x62, 0x8c, 0x0e, 0x3e, 0xb4, 0x42, 0x3a, 0xfa, 0x9b, 0x08,
+	0xfe, 0x4c, 0x6d, 0x99, 0x47, 0x54, 0x67, 0x31, 0x89, 0x15, 0xd0, 0x2a, 0xc4, 0x8f, 0xb0, 0xda,
+	0x3e, 0x32, 0xa9, 0xbf, 0x8d, 0x49, 0xbc, 0x24, 0xfe, 0xf6, 0x2c, 0x20, 0x09, 0xb7, 0x94, 0xa6,
+	0x49, 0x7b, 0x61, 0x85, 0x81, 0xab, 0x10, 0xef, 0x2b, 0x3a, 0xee, 0x99, 0x7c, 0x8e, 0xf3, 0x12,
+	0x19, 0x19, 0x95, 0xad, 0x6b, 0x72, 0x93, 0x86, 0x79, 0x7c, 0x68, 0x5f, 0x9b, 0x24, 0x24, 0x94,
+	0xd2, 0xaa, 0x67, 0xd3, 0xf2, 0x14, 0xce, 0xb1, 0x79, 0xad, 0x53, 0x01, 0x54, 0xad, 0xc7, 0x99,
+	0x92, 0xf0, 0x9d, 0xa8, 0xec, 0x93, 0x50, 0x7b, 0xf3, 0x0b, 0xbc, 0xc1, 0x0b, 0x9c, 0x0f, 0x6f,
+	0x6f, 0x45, 0x0d, 0x80, 0x1a, 0xe8, 0x0d, 0xc8, 0x5a, 0xdb, 0x0a, 0x7b, 0x4d, 0x8e, 0xd3, 0xd5,
+	0x74, 0x81, 0xc3, 0xad, 0xf0, 0x10, 0x15, 0xdc, 0x21, 0xcd, 0xdc, 0x34, 0x21, 0x8d, 0x13, 0xd0,
+	0xe4, 0x7e, 0x20, 0xc0, 0x72, 0x90, 0x7c, 0xe8, 0x93, 0xe9, 0xa3, 0x5b, 0x12, 0x29, 0xd9, 0x2b,
+	0xf1, 0x0d, 0xe2, 0x6a, 0x09, 0x4b, 0x59, 0xe9, 0x74, 0x64, 0x13, 0x9f, 0x30, 0x4b, 0x48, 0x10,
+	0x9f, 0xc7, 0x2a, 0xf2, 0x9d, 0x4e, 0x1d, 0x9f, 0x98, 0x64, 0xad, 0x71, 0x2b, 0xb9, 0xa3, 0xe9,
+	0x7c, 0x4a, 0x5d, 0x0c, 0x5d, 0x22, 0x3a, 0x9a, 0x4e, 0x3c, 0xb1, 0x2d, 0x71, 0x47, 0xd3, 0xb7,
+	0x13, 0x10, 0x37, 0x15, 0xbd, 0x8d, 0x4d, 0xb1, 0x00, 0x31, 0x0a, 0x22, 0x46, 0xa9, 0xe3, 0x16,
+	0x95, 0x3e, 0x22, 0x91, 0x9f, 0xc4, 0x00, 0xdb, 0x3a, 0xc6, 0xcc, 0xed, 0x47, 0x24, 0x56, 0x20,
+	0xa6, 0xda, 0xb0, 0x22, 0xcd, 0x88, 0x44, 0x7f, 0x8b, 0xff, 0x50, 0x80, 0x25, 0xcf, 0x58, 0x1a,
+	0x7d, 0xad, 0x67, 0x60, 0xb2, 0xd2, 0xb0, 0x86, 0x71, 0x4b, 0xa6, 0x43, 0x48, 0xd9, 0xcf, 0x5b,
+	0x9d, 0xc2, 0x2d, 0x8a, 0x4e, 0xd0, 0xf0, 0x89, 0xa9, 0x33, 0x3c, 0xbb, 0xf7, 0x49, 0x29, 0x6d,
+	0x43, 0x69, 0xdf, 0x5d, 0x36, 0xab, 0xd3, 0x60, 0x6c, 0xdc, 0xf2, 0xe1, 0x0e, 0xdc, 0x6c, 0x9b,
+	0x65, 0x45, 0xf1, 0x7f, 0x47, 0x60, 0xad, 0x88, 0xd5, 0x16, 0xee, 0x99, 0xea, 0xe1, 0x29, 0x1f,
+	0xef, 0x71, 0xb3, 0xa6, 0x0e, 0x8b, 0x2d, 0x9b, 0xc6, 0x3b, 0x71, 0x42, 0x57, 0x1c, 0x77, 0x1b,
+	0xc4, 0x96, 0xb3, 0x2d, 0x1f, 0x24, 0x60, 0x2e, 0x46, 0xcf, 0x3e, 0x17, 0xdf, 0x87, 0x59, 0x6a,
+	0xe3, 0x2c, 0x1a, 0x13, 0x47, 0x07, 0x0e, 0xd4, 0xbe, 0x29, 0x3e, 0xda, 0x82, 0x15, 0x4b, 0x08,
+	0x13, 0x77, 0xfb, 0x1d, 0x12, 0x96, 0xd1, 0xd8, 0x20, 0x46, 0x35, 0xb0, 0xc4, 0x2b, 0xeb, 0xbc,
+	0x8e, 0x46, 0x08, 0x1f, 0xc0, 0x9a, 0x4b, 0x1d, 0x5e, 0xb2, 0x38, 0x25, 0x5b, 0x75, 0xea, 0xdd,
+	0x94, 0xe2, 0xaf, 0x09, 0x70, 0x3e, 0x40, 0xfb, 0xdc, 0x6c, 0xac, 0x3e, 0x08, 0x53, 0xf6, 0xa1,
+	0x02, 0x09, 0xed, 0x29, 0xd6, 0x9f, 0xaa, 0xf8, 0x19, 0x1f, 0x95, 0x5b, 0x61, 0x0b, 0x8d, 0xae,
+	0xf4, 0x8c, 0x43, 0x4d, 0xef, 0x52, 0x57, 0x5f, 0xe5, 0x44, 0x92, 0x4d, 0x4e, 0xcd, 0x43, 0x3a,
+	0x83, 0x79, 0xe8, 0xcf, 0x6d, 0x1e, 0xfa, 0x8f, 0x93, 0x79, 0xe8, 0x63, 0xcc, 0x43, 0x0f, 0x37,
+	0x0f, 0xe9, 0xcf, 0xb3, 0x79, 0xfc, 0x89, 0x00, 0x2b, 0x8e, 0x9e, 0x27, 0xb1, 0x8d, 0x17, 0xba,
+	0xe0, 0x5a, 0x1a, 0x88, 0xbe, 0xa8, 0x51, 0x9c, 0x0d, 0x1d, 0x45, 0xf1, 0x01, 0xac, 0xfa, 0x7b,
+	0xca, 0xc7, 0xe1, 0x63, 0x88, 0x73, 0x3f, 0x2c, 0x4c, 0xe1, 0x87, 0x39, 0x8d, 0xf8, 0xef, 0x22,
+	0xb0, 0x54, 0x1d, 0x98, 0xfd, 0x81, 0x59, 0x63, 0xe9, 0x5f, 0xde, 0xb7, 0x8f, 0xad, 0x94, 0xc5,
+	0x68, 0xa6, 0xdb, 0x6a, 0xfb, 0xfe, 0x00, 0xeb, 0xa7, 0xbe, 0xd4, 0xc5, 0x17, 0x90, 0xd6, 0x28,
+	0x53, 0xd9, 0x68, 0x1e, 0xe1, 0xae, 0xc2, 0xb7, 0xb5, 0xdf, 0x0a, 0xe1, 0x12, 0x20, 0x80, 0x05,
+	0xa3, 0xe4, 0xd2, 0xbc, 0xe6, 0x2a, 0x89, 0xbf, 0x24, 0xc0, 0xbc, 0xbb, 0x1a, 0x5d, 0x82, 0xf3,
+	0xd5, 0x83, 0xfa, 0xfe, 0x41, 0x5d, 0xae, 0x15, 0xca, 0xa5, 0xdd, 0xbc, 0x2f, 0xfb, 0xb3, 0x08,
+	0xe9, 0xed, 0x7c, 0xad, 0x52, 0x90, 0x0b, 0xd5, 0x9d, 0x83, 0xdd, 0xbd, 0x5a, 0x56, 0x40, 0x0b,
+	0x90, 0xba, 0x5b, 0xa8, 0xd9, 0x80, 0x08, 0x5a, 0x81, 0xc5, 0x62, 0xbe, 0x9e, 0xaf, 0xd5, 0xab,
+	0x52, 0xc9, 0x06, 0x47, 0x09, 0x78, 0xbb, 0x72, 0x57, 0xbe, 0x7f, 0x50, 0x92, 0x1e, 0xda, 0xe0,
+	0x59, 0x42, 0x9e, 0xdf, 0xd9, 0xb1, 0x01, 0xb1, 0xed, 0x38, 0xcb, 0x71, 0x89, 0x4d, 0x27, 0xe3,
+	0x56, 0x33, 0x15, 0xd3, 0x78, 0xce, 0x8c, 0xdb, 0x32, 0xc4, 0x9a, 0xda, 0xa0, 0x67, 0xf2, 0x08,
+	0x99, 0x15, 0xc4, 0xef, 0xcf, 0xc2, 0x1a, 0x1f, 0xcd, 0xa2, 0x62, 0x2a, 0x35, 0x6d, 0xa0, 0x37,
+	0x71, 0x11, 0x9b, 0x8a, 0xda, 0x31, 0x50, 0x97, 0x78, 0x3f, 0x3a, 0x09, 0x70, 0xcb, 0x4e, 0xa0,
+	0x32, 0x23, 0x1f, 0x93, 0x68, 0x1c, 0xe2, 0xb5, 0x21, 0x59, 0x8c, 0x78, 0x32, 0x95, 0xb8, 0x45,
+	0x2f, 0x04, 0xed, 0xd9, 0xd6, 0xc7, 0x66, 0xc1, 0xfb, 0xd3, 0xb7, 0xe1, 0xb6, 0xc7, 0xdc, 0xef,
+	0x0b, 0x90, 0xf5, 0x37, 0x8b, 0x1a, 0x70, 0xde, 0xe8, 0x29, 0x7d, 0xe3, 0x48, 0x33, 0x65, 0xff,
+	0xcc, 0xe1, 0x4a, 0xbd, 0x36, 0xba, 0x5d, 0x6b, 0x2e, 0x49, 0xe7, 0x2c, 0x46, 0xbe, 0x0a, 0x74,
+	0x07, 0xe0, 0xb1, 0xd6, 0xf0, 0xfa, 0xf6, 0xeb, 0xa3, 0x99, 0xde, 0xd3, 0x1a, 0xdc, 0x31, 0x24,
+	0x1f, 0x5b, 0x3f, 0x73, 0xff, 0x58, 0x80, 0x38, 0x4f, 0x52, 0x5d, 0x87, 0x85, 0xbe, 0xae, 0x35,
+	0xb1, 0x61, 0xe0, 0x96, 0x4c, 0xc2, 0x57, 0x83, 0xef, 0x7e, 0x32, 0x36, 0x98, 0xa6, 0x2f, 0x89,
+	0x43, 0x30, 0x35, 0x53, 0xe9, 0xc8, 0xd8, 0x30, 0xd5, 0xae, 0x62, 0xda, 0xe8, 0x6c, 0xd8, 0x97,
+	0x68, 0x65, 0xc9, 0xaa, 0x63, 0x34, 0x3b, 0xb0, 0x60, 0x1b, 0x96, 0x6c, 0x10, 0x5b, 0xe3, 0xe9,
+	0xe4, 0xd7, 0xc6, 0x98, 0x17, 0xb5, 0x4b, 0xe2, 0xca, 0x5c, 0x45, 0xf1, 0x7b, 0x02, 0x2c, 0x59,
+	0x08, 0x45, 0x6c, 0x34, 0x75, 0x95, 0xaa, 0x9e, 0x84, 0x99, 0xae, 0xd4, 0x04, 0xfd, 0x8d, 0x5e,
+	0x85, 0xf9, 0x96, 0x6a, 0xf4, 0x3b, 0xca, 0x29, 0xf3, 0x5a, 0x2c, 0x4a, 0x4c, 0x71, 0x18, 0x5d,
+	0x73, 0x76, 0x61, 0xde, 0x18, 0xf4, 0xfb, 0x9a, 0xce, 0xba, 0x42, 0x25, 0xcb, 0x6c, 0xad, 0x8f,
+	0x93, 0xcc, 0x22, 0xd9, 0x3e, 0x95, 0x52, 0x86, 0x53, 0x10, 0x6b, 0xb0, 0xbc, 0xa3, 0x1a, 0xa6,
+	0xfd, 0x8d, 0xc0, 0xf2, 0xf2, 0x57, 0x21, 0xdd, 0x51, 0x7a, 0xed, 0x01, 0xd9, 0xf4, 0x34, 0xb5,
+	0x96, 0x25, 0xe6, 0xbc, 0x05, 0x2c, 0x68, 0x2d, 0x4c, 0x96, 0x82, 0x43, 0xb5, 0x63, 0x62, 0x9d,
+	0x0b, 0xca, 0x4b, 0x62, 0x03, 0x56, 0x7c, 0x4c, 0xb9, 0x43, 0xad, 0x04, 0x7c, 0xfc, 0x19, 0x27,
+	0xba, 0x4b, 0x67, 0xae, 0xef, 0x40, 0xe2, 0x7f, 0x13, 0x60, 0x45, 0x52, 0x8d, 0xe3, 0x7c, 0x4f,
+	0xe9, 0x9c, 0x1a, 0xaa, 0x61, 0x5b, 0x0c, 0x59, 0x88, 0x38, 0x2b, 0xb9, 0x8b, 0x4d, 0x5d, 0x6d,
+	0x8e, 0x71, 0xb4, 0xfb, 0xac, 0xb8, 0x4b, 0x71, 0xa5, 0x74, 0xdf, 0x5d, 0x44, 0x77, 0x61, 0xde,
+	0xa0, 0x93, 0x4a, 0x66, 0x3e, 0x3b, 0x32, 0xb9, 0xcf, 0x96, 0x52, 0x8c, 0x92, 0x25, 0x85, 0xbf,
+	0x05, 0x73, 0x6c, 0x7f, 0x62, 0x19, 0xd3, 0xa5, 0x10, 0x1e, 0x79, 0x8a, 0x25, 0x59, 0xd8, 0xe2,
+	0x1f, 0x09, 0x30, 0x77, 0x7f, 0xa0, 0x18, 0x6a, 0xa5, 0x85, 0xde, 0x85, 0x18, 0xcd, 0x3c, 0xf0,
+	0x1e, 0x8d, 0x4b, 0x53, 0x30, 0x64, 0xef, 0xe6, 0x2d, 0x32, 0xfd, 0xe6, 0xed, 0x32, 0x00, 0xff,
+	0x12, 0x65, 0x2a, 0x6d, 0x3b, 0x01, 0x9f, 0x64, 0xb0, 0xba, 0xd2, 0x46, 0xef, 0x02, 0x41, 0xc6,
+	0x3a, 0xd9, 0x5e, 0xb1, 0xb8, 0x6b, 0x75, 0x28, 0x89, 0x54, 0xea, 0xf6, 0xcd, 0x53, 0xce, 0x96,
+	0x62, 0x6e, 0xc7, 0x20, 0x6a, 0x2a, 0x6d, 0xf1, 0x8f, 0x23, 0x90, 0x25, 0x33, 0x45, 0x35, 0x4c,
+	0xb5, 0xa9, 0x74, 0x98, 0xb6, 0x6e, 0x5b, 0x6b, 0x64, 0x74, 0x0a, 0x7d, 0xf3, 0x15, 0xf2, 0x21,
+	0x24, 0x9f, 0x10, 0x7d, 0xc9, 0x6a, 0xcb, 0xb2, 0xb1, 0x8f, 0x43, 0xe8, 0xfd, 0xed, 0x6e, 0x70,
+	0x45, 0xd3, 0xb0, 0x4c, 0xc5, 0x3a, 0x55, 0xa4, 0x94, 0x78, 0xc2, 0xa0, 0x06, 0xda, 0x05, 0xa4,
+	0xe3, 0x8e, 0x62, 0xaa, 0x4f, 0xb1, 0x7c, 0x48, 0x1d, 0x76, 0xaf, 0x79, 0x3a, 0x61, 0xce, 0x68,
+	0xd1, 0xa2, 0xbc, 0x63, 0x11, 0xe6, 0x8e, 0x61, 0x39, 0xa8, 0xc1, 0x33, 0x0e, 0xf3, 0x25, 0xcf,
+	0x30, 0xb1, 0x19, 0xe9, 0x0c, 0x92, 0xf8, 0x27, 0x8b, 0x90, 0xf6, 0x98, 0x3a, 0x7a, 0x02, 0xab,
+	0xbd, 0x41, 0x17, 0xeb, 0xa4, 0xfb, 0xcc, 0xcf, 0x59, 0x3e, 0x9a, 0xb5, 0xfb, 0xe1, 0x24, 0x13,
+	0x66, 0x63, 0xcf, 0x62, 0x41, 0xdd, 0x1d, 0x9b, 0x83, 0xe5, 0x19, 0x69, 0xb9, 0x17, 0x00, 0x47,
+	0xcf, 0x60, 0xad, 0xa9, 0x98, 0xb8, 0xad, 0x05, 0x34, 0xca, 0xd4, 0xf8, 0xd1, 0x44, 0x8d, 0x16,
+	0x1c, 0x26, 0xde, 0x66, 0x57, 0x9b, 0x81, 0x35, 0x08, 0x03, 0x3a, 0x96, 0x95, 0x9e, 0xd6, 0x3b,
+	0xed, 0xaa, 0xe6, 0xa9, 0x77, 0x2d, 0x7a, 0x6f, 0xa2, 0x26, 0x3f, 0xcd, 0x5b, 0xd4, 0x76, 0x63,
+	0xd9, 0x63, 0x1f, 0x8c, 0x34, 0xd3, 0x91, 0x5b, 0x2a, 0x4d, 0x83, 0x3a, 0xcd, 0xcc, 0x4e, 0xd1,
+	0xcc, 0x4e, 0xd1, 0xa2, 0x76, 0x9a, 0xe9, 0xf8, 0x60, 0x48, 0x87, 0x73, 0xc7, 0x72, 0x57, 0xe9,
+	0x5b, 0xab, 0x9a, 0x93, 0x90, 0xe2, 0xe9, 0xe1, 0xc9, 0x86, 0xee, 0xd3, 0x5d, 0xa5, 0x5f, 0xb2,
+	0x39, 0x38, 0x43, 0x77, 0x1c, 0x00, 0x47, 0x5f, 0x0b, 0x70, 0xa5, 0x85, 0x3b, 0xa6, 0x22, 0xf7,
+	0x75, 0x6c, 0xe0, 0x5e, 0x13, 0x07, 0xb4, 0xce, 0x52, 0xc8, 0xdb, 0x13, 0xb5, 0x5e, 0x24, 0xcc,
+	0xf6, 0x39, 0xaf, 0x00, 0x31, 0x2e, 0xb5, 0x46, 0x21, 0xe4, 0x76, 0x60, 0x39, 0xc8, 0xf4, 0xce,
+	0x36, 0x79, 0x72, 0x7b, 0xb0, 0x1a, 0x6c, 0x53, 0x67, 0xe4, 0xf7, 0xb5, 0x00, 0x59, 0xbf, 0xc5,
+	0xa0, 0x8f, 0x86, 0x3d, 0xd3, 0x38, 0x76, 0x8e, 0xef, 0xf9, 0x18, 0x92, 0xc4, 0x4b, 0x98, 0xa7,
+	0x4e, 0x9a, 0x3a, 0xcc, 0x8b, 0x97, 0x28, 0x1e, 0xa1, 0xc6, 0xfc, 0x57, 0xee, 0xd7, 0x05, 0xc8,
+	0xfa, 0x4d, 0xeb, 0xf9, 0xe4, 0xa9, 0xc2, 0x92, 0x81, 0x7b, 0x86, 0x4a, 0x9d, 0xa1, 0x62, 0x9a,
+	0xba, 0xda, 0x18, 0x98, 0x78, 0x42, 0x67, 0x88, 0x6c, 0xd2, 0xbc, 0x45, 0x99, 0xfb, 0x26, 0x0e,
+	0xcb, 0x41, 0x16, 0x89, 0x1a, 0xc3, 0x62, 0x96, 0xce, 0x6c, 0xdf, 0x1b, 0x75, 0xa5, 0xdd, 0xc6,
+	0x2d, 0xbf, 0x67, 0xbf, 0x0c, 0x29, 0x1d, 0xb7, 0x99, 0x25, 0xb7, 0xac, 0xc0, 0x0b, 0x18, 0x88,
+	0xc6, 0x3a, 0x06, 0x64, 0x95, 0xc1, 0x89, 0xda, 0x51, 0x15, 0xfd, 0x94, 0xc5, 0x02, 0xd6, 0x42,
+	0x5e, 0x3e, 0xbb, 0x2c, 0x79, 0x8b, 0x23, 0x5b, 0xc0, 0x16, 0x14, 0x4f, 0xd9, 0xc8, 0xfd, 0x67,
+	0x01, 0x52, 0x2e, 0x79, 0x7f, 0x1c, 0xd7, 0xff, 0xdc, 0xff, 0x8c, 0x40, 0xc6, 0xab, 0x87, 0xe7,
+	0x5a, 0xfd, 0xf5, 0x61, 0x63, 0x39, 0x78, 0x51, 0x03, 0x64, 0x85, 0x07, 0x2f, 0x39, 0x2c, 0x68,
+	0xc2, 0xbc, 0xbb, 0xa1, 0x97, 0x12, 0x0e, 0xe4, 0x7e, 0x20, 0xc0, 0xa5, 0x91, 0x1e, 0x78, 0x1a,
+	0xef, 0xc0, 0xc5, 0x9d, 0x66, 0x3e, 0x49, 0xa1, 0xf3, 0xe9, 0xfa, 0x84, 0xc1, 0xda, 0xd0, 0x74,
+	0xb1, 0x53, 0x05, 0xbf, 0x7c, 0x0d, 0x2e, 0xd2, 0x7d, 0xc1, 0x57, 0xd8, 0xd9, 0x15, 0x93, 0xcd,
+	0x82, 0xb5, 0x93, 0xff, 0x12, 0xd6, 0x9c, 0x9d, 0xfc, 0x73, 0x6c, 0x16, 0x56, 0x6d, 0x2e, 0xde,
+	0xc8, 0xea, 0x11, 0x38, 0x35, 0xf2, 0x99, 0xf7, 0x0f, 0xcb, 0x36, 0x8f, 0x9a, 0x6b, 0x23, 0xf1,
+	0x73, 0xc2, 0x70, 0xd8, 0xe6, 0xc9, 0x13, 0x84, 0xf9, 0xa3, 0x51, 0x1a, 0xf1, 0x45, 0x71, 0x6c,
+	0x97, 0x3d, 0x1c, 0xc5, 0xf1, 0xdd, 0xf7, 0x5f, 0x15, 0x82, 0xc2, 0x38, 0x2e, 0x04, 0x73, 0x00,
+	0xf7, 0xce, 0x22, 0x84, 0x7f, 0x05, 0xb6, 0xc5, 0x18, 0x8a, 0xea, 0xb8, 0x20, 0xa6, 0x37, 0xaa,
+	0xe3, 0x12, 0xb0, 0x10, 0xa8, 0x78, 0x16, 0x09, 0x9c, 0x25, 0xdb, 0x6e, 0xdb, 0x15, 0xe4, 0x39,
+	0xad, 0xba, 0x83, 0x3c, 0xde, 0x6a, 0xfc, 0xec, 0xad, 0x3a, 0x0b, 0xb3, 0xd3, 0x6a, 0xc7, 0x07,
+	0x43, 0x3f, 0x2f, 0x04, 0x04, 0x7d, 0xbc, 0xed, 0xb9, 0xb3, 0x0f, 0xbc, 0xd7, 0xed, 0x39, 0x03,
+	0x7f, 0x1c, 0x00, 0x47, 0xbf, 0x3a, 0x32, 0x06, 0xe4, 0xc2, 0x24, 0xa9, 0x30, 0xf7, 0xcf, 0x22,
+	0x4c, 0x88, 0x43, 0xb2, 0xa5, 0x0a, 0x0b, 0x09, 0x19, 0x42, 0xee, 0x87, 0x82, 0x3f, 0x26, 0xe4,
+	0x72, 0x7f, 0x08, 0xc9, 0xae, 0xda, 0x93, 0xd9, 0x09, 0xb2, 0xd1, 0x87, 0x5f, 0xd8, 0xe9, 0xa8,
+	0x44, 0x57, 0xed, 0xd1, 0x5f, 0x94, 0x54, 0x39, 0xe1, 0xa4, 0x91, 0x89, 0x48, 0x95, 0x13, 0x46,
+	0x5a, 0x82, 0x85, 0x27, 0x03, 0xa5, 0x67, 0xaa, 0x1d, 0x2c, 0xf3, 0x93, 0x59, 0xb3, 0x13, 0x9c,
+	0xcc, 0xca, 0x58, 0x44, 0xb4, 0x68, 0xe4, 0xbe, 0x9e, 0x1d, 0x8e, 0x4d, 0x79, 0xbf, 0x7e, 0x5b,
+	0x80, 0x57, 0x29, 0x67, 0x67, 0xd9, 0x91, 0x8f, 0x54, 0xc3, 0xd4, 0xda, 0xba, 0xd2, 0x95, 0x1b,
+	0x83, 0xe6, 0x31, 0x36, 0xad, 0x4f, 0xd4, 0x8f, 0x5f, 0xdc, 0x8c, 0x1c, 0x02, 0x97, 0xad, 0x36,
+	0xb7, 0x69, 0x93, 0xd2, 0x2b, 0x54, 0x28, 0x7b, 0x45, 0xf3, 0x55, 0x1b, 0xb9, 0x7f, 0x16, 0x81,
+	0xcb, 0x63, 0x78, 0xa0, 0x6f, 0xc3, 0x05, 0x7f, 0xd7, 0x3a, 0xda, 0x33, 0xac, 0xcb, 0xf4, 0xe4,
+	0x01, 0x4f, 0xf7, 0xad, 0x79, 0x1b, 0xda, 0x21, 0x08, 0xf4, 0x20, 0x42, 0x10, 0xf9, 0xa0, 0xdf,
+	0xb7, 0xc9, 0x23, 0x41, 0xe4, 0x07, 0x04, 0x81, 0x91, 0x5f, 0x86, 0x14, 0x53, 0x9f, 0x6c, 0xa8,
+	0x5f, 0xb1, 0x40, 0x24, 0x2a, 0x01, 0x03, 0xd5, 0xd4, 0xaf, 0x30, 0xba, 0x07, 0x69, 0x8e, 0xe0,
+	0x19, 0xda, 0xd7, 0x47, 0x0d, 0xad, 0xdd, 0x90, 0x34, 0xcf, 0x68, 0xd9, 0x08, 0xa3, 0x9b, 0x80,
+	0xdc, 0xbc, 0x64, 0x96, 0x98, 0x8e, 0xd1, 0x36, 0xb3, 0x2e, 0xcc, 0x02, 0x81, 0xe7, 0xbe, 0x89,
+	0xb9, 0xb7, 0x16, 0xdc, 0x12, 0x7e, 0x4b, 0x80, 0xab, 0xf8, 0xc9, 0x40, 0x7d, 0xaa, 0x74, 0xe8,
+	0xb4, 0x6c, 0x76, 0x14, 0xc3, 0x08, 0xb5, 0x85, 0x2f, 0x5f, 0x84, 0x6f, 0x74, 0x01, 0xfc, 0xe3,
+	0x7f, 0xc5, 0x25, 0x4a, 0x81, 0x48, 0x32, 0x64, 0x01, 0xbf, 0x22, 0x40, 0xce, 0xa1, 0x2f, 0xf9,
+	0xd0, 0xd1, 0x1d, 0xc8, 0xda, 0xb1, 0x87, 0x3c, 0xc5, 0xa9, 0xc6, 0x8c, 0x15, 0x80, 0x70, 0xcd,
+	0xbe, 0x0b, 0xab, 0xc3, 0x5a, 0xa1, 0x23, 0xca, 0x0c, 0x60, 0xd9, 0x2f, 0x28, 0x19, 0xdb, 0xdc,
+	0x2f, 0x46, 0xe1, 0x7c, 0x68, 0xe7, 0xd0, 0x3d, 0x10, 0x83, 0x79, 0x06, 0xd8, 0xe7, 0x2b, 0x41,
+	0xfc, 0x5d, 0x56, 0x1a, 0xce, 0x6b, 0xd8, 0x58, 0x03, 0x79, 0x4d, 0x63, 0xb2, 0x7f, 0x59, 0x08,
+	0xb6, 0x59, 0xf9, 0x05, 0x5b, 0x83, 0x7f, 0x34, 0x9f, 0xcb, 0xda, 0xff, 0xee, 0x9c, 0x7b, 0xe3,
+	0xca, 0xad, 0xfd, 0xf7, 0x04, 0x78, 0xd3, 0xd9, 0x7c, 0x4e, 0xea, 0x01, 0xbf, 0x7c, 0x11, 0x6b,
+	0xb3, 0x0b, 0xe0, 0xb7, 0xfa, 0xeb, 0xb6, 0x48, 0x0f, 0x46, 0xbb, 0xbf, 0xdf, 0x89, 0x40, 0xce,
+	0x61, 0xf3, 0xe7, 0xcb, 0xf8, 0x51, 0x1e, 0x2e, 0xf5, 0x06, 0x5d, 0xb9, 0x45, 0x42, 0xed, 0x5e,
+	0xd3, 0x94, 0x7d, 0x7a, 0x36, 0xb8, 0x61, 0xe5, 0x7a, 0x83, 0x6e, 0x91, 0xe3, 0xd4, 0x3c, 0xfd,
+	0x36, 0xd0, 0x67, 0xb0, 0x6c, 0x6a, 0xfd, 0x61, 0xca, 0xa9, 0x5c, 0x24, 0x32, 0xb5, 0xbe, 0x8f,
+	0x71, 0xee, 0x3b, 0x51, 0x38, 0x1f, 0xaa, 0x7f, 0xb4, 0x0f, 0xaf, 0x87, 0x1b, 0xc5, 0xf0, 0xdc,
+	0x7c, 0x35, 0x64, 0xb8, 0x5c, 0xd3, 0x73, 0x24, 0xc7, 0xe1, 0x19, 0x1a, 0xc6, 0xf1, 0xff, 0xdb,
+	0x24, 0x1d, 0x61, 0xbc, 0x2f, 0x74, 0x92, 0xfe, 0x6a, 0xcc, 0x9f, 0xba, 0xe1, 0x13, 0xf5, 0x37,
+	0x04, 0xc8, 0x0d, 0x05, 0xad, 0xf6, 0xfc, 0xe4, 0x56, 0x7d, 0xf8, 0xa2, 0xe2, 0x56, 0x1f, 0xd0,
+	0x3f, 0x3f, 0xcf, 0x1d, 0x07, 0x57, 0xe7, 0xfe, 0xa6, 0x00, 0x17, 0xbc, 0xa4, 0x7c, 0x43, 0xcb,
+	0x95, 0xf1, 0xa2, 0x26, 0xe4, 0x26, 0x2c, 0x39, 0x9f, 0x21, 0xed, 0x6d, 0x0b, 0x37, 0x1e, 0x64,
+	0x57, 0xd9, 0x8e, 0x34, 0xf7, 0xaf, 0x22, 0x70, 0x69, 0x64, 0x9f, 0xd0, 0x55, 0x48, 0x93, 0xc8,
+	0xd6, 0x61, 0xc6, 0x6c, 0x7b, 0xbe, 0xab, 0xf6, 0x6c, 0x36, 0x14, 0x49, 0x39, 0x19, 0x6a, 0x71,
+	0xbe, 0xab, 0x9c, 0x38, 0x48, 0x3e, 0xcb, 0x8c, 0x0d, 0x59, 0xe6, 0x2f, 0x0e, 0x59, 0x26, 0xbb,
+	0x8d, 0xd4, 0x7a, 0x49, 0xc3, 0xe7, 0x19, 0x83, 0x89, 0xcc, 0x73, 0x2e, 0xc4, 0x3c, 0xff, 0x2c,
+	0x16, 0x9a, 0xeb, 0xe0, 0x76, 0xfa, 0x87, 0x02, 0x5c, 0x0d, 0xdf, 0xd8, 0xf8, 0x0d, 0xf6, 0xe4,
+	0x85, 0xef, 0x6d, 0xc2, 0x6a, 0x87, 0x02, 0xab, 0xd6, 0x18, 0xbc, 0xdc, 0x6f, 0x08, 0xf0, 0x5a,
+	0x08, 0xb3, 0x97, 0x63, 0xd4, 0xef, 0xc0, 0x8a, 0x63, 0xd4, 0x7d, 0x5d, 0x6b, 0x28, 0x0d, 0xb5,
+	0x63, 0x19, 0x99, 0x20, 0x2d, 0xdb, 0x95, 0xfb, 0x4e, 0x5d, 0xee, 0xbf, 0x47, 0xe0, 0xda, 0x64,
+	0x5d, 0x46, 0xd7, 0x61, 0x81, 0x58, 0xb8, 0x9b, 0xb3, 0x40, 0x39, 0x67, 0xba, 0x6a, 0xcf, 0xc5,
+	0x93, 0x22, 0x2a, 0x27, 0x01, 0x22, 0x64, 0xba, 0xca, 0x89, 0x1b, 0x71, 0xac, 0xa5, 0x7f, 0x2f,
+	0xc4, 0xd2, 0x9f, 0xfe, 0x3f, 0x1b, 0xf7, 0x17, 0x66, 0xfb, 0xdb, 0x09, 0xeb, 0x14, 0x89, 0xf8,
+	0x08, 0x32, 0xde, 0x65, 0x09, 0x6d, 0x59, 0x97, 0xaa, 0x26, 0xd9, 0x12, 0xf3, 0x0b, 0x57, 0xc1,
+	0xe7, 0x66, 0x7e, 0x2d, 0x0a, 0x31, 0xb6, 0xe9, 0x7d, 0x1d, 0xd2, 0x6a, 0xcf, 0xc4, 0x6d, 0xac,
+	0xbb, 0xb6, 0xdb, 0xd1, 0xf2, 0x8c, 0x34, 0xcf, 0xc1, 0x0c, 0xed, 0x55, 0x48, 0x1d, 0x76, 0x34,
+	0xc5, 0x74, 0x6d, 0xac, 0x85, 0xf2, 0x8c, 0x04, 0x14, 0xc8, 0x50, 0xae, 0xc2, 0xbc, 0x61, 0xea,
+	0x6a, 0xaf, 0x2d, 0x7b, 0x6f, 0x7e, 0xa5, 0x18, 0xd4, 0x6e, 0xae, 0xa1, 0x69, 0x1d, 0xac, 0x58,
+	0xbb, 0xfb, 0x59, 0x7e, 0xac, 0x78, 0x9e, 0x83, 0xed, 0xad, 0xb8, 0x7d, 0xcf, 0x81, 0x23, 0xc6,
+	0xc6, 0xdd, 0x76, 0x28, 0xcf, 0x48, 0x19, 0x9b, 0x88, 0xb1, 0xf9, 0x16, 0x00, 0x81, 0x70, 0x0e,
+	0x71, 0x6f, 0xaa, 0xdb, 0x3c, 0xed, 0x63, 0x4a, 0x5d, 0x3d, 0x2c, 0x2a, 0xa7, 0xe5, 0x19, 0x29,
+	0x49, 0x70, 0x19, 0xe1, 0x16, 0x40, 0x4b, 0x31, 0x2d, 0x42, 0x96, 0xae, 0x59, 0xf4, 0x10, 0x16,
+	0x15, 0x13, 0x13, 0x1a, 0x82, 0xc6, 0x68, 0x0a, 0xb0, 0xd8, 0x52, 0x4e, 0x65, 0xed, 0x50, 0x7e,
+	0x86, 0xf1, 0x31, 0x27, 0x4d, 0xd0, 0xd3, 0x5e, 0xab, 0x3e, 0xd2, 0xd3, 0xea, 0xe1, 0x67, 0x18,
+	0x1f, 0x13, 0x89, 0x5b, 0x56, 0x81, 0x32, 0xb1, 0x53, 0xa2, 0x3f, 0x05, 0x49, 0xfb, 0x92, 0x10,
+	0xfa, 0x84, 0xde, 0x5b, 0xe3, 0xb7, 0x92, 0x46, 0x7f, 0x10, 0x28, 0xf2, 0xeb, 0x48, 0xe5, 0x19,
+	0x29, 0xd1, 0xe2, 0xbf, 0xb7, 0x33, 0x30, 0xdf, 0x57, 0x74, 0x03, 0xb7, 0xd8, 0x65, 0x57, 0xf1,
+	0xaf, 0x47, 0x20, 0x61, 0x21, 0xa2, 0xd7, 0xe9, 0x6d, 0x42, 0xcb, 0xa6, 0x86, 0x3b, 0x49, 0x2f,
+	0x18, 0x62, 0xf4, 0x3e, 0xa4, 0x5c, 0xbd, 0xe3, 0x97, 0x78, 0x43, 0xfa, 0x45, 0xb4, 0xc2, 0x7f,
+	0xa2, 0x75, 0x98, 0xa5, 0x62, 0x47, 0x47, 0x29, 0x5f, 0xa2, 0x38, 0xa8, 0x04, 0x74, 0x08, 0xe4,
+	0xaf, 0xb4, 0x9e, 0x75, 0x41, 0xf0, 0xc6, 0x98, 0x7e, 0x52, 0x1e, 0x8f, 0xb4, 0x1e, 0x96, 0x12,
+	0x26, 0xff, 0x95, 0x7b, 0x1b, 0x12, 0x16, 0x14, 0xbd, 0x0e, 0x19, 0x76, 0x37, 0x45, 0xee, 0xaa,
+	0xbd, 0x81, 0x75, 0xee, 0x28, 0x26, 0xa5, 0x19, 0x74, 0x97, 0x01, 0xc5, 0x3f, 0x13, 0x20, 0xeb,
+	0x3f, 0xf9, 0x8a, 0x3a, 0x70, 0xde, 0x39, 0x57, 0x64, 0x7a, 0x4e, 0x60, 0x1a, 0x5c, 0x5d, 0x1b,
+	0x63, 0xbe, 0xcb, 0x78, 0xcf, 0x6d, 0x1a, 0xe5, 0x19, 0xe9, 0x9c, 0x1a, 0x5c, 0x85, 0x30, 0xac,
+	0xf2, 0x6b, 0x31, 0xfe, 0xa6, 0xd8, 0x88, 0xdf, 0x1c, 0x79, 0x45, 0x66, 0xb8, 0xa1, 0x15, 0x3d,
+	0xa8, 0x62, 0x3b, 0x0b, 0x19, 0x2f, 0x7f, 0xf1, 0x47, 0x73, 0x70, 0x6e, 0x5f, 0x57, 0xbb, 0x34,
+	0x10, 0xf6, 0xa2, 0x23, 0x09, 0x32, 0x3a, 0xee, 0x77, 0x14, 0xb2, 0x1d, 0x71, 0x1f, 0x35, 0x78,
+	0x23, 0x54, 0x18, 0x8a, 0xcc, 0xfd, 0x19, 0xff, 0x30, 0x9c, 0xe6, 0x2c, 0xb8, 0x5a, 0xef, 0x01,
+	0x3f, 0x6d, 0xef, 0x3d, 0x48, 0x70, 0x75, 0xe4, 0x95, 0x0c, 0x9b, 0xd9, 0xbc, 0xee, 0x2a, 0xa3,
+	0xbf, 0x00, 0x2b, 0xcd, 0x23, 0x85, 0x1e, 0xc9, 0xd7, 0xe9, 0x9d, 0x7a, 0xef, 0x49, 0x81, 0xb0,
+	0xb3, 0x4a, 0x05, 0x8b, 0x66, 0x57, 0x31, 0x8e, 0x6d, 0xd6, 0x4b, 0xcd, 0x61, 0x30, 0x32, 0xe1,
+	0x52, 0x53, 0x3f, 0xed, 0x9b, 0x9a, 0x6c, 0x29, 0xe2, 0xf0, 0xf0, 0x44, 0x3e, 0xec, 0x63, 0xef,
+	0x61, 0x81, 0xb0, 0xbb, 0xbc, 0x05, 0x4a, 0xcb, 0xd5, 0x72, 0xe7, 0xf0, 0xe4, 0x4e, 0xdf, 0xd1,
+	0xcb, 0xf9, 0x66, 0x58, 0x25, 0xea, 0xc3, 0x85, 0x43, 0xf5, 0x04, 0xb7, 0x58, 0x6e, 0x81, 0x2d,
+	0x12, 0xc4, 0xb3, 0x7a, 0x0e, 0x0d, 0x6c, 0x86, 0x7e, 0x58, 0x3a, 0xc1, 0x2d, 0xb2, 0x30, 0x6e,
+	0x5b, 0x74, 0x76, 0x93, 0x6b, 0x87, 0x21, 0x75, 0xa8, 0x06, 0xd9, 0xa1, 0x66, 0xe2, 0xa3, 0xaf,
+	0xa5, 0x0c, 0x71, 0x5f, 0x68, 0xf8, 0x98, 0x9a, 0x70, 0xc9, 0xd2, 0xda, 0x33, 0xd5, 0x3c, 0x72,
+	0xee, 0x7b, 0x5b, 0x2d, 0xcc, 0x8d, 0x54, 0x1e, 0xd7, 0xcc, 0x67, 0xaa, 0x79, 0x64, 0x4d, 0x28,
+	0x47, 0x79, 0x7a, 0x58, 0x25, 0xba, 0x0f, 0x59, 0xea, 0x46, 0xfa, 0x8a, 0x6e, 0xdb, 0x58, 0x62,
+	0xe4, 0x45, 0x41, 0xe2, 0x2e, 0xf6, 0x15, 0xdd, 0xb1, 0x32, 0xba, 0x90, 0x38, 0x10, 0xf4, 0x19,
+	0x20, 0x6e, 0x05, 0x47, 0x8a, 0x71, 0x64, 0x31, 0x4d, 0x8e, 0x3c, 0x1a, 0xc9, 0x86, 0xbe, 0xac,
+	0x18, 0x47, 0xce, 0xc9, 0x90, 0xa6, 0x0f, 0x46, 0x2f, 0x70, 0x10, 0xd7, 0x6e, 0x1c, 0xa9, 0x87,
+	0xb6, 0xb0, 0xa9, 0x91, 0x7a, 0x27, 0xae, 0xaf, 0x46, 0xd0, 0x1d, 0xbd, 0xb7, 0xbc, 0xa0, 0x80,
+	0x49, 0xfe, 0x8d, 0x00, 0x19, 0x6f, 0x2f, 0xd1, 0x03, 0x58, 0xa0, 0x1a, 0x32, 0x35, 0x99, 0x5f,
+	0x6b, 0xe1, 0xf7, 0xd2, 0x37, 0x26, 0xd2, 0x92, 0x5d, 0x94, 0xd2, 0x84, 0x4d, 0x5d, 0x2b, 0x31,
+	0x26, 0xe2, 0xcf, 0x09, 0xcc, 0xff, 0x92, 0x3a, 0x74, 0x1e, 0x56, 0xea, 0x95, 0xdd, 0x92, 0xbc,
+	0x9f, 0x97, 0xea, 0xbe, 0xb3, 0xc8, 0x09, 0x98, 0x7d, 0x58, 0xca, 0x4b, 0x59, 0x01, 0x25, 0x21,
+	0xb6, 0x5b, 0xdd, 0xab, 0x97, 0xb3, 0x11, 0x94, 0x85, 0xf9, 0x62, 0xfe, 0xa1, 0x5c, 0xbd, 0x23,
+	0x33, 0x48, 0x14, 0x2d, 0x40, 0x8a, 0x43, 0x3e, 0x2b, 0x95, 0x3e, 0xcd, 0xce, 0x12, 0x14, 0xf2,
+	0x8b, 0x40, 0x28, 0x7d, 0x8c, 0xa0, 0x94, 0xab, 0x07, 0x12, 0x81, 0x14, 0xf3, 0x0f, 0xb3, 0x71,
+	0xb1, 0x06, 0x59, 0xbf, 0xf6, 0xd1, 0x4f, 0x00, 0xf0, 0x21, 0x1c, 0x7f, 0xed, 0x90, 0x11, 0xd3,
+	0x6b, 0x87, 0x4d, 0xeb, 0xa7, 0x58, 0x05, 0x34, 0xec, 0xde, 0xd0, 0x87, 0x90, 0xec, 0xe1, 0x67,
+	0xd3, 0x7c, 0xaa, 0xe8, 0xe1, 0x67, 0xf4, 0x97, 0x78, 0x01, 0xce, 0x87, 0x5a, 0xb8, 0x98, 0x81,
+	0x79, 0xb7, 0xe7, 0x13, 0x7f, 0x14, 0x81, 0x34, 0x71, 0x5b, 0x46, 0x5d, 0xab, 0xb4, 0x7b, 0x9a,
+	0x8e, 0xd1, 0x06, 0x20, 0xdb, 0x61, 0x19, 0x64, 0x14, 0x8d, 0x63, 0x95, 0xdd, 0xe1, 0x4b, 0x52,
+	0x53, 0xb3, 0xeb, 0xea, 0x5a, 0xed, 0x58, 0xed, 0xa3, 0x53, 0xb8, 0xd0, 0xd4, 0xba, 0x5d, 0xad,
+	0x27, 0x7b, 0xc9, 0x54, 0xca, 0x8e, 0xaf, 0xe8, 0x1f, 0x8c, 0xf0, 0x98, 0x76, 0xd3, 0x1b, 0x05,
+	0xca, 0xc7, 0x03, 0x23, 0xce, 0xa5, 0x69, 0x83, 0xad, 0x86, 0x59, 0x9d, 0xf8, 0x5d, 0x01, 0x96,
+	0x02, 0x68, 0xd0, 0x35, 0x10, 0x0b, 0xd5, 0xdd, 0xdd, 0xea, 0x9e, 0x5c, 0x28, 0xe7, 0xa5, 0x9a,
+	0x5c, 0xaf, 0xca, 0x95, 0xbb, 0x7b, 0x55, 0xc9, 0xff, 0x68, 0x41, 0x0a, 0xe6, 0xf6, 0x0e, 0x76,
+	0x4b, 0x52, 0xa5, 0x90, 0x15, 0xd0, 0x32, 0x64, 0xf3, 0x3b, 0xfb, 0xe5, 0xbc, 0x7c, 0xb0, 0xbf,
+	0x5f, 0x92, 0xe4, 0x42, 0xbe, 0x56, 0xca, 0x46, 0x1c, 0xe8, 0x4e, 0xf5, 0x33, 0x0b, 0x4a, 0x8d,
+	0x67, 0xff, 0x60, 0xaf, 0x50, 0x3f, 0xc8, 0xd7, 0x2b, 0xd5, 0xbd, 0xec, 0x2c, 0xca, 0x00, 0x7c,
+	0x56, 0xae, 0xd4, 0x4b, 0xb5, 0xfd, 0x7c, 0xa1, 0x94, 0x8d, 0x6d, 0xcf, 0x03, 0x38, 0xda, 0x10,
+	0xff, 0x98, 0xc8, 0x19, 0xb0, 0x08, 0xbc, 0x09, 0x8b, 0x64, 0x71, 0xa1, 0xae, 0xd1, 0xaa, 0xe6,
+	0x27, 0x6c, 0xb3, 0xbc, 0xc2, 0x26, 0x43, 0xaf, 0x41, 0xa6, 0x37, 0xe8, 0x36, 0xb0, 0x4e, 0x94,
+	0x4b, 0x6a, 0xf9, 0x25, 0xca, 0x79, 0x06, 0xad, 0x6b, 0x84, 0x31, 0xd9, 0xe3, 0xeb, 0xf8, 0x29,
+	0xd6, 0x0d, 0x2c, 0x6b, 0x7a, 0x0b, 0xb3, 0x5b, 0x73, 0x09, 0xb2, 0xbc, 0x51, 0x60, 0x95, 0xc0,
+	0xd0, 0x03, 0x58, 0x0e, 0x1c, 0xab, 0xd9, 0x91, 0xc7, 0x9b, 0x3d, 0x3a, 0x96, 0x50, 0x73, 0x78,
+	0x3c, 0xfe, 0xa9, 0x00, 0x6b, 0x61, 0xab, 0x04, 0xfa, 0x36, 0xa4, 0xfc, 0xc9, 0xb7, 0x71, 0x36,
+	0x0d, 0x1d, 0xf7, 0x87, 0x9c, 0x94, 0x3f, 0xd3, 0x36, 0x96, 0x7c, 0x30, 0x32, 0xe1, 0x26, 0xb8,
+	0x37, 0x7b, 0xe2, 0x2f, 0x45, 0x60, 0xc1, 0x2f, 0xf2, 0x5d, 0x98, 0xb3, 0x52, 0xc7, 0x6c, 0x4b,
+	0x7c, 0x6b, 0xb2, 0x35, 0x8b, 0x97, 0x25, 0x8b, 0x9a, 0x1e, 0x59, 0xe7, 0xfb, 0xd8, 0x0d, 0x88,
+	0x76, 0xd5, 0xde, 0x44, 0xdd, 0x27, 0x88, 0x14, 0x5f, 0x39, 0x99, 0xa8, 0xbf, 0x04, 0x11, 0x55,
+	0x60, 0x91, 0x2f, 0x61, 0xf4, 0xbe, 0xb8, 0xb3, 0x67, 0x1a, 0x47, 0x9d, 0x75, 0x91, 0x31, 0x47,
+	0xf2, 0x07, 0xb3, 0x70, 0x3e, 0x34, 0xd0, 0x78, 0x6e, 0xc7, 0x87, 0x3e, 0x80, 0x39, 0x7a, 0x8d,
+	0x9f, 0x5f, 0x83, 0x9c, 0xe0, 0xba, 0x35, 0x47, 0x47, 0x06, 0x2c, 0x70, 0x97, 0xa3, 0x74, 0xfa,
+	0x47, 0x4a, 0x03, 0xb3, 0xe3, 0x06, 0x99, 0xd0, 0x4f, 0xdf, 0xa1, 0xbd, 0xd8, 0xb8, 0x73, 0x78,
+	0xc2, 0x3c, 0xc8, 0x1e, 0x3d, 0x7d, 0x93, 0xe7, 0xfc, 0xc8, 0x5a, 0xcd, 0x9a, 0xb0, 0x20, 0xe8,
+	0x0d, 0xe0, 0x0f, 0xe9, 0x38, 0x8d, 0xc6, 0xb8, 0x53, 0xcc, 0xb0, 0x0a, 0x1b, 0x75, 0x15, 0x62,
+	0xba, 0xd2, 0x52, 0x4f, 0x68, 0xa4, 0x13, 0x2b, 0xcf, 0x48, 0xac, 0x48, 0xcf, 0xca, 0x0d, 0x74,
+	0x5d, 0x6b, 0x2b, 0xa6, 0xeb, 0xed, 0x1f, 0x1e, 0x44, 0x8c, 0xbd, 0xb4, 0xb2, 0x68, 0xd3, 0x5a,
+	0x20, 0xf1, 0x6f, 0x08, 0x70, 0x2e, 0xa4, 0x07, 0x68, 0x1d, 0xae, 0xdd, 0xb9, 0xf3, 0xb9, 0xcc,
+	0x1d, 0xe1, 0x5e, 0xbe, 0x5e, 0x79, 0x50, 0x92, 0xa9, 0x2f, 0xdb, 0x2e, 0xd5, 0x47, 0x39, 0x42,
+	0xb2, 0xec, 0x95, 0x3e, 0xcf, 0x17, 0x4b, 0x85, 0xca, 0x6e, 0x7e, 0x27, 0x1b, 0x41, 0x17, 0x61,
+	0xcd, 0xf1, 0x89, 0x8c, 0x85, 0x6c, 0xa1, 0x47, 0xd1, 0x22, 0xa4, 0xbd, 0xa0, 0xd9, 0x6d, 0x80,
+	0x84, 0xa5, 0x23, 0xf1, 0x7f, 0x09, 0x90, 0xb4, 0x87, 0x1f, 0x55, 0x20, 0x49, 0x23, 0x08, 0xd5,
+	0xba, 0x38, 0x16, 0x1e, 0xf3, 0xd7, 0x2d, 0x3c, 0x9b, 0x9a, 0xee, 0xa5, 0x2d, 0x28, 0x61, 0x35,
+	0xe8, 0x3d, 0xd3, 0x95, 0x7e, 0x1f, 0x5b, 0xee, 0x20, 0x8c, 0xd5, 0x81, 0x85, 0xe7, 0x61, 0x65,
+	0x53, 0xa3, 0x5d, 0x48, 0x1d, 0x77, 0x0d, 0xd9, 0x62, 0x36, 0x3a, 0xc8, 0xff, 0xb4, 0x6b, 0x7c,
+	0x36, 0xcc, 0x0d, 0x8e, 0x6d, 0xf0, 0x76, 0x02, 0xe2, 0xec, 0xb0, 0x8f, 0x78, 0x03, 0xd0, 0x70,
+	0x37, 0x82, 0xae, 0x7c, 0x88, 0xd7, 0x00, 0x0d, 0x4b, 0x89, 0xb2, 0x10, 0xb5, 0x26, 0xd7, 0xbc,
+	0x44, 0x7e, 0x8a, 0x5f, 0xc2, 0x52, 0x80, 0x00, 0xc4, 0xbd, 0x71, 0x62, 0xd9, 0x21, 0x00, 0x0e,
+	0x22, 0x08, 0xd7, 0x60, 0xc1, 0x99, 0xad, 0xee, 0x5b, 0x25, 0x69, 0x7b, 0x42, 0xd2, 0x5b, 0x70,
+	0x7f, 0x2a, 0xc0, 0x82, 0x2f, 0x12, 0x44, 0x37, 0x20, 0xeb, 0x72, 0xbd, 0x72, 0x4b, 0x39, 0xb5,
+	0xb6, 0xbb, 0x19, 0xc7, 0xc3, 0x16, 0x95, 0x53, 0x83, 0x60, 0xba, 0x7c, 0x3c, 0xc3, 0x64, 0xab,
+	0x54, 0xc6, 0x71, 0xe5, 0x14, 0xd3, 0x35, 0xf9, 0xa3, 0xd3, 0x4d, 0xfe, 0xbc, 0xc7, 0xef, 0xcc,
+	0x4e, 0xe6, 0x77, 0xe8, 0x41, 0x45, 0xab, 0x40, 0x06, 0xa8, 0x8b, 0xcd, 0x23, 0xad, 0x25, 0x7e,
+	0x3f, 0x02, 0xe7, 0x42, 0x36, 0xd5, 0x48, 0x83, 0x85, 0xe1, 0xdd, 0xf9, 0xa8, 0x53, 0xa7, 0x21,
+	0x8c, 0x42, 0xe0, 0x92, 0x9f, 0x7b, 0xee, 0x5f, 0x0a, 0xb0, 0x1a, 0x8c, 0xfb, 0xdc, 0xcf, 0xa5,
+	0xa9, 0xb0, 0xd6, 0xb7, 0xf6, 0xe2, 0xbe, 0x44, 0x00, 0x9f, 0x3b, 0x1b, 0xe1, 0x27, 0xdd, 0x82,
+	0xb6, 0xf0, 0xd2, 0xb9, 0x7e, 0x70, 0x85, 0xf8, 0x73, 0x51, 0x58, 0xa2, 0x83, 0xe6, 0xeb, 0xc2,
+	0xfb, 0x10, 0xa7, 0x27, 0x12, 0x27, 0x3d, 0x62, 0xcc, 0xb1, 0x51, 0x11, 0x92, 0x4d, 0xad, 0xd7,
+	0x52, 0x5d, 0xcf, 0x6a, 0x5c, 0x1b, 0x99, 0xb3, 0x28, 0x58, 0xd8, 0x92, 0x43, 0x88, 0x8e, 0x47,
+	0x28, 0x60, 0xf6, 0x2c, 0x0a, 0x28, 0xcf, 0x84, 0xaa, 0x60, 0x74, 0x86, 0x27, 0xf6, 0x82, 0x33,
+	0x3c, 0x01, 0xbb, 0xb2, 0x1f, 0x0a, 0xb0, 0x12, 0x98, 0xbf, 0x41, 0x32, 0xac, 0xb0, 0x37, 0x4e,
+	0x82, 0x2d, 0x7b, 0x7d, 0xd4, 0x98, 0xf8, 0x0c, 0x60, 0xf9, 0x70, 0x18, 0x68, 0xa0, 0x87, 0xb0,
+	0xc4, 0xd3, 0x4d, 0xc6, 0xa0, 0xdf, 0xd7, 0xb1, 0x61, 0xf0, 0x5c, 0x53, 0x74, 0x44, 0xd6, 0x8d,
+	0xc9, 0x5a, 0x73, 0x08, 0x24, 0xa4, 0xfb, 0x41, 0x86, 0xf8, 0x10, 0x16, 0x87, 0x10, 0xbd, 0xd6,
+	0x21, 0x9c, 0xd1, 0x3a, 0xc4, 0x5f, 0x8f, 0xc1, 0x82, 0xaf, 0x1a, 0xd5, 0x21, 0x85, 0x4f, 0x9c,
+	0x1e, 0x8c, 0x7e, 0x1c, 0xd0, 0x47, 0xbc, 0x51, 0x72, 0x28, 0x25, 0x37, 0x9b, 0xdc, 0xef, 0x91,
+	0xe5, 0xd0, 0x6e, 0xe3, 0x6c, 0x47, 0x7a, 0x4b, 0x90, 0xd0, 0xfa, 0x58, 0x57, 0x4c, 0xfe, 0x28,
+	0x46, 0x66, 0x44, 0xde, 0xac, 0x43, 0xc7, 0x45, 0xe9, 0x54, 0x39, 0x81, 0x64, 0x93, 0x3a, 0x69,
+	0xff, 0xd9, 0x89, 0xd3, 0xfe, 0xb9, 0x2f, 0x01, 0x6c, 0xe9, 0x0d, 0xb4, 0x0f, 0x60, 0xeb, 0xd0,
+	0x32, 0xa1, 0xb7, 0x26, 0xd4, 0x90, 0x33, 0x0e, 0x2e, 0x1e, 0xb9, 0xef, 0x46, 0x20, 0xe5, 0xd2,
+	0x1d, 0xea, 0x92, 0x05, 0xa5, 0x4d, 0x4f, 0x97, 0xda, 0x5d, 0x66, 0xd9, 0x84, 0xed, 0xe9, 0x47,
+	0x62, 0x63, 0x87, 0xb1, 0xb2, 0x75, 0xb1, 0xd0, 0xf1, 0x02, 0x50, 0xcd, 0xd3, 0x21, 0x36, 0xe4,
+	0x6f, 0x4f, 0xdb, 0x21, 0x32, 0x59, 0x5d, 0x6c, 0xc4, 0x8f, 0x61, 0xc1, 0xd7, 0x30, 0xba, 0x02,
+	0x17, 0x77, 0xaa, 0x77, 0x2b, 0x85, 0xfc, 0x8e, 0x5c, 0xdd, 0x2f, 0x49, 0xf9, 0x7a, 0x55, 0xf2,
+	0x45, 0x64, 0x73, 0x10, 0xcd, 0xef, 0x15, 0xb3, 0x82, 0x9d, 0xb9, 0xff, 0xfb, 0x02, 0xac, 0x06,
+	0x5f, 0xd7, 0x27, 0xdb, 0x48, 0x7b, 0x3a, 0xfb, 0x2e, 0xb6, 0x66, 0x5d, 0x15, 0xec, 0x56, 0x6b,
+	0x1b, 0xd6, 0xbc, 0x73, 0x5f, 0x36, 0x06, 0xdd, 0xae, 0xa2, 0xab, 0xf6, 0xc1, 0xeb, 0x9b, 0x13,
+	0x3d, 0x16, 0x50, 0xa3, 0x54, 0xa7, 0xd2, 0x39, 0x33, 0x00, 0xac, 0x62, 0x43, 0xfc, 0x6e, 0x1c,
+	0x56, 0x02, 0x49, 0x9e, 0xf3, 0xc6, 0xb6, 0x3d, 0x67, 0x22, 0xd3, 0xcc, 0x99, 0x07, 0x7e, 0x27,
+	0xc9, 0x47, 0x77, 0xda, 0x65, 0xcf, 0xc7, 0x25, 0xdc, 0xa1, 0xc6, 0x5e, 0x90, 0x43, 0xbd, 0x6f,
+	0xbf, 0x4e, 0x66, 0x39, 0x54, 0x9e, 0x3f, 0x9d, 0xdc, 0x99, 0x66, 0xbc, 0xce, 0x14, 0xd5, 0x61,
+	0x8e, 0x7d, 0x0b, 0xb4, 0x0e, 0x95, 0xdc, 0x9e, 0x66, 0xc4, 0x37, 0xac, 0x91, 0x67, 0xd7, 0xca,
+	0x2d, 0x56, 0xc1, 0x56, 0x38, 0x17, 0x6c, 0x85, 0xb9, 0x5f, 0x11, 0x20, 0xed, 0xe1, 0xe3, 0x7c,
+	0x50, 0x14, 0x5c, 0x1f, 0x14, 0xd1, 0x43, 0x98, 0xb5, 0x2f, 0x0e, 0x64, 0x42, 0x03, 0xaf, 0x60,
+	0x39, 0x7d, 0xea, 0xa5, 0xcd, 0x14, 0xb4, 0x16, 0x96, 0x28, 0x4b, 0xb4, 0x06, 0x73, 0x2d, 0xf6,
+	0x6d, 0x96, 0x7d, 0x52, 0x94, 0xac, 0xa2, 0xf8, 0x25, 0xac, 0x85, 0xd1, 0x92, 0x5d, 0x55, 0x5d,
+	0xca, 0xef, 0xd5, 0xee, 0x54, 0xa5, 0x5d, 0x9a, 0xfc, 0x91, 0xa5, 0x52, 0xed, 0x60, 0xa7, 0x2e,
+	0x17, 0xaa, 0xc5, 0x80, 0xf4, 0x52, 0xed, 0xa0, 0x50, 0x28, 0xd5, 0x6a, 0x2c, 0x19, 0x59, 0x92,
+	0xa4, 0xaa, 0x94, 0x8d, 0x88, 0x1a, 0x24, 0x6a, 0xcd, 0x23, 0xdc, 0x1a, 0xd0, 0x5b, 0xaa, 0x39,
+	0x1d, 0x37, 0x07, 0xba, 0x4e, 0x0f, 0x1b, 0xf4, 0xb1, 0xae, 0x6a, 0x2d, 0xd9, 0x7a, 0x08, 0x98,
+	0x4f, 0x8e, 0xf3, 0x43, 0x1f, 0x27, 0x8b, 0x1c, 0xa1, 0x3c, 0x23, 0xad, 0x39, 0xe4, 0xfb, 0x94,
+	0xda, 0xaa, 0x23, 0x51, 0x2e, 0x7b, 0x9d, 0x40, 0xfc, 0x47, 0x11, 0x58, 0xf0, 0xdf, 0xc6, 0x3f,
+	0xe3, 0xbd, 0xf3, 0x2b, 0x90, 0x6a, 0x39, 0x37, 0xb1, 0xb9, 0xe6, 0xdc, 0x20, 0xff, 0x6b, 0x87,
+	0xb3, 0x53, 0xbd, 0x76, 0xf8, 0x11, 0xa4, 0x06, 0x7d, 0xe7, 0xa3, 0x64, 0x6c, 0x3c, 0x31, 0x43,
+	0xa7, 0xc4, 0xc3, 0x4f, 0x8f, 0xc4, 0xcf, 0xfc, 0xf4, 0x88, 0xf8, 0x2f, 0x22, 0x80, 0x8a, 0x43,
+	0xaf, 0xb6, 0xfc, 0x38, 0xaa, 0x2d, 0xf0, 0xb1, 0xa7, 0xf8, 0x73, 0x3e, 0xf6, 0x24, 0x3e, 0x81,
+	0x58, 0x49, 0xd7, 0x35, 0x1d, 0xdd, 0x74, 0xe6, 0x19, 0x33, 0x67, 0x64, 0x31, 0xd5, 0xfb, 0x4d,
+	0x7a, 0x9b, 0x67, 0x60, 0xd8, 0x73, 0x0f, 0xdd, 0x66, 0x9f, 0xd6, 0xa9, 0x94, 0x56, 0xd8, 0x38,
+	0xb2, 0x23, 0x0e, 0xb6, 0xf8, 0xfd, 0x18, 0xc0, 0x3d, 0xad, 0x51, 0xd7, 0xd5, 0x76, 0x1b, 0xeb,
+	0x2f, 0x6f, 0xa8, 0xee, 0x41, 0xca, 0xb2, 0xb3, 0xc7, 0x5a, 0x83, 0x0f, 0xd5, 0xa4, 0x2f, 0x59,
+	0x90, 0xe0, 0x40, 0xb5, 0x61, 0x24, 0x96, 0x33, 0x99, 0xbc, 0xd6, 0x92, 0x11, 0x16, 0xcb, 0x39,
+	0x3d, 0xdb, 0xe0, 0x7f, 0x25, 0x9b, 0x14, 0xbd, 0x0b, 0x71, 0x4c, 0xb4, 0x6d, 0x1d, 0x51, 0x09,
+	0x0b, 0xe6, 0xe8, 0x90, 0x48, 0x1c, 0xd7, 0x6f, 0x73, 0x73, 0xcf, 0x63, 0x73, 0x89, 0xa9, 0x6c,
+	0xee, 0x13, 0x48, 0x77, 0x14, 0xc3, 0x94, 0xf5, 0x41, 0x8f, 0x91, 0x27, 0xc7, 0x92, 0xa7, 0x08,
+	0x81, 0x34, 0xe8, 0x51, 0xfa, 0x9f, 0x84, 0x38, 0x7b, 0xb2, 0x7c, 0x0d, 0xe8, 0xca, 0x70, 0x63,
+	0xbc, 0xd2, 0xb8, 0xa5, 0x71, 0xba, 0x5c, 0x0d, 0xe6, 0x2c, 0x43, 0xf9, 0x36, 0x24, 0x0c, 0xee,
+	0x8f, 0xc7, 0x84, 0x23, 0x96, 0xdb, 0x2e, 0xcf, 0x48, 0x36, 0xc9, 0x76, 0x12, 0xe6, 0xf8, 0x38,
+	0x88, 0x65, 0x88, 0xb3, 0x66, 0xd0, 0x2a, 0xa0, 0x5a, 0x3d, 0x5f, 0x3f, 0xa8, 0x0d, 0xaf, 0x09,
+	0xe5, 0x52, 0x7e, 0xa7, 0x5e, 0x7e, 0x98, 0x15, 0x10, 0x40, 0x7c, 0x3f, 0x7f, 0x50, 0x2b, 0x15,
+	0xd9, 0xb3, 0xc8, 0x85, 0xfc, 0x5e, 0xa1, 0xb4, 0xb3, 0x53, 0x2a, 0x66, 0xa3, 0xdb, 0x31, 0x88,
+	0x3e, 0xd6, 0x1a, 0xe2, 0xef, 0x47, 0x21, 0xce, 0x5e, 0x82, 0x40, 0xf7, 0x21, 0x6d, 0x28, 0x4f,
+	0x5d, 0x2f, 0x00, 0x0a, 0x23, 0xd3, 0x54, 0x8c, 0x6a, 0xa3, 0xa6, 0x3c, 0xb5, 0x1f, 0x07, 0x2c,
+	0xcf, 0x48, 0xf3, 0x86, 0xab, 0x8c, 0xca, 0x30, 0xd7, 0x1f, 0x34, 0x64, 0x63, 0xd0, 0x18, 0xf3,
+	0x4e, 0x14, 0x67, 0xb6, 0x3f, 0x68, 0x74, 0x54, 0xe3, 0xa8, 0xae, 0xed, 0x0f, 0x1a, 0xb5, 0x41,
+	0xa3, 0x3c, 0x23, 0xc5, 0xfb, 0xf4, 0x17, 0x3a, 0x86, 0x73, 0x7d, 0x56, 0xc9, 0xc3, 0xc9, 0x53,
+	0xd9, 0xd4, 0xe4, 0xa6, 0xd1, 0x6c, 0x8e, 0xd9, 0x38, 0x79, 0x39, 0xf3, 0xa5, 0xbb, 0xae, 0x15,
+	0x8c, 0x66, 0xb3, 0x3c, 0x23, 0x2d, 0xf7, 0x03, 0xe0, 0x39, 0x19, 0xe6, 0xdd, 0xdd, 0x42, 0x55,
+	0xfb, 0x2d, 0x24, 0xcf, 0x61, 0x82, 0xf5, 0xc9, 0xdf, 0x42, 0xb2, 0x9e, 0x3f, 0xe2, 0x77, 0xca,
+	0xaf, 0xc3, 0x82, 0xaf, 0xab, 0x24, 0x3c, 0x31, 0xb5, 0x3e, 0xbf, 0x17, 0x98, 0x94, 0x58, 0x21,
+	0xb7, 0x0a, 0xcb, 0x41, 0x92, 0x93, 0xa5, 0x97, 0xbd, 0xdb, 0x21, 0xfe, 0xa6, 0x00, 0x17, 0x0b,
+	0x74, 0xd2, 0xf8, 0xdf, 0xc9, 0x19, 0xf3, 0x8e, 0xd6, 0x7d, 0xc8, 0x0e, 0x3d, 0xc4, 0x13, 0x99,
+	0xea, 0x21, 0x9e, 0x05, 0xdf, 0x2b, 0x57, 0xe8, 0x32, 0xa4, 0xec, 0xd7, 0xb0, 0xd4, 0x16, 0xf7,
+	0x6c, 0x60, 0x81, 0x2a, 0x2d, 0xf1, 0x0f, 0x04, 0xb8, 0x78, 0x40, 0x27, 0x69, 0x88, 0xb0, 0x41,
+	0x2e, 0xf5, 0x25, 0x08, 0xea, 0xb8, 0x16, 0xfa, 0x9d, 0x2b, 0x1a, 0xe2, 0x1b, 0x68, 0x10, 0xbd,
+	0xab, 0x18, 0xc7, 0x96, 0x6b, 0x21, 0xbf, 0xc5, 0x4d, 0x38, 0x7f, 0x17, 0x9b, 0x93, 0x77, 0x40,
+	0x7c, 0x02, 0x17, 0xd8, 0x33, 0x35, 0x1e, 0x0a, 0x63, 0xdc, 0x00, 0x5d, 0x02, 0xe8, 0x2b, 0x6d,
+	0x2c, 0x9b, 0xda, 0x31, 0x7f, 0x3a, 0x32, 0x29, 0x25, 0x09, 0xa4, 0x4e, 0x00, 0xe8, 0x02, 0xd0,
+	0x82, 0xf3, 0xb9, 0x29, 0x26, 0x25, 0x08, 0x80, 0x7e, 0x6c, 0xfa, 0x9e, 0x00, 0x17, 0x83, 0xdb,
+	0xe4, 0x2f, 0xe4, 0xd4, 0x60, 0xd1, 0xaf, 0x54, 0x6b, 0x83, 0x3d, 0xa9, 0x56, 0xb3, 0x3e, 0xad,
+	0x1a, 0xe8, 0x1a, 0x2c, 0xf4, 0xf0, 0x89, 0x29, 0x0f, 0x89, 0x9d, 0x26, 0xe0, 0x7d, 0x4b, 0x74,
+	0x71, 0x0b, 0x2e, 0x16, 0x71, 0x07, 0x4f, 0x63, 0x05, 0xf4, 0x4b, 0x04, 0xb3, 0x73, 0xc7, 0xe5,
+	0x8e, 0xd3, 0xe0, 0x36, 0xa4, 0x1e, 0x6b, 0x0d, 0x99, 0x3b, 0x4f, 0x6e, 0x34, 0xaf, 0x8e, 0xf5,
+	0xe4, 0x12, 0x3c, 0x76, 0x16, 0xf9, 0x4b, 0x00, 0x9c, 0xde, 0x31, 0xe9, 0x24, 0x87, 0x54, 0x5a,
+	0x64, 0xd7, 0x7c, 0x8e, 0x59, 0xf4, 0xb0, 0x58, 0x41, 0xc6, 0xfc, 0x22, 0x44, 0x7a, 0x2e, 0xeb,
+	0x5d, 0x87, 0xe5, 0xbb, 0xd8, 0x9c, 0x48, 0x58, 0xf1, 0x47, 0x02, 0x2c, 0x31, 0x9d, 0x17, 0x3b,
+	0xfd, 0x7b, 0x5a, 0x63, 0x9c, 0xbe, 0x7d, 0x71, 0x4b, 0xe4, 0x79, 0xe2, 0x96, 0x0a, 0x24, 0x74,
+	0xd5, 0x38, 0xa6, 0x8c, 0xa2, 0xa3, 0x0f, 0x92, 0x05, 0xbd, 0xce, 0x54, 0x9e, 0x91, 0xe6, 0x08,
+	0x3d, 0x61, 0xb5, 0x02, 0x71, 0xa2, 0x73, 0xb5, 0xc5, 0x5f, 0xe7, 0x8b, 0x3d, 0xd6, 0x1a, 0x95,
+	0x96, 0xb5, 0x02, 0xfe, 0x82, 0x00, 0xab, 0x64, 0xaa, 0x38, 0x2a, 0x79, 0x99, 0x33, 0x13, 0x9d,
+	0x87, 0x04, 0xfd, 0x6e, 0x2e, 0x37, 0x4e, 0xb9, 0x38, 0x73, 0xb4, 0xbc, 0x7d, 0x4a, 0x24, 0x39,
+	0x37, 0x24, 0x09, 0x9f, 0xaf, 0x45, 0x98, 0x77, 0xd9, 0x8d, 0x35, 0x55, 0x27, 0x30, 0x9c, 0x94,
+	0x63, 0x38, 0x93, 0x4f, 0xd0, 0x5b, 0x70, 0x8e, 0x4d, 0xd0, 0xc9, 0xec, 0xe4, 0x6f, 0x45, 0x20,
+	0xeb, 0x1f, 0x4e, 0xb2, 0x59, 0xe2, 0xff, 0x8e, 0xc6, 0xbb, 0x6a, 0xbe, 0x16, 0x7a, 0xed, 0xde,
+	0xbd, 0x5e, 0xa6, 0x0d, 0xcf, 0x5b, 0x86, 0x2f, 0xf4, 0xd1, 0xc7, 0xd0, 0xc7, 0x1b, 0xa3, 0xe1,
+	0x4f, 0x70, 0xba, 0x9e, 0xd5, 0x9a, 0x9d, 0xea, 0x59, 0xad, 0x7f, 0x1d, 0x83, 0x38, 0x9b, 0x3d,
+	0x81, 0xfe, 0xe0, 0x3d, 0xfe, 0x9f, 0x35, 0x46, 0xff, 0x73, 0x19, 0xc6, 0xc0, 0xf5, 0xaf, 0x34,
+	0x3e, 0xa6, 0x6f, 0x71, 0x9b, 0x98, 0xa7, 0x67, 0xaf, 0x8d, 0xa4, 0x23, 0xe6, 0x40, 0xa2, 0x46,
+	0x2c, 0x31, 0x22, 0xf4, 0x39, 0xcc, 0xd3, 0xb9, 0x65, 0x6d, 0x9b, 0xd8, 0x06, 0xe3, 0x9d, 0x33,
+	0x9c, 0x3a, 0x2f, 0xcf, 0x48, 0x29, 0xdd, 0xf5, 0xe0, 0xc1, 0x23, 0xb0, 0xd6, 0x5a, 0x9b, 0xf9,
+	0xe8, 0x33, 0x7f, 0x61, 0x8f, 0x0a, 0x96, 0x67, 0x24, 0x6b, 0xc4, 0x2d, 0xde, 0xcf, 0xf5, 0x5f,
+	0x0e, 0x3e, 0x04, 0xa0, 0xef, 0x95, 0x4f, 0xba, 0x11, 0x49, 0x52, 0x6c, 0x4a, 0xfa, 0x1e, 0x24,
+	0x70, 0xaf, 0x35, 0xe9, 0x26, 0x64, 0x0e, 0xf7, 0x5a, 0x94, 0xec, 0x06, 0x64, 0x5d, 0x33, 0x96,
+	0x19, 0x18, 0xd0, 0x91, 0xcf, 0x38, 0x53, 0x92, 0xda, 0x96, 0xb3, 0xb7, 0x4a, 0x4d, 0xbe, 0xb7,
+	0x12, 0x9b, 0x90, 0xb0, 0xc6, 0x15, 0x9d, 0x87, 0x95, 0x7b, 0xd5, 0x6d, 0x99, 0x6c, 0x08, 0x02,
+	0x72, 0x44, 0xfb, 0xa5, 0xbd, 0x62, 0x65, 0xef, 0x6e, 0x56, 0x20, 0x05, 0xe9, 0x60, 0x6f, 0x8f,
+	0x14, 0x22, 0x28, 0x01, 0xb3, 0xc5, 0xea, 0x5e, 0x29, 0x1b, 0x45, 0xf3, 0x90, 0x60, 0x5b, 0x83,
+	0x52, 0x31, 0x3b, 0x4b, 0x36, 0x0d, 0x77, 0xf2, 0x15, 0xf2, 0x3b, 0x46, 0xb6, 0x1e, 0x56, 0xd2,
+	0xea, 0x1a, 0x64, 0xef, 0x62, 0xd3, 0xbb, 0x10, 0x04, 0x39, 0x83, 0xdf, 0x15, 0x00, 0x11, 0x2f,
+	0xc6, 0x30, 0x03, 0x7c, 0xe9, 0xac, 0xc7, 0x97, 0x3a, 0x6f, 0xfb, 0x09, 0xee, 0xb7, 0xfd, 0xbc,
+	0x4e, 0x34, 0xe2, 0x73, 0xa2, 0x5e, 0x07, 0x1c, 0xf5, 0x3b, 0x60, 0x6b, 0x52, 0xc5, 0xa6, 0x9a,
+	0x54, 0x62, 0x1f, 0x96, 0x3c, 0x82, 0x73, 0xd7, 0xfb, 0x36, 0xcc, 0x3e, 0xd6, 0x1a, 0x96, 0xcb,
+	0xbd, 0x34, 0x92, 0x9b, 0x44, 0x51, 0x27, 0xf6, 0xb3, 0x6f, 0xc0, 0x52, 0x41, 0xe9, 0x35, 0x71,
+	0x67, 0xbc, 0x5a, 0xdf, 0x80, 0x25, 0xe6, 0x92, 0xc7, 0xa3, 0xfe, 0x8e, 0x00, 0x97, 0xf9, 0xb2,
+	0x3d, 0x94, 0x5f, 0x1a, 0xb7, 0xb4, 0x3d, 0x82, 0xa5, 0x80, 0x97, 0xa8, 0xc7, 0x1c, 0x7f, 0x08,
+	0x68, 0x06, 0x0d, 0xbf, 0x57, 0x3d, 0x7e, 0x7b, 0xf0, 0xef, 0x05, 0xb8, 0xcc, 0x82, 0xa9, 0x70,
+	0xc1, 0x83, 0x9c, 0xe8, 0xcb, 0x14, 0xfa, 0xb9, 0x82, 0xad, 0x2d, 0xb8, 0x48, 0xe6, 0xcc, 0x34,
+	0x9d, 0x11, 0x4d, 0x78, 0x85, 0x5a, 0xe1, 0x10, 0xd1, 0x4b, 0xdd, 0x30, 0xfc, 0x3d, 0x01, 0x2e,
+	0x87, 0x36, 0xcb, 0x27, 0xc2, 0x17, 0xb0, 0x1c, 0xa0, 0x66, 0x6b, 0x62, 0x4c, 0xa1, 0xe7, 0xa5,
+	0x61, 0x3d, 0x4f, 0x3e, 0x67, 0xde, 0x83, 0xcb, 0x7c, 0x22, 0x4c, 0xa3, 0xd6, 0xf5, 0x5d, 0x48,
+	0x7b, 0xfe, 0xcb, 0x18, 0x3a, 0x07, 0x4b, 0x85, 0xea, 0x5e, 0xbd, 0xb4, 0xe7, 0x3f, 0xab, 0x94,
+	0x85, 0x79, 0xab, 0xa2, 0x5e, 0xfa, 0xbc, 0x9e, 0x15, 0xd0, 0x22, 0xa4, 0x2d, 0x08, 0xfb, 0x1f,
+	0x54, 0x91, 0xf5, 0x7d, 0xe7, 0xb1, 0x55, 0xd7, 0x9b, 0xa7, 0xc4, 0x11, 0x97, 0xf6, 0x0e, 0x76,
+	0x83, 0xfe, 0x81, 0x55, 0x0a, 0xe6, 0x2a, 0x14, 0xc0, 0x39, 0x4a, 0x95, 0xda, 0xa7, 0x72, 0x7e,
+	0x2f, 0xbf, 0xf3, 0xb0, 0x56, 0xa9, 0x65, 0x23, 0xeb, 0xff, 0x5c, 0x00, 0x34, 0xfc, 0x39, 0x15,
+	0x5d, 0x85, 0xcb, 0x52, 0x69, 0x87, 0x7e, 0x09, 0x08, 0xff, 0x98, 0x37, 0x0f, 0x89, 0xd2, 0xfd,
+	0x83, 0xfc, 0x8e, 0x5c, 0xaf, 0x66, 0x05, 0xd2, 0x81, 0xbd, 0x6a, 0x5d, 0xb6, 0x21, 0xf4, 0x74,
+	0xf2, 0x5d, 0xa9, 0x94, 0xaf, 0x97, 0x24, 0xb9, 0x5e, 0xce, 0xef, 0xb1, 0xff, 0x8a, 0xb5, 0x53,
+	0xaa, 0xd5, 0x58, 0x71, 0x16, 0xe5, 0x60, 0xd5, 0x8d, 0x20, 0x57, 0x25, 0x46, 0x5e, 0xcb, 0xc6,
+	0x88, 0xa2, 0x6c, 0x54, 0x57, 0x45, 0x9c, 0x2c, 0x14, 0xa5, 0xcf, 0x2b, 0xb5, 0x7a, 0x2d, 0x3b,
+	0xb7, 0x2e, 0x01, 0x38, 0xfe, 0x14, 0x5d, 0x84, 0xb5, 0xe2, 0xce, 0xbe, 0x4c, 0xd6, 0xa4, 0x00,
+	0x4d, 0x2c, 0x40, 0x8a, 0x6b, 0x82, 0x60, 0x64, 0x05, 0xb4, 0x02, 0x8b, 0x1e, 0x6d, 0x50, 0x70,
+	0x64, 0xeb, 0xff, 0x88, 0x94, 0x69, 0x0d, 0xeb, 0x4f, 0xd5, 0x26, 0x46, 0x7f, 0x47, 0x80, 0x8c,
+	0xf7, 0x01, 0x6d, 0x74, 0x73, 0x6c, 0xf8, 0xe7, 0x7a, 0x51, 0x3c, 0x77, 0x6b, 0x42, 0x6c, 0x66,
+	0xee, 0xe2, 0xd6, 0x5f, 0xfa, 0xe1, 0x7f, 0xfd, 0xe5, 0xc8, 0x4d, 0xf1, 0xfa, 0xe6, 0xd3, 0xad,
+	0xcd, 0x9f, 0x66, 0x73, 0xec, 0xdb, 0x7d, 0x5d, 0x7b, 0x8c, 0x9b, 0xa6, 0xb1, 0xb9, 0xfe, 0xb3,
+	0x9b, 0xfc, 0x7f, 0x04, 0xdd, 0xe6, 0x71, 0xca, 0x6d, 0x61, 0x1d, 0x7d, 0x47, 0x80, 0x94, 0xeb,
+	0xff, 0x37, 0xa0, 0x37, 0x26, 0xfe, 0x7f, 0x1d, 0xb9, 0xf5, 0x49, 0x50, 0xb9, 0x68, 0x9b, 0x54,
+	0xb4, 0x37, 0xc4, 0xd7, 0xc2, 0x44, 0xa3, 0xff, 0x23, 0xe2, 0x36, 0xbb, 0x72, 0x42, 0xe4, 0xfa,
+	0x2d, 0x01, 0x16, 0x87, 0xfe, 0x4d, 0x00, 0xda, 0x9c, 0x24, 0xfb, 0xee, 0xd6, 0xe0, 0x5b, 0x93,
+	0x13, 0x70, 0x49, 0xdf, 0xa3, 0x92, 0x6e, 0x8a, 0xeb, 0xe3, 0x94, 0xe8, 0xb8, 0x04, 0x4b, 0x5e,
+	0x69, 0x62, 0x79, 0xa5, 0x69, 0xe5, 0x95, 0x9e, 0x5f, 0x5e, 0xdd, 0x23, 0xef, 0xcf, 0x0b, 0x90,
+	0xf6, 0x3c, 0x45, 0x8c, 0xde, 0x0c, 0xfd, 0xff, 0x5f, 0xc3, 0xaf, 0x20, 0xe7, 0x6e, 0x4e, 0x86,
+	0xcc, 0x65, 0x5c, 0xa1, 0x32, 0x2e, 0xa0, 0x34, 0x91, 0xd1, 0x39, 0x82, 0xf5, 0x47, 0x02, 0xac,
+	0x04, 0x66, 0x02, 0xd1, 0x3b, 0xa1, 0xa7, 0xd7, 0xc2, 0xf3, 0x86, 0xb9, 0x09, 0xd3, 0x40, 0x62,
+	0x9b, 0x4a, 0xa3, 0x88, 0xb7, 0xdc, 0x1a, 0xd3, 0xf4, 0xb6, 0xd2, 0x53, 0xbf, 0x62, 0x9f, 0x98,
+	0xa9, 0x41, 0xfa, 0x72, 0x45, 0xb7, 0x85, 0xf5, 0x47, 0xb7, 0xc4, 0x1b, 0xa1, 0xf6, 0x3b, 0x8c,
+	0x4e, 0xfb, 0x17, 0x98, 0x3c, 0x0c, 0xed, 0xdf, 0xa8, 0x54, 0xe3, 0xb4, 0xfd, 0xdb, 0x62, 0xfd,
+	0x23, 0x6b, 0x89, 0xbf, 0x77, 0x43, 0xd2, 0x6e, 0xae, 0xff, 0x2c, 0xed, 0xdf, 0xd6, 0x0d, 0x87,
+	0xc6, 0xe9, 0x5d, 0x08, 0x3a, 0xfa, 0x81, 0x00, 0x68, 0x38, 0xb1, 0x88, 0xc2, 0x6c, 0x38, 0x34,
+	0x07, 0x39, 0x71, 0xcf, 0x14, 0xda, 0xb3, 0x9f, 0x42, 0xd3, 0xf5, 0xec, 0xd1, 0x3a, 0x9a, 0xb8,
+	0x5b, 0xe8, 0x47, 0x82, 0xf5, 0xee, 0xb7, 0x2f, 0x55, 0xb8, 0x35, 0xd2, 0xe2, 0x03, 0x13, 0xa5,
+	0xb9, 0x77, 0xa6, 0xa2, 0xe1, 0x93, 0xc5, 0xdb, 0xc9, 0x49, 0xcd, 0xd3, 0xee, 0xe4, 0x04, 0xb6,
+	0x89, 0xfe, 0x50, 0x80, 0x95, 0xc0, 0x7c, 0x66, 0xa8, 0x61, 0x8e, 0xca, 0x7e, 0xe6, 0x42, 0xde,
+	0xb4, 0xb4, 0x7a, 0xb2, 0x3e, 0xed, 0x70, 0xad, 0x4f, 0x3e, 0x5c, 0x7f, 0x2a, 0xc0, 0x5a, 0xd8,
+	0xce, 0x01, 0xbd, 0x3f, 0xd2, 0x8b, 0x84, 0x46, 0x63, 0xb9, 0xc9, 0x03, 0x43, 0xb1, 0x4b, 0xbb,
+	0xd8, 0x16, 0xdf, 0x1a, 0x39, 0x58, 0x01, 0xd1, 0x23, 0x99, 0x6e, 0x6f, 0x89, 0x6f, 0x86, 0x0d,
+	0x59, 0x30, 0x05, 0xed, 0x6e, 0xd8, 0x7e, 0x23, 0xb4, 0xbb, 0x63, 0x36, 0x28, 0x67, 0xe8, 0xee,
+	0xd6, 0x5b, 0xe1, 0x23, 0x1a, 0x20, 0x39, 0xf7, 0x2e, 0x6f, 0x6d, 0xbd, 0x19, 0x38, 0xae, 0xa1,
+	0x14, 0xe8, 0x3f, 0x09, 0xb0, 0x12, 0xb8, 0x1d, 0x09, 0xb5, 0xd3, 0x51, 0x9b, 0x97, 0x69, 0x3a,
+	0xca, 0x7d, 0x28, 0x9a, 0xba, 0xa3, 0x8f, 0x6e, 0xa1, 0x69, 0x7a, 0x89, 0xfe, 0x07, 0x4f, 0xa1,
+	0x06, 0x6c, 0x63, 0xd0, 0x7b, 0x23, 0xdc, 0x47, 0xf8, 0x6e, 0x2b, 0xf7, 0xfe, 0xb4, 0x64, 0xdc,
+	0xf1, 0x78, 0xfb, 0x3c, 0x85, 0x2d, 0xdb, 0x7d, 0x9e, 0xcc, 0x90, 0xd1, 0x0f, 0x05, 0x58, 0x0b,
+	0xdb, 0x11, 0x85, 0x5a, 0xf1, 0x98, 0x2d, 0x54, 0xa8, 0x13, 0xe2, 0xbd, 0x5a, 0x3f, 0xc3, 0x48,
+	0xae, 0x4f, 0x35, 0x92, 0xdf, 0x11, 0x20, 0xeb, 0xff, 0xde, 0x83, 0x36, 0x46, 0xba, 0xa0, 0xa1,
+	0x64, 0x75, 0x6e, 0x7c, 0x7e, 0x5c, 0xdc, 0xa0, 0x1d, 0xba, 0x21, 0x5e, 0x0d, 0x53, 0xb9, 0x2b,
+	0x7f, 0xce, 0x23, 0xfc, 0xac, 0xff, 0x83, 0x4f, 0xa8, 0x5c, 0x21, 0x5f, 0x86, 0xa6, 0x90, 0x6b,
+	0xeb, 0x6a, 0xa0, 0xd2, 0x5c, 0x42, 0xf1, 0xc9, 0xfd, 0xd7, 0x04, 0x48, 0x7b, 0x3e, 0xec, 0x84,
+	0x46, 0xa0, 0x41, 0x9f, 0x7f, 0x26, 0x91, 0xe8, 0x4d, 0x2a, 0xd1, 0xeb, 0x68, 0x12, 0x89, 0xd0,
+	0xdf, 0x16, 0x60, 0xc1, 0xf7, 0x2d, 0x03, 0xdd, 0x1a, 0x31, 0x93, 0x86, 0xbf, 0xbe, 0xe4, 0x36,
+	0x26, 0x45, 0xe7, 0x13, 0xce, 0x2b, 0xdf, 0xe8, 0x91, 0x44, 0xbf, 0x40, 0x1f, 0x4e, 0xf0, 0x7e,
+	0xe2, 0x08, 0x1d, 0xc6, 0x90, 0x6f, 0x21, 0xa1, 0x93, 0x84, 0x4b, 0xb2, 0x3e, 0x91, 0xa6, 0xfe,
+	0x8a, 0x00, 0xf3, 0xee, 0x8f, 0x6c, 0x68, 0x7d, 0xf4, 0x3a, 0xeb, 0x4e, 0xff, 0xe5, 0x46, 0x67,
+	0x23, 0xc5, 0x75, 0x2a, 0xc8, 0x6b, 0xe2, 0xe5, 0x50, 0x7f, 0xc2, 0x72, 0x9d, 0xc4, 0x80, 0xbe,
+	0x16, 0x20, 0xe5, 0x4a, 0x7f, 0x86, 0x6e, 0x5d, 0x87, 0x73, 0xbb, 0xa1, 0x5b, 0xd7, 0x80, 0x6c,
+	0xaa, 0x78, 0x9d, 0x8a, 0xf4, 0x2a, 0x1a, 0x27, 0x12, 0xfa, 0x19, 0x48, 0xda, 0xf9, 0x66, 0x74,
+	0x7d, 0xc4, 0x02, 0x35, 0x8d, 0x42, 0xbc, 0xad, 0x0f, 0xb9, 0x22, 0xd6, 0x34, 0x19, 0x95, 0x9f,
+	0x86, 0x79, 0x77, 0xba, 0x35, 0x74, 0x50, 0x02, 0x72, 0xb2, 0xa1, 0x66, 0xc1, 0x1b, 0x5f, 0x1f,
+	0xdb, 0x38, 0x35, 0x09, 0x57, 0x5e, 0x38, 0xdc, 0x24, 0x86, 0x93, 0xc7, 0xa1, 0xad, 0xbf, 0x4d,
+	0x5b, 0x7f, 0x53, 0xbc, 0x36, 0xa6, 0xf5, 0xdb, 0x4d, 0xca, 0xf4, 0xb6, 0xb0, 0xbe, 0xfd, 0xb5,
+	0x00, 0xe7, 0x9b, 0x5a, 0x37, 0xb8, 0xf1, 0xed, 0x44, 0xb1, 0xd3, 0xdf, 0x27, 0x6d, 0xec, 0x0b,
+	0x8f, 0x3e, 0xe0, 0x28, 0x6d, 0xad, 0xa3, 0xf4, 0xda, 0x1b, 0x9a, 0xde, 0xde, 0x6c, 0xe3, 0x1e,
+	0x95, 0x60, 0x93, 0x55, 0x29, 0x7d, 0xd5, 0xd8, 0xe4, 0x1c, 0x48, 0x6b, 0x9b, 0x4f, 0xb7, 0x3e,
+	0x6a, 0x75, 0xfa, 0xbf, 0x19, 0x59, 0xba, 0xcb, 0x48, 0x0b, 0x1d, 0x6d, 0xd0, 0x22, 0xe3, 0xb4,
+	0xf1, 0x60, 0xeb, 0xdf, 0x5a, 0xd0, 0x2f, 0x28, 0xf4, 0x8b, 0x62, 0xa7, 0xff, 0xc5, 0x83, 0xad,
+	0x46, 0x9c, 0x32, 0x7c, 0xe7, 0xff, 0x06, 0x00, 0x00, 0xff, 0xff, 0x69, 0x25, 0xf9, 0x3d, 0x54,
+	0x83, 0x00, 0x00,
 }

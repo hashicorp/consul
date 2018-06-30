@@ -39,7 +39,7 @@ type Context struct {
 	// A list of RPC context rules that apply to individual API methods.
 	//
 	// **NOTE:** All service configuration rules follow "last one wins" order.
-	Rules                []*ContextRule `protobuf:"bytes,1,rep,name=rules" json:"rules,omitempty"`
+	Rules                []*ContextRule `protobuf:"bytes,1,rep,name=rules,proto3" json:"rules,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
 	XXX_unrecognized     []byte         `json:"-"`
 	XXX_sizecache        int32          `json:"-"`
@@ -82,11 +82,11 @@ type ContextRule struct {
 	// Selects the methods to which this rule applies.
 	//
 	// Refer to [selector][google.api.DocumentationRule.selector] for syntax details.
-	Selector string `protobuf:"bytes,1,opt,name=selector" json:"selector,omitempty"`
+	Selector string `protobuf:"bytes,1,opt,name=selector,proto3" json:"selector,omitempty"`
 	// A list of full type names of requested contexts.
-	Requested []string `protobuf:"bytes,2,rep,name=requested" json:"requested,omitempty"`
+	Requested []string `protobuf:"bytes,2,rep,name=requested,proto3" json:"requested,omitempty"`
 	// A list of full type names of provided contexts.
-	Provided             []string `protobuf:"bytes,3,rep,name=provided" json:"provided,omitempty"`
+	Provided             []string `protobuf:"bytes,3,rep,name=provided,proto3" json:"provided,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

@@ -18,8 +18,8 @@ import (
 	"net/url"
 	"strings"
 
-	discovery "github.com/googleapis/gnostic/discovery"
 	openapi3 "github.com/googleapis/gnostic/OpenAPIv3"
+	discovery "github.com/googleapis/gnostic/discovery"
 )
 
 func pathForMethod(path string) string {
@@ -59,9 +59,9 @@ func buildOpenAPI3SchemaOrReferenceForSchema(schema *discovery.Schema) *openapi3
 		}
 	}
 	if schema.Items != nil {
-		s2 := buildOpenAPI3SchemaOrReferenceForSchema(schema.Items)
-		s.Items = &openapi3.ItemsItem{}
-		s.Items.SchemaOrReference = append(s.Items.SchemaOrReference, s2)
+		s.Items = &openapi3.ItemsItem{
+			SchemaOrReference: []*openapi3.SchemaOrReference{buildOpenAPI3SchemaOrReferenceForSchema(schema.Items)},
+		}
 	}
 	if (schema.Properties != nil) && (len(schema.Properties.AdditionalProperties) > 0) {
 		s.Properties = &openapi3.Properties{}

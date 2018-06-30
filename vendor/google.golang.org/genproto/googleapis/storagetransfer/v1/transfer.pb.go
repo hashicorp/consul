@@ -31,7 +31,7 @@ type GetGoogleServiceAccountRequest struct {
 	// The ID of the Google Cloud Platform Console project that the Google service
 	// account is associated with.
 	// Required.
-	ProjectId            string   `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId            string   `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -72,7 +72,7 @@ func (m *GetGoogleServiceAccountRequest) GetProjectId() string {
 type CreateTransferJobRequest struct {
 	// The job to create.
 	// Required.
-	TransferJob          *TransferJob `protobuf:"bytes,1,opt,name=transfer_job,json=transferJob" json:"transfer_job,omitempty"`
+	TransferJob          *TransferJob `protobuf:"bytes,1,opt,name=transfer_job,json=transferJob,proto3" json:"transfer_job,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
 	XXX_unrecognized     []byte       `json:"-"`
 	XXX_sizecache        int32        `json:"-"`
@@ -113,23 +113,23 @@ func (m *CreateTransferJobRequest) GetTransferJob() *TransferJob {
 type UpdateTransferJobRequest struct {
 	// The name of job to update.
 	// Required.
-	JobName string `protobuf:"bytes,1,opt,name=job_name,json=jobName" json:"job_name,omitempty"`
+	JobName string `protobuf:"bytes,1,opt,name=job_name,json=jobName,proto3" json:"job_name,omitempty"`
 	// The ID of the Google Cloud Platform Console project that owns the job.
 	// Required.
-	ProjectId string `protobuf:"bytes,2,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// The job to update. `transferJob` is expected to specify only three fields:
 	// `description`, `transferSpec`, and `status`.  An UpdateTransferJobRequest
 	// that specifies other fields will be rejected with an error
 	// `INVALID_ARGUMENT`.
 	// Required.
-	TransferJob *TransferJob `protobuf:"bytes,3,opt,name=transfer_job,json=transferJob" json:"transfer_job,omitempty"`
+	TransferJob *TransferJob `protobuf:"bytes,3,opt,name=transfer_job,json=transferJob,proto3" json:"transfer_job,omitempty"`
 	// The field mask of the fields in `transferJob` that are to be updated in
 	// this request.  Fields in `transferJob` that can be updated are:
 	// `description`, `transferSpec`, and `status`.  To update the `transferSpec`
 	// of the job, a complete transfer specification has to be provided. An
 	// incomplete specification which misses any required fields will be rejected
 	// with the error `INVALID_ARGUMENT`.
-	UpdateTransferJobFieldMask *field_mask.FieldMask `protobuf:"bytes,4,opt,name=update_transfer_job_field_mask,json=updateTransferJobFieldMask" json:"update_transfer_job_field_mask,omitempty"`
+	UpdateTransferJobFieldMask *field_mask.FieldMask `protobuf:"bytes,4,opt,name=update_transfer_job_field_mask,json=updateTransferJobFieldMask,proto3" json:"update_transfer_job_field_mask,omitempty"`
 	XXX_NoUnkeyedLiteral       struct{}              `json:"-"`
 	XXX_unrecognized           []byte                `json:"-"`
 	XXX_sizecache              int32                 `json:"-"`
@@ -191,10 +191,10 @@ func (m *UpdateTransferJobRequest) GetUpdateTransferJobFieldMask() *field_mask.F
 type GetTransferJobRequest struct {
 	// The job to get.
 	// Required.
-	JobName string `protobuf:"bytes,1,opt,name=job_name,json=jobName" json:"job_name,omitempty"`
+	JobName string `protobuf:"bytes,1,opt,name=job_name,json=jobName,proto3" json:"job_name,omitempty"`
 	// The ID of the Google Cloud Platform Console project that owns the job.
 	// Required.
-	ProjectId            string   `protobuf:"bytes,2,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId            string   `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -249,11 +249,11 @@ type ListTransferJobsRequest struct {
 	// must be specified with array notation. `project_id` is required. `job_names`
 	// and `job_statuses` are optional.  The valid values for `job_statuses` are
 	// case-insensitive: `ENABLED`, `DISABLED`, and `DELETED`.
-	Filter string `protobuf:"bytes,1,opt,name=filter" json:"filter,omitempty"`
+	Filter string `protobuf:"bytes,1,opt,name=filter,proto3" json:"filter,omitempty"`
 	// The list page size. The max allowed value is 256.
-	PageSize int32 `protobuf:"varint,4,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The list page token.
-	PageToken            string   `protobuf:"bytes,5,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,5,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -307,9 +307,9 @@ func (m *ListTransferJobsRequest) GetPageToken() string {
 // Response from ListTransferJobs.
 type ListTransferJobsResponse struct {
 	// A list of transfer jobs.
-	TransferJobs []*TransferJob `protobuf:"bytes,1,rep,name=transfer_jobs,json=transferJobs" json:"transfer_jobs,omitempty"`
+	TransferJobs []*TransferJob `protobuf:"bytes,1,rep,name=transfer_jobs,json=transferJobs,proto3" json:"transfer_jobs,omitempty"`
 	// The list next page token.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -357,7 +357,7 @@ func (m *ListTransferJobsResponse) GetNextPageToken() string {
 type PauseTransferOperationRequest struct {
 	// The name of the transfer operation.
 	// Required.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -398,7 +398,7 @@ func (m *PauseTransferOperationRequest) GetName() string {
 type ResumeTransferOperationRequest struct {
 	// The name of the transfer operation.
 	// Required.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -554,8 +554,7 @@ func (c *storageTransferServiceClient) ResumeTransferOperation(ctx context.Conte
 	return out, nil
 }
 
-// Server API for StorageTransferService service
-
+// StorageTransferServiceServer is the server API for StorageTransferService service.
 type StorageTransferServiceServer interface {
 	// Returns the Google service account that is used by Storage Transfer
 	// Service to access buckets in the project where transfers

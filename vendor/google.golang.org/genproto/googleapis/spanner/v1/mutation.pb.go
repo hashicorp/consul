@@ -67,19 +67,19 @@ type isMutation_Operation interface {
 }
 
 type Mutation_Insert struct {
-	Insert *Mutation_Write `protobuf:"bytes,1,opt,name=insert,oneof"`
+	Insert *Mutation_Write `protobuf:"bytes,1,opt,name=insert,proto3,oneof"`
 }
 type Mutation_Update struct {
-	Update *Mutation_Write `protobuf:"bytes,2,opt,name=update,oneof"`
+	Update *Mutation_Write `protobuf:"bytes,2,opt,name=update,proto3,oneof"`
 }
 type Mutation_InsertOrUpdate struct {
-	InsertOrUpdate *Mutation_Write `protobuf:"bytes,3,opt,name=insert_or_update,json=insertOrUpdate,oneof"`
+	InsertOrUpdate *Mutation_Write `protobuf:"bytes,3,opt,name=insert_or_update,json=insertOrUpdate,proto3,oneof"`
 }
 type Mutation_Replace struct {
-	Replace *Mutation_Write `protobuf:"bytes,4,opt,name=replace,oneof"`
+	Replace *Mutation_Write `protobuf:"bytes,4,opt,name=replace,proto3,oneof"`
 }
 type Mutation_Delete_ struct {
-	Delete *Mutation_Delete `protobuf:"bytes,5,opt,name=delete,oneof"`
+	Delete *Mutation_Delete `protobuf:"bytes,5,opt,name=delete,proto3,oneof"`
 }
 
 func (*Mutation_Insert) isMutation_Operation()         {}
@@ -265,13 +265,13 @@ func _Mutation_OneofSizer(msg proto.Message) (n int) {
 // [replace][google.spanner.v1.Mutation.replace] operations.
 type Mutation_Write struct {
 	// Required. The table whose rows will be written.
-	Table string `protobuf:"bytes,1,opt,name=table" json:"table,omitempty"`
+	Table string `protobuf:"bytes,1,opt,name=table,proto3" json:"table,omitempty"`
 	// The names of the columns in [table][google.spanner.v1.Mutation.Write.table] to be written.
 	//
 	// The list of columns must contain enough columns to allow
 	// Cloud Spanner to derive values for all primary key columns in the
 	// row(s) to be modified.
-	Columns []string `protobuf:"bytes,2,rep,name=columns" json:"columns,omitempty"`
+	Columns []string `protobuf:"bytes,2,rep,name=columns,proto3" json:"columns,omitempty"`
 	// The values to be written. `values` can contain more than one
 	// list of values. If it does, then multiple rows are written, one
 	// for each entry in `values`. Each list in `values` must have
@@ -280,7 +280,7 @@ type Mutation_Write struct {
 	// `Mutation`s, each containing one `values` entry and repeating
 	// [table][google.spanner.v1.Mutation.Write.table] and [columns][google.spanner.v1.Mutation.Write.columns]. Individual values in each list are
 	// encoded as described [here][google.spanner.v1.TypeCode].
-	Values               []*_struct.ListValue `protobuf:"bytes,3,rep,name=values" json:"values,omitempty"`
+	Values               []*_struct.ListValue `protobuf:"bytes,3,rep,name=values,proto3" json:"values,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -334,11 +334,11 @@ func (m *Mutation_Write) GetValues() []*_struct.ListValue {
 // Arguments to [delete][google.spanner.v1.Mutation.delete] operations.
 type Mutation_Delete struct {
 	// Required. The table whose rows will be deleted.
-	Table string `protobuf:"bytes,1,opt,name=table" json:"table,omitempty"`
+	Table string `protobuf:"bytes,1,opt,name=table,proto3" json:"table,omitempty"`
 	// Required. The primary keys of the rows within [table][google.spanner.v1.Mutation.Delete.table] to delete.
 	// Delete is idempotent. The transaction will succeed even if some or all
 	// rows do not exist.
-	KeySet               *KeySet  `protobuf:"bytes,2,opt,name=key_set,json=keySet" json:"key_set,omitempty"`
+	KeySet               *KeySet  `protobuf:"bytes,2,opt,name=key_set,json=keySet,proto3" json:"key_set,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

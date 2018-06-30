@@ -159,24 +159,24 @@ func (ExportVariantSetRequest_Format) EnumDescriptor() ([]byte, []int) {
 // Value and info are mutually exclusive.
 type VariantSetMetadata struct {
 	// The top-level key.
-	Key string `protobuf:"bytes,1,opt,name=key" json:"key,omitempty"`
+	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
 	// The value field for simple metadata
-	Value string `protobuf:"bytes,2,opt,name=value" json:"value,omitempty"`
+	Value string `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
 	// User-provided ID field, not enforced by this API.
 	// Two or more pieces of structured metadata with identical
 	// id and key fields are considered equivalent.
-	Id string `protobuf:"bytes,4,opt,name=id" json:"id,omitempty"`
+	Id string `protobuf:"bytes,4,opt,name=id,proto3" json:"id,omitempty"`
 	// The type of data. Possible types include: Integer, Float,
 	// Flag, Character, and String.
-	Type VariantSetMetadata_Type `protobuf:"varint,5,opt,name=type,enum=google.genomics.v1.VariantSetMetadata_Type" json:"type,omitempty"`
+	Type VariantSetMetadata_Type `protobuf:"varint,5,opt,name=type,proto3,enum=google.genomics.v1.VariantSetMetadata_Type" json:"type,omitempty"`
 	// The number of values that can be included in a field described by this
 	// metadata.
-	Number string `protobuf:"bytes,8,opt,name=number" json:"number,omitempty"`
+	Number string `protobuf:"bytes,8,opt,name=number,proto3" json:"number,omitempty"`
 	// A textual description of this metadata.
-	Description string `protobuf:"bytes,7,opt,name=description" json:"description,omitempty"`
+	Description string `protobuf:"bytes,7,opt,name=description,proto3" json:"description,omitempty"`
 	// Remaining structured metadata key-value pairs. This must be of the form
 	// map<string, string[]> (string key mapping to a list of string values).
-	Info                 map[string]*_struct.ListValue `protobuf:"bytes,3,rep,name=info" json:"info,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Info                 map[string]*_struct.ListValue `protobuf:"bytes,3,rep,name=info,proto3" json:"info,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}                      `json:"-"`
 	XXX_unrecognized     []byte                        `json:"-"`
 	XXX_sizecache        int32                         `json:"-"`
@@ -262,9 +262,9 @@ func (m *VariantSetMetadata) GetInfo() map[string]*_struct.ListValue {
 // Genomics](https://cloud.google.com/genomics/fundamentals-of-google-genomics)
 type VariantSet struct {
 	// The dataset to which this variant set belongs.
-	DatasetId string `protobuf:"bytes,1,opt,name=dataset_id,json=datasetId" json:"dataset_id,omitempty"`
+	DatasetId string `protobuf:"bytes,1,opt,name=dataset_id,json=datasetId,proto3" json:"dataset_id,omitempty"`
 	// The server-generated variant set ID, unique across all variant sets.
-	Id string `protobuf:"bytes,2,opt,name=id" json:"id,omitempty"`
+	Id string `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
 	// The reference set to which the variant set is mapped. The reference set
 	// describes the alignment provenance of the variant set, while the
 	// `referenceBounds` describe the shape of the actual variant data. The
@@ -275,16 +275,16 @@ type VariantSet struct {
 	// and contains a single variant on reference 'X', `referenceBounds` would
 	// contain only an entry for 'X', while the associated reference set
 	// enumerates all possible references: '1', '2', 'X', 'Y', 'MT', etc.
-	ReferenceSetId string `protobuf:"bytes,6,opt,name=reference_set_id,json=referenceSetId" json:"reference_set_id,omitempty"`
+	ReferenceSetId string `protobuf:"bytes,6,opt,name=reference_set_id,json=referenceSetId,proto3" json:"reference_set_id,omitempty"`
 	// A list of all references used by the variants in a variant set
 	// with associated coordinate upper bounds for each one.
-	ReferenceBounds []*ReferenceBound `protobuf:"bytes,5,rep,name=reference_bounds,json=referenceBounds" json:"reference_bounds,omitempty"`
+	ReferenceBounds []*ReferenceBound `protobuf:"bytes,5,rep,name=reference_bounds,json=referenceBounds,proto3" json:"reference_bounds,omitempty"`
 	// The metadata associated with this variant set.
-	Metadata []*VariantSetMetadata `protobuf:"bytes,4,rep,name=metadata" json:"metadata,omitempty"`
+	Metadata []*VariantSetMetadata `protobuf:"bytes,4,rep,name=metadata,proto3" json:"metadata,omitempty"`
 	// User-specified, mutable name.
-	Name string `protobuf:"bytes,7,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,7,opt,name=name,proto3" json:"name,omitempty"`
 	// A textual description of this variant set.
-	Description          string   `protobuf:"bytes,8,opt,name=description" json:"description,omitempty"`
+	Description          string   `protobuf:"bytes,8,opt,name=description,proto3" json:"description,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -377,41 +377,41 @@ func (m *VariantSet) GetDescription() string {
 // sample.
 type Variant struct {
 	// The ID of the variant set this variant belongs to.
-	VariantSetId string `protobuf:"bytes,15,opt,name=variant_set_id,json=variantSetId" json:"variant_set_id,omitempty"`
+	VariantSetId string `protobuf:"bytes,15,opt,name=variant_set_id,json=variantSetId,proto3" json:"variant_set_id,omitempty"`
 	// The server-generated variant ID, unique across all variants.
-	Id string `protobuf:"bytes,2,opt,name=id" json:"id,omitempty"`
+	Id string `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
 	// Names for the variant, for example a RefSNP ID.
-	Names []string `protobuf:"bytes,3,rep,name=names" json:"names,omitempty"`
+	Names []string `protobuf:"bytes,3,rep,name=names,proto3" json:"names,omitempty"`
 	// The date this variant was created, in milliseconds from the epoch.
-	Created int64 `protobuf:"varint,12,opt,name=created" json:"created,omitempty"`
+	Created int64 `protobuf:"varint,12,opt,name=created,proto3" json:"created,omitempty"`
 	// The reference on which this variant occurs.
 	// (such as `chr20` or `X`)
-	ReferenceName string `protobuf:"bytes,14,opt,name=reference_name,json=referenceName" json:"reference_name,omitempty"`
+	ReferenceName string `protobuf:"bytes,14,opt,name=reference_name,json=referenceName,proto3" json:"reference_name,omitempty"`
 	// The position at which this variant occurs (0-based).
 	// This corresponds to the first base of the string of reference bases.
-	Start int64 `protobuf:"varint,16,opt,name=start" json:"start,omitempty"`
+	Start int64 `protobuf:"varint,16,opt,name=start,proto3" json:"start,omitempty"`
 	// The end position (0-based) of this variant. This corresponds to the first
 	// base after the last base in the reference allele. So, the length of
 	// the reference allele is (end - start). This is useful for variants
 	// that don't explicitly give alternate bases, for example large deletions.
-	End int64 `protobuf:"varint,13,opt,name=end" json:"end,omitempty"`
+	End int64 `protobuf:"varint,13,opt,name=end,proto3" json:"end,omitempty"`
 	// The reference bases for this variant. They start at the given
 	// position.
-	ReferenceBases string `protobuf:"bytes,6,opt,name=reference_bases,json=referenceBases" json:"reference_bases,omitempty"`
+	ReferenceBases string `protobuf:"bytes,6,opt,name=reference_bases,json=referenceBases,proto3" json:"reference_bases,omitempty"`
 	// The bases that appear instead of the reference bases.
-	AlternateBases []string `protobuf:"bytes,7,rep,name=alternate_bases,json=alternateBases" json:"alternate_bases,omitempty"`
+	AlternateBases []string `protobuf:"bytes,7,rep,name=alternate_bases,json=alternateBases,proto3" json:"alternate_bases,omitempty"`
 	// A measure of how likely this variant is to be real.
 	// A higher value is better.
-	Quality float64 `protobuf:"fixed64,8,opt,name=quality" json:"quality,omitempty"`
+	Quality float64 `protobuf:"fixed64,8,opt,name=quality,proto3" json:"quality,omitempty"`
 	// A list of filters (normally quality filters) this variant has failed.
 	// `PASS` indicates this variant has passed all filters.
-	Filter []string `protobuf:"bytes,9,rep,name=filter" json:"filter,omitempty"`
+	Filter []string `protobuf:"bytes,9,rep,name=filter,proto3" json:"filter,omitempty"`
 	// A map of additional variant information. This must be of the form
 	// map<string, string[]> (string key mapping to a list of string values).
-	Info map[string]*_struct.ListValue `protobuf:"bytes,10,rep,name=info" json:"info,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Info map[string]*_struct.ListValue `protobuf:"bytes,10,rep,name=info,proto3" json:"info,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// The variant calls for this particular variant. Each one represents the
 	// determination of genotype with respect to this variant.
-	Calls                []*VariantCall `protobuf:"bytes,11,rep,name=calls" json:"calls,omitempty"`
+	Calls                []*VariantCall `protobuf:"bytes,11,rep,name=calls,proto3" json:"calls,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
 	XXX_unrecognized     []byte         `json:"-"`
 	XXX_sizecache        int32          `json:"-"`
@@ -538,9 +538,9 @@ func (m *Variant) GetCalls() []*VariantCall {
 // a SNP named rs1234 in a call set with the name NA12345.
 type VariantCall struct {
 	// The ID of the call set this variant call belongs to.
-	CallSetId string `protobuf:"bytes,8,opt,name=call_set_id,json=callSetId" json:"call_set_id,omitempty"`
+	CallSetId string `protobuf:"bytes,8,opt,name=call_set_id,json=callSetId,proto3" json:"call_set_id,omitempty"`
 	// The name of the call set this variant call belongs to.
-	CallSetName string `protobuf:"bytes,9,opt,name=call_set_name,json=callSetName" json:"call_set_name,omitempty"`
+	CallSetName string `protobuf:"bytes,9,opt,name=call_set_name,json=callSetName,proto3" json:"call_set_name,omitempty"`
 	// The genotype of this variant call. Each value represents either the value
 	// of the `referenceBases` field or a 1-based index into
 	// `alternateBases`. If a variant had a `referenceBases`
@@ -553,23 +553,23 @@ type VariantCall struct {
 	// genotype values is important if the `phaseset` is present.
 	// If a genotype is not called (that is, a `.` is present in the
 	// GT string) -1 is returned.
-	Genotype []int32 `protobuf:"varint,7,rep,packed,name=genotype" json:"genotype,omitempty"`
+	Genotype []int32 `protobuf:"varint,7,rep,packed,name=genotype,proto3" json:"genotype,omitempty"`
 	// If this field is present, this variant call's genotype ordering implies
 	// the phase of the bases and is consistent with any other variant calls in
 	// the same reference sequence which have the same phaseset value.
 	// When importing data from VCF, if the genotype data was phased but no
 	// phase set was specified this field will be set to `*`.
-	Phaseset string `protobuf:"bytes,5,opt,name=phaseset" json:"phaseset,omitempty"`
+	Phaseset string `protobuf:"bytes,5,opt,name=phaseset,proto3" json:"phaseset,omitempty"`
 	// The genotype likelihoods for this variant call. Each array entry
 	// represents how likely a specific genotype is for this call. The value
 	// ordering is defined by the GL tag in the VCF spec.
 	// If Phred-scaled genotype likelihood scores (PL) are available and
 	// log10(P) genotype likelihood scores (GL) are not, PL scores are converted
 	// to GL scores.  If both are available, PL scores are stored in `info`.
-	GenotypeLikelihood []float64 `protobuf:"fixed64,6,rep,packed,name=genotype_likelihood,json=genotypeLikelihood" json:"genotype_likelihood,omitempty"`
+	GenotypeLikelihood []float64 `protobuf:"fixed64,6,rep,packed,name=genotype_likelihood,json=genotypeLikelihood,proto3" json:"genotype_likelihood,omitempty"`
 	// A map of additional variant call information. This must be of the form
 	// map<string, string[]> (string key mapping to a list of string values).
-	Info                 map[string]*_struct.ListValue `protobuf:"bytes,2,rep,name=info" json:"info,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Info                 map[string]*_struct.ListValue `protobuf:"bytes,2,rep,name=info,proto3" json:"info,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}                      `json:"-"`
 	XXX_unrecognized     []byte                        `json:"-"`
 	XXX_sizecache        int32                         `json:"-"`
@@ -648,22 +648,22 @@ func (m *VariantCall) GetInfo() map[string]*_struct.ListValue {
 // Genomics](https://cloud.google.com/genomics/fundamentals-of-google-genomics)
 type CallSet struct {
 	// The server-generated call set ID, unique across all call sets.
-	Id string `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// The call set name.
-	Name string `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	// The sample ID this call set corresponds to.
-	SampleId string `protobuf:"bytes,7,opt,name=sample_id,json=sampleId" json:"sample_id,omitempty"`
+	SampleId string `protobuf:"bytes,7,opt,name=sample_id,json=sampleId,proto3" json:"sample_id,omitempty"`
 	// The IDs of the variant sets this call set belongs to. This field must
 	// have exactly length one, as a call set belongs to a single variant set.
 	// This field is repeated for compatibility with the
 	// [GA4GH 0.5.1
 	// API](https://github.com/ga4gh/schemas/blob/v0.5.1/src/main/resources/avro/variants.avdl#L76).
-	VariantSetIds []string `protobuf:"bytes,6,rep,name=variant_set_ids,json=variantSetIds" json:"variant_set_ids,omitempty"`
+	VariantSetIds []string `protobuf:"bytes,6,rep,name=variant_set_ids,json=variantSetIds,proto3" json:"variant_set_ids,omitempty"`
 	// The date this call set was created in milliseconds from the epoch.
-	Created int64 `protobuf:"varint,5,opt,name=created" json:"created,omitempty"`
+	Created int64 `protobuf:"varint,5,opt,name=created,proto3" json:"created,omitempty"`
 	// A map of additional call set information. This must be of the form
 	// map<string, string[]> (string key mapping to a list of string values).
-	Info                 map[string]*_struct.ListValue `protobuf:"bytes,4,rep,name=info" json:"info,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Info                 map[string]*_struct.ListValue `protobuf:"bytes,4,rep,name=info,proto3" json:"info,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}                      `json:"-"`
 	XXX_unrecognized     []byte                        `json:"-"`
 	XXX_sizecache        int32                         `json:"-"`
@@ -739,10 +739,10 @@ func (m *CallSet) GetInfo() map[string]*_struct.ListValue {
 // variants in a particular reference.
 type ReferenceBound struct {
 	// The name of the reference associated with this reference bound.
-	ReferenceName string `protobuf:"bytes,1,opt,name=reference_name,json=referenceName" json:"reference_name,omitempty"`
+	ReferenceName string `protobuf:"bytes,1,opt,name=reference_name,json=referenceName,proto3" json:"reference_name,omitempty"`
 	// An upper bound (inclusive) on the starting coordinate of any
 	// variant in the reference sequence.
-	UpperBound           int64    `protobuf:"varint,2,opt,name=upper_bound,json=upperBound" json:"upper_bound,omitempty"`
+	UpperBound           int64    `protobuf:"varint,2,opt,name=upper_bound,json=upperBound,proto3" json:"upper_bound,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -789,15 +789,15 @@ func (m *ReferenceBound) GetUpperBound() int64 {
 // The variant data import request.
 type ImportVariantsRequest struct {
 	// Required. The variant set to which variant data should be imported.
-	VariantSetId string `protobuf:"bytes,1,opt,name=variant_set_id,json=variantSetId" json:"variant_set_id,omitempty"`
+	VariantSetId string `protobuf:"bytes,1,opt,name=variant_set_id,json=variantSetId,proto3" json:"variant_set_id,omitempty"`
 	// A list of URIs referencing variant files in Google Cloud Storage. URIs can
 	// include wildcards [as described
 	// here](https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames).
 	// Note that recursive wildcards ('**') are not supported.
-	SourceUris []string `protobuf:"bytes,2,rep,name=source_uris,json=sourceUris" json:"source_uris,omitempty"`
+	SourceUris []string `protobuf:"bytes,2,rep,name=source_uris,json=sourceUris,proto3" json:"source_uris,omitempty"`
 	// The format of the variant data being imported. If unspecified, defaults to
 	// to `VCF`.
-	Format ImportVariantsRequest_Format `protobuf:"varint,3,opt,name=format,enum=google.genomics.v1.ImportVariantsRequest_Format" json:"format,omitempty"`
+	Format ImportVariantsRequest_Format `protobuf:"varint,3,opt,name=format,proto3,enum=google.genomics.v1.ImportVariantsRequest_Format" json:"format,omitempty"`
 	// Convert reference names to the canonical representation.
 	// hg19 haploytypes (those reference names containing "_hap")
 	// are not modified in any way.
@@ -806,11 +806,11 @@ type ImportVariantsRequest struct {
 	// The "chr" prefix is dropped for all autosomes and sex chromsomes.
 	// For example "chr17" becomes "17" and "chrX" becomes "X".
 	// All mitochondrial chromosomes ("chrM", "chrMT", etc) become "MT".
-	NormalizeReferenceNames bool `protobuf:"varint,5,opt,name=normalize_reference_names,json=normalizeReferenceNames" json:"normalize_reference_names,omitempty"`
+	NormalizeReferenceNames bool `protobuf:"varint,5,opt,name=normalize_reference_names,json=normalizeReferenceNames,proto3" json:"normalize_reference_names,omitempty"`
 	// A mapping between info field keys and the InfoMergeOperations to
 	// be performed on them. This is plumbed down to the MergeVariantRequests
 	// generated by the resulting import job.
-	InfoMergeConfig      map[string]InfoMergeOperation `protobuf:"bytes,6,rep,name=info_merge_config,json=infoMergeConfig" json:"info_merge_config,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value,enum=google.genomics.v1.InfoMergeOperation"`
+	InfoMergeConfig      map[string]InfoMergeOperation `protobuf:"bytes,6,rep,name=info_merge_config,json=infoMergeConfig,proto3" json:"info_merge_config,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3,enum=google.genomics.v1.InfoMergeOperation"`
 	XXX_NoUnkeyedLiteral struct{}                      `json:"-"`
 	XXX_unrecognized     []byte                        `json:"-"`
 	XXX_sizecache        int32                         `json:"-"`
@@ -878,7 +878,7 @@ func (m *ImportVariantsRequest) GetInfoMergeConfig() map[string]InfoMergeOperati
 // The variant data import response.
 type ImportVariantsResponse struct {
 	// IDs of the call sets created during the import.
-	CallSetIds           []string `protobuf:"bytes,1,rep,name=call_set_ids,json=callSetIds" json:"call_set_ids,omitempty"`
+	CallSetIds           []string `protobuf:"bytes,1,rep,name=call_set_ids,json=callSetIds,proto3" json:"call_set_ids,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -918,7 +918,7 @@ func (m *ImportVariantsResponse) GetCallSetIds() []string {
 // The CreateVariantSet request
 type CreateVariantSetRequest struct {
 	// Required. The variant set to be created. Must have a valid `datasetId`.
-	VariantSet           *VariantSet `protobuf:"bytes,1,opt,name=variant_set,json=variantSet" json:"variant_set,omitempty"`
+	VariantSet           *VariantSet `protobuf:"bytes,1,opt,name=variant_set,json=variantSet,proto3" json:"variant_set,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
 	XXX_unrecognized     []byte      `json:"-"`
 	XXX_sizecache        int32       `json:"-"`
@@ -959,23 +959,23 @@ func (m *CreateVariantSetRequest) GetVariantSet() *VariantSet {
 type ExportVariantSetRequest struct {
 	// Required. The ID of the variant set that contains variant data which
 	// should be exported. The caller must have READ access to this variant set.
-	VariantSetId string `protobuf:"bytes,1,opt,name=variant_set_id,json=variantSetId" json:"variant_set_id,omitempty"`
+	VariantSetId string `protobuf:"bytes,1,opt,name=variant_set_id,json=variantSetId,proto3" json:"variant_set_id,omitempty"`
 	// If provided, only variant call information from the specified call sets
 	// will be exported. By default all variant calls are exported.
-	CallSetIds []string `protobuf:"bytes,2,rep,name=call_set_ids,json=callSetIds" json:"call_set_ids,omitempty"`
+	CallSetIds []string `protobuf:"bytes,2,rep,name=call_set_ids,json=callSetIds,proto3" json:"call_set_ids,omitempty"`
 	// Required. The Google Cloud project ID that owns the destination
 	// BigQuery dataset. The caller must have WRITE access to this project.  This
 	// project will also own the resulting export job.
-	ProjectId string `protobuf:"bytes,3,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,3,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// The format for the exported data.
-	Format ExportVariantSetRequest_Format `protobuf:"varint,4,opt,name=format,enum=google.genomics.v1.ExportVariantSetRequest_Format" json:"format,omitempty"`
+	Format ExportVariantSetRequest_Format `protobuf:"varint,4,opt,name=format,proto3,enum=google.genomics.v1.ExportVariantSetRequest_Format" json:"format,omitempty"`
 	// Required. The BigQuery dataset to export data to. This dataset must already
 	// exist. Note that this is distinct from the Genomics concept of "dataset".
-	BigqueryDataset string `protobuf:"bytes,5,opt,name=bigquery_dataset,json=bigqueryDataset" json:"bigquery_dataset,omitempty"`
+	BigqueryDataset string `protobuf:"bytes,5,opt,name=bigquery_dataset,json=bigqueryDataset,proto3" json:"bigquery_dataset,omitempty"`
 	// Required. The BigQuery table to export data to.
 	// If the table doesn't exist, it will be created. If it already exists, it
 	// will be overwritten.
-	BigqueryTable        string   `protobuf:"bytes,6,opt,name=bigquery_table,json=bigqueryTable" json:"bigquery_table,omitempty"`
+	BigqueryTable        string   `protobuf:"bytes,6,opt,name=bigquery_table,json=bigqueryTable,proto3" json:"bigquery_table,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1050,7 +1050,7 @@ func (m *ExportVariantSetRequest) GetBigqueryTable() string {
 // The variant set request.
 type GetVariantSetRequest struct {
 	// Required. The ID of the variant set.
-	VariantSetId         string   `protobuf:"bytes,1,opt,name=variant_set_id,json=variantSetId" json:"variant_set_id,omitempty"`
+	VariantSetId         string   `protobuf:"bytes,1,opt,name=variant_set_id,json=variantSetId,proto3" json:"variant_set_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1091,14 +1091,14 @@ func (m *GetVariantSetRequest) GetVariantSetId() string {
 type SearchVariantSetsRequest struct {
 	// Exactly one dataset ID must be provided here. Only variant sets which
 	// belong to this dataset will be returned.
-	DatasetIds []string `protobuf:"bytes,1,rep,name=dataset_ids,json=datasetIds" json:"dataset_ids,omitempty"`
+	DatasetIds []string `protobuf:"bytes,1,rep,name=dataset_ids,json=datasetIds,proto3" json:"dataset_ids,omitempty"`
 	// The continuation token, which is used to page through large result sets.
 	// To get the next page of results, set this parameter to the value of
 	// `nextPageToken` from the previous response.
-	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// The maximum number of results to return in a single page. If unspecified,
 	// defaults to 1024.
-	PageSize             int32    `protobuf:"varint,3,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize             int32    `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1152,11 +1152,11 @@ func (m *SearchVariantSetsRequest) GetPageSize() int32 {
 // The search variant sets response.
 type SearchVariantSetsResponse struct {
 	// The variant sets belonging to the requested dataset.
-	VariantSets []*VariantSet `protobuf:"bytes,1,rep,name=variant_sets,json=variantSets" json:"variant_sets,omitempty"`
+	VariantSets []*VariantSet `protobuf:"bytes,1,rep,name=variant_sets,json=variantSets,proto3" json:"variant_sets,omitempty"`
 	// The continuation token, which is used to page through large result sets.
 	// Provide this value in a subsequent request to return the next page of
 	// results. This field will be empty if there aren't any additional results.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1203,7 +1203,7 @@ func (m *SearchVariantSetsResponse) GetNextPageToken() string {
 // The delete variant set request.
 type DeleteVariantSetRequest struct {
 	// The ID of the variant set to be deleted.
-	VariantSetId         string   `protobuf:"bytes,1,opt,name=variant_set_id,json=variantSetId" json:"variant_set_id,omitempty"`
+	VariantSetId         string   `protobuf:"bytes,1,opt,name=variant_set_id,json=variantSetId,proto3" json:"variant_set_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1242,10 +1242,10 @@ func (m *DeleteVariantSetRequest) GetVariantSetId() string {
 
 type UpdateVariantSetRequest struct {
 	// The ID of the variant to be updated (must already exist).
-	VariantSetId string `protobuf:"bytes,1,opt,name=variant_set_id,json=variantSetId" json:"variant_set_id,omitempty"`
+	VariantSetId string `protobuf:"bytes,1,opt,name=variant_set_id,json=variantSetId,proto3" json:"variant_set_id,omitempty"`
 	// The new variant data. Only the variant_set.metadata will be considered
 	// for update.
-	VariantSet *VariantSet `protobuf:"bytes,2,opt,name=variant_set,json=variantSet" json:"variant_set,omitempty"`
+	VariantSet *VariantSet `protobuf:"bytes,2,opt,name=variant_set,json=variantSet,proto3" json:"variant_set,omitempty"`
 	// An optional mask specifying which fields to update. Supported fields:
 	//
 	// * [metadata][google.genomics.v1.VariantSet.metadata].
@@ -1254,7 +1254,7 @@ type UpdateVariantSetRequest struct {
 	//
 	// Leaving `updateMask` unset is equivalent to specifying all mutable
 	// fields.
-	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,5,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,5,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -1310,33 +1310,33 @@ type SearchVariantsRequest struct {
 	// At most one variant set ID must be provided. Only variants from this
 	// variant set will be returned. If omitted, a call set id must be included in
 	// the request.
-	VariantSetIds []string `protobuf:"bytes,1,rep,name=variant_set_ids,json=variantSetIds" json:"variant_set_ids,omitempty"`
+	VariantSetIds []string `protobuf:"bytes,1,rep,name=variant_set_ids,json=variantSetIds,proto3" json:"variant_set_ids,omitempty"`
 	// Only return variants which have exactly this name.
-	VariantName string `protobuf:"bytes,2,opt,name=variant_name,json=variantName" json:"variant_name,omitempty"`
+	VariantName string `protobuf:"bytes,2,opt,name=variant_name,json=variantName,proto3" json:"variant_name,omitempty"`
 	// Only return variant calls which belong to call sets with these ids.
 	// Leaving this blank returns all variant calls. If a variant has no
 	// calls belonging to any of these call sets, it won't be returned at all.
-	CallSetIds []string `protobuf:"bytes,3,rep,name=call_set_ids,json=callSetIds" json:"call_set_ids,omitempty"`
+	CallSetIds []string `protobuf:"bytes,3,rep,name=call_set_ids,json=callSetIds,proto3" json:"call_set_ids,omitempty"`
 	// Required. Only return variants in this reference sequence.
-	ReferenceName string `protobuf:"bytes,4,opt,name=reference_name,json=referenceName" json:"reference_name,omitempty"`
+	ReferenceName string `protobuf:"bytes,4,opt,name=reference_name,json=referenceName,proto3" json:"reference_name,omitempty"`
 	// The beginning of the window (0-based, inclusive) for which
 	// overlapping variants should be returned. If unspecified, defaults to 0.
-	Start int64 `protobuf:"varint,5,opt,name=start" json:"start,omitempty"`
+	Start int64 `protobuf:"varint,5,opt,name=start,proto3" json:"start,omitempty"`
 	// The end of the window, 0-based exclusive. If unspecified or 0, defaults to
 	// the length of the reference.
-	End int64 `protobuf:"varint,6,opt,name=end" json:"end,omitempty"`
+	End int64 `protobuf:"varint,6,opt,name=end,proto3" json:"end,omitempty"`
 	// The continuation token, which is used to page through large result sets.
 	// To get the next page of results, set this parameter to the value of
 	// `nextPageToken` from the previous response.
-	PageToken string `protobuf:"bytes,7,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,7,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// The maximum number of variants to return in a single page. If unspecified,
 	// defaults to 5000. The maximum value is 10000.
-	PageSize int32 `protobuf:"varint,8,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,8,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The maximum number of calls to return in a single page. Note that this
 	// limit may be exceeded in the event that a matching variant contains more
 	// calls than the requested maximum. If unspecified, defaults to 5000. The
 	// maximum value is 10000.
-	MaxCalls             int32    `protobuf:"varint,9,opt,name=max_calls,json=maxCalls" json:"max_calls,omitempty"`
+	MaxCalls             int32    `protobuf:"varint,9,opt,name=max_calls,json=maxCalls,proto3" json:"max_calls,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1432,11 +1432,11 @@ func (m *SearchVariantsRequest) GetMaxCalls() int32 {
 // The variant search response.
 type SearchVariantsResponse struct {
 	// The list of matching Variants.
-	Variants []*Variant `protobuf:"bytes,1,rep,name=variants" json:"variants,omitempty"`
+	Variants []*Variant `protobuf:"bytes,1,rep,name=variants,proto3" json:"variants,omitempty"`
 	// The continuation token, which is used to page through large result sets.
 	// Provide this value in a subsequent request to return the next page of
 	// results. This field will be empty if there aren't any additional results.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1482,7 +1482,7 @@ func (m *SearchVariantsResponse) GetNextPageToken() string {
 
 type CreateVariantRequest struct {
 	// The variant to be created.
-	Variant              *Variant `protobuf:"bytes,1,opt,name=variant" json:"variant,omitempty"`
+	Variant              *Variant `protobuf:"bytes,1,opt,name=variant,proto3" json:"variant,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1521,14 +1521,14 @@ func (m *CreateVariantRequest) GetVariant() *Variant {
 
 type UpdateVariantRequest struct {
 	// The ID of the variant to be updated.
-	VariantId string `protobuf:"bytes,1,opt,name=variant_id,json=variantId" json:"variant_id,omitempty"`
+	VariantId string `protobuf:"bytes,1,opt,name=variant_id,json=variantId,proto3" json:"variant_id,omitempty"`
 	// The new variant data.
-	Variant *Variant `protobuf:"bytes,2,opt,name=variant" json:"variant,omitempty"`
+	Variant *Variant `protobuf:"bytes,2,opt,name=variant,proto3" json:"variant,omitempty"`
 	// An optional mask specifying which fields to update. At this time, mutable
 	// fields are [names][google.genomics.v1.Variant.names] and
 	// [info][google.genomics.v1.Variant.info]. Acceptable values are "names" and
 	// "info". If unspecified, all mutable fields will be updated.
-	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -1581,7 +1581,7 @@ func (m *UpdateVariantRequest) GetUpdateMask() *field_mask.FieldMask {
 
 type DeleteVariantRequest struct {
 	// The ID of the variant to be deleted.
-	VariantId            string   `protobuf:"bytes,1,opt,name=variant_id,json=variantId" json:"variant_id,omitempty"`
+	VariantId            string   `protobuf:"bytes,1,opt,name=variant_id,json=variantId,proto3" json:"variant_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1620,7 +1620,7 @@ func (m *DeleteVariantRequest) GetVariantId() string {
 
 type GetVariantRequest struct {
 	// The ID of the variant.
-	VariantId            string   `protobuf:"bytes,1,opt,name=variant_id,json=variantId" json:"variant_id,omitempty"`
+	VariantId            string   `protobuf:"bytes,1,opt,name=variant_id,json=variantId,proto3" json:"variant_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1659,12 +1659,12 @@ func (m *GetVariantRequest) GetVariantId() string {
 
 type MergeVariantsRequest struct {
 	// The destination variant set.
-	VariantSetId string `protobuf:"bytes,1,opt,name=variant_set_id,json=variantSetId" json:"variant_set_id,omitempty"`
+	VariantSetId string `protobuf:"bytes,1,opt,name=variant_set_id,json=variantSetId,proto3" json:"variant_set_id,omitempty"`
 	// The variants to be merged with existing variants.
-	Variants []*Variant `protobuf:"bytes,2,rep,name=variants" json:"variants,omitempty"`
+	Variants []*Variant `protobuf:"bytes,2,rep,name=variants,proto3" json:"variants,omitempty"`
 	// A mapping between info field keys and the InfoMergeOperations to
 	// be performed on them.
-	InfoMergeConfig      map[string]InfoMergeOperation `protobuf:"bytes,3,rep,name=info_merge_config,json=infoMergeConfig" json:"info_merge_config,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value,enum=google.genomics.v1.InfoMergeOperation"`
+	InfoMergeConfig      map[string]InfoMergeOperation `protobuf:"bytes,3,rep,name=info_merge_config,json=infoMergeConfig,proto3" json:"info_merge_config,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3,enum=google.genomics.v1.InfoMergeOperation"`
 	XXX_NoUnkeyedLiteral struct{}                      `json:"-"`
 	XXX_unrecognized     []byte                        `json:"-"`
 	XXX_sizecache        int32                         `json:"-"`
@@ -1719,17 +1719,17 @@ func (m *MergeVariantsRequest) GetInfoMergeConfig() map[string]InfoMergeOperatio
 type SearchCallSetsRequest struct {
 	// Restrict the query to call sets within the given variant sets. At least one
 	// ID must be provided.
-	VariantSetIds []string `protobuf:"bytes,1,rep,name=variant_set_ids,json=variantSetIds" json:"variant_set_ids,omitempty"`
+	VariantSetIds []string `protobuf:"bytes,1,rep,name=variant_set_ids,json=variantSetIds,proto3" json:"variant_set_ids,omitempty"`
 	// Only return call sets for which a substring of the name matches this
 	// string.
-	Name string `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	// The continuation token, which is used to page through large result sets.
 	// To get the next page of results, set this parameter to the value of
 	// `nextPageToken` from the previous response.
-	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// The maximum number of results to return in a single page. If unspecified,
 	// defaults to 1024.
-	PageSize             int32    `protobuf:"varint,4,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize             int32    `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1790,11 +1790,11 @@ func (m *SearchCallSetsRequest) GetPageSize() int32 {
 // The call set search response.
 type SearchCallSetsResponse struct {
 	// The list of matching call sets.
-	CallSets []*CallSet `protobuf:"bytes,1,rep,name=call_sets,json=callSets" json:"call_sets,omitempty"`
+	CallSets []*CallSet `protobuf:"bytes,1,rep,name=call_sets,json=callSets,proto3" json:"call_sets,omitempty"`
 	// The continuation token, which is used to page through large result sets.
 	// Provide this value in a subsequent request to return the next page of
 	// results. This field will be empty if there aren't any additional results.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1840,7 +1840,7 @@ func (m *SearchCallSetsResponse) GetNextPageToken() string {
 
 type CreateCallSetRequest struct {
 	// The call set to be created.
-	CallSet              *CallSet `protobuf:"bytes,1,opt,name=call_set,json=callSet" json:"call_set,omitempty"`
+	CallSet              *CallSet `protobuf:"bytes,1,opt,name=call_set,json=callSet,proto3" json:"call_set,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1879,14 +1879,14 @@ func (m *CreateCallSetRequest) GetCallSet() *CallSet {
 
 type UpdateCallSetRequest struct {
 	// The ID of the call set to be updated.
-	CallSetId string `protobuf:"bytes,1,opt,name=call_set_id,json=callSetId" json:"call_set_id,omitempty"`
+	CallSetId string `protobuf:"bytes,1,opt,name=call_set_id,json=callSetId,proto3" json:"call_set_id,omitempty"`
 	// The new call set data.
-	CallSet *CallSet `protobuf:"bytes,2,opt,name=call_set,json=callSet" json:"call_set,omitempty"`
+	CallSet *CallSet `protobuf:"bytes,2,opt,name=call_set,json=callSet,proto3" json:"call_set,omitempty"`
 	// An optional mask specifying which fields to update. At this time, the only
 	// mutable field is [name][google.genomics.v1.CallSet.name]. The only
 	// acceptable value is "name". If unspecified, all mutable fields will be
 	// updated.
-	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -1939,7 +1939,7 @@ func (m *UpdateCallSetRequest) GetUpdateMask() *field_mask.FieldMask {
 
 type DeleteCallSetRequest struct {
 	// The ID of the call set to be deleted.
-	CallSetId            string   `protobuf:"bytes,1,opt,name=call_set_id,json=callSetId" json:"call_set_id,omitempty"`
+	CallSetId            string   `protobuf:"bytes,1,opt,name=call_set_id,json=callSetId,proto3" json:"call_set_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1978,7 +1978,7 @@ func (m *DeleteCallSetRequest) GetCallSetId() string {
 
 type GetCallSetRequest struct {
 	// The ID of the call set.
-	CallSetId            string   `protobuf:"bytes,1,opt,name=call_set_id,json=callSetId" json:"call_set_id,omitempty"`
+	CallSetId            string   `protobuf:"bytes,1,opt,name=call_set_id,json=callSetId,proto3" json:"call_set_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -2020,20 +2020,20 @@ type StreamVariantsRequest struct {
 	// The Google Cloud project ID which will be billed
 	// for this access. The caller must have WRITE access to this project.
 	// Required.
-	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// The variant set ID from which to stream variants.
-	VariantSetId string `protobuf:"bytes,2,opt,name=variant_set_id,json=variantSetId" json:"variant_set_id,omitempty"`
+	VariantSetId string `protobuf:"bytes,2,opt,name=variant_set_id,json=variantSetId,proto3" json:"variant_set_id,omitempty"`
 	// Only return variant calls which belong to call sets with these IDs.
 	// Leaving this blank returns all variant calls.
-	CallSetIds []string `protobuf:"bytes,3,rep,name=call_set_ids,json=callSetIds" json:"call_set_ids,omitempty"`
+	CallSetIds []string `protobuf:"bytes,3,rep,name=call_set_ids,json=callSetIds,proto3" json:"call_set_ids,omitempty"`
 	// Required. Only return variants in this reference sequence.
-	ReferenceName string `protobuf:"bytes,4,opt,name=reference_name,json=referenceName" json:"reference_name,omitempty"`
+	ReferenceName string `protobuf:"bytes,4,opt,name=reference_name,json=referenceName,proto3" json:"reference_name,omitempty"`
 	// The beginning of the window (0-based, inclusive) for which
 	// overlapping variants should be returned.
-	Start int64 `protobuf:"varint,5,opt,name=start" json:"start,omitempty"`
+	Start int64 `protobuf:"varint,5,opt,name=start,proto3" json:"start,omitempty"`
 	// The end of the window (0-based, exclusive) for which overlapping
 	// variants should be returned.
-	End                  int64    `protobuf:"varint,6,opt,name=end" json:"end,omitempty"`
+	End                  int64    `protobuf:"varint,6,opt,name=end,proto3" json:"end,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -2106,7 +2106,7 @@ func (m *StreamVariantsRequest) GetEnd() int64 {
 }
 
 type StreamVariantsResponse struct {
-	Variants             []*Variant `protobuf:"bytes,1,rep,name=variants" json:"variants,omitempty"`
+	Variants             []*Variant `protobuf:"bytes,1,rep,name=variants,proto3" json:"variants,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
 	XXX_unrecognized     []byte     `json:"-"`
 	XXX_sizecache        int32      `json:"-"`
@@ -2243,8 +2243,7 @@ func (x *streamingVariantServiceStreamVariantsClient) Recv() (*StreamVariantsRes
 	return m, nil
 }
 
-// Server API for StreamingVariantService service
-
+// StreamingVariantServiceServer is the server API for StreamingVariantService service.
 type StreamingVariantServiceServer interface {
 	// Returns a stream of all the variants matching the search request, ordered
 	// by reference name, position, and ID.
@@ -2692,8 +2691,7 @@ func (c *variantServiceV1Client) GetCallSet(ctx context.Context, in *GetCallSetR
 	return out, nil
 }
 
-// Server API for VariantServiceV1 service
-
+// VariantServiceV1Server is the server API for VariantServiceV1 service.
 type VariantServiceV1Server interface {
 	// Creates variant data by asynchronously importing the provided information.
 	//

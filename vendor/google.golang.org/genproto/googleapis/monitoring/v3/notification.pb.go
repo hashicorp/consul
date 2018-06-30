@@ -72,24 +72,24 @@ type NotificationChannelDescriptor struct {
 	//     projects/[PROJECT_ID]/notificationChannelDescriptors/[TYPE]
 	//
 	// In the above, `[TYPE]` is the value of the `type` field.
-	Name string `protobuf:"bytes,6,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,6,opt,name=name,proto3" json:"name,omitempty"`
 	// The type of notification channel, such as "email", "sms", etc.
 	// Notification channel types are globally unique.
-	Type string `protobuf:"bytes,1,opt,name=type" json:"type,omitempty"`
+	Type string `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
 	// A human-readable name for the notification channel type.  This
 	// form of the name is suitable for a user interface.
-	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName" json:"display_name,omitempty"`
+	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	// A human-readable description of the notification channel
 	// type. The description may include a description of the properties
 	// of the channel and pointers to external documentation.
-	Description string `protobuf:"bytes,3,opt,name=description" json:"description,omitempty"`
+	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	// The set of labels that must be defined to identify a particular
 	// channel of the corresponding type. Each label includes a
 	// description for how that field should be populated.
-	Labels []*label.LabelDescriptor `protobuf:"bytes,4,rep,name=labels" json:"labels,omitempty"`
+	Labels []*label.LabelDescriptor `protobuf:"bytes,4,rep,name=labels,proto3" json:"labels,omitempty"`
 	// The tiers that support this notification channel; the project service tier
 	// must be one of the supported_tiers.
-	SupportedTiers       []ServiceTier `protobuf:"varint,5,rep,packed,name=supported_tiers,json=supportedTiers,enum=google.monitoring.v3.ServiceTier" json:"supported_tiers,omitempty"`
+	SupportedTiers       []ServiceTier `protobuf:"varint,5,rep,packed,name=supported_tiers,json=supportedTiers,proto3,enum=google.monitoring.v3.ServiceTier" json:"supported_tiers,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
 	XXX_unrecognized     []byte        `json:"-"`
 	XXX_sizecache        int32         `json:"-"`
@@ -169,27 +169,27 @@ func (m *NotificationChannelDescriptor) GetSupportedTiers() []ServiceTier {
 type NotificationChannel struct {
 	// The type of the notification channel. This field matches the
 	// value of the [NotificationChannelDescriptor.type][google.monitoring.v3.NotificationChannelDescriptor.type] field.
-	Type string `protobuf:"bytes,1,opt,name=type" json:"type,omitempty"`
+	Type string `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
 	// The full REST resource name for this channel. The syntax is:
 	//
 	//     projects/[PROJECT_ID]/notificationChannels/[CHANNEL_ID]
 	//
 	// The `[CHANNEL_ID]` is automatically assigned by the server on creation.
-	Name string `protobuf:"bytes,6,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,6,opt,name=name,proto3" json:"name,omitempty"`
 	// An optional human-readable name for this notification channel. It is
 	// recommended that you specify a non-empty and unique name in order to
 	// make it easier to identify the channels in your project, though this is
 	// not enforced. The display name is limited to 512 Unicode characters.
-	DisplayName string `protobuf:"bytes,3,opt,name=display_name,json=displayName" json:"display_name,omitempty"`
+	DisplayName string `protobuf:"bytes,3,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	// An optional human-readable description of this notification channel. This
 	// description may provide additional details, beyond the display
 	// name, for the channel. This may not exceeed 1024 Unicode characters.
-	Description string `protobuf:"bytes,4,opt,name=description" json:"description,omitempty"`
+	Description string `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
 	// Configuration fields that define the channel and its behavior. The
 	// permissible and required labels are specified in the
 	// [NotificationChannelDescriptor.labels][google.monitoring.v3.NotificationChannelDescriptor.labels] of the
 	// `NotificationChannelDescriptor` corresponding to the `type` field.
-	Labels map[string]string `protobuf:"bytes,5,rep,name=labels" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Labels map[string]string `protobuf:"bytes,5,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// User-supplied key/value data that does not need to conform to
 	// the corresponding `NotificationChannelDescriptor`'s schema, unlike
 	// the `labels` field. This field is intended to be used for organizing
@@ -199,7 +199,7 @@ type NotificationChannel struct {
 	// 63 Unicode characters or 128 bytes, whichever is smaller. Labels and
 	// values can contain only lowercase letters, numerals, underscores, and
 	// dashes. Keys must begin with a letter.
-	UserLabels map[string]string `protobuf:"bytes,8,rep,name=user_labels,json=userLabels" json:"user_labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	UserLabels map[string]string `protobuf:"bytes,8,rep,name=user_labels,json=userLabels,proto3" json:"user_labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// Indicates whether this channel has been verified or not. On a
 	// [`ListNotificationChannels`][google.monitoring.v3.NotificationChannelService.ListNotificationChannels]
 	// or
@@ -219,14 +219,14 @@ type NotificationChannel struct {
 	// [`UpdateNotificationChannel`][google.monitoring.v3.NotificationChannelService.UpdateNotificationChannel]
 	// operation. To change the value of this field, you must call
 	// [`VerifyNotificationChannel`][google.monitoring.v3.NotificationChannelService.VerifyNotificationChannel].
-	VerificationStatus NotificationChannel_VerificationStatus `protobuf:"varint,9,opt,name=verification_status,json=verificationStatus,enum=google.monitoring.v3.NotificationChannel_VerificationStatus" json:"verification_status,omitempty"`
+	VerificationStatus NotificationChannel_VerificationStatus `protobuf:"varint,9,opt,name=verification_status,json=verificationStatus,proto3,enum=google.monitoring.v3.NotificationChannel_VerificationStatus" json:"verification_status,omitempty"`
 	// Whether notifications are forwarded to the described channel. This makes
 	// it possible to disable delivery of notifications to a particular channel
 	// without removing the channel from all alerting policies that reference
 	// the channel. This is a more convenient approach when the change is
 	// temporary and you want to receive notifications from the same set
 	// of alerting policies on the channel at some point in the future.
-	Enabled              *wrappers.BoolValue `protobuf:"bytes,11,opt,name=enabled" json:"enabled,omitempty"`
+	Enabled              *wrappers.BoolValue `protobuf:"bytes,11,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
 	XXX_unrecognized     []byte              `json:"-"`
 	XXX_sizecache        int32               `json:"-"`

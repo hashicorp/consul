@@ -82,11 +82,11 @@ func (BindingDelta_Action) EnumDescriptor() ([]byte, []int) {
 // [IAM developer's guide](https://cloud.google.com/iam).
 type Policy struct {
 	// Version of the `Policy`. The default version is 0.
-	Version int32 `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
+	Version int32 `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
 	// Associates a list of `members` to a `role`.
 	// Multiple `bindings` must not be specified for the same `role`.
 	// `bindings` with no members will result in an error.
-	Bindings []*Binding `protobuf:"bytes,4,rep,name=bindings" json:"bindings,omitempty"`
+	Bindings []*Binding `protobuf:"bytes,4,rep,name=bindings,proto3" json:"bindings,omitempty"`
 	// `etag` is used for optimistic concurrency control as a way to help
 	// prevent simultaneous updates of a policy from overwriting each other.
 	// It is strongly suggested that systems make use of the `etag` in the
@@ -153,7 +153,7 @@ type Binding struct {
 	// Role that is assigned to `members`.
 	// For example, `roles/viewer`, `roles/editor`, or `roles/owner`.
 	// Required
-	Role string `protobuf:"bytes,1,opt,name=role" json:"role,omitempty"`
+	Role string `protobuf:"bytes,1,opt,name=role,proto3" json:"role,omitempty"`
 	// Specifies the identities requesting access for a Cloud Platform resource.
 	// `members` can have the following values:
 	//
@@ -177,7 +177,7 @@ type Binding struct {
 	//    users of that domain. For example, `google.com` or `example.com`.
 	//
 	//
-	Members              []string `protobuf:"bytes,2,rep,name=members" json:"members,omitempty"`
+	Members              []string `protobuf:"bytes,2,rep,name=members,proto3" json:"members,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -224,7 +224,7 @@ func (m *Binding) GetMembers() []string {
 // The difference delta between two policies.
 type PolicyDelta struct {
 	// The delta for Bindings between two policies.
-	BindingDeltas        []*BindingDelta `protobuf:"bytes,1,rep,name=binding_deltas,json=bindingDeltas" json:"binding_deltas,omitempty"`
+	BindingDeltas        []*BindingDelta `protobuf:"bytes,1,rep,name=binding_deltas,json=bindingDeltas,proto3" json:"binding_deltas,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
 	XXX_unrecognized     []byte          `json:"-"`
 	XXX_sizecache        int32           `json:"-"`
@@ -266,15 +266,15 @@ func (m *PolicyDelta) GetBindingDeltas() []*BindingDelta {
 type BindingDelta struct {
 	// The action that was performed on a Binding.
 	// Required
-	Action BindingDelta_Action `protobuf:"varint,1,opt,name=action,enum=google.iam.v1.BindingDelta_Action" json:"action,omitempty"`
+	Action BindingDelta_Action `protobuf:"varint,1,opt,name=action,proto3,enum=google.iam.v1.BindingDelta_Action" json:"action,omitempty"`
 	// Role that is assigned to `members`.
 	// For example, `roles/viewer`, `roles/editor`, or `roles/owner`.
 	// Required
-	Role string `protobuf:"bytes,2,opt,name=role" json:"role,omitempty"`
+	Role string `protobuf:"bytes,2,opt,name=role,proto3" json:"role,omitempty"`
 	// A single identity requesting access for a Cloud Platform resource.
 	// Follows the same format of Binding.members.
 	// Required
-	Member               string   `protobuf:"bytes,3,opt,name=member" json:"member,omitempty"`
+	Member               string   `protobuf:"bytes,3,opt,name=member,proto3" json:"member,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

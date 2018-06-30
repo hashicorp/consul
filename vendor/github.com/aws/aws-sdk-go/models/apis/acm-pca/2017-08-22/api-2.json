@@ -83,6 +83,7 @@
       "output":{"shape":"DescribeCertificateAuthorityAuditReportResponse"},
       "errors":[
         {"shape":"ResourceNotFoundException"},
+        {"shape":"InvalidArnException"},
         {"shape":"InvalidArgsException"}
       ]
     },
@@ -128,7 +129,8 @@
         {"shape":"RequestInProgressException"},
         {"shape":"RequestFailedException"},
         {"shape":"ResourceNotFoundException"},
-        {"shape":"InvalidArnException"}
+        {"shape":"InvalidArnException"},
+        {"shape":"InvalidStateException"}
       ]
     },
     "ImportCertificateAuthorityCertificate":{
@@ -144,6 +146,7 @@
         {"shape":"RequestFailedException"},
         {"shape":"ResourceNotFoundException"},
         {"shape":"InvalidArnException"},
+        {"shape":"InvalidStateException"},
         {"shape":"MalformedCertificateException"},
         {"shape":"CertificateMismatchException"}
       ]
@@ -191,6 +194,19 @@
         {"shape":"InvalidArnException"}
       ]
     },
+    "RestoreCertificateAuthority":{
+      "name":"RestoreCertificateAuthority",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"RestoreCertificateAuthorityRequest"},
+      "errors":[
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"InvalidStateException"},
+        {"shape":"InvalidArnException"}
+      ]
+    },
     "RevokeCertificate":{
       "name":"RevokeCertificate",
       "http":{
@@ -218,6 +234,7 @@
       "errors":[
         {"shape":"ResourceNotFoundException"},
         {"shape":"InvalidArnException"},
+        {"shape":"InvalidStateException"},
         {"shape":"InvalidTagException"},
         {"shape":"TooManyTagsException"}
       ]
@@ -232,6 +249,7 @@
       "errors":[
         {"shape":"ResourceNotFoundException"},
         {"shape":"InvalidArnException"},
+        {"shape":"InvalidStateException"},
         {"shape":"InvalidTagException"}
       ]
     },
@@ -317,7 +335,8 @@
         "NotAfter":{"shape":"TStamp"},
         "FailureReason":{"shape":"FailureReason"},
         "CertificateAuthorityConfiguration":{"shape":"CertificateAuthorityConfiguration"},
-        "RevocationConfiguration":{"shape":"RevocationConfiguration"}
+        "RevocationConfiguration":{"shape":"RevocationConfiguration"},
+        "RestorableUntil":{"shape":"TStamp"}
       }
     },
     "CertificateAuthorityConfiguration":{
@@ -339,6 +358,7 @@
         "CREATING",
         "PENDING_CERTIFICATE",
         "ACTIVE",
+        "DELETED",
         "DISABLED",
         "EXPIRED",
         "FAILED"
@@ -443,7 +463,8 @@
       "type":"structure",
       "required":["CertificateAuthorityArn"],
       "members":{
-        "CertificateAuthorityArn":{"shape":"Arn"}
+        "CertificateAuthorityArn":{"shape":"Arn"},
+        "PermanentDeletionTimeInDays":{"shape":"PermanentDeletionTimeInDays"}
       }
     },
     "DescribeCertificateAuthorityAuditReportRequest":{
@@ -696,6 +717,11 @@
       "max":500,
       "min":1
     },
+    "PermanentDeletionTimeInDays":{
+      "type":"integer",
+      "max":30,
+      "min":7
+    },
     "PositiveLong":{
       "type":"long",
       "min":1
@@ -727,6 +753,13 @@
         "message":{"shape":"String"}
       },
       "exception":true
+    },
+    "RestoreCertificateAuthorityRequest":{
+      "type":"structure",
+      "required":["CertificateAuthorityArn"],
+      "members":{
+        "CertificateAuthorityArn":{"shape":"Arn"}
+      }
     },
     "RevocationConfiguration":{
       "type":"structure",

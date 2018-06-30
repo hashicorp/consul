@@ -23,11 +23,11 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 type Range struct {
 	// The reference sequence name, for example `chr1`,
 	// `1`, or `chrX`.
-	ReferenceName string `protobuf:"bytes,1,opt,name=reference_name,json=referenceName" json:"reference_name,omitempty"`
+	ReferenceName string `protobuf:"bytes,1,opt,name=reference_name,json=referenceName,proto3" json:"reference_name,omitempty"`
 	// The start position of the range on the reference, 0-based inclusive.
-	Start int64 `protobuf:"varint,2,opt,name=start" json:"start,omitempty"`
+	Start int64 `protobuf:"varint,2,opt,name=start,proto3" json:"start,omitempty"`
 	// The end position of the range on the reference, 0-based exclusive.
-	End                  int64    `protobuf:"varint,3,opt,name=end" json:"end,omitempty"`
+	End                  int64    `protobuf:"varint,3,opt,name=end,proto3" json:"end,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

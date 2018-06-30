@@ -30,9 +30,9 @@ type Point struct {
 	// points specifying the same start time and increasing end times, until an
 	// event resets the cumulative value to zero and sets a new start time for the
 	// following points.
-	Interval *TimeInterval `protobuf:"bytes,1,opt,name=interval" json:"interval,omitempty"`
+	Interval *TimeInterval `protobuf:"bytes,1,opt,name=interval,proto3" json:"interval,omitempty"`
 	// The value of the data point.
-	Value                *TypedValue `protobuf:"bytes,2,opt,name=value" json:"value,omitempty"`
+	Value                *TypedValue `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
 	XXX_unrecognized     []byte      `json:"-"`
 	XXX_sizecache        int32       `json:"-"`
@@ -83,10 +83,10 @@ func (m *Point) GetValue() *TypedValue {
 type TimeSeries struct {
 	// The associated metric. A fully-specified metric used to identify the time
 	// series.
-	Metric *metric.Metric `protobuf:"bytes,1,opt,name=metric" json:"metric,omitempty"`
+	Metric *metric.Metric `protobuf:"bytes,1,opt,name=metric,proto3" json:"metric,omitempty"`
 	// The associated resource. A fully-specified monitored resource used to
 	// identify the time series.
-	Resource *monitoredres.MonitoredResource `protobuf:"bytes,2,opt,name=resource" json:"resource,omitempty"`
+	Resource *monitoredres.MonitoredResource `protobuf:"bytes,2,opt,name=resource,proto3" json:"resource,omitempty"`
 	// The metric kind of the time series. When listing time series, this metric
 	// kind might be different from the metric kind of the associated metric if
 	// this time series is an alignment or reduction of other time series.
@@ -96,14 +96,14 @@ type TimeSeries struct {
 	// metric's descriptor must be auto-created, then this field specifies the
 	// metric kind of the new descriptor and must be either `GAUGE` (the default)
 	// or `CUMULATIVE`.
-	MetricKind metric.MetricDescriptor_MetricKind `protobuf:"varint,3,opt,name=metric_kind,json=metricKind,enum=google.api.MetricDescriptor_MetricKind" json:"metric_kind,omitempty"`
+	MetricKind metric.MetricDescriptor_MetricKind `protobuf:"varint,3,opt,name=metric_kind,json=metricKind,proto3,enum=google.api.MetricDescriptor_MetricKind" json:"metric_kind,omitempty"`
 	// The value type of the time series. When listing time series, this value
 	// type might be different from the value type of the associated metric if
 	// this time series is an alignment or reduction of other time series.
 	//
 	// When creating a time series, this field is optional. If present, it must be
 	// the same as the type of the data in the `points` field.
-	ValueType metric.MetricDescriptor_ValueType `protobuf:"varint,4,opt,name=value_type,json=valueType,enum=google.api.MetricDescriptor_ValueType" json:"value_type,omitempty"`
+	ValueType metric.MetricDescriptor_ValueType `protobuf:"varint,4,opt,name=value_type,json=valueType,proto3,enum=google.api.MetricDescriptor_ValueType" json:"value_type,omitempty"`
 	// The data points of this time series. When listing time series, the order of
 	// the points is specified by the list method.
 	//
@@ -112,7 +112,7 @@ type TimeSeries struct {
 	// metric. If the associated metric's descriptor must be auto-created, then
 	// the value type of the descriptor is determined by the point's type, which
 	// must be `BOOL`, `INT64`, `DOUBLE`, or `DISTRIBUTION`.
-	Points               []*Point `protobuf:"bytes,5,rep,name=points" json:"points,omitempty"`
+	Points               []*Point `protobuf:"bytes,5,rep,name=points,proto3" json:"points,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

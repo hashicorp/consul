@@ -99,6 +99,8 @@ func TestProduceRequest(t *testing.T) {
 	}
 	request.AddBatch("topic", 0xAD, batch)
 	packet := testRequestEncode(t, "one record", request, produceRequestOneRecord)
-	batch.Records[0].length.startOffset = 0
+	// compressRecords field is not populated on decoding because consumers
+	// are only interested in decoded records.
+	batch.compressedRecords = nil
 	testRequestDecode(t, "one record", request, packet)
 }

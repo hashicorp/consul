@@ -34,13 +34,13 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 // Genomics](https://cloud.google.com/genomics/fundamentals-of-google-genomics)
 type Dataset struct {
 	// The server-generated dataset ID, unique across all datasets.
-	Id string `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// The Google Cloud project ID that this dataset belongs to.
-	ProjectId string `protobuf:"bytes,2,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// The dataset name.
-	Name string `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	// The time this dataset was created, in seconds from the epoch.
-	CreateTime           *timestamp.Timestamp `protobuf:"bytes,4,opt,name=create_time,json=createTime" json:"create_time,omitempty"`
+	CreateTime           *timestamp.Timestamp `protobuf:"bytes,4,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -101,14 +101,14 @@ func (m *Dataset) GetCreateTime() *timestamp.Timestamp {
 // The dataset list request.
 type ListDatasetsRequest struct {
 	// Required. The Google Cloud project ID to list datasets for.
-	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// The maximum number of results to return in a single page. If unspecified,
 	// defaults to 50. The maximum value is 1024.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The continuation token, which is used to page through large result sets.
 	// To get the next page of results, set this parameter to the value of
 	// `nextPageToken` from the previous response.
-	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -162,11 +162,11 @@ func (m *ListDatasetsRequest) GetPageToken() string {
 // The dataset list response.
 type ListDatasetsResponse struct {
 	// The list of matching Datasets.
-	Datasets []*Dataset `protobuf:"bytes,1,rep,name=datasets" json:"datasets,omitempty"`
+	Datasets []*Dataset `protobuf:"bytes,1,rep,name=datasets,proto3" json:"datasets,omitempty"`
 	// The continuation token, which is used to page through large result sets.
 	// Provide this value in a subsequent request to return the next page of
 	// results. This field will be empty if there aren't any additional results.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -212,7 +212,7 @@ func (m *ListDatasetsResponse) GetNextPageToken() string {
 
 type CreateDatasetRequest struct {
 	// The dataset to be created. Must contain projectId and name.
-	Dataset              *Dataset `protobuf:"bytes,1,opt,name=dataset" json:"dataset,omitempty"`
+	Dataset              *Dataset `protobuf:"bytes,1,opt,name=dataset,proto3" json:"dataset,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -251,14 +251,14 @@ func (m *CreateDatasetRequest) GetDataset() *Dataset {
 
 type UpdateDatasetRequest struct {
 	// The ID of the dataset to be updated.
-	DatasetId string `protobuf:"bytes,1,opt,name=dataset_id,json=datasetId" json:"dataset_id,omitempty"`
+	DatasetId string `protobuf:"bytes,1,opt,name=dataset_id,json=datasetId,proto3" json:"dataset_id,omitempty"`
 	// The new dataset data.
-	Dataset *Dataset `protobuf:"bytes,2,opt,name=dataset" json:"dataset,omitempty"`
+	Dataset *Dataset `protobuf:"bytes,2,opt,name=dataset,proto3" json:"dataset,omitempty"`
 	// An optional mask specifying which fields to update. At this time, the only
 	// mutable field is [name][google.genomics.v1.Dataset.name]. The only
 	// acceptable value is "name". If unspecified, all mutable fields will be
 	// updated.
-	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -311,7 +311,7 @@ func (m *UpdateDatasetRequest) GetUpdateMask() *field_mask.FieldMask {
 
 type DeleteDatasetRequest struct {
 	// The ID of the dataset to be deleted.
-	DatasetId            string   `protobuf:"bytes,1,opt,name=dataset_id,json=datasetId" json:"dataset_id,omitempty"`
+	DatasetId            string   `protobuf:"bytes,1,opt,name=dataset_id,json=datasetId,proto3" json:"dataset_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -350,7 +350,7 @@ func (m *DeleteDatasetRequest) GetDatasetId() string {
 
 type UndeleteDatasetRequest struct {
 	// The ID of the dataset to be undeleted.
-	DatasetId            string   `protobuf:"bytes,1,opt,name=dataset_id,json=datasetId" json:"dataset_id,omitempty"`
+	DatasetId            string   `protobuf:"bytes,1,opt,name=dataset_id,json=datasetId,proto3" json:"dataset_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -389,7 +389,7 @@ func (m *UndeleteDatasetRequest) GetDatasetId() string {
 
 type GetDatasetRequest struct {
 	// The ID of the dataset.
-	DatasetId            string   `protobuf:"bytes,1,opt,name=dataset_id,json=datasetId" json:"dataset_id,omitempty"`
+	DatasetId            string   `protobuf:"bytes,1,opt,name=dataset_id,json=datasetId,proto3" json:"dataset_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -613,8 +613,7 @@ func (c *datasetServiceV1Client) TestIamPermissions(ctx context.Context, in *v1.
 	return out, nil
 }
 
-// Server API for DatasetServiceV1 service
-
+// DatasetServiceV1Server is the server API for DatasetServiceV1 service.
 type DatasetServiceV1Server interface {
 	// Lists datasets within a project.
 	//

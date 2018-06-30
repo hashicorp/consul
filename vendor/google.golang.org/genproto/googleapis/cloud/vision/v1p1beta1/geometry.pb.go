@@ -22,9 +22,9 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 // NOTE: the vertex coordinates are in the same scale as the original image.
 type Vertex struct {
 	// X coordinate.
-	X int32 `protobuf:"varint,1,opt,name=x" json:"x,omitempty"`
+	X int32 `protobuf:"varint,1,opt,name=x,proto3" json:"x,omitempty"`
 	// Y coordinate.
-	Y                    int32    `protobuf:"varint,2,opt,name=y" json:"y,omitempty"`
+	Y                    int32    `protobuf:"varint,2,opt,name=y,proto3" json:"y,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -71,7 +71,7 @@ func (m *Vertex) GetY() int32 {
 // A bounding polygon for the detected image annotation.
 type BoundingPoly struct {
 	// The bounding polygon vertices.
-	Vertices             []*Vertex `protobuf:"bytes,1,rep,name=vertices" json:"vertices,omitempty"`
+	Vertices             []*Vertex `protobuf:"bytes,1,rep,name=vertices,proto3" json:"vertices,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -113,11 +113,11 @@ func (m *BoundingPoly) GetVertices() []*Vertex {
 // The position coordinates are in the same scale as the original image.
 type Position struct {
 	// X coordinate.
-	X float32 `protobuf:"fixed32,1,opt,name=x" json:"x,omitempty"`
+	X float32 `protobuf:"fixed32,1,opt,name=x,proto3" json:"x,omitempty"`
 	// Y coordinate.
-	Y float32 `protobuf:"fixed32,2,opt,name=y" json:"y,omitempty"`
+	Y float32 `protobuf:"fixed32,2,opt,name=y,proto3" json:"y,omitempty"`
 	// Z coordinate (or depth).
-	Z                    float32  `protobuf:"fixed32,3,opt,name=z" json:"z,omitempty"`
+	Z                    float32  `protobuf:"fixed32,3,opt,name=z,proto3" json:"z,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

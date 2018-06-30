@@ -20,12 +20,12 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 type ServerStats struct {
 	// wall clock time change in seconds since last reset
-	TimeElapsed float64 `protobuf:"fixed64,1,opt,name=time_elapsed,json=timeElapsed" json:"time_elapsed,omitempty"`
+	TimeElapsed float64 `protobuf:"fixed64,1,opt,name=time_elapsed,json=timeElapsed,proto3" json:"time_elapsed,omitempty"`
 	// change in user time (in seconds) used by the server since last reset
-	TimeUser float64 `protobuf:"fixed64,2,opt,name=time_user,json=timeUser" json:"time_user,omitempty"`
+	TimeUser float64 `protobuf:"fixed64,2,opt,name=time_user,json=timeUser,proto3" json:"time_user,omitempty"`
 	// change in server time (in seconds) used by the server process and all
 	// threads since last reset
-	TimeSystem           float64  `protobuf:"fixed64,3,opt,name=time_system,json=timeSystem" json:"time_system,omitempty"`
+	TimeSystem           float64  `protobuf:"fixed64,3,opt,name=time_system,json=timeSystem,proto3" json:"time_system,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -78,8 +78,8 @@ func (m *ServerStats) GetTimeSystem() float64 {
 
 // Histogram params based on grpc/support/histogram.c
 type HistogramParams struct {
-	Resolution           float64  `protobuf:"fixed64,1,opt,name=resolution" json:"resolution,omitempty"`
-	MaxPossible          float64  `protobuf:"fixed64,2,opt,name=max_possible,json=maxPossible" json:"max_possible,omitempty"`
+	Resolution           float64  `protobuf:"fixed64,1,opt,name=resolution,proto3" json:"resolution,omitempty"`
+	MaxPossible          float64  `protobuf:"fixed64,2,opt,name=max_possible,json=maxPossible,proto3" json:"max_possible,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -125,12 +125,12 @@ func (m *HistogramParams) GetMaxPossible() float64 {
 
 // Histogram data based on grpc/support/histogram.c
 type HistogramData struct {
-	Bucket               []uint32 `protobuf:"varint,1,rep,packed,name=bucket" json:"bucket,omitempty"`
-	MinSeen              float64  `protobuf:"fixed64,2,opt,name=min_seen,json=minSeen" json:"min_seen,omitempty"`
-	MaxSeen              float64  `protobuf:"fixed64,3,opt,name=max_seen,json=maxSeen" json:"max_seen,omitempty"`
-	Sum                  float64  `protobuf:"fixed64,4,opt,name=sum" json:"sum,omitempty"`
-	SumOfSquares         float64  `protobuf:"fixed64,5,opt,name=sum_of_squares,json=sumOfSquares" json:"sum_of_squares,omitempty"`
-	Count                float64  `protobuf:"fixed64,6,opt,name=count" json:"count,omitempty"`
+	Bucket               []uint32 `protobuf:"varint,1,rep,packed,name=bucket,proto3" json:"bucket,omitempty"`
+	MinSeen              float64  `protobuf:"fixed64,2,opt,name=min_seen,json=minSeen,proto3" json:"min_seen,omitempty"`
+	MaxSeen              float64  `protobuf:"fixed64,3,opt,name=max_seen,json=maxSeen,proto3" json:"max_seen,omitempty"`
+	Sum                  float64  `protobuf:"fixed64,4,opt,name=sum,proto3" json:"sum,omitempty"`
+	SumOfSquares         float64  `protobuf:"fixed64,5,opt,name=sum_of_squares,json=sumOfSquares,proto3" json:"sum_of_squares,omitempty"`
+	Count                float64  `protobuf:"fixed64,6,opt,name=count,proto3" json:"count,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -204,11 +204,11 @@ func (m *HistogramData) GetCount() float64 {
 
 type ClientStats struct {
 	// Latency histogram. Data points are in nanoseconds.
-	Latencies *HistogramData `protobuf:"bytes,1,opt,name=latencies" json:"latencies,omitempty"`
+	Latencies *HistogramData `protobuf:"bytes,1,opt,name=latencies,proto3" json:"latencies,omitempty"`
 	// See ServerStats for details.
-	TimeElapsed          float64  `protobuf:"fixed64,2,opt,name=time_elapsed,json=timeElapsed" json:"time_elapsed,omitempty"`
-	TimeUser             float64  `protobuf:"fixed64,3,opt,name=time_user,json=timeUser" json:"time_user,omitempty"`
-	TimeSystem           float64  `protobuf:"fixed64,4,opt,name=time_system,json=timeSystem" json:"time_system,omitempty"`
+	TimeElapsed          float64  `protobuf:"fixed64,2,opt,name=time_elapsed,json=timeElapsed,proto3" json:"time_elapsed,omitempty"`
+	TimeUser             float64  `protobuf:"fixed64,3,opt,name=time_user,json=timeUser,proto3" json:"time_user,omitempty"`
+	TimeSystem           float64  `protobuf:"fixed64,4,opt,name=time_system,json=timeSystem,proto3" json:"time_system,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

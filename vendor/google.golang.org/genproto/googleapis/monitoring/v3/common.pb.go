@@ -457,19 +457,19 @@ type isTypedValue_Value interface {
 }
 
 type TypedValue_BoolValue struct {
-	BoolValue bool `protobuf:"varint,1,opt,name=bool_value,json=boolValue,oneof"`
+	BoolValue bool `protobuf:"varint,1,opt,name=bool_value,json=boolValue,proto3,oneof"`
 }
 type TypedValue_Int64Value struct {
-	Int64Value int64 `protobuf:"varint,2,opt,name=int64_value,json=int64Value,oneof"`
+	Int64Value int64 `protobuf:"varint,2,opt,name=int64_value,json=int64Value,proto3,oneof"`
 }
 type TypedValue_DoubleValue struct {
-	DoubleValue float64 `protobuf:"fixed64,3,opt,name=double_value,json=doubleValue,oneof"`
+	DoubleValue float64 `protobuf:"fixed64,3,opt,name=double_value,json=doubleValue,proto3,oneof"`
 }
 type TypedValue_StringValue struct {
-	StringValue string `protobuf:"bytes,4,opt,name=string_value,json=stringValue,oneof"`
+	StringValue string `protobuf:"bytes,4,opt,name=string_value,json=stringValue,proto3,oneof"`
 }
 type TypedValue_DistributionValue struct {
-	DistributionValue *distribution.Distribution `protobuf:"bytes,5,opt,name=distribution_value,json=distributionValue,oneof"`
+	DistributionValue *distribution.Distribution `protobuf:"bytes,5,opt,name=distribution_value,json=distributionValue,proto3,oneof"`
 }
 
 func (*TypedValue_BoolValue) isTypedValue_Value()         {}
@@ -641,11 +641,11 @@ func _TypedValue_OneofSizer(msg proto.Message) (n int) {
 // represents a single point in time.
 type TimeInterval struct {
 	// Required. The end of the time interval.
-	EndTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=end_time,json=endTime" json:"end_time,omitempty"`
+	EndTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
 	// Optional. The beginning of the time interval.  The default value
 	// for the start time is the end time. The start time must not be
 	// later than the end time.
-	StartTime            *timestamp.Timestamp `protobuf:"bytes,1,opt,name=start_time,json=startTime" json:"start_time,omitempty"`
+	StartTime            *timestamp.Timestamp `protobuf:"bytes,1,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -704,7 +704,7 @@ type Aggregation struct {
 	// this field is ignored. If `perSeriesAligner` is specified and
 	// does not equal `ALIGN_NONE`, then this field must be defined;
 	// otherwise an error is returned.
-	AlignmentPeriod *duration.Duration `protobuf:"bytes,1,opt,name=alignment_period,json=alignmentPeriod" json:"alignment_period,omitempty"`
+	AlignmentPeriod *duration.Duration `protobuf:"bytes,1,opt,name=alignment_period,json=alignmentPeriod,proto3" json:"alignment_period,omitempty"`
 	// The approach to be used to align individual time series. Not all
 	// alignment functions may be applied to all time series, depending
 	// on the metric type and value type of the original time
@@ -716,7 +716,7 @@ type Aggregation struct {
 	// `perSeriesAligner` must be specified and not equal `ALIGN_NONE`
 	// and `alignmentPeriod` must be specified; otherwise, an error is
 	// returned.
-	PerSeriesAligner Aggregation_Aligner `protobuf:"varint,2,opt,name=per_series_aligner,json=perSeriesAligner,enum=google.monitoring.v3.Aggregation_Aligner" json:"per_series_aligner,omitempty"`
+	PerSeriesAligner Aggregation_Aligner `protobuf:"varint,2,opt,name=per_series_aligner,json=perSeriesAligner,proto3,enum=google.monitoring.v3.Aggregation_Aligner" json:"per_series_aligner,omitempty"`
 	// The approach to be used to combine time series. Not all reducer
 	// functions may be applied to all time series, depending on the
 	// metric type and the value type of the original time
@@ -728,7 +728,7 @@ type Aggregation struct {
 	// `perSeriesAligner` must be specified and not equal `ALIGN_NONE`
 	// and `alignmentPeriod` must be specified; otherwise, an error is
 	// returned.
-	CrossSeriesReducer Aggregation_Reducer `protobuf:"varint,4,opt,name=cross_series_reducer,json=crossSeriesReducer,enum=google.monitoring.v3.Aggregation_Reducer" json:"cross_series_reducer,omitempty"`
+	CrossSeriesReducer Aggregation_Reducer `protobuf:"varint,4,opt,name=cross_series_reducer,json=crossSeriesReducer,proto3,enum=google.monitoring.v3.Aggregation_Reducer" json:"cross_series_reducer,omitempty"`
 	// The set of fields to preserve when `crossSeriesReducer` is
 	// specified. The `groupByFields` determine how the time series are
 	// partitioned into subsets prior to applying the aggregation
@@ -743,7 +743,7 @@ type Aggregation struct {
 	// the same resource type, then the time series are aggregated into
 	// a single output time series. If `crossSeriesReducer` is not
 	// defined, this field is ignored.
-	GroupByFields        []string `protobuf:"bytes,5,rep,name=group_by_fields,json=groupByFields" json:"group_by_fields,omitempty"`
+	GroupByFields        []string `protobuf:"bytes,5,rep,name=group_by_fields,json=groupByFields,proto3" json:"group_by_fields,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

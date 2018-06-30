@@ -188,8 +188,7 @@ func (c *bigtableClusterServiceClient) UndeleteCluster(ctx context.Context, in *
 	return out, nil
 }
 
-// Server API for BigtableClusterService service
-
+// BigtableClusterServiceServer is the server API for BigtableClusterService service.
 type BigtableClusterServiceServer interface {
 	// Lists the supported zones for the given project.
 	ListZones(context.Context, *ListZonesRequest) (*ListZonesResponse, error)

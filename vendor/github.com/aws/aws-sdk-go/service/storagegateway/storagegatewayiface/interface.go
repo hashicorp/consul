@@ -96,6 +96,10 @@ type StorageGatewayAPI interface {
 	CreateNFSFileShareWithContext(aws.Context, *storagegateway.CreateNFSFileShareInput, ...request.Option) (*storagegateway.CreateNFSFileShareOutput, error)
 	CreateNFSFileShareRequest(*storagegateway.CreateNFSFileShareInput) (*request.Request, *storagegateway.CreateNFSFileShareOutput)
 
+	CreateSMBFileShare(*storagegateway.CreateSMBFileShareInput) (*storagegateway.CreateSMBFileShareOutput, error)
+	CreateSMBFileShareWithContext(aws.Context, *storagegateway.CreateSMBFileShareInput, ...request.Option) (*storagegateway.CreateSMBFileShareOutput, error)
+	CreateSMBFileShareRequest(*storagegateway.CreateSMBFileShareInput) (*request.Request, *storagegateway.CreateSMBFileShareOutput)
+
 	CreateSnapshot(*storagegateway.CreateSnapshotInput) (*storagegateway.CreateSnapshotOutput, error)
 	CreateSnapshotWithContext(aws.Context, *storagegateway.CreateSnapshotInput, ...request.Option) (*storagegateway.CreateSnapshotOutput, error)
 	CreateSnapshotRequest(*storagegateway.CreateSnapshotInput) (*request.Request, *storagegateway.CreateSnapshotOutput)
@@ -176,6 +180,14 @@ type StorageGatewayAPI interface {
 	DescribeNFSFileSharesWithContext(aws.Context, *storagegateway.DescribeNFSFileSharesInput, ...request.Option) (*storagegateway.DescribeNFSFileSharesOutput, error)
 	DescribeNFSFileSharesRequest(*storagegateway.DescribeNFSFileSharesInput) (*request.Request, *storagegateway.DescribeNFSFileSharesOutput)
 
+	DescribeSMBFileShares(*storagegateway.DescribeSMBFileSharesInput) (*storagegateway.DescribeSMBFileSharesOutput, error)
+	DescribeSMBFileSharesWithContext(aws.Context, *storagegateway.DescribeSMBFileSharesInput, ...request.Option) (*storagegateway.DescribeSMBFileSharesOutput, error)
+	DescribeSMBFileSharesRequest(*storagegateway.DescribeSMBFileSharesInput) (*request.Request, *storagegateway.DescribeSMBFileSharesOutput)
+
+	DescribeSMBSettings(*storagegateway.DescribeSMBSettingsInput) (*storagegateway.DescribeSMBSettingsOutput, error)
+	DescribeSMBSettingsWithContext(aws.Context, *storagegateway.DescribeSMBSettingsInput, ...request.Option) (*storagegateway.DescribeSMBSettingsOutput, error)
+	DescribeSMBSettingsRequest(*storagegateway.DescribeSMBSettingsInput) (*request.Request, *storagegateway.DescribeSMBSettingsOutput)
+
 	DescribeSnapshotSchedule(*storagegateway.DescribeSnapshotScheduleInput) (*storagegateway.DescribeSnapshotScheduleOutput, error)
 	DescribeSnapshotScheduleWithContext(aws.Context, *storagegateway.DescribeSnapshotScheduleInput, ...request.Option) (*storagegateway.DescribeSnapshotScheduleOutput, error)
 	DescribeSnapshotScheduleRequest(*storagegateway.DescribeSnapshotScheduleInput) (*request.Request, *storagegateway.DescribeSnapshotScheduleOutput)
@@ -223,6 +235,10 @@ type StorageGatewayAPI interface {
 	DisableGateway(*storagegateway.DisableGatewayInput) (*storagegateway.DisableGatewayOutput, error)
 	DisableGatewayWithContext(aws.Context, *storagegateway.DisableGatewayInput, ...request.Option) (*storagegateway.DisableGatewayOutput, error)
 	DisableGatewayRequest(*storagegateway.DisableGatewayInput) (*request.Request, *storagegateway.DisableGatewayOutput)
+
+	JoinDomain(*storagegateway.JoinDomainInput) (*storagegateway.JoinDomainOutput, error)
+	JoinDomainWithContext(aws.Context, *storagegateway.JoinDomainInput, ...request.Option) (*storagegateway.JoinDomainOutput, error)
+	JoinDomainRequest(*storagegateway.JoinDomainInput) (*request.Request, *storagegateway.JoinDomainOutput)
 
 	ListFileShares(*storagegateway.ListFileSharesInput) (*storagegateway.ListFileSharesOutput, error)
 	ListFileSharesWithContext(aws.Context, *storagegateway.ListFileSharesInput, ...request.Option) (*storagegateway.ListFileSharesOutput, error)
@@ -290,6 +306,10 @@ type StorageGatewayAPI interface {
 	SetLocalConsolePasswordWithContext(aws.Context, *storagegateway.SetLocalConsolePasswordInput, ...request.Option) (*storagegateway.SetLocalConsolePasswordOutput, error)
 	SetLocalConsolePasswordRequest(*storagegateway.SetLocalConsolePasswordInput) (*request.Request, *storagegateway.SetLocalConsolePasswordOutput)
 
+	SetSMBGuestPassword(*storagegateway.SetSMBGuestPasswordInput) (*storagegateway.SetSMBGuestPasswordOutput, error)
+	SetSMBGuestPasswordWithContext(aws.Context, *storagegateway.SetSMBGuestPasswordInput, ...request.Option) (*storagegateway.SetSMBGuestPasswordOutput, error)
+	SetSMBGuestPasswordRequest(*storagegateway.SetSMBGuestPasswordInput) (*request.Request, *storagegateway.SetSMBGuestPasswordOutput)
+
 	ShutdownGateway(*storagegateway.ShutdownGatewayInput) (*storagegateway.ShutdownGatewayOutput, error)
 	ShutdownGatewayWithContext(aws.Context, *storagegateway.ShutdownGatewayInput, ...request.Option) (*storagegateway.ShutdownGatewayOutput, error)
 	ShutdownGatewayRequest(*storagegateway.ShutdownGatewayInput) (*request.Request, *storagegateway.ShutdownGatewayOutput)
@@ -321,6 +341,10 @@ type StorageGatewayAPI interface {
 	UpdateNFSFileShare(*storagegateway.UpdateNFSFileShareInput) (*storagegateway.UpdateNFSFileShareOutput, error)
 	UpdateNFSFileShareWithContext(aws.Context, *storagegateway.UpdateNFSFileShareInput, ...request.Option) (*storagegateway.UpdateNFSFileShareOutput, error)
 	UpdateNFSFileShareRequest(*storagegateway.UpdateNFSFileShareInput) (*request.Request, *storagegateway.UpdateNFSFileShareOutput)
+
+	UpdateSMBFileShare(*storagegateway.UpdateSMBFileShareInput) (*storagegateway.UpdateSMBFileShareOutput, error)
+	UpdateSMBFileShareWithContext(aws.Context, *storagegateway.UpdateSMBFileShareInput, ...request.Option) (*storagegateway.UpdateSMBFileShareOutput, error)
+	UpdateSMBFileShareRequest(*storagegateway.UpdateSMBFileShareInput) (*request.Request, *storagegateway.UpdateSMBFileShareOutput)
 
 	UpdateSnapshotSchedule(*storagegateway.UpdateSnapshotScheduleInput) (*storagegateway.UpdateSnapshotScheduleOutput, error)
 	UpdateSnapshotScheduleWithContext(aws.Context, *storagegateway.UpdateSnapshotScheduleInput, ...request.Option) (*storagegateway.UpdateSnapshotScheduleOutput, error)

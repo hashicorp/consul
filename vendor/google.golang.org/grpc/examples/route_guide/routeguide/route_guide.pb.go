@@ -28,8 +28,8 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 // Latitudes should be in the range +/- 90 degrees and longitude should be in
 // the range +/- 180 degrees (inclusive).
 type Point struct {
-	Latitude             int32    `protobuf:"varint,1,opt,name=latitude" json:"latitude,omitempty"`
-	Longitude            int32    `protobuf:"varint,2,opt,name=longitude" json:"longitude,omitempty"`
+	Latitude             int32    `protobuf:"varint,1,opt,name=latitude,proto3" json:"latitude,omitempty"`
+	Longitude            int32    `protobuf:"varint,2,opt,name=longitude,proto3" json:"longitude,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -77,9 +77,9 @@ func (m *Point) GetLongitude() int32 {
 // points "lo" and "hi".
 type Rectangle struct {
 	// One corner of the rectangle.
-	Lo *Point `protobuf:"bytes,1,opt,name=lo" json:"lo,omitempty"`
+	Lo *Point `protobuf:"bytes,1,opt,name=lo,proto3" json:"lo,omitempty"`
 	// The other corner of the rectangle.
-	Hi                   *Point   `protobuf:"bytes,2,opt,name=hi" json:"hi,omitempty"`
+	Hi                   *Point   `protobuf:"bytes,2,opt,name=hi,proto3" json:"hi,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -128,9 +128,9 @@ func (m *Rectangle) GetHi() *Point {
 // If a feature could not be named, the name is empty.
 type Feature struct {
 	// The name of the feature.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The point where the feature is detected.
-	Location             *Point   `protobuf:"bytes,2,opt,name=location" json:"location,omitempty"`
+	Location             *Point   `protobuf:"bytes,2,opt,name=location,proto3" json:"location,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -177,9 +177,9 @@ func (m *Feature) GetLocation() *Point {
 // A RouteNote is a message sent while at a given point.
 type RouteNote struct {
 	// The location from which the message is sent.
-	Location *Point `protobuf:"bytes,1,opt,name=location" json:"location,omitempty"`
+	Location *Point `protobuf:"bytes,1,opt,name=location,proto3" json:"location,omitempty"`
 	// The message to be sent.
-	Message              string   `protobuf:"bytes,2,opt,name=message" json:"message,omitempty"`
+	Message              string   `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -230,13 +230,13 @@ func (m *RouteNote) GetMessage() string {
 // the distance between each point.
 type RouteSummary struct {
 	// The number of points received.
-	PointCount int32 `protobuf:"varint,1,opt,name=point_count,json=pointCount" json:"point_count,omitempty"`
+	PointCount int32 `protobuf:"varint,1,opt,name=point_count,json=pointCount,proto3" json:"point_count,omitempty"`
 	// The number of known features passed while traversing the route.
-	FeatureCount int32 `protobuf:"varint,2,opt,name=feature_count,json=featureCount" json:"feature_count,omitempty"`
+	FeatureCount int32 `protobuf:"varint,2,opt,name=feature_count,json=featureCount,proto3" json:"feature_count,omitempty"`
 	// The distance covered in metres.
-	Distance int32 `protobuf:"varint,3,opt,name=distance" json:"distance,omitempty"`
+	Distance int32 `protobuf:"varint,3,opt,name=distance,proto3" json:"distance,omitempty"`
 	// The duration of the traversal in seconds.
-	ElapsedTime          int32    `protobuf:"varint,4,opt,name=elapsed_time,json=elapsedTime" json:"elapsed_time,omitempty"`
+	ElapsedTime          int32    `protobuf:"varint,4,opt,name=elapsed_time,json=elapsedTime,proto3" json:"elapsed_time,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -310,8 +310,9 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
-// Client API for RouteGuide service
-
+// RouteGuideClient is the client API for RouteGuide service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type RouteGuideClient interface {
 	// A simple RPC.
 	//
@@ -349,7 +350,7 @@ func NewRouteGuideClient(cc *grpc.ClientConn) RouteGuideClient {
 
 func (c *routeGuideClient) GetFeature(ctx context.Context, in *Point, opts ...grpc.CallOption) (*Feature, error) {
 	out := new(Feature)
-	err := grpc.Invoke(ctx, "/routeguide.RouteGuide/GetFeature", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/routeguide.RouteGuide/GetFeature", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -357,7 +358,7 @@ func (c *routeGuideClient) GetFeature(ctx context.Context, in *Point, opts ...gr
 }
 
 func (c *routeGuideClient) ListFeatures(ctx context.Context, in *Rectangle, opts ...grpc.CallOption) (RouteGuide_ListFeaturesClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_RouteGuide_serviceDesc.Streams[0], c.cc, "/routeguide.RouteGuide/ListFeatures", opts...)
+	stream, err := c.cc.NewStream(ctx, &_RouteGuide_serviceDesc.Streams[0], "/routeguide.RouteGuide/ListFeatures", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -389,7 +390,7 @@ func (x *routeGuideListFeaturesClient) Recv() (*Feature, error) {
 }
 
 func (c *routeGuideClient) RecordRoute(ctx context.Context, opts ...grpc.CallOption) (RouteGuide_RecordRouteClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_RouteGuide_serviceDesc.Streams[1], c.cc, "/routeguide.RouteGuide/RecordRoute", opts...)
+	stream, err := c.cc.NewStream(ctx, &_RouteGuide_serviceDesc.Streams[1], "/routeguide.RouteGuide/RecordRoute", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -423,7 +424,7 @@ func (x *routeGuideRecordRouteClient) CloseAndRecv() (*RouteSummary, error) {
 }
 
 func (c *routeGuideClient) RouteChat(ctx context.Context, opts ...grpc.CallOption) (RouteGuide_RouteChatClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_RouteGuide_serviceDesc.Streams[2], c.cc, "/routeguide.RouteGuide/RouteChat", opts...)
+	stream, err := c.cc.NewStream(ctx, &_RouteGuide_serviceDesc.Streams[2], "/routeguide.RouteGuide/RouteChat", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -453,8 +454,7 @@ func (x *routeGuideRouteChatClient) Recv() (*RouteNote, error) {
 	return m, nil
 }
 
-// Server API for RouteGuide service
-
+// RouteGuideServer is the server API for RouteGuide service.
 type RouteGuideServer interface {
 	// A simple RPC.
 	//

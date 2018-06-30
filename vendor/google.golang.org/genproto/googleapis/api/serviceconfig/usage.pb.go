@@ -24,11 +24,11 @@ type Usage struct {
 	// Requirements that must be satisfied before a consumer project can use the
 	// service. Each requirement is of the form <service.name>/<requirement-id>;
 	// for example 'serviceusage.googleapis.com/billing-enabled'.
-	Requirements []string `protobuf:"bytes,1,rep,name=requirements" json:"requirements,omitempty"`
+	Requirements []string `protobuf:"bytes,1,rep,name=requirements,proto3" json:"requirements,omitempty"`
 	// A list of usage rules that apply to individual API methods.
 	//
 	// **NOTE:** All service configuration rules follow "last one wins" order.
-	Rules []*UsageRule `protobuf:"bytes,6,rep,name=rules" json:"rules,omitempty"`
+	Rules []*UsageRule `protobuf:"bytes,6,rep,name=rules,proto3" json:"rules,omitempty"`
 	// The full resource name of a channel used for sending notifications to the
 	// service producer.
 	//
@@ -37,7 +37,7 @@ type Usage struct {
 	// channel. To use Google Cloud Pub/Sub as the channel, this must be the name
 	// of a Cloud Pub/Sub topic that uses the Cloud Pub/Sub topic name format
 	// documented in https://cloud.google.com/pubsub/docs/overview.
-	ProducerNotificationChannel string   `protobuf:"bytes,7,opt,name=producer_notification_channel,json=producerNotificationChannel" json:"producer_notification_channel,omitempty"`
+	ProducerNotificationChannel string   `protobuf:"bytes,7,opt,name=producer_notification_channel,json=producerNotificationChannel,proto3" json:"producer_notification_channel,omitempty"`
 	XXX_NoUnkeyedLiteral        struct{} `json:"-"`
 	XXX_unrecognized            []byte   `json:"-"`
 	XXX_sizecache               int32    `json:"-"`
@@ -47,7 +47,7 @@ func (m *Usage) Reset()         { *m = Usage{} }
 func (m *Usage) String() string { return proto.CompactTextString(m) }
 func (*Usage) ProtoMessage()    {}
 func (*Usage) Descriptor() ([]byte, []int) {
-	return fileDescriptor_usage_d16b4039e1638770, []int{0}
+	return fileDescriptor_usage_d5fdf432dee45e22, []int{0}
 }
 func (m *Usage) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Usage.Unmarshal(m, b)
@@ -118,12 +118,15 @@ type UsageRule struct {
 	// methods in all APIs.
 	//
 	// Refer to [selector][google.api.DocumentationRule.selector] for syntax details.
-	Selector string `protobuf:"bytes,1,opt,name=selector" json:"selector,omitempty"`
-	// True, if the method allows unregistered calls; false otherwise.
-	AllowUnregisteredCalls bool `protobuf:"varint,2,opt,name=allow_unregistered_calls,json=allowUnregisteredCalls" json:"allow_unregistered_calls,omitempty"`
-	// True, if the method should skip service control. If so, no control plane
-	// feature (like quota and billing) will be enabled.
-	SkipServiceControl   bool     `protobuf:"varint,3,opt,name=skip_service_control,json=skipServiceControl" json:"skip_service_control,omitempty"`
+	Selector string `protobuf:"bytes,1,opt,name=selector,proto3" json:"selector,omitempty"`
+	// If true, the selected method allows unregistered calls, e.g. calls
+	// that don't identify any user or application.
+	AllowUnregisteredCalls bool `protobuf:"varint,2,opt,name=allow_unregistered_calls,json=allowUnregisteredCalls,proto3" json:"allow_unregistered_calls,omitempty"`
+	// If true, the selected method should skip service control and the control
+	// plane features, such as quota and billing, will not be available.
+	// This flag is used by Google Cloud Endpoints to bypass checks for internal
+	// methods, such as service health check methods.
+	SkipServiceControl   bool     `protobuf:"varint,3,opt,name=skip_service_control,json=skipServiceControl,proto3" json:"skip_service_control,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -133,7 +136,7 @@ func (m *UsageRule) Reset()         { *m = UsageRule{} }
 func (m *UsageRule) String() string { return proto.CompactTextString(m) }
 func (*UsageRule) ProtoMessage()    {}
 func (*UsageRule) Descriptor() ([]byte, []int) {
-	return fileDescriptor_usage_d16b4039e1638770, []int{1}
+	return fileDescriptor_usage_d5fdf432dee45e22, []int{1}
 }
 func (m *UsageRule) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UsageRule.Unmarshal(m, b)
@@ -179,9 +182,9 @@ func init() {
 	proto.RegisterType((*UsageRule)(nil), "google.api.UsageRule")
 }
 
-func init() { proto.RegisterFile("google/api/usage.proto", fileDescriptor_usage_d16b4039e1638770) }
+func init() { proto.RegisterFile("google/api/usage.proto", fileDescriptor_usage_d5fdf432dee45e22) }
 
-var fileDescriptor_usage_d16b4039e1638770 = []byte{
+var fileDescriptor_usage_d5fdf432dee45e22 = []byte{
 	// 331 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x54, 0x91, 0xc1, 0x4b, 0xfb, 0x30,
 	0x14, 0xc7, 0xe9, 0xf6, 0xdb, 0x7e, 0x5b, 0x14, 0x0f, 0x41, 0x47, 0x99, 0x0a, 0x65, 0xa7, 0x82,

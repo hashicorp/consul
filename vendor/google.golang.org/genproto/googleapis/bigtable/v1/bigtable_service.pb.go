@@ -171,8 +171,7 @@ func (c *bigtableServiceClient) ReadModifyWriteRow(ctx context.Context, in *Read
 	return out, nil
 }
 
-// Server API for BigtableService service
-
+// BigtableServiceServer is the server API for BigtableService service.
 type BigtableServiceServer interface {
 	// Streams back the contents of all requested rows, optionally applying
 	// the same Reader filter to each. Depending on their size, rows may be
@@ -355,10 +354,10 @@ var _BigtableService_serviceDesc = grpc.ServiceDesc{
 }
 
 func init() {
-	proto.RegisterFile("google/bigtable/v1/bigtable_service.proto", fileDescriptor_bigtable_service_e46f53b56ecd7201)
+	proto.RegisterFile("google/bigtable/v1/bigtable_service.proto", fileDescriptor_bigtable_service_4233bee4d874237b)
 }
 
-var fileDescriptor_bigtable_service_e46f53b56ecd7201 = []byte{
+var fileDescriptor_bigtable_service_4233bee4d874237b = []byte{
 	// 521 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x94, 0xcd, 0x6e, 0xd4, 0x30,
 	0x10, 0xc7, 0x65, 0x0e, 0xa8, 0x58, 0x42, 0x08, 0x4b, 0x14, 0x69, 0xe1, 0x14, 0xa0, 0xa2, 0x11,

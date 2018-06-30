@@ -38,10 +38,10 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 // will render the `mean` and `sum_of_squared_deviation` fields meaningless.
 type Distribution struct {
 	// The number of values in the population. Must be non-negative.
-	Count int64 `protobuf:"varint,1,opt,name=count" json:"count,omitempty"`
+	Count int64 `protobuf:"varint,1,opt,name=count,proto3" json:"count,omitempty"`
 	// The arithmetic mean of the values in the population. If `count` is zero
 	// then this field must be zero.
-	Mean float64 `protobuf:"fixed64,2,opt,name=mean" json:"mean,omitempty"`
+	Mean float64 `protobuf:"fixed64,2,opt,name=mean,proto3" json:"mean,omitempty"`
 	// The sum of squared deviations from the mean of the values in the
 	// population.  For values x_i this is:
 	//
@@ -51,12 +51,12 @@ type Distribution struct {
 	// describes Welford's method for accumulating this sum in one pass.
 	//
 	// If `count` is zero then this field must be zero.
-	SumOfSquaredDeviation float64 `protobuf:"fixed64,3,opt,name=sum_of_squared_deviation,json=sumOfSquaredDeviation" json:"sum_of_squared_deviation,omitempty"`
+	SumOfSquaredDeviation float64 `protobuf:"fixed64,3,opt,name=sum_of_squared_deviation,json=sumOfSquaredDeviation,proto3" json:"sum_of_squared_deviation,omitempty"`
 	// If specified, contains the range of the population values. The field
 	// must not be present if the `count` is zero.
-	Range *Distribution_Range `protobuf:"bytes,4,opt,name=range" json:"range,omitempty"`
+	Range *Distribution_Range `protobuf:"bytes,4,opt,name=range,proto3" json:"range,omitempty"`
 	// Defines the histogram bucket boundaries.
-	BucketOptions *Distribution_BucketOptions `protobuf:"bytes,6,opt,name=bucket_options,json=bucketOptions" json:"bucket_options,omitempty"`
+	BucketOptions *Distribution_BucketOptions `protobuf:"bytes,6,opt,name=bucket_options,json=bucketOptions,proto3" json:"bucket_options,omitempty"`
 	// If `bucket_options` is given, then the sum of the values in `bucket_counts`
 	// must equal the value in `count`.  If `bucket_options` is not given, no
 	// `bucket_counts` fields may be given.
@@ -69,7 +69,7 @@ type Distribution struct {
 	// `bucket_options`.
 	//
 	// Any suffix of trailing zero bucket_count fields may be omitted.
-	BucketCounts         []int64  `protobuf:"varint,7,rep,packed,name=bucket_counts,json=bucketCounts" json:"bucket_counts,omitempty"`
+	BucketCounts         []int64  `protobuf:"varint,7,rep,packed,name=bucket_counts,json=bucketCounts,proto3" json:"bucket_counts,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -144,9 +144,9 @@ func (m *Distribution) GetBucketCounts() []int64 {
 // The range of the population values.
 type Distribution_Range struct {
 	// The minimum of the population values.
-	Min float64 `protobuf:"fixed64,1,opt,name=min" json:"min,omitempty"`
+	Min float64 `protobuf:"fixed64,1,opt,name=min,proto3" json:"min,omitempty"`
 	// The maximum of the population values.
-	Max                  float64  `protobuf:"fixed64,2,opt,name=max" json:"max,omitempty"`
+	Max                  float64  `protobuf:"fixed64,2,opt,name=max,proto3" json:"max,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -255,13 +255,13 @@ type isDistribution_BucketOptions_Options interface {
 }
 
 type Distribution_BucketOptions_LinearBuckets struct {
-	LinearBuckets *Distribution_BucketOptions_Linear `protobuf:"bytes,1,opt,name=linear_buckets,json=linearBuckets,oneof"`
+	LinearBuckets *Distribution_BucketOptions_Linear `protobuf:"bytes,1,opt,name=linear_buckets,json=linearBuckets,proto3,oneof"`
 }
 type Distribution_BucketOptions_ExponentialBuckets struct {
-	ExponentialBuckets *Distribution_BucketOptions_Exponential `protobuf:"bytes,2,opt,name=exponential_buckets,json=exponentialBuckets,oneof"`
+	ExponentialBuckets *Distribution_BucketOptions_Exponential `protobuf:"bytes,2,opt,name=exponential_buckets,json=exponentialBuckets,proto3,oneof"`
 }
 type Distribution_BucketOptions_ExplicitBuckets struct {
-	ExplicitBuckets *Distribution_BucketOptions_Explicit `protobuf:"bytes,3,opt,name=explicit_buckets,json=explicitBuckets,oneof"`
+	ExplicitBuckets *Distribution_BucketOptions_Explicit `protobuf:"bytes,3,opt,name=explicit_buckets,json=explicitBuckets,proto3,oneof"`
 }
 
 func (*Distribution_BucketOptions_LinearBuckets) isDistribution_BucketOptions_Options()      {}
@@ -400,11 +400,11 @@ func _Distribution_BucketOptions_OneofSizer(msg proto.Message) (n int) {
 //    Lower bound (1 <= i < N):       offset + (width * (i - 1)).
 type Distribution_BucketOptions_Linear struct {
 	// Must be greater than 0.
-	NumFiniteBuckets int32 `protobuf:"varint,1,opt,name=num_finite_buckets,json=numFiniteBuckets" json:"num_finite_buckets,omitempty"`
+	NumFiniteBuckets int32 `protobuf:"varint,1,opt,name=num_finite_buckets,json=numFiniteBuckets,proto3" json:"num_finite_buckets,omitempty"`
 	// Must be greater than 0.
-	Width float64 `protobuf:"fixed64,2,opt,name=width" json:"width,omitempty"`
+	Width float64 `protobuf:"fixed64,2,opt,name=width,proto3" json:"width,omitempty"`
 	// Lower bound of the first bucket.
-	Offset               float64  `protobuf:"fixed64,3,opt,name=offset" json:"offset,omitempty"`
+	Offset               float64  `protobuf:"fixed64,3,opt,name=offset,proto3" json:"offset,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -466,11 +466,11 @@ func (m *Distribution_BucketOptions_Linear) GetOffset() float64 {
 //    Lower bound (1 <= i < N):       scale * (growth_factor ^ (i - 1)).
 type Distribution_BucketOptions_Exponential struct {
 	// Must be greater than 0.
-	NumFiniteBuckets int32 `protobuf:"varint,1,opt,name=num_finite_buckets,json=numFiniteBuckets" json:"num_finite_buckets,omitempty"`
+	NumFiniteBuckets int32 `protobuf:"varint,1,opt,name=num_finite_buckets,json=numFiniteBuckets,proto3" json:"num_finite_buckets,omitempty"`
 	// Must be greater than 1.
-	GrowthFactor float64 `protobuf:"fixed64,2,opt,name=growth_factor,json=growthFactor" json:"growth_factor,omitempty"`
+	GrowthFactor float64 `protobuf:"fixed64,2,opt,name=growth_factor,json=growthFactor,proto3" json:"growth_factor,omitempty"`
 	// Must be greater than 0.
-	Scale                float64  `protobuf:"fixed64,3,opt,name=scale" json:"scale,omitempty"`
+	Scale                float64  `protobuf:"fixed64,3,opt,name=scale,proto3" json:"scale,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -536,7 +536,7 @@ func (m *Distribution_BucketOptions_Exponential) GetScale() float64 {
 // common boundary of the overflow and underflow buckets.
 type Distribution_BucketOptions_Explicit struct {
 	// The values must be monotonically increasing.
-	Bounds               []float64 `protobuf:"fixed64,1,rep,packed,name=bounds" json:"bounds,omitempty"`
+	Bounds               []float64 `protobuf:"fixed64,1,rep,packed,name=bounds,proto3" json:"bounds,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`

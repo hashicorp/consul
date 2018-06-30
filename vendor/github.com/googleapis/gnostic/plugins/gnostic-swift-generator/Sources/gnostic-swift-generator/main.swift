@@ -26,15 +26,24 @@ func main() throws {
   let request = try Gnostic_Plugin_V1_Request(serializedData:rawRequest)
 
   var response = Gnostic_Plugin_V1_Response()
+  
+  var openapiv2 : Openapi_V2_Document?
+  var surface : Surface_V1_Model?
+  
+  for model in request.models {
+    if model.typeURL == "openapi.v2.Document" {
+      openapiv2 = try Openapi_V2_Document(serializedData: model.value)      
+    } else if model.typeURL == "surface.v1.Model" {
+      surface = try Surface_V1_Model(serializedData: model.value)      
+    }
+  }  
+	
 
-  if request.hasOpenapi2 && request.hasSurface {
-    let document = request.openapi2
-    let surface = request.surface
-
-    Log("\(request.surface)")
-
+  if let openapiv2 = openapiv2,
+    let surface = surface {
+  
     // build the service renderer
-    let renderer = ServiceRenderer(surface:surface, document:document)
+    let renderer = ServiceRenderer(surface:surface, document:openapiv2)
 
     // generate the desired files
     var filenames : [String]

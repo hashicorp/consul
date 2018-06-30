@@ -45,17 +45,17 @@ func (x LabelDescriptor_ValueType) String() string {
 	return proto.EnumName(LabelDescriptor_ValueType_name, int32(x))
 }
 func (LabelDescriptor_ValueType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_label_1d347e5545d4fc31, []int{0, 0}
+	return fileDescriptor_label_ae588de548a3b6a9, []int{0, 0}
 }
 
 // A description of a label.
 type LabelDescriptor struct {
 	// The label key.
-	Key string `protobuf:"bytes,1,opt,name=key" json:"key,omitempty"`
+	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
 	// The type of data that can be assigned to the label.
-	ValueType LabelDescriptor_ValueType `protobuf:"varint,2,opt,name=value_type,json=valueType,enum=google.api.LabelDescriptor_ValueType" json:"value_type,omitempty"`
+	ValueType LabelDescriptor_ValueType `protobuf:"varint,2,opt,name=value_type,json=valueType,proto3,enum=google.api.LabelDescriptor_ValueType" json:"value_type,omitempty"`
 	// A human-readable description for the label.
-	Description          string   `protobuf:"bytes,3,opt,name=description" json:"description,omitempty"`
+	Description          string   `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -65,7 +65,7 @@ func (m *LabelDescriptor) Reset()         { *m = LabelDescriptor{} }
 func (m *LabelDescriptor) String() string { return proto.CompactTextString(m) }
 func (*LabelDescriptor) ProtoMessage()    {}
 func (*LabelDescriptor) Descriptor() ([]byte, []int) {
-	return fileDescriptor_label_1d347e5545d4fc31, []int{0}
+	return fileDescriptor_label_ae588de548a3b6a9, []int{0}
 }
 func (m *LabelDescriptor) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_LabelDescriptor.Unmarshal(m, b)
@@ -111,9 +111,9 @@ func init() {
 	proto.RegisterEnum("google.api.LabelDescriptor_ValueType", LabelDescriptor_ValueType_name, LabelDescriptor_ValueType_value)
 }
 
-func init() { proto.RegisterFile("google/api/label.proto", fileDescriptor_label_1d347e5545d4fc31) }
+func init() { proto.RegisterFile("google/api/label.proto", fileDescriptor_label_ae588de548a3b6a9) }
 
-var fileDescriptor_label_1d347e5545d4fc31 = []byte{
+var fileDescriptor_label_ae588de548a3b6a9 = []byte{
 	// 252 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x12, 0x4b, 0xcf, 0xcf, 0x4f,
 	0xcf, 0x49, 0xd5, 0x4f, 0x2c, 0xc8, 0xd4, 0xcf, 0x49, 0x4c, 0x4a, 0xcd, 0xd1, 0x2b, 0x28, 0xca,

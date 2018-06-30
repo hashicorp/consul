@@ -192,25 +192,25 @@ type AnnotateVideoRequest struct {
 	// multiple videos. Supported wildcards: '*' to match 0 or more characters;
 	// '?' to match 1 character. If unset, the input video should be embedded
 	// in the request as `input_content`. If set, `input_content` should be unset.
-	InputUri string `protobuf:"bytes,1,opt,name=input_uri,json=inputUri" json:"input_uri,omitempty"`
+	InputUri string `protobuf:"bytes,1,opt,name=input_uri,json=inputUri,proto3" json:"input_uri,omitempty"`
 	// The video data bytes. Encoding: base64. If unset, the input video(s)
 	// should be specified via `input_uri`. If set, `input_uri` should be unset.
-	InputContent string `protobuf:"bytes,6,opt,name=input_content,json=inputContent" json:"input_content,omitempty"`
+	InputContent string `protobuf:"bytes,6,opt,name=input_content,json=inputContent,proto3" json:"input_content,omitempty"`
 	// Requested video annotation features.
-	Features []Feature `protobuf:"varint,2,rep,packed,name=features,enum=google.cloud.videointelligence.v1beta1.Feature" json:"features,omitempty"`
+	Features []Feature `protobuf:"varint,2,rep,packed,name=features,proto3,enum=google.cloud.videointelligence.v1beta1.Feature" json:"features,omitempty"`
 	// Additional video context and/or feature-specific parameters.
-	VideoContext *VideoContext `protobuf:"bytes,3,opt,name=video_context,json=videoContext" json:"video_context,omitempty"`
+	VideoContext *VideoContext `protobuf:"bytes,3,opt,name=video_context,json=videoContext,proto3" json:"video_context,omitempty"`
 	// Optional location where the output (in JSON format) should be stored.
 	// Currently, only [Google Cloud Storage](https://cloud.google.com/storage/)
 	// URIs are supported, which must be specified in the following format:
 	// `gs://bucket-id/object-id` (other URI formats return
 	// [google.rpc.Code.INVALID_ARGUMENT][google.rpc.Code.INVALID_ARGUMENT]). For more information, see
 	// [Request URIs](/storage/docs/reference-uris).
-	OutputUri string `protobuf:"bytes,4,opt,name=output_uri,json=outputUri" json:"output_uri,omitempty"`
+	OutputUri string `protobuf:"bytes,4,opt,name=output_uri,json=outputUri,proto3" json:"output_uri,omitempty"`
 	// Optional cloud region where annotation should take place. Supported cloud
 	// regions: `us-east1`, `us-west1`, `europe-west1`, `asia-east1`. If no region
 	// is specified, a region will be determined based on video file location.
-	LocationId           string   `protobuf:"bytes,5,opt,name=location_id,json=locationId" json:"location_id,omitempty"`
+	LocationId           string   `protobuf:"bytes,5,opt,name=location_id,json=locationId,proto3" json:"location_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -287,26 +287,26 @@ type VideoContext struct {
 	// Video segments to annotate. The segments may overlap and are not required
 	// to be contiguous or span the whole video. If unspecified, each video
 	// is treated as a single segment.
-	Segments []*VideoSegment `protobuf:"bytes,1,rep,name=segments" json:"segments,omitempty"`
+	Segments []*VideoSegment `protobuf:"bytes,1,rep,name=segments,proto3" json:"segments,omitempty"`
 	// If label detection has been requested, what labels should be detected
 	// in addition to video-level labels or segment-level labels. If unspecified,
 	// defaults to `SHOT_MODE`.
-	LabelDetectionMode LabelDetectionMode `protobuf:"varint,2,opt,name=label_detection_mode,json=labelDetectionMode,enum=google.cloud.videointelligence.v1beta1.LabelDetectionMode" json:"label_detection_mode,omitempty"`
+	LabelDetectionMode LabelDetectionMode `protobuf:"varint,2,opt,name=label_detection_mode,json=labelDetectionMode,proto3,enum=google.cloud.videointelligence.v1beta1.LabelDetectionMode" json:"label_detection_mode,omitempty"`
 	// Whether the video has been shot from a stationary (i.e. non-moving) camera.
 	// When set to true, might improve detection accuracy for moving objects.
-	StationaryCamera bool `protobuf:"varint,3,opt,name=stationary_camera,json=stationaryCamera" json:"stationary_camera,omitempty"`
+	StationaryCamera bool `protobuf:"varint,3,opt,name=stationary_camera,json=stationaryCamera,proto3" json:"stationary_camera,omitempty"`
 	// Model to use for label detection.
 	// Supported values: "latest" and "stable" (the default).
-	LabelDetectionModel string `protobuf:"bytes,4,opt,name=label_detection_model,json=labelDetectionModel" json:"label_detection_model,omitempty"`
+	LabelDetectionModel string `protobuf:"bytes,4,opt,name=label_detection_model,json=labelDetectionModel,proto3" json:"label_detection_model,omitempty"`
 	// Model to use for face detection.
 	// Supported values: "latest" and "stable" (the default).
-	FaceDetectionModel string `protobuf:"bytes,5,opt,name=face_detection_model,json=faceDetectionModel" json:"face_detection_model,omitempty"`
+	FaceDetectionModel string `protobuf:"bytes,5,opt,name=face_detection_model,json=faceDetectionModel,proto3" json:"face_detection_model,omitempty"`
 	// Model to use for shot change detection.
 	// Supported values: "latest" and "stable" (the default).
-	ShotChangeDetectionModel string `protobuf:"bytes,6,opt,name=shot_change_detection_model,json=shotChangeDetectionModel" json:"shot_change_detection_model,omitempty"`
+	ShotChangeDetectionModel string `protobuf:"bytes,6,opt,name=shot_change_detection_model,json=shotChangeDetectionModel,proto3" json:"shot_change_detection_model,omitempty"`
 	// Model to use for safe search detection.
 	// Supported values: "latest" and "stable" (the default).
-	SafeSearchDetectionModel string   `protobuf:"bytes,7,opt,name=safe_search_detection_model,json=safeSearchDetectionModel" json:"safe_search_detection_model,omitempty"`
+	SafeSearchDetectionModel string   `protobuf:"bytes,7,opt,name=safe_search_detection_model,json=safeSearchDetectionModel,proto3" json:"safe_search_detection_model,omitempty"`
 	XXX_NoUnkeyedLiteral     struct{} `json:"-"`
 	XXX_unrecognized         []byte   `json:"-"`
 	XXX_sizecache            int32    `json:"-"`
@@ -388,9 +388,9 @@ func (m *VideoContext) GetSafeSearchDetectionModel() string {
 // Video segment.
 type VideoSegment struct {
 	// Start offset in microseconds (inclusive). Unset means 0.
-	StartTimeOffset int64 `protobuf:"varint,1,opt,name=start_time_offset,json=startTimeOffset" json:"start_time_offset,omitempty"`
+	StartTimeOffset int64 `protobuf:"varint,1,opt,name=start_time_offset,json=startTimeOffset,proto3" json:"start_time_offset,omitempty"`
 	// End offset in microseconds (inclusive). Unset means 0.
-	EndTimeOffset        int64    `protobuf:"varint,2,opt,name=end_time_offset,json=endTimeOffset" json:"end_time_offset,omitempty"`
+	EndTimeOffset        int64    `protobuf:"varint,2,opt,name=end_time_offset,json=endTimeOffset,proto3" json:"end_time_offset,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -440,11 +440,11 @@ type LabelLocation struct {
 	// Set to [timestamp, timestamp] for frame-level labels.
 	// Otherwise, corresponds to one of `AnnotateSpec.segments`
 	// (if specified) or to shot boundaries (if requested).
-	Segment *VideoSegment `protobuf:"bytes,1,opt,name=segment" json:"segment,omitempty"`
+	Segment *VideoSegment `protobuf:"bytes,1,opt,name=segment,proto3" json:"segment,omitempty"`
 	// Confidence that the label is accurate. Range: [0, 1].
-	Confidence float32 `protobuf:"fixed32,2,opt,name=confidence" json:"confidence,omitempty"`
+	Confidence float32 `protobuf:"fixed32,2,opt,name=confidence,proto3" json:"confidence,omitempty"`
 	// Label level.
-	Level                LabelLevel `protobuf:"varint,3,opt,name=level,enum=google.cloud.videointelligence.v1beta1.LabelLevel" json:"level,omitempty"`
+	Level                LabelLevel `protobuf:"varint,3,opt,name=level,proto3,enum=google.cloud.videointelligence.v1beta1.LabelLevel" json:"level,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
 	XXX_unrecognized     []byte     `json:"-"`
 	XXX_sizecache        int32      `json:"-"`
@@ -498,11 +498,11 @@ func (m *LabelLocation) GetLevel() LabelLevel {
 // Label annotation.
 type LabelAnnotation struct {
 	// Textual description, e.g. `Fixed-gear bicycle`.
-	Description string `protobuf:"bytes,1,opt,name=description" json:"description,omitempty"`
+	Description string `protobuf:"bytes,1,opt,name=description,proto3" json:"description,omitempty"`
 	// Language code for `description` in BCP-47 format.
-	LanguageCode string `protobuf:"bytes,2,opt,name=language_code,json=languageCode" json:"language_code,omitempty"`
+	LanguageCode string `protobuf:"bytes,2,opt,name=language_code,json=languageCode,proto3" json:"language_code,omitempty"`
 	// Where the label was detected and with what confidence.
-	Locations            []*LabelLocation `protobuf:"bytes,3,rep,name=locations" json:"locations,omitempty"`
+	Locations            []*LabelLocation `protobuf:"bytes,3,rep,name=locations,proto3" json:"locations,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
 	XXX_unrecognized     []byte           `json:"-"`
 	XXX_sizecache        int32            `json:"-"`
@@ -560,18 +560,18 @@ func (m *LabelAnnotation) GetLocations() []*LabelLocation {
 // for all other types of unsafe content.
 type SafeSearchAnnotation struct {
 	// Likelihood of adult content.
-	Adult Likelihood `protobuf:"varint,1,opt,name=adult,enum=google.cloud.videointelligence.v1beta1.Likelihood" json:"adult,omitempty"`
+	Adult Likelihood `protobuf:"varint,1,opt,name=adult,proto3,enum=google.cloud.videointelligence.v1beta1.Likelihood" json:"adult,omitempty"`
 	// Likelihood that an obvious modification was made to the original
 	// version to make it appear funny or offensive.
-	Spoof Likelihood `protobuf:"varint,2,opt,name=spoof,enum=google.cloud.videointelligence.v1beta1.Likelihood" json:"spoof,omitempty"`
+	Spoof Likelihood `protobuf:"varint,2,opt,name=spoof,proto3,enum=google.cloud.videointelligence.v1beta1.Likelihood" json:"spoof,omitempty"`
 	// Likelihood of medical content.
-	Medical Likelihood `protobuf:"varint,3,opt,name=medical,enum=google.cloud.videointelligence.v1beta1.Likelihood" json:"medical,omitempty"`
+	Medical Likelihood `protobuf:"varint,3,opt,name=medical,proto3,enum=google.cloud.videointelligence.v1beta1.Likelihood" json:"medical,omitempty"`
 	// Likelihood of violent content.
-	Violent Likelihood `protobuf:"varint,4,opt,name=violent,enum=google.cloud.videointelligence.v1beta1.Likelihood" json:"violent,omitempty"`
+	Violent Likelihood `protobuf:"varint,4,opt,name=violent,proto3,enum=google.cloud.videointelligence.v1beta1.Likelihood" json:"violent,omitempty"`
 	// Likelihood of racy content.
-	Racy Likelihood `protobuf:"varint,5,opt,name=racy,enum=google.cloud.videointelligence.v1beta1.Likelihood" json:"racy,omitempty"`
+	Racy Likelihood `protobuf:"varint,5,opt,name=racy,proto3,enum=google.cloud.videointelligence.v1beta1.Likelihood" json:"racy,omitempty"`
 	// Video time offset in microseconds.
-	TimeOffset           int64    `protobuf:"varint,6,opt,name=time_offset,json=timeOffset" json:"time_offset,omitempty"`
+	TimeOffset           int64    `protobuf:"varint,6,opt,name=time_offset,json=timeOffset,proto3" json:"time_offset,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -646,13 +646,13 @@ func (m *SafeSearchAnnotation) GetTimeOffset() int64 {
 // Bounding box.
 type BoundingBox struct {
 	// Left X coordinate.
-	Left int32 `protobuf:"varint,1,opt,name=left" json:"left,omitempty"`
+	Left int32 `protobuf:"varint,1,opt,name=left,proto3" json:"left,omitempty"`
 	// Right X coordinate.
-	Right int32 `protobuf:"varint,2,opt,name=right" json:"right,omitempty"`
+	Right int32 `protobuf:"varint,2,opt,name=right,proto3" json:"right,omitempty"`
 	// Bottom Y coordinate.
-	Bottom int32 `protobuf:"varint,3,opt,name=bottom" json:"bottom,omitempty"`
+	Bottom int32 `protobuf:"varint,3,opt,name=bottom,proto3" json:"bottom,omitempty"`
 	// Top Y coordinate.
-	Top                  int32    `protobuf:"varint,4,opt,name=top" json:"top,omitempty"`
+	Top                  int32    `protobuf:"varint,4,opt,name=top,proto3" json:"top,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -713,9 +713,9 @@ func (m *BoundingBox) GetTop() int32 {
 // Face location.
 type FaceLocation struct {
 	// Bounding box in a frame.
-	BoundingBox *BoundingBox `protobuf:"bytes,1,opt,name=bounding_box,json=boundingBox" json:"bounding_box,omitempty"`
+	BoundingBox *BoundingBox `protobuf:"bytes,1,opt,name=bounding_box,json=boundingBox,proto3" json:"bounding_box,omitempty"`
 	// Video time offset in microseconds.
-	TimeOffset           int64    `protobuf:"varint,2,opt,name=time_offset,json=timeOffset" json:"time_offset,omitempty"`
+	TimeOffset           int64    `protobuf:"varint,2,opt,name=time_offset,json=timeOffset,proto3" json:"time_offset,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -762,13 +762,13 @@ func (m *FaceLocation) GetTimeOffset() int64 {
 // Face annotation.
 type FaceAnnotation struct {
 	// Thumbnail of a representative face view (in JPEG format). Encoding: base64.
-	Thumbnail string `protobuf:"bytes,1,opt,name=thumbnail" json:"thumbnail,omitempty"`
+	Thumbnail string `protobuf:"bytes,1,opt,name=thumbnail,proto3" json:"thumbnail,omitempty"`
 	// All locations where a face was detected.
 	// Faces are detected and tracked on a per-video basis
 	// (as opposed to across multiple videos).
-	Segments []*VideoSegment `protobuf:"bytes,2,rep,name=segments" json:"segments,omitempty"`
+	Segments []*VideoSegment `protobuf:"bytes,2,rep,name=segments,proto3" json:"segments,omitempty"`
 	// Face locations at one frame per second.
-	Locations            []*FaceLocation `protobuf:"bytes,3,rep,name=locations" json:"locations,omitempty"`
+	Locations            []*FaceLocation `protobuf:"bytes,3,rep,name=locations,proto3" json:"locations,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
 	XXX_unrecognized     []byte          `json:"-"`
 	XXX_sizecache        int32           `json:"-"`
@@ -823,18 +823,18 @@ func (m *FaceAnnotation) GetLocations() []*FaceLocation {
 type VideoAnnotationResults struct {
 	// Video file location in
 	// [Google Cloud Storage](https://cloud.google.com/storage/).
-	InputUri string `protobuf:"bytes,1,opt,name=input_uri,json=inputUri" json:"input_uri,omitempty"`
+	InputUri string `protobuf:"bytes,1,opt,name=input_uri,json=inputUri,proto3" json:"input_uri,omitempty"`
 	// Label annotations. There is exactly one element for each unique label.
-	LabelAnnotations []*LabelAnnotation `protobuf:"bytes,2,rep,name=label_annotations,json=labelAnnotations" json:"label_annotations,omitempty"`
+	LabelAnnotations []*LabelAnnotation `protobuf:"bytes,2,rep,name=label_annotations,json=labelAnnotations,proto3" json:"label_annotations,omitempty"`
 	// Face annotations. There is exactly one element for each unique face.
-	FaceAnnotations []*FaceAnnotation `protobuf:"bytes,3,rep,name=face_annotations,json=faceAnnotations" json:"face_annotations,omitempty"`
+	FaceAnnotations []*FaceAnnotation `protobuf:"bytes,3,rep,name=face_annotations,json=faceAnnotations,proto3" json:"face_annotations,omitempty"`
 	// Shot annotations. Each shot is represented as a video segment.
-	ShotAnnotations []*VideoSegment `protobuf:"bytes,4,rep,name=shot_annotations,json=shotAnnotations" json:"shot_annotations,omitempty"`
+	ShotAnnotations []*VideoSegment `protobuf:"bytes,4,rep,name=shot_annotations,json=shotAnnotations,proto3" json:"shot_annotations,omitempty"`
 	// Safe search annotations.
-	SafeSearchAnnotations []*SafeSearchAnnotation `protobuf:"bytes,6,rep,name=safe_search_annotations,json=safeSearchAnnotations" json:"safe_search_annotations,omitempty"`
+	SafeSearchAnnotations []*SafeSearchAnnotation `protobuf:"bytes,6,rep,name=safe_search_annotations,json=safeSearchAnnotations,proto3" json:"safe_search_annotations,omitempty"`
 	// If set, indicates an error. Note that for a single `AnnotateVideoRequest`
 	// some videos may succeed and some may fail.
-	Error                *status.Status `protobuf:"bytes,5,opt,name=error" json:"error,omitempty"`
+	Error                *status.Status `protobuf:"bytes,5,opt,name=error,proto3" json:"error,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
 	XXX_unrecognized     []byte         `json:"-"`
 	XXX_sizecache        int32          `json:"-"`
@@ -911,7 +911,7 @@ func (m *VideoAnnotationResults) GetError() *status.Status {
 // call of the `google::longrunning::Operations` service.
 type AnnotateVideoResponse struct {
 	// Annotation results for all videos specified in `AnnotateVideoRequest`.
-	AnnotationResults    []*VideoAnnotationResults `protobuf:"bytes,1,rep,name=annotation_results,json=annotationResults" json:"annotation_results,omitempty"`
+	AnnotationResults    []*VideoAnnotationResults `protobuf:"bytes,1,rep,name=annotation_results,json=annotationResults,proto3" json:"annotation_results,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                  `json:"-"`
 	XXX_unrecognized     []byte                    `json:"-"`
 	XXX_sizecache        int32                     `json:"-"`
@@ -952,14 +952,14 @@ func (m *AnnotateVideoResponse) GetAnnotationResults() []*VideoAnnotationResults
 type VideoAnnotationProgress struct {
 	// Video file location in
 	// [Google Cloud Storage](https://cloud.google.com/storage/).
-	InputUri string `protobuf:"bytes,1,opt,name=input_uri,json=inputUri" json:"input_uri,omitempty"`
+	InputUri string `protobuf:"bytes,1,opt,name=input_uri,json=inputUri,proto3" json:"input_uri,omitempty"`
 	// Approximate percentage processed thus far.
 	// Guaranteed to be 100 when fully processed.
-	ProgressPercent int32 `protobuf:"varint,2,opt,name=progress_percent,json=progressPercent" json:"progress_percent,omitempty"`
+	ProgressPercent int32 `protobuf:"varint,2,opt,name=progress_percent,json=progressPercent,proto3" json:"progress_percent,omitempty"`
 	// Time when the request was received.
-	StartTime *timestamp.Timestamp `protobuf:"bytes,3,opt,name=start_time,json=startTime" json:"start_time,omitempty"`
+	StartTime *timestamp.Timestamp `protobuf:"bytes,3,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
 	// Time of the most recent update.
-	UpdateTime           *timestamp.Timestamp `protobuf:"bytes,4,opt,name=update_time,json=updateTime" json:"update_time,omitempty"`
+	UpdateTime           *timestamp.Timestamp `protobuf:"bytes,4,opt,name=update_time,json=updateTime,proto3" json:"update_time,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -1022,7 +1022,7 @@ func (m *VideoAnnotationProgress) GetUpdateTime() *timestamp.Timestamp {
 // call of the `google::longrunning::Operations` service.
 type AnnotateVideoProgress struct {
 	// Progress metadata for all videos specified in `AnnotateVideoRequest`.
-	AnnotationProgress   []*VideoAnnotationProgress `protobuf:"bytes,1,rep,name=annotation_progress,json=annotationProgress" json:"annotation_progress,omitempty"`
+	AnnotationProgress   []*VideoAnnotationProgress `protobuf:"bytes,1,rep,name=annotation_progress,json=annotationProgress,proto3" json:"annotation_progress,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                   `json:"-"`
 	XXX_unrecognized     []byte                     `json:"-"`
 	XXX_sizecache        int32                      `json:"-"`
@@ -1115,8 +1115,7 @@ func (c *videoIntelligenceServiceClient) AnnotateVideo(ctx context.Context, in *
 	return out, nil
 }
 
-// Server API for VideoIntelligenceService service
-
+// VideoIntelligenceServiceServer is the server API for VideoIntelligenceService service.
 type VideoIntelligenceServiceServer interface {
 	// Performs asynchronous video annotation. Progress and results can be
 	// retrieved through the `google.longrunning.Operations` interface.

@@ -200,8 +200,7 @@ func (c *streetViewPublishServiceClient) BatchDeletePhotos(ctx context.Context, 
 	return out, nil
 }
 
-// Server API for StreetViewPublishService service
-
+// StreetViewPublishServiceServer is the server API for StreetViewPublishService service.
 type StreetViewPublishServiceServer interface {
 	// Creates an upload session to start uploading photo data. The upload URL of
 	// the returned `UploadRef` is used to upload the data for the photo.

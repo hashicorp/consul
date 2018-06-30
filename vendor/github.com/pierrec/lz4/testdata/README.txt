@@ -1,0 +1,1 @@
+The golden data files (*.lz4) have been compressed with the original C implementation of lz4.

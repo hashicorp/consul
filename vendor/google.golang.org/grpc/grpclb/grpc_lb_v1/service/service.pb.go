@@ -32,8 +32,9 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
-// Client API for LoadBalancer service
-
+// LoadBalancerClient is the client API for LoadBalancer service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type LoadBalancerClient interface {
 	// Bidirectional rpc to get a list of servers.
 	BalanceLoad(ctx context.Context, opts ...grpc.CallOption) (LoadBalancer_BalanceLoadClient, error)
@@ -48,7 +49,7 @@ func NewLoadBalancerClient(cc *grpc.ClientConn) LoadBalancerClient {
 }
 
 func (c *loadBalancerClient) BalanceLoad(ctx context.Context, opts ...grpc.CallOption) (LoadBalancer_BalanceLoadClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_LoadBalancer_serviceDesc.Streams[0], c.cc, "/grpc.lb.v1.LoadBalancer/BalanceLoad", opts...)
+	stream, err := c.cc.NewStream(ctx, &_LoadBalancer_serviceDesc.Streams[0], "/grpc.lb.v1.LoadBalancer/BalanceLoad", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -78,8 +79,7 @@ func (x *loadBalancerBalanceLoadClient) Recv() (*messages.LoadBalanceResponse, e
 	return m, nil
 }
 
-// Server API for LoadBalancer service
-
+// LoadBalancerServer is the server API for LoadBalancer service.
 type LoadBalancerServer interface {
 	// Bidirectional rpc to get a list of servers.
 	BalanceLoad(LoadBalancer_BalanceLoadServer) error

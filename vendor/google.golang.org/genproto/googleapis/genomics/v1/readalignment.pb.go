@@ -24,16 +24,16 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 // mapped position and local alignment of the read to the reference.
 type LinearAlignment struct {
 	// The position of this alignment.
-	Position *Position `protobuf:"bytes,1,opt,name=position" json:"position,omitempty"`
+	Position *Position `protobuf:"bytes,1,opt,name=position,proto3" json:"position,omitempty"`
 	// The mapping quality of this alignment. Represents how likely
 	// the read maps to this position as opposed to other locations.
 	//
 	// Specifically, this is -10 log10 Pr(mapping position is wrong), rounded to
 	// the nearest integer.
-	MappingQuality int32 `protobuf:"varint,2,opt,name=mapping_quality,json=mappingQuality" json:"mapping_quality,omitempty"`
+	MappingQuality int32 `protobuf:"varint,2,opt,name=mapping_quality,json=mappingQuality,proto3" json:"mapping_quality,omitempty"`
 	// Represents the local alignment of this sequence (alignment matches, indels,
 	// etc) against the reference.
-	Cigar                []*CigarUnit `protobuf:"bytes,3,rep,name=cigar" json:"cigar,omitempty"`
+	Cigar                []*CigarUnit `protobuf:"bytes,3,rep,name=cigar,proto3" json:"cigar,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
 	XXX_unrecognized     []byte       `json:"-"`
 	XXX_sizecache        int32        `json:"-"`
@@ -169,42 +169,42 @@ func (m *LinearAlignment) GetCigar() []*CigarUnit {
 type Read struct {
 	// The server-generated read ID, unique across all reads. This is different
 	// from the `fragmentName`.
-	Id string `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// The ID of the read group this read belongs to. A read belongs to exactly
 	// one read group. This is a server-generated ID which is distinct from SAM's
 	// RG tag (for that value, see
 	// [ReadGroup.name][google.genomics.v1.ReadGroup.name]).
-	ReadGroupId string `protobuf:"bytes,2,opt,name=read_group_id,json=readGroupId" json:"read_group_id,omitempty"`
+	ReadGroupId string `protobuf:"bytes,2,opt,name=read_group_id,json=readGroupId,proto3" json:"read_group_id,omitempty"`
 	// The ID of the read group set this read belongs to. A read belongs to
 	// exactly one read group set.
-	ReadGroupSetId string `protobuf:"bytes,3,opt,name=read_group_set_id,json=readGroupSetId" json:"read_group_set_id,omitempty"`
+	ReadGroupSetId string `protobuf:"bytes,3,opt,name=read_group_set_id,json=readGroupSetId,proto3" json:"read_group_set_id,omitempty"`
 	// The fragment name. Equivalent to QNAME (query template name) in SAM.
-	FragmentName string `protobuf:"bytes,4,opt,name=fragment_name,json=fragmentName" json:"fragment_name,omitempty"`
+	FragmentName string `protobuf:"bytes,4,opt,name=fragment_name,json=fragmentName,proto3" json:"fragment_name,omitempty"`
 	// The orientation and the distance between reads from the fragment are
 	// consistent with the sequencing protocol (SAM flag 0x2).
-	ProperPlacement bool `protobuf:"varint,5,opt,name=proper_placement,json=properPlacement" json:"proper_placement,omitempty"`
+	ProperPlacement bool `protobuf:"varint,5,opt,name=proper_placement,json=properPlacement,proto3" json:"proper_placement,omitempty"`
 	// The fragment is a PCR or optical duplicate (SAM flag 0x400).
-	DuplicateFragment bool `protobuf:"varint,6,opt,name=duplicate_fragment,json=duplicateFragment" json:"duplicate_fragment,omitempty"`
+	DuplicateFragment bool `protobuf:"varint,6,opt,name=duplicate_fragment,json=duplicateFragment,proto3" json:"duplicate_fragment,omitempty"`
 	// The observed length of the fragment, equivalent to TLEN in SAM.
-	FragmentLength int32 `protobuf:"varint,7,opt,name=fragment_length,json=fragmentLength" json:"fragment_length,omitempty"`
+	FragmentLength int32 `protobuf:"varint,7,opt,name=fragment_length,json=fragmentLength,proto3" json:"fragment_length,omitempty"`
 	// The read number in sequencing. 0-based and less than numberReads. This
 	// field replaces SAM flag 0x40 and 0x80.
-	ReadNumber int32 `protobuf:"varint,8,opt,name=read_number,json=readNumber" json:"read_number,omitempty"`
+	ReadNumber int32 `protobuf:"varint,8,opt,name=read_number,json=readNumber,proto3" json:"read_number,omitempty"`
 	// The number of reads in the fragment (extension to SAM flag 0x1).
-	NumberReads int32 `protobuf:"varint,9,opt,name=number_reads,json=numberReads" json:"number_reads,omitempty"`
+	NumberReads int32 `protobuf:"varint,9,opt,name=number_reads,json=numberReads,proto3" json:"number_reads,omitempty"`
 	// Whether this read did not pass filters, such as platform or vendor quality
 	// controls (SAM flag 0x200).
-	FailedVendorQualityChecks bool `protobuf:"varint,10,opt,name=failed_vendor_quality_checks,json=failedVendorQualityChecks" json:"failed_vendor_quality_checks,omitempty"`
+	FailedVendorQualityChecks bool `protobuf:"varint,10,opt,name=failed_vendor_quality_checks,json=failedVendorQualityChecks,proto3" json:"failed_vendor_quality_checks,omitempty"`
 	// The linear alignment for this alignment record. This field is null for
 	// unmapped reads.
-	Alignment *LinearAlignment `protobuf:"bytes,11,opt,name=alignment" json:"alignment,omitempty"`
+	Alignment *LinearAlignment `protobuf:"bytes,11,opt,name=alignment,proto3" json:"alignment,omitempty"`
 	// Whether this alignment is secondary. Equivalent to SAM flag 0x100.
 	// A secondary alignment represents an alternative to the primary alignment
 	// for this read. Aligners may return secondary alignments if a read can map
 	// ambiguously to multiple coordinates in the genome. By convention, each read
 	// has one and only one alignment where both `secondaryAlignment`
 	// and `supplementaryAlignment` are false.
-	SecondaryAlignment bool `protobuf:"varint,12,opt,name=secondary_alignment,json=secondaryAlignment" json:"secondary_alignment,omitempty"`
+	SecondaryAlignment bool `protobuf:"varint,12,opt,name=secondary_alignment,json=secondaryAlignment,proto3" json:"secondary_alignment,omitempty"`
 	// Whether this alignment is supplementary. Equivalent to SAM flag 0x800.
 	// Supplementary alignments are used in the representation of a chimeric
 	// alignment. In a chimeric alignment, a read is split into multiple
@@ -216,7 +216,7 @@ type Read struct {
 	// will be hard clipped. The `alignedSequence` and
 	// `alignedQuality` fields in the alignment record will only
 	// represent the bases for its respective linear alignment.
-	SupplementaryAlignment bool `protobuf:"varint,13,opt,name=supplementary_alignment,json=supplementaryAlignment" json:"supplementary_alignment,omitempty"`
+	SupplementaryAlignment bool `protobuf:"varint,13,opt,name=supplementary_alignment,json=supplementaryAlignment,proto3" json:"supplementary_alignment,omitempty"`
 	// The bases of the read sequence contained in this alignment record,
 	// **without CIGAR operations applied** (equivalent to SEQ in SAM).
 	// `alignedSequence` and `alignedQuality` may be
@@ -224,7 +224,7 @@ type Read struct {
 	// alignment is part of a chimeric alignment, or if the read was trimmed. When
 	// this occurs, the CIGAR for this read will begin/end with a hard clip
 	// operator that will indicate the length of the excised sequence.
-	AlignedSequence string `protobuf:"bytes,14,opt,name=aligned_sequence,json=alignedSequence" json:"aligned_sequence,omitempty"`
+	AlignedSequence string `protobuf:"bytes,14,opt,name=aligned_sequence,json=alignedSequence,proto3" json:"aligned_sequence,omitempty"`
 	// The quality of the read sequence contained in this alignment record
 	// (equivalent to QUAL in SAM).
 	// `alignedSequence` and `alignedQuality` may be shorter than the full read
@@ -232,14 +232,14 @@ type Read struct {
 	// chimeric alignment, or if the read was trimmed. When this occurs, the CIGAR
 	// for this read will begin/end with a hard clip operator that will indicate
 	// the length of the excised sequence.
-	AlignedQuality []int32 `protobuf:"varint,15,rep,packed,name=aligned_quality,json=alignedQuality" json:"aligned_quality,omitempty"`
+	AlignedQuality []int32 `protobuf:"varint,15,rep,packed,name=aligned_quality,json=alignedQuality,proto3" json:"aligned_quality,omitempty"`
 	// The mapping of the primary alignment of the
 	// `(readNumber+1)%numberReads` read in the fragment. It replaces
 	// mate position and mate strand in SAM.
-	NextMatePosition *Position `protobuf:"bytes,16,opt,name=next_mate_position,json=nextMatePosition" json:"next_mate_position,omitempty"`
+	NextMatePosition *Position `protobuf:"bytes,16,opt,name=next_mate_position,json=nextMatePosition,proto3" json:"next_mate_position,omitempty"`
 	// A map of additional read alignment information. This must be of the form
 	// map<string, string[]> (string key mapping to a list of string values).
-	Info                 map[string]*_struct.ListValue `protobuf:"bytes,17,rep,name=info" json:"info,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Info                 map[string]*_struct.ListValue `protobuf:"bytes,17,rep,name=info,proto3" json:"info,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}                      `json:"-"`
 	XXX_unrecognized     []byte                        `json:"-"`
 	XXX_sizecache        int32                         `json:"-"`

@@ -80,12 +80,12 @@ func (TargetChange_TargetChangeType) EnumDescriptor() ([]byte, []int) {
 type GetDocumentRequest struct {
 	// The resource name of the Document to get. In the format:
 	// `projects/{project_id}/databases/{database_id}/documents/{document_path}`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The fields to return. If not set, returns all fields.
 	//
 	// If the document has a field that is not present in this mask, that field
 	// will not be returned in the response.
-	Mask *DocumentMask `protobuf:"bytes,2,opt,name=mask" json:"mask,omitempty"`
+	Mask *DocumentMask `protobuf:"bytes,2,opt,name=mask,proto3" json:"mask,omitempty"`
 	// The consistency mode for this transaction.
 	// If not set, defaults to strong consistency.
 	//
@@ -130,7 +130,7 @@ type GetDocumentRequest_Transaction struct {
 	Transaction []byte `protobuf:"bytes,3,opt,name=transaction,proto3,oneof"`
 }
 type GetDocumentRequest_ReadTime struct {
-	ReadTime *timestamp.Timestamp `protobuf:"bytes,5,opt,name=read_time,json=readTime,oneof"`
+	ReadTime *timestamp.Timestamp `protobuf:"bytes,5,opt,name=read_time,json=readTime,proto3,oneof"`
 }
 
 func (*GetDocumentRequest_Transaction) isGetDocumentRequest_ConsistencySelector() {}
@@ -249,21 +249,21 @@ type ListDocumentsRequest struct {
 	// For example:
 	// `projects/my-project/databases/my-database/documents` or
 	// `projects/my-project/databases/my-database/documents/chatrooms/my-chatroom`
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// The collection ID, relative to `parent`, to list. For example: `chatrooms`
 	// or `messages`.
-	CollectionId string `protobuf:"bytes,2,opt,name=collection_id,json=collectionId" json:"collection_id,omitempty"`
+	CollectionId string `protobuf:"bytes,2,opt,name=collection_id,json=collectionId,proto3" json:"collection_id,omitempty"`
 	// The maximum number of documents to return.
-	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The `next_page_token` value returned from a previous List request, if any.
-	PageToken string `protobuf:"bytes,4,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// The order to sort results by. For example: `priority desc, name`.
-	OrderBy string `protobuf:"bytes,6,opt,name=order_by,json=orderBy" json:"order_by,omitempty"`
+	OrderBy string `protobuf:"bytes,6,opt,name=order_by,json=orderBy,proto3" json:"order_by,omitempty"`
 	// The fields to return. If not set, returns all fields.
 	//
 	// If a document has a field that is not present in this mask, that field
 	// will not be returned in the response.
-	Mask *DocumentMask `protobuf:"bytes,7,opt,name=mask" json:"mask,omitempty"`
+	Mask *DocumentMask `protobuf:"bytes,7,opt,name=mask,proto3" json:"mask,omitempty"`
 	// The consistency mode for this transaction.
 	// If not set, defaults to strong consistency.
 	//
@@ -278,7 +278,7 @@ type ListDocumentsRequest struct {
 	//
 	// Requests with `show_missing` may not specify `where` or
 	// `order_by`.
-	ShowMissing          bool     `protobuf:"varint,12,opt,name=show_missing,json=showMissing" json:"show_missing,omitempty"`
+	ShowMissing          bool     `protobuf:"varint,12,opt,name=show_missing,json=showMissing,proto3" json:"show_missing,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -316,7 +316,7 @@ type ListDocumentsRequest_Transaction struct {
 	Transaction []byte `protobuf:"bytes,8,opt,name=transaction,proto3,oneof"`
 }
 type ListDocumentsRequest_ReadTime struct {
-	ReadTime *timestamp.Timestamp `protobuf:"bytes,10,opt,name=read_time,json=readTime,oneof"`
+	ReadTime *timestamp.Timestamp `protobuf:"bytes,10,opt,name=read_time,json=readTime,proto3,oneof"`
 }
 
 func (*ListDocumentsRequest_Transaction) isListDocumentsRequest_ConsistencySelector() {}
@@ -465,9 +465,9 @@ func _ListDocumentsRequest_OneofSizer(msg proto.Message) (n int) {
 // The response for [Firestore.ListDocuments][google.firestore.v1beta1.Firestore.ListDocuments].
 type ListDocumentsResponse struct {
 	// The Documents found.
-	Documents []*Document `protobuf:"bytes,1,rep,name=documents" json:"documents,omitempty"`
+	Documents []*Document `protobuf:"bytes,1,rep,name=documents,proto3" json:"documents,omitempty"`
 	// The next page token.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -516,20 +516,20 @@ type CreateDocumentRequest struct {
 	// The parent resource. For example:
 	// `projects/{project_id}/databases/{database_id}/documents` or
 	// `projects/{project_id}/databases/{database_id}/documents/chatrooms/{chatroom_id}`
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// The collection ID, relative to `parent`, to list. For example: `chatrooms`.
-	CollectionId string `protobuf:"bytes,2,opt,name=collection_id,json=collectionId" json:"collection_id,omitempty"`
+	CollectionId string `protobuf:"bytes,2,opt,name=collection_id,json=collectionId,proto3" json:"collection_id,omitempty"`
 	// The client-assigned document ID to use for this document.
 	//
 	// Optional. If not specified, an ID will be assigned by the service.
-	DocumentId string `protobuf:"bytes,3,opt,name=document_id,json=documentId" json:"document_id,omitempty"`
+	DocumentId string `protobuf:"bytes,3,opt,name=document_id,json=documentId,proto3" json:"document_id,omitempty"`
 	// The document to create. `name` must not be set.
-	Document *Document `protobuf:"bytes,4,opt,name=document" json:"document,omitempty"`
+	Document *Document `protobuf:"bytes,4,opt,name=document,proto3" json:"document,omitempty"`
 	// The fields to return. If not set, returns all fields.
 	//
 	// If the document has a field that is not present in this mask, that field
 	// will not be returned in the response.
-	Mask                 *DocumentMask `protobuf:"bytes,5,opt,name=mask" json:"mask,omitempty"`
+	Mask                 *DocumentMask `protobuf:"bytes,5,opt,name=mask,proto3" json:"mask,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
 	XXX_unrecognized     []byte        `json:"-"`
 	XXX_sizecache        int32         `json:"-"`
@@ -598,7 +598,7 @@ func (m *CreateDocumentRequest) GetMask() *DocumentMask {
 type UpdateDocumentRequest struct {
 	// The updated document.
 	// Creates the document if it does not already exist.
-	Document *Document `protobuf:"bytes,1,opt,name=document" json:"document,omitempty"`
+	Document *Document `protobuf:"bytes,1,opt,name=document,proto3" json:"document,omitempty"`
 	// The fields to update.
 	// None of the field paths in the mask may contain a reserved name.
 	//
@@ -606,15 +606,15 @@ type UpdateDocumentRequest struct {
 	// mask, they are left unchanged.
 	// Fields referenced in the mask, but not present in the input document, are
 	// deleted from the document on the server.
-	UpdateMask *DocumentMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask *DocumentMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	// The fields to return. If not set, returns all fields.
 	//
 	// If the document has a field that is not present in this mask, that field
 	// will not be returned in the response.
-	Mask *DocumentMask `protobuf:"bytes,3,opt,name=mask" json:"mask,omitempty"`
+	Mask *DocumentMask `protobuf:"bytes,3,opt,name=mask,proto3" json:"mask,omitempty"`
 	// An optional precondition on the document.
 	// The request will fail if this is set and not met by the target document.
-	CurrentDocument      *Precondition `protobuf:"bytes,4,opt,name=current_document,json=currentDocument" json:"current_document,omitempty"`
+	CurrentDocument      *Precondition `protobuf:"bytes,4,opt,name=current_document,json=currentDocument,proto3" json:"current_document,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
 	XXX_unrecognized     []byte        `json:"-"`
 	XXX_sizecache        int32         `json:"-"`
@@ -676,10 +676,10 @@ func (m *UpdateDocumentRequest) GetCurrentDocument() *Precondition {
 type DeleteDocumentRequest struct {
 	// The resource name of the Document to delete. In the format:
 	// `projects/{project_id}/databases/{database_id}/documents/{document_path}`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// An optional precondition on the document.
 	// The request will fail if this is set and not met by the target document.
-	CurrentDocument      *Precondition `protobuf:"bytes,2,opt,name=current_document,json=currentDocument" json:"current_document,omitempty"`
+	CurrentDocument      *Precondition `protobuf:"bytes,2,opt,name=current_document,json=currentDocument,proto3" json:"current_document,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
 	XXX_unrecognized     []byte        `json:"-"`
 	XXX_sizecache        int32         `json:"-"`
@@ -727,17 +727,17 @@ func (m *DeleteDocumentRequest) GetCurrentDocument() *Precondition {
 type BatchGetDocumentsRequest struct {
 	// The database name. In the format:
 	// `projects/{project_id}/databases/{database_id}`.
-	Database string `protobuf:"bytes,1,opt,name=database" json:"database,omitempty"`
+	Database string `protobuf:"bytes,1,opt,name=database,proto3" json:"database,omitempty"`
 	// The names of the documents to retrieve. In the format:
 	// `projects/{project_id}/databases/{database_id}/documents/{document_path}`.
 	// The request will fail if any of the document is not a child resource of the
 	// given `database`. Duplicate names will be elided.
-	Documents []string `protobuf:"bytes,2,rep,name=documents" json:"documents,omitempty"`
+	Documents []string `protobuf:"bytes,2,rep,name=documents,proto3" json:"documents,omitempty"`
 	// The fields to return. If not set, returns all fields.
 	//
 	// If a document has a field that is not present in this mask, that field will
 	// not be returned in the response.
-	Mask *DocumentMask `protobuf:"bytes,3,opt,name=mask" json:"mask,omitempty"`
+	Mask *DocumentMask `protobuf:"bytes,3,opt,name=mask,proto3" json:"mask,omitempty"`
 	// The consistency mode for this transaction.
 	// If not set, defaults to strong consistency.
 	//
@@ -783,10 +783,10 @@ type BatchGetDocumentsRequest_Transaction struct {
 	Transaction []byte `protobuf:"bytes,4,opt,name=transaction,proto3,oneof"`
 }
 type BatchGetDocumentsRequest_NewTransaction struct {
-	NewTransaction *TransactionOptions `protobuf:"bytes,5,opt,name=new_transaction,json=newTransaction,oneof"`
+	NewTransaction *TransactionOptions `protobuf:"bytes,5,opt,name=new_transaction,json=newTransaction,proto3,oneof"`
 }
 type BatchGetDocumentsRequest_ReadTime struct {
-	ReadTime *timestamp.Timestamp `protobuf:"bytes,7,opt,name=read_time,json=readTime,oneof"`
+	ReadTime *timestamp.Timestamp `protobuf:"bytes,7,opt,name=read_time,json=readTime,proto3,oneof"`
 }
 
 func (*BatchGetDocumentsRequest_Transaction) isBatchGetDocumentsRequest_ConsistencySelector()    {}
@@ -948,7 +948,7 @@ type BatchGetDocumentsResponse struct {
 	// This may be monotically increasing, in this case the previous documents in
 	// the result stream are guaranteed not to have changed between their
 	// read_time and this one.
-	ReadTime             *timestamp.Timestamp `protobuf:"bytes,4,opt,name=read_time,json=readTime" json:"read_time,omitempty"`
+	ReadTime             *timestamp.Timestamp `protobuf:"bytes,4,opt,name=read_time,json=readTime,proto3" json:"read_time,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -983,10 +983,10 @@ type isBatchGetDocumentsResponse_Result interface {
 }
 
 type BatchGetDocumentsResponse_Found struct {
-	Found *Document `protobuf:"bytes,1,opt,name=found,oneof"`
+	Found *Document `protobuf:"bytes,1,opt,name=found,proto3,oneof"`
 }
 type BatchGetDocumentsResponse_Missing struct {
-	Missing string `protobuf:"bytes,2,opt,name=missing,oneof"`
+	Missing string `protobuf:"bytes,2,opt,name=missing,proto3,oneof"`
 }
 
 func (*BatchGetDocumentsResponse_Found) isBatchGetDocumentsResponse_Result()   {}
@@ -1101,10 +1101,10 @@ func _BatchGetDocumentsResponse_OneofSizer(msg proto.Message) (n int) {
 type BeginTransactionRequest struct {
 	// The database name. In the format:
 	// `projects/{project_id}/databases/{database_id}`.
-	Database string `protobuf:"bytes,1,opt,name=database" json:"database,omitempty"`
+	Database string `protobuf:"bytes,1,opt,name=database,proto3" json:"database,omitempty"`
 	// The options for the transaction.
 	// Defaults to a read-write transaction.
-	Options              *TransactionOptions `protobuf:"bytes,2,opt,name=options" json:"options,omitempty"`
+	Options              *TransactionOptions `protobuf:"bytes,2,opt,name=options,proto3" json:"options,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
 	XXX_unrecognized     []byte              `json:"-"`
 	XXX_sizecache        int32               `json:"-"`
@@ -1192,11 +1192,11 @@ func (m *BeginTransactionResponse) GetTransaction() []byte {
 type CommitRequest struct {
 	// The database name. In the format:
 	// `projects/{project_id}/databases/{database_id}`.
-	Database string `protobuf:"bytes,1,opt,name=database" json:"database,omitempty"`
+	Database string `protobuf:"bytes,1,opt,name=database,proto3" json:"database,omitempty"`
 	// The writes to apply.
 	//
 	// Always executed atomically and in order.
-	Writes []*Write `protobuf:"bytes,2,rep,name=writes" json:"writes,omitempty"`
+	Writes []*Write `protobuf:"bytes,2,rep,name=writes,proto3" json:"writes,omitempty"`
 	// If set, applies all writes in this transaction, and commits it.
 	Transaction          []byte   `protobuf:"bytes,3,opt,name=transaction,proto3" json:"transaction,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -1255,9 +1255,9 @@ type CommitResponse struct {
 	//
 	// This i-th write result corresponds to the i-th write in the
 	// request.
-	WriteResults []*WriteResult `protobuf:"bytes,1,rep,name=write_results,json=writeResults" json:"write_results,omitempty"`
+	WriteResults []*WriteResult `protobuf:"bytes,1,rep,name=write_results,json=writeResults,proto3" json:"write_results,omitempty"`
 	// The time at which the commit occurred.
-	CommitTime           *timestamp.Timestamp `protobuf:"bytes,2,opt,name=commit_time,json=commitTime" json:"commit_time,omitempty"`
+	CommitTime           *timestamp.Timestamp `protobuf:"bytes,2,opt,name=commit_time,json=commitTime,proto3" json:"commit_time,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -1305,7 +1305,7 @@ func (m *CommitResponse) GetCommitTime() *timestamp.Timestamp {
 type RollbackRequest struct {
 	// The database name. In the format:
 	// `projects/{project_id}/databases/{database_id}`.
-	Database string `protobuf:"bytes,1,opt,name=database" json:"database,omitempty"`
+	Database string `protobuf:"bytes,1,opt,name=database,proto3" json:"database,omitempty"`
 	// The transaction to roll back.
 	Transaction          []byte   `protobuf:"bytes,2,opt,name=transaction,proto3" json:"transaction,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -1359,7 +1359,7 @@ type RunQueryRequest struct {
 	// For example:
 	// `projects/my-project/databases/my-database/documents` or
 	// `projects/my-project/databases/my-database/documents/chatrooms/my-chatroom`
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// The query to run.
 	//
 	// Types that are valid to be assigned to QueryType:
@@ -1410,16 +1410,16 @@ type isRunQueryRequest_ConsistencySelector interface {
 }
 
 type RunQueryRequest_StructuredQuery struct {
-	StructuredQuery *StructuredQuery `protobuf:"bytes,2,opt,name=structured_query,json=structuredQuery,oneof"`
+	StructuredQuery *StructuredQuery `protobuf:"bytes,2,opt,name=structured_query,json=structuredQuery,proto3,oneof"`
 }
 type RunQueryRequest_Transaction struct {
 	Transaction []byte `protobuf:"bytes,5,opt,name=transaction,proto3,oneof"`
 }
 type RunQueryRequest_NewTransaction struct {
-	NewTransaction *TransactionOptions `protobuf:"bytes,6,opt,name=new_transaction,json=newTransaction,oneof"`
+	NewTransaction *TransactionOptions `protobuf:"bytes,6,opt,name=new_transaction,json=newTransaction,proto3,oneof"`
 }
 type RunQueryRequest_ReadTime struct {
-	ReadTime *timestamp.Timestamp `protobuf:"bytes,7,opt,name=read_time,json=readTime,oneof"`
+	ReadTime *timestamp.Timestamp `protobuf:"bytes,7,opt,name=read_time,json=readTime,proto3,oneof"`
 }
 
 func (*RunQueryRequest_StructuredQuery) isRunQueryRequest_QueryType()          {}
@@ -1604,7 +1604,7 @@ type RunQueryResponse struct {
 	Transaction []byte `protobuf:"bytes,2,opt,name=transaction,proto3" json:"transaction,omitempty"`
 	// A query result.
 	// Not set when reporting partial progress.
-	Document *Document `protobuf:"bytes,1,opt,name=document" json:"document,omitempty"`
+	Document *Document `protobuf:"bytes,1,opt,name=document,proto3" json:"document,omitempty"`
 	// The time at which the document was read. This may be monotonically
 	// increasing; in this case, the previous documents in the result stream are
 	// guaranteed not to have changed between their `read_time` and this one.
@@ -1612,10 +1612,10 @@ type RunQueryResponse struct {
 	// If the query returns no results, a response with `read_time` and no
 	// `document` will be sent, and this represents the time at which the query
 	// was run.
-	ReadTime *timestamp.Timestamp `protobuf:"bytes,3,opt,name=read_time,json=readTime" json:"read_time,omitempty"`
+	ReadTime *timestamp.Timestamp `protobuf:"bytes,3,opt,name=read_time,json=readTime,proto3" json:"read_time,omitempty"`
 	// The number of results that have been skipped due to an offset between
 	// the last response and the current response.
-	SkippedResults       int32    `protobuf:"varint,4,opt,name=skipped_results,json=skippedResults" json:"skipped_results,omitempty"`
+	SkippedResults       int32    `protobuf:"varint,4,opt,name=skipped_results,json=skippedResults,proto3" json:"skipped_results,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1687,18 +1687,18 @@ type WriteRequest struct {
 	// The database name. In the format:
 	// `projects/{project_id}/databases/{database_id}`.
 	// This is only required in the first message.
-	Database string `protobuf:"bytes,1,opt,name=database" json:"database,omitempty"`
+	Database string `protobuf:"bytes,1,opt,name=database,proto3" json:"database,omitempty"`
 	// The ID of the write stream to resume.
 	// This may only be set in the first message. When left empty, a new write
 	// stream will be created.
-	StreamId string `protobuf:"bytes,2,opt,name=stream_id,json=streamId" json:"stream_id,omitempty"`
+	StreamId string `protobuf:"bytes,2,opt,name=stream_id,json=streamId,proto3" json:"stream_id,omitempty"`
 	// The writes to apply.
 	//
 	// Always executed atomically and in order.
 	// This must be empty on the first request.
 	// This may be empty on the last request.
 	// This must not be empty on all other requests.
-	Writes []*Write `protobuf:"bytes,3,rep,name=writes" json:"writes,omitempty"`
+	Writes []*Write `protobuf:"bytes,3,rep,name=writes,proto3" json:"writes,omitempty"`
 	// A stream token that was previously sent by the server.
 	//
 	// The client should set this field to the token from the most recent
@@ -1715,7 +1715,7 @@ type WriteRequest struct {
 	// Leave this field unset when creating a new stream.
 	StreamToken []byte `protobuf:"bytes,4,opt,name=stream_token,json=streamToken,proto3" json:"stream_token,omitempty"`
 	// Labels associated with this write request.
-	Labels               map[string]string `protobuf:"bytes,5,rep,name=labels" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Labels               map[string]string `protobuf:"bytes,5,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -1784,7 +1784,7 @@ func (m *WriteRequest) GetLabels() map[string]string {
 type WriteResponse struct {
 	// The ID of the stream.
 	// Only set on the first message, when a new stream was created.
-	StreamId string `protobuf:"bytes,1,opt,name=stream_id,json=streamId" json:"stream_id,omitempty"`
+	StreamId string `protobuf:"bytes,1,opt,name=stream_id,json=streamId,proto3" json:"stream_id,omitempty"`
 	// A token that represents the position of this response in the stream.
 	// This can be used by a client to resume the stream at this point.
 	//
@@ -1794,9 +1794,9 @@ type WriteResponse struct {
 	//
 	// This i-th write result corresponds to the i-th write in the
 	// request.
-	WriteResults []*WriteResult `protobuf:"bytes,3,rep,name=write_results,json=writeResults" json:"write_results,omitempty"`
+	WriteResults []*WriteResult `protobuf:"bytes,3,rep,name=write_results,json=writeResults,proto3" json:"write_results,omitempty"`
 	// The time at which the commit occurred.
-	CommitTime           *timestamp.Timestamp `protobuf:"bytes,4,opt,name=commit_time,json=commitTime" json:"commit_time,omitempty"`
+	CommitTime           *timestamp.Timestamp `protobuf:"bytes,4,opt,name=commit_time,json=commitTime,proto3" json:"commit_time,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -1858,7 +1858,7 @@ func (m *WriteResponse) GetCommitTime() *timestamp.Timestamp {
 type ListenRequest struct {
 	// The database name. In the format:
 	// `projects/{project_id}/databases/{database_id}`.
-	Database string `protobuf:"bytes,1,opt,name=database" json:"database,omitempty"`
+	Database string `protobuf:"bytes,1,opt,name=database,proto3" json:"database,omitempty"`
 	// The supported target changes.
 	//
 	// Types that are valid to be assigned to TargetChange:
@@ -1866,7 +1866,7 @@ type ListenRequest struct {
 	//	*ListenRequest_RemoveTarget
 	TargetChange isListenRequest_TargetChange `protobuf_oneof:"target_change"`
 	// Labels associated with this target change.
-	Labels               map[string]string `protobuf:"bytes,4,rep,name=labels" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Labels               map[string]string `protobuf:"bytes,4,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -1901,10 +1901,10 @@ type isListenRequest_TargetChange interface {
 }
 
 type ListenRequest_AddTarget struct {
-	AddTarget *Target `protobuf:"bytes,2,opt,name=add_target,json=addTarget,oneof"`
+	AddTarget *Target `protobuf:"bytes,2,opt,name=add_target,json=addTarget,proto3,oneof"`
 }
 type ListenRequest_RemoveTarget struct {
-	RemoveTarget int32 `protobuf:"varint,3,opt,name=remove_target,json=removeTarget,oneof"`
+	RemoveTarget int32 `protobuf:"varint,3,opt,name=remove_target,json=removeTarget,proto3,oneof"`
 }
 
 func (*ListenRequest_AddTarget) isListenRequest_TargetChange()    {}
@@ -2059,19 +2059,19 @@ type isListenResponse_ResponseType interface {
 }
 
 type ListenResponse_TargetChange struct {
-	TargetChange *TargetChange `protobuf:"bytes,2,opt,name=target_change,json=targetChange,oneof"`
+	TargetChange *TargetChange `protobuf:"bytes,2,opt,name=target_change,json=targetChange,proto3,oneof"`
 }
 type ListenResponse_DocumentChange struct {
-	DocumentChange *DocumentChange `protobuf:"bytes,3,opt,name=document_change,json=documentChange,oneof"`
+	DocumentChange *DocumentChange `protobuf:"bytes,3,opt,name=document_change,json=documentChange,proto3,oneof"`
 }
 type ListenResponse_DocumentDelete struct {
-	DocumentDelete *DocumentDelete `protobuf:"bytes,4,opt,name=document_delete,json=documentDelete,oneof"`
+	DocumentDelete *DocumentDelete `protobuf:"bytes,4,opt,name=document_delete,json=documentDelete,proto3,oneof"`
 }
 type ListenResponse_DocumentRemove struct {
-	DocumentRemove *DocumentRemove `protobuf:"bytes,6,opt,name=document_remove,json=documentRemove,oneof"`
+	DocumentRemove *DocumentRemove `protobuf:"bytes,6,opt,name=document_remove,json=documentRemove,proto3,oneof"`
 }
 type ListenResponse_Filter struct {
-	Filter *ExistenceFilter `protobuf:"bytes,5,opt,name=filter,oneof"`
+	Filter *ExistenceFilter `protobuf:"bytes,5,opt,name=filter,proto3,oneof"`
 }
 
 func (*ListenResponse_TargetChange) isListenResponse_ResponseType()   {}
@@ -2278,9 +2278,9 @@ type Target struct {
 	// client-assigned or be server-assigned in a previous stream. All targets
 	// with client provided IDs must be added before adding a target that needs
 	// a server-assigned id.
-	TargetId int32 `protobuf:"varint,5,opt,name=target_id,json=targetId" json:"target_id,omitempty"`
+	TargetId int32 `protobuf:"varint,5,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
 	// If the target should be removed once it is current and consistent.
-	Once                 bool     `protobuf:"varint,6,opt,name=once" json:"once,omitempty"`
+	Once                 bool     `protobuf:"varint,6,opt,name=once,proto3" json:"once,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -2318,16 +2318,16 @@ type isTarget_ResumeType interface {
 }
 
 type Target_Query struct {
-	Query *Target_QueryTarget `protobuf:"bytes,2,opt,name=query,oneof"`
+	Query *Target_QueryTarget `protobuf:"bytes,2,opt,name=query,proto3,oneof"`
 }
 type Target_Documents struct {
-	Documents *Target_DocumentsTarget `protobuf:"bytes,3,opt,name=documents,oneof"`
+	Documents *Target_DocumentsTarget `protobuf:"bytes,3,opt,name=documents,proto3,oneof"`
 }
 type Target_ResumeToken struct {
 	ResumeToken []byte `protobuf:"bytes,4,opt,name=resume_token,json=resumeToken,proto3,oneof"`
 }
 type Target_ReadTime struct {
-	ReadTime *timestamp.Timestamp `protobuf:"bytes,11,opt,name=read_time,json=readTime,oneof"`
+	ReadTime *timestamp.Timestamp `protobuf:"bytes,11,opt,name=read_time,json=readTime,proto3,oneof"`
 }
 
 func (*Target_Query) isTarget_TargetType()       {}
@@ -2516,7 +2516,7 @@ type Target_DocumentsTarget struct {
 	// `projects/{project_id}/databases/{database_id}/documents/{document_path}`.
 	// The request will fail if any of the document is not a child resource of
 	// the given `database`. Duplicate names will be elided.
-	Documents            []string `protobuf:"bytes,2,rep,name=documents" json:"documents,omitempty"`
+	Documents            []string `protobuf:"bytes,2,rep,name=documents,proto3" json:"documents,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -2561,7 +2561,7 @@ type Target_QueryTarget struct {
 	// For example:
 	// `projects/my-project/databases/my-database/documents` or
 	// `projects/my-project/databases/my-database/documents/chatrooms/my-chatroom`
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// The query to run.
 	//
 	// Types that are valid to be assigned to QueryType:
@@ -2601,7 +2601,7 @@ type isTarget_QueryTarget_QueryType interface {
 }
 
 type Target_QueryTarget_StructuredQuery struct {
-	StructuredQuery *StructuredQuery `protobuf:"bytes,2,opt,name=structured_query,json=structuredQuery,oneof"`
+	StructuredQuery *StructuredQuery `protobuf:"bytes,2,opt,name=structured_query,json=structuredQuery,proto3,oneof"`
 }
 
 func (*Target_QueryTarget_StructuredQuery) isTarget_QueryTarget_QueryType() {}
@@ -2685,7 +2685,7 @@ func _Target_QueryTarget_OneofSizer(msg proto.Message) (n int) {
 // Targets being watched have changed.
 type TargetChange struct {
 	// The type of change that occurred.
-	TargetChangeType TargetChange_TargetChangeType `protobuf:"varint,1,opt,name=target_change_type,json=targetChangeType,enum=google.firestore.v1beta1.TargetChange_TargetChangeType" json:"target_change_type,omitempty"`
+	TargetChangeType TargetChange_TargetChangeType `protobuf:"varint,1,opt,name=target_change_type,json=targetChangeType,proto3,enum=google.firestore.v1beta1.TargetChange_TargetChangeType" json:"target_change_type,omitempty"`
 	// The target IDs of targets that have changed.
 	//
 	// If empty, the change applies to all targets.
@@ -2695,9 +2695,9 @@ type TargetChange struct {
 	// associate server-assigned target IDs with added targets.
 	//
 	// For other states, the order of the target IDs is not defined.
-	TargetIds []int32 `protobuf:"varint,2,rep,packed,name=target_ids,json=targetIds" json:"target_ids,omitempty"`
+	TargetIds []int32 `protobuf:"varint,2,rep,packed,name=target_ids,json=targetIds,proto3" json:"target_ids,omitempty"`
 	// The error that resulted in this change, if applicable.
-	Cause *status.Status `protobuf:"bytes,3,opt,name=cause" json:"cause,omitempty"`
+	Cause *status.Status `protobuf:"bytes,3,opt,name=cause,proto3" json:"cause,omitempty"`
 	// A token that can be used to resume the stream for the given `target_ids`,
 	// or all targets if `target_ids` is empty.
 	//
@@ -2713,7 +2713,7 @@ type TargetChange struct {
 	//
 	// For a given stream, `read_time` is guaranteed to be monotonically
 	// increasing.
-	ReadTime             *timestamp.Timestamp `protobuf:"bytes,6,opt,name=read_time,json=readTime" json:"read_time,omitempty"`
+	ReadTime             *timestamp.Timestamp `protobuf:"bytes,6,opt,name=read_time,json=readTime,proto3" json:"read_time,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -2784,12 +2784,12 @@ type ListCollectionIdsRequest struct {
 	// `projects/{project_id}/databases/{database_id}/documents/{document_path}`.
 	// For example:
 	// `projects/my-project/databases/my-database/documents/chatrooms/my-chatroom`
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// The maximum number of results to return.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// A page token. Must be a value from
 	// [ListCollectionIdsResponse][google.firestore.v1beta1.ListCollectionIdsResponse].
-	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -2843,9 +2843,9 @@ func (m *ListCollectionIdsRequest) GetPageToken() string {
 // The response from [Firestore.ListCollectionIds][google.firestore.v1beta1.Firestore.ListCollectionIds].
 type ListCollectionIdsResponse struct {
 	// The collection ids.
-	CollectionIds []string `protobuf:"bytes,1,rep,name=collection_ids,json=collectionIds" json:"collection_ids,omitempty"`
+	CollectionIds []string `protobuf:"bytes,1,rep,name=collection_ids,json=collectionIds,proto3" json:"collection_ids,omitempty"`
 	// A page token that may be used to continue the list.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -3178,8 +3178,7 @@ func (c *firestoreClient) ListCollectionIds(ctx context.Context, in *ListCollect
 	return out, nil
 }
 
-// Server API for Firestore service
-
+// FirestoreServer is the server API for Firestore service.
 type FirestoreServer interface {
 	// Gets a single document.
 	GetDocument(context.Context, *GetDocumentRequest) (*Document, error)

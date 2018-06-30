@@ -25,11 +25,11 @@ type LocationMetadata struct {
 	// App Engine Standard Environment is available in the given location.
 	//
 	// @OutputOnly
-	StandardEnvironmentAvailable bool `protobuf:"varint,2,opt,name=standard_environment_available,json=standardEnvironmentAvailable" json:"standard_environment_available,omitempty"`
+	StandardEnvironmentAvailable bool `protobuf:"varint,2,opt,name=standard_environment_available,json=standardEnvironmentAvailable,proto3" json:"standard_environment_available,omitempty"`
 	// App Engine Flexible Environment is available in the given location.
 	//
 	// @OutputOnly
-	FlexibleEnvironmentAvailable bool     `protobuf:"varint,4,opt,name=flexible_environment_available,json=flexibleEnvironmentAvailable" json:"flexible_environment_available,omitempty"`
+	FlexibleEnvironmentAvailable bool     `protobuf:"varint,4,opt,name=flexible_environment_available,json=flexibleEnvironmentAvailable,proto3" json:"flexible_environment_available,omitempty"`
 	XXX_NoUnkeyedLiteral         struct{} `json:"-"`
 	XXX_unrecognized             []byte   `json:"-"`
 	XXX_sizecache                int32    `json:"-"`

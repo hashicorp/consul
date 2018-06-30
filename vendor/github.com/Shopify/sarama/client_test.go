@@ -444,6 +444,47 @@ func TestClientResurrectDeadSeeds(t *testing.T) {
 	safeClose(t, c)
 }
 
+func TestClientController(t *testing.T) {
+	seedBroker := NewMockBroker(t, 1)
+	defer seedBroker.Close()
+	controllerBroker := NewMockBroker(t, 2)
+	defer controllerBroker.Close()
+
+	seedBroker.SetHandlerByMap(map[string]MockResponse{
+		"MetadataRequest": NewMockMetadataResponse(t).
+			SetController(controllerBroker.BrokerID()).
+			SetBroker(seedBroker.Addr(), seedBroker.BrokerID()).
+			SetBroker(controllerBroker.Addr(), controllerBroker.BrokerID()),
+	})
+
+	cfg := NewConfig()
+
+	// test kafka version greater than 0.10.0.0
+	cfg.Version = V0_10_0_0
+	client1, err := NewClient([]string{seedBroker.Addr()}, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer safeClose(t, client1)
+	broker, err := client1.Controller()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if broker.Addr() != controllerBroker.Addr() {
+		t.Errorf("Expected controller to have address %s, found %s", controllerBroker.Addr(), broker.Addr())
+	}
+
+	// test kafka version earlier than 0.10.0.0
+	cfg.Version = V0_9_0_1
+	client2, err := NewClient([]string{seedBroker.Addr()}, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer safeClose(t, client2)
+	if _, err = client2.Controller(); err != ErrControllerNotAvailable {
+		t.Errorf("Expected Contoller() to return %s, found %s", ErrControllerNotAvailable, err)
+	}
+}
 func TestClientCoordinatorWithConsumerOffsetsTopic(t *testing.T) {
 	seedBroker := NewMockBroker(t, 1)
 	staleCoordinator := NewMockBroker(t, 2)

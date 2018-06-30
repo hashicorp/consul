@@ -1608,7 +1608,10 @@ func (sc *serverConn) processData(f *DataFrame) error {
 	// Sender sending more than they'd declared?
 	if st.declBodyBytes != -1 && st.bodyBytes+int64(len(data)) > st.declBodyBytes {
 		st.body.CloseWithError(fmt.Errorf("sender tried to send more than declared Content-Length of %d bytes", st.declBodyBytes))
-		return streamError(id, ErrCodeStreamClosed)
+		// RFC 7540, sec 8.1.2.6: A request or response is also malformed if the
+		// value of a content-length header field does not equal the sum of the
+		// DATA frame payload lengths that form the body.
+		return streamError(id, ErrCodeProtocol)
 	}
 	if f.Length > 0 {
 		// Check whether the client has flow control quota.
@@ -2309,7 +2312,6 @@ func (rws *responseWriterState) writeChunk(p []byte) (n int, err error) {
 	isHeadResp := rws.req.Method == "HEAD"
 	if !rws.sentHeader {
 		rws.sentHeader = true
-
 		var ctype, clen string
 		if clen = rws.snapHeader.Get("Content-Length"); clen != "" {
 			rws.snapHeader.Del("Content-Length")
@@ -2323,7 +2325,6 @@ func (rws *responseWriterState) writeChunk(p []byte) (n int, err error) {
 		if clen == "" && rws.handlerDone && bodyAllowedForStatus(rws.status) && (len(p) > 0 || !isHeadResp) {
 			clen = strconv.Itoa(len(p))
 		}
-
 		_, hasContentType := rws.snapHeader["Content-Type"]
 		if !hasContentType && bodyAllowedForStatus(rws.status) && len(p) > 0 {
 			if cto := rws.snapHeader.Get("X-Content-Type-Options"); strings.EqualFold("nosniff", cto) {
@@ -2336,20 +2337,6 @@ func (rws *responseWriterState) writeChunk(p []byte) (n int, err error) {
 				ctype = http.DetectContentType(p)
 			}
 		}
-
-		var noSniff bool
-		if bodyAllowedForStatus(rws.status) && (rws.sentContentLen > 0 || len(p) > 0) {
-			// If the content type triggers client-side sniffing on old browsers,
-			// attach a X-Content-Type-Options header if not present (or explicitly nil).
-			if _, ok := rws.snapHeader["X-Content-Type-Options"]; !ok {
-				if hasContentType {
-					noSniff = httpguts.SniffedContentType(rws.snapHeader.Get("Content-Type"))
-				} else if ctype != "" {
-					noSniff = httpguts.SniffedContentType(ctype)
-				}
-			}
-		}
-
 		var date string
 		if _, ok := rws.snapHeader["Date"]; !ok {
 			// TODO(bradfitz): be faster here, like net/http? measure.
@@ -2360,6 +2347,19 @@ func (rws *responseWriterState) writeChunk(p []byte) (n int, err error) {
 			foreachHeaderElement(v, rws.declareTrailer)
 		}
 
+		// "Connection" headers aren't allowed in HTTP/2 (RFC 7540, 8.1.2.2),
+		// but respect "Connection" == "close" to mean sending a GOAWAY and tearing
+		// down the TCP connection when idle, like we do for HTTP/1.
+		// TODO: remove more Connection-specific header fields here, in addition
+		// to "Connection".
+		if _, ok := rws.snapHeader["Connection"]; ok {
+			v := rws.snapHeader.Get("Connection")
+			delete(rws.snapHeader, "Connection")
+			if v == "close" {
+				rws.conn.startGracefulShutdown()
+			}
+		}
+
 		endStream := (rws.handlerDone && !rws.hasTrailers() && len(p) == 0) || isHeadResp
 		err = rws.conn.writeHeaders(rws.stream, &writeResHeaders{
 			streamID:      rws.stream.id,
@@ -2368,7 +2368,6 @@ func (rws *responseWriterState) writeChunk(p []byte) (n int, err error) {
 			endStream:     endStream,
 			contentType:   ctype,
 			contentLength: clen,
-			noSniff:       noSniff,
 			date:          date,
 		})
 		if err != nil {

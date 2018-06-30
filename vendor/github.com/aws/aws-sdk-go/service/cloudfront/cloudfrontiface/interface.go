@@ -116,10 +116,6 @@ type CloudFrontAPI interface {
 	DeletePublicKeyWithContext(aws.Context, *cloudfront.DeletePublicKeyInput, ...request.Option) (*cloudfront.DeletePublicKeyOutput, error)
 	DeletePublicKeyRequest(*cloudfront.DeletePublicKeyInput) (*request.Request, *cloudfront.DeletePublicKeyOutput)
 
-	DeleteServiceLinkedRole(*cloudfront.DeleteServiceLinkedRoleInput) (*cloudfront.DeleteServiceLinkedRoleOutput, error)
-	DeleteServiceLinkedRoleWithContext(aws.Context, *cloudfront.DeleteServiceLinkedRoleInput, ...request.Option) (*cloudfront.DeleteServiceLinkedRoleOutput, error)
-	DeleteServiceLinkedRoleRequest(*cloudfront.DeleteServiceLinkedRoleInput) (*request.Request, *cloudfront.DeleteServiceLinkedRoleOutput)
-
 	DeleteStreamingDistribution(*cloudfront.DeleteStreamingDistributionInput) (*cloudfront.DeleteStreamingDistributionOutput, error)
 	DeleteStreamingDistributionWithContext(aws.Context, *cloudfront.DeleteStreamingDistributionInput, ...request.Option) (*cloudfront.DeleteStreamingDistributionOutput, error)
 	DeleteStreamingDistributionRequest(*cloudfront.DeleteStreamingDistributionInput) (*request.Request, *cloudfront.DeleteStreamingDistributionOutput)

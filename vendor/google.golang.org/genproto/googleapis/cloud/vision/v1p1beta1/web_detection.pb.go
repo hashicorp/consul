@@ -22,20 +22,20 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 // Relevant information for the image from the Internet.
 type WebDetection struct {
 	// Deduced entities from similar images on the Internet.
-	WebEntities []*WebDetection_WebEntity `protobuf:"bytes,1,rep,name=web_entities,json=webEntities" json:"web_entities,omitempty"`
+	WebEntities []*WebDetection_WebEntity `protobuf:"bytes,1,rep,name=web_entities,json=webEntities,proto3" json:"web_entities,omitempty"`
 	// Fully matching images from the Internet.
 	// Can include resized copies of the query image.
-	FullMatchingImages []*WebDetection_WebImage `protobuf:"bytes,2,rep,name=full_matching_images,json=fullMatchingImages" json:"full_matching_images,omitempty"`
+	FullMatchingImages []*WebDetection_WebImage `protobuf:"bytes,2,rep,name=full_matching_images,json=fullMatchingImages,proto3" json:"full_matching_images,omitempty"`
 	// Partial matching images from the Internet.
 	// Those images are similar enough to share some key-point features. For
 	// example an original image will likely have partial matching for its crops.
-	PartialMatchingImages []*WebDetection_WebImage `protobuf:"bytes,3,rep,name=partial_matching_images,json=partialMatchingImages" json:"partial_matching_images,omitempty"`
+	PartialMatchingImages []*WebDetection_WebImage `protobuf:"bytes,3,rep,name=partial_matching_images,json=partialMatchingImages,proto3" json:"partial_matching_images,omitempty"`
 	// Web pages containing the matching images from the Internet.
-	PagesWithMatchingImages []*WebDetection_WebPage `protobuf:"bytes,4,rep,name=pages_with_matching_images,json=pagesWithMatchingImages" json:"pages_with_matching_images,omitempty"`
+	PagesWithMatchingImages []*WebDetection_WebPage `protobuf:"bytes,4,rep,name=pages_with_matching_images,json=pagesWithMatchingImages,proto3" json:"pages_with_matching_images,omitempty"`
 	// The visually similar image results.
-	VisuallySimilarImages []*WebDetection_WebImage `protobuf:"bytes,6,rep,name=visually_similar_images,json=visuallySimilarImages" json:"visually_similar_images,omitempty"`
+	VisuallySimilarImages []*WebDetection_WebImage `protobuf:"bytes,6,rep,name=visually_similar_images,json=visuallySimilarImages,proto3" json:"visually_similar_images,omitempty"`
 	// Best guess text labels for the request image.
-	BestGuessLabels      []*WebDetection_WebLabel `protobuf:"bytes,8,rep,name=best_guess_labels,json=bestGuessLabels" json:"best_guess_labels,omitempty"`
+	BestGuessLabels      []*WebDetection_WebLabel `protobuf:"bytes,8,rep,name=best_guess_labels,json=bestGuessLabels,proto3" json:"best_guess_labels,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                 `json:"-"`
 	XXX_unrecognized     []byte                   `json:"-"`
 	XXX_sizecache        int32                    `json:"-"`
@@ -110,12 +110,12 @@ func (m *WebDetection) GetBestGuessLabels() []*WebDetection_WebLabel {
 // Entity deduced from similar images on the Internet.
 type WebDetection_WebEntity struct {
 	// Opaque entity ID.
-	EntityId string `protobuf:"bytes,1,opt,name=entity_id,json=entityId" json:"entity_id,omitempty"`
+	EntityId string `protobuf:"bytes,1,opt,name=entity_id,json=entityId,proto3" json:"entity_id,omitempty"`
 	// Overall relevancy score for the entity.
 	// Not normalized and not comparable across different image queries.
-	Score float32 `protobuf:"fixed32,2,opt,name=score" json:"score,omitempty"`
+	Score float32 `protobuf:"fixed32,2,opt,name=score,proto3" json:"score,omitempty"`
 	// Canonical description of the entity, in English.
-	Description          string   `protobuf:"bytes,3,opt,name=description" json:"description,omitempty"`
+	Description          string   `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -169,9 +169,9 @@ func (m *WebDetection_WebEntity) GetDescription() string {
 // Metadata for online images.
 type WebDetection_WebImage struct {
 	// The result image URL.
-	Url string `protobuf:"bytes,1,opt,name=url" json:"url,omitempty"`
+	Url string `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
 	// (Deprecated) Overall relevancy score for the image.
-	Score                float32  `protobuf:"fixed32,2,opt,name=score" json:"score,omitempty"`
+	Score                float32  `protobuf:"fixed32,2,opt,name=score,proto3" json:"score,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -218,19 +218,19 @@ func (m *WebDetection_WebImage) GetScore() float32 {
 // Metadata for web pages.
 type WebDetection_WebPage struct {
 	// The result web page URL.
-	Url string `protobuf:"bytes,1,opt,name=url" json:"url,omitempty"`
+	Url string `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
 	// (Deprecated) Overall relevancy score for the web page.
-	Score float32 `protobuf:"fixed32,2,opt,name=score" json:"score,omitempty"`
+	Score float32 `protobuf:"fixed32,2,opt,name=score,proto3" json:"score,omitempty"`
 	// Title for the web page, may contain HTML markups.
-	PageTitle string `protobuf:"bytes,3,opt,name=page_title,json=pageTitle" json:"page_title,omitempty"`
+	PageTitle string `protobuf:"bytes,3,opt,name=page_title,json=pageTitle,proto3" json:"page_title,omitempty"`
 	// Fully matching images on the page.
 	// Can include resized copies of the query image.
-	FullMatchingImages []*WebDetection_WebImage `protobuf:"bytes,4,rep,name=full_matching_images,json=fullMatchingImages" json:"full_matching_images,omitempty"`
+	FullMatchingImages []*WebDetection_WebImage `protobuf:"bytes,4,rep,name=full_matching_images,json=fullMatchingImages,proto3" json:"full_matching_images,omitempty"`
 	// Partial matching images on the page.
 	// Those images are similar enough to share some key-point features. For
 	// example an original image will likely have partial matching for its
 	// crops.
-	PartialMatchingImages []*WebDetection_WebImage `protobuf:"bytes,5,rep,name=partial_matching_images,json=partialMatchingImages" json:"partial_matching_images,omitempty"`
+	PartialMatchingImages []*WebDetection_WebImage `protobuf:"bytes,5,rep,name=partial_matching_images,json=partialMatchingImages,proto3" json:"partial_matching_images,omitempty"`
 	XXX_NoUnkeyedLiteral  struct{}                 `json:"-"`
 	XXX_unrecognized      []byte                   `json:"-"`
 	XXX_sizecache         int32                    `json:"-"`
@@ -298,11 +298,11 @@ func (m *WebDetection_WebPage) GetPartialMatchingImages() []*WebDetection_WebIma
 // Label to provide extra metadata for the web detection.
 type WebDetection_WebLabel struct {
 	// Label for extra metadata.
-	Label string `protobuf:"bytes,1,opt,name=label" json:"label,omitempty"`
+	Label string `protobuf:"bytes,1,opt,name=label,proto3" json:"label,omitempty"`
 	// The BCP-47 language code for `label`, such as "en-US" or "sr-Latn".
 	// For more information, see
 	// http://www.unicode.org/reports/tr35/#Unicode_locale_identifier.
-	LanguageCode         string   `protobuf:"bytes,2,opt,name=language_code,json=languageCode" json:"language_code,omitempty"`
+	LanguageCode         string   `protobuf:"bytes,2,opt,name=language_code,json=languageCode,proto3" json:"language_code,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

@@ -1,7 +1,17 @@
 language: go
 
 go:
-  - 1.x
+  - 1.8.x
+  - 1.9.x
+  - 1.10.x
+  - master
+
+matrix:
+ fast_finish: true
+ allow_failures:
+   - go: master
+
+sudo: false
 
 script: 
  - go test -v -cpu=2

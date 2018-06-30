@@ -152,6 +152,8 @@ func (c *AlexaForBusiness) AssociateDeviceWithRoomRequest(input *AssociateDevice
 //   You are performing an action that would put you beyond your account's limits.
 //   HTTP Status Code: 400
 //
+//   * ErrCodeDeviceNotRegisteredException "DeviceNotRegisteredException"
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/alexaforbusiness-2017-11-09/AssociateDeviceWithRoom
 func (c *AlexaForBusiness) AssociateDeviceWithRoom(input *AssociateDeviceWithRoomInput) (*AssociateDeviceWithRoomOutput, error) {
 	req, out := c.AssociateDeviceWithRoomRequest(input)
@@ -1423,6 +1425,10 @@ func (c *AlexaForBusiness) DisassociateDeviceFromRoomRequest(input *Disassociate
 //
 // See the AWS API reference guide for Alexa For Business's
 // API operation DisassociateDeviceFromRoom for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeDeviceNotRegisteredException "DeviceNotRegisteredException"
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/alexaforbusiness-2017-11-09/DisassociateDeviceFromRoom
 func (c *AlexaForBusiness) DisassociateDeviceFromRoom(input *DisassociateDeviceFromRoomInput) (*DisassociateDeviceFromRoomOutput, error) {
 	req, out := c.DisassociateDeviceFromRoomRequest(input)
@@ -3759,6 +3765,10 @@ func (c *AlexaForBusiness) StartDeviceSyncRequest(input *StartDeviceSyncInput) (
 //
 // See the AWS API reference guide for Alexa For Business's
 // API operation StartDeviceSync for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeDeviceNotRegisteredException "DeviceNotRegisteredException"
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/alexaforbusiness-2017-11-09/StartDeviceSync
 func (c *AlexaForBusiness) StartDeviceSync(input *StartDeviceSyncInput) (*StartDeviceSyncOutput, error) {
 	req, out := c.StartDeviceSyncRequest(input)
@@ -4156,6 +4166,8 @@ func (c *AlexaForBusiness) UpdateDeviceRequest(input *UpdateDeviceInput) (req *r
 // Returned Error Codes:
 //   * ErrCodeNotFoundException "NotFoundException"
 //   The resource is not found. HTTP Status Code: 400
+//
+//   * ErrCodeDeviceNotRegisteredException "DeviceNotRegisteredException"
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/alexaforbusiness-2017-11-09/UpdateDevice
 func (c *AlexaForBusiness) UpdateDevice(input *UpdateDeviceInput) (*UpdateDeviceOutput, error) {

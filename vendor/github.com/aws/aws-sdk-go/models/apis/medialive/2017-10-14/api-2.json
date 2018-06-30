@@ -27,10 +27,10 @@
       },
       "errors": [
         {
-          "shape": "UnprocessableEntityException"
+          "shape": "BadRequestException"
         },
         {
-          "shape": "BadRequestException"
+          "shape": "UnprocessableEntityException"
         },
         {
           "shape": "InternalServerErrorException"
@@ -237,6 +237,46 @@
         }
       ]
     },
+    "DeleteReservation": {
+      "name": "DeleteReservation",
+      "http": {
+        "method": "DELETE",
+        "requestUri": "/prod/reservations/{reservationId}",
+        "responseCode": 200
+      },
+      "input": {
+        "shape": "DeleteReservationRequest"
+      },
+      "output": {
+        "shape": "DeleteReservationResponse"
+      },
+      "errors": [
+        {
+          "shape": "BadRequestException"
+        },
+        {
+          "shape": "InternalServerErrorException"
+        },
+        {
+          "shape": "ForbiddenException"
+        },
+        {
+          "shape": "BadGatewayException"
+        },
+        {
+          "shape": "NotFoundException"
+        },
+        {
+          "shape": "GatewayTimeoutException"
+        },
+        {
+          "shape": "TooManyRequestsException"
+        },
+        {
+          "shape": "ConflictException"
+        }
+      ]
+    },
     "DescribeChannel": {
       "name": "DescribeChannel",
       "http": {
@@ -323,6 +363,80 @@
       },
       "output": {
         "shape": "DescribeInputSecurityGroupResponse"
+      },
+      "errors": [
+        {
+          "shape": "BadRequestException"
+        },
+        {
+          "shape": "InternalServerErrorException"
+        },
+        {
+          "shape": "ForbiddenException"
+        },
+        {
+          "shape": "BadGatewayException"
+        },
+        {
+          "shape": "NotFoundException"
+        },
+        {
+          "shape": "GatewayTimeoutException"
+        },
+        {
+          "shape": "TooManyRequestsException"
+        }
+      ]
+    },
+    "DescribeOffering": {
+      "name": "DescribeOffering",
+      "http": {
+        "method": "GET",
+        "requestUri": "/prod/offerings/{offeringId}",
+        "responseCode": 200
+      },
+      "input": {
+        "shape": "DescribeOfferingRequest"
+      },
+      "output": {
+        "shape": "DescribeOfferingResponse"
+      },
+      "errors": [
+        {
+          "shape": "BadRequestException"
+        },
+        {
+          "shape": "InternalServerErrorException"
+        },
+        {
+          "shape": "ForbiddenException"
+        },
+        {
+          "shape": "BadGatewayException"
+        },
+        {
+          "shape": "NotFoundException"
+        },
+        {
+          "shape": "GatewayTimeoutException"
+        },
+        {
+          "shape": "TooManyRequestsException"
+        }
+      ]
+    },
+    "DescribeReservation": {
+      "name": "DescribeReservation",
+      "http": {
+        "method": "GET",
+        "requestUri": "/prod/reservations/{reservationId}",
+        "responseCode": 200
+      },
+      "input": {
+        "shape": "DescribeReservationRequest"
+      },
+      "output": {
+        "shape": "DescribeReservationResponse"
       },
       "errors": [
         {
@@ -450,6 +564,114 @@
         }
       ]
     },
+    "ListOfferings": {
+      "name": "ListOfferings",
+      "http": {
+        "method": "GET",
+        "requestUri": "/prod/offerings",
+        "responseCode": 200
+      },
+      "input": {
+        "shape": "ListOfferingsRequest"
+      },
+      "output": {
+        "shape": "ListOfferingsResponse"
+      },
+      "errors": [
+        {
+          "shape": "BadRequestException"
+        },
+        {
+          "shape": "InternalServerErrorException"
+        },
+        {
+          "shape": "ForbiddenException"
+        },
+        {
+          "shape": "BadGatewayException"
+        },
+        {
+          "shape": "GatewayTimeoutException"
+        },
+        {
+          "shape": "TooManyRequestsException"
+        }
+      ]
+    },
+    "ListReservations": {
+      "name": "ListReservations",
+      "http": {
+        "method": "GET",
+        "requestUri": "/prod/reservations",
+        "responseCode": 200
+      },
+      "input": {
+        "shape": "ListReservationsRequest"
+      },
+      "output": {
+        "shape": "ListReservationsResponse"
+      },
+      "errors": [
+        {
+          "shape": "BadRequestException"
+        },
+        {
+          "shape": "InternalServerErrorException"
+        },
+        {
+          "shape": "ForbiddenException"
+        },
+        {
+          "shape": "BadGatewayException"
+        },
+        {
+          "shape": "GatewayTimeoutException"
+        },
+        {
+          "shape": "TooManyRequestsException"
+        }
+      ]
+    },
+    "PurchaseOffering": {
+      "name": "PurchaseOffering",
+      "http": {
+        "method": "POST",
+        "requestUri": "/prod/offerings/{offeringId}/purchase",
+        "responseCode": 201
+      },
+      "input": {
+        "shape": "PurchaseOfferingRequest"
+      },
+      "output": {
+        "shape": "PurchaseOfferingResponse"
+      },
+      "errors": [
+        {
+          "shape": "BadRequestException"
+        },
+        {
+          "shape": "InternalServerErrorException"
+        },
+        {
+          "shape": "ForbiddenException"
+        },
+        {
+          "shape": "BadGatewayException"
+        },
+        {
+          "shape": "NotFoundException"
+        },
+        {
+          "shape": "GatewayTimeoutException"
+        },
+        {
+          "shape": "TooManyRequestsException"
+        },
+        {
+          "shape": "ConflictException"
+        }
+      ]
+    },
     "StartChannel": {
       "name": "StartChannel",
       "http": {
@@ -545,10 +767,10 @@
       },
       "errors": [
         {
-          "shape": "UnprocessableEntityException"
+          "shape": "BadRequestException"
         },
         {
-          "shape": "BadRequestException"
+          "shape": "UnprocessableEntityException"
         },
         {
           "shape": "InternalServerErrorException"
@@ -1545,6 +1767,10 @@
           "shape": "InputSpecification",
           "locationName": "inputSpecification"
         },
+        "LogLevel": {
+          "shape": "LogLevel",
+          "locationName": "logLevel"
+        },
         "Name": {
           "shape": "__string",
           "locationName": "name"
@@ -1626,6 +1852,10 @@
           "shape": "InputSpecification",
           "locationName": "inputSpecification"
         },
+        "LogLevel": {
+          "shape": "LogLevel",
+          "locationName": "logLevel"
+        },
         "Name": {
           "shape": "__string",
           "locationName": "name"
@@ -1676,6 +1906,10 @@
           "shape": "InputSpecification",
           "locationName": "inputSpecification"
         },
+        "LogLevel": {
+          "shape": "LogLevel",
+          "locationName": "logLevel"
+        },
         "Name": {
           "shape": "__string",
           "locationName": "name"
@@ -1714,6 +1948,10 @@
         "InputSpecification": {
           "shape": "InputSpecification",
           "locationName": "inputSpecification"
+        },
+        "LogLevel": {
+          "shape": "LogLevel",
+          "locationName": "logLevel"
         },
         "Name": {
           "shape": "__string",
@@ -1902,6 +2140,10 @@
           "shape": "InputSpecification",
           "locationName": "inputSpecification"
         },
+        "LogLevel": {
+          "shape": "LogLevel",
+          "locationName": "logLevel"
+        },
         "Name": {
           "shape": "__string",
           "locationName": "name"
@@ -1956,6 +2198,92 @@
       "members": {
       }
     },
+    "DeleteReservationRequest": {
+      "type": "structure",
+      "members": {
+        "ReservationId": {
+          "shape": "__string",
+          "location": "uri",
+          "locationName": "reservationId"
+        }
+      },
+      "required": [
+        "ReservationId"
+      ]
+    },
+    "DeleteReservationResponse": {
+      "type": "structure",
+      "members": {
+        "Arn": {
+          "shape": "__string",
+          "locationName": "arn"
+        },
+        "Count": {
+          "shape": "__integer",
+          "locationName": "count"
+        },
+        "CurrencyCode": {
+          "shape": "__string",
+          "locationName": "currencyCode"
+        },
+        "Duration": {
+          "shape": "__integer",
+          "locationName": "duration"
+        },
+        "DurationUnits": {
+          "shape": "OfferingDurationUnits",
+          "locationName": "durationUnits"
+        },
+        "End": {
+          "shape": "__string",
+          "locationName": "end"
+        },
+        "FixedPrice": {
+          "shape": "__double",
+          "locationName": "fixedPrice"
+        },
+        "Name": {
+          "shape": "__string",
+          "locationName": "name"
+        },
+        "OfferingDescription": {
+          "shape": "__string",
+          "locationName": "offeringDescription"
+        },
+        "OfferingId": {
+          "shape": "__string",
+          "locationName": "offeringId"
+        },
+        "OfferingType": {
+          "shape": "OfferingType",
+          "locationName": "offeringType"
+        },
+        "Region": {
+          "shape": "__string",
+          "locationName": "region"
+        },
+        "ReservationId": {
+          "shape": "__string",
+          "locationName": "reservationId"
+        },
+        "ResourceSpecification": {
+          "shape": "ReservationResourceSpecification",
+          "locationName": "resourceSpecification"
+        },
+        "Start": {
+          "shape": "__string",
+          "locationName": "start"
+        },
+        "State": {
+          "shape": "ReservationState",
+          "locationName": "state"
+        },
+        "UsagePrice": {
+          "shape": "__double",
+          "locationName": "usagePrice"
+        }
+      }
+    },
     "DescribeChannelRequest": {
       "type": "structure",
       "members": {
@@ -1999,6 +2327,10 @@
         "InputSpecification": {
           "shape": "InputSpecification",
           "locationName": "inputSpecification"
+        },
+        "LogLevel": {
+          "shape": "LogLevel",
+          "locationName": "logLevel"
         },
         "Name": {
           "shape": "__string",
@@ -2107,6 +2439,154 @@
         "WhitelistRules": {
           "shape": "__listOfInputWhitelistRule",
           "locationName": "whitelistRules"
+        }
+      }
+    },
+    "DescribeOfferingRequest": {
+      "type": "structure",
+      "members": {
+        "OfferingId": {
+          "shape": "__string",
+          "location": "uri",
+          "locationName": "offeringId"
+        }
+      },
+      "required": [
+        "OfferingId"
+      ]
+    },
+    "DescribeOfferingResponse": {
+      "type": "structure",
+      "members": {
+        "Arn": {
+          "shape": "__string",
+          "locationName": "arn"
+        },
+        "CurrencyCode": {
+          "shape": "__string",
+          "locationName": "currencyCode"
+        },
+        "Duration": {
+          "shape": "__integer",
+          "locationName": "duration"
+        },
+        "DurationUnits": {
+          "shape": "OfferingDurationUnits",
+          "locationName": "durationUnits"
+        },
+        "FixedPrice": {
+          "shape": "__double",
+          "locationName": "fixedPrice"
+        },
+        "OfferingDescription": {
+          "shape": "__string",
+          "locationName": "offeringDescription"
+        },
+        "OfferingId": {
+          "shape": "__string",
+          "locationName": "offeringId"
+        },
+        "OfferingType": {
+          "shape": "OfferingType",
+          "locationName": "offeringType"
+        },
+        "Region": {
+          "shape": "__string",
+          "locationName": "region"
+        },
+        "ResourceSpecification": {
+          "shape": "ReservationResourceSpecification",
+          "locationName": "resourceSpecification"
+        },
+        "UsagePrice": {
+          "shape": "__double",
+          "locationName": "usagePrice"
+        }
+      }
+    },
+    "DescribeReservationRequest": {
+      "type": "structure",
+      "members": {
+        "ReservationId": {
+          "shape": "__string",
+          "location": "uri",
+          "locationName": "reservationId"
+        }
+      },
+      "required": [
+        "ReservationId"
+      ]
+    },
+    "DescribeReservationResponse": {
+      "type": "structure",
+      "members": {
+        "Arn": {
+          "shape": "__string",
+          "locationName": "arn"
+        },
+        "Count": {
+          "shape": "__integer",
+          "locationName": "count"
+        },
+        "CurrencyCode": {
+          "shape": "__string",
+          "locationName": "currencyCode"
+        },
+        "Duration": {
+          "shape": "__integer",
+          "locationName": "duration"
+        },
+        "DurationUnits": {
+          "shape": "OfferingDurationUnits",
+          "locationName": "durationUnits"
+        },
+        "End": {
+          "shape": "__string",
+          "locationName": "end"
+        },
+        "FixedPrice": {
+          "shape": "__double",
+          "locationName": "fixedPrice"
+        },
+        "Name": {
+          "shape": "__string",
+          "locationName": "name"
+        },
+        "OfferingDescription": {
+          "shape": "__string",
+          "locationName": "offeringDescription"
+        },
+        "OfferingId": {
+          "shape": "__string",
+          "locationName": "offeringId"
+        },
+        "OfferingType": {
+          "shape": "OfferingType",
+          "locationName": "offeringType"
+        },
+        "Region": {
+          "shape": "__string",
+          "locationName": "region"
+        },
+        "ReservationId": {
+          "shape": "__string",
+          "locationName": "reservationId"
+        },
+        "ResourceSpecification": {
+          "shape": "ReservationResourceSpecification",
+          "locationName": "resourceSpecification"
+        },
+        "Start": {
+          "shape": "__string",
+          "locationName": "start"
+        },
+        "State": {
+          "shape": "ReservationState",
+          "locationName": "state"
+        },
+        "UsagePrice": {
+          "shape": "__double",
+          "locationName": "usagePrice"
         }
       }
     },
@@ -4046,6 +4526,173 @@
         }
       }
     },
+    "ListOfferingsRequest": {
+      "type": "structure",
+      "members": {
+        "ChannelConfiguration": {
+          "shape": "__string",
+          "location": "querystring",
+          "locationName": "channelConfiguration"
+        },
+        "Codec": {
+          "shape": "__string",
+          "location": "querystring",
+          "locationName": "codec"
+        },
+        "MaxResults": {
+          "shape": "MaxResults",
+          "location": "querystring",
+          "locationName": "maxResults"
+        },
+        "MaximumBitrate": {
+          "shape": "__string",
+          "location": "querystring",
+          "locationName": "maximumBitrate"
+        },
+        "MaximumFramerate": {
+          "shape": "__string",
+          "location": "querystring",
+          "locationName": "maximumFramerate"
+        },
+        "NextToken": {
+          "shape": "__string",
+          "location": "querystring",
+          "locationName": "nextToken"
+        },
+        "Resolution": {
+          "shape": "__string",
+          "location": "querystring",
+          "locationName": "resolution"
+        },
+        "ResourceType": {
+          "shape": "__string",
+          "location": "querystring",
+          "locationName": "resourceType"
+        },
+        "SpecialFeature": {
+          "shape": "__string",
+          "location": "querystring",
+          "locationName": "specialFeature"
+        },
+        "VideoQuality": {
+          "shape": "__string",
+          "location": "querystring",
+          "locationName": "videoQuality"
+        }
+      }
+    },
+    "ListOfferingsResponse": {
+      "type": "structure",
+      "members": {
+        "NextToken": {
+          "shape": "__string",
+          "locationName": "nextToken"
+        },
+        "Offerings": {
+          "shape": "__listOfOffering",
+          "locationName": "offerings"
+        }
+      }
+    },
+    "ListOfferingsResultModel": {
+      "type": "structure",
+      "members": {
+        "NextToken": {
+          "shape": "__string",
+          "locationName": "nextToken"
+        },
+        "Offerings": {
+          "shape": "__listOfOffering",
+          "locationName": "offerings"
+        }
+      }
+    },
+    "ListReservationsRequest": {
+      "type": "structure",
+      "members": {
+        "Codec": {
+          "shape": "__string",
+          "location": "querystring",
+          "locationName": "codec"
+        },
+        "MaxResults": {
+          "shape": "MaxResults",
+          "location": "querystring",
+          "locationName": "maxResults"
+        },
+        "MaximumBitrate": {
+          "shape": "__string",
+          "location": "querystring",
+          "locationName": "maximumBitrate"
+        },
+        "MaximumFramerate": {
+          "shape": "__string",
+          "location": "querystring",
+          "locationName": "maximumFramerate"
+        },
+        "NextToken": {
+          "shape": "__string",
+          "location": "querystring",
+          "locationName": "nextToken"
+        },
+        "Resolution": {
+          "shape": "__string",
+          "location": "querystring",
+          "locationName": "resolution"
+        },
+        "ResourceType": {
+          "shape": "__string",
+          "location": "querystring",
+          "locationName": "resourceType"
+        },
+        "SpecialFeature": {
+          "shape": "__string",
+          "location": "querystring",
+          "locationName": "specialFeature"
+        },
+        "VideoQuality": {
+          "shape": "__string",
+          "location": "querystring",
+          "locationName": "videoQuality"
+        }
+      }
+    },
+    "ListReservationsResponse": {
+      "type": "structure",
+      "members": {
+        "NextToken": {
+          "shape": "__string",
+          "locationName": "nextToken"
+        },
+        "Reservations": {
+          "shape": "__listOfReservation",
+          "locationName": "reservations"
+        }
+      }
+    },
+    "ListReservationsResultModel": {
+      "type": "structure",
+      "members": {
+        "NextToken": {
+          "shape": "__string",
+          "locationName": "nextToken"
+        },
+        "Reservations": {
+          "shape": "__listOfReservation",
+          "locationName": "reservations"
+        }
+      }
+    },
+    "LogLevel": {
+      "type": "string",
+      "enum": [
+        "ERROR",
+        "WARNING",
+        "INFO",
+        "DEBUG",
+        "DISABLED"
+      ]
+    },
     "M2tsAbsentInputAudioBehavior": {
       "type": "string",
       "enum": [
@@ -4610,6 +5257,67 @@
         "httpStatusCode": 404
       }
     },
+    "Offering": {
+      "type": "structure",
+      "members": {
+        "Arn": {
+          "shape": "__string",
+          "locationName": "arn"
+        },
+        "CurrencyCode": {
+          "shape": "__string",
+          "locationName": "currencyCode"
+        },
+        "Duration": {
+          "shape": "__integer",
+          "locationName": "duration"
+        },
+        "DurationUnits": {
+          "shape": "OfferingDurationUnits",
+          "locationName": "durationUnits"
+        },
+        "FixedPrice": {
+          "shape": "__double",
+          "locationName": "fixedPrice"
+        },
+        "OfferingDescription": {
+          "shape": "__string",
+          "locationName": "offeringDescription"
+        },
+        "OfferingId": {
+          "shape": "__string",
+          "locationName": "offeringId"
+        },
+        "OfferingType": {
+          "shape": "OfferingType",
+          "locationName": "offeringType"
+        },
+        "Region": {
+          "shape": "__string",
+          "locationName": "region"
+        },
+        "ResourceSpecification": {
+          "shape": "ReservationResourceSpecification",
+          "locationName": "resourceSpecification"
+        },
+        "UsagePrice": {
+          "shape": "__double",
+          "locationName": "usagePrice"
+        }
+      }
+    },
+    "OfferingDurationUnits": {
+      "type": "string",
+      "enum": [
+        "MONTHS"
+      ]
+    },
+    "OfferingType": {
+      "type": "string",
+      "enum": [
+        "NO_UPFRONT"
+      ]
+    },
     "Output": {
       "type": "structure",
       "members": {
@@ -4757,6 +5465,68 @@
       "members": {
       }
     },
+    "PurchaseOffering": {
+      "type": "structure",
+      "members": {
+        "Count": {
+          "shape": "__integerMin1",
+          "locationName": "count"
+        },
+        "Name": {
+          "shape": "__string",
+          "locationName": "name"
+        },
+        "RequestId": {
+          "shape": "__string",
+          "locationName": "requestId",
+          "idempotencyToken": true
+        }
+      }
+    },
+    "PurchaseOfferingRequest": {
+      "type": "structure",
+      "members": {
+        "Count": {
+          "shape": "__integerMin1",
+          "locationName": "count"
+        },
+        "Name": {
+          "shape": "__string",
+          "locationName": "name"
+        },
+        "OfferingId": {
+          "shape": "__string",
+          "location": "uri",
+          "locationName": "offeringId"
+        },
+        "RequestId": {
+          "shape": "__string",
+          "locationName": "requestId",
+          "idempotencyToken": true
+        }
+      },
+      "required": [
+        "OfferingId"
+      ]
+    },
+    "PurchaseOfferingResponse": {
+      "type": "structure",
+      "members": {
+        "Reservation": {
+          "shape": "Reservation",
+          "locationName": "reservation"
+        }
+      }
+    },
+    "PurchaseOfferingResultModel": {
+      "type": "structure",
+      "members": {
+        "Reservation": {
+          "shape": "Reservation",
+          "locationName": "reservation"
+        }
+      }
+    },
     "RemixSettings": {
       "type": "structure",
       "members": {
@@ -4775,6 +5545,176 @@
       },
       "required": [
         "ChannelMappings"
+      ]
+    },
+    "Reservation": {
+      "type": "structure",
+      "members": {
+        "Arn": {
+          "shape": "__string",
+          "locationName": "arn"
+        },
+        "Count": {
+          "shape": "__integer",
+          "locationName": "count"
+        },
+        "CurrencyCode": {
+          "shape": "__string",
+          "locationName": "currencyCode"
+        },
+        "Duration": {
+          "shape": "__integer",
+          "locationName": "duration"
+        },
+        "DurationUnits": {
+          "shape": "OfferingDurationUnits",
+          "locationName": "durationUnits"
+        },
+        "End": {
+          "shape": "__string",
+          "locationName": "end"
+        },
+        "FixedPrice": {
+          "shape": "__double",
+          "locationName": "fixedPrice"
+        },
+        "Name": {
+          "shape": "__string",
+          "locationName": "name"
+        },
+        "OfferingDescription": {
+          "shape": "__string",
+          "locationName": "offeringDescription"
+        },
+        "OfferingId": {
+          "shape": "__string",
+          "locationName": "offeringId"
+        },
+        "OfferingType": {
+          "shape": "OfferingType",
+          "locationName": "offeringType"
+        },
+        "Region": {
+          "shape": "__string",
+          "locationName": "region"
+        },
+        "ReservationId": {
+          "shape": "__string",
+          "locationName": "reservationId"
+        },
+        "ResourceSpecification": {
+          "shape": "ReservationResourceSpecification",
+          "locationName": "resourceSpecification"
+        },
+        "Start": {
+          "shape": "__string",
+          "locationName": "start"
+        },
+        "State": {
+          "shape": "ReservationState",
+          "locationName": "state"
+        },
+        "UsagePrice": {
+          "shape": "__double",
+          "locationName": "usagePrice"
+        }
+      }
+    },
+    "ReservationCodec": {
+      "type": "string",
+      "enum": [
+        "MPEG2",
+        "AVC",
+        "HEVC",
+        "AUDIO"
+      ]
+    },
+    "ReservationMaximumBitrate": {
+      "type": "string",
+      "enum": [
+        "MAX_10_MBPS",
+        "MAX_20_MBPS",
+        "MAX_50_MBPS"
+      ]
+    },
+    "ReservationMaximumFramerate": {
+      "type": "string",
+      "enum": [
+        "MAX_30_FPS",
+        "MAX_60_FPS"
+      ]
+    },
+    "ReservationResolution": {
+      "type": "string",
+      "enum": [
+        "SD",
+        "HD",
+        "UHD"
+      ]
+    },
+    "ReservationResourceSpecification": {
+      "type": "structure",
+      "members": {
+        "Codec": {
+          "shape": "ReservationCodec",
+          "locationName": "codec"
+        },
+        "MaximumBitrate": {
+          "shape": "ReservationMaximumBitrate",
+          "locationName": "maximumBitrate"
+        },
+        "MaximumFramerate": {
+          "shape": "ReservationMaximumFramerate",
+          "locationName": "maximumFramerate"
+        },
+        "Resolution": {
+          "shape": "ReservationResolution",
+          "locationName": "resolution"
+        },
+        "ResourceType": {
+          "shape": "ReservationResourceType",
+          "locationName": "resourceType"
+        },
+        "SpecialFeature": {
+          "shape": "ReservationSpecialFeature",
+          "locationName": "specialFeature"
+        },
+        "VideoQuality": {
+          "shape": "ReservationVideoQuality",
+          "locationName": "videoQuality"
+        }
+      }
+    },
+    "ReservationResourceType": {
+      "type": "string",
+      "enum": [
+        "INPUT",
+        "OUTPUT",
+        "CHANNEL"
+      ]
+    },
+    "ReservationSpecialFeature": {
+      "type": "string",
+      "enum": [
+        "ADVANCED_AUDIO",
+        "AUDIO_NORMALIZATION"
+      ]
+    },
+    "ReservationState": {
+      "type": "string",
+      "enum": [
+        "ACTIVE",
+        "EXPIRED",
+        "CANCELED",
+        "DELETED"
+      ]
+    },
+    "ReservationVideoQuality": {
+      "type": "string",
+      "enum": [
+        "STANDARD",
+        "ENHANCED",
+        "PREMIUM"
       ]
     },
     "ResourceConflict": {
@@ -5094,6 +6034,10 @@
           "shape": "InputSpecification",
           "locationName": "inputSpecification"
         },
+        "LogLevel": {
+          "shape": "LogLevel",
+          "locationName": "logLevel"
+        },
         "Name": {
           "shape": "__string",
           "locationName": "name"
@@ -5125,6 +6069,7 @@
         }
       },
       "required": [
+        "KeyProviderServer",
         "StaticKeyValue"
       ]
     },
@@ -5171,6 +6116,10 @@
         "InputSpecification": {
           "shape": "InputSpecification",
           "locationName": "inputSpecification"
+        },
+        "LogLevel": {
+          "shape": "LogLevel",
+          "locationName": "logLevel"
         },
         "Name": {
           "shape": "__string",
@@ -5352,6 +6301,10 @@
           "shape": "InputSpecification",
           "locationName": "inputSpecification"
         },
+        "LogLevel": {
+          "shape": "LogLevel",
+          "locationName": "logLevel"
+        },
         "Name": {
           "shape": "__string",
           "locationName": "name"
@@ -5385,6 +6338,10 @@
         "InputSpecification": {
           "shape": "InputSpecification",
           "locationName": "inputSpecification"
+        },
+        "LogLevel": {
+          "shape": "LogLevel",
+          "locationName": "logLevel"
         },
         "Name": {
           "shape": "__string",
@@ -5978,6 +6935,12 @@
         "shape": "InputWhitelistRuleCidr"
       }
     },
+    "__listOfOffering": {
+      "type": "list",
+      "member": {
+        "shape": "Offering"
+      }
+    },
     "__listOfOutput": {
       "type": "list",
       "member": {
@@ -6000,6 +6963,12 @@
       "type": "list",
       "member": {
         "shape": "OutputGroup"
+      }
+    },
+    "__listOfReservation": {
+      "type": "list",
+      "member": {
+        "shape": "Reservation"
       }
     },
     "__listOfValidationError": {

@@ -4,7 +4,7 @@
   "operations": {
     "AddPermission": "<p>Adds a permission to the resource policy associated with the specified AWS Lambda function. You use resource policies to grant permissions to event sources that use <i>push</i> model. In a <i>push</i> model, event sources (such as Amazon S3 and custom applications) invoke your Lambda function. Each permission you add to the resource policy allows an event source, permission to invoke the Lambda function. </p> <p>For information about the push model, see <a href=\"http://docs.aws.amazon.com/lambda/latest/dg/lambda-introduction.html\">Lambda Functions</a>. </p> <p>If you are using versioning, the permissions you add are specific to the Lambda function version or alias you specify in the <code>AddPermission</code> request via the <code>Qualifier</code> parameter. For more information about versioning, see <a href=\"http://docs.aws.amazon.com/lambda/latest/dg/versioning-aliases.html\">AWS Lambda Function Versioning and Aliases</a>. </p> <p>This operation requires permission for the <code>lambda:AddPermission</code> action.</p>",
     "CreateAlias": "<p>Creates an alias that points to the specified Lambda function version. For more information, see <a href=\"http://docs.aws.amazon.com/lambda/latest/dg/aliases-intro.html\">Introduction to AWS Lambda Aliases</a>.</p> <p>Alias names are unique for a given function. This requires permission for the lambda:CreateAlias action.</p>",
-    "CreateEventSourceMapping": "<p>Identifies a stream as an event source for a Lambda function. It can be either an Amazon Kinesis stream or an Amazon DynamoDB stream. AWS Lambda invokes the specified function when records are posted to the stream.</p> <p>This association between a stream source and a Lambda function is called the event source mapping.</p> <p>You provide mapping information (for example, which stream to read from and which Lambda function to invoke) in the request body.</p> <p>Each event source, such as an Amazon Kinesis or a DynamoDB stream, can be associated with multiple AWS Lambda functions. A given Lambda function can be associated with multiple AWS event sources.</p> <p>If you are using versioning, you can specify a specific function version or an alias via the function name parameter. For more information about versioning, see <a href=\"http://docs.aws.amazon.com/lambda/latest/dg/versioning-aliases.html\">AWS Lambda Function Versioning and Aliases</a>. </p> <p>This operation requires permission for the <code>lambda:CreateEventSourceMapping</code> action.</p>",
+    "CreateEventSourceMapping": "<p>Identifies a poll-based event source for a Lambda function. It can be either an Amazon Kinesis or DynamoDB stream, or an Amazon SQS queue. AWS Lambda invokes the specified function when records are posted to the event source.</p> <p>This association between a poll-based source and a Lambda function is called the event source mapping.</p> <p>You provide mapping information (for example, which stream or SQS queue to read from and which Lambda function to invoke) in the request body.</p> <p>Amazon Kinesis or DynamoDB stream event sources can be associated with multiple AWS Lambda functions and a given Lambda function can be associated with multiple AWS event sources. For Amazon SQS, you can configure multiple queues as event sources for a single Lambda function, but an SQS queue can be mapped only to a single Lambda function.</p> <p>If you are using versioning, you can specify a specific function version or an alias via the function name parameter. For more information about versioning, see <a href=\"http://docs.aws.amazon.com/lambda/latest/dg/versioning-aliases.html\">AWS Lambda Function Versioning and Aliases</a>. </p> <p>This operation requires permission for the <code>lambda:CreateEventSourceMapping</code> action.</p>",
     "CreateFunction": "<p>Creates a new Lambda function. The function metadata is created from the request parameters, and the code for the function is provided by a .zip file in the request body. If the function name already exists, the operation will fail. Note that the function name is case-sensitive.</p> <p> If you are using versioning, you can also publish a version of the Lambda function you are creating using the <code>Publish</code> parameter. For more information about versioning, see <a href=\"http://docs.aws.amazon.com/lambda/latest/dg/versioning-aliases.html\">AWS Lambda Function Versioning and Aliases</a>. </p> <p>This operation requires permission for the <code>lambda:CreateFunction</code> action.</p>",
     "DeleteAlias": "<p>Deletes the specified Lambda function alias. For more information, see <a href=\"http://docs.aws.amazon.com/lambda/latest/dg/aliases-intro.html\">Introduction to AWS Lambda Aliases</a>.</p> <p>This requires permission for the lambda:DeleteAlias action.</p>",
     "DeleteEventSourceMapping": "<p>Removes an event source mapping. This means AWS Lambda will no longer invoke the function for events in the associated source.</p> <p>This operation requires permission for the <code>lambda:DeleteEventSourceMapping</code> action.</p>",
@@ -108,15 +108,15 @@
       "base": null,
       "refs": {
         "AddPermissionRequest$SourceArn": "<p>This is optional; however, when granting permission to invoke your function, you should specify this field with the Amazon Resource Name (ARN) as its value. This ensures that only events generated from the specified source can invoke the function.</p> <important> <p>If you add a permission without providing the source ARN, any AWS account that creates a mapping to your function ARN can send events to invoke your Lambda function.</p> </important>",
-        "CreateEventSourceMappingRequest$EventSourceArn": "<p>The Amazon Resource Name (ARN) of the Amazon Kinesis or the Amazon DynamoDB stream that is the event source. Any record added to this stream could cause AWS Lambda to invoke your Lambda function, it depends on the <code>BatchSize</code>. AWS Lambda POSTs the Amazon Kinesis event, containing records, to your Lambda function as JSON.</p>",
-        "EventSourceMappingConfiguration$EventSourceArn": "<p>The Amazon Resource Name (ARN) of the Amazon Kinesis stream that is the source of events.</p>",
-        "ListEventSourceMappingsRequest$EventSourceArn": "<p>The Amazon Resource Name (ARN) of the Amazon Kinesis stream. (This parameter is optional.)</p>"
+        "CreateEventSourceMappingRequest$EventSourceArn": "<p>The Amazon Resource Name (ARN) of the event source. Any record added to this source could cause AWS Lambda to invoke your Lambda function, it depends on the <code>BatchSize</code>. AWS Lambda POSTs the event's records to your Lambda function as JSON.</p>",
+        "EventSourceMappingConfiguration$EventSourceArn": "<p>The Amazon Resource Name (ARN) of the Amazon Kinesis or DynamoDB stream or the SQS queue that is the source of events.</p>",
+        "ListEventSourceMappingsRequest$EventSourceArn": "<p>The Amazon Resource Name (ARN) of the Amazon Kinesis or DynamoDB stream, or an SQS queue. (This parameter is optional.)</p>"
       }
     },
     "BatchSize": {
       "base": null,
       "refs": {
-        "CreateEventSourceMappingRequest$BatchSize": "<p>The largest number of records that AWS Lambda will retrieve from your event source at the time of invoking your function. Your function receives an event with all the retrieved records. The default is 100 records.</p>",
+        "CreateEventSourceMappingRequest$BatchSize": "<p>The largest number of records that AWS Lambda will retrieve from your event source at the time of invoking your function. Your function receives an event with all the retrieved records. The default for Amazon Kinesis and Amazon DynamoDB is 100 records. For SQS, the default is 1.</p>",
         "EventSourceMappingConfiguration$BatchSize": "<p>The largest number of records that AWS Lambda will retrieve from your event source at the time of invoking your function. Your function receives an event with all the retrieved records.</p>",
         "UpdateEventSourceMappingRequest$BatchSize": "<p>The maximum number of stream records that can be sent to your Lambda function for a single invocation.</p>"
       }
@@ -283,7 +283,7 @@
       }
     },
     "EventSourceMappingConfiguration": {
-      "base": "<p>Describes mapping between an Amazon Kinesis stream and a Lambda function.</p>",
+      "base": "<p>Describes mapping between an Amazon Kinesis or DynamoDB stream or an Amazon SQS queue and a Lambda function.</p>",
       "refs": {
         "EventSourceMappingsList$member": null
       }
@@ -310,7 +310,7 @@
       "base": null,
       "refs": {
         "AliasConfiguration$AliasArn": "<p>Lambda function ARN that is qualified using the alias name as the suffix. For example, if you create an alias called <code>BETA</code> that points to a helloworld function version, the ARN is <code>arn:aws:lambda:aws-regions:acct-id:function:helloworld:BETA</code>.</p>",
-        "EventSourceMappingConfiguration$FunctionArn": "<p>The Lambda function to invoke when AWS Lambda detects an event on the stream.</p>",
+        "EventSourceMappingConfiguration$FunctionArn": "<p>The Lambda function to invoke when AWS Lambda detects an event on the poll-based source.</p>",
         "FunctionConfiguration$MasterArn": "<p>Returns the ARN (Amazon Resource Name) of the master function.</p>",
         "ListTagsRequest$Resource": "<p>The ARN (Amazon Resource Name) of the function. For more information, see <a href=\"http://docs.aws.amazon.com/lambda/latest/dg/tagging.html\">Tagging Lambda Functions</a> in the <b>AWS Lambda Developer Guide</b>.</p>",
         "TagResourceRequest$Resource": "<p>The ARN (Amazon Resource Name) of the Lambda function. For more information, see <a href=\"http://docs.aws.amazon.com/lambda/latest/dg/tagging.html\">Tagging Lambda Functions</a> in the <b>AWS Lambda Developer Guide</b>.</p>",
@@ -701,6 +701,11 @@
       "refs": {
       }
     },
+    "ResourceInUseException": {
+      "base": "<p>The operation conflicts with the resource's availability. For example, you attempted to update an EventSoure Mapping in CREATING, or tried to delete a EventSoure mapping currently in the UPDATING state. </p>",
+      "refs": {
+      }
+    },
     "ResourceNotFoundException": {
       "base": "<p>The resource (for example, a Lambda function or access policy statement) specified in the request does not exist.</p>",
       "refs": {
@@ -851,6 +856,8 @@
         "RequestTooLargeException$message": null,
         "ResourceConflictException$Type": "<p/>",
         "ResourceConflictException$message": "<p/>",
+        "ResourceInUseException$Type": null,
+        "ResourceInUseException$Message": null,
         "ResourceNotFoundException$Type": null,
         "ResourceNotFoundException$Message": null,
         "ServiceException$Type": null,

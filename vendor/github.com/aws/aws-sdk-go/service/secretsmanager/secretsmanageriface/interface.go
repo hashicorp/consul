@@ -68,6 +68,10 @@ type SecretsManagerAPI interface {
 	CreateSecretWithContext(aws.Context, *secretsmanager.CreateSecretInput, ...request.Option) (*secretsmanager.CreateSecretOutput, error)
 	CreateSecretRequest(*secretsmanager.CreateSecretInput) (*request.Request, *secretsmanager.CreateSecretOutput)
 
+	DeleteResourcePolicy(*secretsmanager.DeleteResourcePolicyInput) (*secretsmanager.DeleteResourcePolicyOutput, error)
+	DeleteResourcePolicyWithContext(aws.Context, *secretsmanager.DeleteResourcePolicyInput, ...request.Option) (*secretsmanager.DeleteResourcePolicyOutput, error)
+	DeleteResourcePolicyRequest(*secretsmanager.DeleteResourcePolicyInput) (*request.Request, *secretsmanager.DeleteResourcePolicyOutput)
+
 	DeleteSecret(*secretsmanager.DeleteSecretInput) (*secretsmanager.DeleteSecretOutput, error)
 	DeleteSecretWithContext(aws.Context, *secretsmanager.DeleteSecretInput, ...request.Option) (*secretsmanager.DeleteSecretOutput, error)
 	DeleteSecretRequest(*secretsmanager.DeleteSecretInput) (*request.Request, *secretsmanager.DeleteSecretOutput)
@@ -79,6 +83,10 @@ type SecretsManagerAPI interface {
 	GetRandomPassword(*secretsmanager.GetRandomPasswordInput) (*secretsmanager.GetRandomPasswordOutput, error)
 	GetRandomPasswordWithContext(aws.Context, *secretsmanager.GetRandomPasswordInput, ...request.Option) (*secretsmanager.GetRandomPasswordOutput, error)
 	GetRandomPasswordRequest(*secretsmanager.GetRandomPasswordInput) (*request.Request, *secretsmanager.GetRandomPasswordOutput)
+
+	GetResourcePolicy(*secretsmanager.GetResourcePolicyInput) (*secretsmanager.GetResourcePolicyOutput, error)
+	GetResourcePolicyWithContext(aws.Context, *secretsmanager.GetResourcePolicyInput, ...request.Option) (*secretsmanager.GetResourcePolicyOutput, error)
+	GetResourcePolicyRequest(*secretsmanager.GetResourcePolicyInput) (*request.Request, *secretsmanager.GetResourcePolicyOutput)
 
 	GetSecretValue(*secretsmanager.GetSecretValueInput) (*secretsmanager.GetSecretValueOutput, error)
 	GetSecretValueWithContext(aws.Context, *secretsmanager.GetSecretValueInput, ...request.Option) (*secretsmanager.GetSecretValueOutput, error)
@@ -97,6 +105,10 @@ type SecretsManagerAPI interface {
 
 	ListSecretsPages(*secretsmanager.ListSecretsInput, func(*secretsmanager.ListSecretsOutput, bool) bool) error
 	ListSecretsPagesWithContext(aws.Context, *secretsmanager.ListSecretsInput, func(*secretsmanager.ListSecretsOutput, bool) bool, ...request.Option) error
+
+	PutResourcePolicy(*secretsmanager.PutResourcePolicyInput) (*secretsmanager.PutResourcePolicyOutput, error)
+	PutResourcePolicyWithContext(aws.Context, *secretsmanager.PutResourcePolicyInput, ...request.Option) (*secretsmanager.PutResourcePolicyOutput, error)
+	PutResourcePolicyRequest(*secretsmanager.PutResourcePolicyInput) (*request.Request, *secretsmanager.PutResourcePolicyOutput)
 
 	PutSecretValue(*secretsmanager.PutSecretValueInput) (*secretsmanager.PutSecretValueOutput, error)
 	PutSecretValueWithContext(aws.Context, *secretsmanager.PutSecretValueInput, ...request.Option) (*secretsmanager.PutSecretValueOutput, error)

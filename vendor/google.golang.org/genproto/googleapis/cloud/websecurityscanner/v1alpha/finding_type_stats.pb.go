@@ -24,10 +24,10 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 type FindingTypeStats struct {
 	// Output only.
 	// The finding type associated with the stats.
-	FindingType Finding_FindingType `protobuf:"varint,1,opt,name=finding_type,json=findingType,enum=google.cloud.websecurityscanner.v1alpha.Finding_FindingType" json:"finding_type,omitempty"`
+	FindingType Finding_FindingType `protobuf:"varint,1,opt,name=finding_type,json=findingType,proto3,enum=google.cloud.websecurityscanner.v1alpha.Finding_FindingType" json:"finding_type,omitempty"`
 	// Output only.
 	// The count of findings belonging to this finding type.
-	FindingCount         int32    `protobuf:"varint,2,opt,name=finding_count,json=findingCount" json:"finding_count,omitempty"`
+	FindingCount         int32    `protobuf:"varint,2,opt,name=finding_count,json=findingCount,proto3" json:"finding_count,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

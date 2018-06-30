@@ -32,6 +32,10 @@ func TestIoctlGetInt(t *testing.T) {
 }
 
 func TestPpoll(t *testing.T) {
+	if runtime.GOOS == "android" {
+		t.Skip("mkfifo syscall is not available on android, skipping test")
+	}
+
 	f, cleanup := mktmpfifo(t)
 	defer cleanup()
 
@@ -136,11 +140,16 @@ func TestUtimesNanoAt(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Lstat: %v", err)
 	}
-	if st.Atim != ts[0] {
-		t.Errorf("UtimesNanoAt: wrong atime: %v", st.Atim)
+
+	// Only check Mtim, Atim might not be supported by the underlying filesystem
+	expected := ts[1]
+	if st.Mtim.Nsec == 0 {
+		// Some filesystems only support 1-second time stamp resolution
+		// and will always set Nsec to 0.
+		expected.Nsec = 0
 	}
-	if st.Mtim != ts[1] {
-		t.Errorf("UtimesNanoAt: wrong mtime: %v", st.Mtim)
+	if st.Mtim != expected {
+		t.Errorf("UtimesNanoAt: wrong mtime: expected %v, got %v", expected, st.Mtim)
 	}
 }
 
@@ -259,6 +268,9 @@ func TestSchedSetaffinity(t *testing.T) {
 	if runtime.NumCPU() < 2 {
 		t.Skip("skipping setaffinity tests on single CPU system")
 	}
+	if runtime.GOOS == "android" {
+		t.Skip("skipping setaffinity tests on android")
+	}
 
 	err = unix.SchedSetaffinity(0, &newMask)
 	if err != nil {
@@ -285,7 +297,7 @@ func TestSchedSetaffinity(t *testing.T) {
 func TestStatx(t *testing.T) {
 	var stx unix.Statx_t
 	err := unix.Statx(unix.AT_FDCWD, ".", 0, 0, &stx)
-	if err == unix.ENOSYS {
+	if err == unix.ENOSYS || err == unix.EPERM {
 		t.Skip("statx syscall is not available, skipping test")
 	} else if err != nil {
 		t.Fatalf("Statx: %v", err)
@@ -310,13 +322,9 @@ func TestStatx(t *testing.T) {
 		t.Errorf("Statx: returned stat mode does not match Stat")
 	}
 
-	atime := unix.StatxTimestamp{Sec: int64(st.Atim.Sec), Nsec: uint32(st.Atim.Nsec)}
 	ctime := unix.StatxTimestamp{Sec: int64(st.Ctim.Sec), Nsec: uint32(st.Ctim.Nsec)}
 	mtime := unix.StatxTimestamp{Sec: int64(st.Mtim.Sec), Nsec: uint32(st.Mtim.Nsec)}
 
-	if stx.Atime != atime {
-		t.Errorf("Statx: returned stat atime does not match Stat")
-	}
 	if stx.Ctime != ctime {
 		t.Errorf("Statx: returned stat ctime does not match Stat")
 	}
@@ -357,17 +365,57 @@ func TestStatx(t *testing.T) {
 		t.Errorf("Statx: returned stat mode does not match Lstat")
 	}
 
-	atime = unix.StatxTimestamp{Sec: int64(st.Atim.Sec), Nsec: uint32(st.Atim.Nsec)}
 	ctime = unix.StatxTimestamp{Sec: int64(st.Ctim.Sec), Nsec: uint32(st.Ctim.Nsec)}
 	mtime = unix.StatxTimestamp{Sec: int64(st.Mtim.Sec), Nsec: uint32(st.Mtim.Nsec)}
 
-	if stx.Atime != atime {
-		t.Errorf("Statx: returned stat atime does not match Lstat")
-	}
 	if stx.Ctime != ctime {
 		t.Errorf("Statx: returned stat ctime does not match Lstat")
 	}
 	if stx.Mtime != mtime {
 		t.Errorf("Statx: returned stat mtime does not match Lstat")
+	}
+}
+
+// stringsFromByteSlice converts a sequence of attributes to a []string.
+// On Linux, each entry is a NULL-terminated string.
+func stringsFromByteSlice(buf []byte) []string {
+	var result []string
+	off := 0
+	for i, b := range buf {
+		if b == 0 {
+			result = append(result, string(buf[off:i]))
+			off = i + 1
+		}
+	}
+	return result
+}
+
+func TestFaccessat(t *testing.T) {
+	defer chtmpdir(t)()
+	touch(t, "file1")
+
+	err := unix.Faccessat(unix.AT_FDCWD, "file1", unix.O_RDONLY, 0)
+	if err != nil {
+		t.Errorf("Faccessat: unexpected error: %v", err)
+	}
+
+	err = unix.Faccessat(unix.AT_FDCWD, "file1", unix.O_RDONLY, 2)
+	if err != unix.EINVAL {
+		t.Errorf("Faccessat: unexpected error: %v, want EINVAL", err)
+	}
+
+	err = unix.Faccessat(unix.AT_FDCWD, "file1", unix.O_RDONLY, unix.AT_EACCESS)
+	if err != unix.EOPNOTSUPP {
+		t.Errorf("Faccessat: unexpected error: %v, want EOPNOTSUPP", err)
+	}
+
+	err = os.Symlink("file1", "symlink1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = unix.Faccessat(unix.AT_FDCWD, "symlink1", unix.O_RDONLY, unix.AT_SYMLINK_NOFOLLOW)
+	if err != unix.EOPNOTSUPP {
+		t.Errorf("Faccessat: unexpected error: %v, want EOPNOTSUPP", err)
 	}
 }

@@ -61,18 +61,18 @@ func (GetServiceConfigRequest_ConfigView) EnumDescriptor() ([]byte, []int) {
 // Request message for `ListServices` method.
 type ListServicesRequest struct {
 	// Include services produced by the specified project.
-	ProducerProjectId string `protobuf:"bytes,1,opt,name=producer_project_id,json=producerProjectId" json:"producer_project_id,omitempty"`
+	ProducerProjectId string `protobuf:"bytes,1,opt,name=producer_project_id,json=producerProjectId,proto3" json:"producer_project_id,omitempty"`
 	// Requested size of the next page of data.
-	PageSize int32 `protobuf:"varint,5,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,5,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Token identifying which result to start with; returned by a previous list
 	// call.
-	PageToken string `protobuf:"bytes,6,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,6,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// Include services consumed by the specified consumer.
 	//
 	// The Google Service Management implementation accepts the following
 	// forms:
 	// - project:<project_id>
-	ConsumerId           string   `protobuf:"bytes,7,opt,name=consumer_id,json=consumerId" json:"consumer_id,omitempty"`
+	ConsumerId           string   `protobuf:"bytes,7,opt,name=consumer_id,json=consumerId,proto3" json:"consumer_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -133,9 +133,9 @@ func (m *ListServicesRequest) GetConsumerId() string {
 // Response message for `ListServices` method.
 type ListServicesResponse struct {
 	// The returned services will only have the name field set.
-	Services []*ManagedService `protobuf:"bytes,1,rep,name=services" json:"services,omitempty"`
+	Services []*ManagedService `protobuf:"bytes,1,rep,name=services,proto3" json:"services,omitempty"`
 	// Token that can be passed to `ListServices` to resume a paginated query.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -183,7 +183,7 @@ func (m *ListServicesResponse) GetNextPageToken() string {
 type GetServiceRequest struct {
 	// The name of the service.  See the `ServiceManager` overview for naming
 	// requirements.  For example: `example.googleapis.com`.
-	ServiceName          string   `protobuf:"bytes,1,opt,name=service_name,json=serviceName" json:"service_name,omitempty"`
+	ServiceName          string   `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -223,7 +223,7 @@ func (m *GetServiceRequest) GetServiceName() string {
 // Request message for CreateService method.
 type CreateServiceRequest struct {
 	// Initial values for the service resource.
-	Service              *ManagedService `protobuf:"bytes,1,opt,name=service" json:"service,omitempty"`
+	Service              *ManagedService `protobuf:"bytes,1,opt,name=service,proto3" json:"service,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
 	XXX_unrecognized     []byte          `json:"-"`
 	XXX_sizecache        int32           `json:"-"`
@@ -264,7 +264,7 @@ func (m *CreateServiceRequest) GetService() *ManagedService {
 type DeleteServiceRequest struct {
 	// The name of the service.  See the [overview](/service-management/overview)
 	// for naming requirements.  For example: `example.googleapis.com`.
-	ServiceName          string   `protobuf:"bytes,1,opt,name=service_name,json=serviceName" json:"service_name,omitempty"`
+	ServiceName          string   `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -305,7 +305,7 @@ func (m *DeleteServiceRequest) GetServiceName() string {
 type UndeleteServiceRequest struct {
 	// The name of the service. See the [overview](/service-management/overview)
 	// for naming requirements. For example: `example.googleapis.com`.
-	ServiceName          string   `protobuf:"bytes,1,opt,name=service_name,json=serviceName" json:"service_name,omitempty"`
+	ServiceName          string   `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -345,7 +345,7 @@ func (m *UndeleteServiceRequest) GetServiceName() string {
 // Response message for UndeleteService method.
 type UndeleteServiceResponse struct {
 	// Revived service resource.
-	Service              *ManagedService `protobuf:"bytes,1,opt,name=service" json:"service,omitempty"`
+	Service              *ManagedService `protobuf:"bytes,1,opt,name=service,proto3" json:"service,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
 	XXX_unrecognized     []byte          `json:"-"`
 	XXX_sizecache        int32           `json:"-"`
@@ -386,12 +386,12 @@ func (m *UndeleteServiceResponse) GetService() *ManagedService {
 type GetServiceConfigRequest struct {
 	// The name of the service.  See the [overview](/service-management/overview)
 	// for naming requirements.  For example: `example.googleapis.com`.
-	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName" json:"service_name,omitempty"`
+	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
 	// The id of the service configuration resource.
-	ConfigId string `protobuf:"bytes,2,opt,name=config_id,json=configId" json:"config_id,omitempty"`
+	ConfigId string `protobuf:"bytes,2,opt,name=config_id,json=configId,proto3" json:"config_id,omitempty"`
 	// Specifies which parts of the Service Config should be returned in the
 	// response.
-	View                 GetServiceConfigRequest_ConfigView `protobuf:"varint,3,opt,name=view,enum=google.api.servicemanagement.v1.GetServiceConfigRequest_ConfigView" json:"view,omitempty"`
+	View                 GetServiceConfigRequest_ConfigView `protobuf:"varint,3,opt,name=view,proto3,enum=google.api.servicemanagement.v1.GetServiceConfigRequest_ConfigView" json:"view,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                           `json:"-"`
 	XXX_unrecognized     []byte                             `json:"-"`
 	XXX_sizecache        int32                              `json:"-"`
@@ -446,11 +446,11 @@ func (m *GetServiceConfigRequest) GetView() GetServiceConfigRequest_ConfigView {
 type ListServiceConfigsRequest struct {
 	// The name of the service.  See the [overview](/service-management/overview)
 	// for naming requirements.  For example: `example.googleapis.com`.
-	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName" json:"service_name,omitempty"`
+	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
 	// The token of the page to retrieve.
-	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// The max number of items to include in the response list.
-	PageSize             int32    `protobuf:"varint,3,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize             int32    `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -504,9 +504,9 @@ func (m *ListServiceConfigsRequest) GetPageSize() int32 {
 // Response message for ListServiceConfigs method.
 type ListServiceConfigsResponse struct {
 	// The list of service configuration resources.
-	ServiceConfigs []*serviceconfig.Service `protobuf:"bytes,1,rep,name=service_configs,json=serviceConfigs" json:"service_configs,omitempty"`
+	ServiceConfigs []*serviceconfig.Service `protobuf:"bytes,1,rep,name=service_configs,json=serviceConfigs,proto3" json:"service_configs,omitempty"`
 	// The token of the next page of results.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -554,9 +554,9 @@ func (m *ListServiceConfigsResponse) GetNextPageToken() string {
 type CreateServiceConfigRequest struct {
 	// The name of the service.  See the [overview](/service-management/overview)
 	// for naming requirements.  For example: `example.googleapis.com`.
-	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName" json:"service_name,omitempty"`
+	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
 	// The service configuration resource.
-	ServiceConfig        *serviceconfig.Service `protobuf:"bytes,2,opt,name=service_config,json=serviceConfig" json:"service_config,omitempty"`
+	ServiceConfig        *serviceconfig.Service `protobuf:"bytes,2,opt,name=service_config,json=serviceConfig,proto3" json:"service_config,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
 	XXX_unrecognized     []byte                 `json:"-"`
 	XXX_sizecache        int32                  `json:"-"`
@@ -604,13 +604,13 @@ func (m *CreateServiceConfigRequest) GetServiceConfig() *serviceconfig.Service {
 type SubmitConfigSourceRequest struct {
 	// The name of the service.  See the [overview](/service-management/overview)
 	// for naming requirements.  For example: `example.googleapis.com`.
-	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName" json:"service_name,omitempty"`
+	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
 	// The source configuration for the service.
-	ConfigSource *ConfigSource `protobuf:"bytes,2,opt,name=config_source,json=configSource" json:"config_source,omitempty"`
+	ConfigSource *ConfigSource `protobuf:"bytes,2,opt,name=config_source,json=configSource,proto3" json:"config_source,omitempty"`
 	// Optional. If set, this will result in the generation of a
 	// `google.api.Service` configuration based on the `ConfigSource` provided,
 	// but the generated config and the sources will NOT be persisted.
-	ValidateOnly         bool     `protobuf:"varint,3,opt,name=validate_only,json=validateOnly" json:"validate_only,omitempty"`
+	ValidateOnly         bool     `protobuf:"varint,3,opt,name=validate_only,json=validateOnly,proto3" json:"validate_only,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -664,7 +664,7 @@ func (m *SubmitConfigSourceRequest) GetValidateOnly() bool {
 // Response message for SubmitConfigSource method.
 type SubmitConfigSourceResponse struct {
 	// The generated service configuration.
-	ServiceConfig        *serviceconfig.Service `protobuf:"bytes,1,opt,name=service_config,json=serviceConfig" json:"service_config,omitempty"`
+	ServiceConfig        *serviceconfig.Service `protobuf:"bytes,1,opt,name=service_config,json=serviceConfig,proto3" json:"service_config,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
 	XXX_unrecognized     []byte                 `json:"-"`
 	XXX_sizecache        int32                  `json:"-"`
@@ -705,9 +705,9 @@ func (m *SubmitConfigSourceResponse) GetServiceConfig() *serviceconfig.Service {
 type CreateServiceRolloutRequest struct {
 	// The name of the service.  See the [overview](/service-management/overview)
 	// for naming requirements.  For example: `example.googleapis.com`.
-	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName" json:"service_name,omitempty"`
+	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
 	// The rollout resource. The `service_name` field is output only.
-	Rollout              *Rollout `protobuf:"bytes,2,opt,name=rollout" json:"rollout,omitempty"`
+	Rollout              *Rollout `protobuf:"bytes,2,opt,name=rollout,proto3" json:"rollout,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -755,11 +755,11 @@ func (m *CreateServiceRolloutRequest) GetRollout() *Rollout {
 type ListServiceRolloutsRequest struct {
 	// The name of the service.  See the [overview](/service-management/overview)
 	// for naming requirements.  For example: `example.googleapis.com`.
-	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName" json:"service_name,omitempty"`
+	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
 	// The token of the page to retrieve.
-	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// The max number of items to include in the response list.
-	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Use `filter` to return subset of rollouts.
 	// The following filters are supported:
 	//   -- To limit the results to only those in
@@ -768,7 +768,7 @@ type ListServiceRolloutsRequest struct {
 	//   -- To limit the results to those in
 	//      [status](google.api.servicemanagement.v1.RolloutStatus) 'CANCELLED'
 	//      or 'FAILED', use filter='status=CANCELLED OR status=FAILED'
-	Filter               string   `protobuf:"bytes,4,opt,name=filter" json:"filter,omitempty"`
+	Filter               string   `protobuf:"bytes,4,opt,name=filter,proto3" json:"filter,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -829,9 +829,9 @@ func (m *ListServiceRolloutsRequest) GetFilter() string {
 // Response message for ListServiceRollouts method.
 type ListServiceRolloutsResponse struct {
 	// The list of rollout resources.
-	Rollouts []*Rollout `protobuf:"bytes,1,rep,name=rollouts" json:"rollouts,omitempty"`
+	Rollouts []*Rollout `protobuf:"bytes,1,rep,name=rollouts,proto3" json:"rollouts,omitempty"`
 	// The token of the next page of results.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -879,9 +879,9 @@ func (m *ListServiceRolloutsResponse) GetNextPageToken() string {
 type GetServiceRolloutRequest struct {
 	// The name of the service.  See the [overview](/service-management/overview)
 	// for naming requirements.  For example: `example.googleapis.com`.
-	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName" json:"service_name,omitempty"`
+	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
 	// The id of the rollout resource.
-	RolloutId            string   `protobuf:"bytes,2,opt,name=rollout_id,json=rolloutId" json:"rollout_id,omitempty"`
+	RolloutId            string   `protobuf:"bytes,2,opt,name=rollout_id,json=rolloutId,proto3" json:"rollout_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -929,7 +929,7 @@ func (m *GetServiceRolloutRequest) GetRolloutId() string {
 type EnableServiceRequest struct {
 	// Name of the service to enable. Specifying an unknown service name will
 	// cause the request to fail.
-	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName" json:"service_name,omitempty"`
+	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
 	// The identity of consumer resource which service enablement will be
 	// applied to.
 	//
@@ -939,7 +939,7 @@ type EnableServiceRequest struct {
 	//
 	// Note: this is made compatible with
 	// google.api.servicecontrol.v1.Operation.consumer_id.
-	ConsumerId           string   `protobuf:"bytes,2,opt,name=consumer_id,json=consumerId" json:"consumer_id,omitempty"`
+	ConsumerId           string   `protobuf:"bytes,2,opt,name=consumer_id,json=consumerId,proto3" json:"consumer_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -987,7 +987,7 @@ func (m *EnableServiceRequest) GetConsumerId() string {
 type DisableServiceRequest struct {
 	// Name of the service to disable. Specifying an unknown service name
 	// will cause the request to fail.
-	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName" json:"service_name,omitempty"`
+	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
 	// The identity of consumer resource which service disablement will be
 	// applied to.
 	//
@@ -997,7 +997,7 @@ type DisableServiceRequest struct {
 	//
 	// Note: this is made compatible with
 	// google.api.servicecontrol.v1.Operation.consumer_id.
-	ConsumerId           string   `protobuf:"bytes,2,opt,name=consumer_id,json=consumerId" json:"consumer_id,omitempty"`
+	ConsumerId           string   `protobuf:"bytes,2,opt,name=consumer_id,json=consumerId,proto3" json:"consumer_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1048,13 +1048,13 @@ type GenerateConfigReportRequest struct {
 	// [google.api.servicemanagement.v1.ConfigRef][google.api.servicemanagement.v1.ConfigRef],
 	// [google.api.servicemanagement.v1.ConfigSource][google.api.servicemanagement.v1.ConfigSource],
 	// and [google.api.Service][google.api.Service]
-	NewConfig *any.Any `protobuf:"bytes,1,opt,name=new_config,json=newConfig" json:"new_config,omitempty"`
+	NewConfig *any.Any `protobuf:"bytes,1,opt,name=new_config,json=newConfig,proto3" json:"new_config,omitempty"`
 	// Service configuration against which the comparison will be done.
 	// For this version of API, the supported types are
 	// [google.api.servicemanagement.v1.ConfigRef][google.api.servicemanagement.v1.ConfigRef],
 	// [google.api.servicemanagement.v1.ConfigSource][google.api.servicemanagement.v1.ConfigSource],
 	// and [google.api.Service][google.api.Service]
-	OldConfig            *any.Any `protobuf:"bytes,2,opt,name=old_config,json=oldConfig" json:"old_config,omitempty"`
+	OldConfig            *any.Any `protobuf:"bytes,2,opt,name=old_config,json=oldConfig,proto3" json:"old_config,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1101,16 +1101,16 @@ func (m *GenerateConfigReportRequest) GetOldConfig() *any.Any {
 // Response message for GenerateConfigReport method.
 type GenerateConfigReportResponse struct {
 	// Name of the service this report belongs to.
-	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName" json:"service_name,omitempty"`
+	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
 	// ID of the service configuration this report belongs to.
-	Id string `protobuf:"bytes,2,opt,name=id" json:"id,omitempty"`
+	Id string `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
 	// list of ChangeReport, each corresponding to comparison between two
 	// service configurations.
-	ChangeReports []*ChangeReport `protobuf:"bytes,3,rep,name=change_reports,json=changeReports" json:"change_reports,omitempty"`
+	ChangeReports []*ChangeReport `protobuf:"bytes,3,rep,name=change_reports,json=changeReports,proto3" json:"change_reports,omitempty"`
 	// Errors / Linter warnings associated with the service definition this
 	// report
 	// belongs to.
-	Diagnostics          []*Diagnostic `protobuf:"bytes,4,rep,name=diagnostics" json:"diagnostics,omitempty"`
+	Diagnostics          []*Diagnostic `protobuf:"bytes,4,rep,name=diagnostics,proto3" json:"diagnostics,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
 	XXX_unrecognized     []byte        `json:"-"`
 	XXX_sizecache        int32         `json:"-"`
@@ -1455,8 +1455,7 @@ func (c *serviceManagerClient) DisableService(ctx context.Context, in *DisableSe
 	return out, nil
 }
 
-// Server API for ServiceManager service
-
+// ServiceManagerServer is the server API for ServiceManager service.
 type ServiceManagerServer interface {
 	// Lists managed services.
 	//

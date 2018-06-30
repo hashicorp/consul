@@ -44,7 +44,22 @@
         {"shape":"ResourceExistsException"},
         {"shape":"ResourceNotFoundException"},
         {"shape":"MalformedPolicyDocumentException"},
-        {"shape":"InternalServiceError"}
+        {"shape":"InternalServiceError"},
+        {"shape":"PreconditionNotMetException"}
+      ]
+    },
+    "DeleteResourcePolicy":{
+      "name":"DeleteResourcePolicy",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteResourcePolicyRequest"},
+      "output":{"shape":"DeleteResourcePolicyResponse"},
+      "errors":[
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"InternalServiceError"},
+        {"shape":"InvalidRequestException"}
       ]
     },
     "DeleteSecret":{
@@ -89,6 +104,20 @@
         {"shape":"InternalServiceError"}
       ]
     },
+    "GetResourcePolicy":{
+      "name":"GetResourcePolicy",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetResourcePolicyRequest"},
+      "output":{"shape":"GetResourcePolicyResponse"},
+      "errors":[
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"InternalServiceError"},
+        {"shape":"InvalidRequestException"}
+      ]
+    },
     "GetSecretValue":{
       "name":"GetSecretValue",
       "http":{
@@ -131,6 +160,22 @@
         {"shape":"InvalidParameterException"},
         {"shape":"InvalidNextTokenException"},
         {"shape":"InternalServiceError"}
+      ]
+    },
+    "PutResourcePolicy":{
+      "name":"PutResourcePolicy",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"PutResourcePolicyRequest"},
+      "output":{"shape":"PutResourcePolicyResponse"},
+      "errors":[
+        {"shape":"MalformedPolicyDocumentException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"InternalServiceError"},
+        {"shape":"InvalidRequestException"}
       ]
     },
     "PutSecretValue":{
@@ -190,6 +235,7 @@
       "input":{"shape":"TagResourceRequest"},
       "errors":[
         {"shape":"ResourceNotFoundException"},
+        {"shape":"InvalidRequestException"},
         {"shape":"InvalidParameterException"},
         {"shape":"InternalServiceError"}
       ]
@@ -203,6 +249,7 @@
       "input":{"shape":"UntagResourceRequest"},
       "errors":[
         {"shape":"ResourceNotFoundException"},
+        {"shape":"InvalidRequestException"},
         {"shape":"InvalidParameterException"},
         {"shape":"InternalServiceError"}
       ]
@@ -223,7 +270,8 @@
         {"shape":"ResourceExistsException"},
         {"shape":"ResourceNotFoundException"},
         {"shape":"MalformedPolicyDocumentException"},
-        {"shape":"InternalServiceError"}
+        {"shape":"InternalServiceError"},
+        {"shape":"PreconditionNotMetException"}
       ]
     },
     "UpdateSecretVersionStage":{
@@ -301,6 +349,20 @@
         "Message":{"shape":"ErrorMessage"}
       },
       "exception":true
+    },
+    "DeleteResourcePolicyRequest":{
+      "type":"structure",
+      "required":["SecretId"],
+      "members":{
+        "SecretId":{"shape":"SecretIdType"}
+      }
+    },
+    "DeleteResourcePolicyResponse":{
+      "type":"structure",
+      "members":{
+        "ARN":{"shape":"SecretARNType"},
+        "Name":{"shape":"NameType"}
+      }
     },
     "DeleteSecretRequest":{
       "type":"structure",
@@ -425,6 +487,21 @@
       "type":"structure",
       "members":{
         "RandomPassword":{"shape":"RandomPasswordType"}
+      }
+    },
+    "GetResourcePolicyRequest":{
+      "type":"structure",
+      "required":["SecretId"],
+      "members":{
+        "SecretId":{"shape":"SecretIdType"}
+      }
+    },
+    "GetResourcePolicyResponse":{
+      "type":"structure",
+      "members":{
+        "ARN":{"shape":"SecretARNType"},
+        "Name":{"shape":"NameType"},
+        "ResourcePolicy":{"shape":"NonEmptyResourcePolicyType"}
       }
     },
     "GetSecretValueRequest":{
@@ -560,10 +637,40 @@
       "max":4096,
       "min":1
     },
+    "NonEmptyResourcePolicyType":{
+      "type":"string",
+      "max":4096,
+      "min":1
+    },
     "PasswordLengthType":{
       "type":"long",
       "max":4096,
       "min":1
+    },
+    "PreconditionNotMetException":{
+      "type":"structure",
+      "members":{
+        "Message":{"shape":"ErrorMessage"}
+      },
+      "exception":true
+    },
+    "PutResourcePolicyRequest":{
+      "type":"structure",
+      "required":[
+        "SecretId",
+        "ResourcePolicy"
+      ],
+      "members":{
+        "SecretId":{"shape":"SecretIdType"},
+        "ResourcePolicy":{"shape":"NonEmptyResourcePolicyType"}
+      }
+    },
+    "PutResourcePolicyResponse":{
+      "type":"structure",
+      "members":{
+        "ARN":{"shape":"SecretARNType"},
+        "Name":{"shape":"NameType"}
+      }
     },
     "PutSecretValueRequest":{
       "type":"structure",

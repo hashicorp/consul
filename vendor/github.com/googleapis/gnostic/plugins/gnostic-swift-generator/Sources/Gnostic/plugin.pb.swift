@@ -171,45 +171,11 @@ public struct Gnostic_Plugin_V1_Request: SwiftProtobuf.Message {
   /// Clears the value of `compilerVersion`. Subsequent reads from it will return its default value.
   public mutating func clearCompilerVersion() {_storage._compilerVersion = nil}
 
-  /// OpenAPI v2 API representation
-  public var openapi2: Openapi_V2_Document {
-    get {return _storage._openapi2 ?? Openapi_V2_Document()}
-    set {_uniqueStorage()._openapi2 = newValue}
+  /// API models
+  public var models: [SwiftProtobuf.Google_Protobuf_Any] {
+    get {return _storage._models}
+    set {_uniqueStorage()._models = newValue}
   }
-  /// Returns true if `openapi2` has been explicitly set.
-  public var hasOpenapi2: Bool {return _storage._openapi2 != nil}
-  /// Clears the value of `openapi2`. Subsequent reads from it will return its default value.
-  public mutating func clearOpenapi2() {_storage._openapi2 = nil}
-
-  /// OpenAPI v3 API representation
-  public var openapi3: Openapi_V3_Document {
-    get {return _storage._openapi3 ?? Openapi_V3_Document()}
-    set {_uniqueStorage()._openapi3 = newValue}
-  }
-  /// Returns true if `openapi3` has been explicitly set.
-  public var hasOpenapi3: Bool {return _storage._openapi3 != nil}
-  /// Clears the value of `openapi3`. Subsequent reads from it will return its default value.
-  public mutating func clearOpenapi3() {_storage._openapi3 = nil}
-
-  /// Discovery API representation
-  public var discovery: Discovery_V1_Document {
-    get {return _storage._discovery ?? Discovery_V1_Document()}
-    set {_uniqueStorage()._discovery = newValue}
-  }
-  /// Returns true if `discovery` has been explicitly set.
-  public var hasDiscovery: Bool {return _storage._discovery != nil}
-  /// Clears the value of `discovery`. Subsequent reads from it will return its default value.
-  public mutating func clearDiscovery() {_storage._discovery = nil}
-
-  /// generated code surface representation
-  public var surface: Surface_V1_Model {
-    get {return _storage._surface ?? Surface_V1_Model()}
-    set {_uniqueStorage()._surface = newValue}
-  }
-  /// Returns true if `surface` has been explicitly set.
-  public var hasSurface: Bool {return _storage._surface != nil}
-  /// Clears the value of `surface`. Subsequent reads from it will return its default value.
-  public mutating func clearSurface() {_storage._surface = nil}
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -228,10 +194,7 @@ public struct Gnostic_Plugin_V1_Request: SwiftProtobuf.Message {
         case 2: try decoder.decodeSingularStringField(value: &_storage._outputPath)
         case 3: try decoder.decodeRepeatedMessageField(value: &_storage._parameters)
         case 4: try decoder.decodeSingularMessageField(value: &_storage._compilerVersion)
-        case 5: try decoder.decodeSingularMessageField(value: &_storage._openapi2)
-        case 6: try decoder.decodeSingularMessageField(value: &_storage._openapi3)
-        case 7: try decoder.decodeSingularMessageField(value: &_storage._discovery)
-        case 8: try decoder.decodeSingularMessageField(value: &_storage._surface)
+        case 5: try decoder.decodeRepeatedMessageField(value: &_storage._models)
         default: break
         }
       }
@@ -256,17 +219,8 @@ public struct Gnostic_Plugin_V1_Request: SwiftProtobuf.Message {
       if let v = _storage._compilerVersion {
         try visitor.visitSingularMessageField(value: v, fieldNumber: 4)
       }
-      if let v = _storage._openapi2 {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 5)
-      }
-      if let v = _storage._openapi3 {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 6)
-      }
-      if let v = _storage._discovery {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 7)
-      }
-      if let v = _storage._surface {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 8)
+      if !_storage._models.isEmpty {
+        try visitor.visitRepeatedMessageField(value: _storage._models, fieldNumber: 5)
       }
     }
     try unknownFields.traverse(visitor: &visitor)
@@ -284,13 +238,13 @@ public struct Gnostic_Plugin_V1_Response: SwiftProtobuf.Message {
   /// even if it reports an error in this way.
   ///
   /// This should be used to indicate errors which prevent the plugin from 
-  /// operating as intended.  Errors which indicate a problem in openapic 
+  /// operating as intended.  Errors which indicate a problem in gnostic 
   /// itself -- such as the input Document being unparseable -- should be 
   /// reported by writing a message to stderr and exiting with a non-zero 
   /// status code.
   public var errors: [String] = []
 
-  /// file output, each file will be written by openapic to an appropriate location.
+  /// file output, each file will be written by gnostic to an appropriate location.
   public var files: [Gnostic_Plugin_V1_File] = []
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
@@ -411,10 +365,7 @@ extension Gnostic_Plugin_V1_Request: SwiftProtobuf._MessageImplementationBase, S
     2: .standard(proto: "output_path"),
     3: .same(proto: "parameters"),
     4: .standard(proto: "compiler_version"),
-    5: .same(proto: "openapi2"),
-    6: .same(proto: "openapi3"),
-    7: .same(proto: "discovery"),
-    8: .same(proto: "surface"),
+    5: .same(proto: "models"),
   ]
 
   fileprivate class _StorageClass {
@@ -422,10 +373,7 @@ extension Gnostic_Plugin_V1_Request: SwiftProtobuf._MessageImplementationBase, S
     var _outputPath: String = String()
     var _parameters: [Gnostic_Plugin_V1_Parameter] = []
     var _compilerVersion: Gnostic_Plugin_V1_Version? = nil
-    var _openapi2: Openapi_V2_Document? = nil
-    var _openapi3: Openapi_V3_Document? = nil
-    var _discovery: Discovery_V1_Document? = nil
-    var _surface: Surface_V1_Model? = nil
+    var _models: [SwiftProtobuf.Google_Protobuf_Any] = []
 
     static let defaultInstance = _StorageClass()
 
@@ -436,10 +384,7 @@ extension Gnostic_Plugin_V1_Request: SwiftProtobuf._MessageImplementationBase, S
       _outputPath = source._outputPath
       _parameters = source._parameters
       _compilerVersion = source._compilerVersion
-      _openapi2 = source._openapi2
-      _openapi3 = source._openapi3
-      _discovery = source._discovery
-      _surface = source._surface
+      _models = source._models
     }
   }
 
@@ -457,10 +402,7 @@ extension Gnostic_Plugin_V1_Request: SwiftProtobuf._MessageImplementationBase, S
         if _storage._outputPath != other_storage._outputPath {return false}
         if _storage._parameters != other_storage._parameters {return false}
         if _storage._compilerVersion != other_storage._compilerVersion {return false}
-        if _storage._openapi2 != other_storage._openapi2 {return false}
-        if _storage._openapi3 != other_storage._openapi3 {return false}
-        if _storage._discovery != other_storage._discovery {return false}
-        if _storage._surface != other_storage._surface {return false}
+        if _storage._models != other_storage._models {return false}
         return true
       }
       if !storagesAreEqual {return false}

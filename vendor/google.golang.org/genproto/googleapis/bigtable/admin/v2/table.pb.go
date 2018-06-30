@@ -46,7 +46,7 @@ func (x Table_TimestampGranularity) String() string {
 	return proto.EnumName(Table_TimestampGranularity_name, int32(x))
 }
 func (Table_TimestampGranularity) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_table_5c3da779706b03a9, []int{0, 0}
+	return fileDescriptor_table_dac9f683d605f5c8, []int{0, 0}
 }
 
 // Defines a view over a table's fields.
@@ -59,12 +59,6 @@ const (
 	Table_NAME_ONLY Table_View = 1
 	// Only populates `name` and fields related to the table's schema.
 	Table_SCHEMA_VIEW Table_View = 2
-	// This is a private alpha release of Cloud Bigtable replication. This
-	// feature is not currently available to most Cloud Bigtable customers. This
-	// feature might be changed in backward-incompatible ways and is not
-	// recommended for production use. It is not subject to any SLA or
-	// deprecation policy.
-	//
 	// Only populates `name` and fields related to the table's
 	// replication state.
 	Table_REPLICATION_VIEW Table_View = 3
@@ -91,7 +85,7 @@ func (x Table_View) String() string {
 	return proto.EnumName(Table_View_name, int32(x))
 }
 func (Table_View) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_table_5c3da779706b03a9, []int{0, 1}
+	return fileDescriptor_table_dac9f683d605f5c8, []int{0, 1}
 }
 
 // Table replication states.
@@ -102,21 +96,17 @@ const (
 	Table_ClusterState_STATE_NOT_KNOWN Table_ClusterState_ReplicationState = 0
 	// The cluster was recently created, and the table must finish copying
 	// over pre-existing data from other clusters before it can begin
-	// receiving live replication updates and serving
-	// [Data API][google.bigtable.v2.Bigtable] requests.
+	// receiving live replication updates and serving Data API requests.
 	Table_ClusterState_INITIALIZING Table_ClusterState_ReplicationState = 1
-	// The table is temporarily unable to serve
-	// [Data API][google.bigtable.v2.Bigtable] requests from this
+	// The table is temporarily unable to serve Data API requests from this
 	// cluster due to planned internal maintenance.
 	Table_ClusterState_PLANNED_MAINTENANCE Table_ClusterState_ReplicationState = 2
-	// The table is temporarily unable to serve
-	// [Data API][google.bigtable.v2.Bigtable] requests from this
+	// The table is temporarily unable to serve Data API requests from this
 	// cluster due to unplanned or emergency maintenance.
 	Table_ClusterState_UNPLANNED_MAINTENANCE Table_ClusterState_ReplicationState = 3
-	// The table can serve
-	// [Data API][google.bigtable.v2.Bigtable] requests from this
-	// cluster. Depending on replication delay, reads may not immediately
-	// reflect the state of the table in other clusters.
+	// The table can serve Data API requests from this cluster. Depending on
+	// replication delay, reads may not immediately reflect the state of the
+	// table in other clusters.
 	Table_ClusterState_READY Table_ClusterState_ReplicationState = 4
 )
 
@@ -139,7 +129,7 @@ func (x Table_ClusterState_ReplicationState) String() string {
 	return proto.EnumName(Table_ClusterState_ReplicationState_name, int32(x))
 }
 func (Table_ClusterState_ReplicationState) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_table_5c3da779706b03a9, []int{0, 0, 0}
+	return fileDescriptor_table_dac9f683d605f5c8, []int{0, 0, 0}
 }
 
 // Possible states of a snapshot.
@@ -171,7 +161,7 @@ func (x Snapshot_State) String() string {
 	return proto.EnumName(Snapshot_State_name, int32(x))
 }
 func (Snapshot_State) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_table_5c3da779706b03a9, []int{3, 0}
+	return fileDescriptor_table_dac9f683d605f5c8, []int{3, 0}
 }
 
 // A collection of user data indexed by row, column, and timestamp.
@@ -180,30 +170,25 @@ type Table struct {
 	// (`OutputOnly`)
 	// The unique name of the table. Values are of the form
 	// `projects/<project>/instances/<instance>/tables/[_a-zA-Z0-9][-_.a-zA-Z0-9]*`.
-	// Views: `NAME_ONLY`, `SCHEMA_VIEW`, `FULL`
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	// This is a private alpha release of Cloud Bigtable replication. This feature
-	// is not currently available to most Cloud Bigtable customers. This feature
-	// might be changed in backward-incompatible ways and is not recommended for
-	// production use. It is not subject to any SLA or deprecation policy.
-	//
+	// Views: `NAME_ONLY`, `SCHEMA_VIEW`, `REPLICATION_VIEW`, `FULL`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// (`OutputOnly`)
 	// Map from cluster ID to per-cluster table state.
 	// If it could not be determined whether or not the table has data in a
 	// particular cluster (for example, if its zone is unavailable), then
 	// there will be an entry for the cluster with UNKNOWN `replication_status`.
-	// Views: `FULL`
-	ClusterStates map[string]*Table_ClusterState `protobuf:"bytes,2,rep,name=cluster_states,json=clusterStates" json:"cluster_states,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// Views: `REPLICATION_VIEW`, `FULL`
+	ClusterStates map[string]*Table_ClusterState `protobuf:"bytes,2,rep,name=cluster_states,json=clusterStates,proto3" json:"cluster_states,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// (`CreationOnly`)
 	// The column families configured for this table, mapped by column family ID.
 	// Views: `SCHEMA_VIEW`, `FULL`
-	ColumnFamilies map[string]*ColumnFamily `protobuf:"bytes,3,rep,name=column_families,json=columnFamilies" json:"column_families,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	ColumnFamilies map[string]*ColumnFamily `protobuf:"bytes,3,rep,name=column_families,json=columnFamilies,proto3" json:"column_families,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// (`CreationOnly`)
-	// The granularity (e.g. `MILLIS`, `MICROS`) at which timestamps are stored in
+	// The granularity (i.e. `MILLIS`) at which timestamps are stored in
 	// this table. Timestamps not matching the granularity will be rejected.
 	// If unspecified at creation time, the value will be set to `MILLIS`.
 	// Views: `SCHEMA_VIEW`, `FULL`
-	Granularity          Table_TimestampGranularity `protobuf:"varint,4,opt,name=granularity,enum=google.bigtable.admin.v2.Table_TimestampGranularity" json:"granularity,omitempty"`
+	Granularity          Table_TimestampGranularity `protobuf:"varint,4,opt,name=granularity,proto3,enum=google.bigtable.admin.v2.Table_TimestampGranularity" json:"granularity,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                   `json:"-"`
 	XXX_unrecognized     []byte                     `json:"-"`
 	XXX_sizecache        int32                      `json:"-"`
@@ -213,7 +198,7 @@ func (m *Table) Reset()         { *m = Table{} }
 func (m *Table) String() string { return proto.CompactTextString(m) }
 func (*Table) ProtoMessage()    {}
 func (*Table) Descriptor() ([]byte, []int) {
-	return fileDescriptor_table_5c3da779706b03a9, []int{0}
+	return fileDescriptor_table_dac9f683d605f5c8, []int{0}
 }
 func (m *Table) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Table.Unmarshal(m, b)
@@ -261,16 +246,11 @@ func (m *Table) GetGranularity() Table_TimestampGranularity {
 	return Table_TIMESTAMP_GRANULARITY_UNSPECIFIED
 }
 
-// This is a private alpha release of Cloud Bigtable replication. This feature
-// is not currently available to most Cloud Bigtable customers. This feature
-// might be changed in backward-incompatible ways and is not recommended for
-// production use. It is not subject to any SLA or deprecation policy.
-//
 // The state of a table's data in a particular cluster.
 type Table_ClusterState struct {
 	// (`OutputOnly`)
 	// The state of replication for the table in this cluster.
-	ReplicationState     Table_ClusterState_ReplicationState `protobuf:"varint,1,opt,name=replication_state,json=replicationState,enum=google.bigtable.admin.v2.Table_ClusterState_ReplicationState" json:"replication_state,omitempty"`
+	ReplicationState     Table_ClusterState_ReplicationState `protobuf:"varint,1,opt,name=replication_state,json=replicationState,proto3,enum=google.bigtable.admin.v2.Table_ClusterState_ReplicationState" json:"replication_state,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                            `json:"-"`
 	XXX_unrecognized     []byte                              `json:"-"`
 	XXX_sizecache        int32                               `json:"-"`
@@ -280,7 +260,7 @@ func (m *Table_ClusterState) Reset()         { *m = Table_ClusterState{} }
 func (m *Table_ClusterState) String() string { return proto.CompactTextString(m) }
 func (*Table_ClusterState) ProtoMessage()    {}
 func (*Table_ClusterState) Descriptor() ([]byte, []int) {
-	return fileDescriptor_table_5c3da779706b03a9, []int{0, 0}
+	return fileDescriptor_table_dac9f683d605f5c8, []int{0, 0}
 }
 func (m *Table_ClusterState) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Table_ClusterState.Unmarshal(m, b)
@@ -315,7 +295,7 @@ type ColumnFamily struct {
 	// NOTE: Garbage collection executes opportunistically in the background, and
 	// so it's possible for reads to return a cell even if it matches the active
 	// GC expression for its family.
-	GcRule               *GcRule  `protobuf:"bytes,1,opt,name=gc_rule,json=gcRule" json:"gc_rule,omitempty"`
+	GcRule               *GcRule  `protobuf:"bytes,1,opt,name=gc_rule,json=gcRule,proto3" json:"gc_rule,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -325,7 +305,7 @@ func (m *ColumnFamily) Reset()         { *m = ColumnFamily{} }
 func (m *ColumnFamily) String() string { return proto.CompactTextString(m) }
 func (*ColumnFamily) ProtoMessage()    {}
 func (*ColumnFamily) Descriptor() ([]byte, []int) {
-	return fileDescriptor_table_5c3da779706b03a9, []int{1}
+	return fileDescriptor_table_dac9f683d605f5c8, []int{1}
 }
 func (m *ColumnFamily) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ColumnFamily.Unmarshal(m, b)
@@ -371,7 +351,7 @@ func (m *GcRule) Reset()         { *m = GcRule{} }
 func (m *GcRule) String() string { return proto.CompactTextString(m) }
 func (*GcRule) ProtoMessage()    {}
 func (*GcRule) Descriptor() ([]byte, []int) {
-	return fileDescriptor_table_5c3da779706b03a9, []int{2}
+	return fileDescriptor_table_dac9f683d605f5c8, []int{2}
 }
 func (m *GcRule) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GcRule.Unmarshal(m, b)
@@ -396,16 +376,16 @@ type isGcRule_Rule interface {
 }
 
 type GcRule_MaxNumVersions struct {
-	MaxNumVersions int32 `protobuf:"varint,1,opt,name=max_num_versions,json=maxNumVersions,oneof"`
+	MaxNumVersions int32 `protobuf:"varint,1,opt,name=max_num_versions,json=maxNumVersions,proto3,oneof"`
 }
 type GcRule_MaxAge struct {
-	MaxAge *duration.Duration `protobuf:"bytes,2,opt,name=max_age,json=maxAge,oneof"`
+	MaxAge *duration.Duration `protobuf:"bytes,2,opt,name=max_age,json=maxAge,proto3,oneof"`
 }
 type GcRule_Intersection_ struct {
-	Intersection *GcRule_Intersection `protobuf:"bytes,3,opt,name=intersection,oneof"`
+	Intersection *GcRule_Intersection `protobuf:"bytes,3,opt,name=intersection,proto3,oneof"`
 }
 type GcRule_Union_ struct {
-	Union *GcRule_Union `protobuf:"bytes,4,opt,name=union,oneof"`
+	Union *GcRule_Union `protobuf:"bytes,4,opt,name=union,proto3,oneof"`
 }
 
 func (*GcRule_MaxNumVersions) isGcRule_Rule() {}
@@ -558,7 +538,7 @@ func _GcRule_OneofSizer(msg proto.Message) (n int) {
 // A GcRule which deletes cells matching all of the given rules.
 type GcRule_Intersection struct {
 	// Only delete cells which would be deleted by every element of `rules`.
-	Rules                []*GcRule `protobuf:"bytes,1,rep,name=rules" json:"rules,omitempty"`
+	Rules                []*GcRule `protobuf:"bytes,1,rep,name=rules,proto3" json:"rules,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -568,7 +548,7 @@ func (m *GcRule_Intersection) Reset()         { *m = GcRule_Intersection{} }
 func (m *GcRule_Intersection) String() string { return proto.CompactTextString(m) }
 func (*GcRule_Intersection) ProtoMessage()    {}
 func (*GcRule_Intersection) Descriptor() ([]byte, []int) {
-	return fileDescriptor_table_5c3da779706b03a9, []int{2, 0}
+	return fileDescriptor_table_dac9f683d605f5c8, []int{2, 0}
 }
 func (m *GcRule_Intersection) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GcRule_Intersection.Unmarshal(m, b)
@@ -598,7 +578,7 @@ func (m *GcRule_Intersection) GetRules() []*GcRule {
 // A GcRule which deletes cells matching any of the given rules.
 type GcRule_Union struct {
 	// Delete cells which would be deleted by any element of `rules`.
-	Rules                []*GcRule `protobuf:"bytes,1,rep,name=rules" json:"rules,omitempty"`
+	Rules                []*GcRule `protobuf:"bytes,1,rep,name=rules,proto3" json:"rules,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -608,7 +588,7 @@ func (m *GcRule_Union) Reset()         { *m = GcRule_Union{} }
 func (m *GcRule_Union) String() string { return proto.CompactTextString(m) }
 func (*GcRule_Union) ProtoMessage()    {}
 func (*GcRule_Union) Descriptor() ([]byte, []int) {
-	return fileDescriptor_table_5c3da779706b03a9, []int{2, 1}
+	return fileDescriptor_table_dac9f683d605f5c8, []int{2, 1}
 }
 func (m *GcRule_Union) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GcRule_Union.Unmarshal(m, b)
@@ -635,41 +615,41 @@ func (m *GcRule_Union) GetRules() []*GcRule {
 	return nil
 }
 
-// This is a private alpha release of Cloud Bigtable snapshots. This feature
-// is not currently available to most Cloud Bigtable customers. This feature
-// might be changed in backward-incompatible ways and is not recommended for
-// production use. It is not subject to any SLA or deprecation policy.
-//
 // A snapshot of a table at a particular time. A snapshot can be used as a
 // checkpoint for data restoration or a data source for a new table.
+//
+// Note: This is a private alpha release of Cloud Bigtable snapshots. This
+// feature is not currently available to most Cloud Bigtable customers. This
+// feature might be changed in backward-incompatible ways and is not recommended
+// for production use. It is not subject to any SLA or deprecation policy.
 type Snapshot struct {
 	// (`OutputOnly`)
 	// The unique name of the snapshot.
 	// Values are of the form
 	// `projects/<project>/instances/<instance>/clusters/<cluster>/snapshots/<snapshot>`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// (`OutputOnly`)
 	// The source table at the time the snapshot was taken.
-	SourceTable *Table `protobuf:"bytes,2,opt,name=source_table,json=sourceTable" json:"source_table,omitempty"`
+	SourceTable *Table `protobuf:"bytes,2,opt,name=source_table,json=sourceTable,proto3" json:"source_table,omitempty"`
 	// (`OutputOnly`)
 	// The size of the data in the source table at the time the snapshot was
 	// taken. In some cases, this value may be computed asynchronously via a
 	// background process and a placeholder of 0 will be used in the meantime.
-	DataSizeBytes int64 `protobuf:"varint,3,opt,name=data_size_bytes,json=dataSizeBytes" json:"data_size_bytes,omitempty"`
+	DataSizeBytes int64 `protobuf:"varint,3,opt,name=data_size_bytes,json=dataSizeBytes,proto3" json:"data_size_bytes,omitempty"`
 	// (`OutputOnly`)
 	// The time when the snapshot is created.
-	CreateTime *timestamp.Timestamp `protobuf:"bytes,4,opt,name=create_time,json=createTime" json:"create_time,omitempty"`
+	CreateTime *timestamp.Timestamp `protobuf:"bytes,4,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	// (`OutputOnly`)
 	// The time when the snapshot will be deleted. The maximum amount of time a
 	// snapshot can stay active is 365 days. If 'ttl' is not specified,
 	// the default maximum of 365 days will be used.
-	DeleteTime *timestamp.Timestamp `protobuf:"bytes,5,opt,name=delete_time,json=deleteTime" json:"delete_time,omitempty"`
+	DeleteTime *timestamp.Timestamp `protobuf:"bytes,5,opt,name=delete_time,json=deleteTime,proto3" json:"delete_time,omitempty"`
 	// (`OutputOnly`)
 	// The current state of the snapshot.
-	State Snapshot_State `protobuf:"varint,6,opt,name=state,enum=google.bigtable.admin.v2.Snapshot_State" json:"state,omitempty"`
+	State Snapshot_State `protobuf:"varint,6,opt,name=state,proto3,enum=google.bigtable.admin.v2.Snapshot_State" json:"state,omitempty"`
 	// (`OutputOnly`)
 	// Description of the snapshot.
-	Description          string   `protobuf:"bytes,7,opt,name=description" json:"description,omitempty"`
+	Description          string   `protobuf:"bytes,7,opt,name=description,proto3" json:"description,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -679,7 +659,7 @@ func (m *Snapshot) Reset()         { *m = Snapshot{} }
 func (m *Snapshot) String() string { return proto.CompactTextString(m) }
 func (*Snapshot) ProtoMessage()    {}
 func (*Snapshot) Descriptor() ([]byte, []int) {
-	return fileDescriptor_table_5c3da779706b03a9, []int{3}
+	return fileDescriptor_table_dac9f683d605f5c8, []int{3}
 }
 func (m *Snapshot) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Snapshot.Unmarshal(m, b)
@@ -765,10 +745,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("google/bigtable/admin/v2/table.proto", fileDescriptor_table_5c3da779706b03a9)
+	proto.RegisterFile("google/bigtable/admin/v2/table.proto", fileDescriptor_table_dac9f683d605f5c8)
 }
 
-var fileDescriptor_table_5c3da779706b03a9 = []byte{
+var fileDescriptor_table_dac9f683d605f5c8 = []byte{
 	// 965 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x56, 0xff, 0x6e, 0xdb, 0x54,
 	0x18, 0xad, 0xe3, 0x38, 0x6d, 0xbf, 0xa4, 0xad, 0xb9, 0x1d, 0x22, 0x8b, 0xa6, 0x2d, 0x44, 0x30,

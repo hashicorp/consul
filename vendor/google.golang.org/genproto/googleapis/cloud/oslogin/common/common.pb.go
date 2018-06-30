@@ -22,24 +22,24 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 // The POSIX account information associated with a Google account.
 type PosixAccount struct {
 	// Only one POSIX account can be marked as primary.
-	Primary bool `protobuf:"varint,1,opt,name=primary" json:"primary,omitempty"`
+	Primary bool `protobuf:"varint,1,opt,name=primary,proto3" json:"primary,omitempty"`
 	// The username of the POSIX account.
-	Username string `protobuf:"bytes,2,opt,name=username" json:"username,omitempty"`
+	Username string `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
 	// The user ID.
-	Uid int64 `protobuf:"varint,3,opt,name=uid" json:"uid,omitempty"`
+	Uid int64 `protobuf:"varint,3,opt,name=uid,proto3" json:"uid,omitempty"`
 	// The default group ID.
-	Gid int64 `protobuf:"varint,4,opt,name=gid" json:"gid,omitempty"`
+	Gid int64 `protobuf:"varint,4,opt,name=gid,proto3" json:"gid,omitempty"`
 	// The path to the home directory for this account.
-	HomeDirectory string `protobuf:"bytes,5,opt,name=home_directory,json=homeDirectory" json:"home_directory,omitempty"`
+	HomeDirectory string `protobuf:"bytes,5,opt,name=home_directory,json=homeDirectory,proto3" json:"home_directory,omitempty"`
 	// The path to the logic shell for this account.
-	Shell string `protobuf:"bytes,6,opt,name=shell" json:"shell,omitempty"`
+	Shell string `protobuf:"bytes,6,opt,name=shell,proto3" json:"shell,omitempty"`
 	// The GECOS (user information) entry for this account.
-	Gecos string `protobuf:"bytes,7,opt,name=gecos" json:"gecos,omitempty"`
+	Gecos string `protobuf:"bytes,7,opt,name=gecos,proto3" json:"gecos,omitempty"`
 	// System identifier for which account the username or uid applies to.
 	// By default, the empty value is used.
-	SystemId string `protobuf:"bytes,8,opt,name=system_id,json=systemId" json:"system_id,omitempty"`
+	SystemId string `protobuf:"bytes,8,opt,name=system_id,json=systemId,proto3" json:"system_id,omitempty"`
 	// Output only. A POSIX account identifier.
-	AccountId            string   `protobuf:"bytes,9,opt,name=account_id,json=accountId" json:"account_id,omitempty"`
+	AccountId            string   `protobuf:"bytes,9,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -137,11 +137,11 @@ type SshPublicKey struct {
 	// Public key text in SSH format, defined by
 	// <a href="https://www.ietf.org/rfc/rfc4253.txt" target="_blank">RFC4253</a>
 	// section 6.6.
-	Key string `protobuf:"bytes,1,opt,name=key" json:"key,omitempty"`
+	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
 	// An expiration time in microseconds since epoch.
-	ExpirationTimeUsec int64 `protobuf:"varint,2,opt,name=expiration_time_usec,json=expirationTimeUsec" json:"expiration_time_usec,omitempty"`
+	ExpirationTimeUsec int64 `protobuf:"varint,2,opt,name=expiration_time_usec,json=expirationTimeUsec,proto3" json:"expiration_time_usec,omitempty"`
 	// Output only. The SHA-256 fingerprint of the SSH public key.
-	Fingerprint          string   `protobuf:"bytes,3,opt,name=fingerprint" json:"fingerprint,omitempty"`
+	Fingerprint          string   `protobuf:"bytes,3,opt,name=fingerprint,proto3" json:"fingerprint,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

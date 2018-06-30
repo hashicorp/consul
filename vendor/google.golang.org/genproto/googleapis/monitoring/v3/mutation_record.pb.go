@@ -22,9 +22,9 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 // Describes a change made to a configuration.
 type MutationRecord struct {
 	// When the change occurred.
-	MutateTime *timestamp.Timestamp `protobuf:"bytes,1,opt,name=mutate_time,json=mutateTime" json:"mutate_time,omitempty"`
+	MutateTime *timestamp.Timestamp `protobuf:"bytes,1,opt,name=mutate_time,json=mutateTime,proto3" json:"mutate_time,omitempty"`
 	// The email address of the user making the change.
-	MutatedBy            string   `protobuf:"bytes,2,opt,name=mutated_by,json=mutatedBy" json:"mutated_by,omitempty"`
+	MutatedBy            string   `protobuf:"bytes,2,opt,name=mutated_by,json=mutatedBy,proto3" json:"mutated_by,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

@@ -152,11 +152,11 @@ func (StructuredQuery_UnaryFilter_Operator) EnumDescriptor() ([]byte, []int) {
 // A Firestore query.
 type StructuredQuery struct {
 	// The projection to return.
-	Select *StructuredQuery_Projection `protobuf:"bytes,1,opt,name=select" json:"select,omitempty"`
+	Select *StructuredQuery_Projection `protobuf:"bytes,1,opt,name=select,proto3" json:"select,omitempty"`
 	// The collections to query.
-	From []*StructuredQuery_CollectionSelector `protobuf:"bytes,2,rep,name=from" json:"from,omitempty"`
+	From []*StructuredQuery_CollectionSelector `protobuf:"bytes,2,rep,name=from,proto3" json:"from,omitempty"`
 	// The filter to apply.
-	Where *StructuredQuery_Filter `protobuf:"bytes,3,opt,name=where" json:"where,omitempty"`
+	Where *StructuredQuery_Filter `protobuf:"bytes,3,opt,name=where,proto3" json:"where,omitempty"`
 	// The order to apply to the query results.
 	//
 	// Firestore guarantees a stable ordering through the following rules:
@@ -175,21 +175,21 @@ type StructuredQuery struct {
 	//    `SELECT * FROM Foo ORDER BY A DESC, __name__ DESC`
 	//  * `SELECT * FROM Foo WHERE A > 1` becomes
 	//    `SELECT * FROM Foo WHERE A > 1 ORDER BY A, __name__`
-	OrderBy []*StructuredQuery_Order `protobuf:"bytes,4,rep,name=order_by,json=orderBy" json:"order_by,omitempty"`
+	OrderBy []*StructuredQuery_Order `protobuf:"bytes,4,rep,name=order_by,json=orderBy,proto3" json:"order_by,omitempty"`
 	// A starting point for the query results.
-	StartAt *Cursor `protobuf:"bytes,7,opt,name=start_at,json=startAt" json:"start_at,omitempty"`
+	StartAt *Cursor `protobuf:"bytes,7,opt,name=start_at,json=startAt,proto3" json:"start_at,omitempty"`
 	// A end point for the query results.
-	EndAt *Cursor `protobuf:"bytes,8,opt,name=end_at,json=endAt" json:"end_at,omitempty"`
+	EndAt *Cursor `protobuf:"bytes,8,opt,name=end_at,json=endAt,proto3" json:"end_at,omitempty"`
 	// The number of results to skip.
 	//
 	// Applies before limit, but after all other constraints. Must be >= 0 if
 	// specified.
-	Offset int32 `protobuf:"varint,6,opt,name=offset" json:"offset,omitempty"`
+	Offset int32 `protobuf:"varint,6,opt,name=offset,proto3" json:"offset,omitempty"`
 	// The maximum number of results to return.
 	//
 	// Applies after all other constraints.
 	// Must be >= 0 if specified.
-	Limit                *wrappers.Int32Value `protobuf:"bytes,5,opt,name=limit" json:"limit,omitempty"`
+	Limit                *wrappers.Int32Value `protobuf:"bytes,5,opt,name=limit,proto3" json:"limit,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -279,11 +279,11 @@ func (m *StructuredQuery) GetLimit() *wrappers.Int32Value {
 type StructuredQuery_CollectionSelector struct {
 	// The collection ID.
 	// When set, selects only collections with this ID.
-	CollectionId string `protobuf:"bytes,2,opt,name=collection_id,json=collectionId" json:"collection_id,omitempty"`
+	CollectionId string `protobuf:"bytes,2,opt,name=collection_id,json=collectionId,proto3" json:"collection_id,omitempty"`
 	// When false, selects only collections that are immediate children of
 	// the `parent` specified in the containing `RunQueryRequest`.
 	// When true, selects all descendant collections.
-	AllDescendants       bool     `protobuf:"varint,3,opt,name=all_descendants,json=allDescendants" json:"all_descendants,omitempty"`
+	AllDescendants       bool     `protobuf:"varint,3,opt,name=all_descendants,json=allDescendants,proto3" json:"all_descendants,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -370,13 +370,13 @@ type isStructuredQuery_Filter_FilterType interface {
 }
 
 type StructuredQuery_Filter_CompositeFilter struct {
-	CompositeFilter *StructuredQuery_CompositeFilter `protobuf:"bytes,1,opt,name=composite_filter,json=compositeFilter,oneof"`
+	CompositeFilter *StructuredQuery_CompositeFilter `protobuf:"bytes,1,opt,name=composite_filter,json=compositeFilter,proto3,oneof"`
 }
 type StructuredQuery_Filter_FieldFilter struct {
-	FieldFilter *StructuredQuery_FieldFilter `protobuf:"bytes,2,opt,name=field_filter,json=fieldFilter,oneof"`
+	FieldFilter *StructuredQuery_FieldFilter `protobuf:"bytes,2,opt,name=field_filter,json=fieldFilter,proto3,oneof"`
 }
 type StructuredQuery_Filter_UnaryFilter struct {
-	UnaryFilter *StructuredQuery_UnaryFilter `protobuf:"bytes,3,opt,name=unary_filter,json=unaryFilter,oneof"`
+	UnaryFilter *StructuredQuery_UnaryFilter `protobuf:"bytes,3,opt,name=unary_filter,json=unaryFilter,proto3,oneof"`
 }
 
 func (*StructuredQuery_Filter_CompositeFilter) isStructuredQuery_Filter_FilterType() {}
@@ -507,10 +507,10 @@ func _StructuredQuery_Filter_OneofSizer(msg proto.Message) (n int) {
 // A filter that merges multiple other filters using the given operator.
 type StructuredQuery_CompositeFilter struct {
 	// The operator for combining multiple filters.
-	Op StructuredQuery_CompositeFilter_Operator `protobuf:"varint,1,opt,name=op,enum=google.firestore.v1beta1.StructuredQuery_CompositeFilter_Operator" json:"op,omitempty"`
+	Op StructuredQuery_CompositeFilter_Operator `protobuf:"varint,1,opt,name=op,proto3,enum=google.firestore.v1beta1.StructuredQuery_CompositeFilter_Operator" json:"op,omitempty"`
 	// The list of filters to combine.
 	// Must contain at least one filter.
-	Filters              []*StructuredQuery_Filter `protobuf:"bytes,2,rep,name=filters" json:"filters,omitempty"`
+	Filters              []*StructuredQuery_Filter `protobuf:"bytes,2,rep,name=filters,proto3" json:"filters,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                  `json:"-"`
 	XXX_unrecognized     []byte                    `json:"-"`
 	XXX_sizecache        int32                     `json:"-"`
@@ -557,11 +557,11 @@ func (m *StructuredQuery_CompositeFilter) GetFilters() []*StructuredQuery_Filter
 // A filter on a specific field.
 type StructuredQuery_FieldFilter struct {
 	// The field to filter by.
-	Field *StructuredQuery_FieldReference `protobuf:"bytes,1,opt,name=field" json:"field,omitempty"`
+	Field *StructuredQuery_FieldReference `protobuf:"bytes,1,opt,name=field,proto3" json:"field,omitempty"`
 	// The operator to filter by.
-	Op StructuredQuery_FieldFilter_Operator `protobuf:"varint,2,opt,name=op,enum=google.firestore.v1beta1.StructuredQuery_FieldFilter_Operator" json:"op,omitempty"`
+	Op StructuredQuery_FieldFilter_Operator `protobuf:"varint,2,opt,name=op,proto3,enum=google.firestore.v1beta1.StructuredQuery_FieldFilter_Operator" json:"op,omitempty"`
 	// The value to compare to.
-	Value                *Value   `protobuf:"bytes,3,opt,name=value" json:"value,omitempty"`
+	Value                *Value   `protobuf:"bytes,3,opt,name=value,proto3" json:"value,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -615,7 +615,7 @@ func (m *StructuredQuery_FieldFilter) GetValue() *Value {
 // A filter with a single operand.
 type StructuredQuery_UnaryFilter struct {
 	// The unary operator to apply.
-	Op StructuredQuery_UnaryFilter_Operator `protobuf:"varint,1,opt,name=op,enum=google.firestore.v1beta1.StructuredQuery_UnaryFilter_Operator" json:"op,omitempty"`
+	Op StructuredQuery_UnaryFilter_Operator `protobuf:"varint,1,opt,name=op,proto3,enum=google.firestore.v1beta1.StructuredQuery_UnaryFilter_Operator" json:"op,omitempty"`
 	// The argument to the filter.
 	//
 	// Types that are valid to be assigned to OperandType:
@@ -655,7 +655,7 @@ type isStructuredQuery_UnaryFilter_OperandType interface {
 }
 
 type StructuredQuery_UnaryFilter_Field struct {
-	Field *StructuredQuery_FieldReference `protobuf:"bytes,2,opt,name=field,oneof"`
+	Field *StructuredQuery_FieldReference `protobuf:"bytes,2,opt,name=field,proto3,oneof"`
 }
 
 func (*StructuredQuery_UnaryFilter_Field) isStructuredQuery_UnaryFilter_OperandType() {}
@@ -739,9 +739,9 @@ func _StructuredQuery_UnaryFilter_OneofSizer(msg proto.Message) (n int) {
 // An order on a field.
 type StructuredQuery_Order struct {
 	// The field to order by.
-	Field *StructuredQuery_FieldReference `protobuf:"bytes,1,opt,name=field" json:"field,omitempty"`
+	Field *StructuredQuery_FieldReference `protobuf:"bytes,1,opt,name=field,proto3" json:"field,omitempty"`
 	// The direction to order by. Defaults to `ASCENDING`.
-	Direction            StructuredQuery_Direction `protobuf:"varint,2,opt,name=direction,enum=google.firestore.v1beta1.StructuredQuery_Direction" json:"direction,omitempty"`
+	Direction            StructuredQuery_Direction `protobuf:"varint,2,opt,name=direction,proto3,enum=google.firestore.v1beta1.StructuredQuery_Direction" json:"direction,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                  `json:"-"`
 	XXX_unrecognized     []byte                    `json:"-"`
 	XXX_sizecache        int32                     `json:"-"`
@@ -787,7 +787,7 @@ func (m *StructuredQuery_Order) GetDirection() StructuredQuery_Direction {
 
 // A reference to a field, such as `max(messages.time) as max_time`.
 type StructuredQuery_FieldReference struct {
-	FieldPath            string   `protobuf:"bytes,2,opt,name=field_path,json=fieldPath" json:"field_path,omitempty"`
+	FieldPath            string   `protobuf:"bytes,2,opt,name=field_path,json=fieldPath,proto3" json:"field_path,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -830,7 +830,7 @@ type StructuredQuery_Projection struct {
 	//
 	// If empty, all fields are returned. To only return the name
 	// of the document, use `['__name__']`.
-	Fields               []*StructuredQuery_FieldReference `protobuf:"bytes,2,rep,name=fields" json:"fields,omitempty"`
+	Fields               []*StructuredQuery_FieldReference `protobuf:"bytes,2,rep,name=fields,proto3" json:"fields,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                          `json:"-"`
 	XXX_unrecognized     []byte                            `json:"-"`
 	XXX_sizecache        int32                             `json:"-"`
@@ -873,10 +873,10 @@ type Cursor struct {
 	// the order by clause of a query.
 	//
 	// Can contain fewer values than specified in the order by clause.
-	Values []*Value `protobuf:"bytes,1,rep,name=values" json:"values,omitempty"`
+	Values []*Value `protobuf:"bytes,1,rep,name=values,proto3" json:"values,omitempty"`
 	// If the position is just before or just after the given values, relative
 	// to the sort order defined by the query.
-	Before               bool     `protobuf:"varint,2,opt,name=before" json:"before,omitempty"`
+	Before               bool     `protobuf:"varint,2,opt,name=before,proto3" json:"before,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

@@ -40,6 +40,7 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/internal/leakcheck"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/status"
 )
@@ -51,6 +52,7 @@ type server struct {
 	mu         sync.Mutex
 	conns      map[ServerTransport]bool
 	h          *testStreamHandler
+	ready      chan struct{}
 }
 
 var (
@@ -62,8 +64,9 @@ var (
 )
 
 type testStreamHandler struct {
-	t      *http2Server
-	notify chan struct{}
+	t           *http2Server
+	notify      chan struct{}
+	getNotified chan struct{}
 }
 
 type hType int
@@ -76,7 +79,6 @@ const (
 	encodingRequiredStatus
 	invalidHeaderField
 	delayRead
-	delayWrite
 	pingpong
 )
 
@@ -182,6 +184,10 @@ func (h *testStreamHandler) handleStreamInvalidHeaderField(t *testing.T, s *Stre
 	})
 }
 
+// handleStreamDelayRead delays reads so that the other side has to halt on
+// stream-level flow control.
+// This handler assumes dynamic flow control is turned off and assumes window
+// sizes to be set to defaultWindowSize.
 func (h *testStreamHandler) handleStreamDelayRead(t *testing.T, s *Stream) {
 	req := expectedRequest
 	resp := expectedResponse
@@ -189,11 +195,52 @@ func (h *testStreamHandler) handleStreamDelayRead(t *testing.T, s *Stream) {
 		req = expectedRequestLarge
 		resp = expectedResponseLarge
 	}
+	var (
+		mu    sync.Mutex
+		total int
+	)
+	s.wq.replenish = func(n int) {
+		mu.Lock()
+		total += n
+		mu.Unlock()
+		s.wq.realReplenish(n)
+	}
+	getTotal := func() int {
+		mu.Lock()
+		defer mu.Unlock()
+		return total
+	}
+	done := make(chan struct{})
+	defer close(done)
+	go func() {
+		for {
+			select {
+			// Prevent goroutine from leaking.
+			case <-done:
+				return
+			default:
+			}
+			if getTotal() == defaultWindowSize {
+				// Signal the client to start reading and
+				// thereby send window update.
+				close(h.notify)
+				return
+			}
+			runtime.Gosched()
+		}
+	}()
 	p := make([]byte, len(req))
 
-	// Wait before reading. Give time to client to start sending
-	// before server starts reading.
-	time.Sleep(2 * time.Second)
+	// Let the other side run out of stream-level window before
+	// starting to read and thereby sending a window update.
+	timer := time.NewTimer(time.Second * 10)
+	select {
+	case <-h.getNotified:
+		timer.Stop()
+	case <-timer.C:
+		t.Errorf("Server timed-out.")
+		return
+	}
 	_, err := s.Read(p)
 	if err != nil {
 		t.Errorf("s.Read(_) = _, %v, want _, <nil>", err)
@@ -204,41 +251,19 @@ func (h *testStreamHandler) handleStreamDelayRead(t *testing.T, s *Stream) {
 		t.Errorf("handleStream got %v, want %v", p, req)
 		return
 	}
-	// send a response back to the client.
+	// This write will cause server to run out of stream level,
+	// flow control and the other side won't send a window update
+	// until that happens.
 	if err := h.t.Write(s, nil, resp, &Options{}); err != nil {
 		t.Errorf("server Write got %v, want <nil>", err)
 		return
 	}
-	// send the trailer to end the stream.
-	if err := h.t.WriteStatus(s, status.New(codes.OK, "")); err != nil {
-		t.Errorf("server WriteStatus got %v, want <nil>", err)
-		return
-	}
-}
-
-func (h *testStreamHandler) handleStreamDelayWrite(t *testing.T, s *Stream) {
-	req := expectedRequest
-	resp := expectedResponse
-	if s.Method() == "foo.Large" {
-		req = expectedRequestLarge
-		resp = expectedResponseLarge
-	}
-	p := make([]byte, len(req))
-	_, err := s.Read(p)
+	// Read one more time to ensure that everything remains fine and
+	// that the goroutine, that we launched earlier to signal client
+	// to read, gets enough time to process.
+	_, err = s.Read(p)
 	if err != nil {
-		t.Errorf("s.Read(_) = _, %v, want _, <nil>", err)
-		return
-	}
-	if !bytes.Equal(p, req) {
-		t.Errorf("handleStream got %v, want %v", p, req)
-		return
-	}
-
-	// Wait before sending. Give time to client to start reading
-	// before server starts sending.
-	time.Sleep(2 * time.Second)
-	if err := h.t.Write(s, nil, resp, &Options{}); err != nil {
-		t.Errorf("server Write got %v, want <nil>", err)
+		t.Errorf("s.Read(_) = _, %v, want _, nil", err)
 		return
 	}
 	// send the trailer to end the stream.
@@ -317,14 +342,13 @@ func (s *server) start(t *testing.T, port int, serverConfig *ServerConfig, ht hT
 				return ctx
 			})
 		case delayRead:
+			h.notify = make(chan struct{})
+			h.getNotified = make(chan struct{})
+			s.mu.Lock()
+			close(s.ready)
+			s.mu.Unlock()
 			go transport.HandleStreams(func(s *Stream) {
 				go h.handleStreamDelayRead(t, s)
-			}, func(ctx context.Context, method string) context.Context {
-				return ctx
-			})
-		case delayWrite:
-			go transport.HandleStreams(func(s *Stream) {
-				go h.handleStreamDelayWrite(t, s)
 			}, func(ctx context.Context, method string) context.Context {
 				return ctx
 			})
@@ -366,7 +390,7 @@ func (s *server) stop() {
 }
 
 func setUpServerOnly(t *testing.T, port int, serverConfig *ServerConfig, ht hType) *server {
-	server := &server{startedErr: make(chan error, 1)}
+	server := &server{startedErr: make(chan error, 1), ready: make(chan struct{})}
 	go server.start(t, port, serverConfig, ht)
 	server.wait(t, 2*time.Second)
 	return server
@@ -957,89 +981,113 @@ func TestLargeMessage(t *testing.T) {
 }
 
 func TestLargeMessageWithDelayRead(t *testing.T) {
-	server, ct := setUp(t, 0, math.MaxUint32, delayRead)
+	// Disable dynamic flow control.
+	sc := &ServerConfig{
+		InitialWindowSize:     defaultWindowSize,
+		InitialConnWindowSize: defaultWindowSize,
+	}
+	co := ConnectOptions{
+		InitialWindowSize:     defaultWindowSize,
+		InitialConnWindowSize: defaultWindowSize,
+	}
+	server, ct := setUpWithOptions(t, 0, sc, delayRead, co, func() {})
+	defer server.stop()
+	defer ct.Close()
+	server.mu.Lock()
+	ready := server.ready
+	server.mu.Unlock()
 	callHdr := &CallHdr{
 		Host:   "localhost",
 		Method: "foo.Large",
 	}
-	var wg sync.WaitGroup
-	for i := 0; i < 2; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Second*10))
-			defer cancel()
-			s, err := ct.NewStream(ctx, callHdr)
-			if err != nil {
-				t.Errorf("%v.NewStream(_, _) = _, %v, want _, <nil>", ct, err)
-				return
-			}
-			if err := ct.Write(s, []byte{}, expectedRequestLarge, &Options{Last: true, Delay: false}); err != nil {
-				t.Errorf("%v.Write(_, _, _) = %v, want  <nil>", ct, err)
-				return
-			}
-			p := make([]byte, len(expectedResponseLarge))
-
-			// Give time to server to begin sending before client starts reading.
-			time.Sleep(2 * time.Second)
-			if _, err := s.Read(p); err != nil || !bytes.Equal(p, expectedResponseLarge) {
-				t.Errorf("s.Read(_) = _, %v, want _, <nil>", err)
-				return
-			}
-			if _, err = s.Read(p); err != io.EOF {
-				t.Errorf("Failed to complete the stream %v; want <EOF>", err)
-			}
-		}()
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Second*10))
+	defer cancel()
+	s, err := ct.NewStream(ctx, callHdr)
+	if err != nil {
+		t.Fatalf("%v.NewStream(_, _) = _, %v, want _, <nil>", ct, err)
+		return
 	}
-	wg.Wait()
-	ct.Close()
-	server.stop()
-}
-
-func TestLargeMessageDelayWrite(t *testing.T) {
-	server, ct := setUp(t, 0, math.MaxUint32, delayWrite)
-	callHdr := &CallHdr{
-		Host:   "localhost",
-		Method: "foo.Large",
+	// Wait for server's handerler to be initialized
+	select {
+	case <-ready:
+	case <-ctx.Done():
+		t.Fatalf("Client timed out waiting for server handler to be initialized.")
 	}
-	var wg sync.WaitGroup
-	for i := 0; i < 2; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Second*10))
-			defer cancel()
-			s, err := ct.NewStream(ctx, callHdr)
-			if err != nil {
-				t.Errorf("%v.NewStream(_, _) = _, %v, want _, <nil>", ct, err)
-				return
-			}
-
-			// Give time to server to start reading before client starts sending.
-			time.Sleep(2 * time.Second)
-			if err := ct.Write(s, []byte{}, expectedRequestLarge, &Options{Last: true, Delay: false}); err != nil {
-				t.Errorf("%v.Write(_, _, _) = %v, want  <nil>", ct, err)
-				return
-			}
-			p := make([]byte, len(expectedResponseLarge))
-			if _, err := s.Read(p); err != nil || !bytes.Equal(p, expectedResponseLarge) {
-				t.Errorf("io.ReadFull(%v) = _, %v, want %v, <nil>", err, p, expectedResponse)
-				return
-			}
-			if _, err = s.Read(p); err != io.EOF {
-				t.Errorf("Failed to complete the stream %v; want <EOF>", err)
-			}
-		}()
+	server.mu.Lock()
+	serviceHandler := server.h
+	server.mu.Unlock()
+	var (
+		mu    sync.Mutex
+		total int
+	)
+	s.wq.replenish = func(n int) {
+		mu.Lock()
+		total += n
+		mu.Unlock()
+		s.wq.realReplenish(n)
 	}
-	wg.Wait()
-	ct.Close()
-	server.stop()
+	getTotal := func() int {
+		mu.Lock()
+		defer mu.Unlock()
+		return total
+	}
+	done := make(chan struct{})
+	defer close(done)
+	go func() {
+		for {
+			select {
+			// Prevent goroutine from leaking in case of error.
+			case <-done:
+				return
+			default:
+			}
+			if getTotal() == defaultWindowSize {
+				// unblock server to be able to read and
+				// thereby send stream level window update.
+				close(serviceHandler.getNotified)
+				return
+			}
+			runtime.Gosched()
+		}
+	}()
+	// This write will cause client to run out of stream level,
+	// flow control and the other side won't send a window update
+	// until that happens.
+	if err := ct.Write(s, []byte{}, expectedRequestLarge, &Options{}); err != nil {
+		t.Fatalf("write(_, _, _) = %v, want  <nil>", err)
+	}
+	p := make([]byte, len(expectedResponseLarge))
+
+	// Wait for the other side to run out of stream level flow control before
+	// reading and thereby sending a window update.
+	select {
+	case <-serviceHandler.notify:
+	case <-ctx.Done():
+		t.Fatalf("Client timed out")
+	}
+	if _, err := s.Read(p); err != nil || !bytes.Equal(p, expectedResponseLarge) {
+		t.Fatalf("s.Read(_) = _, %v, want _, <nil>", err)
+	}
+	if err := ct.Write(s, []byte{}, expectedRequestLarge, &Options{Last: true}); err != nil {
+		t.Fatalf("Write(_, _, _) = %v, want <nil>", err)
+	}
+	if _, err = s.Read(p); err != io.EOF {
+		t.Fatalf("Failed to complete the stream %v; want <EOF>", err)
+	}
 }
 
 func TestGracefulClose(t *testing.T) {
 	server, ct := setUp(t, 0, math.MaxUint32, pingpong)
-	defer server.stop()
-	defer ct.Close()
+	defer func() {
+		// Stop the server's listener to make the server's goroutines terminate
+		// (after the last active stream is done).
+		server.lis.Close()
+		// Check for goroutine leaks (i.e. GracefulClose with an active stream
+		// doesn't eventually close the connection when that stream completes).
+		leakcheck.Check(t)
+		// Correctly clean up the server
+		server.stop()
+	}()
 	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Second*10))
 	defer cancel()
 	s, err := ct.NewStream(ctx, &CallHdr{})
@@ -1067,17 +1115,20 @@ func TestGracefulClose(t *testing.T) {
 	}
 	var wg sync.WaitGroup
 	// Expect the failure for all the follow-up streams because ct has been closed gracefully.
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 200; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			str, err := ct.NewStream(context.Background(), &CallHdr{})
-			if err == errStreamDrain {
+			if err == ErrConnClosing {
+				return
+			} else if err != nil {
+				t.Errorf("_.NewStream(_, _) = _, %v, want _, %v", err, ErrConnClosing)
 				return
 			}
 			ct.Write(str, nil, nil, &Options{Last: true})
-			if _, err := str.Read(make([]byte, 8)); err != errStreamDrain {
-				t.Errorf("_.NewStream(_, _) = _, %v, want _, %v", err, errStreamDrain)
+			if _, err := str.Read(make([]byte, 8)); err != errStreamDrain && err != ErrConnClosing {
+				t.Errorf("_.Read(_) = _, %v, want _, %v or %v", err, errStreamDrain, ErrConnClosing)
 			}
 		}()
 	}
@@ -2147,5 +2198,115 @@ func runPingPongTest(t *testing.T, msgSize int) {
 				t.Fatalf("Error on client while reading data. Err: %v", err)
 			}
 		}
+	}
+}
+
+type tableSizeLimit struct {
+	mu     sync.Mutex
+	limits []uint32
+}
+
+func (t *tableSizeLimit) add(limit uint32) {
+	t.mu.Lock()
+	t.limits = append(t.limits, limit)
+	t.mu.Unlock()
+}
+
+func (t *tableSizeLimit) getLen() int {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return len(t.limits)
+}
+
+func (t *tableSizeLimit) getIndex(i int) uint32 {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.limits[i]
+}
+
+func TestHeaderTblSize(t *testing.T) {
+	limits := &tableSizeLimit{}
+	updateHeaderTblSize = func(e *hpack.Encoder, v uint32) {
+		e.SetMaxDynamicTableSizeLimit(v)
+		limits.add(v)
+	}
+	defer func() {
+		updateHeaderTblSize = func(e *hpack.Encoder, v uint32) {
+			e.SetMaxDynamicTableSizeLimit(v)
+		}
+	}()
+
+	server, ct := setUp(t, 0, math.MaxUint32, normal)
+	defer ct.Close()
+	defer server.stop()
+	_, err := ct.NewStream(context.Background(), &CallHdr{})
+	if err != nil {
+		t.Fatalf("failed to open stream: %v", err)
+	}
+
+	var svrTransport ServerTransport
+	var i int
+	for i = 0; i < 1000; i++ {
+		server.mu.Lock()
+		if len(server.conns) != 0 {
+			server.mu.Unlock()
+			break
+		}
+		server.mu.Unlock()
+		time.Sleep(10 * time.Millisecond)
+		continue
+	}
+	if i == 1000 {
+		t.Fatalf("unable to create any server transport after 10s")
+	}
+
+	for st := range server.conns {
+		svrTransport = st
+		break
+	}
+	svrTransport.(*http2Server).controlBuf.put(&outgoingSettings{
+		ss: []http2.Setting{
+			{
+				ID:  http2.SettingHeaderTableSize,
+				Val: uint32(100),
+			},
+		},
+	})
+
+	for i = 0; i < 1000; i++ {
+		if limits.getLen() != 1 {
+			time.Sleep(10 * time.Millisecond)
+			continue
+		}
+		if val := limits.getIndex(0); val != uint32(100) {
+			t.Fatalf("expected limits[0] = 100, got %d", val)
+		}
+		break
+	}
+	if i == 1000 {
+		t.Fatalf("expected len(limits) = 1 within 10s, got != 1")
+	}
+
+	ct.(*http2Client).controlBuf.put(&outgoingSettings{
+		ss: []http2.Setting{
+			{
+				ID:  http2.SettingHeaderTableSize,
+				Val: uint32(200),
+			},
+		},
+	})
+
+	for i := 0; i < 1000; i++ {
+		if limits.getLen() != 2 {
+			time.Sleep(10 * time.Millisecond)
+			continue
+		}
+		if val := limits.getIndex(1); val != uint32(200) {
+			t.Fatalf("expected limits[1] = 200, got %d", val)
+		}
+		break
+	}
+	if i == 1000 {
+		t.Fatalf("expected len(limits) = 2 within 10s, got != 2")
 	}
 }

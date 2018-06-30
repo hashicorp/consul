@@ -45,6 +45,26 @@
         "title": "To create a basic secret"
       }
     ],
+    "DeleteResourcePolicy": [
+      {
+        "input": {
+          "SecretId": "MyTestDatabaseSecret"
+        },
+        "output": {
+          "ARN": "arn:aws:secretsmanager:us-west-2:123456789012:secret:MyTestDatabaseMasterSecret-a1b2c3",
+          "Name": "MyTestDatabaseSecret"
+        },
+        "comments": {
+          "input": {
+          },
+          "output": {
+          }
+        },
+        "description": "The following example shows how to delete the resource-based policy that is attached to a secret.",
+        "id": "to-delete-the-resource-based-policy-attached-to-a-secret-1530209419204",
+        "title": "To delete the resource-based policy attached to a secret"
+      }
+    ],
     "DeleteSecret": [
       {
         "input": {
@@ -134,6 +154,27 @@
         "description": "The following example shows how to request a randomly generated password. This example includes the optional flags to require spaces and at least one character of each included type. It specifies a length of 20 characters.",
         "id": "to-generate-a-random-password-1524000546092",
         "title": "To generate a random password"
+      }
+    ],
+    "GetResourcePolicy": [
+      {
+        "input": {
+          "SecretId": "MyTestDatabaseSecret"
+        },
+        "output": {
+          "ARN": "arn:aws:secretsmanager:us-west-2:123456789012:secret:MyTestDatabaseSecret-a1b2c3",
+          "Name": "MyTestDatabaseSecret",
+          "ResourcePolicy": "{\n\"Version\":\"2012-10-17\",\n\"Statement\":[{\n\"Effect\":\"Allow\",\n\"Principal\":{\n\"AWS\":\"arn:aws:iam::123456789012:root\"\n},\n\"Action\":\"secretsmanager:GetSecretValue\",\n\"Resource\":\"*\"\n}]\n}"
+        },
+        "comments": {
+          "input": {
+          },
+          "output": {
+          }
+        },
+        "description": "The following example shows how to retrieve the resource-based policy that is attached to a secret.",
+        "id": "to-retrieve-the-resource-based-policy-attached-to-a-secret-1530209677536",
+        "title": "To retrieve the resource-based policy attached to a secret"
       }
     ],
     "GetSecretValue": [
@@ -243,6 +284,27 @@
         "description": "The following example shows how to list all of the secrets in your account.",
         "id": "to-list-the-secrets-in-your-account-1524001246087",
         "title": "To list the secrets in your account"
+      }
+    ],
+    "PutResourcePolicy": [
+      {
+        "input": {
+          "ResourcePolicy": "{\n\"Version\":\"2012-10-17\",\n\"Statement\":[{\n\"Effect\":\"Allow\",\n\"Principal\":{\n\"AWS\":\"arn:aws:iam::123456789012:root\"\n},\n\"Action\":\"secretsmanager:GetSecretValue\",\n\"Resource\":\"*\"\n}]\n}",
+          "SecretId": "MyTestDatabaseSecret"
+        },
+        "output": {
+          "ARN": "arn:aws:secretsmanager:us-west-2:123456789012:secret:MyTestDatabaseSecret-a1b2c3",
+          "Name": "MyTestDatabaseSecret"
+        },
+        "comments": {
+          "input": {
+          },
+          "output": {
+          }
+        },
+        "description": "The following example shows how to add a resource-based policy to a secret.",
+        "id": "to-add-a-resource-based-policy-to-a-secret-1530209881839",
+        "title": "To add a resource-based policy to a secret"
       }
     ],
     "PutSecretValue": [

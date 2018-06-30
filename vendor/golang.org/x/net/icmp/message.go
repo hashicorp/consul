@@ -25,7 +25,7 @@ import (
 	"golang.org/x/net/ipv6"
 )
 
-// BUG(mikio): This package is not implemented on NaCl and Plan 9.
+// BUG(mikio): This package is not implemented on JS, NaCl and Plan 9.
 
 var (
 	errMessageTooShort  = errors.New("message too short")

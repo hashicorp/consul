@@ -55,16 +55,19 @@ func main() throws {
   var response = Gnostic_Plugin_V1_Response()
   let rawRequest = try Stdin.readall()
   let request = try Gnostic_Plugin_V1_Request(serializedData: rawRequest)
-  if request.hasOpenapi2 {
-    let document = request.openapi2
-    let report = printDocument(document:document, name:request.sourceName)
-    if let reportData = report.data(using:.utf8) {
-      var file = Gnostic_Plugin_V1_File()
-      file.name = "report.txt"
-      file.data = reportData
-      response.files.append(file)
+  for model in request.models {
+    if model.typeURL == "openapi.v2.Document" {
+      let document = try Openapi_V2_Document(serializedData: model.value)
+      let report = printDocument(document:document, name:request.sourceName)
+      if let reportData = report.data(using:.utf8) {
+        var file = Gnostic_Plugin_V1_File()
+        file.name = "report.txt"
+        file.data = reportData
+        response.files.append(file)
+      }
     }
-  }
+  }  
+
   let serializedResponse = try response.serializedData()
   Stdout.write(bytes: serializedResponse)
 }

@@ -64,32 +64,32 @@ func (Agent_MatchMode) EnumDescriptor() ([]byte, []int) {
 type Agent struct {
 	// Required. The project of this agent.
 	// Format: `projects/<Project ID>`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Required. The name of this agent.
-	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName" json:"display_name,omitempty"`
+	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	// Required. The default language of the agent as a language tag. See
 	// [Language Support](https://dialogflow.com/docs/reference/language) for a
 	// list of the currently supported language codes.
 	// This field cannot be set by the `Update` method.
-	DefaultLanguageCode string `protobuf:"bytes,3,opt,name=default_language_code,json=defaultLanguageCode" json:"default_language_code,omitempty"`
+	DefaultLanguageCode string `protobuf:"bytes,3,opt,name=default_language_code,json=defaultLanguageCode,proto3" json:"default_language_code,omitempty"`
 	// Optional. The list of all languages supported by this agent (except for the
 	// `default_language_code`).
-	SupportedLanguageCodes []string `protobuf:"bytes,4,rep,name=supported_language_codes,json=supportedLanguageCodes" json:"supported_language_codes,omitempty"`
+	SupportedLanguageCodes []string `protobuf:"bytes,4,rep,name=supported_language_codes,json=supportedLanguageCodes,proto3" json:"supported_language_codes,omitempty"`
 	// Required. The time zone of this agent from the
 	// [time zone database](https://www.iana.org/time-zones), e.g.,
 	// America/New_York, Europe/Paris.
-	TimeZone string `protobuf:"bytes,5,opt,name=time_zone,json=timeZone" json:"time_zone,omitempty"`
+	TimeZone string `protobuf:"bytes,5,opt,name=time_zone,json=timeZone,proto3" json:"time_zone,omitempty"`
 	// Optional. The description of this agent.
 	// The maximum length is 500 characters. If exceeded, the request is rejected.
-	Description string `protobuf:"bytes,6,opt,name=description" json:"description,omitempty"`
+	Description string `protobuf:"bytes,6,opt,name=description,proto3" json:"description,omitempty"`
 	// Optional. The URI of the agent's avatar.
 	// Avatars are used throughout the Dialogflow console and in the self-hosted
 	// [Web Demo](https://dialogflow.com/docs/integrations/web-demo) integration.
-	AvatarUri string `protobuf:"bytes,7,opt,name=avatar_uri,json=avatarUri" json:"avatar_uri,omitempty"`
+	AvatarUri string `protobuf:"bytes,7,opt,name=avatar_uri,json=avatarUri,proto3" json:"avatar_uri,omitempty"`
 	// Optional. Determines whether this agent should log conversation queries.
-	EnableLogging bool `protobuf:"varint,8,opt,name=enable_logging,json=enableLogging" json:"enable_logging,omitempty"`
+	EnableLogging bool `protobuf:"varint,8,opt,name=enable_logging,json=enableLogging,proto3" json:"enable_logging,omitempty"`
 	// Optional. Determines how intents are detected from user queries.
-	MatchMode Agent_MatchMode `protobuf:"varint,9,opt,name=match_mode,json=matchMode,enum=google.cloud.dialogflow.v2.Agent_MatchMode" json:"match_mode,omitempty"`
+	MatchMode Agent_MatchMode `protobuf:"varint,9,opt,name=match_mode,json=matchMode,proto3,enum=google.cloud.dialogflow.v2.Agent_MatchMode" json:"match_mode,omitempty"`
 	// Optional. To filter out false positive results and still get variety in
 	// matched natural language inputs for your agent, you can tune the machine
 	// learning classification threshold. If the returned score value is less than
@@ -97,7 +97,7 @@ type Agent struct {
 	// are no fallback intents defined, no intent will be triggered. The score
 	// values range from 0.0 (completely uncertain) to 1.0 (completely certain).
 	// If set to 0.0, the default of 0.3 is used.
-	ClassificationThreshold float32  `protobuf:"fixed32,10,opt,name=classification_threshold,json=classificationThreshold" json:"classification_threshold,omitempty"`
+	ClassificationThreshold float32  `protobuf:"fixed32,10,opt,name=classification_threshold,json=classificationThreshold,proto3" json:"classification_threshold,omitempty"`
 	XXX_NoUnkeyedLiteral    struct{} `json:"-"`
 	XXX_unrecognized        []byte   `json:"-"`
 	XXX_sizecache           int32    `json:"-"`
@@ -201,7 +201,7 @@ func (m *Agent) GetClassificationThreshold() float32 {
 type GetAgentRequest struct {
 	// Required. The project that the agent to fetch is associated with.
 	// Format: `projects/<Project ID>`.
-	Parent               string   `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent               string   `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -242,12 +242,12 @@ func (m *GetAgentRequest) GetParent() string {
 type SearchAgentsRequest struct {
 	// Required. The project to list agents from.
 	// Format: `projects/<Project ID or '-'>`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Optional. The maximum number of items to return in a single page. By
 	// default 100 and at most 1000.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Optional. The next_page_token value returned from a previous list request.
-	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -302,10 +302,10 @@ func (m *SearchAgentsRequest) GetPageToken() string {
 type SearchAgentsResponse struct {
 	// The list of agents. There will be a maximum number of items returned based
 	// on the page_size field in the request.
-	Agents []*Agent `protobuf:"bytes,1,rep,name=agents" json:"agents,omitempty"`
+	Agents []*Agent `protobuf:"bytes,1,rep,name=agents,proto3" json:"agents,omitempty"`
 	// Token to retrieve the next page of results, or empty if there are no
 	// more results in the list.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -353,7 +353,7 @@ func (m *SearchAgentsResponse) GetNextPageToken() string {
 type TrainAgentRequest struct {
 	// Required. The project that the agent to train is associated with.
 	// Format: `projects/<Project ID>`.
-	Parent               string   `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent               string   `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -394,11 +394,11 @@ func (m *TrainAgentRequest) GetParent() string {
 type ExportAgentRequest struct {
 	// Required. The project that the agent to export is associated with.
 	// Format: `projects/<Project ID>`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Optional. The Google Cloud Storage URI to export the agent to.
 	// Note: The URI must start with
 	// "gs://". If left unspecified, the serialized agent is returned inline.
-	AgentUri             string   `protobuf:"bytes,2,opt,name=agent_uri,json=agentUri" json:"agent_uri,omitempty"`
+	AgentUri             string   `protobuf:"bytes,2,opt,name=agent_uri,json=agentUri,proto3" json:"agent_uri,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -484,7 +484,7 @@ type isExportAgentResponse_Agent interface {
 }
 
 type ExportAgentResponse_AgentUri struct {
-	AgentUri string `protobuf:"bytes,1,opt,name=agent_uri,json=agentUri,oneof"`
+	AgentUri string `protobuf:"bytes,1,opt,name=agent_uri,json=agentUri,proto3,oneof"`
 }
 type ExportAgentResponse_AgentContent struct {
 	AgentContent []byte `protobuf:"bytes,2,opt,name=agent_content,json=agentContent,proto3,oneof"`
@@ -584,7 +584,7 @@ func _ExportAgentResponse_OneofSizer(msg proto.Message) (n int) {
 type ImportAgentRequest struct {
 	// Required. The project that the agent to import is associated with.
 	// Format: `projects/<Project ID>`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Required. The agent to import.
 	//
 	// Types that are valid to be assigned to Agent:
@@ -625,7 +625,7 @@ type isImportAgentRequest_Agent interface {
 }
 
 type ImportAgentRequest_AgentUri struct {
-	AgentUri string `protobuf:"bytes,2,opt,name=agent_uri,json=agentUri,oneof"`
+	AgentUri string `protobuf:"bytes,2,opt,name=agent_uri,json=agentUri,proto3,oneof"`
 }
 type ImportAgentRequest_AgentContent struct {
 	AgentContent []byte `protobuf:"bytes,3,opt,name=agent_content,json=agentContent,proto3,oneof"`
@@ -732,7 +732,7 @@ func _ImportAgentRequest_OneofSizer(msg proto.Message) (n int) {
 type RestoreAgentRequest struct {
 	// Required. The project that the agent to restore is associated with.
 	// Format: `projects/<Project ID>`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Required. The agent to restore.
 	//
 	// Types that are valid to be assigned to Agent:
@@ -773,7 +773,7 @@ type isRestoreAgentRequest_Agent interface {
 }
 
 type RestoreAgentRequest_AgentUri struct {
-	AgentUri string `protobuf:"bytes,2,opt,name=agent_uri,json=agentUri,oneof"`
+	AgentUri string `protobuf:"bytes,2,opt,name=agent_uri,json=agentUri,proto3,oneof"`
 }
 type RestoreAgentRequest_AgentContent struct {
 	AgentContent []byte `protobuf:"bytes,3,opt,name=agent_content,json=agentContent,proto3,oneof"`
@@ -1002,8 +1002,7 @@ func (c *agentsClient) RestoreAgent(ctx context.Context, in *RestoreAgentRequest
 	return out, nil
 }
 
-// Server API for Agents service
-
+// AgentsServer is the server API for Agents service.
 type AgentsServer interface {
 	// Retrieves the specified agent.
 	GetAgent(context.Context, *GetAgentRequest) (*Agent, error)

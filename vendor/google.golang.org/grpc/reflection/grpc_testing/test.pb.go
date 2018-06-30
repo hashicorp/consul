@@ -24,7 +24,7 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 type SearchResponse struct {
-	Results              []*SearchResponse_Result `protobuf:"bytes,1,rep,name=results" json:"results,omitempty"`
+	Results              []*SearchResponse_Result `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                 `json:"-"`
 	XXX_unrecognized     []byte                   `json:"-"`
 	XXX_sizecache        int32                    `json:"-"`
@@ -62,9 +62,9 @@ func (m *SearchResponse) GetResults() []*SearchResponse_Result {
 }
 
 type SearchResponse_Result struct {
-	Url                  string   `protobuf:"bytes,1,opt,name=url" json:"url,omitempty"`
-	Title                string   `protobuf:"bytes,2,opt,name=title" json:"title,omitempty"`
-	Snippets             []string `protobuf:"bytes,3,rep,name=snippets" json:"snippets,omitempty"`
+	Url                  string   `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
+	Title                string   `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Snippets             []string `protobuf:"bytes,3,rep,name=snippets,proto3" json:"snippets,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -116,7 +116,7 @@ func (m *SearchResponse_Result) GetSnippets() []string {
 }
 
 type SearchRequest struct {
-	Query                string   `protobuf:"bytes,1,opt,name=query" json:"query,omitempty"`
+	Query                string   `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -167,8 +167,9 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
-// Client API for SearchService service
-
+// SearchServiceClient is the client API for SearchService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type SearchServiceClient interface {
 	Search(ctx context.Context, in *SearchRequest, opts ...grpc.CallOption) (*SearchResponse, error)
 	StreamingSearch(ctx context.Context, opts ...grpc.CallOption) (SearchService_StreamingSearchClient, error)
@@ -184,7 +185,7 @@ func NewSearchServiceClient(cc *grpc.ClientConn) SearchServiceClient {
 
 func (c *searchServiceClient) Search(ctx context.Context, in *SearchRequest, opts ...grpc.CallOption) (*SearchResponse, error) {
 	out := new(SearchResponse)
-	err := grpc.Invoke(ctx, "/grpc.testing.SearchService/Search", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/grpc.testing.SearchService/Search", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +193,7 @@ func (c *searchServiceClient) Search(ctx context.Context, in *SearchRequest, opt
 }
 
 func (c *searchServiceClient) StreamingSearch(ctx context.Context, opts ...grpc.CallOption) (SearchService_StreamingSearchClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_SearchService_serviceDesc.Streams[0], c.cc, "/grpc.testing.SearchService/StreamingSearch", opts...)
+	stream, err := c.cc.NewStream(ctx, &_SearchService_serviceDesc.Streams[0], "/grpc.testing.SearchService/StreamingSearch", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -222,8 +223,7 @@ func (x *searchServiceStreamingSearchClient) Recv() (*SearchResponse, error) {
 	return m, nil
 }
 
-// Server API for SearchService service
-
+// SearchServiceServer is the server API for SearchService service.
 type SearchServiceServer interface {
 	Search(context.Context, *SearchRequest) (*SearchResponse, error)
 	StreamingSearch(SearchService_StreamingSearchServer) error

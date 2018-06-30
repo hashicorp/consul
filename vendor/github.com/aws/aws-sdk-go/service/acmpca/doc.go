@@ -4,9 +4,9 @@
 // requests to AWS Certificate Manager Private Certificate Authority.
 //
 // You can use the ACM PCA API to create a private certificate authority (CA).
-// You must first call the CreateCertificateAuthority function. If successful,
-// the function returns an Amazon Resource Name (ARN) for your private CA. Use
-// this ARN as input to the GetCertificateAuthorityCsr function to retrieve
+// You must first call the CreateCertificateAuthority operation. If successful,
+// the operation returns an Amazon Resource Name (ARN) for your private CA.
+// Use this ARN as input to the GetCertificateAuthorityCsr operation to retrieve
 // the certificate signing request (CSR) for your private CA certificate. Sign
 // the CSR using the root or an intermediate CA in your on-premises PKI hierarchy,
 // and call the ImportCertificateAuthorityCertificate to import your signed
@@ -15,8 +15,8 @@
 // Use your private CA to issue and revoke certificates. These are private certificates
 // that identify and secure client computers, servers, applications, services,
 // devices, and users over SSLS/TLS connections within your organization. Call
-// the IssueCertificate function to issue a certificate. Call the RevokeCertificate
-// function to revoke a certificate.
+// the IssueCertificate operation to issue a certificate. Call the RevokeCertificate
+// operation to revoke a certificate.
 //
 // Certificates issued by your private CA can be trusted only within your organization,
 // not publicly.
@@ -24,13 +24,13 @@
 // Your private CA can optionally create a certificate revocation list (CRL)
 // to track the certificates you revoke. To create a CRL, you must specify a
 // RevocationConfiguration object when you call the CreateCertificateAuthority
-// function. ACM PCA writes the CRL to an S3 bucket that you specify. You must
+// operation. ACM PCA writes the CRL to an S3 bucket that you specify. You must
 // specify a bucket policy that grants ACM PCA write permission.
 //
 // You can also call the CreateCertificateAuthorityAuditReport to create an
 // optional audit report that lists every time the CA private key is used. The
 // private key is used for signing when the IssueCertificate or RevokeCertificate
-// function is called.
+// operation is called.
 //
 // See https://docs.aws.amazon.com/goto/WebAPI/acm-pca-2017-08-22 for more information on this service.
 //

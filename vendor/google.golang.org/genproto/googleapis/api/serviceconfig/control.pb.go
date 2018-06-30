@@ -24,7 +24,7 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 type Control struct {
 	// The service control environment to use. If empty, no control plane
 	// feature (like quota and billing) will be enabled.
-	Environment          string   `protobuf:"bytes,1,opt,name=environment" json:"environment,omitempty"`
+	Environment          string   `protobuf:"bytes,1,opt,name=environment,proto3" json:"environment,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -34,7 +34,7 @@ func (m *Control) Reset()         { *m = Control{} }
 func (m *Control) String() string { return proto.CompactTextString(m) }
 func (*Control) ProtoMessage()    {}
 func (*Control) Descriptor() ([]byte, []int) {
-	return fileDescriptor_control_76c8f7249dd124b5, []int{0}
+	return fileDescriptor_control_91b68496cee1317a, []int{0}
 }
 func (m *Control) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Control.Unmarshal(m, b)
@@ -65,9 +65,9 @@ func init() {
 	proto.RegisterType((*Control)(nil), "google.api.Control")
 }
 
-func init() { proto.RegisterFile("google/api/control.proto", fileDescriptor_control_76c8f7249dd124b5) }
+func init() { proto.RegisterFile("google/api/control.proto", fileDescriptor_control_91b68496cee1317a) }
 
-var fileDescriptor_control_76c8f7249dd124b5 = []byte{
+var fileDescriptor_control_91b68496cee1317a = []byte{
 	// 165 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x92, 0x48, 0xcf, 0xcf, 0x4f,
 	0xcf, 0x49, 0xd5, 0x4f, 0x2c, 0xc8, 0xd4, 0x4f, 0xce, 0xcf, 0x2b, 0x29, 0xca, 0xcf, 0xd1, 0x2b,

@@ -139,9 +139,9 @@ type FormatMessage struct {
 	// *   `Failed to load '$0' which helps debug $1 the first time it
 	//     is loaded.  Again, $0 is very important.`
 	// *   `Please pay $$10 to use $0 instead of $1.`
-	Format string `protobuf:"bytes,1,opt,name=format" json:"format,omitempty"`
+	Format string `protobuf:"bytes,1,opt,name=format,proto3" json:"format,omitempty"`
 	// Optional parameters to be embedded into the message.
-	Parameters           []string `protobuf:"bytes,2,rep,name=parameters" json:"parameters,omitempty"`
+	Parameters           []string `protobuf:"bytes,2,rep,name=parameters,proto3" json:"parameters,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -192,11 +192,11 @@ func (m *FormatMessage) GetParameters() []string {
 // to the `BREAKPOINT_SOURCE_LOCATION` with the message `Location not found`.
 type StatusMessage struct {
 	// Distinguishes errors from informational messages.
-	IsError bool `protobuf:"varint,1,opt,name=is_error,json=isError" json:"is_error,omitempty"`
+	IsError bool `protobuf:"varint,1,opt,name=is_error,json=isError,proto3" json:"is_error,omitempty"`
 	// Reference to which the message applies.
-	RefersTo StatusMessage_Reference `protobuf:"varint,2,opt,name=refers_to,json=refersTo,enum=google.devtools.clouddebugger.v2.StatusMessage_Reference" json:"refers_to,omitempty"`
+	RefersTo StatusMessage_Reference `protobuf:"varint,2,opt,name=refers_to,json=refersTo,proto3,enum=google.devtools.clouddebugger.v2.StatusMessage_Reference" json:"refers_to,omitempty"`
 	// Status message text.
-	Description          *FormatMessage `protobuf:"bytes,3,opt,name=description" json:"description,omitempty"`
+	Description          *FormatMessage `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
 	XXX_unrecognized     []byte         `json:"-"`
 	XXX_sizecache        int32          `json:"-"`
@@ -250,9 +250,9 @@ func (m *StatusMessage) GetDescription() *FormatMessage {
 // Represents a location in the source code.
 type SourceLocation struct {
 	// Path to the source file within the source context of the target binary.
-	Path string `protobuf:"bytes,1,opt,name=path" json:"path,omitempty"`
+	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
 	// Line inside the file. The first line in the file has the value `1`.
-	Line                 int32    `protobuf:"varint,2,opt,name=line" json:"line,omitempty"`
+	Line                 int32    `protobuf:"varint,2,opt,name=line,proto3" json:"line,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -407,20 +407,20 @@ func (m *SourceLocation) GetLine() int32 {
 // The type field is optional. The debugger agent may or may not support it.
 type Variable struct {
 	// Name of the variable, if any.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Simple value of the variable.
-	Value string `protobuf:"bytes,2,opt,name=value" json:"value,omitempty"`
+	Value string `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
 	// Variable type (e.g. `MyClass`). If the variable is split with
 	// `var_table_index`, `type` goes next to `value`. The interpretation of
 	// a type is agent specific. It is recommended to include the dynamic type
 	// rather than a static type of an object.
-	Type string `protobuf:"bytes,6,opt,name=type" json:"type,omitempty"`
+	Type string `protobuf:"bytes,6,opt,name=type,proto3" json:"type,omitempty"`
 	// Members contained or pointed to by the variable.
-	Members []*Variable `protobuf:"bytes,3,rep,name=members" json:"members,omitempty"`
+	Members []*Variable `protobuf:"bytes,3,rep,name=members,proto3" json:"members,omitempty"`
 	// Reference to a variable in the shared variable table. More than
 	// one variable can reference the same variable in the table. The
 	// `var_table_index` field is an index into `variable_table` in Breakpoint.
-	VarTableIndex *wrappers.Int32Value `protobuf:"bytes,4,opt,name=var_table_index,json=varTableIndex" json:"var_table_index,omitempty"`
+	VarTableIndex *wrappers.Int32Value `protobuf:"bytes,4,opt,name=var_table_index,json=varTableIndex,proto3" json:"var_table_index,omitempty"`
 	// Status associated with the variable. This field will usually stay
 	// unset. A status of a single variable only applies to that variable or
 	// expression. The rest of breakpoint data still remains valid. Variables
@@ -440,7 +440,7 @@ type Variable struct {
 	// *   `Malformed string`,
 	// *   `Field f not found in class C`
 	// *   `Null pointer dereference`
-	Status               *StatusMessage `protobuf:"bytes,5,opt,name=status" json:"status,omitempty"`
+	Status               *StatusMessage `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
 	XXX_unrecognized     []byte         `json:"-"`
 	XXX_sizecache        int32          `json:"-"`
@@ -515,15 +515,15 @@ func (m *Variable) GetStatus() *StatusMessage {
 // Represents a stack frame context.
 type StackFrame struct {
 	// Demangled function name at the call site.
-	Function string `protobuf:"bytes,1,opt,name=function" json:"function,omitempty"`
+	Function string `protobuf:"bytes,1,opt,name=function,proto3" json:"function,omitempty"`
 	// Source location of the call site.
-	Location *SourceLocation `protobuf:"bytes,2,opt,name=location" json:"location,omitempty"`
+	Location *SourceLocation `protobuf:"bytes,2,opt,name=location,proto3" json:"location,omitempty"`
 	// Set of arguments passed to this function.
 	// Note that this might not be populated for all stack frames.
-	Arguments []*Variable `protobuf:"bytes,3,rep,name=arguments" json:"arguments,omitempty"`
+	Arguments []*Variable `protobuf:"bytes,3,rep,name=arguments,proto3" json:"arguments,omitempty"`
 	// Set of local variables at the stack frame location.
 	// Note that this might not be populated for all stack frames.
-	Locals               []*Variable `protobuf:"bytes,4,rep,name=locals" json:"locals,omitempty"`
+	Locals               []*Variable `protobuf:"bytes,4,rep,name=locals,proto3" json:"locals,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
 	XXX_unrecognized     []byte      `json:"-"`
 	XXX_sizecache        int32       `json:"-"`
@@ -584,21 +584,21 @@ func (m *StackFrame) GetLocals() []*Variable {
 // Represents the breakpoint specification, status and results.
 type Breakpoint struct {
 	// Breakpoint identifier, unique in the scope of the debuggee.
-	Id string `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// Action that the agent should perform when the code at the
 	// breakpoint location is hit.
-	Action Breakpoint_Action `protobuf:"varint,13,opt,name=action,enum=google.devtools.clouddebugger.v2.Breakpoint_Action" json:"action,omitempty"`
+	Action Breakpoint_Action `protobuf:"varint,13,opt,name=action,proto3,enum=google.devtools.clouddebugger.v2.Breakpoint_Action" json:"action,omitempty"`
 	// Breakpoint source location.
-	Location *SourceLocation `protobuf:"bytes,2,opt,name=location" json:"location,omitempty"`
+	Location *SourceLocation `protobuf:"bytes,2,opt,name=location,proto3" json:"location,omitempty"`
 	// Condition that triggers the breakpoint.
 	// The condition is a compound boolean expression composed using expressions
 	// in a programming language at the source location.
-	Condition string `protobuf:"bytes,3,opt,name=condition" json:"condition,omitempty"`
+	Condition string `protobuf:"bytes,3,opt,name=condition,proto3" json:"condition,omitempty"`
 	// List of read-only expressions to evaluate at the breakpoint location.
 	// The expressions are composed using expressions in the programming language
 	// at the source location. If the breakpoint action is `LOG`, the evaluated
 	// expressions are included in log statements.
-	Expressions []string `protobuf:"bytes,4,rep,name=expressions" json:"expressions,omitempty"`
+	Expressions []string `protobuf:"bytes,4,rep,name=expressions,proto3" json:"expressions,omitempty"`
 	// Only relevant when action is `LOG`. Defines the message to log when
 	// the breakpoint hits. The message may include parameter placeholders `$0`,
 	// `$1`, etc. These placeholders are replaced with the evaluated value
@@ -607,19 +607,19 @@ type Breakpoint struct {
 	//
 	// Example: `Message received, id = $0, count = $1` with
 	// `expressions` = `[ message.id, message.count ]`.
-	LogMessageFormat string `protobuf:"bytes,14,opt,name=log_message_format,json=logMessageFormat" json:"log_message_format,omitempty"`
+	LogMessageFormat string `protobuf:"bytes,14,opt,name=log_message_format,json=logMessageFormat,proto3" json:"log_message_format,omitempty"`
 	// Indicates the severity of the log. Only relevant when action is `LOG`.
-	LogLevel Breakpoint_LogLevel `protobuf:"varint,15,opt,name=log_level,json=logLevel,enum=google.devtools.clouddebugger.v2.Breakpoint_LogLevel" json:"log_level,omitempty"`
+	LogLevel Breakpoint_LogLevel `protobuf:"varint,15,opt,name=log_level,json=logLevel,proto3,enum=google.devtools.clouddebugger.v2.Breakpoint_LogLevel" json:"log_level,omitempty"`
 	// When true, indicates that this is a final result and the
 	// breakpoint state will not change from here on.
-	IsFinalState bool `protobuf:"varint,5,opt,name=is_final_state,json=isFinalState" json:"is_final_state,omitempty"`
+	IsFinalState bool `protobuf:"varint,5,opt,name=is_final_state,json=isFinalState,proto3" json:"is_final_state,omitempty"`
 	// Time this breakpoint was created by the server in seconds resolution.
-	CreateTime *timestamp.Timestamp `protobuf:"bytes,11,opt,name=create_time,json=createTime" json:"create_time,omitempty"`
+	CreateTime *timestamp.Timestamp `protobuf:"bytes,11,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	// Time this breakpoint was finalized as seen by the server in seconds
 	// resolution.
-	FinalTime *timestamp.Timestamp `protobuf:"bytes,12,opt,name=final_time,json=finalTime" json:"final_time,omitempty"`
+	FinalTime *timestamp.Timestamp `protobuf:"bytes,12,opt,name=final_time,json=finalTime,proto3" json:"final_time,omitempty"`
 	// E-mail address of the user that created this breakpoint
-	UserEmail string `protobuf:"bytes,16,opt,name=user_email,json=userEmail" json:"user_email,omitempty"`
+	UserEmail string `protobuf:"bytes,16,opt,name=user_email,json=userEmail,proto3" json:"user_email,omitempty"`
 	// Breakpoint status.
 	//
 	// The status includes an error flag and a human readable message.
@@ -635,9 +635,9 @@ type Breakpoint struct {
 	//
 	// *   `Invalid line number` referring to location
 	// *   `Field f not found in class C` referring to condition
-	Status *StatusMessage `protobuf:"bytes,10,opt,name=status" json:"status,omitempty"`
+	Status *StatusMessage `protobuf:"bytes,10,opt,name=status,proto3" json:"status,omitempty"`
 	// The stack at breakpoint time.
-	StackFrames []*StackFrame `protobuf:"bytes,7,rep,name=stack_frames,json=stackFrames" json:"stack_frames,omitempty"`
+	StackFrames []*StackFrame `protobuf:"bytes,7,rep,name=stack_frames,json=stackFrames,proto3" json:"stack_frames,omitempty"`
 	// Values of evaluated expressions at breakpoint time.
 	// The evaluated expressions appear in exactly the same order they
 	// are listed in the `expressions` field.
@@ -645,7 +645,7 @@ type Breakpoint struct {
 	// `members` field holds the result of the evaluated expression.
 	// If the expression cannot be evaluated, the `status` inside the `Variable`
 	// will indicate an error and contain the error text.
-	EvaluatedExpressions []*Variable `protobuf:"bytes,8,rep,name=evaluated_expressions,json=evaluatedExpressions" json:"evaluated_expressions,omitempty"`
+	EvaluatedExpressions []*Variable `protobuf:"bytes,8,rep,name=evaluated_expressions,json=evaluatedExpressions,proto3" json:"evaluated_expressions,omitempty"`
 	// The `variable_table` exists to aid with computation, memory and network
 	// traffic optimization.  It enables storing a variable once and reference
 	// it from multiple variables, including variables stored in the
@@ -658,10 +658,10 @@ type Breakpoint struct {
 	// The stored objects are nameless and get their name from the referencing
 	// variable. The effective variable is a merge of the referencing variable
 	// and the referenced variable.
-	VariableTable []*Variable `protobuf:"bytes,9,rep,name=variable_table,json=variableTable" json:"variable_table,omitempty"`
+	VariableTable []*Variable `protobuf:"bytes,9,rep,name=variable_table,json=variableTable,proto3" json:"variable_table,omitempty"`
 	// A set of custom breakpoint properties, populated by the agent, to be
 	// displayed to the user.
-	Labels               map[string]string `protobuf:"bytes,17,rep,name=labels" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Labels               map[string]string `protobuf:"bytes,17,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -810,46 +810,46 @@ func (m *Breakpoint) GetLabels() map[string]string {
 // exactly the same Debuggee message value when registering.
 type Debuggee struct {
 	// Unique identifier for the debuggee generated by the controller service.
-	Id string `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// Project the debuggee is associated with.
 	// Use project number or id when registering a Google Cloud Platform project.
-	Project string `protobuf:"bytes,2,opt,name=project" json:"project,omitempty"`
+	Project string `protobuf:"bytes,2,opt,name=project,proto3" json:"project,omitempty"`
 	// Uniquifier to further distiguish the application.
 	// It is possible that different applications might have identical values in
 	// the debuggee message, thus, incorrectly identified as a single application
 	// by the Controller service. This field adds salt to further distiguish the
 	// application. Agents should consider seeding this field with value that
 	// identifies the code, binary, configuration and environment.
-	Uniquifier string `protobuf:"bytes,3,opt,name=uniquifier" json:"uniquifier,omitempty"`
+	Uniquifier string `protobuf:"bytes,3,opt,name=uniquifier,proto3" json:"uniquifier,omitempty"`
 	// Human readable description of the debuggee.
 	// Including a human-readable project name, environment name and version
 	// information is recommended.
-	Description string `protobuf:"bytes,4,opt,name=description" json:"description,omitempty"`
+	Description string `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
 	// If set to `true`, indicates that Controller service does not detect any
 	// activity from the debuggee agents and the application is possibly stopped.
-	IsInactive bool `protobuf:"varint,5,opt,name=is_inactive,json=isInactive" json:"is_inactive,omitempty"`
+	IsInactive bool `protobuf:"varint,5,opt,name=is_inactive,json=isInactive,proto3" json:"is_inactive,omitempty"`
 	// Version ID of the agent.
 	// Schema: `domain/language-platform/vmajor.minor` (for example
 	// `google.com/java-gcp/v1.1`).
-	AgentVersion string `protobuf:"bytes,6,opt,name=agent_version,json=agentVersion" json:"agent_version,omitempty"`
+	AgentVersion string `protobuf:"bytes,6,opt,name=agent_version,json=agentVersion,proto3" json:"agent_version,omitempty"`
 	// If set to `true`, indicates that the agent should disable itself and
 	// detach from the debuggee.
-	IsDisabled bool `protobuf:"varint,7,opt,name=is_disabled,json=isDisabled" json:"is_disabled,omitempty"`
+	IsDisabled bool `protobuf:"varint,7,opt,name=is_disabled,json=isDisabled,proto3" json:"is_disabled,omitempty"`
 	// Human readable message to be displayed to the user about this debuggee.
 	// Absence of this field indicates no status. The message can be either
 	// informational or an error status.
-	Status *StatusMessage `protobuf:"bytes,8,opt,name=status" json:"status,omitempty"`
+	Status *StatusMessage `protobuf:"bytes,8,opt,name=status,proto3" json:"status,omitempty"`
 	// References to the locations and revisions of the source code used in the
 	// deployed application.
-	SourceContexts []*v1.SourceContext `protobuf:"bytes,9,rep,name=source_contexts,json=sourceContexts" json:"source_contexts,omitempty"`
+	SourceContexts []*v1.SourceContext `protobuf:"bytes,9,rep,name=source_contexts,json=sourceContexts,proto3" json:"source_contexts,omitempty"`
 	// References to the locations and revisions of the source code used in the
 	// deployed application.
 	//
 	// NOTE: this field is experimental and can be ignored.
-	ExtSourceContexts []*v1.ExtendedSourceContext `protobuf:"bytes,13,rep,name=ext_source_contexts,json=extSourceContexts" json:"ext_source_contexts,omitempty"`
+	ExtSourceContexts []*v1.ExtendedSourceContext `protobuf:"bytes,13,rep,name=ext_source_contexts,json=extSourceContexts,proto3" json:"ext_source_contexts,omitempty"`
 	// A set of custom debuggee properties, populated by the agent, to be
 	// displayed to the user.
-	Labels               map[string]string `protobuf:"bytes,11,rep,name=labels" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Labels               map[string]string `protobuf:"bytes,11,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`

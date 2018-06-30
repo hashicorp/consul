@@ -54,69 +54,69 @@ type Instance struct {
 	// Example: `apps/myapp/services/default/versions/v1/instances/instance-1`.
 	//
 	// @OutputOnly
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Relative name of the instance within the version.
 	// Example: `instance-1`.
 	//
 	// @OutputOnly
-	Id string `protobuf:"bytes,2,opt,name=id" json:"id,omitempty"`
+	Id string `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
 	// App Engine release this instance is running on.
 	//
 	// @OutputOnly
-	AppEngineRelease string `protobuf:"bytes,3,opt,name=app_engine_release,json=appEngineRelease" json:"app_engine_release,omitempty"`
+	AppEngineRelease string `protobuf:"bytes,3,opt,name=app_engine_release,json=appEngineRelease,proto3" json:"app_engine_release,omitempty"`
 	// Availability of the instance.
 	//
 	// @OutputOnly
-	Availability Instance_Availability `protobuf:"varint,4,opt,name=availability,enum=google.appengine.v1.Instance_Availability" json:"availability,omitempty"`
+	Availability Instance_Availability `protobuf:"varint,4,opt,name=availability,proto3,enum=google.appengine.v1.Instance_Availability" json:"availability,omitempty"`
 	// Name of the virtual machine where this instance lives. Only applicable
 	// for instances in App Engine flexible environment.
 	//
 	// @OutputOnly
-	VmName string `protobuf:"bytes,5,opt,name=vm_name,json=vmName" json:"vm_name,omitempty"`
+	VmName string `protobuf:"bytes,5,opt,name=vm_name,json=vmName,proto3" json:"vm_name,omitempty"`
 	// Zone where the virtual machine is located. Only applicable for instances
 	// in App Engine flexible environment.
 	//
 	// @OutputOnly
-	VmZoneName string `protobuf:"bytes,6,opt,name=vm_zone_name,json=vmZoneName" json:"vm_zone_name,omitempty"`
+	VmZoneName string `protobuf:"bytes,6,opt,name=vm_zone_name,json=vmZoneName,proto3" json:"vm_zone_name,omitempty"`
 	// Virtual machine ID of this instance. Only applicable for instances in
 	// App Engine flexible environment.
 	//
 	// @OutputOnly
-	VmId string `protobuf:"bytes,7,opt,name=vm_id,json=vmId" json:"vm_id,omitempty"`
+	VmId string `protobuf:"bytes,7,opt,name=vm_id,json=vmId,proto3" json:"vm_id,omitempty"`
 	// Time that this instance was started.
 	//
 	// @OutputOnly
-	StartTime *timestamp.Timestamp `protobuf:"bytes,8,opt,name=start_time,json=startTime" json:"start_time,omitempty"`
+	StartTime *timestamp.Timestamp `protobuf:"bytes,8,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
 	// Number of requests since this instance was started.
 	//
 	// @OutputOnly
-	Requests int32 `protobuf:"varint,9,opt,name=requests" json:"requests,omitempty"`
+	Requests int32 `protobuf:"varint,9,opt,name=requests,proto3" json:"requests,omitempty"`
 	// Number of errors since this instance was started.
 	//
 	// @OutputOnly
-	Errors int32 `protobuf:"varint,10,opt,name=errors" json:"errors,omitempty"`
+	Errors int32 `protobuf:"varint,10,opt,name=errors,proto3" json:"errors,omitempty"`
 	// Average queries per second (QPS) over the last minute.
 	//
 	// @OutputOnly
-	Qps float32 `protobuf:"fixed32,11,opt,name=qps" json:"qps,omitempty"`
+	Qps float32 `protobuf:"fixed32,11,opt,name=qps,proto3" json:"qps,omitempty"`
 	// Average latency (ms) over the last minute.
 	//
 	// @OutputOnly
-	AverageLatency int32 `protobuf:"varint,12,opt,name=average_latency,json=averageLatency" json:"average_latency,omitempty"`
+	AverageLatency int32 `protobuf:"varint,12,opt,name=average_latency,json=averageLatency,proto3" json:"average_latency,omitempty"`
 	// Total memory in use (bytes).
 	//
 	// @OutputOnly
-	MemoryUsage int64 `protobuf:"varint,13,opt,name=memory_usage,json=memoryUsage" json:"memory_usage,omitempty"`
+	MemoryUsage int64 `protobuf:"varint,13,opt,name=memory_usage,json=memoryUsage,proto3" json:"memory_usage,omitempty"`
 	// Status of the virtual machine where this instance lives. Only applicable
 	// for instances in App Engine flexible environment.
 	//
 	// @OutputOnly
-	VmStatus string `protobuf:"bytes,14,opt,name=vm_status,json=vmStatus" json:"vm_status,omitempty"`
+	VmStatus string `protobuf:"bytes,14,opt,name=vm_status,json=vmStatus,proto3" json:"vm_status,omitempty"`
 	// Whether this instance is in debug mode. Only applicable for instances in
 	// App Engine flexible environment.
 	//
 	// @OutputOnly
-	VmDebugEnabled       bool     `protobuf:"varint,15,opt,name=vm_debug_enabled,json=vmDebugEnabled" json:"vm_debug_enabled,omitempty"`
+	VmDebugEnabled       bool     `protobuf:"varint,15,opt,name=vm_debug_enabled,json=vmDebugEnabled,proto3" json:"vm_debug_enabled,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

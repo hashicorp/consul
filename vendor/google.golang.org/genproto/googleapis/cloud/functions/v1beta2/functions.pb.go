@@ -72,7 +72,7 @@ func (CloudFunctionStatus) EnumDescriptor() ([]byte, []int) {
 type CloudFunction struct {
 	// A user-defined name of the function. Function names must be unique
 	// globally and match pattern `projects/*/locations/*/functions/*`
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The location of the function source code.
 	//
 	// Types that are valid to be assigned to SourceCode:
@@ -86,29 +86,29 @@ type CloudFunction struct {
 	//	*CloudFunction_EventTrigger
 	Trigger isCloudFunction_Trigger `protobuf_oneof:"trigger"`
 	// Output only. Status of the function deployment.
-	Status CloudFunctionStatus `protobuf:"varint,7,opt,name=status,enum=google.cloud.functions.v1beta2.CloudFunctionStatus" json:"status,omitempty"`
+	Status CloudFunctionStatus `protobuf:"varint,7,opt,name=status,proto3,enum=google.cloud.functions.v1beta2.CloudFunctionStatus" json:"status,omitempty"`
 	// Output only. Name of the most recent operation modifying the function. If
 	// the function status is `DEPLOYING` or `DELETING`, then it points to the
 	// active operation.
-	LatestOperation string `protobuf:"bytes,8,opt,name=latest_operation,json=latestOperation" json:"latest_operation,omitempty"`
+	LatestOperation string `protobuf:"bytes,8,opt,name=latest_operation,json=latestOperation,proto3" json:"latest_operation,omitempty"`
 	// The name of the function (as defined in source code) that will be
 	// executed. Defaults to the resource name suffix, if not specified. For
 	// backward compatibility, if function with given name is not found, then the
 	// system will try to use function named "function".
 	// For Node.js this is name of a function exported by the module specified
 	// in `source_location`.
-	EntryPoint string `protobuf:"bytes,9,opt,name=entry_point,json=entryPoint" json:"entry_point,omitempty"`
+	EntryPoint string `protobuf:"bytes,9,opt,name=entry_point,json=entryPoint,proto3" json:"entry_point,omitempty"`
 	// The function execution timeout. Execution is considered failed and
 	// can be terminated if the function is not completed at the end of the
 	// timeout period. Defaults to 60 seconds.
-	Timeout *duration.Duration `protobuf:"bytes,10,opt,name=timeout" json:"timeout,omitempty"`
+	Timeout *duration.Duration `protobuf:"bytes,10,opt,name=timeout,proto3" json:"timeout,omitempty"`
 	// The amount of memory in MB available for a function.
 	// Defaults to 256MB.
-	AvailableMemoryMb int32 `protobuf:"varint,11,opt,name=available_memory_mb,json=availableMemoryMb" json:"available_memory_mb,omitempty"`
+	AvailableMemoryMb int32 `protobuf:"varint,11,opt,name=available_memory_mb,json=availableMemoryMb,proto3" json:"available_memory_mb,omitempty"`
 	// Output only. The service account of the function.
-	ServiceAccount string `protobuf:"bytes,13,opt,name=service_account,json=serviceAccount" json:"service_account,omitempty"`
+	ServiceAccount string `protobuf:"bytes,13,opt,name=service_account,json=serviceAccount,proto3" json:"service_account,omitempty"`
 	// Output only. The last update timestamp of a Cloud Function.
-	UpdateTime           *timestamp.Timestamp `protobuf:"bytes,15,opt,name=update_time,json=updateTime" json:"update_time,omitempty"`
+	UpdateTime           *timestamp.Timestamp `protobuf:"bytes,15,opt,name=update_time,json=updateTime,proto3" json:"update_time,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -146,16 +146,16 @@ type isCloudFunction_Trigger interface {
 }
 
 type CloudFunction_SourceArchiveUrl struct {
-	SourceArchiveUrl string `protobuf:"bytes,14,opt,name=source_archive_url,json=sourceArchiveUrl,oneof"`
+	SourceArchiveUrl string `protobuf:"bytes,14,opt,name=source_archive_url,json=sourceArchiveUrl,proto3,oneof"`
 }
 type CloudFunction_SourceRepository struct {
-	SourceRepository *SourceRepository `protobuf:"bytes,3,opt,name=source_repository,json=sourceRepository,oneof"`
+	SourceRepository *SourceRepository `protobuf:"bytes,3,opt,name=source_repository,json=sourceRepository,proto3,oneof"`
 }
 type CloudFunction_HttpsTrigger struct {
-	HttpsTrigger *HTTPSTrigger `protobuf:"bytes,6,opt,name=https_trigger,json=httpsTrigger,oneof"`
+	HttpsTrigger *HTTPSTrigger `protobuf:"bytes,6,opt,name=https_trigger,json=httpsTrigger,proto3,oneof"`
 }
 type CloudFunction_EventTrigger struct {
-	EventTrigger *EventTrigger `protobuf:"bytes,12,opt,name=event_trigger,json=eventTrigger,oneof"`
+	EventTrigger *EventTrigger `protobuf:"bytes,12,opt,name=event_trigger,json=eventTrigger,proto3,oneof"`
 }
 
 func (*CloudFunction_SourceArchiveUrl) isCloudFunction_SourceCode() {}
@@ -383,7 +383,7 @@ func _CloudFunction_OneofSizer(msg proto.Message) (n int) {
 // Describes HTTPSTrigger, could be used to connect web hooks to function.
 type HTTPSTrigger struct {
 	// Output only. The deployed url for the function.
-	Url                  string   `protobuf:"bytes,1,opt,name=url" json:"url,omitempty"`
+	Url                  string   `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -433,13 +433,13 @@ type EventTrigger struct {
 	//
 	//      Handle a write to the Firebase Realtime Database
 	//      `providers/firebase.database/eventTypes/data.write`
-	EventType string `protobuf:"bytes,1,opt,name=event_type,json=eventType" json:"event_type,omitempty"`
+	EventType string `protobuf:"bytes,1,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
 	// Which instance of the source's service should send events. E.g. for Pub/Sub
 	// this would be a Pub/Sub topic at `projects/*/topics/*`. For Google Cloud
 	// Storage this would be a bucket at `projects/*/buckets/*`. For any source
 	// that only supports one instance per-project, this should be the name of the
 	// project (`projects/*`)
-	Resource             string   `protobuf:"bytes,2,opt,name=resource" json:"resource,omitempty"`
+	Resource             string   `protobuf:"bytes,2,opt,name=resource,proto3" json:"resource,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -488,12 +488,12 @@ type SourceRepository struct {
 	// URL to the hosted repository where the function is defined. Only paths in
 	// https://source.developers.google.com domain are supported. The path should
 	// contain the name of the repository.
-	RepositoryUrl string `protobuf:"bytes,1,opt,name=repository_url,json=repositoryUrl" json:"repository_url,omitempty"`
+	RepositoryUrl string `protobuf:"bytes,1,opt,name=repository_url,json=repositoryUrl,proto3" json:"repository_url,omitempty"`
 	// The path within the repository where the function is defined. The path
 	// should point to the directory where Cloud Functions files are located. Use
 	// "/" if the function is defined directly in the root directory of a
 	// repository.
-	SourcePath string `protobuf:"bytes,2,opt,name=source_path,json=sourcePath" json:"source_path,omitempty"`
+	SourcePath string `protobuf:"bytes,2,opt,name=source_path,json=sourcePath,proto3" json:"source_path,omitempty"`
 	// The version of a function. Defaults to the latest version of the master
 	// branch.
 	//
@@ -507,7 +507,7 @@ type SourceRepository struct {
 	// branch, it will be the revision id of the latest change on this branch at
 	// that time. If user deployed from revision then this value will be always
 	// equal to the revision specified by the user.
-	DeployedRevision     string   `protobuf:"bytes,6,opt,name=deployed_revision,json=deployedRevision" json:"deployed_revision,omitempty"`
+	DeployedRevision     string   `protobuf:"bytes,6,opt,name=deployed_revision,json=deployedRevision,proto3" json:"deployed_revision,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -542,13 +542,13 @@ type isSourceRepository_Version interface {
 }
 
 type SourceRepository_Branch struct {
-	Branch string `protobuf:"bytes,3,opt,name=branch,oneof"`
+	Branch string `protobuf:"bytes,3,opt,name=branch,proto3,oneof"`
 }
 type SourceRepository_Tag struct {
-	Tag string `protobuf:"bytes,4,opt,name=tag,oneof"`
+	Tag string `protobuf:"bytes,4,opt,name=tag,proto3,oneof"`
 }
 type SourceRepository_Revision struct {
-	Revision string `protobuf:"bytes,5,opt,name=revision,oneof"`
+	Revision string `protobuf:"bytes,5,opt,name=revision,proto3,oneof"`
 }
 
 func (*SourceRepository_Branch) isSourceRepository_Version()   {}
@@ -689,9 +689,9 @@ func _SourceRepository_OneofSizer(msg proto.Message) (n int) {
 type CreateFunctionRequest struct {
 	// The project and location in which the function should be created, specified
 	// in the format `projects/*/locations/*`
-	Location string `protobuf:"bytes,1,opt,name=location" json:"location,omitempty"`
+	Location string `protobuf:"bytes,1,opt,name=location,proto3" json:"location,omitempty"`
 	// Function to be created.
-	Function             *CloudFunction `protobuf:"bytes,2,opt,name=function" json:"function,omitempty"`
+	Function             *CloudFunction `protobuf:"bytes,2,opt,name=function,proto3" json:"function,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
 	XXX_unrecognized     []byte         `json:"-"`
 	XXX_sizecache        int32          `json:"-"`
@@ -738,9 +738,9 @@ func (m *CreateFunctionRequest) GetFunction() *CloudFunction {
 // Request for the `UpdateFunction` method.
 type UpdateFunctionRequest struct {
 	// The name of the function to be updated.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// New version of the function.
-	Function             *CloudFunction `protobuf:"bytes,2,opt,name=function" json:"function,omitempty"`
+	Function             *CloudFunction `protobuf:"bytes,2,opt,name=function,proto3" json:"function,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
 	XXX_unrecognized     []byte         `json:"-"`
 	XXX_sizecache        int32          `json:"-"`
@@ -787,7 +787,7 @@ func (m *UpdateFunctionRequest) GetFunction() *CloudFunction {
 // Request for the `GetFunction` method.
 type GetFunctionRequest struct {
 	// The name of the function which details should be obtained.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -830,14 +830,14 @@ type ListFunctionsRequest struct {
 	// specified in the format `projects/*/locations/*`
 	// If you want to list functions in all locations, use "-" in place of a
 	// location.
-	Location string `protobuf:"bytes,1,opt,name=location" json:"location,omitempty"`
+	Location string `protobuf:"bytes,1,opt,name=location,proto3" json:"location,omitempty"`
 	// Maximum number of functions to return per call.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The value returned by the last
 	// `ListFunctionsResponse`; indicates that
 	// this is a continuation of a prior `ListFunctions` call, and that the
 	// system should return the next page of data.
-	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -891,12 +891,12 @@ func (m *ListFunctionsRequest) GetPageToken() string {
 // Response for the `ListFunctions` method.
 type ListFunctionsResponse struct {
 	// The functions that match the request.
-	Functions []*CloudFunction `protobuf:"bytes,1,rep,name=functions" json:"functions,omitempty"`
+	Functions []*CloudFunction `protobuf:"bytes,1,rep,name=functions,proto3" json:"functions,omitempty"`
 	// If not empty, indicates that there may be more functions that match
 	// the request; this value should be passed in a new
 	// [google.cloud.functions.v1beta2.ListFunctionsRequest][]
 	// to get more functions.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -943,7 +943,7 @@ func (m *ListFunctionsResponse) GetNextPageToken() string {
 // Request for the `DeleteFunction` method.
 type DeleteFunctionRequest struct {
 	// The name of the function which should be deleted.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -983,9 +983,9 @@ func (m *DeleteFunctionRequest) GetName() string {
 // Request for the `CallFunction` method.
 type CallFunctionRequest struct {
 	// The name of the function to be called.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Input to be passed to the function.
-	Data                 string   `protobuf:"bytes,2,opt,name=data" json:"data,omitempty"`
+	Data                 string   `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1032,13 +1032,13 @@ func (m *CallFunctionRequest) GetData() string {
 // Response of `CallFunction` method.
 type CallFunctionResponse struct {
 	// Execution id of function invocation.
-	ExecutionId string `protobuf:"bytes,1,opt,name=execution_id,json=executionId" json:"execution_id,omitempty"`
+	ExecutionId string `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
 	// Result populated for successful execution of synchronous function. Will
 	// not be populated if function does not return a result through context.
-	Result string `protobuf:"bytes,2,opt,name=result" json:"result,omitempty"`
+	Result string `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	// Either system or user-function generated error. Set if execution
 	// was not successful.
-	Error                string   `protobuf:"bytes,3,opt,name=error" json:"error,omitempty"`
+	Error                string   `protobuf:"bytes,3,opt,name=error,proto3" json:"error,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1198,8 +1198,7 @@ func (c *cloudFunctionsServiceClient) CallFunction(ctx context.Context, in *Call
 	return out, nil
 }
 
-// Server API for CloudFunctionsService service
-
+// CloudFunctionsServiceServer is the server API for CloudFunctionsService service.
 type CloudFunctionsServiceServer interface {
 	// Returns a list of functions that belong to the requested project.
 	ListFunctions(context.Context, *ListFunctionsRequest) (*ListFunctionsResponse, error)

@@ -19,7 +19,7 @@ var supportsIPv6 bool = nettest.SupportsIPv6()
 
 func TestConnInitiatorPathMTU(t *testing.T) {
 	switch runtime.GOOS {
-	case "nacl", "plan9", "windows":
+	case "js", "nacl", "plan9", "windows":
 		t.Skipf("not supported on %s", runtime.GOOS)
 	}
 	if !supportsIPv6 {
@@ -57,7 +57,7 @@ func TestConnInitiatorPathMTU(t *testing.T) {
 
 func TestConnResponderPathMTU(t *testing.T) {
 	switch runtime.GOOS {
-	case "nacl", "plan9", "windows":
+	case "js", "nacl", "plan9", "windows":
 		t.Skipf("not supported on %s", runtime.GOOS)
 	}
 	if !supportsIPv6 {
@@ -95,7 +95,7 @@ func TestConnResponderPathMTU(t *testing.T) {
 
 func TestPacketConnChecksum(t *testing.T) {
 	switch runtime.GOOS {
-	case "nacl", "plan9", "windows":
+	case "js", "nacl", "plan9", "windows":
 		t.Skipf("not supported on %s", runtime.GOOS)
 	}
 	if !supportsIPv6 {

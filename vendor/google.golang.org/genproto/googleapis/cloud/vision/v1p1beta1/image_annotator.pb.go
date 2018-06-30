@@ -300,13 +300,13 @@ func (FaceAnnotation_Landmark_Type) EnumDescriptor() ([]byte, []int) {
 // vertical to operate on and the number of top-scoring results to return.
 type Feature struct {
 	// The feature type.
-	Type Feature_Type `protobuf:"varint,1,opt,name=type,enum=google.cloud.vision.v1p1beta1.Feature_Type" json:"type,omitempty"`
+	Type Feature_Type `protobuf:"varint,1,opt,name=type,proto3,enum=google.cloud.vision.v1p1beta1.Feature_Type" json:"type,omitempty"`
 	// Maximum number of results of this type.
-	MaxResults int32 `protobuf:"varint,2,opt,name=max_results,json=maxResults" json:"max_results,omitempty"`
+	MaxResults int32 `protobuf:"varint,2,opt,name=max_results,json=maxResults,proto3" json:"max_results,omitempty"`
 	// Model to use for the feature.
 	// Supported values: "builtin/stable" (the default if unset) and
 	// "builtin/latest".
-	Model                string   `protobuf:"bytes,3,opt,name=model" json:"model,omitempty"`
+	Model                string   `protobuf:"bytes,3,opt,name=model,proto3" json:"model,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -365,7 +365,7 @@ type ImageSource struct {
 	// [Google Cloud Storage Request
 	// URIs](https://cloud.google.com/storage/docs/reference-uris)).
 	// NOTE: Cloud Storage object versioning is not supported.
-	GcsImageUri string `protobuf:"bytes,1,opt,name=gcs_image_uri,json=gcsImageUri" json:"gcs_image_uri,omitempty"`
+	GcsImageUri string `protobuf:"bytes,1,opt,name=gcs_image_uri,json=gcsImageUri,proto3" json:"gcs_image_uri,omitempty"`
 	// Image URI which supports:
 	// 1) Google Cloud Storage image URI, which must be in the following form:
 	// `gs://bucket_name/object_name` (for details, see
@@ -376,7 +376,7 @@ type ImageSource struct {
 	// This is preferred over the legacy `gcs_image_uri` above. When both
 	// `gcs_image_uri` and `image_uri` are specified, `image_uri` takes
 	// precedence.
-	ImageUri             string   `protobuf:"bytes,2,opt,name=image_uri,json=imageUri" json:"image_uri,omitempty"`
+	ImageUri             string   `protobuf:"bytes,2,opt,name=image_uri,json=imageUri,proto3" json:"image_uri,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -429,7 +429,7 @@ type Image struct {
 	// Google Cloud Storage image location. If both `content` and `source`
 	// are provided for an image, `content` takes precedence and is
 	// used to perform the image annotation request.
-	Source               *ImageSource `protobuf:"bytes,2,opt,name=source" json:"source,omitempty"`
+	Source               *ImageSource `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
 	XXX_unrecognized     []byte       `json:"-"`
 	XXX_sizecache        int32        `json:"-"`
@@ -482,45 +482,45 @@ type FaceAnnotation struct {
 	// Note that one or more x and/or y coordinates may not be generated in the
 	// `BoundingPoly` (the polygon will be unbounded) if only a partial face
 	// appears in the image to be annotated.
-	BoundingPoly *BoundingPoly `protobuf:"bytes,1,opt,name=bounding_poly,json=boundingPoly" json:"bounding_poly,omitempty"`
+	BoundingPoly *BoundingPoly `protobuf:"bytes,1,opt,name=bounding_poly,json=boundingPoly,proto3" json:"bounding_poly,omitempty"`
 	// The `fd_bounding_poly` bounding polygon is tighter than the
 	// `boundingPoly`, and encloses only the skin part of the face. Typically, it
 	// is used to eliminate the face from any image analysis that detects the
 	// "amount of skin" visible in an image. It is not based on the
 	// landmarker results, only on the initial face detection, hence
 	// the <code>fd</code> (face detection) prefix.
-	FdBoundingPoly *BoundingPoly `protobuf:"bytes,2,opt,name=fd_bounding_poly,json=fdBoundingPoly" json:"fd_bounding_poly,omitempty"`
+	FdBoundingPoly *BoundingPoly `protobuf:"bytes,2,opt,name=fd_bounding_poly,json=fdBoundingPoly,proto3" json:"fd_bounding_poly,omitempty"`
 	// Detected face landmarks.
-	Landmarks []*FaceAnnotation_Landmark `protobuf:"bytes,3,rep,name=landmarks" json:"landmarks,omitempty"`
+	Landmarks []*FaceAnnotation_Landmark `protobuf:"bytes,3,rep,name=landmarks,proto3" json:"landmarks,omitempty"`
 	// Roll angle, which indicates the amount of clockwise/anti-clockwise rotation
 	// of the face relative to the image vertical about the axis perpendicular to
 	// the face. Range [-180,180].
-	RollAngle float32 `protobuf:"fixed32,4,opt,name=roll_angle,json=rollAngle" json:"roll_angle,omitempty"`
+	RollAngle float32 `protobuf:"fixed32,4,opt,name=roll_angle,json=rollAngle,proto3" json:"roll_angle,omitempty"`
 	// Yaw angle, which indicates the leftward/rightward angle that the face is
 	// pointing relative to the vertical plane perpendicular to the image. Range
 	// [-180,180].
-	PanAngle float32 `protobuf:"fixed32,5,opt,name=pan_angle,json=panAngle" json:"pan_angle,omitempty"`
+	PanAngle float32 `protobuf:"fixed32,5,opt,name=pan_angle,json=panAngle,proto3" json:"pan_angle,omitempty"`
 	// Pitch angle, which indicates the upwards/downwards angle that the face is
 	// pointing relative to the image's horizontal plane. Range [-180,180].
-	TiltAngle float32 `protobuf:"fixed32,6,opt,name=tilt_angle,json=tiltAngle" json:"tilt_angle,omitempty"`
+	TiltAngle float32 `protobuf:"fixed32,6,opt,name=tilt_angle,json=tiltAngle,proto3" json:"tilt_angle,omitempty"`
 	// Detection confidence. Range [0, 1].
-	DetectionConfidence float32 `protobuf:"fixed32,7,opt,name=detection_confidence,json=detectionConfidence" json:"detection_confidence,omitempty"`
+	DetectionConfidence float32 `protobuf:"fixed32,7,opt,name=detection_confidence,json=detectionConfidence,proto3" json:"detection_confidence,omitempty"`
 	// Face landmarking confidence. Range [0, 1].
-	LandmarkingConfidence float32 `protobuf:"fixed32,8,opt,name=landmarking_confidence,json=landmarkingConfidence" json:"landmarking_confidence,omitempty"`
+	LandmarkingConfidence float32 `protobuf:"fixed32,8,opt,name=landmarking_confidence,json=landmarkingConfidence,proto3" json:"landmarking_confidence,omitempty"`
 	// Joy likelihood.
-	JoyLikelihood Likelihood `protobuf:"varint,9,opt,name=joy_likelihood,json=joyLikelihood,enum=google.cloud.vision.v1p1beta1.Likelihood" json:"joy_likelihood,omitempty"`
+	JoyLikelihood Likelihood `protobuf:"varint,9,opt,name=joy_likelihood,json=joyLikelihood,proto3,enum=google.cloud.vision.v1p1beta1.Likelihood" json:"joy_likelihood,omitempty"`
 	// Sorrow likelihood.
-	SorrowLikelihood Likelihood `protobuf:"varint,10,opt,name=sorrow_likelihood,json=sorrowLikelihood,enum=google.cloud.vision.v1p1beta1.Likelihood" json:"sorrow_likelihood,omitempty"`
+	SorrowLikelihood Likelihood `protobuf:"varint,10,opt,name=sorrow_likelihood,json=sorrowLikelihood,proto3,enum=google.cloud.vision.v1p1beta1.Likelihood" json:"sorrow_likelihood,omitempty"`
 	// Anger likelihood.
-	AngerLikelihood Likelihood `protobuf:"varint,11,opt,name=anger_likelihood,json=angerLikelihood,enum=google.cloud.vision.v1p1beta1.Likelihood" json:"anger_likelihood,omitempty"`
+	AngerLikelihood Likelihood `protobuf:"varint,11,opt,name=anger_likelihood,json=angerLikelihood,proto3,enum=google.cloud.vision.v1p1beta1.Likelihood" json:"anger_likelihood,omitempty"`
 	// Surprise likelihood.
-	SurpriseLikelihood Likelihood `protobuf:"varint,12,opt,name=surprise_likelihood,json=surpriseLikelihood,enum=google.cloud.vision.v1p1beta1.Likelihood" json:"surprise_likelihood,omitempty"`
+	SurpriseLikelihood Likelihood `protobuf:"varint,12,opt,name=surprise_likelihood,json=surpriseLikelihood,proto3,enum=google.cloud.vision.v1p1beta1.Likelihood" json:"surprise_likelihood,omitempty"`
 	// Under-exposed likelihood.
-	UnderExposedLikelihood Likelihood `protobuf:"varint,13,opt,name=under_exposed_likelihood,json=underExposedLikelihood,enum=google.cloud.vision.v1p1beta1.Likelihood" json:"under_exposed_likelihood,omitempty"`
+	UnderExposedLikelihood Likelihood `protobuf:"varint,13,opt,name=under_exposed_likelihood,json=underExposedLikelihood,proto3,enum=google.cloud.vision.v1p1beta1.Likelihood" json:"under_exposed_likelihood,omitempty"`
 	// Blurred likelihood.
-	BlurredLikelihood Likelihood `protobuf:"varint,14,opt,name=blurred_likelihood,json=blurredLikelihood,enum=google.cloud.vision.v1p1beta1.Likelihood" json:"blurred_likelihood,omitempty"`
+	BlurredLikelihood Likelihood `protobuf:"varint,14,opt,name=blurred_likelihood,json=blurredLikelihood,proto3,enum=google.cloud.vision.v1p1beta1.Likelihood" json:"blurred_likelihood,omitempty"`
 	// Headwear likelihood.
-	HeadwearLikelihood   Likelihood `protobuf:"varint,15,opt,name=headwear_likelihood,json=headwearLikelihood,enum=google.cloud.vision.v1p1beta1.Likelihood" json:"headwear_likelihood,omitempty"`
+	HeadwearLikelihood   Likelihood `protobuf:"varint,15,opt,name=headwear_likelihood,json=headwearLikelihood,proto3,enum=google.cloud.vision.v1p1beta1.Likelihood" json:"headwear_likelihood,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
 	XXX_unrecognized     []byte     `json:"-"`
 	XXX_sizecache        int32      `json:"-"`
@@ -658,9 +658,9 @@ func (m *FaceAnnotation) GetHeadwearLikelihood() Likelihood {
 // A face-specific landmark (for example, a face feature).
 type FaceAnnotation_Landmark struct {
 	// Face landmark type.
-	Type FaceAnnotation_Landmark_Type `protobuf:"varint,3,opt,name=type,enum=google.cloud.vision.v1p1beta1.FaceAnnotation_Landmark_Type" json:"type,omitempty"`
+	Type FaceAnnotation_Landmark_Type `protobuf:"varint,3,opt,name=type,proto3,enum=google.cloud.vision.v1p1beta1.FaceAnnotation_Landmark_Type" json:"type,omitempty"`
 	// Face landmark position.
-	Position             *Position `protobuf:"bytes,4,opt,name=position" json:"position,omitempty"`
+	Position             *Position `protobuf:"bytes,4,opt,name=position,proto3" json:"position,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -707,7 +707,7 @@ func (m *FaceAnnotation_Landmark) GetPosition() *Position {
 // Detected entity location information.
 type LocationInfo struct {
 	// lat/long location coordinates.
-	LatLng               *latlng.LatLng `protobuf:"bytes,1,opt,name=lat_lng,json=latLng" json:"lat_lng,omitempty"`
+	LatLng               *latlng.LatLng `protobuf:"bytes,1,opt,name=lat_lng,json=latLng,proto3" json:"lat_lng,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
 	XXX_unrecognized     []byte         `json:"-"`
 	XXX_sizecache        int32          `json:"-"`
@@ -747,11 +747,11 @@ func (m *LocationInfo) GetLatLng() *latlng.LatLng {
 // A `Property` consists of a user-supplied name/value pair.
 type Property struct {
 	// Name of the property.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Value of the property.
-	Value string `protobuf:"bytes,2,opt,name=value" json:"value,omitempty"`
+	Value string `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
 	// Value of numeric properties.
-	Uint64Value          uint64   `protobuf:"varint,3,opt,name=uint64_value,json=uint64Value" json:"uint64_value,omitempty"`
+	Uint64Value          uint64   `protobuf:"varint,3,opt,name=uint64_value,json=uint64Value,proto3" json:"uint64_value,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -806,37 +806,37 @@ func (m *Property) GetUint64Value() uint64 {
 type EntityAnnotation struct {
 	// Opaque entity ID. Some IDs may be available in
 	// [Google Knowledge Graph Search API](https://developers.google.com/knowledge-graph/).
-	Mid string `protobuf:"bytes,1,opt,name=mid" json:"mid,omitempty"`
+	Mid string `protobuf:"bytes,1,opt,name=mid,proto3" json:"mid,omitempty"`
 	// The language code for the locale in which the entity textual
 	// `description` is expressed.
-	Locale string `protobuf:"bytes,2,opt,name=locale" json:"locale,omitempty"`
+	Locale string `protobuf:"bytes,2,opt,name=locale,proto3" json:"locale,omitempty"`
 	// Entity textual description, expressed in its `locale` language.
-	Description string `protobuf:"bytes,3,opt,name=description" json:"description,omitempty"`
+	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	// Overall score of the result. Range [0, 1].
-	Score float32 `protobuf:"fixed32,4,opt,name=score" json:"score,omitempty"`
+	Score float32 `protobuf:"fixed32,4,opt,name=score,proto3" json:"score,omitempty"`
 	// The accuracy of the entity detection in an image.
 	// For example, for an image in which the "Eiffel Tower" entity is detected,
 	// this field represents the confidence that there is a tower in the query
 	// image. Range [0, 1].
-	Confidence float32 `protobuf:"fixed32,5,opt,name=confidence" json:"confidence,omitempty"`
+	Confidence float32 `protobuf:"fixed32,5,opt,name=confidence,proto3" json:"confidence,omitempty"`
 	// The relevancy of the ICA (Image Content Annotation) label to the
 	// image. For example, the relevancy of "tower" is likely higher to an image
 	// containing the detected "Eiffel Tower" than to an image containing a
 	// detected distant towering building, even though the confidence that
 	// there is a tower in each image may be the same. Range [0, 1].
-	Topicality float32 `protobuf:"fixed32,6,opt,name=topicality" json:"topicality,omitempty"`
+	Topicality float32 `protobuf:"fixed32,6,opt,name=topicality,proto3" json:"topicality,omitempty"`
 	// Image region to which this entity belongs. Not produced
 	// for `LABEL_DETECTION` features.
-	BoundingPoly *BoundingPoly `protobuf:"bytes,7,opt,name=bounding_poly,json=boundingPoly" json:"bounding_poly,omitempty"`
+	BoundingPoly *BoundingPoly `protobuf:"bytes,7,opt,name=bounding_poly,json=boundingPoly,proto3" json:"bounding_poly,omitempty"`
 	// The location information for the detected entity. Multiple
 	// `LocationInfo` elements can be present because one location may
 	// indicate the location of the scene in the image, and another location
 	// may indicate the location of the place where the image was taken.
 	// Location information is usually present for landmarks.
-	Locations []*LocationInfo `protobuf:"bytes,8,rep,name=locations" json:"locations,omitempty"`
+	Locations []*LocationInfo `protobuf:"bytes,8,rep,name=locations,proto3" json:"locations,omitempty"`
 	// Some entities may have optional user-supplied `Property` (name/value)
 	// fields, such a score or string that qualifies the entity.
-	Properties           []*Property `protobuf:"bytes,9,rep,name=properties" json:"properties,omitempty"`
+	Properties           []*Property `protobuf:"bytes,9,rep,name=properties,proto3" json:"properties,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
 	XXX_unrecognized     []byte      `json:"-"`
 	XXX_sizecache        int32       `json:"-"`
@@ -936,20 +936,20 @@ type SafeSearchAnnotation struct {
 	// Represents the adult content likelihood for the image. Adult content may
 	// contain elements such as nudity, pornographic images or cartoons, or
 	// sexual activities.
-	Adult Likelihood `protobuf:"varint,1,opt,name=adult,enum=google.cloud.vision.v1p1beta1.Likelihood" json:"adult,omitempty"`
+	Adult Likelihood `protobuf:"varint,1,opt,name=adult,proto3,enum=google.cloud.vision.v1p1beta1.Likelihood" json:"adult,omitempty"`
 	// Spoof likelihood. The likelihood that an modification
 	// was made to the image's canonical version to make it appear
 	// funny or offensive.
-	Spoof Likelihood `protobuf:"varint,2,opt,name=spoof,enum=google.cloud.vision.v1p1beta1.Likelihood" json:"spoof,omitempty"`
+	Spoof Likelihood `protobuf:"varint,2,opt,name=spoof,proto3,enum=google.cloud.vision.v1p1beta1.Likelihood" json:"spoof,omitempty"`
 	// Likelihood that this is a medical image.
-	Medical Likelihood `protobuf:"varint,3,opt,name=medical,enum=google.cloud.vision.v1p1beta1.Likelihood" json:"medical,omitempty"`
+	Medical Likelihood `protobuf:"varint,3,opt,name=medical,proto3,enum=google.cloud.vision.v1p1beta1.Likelihood" json:"medical,omitempty"`
 	// Likelihood that this image contains violent content.
-	Violence Likelihood `protobuf:"varint,4,opt,name=violence,enum=google.cloud.vision.v1p1beta1.Likelihood" json:"violence,omitempty"`
+	Violence Likelihood `protobuf:"varint,4,opt,name=violence,proto3,enum=google.cloud.vision.v1p1beta1.Likelihood" json:"violence,omitempty"`
 	// Likelihood that the request image contains racy content. Racy content may
 	// include (but is not limited to) skimpy or sheer clothing, strategically
 	// covered nudity, lewd or provocative poses, or close-ups of sensitive
 	// body areas.
-	Racy                 Likelihood `protobuf:"varint,9,opt,name=racy,enum=google.cloud.vision.v1p1beta1.Likelihood" json:"racy,omitempty"`
+	Racy                 Likelihood `protobuf:"varint,9,opt,name=racy,proto3,enum=google.cloud.vision.v1p1beta1.Likelihood" json:"racy,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
 	XXX_unrecognized     []byte     `json:"-"`
 	XXX_sizecache        int32      `json:"-"`
@@ -1017,9 +1017,9 @@ func (m *SafeSearchAnnotation) GetRacy() Likelihood {
 // Rectangle determined by min and max `LatLng` pairs.
 type LatLongRect struct {
 	// Min lat/long pair.
-	MinLatLng *latlng.LatLng `protobuf:"bytes,1,opt,name=min_lat_lng,json=minLatLng" json:"min_lat_lng,omitempty"`
+	MinLatLng *latlng.LatLng `protobuf:"bytes,1,opt,name=min_lat_lng,json=minLatLng,proto3" json:"min_lat_lng,omitempty"`
 	// Max lat/long pair.
-	MaxLatLng            *latlng.LatLng `protobuf:"bytes,2,opt,name=max_lat_lng,json=maxLatLng" json:"max_lat_lng,omitempty"`
+	MaxLatLng            *latlng.LatLng `protobuf:"bytes,2,opt,name=max_lat_lng,json=maxLatLng,proto3" json:"max_lat_lng,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
 	XXX_unrecognized     []byte         `json:"-"`
 	XXX_sizecache        int32          `json:"-"`
@@ -1067,12 +1067,12 @@ func (m *LatLongRect) GetMaxLatLng() *latlng.LatLng {
 // the image that the color occupies in the image.
 type ColorInfo struct {
 	// RGB components of the color.
-	Color *color.Color `protobuf:"bytes,1,opt,name=color" json:"color,omitempty"`
+	Color *color.Color `protobuf:"bytes,1,opt,name=color,proto3" json:"color,omitempty"`
 	// Image-specific score for this color. Value in range [0, 1].
-	Score float32 `protobuf:"fixed32,2,opt,name=score" json:"score,omitempty"`
+	Score float32 `protobuf:"fixed32,2,opt,name=score,proto3" json:"score,omitempty"`
 	// The fraction of pixels the color occupies in the image.
 	// Value in range [0, 1].
-	PixelFraction        float32  `protobuf:"fixed32,3,opt,name=pixel_fraction,json=pixelFraction" json:"pixel_fraction,omitempty"`
+	PixelFraction        float32  `protobuf:"fixed32,3,opt,name=pixel_fraction,json=pixelFraction,proto3" json:"pixel_fraction,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1126,7 +1126,7 @@ func (m *ColorInfo) GetPixelFraction() float32 {
 // Set of dominant colors and their corresponding scores.
 type DominantColorsAnnotation struct {
 	// RGB color values with their score and pixel fraction.
-	Colors               []*ColorInfo `protobuf:"bytes,1,rep,name=colors" json:"colors,omitempty"`
+	Colors               []*ColorInfo `protobuf:"bytes,1,rep,name=colors,proto3" json:"colors,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
 	XXX_unrecognized     []byte       `json:"-"`
 	XXX_sizecache        int32        `json:"-"`
@@ -1166,7 +1166,7 @@ func (m *DominantColorsAnnotation) GetColors() []*ColorInfo {
 // Stores image properties, such as dominant colors.
 type ImageProperties struct {
 	// If present, dominant colors completed successfully.
-	DominantColors       *DominantColorsAnnotation `protobuf:"bytes,1,opt,name=dominant_colors,json=dominantColors" json:"dominant_colors,omitempty"`
+	DominantColors       *DominantColorsAnnotation `protobuf:"bytes,1,opt,name=dominant_colors,json=dominantColors,proto3" json:"dominant_colors,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                  `json:"-"`
 	XXX_unrecognized     []byte                    `json:"-"`
 	XXX_sizecache        int32                     `json:"-"`
@@ -1207,12 +1207,12 @@ func (m *ImageProperties) GetDominantColors() *DominantColorsAnnotation {
 type CropHint struct {
 	// The bounding polygon for the crop region. The coordinates of the bounding
 	// box are in the original image's scale, as returned in `ImageParams`.
-	BoundingPoly *BoundingPoly `protobuf:"bytes,1,opt,name=bounding_poly,json=boundingPoly" json:"bounding_poly,omitempty"`
+	BoundingPoly *BoundingPoly `protobuf:"bytes,1,opt,name=bounding_poly,json=boundingPoly,proto3" json:"bounding_poly,omitempty"`
 	// Confidence of this being a salient region.  Range [0, 1].
-	Confidence float32 `protobuf:"fixed32,2,opt,name=confidence" json:"confidence,omitempty"`
+	Confidence float32 `protobuf:"fixed32,2,opt,name=confidence,proto3" json:"confidence,omitempty"`
 	// Fraction of importance of this salient region with respect to the original
 	// image.
-	ImportanceFraction   float32  `protobuf:"fixed32,3,opt,name=importance_fraction,json=importanceFraction" json:"importance_fraction,omitempty"`
+	ImportanceFraction   float32  `protobuf:"fixed32,3,opt,name=importance_fraction,json=importanceFraction,proto3" json:"importance_fraction,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1266,7 +1266,7 @@ func (m *CropHint) GetImportanceFraction() float32 {
 // Set of crop hints that are used to generate new crops when serving images.
 type CropHintsAnnotation struct {
 	// Crop hint results.
-	CropHints            []*CropHint `protobuf:"bytes,1,rep,name=crop_hints,json=cropHints" json:"crop_hints,omitempty"`
+	CropHints            []*CropHint `protobuf:"bytes,1,rep,name=crop_hints,json=cropHints,proto3" json:"crop_hints,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
 	XXX_unrecognized     []byte      `json:"-"`
 	XXX_sizecache        int32       `json:"-"`
@@ -1311,7 +1311,7 @@ type CropHintsParams struct {
 	// best possible crop is returned. The number of provided aspect ratios is
 	// limited to a maximum of 16; any aspect ratios provided after the 16th are
 	// ignored.
-	AspectRatios         []float32 `protobuf:"fixed32,1,rep,packed,name=aspect_ratios,json=aspectRatios" json:"aspect_ratios,omitempty"`
+	AspectRatios         []float32 `protobuf:"fixed32,1,rep,packed,name=aspect_ratios,json=aspectRatios,proto3" json:"aspect_ratios,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -1351,7 +1351,7 @@ func (m *CropHintsParams) GetAspectRatios() []float32 {
 // Parameters for web detection request.
 type WebDetectionParams struct {
 	// Whether to include results derived from the geo information in the image.
-	IncludeGeoResults    bool     `protobuf:"varint,2,opt,name=include_geo_results,json=includeGeoResults" json:"include_geo_results,omitempty"`
+	IncludeGeoResults    bool     `protobuf:"varint,2,opt,name=include_geo_results,json=includeGeoResults,proto3" json:"include_geo_results,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1391,7 +1391,7 @@ func (m *WebDetectionParams) GetIncludeGeoResults() bool {
 // Image context and/or feature-specific parameters.
 type ImageContext struct {
 	// lat/long rectangle that specifies the location of the image.
-	LatLongRect *LatLongRect `protobuf:"bytes,1,opt,name=lat_long_rect,json=latLongRect" json:"lat_long_rect,omitempty"`
+	LatLongRect *LatLongRect `protobuf:"bytes,1,opt,name=lat_long_rect,json=latLongRect,proto3" json:"lat_long_rect,omitempty"`
 	// List of languages to use for TEXT_DETECTION. In most cases, an empty value
 	// yields the best results since it enables automatic language detection. For
 	// languages based on the Latin alphabet, setting `language_hints` is not
@@ -1400,11 +1400,11 @@ type ImageContext struct {
 	// significant hindrance if the hint is wrong). Text detection returns an
 	// error if one or more of the specified languages is not one of the
 	// [supported languages](/vision/docs/languages).
-	LanguageHints []string `protobuf:"bytes,2,rep,name=language_hints,json=languageHints" json:"language_hints,omitempty"`
+	LanguageHints []string `protobuf:"bytes,2,rep,name=language_hints,json=languageHints,proto3" json:"language_hints,omitempty"`
 	// Parameters for crop hints annotation request.
-	CropHintsParams *CropHintsParams `protobuf:"bytes,4,opt,name=crop_hints_params,json=cropHintsParams" json:"crop_hints_params,omitempty"`
+	CropHintsParams *CropHintsParams `protobuf:"bytes,4,opt,name=crop_hints_params,json=cropHintsParams,proto3" json:"crop_hints_params,omitempty"`
 	// Parameters for web detection.
-	WebDetectionParams   *WebDetectionParams `protobuf:"bytes,6,opt,name=web_detection_params,json=webDetectionParams" json:"web_detection_params,omitempty"`
+	WebDetectionParams   *WebDetectionParams `protobuf:"bytes,6,opt,name=web_detection_params,json=webDetectionParams,proto3" json:"web_detection_params,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
 	XXX_unrecognized     []byte              `json:"-"`
 	XXX_sizecache        int32               `json:"-"`
@@ -1466,11 +1466,11 @@ func (m *ImageContext) GetWebDetectionParams() *WebDetectionParams {
 // image, with user-requested features.
 type AnnotateImageRequest struct {
 	// The image to be processed.
-	Image *Image `protobuf:"bytes,1,opt,name=image" json:"image,omitempty"`
+	Image *Image `protobuf:"bytes,1,opt,name=image,proto3" json:"image,omitempty"`
 	// Requested features.
-	Features []*Feature `protobuf:"bytes,2,rep,name=features" json:"features,omitempty"`
+	Features []*Feature `protobuf:"bytes,2,rep,name=features,proto3" json:"features,omitempty"`
 	// Additional context that may accompany the image.
-	ImageContext         *ImageContext `protobuf:"bytes,3,opt,name=image_context,json=imageContext" json:"image_context,omitempty"`
+	ImageContext         *ImageContext `protobuf:"bytes,3,opt,name=image_context,json=imageContext,proto3" json:"image_context,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
 	XXX_unrecognized     []byte        `json:"-"`
 	XXX_sizecache        int32         `json:"-"`
@@ -1524,32 +1524,32 @@ func (m *AnnotateImageRequest) GetImageContext() *ImageContext {
 // Response to an image annotation request.
 type AnnotateImageResponse struct {
 	// If present, face detection has completed successfully.
-	FaceAnnotations []*FaceAnnotation `protobuf:"bytes,1,rep,name=face_annotations,json=faceAnnotations" json:"face_annotations,omitempty"`
+	FaceAnnotations []*FaceAnnotation `protobuf:"bytes,1,rep,name=face_annotations,json=faceAnnotations,proto3" json:"face_annotations,omitempty"`
 	// If present, landmark detection has completed successfully.
-	LandmarkAnnotations []*EntityAnnotation `protobuf:"bytes,2,rep,name=landmark_annotations,json=landmarkAnnotations" json:"landmark_annotations,omitempty"`
+	LandmarkAnnotations []*EntityAnnotation `protobuf:"bytes,2,rep,name=landmark_annotations,json=landmarkAnnotations,proto3" json:"landmark_annotations,omitempty"`
 	// If present, logo detection has completed successfully.
-	LogoAnnotations []*EntityAnnotation `protobuf:"bytes,3,rep,name=logo_annotations,json=logoAnnotations" json:"logo_annotations,omitempty"`
+	LogoAnnotations []*EntityAnnotation `protobuf:"bytes,3,rep,name=logo_annotations,json=logoAnnotations,proto3" json:"logo_annotations,omitempty"`
 	// If present, label detection has completed successfully.
-	LabelAnnotations []*EntityAnnotation `protobuf:"bytes,4,rep,name=label_annotations,json=labelAnnotations" json:"label_annotations,omitempty"`
+	LabelAnnotations []*EntityAnnotation `protobuf:"bytes,4,rep,name=label_annotations,json=labelAnnotations,proto3" json:"label_annotations,omitempty"`
 	// If present, text (OCR) detection has completed successfully.
-	TextAnnotations []*EntityAnnotation `protobuf:"bytes,5,rep,name=text_annotations,json=textAnnotations" json:"text_annotations,omitempty"`
+	TextAnnotations []*EntityAnnotation `protobuf:"bytes,5,rep,name=text_annotations,json=textAnnotations,proto3" json:"text_annotations,omitempty"`
 	// If present, text (OCR) detection or document (OCR) text detection has
 	// completed successfully.
 	// This annotation provides the structural hierarchy for the OCR detected
 	// text.
-	FullTextAnnotation *TextAnnotation `protobuf:"bytes,12,opt,name=full_text_annotation,json=fullTextAnnotation" json:"full_text_annotation,omitempty"`
+	FullTextAnnotation *TextAnnotation `protobuf:"bytes,12,opt,name=full_text_annotation,json=fullTextAnnotation,proto3" json:"full_text_annotation,omitempty"`
 	// If present, safe-search annotation has completed successfully.
-	SafeSearchAnnotation *SafeSearchAnnotation `protobuf:"bytes,6,opt,name=safe_search_annotation,json=safeSearchAnnotation" json:"safe_search_annotation,omitempty"`
+	SafeSearchAnnotation *SafeSearchAnnotation `protobuf:"bytes,6,opt,name=safe_search_annotation,json=safeSearchAnnotation,proto3" json:"safe_search_annotation,omitempty"`
 	// If present, image properties were extracted successfully.
-	ImagePropertiesAnnotation *ImageProperties `protobuf:"bytes,8,opt,name=image_properties_annotation,json=imagePropertiesAnnotation" json:"image_properties_annotation,omitempty"`
+	ImagePropertiesAnnotation *ImageProperties `protobuf:"bytes,8,opt,name=image_properties_annotation,json=imagePropertiesAnnotation,proto3" json:"image_properties_annotation,omitempty"`
 	// If present, crop hints have completed successfully.
-	CropHintsAnnotation *CropHintsAnnotation `protobuf:"bytes,11,opt,name=crop_hints_annotation,json=cropHintsAnnotation" json:"crop_hints_annotation,omitempty"`
+	CropHintsAnnotation *CropHintsAnnotation `protobuf:"bytes,11,opt,name=crop_hints_annotation,json=cropHintsAnnotation,proto3" json:"crop_hints_annotation,omitempty"`
 	// If present, web detection has completed successfully.
-	WebDetection *WebDetection `protobuf:"bytes,13,opt,name=web_detection,json=webDetection" json:"web_detection,omitempty"`
+	WebDetection *WebDetection `protobuf:"bytes,13,opt,name=web_detection,json=webDetection,proto3" json:"web_detection,omitempty"`
 	// If set, represents the error message for the operation.
 	// Note that filled-in image annotations are guaranteed to be
 	// correct, even when `error` is set.
-	Error                *status.Status `protobuf:"bytes,9,opt,name=error" json:"error,omitempty"`
+	Error                *status.Status `protobuf:"bytes,9,opt,name=error,proto3" json:"error,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
 	XXX_unrecognized     []byte         `json:"-"`
 	XXX_sizecache        int32          `json:"-"`
@@ -1659,7 +1659,7 @@ func (m *AnnotateImageResponse) GetError() *status.Status {
 // Multiple image annotation requests are batched into a single service call.
 type BatchAnnotateImagesRequest struct {
 	// Individual image annotation requests for this batch.
-	Requests             []*AnnotateImageRequest `protobuf:"bytes,1,rep,name=requests" json:"requests,omitempty"`
+	Requests             []*AnnotateImageRequest `protobuf:"bytes,1,rep,name=requests,proto3" json:"requests,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                `json:"-"`
 	XXX_unrecognized     []byte                  `json:"-"`
 	XXX_sizecache        int32                   `json:"-"`
@@ -1699,7 +1699,7 @@ func (m *BatchAnnotateImagesRequest) GetRequests() []*AnnotateImageRequest {
 // Response to a batch image annotation request.
 type BatchAnnotateImagesResponse struct {
 	// Individual responses to image annotation requests within the batch.
-	Responses            []*AnnotateImageResponse `protobuf:"bytes,1,rep,name=responses" json:"responses,omitempty"`
+	Responses            []*AnnotateImageResponse `protobuf:"bytes,1,rep,name=responses,proto3" json:"responses,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                 `json:"-"`
 	XXX_unrecognized     []byte                   `json:"-"`
 	XXX_sizecache        int32                    `json:"-"`
@@ -1797,8 +1797,7 @@ func (c *imageAnnotatorClient) BatchAnnotateImages(ctx context.Context, in *Batc
 	return out, nil
 }
 
-// Server API for ImageAnnotator service
-
+// ImageAnnotatorServer is the server API for ImageAnnotator service.
 type ImageAnnotatorServer interface {
 	// Run image detection and annotation for a batch of images.
 	BatchAnnotateImages(context.Context, *BatchAnnotateImagesRequest) (*BatchAnnotateImagesResponse, error)

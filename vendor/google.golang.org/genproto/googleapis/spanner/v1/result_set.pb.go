@@ -24,18 +24,18 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 // [ExecuteSql][google.spanner.v1.Spanner.ExecuteSql].
 type ResultSet struct {
 	// Metadata about the result set, such as row type information.
-	Metadata *ResultSetMetadata `protobuf:"bytes,1,opt,name=metadata" json:"metadata,omitempty"`
+	Metadata *ResultSetMetadata `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// Each element in `rows` is a row whose format is defined by
 	// [metadata.row_type][google.spanner.v1.ResultSetMetadata.row_type]. The ith element
 	// in each row matches the ith field in
 	// [metadata.row_type][google.spanner.v1.ResultSetMetadata.row_type]. Elements are
 	// encoded based on type as described
 	// [here][google.spanner.v1.TypeCode].
-	Rows []*_struct.ListValue `protobuf:"bytes,2,rep,name=rows" json:"rows,omitempty"`
+	Rows []*_struct.ListValue `protobuf:"bytes,2,rep,name=rows,proto3" json:"rows,omitempty"`
 	// Query plan and execution statistics for the query that produced this
 	// result set. These can be requested by setting
 	// [ExecuteSqlRequest.query_mode][google.spanner.v1.ExecuteSqlRequest.query_mode].
-	Stats                *ResultSetStats `protobuf:"bytes,3,opt,name=stats" json:"stats,omitempty"`
+	Stats                *ResultSetStats `protobuf:"bytes,3,opt,name=stats,proto3" json:"stats,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
 	XXX_unrecognized     []byte          `json:"-"`
 	XXX_sizecache        int32           `json:"-"`
@@ -92,7 +92,7 @@ func (m *ResultSet) GetStats() *ResultSetStats {
 type PartialResultSet struct {
 	// Metadata about the result set, such as row type information.
 	// Only present in the first response.
-	Metadata *ResultSetMetadata `protobuf:"bytes,1,opt,name=metadata" json:"metadata,omitempty"`
+	Metadata *ResultSetMetadata `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// A streamed result set consists of a stream of values, which might
 	// be split into many `PartialResultSet` messages to accommodate
 	// large rows and/or large values. Every N complete values defines a
@@ -166,11 +166,11 @@ type PartialResultSet struct {
 	// This sequence of `PartialResultSet`s encodes two rows, one
 	// containing the field value `"Hello"`, and a second containing the
 	// field value `"World" = "W" + "orl" + "d"`.
-	Values []*_struct.Value `protobuf:"bytes,2,rep,name=values" json:"values,omitempty"`
+	Values []*_struct.Value `protobuf:"bytes,2,rep,name=values,proto3" json:"values,omitempty"`
 	// If true, then the final value in [values][google.spanner.v1.PartialResultSet.values] is chunked, and must
 	// be combined with more values from subsequent `PartialResultSet`s
 	// to obtain a complete field value.
-	ChunkedValue bool `protobuf:"varint,3,opt,name=chunked_value,json=chunkedValue" json:"chunked_value,omitempty"`
+	ChunkedValue bool `protobuf:"varint,3,opt,name=chunked_value,json=chunkedValue,proto3" json:"chunked_value,omitempty"`
 	// Streaming calls might be interrupted for a variety of reasons, such
 	// as TCP connection loss. If this occurs, the stream of results can
 	// be resumed by re-sending the original request and including
@@ -181,7 +181,7 @@ type PartialResultSet struct {
 	// streaming result set. These can be requested by setting
 	// [ExecuteSqlRequest.query_mode][google.spanner.v1.ExecuteSqlRequest.query_mode] and are sent
 	// only once with the last response in the stream.
-	Stats                *ResultSetStats `protobuf:"bytes,5,opt,name=stats" json:"stats,omitempty"`
+	Stats                *ResultSetStats `protobuf:"bytes,5,opt,name=stats,proto3" json:"stats,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
 	XXX_unrecognized     []byte          `json:"-"`
 	XXX_sizecache        int32           `json:"-"`
@@ -256,10 +256,10 @@ type ResultSetMetadata struct {
 	//       { "name": "UserId", "type": { "code": "INT64" } },
 	//       { "name": "UserName", "type": { "code": "STRING" } },
 	//     ]
-	RowType *StructType `protobuf:"bytes,1,opt,name=row_type,json=rowType" json:"row_type,omitempty"`
+	RowType *StructType `protobuf:"bytes,1,opt,name=row_type,json=rowType,proto3" json:"row_type,omitempty"`
 	// If the read or SQL query began a transaction as a side-effect, the
 	// information about the new transaction is yielded here.
-	Transaction          *Transaction `protobuf:"bytes,2,opt,name=transaction" json:"transaction,omitempty"`
+	Transaction          *Transaction `protobuf:"bytes,2,opt,name=transaction,proto3" json:"transaction,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
 	XXX_unrecognized     []byte       `json:"-"`
 	XXX_sizecache        int32        `json:"-"`
@@ -306,7 +306,7 @@ func (m *ResultSetMetadata) GetTransaction() *Transaction {
 // Additional statistics about a [ResultSet][google.spanner.v1.ResultSet] or [PartialResultSet][google.spanner.v1.PartialResultSet].
 type ResultSetStats struct {
 	// [QueryPlan][google.spanner.v1.QueryPlan] for the query associated with this result.
-	QueryPlan *QueryPlan `protobuf:"bytes,1,opt,name=query_plan,json=queryPlan" json:"query_plan,omitempty"`
+	QueryPlan *QueryPlan `protobuf:"bytes,1,opt,name=query_plan,json=queryPlan,proto3" json:"query_plan,omitempty"`
 	// Aggregated statistics from the execution of the query. Only present when
 	// the query is profiled. For example, a query could return the statistics as
 	// follows:
@@ -316,7 +316,7 @@ type ResultSetStats struct {
 	//       "elapsed_time": "1.22 secs",
 	//       "cpu_time": "1.19 secs"
 	//     }
-	QueryStats           *_struct.Struct `protobuf:"bytes,2,opt,name=query_stats,json=queryStats" json:"query_stats,omitempty"`
+	QueryStats           *_struct.Struct `protobuf:"bytes,2,opt,name=query_stats,json=queryStats,proto3" json:"query_stats,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
 	XXX_unrecognized     []byte          `json:"-"`
 	XXX_sizecache        int32           `json:"-"`

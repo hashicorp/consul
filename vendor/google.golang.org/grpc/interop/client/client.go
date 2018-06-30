@@ -24,6 +24,7 @@ import (
 	"strconv"
 
 	"google.golang.org/grpc"
+	_ "google.golang.org/grpc/balancer/grpclb"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/alts"
 	"google.golang.org/grpc/credentials/oauth"

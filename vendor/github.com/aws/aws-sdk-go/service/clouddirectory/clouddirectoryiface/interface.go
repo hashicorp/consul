@@ -172,6 +172,10 @@ type CloudDirectoryAPI interface {
 	GetFacetWithContext(aws.Context, *clouddirectory.GetFacetInput, ...request.Option) (*clouddirectory.GetFacetOutput, error)
 	GetFacetRequest(*clouddirectory.GetFacetInput) (*request.Request, *clouddirectory.GetFacetOutput)
 
+	GetLinkAttributes(*clouddirectory.GetLinkAttributesInput) (*clouddirectory.GetLinkAttributesOutput, error)
+	GetLinkAttributesWithContext(aws.Context, *clouddirectory.GetLinkAttributesInput, ...request.Option) (*clouddirectory.GetLinkAttributesOutput, error)
+	GetLinkAttributesRequest(*clouddirectory.GetLinkAttributesInput) (*request.Request, *clouddirectory.GetLinkAttributesOutput)
+
 	GetObjectAttributes(*clouddirectory.GetObjectAttributesInput) (*clouddirectory.GetObjectAttributesOutput, error)
 	GetObjectAttributesWithContext(aws.Context, *clouddirectory.GetObjectAttributesInput, ...request.Option) (*clouddirectory.GetObjectAttributesOutput, error)
 	GetObjectAttributesRequest(*clouddirectory.GetObjectAttributesInput) (*request.Request, *clouddirectory.GetObjectAttributesOutput)
@@ -240,6 +244,13 @@ type CloudDirectoryAPI interface {
 
 	ListIndexPages(*clouddirectory.ListIndexInput, func(*clouddirectory.ListIndexOutput, bool) bool) error
 	ListIndexPagesWithContext(aws.Context, *clouddirectory.ListIndexInput, func(*clouddirectory.ListIndexOutput, bool) bool, ...request.Option) error
+
+	ListManagedSchemaArns(*clouddirectory.ListManagedSchemaArnsInput) (*clouddirectory.ListManagedSchemaArnsOutput, error)
+	ListManagedSchemaArnsWithContext(aws.Context, *clouddirectory.ListManagedSchemaArnsInput, ...request.Option) (*clouddirectory.ListManagedSchemaArnsOutput, error)
+	ListManagedSchemaArnsRequest(*clouddirectory.ListManagedSchemaArnsInput) (*request.Request, *clouddirectory.ListManagedSchemaArnsOutput)
+
+	ListManagedSchemaArnsPages(*clouddirectory.ListManagedSchemaArnsInput, func(*clouddirectory.ListManagedSchemaArnsOutput, bool) bool) error
+	ListManagedSchemaArnsPagesWithContext(aws.Context, *clouddirectory.ListManagedSchemaArnsInput, func(*clouddirectory.ListManagedSchemaArnsOutput, bool) bool, ...request.Option) error
 
 	ListObjectAttributes(*clouddirectory.ListObjectAttributesInput) (*clouddirectory.ListObjectAttributesOutput, error)
 	ListObjectAttributesWithContext(aws.Context, *clouddirectory.ListObjectAttributesInput, ...request.Option) (*clouddirectory.ListObjectAttributesOutput, error)
@@ -345,6 +356,10 @@ type CloudDirectoryAPI interface {
 	UpdateFacet(*clouddirectory.UpdateFacetInput) (*clouddirectory.UpdateFacetOutput, error)
 	UpdateFacetWithContext(aws.Context, *clouddirectory.UpdateFacetInput, ...request.Option) (*clouddirectory.UpdateFacetOutput, error)
 	UpdateFacetRequest(*clouddirectory.UpdateFacetInput) (*request.Request, *clouddirectory.UpdateFacetOutput)
+
+	UpdateLinkAttributes(*clouddirectory.UpdateLinkAttributesInput) (*clouddirectory.UpdateLinkAttributesOutput, error)
+	UpdateLinkAttributesWithContext(aws.Context, *clouddirectory.UpdateLinkAttributesInput, ...request.Option) (*clouddirectory.UpdateLinkAttributesOutput, error)
+	UpdateLinkAttributesRequest(*clouddirectory.UpdateLinkAttributesInput) (*request.Request, *clouddirectory.UpdateLinkAttributesOutput)
 
 	UpdateObjectAttributes(*clouddirectory.UpdateObjectAttributesInput) (*clouddirectory.UpdateObjectAttributesOutput, error)
 	UpdateObjectAttributesWithContext(aws.Context, *clouddirectory.UpdateObjectAttributesInput, ...request.Option) (*clouddirectory.UpdateObjectAttributesOutput, error)

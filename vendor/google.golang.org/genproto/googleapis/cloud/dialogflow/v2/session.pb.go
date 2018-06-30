@@ -140,9 +140,9 @@ type DetectIntentRequest struct {
 	// caller to choose an appropriate session ID. It can be a random number or
 	// some type of user identifier (preferably hashed). The length of the session
 	// ID must not exceed 36 bytes.
-	Session string `protobuf:"bytes,1,opt,name=session" json:"session,omitempty"`
+	Session string `protobuf:"bytes,1,opt,name=session,proto3" json:"session,omitempty"`
 	// Optional. The parameters of this query.
-	QueryParams *QueryParameters `protobuf:"bytes,2,opt,name=query_params,json=queryParams" json:"query_params,omitempty"`
+	QueryParams *QueryParameters `protobuf:"bytes,2,opt,name=query_params,json=queryParams,proto3" json:"query_params,omitempty"`
 	// Required. The input specification. It can be set to:
 	//
 	// 1.  an audio config
@@ -151,7 +151,7 @@ type DetectIntentRequest struct {
 	// 2.  a conversational query in the form of text, or
 	//
 	// 3.  an event that specifies which intent to trigger.
-	QueryInput *QueryInput `protobuf:"bytes,3,opt,name=query_input,json=queryInput" json:"query_input,omitempty"`
+	QueryInput *QueryInput `protobuf:"bytes,3,opt,name=query_input,json=queryInput,proto3" json:"query_input,omitempty"`
 	// Optional. The natural language speech audio to be processed. This field
 	// should be populated iff `query_input` is set to an input audio config.
 	// A single request can contain up to 1 minute of speech audio data.
@@ -217,12 +217,12 @@ func (m *DetectIntentRequest) GetInputAudio() []byte {
 type DetectIntentResponse struct {
 	// The unique identifier of the response. It can be used to
 	// locate a response in the training example set or for reporting issues.
-	ResponseId string `protobuf:"bytes,1,opt,name=response_id,json=responseId" json:"response_id,omitempty"`
+	ResponseId string `protobuf:"bytes,1,opt,name=response_id,json=responseId,proto3" json:"response_id,omitempty"`
 	// The results of the conversational query or event processing.
-	QueryResult *QueryResult `protobuf:"bytes,2,opt,name=query_result,json=queryResult" json:"query_result,omitempty"`
+	QueryResult *QueryResult `protobuf:"bytes,2,opt,name=query_result,json=queryResult,proto3" json:"query_result,omitempty"`
 	// Specifies the status of the webhook request. `webhook_status`
 	// is never populated in webhook requests.
-	WebhookStatus        *status.Status `protobuf:"bytes,3,opt,name=webhook_status,json=webhookStatus" json:"webhook_status,omitempty"`
+	WebhookStatus        *status.Status `protobuf:"bytes,3,opt,name=webhook_status,json=webhookStatus,proto3" json:"webhook_status,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
 	XXX_unrecognized     []byte         `json:"-"`
 	XXX_sizecache        int32          `json:"-"`
@@ -279,22 +279,22 @@ type QueryParameters struct {
 	// [time zone database](https://www.iana.org/time-zones), e.g.,
 	// America/New_York, Europe/Paris. If not provided, the time zone specified in
 	// agent settings is used.
-	TimeZone string `protobuf:"bytes,1,opt,name=time_zone,json=timeZone" json:"time_zone,omitempty"`
+	TimeZone string `protobuf:"bytes,1,opt,name=time_zone,json=timeZone,proto3" json:"time_zone,omitempty"`
 	// Optional. The geo location of this conversational query.
-	GeoLocation *latlng.LatLng `protobuf:"bytes,2,opt,name=geo_location,json=geoLocation" json:"geo_location,omitempty"`
+	GeoLocation *latlng.LatLng `protobuf:"bytes,2,opt,name=geo_location,json=geoLocation,proto3" json:"geo_location,omitempty"`
 	// Optional. The collection of contexts to be activated before this query is
 	// executed.
-	Contexts []*Context `protobuf:"bytes,3,rep,name=contexts" json:"contexts,omitempty"`
+	Contexts []*Context `protobuf:"bytes,3,rep,name=contexts,proto3" json:"contexts,omitempty"`
 	// Optional. Specifies whether to delete all contexts in the current session
 	// before the new ones are activated.
-	ResetContexts bool `protobuf:"varint,4,opt,name=reset_contexts,json=resetContexts" json:"reset_contexts,omitempty"`
+	ResetContexts bool `protobuf:"varint,4,opt,name=reset_contexts,json=resetContexts,proto3" json:"reset_contexts,omitempty"`
 	// Optional. The collection of session entity types to replace or extend
 	// developer entities with for this query only. The entity synonyms apply
 	// to all languages.
-	SessionEntityTypes []*SessionEntityType `protobuf:"bytes,5,rep,name=session_entity_types,json=sessionEntityTypes" json:"session_entity_types,omitempty"`
+	SessionEntityTypes []*SessionEntityType `protobuf:"bytes,5,rep,name=session_entity_types,json=sessionEntityTypes,proto3" json:"session_entity_types,omitempty"`
 	// Optional. This field can be used to pass custom data into the webhook
 	// associated with the agent. Arbitrary JSON objects are supported.
-	Payload              *_struct.Struct `protobuf:"bytes,6,opt,name=payload" json:"payload,omitempty"`
+	Payload              *_struct.Struct `protobuf:"bytes,6,opt,name=payload,proto3" json:"payload,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
 	XXX_unrecognized     []byte          `json:"-"`
 	XXX_sizecache        int32           `json:"-"`
@@ -416,13 +416,13 @@ type isQueryInput_Input interface {
 }
 
 type QueryInput_AudioConfig struct {
-	AudioConfig *InputAudioConfig `protobuf:"bytes,1,opt,name=audio_config,json=audioConfig,oneof"`
+	AudioConfig *InputAudioConfig `protobuf:"bytes,1,opt,name=audio_config,json=audioConfig,proto3,oneof"`
 }
 type QueryInput_Text struct {
-	Text *TextInput `protobuf:"bytes,2,opt,name=text,oneof"`
+	Text *TextInput `protobuf:"bytes,2,opt,name=text,proto3,oneof"`
 }
 type QueryInput_Event struct {
-	Event *EventInput `protobuf:"bytes,3,opt,name=event,oneof"`
+	Event *EventInput `protobuf:"bytes,3,opt,name=event,proto3,oneof"`
 }
 
 func (*QueryInput_AudioConfig) isQueryInput_Input() {}
@@ -559,11 +559,11 @@ type QueryResult struct {
 	//   contains the speech recognition result. If speech recognizer produced
 	//   multiple alternatives, a particular one is picked.
 	// - If an event was provided as input, `query_text` is not set.
-	QueryText string `protobuf:"bytes,1,opt,name=query_text,json=queryText" json:"query_text,omitempty"`
+	QueryText string `protobuf:"bytes,1,opt,name=query_text,json=queryText,proto3" json:"query_text,omitempty"`
 	// The language that was triggered during intent detection.
 	// See [Language Support](https://dialogflow.com/docs/reference/language)
 	// for a list of the currently supported language codes.
-	LanguageCode string `protobuf:"bytes,15,opt,name=language_code,json=languageCode" json:"language_code,omitempty"`
+	LanguageCode string `protobuf:"bytes,15,opt,name=language_code,json=languageCode,proto3" json:"language_code,omitempty"`
 	// The Speech recognition confidence between 0.0 and 1.0. A higher number
 	// indicates an estimated greater likelihood that the recognized words are
 	// correct. The default of 0.0 is a sentinel value indicating that confidence
@@ -573,42 +573,42 @@ type QueryResult struct {
 	// even set. In particular this field isn't set in Webhook calls and for
 	// StreamingDetectIntent since the streaming endpoint has separate confidence
 	// estimates per portion of the audio in StreamingRecognitionResult.
-	SpeechRecognitionConfidence float32 `protobuf:"fixed32,2,opt,name=speech_recognition_confidence,json=speechRecognitionConfidence" json:"speech_recognition_confidence,omitempty"`
+	SpeechRecognitionConfidence float32 `protobuf:"fixed32,2,opt,name=speech_recognition_confidence,json=speechRecognitionConfidence,proto3" json:"speech_recognition_confidence,omitempty"`
 	// The action name from the matched intent.
-	Action string `protobuf:"bytes,3,opt,name=action" json:"action,omitempty"`
+	Action string `protobuf:"bytes,3,opt,name=action,proto3" json:"action,omitempty"`
 	// The collection of extracted parameters.
-	Parameters *_struct.Struct `protobuf:"bytes,4,opt,name=parameters" json:"parameters,omitempty"`
+	Parameters *_struct.Struct `protobuf:"bytes,4,opt,name=parameters,proto3" json:"parameters,omitempty"`
 	// This field is set to:
 	// - `false` if the matched intent has required parameters and not all of
 	//    the required parameter values have been collected.
 	// - `true` if all required parameter values have been collected, or if the
 	//    matched intent doesn't contain any required parameters.
-	AllRequiredParamsPresent bool `protobuf:"varint,5,opt,name=all_required_params_present,json=allRequiredParamsPresent" json:"all_required_params_present,omitempty"`
+	AllRequiredParamsPresent bool `protobuf:"varint,5,opt,name=all_required_params_present,json=allRequiredParamsPresent,proto3" json:"all_required_params_present,omitempty"`
 	// The text to be pronounced to the user or shown on the screen.
-	FulfillmentText string `protobuf:"bytes,6,opt,name=fulfillment_text,json=fulfillmentText" json:"fulfillment_text,omitempty"`
+	FulfillmentText string `protobuf:"bytes,6,opt,name=fulfillment_text,json=fulfillmentText,proto3" json:"fulfillment_text,omitempty"`
 	// The collection of rich messages to present to the user.
-	FulfillmentMessages []*Intent_Message `protobuf:"bytes,7,rep,name=fulfillment_messages,json=fulfillmentMessages" json:"fulfillment_messages,omitempty"`
+	FulfillmentMessages []*Intent_Message `protobuf:"bytes,7,rep,name=fulfillment_messages,json=fulfillmentMessages,proto3" json:"fulfillment_messages,omitempty"`
 	// If the query was fulfilled by a webhook call, this field is set to the
 	// value of the `source` field returned in the webhook response.
-	WebhookSource string `protobuf:"bytes,8,opt,name=webhook_source,json=webhookSource" json:"webhook_source,omitempty"`
+	WebhookSource string `protobuf:"bytes,8,opt,name=webhook_source,json=webhookSource,proto3" json:"webhook_source,omitempty"`
 	// If the query was fulfilled by a webhook call, this field is set to the
 	// value of the `payload` field returned in the webhook response.
-	WebhookPayload *_struct.Struct `protobuf:"bytes,9,opt,name=webhook_payload,json=webhookPayload" json:"webhook_payload,omitempty"`
+	WebhookPayload *_struct.Struct `protobuf:"bytes,9,opt,name=webhook_payload,json=webhookPayload,proto3" json:"webhook_payload,omitempty"`
 	// The collection of output contexts. If applicable,
 	// `output_contexts.parameters` contains entries with name
 	// `<parameter name>.original` containing the original parameter values
 	// before the query.
-	OutputContexts []*Context `protobuf:"bytes,10,rep,name=output_contexts,json=outputContexts" json:"output_contexts,omitempty"`
+	OutputContexts []*Context `protobuf:"bytes,10,rep,name=output_contexts,json=outputContexts,proto3" json:"output_contexts,omitempty"`
 	// The intent that matched the conversational query. Some, not
 	// all fields are filled in this message, including but not limited to:
 	// `name`, `display_name` and `webhook_state`.
-	Intent *Intent `protobuf:"bytes,11,opt,name=intent" json:"intent,omitempty"`
+	Intent *Intent `protobuf:"bytes,11,opt,name=intent,proto3" json:"intent,omitempty"`
 	// The intent detection confidence. Values range from 0.0
 	// (completely uncertain) to 1.0 (completely certain).
-	IntentDetectionConfidence float32 `protobuf:"fixed32,12,opt,name=intent_detection_confidence,json=intentDetectionConfidence" json:"intent_detection_confidence,omitempty"`
+	IntentDetectionConfidence float32 `protobuf:"fixed32,12,opt,name=intent_detection_confidence,json=intentDetectionConfidence,proto3" json:"intent_detection_confidence,omitempty"`
 	// The free-form diagnostic info. For example, this field
 	// could contain webhook call latency.
-	DiagnosticInfo       *_struct.Struct `protobuf:"bytes,14,opt,name=diagnostic_info,json=diagnosticInfo" json:"diagnostic_info,omitempty"`
+	DiagnosticInfo       *_struct.Struct `protobuf:"bytes,14,opt,name=diagnostic_info,json=diagnosticInfo,proto3" json:"diagnostic_info,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
 	XXX_unrecognized     []byte          `json:"-"`
 	XXX_sizecache        int32           `json:"-"`
@@ -754,9 +754,9 @@ type StreamingDetectIntentRequest struct {
 	// caller to choose an appropriate <Session ID>. It can be a random number or
 	// some type of user identifier (preferably hashed). The length of the session
 	// ID must not exceed 36 characters.
-	Session string `protobuf:"bytes,1,opt,name=session" json:"session,omitempty"`
+	Session string `protobuf:"bytes,1,opt,name=session,proto3" json:"session,omitempty"`
 	// Optional. The parameters of this query.
-	QueryParams *QueryParameters `protobuf:"bytes,2,opt,name=query_params,json=queryParams" json:"query_params,omitempty"`
+	QueryParams *QueryParameters `protobuf:"bytes,2,opt,name=query_params,json=queryParams,proto3" json:"query_params,omitempty"`
 	// Required. The input specification. It can be set to:
 	//
 	// 1.  an audio config which instructs the speech recognizer how to process
@@ -765,7 +765,7 @@ type StreamingDetectIntentRequest struct {
 	// 2.  a conversational query in the form of text, or
 	//
 	// 3.  an event that specifies which intent to trigger.
-	QueryInput *QueryInput `protobuf:"bytes,3,opt,name=query_input,json=queryInput" json:"query_input,omitempty"`
+	QueryInput *QueryInput `protobuf:"bytes,3,opt,name=query_input,json=queryInput,proto3" json:"query_input,omitempty"`
 	// Optional. If `false` (default), recognition does not cease until the
 	// client closes the stream.
 	// If `true`, the recognizer will detect a single spoken utterance in input
@@ -774,7 +774,7 @@ type StreamingDetectIntentRequest struct {
 	// client should close the stream and start a new request with a new stream as
 	// needed.
 	// This setting is ignored when `query_input` is a piece of text or an event.
-	SingleUtterance bool `protobuf:"varint,4,opt,name=single_utterance,json=singleUtterance" json:"single_utterance,omitempty"`
+	SingleUtterance bool `protobuf:"varint,4,opt,name=single_utterance,json=singleUtterance,proto3" json:"single_utterance,omitempty"`
 	// Optional. The input audio content to be recognized. Must be sent if
 	// `query_input` was set to a streaming input audio config. The complete audio
 	// over all streaming messages must not exceed 1 minute.
@@ -858,13 +858,13 @@ func (m *StreamingDetectIntentRequest) GetInputAudio() []byte {
 type StreamingDetectIntentResponse struct {
 	// The unique identifier of the response. It can be used to
 	// locate a response in the training example set or for reporting issues.
-	ResponseId string `protobuf:"bytes,1,opt,name=response_id,json=responseId" json:"response_id,omitempty"`
+	ResponseId string `protobuf:"bytes,1,opt,name=response_id,json=responseId,proto3" json:"response_id,omitempty"`
 	// The result of speech recognition.
-	RecognitionResult *StreamingRecognitionResult `protobuf:"bytes,2,opt,name=recognition_result,json=recognitionResult" json:"recognition_result,omitempty"`
+	RecognitionResult *StreamingRecognitionResult `protobuf:"bytes,2,opt,name=recognition_result,json=recognitionResult,proto3" json:"recognition_result,omitempty"`
 	// The result of the conversational query or event processing.
-	QueryResult *QueryResult `protobuf:"bytes,3,opt,name=query_result,json=queryResult" json:"query_result,omitempty"`
+	QueryResult *QueryResult `protobuf:"bytes,3,opt,name=query_result,json=queryResult,proto3" json:"query_result,omitempty"`
 	// Specifies the status of the webhook request.
-	WebhookStatus        *status.Status `protobuf:"bytes,4,opt,name=webhook_status,json=webhookStatus" json:"webhook_status,omitempty"`
+	WebhookStatus        *status.Status `protobuf:"bytes,4,opt,name=webhook_status,json=webhookStatus,proto3" json:"webhook_status,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
 	XXX_unrecognized     []byte         `json:"-"`
 	XXX_sizecache        int32          `json:"-"`
@@ -957,16 +957,16 @@ func (m *StreamingDetectIntentResponse) GetWebhookStatus() *status.Status {
 // *  for `MESSAGE_TYPE_END_OF_SINGLE_UTTERANCE`: only `event_type`.
 type StreamingRecognitionResult struct {
 	// Type of the result message.
-	MessageType StreamingRecognitionResult_MessageType `protobuf:"varint,1,opt,name=message_type,json=messageType,enum=google.cloud.dialogflow.v2.StreamingRecognitionResult_MessageType" json:"message_type,omitempty"`
+	MessageType StreamingRecognitionResult_MessageType `protobuf:"varint,1,opt,name=message_type,json=messageType,proto3,enum=google.cloud.dialogflow.v2.StreamingRecognitionResult_MessageType" json:"message_type,omitempty"`
 	// Transcript text representing the words that the user spoke.
 	// Populated if and only if `event_type` = `RECOGNITION_EVENT_TRANSCRIPT`.
-	Transcript string `protobuf:"bytes,2,opt,name=transcript" json:"transcript,omitempty"`
+	Transcript string `protobuf:"bytes,2,opt,name=transcript,proto3" json:"transcript,omitempty"`
 	// The default of 0.0 is a sentinel value indicating `confidence` was not set.
 	// If `false`, the `StreamingRecognitionResult` represents an
 	// interim result that may change. If `true`, the recognizer will not return
 	// any further hypotheses about this piece of the audio. May only be populated
 	// for `event_type` = `RECOGNITION_EVENT_TRANSCRIPT`.
-	IsFinal bool `protobuf:"varint,3,opt,name=is_final,json=isFinal" json:"is_final,omitempty"`
+	IsFinal bool `protobuf:"varint,3,opt,name=is_final,json=isFinal,proto3" json:"is_final,omitempty"`
 	// The Speech confidence between 0.0 and 1.0 for the current portion of audio.
 	// A higher number indicates an estimated greater likelihood that the
 	// recognized words are correct. The default of 0.0 is a sentinel value
@@ -974,7 +974,7 @@ type StreamingRecognitionResult struct {
 	//
 	// This field is typically only provided if `is_final` is true and you should
 	// not rely on it being accurate or even set.
-	Confidence           float32  `protobuf:"fixed32,4,opt,name=confidence" json:"confidence,omitempty"`
+	Confidence           float32  `protobuf:"fixed32,4,opt,name=confidence,proto3" json:"confidence,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1035,22 +1035,22 @@ func (m *StreamingRecognitionResult) GetConfidence() float32 {
 // Instructs the speech recognizer how to process the audio content.
 type InputAudioConfig struct {
 	// Required. Audio encoding of the audio content to process.
-	AudioEncoding AudioEncoding `protobuf:"varint,1,opt,name=audio_encoding,json=audioEncoding,enum=google.cloud.dialogflow.v2.AudioEncoding" json:"audio_encoding,omitempty"`
+	AudioEncoding AudioEncoding `protobuf:"varint,1,opt,name=audio_encoding,json=audioEncoding,proto3,enum=google.cloud.dialogflow.v2.AudioEncoding" json:"audio_encoding,omitempty"`
 	// Required. Sample rate (in Hertz) of the audio content sent in the query.
 	// Refer to [Cloud Speech API documentation](/speech/docs/basics) for more
 	// details.
-	SampleRateHertz int32 `protobuf:"varint,2,opt,name=sample_rate_hertz,json=sampleRateHertz" json:"sample_rate_hertz,omitempty"`
+	SampleRateHertz int32 `protobuf:"varint,2,opt,name=sample_rate_hertz,json=sampleRateHertz,proto3" json:"sample_rate_hertz,omitempty"`
 	// Required. The language of the supplied audio. Dialogflow does not do
 	// translations. See [Language
 	// Support](https://dialogflow.com/docs/languages) for a list of the
 	// currently supported language codes. Note that queries in the same session
 	// do not necessarily need to specify the same language.
-	LanguageCode string `protobuf:"bytes,3,opt,name=language_code,json=languageCode" json:"language_code,omitempty"`
+	LanguageCode string `protobuf:"bytes,3,opt,name=language_code,json=languageCode,proto3" json:"language_code,omitempty"`
 	// Optional. The collection of phrase hints which are used to boost accuracy
 	// of speech recognition.
 	// Refer to [Cloud Speech API documentation](/speech/docs/basics#phrase-hints)
 	// for more details.
-	PhraseHints          []string `protobuf:"bytes,4,rep,name=phrase_hints,json=phraseHints" json:"phrase_hints,omitempty"`
+	PhraseHints          []string `protobuf:"bytes,4,rep,name=phrase_hints,json=phraseHints,proto3" json:"phrase_hints,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1112,12 +1112,12 @@ func (m *InputAudioConfig) GetPhraseHints() []string {
 type TextInput struct {
 	// Required. The UTF-8 encoded natural language text to be processed.
 	// Text length must not exceed 256 bytes.
-	Text string `protobuf:"bytes,1,opt,name=text" json:"text,omitempty"`
+	Text string `protobuf:"bytes,1,opt,name=text,proto3" json:"text,omitempty"`
 	// Required. The language of this conversational query. See [Language
 	// Support](https://dialogflow.com/docs/languages) for a list of the
 	// currently supported language codes. Note that queries in the same session
 	// do not necessarily need to specify the same language.
-	LanguageCode         string   `protobuf:"bytes,2,opt,name=language_code,json=languageCode" json:"language_code,omitempty"`
+	LanguageCode         string   `protobuf:"bytes,2,opt,name=language_code,json=languageCode,proto3" json:"language_code,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1168,14 +1168,14 @@ func (m *TextInput) GetLanguageCode() string {
 // `“Hello #welcome_event.name! What can I do for you today?”`.
 type EventInput struct {
 	// Required. The unique identifier of the event.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Optional. The collection of parameters associated with the event.
-	Parameters *_struct.Struct `protobuf:"bytes,2,opt,name=parameters" json:"parameters,omitempty"`
+	Parameters *_struct.Struct `protobuf:"bytes,2,opt,name=parameters,proto3" json:"parameters,omitempty"`
 	// Required. The language of this query. See [Language
 	// Support](https://dialogflow.com/docs/languages) for a list of the
 	// currently supported language codes. Note that queries in the same session
 	// do not necessarily need to specify the same language.
-	LanguageCode         string   `protobuf:"bytes,3,opt,name=language_code,json=languageCode" json:"language_code,omitempty"`
+	LanguageCode         string   `protobuf:"bytes,3,opt,name=language_code,json=languageCode,proto3" json:"language_code,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1313,8 +1313,7 @@ func (x *sessionsStreamingDetectIntentClient) Recv() (*StreamingDetectIntentResp
 	return m, nil
 }
 
-// Server API for Sessions service
-
+// SessionsServer is the server API for Sessions service.
 type SessionsServer interface {
 	// Processes a natural language query and returns structured, actionable data
 	// as a result. This method is not idempotent, because it may cause contexts

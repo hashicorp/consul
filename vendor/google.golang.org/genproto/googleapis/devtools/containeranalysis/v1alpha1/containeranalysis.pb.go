@@ -222,20 +222,20 @@ func (PgpSignedAttestation_ContentType) EnumDescriptor() ([]byte, []int) {
 type Occurrence struct {
 	// Output only. The name of the `Occurrence` in the form
 	// "projects/{project_id}/occurrences/{OCCURRENCE_ID}"
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The unique URL of the image or the container for which the `Occurrence`
 	// applies. For example, https://gcr.io/project/image@sha256:foo This field
 	// can be used as a filter in list requests.
-	ResourceUrl string `protobuf:"bytes,2,opt,name=resource_url,json=resourceUrl" json:"resource_url,omitempty"`
+	ResourceUrl string `protobuf:"bytes,2,opt,name=resource_url,json=resourceUrl,proto3" json:"resource_url,omitempty"`
 	// The resource for which the `Occurrence` applies.
-	Resource *Resource `protobuf:"bytes,17,opt,name=resource" json:"resource,omitempty"`
+	Resource *Resource `protobuf:"bytes,17,opt,name=resource,proto3" json:"resource,omitempty"`
 	// An analysis note associated with this image, in the form
 	// "providers/{provider_id}/notes/{NOTE_ID}"
 	// This field can be used as a filter in list requests.
-	NoteName string `protobuf:"bytes,3,opt,name=note_name,json=noteName" json:"note_name,omitempty"`
+	NoteName string `protobuf:"bytes,3,opt,name=note_name,json=noteName,proto3" json:"note_name,omitempty"`
 	// Output only. This explicitly denotes which of the `Occurrence` details are
 	// specified. This field can be used as a filter in list requests.
-	Kind Note_Kind `protobuf:"varint,6,opt,name=kind,enum=google.devtools.containeranalysis.v1alpha1.Note_Kind" json:"kind,omitempty"`
+	Kind Note_Kind `protobuf:"varint,6,opt,name=kind,proto3,enum=google.devtools.containeranalysis.v1alpha1.Note_Kind" json:"kind,omitempty"`
 	// Describes the details of the vulnerability `Note` found in this resource.
 	//
 	// Types that are valid to be assigned to Details:
@@ -248,11 +248,11 @@ type Occurrence struct {
 	//	*Occurrence_Attestation
 	Details isOccurrence_Details `protobuf_oneof:"details"`
 	// A description of actions that can be taken to remedy the `Note`
-	Remediation string `protobuf:"bytes,5,opt,name=remediation" json:"remediation,omitempty"`
+	Remediation string `protobuf:"bytes,5,opt,name=remediation,proto3" json:"remediation,omitempty"`
 	// Output only. The time this `Occurrence` was created.
-	CreateTime *timestamp.Timestamp `protobuf:"bytes,9,opt,name=create_time,json=createTime" json:"create_time,omitempty"`
+	CreateTime *timestamp.Timestamp `protobuf:"bytes,9,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	// Output only. The time this `Occurrence` was last updated.
-	UpdateTime           *timestamp.Timestamp `protobuf:"bytes,10,opt,name=update_time,json=updateTime" json:"update_time,omitempty"`
+	UpdateTime           *timestamp.Timestamp `protobuf:"bytes,10,opt,name=update_time,json=updateTime,proto3" json:"update_time,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -287,25 +287,25 @@ type isOccurrence_Details interface {
 }
 
 type Occurrence_VulnerabilityDetails struct {
-	VulnerabilityDetails *VulnerabilityType_VulnerabilityDetails `protobuf:"bytes,8,opt,name=vulnerability_details,json=vulnerabilityDetails,oneof"`
+	VulnerabilityDetails *VulnerabilityType_VulnerabilityDetails `protobuf:"bytes,8,opt,name=vulnerability_details,json=vulnerabilityDetails,proto3,oneof"`
 }
 type Occurrence_BuildDetails struct {
-	BuildDetails *BuildDetails `protobuf:"bytes,7,opt,name=build_details,json=buildDetails,oneof"`
+	BuildDetails *BuildDetails `protobuf:"bytes,7,opt,name=build_details,json=buildDetails,proto3,oneof"`
 }
 type Occurrence_DerivedImage struct {
-	DerivedImage *DockerImage_Derived `protobuf:"bytes,11,opt,name=derived_image,json=derivedImage,oneof"`
+	DerivedImage *DockerImage_Derived `protobuf:"bytes,11,opt,name=derived_image,json=derivedImage,proto3,oneof"`
 }
 type Occurrence_Installation struct {
-	Installation *PackageManager_Installation `protobuf:"bytes,12,opt,name=installation,oneof"`
+	Installation *PackageManager_Installation `protobuf:"bytes,12,opt,name=installation,proto3,oneof"`
 }
 type Occurrence_Deployment struct {
-	Deployment *Deployable_Deployment `protobuf:"bytes,14,opt,name=deployment,oneof"`
+	Deployment *Deployable_Deployment `protobuf:"bytes,14,opt,name=deployment,proto3,oneof"`
 }
 type Occurrence_Discovered struct {
-	Discovered *Discovery_Discovered `protobuf:"bytes,15,opt,name=discovered,oneof"`
+	Discovered *Discovery_Discovered `protobuf:"bytes,15,opt,name=discovered,proto3,oneof"`
 }
 type Occurrence_Attestation struct {
-	Attestation *AttestationAuthority_Attestation `protobuf:"bytes,16,opt,name=attestation,oneof"`
+	Attestation *AttestationAuthority_Attestation `protobuf:"bytes,16,opt,name=attestation,proto3,oneof"`
 }
 
 func (*Occurrence_VulnerabilityDetails) isOccurrence_Details() {}
@@ -600,12 +600,12 @@ func _Occurrence_OneofSizer(msg proto.Message) (n int) {
 // Resource is an entity that can have metadata. E.g., a Docker image.
 type Resource struct {
 	// The name of the resource. E.g., the name of a Docker image - "Debian".
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The unique URI of the resource. E.g.,
 	// "https://gcr.io/project/image@sha256:foo" for a Docker image.
-	Uri string `protobuf:"bytes,2,opt,name=uri" json:"uri,omitempty"`
+	Uri string `protobuf:"bytes,2,opt,name=uri,proto3" json:"uri,omitempty"`
 	// The hash of the resource content. E.g., the Docker digest.
-	ContentHash          *Hash    `protobuf:"bytes,3,opt,name=content_hash,json=contentHash" json:"content_hash,omitempty"`
+	ContentHash          *Hash    `protobuf:"bytes,3,opt,name=content_hash,json=contentHash,proto3" json:"content_hash,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -660,14 +660,14 @@ func (m *Resource) GetContentHash() *Hash {
 type Note struct {
 	// The name of the note in the form
 	// "providers/{provider_id}/notes/{NOTE_ID}"
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// A one sentence description of this `Note`.
-	ShortDescription string `protobuf:"bytes,3,opt,name=short_description,json=shortDescription" json:"short_description,omitempty"`
+	ShortDescription string `protobuf:"bytes,3,opt,name=short_description,json=shortDescription,proto3" json:"short_description,omitempty"`
 	// A detailed description of this `Note`.
-	LongDescription string `protobuf:"bytes,4,opt,name=long_description,json=longDescription" json:"long_description,omitempty"`
+	LongDescription string `protobuf:"bytes,4,opt,name=long_description,json=longDescription,proto3" json:"long_description,omitempty"`
 	// Output only. This explicitly denotes which kind of note is specified. This
 	// field can be used as a filter in list requests.
-	Kind Note_Kind `protobuf:"varint,9,opt,name=kind,enum=google.devtools.containeranalysis.v1alpha1.Note_Kind" json:"kind,omitempty"`
+	Kind Note_Kind `protobuf:"varint,9,opt,name=kind,proto3,enum=google.devtools.containeranalysis.v1alpha1.Note_Kind" json:"kind,omitempty"`
 	// The type of note.
 	//
 	// Types that are valid to be assigned to NoteType:
@@ -680,15 +680,15 @@ type Note struct {
 	//	*Note_AttestationAuthority
 	NoteType isNote_NoteType `protobuf_oneof:"note_type"`
 	// URLs associated with this note
-	RelatedUrl []*Note_RelatedUrl `protobuf:"bytes,7,rep,name=related_url,json=relatedUrl" json:"related_url,omitempty"`
+	RelatedUrl []*Note_RelatedUrl `protobuf:"bytes,7,rep,name=related_url,json=relatedUrl,proto3" json:"related_url,omitempty"`
 	// Time of expiration for this note, null if note does not expire.
-	ExpirationTime *timestamp.Timestamp `protobuf:"bytes,10,opt,name=expiration_time,json=expirationTime" json:"expiration_time,omitempty"`
+	ExpirationTime *timestamp.Timestamp `protobuf:"bytes,10,opt,name=expiration_time,json=expirationTime,proto3" json:"expiration_time,omitempty"`
 	// Output only. The time this note was created. This field can be used as a
 	// filter in list requests.
-	CreateTime *timestamp.Timestamp `protobuf:"bytes,11,opt,name=create_time,json=createTime" json:"create_time,omitempty"`
+	CreateTime *timestamp.Timestamp `protobuf:"bytes,11,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	// Output only. The time this note was last updated. This field can be used as
 	// a filter in list requests.
-	UpdateTime           *timestamp.Timestamp `protobuf:"bytes,12,opt,name=update_time,json=updateTime" json:"update_time,omitempty"`
+	UpdateTime           *timestamp.Timestamp `protobuf:"bytes,12,opt,name=update_time,json=updateTime,proto3" json:"update_time,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -723,25 +723,25 @@ type isNote_NoteType interface {
 }
 
 type Note_VulnerabilityType struct {
-	VulnerabilityType *VulnerabilityType `protobuf:"bytes,6,opt,name=vulnerability_type,json=vulnerabilityType,oneof"`
+	VulnerabilityType *VulnerabilityType `protobuf:"bytes,6,opt,name=vulnerability_type,json=vulnerabilityType,proto3,oneof"`
 }
 type Note_BuildType struct {
-	BuildType *BuildType `protobuf:"bytes,8,opt,name=build_type,json=buildType,oneof"`
+	BuildType *BuildType `protobuf:"bytes,8,opt,name=build_type,json=buildType,proto3,oneof"`
 }
 type Note_BaseImage struct {
-	BaseImage *DockerImage_Basis `protobuf:"bytes,13,opt,name=base_image,json=baseImage,oneof"`
+	BaseImage *DockerImage_Basis `protobuf:"bytes,13,opt,name=base_image,json=baseImage,proto3,oneof"`
 }
 type Note_Package struct {
-	Package *PackageManager_Package `protobuf:"bytes,14,opt,name=package,oneof"`
+	Package *PackageManager_Package `protobuf:"bytes,14,opt,name=package,proto3,oneof"`
 }
 type Note_Deployable struct {
-	Deployable *Deployable `protobuf:"bytes,17,opt,name=deployable,oneof"`
+	Deployable *Deployable `protobuf:"bytes,17,opt,name=deployable,proto3,oneof"`
 }
 type Note_Discovery struct {
-	Discovery *Discovery `protobuf:"bytes,18,opt,name=discovery,oneof"`
+	Discovery *Discovery `protobuf:"bytes,18,opt,name=discovery,proto3,oneof"`
 }
 type Note_AttestationAuthority struct {
-	AttestationAuthority *AttestationAuthority `protobuf:"bytes,19,opt,name=attestation_authority,json=attestationAuthority,oneof"`
+	AttestationAuthority *AttestationAuthority `protobuf:"bytes,19,opt,name=attestation_authority,json=attestationAuthority,proto3,oneof"`
 }
 
 func (*Note_VulnerabilityType) isNote_NoteType()    {}
@@ -1036,9 +1036,9 @@ func _Note_OneofSizer(msg proto.Message) (n int) {
 // Metadata for any related URL information
 type Note_RelatedUrl struct {
 	// Specific URL to associate with the note
-	Url string `protobuf:"bytes,1,opt,name=url" json:"url,omitempty"`
+	Url string `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
 	// Label to describe usage of the URL
-	Label                string   `protobuf:"bytes,2,opt,name=label" json:"label,omitempty"`
+	Label                string   `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1085,7 +1085,7 @@ func (m *Note_RelatedUrl) GetLabel() string {
 // An artifact that can be deployed in some runtime.
 type Deployable struct {
 	// Resource URI for the artifact being deployed.
-	ResourceUri          []string `protobuf:"bytes,1,rep,name=resource_uri,json=resourceUri" json:"resource_uri,omitempty"`
+	ResourceUri          []string `protobuf:"bytes,1,rep,name=resource_uri,json=resourceUri,proto3" json:"resource_uri,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1125,20 +1125,20 @@ func (m *Deployable) GetResourceUri() []string {
 // The period during which some deployable was active in a runtime.
 type Deployable_Deployment struct {
 	// Identity of the user that triggered this deployment.
-	UserEmail string `protobuf:"bytes,1,opt,name=user_email,json=userEmail" json:"user_email,omitempty"`
+	UserEmail string `protobuf:"bytes,1,opt,name=user_email,json=userEmail,proto3" json:"user_email,omitempty"`
 	// Beginning of the lifetime of this deployment.
-	DeployTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=deploy_time,json=deployTime" json:"deploy_time,omitempty"`
+	DeployTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=deploy_time,json=deployTime,proto3" json:"deploy_time,omitempty"`
 	// End of the lifetime of this deployment.
-	UndeployTime *timestamp.Timestamp `protobuf:"bytes,3,opt,name=undeploy_time,json=undeployTime" json:"undeploy_time,omitempty"`
+	UndeployTime *timestamp.Timestamp `protobuf:"bytes,3,opt,name=undeploy_time,json=undeployTime,proto3" json:"undeploy_time,omitempty"`
 	// Configuration used to create this deployment.
-	Config string `protobuf:"bytes,8,opt,name=config" json:"config,omitempty"`
+	Config string `protobuf:"bytes,8,opt,name=config,proto3" json:"config,omitempty"`
 	// Address of the runtime element hosting this deployment.
-	Address string `protobuf:"bytes,5,opt,name=address" json:"address,omitempty"`
+	Address string `protobuf:"bytes,5,opt,name=address,proto3" json:"address,omitempty"`
 	// Output only. Resource URI for the artifact being deployed taken from the
 	// deployable field with the same name.
-	ResourceUri []string `protobuf:"bytes,6,rep,name=resource_uri,json=resourceUri" json:"resource_uri,omitempty"`
+	ResourceUri []string `protobuf:"bytes,6,rep,name=resource_uri,json=resourceUri,proto3" json:"resource_uri,omitempty"`
 	// Platform hosting this deployment.
-	Platform             Deployable_Deployment_Platform `protobuf:"varint,7,opt,name=platform,enum=google.devtools.containeranalysis.v1alpha1.Deployable_Deployment_Platform" json:"platform,omitempty"`
+	Platform             Deployable_Deployment_Platform `protobuf:"varint,7,opt,name=platform,proto3,enum=google.devtools.containeranalysis.v1alpha1.Deployable_Deployment_Platform" json:"platform,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                       `json:"-"`
 	XXX_unrecognized     []byte                         `json:"-"`
 	XXX_sizecache        int32                          `json:"-"`
@@ -1224,7 +1224,7 @@ func (m *Deployable_Deployment) GetPlatform() Deployable_Deployment_Platform {
 // note for a resource indicates that analysis hasn't started.
 type Discovery struct {
 	// The kind of analysis that is handled by this discovery.
-	AnalysisKind         Note_Kind `protobuf:"varint,1,opt,name=analysis_kind,json=analysisKind,enum=google.devtools.containeranalysis.v1alpha1.Note_Kind" json:"analysis_kind,omitempty"`
+	AnalysisKind         Note_Kind `protobuf:"varint,1,opt,name=analysis_kind,json=analysisKind,proto3,enum=google.devtools.containeranalysis.v1alpha1.Note_Kind" json:"analysis_kind,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -1264,13 +1264,13 @@ func (m *Discovery) GetAnalysisKind() Note_Kind {
 // Provides information about the scan status of a discovered resource.
 type Discovery_Discovered struct {
 	// Output only. An operation that indicates the status of the current scan.
-	Operation *longrunning.Operation `protobuf:"bytes,1,opt,name=operation" json:"operation,omitempty"`
+	Operation *longrunning.Operation `protobuf:"bytes,1,opt,name=operation,proto3" json:"operation,omitempty"`
 	// The status of discovery for the resource.
-	AnalysisStatus Discovery_Discovered_AnalysisStatus `protobuf:"varint,5,opt,name=analysis_status,json=analysisStatus,enum=google.devtools.containeranalysis.v1alpha1.Discovery_Discovered_AnalysisStatus" json:"analysis_status,omitempty"`
+	AnalysisStatus Discovery_Discovered_AnalysisStatus `protobuf:"varint,5,opt,name=analysis_status,json=analysisStatus,proto3,enum=google.devtools.containeranalysis.v1alpha1.Discovery_Discovered_AnalysisStatus" json:"analysis_status,omitempty"`
 	// When an error is encountered this will contain a LocalizedMessage under
 	// details to show to the user. The LocalizedMessage output only and
 	// populated by the API.
-	AnalysisStatusError  *status.Status `protobuf:"bytes,6,opt,name=analysis_status_error,json=analysisStatusError" json:"analysis_status_error,omitempty"`
+	AnalysisStatusError  *status.Status `protobuf:"bytes,6,opt,name=analysis_status_error,json=analysisStatusError,proto3" json:"analysis_status_error,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
 	XXX_unrecognized     []byte         `json:"-"`
 	XXX_sizecache        int32          `json:"-"`
@@ -1325,10 +1325,10 @@ func (m *Discovery_Discovered) GetAnalysisStatusError() *status.Status {
 // the provenance message in linked BuildDetails.
 type BuildType struct {
 	// Version of the builder which produced this Note.
-	BuilderVersion string `protobuf:"bytes,1,opt,name=builder_version,json=builderVersion" json:"builder_version,omitempty"`
+	BuilderVersion string `protobuf:"bytes,1,opt,name=builder_version,json=builderVersion,proto3" json:"builder_version,omitempty"`
 	// Signature of the build in Occurrences pointing to the Note containing this
 	// `BuilderDetails`.
-	Signature            *BuildSignature `protobuf:"bytes,2,opt,name=signature" json:"signature,omitempty"`
+	Signature            *BuildSignature `protobuf:"bytes,2,opt,name=signature,proto3" json:"signature,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
 	XXX_unrecognized     []byte          `json:"-"`
 	XXX_sizecache        int32           `json:"-"`
@@ -1387,17 +1387,17 @@ type BuildSignature struct {
 	// from `BuildDetails` are base64-decoded into a binary representation in
 	// signed.bin. OpenSSL can then verify the signature:
 	// `openssl sha256 -verify public.pem -signature signature.bin signed.bin`
-	PublicKey string `protobuf:"bytes,1,opt,name=public_key,json=publicKey" json:"public_key,omitempty"`
+	PublicKey string `protobuf:"bytes,1,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
 	// Signature of the related `BuildProvenance`, encoded in a base64 string.
-	Signature string `protobuf:"bytes,2,opt,name=signature" json:"signature,omitempty"`
+	Signature string `protobuf:"bytes,2,opt,name=signature,proto3" json:"signature,omitempty"`
 	// An Id for the key used to sign. This could be either an Id for the key
 	// stored in `public_key` (such as the Id or fingerprint for a PGP key, or the
 	// CN for a cert), or a reference to an external key (such as a reference to a
 	// key in Cloud Key Management Service).
-	KeyId string `protobuf:"bytes,3,opt,name=key_id,json=keyId" json:"key_id,omitempty"`
+	KeyId string `protobuf:"bytes,3,opt,name=key_id,json=keyId,proto3" json:"key_id,omitempty"`
 	// The type of the key, either stored in `public_key` or referenced in
 	// `key_id`
-	KeyType              BuildSignature_KeyType `protobuf:"varint,4,opt,name=key_type,json=keyType,enum=google.devtools.containeranalysis.v1alpha1.BuildSignature_KeyType" json:"key_type,omitempty"`
+	KeyType              BuildSignature_KeyType `protobuf:"varint,4,opt,name=key_type,json=keyType,proto3,enum=google.devtools.containeranalysis.v1alpha1.BuildSignature_KeyType" json:"key_type,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
 	XXX_unrecognized     []byte                 `json:"-"`
 	XXX_sizecache        int32                  `json:"-"`
@@ -1468,12 +1468,12 @@ type PgpSignedAttestation struct {
 	// --output=signature.gpg payload.json` will create the signature content
 	// expected in this field in `signature.gpg` for the `payload.json`
 	// attestation payload.
-	Signature string `protobuf:"bytes,1,opt,name=signature" json:"signature,omitempty"`
+	Signature string `protobuf:"bytes,1,opt,name=signature,proto3" json:"signature,omitempty"`
 	// Type (for example schema) of the attestation payload that was signed.
 	// The verifier must ensure that the provided type is one that the verifier
 	// supports, and that the attestation payload is a valid instantiation of that
 	// type (for example by validating a JSON schema).
-	ContentType PgpSignedAttestation_ContentType `protobuf:"varint,3,opt,name=content_type,json=contentType,enum=google.devtools.containeranalysis.v1alpha1.PgpSignedAttestation_ContentType" json:"content_type,omitempty"`
+	ContentType PgpSignedAttestation_ContentType `protobuf:"varint,3,opt,name=content_type,json=contentType,proto3,enum=google.devtools.containeranalysis.v1alpha1.PgpSignedAttestation_ContentType" json:"content_type,omitempty"`
 	// This field is used by verifiers to select the public key used to validate
 	// the signature.  Note that the policy of the verifier ultimately determines
 	// which public keys verify a signature based on the context of the
@@ -1520,7 +1520,7 @@ type isPgpSignedAttestation_KeyId interface {
 }
 
 type PgpSignedAttestation_PgpKeyId struct {
-	PgpKeyId string `protobuf:"bytes,2,opt,name=pgp_key_id,json=pgpKeyId,oneof"`
+	PgpKeyId string `protobuf:"bytes,2,opt,name=pgp_key_id,json=pgpKeyId,proto3,oneof"`
 }
 
 func (*PgpSignedAttestation_PgpKeyId) isPgpSignedAttestation_KeyId() {}
@@ -1613,7 +1613,7 @@ func _PgpSignedAttestation_OneofSizer(msg proto.Message) (n int) {
 // single point of lookup to find all attached Attestation Occurrences, even if
 // they don't all live in the same project.
 type AttestationAuthority struct {
-	Hint                 *AttestationAuthority_AttestationAuthorityHint `protobuf:"bytes,1,opt,name=hint" json:"hint,omitempty"`
+	Hint                 *AttestationAuthority_AttestationAuthorityHint `protobuf:"bytes,1,opt,name=hint,proto3" json:"hint,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                                       `json:"-"`
 	XXX_unrecognized     []byte                                         `json:"-"`
 	XXX_sizecache        int32                                          `json:"-"`
@@ -1659,7 +1659,7 @@ func (m *AttestationAuthority) GetHint() *AttestationAuthority_AttestationAuthor
 // looking up Attestations to verify.
 type AttestationAuthority_AttestationAuthorityHint struct {
 	// The human readable name of this Attestation Authority, for example "qa".
-	HumanReadableName    string   `protobuf:"bytes,1,opt,name=human_readable_name,json=humanReadableName" json:"human_readable_name,omitempty"`
+	HumanReadableName    string   `protobuf:"bytes,1,opt,name=human_readable_name,json=humanReadableName,proto3" json:"human_readable_name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1750,7 +1750,7 @@ type isAttestationAuthority_Attestation_Signature interface {
 }
 
 type AttestationAuthority_Attestation_PgpSignedAttestation struct {
-	PgpSignedAttestation *PgpSignedAttestation `protobuf:"bytes,1,opt,name=pgp_signed_attestation,json=pgpSignedAttestation,oneof"`
+	PgpSignedAttestation *PgpSignedAttestation `protobuf:"bytes,1,opt,name=pgp_signed_attestation,json=pgpSignedAttestation,proto3,oneof"`
 }
 
 func (*AttestationAuthority_Attestation_PgpSignedAttestation) isAttestationAuthority_Attestation_Signature() {
@@ -1828,7 +1828,7 @@ func _AttestationAuthority_Attestation_OneofSizer(msg proto.Message) (n int) {
 // Message encapsulating build provenance details.
 type BuildDetails struct {
 	// The actual provenance
-	Provenance *BuildProvenance `protobuf:"bytes,1,opt,name=provenance" json:"provenance,omitempty"`
+	Provenance *BuildProvenance `protobuf:"bytes,1,opt,name=provenance,proto3" json:"provenance,omitempty"`
 	// Serialized JSON representation of the provenance, used in generating the
 	// `BuildSignature` in the corresponding Result. After verifying the
 	// signature, `provenance_bytes` can be unmarshalled and compared to the
@@ -1840,7 +1840,7 @@ type BuildDetails struct {
 	// The serialized form is captured both to avoid ambiguity in how the
 	// provenance is marshalled to json as well to prevent incompatibilities with
 	// future changes.
-	ProvenanceBytes      string   `protobuf:"bytes,2,opt,name=provenance_bytes,json=provenanceBytes" json:"provenance_bytes,omitempty"`
+	ProvenanceBytes      string   `protobuf:"bytes,2,opt,name=provenance_bytes,json=provenanceBytes,proto3" json:"provenance_bytes,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1888,11 +1888,11 @@ func (m *BuildDetails) GetProvenanceBytes() string {
 type ScanConfig struct {
 	// Output only. The name of the ScanConfig in the form
 	// “projects/{project_id}/ScanConfigs/{ScanConfig_id}".
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Output only. A human-readable description of what the `ScanConfig` does.
-	Description string `protobuf:"bytes,2,opt,name=description" json:"description,omitempty"`
+	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
 	// Indicates whether the Scan is enabled.
-	Enabled              bool     `protobuf:"varint,3,opt,name=enabled" json:"enabled,omitempty"`
+	Enabled              bool     `protobuf:"varint,3,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1947,7 +1947,7 @@ func (m *ScanConfig) GetEnabled() bool {
 type GetOccurrenceRequest struct {
 	// The name of the occurrence of the form
 	// "projects/{project_id}/occurrences/{OCCURRENCE_ID}"
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1989,17 +1989,17 @@ type ListOccurrencesRequest struct {
 	// The name field contains the project Id. For example:
 	// "projects/{project_id}
 	// @Deprecated
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// This contains the project Id for example: projects/{project_id}.
-	Parent string `protobuf:"bytes,5,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,5,opt,name=parent,proto3" json:"parent,omitempty"`
 	// The filter expression.
-	Filter string `protobuf:"bytes,2,opt,name=filter" json:"filter,omitempty"`
+	Filter string `protobuf:"bytes,2,opt,name=filter,proto3" json:"filter,omitempty"`
 	// Number of occurrences to return in the list.
-	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Token to provide to skip to a particular spot in the list.
-	PageToken string `protobuf:"bytes,4,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// The kind of occurrences to filter on.
-	Kind                 Note_Kind `protobuf:"varint,6,opt,name=kind,enum=google.devtools.containeranalysis.v1alpha1.Note_Kind" json:"kind,omitempty"`
+	Kind                 Note_Kind `protobuf:"varint,6,opt,name=kind,proto3,enum=google.devtools.containeranalysis.v1alpha1.Note_Kind" json:"kind,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -2074,11 +2074,11 @@ func (m *ListOccurrencesRequest) GetKind() Note_Kind {
 // Response including listed active occurrences.
 type ListOccurrencesResponse struct {
 	// The occurrences requested.
-	Occurrences []*Occurrence `protobuf:"bytes,1,rep,name=occurrences" json:"occurrences,omitempty"`
+	Occurrences []*Occurrence `protobuf:"bytes,1,rep,name=occurrences,proto3" json:"occurrences,omitempty"`
 	// The next pagination token in the list response. It should be used as
 	// `page_token` for the following request. An empty value means no more
 	// results.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -2126,7 +2126,7 @@ func (m *ListOccurrencesResponse) GetNextPageToken() string {
 type DeleteOccurrenceRequest struct {
 	// The name of the occurrence in the form of
 	// "projects/{project_id}/occurrences/{OCCURRENCE_ID}"
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -2167,11 +2167,11 @@ func (m *DeleteOccurrenceRequest) GetName() string {
 type CreateOccurrenceRequest struct {
 	// The name of the project.  Should be of the form "projects/{project_id}".
 	// @Deprecated
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// This field contains the project Id for example: "projects/{project_id}"
-	Parent string `protobuf:"bytes,3,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,3,opt,name=parent,proto3" json:"parent,omitempty"`
 	// The occurrence to be inserted
-	Occurrence           *Occurrence `protobuf:"bytes,2,opt,name=occurrence" json:"occurrence,omitempty"`
+	Occurrence           *Occurrence `protobuf:"bytes,2,opt,name=occurrence,proto3" json:"occurrence,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
 	XXX_unrecognized     []byte      `json:"-"`
 	XXX_sizecache        int32       `json:"-"`
@@ -2226,11 +2226,11 @@ func (m *CreateOccurrenceRequest) GetOccurrence() *Occurrence {
 type UpdateOccurrenceRequest struct {
 	// The name of the occurrence.
 	// Should be of the form "projects/{project_id}/occurrences/{OCCURRENCE_ID}".
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The updated occurrence.
-	Occurrence *Occurrence `protobuf:"bytes,2,opt,name=occurrence" json:"occurrence,omitempty"`
+	Occurrence *Occurrence `protobuf:"bytes,2,opt,name=occurrence,proto3" json:"occurrence,omitempty"`
 	// The fields to update.
-	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -2285,7 +2285,7 @@ func (m *UpdateOccurrenceRequest) GetUpdateMask() *field_mask.FieldMask {
 type GetNoteRequest struct {
 	// The name of the note in the form of
 	// "providers/{provider_id}/notes/{NOTE_ID}"
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -2326,7 +2326,7 @@ func (m *GetNoteRequest) GetName() string {
 type GetOccurrenceNoteRequest struct {
 	// The name of the occurrence in the form
 	// "projects/{project_id}/occurrences/{OCCURRENCE_ID}"
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -2368,15 +2368,15 @@ type ListNotesRequest struct {
 	// The name field will contain the project Id for example:
 	// "providers/{provider_id}
 	// @Deprecated
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// This field contains the project Id for example: "projects/{PROJECT_ID}".
-	Parent string `protobuf:"bytes,5,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,5,opt,name=parent,proto3" json:"parent,omitempty"`
 	// The filter expression.
-	Filter string `protobuf:"bytes,2,opt,name=filter" json:"filter,omitempty"`
+	Filter string `protobuf:"bytes,2,opt,name=filter,proto3" json:"filter,omitempty"`
 	// Number of notes to return in the list.
-	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Token to provide to skip to a particular spot in the list.
-	PageToken            string   `protobuf:"bytes,4,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -2444,10 +2444,10 @@ func (m *ListNotesRequest) GetPageToken() string {
 // Response including listed notes.
 type ListNotesResponse struct {
 	// The occurrences requested
-	Notes []*Note `protobuf:"bytes,1,rep,name=notes" json:"notes,omitempty"`
+	Notes []*Note `protobuf:"bytes,1,rep,name=notes,proto3" json:"notes,omitempty"`
 	// The next pagination token in the list response. It should be used as
 	// page_token for the following request. An empty value means no more result.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -2495,7 +2495,7 @@ func (m *ListNotesResponse) GetNextPageToken() string {
 type DeleteNoteRequest struct {
 	// The name of the note in the form of
 	// "providers/{provider_id}/notes/{NOTE_ID}"
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -2537,14 +2537,14 @@ type CreateNoteRequest struct {
 	// The name of the project.
 	// Should be of the form "providers/{provider_id}".
 	// @Deprecated
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// This field contains the project Id for example:
 	// "projects/{project_id}
-	Parent string `protobuf:"bytes,4,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,4,opt,name=parent,proto3" json:"parent,omitempty"`
 	// The ID to use for this note.
-	NoteId string `protobuf:"bytes,2,opt,name=note_id,json=noteId" json:"note_id,omitempty"`
+	NoteId string `protobuf:"bytes,2,opt,name=note_id,json=noteId,proto3" json:"note_id,omitempty"`
 	// The Note to be inserted
-	Note                 *Note    `protobuf:"bytes,3,opt,name=note" json:"note,omitempty"`
+	Note                 *Note    `protobuf:"bytes,3,opt,name=note,proto3" json:"note,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -2606,11 +2606,11 @@ func (m *CreateNoteRequest) GetNote() *Note {
 type UpdateNoteRequest struct {
 	// The name of the note.
 	// Should be of the form "projects/{provider_id}/notes/{note_id}".
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The updated note.
-	Note *Note `protobuf:"bytes,2,opt,name=note" json:"note,omitempty"`
+	Note *Note `protobuf:"bytes,2,opt,name=note,proto3" json:"note,omitempty"`
 	// The fields to update.
-	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -2665,13 +2665,13 @@ func (m *UpdateNoteRequest) GetUpdateMask() *field_mask.FieldMask {
 type ListNoteOccurrencesRequest struct {
 	// The name field will contain the note name for example:
 	//   "provider/{provider_id}/notes/{note_id}"
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The filter expression.
-	Filter string `protobuf:"bytes,2,opt,name=filter" json:"filter,omitempty"`
+	Filter string `protobuf:"bytes,2,opt,name=filter,proto3" json:"filter,omitempty"`
 	// Number of notes to return in the list.
-	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Token to provide to skip to a particular spot in the list.
-	PageToken            string   `protobuf:"bytes,4,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -2732,9 +2732,9 @@ func (m *ListNoteOccurrencesRequest) GetPageToken() string {
 // Response including listed occurrences for a note.
 type ListNoteOccurrencesResponse struct {
 	// The occurrences attached to the specified note.
-	Occurrences []*Occurrence `protobuf:"bytes,1,rep,name=occurrences" json:"occurrences,omitempty"`
+	Occurrences []*Occurrence `protobuf:"bytes,1,rep,name=occurrences,proto3" json:"occurrences,omitempty"`
 	// Token to receive the next page of notes.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -2781,11 +2781,11 @@ func (m *ListNoteOccurrencesResponse) GetNextPageToken() string {
 // Request for creating an operation
 type CreateOperationRequest struct {
 	// The project Id that this operation should be created under.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// The ID to use for this operation.
-	OperationId string `protobuf:"bytes,2,opt,name=operation_id,json=operationId" json:"operation_id,omitempty"`
+	OperationId string `protobuf:"bytes,2,opt,name=operation_id,json=operationId,proto3" json:"operation_id,omitempty"`
 	// The operation to create.
-	Operation            *longrunning.Operation `protobuf:"bytes,3,opt,name=operation" json:"operation,omitempty"`
+	Operation            *longrunning.Operation `protobuf:"bytes,3,opt,name=operation,proto3" json:"operation,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
 	XXX_unrecognized     []byte                 `json:"-"`
 	XXX_sizecache        int32                  `json:"-"`
@@ -2840,10 +2840,10 @@ func (m *CreateOperationRequest) GetOperation() *longrunning.Operation {
 type UpdateOperationRequest struct {
 	// The name of the Operation.
 	// Should be of the form "projects/{provider_id}/operations/{operation_id}".
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The operation to create.
-	Operation            *longrunning.Operation `protobuf:"bytes,3,opt,name=operation" json:"operation,omitempty"`
-	UpdateMask           *field_mask.FieldMask  `protobuf:"bytes,4,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	Operation            *longrunning.Operation `protobuf:"bytes,3,opt,name=operation,proto3" json:"operation,omitempty"`
+	UpdateMask           *field_mask.FieldMask  `protobuf:"bytes,4,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
 	XXX_unrecognized     []byte                 `json:"-"`
 	XXX_sizecache        int32                  `json:"-"`
@@ -2898,9 +2898,9 @@ func (m *UpdateOperationRequest) GetUpdateMask() *field_mask.FieldMask {
 // that created by Container Analysis Providers
 type OperationMetadata struct {
 	// Output only. The time this operation was created.
-	CreateTime *timestamp.Timestamp `protobuf:"bytes,1,opt,name=create_time,json=createTime" json:"create_time,omitempty"`
+	CreateTime *timestamp.Timestamp `protobuf:"bytes,1,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	// Output only. The time that this operation was marked completed or failed.
-	EndTime              *timestamp.Timestamp `protobuf:"bytes,2,opt,name=end_time,json=endTime" json:"end_time,omitempty"`
+	EndTime              *timestamp.Timestamp `protobuf:"bytes,2,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -2947,9 +2947,9 @@ func (m *OperationMetadata) GetEndTime() *timestamp.Timestamp {
 // Request to get the vulnz summary for some set of vulnerability Occurrences.
 type GetVulnzOccurrencesSummaryRequest struct {
 	// This contains the project Id for example: projects/{project_id}
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// The filter expression.
-	Filter               string   `protobuf:"bytes,2,opt,name=filter" json:"filter,omitempty"`
+	Filter               string   `protobuf:"bytes,2,opt,name=filter,proto3" json:"filter,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -2998,7 +2998,7 @@ func (m *GetVulnzOccurrencesSummaryRequest) GetFilter() string {
 // like this.
 type GetVulnzOccurrencesSummaryResponse struct {
 	// A map of how many occurrences were found for each severity.
-	Counts               []*GetVulnzOccurrencesSummaryResponse_SeverityCount `protobuf:"bytes,1,rep,name=counts" json:"counts,omitempty"`
+	Counts               []*GetVulnzOccurrencesSummaryResponse_SeverityCount `protobuf:"bytes,1,rep,name=counts,proto3" json:"counts,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                                            `json:"-"`
 	XXX_unrecognized     []byte                                              `json:"-"`
 	XXX_sizecache        int32                                               `json:"-"`
@@ -3038,9 +3038,9 @@ func (m *GetVulnzOccurrencesSummaryResponse) GetCounts() []*GetVulnzOccurrencesS
 // The number of occurrences created for a specific severity.
 type GetVulnzOccurrencesSummaryResponse_SeverityCount struct {
 	// The severity of the occurrences.
-	Severity VulnerabilityType_Severity `protobuf:"varint,1,opt,name=severity,enum=google.devtools.containeranalysis.v1alpha1.VulnerabilityType_Severity" json:"severity,omitempty"`
+	Severity VulnerabilityType_Severity `protobuf:"varint,1,opt,name=severity,proto3,enum=google.devtools.containeranalysis.v1alpha1.VulnerabilityType_Severity" json:"severity,omitempty"`
 	// The number of occurrences with the severity.
-	Count                int64    `protobuf:"varint,2,opt,name=count" json:"count,omitempty"`
+	Count                int64    `protobuf:"varint,2,opt,name=count,proto3" json:"count,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -3093,7 +3093,7 @@ type GetScanConfigRequest struct {
 	// The name of the ScanConfig in the form
 	// projects/{project_id}/scan_configs/{ScanConfig_id}
 	// instead.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -3134,13 +3134,13 @@ func (m *GetScanConfigRequest) GetName() string {
 type ListScanConfigsRequest struct {
 	// This containers the project Id i.e.: projects/{project_id}
 	// instead.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// The filter expression.
-	Filter string `protobuf:"bytes,2,opt,name=filter" json:"filter,omitempty"`
+	Filter string `protobuf:"bytes,2,opt,name=filter,proto3" json:"filter,omitempty"`
 	// The number of items to return.
-	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The page token to use for the next request.
-	PageToken            string   `protobuf:"bytes,4,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -3201,9 +3201,9 @@ func (m *ListScanConfigsRequest) GetPageToken() string {
 // A list of ScanConfigs for the project.
 type ListScanConfigsResponse struct {
 	// The set of scan configs
-	ScanConfigs []*ScanConfig `protobuf:"bytes,1,rep,name=scan_configs,json=scanConfigs" json:"scan_configs,omitempty"`
+	ScanConfigs []*ScanConfig `protobuf:"bytes,1,rep,name=scan_configs,json=scanConfigs,proto3" json:"scan_configs,omitempty"`
 	// A page token to pass in order to get more scans.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -3252,10 +3252,10 @@ type UpdateScanConfigRequest struct {
 	// The scan config to update of the form
 	// projects/{project_id}/scan_configs/{ScanConfig_id}
 	// instead.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The new scan configuration
-	ScanConfig           *ScanConfig           `protobuf:"bytes,2,opt,name=scan_config,json=scanConfig" json:"scan_config,omitempty"`
-	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	ScanConfig           *ScanConfig           `protobuf:"bytes,2,opt,name=scan_config,json=scanConfig,proto3" json:"scan_config,omitempty"`
+	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -3642,8 +3642,7 @@ func (c *containerAnalysisClient) UpdateScanConfig(ctx context.Context, in *Upda
 	return out, nil
 }
 
-// Server API for ContainerAnalysis service
-
+// ContainerAnalysisServer is the server API for ContainerAnalysis service.
 type ContainerAnalysisServer interface {
 	// Returns the requested `Occurrence`.
 	GetOccurrence(context.Context, *GetOccurrenceRequest) (*Occurrence, error)

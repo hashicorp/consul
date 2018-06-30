@@ -114,9 +114,9 @@ func (CheckError_Code) EnumDescriptor() ([]byte, []int) {
 // [google.api.servicecontrol.v1.CheckResponse.check_errors][google.api.servicecontrol.v1.CheckResponse.check_errors].
 type CheckError struct {
 	// The error code.
-	Code CheckError_Code `protobuf:"varint,1,opt,name=code,enum=google.api.servicecontrol.v1.CheckError_Code" json:"code,omitempty"`
+	Code CheckError_Code `protobuf:"varint,1,opt,name=code,proto3,enum=google.api.servicecontrol.v1.CheckError_Code" json:"code,omitempty"`
 	// Free-form text providing details on the error cause of the error.
-	Detail               string   `protobuf:"bytes,2,opt,name=detail" json:"detail,omitempty"`
+	Detail               string   `protobuf:"bytes,2,opt,name=detail,proto3" json:"detail,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

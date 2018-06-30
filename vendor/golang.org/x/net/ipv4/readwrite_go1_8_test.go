@@ -22,7 +22,7 @@ import (
 
 func BenchmarkPacketConnReadWriteUnicast(b *testing.B) {
 	switch runtime.GOOS {
-	case "nacl", "plan9", "windows":
+	case "js", "nacl", "plan9", "windows":
 		b.Skipf("not supported on %s", runtime.GOOS)
 	}
 
@@ -126,7 +126,7 @@ func BenchmarkPacketConnReadWriteUnicast(b *testing.B) {
 
 func TestPacketConnConcurrentReadWriteUnicast(t *testing.T) {
 	switch runtime.GOOS {
-	case "nacl", "plan9", "windows":
+	case "js", "nacl", "plan9", "windows":
 		t.Skipf("not supported on %s", runtime.GOOS)
 	}
 

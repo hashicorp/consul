@@ -54,7 +54,7 @@ type SystemParameters struct {
 	//               http_header: Api-Key2
 	//
 	// **NOTE:** All service configuration rules follow "last one wins" order.
-	Rules                []*SystemParameterRule `protobuf:"bytes,1,rep,name=rules" json:"rules,omitempty"`
+	Rules                []*SystemParameterRule `protobuf:"bytes,1,rep,name=rules,proto3" json:"rules,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
 	XXX_unrecognized     []byte                 `json:"-"`
 	XXX_sizecache        int32                  `json:"-"`
@@ -64,7 +64,7 @@ func (m *SystemParameters) Reset()         { *m = SystemParameters{} }
 func (m *SystemParameters) String() string { return proto.CompactTextString(m) }
 func (*SystemParameters) ProtoMessage()    {}
 func (*SystemParameters) Descriptor() ([]byte, []int) {
-	return fileDescriptor_system_parameter_11f19a50f5ca3984, []int{0}
+	return fileDescriptor_system_parameter_128d6f6e610b00a0, []int{0}
 }
 func (m *SystemParameters) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SystemParameters.Unmarshal(m, b)
@@ -98,13 +98,13 @@ type SystemParameterRule struct {
 	// methods in all APIs.
 	//
 	// Refer to [selector][google.api.DocumentationRule.selector] for syntax details.
-	Selector string `protobuf:"bytes,1,opt,name=selector" json:"selector,omitempty"`
+	Selector string `protobuf:"bytes,1,opt,name=selector,proto3" json:"selector,omitempty"`
 	// Define parameters. Multiple names may be defined for a parameter.
 	// For a given method call, only one of them should be used. If multiple
 	// names are used the behavior is implementation-dependent.
 	// If none of the specified names are present the behavior is
 	// parameter-dependent.
-	Parameters           []*SystemParameter `protobuf:"bytes,2,rep,name=parameters" json:"parameters,omitempty"`
+	Parameters           []*SystemParameter `protobuf:"bytes,2,rep,name=parameters,proto3" json:"parameters,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
 	XXX_unrecognized     []byte             `json:"-"`
 	XXX_sizecache        int32              `json:"-"`
@@ -114,7 +114,7 @@ func (m *SystemParameterRule) Reset()         { *m = SystemParameterRule{} }
 func (m *SystemParameterRule) String() string { return proto.CompactTextString(m) }
 func (*SystemParameterRule) ProtoMessage()    {}
 func (*SystemParameterRule) Descriptor() ([]byte, []int) {
-	return fileDescriptor_system_parameter_11f19a50f5ca3984, []int{1}
+	return fileDescriptor_system_parameter_128d6f6e610b00a0, []int{1}
 }
 func (m *SystemParameterRule) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SystemParameterRule.Unmarshal(m, b)
@@ -153,13 +153,13 @@ func (m *SystemParameterRule) GetParameters() []*SystemParameter {
 // is implementation-dependent.
 type SystemParameter struct {
 	// Define the name of the parameter, such as "api_key" . It is case sensitive.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Define the HTTP header name to use for the parameter. It is case
 	// insensitive.
-	HttpHeader string `protobuf:"bytes,2,opt,name=http_header,json=httpHeader" json:"http_header,omitempty"`
+	HttpHeader string `protobuf:"bytes,2,opt,name=http_header,json=httpHeader,proto3" json:"http_header,omitempty"`
 	// Define the URL query parameter name to use for the parameter. It is case
 	// sensitive.
-	UrlQueryParameter    string   `protobuf:"bytes,3,opt,name=url_query_parameter,json=urlQueryParameter" json:"url_query_parameter,omitempty"`
+	UrlQueryParameter    string   `protobuf:"bytes,3,opt,name=url_query_parameter,json=urlQueryParameter,proto3" json:"url_query_parameter,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -169,7 +169,7 @@ func (m *SystemParameter) Reset()         { *m = SystemParameter{} }
 func (m *SystemParameter) String() string { return proto.CompactTextString(m) }
 func (*SystemParameter) ProtoMessage()    {}
 func (*SystemParameter) Descriptor() ([]byte, []int) {
-	return fileDescriptor_system_parameter_11f19a50f5ca3984, []int{2}
+	return fileDescriptor_system_parameter_128d6f6e610b00a0, []int{2}
 }
 func (m *SystemParameter) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SystemParameter.Unmarshal(m, b)
@@ -217,10 +217,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("google/api/system_parameter.proto", fileDescriptor_system_parameter_11f19a50f5ca3984)
+	proto.RegisterFile("google/api/system_parameter.proto", fileDescriptor_system_parameter_128d6f6e610b00a0)
 }
 
-var fileDescriptor_system_parameter_11f19a50f5ca3984 = []byte{
+var fileDescriptor_system_parameter_128d6f6e610b00a0 = []byte{
 	// 286 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x91, 0xbf, 0x4e, 0xc3, 0x30,
 	0x10, 0x87, 0x95, 0xb6, 0x20, 0xb8, 0x4a, 0xfc, 0x71, 0x19, 0x22, 0x18, 0x5a, 0x3a, 0x75, 0x72,

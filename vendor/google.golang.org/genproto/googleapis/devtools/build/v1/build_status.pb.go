@@ -77,9 +77,9 @@ func (BuildStatus_Result) EnumDescriptor() ([]byte, []int) {
 // Status used for both invocation attempt and overall build completion.
 type BuildStatus struct {
 	// The end result.
-	Result BuildStatus_Result `protobuf:"varint,1,opt,name=result,enum=google.devtools.build.v1.BuildStatus_Result" json:"result,omitempty"`
+	Result BuildStatus_Result `protobuf:"varint,1,opt,name=result,proto3,enum=google.devtools.build.v1.BuildStatus_Result" json:"result,omitempty"`
 	// Fine-grained diagnostic information to complement the status.
-	Details              *any.Any `protobuf:"bytes,2,opt,name=details" json:"details,omitempty"`
+	Details              *any.Any `protobuf:"bytes,2,opt,name=details,proto3" json:"details,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

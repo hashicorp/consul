@@ -55,24 +55,24 @@ type Service struct {
 	// affects the interpretation of the service configuration. For example,
 	// certain features are enabled by default for certain config versions.
 	// The latest config version is `3`.
-	ConfigVersion *wrappers.UInt32Value `protobuf:"bytes,20,opt,name=config_version,json=configVersion" json:"config_version,omitempty"`
+	ConfigVersion *wrappers.UInt32Value `protobuf:"bytes,20,opt,name=config_version,json=configVersion,proto3" json:"config_version,omitempty"`
 	// The DNS address at which this service is available,
 	// e.g. `calendar.googleapis.com`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// A unique ID for a specific instance of this message, typically assigned
 	// by the client for tracking purpose. If empty, the server may choose to
 	// generate one instead.
-	Id string `protobuf:"bytes,33,opt,name=id" json:"id,omitempty"`
+	Id string `protobuf:"bytes,33,opt,name=id,proto3" json:"id,omitempty"`
 	// The product title for this service.
-	Title string `protobuf:"bytes,2,opt,name=title" json:"title,omitempty"`
+	Title string `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
 	// The Google project that owns this service.
-	ProducerProjectId string `protobuf:"bytes,22,opt,name=producer_project_id,json=producerProjectId" json:"producer_project_id,omitempty"`
+	ProducerProjectId string `protobuf:"bytes,22,opt,name=producer_project_id,json=producerProjectId,proto3" json:"producer_project_id,omitempty"`
 	// A list of API interfaces exported by this service. Only the `name` field
 	// of the [google.protobuf.Api][google.protobuf.Api] needs to be provided by the configuration
 	// author, as the remaining fields will be derived from the IDL during the
 	// normalization process. It is an error to specify an API interface here
 	// which cannot be resolved against the associated IDL files.
-	Apis []*api.Api `protobuf:"bytes,3,rep,name=apis" json:"apis,omitempty"`
+	Apis []*api.Api `protobuf:"bytes,3,rep,name=apis,proto3" json:"apis,omitempty"`
 	// A list of all proto message types included in this API service.
 	// Types referenced directly or indirectly by the `apis` are
 	// automatically included.  Messages which are not referenced but
@@ -81,7 +81,7 @@ type Service struct {
 	//
 	//     types:
 	//     - name: google.protobuf.Int32
-	Types []*ptype.Type `protobuf:"bytes,4,rep,name=types" json:"types,omitempty"`
+	Types []*ptype.Type `protobuf:"bytes,4,rep,name=types,proto3" json:"types,omitempty"`
 	// A list of all enum types included in this API service.  Enums
 	// referenced directly or indirectly by the `apis` are automatically
 	// included.  Enums which are not referenced but shall be included
@@ -89,46 +89,46 @@ type Service struct {
 	//
 	//     enums:
 	//     - name: google.someapi.v1.SomeEnum
-	Enums []*ptype.Enum `protobuf:"bytes,5,rep,name=enums" json:"enums,omitempty"`
+	Enums []*ptype.Enum `protobuf:"bytes,5,rep,name=enums,proto3" json:"enums,omitempty"`
 	// Additional API documentation.
-	Documentation *Documentation `protobuf:"bytes,6,opt,name=documentation" json:"documentation,omitempty"`
+	Documentation *Documentation `protobuf:"bytes,6,opt,name=documentation,proto3" json:"documentation,omitempty"`
 	// API backend configuration.
-	Backend *Backend `protobuf:"bytes,8,opt,name=backend" json:"backend,omitempty"`
+	Backend *Backend `protobuf:"bytes,8,opt,name=backend,proto3" json:"backend,omitempty"`
 	// HTTP configuration.
-	Http *annotations.Http `protobuf:"bytes,9,opt,name=http" json:"http,omitempty"`
+	Http *annotations.Http `protobuf:"bytes,9,opt,name=http,proto3" json:"http,omitempty"`
 	// Quota configuration.
-	Quota *Quota `protobuf:"bytes,10,opt,name=quota" json:"quota,omitempty"`
+	Quota *Quota `protobuf:"bytes,10,opt,name=quota,proto3" json:"quota,omitempty"`
 	// Auth configuration.
-	Authentication *Authentication `protobuf:"bytes,11,opt,name=authentication" json:"authentication,omitempty"`
+	Authentication *Authentication `protobuf:"bytes,11,opt,name=authentication,proto3" json:"authentication,omitempty"`
 	// Context configuration.
-	Context *Context `protobuf:"bytes,12,opt,name=context" json:"context,omitempty"`
+	Context *Context `protobuf:"bytes,12,opt,name=context,proto3" json:"context,omitempty"`
 	// Configuration controlling usage of this service.
-	Usage *Usage `protobuf:"bytes,15,opt,name=usage" json:"usage,omitempty"`
+	Usage *Usage `protobuf:"bytes,15,opt,name=usage,proto3" json:"usage,omitempty"`
 	// Configuration for network endpoints.  If this is empty, then an endpoint
 	// with the same name as the service is automatically generated to service all
 	// defined APIs.
-	Endpoints []*Endpoint `protobuf:"bytes,18,rep,name=endpoints" json:"endpoints,omitempty"`
+	Endpoints []*Endpoint `protobuf:"bytes,18,rep,name=endpoints,proto3" json:"endpoints,omitempty"`
 	// Configuration for the service control plane.
-	Control *Control `protobuf:"bytes,21,opt,name=control" json:"control,omitempty"`
+	Control *Control `protobuf:"bytes,21,opt,name=control,proto3" json:"control,omitempty"`
 	// Defines the logs used by this service.
-	Logs []*LogDescriptor `protobuf:"bytes,23,rep,name=logs" json:"logs,omitempty"`
+	Logs []*LogDescriptor `protobuf:"bytes,23,rep,name=logs,proto3" json:"logs,omitempty"`
 	// Defines the metrics used by this service.
-	Metrics []*metric.MetricDescriptor `protobuf:"bytes,24,rep,name=metrics" json:"metrics,omitempty"`
+	Metrics []*metric.MetricDescriptor `protobuf:"bytes,24,rep,name=metrics,proto3" json:"metrics,omitempty"`
 	// Defines the monitored resources used by this service. This is required
 	// by the [Service.monitoring][google.api.Service.monitoring] and [Service.logging][google.api.Service.logging] configurations.
-	MonitoredResources []*monitoredres.MonitoredResourceDescriptor `protobuf:"bytes,25,rep,name=monitored_resources,json=monitoredResources" json:"monitored_resources,omitempty"`
+	MonitoredResources []*monitoredres.MonitoredResourceDescriptor `protobuf:"bytes,25,rep,name=monitored_resources,json=monitoredResources,proto3" json:"monitored_resources,omitempty"`
 	// Billing configuration.
-	Billing *Billing `protobuf:"bytes,26,opt,name=billing" json:"billing,omitempty"`
+	Billing *Billing `protobuf:"bytes,26,opt,name=billing,proto3" json:"billing,omitempty"`
 	// Logging configuration.
-	Logging *Logging `protobuf:"bytes,27,opt,name=logging" json:"logging,omitempty"`
+	Logging *Logging `protobuf:"bytes,27,opt,name=logging,proto3" json:"logging,omitempty"`
 	// Monitoring configuration.
-	Monitoring *Monitoring `protobuf:"bytes,28,opt,name=monitoring" json:"monitoring,omitempty"`
+	Monitoring *Monitoring `protobuf:"bytes,28,opt,name=monitoring,proto3" json:"monitoring,omitempty"`
 	// System parameter configuration.
-	SystemParameters *SystemParameters `protobuf:"bytes,29,opt,name=system_parameters,json=systemParameters" json:"system_parameters,omitempty"`
+	SystemParameters *SystemParameters `protobuf:"bytes,29,opt,name=system_parameters,json=systemParameters,proto3" json:"system_parameters,omitempty"`
 	// Output only. The source information for this configuration if available.
-	SourceInfo *SourceInfo `protobuf:"bytes,37,opt,name=source_info,json=sourceInfo" json:"source_info,omitempty"`
+	SourceInfo *SourceInfo `protobuf:"bytes,37,opt,name=source_info,json=sourceInfo,proto3" json:"source_info,omitempty"`
 	// Experimental configuration.
-	Experimental         *api1.Experimental `protobuf:"bytes,101,opt,name=experimental" json:"experimental,omitempty"`
+	Experimental         *api1.Experimental `protobuf:"bytes,101,opt,name=experimental,proto3" json:"experimental,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
 	XXX_unrecognized     []byte             `json:"-"`
 	XXX_sizecache        int32              `json:"-"`

@@ -105,14 +105,14 @@ func (CigarUnit_Operation) EnumDescriptor() ([]byte, []int) {
 
 // A single CIGAR operation.
 type CigarUnit struct {
-	Operation CigarUnit_Operation `protobuf:"varint,1,opt,name=operation,enum=google.genomics.v1.CigarUnit_Operation" json:"operation,omitempty"`
+	Operation CigarUnit_Operation `protobuf:"varint,1,opt,name=operation,proto3,enum=google.genomics.v1.CigarUnit_Operation" json:"operation,omitempty"`
 	// The number of genomic bases that the operation runs for. Required.
-	OperationLength int64 `protobuf:"varint,2,opt,name=operation_length,json=operationLength" json:"operation_length,omitempty"`
+	OperationLength int64 `protobuf:"varint,2,opt,name=operation_length,json=operationLength,proto3" json:"operation_length,omitempty"`
 	// `referenceSequence` is only used at mismatches
 	// (`SEQUENCE_MISMATCH`) and deletions (`DELETE`).
 	// Filling this field replaces SAM's MD tag. If the relevant information is
 	// not available, this field is unset.
-	ReferenceSequence    string   `protobuf:"bytes,3,opt,name=reference_sequence,json=referenceSequence" json:"reference_sequence,omitempty"`
+	ReferenceSequence    string   `protobuf:"bytes,3,opt,name=reference_sequence,json=referenceSequence,proto3" json:"reference_sequence,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

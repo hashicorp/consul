@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"reflect"
 	"testing"
 
@@ -122,6 +123,83 @@ func TestLogRequest(t *testing.T) {
 		}
 
 		if e, a := c.ExpectBody, b; !reflect.DeepEqual(e, a) {
+			t.Errorf("%d, expect %v body, got %v", i, e, a)
+		}
+	}
+}
+
+func TestLogResponse(t *testing.T) {
+	cases := []struct {
+		Body       *bytes.Buffer
+		ExpectBody []byte
+		ReadBody   bool
+		LogLevel   aws.LogLevelType
+	}{
+		{
+			Body:       bytes.NewBuffer([]byte("body content")),
+			ExpectBody: []byte("body content"),
+		},
+		{
+			Body:       bytes.NewBuffer([]byte("body content")),
+			LogLevel:   aws.LogDebug,
+			ExpectBody: []byte("body content"),
+		},
+		{
+			Body:       bytes.NewBuffer([]byte("body content")),
+			LogLevel:   aws.LogDebugWithHTTPBody,
+			ReadBody:   true,
+			ExpectBody: []byte("body content"),
+		},
+	}
+
+	for i, c := range cases {
+		var logW bytes.Buffer
+		req := request.New(
+			aws.Config{
+				Credentials: credentials.AnonymousCredentials,
+				Logger:      &bufLogger{w: &logW},
+				LogLevel:    aws.LogLevel(c.LogLevel),
+			},
+			metadata.ClientInfo{
+				Endpoint: "https://mock-service.mock-region.amazonaws.com",
+			},
+			testHandlers(),
+			nil,
+			&request.Operation{
+				Name:       "APIName",
+				HTTPMethod: "POST",
+				HTTPPath:   "/",
+			},
+			struct{}{}, nil,
+		)
+		req.HTTPResponse = &http.Response{
+			StatusCode: 200,
+			Status:     "OK",
+			Header: http.Header{
+				"ABC": []string{"123"},
+			},
+			Body: ioutil.NopCloser(c.Body),
+		}
+
+		logResponse(req)
+		req.Handlers.Unmarshal.Run(req)
+
+		if c.ReadBody {
+			if e, a := len(c.ExpectBody), c.Body.Len(); e != a {
+				t.Errorf("%d, expect orginal body not to of been read", i)
+			}
+		}
+
+		if logW.Len() == 0 {
+			t.Errorf("%d, expect HTTP Response headers to be logged", i)
+		}
+
+		b, err := ioutil.ReadAll(req.HTTPResponse.Body)
+		if err != nil {
+			t.Fatalf("%d, expect to read SDK request Body", i)
+		}
+
+		if e, a := c.ExpectBody, b; !bytes.Equal(e, a) {
 			t.Errorf("%d, expect %v body, got %v", i, e, a)
 		}
 	}

@@ -102,10 +102,12 @@
           "type": "string"
         },
         "url": {
-          "type": "string"
+          "type": "string",
+          "format": "uri"
         },
         "email": {
-          "type": "string"
+          "type": "string",
+          "format": "email"
         }
       }
     },
@@ -691,11 +693,6 @@
           "$ref": "#/definitions/externalDocs"
         }
       }
-    },
-    "examples": {
-      "type": "object",
-      "description": "",
-      "additionalProperties": false
     },
     "reference": {
       "type": "object",

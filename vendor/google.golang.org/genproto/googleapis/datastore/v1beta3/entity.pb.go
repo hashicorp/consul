@@ -43,9 +43,9 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 // Reads and writes of foreign partition IDs may fail if the project is not in an active state.
 type PartitionId struct {
 	// The ID of the project to which the entities belong.
-	ProjectId string `protobuf:"bytes,2,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// If not empty, the ID of the namespace to which the entities belong.
-	NamespaceId          string   `protobuf:"bytes,4,opt,name=namespace_id,json=namespaceId" json:"namespace_id,omitempty"`
+	NamespaceId          string   `protobuf:"bytes,4,opt,name=namespace_id,json=namespaceId,proto3" json:"namespace_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -97,7 +97,7 @@ type Key struct {
 	// Entities are partitioned into subsets, currently identified by a project
 	// ID and namespace ID.
 	// Queries are scoped to a single partition.
-	PartitionId *PartitionId `protobuf:"bytes,1,opt,name=partition_id,json=partitionId" json:"partition_id,omitempty"`
+	PartitionId *PartitionId `protobuf:"bytes,1,opt,name=partition_id,json=partitionId,proto3" json:"partition_id,omitempty"`
 	// The entity path.
 	// An entity path consists of one or more elements composed of a kind and a
 	// string or numerical identifier, which identify entities. The first
@@ -114,7 +114,7 @@ type Key struct {
 	// identifier.
 	//
 	// A path can never be empty, and a path can have at most 100 elements.
-	Path                 []*Key_PathElement `protobuf:"bytes,2,rep,name=path" json:"path,omitempty"`
+	Path                 []*Key_PathElement `protobuf:"bytes,2,rep,name=path,proto3" json:"path,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
 	XXX_unrecognized     []byte             `json:"-"`
 	XXX_sizecache        int32              `json:"-"`
@@ -167,7 +167,7 @@ type Key_PathElement struct {
 	// A kind matching regex `__.*__` is reserved/read-only.
 	// A kind must not contain more than 1500 bytes when UTF-8 encoded.
 	// Cannot be `""`.
-	Kind string `protobuf:"bytes,1,opt,name=kind" json:"kind,omitempty"`
+	Kind string `protobuf:"bytes,1,opt,name=kind,proto3" json:"kind,omitempty"`
 	// The type of ID.
 	//
 	// Types that are valid to be assigned to IdType:
@@ -208,10 +208,10 @@ type isKey_PathElement_IdType interface {
 }
 
 type Key_PathElement_Id struct {
-	Id int64 `protobuf:"varint,2,opt,name=id,oneof"`
+	Id int64 `protobuf:"varint,2,opt,name=id,proto3,oneof"`
 }
 type Key_PathElement_Name struct {
-	Name string `protobuf:"bytes,3,opt,name=name,oneof"`
+	Name string `protobuf:"bytes,3,opt,name=name,proto3,oneof"`
 }
 
 func (*Key_PathElement_Id) isKey_PathElement_IdType()   {}
@@ -315,7 +315,7 @@ type ArrayValue struct {
 	// Values in the array.
 	// The order of this array may not be preserved if it contains a mix of
 	// indexed and unindexed values.
-	Values               []*Value `protobuf:"bytes,1,rep,name=values" json:"values,omitempty"`
+	Values               []*Value `protobuf:"bytes,1,rep,name=values,proto3" json:"values,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -371,10 +371,10 @@ type Value struct {
 	//	*Value_ArrayValue
 	ValueType isValue_ValueType `protobuf_oneof:"value_type"`
 	// The `meaning` field should only be populated for backwards compatibility.
-	Meaning int32 `protobuf:"varint,14,opt,name=meaning" json:"meaning,omitempty"`
+	Meaning int32 `protobuf:"varint,14,opt,name=meaning,proto3" json:"meaning,omitempty"`
 	// If the value should be excluded from all indexes including those defined
 	// explicitly.
-	ExcludeFromIndexes   bool     `protobuf:"varint,19,opt,name=exclude_from_indexes,json=excludeFromIndexes" json:"exclude_from_indexes,omitempty"`
+	ExcludeFromIndexes   bool     `protobuf:"varint,19,opt,name=exclude_from_indexes,json=excludeFromIndexes,proto3" json:"exclude_from_indexes,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -409,37 +409,37 @@ type isValue_ValueType interface {
 }
 
 type Value_NullValue struct {
-	NullValue _struct.NullValue `protobuf:"varint,11,opt,name=null_value,json=nullValue,enum=google.protobuf.NullValue,oneof"`
+	NullValue _struct.NullValue `protobuf:"varint,11,opt,name=null_value,json=nullValue,proto3,enum=google.protobuf.NullValue,oneof"`
 }
 type Value_BooleanValue struct {
-	BooleanValue bool `protobuf:"varint,1,opt,name=boolean_value,json=booleanValue,oneof"`
+	BooleanValue bool `protobuf:"varint,1,opt,name=boolean_value,json=booleanValue,proto3,oneof"`
 }
 type Value_IntegerValue struct {
-	IntegerValue int64 `protobuf:"varint,2,opt,name=integer_value,json=integerValue,oneof"`
+	IntegerValue int64 `protobuf:"varint,2,opt,name=integer_value,json=integerValue,proto3,oneof"`
 }
 type Value_DoubleValue struct {
-	DoubleValue float64 `protobuf:"fixed64,3,opt,name=double_value,json=doubleValue,oneof"`
+	DoubleValue float64 `protobuf:"fixed64,3,opt,name=double_value,json=doubleValue,proto3,oneof"`
 }
 type Value_TimestampValue struct {
-	TimestampValue *timestamp.Timestamp `protobuf:"bytes,10,opt,name=timestamp_value,json=timestampValue,oneof"`
+	TimestampValue *timestamp.Timestamp `protobuf:"bytes,10,opt,name=timestamp_value,json=timestampValue,proto3,oneof"`
 }
 type Value_KeyValue struct {
-	KeyValue *Key `protobuf:"bytes,5,opt,name=key_value,json=keyValue,oneof"`
+	KeyValue *Key `protobuf:"bytes,5,opt,name=key_value,json=keyValue,proto3,oneof"`
 }
 type Value_StringValue struct {
-	StringValue string `protobuf:"bytes,17,opt,name=string_value,json=stringValue,oneof"`
+	StringValue string `protobuf:"bytes,17,opt,name=string_value,json=stringValue,proto3,oneof"`
 }
 type Value_BlobValue struct {
 	BlobValue []byte `protobuf:"bytes,18,opt,name=blob_value,json=blobValue,proto3,oneof"`
 }
 type Value_GeoPointValue struct {
-	GeoPointValue *latlng.LatLng `protobuf:"bytes,8,opt,name=geo_point_value,json=geoPointValue,oneof"`
+	GeoPointValue *latlng.LatLng `protobuf:"bytes,8,opt,name=geo_point_value,json=geoPointValue,proto3,oneof"`
 }
 type Value_EntityValue struct {
-	EntityValue *Entity `protobuf:"bytes,6,opt,name=entity_value,json=entityValue,oneof"`
+	EntityValue *Entity `protobuf:"bytes,6,opt,name=entity_value,json=entityValue,proto3,oneof"`
 }
 type Value_ArrayValue struct {
-	ArrayValue *ArrayValue `protobuf:"bytes,9,opt,name=array_value,json=arrayValue,oneof"`
+	ArrayValue *ArrayValue `protobuf:"bytes,9,opt,name=array_value,json=arrayValue,proto3,oneof"`
 }
 
 func (*Value_NullValue) isValue_ValueType()      {}
@@ -785,14 +785,14 @@ type Entity struct {
 	// an entity in `Value.entity_value` may have no key).
 	// An entity's kind is its key path's last element's kind,
 	// or null if it has no key.
-	Key *Key `protobuf:"bytes,1,opt,name=key" json:"key,omitempty"`
+	Key *Key `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
 	// The entity's properties.
 	// The map's keys are property names.
 	// A property name matching regex `__.*__` is reserved.
 	// A reserved property name is forbidden in certain documented contexts.
 	// The name must not contain more than 500 characters.
 	// The name cannot be `""`.
-	Properties           map[string]*Value `protobuf:"bytes,3,rep,name=properties" json:"properties,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Properties           map[string]*Value `protobuf:"bytes,3,rep,name=properties,proto3" json:"properties,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`

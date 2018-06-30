@@ -26,13 +26,13 @@ type CrawledUrl struct {
 	// Output only.
 	// The http method of the request that was used to visit the URL, in
 	// uppercase.
-	HttpMethod string `protobuf:"bytes,1,opt,name=http_method,json=httpMethod" json:"http_method,omitempty"`
+	HttpMethod string `protobuf:"bytes,1,opt,name=http_method,json=httpMethod,proto3" json:"http_method,omitempty"`
 	// Output only.
 	// The URL that was crawled.
-	Url string `protobuf:"bytes,2,opt,name=url" json:"url,omitempty"`
+	Url string `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
 	// Output only.
 	// The body of the request that was used to visit the URL.
-	Body                 string   `protobuf:"bytes,3,opt,name=body" json:"body,omitempty"`
+	Body                 string   `protobuf:"bytes,3,opt,name=body,proto3" json:"body,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

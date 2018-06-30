@@ -26,7 +26,7 @@ type UploadRef struct {
 	// Required. An upload reference should be unique for each user. It follows
 	// the form:
 	// "https://streetviewpublish.googleapis.com/media/user/<account_id>/photo/<upload_reference>"
-	UploadUrl            string   `protobuf:"bytes,1,opt,name=upload_url,json=uploadUrl" json:"upload_url,omitempty"`
+	UploadUrl            string   `protobuf:"bytes,1,opt,name=upload_url,json=uploadUrl,proto3" json:"upload_url,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -66,7 +66,7 @@ func (m *UploadRef) GetUploadUrl() string {
 // Identifier for a photo.
 type PhotoId struct {
 	// Required. A base64 encoded identifier.
-	Id                   string   `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -108,11 +108,11 @@ type Level struct {
 	// Floor number, used for ordering. 0 indicates the ground level, 1 indicates
 	// the first level above ground level, -1 indicates the first level under
 	// ground level. Non-integer values are OK.
-	Number float64 `protobuf:"fixed64,1,opt,name=number" json:"number,omitempty"`
+	Number float64 `protobuf:"fixed64,1,opt,name=number,proto3" json:"number,omitempty"`
 	// Required. A name assigned to this Level, restricted to 3 characters.
 	// Consider how the elevator buttons would be labeled for this level if there
 	// was an elevator.
-	Name                 string   `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -164,25 +164,25 @@ type Pose struct {
 	// here, the geolocation from the exif header will be used.
 	// If the latitude and longitude pair is not provided and cannot be found in
 	// the exif header, the create photo process will fail.
-	LatLngPair *latlng.LatLng `protobuf:"bytes,1,opt,name=lat_lng_pair,json=latLngPair" json:"lat_lng_pair,omitempty"`
+	LatLngPair *latlng.LatLng `protobuf:"bytes,1,opt,name=lat_lng_pair,json=latLngPair,proto3" json:"lat_lng_pair,omitempty"`
 	// Altitude of the pose in meters above ground level (as defined by WGS84).
 	// NaN indicates an unmeasured quantity.
-	Altitude float64 `protobuf:"fixed64,2,opt,name=altitude" json:"altitude,omitempty"`
+	Altitude float64 `protobuf:"fixed64,2,opt,name=altitude,proto3" json:"altitude,omitempty"`
 	// Compass heading, measured at the center of the photo in degrees clockwise
 	// from North. Value must be >=0 and <360.
 	// NaN indicates an unmeasured quantity.
-	Heading float64 `protobuf:"fixed64,3,opt,name=heading" json:"heading,omitempty"`
+	Heading float64 `protobuf:"fixed64,3,opt,name=heading,proto3" json:"heading,omitempty"`
 	// Pitch, measured at the center of the photo in degrees. Value must be >=-90
 	// and <= 90. A value of -90 means looking directly down, and a value of 90
 	// means looking directly up.
 	// NaN indicates an unmeasured quantity.
-	Pitch float64 `protobuf:"fixed64,4,opt,name=pitch" json:"pitch,omitempty"`
+	Pitch float64 `protobuf:"fixed64,4,opt,name=pitch,proto3" json:"pitch,omitempty"`
 	// Roll, measured in degrees. Value must be >= 0 and <360. A value of 0
 	// means level with the horizon.
 	// NaN indicates an unmeasured quantity.
-	Roll float64 `protobuf:"fixed64,5,opt,name=roll" json:"roll,omitempty"`
+	Roll float64 `protobuf:"fixed64,5,opt,name=roll,proto3" json:"roll,omitempty"`
 	// Level (the floor in a building) used to configure vertical navigation.
-	Level                *Level   `protobuf:"bytes,7,opt,name=level" json:"level,omitempty"`
+	Level                *Level   `protobuf:"bytes,7,opt,name=level,proto3" json:"level,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -258,7 +258,7 @@ func (m *Pose) GetLevel() *Level {
 type Place struct {
 	// Required. Place identifier, as described in
 	// https://developers.google.com/places/place-id.
-	PlaceId              string   `protobuf:"bytes,1,opt,name=place_id,json=placeId" json:"place_id,omitempty"`
+	PlaceId              string   `protobuf:"bytes,1,opt,name=place_id,json=placeId,proto3" json:"place_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -299,7 +299,7 @@ func (m *Place) GetPlaceId() string {
 type Connection struct {
 	// Required. The destination of the connection from the containing photo to
 	// another photo.
-	Target               *PhotoId `protobuf:"bytes,1,opt,name=target" json:"target,omitempty"`
+	Target               *PhotoId `protobuf:"bytes,1,opt,name=target,proto3" json:"target,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -340,31 +340,31 @@ func (m *Connection) GetTarget() *PhotoId {
 type Photo struct {
 	// Output only. Identifier for the photo, which is unique among all photos in
 	// Google.
-	PhotoId *PhotoId `protobuf:"bytes,1,opt,name=photo_id,json=photoId" json:"photo_id,omitempty"`
+	PhotoId *PhotoId `protobuf:"bytes,1,opt,name=photo_id,json=photoId,proto3" json:"photo_id,omitempty"`
 	// Required (when creating photo). Input only. The resource URL where the
 	// photo bytes are uploaded to.
-	UploadReference *UploadRef `protobuf:"bytes,2,opt,name=upload_reference,json=uploadReference" json:"upload_reference,omitempty"`
+	UploadReference *UploadRef `protobuf:"bytes,2,opt,name=upload_reference,json=uploadReference,proto3" json:"upload_reference,omitempty"`
 	// Output only. The download URL for the photo bytes. This field is set only
 	// when the `view` parameter in a `GetPhotoRequest` is set to
 	// `INCLUDE_DOWNLOAD_URL`.
-	DownloadUrl string `protobuf:"bytes,3,opt,name=download_url,json=downloadUrl" json:"download_url,omitempty"`
+	DownloadUrl string `protobuf:"bytes,3,opt,name=download_url,json=downloadUrl,proto3" json:"download_url,omitempty"`
 	// Output only. The thumbnail URL for showing a preview of the given photo.
-	ThumbnailUrl string `protobuf:"bytes,9,opt,name=thumbnail_url,json=thumbnailUrl" json:"thumbnail_url,omitempty"`
+	ThumbnailUrl string `protobuf:"bytes,9,opt,name=thumbnail_url,json=thumbnailUrl,proto3" json:"thumbnail_url,omitempty"`
 	// Output only. The share link for the photo.
-	ShareLink string `protobuf:"bytes,11,opt,name=share_link,json=shareLink" json:"share_link,omitempty"`
+	ShareLink string `protobuf:"bytes,11,opt,name=share_link,json=shareLink,proto3" json:"share_link,omitempty"`
 	// Pose of the photo.
-	Pose *Pose `protobuf:"bytes,4,opt,name=pose" json:"pose,omitempty"`
+	Pose *Pose `protobuf:"bytes,4,opt,name=pose,proto3" json:"pose,omitempty"`
 	// Connections to other photos. A connection represents the link from this
 	// photo to another photo.
-	Connections []*Connection `protobuf:"bytes,5,rep,name=connections" json:"connections,omitempty"`
+	Connections []*Connection `protobuf:"bytes,5,rep,name=connections,proto3" json:"connections,omitempty"`
 	// Absolute time when the photo was captured.
 	// When the photo has no exif timestamp, this is used to set a timestamp in
 	// the photo metadata.
-	CaptureTime *timestamp.Timestamp `protobuf:"bytes,6,opt,name=capture_time,json=captureTime" json:"capture_time,omitempty"`
+	CaptureTime *timestamp.Timestamp `protobuf:"bytes,6,opt,name=capture_time,json=captureTime,proto3" json:"capture_time,omitempty"`
 	// Places where this photo belongs.
-	Places []*Place `protobuf:"bytes,7,rep,name=places" json:"places,omitempty"`
+	Places []*Place `protobuf:"bytes,7,rep,name=places,proto3" json:"places,omitempty"`
 	// Output only. View count of the photo.
-	ViewCount            int64    `protobuf:"varint,10,opt,name=view_count,json=viewCount" json:"view_count,omitempty"`
+	ViewCount            int64    `protobuf:"varint,10,opt,name=view_count,json=viewCount,proto3" json:"view_count,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

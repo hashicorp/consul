@@ -73,13 +73,13 @@ type SessionEntityType struct {
 	// Required. The unique identifier of this session entity type. Format:
 	// `projects/<Project ID>/agent/sessions/<Session ID>/entityTypes/<Entity Type
 	// Display Name>`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Required. Indicates whether the additional data should override or
 	// supplement the developer entity type definition.
-	EntityOverrideMode SessionEntityType_EntityOverrideMode `protobuf:"varint,2,opt,name=entity_override_mode,json=entityOverrideMode,enum=google.cloud.dialogflow.v2.SessionEntityType_EntityOverrideMode" json:"entity_override_mode,omitempty"`
+	EntityOverrideMode SessionEntityType_EntityOverrideMode `protobuf:"varint,2,opt,name=entity_override_mode,json=entityOverrideMode,proto3,enum=google.cloud.dialogflow.v2.SessionEntityType_EntityOverrideMode" json:"entity_override_mode,omitempty"`
 	// Required. The collection of entities associated with this session entity
 	// type.
-	Entities             []*EntityType_Entity `protobuf:"bytes,3,rep,name=entities" json:"entities,omitempty"`
+	Entities             []*EntityType_Entity `protobuf:"bytes,3,rep,name=entities,proto3" json:"entities,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -134,12 +134,12 @@ func (m *SessionEntityType) GetEntities() []*EntityType_Entity {
 type ListSessionEntityTypesRequest struct {
 	// Required. The session to list all session entity types from.
 	// Format: `projects/<Project ID>/agent/sessions/<Session ID>`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Optional. The maximum number of items to return in a single page. By
 	// default 100 and at most 1000.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Optional. The next_page_token value returned from a previous list request.
-	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -194,10 +194,10 @@ func (m *ListSessionEntityTypesRequest) GetPageToken() string {
 type ListSessionEntityTypesResponse struct {
 	// The list of session entity types. There will be a maximum number of items
 	// returned based on the page_size field in the request.
-	SessionEntityTypes []*SessionEntityType `protobuf:"bytes,1,rep,name=session_entity_types,json=sessionEntityTypes" json:"session_entity_types,omitempty"`
+	SessionEntityTypes []*SessionEntityType `protobuf:"bytes,1,rep,name=session_entity_types,json=sessionEntityTypes,proto3" json:"session_entity_types,omitempty"`
 	// Token to retrieve the next page of results, or empty if there are no
 	// more results in the list.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -246,7 +246,7 @@ type GetSessionEntityTypeRequest struct {
 	// Required. The name of the session entity type. Format:
 	// `projects/<Project ID>/agent/sessions/<Session ID>/entityTypes/<Entity Type
 	// Display Name>`.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -287,9 +287,9 @@ func (m *GetSessionEntityTypeRequest) GetName() string {
 type CreateSessionEntityTypeRequest struct {
 	// Required. The session to create a session entity type for.
 	// Format: `projects/<Project ID>/agent/sessions/<Session ID>`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Required. The session entity type to create.
-	SessionEntityType    *SessionEntityType `protobuf:"bytes,2,opt,name=session_entity_type,json=sessionEntityType" json:"session_entity_type,omitempty"`
+	SessionEntityType    *SessionEntityType `protobuf:"bytes,2,opt,name=session_entity_type,json=sessionEntityType,proto3" json:"session_entity_type,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
 	XXX_unrecognized     []byte             `json:"-"`
 	XXX_sizecache        int32              `json:"-"`
@@ -338,9 +338,9 @@ type UpdateSessionEntityTypeRequest struct {
 	// Required. The entity type to update. Format:
 	// `projects/<Project ID>/agent/sessions/<Session ID>/entityTypes/<Entity Type
 	// Display Name>`.
-	SessionEntityType *SessionEntityType `protobuf:"bytes,1,opt,name=session_entity_type,json=sessionEntityType" json:"session_entity_type,omitempty"`
+	SessionEntityType *SessionEntityType `protobuf:"bytes,1,opt,name=session_entity_type,json=sessionEntityType,proto3" json:"session_entity_type,omitempty"`
 	// Optional. The mask to control which fields get updated.
-	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -389,7 +389,7 @@ type DeleteSessionEntityTypeRequest struct {
 	// Required. The name of the entity type to delete. Format:
 	// `projects/<Project ID>/agent/sessions/<Session ID>/entityTypes/<Entity Type
 	// Display Name>`.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -514,8 +514,7 @@ func (c *sessionEntityTypesClient) DeleteSessionEntityType(ctx context.Context, 
 	return out, nil
 }
 
-// Server API for SessionEntityTypes service
-
+// SessionEntityTypesServer is the server API for SessionEntityTypes service.
 type SessionEntityTypesServer interface {
 	// Returns the list of all session entity types in the specified session.
 	ListSessionEntityTypes(context.Context, *ListSessionEntityTypesRequest) (*ListSessionEntityTypesResponse, error)

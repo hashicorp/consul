@@ -34,7 +34,7 @@ type GetGroupRequest struct {
 	// this project.
 	//
 	// Example: <code>projects/my-project-123/groups/my-group</code>
-	GroupName            string   `protobuf:"bytes,1,opt,name=group_name,json=groupName" json:"group_name,omitempty"`
+	GroupName            string   `protobuf:"bytes,1,opt,name=group_name,json=groupName,proto3" json:"group_name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -74,7 +74,7 @@ func (m *GetGroupRequest) GetGroupName() string {
 // A request to replace the existing data for the given group.
 type UpdateGroupRequest struct {
 	// [Required] The group which replaces the resource on the server.
-	Group                *ErrorGroup `protobuf:"bytes,1,opt,name=group" json:"group,omitempty"`
+	Group                *ErrorGroup `protobuf:"bytes,1,opt,name=group,proto3" json:"group,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
 	XXX_unrecognized     []byte      `json:"-"`
 	XXX_sizecache        int32       `json:"-"`
@@ -161,8 +161,7 @@ func (c *errorGroupServiceClient) UpdateGroup(ctx context.Context, in *UpdateGro
 	return out, nil
 }
 
-// Server API for ErrorGroupService service
-
+// ErrorGroupServiceServer is the server API for ErrorGroupService service.
 type ErrorGroupServiceServer interface {
 	// Get the specified group.
 	GetGroup(context.Context, *GetGroupRequest) (*ErrorGroup, error)

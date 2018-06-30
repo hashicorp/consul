@@ -227,9 +227,9 @@ func (BuildOptions_LogStreamingOption) EnumDescriptor() ([]byte, []int) {
 // Specifies a build to retry.
 type RetryBuildRequest struct {
 	// ID of the project.
-	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// Build ID of the original build.
-	Id                   string   `protobuf:"bytes,2,opt,name=id" json:"id,omitempty"`
+	Id                   string   `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -276,11 +276,11 @@ func (m *RetryBuildRequest) GetId() string {
 // Specifies a build trigger to run and the source to use.
 type RunBuildTriggerRequest struct {
 	// ID of the project.
-	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// ID of the trigger.
-	TriggerId string `protobuf:"bytes,2,opt,name=trigger_id,json=triggerId" json:"trigger_id,omitempty"`
+	TriggerId string `protobuf:"bytes,2,opt,name=trigger_id,json=triggerId,proto3" json:"trigger_id,omitempty"`
 	// Source to build against this trigger.
-	Source               *RepoSource `protobuf:"bytes,3,opt,name=source" json:"source,omitempty"`
+	Source               *RepoSource `protobuf:"bytes,3,opt,name=source,proto3" json:"source,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
 	XXX_unrecognized     []byte      `json:"-"`
 	XXX_sizecache        int32       `json:"-"`
@@ -336,15 +336,15 @@ type StorageSource struct {
 	// Google Cloud Storage bucket containing the source (see
 	// [Bucket Name
 	// Requirements](https://cloud.google.com/storage/docs/bucket-naming#requirements)).
-	Bucket string `protobuf:"bytes,1,opt,name=bucket" json:"bucket,omitempty"`
+	Bucket string `protobuf:"bytes,1,opt,name=bucket,proto3" json:"bucket,omitempty"`
 	// Google Cloud Storage object containing the source.
 	//
 	// This object must be a gzipped archive file (`.tar.gz`) containing source to
 	// build.
-	Object string `protobuf:"bytes,2,opt,name=object" json:"object,omitempty"`
+	Object string `protobuf:"bytes,2,opt,name=object,proto3" json:"object,omitempty"`
 	// Google Cloud Storage generation for the object. If the generation is
 	// omitted, the latest generation will be used.
-	Generation           int64    `protobuf:"varint,3,opt,name=generation" json:"generation,omitempty"`
+	Generation           int64    `protobuf:"varint,3,opt,name=generation,proto3" json:"generation,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -399,10 +399,10 @@ func (m *StorageSource) GetGeneration() int64 {
 type RepoSource struct {
 	// ID of the project that owns the Cloud Source Repository. If omitted, the
 	// project ID requesting the build is assumed.
-	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// Name of the Cloud Source Repository. If omitted, the name "default" is
 	// assumed.
-	RepoName string `protobuf:"bytes,2,opt,name=repo_name,json=repoName" json:"repo_name,omitempty"`
+	RepoName string `protobuf:"bytes,2,opt,name=repo_name,json=repoName,proto3" json:"repo_name,omitempty"`
 	// A revision within the Cloud Source Repository must be specified in
 	// one of these ways.
 	//
@@ -415,7 +415,7 @@ type RepoSource struct {
 	//
 	// This must be a relative path. If a step's `dir` is specified and is an
 	// absolute path, this value is ignored for that step's execution.
-	Dir                  string   `protobuf:"bytes,7,opt,name=dir" json:"dir,omitempty"`
+	Dir                  string   `protobuf:"bytes,7,opt,name=dir,proto3" json:"dir,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -450,13 +450,13 @@ type isRepoSource_Revision interface {
 }
 
 type RepoSource_BranchName struct {
-	BranchName string `protobuf:"bytes,3,opt,name=branch_name,json=branchName,oneof"`
+	BranchName string `protobuf:"bytes,3,opt,name=branch_name,json=branchName,proto3,oneof"`
 }
 type RepoSource_TagName struct {
-	TagName string `protobuf:"bytes,4,opt,name=tag_name,json=tagName,oneof"`
+	TagName string `protobuf:"bytes,4,opt,name=tag_name,json=tagName,proto3,oneof"`
 }
 type RepoSource_CommitSha struct {
-	CommitSha string `protobuf:"bytes,5,opt,name=commit_sha,json=commitSha,oneof"`
+	CommitSha string `protobuf:"bytes,5,opt,name=commit_sha,json=commitSha,proto3,oneof"`
 }
 
 func (*RepoSource_BranchName) isRepoSource_Revision() {}
@@ -635,10 +635,10 @@ type isSource_Source interface {
 }
 
 type Source_StorageSource struct {
-	StorageSource *StorageSource `protobuf:"bytes,2,opt,name=storage_source,json=storageSource,oneof"`
+	StorageSource *StorageSource `protobuf:"bytes,2,opt,name=storage_source,json=storageSource,proto3,oneof"`
 }
 type Source_RepoSource struct {
-	RepoSource *RepoSource `protobuf:"bytes,3,opt,name=repo_source,json=repoSource,oneof"`
+	RepoSource *RepoSource `protobuf:"bytes,3,opt,name=repo_source,json=repoSource,proto3,oneof"`
 }
 
 func (*Source_StorageSource) isSource_Source() {}
@@ -743,12 +743,12 @@ func _Source_OneofSizer(msg proto.Message) (n int) {
 type BuiltImage struct {
 	// Name used to push the container image to Google Container Registry, as
 	// presented to `docker push`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Docker Registry 2.0 digest.
-	Digest string `protobuf:"bytes,3,opt,name=digest" json:"digest,omitempty"`
+	Digest string `protobuf:"bytes,3,opt,name=digest,proto3" json:"digest,omitempty"`
 	// Stores timing information for pushing the specified image.
 	// @OutputOnly
-	PushTiming           *TimeSpan `protobuf:"bytes,4,opt,name=push_timing,json=pushTiming" json:"push_timing,omitempty"`
+	PushTiming           *TimeSpan `protobuf:"bytes,4,opt,name=push_timing,json=pushTiming,proto3" json:"push_timing,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -818,19 +818,19 @@ type BuildStep struct {
 	// If you built an image in a previous build step, it will be stored in the
 	// host's Docker daemon's cache and is available to use as the name for a
 	// later build step.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// A list of environment variable definitions to be used when running a step.
 	//
 	// The elements are of the form "KEY=VALUE" for the environment variable "KEY"
 	// being given the value "VALUE".
-	Env []string `protobuf:"bytes,2,rep,name=env" json:"env,omitempty"`
+	Env []string `protobuf:"bytes,2,rep,name=env,proto3" json:"env,omitempty"`
 	// A list of arguments that will be presented to the step when it is started.
 	//
 	// If the image used to run the step's container has an entrypoint, the `args`
 	// are used as arguments to that entrypoint. If the image does not define
 	// an entrypoint, the first element in args is used as the entrypoint,
 	// and the remainder will be used as arguments.
-	Args []string `protobuf:"bytes,3,rep,name=args" json:"args,omitempty"`
+	Args []string `protobuf:"bytes,3,rep,name=args,proto3" json:"args,omitempty"`
 	// Working directory to use when running this step's container.
 	//
 	// If this value is a relative path, it is relative to the build's working
@@ -841,23 +841,23 @@ type BuildStep struct {
 	// If the build specifies a `RepoSource` with `dir` and a step with a `dir`,
 	// which specifies an absolute path, the `RepoSource` `dir` is ignored for
 	// the step's execution.
-	Dir string `protobuf:"bytes,4,opt,name=dir" json:"dir,omitempty"`
+	Dir string `protobuf:"bytes,4,opt,name=dir,proto3" json:"dir,omitempty"`
 	// Unique identifier for this build step, used in `wait_for` to
 	// reference this build step as a dependency.
-	Id string `protobuf:"bytes,5,opt,name=id" json:"id,omitempty"`
+	Id string `protobuf:"bytes,5,opt,name=id,proto3" json:"id,omitempty"`
 	// The ID(s) of the step(s) that this build step depends on.
 	// This build step will not start until all the build steps in `wait_for`
 	// have completed successfully. If `wait_for` is empty, this build step will
 	// start when all previous build steps in the `Build.Steps` list have
 	// completed successfully.
-	WaitFor []string `protobuf:"bytes,6,rep,name=wait_for,json=waitFor" json:"wait_for,omitempty"`
+	WaitFor []string `protobuf:"bytes,6,rep,name=wait_for,json=waitFor,proto3" json:"wait_for,omitempty"`
 	// Entrypoint to be used instead of the build step image's default entrypoint.
 	// If unset, the image's default entrypoint is used.
-	Entrypoint string `protobuf:"bytes,7,opt,name=entrypoint" json:"entrypoint,omitempty"`
+	Entrypoint string `protobuf:"bytes,7,opt,name=entrypoint,proto3" json:"entrypoint,omitempty"`
 	// A list of environment variables which are encrypted using a Cloud Key
 	// Management Service crypto key. These values must be specified in the
 	// build's `Secret`.
-	SecretEnv []string `protobuf:"bytes,8,rep,name=secret_env,json=secretEnv" json:"secret_env,omitempty"`
+	SecretEnv []string `protobuf:"bytes,8,rep,name=secret_env,json=secretEnv,proto3" json:"secret_env,omitempty"`
 	// List of volumes to mount into the build step.
 	//
 	// Each volume will be created as an empty volume prior to execution of the
@@ -866,19 +866,19 @@ type BuildStep struct {
 	//
 	// Using a named volume in only one step is not valid as it is indicative
 	// of a mis-configured build request.
-	Volumes []*Volume `protobuf:"bytes,9,rep,name=volumes" json:"volumes,omitempty"`
+	Volumes []*Volume `protobuf:"bytes,9,rep,name=volumes,proto3" json:"volumes,omitempty"`
 	// Stores timing information for executing this build step.
 	// @OutputOnly
-	Timing *TimeSpan `protobuf:"bytes,10,opt,name=timing" json:"timing,omitempty"`
+	Timing *TimeSpan `protobuf:"bytes,10,opt,name=timing,proto3" json:"timing,omitempty"`
 	// Time limit for executing this build step. If not defined, the step has no
 	// time limit and will be allowed to continue to run until either it completes
 	// or the build itself times out.
-	Timeout *duration.Duration `protobuf:"bytes,11,opt,name=timeout" json:"timeout,omitempty"`
+	Timeout *duration.Duration `protobuf:"bytes,11,opt,name=timeout,proto3" json:"timeout,omitempty"`
 	// Status of the build step. At this time, build step status is only updated
 	// on build completion; step status is not updated in real-time as the build
 	// progresses.
 	// @OutputOnly
-	Status               Build_Status `protobuf:"varint,12,opt,name=status,enum=google.devtools.cloudbuild.v1.Build_Status" json:"status,omitempty"`
+	Status               Build_Status `protobuf:"varint,12,opt,name=status,proto3,enum=google.devtools.cloudbuild.v1.Build_Status" json:"status,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
 	XXX_unrecognized     []byte       `json:"-"`
 	XXX_sizecache        int32        `json:"-"`
@@ -999,12 +999,12 @@ type Volume struct {
 	//
 	// Volume names must be unique per build step and must be valid names for
 	// Docker volumes. Each named volume must be used by at least two build steps.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Path at which to mount the volume.
 	//
 	// Paths must be absolute and cannot conflict with other volume paths on the
 	// same build step or with certain reserved volume paths.
-	Path                 string   `protobuf:"bytes,2,opt,name=path" json:"path,omitempty"`
+	Path                 string   `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1051,14 +1051,14 @@ func (m *Volume) GetPath() string {
 // Artifacts created by the build pipeline.
 type Results struct {
 	// Container images that were built as a part of the build.
-	Images []*BuiltImage `protobuf:"bytes,2,rep,name=images" json:"images,omitempty"`
+	Images []*BuiltImage `protobuf:"bytes,2,rep,name=images,proto3" json:"images,omitempty"`
 	// List of build step digests, in the order corresponding to build step
 	// indices.
-	BuildStepImages []string `protobuf:"bytes,3,rep,name=build_step_images,json=buildStepImages" json:"build_step_images,omitempty"`
+	BuildStepImages []string `protobuf:"bytes,3,rep,name=build_step_images,json=buildStepImages,proto3" json:"build_step_images,omitempty"`
 	// Path to the artifact manifest. Only populated when artifacts are uploaded.
-	ArtifactManifest string `protobuf:"bytes,4,opt,name=artifact_manifest,json=artifactManifest" json:"artifact_manifest,omitempty"`
+	ArtifactManifest string `protobuf:"bytes,4,opt,name=artifact_manifest,json=artifactManifest,proto3" json:"artifact_manifest,omitempty"`
 	// Number of artifacts uploaded. Only populated when artifacts are uploaded.
-	NumArtifacts         int64    `protobuf:"varint,5,opt,name=num_artifacts,json=numArtifacts" json:"num_artifacts,omitempty"`
+	NumArtifacts         int64    `protobuf:"varint,5,opt,name=num_artifacts,json=numArtifacts,proto3" json:"num_artifacts,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1122,9 +1122,9 @@ type ArtifactResult struct {
 	// The path of an artifact in a Google Cloud Storage bucket, with the
 	// generation number. For example,
 	// `gs://mybucket/path/to/output.jar#generation`.
-	Location string `protobuf:"bytes,1,opt,name=location" json:"location,omitempty"`
+	Location string `protobuf:"bytes,1,opt,name=location,proto3" json:"location,omitempty"`
 	// The file hash of the artifact.
-	FileHash             []*FileHashes `protobuf:"bytes,2,rep,name=file_hash,json=fileHash" json:"file_hash,omitempty"`
+	FileHash             []*FileHashes `protobuf:"bytes,2,rep,name=file_hash,json=fileHash,proto3" json:"file_hash,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
 	XXX_unrecognized     []byte        `json:"-"`
 	XXX_sizecache        int32         `json:"-"`
@@ -1188,41 +1188,41 @@ func (m *ArtifactResult) GetFileHash() []*FileHashes {
 type Build struct {
 	// Unique identifier of the build.
 	// @OutputOnly
-	Id string `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// ID of the project.
 	// @OutputOnly.
-	ProjectId string `protobuf:"bytes,16,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,16,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// Status of the build.
 	// @OutputOnly
-	Status Build_Status `protobuf:"varint,2,opt,name=status,enum=google.devtools.cloudbuild.v1.Build_Status" json:"status,omitempty"`
+	Status Build_Status `protobuf:"varint,2,opt,name=status,proto3,enum=google.devtools.cloudbuild.v1.Build_Status" json:"status,omitempty"`
 	// Customer-readable message about the current status.
 	// @OutputOnly
-	StatusDetail string `protobuf:"bytes,24,opt,name=status_detail,json=statusDetail" json:"status_detail,omitempty"`
+	StatusDetail string `protobuf:"bytes,24,opt,name=status_detail,json=statusDetail,proto3" json:"status_detail,omitempty"`
 	// The location of the source files to build.
-	Source *Source `protobuf:"bytes,3,opt,name=source" json:"source,omitempty"`
+	Source *Source `protobuf:"bytes,3,opt,name=source,proto3" json:"source,omitempty"`
 	// Required. The operations to be performed on the workspace.
-	Steps []*BuildStep `protobuf:"bytes,11,rep,name=steps" json:"steps,omitempty"`
+	Steps []*BuildStep `protobuf:"bytes,11,rep,name=steps,proto3" json:"steps,omitempty"`
 	// Results of the build.
 	// @OutputOnly
-	Results *Results `protobuf:"bytes,10,opt,name=results" json:"results,omitempty"`
+	Results *Results `protobuf:"bytes,10,opt,name=results,proto3" json:"results,omitempty"`
 	// Time at which the request to create the build was received.
 	// @OutputOnly
-	CreateTime *timestamp.Timestamp `protobuf:"bytes,6,opt,name=create_time,json=createTime" json:"create_time,omitempty"`
+	CreateTime *timestamp.Timestamp `protobuf:"bytes,6,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	// Time at which execution of the build was started.
 	// @OutputOnly
-	StartTime *timestamp.Timestamp `protobuf:"bytes,7,opt,name=start_time,json=startTime" json:"start_time,omitempty"`
+	StartTime *timestamp.Timestamp `protobuf:"bytes,7,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
 	// Time at which execution of the build was finished.
 	//
 	// The difference between finish_time and start_time is the duration of the
 	// build's execution.
 	// @OutputOnly
-	FinishTime *timestamp.Timestamp `protobuf:"bytes,8,opt,name=finish_time,json=finishTime" json:"finish_time,omitempty"`
+	FinishTime *timestamp.Timestamp `protobuf:"bytes,8,opt,name=finish_time,json=finishTime,proto3" json:"finish_time,omitempty"`
 	// Amount of time that this build should be allowed to run, to second
 	// granularity. If this amount of time elapses, work on the build will cease
 	// and the build status will be `TIMEOUT`.
 	//
 	// Default time is ten minutes.
-	Timeout *duration.Duration `protobuf:"bytes,12,opt,name=timeout" json:"timeout,omitempty"`
+	Timeout *duration.Duration `protobuf:"bytes,12,opt,name=timeout,proto3" json:"timeout,omitempty"`
 	// A list of images to be pushed upon the successful completion of all build
 	// steps.
 	//
@@ -1233,33 +1233,33 @@ type Build struct {
 	//
 	// If any of the images fail to be pushed, the build status is marked
 	// `FAILURE`.
-	Images []string `protobuf:"bytes,13,rep,name=images" json:"images,omitempty"`
+	Images []string `protobuf:"bytes,13,rep,name=images,proto3" json:"images,omitempty"`
 	// Artifacts produced by the build that should be uploaded upon
 	// successful completion of all build steps.
-	Artifacts *Artifacts `protobuf:"bytes,37,opt,name=artifacts" json:"artifacts,omitempty"`
+	Artifacts *Artifacts `protobuf:"bytes,37,opt,name=artifacts,proto3" json:"artifacts,omitempty"`
 	// Google Cloud Storage bucket where logs should be written (see
 	// [Bucket Name
 	// Requirements](https://cloud.google.com/storage/docs/bucket-naming#requirements)).
 	// Logs file names will be of the format `${logs_bucket}/log-${build_id}.txt`.
-	LogsBucket string `protobuf:"bytes,19,opt,name=logs_bucket,json=logsBucket" json:"logs_bucket,omitempty"`
+	LogsBucket string `protobuf:"bytes,19,opt,name=logs_bucket,json=logsBucket,proto3" json:"logs_bucket,omitempty"`
 	// A permanent fixed identifier for source.
 	// @OutputOnly
-	SourceProvenance *SourceProvenance `protobuf:"bytes,21,opt,name=source_provenance,json=sourceProvenance" json:"source_provenance,omitempty"`
+	SourceProvenance *SourceProvenance `protobuf:"bytes,21,opt,name=source_provenance,json=sourceProvenance,proto3" json:"source_provenance,omitempty"`
 	// The ID of the `BuildTrigger` that triggered this build, if it was
 	// triggered automatically.
 	// @OutputOnly
-	BuildTriggerId string `protobuf:"bytes,22,opt,name=build_trigger_id,json=buildTriggerId" json:"build_trigger_id,omitempty"`
+	BuildTriggerId string `protobuf:"bytes,22,opt,name=build_trigger_id,json=buildTriggerId,proto3" json:"build_trigger_id,omitempty"`
 	// Special options for this build.
-	Options *BuildOptions `protobuf:"bytes,23,opt,name=options" json:"options,omitempty"`
+	Options *BuildOptions `protobuf:"bytes,23,opt,name=options,proto3" json:"options,omitempty"`
 	// URL to logs for this build in Google Cloud Console.
 	// @OutputOnly
-	LogUrl string `protobuf:"bytes,25,opt,name=log_url,json=logUrl" json:"log_url,omitempty"`
+	LogUrl string `protobuf:"bytes,25,opt,name=log_url,json=logUrl,proto3" json:"log_url,omitempty"`
 	// Substitutions data for `Build` resource.
-	Substitutions map[string]string `protobuf:"bytes,29,rep,name=substitutions" json:"substitutions,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Substitutions map[string]string `protobuf:"bytes,29,rep,name=substitutions,proto3" json:"substitutions,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// Tags for annotation of a `Build`. These are not docker tags.
-	Tags []string `protobuf:"bytes,31,rep,name=tags" json:"tags,omitempty"`
+	Tags []string `protobuf:"bytes,31,rep,name=tags,proto3" json:"tags,omitempty"`
 	// Secrets to decrypt using Cloud Key Management Service.
-	Secrets []*Secret `protobuf:"bytes,32,rep,name=secrets" json:"secrets,omitempty"`
+	Secrets []*Secret `protobuf:"bytes,32,rep,name=secrets,proto3" json:"secrets,omitempty"`
 	// Stores timing information for phases of the build. Valid keys are:
 	//
 	// * BUILD: time to execute all build steps
@@ -1269,7 +1269,7 @@ type Build struct {
 	// If the build does not specify source or images,
 	// these keys will not be included.
 	// @OutputOnly
-	Timing               map[string]*TimeSpan `protobuf:"bytes,33,rep,name=timing" json:"timing,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Timing               map[string]*TimeSpan `protobuf:"bytes,33,rep,name=timing,proto3" json:"timing,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -1465,7 +1465,7 @@ type Artifacts struct {
 	// results field.
 	//
 	// If any of the images fail to be pushed, the build is marked FAILURE.
-	Images []string `protobuf:"bytes,1,rep,name=images" json:"images,omitempty"`
+	Images []string `protobuf:"bytes,1,rep,name=images,proto3" json:"images,omitempty"`
 	// A list of objects to be uploaded to Cloud Storage upon successful
 	// completion of all build steps.
 	//
@@ -1477,7 +1477,7 @@ type Artifacts struct {
 	// Build resource's results field.
 	//
 	// If any objects fail to be pushed, the build is marked FAILURE.
-	Objects              *Artifacts_ArtifactObjects `protobuf:"bytes,2,opt,name=objects" json:"objects,omitempty"`
+	Objects              *Artifacts_ArtifactObjects `protobuf:"bytes,2,opt,name=objects,proto3" json:"objects,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                   `json:"-"`
 	XXX_unrecognized     []byte                     `json:"-"`
 	XXX_sizecache        int32                      `json:"-"`
@@ -1530,12 +1530,12 @@ type Artifacts_ArtifactObjects struct {
 	//
 	// Files in the workspace matching any path pattern will be uploaded to
 	// Cloud Storage with this location as a prefix.
-	Location string `protobuf:"bytes,1,opt,name=location" json:"location,omitempty"`
+	Location string `protobuf:"bytes,1,opt,name=location,proto3" json:"location,omitempty"`
 	// Path globs used to match files in the build's workspace.
-	Paths []string `protobuf:"bytes,2,rep,name=paths" json:"paths,omitempty"`
+	Paths []string `protobuf:"bytes,2,rep,name=paths,proto3" json:"paths,omitempty"`
 	// Stores timing information for pushing all artifact objects.
 	// @OutputOnly
-	Timing               *TimeSpan `protobuf:"bytes,3,opt,name=timing" json:"timing,omitempty"`
+	Timing               *TimeSpan `protobuf:"bytes,3,opt,name=timing,proto3" json:"timing,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -1589,9 +1589,9 @@ func (m *Artifacts_ArtifactObjects) GetTiming() *TimeSpan {
 // Start and end times for a build execution phase.
 type TimeSpan struct {
 	// Start of time span.
-	StartTime *timestamp.Timestamp `protobuf:"bytes,1,opt,name=start_time,json=startTime" json:"start_time,omitempty"`
+	StartTime *timestamp.Timestamp `protobuf:"bytes,1,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
 	// End of time span.
-	EndTime              *timestamp.Timestamp `protobuf:"bytes,2,opt,name=end_time,json=endTime" json:"end_time,omitempty"`
+	EndTime              *timestamp.Timestamp `protobuf:"bytes,2,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -1638,7 +1638,7 @@ func (m *TimeSpan) GetEndTime() *timestamp.Timestamp {
 // Metadata for build operations.
 type BuildOperationMetadata struct {
 	// The build that the operation is tracking.
-	Build                *Build   `protobuf:"bytes,1,opt,name=build" json:"build,omitempty"`
+	Build                *Build   `protobuf:"bytes,1,opt,name=build,proto3" json:"build,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1680,10 +1680,10 @@ func (m *BuildOperationMetadata) GetBuild() *Build {
 type SourceProvenance struct {
 	// A copy of the build's `source.storage_source`, if exists, with any
 	// generations resolved.
-	ResolvedStorageSource *StorageSource `protobuf:"bytes,3,opt,name=resolved_storage_source,json=resolvedStorageSource" json:"resolved_storage_source,omitempty"`
+	ResolvedStorageSource *StorageSource `protobuf:"bytes,3,opt,name=resolved_storage_source,json=resolvedStorageSource,proto3" json:"resolved_storage_source,omitempty"`
 	// A copy of the build's `source.repo_source`, if exists, with any
 	// revisions resolved.
-	ResolvedRepoSource *RepoSource `protobuf:"bytes,6,opt,name=resolved_repo_source,json=resolvedRepoSource" json:"resolved_repo_source,omitempty"`
+	ResolvedRepoSource *RepoSource `protobuf:"bytes,6,opt,name=resolved_repo_source,json=resolvedRepoSource,proto3" json:"resolved_repo_source,omitempty"`
 	// Hash(es) of the build source, which can be used to verify that the original
 	// source integrity was maintained in the build. Note that `FileHashes` will
 	// only be populated if `BuildOptions` has requested a `SourceProvenanceHash`.
@@ -1694,7 +1694,7 @@ type SourceProvenance struct {
 	// If the build source came in a single package such as a gzipped tarfile
 	// (`.tar.gz`), the `FileHash` will be for the single path to that file.
 	// @OutputOnly
-	FileHashes           map[string]*FileHashes `protobuf:"bytes,4,rep,name=file_hashes,json=fileHashes" json:"file_hashes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	FileHashes           map[string]*FileHashes `protobuf:"bytes,4,rep,name=file_hashes,json=fileHashes,proto3" json:"file_hashes,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
 	XXX_unrecognized     []byte                 `json:"-"`
 	XXX_sizecache        int32                  `json:"-"`
@@ -1749,7 +1749,7 @@ func (m *SourceProvenance) GetFileHashes() map[string]*FileHashes {
 // SourceProvenance messages to verify integrity of source input to the build.
 type FileHashes struct {
 	// Collection of file hashes.
-	FileHash             []*Hash  `protobuf:"bytes,1,rep,name=file_hash,json=fileHash" json:"file_hash,omitempty"`
+	FileHash             []*Hash  `protobuf:"bytes,1,rep,name=file_hash,json=fileHash,proto3" json:"file_hash,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1789,7 +1789,7 @@ func (m *FileHashes) GetFileHash() []*Hash {
 // Container message for hash values.
 type Hash struct {
 	// The type of hash that was performed.
-	Type Hash_HashType `protobuf:"varint,1,opt,name=type,enum=google.devtools.cloudbuild.v1.Hash_HashType" json:"type,omitempty"`
+	Type Hash_HashType `protobuf:"varint,1,opt,name=type,proto3,enum=google.devtools.cloudbuild.v1.Hash_HashType" json:"type,omitempty"`
 	// The hash value.
 	Value                []byte   `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -1839,14 +1839,14 @@ func (m *Hash) GetValue() []byte {
 // values with the Cloud KMS key to use to decrypt the value.
 type Secret struct {
 	// Cloud KMS key name to use to decrypt these envs.
-	KmsKeyName string `protobuf:"bytes,1,opt,name=kms_key_name,json=kmsKeyName" json:"kms_key_name,omitempty"`
+	KmsKeyName string `protobuf:"bytes,1,opt,name=kms_key_name,json=kmsKeyName,proto3" json:"kms_key_name,omitempty"`
 	// Map of environment variable name to its encrypted value.
 	//
 	// Secret environment variables must be unique across all of a build's
 	// secrets, and must be used by at least one build step. Values can be at most
 	// 1 KB in size. There can be at most ten secret values across all of a
 	// build's secrets.
-	SecretEnv            map[string][]byte `protobuf:"bytes,3,rep,name=secret_env,json=secretEnv" json:"secret_env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	SecretEnv            map[string][]byte `protobuf:"bytes,3,rep,name=secret_env,json=secretEnv,proto3" json:"secret_env,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -1893,9 +1893,9 @@ func (m *Secret) GetSecretEnv() map[string][]byte {
 // Request to create a new build.
 type CreateBuildRequest struct {
 	// ID of the project.
-	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// Build resource to create.
-	Build                *Build   `protobuf:"bytes,2,opt,name=build" json:"build,omitempty"`
+	Build                *Build   `protobuf:"bytes,2,opt,name=build,proto3" json:"build,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1942,9 +1942,9 @@ func (m *CreateBuildRequest) GetBuild() *Build {
 // Request to get a build.
 type GetBuildRequest struct {
 	// ID of the project.
-	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// ID of the build.
-	Id                   string   `protobuf:"bytes,2,opt,name=id" json:"id,omitempty"`
+	Id                   string   `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1991,13 +1991,13 @@ func (m *GetBuildRequest) GetId() string {
 // Request to list builds.
 type ListBuildsRequest struct {
 	// ID of the project.
-	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// Number of results to return in the list.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Token to provide to skip to a particular spot in the list.
-	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// The raw filter text to constrain the results.
-	Filter               string   `protobuf:"bytes,8,opt,name=filter" json:"filter,omitempty"`
+	Filter               string   `protobuf:"bytes,8,opt,name=filter,proto3" json:"filter,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -2058,9 +2058,9 @@ func (m *ListBuildsRequest) GetFilter() string {
 // Response including listed builds.
 type ListBuildsResponse struct {
 	// Builds will be sorted by `create_time`, descending.
-	Builds []*Build `protobuf:"bytes,1,rep,name=builds" json:"builds,omitempty"`
+	Builds []*Build `protobuf:"bytes,1,rep,name=builds,proto3" json:"builds,omitempty"`
 	// Token to receive the next page of results.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -2107,9 +2107,9 @@ func (m *ListBuildsResponse) GetNextPageToken() string {
 // Request to cancel an ongoing build.
 type CancelBuildRequest struct {
 	// ID of the project.
-	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// ID of the build.
-	Id                   string   `protobuf:"bytes,2,opt,name=id" json:"id,omitempty"`
+	Id                   string   `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -2159,15 +2159,15 @@ type BuildTrigger struct {
 	// Unique identifier of the trigger.
 	//
 	// @OutputOnly
-	Id string `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// Human-readable description of this trigger.
-	Description string `protobuf:"bytes,10,opt,name=description" json:"description,omitempty"`
+	Description string `protobuf:"bytes,10,opt,name=description,proto3" json:"description,omitempty"`
 	// Template describing the types of source changes to trigger a build.
 	//
 	// Branch and tag names in trigger templates are interpreted as regular
 	// expressions. Any branch or tag change that matches that regular expression
 	// will trigger a build.
-	TriggerTemplate *RepoSource `protobuf:"bytes,7,opt,name=trigger_template,json=triggerTemplate" json:"trigger_template,omitempty"`
+	TriggerTemplate *RepoSource `protobuf:"bytes,7,opt,name=trigger_template,json=triggerTemplate,proto3" json:"trigger_template,omitempty"`
 	// Template describing the Build request to make when the trigger is matched.
 	//
 	// Types that are valid to be assigned to BuildTemplate:
@@ -2177,11 +2177,11 @@ type BuildTrigger struct {
 	// Time when the trigger was created.
 	//
 	// @OutputOnly
-	CreateTime *timestamp.Timestamp `protobuf:"bytes,5,opt,name=create_time,json=createTime" json:"create_time,omitempty"`
+	CreateTime *timestamp.Timestamp `protobuf:"bytes,5,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	// If true, the trigger will never result in a build.
-	Disabled bool `protobuf:"varint,9,opt,name=disabled" json:"disabled,omitempty"`
+	Disabled bool `protobuf:"varint,9,opt,name=disabled,proto3" json:"disabled,omitempty"`
 	// Substitutions data for Build resource.
-	Substitutions        map[string]string `protobuf:"bytes,11,rep,name=substitutions" json:"substitutions,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Substitutions        map[string]string `protobuf:"bytes,11,rep,name=substitutions,proto3" json:"substitutions,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -2216,10 +2216,10 @@ type isBuildTrigger_BuildTemplate interface {
 }
 
 type BuildTrigger_Build struct {
-	Build *Build `protobuf:"bytes,4,opt,name=build,oneof"`
+	Build *Build `protobuf:"bytes,4,opt,name=build,proto3,oneof"`
 }
 type BuildTrigger_Filename struct {
-	Filename string `protobuf:"bytes,8,opt,name=filename,oneof"`
+	Filename string `protobuf:"bytes,8,opt,name=filename,proto3,oneof"`
 }
 
 func (*BuildTrigger_Build) isBuildTrigger_BuildTemplate()    {}
@@ -2361,9 +2361,9 @@ func _BuildTrigger_OneofSizer(msg proto.Message) (n int) {
 // Request to create a new `BuildTrigger`.
 type CreateBuildTriggerRequest struct {
 	// ID of the project for which to configure automatic builds.
-	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// `BuildTrigger` to create.
-	Trigger              *BuildTrigger `protobuf:"bytes,2,opt,name=trigger" json:"trigger,omitempty"`
+	Trigger              *BuildTrigger `protobuf:"bytes,2,opt,name=trigger,proto3" json:"trigger,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
 	XXX_unrecognized     []byte        `json:"-"`
 	XXX_sizecache        int32         `json:"-"`
@@ -2410,9 +2410,9 @@ func (m *CreateBuildTriggerRequest) GetTrigger() *BuildTrigger {
 // Returns the `BuildTrigger` with the specified ID.
 type GetBuildTriggerRequest struct {
 	// ID of the project that owns the trigger.
-	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// ID of the `BuildTrigger` to get.
-	TriggerId            string   `protobuf:"bytes,2,opt,name=trigger_id,json=triggerId" json:"trigger_id,omitempty"`
+	TriggerId            string   `protobuf:"bytes,2,opt,name=trigger_id,json=triggerId,proto3" json:"trigger_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -2459,7 +2459,7 @@ func (m *GetBuildTriggerRequest) GetTriggerId() string {
 // Request to list existing `BuildTriggers`.
 type ListBuildTriggersRequest struct {
 	// ID of the project for which to list BuildTriggers.
-	ProjectId            string   `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId            string   `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -2499,7 +2499,7 @@ func (m *ListBuildTriggersRequest) GetProjectId() string {
 // Response containing existing `BuildTriggers`.
 type ListBuildTriggersResponse struct {
 	// `BuildTriggers` for the project, sorted by `create_time` descending.
-	Triggers             []*BuildTrigger `protobuf:"bytes,1,rep,name=triggers" json:"triggers,omitempty"`
+	Triggers             []*BuildTrigger `protobuf:"bytes,1,rep,name=triggers,proto3" json:"triggers,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
 	XXX_unrecognized     []byte          `json:"-"`
 	XXX_sizecache        int32           `json:"-"`
@@ -2539,9 +2539,9 @@ func (m *ListBuildTriggersResponse) GetTriggers() []*BuildTrigger {
 // Request to delete a `BuildTrigger`.
 type DeleteBuildTriggerRequest struct {
 	// ID of the project that owns the trigger.
-	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// ID of the `BuildTrigger` to delete.
-	TriggerId            string   `protobuf:"bytes,2,opt,name=trigger_id,json=triggerId" json:"trigger_id,omitempty"`
+	TriggerId            string   `protobuf:"bytes,2,opt,name=trigger_id,json=triggerId,proto3" json:"trigger_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -2588,11 +2588,11 @@ func (m *DeleteBuildTriggerRequest) GetTriggerId() string {
 // Request to update an existing `BuildTrigger`.
 type UpdateBuildTriggerRequest struct {
 	// ID of the project that owns the trigger.
-	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// ID of the `BuildTrigger` to update.
-	TriggerId string `protobuf:"bytes,2,opt,name=trigger_id,json=triggerId" json:"trigger_id,omitempty"`
+	TriggerId string `protobuf:"bytes,2,opt,name=trigger_id,json=triggerId,proto3" json:"trigger_id,omitempty"`
 	// `BuildTrigger` to update.
-	Trigger              *BuildTrigger `protobuf:"bytes,3,opt,name=trigger" json:"trigger,omitempty"`
+	Trigger              *BuildTrigger `protobuf:"bytes,3,opt,name=trigger,proto3" json:"trigger,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
 	XXX_unrecognized     []byte        `json:"-"`
 	XXX_sizecache        int32         `json:"-"`
@@ -2646,24 +2646,24 @@ func (m *UpdateBuildTriggerRequest) GetTrigger() *BuildTrigger {
 // Optional arguments to enable specific features of builds.
 type BuildOptions struct {
 	// Requested hash for SourceProvenance.
-	SourceProvenanceHash []Hash_HashType `protobuf:"varint,1,rep,packed,name=source_provenance_hash,json=sourceProvenanceHash,enum=google.devtools.cloudbuild.v1.Hash_HashType" json:"source_provenance_hash,omitempty"`
+	SourceProvenanceHash []Hash_HashType `protobuf:"varint,1,rep,packed,name=source_provenance_hash,json=sourceProvenanceHash,proto3,enum=google.devtools.cloudbuild.v1.Hash_HashType" json:"source_provenance_hash,omitempty"`
 	// Requested verifiability options.
-	RequestedVerifyOption BuildOptions_VerifyOption `protobuf:"varint,2,opt,name=requested_verify_option,json=requestedVerifyOption,enum=google.devtools.cloudbuild.v1.BuildOptions_VerifyOption" json:"requested_verify_option,omitempty"`
+	RequestedVerifyOption BuildOptions_VerifyOption `protobuf:"varint,2,opt,name=requested_verify_option,json=requestedVerifyOption,proto3,enum=google.devtools.cloudbuild.v1.BuildOptions_VerifyOption" json:"requested_verify_option,omitempty"`
 	// Compute Engine machine type on which to run the build.
-	MachineType BuildOptions_MachineType `protobuf:"varint,3,opt,name=machine_type,json=machineType,enum=google.devtools.cloudbuild.v1.BuildOptions_MachineType" json:"machine_type,omitempty"`
+	MachineType BuildOptions_MachineType `protobuf:"varint,3,opt,name=machine_type,json=machineType,proto3,enum=google.devtools.cloudbuild.v1.BuildOptions_MachineType" json:"machine_type,omitempty"`
 	// Requested disk size for the VM that runs the build. Note that this is *NOT*
 	// "disk free"; some of the space will be used by the operating system and
 	// build utilities. Also note that this is the minimum disk size that will be
 	// allocated for the build -- the build may run with a larger disk than
 	// requested. At present, the maximum disk size is 1000GB; builds that request
 	// more than the maximum are rejected with an error.
-	DiskSizeGb int64 `protobuf:"varint,6,opt,name=disk_size_gb,json=diskSizeGb" json:"disk_size_gb,omitempty"`
+	DiskSizeGb int64 `protobuf:"varint,6,opt,name=disk_size_gb,json=diskSizeGb,proto3" json:"disk_size_gb,omitempty"`
 	// Option to specify behavior when there is an error in the substitution
 	// checks.
-	SubstitutionOption BuildOptions_SubstitutionOption `protobuf:"varint,4,opt,name=substitution_option,json=substitutionOption,enum=google.devtools.cloudbuild.v1.BuildOptions_SubstitutionOption" json:"substitution_option,omitempty"`
+	SubstitutionOption BuildOptions_SubstitutionOption `protobuf:"varint,4,opt,name=substitution_option,json=substitutionOption,proto3,enum=google.devtools.cloudbuild.v1.BuildOptions_SubstitutionOption" json:"substitution_option,omitempty"`
 	// Option to define build log streaming behavior to Google Cloud
 	// Storage.
-	LogStreamingOption   BuildOptions_LogStreamingOption `protobuf:"varint,5,opt,name=log_streaming_option,json=logStreamingOption,enum=google.devtools.cloudbuild.v1.BuildOptions_LogStreamingOption" json:"log_streaming_option,omitempty"`
+	LogStreamingOption   BuildOptions_LogStreamingOption `protobuf:"varint,5,opt,name=log_streaming_option,json=logStreamingOption,proto3,enum=google.devtools.cloudbuild.v1.BuildOptions_LogStreamingOption" json:"log_streaming_option,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                        `json:"-"`
 	XXX_unrecognized     []byte                          `json:"-"`
 	XXX_sizecache        int32                           `json:"-"`
@@ -2970,8 +2970,7 @@ func (c *cloudBuildClient) RunBuildTrigger(ctx context.Context, in *RunBuildTrig
 	return out, nil
 }
 
-// Server API for CloudBuild service
-
+// CloudBuildServer is the server API for CloudBuild service.
 type CloudBuildServer interface {
 	// Starts a build with the specified configuration.
 	//

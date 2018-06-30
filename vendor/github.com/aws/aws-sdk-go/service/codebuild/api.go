@@ -4757,6 +4757,9 @@ const (
 )
 
 const (
+	// EnvironmentTypeWindowsContainer is a EnvironmentType enum value
+	EnvironmentTypeWindowsContainer = "WINDOWS_CONTAINER"
+
 	// EnvironmentTypeLinuxContainer is a EnvironmentType enum value
 	EnvironmentTypeLinuxContainer = "LINUX_CONTAINER"
 )
@@ -4807,6 +4810,9 @@ const (
 
 	// PlatformTypeUbuntu is a PlatformType enum value
 	PlatformTypeUbuntu = "UBUNTU"
+
+	// PlatformTypeWindowsServer is a PlatformType enum value
+	PlatformTypeWindowsServer = "WINDOWS_SERVER"
 )
 
 const (

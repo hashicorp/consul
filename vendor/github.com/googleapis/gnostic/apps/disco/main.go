@@ -151,7 +151,7 @@ Usage:
 
 func handleExportArgumentsForBytes(arguments map[string]interface{}, bytes []byte) (handled bool, err error) {
 	// Unpack the discovery document.
-	info, err := compiler.ReadInfoFromBytes("source", bytes)
+	info, err := compiler.ReadInfoFromBytes("", bytes)
 	if err != nil {
 		return true, err
 	}

@@ -29,7 +29,7 @@ type GetConfigRequest struct {
 	// Required. The project name.
 	//
 	// Authorization: requires `Viewer` role on the specified project.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -69,9 +69,9 @@ func (m *GetConfigRequest) GetName() string {
 // Returns service account information associated with a project.
 type GetConfigResponse struct {
 	// The service account Cloud ML uses to access resources in the project.
-	ServiceAccount string `protobuf:"bytes,1,opt,name=service_account,json=serviceAccount" json:"service_account,omitempty"`
+	ServiceAccount string `protobuf:"bytes,1,opt,name=service_account,json=serviceAccount,proto3" json:"service_account,omitempty"`
 	// The project number for `service_account`.
-	ServiceAccountProject int64    `protobuf:"varint,2,opt,name=service_account_project,json=serviceAccountProject" json:"service_account_project,omitempty"`
+	ServiceAccountProject int64    `protobuf:"varint,2,opt,name=service_account_project,json=serviceAccountProject,proto3" json:"service_account_project,omitempty"`
 	XXX_NoUnkeyedLiteral  struct{} `json:"-"`
 	XXX_unrecognized      []byte   `json:"-"`
 	XXX_sizecache         int32    `json:"-"`
@@ -156,8 +156,7 @@ func (c *projectManagementServiceClient) GetConfig(ctx context.Context, in *GetC
 	return out, nil
 }
 
-// Server API for ProjectManagementService service
-
+// ProjectManagementServiceServer is the server API for ProjectManagementService service.
 type ProjectManagementServiceServer interface {
 	// Get the service account information associated with your project. You need
 	// this information in order to grant the service account persmissions for

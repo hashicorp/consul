@@ -132,7 +132,7 @@ func TestOneMessageFetchResponse(t *testing.T) {
 	if n != 1 {
 		t.Fatal("Decoding produced incorrect number of messages.")
 	}
-	msgBlock := block.RecordsSet[0].msgSet.Messages[0]
+	msgBlock := block.RecordsSet[0].MsgSet.Messages[0]
 	if msgBlock.Offset != 0x550000 {
 		t.Error("Decoding produced incorrect message offset.")
 	}
@@ -185,7 +185,7 @@ func TestOneRecordFetchResponse(t *testing.T) {
 	if n != 1 {
 		t.Fatal("Decoding produced incorrect number of records.")
 	}
-	rec := block.RecordsSet[0].recordBatch.Records[0]
+	rec := block.RecordsSet[0].RecordBatch.Records[0]
 	if !bytes.Equal(rec.Key, []byte{0x01, 0x02, 0x03, 0x04}) {
 		t.Error("Decoding produced incorrect record key.")
 	}
@@ -231,7 +231,7 @@ func TestOneMessageFetchResponseV4(t *testing.T) {
 	if n != 1 {
 		t.Fatal("Decoding produced incorrect number of records.")
 	}
-	msgBlock := block.RecordsSet[0].msgSet.Messages[0]
+	msgBlock := block.RecordsSet[0].MsgSet.Messages[0]
 	if msgBlock.Offset != 0x550000 {
 		t.Error("Decoding produced incorrect message offset.")
 	}

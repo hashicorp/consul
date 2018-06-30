@@ -119,9 +119,16 @@ func (c *SecretsManager) CancelRotateSecretRequest(input *CancelRotateSecretInpu
 //
 //   * ErrCodeInvalidRequestException "InvalidRequestException"
 //   You provided a parameter value that is not valid for the current state of
-//   the resource. For example, if you try to enable rotation on a secret, you
-//   must already have a Lambda function ARN configured or included as a parameter
-//   in this call.
+//   the resource.
+//
+//   Possible causes:
+//
+//      * You tried to perform the operation on a secret that's currently marked
+//      deleted.
+//
+//      * You tried to enable rotation on a secret that doesn't already have a
+//      Lambda function ARN configured and you didn't include such an ARN as a
+//      parameter in this call.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/secretsmanager-2017-10-17/CancelRotateSecret
 func (c *SecretsManager) CancelRotateSecret(input *CancelRotateSecretInput) (*CancelRotateSecretOutput, error) {
@@ -208,23 +215,24 @@ func (c *SecretsManager) CreateSecretRequest(input *CreateSecretInput) (req *req
 //
 // If you call an operation that needs to encrypt or decrypt the SecretString
 // or SecretBinary for a secret in the same account as the calling user and
-// that secret doesn't specify a KMS encryption key, Secrets Manager uses the
-// account's default AWS managed customer master key (CMK) with the alias aws/secretsmanager.
-// If this key doesn't already exist in your account then Secrets Manager creates
-// it for you automatically. All users in the same AWS account automatically
-// have access to use the default CMK. Note that if an Secrets Manager API call
-// results in AWS having to create the account's AWS-managed CMK, it can result
-// in a one-time significant delay in returning the result.
+// that secret doesn't specify a AWS KMS encryption key, Secrets Manager uses
+// the account's default AWS managed customer master key (CMK) with the alias
+// aws/secretsmanager. If this key doesn't already exist in your account then
+// Secrets Manager creates it for you automatically. All users in the same AWS
+// account automatically have access to use the default CMK. Note that if an
+// Secrets Manager API call results in AWS having to create the account's AWS-managed
+// CMK, it can result in a one-time significant delay in returning the result.
 //
 // If the secret is in a different AWS account from the credentials calling
 // an API that requires encryption or decryption of the secret value then you
-// must create and use a custom KMS CMK because you can't access the default
+// must create and use a custom AWS KMS CMK because you can't access the default
 // CMK for the account using credentials from a different AWS account. Store
 // the ARN of the CMK in the secret when you create the secret or when you update
 // it by including it in the KMSKeyId. If you call an API that must encrypt
 // or decrypt SecretString or SecretBinary using credentials from a different
-// account then the KMS key policy must grant cross-account access to that other
-// account's user or role for both the kms:GenerateDataKey and kms:Decrypt operations.
+// account then the AWS KMS key policy must grant cross-account access to that
+// other account's user or role for both the kms:GenerateDataKey and kms:Decrypt
+// operations.
 //
 // Minimum permissions
 //
@@ -232,13 +240,13 @@ func (c *SecretsManager) CreateSecretRequest(input *CreateSecretInput) (req *req
 //
 //    * secretsmanager:CreateSecret
 //
-//    * kms:GenerateDataKey - needed only if you use a customer-created KMS
-//    key to encrypt the secret. You do not need this permission to use the
-//    account's default AWS managed CMK for Secrets Manager.
+//    * kms:GenerateDataKey - needed only if you use a customer-managed AWS
+//    KMS key to encrypt the secret. You do not need this permission to use
+//    the account's default AWS managed CMK for Secrets Manager.
 //
-//    * kms:Decrypt - needed only if you use a customer-created KMS key to encrypt
-//    the secret. You do not need this permission to use the account's default
-//    AWS managed CMK for Secrets Manager.
+//    * kms:Decrypt - needed only if you use a customer-managed AWS KMS key
+//    to encrypt the secret. You do not need this permission to use the account's
+//    default AWS managed CMK for Secrets Manager.
 //
 // Related operations
 //
@@ -271,9 +279,16 @@ func (c *SecretsManager) CreateSecretRequest(input *CreateSecretInput) (req *req
 //
 //   * ErrCodeInvalidRequestException "InvalidRequestException"
 //   You provided a parameter value that is not valid for the current state of
-//   the resource. For example, if you try to enable rotation on a secret, you
-//   must already have a Lambda function ARN configured or included as a parameter
-//   in this call.
+//   the resource.
+//
+//   Possible causes:
+//
+//      * You tried to perform the operation on a secret that's currently marked
+//      deleted.
+//
+//      * You tried to enable rotation on a secret that doesn't already have a
+//      Lambda function ARN configured and you didn't include such an ARN as a
+//      parameter in this call.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
 //   The request failed because it would exceed one of the Secrets Manager internal
@@ -297,6 +312,9 @@ func (c *SecretsManager) CreateSecretRequest(input *CreateSecretInput) (req *req
 //   * ErrCodeInternalServiceError "InternalServiceError"
 //   An error occurred on the server side.
 //
+//   * ErrCodePreconditionNotMetException "PreconditionNotMetException"
+//   The request failed because you did not complete all the prerequisite steps.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/secretsmanager-2017-10-17/CreateSecret
 func (c *SecretsManager) CreateSecret(input *CreateSecretInput) (*CreateSecretOutput, error) {
 	req, out := c.CreateSecretRequest(input)
@@ -314,6 +332,116 @@ func (c *SecretsManager) CreateSecret(input *CreateSecretInput) (*CreateSecretOu
 // for more information on using Contexts.
 func (c *SecretsManager) CreateSecretWithContext(ctx aws.Context, input *CreateSecretInput, opts ...request.Option) (*CreateSecretOutput, error) {
 	req, out := c.CreateSecretRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDeleteResourcePolicy = "DeleteResourcePolicy"
+
+// DeleteResourcePolicyRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteResourcePolicy operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteResourcePolicy for more information on using the DeleteResourcePolicy
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteResourcePolicyRequest method.
+//    req, resp := client.DeleteResourcePolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/secretsmanager-2017-10-17/DeleteResourcePolicy
+func (c *SecretsManager) DeleteResourcePolicyRequest(input *DeleteResourcePolicyInput) (req *request.Request, output *DeleteResourcePolicyOutput) {
+	op := &request.Operation{
+		Name:       opDeleteResourcePolicy,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteResourcePolicyInput{}
+	}
+
+	output = &DeleteResourcePolicyOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DeleteResourcePolicy API operation for AWS Secrets Manager.
+//
+// Deletes the resource-based permission policy that's attached to the secret.
+//
+// Minimum permissions
+//
+// To run this command, you must have the following permissions:
+//
+//    * secretsmanager:DeleteResourcePolicy
+//
+// Related operations
+//
+//    * To attach a resource policy to a secret, use PutResourcePolicy.
+//
+//    * To retrieve the current resource-based policy that's attached to a secret,
+//    use GetResourcePolicy.
+//
+//    * To list all of the currently available secrets, use ListSecrets.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Secrets Manager's
+// API operation DeleteResourcePolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   We can't find the resource that you asked for.
+//
+//   * ErrCodeInternalServiceError "InternalServiceError"
+//   An error occurred on the server side.
+//
+//   * ErrCodeInvalidRequestException "InvalidRequestException"
+//   You provided a parameter value that is not valid for the current state of
+//   the resource.
+//
+//   Possible causes:
+//
+//      * You tried to perform the operation on a secret that's currently marked
+//      deleted.
+//
+//      * You tried to enable rotation on a secret that doesn't already have a
+//      Lambda function ARN configured and you didn't include such an ARN as a
+//      parameter in this call.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/secretsmanager-2017-10-17/DeleteResourcePolicy
+func (c *SecretsManager) DeleteResourcePolicy(input *DeleteResourcePolicyInput) (*DeleteResourcePolicyOutput, error) {
+	req, out := c.DeleteResourcePolicyRequest(input)
+	return out, req.Send()
+}
+
+// DeleteResourcePolicyWithContext is the same as DeleteResourcePolicy with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteResourcePolicy for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *SecretsManager) DeleteResourcePolicyWithContext(ctx aws.Context, input *DeleteResourcePolicyInput, opts ...request.Option) (*DeleteResourcePolicyOutput, error) {
+	req, out := c.DeleteResourcePolicyRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -416,9 +544,16 @@ func (c *SecretsManager) DeleteSecretRequest(input *DeleteSecretInput) (req *req
 //
 //   * ErrCodeInvalidRequestException "InvalidRequestException"
 //   You provided a parameter value that is not valid for the current state of
-//   the resource. For example, if you try to enable rotation on a secret, you
-//   must already have a Lambda function ARN configured or included as a parameter
-//   in this call.
+//   the resource.
+//
+//   Possible causes:
+//
+//      * You tried to perform the operation on a secret that's currently marked
+//      deleted.
+//
+//      * You tried to enable rotation on a secret that doesn't already have a
+//      Lambda function ARN configured and you didn't include such an ARN as a
+//      parameter in this call.
 //
 //   * ErrCodeInternalServiceError "InternalServiceError"
 //   An error occurred on the server side.
@@ -613,9 +748,16 @@ func (c *SecretsManager) GetRandomPasswordRequest(input *GetRandomPasswordInput)
 //
 //   * ErrCodeInvalidRequestException "InvalidRequestException"
 //   You provided a parameter value that is not valid for the current state of
-//   the resource. For example, if you try to enable rotation on a secret, you
-//   must already have a Lambda function ARN configured or included as a parameter
-//   in this call.
+//   the resource.
+//
+//   Possible causes:
+//
+//      * You tried to perform the operation on a secret that's currently marked
+//      deleted.
+//
+//      * You tried to enable rotation on a secret that doesn't already have a
+//      Lambda function ARN configured and you didn't include such an ARN as a
+//      parameter in this call.
 //
 //   * ErrCodeInternalServiceError "InternalServiceError"
 //   An error occurred on the server side.
@@ -637,6 +779,119 @@ func (c *SecretsManager) GetRandomPassword(input *GetRandomPasswordInput) (*GetR
 // for more information on using Contexts.
 func (c *SecretsManager) GetRandomPasswordWithContext(ctx aws.Context, input *GetRandomPasswordInput, opts ...request.Option) (*GetRandomPasswordOutput, error) {
 	req, out := c.GetRandomPasswordRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opGetResourcePolicy = "GetResourcePolicy"
+
+// GetResourcePolicyRequest generates a "aws/request.Request" representing the
+// client's request for the GetResourcePolicy operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetResourcePolicy for more information on using the GetResourcePolicy
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetResourcePolicyRequest method.
+//    req, resp := client.GetResourcePolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/secretsmanager-2017-10-17/GetResourcePolicy
+func (c *SecretsManager) GetResourcePolicyRequest(input *GetResourcePolicyInput) (req *request.Request, output *GetResourcePolicyOutput) {
+	op := &request.Operation{
+		Name:       opGetResourcePolicy,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetResourcePolicyInput{}
+	}
+
+	output = &GetResourcePolicyOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetResourcePolicy API operation for AWS Secrets Manager.
+//
+// Retrieves the JSON text of the resource-based policy document that's attached
+// to the specified secret. The JSON request string input and response output
+// are shown formatted with white space and line breaks for better readability.
+// Submit your input as a single line JSON string.
+//
+// Minimum permissions
+//
+// To run this command, you must have the following permissions:
+//
+//    * secretsmanager:GetResourcePolicy
+//
+// Related operations
+//
+//    * To attach a resource policy to a secret, use PutResourcePolicy.
+//
+//    * To delete the resource-based policy that's attached to a secret, use
+//    DeleteResourcePolicy.
+//
+//    * To list all of the currently available secrets, use ListSecrets.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Secrets Manager's
+// API operation GetResourcePolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   We can't find the resource that you asked for.
+//
+//   * ErrCodeInternalServiceError "InternalServiceError"
+//   An error occurred on the server side.
+//
+//   * ErrCodeInvalidRequestException "InvalidRequestException"
+//   You provided a parameter value that is not valid for the current state of
+//   the resource.
+//
+//   Possible causes:
+//
+//      * You tried to perform the operation on a secret that's currently marked
+//      deleted.
+//
+//      * You tried to enable rotation on a secret that doesn't already have a
+//      Lambda function ARN configured and you didn't include such an ARN as a
+//      parameter in this call.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/secretsmanager-2017-10-17/GetResourcePolicy
+func (c *SecretsManager) GetResourcePolicy(input *GetResourcePolicyInput) (*GetResourcePolicyOutput, error) {
+	req, out := c.GetResourcePolicyRequest(input)
+	return out, req.Send()
+}
+
+// GetResourcePolicyWithContext is the same as GetResourcePolicy with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetResourcePolicy for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *SecretsManager) GetResourcePolicyWithContext(ctx aws.Context, input *GetResourcePolicyInput, opts ...request.Option) (*GetResourcePolicyOutput, error) {
+	req, out := c.GetResourcePolicyRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -695,8 +950,8 @@ func (c *SecretsManager) GetSecretValueRequest(input *GetSecretValueInput) (req 
 //
 //    * secretsmanager:GetSecretValue
 //
-//    * kms:Decrypt - required only if you use a customer-created KMS key to
-//    encrypt the secret. You do not need this permission to use the account's
+//    * kms:Decrypt - required only if you use a customer-managed AWS KMS key
+//    to encrypt the secret. You do not need this permission to use the account's
 //    default AWS managed CMK for Secrets Manager.
 //
 // Related operations
@@ -722,9 +977,16 @@ func (c *SecretsManager) GetSecretValueRequest(input *GetSecretValueInput) (req 
 //
 //   * ErrCodeInvalidRequestException "InvalidRequestException"
 //   You provided a parameter value that is not valid for the current state of
-//   the resource. For example, if you try to enable rotation on a secret, you
-//   must already have a Lambda function ARN configured or included as a parameter
-//   in this call.
+//   the resource.
+//
+//   Possible causes:
+//
+//      * You tried to perform the operation on a secret that's currently marked
+//      deleted.
+//
+//      * You tried to enable rotation on a secret that doesn't already have a
+//      Lambda function ARN configured and you didn't include such an ARN as a
+//      parameter in this call.
 //
 //   * ErrCodeDecryptionFailure "DecryptionFailure"
 //   Secrets Manager can't decrypt the protected secret text using the provided
@@ -1075,6 +1337,132 @@ func (c *SecretsManager) ListSecretsPagesWithContext(ctx aws.Context, input *Lis
 	return p.Err()
 }
 
+const opPutResourcePolicy = "PutResourcePolicy"
+
+// PutResourcePolicyRequest generates a "aws/request.Request" representing the
+// client's request for the PutResourcePolicy operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See PutResourcePolicy for more information on using the PutResourcePolicy
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the PutResourcePolicyRequest method.
+//    req, resp := client.PutResourcePolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/secretsmanager-2017-10-17/PutResourcePolicy
+func (c *SecretsManager) PutResourcePolicyRequest(input *PutResourcePolicyInput) (req *request.Request, output *PutResourcePolicyOutput) {
+	op := &request.Operation{
+		Name:       opPutResourcePolicy,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &PutResourcePolicyInput{}
+	}
+
+	output = &PutResourcePolicyOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// PutResourcePolicy API operation for AWS Secrets Manager.
+//
+// Attaches the contents of the specified resource-based permission policy to
+// a secret. A resource-based policy is optional. Alternatively, you can use
+// IAM identity-based policies that specify the secret's Amazon Resource Name
+// (ARN) in the policy statement's Resources element. You can also use a combination
+// of both identity-based and resource-based policies. The affected users and
+// roles receive the permissions that are permitted by all of the relevant policies.
+// For more information, see Using Resource-Based Policies for AWS Secrets Manager
+// (http://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access_resource-based-policies.html).
+// For the complete description of the AWS policy syntax and grammar, see IAM
+// JSON Policy Reference (http://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies.html)
+// in the IAM User Guide.
+//
+// Minimum permissions
+//
+// To run this command, you must have the following permissions:
+//
+//    * secretsmanager:PutResourcePolicy
+//
+// Related operations
+//
+//    * To retrieve the resource policy that's attached to a secret, use GetResourcePolicy.
+//
+//    * To delete the resource-based policy that's attached to a secret, use
+//    DeleteResourcePolicy.
+//
+//    * To list all of the currently available secrets, use ListSecrets.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Secrets Manager's
+// API operation PutResourcePolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeMalformedPolicyDocumentException "MalformedPolicyDocumentException"
+//   The policy document that you provided isn't valid.
+//
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   We can't find the resource that you asked for.
+//
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   You provided an invalid value for a parameter.
+//
+//   * ErrCodeInternalServiceError "InternalServiceError"
+//   An error occurred on the server side.
+//
+//   * ErrCodeInvalidRequestException "InvalidRequestException"
+//   You provided a parameter value that is not valid for the current state of
+//   the resource.
+//
+//   Possible causes:
+//
+//      * You tried to perform the operation on a secret that's currently marked
+//      deleted.
+//
+//      * You tried to enable rotation on a secret that doesn't already have a
+//      Lambda function ARN configured and you didn't include such an ARN as a
+//      parameter in this call.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/secretsmanager-2017-10-17/PutResourcePolicy
+func (c *SecretsManager) PutResourcePolicy(input *PutResourcePolicyInput) (*PutResourcePolicyOutput, error) {
+	req, out := c.PutResourcePolicyRequest(input)
+	return out, req.Send()
+}
+
+// PutResourcePolicyWithContext is the same as PutResourcePolicy with the addition of
+// the ability to pass a context and additional request options.
+//
+// See PutResourcePolicy for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *SecretsManager) PutResourcePolicyWithContext(ctx aws.Context, input *PutResourcePolicyInput, opts ...request.Option) (*PutResourcePolicyOutput, error) {
+	req, out := c.PutResourcePolicyRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opPutSecretValue = "PutSecretValue"
 
 // PutSecretValueRequest generates a "aws/request.Request" representing the
@@ -1149,23 +1537,24 @@ func (c *SecretsManager) PutSecretValueRequest(input *PutSecretValueInput) (req 
 //
 // If you call an operation that needs to encrypt or decrypt the SecretString
 // or SecretBinary for a secret in the same account as the calling user and
-// that secret doesn't specify a KMS encryption key, Secrets Manager uses the
-// account's default AWS managed customer master key (CMK) with the alias aws/secretsmanager.
-// If this key doesn't already exist in your account then Secrets Manager creates
-// it for you automatically. All users in the same AWS account automatically
-// have access to use the default CMK. Note that if an Secrets Manager API call
-// results in AWS having to create the account's AWS-managed CMK, it can result
-// in a one-time significant delay in returning the result.
+// that secret doesn't specify a AWS KMS encryption key, Secrets Manager uses
+// the account's default AWS managed customer master key (CMK) with the alias
+// aws/secretsmanager. If this key doesn't already exist in your account then
+// Secrets Manager creates it for you automatically. All users in the same AWS
+// account automatically have access to use the default CMK. Note that if an
+// Secrets Manager API call results in AWS having to create the account's AWS-managed
+// CMK, it can result in a one-time significant delay in returning the result.
 //
 // If the secret is in a different AWS account from the credentials calling
 // an API that requires encryption or decryption of the secret value then you
-// must create and use a custom KMS CMK because you can't access the default
+// must create and use a custom AWS KMS CMK because you can't access the default
 // CMK for the account using credentials from a different AWS account. Store
 // the ARN of the CMK in the secret when you create the secret or when you update
 // it by including it in the KMSKeyId. If you call an API that must encrypt
 // or decrypt SecretString or SecretBinary using credentials from a different
-// account then the KMS key policy must grant cross-account access to that other
-// account's user or role for both the kms:GenerateDataKey and kms:Decrypt operations.
+// account then the AWS KMS key policy must grant cross-account access to that
+// other account's user or role for both the kms:GenerateDataKey and kms:Decrypt
+// operations.
 //
 // Minimum permissions
 //
@@ -1173,13 +1562,9 @@ func (c *SecretsManager) PutSecretValueRequest(input *PutSecretValueInput) (req 
 //
 //    * secretsmanager:PutSecretValue
 //
-//    * kms:GenerateDataKey - needed only if you use a customer-created KMS
-//    key to encrypt the secret. You do not need this permission to use the
-//    account's AWS managed CMK for Secrets Manager.
-//
-//    * kms:Encrypt - needed only if you use a customer-created KMS key to encrypt
-//    the secret. You do not need this permission to use the account's AWS managed
-//    CMK for Secrets Manager.
+//    * kms:GenerateDataKey - needed only if you use a customer-managed AWS
+//    KMS key to encrypt the secret. You do not need this permission to use
+//    the account's default AWS managed CMK for Secrets Manager.
 //
 // Related operations
 //
@@ -1205,9 +1590,16 @@ func (c *SecretsManager) PutSecretValueRequest(input *PutSecretValueInput) (req 
 //
 //   * ErrCodeInvalidRequestException "InvalidRequestException"
 //   You provided a parameter value that is not valid for the current state of
-//   the resource. For example, if you try to enable rotation on a secret, you
-//   must already have a Lambda function ARN configured or included as a parameter
-//   in this call.
+//   the resource.
+//
+//   Possible causes:
+//
+//      * You tried to perform the operation on a secret that's currently marked
+//      deleted.
+//
+//      * You tried to enable rotation on a secret that doesn't already have a
+//      Lambda function ARN configured and you didn't include such an ARN as a
+//      parameter in this call.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
 //   The request failed because it would exceed one of the Secrets Manager internal
@@ -1323,9 +1715,16 @@ func (c *SecretsManager) RestoreSecretRequest(input *RestoreSecretInput) (req *r
 //
 //   * ErrCodeInvalidRequestException "InvalidRequestException"
 //   You provided a parameter value that is not valid for the current state of
-//   the resource. For example, if you try to enable rotation on a secret, you
-//   must already have a Lambda function ARN configured or included as a parameter
-//   in this call.
+//   the resource.
+//
+//   Possible causes:
+//
+//      * You tried to perform the operation on a secret that's currently marked
+//      deleted.
+//
+//      * You tried to enable rotation on a secret that doesn't already have a
+//      Lambda function ARN configured and you didn't include such an ARN as a
+//      parameter in this call.
 //
 //   * ErrCodeInternalServiceError "InternalServiceError"
 //   An error occurred on the server side.
@@ -1465,9 +1864,16 @@ func (c *SecretsManager) RotateSecretRequest(input *RotateSecretInput) (req *req
 //
 //   * ErrCodeInvalidRequestException "InvalidRequestException"
 //   You provided a parameter value that is not valid for the current state of
-//   the resource. For example, if you try to enable rotation on a secret, you
-//   must already have a Lambda function ARN configured or included as a parameter
-//   in this call.
+//   the resource.
+//
+//   Possible causes:
+//
+//      * You tried to perform the operation on a secret that's currently marked
+//      deleted.
+//
+//      * You tried to enable rotation on a secret that doesn't already have a
+//      Lambda function ARN configured and you didn't include such an ARN as a
+//      parameter in this call.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/secretsmanager-2017-10-17/RotateSecret
 func (c *SecretsManager) RotateSecret(input *RotateSecretInput) (*RotateSecretOutput, error) {
@@ -1592,6 +1998,19 @@ func (c *SecretsManager) TagResourceRequest(input *TagResourceInput) (req *reque
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   We can't find the resource that you asked for.
 //
+//   * ErrCodeInvalidRequestException "InvalidRequestException"
+//   You provided a parameter value that is not valid for the current state of
+//   the resource.
+//
+//   Possible causes:
+//
+//      * You tried to perform the operation on a secret that's currently marked
+//      deleted.
+//
+//      * You tried to enable rotation on a secret that doesn't already have a
+//      Lambda function ARN configured and you didn't include such an ARN as a
+//      parameter in this call.
+//
 //   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   You provided an invalid value for a parameter.
 //
@@ -1700,6 +2119,19 @@ func (c *SecretsManager) UntagResourceRequest(input *UntagResourceInput) (req *r
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   We can't find the resource that you asked for.
 //
+//   * ErrCodeInvalidRequestException "InvalidRequestException"
+//   You provided a parameter value that is not valid for the current state of
+//   the resource.
+//
+//   Possible causes:
+//
+//      * You tried to perform the operation on a secret that's currently marked
+//      deleted.
+//
+//      * You tried to enable rotation on a secret that doesn't already have a
+//      Lambda function ARN configured and you didn't include such an ARN as a
+//      parameter in this call.
+//
 //   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   You provided an invalid value for a parameter.
 //
@@ -1793,23 +2225,24 @@ func (c *SecretsManager) UpdateSecretRequest(input *UpdateSecretInput) (req *req
 //
 // If you call an operation that needs to encrypt or decrypt the SecretString
 // or SecretBinary for a secret in the same account as the calling user and
-// that secret doesn't specify a KMS encryption key, Secrets Manager uses the
-// account's default AWS managed customer master key (CMK) with the alias aws/secretsmanager.
-// If this key doesn't already exist in your account then Secrets Manager creates
-// it for you automatically. All users in the same AWS account automatically
-// have access to use the default CMK. Note that if an Secrets Manager API call
-// results in AWS having to create the account's AWS-managed CMK, it can result
-// in a one-time significant delay in returning the result.
+// that secret doesn't specify a AWS KMS encryption key, Secrets Manager uses
+// the account's default AWS managed customer master key (CMK) with the alias
+// aws/secretsmanager. If this key doesn't already exist in your account then
+// Secrets Manager creates it for you automatically. All users in the same AWS
+// account automatically have access to use the default CMK. Note that if an
+// Secrets Manager API call results in AWS having to create the account's AWS-managed
+// CMK, it can result in a one-time significant delay in returning the result.
 //
 // If the secret is in a different AWS account from the credentials calling
 // an API that requires encryption or decryption of the secret value then you
-// must create and use a custom KMS CMK because you can't access the default
+// must create and use a custom AWS KMS CMK because you can't access the default
 // CMK for the account using credentials from a different AWS account. Store
 // the ARN of the CMK in the secret when you create the secret or when you update
 // it by including it in the KMSKeyId. If you call an API that must encrypt
 // or decrypt SecretString or SecretBinary using credentials from a different
-// account then the KMS key policy must grant cross-account access to that other
-// account's user or role for both the kms:GenerateDataKey and kms:Decrypt operations.
+// account then the AWS KMS key policy must grant cross-account access to that
+// other account's user or role for both the kms:GenerateDataKey and kms:Decrypt
+// operations.
 //
 // Minimum permissions
 //
@@ -1817,12 +2250,12 @@ func (c *SecretsManager) UpdateSecretRequest(input *UpdateSecretInput) (req *req
 //
 //    * secretsmanager:UpdateSecret
 //
-//    * kms:GenerateDataKey - needed only if you use a custom KMS key to encrypt
-//    the secret. You do not need this permission to use the account's AWS managed
-//    CMK for Secrets Manager.
+//    * kms:GenerateDataKey - needed only if you use a custom AWS KMS key to
+//    encrypt the secret. You do not need this permission to use the account's
+//    AWS managed CMK for Secrets Manager.
 //
-//    * kms:Decrypt - needed only if you use a custom KMS key to encrypt the
-//    secret. You do not need this permission to use the account's AWS managed
+//    * kms:Decrypt - needed only if you use a custom AWS KMS key to encrypt
+//    the secret. You do not need this permission to use the account's AWS managed
 //    CMK for Secrets Manager.
 //
 // Related operations
@@ -1848,9 +2281,16 @@ func (c *SecretsManager) UpdateSecretRequest(input *UpdateSecretInput) (req *req
 //
 //   * ErrCodeInvalidRequestException "InvalidRequestException"
 //   You provided a parameter value that is not valid for the current state of
-//   the resource. For example, if you try to enable rotation on a secret, you
-//   must already have a Lambda function ARN configured or included as a parameter
-//   in this call.
+//   the resource.
+//
+//   Possible causes:
+//
+//      * You tried to perform the operation on a secret that's currently marked
+//      deleted.
+//
+//      * You tried to enable rotation on a secret that doesn't already have a
+//      Lambda function ARN configured and you didn't include such an ARN as a
+//      parameter in this call.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
 //   The request failed because it would exceed one of the Secrets Manager internal
@@ -1873,6 +2313,9 @@ func (c *SecretsManager) UpdateSecretRequest(input *UpdateSecretInput) (req *req
 //
 //   * ErrCodeInternalServiceError "InternalServiceError"
 //   An error occurred on the server side.
+//
+//   * ErrCodePreconditionNotMetException "PreconditionNotMetException"
+//   The request failed because you did not complete all the prerequisite steps.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/secretsmanager-2017-10-17/UpdateSecret
 func (c *SecretsManager) UpdateSecret(input *UpdateSecretInput) (*UpdateSecretOutput, error) {
@@ -1990,9 +2433,16 @@ func (c *SecretsManager) UpdateSecretVersionStageRequest(input *UpdateSecretVers
 //
 //   * ErrCodeInvalidRequestException "InvalidRequestException"
 //   You provided a parameter value that is not valid for the current state of
-//   the resource. For example, if you try to enable rotation on a secret, you
-//   must already have a Lambda function ARN configured or included as a parameter
-//   in this call.
+//   the resource.
+//
+//   Possible causes:
+//
+//      * You tried to perform the operation on a secret that's currently marked
+//      deleted.
+//
+//      * You tried to enable rotation on a secret that doesn't already have a
+//      Lambda function ARN configured and you didn't include such an ARN as a
+//      parameter in this call.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
 //   The request failed because it would exceed one of the Secrets Manager internal
@@ -2120,8 +2570,8 @@ type CreateSecretInput struct {
 	//
 	// If you use the AWS CLI or one of the AWS SDK to call this operation, then
 	// you can leave this parameter empty. The CLI or SDK generates a random UUID
-	// for you and includes as the value for this parameter in the request. If you
-	// don't use the SDK and instead generate a raw HTTP request to the Secrets
+	// for you and includes it as the value for this parameter in the request. If
+	// you don't use the SDK and instead generate a raw HTTP request to the Secrets
 	// Manager service endpoint, then you must generate a ClientRequestToken yourself
 	// for the new version and include that value in the request.
 	//
@@ -2148,14 +2598,18 @@ type CreateSecretInput struct {
 	// (Optional) Specifies a user-provided description of the secret.
 	Description *string `type:"string"`
 
-	// (Optional) Specifies the ARN or alias of the AWS KMS customer master key
-	// (CMK) to be used to encrypt the SecretString or SecretBinary values in the
-	// versions stored in this secret.
+	// (Optional) Specifies the ARN, Key ID, or alias of the AWS KMS customer master
+	// key (CMK) to be used to encrypt the SecretString or SecretBinary values in
+	// the versions stored in this secret.
+	//
+	// You can specify any of the supported ways to identify a AWS KMS key ID. If
+	// you need to reference a CMK in a different account, you can use only the
+	// key ARN or the alias ARN.
 	//
 	// If you don't specify this value, then Secrets Manager defaults to using the
-	// AWS account's default CMK (the one named aws/secretsmanager). If a KMS CMK
-	// with that name doesn't yet exist, then Secrets Manager creates it for you
-	// automatically the first time it needs to encrypt a version's SecretString
+	// AWS account's default CMK (the one named aws/secretsmanager). If a AWS KMS
+	// CMK with that name doesn't yet exist, then Secrets Manager creates it for
+	// you automatically the first time it needs to encrypt a version's SecretString
 	// or SecretBinary fields.
 	//
 	// You can use the account's default CMK to encrypt and decrypt only if you
@@ -2165,6 +2619,9 @@ type CreateSecretInput struct {
 	KmsKeyId *string `type:"string"`
 
 	// Specifies the friendly name of the new secret.
+	//
+	// The secret name must be ASCII letters, digits, or the following characters
+	// : /_+=.@-
 	//
 	// Name is a required field
 	Name *string `min:"1" type:"string" required:"true"`
@@ -2383,6 +2840,82 @@ func (s *CreateSecretOutput) SetVersionId(v string) *CreateSecretOutput {
 	return s
 }
 
+type DeleteResourcePolicyInput struct {
+	_ struct{} `type:"structure"`
+
+	// Specifies the secret that you want to delete the attached resource-based
+	// policy for. You can specify either the Amazon Resource Name (ARN) or the
+	// friendly name of the secret.
+	//
+	// SecretId is a required field
+	SecretId *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteResourcePolicyInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteResourcePolicyInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteResourcePolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteResourcePolicyInput"}
+	if s.SecretId == nil {
+		invalidParams.Add(request.NewErrParamRequired("SecretId"))
+	}
+	if s.SecretId != nil && len(*s.SecretId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("SecretId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetSecretId sets the SecretId field's value.
+func (s *DeleteResourcePolicyInput) SetSecretId(v string) *DeleteResourcePolicyInput {
+	s.SecretId = &v
+	return s
+}
+
+type DeleteResourcePolicyOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the secret that the resource-based policy was deleted for.
+	ARN *string `min:"20" type:"string"`
+
+	// The friendly name of the secret that the resource-based policy was deleted
+	// for.
+	Name *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s DeleteResourcePolicyOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteResourcePolicyOutput) GoString() string {
+	return s.String()
+}
+
+// SetARN sets the ARN field's value.
+func (s *DeleteResourcePolicyOutput) SetARN(v string) *DeleteResourcePolicyOutput {
+	s.ARN = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *DeleteResourcePolicyOutput) SetName(v string) *DeleteResourcePolicyOutput {
+	s.Name = &v
+	return s
+}
+
 type DeleteSecretInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2544,7 +3077,7 @@ type DescribeSecretOutput struct {
 	// The ARN or alias of the AWS KMS customer master key (CMK) that's used to
 	// encrypt the SecretString or SecretBinary fields in each version of the secret.
 	// If you don't provide a key, then Secrets Manager defaults to encrypting the
-	// secret fields with the default KMS CMK (the one named awssecretsmanager)
+	// secret fields with the default AWS KMS CMK (the one named awssecretsmanager)
 	// for this account.
 	KmsKeyId *string `type:"string"`
 
@@ -2810,6 +3343,97 @@ func (s GetRandomPasswordOutput) GoString() string {
 // SetRandomPassword sets the RandomPassword field's value.
 func (s *GetRandomPasswordOutput) SetRandomPassword(v string) *GetRandomPasswordOutput {
 	s.RandomPassword = &v
+	return s
+}
+
+type GetResourcePolicyInput struct {
+	_ struct{} `type:"structure"`
+
+	// Specifies the secret that you want to retrieve the attached resource-based
+	// policy for. You can specify either the Amazon Resource Name (ARN) or the
+	// friendly name of the secret.
+	//
+	// SecretId is a required field
+	SecretId *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetResourcePolicyInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetResourcePolicyInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetResourcePolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetResourcePolicyInput"}
+	if s.SecretId == nil {
+		invalidParams.Add(request.NewErrParamRequired("SecretId"))
+	}
+	if s.SecretId != nil && len(*s.SecretId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("SecretId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetSecretId sets the SecretId field's value.
+func (s *GetResourcePolicyInput) SetSecretId(v string) *GetResourcePolicyInput {
+	s.SecretId = &v
+	return s
+}
+
+type GetResourcePolicyOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the secret that the resource-based policy was retrieved for.
+	ARN *string `min:"20" type:"string"`
+
+	// The friendly name of the secret that the resource-based policy was retrieved
+	// for.
+	Name *string `min:"1" type:"string"`
+
+	// A JSON-formatted string that describes the permissions that are associated
+	// with the attached secret. These permissions are combined with any permissions
+	// that are associated with the user or role that attempts to access this secret.
+	// The combined permissions specify who can access the secret and what actions
+	// they can perform. For more information, see Authentication and Access Control
+	// for AWS Secrets Manager (http://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access.html)
+	// in the AWS Secrets Manager User Guide.
+	ResourcePolicy *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s GetResourcePolicyOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetResourcePolicyOutput) GoString() string {
+	return s.String()
+}
+
+// SetARN sets the ARN field's value.
+func (s *GetResourcePolicyOutput) SetARN(v string) *GetResourcePolicyOutput {
+	s.ARN = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *GetResourcePolicyOutput) SetName(v string) *GetResourcePolicyOutput {
+	s.Name = &v
+	return s
+}
+
+// SetResourcePolicy sets the ResourcePolicy field's value.
+func (s *GetResourcePolicyOutput) SetResourcePolicy(v string) *GetResourcePolicyOutput {
+	s.ResourcePolicy = &v
 	return s
 }
 
@@ -3241,6 +3865,103 @@ func (s *ListSecretsOutput) SetNextToken(v string) *ListSecretsOutput {
 // SetSecretList sets the SecretList field's value.
 func (s *ListSecretsOutput) SetSecretList(v []*SecretListEntry) *ListSecretsOutput {
 	s.SecretList = v
+	return s
+}
+
+type PutResourcePolicyInput struct {
+	_ struct{} `type:"structure"`
+
+	// A JSON-formatted string that's constructed according to the grammar and syntax
+	// for an AWS resource-based policy. The policy in the string identifies who
+	// can access or manage this secret and its versions. For information on how
+	// to format a JSON parameter for the various command line tool environments,
+	// see Using JSON for Parameters (http://docs.aws.amazon.com/cli/latest/userguide/cli-using-param.html#cli-using-param-json)
+	// in the AWS CLI User Guide.
+	//
+	// ResourcePolicy is a required field
+	ResourcePolicy *string `min:"1" type:"string" required:"true"`
+
+	// Specifies the secret that you want to attach the resource-based policy to.
+	// You can specify either the ARN or the friendly name of the secret.
+	//
+	// SecretId is a required field
+	SecretId *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s PutResourcePolicyInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutResourcePolicyInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutResourcePolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutResourcePolicyInput"}
+	if s.ResourcePolicy == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourcePolicy"))
+	}
+	if s.ResourcePolicy != nil && len(*s.ResourcePolicy) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourcePolicy", 1))
+	}
+	if s.SecretId == nil {
+		invalidParams.Add(request.NewErrParamRequired("SecretId"))
+	}
+	if s.SecretId != nil && len(*s.SecretId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("SecretId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourcePolicy sets the ResourcePolicy field's value.
+func (s *PutResourcePolicyInput) SetResourcePolicy(v string) *PutResourcePolicyInput {
+	s.ResourcePolicy = &v
+	return s
+}
+
+// SetSecretId sets the SecretId field's value.
+func (s *PutResourcePolicyInput) SetSecretId(v string) *PutResourcePolicyInput {
+	s.SecretId = &v
+	return s
+}
+
+type PutResourcePolicyOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the secret that the resource-based policy was retrieved for.
+	ARN *string `min:"20" type:"string"`
+
+	// The friendly name of the secret that the resource-based policy was retrieved
+	// for.
+	Name *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s PutResourcePolicyOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutResourcePolicyOutput) GoString() string {
+	return s.String()
+}
+
+// SetARN sets the ARN field's value.
+func (s *PutResourcePolicyOutput) SetARN(v string) *PutResourcePolicyOutput {
+	s.ARN = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *PutResourcePolicyOutput) SetName(v string) *PutResourcePolicyOutput {
+	s.Name = &v
 	return s
 }
 
@@ -3720,7 +4441,7 @@ type SecretListEntry struct {
 	// The Amazon Resource Name (ARN) of the secret.
 	//
 	// For more information about ARNs in Secrets Manager, see Policy Resources
-	// (http://docs.aws.amazon.com/http:/docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#iam-resources)
+	// (http://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#iam-resources)
 	// in the AWS Secrets Manager User Guide.
 	ARN *string `min:"20" type:"string"`
 
@@ -4170,14 +4891,14 @@ type UpdateSecretInput struct {
 	// (Optional) Specifies a user-provided description of the secret.
 	Description *string `type:"string"`
 
-	// (Optional) Specifies the ARN or alias of the KMS customer master key (CMK)
-	// to be used to encrypt the protected text in the versions of this secret.
+	// (Optional) Specifies the ARN or alias of the AWS KMS customer master key
+	// (CMK) to be used to encrypt the protected text in the versions of this secret.
 	//
 	// If you don't specify this value, then Secrets Manager defaults to using the
-	// default CMK in the account (the one named aws/secretsmanager). If a KMS CMK
-	// with that name doesn't exist, then Secrets Manager creates it for you automatically
-	// the first time it needs to encrypt a version's Plaintext or PlaintextString
-	// fields.
+	// default CMK in the account (the one named aws/secretsmanager). If a AWS KMS
+	// CMK with that name doesn't exist, then Secrets Manager creates it for you
+	// automatically the first time it needs to encrypt a version's Plaintext or
+	// PlaintextString fields.
 	//
 	// You can only use the account's default CMK to encrypt and decrypt if you
 	// call this operation using credentials from the same account that owns the

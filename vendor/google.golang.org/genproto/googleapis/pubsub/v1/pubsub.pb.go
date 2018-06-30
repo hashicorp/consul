@@ -28,6 +28,50 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
+type MessageStoragePolicy struct {
+	// The list of GCP regions where messages that are published to the topic may
+	// be persisted in storage. Messages published by publishers running in
+	// non-allowed GCP regions (or running outside of GCP altogether) will be
+	// routed for storage in one of the allowed regions. An empty list indicates a
+	// misconfiguration at the project or organization level, which will result in
+	// all Publish operations failing.
+	AllowedPersistenceRegions []string `protobuf:"bytes,1,rep,name=allowed_persistence_regions,json=allowedPersistenceRegions,proto3" json:"allowed_persistence_regions,omitempty"`
+	XXX_NoUnkeyedLiteral      struct{} `json:"-"`
+	XXX_unrecognized          []byte   `json:"-"`
+	XXX_sizecache             int32    `json:"-"`
+}
+
+func (m *MessageStoragePolicy) Reset()         { *m = MessageStoragePolicy{} }
+func (m *MessageStoragePolicy) String() string { return proto.CompactTextString(m) }
+func (*MessageStoragePolicy) ProtoMessage()    {}
+func (*MessageStoragePolicy) Descriptor() ([]byte, []int) {
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{0}
+}
+func (m *MessageStoragePolicy) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_MessageStoragePolicy.Unmarshal(m, b)
+}
+func (m *MessageStoragePolicy) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_MessageStoragePolicy.Marshal(b, m, deterministic)
+}
+func (dst *MessageStoragePolicy) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MessageStoragePolicy.Merge(dst, src)
+}
+func (m *MessageStoragePolicy) XXX_Size() int {
+	return xxx_messageInfo_MessageStoragePolicy.Size(m)
+}
+func (m *MessageStoragePolicy) XXX_DiscardUnknown() {
+	xxx_messageInfo_MessageStoragePolicy.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MessageStoragePolicy proto.InternalMessageInfo
+
+func (m *MessageStoragePolicy) GetAllowedPersistenceRegions() []string {
+	if m != nil {
+		return m.AllowedPersistenceRegions
+	}
+	return nil
+}
+
 // A topic resource.
 type Topic struct {
 	// The name of the topic. It must have the format
@@ -36,19 +80,26 @@ type Topic struct {
 	// underscores (`_`), periods (`.`), tildes (`~`), plus (`+`) or percent
 	// signs (`%`). It must be between 3 and 255 characters in length, and it
 	// must not start with `"goog"`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// User labels.
-	Labels               map[string]string `protobuf:"bytes,2,rep,name=labels" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
-	XXX_unrecognized     []byte            `json:"-"`
-	XXX_sizecache        int32             `json:"-"`
+	Labels map[string]string `protobuf:"bytes,2,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	// Policy constraining how messages published to the topic may be stored. It
+	// is determined when the topic is created based on the policy configured at
+	// the project level. It must not be set by the caller in the request to
+	// CreateTopic or to UpdateTopic. This field will be populated in the
+	// responses for GetTopic, CreateTopic, and UpdateTopic: if not present in the
+	// response, then no constraints are in effect.
+	MessageStoragePolicy *MessageStoragePolicy `protobuf:"bytes,3,opt,name=message_storage_policy,json=messageStoragePolicy,proto3" json:"message_storage_policy,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
+	XXX_unrecognized     []byte                `json:"-"`
+	XXX_sizecache        int32                 `json:"-"`
 }
 
 func (m *Topic) Reset()         { *m = Topic{} }
 func (m *Topic) String() string { return proto.CompactTextString(m) }
 func (*Topic) ProtoMessage()    {}
 func (*Topic) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{0}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{1}
 }
 func (m *Topic) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Topic.Unmarshal(m, b)
@@ -82,22 +133,29 @@ func (m *Topic) GetLabels() map[string]string {
 	return nil
 }
 
+func (m *Topic) GetMessageStoragePolicy() *MessageStoragePolicy {
+	if m != nil {
+		return m.MessageStoragePolicy
+	}
+	return nil
+}
+
 // A message data and its attributes. The message payload must not be empty;
 // it must contain either a non-empty data field, or at least one attribute.
 type PubsubMessage struct {
 	// The message payload.
 	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
 	// Optional attributes for this message.
-	Attributes map[string]string `protobuf:"bytes,2,rep,name=attributes" json:"attributes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Attributes map[string]string `protobuf:"bytes,2,rep,name=attributes,proto3" json:"attributes,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// ID of this message, assigned by the server when the message is published.
 	// Guaranteed to be unique within the topic. This value may be read by a
 	// subscriber that receives a `PubsubMessage` via a `Pull` call or a push
 	// delivery. It must not be populated by the publisher in a `Publish` call.
-	MessageId string `protobuf:"bytes,3,opt,name=message_id,json=messageId" json:"message_id,omitempty"`
+	MessageId string `protobuf:"bytes,3,opt,name=message_id,json=messageId,proto3" json:"message_id,omitempty"`
 	// The time at which the message was published, populated by the server when
 	// it receives the `Publish` call. It must not be populated by the
 	// publisher in a `Publish` call.
-	PublishTime          *timestamp.Timestamp `protobuf:"bytes,4,opt,name=publish_time,json=publishTime" json:"publish_time,omitempty"`
+	PublishTime          *timestamp.Timestamp `protobuf:"bytes,4,opt,name=publish_time,json=publishTime,proto3" json:"publish_time,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -107,7 +165,7 @@ func (m *PubsubMessage) Reset()         { *m = PubsubMessage{} }
 func (m *PubsubMessage) String() string { return proto.CompactTextString(m) }
 func (*PubsubMessage) ProtoMessage()    {}
 func (*PubsubMessage) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{1}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{2}
 }
 func (m *PubsubMessage) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PubsubMessage.Unmarshal(m, b)
@@ -159,7 +217,7 @@ func (m *PubsubMessage) GetPublishTime() *timestamp.Timestamp {
 type GetTopicRequest struct {
 	// The name of the topic to get.
 	// Format is `projects/{project}/topics/{topic}`.
-	Topic                string   `protobuf:"bytes,1,opt,name=topic" json:"topic,omitempty"`
+	Topic                string   `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -169,7 +227,7 @@ func (m *GetTopicRequest) Reset()         { *m = GetTopicRequest{} }
 func (m *GetTopicRequest) String() string { return proto.CompactTextString(m) }
 func (*GetTopicRequest) ProtoMessage()    {}
 func (*GetTopicRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{2}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{3}
 }
 func (m *GetTopicRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetTopicRequest.Unmarshal(m, b)
@@ -198,11 +256,14 @@ func (m *GetTopicRequest) GetTopic() string {
 
 // Request for the UpdateTopic method.
 type UpdateTopicRequest struct {
-	// The topic to update.
-	Topic *Topic `protobuf:"bytes,1,opt,name=topic" json:"topic,omitempty"`
-	// Indicates which fields in the provided topic to update.
-	// Must be specified and non-empty.
-	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	// The updated topic object.
+	Topic *Topic `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
+	// Indicates which fields in the provided topic to update. Must be specified
+	// and non-empty. Note that if `update_mask` contains
+	// "message_storage_policy" then the new value will be determined based on the
+	// policy configured at the project or organization level. The
+	// `message_storage_policy` must not be set in the `topic` provided above.
+	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -212,7 +273,7 @@ func (m *UpdateTopicRequest) Reset()         { *m = UpdateTopicRequest{} }
 func (m *UpdateTopicRequest) String() string { return proto.CompactTextString(m) }
 func (*UpdateTopicRequest) ProtoMessage()    {}
 func (*UpdateTopicRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{3}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{4}
 }
 func (m *UpdateTopicRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UpdateTopicRequest.Unmarshal(m, b)
@@ -250,9 +311,9 @@ func (m *UpdateTopicRequest) GetUpdateMask() *field_mask.FieldMask {
 type PublishRequest struct {
 	// The messages in the request will be published on this topic.
 	// Format is `projects/{project}/topics/{topic}`.
-	Topic string `protobuf:"bytes,1,opt,name=topic" json:"topic,omitempty"`
+	Topic string `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
 	// The messages to publish.
-	Messages             []*PubsubMessage `protobuf:"bytes,2,rep,name=messages" json:"messages,omitempty"`
+	Messages             []*PubsubMessage `protobuf:"bytes,2,rep,name=messages,proto3" json:"messages,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
 	XXX_unrecognized     []byte           `json:"-"`
 	XXX_sizecache        int32            `json:"-"`
@@ -262,7 +323,7 @@ func (m *PublishRequest) Reset()         { *m = PublishRequest{} }
 func (m *PublishRequest) String() string { return proto.CompactTextString(m) }
 func (*PublishRequest) ProtoMessage()    {}
 func (*PublishRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{4}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{5}
 }
 func (m *PublishRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PublishRequest.Unmarshal(m, b)
@@ -301,7 +362,7 @@ type PublishResponse struct {
 	// The server-assigned ID of each published message, in the same order as
 	// the messages in the request. IDs are guaranteed to be unique within
 	// the topic.
-	MessageIds           []string `protobuf:"bytes,1,rep,name=message_ids,json=messageIds" json:"message_ids,omitempty"`
+	MessageIds           []string `protobuf:"bytes,1,rep,name=message_ids,json=messageIds,proto3" json:"message_ids,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -311,7 +372,7 @@ func (m *PublishResponse) Reset()         { *m = PublishResponse{} }
 func (m *PublishResponse) String() string { return proto.CompactTextString(m) }
 func (*PublishResponse) ProtoMessage()    {}
 func (*PublishResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{5}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{6}
 }
 func (m *PublishResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PublishResponse.Unmarshal(m, b)
@@ -342,13 +403,13 @@ func (m *PublishResponse) GetMessageIds() []string {
 type ListTopicsRequest struct {
 	// The name of the cloud project that topics belong to.
 	// Format is `projects/{project}`.
-	Project string `protobuf:"bytes,1,opt,name=project" json:"project,omitempty"`
+	Project string `protobuf:"bytes,1,opt,name=project,proto3" json:"project,omitempty"`
 	// Maximum number of topics to return.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The value returned by the last `ListTopicsResponse`; indicates that this is
 	// a continuation of a prior `ListTopics` call, and that the system should
 	// return the next page of data.
-	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -358,7 +419,7 @@ func (m *ListTopicsRequest) Reset()         { *m = ListTopicsRequest{} }
 func (m *ListTopicsRequest) String() string { return proto.CompactTextString(m) }
 func (*ListTopicsRequest) ProtoMessage()    {}
 func (*ListTopicsRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{6}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{7}
 }
 func (m *ListTopicsRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListTopicsRequest.Unmarshal(m, b)
@@ -402,10 +463,10 @@ func (m *ListTopicsRequest) GetPageToken() string {
 // Response for the `ListTopics` method.
 type ListTopicsResponse struct {
 	// The resulting topics.
-	Topics []*Topic `protobuf:"bytes,1,rep,name=topics" json:"topics,omitempty"`
+	Topics []*Topic `protobuf:"bytes,1,rep,name=topics,proto3" json:"topics,omitempty"`
 	// If not empty, indicates that there may be more topics that match the
 	// request; this value should be passed in a new `ListTopicsRequest`.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -415,7 +476,7 @@ func (m *ListTopicsResponse) Reset()         { *m = ListTopicsResponse{} }
 func (m *ListTopicsResponse) String() string { return proto.CompactTextString(m) }
 func (*ListTopicsResponse) ProtoMessage()    {}
 func (*ListTopicsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{7}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{8}
 }
 func (m *ListTopicsResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListTopicsResponse.Unmarshal(m, b)
@@ -453,13 +514,13 @@ func (m *ListTopicsResponse) GetNextPageToken() string {
 type ListTopicSubscriptionsRequest struct {
 	// The name of the topic that subscriptions are attached to.
 	// Format is `projects/{project}/topics/{topic}`.
-	Topic string `protobuf:"bytes,1,opt,name=topic" json:"topic,omitempty"`
+	Topic string `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
 	// Maximum number of subscription names to return.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The value returned by the last `ListTopicSubscriptionsResponse`; indicates
 	// that this is a continuation of a prior `ListTopicSubscriptions` call, and
 	// that the system should return the next page of data.
-	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -469,7 +530,7 @@ func (m *ListTopicSubscriptionsRequest) Reset()         { *m = ListTopicSubscrip
 func (m *ListTopicSubscriptionsRequest) String() string { return proto.CompactTextString(m) }
 func (*ListTopicSubscriptionsRequest) ProtoMessage()    {}
 func (*ListTopicSubscriptionsRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{8}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{9}
 }
 func (m *ListTopicSubscriptionsRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListTopicSubscriptionsRequest.Unmarshal(m, b)
@@ -513,11 +574,11 @@ func (m *ListTopicSubscriptionsRequest) GetPageToken() string {
 // Response for the `ListTopicSubscriptions` method.
 type ListTopicSubscriptionsResponse struct {
 	// The names of the subscriptions that match the request.
-	Subscriptions []string `protobuf:"bytes,1,rep,name=subscriptions" json:"subscriptions,omitempty"`
+	Subscriptions []string `protobuf:"bytes,1,rep,name=subscriptions,proto3" json:"subscriptions,omitempty"`
 	// If not empty, indicates that there may be more subscriptions that match
 	// the request; this value should be passed in a new
 	// `ListTopicSubscriptionsRequest` to get more subscriptions.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -527,7 +588,7 @@ func (m *ListTopicSubscriptionsResponse) Reset()         { *m = ListTopicSubscri
 func (m *ListTopicSubscriptionsResponse) String() string { return proto.CompactTextString(m) }
 func (*ListTopicSubscriptionsResponse) ProtoMessage()    {}
 func (*ListTopicSubscriptionsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{9}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{10}
 }
 func (m *ListTopicSubscriptionsResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListTopicSubscriptionsResponse.Unmarshal(m, b)
@@ -561,11 +622,129 @@ func (m *ListTopicSubscriptionsResponse) GetNextPageToken() string {
 	return ""
 }
 
+// Request for the `ListTopicSnapshots` method.<br><br>
+// <b>ALPHA:</b> This feature is part of an alpha release. This API might be
+// changed in backward-incompatible ways and is not recommended for production
+// use. It is not subject to any SLA or deprecation policy.
+type ListTopicSnapshotsRequest struct {
+	// The name of the topic that snapshots are attached to.
+	// Format is `projects/{project}/topics/{topic}`.
+	Topic string `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
+	// Maximum number of snapshot names to return.
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// The value returned by the last `ListTopicSnapshotsResponse`; indicates
+	// that this is a continuation of a prior `ListTopicSnapshots` call, and
+	// that the system should return the next page of data.
+	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ListTopicSnapshotsRequest) Reset()         { *m = ListTopicSnapshotsRequest{} }
+func (m *ListTopicSnapshotsRequest) String() string { return proto.CompactTextString(m) }
+func (*ListTopicSnapshotsRequest) ProtoMessage()    {}
+func (*ListTopicSnapshotsRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{11}
+}
+func (m *ListTopicSnapshotsRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ListTopicSnapshotsRequest.Unmarshal(m, b)
+}
+func (m *ListTopicSnapshotsRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ListTopicSnapshotsRequest.Marshal(b, m, deterministic)
+}
+func (dst *ListTopicSnapshotsRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ListTopicSnapshotsRequest.Merge(dst, src)
+}
+func (m *ListTopicSnapshotsRequest) XXX_Size() int {
+	return xxx_messageInfo_ListTopicSnapshotsRequest.Size(m)
+}
+func (m *ListTopicSnapshotsRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_ListTopicSnapshotsRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ListTopicSnapshotsRequest proto.InternalMessageInfo
+
+func (m *ListTopicSnapshotsRequest) GetTopic() string {
+	if m != nil {
+		return m.Topic
+	}
+	return ""
+}
+
+func (m *ListTopicSnapshotsRequest) GetPageSize() int32 {
+	if m != nil {
+		return m.PageSize
+	}
+	return 0
+}
+
+func (m *ListTopicSnapshotsRequest) GetPageToken() string {
+	if m != nil {
+		return m.PageToken
+	}
+	return ""
+}
+
+// Response for the `ListTopicSnapshots` method.<br><br>
+// <b>ALPHA:</b> This feature is part of an alpha release. This API might be
+// changed in backward-incompatible ways and is not recommended for production
+// use. It is not subject to any SLA or deprecation policy.
+type ListTopicSnapshotsResponse struct {
+	// The names of the snapshots that match the request.
+	Snapshots []string `protobuf:"bytes,1,rep,name=snapshots,proto3" json:"snapshots,omitempty"`
+	// If not empty, indicates that there may be more snapshots that match
+	// the request; this value should be passed in a new
+	// `ListTopicSnapshotsRequest` to get more snapshots.
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ListTopicSnapshotsResponse) Reset()         { *m = ListTopicSnapshotsResponse{} }
+func (m *ListTopicSnapshotsResponse) String() string { return proto.CompactTextString(m) }
+func (*ListTopicSnapshotsResponse) ProtoMessage()    {}
+func (*ListTopicSnapshotsResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{12}
+}
+func (m *ListTopicSnapshotsResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ListTopicSnapshotsResponse.Unmarshal(m, b)
+}
+func (m *ListTopicSnapshotsResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ListTopicSnapshotsResponse.Marshal(b, m, deterministic)
+}
+func (dst *ListTopicSnapshotsResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ListTopicSnapshotsResponse.Merge(dst, src)
+}
+func (m *ListTopicSnapshotsResponse) XXX_Size() int {
+	return xxx_messageInfo_ListTopicSnapshotsResponse.Size(m)
+}
+func (m *ListTopicSnapshotsResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_ListTopicSnapshotsResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ListTopicSnapshotsResponse proto.InternalMessageInfo
+
+func (m *ListTopicSnapshotsResponse) GetSnapshots() []string {
+	if m != nil {
+		return m.Snapshots
+	}
+	return nil
+}
+
+func (m *ListTopicSnapshotsResponse) GetNextPageToken() string {
+	if m != nil {
+		return m.NextPageToken
+	}
+	return ""
+}
+
 // Request for the `DeleteTopic` method.
 type DeleteTopicRequest struct {
 	// Name of the topic to delete.
 	// Format is `projects/{project}/topics/{topic}`.
-	Topic                string   `protobuf:"bytes,1,opt,name=topic" json:"topic,omitempty"`
+	Topic                string   `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -575,7 +754,7 @@ func (m *DeleteTopicRequest) Reset()         { *m = DeleteTopicRequest{} }
 func (m *DeleteTopicRequest) String() string { return proto.CompactTextString(m) }
 func (*DeleteTopicRequest) ProtoMessage()    {}
 func (*DeleteTopicRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{10}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{13}
 }
 func (m *DeleteTopicRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeleteTopicRequest.Unmarshal(m, b)
@@ -610,16 +789,16 @@ type Subscription struct {
 	// (`[0-9]`), dashes (`-`), underscores (`_`), periods (`.`), tildes (`~`),
 	// plus (`+`) or percent signs (`%`). It must be between 3 and 255 characters
 	// in length, and it must not start with `"goog"`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The name of the topic from which this subscription is receiving messages.
 	// Format is `projects/{project}/topics/{topic}`.
 	// The value of this field will be `_deleted-topic_` if the topic has been
 	// deleted.
-	Topic string `protobuf:"bytes,2,opt,name=topic" json:"topic,omitempty"`
+	Topic string `protobuf:"bytes,2,opt,name=topic,proto3" json:"topic,omitempty"`
 	// If push delivery is used with this subscription, this field is
 	// used to configure it. An empty `pushConfig` signifies that the subscriber
 	// will pull and ack messages using API methods.
-	PushConfig *PushConfig `protobuf:"bytes,4,opt,name=push_config,json=pushConfig" json:"push_config,omitempty"`
+	PushConfig *PushConfig `protobuf:"bytes,4,opt,name=push_config,json=pushConfig,proto3" json:"push_config,omitempty"`
 	// This value is the maximum time after a subscriber receives a message
 	// before the subscriber should acknowledge the message. After message
 	// delivery but before the ack deadline expires and before the message is
@@ -629,7 +808,8 @@ type Subscription struct {
 	// For pull subscriptions, this value is used as the initial value for the ack
 	// deadline. To override this value for a given message, call
 	// `ModifyAckDeadline` with the corresponding `ack_id` if using
-	// pull.
+	// non-streaming pull or send the `ack_id` in a
+	// `StreamingModifyAckDeadlineRequest` if using streaming pull.
 	// The minimum custom deadline you can specify is 10 seconds.
 	// The maximum custom deadline you can specify is 600 seconds (10 minutes).
 	// If this parameter is 0, a default value of 10 seconds is used.
@@ -639,21 +819,27 @@ type Subscription struct {
 	//
 	// If the subscriber never acknowledges the message, the Pub/Sub
 	// system will eventually redeliver the message.
-	AckDeadlineSeconds int32 `protobuf:"varint,5,opt,name=ack_deadline_seconds,json=ackDeadlineSeconds" json:"ack_deadline_seconds,omitempty"`
+	AckDeadlineSeconds int32 `protobuf:"varint,5,opt,name=ack_deadline_seconds,json=ackDeadlineSeconds,proto3" json:"ack_deadline_seconds,omitempty"`
 	// Indicates whether to retain acknowledged messages. If true, then
 	// messages are not expunged from the subscription's backlog, even if they are
 	// acknowledged, until they fall out of the `message_retention_duration`
-	// window.
-	RetainAckedMessages bool `protobuf:"varint,7,opt,name=retain_acked_messages,json=retainAckedMessages" json:"retain_acked_messages,omitempty"`
+	// window.<br><br>
+	// <b>ALPHA:</b> This feature is part of an alpha release. This API might be
+	// changed in backward-incompatible ways and is not recommended for production
+	// use. It is not subject to any SLA or deprecation policy.
+	RetainAckedMessages bool `protobuf:"varint,7,opt,name=retain_acked_messages,json=retainAckedMessages,proto3" json:"retain_acked_messages,omitempty"`
 	// How long to retain unacknowledged messages in the subscription's backlog,
 	// from the moment a message is published.
 	// If `retain_acked_messages` is true, then this also configures the retention
 	// of acknowledged messages, and thus configures how far back in time a `Seek`
 	// can be done. Defaults to 7 days. Cannot be more than 7 days or less than 10
-	// minutes.
-	MessageRetentionDuration *duration.Duration `protobuf:"bytes,8,opt,name=message_retention_duration,json=messageRetentionDuration" json:"message_retention_duration,omitempty"`
+	// minutes.<br><br>
+	// <b>ALPHA:</b> This feature is part of an alpha release. This API might be
+	// changed in backward-incompatible ways and is not recommended for production
+	// use. It is not subject to any SLA or deprecation policy.
+	MessageRetentionDuration *duration.Duration `protobuf:"bytes,8,opt,name=message_retention_duration,json=messageRetentionDuration,proto3" json:"message_retention_duration,omitempty"`
 	// User labels.
-	Labels               map[string]string `protobuf:"bytes,9,rep,name=labels" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Labels               map[string]string `protobuf:"bytes,9,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -663,7 +849,7 @@ func (m *Subscription) Reset()         { *m = Subscription{} }
 func (m *Subscription) String() string { return proto.CompactTextString(m) }
 func (*Subscription) ProtoMessage()    {}
 func (*Subscription) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{11}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{14}
 }
 func (m *Subscription) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Subscription.Unmarshal(m, b)
@@ -736,7 +922,7 @@ func (m *Subscription) GetLabels() map[string]string {
 type PushConfig struct {
 	// A URL locating the endpoint to which messages should be pushed.
 	// For example, a Webhook endpoint might use "https://example.com/push".
-	PushEndpoint string `protobuf:"bytes,1,opt,name=push_endpoint,json=pushEndpoint" json:"push_endpoint,omitempty"`
+	PushEndpoint string `protobuf:"bytes,1,opt,name=push_endpoint,json=pushEndpoint,proto3" json:"push_endpoint,omitempty"`
 	// Endpoint configuration attributes.
 	//
 	// Every endpoint has a set of API supported attributes that can be used to
@@ -758,7 +944,7 @@ type PushConfig struct {
 	//
 	// * `v1beta1`: uses the push format defined in the v1beta1 Pub/Sub API.
 	// * `v1` or `v1beta2`: uses the push format defined in the v1 Pub/Sub API.
-	Attributes           map[string]string `protobuf:"bytes,2,rep,name=attributes" json:"attributes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Attributes           map[string]string `protobuf:"bytes,2,rep,name=attributes,proto3" json:"attributes,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -768,7 +954,7 @@ func (m *PushConfig) Reset()         { *m = PushConfig{} }
 func (m *PushConfig) String() string { return proto.CompactTextString(m) }
 func (*PushConfig) ProtoMessage()    {}
 func (*PushConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{12}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{15}
 }
 func (m *PushConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PushConfig.Unmarshal(m, b)
@@ -805,9 +991,9 @@ func (m *PushConfig) GetAttributes() map[string]string {
 // A message and its corresponding acknowledgment ID.
 type ReceivedMessage struct {
 	// This ID can be used to acknowledge the received message.
-	AckId string `protobuf:"bytes,1,opt,name=ack_id,json=ackId" json:"ack_id,omitempty"`
+	AckId string `protobuf:"bytes,1,opt,name=ack_id,json=ackId,proto3" json:"ack_id,omitempty"`
 	// The message.
-	Message              *PubsubMessage `protobuf:"bytes,2,opt,name=message" json:"message,omitempty"`
+	Message              *PubsubMessage `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
 	XXX_unrecognized     []byte         `json:"-"`
 	XXX_sizecache        int32          `json:"-"`
@@ -817,7 +1003,7 @@ func (m *ReceivedMessage) Reset()         { *m = ReceivedMessage{} }
 func (m *ReceivedMessage) String() string { return proto.CompactTextString(m) }
 func (*ReceivedMessage) ProtoMessage()    {}
 func (*ReceivedMessage) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{13}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{16}
 }
 func (m *ReceivedMessage) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReceivedMessage.Unmarshal(m, b)
@@ -855,7 +1041,7 @@ func (m *ReceivedMessage) GetMessage() *PubsubMessage {
 type GetSubscriptionRequest struct {
 	// The name of the subscription to get.
 	// Format is `projects/{project}/subscriptions/{sub}`.
-	Subscription         string   `protobuf:"bytes,1,opt,name=subscription" json:"subscription,omitempty"`
+	Subscription         string   `protobuf:"bytes,1,opt,name=subscription,proto3" json:"subscription,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -865,7 +1051,7 @@ func (m *GetSubscriptionRequest) Reset()         { *m = GetSubscriptionRequest{}
 func (m *GetSubscriptionRequest) String() string { return proto.CompactTextString(m) }
 func (*GetSubscriptionRequest) ProtoMessage()    {}
 func (*GetSubscriptionRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{14}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{17}
 }
 func (m *GetSubscriptionRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetSubscriptionRequest.Unmarshal(m, b)
@@ -895,10 +1081,10 @@ func (m *GetSubscriptionRequest) GetSubscription() string {
 // Request for the UpdateSubscription method.
 type UpdateSubscriptionRequest struct {
 	// The updated subscription object.
-	Subscription *Subscription `protobuf:"bytes,1,opt,name=subscription" json:"subscription,omitempty"`
+	Subscription *Subscription `protobuf:"bytes,1,opt,name=subscription,proto3" json:"subscription,omitempty"`
 	// Indicates which fields in the provided subscription to update.
 	// Must be specified and non-empty.
-	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -908,7 +1094,7 @@ func (m *UpdateSubscriptionRequest) Reset()         { *m = UpdateSubscriptionReq
 func (m *UpdateSubscriptionRequest) String() string { return proto.CompactTextString(m) }
 func (*UpdateSubscriptionRequest) ProtoMessage()    {}
 func (*UpdateSubscriptionRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{15}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{18}
 }
 func (m *UpdateSubscriptionRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UpdateSubscriptionRequest.Unmarshal(m, b)
@@ -946,13 +1132,13 @@ func (m *UpdateSubscriptionRequest) GetUpdateMask() *field_mask.FieldMask {
 type ListSubscriptionsRequest struct {
 	// The name of the cloud project that subscriptions belong to.
 	// Format is `projects/{project}`.
-	Project string `protobuf:"bytes,1,opt,name=project" json:"project,omitempty"`
+	Project string `protobuf:"bytes,1,opt,name=project,proto3" json:"project,omitempty"`
 	// Maximum number of subscriptions to return.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The value returned by the last `ListSubscriptionsResponse`; indicates that
 	// this is a continuation of a prior `ListSubscriptions` call, and that the
 	// system should return the next page of data.
-	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -962,7 +1148,7 @@ func (m *ListSubscriptionsRequest) Reset()         { *m = ListSubscriptionsReque
 func (m *ListSubscriptionsRequest) String() string { return proto.CompactTextString(m) }
 func (*ListSubscriptionsRequest) ProtoMessage()    {}
 func (*ListSubscriptionsRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{16}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{19}
 }
 func (m *ListSubscriptionsRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListSubscriptionsRequest.Unmarshal(m, b)
@@ -1006,11 +1192,11 @@ func (m *ListSubscriptionsRequest) GetPageToken() string {
 // Response for the `ListSubscriptions` method.
 type ListSubscriptionsResponse struct {
 	// The subscriptions that match the request.
-	Subscriptions []*Subscription `protobuf:"bytes,1,rep,name=subscriptions" json:"subscriptions,omitempty"`
+	Subscriptions []*Subscription `protobuf:"bytes,1,rep,name=subscriptions,proto3" json:"subscriptions,omitempty"`
 	// If not empty, indicates that there may be more subscriptions that match
 	// the request; this value should be passed in a new
 	// `ListSubscriptionsRequest` to get more subscriptions.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1020,7 +1206,7 @@ func (m *ListSubscriptionsResponse) Reset()         { *m = ListSubscriptionsResp
 func (m *ListSubscriptionsResponse) String() string { return proto.CompactTextString(m) }
 func (*ListSubscriptionsResponse) ProtoMessage()    {}
 func (*ListSubscriptionsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{17}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{20}
 }
 func (m *ListSubscriptionsResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListSubscriptionsResponse.Unmarshal(m, b)
@@ -1058,7 +1244,7 @@ func (m *ListSubscriptionsResponse) GetNextPageToken() string {
 type DeleteSubscriptionRequest struct {
 	// The subscription to delete.
 	// Format is `projects/{project}/subscriptions/{sub}`.
-	Subscription         string   `protobuf:"bytes,1,opt,name=subscription" json:"subscription,omitempty"`
+	Subscription         string   `protobuf:"bytes,1,opt,name=subscription,proto3" json:"subscription,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1068,7 +1254,7 @@ func (m *DeleteSubscriptionRequest) Reset()         { *m = DeleteSubscriptionReq
 func (m *DeleteSubscriptionRequest) String() string { return proto.CompactTextString(m) }
 func (*DeleteSubscriptionRequest) ProtoMessage()    {}
 func (*DeleteSubscriptionRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{18}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{21}
 }
 func (m *DeleteSubscriptionRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeleteSubscriptionRequest.Unmarshal(m, b)
@@ -1099,14 +1285,14 @@ func (m *DeleteSubscriptionRequest) GetSubscription() string {
 type ModifyPushConfigRequest struct {
 	// The name of the subscription.
 	// Format is `projects/{project}/subscriptions/{sub}`.
-	Subscription string `protobuf:"bytes,1,opt,name=subscription" json:"subscription,omitempty"`
+	Subscription string `protobuf:"bytes,1,opt,name=subscription,proto3" json:"subscription,omitempty"`
 	// The push configuration for future deliveries.
 	//
 	// An empty `pushConfig` indicates that the Pub/Sub system should
 	// stop pushing messages from the given subscription and allow
 	// messages to be pulled and acknowledged - effectively pausing
-	// the subscription if `Pull` is not called.
-	PushConfig           *PushConfig `protobuf:"bytes,2,opt,name=push_config,json=pushConfig" json:"push_config,omitempty"`
+	// the subscription if `Pull` or `StreamingPull` is not called.
+	PushConfig           *PushConfig `protobuf:"bytes,2,opt,name=push_config,json=pushConfig,proto3" json:"push_config,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
 	XXX_unrecognized     []byte      `json:"-"`
 	XXX_sizecache        int32       `json:"-"`
@@ -1116,7 +1302,7 @@ func (m *ModifyPushConfigRequest) Reset()         { *m = ModifyPushConfigRequest
 func (m *ModifyPushConfigRequest) String() string { return proto.CompactTextString(m) }
 func (*ModifyPushConfigRequest) ProtoMessage()    {}
 func (*ModifyPushConfigRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{19}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{22}
 }
 func (m *ModifyPushConfigRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ModifyPushConfigRequest.Unmarshal(m, b)
@@ -1154,17 +1340,17 @@ func (m *ModifyPushConfigRequest) GetPushConfig() *PushConfig {
 type PullRequest struct {
 	// The subscription from which messages should be pulled.
 	// Format is `projects/{project}/subscriptions/{sub}`.
-	Subscription string `protobuf:"bytes,1,opt,name=subscription" json:"subscription,omitempty"`
+	Subscription string `protobuf:"bytes,1,opt,name=subscription,proto3" json:"subscription,omitempty"`
 	// If this field set to true, the system will respond immediately even if
 	// it there are no messages available to return in the `Pull` response.
 	// Otherwise, the system may wait (for a bounded amount of time) until at
 	// least one message is available, rather than returning no messages. The
 	// client may cancel the request if it does not wish to wait any longer for
 	// the response.
-	ReturnImmediately bool `protobuf:"varint,2,opt,name=return_immediately,json=returnImmediately" json:"return_immediately,omitempty"`
+	ReturnImmediately bool `protobuf:"varint,2,opt,name=return_immediately,json=returnImmediately,proto3" json:"return_immediately,omitempty"`
 	// The maximum number of messages returned for this request. The Pub/Sub
 	// system may return fewer than the number specified.
-	MaxMessages          int32    `protobuf:"varint,3,opt,name=max_messages,json=maxMessages" json:"max_messages,omitempty"`
+	MaxMessages          int32    `protobuf:"varint,3,opt,name=max_messages,json=maxMessages,proto3" json:"max_messages,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1174,7 +1360,7 @@ func (m *PullRequest) Reset()         { *m = PullRequest{} }
 func (m *PullRequest) String() string { return proto.CompactTextString(m) }
 func (*PullRequest) ProtoMessage()    {}
 func (*PullRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{20}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{23}
 }
 func (m *PullRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PullRequest.Unmarshal(m, b)
@@ -1221,7 +1407,7 @@ type PullResponse struct {
 	// there are no more available in the backlog. The Pub/Sub system may return
 	// fewer than the `maxMessages` requested even if there are more messages
 	// available in the backlog.
-	ReceivedMessages     []*ReceivedMessage `protobuf:"bytes,1,rep,name=received_messages,json=receivedMessages" json:"received_messages,omitempty"`
+	ReceivedMessages     []*ReceivedMessage `protobuf:"bytes,1,rep,name=received_messages,json=receivedMessages,proto3" json:"received_messages,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
 	XXX_unrecognized     []byte             `json:"-"`
 	XXX_sizecache        int32              `json:"-"`
@@ -1231,7 +1417,7 @@ func (m *PullResponse) Reset()         { *m = PullResponse{} }
 func (m *PullResponse) String() string { return proto.CompactTextString(m) }
 func (*PullResponse) ProtoMessage()    {}
 func (*PullResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{21}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{24}
 }
 func (m *PullResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PullResponse.Unmarshal(m, b)
@@ -1262,9 +1448,9 @@ func (m *PullResponse) GetReceivedMessages() []*ReceivedMessage {
 type ModifyAckDeadlineRequest struct {
 	// The name of the subscription.
 	// Format is `projects/{project}/subscriptions/{sub}`.
-	Subscription string `protobuf:"bytes,1,opt,name=subscription" json:"subscription,omitempty"`
+	Subscription string `protobuf:"bytes,1,opt,name=subscription,proto3" json:"subscription,omitempty"`
 	// List of acknowledgment IDs.
-	AckIds []string `protobuf:"bytes,4,rep,name=ack_ids,json=ackIds" json:"ack_ids,omitempty"`
+	AckIds []string `protobuf:"bytes,4,rep,name=ack_ids,json=ackIds,proto3" json:"ack_ids,omitempty"`
 	// The new ack deadline with respect to the time this request was sent to
 	// the Pub/Sub system. For example, if the value is 10, the new
 	// ack deadline will expire 10 seconds after the `ModifyAckDeadline` call
@@ -1272,7 +1458,7 @@ type ModifyAckDeadlineRequest struct {
 	// another pull request.
 	// The minimum deadline you can specify is 0 seconds.
 	// The maximum deadline you can specify is 600 seconds (10 minutes).
-	AckDeadlineSeconds   int32    `protobuf:"varint,3,opt,name=ack_deadline_seconds,json=ackDeadlineSeconds" json:"ack_deadline_seconds,omitempty"`
+	AckDeadlineSeconds   int32    `protobuf:"varint,3,opt,name=ack_deadline_seconds,json=ackDeadlineSeconds,proto3" json:"ack_deadline_seconds,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1282,7 +1468,7 @@ func (m *ModifyAckDeadlineRequest) Reset()         { *m = ModifyAckDeadlineReque
 func (m *ModifyAckDeadlineRequest) String() string { return proto.CompactTextString(m) }
 func (*ModifyAckDeadlineRequest) ProtoMessage()    {}
 func (*ModifyAckDeadlineRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{22}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{25}
 }
 func (m *ModifyAckDeadlineRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ModifyAckDeadlineRequest.Unmarshal(m, b)
@@ -1327,10 +1513,10 @@ func (m *ModifyAckDeadlineRequest) GetAckDeadlineSeconds() int32 {
 type AcknowledgeRequest struct {
 	// The subscription whose message is being acknowledged.
 	// Format is `projects/{project}/subscriptions/{sub}`.
-	Subscription string `protobuf:"bytes,1,opt,name=subscription" json:"subscription,omitempty"`
+	Subscription string `protobuf:"bytes,1,opt,name=subscription,proto3" json:"subscription,omitempty"`
 	// The acknowledgment ID for the messages being acknowledged that was returned
 	// by the Pub/Sub system in the `Pull` response. Must not be empty.
-	AckIds               []string `protobuf:"bytes,2,rep,name=ack_ids,json=ackIds" json:"ack_ids,omitempty"`
+	AckIds               []string `protobuf:"bytes,2,rep,name=ack_ids,json=ackIds,proto3" json:"ack_ids,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1340,7 +1526,7 @@ func (m *AcknowledgeRequest) Reset()         { *m = AcknowledgeRequest{} }
 func (m *AcknowledgeRequest) String() string { return proto.CompactTextString(m) }
 func (*AcknowledgeRequest) ProtoMessage()    {}
 func (*AcknowledgeRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{23}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{26}
 }
 func (m *AcknowledgeRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AcknowledgeRequest.Unmarshal(m, b)
@@ -1382,13 +1568,13 @@ type StreamingPullRequest struct {
 	// provided in the first request on the stream, and must not be set in
 	// subsequent requests from client to server.
 	// Format is `projects/{project}/subscriptions/{sub}`.
-	Subscription string `protobuf:"bytes,1,opt,name=subscription" json:"subscription,omitempty"`
+	Subscription string `protobuf:"bytes,1,opt,name=subscription,proto3" json:"subscription,omitempty"`
 	// List of acknowledgement IDs for acknowledging previously received messages
 	// (received on this stream or a different stream). If an ack ID has expired,
 	// the corresponding message may be redelivered later. Acknowledging a message
 	// more than once will not result in an error. If the acknowledgement ID is
 	// malformed, the stream will be aborted with status `INVALID_ARGUMENT`.
-	AckIds []string `protobuf:"bytes,2,rep,name=ack_ids,json=ackIds" json:"ack_ids,omitempty"`
+	AckIds []string `protobuf:"bytes,2,rep,name=ack_ids,json=ackIds,proto3" json:"ack_ids,omitempty"`
 	// The list of new ack deadlines for the IDs listed in
 	// `modify_deadline_ack_ids`. The size of this list must be the same as the
 	// size of `modify_deadline_ack_ids`. If it differs the stream will be aborted
@@ -1400,18 +1586,18 @@ type StreamingPullRequest struct {
 	// the message is immediately made available for another streaming or
 	// non-streaming pull request. If the value is < 0 (an error), the stream will
 	// be aborted with status `INVALID_ARGUMENT`.
-	ModifyDeadlineSeconds []int32 `protobuf:"varint,3,rep,packed,name=modify_deadline_seconds,json=modifyDeadlineSeconds" json:"modify_deadline_seconds,omitempty"`
+	ModifyDeadlineSeconds []int32 `protobuf:"varint,3,rep,packed,name=modify_deadline_seconds,json=modifyDeadlineSeconds,proto3" json:"modify_deadline_seconds,omitempty"`
 	// List of acknowledgement IDs whose deadline will be modified based on the
 	// corresponding element in `modify_deadline_seconds`. This field can be used
 	// to indicate that more time is needed to process a message by the
 	// subscriber, or to make the message available for redelivery if the
 	// processing was interrupted.
-	ModifyDeadlineAckIds []string `protobuf:"bytes,4,rep,name=modify_deadline_ack_ids,json=modifyDeadlineAckIds" json:"modify_deadline_ack_ids,omitempty"`
+	ModifyDeadlineAckIds []string `protobuf:"bytes,4,rep,name=modify_deadline_ack_ids,json=modifyDeadlineAckIds,proto3" json:"modify_deadline_ack_ids,omitempty"`
 	// The ack deadline to use for the stream. This must be provided in the
 	// first request on the stream, but it can also be updated on subsequent
 	// requests from client to server. The minimum deadline you can specify is 10
 	// seconds. The maximum deadline you can specify is 600 seconds (10 minutes).
-	StreamAckDeadlineSeconds int32    `protobuf:"varint,5,opt,name=stream_ack_deadline_seconds,json=streamAckDeadlineSeconds" json:"stream_ack_deadline_seconds,omitempty"`
+	StreamAckDeadlineSeconds int32    `protobuf:"varint,5,opt,name=stream_ack_deadline_seconds,json=streamAckDeadlineSeconds,proto3" json:"stream_ack_deadline_seconds,omitempty"`
 	XXX_NoUnkeyedLiteral     struct{} `json:"-"`
 	XXX_unrecognized         []byte   `json:"-"`
 	XXX_sizecache            int32    `json:"-"`
@@ -1421,7 +1607,7 @@ func (m *StreamingPullRequest) Reset()         { *m = StreamingPullRequest{} }
 func (m *StreamingPullRequest) String() string { return proto.CompactTextString(m) }
 func (*StreamingPullRequest) ProtoMessage()    {}
 func (*StreamingPullRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{24}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{27}
 }
 func (m *StreamingPullRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_StreamingPullRequest.Unmarshal(m, b)
@@ -1480,7 +1666,7 @@ func (m *StreamingPullRequest) GetStreamAckDeadlineSeconds() int32 {
 // messages from the server to the client.
 type StreamingPullResponse struct {
 	// Received Pub/Sub messages. This will not be empty.
-	ReceivedMessages     []*ReceivedMessage `protobuf:"bytes,1,rep,name=received_messages,json=receivedMessages" json:"received_messages,omitempty"`
+	ReceivedMessages     []*ReceivedMessage `protobuf:"bytes,1,rep,name=received_messages,json=receivedMessages,proto3" json:"received_messages,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
 	XXX_unrecognized     []byte             `json:"-"`
 	XXX_sizecache        int32              `json:"-"`
@@ -1490,7 +1676,7 @@ func (m *StreamingPullResponse) Reset()         { *m = StreamingPullResponse{} }
 func (m *StreamingPullResponse) String() string { return proto.CompactTextString(m) }
 func (*StreamingPullResponse) ProtoMessage()    {}
 func (*StreamingPullResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{25}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{28}
 }
 func (m *StreamingPullResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_StreamingPullResponse.Unmarshal(m, b)
@@ -1517,14 +1703,17 @@ func (m *StreamingPullResponse) GetReceivedMessages() []*ReceivedMessage {
 	return nil
 }
 
-// Request for the `CreateSnapshot` method.
+// Request for the `CreateSnapshot` method.<br><br>
+// <b>ALPHA:</b> This feature is part of an alpha release. This API might be changed in
+// backward-incompatible ways and is not recommended for production use.
+// It is not subject to any SLA or deprecation policy.
 type CreateSnapshotRequest struct {
 	// Optional user-provided name for this snapshot.
 	// If the name is not provided in the request, the server will assign a random
 	// name for this snapshot on the same project as the subscription.
 	// Note that for REST API requests, you must specify a name.
 	// Format is `projects/{project}/snapshots/{snap}`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The subscription whose backlog the snapshot retains.
 	// Specifically, the created snapshot is guaranteed to retain:
 	//  (a) The existing backlog on the subscription. More precisely, this is
@@ -1534,17 +1723,19 @@ type CreateSnapshotRequest struct {
 	//  (b) Any messages published to the subscription's topic following the
 	//      successful completion of the CreateSnapshot request.
 	// Format is `projects/{project}/subscriptions/{sub}`.
-	Subscription         string   `protobuf:"bytes,2,opt,name=subscription" json:"subscription,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Subscription string `protobuf:"bytes,2,opt,name=subscription,proto3" json:"subscription,omitempty"`
+	// User labels.
+	Labels               map[string]string `protobuf:"bytes,3,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
+	XXX_unrecognized     []byte            `json:"-"`
+	XXX_sizecache        int32             `json:"-"`
 }
 
 func (m *CreateSnapshotRequest) Reset()         { *m = CreateSnapshotRequest{} }
 func (m *CreateSnapshotRequest) String() string { return proto.CompactTextString(m) }
 func (*CreateSnapshotRequest) ProtoMessage()    {}
 func (*CreateSnapshotRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{26}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{29}
 }
 func (m *CreateSnapshotRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CreateSnapshotRequest.Unmarshal(m, b)
@@ -1578,13 +1769,23 @@ func (m *CreateSnapshotRequest) GetSubscription() string {
 	return ""
 }
 
-// Request for the UpdateSnapshot method.
+func (m *CreateSnapshotRequest) GetLabels() map[string]string {
+	if m != nil {
+		return m.Labels
+	}
+	return nil
+}
+
+// Request for the UpdateSnapshot method.<br><br>
+// <b>ALPHA:</b> This feature is part of an alpha release. This API might be
+// changed in backward-incompatible ways and is not recommended for production
+// use. It is not subject to any SLA or deprecation policy.
 type UpdateSnapshotRequest struct {
-	// The updated snpashot object.
-	Snapshot *Snapshot `protobuf:"bytes,1,opt,name=snapshot" json:"snapshot,omitempty"`
+	// The updated snapshot object.
+	Snapshot *Snapshot `protobuf:"bytes,1,opt,name=snapshot,proto3" json:"snapshot,omitempty"`
 	// Indicates which fields in the provided snapshot to update.
 	// Must be specified and non-empty.
-	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -1594,7 +1795,7 @@ func (m *UpdateSnapshotRequest) Reset()         { *m = UpdateSnapshotRequest{} }
 func (m *UpdateSnapshotRequest) String() string { return proto.CompactTextString(m) }
 func (*UpdateSnapshotRequest) ProtoMessage()    {}
 func (*UpdateSnapshotRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{27}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{30}
 }
 func (m *UpdateSnapshotRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UpdateSnapshotRequest.Unmarshal(m, b)
@@ -1628,12 +1829,15 @@ func (m *UpdateSnapshotRequest) GetUpdateMask() *field_mask.FieldMask {
 	return nil
 }
 
-// A snapshot resource.
+// A snapshot resource.<br><br>
+// <b>ALPHA:</b> This feature is part of an alpha release. This API might be
+// changed in backward-incompatible ways and is not recommended for production
+// use. It is not subject to any SLA or deprecation policy.
 type Snapshot struct {
 	// The name of the snapshot.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The name of the topic from which this snapshot is retaining messages.
-	Topic string `protobuf:"bytes,2,opt,name=topic" json:"topic,omitempty"`
+	Topic string `protobuf:"bytes,2,opt,name=topic,proto3" json:"topic,omitempty"`
 	// The snapshot is guaranteed to exist up until this time.
 	// A newly-created snapshot expires no later than 7 days from the time of its
 	// creation. Its exact lifetime is determined at creation by the existing
@@ -1642,10 +1846,11 @@ type Snapshot struct {
 	// For example, consider a subscription whose oldest unacked message is 3 days
 	// old. If a snapshot is created from this subscription, the snapshot -- which
 	// will always capture this 3-day-old backlog as long as the snapshot
-	// exists -- will expire in 4 days.
-	ExpireTime *timestamp.Timestamp `protobuf:"bytes,3,opt,name=expire_time,json=expireTime" json:"expire_time,omitempty"`
+	// exists -- will expire in 4 days. The service will refuse to create a
+	// snapshot that would expire in less than 1 hour after creation.
+	ExpireTime *timestamp.Timestamp `protobuf:"bytes,3,opt,name=expire_time,json=expireTime,proto3" json:"expire_time,omitempty"`
 	// User labels.
-	Labels               map[string]string `protobuf:"bytes,4,rep,name=labels" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Labels               map[string]string `protobuf:"bytes,4,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -1655,7 +1860,7 @@ func (m *Snapshot) Reset()         { *m = Snapshot{} }
 func (m *Snapshot) String() string { return proto.CompactTextString(m) }
 func (*Snapshot) ProtoMessage()    {}
 func (*Snapshot) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{28}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{31}
 }
 func (m *Snapshot) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Snapshot.Unmarshal(m, b)
@@ -1703,17 +1908,64 @@ func (m *Snapshot) GetLabels() map[string]string {
 	return nil
 }
 
-// Request for the `ListSnapshots` method.
+// Request for the GetSnapshot method.<br><br>
+// <b>ALPHA:</b> This feature is part of an alpha release. This API might be
+// changed in backward-incompatible ways and is not recommended for production
+// use. It is not subject to any SLA or deprecation policy.
+type GetSnapshotRequest struct {
+	// The name of the snapshot to get.
+	// Format is `projects/{project}/snapshots/{snap}`.
+	Snapshot             string   `protobuf:"bytes,1,opt,name=snapshot,proto3" json:"snapshot,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetSnapshotRequest) Reset()         { *m = GetSnapshotRequest{} }
+func (m *GetSnapshotRequest) String() string { return proto.CompactTextString(m) }
+func (*GetSnapshotRequest) ProtoMessage()    {}
+func (*GetSnapshotRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{32}
+}
+func (m *GetSnapshotRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetSnapshotRequest.Unmarshal(m, b)
+}
+func (m *GetSnapshotRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetSnapshotRequest.Marshal(b, m, deterministic)
+}
+func (dst *GetSnapshotRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetSnapshotRequest.Merge(dst, src)
+}
+func (m *GetSnapshotRequest) XXX_Size() int {
+	return xxx_messageInfo_GetSnapshotRequest.Size(m)
+}
+func (m *GetSnapshotRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetSnapshotRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetSnapshotRequest proto.InternalMessageInfo
+
+func (m *GetSnapshotRequest) GetSnapshot() string {
+	if m != nil {
+		return m.Snapshot
+	}
+	return ""
+}
+
+// Request for the `ListSnapshots` method.<br><br>
+// <b>ALPHA:</b> This feature is part of an alpha release. This API might be
+// changed in backward-incompatible ways and is not recommended for production
+// use. It is not subject to any SLA or deprecation policy.
 type ListSnapshotsRequest struct {
 	// The name of the cloud project that snapshots belong to.
 	// Format is `projects/{project}`.
-	Project string `protobuf:"bytes,1,opt,name=project" json:"project,omitempty"`
+	Project string `protobuf:"bytes,1,opt,name=project,proto3" json:"project,omitempty"`
 	// Maximum number of snapshots to return.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The value returned by the last `ListSnapshotsResponse`; indicates that this
 	// is a continuation of a prior `ListSnapshots` call, and that the system
 	// should return the next page of data.
-	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1723,7 +1975,7 @@ func (m *ListSnapshotsRequest) Reset()         { *m = ListSnapshotsRequest{} }
 func (m *ListSnapshotsRequest) String() string { return proto.CompactTextString(m) }
 func (*ListSnapshotsRequest) ProtoMessage()    {}
 func (*ListSnapshotsRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{29}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{33}
 }
 func (m *ListSnapshotsRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListSnapshotsRequest.Unmarshal(m, b)
@@ -1764,13 +2016,16 @@ func (m *ListSnapshotsRequest) GetPageToken() string {
 	return ""
 }
 
-// Response for the `ListSnapshots` method.
+// Response for the `ListSnapshots` method.<br><br>
+// <b>ALPHA:</b> This feature is part of an alpha release. This API might be
+// changed in backward-incompatible ways and is not recommended for production
+// use. It is not subject to any SLA or deprecation policy.
 type ListSnapshotsResponse struct {
 	// The resulting snapshots.
-	Snapshots []*Snapshot `protobuf:"bytes,1,rep,name=snapshots" json:"snapshots,omitempty"`
+	Snapshots []*Snapshot `protobuf:"bytes,1,rep,name=snapshots,proto3" json:"snapshots,omitempty"`
 	// If not empty, indicates that there may be more snapshot that match the
 	// request; this value should be passed in a new `ListSnapshotsRequest`.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1780,7 +2035,7 @@ func (m *ListSnapshotsResponse) Reset()         { *m = ListSnapshotsResponse{} }
 func (m *ListSnapshotsResponse) String() string { return proto.CompactTextString(m) }
 func (*ListSnapshotsResponse) ProtoMessage()    {}
 func (*ListSnapshotsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{30}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{34}
 }
 func (m *ListSnapshotsResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListSnapshotsResponse.Unmarshal(m, b)
@@ -1814,11 +2069,14 @@ func (m *ListSnapshotsResponse) GetNextPageToken() string {
 	return ""
 }
 
-// Request for the `DeleteSnapshot` method.
+// Request for the `DeleteSnapshot` method.<br><br>
+// <b>ALPHA:</b> This feature is part of an alpha release. This API might be
+// changed in backward-incompatible ways and is not recommended for production
+// use. It is not subject to any SLA or deprecation policy.
 type DeleteSnapshotRequest struct {
 	// The name of the snapshot to delete.
 	// Format is `projects/{project}/snapshots/{snap}`.
-	Snapshot             string   `protobuf:"bytes,1,opt,name=snapshot" json:"snapshot,omitempty"`
+	Snapshot             string   `protobuf:"bytes,1,opt,name=snapshot,proto3" json:"snapshot,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1828,7 +2086,7 @@ func (m *DeleteSnapshotRequest) Reset()         { *m = DeleteSnapshotRequest{} }
 func (m *DeleteSnapshotRequest) String() string { return proto.CompactTextString(m) }
 func (*DeleteSnapshotRequest) ProtoMessage()    {}
 func (*DeleteSnapshotRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{31}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{35}
 }
 func (m *DeleteSnapshotRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeleteSnapshotRequest.Unmarshal(m, b)
@@ -1855,10 +2113,13 @@ func (m *DeleteSnapshotRequest) GetSnapshot() string {
 	return ""
 }
 
-// Request for the `Seek` method.
+// Request for the `Seek` method.<br><br>
+// <b>ALPHA:</b> This feature is part of an alpha release. This API might be
+// changed in backward-incompatible ways and is not recommended for production
+// use. It is not subject to any SLA or deprecation policy.
 type SeekRequest struct {
 	// The subscription to affect.
-	Subscription string `protobuf:"bytes,1,opt,name=subscription" json:"subscription,omitempty"`
+	Subscription string `protobuf:"bytes,1,opt,name=subscription,proto3" json:"subscription,omitempty"`
 	// Types that are valid to be assigned to Target:
 	//	*SeekRequest_Time
 	//	*SeekRequest_Snapshot
@@ -1872,7 +2133,7 @@ func (m *SeekRequest) Reset()         { *m = SeekRequest{} }
 func (m *SeekRequest) String() string { return proto.CompactTextString(m) }
 func (*SeekRequest) ProtoMessage()    {}
 func (*SeekRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{32}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{36}
 }
 func (m *SeekRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SeekRequest.Unmarshal(m, b)
@@ -1897,10 +2158,10 @@ type isSeekRequest_Target interface {
 }
 
 type SeekRequest_Time struct {
-	Time *timestamp.Timestamp `protobuf:"bytes,2,opt,name=time,oneof"`
+	Time *timestamp.Timestamp `protobuf:"bytes,2,opt,name=time,proto3,oneof"`
 }
 type SeekRequest_Snapshot struct {
-	Snapshot string `protobuf:"bytes,3,opt,name=snapshot,oneof"`
+	Snapshot string `protobuf:"bytes,3,opt,name=snapshot,proto3,oneof"`
 }
 
 func (*SeekRequest_Time) isSeekRequest_Target()     {}
@@ -2014,7 +2275,7 @@ func (m *SeekResponse) Reset()         { *m = SeekResponse{} }
 func (m *SeekResponse) String() string { return proto.CompactTextString(m) }
 func (*SeekResponse) ProtoMessage()    {}
 func (*SeekResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pubsub_2c3603090b805ba2, []int{33}
+	return fileDescriptor_pubsub_ccb5b83827ebb62b, []int{37}
 }
 func (m *SeekResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SeekResponse.Unmarshal(m, b)
@@ -2035,6 +2296,7 @@ func (m *SeekResponse) XXX_DiscardUnknown() {
 var xxx_messageInfo_SeekResponse proto.InternalMessageInfo
 
 func init() {
+	proto.RegisterType((*MessageStoragePolicy)(nil), "google.pubsub.v1.MessageStoragePolicy")
 	proto.RegisterType((*Topic)(nil), "google.pubsub.v1.Topic")
 	proto.RegisterMapType((map[string]string)(nil), "google.pubsub.v1.Topic.LabelsEntry")
 	proto.RegisterType((*PubsubMessage)(nil), "google.pubsub.v1.PubsubMessage")
@@ -2047,6 +2309,8 @@ func init() {
 	proto.RegisterType((*ListTopicsResponse)(nil), "google.pubsub.v1.ListTopicsResponse")
 	proto.RegisterType((*ListTopicSubscriptionsRequest)(nil), "google.pubsub.v1.ListTopicSubscriptionsRequest")
 	proto.RegisterType((*ListTopicSubscriptionsResponse)(nil), "google.pubsub.v1.ListTopicSubscriptionsResponse")
+	proto.RegisterType((*ListTopicSnapshotsRequest)(nil), "google.pubsub.v1.ListTopicSnapshotsRequest")
+	proto.RegisterType((*ListTopicSnapshotsResponse)(nil), "google.pubsub.v1.ListTopicSnapshotsResponse")
 	proto.RegisterType((*DeleteTopicRequest)(nil), "google.pubsub.v1.DeleteTopicRequest")
 	proto.RegisterType((*Subscription)(nil), "google.pubsub.v1.Subscription")
 	proto.RegisterMapType((map[string]string)(nil), "google.pubsub.v1.Subscription.LabelsEntry")
@@ -2066,9 +2330,11 @@ func init() {
 	proto.RegisterType((*StreamingPullRequest)(nil), "google.pubsub.v1.StreamingPullRequest")
 	proto.RegisterType((*StreamingPullResponse)(nil), "google.pubsub.v1.StreamingPullResponse")
 	proto.RegisterType((*CreateSnapshotRequest)(nil), "google.pubsub.v1.CreateSnapshotRequest")
+	proto.RegisterMapType((map[string]string)(nil), "google.pubsub.v1.CreateSnapshotRequest.LabelsEntry")
 	proto.RegisterType((*UpdateSnapshotRequest)(nil), "google.pubsub.v1.UpdateSnapshotRequest")
 	proto.RegisterType((*Snapshot)(nil), "google.pubsub.v1.Snapshot")
 	proto.RegisterMapType((map[string]string)(nil), "google.pubsub.v1.Snapshot.LabelsEntry")
+	proto.RegisterType((*GetSnapshotRequest)(nil), "google.pubsub.v1.GetSnapshotRequest")
 	proto.RegisterType((*ListSnapshotsRequest)(nil), "google.pubsub.v1.ListSnapshotsRequest")
 	proto.RegisterType((*ListSnapshotsResponse)(nil), "google.pubsub.v1.ListSnapshotsResponse")
 	proto.RegisterType((*DeleteSnapshotRequest)(nil), "google.pubsub.v1.DeleteSnapshotRequest")
@@ -2084,11 +2350,345 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
+// PublisherClient is the client API for Publisher service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+type PublisherClient interface {
+	// Creates the given topic with the given name. See the
+	// <a href="/pubsub/docs/admin#resource_names"> resource name rules</a>.
+	CreateTopic(ctx context.Context, in *Topic, opts ...grpc.CallOption) (*Topic, error)
+	// Updates an existing topic. Note that certain properties of a
+	// topic are not modifiable.
+	UpdateTopic(ctx context.Context, in *UpdateTopicRequest, opts ...grpc.CallOption) (*Topic, error)
+	// Adds one or more messages to the topic. Returns `NOT_FOUND` if the topic
+	// does not exist. The message payload must not be empty; it must contain
+	//  either a non-empty data field, or at least one attribute.
+	Publish(ctx context.Context, in *PublishRequest, opts ...grpc.CallOption) (*PublishResponse, error)
+	// Gets the configuration of a topic.
+	GetTopic(ctx context.Context, in *GetTopicRequest, opts ...grpc.CallOption) (*Topic, error)
+	// Lists matching topics.
+	ListTopics(ctx context.Context, in *ListTopicsRequest, opts ...grpc.CallOption) (*ListTopicsResponse, error)
+	// Lists the names of the subscriptions on this topic.
+	ListTopicSubscriptions(ctx context.Context, in *ListTopicSubscriptionsRequest, opts ...grpc.CallOption) (*ListTopicSubscriptionsResponse, error)
+	// Lists the names of the snapshots on this topic.<br><br>
+	// <b>ALPHA:</b> This feature is part of an alpha release. This API might be
+	// changed in backward-incompatible ways and is not recommended for production
+	// use. It is not subject to any SLA or deprecation policy.
+	ListTopicSnapshots(ctx context.Context, in *ListTopicSnapshotsRequest, opts ...grpc.CallOption) (*ListTopicSnapshotsResponse, error)
+	// Deletes the topic with the given name. Returns `NOT_FOUND` if the topic
+	// does not exist. After a topic is deleted, a new topic may be created with
+	// the same name; this is an entirely new topic with none of the old
+	// configuration or subscriptions. Existing subscriptions to this topic are
+	// not deleted, but their `topic` field is set to `_deleted-topic_`.
+	DeleteTopic(ctx context.Context, in *DeleteTopicRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+}
+
+type publisherClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewPublisherClient(cc *grpc.ClientConn) PublisherClient {
+	return &publisherClient{cc}
+}
+
+func (c *publisherClient) CreateTopic(ctx context.Context, in *Topic, opts ...grpc.CallOption) (*Topic, error) {
+	out := new(Topic)
+	err := c.cc.Invoke(ctx, "/google.pubsub.v1.Publisher/CreateTopic", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *publisherClient) UpdateTopic(ctx context.Context, in *UpdateTopicRequest, opts ...grpc.CallOption) (*Topic, error) {
+	out := new(Topic)
+	err := c.cc.Invoke(ctx, "/google.pubsub.v1.Publisher/UpdateTopic", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *publisherClient) Publish(ctx context.Context, in *PublishRequest, opts ...grpc.CallOption) (*PublishResponse, error) {
+	out := new(PublishResponse)
+	err := c.cc.Invoke(ctx, "/google.pubsub.v1.Publisher/Publish", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *publisherClient) GetTopic(ctx context.Context, in *GetTopicRequest, opts ...grpc.CallOption) (*Topic, error) {
+	out := new(Topic)
+	err := c.cc.Invoke(ctx, "/google.pubsub.v1.Publisher/GetTopic", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *publisherClient) ListTopics(ctx context.Context, in *ListTopicsRequest, opts ...grpc.CallOption) (*ListTopicsResponse, error) {
+	out := new(ListTopicsResponse)
+	err := c.cc.Invoke(ctx, "/google.pubsub.v1.Publisher/ListTopics", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *publisherClient) ListTopicSubscriptions(ctx context.Context, in *ListTopicSubscriptionsRequest, opts ...grpc.CallOption) (*ListTopicSubscriptionsResponse, error) {
+	out := new(ListTopicSubscriptionsResponse)
+	err := c.cc.Invoke(ctx, "/google.pubsub.v1.Publisher/ListTopicSubscriptions", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *publisherClient) ListTopicSnapshots(ctx context.Context, in *ListTopicSnapshotsRequest, opts ...grpc.CallOption) (*ListTopicSnapshotsResponse, error) {
+	out := new(ListTopicSnapshotsResponse)
+	err := c.cc.Invoke(ctx, "/google.pubsub.v1.Publisher/ListTopicSnapshots", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *publisherClient) DeleteTopic(ctx context.Context, in *DeleteTopicRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+	out := new(empty.Empty)
+	err := c.cc.Invoke(ctx, "/google.pubsub.v1.Publisher/DeleteTopic", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// PublisherServer is the server API for Publisher service.
+type PublisherServer interface {
+	// Creates the given topic with the given name. See the
+	// <a href="/pubsub/docs/admin#resource_names"> resource name rules</a>.
+	CreateTopic(context.Context, *Topic) (*Topic, error)
+	// Updates an existing topic. Note that certain properties of a
+	// topic are not modifiable.
+	UpdateTopic(context.Context, *UpdateTopicRequest) (*Topic, error)
+	// Adds one or more messages to the topic. Returns `NOT_FOUND` if the topic
+	// does not exist. The message payload must not be empty; it must contain
+	//  either a non-empty data field, or at least one attribute.
+	Publish(context.Context, *PublishRequest) (*PublishResponse, error)
+	// Gets the configuration of a topic.
+	GetTopic(context.Context, *GetTopicRequest) (*Topic, error)
+	// Lists matching topics.
+	ListTopics(context.Context, *ListTopicsRequest) (*ListTopicsResponse, error)
+	// Lists the names of the subscriptions on this topic.
+	ListTopicSubscriptions(context.Context, *ListTopicSubscriptionsRequest) (*ListTopicSubscriptionsResponse, error)
+	// Lists the names of the snapshots on this topic.<br><br>
+	// <b>ALPHA:</b> This feature is part of an alpha release. This API might be
+	// changed in backward-incompatible ways and is not recommended for production
+	// use. It is not subject to any SLA or deprecation policy.
+	ListTopicSnapshots(context.Context, *ListTopicSnapshotsRequest) (*ListTopicSnapshotsResponse, error)
+	// Deletes the topic with the given name. Returns `NOT_FOUND` if the topic
+	// does not exist. After a topic is deleted, a new topic may be created with
+	// the same name; this is an entirely new topic with none of the old
+	// configuration or subscriptions. Existing subscriptions to this topic are
+	// not deleted, but their `topic` field is set to `_deleted-topic_`.
+	DeleteTopic(context.Context, *DeleteTopicRequest) (*empty.Empty, error)
+}
+
+func RegisterPublisherServer(s *grpc.Server, srv PublisherServer) {
+	s.RegisterService(&_Publisher_serviceDesc, srv)
+}
+
+func _Publisher_CreateTopic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Topic)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PublisherServer).CreateTopic(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/google.pubsub.v1.Publisher/CreateTopic",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PublisherServer).CreateTopic(ctx, req.(*Topic))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Publisher_UpdateTopic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateTopicRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PublisherServer).UpdateTopic(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/google.pubsub.v1.Publisher/UpdateTopic",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PublisherServer).UpdateTopic(ctx, req.(*UpdateTopicRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Publisher_Publish_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PublishRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PublisherServer).Publish(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/google.pubsub.v1.Publisher/Publish",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PublisherServer).Publish(ctx, req.(*PublishRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Publisher_GetTopic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTopicRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PublisherServer).GetTopic(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/google.pubsub.v1.Publisher/GetTopic",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PublisherServer).GetTopic(ctx, req.(*GetTopicRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Publisher_ListTopics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListTopicsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PublisherServer).ListTopics(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/google.pubsub.v1.Publisher/ListTopics",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PublisherServer).ListTopics(ctx, req.(*ListTopicsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Publisher_ListTopicSubscriptions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListTopicSubscriptionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PublisherServer).ListTopicSubscriptions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/google.pubsub.v1.Publisher/ListTopicSubscriptions",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PublisherServer).ListTopicSubscriptions(ctx, req.(*ListTopicSubscriptionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Publisher_ListTopicSnapshots_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListTopicSnapshotsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PublisherServer).ListTopicSnapshots(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/google.pubsub.v1.Publisher/ListTopicSnapshots",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PublisherServer).ListTopicSnapshots(ctx, req.(*ListTopicSnapshotsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Publisher_DeleteTopic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteTopicRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PublisherServer).DeleteTopic(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/google.pubsub.v1.Publisher/DeleteTopic",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PublisherServer).DeleteTopic(ctx, req.(*DeleteTopicRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _Publisher_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "google.pubsub.v1.Publisher",
+	HandlerType: (*PublisherServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "CreateTopic",
+			Handler:    _Publisher_CreateTopic_Handler,
+		},
+		{
+			MethodName: "UpdateTopic",
+			Handler:    _Publisher_UpdateTopic_Handler,
+		},
+		{
+			MethodName: "Publish",
+			Handler:    _Publisher_Publish_Handler,
+		},
+		{
+			MethodName: "GetTopic",
+			Handler:    _Publisher_GetTopic_Handler,
+		},
+		{
+			MethodName: "ListTopics",
+			Handler:    _Publisher_ListTopics_Handler,
+		},
+		{
+			MethodName: "ListTopicSubscriptions",
+			Handler:    _Publisher_ListTopicSubscriptions_Handler,
+		},
+		{
+			MethodName: "ListTopicSnapshots",
+			Handler:    _Publisher_ListTopicSnapshots_Handler,
+		},
+		{
+			MethodName: "DeleteTopic",
+			Handler:    _Publisher_DeleteTopic_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "google/pubsub/v1/pubsub.proto",
+}
+
 // SubscriberClient is the client API for Subscriber service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type SubscriberClient interface {
-	// Creates a subscription to a given topic.
+	// Creates a subscription to a given topic. See the
+	// <a href="/pubsub/docs/admin#resource_names"> resource name rules</a>.
 	// If the subscription already exists, returns `ALREADY_EXISTS`.
 	// If the corresponding topic doesn't exist, returns `NOT_FOUND`.
 	//
@@ -2103,10 +2703,6 @@ type SubscriberClient interface {
 	GetSubscription(ctx context.Context, in *GetSubscriptionRequest, opts ...grpc.CallOption) (*Subscription, error)
 	// Updates an existing subscription. Note that certain properties of a
 	// subscription, such as its topic, are not modifiable.
-	// NOTE:  The style guide requires body: "subscription" instead of body: "*".
-	// Keeping the latter for internal consistency in V1, however it should be
-	// corrected in V2.  See
-	// https://cloud.google.com/apis/design/standard_methods#update for details.
 	UpdateSubscription(ctx context.Context, in *UpdateSubscriptionRequest, opts ...grpc.CallOption) (*Subscription, error)
 	// Lists matching subscriptions.
 	ListSubscriptions(ctx context.Context, in *ListSubscriptionsRequest, opts ...grpc.CallOption) (*ListSubscriptionsResponse, error)
@@ -2135,18 +2731,13 @@ type SubscriberClient interface {
 	// there are too many concurrent pull requests pending for the given
 	// subscription.
 	Pull(ctx context.Context, in *PullRequest, opts ...grpc.CallOption) (*PullResponse, error)
-	// (EXPERIMENTAL) StreamingPull is an experimental feature. This RPC will
-	// respond with UNIMPLEMENTED errors unless you have been invited to test
-	// this feature. Contact cloud-pubsub@google.com with any questions.
-	//
 	// Establishes a stream with the server, which sends messages down to the
 	// client. The client streams acknowledgements and ack deadline modifications
 	// back to the server. The server will close the stream and return the status
-	// on any error. The server may close the stream with status `OK` to reassign
-	// server-side resources, in which case, the client should re-establish the
-	// stream. `UNAVAILABLE` may also be returned in the case of a transient error
-	// (e.g., a server restart). These should also be retried by the client. Flow
-	// control can be achieved by configuring the underlying RPC channel.
+	// on any error. The server may close the stream with status `UNAVAILABLE` to
+	// reassign server-side resources, in which case, the client should
+	// re-establish the stream. Flow control can be achieved by configuring the
+	// underlying RPC channel.
 	StreamingPull(ctx context.Context, opts ...grpc.CallOption) (Subscriber_StreamingPullClient, error)
 	// Modifies the `PushConfig` for a specified subscription.
 	//
@@ -2155,33 +2746,52 @@ type SubscriberClient interface {
 	// attributes of a push subscription. Messages will accumulate for delivery
 	// continuously through the call regardless of changes to the `PushConfig`.
 	ModifyPushConfig(ctx context.Context, in *ModifyPushConfigRequest, opts ...grpc.CallOption) (*empty.Empty, error)
-	// Lists the existing snapshots.
+	// Gets the configuration details of a snapshot.<br><br>
+	// <b>ALPHA:</b> This feature is part of an alpha release. This API might be
+	// changed in backward-incompatible ways and is not recommended for production
+	// use. It is not subject to any SLA or deprecation policy.
+	GetSnapshot(ctx context.Context, in *GetSnapshotRequest, opts ...grpc.CallOption) (*Snapshot, error)
+	// Lists the existing snapshots.<br><br>
+	// <b>ALPHA:</b> This feature is part of an alpha release. This API might be
+	// changed in backward-incompatible ways and is not recommended for production
+	// use. It is not subject to any SLA or deprecation policy.
 	ListSnapshots(ctx context.Context, in *ListSnapshotsRequest, opts ...grpc.CallOption) (*ListSnapshotsResponse, error)
-	// Creates a snapshot from the requested subscription.
+	// Creates a snapshot from the requested subscription.<br><br>
+	// <b>ALPHA:</b> This feature is part of an alpha release. This API might be
+	// changed in backward-incompatible ways and is not recommended for production
+	// use. It is not subject to any SLA or deprecation policy.
 	// If the snapshot already exists, returns `ALREADY_EXISTS`.
 	// If the requested subscription doesn't exist, returns `NOT_FOUND`.
-	//
-	// If the name is not provided in the request, the server will assign a random
+	// If the backlog in the subscription is too old -- and the resulting snapshot
+	// would expire in less than 1 hour -- then `FAILED_PRECONDITION` is returned.
+	// See also the `Snapshot.expire_time` field. If the name is not provided in
+	// the request, the server will assign a random
 	// name for this snapshot on the same project as the subscription, conforming
-	// to the
-	// [resource name format](https://cloud.google.com/pubsub/docs/overview#names).
-	// The generated name is populated in the returned Snapshot object.
-	// Note that for REST API requests, you must specify a name in the request.
+	// to the [resource name format](https://cloud.google.com/pubsub/docs/overview#names).
+	// The generated
+	// name is populated in the returned Snapshot object. Note that for REST API
+	// requests, you must specify a name in the request.
 	CreateSnapshot(ctx context.Context, in *CreateSnapshotRequest, opts ...grpc.CallOption) (*Snapshot, error)
-	// Updates an existing snapshot. Note that certain properties of a snapshot
-	// are not modifiable.
-	// NOTE:  The style guide requires body: "snapshot" instead of body: "*".
-	// Keeping the latter for internal consistency in V1, however it should be
-	// corrected in V2.  See
-	// https://cloud.google.com/apis/design/standard_methods#update for details.
+	// Updates an existing snapshot.<br><br>
+	// <b>ALPHA:</b> This feature is part of an alpha release. This API might be
+	// changed in backward-incompatible ways and is not recommended for production
+	// use. It is not subject to any SLA or deprecation policy.
+	// Note that certain properties of a snapshot are not modifiable.
 	UpdateSnapshot(ctx context.Context, in *UpdateSnapshotRequest, opts ...grpc.CallOption) (*Snapshot, error)
-	// Removes an existing snapshot. All messages retained in the snapshot
+	// Removes an existing snapshot. <br><br>
+	// <b>ALPHA:</b> This feature is part of an alpha release. This API might be
+	// changed in backward-incompatible ways and is not recommended for production
+	// use. It is not subject to any SLA or deprecation policy.
+	// When the snapshot is deleted, all messages retained in the snapshot
 	// are immediately dropped. After a snapshot is deleted, a new one may be
 	// created with the same name, but the new one has no association with the old
 	// snapshot or its subscription, unless the same subscription is specified.
 	DeleteSnapshot(ctx context.Context, in *DeleteSnapshotRequest, opts ...grpc.CallOption) (*empty.Empty, error)
 	// Seeks an existing subscription to a point in time or to a given snapshot,
-	// whichever is provided in the request.
+	// whichever is provided in the request.<br><br>
+	// <b>ALPHA:</b> This feature is part of an alpha release. This API might be
+	// changed in backward-incompatible ways and is not recommended for production
+	// use. It is not subject to any SLA or deprecation policy.
 	Seek(ctx context.Context, in *SeekRequest, opts ...grpc.CallOption) (*SeekResponse, error)
 }
 
@@ -2305,6 +2915,15 @@ func (c *subscriberClient) ModifyPushConfig(ctx context.Context, in *ModifyPushC
 	return out, nil
 }
 
+func (c *subscriberClient) GetSnapshot(ctx context.Context, in *GetSnapshotRequest, opts ...grpc.CallOption) (*Snapshot, error) {
+	out := new(Snapshot)
+	err := c.cc.Invoke(ctx, "/google.pubsub.v1.Subscriber/GetSnapshot", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *subscriberClient) ListSnapshots(ctx context.Context, in *ListSnapshotsRequest, opts ...grpc.CallOption) (*ListSnapshotsResponse, error) {
 	out := new(ListSnapshotsResponse)
 	err := c.cc.Invoke(ctx, "/google.pubsub.v1.Subscriber/ListSnapshots", in, out, opts...)
@@ -2350,10 +2969,10 @@ func (c *subscriberClient) Seek(ctx context.Context, in *SeekRequest, opts ...gr
 	return out, nil
 }
 
-// Server API for Subscriber service
-
+// SubscriberServer is the server API for Subscriber service.
 type SubscriberServer interface {
-	// Creates a subscription to a given topic.
+	// Creates a subscription to a given topic. See the
+	// <a href="/pubsub/docs/admin#resource_names"> resource name rules</a>.
 	// If the subscription already exists, returns `ALREADY_EXISTS`.
 	// If the corresponding topic doesn't exist, returns `NOT_FOUND`.
 	//
@@ -2368,10 +2987,6 @@ type SubscriberServer interface {
 	GetSubscription(context.Context, *GetSubscriptionRequest) (*Subscription, error)
 	// Updates an existing subscription. Note that certain properties of a
 	// subscription, such as its topic, are not modifiable.
-	// NOTE:  The style guide requires body: "subscription" instead of body: "*".
-	// Keeping the latter for internal consistency in V1, however it should be
-	// corrected in V2.  See
-	// https://cloud.google.com/apis/design/standard_methods#update for details.
 	UpdateSubscription(context.Context, *UpdateSubscriptionRequest) (*Subscription, error)
 	// Lists matching subscriptions.
 	ListSubscriptions(context.Context, *ListSubscriptionsRequest) (*ListSubscriptionsResponse, error)
@@ -2400,18 +3015,13 @@ type SubscriberServer interface {
 	// there are too many concurrent pull requests pending for the given
 	// subscription.
 	Pull(context.Context, *PullRequest) (*PullResponse, error)
-	// (EXPERIMENTAL) StreamingPull is an experimental feature. This RPC will
-	// respond with UNIMPLEMENTED errors unless you have been invited to test
-	// this feature. Contact cloud-pubsub@google.com with any questions.
-	//
 	// Establishes a stream with the server, which sends messages down to the
 	// client. The client streams acknowledgements and ack deadline modifications
 	// back to the server. The server will close the stream and return the status
-	// on any error. The server may close the stream with status `OK` to reassign
-	// server-side resources, in which case, the client should re-establish the
-	// stream. `UNAVAILABLE` may also be returned in the case of a transient error
-	// (e.g., a server restart). These should also be retried by the client. Flow
-	// control can be achieved by configuring the underlying RPC channel.
+	// on any error. The server may close the stream with status `UNAVAILABLE` to
+	// reassign server-side resources, in which case, the client should
+	// re-establish the stream. Flow control can be achieved by configuring the
+	// underlying RPC channel.
 	StreamingPull(Subscriber_StreamingPullServer) error
 	// Modifies the `PushConfig` for a specified subscription.
 	//
@@ -2420,33 +3030,52 @@ type SubscriberServer interface {
 	// attributes of a push subscription. Messages will accumulate for delivery
 	// continuously through the call regardless of changes to the `PushConfig`.
 	ModifyPushConfig(context.Context, *ModifyPushConfigRequest) (*empty.Empty, error)
-	// Lists the existing snapshots.
+	// Gets the configuration details of a snapshot.<br><br>
+	// <b>ALPHA:</b> This feature is part of an alpha release. This API might be
+	// changed in backward-incompatible ways and is not recommended for production
+	// use. It is not subject to any SLA or deprecation policy.
+	GetSnapshot(context.Context, *GetSnapshotRequest) (*Snapshot, error)
+	// Lists the existing snapshots.<br><br>
+	// <b>ALPHA:</b> This feature is part of an alpha release. This API might be
+	// changed in backward-incompatible ways and is not recommended for production
+	// use. It is not subject to any SLA or deprecation policy.
 	ListSnapshots(context.Context, *ListSnapshotsRequest) (*ListSnapshotsResponse, error)
-	// Creates a snapshot from the requested subscription.
+	// Creates a snapshot from the requested subscription.<br><br>
+	// <b>ALPHA:</b> This feature is part of an alpha release. This API might be
+	// changed in backward-incompatible ways and is not recommended for production
+	// use. It is not subject to any SLA or deprecation policy.
 	// If the snapshot already exists, returns `ALREADY_EXISTS`.
 	// If the requested subscription doesn't exist, returns `NOT_FOUND`.
-	//
-	// If the name is not provided in the request, the server will assign a random
+	// If the backlog in the subscription is too old -- and the resulting snapshot
+	// would expire in less than 1 hour -- then `FAILED_PRECONDITION` is returned.
+	// See also the `Snapshot.expire_time` field. If the name is not provided in
+	// the request, the server will assign a random
 	// name for this snapshot on the same project as the subscription, conforming
-	// to the
-	// [resource name format](https://cloud.google.com/pubsub/docs/overview#names).
-	// The generated name is populated in the returned Snapshot object.
-	// Note that for REST API requests, you must specify a name in the request.
+	// to the [resource name format](https://cloud.google.com/pubsub/docs/overview#names).
+	// The generated
+	// name is populated in the returned Snapshot object. Note that for REST API
+	// requests, you must specify a name in the request.
 	CreateSnapshot(context.Context, *CreateSnapshotRequest) (*Snapshot, error)
-	// Updates an existing snapshot. Note that certain properties of a snapshot
-	// are not modifiable.
-	// NOTE:  The style guide requires body: "snapshot" instead of body: "*".
-	// Keeping the latter for internal consistency in V1, however it should be
-	// corrected in V2.  See
-	// https://cloud.google.com/apis/design/standard_methods#update for details.
+	// Updates an existing snapshot.<br><br>
+	// <b>ALPHA:</b> This feature is part of an alpha release. This API might be
+	// changed in backward-incompatible ways and is not recommended for production
+	// use. It is not subject to any SLA or deprecation policy.
+	// Note that certain properties of a snapshot are not modifiable.
 	UpdateSnapshot(context.Context, *UpdateSnapshotRequest) (*Snapshot, error)
-	// Removes an existing snapshot. All messages retained in the snapshot
+	// Removes an existing snapshot. <br><br>
+	// <b>ALPHA:</b> This feature is part of an alpha release. This API might be
+	// changed in backward-incompatible ways and is not recommended for production
+	// use. It is not subject to any SLA or deprecation policy.
+	// When the snapshot is deleted, all messages retained in the snapshot
 	// are immediately dropped. After a snapshot is deleted, a new one may be
 	// created with the same name, but the new one has no association with the old
 	// snapshot or its subscription, unless the same subscription is specified.
 	DeleteSnapshot(context.Context, *DeleteSnapshotRequest) (*empty.Empty, error)
 	// Seeks an existing subscription to a point in time or to a given snapshot,
-	// whichever is provided in the request.
+	// whichever is provided in the request.<br><br>
+	// <b>ALPHA:</b> This feature is part of an alpha release. This API might be
+	// changed in backward-incompatible ways and is not recommended for production
+	// use. It is not subject to any SLA or deprecation policy.
 	Seek(context.Context, *SeekRequest) (*SeekResponse, error)
 }
 
@@ -2642,6 +3271,24 @@ func _Subscriber_ModifyPushConfig_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Subscriber_GetSnapshot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSnapshotRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SubscriberServer).GetSnapshot(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/google.pubsub.v1.Subscriber/GetSnapshot",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SubscriberServer).GetSnapshot(ctx, req.(*GetSnapshotRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Subscriber_ListSnapshots_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListSnapshotsRequest)
 	if err := dec(in); err != nil {
@@ -2773,6 +3420,10 @@ var _Subscriber_serviceDesc = grpc.ServiceDesc{
 			Handler:    _Subscriber_ModifyPushConfig_Handler,
 		},
 		{
+			MethodName: "GetSnapshot",
+			Handler:    _Subscriber_GetSnapshot_Handler,
+		},
+		{
 			MethodName: "ListSnapshots",
 			Handler:    _Subscriber_ListSnapshots_Handler,
 		},
@@ -2804,436 +3455,148 @@ var _Subscriber_serviceDesc = grpc.ServiceDesc{
 	Metadata: "google/pubsub/v1/pubsub.proto",
 }
 
-// PublisherClient is the client API for Publisher service.
-//
-// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type PublisherClient interface {
-	// Creates the given topic with the given name.
-	CreateTopic(ctx context.Context, in *Topic, opts ...grpc.CallOption) (*Topic, error)
-	// Updates an existing topic. Note that certain properties of a topic are not
-	// modifiable.  Options settings follow the style guide:
-	// NOTE:  The style guide requires body: "topic" instead of body: "*".
-	// Keeping the latter for internal consistency in V1, however it should be
-	// corrected in V2.  See
-	// https://cloud.google.com/apis/design/standard_methods#update for details.
-	UpdateTopic(ctx context.Context, in *UpdateTopicRequest, opts ...grpc.CallOption) (*Topic, error)
-	// Adds one or more messages to the topic. Returns `NOT_FOUND` if the topic
-	// does not exist. The message payload must not be empty; it must contain
-	//  either a non-empty data field, or at least one attribute.
-	Publish(ctx context.Context, in *PublishRequest, opts ...grpc.CallOption) (*PublishResponse, error)
-	// Gets the configuration of a topic.
-	GetTopic(ctx context.Context, in *GetTopicRequest, opts ...grpc.CallOption) (*Topic, error)
-	// Lists matching topics.
-	ListTopics(ctx context.Context, in *ListTopicsRequest, opts ...grpc.CallOption) (*ListTopicsResponse, error)
-	// Lists the name of the subscriptions for this topic.
-	ListTopicSubscriptions(ctx context.Context, in *ListTopicSubscriptionsRequest, opts ...grpc.CallOption) (*ListTopicSubscriptionsResponse, error)
-	// Deletes the topic with the given name. Returns `NOT_FOUND` if the topic
-	// does not exist. After a topic is deleted, a new topic may be created with
-	// the same name; this is an entirely new topic with none of the old
-	// configuration or subscriptions. Existing subscriptions to this topic are
-	// not deleted, but their `topic` field is set to `_deleted-topic_`.
-	DeleteTopic(ctx context.Context, in *DeleteTopicRequest, opts ...grpc.CallOption) (*empty.Empty, error)
-}
-
-type publisherClient struct {
-	cc *grpc.ClientConn
-}
-
-func NewPublisherClient(cc *grpc.ClientConn) PublisherClient {
-	return &publisherClient{cc}
-}
-
-func (c *publisherClient) CreateTopic(ctx context.Context, in *Topic, opts ...grpc.CallOption) (*Topic, error) {
-	out := new(Topic)
-	err := c.cc.Invoke(ctx, "/google.pubsub.v1.Publisher/CreateTopic", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *publisherClient) UpdateTopic(ctx context.Context, in *UpdateTopicRequest, opts ...grpc.CallOption) (*Topic, error) {
-	out := new(Topic)
-	err := c.cc.Invoke(ctx, "/google.pubsub.v1.Publisher/UpdateTopic", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *publisherClient) Publish(ctx context.Context, in *PublishRequest, opts ...grpc.CallOption) (*PublishResponse, error) {
-	out := new(PublishResponse)
-	err := c.cc.Invoke(ctx, "/google.pubsub.v1.Publisher/Publish", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *publisherClient) GetTopic(ctx context.Context, in *GetTopicRequest, opts ...grpc.CallOption) (*Topic, error) {
-	out := new(Topic)
-	err := c.cc.Invoke(ctx, "/google.pubsub.v1.Publisher/GetTopic", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *publisherClient) ListTopics(ctx context.Context, in *ListTopicsRequest, opts ...grpc.CallOption) (*ListTopicsResponse, error) {
-	out := new(ListTopicsResponse)
-	err := c.cc.Invoke(ctx, "/google.pubsub.v1.Publisher/ListTopics", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *publisherClient) ListTopicSubscriptions(ctx context.Context, in *ListTopicSubscriptionsRequest, opts ...grpc.CallOption) (*ListTopicSubscriptionsResponse, error) {
-	out := new(ListTopicSubscriptionsResponse)
-	err := c.cc.Invoke(ctx, "/google.pubsub.v1.Publisher/ListTopicSubscriptions", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *publisherClient) DeleteTopic(ctx context.Context, in *DeleteTopicRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
-	out := new(empty.Empty)
-	err := c.cc.Invoke(ctx, "/google.pubsub.v1.Publisher/DeleteTopic", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// Server API for Publisher service
-
-type PublisherServer interface {
-	// Creates the given topic with the given name.
-	CreateTopic(context.Context, *Topic) (*Topic, error)
-	// Updates an existing topic. Note that certain properties of a topic are not
-	// modifiable.  Options settings follow the style guide:
-	// NOTE:  The style guide requires body: "topic" instead of body: "*".
-	// Keeping the latter for internal consistency in V1, however it should be
-	// corrected in V2.  See
-	// https://cloud.google.com/apis/design/standard_methods#update for details.
-	UpdateTopic(context.Context, *UpdateTopicRequest) (*Topic, error)
-	// Adds one or more messages to the topic. Returns `NOT_FOUND` if the topic
-	// does not exist. The message payload must not be empty; it must contain
-	//  either a non-empty data field, or at least one attribute.
-	Publish(context.Context, *PublishRequest) (*PublishResponse, error)
-	// Gets the configuration of a topic.
-	GetTopic(context.Context, *GetTopicRequest) (*Topic, error)
-	// Lists matching topics.
-	ListTopics(context.Context, *ListTopicsRequest) (*ListTopicsResponse, error)
-	// Lists the name of the subscriptions for this topic.
-	ListTopicSubscriptions(context.Context, *ListTopicSubscriptionsRequest) (*ListTopicSubscriptionsResponse, error)
-	// Deletes the topic with the given name. Returns `NOT_FOUND` if the topic
-	// does not exist. After a topic is deleted, a new topic may be created with
-	// the same name; this is an entirely new topic with none of the old
-	// configuration or subscriptions. Existing subscriptions to this topic are
-	// not deleted, but their `topic` field is set to `_deleted-topic_`.
-	DeleteTopic(context.Context, *DeleteTopicRequest) (*empty.Empty, error)
-}
-
-func RegisterPublisherServer(s *grpc.Server, srv PublisherServer) {
-	s.RegisterService(&_Publisher_serviceDesc, srv)
-}
-
-func _Publisher_CreateTopic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Topic)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PublisherServer).CreateTopic(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/google.pubsub.v1.Publisher/CreateTopic",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PublisherServer).CreateTopic(ctx, req.(*Topic))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Publisher_UpdateTopic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateTopicRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PublisherServer).UpdateTopic(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/google.pubsub.v1.Publisher/UpdateTopic",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PublisherServer).UpdateTopic(ctx, req.(*UpdateTopicRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Publisher_Publish_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PublishRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PublisherServer).Publish(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/google.pubsub.v1.Publisher/Publish",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PublisherServer).Publish(ctx, req.(*PublishRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Publisher_GetTopic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetTopicRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PublisherServer).GetTopic(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/google.pubsub.v1.Publisher/GetTopic",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PublisherServer).GetTopic(ctx, req.(*GetTopicRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Publisher_ListTopics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListTopicsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PublisherServer).ListTopics(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/google.pubsub.v1.Publisher/ListTopics",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PublisherServer).ListTopics(ctx, req.(*ListTopicsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Publisher_ListTopicSubscriptions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListTopicSubscriptionsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PublisherServer).ListTopicSubscriptions(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/google.pubsub.v1.Publisher/ListTopicSubscriptions",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PublisherServer).ListTopicSubscriptions(ctx, req.(*ListTopicSubscriptionsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Publisher_DeleteTopic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteTopicRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PublisherServer).DeleteTopic(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/google.pubsub.v1.Publisher/DeleteTopic",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PublisherServer).DeleteTopic(ctx, req.(*DeleteTopicRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-var _Publisher_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "google.pubsub.v1.Publisher",
-	HandlerType: (*PublisherServer)(nil),
-	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "CreateTopic",
-			Handler:    _Publisher_CreateTopic_Handler,
-		},
-		{
-			MethodName: "UpdateTopic",
-			Handler:    _Publisher_UpdateTopic_Handler,
-		},
-		{
-			MethodName: "Publish",
-			Handler:    _Publisher_Publish_Handler,
-		},
-		{
-			MethodName: "GetTopic",
-			Handler:    _Publisher_GetTopic_Handler,
-		},
-		{
-			MethodName: "ListTopics",
-			Handler:    _Publisher_ListTopics_Handler,
-		},
-		{
-			MethodName: "ListTopicSubscriptions",
-			Handler:    _Publisher_ListTopicSubscriptions_Handler,
-		},
-		{
-			MethodName: "DeleteTopic",
-			Handler:    _Publisher_DeleteTopic_Handler,
-		},
-	},
-	Streams:  []grpc.StreamDesc{},
-	Metadata: "google/pubsub/v1/pubsub.proto",
-}
-
 func init() {
-	proto.RegisterFile("google/pubsub/v1/pubsub.proto", fileDescriptor_pubsub_2c3603090b805ba2)
+	proto.RegisterFile("google/pubsub/v1/pubsub.proto", fileDescriptor_pubsub_ccb5b83827ebb62b)
 }
 
-var fileDescriptor_pubsub_2c3603090b805ba2 = []byte{
-	// 2026 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x59, 0xdb, 0x6f, 0xdb, 0xd6,
-	0x19, 0xef, 0x91, 0x6f, 0xf2, 0x47, 0xdf, 0x72, 0x66, 0x27, 0x0a, 0x73, 0xb3, 0x19, 0x37, 0x56,
-	0xd4, 0x44, 0xb2, 0x55, 0x34, 0x6b, 0xe2, 0x39, 0x85, 0x1d, 0x67, 0x69, 0x86, 0x64, 0xf5, 0xe8,
-	0xac, 0x03, 0x86, 0x60, 0x02, 0x25, 0x9e, 0x28, 0xac, 0x24, 0x92, 0x25, 0x29, 0x2f, 0xee, 0x16,
-	0xa0, 0x6b, 0x87, 0x01, 0xc3, 0xf2, 0xb0, 0xb6, 0x6f, 0x43, 0x1f, 0x06, 0xec, 0x6d, 0x8f, 0x03,
-	0xf6, 0xba, 0x3f, 0x60, 0xaf, 0xfb, 0x17, 0xf6, 0xb8, 0xf7, 0xed, 0x71, 0x38, 0x17, 0x52, 0xbc,
-	0x1c, 0x4a, 0x96, 0xd3, 0xbc, 0x91, 0xe7, 0xfb, 0xce, 0xf9, 0x7e, 0xdf, 0xfd, 0x23, 0x0f, 0x5c,
-	0x6a, 0x3b, 0x4e, 0xbb, 0x4b, 0x6a, 0x6e, 0xbf, 0xe9, 0xf7, 0x9b, 0xb5, 0xa3, 0x2d, 0xf1, 0x54,
-	0x75, 0x3d, 0x27, 0x70, 0xf0, 0x12, 0x27, 0x57, 0xc5, 0xe2, 0xd1, 0x96, 0x7a, 0x51, 0x6c, 0x30,
-	0x5c, 0xab, 0x66, 0xd8, 0xb6, 0x13, 0x18, 0x81, 0xe5, 0xd8, 0x3e, 0xe7, 0x57, 0x2f, 0x87, 0xc7,
-	0xd1, 0xb7, 0x66, 0xff, 0x59, 0xcd, 0xec, 0x7b, 0x8c, 0x41, 0xd0, 0x2f, 0xa4, 0xe9, 0xa4, 0xe7,
-	0x06, 0xc7, 0x82, 0xb8, 0x9a, 0x26, 0x3e, 0xb3, 0x48, 0xd7, 0x6c, 0xf4, 0x0c, 0xbf, 0x23, 0x38,
-	0xae, 0xa4, 0x39, 0x02, 0xab, 0x47, 0xfc, 0xc0, 0xe8, 0xb9, 0x9c, 0x41, 0xfb, 0x06, 0xc1, 0xd4,
-	0x13, 0xc7, 0xb5, 0x5a, 0x18, 0xc3, 0xa4, 0x6d, 0xf4, 0x48, 0x09, 0xad, 0xa2, 0xf2, 0xac, 0xce,
-	0x9e, 0xf1, 0x36, 0x4c, 0x77, 0x8d, 0x26, 0xe9, 0xfa, 0xa5, 0xc2, 0xea, 0x44, 0x59, 0xa9, 0x5f,
-	0xad, 0xa6, 0xd5, 0xab, 0xb2, 0xcd, 0xd5, 0x47, 0x8c, 0xeb, 0xbe, 0x1d, 0x78, 0xc7, 0xba, 0xd8,
-	0xa2, 0xde, 0x06, 0x25, 0xb6, 0x8c, 0x97, 0x60, 0xa2, 0x43, 0x8e, 0xc5, 0xf1, 0xf4, 0x11, 0x2f,
-	0xc3, 0xd4, 0x91, 0xd1, 0xed, 0x93, 0x52, 0x81, 0xad, 0xf1, 0x97, 0x3b, 0x85, 0xf7, 0x91, 0xf6,
-	0x55, 0x01, 0xe6, 0x0f, 0x98, 0x88, 0xc7, 0xc4, 0xf7, 0x8d, 0x36, 0xa1, 0xe8, 0x4c, 0x23, 0x30,
-	0xd8, 0xf6, 0x39, 0x9d, 0x3d, 0xe3, 0x8f, 0x00, 0x8c, 0x20, 0xf0, 0xac, 0x66, 0x3f, 0x20, 0x21,
-	0xc2, 0x5a, 0x16, 0x61, 0xe2, 0xa0, 0xea, 0x6e, 0xb4, 0x83, 0xa3, 0x8d, 0x1d, 0x81, 0x2f, 0x01,
-	0xf4, 0x38, 0x5b, 0xc3, 0x32, 0x4b, 0x13, 0x0c, 0xd5, 0xac, 0x58, 0x79, 0x68, 0xe2, 0x1d, 0x98,
-	0x73, 0xfb, 0xcd, 0xae, 0xe5, 0x3f, 0x6f, 0x50, 0x33, 0x96, 0x26, 0x57, 0x51, 0x59, 0xa9, 0xab,
-	0x91, 0x44, 0x61, 0xe3, 0xea, 0x93, 0xd0, 0xc6, 0xba, 0x22, 0xf8, 0xe9, 0x8a, 0xba, 0x03, 0x8b,
-	0x29, 0xe1, 0x63, 0xd9, 0x64, 0x03, 0x16, 0x1f, 0x90, 0x80, 0x99, 0x5b, 0x27, 0x9f, 0xf6, 0x89,
-	0x1f, 0x50, 0xe6, 0x80, 0xbe, 0x8b, 0x03, 0xf8, 0x8b, 0xf6, 0x39, 0x02, 0xfc, 0x53, 0xd7, 0x34,
-	0x02, 0x92, 0x60, 0xbe, 0x19, 0x67, 0x56, 0xea, 0xe7, 0x72, 0x5c, 0x29, 0x4e, 0xc1, 0xdb, 0xa0,
-	0xf4, 0xd9, 0x21, 0x2c, 0x9c, 0x18, 0x1c, 0x99, 0xae, 0x3f, 0xa4, 0x11, 0xf7, 0xd8, 0xf0, 0x3b,
-	0x3a, 0x70, 0x76, 0xfa, 0xac, 0xb5, 0x60, 0xe1, 0x80, 0x6b, 0x3e, 0x14, 0x2a, 0xde, 0x86, 0xa2,
-	0x30, 0x6f, 0xe8, 0xbf, 0x2b, 0x23, 0xfc, 0xa7, 0x47, 0x1b, 0xb4, 0x3a, 0x2c, 0x46, 0x42, 0x7c,
-	0xd7, 0xb1, 0x7d, 0x82, 0xaf, 0x80, 0x32, 0x70, 0xa0, 0x5f, 0x42, 0xab, 0x13, 0xe5, 0x59, 0x1d,
-	0x22, 0x0f, 0xfa, 0x9a, 0x05, 0x67, 0x1e, 0x59, 0x3e, 0xb7, 0xa2, 0x1f, 0x62, 0x2b, 0xc1, 0x8c,
-	0xeb, 0x39, 0x9f, 0x90, 0x56, 0x20, 0xd0, 0x85, 0xaf, 0xf8, 0x02, 0xcc, 0xba, 0xf4, 0x30, 0xdf,
-	0xfa, 0x8c, 0x7b, 0x64, 0x4a, 0x2f, 0xd2, 0x85, 0x43, 0xeb, 0x33, 0x42, 0xa3, 0x85, 0x11, 0x03,
-	0xa7, 0x43, 0xec, 0x30, 0x5a, 0xe8, 0xca, 0x13, 0xba, 0xa0, 0xf5, 0x00, 0xc7, 0x45, 0x09, 0x84,
-	0x35, 0x98, 0x66, 0xaa, 0x73, 0x70, 0x43, 0xdc, 0x20, 0xd8, 0xf0, 0x35, 0x58, 0xb4, 0xc9, 0x8b,
-	0xa0, 0x11, 0x13, 0xc5, 0x43, 0x63, 0x9e, 0x2e, 0x1f, 0x44, 0xe2, 0x3e, 0x85, 0x4b, 0x91, 0xb8,
-	0xc3, 0x7e, 0xd3, 0x6f, 0x79, 0x96, 0xcb, 0x0a, 0xcd, 0x70, 0x0f, 0xbc, 0x8e, 0x86, 0x36, 0x5c,
-	0xce, 0x13, 0x29, 0xb4, 0x5d, 0x87, 0x79, 0x3f, 0x4e, 0x10, 0x1e, 0x49, 0x2e, 0x9e, 0x58, 0xc5,
-	0x0a, 0xe0, 0x7d, 0xd2, 0x25, 0xa9, 0xb8, 0x96, 0x27, 0xc1, 0xdf, 0x27, 0x60, 0x2e, 0x8e, 0x49,
-	0x5a, 0xde, 0xa2, 0xad, 0x85, 0xb8, 0x49, 0x76, 0x40, 0x71, 0xfb, 0xfe, 0xf3, 0x46, 0xcb, 0xb1,
-	0x9f, 0x59, 0x6d, 0x91, 0xe5, 0x17, 0x65, 0x71, 0xe9, 0x3f, 0xbf, 0xc7, 0x78, 0x74, 0x70, 0xa3,
-	0x67, 0xbc, 0x09, 0xcb, 0x46, 0xab, 0xd3, 0x30, 0x89, 0x61, 0x76, 0x2d, 0x9b, 0x34, 0x7c, 0xd2,
-	0x72, 0x6c, 0xd3, 0x2f, 0x4d, 0x31, 0xe3, 0x62, 0xa3, 0xd5, 0xd9, 0x17, 0xa4, 0x43, 0x4e, 0xc1,
-	0x75, 0x58, 0xf1, 0x48, 0x60, 0x58, 0x76, 0xc3, 0x68, 0x75, 0x88, 0xd9, 0x88, 0x52, 0x62, 0x66,
-	0x15, 0x95, 0x8b, 0xfa, 0xf7, 0x38, 0x71, 0x97, 0xd2, 0x44, 0x16, 0xf8, 0xf8, 0x67, 0xa0, 0x86,
-	0x91, 0xee, 0x91, 0x80, 0xd8, 0x54, 0xc7, 0x46, 0xd8, 0x3b, 0x4a, 0x45, 0x86, 0xf9, 0x7c, 0x26,
-	0x5b, 0xf7, 0x05, 0x83, 0x5e, 0x12, 0x9b, 0xf5, 0x70, 0x6f, 0x48, 0xc1, 0x7b, 0x51, 0xc9, 0x9f,
-	0x65, 0x01, 0x5a, 0xc9, 0x2a, 0x1e, 0xb7, 0xeb, 0x77, 0x5d, 0xf9, 0xff, 0x81, 0x00, 0x06, 0x86,
-	0xc5, 0x57, 0x61, 0x9e, 0xf9, 0x82, 0xd8, 0xa6, 0xeb, 0x58, 0x76, 0x98, 0xa0, 0x73, 0x74, 0xf1,
-	0xbe, 0x58, 0xc3, 0x8f, 0x24, 0x7d, 0xe0, 0xc6, 0x30, 0x7f, 0x0d, 0x6b, 0x02, 0xaf, 0x5b, 0xa6,
-	0x5b, 0xb0, 0xa8, 0x93, 0x16, 0xb1, 0x8e, 0x22, 0x67, 0xe1, 0x15, 0x98, 0xa6, 0x11, 0x61, 0x99,
-	0x61, 0x88, 0x1a, 0xad, 0xce, 0x43, 0x13, 0xdf, 0x86, 0x19, 0xe1, 0x05, 0x51, 0x5d, 0x47, 0xd6,
-	0xbe, 0x90, 0x5f, 0xfb, 0x01, 0x9c, 0x7d, 0x40, 0x82, 0xb8, 0x1f, 0xc2, 0x6c, 0xd0, 0x60, 0x2e,
-	0x9e, 0x5c, 0xa1, 0xbd, 0xe2, 0x6b, 0xda, 0xb7, 0x08, 0xce, 0xf3, 0x06, 0x21, 0x3b, 0x61, 0x4f,
-	0x72, 0x82, 0x52, 0xbf, 0x3c, 0x3c, 0x0c, 0x92, 0x12, 0x5e, 0xaf, 0x79, 0xb8, 0x50, 0xa2, 0x65,
-	0x45, 0x5a, 0xc4, 0xde, 0x4c, 0xa9, 0xfe, 0x3d, 0x82, 0xf3, 0x12, 0x91, 0xa2, 0x88, 0xed, 0xcb,
-	0x8a, 0xd8, 0x68, 0x8b, 0x9c, 0xb2, 0xc8, 0x7d, 0x00, 0xe7, 0x79, 0x91, 0x3b, 0xad, 0x77, 0x7f,
-	0x0d, 0xe7, 0x1e, 0x3b, 0xa6, 0xf5, 0xec, 0x38, 0x56, 0x9f, 0x4e, 0xbe, 0x3d, 0x5d, 0xfd, 0x0a,
-	0xe3, 0x55, 0x3f, 0xed, 0x4b, 0x04, 0xca, 0x41, 0xbf, 0xdb, 0x1d, 0x47, 0xe4, 0x4d, 0xc0, 0x1e,
-	0x09, 0xfa, 0x9e, 0xdd, 0xb0, 0x7a, 0x3d, 0x62, 0x5a, 0x46, 0x40, 0xba, 0xc7, 0x4c, 0x72, 0x51,
-	0x3f, 0xc3, 0x29, 0x0f, 0x07, 0x04, 0xbc, 0x06, 0x73, 0x3d, 0xe3, 0xc5, 0xa0, 0x4a, 0x4e, 0x30,
-	0x67, 0x2b, 0x3d, 0xe3, 0x45, 0x58, 0x1d, 0xb5, 0x5f, 0xc0, 0x1c, 0x07, 0x21, 0x5c, 0xf8, 0x63,
-	0x38, 0xe3, 0x89, 0xa4, 0x1c, 0xec, 0xe3, 0x6e, 0x5c, 0xcb, 0xaa, 0x96, 0xca, 0x5f, 0x7d, 0xc9,
-	0x4b, 0x2e, 0xf8, 0x34, 0x60, 0x4a, 0xdc, 0xc8, 0xbb, 0x83, 0x72, 0x3e, 0x8e, 0xca, 0xe7, 0x60,
-	0x86, 0x97, 0x04, 0xbf, 0x34, 0xc9, 0x5a, 0xe2, 0x34, 0xab, 0x09, 0x7e, 0x6e, 0xf7, 0x98, 0xc8,
-	0xeb, 0x1e, 0xda, 0x4f, 0x00, 0xef, 0xb6, 0x3a, 0xb6, 0xf3, 0xcb, 0x2e, 0x31, 0xdb, 0xa7, 0x05,
-	0x51, 0x88, 0x83, 0xd0, 0x7e, 0x53, 0x80, 0xe5, 0xc3, 0xc0, 0x23, 0x46, 0xcf, 0xb2, 0xdb, 0xe3,
-	0x7a, 0x33, 0xef, 0x54, 0x7c, 0x0b, 0xce, 0xf5, 0x98, 0xcd, 0x64, 0xda, 0x4d, 0x94, 0xa7, 0xf4,
-	0x15, 0x4e, 0x4e, 0xb7, 0xc7, 0xf7, 0xb2, 0xfb, 0x92, 0xb6, 0x5b, 0x4e, 0xee, 0xdb, 0xe5, 0xe2,
-	0x76, 0xe0, 0x82, 0xcf, 0x74, 0x68, 0x0c, 0x69, 0xc7, 0x25, 0xce, 0xb2, 0x9b, 0x35, 0x6b, 0x1b,
-	0x56, 0x52, 0x26, 0x78, 0x43, 0xb1, 0xf4, 0x11, 0xac, 0xdc, 0xf3, 0x08, 0x2d, 0xc6, 0xb6, 0xe1,
-	0xfa, 0xcf, 0x9d, 0x20, 0x34, 0xb6, 0x6c, 0x62, 0x49, 0x3b, 0xa0, 0x20, 0x29, 0x00, 0xaf, 0x10,
-	0xac, 0x88, 0xf2, 0x9e, 0x3a, 0xf1, 0x16, 0x14, 0x7d, 0xb1, 0x24, 0xca, 0xba, 0x2a, 0x29, 0x62,
-	0xe1, 0xa6, 0x88, 0xf7, 0xf5, 0xca, 0xf9, 0x7f, 0x10, 0x14, 0xc3, 0x33, 0xc7, 0x98, 0xc2, 0xb6,
-	0x41, 0x21, 0x2f, 0x5c, 0xcb, 0x23, 0xfc, 0x5b, 0x6b, 0x62, 0xe4, 0xb7, 0x16, 0x70, 0x76, 0xba,
-	0x80, 0xef, 0x46, 0x43, 0xcc, 0x24, 0x73, 0xcc, 0xb5, 0x7c, 0x35, 0xbf, 0xeb, 0x01, 0xa6, 0x0b,
-	0xcb, 0xac, 0x95, 0x88, 0xe3, 0xdf, 0x70, 0xe7, 0x3a, 0x86, 0x95, 0x94, 0x34, 0x11, 0xa5, 0xef,
-	0xc3, 0x6c, 0xe8, 0xbe, 0x30, 0x3a, 0x87, 0xf9, 0x7a, 0xc0, 0x7c, 0xe2, 0x46, 0xf5, 0x2e, 0xac,
-	0x88, 0x46, 0x95, 0x8a, 0x32, 0x35, 0x15, 0x65, 0xb3, 0x83, 0x48, 0xd2, 0xfe, 0x80, 0x40, 0x39,
-	0x24, 0xa4, 0x33, 0x4e, 0x41, 0xd9, 0x84, 0x49, 0x16, 0x02, 0x85, 0x51, 0x21, 0xf0, 0xe1, 0x5b,
-	0x3a, 0xe3, 0xc4, 0x17, 0x63, 0x08, 0x98, 0xc9, 0x3e, 0x7c, 0x6b, 0x80, 0x61, 0xaf, 0x08, 0xd3,
-	0x81, 0xe1, 0xb5, 0x49, 0xa0, 0x2d, 0xc0, 0x1c, 0x07, 0xc3, 0x8d, 0x56, 0xff, 0xef, 0x12, 0x80,
-	0x68, 0xbb, 0x4d, 0xe2, 0xe1, 0xdf, 0x21, 0xc0, 0x22, 0x35, 0xe3, 0x78, 0x46, 0x34, 0x7e, 0x75,
-	0x04, 0x5d, 0xdb, 0xfc, 0xe2, 0x5f, 0xff, 0xfe, 0xa6, 0x50, 0x51, 0xdf, 0xae, 0x1d, 0x6d, 0xd5,
-	0x7e, 0x45, 0x53, 0x60, 0x47, 0x84, 0x82, 0x5f, 0xab, 0xd4, 0x12, 0x53, 0x43, 0xad, 0xf2, 0xf2,
-	0x0e, 0xaa, 0xe0, 0xaf, 0x11, 0xfb, 0xf6, 0x4f, 0xa0, 0x28, 0x67, 0xa5, 0xc8, 0x47, 0xc2, 0x91,
-	0x78, 0xde, 0x63, 0x78, 0x6a, 0xf8, 0x26, 0xc3, 0x13, 0x97, 0x3f, 0x0c, 0x17, 0xfe, 0x73, 0xf4,
-	0x9b, 0x21, 0x81, 0xeb, 0x9d, 0xac, 0xb4, 0xdc, 0x59, 0x73, 0x24, 0xb4, 0x1d, 0x06, 0xed, 0xfb,
-	0xf5, 0x7a, 0x06, 0x5a, 0xf5, 0x24, 0x76, 0xfb, 0x16, 0xf1, 0xcf, 0xfd, 0xc4, 0x5c, 0x87, 0x25,
-	0x5f, 0x34, 0x79, 0xf3, 0xa6, 0xfa, 0xce, 0x89, 0x78, 0x79, 0xf8, 0x68, 0x55, 0x86, 0xb6, 0x8c,
-	0xaf, 0x31, 0xb4, 0x02, 0x5b, 0x0c, 0xe3, 0xcb, 0x24, 0x48, 0xfc, 0x47, 0x14, 0x7e, 0xd0, 0x8e,
-	0xb2, 0x60, 0xee, 0x44, 0xa8, 0x9e, 0xcd, 0xa4, 0xc3, 0xfd, 0x9e, 0x1b, 0x1c, 0x87, 0x4e, 0xad,
-	0x8c, 0xe9, 0xd4, 0xbf, 0x20, 0x38, 0x93, 0x19, 0x6c, 0x64, 0x16, 0xcb, 0x9b, 0x7e, 0x72, 0x01,
-	0xfd, 0x88, 0x01, 0xda, 0xd7, 0x3e, 0x18, 0x0b, 0xd0, 0x9d, 0x5e, 0x5a, 0x0e, 0xf5, 0xeb, 0x57,
-	0x08, 0x94, 0xd8, 0xcc, 0x83, 0xd7, 0xb3, 0xf8, 0xb2, 0x23, 0x51, 0x2e, 0xb2, 0x7d, 0x86, 0xec,
-	0xae, 0x76, 0x7b, 0x3c, 0x64, 0xc6, 0x40, 0x02, 0xc5, 0xf4, 0x5b, 0x04, 0x93, 0x74, 0x4e, 0xc0,
-	0x97, 0x64, 0xb3, 0x72, 0x34, 0x42, 0xc9, 0x42, 0x3e, 0x3e, 0x5e, 0x84, 0x21, 0xaf, 0xd5, 0xc7,
-	0x43, 0xe3, 0xf6, 0xbb, 0x5d, 0x0a, 0xc3, 0x84, 0xf9, 0xc4, 0xd8, 0x82, 0x65, 0xad, 0x4f, 0x32,
-	0xda, 0xa9, 0x1b, 0x23, 0xf9, 0x38, 0xc0, 0x32, 0xda, 0x44, 0x34, 0xf7, 0x97, 0xd2, 0x1f, 0x19,
-	0xf8, 0x7a, 0x5e, 0x94, 0x64, 0x3e, 0x44, 0x72, 0x5d, 0xf1, 0x90, 0x29, 0x7f, 0x4f, 0xbb, 0x7b,
-	0x9a, 0x20, 0x19, 0x88, 0xa1, 0x86, 0x78, 0x85, 0x60, 0x3e, 0xd1, 0x1a, 0x65, 0x96, 0x90, 0x75,
-	0x6a, 0x99, 0x25, 0xa4, 0x3d, 0x56, 0xab, 0x30, 0xb4, 0xeb, 0x58, 0xcb, 0xcf, 0xf7, 0x48, 0xf8,
-	0x97, 0x08, 0x16, 0x92, 0x63, 0x1e, 0x96, 0xc8, 0x91, 0x0e, 0x82, 0xea, 0x90, 0xc6, 0xad, 0xdd,
-	0x60, 0x18, 0xae, 0xa9, 0x6b, 0xf2, 0x66, 0x12, 0xca, 0x17, 0x05, 0xf1, 0x15, 0x82, 0x85, 0xe4,
-	0x68, 0x28, 0x43, 0x21, 0x1d, 0x1e, 0x87, 0xa2, 0x10, 0xd5, 0xa6, 0x5e, 0xe1, 0x7e, 0x0b, 0x47,
-	0xab, 0x51, 0x70, 0x3e, 0x47, 0xb0, 0x90, 0x9c, 0x21, 0x64, 0x70, 0xa4, 0x53, 0x46, 0x6e, 0x08,
-	0xdd, 0x64, 0x50, 0x36, 0x2a, 0x6f, 0x27, 0xa0, 0xe4, 0xa1, 0x60, 0x69, 0x4b, 0x67, 0x00, 0x59,
-	0xda, 0xc6, 0x06, 0x15, 0x69, 0xa7, 0x8a, 0x8d, 0x0e, 0xa7, 0x4d, 0x5b, 0x9f, 0x90, 0xce, 0x1d,
-	0x54, 0xa9, 0xff, 0x69, 0x06, 0x66, 0xc5, 0xcf, 0x6c, 0xe2, 0xe1, 0x4f, 0x40, 0xe1, 0x91, 0xc0,
-	0x6f, 0x66, 0xf2, 0xfe, 0x11, 0xab, 0x79, 0x04, 0xed, 0x3a, 0x43, 0x73, 0x55, 0xbd, 0x2c, 0x8d,
-	0x0a, 0xfe, 0x67, 0x59, 0xf8, 0xe0, 0x25, 0x28, 0xb1, 0xcb, 0x02, 0x59, 0x29, 0xcd, 0xde, 0x25,
-	0xe4, 0x0b, 0xae, 0x31, 0xc1, 0xd7, 0xeb, 0xeb, 0x4c, 0x30, 0x13, 0x54, 0x1d, 0x2a, 0xfe, 0x0b,
-	0x04, 0x33, 0x42, 0x71, 0xbc, 0x2a, 0xfd, 0xff, 0x15, 0xbb, 0x45, 0x50, 0xd7, 0x86, 0x70, 0x08,
-	0x47, 0xd4, 0x19, 0x82, 0x1b, 0xda, 0xc6, 0x00, 0x81, 0x5c, 0xb8, 0xb8, 0x9a, 0xa1, 0x20, 0x1c,
-	0x28, 0x86, 0x57, 0x2b, 0x78, 0x4d, 0x3a, 0x57, 0x9d, 0x4c, 0xfb, 0x0d, 0x26, 0x7b, 0x0d, 0x5f,
-	0x19, 0x21, 0x9b, 0x06, 0x3e, 0x0c, 0x2e, 0x07, 0xf0, 0x55, 0x79, 0xc5, 0x49, 0xdc, 0x52, 0xa8,
-	0xeb, 0xc3, 0x99, 0x84, 0xfa, 0x49, 0x08, 0xb2, 0x9a, 0x24, 0xee, 0x15, 0xfe, 0x86, 0xe0, 0xac,
-	0xfc, 0xef, 0x3d, 0xae, 0x0d, 0x91, 0x24, 0x9d, 0x92, 0x36, 0x4f, 0xbe, 0x41, 0xc0, 0x4c, 0xce,
-	0x9c, 0xf9, 0x96, 0x4a, 0x4d, 0x4c, 0x01, 0x28, 0xb1, 0x1b, 0x00, 0x59, 0xb0, 0x66, 0x2f, 0x08,
-	0x72, 0x2b, 0x85, 0x30, 0x55, 0x65, 0x94, 0xb7, 0xf6, 0xbe, 0x46, 0xb0, 0xdc, 0x72, 0x7a, 0x19,
-	0x61, 0x7b, 0x0a, 0xff, 0x3d, 0x7b, 0x40, 0xcf, 0x3d, 0x40, 0x3f, 0xbf, 0x25, 0x18, 0xda, 0x4e,
-	0xd7, 0xb0, 0xdb, 0x55, 0xc7, 0x6b, 0xd7, 0xda, 0xc4, 0x66, 0x52, 0x6b, 0x9c, 0x64, 0xb8, 0x96,
-	0x3f, 0xb8, 0x39, 0xde, 0xe6, 0x4f, 0xff, 0x43, 0xe8, 0xaf, 0x85, 0xb3, 0x0f, 0xf8, 0xde, 0x7b,
-	0x5d, 0xa7, 0x6f, 0xd2, 0xa0, 0x3e, 0xec, 0x37, 0xab, 0x1f, 0x6f, 0xfd, 0x33, 0x24, 0x3c, 0x65,
-	0x84, 0xa7, 0x9c, 0xf0, 0xf4, 0xe3, 0xad, 0xe6, 0x34, 0x3b, 0xf7, 0xdd, 0xff, 0x07, 0x00, 0x00,
-	0xff, 0xff, 0xcb, 0xe1, 0xb8, 0xca, 0x90, 0x1e, 0x00, 0x00,
+var fileDescriptor_pubsub_ccb5b83827ebb62b = []byte{
+	// 2199 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x5a, 0xcd, 0x73, 0x1b, 0x49,
+	0x15, 0xdf, 0x96, 0x1c, 0x47, 0x7e, 0xb2, 0xe3, 0xb8, 0xb1, 0x1d, 0x79, 0xf2, 0x65, 0x4f, 0x8c,
+	0xed, 0x28, 0x89, 0x64, 0x2b, 0xb5, 0x61, 0x13, 0xe3, 0x6c, 0xd9, 0x71, 0xc8, 0x06, 0x12, 0x30,
+	0xe3, 0x10, 0xaa, 0xa8, 0x14, 0xaa, 0x91, 0xd4, 0x51, 0x66, 0x35, 0x9a, 0x99, 0x9d, 0x19, 0x79,
+	0xe3, 0x85, 0x50, 0x61, 0x97, 0xa2, 0x8a, 0x22, 0x07, 0x76, 0xb9, 0xee, 0x81, 0x82, 0x1b, 0x47,
+	0xaa, 0xb8, 0xc2, 0x9d, 0x2b, 0x07, 0xfe, 0x01, 0x8e, 0x5c, 0x38, 0xc1, 0x71, 0xab, 0x3f, 0x66,
+	0x34, 0x1f, 0x3d, 0x92, 0x65, 0x6f, 0x6e, 0xa3, 0xee, 0xd7, 0xfd, 0x7e, 0xef, 0xbb, 0xdf, 0x2b,
+	0xc1, 0xc5, 0xb6, 0x6d, 0xb7, 0x4d, 0x52, 0x75, 0x7a, 0x0d, 0xaf, 0xd7, 0xa8, 0x1e, 0x6c, 0x88,
+	0xaf, 0x8a, 0xe3, 0xda, 0xbe, 0x8d, 0xcf, 0xf2, 0xed, 0x8a, 0x58, 0x3c, 0xd8, 0x50, 0x2e, 0x88,
+	0x03, 0xba, 0x63, 0x54, 0x75, 0xcb, 0xb2, 0x7d, 0xdd, 0x37, 0x6c, 0xcb, 0xe3, 0xf4, 0xca, 0xa5,
+	0xe0, 0x3a, 0xfa, 0xab, 0xd1, 0x7b, 0x5e, 0x6d, 0xf5, 0x5c, 0x46, 0x20, 0xf6, 0xcf, 0x27, 0xf7,
+	0x49, 0xd7, 0xf1, 0x0f, 0xc5, 0xe6, 0x62, 0x72, 0xf3, 0xb9, 0x41, 0xcc, 0x56, 0xbd, 0xab, 0x7b,
+	0x1d, 0x41, 0x71, 0x39, 0x49, 0xe1, 0x1b, 0x5d, 0xe2, 0xf9, 0x7a, 0xd7, 0xe1, 0x04, 0xea, 0x53,
+	0x98, 0x7d, 0x4c, 0x3c, 0x4f, 0x6f, 0x93, 0x7d, 0xdf, 0x76, 0xf5, 0x36, 0xd9, 0xb3, 0x4d, 0xa3,
+	0x79, 0x88, 0xef, 0xc2, 0x79, 0xdd, 0x34, 0xed, 0x8f, 0x49, 0xab, 0xee, 0x10, 0xd7, 0x33, 0x3c,
+	0x9f, 0x58, 0x4d, 0x52, 0x77, 0x49, 0x9b, 0x82, 0x2f, 0xa1, 0xc5, 0xfc, 0xda, 0x84, 0xb6, 0x20,
+	0x48, 0xf6, 0xfa, 0x14, 0x1a, 0x27, 0x50, 0xff, 0x8b, 0xe0, 0xd4, 0x13, 0xdb, 0x31, 0x9a, 0x18,
+	0xc3, 0x98, 0xa5, 0x77, 0x49, 0x09, 0x2d, 0xa2, 0xb5, 0x09, 0x8d, 0x7d, 0xe3, 0x4d, 0x18, 0x37,
+	0xf5, 0x06, 0x31, 0xbd, 0x52, 0x6e, 0x31, 0xbf, 0x56, 0xac, 0x5d, 0xa9, 0x24, 0xd5, 0x56, 0x61,
+	0x87, 0x2b, 0x8f, 0x18, 0xd5, 0x7d, 0xcb, 0x77, 0x0f, 0x35, 0x71, 0x04, 0x3f, 0x83, 0xf9, 0x2e,
+	0x87, 0x5c, 0xf7, 0x38, 0xe6, 0xba, 0xc3, 0x40, 0x97, 0xf2, 0x8b, 0x68, 0xad, 0x58, 0x5b, 0x49,
+	0x5f, 0x26, 0x13, 0x51, 0x9b, 0xed, 0x4a, 0x56, 0x95, 0xdb, 0x50, 0x8c, 0x30, 0xc5, 0x67, 0x21,
+	0xdf, 0x21, 0x87, 0x02, 0x3c, 0xfd, 0xc4, 0xb3, 0x70, 0xea, 0x40, 0x37, 0x7b, 0xa4, 0x94, 0x63,
+	0x6b, 0xfc, 0xc7, 0x9d, 0xdc, 0x7b, 0x48, 0xfd, 0x3c, 0x07, 0x53, 0x7b, 0x8c, 0xa7, 0xe0, 0x47,
+	0x65, 0x6f, 0xe9, 0xbe, 0xce, 0x8e, 0x4f, 0x6a, 0xec, 0x1b, 0xff, 0x00, 0x40, 0xf7, 0x7d, 0xd7,
+	0x68, 0xf4, 0x7c, 0x12, 0xc8, 0x5f, 0x4d, 0x43, 0x8e, 0x5d, 0x54, 0xd9, 0x0e, 0x4f, 0x70, 0x5d,
+	0x44, 0xae, 0xc0, 0x17, 0x01, 0x02, 0x7d, 0x18, 0x2d, 0xa6, 0x83, 0x09, 0x6d, 0x42, 0xac, 0x3c,
+	0x6c, 0xe1, 0x2d, 0x98, 0x74, 0x7a, 0x0d, 0xd3, 0xf0, 0x5e, 0xd4, 0xa9, 0xf1, 0x4b, 0x63, 0x4c,
+	0x49, 0x4a, 0xc8, 0x51, 0x78, 0x46, 0xe5, 0x49, 0xe0, 0x19, 0x5a, 0x51, 0xd0, 0xd3, 0x15, 0x65,
+	0x0b, 0xa6, 0x13, 0xcc, 0x47, 0xd2, 0xc9, 0x2a, 0x4c, 0x3f, 0x20, 0x3e, 0x33, 0xa6, 0x46, 0x3e,
+	0xea, 0x11, 0xcf, 0xa7, 0xc4, 0x3e, 0xfd, 0x2d, 0x2e, 0xe0, 0x3f, 0xd4, 0xd7, 0x08, 0xf0, 0x8f,
+	0x9c, 0x96, 0xee, 0x93, 0x18, 0xf1, 0x8d, 0x28, 0x71, 0xb1, 0x76, 0x2e, 0xc3, 0x51, 0xc4, 0x2d,
+	0x78, 0x13, 0x8a, 0x3d, 0x76, 0x09, 0x0b, 0x02, 0x06, 0x47, 0x26, 0xeb, 0x77, 0x68, 0x9c, 0x3c,
+	0xd6, 0xbd, 0x8e, 0x06, 0x9c, 0x9c, 0x7e, 0xab, 0x4d, 0x38, 0xb3, 0xc7, 0x25, 0x1f, 0x08, 0x15,
+	0x6f, 0x42, 0x41, 0xa8, 0x37, 0xb0, 0xdf, 0xe5, 0x21, 0xf6, 0xd3, 0xc2, 0x03, 0x6a, 0x0d, 0xa6,
+	0x43, 0x26, 0x9e, 0x63, 0x5b, 0x1e, 0xc1, 0x97, 0xa1, 0xd8, 0x37, 0x60, 0x10, 0x5b, 0x10, 0x5a,
+	0xd0, 0x53, 0x0d, 0x98, 0x79, 0x64, 0x78, 0x5c, 0x8b, 0x5e, 0x80, 0xad, 0x04, 0xa7, 0x1d, 0xd7,
+	0xfe, 0x90, 0x34, 0x7d, 0x81, 0x2e, 0xf8, 0x89, 0xcf, 0xc3, 0x84, 0xc3, 0xa2, 0xc3, 0xf8, 0x84,
+	0x5b, 0xe4, 0x94, 0x56, 0xa0, 0x0b, 0xfb, 0xc6, 0x27, 0x84, 0x7a, 0x0b, 0xdb, 0xf4, 0xed, 0x0e,
+	0xb1, 0x02, 0x6f, 0xa1, 0x2b, 0x4f, 0xe8, 0x82, 0xda, 0x05, 0x1c, 0x65, 0x25, 0x10, 0x56, 0x61,
+	0x9c, 0x89, 0xce, 0xc1, 0x0d, 0x30, 0x83, 0x20, 0xc3, 0x2b, 0x30, 0x6d, 0x91, 0x97, 0x7e, 0x3d,
+	0xc2, 0x8a, 0xbb, 0xc6, 0x14, 0x5d, 0xde, 0x0b, 0xd9, 0x7d, 0x04, 0x17, 0x43, 0x76, 0xfb, 0xbd,
+	0x86, 0xd7, 0x74, 0x0d, 0x87, 0xa5, 0xc7, 0xc1, 0x16, 0x38, 0x89, 0x84, 0x16, 0x5c, 0xca, 0x62,
+	0x29, 0xa4, 0x5d, 0x86, 0x29, 0x2f, 0xba, 0x21, 0x2c, 0x12, 0x5f, 0x3c, 0xb2, 0x88, 0x5d, 0x58,
+	0xe8, 0xf3, 0xb3, 0x74, 0xc7, 0x7b, 0x61, 0xfb, 0x6f, 0x51, 0xbc, 0x06, 0x28, 0x32, 0x76, 0x42,
+	0xb4, 0x0b, 0x30, 0xe1, 0x05, 0x8b, 0x42, 0xac, 0xfe, 0xc2, 0x91, 0x45, 0x2a, 0x03, 0xde, 0x25,
+	0x26, 0x49, 0x84, 0xaa, 0x3c, 0xae, 0xff, 0x9a, 0x87, 0xc9, 0xa8, 0x9a, 0xa5, 0xf5, 0x20, 0x3c,
+	0x9a, 0x8b, 0xaa, 0x61, 0x0b, 0x8a, 0x4e, 0xcf, 0x7b, 0x51, 0x6f, 0xda, 0xd6, 0x73, 0xa3, 0x2d,
+	0x12, 0xd7, 0x05, 0x59, 0xa8, 0x79, 0x2f, 0xee, 0x31, 0x1a, 0x0d, 0x9c, 0xf0, 0x1b, 0xaf, 0xc3,
+	0xac, 0xde, 0xec, 0xd4, 0x5b, 0x44, 0x6f, 0x99, 0x86, 0x45, 0xea, 0x1e, 0x69, 0xda, 0x56, 0xcb,
+	0x2b, 0x9d, 0x62, 0x0a, 0xc5, 0x7a, 0xb3, 0xb3, 0x2b, 0xb6, 0xf6, 0xf9, 0x0e, 0xae, 0xc1, 0x9c,
+	0x4b, 0x7c, 0xdd, 0xb0, 0xea, 0x7a, 0xb3, 0x43, 0x5a, 0xf5, 0x30, 0xca, 0x4f, 0x2f, 0xa2, 0xb5,
+	0x82, 0xf6, 0x0d, 0xbe, 0xb9, 0x4d, 0xf7, 0x44, 0x60, 0x7b, 0xf8, 0xc7, 0xa0, 0x04, 0xc1, 0xeb,
+	0x12, 0x9f, 0x58, 0x54, 0xc6, 0x7a, 0x50, 0xc4, 0x4b, 0x05, 0x86, 0x79, 0x21, 0x95, 0x80, 0x76,
+	0x05, 0x81, 0x56, 0x12, 0x87, 0xb5, 0xe0, 0x6c, 0xb0, 0x83, 0x77, 0xc2, 0x1a, 0x39, 0xc1, 0x62,
+	0xae, 0x9c, 0x16, 0x3c, 0xaa, 0x57, 0x59, 0xa9, 0x3c, 0x49, 0x31, 0xfb, 0x1b, 0x02, 0xe8, 0x2b,
+	0x16, 0x5f, 0x81, 0x29, 0x66, 0x0b, 0x62, 0xb5, 0x1c, 0xdb, 0xb0, 0x82, 0x9c, 0x33, 0x49, 0x17,
+	0xef, 0x8b, 0x35, 0xfc, 0x48, 0x52, 0xda, 0xae, 0x0f, 0xb2, 0xd7, 0xa0, 0xba, 0x76, 0xd2, 0xca,
+	0xd3, 0x84, 0x69, 0x8d, 0x34, 0x89, 0x71, 0x10, 0x1a, 0x0b, 0xcf, 0xc1, 0x38, 0xf5, 0x08, 0xa3,
+	0x15, 0xb8, 0xa8, 0xde, 0xec, 0x3c, 0x6c, 0xe1, 0xdb, 0x70, 0x5a, 0x58, 0x41, 0x14, 0x8c, 0xa1,
+	0xe9, 0x3c, 0xa0, 0x57, 0xbf, 0x0d, 0xf3, 0x0f, 0x88, 0x1f, 0xb5, 0x43, 0x10, 0x0d, 0x2a, 0x4c,
+	0x46, 0xf3, 0x45, 0xa0, 0xaf, 0xe8, 0x9a, 0xfa, 0x25, 0x82, 0x05, 0x5e, 0xf3, 0x64, 0x37, 0xec,
+	0x48, 0x6e, 0x28, 0xd6, 0x2e, 0x0d, 0x76, 0x83, 0x38, 0x87, 0x93, 0xd5, 0x43, 0x07, 0x4a, 0x34,
+	0x95, 0x48, 0xf3, 0xf2, 0xdb, 0xa9, 0x3e, 0xbf, 0x41, 0x3c, 0x59, 0xca, 0xf3, 0xf2, 0xae, 0x2c,
+	0x2f, 0x0f, 0xd7, 0xc8, 0x31, 0xf3, 0xf6, 0xfb, 0xb0, 0xc0, 0x93, 0xdc, 0x71, 0xad, 0xfb, 0x73,
+	0x38, 0xf7, 0xd8, 0x6e, 0x19, 0xcf, 0x0f, 0x23, 0xf9, 0xe9, 0xe8, 0xc7, 0x93, 0xd9, 0x2f, 0x37,
+	0x5a, 0xf6, 0x53, 0x3f, 0x43, 0x50, 0xdc, 0xeb, 0x99, 0xe6, 0x28, 0x2c, 0x6f, 0x00, 0x76, 0x89,
+	0xdf, 0x73, 0xad, 0xba, 0xd1, 0xed, 0x92, 0x96, 0xa1, 0xfb, 0xc4, 0x3c, 0x64, 0x9c, 0x0b, 0xda,
+	0x0c, 0xdf, 0x79, 0xd8, 0xdf, 0xc0, 0x4b, 0x30, 0xd9, 0xd5, 0x5f, 0xf6, 0xb3, 0x64, 0x9e, 0x19,
+	0xbb, 0xd8, 0xd5, 0x5f, 0x06, 0xd9, 0x51, 0xfd, 0x29, 0x4c, 0x72, 0x10, 0xc2, 0x84, 0xdf, 0x87,
+	0x19, 0x57, 0x04, 0x65, 0xff, 0x1c, 0x37, 0xe3, 0x52, 0x5a, 0xb4, 0x44, 0xfc, 0x6a, 0x67, 0xdd,
+	0xf8, 0x82, 0x47, 0x1d, 0xa6, 0xc4, 0x95, 0xbc, 0xdd, 0x4f, 0xe7, 0xa3, 0x88, 0x7c, 0x0e, 0x4e,
+	0xf3, 0x94, 0xe0, 0x95, 0xc6, 0x58, 0x39, 0x1c, 0x67, 0x39, 0xc1, 0xcb, 0xac, 0x1e, 0xf9, 0xac,
+	0xea, 0xa1, 0xfe, 0x10, 0xf0, 0x76, 0xb3, 0x63, 0xd9, 0x1f, 0x9b, 0xa4, 0xd5, 0x3e, 0x2e, 0x88,
+	0x5c, 0x14, 0x84, 0xfa, 0xcb, 0x1c, 0xcc, 0xee, 0xfb, 0x2e, 0xd1, 0xbb, 0x86, 0xd5, 0x1e, 0xd5,
+	0x9a, 0x59, 0xb7, 0xe2, 0x5b, 0x70, 0xae, 0xcb, 0x74, 0x26, 0x93, 0x2e, 0xbf, 0x76, 0x4a, 0x9b,
+	0xe3, 0xdb, 0xc9, 0xf2, 0xf8, 0x6e, 0xfa, 0x5c, 0x5c, 0x77, 0xb3, 0xf1, 0x73, 0xdb, 0x9c, 0xdd,
+	0x16, 0x9c, 0xf7, 0x98, 0x0c, 0xf5, 0x01, 0xe5, 0xb8, 0xc4, 0x49, 0xb6, 0xd3, 0x6a, 0x6d, 0xc3,
+	0x5c, 0x42, 0x05, 0x6f, 0xc9, 0x97, 0xfe, 0x85, 0x60, 0xee, 0x9e, 0x4b, 0x68, 0x36, 0x16, 0x2f,
+	0xa2, 0x40, 0xdb, 0xb2, 0x27, 0x4b, 0xd2, 0x02, 0x39, 0x89, 0x05, 0xbe, 0x17, 0x96, 0xf0, 0x3c,
+	0x83, 0x75, 0x33, 0x0d, 0x4b, 0xca, 0xf0, 0xeb, 0xae, 0xe5, 0x6f, 0x10, 0xcc, 0x89, 0x3a, 0x93,
+	0x90, 0xec, 0x16, 0x14, 0x82, 0xe7, 0x9f, 0xa8, 0x2f, 0x8a, 0x24, 0x9b, 0x06, 0x87, 0x42, 0xda,
+	0x93, 0xd5, 0x95, 0xff, 0x20, 0x28, 0x04, 0x77, 0x8e, 0xf0, 0x1c, 0xdc, 0x84, 0x22, 0x79, 0xe9,
+	0x18, 0x2e, 0xe1, 0x7d, 0x6c, 0x7e, 0x68, 0x1f, 0x0b, 0x9c, 0x9c, 0x2e, 0xe0, 0xbb, 0xa1, 0x29,
+	0xc6, 0x98, 0x29, 0x56, 0xb2, 0xc5, 0xfc, 0xba, 0xb5, 0xbf, 0x0e, 0x98, 0xbe, 0x11, 0x12, 0x9a,
+	0x57, 0x12, 0x9a, 0x9f, 0xe8, 0x6b, 0x57, 0x35, 0x61, 0x96, 0x55, 0xc1, 0x64, 0xb7, 0xf0, 0x76,
+	0x8a, 0xee, 0x21, 0xcc, 0x25, 0xb8, 0x89, 0x00, 0x7b, 0x2f, 0xd9, 0x2c, 0x0c, 0xf6, 0x8e, 0x63,
+	0x34, 0x12, 0x37, 0x61, 0x4e, 0xd4, 0xd8, 0x11, 0xb4, 0xf3, 0x5b, 0x04, 0xc5, 0x7d, 0x42, 0x3a,
+	0xa3, 0xe4, 0xc2, 0x75, 0x18, 0x63, 0x4e, 0x93, 0x1b, 0xe6, 0x34, 0x1f, 0xbc, 0xa3, 0x31, 0x4a,
+	0x7c, 0x21, 0x82, 0x80, 0xa9, 0xec, 0x83, 0x77, 0xfa, 0x18, 0x76, 0x0a, 0x30, 0xee, 0xeb, 0x6e,
+	0x9b, 0xf8, 0xea, 0x19, 0x98, 0xe4, 0x60, 0xb8, 0xd2, 0x6a, 0x7f, 0x2f, 0xc0, 0x84, 0x68, 0xf0,
+	0x89, 0x8b, 0x3f, 0x84, 0x22, 0x8f, 0x70, 0x3e, 0x0b, 0xcb, 0xea, 0x9b, 0x95, 0xac, 0x0d, 0xf5,
+	0xea, 0xa7, 0xff, 0xfc, 0xf7, 0xef, 0x73, 0x57, 0x94, 0x4b, 0xd5, 0x83, 0x8d, 0xea, 0xcf, 0x68,
+	0x74, 0x6c, 0x09, 0x9b, 0x7b, 0xd5, 0x72, 0x95, 0x77, 0xdb, 0xd5, 0xf2, 0xab, 0x3b, 0xa8, 0x8c,
+	0x5f, 0x41, 0x31, 0x32, 0x40, 0xc1, 0xcb, 0xe9, 0x2b, 0xd3, 0xf3, 0x95, 0x6c, 0xc6, 0x55, 0xc6,
+	0xf8, 0x6a, 0x6d, 0x99, 0x31, 0x66, 0x8c, 0x2a, 0x03, 0xd9, 0x7f, 0x8a, 0xe0, 0xb4, 0x10, 0x1c,
+	0x2f, 0x4a, 0x1f, 0xd0, 0x91, 0xc9, 0x8a, 0xb2, 0x34, 0x80, 0x82, 0x6b, 0x52, 0xad, 0x31, 0x04,
+	0xd7, 0xd5, 0xd5, 0x3e, 0x02, 0x39, 0x73, 0x31, 0xae, 0xa2, 0x20, 0x6c, 0x28, 0x04, 0xe3, 0x26,
+	0x2c, 0x61, 0x91, 0x18, 0x45, 0x65, 0x4b, 0xbf, 0xca, 0x78, 0x2f, 0xe1, 0xcb, 0x43, 0x78, 0xe3,
+	0xd7, 0x08, 0xa0, 0x3f, 0x30, 0xc1, 0x92, 0x41, 0x66, 0x6a, 0x72, 0xa3, 0x2c, 0x0f, 0x26, 0x12,
+	0xe2, 0xc7, 0x21, 0x08, 0xe6, 0x11, 0x10, 0xaf, 0x04, 0x0a, 0xfc, 0x17, 0x04, 0xf3, 0xf2, 0x89,
+	0x06, 0xae, 0x0e, 0xe0, 0x24, 0x7b, 0xd6, 0x2b, 0xeb, 0x47, 0x3f, 0x20, 0x60, 0xbe, 0xcb, 0x60,
+	0x56, 0xf1, 0x8d, 0x21, 0x9a, 0xaa, 0xc6, 0x5f, 0xe1, 0x7f, 0x44, 0x91, 0x41, 0x53, 0x98, 0x7a,
+	0xf0, 0xb5, 0x41, 0xfc, 0x13, 0xe9, 0x50, 0xb9, 0x7e, 0x34, 0x62, 0x01, 0x74, 0x83, 0x01, 0xbd,
+	0x86, 0xaf, 0x0e, 0x05, 0x1a, 0xa2, 0xf1, 0xa1, 0x18, 0x99, 0x73, 0xc8, 0x22, 0x2a, 0x3d, 0x06,
+	0x51, 0xe6, 0x53, 0xc9, 0xe5, 0x7e, 0xd7, 0xf1, 0x0f, 0x03, 0x7b, 0x96, 0x87, 0xb9, 0x54, 0xed,
+	0x7f, 0x33, 0x00, 0x42, 0xd7, 0x0d, 0xe2, 0xe2, 0x5f, 0x23, 0xc0, 0xe2, 0x95, 0x10, 0xcd, 0x68,
+	0x43, 0xba, 0x1e, 0x65, 0xc8, 0xbe, 0xba, 0xce, 0xe0, 0x94, 0x95, 0x6f, 0x4a, 0x13, 0x4b, 0xcc,
+	0x58, 0x22, 0xc0, 0xbf, 0x40, 0x6c, 0x96, 0x1b, 0x43, 0xb1, 0x26, 0x8d, 0x31, 0x49, 0xc7, 0x34,
+	0x14, 0x4f, 0xdc, 0x8f, 0xa2, 0xfc, 0x07, 0xe1, 0xc2, 0x7f, 0x08, 0xc7, 0xc6, 0x31, 0x5c, 0xd7,
+	0xb2, 0x92, 0xdf, 0x71, 0xa0, 0x6d, 0x31, 0x68, 0xdf, 0xaa, 0xd5, 0x52, 0xd0, 0x2a, 0x47, 0xd1,
+	0xdb, 0x97, 0x88, 0x8f, 0x6f, 0xe3, 0xa1, 0x59, 0x96, 0x3b, 0xaf, 0x34, 0x2a, 0xaf, 0x1d, 0x89,
+	0x56, 0xf8, 0x79, 0x85, 0xa1, 0x5d, 0xc3, 0x2b, 0x99, 0x79, 0x23, 0x1e, 0x89, 0xbf, 0x43, 0xc1,
+	0x34, 0x6f, 0x98, 0x06, 0x33, 0xdb, 0xe1, 0x4c, 0x9f, 0x17, 0x46, 0x2d, 0x8f, 0x68, 0xd4, 0x3f,
+	0x21, 0x98, 0x49, 0x75, 0x75, 0x32, 0x8d, 0x65, 0xb5, 0x7e, 0x99, 0x80, 0xbe, 0xcb, 0x00, 0xed,
+	0xaa, 0xef, 0x8f, 0x04, 0xe8, 0x4e, 0x37, 0xc9, 0x87, 0xda, 0xf5, 0x73, 0x04, 0xc5, 0x48, 0xc3,
+	0x27, 0x4b, 0x0f, 0xe9, 0x7e, 0x30, 0x13, 0xd9, 0x2e, 0x43, 0x76, 0x57, 0xbd, 0x3d, 0x1a, 0x32,
+	0xbd, 0xcf, 0x81, 0x62, 0xfa, 0x15, 0x82, 0x31, 0xda, 0x24, 0xe1, 0x8b, 0xb2, 0xfa, 0x1a, 0xf6,
+	0x8f, 0x32, 0x97, 0x8f, 0xf6, 0x56, 0x81, 0xcb, 0xab, 0xb5, 0xd1, 0xd0, 0x38, 0x3d, 0xd3, 0xa4,
+	0x30, 0x5a, 0x30, 0x15, 0xeb, 0xd9, 0xb0, 0xec, 0xb9, 0x2d, 0xe9, 0x6b, 0x95, 0xd5, 0xa1, 0x74,
+	0x1c, 0xe0, 0x1a, 0x5a, 0x47, 0x34, 0xf6, 0xcf, 0x26, 0x27, 0x2c, 0xf8, 0x6a, 0x96, 0x97, 0xa4,
+	0xa6, 0x30, 0x99, 0xa6, 0x78, 0xc8, 0x84, 0xbf, 0xa7, 0xde, 0x3d, 0x8e, 0x93, 0xf4, 0xd9, 0x50,
+	0x45, 0xfc, 0x02, 0x8a, 0x91, 0xb7, 0xbf, 0xcc, 0x45, 0xd2, 0xad, 0x81, 0x32, 0xe0, 0x91, 0xad,
+	0xde, 0x60, 0xd8, 0x56, 0x31, 0x4f, 0xdb, 0x41, 0xa9, 0x8a, 0xe1, 0x0a, 0xca, 0x17, 0x8d, 0xa4,
+	0x37, 0x08, 0xa6, 0x62, 0x8f, 0x7b, 0x99, 0x25, 0x64, 0xbd, 0x86, 0xcc, 0x12, 0xd2, 0x2e, 0x41,
+	0x2d, 0x33, 0x44, 0xcb, 0x58, 0xcd, 0xce, 0x37, 0x21, 0xf3, 0xcf, 0x10, 0x9c, 0x89, 0x77, 0xbc,
+	0x78, 0xf5, 0x88, 0x3d, 0xf1, 0x40, 0xad, 0x5c, 0x67, 0x18, 0x56, 0x94, 0x25, 0x79, 0x31, 0x8b,
+	0x68, 0x84, 0x1a, 0xe5, 0x0d, 0x82, 0x33, 0xf1, 0x76, 0x58, 0x86, 0x42, 0xda, 0x30, 0x0f, 0x44,
+	0x21, 0xb2, 0x5d, 0xad, 0x1c, 0xb3, 0x4d, 0x65, 0x18, 0x9c, 0xd7, 0x08, 0xce, 0xc4, 0xbb, 0x20,
+	0x19, 0x1c, 0x69, 0x9f, 0x94, 0xe9, 0xc2, 0xc2, 0x4d, 0xca, 0x47, 0x74, 0x13, 0x9a, 0x36, 0x68,
+	0x17, 0x23, 0x4b, 0x1b, 0x91, 0x56, 0x4b, 0x5a, 0x29, 0x23, 0xcd, 0xcf, 0x71, 0xd3, 0x86, 0x47,
+	0x48, 0xe7, 0x0e, 0x2a, 0xef, 0x7c, 0x81, 0x60, 0xb6, 0x69, 0x77, 0x53, 0x4c, 0x76, 0x8a, 0x7c,
+	0xfc, 0xbe, 0x47, 0x85, 0xdc, 0x43, 0x3f, 0xb9, 0x25, 0x08, 0xda, 0xb6, 0xa9, 0x5b, 0xed, 0x8a,
+	0xed, 0xb6, 0xab, 0x6d, 0x62, 0x31, 0x15, 0x54, 0xf9, 0x96, 0xee, 0x18, 0x5e, 0xff, 0x2f, 0x1a,
+	0x9b, 0xfc, 0xeb, 0xff, 0x08, 0xfd, 0x39, 0x37, 0xff, 0x80, 0x9f, 0xbd, 0x67, 0xda, 0xbd, 0x16,
+	0xed, 0x39, 0xf6, 0x7b, 0x8d, 0xca, 0xd3, 0x8d, 0x7f, 0x04, 0x1b, 0xcf, 0xd8, 0xc6, 0x33, 0xbe,
+	0xf1, 0xec, 0xe9, 0x46, 0x63, 0x9c, 0xdd, 0x7b, 0xf3, 0xab, 0x00, 0x00, 0x00, 0xff, 0xff, 0x52,
+	0x93, 0x85, 0x71, 0xf9, 0x21, 0x00, 0x00,
 }

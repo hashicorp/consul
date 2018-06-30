@@ -108,6 +108,10 @@ type ACMPCAAPI interface {
 	ListTagsWithContext(aws.Context, *acmpca.ListTagsInput, ...request.Option) (*acmpca.ListTagsOutput, error)
 	ListTagsRequest(*acmpca.ListTagsInput) (*request.Request, *acmpca.ListTagsOutput)
 
+	RestoreCertificateAuthority(*acmpca.RestoreCertificateAuthorityInput) (*acmpca.RestoreCertificateAuthorityOutput, error)
+	RestoreCertificateAuthorityWithContext(aws.Context, *acmpca.RestoreCertificateAuthorityInput, ...request.Option) (*acmpca.RestoreCertificateAuthorityOutput, error)
+	RestoreCertificateAuthorityRequest(*acmpca.RestoreCertificateAuthorityInput) (*request.Request, *acmpca.RestoreCertificateAuthorityOutput)
+
 	RevokeCertificate(*acmpca.RevokeCertificateInput) (*acmpca.RevokeCertificateOutput, error)
 	RevokeCertificateWithContext(aws.Context, *acmpca.RevokeCertificateInput, ...request.Option) (*acmpca.RevokeCertificateOutput, error)
 	RevokeCertificateRequest(*acmpca.RevokeCertificateInput) (*request.Request, *acmpca.RevokeCertificateOutput)

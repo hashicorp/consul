@@ -64,9 +64,9 @@ func (c *MediaLive) CreateChannelRequest(input *CreateChannelInput) (req *reques
 // API operation CreateChannel for usage and error information.
 //
 // Returned Error Codes:
-//   * ErrCodeUnprocessableEntityException "UnprocessableEntityException"
-//
 //   * ErrCodeBadRequestException "BadRequestException"
+//
+//   * ErrCodeUnprocessableEntityException "UnprocessableEntityException"
 //
 //   * ErrCodeInternalServerErrorException "InternalServerErrorException"
 //
@@ -552,6 +552,98 @@ func (c *MediaLive) DeleteInputSecurityGroupWithContext(ctx aws.Context, input *
 	return out, req.Send()
 }
 
+const opDeleteReservation = "DeleteReservation"
+
+// DeleteReservationRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteReservation operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteReservation for more information on using the DeleteReservation
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteReservationRequest method.
+//    req, resp := client.DeleteReservationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/medialive-2017-10-14/DeleteReservation
+func (c *MediaLive) DeleteReservationRequest(input *DeleteReservationInput) (req *request.Request, output *DeleteReservationOutput) {
+	op := &request.Operation{
+		Name:       opDeleteReservation,
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/prod/reservations/{reservationId}",
+	}
+
+	if input == nil {
+		input = &DeleteReservationInput{}
+	}
+
+	output = &DeleteReservationOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DeleteReservation API operation for AWS Elemental MediaLive.
+//
+// Delete an expired reservation.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Elemental MediaLive's
+// API operation DeleteReservation for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeBadRequestException "BadRequestException"
+//
+//   * ErrCodeInternalServerErrorException "InternalServerErrorException"
+//
+//   * ErrCodeForbiddenException "ForbiddenException"
+//
+//   * ErrCodeBadGatewayException "BadGatewayException"
+//
+//   * ErrCodeNotFoundException "NotFoundException"
+//
+//   * ErrCodeGatewayTimeoutException "GatewayTimeoutException"
+//
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//
+//   * ErrCodeConflictException "ConflictException"
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/medialive-2017-10-14/DeleteReservation
+func (c *MediaLive) DeleteReservation(input *DeleteReservationInput) (*DeleteReservationOutput, error) {
+	req, out := c.DeleteReservationRequest(input)
+	return out, req.Send()
+}
+
+// DeleteReservationWithContext is the same as DeleteReservation with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteReservation for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *MediaLive) DeleteReservationWithContext(ctx aws.Context, input *DeleteReservationInput, opts ...request.Option) (*DeleteReservationOutput, error) {
+	req, out := c.DeleteReservationRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDescribeChannel = "DescribeChannel"
 
 // DescribeChannelRequest generates a "aws/request.Request" representing the
@@ -817,6 +909,186 @@ func (c *MediaLive) DescribeInputSecurityGroup(input *DescribeInputSecurityGroup
 // for more information on using Contexts.
 func (c *MediaLive) DescribeInputSecurityGroupWithContext(ctx aws.Context, input *DescribeInputSecurityGroupInput, opts ...request.Option) (*DescribeInputSecurityGroupOutput, error) {
 	req, out := c.DescribeInputSecurityGroupRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDescribeOffering = "DescribeOffering"
+
+// DescribeOfferingRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeOffering operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeOffering for more information on using the DescribeOffering
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeOfferingRequest method.
+//    req, resp := client.DescribeOfferingRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/medialive-2017-10-14/DescribeOffering
+func (c *MediaLive) DescribeOfferingRequest(input *DescribeOfferingInput) (req *request.Request, output *DescribeOfferingOutput) {
+	op := &request.Operation{
+		Name:       opDescribeOffering,
+		HTTPMethod: "GET",
+		HTTPPath:   "/prod/offerings/{offeringId}",
+	}
+
+	if input == nil {
+		input = &DescribeOfferingInput{}
+	}
+
+	output = &DescribeOfferingOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeOffering API operation for AWS Elemental MediaLive.
+//
+// Get details for an offering.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Elemental MediaLive's
+// API operation DescribeOffering for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeBadRequestException "BadRequestException"
+//
+//   * ErrCodeInternalServerErrorException "InternalServerErrorException"
+//
+//   * ErrCodeForbiddenException "ForbiddenException"
+//
+//   * ErrCodeBadGatewayException "BadGatewayException"
+//
+//   * ErrCodeNotFoundException "NotFoundException"
+//
+//   * ErrCodeGatewayTimeoutException "GatewayTimeoutException"
+//
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/medialive-2017-10-14/DescribeOffering
+func (c *MediaLive) DescribeOffering(input *DescribeOfferingInput) (*DescribeOfferingOutput, error) {
+	req, out := c.DescribeOfferingRequest(input)
+	return out, req.Send()
+}
+
+// DescribeOfferingWithContext is the same as DescribeOffering with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeOffering for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *MediaLive) DescribeOfferingWithContext(ctx aws.Context, input *DescribeOfferingInput, opts ...request.Option) (*DescribeOfferingOutput, error) {
+	req, out := c.DescribeOfferingRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDescribeReservation = "DescribeReservation"
+
+// DescribeReservationRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeReservation operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeReservation for more information on using the DescribeReservation
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeReservationRequest method.
+//    req, resp := client.DescribeReservationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/medialive-2017-10-14/DescribeReservation
+func (c *MediaLive) DescribeReservationRequest(input *DescribeReservationInput) (req *request.Request, output *DescribeReservationOutput) {
+	op := &request.Operation{
+		Name:       opDescribeReservation,
+		HTTPMethod: "GET",
+		HTTPPath:   "/prod/reservations/{reservationId}",
+	}
+
+	if input == nil {
+		input = &DescribeReservationInput{}
+	}
+
+	output = &DescribeReservationOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeReservation API operation for AWS Elemental MediaLive.
+//
+// Get details for a reservation.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Elemental MediaLive's
+// API operation DescribeReservation for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeBadRequestException "BadRequestException"
+//
+//   * ErrCodeInternalServerErrorException "InternalServerErrorException"
+//
+//   * ErrCodeForbiddenException "ForbiddenException"
+//
+//   * ErrCodeBadGatewayException "BadGatewayException"
+//
+//   * ErrCodeNotFoundException "NotFoundException"
+//
+//   * ErrCodeGatewayTimeoutException "GatewayTimeoutException"
+//
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/medialive-2017-10-14/DescribeReservation
+func (c *MediaLive) DescribeReservation(input *DescribeReservationInput) (*DescribeReservationOutput, error) {
+	req, out := c.DescribeReservationRequest(input)
+	return out, req.Send()
+}
+
+// DescribeReservationWithContext is the same as DescribeReservation with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeReservation for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *MediaLive) DescribeReservationWithContext(ctx aws.Context, input *DescribeReservationInput, opts ...request.Option) (*DescribeReservationOutput, error) {
+	req, out := c.DescribeReservationRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -1254,6 +1526,386 @@ func (c *MediaLive) ListInputsPagesWithContext(ctx aws.Context, input *ListInput
 	return p.Err()
 }
 
+const opListOfferings = "ListOfferings"
+
+// ListOfferingsRequest generates a "aws/request.Request" representing the
+// client's request for the ListOfferings operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListOfferings for more information on using the ListOfferings
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListOfferingsRequest method.
+//    req, resp := client.ListOfferingsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/medialive-2017-10-14/ListOfferings
+func (c *MediaLive) ListOfferingsRequest(input *ListOfferingsInput) (req *request.Request, output *ListOfferingsOutput) {
+	op := &request.Operation{
+		Name:       opListOfferings,
+		HTTPMethod: "GET",
+		HTTPPath:   "/prod/offerings",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &ListOfferingsInput{}
+	}
+
+	output = &ListOfferingsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListOfferings API operation for AWS Elemental MediaLive.
+//
+// List offerings available for purchase.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Elemental MediaLive's
+// API operation ListOfferings for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeBadRequestException "BadRequestException"
+//
+//   * ErrCodeInternalServerErrorException "InternalServerErrorException"
+//
+//   * ErrCodeForbiddenException "ForbiddenException"
+//
+//   * ErrCodeBadGatewayException "BadGatewayException"
+//
+//   * ErrCodeGatewayTimeoutException "GatewayTimeoutException"
+//
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/medialive-2017-10-14/ListOfferings
+func (c *MediaLive) ListOfferings(input *ListOfferingsInput) (*ListOfferingsOutput, error) {
+	req, out := c.ListOfferingsRequest(input)
+	return out, req.Send()
+}
+
+// ListOfferingsWithContext is the same as ListOfferings with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListOfferings for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *MediaLive) ListOfferingsWithContext(ctx aws.Context, input *ListOfferingsInput, opts ...request.Option) (*ListOfferingsOutput, error) {
+	req, out := c.ListOfferingsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// ListOfferingsPages iterates over the pages of a ListOfferings operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListOfferings method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListOfferings operation.
+//    pageNum := 0
+//    err := client.ListOfferingsPages(params,
+//        func(page *ListOfferingsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *MediaLive) ListOfferingsPages(input *ListOfferingsInput, fn func(*ListOfferingsOutput, bool) bool) error {
+	return c.ListOfferingsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListOfferingsPagesWithContext same as ListOfferingsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *MediaLive) ListOfferingsPagesWithContext(ctx aws.Context, input *ListOfferingsInput, fn func(*ListOfferingsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *ListOfferingsInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.ListOfferingsRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*ListOfferingsOutput), !p.HasNextPage())
+	}
+	return p.Err()
+}
+
+const opListReservations = "ListReservations"
+
+// ListReservationsRequest generates a "aws/request.Request" representing the
+// client's request for the ListReservations operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListReservations for more information on using the ListReservations
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListReservationsRequest method.
+//    req, resp := client.ListReservationsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/medialive-2017-10-14/ListReservations
+func (c *MediaLive) ListReservationsRequest(input *ListReservationsInput) (req *request.Request, output *ListReservationsOutput) {
+	op := &request.Operation{
+		Name:       opListReservations,
+		HTTPMethod: "GET",
+		HTTPPath:   "/prod/reservations",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &ListReservationsInput{}
+	}
+
+	output = &ListReservationsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListReservations API operation for AWS Elemental MediaLive.
+//
+// List purchased reservations.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Elemental MediaLive's
+// API operation ListReservations for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeBadRequestException "BadRequestException"
+//
+//   * ErrCodeInternalServerErrorException "InternalServerErrorException"
+//
+//   * ErrCodeForbiddenException "ForbiddenException"
+//
+//   * ErrCodeBadGatewayException "BadGatewayException"
+//
+//   * ErrCodeGatewayTimeoutException "GatewayTimeoutException"
+//
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/medialive-2017-10-14/ListReservations
+func (c *MediaLive) ListReservations(input *ListReservationsInput) (*ListReservationsOutput, error) {
+	req, out := c.ListReservationsRequest(input)
+	return out, req.Send()
+}
+
+// ListReservationsWithContext is the same as ListReservations with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListReservations for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *MediaLive) ListReservationsWithContext(ctx aws.Context, input *ListReservationsInput, opts ...request.Option) (*ListReservationsOutput, error) {
+	req, out := c.ListReservationsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// ListReservationsPages iterates over the pages of a ListReservations operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListReservations method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListReservations operation.
+//    pageNum := 0
+//    err := client.ListReservationsPages(params,
+//        func(page *ListReservationsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *MediaLive) ListReservationsPages(input *ListReservationsInput, fn func(*ListReservationsOutput, bool) bool) error {
+	return c.ListReservationsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListReservationsPagesWithContext same as ListReservationsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *MediaLive) ListReservationsPagesWithContext(ctx aws.Context, input *ListReservationsInput, fn func(*ListReservationsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *ListReservationsInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.ListReservationsRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*ListReservationsOutput), !p.HasNextPage())
+	}
+	return p.Err()
+}
+
+const opPurchaseOffering = "PurchaseOffering"
+
+// PurchaseOfferingRequest generates a "aws/request.Request" representing the
+// client's request for the PurchaseOffering operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See PurchaseOffering for more information on using the PurchaseOffering
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the PurchaseOfferingRequest method.
+//    req, resp := client.PurchaseOfferingRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/medialive-2017-10-14/PurchaseOffering
+func (c *MediaLive) PurchaseOfferingRequest(input *PurchaseOfferingInput) (req *request.Request, output *PurchaseOfferingOutput) {
+	op := &request.Operation{
+		Name:       opPurchaseOffering,
+		HTTPMethod: "POST",
+		HTTPPath:   "/prod/offerings/{offeringId}/purchase",
+	}
+
+	if input == nil {
+		input = &PurchaseOfferingInput{}
+	}
+
+	output = &PurchaseOfferingOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// PurchaseOffering API operation for AWS Elemental MediaLive.
+//
+// Purchase an offering and create a reservation.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Elemental MediaLive's
+// API operation PurchaseOffering for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeBadRequestException "BadRequestException"
+//
+//   * ErrCodeInternalServerErrorException "InternalServerErrorException"
+//
+//   * ErrCodeForbiddenException "ForbiddenException"
+//
+//   * ErrCodeBadGatewayException "BadGatewayException"
+//
+//   * ErrCodeNotFoundException "NotFoundException"
+//
+//   * ErrCodeGatewayTimeoutException "GatewayTimeoutException"
+//
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//
+//   * ErrCodeConflictException "ConflictException"
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/medialive-2017-10-14/PurchaseOffering
+func (c *MediaLive) PurchaseOffering(input *PurchaseOfferingInput) (*PurchaseOfferingOutput, error) {
+	req, out := c.PurchaseOfferingRequest(input)
+	return out, req.Send()
+}
+
+// PurchaseOfferingWithContext is the same as PurchaseOffering with the addition of
+// the ability to pass a context and additional request options.
+//
+// See PurchaseOffering for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *MediaLive) PurchaseOfferingWithContext(ctx aws.Context, input *PurchaseOfferingInput, opts ...request.Option) (*PurchaseOfferingOutput, error) {
+	req, out := c.PurchaseOfferingRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opStartChannel = "StartChannel"
 
 // StartChannelRequest generates a "aws/request.Request" representing the
@@ -1492,9 +2144,9 @@ func (c *MediaLive) UpdateChannelRequest(input *UpdateChannelInput) (req *reques
 // API operation UpdateChannel for usage and error information.
 //
 // Returned Error Codes:
-//   * ErrCodeUnprocessableEntityException "UnprocessableEntityException"
-//
 //   * ErrCodeBadRequestException "BadRequestException"
+//
+//   * ErrCodeUnprocessableEntityException "UnprocessableEntityException"
 //
 //   * ErrCodeInternalServerErrorException "InternalServerErrorException"
 //
@@ -3625,6 +4277,9 @@ type Channel struct {
 
 	InputSpecification *InputSpecification `locationName:"inputSpecification" type:"structure"`
 
+	// The log level being written to CloudWatch Logs.
+	LogLevel *string `locationName:"logLevel" type:"string" enum:"LogLevel"`
+
 	// The name of the channel. (user-mutable)
 	Name *string `locationName:"name" type:"string"`
 
@@ -3686,6 +4341,12 @@ func (s *Channel) SetInputAttachments(v []*InputAttachment) *Channel {
 // SetInputSpecification sets the InputSpecification field's value.
 func (s *Channel) SetInputSpecification(v *InputSpecification) *Channel {
 	s.InputSpecification = v
+	return s
+}
+
+// SetLogLevel sets the LogLevel field's value.
+func (s *Channel) SetLogLevel(v string) *Channel {
+	s.LogLevel = &v
 	return s
 }
 
@@ -3758,6 +4419,9 @@ type ChannelSummary struct {
 
 	InputSpecification *InputSpecification `locationName:"inputSpecification" type:"structure"`
 
+	// The log level being written to CloudWatch Logs.
+	LogLevel *string `locationName:"logLevel" type:"string" enum:"LogLevel"`
+
 	// The name of the channel. (user-mutable)
 	Name *string `locationName:"name" type:"string"`
 
@@ -3816,6 +4480,12 @@ func (s *ChannelSummary) SetInputSpecification(v *InputSpecification) *ChannelSu
 	return s
 }
 
+// SetLogLevel sets the LogLevel field's value.
+func (s *ChannelSummary) SetLogLevel(v string) *ChannelSummary {
+	s.LogLevel = &v
+	return s
+}
+
 // SetName sets the Name field's value.
 func (s *ChannelSummary) SetName(v string) *ChannelSummary {
 	s.Name = &v
@@ -3850,6 +4520,8 @@ type CreateChannelInput struct {
 	InputAttachments []*InputAttachment `locationName:"inputAttachments" type:"list"`
 
 	InputSpecification *InputSpecification `locationName:"inputSpecification" type:"structure"`
+
+	LogLevel *string `locationName:"logLevel" type:"string" enum:"LogLevel"`
 
 	Name *string `locationName:"name" type:"string"`
 
@@ -3916,6 +4588,12 @@ func (s *CreateChannelInput) SetInputAttachments(v []*InputAttachment) *CreateCh
 // SetInputSpecification sets the InputSpecification field's value.
 func (s *CreateChannelInput) SetInputSpecification(v *InputSpecification) *CreateChannelInput {
 	s.InputSpecification = v
+	return s
+}
+
+// SetLogLevel sets the LogLevel field's value.
+func (s *CreateChannelInput) SetLogLevel(v string) *CreateChannelInput {
+	s.LogLevel = &v
 	return s
 }
 
@@ -4147,6 +4825,8 @@ type DeleteChannelOutput struct {
 
 	InputSpecification *InputSpecification `locationName:"inputSpecification" type:"structure"`
 
+	LogLevel *string `locationName:"logLevel" type:"string" enum:"LogLevel"`
+
 	Name *string `locationName:"name" type:"string"`
 
 	PipelinesRunningCount *int64 `locationName:"pipelinesRunningCount" type:"integer"`
@@ -4205,6 +4885,12 @@ func (s *DeleteChannelOutput) SetInputAttachments(v []*InputAttachment) *DeleteC
 // SetInputSpecification sets the InputSpecification field's value.
 func (s *DeleteChannelOutput) SetInputSpecification(v *InputSpecification) *DeleteChannelOutput {
 	s.InputSpecification = v
+	return s
+}
+
+// SetLogLevel sets the LogLevel field's value.
+func (s *DeleteChannelOutput) SetLogLevel(v string) *DeleteChannelOutput {
+	s.LogLevel = &v
 	return s
 }
 
@@ -4332,6 +5018,196 @@ func (s DeleteInputSecurityGroupOutput) GoString() string {
 	return s.String()
 }
 
+type DeleteReservationInput struct {
+	_ struct{} `type:"structure"`
+
+	// ReservationId is a required field
+	ReservationId *string `location:"uri" locationName:"reservationId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteReservationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteReservationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteReservationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteReservationInput"}
+	if s.ReservationId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReservationId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetReservationId sets the ReservationId field's value.
+func (s *DeleteReservationInput) SetReservationId(v string) *DeleteReservationInput {
+	s.ReservationId = &v
+	return s
+}
+
+type DeleteReservationOutput struct {
+	_ struct{} `type:"structure"`
+
+	Arn *string `locationName:"arn" type:"string"`
+
+	Count *int64 `locationName:"count" type:"integer"`
+
+	CurrencyCode *string `locationName:"currencyCode" type:"string"`
+
+	Duration *int64 `locationName:"duration" type:"integer"`
+
+	// Units for duration, e.g. 'MONTHS'
+	DurationUnits *string `locationName:"durationUnits" type:"string" enum:"OfferingDurationUnits"`
+
+	End *string `locationName:"end" type:"string"`
+
+	FixedPrice *float64 `locationName:"fixedPrice" type:"double"`
+
+	Name *string `locationName:"name" type:"string"`
+
+	OfferingDescription *string `locationName:"offeringDescription" type:"string"`
+
+	OfferingId *string `locationName:"offeringId" type:"string"`
+
+	// Offering type, e.g. 'NO_UPFRONT'
+	OfferingType *string `locationName:"offeringType" type:"string" enum:"OfferingType"`
+
+	Region *string `locationName:"region" type:"string"`
+
+	ReservationId *string `locationName:"reservationId" type:"string"`
+
+	// Resource configuration (codec, resolution, bitrate, ...)
+	ResourceSpecification *ReservationResourceSpecification `locationName:"resourceSpecification" type:"structure"`
+
+	Start *string `locationName:"start" type:"string"`
+
+	// Current reservation state
+	State *string `locationName:"state" type:"string" enum:"ReservationState"`
+
+	UsagePrice *float64 `locationName:"usagePrice" type:"double"`
+}
+
+// String returns the string representation
+func (s DeleteReservationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteReservationOutput) GoString() string {
+	return s.String()
+}
+
+// SetArn sets the Arn field's value.
+func (s *DeleteReservationOutput) SetArn(v string) *DeleteReservationOutput {
+	s.Arn = &v
+	return s
+}
+
+// SetCount sets the Count field's value.
+func (s *DeleteReservationOutput) SetCount(v int64) *DeleteReservationOutput {
+	s.Count = &v
+	return s
+}
+
+// SetCurrencyCode sets the CurrencyCode field's value.
+func (s *DeleteReservationOutput) SetCurrencyCode(v string) *DeleteReservationOutput {
+	s.CurrencyCode = &v
+	return s
+}
+
+// SetDuration sets the Duration field's value.
+func (s *DeleteReservationOutput) SetDuration(v int64) *DeleteReservationOutput {
+	s.Duration = &v
+	return s
+}
+
+// SetDurationUnits sets the DurationUnits field's value.
+func (s *DeleteReservationOutput) SetDurationUnits(v string) *DeleteReservationOutput {
+	s.DurationUnits = &v
+	return s
+}
+
+// SetEnd sets the End field's value.
+func (s *DeleteReservationOutput) SetEnd(v string) *DeleteReservationOutput {
+	s.End = &v
+	return s
+}
+
+// SetFixedPrice sets the FixedPrice field's value.
+func (s *DeleteReservationOutput) SetFixedPrice(v float64) *DeleteReservationOutput {
+	s.FixedPrice = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *DeleteReservationOutput) SetName(v string) *DeleteReservationOutput {
+	s.Name = &v
+	return s
+}
+
+// SetOfferingDescription sets the OfferingDescription field's value.
+func (s *DeleteReservationOutput) SetOfferingDescription(v string) *DeleteReservationOutput {
+	s.OfferingDescription = &v
+	return s
+}
+
+// SetOfferingId sets the OfferingId field's value.
+func (s *DeleteReservationOutput) SetOfferingId(v string) *DeleteReservationOutput {
+	s.OfferingId = &v
+	return s
+}
+
+// SetOfferingType sets the OfferingType field's value.
+func (s *DeleteReservationOutput) SetOfferingType(v string) *DeleteReservationOutput {
+	s.OfferingType = &v
+	return s
+}
+
+// SetRegion sets the Region field's value.
+func (s *DeleteReservationOutput) SetRegion(v string) *DeleteReservationOutput {
+	s.Region = &v
+	return s
+}
+
+// SetReservationId sets the ReservationId field's value.
+func (s *DeleteReservationOutput) SetReservationId(v string) *DeleteReservationOutput {
+	s.ReservationId = &v
+	return s
+}
+
+// SetResourceSpecification sets the ResourceSpecification field's value.
+func (s *DeleteReservationOutput) SetResourceSpecification(v *ReservationResourceSpecification) *DeleteReservationOutput {
+	s.ResourceSpecification = v
+	return s
+}
+
+// SetStart sets the Start field's value.
+func (s *DeleteReservationOutput) SetStart(v string) *DeleteReservationOutput {
+	s.Start = &v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *DeleteReservationOutput) SetState(v string) *DeleteReservationOutput {
+	s.State = &v
+	return s
+}
+
+// SetUsagePrice sets the UsagePrice field's value.
+func (s *DeleteReservationOutput) SetUsagePrice(v float64) *DeleteReservationOutput {
+	s.UsagePrice = &v
+	return s
+}
+
 type DescribeChannelInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4384,6 +5260,8 @@ type DescribeChannelOutput struct {
 	InputAttachments []*InputAttachment `locationName:"inputAttachments" type:"list"`
 
 	InputSpecification *InputSpecification `locationName:"inputSpecification" type:"structure"`
+
+	LogLevel *string `locationName:"logLevel" type:"string" enum:"LogLevel"`
 
 	Name *string `locationName:"name" type:"string"`
 
@@ -4443,6 +5321,12 @@ func (s *DescribeChannelOutput) SetInputAttachments(v []*InputAttachment) *Descr
 // SetInputSpecification sets the InputSpecification field's value.
 func (s *DescribeChannelOutput) SetInputSpecification(v *InputSpecification) *DescribeChannelOutput {
 	s.InputSpecification = v
+	return s
+}
+
+// SetLogLevel sets the LogLevel field's value.
+func (s *DescribeChannelOutput) SetLogLevel(v string) *DescribeChannelOutput {
+	s.LogLevel = &v
 	return s
 }
 
@@ -4679,6 +5563,337 @@ func (s *DescribeInputSecurityGroupOutput) SetState(v string) *DescribeInputSecu
 // SetWhitelistRules sets the WhitelistRules field's value.
 func (s *DescribeInputSecurityGroupOutput) SetWhitelistRules(v []*InputWhitelistRule) *DescribeInputSecurityGroupOutput {
 	s.WhitelistRules = v
+	return s
+}
+
+type DescribeOfferingInput struct {
+	_ struct{} `type:"structure"`
+
+	// OfferingId is a required field
+	OfferingId *string `location:"uri" locationName:"offeringId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DescribeOfferingInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeOfferingInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeOfferingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeOfferingInput"}
+	if s.OfferingId == nil {
+		invalidParams.Add(request.NewErrParamRequired("OfferingId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetOfferingId sets the OfferingId field's value.
+func (s *DescribeOfferingInput) SetOfferingId(v string) *DescribeOfferingInput {
+	s.OfferingId = &v
+	return s
+}
+
+type DescribeOfferingOutput struct {
+	_ struct{} `type:"structure"`
+
+	Arn *string `locationName:"arn" type:"string"`
+
+	CurrencyCode *string `locationName:"currencyCode" type:"string"`
+
+	Duration *int64 `locationName:"duration" type:"integer"`
+
+	// Units for duration, e.g. 'MONTHS'
+	DurationUnits *string `locationName:"durationUnits" type:"string" enum:"OfferingDurationUnits"`
+
+	FixedPrice *float64 `locationName:"fixedPrice" type:"double"`
+
+	OfferingDescription *string `locationName:"offeringDescription" type:"string"`
+
+	OfferingId *string `locationName:"offeringId" type:"string"`
+
+	// Offering type, e.g. 'NO_UPFRONT'
+	OfferingType *string `locationName:"offeringType" type:"string" enum:"OfferingType"`
+
+	Region *string `locationName:"region" type:"string"`
+
+	// Resource configuration (codec, resolution, bitrate, ...)
+	ResourceSpecification *ReservationResourceSpecification `locationName:"resourceSpecification" type:"structure"`
+
+	UsagePrice *float64 `locationName:"usagePrice" type:"double"`
+}
+
+// String returns the string representation
+func (s DescribeOfferingOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeOfferingOutput) GoString() string {
+	return s.String()
+}
+
+// SetArn sets the Arn field's value.
+func (s *DescribeOfferingOutput) SetArn(v string) *DescribeOfferingOutput {
+	s.Arn = &v
+	return s
+}
+
+// SetCurrencyCode sets the CurrencyCode field's value.
+func (s *DescribeOfferingOutput) SetCurrencyCode(v string) *DescribeOfferingOutput {
+	s.CurrencyCode = &v
+	return s
+}
+
+// SetDuration sets the Duration field's value.
+func (s *DescribeOfferingOutput) SetDuration(v int64) *DescribeOfferingOutput {
+	s.Duration = &v
+	return s
+}
+
+// SetDurationUnits sets the DurationUnits field's value.
+func (s *DescribeOfferingOutput) SetDurationUnits(v string) *DescribeOfferingOutput {
+	s.DurationUnits = &v
+	return s
+}
+
+// SetFixedPrice sets the FixedPrice field's value.
+func (s *DescribeOfferingOutput) SetFixedPrice(v float64) *DescribeOfferingOutput {
+	s.FixedPrice = &v
+	return s
+}
+
+// SetOfferingDescription sets the OfferingDescription field's value.
+func (s *DescribeOfferingOutput) SetOfferingDescription(v string) *DescribeOfferingOutput {
+	s.OfferingDescription = &v
+	return s
+}
+
+// SetOfferingId sets the OfferingId field's value.
+func (s *DescribeOfferingOutput) SetOfferingId(v string) *DescribeOfferingOutput {
+	s.OfferingId = &v
+	return s
+}
+
+// SetOfferingType sets the OfferingType field's value.
+func (s *DescribeOfferingOutput) SetOfferingType(v string) *DescribeOfferingOutput {
+	s.OfferingType = &v
+	return s
+}
+
+// SetRegion sets the Region field's value.
+func (s *DescribeOfferingOutput) SetRegion(v string) *DescribeOfferingOutput {
+	s.Region = &v
+	return s
+}
+
+// SetResourceSpecification sets the ResourceSpecification field's value.
+func (s *DescribeOfferingOutput) SetResourceSpecification(v *ReservationResourceSpecification) *DescribeOfferingOutput {
+	s.ResourceSpecification = v
+	return s
+}
+
+// SetUsagePrice sets the UsagePrice field's value.
+func (s *DescribeOfferingOutput) SetUsagePrice(v float64) *DescribeOfferingOutput {
+	s.UsagePrice = &v
+	return s
+}
+
+type DescribeReservationInput struct {
+	_ struct{} `type:"structure"`
+
+	// ReservationId is a required field
+	ReservationId *string `location:"uri" locationName:"reservationId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DescribeReservationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeReservationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeReservationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeReservationInput"}
+	if s.ReservationId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReservationId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetReservationId sets the ReservationId field's value.
+func (s *DescribeReservationInput) SetReservationId(v string) *DescribeReservationInput {
+	s.ReservationId = &v
+	return s
+}
+
+type DescribeReservationOutput struct {
+	_ struct{} `type:"structure"`
+
+	Arn *string `locationName:"arn" type:"string"`
+
+	Count *int64 `locationName:"count" type:"integer"`
+
+	CurrencyCode *string `locationName:"currencyCode" type:"string"`
+
+	Duration *int64 `locationName:"duration" type:"integer"`
+
+	// Units for duration, e.g. 'MONTHS'
+	DurationUnits *string `locationName:"durationUnits" type:"string" enum:"OfferingDurationUnits"`
+
+	End *string `locationName:"end" type:"string"`
+
+	FixedPrice *float64 `locationName:"fixedPrice" type:"double"`
+
+	Name *string `locationName:"name" type:"string"`
+
+	OfferingDescription *string `locationName:"offeringDescription" type:"string"`
+
+	OfferingId *string `locationName:"offeringId" type:"string"`
+
+	// Offering type, e.g. 'NO_UPFRONT'
+	OfferingType *string `locationName:"offeringType" type:"string" enum:"OfferingType"`
+
+	Region *string `locationName:"region" type:"string"`
+
+	ReservationId *string `locationName:"reservationId" type:"string"`
+
+	// Resource configuration (codec, resolution, bitrate, ...)
+	ResourceSpecification *ReservationResourceSpecification `locationName:"resourceSpecification" type:"structure"`
+
+	Start *string `locationName:"start" type:"string"`
+
+	// Current reservation state
+	State *string `locationName:"state" type:"string" enum:"ReservationState"`
+
+	UsagePrice *float64 `locationName:"usagePrice" type:"double"`
+}
+
+// String returns the string representation
+func (s DescribeReservationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeReservationOutput) GoString() string {
+	return s.String()
+}
+
+// SetArn sets the Arn field's value.
+func (s *DescribeReservationOutput) SetArn(v string) *DescribeReservationOutput {
+	s.Arn = &v
+	return s
+}
+
+// SetCount sets the Count field's value.
+func (s *DescribeReservationOutput) SetCount(v int64) *DescribeReservationOutput {
+	s.Count = &v
+	return s
+}
+
+// SetCurrencyCode sets the CurrencyCode field's value.
+func (s *DescribeReservationOutput) SetCurrencyCode(v string) *DescribeReservationOutput {
+	s.CurrencyCode = &v
+	return s
+}
+
+// SetDuration sets the Duration field's value.
+func (s *DescribeReservationOutput) SetDuration(v int64) *DescribeReservationOutput {
+	s.Duration = &v
+	return s
+}
+
+// SetDurationUnits sets the DurationUnits field's value.
+func (s *DescribeReservationOutput) SetDurationUnits(v string) *DescribeReservationOutput {
+	s.DurationUnits = &v
+	return s
+}
+
+// SetEnd sets the End field's value.
+func (s *DescribeReservationOutput) SetEnd(v string) *DescribeReservationOutput {
+	s.End = &v
+	return s
+}
+
+// SetFixedPrice sets the FixedPrice field's value.
+func (s *DescribeReservationOutput) SetFixedPrice(v float64) *DescribeReservationOutput {
+	s.FixedPrice = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *DescribeReservationOutput) SetName(v string) *DescribeReservationOutput {
+	s.Name = &v
+	return s
+}
+
+// SetOfferingDescription sets the OfferingDescription field's value.
+func (s *DescribeReservationOutput) SetOfferingDescription(v string) *DescribeReservationOutput {
+	s.OfferingDescription = &v
+	return s
+}
+
+// SetOfferingId sets the OfferingId field's value.
+func (s *DescribeReservationOutput) SetOfferingId(v string) *DescribeReservationOutput {
+	s.OfferingId = &v
+	return s
+}
+
+// SetOfferingType sets the OfferingType field's value.
+func (s *DescribeReservationOutput) SetOfferingType(v string) *DescribeReservationOutput {
+	s.OfferingType = &v
+	return s
+}
+
+// SetRegion sets the Region field's value.
+func (s *DescribeReservationOutput) SetRegion(v string) *DescribeReservationOutput {
+	s.Region = &v
+	return s
+}
+
+// SetReservationId sets the ReservationId field's value.
+func (s *DescribeReservationOutput) SetReservationId(v string) *DescribeReservationOutput {
+	s.ReservationId = &v
+	return s
+}
+
+// SetResourceSpecification sets the ResourceSpecification field's value.
+func (s *DescribeReservationOutput) SetResourceSpecification(v *ReservationResourceSpecification) *DescribeReservationOutput {
+	s.ResourceSpecification = v
+	return s
+}
+
+// SetStart sets the Start field's value.
+func (s *DescribeReservationOutput) SetStart(v string) *DescribeReservationOutput {
+	s.Start = &v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *DescribeReservationOutput) SetState(v string) *DescribeReservationOutput {
+	s.State = &v
+	return s
+}
+
+// SetUsagePrice sets the UsagePrice field's value.
+func (s *DescribeReservationOutput) SetUsagePrice(v float64) *DescribeReservationOutput {
+	s.UsagePrice = &v
 	return s
 }
 
@@ -8122,6 +9337,272 @@ func (s *ListInputsOutput) SetNextToken(v string) *ListInputsOutput {
 	return s
 }
 
+type ListOfferingsInput struct {
+	_ struct{} `type:"structure"`
+
+	ChannelConfiguration *string `location:"querystring" locationName:"channelConfiguration" type:"string"`
+
+	Codec *string `location:"querystring" locationName:"codec" type:"string"`
+
+	MaxResults *int64 `location:"querystring" locationName:"maxResults" min:"1" type:"integer"`
+
+	MaximumBitrate *string `location:"querystring" locationName:"maximumBitrate" type:"string"`
+
+	MaximumFramerate *string `location:"querystring" locationName:"maximumFramerate" type:"string"`
+
+	NextToken *string `location:"querystring" locationName:"nextToken" type:"string"`
+
+	Resolution *string `location:"querystring" locationName:"resolution" type:"string"`
+
+	ResourceType *string `location:"querystring" locationName:"resourceType" type:"string"`
+
+	SpecialFeature *string `location:"querystring" locationName:"specialFeature" type:"string"`
+
+	VideoQuality *string `location:"querystring" locationName:"videoQuality" type:"string"`
+}
+
+// String returns the string representation
+func (s ListOfferingsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListOfferingsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListOfferingsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListOfferingsInput"}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetChannelConfiguration sets the ChannelConfiguration field's value.
+func (s *ListOfferingsInput) SetChannelConfiguration(v string) *ListOfferingsInput {
+	s.ChannelConfiguration = &v
+	return s
+}
+
+// SetCodec sets the Codec field's value.
+func (s *ListOfferingsInput) SetCodec(v string) *ListOfferingsInput {
+	s.Codec = &v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *ListOfferingsInput) SetMaxResults(v int64) *ListOfferingsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetMaximumBitrate sets the MaximumBitrate field's value.
+func (s *ListOfferingsInput) SetMaximumBitrate(v string) *ListOfferingsInput {
+	s.MaximumBitrate = &v
+	return s
+}
+
+// SetMaximumFramerate sets the MaximumFramerate field's value.
+func (s *ListOfferingsInput) SetMaximumFramerate(v string) *ListOfferingsInput {
+	s.MaximumFramerate = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListOfferingsInput) SetNextToken(v string) *ListOfferingsInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetResolution sets the Resolution field's value.
+func (s *ListOfferingsInput) SetResolution(v string) *ListOfferingsInput {
+	s.Resolution = &v
+	return s
+}
+
+// SetResourceType sets the ResourceType field's value.
+func (s *ListOfferingsInput) SetResourceType(v string) *ListOfferingsInput {
+	s.ResourceType = &v
+	return s
+}
+
+// SetSpecialFeature sets the SpecialFeature field's value.
+func (s *ListOfferingsInput) SetSpecialFeature(v string) *ListOfferingsInput {
+	s.SpecialFeature = &v
+	return s
+}
+
+// SetVideoQuality sets the VideoQuality field's value.
+func (s *ListOfferingsInput) SetVideoQuality(v string) *ListOfferingsInput {
+	s.VideoQuality = &v
+	return s
+}
+
+type ListOfferingsOutput struct {
+	_ struct{} `type:"structure"`
+
+	NextToken *string `locationName:"nextToken" type:"string"`
+
+	Offerings []*Offering `locationName:"offerings" type:"list"`
+}
+
+// String returns the string representation
+func (s ListOfferingsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListOfferingsOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListOfferingsOutput) SetNextToken(v string) *ListOfferingsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetOfferings sets the Offerings field's value.
+func (s *ListOfferingsOutput) SetOfferings(v []*Offering) *ListOfferingsOutput {
+	s.Offerings = v
+	return s
+}
+
+type ListReservationsInput struct {
+	_ struct{} `type:"structure"`
+
+	Codec *string `location:"querystring" locationName:"codec" type:"string"`
+
+	MaxResults *int64 `location:"querystring" locationName:"maxResults" min:"1" type:"integer"`
+
+	MaximumBitrate *string `location:"querystring" locationName:"maximumBitrate" type:"string"`
+
+	MaximumFramerate *string `location:"querystring" locationName:"maximumFramerate" type:"string"`
+
+	NextToken *string `location:"querystring" locationName:"nextToken" type:"string"`
+
+	Resolution *string `location:"querystring" locationName:"resolution" type:"string"`
+
+	ResourceType *string `location:"querystring" locationName:"resourceType" type:"string"`
+
+	SpecialFeature *string `location:"querystring" locationName:"specialFeature" type:"string"`
+
+	VideoQuality *string `location:"querystring" locationName:"videoQuality" type:"string"`
+}
+
+// String returns the string representation
+func (s ListReservationsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListReservationsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListReservationsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListReservationsInput"}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetCodec sets the Codec field's value.
+func (s *ListReservationsInput) SetCodec(v string) *ListReservationsInput {
+	s.Codec = &v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *ListReservationsInput) SetMaxResults(v int64) *ListReservationsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetMaximumBitrate sets the MaximumBitrate field's value.
+func (s *ListReservationsInput) SetMaximumBitrate(v string) *ListReservationsInput {
+	s.MaximumBitrate = &v
+	return s
+}
+
+// SetMaximumFramerate sets the MaximumFramerate field's value.
+func (s *ListReservationsInput) SetMaximumFramerate(v string) *ListReservationsInput {
+	s.MaximumFramerate = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListReservationsInput) SetNextToken(v string) *ListReservationsInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetResolution sets the Resolution field's value.
+func (s *ListReservationsInput) SetResolution(v string) *ListReservationsInput {
+	s.Resolution = &v
+	return s
+}
+
+// SetResourceType sets the ResourceType field's value.
+func (s *ListReservationsInput) SetResourceType(v string) *ListReservationsInput {
+	s.ResourceType = &v
+	return s
+}
+
+// SetSpecialFeature sets the SpecialFeature field's value.
+func (s *ListReservationsInput) SetSpecialFeature(v string) *ListReservationsInput {
+	s.SpecialFeature = &v
+	return s
+}
+
+// SetVideoQuality sets the VideoQuality field's value.
+func (s *ListReservationsInput) SetVideoQuality(v string) *ListReservationsInput {
+	s.VideoQuality = &v
+	return s
+}
+
+type ListReservationsOutput struct {
+	_ struct{} `type:"structure"`
+
+	NextToken *string `locationName:"nextToken" type:"string"`
+
+	Reservations []*Reservation `locationName:"reservations" type:"list"`
+}
+
+// String returns the string representation
+func (s ListReservationsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListReservationsOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListReservationsOutput) SetNextToken(v string) *ListReservationsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetReservations sets the Reservations field's value.
+func (s *ListReservationsOutput) SetReservations(v []*Reservation) *ListReservationsOutput {
+	s.Reservations = v
+	return s
+}
+
 type M2tsSettings struct {
 	_ struct{} `type:"structure"`
 
@@ -9170,6 +10651,121 @@ func (s *NetworkInputSettings) SetServerValidation(v string) *NetworkInputSettin
 	return s
 }
 
+// Reserved resources available for purchase
+type Offering struct {
+	_ struct{} `type:"structure"`
+
+	// Unique offering ARN, e.g. 'arn:aws:medialive:us-west-2:123456789012:offering:87654321'
+	Arn *string `locationName:"arn" type:"string"`
+
+	// Currency code for usagePrice and fixedPrice in ISO-4217 format, e.g. 'USD'
+	CurrencyCode *string `locationName:"currencyCode" type:"string"`
+
+	// Lease duration, e.g. '12'
+	Duration *int64 `locationName:"duration" type:"integer"`
+
+	// Units for duration, e.g. 'MONTHS'
+	DurationUnits *string `locationName:"durationUnits" type:"string" enum:"OfferingDurationUnits"`
+
+	// One-time charge for each reserved resource, e.g. '0.0' for a NO_UPFRONT offering
+	FixedPrice *float64 `locationName:"fixedPrice" type:"double"`
+
+	// Offering description, e.g. 'HD AVC output at 10-20 Mbps, 30 fps, and standard
+	// VQ in US West (Oregon)'
+	OfferingDescription *string `locationName:"offeringDescription" type:"string"`
+
+	// Unique offering ID, e.g. '87654321'
+	OfferingId *string `locationName:"offeringId" type:"string"`
+
+	// Offering type, e.g. 'NO_UPFRONT'
+	OfferingType *string `locationName:"offeringType" type:"string" enum:"OfferingType"`
+
+	// AWS region, e.g. 'us-west-2'
+	Region *string `locationName:"region" type:"string"`
+
+	// Resource configuration details
+	ResourceSpecification *ReservationResourceSpecification `locationName:"resourceSpecification" type:"structure"`
+
+	// Recurring usage charge for each reserved resource, e.g. '157.0'
+	UsagePrice *float64 `locationName:"usagePrice" type:"double"`
+}
+
+// String returns the string representation
+func (s Offering) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Offering) GoString() string {
+	return s.String()
+}
+
+// SetArn sets the Arn field's value.
+func (s *Offering) SetArn(v string) *Offering {
+	s.Arn = &v
+	return s
+}
+
+// SetCurrencyCode sets the CurrencyCode field's value.
+func (s *Offering) SetCurrencyCode(v string) *Offering {
+	s.CurrencyCode = &v
+	return s
+}
+
+// SetDuration sets the Duration field's value.
+func (s *Offering) SetDuration(v int64) *Offering {
+	s.Duration = &v
+	return s
+}
+
+// SetDurationUnits sets the DurationUnits field's value.
+func (s *Offering) SetDurationUnits(v string) *Offering {
+	s.DurationUnits = &v
+	return s
+}
+
+// SetFixedPrice sets the FixedPrice field's value.
+func (s *Offering) SetFixedPrice(v float64) *Offering {
+	s.FixedPrice = &v
+	return s
+}
+
+// SetOfferingDescription sets the OfferingDescription field's value.
+func (s *Offering) SetOfferingDescription(v string) *Offering {
+	s.OfferingDescription = &v
+	return s
+}
+
+// SetOfferingId sets the OfferingId field's value.
+func (s *Offering) SetOfferingId(v string) *Offering {
+	s.OfferingId = &v
+	return s
+}
+
+// SetOfferingType sets the OfferingType field's value.
+func (s *Offering) SetOfferingType(v string) *Offering {
+	s.OfferingType = &v
+	return s
+}
+
+// SetRegion sets the Region field's value.
+func (s *Offering) SetRegion(v string) *Offering {
+	s.Region = &v
+	return s
+}
+
+// SetResourceSpecification sets the ResourceSpecification field's value.
+func (s *Offering) SetResourceSpecification(v *ReservationResourceSpecification) *Offering {
+	s.ResourceSpecification = v
+	return s
+}
+
+// SetUsagePrice sets the UsagePrice field's value.
+func (s *Offering) SetUsagePrice(v float64) *Offering {
+	s.UsagePrice = &v
+	return s
+}
+
 // Output settings. There can be multiple outputs within a group.
 type Output struct {
 	_ struct{} `type:"structure"`
@@ -9617,6 +11213,92 @@ func (s PassThroughSettings) GoString() string {
 	return s.String()
 }
 
+type PurchaseOfferingInput struct {
+	_ struct{} `type:"structure"`
+
+	Count *int64 `locationName:"count" min:"1" type:"integer"`
+
+	Name *string `locationName:"name" type:"string"`
+
+	// OfferingId is a required field
+	OfferingId *string `location:"uri" locationName:"offeringId" type:"string" required:"true"`
+
+	RequestId *string `locationName:"requestId" type:"string" idempotencyToken:"true"`
+}
+
+// String returns the string representation
+func (s PurchaseOfferingInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PurchaseOfferingInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PurchaseOfferingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PurchaseOfferingInput"}
+	if s.Count != nil && *s.Count < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Count", 1))
+	}
+	if s.OfferingId == nil {
+		invalidParams.Add(request.NewErrParamRequired("OfferingId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetCount sets the Count field's value.
+func (s *PurchaseOfferingInput) SetCount(v int64) *PurchaseOfferingInput {
+	s.Count = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *PurchaseOfferingInput) SetName(v string) *PurchaseOfferingInput {
+	s.Name = &v
+	return s
+}
+
+// SetOfferingId sets the OfferingId field's value.
+func (s *PurchaseOfferingInput) SetOfferingId(v string) *PurchaseOfferingInput {
+	s.OfferingId = &v
+	return s
+}
+
+// SetRequestId sets the RequestId field's value.
+func (s *PurchaseOfferingInput) SetRequestId(v string) *PurchaseOfferingInput {
+	s.RequestId = &v
+	return s
+}
+
+type PurchaseOfferingOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Reserved resources available to use
+	Reservation *Reservation `locationName:"reservation" type:"structure"`
+}
+
+// String returns the string representation
+func (s PurchaseOfferingOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PurchaseOfferingOutput) GoString() string {
+	return s.String()
+}
+
+// SetReservation sets the Reservation field's value.
+func (s *PurchaseOfferingOutput) SetReservation(v *Reservation) *PurchaseOfferingOutput {
+	s.Reservation = v
+	return s
+}
+
 type RemixSettings struct {
 	_ struct{} `type:"structure"`
 
@@ -9686,6 +11368,253 @@ func (s *RemixSettings) SetChannelsIn(v int64) *RemixSettings {
 // SetChannelsOut sets the ChannelsOut field's value.
 func (s *RemixSettings) SetChannelsOut(v int64) *RemixSettings {
 	s.ChannelsOut = &v
+	return s
+}
+
+// Reserved resources available to use
+type Reservation struct {
+	_ struct{} `type:"structure"`
+
+	// Unique reservation ARN, e.g. 'arn:aws:medialive:us-west-2:123456789012:reservation:1234567'
+	Arn *string `locationName:"arn" type:"string"`
+
+	// Number of reserved resources
+	Count *int64 `locationName:"count" type:"integer"`
+
+	// Currency code for usagePrice and fixedPrice in ISO-4217 format, e.g. 'USD'
+	CurrencyCode *string `locationName:"currencyCode" type:"string"`
+
+	// Lease duration, e.g. '12'
+	Duration *int64 `locationName:"duration" type:"integer"`
+
+	// Units for duration, e.g. 'MONTHS'
+	DurationUnits *string `locationName:"durationUnits" type:"string" enum:"OfferingDurationUnits"`
+
+	// Reservation UTC end date and time in ISO-8601 format, e.g. '2019-03-01T00:00:00'
+	End *string `locationName:"end" type:"string"`
+
+	// One-time charge for each reserved resource, e.g. '0.0' for a NO_UPFRONT offering
+	FixedPrice *float64 `locationName:"fixedPrice" type:"double"`
+
+	// User specified reservation name
+	Name *string `locationName:"name" type:"string"`
+
+	// Offering description, e.g. 'HD AVC output at 10-20 Mbps, 30 fps, and standard
+	// VQ in US West (Oregon)'
+	OfferingDescription *string `locationName:"offeringDescription" type:"string"`
+
+	// Unique offering ID, e.g. '87654321'
+	OfferingId *string `locationName:"offeringId" type:"string"`
+
+	// Offering type, e.g. 'NO_UPFRONT'
+	OfferingType *string `locationName:"offeringType" type:"string" enum:"OfferingType"`
+
+	// AWS region, e.g. 'us-west-2'
+	Region *string `locationName:"region" type:"string"`
+
+	// Unique reservation ID, e.g. '1234567'
+	ReservationId *string `locationName:"reservationId" type:"string"`
+
+	// Resource configuration details
+	ResourceSpecification *ReservationResourceSpecification `locationName:"resourceSpecification" type:"structure"`
+
+	// Reservation UTC start date and time in ISO-8601 format, e.g. '2018-03-01T00:00:00'
+	Start *string `locationName:"start" type:"string"`
+
+	// Current state of reservation, e.g. 'ACTIVE'
+	State *string `locationName:"state" type:"string" enum:"ReservationState"`
+
+	// Recurring usage charge for each reserved resource, e.g. '157.0'
+	UsagePrice *float64 `locationName:"usagePrice" type:"double"`
+}
+
+// String returns the string representation
+func (s Reservation) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Reservation) GoString() string {
+	return s.String()
+}
+
+// SetArn sets the Arn field's value.
+func (s *Reservation) SetArn(v string) *Reservation {
+	s.Arn = &v
+	return s
+}
+
+// SetCount sets the Count field's value.
+func (s *Reservation) SetCount(v int64) *Reservation {
+	s.Count = &v
+	return s
+}
+
+// SetCurrencyCode sets the CurrencyCode field's value.
+func (s *Reservation) SetCurrencyCode(v string) *Reservation {
+	s.CurrencyCode = &v
+	return s
+}
+
+// SetDuration sets the Duration field's value.
+func (s *Reservation) SetDuration(v int64) *Reservation {
+	s.Duration = &v
+	return s
+}
+
+// SetDurationUnits sets the DurationUnits field's value.
+func (s *Reservation) SetDurationUnits(v string) *Reservation {
+	s.DurationUnits = &v
+	return s
+}
+
+// SetEnd sets the End field's value.
+func (s *Reservation) SetEnd(v string) *Reservation {
+	s.End = &v
+	return s
+}
+
+// SetFixedPrice sets the FixedPrice field's value.
+func (s *Reservation) SetFixedPrice(v float64) *Reservation {
+	s.FixedPrice = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *Reservation) SetName(v string) *Reservation {
+	s.Name = &v
+	return s
+}
+
+// SetOfferingDescription sets the OfferingDescription field's value.
+func (s *Reservation) SetOfferingDescription(v string) *Reservation {
+	s.OfferingDescription = &v
+	return s
+}
+
+// SetOfferingId sets the OfferingId field's value.
+func (s *Reservation) SetOfferingId(v string) *Reservation {
+	s.OfferingId = &v
+	return s
+}
+
+// SetOfferingType sets the OfferingType field's value.
+func (s *Reservation) SetOfferingType(v string) *Reservation {
+	s.OfferingType = &v
+	return s
+}
+
+// SetRegion sets the Region field's value.
+func (s *Reservation) SetRegion(v string) *Reservation {
+	s.Region = &v
+	return s
+}
+
+// SetReservationId sets the ReservationId field's value.
+func (s *Reservation) SetReservationId(v string) *Reservation {
+	s.ReservationId = &v
+	return s
+}
+
+// SetResourceSpecification sets the ResourceSpecification field's value.
+func (s *Reservation) SetResourceSpecification(v *ReservationResourceSpecification) *Reservation {
+	s.ResourceSpecification = v
+	return s
+}
+
+// SetStart sets the Start field's value.
+func (s *Reservation) SetStart(v string) *Reservation {
+	s.Start = &v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *Reservation) SetState(v string) *Reservation {
+	s.State = &v
+	return s
+}
+
+// SetUsagePrice sets the UsagePrice field's value.
+func (s *Reservation) SetUsagePrice(v float64) *Reservation {
+	s.UsagePrice = &v
+	return s
+}
+
+// Resource configuration (codec, resolution, bitrate, ...)
+type ReservationResourceSpecification struct {
+	_ struct{} `type:"structure"`
+
+	// Codec, e.g. 'AVC'
+	Codec *string `locationName:"codec" type:"string" enum:"ReservationCodec"`
+
+	// Maximum bitrate, e.g. 'MAX_20_MBPS'
+	MaximumBitrate *string `locationName:"maximumBitrate" type:"string" enum:"ReservationMaximumBitrate"`
+
+	// Maximum framerate, e.g. 'MAX_30_FPS' (Outputs only)
+	MaximumFramerate *string `locationName:"maximumFramerate" type:"string" enum:"ReservationMaximumFramerate"`
+
+	// Resolution, e.g. 'HD'
+	Resolution *string `locationName:"resolution" type:"string" enum:"ReservationResolution"`
+
+	// Resource type, 'INPUT', 'OUTPUT', or 'CHANNEL'
+	ResourceType *string `locationName:"resourceType" type:"string" enum:"ReservationResourceType"`
+
+	// Special feature, e.g. 'AUDIO_NORMALIZATION' (Channels only)
+	SpecialFeature *string `locationName:"specialFeature" type:"string" enum:"ReservationSpecialFeature"`
+
+	// Video quality, e.g. 'STANDARD' (Outputs only)
+	VideoQuality *string `locationName:"videoQuality" type:"string" enum:"ReservationVideoQuality"`
+}
+
+// String returns the string representation
+func (s ReservationResourceSpecification) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ReservationResourceSpecification) GoString() string {
+	return s.String()
+}
+
+// SetCodec sets the Codec field's value.
+func (s *ReservationResourceSpecification) SetCodec(v string) *ReservationResourceSpecification {
+	s.Codec = &v
+	return s
+}
+
+// SetMaximumBitrate sets the MaximumBitrate field's value.
+func (s *ReservationResourceSpecification) SetMaximumBitrate(v string) *ReservationResourceSpecification {
+	s.MaximumBitrate = &v
+	return s
+}
+
+// SetMaximumFramerate sets the MaximumFramerate field's value.
+func (s *ReservationResourceSpecification) SetMaximumFramerate(v string) *ReservationResourceSpecification {
+	s.MaximumFramerate = &v
+	return s
+}
+
+// SetResolution sets the Resolution field's value.
+func (s *ReservationResourceSpecification) SetResolution(v string) *ReservationResourceSpecification {
+	s.Resolution = &v
+	return s
+}
+
+// SetResourceType sets the ResourceType field's value.
+func (s *ReservationResourceSpecification) SetResourceType(v string) *ReservationResourceSpecification {
+	s.ResourceType = &v
+	return s
+}
+
+// SetSpecialFeature sets the SpecialFeature field's value.
+func (s *ReservationResourceSpecification) SetSpecialFeature(v string) *ReservationResourceSpecification {
+	s.SpecialFeature = &v
+	return s
+}
+
+// SetVideoQuality sets the VideoQuality field's value.
+func (s *ReservationResourceSpecification) SetVideoQuality(v string) *ReservationResourceSpecification {
+	s.VideoQuality = &v
 	return s
 }
 
@@ -10208,6 +12137,8 @@ type StartChannelOutput struct {
 
 	InputSpecification *InputSpecification `locationName:"inputSpecification" type:"structure"`
 
+	LogLevel *string `locationName:"logLevel" type:"string" enum:"LogLevel"`
+
 	Name *string `locationName:"name" type:"string"`
 
 	PipelinesRunningCount *int64 `locationName:"pipelinesRunningCount" type:"integer"`
@@ -10269,6 +12200,12 @@ func (s *StartChannelOutput) SetInputSpecification(v *InputSpecification) *Start
 	return s
 }
 
+// SetLogLevel sets the LogLevel field's value.
+func (s *StartChannelOutput) SetLogLevel(v string) *StartChannelOutput {
+	s.LogLevel = &v
+	return s
+}
+
 // SetName sets the Name field's value.
 func (s *StartChannelOutput) SetName(v string) *StartChannelOutput {
 	s.Name = &v
@@ -10297,7 +12234,9 @@ type StaticKeySettings struct {
 	_ struct{} `type:"structure"`
 
 	// The URL of the license server used for protecting content.
-	KeyProviderServer *InputLocation `locationName:"keyProviderServer" type:"structure"`
+	//
+	// KeyProviderServer is a required field
+	KeyProviderServer *InputLocation `locationName:"keyProviderServer" type:"structure" required:"true"`
 
 	// Static key value as a 32 character hexadecimal string.
 	//
@@ -10318,6 +12257,9 @@ func (s StaticKeySettings) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *StaticKeySettings) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "StaticKeySettings"}
+	if s.KeyProviderServer == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyProviderServer"))
+	}
 	if s.StaticKeyValue == nil {
 		invalidParams.Add(request.NewErrParamRequired("StaticKeyValue"))
 	}
@@ -10401,6 +12343,8 @@ type StopChannelOutput struct {
 
 	InputSpecification *InputSpecification `locationName:"inputSpecification" type:"structure"`
 
+	LogLevel *string `locationName:"logLevel" type:"string" enum:"LogLevel"`
+
 	Name *string `locationName:"name" type:"string"`
 
 	PipelinesRunningCount *int64 `locationName:"pipelinesRunningCount" type:"integer"`
@@ -10459,6 +12403,12 @@ func (s *StopChannelOutput) SetInputAttachments(v []*InputAttachment) *StopChann
 // SetInputSpecification sets the InputSpecification field's value.
 func (s *StopChannelOutput) SetInputSpecification(v *InputSpecification) *StopChannelOutput {
 	s.InputSpecification = v
+	return s
+}
+
+// SetLogLevel sets the LogLevel field's value.
+func (s *StopChannelOutput) SetLogLevel(v string) *StopChannelOutput {
+	s.LogLevel = &v
 	return s
 }
 
@@ -10788,6 +12738,8 @@ type UpdateChannelInput struct {
 
 	InputSpecification *InputSpecification `locationName:"inputSpecification" type:"structure"`
 
+	LogLevel *string `locationName:"logLevel" type:"string" enum:"LogLevel"`
+
 	Name *string `locationName:"name" type:"string"`
 
 	RoleArn *string `locationName:"roleArn" type:"string"`
@@ -10858,6 +12810,12 @@ func (s *UpdateChannelInput) SetInputAttachments(v []*InputAttachment) *UpdateCh
 // SetInputSpecification sets the InputSpecification field's value.
 func (s *UpdateChannelInput) SetInputSpecification(v *InputSpecification) *UpdateChannelInput {
 	s.InputSpecification = v
+	return s
+}
+
+// SetLogLevel sets the LogLevel field's value.
+func (s *UpdateChannelInput) SetLogLevel(v string) *UpdateChannelInput {
+	s.LogLevel = &v
 	return s
 }
 
@@ -12604,6 +14562,23 @@ const (
 )
 
 const (
+	// LogLevelError is a LogLevel enum value
+	LogLevelError = "ERROR"
+
+	// LogLevelWarning is a LogLevel enum value
+	LogLevelWarning = "WARNING"
+
+	// LogLevelInfo is a LogLevel enum value
+	LogLevelInfo = "INFO"
+
+	// LogLevelDebug is a LogLevel enum value
+	LogLevelDebug = "DEBUG"
+
+	// LogLevelDisabled is a LogLevel enum value
+	LogLevelDisabled = "DISABLED"
+)
+
+const (
 	// M2tsAbsentInputAudioBehaviorDrop is a M2tsAbsentInputAudioBehavior enum value
 	M2tsAbsentInputAudioBehaviorDrop = "DROP"
 
@@ -12797,6 +14772,115 @@ const (
 
 	// NetworkInputServerValidationCheckCryptographyOnly is a NetworkInputServerValidation enum value
 	NetworkInputServerValidationCheckCryptographyOnly = "CHECK_CRYPTOGRAPHY_ONLY"
+)
+
+// Units for duration, e.g. 'MONTHS'
+const (
+	// OfferingDurationUnitsMonths is a OfferingDurationUnits enum value
+	OfferingDurationUnitsMonths = "MONTHS"
+)
+
+// Offering type, e.g. 'NO_UPFRONT'
+const (
+	// OfferingTypeNoUpfront is a OfferingType enum value
+	OfferingTypeNoUpfront = "NO_UPFRONT"
+)
+
+// Codec, 'MPEG2', 'AVC', 'HEVC', or 'AUDIO'
+const (
+	// ReservationCodecMpeg2 is a ReservationCodec enum value
+	ReservationCodecMpeg2 = "MPEG2"
+
+	// ReservationCodecAvc is a ReservationCodec enum value
+	ReservationCodecAvc = "AVC"
+
+	// ReservationCodecHevc is a ReservationCodec enum value
+	ReservationCodecHevc = "HEVC"
+
+	// ReservationCodecAudio is a ReservationCodec enum value
+	ReservationCodecAudio = "AUDIO"
+)
+
+// Maximum bitrate in megabits per second
+const (
+	// ReservationMaximumBitrateMax10Mbps is a ReservationMaximumBitrate enum value
+	ReservationMaximumBitrateMax10Mbps = "MAX_10_MBPS"
+
+	// ReservationMaximumBitrateMax20Mbps is a ReservationMaximumBitrate enum value
+	ReservationMaximumBitrateMax20Mbps = "MAX_20_MBPS"
+
+	// ReservationMaximumBitrateMax50Mbps is a ReservationMaximumBitrate enum value
+	ReservationMaximumBitrateMax50Mbps = "MAX_50_MBPS"
+)
+
+// Maximum framerate in frames per second (Outputs only)
+const (
+	// ReservationMaximumFramerateMax30Fps is a ReservationMaximumFramerate enum value
+	ReservationMaximumFramerateMax30Fps = "MAX_30_FPS"
+
+	// ReservationMaximumFramerateMax60Fps is a ReservationMaximumFramerate enum value
+	ReservationMaximumFramerateMax60Fps = "MAX_60_FPS"
+)
+
+// Resolution based on lines of vertical resolution; SD is less than 720 lines,
+// HD is 720 to 1080 lines, UHD is greater than 1080 lines
+const (
+	// ReservationResolutionSd is a ReservationResolution enum value
+	ReservationResolutionSd = "SD"
+
+	// ReservationResolutionHd is a ReservationResolution enum value
+	ReservationResolutionHd = "HD"
+
+	// ReservationResolutionUhd is a ReservationResolution enum value
+	ReservationResolutionUhd = "UHD"
+)
+
+// Resource type, 'INPUT', 'OUTPUT', or 'CHANNEL'
+const (
+	// ReservationResourceTypeInput is a ReservationResourceType enum value
+	ReservationResourceTypeInput = "INPUT"
+
+	// ReservationResourceTypeOutput is a ReservationResourceType enum value
+	ReservationResourceTypeOutput = "OUTPUT"
+
+	// ReservationResourceTypeChannel is a ReservationResourceType enum value
+	ReservationResourceTypeChannel = "CHANNEL"
+)
+
+// Special features, 'ADVANCED_AUDIO' or 'AUDIO_NORMALIZATION'
+const (
+	// ReservationSpecialFeatureAdvancedAudio is a ReservationSpecialFeature enum value
+	ReservationSpecialFeatureAdvancedAudio = "ADVANCED_AUDIO"
+
+	// ReservationSpecialFeatureAudioNormalization is a ReservationSpecialFeature enum value
+	ReservationSpecialFeatureAudioNormalization = "AUDIO_NORMALIZATION"
+)
+
+// Current reservation state
+const (
+	// ReservationStateActive is a ReservationState enum value
+	ReservationStateActive = "ACTIVE"
+
+	// ReservationStateExpired is a ReservationState enum value
+	ReservationStateExpired = "EXPIRED"
+
+	// ReservationStateCanceled is a ReservationState enum value
+	ReservationStateCanceled = "CANCELED"
+
+	// ReservationStateDeleted is a ReservationState enum value
+	ReservationStateDeleted = "DELETED"
+)
+
+// Video quality, e.g. 'STANDARD' (Outputs only)
+const (
+	// ReservationVideoQualityStandard is a ReservationVideoQuality enum value
+	ReservationVideoQualityStandard = "STANDARD"
+
+	// ReservationVideoQualityEnhanced is a ReservationVideoQuality enum value
+	ReservationVideoQualityEnhanced = "ENHANCED"
+
+	// ReservationVideoQualityPremium is a ReservationVideoQuality enum value
+	ReservationVideoQualityPremium = "PREMIUM"
 )
 
 const (

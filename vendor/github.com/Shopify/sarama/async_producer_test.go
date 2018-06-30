@@ -131,9 +131,12 @@ func TestAsyncProducer(t *testing.T) {
 			if msg.Metadata.(int) != i {
 				t.Error("Message metadata did not match")
 			}
+		case <-time.After(time.Second):
+			t.Errorf("Timeout waiting for msg #%d", i)
+			goto done
 		}
 	}
-
+done:
 	closeProducer(t, producer)
 	leader.Close()
 	seedBroker.Close()

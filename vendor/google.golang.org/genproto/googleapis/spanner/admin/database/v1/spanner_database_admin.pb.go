@@ -66,9 +66,9 @@ type Database struct {
 	// where `<database>` is as specified in the `CREATE DATABASE`
 	// statement. This name can be passed to other API methods to
 	// identify the database.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Output only. The current database state.
-	State                Database_State `protobuf:"varint,2,opt,name=state,enum=google.spanner.admin.database.v1.Database_State" json:"state,omitempty"`
+	State                Database_State `protobuf:"varint,2,opt,name=state,proto3,enum=google.spanner.admin.database.v1.Database_State" json:"state,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
 	XXX_unrecognized     []byte         `json:"-"`
 	XXX_sizecache        int32          `json:"-"`
@@ -116,14 +116,14 @@ func (m *Database) GetState() Database_State {
 type ListDatabasesRequest struct {
 	// Required. The instance whose databases should be listed.
 	// Values are of the form `projects/<project>/instances/<instance>`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Number of databases to be returned in the response. If 0 or less,
 	// defaults to the server's maximum allowed page size.
-	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// If non-empty, `page_token` should contain a
 	// [next_page_token][google.spanner.admin.database.v1.ListDatabasesResponse.next_page_token] from a
 	// previous [ListDatabasesResponse][google.spanner.admin.database.v1.ListDatabasesResponse].
-	PageToken            string   `protobuf:"bytes,4,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -177,11 +177,11 @@ func (m *ListDatabasesRequest) GetPageToken() string {
 // The response for [ListDatabases][google.spanner.admin.database.v1.DatabaseAdmin.ListDatabases].
 type ListDatabasesResponse struct {
 	// Databases that matched the request.
-	Databases []*Database `protobuf:"bytes,1,rep,name=databases" json:"databases,omitempty"`
+	Databases []*Database `protobuf:"bytes,1,rep,name=databases,proto3" json:"databases,omitempty"`
 	// `next_page_token` can be sent in a subsequent
 	// [ListDatabases][google.spanner.admin.database.v1.DatabaseAdmin.ListDatabases] call to fetch more
 	// of the matching databases.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -229,18 +229,18 @@ func (m *ListDatabasesResponse) GetNextPageToken() string {
 type CreateDatabaseRequest struct {
 	// Required. The name of the instance that will serve the new database.
 	// Values are of the form `projects/<project>/instances/<instance>`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Required. A `CREATE DATABASE` statement, which specifies the ID of the
 	// new database.  The database ID must conform to the regular expression
 	// `[a-z][a-z0-9_\-]*[a-z0-9]` and be between 2 and 30 characters in length.
 	// If the database ID is a reserved word or if it contains a hyphen, the
 	// database ID must be enclosed in backticks (`` ` ``).
-	CreateStatement string `protobuf:"bytes,2,opt,name=create_statement,json=createStatement" json:"create_statement,omitempty"`
+	CreateStatement string `protobuf:"bytes,2,opt,name=create_statement,json=createStatement,proto3" json:"create_statement,omitempty"`
 	// An optional list of DDL statements to run inside the newly created
 	// database. Statements can create tables, indexes, etc. These
 	// statements execute atomically with the creation of the database:
 	// if there is an error in any statement, the database is not created.
-	ExtraStatements      []string `protobuf:"bytes,3,rep,name=extra_statements,json=extraStatements" json:"extra_statements,omitempty"`
+	ExtraStatements      []string `protobuf:"bytes,3,rep,name=extra_statements,json=extraStatements,proto3" json:"extra_statements,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -295,7 +295,7 @@ func (m *CreateDatabaseRequest) GetExtraStatements() []string {
 // [CreateDatabase][google.spanner.admin.database.v1.DatabaseAdmin.CreateDatabase].
 type CreateDatabaseMetadata struct {
 	// The database being created.
-	Database             string   `protobuf:"bytes,1,opt,name=database" json:"database,omitempty"`
+	Database             string   `protobuf:"bytes,1,opt,name=database,proto3" json:"database,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -336,7 +336,7 @@ func (m *CreateDatabaseMetadata) GetDatabase() string {
 type GetDatabaseRequest struct {
 	// Required. The name of the requested database. Values are of the form
 	// `projects/<project>/instances/<instance>/databases/<database>`.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -391,9 +391,9 @@ func (m *GetDatabaseRequest) GetName() string {
 // details.
 type UpdateDatabaseDdlRequest struct {
 	// Required. The database to update.
-	Database string `protobuf:"bytes,1,opt,name=database" json:"database,omitempty"`
+	Database string `protobuf:"bytes,1,opt,name=database,proto3" json:"database,omitempty"`
 	// DDL statements to be applied to the database.
-	Statements []string `protobuf:"bytes,2,rep,name=statements" json:"statements,omitempty"`
+	Statements []string `protobuf:"bytes,2,rep,name=statements,proto3" json:"statements,omitempty"`
 	// If empty, the new update request is assigned an
 	// automatically-generated operation ID. Otherwise, `operation_id`
 	// is used to construct the name of the resulting
@@ -413,7 +413,7 @@ type UpdateDatabaseDdlRequest struct {
 	// underscore. If the named operation already exists,
 	// [UpdateDatabaseDdl][google.spanner.admin.database.v1.DatabaseAdmin.UpdateDatabaseDdl] returns
 	// `ALREADY_EXISTS`.
-	OperationId          string   `protobuf:"bytes,3,opt,name=operation_id,json=operationId" json:"operation_id,omitempty"`
+	OperationId          string   `protobuf:"bytes,3,opt,name=operation_id,json=operationId,proto3" json:"operation_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -468,14 +468,14 @@ func (m *UpdateDatabaseDdlRequest) GetOperationId() string {
 // [UpdateDatabaseDdl][google.spanner.admin.database.v1.DatabaseAdmin.UpdateDatabaseDdl].
 type UpdateDatabaseDdlMetadata struct {
 	// The database being modified.
-	Database string `protobuf:"bytes,1,opt,name=database" json:"database,omitempty"`
+	Database string `protobuf:"bytes,1,opt,name=database,proto3" json:"database,omitempty"`
 	// For an update this list contains all the statements. For an
 	// individual statement, this list contains only that statement.
-	Statements []string `protobuf:"bytes,2,rep,name=statements" json:"statements,omitempty"`
+	Statements []string `protobuf:"bytes,2,rep,name=statements,proto3" json:"statements,omitempty"`
 	// Reports the commit timestamps of all statements that have
 	// succeeded so far, where `commit_timestamps[i]` is the commit
 	// timestamp for the statement `statements[i]`.
-	CommitTimestamps     []*timestamp.Timestamp `protobuf:"bytes,3,rep,name=commit_timestamps,json=commitTimestamps" json:"commit_timestamps,omitempty"`
+	CommitTimestamps     []*timestamp.Timestamp `protobuf:"bytes,3,rep,name=commit_timestamps,json=commitTimestamps,proto3" json:"commit_timestamps,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
 	XXX_unrecognized     []byte                 `json:"-"`
 	XXX_sizecache        int32                  `json:"-"`
@@ -529,7 +529,7 @@ func (m *UpdateDatabaseDdlMetadata) GetCommitTimestamps() []*timestamp.Timestamp
 // The request for [DropDatabase][google.spanner.admin.database.v1.DatabaseAdmin.DropDatabase].
 type DropDatabaseRequest struct {
 	// Required. The database to be dropped.
-	Database             string   `protobuf:"bytes,1,opt,name=database" json:"database,omitempty"`
+	Database             string   `protobuf:"bytes,1,opt,name=database,proto3" json:"database,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -569,7 +569,7 @@ func (m *DropDatabaseRequest) GetDatabase() string {
 // The request for [GetDatabaseDdl][google.spanner.admin.database.v1.DatabaseAdmin.GetDatabaseDdl].
 type GetDatabaseDdlRequest struct {
 	// Required. The database whose schema we wish to get.
-	Database             string   `protobuf:"bytes,1,opt,name=database" json:"database,omitempty"`
+	Database             string   `protobuf:"bytes,1,opt,name=database,proto3" json:"database,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -610,7 +610,7 @@ func (m *GetDatabaseDdlRequest) GetDatabase() string {
 type GetDatabaseDdlResponse struct {
 	// A list of formatted DDL statements defining the schema of the database
 	// specified in the request.
-	Statements           []string `protobuf:"bytes,1,rep,name=statements" json:"statements,omitempty"`
+	Statements           []string `protobuf:"bytes,1,rep,name=statements,proto3" json:"statements,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -811,8 +811,7 @@ func (c *databaseAdminClient) TestIamPermissions(ctx context.Context, in *v1.Tes
 	return out, nil
 }
 
-// Server API for DatabaseAdmin service
-
+// DatabaseAdminServer is the server API for DatabaseAdmin service.
 type DatabaseAdminServer interface {
 	// Lists Cloud Spanner databases.
 	ListDatabases(context.Context, *ListDatabasesRequest) (*ListDatabasesResponse, error)

@@ -16,7 +16,6 @@
     "DeleteFieldLevelEncryptionConfig": "<p>Remove a field-level encryption configuration.</p>",
     "DeleteFieldLevelEncryptionProfile": "<p>Remove a field-level encryption profile.</p>",
     "DeletePublicKey": "<p>Remove a public key you previously added to CloudFront.</p>",
-    "DeleteServiceLinkedRole": null,
     "DeleteStreamingDistribution": "<p>Delete a streaming distribution. To delete an RTMP distribution using the CloudFront API, perform the following steps.</p> <p> <b>To delete an RTMP distribution using the CloudFront API</b>:</p> <ol> <li> <p>Disable the RTMP distribution.</p> </li> <li> <p>Submit a <code>GET Streaming Distribution Config</code> request to get the current configuration and the <code>Etag</code> header for the distribution. </p> </li> <li> <p>Update the XML document that was returned in the response to your <code>GET Streaming Distribution Config</code> request to change the value of <code>Enabled</code> to <code>false</code>.</p> </li> <li> <p>Submit a <code>PUT Streaming Distribution Config</code> request to update the configuration for your distribution. In the request body, include the XML document that you updated in Step 3. Then set the value of the HTTP <code>If-Match</code> header to the value of the <code>ETag</code> header that CloudFront returned when you submitted the <code>GET Streaming Distribution Config</code> request in Step 2.</p> </li> <li> <p>Review the response to the <code>PUT Streaming Distribution Config</code> request to confirm that the distribution was successfully disabled.</p> </li> <li> <p>Submit a <code>GET Streaming Distribution Config</code> request to confirm that your changes have propagated. When propagation is complete, the value of <code>Status</code> is <code>Deployed</code>.</p> </li> <li> <p>Submit a <code>DELETE Streaming Distribution</code> request. Set the value of the HTTP <code>If-Match</code> header to the value of the <code>ETag</code> header that CloudFront returned when you submitted the <code>GET Streaming Distribution Config</code> request in Step 2.</p> </li> <li> <p>Review the response to your <code>DELETE Streaming Distribution</code> request to confirm that the distribution was successfully deleted.</p> </li> </ol> <p>For information about deleting a distribution using the CloudFront console, see <a href=\"http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/HowToDeleteDistribution.html\">Deleting a Distribution</a> in the <i>Amazon CloudFront Developer Guide</i>.</p>",
     "GetCloudFrontOriginAccessIdentity": "<p>Get the information about an origin access identity. </p>",
     "GetCloudFrontOriginAccessIdentityConfig": "<p>Get the configuration information about an origin access identity. </p>",
@@ -373,11 +372,6 @@
       }
     },
     "DeletePublicKeyRequest": {
-      "base": null,
-      "refs": {
-      }
-    },
-    "DeleteServiceLinkedRoleRequest": {
       "base": null,
       "refs": {
       }
@@ -1287,11 +1281,6 @@
         "UntagResourceRequest$Resource": "<p> An ARN of a CloudFront resource.</p>"
       }
     },
-    "ResourceInUse": {
-      "base": null,
-      "refs": {
-      }
-    },
     "Restrictions": {
       "base": "<p>A complex type that identifies ways in which you want to restrict distribution of your content.</p>",
       "refs": {
@@ -1809,7 +1798,6 @@
         "DeleteFieldLevelEncryptionProfileRequest$IfMatch": "<p>The value of the <code>ETag</code> header that you received when retrieving the profile to delete. For example: <code>E2QWRUHAPOMQZL</code>.</p>",
         "DeletePublicKeyRequest$Id": "<p>The ID of the public key you want to remove from CloudFront.</p>",
         "DeletePublicKeyRequest$IfMatch": "<p>The value of the <code>ETag</code> header that you received when retrieving the public key identity to delete. For example: <code>E2QWRUHAPOMQZL</code>.</p>",
-        "DeleteServiceLinkedRoleRequest$RoleName": null,
         "DeleteStreamingDistributionRequest$Id": "<p>The distribution ID. </p>",
         "DeleteStreamingDistributionRequest$IfMatch": "<p>The value of the <code>ETag</code> header that you received when you disabled the streaming distribution. For example: <code>E2QWRUHAPOMQZL</code>.</p>",
         "Distribution$Id": "<p>The identifier for the distribution. For example: <code>EDFDVBD632BHDS5</code>. </p>",
@@ -1967,7 +1955,6 @@
         "QueryArgProfile$ProfileId": "<p>ID of profile to use for field-level encryption query argument-profile mapping</p>",
         "QueryArgProfileEmpty$Message": null,
         "QueryStringCacheKeysList$member": null,
-        "ResourceInUse$Message": null,
         "S3Origin$DomainName": "<p>The DNS name of the Amazon S3 origin. </p>",
         "S3Origin$OriginAccessIdentity": "<p>The CloudFront origin access identity to associate with the RTMP distribution. Use an origin access identity to configure the distribution so that end users can only access objects in an Amazon S3 bucket through CloudFront.</p> <p>If you want end users to be able to access objects using either the CloudFront URL or the Amazon S3 URL, specify an empty <code>OriginAccessIdentity</code> element.</p> <p>To delete the origin access identity from an existing distribution, update the distribution configuration and include an empty <code>OriginAccessIdentity</code> element.</p> <p>To replace the origin access identity, update the distribution configuration and specify the new origin access identity.</p> <p>For more information, see <a href=\"http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-restricting-access-to-s3.html\">Using an Origin Access Identity to Restrict Access to Your Amazon S3 Content</a> in the <i>Amazon Amazon CloudFront Developer Guide</i>.</p>",
         "S3OriginConfig$OriginAccessIdentity": "<p>The CloudFront origin access identity to associate with the origin. Use an origin access identity to configure the origin so that viewers can <i>only</i> access objects in an Amazon S3 bucket through CloudFront. The format of the value is:</p> <p>origin-access-identity/cloudfront/<i>ID-of-origin-access-identity</i> </p> <p>where <code> <i>ID-of-origin-access-identity</i> </code> is the value that CloudFront returned in the <code>ID</code> element when you created the origin access identity.</p> <p>If you want viewers to be able to access objects using either the CloudFront URL or the Amazon S3 URL, specify an empty <code>OriginAccessIdentity</code> element.</p> <p>To delete the origin access identity from an existing distribution, update the distribution configuration and include an empty <code>OriginAccessIdentity</code> element.</p> <p>To replace the origin access identity, update the distribution configuration and specify the new origin access identity.</p> <p>For more information about the origin access identity, see <a href=\"http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/PrivateContent.html\">Serving Private Content through CloudFront</a> in the <i>Amazon CloudFront Developer Guide</i>.</p>",

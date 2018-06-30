@@ -227,7 +227,7 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 // `INVALID_ARGUMENT` error if any path is duplicated or unmappable.
 type FieldMask struct {
 	// The set of field mask paths.
-	Paths                []string `protobuf:"bytes,1,rep,name=paths" json:"paths,omitempty"`
+	Paths                []string `protobuf:"bytes,1,rep,name=paths,proto3" json:"paths,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

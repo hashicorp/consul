@@ -8,12 +8,18 @@
     "DeleteChannel": "Starts deletion of channel. The associated outputs are also deleted.",
     "DeleteInput": "Deletes the input end point",
     "DeleteInputSecurityGroup": "Deletes an Input Security Group",
+    "DeleteReservation": "Delete an expired reservation.",
     "DescribeChannel": "Gets details about a channel",
     "DescribeInput": "Produces details about an input",
     "DescribeInputSecurityGroup": "Produces a summary of an Input Security Group",
+    "DescribeOffering": "Get details for an offering.",
+    "DescribeReservation": "Get details for a reservation.",
     "ListChannels": "Produces list of channels that have been created",
     "ListInputSecurityGroups": "Produces a list of Input Security Groups for an account",
     "ListInputs": "Produces list of inputs that have been created",
+    "ListOfferings": "List offerings available for purchase.",
+    "ListReservations": "List purchased reservations.",
+    "PurchaseOffering": "Purchase an offering and create a reservation.",
     "StartChannel": "Starts an existing channel",
     "StopChannel": "Stops a running channel",
     "UpdateChannel": "Updates a channel.",
@@ -1207,6 +1213,25 @@
       "refs": {
       }
     },
+    "ListOfferingsResultModel": {
+      "base": "ListOfferings response",
+      "refs": {
+      }
+    },
+    "ListReservationsResultModel": {
+      "base": "ListReservations response",
+      "refs": {
+      }
+    },
+    "LogLevel": {
+      "base": null,
+      "refs": {
+        "Channel$LogLevel": "The log level being written to CloudWatch Logs.",
+        "ChannelSummary$LogLevel": "The log level being written to CloudWatch Logs.",
+        "CreateChannel$LogLevel": "The log level to write to CloudWatch Logs.",
+        "UpdateChannel$LogLevel": "The log level to write to CloudWatch Logs."
+      }
+    },
     "M2tsAbsentInputAudioBehavior": {
       "base": null,
       "refs": {
@@ -1387,6 +1412,26 @@
       "refs": {
       }
     },
+    "Offering": {
+      "base": "Reserved resources available for purchase",
+      "refs": {
+        "__listOfOffering$member": null
+      }
+    },
+    "OfferingDurationUnits": {
+      "base": "Units for duration, e.g. 'MONTHS'",
+      "refs": {
+        "Offering$DurationUnits": "Units for duration, e.g. 'MONTHS'",
+        "Reservation$DurationUnits": "Units for duration, e.g. 'MONTHS'"
+      }
+    },
+    "OfferingType": {
+      "base": "Offering type, e.g. 'NO_UPFRONT'",
+      "refs": {
+        "Offering$OfferingType": "Offering type, e.g. 'NO_UPFRONT'",
+        "Reservation$OfferingType": "Offering type, e.g. 'NO_UPFRONT'"
+      }
+    },
     "Output": {
       "base": "Output settings. There can be multiple outputs within a group.",
       "refs": {
@@ -1439,10 +1484,82 @@
         "AudioCodecSettings$PassThroughSettings": null
       }
     },
+    "PurchaseOffering": {
+      "base": "PurchaseOffering request",
+      "refs": {
+      }
+    },
+    "PurchaseOfferingResultModel": {
+      "base": "PurchaseOffering response",
+      "refs": {
+      }
+    },
     "RemixSettings": {
       "base": null,
       "refs": {
         "AudioDescription$RemixSettings": "Settings that control how input audio channels are remixed into the output audio channels."
+      }
+    },
+    "Reservation": {
+      "base": "Reserved resources available to use",
+      "refs": {
+        "PurchaseOfferingResultModel$Reservation": null,
+        "__listOfReservation$member": null
+      }
+    },
+    "ReservationCodec": {
+      "base": "Codec, 'MPEG2', 'AVC', 'HEVC', or 'AUDIO'",
+      "refs": {
+        "ReservationResourceSpecification$Codec": "Codec, e.g. 'AVC'"
+      }
+    },
+    "ReservationMaximumBitrate": {
+      "base": "Maximum bitrate in megabits per second",
+      "refs": {
+        "ReservationResourceSpecification$MaximumBitrate": "Maximum bitrate, e.g. 'MAX_20_MBPS'"
+      }
+    },
+    "ReservationMaximumFramerate": {
+      "base": "Maximum framerate in frames per second (Outputs only)",
+      "refs": {
+        "ReservationResourceSpecification$MaximumFramerate": "Maximum framerate, e.g. 'MAX_30_FPS' (Outputs only)"
+      }
+    },
+    "ReservationResolution": {
+      "base": "Resolution based on lines of vertical resolution; SD is less than 720 lines, HD is 720 to 1080 lines, UHD is greater than 1080 lines\n",
+      "refs": {
+        "ReservationResourceSpecification$Resolution": "Resolution, e.g. 'HD'"
+      }
+    },
+    "ReservationResourceSpecification": {
+      "base": "Resource configuration (codec, resolution, bitrate, ...)",
+      "refs": {
+        "Offering$ResourceSpecification": "Resource configuration details",
+        "Reservation$ResourceSpecification": "Resource configuration details"
+      }
+    },
+    "ReservationResourceType": {
+      "base": "Resource type, 'INPUT', 'OUTPUT', or 'CHANNEL'",
+      "refs": {
+        "ReservationResourceSpecification$ResourceType": "Resource type, 'INPUT', 'OUTPUT', or 'CHANNEL'"
+      }
+    },
+    "ReservationSpecialFeature": {
+      "base": "Special features, 'ADVANCED_AUDIO' or 'AUDIO_NORMALIZATION'",
+      "refs": {
+        "ReservationResourceSpecification$SpecialFeature": "Special feature, e.g. 'AUDIO_NORMALIZATION' (Channels only)"
+      }
+    },
+    "ReservationState": {
+      "base": "Current reservation state",
+      "refs": {
+        "Reservation$State": "Current state of reservation, e.g. 'ACTIVE'"
+      }
+    },
+    "ReservationVideoQuality": {
+      "base": "Video quality, e.g. 'STANDARD' (Outputs only)",
+      "refs": {
+        "ReservationResourceSpecification$VideoQuality": "Video quality, e.g. 'STANDARD' (Outputs only)"
       }
     },
     "ResourceConflict": {
@@ -1802,7 +1919,11 @@
         "Eac3Settings$LtRtCenterMixLevel": "Left total/Right total center mix level. Only used for 3/2 coding mode.",
         "Eac3Settings$LtRtSurroundMixLevel": "Left total/Right total surround mix level. Only used for 3/2 coding mode.",
         "Mp2Settings$Bitrate": "Average bitrate in bits/second.",
-        "Mp2Settings$SampleRate": "Sample rate in Hz."
+        "Mp2Settings$SampleRate": "Sample rate in Hz.",
+        "Offering$FixedPrice": "One-time charge for each reserved resource, e.g. '0.0' for a NO_UPFRONT offering",
+        "Offering$UsagePrice": "Recurring usage charge for each reserved resource, e.g. '157.0'",
+        "Reservation$FixedPrice": "One-time charge for each reserved resource, e.g. '0.0' for a NO_UPFRONT offering",
+        "Reservation$UsagePrice": "Recurring usage charge for each reserved resource, e.g. '157.0'"
       }
     },
     "__doubleMin0": {
@@ -1837,6 +1958,9 @@
         "H264Settings$FramerateDenominator": "Framerate denominator.",
         "H264Settings$FramerateNumerator": "Framerate numerator - framerate is a fraction, e.g. 24000 / 1001 = 23.976 fps.",
         "H264Settings$ParNumerator": "Pixel Aspect Ratio numerator.",
+        "Offering$Duration": "Lease duration, e.g. '12'",
+        "Reservation$Count": "Number of reserved resources",
+        "Reservation$Duration": "Lease duration, e.g. '12'",
         "VideoDescription$Height": "Output video height (in pixels). Leave blank to use source video height. If left blank, width must also be unspecified.",
         "VideoDescription$Width": "Output video width (in pixels). Leave out to use source video width.  If left out, height must also be left out. Display aspect ratio is always preserved by letterboxing or pillarboxing when necessary."
       }
@@ -2010,6 +2134,7 @@
         "HlsGroupSettings$SegmentLength": "Length of MPEG-2 Transport Stream segments to create (in seconds). Note that segments will end on the next keyframe after this number of seconds, so actual segment length may be longer.",
         "HlsGroupSettings$SegmentsPerSubdirectory": "Number of segments to write to a subdirectory before starting a new one. directoryStructure must be subdirectoryPerStream for this setting to have an effect.",
         "MsSmoothGroupSettings$FragmentLength": "Length of mp4 fragments to generate (in seconds). Fragment length must be compatible with GOP size and framerate.",
+        "PurchaseOffering$Count": "Number of resources",
         "RtmpOutputSettings$ConnectionRetryInterval": "Number of seconds to wait before retrying a connection to the Flash Media server if the connection is lost.",
         "Scte27SourceSettings$Pid": "The pid field is used in conjunction with the caption selector languageCode field as follows:\n  - Specify PID and Language: Extracts captions from that PID; the language is \"informational\".\n  - Specify PID and omit Language: Extracts the specified PID.\n  - Omit PID and specify Language: Extracts the specified language, whichever PID that happens to be.\n  - Omit PID and omit Language: Valid only if source is DVB-Sub that is being passed through; all languages will be passed through."
       }
@@ -2261,6 +2386,12 @@
         "InputSecurityGroupWhitelistRequest$WhitelistRules": "List of IPv4 CIDR addresses to whitelist"
       }
     },
+    "__listOfOffering": {
+      "base": null,
+      "refs": {
+        "ListOfferingsResultModel$Offerings": "List of offerings"
+      }
+    },
     "__listOfOutput": {
       "base": null,
       "refs": {
@@ -2286,6 +2417,12 @@
       "base": null,
       "refs": {
         "EncoderSettings$OutputGroups": null
+      }
+    },
+    "__listOfReservation": {
+      "base": null,
+      "refs": {
+        "ListReservationsResultModel$Reservations": "List of reservations"
       }
     },
     "__listOfValidationError": {
@@ -2384,6 +2521,8 @@
         "ListChannelsResultModel$NextToken": null,
         "ListInputSecurityGroupsResultModel$NextToken": null,
         "ListInputsResultModel$NextToken": null,
+        "ListOfferingsResultModel$NextToken": "Token to retrieve the next page of results",
+        "ListReservationsResultModel$NextToken": "Token to retrieve the next page of results",
         "M2tsSettings$AribCaptionsPid": "Packet Identifier (PID) for ARIB Captions in the transport stream. Can be entered as a decimal or hexadecimal value.  Valid values are 32 (or 0x20)..8182 (or 0x1ff6).",
         "M2tsSettings$AudioPids": "Packet Identifier (PID) of the elementary audio stream(s) in the transport stream. Multiple values are accepted, and can be entered in ranges and/or by comma separation. Can be entered as decimal or hexadecimal values. Each PID specified must be in the range of 32 (or 0x20)..8182 (or 0x1ff6).",
         "M2tsSettings$DvbSubPids": "Packet Identifier (PID) for input source DVB Subtitle data to this output. Multiple values are accepted, and can be entered in ranges and/or by comma separation. Can be entered as decimal or hexadecimal values.  Each PID specified must be in the range of 32 (or 0x20)..8182 (or 0x1ff6).",
@@ -2409,6 +2548,11 @@
         "MsSmoothGroupSettings$EventId": "MS Smooth event ID to be sent to the IIS server.\n\nShould only be specified if eventIdMode is set to useConfigured.",
         "MsSmoothGroupSettings$TimestampOffset": "Timestamp offset for the event.  Only used if timestampOffsetMode is set to useConfiguredOffset.",
         "MsSmoothOutputSettings$NameModifier": "String concatenated to the end of the destination filename.  Required for multiple outputs of the same type.",
+        "Offering$Arn": "Unique offering ARN, e.g. 'arn:aws:medialive:us-west-2:123456789012:offering:87654321'",
+        "Offering$CurrencyCode": "Currency code for usagePrice and fixedPrice in ISO-4217 format, e.g. 'USD'",
+        "Offering$OfferingDescription": "Offering description, e.g. 'HD AVC output at 10-20 Mbps, 30 fps, and standard VQ in US West (Oregon)'",
+        "Offering$OfferingId": "Unique offering ID, e.g. '87654321'",
+        "Offering$Region": "AWS region, e.g. 'us-west-2'",
         "Output$VideoDescriptionName": "The name of the VideoDescription used as the source for this output.",
         "OutputDestination$Id": "User-specified id. This is used in an output group or an output.",
         "OutputDestinationSettings$PasswordParam": "key used to extract the password from EC2 Parameter store",
@@ -2416,6 +2560,17 @@
         "OutputDestinationSettings$Url": "A URL specifying a destination",
         "OutputDestinationSettings$Username": "username for destination",
         "OutputLocationRef$DestinationRefId": null,
+        "PurchaseOffering$Name": "Name for the new reservation",
+        "PurchaseOffering$RequestId": "Unique request ID to be specified. This is needed to prevent retries from creating multiple resources.",
+        "Reservation$Arn": "Unique reservation ARN, e.g. 'arn:aws:medialive:us-west-2:123456789012:reservation:1234567'",
+        "Reservation$CurrencyCode": "Currency code for usagePrice and fixedPrice in ISO-4217 format, e.g. 'USD'",
+        "Reservation$End": "Reservation UTC end date and time in ISO-8601 format, e.g. '2019-03-01T00:00:00'",
+        "Reservation$Name": "User specified reservation name",
+        "Reservation$OfferingDescription": "Offering description, e.g. 'HD AVC output at 10-20 Mbps, 30 fps, and standard VQ in US West (Oregon)'",
+        "Reservation$OfferingId": "Unique offering ID, e.g. '87654321'",
+        "Reservation$Region": "AWS region, e.g. 'us-west-2'",
+        "Reservation$ReservationId": "Unique reservation ID, e.g. '1234567'",
+        "Reservation$Start": "Reservation UTC start date and time in ISO-8601 format, e.g. '2018-03-01T00:00:00'",
         "ResourceConflict$Message": null,
         "ResourceNotFound$Message": null,
         "StandardHlsSettings$AudioRenditionSets": "List all the audio groups that are used with the video output stream. Input all the audio GROUP-IDs that are associated to the video, separate by ','.",

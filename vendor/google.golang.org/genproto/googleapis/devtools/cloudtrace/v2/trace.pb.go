@@ -99,12 +99,12 @@ type Span struct {
 	//
 	// [SPAN_ID] is a unique identifier for a span within a trace; it
 	// is a 16-character hexadecimal encoding of an 8-byte array.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The [SPAN_ID] portion of the span's resource name.
-	SpanId string `protobuf:"bytes,2,opt,name=span_id,json=spanId" json:"span_id,omitempty"`
+	SpanId string `protobuf:"bytes,2,opt,name=span_id,json=spanId,proto3" json:"span_id,omitempty"`
 	// The [SPAN_ID] of this span's parent span. If this is a root span,
 	// then this field must be empty.
-	ParentSpanId string `protobuf:"bytes,3,opt,name=parent_span_id,json=parentSpanId" json:"parent_span_id,omitempty"`
+	ParentSpanId string `protobuf:"bytes,3,opt,name=parent_span_id,json=parentSpanId,proto3" json:"parent_span_id,omitempty"`
 	// A description of the span's operation (up to 128 bytes).
 	// Stackdriver Trace displays the description in the
 	// {% dynamic print site_values.console_name %}.
@@ -112,35 +112,35 @@ type Span struct {
 	// and a line number where the operation is called. A best practice is to use
 	// the same display name within an application and at the same call point.
 	// This makes it easier to correlate spans in different traces.
-	DisplayName *TruncatableString `protobuf:"bytes,4,opt,name=display_name,json=displayName" json:"display_name,omitempty"`
+	DisplayName *TruncatableString `protobuf:"bytes,4,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	// The start time of the span. On the client side, this is the time kept by
 	// the local machine where the span execution starts. On the server side, this
 	// is the time when the server's application handler starts running.
-	StartTime *timestamp.Timestamp `protobuf:"bytes,5,opt,name=start_time,json=startTime" json:"start_time,omitempty"`
+	StartTime *timestamp.Timestamp `protobuf:"bytes,5,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
 	// The end time of the span. On the client side, this is the time kept by
 	// the local machine where the span execution ends. On the server side, this
 	// is the time when the server application handler stops running.
-	EndTime *timestamp.Timestamp `protobuf:"bytes,6,opt,name=end_time,json=endTime" json:"end_time,omitempty"`
+	EndTime *timestamp.Timestamp `protobuf:"bytes,6,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
 	// A set of attributes on the span. You can have up to 32 attributes per
 	// span.
-	Attributes *Span_Attributes `protobuf:"bytes,7,opt,name=attributes" json:"attributes,omitempty"`
+	Attributes *Span_Attributes `protobuf:"bytes,7,opt,name=attributes,proto3" json:"attributes,omitempty"`
 	// Stack trace captured at the start of the span.
-	StackTrace *StackTrace `protobuf:"bytes,8,opt,name=stack_trace,json=stackTrace" json:"stack_trace,omitempty"`
+	StackTrace *StackTrace `protobuf:"bytes,8,opt,name=stack_trace,json=stackTrace,proto3" json:"stack_trace,omitempty"`
 	// A set of time events. You can have up to 32 annotations and 128 message
 	// events per span.
-	TimeEvents *Span_TimeEvents `protobuf:"bytes,9,opt,name=time_events,json=timeEvents" json:"time_events,omitempty"`
+	TimeEvents *Span_TimeEvents `protobuf:"bytes,9,opt,name=time_events,json=timeEvents,proto3" json:"time_events,omitempty"`
 	// Links associated with the span. You can have up to 128 links per Span.
-	Links *Span_Links `protobuf:"bytes,10,opt,name=links" json:"links,omitempty"`
+	Links *Span_Links `protobuf:"bytes,10,opt,name=links,proto3" json:"links,omitempty"`
 	// An optional final status for this span.
-	Status *status.Status `protobuf:"bytes,11,opt,name=status" json:"status,omitempty"`
+	Status *status.Status `protobuf:"bytes,11,opt,name=status,proto3" json:"status,omitempty"`
 	// (Optional) Set this parameter to indicate whether this span is in
 	// the same process as its parent. If you do not set this parameter,
 	// Stackdriver Trace is unable to take advantage of this helpful
 	// information.
-	SameProcessAsParentSpan *wrappers.BoolValue `protobuf:"bytes,12,opt,name=same_process_as_parent_span,json=sameProcessAsParentSpan" json:"same_process_as_parent_span,omitempty"`
+	SameProcessAsParentSpan *wrappers.BoolValue `protobuf:"bytes,12,opt,name=same_process_as_parent_span,json=sameProcessAsParentSpan,proto3" json:"same_process_as_parent_span,omitempty"`
 	// An optional number of child spans that were generated while this span
 	// was active. If set, allows implementation to detect missing child spans.
-	ChildSpanCount       *wrappers.Int32Value `protobuf:"bytes,13,opt,name=child_span_count,json=childSpanCount" json:"child_span_count,omitempty"`
+	ChildSpanCount       *wrappers.Int32Value `protobuf:"bytes,13,opt,name=child_span_count,json=childSpanCount,proto3" json:"child_span_count,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -271,11 +271,11 @@ type Span_Attributes struct {
 	//     "/http/user_agent": ""
 	//     "/http/request_bytes": 300
 	//     "abc.com/myattribute": true
-	AttributeMap map[string]*AttributeValue `protobuf:"bytes,1,rep,name=attribute_map,json=attributeMap" json:"attribute_map,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	AttributeMap map[string]*AttributeValue `protobuf:"bytes,1,rep,name=attribute_map,json=attributeMap,proto3" json:"attribute_map,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// The number of attributes that were discarded. Attributes can be discarded
 	// because their keys are too long or because there are too many attributes.
 	// If this value is 0 then all attributes are valid.
-	DroppedAttributesCount int32    `protobuf:"varint,2,opt,name=dropped_attributes_count,json=droppedAttributesCount" json:"dropped_attributes_count,omitempty"`
+	DroppedAttributesCount int32    `protobuf:"varint,2,opt,name=dropped_attributes_count,json=droppedAttributesCount,proto3" json:"dropped_attributes_count,omitempty"`
 	XXX_NoUnkeyedLiteral   struct{} `json:"-"`
 	XXX_unrecognized       []byte   `json:"-"`
 	XXX_sizecache          int32    `json:"-"`
@@ -322,7 +322,7 @@ func (m *Span_Attributes) GetDroppedAttributesCount() int32 {
 // A time-stamped annotation or message event in the Span.
 type Span_TimeEvent struct {
 	// The timestamp indicating the time the event occurred.
-	Time *timestamp.Timestamp `protobuf:"bytes,1,opt,name=time" json:"time,omitempty"`
+	Time *timestamp.Timestamp `protobuf:"bytes,1,opt,name=time,proto3" json:"time,omitempty"`
 	// A `TimeEvent` can contain either an `Annotation` object or a
 	// `MessageEvent` object, but not both.
 	//
@@ -364,10 +364,10 @@ type isSpan_TimeEvent_Value interface {
 }
 
 type Span_TimeEvent_Annotation_ struct {
-	Annotation *Span_TimeEvent_Annotation `protobuf:"bytes,2,opt,name=annotation,oneof"`
+	Annotation *Span_TimeEvent_Annotation `protobuf:"bytes,2,opt,name=annotation,proto3,oneof"`
 }
 type Span_TimeEvent_MessageEvent_ struct {
-	MessageEvent *Span_TimeEvent_MessageEvent `protobuf:"bytes,3,opt,name=message_event,json=messageEvent,oneof"`
+	MessageEvent *Span_TimeEvent_MessageEvent `protobuf:"bytes,3,opt,name=message_event,json=messageEvent,proto3,oneof"`
 }
 
 func (*Span_TimeEvent_Annotation_) isSpan_TimeEvent_Value()   {}
@@ -479,10 +479,10 @@ func _Span_TimeEvent_OneofSizer(msg proto.Message) (n int) {
 type Span_TimeEvent_Annotation struct {
 	// A user-supplied message describing the event. The maximum length for
 	// the description is 256 bytes.
-	Description *TruncatableString `protobuf:"bytes,1,opt,name=description" json:"description,omitempty"`
+	Description *TruncatableString `protobuf:"bytes,1,opt,name=description,proto3" json:"description,omitempty"`
 	// A set of attributes on the annotation. You can have up to 4 attributes
 	// per Annotation.
-	Attributes           *Span_Attributes `protobuf:"bytes,2,opt,name=attributes" json:"attributes,omitempty"`
+	Attributes           *Span_Attributes `protobuf:"bytes,2,opt,name=attributes,proto3" json:"attributes,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
 	XXX_unrecognized     []byte           `json:"-"`
 	XXX_sizecache        int32            `json:"-"`
@@ -530,16 +530,16 @@ func (m *Span_TimeEvent_Annotation) GetAttributes() *Span_Attributes {
 type Span_TimeEvent_MessageEvent struct {
 	// Type of MessageEvent. Indicates whether the message was sent or
 	// received.
-	Type Span_TimeEvent_MessageEvent_Type `protobuf:"varint,1,opt,name=type,enum=google.devtools.cloudtrace.v2.Span_TimeEvent_MessageEvent_Type" json:"type,omitempty"`
+	Type Span_TimeEvent_MessageEvent_Type `protobuf:"varint,1,opt,name=type,proto3,enum=google.devtools.cloudtrace.v2.Span_TimeEvent_MessageEvent_Type" json:"type,omitempty"`
 	// An identifier for the MessageEvent's message that can be used to match
 	// SENT and RECEIVED MessageEvents. It is recommended to be unique within
 	// a Span.
-	Id int64 `protobuf:"varint,2,opt,name=id" json:"id,omitempty"`
+	Id int64 `protobuf:"varint,2,opt,name=id,proto3" json:"id,omitempty"`
 	// The number of uncompressed bytes sent or received.
-	UncompressedSizeBytes int64 `protobuf:"varint,3,opt,name=uncompressed_size_bytes,json=uncompressedSizeBytes" json:"uncompressed_size_bytes,omitempty"`
+	UncompressedSizeBytes int64 `protobuf:"varint,3,opt,name=uncompressed_size_bytes,json=uncompressedSizeBytes,proto3" json:"uncompressed_size_bytes,omitempty"`
 	// The number of compressed bytes sent or received. If missing assumed to
 	// be the same size as uncompressed.
-	CompressedSizeBytes  int64    `protobuf:"varint,4,opt,name=compressed_size_bytes,json=compressedSizeBytes" json:"compressed_size_bytes,omitempty"`
+	CompressedSizeBytes  int64    `protobuf:"varint,4,opt,name=compressed_size_bytes,json=compressedSizeBytes,proto3" json:"compressed_size_bytes,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -602,13 +602,13 @@ func (m *Span_TimeEvent_MessageEvent) GetCompressedSizeBytes() int64 {
 // details of a message sent/received between Spans.
 type Span_TimeEvents struct {
 	// A collection of `TimeEvent`s.
-	TimeEvent []*Span_TimeEvent `protobuf:"bytes,1,rep,name=time_event,json=timeEvent" json:"time_event,omitempty"`
+	TimeEvent []*Span_TimeEvent `protobuf:"bytes,1,rep,name=time_event,json=timeEvent,proto3" json:"time_event,omitempty"`
 	// The number of dropped annotations in all the included time events.
 	// If the value is 0, then no annotations were dropped.
-	DroppedAnnotationsCount int32 `protobuf:"varint,2,opt,name=dropped_annotations_count,json=droppedAnnotationsCount" json:"dropped_annotations_count,omitempty"`
+	DroppedAnnotationsCount int32 `protobuf:"varint,2,opt,name=dropped_annotations_count,json=droppedAnnotationsCount,proto3" json:"dropped_annotations_count,omitempty"`
 	// The number of dropped message events in all the included time events.
 	// If the value is 0, then no message events were dropped.
-	DroppedMessageEventsCount int32    `protobuf:"varint,3,opt,name=dropped_message_events_count,json=droppedMessageEventsCount" json:"dropped_message_events_count,omitempty"`
+	DroppedMessageEventsCount int32    `protobuf:"varint,3,opt,name=dropped_message_events_count,json=droppedMessageEventsCount,proto3" json:"dropped_message_events_count,omitempty"`
 	XXX_NoUnkeyedLiteral      struct{} `json:"-"`
 	XXX_unrecognized          []byte   `json:"-"`
 	XXX_sizecache             int32    `json:"-"`
@@ -665,14 +665,14 @@ func (m *Span_TimeEvents) GetDroppedMessageEventsCount() int32 {
 // traces or when the handler receives a request from a different project.
 type Span_Link struct {
 	// The [TRACE_ID] for a trace within a project.
-	TraceId string `protobuf:"bytes,1,opt,name=trace_id,json=traceId" json:"trace_id,omitempty"`
+	TraceId string `protobuf:"bytes,1,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`
 	// The [SPAN_ID] for a span within a trace.
-	SpanId string `protobuf:"bytes,2,opt,name=span_id,json=spanId" json:"span_id,omitempty"`
+	SpanId string `protobuf:"bytes,2,opt,name=span_id,json=spanId,proto3" json:"span_id,omitempty"`
 	// The relationship of the current span relative to the linked span.
-	Type Span_Link_Type `protobuf:"varint,3,opt,name=type,enum=google.devtools.cloudtrace.v2.Span_Link_Type" json:"type,omitempty"`
+	Type Span_Link_Type `protobuf:"varint,3,opt,name=type,proto3,enum=google.devtools.cloudtrace.v2.Span_Link_Type" json:"type,omitempty"`
 	// A set of attributes on the link. You have have up to  32 attributes per
 	// link.
-	Attributes           *Span_Attributes `protobuf:"bytes,4,opt,name=attributes" json:"attributes,omitempty"`
+	Attributes           *Span_Attributes `protobuf:"bytes,4,opt,name=attributes,proto3" json:"attributes,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
 	XXX_unrecognized     []byte           `json:"-"`
 	XXX_sizecache        int32            `json:"-"`
@@ -734,10 +734,10 @@ func (m *Span_Link) GetAttributes() *Span_Attributes {
 // in the same or different trace.
 type Span_Links struct {
 	// A collection of links.
-	Link []*Span_Link `protobuf:"bytes,1,rep,name=link" json:"link,omitempty"`
+	Link []*Span_Link `protobuf:"bytes,1,rep,name=link,proto3" json:"link,omitempty"`
 	// The number of dropped links after the maximum size was enforced. If
 	// this value is 0, then no links were dropped.
-	DroppedLinksCount    int32    `protobuf:"varint,2,opt,name=dropped_links_count,json=droppedLinksCount" json:"dropped_links_count,omitempty"`
+	DroppedLinksCount    int32    `protobuf:"varint,2,opt,name=dropped_links_count,json=droppedLinksCount,proto3" json:"dropped_links_count,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -824,13 +824,13 @@ type isAttributeValue_Value interface {
 }
 
 type AttributeValue_StringValue struct {
-	StringValue *TruncatableString `protobuf:"bytes,1,opt,name=string_value,json=stringValue,oneof"`
+	StringValue *TruncatableString `protobuf:"bytes,1,opt,name=string_value,json=stringValue,proto3,oneof"`
 }
 type AttributeValue_IntValue struct {
-	IntValue int64 `protobuf:"varint,2,opt,name=int_value,json=intValue,oneof"`
+	IntValue int64 `protobuf:"varint,2,opt,name=int_value,json=intValue,proto3,oneof"`
 }
 type AttributeValue_BoolValue struct {
-	BoolValue bool `protobuf:"varint,3,opt,name=bool_value,json=boolValue,oneof"`
+	BoolValue bool `protobuf:"varint,3,opt,name=bool_value,json=boolValue,proto3,oneof"`
 }
 
 func (*AttributeValue_StringValue) isAttributeValue_Value() {}
@@ -955,7 +955,7 @@ func _AttributeValue_OneofSizer(msg proto.Message) (n int) {
 // A call stack appearing in a trace.
 type StackTrace struct {
 	// Stack frames in this stack trace. A maximum of 128 frames are allowed.
-	StackFrames *StackTrace_StackFrames `protobuf:"bytes,1,opt,name=stack_frames,json=stackFrames" json:"stack_frames,omitempty"`
+	StackFrames *StackTrace_StackFrames `protobuf:"bytes,1,opt,name=stack_frames,json=stackFrames,proto3" json:"stack_frames,omitempty"`
 	// The hash ID is used to conserve network bandwidth for duplicate
 	// stack traces within a single trace.
 	//
@@ -965,7 +965,7 @@ type StackTrace struct {
 	//
 	// Subsequent spans within the same request can refer
 	// to that stack trace by only setting `stackTraceHashId`.
-	StackTraceHashId     int64    `protobuf:"varint,2,opt,name=stack_trace_hash_id,json=stackTraceHashId" json:"stack_trace_hash_id,omitempty"`
+	StackTraceHashId     int64    `protobuf:"varint,2,opt,name=stack_trace_hash_id,json=stackTraceHashId,proto3" json:"stack_trace_hash_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1013,23 +1013,23 @@ func (m *StackTrace) GetStackTraceHashId() int64 {
 type StackTrace_StackFrame struct {
 	// The fully-qualified name that uniquely identifies the function or
 	// method that is active in this frame (up to 1024 bytes).
-	FunctionName *TruncatableString `protobuf:"bytes,1,opt,name=function_name,json=functionName" json:"function_name,omitempty"`
+	FunctionName *TruncatableString `protobuf:"bytes,1,opt,name=function_name,json=functionName,proto3" json:"function_name,omitempty"`
 	// An un-mangled function name, if `function_name` is
 	// [mangled](http://www.avabodh.com/cxxin/namemangling.html). The name can
 	// be fully-qualified (up to 1024 bytes).
-	OriginalFunctionName *TruncatableString `protobuf:"bytes,2,opt,name=original_function_name,json=originalFunctionName" json:"original_function_name,omitempty"`
+	OriginalFunctionName *TruncatableString `protobuf:"bytes,2,opt,name=original_function_name,json=originalFunctionName,proto3" json:"original_function_name,omitempty"`
 	// The name of the source file where the function call appears (up to 256
 	// bytes).
-	FileName *TruncatableString `protobuf:"bytes,3,opt,name=file_name,json=fileName" json:"file_name,omitempty"`
+	FileName *TruncatableString `protobuf:"bytes,3,opt,name=file_name,json=fileName,proto3" json:"file_name,omitempty"`
 	// The line number in `file_name` where the function call appears.
-	LineNumber int64 `protobuf:"varint,4,opt,name=line_number,json=lineNumber" json:"line_number,omitempty"`
+	LineNumber int64 `protobuf:"varint,4,opt,name=line_number,json=lineNumber,proto3" json:"line_number,omitempty"`
 	// The column number where the function call appears, if available.
 	// This is important in JavaScript because of its anonymous functions.
-	ColumnNumber int64 `protobuf:"varint,5,opt,name=column_number,json=columnNumber" json:"column_number,omitempty"`
+	ColumnNumber int64 `protobuf:"varint,5,opt,name=column_number,json=columnNumber,proto3" json:"column_number,omitempty"`
 	// The binary module from where the code was loaded.
-	LoadModule *Module `protobuf:"bytes,6,opt,name=load_module,json=loadModule" json:"load_module,omitempty"`
+	LoadModule *Module `protobuf:"bytes,6,opt,name=load_module,json=loadModule,proto3" json:"load_module,omitempty"`
 	// The version of the deployed source code (up to 128 bytes).
-	SourceVersion        *TruncatableString `protobuf:"bytes,7,opt,name=source_version,json=sourceVersion" json:"source_version,omitempty"`
+	SourceVersion        *TruncatableString `protobuf:"bytes,7,opt,name=source_version,json=sourceVersion,proto3" json:"source_version,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
 	XXX_unrecognized     []byte             `json:"-"`
 	XXX_sizecache        int32              `json:"-"`
@@ -1111,11 +1111,11 @@ func (m *StackTrace_StackFrame) GetSourceVersion() *TruncatableString {
 // A collection of stack frames, which can be truncated.
 type StackTrace_StackFrames struct {
 	// Stack frames in this call stack.
-	Frame []*StackTrace_StackFrame `protobuf:"bytes,1,rep,name=frame" json:"frame,omitempty"`
+	Frame []*StackTrace_StackFrame `protobuf:"bytes,1,rep,name=frame,proto3" json:"frame,omitempty"`
 	// The number of stack frames that were dropped because there
 	// were too many stack frames.
 	// If this value is 0, then no stack frames were dropped.
-	DroppedFramesCount   int32    `protobuf:"varint,2,opt,name=dropped_frames_count,json=droppedFramesCount" json:"dropped_frames_count,omitempty"`
+	DroppedFramesCount   int32    `protobuf:"varint,2,opt,name=dropped_frames_count,json=droppedFramesCount,proto3" json:"dropped_frames_count,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1163,10 +1163,10 @@ func (m *StackTrace_StackFrames) GetDroppedFramesCount() int32 {
 type Module struct {
 	// For example: main binary, kernel modules, and dynamic libraries
 	// such as libc.so, sharedlib.so (up to 256 bytes).
-	Module *TruncatableString `protobuf:"bytes,1,opt,name=module" json:"module,omitempty"`
+	Module *TruncatableString `protobuf:"bytes,1,opt,name=module,proto3" json:"module,omitempty"`
 	// A unique identifier for the module, usually a hash of its
 	// contents (up to 128 bytes).
-	BuildId              *TruncatableString `protobuf:"bytes,2,opt,name=build_id,json=buildId" json:"build_id,omitempty"`
+	BuildId              *TruncatableString `protobuf:"bytes,2,opt,name=build_id,json=buildId,proto3" json:"build_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
 	XXX_unrecognized     []byte             `json:"-"`
 	XXX_sizecache        int32              `json:"-"`
@@ -1219,10 +1219,10 @@ type TruncatableString struct {
 	// Truncation always happens on a UTF8 character boundary. If there
 	// are multi-byte characters in the string, then the length of the
 	// shortened string might be less than the size limit.
-	Value string `protobuf:"bytes,1,opt,name=value" json:"value,omitempty"`
+	Value string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
 	// The number of bytes removed from the original string. If this
 	// value is 0, then the string was not shortened.
-	TruncatedByteCount   int32    `protobuf:"varint,2,opt,name=truncated_byte_count,json=truncatedByteCount" json:"truncated_byte_count,omitempty"`
+	TruncatedByteCount   int32    `protobuf:"varint,2,opt,name=truncated_byte_count,json=truncatedByteCount,proto3" json:"truncated_byte_count,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

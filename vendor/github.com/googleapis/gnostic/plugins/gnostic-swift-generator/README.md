@@ -1,10 +1,10 @@
 # OpenAPI Swift Generator Plugin
 
-This directory contains an `openapic` plugin that can be used to generate a Swift client library and scaffolding for a Swift server for an API with an OpenAPI description.
+This directory contains a `gnostic` plugin that can be used to generate a Swift client library and scaffolding for a Swift server for an API with an OpenAPI description.
 
 The plugin can be invoked like this:
 
-	openapic bookstore.json --swift_generator_out=Bookstore
+	gnostic bookstore.json --swift-generator-out=Bookstore
 
 Where `Bookstore` is the name of a directory where the generated code will be written.
 

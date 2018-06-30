@@ -32,7 +32,8 @@
       "input":{"shape":"AssociateDeviceWithRoomRequest"},
       "output":{"shape":"AssociateDeviceWithRoomResponse"},
       "errors":[
-        {"shape":"LimitExceededException"}
+        {"shape":"LimitExceededException"},
+        {"shape":"DeviceNotRegisteredException"}
       ]
     },
     "AssociateSkillGroupWithRoom":{
@@ -219,7 +220,10 @@
         "requestUri":"/"
       },
       "input":{"shape":"DisassociateDeviceFromRoomRequest"},
-      "output":{"shape":"DisassociateDeviceFromRoomResponse"}
+      "output":{"shape":"DisassociateDeviceFromRoomResponse"},
+      "errors":[
+        {"shape":"DeviceNotRegisteredException"}
+      ]
     },
     "DisassociateSkillGroupFromRoom":{
       "name":"DisassociateSkillGroupFromRoom",
@@ -463,7 +467,10 @@
         "requestUri":"/"
       },
       "input":{"shape":"StartDeviceSyncRequest"},
-      "output":{"shape":"StartDeviceSyncResponse"}
+      "output":{"shape":"StartDeviceSyncResponse"},
+      "errors":[
+        {"shape":"DeviceNotRegisteredException"}
+      ]
     },
     "TagResource":{
       "name":"TagResource",
@@ -523,7 +530,8 @@
       "input":{"shape":"UpdateDeviceRequest"},
       "output":{"shape":"UpdateDeviceResponse"},
       "errors":[
-        {"shape":"NotFoundException"}
+        {"shape":"NotFoundException"},
+        {"shape":"DeviceNotRegisteredException"}
       ]
     },
     "UpdateProfile":{
@@ -977,6 +985,13 @@
       "max":100,
       "min":2,
       "pattern":"[\\u0009\\u000A\\u000D\\u0020-\\u007E\\u0085\\u00A0-\\uD7FF\\uE000-\\uFFFD\\u10000-\\u10FFFF]*"
+    },
+    "DeviceNotRegisteredException":{
+      "type":"structure",
+      "members":{
+        "Message":{"shape":"ErrorMessage"}
+      },
+      "exception":true
     },
     "DeviceSerialNumber":{
       "type":"string",

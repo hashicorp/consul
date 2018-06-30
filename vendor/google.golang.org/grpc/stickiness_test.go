@@ -27,10 +27,10 @@ import (
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/balancer/roundrobin"
+	"google.golang.org/grpc/internal/leakcheck"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/resolver"
 	"google.golang.org/grpc/resolver/manual"
-	"google.golang.org/grpc/test/leakcheck"
 )
 
 func TestStickyKeyFromContext(t *testing.T) {
@@ -207,7 +207,7 @@ func TestStickinessChangeMDKey(t *testing.T) {
 	}
 
 	cc.blockingpicker.stickiness.mu.Lock()
-	mapLen := len(cc.blockingpicker.stickiness.store)
+	mapLen := cc.blockingpicker.stickiness.store.len()
 	cc.blockingpicker.stickiness.mu.Unlock()
 	if mapLen != 1 {
 		t.Fatalf("length of stickiness map is %v, want 1", mapLen)
@@ -218,7 +218,7 @@ func TestStickinessChangeMDKey(t *testing.T) {
 	var i int
 	for i = 0; i < 1000; i++ {
 		cc.blockingpicker.stickiness.mu.Lock()
-		mapLen = len(cc.blockingpicker.stickiness.store)
+		mapLen = cc.blockingpicker.stickiness.store.len()
 		cc.blockingpicker.stickiness.mu.Unlock()
 		if mapLen == 0 {
 			break
@@ -262,7 +262,7 @@ func TestStickinessSwitchingBalancer(t *testing.T) {
 	}
 
 	cc.blockingpicker.stickiness.mu.Lock()
-	mapLen := len(cc.blockingpicker.stickiness.store)
+	mapLen := cc.blockingpicker.stickiness.store.len()
 	cc.blockingpicker.stickiness.mu.Unlock()
 	if mapLen != 1 {
 		t.Fatalf("length of stickiness map is %v, want 1", mapLen)
@@ -275,7 +275,7 @@ func TestStickinessSwitchingBalancer(t *testing.T) {
 	var i int
 	for i = 0; i < 1000; i++ {
 		cc.blockingpicker.stickiness.mu.Lock()
-		mapLen = len(cc.blockingpicker.stickiness.store)
+		mapLen = cc.blockingpicker.stickiness.store.len()
 		cc.blockingpicker.stickiness.mu.Unlock()
 		if mapLen == 0 {
 			break

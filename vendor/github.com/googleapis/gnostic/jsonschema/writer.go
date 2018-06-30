@@ -50,7 +50,7 @@ func renderMap(info interface{}, indent string) (result string) {
 			case []string:
 				result += renderStringArray(value, innerIndent)
 			default:
-				result += fmt.Sprintf("???MapItem(%+v, %T)", value, value)
+				result += fmt.Sprintf("???MapItem(Key:%+v, Value:%T)", value, value)
 			}
 			if i < len(pairs)-1 {
 				result += ","
@@ -106,7 +106,7 @@ func renderStringArray(array []string, indent string) (result string) {
 	return result
 }
 
-func render(info yaml.MapSlice) string {
+func Render(info yaml.MapSlice) string {
 	return renderMap(info, "") + "\n"
 }
 
@@ -223,106 +223,106 @@ func schemaArrayValue(array *[]*Schema) []interface{} {
 func (schema *Schema) jsonValue() yaml.MapSlice {
 	m := yaml.MapSlice{}
 	if schema.Title != nil {
-		m = append(m, yaml.MapItem{"title", *schema.Title})
+		m = append(m, yaml.MapItem{Key: "title", Value: *schema.Title})
 	}
 	if schema.ID != nil {
-		m = append(m, yaml.MapItem{"id", *schema.ID})
+		m = append(m, yaml.MapItem{Key: "id", Value: *schema.ID})
 	}
 	if schema.Schema != nil {
-		m = append(m, yaml.MapItem{"$schema", *schema.Schema})
+		m = append(m, yaml.MapItem{Key: "$schema", Value: *schema.Schema})
 	}
 	if schema.Type != nil {
-		m = append(m, yaml.MapItem{"type", schema.Type.jsonValue()})
+		m = append(m, yaml.MapItem{Key: "type", Value: schema.Type.jsonValue()})
 	}
 	if schema.Items != nil {
-		m = append(m, yaml.MapItem{"items", schema.Items.jsonValue()})
+		m = append(m, yaml.MapItem{Key: "items", Value: schema.Items.jsonValue()})
 	}
 	if schema.Description != nil {
-		m = append(m, yaml.MapItem{"description", *schema.Description})
+		m = append(m, yaml.MapItem{Key: "description", Value: *schema.Description})
 	}
 	if schema.Required != nil {
-		m = append(m, yaml.MapItem{"required", *schema.Required})
+		m = append(m, yaml.MapItem{Key: "required", Value: *schema.Required})
 	}
 	if schema.AdditionalProperties != nil {
-		m = append(m, yaml.MapItem{"additionalProperties", schema.AdditionalProperties.jsonValue()})
+		m = append(m, yaml.MapItem{Key: "additionalProperties", Value: schema.AdditionalProperties.jsonValue()})
 	}
 	if schema.PatternProperties != nil {
-		m = append(m, yaml.MapItem{"patternProperties", namedSchemaArrayValue(schema.PatternProperties)})
+		m = append(m, yaml.MapItem{Key: "patternProperties", Value: namedSchemaArrayValue(schema.PatternProperties)})
 	}
 	if schema.Properties != nil {
-		m = append(m, yaml.MapItem{"properties", namedSchemaArrayValue(schema.Properties)})
+		m = append(m, yaml.MapItem{Key: "properties", Value: namedSchemaArrayValue(schema.Properties)})
 	}
 	if schema.Dependencies != nil {
-		m = append(m, yaml.MapItem{"dependencies", namedSchemaOrStringArrayValue(schema.Dependencies)})
+		m = append(m, yaml.MapItem{Key: "dependencies", Value: namedSchemaOrStringArrayValue(schema.Dependencies)})
 	}
 	if schema.Ref != nil {
-		m = append(m, yaml.MapItem{"$ref", *schema.Ref})
+		m = append(m, yaml.MapItem{Key: "$ref", Value: *schema.Ref})
 	}
 	if schema.MultipleOf != nil {
-		m = append(m, yaml.MapItem{"multipleOf", schema.MultipleOf.jsonValue()})
+		m = append(m, yaml.MapItem{Key: "multipleOf", Value: schema.MultipleOf.jsonValue()})
 	}
 	if schema.Maximum != nil {
-		m = append(m, yaml.MapItem{"maximum", schema.Maximum.jsonValue()})
+		m = append(m, yaml.MapItem{Key: "maximum", Value: schema.Maximum.jsonValue()})
 	}
 	if schema.ExclusiveMaximum != nil {
-		m = append(m, yaml.MapItem{"exclusiveMaximum", *schema.ExclusiveMaximum})
+		m = append(m, yaml.MapItem{Key: "exclusiveMaximum", Value: schema.ExclusiveMaximum})
 	}
 	if schema.Minimum != nil {
-		m = append(m, yaml.MapItem{"minimum", schema.Minimum.jsonValue()})
+		m = append(m, yaml.MapItem{Key: "minimum", Value: schema.Minimum.jsonValue()})
 	}
 	if schema.ExclusiveMinimum != nil {
-		m = append(m, yaml.MapItem{"exclusiveMinimum", *schema.ExclusiveMinimum})
+		m = append(m, yaml.MapItem{Key: "exclusiveMinimum", Value: schema.ExclusiveMinimum})
 	}
 	if schema.MaxLength != nil {
-		m = append(m, yaml.MapItem{"maxLength", *schema.MaxLength})
+		m = append(m, yaml.MapItem{Key: "maxLength", Value: *schema.MaxLength})
 	}
 	if schema.MinLength != nil {
-		m = append(m, yaml.MapItem{"minLength", *schema.MinLength})
+		m = append(m, yaml.MapItem{Key: "minLength", Value: *schema.MinLength})
 	}
 	if schema.Pattern != nil {
-		m = append(m, yaml.MapItem{"pattern", *schema.Pattern})
+		m = append(m, yaml.MapItem{Key: "pattern", Value: *schema.Pattern})
 	}
 	if schema.AdditionalItems != nil {
-		m = append(m, yaml.MapItem{"additionalItems", schema.AdditionalItems.jsonValue()})
+		m = append(m, yaml.MapItem{Key: "additionalItems", Value: schema.AdditionalItems.jsonValue()})
 	}
 	if schema.MaxItems != nil {
-		m = append(m, yaml.MapItem{"maxItems", *schema.MaxItems})
+		m = append(m, yaml.MapItem{Key: "maxItems", Value: *schema.MaxItems})
 	}
 	if schema.MinItems != nil {
-		m = append(m, yaml.MapItem{"minItems", *schema.MinItems})
+		m = append(m, yaml.MapItem{Key: "minItems", Value: *schema.MinItems})
 	}
 	if schema.UniqueItems != nil {
-		m = append(m, yaml.MapItem{"uniqueItems", *schema.UniqueItems})
+		m = append(m, yaml.MapItem{Key: "uniqueItems", Value: *schema.UniqueItems})
 	}
 	if schema.MaxProperties != nil {
-		m = append(m, yaml.MapItem{"maxProperties", *schema.MaxProperties})
+		m = append(m, yaml.MapItem{Key: "maxProperties", Value: *schema.MaxProperties})
 	}
 	if schema.MinProperties != nil {
-		m = append(m, yaml.MapItem{"minProperties", *schema.MinProperties})
+		m = append(m, yaml.MapItem{Key: "minProperties", Value: *schema.MinProperties})
 	}
 	if schema.Enumeration != nil {
-		m = append(m, yaml.MapItem{"enum", schemaEnumArrayValue(schema.Enumeration)})
+		m = append(m, yaml.MapItem{Key: "enum", Value: schemaEnumArrayValue(schema.Enumeration)})
 	}
 	if schema.AllOf != nil {
-		m = append(m, yaml.MapItem{"allOf", schemaArrayValue(schema.AllOf)})
+		m = append(m, yaml.MapItem{Key: "allOf", Value: schemaArrayValue(schema.AllOf)})
 	}
 	if schema.AnyOf != nil {
-		m = append(m, yaml.MapItem{"anyOf", schemaArrayValue(schema.AnyOf)})
+		m = append(m, yaml.MapItem{Key: "anyOf", Value: schemaArrayValue(schema.AnyOf)})
 	}
 	if schema.OneOf != nil {
-		m = append(m, yaml.MapItem{"oneOf", schemaArrayValue(schema.OneOf)})
+		m = append(m, yaml.MapItem{Key: "oneOf", Value: schemaArrayValue(schema.OneOf)})
 	}
 	if schema.Not != nil {
-		m = append(m, yaml.MapItem{"not", schema.Not.jsonValue()})
+		m = append(m, yaml.MapItem{Key: "not", Value: schema.Not.jsonValue()})
 	}
 	if schema.Definitions != nil {
-		m = append(m, yaml.MapItem{"definitions", namedSchemaArrayValue(schema.Definitions)})
+		m = append(m, yaml.MapItem{Key: "definitions", Value: namedSchemaArrayValue(schema.Definitions)})
 	}
 	if schema.Default != nil {
-		m = append(m, yaml.MapItem{"default", *schema.Default})
+		m = append(m, yaml.MapItem{Key: "default", Value: *schema.Default})
 	}
 	if schema.Format != nil {
-		m = append(m, yaml.MapItem{"format", *schema.Format})
+		m = append(m, yaml.MapItem{Key: "format", Value: *schema.Format})
 	}
 	return m
 }
@@ -330,5 +330,5 @@ func (schema *Schema) jsonValue() yaml.MapSlice {
 // JSONString returns a json representation of a schema.
 func (schema *Schema) JSONString() string {
 	info := schema.jsonValue()
-	return render(info)
+	return Render(info)
 }

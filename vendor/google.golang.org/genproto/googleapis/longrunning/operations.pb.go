@@ -33,16 +33,16 @@ type Operation struct {
 	// The server-assigned name, which is only unique within the same service that
 	// originally returns it. If you use the default HTTP mapping, the
 	// `name` should have the format of `operations/some/unique/name`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Service-specific metadata associated with the operation.  It typically
 	// contains progress information and common metadata such as create time.
 	// Some services might not provide such metadata.  Any method that returns a
 	// long-running operation should document the metadata type, if any.
-	Metadata *any.Any `protobuf:"bytes,2,opt,name=metadata" json:"metadata,omitempty"`
+	Metadata *any.Any `protobuf:"bytes,2,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// If the value is `false`, it means the operation is still in progress.
 	// If true, the operation is completed, and either `error` or `response` is
 	// available.
-	Done bool `protobuf:"varint,3,opt,name=done" json:"done,omitempty"`
+	Done bool `protobuf:"varint,3,opt,name=done,proto3" json:"done,omitempty"`
 	// The operation result, which can be either an `error` or a valid `response`.
 	// If `done` == `false`, neither `error` nor `response` is set.
 	// If `done` == `true`, exactly one of `error` or `response` is set.
@@ -85,10 +85,10 @@ type isOperation_Result interface {
 }
 
 type Operation_Error struct {
-	Error *status.Status `protobuf:"bytes,4,opt,name=error,oneof"`
+	Error *status.Status `protobuf:"bytes,4,opt,name=error,proto3,oneof"`
 }
 type Operation_Response struct {
-	Response *any.Any `protobuf:"bytes,5,opt,name=response,oneof"`
+	Response *any.Any `protobuf:"bytes,5,opt,name=response,proto3,oneof"`
 }
 
 func (*Operation_Error) isOperation_Result()    {}
@@ -213,7 +213,7 @@ func _Operation_OneofSizer(msg proto.Message) (n int) {
 // The request message for [Operations.GetOperation][google.longrunning.Operations.GetOperation].
 type GetOperationRequest struct {
 	// The name of the operation resource.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -253,13 +253,13 @@ func (m *GetOperationRequest) GetName() string {
 // The request message for [Operations.ListOperations][google.longrunning.Operations.ListOperations].
 type ListOperationsRequest struct {
 	// The name of the operation collection.
-	Name string `protobuf:"bytes,4,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
 	// The standard list filter.
-	Filter string `protobuf:"bytes,1,opt,name=filter" json:"filter,omitempty"`
+	Filter string `protobuf:"bytes,1,opt,name=filter,proto3" json:"filter,omitempty"`
 	// The standard list page size.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The standard list page token.
-	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -320,9 +320,9 @@ func (m *ListOperationsRequest) GetPageToken() string {
 // The response message for [Operations.ListOperations][google.longrunning.Operations.ListOperations].
 type ListOperationsResponse struct {
 	// A list of operations that matches the specified filter in the request.
-	Operations []*Operation `protobuf:"bytes,1,rep,name=operations" json:"operations,omitempty"`
+	Operations []*Operation `protobuf:"bytes,1,rep,name=operations,proto3" json:"operations,omitempty"`
 	// The standard List next-page token.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -369,7 +369,7 @@ func (m *ListOperationsResponse) GetNextPageToken() string {
 // The request message for [Operations.CancelOperation][google.longrunning.Operations.CancelOperation].
 type CancelOperationRequest struct {
 	// The name of the operation resource to be cancelled.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -409,7 +409,7 @@ func (m *CancelOperationRequest) GetName() string {
 // The request message for [Operations.DeleteOperation][google.longrunning.Operations.DeleteOperation].
 type DeleteOperationRequest struct {
 	// The name of the operation resource to be deleted.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -539,8 +539,7 @@ func (c *operationsClient) CancelOperation(ctx context.Context, in *CancelOperat
 	return out, nil
 }
 
-// Server API for Operations service
-
+// OperationsServer is the server API for Operations service.
 type OperationsServer interface {
 	// Lists operations that match the specified filter in the request. If the
 	// server doesn't support this method, it returns `UNIMPLEMENTED`.

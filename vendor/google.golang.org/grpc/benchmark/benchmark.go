@@ -226,9 +226,14 @@ func DoByteBufStreamingRoundTrip(stream testpb.BenchmarkService_StreamingCallCli
 
 // NewClientConn creates a gRPC client connection to addr.
 func NewClientConn(addr string, opts ...grpc.DialOption) *grpc.ClientConn {
+	return NewClientConnWithContext(context.Background(), addr, opts...)
+}
+
+// NewClientConnWithContext creates a gRPC client connection to addr using ctx.
+func NewClientConnWithContext(ctx context.Context, addr string, opts ...grpc.DialOption) *grpc.ClientConn {
 	opts = append(opts, grpc.WithWriteBufferSize(128*1024))
 	opts = append(opts, grpc.WithReadBufferSize(128*1024))
-	conn, err := grpc.Dial(addr, opts...)
+	conn, err := grpc.DialContext(ctx, addr, opts...)
 	if err != nil {
 		grpclog.Fatalf("NewClientConn(%q) failed to create a ClientConn %v", addr, err)
 	}

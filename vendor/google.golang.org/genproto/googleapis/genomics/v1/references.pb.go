@@ -33,23 +33,23 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 // Genomics](https://cloud.google.com/genomics/fundamentals-of-google-genomics)
 type Reference struct {
 	// The server-generated reference ID, unique across all references.
-	Id string `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// The length of this reference's sequence.
-	Length int64 `protobuf:"varint,2,opt,name=length" json:"length,omitempty"`
+	Length int64 `protobuf:"varint,2,opt,name=length,proto3" json:"length,omitempty"`
 	// MD5 of the upper-case sequence excluding all whitespace characters (this
 	// is equivalent to SQ:M5 in SAM). This value is represented in lower case
 	// hexadecimal format.
-	Md5Checksum string `protobuf:"bytes,3,opt,name=md5checksum" json:"md5checksum,omitempty"`
+	Md5Checksum string `protobuf:"bytes,3,opt,name=md5checksum,proto3" json:"md5checksum,omitempty"`
 	// The name of this reference, for example `22`.
-	Name string `protobuf:"bytes,4,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
 	// The URI from which the sequence was obtained. Typically specifies a FASTA
 	// format file.
-	SourceUri string `protobuf:"bytes,5,opt,name=source_uri,json=sourceUri" json:"source_uri,omitempty"`
+	SourceUri string `protobuf:"bytes,5,opt,name=source_uri,json=sourceUri,proto3" json:"source_uri,omitempty"`
 	// All known corresponding accession IDs in INSDC (GenBank/ENA/DDBJ) ideally
 	// with a version number, for example `GCF_000001405.26`.
-	SourceAccessions []string `protobuf:"bytes,6,rep,name=source_accessions,json=sourceAccessions" json:"source_accessions,omitempty"`
+	SourceAccessions []string `protobuf:"bytes,6,rep,name=source_accessions,json=sourceAccessions,proto3" json:"source_accessions,omitempty"`
 	// ID from http://www.ncbi.nlm.nih.gov/taxonomy. For example, 9606 for human.
-	NcbiTaxonId          int32    `protobuf:"varint,7,opt,name=ncbi_taxon_id,json=ncbiTaxonId" json:"ncbi_taxon_id,omitempty"`
+	NcbiTaxonId          int32    `protobuf:"varint,7,opt,name=ncbi_taxon_id,json=ncbiTaxonId,proto3" json:"ncbi_taxon_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -138,31 +138,31 @@ func (m *Reference) GetNcbiTaxonId() int32 {
 // Genomics](https://cloud.google.com/genomics/fundamentals-of-google-genomics)
 type ReferenceSet struct {
 	// The server-generated reference set ID, unique across all reference sets.
-	Id string `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// The IDs of the reference objects that are part of this set.
 	// `Reference.md5checksum` must be unique within this set.
-	ReferenceIds []string `protobuf:"bytes,2,rep,name=reference_ids,json=referenceIds" json:"reference_ids,omitempty"`
+	ReferenceIds []string `protobuf:"bytes,2,rep,name=reference_ids,json=referenceIds,proto3" json:"reference_ids,omitempty"`
 	// Order-independent MD5 checksum which identifies this reference set. The
 	// checksum is computed by sorting all lower case hexidecimal string
 	// `reference.md5checksum` (for all reference in this set) in
 	// ascending lexicographic order, concatenating, and taking the MD5 of that
 	// value. The resulting value is represented in lower case hexadecimal format.
-	Md5Checksum string `protobuf:"bytes,3,opt,name=md5checksum" json:"md5checksum,omitempty"`
+	Md5Checksum string `protobuf:"bytes,3,opt,name=md5checksum,proto3" json:"md5checksum,omitempty"`
 	// ID from http://www.ncbi.nlm.nih.gov/taxonomy (for example, 9606 for human)
 	// indicating the species which this reference set is intended to model. Note
 	// that contained references may specify a different `ncbiTaxonId`, as
 	// assemblies may contain reference sequences which do not belong to the
 	// modeled species, for example EBV in a human reference genome.
-	NcbiTaxonId int32 `protobuf:"varint,4,opt,name=ncbi_taxon_id,json=ncbiTaxonId" json:"ncbi_taxon_id,omitempty"`
+	NcbiTaxonId int32 `protobuf:"varint,4,opt,name=ncbi_taxon_id,json=ncbiTaxonId,proto3" json:"ncbi_taxon_id,omitempty"`
 	// Free text description of this reference set.
-	Description string `protobuf:"bytes,5,opt,name=description" json:"description,omitempty"`
+	Description string `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
 	// Public id of this reference set, such as `GRCh37`.
-	AssemblyId string `protobuf:"bytes,6,opt,name=assembly_id,json=assemblyId" json:"assembly_id,omitempty"`
+	AssemblyId string `protobuf:"bytes,6,opt,name=assembly_id,json=assemblyId,proto3" json:"assembly_id,omitempty"`
 	// The URI from which the references were obtained.
-	SourceUri string `protobuf:"bytes,7,opt,name=source_uri,json=sourceUri" json:"source_uri,omitempty"`
+	SourceUri string `protobuf:"bytes,7,opt,name=source_uri,json=sourceUri,proto3" json:"source_uri,omitempty"`
 	// All known corresponding accession IDs in INSDC (GenBank/ENA/DDBJ) ideally
 	// with a version number, for example `NC_000001.11`.
-	SourceAccessions     []string `protobuf:"bytes,8,rep,name=source_accessions,json=sourceAccessions" json:"source_accessions,omitempty"`
+	SourceAccessions     []string `protobuf:"bytes,8,rep,name=source_accessions,json=sourceAccessions,proto3" json:"source_accessions,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -251,22 +251,22 @@ func (m *ReferenceSet) GetSourceAccessions() []string {
 type SearchReferenceSetsRequest struct {
 	// If present, return reference sets for which the
 	// [md5checksum][google.genomics.v1.ReferenceSet.md5checksum] matches exactly.
-	Md5Checksums []string `protobuf:"bytes,1,rep,name=md5checksums" json:"md5checksums,omitempty"`
+	Md5Checksums []string `protobuf:"bytes,1,rep,name=md5checksums,proto3" json:"md5checksums,omitempty"`
 	// If present, return reference sets for which a prefix of any of
 	// [sourceAccessions][google.genomics.v1.ReferenceSet.source_accessions]
 	// match any of these strings. Accession numbers typically have a main number
 	// and a version, for example `NC_000001.11`.
-	Accessions []string `protobuf:"bytes,2,rep,name=accessions" json:"accessions,omitempty"`
+	Accessions []string `protobuf:"bytes,2,rep,name=accessions,proto3" json:"accessions,omitempty"`
 	// If present, return reference sets for which a substring of their
 	// `assemblyId` matches this string (case insensitive).
-	AssemblyId string `protobuf:"bytes,3,opt,name=assembly_id,json=assemblyId" json:"assembly_id,omitempty"`
+	AssemblyId string `protobuf:"bytes,3,opt,name=assembly_id,json=assemblyId,proto3" json:"assembly_id,omitempty"`
 	// The continuation token, which is used to page through large result sets.
 	// To get the next page of results, set this parameter to the value of
 	// `nextPageToken` from the previous response.
-	PageToken string `protobuf:"bytes,4,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// The maximum number of results to return in a single page. If unspecified,
 	// defaults to 1024. The maximum value is 4096.
-	PageSize             int32    `protobuf:"varint,5,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize             int32    `protobuf:"varint,5,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -333,11 +333,11 @@ func (m *SearchReferenceSetsRequest) GetPageSize() int32 {
 
 type SearchReferenceSetsResponse struct {
 	// The matching references sets.
-	ReferenceSets []*ReferenceSet `protobuf:"bytes,1,rep,name=reference_sets,json=referenceSets" json:"reference_sets,omitempty"`
+	ReferenceSets []*ReferenceSet `protobuf:"bytes,1,rep,name=reference_sets,json=referenceSets,proto3" json:"reference_sets,omitempty"`
 	// The continuation token, which is used to page through large result sets.
 	// Provide this value in a subsequent request to return the next page of
 	// results. This field will be empty if there aren't any additional results.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -383,7 +383,7 @@ func (m *SearchReferenceSetsResponse) GetNextPageToken() string {
 
 type GetReferenceSetRequest struct {
 	// The ID of the reference set.
-	ReferenceSetId       string   `protobuf:"bytes,1,opt,name=reference_set_id,json=referenceSetId" json:"reference_set_id,omitempty"`
+	ReferenceSetId       string   `protobuf:"bytes,1,opt,name=reference_set_id,json=referenceSetId,proto3" json:"reference_set_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -423,21 +423,21 @@ func (m *GetReferenceSetRequest) GetReferenceSetId() string {
 type SearchReferencesRequest struct {
 	// If present, return references for which the
 	// [md5checksum][google.genomics.v1.Reference.md5checksum] matches exactly.
-	Md5Checksums []string `protobuf:"bytes,1,rep,name=md5checksums" json:"md5checksums,omitempty"`
+	Md5Checksums []string `protobuf:"bytes,1,rep,name=md5checksums,proto3" json:"md5checksums,omitempty"`
 	// If present, return references for which a prefix of any of
 	// [sourceAccessions][google.genomics.v1.Reference.source_accessions] match
 	// any of these strings. Accession numbers typically have a main number and a
 	// version, for example `GCF_000001405.26`.
-	Accessions []string `protobuf:"bytes,2,rep,name=accessions" json:"accessions,omitempty"`
+	Accessions []string `protobuf:"bytes,2,rep,name=accessions,proto3" json:"accessions,omitempty"`
 	// If present, return only references which belong to this reference set.
-	ReferenceSetId string `protobuf:"bytes,3,opt,name=reference_set_id,json=referenceSetId" json:"reference_set_id,omitempty"`
+	ReferenceSetId string `protobuf:"bytes,3,opt,name=reference_set_id,json=referenceSetId,proto3" json:"reference_set_id,omitempty"`
 	// The continuation token, which is used to page through large result sets.
 	// To get the next page of results, set this parameter to the value of
 	// `nextPageToken` from the previous response.
-	PageToken string `protobuf:"bytes,4,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// The maximum number of results to return in a single page. If unspecified,
 	// defaults to 1024. The maximum value is 4096.
-	PageSize             int32    `protobuf:"varint,5,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize             int32    `protobuf:"varint,5,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -504,11 +504,11 @@ func (m *SearchReferencesRequest) GetPageSize() int32 {
 
 type SearchReferencesResponse struct {
 	// The matching references.
-	References []*Reference `protobuf:"bytes,1,rep,name=references" json:"references,omitempty"`
+	References []*Reference `protobuf:"bytes,1,rep,name=references,proto3" json:"references,omitempty"`
 	// The continuation token, which is used to page through large result sets.
 	// Provide this value in a subsequent request to return the next page of
 	// results. This field will be empty if there aren't any additional results.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -554,7 +554,7 @@ func (m *SearchReferencesResponse) GetNextPageToken() string {
 
 type GetReferenceRequest struct {
 	// The ID of the reference.
-	ReferenceId          string   `protobuf:"bytes,1,opt,name=reference_id,json=referenceId" json:"reference_id,omitempty"`
+	ReferenceId          string   `protobuf:"bytes,1,opt,name=reference_id,json=referenceId,proto3" json:"reference_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -593,20 +593,20 @@ func (m *GetReferenceRequest) GetReferenceId() string {
 
 type ListBasesRequest struct {
 	// The ID of the reference.
-	ReferenceId string `protobuf:"bytes,1,opt,name=reference_id,json=referenceId" json:"reference_id,omitempty"`
+	ReferenceId string `protobuf:"bytes,1,opt,name=reference_id,json=referenceId,proto3" json:"reference_id,omitempty"`
 	// The start position (0-based) of this query. Defaults to 0.
-	Start int64 `protobuf:"varint,2,opt,name=start" json:"start,omitempty"`
+	Start int64 `protobuf:"varint,2,opt,name=start,proto3" json:"start,omitempty"`
 	// The end position (0-based, exclusive) of this query. Defaults to the length
 	// of this reference.
-	End int64 `protobuf:"varint,3,opt,name=end" json:"end,omitempty"`
+	End int64 `protobuf:"varint,3,opt,name=end,proto3" json:"end,omitempty"`
 	// The continuation token, which is used to page through large result sets.
 	// To get the next page of results, set this parameter to the value of
 	// `nextPageToken` from the previous response.
-	PageToken string `protobuf:"bytes,4,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// The maximum number of bases to return in a single page. If unspecified,
 	// defaults to 200Kbp (kilo base pairs). The maximum value is 10Mbp (mega base
 	// pairs).
-	PageSize             int32    `protobuf:"varint,5,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize             int32    `protobuf:"varint,5,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -675,13 +675,13 @@ type ListBasesResponse struct {
 	// The offset position (0-based) of the given `sequence` from the
 	// start of this `Reference`. This value will differ for each page
 	// in a paginated request.
-	Offset int64 `protobuf:"varint,1,opt,name=offset" json:"offset,omitempty"`
+	Offset int64 `protobuf:"varint,1,opt,name=offset,proto3" json:"offset,omitempty"`
 	// A substring of the bases that make up this reference.
-	Sequence string `protobuf:"bytes,2,opt,name=sequence" json:"sequence,omitempty"`
+	Sequence string `protobuf:"bytes,2,opt,name=sequence,proto3" json:"sequence,omitempty"`
 	// The continuation token, which is used to page through large result sets.
 	// Provide this value in a subsequent request to return the next page of
 	// results. This field will be empty if there aren't any additional results.
-	NextPageToken        string   `protobuf:"bytes,3,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,3,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -857,8 +857,7 @@ func (c *referenceServiceV1Client) ListBases(ctx context.Context, in *ListBasesR
 	return out, nil
 }
 
-// Server API for ReferenceServiceV1 service
-
+// ReferenceServiceV1Server is the server API for ReferenceServiceV1 service.
 type ReferenceServiceV1Server interface {
 	// Searches for reference sets which match the given criteria.
 	//

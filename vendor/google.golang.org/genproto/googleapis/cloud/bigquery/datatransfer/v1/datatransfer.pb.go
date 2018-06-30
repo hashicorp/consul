@@ -176,37 +176,37 @@ func (ListTransferRunsRequest_RunAttempt) EnumDescriptor() ([]byte, []int) {
 // or custom data source specific forms.
 type DataSourceParameter struct {
 	// Parameter identifier.
-	ParamId string `protobuf:"bytes,1,opt,name=param_id,json=paramId" json:"param_id,omitempty"`
+	ParamId string `protobuf:"bytes,1,opt,name=param_id,json=paramId,proto3" json:"param_id,omitempty"`
 	// Parameter display name in the user interface.
-	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName" json:"display_name,omitempty"`
+	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	// Parameter description.
-	Description string `protobuf:"bytes,3,opt,name=description" json:"description,omitempty"`
+	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	// Parameter type.
-	Type DataSourceParameter_Type `protobuf:"varint,4,opt,name=type,enum=google.cloud.bigquery.datatransfer.v1.DataSourceParameter_Type" json:"type,omitempty"`
+	Type DataSourceParameter_Type `protobuf:"varint,4,opt,name=type,proto3,enum=google.cloud.bigquery.datatransfer.v1.DataSourceParameter_Type" json:"type,omitempty"`
 	// Is parameter required.
-	Required bool `protobuf:"varint,5,opt,name=required" json:"required,omitempty"`
+	Required bool `protobuf:"varint,5,opt,name=required,proto3" json:"required,omitempty"`
 	// Can parameter have multiple values.
-	Repeated bool `protobuf:"varint,6,opt,name=repeated" json:"repeated,omitempty"`
+	Repeated bool `protobuf:"varint,6,opt,name=repeated,proto3" json:"repeated,omitempty"`
 	// Regular expression which can be used for parameter validation.
-	ValidationRegex string `protobuf:"bytes,7,opt,name=validation_regex,json=validationRegex" json:"validation_regex,omitempty"`
+	ValidationRegex string `protobuf:"bytes,7,opt,name=validation_regex,json=validationRegex,proto3" json:"validation_regex,omitempty"`
 	// All possible values for the parameter.
-	AllowedValues []string `protobuf:"bytes,8,rep,name=allowed_values,json=allowedValues" json:"allowed_values,omitempty"`
+	AllowedValues []string `protobuf:"bytes,8,rep,name=allowed_values,json=allowedValues,proto3" json:"allowed_values,omitempty"`
 	// For integer and double values specifies minimum allowed value.
-	MinValue *wrappers.DoubleValue `protobuf:"bytes,9,opt,name=min_value,json=minValue" json:"min_value,omitempty"`
+	MinValue *wrappers.DoubleValue `protobuf:"bytes,9,opt,name=min_value,json=minValue,proto3" json:"min_value,omitempty"`
 	// For integer and double values specifies maxminum allowed value.
-	MaxValue *wrappers.DoubleValue `protobuf:"bytes,10,opt,name=max_value,json=maxValue" json:"max_value,omitempty"`
+	MaxValue *wrappers.DoubleValue `protobuf:"bytes,10,opt,name=max_value,json=maxValue,proto3" json:"max_value,omitempty"`
 	// When parameter is a record, describes child fields.
-	Fields []*DataSourceParameter `protobuf:"bytes,11,rep,name=fields" json:"fields,omitempty"`
+	Fields []*DataSourceParameter `protobuf:"bytes,11,rep,name=fields,proto3" json:"fields,omitempty"`
 	// Description of the requirements for this field, in case the user input does
 	// not fulfill the regex pattern or min/max values.
-	ValidationDescription string `protobuf:"bytes,12,opt,name=validation_description,json=validationDescription" json:"validation_description,omitempty"`
+	ValidationDescription string `protobuf:"bytes,12,opt,name=validation_description,json=validationDescription,proto3" json:"validation_description,omitempty"`
 	// URL to a help document to further explain the naming requirements.
-	ValidationHelpUrl string `protobuf:"bytes,13,opt,name=validation_help_url,json=validationHelpUrl" json:"validation_help_url,omitempty"`
+	ValidationHelpUrl string `protobuf:"bytes,13,opt,name=validation_help_url,json=validationHelpUrl,proto3" json:"validation_help_url,omitempty"`
 	// Cannot be changed after initial creation.
-	Immutable bool `protobuf:"varint,14,opt,name=immutable" json:"immutable,omitempty"`
+	Immutable bool `protobuf:"varint,14,opt,name=immutable,proto3" json:"immutable,omitempty"`
 	// If set to true, schema should be taken from the parent with the same
 	// parameter_id. Only applicable when parameter type is RECORD.
-	Recurse              bool     `protobuf:"varint,15,opt,name=recurse" json:"recurse,omitempty"`
+	Recurse              bool     `protobuf:"varint,15,opt,name=recurse,proto3" json:"recurse,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -345,58 +345,58 @@ func (m *DataSourceParameter) GetRecurse() bool {
 // render UI and request proper OAuth tokens.
 type DataSource struct {
 	// Output only. Data source resource name.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Data source id.
-	DataSourceId string `protobuf:"bytes,2,opt,name=data_source_id,json=dataSourceId" json:"data_source_id,omitempty"`
+	DataSourceId string `protobuf:"bytes,2,opt,name=data_source_id,json=dataSourceId,proto3" json:"data_source_id,omitempty"`
 	// User friendly data source name.
-	DisplayName string `protobuf:"bytes,3,opt,name=display_name,json=displayName" json:"display_name,omitempty"`
+	DisplayName string `protobuf:"bytes,3,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	// User friendly data source description string.
-	Description string `protobuf:"bytes,4,opt,name=description" json:"description,omitempty"`
+	Description string `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
 	// Data source client id which should be used to receive refresh token.
 	// When not supplied, no offline credentials are populated for data transfer.
-	ClientId string `protobuf:"bytes,5,opt,name=client_id,json=clientId" json:"client_id,omitempty"`
+	ClientId string `protobuf:"bytes,5,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
 	// Api auth scopes for which refresh token needs to be obtained. Only valid
 	// when `client_id` is specified. Ignored otherwise. These are scopes needed
 	// by a data source to prepare data and ingest them into BigQuery,
 	// e.g., https://www.googleapis.com/auth/bigquery
-	Scopes []string `protobuf:"bytes,6,rep,name=scopes" json:"scopes,omitempty"`
+	Scopes []string `protobuf:"bytes,6,rep,name=scopes,proto3" json:"scopes,omitempty"`
 	// Deprecated. This field has no effect.
-	TransferType TransferType `protobuf:"varint,7,opt,name=transfer_type,json=transferType,enum=google.cloud.bigquery.datatransfer.v1.TransferType" json:"transfer_type,omitempty"`
+	TransferType TransferType `protobuf:"varint,7,opt,name=transfer_type,json=transferType,proto3,enum=google.cloud.bigquery.datatransfer.v1.TransferType" json:"transfer_type,omitempty"`
 	// Indicates whether the data source supports multiple transfers
 	// to different BigQuery targets.
-	SupportsMultipleTransfers bool `protobuf:"varint,8,opt,name=supports_multiple_transfers,json=supportsMultipleTransfers" json:"supports_multiple_transfers,omitempty"`
+	SupportsMultipleTransfers bool `protobuf:"varint,8,opt,name=supports_multiple_transfers,json=supportsMultipleTransfers,proto3" json:"supports_multiple_transfers,omitempty"`
 	// The number of seconds to wait for an update from the data source
 	// before BigQuery marks the transfer as failed.
-	UpdateDeadlineSeconds int32 `protobuf:"varint,9,opt,name=update_deadline_seconds,json=updateDeadlineSeconds" json:"update_deadline_seconds,omitempty"`
+	UpdateDeadlineSeconds int32 `protobuf:"varint,9,opt,name=update_deadline_seconds,json=updateDeadlineSeconds,proto3" json:"update_deadline_seconds,omitempty"`
 	// Default data transfer schedule.
 	// Examples of valid schedules include:
 	// `1st,3rd monday of month 15:30`,
 	// `every wed,fri of jan,jun 13:15`, and
 	// `first sunday of quarter 00:00`.
-	DefaultSchedule string `protobuf:"bytes,10,opt,name=default_schedule,json=defaultSchedule" json:"default_schedule,omitempty"`
+	DefaultSchedule string `protobuf:"bytes,10,opt,name=default_schedule,json=defaultSchedule,proto3" json:"default_schedule,omitempty"`
 	// Specifies whether the data source supports a user defined schedule, or
 	// operates on the default schedule.
 	// When set to `true`, user can override default schedule.
-	SupportsCustomSchedule bool `protobuf:"varint,11,opt,name=supports_custom_schedule,json=supportsCustomSchedule" json:"supports_custom_schedule,omitempty"`
+	SupportsCustomSchedule bool `protobuf:"varint,11,opt,name=supports_custom_schedule,json=supportsCustomSchedule,proto3" json:"supports_custom_schedule,omitempty"`
 	// Data source parameters.
-	Parameters []*DataSourceParameter `protobuf:"bytes,12,rep,name=parameters" json:"parameters,omitempty"`
+	Parameters []*DataSourceParameter `protobuf:"bytes,12,rep,name=parameters,proto3" json:"parameters,omitempty"`
 	// Url for the help document for this data source.
-	HelpUrl string `protobuf:"bytes,13,opt,name=help_url,json=helpUrl" json:"help_url,omitempty"`
+	HelpUrl string `protobuf:"bytes,13,opt,name=help_url,json=helpUrl,proto3" json:"help_url,omitempty"`
 	// Indicates the type of authorization.
-	AuthorizationType DataSource_AuthorizationType `protobuf:"varint,14,opt,name=authorization_type,json=authorizationType,enum=google.cloud.bigquery.datatransfer.v1.DataSource_AuthorizationType" json:"authorization_type,omitempty"`
+	AuthorizationType DataSource_AuthorizationType `protobuf:"varint,14,opt,name=authorization_type,json=authorizationType,proto3,enum=google.cloud.bigquery.datatransfer.v1.DataSource_AuthorizationType" json:"authorization_type,omitempty"`
 	// Specifies whether the data source supports automatic data refresh for the
 	// past few days, and how it's supported.
 	// For some data sources, data might not be complete until a few days later,
 	// so it's useful to refresh data automatically.
-	DataRefreshType DataSource_DataRefreshType `protobuf:"varint,15,opt,name=data_refresh_type,json=dataRefreshType,enum=google.cloud.bigquery.datatransfer.v1.DataSource_DataRefreshType" json:"data_refresh_type,omitempty"`
+	DataRefreshType DataSource_DataRefreshType `protobuf:"varint,15,opt,name=data_refresh_type,json=dataRefreshType,proto3,enum=google.cloud.bigquery.datatransfer.v1.DataSource_DataRefreshType" json:"data_refresh_type,omitempty"`
 	// Default data refresh window on days.
 	// Only meaningful when `data_refresh_type` = `SLIDING_WINDOW`.
-	DefaultDataRefreshWindowDays int32 `protobuf:"varint,16,opt,name=default_data_refresh_window_days,json=defaultDataRefreshWindowDays" json:"default_data_refresh_window_days,omitempty"`
+	DefaultDataRefreshWindowDays int32 `protobuf:"varint,16,opt,name=default_data_refresh_window_days,json=defaultDataRefreshWindowDays,proto3" json:"default_data_refresh_window_days,omitempty"`
 	// Disables backfilling and manual run scheduling
 	// for the data source.
-	ManualRunsDisabled bool `protobuf:"varint,17,opt,name=manual_runs_disabled,json=manualRunsDisabled" json:"manual_runs_disabled,omitempty"`
+	ManualRunsDisabled bool `protobuf:"varint,17,opt,name=manual_runs_disabled,json=manualRunsDisabled,proto3" json:"manual_runs_disabled,omitempty"`
 	// The minimum interval for scheduler to schedule runs.
-	MinimumScheduleInterval *duration.Duration `protobuf:"bytes,18,opt,name=minimum_schedule_interval,json=minimumScheduleInterval" json:"minimum_schedule_interval,omitempty"`
+	MinimumScheduleInterval *duration.Duration `protobuf:"bytes,18,opt,name=minimum_schedule_interval,json=minimumScheduleInterval,proto3" json:"minimum_schedule_interval,omitempty"`
 	XXX_NoUnkeyedLiteral    struct{}           `json:"-"`
 	XXX_unrecognized        []byte             `json:"-"`
 	XXX_sizecache           int32              `json:"-"`
@@ -556,7 +556,7 @@ func (m *DataSource) GetMinimumScheduleInterval() *duration.Duration {
 type GetDataSourceRequest struct {
 	// The field will contain name of the resource requested, for example:
 	// `projects/{project_id}/dataSources/{data_source_id}`
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -597,15 +597,15 @@ func (m *GetDataSourceRequest) GetName() string {
 type ListDataSourcesRequest struct {
 	// The BigQuery project id for which data sources should be returned.
 	// Must be in the form: `projects/{project_id}`
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Pagination token, which can be used to request a specific page
 	// of `ListDataSourcesRequest` list results. For multiple-page
 	// results, `ListDataSourcesResponse` outputs
 	// a `next_page` token, which can be used as the
 	// `page_token` value to request the next page of list results.
-	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// Page size. The default page size is the maximum value of 1000 results.
-	PageSize             int32    `protobuf:"varint,4,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize             int32    `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -659,12 +659,12 @@ func (m *ListDataSourcesRequest) GetPageSize() int32 {
 // Returns list of supported data sources and their metadata.
 type ListDataSourcesResponse struct {
 	// List of supported data sources and their transfer settings.
-	DataSources []*DataSource `protobuf:"bytes,1,rep,name=data_sources,json=dataSources" json:"data_sources,omitempty"`
+	DataSources []*DataSource `protobuf:"bytes,1,rep,name=data_sources,json=dataSources,proto3" json:"data_sources,omitempty"`
 	// Output only. The next-pagination token. For multiple-page list results,
 	// this token can be used as the
 	// `ListDataSourcesRequest.page_token`
 	// to request the next page of list results.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -719,9 +719,9 @@ type CreateTransferConfigRequest struct {
 	// Must be in the format /projects/{project_id}/locations/{location_id}
 	// If specified location and location of the destination bigquery dataset
 	// do not match - the request will fail.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Data transfer configuration to create.
-	TransferConfig *TransferConfig `protobuf:"bytes,2,opt,name=transfer_config,json=transferConfig" json:"transfer_config,omitempty"`
+	TransferConfig *TransferConfig `protobuf:"bytes,2,opt,name=transfer_config,json=transferConfig,proto3" json:"transfer_config,omitempty"`
 	// Optional OAuth2 authorization code to use with this transfer configuration.
 	// This is required if new credentials are needed, as indicated by
 	// `CheckValidCreds`.
@@ -738,7 +738,7 @@ type CreateTransferConfigRequest struct {
 	//   urn:ietf:wg:oauth:2.0:oob means that authorization code should be
 	//   returned in the title bar of the browser, with the page text prompting
 	//   the user to copy the code and paste it in the application.
-	AuthorizationCode    string   `protobuf:"bytes,3,opt,name=authorization_code,json=authorizationCode" json:"authorization_code,omitempty"`
+	AuthorizationCode    string   `protobuf:"bytes,3,opt,name=authorization_code,json=authorizationCode,proto3" json:"authorization_code,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -793,7 +793,7 @@ func (m *CreateTransferConfigRequest) GetAuthorizationCode() string {
 // transfer configuration, an authorization code needs to be provided.
 type UpdateTransferConfigRequest struct {
 	// Data transfer configuration to create.
-	TransferConfig *TransferConfig `protobuf:"bytes,1,opt,name=transfer_config,json=transferConfig" json:"transfer_config,omitempty"`
+	TransferConfig *TransferConfig `protobuf:"bytes,1,opt,name=transfer_config,json=transferConfig,proto3" json:"transfer_config,omitempty"`
 	// Optional OAuth2 authorization code to use with this transfer configuration.
 	// If it is provided, the transfer configuration will be associated with the
 	// authorizing user.
@@ -810,9 +810,9 @@ type UpdateTransferConfigRequest struct {
 	//   urn:ietf:wg:oauth:2.0:oob means that authorization code should be
 	//   returned in the title bar of the browser, with the page text prompting
 	//   the user to copy the code and paste it in the application.
-	AuthorizationCode string `protobuf:"bytes,3,opt,name=authorization_code,json=authorizationCode" json:"authorization_code,omitempty"`
+	AuthorizationCode string `protobuf:"bytes,3,opt,name=authorization_code,json=authorizationCode,proto3" json:"authorization_code,omitempty"`
 	// Required list of fields to be updated in this request.
-	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,4,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,4,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -867,7 +867,7 @@ func (m *UpdateTransferConfigRequest) GetUpdateMask() *field_mask.FieldMask {
 type GetTransferConfigRequest struct {
 	// The field will contain name of the resource requested, for example:
 	// `projects/{project_id}/transferConfigs/{config_id}`
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -909,7 +909,7 @@ func (m *GetTransferConfigRequest) GetName() string {
 type DeleteTransferConfigRequest struct {
 	// The field will contain name of the resource requested, for example:
 	// `projects/{project_id}/transferConfigs/{config_id}`
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -950,7 +950,7 @@ func (m *DeleteTransferConfigRequest) GetName() string {
 type GetTransferRunRequest struct {
 	// The field will contain name of the resource requested, for example:
 	// `projects/{project_id}/transferConfigs/{config_id}/runs/{run_id}`
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -991,7 +991,7 @@ func (m *GetTransferRunRequest) GetName() string {
 type DeleteTransferRunRequest struct {
 	// The field will contain name of the resource requested, for example:
 	// `projects/{project_id}/transferConfigs/{config_id}/runs/{run_id}`
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1032,17 +1032,17 @@ func (m *DeleteTransferRunRequest) GetName() string {
 type ListTransferConfigsRequest struct {
 	// The BigQuery project id for which data sources
 	// should be returned: `projects/{project_id}`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// When specified, only configurations of requested data sources are returned.
-	DataSourceIds []string `protobuf:"bytes,2,rep,name=data_source_ids,json=dataSourceIds" json:"data_source_ids,omitempty"`
+	DataSourceIds []string `protobuf:"bytes,2,rep,name=data_source_ids,json=dataSourceIds,proto3" json:"data_source_ids,omitempty"`
 	// Pagination token, which can be used to request a specific page
 	// of `ListTransfersRequest` list results. For multiple-page
 	// results, `ListTransfersResponse` outputs
 	// a `next_page` token, which can be used as the
 	// `page_token` value to request the next page of list results.
-	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// Page size. The default page size is the maximum value of 1000 results.
-	PageSize             int32    `protobuf:"varint,4,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize             int32    `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1103,12 +1103,12 @@ func (m *ListTransferConfigsRequest) GetPageSize() int32 {
 // The returned list of pipelines in the project.
 type ListTransferConfigsResponse struct {
 	// Output only. The stored pipeline transfer configurations.
-	TransferConfigs []*TransferConfig `protobuf:"bytes,1,rep,name=transfer_configs,json=transferConfigs" json:"transfer_configs,omitempty"`
+	TransferConfigs []*TransferConfig `protobuf:"bytes,1,rep,name=transfer_configs,json=transferConfigs,proto3" json:"transfer_configs,omitempty"`
 	// Output only. The next-pagination token. For multiple-page list results,
 	// this token can be used as the
 	// `ListTransferConfigsRequest.page_token`
 	// to request the next page of list results.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1159,19 +1159,19 @@ type ListTransferRunsRequest struct {
 	// Name of transfer configuration for which transfer runs should be retrieved.
 	// Format of transfer configuration resource name is:
 	// `projects/{project_id}/transferConfigs/{config_id}`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// When specified, only transfer runs with requested states are returned.
-	States []TransferState `protobuf:"varint,2,rep,packed,name=states,enum=google.cloud.bigquery.datatransfer.v1.TransferState" json:"states,omitempty"`
+	States []TransferState `protobuf:"varint,2,rep,packed,name=states,proto3,enum=google.cloud.bigquery.datatransfer.v1.TransferState" json:"states,omitempty"`
 	// Pagination token, which can be used to request a specific page
 	// of `ListTransferRunsRequest` list results. For multiple-page
 	// results, `ListTransferRunsResponse` outputs
 	// a `next_page` token, which can be used as the
 	// `page_token` value to request the next page of list results.
-	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// Page size. The default page size is the maximum value of 1000 results.
-	PageSize int32 `protobuf:"varint,4,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Indicates how run attempts are to be pulled.
-	RunAttempt           ListTransferRunsRequest_RunAttempt `protobuf:"varint,5,opt,name=run_attempt,json=runAttempt,enum=google.cloud.bigquery.datatransfer.v1.ListTransferRunsRequest_RunAttempt" json:"run_attempt,omitempty"`
+	RunAttempt           ListTransferRunsRequest_RunAttempt `protobuf:"varint,5,opt,name=run_attempt,json=runAttempt,proto3,enum=google.cloud.bigquery.datatransfer.v1.ListTransferRunsRequest_RunAttempt" json:"run_attempt,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                           `json:"-"`
 	XXX_unrecognized     []byte                             `json:"-"`
 	XXX_sizecache        int32                              `json:"-"`
@@ -1239,12 +1239,12 @@ func (m *ListTransferRunsRequest) GetRunAttempt() ListTransferRunsRequest_RunAtt
 // The returned list of pipelines in the project.
 type ListTransferRunsResponse struct {
 	// Output only. The stored pipeline transfer runs.
-	TransferRuns []*TransferRun `protobuf:"bytes,1,rep,name=transfer_runs,json=transferRuns" json:"transfer_runs,omitempty"`
+	TransferRuns []*TransferRun `protobuf:"bytes,1,rep,name=transfer_runs,json=transferRuns,proto3" json:"transfer_runs,omitempty"`
 	// Output only. The next-pagination token. For multiple-page list results,
 	// this token can be used as the
 	// `ListTransferRunsRequest.page_token`
 	// to request the next page of list results.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1292,18 +1292,18 @@ func (m *ListTransferRunsResponse) GetNextPageToken() string {
 type ListTransferLogsRequest struct {
 	// Transfer run name in the form:
 	// `projects/{project_id}/transferConfigs/{config_Id}/runs/{run_id}`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Pagination token, which can be used to request a specific page
 	// of `ListTransferLogsRequest` list results. For multiple-page
 	// results, `ListTransferLogsResponse` outputs
 	// a `next_page` token, which can be used as the
 	// `page_token` value to request the next page of list results.
-	PageToken string `protobuf:"bytes,4,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// Page size. The default page size is the maximum value of 1000 results.
-	PageSize int32 `protobuf:"varint,5,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,5,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Message types to return. If not populated - INFO, WARNING and ERROR
 	// messages are returned.
-	MessageTypes         []TransferMessage_MessageSeverity `protobuf:"varint,6,rep,packed,name=message_types,json=messageTypes,enum=google.cloud.bigquery.datatransfer.v1.TransferMessage_MessageSeverity" json:"message_types,omitempty"`
+	MessageTypes         []TransferMessage_MessageSeverity `protobuf:"varint,6,rep,packed,name=message_types,json=messageTypes,proto3,enum=google.cloud.bigquery.datatransfer.v1.TransferMessage_MessageSeverity" json:"message_types,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                          `json:"-"`
 	XXX_unrecognized     []byte                            `json:"-"`
 	XXX_sizecache        int32                             `json:"-"`
@@ -1364,12 +1364,12 @@ func (m *ListTransferLogsRequest) GetMessageTypes() []TransferMessage_MessageSev
 // The returned list transfer run messages.
 type ListTransferLogsResponse struct {
 	// Output only. The stored pipeline transfer messages.
-	TransferMessages []*TransferMessage `protobuf:"bytes,1,rep,name=transfer_messages,json=transferMessages" json:"transfer_messages,omitempty"`
+	TransferMessages []*TransferMessage `protobuf:"bytes,1,rep,name=transfer_messages,json=transferMessages,proto3" json:"transfer_messages,omitempty"`
 	// Output only. The next-pagination token. For multiple-page list results,
 	// this token can be used as the
 	// `GetTransferRunLogRequest.page_token`
 	// to request the next page of list results.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1422,7 +1422,7 @@ func (m *ListTransferLogsResponse) GetNextPageToken() string {
 type CheckValidCredsRequest struct {
 	// The data source in the form:
 	// `projects/{project_id}/dataSources/{data_source_id}`
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1462,7 +1462,7 @@ func (m *CheckValidCredsRequest) GetName() string {
 // A response indicating whether the credentials exist and are valid.
 type CheckValidCredsResponse struct {
 	// If set to `true`, the credentials exist and are valid.
-	HasValidCreds        bool     `protobuf:"varint,1,opt,name=has_valid_creds,json=hasValidCreds" json:"has_valid_creds,omitempty"`
+	HasValidCreds        bool     `protobuf:"varint,1,opt,name=has_valid_creds,json=hasValidCreds,proto3" json:"has_valid_creds,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1503,13 +1503,13 @@ func (m *CheckValidCredsResponse) GetHasValidCreds() bool {
 type ScheduleTransferRunsRequest struct {
 	// Transfer configuration name in the form:
 	// `projects/{project_id}/transferConfigs/{config_id}`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Start time of the range of transfer runs. For example,
 	// `"2017-05-25T00:00:00+00:00"`.
-	StartTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=start_time,json=startTime" json:"start_time,omitempty"`
+	StartTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
 	// End time of the range of transfer runs. For example,
 	// `"2017-05-30T00:00:00+00:00"`.
-	EndTime              *timestamp.Timestamp `protobuf:"bytes,3,opt,name=end_time,json=endTime" json:"end_time,omitempty"`
+	EndTime              *timestamp.Timestamp `protobuf:"bytes,3,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -1563,7 +1563,7 @@ func (m *ScheduleTransferRunsRequest) GetEndTime() *timestamp.Timestamp {
 // A response to schedule transfer runs for a time range.
 type ScheduleTransferRunsResponse struct {
 	// The transfer runs that were scheduled.
-	Runs                 []*TransferRun `protobuf:"bytes,1,rep,name=runs" json:"runs,omitempty"`
+	Runs                 []*TransferRun `protobuf:"bytes,1,rep,name=runs,proto3" json:"runs,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
 	XXX_unrecognized     []byte         `json:"-"`
 	XXX_sizecache        int32          `json:"-"`
@@ -1805,8 +1805,7 @@ func (c *dataTransferServiceClient) CheckValidCreds(ctx context.Context, in *Che
 	return out, nil
 }
 
-// Server API for DataTransferService service
-
+// DataTransferServiceServer is the server API for DataTransferService service.
 type DataTransferServiceServer interface {
 	// Retrieves a supported data source and returns its settings,
 	// which can be used for UI rendering.

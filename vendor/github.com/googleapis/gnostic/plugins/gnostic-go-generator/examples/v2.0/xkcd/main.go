@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/googleapis/gnostic/plugins/gnostic-go-generator/examples/v2.0/xkcd/xkcd"
 )
 

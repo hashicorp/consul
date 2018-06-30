@@ -31,9 +31,9 @@ type ReportErrorEventRequest struct {
 	// as `projects/` plus the
 	// [Google Cloud Platform project ID](https://support.google.com/cloud/answer/6158840).
 	// Example: `projects/my-project-123`.
-	ProjectName string `protobuf:"bytes,1,opt,name=project_name,json=projectName" json:"project_name,omitempty"`
+	ProjectName string `protobuf:"bytes,1,opt,name=project_name,json=projectName,proto3" json:"project_name,omitempty"`
 	// [Required] The error event to be reported.
-	Event                *ReportedErrorEvent `protobuf:"bytes,2,opt,name=event" json:"event,omitempty"`
+	Event                *ReportedErrorEvent `protobuf:"bytes,2,opt,name=event,proto3" json:"event,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
 	XXX_unrecognized     []byte              `json:"-"`
 	XXX_sizecache        int32               `json:"-"`
@@ -114,16 +114,16 @@ type ReportedErrorEvent struct {
 	// [Optional] Time when the event occurred.
 	// If not provided, the time when the event was received by the
 	// Error Reporting system will be used.
-	EventTime *timestamp.Timestamp `protobuf:"bytes,1,opt,name=event_time,json=eventTime" json:"event_time,omitempty"`
+	EventTime *timestamp.Timestamp `protobuf:"bytes,1,opt,name=event_time,json=eventTime,proto3" json:"event_time,omitempty"`
 	// [Required] The service context in which this error has occurred.
-	ServiceContext *ServiceContext `protobuf:"bytes,2,opt,name=service_context,json=serviceContext" json:"service_context,omitempty"`
+	ServiceContext *ServiceContext `protobuf:"bytes,2,opt,name=service_context,json=serviceContext,proto3" json:"service_context,omitempty"`
 	// [Required] A message describing the error. The message can contain an
 	// exception stack in one of the supported programming languages and formats.
 	// In that case, the message is parsed and detailed exception information
 	// is returned when retrieving the error event again.
-	Message string `protobuf:"bytes,3,opt,name=message" json:"message,omitempty"`
+	Message string `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
 	// [Optional] A description of the context in which the error occurred.
-	Context              *ErrorContext `protobuf:"bytes,4,opt,name=context" json:"context,omitempty"`
+	Context              *ErrorContext `protobuf:"bytes,4,opt,name=context,proto3" json:"context,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
 	XXX_unrecognized     []byte        `json:"-"`
 	XXX_sizecache        int32         `json:"-"`
@@ -227,8 +227,7 @@ func (c *reportErrorsServiceClient) ReportErrorEvent(ctx context.Context, in *Re
 	return out, nil
 }
 
-// Server API for ReportErrorsService service
-
+// ReportErrorsServiceServer is the server API for ReportErrorsService service.
 type ReportErrorsServiceServer interface {
 	// Report an individual error event.
 	//

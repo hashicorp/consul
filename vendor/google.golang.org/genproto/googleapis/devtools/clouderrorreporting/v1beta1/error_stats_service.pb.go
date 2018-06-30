@@ -160,13 +160,13 @@ type ListGroupStatsRequest struct {
 	// Platform project ID</a>.
 	//
 	// Example: <code>projects/my-project-123</code>.
-	ProjectName string `protobuf:"bytes,1,opt,name=project_name,json=projectName" json:"project_name,omitempty"`
+	ProjectName string `protobuf:"bytes,1,opt,name=project_name,json=projectName,proto3" json:"project_name,omitempty"`
 	// [Optional] List all <code>ErrorGroupStats</code> with these IDs.
-	GroupId []string `protobuf:"bytes,2,rep,name=group_id,json=groupId" json:"group_id,omitempty"`
+	GroupId []string `protobuf:"bytes,2,rep,name=group_id,json=groupId,proto3" json:"group_id,omitempty"`
 	// [Optional] List only <code>ErrorGroupStats</code> which belong to a service
 	// context that matches the filter.
 	// Data for all service contexts is returned if this field is not specified.
-	ServiceFilter *ServiceContextFilter `protobuf:"bytes,3,opt,name=service_filter,json=serviceFilter" json:"service_filter,omitempty"`
+	ServiceFilter *ServiceContextFilter `protobuf:"bytes,3,opt,name=service_filter,json=serviceFilter,proto3" json:"service_filter,omitempty"`
 	// [Optional] List data for the given time range.
 	// If not set a default time range is used. The field time_range_begin
 	// in the response will specify the beginning of this time range.
@@ -174,26 +174,26 @@ type ListGroupStatsRequest struct {
 	// range are returned, unless the request contains an explicit group_id list.
 	// If a group_id list is given, also <code>ErrorGroupStats</code> with zero
 	// occurrences are returned.
-	TimeRange *QueryTimeRange `protobuf:"bytes,5,opt,name=time_range,json=timeRange" json:"time_range,omitempty"`
+	TimeRange *QueryTimeRange `protobuf:"bytes,5,opt,name=time_range,json=timeRange,proto3" json:"time_range,omitempty"`
 	// [Optional] The preferred duration for a single returned `TimedCount`.
 	// If not set, no timed counts are returned.
-	TimedCountDuration *duration.Duration `protobuf:"bytes,6,opt,name=timed_count_duration,json=timedCountDuration" json:"timed_count_duration,omitempty"`
+	TimedCountDuration *duration.Duration `protobuf:"bytes,6,opt,name=timed_count_duration,json=timedCountDuration,proto3" json:"timed_count_duration,omitempty"`
 	// [Optional] The alignment of the timed counts to be returned.
 	// Default is `ALIGNMENT_EQUAL_AT_END`.
-	Alignment TimedCountAlignment `protobuf:"varint,7,opt,name=alignment,enum=google.devtools.clouderrorreporting.v1beta1.TimedCountAlignment" json:"alignment,omitempty"`
+	Alignment TimedCountAlignment `protobuf:"varint,7,opt,name=alignment,proto3,enum=google.devtools.clouderrorreporting.v1beta1.TimedCountAlignment" json:"alignment,omitempty"`
 	// [Optional] Time where the timed counts shall be aligned if rounded
 	// alignment is chosen. Default is 00:00 UTC.
-	AlignmentTime *timestamp.Timestamp `protobuf:"bytes,8,opt,name=alignment_time,json=alignmentTime" json:"alignment_time,omitempty"`
+	AlignmentTime *timestamp.Timestamp `protobuf:"bytes,8,opt,name=alignment_time,json=alignmentTime,proto3" json:"alignment_time,omitempty"`
 	// [Optional] The sort order in which the results are returned.
 	// Default is `COUNT_DESC`.
-	Order ErrorGroupOrder `protobuf:"varint,9,opt,name=order,enum=google.devtools.clouderrorreporting.v1beta1.ErrorGroupOrder" json:"order,omitempty"`
+	Order ErrorGroupOrder `protobuf:"varint,9,opt,name=order,proto3,enum=google.devtools.clouderrorreporting.v1beta1.ErrorGroupOrder" json:"order,omitempty"`
 	// [Optional] The maximum number of results to return per response.
 	// Default is 20.
-	PageSize int32 `protobuf:"varint,11,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,11,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// [Optional] A `next_page_token` provided by a previous response. To view
 	// additional results, pass this token along with the identical query
 	// parameters as the first request.
-	PageToken            string   `protobuf:"bytes,12,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,12,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -296,16 +296,16 @@ func (m *ListGroupStatsRequest) GetPageToken() string {
 // Contains a set of requested error group stats.
 type ListGroupStatsResponse struct {
 	// The error group stats which match the given request.
-	ErrorGroupStats []*ErrorGroupStats `protobuf:"bytes,1,rep,name=error_group_stats,json=errorGroupStats" json:"error_group_stats,omitempty"`
+	ErrorGroupStats []*ErrorGroupStats `protobuf:"bytes,1,rep,name=error_group_stats,json=errorGroupStats,proto3" json:"error_group_stats,omitempty"`
 	// If non-empty, more results are available.
 	// Pass this token, along with the same query parameters as the first
 	// request, to view the next page of results.
-	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	// The timestamp specifies the start time to which the request was restricted.
 	// The start time is set based on the requested time range. It may be adjusted
 	// to a later time if a project has exceeded the storage quota and older data
 	// has been deleted.
-	TimeRangeBegin       *timestamp.Timestamp `protobuf:"bytes,4,opt,name=time_range_begin,json=timeRangeBegin" json:"time_range_begin,omitempty"`
+	TimeRangeBegin       *timestamp.Timestamp `protobuf:"bytes,4,opt,name=time_range_begin,json=timeRangeBegin,proto3" json:"time_range_begin,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -360,10 +360,10 @@ func (m *ListGroupStatsResponse) GetTimeRangeBegin() *timestamp.Timestamp {
 // such as a given time period and/or service filter.
 type ErrorGroupStats struct {
 	// Group data that is independent of the filter criteria.
-	Group *ErrorGroup `protobuf:"bytes,1,opt,name=group" json:"group,omitempty"`
+	Group *ErrorGroup `protobuf:"bytes,1,opt,name=group,proto3" json:"group,omitempty"`
 	// Approximate total number of events in the given group that match
 	// the filter criteria.
-	Count int64 `protobuf:"varint,2,opt,name=count" json:"count,omitempty"`
+	Count int64 `protobuf:"varint,2,opt,name=count,proto3" json:"count,omitempty"`
 	// Approximate number of affected users in the given group that
 	// match the filter criteria.
 	// Users are distinguished by data in the `ErrorContext` of the
@@ -376,35 +376,35 @@ type ErrorGroupStats struct {
 	// context that was provided in the error report. If more users are
 	// implicitly affected, such as due to a crash of the whole service,
 	// this is not reflected here.
-	AffectedUsersCount int64 `protobuf:"varint,3,opt,name=affected_users_count,json=affectedUsersCount" json:"affected_users_count,omitempty"`
+	AffectedUsersCount int64 `protobuf:"varint,3,opt,name=affected_users_count,json=affectedUsersCount,proto3" json:"affected_users_count,omitempty"`
 	// Approximate number of occurrences over time.
 	// Timed counts returned by ListGroups are guaranteed to be:
 	//
 	// - Inside the requested time interval
 	// - Non-overlapping, and
 	// - Ordered by ascending time.
-	TimedCounts []*TimedCount `protobuf:"bytes,4,rep,name=timed_counts,json=timedCounts" json:"timed_counts,omitempty"`
+	TimedCounts []*TimedCount `protobuf:"bytes,4,rep,name=timed_counts,json=timedCounts,proto3" json:"timed_counts,omitempty"`
 	// Approximate first occurrence that was ever seen for this group
 	// and which matches the given filter criteria, ignoring the
 	// time_range that was specified in the request.
-	FirstSeenTime *timestamp.Timestamp `protobuf:"bytes,5,opt,name=first_seen_time,json=firstSeenTime" json:"first_seen_time,omitempty"`
+	FirstSeenTime *timestamp.Timestamp `protobuf:"bytes,5,opt,name=first_seen_time,json=firstSeenTime,proto3" json:"first_seen_time,omitempty"`
 	// Approximate last occurrence that was ever seen for this group and
 	// which matches the given filter criteria, ignoring the time_range
 	// that was specified in the request.
-	LastSeenTime *timestamp.Timestamp `protobuf:"bytes,6,opt,name=last_seen_time,json=lastSeenTime" json:"last_seen_time,omitempty"`
+	LastSeenTime *timestamp.Timestamp `protobuf:"bytes,6,opt,name=last_seen_time,json=lastSeenTime,proto3" json:"last_seen_time,omitempty"`
 	// Service contexts with a non-zero error count for the given filter
 	// criteria. This list can be truncated if multiple services are affected.
 	// Refer to `num_affected_services` for the total count.
-	AffectedServices []*ServiceContext `protobuf:"bytes,7,rep,name=affected_services,json=affectedServices" json:"affected_services,omitempty"`
+	AffectedServices []*ServiceContext `protobuf:"bytes,7,rep,name=affected_services,json=affectedServices,proto3" json:"affected_services,omitempty"`
 	// The total number of services with a non-zero error count for the given
 	// filter criteria.
-	NumAffectedServices int32 `protobuf:"varint,8,opt,name=num_affected_services,json=numAffectedServices" json:"num_affected_services,omitempty"`
+	NumAffectedServices int32 `protobuf:"varint,8,opt,name=num_affected_services,json=numAffectedServices,proto3" json:"num_affected_services,omitempty"`
 	// An arbitrary event that is chosen as representative for the whole group.
 	// The representative event is intended to be used as a quick preview for
 	// the whole group. Events in the group are usually sufficiently similar
 	// to each other such that showing an arbitrary representative provides
 	// insight into the characteristics of the group as a whole.
-	Representative       *ErrorEvent `protobuf:"bytes,9,opt,name=representative" json:"representative,omitempty"`
+	Representative       *ErrorEvent `protobuf:"bytes,9,opt,name=representative,proto3" json:"representative,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
 	XXX_unrecognized     []byte      `json:"-"`
 	XXX_sizecache        int32       `json:"-"`
@@ -502,11 +502,11 @@ func (m *ErrorGroupStats) GetRepresentative() *ErrorEvent {
 // before counting them.
 type TimedCount struct {
 	// Approximate number of occurrences in the given time period.
-	Count int64 `protobuf:"varint,1,opt,name=count" json:"count,omitempty"`
+	Count int64 `protobuf:"varint,1,opt,name=count,proto3" json:"count,omitempty"`
 	// Start of the time period to which `count` refers (included).
-	StartTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=start_time,json=startTime" json:"start_time,omitempty"`
+	StartTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
 	// End of the time period to which `count` refers (excluded).
-	EndTime              *timestamp.Timestamp `protobuf:"bytes,3,opt,name=end_time,json=endTime" json:"end_time,omitempty"`
+	EndTime              *timestamp.Timestamp `protobuf:"bytes,3,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -564,21 +564,21 @@ type ListEventsRequest struct {
 	// [Google Cloud Platform project
 	// ID](https://support.google.com/cloud/answer/6158840).
 	// Example: `projects/my-project-123`.
-	ProjectName string `protobuf:"bytes,1,opt,name=project_name,json=projectName" json:"project_name,omitempty"`
+	ProjectName string `protobuf:"bytes,1,opt,name=project_name,json=projectName,proto3" json:"project_name,omitempty"`
 	// [Required] The group for which events shall be returned.
-	GroupId string `protobuf:"bytes,2,opt,name=group_id,json=groupId" json:"group_id,omitempty"`
+	GroupId string `protobuf:"bytes,2,opt,name=group_id,json=groupId,proto3" json:"group_id,omitempty"`
 	// [Optional] List only ErrorGroups which belong to a service context that
 	// matches the filter.
 	// Data for all service contexts is returned if this field is not specified.
-	ServiceFilter *ServiceContextFilter `protobuf:"bytes,3,opt,name=service_filter,json=serviceFilter" json:"service_filter,omitempty"`
+	ServiceFilter *ServiceContextFilter `protobuf:"bytes,3,opt,name=service_filter,json=serviceFilter,proto3" json:"service_filter,omitempty"`
 	// [Optional] List only data for the given time range.
 	// If not set a default time range is used. The field time_range_begin
 	// in the response will specify the beginning of this time range.
-	TimeRange *QueryTimeRange `protobuf:"bytes,4,opt,name=time_range,json=timeRange" json:"time_range,omitempty"`
+	TimeRange *QueryTimeRange `protobuf:"bytes,4,opt,name=time_range,json=timeRange,proto3" json:"time_range,omitempty"`
 	// [Optional] The maximum number of results to return per response.
-	PageSize int32 `protobuf:"varint,6,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,6,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// [Optional] A `next_page_token` provided by a previous response.
-	PageToken            string   `protobuf:"bytes,7,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,7,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -653,13 +653,13 @@ func (m *ListEventsRequest) GetPageToken() string {
 // Contains a set of requested error events.
 type ListEventsResponse struct {
 	// The error events which match the given request.
-	ErrorEvents []*ErrorEvent `protobuf:"bytes,1,rep,name=error_events,json=errorEvents" json:"error_events,omitempty"`
+	ErrorEvents []*ErrorEvent `protobuf:"bytes,1,rep,name=error_events,json=errorEvents,proto3" json:"error_events,omitempty"`
 	// If non-empty, more results are available.
 	// Pass this token, along with the same query parameters as the first
 	// request, to view the next page of results.
-	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	// The timestamp specifies the start time to which the request was restricted.
-	TimeRangeBegin       *timestamp.Timestamp `protobuf:"bytes,4,opt,name=time_range_begin,json=timeRangeBegin" json:"time_range_begin,omitempty"`
+	TimeRangeBegin       *timestamp.Timestamp `protobuf:"bytes,4,opt,name=time_range_begin,json=timeRangeBegin,proto3" json:"time_range_begin,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -714,7 +714,7 @@ func (m *ListEventsResponse) GetTimeRangeBegin() *timestamp.Timestamp {
 // adjusted for lower durations.
 type QueryTimeRange struct {
 	// Restricts the query to the specified time range.
-	Period               QueryTimeRange_Period `protobuf:"varint,1,opt,name=period,enum=google.devtools.clouderrorreporting.v1beta1.QueryTimeRange_Period" json:"period,omitempty"`
+	Period               QueryTimeRange_Period `protobuf:"varint,1,opt,name=period,proto3,enum=google.devtools.clouderrorreporting.v1beta1.QueryTimeRange_Period" json:"period,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -758,13 +758,13 @@ func (m *QueryTimeRange) GetPeriod() QueryTimeRange_Period {
 type ServiceContextFilter struct {
 	// [Optional] The exact value to match against
 	// [`ServiceContext.service`](/error-reporting/reference/rest/v1beta1/ServiceContext#FIELDS.service).
-	Service string `protobuf:"bytes,2,opt,name=service" json:"service,omitempty"`
+	Service string `protobuf:"bytes,2,opt,name=service,proto3" json:"service,omitempty"`
 	// [Optional] The exact value to match against
 	// [`ServiceContext.version`](/error-reporting/reference/rest/v1beta1/ServiceContext#FIELDS.version).
-	Version string `protobuf:"bytes,3,opt,name=version" json:"version,omitempty"`
+	Version string `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
 	// [Optional] The exact value to match against
 	// [`ServiceContext.resource_type`](/error-reporting/reference/rest/v1beta1/ServiceContext#FIELDS.resource_type).
-	ResourceType         string   `protobuf:"bytes,4,opt,name=resource_type,json=resourceType" json:"resource_type,omitempty"`
+	ResourceType         string   `protobuf:"bytes,4,opt,name=resource_type,json=resourceType,proto3" json:"resource_type,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -822,7 +822,7 @@ type DeleteEventsRequest struct {
 	// [Google Cloud Platform project
 	// ID](https://support.google.com/cloud/answer/6158840).
 	// Example: `projects/my-project-123`.
-	ProjectName          string   `protobuf:"bytes,1,opt,name=project_name,json=projectName" json:"project_name,omitempty"`
+	ProjectName          string   `protobuf:"bytes,1,opt,name=project_name,json=projectName,proto3" json:"project_name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -961,8 +961,7 @@ func (c *errorStatsServiceClient) DeleteEvents(ctx context.Context, in *DeleteEv
 	return out, nil
 }
 
-// Server API for ErrorStatsService service
-
+// ErrorStatsServiceServer is the server API for ErrorStatsService service.
 type ErrorStatsServiceServer interface {
 	// Lists the specified groups.
 	ListGroupStats(context.Context, *ListGroupStatsRequest) (*ListGroupStatsResponse, error)

@@ -38,13 +38,13 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 type PostalAddress struct {
 	// The schema revision of the `PostalAddress`.
 	// All new revisions **must** be backward compatible with old revisions.
-	Revision int32 `protobuf:"varint,1,opt,name=revision" json:"revision,omitempty"`
+	Revision int32 `protobuf:"varint,1,opt,name=revision,proto3" json:"revision,omitempty"`
 	// Required. CLDR region code of the country/region of the address. This
 	// is never inferred and it is up to the user to ensure the value is
 	// correct. See http://cldr.unicode.org/ and
 	// http://www.unicode.org/cldr/charts/30/supplemental/territory_information.html
 	// for details. Example: "CH" for Switzerland.
-	RegionCode string `protobuf:"bytes,2,opt,name=region_code,json=regionCode" json:"region_code,omitempty"`
+	RegionCode string `protobuf:"bytes,2,opt,name=region_code,json=regionCode,proto3" json:"region_code,omitempty"`
 	// Optional. BCP-47 language code of the contents of this address (if
 	// known). This is often the UI language of the input form or is expected
 	// to match one of the languages used in the address' country/region, or their
@@ -57,18 +57,18 @@ type PostalAddress struct {
 	// possibly incorrect default).
 	//
 	// Examples: "zh-Hant", "ja", "ja-Latn", "en".
-	LanguageCode string `protobuf:"bytes,3,opt,name=language_code,json=languageCode" json:"language_code,omitempty"`
+	LanguageCode string `protobuf:"bytes,3,opt,name=language_code,json=languageCode,proto3" json:"language_code,omitempty"`
 	// Optional. Postal code of the address. Not all countries use or require
 	// postal codes to be present, but where they are used, they may trigger
 	// additional validation with other parts of the address (e.g. state/zip
 	// validation in the U.S.A.).
-	PostalCode string `protobuf:"bytes,4,opt,name=postal_code,json=postalCode" json:"postal_code,omitempty"`
+	PostalCode string `protobuf:"bytes,4,opt,name=postal_code,json=postalCode,proto3" json:"postal_code,omitempty"`
 	// Optional. Additional, country-specific, sorting code. This is not used
 	// in most regions. Where it is used, the value is either a string like
 	// "CEDEX", optionally followed by a number (e.g. "CEDEX 7"), or just a number
 	// alone, representing the "sector code" (Jamaica), "delivery area indicator"
 	// (Malawi) or "post office indicator" (e.g. Côte d'Ivoire).
-	SortingCode string `protobuf:"bytes,5,opt,name=sorting_code,json=sortingCode" json:"sorting_code,omitempty"`
+	SortingCode string `protobuf:"bytes,5,opt,name=sorting_code,json=sortingCode,proto3" json:"sorting_code,omitempty"`
 	// Optional. Highest administrative subdivision which is used for postal
 	// addresses of a country or region.
 	// For example, this can be a state, a province, an oblast, or a prefecture.
@@ -76,15 +76,15 @@ type PostalAddress struct {
 	// community (e.g. "Barcelona" and not "Catalonia").
 	// Many countries don't use an administrative area in postal addresses. E.g.
 	// in Switzerland this should be left unpopulated.
-	AdministrativeArea string `protobuf:"bytes,6,opt,name=administrative_area,json=administrativeArea" json:"administrative_area,omitempty"`
+	AdministrativeArea string `protobuf:"bytes,6,opt,name=administrative_area,json=administrativeArea,proto3" json:"administrative_area,omitempty"`
 	// Optional. Generally refers to the city/town portion of the address.
 	// Examples: US city, IT comune, UK post town.
 	// In regions of the world where localities are not well defined or do not fit
 	// into this structure well, leave locality empty and use address_lines.
-	Locality string `protobuf:"bytes,7,opt,name=locality" json:"locality,omitempty"`
+	Locality string `protobuf:"bytes,7,opt,name=locality,proto3" json:"locality,omitempty"`
 	// Optional. Sublocality of the address.
 	// For example, this can be neighborhoods, boroughs, districts.
-	Sublocality string `protobuf:"bytes,8,opt,name=sublocality" json:"sublocality,omitempty"`
+	Sublocality string `protobuf:"bytes,8,opt,name=sublocality,proto3" json:"sublocality,omitempty"`
 	// Unstructured address lines describing the lower levels of an address.
 	//
 	// Because values in address_lines do not have type information and may
@@ -107,13 +107,13 @@ type PostalAddress struct {
 	// then geocoding is the recommended way to handle completely unstructured
 	// addresses (as opposed to guessing which parts of the address should be
 	// localities or administrative areas).
-	AddressLines []string `protobuf:"bytes,9,rep,name=address_lines,json=addressLines" json:"address_lines,omitempty"`
+	AddressLines []string `protobuf:"bytes,9,rep,name=address_lines,json=addressLines,proto3" json:"address_lines,omitempty"`
 	// Optional. The recipient at the address.
 	// This field may, under certain circumstances, contain multiline information.
 	// For example, it might contain "care of" information.
-	Recipients []string `protobuf:"bytes,10,rep,name=recipients" json:"recipients,omitempty"`
+	Recipients []string `protobuf:"bytes,10,rep,name=recipients,proto3" json:"recipients,omitempty"`
 	// Optional. The name of the organization at the address.
-	Organization         string   `protobuf:"bytes,11,opt,name=organization" json:"organization,omitempty"`
+	Organization         string   `protobuf:"bytes,11,opt,name=organization,proto3" json:"organization,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

@@ -450,6 +450,11 @@
         "UpdateDeviceRequest$DeviceName": "<p>The updated device name. Required.</p>"
       }
     },
+    "DeviceNotRegisteredException": {
+      "base": null,
+      "refs": {
+      }
+    },
     "DeviceSerialNumber": {
       "base": null,
       "refs": {
@@ -569,6 +574,7 @@
       "base": null,
       "refs": {
         "AlreadyExistsException$Message": null,
+        "DeviceNotRegisteredException$Message": null,
         "InvalidUserStatusException$Message": null,
         "LimitExceededException$Message": null,
         "NameInUseException$Message": null,

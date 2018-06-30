@@ -99,7 +99,9 @@ func (b *OpenAPI2Builder) buildTypeFromDefinition(name string, schema *openapiv2
 			// If the schema has no fixed properties and additional properties of a specified type,
 			// generate a map pointing to objects of that type.
 			t.Kind = TypeKind_OBJECT
-			t.ContentType = typeForRef(schema.AdditionalProperties.GetSchema().XRef)
+			if schema.AdditionalProperties.GetSchema() != nil {
+				t.ContentType = typeForRef(schema.AdditionalProperties.GetSchema().XRef)
+			}
 		}
 	}
 	return t, err

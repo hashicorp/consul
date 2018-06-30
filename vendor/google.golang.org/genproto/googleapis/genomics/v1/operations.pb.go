@@ -24,29 +24,29 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 // Metadata describing an [Operation][google.longrunning.Operation].
 type OperationMetadata struct {
 	// The Google Cloud Project in which the job is scoped.
-	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId" json:"project_id,omitempty"`
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	// The time at which the job was submitted to the Genomics service.
-	CreateTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=create_time,json=createTime" json:"create_time,omitempty"`
+	CreateTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	// The time at which the job began to run.
-	StartTime *timestamp.Timestamp `protobuf:"bytes,3,opt,name=start_time,json=startTime" json:"start_time,omitempty"`
+	StartTime *timestamp.Timestamp `protobuf:"bytes,3,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
 	// The time at which the job stopped running.
-	EndTime *timestamp.Timestamp `protobuf:"bytes,4,opt,name=end_time,json=endTime" json:"end_time,omitempty"`
+	EndTime *timestamp.Timestamp `protobuf:"bytes,4,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
 	// The original request that started the operation. Note that this will be in
 	// current version of the API. If the operation was started with v1beta2 API
 	// and a GetOperation is performed on v1 API, a v1 request will be returned.
-	Request *any.Any `protobuf:"bytes,5,opt,name=request" json:"request,omitempty"`
+	Request *any.Any `protobuf:"bytes,5,opt,name=request,proto3" json:"request,omitempty"`
 	// Optional event messages that were generated during the job's execution.
 	// This also contains any warnings that were generated during import
 	// or export.
-	Events []*OperationEvent `protobuf:"bytes,6,rep,name=events" json:"events,omitempty"`
+	Events []*OperationEvent `protobuf:"bytes,6,rep,name=events,proto3" json:"events,omitempty"`
 	// This field is deprecated. Use `labels` instead. Optionally provided by the
 	// caller when submitting the request that creates the operation.
-	ClientId string `protobuf:"bytes,7,opt,name=client_id,json=clientId" json:"client_id,omitempty"`
+	ClientId string `protobuf:"bytes,7,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
 	// Runtime metadata on this Operation.
-	RuntimeMetadata *any.Any `protobuf:"bytes,8,opt,name=runtime_metadata,json=runtimeMetadata" json:"runtime_metadata,omitempty"`
+	RuntimeMetadata *any.Any `protobuf:"bytes,8,opt,name=runtime_metadata,json=runtimeMetadata,proto3" json:"runtime_metadata,omitempty"`
 	// Optionally provided by the caller when submitting the request that creates
 	// the operation.
-	Labels               map[string]string `protobuf:"bytes,9,rep,name=labels" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Labels               map[string]string `protobuf:"bytes,9,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -142,12 +142,12 @@ func (m *OperationMetadata) GetLabels() map[string]string {
 // An event that occurred during an [Operation][google.longrunning.Operation].
 type OperationEvent struct {
 	// Optional time of when event started.
-	StartTime *timestamp.Timestamp `protobuf:"bytes,1,opt,name=start_time,json=startTime" json:"start_time,omitempty"`
+	StartTime *timestamp.Timestamp `protobuf:"bytes,1,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
 	// Optional time of when event finished. An event can have a start time and no
 	// finish time. If an event has a finish time, there must be a start time.
-	EndTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=end_time,json=endTime" json:"end_time,omitempty"`
+	EndTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
 	// Required description of event.
-	Description          string   `protobuf:"bytes,3,opt,name=description" json:"description,omitempty"`
+	Description          string   `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

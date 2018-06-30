@@ -61,12 +61,12 @@ type Monitoring struct {
 	// There can be multiple producer destinations, each one must have a
 	// different monitored resource type. A metric can be used in at most
 	// one producer destination.
-	ProducerDestinations []*Monitoring_MonitoringDestination `protobuf:"bytes,1,rep,name=producer_destinations,json=producerDestinations" json:"producer_destinations,omitempty"`
+	ProducerDestinations []*Monitoring_MonitoringDestination `protobuf:"bytes,1,rep,name=producer_destinations,json=producerDestinations,proto3" json:"producer_destinations,omitempty"`
 	// Monitoring configurations for sending metrics to the consumer project.
 	// There can be multiple consumer destinations, each one must have a
 	// different monitored resource type. A metric can be used in at most
 	// one consumer destination.
-	ConsumerDestinations []*Monitoring_MonitoringDestination `protobuf:"bytes,2,rep,name=consumer_destinations,json=consumerDestinations" json:"consumer_destinations,omitempty"`
+	ConsumerDestinations []*Monitoring_MonitoringDestination `protobuf:"bytes,2,rep,name=consumer_destinations,json=consumerDestinations,proto3" json:"consumer_destinations,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                            `json:"-"`
 	XXX_unrecognized     []byte                              `json:"-"`
 	XXX_sizecache        int32                               `json:"-"`
@@ -76,7 +76,7 @@ func (m *Monitoring) Reset()         { *m = Monitoring{} }
 func (m *Monitoring) String() string { return proto.CompactTextString(m) }
 func (*Monitoring) ProtoMessage()    {}
 func (*Monitoring) Descriptor() ([]byte, []int) {
-	return fileDescriptor_monitoring_0c8882cc470ba7b3, []int{0}
+	return fileDescriptor_monitoring_4e73ce5561a2dc9c, []int{0}
 }
 func (m *Monitoring) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Monitoring.Unmarshal(m, b)
@@ -115,10 +115,10 @@ func (m *Monitoring) GetConsumerDestinations() []*Monitoring_MonitoringDestinati
 type Monitoring_MonitoringDestination struct {
 	// The monitored resource type. The type must be defined in
 	// [Service.monitored_resources][google.api.Service.monitored_resources] section.
-	MonitoredResource string `protobuf:"bytes,1,opt,name=monitored_resource,json=monitoredResource" json:"monitored_resource,omitempty"`
+	MonitoredResource string `protobuf:"bytes,1,opt,name=monitored_resource,json=monitoredResource,proto3" json:"monitored_resource,omitempty"`
 	// Names of the metrics to report to this monitoring destination.
 	// Each name must be defined in [Service.metrics][google.api.Service.metrics] section.
-	Metrics              []string `protobuf:"bytes,2,rep,name=metrics" json:"metrics,omitempty"`
+	Metrics              []string `protobuf:"bytes,2,rep,name=metrics,proto3" json:"metrics,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -128,7 +128,7 @@ func (m *Monitoring_MonitoringDestination) Reset()         { *m = Monitoring_Mon
 func (m *Monitoring_MonitoringDestination) String() string { return proto.CompactTextString(m) }
 func (*Monitoring_MonitoringDestination) ProtoMessage()    {}
 func (*Monitoring_MonitoringDestination) Descriptor() ([]byte, []int) {
-	return fileDescriptor_monitoring_0c8882cc470ba7b3, []int{0, 0}
+	return fileDescriptor_monitoring_4e73ce5561a2dc9c, []int{0, 0}
 }
 func (m *Monitoring_MonitoringDestination) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Monitoring_MonitoringDestination.Unmarshal(m, b)
@@ -168,10 +168,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("google/api/monitoring.proto", fileDescriptor_monitoring_0c8882cc470ba7b3)
+	proto.RegisterFile("google/api/monitoring.proto", fileDescriptor_monitoring_4e73ce5561a2dc9c)
 }
 
-var fileDescriptor_monitoring_0c8882cc470ba7b3 = []byte{
+var fileDescriptor_monitoring_4e73ce5561a2dc9c = []byte{
 	// 271 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x51, 0xcd, 0x4a, 0xc4, 0x30,
 	0x10, 0xa6, 0x55, 0x94, 0x8d, 0xa0, 0x58, 0x5c, 0x28, 0xab, 0x87, 0xc5, 0xd3, 0x1e, 0xb4, 0x05,

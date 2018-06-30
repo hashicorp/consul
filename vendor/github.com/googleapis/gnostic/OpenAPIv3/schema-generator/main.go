@@ -303,7 +303,7 @@ func (m *SchemaModel) objectWithID(id string) *SchemaObject {
 // NewSchemaModel returns a new SchemaModel.
 func NewSchemaModel(filename string) (schemaModel *SchemaModel, err error) {
 
-	b, err := ioutil.ReadFile("3.0.md")
+	b, err := ioutil.ReadFile("3.0.1.md")
 	if err != nil {
 		return nil, err
 	}
@@ -835,6 +835,19 @@ func main() {
 		contentObject.PatternProperties = &pairs
 		namedSchema := &jsonschema.NamedSchema{Name: "^", Value: &jsonschema.Schema{Ref: stringptr("#/definitions/mediaType")}}
 		*(contentObject.PatternProperties) = append(*(contentObject.PatternProperties), namedSchema)
+	}
+
+	// fix the contact object
+	contactObject := schema.DefinitionWithName("contact")
+	if contactObject != nil {
+		emailProperty := contactObject.PropertyWithName("email")
+		if emailProperty != nil {
+			emailProperty.Format = stringptr("email");
+		}
+		urlProperty := contactObject.PropertyWithName("url")
+		if urlProperty != nil {
+			urlProperty.Format = stringptr("uri");
+		}
 	}
 
 	// write the updated schema

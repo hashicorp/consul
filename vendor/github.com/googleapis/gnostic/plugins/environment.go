@@ -1,6 +1,7 @@
 package gnostic_plugin_v1
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -10,9 +11,12 @@ import (
 	"path"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes/any"
 
 	openapiv2 "github.com/googleapis/gnostic/OpenAPIv2"
 	openapiv3 "github.com/googleapis/gnostic/OpenAPIv3"
+	discovery "github.com/googleapis/gnostic/discovery"
+	surface "github.com/googleapis/gnostic/surface"
 )
 
 // Environment contains the environment of a plugin call.
@@ -77,7 +81,7 @@ When the -plugin option is specified, these flags are ignored.`)
 		}
 
 		// Log the invocation.
-		log.Printf("Running plugin %s", env.Invocation)
+		//log.Printf("Running plugin %s", env.Invocation)
 
 		env.Request = request
 
@@ -98,20 +102,36 @@ When the -plugin option is specified, these flags are ignored.`)
 		documentv2 := &openapiv2.Document{}
 		err = proto.Unmarshal(apiData, documentv2)
 		if err == nil {
-			env.Request.Openapi2 = documentv2
-		} else {
-			// ignore deserialization errors
+			env.Request.AddModel("openapi.v2.Document", documentv2)
+			// include experimental API surface model
+			surfaceModel, err := surface.NewModelFromOpenAPI2(documentv2)
+			if err != nil {
+				env.Request.AddModel("surface.v1.Model", surfaceModel)
+			}
+			return env, err
 		}
-
-		// Then try to unmarshal OpenAPI v3.
+		// If that failed, ignore deserialization errors and try to unmarshal OpenAPI v3.
 		documentv3 := &openapiv3.Document{}
 		err = proto.Unmarshal(apiData, documentv3)
 		if err == nil {
-			env.Request.Openapi3 = documentv3
-		} else {
-			// ignore deserialization errors
+			env.Request.AddModel("openapi.v3.Document", documentv3)
+			// include experimental API surface model
+			surfaceModel, err := surface.NewModelFromOpenAPI3(documentv3)
+			if err != nil {
+				env.Request.AddModel("surface.v1.Model", surfaceModel)
+			}
+			return env, err
 		}
-
+		// If that failed, ignore deserialization errors and try to unmarshal a Discovery document.
+		discoveryDocument := &discovery.Document{}
+		err = proto.Unmarshal(apiData, discoveryDocument)
+		if err == nil {
+			env.Request.AddModel("discovery.v1.Document", discoveryDocument)
+			return env, err
+		}
+		// If we get here, we don't know what we got
+		err = errors.New("Unrecognized format for input")
+		return env, err
 	}
 	return env, err
 }
@@ -170,6 +190,12 @@ func HandleResponse(response *Response, outputLocation string) error {
 		}
 	}
 	return nil
+}
+
+func (request *Request) AddModel(modelType string, model proto.Message) error {
+	modelBytes, err := proto.Marshal(model)
+	request.Models = append(request.Models, &any.Any{TypeUrl: modelType, Value: modelBytes})
+	return err
 }
 
 func isFile(path string) bool {

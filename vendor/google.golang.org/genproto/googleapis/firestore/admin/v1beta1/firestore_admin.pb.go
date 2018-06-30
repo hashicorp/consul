@@ -57,21 +57,21 @@ func (IndexOperationMetadata_OperationType) EnumDescriptor() ([]byte, []int) {
 // the metadata field of [google.longrunning.Operation][google.longrunning.Operation].
 type IndexOperationMetadata struct {
 	// The time that work began on the operation.
-	StartTime *timestamp.Timestamp `protobuf:"bytes,1,opt,name=start_time,json=startTime" json:"start_time,omitempty"`
+	StartTime *timestamp.Timestamp `protobuf:"bytes,1,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
 	// The time the operation ended, either successfully or otherwise. Unset if
 	// the operation is still active.
-	EndTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=end_time,json=endTime" json:"end_time,omitempty"`
+	EndTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
 	// The index resource that this operation is acting on. For example:
 	// `projects/{project_id}/databases/{database_id}/indexes/{index_id}`
-	Index string `protobuf:"bytes,3,opt,name=index" json:"index,omitempty"`
+	Index string `protobuf:"bytes,3,opt,name=index,proto3" json:"index,omitempty"`
 	// The type of index operation.
-	OperationType IndexOperationMetadata_OperationType `protobuf:"varint,4,opt,name=operation_type,json=operationType,enum=google.firestore.admin.v1beta1.IndexOperationMetadata_OperationType" json:"operation_type,omitempty"`
+	OperationType IndexOperationMetadata_OperationType `protobuf:"varint,4,opt,name=operation_type,json=operationType,proto3,enum=google.firestore.admin.v1beta1.IndexOperationMetadata_OperationType" json:"operation_type,omitempty"`
 	// True if the [google.longrunning.Operation] was cancelled. If the
 	// cancellation is in progress, cancelled will be true but
 	// [google.longrunning.Operation.done][google.longrunning.Operation.done] will be false.
-	Cancelled bool `protobuf:"varint,5,opt,name=cancelled" json:"cancelled,omitempty"`
+	Cancelled bool `protobuf:"varint,5,opt,name=cancelled,proto3" json:"cancelled,omitempty"`
 	// Progress of the existing operation, measured in number of documents.
-	DocumentProgress     *Progress `protobuf:"bytes,6,opt,name=document_progress,json=documentProgress" json:"document_progress,omitempty"`
+	DocumentProgress     *Progress `protobuf:"bytes,6,opt,name=document_progress,json=documentProgress,proto3" json:"document_progress,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -147,10 +147,10 @@ func (m *IndexOperationMetadata) GetDocumentProgress() *Progress {
 type Progress struct {
 	// An estimate of how much work has been completed. Note that this may be
 	// greater than `work_estimated`.
-	WorkCompleted int64 `protobuf:"varint,1,opt,name=work_completed,json=workCompleted" json:"work_completed,omitempty"`
+	WorkCompleted int64 `protobuf:"varint,1,opt,name=work_completed,json=workCompleted,proto3" json:"work_completed,omitempty"`
 	// An estimate of how much work needs to be performed. Zero if the
 	// work estimate is unavailable. May change as work progresses.
-	WorkEstimated        int64    `protobuf:"varint,2,opt,name=work_estimated,json=workEstimated" json:"work_estimated,omitempty"`
+	WorkEstimated        int64    `protobuf:"varint,2,opt,name=work_estimated,json=workEstimated,proto3" json:"work_estimated,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -198,10 +198,10 @@ func (m *Progress) GetWorkEstimated() int64 {
 type CreateIndexRequest struct {
 	// The name of the database this index will apply to. For example:
 	// `projects/{project_id}/databases/{database_id}`
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// The index to create. The name and state fields are output only and will be
 	// ignored. Certain single field indexes cannot be created or deleted.
-	Index                *Index   `protobuf:"bytes,2,opt,name=index" json:"index,omitempty"`
+	Index                *Index   `protobuf:"bytes,2,opt,name=index,proto3" json:"index,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -249,7 +249,7 @@ func (m *CreateIndexRequest) GetIndex() *Index {
 type GetIndexRequest struct {
 	// The name of the index. For example:
 	// `projects/{project_id}/databases/{database_id}/indexes/{index_id}`
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -290,12 +290,12 @@ func (m *GetIndexRequest) GetName() string {
 type ListIndexesRequest struct {
 	// The database name. For example:
 	// `projects/{project_id}/databases/{database_id}`
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
-	Filter string `protobuf:"bytes,2,opt,name=filter" json:"filter,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
+	Filter string `protobuf:"bytes,2,opt,name=filter,proto3" json:"filter,omitempty"`
 	// The standard List page size.
-	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The standard List page token.
-	PageToken            string   `protobuf:"bytes,4,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -357,7 +357,7 @@ func (m *ListIndexesRequest) GetPageToken() string {
 type DeleteIndexRequest struct {
 	// The index name. For example:
 	// `projects/{project_id}/databases/{database_id}/indexes/{index_id}`
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -397,9 +397,9 @@ func (m *DeleteIndexRequest) GetName() string {
 // The response for [FirestoreAdmin.ListIndexes][google.firestore.admin.v1beta1.FirestoreAdmin.ListIndexes].
 type ListIndexesResponse struct {
 	// The indexes.
-	Indexes []*Index `protobuf:"bytes,1,rep,name=indexes" json:"indexes,omitempty"`
+	Indexes []*Index `protobuf:"bytes,1,rep,name=indexes,proto3" json:"indexes,omitempty"`
 	// The standard List next-page token.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -532,8 +532,7 @@ func (c *firestoreAdminClient) DeleteIndex(ctx context.Context, in *DeleteIndexR
 	return out, nil
 }
 
-// Server API for FirestoreAdmin service
-
+// FirestoreAdminServer is the server API for FirestoreAdmin service.
 type FirestoreAdminServer interface {
 	// Creates the specified index.
 	// A newly created index's initial state is `CREATING`. On completion of the

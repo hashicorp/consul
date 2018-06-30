@@ -94,7 +94,7 @@ func (RpcType) EnumDescriptor() ([]byte, []int) {
 // of activity coming in from independent identical stationary sources.
 type PoissonParams struct {
 	// The rate of arrivals (a.k.a. lambda parameter of the exp distribution).
-	OfferedLoad          float64  `protobuf:"fixed64,1,opt,name=offered_load,json=offeredLoad" json:"offered_load,omitempty"`
+	OfferedLoad          float64  `protobuf:"fixed64,1,opt,name=offered_load,json=offeredLoad,proto3" json:"offered_load,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -132,8 +132,8 @@ func (m *PoissonParams) GetOfferedLoad() float64 {
 }
 
 type UniformParams struct {
-	InterarrivalLo       float64  `protobuf:"fixed64,1,opt,name=interarrival_lo,json=interarrivalLo" json:"interarrival_lo,omitempty"`
-	InterarrivalHi       float64  `protobuf:"fixed64,2,opt,name=interarrival_hi,json=interarrivalHi" json:"interarrival_hi,omitempty"`
+	InterarrivalLo       float64  `protobuf:"fixed64,1,opt,name=interarrival_lo,json=interarrivalLo,proto3" json:"interarrival_lo,omitempty"`
+	InterarrivalHi       float64  `protobuf:"fixed64,2,opt,name=interarrival_hi,json=interarrivalHi,proto3" json:"interarrival_hi,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -178,7 +178,7 @@ func (m *UniformParams) GetInterarrivalHi() float64 {
 }
 
 type DeterministicParams struct {
-	OfferedLoad          float64  `protobuf:"fixed64,1,opt,name=offered_load,json=offeredLoad" json:"offered_load,omitempty"`
+	OfferedLoad          float64  `protobuf:"fixed64,1,opt,name=offered_load,json=offeredLoad,proto3" json:"offered_load,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -216,8 +216,8 @@ func (m *DeterministicParams) GetOfferedLoad() float64 {
 }
 
 type ParetoParams struct {
-	InterarrivalBase     float64  `protobuf:"fixed64,1,opt,name=interarrival_base,json=interarrivalBase" json:"interarrival_base,omitempty"`
-	Alpha                float64  `protobuf:"fixed64,2,opt,name=alpha" json:"alpha,omitempty"`
+	InterarrivalBase     float64  `protobuf:"fixed64,1,opt,name=interarrival_base,json=interarrivalBase,proto3" json:"interarrival_base,omitempty"`
+	Alpha                float64  `protobuf:"fixed64,2,opt,name=alpha,proto3" json:"alpha,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -335,19 +335,19 @@ type isLoadParams_Load interface {
 }
 
 type LoadParams_ClosedLoop struct {
-	ClosedLoop *ClosedLoopParams `protobuf:"bytes,1,opt,name=closed_loop,json=closedLoop,oneof"`
+	ClosedLoop *ClosedLoopParams `protobuf:"bytes,1,opt,name=closed_loop,json=closedLoop,proto3,oneof"`
 }
 type LoadParams_Poisson struct {
-	Poisson *PoissonParams `protobuf:"bytes,2,opt,name=poisson,oneof"`
+	Poisson *PoissonParams `protobuf:"bytes,2,opt,name=poisson,proto3,oneof"`
 }
 type LoadParams_Uniform struct {
-	Uniform *UniformParams `protobuf:"bytes,3,opt,name=uniform,oneof"`
+	Uniform *UniformParams `protobuf:"bytes,3,opt,name=uniform,proto3,oneof"`
 }
 type LoadParams_Determ struct {
-	Determ *DeterministicParams `protobuf:"bytes,4,opt,name=determ,oneof"`
+	Determ *DeterministicParams `protobuf:"bytes,4,opt,name=determ,proto3,oneof"`
 }
 type LoadParams_Pareto struct {
-	Pareto *ParetoParams `protobuf:"bytes,5,opt,name=pareto,oneof"`
+	Pareto *ParetoParams `protobuf:"bytes,5,opt,name=pareto,proto3,oneof"`
 }
 
 func (*LoadParams_ClosedLoop) isLoadParams_Load() {}
@@ -531,8 +531,8 @@ func _LoadParams_OneofSizer(msg proto.Message) (n int) {
 
 // presence of SecurityParams implies use of TLS
 type SecurityParams struct {
-	UseTestCa            bool     `protobuf:"varint,1,opt,name=use_test_ca,json=useTestCa" json:"use_test_ca,omitempty"`
-	ServerHostOverride   string   `protobuf:"bytes,2,opt,name=server_host_override,json=serverHostOverride" json:"server_host_override,omitempty"`
+	UseTestCa            bool     `protobuf:"varint,1,opt,name=use_test_ca,json=useTestCa,proto3" json:"use_test_ca,omitempty"`
+	ServerHostOverride   string   `protobuf:"bytes,2,opt,name=server_host_override,json=serverHostOverride,proto3" json:"server_host_override,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -578,25 +578,25 @@ func (m *SecurityParams) GetServerHostOverride() string {
 
 type ClientConfig struct {
 	// List of targets to connect to. At least one target needs to be specified.
-	ServerTargets  []string        `protobuf:"bytes,1,rep,name=server_targets,json=serverTargets" json:"server_targets,omitempty"`
-	ClientType     ClientType      `protobuf:"varint,2,opt,name=client_type,json=clientType,enum=grpc.testing.ClientType" json:"client_type,omitempty"`
-	SecurityParams *SecurityParams `protobuf:"bytes,3,opt,name=security_params,json=securityParams" json:"security_params,omitempty"`
+	ServerTargets  []string        `protobuf:"bytes,1,rep,name=server_targets,json=serverTargets,proto3" json:"server_targets,omitempty"`
+	ClientType     ClientType      `protobuf:"varint,2,opt,name=client_type,json=clientType,proto3,enum=grpc.testing.ClientType" json:"client_type,omitempty"`
+	SecurityParams *SecurityParams `protobuf:"bytes,3,opt,name=security_params,json=securityParams,proto3" json:"security_params,omitempty"`
 	// How many concurrent RPCs to start for each channel.
 	// For synchronous client, use a separate thread for each outstanding RPC.
-	OutstandingRpcsPerChannel int32 `protobuf:"varint,4,opt,name=outstanding_rpcs_per_channel,json=outstandingRpcsPerChannel" json:"outstanding_rpcs_per_channel,omitempty"`
+	OutstandingRpcsPerChannel int32 `protobuf:"varint,4,opt,name=outstanding_rpcs_per_channel,json=outstandingRpcsPerChannel,proto3" json:"outstanding_rpcs_per_channel,omitempty"`
 	// Number of independent client channels to create.
 	// i-th channel will connect to server_target[i % server_targets.size()]
-	ClientChannels int32 `protobuf:"varint,5,opt,name=client_channels,json=clientChannels" json:"client_channels,omitempty"`
+	ClientChannels int32 `protobuf:"varint,5,opt,name=client_channels,json=clientChannels,proto3" json:"client_channels,omitempty"`
 	// Only for async client. Number of threads to use to start/manage RPCs.
-	AsyncClientThreads int32   `protobuf:"varint,7,opt,name=async_client_threads,json=asyncClientThreads" json:"async_client_threads,omitempty"`
-	RpcType            RpcType `protobuf:"varint,8,opt,name=rpc_type,json=rpcType,enum=grpc.testing.RpcType" json:"rpc_type,omitempty"`
+	AsyncClientThreads int32   `protobuf:"varint,7,opt,name=async_client_threads,json=asyncClientThreads,proto3" json:"async_client_threads,omitempty"`
+	RpcType            RpcType `protobuf:"varint,8,opt,name=rpc_type,json=rpcType,proto3,enum=grpc.testing.RpcType" json:"rpc_type,omitempty"`
 	// The requested load for the entire client (aggregated over all the threads).
-	LoadParams      *LoadParams      `protobuf:"bytes,10,opt,name=load_params,json=loadParams" json:"load_params,omitempty"`
-	PayloadConfig   *PayloadConfig   `protobuf:"bytes,11,opt,name=payload_config,json=payloadConfig" json:"payload_config,omitempty"`
-	HistogramParams *HistogramParams `protobuf:"bytes,12,opt,name=histogram_params,json=histogramParams" json:"histogram_params,omitempty"`
+	LoadParams      *LoadParams      `protobuf:"bytes,10,opt,name=load_params,json=loadParams,proto3" json:"load_params,omitempty"`
+	PayloadConfig   *PayloadConfig   `protobuf:"bytes,11,opt,name=payload_config,json=payloadConfig,proto3" json:"payload_config,omitempty"`
+	HistogramParams *HistogramParams `protobuf:"bytes,12,opt,name=histogram_params,json=histogramParams,proto3" json:"histogram_params,omitempty"`
 	// Specify the cores we should run the client on, if desired
-	CoreList             []int32  `protobuf:"varint,13,rep,packed,name=core_list,json=coreList" json:"core_list,omitempty"`
-	CoreLimit            int32    `protobuf:"varint,14,opt,name=core_limit,json=coreLimit" json:"core_limit,omitempty"`
+	CoreList             []int32  `protobuf:"varint,13,rep,packed,name=core_list,json=coreList,proto3" json:"core_list,omitempty"`
+	CoreLimit            int32    `protobuf:"varint,14,opt,name=core_limit,json=coreLimit,proto3" json:"core_limit,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -711,7 +711,7 @@ func (m *ClientConfig) GetCoreLimit() int32 {
 }
 
 type ClientStatus struct {
-	Stats                *ClientStats `protobuf:"bytes,1,opt,name=stats" json:"stats,omitempty"`
+	Stats                *ClientStats `protobuf:"bytes,1,opt,name=stats,proto3" json:"stats,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
 	XXX_unrecognized     []byte       `json:"-"`
 	XXX_sizecache        int32        `json:"-"`
@@ -751,7 +751,7 @@ func (m *ClientStatus) GetStats() *ClientStats {
 // Request current stats
 type Mark struct {
 	// if true, the stats will be reset after taking their snapshot.
-	Reset_               bool     `protobuf:"varint,1,opt,name=reset" json:"reset,omitempty"`
+	Reset_               bool     `protobuf:"varint,1,opt,name=reset,proto3" json:"reset,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -827,10 +827,10 @@ type isClientArgs_Argtype interface {
 }
 
 type ClientArgs_Setup struct {
-	Setup *ClientConfig `protobuf:"bytes,1,opt,name=setup,oneof"`
+	Setup *ClientConfig `protobuf:"bytes,1,opt,name=setup,proto3,oneof"`
 }
 type ClientArgs_Mark struct {
-	Mark *Mark `protobuf:"bytes,2,opt,name=mark,oneof"`
+	Mark *Mark `protobuf:"bytes,2,opt,name=mark,proto3,oneof"`
 }
 
 func (*ClientArgs_Setup) isClientArgs_Argtype() {}
@@ -932,18 +932,18 @@ func _ClientArgs_OneofSizer(msg proto.Message) (n int) {
 }
 
 type ServerConfig struct {
-	ServerType     ServerType      `protobuf:"varint,1,opt,name=server_type,json=serverType,enum=grpc.testing.ServerType" json:"server_type,omitempty"`
-	SecurityParams *SecurityParams `protobuf:"bytes,2,opt,name=security_params,json=securityParams" json:"security_params,omitempty"`
+	ServerType     ServerType      `protobuf:"varint,1,opt,name=server_type,json=serverType,proto3,enum=grpc.testing.ServerType" json:"server_type,omitempty"`
+	SecurityParams *SecurityParams `protobuf:"bytes,2,opt,name=security_params,json=securityParams,proto3" json:"security_params,omitempty"`
 	// Port on which to listen. Zero means pick unused port.
-	Port int32 `protobuf:"varint,4,opt,name=port" json:"port,omitempty"`
+	Port int32 `protobuf:"varint,4,opt,name=port,proto3" json:"port,omitempty"`
 	// Only for async server. Number of threads used to serve the requests.
-	AsyncServerThreads int32 `protobuf:"varint,7,opt,name=async_server_threads,json=asyncServerThreads" json:"async_server_threads,omitempty"`
+	AsyncServerThreads int32 `protobuf:"varint,7,opt,name=async_server_threads,json=asyncServerThreads,proto3" json:"async_server_threads,omitempty"`
 	// Specify the number of cores to limit server to, if desired
-	CoreLimit int32 `protobuf:"varint,8,opt,name=core_limit,json=coreLimit" json:"core_limit,omitempty"`
+	CoreLimit int32 `protobuf:"varint,8,opt,name=core_limit,json=coreLimit,proto3" json:"core_limit,omitempty"`
 	// payload config, used in generic server
-	PayloadConfig *PayloadConfig `protobuf:"bytes,9,opt,name=payload_config,json=payloadConfig" json:"payload_config,omitempty"`
+	PayloadConfig *PayloadConfig `protobuf:"bytes,9,opt,name=payload_config,json=payloadConfig,proto3" json:"payload_config,omitempty"`
 	// Specify the cores we should run the server on, if desired
-	CoreList             []int32  `protobuf:"varint,10,rep,packed,name=core_list,json=coreList" json:"core_list,omitempty"`
+	CoreList             []int32  `protobuf:"varint,10,rep,packed,name=core_list,json=coreList,proto3" json:"core_list,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1061,10 +1061,10 @@ type isServerArgs_Argtype interface {
 }
 
 type ServerArgs_Setup struct {
-	Setup *ServerConfig `protobuf:"bytes,1,opt,name=setup,oneof"`
+	Setup *ServerConfig `protobuf:"bytes,1,opt,name=setup,proto3,oneof"`
 }
 type ServerArgs_Mark struct {
-	Mark *Mark `protobuf:"bytes,2,opt,name=mark,oneof"`
+	Mark *Mark `protobuf:"bytes,2,opt,name=mark,proto3,oneof"`
 }
 
 func (*ServerArgs_Setup) isServerArgs_Argtype() {}
@@ -1166,11 +1166,11 @@ func _ServerArgs_OneofSizer(msg proto.Message) (n int) {
 }
 
 type ServerStatus struct {
-	Stats *ServerStats `protobuf:"bytes,1,opt,name=stats" json:"stats,omitempty"`
+	Stats *ServerStats `protobuf:"bytes,1,opt,name=stats,proto3" json:"stats,omitempty"`
 	// the port bound by the server
-	Port int32 `protobuf:"varint,2,opt,name=port" json:"port,omitempty"`
+	Port int32 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
 	// Number of cores available to the server
-	Cores                int32    `protobuf:"varint,3,opt,name=cores" json:"cores,omitempty"`
+	Cores                int32    `protobuf:"varint,3,opt,name=cores,proto3" json:"cores,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1253,7 +1253,7 @@ var xxx_messageInfo_CoreRequest proto.InternalMessageInfo
 
 type CoreResponse struct {
 	// Number of cores available on the server
-	Cores                int32    `protobuf:"varint,1,opt,name=cores" json:"cores,omitempty"`
+	Cores                int32    `protobuf:"varint,1,opt,name=cores,proto3" json:"cores,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1323,21 +1323,21 @@ var xxx_messageInfo_Void proto.InternalMessageInfo
 // A single performance scenario: input to qps_json_driver
 type Scenario struct {
 	// Human readable name for this scenario
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Client configuration
-	ClientConfig *ClientConfig `protobuf:"bytes,2,opt,name=client_config,json=clientConfig" json:"client_config,omitempty"`
+	ClientConfig *ClientConfig `protobuf:"bytes,2,opt,name=client_config,json=clientConfig,proto3" json:"client_config,omitempty"`
 	// Number of clients to start for the test
-	NumClients int32 `protobuf:"varint,3,opt,name=num_clients,json=numClients" json:"num_clients,omitempty"`
+	NumClients int32 `protobuf:"varint,3,opt,name=num_clients,json=numClients,proto3" json:"num_clients,omitempty"`
 	// Server configuration
-	ServerConfig *ServerConfig `protobuf:"bytes,4,opt,name=server_config,json=serverConfig" json:"server_config,omitempty"`
+	ServerConfig *ServerConfig `protobuf:"bytes,4,opt,name=server_config,json=serverConfig,proto3" json:"server_config,omitempty"`
 	// Number of servers to start for the test
-	NumServers int32 `protobuf:"varint,5,opt,name=num_servers,json=numServers" json:"num_servers,omitempty"`
+	NumServers int32 `protobuf:"varint,5,opt,name=num_servers,json=numServers,proto3" json:"num_servers,omitempty"`
 	// Warmup period, in seconds
-	WarmupSeconds int32 `protobuf:"varint,6,opt,name=warmup_seconds,json=warmupSeconds" json:"warmup_seconds,omitempty"`
+	WarmupSeconds int32 `protobuf:"varint,6,opt,name=warmup_seconds,json=warmupSeconds,proto3" json:"warmup_seconds,omitempty"`
 	// Benchmark time, in seconds
-	BenchmarkSeconds int32 `protobuf:"varint,7,opt,name=benchmark_seconds,json=benchmarkSeconds" json:"benchmark_seconds,omitempty"`
+	BenchmarkSeconds int32 `protobuf:"varint,7,opt,name=benchmark_seconds,json=benchmarkSeconds,proto3" json:"benchmark_seconds,omitempty"`
 	// Number of workers to spawn locally (usually zero)
-	SpawnLocalWorkerCount int32    `protobuf:"varint,8,opt,name=spawn_local_worker_count,json=spawnLocalWorkerCount" json:"spawn_local_worker_count,omitempty"`
+	SpawnLocalWorkerCount int32    `protobuf:"varint,8,opt,name=spawn_local_worker_count,json=spawnLocalWorkerCount,proto3" json:"spawn_local_worker_count,omitempty"`
 	XXX_NoUnkeyedLiteral  struct{} `json:"-"`
 	XXX_unrecognized      []byte   `json:"-"`
 	XXX_sizecache         int32    `json:"-"`
@@ -1425,7 +1425,7 @@ func (m *Scenario) GetSpawnLocalWorkerCount() int32 {
 
 // A set of scenarios to be run with qps_json_driver
 type Scenarios struct {
-	Scenarios            []*Scenario `protobuf:"bytes,1,rep,name=scenarios" json:"scenarios,omitempty"`
+	Scenarios            []*Scenario `protobuf:"bytes,1,rep,name=scenarios,proto3" json:"scenarios,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
 	XXX_unrecognized     []byte      `json:"-"`
 	XXX_sizecache        int32       `json:"-"`

@@ -98,16 +98,16 @@ type EntityType struct {
 	// automatically.
 	// The unique identifier of the entity type. Format:
 	// `projects/<Project ID>/agent/entityTypes/<Entity Type ID>`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Required. The name of the entity.
-	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName" json:"display_name,omitempty"`
+	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	// Required. Indicates the kind of entity type.
-	Kind EntityType_Kind `protobuf:"varint,3,opt,name=kind,enum=google.cloud.dialogflow.v2beta1.EntityType_Kind" json:"kind,omitempty"`
+	Kind EntityType_Kind `protobuf:"varint,3,opt,name=kind,proto3,enum=google.cloud.dialogflow.v2beta1.EntityType_Kind" json:"kind,omitempty"`
 	// Optional. Indicates whether the entity type can be automatically
 	// expanded.
-	AutoExpansionMode EntityType_AutoExpansionMode `protobuf:"varint,4,opt,name=auto_expansion_mode,json=autoExpansionMode,enum=google.cloud.dialogflow.v2beta1.EntityType_AutoExpansionMode" json:"auto_expansion_mode,omitempty"`
+	AutoExpansionMode EntityType_AutoExpansionMode `protobuf:"varint,4,opt,name=auto_expansion_mode,json=autoExpansionMode,proto3,enum=google.cloud.dialogflow.v2beta1.EntityType_AutoExpansionMode" json:"auto_expansion_mode,omitempty"`
 	// Optional. The collection of entities associated with the entity type.
-	Entities             []*EntityType_Entity `protobuf:"bytes,6,rep,name=entities" json:"entities,omitempty"`
+	Entities             []*EntityType_Entity `protobuf:"bytes,6,rep,name=entities,proto3" json:"entities,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -180,10 +180,10 @@ type EntityType_Entity struct {
 	// For `KIND_LIST` entity types:
 	//   A string that can contain references to other entity types (with or
 	//   without aliases).
-	Value string `protobuf:"bytes,1,opt,name=value" json:"value,omitempty"`
+	Value string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
 	// Required. A collection of synonyms. For `KIND_LIST` entity types this
 	// must contain exactly one synonym equal to `value`.
-	Synonyms             []string `protobuf:"bytes,2,rep,name=synonyms" json:"synonyms,omitempty"`
+	Synonyms             []string `protobuf:"bytes,2,rep,name=synonyms,proto3" json:"synonyms,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -231,18 +231,18 @@ func (m *EntityType_Entity) GetSynonyms() []string {
 type ListEntityTypesRequest struct {
 	// Required. The agent to list all entity types from.
 	// Format: `projects/<Project ID>/agent`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Optional. The language to list entity synonyms for. If not specified,
 	// the agent's default language is used.
 	// [More than a dozen
 	// languages](https://dialogflow.com/docs/reference/language) are supported.
 	// Note: languages must be enabled in the agent, before they can be used.
-	LanguageCode string `protobuf:"bytes,2,opt,name=language_code,json=languageCode" json:"language_code,omitempty"`
+	LanguageCode string `protobuf:"bytes,2,opt,name=language_code,json=languageCode,proto3" json:"language_code,omitempty"`
 	// Optional. The maximum number of items to return in a single page. By
 	// default 100 and at most 1000.
-	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Optional. The next_page_token value returned from a previous list request.
-	PageToken            string   `protobuf:"bytes,4,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -304,10 +304,10 @@ func (m *ListEntityTypesRequest) GetPageToken() string {
 type ListEntityTypesResponse struct {
 	// The list of agent entity types. There will be a maximum number of items
 	// returned based on the page_size field in the request.
-	EntityTypes []*EntityType `protobuf:"bytes,1,rep,name=entity_types,json=entityTypes" json:"entity_types,omitempty"`
+	EntityTypes []*EntityType `protobuf:"bytes,1,rep,name=entity_types,json=entityTypes,proto3" json:"entity_types,omitempty"`
 	// Token to retrieve the next page of results, or empty if there are no
 	// more results in the list.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -355,13 +355,13 @@ func (m *ListEntityTypesResponse) GetNextPageToken() string {
 type GetEntityTypeRequest struct {
 	// Required. The name of the entity type.
 	// Format: `projects/<Project ID>/agent/entityTypes/<EntityType ID>`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Optional. The language to retrieve entity synonyms for. If not specified,
 	// the agent's default language is used.
 	// [More than a dozen
 	// languages](https://dialogflow.com/docs/reference/language) are supported.
 	// Note: languages must be enabled in the agent, before they can be used.
-	LanguageCode         string   `protobuf:"bytes,2,opt,name=language_code,json=languageCode" json:"language_code,omitempty"`
+	LanguageCode         string   `protobuf:"bytes,2,opt,name=language_code,json=languageCode,proto3" json:"language_code,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -409,15 +409,15 @@ func (m *GetEntityTypeRequest) GetLanguageCode() string {
 type CreateEntityTypeRequest struct {
 	// Required. The agent to create a entity type for.
 	// Format: `projects/<Project ID>/agent`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Required. The entity type to create.
-	EntityType *EntityType `protobuf:"bytes,2,opt,name=entity_type,json=entityType" json:"entity_type,omitempty"`
+	EntityType *EntityType `protobuf:"bytes,2,opt,name=entity_type,json=entityType,proto3" json:"entity_type,omitempty"`
 	// Optional. The language of entity synonyms defined in `entity_type`. If not
 	// specified, the agent's default language is used.
 	// [More than a dozen
 	// languages](https://dialogflow.com/docs/reference/language) are supported.
 	// Note: languages must be enabled in the agent, before they can be used.
-	LanguageCode         string   `protobuf:"bytes,3,opt,name=language_code,json=languageCode" json:"language_code,omitempty"`
+	LanguageCode         string   `protobuf:"bytes,3,opt,name=language_code,json=languageCode,proto3" json:"language_code,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -472,15 +472,15 @@ func (m *CreateEntityTypeRequest) GetLanguageCode() string {
 type UpdateEntityTypeRequest struct {
 	// Required. The entity type to update.
 	// Format: `projects/<Project ID>/agent/entityTypes/<EntityType ID>`.
-	EntityType *EntityType `protobuf:"bytes,1,opt,name=entity_type,json=entityType" json:"entity_type,omitempty"`
+	EntityType *EntityType `protobuf:"bytes,1,opt,name=entity_type,json=entityType,proto3" json:"entity_type,omitempty"`
 	// Optional. The language of entity synonyms defined in `entity_type`. If not
 	// specified, the agent's default language is used.
 	// [More than a dozen
 	// languages](https://dialogflow.com/docs/reference/language) are supported.
 	// Note: languages must be enabled in the agent, before they can be used.
-	LanguageCode string `protobuf:"bytes,2,opt,name=language_code,json=languageCode" json:"language_code,omitempty"`
+	LanguageCode string `protobuf:"bytes,2,opt,name=language_code,json=languageCode,proto3" json:"language_code,omitempty"`
 	// Optional. The mask to control which fields get updated.
-	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -535,7 +535,7 @@ func (m *UpdateEntityTypeRequest) GetUpdateMask() *field_mask.FieldMask {
 type DeleteEntityTypeRequest struct {
 	// Required. The name of the entity type to delete.
 	// Format: `projects/<Project ID>/agent/entityTypes/<EntityType ID>`.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -576,7 +576,7 @@ func (m *DeleteEntityTypeRequest) GetName() string {
 type BatchUpdateEntityTypesRequest struct {
 	// Required. The name of the agent to update or create entity types in.
 	// Format: `projects/<Project ID>/agent`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Required. The source of the entity type batch.
 	//
 	// For each entity type in the batch:
@@ -592,9 +592,9 @@ type BatchUpdateEntityTypesRequest struct {
 	// [More than a dozen
 	// languages](https://dialogflow.com/docs/reference/language) are supported.
 	// Note: languages must be enabled in the agent, before they can be used.
-	LanguageCode string `protobuf:"bytes,4,opt,name=language_code,json=languageCode" json:"language_code,omitempty"`
+	LanguageCode string `protobuf:"bytes,4,opt,name=language_code,json=languageCode,proto3" json:"language_code,omitempty"`
 	// Optional. The mask to control which fields get updated.
-	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,5,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,5,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -629,10 +629,10 @@ type isBatchUpdateEntityTypesRequest_EntityTypeBatch interface {
 }
 
 type BatchUpdateEntityTypesRequest_EntityTypeBatchUri struct {
-	EntityTypeBatchUri string `protobuf:"bytes,2,opt,name=entity_type_batch_uri,json=entityTypeBatchUri,oneof"`
+	EntityTypeBatchUri string `protobuf:"bytes,2,opt,name=entity_type_batch_uri,json=entityTypeBatchUri,proto3,oneof"`
 }
 type BatchUpdateEntityTypesRequest_EntityTypeBatchInline struct {
-	EntityTypeBatchInline *EntityTypeBatch `protobuf:"bytes,3,opt,name=entity_type_batch_inline,json=entityTypeBatchInline,oneof"`
+	EntityTypeBatchInline *EntityTypeBatch `protobuf:"bytes,3,opt,name=entity_type_batch_inline,json=entityTypeBatchInline,proto3,oneof"`
 }
 
 func (*BatchUpdateEntityTypesRequest_EntityTypeBatchUri) isBatchUpdateEntityTypesRequest_EntityTypeBatch() {
@@ -755,7 +755,7 @@ func _BatchUpdateEntityTypesRequest_OneofSizer(msg proto.Message) (n int) {
 // The response message for [EntityTypes.BatchUpdateEntityTypes][google.cloud.dialogflow.v2beta1.EntityTypes.BatchUpdateEntityTypes].
 type BatchUpdateEntityTypesResponse struct {
 	// The collection of updated or created entity types.
-	EntityTypes          []*EntityType `protobuf:"bytes,1,rep,name=entity_types,json=entityTypes" json:"entity_types,omitempty"`
+	EntityTypes          []*EntityType `protobuf:"bytes,1,rep,name=entity_types,json=entityTypes,proto3" json:"entity_types,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
 	XXX_unrecognized     []byte        `json:"-"`
 	XXX_sizecache        int32         `json:"-"`
@@ -796,10 +796,10 @@ func (m *BatchUpdateEntityTypesResponse) GetEntityTypes() []*EntityType {
 type BatchDeleteEntityTypesRequest struct {
 	// Required. The name of the agent to delete all entities types for. Format:
 	// `projects/<Project ID>/agent`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Required. The names entity types to delete. All names must point to the
 	// same agent as `parent`.
-	EntityTypeNames      []string `protobuf:"bytes,2,rep,name=entity_type_names,json=entityTypeNames" json:"entity_type_names,omitempty"`
+	EntityTypeNames      []string `protobuf:"bytes,2,rep,name=entity_type_names,json=entityTypeNames,proto3" json:"entity_type_names,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -847,15 +847,15 @@ func (m *BatchDeleteEntityTypesRequest) GetEntityTypeNames() []string {
 type BatchCreateEntitiesRequest struct {
 	// Required. The name of the entity type to create entities in. Format:
 	// `projects/<Project ID>/agent/entityTypes/<Entity Type ID>`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Required. The collection of entities to create.
-	Entities []*EntityType_Entity `protobuf:"bytes,2,rep,name=entities" json:"entities,omitempty"`
+	Entities []*EntityType_Entity `protobuf:"bytes,2,rep,name=entities,proto3" json:"entities,omitempty"`
 	// Optional. The language of entity synonyms defined in `entities`. If not
 	// specified, the agent's default language is used.
 	// [More than a dozen
 	// languages](https://dialogflow.com/docs/reference/language) are supported.
 	// Note: languages must be enabled in the agent, before they can be used.
-	LanguageCode         string   `protobuf:"bytes,3,opt,name=language_code,json=languageCode" json:"language_code,omitempty"`
+	LanguageCode         string   `protobuf:"bytes,3,opt,name=language_code,json=languageCode,proto3" json:"language_code,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -910,17 +910,17 @@ func (m *BatchCreateEntitiesRequest) GetLanguageCode() string {
 type BatchUpdateEntitiesRequest struct {
 	// Required. The name of the entity type to update the entities in. Format:
 	// `projects/<Project ID>/agent/entityTypes/<Entity Type ID>`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Required. The collection of new entities to replace the existing entities.
-	Entities []*EntityType_Entity `protobuf:"bytes,2,rep,name=entities" json:"entities,omitempty"`
+	Entities []*EntityType_Entity `protobuf:"bytes,2,rep,name=entities,proto3" json:"entities,omitempty"`
 	// Optional. The language of entity synonyms defined in `entities`. If not
 	// specified, the agent's default language is used.
 	// [More than a dozen
 	// languages](https://dialogflow.com/docs/reference/language) are supported.
 	// Note: languages must be enabled in the agent, before they can be used.
-	LanguageCode string `protobuf:"bytes,3,opt,name=language_code,json=languageCode" json:"language_code,omitempty"`
+	LanguageCode string `protobuf:"bytes,3,opt,name=language_code,json=languageCode,proto3" json:"language_code,omitempty"`
 	// Optional. The mask to control which fields get updated.
-	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,4,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,4,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -982,17 +982,17 @@ func (m *BatchUpdateEntitiesRequest) GetUpdateMask() *field_mask.FieldMask {
 type BatchDeleteEntitiesRequest struct {
 	// Required. The name of the entity type to delete entries for. Format:
 	// `projects/<Project ID>/agent/entityTypes/<Entity Type ID>`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Required. The canonical `values` of the entities to delete. Note that
 	// these are not fully-qualified names, i.e. they don't start with
 	// `projects/<Project ID>`.
-	EntityValues []string `protobuf:"bytes,2,rep,name=entity_values,json=entityValues" json:"entity_values,omitempty"`
+	EntityValues []string `protobuf:"bytes,2,rep,name=entity_values,json=entityValues,proto3" json:"entity_values,omitempty"`
 	// Optional. The language of entity synonyms defined in `entities`. If not
 	// specified, the agent's default language is used.
 	// [More than a dozen
 	// languages](https://dialogflow.com/docs/reference/language) are supported.
 	// Note: languages must be enabled in the agent, before they can be used.
-	LanguageCode         string   `protobuf:"bytes,3,opt,name=language_code,json=languageCode" json:"language_code,omitempty"`
+	LanguageCode         string   `protobuf:"bytes,3,opt,name=language_code,json=languageCode,proto3" json:"language_code,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1046,7 +1046,7 @@ func (m *BatchDeleteEntitiesRequest) GetLanguageCode() string {
 // This message is a wrapper around a collection of entity types.
 type EntityTypeBatch struct {
 	// A collection of entity types.
-	EntityTypes          []*EntityType `protobuf:"bytes,1,rep,name=entity_types,json=entityTypes" json:"entity_types,omitempty"`
+	EntityTypes          []*EntityType `protobuf:"bytes,1,rep,name=entity_types,json=entityTypes,proto3" json:"entity_types,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
 	XXX_unrecognized     []byte        `json:"-"`
 	XXX_sizecache        int32         `json:"-"`
@@ -1251,8 +1251,7 @@ func (c *entityTypesClient) BatchDeleteEntities(ctx context.Context, in *BatchDe
 	return out, nil
 }
 
-// Server API for EntityTypes service
-
+// EntityTypesServer is the server API for EntityTypes service.
 type EntityTypesServer interface {
 	// Returns the list of all entity types in the specified agent.
 	ListEntityTypes(context.Context, *ListEntityTypesRequest) (*ListEntityTypesResponse, error)

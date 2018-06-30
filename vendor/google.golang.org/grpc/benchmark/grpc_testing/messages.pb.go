@@ -79,7 +79,7 @@ func (CompressionType) EnumDescriptor() ([]byte, []int) {
 // A block of data, to simply increase gRPC message size.
 type Payload struct {
 	// The type of data in body.
-	Type PayloadType `protobuf:"varint,1,opt,name=type,enum=grpc.testing.PayloadType" json:"type,omitempty"`
+	Type PayloadType `protobuf:"varint,1,opt,name=type,proto3,enum=grpc.testing.PayloadType" json:"type,omitempty"`
 	// Primary contents of payload.
 	Body                 []byte   `protobuf:"bytes,2,opt,name=body,proto3" json:"body,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -128,8 +128,8 @@ func (m *Payload) GetBody() []byte {
 // A protobuf representation for grpc status. This is used by test
 // clients to specify a status that the server should attempt to return.
 type EchoStatus struct {
-	Code                 int32    `protobuf:"varint,1,opt,name=code" json:"code,omitempty"`
-	Message              string   `protobuf:"bytes,2,opt,name=message" json:"message,omitempty"`
+	Code                 int32    `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
+	Message              string   `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -177,20 +177,20 @@ func (m *EchoStatus) GetMessage() string {
 type SimpleRequest struct {
 	// Desired payload type in the response from the server.
 	// If response_type is RANDOM, server randomly chooses one from other formats.
-	ResponseType PayloadType `protobuf:"varint,1,opt,name=response_type,json=responseType,enum=grpc.testing.PayloadType" json:"response_type,omitempty"`
+	ResponseType PayloadType `protobuf:"varint,1,opt,name=response_type,json=responseType,proto3,enum=grpc.testing.PayloadType" json:"response_type,omitempty"`
 	// Desired payload size in the response from the server.
 	// If response_type is COMPRESSABLE, this denotes the size before compression.
-	ResponseSize int32 `protobuf:"varint,2,opt,name=response_size,json=responseSize" json:"response_size,omitempty"`
+	ResponseSize int32 `protobuf:"varint,2,opt,name=response_size,json=responseSize,proto3" json:"response_size,omitempty"`
 	// Optional input payload sent along with the request.
-	Payload *Payload `protobuf:"bytes,3,opt,name=payload" json:"payload,omitempty"`
+	Payload *Payload `protobuf:"bytes,3,opt,name=payload,proto3" json:"payload,omitempty"`
 	// Whether SimpleResponse should include username.
-	FillUsername bool `protobuf:"varint,4,opt,name=fill_username,json=fillUsername" json:"fill_username,omitempty"`
+	FillUsername bool `protobuf:"varint,4,opt,name=fill_username,json=fillUsername,proto3" json:"fill_username,omitempty"`
 	// Whether SimpleResponse should include OAuth scope.
-	FillOauthScope bool `protobuf:"varint,5,opt,name=fill_oauth_scope,json=fillOauthScope" json:"fill_oauth_scope,omitempty"`
+	FillOauthScope bool `protobuf:"varint,5,opt,name=fill_oauth_scope,json=fillOauthScope,proto3" json:"fill_oauth_scope,omitempty"`
 	// Compression algorithm to be used by the server for the response (stream)
-	ResponseCompression CompressionType `protobuf:"varint,6,opt,name=response_compression,json=responseCompression,enum=grpc.testing.CompressionType" json:"response_compression,omitempty"`
+	ResponseCompression CompressionType `protobuf:"varint,6,opt,name=response_compression,json=responseCompression,proto3,enum=grpc.testing.CompressionType" json:"response_compression,omitempty"`
 	// Whether server should return a given status
-	ResponseStatus       *EchoStatus `protobuf:"bytes,7,opt,name=response_status,json=responseStatus" json:"response_status,omitempty"`
+	ResponseStatus       *EchoStatus `protobuf:"bytes,7,opt,name=response_status,json=responseStatus,proto3" json:"response_status,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
 	XXX_unrecognized     []byte      `json:"-"`
 	XXX_sizecache        int32       `json:"-"`
@@ -272,12 +272,12 @@ func (m *SimpleRequest) GetResponseStatus() *EchoStatus {
 // Unary response, as configured by the request.
 type SimpleResponse struct {
 	// Payload to increase message size.
-	Payload *Payload `protobuf:"bytes,1,opt,name=payload" json:"payload,omitempty"`
+	Payload *Payload `protobuf:"bytes,1,opt,name=payload,proto3" json:"payload,omitempty"`
 	// The user the request came from, for verifying authentication was
 	// successful when the client expected it.
-	Username string `protobuf:"bytes,2,opt,name=username" json:"username,omitempty"`
+	Username string `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
 	// OAuth scope.
-	OauthScope           string   `protobuf:"bytes,3,opt,name=oauth_scope,json=oauthScope" json:"oauth_scope,omitempty"`
+	OauthScope           string   `protobuf:"bytes,3,opt,name=oauth_scope,json=oauthScope,proto3" json:"oauth_scope,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -331,7 +331,7 @@ func (m *SimpleResponse) GetOauthScope() string {
 // Client-streaming request.
 type StreamingInputCallRequest struct {
 	// Optional input payload sent along with the request.
-	Payload              *Payload `protobuf:"bytes,1,opt,name=payload" json:"payload,omitempty"`
+	Payload              *Payload `protobuf:"bytes,1,opt,name=payload,proto3" json:"payload,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -371,7 +371,7 @@ func (m *StreamingInputCallRequest) GetPayload() *Payload {
 // Client-streaming response.
 type StreamingInputCallResponse struct {
 	// Aggregated size of payloads received from the client.
-	AggregatedPayloadSize int32    `protobuf:"varint,1,opt,name=aggregated_payload_size,json=aggregatedPayloadSize" json:"aggregated_payload_size,omitempty"`
+	AggregatedPayloadSize int32    `protobuf:"varint,1,opt,name=aggregated_payload_size,json=aggregatedPayloadSize,proto3" json:"aggregated_payload_size,omitempty"`
 	XXX_NoUnkeyedLiteral  struct{} `json:"-"`
 	XXX_unrecognized      []byte   `json:"-"`
 	XXX_sizecache         int32    `json:"-"`
@@ -412,10 +412,10 @@ func (m *StreamingInputCallResponse) GetAggregatedPayloadSize() int32 {
 type ResponseParameters struct {
 	// Desired payload sizes in responses from the server.
 	// If response_type is COMPRESSABLE, this denotes the size before compression.
-	Size int32 `protobuf:"varint,1,opt,name=size" json:"size,omitempty"`
+	Size int32 `protobuf:"varint,1,opt,name=size,proto3" json:"size,omitempty"`
 	// Desired interval between consecutive responses in the response stream in
 	// microseconds.
-	IntervalUs           int32    `protobuf:"varint,2,opt,name=interval_us,json=intervalUs" json:"interval_us,omitempty"`
+	IntervalUs           int32    `protobuf:"varint,2,opt,name=interval_us,json=intervalUs,proto3" json:"interval_us,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -465,15 +465,15 @@ type StreamingOutputCallRequest struct {
 	// If response_type is RANDOM, the payload from each response in the stream
 	// might be of different types. This is to simulate a mixed type of payload
 	// stream.
-	ResponseType PayloadType `protobuf:"varint,1,opt,name=response_type,json=responseType,enum=grpc.testing.PayloadType" json:"response_type,omitempty"`
+	ResponseType PayloadType `protobuf:"varint,1,opt,name=response_type,json=responseType,proto3,enum=grpc.testing.PayloadType" json:"response_type,omitempty"`
 	// Configuration for each expected response message.
-	ResponseParameters []*ResponseParameters `protobuf:"bytes,2,rep,name=response_parameters,json=responseParameters" json:"response_parameters,omitempty"`
+	ResponseParameters []*ResponseParameters `protobuf:"bytes,2,rep,name=response_parameters,json=responseParameters,proto3" json:"response_parameters,omitempty"`
 	// Optional input payload sent along with the request.
-	Payload *Payload `protobuf:"bytes,3,opt,name=payload" json:"payload,omitempty"`
+	Payload *Payload `protobuf:"bytes,3,opt,name=payload,proto3" json:"payload,omitempty"`
 	// Compression algorithm to be used by the server for the response (stream)
-	ResponseCompression CompressionType `protobuf:"varint,6,opt,name=response_compression,json=responseCompression,enum=grpc.testing.CompressionType" json:"response_compression,omitempty"`
+	ResponseCompression CompressionType `protobuf:"varint,6,opt,name=response_compression,json=responseCompression,proto3,enum=grpc.testing.CompressionType" json:"response_compression,omitempty"`
 	// Whether server should return a given status
-	ResponseStatus       *EchoStatus `protobuf:"bytes,7,opt,name=response_status,json=responseStatus" json:"response_status,omitempty"`
+	ResponseStatus       *EchoStatus `protobuf:"bytes,7,opt,name=response_status,json=responseStatus,proto3" json:"response_status,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
 	XXX_unrecognized     []byte      `json:"-"`
 	XXX_sizecache        int32       `json:"-"`
@@ -541,7 +541,7 @@ func (m *StreamingOutputCallRequest) GetResponseStatus() *EchoStatus {
 // Server-streaming response, as configured by the request and parameters.
 type StreamingOutputCallResponse struct {
 	// Payload to increase response size.
-	Payload              *Payload `protobuf:"bytes,1,opt,name=payload" json:"payload,omitempty"`
+	Payload              *Payload `protobuf:"bytes,1,opt,name=payload,proto3" json:"payload,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -581,7 +581,7 @@ func (m *StreamingOutputCallResponse) GetPayload() *Payload {
 // For reconnect interop test only.
 // Client tells server what reconnection parameters it used.
 type ReconnectParams struct {
-	MaxReconnectBackoffMs int32    `protobuf:"varint,1,opt,name=max_reconnect_backoff_ms,json=maxReconnectBackoffMs" json:"max_reconnect_backoff_ms,omitempty"`
+	MaxReconnectBackoffMs int32    `protobuf:"varint,1,opt,name=max_reconnect_backoff_ms,json=maxReconnectBackoffMs,proto3" json:"max_reconnect_backoff_ms,omitempty"`
 	XXX_NoUnkeyedLiteral  struct{} `json:"-"`
 	XXX_unrecognized      []byte   `json:"-"`
 	XXX_sizecache         int32    `json:"-"`
@@ -622,8 +622,8 @@ func (m *ReconnectParams) GetMaxReconnectBackoffMs() int32 {
 // Server tells client whether its reconnects are following the spec and the
 // reconnect backoffs it saw.
 type ReconnectInfo struct {
-	Passed               bool     `protobuf:"varint,1,opt,name=passed" json:"passed,omitempty"`
-	BackoffMs            []int32  `protobuf:"varint,2,rep,packed,name=backoff_ms,json=backoffMs" json:"backoff_ms,omitempty"`
+	Passed               bool     `protobuf:"varint,1,opt,name=passed,proto3" json:"passed,omitempty"`
+	BackoffMs            []int32  `protobuf:"varint,2,rep,packed,name=backoff_ms,json=backoffMs,proto3" json:"backoff_ms,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

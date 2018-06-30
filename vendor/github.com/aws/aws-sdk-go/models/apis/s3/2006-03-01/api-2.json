@@ -859,6 +859,7 @@
       }
     },
     "AccountId":{"type":"string"},
+    "AllowQuotedRecordDelimiter":{"type":"boolean"},
     "AllowedHeader":{"type":"string"},
     "AllowedHeaders":{
       "type":"list",
@@ -1081,7 +1082,8 @@
         "QuoteEscapeCharacter":{"shape":"QuoteEscapeCharacter"},
         "RecordDelimiter":{"shape":"RecordDelimiter"},
         "FieldDelimiter":{"shape":"FieldDelimiter"},
-        "QuoteCharacter":{"shape":"QuoteCharacter"}
+        "QuoteCharacter":{"shape":"QuoteCharacter"},
+        "AllowQuotedRecordDelimiter":{"shape":"AllowQuotedRecordDelimiter"}
       }
     },
     "CSVOutput":{

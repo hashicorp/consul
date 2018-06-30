@@ -490,7 +490,10 @@
     },
     "EnvironmentType":{
       "type":"string",
-      "enum":["LINUX_CONTAINER"]
+      "enum":[
+        "WINDOWS_CONTAINER",
+        "LINUX_CONTAINER"
+      ]
     },
     "EnvironmentVariable":{
       "type":"structure",
@@ -658,7 +661,8 @@
       "enum":[
         "DEBIAN",
         "AMAZON_LINUX",
-        "UBUNTU"
+        "UBUNTU",
+        "WINDOWS_SERVER"
       ]
     },
     "Project":{

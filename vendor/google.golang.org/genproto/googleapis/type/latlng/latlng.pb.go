@@ -59,9 +59,9 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 //     assert (90.0, 10.0) == NormalizeLatLng(-270.0, 10.0)
 type LatLng struct {
 	// The latitude in degrees. It must be in the range [-90.0, +90.0].
-	Latitude float64 `protobuf:"fixed64,1,opt,name=latitude" json:"latitude,omitempty"`
+	Latitude float64 `protobuf:"fixed64,1,opt,name=latitude,proto3" json:"latitude,omitempty"`
 	// The longitude in degrees. It must be in the range [-180.0, +180.0].
-	Longitude            float64  `protobuf:"fixed64,2,opt,name=longitude" json:"longitude,omitempty"`
+	Longitude            float64  `protobuf:"fixed64,2,opt,name=longitude,proto3" json:"longitude,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

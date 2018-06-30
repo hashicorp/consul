@@ -37,9 +37,9 @@ type Authentication struct {
 	// A list of authentication rules that apply to individual API methods.
 	//
 	// **NOTE:** All service configuration rules follow "last one wins" order.
-	Rules []*AuthenticationRule `protobuf:"bytes,3,rep,name=rules" json:"rules,omitempty"`
+	Rules []*AuthenticationRule `protobuf:"bytes,3,rep,name=rules,proto3" json:"rules,omitempty"`
 	// Defines a set of authentication providers that a service supports.
-	Providers            []*AuthProvider `protobuf:"bytes,4,rep,name=providers" json:"providers,omitempty"`
+	Providers            []*AuthProvider `protobuf:"bytes,4,rep,name=providers,proto3" json:"providers,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
 	XXX_unrecognized     []byte          `json:"-"`
 	XXX_sizecache        int32           `json:"-"`
@@ -49,7 +49,7 @@ func (m *Authentication) Reset()         { *m = Authentication{} }
 func (m *Authentication) String() string { return proto.CompactTextString(m) }
 func (*Authentication) ProtoMessage()    {}
 func (*Authentication) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_6939d4e8a8cd2956, []int{0}
+	return fileDescriptor_auth_52a59fcac3533a16, []int{0}
 }
 func (m *Authentication) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Authentication.Unmarshal(m, b)
@@ -96,19 +96,13 @@ type AuthenticationRule struct {
 	// Selects the methods to which this rule applies.
 	//
 	// Refer to [selector][google.api.DocumentationRule.selector] for syntax details.
-	Selector string `protobuf:"bytes,1,opt,name=selector" json:"selector,omitempty"`
+	Selector string `protobuf:"bytes,1,opt,name=selector,proto3" json:"selector,omitempty"`
 	// The requirements for OAuth credentials.
-	Oauth *OAuthRequirements `protobuf:"bytes,2,opt,name=oauth" json:"oauth,omitempty"`
-	// Whether to allow requests without a credential. The credential can be
-	// an OAuth token, Google cookies (first-party auth) or EndUserCreds.
-	//
-	// For requests without credentials, if the service control environment is
-	// specified, each incoming request **must** be associated with a service
-	// consumer. This can be done by passing an API key that belongs to a consumer
-	// project.
-	AllowWithoutCredential bool `protobuf:"varint,5,opt,name=allow_without_credential,json=allowWithoutCredential" json:"allow_without_credential,omitempty"`
+	Oauth *OAuthRequirements `protobuf:"bytes,2,opt,name=oauth,proto3" json:"oauth,omitempty"`
+	// If true, the service accepts API keys without any other credential.
+	AllowWithoutCredential bool `protobuf:"varint,5,opt,name=allow_without_credential,json=allowWithoutCredential,proto3" json:"allow_without_credential,omitempty"`
 	// Requirements for additional authentication providers.
-	Requirements         []*AuthRequirement `protobuf:"bytes,7,rep,name=requirements" json:"requirements,omitempty"`
+	Requirements         []*AuthRequirement `protobuf:"bytes,7,rep,name=requirements,proto3" json:"requirements,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
 	XXX_unrecognized     []byte             `json:"-"`
 	XXX_sizecache        int32              `json:"-"`
@@ -118,7 +112,7 @@ func (m *AuthenticationRule) Reset()         { *m = AuthenticationRule{} }
 func (m *AuthenticationRule) String() string { return proto.CompactTextString(m) }
 func (*AuthenticationRule) ProtoMessage()    {}
 func (*AuthenticationRule) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_6939d4e8a8cd2956, []int{1}
+	return fileDescriptor_auth_52a59fcac3533a16, []int{1}
 }
 func (m *AuthenticationRule) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AuthenticationRule.Unmarshal(m, b)
@@ -173,14 +167,14 @@ type AuthProvider struct {
 	// `AuthRequirement.provider_id`.
 	//
 	// Example: "bookstore_auth".
-	Id string `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// Identifies the principal that issued the JWT. See
 	// https://tools.ietf.org/html/draft-ietf-oauth-json-web-token-32#section-4.1.1
 	// Usually a URL or an email address.
 	//
 	// Example: https://securetoken.google.com
 	// Example: 1234567-compute@developer.gserviceaccount.com
-	Issuer string `protobuf:"bytes,2,opt,name=issuer" json:"issuer,omitempty"`
+	Issuer string `protobuf:"bytes,2,opt,name=issuer,proto3" json:"issuer,omitempty"`
 	// URL of the provider's public key set to validate signature of the JWT. See
 	// [OpenID Discovery](https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata).
 	// Optional if the key set document:
@@ -190,7 +184,7 @@ type AuthProvider struct {
 	//  - can be inferred from the email domain of the issuer (e.g. a Google service account).
 	//
 	// Example: https://www.googleapis.com/oauth2/v1/certs
-	JwksUri string `protobuf:"bytes,3,opt,name=jwks_uri,json=jwksUri" json:"jwks_uri,omitempty"`
+	JwksUri string `protobuf:"bytes,3,opt,name=jwks_uri,json=jwksUri,proto3" json:"jwks_uri,omitempty"`
 	// The list of JWT
 	// [audiences](https://tools.ietf.org/html/draft-ietf-oauth-json-web-token-32#section-4.1.3).
 	// that are allowed to access. A JWT containing any of these audiences will
@@ -204,10 +198,10 @@ type AuthProvider struct {
 	//
 	//     audiences: bookstore_android.apps.googleusercontent.com,
 	//                bookstore_web.apps.googleusercontent.com
-	Audiences string `protobuf:"bytes,4,opt,name=audiences" json:"audiences,omitempty"`
+	Audiences string `protobuf:"bytes,4,opt,name=audiences,proto3" json:"audiences,omitempty"`
 	// Redirect URL if JWT token is required but no present or is expired.
 	// Implement authorizationUrl of securityDefinitions in OpenAPI spec.
-	AuthorizationUrl     string   `protobuf:"bytes,5,opt,name=authorization_url,json=authorizationUrl" json:"authorization_url,omitempty"`
+	AuthorizationUrl     string   `protobuf:"bytes,5,opt,name=authorization_url,json=authorizationUrl,proto3" json:"authorization_url,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -217,7 +211,7 @@ func (m *AuthProvider) Reset()         { *m = AuthProvider{} }
 func (m *AuthProvider) String() string { return proto.CompactTextString(m) }
 func (*AuthProvider) ProtoMessage()    {}
 func (*AuthProvider) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_6939d4e8a8cd2956, []int{2}
+	return fileDescriptor_auth_52a59fcac3533a16, []int{2}
 }
 func (m *AuthProvider) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AuthProvider.Unmarshal(m, b)
@@ -298,7 +292,7 @@ type OAuthRequirements struct {
 	//
 	//      canonical_scopes: https://www.googleapis.com/auth/calendar,
 	//                        https://www.googleapis.com/auth/calendar.read
-	CanonicalScopes      string   `protobuf:"bytes,1,opt,name=canonical_scopes,json=canonicalScopes" json:"canonical_scopes,omitempty"`
+	CanonicalScopes      string   `protobuf:"bytes,1,opt,name=canonical_scopes,json=canonicalScopes,proto3" json:"canonical_scopes,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -308,7 +302,7 @@ func (m *OAuthRequirements) Reset()         { *m = OAuthRequirements{} }
 func (m *OAuthRequirements) String() string { return proto.CompactTextString(m) }
 func (*OAuthRequirements) ProtoMessage()    {}
 func (*OAuthRequirements) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_6939d4e8a8cd2956, []int{3}
+	return fileDescriptor_auth_52a59fcac3533a16, []int{3}
 }
 func (m *OAuthRequirements) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_OAuthRequirements.Unmarshal(m, b)
@@ -343,7 +337,7 @@ type AuthRequirement struct {
 	// Example:
 	//
 	//     provider_id: bookstore_auth
-	ProviderId string `protobuf:"bytes,1,opt,name=provider_id,json=providerId" json:"provider_id,omitempty"`
+	ProviderId string `protobuf:"bytes,1,opt,name=provider_id,json=providerId,proto3" json:"provider_id,omitempty"`
 	// NOTE: This will be deprecated soon, once AuthProvider.audiences is
 	// implemented and accepted in all the runtime components.
 	//
@@ -360,7 +354,7 @@ type AuthRequirement struct {
 	//
 	//     audiences: bookstore_android.apps.googleusercontent.com,
 	//                bookstore_web.apps.googleusercontent.com
-	Audiences            string   `protobuf:"bytes,2,opt,name=audiences" json:"audiences,omitempty"`
+	Audiences            string   `protobuf:"bytes,2,opt,name=audiences,proto3" json:"audiences,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -370,7 +364,7 @@ func (m *AuthRequirement) Reset()         { *m = AuthRequirement{} }
 func (m *AuthRequirement) String() string { return proto.CompactTextString(m) }
 func (*AuthRequirement) ProtoMessage()    {}
 func (*AuthRequirement) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_6939d4e8a8cd2956, []int{4}
+	return fileDescriptor_auth_52a59fcac3533a16, []int{4}
 }
 func (m *AuthRequirement) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AuthRequirement.Unmarshal(m, b)
@@ -412,9 +406,9 @@ func init() {
 	proto.RegisterType((*AuthRequirement)(nil), "google.api.AuthRequirement")
 }
 
-func init() { proto.RegisterFile("google/api/auth.proto", fileDescriptor_auth_6939d4e8a8cd2956) }
+func init() { proto.RegisterFile("google/api/auth.proto", fileDescriptor_auth_52a59fcac3533a16) }
 
-var fileDescriptor_auth_6939d4e8a8cd2956 = []byte{
+var fileDescriptor_auth_52a59fcac3533a16 = []byte{
 	// 465 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x64, 0x52, 0x5f, 0x6b, 0x13, 0x4f,
 	0x14, 0x65, 0x93, 0xa6, 0xcd, 0xde, 0x94, 0xb4, 0x1d, 0xf8, 0x95, 0xfd, 0xd5, 0xaa, 0x21, 0x4f,

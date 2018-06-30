@@ -112,7 +112,7 @@ func startBenchmarkServer(config *testpb.ServerConfig, serverPort int) (*benchma
 	if port == 0 {
 		port = serverPort
 	}
-	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		grpclog.Fatalf("Failed to listen: %v", err)
 	}

@@ -27,19 +27,19 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 type LogEntry struct {
 	// Required. The log to which this log entry belongs. Examples: `"syslog"`,
 	// `"book_log"`.
-	Name string `protobuf:"bytes,10,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,10,opt,name=name,proto3" json:"name,omitempty"`
 	// The time the event described by the log entry occurred. If
 	// omitted, defaults to operation start time.
-	Timestamp *timestamp.Timestamp `protobuf:"bytes,11,opt,name=timestamp" json:"timestamp,omitempty"`
+	Timestamp *timestamp.Timestamp `protobuf:"bytes,11,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	// The severity of the log entry. The default value is
 	// `LogSeverity.DEFAULT`.
-	Severity _type.LogSeverity `protobuf:"varint,12,opt,name=severity,enum=google.logging.type.LogSeverity" json:"severity,omitempty"`
+	Severity _type.LogSeverity `protobuf:"varint,12,opt,name=severity,proto3,enum=google.logging.type.LogSeverity" json:"severity,omitempty"`
 	// A unique ID for the log entry used for deduplication. If omitted,
 	// the implementation will generate one based on operation_id.
-	InsertId string `protobuf:"bytes,4,opt,name=insert_id,json=insertId" json:"insert_id,omitempty"`
+	InsertId string `protobuf:"bytes,4,opt,name=insert_id,json=insertId,proto3" json:"insert_id,omitempty"`
 	// A set of user-defined (key, value) data that provides additional
 	// information about the log entry.
-	Labels map[string]string `protobuf:"bytes,13,rep,name=labels" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Labels map[string]string `protobuf:"bytes,13,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// The log entry payload, which can be one of multiple types.
 	//
 	// Types that are valid to be assigned to Payload:
@@ -81,13 +81,13 @@ type isLogEntry_Payload interface {
 }
 
 type LogEntry_ProtoPayload struct {
-	ProtoPayload *any.Any `protobuf:"bytes,2,opt,name=proto_payload,json=protoPayload,oneof"`
+	ProtoPayload *any.Any `protobuf:"bytes,2,opt,name=proto_payload,json=protoPayload,proto3,oneof"`
 }
 type LogEntry_TextPayload struct {
-	TextPayload string `protobuf:"bytes,3,opt,name=text_payload,json=textPayload,oneof"`
+	TextPayload string `protobuf:"bytes,3,opt,name=text_payload,json=textPayload,proto3,oneof"`
 }
 type LogEntry_StructPayload struct {
-	StructPayload *_struct.Struct `protobuf:"bytes,6,opt,name=struct_payload,json=structPayload,oneof"`
+	StructPayload *_struct.Struct `protobuf:"bytes,6,opt,name=struct_payload,json=structPayload,proto3,oneof"`
 }
 
 func (*LogEntry_ProtoPayload) isLogEntry_Payload()  {}

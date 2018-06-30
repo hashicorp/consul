@@ -117,62 +117,62 @@ type Instance struct {
 	// specific zone (or collection of zones for cross-zone instances) an instance
 	// should be provisioned in. Refer to [location_id] and
 	// [alternative_location_id] fields for more details.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// An arbitrary and optional user-provided name for the instance.
-	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName" json:"display_name,omitempty"`
+	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	// Resource labels to represent user provided metadata
-	Labels map[string]string `protobuf:"bytes,3,rep,name=labels" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Labels map[string]string `protobuf:"bytes,3,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// Optional. The zone where the instance will be provisioned. If not provided,
 	// the service will choose a zone for the instance. For STANDARD_HA tier,
 	// instances will be created across two zones for protection against zonal
 	// failures. if [alternative_location_id] is also provided, it must be
 	// different from [location_id].
-	LocationId string `protobuf:"bytes,4,opt,name=location_id,json=locationId" json:"location_id,omitempty"`
+	LocationId string `protobuf:"bytes,4,opt,name=location_id,json=locationId,proto3" json:"location_id,omitempty"`
 	// Optional. Only applicable to STANDARD_HA tier which protects the instance
 	// against zonal failures by provisioning it across two zones. If provided, it
 	// must be a different zone from the one provided in [location_id].
-	AlternativeLocationId string `protobuf:"bytes,5,opt,name=alternative_location_id,json=alternativeLocationId" json:"alternative_location_id,omitempty"`
+	AlternativeLocationId string `protobuf:"bytes,5,opt,name=alternative_location_id,json=alternativeLocationId,proto3" json:"alternative_location_id,omitempty"`
 	// Optional. The version of Redis software.
 	// If not provided, latest supported version will be used.
-	RedisVersion string `protobuf:"bytes,7,opt,name=redis_version,json=redisVersion" json:"redis_version,omitempty"`
+	RedisVersion string `protobuf:"bytes,7,opt,name=redis_version,json=redisVersion,proto3" json:"redis_version,omitempty"`
 	// Optional. The CIDR range of internal addresses that are reserved for this
 	// instance. If not provided, the service will choose an unused /29 block,
 	// for example, 10.0.0.0/29 or 192.168.0.0/29. Ranges must be unique
 	// and non-overlapping with existing subnets in a network.
-	ReservedIpRange string `protobuf:"bytes,9,opt,name=reserved_ip_range,json=reservedIpRange" json:"reserved_ip_range,omitempty"`
+	ReservedIpRange string `protobuf:"bytes,9,opt,name=reserved_ip_range,json=reservedIpRange,proto3" json:"reserved_ip_range,omitempty"`
 	// Output only. Hostname or IP address of the exposed redis endpoint used by
 	// clients to connect to the service.
-	Host string `protobuf:"bytes,10,opt,name=host" json:"host,omitempty"`
+	Host string `protobuf:"bytes,10,opt,name=host,proto3" json:"host,omitempty"`
 	// Output only. The port number of the exposed redis endpoint.
-	Port int32 `protobuf:"varint,11,opt,name=port" json:"port,omitempty"`
+	Port int32 `protobuf:"varint,11,opt,name=port,proto3" json:"port,omitempty"`
 	// Output only. The current zone where the Redis endpoint is placed. In
 	// single zone deployments, this will always be the same as [location_id]
 	// provided by the user at creation time. In cross-zone instances (only
 	// applicable in STANDARD_HA tier), this can be either [location_id] or
 	// [alternative_location_id] and can change on a failover event.
-	CurrentLocationId string `protobuf:"bytes,12,opt,name=current_location_id,json=currentLocationId" json:"current_location_id,omitempty"`
+	CurrentLocationId string `protobuf:"bytes,12,opt,name=current_location_id,json=currentLocationId,proto3" json:"current_location_id,omitempty"`
 	// Output only. The time the instance was created.
-	CreateTime *timestamp.Timestamp `protobuf:"bytes,13,opt,name=create_time,json=createTime" json:"create_time,omitempty"`
+	CreateTime *timestamp.Timestamp `protobuf:"bytes,13,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 	// Output only. The current state of this instance.
-	State Instance_State `protobuf:"varint,14,opt,name=state,enum=google.cloud.redis.v1beta1.Instance_State" json:"state,omitempty"`
+	State Instance_State `protobuf:"varint,14,opt,name=state,proto3,enum=google.cloud.redis.v1beta1.Instance_State" json:"state,omitempty"`
 	// Output only. Additional information about the current status of this
 	// instance, if available.
-	StatusMessage string `protobuf:"bytes,15,opt,name=status_message,json=statusMessage" json:"status_message,omitempty"`
+	StatusMessage string `protobuf:"bytes,15,opt,name=status_message,json=statusMessage,proto3" json:"status_message,omitempty"`
 	// Optional. Redis configuration parameters, according to
 	// http://redis.io/topics/config. Currently, the only supported parameters
 	// are:
 	//  * maxmemory-policy
 	//  * notify-keyspace-events
-	RedisConfigs map[string]string `protobuf:"bytes,16,rep,name=redis_configs,json=redisConfigs" json:"redis_configs,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	RedisConfigs map[string]string `protobuf:"bytes,16,rep,name=redis_configs,json=redisConfigs,proto3" json:"redis_configs,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// Required. The service tier of the instance.
-	Tier Instance_Tier `protobuf:"varint,17,opt,name=tier,enum=google.cloud.redis.v1beta1.Instance_Tier" json:"tier,omitempty"`
+	Tier Instance_Tier `protobuf:"varint,17,opt,name=tier,proto3,enum=google.cloud.redis.v1beta1.Instance_Tier" json:"tier,omitempty"`
 	// Required. Redis memory size in GB.
-	MemorySizeGb int32 `protobuf:"varint,18,opt,name=memory_size_gb,json=memorySizeGb" json:"memory_size_gb,omitempty"`
+	MemorySizeGb int32 `protobuf:"varint,18,opt,name=memory_size_gb,json=memorySizeGb,proto3" json:"memory_size_gb,omitempty"`
 	// Optional. The full name of the Google Compute Engine
 	// [network](/compute/docs/networks-and-firewalls#networks) to which the
 	// instance is connected. If left unspecified, the `default` network
 	// will be used.
-	AuthorizedNetwork    string   `protobuf:"bytes,20,opt,name=authorized_network,json=authorizedNetwork" json:"authorized_network,omitempty"`
+	AuthorizedNetwork    string   `protobuf:"bytes,20,opt,name=authorized_network,json=authorizedNetwork,proto3" json:"authorized_network,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -326,7 +326,7 @@ type ListInstancesRequest struct {
 	// Required. The resource name of the instance location using the form:
 	//     `projects/{project_id}/locations/{location_id}`
 	// where `location_id` refers to a GCP region
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// The maximum number of items to return.
 	//
 	// If not specified, a default value of 1000 will be used by the service.
@@ -334,10 +334,10 @@ type ListInstancesRequest struct {
 	// and a caller should only rely on response's
 	// [next_page_token][CloudRedis.ListInstancesResponse.next_page_token]
 	// to determine if there are more instances left to be queried.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The next_page_token value returned from a previous List request,
 	// if any.
-	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -400,10 +400,10 @@ type ListInstancesResponse struct {
 	// the form projects/{project_id}/locations/{location_id}/instances/- and the
 	// "status" field set to ERROR and "status_message" field set to "location not
 	// available for ListInstances".
-	Instances []*Instance `protobuf:"bytes,1,rep,name=instances" json:"instances,omitempty"`
+	Instances []*Instance `protobuf:"bytes,1,rep,name=instances,proto3" json:"instances,omitempty"`
 	// Token to retrieve the next page of results, or empty if there are no more
 	// results in the list.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -452,7 +452,7 @@ type GetInstanceRequest struct {
 	// Required. Redis instance resource name using the form:
 	//     `projects/{project_id}/locations/{location_id}/instances/{instance_id}`
 	// where `location_id` refers to a GCP region
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -494,7 +494,7 @@ type CreateInstanceRequest struct {
 	// Required. The resource name of the instance location using the form:
 	//     `projects/{project_id}/locations/{location_id}`
 	// where `location_id` refers to a GCP region
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Required. The logical name of the Redis instance in the customer project
 	// with the following restrictions:
 	//
@@ -503,9 +503,9 @@ type CreateInstanceRequest struct {
 	// * Must be between 1-40 characters.
 	// * Must end with a number or a letter.
 	// * Must be unique within the customer project / location
-	InstanceId string `protobuf:"bytes,2,opt,name=instance_id,json=instanceId" json:"instance_id,omitempty"`
+	InstanceId string `protobuf:"bytes,2,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
 	// Required. A Redis [Instance] resource
-	Instance             *Instance `protobuf:"bytes,3,opt,name=instance" json:"instance,omitempty"`
+	Instance             *Instance `protobuf:"bytes,3,opt,name=instance,proto3" json:"instance,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -565,10 +565,10 @@ type UpdateInstanceRequest struct {
 	// * `labels`
 	// * `memory_size_gb`
 	// * `redis_config`
-	UpdateMask *field_mask.FieldMask `protobuf:"bytes,1,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask *field_mask.FieldMask `protobuf:"bytes,1,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	// Required. Update description.
 	// Only fields specified in update_mask are updated.
-	Instance             *Instance `protobuf:"bytes,2,opt,name=instance" json:"instance,omitempty"`
+	Instance             *Instance `protobuf:"bytes,2,opt,name=instance,proto3" json:"instance,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -617,7 +617,7 @@ type DeleteInstanceRequest struct {
 	// Required. Redis instance resource name using the form:
 	//     `projects/{project_id}/locations/{location_id}/instances/{instance_id}`
 	// where `location_id` refers to a GCP region
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -663,7 +663,7 @@ type LocationMetadata struct {
 	// by the lowercase ID of each zone, as defined by GCE. These keys can be
 	// specified in `location_id` or `alternative_location_id` fields when
 	// creating a Redis instance.
-	AvailableZones       map[string]*ZoneMetadata `protobuf:"bytes,1,rep,name=available_zones,json=availableZones" json:"available_zones,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	AvailableZones       map[string]*ZoneMetadata `protobuf:"bytes,1,rep,name=available_zones,json=availableZones,proto3" json:"available_zones,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}                 `json:"-"`
 	XXX_unrecognized     []byte                   `json:"-"`
 	XXX_sizecache        int32                    `json:"-"`
@@ -849,8 +849,7 @@ func (c *cloudRedisClient) DeleteInstance(ctx context.Context, in *DeleteInstanc
 	return out, nil
 }
 
-// Server API for CloudRedis service
-
+// CloudRedisServer is the server API for CloudRedis service.
 type CloudRedisServer interface {
 	// Lists all Redis instances owned by a project in either the specified
 	// location (region) or all locations.

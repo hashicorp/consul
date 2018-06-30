@@ -85,7 +85,7 @@ func (x LogSeverity) String() string {
 	return proto.EnumName(LogSeverity_name, int32(x))
 }
 func (LogSeverity) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_log_severity_6ec6ee905a000c23, []int{0}
+	return fileDescriptor_log_severity_bd22c162c6e9611a, []int{0}
 }
 
 func init() {
@@ -93,10 +93,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("google/logging/type/log_severity.proto", fileDescriptor_log_severity_6ec6ee905a000c23)
+	proto.RegisterFile("google/logging/type/log_severity.proto", fileDescriptor_log_severity_bd22c162c6e9611a)
 }
 
-var fileDescriptor_log_severity_6ec6ee905a000c23 = []byte{
+var fileDescriptor_log_severity_bd22c162c6e9611a = []byte{
 	// 309 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x52, 0x4b, 0xcf, 0xcf, 0x4f,
 	0xcf, 0x49, 0xd5, 0xcf, 0xc9, 0x4f, 0x4f, 0xcf, 0xcc, 0x4b, 0xd7, 0x2f, 0xa9, 0x2c, 0x00, 0x73,

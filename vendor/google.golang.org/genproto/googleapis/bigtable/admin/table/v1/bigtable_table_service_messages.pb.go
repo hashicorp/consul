@@ -20,13 +20,13 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 type CreateTableRequest struct {
 	// The unique name of the cluster in which to create the new table.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The name by which the new table should be referred to within the cluster,
 	// e.g. "foobar" rather than "<cluster_name>/tables/foobar".
-	TableId string `protobuf:"bytes,2,opt,name=table_id,json=tableId" json:"table_id,omitempty"`
+	TableId string `protobuf:"bytes,2,opt,name=table_id,json=tableId,proto3" json:"table_id,omitempty"`
 	// The Table to create. The `name` field of the Table and all of its
 	// ColumnFamilies must be left blank, and will be populated in the response.
-	Table *Table `protobuf:"bytes,3,opt,name=table" json:"table,omitempty"`
+	Table *Table `protobuf:"bytes,3,opt,name=table,proto3" json:"table,omitempty"`
 	// The optional list of row keys that will be used to initially split the
 	// table into several tablets (Tablets are similar to HBase regions).
 	// Given two split keys, "s1" and "s2", three tablets will be created,
@@ -42,7 +42,7 @@ type CreateTableRequest struct {
 	//    - Tablet 3 [customer_1, customer_2) => {"customer_1"}.
 	//    - Tablet 4 [customer_2, other)      => {"customer_2"}.
 	//    - Tablet 5 [other, )                => {"other", "zz"}.
-	InitialSplitKeys     []string `protobuf:"bytes,4,rep,name=initial_split_keys,json=initialSplitKeys" json:"initial_split_keys,omitempty"`
+	InitialSplitKeys     []string `protobuf:"bytes,4,rep,name=initial_split_keys,json=initialSplitKeys,proto3" json:"initial_split_keys,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -102,7 +102,7 @@ func (m *CreateTableRequest) GetInitialSplitKeys() []string {
 
 type ListTablesRequest struct {
 	// The unique name of the cluster for which tables should be listed.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -142,7 +142,7 @@ func (m *ListTablesRequest) GetName() string {
 type ListTablesResponse struct {
 	// The tables present in the requested cluster.
 	// At present, only the names of the tables are populated.
-	Tables               []*Table `protobuf:"bytes,1,rep,name=tables" json:"tables,omitempty"`
+	Tables               []*Table `protobuf:"bytes,1,rep,name=tables,proto3" json:"tables,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -181,7 +181,7 @@ func (m *ListTablesResponse) GetTables() []*Table {
 
 type GetTableRequest struct {
 	// The unique name of the requested table.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -220,7 +220,7 @@ func (m *GetTableRequest) GetName() string {
 
 type DeleteTableRequest struct {
 	// The unique name of the table to be deleted.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -259,10 +259,10 @@ func (m *DeleteTableRequest) GetName() string {
 
 type RenameTableRequest struct {
 	// The current unique name of the table.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The new name by which the table should be referred to within its containing
 	// cluster, e.g. "foobar" rather than "<cluster_name>/tables/foobar".
-	NewId                string   `protobuf:"bytes,2,opt,name=new_id,json=newId" json:"new_id,omitempty"`
+	NewId                string   `protobuf:"bytes,2,opt,name=new_id,json=newId,proto3" json:"new_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -308,12 +308,12 @@ func (m *RenameTableRequest) GetNewId() string {
 
 type CreateColumnFamilyRequest struct {
 	// The unique name of the table in which to create the new column family.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The name by which the new column family should be referred to within the
 	// table, e.g. "foobar" rather than "<table_name>/columnFamilies/foobar".
-	ColumnFamilyId string `protobuf:"bytes,2,opt,name=column_family_id,json=columnFamilyId" json:"column_family_id,omitempty"`
+	ColumnFamilyId string `protobuf:"bytes,2,opt,name=column_family_id,json=columnFamilyId,proto3" json:"column_family_id,omitempty"`
 	// The column family to create. The `name` field must be left blank.
-	ColumnFamily         *ColumnFamily `protobuf:"bytes,3,opt,name=column_family,json=columnFamily" json:"column_family,omitempty"`
+	ColumnFamily         *ColumnFamily `protobuf:"bytes,3,opt,name=column_family,json=columnFamily,proto3" json:"column_family,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
 	XXX_unrecognized     []byte        `json:"-"`
 	XXX_sizecache        int32         `json:"-"`
@@ -366,7 +366,7 @@ func (m *CreateColumnFamilyRequest) GetColumnFamily() *ColumnFamily {
 
 type DeleteColumnFamilyRequest struct {
 	// The unique name of the column family to be deleted.
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -405,7 +405,7 @@ func (m *DeleteColumnFamilyRequest) GetName() string {
 
 type BulkDeleteRowsRequest struct {
 	// The unique name of the table on which to perform the bulk delete
-	TableName string `protobuf:"bytes,1,opt,name=table_name,json=tableName" json:"table_name,omitempty"`
+	TableName string `protobuf:"bytes,1,opt,name=table_name,json=tableName,proto3" json:"table_name,omitempty"`
 	// Types that are valid to be assigned to Target:
 	//	*BulkDeleteRowsRequest_RowKeyPrefix
 	//	*BulkDeleteRowsRequest_DeleteAllDataFromTable
@@ -447,7 +447,7 @@ type BulkDeleteRowsRequest_RowKeyPrefix struct {
 	RowKeyPrefix []byte `protobuf:"bytes,2,opt,name=row_key_prefix,json=rowKeyPrefix,proto3,oneof"`
 }
 type BulkDeleteRowsRequest_DeleteAllDataFromTable struct {
-	DeleteAllDataFromTable bool `protobuf:"varint,3,opt,name=delete_all_data_from_table,json=deleteAllDataFromTable,oneof"`
+	DeleteAllDataFromTable bool `protobuf:"varint,3,opt,name=delete_all_data_from_table,json=deleteAllDataFromTable,proto3,oneof"`
 }
 
 func (*BulkDeleteRowsRequest_RowKeyPrefix) isBulkDeleteRowsRequest_Target()           {}

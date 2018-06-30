@@ -147,6 +147,12 @@
         "InventoryS3BucketDestination$AccountId": "The ID of the account that owns the destination bucket."
       }
     },
+    "AllowQuotedRecordDelimiter": {
+      "base": null,
+      "refs": {
+        "CSVInput$AllowQuotedRecordDelimiter": "Specifies that CSV field values may contain quoted record delimiters and such records should be allowed. Default value is FALSE. Setting this value to TRUE may lower performance."
+      }
+    },
     "AllowedHeader": {
       "base": null,
       "refs": {

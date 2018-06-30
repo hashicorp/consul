@@ -17,8 +17,17 @@ var (
 )
 
 func TestConsumerMetadataResponseError(t *testing.T) {
-	response := ConsumerMetadataResponse{Err: ErrOffsetsLoadInProgress}
-	testResponse(t, "error", &response, consumerMetadataResponseError)
+	response := &ConsumerMetadataResponse{Err: ErrOffsetsLoadInProgress}
+	testEncodable(t, "", response, consumerMetadataResponseError)
+
+	decodedResp := &ConsumerMetadataResponse{}
+	if err := versionedDecode(consumerMetadataResponseError, decodedResp, 0); err != nil {
+		t.Error("could not decode: ", err)
+	}
+
+	if decodedResp.Err != ErrOffsetsLoadInProgress {
+		t.Errorf("got %s, want %s", decodedResp.Err, ErrOffsetsLoadInProgress)
+	}
 }
 
 func TestConsumerMetadataResponseSuccess(t *testing.T) {

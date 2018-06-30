@@ -14,23 +14,40 @@ import (
 	"strings"
 
 	"github.com/pierrec/lz4"
+	"github.com/pkg/profile"
 )
 
 func main() {
 	// Process command line arguments
 	var (
-		blockMaxSizeDefault = 4 << 20
-		flagStdout          = flag.Bool("c", false, "output to stdout")
-		flagDecompress      = flag.Bool("d", false, "decompress flag")
-		flagBlockMaxSize    = flag.Int("B", blockMaxSizeDefault, "block max size [64Kb,256Kb,1Mb,4Mb]")
-		flagBlockDependency = flag.Bool("BD", false, "enable block dependency")
-		flagBlockChecksum   = flag.Bool("BX", false, "enable block checksum")
-		flagStreamChecksum  = flag.Bool("Sx", false, "disable stream checksum")
-		flagHighCompression = flag.Bool("9", false, "enabled high compression")
+		blockMaxSizeDefault  = 4 << 20
+		flagStdout           = flag.Bool("c", false, "output to stdout")
+		flagDecompress       = flag.Bool("d", false, "decompress flag")
+		flagBlockMaxSize     = flag.Int("B", blockMaxSizeDefault, "block max size [64Kb,256Kb,1Mb,4Mb]")
+		flagBlockChecksum    = flag.Bool("BX", false, "enable block checksum")
+		flagStreamChecksum   = flag.Bool("Sx", false, "disable stream checksum")
+		flagCompressionLevel = flag.Int("l", 0, "compression level (0=fastest)")
+		profileName          = flag.String("p", "", "path to the profile file")
+		mode                 = flag.String("profile.mode", "", "enable profiling mode, one of [cpu, mem, mutex, block]")
 	)
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage:\n\t%s [arg] [input]...\n\tNo input means [de]compress stdin to stdout\n\n", os.Args[0])
 		flag.PrintDefaults()
+	}
+	flag.Parse()
+
+	ppath := profile.ProfilePath(*profileName)
+	switch *mode {
+	case "cpu":
+		defer profile.Start(profile.CPUProfile, ppath).Stop()
+	case "mem":
+		defer profile.Start(profile.MemProfile, ppath).Stop()
+	case "mutex":
+		defer profile.Start(profile.MutexProfile, ppath).Stop()
+	case "block":
+		defer profile.Start(profile.BlockProfile, ppath).Stop()
+	default:
+		// do nothing
 	}
 	flag.Parse()
 
@@ -40,11 +57,10 @@ func main() {
 	zr := lz4.NewReader(nil)
 	zw := lz4.NewWriter(nil)
 	zh := lz4.Header{
-		BlockDependency: *flagBlockDependency,
-		BlockChecksum:   *flagBlockChecksum,
-		BlockMaxSize:    *flagBlockMaxSize,
-		NoChecksum:      *flagStreamChecksum,
-		HighCompression: *flagHighCompression,
+		BlockChecksum:    *flagBlockChecksum,
+		BlockMaxSize:     *flagBlockMaxSize,
+		NoChecksum:       *flagStreamChecksum,
+		CompressionLevel: *flagCompressionLevel,
 	}
 
 	worker := func(in io.Reader, out io.Writer) {

@@ -74,7 +74,7 @@ func (Property_PropertyType) EnumDescriptor() ([]byte, []int) {
 //        type: INT64
 type ProjectProperties struct {
 	// List of per consumer project-specific properties.
-	Properties           []*Property `protobuf:"bytes,1,rep,name=properties" json:"properties,omitempty"`
+	Properties           []*Property `protobuf:"bytes,1,rep,name=properties,proto3" json:"properties,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
 	XXX_unrecognized     []byte      `json:"-"`
 	XXX_sizecache        int32       `json:"-"`
@@ -123,11 +123,11 @@ func (m *ProjectProperties) GetProperties() []*Property {
 // define and set these properties.
 type Property struct {
 	// The name of the property (a.k.a key).
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The type of this property.
-	Type Property_PropertyType `protobuf:"varint,2,opt,name=type,enum=google.api.Property_PropertyType" json:"type,omitempty"`
+	Type Property_PropertyType `protobuf:"varint,2,opt,name=type,proto3,enum=google.api.Property_PropertyType" json:"type,omitempty"`
 	// The description of the property
-	Description          string   `protobuf:"bytes,3,opt,name=description" json:"description,omitempty"`
+	Description          string   `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

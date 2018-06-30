@@ -61,9 +61,7 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 // <pre><code>&#91;display text]&#91;fully.qualified.proto.name]</code></pre>
 // Text can be excluded from doc using the following notation:
 // <pre><code>&#40;-- internal comment --&#41;</code></pre>
-// Comments can be made conditional using a visibility label. The below
-// text will be only rendered if the `BETA` label is available:
-// <pre><code>&#40;--BETA: comment for BETA users --&#41;</code></pre>
+//
 // A few directives are available in documentation. Note that
 // directives must appear on a single line to be properly
 // identified. The `include` directive includes a markdown file from
@@ -78,15 +76,15 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 type Documentation struct {
 	// A short summary of what the service does. Can only be provided by
 	// plain text.
-	Summary string `protobuf:"bytes,1,opt,name=summary" json:"summary,omitempty"`
+	Summary string `protobuf:"bytes,1,opt,name=summary,proto3" json:"summary,omitempty"`
 	// The top level pages for the documentation set.
-	Pages []*Page `protobuf:"bytes,5,rep,name=pages" json:"pages,omitempty"`
+	Pages []*Page `protobuf:"bytes,5,rep,name=pages,proto3" json:"pages,omitempty"`
 	// A list of documentation rules that apply to individual API elements.
 	//
 	// **NOTE:** All service configuration rules follow "last one wins" order.
-	Rules []*DocumentationRule `protobuf:"bytes,3,rep,name=rules" json:"rules,omitempty"`
+	Rules []*DocumentationRule `protobuf:"bytes,3,rep,name=rules,proto3" json:"rules,omitempty"`
 	// The URL to the root of documentation.
-	DocumentationRootUrl string `protobuf:"bytes,4,opt,name=documentation_root_url,json=documentationRootUrl" json:"documentation_root_url,omitempty"`
+	DocumentationRootUrl string `protobuf:"bytes,4,opt,name=documentation_root_url,json=documentationRootUrl,proto3" json:"documentation_root_url,omitempty"`
 	// Declares a single overview page. For example:
 	// <pre><code>documentation:
 	//   summary: ...
@@ -100,7 +98,7 @@ type Documentation struct {
 	//     content: &#40;== include overview.md ==&#41;
 	// </code></pre>
 	// Note: you cannot specify both `overview` field and `pages` field.
-	Overview             string   `protobuf:"bytes,2,opt,name=overview" json:"overview,omitempty"`
+	Overview             string   `protobuf:"bytes,2,opt,name=overview,proto3" json:"overview,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -110,7 +108,7 @@ func (m *Documentation) Reset()         { *m = Documentation{} }
 func (m *Documentation) String() string { return proto.CompactTextString(m) }
 func (*Documentation) ProtoMessage()    {}
 func (*Documentation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_documentation_5c51e57b0ed8cac0, []int{0}
+	return fileDescriptor_documentation_fffa126753bc1b4d, []int{0}
 }
 func (m *Documentation) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Documentation.Unmarshal(m, b)
@@ -173,12 +171,12 @@ type DocumentationRule struct {
 	// qualified name, i.e. "foo.*" is ok, but not "foo.b*" or "foo.*.bar". To
 	// specify a default for all applicable elements, the whole pattern "*"
 	// is used.
-	Selector string `protobuf:"bytes,1,opt,name=selector" json:"selector,omitempty"`
+	Selector string `protobuf:"bytes,1,opt,name=selector,proto3" json:"selector,omitempty"`
 	// Description of the selected API(s).
-	Description string `protobuf:"bytes,2,opt,name=description" json:"description,omitempty"`
+	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
 	// Deprecation description of the selected element(s). It can be provided if an
 	// element is marked as `deprecated`.
-	DeprecationDescription string   `protobuf:"bytes,3,opt,name=deprecation_description,json=deprecationDescription" json:"deprecation_description,omitempty"`
+	DeprecationDescription string   `protobuf:"bytes,3,opt,name=deprecation_description,json=deprecationDescription,proto3" json:"deprecation_description,omitempty"`
 	XXX_NoUnkeyedLiteral   struct{} `json:"-"`
 	XXX_unrecognized       []byte   `json:"-"`
 	XXX_sizecache          int32    `json:"-"`
@@ -188,7 +186,7 @@ func (m *DocumentationRule) Reset()         { *m = DocumentationRule{} }
 func (m *DocumentationRule) String() string { return proto.CompactTextString(m) }
 func (*DocumentationRule) ProtoMessage()    {}
 func (*DocumentationRule) Descriptor() ([]byte, []int) {
-	return fileDescriptor_documentation_5c51e57b0ed8cac0, []int{1}
+	return fileDescriptor_documentation_fffa126753bc1b4d, []int{1}
 }
 func (m *DocumentationRule) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DocumentationRule.Unmarshal(m, b)
@@ -246,13 +244,13 @@ type Page struct {
 	// </code></pre>
 	// You can reference `Java` page using Markdown reference link syntax:
 	// `[Java][Tutorial.Java]`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The Markdown content of the page. You can use <code>&#40;== include {path} ==&#41;</code>
 	// to include content from a Markdown file.
-	Content string `protobuf:"bytes,2,opt,name=content" json:"content,omitempty"`
+	Content string `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
 	// Subpages of this page. The order of subpages specified here will be
 	// honored in the generated docset.
-	Subpages             []*Page  `protobuf:"bytes,3,rep,name=subpages" json:"subpages,omitempty"`
+	Subpages             []*Page  `protobuf:"bytes,3,rep,name=subpages,proto3" json:"subpages,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -262,7 +260,7 @@ func (m *Page) Reset()         { *m = Page{} }
 func (m *Page) String() string { return proto.CompactTextString(m) }
 func (*Page) ProtoMessage()    {}
 func (*Page) Descriptor() ([]byte, []int) {
-	return fileDescriptor_documentation_5c51e57b0ed8cac0, []int{2}
+	return fileDescriptor_documentation_fffa126753bc1b4d, []int{2}
 }
 func (m *Page) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Page.Unmarshal(m, b)
@@ -310,10 +308,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("google/api/documentation.proto", fileDescriptor_documentation_5c51e57b0ed8cac0)
+	proto.RegisterFile("google/api/documentation.proto", fileDescriptor_documentation_fffa126753bc1b4d)
 }
 
-var fileDescriptor_documentation_5c51e57b0ed8cac0 = []byte{
+var fileDescriptor_documentation_fffa126753bc1b4d = []byte{
 	// 356 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x74, 0x92, 0xc1, 0x6a, 0xe3, 0x30,
 	0x14, 0x45, 0x71, 0xec, 0xcc, 0x64, 0x5e, 0x98, 0x61, 0x46, 0x0c, 0x19, 0x33, 0xd0, 0x12, 0xb2,

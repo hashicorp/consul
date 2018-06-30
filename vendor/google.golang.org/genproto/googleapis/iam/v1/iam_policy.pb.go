@@ -29,12 +29,12 @@ type SetIamPolicyRequest struct {
 	// REQUIRED: The resource for which the policy is being specified.
 	// `resource` is usually specified as a path. For example, a Project
 	// resource is specified as `projects/{project}`.
-	Resource string `protobuf:"bytes,1,opt,name=resource" json:"resource,omitempty"`
+	Resource string `protobuf:"bytes,1,opt,name=resource,proto3" json:"resource,omitempty"`
 	// REQUIRED: The complete policy to be applied to the `resource`. The size of
 	// the policy is limited to a few 10s of KB. An empty policy is a
 	// valid policy but certain Cloud Platform services (such as Projects)
 	// might reject them.
-	Policy               *Policy  `protobuf:"bytes,2,opt,name=policy" json:"policy,omitempty"`
+	Policy               *Policy  `protobuf:"bytes,2,opt,name=policy,proto3" json:"policy,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -83,7 +83,7 @@ type GetIamPolicyRequest struct {
 	// REQUIRED: The resource for which the policy is being requested.
 	// `resource` is usually specified as a path. For example, a Project
 	// resource is specified as `projects/{project}`.
-	Resource             string   `protobuf:"bytes,1,opt,name=resource" json:"resource,omitempty"`
+	Resource             string   `protobuf:"bytes,1,opt,name=resource,proto3" json:"resource,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -125,12 +125,12 @@ type TestIamPermissionsRequest struct {
 	// REQUIRED: The resource for which the policy detail is being requested.
 	// `resource` is usually specified as a path. For example, a Project
 	// resource is specified as `projects/{project}`.
-	Resource string `protobuf:"bytes,1,opt,name=resource" json:"resource,omitempty"`
+	Resource string `protobuf:"bytes,1,opt,name=resource,proto3" json:"resource,omitempty"`
 	// The set of permissions to check for the `resource`. Permissions with
 	// wildcards (such as '*' or 'storage.*') are not allowed. For more
 	// information see
 	// [IAM Overview](https://cloud.google.com/iam/docs/overview#permissions).
-	Permissions          []string `protobuf:"bytes,2,rep,name=permissions" json:"permissions,omitempty"`
+	Permissions          []string `protobuf:"bytes,2,rep,name=permissions,proto3" json:"permissions,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -178,7 +178,7 @@ func (m *TestIamPermissionsRequest) GetPermissions() []string {
 type TestIamPermissionsResponse struct {
 	// A subset of `TestPermissionsRequest.permissions` that the caller is
 	// allowed.
-	Permissions          []string `protobuf:"bytes,1,rep,name=permissions" json:"permissions,omitempty"`
+	Permissions          []string `protobuf:"bytes,1,rep,name=permissions,proto3" json:"permissions,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -282,8 +282,7 @@ func (c *iAMPolicyClient) TestIamPermissions(ctx context.Context, in *TestIamPer
 	return out, nil
 }
 
-// Server API for IAMPolicy service
-
+// IAMPolicyServer is the server API for IAMPolicy service.
 type IAMPolicyServer interface {
 	// Sets the access control policy on the specified resource. Replaces any
 	// existing policy.

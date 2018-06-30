@@ -33,15 +33,15 @@ type CheckRequest struct {
 	// See
 	// [google.api.Service](https://cloud.google.com/service-management/reference/rpc/google.api#google.api.Service)
 	// for the definition of a service name.
-	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName" json:"service_name,omitempty"`
+	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
 	// The operation to be checked.
-	Operation *Operation `protobuf:"bytes,2,opt,name=operation" json:"operation,omitempty"`
+	Operation *Operation `protobuf:"bytes,2,opt,name=operation,proto3" json:"operation,omitempty"`
 	// Specifies which version of service configuration should be used to process
 	// the request.
 	//
 	// If unspecified or no matching version can be found, the
 	// latest one will be used.
-	ServiceConfigId      string   `protobuf:"bytes,4,opt,name=service_config_id,json=serviceConfigId" json:"service_config_id,omitempty"`
+	ServiceConfigId      string   `protobuf:"bytes,4,opt,name=service_config_id,json=serviceConfigId,proto3" json:"service_config_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -96,17 +96,17 @@ func (m *CheckRequest) GetServiceConfigId() string {
 type CheckResponse struct {
 	// The same operation_id value used in the [CheckRequest][google.api.servicecontrol.v1.CheckRequest].
 	// Used for logging and diagnostics purposes.
-	OperationId string `protobuf:"bytes,1,opt,name=operation_id,json=operationId" json:"operation_id,omitempty"`
+	OperationId string `protobuf:"bytes,1,opt,name=operation_id,json=operationId,proto3" json:"operation_id,omitempty"`
 	// Indicate the decision of the check.
 	//
 	// If no check errors are present, the service should process the operation.
 	// Otherwise the service should use the list of errors to determine the
 	// appropriate action.
-	CheckErrors []*CheckError `protobuf:"bytes,2,rep,name=check_errors,json=checkErrors" json:"check_errors,omitempty"`
+	CheckErrors []*CheckError `protobuf:"bytes,2,rep,name=check_errors,json=checkErrors,proto3" json:"check_errors,omitempty"`
 	// The actual config id used to process the request.
-	ServiceConfigId string `protobuf:"bytes,5,opt,name=service_config_id,json=serviceConfigId" json:"service_config_id,omitempty"`
+	ServiceConfigId string `protobuf:"bytes,5,opt,name=service_config_id,json=serviceConfigId,proto3" json:"service_config_id,omitempty"`
 	// Feedback data returned from the server during processing a Check request.
-	CheckInfo            *CheckResponse_CheckInfo `protobuf:"bytes,6,opt,name=check_info,json=checkInfo" json:"check_info,omitempty"`
+	CheckInfo            *CheckResponse_CheckInfo `protobuf:"bytes,6,opt,name=check_info,json=checkInfo,proto3" json:"check_info,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                 `json:"-"`
 	XXX_unrecognized     []byte                   `json:"-"`
 	XXX_sizecache        int32                    `json:"-"`
@@ -166,7 +166,7 @@ func (m *CheckResponse) GetCheckInfo() *CheckResponse_CheckInfo {
 
 type CheckResponse_CheckInfo struct {
 	// Consumer info of this check.
-	ConsumerInfo         *CheckResponse_ConsumerInfo `protobuf:"bytes,2,opt,name=consumer_info,json=consumerInfo" json:"consumer_info,omitempty"`
+	ConsumerInfo         *CheckResponse_ConsumerInfo `protobuf:"bytes,2,opt,name=consumer_info,json=consumerInfo,proto3" json:"consumer_info,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                    `json:"-"`
 	XXX_unrecognized     []byte                      `json:"-"`
 	XXX_sizecache        int32                       `json:"-"`
@@ -207,7 +207,7 @@ func (m *CheckResponse_CheckInfo) GetConsumerInfo() *CheckResponse_ConsumerInfo 
 type CheckResponse_ConsumerInfo struct {
 	// The Google cloud project number, e.g. 1234567890. A value of 0 indicates
 	// no project number is found.
-	ProjectNumber        int64    `protobuf:"varint,1,opt,name=project_number,json=projectNumber" json:"project_number,omitempty"`
+	ProjectNumber        int64    `protobuf:"varint,1,opt,name=project_number,json=projectNumber,proto3" json:"project_number,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -252,7 +252,7 @@ type ReportRequest struct {
 	// See
 	// [google.api.Service](https://cloud.google.com/service-management/reference/rpc/google.api#google.api.Service)
 	// for the definition of a service name.
-	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName" json:"service_name,omitempty"`
+	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
 	// Operations to be reported.
 	//
 	// Typically the service should report one operation per request.
@@ -263,13 +263,13 @@ type ReportRequest struct {
 	// If multiple operations are in a single request, the total request size
 	// should be no larger than 1MB. See [ReportResponse.report_errors][google.api.servicecontrol.v1.ReportResponse.report_errors] for
 	// partial failure behavior.
-	Operations []*Operation `protobuf:"bytes,2,rep,name=operations" json:"operations,omitempty"`
+	Operations []*Operation `protobuf:"bytes,2,rep,name=operations,proto3" json:"operations,omitempty"`
 	// Specifies which version of service config should be used to process the
 	// request.
 	//
 	// If unspecified or no matching version can be found, the
 	// latest one will be used.
-	ServiceConfigId      string   `protobuf:"bytes,3,opt,name=service_config_id,json=serviceConfigId" json:"service_config_id,omitempty"`
+	ServiceConfigId      string   `protobuf:"bytes,3,opt,name=service_config_id,json=serviceConfigId,proto3" json:"service_config_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -336,9 +336,9 @@ type ReportResponse struct {
 	// 3. A failed RPC status indicates a general non-deterministic failure.
 	//    When this happens, it's impossible to know which of the
 	//    'Operations' in the request succeeded or failed.
-	ReportErrors []*ReportResponse_ReportError `protobuf:"bytes,1,rep,name=report_errors,json=reportErrors" json:"report_errors,omitempty"`
+	ReportErrors []*ReportResponse_ReportError `protobuf:"bytes,1,rep,name=report_errors,json=reportErrors,proto3" json:"report_errors,omitempty"`
 	// The actual config id used to process the request.
-	ServiceConfigId      string   `protobuf:"bytes,2,opt,name=service_config_id,json=serviceConfigId" json:"service_config_id,omitempty"`
+	ServiceConfigId      string   `protobuf:"bytes,2,opt,name=service_config_id,json=serviceConfigId,proto3" json:"service_config_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -385,9 +385,9 @@ func (m *ReportResponse) GetServiceConfigId() string {
 // Represents the processing error of one [Operation][google.api.servicecontrol.v1.Operation] in the request.
 type ReportResponse_ReportError struct {
 	// The [Operation.operation_id][google.api.servicecontrol.v1.Operation.operation_id] value from the request.
-	OperationId string `protobuf:"bytes,1,opt,name=operation_id,json=operationId" json:"operation_id,omitempty"`
+	OperationId string `protobuf:"bytes,1,opt,name=operation_id,json=operationId,proto3" json:"operation_id,omitempty"`
 	// Details of the error when processing the [Operation][google.api.servicecontrol.v1.Operation].
-	Status               *status.Status `protobuf:"bytes,2,opt,name=status" json:"status,omitempty"`
+	Status               *status.Status `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
 	XXX_unrecognized     []byte         `json:"-"`
 	XXX_sizecache        int32          `json:"-"`
@@ -510,8 +510,7 @@ func (c *serviceControllerClient) Report(ctx context.Context, in *ReportRequest,
 	return out, nil
 }
 
-// Server API for ServiceController service
-
+// ServiceControllerServer is the server API for ServiceController service.
 type ServiceControllerServer interface {
 	// Checks an operation with Google Service Control to decide whether
 	// the given operation should proceed. It should be called before the

@@ -60,7 +60,7 @@ func (ListTimeSeriesRequest_TimeSeriesView) EnumDescriptor() ([]byte, []int) {
 type ListMonitoredResourceDescriptorsRequest struct {
 	// The project on which to execute the request. The format is
 	// `"projects/{project_id_or_number}"`.
-	Name string `protobuf:"bytes,5,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,5,opt,name=name,proto3" json:"name,omitempty"`
 	// An optional [filter](/monitoring/api/v3/filters) describing
 	// the descriptors to be returned.  The filter can reference
 	// the descriptor's type and labels. For example, the
@@ -68,13 +68,13 @@ type ListMonitoredResourceDescriptorsRequest struct {
 	// that have an `id` label:
 	//
 	//     resource.type = starts_with("gce_") AND resource.label:id
-	Filter string `protobuf:"bytes,2,opt,name=filter" json:"filter,omitempty"`
+	Filter string `protobuf:"bytes,2,opt,name=filter,proto3" json:"filter,omitempty"`
 	// A positive number that is the maximum number of results to return.
-	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// If this field is not empty then it must contain the `nextPageToken` value
 	// returned by a previous call to this method.  Using this field causes the
 	// method to return additional results from the previous method call.
-	PageToken            string   `protobuf:"bytes,4,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -138,11 +138,11 @@ func (m *ListMonitoredResourceDescriptorsRequest) GetPageToken() string {
 type ListMonitoredResourceDescriptorsResponse struct {
 	// The monitored resource descriptors that are available to this project
 	// and that match `filter`, if present.
-	ResourceDescriptors []*monitoredres.MonitoredResourceDescriptor `protobuf:"bytes,1,rep,name=resource_descriptors,json=resourceDescriptors" json:"resource_descriptors,omitempty"`
+	ResourceDescriptors []*monitoredres.MonitoredResourceDescriptor `protobuf:"bytes,1,rep,name=resource_descriptors,json=resourceDescriptors,proto3" json:"resource_descriptors,omitempty"`
 	// If there are more results than have been returned, then this field is set
 	// to a non-empty value.  To see the additional results,
 	// use that value as `pageToken` in the next call to this method.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -194,7 +194,7 @@ type GetMonitoredResourceDescriptorRequest struct {
 	// `"projects/{project_id_or_number}/monitoredResourceDescriptors/{resource_type}"`.
 	// The `{resource_type}` is a predefined type, such as
 	// `cloudsql_database`.
-	Name                 string   `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -235,7 +235,7 @@ func (m *GetMonitoredResourceDescriptorRequest) GetName() string {
 type ListMetricDescriptorsRequest struct {
 	// The project on which to execute the request. The format is
 	// `"projects/{project_id_or_number}"`.
-	Name string `protobuf:"bytes,5,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,5,opt,name=name,proto3" json:"name,omitempty"`
 	// If this field is empty, all custom and
 	// system-defined metric descriptors are returned.
 	// Otherwise, the [filter](/monitoring/api/v3/filters)
@@ -244,13 +244,13 @@ type ListMetricDescriptorsRequest struct {
 	// [custom metrics](/monitoring/custom-metrics):
 	//
 	//     metric.type = starts_with("custom.googleapis.com/")
-	Filter string `protobuf:"bytes,2,opt,name=filter" json:"filter,omitempty"`
+	Filter string `protobuf:"bytes,2,opt,name=filter,proto3" json:"filter,omitempty"`
 	// A positive number that is the maximum number of results to return.
-	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// If this field is not empty then it must contain the `nextPageToken` value
 	// returned by a previous call to this method.  Using this field causes the
 	// method to return additional results from the previous method call.
-	PageToken            string   `protobuf:"bytes,4,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -312,11 +312,11 @@ func (m *ListMetricDescriptorsRequest) GetPageToken() string {
 type ListMetricDescriptorsResponse struct {
 	// The metric descriptors that are available to the project
 	// and that match the value of `filter`, if present.
-	MetricDescriptors []*metric.MetricDescriptor `protobuf:"bytes,1,rep,name=metric_descriptors,json=metricDescriptors" json:"metric_descriptors,omitempty"`
+	MetricDescriptors []*metric.MetricDescriptor `protobuf:"bytes,1,rep,name=metric_descriptors,json=metricDescriptors,proto3" json:"metric_descriptors,omitempty"`
 	// If there are more results than have been returned, then this field is set
 	// to a non-empty value.  To see the additional results,
 	// use that value as `pageToken` in the next call to this method.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -366,7 +366,7 @@ type GetMetricDescriptorRequest struct {
 	// `"projects/{project_id_or_number}/metricDescriptors/{metric_id}"`.
 	// An example value of `{metric_id}` is
 	// `"compute.googleapis.com/instance/disk/read_bytes_count"`.
-	Name                 string   `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -407,10 +407,10 @@ func (m *GetMetricDescriptorRequest) GetName() string {
 type CreateMetricDescriptorRequest struct {
 	// The project on which to execute the request. The format is
 	// `"projects/{project_id_or_number}"`.
-	Name string `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	// The new [custom metric](/monitoring/custom-metrics)
 	// descriptor.
-	MetricDescriptor     *metric.MetricDescriptor `protobuf:"bytes,2,opt,name=metric_descriptor,json=metricDescriptor" json:"metric_descriptor,omitempty"`
+	MetricDescriptor     *metric.MetricDescriptor `protobuf:"bytes,2,opt,name=metric_descriptor,json=metricDescriptor,proto3" json:"metric_descriptor,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                 `json:"-"`
 	XXX_unrecognized     []byte                   `json:"-"`
 	XXX_sizecache        int32                    `json:"-"`
@@ -460,7 +460,7 @@ type DeleteMetricDescriptorRequest struct {
 	// `"projects/{project_id_or_number}/metricDescriptors/{metric_id}"`.
 	// An example of `{metric_id}` is:
 	// `"custom.googleapis.com/my_test_metric"`.
-	Name                 string   `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -501,7 +501,7 @@ func (m *DeleteMetricDescriptorRequest) GetName() string {
 type ListTimeSeriesRequest struct {
 	// The project on which to execute the request. The format is
 	// "projects/{project_id_or_number}".
-	Name string `protobuf:"bytes,10,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,10,opt,name=name,proto3" json:"name,omitempty"`
 	// A [monitoring filter](/monitoring/api/v3/filters) that specifies which time
 	// series should be returned.  The filter must specify a single metric type,
 	// and can additionally specify metric labels and other information. For
@@ -509,30 +509,30 @@ type ListTimeSeriesRequest struct {
 	//
 	//     metric.type = "compute.googleapis.com/instance/cpu/usage_time" AND
 	//         metric.label.instance_name = "my-instance-name"
-	Filter string `protobuf:"bytes,2,opt,name=filter" json:"filter,omitempty"`
+	Filter string `protobuf:"bytes,2,opt,name=filter,proto3" json:"filter,omitempty"`
 	// The time interval for which results should be returned. Only time series
 	// that contain data points in the specified interval are included
 	// in the response.
-	Interval *TimeInterval `protobuf:"bytes,4,opt,name=interval" json:"interval,omitempty"`
+	Interval *TimeInterval `protobuf:"bytes,4,opt,name=interval,proto3" json:"interval,omitempty"`
 	// By default, the raw time series data is returned.
 	// Use this field to combine multiple time series for different
 	// views of the data.
-	Aggregation *Aggregation `protobuf:"bytes,5,opt,name=aggregation" json:"aggregation,omitempty"`
+	Aggregation *Aggregation `protobuf:"bytes,5,opt,name=aggregation,proto3" json:"aggregation,omitempty"`
 	// Specifies the order in which the points of the time series should
 	// be returned.  By default, results are not ordered.  Currently,
 	// this field must be left blank.
-	OrderBy string `protobuf:"bytes,6,opt,name=order_by,json=orderBy" json:"order_by,omitempty"`
+	OrderBy string `protobuf:"bytes,6,opt,name=order_by,json=orderBy,proto3" json:"order_by,omitempty"`
 	// Specifies which information is returned about the time series.
-	View ListTimeSeriesRequest_TimeSeriesView `protobuf:"varint,7,opt,name=view,enum=google.monitoring.v3.ListTimeSeriesRequest_TimeSeriesView" json:"view,omitempty"`
+	View ListTimeSeriesRequest_TimeSeriesView `protobuf:"varint,7,opt,name=view,proto3,enum=google.monitoring.v3.ListTimeSeriesRequest_TimeSeriesView" json:"view,omitempty"`
 	// A positive number that is the maximum number of results to return.
 	// When `view` field sets to `FULL`, it limits the number of `Points` server
 	// will return; if `view` field is `HEADERS`, it limits the number of
 	// `TimeSeries` server will return.
-	PageSize int32 `protobuf:"varint,8,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,8,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// If this field is not empty then it must contain the `nextPageToken` value
 	// returned by a previous call to this method.  Using this field causes the
 	// method to return additional results from the previous method call.
-	PageToken            string   `protobuf:"bytes,9,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,9,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -621,11 +621,11 @@ func (m *ListTimeSeriesRequest) GetPageToken() string {
 // The `ListTimeSeries` response.
 type ListTimeSeriesResponse struct {
 	// One or more time series that match the filter included in the request.
-	TimeSeries []*TimeSeries `protobuf:"bytes,1,rep,name=time_series,json=timeSeries" json:"time_series,omitempty"`
+	TimeSeries []*TimeSeries `protobuf:"bytes,1,rep,name=time_series,json=timeSeries,proto3" json:"time_series,omitempty"`
 	// If there are more results than have been returned, then this field is set
 	// to a non-empty value.  To see the additional results,
 	// use that value as `pageToken` in the next call to this method.
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -673,13 +673,13 @@ func (m *ListTimeSeriesResponse) GetNextPageToken() string {
 type CreateTimeSeriesRequest struct {
 	// The project on which to execute the request. The format is
 	// `"projects/{project_id_or_number}"`.
-	Name string `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	// The new data to be added to a list of time series.
 	// Adds at most one data point to each of several time series.  The new data
 	// point must be more recent than any other point in its time series.  Each
 	// `TimeSeries` value must fully specify a unique time series by supplying
 	// all label values for the metric and the monitored resource.
-	TimeSeries           []*TimeSeries `protobuf:"bytes,2,rep,name=time_series,json=timeSeries" json:"time_series,omitempty"`
+	TimeSeries           []*TimeSeries `protobuf:"bytes,2,rep,name=time_series,json=timeSeries,proto3" json:"time_series,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
 	XXX_unrecognized     []byte        `json:"-"`
 	XXX_sizecache        int32         `json:"-"`
@@ -729,9 +729,9 @@ type CreateTimeSeriesError struct {
 	// and `Point`s (including timestamp and value) that resulted
 	// in the error. This field provides all of the context that
 	// would be needed to retry the operation.
-	TimeSeries *TimeSeries `protobuf:"bytes,1,opt,name=time_series,json=timeSeries" json:"time_series,omitempty"`
+	TimeSeries *TimeSeries `protobuf:"bytes,1,opt,name=time_series,json=timeSeries,proto3" json:"time_series,omitempty"`
 	// The status of the requested write operation.
-	Status               *status.Status `protobuf:"bytes,2,opt,name=status" json:"status,omitempty"`
+	Status               *status.Status `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
 	XXX_unrecognized     []byte         `json:"-"`
 	XXX_sizecache        int32          `json:"-"`
@@ -907,8 +907,7 @@ func (c *metricServiceClient) CreateTimeSeries(ctx context.Context, in *CreateTi
 	return out, nil
 }
 
-// Server API for MetricService service
-
+// MetricServiceServer is the server API for MetricService service.
 type MetricServiceServer interface {
 	// Lists monitored resource descriptors that match a filter. This method does not require a Stackdriver account.
 	ListMonitoredResourceDescriptors(context.Context, *ListMonitoredResourceDescriptorsRequest) (*ListMonitoredResourceDescriptorsResponse, error)

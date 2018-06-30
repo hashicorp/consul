@@ -205,7 +205,7 @@ func (PostBotEventTempRequest_Type) EnumDescriptor() ([]byte, []int) {
 type BotSession struct {
 	// The bot session name, as selected by the server. Output only during a call
 	// to CreateBotSession.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// A unique bot ID within the farm used to persistently identify this bot over
 	// time (i.e., over multiple sessions). This ID must be unique within a
 	// farm. Typically, the bot ID will be the same as the name of the primary
@@ -220,10 +220,10 @@ type BotSession struct {
 	// invalid session, the server must reject that request, and may also
 	// quarantine the other bot with the same bot IDs (ie, stop sending it new
 	// leases and alert an admin).
-	BotId string `protobuf:"bytes,2,opt,name=bot_id,json=botId" json:"bot_id,omitempty"`
+	BotId string `protobuf:"bytes,2,opt,name=bot_id,json=botId,proto3" json:"bot_id,omitempty"`
 	// The status of the bot. This must be populated in every call to
 	// UpdateBotSession.
-	Status BotStatus `protobuf:"varint,3,opt,name=status,enum=google.devtools.remoteworkers.v1test2.BotStatus" json:"status,omitempty"`
+	Status BotStatus `protobuf:"varint,3,opt,name=status,proto3,enum=google.devtools.remoteworkers.v1test2.BotStatus" json:"status,omitempty"`
 	// A description of the worker hosting this bot. The Worker message is used
 	// here in the Status context (see Worker for more information).  If multiple
 	// bots are running on the worker, this field should only describe the
@@ -232,16 +232,16 @@ type BotSession struct {
 	// During the call to CreateBotSession, the server may make arbitrary changes
 	// to the worker's `server_properties` field (see that field for more
 	// information). Otherwise, this field is input-only.
-	Worker *Worker `protobuf:"bytes,4,opt,name=worker" json:"worker,omitempty"`
+	Worker *Worker `protobuf:"bytes,4,opt,name=worker,proto3" json:"worker,omitempty"`
 	// A list of all leases that are a part of this session. See the Lease message
 	// for details.
-	Leases []*Lease `protobuf:"bytes,5,rep,name=leases" json:"leases,omitempty"`
+	Leases []*Lease `protobuf:"bytes,5,rep,name=leases,proto3" json:"leases,omitempty"`
 	// The time at which this bot session will expire, unless the bot calls
 	// UpdateBotSession again. Output only.
-	ExpireTime *timestamp.Timestamp `protobuf:"bytes,6,opt,name=expire_time,json=expireTime" json:"expire_time,omitempty"`
+	ExpireTime *timestamp.Timestamp `protobuf:"bytes,6,opt,name=expire_time,json=expireTime,proto3" json:"expire_time,omitempty"`
 	// The version of the bot code currently running. The server may use this
 	// information to issue an admin action to tell the bot to update itself.
-	Version              string   `protobuf:"bytes,7,opt,name=version" json:"version,omitempty"`
+	Version              string   `protobuf:"bytes,7,opt,name=version,proto3" json:"version,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -358,9 +358,9 @@ type Lease struct {
 	// [https://cloud.google.com/apis/design/resource_names#full_resource_name] if
 	// it should be accessed through an endpoint that is not already known to the
 	// bot.
-	Assignment string `protobuf:"bytes,1,opt,name=assignment" json:"assignment,omitempty"`
+	Assignment string `protobuf:"bytes,1,opt,name=assignment,proto3" json:"assignment,omitempty"`
 	// The state of the lease. See LeaseState for more information.
-	State LeaseState `protobuf:"varint,2,opt,name=state,enum=google.devtools.remoteworkers.v1test2.LeaseState" json:"state,omitempty"`
+	State LeaseState `protobuf:"varint,2,opt,name=state,proto3,enum=google.devtools.remoteworkers.v1test2.LeaseState" json:"state,omitempty"`
 	// The final status of the lease (should be populated by the bot if the state
 	// is completed). This is the status of the lease, not of any task represented
 	// by the lease. For example, if the bot could not accept the lease because it
@@ -368,14 +368,14 @@ type Lease struct {
 	// FAILED_PRECONDITION. But if the assignment in the lease didn't execute
 	// correctly, this field will be `OK` while the failure of the assignment must
 	// be tracked elsewhere (e.g., through the Tasks interface).
-	Status *status.Status `protobuf:"bytes,3,opt,name=status" json:"status,omitempty"`
+	Status *status.Status `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
 	// The requirements that are being claimed by this lease. This field may be
 	// omitted by the server if the lease is not pending.
-	Requirements *Worker `protobuf:"bytes,4,opt,name=requirements" json:"requirements,omitempty"`
+	Requirements *Worker `protobuf:"bytes,4,opt,name=requirements,proto3" json:"requirements,omitempty"`
 	// The time at which this lease expires. The server *may* extend this over
 	// time, but due to race conditions, the bot is not *required* to respect any
 	// expiry date except the first one.
-	ExpireTime *timestamp.Timestamp `protobuf:"bytes,5,opt,name=expire_time,json=expireTime" json:"expire_time,omitempty"`
+	ExpireTime *timestamp.Timestamp `protobuf:"bytes,5,opt,name=expire_time,json=expireTime,proto3" json:"expire_time,omitempty"`
 	// While the `assignment` field is a resource name that allows the bot to
 	// get the actual assignment, the server can also optionally include the
 	// assignment itself inline in order to save a round trip to the server.
@@ -388,7 +388,7 @@ type Lease struct {
 	//
 	// This field may be omitted by the server if the lease is not in the
 	// `PENDING` state.
-	InlineAssignment     *any.Any `protobuf:"bytes,6,opt,name=inline_assignment,json=inlineAssignment" json:"inline_assignment,omitempty"`
+	InlineAssignment     *any.Any `protobuf:"bytes,6,opt,name=inline_assignment,json=inlineAssignment,proto3" json:"inline_assignment,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -474,9 +474,9 @@ func (m *Lease) GetInlineAssignment() *any.Any {
 // project (http://github.com/luci/luci-py/appengine/swarming).
 type AdminTemp struct {
 	// The admin action; see `Command` for legal values.
-	Command AdminTemp_Command `protobuf:"varint,1,opt,name=command,enum=google.devtools.remoteworkers.v1test2.AdminTemp_Command" json:"command,omitempty"`
+	Command AdminTemp_Command `protobuf:"varint,1,opt,name=command,proto3,enum=google.devtools.remoteworkers.v1test2.AdminTemp_Command" json:"command,omitempty"`
 	// The argument to the admin action; see `Command` for semantics.
-	Arg                  string   `protobuf:"bytes,2,opt,name=arg" json:"arg,omitempty"`
+	Arg                  string   `protobuf:"bytes,2,opt,name=arg,proto3" json:"arg,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -523,9 +523,9 @@ func (m *AdminTemp) GetArg() string {
 // Request message for CreateBotSession.
 type CreateBotSessionRequest struct {
 	// The farm resource.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// The bot session to create. Server-assigned fields like name must be unset.
-	BotSession           *BotSession `protobuf:"bytes,2,opt,name=bot_session,json=botSession" json:"bot_session,omitempty"`
+	BotSession           *BotSession `protobuf:"bytes,2,opt,name=bot_session,json=botSession,proto3" json:"bot_session,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
 	XXX_unrecognized     []byte      `json:"-"`
 	XXX_sizecache        int32       `json:"-"`
@@ -572,12 +572,12 @@ func (m *CreateBotSessionRequest) GetBotSession() *BotSession {
 // Request message for UpdateBotSession.
 type UpdateBotSessionRequest struct {
 	// The bot session name. Must match bot_session.name.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The bot session resource to update.
-	BotSession *BotSession `protobuf:"bytes,2,opt,name=bot_session,json=botSession" json:"bot_session,omitempty"`
+	BotSession *BotSession `protobuf:"bytes,2,opt,name=bot_session,json=botSession,proto3" json:"bot_session,omitempty"`
 	// The fields on the bot that should be updated. See the BotSession resource
 	// for which fields are updatable by which caller.
-	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -631,11 +631,11 @@ func (m *UpdateBotSessionRequest) GetUpdateMask() *field_mask.FieldMask {
 // Request message for PostBotEventTemp
 type PostBotEventTempRequest struct {
 	// The bot session name.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The type of bot event.
-	Type PostBotEventTempRequest_Type `protobuf:"varint,2,opt,name=type,enum=google.devtools.remoteworkers.v1test2.PostBotEventTempRequest_Type" json:"type,omitempty"`
+	Type PostBotEventTempRequest_Type `protobuf:"varint,2,opt,name=type,proto3,enum=google.devtools.remoteworkers.v1test2.PostBotEventTempRequest_Type" json:"type,omitempty"`
 	// A human-readable message.
-	Msg                  string   `protobuf:"bytes,3,opt,name=msg" json:"msg,omitempty"`
+	Msg                  string   `protobuf:"bytes,3,opt,name=msg,proto3" json:"msg,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -761,8 +761,7 @@ func (c *botsClient) PostBotEventTemp(ctx context.Context, in *PostBotEventTempR
 	return out, nil
 }
 
-// Server API for Bots service
-
+// BotsServer is the server API for Bots service.
 type BotsServer interface {
 	// CreateBotSession is called when the bot first joins the farm, and
 	// establishes a session ID to ensure that multiple machines do not register
