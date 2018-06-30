@@ -39,6 +39,12 @@ func TestCheckAlias_remoteErrBackoff(t *testing.T) {
 	if got, want := atomic.LoadUint32(&rpc.Calls), uint32(6); got > want {
 		t.Fatalf("got %d updates want at most %d", got, want)
 	}
+
+	retry.Run(t, func(r *retry.R) {
+		if got, want := notify.State(chkID), api.HealthCritical; got != want {
+			r.Fatalf("got state %q want %q", got, want)
+		}
+	})
 }
 
 // No remote health checks should result in passing on the check.

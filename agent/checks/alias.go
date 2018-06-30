@@ -137,6 +137,11 @@ func (c *CheckAlias) runQuery(stopCh chan struct{}) {
 		var out structs.IndexedHealthChecks
 		if err := c.RPC.RPC("Health.NodeChecks", &args, &out); err != nil {
 			attempt++
+			if attempt > 1 {
+				c.Notify.UpdateCheck(c.CheckID, api.HealthCritical,
+					fmt.Sprintf("Failure checking aliased node or service: %s", err))
+			}
+
 			continue
 		}
 
