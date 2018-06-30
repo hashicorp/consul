@@ -1942,6 +1942,24 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
+			desc: "alias check with no node",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{
+				`{ "check": { "name": "a", "alias_service": "foo" } }`,
+			},
+			hcl: []string{
+				`check = { name = "a", alias_service = "foo" }`,
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.Checks = []*structs.CheckDefinition{
+					&structs.CheckDefinition{Name: "a", AliasService: "foo"},
+				}
+				rt.DataDir = dataDir
+			},
+		},
+		{
 			desc: "multiple service files",
 			args: []string{
 				`-data-dir=` + dataDir,
@@ -4271,6 +4289,8 @@ func TestSanitize(t *testing.T) {
     "CheckUpdateInterval": "0s",
     "Checks": [
         {
+            "AliasNode": "",
+            "AliasService": "",
             "DeregisterCriticalServiceAfter": "0s",
             "DockerContainerID": "",
             "GRPC": "",
@@ -4417,6 +4437,8 @@ func TestSanitize(t *testing.T) {
         {
             "Address": "",
             "Check": {
+                "AliasNode": "",
+                "AliasService": "",
                 "CheckID": "",
                 "DeregisterCriticalServiceAfter": "0s",
                 "DockerContainerID": "",
