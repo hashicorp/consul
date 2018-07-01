@@ -30,7 +30,6 @@ var Directives = []string{
 	"rewrite",
 	"dnssec",
 	"autopath",
-	"reverse",
 	"template",
 	"hosts",
 	"route53",

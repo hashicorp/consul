@@ -10,26 +10,18 @@ import (
 	"github.com/miekg/dns"
 )
 
-// testProvider implements fake Providers. Plugins which inmplement Provider interface
-type testProvider map[string]interface{}
+type testProvider map[string]Func
 
-func (m testProvider) MetadataVarNames() []string {
-	keys := []string{}
-	for k := range m {
-		keys = append(keys, k)
+func (tp testProvider) Metadata(ctx context.Context, state request.Request) context.Context {
+	for k, v := range tp {
+		SetValueFunc(ctx, k, v)
 	}
-	return keys
+	return ctx
 }
 
-func (m testProvider) Metadata(ctx context.Context, state request.Request, key string) (val interface{}, ok bool) {
-	value, ok := m[key]
-	return value, ok
-}
-
-// testHandler implements plugin.Handler.
 type testHandler struct{ ctx context.Context }
 
-func (m *testHandler) Name() string { return "testHandler" }
+func (m *testHandler) Name() string { return "test" }
 
 func (m *testHandler) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	m.ctx = ctx
@@ -38,8 +30,8 @@ func (m *testHandler) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns
 
 func TestMetadataServeDNS(t *testing.T) {
 	expectedMetadata := []testProvider{
-		testProvider{"testkey1": "testvalue1"},
-		testProvider{"testkey2": 2, "testkey3": "testvalue3"},
+		testProvider{"test/key1": func() string { return "testvalue1" }},
+		testProvider{"test/key2": func() string { return "two" }, "test/key3": func() string { return "testvalue3" }},
 	}
 	// Create fake Providers based on expectedMetadata
 	providers := []Provider{}
@@ -48,32 +40,22 @@ func TestMetadataServeDNS(t *testing.T) {
 	}
 
 	next := &testHandler{} // fake handler which stores the resulting context
-	metadata := Metadata{
+	m := Metadata{
 		Zones:     []string{"."},
 		Providers: providers,
 		Next:      next,
 	}
-	metadata.ServeDNS(context.TODO(), &test.ResponseWriter{}, new(dns.Msg))
 
-	// Verify that next plugin can find metadata in context from all Providers
+	ctx := context.TODO()
+	m.ServeDNS(ctx, &test.ResponseWriter{}, new(dns.Msg))
+	nctx := next.ctx
+
 	for _, expected := range expectedMetadata {
-		md, ok := FromContext(next.ctx)
-		if !ok {
-			t.Fatalf("Metadata is expected but not present inside the context")
-		}
-		for expKey, expVal := range expected {
-			metadataVal, valOk := md.Value(expKey)
-			if !valOk {
-				t.Fatalf("Value by key %v can't be retrieved", expKey)
+		for label, expVal := range expected {
+			val := ValueFunc(nctx, label)
+			if val() != expVal() {
+				t.Errorf("Expected value %s for %s, but got %s", expVal(), label, val())
 			}
-			if metadataVal != expVal {
-				t.Errorf("Expected value %v, but got %v", expVal, metadataVal)
-			}
-		}
-		wrongKey := "wrong_key"
-		metadataVal, ok := md.Value(wrongKey)
-		if ok {
-			t.Fatalf("Value by key %v is not expected to be recieved, but got: %v", wrongKey, metadataVal)
 		}
 	}
 }

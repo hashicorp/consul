@@ -1,8 +1,6 @@
 package metadata
 
 import (
-	"fmt"
-
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
 
@@ -28,16 +26,8 @@ func setup(c *caddy.Controller) error {
 
 	c.OnStartup(func() error {
 		plugins := dnsserver.GetConfig(c).Handlers()
-		// Collect all plugins which implement Provider interface
-		metadataVariables := map[string]bool{}
 		for _, p := range plugins {
 			if met, ok := p.(Provider); ok {
-				for _, varName := range met.MetadataVarNames() {
-					if _, ok := metadataVariables[varName]; ok {
-						return fmt.Errorf("Metadata variable '%v' has duplicates", varName)
-					}
-					metadataVariables[varName] = true
-				}
 				m.Providers = append(m.Providers, met)
 			}
 		}
