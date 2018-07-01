@@ -500,9 +500,10 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   policy for a token cannot be read from the [`acl_datacenter`](#acl_datacenter) or leader
   node, the down policy is applied. In "allow" mode, all actions are permitted, "deny" restricts
   all operations, and "extend-cache" allows any cached ACLs to be used, ignoring their TTL
-  values. If a non-cached ACL is used, "extend-cache" acts like "deny". "async-cache" acts the same
-  way as "extend-cache" but performs updates asynchronously when ACL is present but its TTL is
-  expired.
+  values. If a non-cached ACL is used, "extend-cache" acts like "deny".
+  The value "async-cache" acts the same way as "extend-cache" but performs updates
+  asynchronously when ACL is present but its TTL is expired, thus, if latency is bad between
+  ACL authoritative and other datacenters, latency of operations is not impacted.
 
 * <a name="acl_agent_master_token"></a><a href="#acl_agent_master_token">`acl_agent_master_token`</a> -
   Used to access <a href="/api/agent.html">agent endpoints</a> that require agent read
