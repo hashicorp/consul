@@ -274,79 +274,82 @@ func TestACL_Down_Allow(t *testing.T) {
 
 func TestACL_Down_Extend(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), TestACLConfig()+`
-		acl_down_policy = "extend-cache"
+	aclExtendPolicies := []string{"extend-cache", "async-cache"}
+	for _, aclDownPolicy := range aclExtendPolicies {
+		a := NewTestAgent(t.Name(), TestACLConfig()+`
+		acl_down_policy = "`+aclDownPolicy+`"
 		acl_enforce_version_8 = true
 	`)
-	defer a.Shutdown()
+		defer a.Shutdown()
 
-	m := MockServer{
-		// Populate the cache for one of the tokens.
-		getPolicyFn: func(req *structs.ACLPolicyRequest, reply *structs.ACLPolicy) error {
-			*reply = structs.ACLPolicy{
-				Parent: "allow",
-				Policy: &rawacl.Policy{
-					Agents: []*rawacl.AgentPolicy{
-						&rawacl.AgentPolicy{
-							Node:   a.config.NodeName,
-							Policy: "read",
+		m := MockServer{
+			// Populate the cache for one of the tokens.
+			getPolicyFn: func(req *structs.ACLPolicyRequest, reply *structs.ACLPolicy) error {
+				*reply = structs.ACLPolicy{
+					Parent: "allow",
+					Policy: &rawacl.Policy{
+						Agents: []*rawacl.AgentPolicy{
+							&rawacl.AgentPolicy{
+								Node:   a.config.NodeName,
+								Policy: "read",
+							},
 						},
 					},
-				},
-			}
-			return nil
-		},
-	}
-	if err := a.registerEndpoint("ACL", &m); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+				}
+				return nil
+			},
+		}
+		if err := a.registerEndpoint("ACL", &m); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 
-	acl, err := a.resolveToken("yep")
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if acl == nil {
-		t.Fatalf("should not be nil")
-	}
-	if !acl.AgentRead(a.config.NodeName) {
-		t.Fatalf("should allow")
-	}
-	if acl.AgentWrite(a.config.NodeName) {
-		t.Fatalf("should deny")
-	}
+		acl, err := a.resolveToken("yep")
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if acl == nil {
+			t.Fatalf("should not be nil")
+		}
+		if !acl.AgentRead(a.config.NodeName) {
+			t.Fatalf("should allow")
+		}
+		if acl.AgentWrite(a.config.NodeName) {
+			t.Fatalf("should deny")
+		}
 
-	// Now take down ACLs and make sure a new token fails to resolve.
-	m.getPolicyFn = func(*structs.ACLPolicyRequest, *structs.ACLPolicy) error {
-		return fmt.Errorf("ACLs are broken")
-	}
-	acl, err = a.resolveToken("nope")
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if acl == nil {
-		t.Fatalf("should not be nil")
-	}
-	if acl.AgentRead(a.config.NodeName) {
-		t.Fatalf("should deny")
-	}
-	if acl.AgentWrite(a.config.NodeName) {
-		t.Fatalf("should deny")
-	}
+		// Now take down ACLs and make sure a new token fails to resolve.
+		m.getPolicyFn = func(*structs.ACLPolicyRequest, *structs.ACLPolicy) error {
+			return fmt.Errorf("ACLs are broken")
+		}
+		acl, err = a.resolveToken("nope")
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if acl == nil {
+			t.Fatalf("should not be nil")
+		}
+		if acl.AgentRead(a.config.NodeName) {
+			t.Fatalf("should deny")
+		}
+		if acl.AgentWrite(a.config.NodeName) {
+			t.Fatalf("should deny")
+		}
 
-	// Read the token from the cache while ACLs are broken, which should
-	// extend.
-	acl, err = a.resolveToken("yep")
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if acl == nil {
-		t.Fatalf("should not be nil")
-	}
-	if !acl.AgentRead(a.config.NodeName) {
-		t.Fatalf("should allow")
-	}
-	if acl.AgentWrite(a.config.NodeName) {
-		t.Fatalf("should deny")
+		// Read the token from the cache while ACLs are broken, which should
+		// extend.
+		acl, err = a.resolveToken("yep")
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if acl == nil {
+			t.Fatalf("should not be nil")
+		}
+		if !acl.AgentRead(a.config.NodeName) {
+			t.Fatalf("should allow")
+		}
+		if acl.AgentWrite(a.config.NodeName) {
+			t.Fatalf("should deny")
+		}
 	}
 }
 

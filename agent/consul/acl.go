@@ -146,10 +146,12 @@ func newACLCache(conf *Config, logger *log.Logger, rpc rpcFn, local acl.FaultFun
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create ACL policy cache: %v", err)
 	}
+	cache.fetchMap = make(map[string][]chan (RemoteACLResult))
 
 	return cache, nil
 }
 
+// Result Type returned when fetching Remote ACLs asynchronously
 type RemoteACLResult struct {
 	result acl.ACL
 	err    error
@@ -179,8 +181,9 @@ func (c *aclCache) fireResult(id string, theACL acl.ACL, err error) {
 	channels := c.fetchMap[id]
 	delete(c.fetchMap, id)
 	c.fetchMutex.Unlock()
+	aclResult := RemoteACLResult{theACL, err}
 	for _, cx := range channels {
-		cx <- RemoteACLResult{theACL, err}
+		cx <- aclResult
 		close(cx)
 	}
 }
@@ -231,7 +234,7 @@ func (c *aclCache) loadACLInChan(id, authDC string, cached *aclCacheEntry) {
 	// local ACL fault function is registered to query replicated ACL data,
 	// and the user's policy allows it, we will try locally before we give
 	// up.
-	if c.local != nil && c.config.ACLDownPolicy == "extend-cache" {
+	if c.local != nil && (c.config.ACLDownPolicy == "extend-cache" || c.config.ACLDownPolicy == "async-cache") {
 		parent, rules, err := c.local(id)
 		if err != nil {
 			// We don't make an exception here for ACLs that aren't
@@ -274,6 +277,7 @@ ACL_DOWN:
 	case "allow":
 		c.fireResult(id, acl.AllowAll(), nil)
 		return
+	case "async-cache":
 	case "extend-cache":
 		if cached != nil {
 			c.fireResult(id, cached.ACL, nil)
@@ -289,11 +293,11 @@ ACL_DOWN:
 func (c *aclCache) lookupACLRemote(id, authDC string, cached *aclCacheEntry) RemoteACLResult {
 	// Attempt to refresh the policy from the ACL datacenter via an RPC.
 	myChan := make(chan RemoteACLResult)
-	mustWaitForResult := cached == nil || c.config.ACLDownPolicy != "extend-cache"
+	mustWaitForResult := cached == nil || c.config.ACLDownPolicy != "async-cache"
 	c.fetchMutex.Lock()
 	clients, ok := c.fetchMap[id]
-	if !ok {
-		clients = make([]chan RemoteACLResult, 16)
+	if !ok || clients == nil {
+		clients = make([]chan RemoteACLResult, 0)
 	}
 	if mustWaitForResult {
 		c.fetchMap[id] = append(clients, myChan)

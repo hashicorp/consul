@@ -508,78 +508,82 @@ func TestACL_DownPolicy_Allow(t *testing.T) {
 
 func TestACL_DownPolicy_ExtendCache(t *testing.T) {
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
-		c.ACLTTL = 0
-		c.ACLDownPolicy = "extend-cache"
-		c.ACLMasterToken = "root"
-	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	client := rpcClient(t, s1)
-	defer client.Close()
+	aclExtendPolicies := []string{"extend-cache", "async-cache"} //"async-cache"
 
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1" // Enable ACLs!
-		c.ACLTTL = 0
-		c.ACLDownPolicy = "extend-cache"
-		c.Bootstrap = false // Disable bootstrap
-	})
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	for _, aclDownPolicy := range aclExtendPolicies {
+		dir1, s1 := testServerWithConfig(t, func(c *Config) {
+			c.ACLDatacenter = "dc1"
+			c.ACLTTL = 0
+			c.ACLDownPolicy = aclDownPolicy
+			c.ACLMasterToken = "root"
+		})
+		defer os.RemoveAll(dir1)
+		defer s1.Shutdown()
+		client := rpcClient(t, s1)
+		defer client.Close()
 
-	// Try to join
-	joinLAN(t, s2, s1)
-	retry.Run(t, func(r *retry.R) { r.Check(wantRaft([]*Server{s1, s2})) })
+		dir2, s2 := testServerWithConfig(t, func(c *Config) {
+			c.ACLDatacenter = "dc1" // Enable ACLs!
+			c.ACLTTL = 0
+			c.ACLDownPolicy = aclDownPolicy
+			c.Bootstrap = false // Disable bootstrap
+		})
+		defer os.RemoveAll(dir2)
+		defer s2.Shutdown()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+		// Try to join
+		joinLAN(t, s2, s1)
+		retry.Run(t, func(r *retry.R) { r.Check(wantRaft([]*Server{s1, s2})) })
 
-	// Create a new token
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name:  "User token",
-			Type:  structs.ACLTypeClient,
-			Rules: testACLPolicy,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var id string
-	if err := s1.RPC("ACL.Apply", &arg, &id); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+		testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	// find the non-authoritative server
-	var nonAuth *Server
-	var auth *Server
-	if !s1.IsLeader() {
-		nonAuth = s1
-		auth = s2
-	} else {
-		nonAuth = s2
-		auth = s1
-	}
+		// Create a new token
+		arg := structs.ACLRequest{
+			Datacenter: "dc1",
+			Op:         structs.ACLSet,
+			ACL: structs.ACL{
+				Name:  "User token",
+				Type:  structs.ACLTypeClient,
+				Rules: testACLPolicy,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		var id string
+		if err := s1.RPC("ACL.Apply", &arg, &id); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 
-	// Warm the caches
-	aclR, err := nonAuth.resolveToken(id)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if aclR == nil {
-		t.Fatalf("bad acl: %#v", aclR)
-	}
+		// find the non-authoritative server
+		var nonAuth *Server
+		var auth *Server
+		if !s1.IsLeader() {
+			nonAuth = s1
+			auth = s2
+		} else {
+			nonAuth = s2
+			auth = s1
+		}
 
-	// Kill the authoritative server
-	auth.Shutdown()
+		// Warm the caches
+		aclR, err := nonAuth.resolveToken(id)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if aclR == nil {
+			t.Fatalf("bad acl: %#v", aclR)
+		}
 
-	// Token should resolve into cached copy
-	aclR2, err := nonAuth.resolveToken(id)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if aclR2 != aclR {
-		t.Fatalf("bad acl: %#v", aclR)
+		// Kill the authoritative server
+		auth.Shutdown()
+
+		// Token should resolve into cached copy
+		aclR2, err := nonAuth.resolveToken(id)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if aclR2 != aclR {
+			t.Fatalf("bad acl: %#v", aclR)
+		}
 	}
 }
 
