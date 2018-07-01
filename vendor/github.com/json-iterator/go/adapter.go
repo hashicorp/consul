@@ -77,7 +77,14 @@ func (adapter *Decoder) Decode(obj interface{}) error {
 
 // More is there more?
 func (adapter *Decoder) More() bool {
-	return adapter.iter.head != adapter.iter.tail
+	iter := adapter.iter
+	if iter.Error != nil {
+		return false
+	}
+	if iter.head != iter.tail {
+		return true
+	}
+	return iter.loadMore()
 }
 
 // Buffered remaining buffer

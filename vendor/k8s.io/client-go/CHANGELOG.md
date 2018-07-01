@@ -5,6 +5,119 @@ https://github.com/kubernetes/client-go/issues/234.
 Changes in `k8s.io/api` and `k8s.io/apimachinery` are mentioned here
 because `k8s.io/client-go` depends on them.
 
+# v7.0.0
+
+**Breaking Changes:**
+
+* Google Cloud Service Account email addresses can now be used in RBAC Role bindings since the default scopes now include the `userinfo.email` scope. This is a breaking change if the numeric uniqueIDs of the Google service accounts were being used in RBAC role bindings. The behavior can be overridden by explicitly specifying the scope values as comma-separated string in the `users[*].config.scopes` field in the `KUBECONFIG` file.
+
+    * [https://github.com/kubernetes/kubernetes/pull/58141](https://github.com/kubernetes/kubernetes/pull/58141)
+
+* [k8s.io/api] The `ConfigOK` node condition has been renamed to `KubeletConfigOk`.
+
+    * [https://github.com/kubernetes/kubernetes/pull/59905](https://github.com/kubernetes/kubernetes/pull/59905)
+
+**New Features:**
+
+* Subresource support is added to the dynamic client.
+
+    * [https://github.com/kubernetes/kubernetes/pull/56717](https://github.com/kubernetes/kubernetes/pull/56717)
+
+* A watch method is added to the Fake Client.
+
+    * [https://github.com/kubernetes/kubernetes/pull/57504](https://github.com/kubernetes/kubernetes/pull/57504)
+
+* `ListOptions` can be modified when creating a `ListWatch`.
+
+    * [https://github.com/kubernetes/kubernetes/pull/57508](https://github.com/kubernetes/kubernetes/pull/57508)
+
+* A `/token` subresource for ServiceAccount is added.
+
+    * [https://github.com/kubernetes/kubernetes/pull/58111](https://github.com/kubernetes/kubernetes/pull/58111)
+
+* If an informer delivery fails, the particular notification is skipped and continued the next time.
+
+    * [https://github.com/kubernetes/kubernetes/pull/58394](https://github.com/kubernetes/kubernetes/pull/58394)
+
+* Certificate manager will no longer wait until the initial rotation succeeds or fails before returning from `Start()`.
+
+    * [https://github.com/kubernetes/kubernetes/pull/58930](https://github.com/kubernetes/kubernetes/pull/58930)
+
+* [k8s.io/api] `VolumeScheduling` and `LocalPersistentVolume` features are beta and enabled by default. The PersistentVolume NodeAffinity alpha annotation is deprecated and will be removed in a future release.
+
+    * [https://github.com/kubernetes/kubernetes/pull/59391](https://github.com/kubernetes/kubernetes/pull/59391)
+
+* [k8s.io/api] The `PodSecurityPolicy` API has been moved to the `policy/v1beta1` API group. The `PodSecurityPolicy` API in the `extensions/v1beta1` API group is deprecated and will be removed in a future release.
+
+    * [https://github.com/kubernetes/kubernetes/pull/54933](https://github.com/kubernetes/kubernetes/pull/54933)
+
+* [k8s.io/api] ConfigMap objects now support binary data via a new `binaryData` field.
+
+    * [https://github.com/kubernetes/kubernetes/pull/57938](https://github.com/kubernetes/kubernetes/pull/57938)
+
+* [k8s.io/api] Service account TokenRequest API is added.
+
+    * [https://github.com/kubernetes/kubernetes/pull/58027](https://github.com/kubernetes/kubernetes/pull/58027)
+
+* [k8s.io/api] FSType is added in CSI volume source to specify filesystems.
+
+    * [https://github.com/kubernetes/kubernetes/pull/58209](https://github.com/kubernetes/kubernetes/pull/58209)
+
+* [k8s.io/api] v1beta1 VolumeAttachment API is added.
+
+    * [https://github.com/kubernetes/kubernetes/pull/58462](https://github.com/kubernetes/kubernetes/pull/58462)
+
+* [k8s.io/api] `v1.Pod` now has a field `ShareProcessNamespace` to configure whether a single process namespace should be shared between all containers in a pod. This feature is in alpha preview.
+
+    * [https://github.com/kubernetes/kubernetes/pull/58716](https://github.com/kubernetes/kubernetes/pull/58716)
+
+* [k8s.io/api] Add `NominatedNodeName` field to `PodStatus`. This field is set when a pod preempts other pods on the node.
+
+    * [https://github.com/kubernetes/kubernetes/pull/58990](https://github.com/kubernetes/kubernetes/pull/58990)
+
+* [k8s.io/api] Promote `CSIPersistentVolumeSourc`e to beta.
+
+    * [https://github.com/kubernetes/kubernetes/pull/59157](https://github.com/kubernetes/kubernetes/pull/59157)
+
+* [k8s.io/api] Promote `DNSPolicy` and `DNSConfig` in `PodSpec` to beta.
+
+    * [https://github.com/kubernetes/kubernetes/pull/59771](https://github.com/kubernetes/kubernetes/pull/59771)
+
+* [k8s.io/api] External metric types are added to the HPA API.
+
+    * [https://github.com/kubernetes/kubernetes/pull/60096](https://github.com/kubernetes/kubernetes/pull/60096)
+
+* [k8s.io/apimachinery] The `meta.k8s.io/v1alpha1` objects for retrieving tabular responses from the server (`Table`) or fetching just the `ObjectMeta` for an object (as `PartialObjectMetadata`) are now beta as part of `meta.k8s.io/v1beta1`. Clients may request alternate representations of normal Kubernetes objects by passing an `Accept` header like `application/json;as=Table;g=meta.k8s.io;v=v1beta1` or `application/json;as=PartialObjectMetadata;g=meta.k8s.io;v1=v1beta1`. Older servers will ignore this representation or return an error if it is not available. Clients may request fallback to the normal object by adding a non-qualified mime-type to their `Accept` header like `application/json` - the server will then respond with either the alternate representation if it is supported or the fallback mime-type which is the normal object response.
+
+    * [https://github.com/kubernetes/kubernetes/pull/59059](https://github.com/kubernetes/kubernetes/pull/59059)
+
+
+**Bug fixes and Improvements:**
+
+* Port-forwarding of TCP6 ports is fixed.
+
+    * [https://github.com/kubernetes/kubernetes/pull/57457](https://github.com/kubernetes/kubernetes/pull/57457)
+
+* A race condition in SharedInformer that could violate the sequential delivery guarantee and cause panics on shutdown is fixed.
+
+    * [https://github.com/kubernetes/kubernetes/pull/59828](https://github.com/kubernetes/kubernetes/pull/59828)
+
+* [k8s.io/api] PersistentVolume flexVolume sources can now reference secrets in a namespace other than the PersistentVolumeClaim's namespace.
+
+    * [https://github.com/kubernetes/kubernetes/pull/56460](https://github.com/kubernetes/kubernetes/pull/56460)
+
+* [k8s.io/apimachinery] YAMLDecoder Read can now return the number of bytes read.
+
+    * [https://github.com/kubernetes/kubernetes/pull/57000](https://github.com/kubernetes/kubernetes/pull/57000)
+
+* [k8s.io/apimachinery] YAMLDecoder Read now tracks rest of buffer on `io.ErrShortBuffer`.
+
+    * [https://github.com/kubernetes/kubernetes/pull/58817](https://github.com/kubernetes/kubernetes/pull/58817)
+
+* [k8s.io/apimachinery] Prompt required merge key in the error message while applying a strategic merge patch.
+
+    * [https://github.com/kubernetes/kubernetes/pull/57854](https://github.com/kubernetes/kubernetes/pull/57854)
+
 # v6.0.0
 
 **Breaking Changes:**
