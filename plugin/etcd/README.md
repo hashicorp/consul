@@ -59,6 +59,13 @@ etcd [ZONES...] {
       file - if the server certificate is not signed by a system-installed CA and client certificate
       is needed.
 
+## Special Behaviour
+CoreDNS etcd plugin leverages directory structure to look for related entries. For example an entry `/skydns/test/skydns/mx` would have entries like `/skydns/test/skydns/mx/a`, `/skydns/test/skydns/mx/b` and so on. Similarly a directory `/skydns/test/skydns/mx1` will have all `mx1` entries.
+
+With etcd3, support for [hierarchial keys are dropped](https://coreos.com/etcd/docs/latest/learning/api.html). This means there are no directories but only flat keys with prefixes in etcd3. To accomodate lookups, etcdv3 plugin now does a lookup on prefix `/skydns/test/skydns/mx/` to search for entries like `/skydns/test/skydns/mx/a` etc, and if there is nothing found on `/skydns/test/skydns/mx/`, it looks for `/skydns/test/skydns/mx` to find entries like `/skydns/test/skydns/mx1`.
+
+This causes two lookups from CoreDNS to etcdv3 in certain cases.
+
 ## Examples
 
 This is the default SkyDNS setup, with everying specified in full:
