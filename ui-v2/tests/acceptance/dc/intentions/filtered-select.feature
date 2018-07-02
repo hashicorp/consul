@@ -23,9 +23,9 @@ Feature: dc / intentions / filtered select: Intention Service Select Dropdowns
     ---
     Then the url should be /datacenter/intentions/intention
     And I click "[data-test-[Name]-element] .ember-power-select-trigger"
-    Then I see "* (All Services)" in ".ember-power-select-option:nth-last-child(3)"
-    Then I see "service-0" in ".ember-power-select-option:nth-last-child(2)"
-    Then I see "service-1" in ".ember-power-select-option:last-child"
+    Then I see the text "* (All Services)" in ".ember-power-select-option:nth-last-child(3)"
+    Then I see the text "service-0" in ".ember-power-select-option:nth-last-child(2)"
+    Then I see the text "service-1" in ".ember-power-select-option:last-child"
     Where:
       ---------------
       | Name        |
