@@ -14,7 +14,7 @@ Feature: dc / intentions / form select: Intention Service Select Dropdowns
     And I click "[data-test-[Name]-element] .ember-power-select-trigger"
     And I type "something" into ".ember-power-select-search-input"
     And I click ".ember-power-select-option:first-child"
-    Then I see "something" in "[data-test-[Name]-element] .ember-power-select-selected-item"
+    Then I see the text "something" in "[data-test-[Name]-element] .ember-power-select-selected-item"
     Where:
       ---------------
       | Name        |
