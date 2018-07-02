@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/consul/command"
 	"github.com/hashicorp/consul/lib"
+	_ "github.com/hashicorp/consul/service_os"
 	"github.com/mitchellh/cli"
 )
 
