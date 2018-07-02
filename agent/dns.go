@@ -1143,6 +1143,7 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 	qType := req.Question[0].Qtype
 	handled := make(map[string]struct{})
 	edns := req.IsEdns0() != nil
+	haveCNAME := false
 
 	count := 0
 	for _, node := range nodes {
@@ -1169,6 +1170,16 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 		// Add the node record
 		records := d.formatNodeRecord(node.Node, addr, qName, qType, ttl, edns, true)
 		if records != nil {
+			// only allow at most 1 CNAME record
+			switch records[0].(type) {
+			case *dns.CNAME:
+				if haveCNAME {
+					continue
+				} else {
+					haveCNAME = true
+				}
+			}
+
 			resp.Answer = append(resp.Answer, records...)
 			count++
 			if count == d.config.ARecordLimit {
