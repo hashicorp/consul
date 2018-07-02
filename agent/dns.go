@@ -1144,6 +1144,7 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 	handled := make(map[string]struct{})
 	edns := req.IsEdns0() != nil
 	haveCNAME := false
+	allowCNAME := true
 
 	count := 0
 	for _, node := range nodes {
@@ -1173,10 +1174,20 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 			// only allow at most 1 CNAME record
 			switch records[0].(type) {
 			case *dns.CNAME:
-				if haveCNAME {
+				if haveCNAME || !allowCNAME {
 					continue
 				} else {
 					haveCNAME = true
+					allowCNAME = false
+				}
+			default:
+				if haveCNAME {
+					// clear the slice - this removes the 1 and only CNAME
+					// in favor of returning records without a CNAME
+					resp.Answer = nil
+				} else {
+					// we don't exactly have one but we don't want one now either
+					allowCNAME = false
 				}
 			}
 

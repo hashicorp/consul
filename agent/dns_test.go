@@ -946,6 +946,190 @@ func TestDNS_ServiceReverseLookupNodeAddress(t *testing.T) {
 	}
 }
 
+func TestDNS_ServiceLookupNoMultiCNAME(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Register a node with a service.
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "198.18.0.1",
+			Service: &structs.NodeService{
+				Service: "db",
+				Port:    12345,
+				Address: "foo.node.consul",
+			},
+		}
+
+		var out struct{}
+		require.NoError(t, a.RPC("Catalog.Register", args, &out))
+	}
+
+	// Register a second node node with the same service.
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "bar",
+			Address:    "198.18.0.2",
+			Service: &structs.NodeService{
+				Service: "db",
+				Port:    12345,
+				Address: "bar.node.consul",
+			},
+		}
+
+		var out struct{}
+		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("db.service.consul.", dns.TypeANY)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, a.DNSAddr())
+	require.NoError(t, err)
+
+	// expect a CNAME and an A RR
+	require.Len(t, in.Answer, 2)
+	require.IsType(t, &dns.CNAME{}, in.Answer[0])
+	require.IsType(t, &dns.A{}, in.Answer[1])
+}
+
+func TestDNS_ServiceLookupPreferNoCNAME(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Register a node with a service.
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "198.18.0.1",
+			Service: &structs.NodeService{
+				Service: "db",
+				Port:    12345,
+				Address: "198.18.0.1",
+			},
+		}
+
+		var out struct{}
+		require.NoError(t, a.RPC("Catalog.Register", args, &out))
+	}
+
+	// Register a second node node with the same service.
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "bar",
+			Address:    "198.18.0.2",
+			Service: &structs.NodeService{
+				Service: "db",
+				Port:    12345,
+				Address: "bar.node.consul",
+			},
+		}
+
+		var out struct{}
+		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("db.service.consul.", dns.TypeANY)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, a.DNSAddr())
+	require.NoError(t, err)
+
+	// expect a CNAME and an A RR
+	require.Len(t, in.Answer, 1)
+	aRec, ok := in.Answer[0].(*dns.A)
+	require.Truef(t, ok, "Not an A RR")
+
+	require.Equal(t, "db.service.consul.", aRec.Hdr.Name)
+	require.Equal(t, "198.18.0.1", aRec.A.String())
+}
+
+func TestDNS_ServiceLookupMultiAddrNoCNAME(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Register a node with a service.
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "198.18.0.1",
+			Service: &structs.NodeService{
+				Service: "db",
+				Port:    12345,
+				Address: "198.18.0.1",
+			},
+		}
+
+		var out struct{}
+		require.NoError(t, a.RPC("Catalog.Register", args, &out))
+	}
+
+	// Register a second node node with the same service.
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "bar",
+			Address:    "198.18.0.2",
+			Service: &structs.NodeService{
+				Service: "db",
+				Port:    12345,
+				Address: "bar.node.consul",
+			},
+		}
+
+		var out struct{}
+		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Register a second node node with the same service.
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "baz",
+			Address:    "198.18.0.3",
+			Service: &structs.NodeService{
+				Service: "db",
+				Port:    12345,
+				Address: "198.18.0.3",
+			},
+		}
+
+		var out struct{}
+		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("db.service.consul.", dns.TypeANY)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, a.DNSAddr())
+	require.NoError(t, err)
+
+	// expect a CNAME and an A RR
+	require.Len(t, in.Answer, 2)
+	require.IsType(t, &dns.A{}, in.Answer[0])
+	require.IsType(t, &dns.A{}, in.Answer[1])
+}
+
 func TestDNS_ServiceLookup(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
