@@ -277,8 +277,7 @@ ACL_DOWN:
 	case "allow":
 		c.fireResult(id, acl.AllowAll(), nil)
 		return
-	case "async-cache":
-	case "extend-cache":
+	case "async-cache", "extend-cache":
 		if cached != nil {
 			c.fireResult(id, cached.ACL, nil)
 			return

@@ -379,8 +379,7 @@ func (c *Config) CheckACL() error {
 	switch c.ACLDownPolicy {
 	case "allow":
 	case "deny":
-	case "async-cache":
-	case "extend-cache":
+	case "async-cache", "extend-cache":
 	default:
 		return fmt.Errorf("Unsupported down ACL policy: %s", c.ACLDownPolicy)
 	}
