@@ -1,9 +1,11 @@
-// Package rewrite is plugin for rewriting requests internally to something different.
+// Package rewrite is a plugin for rewriting requests internally to something different.
 package rewrite
 
 import (
 	"fmt"
 	"strings"
+
+	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
 )
@@ -28,22 +30,18 @@ func newTypeRule(nextAction string, args ...string) (Rule, error) {
 }
 
 // Rewrite rewrites the the current request.
-func (rule *typeRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result {
+func (rule *typeRule) Rewrite(state request.Request) Result {
 	if rule.fromType > 0 && rule.toType > 0 {
-		if r.Question[0].Qtype == rule.fromType {
-			r.Question[0].Qtype = rule.toType
+		if state.QType() == rule.fromType {
+			state.Req.Question[0].Qtype = rule.toType
 			return RewriteDone
 		}
 	}
 	return RewriteIgnored
 }
 
-// Mode returns the processing mode
-func (rule *typeRule) Mode() string {
-	return rule.nextAction
-}
+// Mode returns the processing mode.
+func (rule *typeRule) Mode() string { return rule.nextAction }
 
 // GetResponseRule return a rule to rewrite the response with. Currently not implemented.
-func (rule *typeRule) GetResponseRule() ResponseRule {
-	return ResponseRule{}
-}
+func (rule *typeRule) GetResponseRule() ResponseRule { return ResponseRule{} }

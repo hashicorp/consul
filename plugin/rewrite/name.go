@@ -7,8 +7,7 @@ import (
 	"strings"
 
 	"github.com/coredns/coredns/plugin"
-
-	"github.com/miekg/dns"
+	"github.com/coredns/coredns/request"
 )
 
 type nameRule struct {
@@ -56,47 +55,47 @@ const (
 )
 
 // Rewrite rewrites the current request based upon exact match of the name
-// in the question section of the request
-func (rule *nameRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result {
-	if rule.From == r.Question[0].Name {
-		r.Question[0].Name = rule.To
+// in the question section of the request.
+func (rule *nameRule) Rewrite(state request.Request) Result {
+	if rule.From == state.Name() {
+		state.Req.Question[0].Name = rule.To
 		return RewriteDone
 	}
 	return RewriteIgnored
 }
 
-// Rewrite rewrites the current request when the name begins with the matching string
-func (rule *prefixNameRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result {
-	if strings.HasPrefix(r.Question[0].Name, rule.Prefix) {
-		r.Question[0].Name = rule.Replacement + strings.TrimLeft(r.Question[0].Name, rule.Prefix)
+// Rewrite rewrites the current request when the name begins with the matching string.
+func (rule *prefixNameRule) Rewrite(state request.Request) Result {
+	if strings.HasPrefix(state.Name(), rule.Prefix) {
+		state.Req.Question[0].Name = rule.Replacement + strings.TrimLeft(state.Name(), rule.Prefix)
 		return RewriteDone
 	}
 	return RewriteIgnored
 }
 
-// Rewrite rewrites the current request when the name ends with the matching string
-func (rule *suffixNameRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result {
-	if strings.HasSuffix(r.Question[0].Name, rule.Suffix) {
-		r.Question[0].Name = strings.TrimRight(r.Question[0].Name, rule.Suffix) + rule.Replacement
+// Rewrite rewrites the current request when the name ends with the matching string.
+func (rule *suffixNameRule) Rewrite(state request.Request) Result {
+	if strings.HasSuffix(state.Name(), rule.Suffix) {
+		state.Req.Question[0].Name = strings.TrimRight(state.Name(), rule.Suffix) + rule.Replacement
 		return RewriteDone
 	}
 	return RewriteIgnored
 }
 
 // Rewrite rewrites the current request based upon partial match of the
-// name in the question section of the request
-func (rule *substringNameRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result {
-	if strings.Contains(r.Question[0].Name, rule.Substring) {
-		r.Question[0].Name = strings.Replace(r.Question[0].Name, rule.Substring, rule.Replacement, -1)
+// name in the question section of the request.
+func (rule *substringNameRule) Rewrite(state request.Request) Result {
+	if strings.Contains(state.Name(), rule.Substring) {
+		state.Req.Question[0].Name = strings.Replace(state.Name(), rule.Substring, rule.Replacement, -1)
 		return RewriteDone
 	}
 	return RewriteIgnored
 }
 
 // Rewrite rewrites the current request when the name in the question
-// section of the request matches a regular expression
-func (rule *regexNameRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result {
-	regexGroups := rule.Pattern.FindStringSubmatch(r.Question[0].Name)
+// section of the request matches a regular expression.
+func (rule *regexNameRule) Rewrite(state request.Request) Result {
+	regexGroups := rule.Pattern.FindStringSubmatch(state.Name())
 	if len(regexGroups) == 0 {
 		return RewriteIgnored
 	}
@@ -107,7 +106,7 @@ func (rule *regexNameRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result {
 			s = strings.Replace(s, groupIndexStr, groupValue, -1)
 		}
 	}
-	r.Question[0].Name = s
+	state.Req.Question[0].Name = s
 	return RewriteDone
 }
 
@@ -174,47 +173,23 @@ func newNameRule(nextAction string, args ...string) (Rule, error) {
 }
 
 // Mode returns the processing nextAction
-func (rule *nameRule) Mode() string {
-	return rule.NextAction
-}
-
-func (rule *prefixNameRule) Mode() string {
-	return rule.NextAction
-}
-
-func (rule *suffixNameRule) Mode() string {
-	return rule.NextAction
-}
-
-func (rule *substringNameRule) Mode() string {
-	return rule.NextAction
-}
-
-func (rule *regexNameRule) Mode() string {
-	return rule.NextAction
-}
+func (rule *nameRule) Mode() string          { return rule.NextAction }
+func (rule *prefixNameRule) Mode() string    { return rule.NextAction }
+func (rule *suffixNameRule) Mode() string    { return rule.NextAction }
+func (rule *substringNameRule) Mode() string { return rule.NextAction }
+func (rule *regexNameRule) Mode() string     { return rule.NextAction }
 
 // GetResponseRule return a rule to rewrite the response with. Currently not implemented.
-func (rule *nameRule) GetResponseRule() ResponseRule {
-	return ResponseRule{}
-}
+func (rule *nameRule) GetResponseRule() ResponseRule { return ResponseRule{} }
 
 // GetResponseRule return a rule to rewrite the response with. Currently not implemented.
-func (rule *prefixNameRule) GetResponseRule() ResponseRule {
-	return ResponseRule{}
-}
+func (rule *prefixNameRule) GetResponseRule() ResponseRule { return ResponseRule{} }
 
 // GetResponseRule return a rule to rewrite the response with. Currently not implemented.
-func (rule *suffixNameRule) GetResponseRule() ResponseRule {
-	return ResponseRule{}
-}
+func (rule *suffixNameRule) GetResponseRule() ResponseRule { return ResponseRule{} }
 
 // GetResponseRule return a rule to rewrite the response with. Currently not implemented.
-func (rule *substringNameRule) GetResponseRule() ResponseRule {
-	return ResponseRule{}
-}
+func (rule *substringNameRule) GetResponseRule() ResponseRule { return ResponseRule{} }
 
 // GetResponseRule return a rule to rewrite the response with.
-func (rule *regexNameRule) GetResponseRule() ResponseRule {
-	return rule.ResponseRule
-}
+func (rule *regexNameRule) GetResponseRule() ResponseRule { return rule.ResponseRule }

@@ -10,7 +10,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-// Operators
+// Operators that are defined.
 const (
 	Is         = "is"
 	Not        = "not"
@@ -22,13 +22,7 @@ const (
 	NotMatch   = "not_match"
 )
 
-func operatorError(operator string) error {
-	return fmt.Errorf("invalid operator %v", operator)
-}
-
-func newReplacer(r *dns.Msg) replacer.Replacer {
-	return replacer.New(r, nil, "")
-}
+func newReplacer(r *dns.Msg) replacer.Replacer { return replacer.New(r, nil, "") }
 
 // condition is a rewrite condition.
 type condition func(string, string) bool
@@ -44,53 +38,35 @@ var conditions = map[string]condition{
 	NotMatch:   notMatchFunc,
 }
 
-// isFunc is condition for Is operator.
-// It checks for equality.
-func isFunc(a, b string) bool {
-	return a == b
-}
+// isFunc is condition for Is operator. It checks for equality.
+func isFunc(a, b string) bool { return a == b }
 
-// notFunc is condition for Not operator.
-// It checks for inequality.
-func notFunc(a, b string) bool {
-	return a != b
-}
+// notFunc is condition for Not operator. It checks for inequality.
+func notFunc(a, b string) bool { return a != b }
 
-// hasFunc is condition for Has operator.
-// It checks if b is a substring of a.
-func hasFunc(a, b string) bool {
-	return strings.Contains(a, b)
-}
+// hasFunc is condition for Has operator. It checks if b is a substring of a.
+func hasFunc(a, b string) bool { return strings.Contains(a, b) }
 
-// notHasFunc is condition for NotHas operator.
-// It checks if b is not a substring of a.
-func notHasFunc(a, b string) bool {
-	return !strings.Contains(a, b)
-}
+// notHasFunc is condition for NotHas operator. It checks if b is not a substring of a.
+func notHasFunc(a, b string) bool { return !strings.Contains(a, b) }
 
-// startsWithFunc is condition for StartsWith operator.
-// It checks if b is a prefix of a.
-func startsWithFunc(a, b string) bool {
-	return strings.HasPrefix(a, b)
-}
+// startsWithFunc is condition for StartsWith operator. It checks if b is a prefix of a.
+func startsWithFunc(a, b string) bool { return strings.HasPrefix(a, b) }
 
-// endsWithFunc is condition for EndsWith operator.
-// It checks if b is a suffix of a.
+// endsWithFunc is condition for EndsWith operator. It checks if b is a suffix of a.
 func endsWithFunc(a, b string) bool {
 	// TODO(miek): IsSubDomain
 	return strings.HasSuffix(a, b)
 }
 
-// matchFunc is condition for Match operator.
-// It does regexp matching of a against pattern in b
+// matchFunc is condition for Match operator. It does regexp matching of a against pattern in b
 // and returns if they match.
 func matchFunc(a, b string) bool {
 	matched, _ := regexp.MatchString(b, a)
 	return matched
 }
 
-// notMatchFunc is condition for NotMatch operator.
-// It does regexp matching of a against pattern in b
+// notMatchFunc is condition for NotMatch operator. It does regexp matching of a against pattern in b
 // and returns if they do not match.
 func notMatchFunc(a, b string) bool {
 	matched, _ := regexp.MatchString(b, a)
@@ -122,7 +98,7 @@ func (i If) True(r *dns.Msg) bool {
 // NewIf creates a new If condition.
 func NewIf(a, operator, b string) (If, error) {
 	if _, ok := conditions[operator]; !ok {
-		return If{}, operatorError(operator)
+		return If{}, fmt.Errorf("invalid operator %v", operator)
 	}
 	return If{
 		A:        a,

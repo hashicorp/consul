@@ -33,8 +33,7 @@ func NewResponseReverter(w dns.ResponseWriter, r *dns.Msg) *ResponseReverter {
 	}
 }
 
-// WriteMsg records the status code and calls the
-// underlying ResponseWriter's WriteMsg method.
+// WriteMsg records the status code and calls the underlying ResponseWriter's WriteMsg method.
 func (r *ResponseReverter) WriteMsg(res *dns.Msg) error {
 	res.Question[0] = r.originalQuestion
 	if r.ResponseRewrite {

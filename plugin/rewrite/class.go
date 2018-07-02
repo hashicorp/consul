@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/coredns/coredns/request"
+
 	"github.com/miekg/dns"
 )
 
@@ -27,22 +29,18 @@ func newClassRule(nextAction string, args ...string) (Rule, error) {
 }
 
 // Rewrite rewrites the the current request.
-func (rule *classRule) Rewrite(w dns.ResponseWriter, r *dns.Msg) Result {
+func (rule *classRule) Rewrite(state request.Request) Result {
 	if rule.fromClass > 0 && rule.toClass > 0 {
-		if r.Question[0].Qclass == rule.fromClass {
-			r.Question[0].Qclass = rule.toClass
+		if state.Req.Question[0].Qclass == rule.fromClass {
+			state.Req.Question[0].Qclass = rule.toClass
 			return RewriteDone
 		}
 	}
 	return RewriteIgnored
 }
 
-// Mode returns the processing mode
-func (rule *classRule) Mode() string {
-	return rule.NextAction
-}
+// Mode returns the processing mode.
+func (rule *classRule) Mode() string { return rule.NextAction }
 
 // GetResponseRule return a rule to rewrite the response with. Currently not implemented.
-func (rule *classRule) GetResponseRule() ResponseRule {
-	return ResponseRule{}
-}
+func (rule *classRule) GetResponseRule() ResponseRule { return ResponseRule{} }
