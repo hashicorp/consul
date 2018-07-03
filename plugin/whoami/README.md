@@ -7,8 +7,8 @@
 ## Description
 
 The *whoami* plugin is not really that useful, but can be used for having a simple (fast) endpoint
-to test clients against. When *whoami* returns a response it will have your client's IP address the
-additional section as either an A or AAAA record.
+to test clients against. When *whoami* returns a response it will have your client's IP address in
+the additional section as either an A or AAAA record.
 
 The reply always has an empty answer section. The port and transport are included in the additional
 section as a SRV record, transport can be "tcp" or "udp".
