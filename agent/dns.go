@@ -1172,23 +1172,38 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 		records := d.formatNodeRecord(node.Node, addr, qName, qType, ttl, edns, true)
 		if records != nil {
 			// only allow at most 1 CNAME record
+			//
+			// The general rules are:
+			//   1 - if any nodes have actual address for the service ignore CNAMEs (set allowCNAME to false)
+			//   2 - if non nodes have actual addresses for the service only return the first CNAME record and ignore others
+			//
+			// We have to track 2 things, whether we have a CNAME in our Answer list and whether or not they are allowed.
+			// The reason we can't just track one vs the other is due to needing to clear out existing CNAMEs when we come
+			// upon more A/AAAA RRs
 			switch records[0].(type) {
 			case *dns.CNAME:
 				if haveCNAME || !allowCNAME {
+					// This checks whether we have a CNAME in our Answer list already or other non-CNAME data
+					// In both cases we need to ignore the new CNAME RR
 					continue
 				} else {
+					// This case basically can only happen for the very first node when CNAMEs are allowed but
+					// we don't have one yet.
 					haveCNAME = true
 					allowCNAME = false
 				}
 			default:
 				if haveCNAME {
-					// clear the slice - this removes the 1 and only CNAME
-					// in favor of returning records without a CNAME
+					// This case handles when we previously had a CNAME record but now we have come across
+					// other non-CNAME data. We want to clear the CNAME data and start fresh. Additionally
+					// we need to mark that we no longer have CNAME data in the Answer list to make sure
+					// we don't clear out any more data in the future.
 					resp.Answer = nil
-				} else {
-					// we don't exactly have one but we don't want one now either
-					allowCNAME = false
+					haveCNAME = false
 				}
+
+				// once we see a non-CNAME node then we disallow setting any in the future.
+				allowCNAME = false
 			}
 
 			resp.Answer = append(resp.Answer, records...)
