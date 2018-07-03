@@ -41,7 +41,7 @@ The default managed proxy is a basic proxy built-in to Consul and written
 in Go. Having a basic built-in proxy allows Consul to have a sane default
 with performance that is good enough for most workloads. In some basic
 benchmarks, the service-to-service communication over the built-in proxy
-could sustain 5 Gbps with a per-hop latency of less than X microseconds. Therefore,
+could sustain 5 Gbps with sub-millisecond latency. Therefore,
 the performance impact of even the basic built-in proxy is minimal.
 
 Consul will be
