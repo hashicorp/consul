@@ -474,7 +474,7 @@ These metrics are used to monitor the health of the Consul servers.
   </tr>
   <tr>
   <td>`consul.raft.transistion.heartbeat_timeout`</td>
-  <td>This metric gives the number of times an agent has transistioned to the Candidate state, after receive no heartbeat messages from the last known leader.</td>
+  <td>This metric gives the number of times an agent has transitioned to the Candidate state, after receive no heartbeat messages from the last known leader.</td>
   <td>timeouts / interval</td>
   <td>counter</td>
   </tr>
