@@ -23,6 +23,9 @@ export default Adapter.extend({
           break;
         default:
           response = response.map((item, i, arr) => {
+            if (item[SLUG_KEY] === '') {
+              item[SLUG_KEY] = item['Node'];
+            }
             return {
               ...item,
               ...{
