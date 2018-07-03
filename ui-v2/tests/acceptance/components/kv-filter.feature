@@ -12,7 +12,7 @@ Feature: components / kv-filter
       dc: dc-1
     ---
     Then the url should be [Url]
-    Then I type with yaml
+    Then I fill in with yaml
     ---
     s: [Text]
     ---
