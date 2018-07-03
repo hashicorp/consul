@@ -31,9 +31,10 @@ func (a Auto) Walk() error {
 			return nil
 		}
 
-		if _, ok := a.Zones.Z[origin]; ok {
+		if z, ok := a.Zones.Z[origin]; ok {
 			// we already have this zone
 			toDelete[origin] = false
+			z.SetFile(path)
 			return nil
 		}
 

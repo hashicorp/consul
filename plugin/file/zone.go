@@ -124,6 +124,20 @@ func (z *Zone) Insert(r dns.RR) error {
 // Delete deletes r from z.
 func (z *Zone) Delete(r dns.RR) { z.Tree.Delete(r) }
 
+// File retrieves the file path in a safe way
+func (z *Zone) File() string {
+	z.reloadMu.Lock()
+	defer z.reloadMu.Unlock()
+	return z.file
+}
+
+// SetFile updates the file path in a safe way
+func (z *Zone) SetFile(path string) {
+	z.reloadMu.Lock()
+	z.file = path
+	z.reloadMu.Unlock()
+}
+
 // TransferAllowed checks if incoming request for transferring the zone is allowed according to the ACLs.
 func (z *Zone) TransferAllowed(state request.Request) bool {
 	for _, t := range z.TransferTo {
