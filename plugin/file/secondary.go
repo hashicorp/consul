@@ -147,13 +147,14 @@ Restart:
 					// transfer failed, leave retryActive true
 					break
 				}
-				retryActive = false
-				// transfer OK, possible new SOA, stop timers and redo
-				refreshTicker.Stop()
-				retryTicker.Stop()
-				expireTicker.Stop()
-				goto Restart
 			}
+
+			// no errors, stop timers and restart
+			retryActive = false
+			refreshTicker.Stop()
+			retryTicker.Stop()
+			expireTicker.Stop()
+			goto Restart
 
 		case <-refreshTicker.C:
 
@@ -172,13 +173,15 @@ Restart:
 					retryActive = true
 					break
 				}
-				retryActive = false
-				// transfer OK, possible new SOA, stop timers and redo
-				refreshTicker.Stop()
-				retryTicker.Stop()
-				expireTicker.Stop()
-				goto Restart
 			}
+
+			// no errors, stop timers and restart
+			retryActive = false
+			refreshTicker.Stop()
+			retryTicker.Stop()
+			expireTicker.Stop()
+			goto Restart
+
 		}
 	}
 }
