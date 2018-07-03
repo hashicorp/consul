@@ -32,7 +32,7 @@ type Request struct {
 	port      string // client's port.
 	family    int    // transport's family.
 	localPort string // server's port.
-	// TODO(miek): localIP once that is merged.
+	localIP   string // server's ip.
 }
 
 // NewWithQuestion returns a new request based on the old, but with a new question
@@ -61,11 +61,18 @@ func (r *Request) IP() string {
 
 // LocalIP gets the (local) IP address of server handling the request.
 func (r *Request) LocalIP() string {
+	if r.localIP != "" {
+		return r.localIP
+	}
+
 	ip, _, err := net.SplitHostPort(r.W.LocalAddr().String())
 	if err != nil {
-		return r.W.LocalAddr().String()
+		r.localIP = r.W.LocalAddr().String()
+		return r.localIP
 	}
-	return ip
+
+	r.localIP = ip
+	return r.localIP
 }
 
 // Port gets the (remote) port of the client making the request.
@@ -423,6 +430,7 @@ func (r *Request) ErrorMessage(rcode int) *dns.Msg {
 func (r *Request) Clear() {
 	r.name = ""
 	r.ip = ""
+	r.localIP = ""
 	r.port = ""
 	r.localPort = ""
 	r.family = 0
