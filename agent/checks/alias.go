@@ -17,7 +17,7 @@ const (
 )
 
 // CheckAlias is a check type that aliases the health of another service
-// instance. If the service aliased has any critical health checks, then
+// instance or node. If the service aliased has any critical health checks, then
 // this check is critical. If the service has no critical but warnings,
 // then this check is warning, and if a service has only passing checks, then
 // this check is passing.
@@ -46,7 +46,7 @@ type AliasNotifier interface {
 	Checks() map[types.CheckID]*structs.HealthCheck
 }
 
-// Start is used to start a check ttl, runs until Stop() func (c *CheckAlias) Start() {
+// Start is used to start the check, runs until Stop() func (c *CheckAlias) Start() {
 func (c *CheckAlias) Start() {
 	c.stopLock.Lock()
 	defer c.stopLock.Unlock()
@@ -55,7 +55,7 @@ func (c *CheckAlias) Start() {
 	go c.run(c.stopCh)
 }
 
-// Stop is used to stop a check ttl.
+// Stop is used to stop the check.
 func (c *CheckAlias) Stop() {
 	c.stopLock.Lock()
 	defer c.stopLock.Unlock()
@@ -132,7 +132,7 @@ func (c *CheckAlias) runQuery(stopCh chan struct{}) {
 		// NOTE(mitchellh): This currently returns ALL health checks for
 		// a node even though we also have the service ID. This can be
 		// optimized if we introduce a new RPC endpoint to filter both,
-		// but for blocking queries isn't that more efficient since the checks
+		// but for blocking queries isn't that much more efficient since the checks
 		// index is global to the cluster.
 		var out structs.IndexedHealthChecks
 		if err := c.RPC.RPC("Health.NodeChecks", &args, &out); err != nil {

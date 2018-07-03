@@ -528,7 +528,7 @@ func (l *State) UpdateCheck(id types.CheckID, status, output string) {
 			// Do not block. All notify channels should be buffered to at
 			// least 1 in which case not-blocking does not result in loss
 			// of data because a failed send means a notification is
-			// already queued.
+			// already queued. This must be called with the lock held.
 			select {
 			case notifyCh <- struct{}{}:
 			default:
