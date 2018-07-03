@@ -12,7 +12,7 @@ Feature: dc / acls / update: ACL Update
       acl: key
     ---
     Then the url should be /datacenter/acls/key
-    Then I type with yaml
+    Then I fill in with yaml
     ---
       name: [Name]
     ---
