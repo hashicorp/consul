@@ -1143,8 +1143,7 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 	qType := req.Question[0].Qtype
 	handled := make(map[string]struct{})
 	edns := req.IsEdns0() != nil
-	haveCNAME := false
-	allowCNAME := true
+	var answerCNAME []dns.RR = nil
 
 	count := 0
 	for _, node := range nodes {
@@ -1171,48 +1170,26 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 		// Add the node record
 		records := d.formatNodeRecord(node.Node, addr, qName, qType, ttl, edns, true)
 		if records != nil {
-			// only allow at most 1 CNAME record
-			//
-			// The general rules are:
-			//   1 - if any nodes have actual address for the service ignore CNAMEs (set allowCNAME to false)
-			//   2 - if non nodes have actual addresses for the service only return the first CNAME record and ignore others
-			//
-			// We have to track 2 things, whether we have a CNAME in our Answer list and whether or not they are allowed.
-			// The reason we can't just track one vs the other is due to needing to clear out existing CNAMEs when we come
-			// upon more A/AAAA RRs
 			switch records[0].(type) {
 			case *dns.CNAME:
-				if haveCNAME || !allowCNAME {
-					// This checks whether we have a CNAME in our Answer list already or other non-CNAME data
-					// In both cases we need to ignore the new CNAME RR
-					continue
-				} else {
-					// This case basically can only happen for the very first node when CNAMEs are allowed but
-					// we don't have one yet.
-					haveCNAME = true
-					allowCNAME = false
+				// keep track of the first CNAME + associated RRs but don't add to the resp.Answer yet
+				// this will only be added if no non-CNAME RRs are found
+				if len(answerCNAME) == 0 {
+					answerCNAME = records
 				}
 			default:
-				if haveCNAME {
-					// This case handles when we previously had a CNAME record but now we have come across
-					// other non-CNAME data. We want to clear the CNAME data and start fresh. Additionally
-					// we need to mark that we no longer have CNAME data in the Answer list to make sure
-					// we don't clear out any more data in the future.
-					resp.Answer = nil
-					haveCNAME = false
+				resp.Answer = append(resp.Answer, records...)
+				count++
+				if count == d.config.ARecordLimit {
+					// We stop only if greater than 0 or we reached the limit
+					return
 				}
-
-				// once we see a non-CNAME node then we disallow setting any in the future.
-				allowCNAME = false
-			}
-
-			resp.Answer = append(resp.Answer, records...)
-			count++
-			if count == d.config.ARecordLimit {
-				// We stop only if greater than 0 or we reached the limit
-				return
 			}
 		}
+	}
+
+	if len(resp.Answer) == 0 && len(answerCNAME) > 0 {
+		resp.Answer = answerCNAME
 	}
 }
 
