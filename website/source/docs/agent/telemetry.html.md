@@ -430,6 +430,25 @@ These metrics are used to monitor the health of the Consul servers.
     <td>counter</td>
   </tr>
   <tr>
+    <td>`consul.raft.barrier`</td>
+    <td>This metric counts the number of times the agent has started the barrier i.e the number of times it has
+    issued a blocking call, to ensure that the agent has all the pending operations that were queued, to be applied to the agent's FSM.</td>
+    <td>blocks / interval</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+  <td>`consul.raft.verify_leader`</td>
+  <td>This metric counts the number of times an agent checks whether it is still the leader or not</td>
+  <td>checks / interval</td>
+  <td>Counter</td>
+  </tr>
+  <tr>
+  <td>`consul.raft.restore`</td>
+  <td>This metric counts the number of times the restore operation has been performed by the agent. Here, restore refers to the action of raft consuming an external snapshot to restore its state.</td>
+  <td>operation invoked / interval</td>
+  <td>counter</td>
+  </tr> 
+  <tr>
     <td>`consul.raft.commitTime`</td>
     <td>This measures the time it takes to commit a new entry to the Raft log on the leader.</td>
     <td>ms</td>
@@ -705,6 +724,30 @@ These metrics give insight into the health of the cluster as a whole.
     <th>Unit</th>
     <th>Type</th>
   </tr>
+  <tr>
+  <td>`consul.memberlist.degraded.probe`</td>
+  <td>This metric counts the number of times the agent has performed failure detection on an other agent at a slower probe rate. The agent uses its own health metric as an indicator to perform this action. (If its health score is low, means that the node is healthy, and vice versa.)</td>
+  <td>probes / interval</td>
+  <td>counter</td>
+  </tr>
+  <tr>
+  <td>`consul.memberlist.degraded.timeout`</td>
+  <td>This metric counts the number of times an agent was marked as a dead node, whilst not getting enough confirmations from a randomly selected list of agent nodes in an agent's membership.</td>
+  <td>occurrence / interval</td>
+  <td>counter</td>
+  </tr>
+  <tr>
+  <td>`consul.memberlist.msg.dead`</td>
+  <td>This metric counts the number of times an agent has marked another agent to be a dead node.</td>
+  <td>messages / interval</td>
+  <td>counter</td>
+  </tr>
+  <tr>
+  <td>`consul.memberlist.health.score`</td>
+  <td>This metric emits the agent's updated health score. This score is updated whenever the agent notices any changes in the response, from a set of randomly probed agents. This value ranges from 0-8, the lowest indicating the agent is healthy and vice versa.</td>
+  <td>score</td>
+  <td>gauge</td>
+  </tr>  
   <tr>
     <td>`consul.memberlist.msg.suspect`</td>
     <td>This increments when an agent suspects another as failed when executing random probes as part of the gossip protocol. These can be an indicator of overloaded agents, network problems, or configuration errors where agents can not connect to each other on the [required ports](/docs/agent/options.html#ports).</td>
