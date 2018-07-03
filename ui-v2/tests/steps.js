@@ -335,7 +335,7 @@ export default function(assert) {
           `Expected to not see ${property} on ${component}`
         );
       })
-      .then(['I see $property'], function(property, component) {
+      .then(['I see $property'], function(property) {
         assert.ok(currentPage[property], `Expected to see ${property}`);
       })
       .then(['I see the text "$text" in "$selector"'], function(text, selector) {

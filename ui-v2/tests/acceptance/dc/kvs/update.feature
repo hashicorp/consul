@@ -12,7 +12,7 @@ Feature: dc / kvs / update: KV Update
       kv: [Name]
     ---
     Then the url should be /datacenter/kv/[Name]/edit
-    Then I type with yaml
+    Then I fill in with yaml
     ---
       value: [Value]
     ---

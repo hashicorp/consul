@@ -1,4 +1,4 @@
-import { create, clickable } from 'ember-cli-page-object';
+import { create, clickable, is } from 'ember-cli-page-object';
 import { visitable } from 'consul-ui/tests/lib/page-object/visitable';
 
 export default create({
@@ -7,4 +7,5 @@ export default create({
   // fillIn: fillable('input, textarea, [contenteditable]'),
   // name: triggerable('keypress', '[name="additional"]'),
   submit: clickable('[type=submit]'),
+  submitIsEnabled: is(':not(:disabled)', '[type=submit]'),
 });
