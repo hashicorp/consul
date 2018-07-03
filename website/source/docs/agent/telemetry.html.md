@@ -356,6 +356,62 @@ These metrics are used to monitor the health of the Consul servers.
     <th>Type</th>
   </tr>
   <tr>
+    <td>`consul.raft.fsm.snapshot`</td>
+    <td>This metric measures the time taken by the FSM to record the current state for the snapshot.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+  <tr>
+    <td>`consul.raft.fsm.apply`</td>
+    <td>This metric gives the number of logs committed since the last interval. </td>
+    <td>commit logs / interval</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+  <tr>
+    <td>`consul.raft.fsm.restore`</td>
+    <td>This metric measures the time taken by the FSM to restore its state from a snapshot.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.raft.snapshot.create`</td>
+    <td>This metric measures the time taken to initialize the snapshot process.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.raft.snapshot.persist`</td>
+    <td>This metric measures the time taken to dump the current snapshot taken by the Consul agent to the disk.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.raft.snapshot.takeSnapshot`</td>
+    <td>This metric measures the total time involved in taking the current snapshot (creating one and persisting it) by the Consul agent.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.raft.replication.heartbeat`</td>
+    <td>This metric measures the time taken to invoke appendEntries on a peer, so that it doesn’t timeout on a periodic basis.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.serf.snapshot.appendLine`</td>
+    <td>This metric measures the time taken by the Consul agent to append an entry into the existing log.</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.serf.snapshot.compact`</td>
+    <td>This metric measures the time taken by the Consul agent to compact a log. This operation occurs only when the snapshot becomes large enough to justify the compaction .</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
     <td>`consul.raft.state.leader`</td>
     <td>This increments whenever a Consul server becomes a leader. If there are frequent leadership changes this may be indication that the servers are overloaded and aren't meeting the soft real-time requirements for Raft, or that there are networking problems between the servers.</td>
     <td>leadership transitions / interval</td>
@@ -373,6 +429,25 @@ These metrics are used to monitor the health of the Consul servers.
     <td>raft transactions / interval</td>
     <td>counter</td>
   </tr>
+  <tr>
+    <td>`consul.raft.barrier`</td>
+    <td>This metric counts the number of times the agent has started the barrier i.e the number of times it has
+    issued a blocking call, to ensure that the agent has all the pending operations that were queued, to be applied to the agent's FSM.</td>
+    <td>blocks / interval</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+  <td>`consul.raft.verify_leader`</td>
+  <td>This metric counts the number of times an agent checks whether it is still the leader or not</td>
+  <td>checks / interval</td>
+  <td>Counter</td>
+  </tr>
+  <tr>
+  <td>`consul.raft.restore`</td>
+  <td>This metric counts the number of times the restore operation has been performed by the agent. Here, restore refers to the action of raft consuming an external snapshot to restore its state.</td>
+  <td>operation invoked / interval</td>
+  <td>counter</td>
+  </tr> 
   <tr>
     <td>`consul.raft.commitTime`</td>
     <td>This measures the time it takes to commit a new entry to the Raft log on the leader.</td>
@@ -650,9 +725,69 @@ These metrics give insight into the health of the cluster as a whole.
     <th>Type</th>
   </tr>
   <tr>
+  <td>`consul.memberlist.degraded.probe`</td>
+  <td>This metric counts the number of times the agent has performed failure detection on an other agent at a slower probe rate. The agent uses its own health metric as an indicator to perform this action. (If its health score is low, means that the node is healthy, and vice versa.)</td>
+  <td>probes / interval</td>
+  <td>counter</td>
+  </tr>
+  <tr>
+  <td>`consul.memberlist.degraded.timeout`</td>
+  <td>This metric counts the number of times an agent was marked as a dead node, whilst not getting enough confirmations from a randomly selected list of agent nodes in an agent's membership.</td>
+  <td>occurrence / interval</td>
+  <td>counter</td>
+  </tr>
+  <tr>
+  <td>`consul.memberlist.msg.dead`</td>
+  <td>This metric counts the number of times an agent has marked another agent to be a dead node.</td>
+  <td>messages / interval</td>
+  <td>counter</td>
+  </tr>
+  <tr>
+  <td>`consul.memberlist.health.score`</td>
+  <td>This metric describes a node's perception of its own health based on how well it is meeting the soft real-time requirements of the protocol. This metric ranges from 0 to 8, where 0 indicates "totally healthy". This health score is used to scale the time between outgoing probes, and higher scores translate into longer probing intervals. For more details see section IV of the Lifeguard paper: https://arxiv.org/pdf/1707.00788.pdf</td>
+  <td>score</td>
+  <td>gauge</td>
+  </tr>  
+  <tr>
     <td>`consul.memberlist.msg.suspect`</td>
     <td>This increments when an agent suspects another as failed when executing random probes as part of the gossip protocol. These can be an indicator of overloaded agents, network problems, or configuration errors where agents can not connect to each other on the [required ports](/docs/agent/options.html#ports).</td>
     <td>suspect messages received / interval</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.memberlist.gossip`</td>
+    <td>This metric gives the number of gossips (messages) broadcasted to a set of randomly selected nodes.</td>
+    <td>messages / Interval</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.memberlist.msg_alive`</td>
+    <td>This metric counts the number of alive agents, that the agent has mapped out so far, based on the message information given by the network layer.</td>
+    <td>nodes / Interval</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.memberlist.msg_dead`</td>
+    <td>This metric gives the number of dead agents, that the agent has mapped out so far, based on the message information given by the network layer.</td>
+    <td>nodes / Interval</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.memberlist.msg_suspect`</td>
+    <td>This metric gives the number of suspect nodes, that the agent has mapped out so far, based on the message information given by the network layer.</td>
+    <td>nodes / Interval</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.memberlist.probeNode`</td>
+    <td>This metric measures the time taken to perform a single round of failure detection on a select agent.</td>
+    <td>nodes / Interval</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.memberlist.pushPullNode`</td>
+    <td>This metric measures the number of agents that have exchanged state with this agent.</td>
+    <td>nodes / Interval</td>
     <td>counter</td>
   </tr>
   <tr>
