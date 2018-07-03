@@ -407,7 +407,7 @@ These metrics are used to monitor the health of the Consul servers.
   </tr>
   <tr>
     <td>`consul.serf.snapshot.compact`</td>
-    <td>This metric measures the time by the Consul agent to compact a log. This operation occurs only when the snapshot becomes too large enough to justify the compaction .</td>
+    <td>This metric measures the time taken by the Consul agent to compact a log. This operation occurs only when the snapshot becomes large enough to justify the compaction .</td>
     <td>ms</td>
     <td>timer</td>
   </tr>
@@ -744,7 +744,7 @@ These metrics give insight into the health of the cluster as a whole.
   </tr>
   <tr>
   <td>`consul.memberlist.health.score`</td>
-  <td>This metric emits the agent's updated health score. This score is updated whenever the agent notices any changes in the response, from a set of randomly probed agents. This value ranges from 0-8, the lowest indicating the agent is healthy and vice versa.</td>
+  <td>This metric describes a node's perception of its own health based on how well it is meeting the soft real-time requirements of the protocol. This metric ranges from 0 to 8, where 0 indicates "totally healthy". This health score is used to scale the time between outgoing probes, and higher scores translate into longer probing intervals. For more details see section IV of the Lifeguard paper: https://arxiv.org/pdf/1707.00788.pdf</td>
   <td>score</td>
   <td>gauge</td>
   </tr>  
