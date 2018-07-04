@@ -35,7 +35,7 @@
         <button type="button" {{ action "clone" item }}>Clone token</button>
         {{#confirmation-dialog message='Are you sure you want to use this ACL token?'}}
             {{#block-slot 'action' as |confirm|}}
-                <button type="button" {{ action confirm 'use' item }}>Use token</button>
+                <button data-test-use type="button" {{ action confirm 'use' item }}>Use token</button>
             {{/block-slot}}
             {{#block-slot 'dialog' as |execute cancel message|}}
                 <p>

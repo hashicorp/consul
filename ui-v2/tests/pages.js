@@ -35,7 +35,7 @@ export default {
   kvs: create(kvs(visitable, deletable, clickable, attribute, collection)),
   kv: create(kv(visitable, submitable, deletable)),
   acls: create(acls(visitable, deletable, clickable, attribute, collection, aclFilter)),
-  acl: create(acl(visitable, submitable, deletable)),
+  acl: create(acl(visitable, submitable, deletable, clickable)),
   intentions: create(
     intentions(visitable, deletable, clickable, attribute, collection, intentionFilter)
   ),
