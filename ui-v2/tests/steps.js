@@ -5,6 +5,8 @@ import getDictionary from '@hashicorp/ember-cli-api-double/dictionary';
 import pages from 'consul-ui/tests/pages';
 import api from 'consul-ui/tests/helpers/api';
 
+const dont = `( don't| shouldn't| can't)?`;
+
 const create = function(number, name, value) {
   // don't return a promise here as
   // I don't need it to wait
@@ -240,7 +242,9 @@ export default function(assert) {
 
         assert.equal(len, num, `Expected ${num} ${model}s, saw ${len}`);
       })
-      .then(['I see $num $model model with the $property "$value"'], function(
+      // TODO: I${ dont } see
+      .then([`I see $num $model model[s]? with the $property "$value"`], function(
+        // negate,
         num,
         model,
         property,

@@ -1,5 +1,5 @@
 @setupApplicationTest
-Feature: Text input
+Feature: components / text-input: Text input
   Background:
     Given 1 datacenter model with the value "dc-1"
   Scenario:

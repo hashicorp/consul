@@ -9,6 +9,7 @@ import kvs from 'consul-ui/tests/pages/dc/kv/index';
 import kv from 'consul-ui/tests/pages/dc/kv/edit';
 import acls from 'consul-ui/tests/pages/dc/acls/index';
 import acl from 'consul-ui/tests/pages/dc/acls/edit';
+import intentions from 'consul-ui/tests/pages/dc/intentions/index';
 import intention from 'consul-ui/tests/pages/dc/intentions/edit';
 
 export default {
@@ -23,5 +24,6 @@ export default {
   kv,
   acls,
   acl,
+  intentions,
   intention,
 };

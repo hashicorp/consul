@@ -27,7 +27,7 @@
             {{/block-slot}}
             {{#block-slot 'row'}}
                 <td class="source" data-test-intention="{{item.ID}}">
-                  <a href={{href-to 'dc.intentions.edit' item.ID}}>
+                  <a href={{href-to 'dc.intentions.edit' item.ID}} data-test-intention-source="{{item.SourceName}}">
                     {{#if (eq item.SourceName '*') }}
                       All Services (*)
                     {{else}}
@@ -35,10 +35,10 @@
                     {{/if}}
                   </a>
                 </td>
-                <td class="intent-{{item.Action}}">
+                <td class="intent-{{item.Action}}" data-test-intention-action="{{item.Action}}">
                     <strong>{{item.Action}}</strong>
                 </td>
-                <td class="destination">
+                <td class="destination" data-test-intention-destination="{{item.DestinationName}}">
                     {{#if (eq item.DestinationName '*') }}
                       All Services (*)
                     {{else}}

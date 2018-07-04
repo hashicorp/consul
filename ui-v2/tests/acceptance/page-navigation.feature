@@ -16,13 +16,14 @@ Feature: Page Navigation
     When I click [Link] on the navigation
     Then the url should be [Url]
   Where:
-    --------------------------------------
-    | Link     | Url                     |
-    | nodes    | /dc-1/nodes             |
-    | kvs      | /dc-1/kv                |
-    | acls     | /dc-1/acls              |
-    | settings | /settings               |
-    --------------------------------------
+    ----------------------------------------
+    | Link       | Url                     |
+    | nodes      | /dc-1/nodes             |
+    | kvs        | /dc-1/kv                |
+    | acls       | /dc-1/acls              |
+    | intentions | /dc-1/intentions        |
+    | settings   | /settings               |
+    ----------------------------------------
   Scenario: Clicking a [Item] in the [Model] listing
     When I visit the [Model] page for yaml
     ---
@@ -31,13 +32,14 @@ Feature: Page Navigation
     When I click [Item] on the [Model]
     Then the url should be [Url]
   Where:
-    --------------------------------------------------------
-    | Item     | Model    | Url                            |
-    | service  | services | /dc-1/services/service-0       |
-    | node     | nodes    | /dc-1/nodes/node-0             |
-    | kv       | kvs      | /dc-1/kv/necessitatibus-0/edit |
-    | acl      | acls     | /dc-1/acls/anonymous           |
-    --------------------------------------------------------
+    -------------------------------------------------------------------------------------
+    | Item      | Model      | Url                                                      |
+    | service   | services   | /dc-1/services/service-0                                 |
+    | node      | nodes      | /dc-1/nodes/node-0                                       |
+    | kv        | kvs        | /dc-1/kv/necessitatibus-0/edit                           |
+    | intention | intentions | /dc-1/intentions/ee52203d-989f-4f7a-ab5a-2bef004164ca    |
+    | acl       | acls       | /dc-1/acls/anonymous                                     |
+    -------------------------------------------------------------------------------------
 @ignore
-  Scenario: Clicking a kv in the kvs listing, without depending on the salt ^
+  Scenario: Clicking items in the listings, without depending on the salt ^
     Then ok
