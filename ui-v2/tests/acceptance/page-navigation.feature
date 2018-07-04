@@ -31,7 +31,6 @@ Feature: Page Navigation
     ---
     When I click [Item] on the [Model]
     Then the url should be [URL]
-    # This should be a page object function
     And I click "[data-test-back]"
     Then the url should be [Back]
   Where:
@@ -39,6 +38,22 @@ Feature: Page Navigation
     | Item      | Model      | URL                                                      | Back             |
     | service   | services   | /dc-1/services/service-0                                 | /dc-1/services   |
     | node      | nodes      | /dc-1/nodes/node-0                                       | /dc-1/nodes      |
+    | kv        | kvs        | /dc-1/kv/necessitatibus-0/edit                           | /dc-1/kv         |
+    | acl       | acls       | /dc-1/acls/anonymous                                     | /dc-1/acls       |
+    | intention | intentions | /dc-1/intentions/ee52203d-989f-4f7a-ab5a-2bef004164ca    | /dc-1/intentions |
+    --------------------------------------------------------------------------------------------------------
+  Scenario: Clicking a [Item] in the [Model] listing and canceling
+    When I visit the [Model] page for yaml
+    ---
+      dc: dc-1
+    ---
+    When I click [Item] on the [Model]
+    Then the url should be [URL]
+    And I click "[type=reset]"
+    Then the url should be [Back]
+  Where:
+    --------------------------------------------------------------------------------------------------------
+    | Item      | Model      | URL                                                      | Back             |
     | kv        | kvs        | /dc-1/kv/necessitatibus-0/edit                           | /dc-1/kv         |
     | acl       | acls       | /dc-1/acls/anonymous                                     | /dc-1/acls       |
     | intention | intentions | /dc-1/intentions/ee52203d-989f-4f7a-ab5a-2bef004164ca    | /dc-1/intentions |
@@ -53,7 +68,6 @@ Feature: Page Navigation
     ---
     When I click create
     Then the url should be [URL]
-    # This should be a page object function
     And I click "[data-test-back]"
     Then the url should be [Back]
   Where:
@@ -63,3 +77,5 @@ Feature: Page Navigation
     | acl       | acls       | /dc-1/acls/create        | /dc-1/acls       |
     | intention | intentions | /dc-1/intentions/create  | /dc-1/intentions |
     ------------------------------------------------------------------------
+  Scenario: Using I click on should change the currentPage ^
+    Then ok

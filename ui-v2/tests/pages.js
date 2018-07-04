@@ -3,6 +3,7 @@ import { visitable } from 'consul-ui/tests/lib/page-object/visitable';
 import createDeletable from 'consul-ui/tests/lib/page-object/createDeletable';
 import createSubmitable from 'consul-ui/tests/lib/page-object/createSubmitable';
 import createCreatable from 'consul-ui/tests/lib/page-object/createCreatable';
+import createCancelable from 'consul-ui/tests/lib/page-object/createCancelable';
 
 import page from 'consul-ui/tests/pages/components/page';
 import radiogroup from 'consul-ui/tests/lib/page-object/radiogroup';
@@ -27,6 +28,7 @@ import intention from 'consul-ui/tests/pages/dc/intentions/edit';
 const deletable = createDeletable(clickable);
 const submitable = createSubmitable(clickable, is);
 const creatable = createCreatable(clickable, is);
+const cancelable = createCancelable(clickable, is);
 export default {
   index: create(index(visitable, collection)),
   dcs: create(dcs(visitable, clickable, attribute, collection)),
@@ -35,12 +37,12 @@ export default {
   nodes: create(nodes(visitable, clickable, attribute, collection, catalogFilter)),
   node: create(node(visitable, deletable, clickable, attribute, collection, radiogroup)),
   kvs: create(kvs(visitable, deletable, creatable, clickable, attribute, collection)),
-  kv: create(kv(visitable, submitable, deletable)),
+  kv: create(kv(visitable, submitable, deletable, cancelable, clickable)),
   acls: create(acls(visitable, deletable, creatable, clickable, attribute, collection, aclFilter)),
-  acl: create(acl(visitable, submitable, deletable, clickable)),
+  acl: create(acl(visitable, submitable, deletable, cancelable, clickable)),
   intentions: create(
     intentions(visitable, deletable, creatable, clickable, attribute, collection, intentionFilter)
   ),
-  intention: create(intention(visitable, submitable, deletable)),
+  intention: create(intention(visitable, submitable, deletable, cancelable)),
   settings: create(settings(visitable, submitable)),
 };

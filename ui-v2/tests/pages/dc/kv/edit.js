@@ -1,7 +1,9 @@
-export default function(visitable, submitable, deletable) {
+export default function(visitable, submitable, deletable, cancelable) {
   return submitable(
-    deletable({
-      visit: visitable(['/:dc/kv/:kv/edit', '/:dc/kv/create'], str => str),
-    })
+    cancelable(
+      deletable({
+        visit: visitable(['/:dc/kv/:kv/edit', '/:dc/kv/create'], str => str),
+      })
+    )
   );
 }

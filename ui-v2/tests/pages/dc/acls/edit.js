@@ -1,9 +1,11 @@
-export default function(visitable, submitable, deletable, clickable) {
+export default function(visitable, submitable, deletable, cancelable, clickable) {
   return submitable(
-    deletable({
-      visit: visitable(['/:dc/acls/:acl', '/:dc/acls/create']),
-      use: clickable('[data-test-use]'),
-      confirmUse: clickable('button.type-delete'),
-    })
+    cancelable(
+      deletable({
+        visit: visitable(['/:dc/acls/:acl', '/:dc/acls/create']),
+        use: clickable('[data-test-use]'),
+        confirmUse: clickable('button.type-delete'),
+      })
+    )
   );
 }

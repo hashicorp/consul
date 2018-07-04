@@ -1,7 +1,9 @@
-export default function(visitable, submitable, deletable) {
+export default function(visitable, submitable, deletable, cancelable) {
   return submitable(
-    deletable({
-      visit: visitable(['/:dc/intentions/:intention', '/:dc/intentions/create']),
-    })
+    cancelable(
+      deletable({
+        visit: visitable(['/:dc/intentions/:intention', '/:dc/intentions/create']),
+      })
+    )
   );
 }
