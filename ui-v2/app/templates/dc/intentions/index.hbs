@@ -58,7 +58,7 @@
                                     <a href={{href-to 'dc.intentions.edit' item.ID}}>Edit</a>
                                 </li>
                                 <li>
-                                    <a onclick={{action confirm 'delete' item}}>Delete</a>
+                                    <a data-test-delete onclick={{action confirm 'delete' item}}>Delete</a>
                                 </li>
                             </ul>
                         {{/action-group}}

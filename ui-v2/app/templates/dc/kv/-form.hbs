@@ -33,7 +33,7 @@
     <button type="reset" {{ action "cancel" item parent}}>Cancel changes</button>
     {{#confirmation-dialog message='Are you sure you want to delete this key?'}}
         {{#block-slot 'action' as |confirm|}}
-            <button type="button" class="type-delete" {{action confirm 'delete' item parent}}>Delete</button>
+            <button data-test-delete type="button" class="type-delete" {{action confirm 'delete' item parent}}>Delete</button>
         {{/block-slot}}
         {{#block-slot 'dialog' as |execute cancel message|}}
             <p>
