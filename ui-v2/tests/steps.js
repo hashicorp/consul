@@ -5,7 +5,7 @@ import getDictionary from '@hashicorp/ember-cli-api-double/dictionary';
 import pages from 'consul-ui/tests/pages';
 import api from 'consul-ui/tests/helpers/api';
 
-const dont = `( don't| shouldn't| can't)?`;
+// const dont = `( don't| shouldn't| can't)?`;
 
 const create = function(number, name, value) {
   // don't return a promise here as

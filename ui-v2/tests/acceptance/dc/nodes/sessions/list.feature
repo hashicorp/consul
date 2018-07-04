@@ -1,5 +1,5 @@
 @setupApplicationTest
-Feature: dc / nodes / sessions /list: List Lock Sessions
+Feature: dc / nodes / sessions / list: List Lock Sessions
   In order to get information regarding lock sessions
   As a user
   I should be able to see a listing of lock sessions with necessary information under the lock sessions tab for a node

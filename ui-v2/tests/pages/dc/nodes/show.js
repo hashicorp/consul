@@ -1,4 +1,4 @@
-import { create, visitable, collection, attribute } from 'ember-cli-page-object';
+import { create, visitable, collection, attribute, clickable } from 'ember-cli-page-object';
 
 import radiogroup from 'consul-ui/tests/lib/page-object/radiogroup';
 export default create({
@@ -11,6 +11,8 @@ export default create({
     port: attribute('data-test-service-port', '.port'),
   }),
   sessions: collection('#lock-sessions [data-test-tabular-row]', {
+    delete: clickable('[data-test-delete]'),
+    confirmDelete: clickable('button.type-delete'),
     TTL: attribute('data-test-session-ttl', '[data-test-session-ttl]'),
   }),
 });
