@@ -90,7 +90,7 @@ described here, the rest of the service definition is shown for context and is
 
 * <a name="bind_port"></a><a href="#bind_port">`bind_port`</a> - The
   port the proxy will bind it's _public_ mTLS listener to. If not provided, the
-  agent will attempt to assing one from its [configured proxy port
+  agent will attempt to assign one from its [configured proxy port
   range](/docs/agent/options.html#proxy_min_port) if available. By default the
   range is [20000, 20255] and the port is selected at random from that range.
 
