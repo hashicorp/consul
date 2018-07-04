@@ -85,6 +85,15 @@ export default function(assert) {
       .when('I click "$selector"', function(selector) {
         return click(selector);
       })
+      // TODO: Probably nicer to thing of better vocab than having the 'without " rule'
+      .when('I click (?!")$property(?!")', function(property) {
+        try {
+          return currentPage[property]();
+        } catch (e) {
+          console.error(e);
+          throw new Error(`The '${property}' property on the page object doesn't exist`);
+        }
+      })
       .when('I click $prop on the $component', function(prop, component) {
         // Collection
         var obj;
