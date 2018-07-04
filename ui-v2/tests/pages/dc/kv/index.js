@@ -1,5 +1,5 @@
-export default function(visitable, deletable, clickable, attribute, collection) {
-  return {
+export default function(visitable, deletable, creatable, clickable, attribute, collection) {
+  return creatable({
     visit: visitable('/:dc/kv'),
     kvs: collection(
       '[data-test-tabular-row]',
@@ -9,5 +9,5 @@ export default function(visitable, deletable, clickable, attribute, collection) 
         actions: clickable('label'),
       })
     ),
-  };
+  });
 }

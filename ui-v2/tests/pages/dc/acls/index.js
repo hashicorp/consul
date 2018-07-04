@@ -1,5 +1,5 @@
-export default function(visitable, deletable, clickable, attribute, collection, filter) {
-  return {
+export default function(visitable, deletable, creatable, clickable, attribute, collection, filter) {
+  return creatable({
     visit: visitable('/:dc/acls'),
     acls: collection(
       '[data-test-tabular-row]',
@@ -12,5 +12,5 @@ export default function(visitable, deletable, clickable, attribute, collection, 
       })
     ),
     filter: filter,
-  };
+  });
 }

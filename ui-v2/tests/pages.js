@@ -2,6 +2,7 @@ import { create, clickable, is, attribute, collection, text } from 'ember-cli-pa
 import { visitable } from 'consul-ui/tests/lib/page-object/visitable';
 import createDeletable from 'consul-ui/tests/lib/page-object/createDeletable';
 import createSubmitable from 'consul-ui/tests/lib/page-object/createSubmitable';
+import createCreatable from 'consul-ui/tests/lib/page-object/createCreatable';
 
 import page from 'consul-ui/tests/pages/components/page';
 import radiogroup from 'consul-ui/tests/lib/page-object/radiogroup';
@@ -25,6 +26,7 @@ import intention from 'consul-ui/tests/pages/dc/intentions/edit';
 
 const deletable = createDeletable(clickable);
 const submitable = createSubmitable(clickable, is);
+const creatable = createCreatable(clickable, is);
 export default {
   index: create(index(visitable, collection)),
   dcs: create(dcs(visitable, clickable, attribute, collection)),
@@ -32,12 +34,12 @@ export default {
   service: create(service(visitable, attribute, collection, text, catalogFilter)),
   nodes: create(nodes(visitable, clickable, attribute, collection, catalogFilter)),
   node: create(node(visitable, deletable, clickable, attribute, collection, radiogroup)),
-  kvs: create(kvs(visitable, deletable, clickable, attribute, collection)),
+  kvs: create(kvs(visitable, deletable, creatable, clickable, attribute, collection)),
   kv: create(kv(visitable, submitable, deletable)),
-  acls: create(acls(visitable, deletable, clickable, attribute, collection, aclFilter)),
+  acls: create(acls(visitable, deletable, creatable, clickable, attribute, collection, aclFilter)),
   acl: create(acl(visitable, submitable, deletable, clickable)),
   intentions: create(
-    intentions(visitable, deletable, clickable, attribute, collection, intentionFilter)
+    intentions(visitable, deletable, creatable, clickable, attribute, collection, intentionFilter)
   ),
   intention: create(intention(visitable, submitable, deletable)),
   settings: create(settings(visitable, submitable)),

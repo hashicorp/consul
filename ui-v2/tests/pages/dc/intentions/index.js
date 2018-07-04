@@ -1,5 +1,5 @@
-export default function(visitable, deletable, clickable, attribute, collection, filter) {
-  return {
+export default function(visitable, deletable, creatable, clickable, attribute, collection, filter) {
+  return creatable({
     visit: visitable('/:dc/intentions'),
     intentions: collection(
       '[data-test-tabular-row]',
@@ -15,5 +15,5 @@ export default function(visitable, deletable, clickable, attribute, collection, 
       })
     ),
     filter: filter,
-  };
+  });
 }
