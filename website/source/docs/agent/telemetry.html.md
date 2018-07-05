@@ -467,6 +467,72 @@ These metrics are used to monitor the health of the Consul servers.
     <td>timer</td>
   </tr>
   <tr>
+  <td>`consul.raft.state.follower`</td>
+  <td>This metric counts the number of times an agent has entered the follower mode. This happens when a new agent joins the cluster or after the end of a leader election.</td>
+  <td> follower state entered / interval</td>
+  <td>counter</td>
+  </tr>
+  <tr>
+  <td>`consul.raft.transistion.heartbeat_timeout`</td>
+  <td>This metric gives the number of times an agent has transitioned to the Candidate state, after receive no heartbeat messages from the last known leader.</td>
+  <td>timeouts / interval</td>
+  <td>counter</td>
+  </tr>
+  <tr>
+  <td>`consul.raft.restoreUserSnapshot`</td>
+  <td>This metric measures the time taken by the agent to restore the FSM state from a user's snapshot</td>
+  <td>ms</td>
+  <td>timer</td>
+  </tr>
+  <tr>
+  <td>`consul.raft.rpc.processHeartBeat`</td>
+  <td>This metric measures the time taken to process a heartbeat request.</td>
+  <td>ms</td>
+  <td>timer</td>
+  </tr>
+  <tr>
+  <td>`consul.raft.rpc.appendEntries`</td>
+  <td>This metric measures the time taken to process an append entries RPC call from an agent.</td>
+  <td>ms</td>
+  <td>timer</td>
+  </tr>
+  <tr>
+  <td>`consul.raft.rpc.appendEntries.storeLogs`</td>
+  <td>This metric measures the time taken to add any outstanding logs for an agent, since the last appendEntries was invoked</td>  
+  <td>ms</td>
+  <td>timer</td>
+  </tr>
+  <tr>
+  <td>`consul.raft.rpc.appendEntries.processLogs`</td>
+  <td>This metric measures the time taken to process the outstanding log entries of an agent.</td>
+  <td>ms</td>
+  <td>timer</td>
+  </tr>
+  <tr>
+  <tr>
+  <td>`consul.raft.rpc.requestVote`</td>
+  <td>This metric measures the time taken to process the request vote RPC call.</td>
+  <td>ms</td>
+  <td>timer</td>
+  </tr>
+  <tr>
+  <td>`consul.raft.rpc.installSnapshot`</td>
+  <td>This metric measures the time taken to process the installSnapshot RPC call. This metric should only be seen on agents which are currently in the follower state.</td>
+  <td>ms</td>
+  <td>timer</td>
+  <tr>
+  <td>`consul.raft.replication.appendEntries.rpc`</td>
+  <td>This metric measures the time taken by the append entries RFC, to replicate the log entries of a leader agent onto its follower agent(s)</td>
+  <td>ms</td>
+  <td>timer</td>
+  </tr>
+  <tr>
+  <td>`consul.raft.replication.appendEntries.logs`</td>
+  <td>This metric measures the number of logs replicated to an agent, to bring it upto speed with the leader's logs.</td>
+  <td>logs appended/ interval</td>
+  <td>counter</td>
+  </tr>
+  <tr>
     <td><a name="last-contact"></a>`consul.raft.leader.lastContact`</td>
     <td>This will only be emitted by the Raft leader and measures the time since the leader was last able to contact the follower nodes when checking its leader lease. It can be used as a measure for how stable the Raft timing is and how close the leader is to timing out its lease.<br><br>The lease timeout is 500 ms times the [`raft_multiplier` configuration](/docs/agent/options.html#raft_multiplier), so this telemetry value should not be getting close to that configured value, otherwise the Raft timing is marginal and might need to be tuned, or more powerful servers might be needed. See the [Server Performance](/docs/guides/performance.html) guide for more details.</td>
     <td>ms</td>
@@ -753,6 +819,30 @@ These metrics give insight into the health of the cluster as a whole.
     <td>This increments when an agent suspects another as failed when executing random probes as part of the gossip protocol. These can be an indicator of overloaded agents, network problems, or configuration errors where agents can not connect to each other on the [required ports](/docs/agent/options.html#ports).</td>
     <td>suspect messages received / interval</td>
     <td>counter</td>
+  </tr>
+  <tr>
+  <td>`consul.memberlist.tcp.accept`</td>
+  <td>This metric counts the number of times an agent has accepted an incoming TCP stream connection.</td>
+  <td>connections accepted / interval</td>
+  <td>counter</td>
+  </tr>
+  <tr>
+  <td>`consul.memberlist.udp.sent/received`</td>
+  <td>This metric measures the total number of bytes sent/received by an agent through the UDP protocol.</td>
+  <td>bytes sent or bytes received / interval</td>
+  <td>counter</td>
+  </tr>
+  <tr>
+  <td>`consul.memberlist.tcp.connect`</td>
+  <td>This metric counts the number of times an agent has initiated a push/pull sync with an other agent.</td>
+  <td>push/pull initiated / interval</td>
+  <td>counter</td>
+  </tr>
+  <tr>
+  <td>`consul.memberlist.tcp.sent`</td>
+  <td>This metric measures the total number of bytes sent by an agent through the TCP protocol</td>
+  <td>bytes sent / interval</td>
+  <td>counter</td>
   </tr>
   <tr>
     <td>`consul.memberlist.gossip`</td>
