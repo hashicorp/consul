@@ -13,7 +13,7 @@ import (
 	golog "log"
 )
 
-// D controls whether we should ouput debug logs. If true, we do.
+// D controls whether we should output debug logs. If true, we do.
 var D bool
 
 // logf calls log.Printf prefixed with level.
