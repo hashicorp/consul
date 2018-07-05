@@ -38,6 +38,7 @@ export default function(obj, stub) {
         return _super;
       },
     });
+    // TODO: try/catch this?
     const actual = cb();
     Object.defineProperty(Object.getPrototypeOf(obj), '_super', {
       set: function(val) {
