@@ -207,12 +207,20 @@ export default function(assert) {
         );
         assert.equal(request.url, url, `Expected the request url to be ${url}, was ${request.url}`);
         const body = request.requestBody;
-        assert.equal(
-          body,
-          data,
-          `Expected the request body to be ${body}, was ${request.requestBody}`
-        );
+        assert.equal(body, data, `Expected the request body to be ${data}, was ${body}`);
       })
+      .then('a $method request is made to "$url" with no body', function(method, url) {
+        const request = api.server.history[api.server.history.length - 2];
+        assert.equal(
+          request.method,
+          method,
+          `Expected the request method to be ${method}, was ${request.method}`
+        );
+        assert.equal(request.url, url, `Expected the request url to be ${url}, was ${request.url}`);
+        const body = request.requestBody;
+        assert.equal(body, null, `Expected the request body to be null, was ${body}`);
+      })
+
       .then('a $method request is made to "$url"', function(method, url) {
         const request = api.server.history[api.server.history.length - 2];
         assert.equal(
