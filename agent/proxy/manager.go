@@ -432,7 +432,7 @@ func (m *Manager) newProxy(mp *local.ManagedProxy) (Proxy, error) {
 		if err := m.configureLogDir(id, &cmd); err != nil {
 			return nil, fmt.Errorf("error configuring proxy logs: %s", err)
 		}
-
+		cmd.Env = os.Environ()
 		// Build the daemon structure
 		proxy.Command = &cmd
 		proxy.ProxyID = id
