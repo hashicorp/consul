@@ -1,5 +1,5 @@
 @setupApplicationTest
-Feature: deleting: Deleting form the listing and the detail page with confirmation
+Feature: deleting: Deleting from the listing and the detail page with confirmation
   Scenario: Deleting a [Model] from the [Model] listing page
     Given 1 datacenter model with the value "datacenter"
     And 1 [Model] model from json

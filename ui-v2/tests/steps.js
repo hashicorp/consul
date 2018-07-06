@@ -85,7 +85,7 @@ export default function(assert) {
       .when('I click "$selector"', function(selector) {
         return click(selector);
       })
-      // TODO: Probably nicer to thing of better vocab than having the 'without " rule'
+      // TODO: Probably nicer to think of better vocab than having the 'without " rule'
       .when('I click (?!")$property(?!")', function(property) {
         try {
           return currentPage[property]();
