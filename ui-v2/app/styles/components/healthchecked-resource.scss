@@ -94,7 +94,7 @@
   padding-left: 39px;
   height: 31px;
 }
-%healthchecked-resource li:not(:last-child) strong,
+%healthchecked-resource li:not(.passing) strong,
 .healthy .healthchecked-resource li:only-child strong {
   display: none;
 }
