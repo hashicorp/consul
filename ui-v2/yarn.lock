@@ -70,8 +70,8 @@
     "@glimmer/di" "^0.2.0"
 
 "@hashicorp/api-double@^1.3.0":
-  version "1.3.1"
-  resolved "https://registry.yarnpkg.com/@hashicorp/api-double/-/api-double-1.3.1.tgz#fd9d706674b934857a638459c2bb52d2f2809455"
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/@hashicorp/api-double/-/api-double-1.4.0.tgz#17ddad8e55370de0d24151a38c5f029bc207cafe"
   dependencies:
     "@gardenhq/o" "^8.0.1"
     "@gardenhq/tick-control" "^2.0.0"
