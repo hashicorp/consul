@@ -261,6 +261,46 @@ func TestManagerRun_daemonPid(t *testing.T) {
 	require.NotEmpty(pidRaw)
 }
 
+// Test to check if the parent and the child processes
+// have the same environmental variables
+
+func TestEnvironproxy(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	state := local.TestState(t)
+	m, closer := testManager(t)
+	defer closer()
+	m.State = state
+	defer m.Kill()
+
+	// Add the proxy
+	td, closer := testTempDir(t)
+	defer closer()
+	path := filepath.Join(td, "env-variables")
+	d := &Daemon{
+		Command: helperProcess("parent", path),
+		Logger:  testLogger,
+	}
+	var currentEnviron []string
+	currentEnviron = os.Environ()
+	// Environmental variable of the helper
+	if err := d.Start(); err != nil {
+		t.Error("Daemon failed to start")
+		defer d.Stop()
+		envProcess := d.Command.Env
+		var envData []byte
+		for _, data := range envProcess {
+			envData = append(envData, []byte(data)...)
+			envData = append(envData, []byte("\n")...)
+		}
+		t.Logf("Env Data:%s", envProcess)
+		//Get the parent environmental variables in a file
+
+		require.Equal(currentEnviron, envProcess)
+	}
+}
+
 // Test the Snapshot/Restore works.
 func TestManagerRun_snapshotRestore(t *testing.T) {
 	t.Parallel()
