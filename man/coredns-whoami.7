@@ -1,13 +1,13 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-WHOAMI" "7" "June 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-WHOAMI" "7" "July 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIwhoami\fR \- returns your resolver\'s local IP address, port and transport\.
 .
 .SH "DESCRIPTION"
-The \fIwhoami\fR plugin is not really that useful, but can be used for having a simple (fast) endpoint to test clients against\. When \fIwhoami\fR returns a response it will have your client\'s IP address the additional section as either an A or AAAA record\.
+The \fIwhoami\fR plugin is not really that useful, but can be used for having a simple (fast) endpoint to test clients against\. When \fIwhoami\fR returns a response it will have your client\'s IP address in the additional section as either an A or AAAA record\.
 .
 .P
 The reply always has an empty answer section\. The port and transport are included in the additional section as a SRV record, transport can be "tcp" or "udp"\.

@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-DEBUG" "7" "June 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-DEBUG" "7" "July 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIdebug\fR \- disables the automatic recovery upon a crash so that you\'ll get a nice stack trace\.
@@ -20,6 +20,28 @@ debug
 .
 .fi
 .
+.P
+Some plugin will debug log DNS messages\. This is done in the following format:
+.
+.IP "" 4
+.
+.nf
+
+debug: 000000 00 0a 01 00 00 01 00 00 00 00 00 01 07 65 78 61
+debug: 000010 6d 70 6c 65 05 6c 6f 63 61 6c 00 00 01 00 01 00
+debug: 000020 00 29 10 00 00 00 80 00 00 00
+debug: 00002a
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Using \fBtext2pcap\fR (part of Wireshark) this can be converted back to binary, with the following command line: \fBtext2pcap \-i 17 \-u 53,53\fR\. Where 17 is the protocol (UDP) and 53 are the ports\. These ports allow wireshark to detect these packets as DNS messages\.
+.
+.P
+Each plugin can decide to dump messages to aid in debugging\.
+.
 .SH "EXAMPLES"
 Disable the ability to recover from crashes and show debug logging:
 .
@@ -34,4 +56,6 @@ Disable the ability to recover from crashes and show debug logging:
 .fi
 .
 .IP "" 0
-
+.
+.SH "ALSO SEE"
+https://www\.wireshark\.org/docs/man\-pages/text2pcap\.html\.

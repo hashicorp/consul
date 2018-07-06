@@ -2,7 +2,7 @@
 
 ## Name
 
-*reload* - allows automatic reload of a changed Corefile
+*reload* - allows automatic reload of a changed Corefile.
 
 ## Description
 

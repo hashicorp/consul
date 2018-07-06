@@ -2,7 +2,7 @@
 
 ## Name
 
-*dnstap* - enable logging to dnstap
+*dnstap* - enable logging to dnstap.
 
 ## Description
 
