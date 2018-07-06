@@ -27,9 +27,9 @@
     {{/block-slot}}
     {{#block-slot 'actions'}}
 {{#if (not-eq parent.Key '/') }}
-        <a href="{{href-to 'dc.kv.create' parent.Key}}" class="type-create">Create</a>
+        <a data-test-create href="{{href-to 'dc.kv.create' parent.Key}}" class="type-create">Create</a>
 {{else}}
-        <a href="{{href-to 'dc.kv.root-create'}}" class="type-create">Create</a>
+        <a data-test-create href="{{href-to 'dc.kv.root-create'}}" class="type-create">Create</a>
 {{/if}}
     {{/block-slot}}
     {{#block-slot 'content'}}

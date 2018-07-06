@@ -35,7 +35,7 @@
 {{# if (and (not create) (not-eq item.ID 'anonymous')) }}
         {{#confirmation-dialog message='Are you sure you want to delete this ACL token?'}}
             {{#block-slot 'action' as |confirm|}}
-                <button type="button" class="type-delete" {{action confirm 'delete' item parent}}>Delete</button>
+                <button type="button" data-test-delete class="type-delete" {{action confirm 'delete' item parent}}>Delete</button>
             {{/block-slot}}
             {{#block-slot 'dialog' as |execute cancel message|}}
                 <p>

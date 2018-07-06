@@ -2,7 +2,7 @@
   "name": "consul-ui",
   "version": "2.2.0",
   "private": true,
-  "description": "The web ui for Consul, by HashiCorp.",
+  "description": "The web UI for Consul, by HashiCorp.",
   "directories": {
     "doc": "doc",
     "test": "tests"
