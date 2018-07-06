@@ -178,7 +178,7 @@ func (s *ConnectCA) ConfigurationSet(
 		newRoot := *r
 		if newRoot.Active {
 			newRoot.Active = false
-			newRoot.RotateOutAt = time.Now().Add(caRootExpireDuration)
+			newRoot.RotatedOutAt = time.Now()
 		}
 		newRoots = append(newRoots, &newRoot)
 	}

@@ -33,7 +33,7 @@ var (
 	caRootPruneInterval = time.Hour
 
 	// caRootExpireDuration is the duration after which an inactive root is considered
-	// "expired".
+	// "expired". Currently this is based on the default leaf cert TTL of 3 days.
 	caRootExpireDuration = 7 * 24 * time.Hour
 
 	// minAutopilotVersion is the minimum Consul version in which Autopilot features
@@ -568,10 +568,6 @@ func (s *Server) setCAProvider(newProvider ca.Provider, root *structs.CARoot) {
 // startCARootPruning starts a goroutine that looks for stale CARoots
 // and removes them from the state store.
 func (s *Server) startCARootPruning() {
-	if !s.config.ConnectEnabled {
-		return
-	}
-
 	s.caPruningLock.Lock()
 	defer s.caPruningLock.Unlock()
 
@@ -602,6 +598,10 @@ func (s *Server) startCARootPruning() {
 
 // pruneCARoots looks for any CARoots that have been rotated out and expired.
 func (s *Server) pruneCARoots() error {
+	if !s.config.ConnectEnabled {
+		return nil
+	}
+
 	idx, roots, err := s.fsm.State().CARoots(nil)
 	if err != nil {
 		return err
@@ -609,7 +609,7 @@ func (s *Server) pruneCARoots() error {
 
 	var newRoots structs.CARoots
 	for _, r := range roots {
-		if !r.Active && !r.RotateOutAt.IsZero() && r.RotateOutAt.Before(time.Now()) {
+		if !r.Active && !r.RotatedOutAt.IsZero() && time.Now().Sub(r.RotatedOutAt) > caRootExpireDuration {
 			s.logger.Printf("[INFO] connect: pruning old unused root CA (ID: %s)", r.ID)
 			continue
 		}
@@ -640,10 +640,6 @@ func (s *Server) pruneCARoots() error {
 
 // stopCARootPruning stops the CARoot pruning process.
 func (s *Server) stopCARootPruning() {
-	if !s.config.ConnectEnabled {
-		return
-	}
-
 	s.caPruningLock.Lock()
 	defer s.caPruningLock.Unlock()
 
