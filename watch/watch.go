@@ -24,14 +24,17 @@ type Plan struct {
 	HandlerType string
 	Exempt      map[string]interface{}
 
-	Watcher   WatcherFunc
-	Handler   HandlerFunc
-	LogOutput io.Writer
+	Watcher WatcherFunc
+	// Handler is kept for backward compatibility but only supports watches based
+	// on index param. To support hash based watches, set HybridHandler instead.
+	Handler       HandlerFunc
+	HybridHandler HybridHandlerFunc
+	LogOutput     io.Writer
 
-	address    string
-	client     *consulapi.Client
-	lastIndex  uint64
-	lastResult interface{}
+	address      string
+	client       *consulapi.Client
+	lastParamVal BlockingParamVal
+	lastResult   interface{}
 
 	stop       bool
 	stopCh     chan struct{}
@@ -48,11 +51,78 @@ type HttpHandlerConfig struct {
 	TLSSkipVerify bool                `mapstructure:"tls_skip_verify"`
 }
 
-// WatcherFunc is used to watch for a diff
-type WatcherFunc func(*Plan) (uint64, interface{}, error)
+// BlockingParamVal is an interface representing the common operations needed for
+// different styles of blocking. It's used to abstract the core watch plan from
+// whether we are performing index-based or hash-based blocking.
+type BlockingParamVal interface {
+	// Equal returns whether the other param value should be considered equal
+	// (i.e. representing no change in the watched resource). Equal must not panic
+	// if other is nil.
+	Equal(other BlockingParamVal) bool
 
-// HandlerFunc is used to handle new data
+	// Next is called when deciding which value to use on the next blocking call.
+	// It assumes the BlockingParamVal value it is called on is the most recent one
+	// returned and passes the previous one which may be nil as context. This
+	// allows types to customise logic around ordering without assuming there is
+	// an order. For example WaitIndexVal can check that the index didn't go
+	// backwards and if it did then reset to 0. Most other cases should just
+	// return themselves (the most recent value) to be used in the next request.
+	Next(previous BlockingParamVal) BlockingParamVal
+}
+
+// WaitIndexVal is a type representing a Consul index that implements
+// BlockingParamVal.
+type WaitIndexVal uint64
+
+// Equal implements BlockingParamVal
+func (idx WaitIndexVal) Equal(other BlockingParamVal) bool {
+	if otherIdx, ok := other.(WaitIndexVal); ok {
+		return idx == otherIdx
+	}
+	return false
+}
+
+// Next implements BlockingParamVal
+func (idx WaitIndexVal) Next(previous BlockingParamVal) BlockingParamVal {
+	if previous == nil {
+		return idx
+	}
+	prevIdx, ok := previous.(WaitIndexVal)
+	if ok && prevIdx > idx {
+		// This value is smaller than the previous index, reset.
+		return WaitIndexVal(0)
+	}
+	return idx
+}
+
+// WaitHashVal is a type representing a Consul content hash that implements
+// BlockingParamVal.
+type WaitHashVal string
+
+// Equal implements BlockingParamVal
+func (h WaitHashVal) Equal(other BlockingParamVal) bool {
+	if otherHash, ok := other.(WaitHashVal); ok {
+		return h == otherHash
+	}
+	return false
+}
+
+// Next implements BlockingParamVal
+func (h WaitHashVal) Next(previous BlockingParamVal) BlockingParamVal {
+	return h
+}
+
+// WatcherFunc is used to watch for a diff.
+type WatcherFunc func(*Plan) (BlockingParamVal, interface{}, error)
+
+// HandlerFunc is used to handle new data. It only works for index-based watches
+// (which is almost all end points currently) and is kept for backwards
+// compatibility until more places can make use of hash-based watches too.
 type HandlerFunc func(uint64, interface{})
+
+// HybridHandlerFunc is used to handle new data. It can support either
+// index-based or hash-based watches via the BlockingParamVal.
+type HybridHandlerFunc func(BlockingParamVal, interface{})
 
 // Parse takes a watch query and compiles it into a WatchPlan or an error
 func Parse(params map[string]interface{}) (*Plan, error) {

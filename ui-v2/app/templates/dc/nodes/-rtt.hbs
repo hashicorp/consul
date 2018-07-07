@@ -1,0 +1,22 @@
+<dl>
+    <dt>
+        Minimum
+    </dt>
+    <dd>
+        {{ format-number tomography.min format='0,000.00' }}ms
+    </dd>
+    <dt>
+        Median
+    </dt>
+    <dd>
+        {{ format-number tomography.median format='0,000.00' }}ms
+    </dd>
+    <dt>
+        Maximum
+    </dt>
+    <dd>
+        {{ format-number tomography.max format='0,000.00' }}ms
+    </dd>
+</dl>
+{{tomography-graph tomography=tomography}}
+

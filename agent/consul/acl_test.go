@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/stretchr/testify/assert"
 )
 
 var testACLPolicy = `
@@ -844,6 +845,58 @@ node "node1" {
 		if len(hc) != 1 {
 			t.Fatalf("bad: %#v", hc)
 		}
+	}
+}
+
+func TestACL_filterIntentions(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	fill := func() structs.Intentions {
+		return structs.Intentions{
+			&structs.Intention{
+				ID:              "f004177f-2c28-83b7-4229-eacc25fe55d1",
+				DestinationName: "bar",
+			},
+			&structs.Intention{
+				ID:              "f004177f-2c28-83b7-4229-eacc25fe55d2",
+				DestinationName: "foo",
+			},
+		}
+	}
+
+	// Try permissive filtering.
+	{
+		ixns := fill()
+		filt := newACLFilter(acl.AllowAll(), nil, false)
+		filt.filterIntentions(&ixns)
+		assert.Len(ixns, 2)
+	}
+
+	// Try restrictive filtering.
+	{
+		ixns := fill()
+		filt := newACLFilter(acl.DenyAll(), nil, false)
+		filt.filterIntentions(&ixns)
+		assert.Len(ixns, 0)
+	}
+
+	// Policy to see one
+	policy, err := acl.Parse(`
+service "foo" {
+  policy = "read"
+}
+`, nil)
+	assert.Nil(err)
+	perms, err := acl.New(acl.DenyAll(), policy, nil)
+	assert.Nil(err)
+
+	// Filter
+	{
+		ixns := fill()
+		filt := newACLFilter(perms, nil, false)
+		filt.filterIntentions(&ixns)
+		assert.Len(ixns, 1)
 	}
 }
 

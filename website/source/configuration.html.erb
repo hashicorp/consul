@@ -1,0 +1,276 @@
+---
+description: |-
+  Consul is a highly available and distributed service discovery and KV
+  store designed with support for the modern data center to make distributed
+  systems and configuration easy.
+---
+
+<div class='consul-connect'>
+
+  <section class='g-hero'>
+    <h1>Service configuration made easy</h1>
+    <p>Feature rich key/value store to easily configure services</p>
+    <div>
+      <a href="/downloads.html" class="g-btn download">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="22" viewBox="0 0 20 22">
+          <path d="M9.292 15.706a1 1 0 0 0 1.416 0l3.999-3.999a1 1 0 1 0-1.414-1.414L11 12.586V1a1 1 0 1 0-2 0v11.586l-2.293-2.293a1 1 0 1 0-1.414 1.414l3.999 3.999zM20 16v3c0 1.654-1.346 3-3 3H3c-1.654 0-3-1.346-3-3v-3a1 1 0 1 1 2 0v3c0 .551.448 1 1 1h14c.552 0 1-.449 1-1v-3a1 1 0 1 1 2 0z"/>
+        </svg>
+        Download
+      </a>
+      <a href="/intro/getting-started/kv.html" class="g-btn dark-outline">Explore Docs</a>
+    </div>
+  </section>
+
+  <section class='g-section'>
+    <div class='g-container'>
+      <div class='g-timeline no-intro'>
+        <div>
+          <span class='line'></span>
+          <span class='line'>
+            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="15" viewBox="0 0 11 15">
+                <path fill="#CA2171" d="M0 0v15l5.499-3.751L11 7.5 5.499 3.749.002 0z"/>
+            </svg>
+          </span>
+          <span class='dot'></span>
+          <h3>The Challenge</h3>
+          <span class='sub-heading'>Runtime configuration management loses performance at scale.</span>
+          <div id='configuration-challenge-animation' class='g-animation-block'>
+            <%= inline_svg 'consul-connect/svgs/configuration-challenge.svg' %>
+          </div>
+          <p>Services have many runtime configurations, such as feature flags or maintenance modes, that need to be propagated in real time. Distributing these updates using configuration management or by re-deploying services can take minutes to hours. During these rollout periods, infrastructure can be out of sync and service configurations could be incorrect.</p>
+        </div>
+        <div>
+          <span class='dot'></span>
+          <h3>The Solution</h3>
+          <span class='sub-heading'>Real-time runtime configuration for distributed applications.</span>
+          <div id='configuration-solution-animation' class='g-animation-block'>
+            <%= inline_svg 'consul-connect/svgs/configuration-solution.svg' %>
+          </div>
+          <p>Consul can update service configurations across thousands of
+            services in a globally distributed fleet in real-time. Configuration
+            is stored in a hierarchical key/value store, and efficient edge
+            triggers push changes out to applications quickly.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class='g-section border-top'>
+    <div class='g-container'>
+      <div class='intro'>
+        <h2>Features</h2>
+      </div>
+      <div class='g-text-asset large'>
+        <div>
+          <div>
+            <h3>Key/Value Store</h3>
+            <p>Feature rich  key/value store for dynamic service configuration data. Use it for feature flagging, maintenance modes, and more.</p>
+            <p>
+              <a class="learn-more" href='/intro/getting-started/kv.html'>Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
+            </p>
+          </div>
+        </div>
+        <div>
+          <picture>
+            <source type="image/webp" srcset="
+              /assets/images/consul-connect/ui-kv-store/ui-kv-store_230.webp 230w,
+              /assets/images/consul-connect/ui-kv-store/ui-kv-store_986.webp 986w,
+              /assets/images/consul-connect/ui-kv-store/ui-kv-store_1290.webp 1290w" />
+             <source type="image/jpg" srcset="
+              /assets/images/consul-connect/ui-kv-store/ui-kv-store_230.jpg 230w,
+              /assets/images/consul-connect/ui-kv-store/ui-kv-store_986.jpg 986w,
+              /assets/images/consul-connect/ui-kv-store/ui-kv-store_1290.jpg 1290w" />
+              <img src='/assets/images/consul-connect/ui-kv-store/ui-kv-store_1290.jpg' alt='Service Registry'>
+          </picture>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class='g-section border-top'>
+    <div class='g-container'>
+      <div class='g-text-asset reverse'>
+        <div>
+          <div>
+            <h3>Transaction Support</h3>
+            <p>The key/value store supports both read and write transactions. This allows multiple keys to be updated or read as an atomic transaction. Changes to service configuration can be done atomically to minimize churn and avoid inconsistencies.</p>
+            <p>
+              <a class="learn-more" href='/api/kv.html'>Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
+            </p>
+          </div>
+        </div>
+        <div class='code-sample'>
+          <div>
+            <span></span>
+            <div class='code'>
+              <code>$ curl <code class='keyword'>http://localhost:8500/v1/txn \</code>
+  --request PUT \
+  --data \
+  '[
+    {
+      "KV": {
+        "Verb": "set",
+        "Key": "lock",
+        "Value": "MQ=="
+      }
+    },
+    {
+      "KV": {
+        "Verb": "cas",
+        "Index": 10,
+        "Key": "configuration",
+        "Value": "c29tZS1jb25maWc="
+      }
+    }
+  ]'</code>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class='g-section border-top'>
+    <div class='g-container'>
+      <div class='g-text-asset'>
+        <div>
+          <div>
+            <h3>Blocking Queries / Edge-Triggered Requests</h3>
+            <p>The Consul API supports blocking queries, allowing edge triggered updates. Clients use this to get notified immediately of any changes. Tools like consul-template allow configuration files to be rendered in real-time to third-party sources when any configuration changes are made.</p>
+            <p>
+              <a class="learn-more" href='/api/index.html#blocking-queries'>Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
+            </p>
+          </div>
+        </div>
+        <div class='code-sample'>
+          <div>
+            <span></span>
+            <div class='code'>
+              <code>$ curl <code class="keyword">http://localhost:8500/v1/kv/web/config/rate_limit?wait=1m&index=229</code>
+[
+    {
+        "LockIndex": 0,
+        "Key": "web/config/rate_limit",
+        "Flags": 0,
+        "Value": "NjAw",
+        "CreateIndex": 229,
+        "ModifyIndex": 234
+    }
+]</code>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class='g-section border-top'>
+    <div class='g-container'>
+      <div class='g-text-asset reverse'>
+        <div>
+          <div>
+            <h3>Watches</h3>
+            <p>Watches use blocking queries monitor for any configuration or health status updates and invoke user specified scripts to handle changes. This makes it easy to build reactive infrastructure.</p>
+            <p>
+              <a class="learn-more" href='/docs/agent/watches.html'>Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
+            </p>
+          </div>
+        </div>
+        <div class='code-sample'>
+          <div>
+            <span></span>
+            <div class='code'>
+              <code>$ consul watch \
+      -type=key \
+      -key=web/config/rate_limit \
+      <code class="keyword">/usr/local/bin/record-rate-limit.sh</code>
+              </code>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class='g-section border-top'>
+    <div class='g-container'>
+      <div class='g-text-asset'>
+        <div>
+          <div>
+            <h3>Distributed Locks and Semaphores</h3>
+            <p>The key/value store supports distributed locks and semaphores. This makes it easier for applications to perform leader election or manage access to shared resources.</p>
+            <p>
+              <a class="learn-more" href='/docs/guides/semaphore.html'>Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
+            </p>
+          </div>
+        </div>
+        <div>
+          <%= inline_svg 'consul-connect/svgs/semaphores.svg', height: 383 %>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class='g-section bg-dark'>
+    <div class='g-container'>
+      <div class='intro'>
+        <h2>Case Studies</h2>
+      </div>
+      <div class='g-carousel'>
+        <div class='siema'>
+          <a class='card' href='https://www.hashicorp.com/resources/groupon-orchestrates-daas-consul'>
+            <div>
+              <img src='/assets/images/consul-connect/case-studies/case-study_03.jpg' alt=''>
+            </div>
+            <div class='content'>
+              <span class='tag video'>Video</span>
+              <h4>How Groupon Orchestrates Databases as a Service with HashiCorp Consul</h4>
+              <p>Group​o​n provides centrally managed, containerized database instances to its engineering teams. To make this process faster, more robust, and operationally safe, they deliver Databases-as-a-Service via an orchestration layer backed by HashiCorp Consul.</p>
+              <span>Watch</span>
+            </div>
+          </a>
+          <a class='card' href='https://www.hashicorp.com/resources/citadel-scaling-hashicorp-nomad-consul'>
+            <div>
+              <img src='/assets/images/consul-connect/case-studies/case-study_04.jpg' alt=''>
+            </div>
+            <div class='content'>
+              <span class='tag video'>Video</span>
+              <h4>Citadel - Extreme Scaling with HashiCorp Nomad and Consul</h4>
+              <p>In this talk from HashiConf 2016, Caius Howcroft covers Citadel's use of HashiCorp Nomad and Consul to gain rapid scaling of its compute resources, for immediate market insights.</p>
+              <span>Watch</span>
+            </div>
+          </a>
+        </div>
+        <ul class='pagination'>
+          <li class='active'></li>
+          <li></li>
+        </ul>
+        <span class='prev'>
+          <svg width="18px" height="14px" viewBox="0 0 18 14" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><defs><path d="M20.9227917,11.6173214 C20.8717917,11.4953214 20.7987917,11.3843214 20.7067917,11.2923214 L14.7067917,5.29232143 C14.3167917,4.90232143 13.6837917,4.90232143 13.2927917,5.29232143 C12.9017917,5.68332143 12.9017917,6.31632143 13.2927917,6.70632143 L17.5857917,10.9993214 L3.99979167,10.9993214 C3.44779167,10.9993214 2.99979167,11.4473214 2.99979167,11.9993214 C2.99979167,12.5523214 3.44779167,12.9993214 3.99979167,12.9993214 L17.5857917,12.9993214 L13.2927917,17.2923214 C12.9017917,17.6833214 12.9017917,18.3163214 13.2927917,18.7063214 C13.4877917,18.9023214 13.7437917,18.9993214 13.9997917,18.9993214 C14.2557917,18.9993214 14.5117917,18.9023214 14.7067917,18.7063214 L20.7067917,12.7073214 C20.7987917,12.6153214 20.8717917,12.5043214 20.9227917,12.3823214 C21.0237917,12.1373214 21.0237917,11.8623214 20.9227917,11.6173214" id="path-1"></path></defs><g id="Consul" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"><g id="Consol.io-Service-Discovery-Op1" transform="translate(-1275.000000, -5150.000000)"><g id="Icons/Feather/arrow/arrow-right" transform="translate(1272.000000, 5145.000000)"><mask id="mask-2" fill="white"><use xlink:href="#path-1"></use></mask><use id="Mask" fill="#000000" fill-rule="evenodd" xlink:href="#path-1"></use><g id="Mixin/Fill/Black" mask="url(#mask-2)" fill="#000000" fill-rule="evenodd"><rect id="Rectangle" x="0" y="0" width="24" height="24"></rect></g></g></g></g></svg>
+        </span>
+        <span class='next'>
+          <svg width="18px" height="14px" viewBox="0 0 18 14" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><defs><path d="M20.9227917,11.6173214 C20.8717917,11.4953214 20.7987917,11.3843214 20.7067917,11.2923214 L14.7067917,5.29232143 C14.3167917,4.90232143 13.6837917,4.90232143 13.2927917,5.29232143 C12.9017917,5.68332143 12.9017917,6.31632143 13.2927917,6.70632143 L17.5857917,10.9993214 L3.99979167,10.9993214 C3.44779167,10.9993214 2.99979167,11.4473214 2.99979167,11.9993214 C2.99979167,12.5523214 3.44779167,12.9993214 3.99979167,12.9993214 L17.5857917,12.9993214 L13.2927917,17.2923214 C12.9017917,17.6833214 12.9017917,18.3163214 13.2927917,18.7063214 C13.4877917,18.9023214 13.7437917,18.9993214 13.9997917,18.9993214 C14.2557917,18.9993214 14.5117917,18.9023214 14.7067917,18.7063214 L20.7067917,12.7073214 C20.7987917,12.6153214 20.8717917,12.5043214 20.9227917,12.3823214 C21.0237917,12.1373214 21.0237917,11.8623214 20.9227917,11.6173214" id="path-1"></path></defs><g id="Consul" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"><g id="Consol.io-Service-Discovery-Op1" transform="translate(-1275.000000, -5150.000000)"><g id="Icons/Feather/arrow/arrow-right" transform="translate(1272.000000, 5145.000000)"><mask id="mask-2" fill="white"><use xlink:href="#path-1"></use></mask><use id="Mask" fill="#000000" fill-rule="evenodd" xlink:href="#path-1"></use><g id="Mixin/Fill/Black" mask="url(#mask-2)" fill="#000000" fill-rule="evenodd"><rect id="Rectangle" x="0" y="0" width="24" height="24"></rect></g></g></g></g></svg>
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <section class='g-section g-cta-section'>
+    <div>
+      <h2>Ready to get started?</h2>
+      <a href="/downloads.html" class="g-btn white download">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="22" viewBox="0 0 20 22">
+          <path d="M9.292 15.706a1 1 0 0 0 1.416 0l3.999-3.999a1 1 0 1 0-1.414-1.414L11 12.586V1a1 1 0 1 0-2 0v11.586l-2.293-2.293a1 1 0 1 0-1.414 1.414l3.999 3.999zM20 16v3c0 1.654-1.346 3-3 3H3c-1.654 0-3-1.346-3-3v-3a1 1 0 1 1 2 0v3c0 .551.448 1 1 1h14c.552 0 1-.449 1-1v-3a1 1 0 1 1 2 0z"/>
+        </svg>
+        Download
+      </a>
+      <a href="/intro/getting-started/kv.html" class="g-btn white-outline">Explore docs</a>
+    </div>
+  </section>
+
+</div>
+
+<% content_for :scripts do %>
+  <script src='/assets/javascripts/consul-connect/vendor/object-fit-images.min.js' defer></script>
+  <script src='/assets/javascripts/consul-connect/carousel.js' defer></script>
+<% end %>

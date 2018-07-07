@@ -1,0 +1,100 @@
+table:not(.sessions) tr {
+  cursor: pointer;
+}
+table {
+  position: relative;
+}
+table tbody {
+  width: 100%;
+  height: 100%;
+  top: 29px !important;
+}
+table tr {
+  display: flex;
+}
+table tr > * {
+  flex: 1 0 auto;
+}
+
+html.template-service.template-list main table tr {
+  @extend %services-row;
+}
+html.template-intention.template-list main table tr {
+  @extend %intentions-row;
+}
+html.template-kv.template-list main table tr {
+  @extend %kvs-row;
+}
+html.template-acl.template-list main table tr {
+  @extend %acls-row;
+}
+html.template-node.template-show main table tr {
+  @extend %node-services-row;
+}
+html.template-node.template-show main table.sessions tr {
+  @extend %node-sessions-row;
+}
+
+@media #{$--horizontal-session-list} {
+  %node-sessions-row > * {
+    // (100% / 7) - (300px / 6) - (120px / 6)
+    width: calc(14.2857% - 50px - 20px);
+  }
+  %node-sessions-row > *:nth-child(2) {
+    width: 300px;
+  }
+  %node-sessions-row > *:nth-last-child(1) {
+    width: 120px;
+  }
+}
+@media #{$--lt-horizontal-session-list} {
+  %node-sessions-row > * {
+    // (100% / 2) - (300px / 2) - (120px / 2)
+    width: calc(50% - 150px - 60px);
+  }
+  %node-sessions-row > *:nth-child(2) {
+    width: 300px;
+  }
+  %node-sessions-row > *:nth-last-child(1) {
+    width: 120px;
+  }
+  %node-sessions-row > *:nth-child(3),
+  %node-sessions-row > *:nth-child(4),
+  %node-sessions-row > *:nth-child(5),
+  %node-sessions-row > *:nth-child(6) {
+    display: none;
+  }
+}
+tr > * dl {
+  float: left;
+}
+%intentions-row > * {
+  width: calc(25% - 60px);
+}
+%intentions-row > *:last-child {
+  width: 60px;
+}
+%kvs-row > *:first-child {
+  width: calc(100% - 60px);
+}
+%kvs-row > *:last-child {
+  width: 60px;
+}
+%node-services-row > * {
+  width: 33%;
+}
+%acls-row > * {
+  width: calc(50% - 30px);
+}
+%acls-row > *:last-child {
+  width: 60px;
+}
+// this will get auto calculated later in tabular-collection.js
+// keeping this here for reference
+%services-row > * {
+  // (100% / 2) - (160px / 2)
+  // width: calc(50% - 160px);
+}
+%services-row > * {
+  width: auto;
+}

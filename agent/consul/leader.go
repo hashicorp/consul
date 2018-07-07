@@ -4,16 +4,20 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/connect"
+	ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
+	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
@@ -116,7 +120,6 @@ RECONCILE:
 		s.logger.Printf("[ERR] consul: failed to wait for barrier: %v", err)
 		goto WAIT
 	}
-	metrics.MeasureSince([]string{"consul", "leader", "barrier"}, start)
 	metrics.MeasureSince([]string{"leader", "barrier"}, start)
 
 	// Check if we need to handle initial leadership actions
@@ -183,7 +186,6 @@ WAIT:
 // previously inflight transactions have been committed and that our
 // state is up-to-date.
 func (s *Server) establishLeadership() error {
-	defer metrics.MeasureSince([]string{"consul", "leader", "establish_leadership"}, time.Now())
 	// This will create the anonymous token and master token (if that is
 	// configured).
 	if err := s.initializeACL(); err != nil {
@@ -212,6 +214,12 @@ func (s *Server) establishLeadership() error {
 
 	s.getOrCreateAutopilotConfig()
 	s.autopilot.Start()
+
+	// todo(kyhavlov): start a goroutine here for handling periodic CA rotation
+	if err := s.initializeCA(); err != nil {
+		return err
+	}
+
 	s.setConsistentReadReady()
 	return nil
 }
@@ -219,7 +227,6 @@ func (s *Server) establishLeadership() error {
 // revokeLeadership is invoked once we step down as leader.
 // This is used to cleanup any state that may be specific to a leader.
 func (s *Server) revokeLeadership() error {
-	defer metrics.MeasureSince([]string{"consul", "leader", "revoke_leadership"}, time.Now())
 	// Disable the tombstone GC, since it is only useful as a leader
 	s.tombstoneGC.SetEnabled(false)
 
@@ -228,6 +235,8 @@ func (s *Server) revokeLeadership() error {
 	if err := s.clearAllSessionTimers(); err != nil {
 		return err
 	}
+
+	s.setCAProvider(nil, nil)
 
 	s.resetConsistentReadReady()
 	s.autopilot.Stop()
@@ -362,6 +371,185 @@ func (s *Server) getOrCreateAutopilotConfig() *autopilot.Config {
 	return config
 }
 
+// initializeCAConfig is used to initialize the CA config if necessary
+// when setting up the CA during establishLeadership
+func (s *Server) initializeCAConfig() (*structs.CAConfiguration, error) {
+	state := s.fsm.State()
+	_, config, err := state.CAConfig()
+	if err != nil {
+		return nil, err
+	}
+	if config != nil {
+		return config, nil
+	}
+
+	config = s.config.CAConfig
+	if config.ClusterID == "" {
+		id, err := uuid.GenerateUUID()
+		if err != nil {
+			return nil, err
+		}
+		config.ClusterID = id
+	}
+
+	req := structs.CARequest{
+		Op:     structs.CAOpSetConfig,
+		Config: config,
+	}
+	if _, err = s.raftApply(structs.ConnectCARequestType, req); err != nil {
+		return nil, err
+	}
+
+	return config, nil
+}
+
+// initializeCA sets up the CA provider when gaining leadership, bootstrapping
+// the root in the state store if necessary.
+func (s *Server) initializeCA() error {
+	// Bail if connect isn't enabled.
+	if !s.config.ConnectEnabled {
+		return nil
+	}
+
+	conf, err := s.initializeCAConfig()
+	if err != nil {
+		return err
+	}
+
+	// Initialize the right provider based on the config
+	provider, err := s.createCAProvider(conf)
+	if err != nil {
+		return err
+	}
+
+	// Get the active root cert from the CA
+	rootPEM, err := provider.ActiveRoot()
+	if err != nil {
+		return fmt.Errorf("error getting root cert: %v", err)
+	}
+
+	rootCA, err := parseCARoot(rootPEM, conf.Provider)
+	if err != nil {
+		return err
+	}
+
+	// TODO(banks): in the case that we've just gained leadership in an already
+	// configured cluster. We really need to fetch RootCA from state to provide it
+	// in setCAProvider. This matters because if the current active root has
+	// intermediates, parsing the rootCA from only the root cert PEM above will
+	// not include them and so leafs we sign will not bundle the intermediates.
+
+	s.setCAProvider(provider, rootCA)
+
+	// Check if the CA root is already initialized and exit if it is.
+	// Every change to the CA after this initial bootstrapping should
+	// be done through the rotation process.
+	state := s.fsm.State()
+	_, activeRoot, err := state.CARootActive(nil)
+	if err != nil {
+		return err
+	}
+	if activeRoot != nil {
+		if activeRoot.ID != rootCA.ID {
+			// TODO(banks): this seems like a pretty catastrophic state to get into.
+			// Shouldn't we do something stronger than warn and continue signing with
+			// a key that's not the active CA according to the state?
+			s.logger.Printf("[WARN] connect: CA root %q is not the active root (%q)", rootCA.ID, activeRoot.ID)
+		}
+		return nil
+	}
+
+	// Get the highest index
+	idx, _, err := state.CARoots(nil)
+	if err != nil {
+		return err
+	}
+
+	// Store the root cert in raft
+	resp, err := s.raftApply(structs.ConnectCARequestType, &structs.CARequest{
+		Op:    structs.CAOpSetRoots,
+		Index: idx,
+		Roots: []*structs.CARoot{rootCA},
+	})
+	if err != nil {
+		s.logger.Printf("[ERR] connect: Apply failed %v", err)
+		return err
+	}
+	if respErr, ok := resp.(error); ok {
+		return respErr
+	}
+
+	s.logger.Printf("[INFO] connect: initialized CA with provider %q", conf.Provider)
+
+	return nil
+}
+
+// parseCARoot returns a filled-in structs.CARoot from a raw PEM value.
+func parseCARoot(pemValue, provider string) (*structs.CARoot, error) {
+	id, err := connect.CalculateCertFingerprint(pemValue)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing root fingerprint: %v", err)
+	}
+	rootCert, err := connect.ParseCert(pemValue)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing root cert: %v", err)
+	}
+	return &structs.CARoot{
+		ID:           id,
+		Name:         fmt.Sprintf("%s CA Root Cert", strings.Title(provider)),
+		SerialNumber: rootCert.SerialNumber.Uint64(),
+		SigningKeyID: connect.HexString(rootCert.AuthorityKeyId),
+		NotBefore:    rootCert.NotBefore,
+		NotAfter:     rootCert.NotAfter,
+		RootCert:     pemValue,
+		Active:       true,
+	}, nil
+}
+
+// createProvider returns a connect CA provider from the given config.
+func (s *Server) createCAProvider(conf *structs.CAConfiguration) (ca.Provider, error) {
+	switch conf.Provider {
+	case structs.ConsulCAProvider:
+		return ca.NewConsulProvider(conf.Config, &consulCADelegate{s})
+	case structs.VaultCAProvider:
+		return ca.NewVaultProvider(conf.Config, conf.ClusterID)
+	default:
+		return nil, fmt.Errorf("unknown CA provider %q", conf.Provider)
+	}
+}
+
+func (s *Server) getCAProvider() (ca.Provider, *structs.CARoot) {
+	retries := 0
+	var result ca.Provider
+	var resultRoot *structs.CARoot
+	for result == nil {
+		s.caProviderLock.RLock()
+		result = s.caProvider
+		resultRoot = s.caProviderRoot
+		s.caProviderLock.RUnlock()
+
+		// In cases where an agent is started with managed proxies, we may ask
+		// for the provider before establishLeadership completes. If we're the
+		// leader, then wait and get the provider again
+		if result == nil && s.IsLeader() && retries < 10 {
+			retries++
+			time.Sleep(50 * time.Millisecond)
+			continue
+		}
+
+		break
+	}
+
+	return result, resultRoot
+}
+
+func (s *Server) setCAProvider(newProvider ca.Provider, root *structs.CARoot) {
+	s.caProviderLock.Lock()
+	defer s.caProviderLock.Unlock()
+	s.caProvider = newProvider
+	s.caProviderRoot = root
+}
+
 // reconcileReaped is used to reconcile nodes that have failed and been reaped
 // from Serf but remain in the catalog. This is done by looking for unknown nodes with serfHealth checks registered.
 // We generate a "reap" event to cause the node to be cleaned up.
@@ -444,7 +632,6 @@ func (s *Server) reconcileMember(member serf.Member) error {
 		s.logger.Printf("[WARN] consul: skipping reconcile of node %v", member)
 		return nil
 	}
-	defer metrics.MeasureSince([]string{"consul", "leader", "reconcileMember"}, time.Now())
 	defer metrics.MeasureSince([]string{"leader", "reconcileMember"}, time.Now())
 	var err error
 	switch member.Status {
@@ -805,7 +992,6 @@ func (s *Server) removeConsulServer(m serf.Member, port int) error {
 // through Raft to ensure consistency. We do this outside the leader loop
 // to avoid blocking.
 func (s *Server) reapTombstones(index uint64) {
-	defer metrics.MeasureSince([]string{"consul", "leader", "reapTombstones"}, time.Now())
 	defer metrics.MeasureSince([]string{"leader", "reapTombstones"}, time.Now())
 	req := structs.TombstoneRequest{
 		Datacenter: s.config.Datacenter,

@@ -1,0 +1,76 @@
+{{#app-view class="kv list" loading=isLoading}}
+    {{#block-slot 'breadcrumbs'}}
+        <ol>
+{{#if (not-eq parent.Key '/') }}
+            <li><a href={{href-to 'dc.kv'}}>Key / Values</a></li>
+{{/if}}
+{{#each (slice 0 -2 (split parent.Key '/')) as |breadcrumb index|}}
+            <li><a href={{href-to 'dc.kv.folder' (join '/' (append (slice 0 (add index 1) (split parent.Key '/')) ''))}}>{{breadcrumb}}</a></li>
+{{/each}}
+        </ol>
+    {{/block-slot}}
+    {{#block-slot 'header'}}
+        <h1>
+            {{#if (eq parent.Key '/') }}
+                Key / Value
+            {{else}}
+                {{ take 1 (drop 1 (reverse (split parent.Key '/'))) }}
+            {{/if}}
+        </h1>
+    {{/block-slot}}
+    {{#block-slot 'toolbar'}}
+{{#if (gt items.length 0) }}
+      <form class="filter-bar">
+          {{freetext-filter onchange=(action 'filter') value=filter.s placeholder="Search by name"}}
+      </form>
+{{/if}}
+    {{/block-slot}}
+    {{#block-slot 'actions'}}
+{{#if (not-eq parent.Key '/') }}
+        <a href="{{href-to 'dc.kv.create' parent.Key}}" class="type-create">Create</a>
+{{else}}
+        <a href="{{href-to 'dc.kv.root-create'}}" class="type-create">Create</a>
+{{/if}}
+    {{/block-slot}}
+    {{#block-slot 'content'}}
+{{#if (gt filtered.length 0)}}
+        {{#tabular-collection
+            items=(sort-by 'isFolder:desc' 'Key:asc' filtered) as |item index|
+        }}
+            {{#block-slot 'header'}}
+                <th>Name</th>
+            {{/block-slot}}
+            {{#block-slot 'row'}}
+                <td data-test-kv="{{item.Key}}" class={{if item.isFolder 'folder' 'file' }}>
+                    <a href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key}}>{{right-trim (left-trim item.Key parent.Key) '/'}}</a>
+                </td>
+            {{/block-slot}}
+            {{#block-slot 'actions' as |index change checked|}}
+                {{#confirmation-dialog confirming=false index=index message='Are you sure you want to delete this key?'}}
+                    {{#block-slot 'action' as |confirm|}}
+                        {{#action-group index=index onchange=(action change) checked=(if (eq checked index) 'checked')}}
+                            <ul>
+                                <li>
+                                    <a data-test-edit href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key}}>{{if item.isFolder 'View' 'Edit'}}</a>
+                                </li>
+                                <li>
+                                    <a data-test-delete onclick={{action confirm 'delete' item}}>Delete</a>
+                                </li>
+                            </ul>
+                        {{/action-group}}
+                    {{/block-slot}}
+                    {{#block-slot 'dialog' as |execute cancel message|}}
+                        <p>
+                            {{message}}
+                        </p>
+                        <button type="button" class="type-delete" {{action execute}}>Confirm Delete</button>
+                        <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
+                    {{/block-slot}}
+                {{/confirmation-dialog}}
+            {{/block-slot}}
+        {{/tabular-collection}}
+{{else}}
+        <p>There are no Key / Value pairs.</p>
+{{/if}}
+    {{/block-slot}}
+{{/app-view}}

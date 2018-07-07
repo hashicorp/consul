@@ -1,0 +1,111 @@
+@import './expanded-single-select';
+@import './icons';
+.filter-bar {
+  @extend %filter-bar;
+}
+
+// decoration/color
+%filter-bar > * {
+  border: 1px solid;
+  border-radius: $radius-small;
+}
+// TODO: Move this elsewhere
+@media #{$--horizontal-selects} {
+  %filter-bar label:not(:last-child) {
+    border-right: 1px solid;
+  }
+}
+@media #{$--lt-horizontal-selects} {
+  %filter-bar label:not(:last-child) {
+    border-bottom: 1px solid;
+  }
+}
+%filter-bar,
+%filter-bar > * {
+  background-color: $lightest-gray;
+}
+%filter-bar > *,
+%filter-bar label:not(:last-child) {
+  border-color: $border-blue !important;
+}
+
+// layout
+%filter-bar {
+  padding: 14px;
+  display: block;
+}
+@media #{$--horizontal-filters} {
+  %filter-bar {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: space-between;
+  }
+  %filter-bar > *:first-child {
+    margin-left: 12px;
+  }
+  %filter-bar fieldset {
+    min-width: 210px;
+    width: auto;
+  }
+}
+@media #{$--lt-horizontal-filters} {
+  %filter-bar > *:first-child {
+    margin-bottom: 12px;
+  }
+}
+%filter-bar [role='radiogroup'] {
+  @extend %expanded-single-select;
+}
+%filter-bar [role='radiogroup'] label {
+  color: $text-note;
+  cursor: pointer;
+  line-height: 1.7;
+  white-space: nowrap;
+}
+// icons
+%filter-bar [role='radiogroup'] label span::before {
+  left: 11px;
+  top: 50%;
+  margin-top: -0.5em;
+}
+%filter-bar .value-allow span,
+%filter-bar .value-deny span,
+%filter-bar .value-passing span,
+%filter-bar .value-warning span,
+%filter-bar .value-critical span {
+  position: relative;
+  text-indent: 23px;
+}
+%filter-bar .value-passing span {
+  @extend %with-passing;
+}
+%filter-bar .value-warning span {
+  @extend %with-warning;
+}
+%filter-bar .value-warning span::before {
+  @extend %with-warning-icon-grey;
+}
+%filter-bar .value-allow span {
+  @extend %with-allow;
+}
+%filter-bar .value-deny span {
+  @extend %with-deny;
+}
+%filter-bar .value-deny span::before {
+  @extend %with-deny-icon-grey;
+}
+%filter-bar .value-allow span::before {
+  @extend %with-right-arrow-grey;
+}
+%filter-bar .value-critical span {
+  @extend %with-critical;
+}
+%filter-bar .value-warning span::after {
+  left: 0.7em;
+  top: 50%;
+  margin-top: -8px;
+  border-color: $lightest-gray;
+}
+%filter-bar .value-warning input:checked + span::after {
+  border-color: $white;
+}

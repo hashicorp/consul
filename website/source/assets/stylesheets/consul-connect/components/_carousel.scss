@@ -1,0 +1,213 @@
+.g-carousel {
+  position: relative;
+  padding-bottom: 60px;
+
+  @media (min-width: 768px) {
+    padding-left: 88px;
+    padding-right: 88px;
+  }
+
+  @media (min-width: 992px) {
+    padding-left: 146px;
+    padding-right: 146px;
+  }
+
+  .siema {
+    margin: 0 auto;
+
+    & > div {
+      display: flex;
+    }
+  }
+
+  .prev,
+  .next {
+    align-items: center;
+    background: #ffffff;
+    border-radius: 50%;
+    box-shadow: 0 4px 6px 0 rgba(0, 0, 0, 0.08);
+    cursor: pointer;
+    display: none;
+    height: 56px;
+    justify-content: center;
+    margin-top: -58px;
+    position: absolute;
+    top: 50%;
+    width: 56px;
+
+    @media (min-width: 768px) {
+      display: flex;
+    }
+  }
+
+  .prev {
+    transform: rotate(180deg);
+    
+    @media (min-width: 768px) {
+      left: 0;
+    }
+    
+    @media (min-width: 992px) {
+      left: 58px;
+    }
+  }
+
+  .next {
+    @media (min-width: 768px) {
+      right: 0;
+    }
+    
+    @media (min-width: 992px) {
+      right: 58px;
+    }
+  }
+
+  .pagination {
+    bottom: 24px;
+    display: block;
+    left: 0;
+    line-height: 0;
+    margin: 0;
+    position: absolute;
+    right: 0;
+    text-align: center;
+
+    li {
+      background: #545a6e;
+      border-radius: 50%;
+      cursor: pointer;
+      display: inline-block;
+      height: 12px;
+      margin: 0 6px;
+      width: 12px;
+      transition: background 0.2s ease-out;
+
+      &.active {
+        background: #fff;
+      }
+    }
+  }
+
+  .card {
+    background: #fff;
+    color: $consul-black;
+    display: block;
+    height: 100%;
+    text-align: left;
+
+    @media (min-width: 650px) {
+      display: flex;
+    }
+
+    div {
+      &:first-child {
+        @media (min-width: 650px) {
+          width: 40%;
+        }
+
+        @media (min-width: 992px) {
+          width: 50%;
+        }
+      }
+
+      &:last-child {
+        @media (min-width: 650px) {
+          width: 60%;
+        }
+
+        @media (min-width: 992px) {
+          min-height: 380px;
+          width: 50%;
+        }
+      }
+    }
+
+    img {
+      max-height: 240px;
+      object-fit: cover;
+      font-family: 'object-fit: cover;';
+      width: 100%;
+
+      @media (min-width: 450px) {
+        max-height: 350px;
+      }
+
+      @media (min-width: 650px) {
+        height: 100%;
+        max-height: none;
+      }
+    }
+
+    .content {
+      padding: 32px 16px;
+      position: relative;
+
+      @media (min-width: 650px) {
+        padding: 32px 24px 62px;
+      }
+
+      @media (min-width: 992px) {
+        padding: 32px 32px 110px;
+      }
+
+      span {
+        display: inline-block;
+        position: relative;
+
+        &:first-child {
+          padding-left: 30px;
+
+          &:before {
+            content: "";
+            background: url("/assets/images/consul-connect/icons/video.svg")
+              no-repeat center center;
+            width: 20px;
+            height: 20px;
+            position: absolute;
+            top: 0;
+            left: 0;
+          }
+        }
+
+        &:last-child {
+          font-weight: 600;
+          margin-top: 16px;
+
+          @media (min-width: 650px) {
+            bottom: 32px;
+            left: 24px;
+            position: absolute;
+          }
+
+          @media (min-width: 992px) {
+            bottom: 62px;
+            left: 32px;
+          }
+
+          &:after {
+            content: "";
+            background: url("/assets/images/consul-connect/icons/carat.svg")
+              no-repeat center center;
+            width: 20px;
+            height: 20px;
+            position: absolute;
+            top: 1px;
+            right: -20px;
+          }
+        }
+      }
+
+      h4 {
+        margin: 24px 0 15px;
+
+        @media (min-width: 650px) {
+          margin-top: 32px;
+        }
+      }
+
+      p {
+        font-size: 1.6rem;
+      }
+    }
+  }
+}

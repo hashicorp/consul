@@ -27,8 +27,9 @@ func (p *Provider) Help() string {
     access_key_id:     The AWS access key to use
     secret_access_key: The AWS secret access key to use
 
-    The only required IAM permission is 'ec2:DescribeInstances'. It is
-    recommended you make a dedicated key used only for auto-joining.
+    The only required IAM permission is 'ec2:DescribeInstances'. If the Consul agent is
+    running on AWS instance it is recommended you use an IAM role, otherwise it is
+    recommended you make a dedicated IAM user and access key used only for auto-joining.
 `
 }
 

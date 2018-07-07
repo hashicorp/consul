@@ -1,0 +1,51 @@
+<form>
+    <fieldset>
+        <label class="type-text{{if item.error.Name ' has-error'}}">
+            <span>Name</span>
+            {{input value=item.Name name='name' autofocus='autofocus'}}
+        </label>
+        <div role="radiogroup" class={{if item.error.Type ' has-error'}}>
+            {{#each types as |type|}}
+                <label>
+                    <span>{{type}}</span>
+                    <input type="radio" name="Type" value="{{type}}" checked={{if (eq item.Type type) 'checked'}} onchange={{ action 'change' }}/>
+                </label>
+            {{/each}}
+        </div>
+        <label class="type-text">
+            <span>Policy <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
+            {{code-editor class=(if item.error.Rules 'error') name='Rules' value=item.Rules onkeyup=(action 'change')}}
+        </label>
+{{#if create }}
+        <label class="type-text">
+            <span>ID</span>
+            {{ input value=item.ID }}
+            <em>We'll generate a UUID if this field is left empty.</em>
+        </label>
+{{/if}}
+    </fieldset>
+    <div>
+{{#if create }}
+        {{! we only need to check for an empty name here as ember munges autofocus, once we have autofocus back revisit this}}
+        <button type="submit" {{ action "create" item}} disabled={{if (or item.isPristine item.isInvalid (eq item.Name '')) 'disabled'}}>Save</button>
+{{ else }}
+        <button type="submit" {{ action "update" item}} disabled={{if item.isInvalid 'disabled'}}>Save</button>
+{{/if}}
+        <button type="reset" {{ action "cancel" item}}>Cancel</button>
+{{# if (and (not create) (not-eq item.ID 'anonymous')) }}
+        {{#confirmation-dialog message='Are you sure you want to delete this ACL token?'}}
+            {{#block-slot 'action' as |confirm|}}
+                <button type="button" class="type-delete" {{action confirm 'delete' item parent}}>Delete</button>
+            {{/block-slot}}
+            {{#block-slot 'dialog' as |execute cancel message|}}
+                <p>
+                    {{message}}
+                </p>
+                <button type="button" class="type-delete" {{action execute}}>Confirm Delete</button>
+                <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
+            {{/block-slot}}
+        {{/confirmation-dialog}}
+{{/if}}
+    </div>
+</form>
+

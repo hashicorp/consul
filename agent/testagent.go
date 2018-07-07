@@ -16,14 +16,16 @@ import (
 	"time"
 
 	metrics "github.com/armon/go-metrics"
+	uuid "github.com/hashicorp/go-uuid"
+
 	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib/freeport"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testutil/retry"
-	uuid "github.com/hashicorp/go-uuid"
 )
 
 func init() {
@@ -42,6 +44,12 @@ type TestAgent struct {
 	Name string
 
 	HCL string
+
+	// ExpectConfigError can be set to prevent the agent retrying Start on errors
+	// and eventually blowing up with runtime.Goexit. This enables tests to assert
+	// that some specific bit of config actually does prevent startup entirely in
+	// a reasonable way without reproducing a lot of the boilerplate here.
+	ExpectConfigError bool
 
 	// Config is the agent configuration. If Config is nil then
 	// TestConfig() is used. If Config.DataDir is set then it is
@@ -157,6 +165,11 @@ func (a *TestAgent) Start() *TestAgent {
 		} else if i == 0 {
 			fmt.Println(id, a.Name, "Error starting agent:", err)
 			runtime.Goexit()
+		} else if a.ExpectConfigError {
+			// Panic the error since this can be caught if needed. Pretty gross way to
+			// detect errors but enough for now and this is a tiny edge case that I'd
+			// otherwise not have a way to test at all...
+			panic(err)
 		} else {
 			agent.ShutdownAgent()
 			agent.ShutdownEndpoints()
@@ -334,6 +347,12 @@ func TestConfig(sources ...config.Source) *config.RuntimeConfig {
 			server = true
 			node_id = "` + nodeID + `"
 			node_name = "Node ` + nodeID + `"
+			connect {
+				enabled = true
+				ca_config {
+					cluster_id = "` + connect.TestClusterID + `"
+				}
+			}
 			performance {
 				raft_multiplier = 1
 			}
@@ -356,6 +375,10 @@ func TestConfig(sources ...config.Source) *config.RuntimeConfig {
 	for _, w := range b.Warnings {
 		fmt.Println("WARNING:", w)
 	}
+
+	// Disable connect proxy execution since it causes all kinds of problems with
+	// self-executing tests etc.
+	cfg.ConnectTestDisableManagedProxies = true
 
 	return &cfg
 }

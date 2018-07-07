@@ -1,0 +1,52 @@
+.flash-message {
+  @extend %flash-message;
+}
+%flash-message p.success strong {
+  @extend %with-passing;
+}
+%flash-message p.success {
+  border-color: $green;
+  background-color: $green-050;
+}
+%flash-message p {
+  color: $green;
+}
+%flash-message p.error strong {
+  @extend %with-critical;
+}
+%flash-message p.error {
+  border-color: $red;
+  background-color: $red-050;
+}
+%flash-message p.error {
+  color: $red;
+}
+
+%flash-message p {
+  border-radius: $radius-small;
+  border: 1px solid;
+}
+%flash-message {
+  display: flex;
+  position: relative;
+  z-index: 2;
+  justify-content: center;
+  margin: 0 15%;
+}
+%flash-message p {
+  top: -46px;
+  position: absolute;
+  padding: 9px 15px;
+}
+%flash-message p strong {
+  color: inherit;
+}
+%flash-message p strong {
+  position: relative;
+  display: inline-block;
+  padding-left: 20px;
+}
+%flash-message p strong::before {
+  left: 0;
+  margin-top: -0.5em !important;
+}

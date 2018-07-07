@@ -10,7 +10,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib/freeport"
 	"github.com/hashicorp/consul/testrpc"
@@ -90,6 +92,17 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	// TODO (slackpad) - We should be able to run all tests w/o this, but it
 	// looks like several depend on it.
 	config.RPCHoldTimeout = 5 * time.Second
+
+	config.ConnectEnabled = true
+	config.CAConfig = &structs.CAConfiguration{
+		ClusterID: connect.TestClusterID,
+		Provider:  structs.ConsulCAProvider,
+		Config: map[string]interface{}{
+			"PrivateKey":     "",
+			"RootCert":       "",
+			"RotationPeriod": 90 * 24 * time.Hour,
+		},
+	}
 
 	return dir, config
 }

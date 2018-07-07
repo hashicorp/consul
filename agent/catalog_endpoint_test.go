@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/serf/coordinate"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCatalogRegister_Service_InvalidAddress(t *testing.T) {
@@ -750,6 +751,60 @@ func TestCatalogServiceNodes_DistanceSort(t *testing.T) {
 	}
 }
 
+// Test that connect proxies can be queried via /v1/catalog/service/:service
+// directly and that their results contain the proxy fields.
+func TestCatalogServiceNodes_ConnectProxy(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Register
+	args := structs.TestRegisterRequestProxy(t)
+	var out struct{}
+	assert.Nil(a.RPC("Catalog.Register", args, &out))
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf(
+		"/v1/catalog/service/%s", args.Service.Service), nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.CatalogServiceNodes(resp, req)
+	assert.Nil(err)
+	assertIndex(t, resp)
+
+	nodes := obj.(structs.ServiceNodes)
+	assert.Len(nodes, 1)
+	assert.Equal(structs.ServiceKindConnectProxy, nodes[0].ServiceKind)
+}
+
+// Test that the Connect-compatible endpoints can be queried for a
+// service via /v1/catalog/connect/:service.
+func TestCatalogConnectServiceNodes_good(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Register
+	args := structs.TestRegisterRequestProxy(t)
+	args.Service.Address = "127.0.0.55"
+	var out struct{}
+	assert.Nil(a.RPC("Catalog.Register", args, &out))
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf(
+		"/v1/catalog/connect/%s", args.Service.ProxyDestination), nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.CatalogConnectServiceNodes(resp, req)
+	assert.Nil(err)
+	assertIndex(t, resp)
+
+	nodes := obj.(structs.ServiceNodes)
+	assert.Len(nodes, 1)
+	assert.Equal(structs.ServiceKindConnectProxy, nodes[0].ServiceKind)
+	assert.Equal(args.Service.Address, nodes[0].ServiceAddress)
+}
+
 func TestCatalogNodeServices(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
@@ -783,6 +838,33 @@ func TestCatalogNodeServices(t *testing.T) {
 	if len(services.Services) != 1 {
 		t.Fatalf("bad: %v", obj)
 	}
+}
+
+// Test that the services on a node contain all the Connect proxies on
+// the node as well with their fields properly populated.
+func TestCatalogNodeServices_ConnectProxy(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	// Register
+	args := structs.TestRegisterRequestProxy(t)
+	var out struct{}
+	assert.Nil(a.RPC("Catalog.Register", args, &out))
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf(
+		"/v1/catalog/node/%s", args.Node), nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.CatalogNodeServices(resp, req)
+	assert.Nil(err)
+	assertIndex(t, resp)
+
+	ns := obj.(*structs.NodeServices)
+	assert.Len(ns.Services, 1)
+	v := ns.Services[args.Service.Service]
+	assert.Equal(structs.ServiceKindConnectProxy, v.Kind)
 }
 
 func TestCatalogNodeServices_WanTranslation(t *testing.T) {

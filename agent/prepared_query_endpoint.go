@@ -107,6 +107,16 @@ func (s *HTTPServer) preparedQueryExecute(id string, resp http.ResponseWriter, r
 		return nil, fmt.Errorf("Bad limit: %s", err)
 	}
 
+	params := req.URL.Query()
+	if raw := params.Get("connect"); raw != "" {
+		val, err := strconv.ParseBool(raw)
+		if err != nil {
+			return nil, fmt.Errorf("Error parsing 'connect' value: %s", err)
+		}
+
+		args.Connect = val
+	}
+
 	var reply structs.PreparedQueryExecuteResponse
 	defer setMeta(resp, &reply.QueryMeta)
 RETRY_ONCE:

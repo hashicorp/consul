@@ -2,7 +2,7 @@ set :base_url, "https://www.consul.io/"
 
 activate :hashicorp do |h|
   h.name        = "consul"
-  h.version     = "1.0.7"
+  h.version     = "1.2.0"
   h.github_slug = "hashicorp/consul"
 end
 
@@ -45,7 +45,7 @@ helpers do
   #
   # @return [String]
   def description_for(page)
-    description = (page.data.description || "")
+    description = (page.data.description || "Consul by HashiCorp")
       .gsub('"', '')
       .gsub(/\n+/, ' ')
       .squeeze(' ')

@@ -1,0 +1,87 @@
+---
+layout: "docs"
+page_title: "Commands: Connect CA"
+sidebar_current: "docs-commands-connect-ca"
+description: >
+  The connect CA subcommand is used to view and modify the Connect Certificate
+  Authority (CA) configuration.
+---
+
+# Consul Connect Certificate Authority (CA)
+
+Command: `consul connect ca`
+
+The CA connect command is used to interact with Consul Connect's Certificate Authority
+subsystem. The command can be used to view or modify the current CA configuration. See the
+[Connect CA documentation](/docs/connect/ca.html) for more information.
+
+```text
+Usage: consul connect ca <subcommand> [options] [args]
+
+  This command has subcommands for interacting with Consul Connect's
+  Certificate Authority (CA).
+
+  Here are some simple examples, and more detailed examples are available
+  in the subcommands or the documentation.
+
+  Get the configuration:
+
+      $ consul connect ca get-config
+
+  Update the configuration:
+
+      $ consul connect ca set-config -config-file ca.json
+
+  For more examples, ask for subcommand help or view the documentation.
+
+Subcommands:
+    get-config    Display the current Connect Certificate Authority (CA) configuration
+    set-config    Modify the current Connect CA configuration
+```
+
+## get-config
+
+This command displays the current CA configuration.
+
+Usage: `consul connect ca get-config [options]`
+
+#### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
+
+The output looks like this:
+
+```
+{
+	"Provider": "consul",
+	"Config": {},
+	"CreateIndex": 5,
+	"ModifyIndex": 197
+}
+```
+
+## set-config
+
+Modifies the current CA configuration. If this results in a new root certificate
+being used, the [Root Rotation](/docs/connect/ca.html#root-certificate-rotation) process
+will be triggered.
+
+Usage: `consul connect ca set-config [options]`
+
+#### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
+
+#### Command Options
+
+* `-config-file` - (required) Specifies a JSON-formatted file to use for the new configuration.
+
+The output looks like this:
+
+```
+Configuration updated!
+```
+
+The return code will indicate success or failure.

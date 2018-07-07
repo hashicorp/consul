@@ -1,0 +1,32 @@
+    <header>
+        <strong>{{address}}</strong>
+        <a href={{href}}>
+            <span>{{name}}</span>
+        </a>
+    </header>
+    <ul>
+{{#if status }}
+        <li class={{status}}>
+            <a href={{href}}>
+                <strong>{{status}}</strong>
+            </a>
+        </li>
+{{ else }}
+    {{#each unhealthy as |check| }}
+        <li class={{check.Status}}>
+            <a href={{href}}>
+                <strong>{{ check.Status }}</strong>
+                <span>{{ check.Name }}</span>
+            </a>
+        </li>
+    {{/each}}
+    {{#if (gt healthy.length 0)}}
+        <li class="passing">
+            <a href={{href}}>
+                <strong>{{healthy.length}}</strong>
+                <span>other passing {{pluralize-word healthy.length 'check' omitCount=true}}</span>
+            </a>
+        </li>
+    {{/if}}
+{{/if}}
+    </ul>

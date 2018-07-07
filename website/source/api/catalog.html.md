@@ -54,7 +54,7 @@ The table below shows this endpoint's support for
 - `Service` `(Service: nil)` - Specifies to register a service. If `ID` is not
   provided, it will be defaulted to the value of the `Service.Service` property.
   Only one service with a given `ID` may be present per node. The service
-  `Tags`, `Address`, `ServiceMeta` and `Port` fields are all optional.
+  `Tags`, `Address`, `Meta`, and `Port` fields are all optional.
 
 - `Check` `(Check: nil)` - Specifies to register a check. The register API
   manipulates the health check entry in the Catalog, but it does not setup the
@@ -478,6 +478,89 @@ $ curl \
 - `ServicePort` is the port number of the service
 
 - `ServiceTags` is a list of tags for the service
+
+- `ServiceKind` is the kind of service, usually "". See the Agent
+  registration API for more information.
+
+- `ServiceProxyDestination` is the name of the service that is being proxied,
+  for "connect-proxy" type services.
+
+- `ServiceConnect` are the [Connect](/docs/connect/index.html) settings. The
+  value of this struct is equivalent to the `Connect` field for service registration.
+
+## List Nodes for Connect-capable Service
+
+This endpoint returns the nodes providing a
+[Connect-capable](/docs/connect/index.html) service in a given datacenter.
+This will include both proxies and native integrations. A service may
+register both Connect-capable and incapable services at the same time,
+so this endpoint may be used to filter only the Connect-capable endpoints.
+
+| Method | Path                         | Produces                   |
+| ------ | ---------------------------- | -------------------------- |
+| `GET`  | `/catalog/connect/:service`  | `application/json`         |
+
+The table below shows this endpoint's support for
+[blocking queries](/api/index.html#blocking-queries),
+[consistency modes](/api/index.html#consistency-modes), and
+[required ACLs](/api/index.html#acls).
+
+| Blocking Queries | Consistency Modes | ACL Required             |
+| ---------------- | ----------------- | ------------------------ |
+| `YES`            | `all`             | `node:read,service:read` |
+
+### Parameters
+
+- `service` `(string: <required>)` - Specifies the name of the service for which
+  to list nodes. This is specified as part of the URL.
+
+- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+  the datacenter of the agent being queried. This is specified as part of the
+  URL as a query parameter.
+
+### Sample Request
+
+```text
+$ curl \
+    https://consul.rocks/v1/catalog/connect/my-service
+```
+
+### Sample Response
+
+```json
+[
+  {
+    "ID": "40e4a748-2192-161a-0510-9bf59fe950b5",
+    "Node": "foobar",
+    "Address": "192.168.10.10",
+    "Datacenter": "dc1",
+    "TaggedAddresses": {
+      "lan": "192.168.10.10",
+      "wan": "10.0.10.10"
+    },
+    "NodeMeta": {
+      "somekey": "somevalue"
+    },
+    "CreateIndex": 51,
+    "ModifyIndex": 51,
+    "ServiceAddress": "172.17.0.3",
+    "ServiceEnableTagOverride": false,
+    "ServiceID": "32a2a47f7992:nodea:5000",
+    "ServiceName": "foobar",
+	"ServiceKind": "connect-proxy",
+	"ServiceProxyDestination": "my-service",
+    "ServicePort": 5000,
+    "ServiceMeta": {
+        "foobar_meta_value": "baz"
+    },
+    "ServiceTags": [
+      "tacos"
+    ]
+  }
+]
+```
+
+The fields are the same as listing nodes for a service.
 
 ## List Services for Node
 

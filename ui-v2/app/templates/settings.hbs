@@ -1,0 +1,24 @@
+{{#hashicorp-consul id="wrapper" dcs=dcs dc=dc}}
+    {{#app-view class="settings show"}}
+        {{#block-slot 'header'}}
+            <h1>
+                Settings
+            </h1>
+        {{/block-slot}}
+        {{#block-slot 'content'}}
+            <p>
+                These settings allow you to configure your browser for the Consul Web UI. Everything is saved to localstorage, and persists through visits and browser usage.
+            </p>
+            <form>
+                <fieldset>
+                    <label class="type-text">
+                        <span>ACL Token</span>
+                        {{ input type='password' value=item.token name="token" }}
+                        <em>The token is sent with requests as the <code>X-Consul-Token</code> HTTP header parameter. This is used to control the ACL for the web UI.</em>
+                    </label>
+                </fieldset>
+                <button type="submit" {{action 'update' item}}>Save</button>
+            </form>
+        {{/block-slot}}
+    {{/app-view}}
+{{/hashicorp-consul}}

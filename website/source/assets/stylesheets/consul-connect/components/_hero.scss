@@ -1,0 +1,75 @@
+.g-hero {
+  background: url("/assets/images/consul-connect/hero-bg.png") no-repeat top
+    center;
+  background-size: cover;
+  margin-top: -92px;
+  padding: 126px 40px 56px;
+  text-align: center;
+
+  @media (min-width: 768px) {
+    padding: 154px 56px 96px;
+  }
+
+  @media (min-width: 992px) {
+    margin-top: -112px;
+    padding-top: 214px;
+    padding-bottom: 120px;
+  }
+
+  h1 {
+    margin: 0 0 16px;
+  }
+
+  p {
+    font-size: 1.8rem;
+    max-width: 848px;
+    margin: 0 auto 35px;
+
+    @media (min-width: 768px) {
+      font-size: 2rem;
+    }
+
+    @media (min-width: 992px) {
+      font-size: 2.4rem;
+    }
+  }
+
+  span {
+    border: 1px solid #ca2171;
+    border-radius: 2px;
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    line-height: 20px;
+    margin-bottom: 24px;
+    padding: 2px 9px;
+    text-transform: uppercase;
+
+    @media (min-width: 992px) {
+      margin-bottom: 16px;
+    }
+  }
+
+  & > div {
+    margin: 0 -30px;
+
+    .g-btn {
+      min-width: 129px;
+      margin: 5px;
+
+      @media (min-width: 400px) {
+        margin: 5px 10px;
+      }
+      
+      @media (max-width: 767px) {
+        padding: 6px 5px;
+      }
+
+      @media (min-width: 768px) {
+        margin: 0 10px;
+        min-width: 144px;
+      }
+    }
+  }
+}

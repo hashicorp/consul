@@ -16,6 +16,8 @@ import (
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCatalog_Register(t *testing.T) {
@@ -46,6 +48,37 @@ func TestCatalog_Register(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+}
+
+func TestCatalog_RegisterNoID(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	arg := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "db",
+			Tags:    []string{"master"},
+			Port:    8000,
+		},
+	}
+	var out struct{}
+
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
+
+	var ns structs.IndexedNodeServices
+	nodeArgs := structs.NodeSpecificRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+	}
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &nodeArgs, &ns))
+	require.NotEqual(t, types.NodeID(""), ns.NodeServices.Node.ID)
 }
 
 func TestCatalog_RegisterService_InvalidAddress(t *testing.T) {
@@ -330,6 +363,147 @@ func TestCatalog_Register_ForwardDC(t *testing.T) {
 	if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+}
+
+func TestCatalog_Register_ConnectProxy(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	args := structs.TestRegisterRequestProxy(t)
+
+	// Register
+	var out struct{}
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+	// List
+	req := structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: args.Service.Service,
+	}
+	var resp structs.IndexedServiceNodes
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	assert.Len(resp.ServiceNodes, 1)
+	v := resp.ServiceNodes[0]
+	assert.Equal(structs.ServiceKindConnectProxy, v.ServiceKind)
+	assert.Equal(args.Service.ProxyDestination, v.ServiceProxyDestination)
+}
+
+// Test an invalid ConnectProxy. We don't need to exhaustively test because
+// this is all tested in structs on the Validate method.
+func TestCatalog_Register_ConnectProxy_invalid(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	args := structs.TestRegisterRequestProxy(t)
+	args.Service.ProxyDestination = ""
+
+	// Register
+	var out struct{}
+	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out)
+	assert.NotNil(err)
+	assert.Contains(err.Error(), "ProxyDestination")
+}
+
+// Test that write is required for the proxy destination to register a proxy.
+func TestCatalog_Register_ConnectProxy_ACLProxyDestination(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Create the ACL.
+	arg := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name: "User token",
+			Type: structs.ACLTypeClient,
+			Rules: `
+service "foo" {
+	policy = "write"
+}
+`,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var token string
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &token))
+
+	// Register should fail because we don't have permission on the destination
+	args := structs.TestRegisterRequestProxy(t)
+	args.Service.Service = "foo"
+	args.Service.ProxyDestination = "bar"
+	args.WriteRequest.Token = token
+	var out struct{}
+	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out)
+	assert.True(acl.IsErrPermissionDenied(err))
+
+	// Register should fail with the right destination but wrong name
+	args = structs.TestRegisterRequestProxy(t)
+	args.Service.Service = "bar"
+	args.Service.ProxyDestination = "foo"
+	args.WriteRequest.Token = token
+	err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out)
+	assert.True(acl.IsErrPermissionDenied(err))
+
+	// Register should work with the right destination
+	args = structs.TestRegisterRequestProxy(t)
+	args.Service.Service = "foo"
+	args.Service.ProxyDestination = "foo"
+	args.WriteRequest.Token = token
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+}
+
+func TestCatalog_Register_ConnectNative(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	args := structs.TestRegisterRequest(t)
+	args.Service.Connect.Native = true
+
+	// Register
+	var out struct{}
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+	// List
+	req := structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: args.Service.Service,
+	}
+	var resp structs.IndexedServiceNodes
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	assert.Len(resp.ServiceNodes, 1)
+	v := resp.ServiceNodes[0]
+	assert.Equal(structs.ServiceKindTypical, v.ServiceKind)
+	assert.True(v.ServiceConnect.Native)
 }
 
 func TestCatalog_Deregister(t *testing.T) {
@@ -1599,6 +1773,246 @@ func TestCatalog_ListServiceNodes_DistanceSort(t *testing.T) {
 	}
 }
 
+func TestCatalog_ListServiceNodes_ConnectProxy(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Register the service
+	args := structs.TestRegisterRequestProxy(t)
+	var out struct{}
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
+
+	// List
+	req := structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: args.Service.Service,
+		TagFilter:   false,
+	}
+	var resp structs.IndexedServiceNodes
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	assert.Len(resp.ServiceNodes, 1)
+	v := resp.ServiceNodes[0]
+	assert.Equal(structs.ServiceKindConnectProxy, v.ServiceKind)
+	assert.Equal(args.Service.ProxyDestination, v.ServiceProxyDestination)
+}
+
+func TestCatalog_ListServiceNodes_ConnectDestination(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Register the proxy service
+	args := structs.TestRegisterRequestProxy(t)
+	var out struct{}
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
+
+	// Register the service
+	{
+		dst := args.Service.ProxyDestination
+		args := structs.TestRegisterRequest(t)
+		args.Service.Service = dst
+		var out struct{}
+		assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
+	}
+
+	// List
+	req := structs.ServiceSpecificRequest{
+		Connect:     true,
+		Datacenter:  "dc1",
+		ServiceName: args.Service.ProxyDestination,
+	}
+	var resp structs.IndexedServiceNodes
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	assert.Len(resp.ServiceNodes, 1)
+	v := resp.ServiceNodes[0]
+	assert.Equal(structs.ServiceKindConnectProxy, v.ServiceKind)
+	assert.Equal(args.Service.ProxyDestination, v.ServiceProxyDestination)
+
+	// List by non-Connect
+	req = structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: args.Service.ProxyDestination,
+	}
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	assert.Len(resp.ServiceNodes, 1)
+	v = resp.ServiceNodes[0]
+	assert.Equal(args.Service.ProxyDestination, v.ServiceName)
+	assert.Equal("", v.ServiceProxyDestination)
+}
+
+// Test that calling ServiceNodes with Connect: true will return
+// Connect native services.
+func TestCatalog_ListServiceNodes_ConnectDestinationNative(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Register the native service
+	args := structs.TestRegisterRequest(t)
+	args.Service.Connect.Native = true
+	var out struct{}
+	require.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
+
+	// List
+	req := structs.ServiceSpecificRequest{
+		Connect:     true,
+		Datacenter:  "dc1",
+		ServiceName: args.Service.Service,
+	}
+	var resp structs.IndexedServiceNodes
+	require.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	require.Len(resp.ServiceNodes, 1)
+	v := resp.ServiceNodes[0]
+	require.Equal(args.Service.Service, v.ServiceName)
+
+	// List by non-Connect
+	req = structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: args.Service.Service,
+	}
+	require.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	require.Len(resp.ServiceNodes, 1)
+	v = resp.ServiceNodes[0]
+	require.Equal(args.Service.Service, v.ServiceName)
+}
+
+func TestCatalog_ListServiceNodes_ConnectProxy_ACL(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Create the ACL.
+	arg := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name: "User token",
+			Type: structs.ACLTypeClient,
+			Rules: `
+service "foo" {
+	policy = "write"
+}
+`,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var token string
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &token))
+
+	{
+		// Register a proxy
+		args := structs.TestRegisterRequestProxy(t)
+		args.Service.Service = "foo-proxy"
+		args.Service.ProxyDestination = "bar"
+		args.WriteRequest.Token = "root"
+		var out struct{}
+		assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		// Register a proxy
+		args = structs.TestRegisterRequestProxy(t)
+		args.Service.Service = "foo-proxy"
+		args.Service.ProxyDestination = "foo"
+		args.WriteRequest.Token = "root"
+		assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		// Register a proxy
+		args = structs.TestRegisterRequestProxy(t)
+		args.Service.Service = "another-proxy"
+		args.Service.ProxyDestination = "foo"
+		args.WriteRequest.Token = "root"
+		assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+	}
+
+	// List w/ token. This should disallow because we don't have permission
+	// to read "bar"
+	req := structs.ServiceSpecificRequest{
+		Connect:      true,
+		Datacenter:   "dc1",
+		ServiceName:  "bar",
+		QueryOptions: structs.QueryOptions{Token: token},
+	}
+	var resp structs.IndexedServiceNodes
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	assert.Len(resp.ServiceNodes, 0)
+
+	// List w/ token. This should work since we're requesting "foo", but should
+	// also only contain the proxies with names that adhere to our ACL.
+	req = structs.ServiceSpecificRequest{
+		Connect:      true,
+		Datacenter:   "dc1",
+		ServiceName:  "foo",
+		QueryOptions: structs.QueryOptions{Token: token},
+	}
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	assert.Len(resp.ServiceNodes, 1)
+	v := resp.ServiceNodes[0]
+	assert.Equal("foo-proxy", v.ServiceName)
+}
+
+func TestCatalog_ListServiceNodes_ConnectNative(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Register the service
+	args := structs.TestRegisterRequest(t)
+	args.Service.Connect.Native = true
+	var out struct{}
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
+
+	// List
+	req := structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: args.Service.Service,
+		TagFilter:   false,
+	}
+	var resp structs.IndexedServiceNodes
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	assert.Len(resp.ServiceNodes, 1)
+	v := resp.ServiceNodes[0]
+	assert.Equal(args.Service.Connect.Native, v.ServiceConnect.Native)
+}
+
 func TestCatalog_NodeServices(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServer(t)
@@ -1647,6 +2061,67 @@ func TestCatalog_NodeServices(t *testing.T) {
 	if len(services["web"].Tags) != 0 || services["web"].Port != 80 {
 		t.Fatalf("bad: %v", out)
 	}
+}
+
+func TestCatalog_NodeServices_ConnectProxy(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Register the service
+	args := structs.TestRegisterRequestProxy(t)
+	var out struct{}
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
+
+	// List
+	req := structs.NodeSpecificRequest{
+		Datacenter: "dc1",
+		Node:       args.Node,
+	}
+	var resp structs.IndexedNodeServices
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &req, &resp))
+
+	assert.Len(resp.NodeServices.Services, 1)
+	v := resp.NodeServices.Services[args.Service.Service]
+	assert.Equal(structs.ServiceKindConnectProxy, v.Kind)
+	assert.Equal(args.Service.ProxyDestination, v.ProxyDestination)
+}
+
+func TestCatalog_NodeServices_ConnectNative(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Register the service
+	args := structs.TestRegisterRequest(t)
+	var out struct{}
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
+
+	// List
+	req := structs.NodeSpecificRequest{
+		Datacenter: "dc1",
+		Node:       args.Node,
+	}
+	var resp structs.IndexedNodeServices
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &req, &resp))
+
+	assert.Len(resp.NodeServices.Services, 1)
+	v := resp.NodeServices.Services[args.Service.Service]
+	assert.Equal(args.Service.Connect.Native, v.Connect.Native)
 }
 
 // Used to check for a regression against a known bug

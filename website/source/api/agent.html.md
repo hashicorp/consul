@@ -237,13 +237,18 @@ $ curl \
 This endpoint returns the configuration and member information of the local
 agent.
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/agent/metrics`             | `application/json`         |
+| Method | Path                               | Produces                                   |
+| ------ | ---------------------------------- | ------------------------------------------ |
+| `GET`  | `/agent/metrics`                   | `application/json`                         |
+| `GET`  | `/agent/metrics?format=prometheus` | `text/plain; version=0.0.4; charset=utf-8` |
 
 This endpoint will dump the metrics for the most recent finished interval.
 For more information about metrics, see the [telemetry](/docs/agent/telemetry.html)
 page.
+
+In order to enable [Prometheus](https://prometheus.io/) support, you need to use the
+configuration directive
+[`prometheus_retention_time`](/docs/agent/options.html#telemetry-prometheus_retention_time).
 
 | Blocking Queries | Consistency Modes | ACL Required |
 | ---------------- | ----------------- | ------------ |

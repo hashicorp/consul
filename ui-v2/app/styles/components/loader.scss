@@ -1,0 +1,42 @@
+html.template-loading main > div {
+  @extend %loader;
+}
+%loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: calc(100vh - 90px - 48px - 50px);
+}
+%loader circle {
+  animation: loader-animation 1.5s infinite ease-in-out;
+  transform-origin: 50% 50%;
+  fill: #efc4d8;
+}
+
+%loader g:nth-last-child(2) circle {
+  animation-delay: 0.2s;
+}
+
+%loader g:nth-last-child(3) circle {
+  animation-delay: 0.3s;
+}
+
+%loader g:nth-last-child(4) circle {
+  animation-delay: 0.4s;
+}
+
+%loader g:nth-last-child(5) circle {
+  animation-delay: 0.5s;
+  border: 1px solid red;
+}
+
+@keyframes loader-animation {
+  0%,
+  100% {
+    transform: scale3D(1, 1, 1);
+  }
+
+  33% {
+    transform: scale3D(0, 0, 1);
+  }
+}

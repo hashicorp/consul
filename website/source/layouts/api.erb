@@ -22,10 +22,24 @@
           <li<%= sidebar_current("api-agent-service") %>>
             <a href="/api/agent/service.html">Services</a>
           </li>
+          <li<%= sidebar_current("api-agent-connect") %>>
+            <a href="/api/agent/connect.html">Connect</a>
+          </li>
         </ul>
       </li>
       <li<%= sidebar_current("api-catalog") %>>
         <a href="/api/catalog.html">Catalog</a>
+      </li>
+      <li<%= sidebar_current("api-connect") %>>
+        <a href="/api/connect.html">Connect</a>
+        <ul class="nav">
+          <li<%= sidebar_current("api-connect-ca") %>>
+            <a href="/api/connect/ca.html">Certificate Authority (CA)</a>
+          </li>
+          <li<%= sidebar_current("api-connect-intentions") %>>
+            <a href="/api/connect/intentions.html">Intentions</a>
+          </li>
+        </ul>
       </li>
       <li<%= sidebar_current("api-coordinate") %>>
         <a href="/api/coordinate.html">Coordinates</a>
@@ -50,6 +64,9 @@
           </li>
           <li<%= sidebar_current("api-operator-keyring") %>>
             <a href="/api/operator/keyring.html">Keyring</a>
+          </li>
+          <li<%= sidebar_current("api-operator-license") %>>
+            <a href="/api/operator/license.html">License</a>
           </li>
           <li<%= sidebar_current("api-operator-raft") %>>
             <a href="/api/operator/raft.html">Raft</a>

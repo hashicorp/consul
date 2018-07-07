@@ -1,0 +1,94 @@
+#v2-notification {
+  color: white;
+  background-color: #7c1d48;
+}
+#v2-notification a {
+  font-size: 10px;
+  border-width: 1px;
+}
+#v2-notification input,
+#v2-notification input + * {
+  display: none;
+}
+#v2-notification input:checked + * {
+  display: block;
+}
+#v2-notification {
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  margin-left: -50vw;
+}
+#v2-notification label {
+  cursor: pointer;
+}
+#v2-notification label::after {
+  content: '';
+  display: block;
+  width: 21px;
+  height: 16px;
+  background-position: 5px 0px;
+  background-repeat: no-repeat;
+  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="16" height="16" xmlns="http://www.w3.org/2000/svg"><path d="M7.894 9.956l-4.125 4.125-1.031 1.031-2.101-2.101 1.03-1.031 4.126-4.125-4.086-4.086-1.051-1.05L2.718.655l1.051 1.05 4.086 4.087 4.125-4.125L13.01.637l2.102 2.1-1.031 1.032-4.125 4.125 4.086 4.086 1.05 1.05-2.062 2.063-1.05-1.05-4.086-4.087z" fill="%23FFF" fill-rule="evenodd"/></svg>');
+
+}
+#v2-notification .col-md-12 > div {
+  padding: 15px;
+}
+#v2-notification p {
+  font-size: 15px;
+  font-weight: 500;
+  margin-left: 15px;
+  margin-right: 9px;
+}
+#v2-notification a {
+  min-width: 95px;
+}
+@media (min-width: 768px) {
+  #v2-notification .row > div:nth-child(2) {
+    padding-left: 10px;
+  }
+  #v2-notification a {
+    max-width: 106px;
+  }
+  #v2-notification .col-md-12 > div::before {
+    content: '';
+    display: block;
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    top: 50%;
+    margin-top: -20px;
+    margin-left: -13px;
+    background-image: url('tada.png');
+  }
+}
+@media (max-width: 767px) {
+  #v2-notification .row > div {
+    width: 100%;
+    margin-left: 0;
+    text-align: center;
+    padding: 0;
+  }
+  #v2-notification a {
+    width: 100%;
+  }
+  #v2-notification a {
+    margin: 0 auto;
+  }
+}
+@media (max-width: 991px) {
+  #v2-notification p span {
+    display: none;
+  }
+  #v2-notification .row > div:last-child {
+    position: absolute;
+    top: 15px;
+    right: 0;
+  }
+  #v2-notification label {
+    position: absolute;
+    top: 0;
+    right: 15px;
+  }
+}

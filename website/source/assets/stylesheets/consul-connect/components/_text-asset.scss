@@ -1,0 +1,211 @@
+.g-text-asset {
+  text-align: center;
+
+  @media (min-width: 768px) {
+    align-content: space-between;
+    display: flex;
+    justify-content: center;
+    margin: 0 (-$site-gutter-padding);
+    text-align: left;
+  }
+
+  &.reverse {
+    flex-direction: row-reverse;
+
+    & > div:first-child > div {
+      margin-left: auto;
+
+      @media (min-width: 768px) {
+        padding: 0 24px 0 0;
+      }
+
+      @media (min-width: 992px) {
+        padding-right: 32px;
+      }
+    }
+  }
+
+  &.large {
+    margin-bottom: -56px;
+
+    @media (min-width: 768px) {
+      margin-bottom: -96px;
+    }
+
+    @media (min-width: 992px) {
+      margin-bottom: -120px;
+    }
+
+    & > div:last-child {
+      justify-content: unset;
+    }
+
+    picture > img,
+    img {
+      width: 145%;
+    }
+  }
+
+  & > div {
+    @media (min-width: 768px) {
+      align-items: center;
+      margin: 0 auto;
+      display: flex;
+      padding: 0 $site-gutter-padding;
+      width: 50%;
+    }
+
+    &:first-child {
+      margin-bottom: 32px;
+
+      @media (min-width: 768px) {
+        margin-bottom: 0;
+      }
+
+      & > div {
+        @media (min-width: 768px) {
+          margin-left: 0;
+          max-width: 454px;
+          padding: 0 0 0 24px;
+        }
+
+        @media (min-width: 992px) {
+          padding-left: 32px;
+        }
+
+        & a {
+          color: #1563ff;
+
+          &:focus,
+          &:hover {
+            color: #2c72fe;
+
+            & path {
+              fill: #2c72fe;
+            }
+          }
+
+          & svg {
+            margin-left: 10px;
+          }
+        }
+      }
+    }
+
+    &:last-child {
+      justify-content: center;
+    }
+
+    & > img,
+    picture > img {
+      width: 100%;
+
+      &.shadow {
+        box-shadow: 0 40px 48px -20px rgba(63, 68, 85, 0.4);
+      }
+    }
+
+    & > svg {
+      max-width: 100%;
+    }
+
+    &.code-sample > div {
+      box-shadow: 0 40px 48px -20px rgba(63, 68, 85, 0.4);
+      color: $white;
+      margin: 0;
+      text-align: left;
+      width: 100%;
+
+      span {
+        background: #252937;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        display: block;
+        height: 32px;
+
+        @media (min-width: 768px) {
+          height: 40px;
+        }
+      }
+
+      .code {
+        background: #1e212a;
+        font-size: 1.4rem;
+        overflow: auto;
+        padding: 16px 24px 32px;
+        width: 100%;
+
+        code {
+          background: #1e212a;
+          border-radius: 0;
+          color: $white;
+          font-size: 1.2rem;
+          white-space: pre;
+
+          @media (min-width: 992px) {
+            font-size: 1.4rem;
+          }
+
+          &.keyword {
+            color: #be5580;
+          }
+        }
+      }
+    }
+
+    &.logos {
+      justify-content: center;
+
+      & > div {
+        align-items: center;
+        display: flex;
+        flex-direction: column;
+
+        & img,
+        picture {
+          margin: 30px 0;
+
+          @media (max-width: 767px) {
+            margin: 15px 0;
+            max-width: 51%;
+          }
+        }
+      }
+    }
+  }
+
+  h3 {
+    margin: 0 0 16px 0;
+
+    @media (min-width: 768px) {
+      margin-top: 16px;
+    }
+  }
+
+  li {
+    font-size: 1.6rem;
+    list-style-type: none;
+    margin: 16px;
+    text-align: left;
+
+    @media (min-width: 768px) {
+      margin: 16px 0;
+    }
+
+    @media (min-width: 992px) {
+      font-size: 1.8rem;
+    }
+
+    &:before {
+      background-position: center;
+      background-repeat: no-repeat;
+      background-size: 100%;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="23" height="22" viewBox="0 0 23 22"><path fill="#CA2171" d="M21.293 1.298L11 11.591 8.707 9.298a1 1 0 1 0-1.414 1.414l3 3a.997.997 0 0 0 1.414 0l11-11a1 1 0 1 0-1.414-1.414M22 10.075v.93a10.925 10.925 0 0 1-3.227 7.777A10.926 10.926 0 0 1 11 22h-.007C4.929 21.996-.003 17.058 0 10.993a10.927 10.927 0 0 1 3.226-7.776A10.927 10.927 0 0 1 10.999 0h.008c1.551 0 3.055.32 4.47.952a1 1 0 1 1-.815 1.826A8.926 8.926 0 0 0 11.006 2H11a8.938 8.938 0 0 0-6.36 2.632A8.938 8.938 0 0 0 2 10.994c-.003 4.963 4.032 9.003 8.995 9.006H11c2.401 0 4.66-.935 6.36-2.633A8.936 8.936 0 0 0 20 11.005v-.93a1 1 0 1 1 2 0"/></svg>');
+      content: '';
+      display: block;
+      float: left;
+      height: 24px;
+      margin: 4px 0 0 -40px;
+      width: 24px;
+    }
+  }
+}

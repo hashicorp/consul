@@ -85,6 +85,8 @@ func DefaultSource() Source {
 			serf_lan = ` + strconv.Itoa(consul.DefaultLANSerfPort) + `
 			serf_wan = ` + strconv.Itoa(consul.DefaultWANSerfPort) + `
 			server = ` + strconv.Itoa(consul.DefaultRPCPort) + `
+			proxy_min_port = 20000
+			proxy_max_port = 20255
 		}
 		telemetry = {
 			metrics_prefix = "consul"
@@ -108,6 +110,10 @@ func DevSource() Source {
 		ui = true
 		log_level = "DEBUG"
 		server = true
+
+		connect = {
+			enabled = true
+		}
 		performance = {
 			raft_multiplier = 1
 		}

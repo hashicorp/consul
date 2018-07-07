@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestEncodeDecode(t *testing.T) {
@@ -133,6 +134,7 @@ func testServiceNode() *ServiceNode {
 		NodeMeta: map[string]string{
 			"tag": "value",
 		},
+		ServiceKind:    ServiceKindTypical,
 		ServiceID:      "service1",
 		ServiceName:    "dogs",
 		ServiceTags:    []string{"prod", "v1"},
@@ -142,6 +144,7 @@ func testServiceNode() *ServiceNode {
 			"service": "metadata",
 		},
 		ServiceEnableTagOverride: true,
+		ServiceProxyDestination:  "cats",
 		RaftIndex: RaftIndex{
 			CreateIndex: 1,
 			ModifyIndex: 2,
@@ -208,6 +211,66 @@ func TestStructs_ServiceNode_Conversions(t *testing.T) {
 	}
 }
 
+func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
+	cases := []struct {
+		Name   string
+		Modify func(*NodeService)
+		Err    string
+	}{
+		{
+			"valid",
+			func(x *NodeService) {},
+			"",
+		},
+
+		{
+			"connect-proxy: no ProxyDestination",
+			func(x *NodeService) { x.ProxyDestination = "" },
+			"ProxyDestination must be",
+		},
+
+		{
+			"connect-proxy: whitespace ProxyDestination",
+			func(x *NodeService) { x.ProxyDestination = "  " },
+			"ProxyDestination must be",
+		},
+
+		{
+			"connect-proxy: valid ProxyDestination",
+			func(x *NodeService) { x.ProxyDestination = "hello" },
+			"",
+		},
+
+		{
+			"connect-proxy: no port set",
+			func(x *NodeService) { x.Port = 0 },
+			"Port must",
+		},
+
+		{
+			"connect-proxy: ConnectNative set",
+			func(x *NodeService) { x.Connect.Native = true },
+			"cannot also be",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			assert := assert.New(t)
+			ns := TestNodeServiceProxy(t)
+			tc.Modify(ns)
+
+			err := ns.Validate()
+			assert.Equal(err != nil, tc.Err != "", err)
+			if err == nil {
+				return
+			}
+
+			assert.Contains(strings.ToLower(err.Error()), strings.ToLower(tc.Err))
+		})
+	}
+}
+
 func TestStructs_NodeService_IsSame(t *testing.T) {
 	ns := &NodeService{
 		ID:      "node1",
@@ -220,6 +283,7 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 		},
 		Port:              1234,
 		EnableTagOverride: true,
+		ProxyDestination:  "db",
 	}
 	if !ns.IsSame(ns) {
 		t.Fatalf("should be equal to itself")
@@ -237,6 +301,7 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 			"meta2": "value2",
 			"meta1": "value1",
 		},
+		ProxyDestination: "db",
 		RaftIndex: RaftIndex{
 			CreateIndex: 1,
 			ModifyIndex: 2,
@@ -270,6 +335,9 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 	check(func() { other.Port = 9999 }, func() { other.Port = 1234 })
 	check(func() { other.Meta["meta2"] = "wrongValue" }, func() { other.Meta["meta2"] = "value2" })
 	check(func() { other.EnableTagOverride = false }, func() { other.EnableTagOverride = true })
+	check(func() { other.Kind = ServiceKindConnectProxy }, func() { other.Kind = "" })
+	check(func() { other.ProxyDestination = "" }, func() { other.ProxyDestination = "db" })
+	check(func() { other.Connect.Native = true }, func() { other.Connect.Native = false })
 }
 
 func TestStructs_HealthCheck_IsSame(t *testing.T) {

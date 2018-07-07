@@ -1,0 +1,92 @@
+%button {
+  font-family: $body-family;
+}
+%button {
+  line-height: 1.5;
+}
+%radio-group label {
+  line-height: 1.25;
+}
+h1 {
+  letter-spacing: 1px;
+}
+%header-nav,
+%tab-nav {
+  letter-spacing: 0.03em;
+}
+%footer {
+  letter-spacing: -0.05em;
+}
+h1,
+%header-drop-nav .is-active {
+  font-weight: $weight-bold;
+}
+h2,
+%header-nav,
+%healthchecked-resource header span,
+%healthcheck-status dt,
+%copy-button,
+%form-element > span,
+%app-content div > dl > dt,
+td a {
+  font-weight: $weight-semibold;
+}
+%button {
+  font-weight: $weight-semibold !important;
+}
+th,
+%breadcrumbs a,
+%action-group a,
+%tab-nav {
+  font-weight: $weight-medium;
+}
+main label a[rel*='help'],
+%healthchecked-resource strong {
+  font-weight: $weight-normal;
+}
+%form-element > em {
+  font-style: normal;
+}
+%form-element > span {
+  text-transform: uppercase;
+}
+%form-element > span > * {
+  text-transform: none;
+}
+h1 {
+  font-size: $size-4;
+}
+h2,
+%header-drop-nav .is-active {
+  font-size: $size-5;
+}
+body,
+pre code,
+input,
+textarea,
+td {
+  font-size: $size-6;
+}
+th,
+%healthchecked-resource strong,
+%footer {
+  font-size: $size-7;
+}
+%toggle span {
+  font-size: $size-7 !important;
+}
+%button,
+.with-confirmation p,
+%form-element > em,
+%form-element > span,
+%feedback-dialog-inline p {
+  font-size: $size-8;
+}
+th,
+button,
+td strong {
+  font-weight: normal;
+}
+td:first-child {
+  font-weight: bold;
+}

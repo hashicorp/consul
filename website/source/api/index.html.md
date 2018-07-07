@@ -14,14 +14,7 @@ CRUD operations on nodes, services, checks, configuration, and more.
 
 ## Version Prefix
 
-All API routes are prefixed with `/v1/`.
-
-This documentation is only for the v1 API.
-
-~> **Backwards compatibility:** At the current version, Consul does not yet
-promise backwards compatibility even with the v1 prefix. We'll remove this
-warning when this policy changes. We expect to reach API stability by Consul
-1.0.
+All API routes are prefixed with `/v1/`. This documentation is only for the v1 API.
 
 ## ACLs
 

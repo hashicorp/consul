@@ -1,0 +1,43 @@
+@import './icons';
+.freetext-filter {
+  @extend %freetext-filter;
+}
+%freetext-filter {
+  cursor: pointer;
+}
+%freetext-filter input {
+  -webkit-appearance: none;
+  border: none;
+  border-right: 1px solid;
+}
+%freetext-filter span {
+  @extend %with-magnifier;
+  visibility: hidden;
+}
+%freetext-filter {
+  background-color: $white;
+}
+%freetext-filter span {
+  color: $border-blue;
+}
+%freetext-filter input {
+  border-color: 1px $border-blue;
+}
+%freetext-filter input,
+%freetext-filter input::placeholder {
+  color: $text-note;
+}
+%freetext-filter label {
+  display: block;
+  height: 33px;
+}
+%freetext-filter input {
+  width: calc(100% - 2.7em);
+  height: 100%;
+  padding: 8px 10px;
+}
+%freetext-filter span {
+  width: 2.7em;
+  height: 100%;
+  float: right;
+}

@@ -1,0 +1,53 @@
+{{#app-view class="node show"}}
+    {{#block-slot 'breadcrumbs'}}
+        <ol>
+            <li><a href={{href-to 'dc.nodes'}}>All Nodes</a></li>
+        </ol>
+    {{/block-slot}}
+    {{#block-slot 'header'}}
+        <h1>
+            {{ item.Node }}
+        </h1>
+        {{tab-nav
+            items=(compact
+                (array 'Health Checks' 'Services' (if tomography 'Round Trip Time' '') 'Lock Sessions')
+            )
+            selected=(if selectedTab selectedTab 'health-checks')
+        }}
+    {{/block-slot}}
+    {{#block-slot 'actions'}}
+        {{#feedback-dialog type='inline'}}
+            {{#block-slot 'action' as |success error|}}
+                {{#copy-button success=(action success) error=(action error) clipboardText=item.Address title='copy IP address to clipboard'}}
+                    {{item.Address}}
+                {{/copy-button}}
+            {{/block-slot}}
+            {{#block-slot 'success'}}
+                <p>
+                    Copied IP Address!
+                </p>
+            {{/block-slot}}
+            {{#block-slot 'error'}}
+                <p>
+                    Sorry, something went wrong!
+                </p>
+            {{/block-slot}}
+        {{/feedback-dialog}}
+    {{/block-slot}}
+    {{#block-slot 'content'}}
+        {{#each
+            (compact
+                (array
+                    (hash id=(slugify 'Health Checks') partial='dc/nodes/healthchecks')
+                    (hash id=(slugify 'Services') partial='dc/nodes/services')
+     (if tomography (hash id=(slugify 'Round Trip Time') partial='dc/nodes/rtt') '')
+                    (hash id=(slugify 'Lock Sessions') partial='dc/nodes/sessions')
+                )
+            ) as |panel|
+        }}
+            {{#tab-section id=panel.id selected=(eq (if selectedTab selectedTab 'health-checks') panel.id) onchange=(action "change")}}
+                {{partial panel.partial}}
+            {{/tab-section}}
+        {{/each}}
+    {{/block-slot}}
+{{/app-view}}

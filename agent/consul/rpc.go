@@ -59,7 +59,6 @@ func (s *Server) listen(listener net.Listener) {
 		}
 
 		go s.handleConn(conn, false)
-		metrics.IncrCounter([]string{"consul", "rpc", "accept_conn"}, 1)
 		metrics.IncrCounter([]string{"rpc", "accept_conn"}, 1)
 	}
 }
@@ -97,7 +96,6 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 		s.handleConsulConn(conn)
 
 	case pool.RPCRaft:
-		metrics.IncrCounter([]string{"consul", "rpc", "raft_handoff"}, 1)
 		metrics.IncrCounter([]string{"rpc", "raft_handoff"}, 1)
 		s.raftLayer.Handoff(conn)
 
@@ -117,9 +115,10 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 		s.handleSnapshotConn(conn)
 
 	default:
-		s.logger.Printf("[ERR] consul.rpc: unrecognized RPC byte: %v %s", typ, logConn(conn))
-		conn.Close()
-		return
+		if !s.handleEnterpriseRPCConn(typ, conn, isTLS) {
+			s.logger.Printf("[ERR] consul.rpc: unrecognized RPC byte: %v %s", typ, logConn(conn))
+			conn.Close()
+		}
 	}
 }
 
@@ -156,12 +155,10 @@ func (s *Server) handleConsulConn(conn net.Conn) {
 		if err := s.rpcServer.ServeRequest(rpcCodec); err != nil {
 			if err != io.EOF && !strings.Contains(err.Error(), "closed") {
 				s.logger.Printf("[ERR] consul.rpc: RPC error: %v %s", err, logConn(conn))
-				metrics.IncrCounter([]string{"consul", "rpc", "request_error"}, 1)
 				metrics.IncrCounter([]string{"rpc", "request_error"}, 1)
 			}
 			return
 		}
-		metrics.IncrCounter([]string{"consul", "rpc", "request"}, 1)
 		metrics.IncrCounter([]string{"rpc", "request"}, 1)
 	}
 }
@@ -288,8 +285,6 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 		return structs.ErrNoDCPath
 	}
 
-	metrics.IncrCounterWithLabels([]string{"consul", "rpc", "cross-dc"}, 1,
-		[]metrics.Label{{Name: "datacenter", Value: dc}})
 	metrics.IncrCounterWithLabels([]string{"rpc", "cross-dc"}, 1,
 		[]metrics.Label{{Name: "datacenter", Value: dc}})
 	if err := s.connPool.RPC(dc, server.Addr, server.Version, method, server.UseTLS, args, reply); err != nil {
@@ -401,7 +396,6 @@ RUN_QUERY:
 	}
 
 	// Run the query.
-	metrics.IncrCounter([]string{"consul", "rpc", "query"}, 1)
 	metrics.IncrCounter([]string{"rpc", "query"}, 1)
 
 	// Operate on a consistent set of state. This makes sure that the
@@ -452,7 +446,6 @@ func (s *Server) setQueryMeta(m *structs.QueryMeta) {
 // consistentRead is used to ensure we do not perform a stale
 // read. This is done by verifying leadership before the read.
 func (s *Server) consistentRead() error {
-	defer metrics.MeasureSince([]string{"consul", "rpc", "consistentRead"}, time.Now())
 	defer metrics.MeasureSince([]string{"rpc", "consistentRead"}, time.Now())
 	future := s.raft.VerifyLeader()
 	if err := future.Error(); err != nil {

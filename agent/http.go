@@ -3,10 +3,12 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/http/pprof"
 	"net/url"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -15,6 +17,7 @@ import (
 	"github.com/NYTimes/gziphandler"
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/mitchellh/mapstructure"
@@ -30,6 +33,15 @@ func (e MethodNotAllowedError) Error() string {
 	return fmt.Sprintf("method %s not allowed", e.Method)
 }
 
+// BadRequestError should be returned by a handler when parameters or the payload are not valid
+type BadRequestError struct {
+	Reason string
+}
+
+func (e BadRequestError) Error() string {
+	return fmt.Sprintf("Bad request: %s", e.Reason)
+}
+
 // HTTPServer provides an HTTP api for an agent.
 type HTTPServer struct {
 	*http.Server
@@ -39,6 +51,18 @@ type HTTPServer struct {
 
 	// proto is filled by the agent to "http" or "https".
 	proto string
+}
+
+type redirectFS struct {
+	fs http.FileSystem
+}
+
+func (fs *redirectFS) Open(name string) (http.File, error) {
+	file, err := fs.fs.Open(name)
+	if err != nil {
+		file, err = fs.fs.Open("/index.html")
+	}
+	return file, err
 }
 
 // endpoint is a Consul-specific HTTP handler that takes the usual arguments in
@@ -110,7 +134,6 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 			start := time.Now()
 			handler(resp, req)
 			key := append([]string{"http", req.Method}, parts...)
-			metrics.MeasureSince(append([]string{"consul"}, key...), start)
 			metrics.MeasureSince(key, start)
 		}
 
@@ -135,11 +158,32 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 		handleFuncMetrics("/debug/pprof/symbol", pprof.Symbol)
 	}
 
-	// Use the custom UI dir if provided.
-	if s.agent.config.UIDir != "" {
-		mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(http.Dir(s.agent.config.UIDir))))
-	} else if s.agent.config.EnableUI {
-		mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(assetFS())))
+	if s.IsUIEnabled() {
+		legacy_ui, err := strconv.ParseBool(os.Getenv("CONSUL_UI_LEGACY"))
+		if err != nil {
+			legacy_ui = false
+		}
+		var uifs http.FileSystem
+
+		// Use the custom UI dir if provided.
+		if s.agent.config.UIDir != "" {
+			uifs = http.Dir(s.agent.config.UIDir)
+		} else {
+			fs := assetFS()
+
+			if legacy_ui {
+				fs.Prefix += "/v1/"
+			} else {
+				fs.Prefix += "/v2/"
+			}
+			uifs = fs
+		}
+
+		if !legacy_ui {
+			uifs = &redirectFS{fs: uifs}
+		}
+
+		mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(uifs)))
 	}
 
 	// Wrap the whole mux with a handler that bans URLs with non-printable
@@ -216,6 +260,11 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 			return ok
 		}
 
+		isBadRequest := func(err error) bool {
+			_, ok := err.(BadRequestError)
+			return ok
+		}
+
 		addAllowHeader := func(methods []string) {
 			resp.Header().Add("Allow", strings.Join(methods, ","))
 		}
@@ -235,6 +284,9 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 				// https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
 				addAllowHeader(err.(MethodNotAllowedError).Allow)
 				resp.WriteHeader(http.StatusMethodNotAllowed) // 405
+				fmt.Fprint(resp, err.Error())
+			case isBadRequest(err):
+				resp.WriteHeader(http.StatusBadRequest)
 				fmt.Fprint(resp, err.Error())
 			default:
 				resp.WriteHeader(http.StatusInternalServerError)
@@ -334,6 +386,13 @@ func (s *HTTPServer) Index(resp http.ResponseWriter, req *http.Request) {
 
 // decodeBody is used to decode a JSON request body
 func decodeBody(req *http.Request, out interface{}, cb func(interface{}) error) error {
+	// This generally only happens in tests since real HTTP requests set
+	// a non-nil body with no content. We guard against it anyways to prevent
+	// a panic. The EOF response is the same behavior as an empty reader.
+	if req.Body == nil {
+		return io.EOF
+	}
+
 	var raw interface{}
 	dec := json.NewDecoder(req.Body)
 	if err := dec.Decode(&raw); err != nil {
@@ -359,6 +418,14 @@ func setTranslateAddr(resp http.ResponseWriter, active bool) {
 
 // setIndex is used to set the index response header
 func setIndex(resp http.ResponseWriter, index uint64) {
+	// If we ever return X-Consul-Index of 0 blocking clients will go into a busy
+	// loop and hammer us since ?index=0 will never block. It's always safe to
+	// return index=1 since the very first Raft write is always an internal one
+	// writing the raft config for the cluster so no user-facing blocking query
+	// will ever legitimately have an X-Consul-Index of 1.
+	if index == 0 {
+		index = 1
+	}
 	resp.Header().Set("X-Consul-Index", strconv.FormatUint(index, 10))
 }
 
@@ -392,6 +459,15 @@ func setMeta(resp http.ResponseWriter, m *structs.QueryMeta) {
 	setLastContact(resp, m.LastContact)
 	setKnownLeader(resp, m.KnownLeader)
 	setConsistency(resp, m.ConsistencyLevel)
+}
+
+// setCacheMeta sets http response headers to indicate cache status.
+func setCacheMeta(resp http.ResponseWriter, m *cache.ResultMeta) {
+	str := "MISS"
+	if m != nil && m.Hit {
+		str = "HIT"
+	}
+	resp.Header().Set("X-Cache", str)
 }
 
 // setHeaders is used to set canonical response header fields

@@ -1,0 +1,65 @@
+@charset 'utf-8';
+
+@import 'variables/index';
+
+@import 'ember-bulma-css/utilities/initial-variables.sass';
+@import 'ember-bulma-css/utilities/functions.sass';
+@import 'ember-bulma-css/utilities/derived-variables.sass';
+@import 'ember-bulma-css/utilities/mixins.sass';
+@import 'ember-bulma-css/utilities/controls.sass';
+@import 'ember-bulma-css/base/minireset.sass';
+@import 'ember-bulma-css/base/generic.sass';
+
+%user-select-none {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+@import 'core/reset';
+@import 'core/typography';
+@import 'core/layout';
+
+@import 'components/loader';
+@import 'components/main-header';
+@import 'components/footer';
+@import 'components/breadcrumbs';
+@import 'components/button';
+@import 'components/tabs';
+@import 'components/healthcheck-status';
+@import 'components/healthchecked-resource';
+@import 'components/expanded-single-select';
+@import 'components/app-view';
+@import 'components/tabular-collection';
+@import 'components/list-collection';
+@import 'components/table';
+@import 'components/freetext-filter';
+@import 'components/tomography-graph';
+@import 'components/action-group';
+@import 'components/flash-message';
+@import 'components/code-editor';
+@import 'components/confirmation-dialog';
+@import 'components/feedback-dialog';
+@import 'components/notice';
+
+@import 'routes/dc/service/index';
+@import 'routes/dc/nodes/index';
+@import 'routes/dc/intention/index';
+@import 'routes/dc/kv/index';
+
+main a {
+  color: $text;
+}
+main a[rel*='help'] {
+  @extend %with-info;
+}
+main label a[rel*='help'] {
+  color: $text-note;
+}
+[role='tabpanel'] > p:only-child [rel*='help']::after {
+  content: none;
+}
+
+@import 'ember-power-select';

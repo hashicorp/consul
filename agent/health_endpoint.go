@@ -143,9 +143,17 @@ RETRY_ONCE:
 	return out.HealthChecks, nil
 }
 
+func (s *HTTPServer) HealthConnectServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	return s.healthServiceNodes(resp, req, true)
+}
+
 func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	return s.healthServiceNodes(resp, req, false)
+}
+
+func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Request, connect bool) (interface{}, error) {
 	// Set default DC
-	args := structs.ServiceSpecificRequest{}
+	args := structs.ServiceSpecificRequest{Connect: connect}
 	s.parseSource(req, &args.Source)
 	args.NodeMetaFilters = s.parseMetaFilter(req)
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
@@ -159,8 +167,14 @@ func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Requ
 		args.TagFilter = true
 	}
 
+	// Determine the prefix
+	prefix := "/v1/health/service/"
+	if connect {
+		prefix = "/v1/health/connect/"
+	}
+
 	// Pull out the service name
-	args.ServiceName = strings.TrimPrefix(req.URL.Path, "/v1/health/service/")
+	args.ServiceName = strings.TrimPrefix(req.URL.Path, prefix)
 	if args.ServiceName == "" {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing service name")

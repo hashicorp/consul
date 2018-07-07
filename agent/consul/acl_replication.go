@@ -149,7 +149,6 @@ func (s *Server) fetchLocalACLs() (structs.ACLs, error) {
 // datacenter. The lastIndex parameter is a hint about which remote index we
 // have replicated to, so this is expected to block until something changes.
 func (s *Server) fetchRemoteACLs(lastRemoteIndex uint64) (*structs.IndexedACLs, error) {
-	defer metrics.MeasureSince([]string{"consul", "leader", "fetchRemoteACLs"}, time.Now())
 	defer metrics.MeasureSince([]string{"leader", "fetchRemoteACLs"}, time.Now())
 
 	args := structs.DCSpecificRequest{
@@ -170,7 +169,6 @@ func (s *Server) fetchRemoteACLs(lastRemoteIndex uint64) (*structs.IndexedACLs, 
 // UpdateLocalACLs is given a list of changes to apply in order to bring the
 // local ACLs in-line with the remote ACLs from the ACL datacenter.
 func (s *Server) updateLocalACLs(changes structs.ACLRequests) error {
-	defer metrics.MeasureSince([]string{"consul", "leader", "updateLocalACLs"}, time.Now())
 	defer metrics.MeasureSince([]string{"leader", "updateLocalACLs"}, time.Now())
 
 	minTimePerOp := time.Second / time.Duration(s.config.ACLReplicationApplyLimit)
@@ -218,7 +216,6 @@ func (s *Server) replicateACLs(lastRemoteIndex uint64) (uint64, error) {
 	// Measure everything after the remote query, which can block for long
 	// periods of time. This metric is a good measure of how expensive the
 	// replication process is.
-	defer metrics.MeasureSince([]string{"consul", "leader", "replicateACLs"}, time.Now())
 	defer metrics.MeasureSince([]string{"leader", "replicateACLs"}, time.Now())
 
 	local, err := s.fetchLocalACLs()

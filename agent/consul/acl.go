@@ -41,7 +41,6 @@ type aclCacheEntry struct {
 // assumes its running in the ACL datacenter, or in a non-ACL datacenter when
 // using its replicated ACLs during an outage.
 func (s *Server) aclLocalFault(id string) (string, string, error) {
-	defer metrics.MeasureSince([]string{"consul", "acl", "fault"}, time.Now())
 	defer metrics.MeasureSince([]string{"acl", "fault"}, time.Now())
 
 	// Query the state store.
@@ -75,7 +74,6 @@ func (s *Server) resolveToken(id string) (acl.ACL, error) {
 	if len(authDC) == 0 {
 		return nil, nil
 	}
-	defer metrics.MeasureSince([]string{"consul", "acl", "resolveToken"}, time.Now())
 	defer metrics.MeasureSince([]string{"acl", "resolveToken"}, time.Now())
 
 	// Handle the anonymous token
@@ -159,11 +157,9 @@ func (c *aclCache) lookupACL(id, authDC string) (acl.ACL, error) {
 
 	// Check for live cache.
 	if cached != nil && time.Now().Before(cached.Expires) {
-		metrics.IncrCounter([]string{"consul", "acl", "cache_hit"}, 1)
 		metrics.IncrCounter([]string{"acl", "cache_hit"}, 1)
 		return cached.ACL, nil
 	}
-	metrics.IncrCounter([]string{"consul", "acl", "cache_miss"}, 1)
 	metrics.IncrCounter([]string{"acl", "cache_miss"}, 1)
 
 	// Attempt to refresh the policy from the ACL datacenter via an RPC.
@@ -226,7 +222,6 @@ func (c *aclCache) lookupACL(id, authDC string) (acl.ACL, error) {
 		// Fake up an ACL datacenter reply and inject it into the cache.
 		// Note we use the local TTL here, so this'll be used for that
 		// amount of time even once the ACL datacenter becomes available.
-		metrics.IncrCounter([]string{"consul", "acl", "replication_hit"}, 1)
 		metrics.IncrCounter([]string{"acl", "replication_hit"}, 1)
 		reply.ETag = makeACLETag(parent, policy)
 		reply.TTL = c.config.ACLTTL
@@ -459,6 +454,33 @@ func (f *aclFilter) filterCoordinates(coords *structs.Coordinates) {
 	*coords = c
 }
 
+// filterIntentions is used to filter intentions based on ACL rules.
+// We prune entries the user doesn't have access to, and we redact any tokens
+// if the user doesn't have a management token.
+func (f *aclFilter) filterIntentions(ixns *structs.Intentions) {
+	// Management tokens can see everything with no filtering.
+	if f.acl.ACLList() {
+		return
+	}
+
+	// Otherwise, we need to see what the token has access to.
+	ret := make(structs.Intentions, 0, len(*ixns))
+	for _, ixn := range *ixns {
+		// If no prefix ACL applies to this then filter it, since
+		// we know at this point the user doesn't have a management
+		// token, otherwise see what the policy says.
+		prefix, ok := ixn.GetACLPrefix()
+		if !ok || !f.acl.IntentionRead(prefix) {
+			f.logger.Printf("[DEBUG] consul: dropping intention %q from result due to ACLs", ixn.ID)
+			continue
+		}
+
+		ret = append(ret, ixn)
+	}
+
+	*ixns = ret
+}
+
 // filterNodeDump is used to filter through all parts of a node dump and
 // remove elements the provided ACL token cannot access.
 func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) {
@@ -603,6 +625,9 @@ func (s *Server) filterACL(token string, subj interface{}) error {
 	case *structs.IndexedHealthChecks:
 		filt.filterHealthChecks(&v.HealthChecks)
 
+	case *structs.IndexedIntentions:
+		filt.filterIntentions(&v.Intentions)
+
 	case *structs.IndexedNodeDump:
 		filt.filterNodeDump(&v.Dump)
 
@@ -678,6 +703,7 @@ func vetRegisterWithACL(rule acl.ACL, subj *structs.RegisterRequest,
 				ID:                subj.Service.ID,
 				Service:           subj.Service.Service,
 				Tags:              subj.Service.Tags,
+				Meta:              subj.Service.Meta,
 				Address:           subj.Service.Address,
 				Port:              subj.Service.Port,
 				EnableTagOverride: subj.Service.EnableTagOverride,

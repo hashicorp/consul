@@ -163,5 +163,5 @@ dynamically.
 ## Next Steps
 
 We've now configured a single agent and registered a service. This is good
-progress, but let's explore the full value of Consul by [setting up our
-first cluster](/intro/getting-started/join.html)!
+progress, but let's explore the full value of Consul by learning how to
+[automatically encrypt and authorize service-to service communication](/intro/getting-started/connect.html) with Consul Connect.

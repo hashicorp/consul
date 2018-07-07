@@ -1,0 +1,35 @@
+<svg width="{{size}}" height="{{size}}">
+    <g class="tomography" transform="translate({{div size 2}}, {{div size 2}})">
+        <g>
+            <circle class="background" r="{{circle.[0]}}"/>
+            <circle class="axis" r="{{circle.[1]}}"/>
+            <circle class="axis" r="{{circle.[2]}}"/>
+            <circle class="axis" r="{{circle.[3]}}"/>
+            <circle class="border" r="{{circle.[4]}}"/>
+        </g>
+        <g class="lines">
+    {{#each distances as |item|}}
+        <line transform="rotate({{item.rotate}})" y2="{{item.y2}}" data-node="{{item.d}}" data-distance="{{item.distance}}" data-segment="{{item.segment}}"/>
+    {{/each}}
+        </g>
+        <g class="labels">
+            <circle class="point" r="5"/>
+            <g class="tick" transform="translate(0, {{labels.[0]}})">
+                <line x2="70"/>
+                <text x="75" y="0" dy=".32em">{{format-number milliseconds.[0] format='0,000.00'}}ms</text>
+            </g>
+            <g class="tick" transform="translate(0, {{labels.[1]}})">
+                <line x2="70"/>
+                <text x="75" y="0" dy=".32em">{{format-number milliseconds.[1] format='0,000.00'}}ms</text>
+            </g>
+            <g class="tick" transform="translate(0, {{labels.[2]}})">
+                <line x2="70"/>
+                <text x="75" y="0" dy=".32em">{{format-number milliseconds.[2] format='0,000.00'}}ms</text>
+            </g>
+            <g class="tick" transform="translate(0, {{labels.[3]}})">
+                <line x2="70"/>
+                <text x="75" y="0" dy=".32em">{{format-number milliseconds.[3] format='0,000.00'}}ms</text>
+            </g>
+        </g>
+    </g>
+</svg>

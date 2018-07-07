@@ -1,0 +1,120 @@
+@import './icons';
+@import './tag';
+td strong {
+  @extend %tag;
+  background-color: $gray;
+}
+th {
+  color: $text-light !important;
+}
+th,
+td {
+  border-bottom: 1px solid;
+}
+th {
+  border-color: $keyline-dark;
+}
+td {
+  border-color: $keyline-mid;
+}
+td.folder {
+  @extend %with-folder;
+}
+table {
+  width: 100%;
+}
+td button {
+  position: relative;
+  top: -6px;
+}
+th.actions input {
+  display: none;
+}
+th.actions {
+  text-align: right;
+}
+td.actions .with-confirmation.confirming {
+  position: absolute;
+  right: 0;
+}
+table th {
+  padding-bottom: 0.6em;
+}
+table td,
+table td a {
+  padding: 0.9em 0;
+}
+table th,
+table td:not(.actions),
+table td a {
+  padding-right: 0.9em;
+}
+table:not(.sessions) td:first-child {
+  padding: 0;
+}
+table td a {
+  display: block;
+}
+tbody {
+  overflow-x: visible !important;
+}
+th,
+td:not(.actions),
+td:not(.actions) a {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+// TODO: this isn't specific to table
+td dl {
+  height: 100%;
+}
+td dl {
+  display: flex;
+}
+td dl > * {
+  display: block;
+}
+td dt.zero {
+  display: none;
+}
+td dd.zero {
+  visibility: hidden;
+}
+td dt {
+  text-indent: -9000px;
+}
+td dt.passing,
+td dt.passing + dd {
+  color: $green;
+}
+td dt.warning,
+td dt.warning + dd {
+  color: $orange;
+}
+td dt.critical,
+td dt.critical + dd {
+  color: $red;
+}
+td dt.passing {
+  @extend %with-passing;
+}
+td dt.warning {
+  overflow: visible;
+  @extend %with-warning;
+}
+td dt.warning::before {
+  top: 7px;
+}
+td dt.warning::after {
+  left: -2px;
+  top: -1px;
+}
+td dt.critical {
+  @extend %with-critical;
+}
+td dd {
+  box-sizing: content-box;
+  margin-left: 22px;
+  padding-right: 10px;
+}

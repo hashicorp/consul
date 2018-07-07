@@ -12,6 +12,7 @@ import (
 	"regexp"
 
 	"github.com/armon/go-metrics"
+	"github.com/coredns/coredns/plugin/pkg/dnsutil"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
@@ -50,6 +51,7 @@ type dnsConfig struct {
 	ServiceTTL      map[string]time.Duration
 	UDPAnswerLimit  int
 	ARecordLimit    int
+	NodeMetaTXT     bool
 }
 
 // DNSServer is used to wrap an Agent and expose various
@@ -108,6 +110,7 @@ func GetDNSConfig(conf *config.RuntimeConfig) *dnsConfig {
 		SegmentName:     conf.SegmentName,
 		ServiceTTL:      conf.DNSServiceTTL,
 		UDPAnswerLimit:  conf.DNSUDPAnswerLimit,
+		NodeMetaTXT:     conf.DNSNodeMetaTXT,
 	}
 }
 
@@ -158,8 +161,6 @@ START:
 func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	q := req.Question[0]
 	defer func(s time.Time) {
-		metrics.MeasureSinceWithLabels([]string{"consul", "dns", "ptr_query"}, s,
-			[]metrics.Label{{Name: "node", Value: d.agent.config.NodeName}})
 		metrics.MeasureSinceWithLabels([]string{"dns", "ptr_query"}, s,
 			[]metrics.Label{{Name: "node", Value: d.agent.config.NodeName}})
 		d.logger.Printf("[DEBUG] dns: request for %v (%v) from client %s (%s)",
@@ -209,6 +210,34 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 		}
 	}
 
+	// only look into the services if we didn't find a node
+	if len(m.Answer) == 0 {
+		// lookup the service address
+		serviceAddress := dnsutil.ExtractAddressFromReverse(qName)
+		sargs := structs.ServiceSpecificRequest{
+			Datacenter: datacenter,
+			QueryOptions: structs.QueryOptions{
+				Token:      d.agent.tokens.UserToken(),
+				AllowStale: d.config.AllowStale,
+			},
+			ServiceAddress: serviceAddress,
+		}
+
+		var sout structs.IndexedServiceNodes
+		if err := d.agent.RPC("Catalog.ServiceNodes", &sargs, &sout); err == nil {
+			for _, n := range sout.ServiceNodes {
+				if n.ServiceAddress == serviceAddress {
+					ptr := &dns.PTR{
+						Hdr: dns.RR_Header{Name: q.Name, Rrtype: dns.TypePTR, Class: dns.ClassINET, Ttl: 0},
+						Ptr: fmt.Sprintf("%s.service.%s", n.ServiceName, d.domain),
+					}
+					m.Answer = append(m.Answer, ptr)
+					break
+				}
+			}
+		}
+	}
+
 	// nothing found locally, recurse
 	if len(m.Answer) == 0 {
 		d.handleRecurse(resp, req)
@@ -230,8 +259,6 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	q := req.Question[0]
 	defer func(s time.Time) {
-		metrics.MeasureSinceWithLabels([]string{"consul", "dns", "domain_query"}, s,
-			[]metrics.Label{{Name: "node", Value: d.agent.config.NodeName}})
 		metrics.MeasureSinceWithLabels([]string{"dns", "domain_query"}, s,
 			[]metrics.Label{{Name: "node", Value: d.agent.config.NodeName}})
 		d.logger.Printf("[DEBUG] dns: request for name %v type %v class %v (took %v) from client %s (%s)",
@@ -312,7 +339,7 @@ func (d *DNSServer) addSOA(msg *dns.Msg) {
 // nameservers returns the names and ip addresses of up to three random servers
 // in the current cluster which serve as authoritative name servers for zone.
 func (d *DNSServer) nameservers(edns bool) (ns []dns.RR, extra []dns.RR) {
-	out, err := d.lookupServiceNodes(d.agent.config.Datacenter, structs.ConsulServiceName, "")
+	out, err := d.lookupServiceNodes(d.agent.config.Datacenter, structs.ConsulServiceName, "", false)
 	if err != nil {
 		d.logger.Printf("[WARN] dns: Unable to get list of servers: %s", err)
 		return nil, nil
@@ -349,7 +376,7 @@ func (d *DNSServer) nameservers(edns bool) (ns []dns.RR, extra []dns.RR) {
 		}
 		ns = append(ns, nsrr)
 
-		glue := d.formatNodeRecord(nil, addr, fqdn, dns.TypeANY, d.config.NodeTTL, edns)
+		glue := d.formatNodeRecord(nil, addr, fqdn, dns.TypeANY, d.config.NodeTTL, edns, false)
 		extra = append(extra, glue...)
 
 		// don't provide more than 3 servers
@@ -390,7 +417,7 @@ PARSE:
 		n = n + 1
 	}
 
-	switch labels[n-1] {
+	switch kind := labels[n-1]; kind {
 	case "service":
 		if n == 1 {
 			goto INVALID
@@ -408,7 +435,7 @@ PARSE:
 			}
 
 			// _name._tag.service.consul
-			d.serviceLookup(network, datacenter, labels[n-3][1:], tag, req, resp)
+			d.serviceLookup(network, datacenter, labels[n-3][1:], tag, false, req, resp)
 
 			// Consul 0.3 and prior format for SRV queries
 		} else {
@@ -420,8 +447,16 @@ PARSE:
 			}
 
 			// tag[.tag].name.service.consul
-			d.serviceLookup(network, datacenter, labels[n-2], tag, req, resp)
+			d.serviceLookup(network, datacenter, labels[n-2], tag, false, req, resp)
 		}
+
+	case "connect":
+		if n == 1 {
+			goto INVALID
+		}
+
+		// name.connect.consul
+		d.serviceLookup(network, datacenter, labels[n-2], "", true, req, resp)
 
 	case "node":
 		if n == 1 {
@@ -542,7 +577,6 @@ RPC:
 			d.logger.Printf("[WARN] dns: Query results too stale, re-requesting")
 			goto RPC
 		} else if out.LastContact > staleCounterThreshold {
-			metrics.IncrCounter([]string{"consul", "dns", "stale_queries"}, 1)
 			metrics.IncrCounter([]string{"dns", "stale_queries"}, 1)
 		}
 	}
@@ -558,7 +592,7 @@ RPC:
 	n := out.NodeServices.Node
 	edns := req.IsEdns0() != nil
 	addr := d.agent.TranslateAddress(datacenter, n.Address, n.TaggedAddresses)
-	records := d.formatNodeRecord(out.NodeServices.Node, addr, req.Question[0].Name, qType, d.config.NodeTTL, edns)
+	records := d.formatNodeRecord(out.NodeServices.Node, addr, req.Question[0].Name, qType, d.config.NodeTTL, edns, true)
 	if records != nil {
 		resp.Answer = append(resp.Answer, records...)
 	}
@@ -586,7 +620,7 @@ func encodeKVasRFC1464(key, value string) (txt string) {
 }
 
 // formatNodeRecord takes a Node and returns an A, AAAA, TXT or CNAME record
-func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qType uint16, ttl time.Duration, edns bool) (records []dns.RR) {
+func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qType uint16, ttl time.Duration, edns, answer bool) (records []dns.RR) {
 	// Parse the IP
 	ip := net.ParseIP(addr)
 	var ipv4 net.IP
@@ -647,7 +681,20 @@ func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qTy
 		}
 	}
 
-	if node != nil && (qType == dns.TypeANY || qType == dns.TypeTXT) {
+	node_meta_txt := false
+
+	if node == nil {
+		node_meta_txt = false
+	} else if answer {
+		node_meta_txt = true
+	} else {
+		// Use configuration when the TXT RR would
+		// end up in the Additional section of the
+		// DNS response
+		node_meta_txt = d.config.NodeMetaTXT
+	}
+
+	if node_meta_txt {
 		for key, value := range node.Meta {
 			txt := value
 			if !strings.HasPrefix(strings.ToLower(key), "rfc1035-") {
@@ -717,15 +764,39 @@ func syncExtra(index map[string]dns.RR, resp *dns.Msg) {
 	resp.Extra = extra
 }
 
+// dnsBinaryTruncate find the optimal number of records using a fast binary search and return
+// it in order to return a DNS answer lower than maxSize parameter.
+func dnsBinaryTruncate(resp *dns.Msg, maxSize int, index map[string]dns.RR, hasExtra bool) int {
+	originalAnswser := resp.Answer
+	startIndex := 0
+	endIndex := len(resp.Answer) + 1
+	for endIndex-startIndex > 1 {
+		median := startIndex + (endIndex-startIndex)/2
+
+		resp.Answer = originalAnswser[:median]
+		if hasExtra {
+			syncExtra(index, resp)
+		}
+		aLen := resp.Len()
+		if aLen <= maxSize {
+			if maxSize-aLen < 10 {
+				// We are good, increasing will go out of bounds
+				return median
+			}
+			startIndex = median
+		} else {
+			endIndex = median
+		}
+	}
+	return startIndex
+}
+
 // trimTCPResponse limit the MaximumSize of messages to 64k as it is the limit
 // of DNS responses
 func (d *DNSServer) trimTCPResponse(req, resp *dns.Msg) (trimmed bool) {
 	hasExtra := len(resp.Extra) > 0
 	// There is some overhead, 65535 does not work
-	maxSize := 65533 // 64k - 2 bytes
-	// In order to compute properly, we have to avoid compress first
-	compressed := resp.Compress
-	resp.Compress = false
+	maxSize := 65523 // 64k - 12 bytes DNS raw overhead
 
 	// We avoid some function calls and allocations by only handling the
 	// extra data when necessary.
@@ -733,12 +804,13 @@ func (d *DNSServer) trimTCPResponse(req, resp *dns.Msg) (trimmed bool) {
 	originalSize := resp.Len()
 	originalNumRecords := len(resp.Answer)
 
-	// Beyond 2500 records, performance gets bad
-	// Limit the number of records at once, anyway, it won't fit in 64k
-	// For SRV Records, the max is around 500 records, for A, less than 2k
-	truncateAt := 2048
+	// It is not possible to return more than 4k records even with compression
+	// Since we are performing binary search it is not a big deal, but it
+	// improves a bit performance, even with binary search
+	truncateAt := 4096
 	if req.Question[0].Qtype == dns.TypeSRV {
-		truncateAt = 640
+		// More than 1024 SRV records do not fit in 64k
+		truncateAt = 1024
 	}
 	if len(resp.Answer) > truncateAt {
 		resp.Answer = resp.Answer[:truncateAt]
@@ -750,9 +822,15 @@ func (d *DNSServer) trimTCPResponse(req, resp *dns.Msg) (trimmed bool) {
 	truncated := false
 
 	// This enforces the given limit on 64k, the max limit for DNS messages
-	for len(resp.Answer) > 0 && resp.Len() > maxSize {
+	for len(resp.Answer) > 1 && resp.Len() > maxSize {
 		truncated = true
-		resp.Answer = resp.Answer[:len(resp.Answer)-1]
+		// More than 100 bytes, find with a binary search
+		if resp.Len()-maxSize > 100 {
+			bestIndex := dnsBinaryTruncate(resp, maxSize, index, hasExtra)
+			resp.Answer = resp.Answer[:bestIndex]
+		} else {
+			resp.Answer = resp.Answer[:len(resp.Answer)-1]
+		}
 		if hasExtra {
 			syncExtra(index, resp)
 		}
@@ -762,8 +840,6 @@ func (d *DNSServer) trimTCPResponse(req, resp *dns.Msg) (trimmed bool) {
 			req.Question,
 			len(resp.Answer), originalNumRecords, resp.Len(), originalSize)
 	}
-	// Restore compression if any
-	resp.Compress = compressed
 	return truncated
 }
 
@@ -793,7 +869,10 @@ func trimUDPResponse(req, resp *dns.Msg, udpAnswerLimit int) (trimmed bool) {
 
 	// This cuts UDP responses to a useful but limited number of responses.
 	maxAnswers := lib.MinInt(maxUDPAnswerLimit, udpAnswerLimit)
+	compress := resp.Compress
 	if maxSize == defaultMaxUDPSize && numAnswers > maxAnswers {
+		// We disable computation of Len ONLY for non-eDNS request (512 bytes)
+		resp.Compress = false
 		resp.Answer = resp.Answer[:maxAnswers]
 		if hasExtra {
 			syncExtra(index, resp)
@@ -806,14 +885,22 @@ func trimUDPResponse(req, resp *dns.Msg, udpAnswerLimit int) (trimmed bool) {
 	// that will not exceed 512 bytes uncompressed, which is more conservative and
 	// will allow our responses to be compliant even if some downstream server
 	// uncompresses them.
-	compress := resp.Compress
-	resp.Compress = false
-	for len(resp.Answer) > 0 && resp.Len() > maxSize {
-		resp.Answer = resp.Answer[:len(resp.Answer)-1]
+	// Even when size is too big for one single record, try to send it anyway
+	// (usefull for 512 bytes messages)
+	for len(resp.Answer) > 1 && resp.Len() > maxSize {
+		// More than 100 bytes, find with a binary search
+		if resp.Len()-maxSize > 100 {
+			bestIndex := dnsBinaryTruncate(resp, maxSize, index, hasExtra)
+			resp.Answer = resp.Answer[:bestIndex]
+		} else {
+			resp.Answer = resp.Answer[:len(resp.Answer)-1]
+		}
 		if hasExtra {
 			syncExtra(index, resp)
 		}
 	}
+	// For 512 non-eDNS responses, while we compute size non-compressed,
+	// we send result compressed
 	resp.Compress = compress
 
 	return len(resp.Answer) < numAnswers
@@ -834,8 +921,9 @@ func (d *DNSServer) trimDNSResponse(network string, req, resp *dns.Msg) (trimmed
 }
 
 // lookupServiceNodes returns nodes with a given service.
-func (d *DNSServer) lookupServiceNodes(datacenter, service, tag string) (structs.IndexedCheckServiceNodes, error) {
+func (d *DNSServer) lookupServiceNodes(datacenter, service, tag string, connect bool) (structs.IndexedCheckServiceNodes, error) {
 	args := structs.ServiceSpecificRequest{
+		Connect:     connect,
 		Datacenter:  datacenter,
 		ServiceName: service,
 		ServiceTag:  tag,
@@ -852,7 +940,6 @@ func (d *DNSServer) lookupServiceNodes(datacenter, service, tag string) (structs
 	}
 
 	if args.AllowStale && out.LastContact > staleCounterThreshold {
-		metrics.IncrCounter([]string{"consul", "dns", "stale_queries"}, 1)
 		metrics.IncrCounter([]string{"dns", "stale_queries"}, 1)
 	}
 
@@ -872,8 +959,8 @@ func (d *DNSServer) lookupServiceNodes(datacenter, service, tag string) (structs
 }
 
 // serviceLookup is used to handle a service query
-func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, req, resp *dns.Msg) {
-	out, err := d.lookupServiceNodes(datacenter, service, tag)
+func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, connect bool, req, resp *dns.Msg) {
+	out, err := d.lookupServiceNodes(datacenter, service, tag, connect)
 	if err != nil {
 		d.logger.Printf("[ERR] dns: rpc error: %v", err)
 		resp.SetRcode(req, dns.RcodeServerFailure)
@@ -1003,7 +1090,6 @@ RPC:
 			d.logger.Printf("[WARN] dns: Query results too stale, re-requesting")
 			goto RPC
 		} else if out.LastContact > staleCounterThreshold {
-			metrics.IncrCounter([]string{"consul", "dns", "stale_queries"}, 1)
 			metrics.IncrCounter([]string{"dns", "stale_queries"}, 1)
 		}
 	}
@@ -1081,7 +1167,7 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 		handled[addr] = struct{}{}
 
 		// Add the node record
-		records := d.formatNodeRecord(node.Node, addr, qName, qType, ttl, edns)
+		records := d.formatNodeRecord(node.Node, addr, qName, qType, ttl, edns, true)
 		if records != nil {
 			resp.Answer = append(resp.Answer, records...)
 			count++
@@ -1130,7 +1216,7 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes
 		}
 
 		// Add the extra record
-		records := d.formatNodeRecord(node.Node, addr, srvRec.Target, dns.TypeANY, ttl, edns)
+		records := d.formatNodeRecord(node.Node, addr, srvRec.Target, dns.TypeANY, ttl, edns, false)
 		if len(records) > 0 {
 			// Use the node address if it doesn't differ from the service address
 			if addr == node.Node.Address {

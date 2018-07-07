@@ -1,0 +1,54 @@
+{{#app-view class="service list"}}
+    {{#block-slot 'header'}}
+        <h1>
+            Services
+        </h1>
+    {{/block-slot}}
+    {{#block-slot 'toolbar'}}
+{{#if (gt items.length 0) }}
+        {{catalog-filter filters=healthFilters search=filters.s status=filters.status onchange=(action 'filter')}}
+{{/if}}
+    {{/block-slot}}
+    {{#block-slot 'content'}}
+{{#if (gt filtered.length 0) }}
+        {{#tabular-collection
+            route='dc.services.show'
+            key='Name'
+            items=filtered as |item index|
+        }}
+            {{#block-slot 'header'}}
+                <th style={{remainingWidth}}>Service</th>
+                <th style={{thWidth}}>Node Health</th>
+                <th style={{remainingWidth}}>Tags</th>
+            {{/block-slot}}
+            {{#block-slot 'row'}}
+                <td data-test-service="{{item.Name}}" style={{remainingWidth}}>
+                    <a href={{href-to 'dc.services.show' item.Name}}>{{item.Name}}</a>
+                </td>
+                <td>
+                    <dl>
+                        <dt title="Passing" class="passing{{if (lt item.ChecksPassing 1) ' zero'}}">Healthchecks Passing</dt>
+                        <dd title="Passing" class={{if (lt item.ChecksPassing 1) 'zero'}} style={{passingWidth}}>{{format_number item.ChecksPassing}}</dd>
+                        <dt title="Warning" class="warning{{if (lt item.ChecksWarning 1) ' zero'}}">Healthchecks Warning</dt>
+                        <dd title="Warning" class={{if (lt item.ChecksWarning 1) 'zero'}} style={{warningWidth}}>{{format_number item.ChecksWarning}}</dd>
+                        <dt title="Critical" class="critical{{if (lt item.ChecksCritical 1) ' zero'}}">Healthchecks Critical</dt>
+                        <dd title="Critical" class={{if (lt item.ChecksCritical 1) 'zero'}} style={{criticalWidth}}>{{format_number item.ChecksCritical}}</dd>
+                    </dl>
+                </td>
+                <td class="tags" style={{remainingWidth}}>
+                {{#if (gt item.Tags.length 0)}}
+                  {{#each item.Tags as |item|}}
+                    <span>{{item}}</span>
+                  {{/each}}
+                {{/if}}
+                </td>
+            {{/block-slot}}
+        {{/tabular-collection}}
+{{else}}
+        <p>
+            There are no services.
+        </p>
+{{/if}}
+    {{/block-slot}}
+{{/app-view}}
+
