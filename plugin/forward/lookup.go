@@ -32,7 +32,7 @@ func (f *Forward) Forward(state request.Request) (*dns.Msg, error) {
 			proxy = f.List()[0]
 		}
 
-		ret, err := proxy.Connect(context.Background(), state, f.forceTCP, true)
+		ret, err := proxy.Connect(context.Background(), state, f.opts)
 
 		ret, err = truncated(state, ret, err)
 		upstreamErr = err

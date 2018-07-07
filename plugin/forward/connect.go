@@ -78,12 +78,17 @@ func (p *Proxy) updateRtt(newRtt time.Duration) {
 }
 
 // Connect selects an upstream, sends the request and waits for a response.
-func (p *Proxy) Connect(ctx context.Context, state request.Request, forceTCP, metric bool) (*dns.Msg, error) {
+func (p *Proxy) Connect(ctx context.Context, state request.Request, opts options) (*dns.Msg, error) {
 	start := time.Now()
 
-	proto := state.Proto()
-	if forceTCP {
+	proto := ""
+	switch {
+	case opts.forceTCP: // TCP flag has precedence over UDP flag
 		proto = "tcp"
+	case opts.preferUDP:
+		proto = "udp"
+	default:
+		proto = state.Proto()
 	}
 
 	conn, cached, err := p.Dial(proto)
@@ -122,16 +127,14 @@ func (p *Proxy) Connect(ctx context.Context, state request.Request, forceTCP, me
 
 	p.Yield(conn)
 
-	if metric {
-		rc, ok := dns.RcodeToString[ret.Rcode]
-		if !ok {
-			rc = strconv.Itoa(ret.Rcode)
-		}
-
-		RequestCount.WithLabelValues(p.addr).Add(1)
-		RcodeCount.WithLabelValues(rc, p.addr).Add(1)
-		RequestDuration.WithLabelValues(p.addr).Observe(time.Since(start).Seconds())
+	rc, ok := dns.RcodeToString[ret.Rcode]
+	if !ok {
+		rc = strconv.Itoa(ret.Rcode)
 	}
+
+	RequestCount.WithLabelValues(p.addr).Add(1)
+	RcodeCount.WithLabelValues(rc, p.addr).Add(1)
+	RequestDuration.WithLabelValues(p.addr).Observe(time.Since(start).Seconds())
 
 	return ret, nil
 }

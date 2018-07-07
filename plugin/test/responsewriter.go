@@ -9,12 +9,17 @@ import (
 // ResponseWriter is useful for writing tests. It uses some fixed values for the client. The
 // remote will always be 10.240.0.1 and port 40212. The local address is always 127.0.0.1 and
 // port 53.
-type ResponseWriter struct{}
+type ResponseWriter struct {
+	TCP bool
+}
 
 // LocalAddr returns the local address, always 127.0.0.1:53 (UDP).
 func (t *ResponseWriter) LocalAddr() net.Addr {
 	ip := net.ParseIP("127.0.0.1")
 	port := 53
+	if t.TCP {
+		return &net.TCPAddr{IP: ip, Port: port, Zone: ""}
+	}
 	return &net.UDPAddr{IP: ip, Port: port, Zone: ""}
 }
 
@@ -22,6 +27,9 @@ func (t *ResponseWriter) LocalAddr() net.Addr {
 func (t *ResponseWriter) RemoteAddr() net.Addr {
 	ip := net.ParseIP("10.240.0.1")
 	port := 40212
+	if t.TCP {
+		return &net.TCPAddr{IP: ip, Port: port, Zone: ""}
+	}
 	return &net.UDPAddr{IP: ip, Port: port, Zone: ""}
 }
 
@@ -52,10 +60,16 @@ type ResponseWriter6 struct {
 
 // LocalAddr returns the local address, always ::1, port 53 (UDP).
 func (t *ResponseWriter6) LocalAddr() net.Addr {
+	if t.TCP {
+		return &net.TCPAddr{IP: net.ParseIP("::1"), Port: 53, Zone: ""}
+	}
 	return &net.UDPAddr{IP: net.ParseIP("::1"), Port: 53, Zone: ""}
 }
 
 // RemoteAddr returns the remote address, always fe80::42:ff:feca:4c65 port 40212 (UDP).
 func (t *ResponseWriter6) RemoteAddr() net.Addr {
+	if t.TCP {
+		return &net.TCPAddr{IP: net.ParseIP("fe80::42:ff:feca:4c65"), Port: 40212, Zone: ""}
+	}
 	return &net.UDPAddr{IP: net.ParseIP("fe80::42:ff:feca:4c65"), Port: 40212, Zone: ""}
 }
