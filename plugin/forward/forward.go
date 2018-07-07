@@ -112,7 +112,7 @@ func (f *Forward) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 			if err == ErrCachedClosed { // Remote side closed conn, can only happen with TCP.
 				continue
 			}
-			// Retry with TCP if truncated and prefer_udp configured
+			// Retry with TCP if truncated and prefer_udp configured.
 			if err == dns.ErrTruncated && !opts.forceTCP && f.opts.preferUDP {
 				opts.forceTCP = true
 				continue
@@ -166,9 +166,7 @@ func (f *Forward) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 }
 
 func (f *Forward) match(state request.Request) bool {
-	from := f.from
-
-	if !plugin.Name(from).Matches(state.Name()) || !f.isAllowedDomain(state.Name()) {
+	if !plugin.Name(f.from).Matches(state.Name()) || !f.isAllowedDomain(state.Name()) {
 		return false
 	}
 
@@ -188,9 +186,6 @@ func (f *Forward) isAllowedDomain(name string) bool {
 	return true
 }
 
-// From returns the base domain to match for the request to be forwarded.
-func (f *Forward) From() string { return f.from }
-
 // ForceTCP returns if TCP is forced to be used even when the request comes in over UDP.
 func (f *Forward) ForceTCP() bool { return f.opts.forceTCP }
 
@@ -201,11 +196,11 @@ func (f *Forward) PreferUDP() bool { return f.opts.preferUDP }
 func (f *Forward) List() []*Proxy { return f.p.List(f.proxies) }
 
 var (
-	// ErrNoHealthy means no healthy proxies left
+	// ErrNoHealthy means no healthy proxies left.
 	ErrNoHealthy = errors.New("no healthy proxies")
-	// ErrNoForward means no forwarder defined
+	// ErrNoForward means no forwarder defined.
 	ErrNoForward = errors.New("no forwarder defined")
-	// ErrCachedClosed means cached connection was closed by peer
+	// ErrCachedClosed means cached connection was closed by peer.
 	ErrCachedClosed = errors.New("cached connection was closed by peer")
 )
 
@@ -218,6 +213,7 @@ const (
 	sequentialPolicy
 )
 
+// options holds various options that can be set.
 type options struct {
 	forceTCP  bool
 	preferUDP bool
