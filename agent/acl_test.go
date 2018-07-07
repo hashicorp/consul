@@ -277,9 +277,9 @@ func TestACL_Down_Extend(t *testing.T) {
 	aclExtendPolicies := []string{"extend-cache", "async-cache"}
 	for _, aclDownPolicy := range aclExtendPolicies {
 		a := NewTestAgent(t.Name(), TestACLConfig()+`
-		acl_down_policy = "`+aclDownPolicy+`"
-		acl_enforce_version_8 = true
-	`)
+			acl_down_policy = "`+aclDownPolicy+`"
+			acl_enforce_version_8 = true
+		`)
 		defer a.Shutdown()
 
 		m := MockServer{
