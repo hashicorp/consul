@@ -42,7 +42,7 @@ func (rw Rewrite) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 	state := request.Request{W: w, Req: r}
 
 	for _, rule := range rw.Rules {
-		switch result := rule.Rewrite(state); result {
+		switch result := rule.Rewrite(ctx, state); result {
 		case RewriteDone:
 			respRule := rule.GetResponseRule()
 			if respRule.Active == true {
@@ -71,7 +71,7 @@ func (rw Rewrite) Name() string { return "rewrite" }
 // Rule describes a rewrite rule.
 type Rule interface {
 	// Rewrite rewrites the current request.
-	Rewrite(state request.Request) Result
+	Rewrite(ctx context.Context, state request.Request) Result
 	// Mode returns the processing mode stop or continue.
 	Mode() string
 	// GetResponseRule returns the rule to rewrite response with, if any.

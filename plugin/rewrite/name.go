@@ -1,6 +1,7 @@
 package rewrite
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -56,7 +57,7 @@ const (
 
 // Rewrite rewrites the current request based upon exact match of the name
 // in the question section of the request.
-func (rule *nameRule) Rewrite(state request.Request) Result {
+func (rule *nameRule) Rewrite(ctx context.Context, state request.Request) Result {
 	if rule.From == state.Name() {
 		state.Req.Question[0].Name = rule.To
 		return RewriteDone
@@ -65,7 +66,7 @@ func (rule *nameRule) Rewrite(state request.Request) Result {
 }
 
 // Rewrite rewrites the current request when the name begins with the matching string.
-func (rule *prefixNameRule) Rewrite(state request.Request) Result {
+func (rule *prefixNameRule) Rewrite(ctx context.Context, state request.Request) Result {
 	if strings.HasPrefix(state.Name(), rule.Prefix) {
 		state.Req.Question[0].Name = rule.Replacement + strings.TrimLeft(state.Name(), rule.Prefix)
 		return RewriteDone
@@ -74,7 +75,7 @@ func (rule *prefixNameRule) Rewrite(state request.Request) Result {
 }
 
 // Rewrite rewrites the current request when the name ends with the matching string.
-func (rule *suffixNameRule) Rewrite(state request.Request) Result {
+func (rule *suffixNameRule) Rewrite(ctx context.Context, state request.Request) Result {
 	if strings.HasSuffix(state.Name(), rule.Suffix) {
 		state.Req.Question[0].Name = strings.TrimRight(state.Name(), rule.Suffix) + rule.Replacement
 		return RewriteDone
@@ -84,7 +85,7 @@ func (rule *suffixNameRule) Rewrite(state request.Request) Result {
 
 // Rewrite rewrites the current request based upon partial match of the
 // name in the question section of the request.
-func (rule *substringNameRule) Rewrite(state request.Request) Result {
+func (rule *substringNameRule) Rewrite(ctx context.Context, state request.Request) Result {
 	if strings.Contains(state.Name(), rule.Substring) {
 		state.Req.Question[0].Name = strings.Replace(state.Name(), rule.Substring, rule.Replacement, -1)
 		return RewriteDone
@@ -94,7 +95,7 @@ func (rule *substringNameRule) Rewrite(state request.Request) Result {
 
 // Rewrite rewrites the current request when the name in the question
 // section of the request matches a regular expression.
-func (rule *regexNameRule) Rewrite(state request.Request) Result {
+func (rule *regexNameRule) Rewrite(ctx context.Context, state request.Request) Result {
 	regexGroups := rule.Pattern.FindStringSubmatch(state.Name())
 	if len(regexGroups) == 0 {
 		return RewriteIgnored

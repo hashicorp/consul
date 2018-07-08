@@ -7,8 +7,10 @@ import (
 	"testing"
 
 	"github.com/coredns/coredns/plugin"
+	"github.com/coredns/coredns/plugin/metadata"
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	"github.com/coredns/coredns/plugin/test"
+	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
 )
@@ -434,10 +436,30 @@ func optsEqual(a, b []dns.EDNS0) bool {
 	return true
 }
 
+type testProvider map[string]metadata.Func
+
+func (tp testProvider) Metadata(ctx context.Context, state request.Request) context.Context {
+	for k, v := range tp {
+		metadata.SetValueFunc(ctx, k, v)
+	}
+	return ctx
+}
+
 func TestRewriteEDNS0LocalVariable(t *testing.T) {
 	rw := Rewrite{
 		Next:     plugin.HandlerFunc(msgPrinter),
 		noRevert: true,
+	}
+
+	expectedMetadata := []metadata.Provider{
+		testProvider{"test/label": func() string { return "my-value" }},
+		testProvider{"test/empty": func() string { return "" }},
+	}
+
+	meta := metadata.Metadata{
+		Zones:     []string{"."},
+		Providers: expectedMetadata,
+		Next:      &rw,
 	}
 
 	// test.ResponseWriter has the following values:
@@ -492,9 +514,26 @@ func TestRewriteEDNS0LocalVariable(t *testing.T) {
 			[]dns.EDNS0{&dns.EDNS0_LOCAL{Code: 0xffee, Data: []byte{0x7F, 0x00, 0x00, 0x01}}},
 			true,
 		},
+		{
+			[]dns.EDNS0{},
+			[]string{"local", "set", "0xffee", "{test/label}"},
+			[]dns.EDNS0{&dns.EDNS0_LOCAL{Code: 0xffee, Data: []byte("my-value")}},
+			true,
+		},
+		{
+			[]dns.EDNS0{},
+			[]string{"local", "set", "0xffee", "{test/empty}"},
+			[]dns.EDNS0{&dns.EDNS0_LOCAL{Code: 0xffee, Data: []byte("")}},
+			true,
+		},
+		{
+			[]dns.EDNS0{},
+			[]string{"local", "set", "0xffee", "{test/does-not-exist}"},
+			nil,
+			false,
+		},
 	}
 
-	ctx := context.TODO()
 	for i, tc := range tests {
 		m := new(dns.Msg)
 		m.SetQuestion("example.com.", dns.TypeA)
@@ -506,16 +545,19 @@ func TestRewriteEDNS0LocalVariable(t *testing.T) {
 		}
 		rw.Rules = []Rule{r}
 
+		ctx := context.TODO()
 		rec := dnstest.NewRecorder(&test.ResponseWriter{})
-		rw.ServeDNS(ctx, rec, m)
+		meta.ServeDNS(ctx, rec, m)
 
 		resp := rec.Msg
 		o := resp.IsEdns0()
-		o.SetDo(tc.doBool)
 		if o == nil {
-			t.Errorf("Test %d: EDNS0 options not set", i)
+			if tc.toOpts != nil {
+				t.Errorf("Test %d: EDNS0 options not set", i)
+			}
 			continue
 		}
+		o.SetDo(tc.doBool)
 		if o.Do() != tc.doBool {
 			t.Errorf("Test %d: Expected %v but got %v", i, tc.doBool, o.Do())
 		}
