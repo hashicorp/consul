@@ -203,7 +203,10 @@ func (rule *edns0VariableRule) ruleData(ctx context.Context, state request.Reque
 
 	fetcher := metadata.ValueFunc(ctx, rule.variable[1:len(rule.variable)-1])
 	if fetcher != nil {
-		return []byte(fetcher()), nil
+		value := fetcher()
+		if len(value) > 0 {
+			return []byte(value), nil
+		}
 	}
 
 	return nil, fmt.Errorf("unable to extract data for variable %s", rule.variable)

@@ -523,8 +523,8 @@ func TestRewriteEDNS0LocalVariable(t *testing.T) {
 		{
 			[]dns.EDNS0{},
 			[]string{"local", "set", "0xffee", "{test/empty}"},
-			[]dns.EDNS0{&dns.EDNS0_LOCAL{Code: 0xffee, Data: []byte("")}},
-			true,
+			nil,
+			false,
 		},
 		{
 			[]dns.EDNS0{},
