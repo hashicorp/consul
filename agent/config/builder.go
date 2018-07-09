@@ -1198,7 +1198,7 @@ func (b *Builder) expandAddrs(name string, s *string) []net.Addr {
 
 	x, err := template.Parse(*s)
 	if err != nil {
-		b.err = multierror.Append(b.err, fmt.Errorf("%s: error parsing %q: %s", name, s, err))
+		b.err = multierror.Append(b.err, fmt.Errorf("%s: error parsing %s: %s", name, *s, err))
 		return nil
 	}
 
@@ -1237,7 +1237,7 @@ func (b *Builder) expandOptionalAddrs(name string, s *string) []string {
 
 	x, err := template.Parse(*s)
 	if err != nil {
-		b.err = multierror.Append(b.err, fmt.Errorf("%s: error parsing %q: %s", name, s, err))
+		b.err = multierror.Append(b.err, fmt.Errorf("%s: error parsing %s: %s", name, *s, err))
 		return nil
 	}
 
