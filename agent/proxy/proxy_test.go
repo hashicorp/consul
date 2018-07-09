@@ -7,7 +7,9 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"sort"
 	"strconv"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -16,6 +18,22 @@ import (
 // testLogger is a logger that can be used by tests that require a
 // *log.Logger instance.
 var testLogger = log.New(os.Stderr, "logger: ", log.LstdFlags)
+
+//SOrting interface
+type Bytes []byte
+
+//Length method for our Byte interface
+func (b Bytes) Len() int {
+	return len(b)
+}
+
+func (b Bytes) Swap(i, j int) {
+	b[i], b[j] = b[j], b[i]
+}
+
+func (b Bytes) Less(i, j int) bool {
+	return b[i] < b[j]
+}
 
 // testTempDir returns a temporary directory and a cleanup function.
 func testTempDir(t *testing.T) (string, func()) {
@@ -124,7 +142,6 @@ func TestHelperProcess(t *testing.T) {
 			default:
 			}
 		}
-
 	case "stop-kill":
 		// Setup listeners so it is ignored
 		ch := make(chan os.Signal, 1)
@@ -139,6 +156,32 @@ func TestHelperProcess(t *testing.T) {
 			}
 			time.Sleep(25 * time.Millisecond)
 		}
+		// Check if the external process can access the enivironmental variables
+	case "environ":
+		stop := make(chan os.Signal, 1)
+		signal.Notify(stop, os.Interrupt)
+		defer signal.Stop(stop)
+
+		//Write the environmental variables into the file
+		path := args[0]
+		var data Bytes
+		// sort.Sort(data)
+		envData := os.Environ()
+		sort.Strings(envData)
+		for _, envVariable := range envData {
+			if strings.Contains(envVariable, "CONNECT_PROXY") {
+				continue
+			}
+			data = append(data, envVariable...)
+			data = append(data, "\n"...)
+		}
+		if err := ioutil.WriteFile(path, data, 0644); err != nil {
+			t.Fatalf("[Error] File write failed : %s", err)
+		}
+
+		// Clean up after we receive the signal to exit
+		defer os.Remove(path)
+		<-stop
 
 	case "output":
 		fmt.Fprintf(os.Stdout, "hello stdout\n")

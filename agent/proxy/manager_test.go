@@ -5,6 +5,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
+	"sort"
 	"testing"
 	"time"
 
@@ -274,31 +276,38 @@ func TestEnvironproxy(t *testing.T) {
 	m.State = state
 	defer m.Kill()
 
-	// Add the proxy
+	// Add Proxy for the test
 	td, closer := testTempDir(t)
 	defer closer()
 	path := filepath.Join(td, "env-variables")
-	d := &Daemon{
-		Command: helperProcess("parent", path),
-		Logger:  testLogger,
-	}
-	var currentEnviron []string
-	currentEnviron = os.Environ()
-	// Environmental variable of the helper
-	if err := d.Start(); err != nil {
-		t.Error("Daemon failed to start")
-		defer d.Stop()
-		envProcess := d.Command.Env
-		var envData []byte
-		for _, data := range envProcess {
-			envData = append(envData, []byte(data)...)
-			envData = append(envData, []byte("\n")...)
-		}
-		t.Logf("Env Data:%s", envProcess)
-		//Get the parent environmental variables in a file
+	testStateProxy(t, state, "environTest", helperProcess("environ", path))
 
-		require.Equal(currentEnviron, envProcess)
+	//Run the manager
+	go m.Run()
+
+	//Get the environmental variables from the OS
+	//envCheck := os.Environ()
+	var fileContent Bytes
+	var err error
+	var data Bytes
+	envData := os.Environ()
+	sort.Strings(envData)
+	for _, envVariable := range envData {
+		data = append(data, envVariable...)
+		data = append(data, "\n"...)
 	}
+	// t.Log(data)
+	retry.Run(t, func(r *retry.R) {
+		if fileContent, err = ioutil.ReadFile(path); err != nil {
+			r.Fatalf("No file ya dummy")
+		}
+	})
+
+	t.Logf("Len (data) : %d , Len (fileContent) : %d", len(data), len(fileContent))
+	t.Logf("Type (data) : %s Type (fileContent) : %s", reflect.TypeOf(data), reflect.TypeOf(fileContent))
+	// t.Logf("File content: \n %s", fileContent)
+	// t.Logf("Data content: \n %s", data)
+	require.Equal(fileContent, data)
 }
 
 // Test the Snapshot/Restore works.
