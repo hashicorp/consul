@@ -26,7 +26,7 @@ type staticHostEntry struct {
 var (
 	hosts = `255.255.255.255	broadcasthost
 	127.0.0.2	odin
-	127.0.0.3	odin  # inline comment 
+	127.0.0.3	odin  # inline comment
 	::2             odin
 	127.1.1.1	thor
 	# aliases

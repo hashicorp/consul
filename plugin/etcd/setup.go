@@ -124,7 +124,7 @@ func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 		}
 		etc.Client = client
 		etc.endpoints = endpoints
-		
+
 		return &etc, stubzones, nil
 	}
 	return &Etcd{}, false, nil

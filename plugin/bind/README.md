@@ -7,7 +7,7 @@
 ## Description
 
 Normally, the listener binds to the wildcard host. However, you may want the listener to bind to
-another IP instead.      
+another IP instead.
 
 If several addresses are provided, a listener will be open on each of the IP provided.
 
@@ -42,10 +42,10 @@ To allow processing DNS requests only local host on both IPv4 and IPv6 stacks, u
 
 If the configuration comes up with several *bind* directives, all addresses are consolidated together:
 The following sample is equivalent to the preceding:
- 
+
 ~~~ corefile
 . {
-    bind 127.0.0.1 
+    bind 127.0.0.1
     bind ::1
 }
 ~~~

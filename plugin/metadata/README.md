@@ -18,7 +18,7 @@ metadata a plugin might be interested in.
 The meta data is added by setting a label with a value in the context. These labels should be named
 `plugin/NAME`, where **NAME** is something descriptive. The only hard requirement the *metadata*
 plugin enforces is that the labels contains a slash. See the documentation for
-`metadata.SetValueFunc`. 
+`metadata.SetValueFunc`.
 
 The value stored is a string. The empty string signals "no meta data". See the documentation for
 `metadata.ValueFunc` on how to retrieve this.

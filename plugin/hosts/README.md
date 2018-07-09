@@ -31,7 +31,7 @@ fdfc:a744:27b5:3b0e::1  example.com example
 
 ### PTR records
 
-PTR records for reverse lookups are generated automatically by CoreDNS (based on the hosts file entries) and cannot be created manually. 
+PTR records for reverse lookups are generated automatically by CoreDNS (based on the hosts file entries) and cannot be created manually.
 
 ## Syntax
 

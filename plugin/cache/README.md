@@ -24,8 +24,8 @@ cache [TTL] [ZONES...]
 * **ZONES** zones it should cache for. If empty, the zones from the configuration block are used.
 
 Each element in the cache is cached according to its TTL (with **TTL** as the max).
-For the negative cache, the SOA's MinTTL value is used. A TTL of zero is not allowed. 
-A cache is divided into 256 shards, each holding up to 512 items by default - for a total size 
+For the negative cache, the SOA's MinTTL value is used. A TTL of zero is not allowed.
+A cache is divided into 256 shards, each holding up to 512 items by default - for a total size
 of 256 * 512 = 131,072 items.
 
 If you want more control:

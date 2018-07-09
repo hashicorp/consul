@@ -2,7 +2,7 @@
 
 ## Name
 
-*whoami* - returns your resolver's local IP address, port and transport. 
+*whoami* - returns your resolver's local IP address, port and transport.
 
 ## Description
 

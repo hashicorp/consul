@@ -71,7 +71,7 @@ then:
 
 ## Bugs
 
-When reloading, the Prometheus handler is stopped before the new server instance is started. 
-If that new server fails to start, then the initial server instance is still available and DNS queries still served, 
-but Prometheus handler stays down. 
+When reloading, the Prometheus handler is stopped before the new server instance is started.
+If that new server fails to start, then the initial server instance is still available and DNS queries still served,
+but Prometheus handler stays down.
 Prometheus will not reply HTTP request until a successful reload or a complete restart of CoreDNS.

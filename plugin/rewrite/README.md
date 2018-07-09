@@ -209,9 +209,9 @@ rewrites the first local option with code 0xffee, setting the data to "abcd". Eq
 * A variable data is specified with a pair of curly brackets `{}`. Following are the supported variables:
   {qname}, {qtype}, {client_ip}, {client_port}, {protocol}, {server_ip}, {server_port}.
 
-* If the metadata plugin is enabled, then labels are supported as variables if they are presented within curly brackets. 
-the variable data will be filled with the value associated with that label. If that label is not provided, 
-the variable will be silently substitute by an empty string.  
+* If the metadata plugin is enabled, then labels are supported as variables if they are presented within curly brackets.
+the variable data will be filled with the value associated with that label. If that label is not provided,
+the variable will be silently substitute by an empty string.
 
 Examples:
 

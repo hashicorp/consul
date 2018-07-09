@@ -17,7 +17,7 @@ func TestHostsInlineLookup(t *testing.T) {
                        hosts highly_unlikely_to_exist_hosts_file example.org {
                          10.0.0.1 example.org
                          fallthrough
-                      }	
+                      }
                     }`
 
 	i, udp, _, err := CoreDNSServerAndPorts(corefile)
