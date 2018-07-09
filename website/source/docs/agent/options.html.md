@@ -136,7 +136,7 @@ will exit with an error at startup.
 
 * <a name="_config_dir"></a><a href="#_config_dir">`-config-dir`</a> - A directory of
   configuration files to load. Consul will
-  load all files in this directory with the suffix ".json". The load order
+  load all files in this directory with the suffix ".json" or ".hcl". The load order
   is alphabetical, and the the same merge routine is used as with the
   [`config-file`](#_config_file) option above. This option can be specified multiple times
   to load multiple directories. Sub-directories of the config directory are not loaded.
