@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
@@ -177,6 +178,7 @@ func (s *ConnectCA) ConfigurationSet(
 		newRoot := *r
 		if newRoot.Active {
 			newRoot.Active = false
+			newRoot.RotatedOutAt = time.Now()
 		}
 		newRoots = append(newRoots, &newRoot)
 	}

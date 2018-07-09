@@ -107,6 +107,12 @@ type Server struct {
 	caProviderRoot *structs.CARoot
 	caProviderLock sync.RWMutex
 
+	// caPruningCh is used to shut down the CA root pruning goroutine when we
+	// lose leadership.
+	caPruningCh      chan struct{}
+	caPruningLock    sync.RWMutex
+	caPruningEnabled bool
+
 	// Consul configuration
 	config *Config
 
