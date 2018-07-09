@@ -427,7 +427,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		}
 		go s.Flood(nil, portFn, s.serfWAN)
 	}
-	
+
 	// Start enterprise specific functionality
 	if err := s.startEnterprise(); err != nil {
 		s.Shutdown()
