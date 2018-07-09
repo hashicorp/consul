@@ -822,7 +822,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
       matching hosts, shuffle the list randomly, and then limit the number of
       answers to `a_record_limit` (default: no limit). This limit does not apply to SRV records.
 
-      In environments where [RFC 3484 Section 6](https://tools.ietf.org/html/rfc3484#section-6) Rule 9
+        In environments where [RFC 3484 Section 6](https://tools.ietf.org/html/rfc3484#section-6) Rule 9
       is implemented and enforced (i.e. DNS answers are always sorted and
       therefore never random), clients may need to set this value to `1` to
       preserve the expected randomized distribution behavior (note:
@@ -831,7 +831,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
       be increasingly uncommon to need to change this value with modern
       resolvers).
       
-    * <a name="enable_additional_node_meta_txt"></a><a href="#enable_additional_node_meta_txt">`enable_additional_node_meta_txt`</a> - 
+    * <a name="enable_additional_node_meta_txt"></a><a href="#enable_additional_node_meta_txt">`enable_additional_node_meta_txt`</a> -
       When set to true, Consul will add TXT records for Node metadata into the Additional section of the DNS responses for several
       query types such as SRV queries. When set to false those records are emitted. This does not impact the behavior of those
       same TXT records when they would be added to the Answer section of the response like when querying with type TXT or ANY. This
