@@ -265,7 +265,7 @@ func TestManagerRun_daemonPid(t *testing.T) {
 // Test to check if the parent and the child processes
 // have the same environmental variables
 
-func TestEnvironproxy(t *testing.T) {
+func TestManagerPassesEnvironment(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
