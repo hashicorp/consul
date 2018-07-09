@@ -29,7 +29,7 @@ type transport struct {
 	stop  chan bool
 }
 
-func newTransport(addr string, tlsConfig *tls.Config) *transport {
+func newTransport(addr string) *transport {
 	t := &transport{
 		avgDialTime: int64(defaultDialTimeout / 2),
 		conns:       make(map[string][]*persistConn),

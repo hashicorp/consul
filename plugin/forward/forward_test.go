@@ -19,7 +19,7 @@ func TestForward(t *testing.T) {
 	})
 	defer s.Close()
 
-	p := NewProxy(s.Addr, nil /* not TLS */)
+	p := NewProxy(s.Addr, DNS)
 	f := New()
 	f.SetProxy(p)
 	defer f.Close()
@@ -51,7 +51,7 @@ func TestForwardRefused(t *testing.T) {
 	})
 	defer s.Close()
 
-	p := NewProxy(s.Addr, nil)
+	p := NewProxy(s.Addr, DNS)
 	f := New()
 	f.SetProxy(p)
 	defer f.Close()

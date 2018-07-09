@@ -124,7 +124,7 @@ func parseForward(c *caddy.Controller) (*Forward, error) {
 
 			// We can't set tlsConfig here, because we haven't parsed it yet.
 			// We set it below at the end of parseBlock, use nil now.
-			p := NewProxy(h, nil /* no TLS */)
+			p := NewProxy(h, protocols[i])
 			f.proxies = append(f.proxies, p)
 		}
 

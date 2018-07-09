@@ -19,7 +19,7 @@ func TestLookup(t *testing.T) {
 	})
 	defer s.Close()
 
-	p := NewProxy(s.Addr, nil /* no TLS */)
+	p := NewProxy(s.Addr, DNS)
 	f := New()
 	f.SetProxy(p)
 	defer f.Close()
