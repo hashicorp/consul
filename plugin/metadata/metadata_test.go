@@ -68,20 +68,23 @@ func TestLabelFormat(t *testing.T) {
 		label   string
 		isValid bool
 	}{
+		// ok
 		{"plugin/LABEL", true},
 		{"p/LABEL", true},
 		{"plugin/L", true},
+		// fails
 		{"LABEL", false},
 		{"plugin.LABEL", false},
 		{"/NO-PLUGIN-NOT-ACCEPTED", false},
 		{"ONLY-PLUGIN-NOT-ACCEPTED/", false},
 		{"PLUGIN/LABEL/SUB-LABEL", false},
 		{"/", false},
+		{"//", false},
 	}
 
 	for _, test := range labels {
-		if IsLabel(test.label) != test.isValid {
-			t.Errorf("Label %v is expected to have this validaty : %v - and has the opposite", test.label, test.isValid)
+		if x := IsLabel(test.label); x != test.isValid {
+			t.Errorf("Label %v expected %v, got: %v", test.label, test.isValid, x)
 		}
 	}
 }
