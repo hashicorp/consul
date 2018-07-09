@@ -2,6 +2,7 @@ import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
+import isFolder from 'consul-ui/utils/isFolder';
 import WithKvActions from 'consul-ui/mixins/kv/with-actions';
 
 export default Route.extend(WithKvActions, {
@@ -13,7 +14,12 @@ export default Route.extend(WithKvActions, {
   },
   repo: service('kv'),
   model: function(params) {
-    const key = params.key || '/';
+    let key = params.key || '/';
+    // we are index or folder, so if the key doesn't have a trailing slash
+    // add one to force a fake findBySlug
+    if (!isFolder(key)) {
+      key = key + '/';
+    }
     const dc = this.modelFor('dc').dc.Name;
     const repo = get(this, 'repo');
     return hash({
