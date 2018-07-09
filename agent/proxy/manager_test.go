@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"reflect"
 	"sort"
 	"testing"
 	"time"
@@ -286,27 +285,24 @@ func TestEnvironproxy(t *testing.T) {
 	go m.Run()
 
 	//Get the environmental variables from the OS
-	//envCheck := os.Environ()
-	var fileContent Bytes
+	var fileContent []byte
 	var err error
-	var data Bytes
+	var data []byte
 	envData := os.Environ()
 	sort.Strings(envData)
 	for _, envVariable := range envData {
 		data = append(data, envVariable...)
 		data = append(data, "\n"...)
 	}
-	// t.Log(data)
+
+	// Check if the file written to from the spawned process
+	// has the necessary environmental variable data
 	retry.Run(t, func(r *retry.R) {
 		if fileContent, err = ioutil.ReadFile(path); err != nil {
 			r.Fatalf("No file ya dummy")
 		}
 	})
 
-	t.Logf("Len (data) : %d , Len (fileContent) : %d", len(data), len(fileContent))
-	t.Logf("Type (data) : %s Type (fileContent) : %s", reflect.TypeOf(data), reflect.TypeOf(fileContent))
-	// t.Logf("File content: \n %s", fileContent)
-	// t.Logf("Data content: \n %s", data)
 	require.Equal(fileContent, data)
 }
 

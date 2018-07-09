@@ -19,22 +19,6 @@ import (
 // *log.Logger instance.
 var testLogger = log.New(os.Stderr, "logger: ", log.LstdFlags)
 
-//SOrting interface
-type Bytes []byte
-
-//Length method for our Byte interface
-func (b Bytes) Len() int {
-	return len(b)
-}
-
-func (b Bytes) Swap(i, j int) {
-	b[i], b[j] = b[j], b[i]
-}
-
-func (b Bytes) Less(i, j int) bool {
-	return b[i] < b[j]
-}
-
 // testTempDir returns a temporary directory and a cleanup function.
 func testTempDir(t *testing.T) (string, func()) {
 	t.Helper()
@@ -162,14 +146,17 @@ func TestHelperProcess(t *testing.T) {
 		signal.Notify(stop, os.Interrupt)
 		defer signal.Stop(stop)
 
-		//Write the environmental variables into the file
+		//Get the path for the file to be written to
 		path := args[0]
-		var data Bytes
-		// sort.Sort(data)
+		var data []byte
+
+		//Get the environmental variables
 		envData := os.Environ()
+
+		//Sort the env data for easier comparison
 		sort.Strings(envData)
 		for _, envVariable := range envData {
-			if strings.Contains(envVariable, "CONNECT_PROXY") {
+			if strings.HasPrefix(envVariable, "CONSUL") || strings.HasPrefix(envVariable, "CONNECT") {
 				continue
 			}
 			data = append(data, envVariable...)
@@ -181,6 +168,7 @@ func TestHelperProcess(t *testing.T) {
 
 		// Clean up after we receive the signal to exit
 		defer os.Remove(path)
+
 		<-stop
 
 	case "output":
