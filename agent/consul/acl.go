@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -116,6 +117,9 @@ type aclCache struct {
 	// local is a function used to look for an ACL locally if replication is
 	// enabled. This will be nil if replication isn't enabled.
 	local acl.FaultFunc
+
+	fetchMutex sync.RWMutex
+	fetchMap   map[string][]chan (RemoteACLResult)
 }
 
 // newACLCache returns a new non-authoritative cache for ACLs. This is used for
@@ -142,8 +146,15 @@ func newACLCache(conf *Config, logger *log.Logger, rpc rpcFn, local acl.FaultFun
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create ACL policy cache: %v", err)
 	}
+	cache.fetchMap = make(map[string][]chan (RemoteACLResult))
 
 	return cache, nil
+}
+
+// Result Type returned when fetching Remote ACLs asynchronously
+type RemoteACLResult struct {
+	result acl.ACL
+	err    error
 }
 
 // lookupACL is used when we are non-authoritative, and need to resolve an ACL.
@@ -161,8 +172,23 @@ func (c *aclCache) lookupACL(id, authDC string) (acl.ACL, error) {
 		return cached.ACL, nil
 	}
 	metrics.IncrCounter([]string{"acl", "cache_miss"}, 1)
+	res := c.lookupACLRemote(id, authDC, cached)
+	return res.result, res.err
+}
 
-	// Attempt to refresh the policy from the ACL datacenter via an RPC.
+func (c *aclCache) fireResult(id string, theACL acl.ACL, err error) {
+	c.fetchMutex.Lock()
+	channels := c.fetchMap[id]
+	delete(c.fetchMap, id)
+	c.fetchMutex.Unlock()
+	aclResult := RemoteACLResult{theACL, err}
+	for _, cx := range channels {
+		cx <- aclResult
+		close(cx)
+	}
+}
+
+func (c *aclCache) loadACLInChan(id, authDC string, cached *aclCacheEntry) {
 	args := structs.ACLPolicyRequest{
 		Datacenter: authDC,
 		ACL:        id,
@@ -173,13 +199,21 @@ func (c *aclCache) lookupACL(id, authDC string) (acl.ACL, error) {
 	var reply structs.ACLPolicy
 	err := c.rpc("ACL.GetPolicy", &args, &reply)
 	if err == nil {
-		return c.useACLPolicy(id, authDC, cached, &reply)
+		theACL, theError := c.useACLPolicy(id, authDC, cached, &reply)
+		if cached != nil && theACL != nil {
+			cached.ACL = theACL
+			cached.ETag = reply.ETag
+			cached.Expires = time.Now().Add(c.config.ACLTTL)
+		}
+		c.fireResult(id, theACL, theError)
+		return
 	}
 
 	// Check for not-found, which will cause us to bail immediately. For any
 	// other error we report it in the logs but can continue.
 	if acl.IsErrNotFound(err) {
-		return nil, acl.ErrNotFound
+		c.fireResult(id, nil, acl.ErrNotFound)
+		return
 	}
 	c.logger.Printf("[ERR] consul.acl: Failed to get policy from ACL datacenter: %v", err)
 
@@ -200,7 +234,7 @@ func (c *aclCache) lookupACL(id, authDC string) (acl.ACL, error) {
 	// local ACL fault function is registered to query replicated ACL data,
 	// and the user's policy allows it, we will try locally before we give
 	// up.
-	if c.local != nil && c.config.ACLDownPolicy == "extend-cache" {
+	if c.local != nil && (c.config.ACLDownPolicy == "extend-cache" || c.config.ACLDownPolicy == "async-cache") {
 		parent, rules, err := c.local(id)
 		if err != nil {
 			// We don't make an exception here for ACLs that aren't
@@ -227,22 +261,56 @@ func (c *aclCache) lookupACL(id, authDC string) (acl.ACL, error) {
 		reply.TTL = c.config.ACLTTL
 		reply.Parent = parent
 		reply.Policy = policy
-		return c.useACLPolicy(id, authDC, cached, &reply)
+		theACL, theError := c.useACLPolicy(id, authDC, cached, &reply)
+		if cached != nil && theACL != nil {
+			cached.ACL = theACL
+			cached.ETag = reply.ETag
+			cached.Expires = time.Now().Add(c.config.ACLTTL)
+		}
+		c.fireResult(id, theACL, theError)
+		return
 	}
 
 ACL_DOWN:
 	// Unable to refresh, apply the down policy.
 	switch c.config.ACLDownPolicy {
 	case "allow":
-		return acl.AllowAll(), nil
-	case "extend-cache":
+		c.fireResult(id, acl.AllowAll(), nil)
+		return
+	case "async-cache", "extend-cache":
 		if cached != nil {
-			return cached.ACL, nil
+			c.fireResult(id, cached.ACL, nil)
+			return
 		}
 		fallthrough
 	default:
-		return acl.DenyAll(), nil
+		c.fireResult(id, acl.DenyAll(), nil)
+		return
 	}
+}
+
+func (c *aclCache) lookupACLRemote(id, authDC string, cached *aclCacheEntry) RemoteACLResult {
+	// Attempt to refresh the policy from the ACL datacenter via an RPC.
+	myChan := make(chan RemoteACLResult)
+	mustWaitForResult := cached == nil || c.config.ACLDownPolicy != "async-cache"
+	c.fetchMutex.Lock()
+	clients, ok := c.fetchMap[id]
+	if !ok || clients == nil {
+		clients = make([]chan RemoteACLResult, 0)
+	}
+	if mustWaitForResult {
+		c.fetchMap[id] = append(clients, myChan)
+	}
+	c.fetchMutex.Unlock()
+
+	if !ok {
+		go c.loadACLInChan(id, authDC, cached)
+	}
+	if !mustWaitForResult {
+		return RemoteACLResult{cached.ACL, nil}
+	}
+	res := <-myChan
+	return res
 }
 
 // useACLPolicy handles an ACLPolicy response
