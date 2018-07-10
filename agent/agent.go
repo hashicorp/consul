@@ -380,6 +380,13 @@ func (a *Agent) Start() error {
 				a.logger.Printf("[WARN] agent: error restoring proxy state: %s", err)
 			}
 		}
+
+		acfg, err := a.config.APIConfig(true)
+		if err != nil {
+			return err
+		}
+		a.proxyManager.APIConfig = acfg
+
 		go a.proxyManager.Run()
 	}
 
