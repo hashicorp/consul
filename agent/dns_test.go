@@ -178,6 +178,9 @@ func TestDNS_NodeLookup(t *testing.T) {
 		TaggedAddresses: map[string]string{
 			"wan": "127.0.0.2",
 		},
+		NodeMeta: map[string]string{
+			"key": "value",
+		},
 	}
 
 	var out struct{}
@@ -190,24 +193,40 @@ func TestDNS_NodeLookup(t *testing.T) {
 
 	c := new(dns.Client)
 	in, _, err := c.Exchange(m, a.DNSAddr())
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	if len(in.Answer) != 1 {
-		t.Fatalf("Bad: %#v", in)
-	}
+	require.NoError(t, err)
+	require.Len(t, in.Answer, 2)
+	require.Len(t, in.Extra, 0)
 
 	aRec, ok := in.Answer[0].(*dns.A)
-	if !ok {
-		t.Fatalf("Bad: %#v", in.Answer[0])
-	}
-	if aRec.A.String() != "127.0.0.1" {
-		t.Fatalf("Bad: %#v", in.Answer[0])
-	}
-	if aRec.Hdr.Ttl != 0 {
-		t.Fatalf("Bad: %#v", in.Answer[0])
-	}
+	require.True(t, ok, "First answer is not an A record")
+	require.Equal(t, "127.0.0.1", aRec.A.String())
+	require.Equal(t, uint32(0), aRec.Hdr.Ttl)
+
+	txt, ok := in.Answer[1].(*dns.TXT)
+	require.True(t, ok, "Second answer is not a TXT record")
+	require.Len(t, txt.Txt, 1)
+	require.Equal(t, "key=value", txt.Txt[0])
+
+	// Re-do the query, but only for an A RR
+
+	m = new(dns.Msg)
+	m.SetQuestion("foo.node.consul.", dns.TypeA)
+
+	c = new(dns.Client)
+	in, _, err = c.Exchange(m, a.DNSAddr())
+	require.NoError(t, err)
+	require.Len(t, in.Answer, 1)
+	require.Len(t, in.Extra, 1)
+
+	aRec, ok = in.Answer[0].(*dns.A)
+	require.True(t, ok, "Answer is not an A record")
+	require.Equal(t, "127.0.0.1", aRec.A.String())
+	require.Equal(t, uint32(0), aRec.Hdr.Ttl)
+
+	txt, ok = in.Extra[0].(*dns.TXT)
+	require.True(t, ok, "Extra record is not a TXT record")
+	require.Len(t, txt.Txt, 1)
+	require.Equal(t, "key=value", txt.Txt[0])
 
 	// Re-do the query, but specify the DC
 	m = new(dns.Msg)
@@ -215,24 +234,17 @@ func TestDNS_NodeLookup(t *testing.T) {
 
 	c = new(dns.Client)
 	in, _, err = c.Exchange(m, a.DNSAddr())
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	if len(in.Answer) != 1 {
-		t.Fatalf("Bad: %#v", in)
-	}
+	require.NoError(t, err)
+	require.Len(t, in.Answer, 2)
+	require.Len(t, in.Extra, 0)
 
 	aRec, ok = in.Answer[0].(*dns.A)
-	if !ok {
-		t.Fatalf("Bad: %#v", in.Answer[0])
-	}
-	if aRec.A.String() != "127.0.0.1" {
-		t.Fatalf("Bad: %#v", in.Answer[0])
-	}
-	if aRec.Hdr.Ttl != 0 {
-		t.Fatalf("Bad: %#v", in.Answer[0])
-	}
+	require.True(t, ok, "First answer is not an A record")
+	require.Equal(t, "127.0.0.1", aRec.A.String())
+	require.Equal(t, uint32(0), aRec.Hdr.Ttl)
+
+	txt, ok = in.Answer[1].(*dns.TXT)
+	require.True(t, ok, "Second answer is not a TXT record")
 
 	// lookup a non-existing node, we should receive a SOA
 	m = new(dns.Msg)
@@ -240,22 +252,11 @@ func TestDNS_NodeLookup(t *testing.T) {
 
 	c = new(dns.Client)
 	in, _, err = c.Exchange(m, a.DNSAddr())
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	if len(in.Ns) != 1 {
-		t.Fatalf("Bad: %#v %#v", in, len(in.Answer))
-	}
-
+	require.NoError(t, err)
+	require.Len(t, in.Ns, 1)
 	soaRec, ok := in.Ns[0].(*dns.SOA)
-	if !ok {
-		t.Fatalf("Bad: %#v", in.Ns[0])
-	}
-	if soaRec.Hdr.Ttl != 0 {
-		t.Fatalf("Bad: %#v", in.Ns[0])
-	}
-
+	require.True(t, ok, "NS RR is not a SOA record")
+	require.Equal(t, uint32(0), soaRec.Hdr.Ttl)
 }
 
 func TestDNS_CaseInsensitiveNodeLookup(t *testing.T) {
@@ -596,6 +597,41 @@ func TestDNS_NodeLookup_ANY_DontSuppressTXT(t *testing.T) {
 		},
 	}
 	verify.Values(t, "answer", in.Answer, wantAnswer)
+}
+
+func TestDNS_NodeLookup_A_SuppressTXT(t *testing.T) {
+	a := NewTestAgent(t.Name(), `dns_config = { enable_additional_node_meta_txt = false }`)
+	defer a.Shutdown()
+
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "bar",
+		Address:    "127.0.0.1",
+		NodeMeta: map[string]string{
+			"key": "value",
+		},
+	}
+
+	var out struct{}
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+	m := new(dns.Msg)
+	m.SetQuestion("bar.node.consul.", dns.TypeA)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, a.DNSAddr())
+	require.NoError(t, err)
+
+	wantAnswer := []dns.RR{
+		&dns.A{
+			Hdr: dns.RR_Header{Name: "bar.node.consul.", Rrtype: dns.TypeA, Class: dns.ClassINET, Rdlength: 0x4},
+			A:   []byte{0x7f, 0x0, 0x0, 0x1}, // 127.0.0.1
+		},
+	}
+	verify.Values(t, "answer", in.Answer, wantAnswer)
+
+	// ensure TXT RR suppression
+	require.Len(t, in.Extra, 0)
 }
 
 func TestDNS_EDNS0(t *testing.T) {
