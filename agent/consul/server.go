@@ -107,6 +107,12 @@ type Server struct {
 	caProviderRoot *structs.CARoot
 	caProviderLock sync.RWMutex
 
+	// caPruningCh is used to shut down the CA root pruning goroutine when we
+	// lose leadership.
+	caPruningCh      chan struct{}
+	caPruningLock    sync.RWMutex
+	caPruningEnabled bool
+
 	// Consul configuration
 	config *Config
 
@@ -421,7 +427,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store) (*
 		}
 		go s.Flood(nil, portFn, s.serfWAN)
 	}
-	
+
 	// Start enterprise specific functionality
 	if err := s.startEnterprise(); err != nil {
 		s.Shutdown()

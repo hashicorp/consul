@@ -1,34 +1,32 @@
 export default function(type) {
-  let url = null;
+  let requests = null;
   switch (type) {
     case 'dc':
-      url = ['/v1/catalog/datacenters'];
+      requests = ['/v1/catalog/datacenters'];
       break;
     case 'service':
-      url = ['/v1/internal/ui/services', '/v1/health/service/'];
+      requests = ['/v1/internal/ui/services', '/v1/health/service/'];
       break;
     case 'node':
-      url = ['/v1/internal/ui/nodes'];
+      requests = ['/v1/internal/ui/nodes'];
       break;
     case 'kv':
-      url = '/v1/kv/';
+      requests = ['/v1/kv/'];
       break;
     case 'acl':
-      url = ['/v1/acl/list'];
+      requests = ['/v1/acl/list'];
       break;
     case 'session':
-      url = ['/v1/session/node/'];
+      requests = ['/v1/session/node/'];
       break;
   }
-  return function(actual) {
-    if (url === null) {
+  // TODO: An instance of URL should come in here (instead of 2 args)
+  return function(url, method) {
+    if (requests === null) {
       return false;
     }
-    if (typeof url === 'string') {
-      return url === actual;
-    }
-    return url.some(function(item) {
-      return actual.indexOf(item) === 0;
+    return requests.some(function(item) {
+      return method.toUpperCase() === 'GET' && url.indexOf(item) === 0;
     });
   };
 }

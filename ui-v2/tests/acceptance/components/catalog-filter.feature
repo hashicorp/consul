@@ -47,7 +47,7 @@ Feature: components / catalog-filter
 
     When I click all on the filter
     And I see allIsSelected on the filter
-    Then I type with yaml
+    Then I fill in with yaml
     ---
     s: [Model]-0
     ---
@@ -75,7 +75,7 @@ Feature: components / catalog-filter
     When I click services on the tabs
     And I see servicesIsSelected on the tabs
 
-    Then I type with yaml
+    Then I fill in with yaml
     ---
     s: 65535
     ---

@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"testing"
 	"time"
 
@@ -259,6 +260,50 @@ func TestManagerRun_daemonPid(t *testing.T) {
 	pidRaw, err := ioutil.ReadFile(pidPath)
 	require.NoError(err)
 	require.NotEmpty(pidRaw)
+}
+
+// Test to check if the parent and the child processes
+// have the same environmental variables
+
+func TestManagerPassesEnvironment(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	state := local.TestState(t)
+	m, closer := testManager(t)
+	defer closer()
+	m.State = state
+	defer m.Kill()
+
+	// Add Proxy for the test
+	td, closer := testTempDir(t)
+	defer closer()
+	path := filepath.Join(td, "env-variables")
+	testStateProxy(t, state, "environTest", helperProcess("environ", path))
+
+	//Run the manager
+	go m.Run()
+
+	//Get the environmental variables from the OS
+	var fileContent []byte
+	var err error
+	var data []byte
+	envData := os.Environ()
+	sort.Strings(envData)
+	for _, envVariable := range envData {
+		data = append(data, envVariable...)
+		data = append(data, "\n"...)
+	}
+
+	// Check if the file written to from the spawned process
+	// has the necessary environmental variable data
+	retry.Run(t, func(r *retry.R) {
+		if fileContent, err = ioutil.ReadFile(path); err != nil {
+			r.Fatalf("No file ya dummy")
+		}
+	})
+
+	require.Equal(fileContent, data)
 }
 
 // Test the Snapshot/Restore works.

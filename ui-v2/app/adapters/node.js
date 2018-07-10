@@ -1,6 +1,14 @@
 import Adapter from './application';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/node';
 import { OK as HTTP_OK } from 'consul-ui/utils/http/status';
+// TODO: Looks like ID just isn't used at all
+// consider just using .Node for the SLUG_KEY
+const fillSlug = function(item) {
+  if (item[SLUG_KEY] === '') {
+    item[SLUG_KEY] = item['Node'];
+  }
+  return item;
+};
 export default Adapter.extend({
   urlForQuery: function(query, modelName) {
     return this.appendURL('internal/ui/nodes', [], this.cleanQuery(query));
@@ -14,6 +22,7 @@ export default Adapter.extend({
       const url = this.parseURL(requestData.url);
       switch (true) {
         case this.isQueryRecord(url):
+          response = fillSlug(response);
           response = {
             ...response,
             ...{
@@ -23,6 +32,7 @@ export default Adapter.extend({
           break;
         default:
           response = response.map((item, i, arr) => {
+            item = fillSlug(item);
             return {
               ...item,
               ...{

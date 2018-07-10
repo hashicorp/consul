@@ -69,9 +69,9 @@
   dependencies:
     "@glimmer/di" "^0.2.0"
 
-"@hashicorp/api-double@^1.1.0":
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/@hashicorp/api-double/-/api-double-1.2.0.tgz#d2846f79d086ac009673ae755da15301e0f2f7c3"
+"@hashicorp/api-double@^1.3.0":
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/@hashicorp/api-double/-/api-double-1.4.0.tgz#17ddad8e55370de0d24151a38c5f029bc207cafe"
   dependencies:
     "@gardenhq/o" "^8.0.1"
     "@gardenhq/tick-control" "^2.0.0"
@@ -81,20 +81,21 @@
     faker "^4.1.0"
     js-yaml "^3.10.0"
 
-"@hashicorp/consul-api-double@^1.0.0":
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/@hashicorp/consul-api-double/-/consul-api-double-1.1.0.tgz#658f9e89208fa23f251ca66c66aeb7241a13f23f"
+"@hashicorp/consul-api-double@^1.2.0":
+  version "1.3.0"
+  resolved "https://registry.yarnpkg.com/@hashicorp/consul-api-double/-/consul-api-double-1.3.0.tgz#fded48ca4db1e63c66e39b4433b2169b6add69ed"
 
-"@hashicorp/ember-cli-api-double@^1.0.2":
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/@hashicorp/ember-cli-api-double/-/ember-cli-api-double-1.2.0.tgz#aed3a9659abb3f3c56d77e400abc7fcbdcf2b78b"
+"@hashicorp/ember-cli-api-double@^1.3.0":
+  version "1.3.0"
+  resolved "https://registry.yarnpkg.com/@hashicorp/ember-cli-api-double/-/ember-cli-api-double-1.3.0.tgz#d07b5b11701cd55d6b01cb8a47ce17c4bac21fed"
   dependencies:
-    "@hashicorp/api-double" "^1.1.0"
+    "@hashicorp/api-double" "^1.3.0"
     array-range "^1.0.1"
     ember-cli-babel "^6.6.0"
     js-yaml "^3.11.0"
     merge-options "^1.0.1"
     pretender "^2.0.0"
+    recursive-readdir-sync "^1.0.6"
 
 "@sinonjs/formatio@^2.0.0":
   version "2.0.0"
@@ -7734,6 +7735,10 @@ recast@^0.11.17, recast@^0.11.3:
     esprima "~3.1.0"
     private "~0.1.5"
     source-map "~0.5.0"
+
+recursive-readdir-sync@^1.0.6:
+  version "1.0.6"
+  resolved "https://registry.yarnpkg.com/recursive-readdir-sync/-/recursive-readdir-sync-1.0.6.tgz#1dbf6d32f3c5bb8d3cde97a6c588d547a9e13d56"
 
 redent@^1.0.0:
   version "1.0.0"

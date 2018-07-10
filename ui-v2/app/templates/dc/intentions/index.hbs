@@ -5,7 +5,7 @@
         </h1>
     {{/block-slot}}
     {{#block-slot 'actions'}}
-        <a href="{{href-to 'dc.intentions.create'}}" class="type-create">Create</a>
+        <a data-test-create href="{{href-to 'dc.intentions.create'}}" class="type-create">Create</a>
     {{/block-slot}}
     {{#block-slot 'toolbar'}}
 {{#if (gt items.length 0) }}
@@ -27,7 +27,7 @@
             {{/block-slot}}
             {{#block-slot 'row'}}
                 <td class="source" data-test-intention="{{item.ID}}">
-                  <a href={{href-to 'dc.intentions.edit' item.ID}}>
+                  <a href={{href-to 'dc.intentions.edit' item.ID}} data-test-intention-source="{{item.SourceName}}">
                     {{#if (eq item.SourceName '*') }}
                       All Services (*)
                     {{else}}
@@ -35,10 +35,10 @@
                     {{/if}}
                   </a>
                 </td>
-                <td class="intent-{{item.Action}}">
+                <td class="intent-{{item.Action}}" data-test-intention-action="{{item.Action}}">
                     <strong>{{item.Action}}</strong>
                 </td>
-                <td class="destination">
+                <td class="destination" data-test-intention-destination="{{item.DestinationName}}">
                     {{#if (eq item.DestinationName '*') }}
                       All Services (*)
                     {{else}}
@@ -58,7 +58,7 @@
                                     <a href={{href-to 'dc.intentions.edit' item.ID}}>Edit</a>
                                 </li>
                                 <li>
-                                    <a onclick={{action confirm 'delete' item}}>Delete</a>
+                                    <a data-test-delete onclick={{action confirm 'delete' item}}>Delete</a>
                                 </li>
                             </ul>
                         {{/action-group}}

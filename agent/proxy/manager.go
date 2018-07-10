@@ -433,6 +433,9 @@ func (m *Manager) newProxy(mp *local.ManagedProxy) (Proxy, error) {
 			return nil, fmt.Errorf("error configuring proxy logs: %s", err)
 		}
 
+		// Pass in the environmental variables for the proxy process
+		cmd.Env = os.Environ()
+
 		// Build the daemon structure
 		proxy.Command = &cmd
 		proxy.ProxyID = id

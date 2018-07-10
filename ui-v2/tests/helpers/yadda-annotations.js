@@ -3,6 +3,18 @@ import { skip } from 'qunit';
 import { setupApplicationTest, setupRenderingTest, setupTest } from 'ember-qunit';
 import api from 'consul-ui/tests/helpers/api';
 
+const staticClassList = [...document.documentElement.classList];
+function reset() {
+  window.localStorage.clear();
+  api.server.reset();
+  const list = document.documentElement.classList;
+  while (list.length > 0) {
+    list.remove(list.item(0));
+  }
+  staticClassList.forEach(function(item) {
+    list.add(item);
+  });
+}
 // this logic could be anything, but in this case...
 // if @ignore, then return skip (for backwards compatibility)
 // if have annotations in config, then only run those that have a matching annotation
@@ -64,8 +76,7 @@ function setupScenario(featureAnnotations, scenarioAnnotations) {
   }
   return function(model) {
     model.afterEach(function() {
-      window.localStorage.clear();
-      api.server.reset();
+      reset();
     });
   };
   // return setupFn;

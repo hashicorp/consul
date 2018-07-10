@@ -1,11 +1,17 @@
 ## UNRELEASED
 
+IMPROVEMENTS:
+
+* acl: Prevented multiple ACL token refresh operations from occurring simultaneously. [[GH-3524](https://github.com/hashicorp/consul/issues/3524)]
+* acl: Add async-cache down policy mode to always do ACL token refreshes in the background to reduce latency. [[GH-3524](https://github.com/hashicorp/consul/issues/3524)]
+
 BUG FIXES:
 
 * api: Intention APIs parse error response body for error message. [[GH-4297](https://github.com/hashicorp/consul/issues/4297)]
 * agent: Intention read endpoint returns a 400 on invalid UUID [[GH-4297](https://github.com/hashicorp/consul/issues/4297)]
 * agent: Service registration with "services" does not error on Connect upstream configuration. [[GH-4308](https://github.com/hashicorp/consul/issues/4308)]
 * catalog: Ensure all registered services have IDs and auto-gen them if need be. [[GH-4249](https://github.com/hashicorp/consul/issues/4249)]
+* dns: Ensure that TXT RRs dont get put in the Answer section for A/AAAA queries. [[GH-4354](https://github.com/hashicorp/consul/issues/4354)]
 
 ## 1.2.0 (June 26, 2018)
 

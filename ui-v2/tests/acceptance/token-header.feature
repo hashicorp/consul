@@ -16,7 +16,7 @@ Feature: token headers
     Given 1 datacenter model with the value "datacenter"
     When I visit the settings page
     Then the url should be /settings
-    Then I type with yaml
+    Then I fill in with yaml
     ---
       token: [Token]
     ---

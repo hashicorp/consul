@@ -28,7 +28,18 @@ const (
 	barrierWriteTimeout = 2 * time.Minute
 )
 
-var minAutopilotVersion = version.Must(version.NewVersion("0.8.0"))
+var (
+	// caRootPruneInterval is how often we check for stale CARoots to remove.
+	caRootPruneInterval = time.Hour
+
+	// caRootExpireDuration is the duration after which an inactive root is considered
+	// "expired". Currently this is based on the default leaf cert TTL of 3 days.
+	caRootExpireDuration = 7 * 24 * time.Hour
+
+	// minAutopilotVersion is the minimum Consul version in which Autopilot features
+	// are supported.
+	minAutopilotVersion = version.Must(version.NewVersion("0.8.0"))
+)
 
 // monitorLeadership is used to monitor if we acquire or lose our role
 // as the leader in the Raft cluster. There is some work the leader is
@@ -220,6 +231,8 @@ func (s *Server) establishLeadership() error {
 		return err
 	}
 
+	s.startCARootPruning()
+
 	s.setConsistentReadReady()
 	return nil
 }
@@ -235,6 +248,8 @@ func (s *Server) revokeLeadership() error {
 	if err := s.clearAllSessionTimers(); err != nil {
 		return err
 	}
+
+	s.stopCARootPruning()
 
 	s.setCAProvider(nil, nil)
 
@@ -548,6 +563,92 @@ func (s *Server) setCAProvider(newProvider ca.Provider, root *structs.CARoot) {
 	defer s.caProviderLock.Unlock()
 	s.caProvider = newProvider
 	s.caProviderRoot = root
+}
+
+// startCARootPruning starts a goroutine that looks for stale CARoots
+// and removes them from the state store.
+func (s *Server) startCARootPruning() {
+	s.caPruningLock.Lock()
+	defer s.caPruningLock.Unlock()
+
+	if s.caPruningEnabled {
+		return
+	}
+
+	s.caPruningCh = make(chan struct{})
+
+	go func() {
+		ticker := time.NewTicker(caRootPruneInterval)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-s.caPruningCh:
+				return
+			case <-ticker.C:
+				if err := s.pruneCARoots(); err != nil {
+					s.logger.Printf("[ERR] connect: error pruning CA roots: %v", err)
+				}
+			}
+		}
+	}()
+
+	s.caPruningEnabled = true
+}
+
+// pruneCARoots looks for any CARoots that have been rotated out and expired.
+func (s *Server) pruneCARoots() error {
+	if !s.config.ConnectEnabled {
+		return nil
+	}
+
+	idx, roots, err := s.fsm.State().CARoots(nil)
+	if err != nil {
+		return err
+	}
+
+	var newRoots structs.CARoots
+	for _, r := range roots {
+		if !r.Active && !r.RotatedOutAt.IsZero() && time.Now().Sub(r.RotatedOutAt) > caRootExpireDuration {
+			s.logger.Printf("[INFO] connect: pruning old unused root CA (ID: %s)", r.ID)
+			continue
+		}
+		newRoot := *r
+		newRoots = append(newRoots, &newRoot)
+	}
+
+	// Return early if there's nothing to remove.
+	if len(newRoots) == len(roots) {
+		return nil
+	}
+
+	// Commit the new root state.
+	var args structs.CARequest
+	args.Op = structs.CAOpSetRoots
+	args.Index = idx
+	args.Roots = newRoots
+	resp, err := s.raftApply(structs.ConnectCARequestType, args)
+	if err != nil {
+		return err
+	}
+	if respErr, ok := resp.(error); ok {
+		return respErr
+	}
+
+	return nil
+}
+
+// stopCARootPruning stops the CARoot pruning process.
+func (s *Server) stopCARootPruning() {
+	s.caPruningLock.Lock()
+	defer s.caPruningLock.Unlock()
+
+	if !s.caPruningEnabled {
+		return
+	}
+
+	close(s.caPruningCh)
+	s.caPruningEnabled = false
 }
 
 // reconcileReaped is used to reconcile nodes that have failed and been reaped

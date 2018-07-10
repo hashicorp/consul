@@ -1,5 +1,5 @@
 @setupApplicationTest
-Feature: dc / components /acl filter: Acl Filter
+Feature: components / acl filter: Acl Filter
   In order to find the acl token I'm looking for easier
   As a user
   I should be able to filter by type and freetext search tokens by name and token
@@ -25,12 +25,12 @@ Feature: dc / components /acl filter: Acl Filter
 
     When I click all on the filter
     Then I see allIsSelected on the filter
-    Then I type with yaml
+    Then I fill in with yaml
     ---
     s: Anonymous Token
     ---
     And I see 1 [Model] model with the name "Anonymous Token"
-    Then I type with yaml
+    Then I fill in with yaml
     ---
     s: secret
     ---

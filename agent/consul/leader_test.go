@@ -5,12 +5,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/serf"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLeader_RegisterMember(t *testing.T) {
@@ -1000,4 +1002,65 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestLeader_CARootPruning(t *testing.T) {
+	t.Parallel()
+
+	caRootExpireDuration = 500 * time.Millisecond
+	caRootPruneInterval = 200 * time.Millisecond
+
+	require := require.New(t)
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Get the current root
+	rootReq := &structs.DCSpecificRequest{
+		Datacenter: "dc1",
+	}
+	var rootList structs.IndexedCARoots
+	require.Nil(msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", rootReq, &rootList))
+	require.Len(rootList.Roots, 1)
+	oldRoot := rootList.Roots[0]
+
+	// Update the provider config to use a new private key, which should
+	// cause a rotation.
+	_, newKey, err := connect.GeneratePrivateKey()
+	require.NoError(err)
+	newConfig := &structs.CAConfiguration{
+		Provider: "consul",
+		Config: map[string]interface{}{
+			"PrivateKey":     newKey,
+			"RootCert":       "",
+			"RotationPeriod": 90 * 24 * time.Hour,
+		},
+	}
+	{
+		args := &structs.CARequest{
+			Datacenter: "dc1",
+			Config:     newConfig,
+		}
+		var reply interface{}
+
+		require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply))
+	}
+
+	// Should have 2 roots now.
+	_, roots, err := s1.fsm.State().CARoots(nil)
+	require.NoError(err)
+	require.Len(roots, 2)
+
+	time.Sleep(caRootExpireDuration * 2)
+
+	// Now the old root should be pruned.
+	_, roots, err = s1.fsm.State().CARoots(nil)
+	require.NoError(err)
+	require.Len(roots, 1)
+	require.True(roots[0].Active)
+	require.NotEqual(roots[0].ID, oldRoot.ID)
 }

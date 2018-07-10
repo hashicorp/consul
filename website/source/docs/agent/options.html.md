@@ -136,7 +136,7 @@ will exit with an error at startup.
 
 * <a name="_config_dir"></a><a href="#_config_dir">`-config-dir`</a> - A directory of
   configuration files to load. Consul will
-  load all files in this directory with the suffix ".json". The load order
+  load all files in this directory with the suffix ".json" or ".hcl". The load order
   is alphabetical, and the the same merge routine is used as with the
   [`config-file`](#_config_file) option above. This option can be specified multiple times
   to load multiple directories. Sub-directories of the config directory are not loaded.
@@ -496,11 +496,14 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   to enable ACL support.
 
 * <a name="acl_down_policy"></a><a href="#acl_down_policy">`acl_down_policy`</a> - Either
-  "allow", "deny" or "extend-cache"; "extend-cache" is the default. In the case that the
+  "allow", "deny", "extend-cache" or "async-cache"; "extend-cache" is the default. In the case that the
   policy for a token cannot be read from the [`acl_datacenter`](#acl_datacenter) or leader
   node, the down policy is applied. In "allow" mode, all actions are permitted, "deny" restricts
   all operations, and "extend-cache" allows any cached ACLs to be used, ignoring their TTL
   values. If a non-cached ACL is used, "extend-cache" acts like "deny".
+  The value "async-cache" acts the same way as "extend-cache" but performs updates
+  asynchronously when ACL is present but its TTL is expired, thus, if latency is bad between
+  ACL authoritative and other datacenters, latency of operations is not impacted.
 
 * <a name="acl_agent_master_token"></a><a href="#acl_agent_master_token">`acl_agent_master_token`</a> -
   Used to access <a href="/api/agent.html">agent endpoints</a> that require agent read
@@ -822,7 +825,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
       matching hosts, shuffle the list randomly, and then limit the number of
       answers to `a_record_limit` (default: no limit). This limit does not apply to SRV records.
 
-      In environments where [RFC 3484 Section 6](https://tools.ietf.org/html/rfc3484#section-6) Rule 9
+        In environments where [RFC 3484 Section 6](https://tools.ietf.org/html/rfc3484#section-6) Rule 9
       is implemented and enforced (i.e. DNS answers are always sorted and
       therefore never random), clients may need to set this value to `1` to
       preserve the expected randomized distribution behavior (note:
@@ -831,7 +834,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
       be increasingly uncommon to need to change this value with modern
       resolvers).
       
-    * <a name="enable_additional_node_meta_txt"></a><a href="#enable_additional_node_meta_txt">`enable_additional_node_meta_txt`</a> - 
+    * <a name="enable_additional_node_meta_txt"></a><a href="#enable_additional_node_meta_txt">`enable_additional_node_meta_txt`</a> -
       When set to true, Consul will add TXT records for Node metadata into the Additional section of the DNS responses for several
       query types such as SRV queries. When set to false those records are emitted. This does not impact the behavior of those
       same TXT records when they would be added to the Answer section of the response like when querying with type TXT or ANY. This

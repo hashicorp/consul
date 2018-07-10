@@ -376,8 +376,11 @@ func (d *DNSServer) nameservers(edns bool) (ns []dns.RR, extra []dns.RR) {
 		}
 		ns = append(ns, nsrr)
 
-		glue := d.formatNodeRecord(nil, addr, fqdn, dns.TypeANY, d.config.NodeTTL, edns, false)
+		glue, meta := d.formatNodeRecord(nil, addr, fqdn, dns.TypeANY, d.config.NodeTTL, edns)
 		extra = append(extra, glue...)
+		if meta != nil && d.config.NodeMetaTXT {
+			extra = append(extra, meta...)
+		}
 
 		// don't provide more than 3 servers
 		if len(ns) >= 3 {
@@ -592,9 +595,14 @@ RPC:
 	n := out.NodeServices.Node
 	edns := req.IsEdns0() != nil
 	addr := d.agent.TranslateAddress(datacenter, n.Address, n.TaggedAddresses)
-	records := d.formatNodeRecord(out.NodeServices.Node, addr, req.Question[0].Name, qType, d.config.NodeTTL, edns, true)
+	records, meta := d.formatNodeRecord(out.NodeServices.Node, addr, req.Question[0].Name, qType, d.config.NodeTTL, edns)
 	if records != nil {
 		resp.Answer = append(resp.Answer, records...)
+	}
+	if meta != nil && (qType == dns.TypeANY || qType == dns.TypeTXT) {
+		resp.Answer = append(resp.Answer, meta...)
+	} else if meta != nil && d.config.NodeMetaTXT {
+		resp.Extra = append(resp.Extra, meta...)
 	}
 }
 
@@ -619,8 +627,12 @@ func encodeKVasRFC1464(key, value string) (txt string) {
 	return key + "=" + value
 }
 
-// formatNodeRecord takes a Node and returns an A, AAAA, TXT or CNAME record
-func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qType uint16, ttl time.Duration, edns, answer bool) (records []dns.RR) {
+// formatNodeRecord takes a Node and returns the RRs associated with that node
+//
+// The return value is two slices. The first slice is the main answer slice (containing the A, AAAA, CNAME) RRs for the node
+// and the second slice contains any TXT RRs created from the node metadata. It is up to the caller to determine where the
+// generated RRs should go and if they should be used at all.
+func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qType uint16, ttl time.Duration, edns bool) (records, meta []dns.RR) {
 	// Parse the IP
 	ip := net.ParseIP(addr)
 	var ipv4 net.IP
@@ -681,26 +693,14 @@ func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qTy
 		}
 	}
 
-	node_meta_txt := false
-
-	if node == nil {
-		node_meta_txt = false
-	} else if answer {
-		node_meta_txt = true
-	} else {
-		// Use configuration when the TXT RR would
-		// end up in the Additional section of the
-		// DNS response
-		node_meta_txt = d.config.NodeMetaTXT
-	}
-
-	if node_meta_txt {
+	if node != nil {
 		for key, value := range node.Meta {
 			txt := value
 			if !strings.HasPrefix(strings.ToLower(key), "rfc1035-") {
 				txt = encodeKVasRFC1464(key, value)
 			}
-			records = append(records, &dns.TXT{
+
+			meta = append(meta, &dns.TXT{
 				Hdr: dns.RR_Header{
 					Name:   qName,
 					Rrtype: dns.TypeTXT,
@@ -712,7 +712,7 @@ func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qTy
 		}
 	}
 
-	return records
+	return records, meta
 }
 
 // indexRRs populates a map which indexes a given list of RRs by name. NOTE that
@@ -1168,7 +1168,8 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 		handled[addr] = struct{}{}
 
 		// Add the node record
-		records := d.formatNodeRecord(node.Node, addr, qName, qType, ttl, edns, true)
+		had_answer := false
+		records, meta := d.formatNodeRecord(node.Node, addr, qName, qType, ttl, edns)
 		if records != nil {
 			switch records[0].(type) {
 			case *dns.CNAME:
@@ -1179,11 +1180,22 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 				}
 			default:
 				resp.Answer = append(resp.Answer, records...)
-				count++
-				if count == d.config.ARecordLimit {
-					// We stop only if greater than 0 or we reached the limit
-					return
-				}
+				had_answer = true
+			}
+		}
+
+		if meta != nil && (qType == dns.TypeANY || qType == dns.TypeTXT) {
+			resp.Answer = append(resp.Answer, meta...)
+			had_answer = true
+		} else if meta != nil && d.config.NodeMetaTXT {
+			resp.Extra = append(resp.Extra, meta...)
+		}
+
+		if had_answer {
+			count++
+			if count == d.config.ARecordLimit {
+				// We stop only if greater than 0 or we reached the limit
+				return
 			}
 		}
 	}
@@ -1230,7 +1242,7 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes
 		}
 
 		// Add the extra record
-		records := d.formatNodeRecord(node.Node, addr, srvRec.Target, dns.TypeANY, ttl, edns, false)
+		records, meta := d.formatNodeRecord(node.Node, addr, srvRec.Target, dns.TypeANY, ttl, edns)
 		if len(records) > 0 {
 			// Use the node address if it doesn't differ from the service address
 			if addr == node.Node.Address {
@@ -1259,6 +1271,10 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes
 				default:
 					resp.Extra = append(resp.Extra, records...)
 				}
+			}
+
+			if meta != nil && d.config.NodeMetaTXT {
+				resp.Extra = append(resp.Extra, meta...)
 			}
 		}
 	}

@@ -1,6 +1,6 @@
 import { clickable } from 'ember-cli-page-object';
 export default {
-  navigation: ['services', 'nodes', 'kvs', 'acls', 'docs', 'settings'].reduce(
+  navigation: ['services', 'nodes', 'kvs', 'acls', 'intentions', 'docs', 'settings'].reduce(
     function(prev, item, i, arr) {
       const key = item;
       return Object.assign({}, prev, {

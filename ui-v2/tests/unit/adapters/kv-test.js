@@ -46,7 +46,7 @@ module('Unit | Adapter | kv', function(hooks) {
       const uid = {
         uid: JSON.stringify([dc, expected]),
       };
-      const actual = adapter.handleResponse(200, {}, uid, { url: url });
+      const actual = adapter.handleResponse(200, {}, [uid], { url: url });
       assert.deepEqual(actual, uid);
     });
   });

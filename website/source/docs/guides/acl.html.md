@@ -1061,6 +1061,11 @@ and the [`acl_down_policy`](/docs/agent/options.html#acl_down_policy)
 is set to "extend-cache", tokens will be resolved during the outage using the
 replicated set of ACLs. An [ACL replication status](/api/acl.html#acl_replication_status)
 endpoint is available to monitor the health of the replication process.
+Also note that in recent versions of Consul (greater than 1.2.0), using
+`acl_down_policy = "async-cache"` refreshes token asynchronously when an ACL is
+already cached and is expired while similar semantics than "extend-cache".
+It allows to avoid having issues when connectivity with the authoritative is not completely
+broken, but very slow.
 
 Locally-resolved ACLs will be cached using the [`acl_ttl`](/docs/agent/options.html#acl_ttl)
 setting of the non-authoritative datacenter, so these entries may persist in the

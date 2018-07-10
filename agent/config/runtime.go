@@ -94,8 +94,10 @@ type RuntimeConfig struct {
 	//                    ACL's to be used to service requests. This
 	//                    is the default. If the ACL is not in the cache,
 	//                    this acts like deny.
+	//   * async-cache - Same behaviour as extend-cache, but perform ACL
+	//                   Lookups asynchronously when cache TTL is expired.
 	//
-	// hcl: acl_down_policy = ("allow"|"deny"|"extend-cache")
+	// hcl: acl_down_policy = ("allow"|"deny"|"extend-cache"|"async-cache")
 	ACLDownPolicy string
 
 	// ACLEnforceVersion8 is used to gate a set of ACL policy features that

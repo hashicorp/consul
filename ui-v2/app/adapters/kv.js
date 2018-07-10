@@ -11,6 +11,7 @@ import { get } from '@ember/object';
 import { inject as service } from '@ember/service';
 
 import keyToArray from 'consul-ui/utils/keyToArray';
+import removeNull from 'consul-ui/utils/remove-null';
 
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/kv';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
@@ -98,7 +99,7 @@ export default Adapter.extend({
           break;
         case this.isQueryRecord(url):
           response = {
-            ...response[0],
+            ...removeNull(response[0]),
             ...{
               [PRIMARY_KEY]: this.uidForURL(url),
             },

@@ -5,7 +5,7 @@
         </h1>
     {{/block-slot}}
     {{#block-slot 'actions'}}
-        <a href="{{href-to 'dc.acls.create'}}" class="type-create">Create</a>
+        <a data-test-create href="{{href-to 'dc.acls.create'}}" class="type-create">Create</a>
     {{/block-slot}}
     {{#block-slot 'toolbar'}}
 {{#if (gt items.length 0) }}
