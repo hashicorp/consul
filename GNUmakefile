@@ -163,7 +163,7 @@ test: other-consul dev-build vet
 	@if [ "0" != "$$(cat exit-code)" ]; then \
 	  echo Retrying to avoid flacky tests >> test.log;\
 	  echo Retrying tests once...;\
-	  go test $(GOTEST_FLAGS) -tags '$(GOTAGS)' -timeout 5m $(GOTEST_PKGS) 2>&1; echo $$? > exit-code;\
+	  go test -p 5 -parallel 1 -tags '$(GOTAGS)' -timeout 5m $(GOTEST_PKGS) 2>&1; echo $$? > exit-code;\
 	fi
 	@# This prints all the race report between ====== lines
 	@awk '/^WARNING: DATA RACE/ {do_print=1; print "=================="} do_print==1 {print} /^={10,}/ {do_print=0}' test.log || true
