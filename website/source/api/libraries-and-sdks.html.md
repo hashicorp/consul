@@ -79,4 +79,7 @@ the community.
   <li>
     <a href="https://github.com/cpageler93/ConsulSwift">ConsulSwift</a> - Swift client for the Consul HTTP API
   </li>
+  <li>
+    <a href="https://github.com/oatpp/oatpp-consul">oatpp-consul</a> - C++ Consul integration for <a href="https://oatpp.io/">oatpp</a> applications
+  </li>
 </ul>
