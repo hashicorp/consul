@@ -1143,6 +1143,7 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 	qType := req.Question[0].Qtype
 	handled := make(map[string]struct{})
 	edns := req.IsEdns0() != nil
+	var answerCNAME []dns.RR = nil
 
 	count := 0
 	for _, node := range nodes {
@@ -1170,8 +1171,17 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 		had_answer := false
 		records, meta := d.formatNodeRecord(node.Node, addr, qName, qType, ttl, edns)
 		if records != nil {
-			resp.Answer = append(resp.Answer, records...)
-			had_answer = true
+			switch records[0].(type) {
+			case *dns.CNAME:
+				// keep track of the first CNAME + associated RRs but don't add to the resp.Answer yet
+				// this will only be added if no non-CNAME RRs are found
+				if len(answerCNAME) == 0 {
+					answerCNAME = records
+				}
+			default:
+				resp.Answer = append(resp.Answer, records...)
+				had_answer = true
+			}
 		}
 
 		if meta != nil && (qType == dns.TypeANY || qType == dns.TypeTXT) {
@@ -1188,6 +1198,10 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 				return
 			}
 		}
+	}
+
+	if len(resp.Answer) == 0 && len(answerCNAME) > 0 {
+		resp.Answer = answerCNAME
 	}
 }
 
