@@ -8,40 +8,27 @@
 # For example: https://coredns.io/2016/09/18/coredns-001-release/ Also send an
 # email to coredns-discuss@ to announce the new version.
 #
-# We use https://github.com/progrium/gh-release to automate github stuff be sure
-# to have that binary in your path.
-#
-# Get a list of authors for this release with:
-#
-# git log --pretty=format:'%an' v001..master | sort -u (where v001 is the
-# previous release, obviously you'll need to adjust this)
+# Getting the authors for this release is done with the following command line
+# git log --pretty=format:'%an' v$(VERSION)..master | sort -u
 #
 # Steps:
-#
-# * Get an access token: https://help.github.com/articles/creating-an-access-token-for-command-line-use/
-# * export GITHUB_ACCESS_TOKEN=<token>
 # * Up the version in coremain/version.go
-# * Run: make DOCKER=coredns -f Makefile.release release
-#   * runs make -f Makefile.doc
-#   	* this is a noop if ronn can't be found
-#   * perform a go generate
-#   * will *commit* your change(s) with 'Release $VERSION'
-#   * push to github
-#   * build the release and do all that fluff.
+# * Do a make -f Makefile.doc
+# * go generate
+# * Send PR to get this merged.
 #
-# Steps for docker:
+# * Open an issue for this release
+# * In an issue give the command: /release
 #
-# * Login into docker: docker login (should have push creds for coredns registry)
-# * We use the manifest-tool from https://github.com/estesp/manifest-tool to build the manifest list
-# * Make sure you have the binary in your path.
+# See coredns/release for the README on what needs to be setup for this to be automated (can still
+# be done by hand if needed). Especially what environment variables need to be set!
 #
-# * Run: make DOCKER=coredns -f Makefile.release docker
-#
-# Docker push should happen after you make the new release and uploaded it to Github.
-#
-# If you want to push to a personal registry, point DOCKER to something else, i.e.
-#
-# * make DOCKER=miek -f Makefile.release docker
+# To release we run:
+# * make release
+# * make github-push
+# * make docker
+# * make docker-push
+
 EMPTY:=
 SPACE:=$(EMPTY) $(EMPTY)
 COMMA:=$(EMPTY),$(EMPTY)
@@ -50,16 +37,11 @@ ifeq (, $(shell which curl))
     $(error "No curl in $$PATH, please install")
 endif
 
-ifeq (, $(shell which manifest-tool))
-    $(error "No manifest-tool in $$PATH, install with: go get github.com/estesp/manifest-tool")
-endif
-
 DOCKER:=
 NAME:=coredns
 VERSION:=$(shell grep 'CoreVersion' coremain/version.go | awk '{ print $$3 }' | tr -d '"')
 GITHUB:=coredns
 DOCKER_IMAGE_NAME:=$(DOCKER)/$(NAME)
-GITCOMMIT:=$(shell git describe --dirty --always)
 LINUX_ARCH:=amd64 arm arm64 ppc64le s390x
 PLATFORMS:=$(subst $(SPACE),$(COMMA),$(foreach arch,$(LINUX_ARCH),linux/$(arch)))
 
@@ -68,38 +50,27 @@ ifeq ($(DOCKER),)
 endif
 
 all:
-	@echo Use the 'release' target to start a release
+	@echo Use the 'release' target to build a release, 'docker' for docker build.
 
-release: pre commit push build tar upload
+release: pre build tar
 
-docker: docker-build docker-push
+docker: docker-build
 
 .PHONY: pre
 pre:
-	go generate
-	$(MAKE) -f Makefile.doc
-
-.PHONY: push
-push:
-	@echo Pushing release to master
-	git push
-
-.PHONY: commit
-commit:
-	@echo Committing
-	git commit -am"Release $(VERSION)"
+	go get github.com/estesp/manifest-tool
 
 .PHONY: build
 build:
 	@echo Cleaning old builds
 	@rm -rf build && mkdir build
-	@echo Building: darwin $(VERSION)
+	@echo Building: darwin/amd64 - $(VERSION)
 	mkdir -p build/darwin/amd64 && $(MAKE) coredns BINARY=build/darwin/amd64/$(NAME) SYSTEM="GOOS=darwin GOARCH=amd64" CHECKS="godeps" VERBOSE=""
-	@echo Building: windows $(VERSION)
-	mkdir -p build/windows/amd64 && $(MAKE) coredns BINARY=build/windows/amd64/$(NAME) SYSTEM="GOOS=windows GOARCH=amd64" CHECKS="godeps" VERBOSE=""
-	@echo Building: linux/$(LINUX_ARCH)  $(VERSION) ;\
+	@echo Building: windows/amd64 - $(VERSION)
+	mkdir -p build/windows/amd64 && $(MAKE) coredns BINARY=build/windows/amd64/$(NAME) SYSTEM="GOOS=windows GOARCH=amd64" CHECKS="" VERBOSE=""
+	@echo Building: linux/$(LINUX_ARCH) - $(VERSION) ;\
 	for arch in $(LINUX_ARCH); do \
-	    mkdir -p build/linux/$$arch  && $(MAKE) coredns BINARY=build/linux/$$arch/$(NAME) SYSTEM="GOOS=linux GOARCH=$$arch" CHECKS="godeps" VERBOSE="" ;\
+	    mkdir -p build/linux/$$arch  && $(MAKE) coredns BINARY=build/linux/$$arch/$(NAME) SYSTEM="GOOS=linux GOARCH=$$arch" CHECKS="" VERBOSE="" ;\
 	done
 
 .PHONY: tar
@@ -112,7 +83,7 @@ tar:
 	    tar -zcf release/$(NAME)_$(VERSION)_linux_$$arch.tgz -C build/linux/$$arch $(NAME) ;\
 	done
 
-.PHONY: upload
+.PHONY: github-push
 upload:
 	@echo Releasing: $(VERSION)
 	$(eval RELEASE:=$(shell curl -s -d '{"tag_name": "v$(VERSION)", "name": "v$(VERSION)"}' "https://api.github.com/repos/$(GITHUB)/$(NAME)/releases?access_token=${GITHUB_ACCESS_TOKEN}" | grep -m 1 '"id"' | tr -cd '[[:digit:]]'))
@@ -129,11 +100,6 @@ docker-build: tar
 	# Steps:
 	# 1. Copy appropriate coredns binary to build/docker/linux/<arch>
 	# 2. Copy Dockerfile to build/docker/linux/<arch>
-	# 3. Replace base image from alpine:latest to <arch>/alpine:latest
-	# 4. Comment RUN in Dockerfile
-	# <arch>:
-	# arm: arm32v6
-	# arm64: arm64v8
 	rm -rf build/docker
 	for arch in $(LINUX_ARCH); do \
 	    mkdir -p build/docker/linux/$$arch ;\
@@ -145,12 +111,14 @@ docker-build: tar
 
 .PHONY: docker-push
 docker-push:
+	docker -u $(DOCKER_LOGIN) -p $(DOCKER_PASSWORD) || exit 1
 	@echo Pushing: $(VERSION) to $(DOCKER_IMAGE_NAME)
 	for arch in $(LINUX_ARCH); do \
 	    docker push $(DOCKER_IMAGE_NAME):coredns-$$arch ;\
 	done
 	manifest-tool push from-args --platforms $(PLATFORMS) --template $(DOCKER_IMAGE_NAME):coredns-ARCH --target $(DOCKER_IMAGE_NAME):$(VERSION)
 	manifest-tool push from-args --platforms $(PLATFORMS) --template $(DOCKER_IMAGE_NAME):coredns-ARCH --target $(DOCKER_IMAGE_NAME):latest
+
 
 .PHONY: clean
 clean:
