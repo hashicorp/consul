@@ -86,7 +86,7 @@ tar:
 .PHONY: github-push
 upload:
 	@echo Releasing: $(VERSION)
-	$(eval RELEASE:=$(shell curl -s -d '{"tag_name": "v$(VERSION)", "name": "v$(VERSION)"}' "https://api.github.com/repos/$(GITHUB)/$(NAME)/releases?access_token=${GITHUB_ACCESS_TOKEN}" | grep -m 1 '"id"' | tr -cd '[[:digit:]]'))
+	@$(eval RELEASE:=$(shell curl -s -d '{"tag_name": "v$(VERSION)", "name": "v$(VERSION)"}' "https://api.github.com/repos/$(GITHUB)/$(NAME)/releases?access_token=${GITHUB_ACCESS_TOKEN}" | grep -m 1 '"id"' | tr -cd '[[:digit:]]'))
 	@echo ReleaseID: $(RELEASE)
 	@for asset in `ls -A release`; do \
 	    curl -o /dev/null -X POST \
@@ -111,7 +111,7 @@ docker-build: tar
 
 .PHONY: docker-push
 docker-push:
-	docker -u $(DOCKER_LOGIN) -p $(DOCKER_PASSWORD) || exit 1
+	@docker -u $(DOCKER_LOGIN) -p $(DOCKER_PASSWORD) || exit 1
 	@echo Pushing: $(VERSION) to $(DOCKER_IMAGE_NAME)
 	for arch in $(LINUX_ARCH); do \
 	    docker push $(DOCKER_IMAGE_NAME):coredns-$$arch ;\
