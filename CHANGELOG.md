@@ -4,6 +4,7 @@ IMPROVEMENTS:
 
 * acl: Prevented multiple ACL token refresh operations from occurring simultaneously. [[GH-3524](https://github.com/hashicorp/consul/issues/3524)]
 * acl: Add async-cache down policy mode to always do ACL token refreshes in the background to reduce latency. [[GH-3524](https://github.com/hashicorp/consul/issues/3524)]
+* catalog: Allow node renaming when node IDs match and the name isn't assigned to another node. [[GH-3974](https://github.com/hashicorp/consul/issues/3974)]
 
 BUG FIXES:
 
