@@ -448,7 +448,9 @@ func (s *Server) initializeCA() error {
 		return err
 	}
 
-	// Check if the CA root is already initialized and exit if it is.
+	// Check if the CA root is already initialized and exit if it is,
+	// adding on any existing intermediate certs since they aren't directly
+	// tied to the provider.
 	// Every change to the CA after this initial bootstrapping should
 	// be done through the rotation process.
 	state := s.fsm.State()
