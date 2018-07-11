@@ -385,7 +385,7 @@ func (a *Agent) Start() error {
 		if err != nil {
 			return err
 		}
-		a.proxyManager.APIConfig = acfg
+		a.proxyManager.ProxyEnv = acfg.GenerateEnv()
 
 		go a.proxyManager.Run()
 	}

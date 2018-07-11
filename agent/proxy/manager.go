@@ -11,7 +11,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-multierror"
 )
 
@@ -70,8 +69,8 @@ type Manager struct {
 	//
 	DataDir string
 
-	// Configuration information to tell the proxy how to talk to us
-	APIConfig *api.Config
+	// Extra environment variables to set for the proxies
+	ProxyEnv []string
 
 	// SnapshotPeriod is the duration between snapshots. This can be set
 	// relatively low to ensure accuracy, because if the new snapshot matches
@@ -438,10 +437,7 @@ func (m *Manager) newProxy(mp *local.ManagedProxy) (Proxy, error) {
 		}
 
 		// Pass in the environmental variables for the proxy process
-		cmd.Env = os.Environ()
-		if m.APIConfig != nil {
-			cmd.Env = append(cmd.Env, m.APIConfig.GenerateEnv()...)
-		}
+		cmd.Env = append(m.ProxyEnv, os.Environ()...)
 
 		// Build the daemon structure
 		proxy.Command = &cmd

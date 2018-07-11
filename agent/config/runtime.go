@@ -1238,6 +1238,8 @@ func (c *RuntimeConfig) APIConfig(includeClientCerts bool) (*api.Config, error) 
 		cfg.Scheme = "http"
 	} else if len(unixAddrs) > 0 {
 		cfg.Address = "unix://" + unixAddrs[0]
+		// this should be ignored - however we are still talking http over a unix socket
+		// so it makes sense to set it like this
 		cfg.Scheme = "http"
 	} else {
 		return nil, fmt.Errorf("No suitable client address can be found")
