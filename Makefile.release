@@ -18,12 +18,15 @@
 # * Send PR to get this merged.
 #
 # * Open an issue for this release
-# * In an issue give the command: /release
+# * In an issue give the command: /release: master
+# * (to test as release /release: -t master can be used.
 #
-# See coredns/release for the README on what needs to be setup for this to be automated (can still
-# be done by hand if needed). Especially what environment variables need to be set!
+# See github.com/coredns/release for documentation README on what needs to be setup for this to be
+# automated (can still be done by hand if needed). Especially what environment variables need to be
+# set!
 #
-# To release we run:
+# To release we run, where 'release' and 'docker' only locally build assets; these are the same
+# targets that get executed in case of testing.
 # * make release
 # * make github-push
 # * make docker
@@ -84,7 +87,7 @@ tar:
 	done
 
 .PHONY: github-push
-upload:
+github-push:
 	@echo Releasing: $(VERSION)
 	@$(eval RELEASE:=$(shell curl -s -d '{"tag_name": "v$(VERSION)", "name": "v$(VERSION)"}' "https://api.github.com/repos/$(GITHUB)/$(NAME)/releases?access_token=${GITHUB_ACCESS_TOKEN}" | grep -m 1 '"id"' | tr -cd '[[:digit:]]'))
 	@echo ReleaseID: $(RELEASE)
@@ -97,10 +100,10 @@ upload:
 
 .PHONY: docker-build
 docker-build: tar
-	# Steps:
-	# 1. Copy appropriate coredns binary to build/docker/linux/<arch>
-	# 2. Copy Dockerfile to build/docker/linux/<arch>
-	rm -rf build/docker
+	@# Steps:
+	@# 1. Copy appropriate coredns binary to build/docker/linux/<arch>
+	@# 2. Copy Dockerfile to build/docker/linux/<arch>
+	@rm -rf build/docker
 	for arch in $(LINUX_ARCH); do \
 	    mkdir -p build/docker/linux/$$arch ;\
 	    tar -xzf release/$(NAME)_$(VERSION)_linux_$$arch.tgz -C build/docker/linux/$$arch ;\
@@ -111,14 +114,13 @@ docker-build: tar
 
 .PHONY: docker-push
 docker-push:
-	@docker -u $(DOCKER_LOGIN) -p $(DOCKER_PASSWORD) || exit 1
+	@echo $(DOCKER_PASSWORD) | docker login -u $(DOCKER_LOGIN) --password-stdin
 	@echo Pushing: $(VERSION) to $(DOCKER_IMAGE_NAME)
 	for arch in $(LINUX_ARCH); do \
 	    docker push $(DOCKER_IMAGE_NAME):coredns-$$arch ;\
 	done
 	manifest-tool push from-args --platforms $(PLATFORMS) --template $(DOCKER_IMAGE_NAME):coredns-ARCH --target $(DOCKER_IMAGE_NAME):$(VERSION)
 	manifest-tool push from-args --platforms $(PLATFORMS) --template $(DOCKER_IMAGE_NAME):coredns-ARCH --target $(DOCKER_IMAGE_NAME):latest
-
 
 .PHONY: clean
 clean:
