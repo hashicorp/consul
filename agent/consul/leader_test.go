@@ -2,6 +2,7 @@ package consul
 
 import (
 	"os"
+	"reflect"
 	"testing"
 	"time"
 
@@ -12,7 +13,6 @@ import (
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/serf"
-	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/require"
 )
 
@@ -1140,6 +1140,8 @@ func TestLeader_PersistIntermediateCAs(t *testing.T) {
 		}
 
 		_, newLeaderRoot := leader.getCAProvider()
-		verify.Values(r, "", root, newLeaderRoot)
+		if !reflect.DeepEqual(newLeaderRoot, root) {
+			r.Fatalf("got %v, want %v", newLeaderRoot, root)
+		}
 	})
 }
