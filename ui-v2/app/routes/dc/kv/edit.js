@@ -9,6 +9,13 @@ import ascend from 'consul-ui/utils/ascend';
 export default Route.extend(WithKvActions, {
   repo: service('kv'),
   sessionRepo: service('session'),
+  beforeModel: function(transition) {
+    const url = get(transition, 'intent.url');
+    const search = '/edit/';
+    if (url && url.endsWith(search)) {
+      return this.replaceWith('dc.kv.folder', this.paramsFor(this.routeName).key + search);
+    }
+  },
   model: function(params) {
     const key = params.key;
     const dc = this.modelFor('dc').dc.Name;
