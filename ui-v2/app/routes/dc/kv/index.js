@@ -13,13 +13,17 @@ export default Route.extend(WithKvActions, {
     },
   },
   repo: service('kv'),
-  model: function(params) {
-    let key = params.key || '/';
+  beforeModel: function() {
     // we are index or folder, so if the key doesn't have a trailing slash
     // add one to force a fake findBySlug
+    const params = this.paramsFor(this.routeName);
+    const key = params.key || '/';
     if (!isFolder(key)) {
-      key = key + '/';
+      return this.replaceWith(this.routeName, key + '/');
     }
+  },
+  model: function(params) {
+    let key = params.key || '/';
     const dc = this.modelFor('dc').dc.Name;
     const repo = get(this, 'repo');
     return hash({
