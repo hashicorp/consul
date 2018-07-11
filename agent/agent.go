@@ -742,7 +742,8 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 				if a.config.CAFile != "" {
 					config.TLSConfig.CAFile = a.config.CAFile
 				}
-				config.TLSConfig.Address = addr
+				// use the original address without the https:// prefix
+				config.TLSConfig.Address = netaddr.String()
 			}
 
 			if err := wp.RunWithConfig(addr, config); err != nil {
