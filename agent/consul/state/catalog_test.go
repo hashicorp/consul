@@ -480,15 +480,131 @@ func TestStateStore_EnsureNode(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Now try to add another node with the same ID
+	// Renaming a node should work if ID is the same
 	in = &structs.Node{
-		Node:    "nope",
+		Node:    "node1-renamed",
 		ID:      types.NodeID("cda916bc-a357-4a19-b886-59419fcee50c"),
-		Address: "1.2.3.4",
+		Address: "1.1.1.2",
 	}
-	err = s.EnsureNode(5, in)
-	if err == nil || !strings.Contains(err.Error(), "aliases existing node") {
-		t.Fatalf("err: %v", err)
+	if err := s.EnsureNode(6, in); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Retrieve the node
+	idx, out, err = s.GetNode("node1")
+	if out != nil {
+		t.Fatalf("Node should not exist anymore: %q", out)
+	}
+
+	idx, out, err = s.GetNode("node1-renamed")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Node and indexes were updated
+	if out.CreateIndex != 1 || out.ModifyIndex != 6 || out.Address != "1.1.1.2" || out.Node != "node1-renamed" {
+		t.Fatalf("bad: %#v", out)
+	}
+	if idx != 6 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	newNodeID := types.NodeID("d0347693-65cc-4d9f-a6e0-5025b2e6513f")
+
+	// Adding another node with same name should fail
+	in = &structs.Node{
+		Node:    "node1-renamed",
+		ID:      newNodeID,
+		Address: "1.1.1.7",
+	}
+	if err := s.EnsureNode(8, in); err == nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Adding another node with same name but different case should fail
+	in = &structs.Node{
+		Node:    "Node1-RENAMED",
+		ID:      newNodeID,
+		Address: "1.1.1.7",
+	}
+	if err := s.EnsureNode(8, in); err == nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Lets add another valid node now
+	in = &structs.Node{
+		Node:    "Node1bis",
+		ID:      newNodeID,
+		Address: "1.1.1.7",
+	}
+	if err := s.EnsureNode(9, in); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Retrieve the node
+	idx, out, err = s.GetNode("Node1bis")
+	if out == nil {
+		t.Fatalf("Node should exist, but was null")
+	}
+
+	// Renaming should fail
+	in = &structs.Node{
+		Node:    "Node1bis",
+		ID:      newNodeID,
+		Address: "1.1.1.7",
+	}
+	if err := s.EnsureNode(9, in); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	idx, out, err = s.GetNode("Node1bis")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Node and indexes were updated
+	if out.ID != newNodeID || out.CreateIndex != 9 || out.ModifyIndex != 9 || out.Address != "1.1.1.7" || out.Node != "Node1bis" {
+		t.Fatalf("bad: %#v", out)
+	}
+	if idx != 9 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Renaming to same value as first node should fail as well
+	// Adding another node with same name but different case should fail
+	in = &structs.Node{
+		Node:    "node1-renamed",
+		ID:      newNodeID,
+		Address: "1.1.1.7",
+	}
+	if err := s.EnsureNode(10, in); err == nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// It should fail also with different case
+	in = &structs.Node{
+		Node:    "Node1-Renamed",
+		ID:      newNodeID,
+		Address: "1.1.1.7",
+	}
+	if err := s.EnsureNode(10, in); err == nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// But should work if names are different
+	in = &structs.Node{
+		Node:    "Node1-Renamed2",
+		ID:      newNodeID,
+		Address: "1.1.1.7",
+	}
+	if err := s.EnsureNode(11, in); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Node renamed should be Ok
+	idx, out, err = s.GetNode("Node1-Renamed2")
+	if err != nil {
+		t.Fatalf("err: %s", err)
 	}
 }
 
