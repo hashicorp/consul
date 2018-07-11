@@ -16,14 +16,21 @@ export default Route.extend(WithKvActions, {
       return this.replaceWith('dc.kv.folder', this.paramsFor(this.routeName).key + search);
     }
   },
-  model: function(params) {
+  model: function(params, transition) {
     const key = params.key;
     const dc = this.modelFor('dc').dc.Name;
     const repo = get(this, 'repo');
     return hash({
       isLoading: false,
       parent: repo.findBySlug(ascend(key, 1) || '/', dc),
-      item: repo.findBySlug(key, dc),
+      item: repo.findBySlug(key, dc).catch(e => {
+        if (e.errors && e.errors[0] && e.errors[0].status == '404') {
+          const url = get(transition, 'intent.url');
+          if (url.endsWith('/edit')) {
+            return this.replaceWith('dc.kv.folder', key + '/edit/');
+          }
+        }
+      }),
     }).then(model => {
       // TODO: Consider loading this after initial page load
       const session = get(model.item, 'Session');

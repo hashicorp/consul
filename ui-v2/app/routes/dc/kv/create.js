@@ -14,7 +14,7 @@ export default Route.extend(WithKvActions, {
     }
     get(this, 'repo').invalidate();
   },
-  model: function(params) {
+  model: function(params, transition) {
     const key = params.key || '/';
     const repo = get(this, 'repo');
     const dc = this.modelFor('dc').dc.Name;
@@ -24,7 +24,14 @@ export default Route.extend(WithKvActions, {
       create: true,
       isLoading: false,
       item: this.item,
-      parent: repo.findBySlug(key, dc),
+      parent: repo.findBySlug(key, dc).catch(e => {
+        if (e.errors && e.errors[0] && e.errors[0].status == '404') {
+          const url = get(transition, 'intent.url');
+          if (url.endsWith('/create')) {
+            return this.transitionTo('dc.kv.folder', key + '/create/');
+          }
+        }
+      }),
     });
   },
   setupController: function(controller, model) {
