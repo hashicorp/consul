@@ -235,8 +235,9 @@ type Config struct {
 
 	// ACLDownPolicy controls the behavior of ACLs if the ACLDatacenter
 	// cannot be contacted. It can be either "deny" to deny all requests,
-	// or "extend-cache" which ignores the ACLCacheInterval and uses
-	// cached policies. If a policy is not in the cache, it acts like deny.
+	// "extend-cache" or "async-cache" which ignores the ACLCacheInterval and
+	// uses cached policies.
+	// If a policy is not in the cache, it acts like deny.
 	// "allow" can be used to allow all requests. This is not recommended.
 	ACLDownPolicy string
 
@@ -378,7 +379,7 @@ func (c *Config) CheckACL() error {
 	switch c.ACLDownPolicy {
 	case "allow":
 	case "deny":
-	case "extend-cache":
+	case "async-cache", "extend-cache":
 	default:
 		return fmt.Errorf("Unsupported down ACL policy: %s", c.ACLDownPolicy)
 	}

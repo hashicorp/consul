@@ -28,7 +28,18 @@ const (
 	barrierWriteTimeout = 2 * time.Minute
 )
 
-var minAutopilotVersion = version.Must(version.NewVersion("0.8.0"))
+var (
+	// caRootPruneInterval is how often we check for stale CARoots to remove.
+	caRootPruneInterval = time.Hour
+
+	// caRootExpireDuration is the duration after which an inactive root is considered
+	// "expired". Currently this is based on the default leaf cert TTL of 3 days.
+	caRootExpireDuration = 7 * 24 * time.Hour
+
+	// minAutopilotVersion is the minimum Consul version in which Autopilot features
+	// are supported.
+	minAutopilotVersion = version.Must(version.NewVersion("0.8.0"))
+)
 
 // monitorLeadership is used to monitor if we acquire or lose our role
 // as the leader in the Raft cluster. There is some work the leader is
@@ -220,6 +231,8 @@ func (s *Server) establishLeadership() error {
 		return err
 	}
 
+	s.startCARootPruning()
+
 	s.setConsistentReadReady()
 	return nil
 }
@@ -235,6 +248,8 @@ func (s *Server) revokeLeadership() error {
 	if err := s.clearAllSessionTimers(); err != nil {
 		return err
 	}
+
+	s.stopCARootPruning()
 
 	s.setCAProvider(nil, nil)
 
@@ -433,15 +448,9 @@ func (s *Server) initializeCA() error {
 		return err
 	}
 
-	// TODO(banks): in the case that we've just gained leadership in an already
-	// configured cluster. We really need to fetch RootCA from state to provide it
-	// in setCAProvider. This matters because if the current active root has
-	// intermediates, parsing the rootCA from only the root cert PEM above will
-	// not include them and so leafs we sign will not bundle the intermediates.
-
-	s.setCAProvider(provider, rootCA)
-
-	// Check if the CA root is already initialized and exit if it is.
+	// Check if the CA root is already initialized and exit if it is,
+	// adding on any existing intermediate certs since they aren't directly
+	// tied to the provider.
 	// Every change to the CA after this initial bootstrapping should
 	// be done through the rotation process.
 	state := s.fsm.State()
@@ -450,12 +459,15 @@ func (s *Server) initializeCA() error {
 		return err
 	}
 	if activeRoot != nil {
+		// This state shouldn't be possible to get into because we update the root and
+		// CA config in the same FSM operation.
 		if activeRoot.ID != rootCA.ID {
-			// TODO(banks): this seems like a pretty catastrophic state to get into.
-			// Shouldn't we do something stronger than warn and continue signing with
-			// a key that's not the active CA according to the state?
-			s.logger.Printf("[WARN] connect: CA root %q is not the active root (%q)", rootCA.ID, activeRoot.ID)
+			return fmt.Errorf("stored CA root %q is not the active root (%s)", rootCA.ID, activeRoot.ID)
 		}
+
+		rootCA.IntermediateCerts = activeRoot.IntermediateCerts
+		s.setCAProvider(provider, rootCA)
+
 		return nil
 	}
 
@@ -478,6 +490,8 @@ func (s *Server) initializeCA() error {
 	if respErr, ok := resp.(error); ok {
 		return respErr
 	}
+
+	s.setCAProvider(provider, rootCA)
 
 	s.logger.Printf("[INFO] connect: initialized CA with provider %q", conf.Provider)
 
@@ -548,6 +562,92 @@ func (s *Server) setCAProvider(newProvider ca.Provider, root *structs.CARoot) {
 	defer s.caProviderLock.Unlock()
 	s.caProvider = newProvider
 	s.caProviderRoot = root
+}
+
+// startCARootPruning starts a goroutine that looks for stale CARoots
+// and removes them from the state store.
+func (s *Server) startCARootPruning() {
+	s.caPruningLock.Lock()
+	defer s.caPruningLock.Unlock()
+
+	if s.caPruningEnabled {
+		return
+	}
+
+	s.caPruningCh = make(chan struct{})
+
+	go func() {
+		ticker := time.NewTicker(caRootPruneInterval)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-s.caPruningCh:
+				return
+			case <-ticker.C:
+				if err := s.pruneCARoots(); err != nil {
+					s.logger.Printf("[ERR] connect: error pruning CA roots: %v", err)
+				}
+			}
+		}
+	}()
+
+	s.caPruningEnabled = true
+}
+
+// pruneCARoots looks for any CARoots that have been rotated out and expired.
+func (s *Server) pruneCARoots() error {
+	if !s.config.ConnectEnabled {
+		return nil
+	}
+
+	idx, roots, err := s.fsm.State().CARoots(nil)
+	if err != nil {
+		return err
+	}
+
+	var newRoots structs.CARoots
+	for _, r := range roots {
+		if !r.Active && !r.RotatedOutAt.IsZero() && time.Now().Sub(r.RotatedOutAt) > caRootExpireDuration {
+			s.logger.Printf("[INFO] connect: pruning old unused root CA (ID: %s)", r.ID)
+			continue
+		}
+		newRoot := *r
+		newRoots = append(newRoots, &newRoot)
+	}
+
+	// Return early if there's nothing to remove.
+	if len(newRoots) == len(roots) {
+		return nil
+	}
+
+	// Commit the new root state.
+	var args structs.CARequest
+	args.Op = structs.CAOpSetRoots
+	args.Index = idx
+	args.Roots = newRoots
+	resp, err := s.raftApply(structs.ConnectCARequestType, args)
+	if err != nil {
+		return err
+	}
+	if respErr, ok := resp.(error); ok {
+		return respErr
+	}
+
+	return nil
+}
+
+// stopCARootPruning stops the CARoot pruning process.
+func (s *Server) stopCARootPruning() {
+	s.caPruningLock.Lock()
+	defer s.caPruningLock.Unlock()
+
+	if !s.caPruningEnabled {
+		return
+	}
+
+	close(s.caPruningCh)
+	s.caPruningEnabled = false
 }
 
 // reconcileReaped is used to reconcile nodes that have failed and been reaped

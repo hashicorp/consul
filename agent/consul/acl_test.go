@@ -508,193 +508,201 @@ func TestACL_DownPolicy_Allow(t *testing.T) {
 
 func TestACL_DownPolicy_ExtendCache(t *testing.T) {
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
-		c.ACLTTL = 0
-		c.ACLDownPolicy = "extend-cache"
-		c.ACLMasterToken = "root"
-	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	client := rpcClient(t, s1)
-	defer client.Close()
+	aclExtendPolicies := []string{"extend-cache", "async-cache"} //"async-cache"
 
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1" // Enable ACLs!
-		c.ACLTTL = 0
-		c.ACLDownPolicy = "extend-cache"
-		c.Bootstrap = false // Disable bootstrap
-	})
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	for _, aclDownPolicy := range aclExtendPolicies {
+		dir1, s1 := testServerWithConfig(t, func(c *Config) {
+			c.ACLDatacenter = "dc1"
+			c.ACLTTL = 0
+			c.ACLDownPolicy = aclDownPolicy
+			c.ACLMasterToken = "root"
+		})
+		defer os.RemoveAll(dir1)
+		defer s1.Shutdown()
+		client := rpcClient(t, s1)
+		defer client.Close()
 
-	// Try to join
-	joinLAN(t, s2, s1)
-	retry.Run(t, func(r *retry.R) { r.Check(wantRaft([]*Server{s1, s2})) })
+		dir2, s2 := testServerWithConfig(t, func(c *Config) {
+			c.ACLDatacenter = "dc1" // Enable ACLs!
+			c.ACLTTL = 0
+			c.ACLDownPolicy = aclDownPolicy
+			c.Bootstrap = false // Disable bootstrap
+		})
+		defer os.RemoveAll(dir2)
+		defer s2.Shutdown()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+		// Try to join
+		joinLAN(t, s2, s1)
+		retry.Run(t, func(r *retry.R) { r.Check(wantRaft([]*Server{s1, s2})) })
 
-	// Create a new token
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name:  "User token",
-			Type:  structs.ACLTypeClient,
-			Rules: testACLPolicy,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var id string
-	if err := s1.RPC("ACL.Apply", &arg, &id); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+		testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	// find the non-authoritative server
-	var nonAuth *Server
-	var auth *Server
-	if !s1.IsLeader() {
-		nonAuth = s1
-		auth = s2
-	} else {
-		nonAuth = s2
-		auth = s1
-	}
+		// Create a new token
+		arg := structs.ACLRequest{
+			Datacenter: "dc1",
+			Op:         structs.ACLSet,
+			ACL: structs.ACL{
+				Name:  "User token",
+				Type:  structs.ACLTypeClient,
+				Rules: testACLPolicy,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		var id string
+		if err := s1.RPC("ACL.Apply", &arg, &id); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 
-	// Warm the caches
-	aclR, err := nonAuth.resolveToken(id)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if aclR == nil {
-		t.Fatalf("bad acl: %#v", aclR)
-	}
+		// find the non-authoritative server
+		var nonAuth *Server
+		var auth *Server
+		if !s1.IsLeader() {
+			nonAuth = s1
+			auth = s2
+		} else {
+			nonAuth = s2
+			auth = s1
+		}
 
-	// Kill the authoritative server
-	auth.Shutdown()
+		// Warm the caches
+		aclR, err := nonAuth.resolveToken(id)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if aclR == nil {
+			t.Fatalf("bad acl: %#v", aclR)
+		}
 
-	// Token should resolve into cached copy
-	aclR2, err := nonAuth.resolveToken(id)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if aclR2 != aclR {
-		t.Fatalf("bad acl: %#v", aclR)
+		// Kill the authoritative server
+		auth.Shutdown()
+
+		// Token should resolve into cached copy
+		aclR2, err := nonAuth.resolveToken(id)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if aclR2 != aclR {
+			t.Fatalf("bad acl: %#v", aclR)
+		}
 	}
 }
 
 func TestACL_Replication(t *testing.T) {
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
-		c.ACLMasterToken = "root"
-	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	client := rpcClient(t, s1)
-	defer client.Close()
+	aclExtendPolicies := []string{"extend-cache", "async-cache"} //"async-cache"
 
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
-		c.Datacenter = "dc2"
-		c.ACLDatacenter = "dc1"
-		c.ACLDefaultPolicy = "deny"
-		c.ACLDownPolicy = "extend-cache"
-		c.EnableACLReplication = true
-		c.ACLReplicationInterval = 10 * time.Millisecond
-		c.ACLReplicationApplyLimit = 1000000
-	})
-	s2.tokens.UpdateACLReplicationToken("root")
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	for _, aclDownPolicy := range aclExtendPolicies {
+		dir1, s1 := testServerWithConfig(t, func(c *Config) {
+			c.ACLDatacenter = "dc1"
+			c.ACLMasterToken = "root"
+		})
+		defer os.RemoveAll(dir1)
+		defer s1.Shutdown()
+		client := rpcClient(t, s1)
+		defer client.Close()
 
-	dir3, s3 := testServerWithConfig(t, func(c *Config) {
-		c.Datacenter = "dc3"
-		c.ACLDatacenter = "dc1"
-		c.ACLDownPolicy = "deny"
-		c.EnableACLReplication = true
-		c.ACLReplicationInterval = 10 * time.Millisecond
-		c.ACLReplicationApplyLimit = 1000000
-	})
-	s3.tokens.UpdateACLReplicationToken("root")
-	defer os.RemoveAll(dir3)
-	defer s3.Shutdown()
+		dir2, s2 := testServerWithConfig(t, func(c *Config) {
+			c.Datacenter = "dc2"
+			c.ACLDatacenter = "dc1"
+			c.ACLDefaultPolicy = "deny"
+			c.ACLDownPolicy = aclDownPolicy
+			c.EnableACLReplication = true
+			c.ACLReplicationInterval = 10 * time.Millisecond
+			c.ACLReplicationApplyLimit = 1000000
+		})
+		s2.tokens.UpdateACLReplicationToken("root")
+		defer os.RemoveAll(dir2)
+		defer s2.Shutdown()
 
-	// Try to join.
-	joinWAN(t, s2, s1)
-	joinWAN(t, s3, s1)
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	testrpc.WaitForLeader(t, s1.RPC, "dc2")
-	testrpc.WaitForLeader(t, s1.RPC, "dc3")
+		dir3, s3 := testServerWithConfig(t, func(c *Config) {
+			c.Datacenter = "dc3"
+			c.ACLDatacenter = "dc1"
+			c.ACLDownPolicy = "deny"
+			c.EnableACLReplication = true
+			c.ACLReplicationInterval = 10 * time.Millisecond
+			c.ACLReplicationApplyLimit = 1000000
+		})
+		s3.tokens.UpdateACLReplicationToken("root")
+		defer os.RemoveAll(dir3)
+		defer s3.Shutdown()
 
-	// Create a new token.
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name:  "User token",
-			Type:  structs.ACLTypeClient,
-			Rules: testACLPolicy,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var id string
-	if err := s1.RPC("ACL.Apply", &arg, &id); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	// Wait for replication to occur.
-	retry.Run(t, func(r *retry.R) {
-		_, acl, err := s2.fsm.State().ACLGet(nil, id)
+		// Try to join.
+		joinWAN(t, s2, s1)
+		joinWAN(t, s3, s1)
+		testrpc.WaitForLeader(t, s1.RPC, "dc1")
+		testrpc.WaitForLeader(t, s1.RPC, "dc2")
+		testrpc.WaitForLeader(t, s1.RPC, "dc3")
+
+		// Create a new token.
+		arg := structs.ACLRequest{
+			Datacenter: "dc1",
+			Op:         structs.ACLSet,
+			ACL: structs.ACL{
+				Name:  "User token",
+				Type:  structs.ACLTypeClient,
+				Rules: testACLPolicy,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		var id string
+		if err := s1.RPC("ACL.Apply", &arg, &id); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		// Wait for replication to occur.
+		retry.Run(t, func(r *retry.R) {
+			_, acl, err := s2.fsm.State().ACLGet(nil, id)
+			if err != nil {
+				r.Fatal(err)
+			}
+			if acl == nil {
+				r.Fatal(nil)
+			}
+			_, acl, err = s3.fsm.State().ACLGet(nil, id)
+			if err != nil {
+				r.Fatal(err)
+			}
+			if acl == nil {
+				r.Fatal(nil)
+			}
+		})
+
+		// Kill the ACL datacenter.
+		s1.Shutdown()
+
+		// Token should resolve on s2, which has replication + extend-cache.
+		acl, err := s2.resolveToken(id)
 		if err != nil {
-			r.Fatal(err)
+			t.Fatalf("err: %v", err)
 		}
 		if acl == nil {
-			r.Fatal(nil)
+			t.Fatalf("missing acl")
 		}
-		_, acl, err = s3.fsm.State().ACLGet(nil, id)
+
+		// Check the policy
+		if acl.KeyRead("bar") {
+			t.Fatalf("unexpected read")
+		}
+		if !acl.KeyRead("foo/test") {
+			t.Fatalf("unexpected failed read")
+		}
+
+		// Although s3 has replication, and we verified that the ACL is there,
+		// it can not be used because of the down policy.
+		acl, err = s3.resolveToken(id)
 		if err != nil {
-			r.Fatal(err)
+			t.Fatalf("err: %v", err)
 		}
 		if acl == nil {
-			r.Fatal(nil)
+			t.Fatalf("missing acl")
 		}
-	})
 
-	// Kill the ACL datacenter.
-	s1.Shutdown()
-
-	// Token should resolve on s2, which has replication + extend-cache.
-	acl, err := s2.resolveToken(id)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if acl == nil {
-		t.Fatalf("missing acl")
-	}
-
-	// Check the policy
-	if acl.KeyRead("bar") {
-		t.Fatalf("unexpected read")
-	}
-	if !acl.KeyRead("foo/test") {
-		t.Fatalf("unexpected failed read")
-	}
-
-	// Although s3 has replication, and we verified that the ACL is there,
-	// it can not be used because of the down policy.
-	acl, err = s3.resolveToken(id)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if acl == nil {
-		t.Fatalf("missing acl")
-	}
-
-	// Check the policy.
-	if acl.KeyRead("bar") {
-		t.Fatalf("unexpected read")
-	}
-	if acl.KeyRead("foo/test") {
-		t.Fatalf("unexpected read")
+		// Check the policy.
+		if acl.KeyRead("bar") {
+			t.Fatalf("unexpected read")
+		}
+		if acl.KeyRead("foo/test") {
+			t.Fatalf("unexpected read")
+		}
 	}
 }
 

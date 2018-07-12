@@ -1,11 +1,11 @@
-import { create, clickable, triggerable, is } from 'ember-cli-page-object';
-import { visitable } from 'consul-ui/tests/lib/page-object/visitable';
-
-export default create({
-  // custom visitable
-  visit: visitable(['/:dc/acls/:acl', '/:dc/acls/create']),
-  // fillIn: fillable('input, textarea, [contenteditable]'),
-  name: triggerable('keypress', '[name="name"]'),
-  submit: clickable('[type=submit]'),
-  submitIsEnabled: is(':not(:disabled)', '[type=submit]'),
-});
+export default function(visitable, submitable, deletable, cancelable, clickable) {
+  return submitable(
+    cancelable(
+      deletable({
+        visit: visitable(['/:dc/acls/:acl', '/:dc/acls/create']),
+        use: clickable('[data-test-use]'),
+        confirmUse: clickable('button.type-delete'),
+      })
+    )
+  );
+}

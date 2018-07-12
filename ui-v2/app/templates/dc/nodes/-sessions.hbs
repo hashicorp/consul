@@ -37,7 +37,7 @@
                 <td>
                     {{#confirmation-dialog message='Are you sure you want to invalidate this session?'}}
                         {{#block-slot 'action' as |confirm|}}
-                            <button type="button" class="type-delete" {{action confirm 'invalidateSession' item}}>Invalidate</button>
+                            <button data-test-delete type="button" class="type-delete" {{action confirm 'invalidateSession' item}}>Invalidate</button>
                         {{/block-slot}}
                         {{#block-slot 'dialog' as |execute cancel message|}}
                             <p>

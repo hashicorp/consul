@@ -7,6 +7,10 @@ Feature: settings / update: Update Settings
     Given 1 datacenter model with the value "datacenter"
     When I visit the settings page
     Then the url should be /settings
+    Then I have settings like yaml
+    ---
+      token: ~
+    ---
     And I submit
     Then I have settings like yaml
     ---

@@ -103,7 +103,7 @@ func newACLManager(config *config.RuntimeConfig) (*aclManager, error) {
 		down = acl.AllowAll()
 	case "deny":
 		down = acl.DenyAll()
-	case "extend-cache":
+	case "async-cache", "extend-cache":
 		// Leave the down policy as nil to signal this.
 	default:
 		return nil, fmt.Errorf("invalid ACL down policy %q", config.ACLDownPolicy)

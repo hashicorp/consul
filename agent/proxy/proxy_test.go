@@ -7,7 +7,9 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"sort"
 	"strconv"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -124,7 +126,6 @@ func TestHelperProcess(t *testing.T) {
 			default:
 			}
 		}
-
 	case "stop-kill":
 		// Setup listeners so it is ignored
 		ch := make(chan os.Signal, 1)
@@ -139,6 +140,36 @@ func TestHelperProcess(t *testing.T) {
 			}
 			time.Sleep(25 * time.Millisecond)
 		}
+		// Check if the external process can access the enivironmental variables
+	case "environ":
+		stop := make(chan os.Signal, 1)
+		signal.Notify(stop, os.Interrupt)
+		defer signal.Stop(stop)
+
+		//Get the path for the file to be written to
+		path := args[0]
+		var data []byte
+
+		//Get the environmental variables
+		envData := os.Environ()
+
+		//Sort the env data for easier comparison
+		sort.Strings(envData)
+		for _, envVariable := range envData {
+			if strings.HasPrefix(envVariable, "CONSUL") || strings.HasPrefix(envVariable, "CONNECT") {
+				continue
+			}
+			data = append(data, envVariable...)
+			data = append(data, "\n"...)
+		}
+		if err := ioutil.WriteFile(path, data, 0644); err != nil {
+			t.Fatalf("[Error] File write failed : %s", err)
+		}
+
+		// Clean up after we receive the signal to exit
+		defer os.Remove(path)
+
+		<-stop
 
 	case "output":
 		fmt.Fprintf(os.Stdout, "hello stdout\n")

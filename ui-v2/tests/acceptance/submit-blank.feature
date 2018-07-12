@@ -13,11 +13,12 @@ Feature: submit blank
     And I submit
     Then the url should be /datacenter/[Slug]/create
   Where:
-    ------------------
-    | Model   | Slug |
-    | kv      | kv   |
-    | acl     | acls |
-    ------------------
+    --------------------------
+    | Model     | Slug       |
+    | kv        | kv         |
+    | acl       | acls       |
+    | intention | intentions |
+    --------------------------
 @ignore
   Scenario: The button is disabled
     Then ok

@@ -158,8 +158,13 @@ test: other-consul dev-build vet
 	@# hide it from travis as it exceeds their log limits and causes job to be
 	@# terminated (over 4MB and over 10k lines in the UI). We need to output
 	@# _something_ to stop them terminating us due to inactivity...
-	{ go test $(GOTEST_FLAGS) -tags '$(GOTAGS)' -timeout 5m $(GOTEST_PKGS) 2>&1 ; echo $$? > exit-code ; } | tee test.log | egrep '^(ok|FAIL)\s*github.com/hashicorp/consul'
+	{ go test $(GOTEST_FLAGS) -tags '$(GOTAGS)' -timeout 7m $(GOTEST_PKGS) 2>&1 ; echo $$? > exit-code ; } | tee test.log | egrep '^(ok|FAIL)\s*github.com/hashicorp/consul'
 	@echo "Exit code: $$(cat exit-code)" >> test.log
+	@if [ "0" != "$$(cat exit-code)" ]; then \
+	  echo Retrying to avoid flacky tests >> test.log;\
+	  echo Retrying tests once...;\
+	  go test -p 5 -parallel 1 -tags '$(GOTAGS)' -timeout 5m $(GOTEST_PKGS) 2>&1; echo $$? > exit-code;\
+	fi
 	@# This prints all the race report between ====== lines
 	@awk '/^WARNING: DATA RACE/ {do_print=1; print "=================="} do_print==1 {print} /^={10,}/ {do_print=0}' test.log || true
 	@grep -A10 'panic: ' test.log || true

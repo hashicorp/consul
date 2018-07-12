@@ -1,0 +1,67 @@
+import { module } from 'ember-qunit';
+import test from 'ember-sinon-qunit/test-support/test';
+import { skip } from 'qunit';
+import atob from 'consul-ui/utils/atob';
+module('Unit | Utils | atob', {});
+
+skip('it decodes non-strings properly', function(assert) {
+  [
+    {
+      test: '        ',
+      expected: '',
+    },
+    {
+      test: new String(),
+      expected: '',
+    },
+    {
+      test: new String('MTIzNA=='),
+      expected: '1234',
+    },
+    {
+      test: [],
+      expected: '',
+    },
+    {
+      test: ['   '],
+      expected: '',
+    },
+    {
+      test: new Array(),
+      expected: '',
+    },
+    {
+      test: ['MTIzNA=='],
+      expected: '1234',
+    },
+    {
+      test: null,
+      expected: '��e',
+    },
+  ].forEach(function(item) {
+    const actual = atob(item.test);
+    assert.equal(actual, item.expected);
+  });
+});
+test('it decodes strings properly', function(assert) {
+  [
+    {
+      test: '',
+      expected: '',
+    },
+    {
+      test: 'MTIzNA==',
+      expected: '1234',
+    },
+  ].forEach(function(item) {
+    const actual = atob(item.test);
+    assert.equal(actual, item.expected);
+  });
+});
+test('throws when passed the wrong value', function(assert) {
+  [{}, ['MTIz', 'NA=='], new Number(), 'hi'].forEach(function(item) {
+    assert.throws(function() {
+      atob(item);
+    });
+  });
+});
