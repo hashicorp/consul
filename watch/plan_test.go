@@ -50,7 +50,7 @@ func TestRun_Stop(t *testing.T) {
 
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- plan.Run("127.0.0.1:8500")
+		errCh <- plan.Run("localhost:8500")
 	}()
 
 	select {
@@ -102,7 +102,7 @@ func TestRun_Stop_Hybrid(t *testing.T) {
 
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- plan.Run("127.0.0.1:8500")
+		errCh <- plan.Run("localhost:8500")
 	}()
 
 	select {

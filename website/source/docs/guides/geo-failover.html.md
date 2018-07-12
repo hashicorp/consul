@@ -30,7 +30,7 @@ $ curl \
     "Service": "api",
     "Tags": ["v1.2.3"]
   }
-}' http://127.0.0.1:8500/v1/query
+}' http://localhost:8500/v1/query
 
 {"ID":"fe3b8d40-0ee0-8783-6cc2-ab1aa9bb16c1"}
 ```
@@ -70,7 +70,7 @@ $ curl \
       "Datacenters": ["dc1", "dc2"]
     }
   }
-}' http://127.0.0.1:8500/v1/query
+}' http://localhost:8500/v1/query
 
 {"ID":"fe3b8d40-0ee0-8783-6cc2-ab1aa9bb16c1"}
 ```
@@ -101,7 +101,7 @@ $ curl \
       "NearestN": 2
     }
   }
-}' http://127.0.0.1:8500/v1/query
+}' http://localhost:8500/v1/query
 
 {"ID":"fe3b8d40-0ee0-8783-6cc2-ab1aa9bb16c1"}
 ```
@@ -133,7 +133,7 @@ $ curl \
       "NearestN": 2
     }
   }
-}' http://127.0.0.1:8500/v1/query
+}' http://localhost:8500/v1/query
 
 {"ID":"fe3b8d40-0ee0-8783-6cc2-ab1aa9bb16c1"}
 ```

@@ -323,7 +323,7 @@ func TestManagerPassesProxyEnv(t *testing.T) {
 	defer m.Kill()
 
 	penv := make([]string, 0, 2)
-	penv = append(penv, "HTTP_ADDR=127.0.0.1:8500")
+	penv = append(penv, "HTTP_ADDR=localhost:8500")
 	penv = append(penv, "HTTP_SSL=false")
 	m.ProxyEnv = penv
 
@@ -341,7 +341,7 @@ func TestManagerPassesProxyEnv(t *testing.T) {
 	var err error
 	var data []byte
 	envData := os.Environ()
-	envData = append(envData, "HTTP_ADDR=127.0.0.1:8500")
+	envData = append(envData, "HTTP_ADDR=localhost:8500")
 	envData = append(envData, "HTTP_SSL=false")
 	sort.Strings(envData)
 	for _, envVariable := range envData {

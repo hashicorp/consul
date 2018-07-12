@@ -34,7 +34,7 @@ Let us suppose we want to register a "search" service that is provided by
 $ curl -X PUT -d '{"Datacenter": "dc1", "Node": "google",
    "Address": "www.google.com",
    "Service": {"Service": "search", "Port": 80}}'
-   http://127.0.0.1:8500/v1/catalog/register
+   http://localhost:8500/v1/catalog/register
 ```
 
 Add an upstream DNS server to the list of recursors to Consul's configuration. Example with Google's public DNS server:
@@ -70,7 +70,7 @@ www.google.com.		264	IN	A	74.125.239.116
 If at any time we want to deregister the service, we simply do:
 
 ```text
-$ curl -X PUT -d '{"Datacenter": "dc1", "Node": "google"}' http://127.0.0.1:8500/v1/catalog/deregister
+$ curl -X PUT -d '{"Datacenter": "dc1", "Node": "google"}' http://localhost:8500/v1/catalog/deregister
 ```
 
 This will deregister the `google` node along with all services it provides.
