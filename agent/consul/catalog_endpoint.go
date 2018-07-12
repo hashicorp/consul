@@ -37,13 +37,6 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 		if _, err := uuid.ParseUUID(string(args.ID)); err != nil {
 			return fmt.Errorf("Bad node ID: %v", err)
 		}
-	} else {
-		id, err := uuid.GenerateUUID()
-		if err != nil {
-			return fmt.Errorf("Failed to generate ID: %v", err)
-		}
-
-		args.ID = types.NodeID(id)
 	}
 
 	// Fetch the ACL token, if any.
