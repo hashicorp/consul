@@ -120,7 +120,11 @@ func (c *CheckAlias) runQuery(stopCh chan struct{}) {
 
 		// Backoff if we have to
 		if attempt > checkAliasBackoffMin {
-			waitTime := (1 << (attempt - checkAliasBackoffMin)) * time.Second
+			shift := attempt - checkAliasBackoffMin
+			if shift > 31 {
+				shift = 31 // so we don't overflow to 0
+			}
+			waitTime := (1 << shift) * time.Second
 			if waitTime > checkAliasBackoffMaxWait {
 				waitTime = checkAliasBackoffMaxWait
 			}
