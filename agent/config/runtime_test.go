@@ -4507,6 +4507,107 @@ func TestSanitize(t *testing.T) {
 	require.JSONEq(t, rtJSON, string(b))
 }
 
+func TestRuntime_apiAddresses(t *testing.T) {
+	rt := RuntimeConfig{
+		HTTPAddrs: []net.Addr{
+			&net.TCPAddr{IP: net.ParseIP("198.18.0.1"), Port: 5678},
+			&net.UnixAddr{Name: "/var/run/foo"},
+		},
+		HTTPSAddrs: []net.Addr{
+			&net.TCPAddr{IP: net.ParseIP("198.18.0.2"), Port: 5678},
+		}}
+
+	unixAddrs, httpAddrs, httpsAddrs := rt.apiAddresses(1)
+
+	require.Len(t, unixAddrs, 1)
+	require.Len(t, httpAddrs, 1)
+	require.Len(t, httpsAddrs, 1)
+
+	require.Equal(t, "/var/run/foo", unixAddrs[0])
+	require.Equal(t, "198.18.0.1:5678", httpAddrs[0])
+	require.Equal(t, "198.18.0.2:5678", httpsAddrs[0])
+}
+
+func TestRuntime_APIConfigHTTPS(t *testing.T) {
+	rt := RuntimeConfig{
+		HTTPAddrs: []net.Addr{
+			&net.TCPAddr{IP: net.ParseIP("198.18.0.1"), Port: 5678},
+			&net.UnixAddr{Name: "/var/run/foo"},
+		},
+		HTTPSAddrs: []net.Addr{
+			&net.TCPAddr{IP: net.ParseIP("198.18.0.2"), Port: 5678},
+		},
+		Datacenter:     "dc-test",
+		CAFile:         "/etc/consul/ca.crt",
+		CAPath:         "/etc/consul/ca.dir",
+		CertFile:       "/etc/consul/server.crt",
+		KeyFile:        "/etc/consul/ssl/server.key",
+		VerifyOutgoing: false,
+	}
+
+	cfg, err := rt.APIConfig(false)
+	require.NoError(t, err)
+	require.Equal(t, "198.18.0.2:5678", cfg.Address)
+	require.Equal(t, "https", cfg.Scheme)
+	require.Equal(t, rt.CAFile, cfg.TLSConfig.CAFile)
+	require.Equal(t, rt.CAPath, cfg.TLSConfig.CAPath)
+	require.Equal(t, "", cfg.TLSConfig.CertFile)
+	require.Equal(t, "", cfg.TLSConfig.KeyFile)
+	require.Equal(t, rt.Datacenter, cfg.Datacenter)
+	require.Equal(t, true, cfg.TLSConfig.InsecureSkipVerify)
+
+	rt.VerifyOutgoing = true
+	cfg, err = rt.APIConfig(true)
+	require.NoError(t, err)
+	require.Equal(t, "198.18.0.2:5678", cfg.Address)
+	require.Equal(t, "https", cfg.Scheme)
+	require.Equal(t, rt.CAFile, cfg.TLSConfig.CAFile)
+	require.Equal(t, rt.CAPath, cfg.TLSConfig.CAPath)
+	require.Equal(t, rt.CertFile, cfg.TLSConfig.CertFile)
+	require.Equal(t, rt.KeyFile, cfg.TLSConfig.KeyFile)
+	require.Equal(t, rt.Datacenter, cfg.Datacenter)
+	require.Equal(t, false, cfg.TLSConfig.InsecureSkipVerify)
+}
+
+func TestRuntime_APIConfigHTTP(t *testing.T) {
+	rt := RuntimeConfig{
+		HTTPAddrs: []net.Addr{
+			&net.UnixAddr{Name: "/var/run/foo"},
+			&net.TCPAddr{IP: net.ParseIP("198.18.0.1"), Port: 5678},
+		},
+		Datacenter: "dc-test",
+	}
+
+	cfg, err := rt.APIConfig(false)
+	require.NoError(t, err)
+	require.Equal(t, rt.Datacenter, cfg.Datacenter)
+	require.Equal(t, "198.18.0.1:5678", cfg.Address)
+	require.Equal(t, "http", cfg.Scheme)
+	require.Equal(t, "", cfg.TLSConfig.CAFile)
+	require.Equal(t, "", cfg.TLSConfig.CAPath)
+	require.Equal(t, "", cfg.TLSConfig.CertFile)
+	require.Equal(t, "", cfg.TLSConfig.KeyFile)
+}
+
+func TestRuntime_APIConfigUNIX(t *testing.T) {
+	rt := RuntimeConfig{
+		HTTPAddrs: []net.Addr{
+			&net.UnixAddr{Name: "/var/run/foo"},
+		},
+		Datacenter: "dc-test",
+	}
+
+	cfg, err := rt.APIConfig(false)
+	require.NoError(t, err)
+	require.Equal(t, rt.Datacenter, cfg.Datacenter)
+	require.Equal(t, "unix:///var/run/foo", cfg.Address)
+	require.Equal(t, "http", cfg.Scheme)
+	require.Equal(t, "", cfg.TLSConfig.CAFile)
+	require.Equal(t, "", cfg.TLSConfig.CAPath)
+	require.Equal(t, "", cfg.TLSConfig.CertFile)
+	require.Equal(t, "", cfg.TLSConfig.KeyFile)
+}
+
 func splitIPPort(hostport string) (net.IP, int) {
 	h, p, err := net.SplitHostPort(hostport)
 	if err != nil {

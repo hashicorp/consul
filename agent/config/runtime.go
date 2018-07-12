@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -1187,6 +1188,70 @@ func (c *RuntimeConfig) IncomingHTTPSConfig() (*tls.Config, error) {
 		PreferServerCipherSuites: c.TLSPreferServerCipherSuites,
 	}
 	return tc.IncomingTLSConfig()
+}
+
+func (c *RuntimeConfig) apiAddresses(maxPerType int) (unixAddrs, httpAddrs, httpsAddrs []string) {
+	if len(c.HTTPSAddrs) > 0 {
+		for i, addr := range c.HTTPSAddrs {
+			if i < maxPerType {
+				httpsAddrs = append(httpsAddrs, addr.String())
+			} else {
+				break
+			}
+		}
+	}
+	if len(c.HTTPAddrs) > 0 {
+		unix_count := 0
+		http_count := 0
+		for _, addr := range c.HTTPAddrs {
+			switch addr.(type) {
+			case *net.UnixAddr:
+				if unix_count < maxPerType {
+					unixAddrs = append(unixAddrs, addr.String())
+					unix_count += 1
+				}
+			default:
+				if http_count < maxPerType {
+					httpAddrs = append(httpAddrs, addr.String())
+					http_count += 1
+				}
+			}
+		}
+	}
+
+	return
+}
+
+func (c *RuntimeConfig) APIConfig(includeClientCerts bool) (*api.Config, error) {
+	cfg := &api.Config{
+		Datacenter: c.Datacenter,
+		TLSConfig:  api.TLSConfig{InsecureSkipVerify: !c.VerifyOutgoing},
+	}
+
+	unixAddrs, httpAddrs, httpsAddrs := c.apiAddresses(1)
+
+	if len(httpsAddrs) > 0 {
+		cfg.Address = httpsAddrs[0]
+		cfg.Scheme = "https"
+		cfg.TLSConfig.CAFile = c.CAFile
+		cfg.TLSConfig.CAPath = c.CAPath
+		if includeClientCerts {
+			cfg.TLSConfig.CertFile = c.CertFile
+			cfg.TLSConfig.KeyFile = c.KeyFile
+		}
+	} else if len(httpAddrs) > 0 {
+		cfg.Address = httpAddrs[0]
+		cfg.Scheme = "http"
+	} else if len(unixAddrs) > 0 {
+		cfg.Address = "unix://" + unixAddrs[0]
+		// this should be ignored - however we are still talking http over a unix socket
+		// so it makes sense to set it like this
+		cfg.Scheme = "http"
+	} else {
+		return nil, fmt.Errorf("No suitable client address can be found")
+	}
+
+	return cfg, nil
 }
 
 // Sanitized returns a JSON/HCL compatible representation of the runtime

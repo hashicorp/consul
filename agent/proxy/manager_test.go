@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -291,6 +292,9 @@ func TestManagerPassesEnvironment(t *testing.T) {
 	envData := os.Environ()
 	sort.Strings(envData)
 	for _, envVariable := range envData {
+		if strings.HasPrefix(envVariable, "CONSUL") || strings.HasPrefix(envVariable, "CONNECT") {
+			continue
+		}
 		data = append(data, envVariable...)
 		data = append(data, "\n"...)
 	}
@@ -303,7 +307,60 @@ func TestManagerPassesEnvironment(t *testing.T) {
 		}
 	})
 
-	require.Equal(fileContent, data)
+	require.Equal(data, fileContent)
+}
+
+// Test to check if the parent and the child processes
+// have the same environmental variables
+func TestManagerPassesProxyEnv(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	state := local.TestState(t)
+	m, closer := testManager(t)
+	defer closer()
+	m.State = state
+	defer m.Kill()
+
+	penv := make([]string, 0, 2)
+	penv = append(penv, "HTTP_ADDR=127.0.0.1:8500")
+	penv = append(penv, "HTTP_SSL=false")
+	m.ProxyEnv = penv
+
+	// Add Proxy for the test
+	td, closer := testTempDir(t)
+	defer closer()
+	path := filepath.Join(td, "env-variables")
+	testStateProxy(t, state, "environTest", helperProcess("environ", path))
+
+	//Run the manager
+	go m.Run()
+
+	//Get the environmental variables from the OS
+	var fileContent []byte
+	var err error
+	var data []byte
+	envData := os.Environ()
+	envData = append(envData, "HTTP_ADDR=127.0.0.1:8500")
+	envData = append(envData, "HTTP_SSL=false")
+	sort.Strings(envData)
+	for _, envVariable := range envData {
+		if strings.HasPrefix(envVariable, "CONSUL") || strings.HasPrefix(envVariable, "CONNECT") {
+			continue
+		}
+		data = append(data, envVariable...)
+		data = append(data, "\n"...)
+	}
+
+	// Check if the file written to from the spawned process
+	// has the necessary environmental variable data
+	retry.Run(t, func(r *retry.R) {
+		if fileContent, err = ioutil.ReadFile(path); err != nil {
+			r.Fatalf("No file ya dummy")
+		}
+	})
+
+	require.Equal(data, fileContent)
 }
 
 // Test the Snapshot/Restore works.

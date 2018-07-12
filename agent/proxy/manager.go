@@ -69,6 +69,9 @@ type Manager struct {
 	//
 	DataDir string
 
+	// Extra environment variables to set for the proxies
+	ProxyEnv []string
+
 	// SnapshotPeriod is the duration between snapshots. This can be set
 	// relatively low to ensure accuracy, because if the new snapshot matches
 	// the last snapshot taken, no file will be written. Therefore, setting
@@ -434,7 +437,7 @@ func (m *Manager) newProxy(mp *local.ManagedProxy) (Proxy, error) {
 		}
 
 		// Pass in the environmental variables for the proxy process
-		cmd.Env = os.Environ()
+		cmd.Env = append(m.ProxyEnv, os.Environ()...)
 
 		// Build the daemon structure
 		proxy.Command = &cmd

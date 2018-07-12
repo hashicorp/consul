@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/testutil"
+	"github.com/stretchr/testify/require"
 )
 
 type configCallback func(c *Config)
@@ -547,4 +548,74 @@ func TestAPI_IsRetryableError(t *testing.T) {
 	if !IsRetryableError(&net.OpError{Err: fmt.Errorf("network conn error")}) {
 		t.Fatal("should be a retryable error")
 	}
+}
+
+func TestAPI_GenerateEnv(t *testing.T) {
+	t.Parallel()
+
+	c := &Config{
+		Address: "127.0.0.1:8500",
+		Token:   "test",
+		Scheme:  "http",
+		TLSConfig: TLSConfig{
+			CAFile:             "",
+			CAPath:             "",
+			CertFile:           "",
+			KeyFile:            "",
+			Address:            "",
+			InsecureSkipVerify: true,
+		},
+	}
+
+	expected := []string{
+		"CONSUL_HTTP_ADDR=127.0.0.1:8500",
+		"CONSUL_HTTP_TOKEN=test",
+		"CONSUL_HTTP_SSL=false",
+		"CONSUL_CACERT=",
+		"CONSUL_CAPATH=",
+		"CONSUL_CLIENT_CERT=",
+		"CONSUL_CLIENT_KEY=",
+		"CONSUL_TLS_SERVER_NAME=",
+		"CONSUL_HTTP_SSL_VERIFY=false",
+		"CONSUL_HTTP_AUTH=",
+	}
+
+	require.Equal(t, expected, c.GenerateEnv())
+}
+
+func TestAPI_GenerateEnvHTTPS(t *testing.T) {
+	t.Parallel()
+
+	c := &Config{
+		Address: "127.0.0.1:8500",
+		Token:   "test",
+		Scheme:  "https",
+		TLSConfig: TLSConfig{
+			CAFile:             "/var/consul/ca.crt",
+			CAPath:             "/var/consul/ca.dir",
+			CertFile:           "/var/consul/server.crt",
+			KeyFile:            "/var/consul/ssl/server.key",
+			Address:            "127.0.0.1:8500",
+			InsecureSkipVerify: false,
+		},
+		HttpAuth: &HttpBasicAuth{
+			Username: "user",
+			Password: "password",
+		},
+	}
+
+	expected := []string{
+		"CONSUL_HTTP_ADDR=127.0.0.1:8500",
+		"CONSUL_HTTP_TOKEN=test",
+		"CONSUL_HTTP_SSL=true",
+		"CONSUL_CACERT=/var/consul/ca.crt",
+		"CONSUL_CAPATH=/var/consul/ca.dir",
+		"CONSUL_CLIENT_CERT=/var/consul/server.crt",
+		"CONSUL_CLIENT_KEY=/var/consul/ssl/server.key",
+		"CONSUL_TLS_SERVER_NAME=127.0.0.1:8500",
+		"CONSUL_HTTP_SSL_VERIFY=true",
+		"CONSUL_HTTP_AUTH=user:password",
+	}
+
+	require.Equal(t, expected, c.GenerateEnv())
 }
