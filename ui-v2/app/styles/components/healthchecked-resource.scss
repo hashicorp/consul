@@ -14,6 +14,7 @@
   border-top: 1px solid;
 }
 %healthchecked-resource header span,
+%healthchecked-resource header em,
 %healthchecked-resource li:not(:last-child) span {
   overflow: hidden;
   display: inline-block;
@@ -34,14 +35,11 @@
   border-radius: $radius-small;
 }
 %healthchecked-resource header {
-  margin-bottom: 2em;
   position: relative;
 }
 
 %healthchecked-resource header strong {
   position: absolute;
-  bottom: -0.6em;
-  left: 15px;
 }
 %healthchecked-resource a,
 %healthchecked-resource header a > * {
@@ -85,12 +83,25 @@
 .healthy .healthchecked-resource li a {
   padding-left: 0;
 }
+%healthchecked-resource header strong {
+  top: 2.8em;
+  left: 15px;
+}
+%healthchecked-resource header span {
+  margin-bottom: 1.75em;
+}
 %healthchecked-resource header a {
   padding: 12px 15px;
 }
+.unhealthy .healthchecked-resource header a {
+  padding-bottom: 15px;
+}
+.unhealthy .healthchecked-resource header.with-service a {
+  padding-bottom: 25px;
+}
 %healthchecked-resource li a {
   padding: 3px 15px;
-  padding-top: 5px;
+  padding-top: 4px;
   padding-left: 39px;
   height: 31px;
 }

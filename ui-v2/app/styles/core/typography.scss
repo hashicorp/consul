@@ -41,10 +41,13 @@ th,
   font-weight: $weight-medium;
 }
 main label a[rel*='help'],
+td:first-child em,
 %healthchecked-resource strong {
   font-weight: $weight-normal;
 }
-%form-element > em {
+%form-element > em,
+td:first-child em,
+%healthchecked-resource header em {
   font-style: normal;
 }
 %form-element > span {
