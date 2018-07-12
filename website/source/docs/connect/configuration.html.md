@@ -103,7 +103,7 @@ All fields are optional with a sane default.
   run a [TCP health check](/docs/agent/checks.html) against. By default this is
   the same as the proxy's [bind address](#bind_address) except if the
   bind_address is `0.0.0.0` or `[::]` in which case this defaults to `127.0.0.1`
-  and assumes agent can dial proxy over loopback. For more complex
+  and assumes the agent can dial the proxy over loopback. For more complex
   configurations where agent and proxy communicate over a bridge for example,
   this configuration can be used to specify a different _address_ (but not port)
   for the agent to use for health checks if it can't talk to the proxy over
