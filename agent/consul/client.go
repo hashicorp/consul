@@ -134,7 +134,7 @@ func NewClientLogger(config *Config, logger *log.Logger) (*Client, error) {
 		shutdownCh: make(chan struct{}),
 	}
 
-	c.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))
+    c.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))
 
 	if err := c.initEnterprise(); err != nil {
 		c.Shutdown()
