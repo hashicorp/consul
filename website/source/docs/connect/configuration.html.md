@@ -62,6 +62,8 @@ described here, the rest of the service definition is shown for context and is
         "config": {
           "bind_address": "0.0.0.0",
           "bind_port": 20000,
+          "tcp_check_address": "192.168.0.1",
+          "disable_tcp_check": false,
           "local_service_address": "127.0.0.1:1234",
           "local_connect_timeout_ms": 1000,
           "handshake_timeout_ms": 10000,
@@ -84,6 +86,8 @@ described here, the rest of the service definition is shown for context and is
 
 #### Configuration Key Reference
 
+All fields are optional with a sane default.
+
 * <a name="bind_address"></a><a href="#bind_address">`bind_address`</a> -
   The address the proxy will bind it's _public_ mTLS listener to. It
   defaults to the same address the agent binds to.
@@ -93,6 +97,22 @@ described here, the rest of the service definition is shown for context and is
   agent will attempt to assign one from its [configured proxy port
   range](/docs/agent/options.html#proxy_min_port) if available. By default the
   range is [20000, 20255] and the port is selected at random from that range.
+
+* <a name="tcp_check_address"></a><a
+  href="#tcp_check_address">`tcp_check_address`</a> - The address the agent will
+  run a [TCP health check](/docs/agent/checks.html) against. By default this is
+  the same as the proxy's [bind address](#bind_address) except if the
+  bind_address is `0.0.0.0` or `[::]` in which case this defaults to `127.0.0.1`
+  and assumes the agent can dial the proxy over loopback. For more complex
+  configurations where agent and proxy communicate over a bridge for example,
+  this configuration can be used to specify a different _address_ (but not port)
+  for the agent to use for health checks if it can't talk to the proxy over
+  localhost or it's publicly advertised port. The check always uses the same
+  port that the proxy is bound to.
+
+* <a name="disable_tcp_check"></a><a
+  href="#disable_tcp_check">`disable_tcp_check`</a> - If true, this disables a
+  TCP check being setup for the proxy. Default is false.
 
 * <a name="local_service_address"></a><a href="#local_service_address">`local_service_address`</a> - The
   `[address]:port` that the proxy should use to connect to the local application
