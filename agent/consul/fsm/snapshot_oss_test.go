@@ -123,6 +123,14 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	assert.Nil(err)
 	assert.True(ok)
 
+	ok, err = fsm.state.CASetProviderState(16, &structs.CAConsulProviderState{
+		ID:         "asdf",
+		PrivateKey: "foo",
+		RootCert:   "bar",
+	})
+	assert.Nil(err)
+	assert.True(ok)
+
 	// Snapshot
 	snap, err := fsm.Snapshot()
 	if err != nil {
@@ -295,6 +303,12 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	_, roots, err = fsm2.state.CARoots(nil)
 	assert.Nil(err)
 	assert.Len(roots, 2)
+
+	// Verify provider state is restored.
+	_, state, err := fsm2.state.CAProviderState("asdf")
+	assert.Nil(err)
+	assert.Equal("foo", state.PrivateKey)
+	assert.Equal("bar", state.RootCert)
 
 	// Snapshot
 	snap, err = fsm2.Snapshot()

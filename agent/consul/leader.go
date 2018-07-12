@@ -448,15 +448,9 @@ func (s *Server) initializeCA() error {
 		return err
 	}
 
-	// TODO(banks): in the case that we've just gained leadership in an already
-	// configured cluster. We really need to fetch RootCA from state to provide it
-	// in setCAProvider. This matters because if the current active root has
-	// intermediates, parsing the rootCA from only the root cert PEM above will
-	// not include them and so leafs we sign will not bundle the intermediates.
-
-	s.setCAProvider(provider, rootCA)
-
-	// Check if the CA root is already initialized and exit if it is.
+	// Check if the CA root is already initialized and exit if it is,
+	// adding on any existing intermediate certs since they aren't directly
+	// tied to the provider.
 	// Every change to the CA after this initial bootstrapping should
 	// be done through the rotation process.
 	state := s.fsm.State()
@@ -465,12 +459,15 @@ func (s *Server) initializeCA() error {
 		return err
 	}
 	if activeRoot != nil {
+		// This state shouldn't be possible to get into because we update the root and
+		// CA config in the same FSM operation.
 		if activeRoot.ID != rootCA.ID {
-			// TODO(banks): this seems like a pretty catastrophic state to get into.
-			// Shouldn't we do something stronger than warn and continue signing with
-			// a key that's not the active CA according to the state?
-			s.logger.Printf("[WARN] connect: CA root %q is not the active root (%q)", rootCA.ID, activeRoot.ID)
+			return fmt.Errorf("stored CA root %q is not the active root (%s)", rootCA.ID, activeRoot.ID)
 		}
+
+		rootCA.IntermediateCerts = activeRoot.IntermediateCerts
+		s.setCAProvider(provider, rootCA)
+
 		return nil
 	}
 
@@ -493,6 +490,8 @@ func (s *Server) initializeCA() error {
 	if respErr, ok := resp.(error); ok {
 		return respErr
 	}
+
+	s.setCAProvider(provider, rootCA)
 
 	s.logger.Printf("[INFO] connect: initialized CA with provider %q", conf.Provider)
 

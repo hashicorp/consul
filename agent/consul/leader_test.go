@@ -2,6 +2,7 @@ package consul
 
 import (
 	"os"
+	"reflect"
 	"testing"
 	"time"
 
@@ -1063,4 +1064,84 @@ func TestLeader_CARootPruning(t *testing.T) {
 	require.Len(roots, 1)
 	require.True(roots[0].Active)
 	require.NotEqual(roots[0].ID, oldRoot.ID)
+}
+
+func TestLeader_PersistIntermediateCAs(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	dir2, s2 := testServerDCBootstrap(t, "dc1", false)
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	dir3, s3 := testServerDCBootstrap(t, "dc1", false)
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	joinLAN(t, s2, s1)
+	joinLAN(t, s3, s1)
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Get the current root
+	rootReq := &structs.DCSpecificRequest{
+		Datacenter: "dc1",
+	}
+	var rootList structs.IndexedCARoots
+	require.Nil(msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", rootReq, &rootList))
+	require.Len(rootList.Roots, 1)
+
+	// Update the provider config to use a new private key, which should
+	// cause a rotation.
+	_, newKey, err := connect.GeneratePrivateKey()
+	require.NoError(err)
+	newConfig := &structs.CAConfiguration{
+		Provider: "consul",
+		Config: map[string]interface{}{
+			"PrivateKey":     newKey,
+			"RootCert":       "",
+			"RotationPeriod": 90 * 24 * time.Hour,
+		},
+	}
+	{
+		args := &structs.CARequest{
+			Datacenter: "dc1",
+			Config:     newConfig,
+		}
+		var reply interface{}
+
+		require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply))
+	}
+
+	// Get the active root before leader change.
+	_, root := s1.getCAProvider()
+	require.Len(root.IntermediateCerts, 1)
+
+	// Force a leader change and make sure the root CA values are preserved.
+	s1.Leave()
+	s1.Shutdown()
+
+	retry.Run(t, func(r *retry.R) {
+		var leader *Server
+		for _, s := range []*Server{s2, s3} {
+			if s.IsLeader() {
+				leader = s
+				break
+			}
+		}
+		if leader == nil {
+			r.Fatal("no leader")
+		}
+
+		_, newLeaderRoot := leader.getCAProvider()
+		if !reflect.DeepEqual(newLeaderRoot, root) {
+			r.Fatalf("got %v, want %v", newLeaderRoot, root)
+		}
+	})
 }
