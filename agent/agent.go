@@ -2032,7 +2032,15 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 
 			var rpcReq structs.NodeSpecificRequest
 			rpcReq.Datacenter = a.config.Datacenter
-			rpcReq.Token = a.tokens.AgentToken()
+
+			// The token to set is really important. The behavior below follows
+			// the same behavior as anti-entropy: we use the user-specified token
+			// if set (either on the service or check definition), otherwise
+			// we use the "UserToken" on the agent. This is tested.
+			rpcReq.Token = a.tokens.UserToken()
+			if token != "" {
+				rpcReq.Token = token
+			}
 
 			chkImpl := &checks.CheckAlias{
 				Notify:    a.State,
