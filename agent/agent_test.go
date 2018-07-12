@@ -2677,6 +2677,20 @@ func TestAgent_AddProxy(t *testing.T) {
 			wantErr:      false,
 		},
 		{
+			desc: "managed proxy with overridden but unspecified ipv6 bind address",
+			proxy: &structs.ConnectManagedProxy{
+				ExecMode: structs.ProxyExecModeDaemon,
+				Command:  []string{"consul", "connect", "proxy"},
+				Config: map[string]interface{}{
+					"foo":          "bar",
+					"bind_address": "[::]",
+				},
+				TargetServiceID: "web",
+			},
+			wantTCPCheck: "127.0.0.1:20000",
+			wantErr:      false,
+		},
+		{
 			desc: "managed proxy with overridden check address",
 			proxy: &structs.ConnectManagedProxy{
 				ExecMode: structs.ProxyExecModeDaemon,
