@@ -37,7 +37,7 @@ qs('.g-carousel .next')
   })
 
 // on dot click
-for (let i = 0; i < dots.length; i++) {
+for (var i = 0; i < dots.length; i++) {
   dots[i].addEventListener('click', function() {
     carousel.goTo(i)
   })
