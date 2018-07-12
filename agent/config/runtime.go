@@ -1202,13 +1202,17 @@ func (c *RuntimeConfig) apiAddresses(maxPerType int) (unixAddrs, httpAddrs, http
 		unix_count := 0
 		http_count := 0
 		for _, addr := range c.HTTPAddrs {
-			net := addr.Network()
-			if net == "tcp" && http_count < maxPerType {
-				httpAddrs = append(httpAddrs, addr.String())
-				http_count += 1
-			} else if net != "tcp" && unix_count < maxPerType {
-				unixAddrs = append(unixAddrs, addr.String())
-				unix_count += 1
+			switch addr.(type) {
+			case *net.UnixAddr:
+				if unix_count < maxPerType {
+					unixAddrs = append(unixAddrs, addr.String())
+					unix_count += 1
+				}
+			default:
+				if http_count < maxPerType {
+					httpAddrs = append(httpAddrs, addr.String())
+					http_count += 1
+				}
 			}
 		}
 	}
