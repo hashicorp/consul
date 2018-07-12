@@ -1223,7 +1223,7 @@ func (c *RuntimeConfig) apiAddresses(maxPerType int) (unixAddrs, httpAddrs, http
 func (c *RuntimeConfig) APIConfig(includeClientCerts bool) (*api.Config, error) {
 	cfg := &api.Config{
 		Datacenter: c.Datacenter,
-		TLSConfig:  api.TLSConfig{InsecureSkipVerify: true},
+		TLSConfig:  api.TLSConfig{InsecureSkipVerify: !c.VerifyOutgoing},
 	}
 
 	unixAddrs, httpAddrs, httpsAddrs := c.apiAddresses(1)

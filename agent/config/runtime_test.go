@@ -4537,11 +4537,12 @@ func TestRuntime_APIConfigHTTPS(t *testing.T) {
 		HTTPSAddrs: []net.Addr{
 			&net.TCPAddr{IP: net.ParseIP("198.18.0.2"), Port: 5678},
 		},
-		Datacenter: "dc-test",
-		CAFile:     "/etc/consul/ca.crt",
-		CAPath:     "/etc/consul/ca.dir",
-		CertFile:   "/etc/consul/server.crt",
-		KeyFile:    "/etc/consul/ssl/server.key",
+		Datacenter:     "dc-test",
+		CAFile:         "/etc/consul/ca.crt",
+		CAPath:         "/etc/consul/ca.dir",
+		CertFile:       "/etc/consul/server.crt",
+		KeyFile:        "/etc/consul/ssl/server.key",
+		VerifyOutgoing: false,
 	}
 
 	cfg, err := rt.APIConfig(false)
@@ -4553,7 +4554,9 @@ func TestRuntime_APIConfigHTTPS(t *testing.T) {
 	require.Equal(t, "", cfg.TLSConfig.CertFile)
 	require.Equal(t, "", cfg.TLSConfig.KeyFile)
 	require.Equal(t, rt.Datacenter, cfg.Datacenter)
+	require.Equal(t, true, cfg.TLSConfig.InsecureSkipVerify)
 
+	rt.VerifyOutgoing = true
 	cfg, err = rt.APIConfig(true)
 	require.NoError(t, err)
 	require.Equal(t, "198.18.0.2:5678", cfg.Address)
@@ -4563,6 +4566,7 @@ func TestRuntime_APIConfigHTTPS(t *testing.T) {
 	require.Equal(t, rt.CertFile, cfg.TLSConfig.CertFile)
 	require.Equal(t, rt.KeyFile, cfg.TLSConfig.KeyFile)
 	require.Equal(t, rt.Datacenter, cfg.Datacenter)
+	require.Equal(t, false, cfg.TLSConfig.InsecureSkipVerify)
 }
 
 func TestRuntime_APIConfigHTTP(t *testing.T) {
