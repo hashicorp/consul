@@ -87,6 +87,16 @@ Feature: components / catalog-filter
     ---
     And I see 1 [Model] model
     And I see 1 [Model] model with the id "service-0-with-id"
+    Then I fill in with yaml
+    ---
+    s: hard drive
+    ---
+    And I see 1 [Model] model with the name "[Model]-1"
+    Then I fill in with yaml
+    ---
+    s: monitor
+    ---
+    And I see 2 [Model] models
   Where:
     -------------------------------------------------
     | Model   | Page     | Url                       |
@@ -117,3 +127,32 @@ Feature: components / catalog-filter
     | Model   | Page     | Url                       |
     | nodes   | service  | /dc-1/services/service-0  |
     -------------------------------------------------
+  Scenario:
+    Given 1 datacenter model with the value "dc-1"
+    And 3 service models from yaml
+    ---
+      - Tags: ['one', 'two', 'three']
+      - Tags: ['two', 'three']
+      - Tags: ['three']
+    ---
+    When I visit the services page for yaml
+    ---
+      dc: dc-1
+    ---
+    Then the url should be /dc-1/services
+    Then I see 3 service models
+    Then I fill in with yaml
+    ---
+    s: one
+    ---
+    And I see 1 service model with the name "service-0"
+    Then I fill in with yaml
+    ---
+    s: two
+    ---
+    And I see 2 service models
+    Then I fill in with yaml
+    ---
+    s: three
+    ---
+    And I see 3 service models

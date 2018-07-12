@@ -7,6 +7,7 @@ export default function(visitable, deletable, clickable, attribute, collection, 
     }),
     services: collection('#services [data-test-tabular-row]', {
       id: attribute('data-test-service-id', '[data-test-service-id]'),
+      name: attribute('data-test-service-name', '[data-test-service-name]'),
       port: attribute('data-test-service-port', '.port'),
     }),
     sessions: collection(
