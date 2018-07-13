@@ -101,15 +101,15 @@ There are several different kinds of checks:
   TLS certificate is expected. Certificate verification can be turned off by setting the
   `tls_skip_verify` field to `true` in the check definition.
 
-* <a name="alias"></a>Alias - These checks alias the health state another Consul
+* <a name="alias"></a>Alias - These checks alias the health state of another registered
   node or service. The state of the check will be updated asynchronously,
   but is nearly instant. For aliased services on the same agent, the local
   state is monitored and no additional network resources are consumed. For
   other services and nodes, the check maintains a blocking query over the
   agent's connection with a current server and allows stale requests. If there
-  are any errors in watching the aliased node or service, the check will be
-  unhealthy. For the blocking query, the check will use the ACL token set
-  on the service definition, otherwise falling back to the default ACL
+  are any errors in watching the aliased node or service, the check state will be
+  critical. For the blocking query, the check will use the ACL token set
+  on the service or check definition or otherwise will fall back to the default ACL
   token set with the agent (`acl_token`).
 
 ## Check Definition
