@@ -250,6 +250,18 @@ export default function(assert) {
           });
         assert.equal(request.url, url, `Expected the request url to be ${url}, was ${request.url}`);
       })
+      .then('the last $method requests were like yaml\n$yaml', function(method, data) {
+        const requests = api.server.history.reverse().filter(function(item) {
+          return item.method === method;
+        });
+        data.reverse().forEach(function(item, i, arr) {
+          assert.equal(
+            requests[i].url,
+            item,
+            `Expected the request url to be ${item}, was ${requests[i].url}`
+          );
+        });
+      })
       .then('the url should be $url', function(url) {
         // TODO: nice! $url should be wrapped in ""
         if (url === "''") {
