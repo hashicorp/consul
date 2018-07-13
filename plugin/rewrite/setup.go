@@ -3,9 +3,12 @@ package rewrite
 import (
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
+	clog "github.com/coredns/coredns/plugin/pkg/log"
 
 	"github.com/mholt/caddy"
 )
+
+var log = clog.NewWithPlugin("rewrite")
 
 func init() {
 	caddy.RegisterPlugin("rewrite", caddy.Plugin{

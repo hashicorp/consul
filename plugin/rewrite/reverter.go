@@ -17,7 +17,7 @@ type ResponseRule struct {
 
 // ResponseReverter reverses the operations done on the question section of a packet.
 // This is need because the client will otherwise disregards the response, i.e.
-// dig will complain with ';; Question section mismatch: got miek.nl/HINFO/IN'
+// dig will complain with ';; Question section mismatch: got example.org/HINFO/IN'
 type ResponseReverter struct {
 	dns.ResponseWriter
 	originalQuestion dns.Question
@@ -63,11 +63,4 @@ func (r *ResponseReverter) WriteMsg(res *dns.Msg) error {
 func (r *ResponseReverter) Write(buf []byte) (int, error) {
 	n, err := r.ResponseWriter.Write(buf)
 	return n, err
-}
-
-// Hijack implements dns.Hijacker. It simply wraps the underlying
-// ResponseWriter's Hijack method if there is one, or returns an error.
-func (r *ResponseReverter) Hijack() {
-	r.ResponseWriter.Hijack()
-	return
 }

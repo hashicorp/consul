@@ -9,6 +9,8 @@ import (
 
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/request"
+
+	"github.com/miekg/dns"
 )
 
 type nameRule struct {
@@ -194,3 +196,16 @@ func (rule *substringNameRule) GetResponseRule() ResponseRule { return ResponseR
 
 // GetResponseRule return a rule to rewrite the response with.
 func (rule *regexNameRule) GetResponseRule() ResponseRule { return rule.ResponseRule }
+
+// validName returns true if s is valid domain name and shortern than 256 characters.
+func validName(s string) bool {
+	_, ok := dns.IsDomainName(s)
+	if !ok {
+		return false
+	}
+	if len(dns.Name(s).String()) > 255 {
+		return false
+	}
+
+	return true
+}
