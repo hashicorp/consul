@@ -20,10 +20,16 @@ export default Controller.extend(WithHealthFiltering, {
     });
   }),
   filter: function(item, { s = '', status = '' }) {
+    const term = s.toLowerCase();
+
     return (
       get(item, 'Node.Node')
         .toLowerCase()
-        .indexOf(s.toLowerCase()) !== -1 && hasStatus(get(item, 'Checks'), status)
+        .indexOf(term) !== -1 ||
+      (get(item, 'Service.ID')
+        .toLowerCase()
+        .indexOf(term) !== -1 &&
+        hasStatus(get(item, 'Checks'), status))
     );
   },
 });

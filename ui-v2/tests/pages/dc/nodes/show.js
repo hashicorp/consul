@@ -6,6 +6,7 @@ export default function(visitable, deletable, clickable, attribute, collection, 
       name: attribute('data-test-node-healthcheck'),
     }),
     services: collection('#services [data-test-tabular-row]', {
+      id: attribute('data-test-service-id', '[data-test-service-id]'),
       port: attribute('data-test-service-port', '.port'),
     }),
     sessions: collection(

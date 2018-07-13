@@ -23,6 +23,9 @@ export default Controller.extend(WithFiltering, {
       get(item, 'Service')
         .toLowerCase()
         .indexOf(term) !== -1 ||
+      get(item, 'ID')
+        .toLowerCase()
+        .indexOf(term) !== -1 ||
       get(item, 'Port')
         .toString()
         .toLowerCase()

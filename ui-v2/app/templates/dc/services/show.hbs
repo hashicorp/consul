@@ -36,6 +36,7 @@
                         data-test-node=item.Node.Node
                         href=(href-to 'dc.nodes.show' item.Node.Node)
                         name=item.Node.Node
+                        service=item.Service.ID
                         address=(concat item.Node.Address ':' item.Service.Port)
                         checks=item.Checks
                     }}
@@ -49,12 +50,13 @@
             <h2>Healthy Nodes</h2>
             {{#list-collection
                 items=healthy
-                cell-layout=(percentage-columns-layout healthy.length columns 100) as |item index|
+                cell-layout=(percentage-columns-layout healthy.length columns 113) as |item index|
             }}
                 {{healthchecked-resource
                     href=(href-to 'dc.nodes.show' item.Node.Node)
                     data-test-node=item.Node.Node
                     name=item.Node.Node
+                    service=item.Service.ID
                     address=(concat item.Node.Address ':' item.Service.Port)
                     checks=item.Checks
                     status=item.Checks.[0].Status

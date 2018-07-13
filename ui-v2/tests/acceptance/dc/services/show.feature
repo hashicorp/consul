@@ -28,14 +28,17 @@ Feature: dc / services / show: Show Service
     - Checks:
         - Status: passing
       Service:
+        ID: passing-service-8080
         Port: 8080
       Node:
         Address: 1.1.1.1
     - Service:
+        ID: service-8000
         Port: 8000
       Node:
         Address: 2.2.2.2
     - Service:
+        ID: service-8888
         Port: 8888
       Node:
         Address: 3.3.3.3
@@ -53,4 +56,13 @@ Feature: dc / services / show: Show Service
     ---
       - "2.2.2.2:8000"
       - "3.3.3.3:8888"
+    ---
+    Then I see id on the healthy like yaml
+    ---
+      - "passing-service-8080"
+    ---
+    Then I see id on the unhealthy like yaml
+    ---
+      - "service-8000"
+      - "service-8888"
     ---
