@@ -252,3 +252,28 @@ func TestService_HTTPClient(t *testing.T) {
 		}
 	})
 }
+
+func TestService_HasDefaultHTTPResolverFromAddr(t *testing.T) {
+
+	client, err := api.NewClient(api.DefaultConfig())
+	require.NoError(t, err)
+
+	s, err := NewService("foo", client)
+	require.NoError(t, err)
+
+	// Sanity check this is actually set in constructor since we always override
+	// it in tests. Full tests of the resolver func are in resolver_test.go
+	require.NotNil(t, s.httpResolverFromAddr)
+
+	fn := s.httpResolverFromAddr
+
+	expected := &ConsulResolver{
+		Client:    client,
+		Namespace: "default",
+		Name:      "foo",
+		Type:      ConsulResolverTypeService,
+	}
+	got, err := fn("foo.service.consul")
+	require.NoError(t, err)
+	require.Equal(t, expected, got)
+}

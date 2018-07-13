@@ -69,10 +69,11 @@ func NewService(serviceName string, client *api.Client) (*Service, error) {
 func NewServiceWithLogger(serviceName string, client *api.Client,
 	logger *log.Logger) (*Service, error) {
 	s := &Service{
-		service: serviceName,
-		client:  client,
-		logger:  logger,
-		tlsCfg:  newDynamicTLSConfig(defaultTLSConfig()),
+		service:              serviceName,
+		client:               client,
+		logger:               logger,
+		tlsCfg:               newDynamicTLSConfig(defaultTLSConfig()),
+		httpResolverFromAddr: ConsulResolverFromAddrFunc(client),
 	}
 
 	// Set up root and leaf watches
