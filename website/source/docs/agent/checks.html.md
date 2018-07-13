@@ -101,6 +101,17 @@ There are several different kinds of checks:
   TLS certificate is expected. Certificate verification can be turned off by setting the
   `tls_skip_verify` field to `true` in the check definition.
 
+* <a name="alias"></a>Alias - These checks alias the health state another Consul
+  node or service. The state of the check will be updated asynchronously,
+  but is nearly instant. For aliased services on the same agent, the local
+  state is monitored and no additional network resources are consumed. For
+  other services and nodes, the check maintains a blocking query over the
+  agent's connection with a current server and allows stale requests. If there
+  are any errors in watching the aliased node or service, the check will be
+  unhealthy. For the blocking query, the check will use the ACL token set
+  on the service definition, otherwise falling back to the default ACL
+  token set with the agent (`acl_token`).
+
 ## Check Definition
 
 A script check:
@@ -165,7 +176,7 @@ A Docker check:
 
 ```javascript
 {
-"check": {
+  "check": {
     "id": "mem-util",
     "name": "Memory utilization",
     "docker_container_id": "f972c95ebf0e",
@@ -180,12 +191,23 @@ A gRPC check:
 
 ```javascript
 {
-"check": {
+  "check": {
     "id": "mem-util",
     "name": "Service health status",
     "grpc": "127.0.0.1:12345",
     "grpc_use_tls": true,
     "interval": "10s"
+  }
+}
+```
+
+An alias check for a local service:
+
+```javascript
+{
+  "check": {
+    "id": "web-alias",
+    "alias_service": "web"
   }
 }
 ```
@@ -205,6 +227,8 @@ a TTL check via the HTTP interface can set the `notes` value.
 Checks may also contain a `token` field to provide an ACL token. This token is
 used for any interaction with the catalog for the check, including
 [anti-entropy syncs](/docs/internals/anti-entropy.html) and deregistration.
+For Alias checks, this token is used if a remote blocking query is necessary
+to watch the state of the aliased node or service.
 
 Script, TCP, HTTP, Docker, and gRPC checks must include an `interval` field. This
 field is parsed by Go's `time` package, and has the following
