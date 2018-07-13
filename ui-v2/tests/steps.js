@@ -241,6 +241,15 @@ export default function(assert) {
         );
         assert.equal(request.url, url, `Expected the request url to be ${url}, was ${request.url}`);
       })
+      .then('the last $method request was made to "$url"', function(method, url) {
+        const request = api.server.history
+          .slice(0)
+          .reverse()
+          .find(function(item) {
+            return item.method === method;
+          });
+        assert.equal(request.url, url, `Expected the request url to be ${url}, was ${request.url}`);
+      })
       .then('the url should be $url', function(url) {
         // TODO: nice! $url should be wrapped in ""
         if (url === "''") {
