@@ -26,8 +26,6 @@ focus on ease of use with a dev-mode agent. We will _not setup_ Connect in a
 production-recommended secure way. Please read the [Connect production
 guide](/docs/guides/connect-production.html) to understand the tradeoffs.
 
-~> **Windows Support**: The proxy management feature was designed to run on all platforms but has a known issue on the Windows platform at Beta launch preventing it from starting proxy processes. This will be fixed in a future release.
-
 ## Starting a Connect-unaware Service
 
 Let's begin by starting a service that is unaware of Connect all. To
