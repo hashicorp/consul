@@ -168,17 +168,17 @@ discovery mechanism for the target. **It's not actually resolved via DNS** but
 used as a logical identifier for a Consul service discovery mechanism. It has
 the following specific limitations:
 
- * The sheme must be `https://`.
+ * The scheme must be `https://`.
  * It must be a Consul DNS name in one of the following forms:
    * `<name>.service[.<datacenter>].consul` to discover a healthy service
      instance for a given service.
-   * `<name>.query[.<datacenter>].consul` to discover an instance via 
+   * `<name>.query[.<datacenter>].consul` to discover an instance via
      [Prepared Query](/api/query.html).
  * The top-level domain _must_ be `.consul` even if your cluster has a custom
    `domain` configured for it's DNS interface. This might be relaxed in the
    future.
  * Tag filters for services are not currently supported (i.e.
-   `tag1.web.service.consul`) however the same behaviour can be acheived using a
+   `tag1.web.service.consul`) however the same behaviour can be achieved using a
    prepared query.
  * External DNS names, raw IP addresses and so on will cause an error and should
    be fetched using a separate `HTTPClient`.
