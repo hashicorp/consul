@@ -66,9 +66,15 @@ With etcd3, support for [hierarchial keys are dropped](https://coreos.com/etcd/d
 
 This causes two lookups from CoreDNS to etcdv3 in certain cases.
 
+## Migration to `etcdv3` API
+
+With CoreDNS release `1.2.0`, you'll need to migrate existing CoreDNS related data (if any) on your etcd server to etcdv3 API. This is because with `etcdv3` support, CoreDNS can't see the data stored to an etcd server using `etcdv2` API.
+
+Refer this [blog by CoreOS team](https://coreos.com/blog/migrating-applications-etcd-v3.html) to migrate to etcdv3 API.
+
 ## Examples
 
-This is the default SkyDNS setup, with everying specified in full:
+This is the default SkyDNS setup, with everything specified in full:
 
 ~~~ corefile
 . {
@@ -107,6 +113,9 @@ etcd skydns.local {
 ...
 ~~~
 
+Before getting started with these examples, please setup `etcdctl` (with `etcdv3` API) as explained [here](https://coreos.com/etcd/docs/latest/dev-guide/interacting_v3.html). This will help you to put sample keys in your etcd server.
+
+If you prefer, you can use `curl` to populate the `etcd` server, but with `curl` the endpoint URL depends on the version of `etcd`. For instance, `etcd v3.2` or before uses only [CLIENT-URL]/v3alpha/* while `etcd v3.5` or later uses [CLIENT-URL]/v3/* . Also, Key and Value must be base64 encoded in the JSON payload. With, `etcdctl` these details are automatically taken care off.
 
 ### Reverse zones
 
@@ -124,8 +133,7 @@ Next you'll need to populate the zone with reverse records, here we add a revers
 10.0.0.127 pointing to reverse.skydns.local.
 
 ~~~
-% curl -XPUT http://127.0.0.1:4001/v2/keys/skydns/arpa/in-addr/10/0/0/127 \
-    -d value='{"host":"reverse.skydns.local."}'
+% etcdctl put /skydns/arpa/in-addr/10/0/0/127 '{"host":"reverse.skydns.local."}'
 ~~~
 
 Querying with dig:
@@ -140,7 +148,7 @@ reverse.skydns.local.
 The zone name itself can be used A record. This behavior can be achieved by writing special entries to the ETCD path of your zone. If your zone is named `skydns.local` for example, you can create an `A` record for this zone as follows:
 
 ~~~
-% curl -XPUT http://127.0.0.1:2379/v2/keys/skydns/local/skydns/dns/apex -d value='{"host":"1.1.1.1","ttl":"60"}'
+% etcdctl put /skydns/local/skydns/ '{"host":"1.1.1.1","ttl":60}'
 ~~~
 
 If you query the zone name itself, you will receive the created `A` record:
@@ -152,8 +160,8 @@ If you query the zone name itself, you will receive the created `A` record:
 
 If you would like to use DNS RR for the zone name, you can set the following:
 ~~~
-% curl -XPUT http://127.0.0.1:2379/v2/keys/skydns/local/skydns/dns/apex/x1 -d value='{"host":"1.1.1.1","ttl":"60"}'
-% curl -XPUT http://127.0.0.1:2379/v2/keys/skydns/local/skydns/dns/apex/x2 -d value='{"host":"1.1.1.2","ttl":"60"}'
+% etcdctl put /skydns/local/skydns/x1 '{"host":"1.1.1.1","ttl":"60"}'
+% etcdctl put /skydns/local/skydns/x2 '{"host":"1.1.1.2","ttl":"60"}'
 ~~~
 
 If you query the zone name now, you will get the following response:
@@ -166,8 +174,8 @@ dig +short skydns.local @localhost
 
 If you would like to use `AAAA` records for the zone name too, you can set the following:
 ~~~
-% curl -XPUT http://127.0.0.1:2379/v2/keys/skydns/local/skydns/dns/apex/x3 -d value='{"host":"2003::8:1","ttl":"60"}'
-% curl -XPUT http://127.0.0.1:2379/v2/keys/skydns/local/skydns/dns/apex/x4 -d value='{"host":"2003::8:2","ttl":"60"}'
+% etcdctl put /skydns/local/skydns/x3 '{"host":"2003::8:1","ttl":"60"}'
+% etcdctl put /skydns/local/skydns/x4 '{"host":"2003::8:2","ttl":"60"}'
 ~~~
 
 If you query the zone name now for `AAAA` now, you will get the following response:
