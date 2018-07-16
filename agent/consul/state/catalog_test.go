@@ -401,8 +401,9 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 	}()
 }
 
-func TestStateStore_EnsureNode(t *testing.T) {
+func TestStateStore_EnsureNodeWithoutNodeRenaming(t *testing.T) {
 	s := testStateStore(t)
+	s.StoreConfig.AllowNodeRenaming = false
 
 	// Fetching a non-existent node returns nil
 	if _, node, err := s.GetNode("node1"); node != nil || err != nil {
@@ -492,6 +493,212 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	}
 }
 
+func TestStateStore_EnsureNodeWithNodeRenaming(t *testing.T) {
+	s := testStateStore(t)
+	s.StoreConfig.AllowNodeRenaming = true
+
+	// Fetching a non-existent node returns nil
+	if _, node, err := s.GetNode("node1"); node != nil || err != nil {
+		t.Fatalf("expected (nil, nil), got: (%#v, %#v)", node, err)
+	}
+
+	// Create a node registration request
+	in := &structs.Node{
+		Node:    "node1",
+		Address: "1.1.1.1",
+	}
+
+	// Ensure the node is registered in the db
+	if err := s.EnsureNode(1, in); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Retrieve the node again
+	idx, out, err := s.GetNode("node1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Correct node was returned
+	if out.Node != "node1" || out.Address != "1.1.1.1" {
+		t.Fatalf("bad node returned: %#v", out)
+	}
+
+	// Indexes are set properly
+	if out.CreateIndex != 1 || out.ModifyIndex != 1 {
+		t.Fatalf("bad node index: %#v", out)
+	}
+	if idx != 1 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Update the node registration
+	in.Address = "1.1.1.2"
+	if err := s.EnsureNode(2, in); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Retrieve the node
+	idx, out, err = s.GetNode("node1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Node and indexes were updated
+	if out.CreateIndex != 1 || out.ModifyIndex != 2 || out.Address != "1.1.1.2" {
+		t.Fatalf("bad: %#v", out)
+	}
+	if idx != 2 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Node upsert preserves the create index
+	if err := s.EnsureNode(3, in); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	idx, out, err = s.GetNode("node1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if out.CreateIndex != 1 || out.ModifyIndex != 3 || out.Address != "1.1.1.2" {
+		t.Fatalf("node was modified: %#v", out)
+	}
+	if idx != 3 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Add an ID to the node
+	in.ID = types.NodeID("cda916bc-a357-4a19-b886-59419fcee50c")
+	if err := s.EnsureNode(4, in); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Now try to add another node with the same ID
+	in = &structs.Node{
+		Node:    "nope",
+		ID:      types.NodeID("cda916bc-a357-4a19-b886-59419fcee50c"),
+		Address: "1.1.1.2",
+	}
+	if err := s.EnsureNode(6, in); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Retrieve the node
+	idx, out, err = s.GetNode("node1")
+	if out != nil {
+		t.Fatalf("Node should not exist anymore: %q", out)
+	}
+
+	idx, out, err = s.GetNode("node1-renamed")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Node and indexes were updated
+	if out.CreateIndex != 1 || out.ModifyIndex != 6 || out.Address != "1.1.1.2" || out.Node != "node1-renamed" {
+		t.Fatalf("bad: %#v", out)
+	}
+	if idx != 6 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	newNodeID := types.NodeID("d0347693-65cc-4d9f-a6e0-5025b2e6513f")
+
+	// Adding another node with same name should fail
+	in = &structs.Node{
+		Node:    "node1-renamed",
+		ID:      newNodeID,
+		Address: "1.1.1.7",
+	}
+	if err := s.EnsureNode(8, in); err == nil {
+		t.Fatalf("There should be an error since node1-renamed already exists")
+	}
+
+	// Adding another node with same name but different case should fail
+	in = &structs.Node{
+		Node:    "Node1-RENAMED",
+		ID:      newNodeID,
+		Address: "1.1.1.7",
+	}
+	if err := s.EnsureNode(8, in); err == nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Lets add another valid node now
+	in = &structs.Node{
+		Node:    "Node1bis",
+		ID:      newNodeID,
+		Address: "1.1.1.7",
+	}
+	if err := s.EnsureNode(9, in); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Retrieve the node
+	idx, out, err = s.GetNode("Node1bis")
+	if out == nil {
+		t.Fatalf("Node should exist, but was null")
+	}
+
+	// Renaming should fail
+	in = &structs.Node{
+		Node:    "Node1bis",
+		ID:      newNodeID,
+		Address: "1.1.1.7",
+	}
+	if err := s.EnsureNode(9, in); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	idx, out, err = s.GetNode("Node1bis")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Node and indexes were updated
+	if out.ID != newNodeID || out.CreateIndex != 9 || out.ModifyIndex != 9 || out.Address != "1.1.1.7" || out.Node != "Node1bis" {
+		t.Fatalf("bad: %#v", out)
+	}
+	if idx != 9 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Renaming to same value as first node should fail as well
+	// Adding another node with same name but different case should fail
+	in = &structs.Node{
+		Node:    "node1-renamed",
+		ID:      newNodeID,
+		Address: "1.1.1.7",
+	}
+	if err := s.EnsureNode(10, in); err == nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// It should fail also with different case
+	in = &structs.Node{
+		Node:    "Node1-Renamed",
+		ID:      newNodeID,
+		Address: "1.1.1.7",
+	}
+	if err := s.EnsureNode(10, in); err == nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// But should work if names are different
+	in = &structs.Node{
+		Node:    "Node1-Renamed2",
+		ID:      newNodeID,
+		Address: "1.1.1.7",
+	}
+	if err := s.EnsureNode(11, in); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	err = s.EnsureNode(5, in)
+	if err == nil || !strings.Contains(err.Error(), "aliases existing node") {
+		t.Fatalf("err: %v", err)
+	}
+}
+
 func TestStateStore_GetNodes(t *testing.T) {
 	s := testStateStore(t)
 
@@ -551,7 +758,7 @@ func TestStateStore_GetNodes(t *testing.T) {
 }
 
 func BenchmarkGetNodes(b *testing.B) {
-	s, err := NewStateStore(nil)
+	s, err := NewStateStore(nil, nil)
 	if err != nil {
 		b.Fatalf("err: %s", err)
 	}
@@ -2575,7 +2782,7 @@ func TestStateStore_CheckConnectServiceNodes(t *testing.T) {
 }
 
 func BenchmarkCheckServiceNodes(b *testing.B) {
-	s, err := NewStateStore(nil)
+	s, err := NewStateStore(nil, nil)
 	if err != nil {
 		b.Fatalf("err: %s", err)
 	}

@@ -265,6 +265,11 @@ type Config struct {
 	// by default in Consul 1.0 and later.
 	ACLEnableKeyListPolicy bool
 
+	// AllowNodeRenaming is used to allow to rename nodes with IDs. When setting up this
+	// feature, it is not possible anymore to register nodes without IDs and not
+	// possible to 2 nodes with same name (case insensentive match)
+	AllowNodeRenaming bool
+
 	// TombstoneTTL is used to control how long KV tombstones are retained.
 	// This provides a window of time where the X-Consul-Index is monotonic.
 	// Outside this window, the index may not be monotonic. This is a result

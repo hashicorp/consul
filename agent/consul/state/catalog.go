@@ -365,8 +365,29 @@ func (s *Store) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) err
 		if existing != nil {
 			n = existing.(*structs.Node)
 			if n.Node != node.Node {
-				return fmt.Errorf("node ID %q for node %q aliases existing node %q",
-					node.ID, node.Node, n.Node)
+				if !s.StoreConfig.AllowNodeRenaming {
+					return fmt.Errorf("node ID %q for node %q aliases existing node %q",
+						node.ID, node.Node, n.Node)
+				}
+				// Lets first get all nodes and check whether name do match
+				dupNameError := s.ensureNoNodeWithSimilarNameTxn(tx, node)
+				if dupNameError != nil {
+					return fmt.Errorf("Error while renaming Node ID: %q: %s", node.ID, dupNameError)
+				}
+				// We are actually renaming a node, remove its reference first
+				err := s.deleteNodeTxn(tx, idx, n.Node)
+				if err != nil {
+					return fmt.Errorf("Error while renaming Node ID: %q from %s to %s",
+						node.ID, n.Node, node.Node)
+				}
+			}
+
+		} else {
+			if s.StoreConfig.AllowNodeRenaming {
+				dupNameError := s.ensureNoNodeWithSimilarNameTxn(tx, node)
+				if dupNameError != nil {
+					return fmt.Errorf("Error while adding Node ID: %q: %s", node.ID, dupNameError)
+				}
 			}
 		}
 	}

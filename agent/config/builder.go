@@ -600,6 +600,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		ACLToken:               b.stringVal(c.ACLToken),
 		EnableACLReplication:   b.boolVal(c.EnableACLReplication),
 
+		AllowNodeRenaming: b.boolVal(c.AllowNodeRenaming),
+
 		// Autopilot
 		AutopilotCleanupDeadServers:      b.boolVal(c.Autopilot.CleanupDeadServers),
 		AutopilotDisableUpgradeMigration: b.boolVal(c.Autopilot.DisableUpgradeMigration),

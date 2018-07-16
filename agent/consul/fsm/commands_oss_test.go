@@ -41,7 +41,7 @@ func generateRandomCoordinate() *coordinate.Coordinate {
 
 func TestFSM_RegisterNode(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	fsm, err := New(nil, os.Stderr, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -85,7 +85,7 @@ func TestFSM_RegisterNode(t *testing.T) {
 
 func TestFSM_RegisterNode_Service(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	fsm, err := New(nil, os.Stderr, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -148,7 +148,7 @@ func TestFSM_RegisterNode_Service(t *testing.T) {
 
 func TestFSM_DeregisterService(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	fsm, err := New(nil, os.Stderr, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -210,7 +210,7 @@ func TestFSM_DeregisterService(t *testing.T) {
 
 func TestFSM_DeregisterCheck(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	fsm, err := New(nil, os.Stderr, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -272,7 +272,7 @@ func TestFSM_DeregisterCheck(t *testing.T) {
 
 func TestFSM_DeregisterNode(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	fsm, err := New(nil, os.Stderr, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -349,7 +349,7 @@ func TestFSM_DeregisterNode(t *testing.T) {
 
 func TestFSM_KVSDelete(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	fsm, err := New(nil, os.Stderr, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -395,7 +395,7 @@ func TestFSM_KVSDelete(t *testing.T) {
 
 func TestFSM_KVSDeleteTree(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	fsm, err := New(nil, os.Stderr, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -442,7 +442,7 @@ func TestFSM_KVSDeleteTree(t *testing.T) {
 
 func TestFSM_KVSDeleteCheckAndSet(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	fsm, err := New(nil, os.Stderr, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -498,7 +498,7 @@ func TestFSM_KVSDeleteCheckAndSet(t *testing.T) {
 
 func TestFSM_KVSCheckAndSet(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	fsm, err := New(nil, os.Stderr, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -555,7 +555,7 @@ func TestFSM_KVSCheckAndSet(t *testing.T) {
 
 func TestFSM_KVSLock(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	fsm, err := New(nil, os.Stderr, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -600,7 +600,7 @@ func TestFSM_KVSLock(t *testing.T) {
 
 func TestFSM_KVSUnlock(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	fsm, err := New(nil, os.Stderr, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -663,7 +663,7 @@ func TestFSM_KVSUnlock(t *testing.T) {
 
 func TestFSM_CoordinateUpdate(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	fsm, err := New(nil, os.Stderr, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -704,7 +704,7 @@ func TestFSM_CoordinateUpdate(t *testing.T) {
 
 func TestFSM_SessionCreate_Destroy(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	fsm, err := New(nil, os.Stderr, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -784,7 +784,7 @@ func TestFSM_SessionCreate_Destroy(t *testing.T) {
 
 func TestFSM_ACL_CRUD(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	fsm, err := New(nil, os.Stderr, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -904,7 +904,7 @@ func TestFSM_ACL_CRUD(t *testing.T) {
 
 func TestFSM_PreparedQuery_CRUD(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	fsm, err := New(nil, os.Stderr, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1002,7 +1002,7 @@ func TestFSM_PreparedQuery_CRUD(t *testing.T) {
 
 func TestFSM_TombstoneReap(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	fsm, err := New(nil, os.Stderr, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1050,7 +1050,7 @@ func TestFSM_TombstoneReap(t *testing.T) {
 
 func TestFSM_Txn(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	fsm, err := New(nil, os.Stderr, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1092,7 +1092,7 @@ func TestFSM_Txn(t *testing.T) {
 
 func TestFSM_Autopilot(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	fsm, err := New(nil, os.Stderr, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
