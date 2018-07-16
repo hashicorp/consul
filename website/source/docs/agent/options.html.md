@@ -1209,6 +1209,14 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
       the Accept header with value `text/plain; version=0.0.4; charset=utf-8`  to the `/v1/agent/metrics` (as done by Prometheus).
       The format is compatible natively with prometheus. When running in this mode, it is recommended to also enable the option
       <a href="#telemetry-disable_hostname">`disable_hostname`</a> to avoid having prefixed metrics with hostname.
+      Since support for Prometheus does not use default Prometheus path, it will requires the following configuration in Prometheus
+      scraping (using `?format=prometheus` in path won't work as `?` would be escaped by default) configuration:
+
+        ```yaml
+          metrics_path: "/v1/agent/metrics"
+          params:
+            format: ['prometheus']
+        ```
 
     * <a name="telemetry-statsd_address"></a><a href="#telemetry-statsd_address">`statsd_address`</a> This provides the
       address of a statsd instance in the format `host:port`. If provided, Consul will send various telemetry information to that instance for
