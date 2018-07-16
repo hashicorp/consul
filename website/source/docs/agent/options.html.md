@@ -599,6 +599,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   nodes without IDs.
   Since it is a breaking change, its value is `false` by default in Consul version 1.2.1+ but
   might be set to to `true` in next versions of Consul.
+  This setting is taken into account only in server mode, ignored on this other agents.
 
 * <a name="serf_wan"></a><a href="#serf_wan_bind">`serf_wan`</a> Equivalent to
   the [`-serf-wan-bind` command-line flag](#_serf_wan_bind).
