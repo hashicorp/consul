@@ -172,8 +172,9 @@ will exit with an error at startup.
 * <a name="_dev"></a><a href="#_dev">`-dev`</a> - Enable development server
   mode. This is useful for quickly starting a Consul agent with all persistence
   options turned off, enabling an in-memory server which can be used for rapid
-  prototyping or developing against the API. In this mode, Consul will also
-  generate its own certs for Connect. This mode is **not** intended for
+  prototyping or developing against the API. In this mode,
+  [Connect is enabled](/docs/connect/configuration.html) and will by default
+  create a new root CA certificate on startup. This mode is **not** intended for
   production use as it does not write any data to disk.
 
 * <a name="_disable_host_node_id"></a><a href="#_disable_host_node_id">`-disable-host-node-id`</a> - Setting
