@@ -697,6 +697,18 @@ func TestStateStore_EnsureNodeWithNodeRenaming(t *testing.T) {
 	if err := s.EnsureNode(11, in); err != nil {
 		t.Fatalf("err: %s", err)
 	}
+	idx, out, err = s.GetNode("Node1-Renamed2")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Node and indexes were updated
+	if out.ID != newNodeID || out.CreateIndex != 9 || out.ModifyIndex != 11 || out.Address != "1.1.1.7" || out.Node != "Node1-Renamed2" {
+		t.Fatalf("bad: %#v", out)
+	}
+	if idx != 11 {
+		t.Fatalf("bad index: %d", idx)
+	}
 }
 
 func TestStateStore_GetNodes(t *testing.T) {
