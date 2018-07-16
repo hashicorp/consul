@@ -350,6 +350,21 @@ func (s *Store) EnsureNode(idx uint64, node *structs.Node) error {
 	return nil
 }
 
+func (s *Store) ensureNoNodeWithSimilarNameTxn(tx *memdb.Txn, node *structs.Node) error {
+	// Retrieve all of the nodes
+	enodes, err := tx.Get("nodes", "id")
+	if err != nil {
+		return fmt.Errorf("Cannot lookup all nodes: %s", err)
+	}
+	for nodeIt := enodes.Next(); nodeIt != nil; nodeIt = enodes.Next() {
+		enode := nodeIt.(*structs.Node)
+		if strings.EqualFold(node.Node, enode.Node) && node.ID != enode.ID {
+			return fmt.Errorf("Node name %s is reserved by node %s with name %s", node.Node, enode.ID, enode.Node)
+		}
+	}
+	return nil
+}
+
 // ensureNodeTxn is the inner function called to actually create a node
 // registration or modify an existing one in the state store. It allows
 // passing in a memdb transaction so it may be part of a larger txn.
