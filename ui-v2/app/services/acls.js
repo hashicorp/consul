@@ -1,5 +1,5 @@
 import Service, { inject as service } from '@ember/service';
-import { get, set } from '@ember/object';
+import { get } from '@ember/object';
 import { typeOf } from '@ember/utils';
 import { PRIMARY_KEY } from 'consul-ui/models/acl';
 export default Service.extend({
@@ -8,27 +8,15 @@ export default Service.extend({
     return get(this, 'store').clone('acl', get(item, PRIMARY_KEY));
   },
   findAllByDatacenter: function(dc) {
-    return get(this, 'store')
-      .query('acl', {
-        dc: dc,
-      })
-      .then(function(items) {
-        // TODO: Sort with anonymous first
-        return items.forEach(function(item, i, arr) {
-          set(item, 'Datacenter', dc);
-        });
-      });
+    return get(this, 'store').query('acl', {
+      dc: dc,
+    });
   },
   findBySlug: function(slug, dc) {
-    return get(this, 'store')
-      .queryRecord('acl', {
-        id: slug,
-        dc: dc,
-      })
-      .then(function(item) {
-        set(item, 'Datacenter', dc);
-        return item;
-      });
+    return get(this, 'store').queryRecord('acl', {
+      id: slug,
+      dc: dc,
+    });
   },
   create: function() {
     return get(this, 'store').createRecord('acl');

@@ -11,4 +11,28 @@ if (apiConfig) {
   temp.pop();
   path = temp.join('/');
 }
-export default getAPI(path, setCookies, typeToURL, reader);
+const api = getAPI(path, setCookies, typeToURL, reader);
+export const get = function(_url, options = { headers: { cookie: {} } }) {
+  const url = new URL(_url, 'http://localhost');
+  return new Promise(function(resolve) {
+    return api.api.serve(
+      {
+        method: 'GET',
+        path: url.pathname,
+        url: url.href,
+        cookies: options.headers.cookie || {},
+        query: [...url.searchParams.keys()].reduce(function(prev, key) {
+          prev[key] = url.searchParams.get(key);
+          return prev;
+        }, {}),
+      },
+      {
+        send: function(content) {
+          resolve(JSON.parse(content));
+        },
+      },
+      function() {}
+    );
+  });
+};
+export default api;

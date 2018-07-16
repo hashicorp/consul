@@ -82,12 +82,12 @@
     js-yaml "^3.10.0"
 
 "@hashicorp/consul-api-double@^1.4.0":
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/@hashicorp/consul-api-double/-/consul-api-double-1.4.0.tgz#6b5222263f2acf1539d0e375c1a935d50217b9ab"
+  version "1.4.1"
+  resolved "https://registry.yarnpkg.com/@hashicorp/consul-api-double/-/consul-api-double-1.4.1.tgz#547643b98c3a26a1fe1584189bd05e4d9f383966"
 
 "@hashicorp/ember-cli-api-double@^1.3.0":
-  version "1.3.0"
-  resolved "https://registry.yarnpkg.com/@hashicorp/ember-cli-api-double/-/ember-cli-api-double-1.3.0.tgz#d07b5b11701cd55d6b01cb8a47ce17c4bac21fed"
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/@hashicorp/ember-cli-api-double/-/ember-cli-api-double-1.4.0.tgz#4190b30f8b6a51ec33a707c45effede6e93e6b38"
   dependencies:
     "@hashicorp/api-double" "^1.3.0"
     array-range "^1.0.1"
@@ -4064,8 +4064,8 @@ esprima@^2.6.0:
   resolved "https://registry.yarnpkg.com/esprima/-/esprima-2.7.3.tgz#96e3b70d5779f6ad49cd032673d1c312767ba581"
 
 esprima@^4.0.0:
-  version "4.0.0"
-  resolved "https://registry.yarnpkg.com/esprima/-/esprima-4.0.0.tgz#4499eddcd1110e0b218bacf2fa7f7f59f55ca804"
+  version "4.0.1"
+  resolved "https://registry.yarnpkg.com/esprima/-/esprima-4.0.1.tgz#13b04cdb3e6c5d19df91ab6987a8695619b0aa71"
 
 esprima@~3.0.0:
   version "3.0.0"
