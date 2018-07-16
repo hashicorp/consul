@@ -496,6 +496,99 @@ func TestStateStore_EnsureNodeWithoutNodeRenaming(t *testing.T) {
 func TestStateStore_EnsureNodeWithNodeRenaming(t *testing.T) {
 	s := testStateStore(t)
 	s.StoreConfig.AllowNodeRenaming = true
+>>>>>>> 768a7f906c686e7664742f2db8fea3ff818ddbb8
+
+	// Fetching a non-existent node returns nil
+	if _, node, err := s.GetNode("node1"); node != nil || err != nil {
+		t.Fatalf("expected (nil, nil), got: (%#v, %#v)", node, err)
+	}
+
+	// Create a node registration request
+	in := &structs.Node{
+		Node:    "node1",
+		Address: "1.1.1.1",
+	}
+
+	// Ensure the node is registered in the db
+	if err := s.EnsureNode(1, in); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Retrieve the node again
+	idx, out, err := s.GetNode("node1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Correct node was returned
+	if out.Node != "node1" || out.Address != "1.1.1.1" {
+		t.Fatalf("bad node returned: %#v", out)
+	}
+
+	// Indexes are set properly
+	if out.CreateIndex != 1 || out.ModifyIndex != 1 {
+		t.Fatalf("bad node index: %#v", out)
+	}
+	if idx != 1 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Update the node registration
+	in.Address = "1.1.1.2"
+	if err := s.EnsureNode(2, in); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Retrieve the node
+	idx, out, err = s.GetNode("node1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Node and indexes were updated
+	if out.CreateIndex != 1 || out.ModifyIndex != 2 || out.Address != "1.1.1.2" {
+		t.Fatalf("bad: %#v", out)
+	}
+	if idx != 2 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Node upsert preserves the create index
+	if err := s.EnsureNode(3, in); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	idx, out, err = s.GetNode("node1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if out.CreateIndex != 1 || out.ModifyIndex != 3 || out.Address != "1.1.1.2" {
+		t.Fatalf("node was modified: %#v", out)
+	}
+	if idx != 3 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Add an ID to the node
+	in.ID = types.NodeID("cda916bc-a357-4a19-b886-59419fcee50c")
+	if err := s.EnsureNode(4, in); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Now try to add another node with the same ID
+	in = &structs.Node{
+		Node:    "nope",
+		ID:      types.NodeID("cda916bc-a357-4a19-b886-59419fcee50c"),
+		Address: "1.2.3.4",
+	}
+	err = s.EnsureNode(5, in)
+	if err == nil || !strings.Contains(err.Error(), "aliases existing node") {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestStateStore_EnsureNodeWithNodeRenaming(t *testing.T) {
+	s := testStateStore(t)
+	s.StoreConfig.AllowNodeRenaming = true
 
 	// Fetching a non-existent node returns nil
 	if _, node, err := s.GetNode("node1"); node != nil || err != nil {
