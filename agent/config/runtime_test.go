@@ -4608,6 +4608,100 @@ func TestRuntime_APIConfigUNIX(t *testing.T) {
 	require.Equal(t, "", cfg.TLSConfig.KeyFile)
 }
 
+func TestRuntime_APIConfigANYAddrV4(t *testing.T) {
+	rt := RuntimeConfig{
+		HTTPAddrs: []net.Addr{
+			&net.TCPAddr{IP: net.ParseIP("0.0.0.0"), Port: 5678},
+		},
+		Datacenter: "dc-test",
+	}
+
+	cfg, err := rt.APIConfig(false)
+	require.NoError(t, err)
+	require.Equal(t, rt.Datacenter, cfg.Datacenter)
+	require.Equal(t, "127.0.0.1:5678", cfg.Address)
+	require.Equal(t, "http", cfg.Scheme)
+	require.Equal(t, "", cfg.TLSConfig.CAFile)
+	require.Equal(t, "", cfg.TLSConfig.CAPath)
+	require.Equal(t, "", cfg.TLSConfig.CertFile)
+	require.Equal(t, "", cfg.TLSConfig.KeyFile)
+}
+
+func TestRuntime_APIConfigANYAddrV6(t *testing.T) {
+	rt := RuntimeConfig{
+		HTTPAddrs: []net.Addr{
+			&net.TCPAddr{IP: net.ParseIP("::"), Port: 5678},
+		},
+		Datacenter: "dc-test",
+	}
+
+	cfg, err := rt.APIConfig(false)
+	require.NoError(t, err)
+	require.Equal(t, rt.Datacenter, cfg.Datacenter)
+	require.Equal(t, "[::1]:5678", cfg.Address)
+	require.Equal(t, "http", cfg.Scheme)
+	require.Equal(t, "", cfg.TLSConfig.CAFile)
+	require.Equal(t, "", cfg.TLSConfig.CAPath)
+	require.Equal(t, "", cfg.TLSConfig.CertFile)
+	require.Equal(t, "", cfg.TLSConfig.KeyFile)
+}
+
+func TestRuntime_ClientAddress(t *testing.T) {
+	rt := RuntimeConfig{
+		HTTPAddrs: []net.Addr{
+			&net.TCPAddr{IP: net.ParseIP("::"), Port: 5678},
+			&net.TCPAddr{IP: net.ParseIP("198.18.0.1"), Port: 5679},
+			&net.UnixAddr{Name: "/var/run/foo", Net: "unix"},
+		},
+		HTTPSAddrs: []net.Addr{
+			&net.TCPAddr{IP: net.ParseIP("::"), Port: 5688},
+			&net.TCPAddr{IP: net.ParseIP("198.18.0.1"), Port: 5689},
+		},
+	}
+
+	unix, http, https := rt.ClientAddress()
+
+	require.Equal(t, "unix:///var/run/foo", unix)
+	require.Equal(t, "198.18.0.1:5679", http)
+	require.Equal(t, "198.18.0.1:5689", https)
+}
+
+func TestRuntime_ClientAddressAnyV4(t *testing.T) {
+	rt := RuntimeConfig{
+		HTTPAddrs: []net.Addr{
+			&net.TCPAddr{IP: net.ParseIP("0.0.0.0"), Port: 5678},
+			&net.UnixAddr{Name: "/var/run/foo", Net: "unix"},
+		},
+		HTTPSAddrs: []net.Addr{
+			&net.TCPAddr{IP: net.ParseIP("0.0.0.0"), Port: 5688},
+		},
+	}
+
+	unix, http, https := rt.ClientAddress()
+
+	require.Equal(t, "unix:///var/run/foo", unix)
+	require.Equal(t, "127.0.0.1:5678", http)
+	require.Equal(t, "127.0.0.1:5688", https)
+}
+
+func TestRuntime_ClientAddressAnyV6(t *testing.T) {
+	rt := RuntimeConfig{
+		HTTPAddrs: []net.Addr{
+			&net.TCPAddr{IP: net.ParseIP("::"), Port: 5678},
+			&net.UnixAddr{Name: "/var/run/foo", Net: "unix"},
+		},
+		HTTPSAddrs: []net.Addr{
+			&net.TCPAddr{IP: net.ParseIP("::"), Port: 5688},
+		},
+	}
+
+	unix, http, https := rt.ClientAddress()
+
+	require.Equal(t, "unix:///var/run/foo", unix)
+	require.Equal(t, "[::1]:5678", http)
+	require.Equal(t, "[::1]:5688", https)
+}
+
 func splitIPPort(hostport string) (net.IP, int) {
 	h, p, err := net.SplitHostPort(hostport)
 	if err != nil {

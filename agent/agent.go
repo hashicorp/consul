@@ -710,25 +710,14 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 		watchPlans = append(watchPlans, wp)
 	}
 
-	// Determine the primary http(s) endpoint.
-	var netaddr net.Addr
-	https := false
-	if len(cfg.HTTPAddrs) > 0 {
-		netaddr = cfg.HTTPAddrs[0]
-	} else {
-		netaddr = cfg.HTTPSAddrs[0]
-		https = true
-	}
-	addr := netaddr.String()
-	if netaddr.Network() == "unix" {
-		addr = "unix://" + addr
-		https = false
-	} else if https {
-		addr = "https://" + addr
-	}
-
 	// Fire off a goroutine for each new watch plan.
 	for _, wp := range watchPlans {
+		config, err := a.config.APIConfig(true)
+		if err != nil {
+			a.logger.Printf("[ERR] agent: Failed to run watch: %v", err)
+			continue
+		}
+
 		a.watchPlans = append(a.watchPlans, wp)
 		go func(wp *watch.Plan) {
 			if h, ok := wp.Exempt["handler"]; ok {
@@ -741,16 +730,9 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 			}
 			wp.LogOutput = a.LogOutput
 
-			config := api.DefaultConfig()
-			if https {
-				if a.config.CAPath != "" {
-					config.TLSConfig.CAPath = a.config.CAPath
-				}
-				if a.config.CAFile != "" {
-					config.TLSConfig.CAFile = a.config.CAFile
-				}
-				// use the original address without the https:// prefix
-				config.TLSConfig.Address = netaddr.String()
+			addr := config.Address
+			if config.Scheme == "https" {
+				addr = "https://" + addr
 			}
 
 			if err := wp.RunWithConfig(addr, config); err != nil {
