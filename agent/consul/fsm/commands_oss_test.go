@@ -1156,7 +1156,7 @@ func TestFSM_Intention_CRUD(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	fsm, err := New(nil, os.Stderr)
+	fsm, err := New(nil, os.Stderr, nil)
 	assert.Nil(err)
 
 	// Create a new intention.
@@ -1225,7 +1225,7 @@ func TestFSM_CAConfig(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	fsm, err := New(nil, os.Stderr)
+	fsm, err := New(nil, os.Stderr, nil)
 	assert.Nil(err)
 
 	// Set the autopilot config using a request.
@@ -1292,7 +1292,7 @@ func TestFSM_CARoots(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	fsm, err := New(nil, os.Stderr)
+	fsm, err := New(nil, os.Stderr, nil)
 	assert.Nil(err)
 
 	// Roots
@@ -1324,7 +1324,7 @@ func TestFSM_CABuiltinProvider(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	fsm, err := New(nil, os.Stderr)
+	fsm, err := New(nil, os.Stderr, nil)
 	assert.Nil(err)
 
 	// Provider state.
