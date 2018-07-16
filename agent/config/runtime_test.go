@@ -2182,7 +2182,7 @@ func TestFullConfig(t *testing.T) {
 			"acl_default_policy": "ArK3WIfE",
 			"acl_down_policy": "vZXMfMP0",
 			"acl_enforce_version_8": true,
-		        "acl_enable_key_list_policy": true,
+			"acl_enable_key_list_policy": true,
 			"acl_master_token": "C1Q1oIwh",
 			"acl_replication_token": "LMmgy5dO",
 			"acl_token": "O1El0wan",
@@ -2194,6 +2194,7 @@ func TestFullConfig(t *testing.T) {
 			},
 			"advertise_addr": "17.99.29.16",
 			"advertise_addr_wan": "78.63.37.19",
+			"allow_node_renaming": true,
 			"autopilot": {
 				"cleanup_dead_servers": true,
 				"disable_upgrade_migration": true,
@@ -2618,7 +2619,7 @@ func TestFullConfig(t *testing.T) {
 			acl_default_policy = "ArK3WIfE"
 			acl_down_policy = "vZXMfMP0"
 			acl_enforce_version_8 = true
-		        acl_enable_key_list_policy = true
+			acl_enable_key_list_policy = true
 			acl_master_token = "C1Q1oIwh"
 			acl_replication_token = "LMmgy5dO"
 			acl_token = "O1El0wan"
@@ -2630,6 +2631,7 @@ func TestFullConfig(t *testing.T) {
 			}
 			advertise_addr = "17.99.29.16"
 			advertise_addr_wan = "78.63.37.19"
+			allow_node_renaming = true
 			autopilot = {
 				cleanup_dead_servers = true
 				disable_upgrade_migration = true
@@ -3204,6 +3206,7 @@ func TestFullConfig(t *testing.T) {
 		ACLToken:                         "O1El0wan",
 		AdvertiseAddrLAN:                 ipAddr("17.99.29.16"),
 		AdvertiseAddrWAN:                 ipAddr("78.63.37.19"),
+		AllowNodeRenaming:                true,
 		AutopilotCleanupDeadServers:      true,
 		AutopilotDisableUpgradeMigration: true,
 		AutopilotLastContactThreshold:    12705 * time.Second,
@@ -3914,6 +3917,7 @@ func TestSanitize(t *testing.T) {
     "AEInterval": "0s",
     "AdvertiseAddrLAN": "",
     "AdvertiseAddrWAN": "",
+    "AllowNodeRenaming": false,
     "AutopilotCleanupDeadServers": false,
     "AutopilotDisableUpgradeMigration": false,
     "AutopilotLastContactThreshold": "0s",

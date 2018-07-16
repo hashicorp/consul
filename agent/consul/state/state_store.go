@@ -42,6 +42,24 @@ const (
 	watchLimit = 2048
 )
 
+// StoreConfig Handle a StoreConfig to handle particular behaviours
+type StoreConfig struct {
+	AllowNodeRenaming bool
+}
+
+// NewStoreConfig returns a new StoreConfig with values copied from other Config.
+// if config is not nil, will copy options from Config
+func NewStoreConfig(config *StoreConfig) *StoreConfig {
+	// Default Options to ensure compatibility with previous version
+	allowToRenameNodes := false
+	if config != nil {
+		allowToRenameNodes = config.AllowNodeRenaming
+	}
+	return &StoreConfig{
+		AllowNodeRenaming: allowToRenameNodes,
+	}
+}
+
 // Store is where we store all of Consul's state, including
 // records of node registrations, services, checks, key/value
 // pairs and more. The DB is entirely in-memory and is constructed
@@ -59,6 +77,9 @@ type Store struct {
 
 	// lockDelay holds expiration times for locks associated with keys.
 	lockDelay *Delay
+
+	// StoreConfig handle all configuration options of Store
+	StoreConfig *StoreConfig
 }
 
 // Snapshot is used to provide a point-in-time snapshot. It
@@ -93,7 +114,7 @@ type sessionCheck struct {
 }
 
 // NewStateStore creates a new in-memory state storage layer.
-func NewStateStore(gc *TombstoneGC) (*Store, error) {
+func NewStateStore(gc *TombstoneGC, config *StoreConfig) (*Store, error) {
 	// Create the in-memory DB.
 	schema := stateStoreSchema()
 	db, err := memdb.NewMemDB(schema)
@@ -108,6 +129,7 @@ func NewStateStore(gc *TombstoneGC) (*Store, error) {
 		abandonCh:    make(chan struct{}),
 		kvsGraveyard: NewGraveyard(gc),
 		lockDelay:    NewDelay(),
+		StoreConfig:  NewStoreConfig(config),
 	}
 	return s, nil
 }

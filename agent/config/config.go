@@ -151,6 +151,7 @@ type Config struct {
 	Addresses                   Addresses                `json:"addresses,omitempty" hcl:"addresses" mapstructure:"addresses"`
 	AdvertiseAddrLAN            *string                  `json:"advertise_addr,omitempty" hcl:"advertise_addr" mapstructure:"advertise_addr"`
 	AdvertiseAddrWAN            *string                  `json:"advertise_addr_wan,omitempty" hcl:"advertise_addr_wan" mapstructure:"advertise_addr_wan"`
+	AllowNodeRenaming           *bool                    `json:"allow_node_renaming,omitempty" hcl:"allow_node_renaming" mapstructure:"allow_node_renaming"`
 	Autopilot                   Autopilot                `json:"autopilot,omitempty" hcl:"autopilot" mapstructure:"autopilot"`
 	BindAddr                    *string                  `json:"bind_addr,omitempty" hcl:"bind_addr" mapstructure:"bind_addr"`
 	Bootstrap                   *bool                    `json:"bootstrap,omitempty" hcl:"bootstrap" mapstructure:"bootstrap"`

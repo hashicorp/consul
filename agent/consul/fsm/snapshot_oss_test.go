@@ -17,7 +17,7 @@ import (
 
 func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	fsm, err := New(nil, os.Stderr, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -113,7 +113,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	}
 
 	// Try to restore on a new FSM
-	fsm2, err := New(nil, os.Stderr)
+	fsm2, err := New(nil, os.Stderr, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -290,7 +290,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 func TestFSM_BadRestore_OSS(t *testing.T) {
 	t.Parallel()
 	// Create an FSM with some state.
-	fsm, err := New(nil, os.Stderr)
+	fsm, err := New(nil, os.Stderr, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

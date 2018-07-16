@@ -139,6 +139,10 @@ type RuntimeConfig struct {
 	// hcl: acl_token = string
 	ACLToken string
 
+	// AllowNodeRenaming allow to rename nodes having an ID. Defaults to false
+	// hcl: allow_node_renaming = (true|false)
+	AllowNodeRenaming bool
+
 	// AutopilotCleanupDeadServers enables the automatic cleanup of dead servers when new ones
 	// are added to the peer list. Defaults to true.
 	//

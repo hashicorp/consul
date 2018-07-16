@@ -434,7 +434,9 @@ func (s *Server) setupRaft() error {
 
 	// Create the FSM.
 	var err error
-	s.fsm, err = fsm.New(s.tombstoneGC, s.config.LogOutput)
+	storeConfig := state.NewStoreConfig(nil)
+	storeConfig.AllowNodeRenaming = s.config.AllowNodeRenaming
+	s.fsm, err = fsm.New(s.tombstoneGC, s.config.LogOutput, storeConfig)
 	if err != nil {
 		return err
 	}
@@ -541,7 +543,7 @@ func (s *Server) setupRaft() error {
 				return fmt.Errorf("recovery failed to parse peers.json: %v", err)
 			}
 
-			tmpFsm, err := fsm.New(s.tombstoneGC, s.config.LogOutput)
+			tmpFsm, err := fsm.New(s.tombstoneGC, s.config.LogOutput, storeConfig)
 			if err != nil {
 				return fmt.Errorf("recovery failed to make temp FSM: %v", err)
 			}

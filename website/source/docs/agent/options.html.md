@@ -791,6 +791,14 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="advertise_addr"></a><a href="#advertise_addr">`advertise_addr`</a> Equivalent to
   the [`-advertise` command-line flag](#_advertise).
 
+* <a name="allow_node_renaming"></a><a href="#allow_node_renaming">`allow_node_renaming`</a>
+  Allows to rename node with IDs. Renaming of nodes will be allowed as it does not collides
+  with another node with different ID but same name (case insensitive comparison).
+  It also enforces case insensitive match for node names when performing registration on
+  nodes without IDs.
+  Since it is a breaking change, its value is `false` by default in Consul version 1.2.1+ but
+  might be set to to `true` in next versions of Consul.
+
 * <a name="serf_wan"></a><a href="#serf_wan_bind">`serf_wan`</a> Equivalent to
   the [`-serf-wan-bind` command-line flag](#_serf_wan_bind).
 
