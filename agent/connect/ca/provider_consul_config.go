@@ -10,10 +10,12 @@ import (
 )
 
 func ParseConsulCAConfig(raw map[string]interface{}) (*structs.ConsulCAProviderConfig, error) {
-	var config structs.ConsulCAProviderConfig
+	config := structs.ConsulCAProviderConfig{
+		CommonCAProviderConfig: defaultCommonConfig(),
+	}
+
 	decodeConf := &mapstructure.DecoderConfig{
 		DecodeHook:       ParseDurationFunc(),
-		ErrorUnused:      true,
 		Result:           &config,
 		WeaklyTypedInput: true,
 	}
@@ -74,4 +76,10 @@ func Uint8ToString(bs []uint8) string {
 		b[i] = byte(v)
 	}
 	return string(b)
+}
+
+func defaultCommonConfig() structs.CommonCAProviderConfig {
+	return structs.CommonCAProviderConfig{
+		LeafCertTTL: 3 * 24 * time.Hour,
+	}
 }

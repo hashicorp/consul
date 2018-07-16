@@ -2545,7 +2545,8 @@ func TestFullConfig(t *testing.T) {
 			"connect": {
 				"ca_provider": "consul",
 				"ca_config": {
-					"RotationPeriod": "90h"
+					"RotationPeriod": "90h",
+					"LeafCertTTL": "1h"
 				},
 				"enabled": true,
 				"proxy_defaults": {
@@ -3006,7 +3007,8 @@ func TestFullConfig(t *testing.T) {
 			connect {
 				ca_provider = "consul"
 				ca_config {
-					"RotationPeriod" = "90h"
+					rotation_period = "90h"
+					leaf_cert_ttl = "1h"
 				}
 				enabled = true
 				proxy_defaults {
@@ -3610,6 +3612,7 @@ func TestFullConfig(t *testing.T) {
 		ConnectCAProvider:       "consul",
 		ConnectCAConfig: map[string]interface{}{
 			"RotationPeriod": "90h",
+			"LeafCertTTL":    "1h",
 		},
 		ConnectProxyAllowManagedRoot:            false,
 		ConnectProxyAllowManagedAPIRegistration: false,

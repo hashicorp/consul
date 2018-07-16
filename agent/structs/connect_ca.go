@@ -192,7 +192,13 @@ type CAConfiguration struct {
 	RaftIndex
 }
 
+type CommonCAProviderConfig struct {
+	LeafCertTTL time.Duration
+}
+
 type ConsulCAProviderConfig struct {
+	CommonCAProviderConfig `mapstructure:",squash"`
+
 	PrivateKey     string
 	RootCert       string
 	RotationPeriod time.Duration
@@ -208,6 +214,8 @@ type CAConsulProviderState struct {
 }
 
 type VaultCAProviderConfig struct {
+	CommonCAProviderConfig `mapstructure:",squash"`
+
 	Address             string
 	Token               string
 	RootPKIPath         string

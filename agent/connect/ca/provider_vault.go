@@ -227,6 +227,7 @@ func (v *VaultProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	// Use the leaf cert role to sign a new cert for this CSR.
 	response, err := v.client.Logical().Write(v.config.IntermediatePKIPath+"sign/"+VaultCALeafCertRole, map[string]interface{}{
 		"csr": pemBuf.String(),
+		"ttl": fmt.Sprintf("%.0fh", v.config.LeafCertTTL.Hours()),
 	})
 	if err != nil {
 		return "", fmt.Errorf("error issuing cert: %v", err)
@@ -283,10 +284,12 @@ func (v *VaultProvider) Cleanup() error {
 }
 
 func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderConfig, error) {
-	var config structs.VaultCAProviderConfig
+	config := structs.VaultCAProviderConfig{
+		CommonCAProviderConfig: defaultCommonConfig(),
+	}
 
 	decodeConf := &mapstructure.DecoderConfig{
-		ErrorUnused:      true,
+		DecodeHook:       mapstructure.StringToTimeDurationHookFunc(),
 		Result:           &config,
 		WeaklyTypedInput: true,
 	}

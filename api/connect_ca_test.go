@@ -64,6 +64,7 @@ func TestAPI_ConnectCAConfig_get_set(t *testing.T) {
 	expected := &ConsulCAProviderConfig{
 		RotationPeriod: 90 * 24 * time.Hour,
 	}
+	expected.LeafCertTTL = 72 * time.Hour
 
 	// This fails occasionally if server doesn't have time to bootstrap CA so
 	// retry

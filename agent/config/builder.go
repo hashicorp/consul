@@ -544,6 +544,9 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 			"token":                 "Token",
 			"root_pki_path":         "RootPKIPath",
 			"intermediate_pki_path": "IntermediatePKIPath",
+
+			// Common CA config
+			"leaf_cert_ttl": "LeafCertTTL",
 		})
 	}
 
