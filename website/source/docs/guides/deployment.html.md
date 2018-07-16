@@ -1,6 +1,6 @@
 ---
 layout: "docs"
-page_title: "Reference Architecture"
+page_title: "Production Deployment"
 sidebar_current: "docs-guides-deployment"
 description: |-
   Best practice approaches for Consul production architecture.
