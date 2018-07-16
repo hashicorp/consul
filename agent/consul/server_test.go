@@ -202,6 +202,32 @@ func TestServer_StartStop(t *testing.T) {
 	}
 }
 
+func TestServer_AllowNodeRenamingPropagratedToStore(t *testing.T) {
+	t.Parallel()
+	for _, allowNodeRenaming := range []bool{true, false} {
+
+		// Start up a server and then stop it.
+		dir1, s1 := testServerWithConfig(t, func(c *Config) {
+			c.Datacenter = "dc1"
+			c.Bootstrap = true
+			c.AllowNodeRenaming = allowNodeRenaming
+		})
+		defer os.RemoveAll(dir1)
+		if s1.fsm.State().StoreConfig.AllowNodeRenaming != allowNodeRenaming {
+			t.Fatalf("expected AllowNodeRenaming to be %v", allowNodeRenaming)
+		}
+
+		if err := s1.Shutdown(); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		// Shut down again, which should be idempotent.
+		if err := s1.Shutdown(); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+}
+
 func TestServer_JoinLAN(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServer(t)
