@@ -717,6 +717,14 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
         `write` access to this backend, as well as permission to mount the backend at this path if it is not 
         already mounted.
 
+        #### Common CA Config Options
+
+        <p>There are also a number of common configuration options supported by all providers:</p>
+        
+        * <a name="ca_leaf_cert_ttl"></a><a href="#ca_leaf_cert_ttl">`leaf_cert_ttl`</a> The lease duration of
+        a leaf certificate issued for a service, after which a new certificate will be requested by the proxy.
+        Defaults to `72h`.
+
     * <a name="connect_proxy"></a><a href="#connect_proxy">`proxy`</a> This object allows setting options for the Connect proxies. The following sub-keys are available:
 
         * <a name="connect_proxy_allow_managed_registration"></a><a href="#connect_proxy_allow_managed_registration">`allow_managed_api_registration`</a> Allows managed proxies to be configured with services that are registered via the Agent HTTP API. Enabling this would allow anyone with permission to register a service to define a command to execute for the proxy. By default, this is false to protect against arbitrary process execution.

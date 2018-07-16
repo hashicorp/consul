@@ -91,8 +91,7 @@ $ curl \
 {
     "Provider": "consul",
     "Config": {
-        "PrivateKey": null,
-        "RootCert": null,
+        "LeafCertTTL": "72h",
         "RotationPeriod": "2160h"
     },
     "CreateIndex": 5,
@@ -133,8 +132,10 @@ providers, see [Provider Config](/docs/connect/ca.html).
 {
     "Provider": "consul",
     "Config": {
+        "LeafCertTTL": "72h",
         "PrivateKey": "-----BEGIN RSA PRIVATE KEY-----...",
         "RootCert": "-----BEGIN CERTIFICATE-----...",
+        "RotationPeriod": "2160h"
     }
 }
 ```
