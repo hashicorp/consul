@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -201,4 +202,96 @@ func (cr *ConsulResolver) queryOptions(ctx context.Context) *api.QueryOptions {
 		Connect: true,
 	}
 	return q.WithContext(ctx)
+}
+
+// ConsulResolverFromAddrFunc returns a function for constructing ConsulResolver
+// from a consul DNS formatted hostname (e.g. foo.service.consul or
+// foo.query.consul).
+//
+// Note, the returned ConsulResolver resolves the query via regular agent HTTP
+// discovery API. DNS is not needed or used for discovery, only the hostname
+// format re-used for consistency.
+func ConsulResolverFromAddrFunc(client *api.Client) func(addr string) (Resolver, error) {
+	// Capture client dependency
+	return func(addr string) (Resolver, error) {
+		// Http clients might provide hostname and port
+		host := strings.ToLower(stripPort(addr))
+
+		// For now we force use of `.consul` TLD regardless of the configured domain
+		// on the cluster. That's because we don't know that domain here and it
+		// would be really complicated to discover it inline here. We do however
+		// need to be able to distingush a hostname with the optional datacenter
+		// segment which we can't do unambiguously if we allow arbitrary trailing
+		// domains.
+		domain := ".consul"
+		if !strings.HasSuffix(host, domain) {
+			return nil, fmt.Errorf("invalid Consul DNS domain: note Connect SDK " +
+				"currently requires use of .consul domain even if cluster is " +
+				"configured with a different domain.")
+		}
+
+		// Remove the domain suffix
+		host = host[0 : len(host)-len(domain)]
+
+		parts := strings.Split(host, ".")
+		numParts := len(parts)
+
+		r := &ConsulResolver{
+			Client:    client,
+			Namespace: "default",
+		}
+
+		// Note that 3 segments may be a valid DNS name like
+		// <tag>.<service>.service.consul but not one we support, it might also be
+		// <service>.service.<datacenter>.consul which we do want to support so we
+		// have to figure out if the last segment is supported keyword and if not
+		// check if the supported keyword is further up...
+
+		// To simplify logic for now, we must match one of the following (not domain
+		// is stripped):
+		//  <name>.[service|query]
+		//  <name>.[service|query].<dc>
+		if numParts < 2 || numParts > 3 || !supportedTypeLabel(parts[1]) {
+			return nil, fmt.Errorf("unsupported Consul DNS domain: must be either " +
+				"<name>.service[.<datacenter>].consul or " +
+				"<name>.query[.<datacenter>].consul")
+		}
+
+		if numParts == 3 {
+			// Must be datacenter case
+			r.Datacenter = parts[2]
+		}
+
+		// By know we must have a supported query type which means at least 2
+		// elements with first 2 being name, and type respectively.
+		r.Name = parts[0]
+		switch parts[1] {
+		case "service":
+			r.Type = ConsulResolverTypeService
+		case "query":
+			r.Type = ConsulResolverTypePreparedQuery
+		default:
+			// This should never happen (tm) unless the supportedTypeLabel
+			// implementation is changed and this switch isn't.
+			return nil, fmt.Errorf("invalid discovery type")
+		}
+
+		return r, nil
+	}
+}
+
+func supportedTypeLabel(label string) bool {
+	return label == "service" || label == "query"
+}
+
+// stripPort copied from net/url/url.go
+func stripPort(hostport string) string {
+	colon := strings.IndexByte(hostport, ':')
+	if colon == -1 {
+		return hostport
+	}
+	if i := strings.IndexByte(hostport, ']'); i != -1 {
+		return strings.TrimPrefix(hostport[:i], "[")
+	}
+	return hostport[:colon]
 }
