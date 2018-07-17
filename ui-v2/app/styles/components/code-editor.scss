@@ -18,7 +18,7 @@ $syntax-green: #39b54a;
 $syntax-dark-gray: #535f73;
 
 $syntax-gutter-grey: #2a2f36;
-$syntax-yellow: $yellow;
+$syntax-yellow: $ui-yellow-500;
 .CodeMirror {
   min-height: 300px;
   height: auto;
@@ -28,7 +28,7 @@ $syntax-yellow: $yellow;
   border: 1px solid $syntax-light-gray;
   border-radius: 0;
   color: lighten($black, 13%);
-  font-family: $family-monospace;
+  font-family: $typo-family-mono;
   font-size: 13px;
   padding: 7px 8px 9px;
 }
@@ -39,7 +39,7 @@ $syntax-yellow: $yellow;
     background-color: $black !important;
     color: #cfd2d1 !important;
     border: none;
-    font-family: $family-monospace;
+    font-family: $typo-family-mono;
     -webkit-font-smoothing: auto;
     line-height: 1.4;
   }

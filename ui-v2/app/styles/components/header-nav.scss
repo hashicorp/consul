@@ -154,7 +154,7 @@
     display: block;
   }
   %primary-nav > ul > li.is-active > a {
-    font-weight: $weight-bold;
+    font-weight: $typo-weight-bold;
   }
 }
 @media #{$--horizontal-nav} {

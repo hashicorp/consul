@@ -1,23 +1,10 @@
 @charset 'utf-8';
 
 @import '@hashicorp/iris/index';
+@import '@hashicorp/iris/reset/index';
 @import 'variables/index';
 
-@import 'ember-bulma-css/utilities/initial-variables.sass';
-@import 'ember-bulma-css/utilities/functions.sass';
-@import 'ember-bulma-css/utilities/derived-variables.sass';
-@import 'ember-bulma-css/utilities/mixins.sass';
-@import 'ember-bulma-css/utilities/controls.sass';
-@import 'ember-bulma-css/base/minireset.sass';
-@import 'ember-bulma-css/base/generic.sass';
-
-%user-select-none {
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
-}
+@import 'ember-power-select';
 
 @import 'core/reset';
 @import 'core/typography';
@@ -27,6 +14,7 @@
 @import 'components/main-header';
 @import 'components/footer';
 @import 'components/breadcrumbs';
+@import 'components/anchors';
 @import 'components/button';
 @import 'components/tabs';
 @import 'components/healthcheck-status';
@@ -49,18 +37,3 @@
 @import 'routes/dc/nodes/index';
 @import 'routes/dc/intention/index';
 @import 'routes/dc/kv/index';
-
-main a {
-  color: $ui-gray-900;
-}
-main a[rel*='help'] {
-  @extend %with-info;
-}
-main label a[rel*='help'] {
-  color: $ui-gray-400;
-}
-[role='tabpanel'] > p:only-child [rel*='help']::after {
-  content: none;
-}
-
-@import 'ember-power-select';

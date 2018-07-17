@@ -53,6 +53,7 @@ th,
 }
 main label a[rel*='help'],
 td:first-child em,
+%tag,
 %healthchecked-resource strong {
   font-weight: $typo-weight-normal;
 }

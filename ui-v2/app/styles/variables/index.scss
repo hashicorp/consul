@@ -1,6 +1,14 @@
 @import './custom-query';
-@import './color';
+$gray: #cdd3d7;
+
+$magenta-800-url-encoded: %235a1434;
+
+$keyline-light: $ui-gray-100; // h1
+$keyline-mid: $ui-gray-200; // td
+$keyline-dark: $ui-gray-400; // th
+$keyline-darker: $ui-gray-300; //footer
 
 // decoration
-$radius-small: 2px;
-$radius: 4px;
+// undecided
+$radius-small: $decor-radius-100;
+$radius: $decor-radius-200;

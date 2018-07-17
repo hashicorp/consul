@@ -1,23 +1,10 @@
-/**
- * Sizes don't use auto rem to px calculating
-*/
-html {
-  font-size: $typo-size-000;
-}
-body {
-  background-color: $ui-white;
-}
-fieldset {
-  border: 0;
-  width: 100%;
+%user-select-none {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 label span {
   @extend %user-select-none;
-}
-body,
-button,
-input,
-select,
-textarea {
-  font-family: $typo-family-sans;
 }
