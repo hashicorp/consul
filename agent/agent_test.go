@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/checks"
+	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -1383,12 +1384,12 @@ func TestAgent_PersistProxy(t *testing.T) {
 	file := filepath.Join(a.Config.DataDir, proxyDir, stringHash("redis-proxy"))
 
 	// Proxy is not persisted unless requested
-	require.NoError(a.AddProxy(proxy, false, ""))
+	require.NoError(a.AddProxy(proxy, false, false, ""))
 	_, err := os.Stat(file)
 	require.Error(err, "proxy should not be persisted")
 
 	// Proxy is  persisted if requested
-	require.NoError(a.AddProxy(proxy, true, ""))
+	require.NoError(a.AddProxy(proxy, true, false, ""))
 	_, err = os.Stat(file)
 	require.NoError(err, "proxy should be persisted")
 
@@ -1404,7 +1405,7 @@ func TestAgent_PersistProxy(t *testing.T) {
 	proxy.Config = map[string]interface{}{
 		"foo": "bar",
 	}
-	require.NoError(a.AddProxy(proxy, true, ""))
+	require.NoError(a.AddProxy(proxy, true, false, ""))
 
 	content, err = ioutil.ReadFile(file)
 	require.NoError(err)
@@ -1451,7 +1452,7 @@ func TestAgent_PurgeProxy(t *testing.T) {
 		Command:         []string{"/bin/sleep", "3600"},
 	}
 	proxyID := "redis-proxy"
-	require.NoError(a.AddProxy(proxy, true, ""))
+	require.NoError(a.AddProxy(proxy, true, false, ""))
 
 	file := filepath.Join(a.Config.DataDir, proxyDir, stringHash("redis-proxy"))
 
@@ -1461,7 +1462,7 @@ func TestAgent_PurgeProxy(t *testing.T) {
 	require.NoError(err, "should not be removed")
 
 	// Re-add the proxy
-	require.NoError(a.AddProxy(proxy, true, ""))
+	require.NoError(a.AddProxy(proxy, true, false, ""))
 
 	// Removed
 	require.NoError(a.RemoveProxy(proxyID, true))
@@ -1499,7 +1500,7 @@ func TestAgent_PurgeProxyOnDuplicate(t *testing.T) {
 		Command:         []string{"/bin/sleep", "3600"},
 	}
 	proxyID := "redis-proxy"
-	require.NoError(a.AddProxy(proxy, true, ""))
+	require.NoError(a.AddProxy(proxy, true, false, ""))
 
 	a.Shutdown()
 
@@ -2753,7 +2754,7 @@ func TestAgent_AddProxy(t *testing.T) {
 			}
 			require.NoError(a.AddService(reg, nil, false, ""))
 
-			err := a.AddProxy(tt.proxy, false, "")
+			err := a.AddProxy(tt.proxy, false, false, "")
 			if tt.wantErr {
 				require.Error(err)
 				return
@@ -2813,7 +2814,7 @@ func TestAgent_RemoveProxy(t *testing.T) {
 		ExecMode:        structs.ProxyExecModeDaemon,
 		Command:         []string{"foo"},
 	}
-	require.NoError(a.AddProxy(pReg, false, ""))
+	require.NoError(a.AddProxy(pReg, false, false, ""))
 
 	// Test the ID was created as we expect.
 	gotProxy := a.State.Proxy("web-proxy")
@@ -2829,4 +2830,62 @@ func TestAgent_RemoveProxy(t *testing.T) {
 	// Removing invalid proxy should be an error
 	err = a.RemoveProxy("foobar", false)
 	require.Error(err)
+}
+
+func TestAgent_ReLoadProxiesFromConfig(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(),
+		`node_name = "node1"
+	`)
+	defer a.Shutdown()
+	require := require.New(t)
+
+	// Register a target service we can use
+	reg := &structs.NodeService{
+		Service: "web",
+		Port:    8080,
+	}
+	require.NoError(a.AddService(reg, nil, false, ""))
+
+	proxies := a.State.Proxies()
+	require.Len(proxies, 0)
+
+	config := config.RuntimeConfig{
+		Services: []*structs.ServiceDefinition{
+			&structs.ServiceDefinition{
+				Name: "web",
+				Connect: &structs.ServiceConnect{
+					Native: false,
+					Proxy:  &structs.ServiceDefinitionConnectProxy{},
+				},
+			},
+		},
+	}
+
+	require.NoError(a.loadProxies(&config))
+
+	// ensure we loaded the proxy
+	proxies = a.State.Proxies()
+	require.Len(proxies, 1)
+
+	// store the auto-generated token
+	ptok := ""
+	pid := ""
+	for id := range proxies {
+		pid = id
+		ptok = proxies[id].ProxyToken
+		break
+	}
+
+	// reload the proxies and ensure the proxy token is the same
+	require.NoError(a.unloadProxies())
+	require.NoError(a.loadProxies(&config))
+	require.Len(proxies, 1)
+	require.Equal(ptok, proxies[pid].ProxyToken)
+
+	// make sure when the config goes away so does the proxy
+	require.NoError(a.unloadProxies())
+	// a.config contains no services or proxies
+	require.NoError(a.loadProxies(a.config))
+	require.Len(proxies, 0)
 }
