@@ -1,22 +1,15 @@
-#wrapper > footer {
-  @extend %footer;
+%footer > a:first-child {
+  @extend %with-hashicorp;
 }
 %footer {
-  border-top: 1px solid;
+  border-top: $decor-border-100;
 }
 %footer {
   border-color: $keyline-darker;
-  background-color: $white;
-}
-%footer {
-  max-width: 1150px;
+  background-color: $ui-white;
 }
 %footer > * {
-  font-size: inherit;
-  color: $text-note;
-}
-%footer > a:first-child {
-  @extend %with-hashicorp;
+  color: $ui-gray-400;
 }
 %footer {
   display: flex;

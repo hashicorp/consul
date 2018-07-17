@@ -1,5 +1,17 @@
-html.template-loading main > div {
-  @extend %loader;
+/* logo */
+%brand-loader {
+  display: block;
+}
+%brand-loader {
+  position: absolute;
+  top: 50%;
+  margin-top: -26px;
+  left: 50%;
+  margin-left: -84px;
+}
+/* blobs / %ui-loader ? */
+%loader circle {
+  fill: $brand-magenta-100;
 }
 %loader {
   display: flex;
@@ -10,7 +22,6 @@ html.template-loading main > div {
 %loader circle {
   animation: loader-animation 1.5s infinite ease-in-out;
   transform-origin: 50% 50%;
-  fill: #efc4d8;
 }
 
 %loader g:nth-last-child(2) circle {
@@ -27,7 +38,6 @@ html.template-loading main > div {
 
 %loader g:nth-last-child(5) circle {
   animation-delay: 0.5s;
-  border: 1px solid red;
 }
 
 @keyframes loader-animation {

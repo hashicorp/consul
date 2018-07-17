@@ -2,30 +2,32 @@
 .freetext-filter {
   @extend %freetext-filter;
 }
+%freetext-filter span {
+  @extend %with-magnifier;
+}
 %freetext-filter {
   cursor: pointer;
 }
 %freetext-filter input {
   -webkit-appearance: none;
   border: none;
-  border-right: 1px solid;
+  border-right: $decor-border-100;
 }
 %freetext-filter span {
-  @extend %with-magnifier;
   visibility: hidden;
 }
 %freetext-filter {
-  background-color: $white;
+  background-color: $ui-white;
 }
 %freetext-filter span {
-  color: $border-blue;
+  color: $ui-gray-300;
 }
 %freetext-filter input {
-  border-color: 1px $border-blue;
+  border-color: $ui-gray-300;
 }
 %freetext-filter input,
 %freetext-filter input::placeholder {
-  color: $text-note;
+  color: $ui-gray-400;
 }
 %freetext-filter label {
   display: block;
