@@ -1193,7 +1193,7 @@ func (c *RuntimeConfig) IncomingHTTPSConfig() (*tls.Config, error) {
 func (c *RuntimeConfig) apiAddresses(maxPerType int) (unixAddrs, httpAddrs, httpsAddrs []string) {
 	if len(c.HTTPSAddrs) > 0 {
 		for i, addr := range c.HTTPSAddrs {
-			if i < maxPerType {
+			if maxPerType < 1 || i < maxPerType {
 				httpsAddrs = append(httpsAddrs, addr.String())
 			} else {
 				break
@@ -1206,16 +1206,82 @@ func (c *RuntimeConfig) apiAddresses(maxPerType int) (unixAddrs, httpAddrs, http
 		for _, addr := range c.HTTPAddrs {
 			switch addr.(type) {
 			case *net.UnixAddr:
-				if unix_count < maxPerType {
+				if maxPerType < 1 || unix_count < maxPerType {
 					unixAddrs = append(unixAddrs, addr.String())
 					unix_count += 1
 				}
 			default:
-				if http_count < maxPerType {
+				if maxPerType < 1 || http_count < maxPerType {
 					httpAddrs = append(httpAddrs, addr.String())
 					http_count += 1
 				}
 			}
+		}
+	}
+
+	return
+}
+
+func (c *RuntimeConfig) ClientAddress() (unixAddr, httpAddr, httpsAddr string) {
+	unixAddrs, httpAddrs, httpsAddrs := c.apiAddresses(0)
+
+	if len(unixAddrs) > 0 {
+		unixAddr = "unix://" + unixAddrs[0]
+	}
+
+	http_any := ""
+	if len(httpAddrs) > 0 {
+		for _, addr := range httpAddrs {
+			host, port, err := net.SplitHostPort(addr)
+			if err != nil {
+				continue
+			}
+
+			if host == "0.0.0.0" || host == "::" {
+				if http_any == "" {
+					if host == "0.0.0.0" {
+						http_any = net.JoinHostPort("127.0.0.1", port)
+					} else {
+						http_any = net.JoinHostPort("::1", port)
+					}
+				}
+				continue
+			}
+
+			httpAddr = addr
+			break
+		}
+
+		if httpAddr == "" && http_any != "" {
+			httpAddr = http_any
+		}
+	}
+
+	https_any := ""
+	if len(httpsAddrs) > 0 {
+		for _, addr := range httpsAddrs {
+			host, port, err := net.SplitHostPort(addr)
+			if err != nil {
+				continue
+			}
+
+			if host == "0.0.0.0" || host == "::" {
+				if https_any == "" {
+					if host == "0.0.0.0" {
+						https_any = net.JoinHostPort("127.0.0.1", port)
+					} else {
+						https_any = net.JoinHostPort("::1", port)
+					}
+				}
+				continue
+			}
+
+			httpsAddr = addr
+			break
+		}
+
+		if httpsAddr == "" && https_any != "" {
+			httpsAddr = https_any
 		}
 	}
 
@@ -1228,22 +1294,23 @@ func (c *RuntimeConfig) APIConfig(includeClientCerts bool) (*api.Config, error) 
 		TLSConfig:  api.TLSConfig{InsecureSkipVerify: !c.VerifyOutgoing},
 	}
 
-	unixAddrs, httpAddrs, httpsAddrs := c.apiAddresses(1)
+	unixAddr, httpAddr, httpsAddr := c.ClientAddress()
 
-	if len(httpsAddrs) > 0 {
-		cfg.Address = httpsAddrs[0]
+	if httpsAddr != "" {
+		cfg.Address = httpsAddr
 		cfg.Scheme = "https"
 		cfg.TLSConfig.CAFile = c.CAFile
 		cfg.TLSConfig.CAPath = c.CAPath
+		cfg.TLSConfig.Address = httpsAddr
 		if includeClientCerts {
 			cfg.TLSConfig.CertFile = c.CertFile
 			cfg.TLSConfig.KeyFile = c.KeyFile
 		}
-	} else if len(httpAddrs) > 0 {
-		cfg.Address = httpAddrs[0]
+	} else if httpAddr != "" {
+		cfg.Address = httpAddr
 		cfg.Scheme = "http"
-	} else if len(unixAddrs) > 0 {
-		cfg.Address = "unix://" + unixAddrs[0]
+	} else if unixAddr != "" {
+		cfg.Address = unixAddr
 		// this should be ignored - however we are still talking http over a unix socket
 		// so it makes sense to set it like this
 		cfg.Scheme = "http"
