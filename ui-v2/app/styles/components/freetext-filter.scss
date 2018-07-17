@@ -15,17 +15,17 @@
   visibility: hidden;
 }
 %freetext-filter {
-  background-color: $white;
+  background-color: $ui-white;
 }
 %freetext-filter span {
-  color: $border-blue;
+  color: $ui-gray-300;
 }
 %freetext-filter input {
-  border-color: 1px $border-blue;
+  border-color: 1px $ui-gray-300;
 }
 %freetext-filter input,
 %freetext-filter input::placeholder {
-  color: $text-note;
+  color: $ui-gray-400;
 }
 %freetext-filter label {
   display: block;

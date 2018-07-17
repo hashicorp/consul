@@ -45,7 +45,7 @@
   height: 22px;
   left: -25px;
   margin-top: -11px;
-  background-color: transparent;
+  background-color: $ui-color-transparent;
 }
 %with-clipboard {
   padding-left: 38px !important;
@@ -57,7 +57,7 @@
   height: 17px;
   left: 12px;
   margin-top: -8px;
-  background-color: transparent;
+  background-color: $ui-color-transparent;
 }
 %with-chevron::before {
   @extend %pseudo-icon;
@@ -66,7 +66,7 @@
   height: 9px;
   left: 0;
   margin-top: -4px;
-  background-color: transparent;
+  background-color: $ui-color-transparent;
 }
 %with-folder::before {
   @extend %pseudo-icon;
@@ -76,7 +76,7 @@
   margin-top: -6px;
   left: 2px;
   background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="14" height="13" xmlns="http://www.w3.org/2000/svg"><path d="M4.779 1H1.8c-.439 0-.8.37-.8.833v9.334c0 .463.361.833.8.833h10.4c.439 0 .8-.37.8-.833V3.833C13 3.37 12.639 3 12.2 3H6.35a.5.5 0 0 1-.42-.228L4.78 1z" stroke="%23BBC4D2" fill="none"/></svg>');
-  background-color: transparent;
+  background-color: $ui-color-transparent;
 }
 %with-magnifier {
   position: relative;
@@ -94,7 +94,7 @@
   border: 0.05em solid;
   border-radius: 0.35em;
   border-color: currentColor;
-  background-color: transparent;
+  background-color: $ui-color-transparent;
 }
 %with-magnifier::after {
   @extend %pseudo-icon;
@@ -116,7 +116,7 @@
   @extend %pseudo-icon;
   right: 0;
   background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="16" height="16" xmlns="http://www.w3.org/2000/svg"><circle stroke="%23BBC4D1" fill="%23FFF" cx="7" cy="7" r="7"/><path fill="%236A7786" d="M6.15 4.677V3.233h1.56v1.444zM6.15 11.374V6.35h1.56v5.023z"/></svg>');
-  background-color: transparent;
+  background-color: $ui-color-transparent;
   width: 16px;
   height: 16px;
 }
@@ -126,7 +126,7 @@
 }
 %with-inverted-tick {
   @extend %pseudo-icon;
-  background-color: transparent;
+  background-color: $ui-color-transparent;
   background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="10" height="8" xmlns="http://www.w3.org/2000/svg"><path d="M8.95 0L10 .985 3.734 8 0 4.737l.924-1.11 2.688 2.349z" fill="#{$magenta-800-url-encoded}"/></svg>');
   height: 20px !important;
   width: 16px !important;
@@ -148,7 +148,7 @@
   background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="16" height="14" xmlns="http://www.w3.org/2000/svg"><path d="M9.263.5L8.084 1.637l4.716 4.55H0v1.625h12.8l-4.716 4.55 1.18 1.138L16 7z" fill="%232EB039"/></svg>');
   width: 16px;
   height: 14px;
-  background-color: transparent;
+  background-color: $ui-color-transparent;
 }
 %with-right-arrow-grey {
   @extend %pseudo-icon;
@@ -159,7 +159,7 @@
   background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="16" height="16" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd"><path fill="%23282C2E" d="M8.79 4l-.737.71L11 7.556H3V8.57h8l-2.947 2.844.736.711L13 8.062z"/><rect stroke="%23C73445" stroke-width="1.5" x=".75" y=".75" width="14.5" height="14.5" rx="7.25"/><path d="M3.5 3.5l9 9" stroke="%23C73445" stroke-width="1.5" stroke-linecap="square"/></g></svg>');
   width: 16px;
   height: 16px;
-  background-color: transparent;
+  background-color: $ui-color-transparent;
 }
 %with-deny-icon-grey {
   @extend %pseudo-icon;
@@ -177,7 +177,7 @@
 }
 %with-warning::before {
   @extend %with-warning-icon-orange;
-  background-color: transparent;
+  background-color: $ui-color-transparent;
 }
 %with-critical::before {
   @extend %with-cross;

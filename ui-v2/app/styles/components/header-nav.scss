@@ -25,7 +25,7 @@
 }
 @media #{$--lt-horizontal-nav} {
   %header-nav-panel {
-    background-color: $magenta-600;
+    background-color: $brand-magenta-600;
   }
   %header-nav-panel label span {
     visibility: visible !important;
@@ -69,7 +69,7 @@
     padding: 15px 35px;
   }
   %header-nav-toggle:checked + label {
-    background-color: rgba($black, 0.4);
+    background-color: rgba($ui-black, 0.4);
     width: 100vw;
     height: 100%;
     left: 0;
@@ -102,11 +102,11 @@
 %header-drop-nav a:focus,
 %header-drop-nav a:active,
 %header-drop-nav a.selected {
-  background-color: $lightest-gray;
+  background-color: $ui-gray-050;
 }
 %header-nav a,
 %header-nav-toggle-button {
-  color: $magenta-50;
+  color: $brand-magenta-050;
 }
 %header-nav a {
   display: block;
@@ -134,11 +134,11 @@
 %header-nav > ul > li > a:focus,
 %header-nav > ul > li > a:active,
 %header-nav > ul > li.is-active > a {
-  color: $white;
+  color: $ui-white;
 }
 @media #{$--horizontal-nav} {
   %header-nav > ul > li:not(:first-child).is-active > a {
-    background-color: $magenta-800;
+    background-color: $brand-magenta-800;
   }
   %header-nav ul {
     display: flex;
@@ -148,12 +148,12 @@
   }
 }
 %header-drop-nav {
-  border: 1px solid $border-blue;
-  background-color: $white;
+  border: 1px solid $ui-gray-300;
+  background-color: $ui-white;
   box-shadow: 0 2px 7px 0 rgba(0, 0, 0, 0.21);
 }
 %header-drop-nav a {
-  color: $text !important;
+  color: $ui-gray-900 !important;
 }
 %header-drop-nav .is-active a::after {
   @extend %with-inverted-tick;
@@ -166,7 +166,7 @@
   border-bottom: 1px solid;
 }
 %header-drop-nav li {
-  border-color: $border-blue;
+  border-color: $ui-gray-300;
 }
 %header-drop-nav {
   display: block;

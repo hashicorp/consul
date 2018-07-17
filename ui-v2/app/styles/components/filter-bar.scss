@@ -22,11 +22,11 @@
 }
 %filter-bar,
 %filter-bar > * {
-  background-color: $lightest-gray;
+  background-color: $ui-gray-050;
 }
 %filter-bar > *,
 %filter-bar label:not(:last-child) {
-  border-color: $border-blue !important;
+  border-color: $ui-gray-300 !important;
 }
 
 // layout
@@ -57,7 +57,7 @@
   @extend %expanded-single-select;
 }
 %filter-bar [role='radiogroup'] label {
-  color: $text-note;
+  color: $ui-gray-400;
   cursor: pointer;
   line-height: 1.7;
   white-space: nowrap;
@@ -104,8 +104,8 @@
   left: 0.7em;
   top: 50%;
   margin-top: -8px;
-  border-color: $lightest-gray;
+  border-color: $ui-gray-050;
 }
 %filter-bar .value-warning input:checked + span::after {
-  border-color: $white;
+  border-color: $ui-white;
 }

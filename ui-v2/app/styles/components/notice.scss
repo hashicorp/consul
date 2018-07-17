@@ -14,8 +14,8 @@
   border-radius: $radius-small;
 }
 %notice.warning {
-  background-color: $yellow-050;
-  border-color: $yellow-500;
+  background-color: $ui-yellow-050;
+  border-color: $ui-color-warning;
 }
 %notice {
   position: relative;

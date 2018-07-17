@@ -4,11 +4,11 @@
 }
 %healthchecked-resource {
   border: 1px solid;
-  box-shadow: 0 4px 8px 0 rgba($black, 0.05);
+  box-shadow: 0 4px 8px 0 rgba($ui-black, 0.05);
 }
 %healthchecked-resource:hover,
 %healthchecked-resource:focus {
-  box-shadow: 0 8px 10px 0 rgba($black, 0.1);
+  box-shadow: 0 8px 10px 0 rgba($ui-black, 0.1);
 }
 %healthchecked-resource li {
   border-top: 1px solid;
@@ -28,7 +28,7 @@
 }
 %healthchecked-resource,
 %healthchecked-resource li {
-  border-color: $border-blue;
+  border-color: $ui-gray-300;
 }
 %healthchecked-resource {
   position: relative;
@@ -55,15 +55,15 @@
 }
 %healthchecked-resource li.passing {
   @extend %with-passing;
-  color: $green;
+  color: $ui-color-success;
 }
 %healthchecked-resource li.warning {
   @extend %with-warning;
-  color: $orange;
+  color: $ui-color-alert;
 }
 %healthchecked-resource li.critical {
   @extend %with-critical;
-  color: $red;
+  color: $ui-color-failure;
 }
 .healthy .healthchecked-resource header span {
   padding-right: 20px;

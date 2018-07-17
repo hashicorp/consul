@@ -10,11 +10,11 @@
   border-radius: $radius-small;
 }
 %healthcheck-status dd:first-of-type {
-  color: $text-note;
+  color: $ui-gray-400;
 }
 %healthcheck-status pre {
-  background-color: $black;
-  color: $white;
+  background-color: $ui-black;
+  color: $ui-white;
 }
 %healthcheck-status::before {
   background-size: 55%;
@@ -26,23 +26,23 @@
 }
 %healthcheck-status.passing {
   @extend %with-passing;
-  border-color: $border-blue;
+  border-color: $ui-gray-300;
 }
 %healthcheck-status.passing::before {
-  background-color: $green !important;
+  background-color: $ui-color-success !important;
 }
 %healthcheck-status.critical {
   @extend %with-critical;
-  border-color: $red;
-  background-color: rgba($red, 0.1);
+  border-color: $ui-color-danger;
+  background-color: rgba($ui-color-danger, 0.1);
 }
 %healthcheck-status.critical::before {
-  background-color: $red !important;
+  background-color: $ui-color-danger !important;
 }
 %healthcheck-status.warning {
   @extend %with-warning;
-  border-color: $orange;
-  background-color: rgba($orange, 0.1);
+  border-color: $ui-color-alert;
+  background-color: rgba($ui-color-alert, 0.1);
 }
 %healthcheck-status.warning::before {
   background-size: 100%;

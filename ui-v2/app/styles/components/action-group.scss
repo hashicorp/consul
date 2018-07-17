@@ -38,15 +38,15 @@
 }
 %action-group ul,
 %action-group ul::before {
-  border-color: $blue;
+  border-color: $ui-color-action;
 }
 %action-group li a:hover {
-  background-color: $blue;
-  color: $white;
+  background-color: $ui-color-action;
+  color: $ui-white;
 }
 %action-group ul,
 %action-group ul::before {
-  background-color: $white;
+  background-color: $ui-white;
 }
 %action-group {
 }

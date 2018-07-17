@@ -5,7 +5,7 @@ td strong {
   background-color: $gray;
 }
 th {
-  color: $text-light !important;
+  color: $ui-gray-400 !important;
 }
 th,
 td {
@@ -86,15 +86,15 @@ td dt {
 }
 td dt.passing,
 td dt.passing + dd {
-  color: $green;
+  color: $ui-color-success;
 }
 td dt.warning,
 td dt.warning + dd {
-  color: $orange;
+  color: $ui-color-alert;
 }
 td dt.critical,
 td dt.critical + dd {
-  color: $red;
+  color: $ui-color-failure;
 }
 td dt.passing {
   @extend %with-passing;

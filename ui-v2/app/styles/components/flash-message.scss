@@ -5,21 +5,21 @@
   @extend %with-passing;
 }
 %flash-message p.success {
-  border-color: $green;
-  background-color: $green-050;
+  border-color: $ui-color-success;
+  background-color: $ui-green-050;
 }
 %flash-message p {
-  color: $green;
+  color: $ui-color-success;
 }
 %flash-message p.error strong {
   @extend %with-critical;
 }
 %flash-message p.error {
-  border-color: $red;
-  background-color: $red-050;
+  border-color: $ui-color-failure;
+  background-color: $ui-red-050;
 }
 %flash-message p.error {
-  color: $red;
+  color: $ui-color-failure;
 }
 
 %flash-message p {

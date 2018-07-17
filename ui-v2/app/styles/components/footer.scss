@@ -6,14 +6,14 @@
 }
 %footer {
   border-color: $keyline-darker;
-  background-color: $white;
+  background-color: $ui-white;
 }
 %footer {
   max-width: 1150px;
 }
 %footer > * {
   font-size: inherit;
-  color: $text-note;
+  color: $ui-gray-400;
 }
 %footer > a:first-child {
   @extend %with-hashicorp;

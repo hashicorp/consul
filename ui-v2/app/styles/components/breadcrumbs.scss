@@ -3,7 +3,7 @@ main header nav:first-child {
 }
 %breadcrumbs a {
   @extend %with-chevron;
-  color: $blue;
+  color: $ui-color-action;
 }
 %breadcrumbs {
   position: absolute;

@@ -1,5 +1,6 @@
 @charset 'utf-8';
 
+@import '@hashicorp/iris/index';
 @import 'variables/index';
 
 @import 'ember-bulma-css/utilities/initial-variables.sass';
@@ -50,13 +51,13 @@
 @import 'routes/dc/kv/index';
 
 main a {
-  color: $text;
+  color: $ui-gray-900;
 }
 main a[rel*='help'] {
   @extend %with-info;
 }
 main label a[rel*='help'] {
-  color: $text-note;
+  color: $ui-gray-400;
 }
 [role='tabpanel'] > p:only-child [rel*='help']::after {
   content: none;

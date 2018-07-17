@@ -48,64 +48,64 @@ a[rel='back'] {
 %link:hover,
 %link:focus,
 %link:active {
-  color: $blue;
+  color: $ui-color-action;
 }
 %button {
-  color: $gray-500;
+  color: $ui-gray-400;
 }
 %button:hover,
 %button:focus {
-  color: $gray-700;
+  color: $ui-gray-600;
 }
 %button:active {
-  color: $gray-700;
+  color: $ui-gray-600;
 }
 %copy-button {
-  color: $blue !important;
-  background-color: $transparent;
+  color: $ui-color-action !important;
+  background-color: $ui-color-transparent;
 }
 %copy-button:hover,
 %copy-button:focus {
-  background-color: $gray-050;
+  background-color: $ui-gray-050;
 }
 %copy-button:active {
-  background-color: $gray-100;
+  background-color: $ui-gray-200;
 }
 %primary-button {
-  background-color: $blue-500;
-  color: $white !important;
+  background-color: $ui-color-action;
+  color: $ui-white !important;
 }
 %primary-button:hover,
 %primary-button:focus {
-  background-color: $blue-700;
+  background-color: $ui-blue-700;
 }
 %primary-button:disabled {
-  color: rgba($white, 0.5);
-  background-color: rgba($blue-700, 0.5);
+  color: rgba($ui-white, 0.5);
+  background-color: rgba($ui-blue-700, 0.5);
   box-shadow: none;
 }
 %primary-button:active {
-  background-color: $blue-900;
+  background-color: $ui-blue-900;
 }
 %dangerous-button {
-  color: $dangerous-red;
+  color: $ui-color-danger;
 }
 %dangerous-button:hover,
 %dangerous-button:focus {
-  background-color: $red-500;
-  color: $white;
-  border-color: $red-500;
+  background-color: $ui-color-danger;
+  border-color: $ui-color-danger;
+  color: $ui-white;
 }
 %dangerous-button:disabled {
-  color: rgba($red-500, 0.5);
-  border-color: rgba($red-500, 0.5);
-  background-color: $white;
+  color: rgba($ui-color-danger, 0.5);
+  border-color: rgba($ui-color-danger, 0.5);
+  background-color: $ui-white;
   box-shadow: none;
 }
 %dangerous-button:active {
-  background-color: $red-700;
-  color: $white;
-  border-color: $red-700;
+  background-color: $ui-red-700;
+  border-color: $ui-red-700;
+  color: $ui-white;
 }
 %button {
   display: inline-flex;

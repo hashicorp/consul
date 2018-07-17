@@ -18,7 +18,7 @@ main {
   border-color: $keyline-light;
 }
 %app-content div > dl > dd {
-  color: $text-light;
+  color: $ui-gray-400;
 }
 %app-view {
   position: relative;
@@ -54,8 +54,8 @@ main {
 [role='tabpanel'] > p:only-child,
 %app-view > div.disabled > div,
 .template-error > div {
-  background-color: $lightest-gray;
-  color: $text-blue;
+  background-color: $ui-gray-050;
+  color: $ui-gray-400;
   font-size: $size-8;
   margin-top: 0;
   padding: 50px;

@@ -2,10 +2,10 @@ div.with-confirmation {
   @extend %confirmation-dialog, %confirmation-dialog-inline;
 }
 table div.with-confirmation.confirming {
-  background-color: $white;
+  background-color: $ui-white;
 }
 %confirmation-dialog-inline p {
-  color: $text-note;
+  color: $ui-gray-400;
 }
 %confirmation-dialog {
   float: right;

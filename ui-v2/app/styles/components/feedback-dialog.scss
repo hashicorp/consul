@@ -3,8 +3,8 @@ main .with-feedback {
 }
 %feedback-dialog-inline p,
 %feedback-dialog-inline p::after {
-  color: $white;
-  background-color: $carbon;
+  color: $ui-white;
+  background-color: $ui-gray-800;
 }
 // %feedback-dialog-inline p {
 //   animation-name: feedback-dialog-out;
