@@ -5,10 +5,30 @@
   border-radius: $radius-small;
   cursor: pointer;
 }
-
+%action-group ul {
+  border: 1px solid;
+  border-radius: $radius-small;
+  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.21);
+}
+%action-group ul::before {
+  border-top: 1px solid;
+  border-left: 1px solid;
+}
+%action-group ul,
+%action-group ul::before {
+  border-color: $ui-color-action;
+}
 %action-group input[type='radio']:checked + label:first-of-type,
 %action-group label:first-of-type:hover {
   background-color: $gray;
+}
+%action-group li a:hover {
+  background-color: $ui-color-action;
+  color: $ui-white;
+}
+%action-group ul,
+%action-group ul::before {
+  background-color: $ui-white;
 }
 %action-group label span {
   display: none;
@@ -26,29 +46,6 @@
 }
 %action-group label::before {
   margin-left: -7px;
-}
-%action-group ul {
-  border: 1px solid;
-  border-radius: $radius-small;
-  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.21);
-}
-%action-group ul::before {
-  border-top: 1px solid;
-  border-left: 1px solid;
-}
-%action-group ul,
-%action-group ul::before {
-  border-color: $ui-color-action;
-}
-%action-group li a:hover {
-  background-color: $ui-color-action;
-  color: $ui-white;
-}
-%action-group ul,
-%action-group ul::before {
-  background-color: $ui-white;
-}
-%action-group {
 }
 %action-group {
   width: 30px;

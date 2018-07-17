@@ -9,6 +9,13 @@ main {
 %app-view header form {
   @extend %filter-bar;
 }
+%app-content .type-text,
+%app-content .type-toggle {
+  @extend %form-element;
+}
+%app-content [role='radiogroup'] {
+  @extend %radio-group;
+}
 %app-view h2,
 %app-view header > div:last-of-type {
   border-bottom: 1px solid;
@@ -18,6 +25,13 @@ main {
   border-color: $keyline-light;
 }
 %app-content div > dl > dd {
+  color: $ui-gray-400;
+}
+%app-content > p:only-child,
+[role='tabpanel'] > p:only-child,
+%app-view > div.disabled > div,
+.template-error > div {
+  background-color: $ui-gray-050;
   color: $ui-gray-400;
 }
 %app-view {
@@ -54,9 +68,6 @@ main {
 [role='tabpanel'] > p:only-child,
 %app-view > div.disabled > div,
 .template-error > div {
-  background-color: $ui-gray-050;
-  color: $ui-gray-400;
-  font-size: $size-8;
   margin-top: 0;
   padding: 50px;
   text-align: center;
@@ -69,21 +80,11 @@ main {
 %app-view > div.disabled > div {
   margin-top: 0 !important;
 }
-%app-content .type-text,
-%app-content .type-toggle {
-  @extend %form-element;
-}
-%app-content [role='radiogroup'] {
-  @extend %radio-group;
-}
 %app-content form:not(:last-child) {
   margin-bottom: 2.2em;
 }
 %app-content div > dl {
   position: relative;
-}
-%app-content div > dt {
-  font-weight: bold;
 }
 %app-content div > dl > dt {
   width: 120px;

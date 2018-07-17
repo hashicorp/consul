@@ -2,6 +2,9 @@
 .freetext-filter {
   @extend %freetext-filter;
 }
+%freetext-filter span {
+  @extend %with-magnifier;
+}
 %freetext-filter {
   cursor: pointer;
 }
@@ -11,7 +14,6 @@
   border-right: 1px solid;
 }
 %freetext-filter span {
-  @extend %with-magnifier;
   visibility: hidden;
 }
 %freetext-filter {

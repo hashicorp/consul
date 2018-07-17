@@ -3,6 +3,11 @@ main header nav:first-child {
 }
 %breadcrumbs a {
   @extend %with-chevron;
+}
+%breadcrumbs ol {
+  list-style-type: none;
+}
+%breadcrumbs a {
   color: $ui-color-action;
 }
 %breadcrumbs {
@@ -10,7 +15,6 @@ main header nav:first-child {
   top: -35px; // %app-view:margin-top - 15px;
 }
 %breadcrumbs ol {
-  list-style-type: none;
   display: flex;
 }
 %breadcrumbs li {

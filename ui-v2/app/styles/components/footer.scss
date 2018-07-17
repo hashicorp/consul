@@ -1,6 +1,9 @@
 #wrapper > footer {
   @extend %footer;
 }
+%footer > a:first-child {
+  @extend %with-hashicorp;
+}
 %footer {
   border-top: 1px solid;
 }
@@ -8,15 +11,11 @@
   border-color: $keyline-darker;
   background-color: $ui-white;
 }
-%footer {
-  max-width: 1150px;
-}
 %footer > * {
-  font-size: inherit;
   color: $ui-gray-400;
 }
-%footer > a:first-child {
-  @extend %with-hashicorp;
+%footer {
+  max-width: 1150px;
 }
 %footer {
   display: flex;

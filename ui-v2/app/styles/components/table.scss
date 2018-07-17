@@ -2,14 +2,37 @@
 @import './tag';
 td strong {
   @extend %tag;
-  background-color: $gray;
 }
-th {
-  color: $ui-gray-400 !important;
+td.folder {
+  @extend %with-folder;
+}
+td dt.passing {
+  @extend %with-passing;
+}
+td dt.warning {
+  @extend %with-warning;
+}
+td dt.critical {
+  @extend %with-critical;
 }
 th,
 td {
   border-bottom: 1px solid;
+}
+td dt.passing,
+td dt.passing + dd {
+  color: $ui-color-success;
+}
+td dt.warning,
+td dt.warning + dd {
+  color: $ui-color-alert;
+}
+td dt.critical,
+td dt.critical + dd {
+  color: $ui-color-failure;
+}
+th {
+  color: $ui-gray-400 !important;
 }
 th {
   border-color: $keyline-dark;
@@ -17,8 +40,8 @@ th {
 td {
   border-color: $keyline-mid;
 }
-td.folder {
-  @extend %with-folder;
+td strong {
+  background-color: $gray;
 }
 table {
   width: 100%;
@@ -84,24 +107,8 @@ td dd.zero {
 td dt {
   text-indent: -9000px;
 }
-td dt.passing,
-td dt.passing + dd {
-  color: $ui-color-success;
-}
-td dt.warning,
-td dt.warning + dd {
-  color: $ui-color-alert;
-}
-td dt.critical,
-td dt.critical + dd {
-  color: $ui-color-failure;
-}
-td dt.passing {
-  @extend %with-passing;
-}
 td dt.warning {
   overflow: visible;
-  @extend %with-warning;
 }
 td dt.warning::before {
   top: 7px;
@@ -109,9 +116,6 @@ td dt.warning::before {
 td dt.warning::after {
   left: -2px;
   top: -1px;
-}
-td dt.critical {
-  @extend %with-critical;
 }
 td dd {
   box-sizing: content-box;

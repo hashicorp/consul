@@ -1,6 +1,9 @@
 html.template-loading main > div {
   @extend %loader;
 }
+%loader circle {
+  fill: $brand-magenta-100;
+}
 %loader {
   display: flex;
   align-items: center;
@@ -10,7 +13,6 @@ html.template-loading main > div {
 %loader circle {
   animation: loader-animation 1.5s infinite ease-in-out;
   transform-origin: 50% 50%;
-  fill: $brand-magenta-100;
 }
 
 %loader g:nth-last-child(2) circle {

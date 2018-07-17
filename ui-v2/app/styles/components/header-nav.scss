@@ -1,11 +1,45 @@
 @import './icons';
-%header-nav-toggle-button span {
-  visibility: hidden;
+%primary-nav ul ul {
+  @extend %header-drop-nav;
+}
+%primary-nav,
+%secondary-nav {
+  @extend %header-nav;
 }
 %header-nav-toggle-button::before,
 %header-nav-toggle-button::after,
 %header-nav-toggle-button span::before {
   @extend %with-dot;
+}
+%header-nav-toggle-button span {
+  visibility: hidden;
+}
+%header-drop-nav {
+  border: 1px solid;
+  box-shadow: 0 2px 7px 0 rgba(0, 0, 0, 0.21);
+}
+%header-drop-nav li {
+  border-bottom: 1px solid;
+}
+%header-drop-nav li {
+  border-color: $ui-gray-300;
+}
+%header-drop-nav {
+  border-color: $ui-gray-300;
+  background-color: $ui-white;
+}
+%header-drop-nav a {
+  color: $ui-gray-900 !important;
+}
+%header-nav > ul > li > a:hover,
+%header-nav > ul > li > a:focus,
+%header-nav > ul > li > a:active,
+%header-nav > ul > li.is-active > a {
+  color: $ui-white;
+}
+%header-nav-toggle-button::before,
+%header-nav-toggle-button::after,
+%header-nav-toggle-button span::before {
   right: 10px;
   left: auto !important;
   top: 23px !important;
@@ -91,13 +125,6 @@
     display: none;
   }
 }
-%primary-nav ul ul {
-  @extend %header-drop-nav;
-}
-%primary-nav,
-%secondary-nav {
-  @extend %header-nav;
-}
 %header-drop-nav a:hover,
 %header-drop-nav a:focus,
 %header-drop-nav a:active,
@@ -130,12 +157,6 @@
     font-weight: $weight-bold;
   }
 }
-%header-nav > ul > li > a:hover,
-%header-nav > ul > li > a:focus,
-%header-nav > ul > li > a:active,
-%header-nav > ul > li.is-active > a {
-  color: $ui-white;
-}
 @media #{$--horizontal-nav} {
   %header-nav > ul > li:not(:first-child).is-active > a {
     background-color: $brand-magenta-800;
@@ -147,26 +168,12 @@
     min-width: 266px;
   }
 }
-%header-drop-nav {
-  border: 1px solid $ui-gray-300;
-  background-color: $ui-white;
-  box-shadow: 0 2px 7px 0 rgba(0, 0, 0, 0.21);
-}
-%header-drop-nav a {
-  color: $ui-gray-900 !important;
-}
 %header-drop-nav .is-active a::after {
   @extend %with-inverted-tick;
   position: absolute;
   top: 50%;
   margin-top: -8px;
   right: 10px;
-}
-%header-drop-nav li {
-  border-bottom: 1px solid;
-}
-%header-drop-nav li {
-  border-color: $ui-gray-300;
 }
 %header-drop-nav {
   display: block;

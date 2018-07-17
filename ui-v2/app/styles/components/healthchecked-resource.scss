@@ -13,6 +13,21 @@
 %healthchecked-resource li {
   border-top: 1px solid;
 }
+%healthchecked-resource {
+  border-radius: $radius-small;
+}
+%healthchecked-resource li.passing {
+  @extend %with-passing;
+  color: $ui-color-success;
+}
+%healthchecked-resource li.warning {
+  @extend %with-warning;
+  color: $ui-color-alert;
+}
+%healthchecked-resource li.critical {
+  @extend %with-critical;
+  color: $ui-color-failure;
+}
 %healthchecked-resource header span,
 %healthchecked-resource header em,
 %healthchecked-resource li:not(:last-child) span {
@@ -30,14 +45,11 @@
 %healthchecked-resource li {
   border-color: $ui-gray-300;
 }
-%healthchecked-resource {
-  position: relative;
-  border-radius: $radius-small;
-}
-%healthchecked-resource header {
+%healthchecked-resource,
+%healthchecked-resource header,
+%healthchecked-resource li {
   position: relative;
 }
-
 %healthchecked-resource header strong {
   position: absolute;
 }
@@ -45,25 +57,10 @@
 %healthchecked-resource header a > * {
   display: block;
 }
-%healthchecked-resource li {
-  position: relative;
-}
 %healthchecked-resource li::before {
   left: 11px;
   top: 50%;
   margin-top: -0.49em !important;
-}
-%healthchecked-resource li.passing {
-  @extend %with-passing;
-  color: $ui-color-success;
-}
-%healthchecked-resource li.warning {
-  @extend %with-warning;
-  color: $ui-color-alert;
-}
-%healthchecked-resource li.critical {
-  @extend %with-critical;
-  color: $ui-color-failure;
 }
 .healthy .healthchecked-resource header span {
   padding-right: 20px;

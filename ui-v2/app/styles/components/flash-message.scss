@@ -4,15 +4,19 @@
 %flash-message p.success strong {
   @extend %with-passing;
 }
+%flash-message p.error strong {
+  @extend %with-critical;
+}
+%flash-message p {
+  border-radius: $radius-small;
+  border: 1px solid;
+}
 %flash-message p.success {
   border-color: $ui-color-success;
   background-color: $ui-green-050;
 }
 %flash-message p {
   color: $ui-color-success;
-}
-%flash-message p.error strong {
-  @extend %with-critical;
 }
 %flash-message p.error {
   border-color: $ui-color-failure;
@@ -22,10 +26,6 @@
   color: $ui-color-failure;
 }
 
-%flash-message p {
-  border-radius: $radius-small;
-  border: 1px solid;
-}
 %flash-message {
   display: flex;
   position: relative;

@@ -1,32 +1,13 @@
 .type-toggle {
   @extend %toggle;
-  float: right;
-  margin-bottom: 0 !important;
 }
-%form-element > span {
-  display: block;
-  margin-bottom: 0.5em;
+%radio-group label {
+  @extend %form-element;
 }
-[type='radio'] {
+[type='radio'],
+%toggle span::before,
+%toggle span::after {
   cursor: pointer;
-}
-%form-element textarea {
-  display: block;
-  max-width: 100%;
-  min-width: 100%;
-  min-height: 70px;
-  padding: 0.625em 15px;
-  resize: vertical;
-  line-height: 1.5;
-}
-%form-element [type='text'],
-%form-element [type='password'] {
-  max-width: 100%;
-  width: 100%;
-  display: inline-flex;
-  justify-content: flex-start;
-  height: 2.25em;
-  line-height: 1.5;
 }
 %form-element [type='text'],
 %form-element [type='password'] {
@@ -42,29 +23,6 @@
 .has-error > input,
 .has-error > textarea {
   border: 1px solid;
-}
-%form-element > span {
-  color: $ui-gray-500;
-}
-%form-element [type='text'],
-%form-element [type='password'],
-%form-element textarea {
-  color: $ui-gray-500;
-}
-%form-element [type='text'],
-%form-element [type='password'],
-%form-element textarea {
-  background-color: $ui-gray-050;
-}
-%form-element [type='text'],
-%form-element [type='password'],
-%form-element textarea {
-  border-color: $ui-gray-300;
-}
-%form-element [type='text']:hover,
-%form-element [type='password']:hover,
-%form-element textarea:hover {
-  border-color: $ui-color-action;
 }
 %form-element [type='text']:focus,
 %form-element [type='password']:focus,
@@ -93,6 +51,53 @@
   background-color: $ui-gray-300;
   border-radius: 7px;
 }
+%form-element > span {
+  color: $ui-gray-500;
+}
+%form-element [type='text'],
+%form-element [type='password'],
+%form-element textarea {
+  color: $ui-gray-500;
+}
+%form-element [type='text'],
+%form-element [type='password'],
+%form-element textarea {
+  background-color: $ui-gray-050;
+}
+%form-element [type='text'],
+%form-element [type='password'],
+%form-element textarea {
+  border-color: $ui-gray-300;
+}
+%form-element [type='text']:hover,
+%form-element [type='password']:hover,
+%form-element textarea:hover {
+  border-color: $ui-color-action;
+}
+.type-toggle {
+  float: right;
+  margin-bottom: 0 !important;
+}
+%form-element > span {
+  display: block;
+  margin-bottom: 0.5em;
+}
+%form-element textarea {
+  display: block;
+  max-width: 100%;
+  min-width: 100%;
+  min-height: 70px;
+  padding: 0.625em 15px;
+  resize: vertical;
+}
+%form-element [type='text'],
+%form-element [type='password'] {
+  max-width: 100%;
+  width: 100%;
+  display: inline-flex;
+  justify-content: flex-start;
+  height: 2.25em;
+}
 %form-element,
 %form-element > em {
   display: block;
@@ -113,7 +118,6 @@
   padding-left: 1px;
 }
 %radio-group label {
-  @extend %form-element;
   float: left;
 }
 %radio-group label:not(:last-child) {
@@ -148,7 +152,6 @@
   display: block;
   content: '';
   top: 50%;
-  cursor: pointer;
 }
 %toggle span::before {
   left: 0px;

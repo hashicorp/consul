@@ -16,14 +16,6 @@
   background-color: $ui-black;
   color: $ui-white;
 }
-%healthcheck-status::before {
-  background-size: 55%;
-  width: 25px !important;
-  height: 25px !important;
-  left: 17px;
-  top: 20px !important;
-  margin-top: 0 !important;
-}
 %healthcheck-status.passing {
   @extend %with-passing;
   border-color: $ui-gray-300;
@@ -43,6 +35,14 @@
   @extend %with-warning;
   border-color: $ui-color-alert;
   background-color: rgba($ui-color-alert, 0.1);
+}
+%healthcheck-status::before {
+  background-size: 55%;
+  width: 25px !important;
+  height: 25px !important;
+  left: 17px;
+  top: 20px !important;
+  margin-top: 0 !important;
 }
 %healthcheck-status.warning::before {
   background-size: 100%;

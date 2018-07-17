@@ -4,11 +4,6 @@
 %notice {
   @extend %with-warning;
 }
-%notice::before {
-  left: 20px;
-  top: 18px;
-  margin-top: 0;
-}
 %notice {
   border: 1px solid;
   border-radius: $radius-small;
@@ -16,6 +11,11 @@
 %notice.warning {
   background-color: $ui-yellow-050;
   border-color: $ui-color-warning;
+}
+%notice::before {
+  left: 20px;
+  top: 18px;
+  margin-top: 0;
 }
 %notice {
   position: relative;

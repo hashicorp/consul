@@ -4,8 +4,12 @@
 %expanded-single-select input[type='radio']:checked + *,
 %expanded-single-select input[type='radio']:hover + *,
 %expanded-single-select input[type='radio']:focus + * {
-  background-color: $ui-white;
   box-shadow: 0 4px 8px 0 rgba($ui-black, 0.05);
+}
+%expanded-single-select input[type='radio']:checked + *,
+%expanded-single-select input[type='radio']:hover + *,
+%expanded-single-select input[type='radio']:focus + * {
+  background-color: $ui-white;
 }
 %expanded-single-select,
 %expanded-single-select label {

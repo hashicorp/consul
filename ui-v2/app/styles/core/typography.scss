@@ -1,11 +1,17 @@
 %button {
   font-family: $body-family;
 }
-%button {
+%button,
+%form-element textarea,
+%form-element [type='text'],
+%form-element [type='password'] {
   line-height: 1.5;
 }
 %radio-group label {
   line-height: 1.25;
+}
+%filter-bar [role='radiogroup'] label {
+  line-height: 1.7;
 }
 h1 {
   letter-spacing: 1px;
@@ -18,6 +24,7 @@ h1 {
   letter-spacing: -0.05em;
 }
 h1,
+%app-content div > dt,
 %header-drop-nav .is-active {
   font-weight: $weight-bold;
 }
@@ -56,6 +63,9 @@ td:first-child em,
 %form-element > span > * {
   text-transform: none;
 }
+%footer > * {
+  font-size: inherit;
+}
 h1 {
   font-size: $size-4;
 }
@@ -78,6 +88,10 @@ th,
 %toggle span {
   font-size: $size-7 !important;
 }
+%app-content > p:only-child,
+[role='tabpanel'] > p:only-child,
+%app-view > div.disabled > div,
+.template-error > div,
 %button,
 .with-confirmation p,
 %form-element > em,
