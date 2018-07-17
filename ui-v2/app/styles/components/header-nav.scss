@@ -15,11 +15,11 @@
   visibility: hidden;
 }
 %header-drop-nav {
-  border: 1px solid;
+  border: $decor-border-100;
   box-shadow: 0 2px 7px 0 rgba(0, 0, 0, 0.21);
 }
 %header-drop-nav li {
-  border-bottom: 1px solid;
+  border-bottom: $decor-border-100;
 }
 %header-drop-nav li {
   border-color: $ui-gray-300;

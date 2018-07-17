@@ -5,7 +5,7 @@
   @extend %with-hashicorp;
 }
 %footer {
-  border-top: 1px solid;
+  border-top: $decor-border-100;
 }
 %footer {
   border-color: $keyline-darker;

@@ -3,7 +3,7 @@
   @extend %healthchecked-resource;
 }
 %healthchecked-resource {
-  border: 1px solid;
+  border: $decor-border-100;
   box-shadow: 0 4px 8px 0 rgba($ui-black, 0.05);
 }
 %healthchecked-resource:hover,
@@ -11,7 +11,7 @@
   box-shadow: 0 8px 10px 0 rgba($ui-black, 0.1);
 }
 %healthchecked-resource li {
-  border-top: 1px solid;
+  border-top: $decor-border-100;
 }
 %healthchecked-resource {
   border-radius: $radius-small;

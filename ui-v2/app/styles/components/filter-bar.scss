@@ -33,18 +33,18 @@
 
 // decoration/color
 %filter-bar > * {
-  border: 1px solid;
+  border: $decor-border-100;
   border-radius: $radius-small;
 }
 // TODO: Move this elsewhere
 @media #{$--horizontal-selects} {
   %filter-bar label:not(:last-child) {
-    border-right: 1px solid;
+    border-right: $decor-border-100;
   }
 }
 @media #{$--lt-horizontal-selects} {
   %filter-bar label:not(:last-child) {
-    border-bottom: 1px solid;
+    border-bottom: $decor-border-100;
   }
 }
 %filter-bar [role='radiogroup'] label {

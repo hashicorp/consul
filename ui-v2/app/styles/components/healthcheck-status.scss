@@ -3,7 +3,7 @@
   @extend %healthcheck-status;
 }
 %healthcheck-status {
-  border: 1px solid;
+  border: $decor-border-100;
 }
 %healthcheck-status,
 %healthcheck-status pre {

@@ -11,7 +11,7 @@
 }
 %form-element [type='text'],
 %form-element [type='password'] {
-  border: 1px solid;
+  border: $decor-border-100;
   -moz-appearance: none;
   -webkit-appearance: none;
 }
@@ -22,7 +22,7 @@
 }
 .has-error > input,
 .has-error > textarea {
-  border: 1px solid;
+  border: $decor-border-100;
 }
 %form-element [type='text']:focus,
 %form-element [type='password']:focus,

@@ -17,7 +17,7 @@ td dt.critical {
 }
 th,
 td {
-  border-bottom: 1px solid;
+  border-bottom: $decor-border-100;
 }
 td dt.passing,
 td dt.passing + dd {

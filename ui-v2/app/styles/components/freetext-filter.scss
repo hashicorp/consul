@@ -11,7 +11,7 @@
 %freetext-filter input {
   -webkit-appearance: none;
   border: none;
-  border-right: 1px solid;
+  border-right: $decor-border-100;
 }
 %freetext-filter span {
   visibility: hidden;
@@ -23,7 +23,7 @@
   color: $ui-gray-300;
 }
 %freetext-filter input {
-  border-color: 1px $ui-gray-300;
+  border-color: $ui-gray-300;
 }
 %freetext-filter input,
 %freetext-filter input::placeholder {

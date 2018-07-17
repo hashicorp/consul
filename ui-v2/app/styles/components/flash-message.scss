@@ -9,7 +9,7 @@
 }
 %flash-message p {
   border-radius: $radius-small;
-  border: 1px solid;
+  border: $decor-border-100;
 }
 %flash-message p.success {
   border-color: $ui-color-success;

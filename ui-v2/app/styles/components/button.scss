@@ -25,7 +25,7 @@ main dd a {
 %button {
   @extend %user-select-none;
   white-space: nowrap;
-  border: 1px solid;
+  border: $decor-border-100;
   border-radius: $radius-small;
   box-shadow: 0 3px 1px 0 rgba(0, 0, 0, 0.12);
   cursor: pointer;

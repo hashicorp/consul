@@ -11,7 +11,7 @@ main header nav:last-child {
   border: 0;
 }
 %tab-nav a {
-  border-bottom: 3px solid;
+  border-bottom: $decor-border-300;
 }
 %tab-nav a {
   border-color: $ui-color-transparent;
