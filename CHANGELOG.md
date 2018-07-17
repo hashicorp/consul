@@ -1,5 +1,9 @@
 ## UNRELEASED
 
+BUG FiXES:
+
+* watches, connect proxies: Fix issue with managed proxies and watches attempting to use a client addr that is 0.0.0.0 or :: [[PR-4403](https://github.com/hashicorp/consul/pull/4403)]
+
 ## 1.2.1 (July 12, 2018)
 
 IMPROVEMENTS:
