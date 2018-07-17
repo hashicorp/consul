@@ -1,3 +1,9 @@
+/**
+ * Sizes don't use auto rem to px calculating
+*/
+html {
+  font-size: $typo-size-000;
+}
 body {
   background-color: $ui-white;
 }
@@ -7,4 +13,11 @@ fieldset {
 }
 label span {
   @extend %user-select-none;
+}
+body,
+button,
+input,
+select,
+textarea {
+  font-family: $typo-family-sans;
 }
