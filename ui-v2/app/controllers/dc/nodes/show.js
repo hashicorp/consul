@@ -26,6 +26,9 @@ export default Controller.extend(WithFiltering, {
       get(item, 'ID')
         .toLowerCase()
         .indexOf(term) !== -1 ||
+      (get(item, 'Tags') || []).some(function(item) {
+        return item.toLowerCase().indexOf(term) !== -1;
+      }) ||
       get(item, 'Port')
         .toString()
         .toLowerCase()

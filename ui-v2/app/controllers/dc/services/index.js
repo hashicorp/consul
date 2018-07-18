@@ -26,10 +26,15 @@ const widthDeclaration = function(num) {
 };
 export default Controller.extend(WithHealthFiltering, {
   filter: function(item, { s = '', status = '' }) {
+    const term = s.toLowerCase();
     return (
-      get(item, 'Name')
+      (get(item, 'Name')
         .toLowerCase()
-        .indexOf(s.toLowerCase()) !== -1 && item.hasStatus(status)
+        .indexOf(term) !== -1 ||
+        (get(item, 'Tags') || []).some(function(item) {
+          return item.toLowerCase().indexOf(term) !== -1;
+        })) &&
+      item.hasStatus(status)
     );
   },
   totalWidth: computed('{maxPassing,maxWarning,maxCritical}', function() {
