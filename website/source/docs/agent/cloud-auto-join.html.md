@@ -264,8 +264,7 @@ $ consul agent -retry-join "provider=scaleway organization=my-org tag_name=consu
 
 ### Joyent Triton
 
-This returns the first PrimaryIP addresses for all servers with the given 
-`tag_key` and `tag_value`.
+This returns the first PrimaryIP addresses for all servers with the given `tag_key` and `tag_value`.
 
 ```sh
 $ consul agent -retry-join "provider=triton account=testaccount url=https://us-sw-1.api.joyentcloud.com key_id=... tag_key=consul-role tag_value=server"
@@ -283,3 +282,47 @@ $ consul agent -retry-join "provider=triton account=testaccount url=https://us-s
 - `key_id` (required) - the key id to use.
 - `tag_key` (optional) - the instance tag key to use.
 - `tag_value` (optional) - the tag value to use.
+
+
+### vSphere 
+
+This returns the first private IP address of all servers for the given region with the given `tag_name` and `category_name`.
+
+```sh
+$ consul agent -retry-join "provider=vsphere category_name=consul-role tag_name=consul-server host=... user=... password=... insecure_ssl=[true|false]"
+```
+
+```json
+{
+        "retry-join": ["provider=vsphere category_name=consul-role tag_name=consul-server host=... user=... password=... insecure_ssl=[true|false]"]
+}
+```
+
+- `provider` (required) -   the name of the provider ("vsphere" is the provider here)
+- `tag_name` (required) -    The name of the tag to look up.
+- `category_name` (required) - The category of the tag to look up.
+- `host` (required) -        The host of the vSphere server to connect to.
+- `user` (required) -         The username to connect as.
+- `password` (required) -     The password of the user to connect to vSphere as.
+- `insecure_ssl` (optional) -  Whether or not to skip SSL certificate validation.
+- `timeout` (optional) -     Discovery context timeout (default: 10m)
+
+### Packet
+
+This returns the first private IP address (or the IP addresso of `address type`) of all servers with the given `project` and `auth_token`.
+
+```sh
+$ consul agent -retry-join "provider=packet auth_token=token project=uuid url=... address_type=..."
+```
+
+```json
+{
+        "retry-join": ["provider=packet auth_token=token project=uuid url=... address_type=..."]
+}
+```
+
+- `provider` (required)	-	the name of the provider ("packet" is the provider here)
+- `project` (required) 	- 	the UUID of packet project
+- `auth_token` (required) -  the authentication token for packet
+- `url` (optional) - 		 a REST URL for packet
+- `address_type` (optional) - the type of address to check for in this provider  ("private_v4", "public_v4" or "public_v6".                                   Defaults to "private_v4")
