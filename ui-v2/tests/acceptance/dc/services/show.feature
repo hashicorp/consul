@@ -30,18 +30,21 @@ Feature: dc / services / show: Show Service
       Service:
         ID: passing-service-8080
         Port: 8080
-      Node:
         Address: 1.1.1.1
+      Node:
+        Address: 1.2.2.2
     - Service:
         ID: service-8000
         Port: 8000
-      Node:
         Address: 2.2.2.2
+      Node:
+        Address: 2.3.3.3
     - Service:
         ID: service-8888
         Port: 8888
-      Node:
         Address: 3.3.3.3
+      Node:
+        Address: 3.4.4.4
     ---
     When I visit the service page for yaml
     ---
