@@ -1627,7 +1627,7 @@ func TestAgent_AliasCheck(t *testing.T) {
 	l.UpdateCheck(types.CheckID("c1"), api.HealthCritical, "")
 	select {
 	case <-notifyCh:
-	case <-time.After(100 * time.Millisecond):
+	default:
 		t.Fatal("notify not received")
 	}
 
@@ -1653,7 +1653,7 @@ func TestAgent_AliasCheck(t *testing.T) {
 	l.UpdateCheck(types.CheckID("c1"), api.HealthPassing, "")
 	select {
 	case <-notifyCh:
-	case <-time.After(100 * time.Millisecond):
+	default:
 		t.Fatal("notify not received")
 	}
 }
