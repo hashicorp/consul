@@ -593,7 +593,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   the [`-advertise` command-line flag](#_advertise).
 
 * <a name="allow_node_renaming"></a><a href="#allow_node_renaming">`allow_node_renaming`</a>
-  Allows to rename node with IDs. Renaming of nodes will be allowed as it does not collides
+  Allows to rename node with IDs. Renaming of nodes will be allowed as it does not collide
   with another node with different ID but same name (case insensitive comparison).
   It also enforces case insensitive match for node names when performing registration on
   nodes without IDs.

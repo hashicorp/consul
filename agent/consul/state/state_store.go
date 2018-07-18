@@ -50,13 +50,13 @@ const (
 	watchLimit = 2048
 )
 
-// StoreConfig Handle a StoreConfig to handle particular behaviours
+// StoreConfig contains behavior configuration options for a Store.
 type StoreConfig struct {
 	AllowNodeRenaming bool
 }
 
-// NewStoreConfig returns a new StoreConfig with values copied from other Config.
-// if config is not nil, will copy options from Config
+// NewStoreConfig returns a new StoreConfig with values copied from parameter config if supplied.
+// if config is not nil, will copy options from Config.
 func NewStoreConfig(config *StoreConfig) *StoreConfig {
 	// Default Options to ensure compatibility with previous version
 	allowToRenameNodes := false
