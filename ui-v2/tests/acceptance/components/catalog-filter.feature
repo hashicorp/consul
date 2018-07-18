@@ -97,6 +97,11 @@ Feature: components / catalog-filter
     s: monitor
     ---
     And I see 2 [Model] models
+    Then I fill in with yaml
+    ---
+    s: wallpix
+    ---
+    And I see 0 [Model] models
   Where:
     -------------------------------------------------
     | Model   | Page     | Url                       |
@@ -156,3 +161,8 @@ Feature: components / catalog-filter
     s: three
     ---
     And I see 3 service models
+    Then I fill in with yaml
+    ---
+    s: wothre
+    ---
+    And I see 0 service models
