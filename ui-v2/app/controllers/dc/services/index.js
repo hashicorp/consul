@@ -31,10 +31,9 @@ export default Controller.extend(WithHealthFiltering, {
       (get(item, 'Name')
         .toLowerCase()
         .indexOf(term) !== -1 ||
-        (get(item, 'Tags') || [])
-          .join('')
-          .toLowerCase()
-          .indexOf(term) !== -1) &&
+        (get(item, 'Tags') || []).some(function(item) {
+          return item.toLowerCase().indexOf(term) !== -1;
+        })) &&
       item.hasStatus(status)
     );
   },
