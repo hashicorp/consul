@@ -358,7 +358,7 @@ func (s *Store) ensureNoNodeWithSimilarNameTxn(tx *memdb.Txn, node *structs.Node
 	}
 	for nodeIt := enodes.Next(); nodeIt != nil; nodeIt = enodes.Next() {
 		enode := nodeIt.(*structs.Node)
-		if strings.EqualFold(node.Node, enode.Node) && node.ID != enode.ID {
+		if strings.EqualFold(node.Node, enode.Node) && node.ID != enode.ID && enode.ID != "" {
 			return fmt.Errorf("Node name %s is reserved by node %s with name %s", node.Node, enode.ID, enode.Node)
 		}
 	}
@@ -391,6 +391,12 @@ func (s *Store) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) err
 					return fmt.Errorf("Error while renaming Node ID: %q from %s to %s",
 						node.ID, n.Node, node.Node)
 				}
+			}
+		} else {
+			// We are adding a node with an ID, ensure name is not already taken by another node
+			dupNameError := s.ensureNoNodeWithSimilarNameTxn(tx, node)
+			if dupNameError != nil {
+				return fmt.Errorf("Error while renaming Node ID: %q: %s", node.ID, dupNameError)
 			}
 		}
 		// TODO: a else statement is missing here to check we are not stealing
