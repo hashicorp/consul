@@ -30,10 +30,12 @@ function.
  * Scaleway [Config options](https://github.com/hashicorp/go-discover/blob/master/provider/scaleway/scaleway_discover.go#L14-L22)
  * SoftLayer [Config options](https://github.com/hashicorp/go-discover/blob/master/provider/softlayer/softlayer_discover.go#L16-L25)
  * Triton [Config options](https://github.com/hashicorp/go-discover/blob/master/provider/triton/triton_discover.go#L17-L27)
+ * vSphere [Config options](https://github.com/hashicorp/go-discover/blob/master/provider/vsphere/vsphere_discover.go#L148-L155)
+ * Packet [Config options](https://github.com/hashicorp/go-discover/blob/master/provider/packet/packet_discover.go#L25-L35)
 
 HashiCorp maintains acceptance tests that regularly allocate and run tests with
 real resources to verify the behavior of several of these providers. Those
-currently are: Amazon AWS, Microsoft Azure, Google Cloud, DigitalOcean, and Triton.
+currently are: Amazon AWS, Microsoft Azure, Google Cloud, DigitalOcean, Triton, Scaleway and AliBaba Cloud.
 
 ### Config Example
 
@@ -65,6 +67,11 @@ provider=softlayer datacenter=dal06 tag_value=consul username=... api_key=...
 # Triton
 provider=triton account=testaccount url=https://us-sw-1.api.joyentcloud.com key_id=... tag_key=consul-role tag_value=server
 
+# vSphere
+provider=vsphere category_name=consul-role tag_name=consul-server host=... user=... password=... insecure_ssl=[true|false]
+
+# Packet 
+provider=packet auth_token=token project=uuid url=... address_type=...
 ```
 
 ## Command Line Tool Usage
