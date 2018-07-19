@@ -115,7 +115,7 @@ etcd skydns.local {
 
 Before getting started with these examples, please setup `etcdctl` (with `etcdv3` API) as explained [here](https://coreos.com/etcd/docs/latest/dev-guide/interacting_v3.html). This will help you to put sample keys in your etcd server.
 
-If you prefer, you can use `curl` to populate the `etcd` server, but with `curl` the endpoint URL depends on the version of `etcd`. For instance, `etcd v3.2` or before uses only [CLIENT-URL]/v3alpha/* while `etcd v3.5` or later uses [CLIENT-URL]/v3/* . Also, Key and Value must be base64 encoded in the JSON payload. With, `etcdctl` these details are automatically taken care off.
+If you prefer, you can use `curl` to populate the `etcd` server, but with `curl` the endpoint URL depends on the version of `etcd`. For instance, `etcd v3.2` or before uses only [CLIENT-URL]/v3alpha/* while `etcd v3.5` or later uses [CLIENT-URL]/v3/* . Also, Key and Value must be base64 encoded in the JSON payload. With, `etcdctl` these details are automatically taken care off. You can check [this document](https://github.com/coreos/etcd/blob/master/Documentation/dev-guide/api_grpc_gateway.md#notes) for details.
 
 ### Reverse zones
 
@@ -167,10 +167,12 @@ If you would like to use DNS RR for the zone name, you can set the following:
 If you query the zone name now, you will get the following response:
 
 ~~~ sh
-dig +short skydns.local @localhost
+% dig +short skydns.local @localhost
 1.1.1.1
 1.1.1.2
 ~~~
+
+### Zone name as AAAA record
 
 If you would like to use `AAAA` records for the zone name too, you can set the following:
 ~~~
@@ -178,9 +180,37 @@ If you would like to use `AAAA` records for the zone name too, you can set the f
 % etcdctl put /skydns/local/skydns/x4 '{"host":"2003::8:2","ttl":"60"}'
 ~~~
 
-If you query the zone name now for `AAAA` now, you will get the following response:
+If you query the zone name for `AAAA` now, you will get the following response:
 ~~~ sh
-dig +short skydns.local AAAA @localhost
+% dig +short skydns.local AAAA @localhost
 2003::8:1
 2003::8:2
+~~~
+
+### SRV record
+
+If you would like to use `SRV` records, you can set the following:
+~~~
+% etcdctl put /skydns/local/skydns/x5 '{"host":"skydns-local.server","ttl":60,"priority":10,"port":8080}'
+~~~
+Please notice that the key `host` is the `target` in `SRV`, so it should be a domain name.
+
+If you query the zone name for `SRV` now, you will get the following response:
+
+~~~ sh
+% dig +short skydns.local SRV @localhost
+10 100 8080 skydns-local.server.
+~~~
+
+### TXT record
+
+If you would like to use `TXT` records, you can set the following:
+~~~
+% etcdctl put /skydns/local/skydns/x6 '{"ttl":60,"text":"this is a random text message."}'
+~~~
+
+If you query the zone name for `TXT` now, you will get the following response:
+~~~ sh
+% dig +short skydns.local TXT @localhost
+"this is a random text message."
 ~~~
