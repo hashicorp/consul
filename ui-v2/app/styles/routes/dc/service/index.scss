@@ -10,6 +10,5 @@ html.template-service.template-show main dt {
 html.template-service.template-list td.tags span,
 html.template-service.template-show main dd span {
   @extend %tag;
-  background-color: $gray;
   margin-bottom: 0.5em;
 }

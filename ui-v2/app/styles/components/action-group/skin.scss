@@ -20,7 +20,10 @@
 }
 %action-group input[type='radio']:checked + label:first-of-type,
 %action-group label:first-of-type:hover {
-  background-color: $gray;
+  background-color: $ui-gray-050;
+}
+%action-group label:first-of-type:active {
+  background-color: $ui-gray-100;
 }
 %action-group li a:hover {
   background-color: $ui-color-action;

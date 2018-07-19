@@ -18,7 +18,7 @@
 }
 %healthcheck-status.passing {
   @extend %with-passing;
-  border-color: $ui-gray-300;
+  border-color: $ui-gray-200;
 }
 %healthcheck-status.passing::before {
   background-color: $ui-color-success !important;
