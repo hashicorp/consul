@@ -1,6 +1,9 @@
 .type-toggle {
   @extend %toggle;
 }
+label span {
+  @extend %user-select-none;
+}
 %radio-group label {
   @extend %form-element;
 }

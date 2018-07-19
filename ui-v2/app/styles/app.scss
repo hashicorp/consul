@@ -6,24 +6,23 @@
 
 @import 'ember-power-select';
 
-@import 'core/reset';
-@import 'core/typography';
-@import 'core/layout';
-
-@import 'components/loader';
-@import 'components/main-header';
-@import 'components/footer';
 @import 'components/breadcrumbs';
 @import 'components/anchors';
 @import 'components/button';
 @import 'components/tabs';
-@import 'components/healthcheck-status';
-@import 'components/healthchecked-resource';
+@import 'components/table';
+
 @import 'components/expanded-single-select';
-@import 'components/app-view';
 @import 'components/tabular-collection';
 @import 'components/list-collection';
-@import 'components/table';
+
+@import 'components/healthcheck-status';
+@import 'components/loader';
+@import 'components/main-header';
+@import 'components/app-view';
+@import 'components/footer';
+
+@import 'components/healthchecked-resource';
 @import 'components/freetext-filter';
 @import 'components/tomography-graph';
 @import 'components/action-group';
@@ -32,6 +31,9 @@
 @import 'components/confirmation-dialog';
 @import 'components/feedback-dialog';
 @import 'components/notice';
+
+@import 'core/typography';
+@import 'core/layout';
 
 @import 'routes/dc/service/index';
 @import 'routes/dc/nodes/index';

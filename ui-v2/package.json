@@ -30,9 +30,9 @@
     ]
   },
   "devDependencies": {
-    "@hashicorp/iris": "https://github.com/johncowen/iris#master",
     "@hashicorp/consul-api-double": "^1.4.0",
     "@hashicorp/ember-cli-api-double": "^1.3.0",
+    "@hashicorp/iris": "https://github.com/johncowen/iris#master",
     "babel-plugin-transform-object-rest-spread": "^6.26.0",
     "base64-js": "^1.3.0",
     "broccoli-asset-rev": "^2.4.5",

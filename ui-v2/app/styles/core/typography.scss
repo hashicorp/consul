@@ -1,6 +1,9 @@
 %button {
   font-family: $typo-family-sans;
 }
+main p {
+  margin-bottom: 1em;
+}
 %button,
 %form-element textarea,
 %form-element [type='text'],
