@@ -2,7 +2,19 @@
 
 const EmberApp = require('ember-cli/lib/broccoli/ember-app');
 module.exports = function(defaults) {
-  let app = new EmberApp(defaults, {
+  const env = EmberApp.env();
+  const prodlike = ['production', 'staging'];
+  const isProd = env === 'production';
+  const isProdLike = prodlike.indexOf(env) > -1;
+  const sourcemaps = !isProd;
+  let app = new EmberApp(
+    Object.assign(
+      {},
+      defaults,
+      {
+        productionEnvironments: prodlike
+      }
+    ), {
     'ember-cli-babel': {
       includePolyfill: true
     },
@@ -22,7 +34,11 @@ module.exports = function(defaults) {
         },
       },
     },
+    'sassOptions': {
+      sourceMapEmbed: sourcemaps,
+    },
     'autoprefixer': {
+      sourcemap: sourcemaps,
       grid: true,
       browsers: [
         "defaults",
