@@ -1803,7 +1803,7 @@ func (a *Agent) RemoveService(serviceID string, persist bool) error {
 		}
 	}
 
-	log.Printf("[DEBUG] agent: removed service %q", serviceID)
+	a.logger.Printf("[DEBUG] agent: removed service %q", serviceID)
 	return nil
 }
 
