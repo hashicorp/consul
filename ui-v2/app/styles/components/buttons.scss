@@ -4,11 +4,11 @@ a.type-create {
   @extend %primary-button;
 }
 button[type='reset'],
-button[type='button']:not(.copy-btn),
+button[type='button']:not(.copy-btn):not(.type-delete),
 html.template-error div > a {
   @extend %secondary-button;
 }
-%button.type-delete {
+button.type-delete {
   @extend %dangerous-button;
 }
 button.copy-btn {

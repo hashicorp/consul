@@ -26,6 +26,7 @@
 }
 /* color */
 %secondary-button,
+%dangerous-button,
 %copy-button {
   border-color: currentColor;
 }
@@ -87,4 +88,3 @@
 %copy-button:active {
   background-color: $ui-gray-200;
 }
-
