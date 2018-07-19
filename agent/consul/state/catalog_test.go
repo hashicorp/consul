@@ -424,7 +424,57 @@ func deprecatedEnsureNodeWithoutIDCanRegister(t *testing.T, s *Store, nodeName s
 
 func TestStateStore_EnsureNodeDeprecated(t *testing.T) {
 	s := testStateStore(t)
-	deprecatedEnsureNodeWithoutIDCanRegister(t, s, "node-without-id", 1)
+
+	firstNodeName := "node-without-id"
+	deprecatedEnsureNodeWithoutIDCanRegister(t, s, firstNodeName, 1)
+
+	newNodeID := types.NodeID("00a916bc-a357-4a19-b886-59419fcee50c")
+	// With this request, we basically add a node ID to existing node
+	// and change its address
+	in := &structs.Node{
+		ID:      newNodeID,
+		Node:    firstNodeName,
+		Address: "1.1.7.8",
+	}
+	if err := s.EnsureNode(4, in); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	// Retrieve the node again
+	idx, out, err := s.GetNode(firstNodeName)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Node has updated information
+	if idx != 4 || out.Node != firstNodeName || out.ID != newNodeID || out.Address != "1.1.7.8" {
+		t.Fatalf("[DEPRECATED] bad node returned: %#v", out)
+	}
+	if out.CreateIndex != 1 || out.ModifyIndex != 4 {
+		t.Fatalf("[DEPRECATED] bad CreateIndex/ModifyIndex returned: %#v", out)
+	}
+
+	// Now, lets update IP Address without providing any ID
+	// Only name of node will be used to match
+	in = &structs.Node{
+		Node:    firstNodeName,
+		Address: "1.1.7.10",
+	}
+	if err := s.EnsureNode(7, in); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	// Retrieve the node again
+	idx, out, err = s.GetNode(firstNodeName)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Node has updated information, its ID has been removed (deprecated, but working)
+	if idx != 7 || out.Node != firstNodeName || out.ID != "" || out.Address != "1.1.7.10" {
+		t.Fatalf("[DEPRECATED] bad node returned: %#v", out)
+	}
+	if out.CreateIndex != 1 || out.ModifyIndex != 7 {
+		t.Fatalf("[DEPRECATED] bad CreateIndex/ModifyIndex returned: %#v", out)
+	}
 }
 
 func TestStateStore_EnsureNode(t *testing.T) {
@@ -437,6 +487,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 
 	// Create a node registration request
 	in := &structs.Node{
+		ID:      types.NodeID("cda916bc-a357-4a19-b886-59419fcee50c"),
 		Node:    "node1",
 		Address: "1.1.1.1",
 	}
@@ -500,8 +551,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 		t.Fatalf("bad index: %d", idx)
 	}
 
-	// Add an ID to the node
-	in.ID = types.NodeID("cda916bc-a357-4a19-b886-59419fcee50c")
+	// Update index to 4, no change
 	if err := s.EnsureNode(4, in); err != nil {
 		t.Fatalf("err: %v", err)
 	}
