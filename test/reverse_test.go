@@ -1,8 +1,6 @@
 package test
 
 import (
-	"io/ioutil"
-	"log"
 	"testing"
 
 	"github.com/coredns/coredns/plugin/proxy"
@@ -27,8 +25,6 @@ func TestReverseCorefile(t *testing.T) {
 	if udp == "" {
 		t.Fatalf("Could not get UDP listening port")
 	}
-
-	log.SetOutput(ioutil.Discard)
 
 	p := proxy.NewLookup([]string{udp})
 	state := request.Request{W: &test.ResponseWriter{}, Req: new(dns.Msg)}

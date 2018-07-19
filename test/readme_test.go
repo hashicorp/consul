@@ -3,7 +3,6 @@ package test
 import (
 	"bufio"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -47,8 +46,6 @@ func TestReadme(t *testing.T) {
 
 	create(contents)
 	defer remove(contents)
-
-	log.SetOutput(ioutil.Discard)
 
 	middle := filepath.Join("..", "plugin")
 	dirs, err := ioutil.ReadDir(middle)

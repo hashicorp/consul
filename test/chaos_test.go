@@ -1,8 +1,6 @@
 package test
 
 import (
-	"io/ioutil"
-	"log"
 	"testing"
 
 	// Plug in CoreDNS, needed for AppVersion and AppName in this test.
@@ -23,8 +21,6 @@ func TestChaos(t *testing.T) {
 		t.Fatalf("Could not get CoreDNS serving instance: %s", err)
 	}
 	defer i.Stop()
-
-	log.SetOutput(ioutil.Discard)
 
 	m := new(dns.Msg)
 	m.SetQuestion("version.bind.", dns.TypeTXT)

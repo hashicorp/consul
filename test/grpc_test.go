@@ -2,8 +2,6 @@ package test
 
 import (
 	"context"
-	"io/ioutil"
-	"log"
 	"testing"
 	"time"
 
@@ -14,8 +12,6 @@ import (
 )
 
 func TestGrpc(t *testing.T) {
-	log.SetOutput(ioutil.Discard)
-
 	corefile := `grpc://.:0 {
 		whoami
 }

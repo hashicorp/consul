@@ -4,8 +4,6 @@ package test
 
 import (
 	"context"
-	"io/ioutil"
-	"log"
 	"testing"
 
 	"github.com/coredns/coredns/plugin/etcd/msg"
@@ -33,7 +31,6 @@ func TestEtcdCache(t *testing.T) {
 	defer ex.Stop()
 
 	etc := etcdPlugin()
-	log.SetOutput(ioutil.Discard)
 
 	var ctx = context.TODO()
 	for _, serv := range servicesCacheTest {

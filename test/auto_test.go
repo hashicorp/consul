@@ -2,7 +2,6 @@ package test
 
 import (
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"testing"
@@ -34,8 +33,6 @@ func TestAuto(t *testing.T) {
 		t.Fatalf("Could not get CoreDNS serving instance: %s", err)
 	}
 	defer i.Stop()
-
-	log.SetOutput(ioutil.Discard)
 
 	p := proxy.NewLookup([]string{udp})
 	state := request.Request{W: &test.ResponseWriter{}, Req: new(dns.Msg)}
@@ -82,7 +79,6 @@ func TestAutoNonExistentZone(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	log.SetOutput(ioutil.Discard)
 
 	corefile := `.:0 {
 		auto {
@@ -117,7 +113,6 @@ func TestAutoNonExistentZone(t *testing.T) {
 
 func TestAutoAXFR(t *testing.T) {
 	t.Parallel()
-	log.SetOutput(ioutil.Discard)
 
 	tmpdir, err := ioutil.TempDir(os.TempDir(), "coredns")
 	if err != nil {

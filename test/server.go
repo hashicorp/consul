@@ -1,8 +1,6 @@
 package test
 
 import (
-	"io/ioutil"
-	"log"
 	"sync"
 
 	"github.com/coredns/coredns/core/dnsserver"
@@ -21,7 +19,6 @@ func CoreDNSServer(corefile string) (*caddy.Instance, error) {
 	defer mu.Unlock()
 	caddy.Quiet = true
 	dnsserver.Quiet = true
-	log.SetOutput(ioutil.Discard)
 
 	return caddy.Start(NewInput(corefile))
 }

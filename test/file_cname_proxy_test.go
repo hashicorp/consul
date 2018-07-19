@@ -1,8 +1,6 @@
 package test
 
 import (
-	"io/ioutil"
-	"log"
 	"testing"
 
 	"github.com/coredns/coredns/plugin/proxy"
@@ -14,7 +12,6 @@ import (
 
 func TestZoneExternalCNAMELookupWithoutProxy(t *testing.T) {
 	t.Parallel()
-	log.SetOutput(ioutil.Discard)
 
 	name, rm, err := TempFile(".", exampleOrg)
 	if err != nil {
@@ -48,7 +45,6 @@ func TestZoneExternalCNAMELookupWithoutProxy(t *testing.T) {
 
 func TestZoneExternalCNAMELookupWithProxy(t *testing.T) {
 	t.Parallel()
-	log.SetOutput(ioutil.Discard)
 
 	name, rm, err := TempFile(".", exampleOrg)
 	if err != nil {

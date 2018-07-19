@@ -1,8 +1,6 @@
 package test
 
 import (
-	"io/ioutil"
-	"log"
 	"testing"
 
 	"github.com/miekg/dns"
@@ -10,7 +8,6 @@ import (
 
 func TestZoneEDNS0Lookup(t *testing.T) {
 	t.Parallel()
-	log.SetOutput(ioutil.Discard)
 
 	name, rm, err := TempFile(".", `$ORIGIN example.org.
 @	3600 IN	SOA sns.dns.icann.org. noc.dns.icann.org. (
@@ -58,7 +55,6 @@ www     IN AAAA ::1
 
 func TestZoneNoNS(t *testing.T) {
 	t.Parallel()
-	log.SetOutput(ioutil.Discard)
 
 	name, rm, err := TempFile(".", `$ORIGIN example.org.
 @	3600 IN	SOA sns.dns.icann.org. noc.dns.icann.org. (

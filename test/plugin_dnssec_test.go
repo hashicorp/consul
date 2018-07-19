@@ -2,7 +2,6 @@ package test
 
 import (
 	"io/ioutil"
-	"log"
 	"os"
 	"testing"
 
@@ -36,7 +35,6 @@ func TestLookupBalanceRewriteCacheDnssec(t *testing.T) {
 	}
 	defer ex.Stop()
 
-	log.SetOutput(ioutil.Discard)
 	c := new(dns.Client)
 	m := new(dns.Msg)
 	m.SetQuestion("example.org.", dns.TypeA)

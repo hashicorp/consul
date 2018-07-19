@@ -5,8 +5,6 @@ package test
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
-	"log"
 	"testing"
 	"time"
 
@@ -53,7 +51,6 @@ func TestEtcdStubAndProxyLookup(t *testing.T) {
 	defer ex.Stop()
 
 	etc := etcdPlugin()
-	log.SetOutput(ioutil.Discard)
 
 	var ctx = context.TODO()
 	for _, serv := range servicesStub { // adds example.{net,org} as stubs

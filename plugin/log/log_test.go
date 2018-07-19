@@ -8,11 +8,14 @@ import (
 	"testing"
 
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
+	clog "github.com/coredns/coredns/plugin/pkg/log"
 	"github.com/coredns/coredns/plugin/pkg/response"
 	"github.com/coredns/coredns/plugin/test"
 
 	"github.com/miekg/dns"
 )
+
+func init() { clog.Discard() }
 
 func TestLoggedStatus(t *testing.T) {
 	var f bytes.Buffer

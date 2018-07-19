@@ -10,6 +10,7 @@ package log
 
 import (
 	"fmt"
+	"io/ioutil"
 	golog "log"
 )
 
@@ -60,6 +61,9 @@ func Error(v ...interface{}) { log(err, v...) }
 
 // Errorf is equivalent to log.Printf, but prefixed with "[ERROR] ".
 func Errorf(format string, v ...interface{}) { logf(err, format, v...) }
+
+// Discard sets the log output to /dev/null.
+func Discard() { golog.SetOutput(ioutil.Discard) }
 
 const (
 	debug   = "[DEBUG] "

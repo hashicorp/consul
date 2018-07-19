@@ -1,8 +1,6 @@
 package test
 
 import (
-	"io/ioutil"
-	"log"
 	"testing"
 
 	"github.com/coredns/coredns/plugin/test"
@@ -34,7 +32,6 @@ func benchmarkLookupBalanceRewriteCache(b *testing.B) {
 	}
 	defer ex.Stop()
 
-	log.SetOutput(ioutil.Discard)
 	c := new(dns.Client)
 	m := new(dns.Msg)
 	m.SetQuestion("example.org.", dns.TypeA)

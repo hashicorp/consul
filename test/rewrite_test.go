@@ -2,8 +2,6 @@ package test
 
 import (
 	"bytes"
-	"io/ioutil"
-	"log"
 	"testing"
 
 	"github.com/miekg/dns"
@@ -25,8 +23,6 @@ func TestRewrite(t *testing.T) {
 	}
 
 	defer i.Stop()
-
-	log.SetOutput(ioutil.Discard)
 
 	testMX(t, udp)
 	testEdns0(t, udp)

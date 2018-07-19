@@ -2,8 +2,6 @@ package test
 
 import (
 	"io"
-	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -17,8 +15,6 @@ import (
 )
 
 func TestProxyWithHTTPCheckOK(t *testing.T) {
-	log.SetOutput(ioutil.Discard)
-
 	healthCheckServer := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
