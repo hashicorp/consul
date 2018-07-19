@@ -59,9 +59,6 @@ the community.
     <a href="https://github.com/undeadlabs/discovery">discovery</a> - Erlang/OTP client for the Consul HTTP API
   </li>
   <li>
-    <a href="https://github.com/xaviershay/consul-client">consul-client</a> - Ruby client for the Consul HTTP API
-  </li>
-  <li>
     <a href="https://github.com/WeAreFarmGeek/diplomat">diplomat</a> - Ruby library to query Consul's KV-store and services directory
   </li>
   <li>
