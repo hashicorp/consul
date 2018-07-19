@@ -33,7 +33,7 @@ version called [Consul Enterprise](https://www.hashicorp.com/products/consul)
 is also available.
 
 **Please note**: We take Consul's security and our users' trust very seriously. If you 
-believe you have found a security issue in Consul, please responsibly disclose by 
+believe you have found a security issue in Consul, please [responsibly disclose](https://www.hashicorp.com/security#vulnerability-reporting) by 
 contacting us at security@hashicorp.com.
 
 ## Quick Start
