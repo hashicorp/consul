@@ -1524,7 +1524,7 @@ func TestAgent_PurgeProxyOnDuplicate(t *testing.T) {
 
 	file := filepath.Join(a.Config.DataDir, proxyDir, stringHash(proxyID))
 	_, err := os.Stat(file)
-	require.Error(err, "should have removed remote state")
+	require.NoError(err, "Config File based proxies should be persisted too")
 
 	result := a2.State.Proxy(proxyID)
 	require.NotNil(result)
@@ -2879,13 +2879,20 @@ func TestAgent_ReLoadProxiesFromConfig(t *testing.T) {
 
 	// reload the proxies and ensure the proxy token is the same
 	require.NoError(a.unloadProxies())
+	proxies = a.State.Proxies()
+	require.Len(proxies, 0)
 	require.NoError(a.loadProxies(&config))
+	proxies = a.State.Proxies()
 	require.Len(proxies, 1)
 	require.Equal(ptok, proxies[pid].ProxyToken)
 
 	// make sure when the config goes away so does the proxy
 	require.NoError(a.unloadProxies())
+	proxies = a.State.Proxies()
+	require.Len(proxies, 0)
+
 	// a.config contains no services or proxies
 	require.NoError(a.loadProxies(a.config))
+	proxies = a.State.Proxies()
 	require.Len(proxies, 0)
 }
