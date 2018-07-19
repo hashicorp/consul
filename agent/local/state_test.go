@@ -1636,7 +1636,6 @@ func TestAgent_AliasCheck(t *testing.T) {
 	select {
 	case <-notifyCh:
 		t.Fatal("notify received")
-
 	default:
 	}
 
@@ -1645,7 +1644,6 @@ func TestAgent_AliasCheck(t *testing.T) {
 	select {
 	case <-notifyCh:
 		t.Fatal("notify received")
-
 	default:
 	}
 
