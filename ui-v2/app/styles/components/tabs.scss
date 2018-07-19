@@ -1,64 +1,7 @@
+@import './tabs/index';
 main header nav:last-child {
   @extend %tab-nav;
 }
 .tab-section {
   @extend %tab-section;
-}
-%tab-section {
-  margin-top: 0 !important;
-}
-%tab-nav label {
-  cursor: pointer;
-}
-%tab-nav ul {
-  border: 0;
-}
-%tab-nav a {
-  border-bottom: $decor-border-300;
-}
-%tab-nav a {
-  border-color: $ui-color-transparent;
-  color: $ui-gray-500;
-}
-%tab-nav a:hover,
-%tab-nav a:focus,
-%tab-nav a:active,
-%tab-nav .selected a {
-  border-color: $brand-magenta-600;
-  color: $brand-magenta-600;
-}
-
-%tab-nav a {
-  white-space: nowrap;
-}
-@media #{$--horizontal-tabs} {
-  %tab-nav ul {
-    display: flex;
-    align-items: center;
-  }
-  %tab-nav ul li:not(:first-child) {
-    margin-left: 37px;
-  }
-  %tab-nav a {
-    padding-left: 5px;
-    padding-right: 5px;
-  }
-}
-@media #{$--lt-horizontal-tabs} {
-  %tab-nav li {
-    width: 100%;
-  }
-}
-%tab-nav a {
-  display: block;
-  padding-top: 12px;
-  padding-bottom: 12px;
-}
-%tab-nav input[type='radio'],
-%tab-section > input[type='radio'],
-%tab-section > input[type='radio'] + * {
-  display: none;
-}
-%tab-section > input[type='radio']:checked + * {
-  display: block;
 }
