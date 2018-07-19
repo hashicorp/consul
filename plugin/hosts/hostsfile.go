@@ -54,6 +54,22 @@ func newHostsMap() *hostsMap {
 	}
 }
 
+// Len returns the total number of addresses in the hostmap, this includes
+// V4/V6 and any reverse addresses.
+func (h *hostsMap) Len() int {
+	l := 0
+	for _, v4 := range h.byNameV4 {
+		l += len(v4)
+	}
+	for _, v6 := range h.byNameV6 {
+		l += len(v6)
+	}
+	for _, a := range h.byAddr {
+		l += len(a)
+	}
+	return l
+}
+
 // Hostsfile contains known host entries.
 type Hostsfile struct {
 	sync.RWMutex
@@ -111,6 +127,8 @@ func (h *Hostsfile) initInline(inline []string) {
 
 func (h *Hostsfile) parseReader(r io.Reader) {
 	h.hmap = h.parse(r, h.inline)
+
+	log.Debugf("Parsed hosts file into %d entries", h.hmap.Len())
 }
 
 // Parse reads the hostsfile and populates the byName and byAddr maps.
