@@ -1637,7 +1637,7 @@ func TestAgent_AliasCheck(t *testing.T) {
 	case <-notifyCh:
 		t.Fatal("notify received")
 
-	case <-time.After(50 * time.Millisecond):
+	default:
 	}
 
 	// Update other check and verify we do not get notified
@@ -1646,7 +1646,7 @@ func TestAgent_AliasCheck(t *testing.T) {
 	case <-notifyCh:
 		t.Fatal("notify received")
 
-	case <-time.After(50 * time.Millisecond):
+	default:
 	}
 
 	// Update change and verify we get notified
