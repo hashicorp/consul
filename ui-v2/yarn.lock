@@ -97,6 +97,10 @@
     pretender "^2.0.0"
     recursive-readdir-sync "^1.0.6"
 
+"@hashicorp/iris@https://github.com/johncowen/iris#master":
+  version "1.0.0"
+  resolved "https://github.com/johncowen/iris#e6ac783094fbdee0428f78c5844d9f00f0ba9531"
+
 "@sinonjs/formatio@^2.0.0":
   version "2.0.0"
   resolved "http://registry.npmjs.org/@sinonjs/formatio/-/formatio-2.0.0.tgz#84db7e9eb5531df18a8c5e0bfb6e449e55e654b2"
