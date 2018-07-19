@@ -32,6 +32,10 @@ Consul runs on Linux, Mac OS X, FreeBSD, Solaris, and Windows. A commercial
 version called [Consul Enterprise](https://www.hashicorp.com/products/consul)
 is also available.
 
+**Please note**: We take Consul's security and our users' trust very seriously. If you 
+believe you have found a security issue in Consul, please [responsibly disclose](https://www.hashicorp.com/security#vulnerability-reporting) by 
+contacting us at security@hashicorp.com.
+
 ## Quick Start
 
 An extensive quick start is viewable on the Consul website:
