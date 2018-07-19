@@ -11,3 +11,17 @@ main label a[rel*='help'] {
 [role='tabpanel'] > p:only-child [rel*='help']::after {
   content: none;
 }
+main p a,
+main dd a {
+  @extend %link;
+}
+%link:hover,
+%link:focus {
+  text-decoration: underline;
+}
+%link,
+%link:hover,
+%link:focus,
+%link:active {
+  color: $ui-color-action;
+}
