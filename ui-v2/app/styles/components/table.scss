@@ -15,6 +15,9 @@ td dt.warning {
 td dt.critical {
   @extend %with-critical;
 }
+table:not(.sessions) tr {
+  cursor: pointer;
+}
 th,
 td {
   border-bottom: $decor-border-100;
