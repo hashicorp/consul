@@ -1,22 +1,4 @@
+@import './breadcrumbs/index';
 main header nav:first-child {
   @extend %breadcrumbs;
-}
-%breadcrumbs a {
-  @extend %with-chevron;
-}
-%breadcrumbs ol {
-  list-style-type: none;
-}
-%breadcrumbs a {
-  color: $ui-color-action;
-}
-%breadcrumbs {
-  position: absolute;
-  top: -35px; // %app-view:margin-top - 15px;
-}
-%breadcrumbs ol {
-  display: flex;
-}
-%breadcrumbs li {
-  margin-right: 5px;
 }
