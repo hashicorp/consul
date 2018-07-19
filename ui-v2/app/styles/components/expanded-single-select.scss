@@ -11,10 +11,6 @@
 %expanded-single-select input[type='radio']:focus + * {
   background-color: $ui-white;
 }
-%expanded-single-select,
-%expanded-single-select label {
-  height: 100%;
-}
 @media #{$--horizontal-selects} {
   %expanded-single-select {
     display: flex;
@@ -23,14 +19,18 @@
     flex-grow: 1;
   }
 }
-%expanded-single-select label {
-  display: block;
-}
-%expanded-single-select label span {
-  display: block;
-  height: 100%;
-  padding: 5px 14px;
-}
 %expanded-single-select input[type='radio'] {
   display: none;
+}
+%expanded-single-select label,
+%expanded-single-select label span {
+  display: block;
+}
+%expanded-single-select,
+%expanded-single-select label,
+%expanded-single-select label span {
+  height: 100%;
+}
+%expanded-single-select label span {
+  padding: 5px 14px;
 }

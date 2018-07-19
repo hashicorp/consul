@@ -1,21 +1,15 @@
 /* logo */
-html body > svg {
+%brand-loader {
+  display: block;
+}
+%brand-loader {
   position: absolute;
   top: 50%;
   margin-top: -26px;
   left: 50%;
   margin-left: -84px;
 }
-html body > svg {
-  display: none;
-}
-html.ember-loading body > svg {
-  display: block;
-}
-/* blobs */
-html.template-loading main > div {
-  @extend %loader;
-}
+/* blobs / %ui-loader ? */
 %loader circle {
   fill: $brand-magenta-100;
 }

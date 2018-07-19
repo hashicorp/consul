@@ -4,6 +4,9 @@ main header nav:last-child {
 .tab-section {
   @extend %tab-section;
 }
+%tab-section {
+  margin-top: 0 !important;
+}
 %tab-nav label {
   cursor: pointer;
 }

@@ -73,6 +73,7 @@
 %filter-bar {
   padding: 14px;
   display: block;
+  margin-top: 0 !important;
 }
 @media #{$--horizontal-filters} {
   %filter-bar {

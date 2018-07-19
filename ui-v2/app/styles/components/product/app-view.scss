@@ -1,24 +1,6 @@
-@import './filter-bar';
-@import './form-elements';
-main {
-  @extend %app-view;
-}
-%app-view > div > div {
-  @extend %app-content;
-}
-%app-view header form {
-  @extend %filter-bar;
-}
-%app-content .type-text,
-%app-content .type-toggle {
-  @extend %form-element;
-}
-%app-content [role='radiogroup'] {
-  @extend %radio-group;
-}
 %app-view h2,
 %app-view header > div:last-of-type {
-  border-bottom: 1px solid;
+  border-bottom: $decor-border-100;
 }
 %app-view header > div:last-of-type,
 %app-view h2 {
@@ -27,47 +9,57 @@ main {
 %app-content div > dl > dd {
   color: $ui-gray-400;
 }
-%app-content > p:only-child,
 [role='tabpanel'] > p:only-child,
-%app-view > div.disabled > div,
 .template-error > div {
   background-color: $ui-gray-050;
   color: $ui-gray-400;
 }
-%app-view {
-  position: relative;
-  margin-top: 50px;
-}
-%app-view header + div > *:first-child {
-  margin-top: 1.25em;
-}
-%app-view h2 {
-  padding-bottom: 0.2em;
-  margin-bottom: 1.1em;
+%app-content > p:only-child,
+%app-view > div.disabled > div {
+  background-color: $ui-gray-050;
+  color: $ui-gray-400;
 }
 %app-view header > div:last-of-type > div:first-child {
   flex-grow: 1;
+}
+%app-view {
+  position: relative;
 }
 %app-view header .actions {
   float: right;
   display: flex;
   align-items: flex-start;
 }
+%app-view {
+  margin-top: 50px;
+}
+%app-view h2 {
+  padding-bottom: 0.2em;
+  margin-bottom: 1.1em;
+}
+%app-view header + div > *:first-child {
+  margin-top: 1.25em;
+}
 %app-view header .actions > *:not(:last-child) {
   margin-right: 7px;
 }
 %app-view header .actions a,
 %app-view header .actions button {
-  @extend %button;
   padding: calc(0.375em - 1px) calc(2.2em - 1px);
   height: 2.25em;
 }
 
 // content
-%app-content > p:only-child,
+%app-content div > dl > dt {
+  position: absolute;
+}
+%app-content div > dl {
+  position: relative;
+}
 [role='tabpanel'] > p:only-child,
-%app-view > div.disabled > div,
-.template-error > div {
+.template-error > div,
+%app-content > p:only-child,
+%app-view > div.disabled > div {
   margin-top: 0;
   padding: 50px;
   text-align: center;
@@ -75,20 +67,14 @@ main {
 [role='tabpanel'] > *:first-child {
   margin-top: 1.25em;
 }
-%filter-bar,
-%tab-section,
 %app-view > div.disabled > div {
   margin-top: 0 !important;
 }
 %app-content form:not(:last-child) {
   margin-bottom: 2.2em;
 }
-%app-content div > dl {
-  position: relative;
-}
 %app-content div > dl > dt {
   width: 120px;
-  position: absolute;
 }
 %app-content div > dl > dd {
   padding-left: 120px;

@@ -1,6 +1,3 @@
-#wrapper > footer {
-  @extend %footer;
-}
 %footer > a:first-child {
   @extend %with-hashicorp;
 }
