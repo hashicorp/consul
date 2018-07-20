@@ -500,67 +500,8 @@ so this endpoint may be used to filter only the Connect-capable endpoints.
 | ------ | ---------------------------- | -------------------------- |
 | `GET`  | `/catalog/connect/:service`  | `application/json`         |
 
-The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
-[required ACLs](/api/index.html#acls).
-
-| Blocking Queries | Consistency Modes | ACL Required             |
-| ---------------- | ----------------- | ------------------------ |
-| `YES`            | `all`             | `node:read,service:read` |
-
-### Parameters
-
-- `service` `(string: <required>)` - Specifies the name of the service for which
-  to list nodes. This is specified as part of the URL.
-
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
-  the datacenter of the agent being queried. This is specified as part of the
-  URL as a query parameter.
-
-### Sample Request
-
-```text
-$ curl \
-    https://consul.rocks/v1/catalog/connect/my-service
-```
-
-### Sample Response
-
-```json
-[
-  {
-    "ID": "40e4a748-2192-161a-0510-9bf59fe950b5",
-    "Node": "foobar",
-    "Address": "192.168.10.10",
-    "Datacenter": "dc1",
-    "TaggedAddresses": {
-      "lan": "192.168.10.10",
-      "wan": "10.0.10.10"
-    },
-    "NodeMeta": {
-      "somekey": "somevalue"
-    },
-    "CreateIndex": 51,
-    "ModifyIndex": 51,
-    "ServiceAddress": "172.17.0.3",
-    "ServiceEnableTagOverride": false,
-    "ServiceID": "32a2a47f7992:nodea:5000",
-    "ServiceName": "foobar",
-	"ServiceKind": "connect-proxy",
-	"ServiceProxyDestination": "my-service",
-    "ServicePort": 5000,
-    "ServiceMeta": {
-        "foobar_meta_value": "baz"
-    },
-    "ServiceTags": [
-      "tacos"
-    ]
-  }
-]
-```
-
-The fields are the same as listing nodes for a service.
+Parameters and response format are the same as
+[`/catalog/service/:service`](/api/catalog.html#list-nodes-for-service).
 
 ## List Services for Node
 

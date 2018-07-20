@@ -249,6 +249,21 @@ $ curl \
 ]
 ```
 
+## List Nodes for Connect-capable Service
+
+This endpoint returns the nodes providing a
+[Connect-capable](/docs/connect/index.html) service in a given datacenter.
+This will include both proxies and native integrations. A service may
+register both Connect-capable and incapable services at the same time,
+so this endpoint may be used to filter only the Connect-capable endpoints.
+
+| Method | Path                         | Produces                   |
+| ------ | ---------------------------- | -------------------------- |
+| `GET`  | `/health/connect/:service`   | `application/json`         |
+
+Parameters and response format are the same as
+[`/health/service/:service`](/api/health.html#list-nodes-for-service).
+
 ## List Checks in State
 
 This endpoint returns the checks in the state provided on the path.
@@ -317,7 +332,7 @@ $ curl \
     "Output": "",
     "ServiceID": "redis",
     "ServiceName": "redis",
-	"ServiceTags": ["primary"]
+	  "ServiceTags": ["primary"]
   }
 ]
 ```
