@@ -350,7 +350,7 @@ func (s *Store) EnsureNode(idx uint64, node *structs.Node) error {
 	return nil
 }
 
-func (s *Store) ensureNoNodeWithSimilarNameTxn(tx *memdb.Txn, node *structs.Node) error {
+func (s *Store) ensureNoNodeWithSimilarNameTxn(tx *memdb.Txn, node *structs.Node, allowClashWithoutID bool) error {
 	// Retrieve all of the nodes
 	enodes, err := tx.Get("nodes", "id")
 	if err != nil {
@@ -358,8 +358,10 @@ func (s *Store) ensureNoNodeWithSimilarNameTxn(tx *memdb.Txn, node *structs.Node
 	}
 	for nodeIt := enodes.Next(); nodeIt != nil; nodeIt = enodes.Next() {
 		enode := nodeIt.(*structs.Node)
-		if strings.EqualFold(node.Node, enode.Node) && node.ID != enode.ID && enode.ID != "" {
-			return fmt.Errorf("Node name %s is reserved by node %s with name %s", node.Node, enode.ID, enode.Node)
+		if strings.EqualFold(node.Node, enode.Node) && node.ID != enode.ID {
+			if !(enode.ID == "" && allowClashWithoutID) {
+				return fmt.Errorf("Node name %s is reserved by node %s with name %s", node.Node, enode.ID, enode.Node)
+			}
 		}
 	}
 	return nil
@@ -380,8 +382,8 @@ func (s *Store) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) err
 		if existing != nil {
 			n = existing.(*structs.Node)
 			if n.Node != node.Node {
-				// Lets first get all nodes and check whether name do match
-				dupNameError := s.ensureNoNodeWithSimilarNameTxn(tx, node)
+				// Lets first get all nodes and check whether name do match, we do not allow clash on nodes without ID
+				dupNameError := s.ensureNoNodeWithSimilarNameTxn(tx, node, false)
 				if dupNameError != nil {
 					return fmt.Errorf("Error while renaming Node ID: %q: %s", node.ID, dupNameError)
 				}
@@ -394,7 +396,7 @@ func (s *Store) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) err
 			}
 		} else {
 			// We are adding a node with an ID, ensure name is not already taken by another node
-			dupNameError := s.ensureNoNodeWithSimilarNameTxn(tx, node)
+			dupNameError := s.ensureNoNodeWithSimilarNameTxn(tx, node, true)
 			if dupNameError != nil {
 				return fmt.Errorf("Error while renaming Node ID: %q: %s", node.ID, dupNameError)
 			}
