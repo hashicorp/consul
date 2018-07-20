@@ -116,6 +116,16 @@ The table below shows this endpoint's support for
     continue to be accepted in future versions of Consul), and `Args` in Consul
     1.0.1 and later.
 
+- `AliasNode` `(string: "")` - Specifies the ID of the node for an alias check.
+  If no service is specified, the check will alias the health of the node.
+  If a service is specified, the check will alias the specified service on
+  this particular node.
+
+- `AliasService` `(string: "")` - Specifies the ID of a service for an
+  alias check. If the service is not registered with the same agent,
+  `AliasNode` must also be specified. Note this is the service _ID_ and
+  not the service _name_ (though they are very often the same).
+
 - `DockerContainerID` `(string: "")` - Specifies that the check is a Docker
   check, and Consul will evaluate the script every `Interval` in the given
   container using the specified `Shell`. Note that `Shell` is currently only

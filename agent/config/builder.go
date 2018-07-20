@@ -1046,6 +1046,8 @@ func (b *Builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		GRPC:              b.stringVal(v.GRPC),
 		GRPCUseTLS:        b.boolVal(v.GRPCUseTLS),
 		TLSSkipVerify:     b.boolVal(v.TLSSkipVerify),
+		AliasNode:         b.stringVal(v.AliasNode),
+		AliasService:      b.stringVal(v.AliasService),
 		Timeout:           b.durationVal(fmt.Sprintf("check[%s].timeout", id), v.Timeout),
 		TTL:               b.durationVal(fmt.Sprintf("check[%s].ttl", id), v.TTL),
 		DeregisterCriticalServiceAfter: b.durationVal(fmt.Sprintf("check[%s].deregister_critical_service_after", id), v.DeregisterCriticalServiceAfter),

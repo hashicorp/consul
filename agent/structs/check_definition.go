@@ -32,6 +32,8 @@ type CheckDefinition struct {
 	GRPC                           string
 	GRPCUseTLS                     bool
 	TLSSkipVerify                  bool
+	AliasNode                      string
+	AliasService                   string
 	Timeout                        time.Duration
 	TTL                            time.Duration
 	DeregisterCriticalServiceAfter time.Duration
@@ -63,6 +65,8 @@ func (c *CheckDefinition) CheckType() *CheckType {
 		Notes:   c.Notes,
 
 		ScriptArgs:        c.ScriptArgs,
+		AliasNode:         c.AliasNode,
+		AliasService:      c.AliasService,
 		HTTP:              c.HTTP,
 		GRPC:              c.GRPC,
 		GRPCUseTLS:        c.GRPCUseTLS,

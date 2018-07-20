@@ -11,8 +11,6 @@ import (
 
 	"github.com/hashicorp/go-memdb"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/local"
@@ -23,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/types"
 	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAgentAntiEntropy_Services(t *testing.T) {
@@ -1603,6 +1602,57 @@ func TestAgent_AddCheckFailure(t *testing.T) {
 	wantErr := errors.New(`Check "redis:1" refers to non-existent service "redis"`)
 	if got, want := l.AddCheck(chk, ""), wantErr; !reflect.DeepEqual(got, want) {
 		t.Fatalf("got error %q want %q", got, want)
+	}
+}
+
+func TestAgent_AliasCheck(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	cfg := config.DefaultRuntimeConfig(`bind_addr = "127.0.0.1" data_dir = "dummy"`)
+	l := local.NewState(agent.LocalConfig(cfg), nil, new(token.Store))
+	l.TriggerSyncChanges = func() {}
+
+	// Add checks
+	require.NoError(l.AddService(&structs.NodeService{Service: "s1"}, ""))
+	require.NoError(l.AddService(&structs.NodeService{Service: "s2"}, ""))
+	require.NoError(l.AddCheck(&structs.HealthCheck{CheckID: types.CheckID("c1"), ServiceID: "s1"}, ""))
+	require.NoError(l.AddCheck(&structs.HealthCheck{CheckID: types.CheckID("c2"), ServiceID: "s2"}, ""))
+
+	// Add an alias
+	notifyCh := make(chan struct{}, 1)
+	require.NoError(l.AddAliasCheck(types.CheckID("a1"), "s1", notifyCh))
+
+	// Update and verify we get notified
+	l.UpdateCheck(types.CheckID("c1"), api.HealthCritical, "")
+	select {
+	case <-notifyCh:
+	default:
+		t.Fatal("notify not received")
+	}
+
+	// Update again and verify we do not get notified
+	l.UpdateCheck(types.CheckID("c1"), api.HealthCritical, "")
+	select {
+	case <-notifyCh:
+		t.Fatal("notify received")
+	default:
+	}
+
+	// Update other check and verify we do not get notified
+	l.UpdateCheck(types.CheckID("c2"), api.HealthCritical, "")
+	select {
+	case <-notifyCh:
+		t.Fatal("notify received")
+	default:
+	}
+
+	// Update change and verify we get notified
+	l.UpdateCheck(types.CheckID("c1"), api.HealthPassing, "")
+	select {
+	case <-notifyCh:
+	default:
+		t.Fatal("notify not received")
 	}
 }
 

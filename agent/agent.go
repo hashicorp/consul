@@ -151,6 +151,9 @@ type Agent struct {
 	// checkDockers maps the check ID to an associated Docker Exec based check
 	checkDockers map[types.CheckID]*checks.CheckDocker
 
+	// checkAliases maps the check ID to an associated Alias checks
+	checkAliases map[types.CheckID]*checks.CheckAlias
+
 	// checkLock protects updates to the check* maps
 	checkLock sync.Mutex
 
@@ -235,6 +238,7 @@ func New(c *config.RuntimeConfig) (*Agent, error) {
 		checkTCPs:       make(map[types.CheckID]*checks.CheckTCP),
 		checkGRPCs:      make(map[types.CheckID]*checks.CheckGRPC),
 		checkDockers:    make(map[types.CheckID]*checks.CheckDocker),
+		checkAliases:    make(map[types.CheckID]*checks.CheckAlias),
 		eventCh:         make(chan serf.UserEvent, 1024),
 		eventBuf:        make([]*UserEvent, 256),
 		joinLANNotifier: &systemd.Notifier{},
@@ -1314,6 +1318,9 @@ func (a *Agent) ShutdownAgent() error {
 	for _, chk := range a.checkDockers {
 		chk.Stop()
 	}
+	for _, chk := range a.checkAliases {
+		chk.Stop()
+	}
 
 	// Stop the proxy manager
 	if a.proxyManager != nil {
@@ -2006,6 +2013,35 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 			monitor.Start()
 			a.checkMonitors[check.CheckID] = monitor
+
+		case chkType.IsAlias():
+			if existing, ok := a.checkAliases[check.CheckID]; ok {
+				existing.Stop()
+				delete(a.checkAliases, check.CheckID)
+			}
+
+			var rpcReq structs.NodeSpecificRequest
+			rpcReq.Datacenter = a.config.Datacenter
+
+			// The token to set is really important. The behavior below follows
+			// the same behavior as anti-entropy: we use the user-specified token
+			// if set (either on the service or check definition), otherwise
+			// we use the "UserToken" on the agent. This is tested.
+			rpcReq.Token = a.tokens.UserToken()
+			if token != "" {
+				rpcReq.Token = token
+			}
+
+			chkImpl := &checks.CheckAlias{
+				Notify:    a.State,
+				RPC:       a.delegate,
+				RPCReq:    rpcReq,
+				CheckID:   check.CheckID,
+				Node:      chkType.AliasNode,
+				ServiceID: chkType.AliasService,
+			}
+			chkImpl.Start()
+			a.checkAliases[check.CheckID] = chkImpl
 
 		default:
 			return fmt.Errorf("Check type is not valid")
