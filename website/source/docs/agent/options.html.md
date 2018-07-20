@@ -721,9 +721,16 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 
         <p>There are also a number of common configuration options supported by all providers:</p>
         
-        * <a name="ca_leaf_cert_ttl"></a><a href="#ca_leaf_cert_ttl">`leaf_cert_ttl`</a> The lease duration of
-        a leaf certificate issued for a service, after which a new certificate will be requested by the proxy.
-        Defaults to `72h`.
+        * <a name="ca_leaf_cert_ttl"></a><a href="#ca_leaf_cert_ttl">`leaf_cert_ttl`</a> The upper bound on the
+        lease duration of a leaf certificate issued for a service. In most cases a new leaf certificate will be
+        requested by a proxy before this limit is reached. This is also the effective limit on how long a server
+        outage can last (with no leader) before network connections will start being rejected, and as a result the
+        defaults is `72h` to last through a weekend without intervention. This value cannot be lower than 1 hour
+        or higher than 1 year.
+
+        This value is also used when rotating out old root certificates from the cluster. When a root certificate
+        has been inactive (rotated out) for more than twice the *current* `leaf_cert_ttl`, it will be removed from
+        the trusted list.
 
     * <a name="connect_proxy"></a><a href="#connect_proxy">`proxy`</a> This object allows setting options for the Connect proxies. The following sub-keys are available:
 

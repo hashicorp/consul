@@ -1008,7 +1008,6 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 func TestLeader_CARootPruning(t *testing.T) {
 	t.Parallel()
 
-	caRootExpireDuration = 500 * time.Millisecond
 	caRootPruneInterval = 200 * time.Millisecond
 
 	require := require.New(t)
@@ -1036,9 +1035,11 @@ func TestLeader_CARootPruning(t *testing.T) {
 	newConfig := &structs.CAConfiguration{
 		Provider: "consul",
 		Config: map[string]interface{}{
+			"LeafCertTTL":    500 * time.Millisecond,
 			"PrivateKey":     newKey,
 			"RootCert":       "",
 			"RotationPeriod": 90 * 24 * time.Hour,
+			"SkipValidate":   true,
 		},
 	}
 	{
@@ -1056,7 +1057,7 @@ func TestLeader_CARootPruning(t *testing.T) {
 	require.NoError(err)
 	require.Len(roots, 2)
 
-	time.Sleep(caRootExpireDuration * 2)
+	time.Sleep(2 * time.Second)
 
 	// Now the old root should be pruned.
 	_, roots, err = s1.fsm.State().CARoots(nil)

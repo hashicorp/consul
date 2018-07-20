@@ -33,6 +33,10 @@ func ParseConsulCAConfig(raw map[string]interface{}) (*structs.ConsulCAProviderC
 		return nil, fmt.Errorf("must provide a private key when providing a root cert")
 	}
 
+	if err := config.CommonCAProviderConfig.Validate(); err != nil {
+		return nil, err
+	}
+
 	return &config, nil
 }
 
