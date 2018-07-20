@@ -14,19 +14,22 @@ func TestErraticDrop(t *testing.T) {
 	e := &Erratic{drop: 2} // 50% drops
 
 	tests := []struct {
+		rrtype       uint16
 		expectedCode int
 		expectedErr  error
 		drop         bool
 	}{
-		{expectedCode: dns.RcodeSuccess, expectedErr: nil, drop: true},
-		{expectedCode: dns.RcodeSuccess, expectedErr: nil, drop: false},
+		{rrtype: dns.TypeA, expectedCode: dns.RcodeSuccess, expectedErr: nil, drop: true},
+		{rrtype: dns.TypeA, expectedCode: dns.RcodeSuccess, expectedErr: nil, drop: false},
+		{rrtype: dns.TypeAAAA, expectedCode: dns.RcodeSuccess, expectedErr: nil, drop: true},
+		{rrtype: dns.TypeHINFO, expectedCode: dns.RcodeServerFailure, expectedErr: nil, drop: false},
 	}
 
 	ctx := context.TODO()
 
 	for i, tc := range tests {
 		req := new(dns.Msg)
-		req.SetQuestion("example.org.", dns.TypeA)
+		req.SetQuestion("example.org.", tc.rrtype)
 
 		rec := dnstest.NewRecorder(&test.ResponseWriter{})
 		code, err := e.ServeDNS(ctx, rec, req)
@@ -75,5 +78,23 @@ func TestErraticTruncate(t *testing.T) {
 		if tc.truncate && !rec.Msg.Truncated {
 			t.Errorf("Test %d: Expected truncated message, but got %q", i, rec.Msg.Question[0].Name)
 		}
+	}
+}
+
+func TestAxfr(t *testing.T) {
+	e := &Erratic{truncate: 0} // nothing, just check if we can get an axfr
+
+	ctx := context.TODO()
+
+	req := new(dns.Msg)
+	req.SetQuestion("example.org.", dns.TypeAXFR)
+
+	rec := dnstest.NewRecorder(&test.ResponseWriter{})
+	_, err := e.ServeDNS(ctx, rec, req)
+	if err != nil {
+		t.Errorf("Failed to set up AXFR: %s", err)
+	}
+	if x := rec.Msg.Answer[0].Header().Rrtype; x != dns.TypeSOA {
+		t.Errorf("Expected for record to be %d, got %d", dns.TypeSOA, x)
 	}
 }

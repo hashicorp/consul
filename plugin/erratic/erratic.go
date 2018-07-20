@@ -61,14 +61,26 @@ func (e *Erratic) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 		rr := *(rrAAAA.(*dns.AAAA))
 		rr.Header().Name = state.QName()
 		m.Answer = append(m.Answer, &rr)
-	default:
-		if !drop {
-			if delay {
-				time.Sleep(e.duration)
-			}
-			// coredns will return error.
-			return dns.RcodeServerFailure, nil
+	case dns.TypeAXFR:
+		if drop {
+			return 0, nil
 		}
+		if delay {
+			time.Sleep(e.duration)
+		}
+
+		xfr(state, trunc)
+		return 0, nil
+
+	default:
+		if drop {
+			return 0, nil
+		}
+		if delay {
+			time.Sleep(e.duration)
+		}
+		// coredns will return error.
+		return dns.RcodeServerFailure, nil
 	}
 
 	if drop {

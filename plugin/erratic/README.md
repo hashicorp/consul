@@ -10,7 +10,8 @@
 The *erratic* plugin will respond to every A or AAAA query. For any other type it will return
 a SERVFAIL response. The reply for A will return 192.0.2.53 (see [RFC
 5737](https://tools.ietf.org/html/rfc5737),
-for AAAA it returns 2001:DB8::53 (see [RFC 3849](https://tools.ietf.org/html/rfc3849)).
+for AAAA it returns 2001:DB8::53 (see [RFC 3849](https://tools.ietf.org/html/rfc3849)) and for an
+AXFR request it will respond with a small zone transfer.
 
 *erratic* can also be used in conjunction with the *autopath* plugin. This is mostly to aid in
 testing.
@@ -29,6 +30,8 @@ erratic {
 * `truncate`: truncate 1 per **AMOUNT** of queries, the default is 2.
 * `delay`: delay 1 per **AMOUNT** of queries for **DURATION**, the default for **AMOUNT** is 2 and
   the default for **DURATION** is 100ms.
+
+In case of a zone transfer and truncate the final SOA record *isn't* added to the response.
 
 ## Health
 
