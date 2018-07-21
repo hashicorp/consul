@@ -55,7 +55,7 @@ endif
 all:
 	@echo Use the 'release' target to build a release, 'docker' for docker build.
 
-release: pre build tar
+release: pre build tar sum
 
 docker: docker-build
 
@@ -84,6 +84,12 @@ tar:
 	tar -zcf release/$(NAME)_$(VERSION)_windows_amd64.tgz -C build/windows/amd64 $(NAME)
 	for arch in $(LINUX_ARCH); do \
 	    tar -zcf release/$(NAME)_$(VERSION)_linux_$$arch.tgz -C build/linux/$$arch $(NAME) ;\
+	done
+
+.PHONY: sum
+sum:
+	for asset in `ls -A release/*tgz`; do \
+	    sha256sum $$asset > $$asset.sha256; \
 	done
 
 .PHONY: github-push
