@@ -11,8 +11,23 @@ func TestNormalizeZone(t *testing.T) {
 		{".", "dns://.:53", false},
 		{".:54", "dns://.:54", false},
 		{"..", "://:", true},
-		{"..", "://:", true},
 		{".:", "://:", true},
+		{"dns://.", "dns://.:53", false},
+		{"dns://.:5353", "dns://.:5353", false},
+		{"dns://..", "://:", true},
+		{"dns://.:", "://:", true},
+		{"tls://.", "tls://.:853", false},
+		{"tls://.:8953", "tls://.:8953", false},
+		{"tls://..", "://:", true},
+		{"tls://.:", "://:", true},
+		{"grpc://.", "grpc://.:443", false},
+		{"grpc://.:8443", "grpc://.:8443", false},
+		{"grpc://..", "://:", true},
+		{"grpc://.:", "://:", true},
+		{"https://.", "https://.:443", false},
+		{"https://.:8443", "https://.:8443", false},
+		{"https://..", "://:", true},
+		{"https://.:", "://:", true},
 	} {
 		addr, err := normalizeZone(test.input)
 		actual := addr.String()
@@ -174,6 +189,24 @@ func TestOverlapAddressChecker(t *testing.T) {
 				}
 			}
 
+		}
+	}
+}
+
+func TestTransport(t *testing.T) {
+	for i, test := range []struct {
+		input    string
+		expected string
+	}{
+		{"dns://.:53", TransportDNS},
+		{"2003::1/64.:53", TransportDNS},
+		{"grpc://example.org:1443 ", TransportGRPC},
+		{"tls://example.org ", TransportTLS},
+		{"https://example.org ", TransportHTTPS},
+	} {
+		actual := Transport(test.input)
+		if actual != test.expected {
+			t.Errorf("Test %d: Expected %s but got %s", i, test.expected, actual)
 		}
 	}
 }
