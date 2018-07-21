@@ -477,6 +477,113 @@ func TestStateStore_EnsureNodeDeprecated(t *testing.T) {
 	}
 }
 
+func TestNodeRenamingNodes(t *testing.T) {
+	s := testStateStore(t)
+
+	nodeID1 := types.NodeID("b789bf0a-d96b-4f70-a4a6-ac5dfaece53d")
+	nodeID2 := types.NodeID("27bee224-a4d7-45d0-9b8e-65b3c94a61ba")
+
+	// Node1 with ID
+	in1 := &structs.Node{
+		ID:      nodeID1,
+		Node:    "node1",
+		Address: "1.1.1.1",
+	}
+
+	if err := s.EnsureNode(1, in1); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Node2 with ID
+	in2 := &structs.Node{
+		ID:      nodeID2,
+		Node:    "node2",
+		Address: "1.1.1.2",
+	}
+
+	if err := s.EnsureNode(2, in2); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Node3 without ID
+	in3 := &structs.Node{
+		Node:    "node3",
+		Address: "1.1.1.3",
+	}
+
+	if err := s.EnsureNode(3, in3); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, node, err := s.GetNodeID(nodeID1); err != nil || node == nil || node.ID != nodeID1 {
+		t.Fatalf("err: %s, node:= %q", err, node)
+	}
+
+	if _, node, err := s.GetNodeID(nodeID2); err != nil && node == nil || node.ID != nodeID2 {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Renaming node2 into node1 should fail
+	in2Modify := &structs.Node{
+		ID:      nodeID2,
+		Node:    "node1",
+		Address: "1.1.1.2",
+	}
+	if err := s.EnsureNode(4, in2Modify); err == nil {
+		t.Fatalf("Renaming node2 into node1 should fail")
+	}
+
+	// Conflict with case insensitive matching as well
+	in2Modify = &structs.Node{
+		ID:      nodeID2,
+		Node:    "NoDe1",
+		Address: "1.1.1.2",
+	}
+	if err := s.EnsureNode(5, in2Modify); err == nil {
+		t.Fatalf("Renaming node2 into node1 should fail")
+	}
+
+	// Conflict with case insensitive on node without ID
+	in2Modify = &structs.Node{
+		ID:      nodeID2,
+		Node:    "NoDe3",
+		Address: "1.1.1.2",
+	}
+	if err := s.EnsureNode(6, in2Modify); err == nil {
+		t.Fatalf("Renaming node2 into node1 should fail")
+	}
+
+	// No conflict, should work
+	in2Modify = &structs.Node{
+		ID:      nodeID2,
+		Node:    "node2bis",
+		Address: "1.1.1.2",
+	}
+	if err := s.EnsureNode(6, in2Modify); err != nil {
+		t.Fatalf("Renaming node2 into node1 should fail")
+	}
+
+	// Retrieve the node again
+	idx, out, err := s.GetNode("node2bis")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Retrieve the node again
+	idx2, out2, err := s.GetNodeID(nodeID2)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if idx != idx2 {
+		t.Fatalf("node should be the same")
+	}
+
+	if out.ID != out2.ID || out.Node != out2.Node {
+		t.Fatalf("all should match")
+	}
+}
+
 func TestStateStore_EnsureNode(t *testing.T) {
 	s := testStateStore(t)
 

@@ -1,6 +1,7 @@
 package state
 
 import (
+	"encoding/hex"
 	"fmt"
 	"strings"
 
@@ -375,12 +376,12 @@ func (s *Store) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) err
 	// name is the same.
 	var n *structs.Node
 	if node.ID != "" {
-		existing, err := tx.First("nodes", "uuid", string(node.ID))
+		existing, err := getNodeIDTxn(tx, node.ID)
 		if err != nil {
 			return fmt.Errorf("node lookup failed: %s", err)
 		}
 		if existing != nil {
-			n = existing.(*structs.Node)
+			n = existing
 			if n.Node != node.Node {
 				// Lets first get all nodes and check whether name do match, we do not allow clash on nodes without ID
 				dupNameError := s.ensureNoNodeWithSimilarNameTxn(tx, node, false)
@@ -461,6 +462,25 @@ func (s *Store) GetNode(id string) (uint64, *structs.Node, error) {
 	return idx, nil, nil
 }
 
+func getNodeIDTxn(tx *memdb.Txn, id types.NodeID) (*structs.Node, error) {
+	sanitized := strings.Replace(string(id), "-", "", -1)
+	sanitizedLength := len(sanitized)
+	if sanitizedLength%2 != 0 {
+		return nil, fmt.Errorf("Input (without hyphens) must be even length")
+	}
+
+	dec, err := hex.DecodeString(sanitized)
+
+	node, err := tx.First("nodes", "uuid", dec)
+	if err != nil {
+		return nil, fmt.Errorf("node lookup failed: %s", err)
+	}
+	if node != nil {
+		return node.(*structs.Node), nil
+	}
+	return nil, nil
+}
+
 // GetNodeID is used to retrieve a node registration by node ID.
 func (s *Store) GetNodeID(id types.NodeID) (uint64, *structs.Node, error) {
 	tx := s.db.Txn(false)
@@ -470,14 +490,8 @@ func (s *Store) GetNodeID(id types.NodeID) (uint64, *structs.Node, error) {
 	idx := maxIndexTxn(tx, "nodes")
 
 	// Retrieve the node from the state store
-	node, err := tx.First("nodes", "uuid", string(id))
-	if err != nil {
-		return 0, nil, fmt.Errorf("node lookup failed: %s", err)
-	}
-	if node != nil {
-		return idx, node.(*structs.Node), nil
-	}
-	return idx, nil, nil
+	node, err := getNodeIDTxn(tx, id)
+	return idx, node, err
 }
 
 // Nodes is used to return all of the known nodes.
