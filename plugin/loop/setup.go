@@ -37,10 +37,10 @@ func setup(c *caddy.Controller) error {
 		go func() {
 			deadline := time.Now().Add(30 * time.Second)
 			conf := dnsserver.GetConfig(c)
+			lh := conf.ListenHosts[0]
+			addr := net.JoinHostPort(lh, conf.Port)
 
 			for time.Now().Before(deadline) {
-				lh := conf.ListenHosts[0]
-				addr := net.JoinHostPort(lh, conf.Port)
 				if _, err := l.exchange(addr); err != nil {
 					time.Sleep(1 * time.Second)
 					continue
@@ -50,6 +50,8 @@ func setup(c *caddy.Controller) error {
 					time.Sleep(2 * time.Second)
 					l.setDisabled()
 				}()
+
+				break
 			}
 			l.setDisabled()
 		}()
