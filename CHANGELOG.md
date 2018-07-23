@@ -1,5 +1,9 @@
 ## UNRELEASED
 
+FEATURES:
+
+* **Alias Checks:** Alias checks allow a service or node to alias the health status of another service or node in the cluster. [[PR-4320](https://github.com/hashicorp/consul/pull/4320)]
+
 BUG FiXES:
 
 * watches, connect proxies: Fix issue with managed proxies and watches attempting to use a client addr that is 0.0.0.0 or :: [[PR-4403](https://github.com/hashicorp/consul/pull/4403)]
