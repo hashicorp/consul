@@ -1,45 +1,8 @@
-@import './icons';
+@import './freetext-filter/index';
+@import './icons/index';
 .freetext-filter {
   @extend %freetext-filter;
 }
 %freetext-filter span {
   @extend %with-magnifier;
-}
-%freetext-filter {
-  cursor: pointer;
-}
-%freetext-filter input {
-  -webkit-appearance: none;
-  border: none;
-  border-right: $decor-border-100;
-}
-%freetext-filter span {
-  visibility: hidden;
-}
-%freetext-filter {
-  background-color: $ui-white;
-}
-%freetext-filter span {
-  color: $ui-gray-300;
-}
-%freetext-filter input {
-  border-color: $ui-gray-300;
-}
-%freetext-filter input,
-%freetext-filter input::placeholder {
-  color: $ui-gray-400;
-}
-%freetext-filter label {
-  display: block;
-  height: 33px;
-}
-%freetext-filter input {
-  width: calc(100% - 2.7em);
-  height: 100%;
-  padding: 8px 10px;
-}
-%freetext-filter span {
-  width: 2.7em;
-  height: 100%;
-  float: right;
 }

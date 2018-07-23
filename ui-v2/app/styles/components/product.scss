@@ -1,6 +1,6 @@
 @import './product/index';
 @import './filter-bar';
-@import './form-elements';
+@import './form-elements/index';
 html body > svg {
   display: none;
 }
@@ -25,6 +25,26 @@ main {
 }
 %app-content [role='radiogroup'] {
   @extend %radio-group;
+}
+%loader circle {
+  fill: $brand-magenta-100;
+}
+%main-header::before {
+  background-color: $brand-magenta-600;
+}
+%header-nav a,
+%header-nav-toggle-button {
+  color: $brand-magenta-050;
+}
+@media #{$--lt-horizontal-nav} {
+  %header-nav-panel {
+    background-color: $brand-magenta-600;
+  }
+}
+@media #{$--horizontal-nav} {
+  %header-nav > ul > li:not(:first-child).is-active > a {
+    background-color: $brand-magenta-800;
+  }
 }
 #wrapper > footer {
   @extend %footer;

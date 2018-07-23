@@ -57,9 +57,6 @@
   position: absolute;
 }
 @media #{$--lt-horizontal-nav} {
-  %header-nav-panel {
-    background-color: $brand-magenta-600;
-  }
   %header-nav-panel label span {
     visibility: visible !important;
     display: inline-block;
@@ -130,10 +127,6 @@
 %header-drop-nav a.selected {
   background-color: $ui-gray-050;
 }
-%header-nav a,
-%header-nav-toggle-button {
-  color: $brand-magenta-050;
-}
 %header-nav a {
   display: block;
   padding: 3px 12px;
@@ -157,9 +150,6 @@
   }
 }
 @media #{$--horizontal-nav} {
-  %header-nav > ul > li:not(:first-child).is-active > a {
-    background-color: $brand-magenta-800;
-  }
   %header-nav ul {
     display: flex;
   }

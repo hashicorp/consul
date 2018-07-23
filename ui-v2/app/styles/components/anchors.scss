@@ -1,3 +1,4 @@
+@import './anchors/index';
 main a {
   color: $ui-gray-900;
 }
@@ -13,15 +14,5 @@ main label a[rel*='help'] {
 }
 main p a,
 main dd a {
-  @extend %link;
-}
-%link:hover,
-%link:focus {
-  text-decoration: underline;
-}
-%link,
-%link:hover,
-%link:focus,
-%link:active {
-  color: $ui-color-action;
+  @extend %anchor;
 }

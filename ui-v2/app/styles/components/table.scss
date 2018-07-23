@@ -1,8 +1,4 @@
-@import './icons';
-@import './tag';
-td strong {
-  @extend %tag;
-}
+@import './icons/index';
 td.folder {
   @extend %with-folder;
 }

@@ -18,9 +18,6 @@
   @extend %secondary-nav;
 }
 
-%main-header::before {
-  background-color: $brand-magenta-600;
-}
 %main-header {
   display: flex;
 }
