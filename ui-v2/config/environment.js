@@ -53,13 +53,12 @@ module.exports = function(environment) {
         .trim()
         .split('"')[1];
     })(),
-    CONSUL_BINARY_TYPE: function() {
+    CONSUL_BINARY_TYPE: (function() {
       if (process.env.CONSUL_BINARY_TYPE) {
         return process.env.CONSUL_BINARY_TYPE;
       }
-
       return 'oss';
-    },
+    })(),
     CONSUL_DOCUMENTATION_URL: 'https://www.consul.io/docs',
     CONSUL_COPYRIGHT_URL: 'https://www.hashicorp.com',
     CONSUL_COPYRIGHT_YEAR: '2018',
