@@ -286,14 +286,14 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.ConsulRaftElectionTimeout = 52 * time.Millisecond
 				rt.ConsulRaftHeartbeatTimeout = 35 * time.Millisecond
 				rt.ConsulRaftLeaderLeaseTimeout = 20 * time.Millisecond
-				rt.ConsulSerfLANGossipInterval = 100 * time.Millisecond
-				rt.ConsulSerfLANProbeInterval = 100 * time.Millisecond
-				rt.ConsulSerfLANProbeTimeout = 100 * time.Millisecond
-				rt.ConsulSerfLANSuspicionMult = 3
-				rt.ConsulSerfWANGossipInterval = 100 * time.Millisecond
-				rt.ConsulSerfWANProbeInterval = 100 * time.Millisecond
-				rt.ConsulSerfWANProbeTimeout = 100 * time.Millisecond
-				rt.ConsulSerfWANSuspicionMult = 3
+				rt.GossipLANGossipInterval = 100 * time.Millisecond
+				rt.GossipLANProbeInterval = 100 * time.Millisecond
+				rt.GossipLANProbeTimeout = 100 * time.Millisecond
+				rt.GossipLANSuspicionMult = 3
+				rt.GossipWANGossipInterval = 100 * time.Millisecond
+				rt.GossipWANProbeInterval = 100 * time.Millisecond
+				rt.GossipWANProbeTimeout = 100 * time.Millisecond
+				rt.GossipWANSuspicionMult = 3
 				rt.ConsulServerHealthInterval = 10 * time.Millisecond
 			},
 		},
@@ -2617,6 +2617,22 @@ func TestFullConfig(t *testing.T) {
 					}
 				}
 			},
+			"gossip_lan" : {
+				"gossip_nodes": 6,
+				"gossip_interval" : "25252s",
+				"retransmit_mult" : 1234,
+				"suspicion_mult"  : 1235,
+				"probe_interval"  : "101ms",
+				"probe_timeout"   : "102ms"
+			},
+			"gossip_wan" : {
+				"gossip_nodes" : 2,
+				"gossip_interval" : "6966s",
+				"retransmit_mult" : 16384,
+				"suspicion_mult"  : 16385,
+				"probe_interval" : "103ms",
+				"probe_timeout"  : "104ms"
+			},
 			"data_dir": "` + dataDir + `",
 			"datacenter": "rzo029wg",
 			"disable_anonymous_signature": true,
@@ -3092,6 +3108,22 @@ func TestFullConfig(t *testing.T) {
 					}
 				}
 			}
+			gossip_lan {
+				gossip_nodes    = 6
+				gossip_interval = "25252s"
+				retransmit_mult = 1234
+				suspicion_mult  = 1235
+				probe_interval  = "101ms"
+				probe_timeout   = "102ms"
+			}
+			gossip_wan {
+				gossip_nodes    = 2
+				gossip_interval = "6966s"
+				retransmit_mult = 16384
+				suspicion_mult  = 16385
+				probe_interval  = "103ms"
+				probe_timeout   = "104ms"
+			}
 			data_dir = "` + dataDir + `"
 			datacenter = "rzo029wg"
 			disable_anonymous_signature = true
@@ -3473,22 +3505,6 @@ func TestFullConfig(t *testing.T) {
 							"heartbeat_timeout": "25699s",
 							"leader_lease_timeout": "15351s"
 						},
-						"serf_lan": {
-							"memberlist": {
-								"gossip_interval": "25252s",
-								"probe_interval": "5105s",
-								"probe_timeout": "29179s",
-								"suspicion_mult": 8263
-							}
-						},
-						"serf_wan": {
-							"memberlist": {
-								"gossip_interval": "6966s",
-								"probe_interval": "20148s",
-								"probe_timeout": "3007s",
-								"suspicion_mult": 32096
-							}
-						},
 						"server": {
 							"health_interval": "17455s"
 						}
@@ -3527,22 +3543,6 @@ func TestFullConfig(t *testing.T) {
 							heartbeat_timeout = "25699s"
 							leader_lease_timeout = "15351s"
 						}
-						serf_lan = {
-							memberlist = {
-								gossip_interval = "25252s"
-								probe_interval = "5105s"
-								probe_timeout = "29179s"
-								suspicion_mult = 8263
-							}
-						}
-						serf_wan = {
-							memberlist = {
-								gossip_interval = "6966s"
-								probe_interval = "20148s"
-								probe_timeout = "3007s"
-								suspicion_mult = 32096
-							}
-						}
 						server = {
 							health_interval = "17455s"
 						}
@@ -3574,14 +3574,18 @@ func TestFullConfig(t *testing.T) {
 		ConsulRaftElectionTimeout:        5 * 31947 * time.Second,
 		ConsulRaftHeartbeatTimeout:       5 * 25699 * time.Second,
 		ConsulRaftLeaderLeaseTimeout:     5 * 15351 * time.Second,
-		ConsulSerfLANGossipInterval:      25252 * time.Second,
-		ConsulSerfLANProbeInterval:       5105 * time.Second,
-		ConsulSerfLANProbeTimeout:        29179 * time.Second,
-		ConsulSerfLANSuspicionMult:       8263,
-		ConsulSerfWANGossipInterval:      6966 * time.Second,
-		ConsulSerfWANProbeInterval:       20148 * time.Second,
-		ConsulSerfWANProbeTimeout:        3007 * time.Second,
-		ConsulSerfWANSuspicionMult:       32096,
+		GossipLANGossipInterval:          25252 * time.Second,
+		GossipLANGossipNodes:             6,
+		GossipLANProbeInterval:           101 * time.Millisecond,
+		GossipLANProbeTimeout:            102 * time.Millisecond,
+		GossipLANSuspicionMult:           1235,
+		GossipLANRetransmitMult:          1234,
+		GossipWANGossipInterval:          6966 * time.Second,
+		GossipWANGossipNodes:             2,
+		GossipWANProbeInterval:           103 * time.Millisecond,
+		GossipWANProbeTimeout:            104 * time.Millisecond,
+		GossipWANSuspicionMult:           16385,
+		GossipWANRetransmitMult:          16384,
 		ConsulServerHealthInterval:       17455 * time.Second,
 
 		// user configurable values
@@ -4407,14 +4411,18 @@ func TestSanitize(t *testing.T) {
     "ConsulRaftElectionTimeout": "0s",
     "ConsulRaftHeartbeatTimeout": "0s",
     "ConsulRaftLeaderLeaseTimeout": "0s",
-    "ConsulSerfLANGossipInterval": "0s",
-    "ConsulSerfLANProbeInterval": "0s",
-    "ConsulSerfLANProbeTimeout": "0s",
-    "ConsulSerfLANSuspicionMult": 0,
-    "ConsulSerfWANGossipInterval": "0s",
-    "ConsulSerfWANProbeInterval": "0s",
-    "ConsulSerfWANProbeTimeout": "0s",
-    "ConsulSerfWANSuspicionMult": 0,
+    "GossipLANGossipInterval": "0s",
+    "GossipLANGossipNodes": 0,
+    "GossipLANProbeInterval": "0s",
+    "GossipLANProbeTimeout": "0s",
+    "GossipLANRetransmitMult": 0,
+    "GossipLANSuspicionMult": 0,
+    "GossipWANGossipInterval": "0s",
+    "GossipWANGossipNodes": 0,
+    "GossipWANProbeInterval": "0s",
+    "GossipWANProbeTimeout": "0s",
+    "GossipWANRetransmitMult": 0,
+    "GossipWANSuspicionMult": 0,
     "ConsulServerHealthInterval": "0s",
     "DNSARecordLimit": 0,
     "DNSAddrs": [
