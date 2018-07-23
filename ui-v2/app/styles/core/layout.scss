@@ -53,6 +53,10 @@ main > * {
 main p {
   margin-bottom: 1em;
 }
+main form,
+main form + div .with-confirmation {
+  margin-bottom: 2em;
+}
 html body > svg {
   display: none;
   position: absolute;
