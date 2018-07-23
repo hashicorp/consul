@@ -1,7 +1,7 @@
 @charset 'utf-8';
 
-@import '@hashicorp/iris/index';
-@import '@hashicorp/iris/reset/index';
+@import 'base/index';
+@import 'base/reset/index';
 @import 'variables/index';
 
 @import 'ember-power-select';
