@@ -87,7 +87,8 @@ function build_ui {
       ret=$?
       docker rm ${container_id} > /dev/null
    fi
-   
+
+   # Check the version is baked in correctly
    if test ${ret} -eq 0
    then
       local ui_vers=$(ui_version "${1}/ui-v2/dist/index.html")
@@ -96,19 +97,25 @@ function build_ui {
          err "ERROR: UI version mismatch. Expecting: '${version}' found '${ui_vers}'"
          ret=1
       fi
-      if test ${ret} -eq 0
-      then
-        local ui_logo_type=$(ui_logo_type "${1}/ui-v2/dist/index.html")
-        if test "${logo_type}" != "${ui_logo_type}"
-        then
-          err "ERROR: UI logo type mismatch. Expecting: '${logo_type}' found '${ui_logo_type}'"
-          ret=1
-        else
-         rm -rf ${1}/pkg/web_ui/v2
-         mkdir -p ${1}/pkg/web_ui
-         cp -r ${1}/ui-v2/dist ${1}/pkg/web_ui/v2 
-        fi
-      fi
+   fi
+
+   # Check the logo is baked in correctly
+   if test ${ret} -eq 0
+   then
+     local ui_logo_type=$(ui_logo_type "${1}/ui-v2/dist/index.html")
+     if test "${logo_type}" != "${ui_logo_type}"
+     then
+       err "ERROR: UI logo type mismatch. Expecting: '${logo_type}' found '${ui_logo_type}'"
+       ret=1
+     fi
+   fi
+
+   # Copy UI over ready to be packaged into the binary
+   if test ${ret} -eq 0
+   then
+      rm -rf ${1}/pkg/web_ui/v2
+      mkdir -p ${1}/pkg/web_ui
+      cp -r ${1}/ui-v2/dist ${1}/pkg/web_ui/v2 
    fi
    
    popd > /dev/null
