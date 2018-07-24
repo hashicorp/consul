@@ -644,6 +644,19 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
+			desc: "-serf-lan-port",
+			args: []string{
+				`-serf-lan-port=123`,
+				`-data-dir=` + dataDir,
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.SerfPortLAN = 123
+				rt.SerfAdvertiseAddrLAN = tcpAddr("10.0.0.1:123")
+				rt.SerfBindAddrLAN = tcpAddr("0.0.0.0:123")
+				rt.DataDir = dataDir
+			},
+		},
+		{
 			desc: "-serf-wan-bind",
 			args: []string{
 				`-serf-wan-bind=1.2.3.4`,
@@ -651,6 +664,19 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.SerfBindAddrWAN = tcpAddr("1.2.3.4:8302")
+				rt.DataDir = dataDir
+			},
+		},
+		{
+			desc: "-serf-wan-port",
+			args: []string{
+				`-serf-wan-port=123`,
+				`-data-dir=` + dataDir,
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.SerfPortWAN = 123
+				rt.SerfAdvertiseAddrWAN = tcpAddr("10.0.0.1:123")
+				rt.SerfBindAddrWAN = tcpAddr("0.0.0.0:123")
 				rt.DataDir = dataDir
 			},
 		},
@@ -664,6 +690,19 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.ServerMode = true
 				rt.LeaveOnTerm = false
 				rt.SkipLeaveOnInt = true
+				rt.DataDir = dataDir
+			},
+		},
+		{
+			desc: "-server-port",
+			args: []string{
+				`-server-port=123`,
+				`-data-dir=` + dataDir,
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.ServerPort = 123
+				rt.RPCAdvertiseAddr = tcpAddr("10.0.0.1:123")
+				rt.RPCBindAddr = tcpAddr("0.0.0.0:123")
 				rt.DataDir = dataDir
 			},
 		},

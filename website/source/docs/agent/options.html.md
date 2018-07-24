@@ -387,6 +387,12 @@ will exit with an error at startup.
   within its network segment. See the [Network Segments Guide](/docs/guides/segments.html) for more details.
   By default, this is an empty string, which is the default network segment.
 
+* <a name="_serf_lan_port"></a><a href="#_serf_lan_port">`-serf-lan-port`</a> - the Serf LAN port to listen on.
+  This overrides the default Serf LAN port 8301. This is available in Consul 1.2.2 and later.
+
+* <a name="_serf_wan_port"></a><a href="#_serf_wan_port">`-serf-wan-port`</a> - the Serf WAN port to listen on.
+  This overrides the default Serf WAN port 8302. This is available in Consul 1.2.2 and later.
+
 * <a name="_server"></a><a href="#_server">`-server`</a> - This flag is used to control if an
   agent is in server or client mode. When provided,
   an agent will act as a Consul server. Each Consul cluster must have at least one server and ideally
@@ -395,6 +401,9 @@ will exit with an error at startup.
   is maintained on all server nodes to ensure availability in the case of node failure. Server nodes also
   participate in a WAN gossip pool with server nodes in other datacenters. Servers act as gateways
   to other datacenters and forward traffic as appropriate.
+
+* <a name="_server_port"></a><a href="#_server_port">`-server-port`</a> - the server RPC port to listen on.
+  This overrides the default server RPC port 8300. This is available in Consul 1.2.2 and later.
 
 * <a name="_non_voting_server"></a><a href="#_non_voting_server">`-non-voting-server`</a> - (Enterprise-only)
   This flag is used to make the server not participate in the Raft quorum, and have it only receive the data
