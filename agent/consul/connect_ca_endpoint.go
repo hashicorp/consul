@@ -217,6 +217,11 @@ func (s *ConnectCA) Roots(
 		return err
 	}
 
+	// Exit early if Connect hasn't been enabled.
+	if !s.srv.config.ConnectEnabled {
+		return ErrConnectNotEnabled
+	}
+
 	// Load the ClusterID to generate TrustDomain. We do this outside the loop
 	// since by definition this value should be immutable once set for lifetime of
 	// the cluster so we don't need to look it up more than once. We also don't

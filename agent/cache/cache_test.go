@@ -798,8 +798,7 @@ func TestCacheGet_partitionToken(t *testing.T) {
 // testPartitionType implements Type for testing that simply returns a value
 // comprised of the request DC and ACL token, used for testing cache
 // partitioning.
-type testPartitionType struct {
-}
+type testPartitionType struct{}
 
 func (t *testPartitionType) Fetch(opts FetchOptions, r Request) (FetchResult, error) {
 	info := r.CacheInfo()
