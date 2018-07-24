@@ -15,6 +15,6 @@ matrix:
     - env: GOTEST_PKGS_EXCLUDE="./api|./agent|./agent/consul"
 
 script:
-  - GOTEST_FLAGS="-p 3 -parallel 1" make test
+  - make test-ci
 
 sudo: true
