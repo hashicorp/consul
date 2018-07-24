@@ -108,7 +108,8 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 		return result, errors.New("invalid RootCA response type")
 	}
 	if roots.TrustDomain == "" {
-		return result, errors.New("cluster has no CA bootstrapped")
+		return result, errors.New("cluster has no CA bootstrapped: ensure Connect" +
+			" is enabled in server config")
 	}
 
 	// Build the service ID

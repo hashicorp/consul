@@ -230,6 +230,7 @@ func (s *ConnectCA) Roots(
 		if err != nil {
 			return err
 		}
+
 		// Check CA is actually bootstrapped...
 		if config != nil {
 			// Build TrustDomain based on the ClusterID stored.
