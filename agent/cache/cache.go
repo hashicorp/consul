@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/y0ssar1an/q"
 )
 
 //go:generate mockery -all -inpkg
@@ -192,8 +191,6 @@ func (c *Cache) Get(t string, r Request) (interface{}, ResultMeta, error) {
 
 	// Get the actual key for our entry
 	key := c.entryKey(t, &info)
-
-	q.Q("cache GET", t, key)
 
 	// First time through
 	first := true
@@ -470,8 +467,6 @@ func (c *Cache) refresh(opts *RegisterOptions, attempt uint, t string, key strin
 	if !opts.Refresh {
 		return
 	}
-
-	q.Q("refresh", attempt, key)
 
 	// If we're over the attempt minimum, start an exponential backoff.
 	if attempt > CacheRefreshBackoffMin {

@@ -12,6 +12,8 @@ import (
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRPC_NoLeader_Fail(t *testing.T) {
@@ -101,7 +103,12 @@ func TestRPC_blockingQuery(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer s.Shutdown()
 
-	// Perform a non-blocking query.
+	require := require.New(t)
+	assert := assert.New(t)
+
+	// Perform a non-blocking query. Note that it's significant that the meta has
+	// a zero index in response - the implied opts.MinQueryIndex is also zero but
+	// this should not block still.
 	{
 		var opts structs.QueryOptions
 		var meta structs.QueryMeta
@@ -144,6 +151,55 @@ func TestRPC_blockingQuery(t *testing.T) {
 		if calls != 2 {
 			t.Fatalf("bad: %d", calls)
 		}
+	}
+
+	// Perform a blocking query that returns a zero index from blocking func (e.g.
+	// no state yet). This should still return an empty response immediately, but
+	// with index of 1 and then block on the next attempt. In one sense zero index
+	// is not really a valid response from a state method that is not an error but
+	// in practice a lot of state store operations do return it unless they
+	// explicitly special checks to turn 0 into 1. Often this is not caught or
+	// covered by tests but eventually when hit in the wild causes blocking
+	// clients to busy loop and burn CPU. This test ensure that blockingQuery
+	// systematically does the right thing to prevent future bugs like that.
+	{
+		opts := structs.QueryOptions{
+			MinQueryIndex: 0,
+		}
+		var meta structs.QueryMeta
+		var calls int
+		fn := func(ws memdb.WatchSet, state *state.Store) error {
+			if opts.MinQueryIndex > 0 {
+				// If client requested blocking, block forever. This is simulating
+				// waiting for the watched resource to be initialized/written to giving
+				// it a non-zero index. Note the timeout on the query options is relied
+				// on to stop the test taking forever.
+				fakeCh := make(chan struct{})
+				ws.Add(fakeCh)
+			}
+			meta.Index = 0
+			calls++
+			return nil
+		}
+		require.NoError(s.blockingQuery(&opts, &meta, fn))
+		assert.Equal(1, calls)
+		assert.Equal(uint64(1), meta.Index,
+			"expect fake index of 1 to force client to block on next update")
+
+		// Simulate client making next request
+		opts.MinQueryIndex = 1
+		opts.MaxQueryTime = 20 * time.Millisecond // Don't wait too long
+
+		// This time we should block even though the func returns index 0 still
+		t0 := time.Now()
+		require.NoError(s.blockingQuery(&opts, &meta, fn))
+		t1 := time.Now()
+		assert.Equal(2, calls)
+		assert.Equal(uint64(1), meta.Index,
+			"expect fake index of 1 to force client to block on next update")
+		assert.True(t1.Sub(t0) > 20*time.Millisecond,
+			"should have actually blocked waiting for timeout")
+
 	}
 
 	// Perform a query that blocks and gets interrupted when the state store
