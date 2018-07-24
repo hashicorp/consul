@@ -264,5 +264,4 @@ ui-legacy-docker: ui-legacy-build-image
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh ui-legacy
 	
 	
-.PHONY: all ci bin dev dist cov test test-ci test-internal test-install-deps cover format vet ui static-assets tools vendorfmt
 .PHONY: docker-images go-build-image ui-build-image ui-legacy-build-image static-assets-docker consul-docker ui-docker ui-legacy-docker version
