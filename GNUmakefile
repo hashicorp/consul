@@ -150,12 +150,14 @@ cov:
 	gocov test $(GOFILES) | gocov-html > /tmp/coverage.html
 	open /tmp/coverage.html
 
-test: other-consul dev-build vet test-internal
+test: other-consul dev-build vet test-install-deps test-internal
+
+test-install-deps:
+	go test -tags '$(GOTAGS)' -i $(GOTEST_PKGS)
 
 test-internal:
 	@echo "--> Running go test"
 	@rm -f test.log exit-code
-	go test -tags '$(GOTAGS)' -i $(GOTEST_PKGS)
 	@# Dump verbose output to test.log so we can surface test names on failure but
 	@# hide it from travis as it exceeds their log limits and causes job to be
 	@# terminated (over 4MB and over 10k lines in the UI). We need to output
@@ -179,7 +181,7 @@ test-race:
 	$(MAKE) GOTEST_FLAGS=-race
 
 # Run tests with config for CI so `make test` can still be local-dev friendly.
-test-ci: other-consul dev-build vet
+test-ci: other-consul dev-build vet test-install-deps
 	@ if ! GOTEST_FLAGS="-p 3 -parallel 1" make test-internal; then \
 	    echo "    ============"; \
 			echo "      Retrying"; \
