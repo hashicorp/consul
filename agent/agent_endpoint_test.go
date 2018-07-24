@@ -2304,19 +2304,15 @@ func TestAgent_Token(t *testing.T) {
 func TestAgentConnectCARoots_empty(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
 	require := require.New(t)
 	a := NewTestAgent(t.Name(), "connect { enabled = false }")
 	defer a.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/roots", nil)
 	resp := httptest.NewRecorder()
-	obj, err := a.srv.AgentConnectCARoots(resp, req)
-	require.NoError(err)
-
-	value := obj.(structs.IndexedCARoots)
-	assert.Equal(value.ActiveRootID, "")
-	assert.Len(value.Roots, 0)
+	_, err := a.srv.AgentConnectCARoots(resp, req)
+	require.Error(err)
+	require.Contains(err.Error(), "Connect must be enabled")
 }
 
 func TestAgentConnectCARoots_list(t *testing.T) {
