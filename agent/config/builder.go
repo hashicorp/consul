@@ -690,7 +690,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		DisableAnonymousSignature:               b.boolVal(c.DisableAnonymousSignature),
 		DisableCoordinates:                      b.boolVal(c.DisableCoordinates),
 		DisableHostNodeID:                       b.boolVal(c.DisableHostNodeID),
-		DisableHTTPUnprintableCharFilter:        b.boolVal(c.DisableHTTPUnprintableCharFilter),
 		DisableKeyringFile:                      b.boolVal(c.DisableKeyringFile),
 		DisableRemoteExec:                       b.boolVal(c.DisableRemoteExec),
 		DisableUpdateCheck:                      b.boolVal(c.DisableUpdateCheck),

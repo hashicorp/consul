@@ -564,16 +564,6 @@ type RuntimeConfig struct {
 	// flag: -disable-host-node-id
 	DisableHostNodeID bool
 
-	// DisableHTTPUnprintableCharFilter will bypass the filter preventing HTTP
-	// URLs from containing unprintable chars. This filter was added in 1.0.3 as a
-	// response to a vulnerability report. Disabling this is never recommended in
-	// general however some users who have keys written in older versions of
-	// Consul may use this to temporarily disable the filter such that they can
-	// delete those keys again! We do not recommend leaving it disabled long term.
-	//
-	// hcl: disable_http_unprintable_char_filter
-	DisableHTTPUnprintableCharFilter bool
-
 	// DisableKeyringFile disables writing the keyring to a file.
 	//
 	// hcl: disable_keyring_file = (true|false)

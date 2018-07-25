@@ -749,17 +749,6 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="disable_host_node_id"></a><a href="#disable_host_node_id">`disable_host_node_id`</a>
   Equivalent to the [`-disable-host-node-id` command-line flag](#_disable_host_node_id).
 
-* <a name="disable_http_unprintable_char_filter"></a><a href="#disable_http_unprintable_char_filter">`disable_http_unprintable_char_filter`</a>
-  Defaults to false. Consul 1.0.3 fixed a potential security vulnerability where
-  malicious users could craft KV keys with unprintable chars that would confuse
-  operators using the CLI or UI into taking wrong actions. Users who had data
-  written in older versions of Consul that did not have this restriction will be
-  unable to delete those values by default in 1.0.3 or later. This setting
-  enables those users to _temporarily_ disable the filter such that delete
-  operations can work on those keys again to get back to a healthy state. It is
-  strongly recommended that this filter is not disabled permanently as it
-  exposes the original security vulnerability.
-
 * <a name="disable_remote_exec"></a><a href="#disable_remote_exec">`disable_remote_exec`</a>
   Disables support for remote execution. When set to true, the agent will ignore any incoming
   remote exec requests. In versions of Consul prior to 0.8, this defaulted to false. In Consul

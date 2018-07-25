@@ -327,19 +327,6 @@ func TestHTTPAPI_Ban_Nonprintable_Characters(t *testing.T) {
 	}
 }
 
-func TestHTTPAPI_Allow_Nonprintable_Characters_With_Flag(t *testing.T) {
-	a := NewTestAgent(t.Name(), "disable_http_unprintable_char_filter = true")
-	defer a.Shutdown()
-
-	req, _ := http.NewRequest("GET", "/v1/kv/bad\x00ness", nil)
-	resp := httptest.NewRecorder()
-	a.srv.Handler.ServeHTTP(resp, req)
-	// Key doesn't actually exist so we should get 404
-	if got, want := resp.Code, http.StatusNotFound; got != want {
-		t.Fatalf("bad response code got %d want %d", got, want)
-	}
-}
-
 func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
 	t.Parallel()
 	// Header should not be present if address translation is off.
