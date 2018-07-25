@@ -14,6 +14,9 @@ BUG FiXES:
 * watches, connect proxies: Fix issue with managed proxies and watches attempting to use a client addr that is 0.0.0.0 or :: [[PR-4403](https://github.com/hashicorp/consul/pull/4403)]
 * proxy: Dont restart proxies setup in a config file when Consul restarts [[PR-4407](https://github.com/hashicorp/consul/pull/4407)]
 
+SECURITY:
+* acl: Fixed an issue where writes operations on the Keyring and Operator were being allowed with a default allow policy even when explicitly denied in the policy. [[GH-4378](https://github.com/hashicorp/consul/issues/4378)]
+
 ## 1.2.1 (July 12, 2018)
 
 IMPROVEMENTS:
