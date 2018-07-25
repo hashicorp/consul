@@ -7,8 +7,8 @@ import (
 	"log"
 	"net"
 	"os"
+	"strings"
 	"testing"
-	"time"
 
 	metrics "github.com/armon/go-metrics"
 	"github.com/stretchr/testify/assert"
@@ -19,72 +19,88 @@ import (
 	"github.com/hashicorp/consul/lib/freeport"
 )
 
-func testSetupMetrics(t *testing.T) *metrics.InmemSink {
-	// Record for ages (5 mins) so we can be confident that our assertions won't
-	// fail on silly long test runs due to dropped data.
-	s := metrics.NewInmemSink(10*time.Second, 300*time.Second)
-	cfg := metrics.DefaultConfig("consul.proxy.test")
-	cfg.EnableHostname = false
-	metrics.NewGlobal(cfg, s)
-	return s
+type MockSink struct {
+	keys   [][]string
+	vals   []float32
+	labels [][]metrics.Label
 }
 
-func assertCurrentGaugeValue(t *testing.T, sink *metrics.InmemSink,
+func (m *MockSink) SetGaugeWithLabels(key []string, val float32, labels []metrics.Label) {
+	m.keys = append(m.keys, key)
+	m.vals = append(m.vals, val)
+	m.labels = append(m.labels, labels)
+}
+
+func (m *MockSink) IncrCounterWithLabels(key []string, val float32, labels []metrics.Label) {
+	m.keys = append(m.keys, key)
+	m.vals = append(m.vals, val)
+	m.labels = append(m.labels, labels)
+}
+
+// Empty methods below only included to satisfy MetricSink interface
+func (m *MockSink) EmitKey(key []string, val float32) {
+}
+func (m *MockSink) SetGauge(key []string, val float32) {
+}
+func (m *MockSink) IncrCounter(key []string, val float32) {
+}
+func (m *MockSink) AddSample(key []string, val float32) {
+}
+func (m *MockSink) AddSampleWithLabels(key []string, val float32, labels []metrics.Label) {
+}
+
+// Flattens the key for formatting along with its labels, removes spaces
+func (m *MockSink) flattenKeyLabels(parts []string, labels []metrics.Label) (string, string) {
+	buf := &bytes.Buffer{}
+	replacer := strings.NewReplacer(" ", "_")
+
+	if len(parts) > 0 {
+		replacer.WriteString(buf, parts[0])
+	}
+	for _, part := range parts[1:] {
+		replacer.WriteString(buf, ".")
+		replacer.WriteString(buf, part)
+	}
+
+	key := buf.String()
+
+	for _, label := range labels {
+		replacer.WriteString(buf, fmt.Sprintf(";%s=%s", label.Name, label.Value))
+	}
+
+	return buf.String(), key
+}
+
+func testSetupMetrics(t *testing.T) *MockSink {
+	// Record for ages (5 mins) so we can be confident that our assertions won't
+	// fail on silly long test runs due to dropped data.
+	s := MockSink{}
+	cfg := metrics.DefaultConfig("consul.proxy.test")
+	cfg.EnableHostname = false
+	metrics.NewGlobal(cfg, &s)
+	return &s
+}
+
+func assertTelemetryValue(t *testing.T, sink *MockSink,
 	name string, value float32) {
 	t.Helper()
 
-	data := sink.Data()
+	var idx int
+	var found bool
 
-	// Current interval is the last one
-	currentInterval := data[len(data)-1]
-	currentInterval.RLock()
-	defer currentInterval.RUnlock()
+	for i := 0; i < len(sink.keys); i++ {
+		k, _ := sink.flattenKeyLabels(sink.keys[i], sink.labels[i])
 
-	assert.Equalf(t, value, currentInterval.Gauges[name].Value,
-		"gauge value mismatch. Current Interval:\n%v", currentInterval)
-}
-
-func assertAllTimeCounterValue(t *testing.T, sink *metrics.InmemSink,
-	name string, value float64) {
-	t.Helper()
-
-	data := sink.Data()
-
-	var got float64
-	for _, intv := range data {
-		intv.RLock()
-		// Note that InMemSink uses SampledValue and treats the _Sum_ not the Count
-		// as the entire value.
-		if sample, ok := intv.Counters[name]; ok {
-			got += sample.Sum
+		if k == name {
+			idx = i
+			found = true
 		}
-		intv.RUnlock()
 	}
 
-	if !assert.Equal(t, value, got) {
-		// no nice way to dump this - this is copied from private method in
-		// InMemSink used for dumping to stdout on SIGUSR1.
-		buf := bytes.NewBuffer(nil)
-		for _, intv := range data {
-			intv.RLock()
-			for _, val := range intv.Gauges {
-				fmt.Fprintf(buf, "[%v][G] '%s': %0.3f\n", intv.Interval, name, val.Value)
-			}
-			for name, vals := range intv.Points {
-				for _, val := range vals {
-					fmt.Fprintf(buf, "[%v][P] '%s': %0.3f\n", intv.Interval, name, val)
-				}
-			}
-			for _, agg := range intv.Counters {
-				fmt.Fprintf(buf, "[%v][C] '%s': %s\n", intv.Interval, name, agg.AggregateSample)
-			}
-			for _, agg := range intv.Samples {
-				fmt.Fprintf(buf, "[%v][S] '%s': %s\n", intv.Interval, name, agg.AggregateSample)
-			}
-			intv.RUnlock()
-		}
-		t.Log(buf.String())
-	}
+	assert.Equal(t, true, found, "metric not found in sink: %s", name)
+
+	assert.Equalf(t, value, sink.vals[idx],
+		"'%s'\n telemetry mismatch - expected: %v, got %v", name, value, sink.vals[idx])
 }
 
 func TestPublicListener(t *testing.T) {
@@ -129,15 +145,15 @@ func TestPublicListener(t *testing.T) {
 	TestEchoConn(t, conn, "")
 
 	// Check active conn is tracked in gauges
-	assertCurrentGaugeValue(t, sink, "consul.proxy.test.inbound.conns;dst=db", 1)
+	assertTelemetryValue(t, sink, "consul.proxy.test.inbound.conns;dst=db", 1)
 
 	// Close listener to ensure all conns are closed and have reported their
 	// metrics
 	l.Close()
 
 	// Check all the tx/rx counters got added
-	assertAllTimeCounterValue(t, sink, "consul.proxy.test.inbound.tx_bytes;dst=db", 11)
-	assertAllTimeCounterValue(t, sink, "consul.proxy.test.inbound.rx_bytes;dst=db", 11)
+	assertTelemetryValue(t, sink, "consul.proxy.test.inbound.tx_bytes;dst=db", 11)
+	assertTelemetryValue(t, sink, "consul.proxy.test.inbound.rx_bytes;dst=db", 11)
 }
 
 func TestUpstreamListener(t *testing.T) {
@@ -192,13 +208,13 @@ func TestUpstreamListener(t *testing.T) {
 	TestEchoConn(t, conn, "")
 
 	// Check active conn is tracked in gauges
-	assertCurrentGaugeValue(t, sink, "consul.proxy.test.upstream.conns;src=web;dst_type=service;dst=db", 1)
+	assertTelemetryValue(t, sink, "consul.proxy.test.upstream.conns;src=web;dst_type=service;dst=db", 1)
 
 	// Close listener to ensure all conns are closed and have reported their
 	// metrics
 	l.Close()
 
 	// Check all the tx/rx counters got added
-	assertAllTimeCounterValue(t, sink, "consul.proxy.test.upstream.tx_bytes;src=web;dst_type=service;dst=db", 11)
-	assertAllTimeCounterValue(t, sink, "consul.proxy.test.upstream.rx_bytes;src=web;dst_type=service;dst=db", 11)
+	assertTelemetryValue(t, sink, "consul.proxy.test.upstream.tx_bytes;src=web;dst_type=service;dst=db", 11)
+	assertTelemetryValue(t, sink, "consul.proxy.test.upstream.rx_bytes;src=web;dst_type=service;dst=db", 11)
 }
