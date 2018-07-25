@@ -187,10 +187,15 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 	}
 
 	// Wrap the whole mux with a handler that bans URLs with non-printable
-	// characters.
+	// characters, unless disabled explicitly to deal with old keys that fail this
+	// check.
+	h := cleanhttp.PrintablePathCheckHandler(mux, nil)
+	if s.agent.config.DisableHTTPUnprintableCharFilter {
+		h = mux
+	}
 	return &wrappedMux{
 		mux:     mux,
-		handler: cleanhttp.PrintablePathCheckHandler(mux, nil),
+		handler: h,
 	}
 }
 
