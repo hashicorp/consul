@@ -58,16 +58,16 @@ Usage: `consul catalog nodes [options]`
 
 #### Catalog List Nodes Options
 
-- `-detailed` - Output detailed information about the nodes including their
+* `-detailed` - Output detailed information about the nodes including their
   addresses and metadata.
 
-- `-near=<string>`- Node name to sort the node list in ascending order based on
+* `-near=<string>`- Node name to sort the node list in ascending order based on
   estimated round-trip time from that node. Passing `"_agent"` will use this
   agent's node for sorting.
 
-- `-node-meta=<key=value>` - Metadata to filter nodes with the given key=value
+* `-node-meta=<key=value>` - Metadata to filter nodes with the given key=value
   pairs. This flag may be specified multiple times to filter on multiple sources
   of metadata.
 
-- `-service=<id or name>` - Service id or name to filter nodes. Only nodes
+* `-service=<id or name>` - Service id or name to filter nodes. Only nodes
   which are providing the given service will be returned.

@@ -59,18 +59,18 @@ order to send and receive cluster information.
 As of version 0.8.4, Consul supports upshifting to encrypted gossip on a running cluster
 through the following process.
 
-1. Generate an encryption key using [`consul keygen`](/docs/commands/keygen.html)
-2. Set the [`encrypt`](/docs/agent/options.html#_encrypt) key in the agent configuration and set
-[`encrypt_verify_incoming`](/docs/agent/options.html#encrypt_verify_incoming) and
-[`encrypt_verify_outgoing`](/docs/agent/options.html#encrypt_verify_outgoing) to `false`, doing a
-rolling update of the cluster with these new values. After this step, the agents will be able to
-decrypt gossip but will not yet be sending encrypted traffic.
-3. Remove the [`encrypt_verify_outgoing`](/docs/agent/options.html#encrypt_verify_outgoing) setting
-to change it back to `true` (the default) and perform another rolling update of the cluster. The
-agents will now be sending encrypted gossip but will still allow incoming unencrypted traffic.
-4. Remove the [`encrypt_verify_incoming`](/docs/agent/options.html#encrypt_verify_incoming) setting
-to change it back to `true` (the default) and perform a final rolling update of the cluster. All the
-agents will now be strictly enforcing encrypted gossip.
+1.  Generate an encryption key using [`consul keygen`](/docs/commands/keygen.html)
+2.  Set the [`encrypt`](/docs/agent/options.html#_encrypt) key in the agent configuration and set
+    [`encrypt_verify_incoming`](/docs/agent/options.html#encrypt_verify_incoming) and
+    [`encrypt_verify_outgoing`](/docs/agent/options.html#encrypt_verify_outgoing) to `false`, doing a
+    rolling update of the cluster with these new values. After this step, the agents will be able to
+    decrypt gossip but will not yet be sending encrypted traffic.
+3.  Remove the [`encrypt_verify_outgoing`](/docs/agent/options.html#encrypt_verify_outgoing) setting
+    to change it back to `true` (the default) and perform another rolling update of the cluster. The
+    agents will now be sending encrypted gossip but will still allow incoming unencrypted traffic.
+4.  Remove the [`encrypt_verify_incoming`](/docs/agent/options.html#encrypt_verify_incoming) setting
+    to change it back to `true` (the default) and perform a final rolling update of the cluster. All the
+    agents will now be strictly enforcing encrypted gossip.
 
 ## RPC Encryption with TLS
 
@@ -79,7 +79,7 @@ Consul requires that all clients and servers have key pairs that are generated b
 Certificate Authority. This can be a private CA, used only internally. The
 CA then signs keys for each of the agents, as in
 [this tutorial on generating both a CA and signing keys](/docs/guides/creating-certificates.html)
-using [cfssl][cfssl]. 
+using [cfssl][https://cfssl.org/].
 
 TLS can be used to verify the authenticity of the servers or verify the authenticity of clients.
 These modes are controlled by the [`verify_outgoing`](/docs/agent/options.html#verify_outgoing),
@@ -90,8 +90,7 @@ If [`verify_outgoing`](/docs/agent/options.html#verify_outgoing) is set, agents 
 authenticity of Consul for outgoing connections. Server nodes must present a certificate signed
 by a common certificate authority present on all agents, set via the agent's
 [`ca_file`](/docs/agent/options.html#ca_file) and [`ca_path`](/docs/agent/options.html#ca_path)
-options. All server nodes must have an appropriate key pair set using [`cert_file`]
-(/docs/agent/options.html#cert_file) and [`key_file`](/docs/agent/options.html#key_file).
+options. All server nodes must have an appropriate key pair set using [`cert_file`](/docs/agent/options.html#cert_file) and [`key_file`](/docs/agent/options.html#key_file).
 
 If [`verify_server_hostname`](/docs/agent/options.html#verify_server_hostname) is set, then
 outgoing connections perform hostname verification. All servers must have a certificate
@@ -117,19 +116,17 @@ As of version 0.8.4, Consul supports migrating to TLS-encrypted traffic on a run
 without downtime. This process assumes a starting point with no TLS settings configured, and involves
 an intermediate step in order to get to full TLS encryption:
 
-1. Generate the necessary keys/certs and set the `ca_file`/`ca_path`, `cert_file`, and `key_file`
-settings in the configuration for each agent. Make sure the `verify_outgoing` and `verify_incoming`
-options are set to `false`. HTTPS for the API can be enabled at this point by
-setting the [`https`](/docs/agent/options.html#http_port) port.
-2. Perform a rolling restart of each agent in the cluster. After this step, TLS should be enabled
-everywhere but the agents will not yet be enforcing TLS.
-3. (Optional, Enterprise-only) If applicable, set the `UseTLS` setting in any network areas to `true`.
-This can be done either through the [`consul operator area update`](/docs/commands/operator/area.html)
-command or the [Operator API](/api/operator/area.html).
-4. Change the `verify_incoming` and `verify_outgoing` settings (as well as `verify_server_hostname`
-if applicable) to `true`.
-5. Perform another rolling restart of each agent in the cluster.
+1.  Generate the necessary keys/certs and set the `ca_file`/`ca_path`, `cert_file`, and `key_file`
+    settings in the configuration for each agent. Make sure the `verify_outgoing` and `verify_incoming`
+    options are set to `false`. HTTPS for the API can be enabled at this point by
+    setting the [`https`](/docs/agent/options.html#http_port) port.
+2.  Perform a rolling restart of each agent in the cluster. After this step, TLS should be enabled
+    everywhere but the agents will not yet be enforcing TLS.
+3.  (Optional, Enterprise-only) If applicable, set the `UseTLS` setting in any network areas to `true`.
+    This can be done either through the [`consul operator area update`](/docs/commands/operator/area.html)
+    command or the [Operator API](/api/operator/area.html).
+4.  Change the `verify_incoming` and `verify_outgoing` settings (as well as `verify_server_hostname`
+    if applicable) to `true`.
+5.  Perform another rolling restart of each agent in the cluster.
 
 At this point, full TLS encryption for RPC communication should be enabled.
-
-[cfssl]: https://cfssl.org/

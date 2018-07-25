@@ -15,9 +15,9 @@ The `/session` endpoints create, destroy, and query sessions in Consul.
 This endpoint initializes a new session. Sessions must be associated with a
 node and may be associated with any number of checks.
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `PUT`  | `/session/create`            | `application/json`         |
+| Method | Path              | Produces           |
+| ------ | ----------------- | ------------------ |
+| `PUT`  | `/session/create` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -30,28 +30,28 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+* `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter. Using this across datacenters is not recommended.
 
-- `LockDelay` `(string: "15s")` - Specifies the duration for the lock delay.
+* `LockDelay` `(string: "15s")` - Specifies the duration for the lock delay.
 
-- `Node` `(string: "<agent>")` - Specifies the name of the node. This must refer
+* `Node` `(string: "<agent>")` - Specifies the name of the node. This must refer
   to a node that is already registered.
 
-- `Name` `(string: "")` - Specifies a human-readable name for the session.
+* `Name` `(string: "")` - Specifies a human-readable name for the session.
 
-- `Checks` `(array<string>: nil)` - specifies a list of associated health
+* `Checks` `(array<string>: nil)` - specifies a list of associated health
   checks. It is highly recommended that, if you override this list, you include
   the default `serfHealth`.
 
-- `Behavior` `(string: "release")` - Controls the behavior to take when a
+* `Behavior` `(string: "release")` - Controls the behavior to take when a
   session is invalidated. Valid values are:
 
-  - `release` - causes any locks that are held to be released
-  - `delete` - causes any locks that are held to be deleted
+  * `release` - causes any locks that are held to be released
+  * `delete` - causes any locks that are held to be deleted
 
-- `TTL` `(string: "")` - Specifies the number of seconds (between 10s and
+* `TTL` `(string: "")` - Specifies the number of seconds (between 10s and
   86400s). If provided, the session is invalidated if it is not renewed before
   the TTL expires. The lowest practical TTL should be used to keep the number of
   managed sessions low. When locks are forcibly expired, such as during a leader
@@ -88,7 +88,7 @@ $ curl \
 }
 ```
 
-- `ID` - the ID of the created session
+* `ID` - the ID of the created session
 
 ## Delete Session
 
@@ -96,9 +96,9 @@ This endpoint destroys the session with the given name. If the session UUID is
 malformed, an error is returned. If the session UUID does not exist or already
 expired, a 200 is still returned (the operation is idempotent).
 
-| Method | Path                         | Produces                   |
-| :----- | :--------------------------- | -------------------------- |
-| `PUT`  | `/session/destroy/:uuid`     | `application/json`         |
+| Method | Path                     | Produces           |
+| :----- | :----------------------- | ------------------ |
+| `PUT`  | `/session/destroy/:uuid` | `application/json` |
 
 Even though the Content-Type is `application/json`, the response is
 either a literal `true` or `false`, indicating of whether the destroy was
@@ -115,10 +115,10 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `uuid` `(string: <required>)` - Specifies the UUID of the session to destroy.
+* `uuid` `(string: <required>)` - Specifies the UUID of the session to destroy.
   This is required and is specified as part of the URL path.
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+* `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter. Using this across datacenters is not recommended.
 
@@ -140,9 +140,9 @@ true
 
 This endpoint returns the requested session information.
 
-| Method | Path                         | Produces                   |
-| :----- | :--------------------------- | -------------------------- |
-| `GET`  | `/session/info/:uuid`        | `application/json`         |
+| Method | Path                  | Produces           |
+| :----- | :-------------------- | ------------------ |
+| `GET`  | `/session/info/:uuid` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -155,10 +155,10 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `uuid` `(string: <required>)` - Specifies the UUID of the session to read.
+* `uuid` `(string: <required>)` - Specifies the UUID of the session to read.
   This is required and is specified as part of the URL path.
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+* `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter. Using this across datacenters is not recommended.
 
@@ -174,10 +174,8 @@ $ curl \
 ```json
 [
   {
-    "LockDelay": 1.5e+10,
-    "Checks": [
-      "serfHealth"
-    ],
+    "LockDelay": 1.5e10,
+    "Checks": ["serfHealth"],
     "Node": "foobar",
     "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
     "CreateIndex": 1086449
@@ -191,9 +189,9 @@ If the session does not exist, `null` is returned instead of a JSON list.
 
 This endpoint returns the active sessions for a given node.
 
-| Method | Path                         | Produces                   |
-| :----- | :--------------------------- | -------------------------- |
-| `GET`  | `/session/node/:node`        | `application/json`         |
+| Method | Path                  | Produces           |
+| :----- | :-------------------- | ------------------ |
+| `GET`  | `/session/node/:node` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -206,10 +204,10 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `node` `(string: <required>)` - Specifies the name or ID of the node to query.
+* `node` `(string: <required>)` - Specifies the name or ID of the node to query.
   This is required and is specified as part of the URL path.
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+* `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter. Using this across datacenters is not recommended.
 
@@ -225,14 +223,12 @@ $ curl \
 ```json
 [
   {
-    "LockDelay": 1.5e+10,
-    "Checks": [
-      "serfHealth"
-    ],
+    "LockDelay": 1.5e10,
+    "Checks": ["serfHealth"],
     "Node": "foobar",
     "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
     "CreateIndex": 1086449
-  },
+  }
 ]
 ```
 
@@ -240,9 +236,9 @@ $ curl \
 
 This endpoint returns the list of active sessions.
 
-| Method | Path                         | Produces                   |
-| :----- | :--------------------------- | -------------------------- |
-| `GET`  | `/session/list`              | `application/json`         |
+| Method | Path            | Produces           |
+| :----- | :-------------- | ------------------ |
+| `GET`  | `/session/list` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -255,7 +251,7 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+* `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter. Using this across datacenters is not recommended.
 
@@ -271,14 +267,12 @@ $ curl \
 ```json
 [
   {
-    "LockDelay": 1.5e+10,
-    "Checks": [
-      "serfHealth"
-    ],
+    "LockDelay": 1.5e10,
+    "Checks": ["serfHealth"],
     "Node": "foobar",
     "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
     "CreateIndex": 1086449
-  },
+  }
 ]
 ```
 
@@ -287,9 +281,9 @@ $ curl \
 This endpoint renews the given session. This is used with sessions that have a
 TTL, and it extends the expiration by the TTL.
 
-| Method | Path                         | Produces                   |
-| :----- | :--------------------------- | -------------------------- |
-| `PUT`  | `/session/renew/:uuid`       | `application/json`         |
+| Method | Path                   | Produces           |
+| :----- | :--------------------- | ------------------ |
+| `PUT`  | `/session/renew/:uuid` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -302,10 +296,10 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `uuid` `(string: <required>)` - Specifies the UUID of the session to renew.
+* `uuid` `(string: <required>)` - Specifies the UUID of the session to renew.
   This is required and is specified as part of the URL path.
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+* `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter. Using this across datacenters is not recommended.
 
@@ -322,10 +316,8 @@ $ curl \
 ```json
 [
   {
-    "LockDelay": 1.5e+10,
-    "Checks": [
-      "serfHealth"
-    ],
+    "LockDelay": 1.5e10,
+    "Checks": ["serfHealth"],
     "Node": "foobar",
     "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
     "CreateIndex": 1086449,

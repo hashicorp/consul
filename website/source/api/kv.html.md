@@ -28,9 +28,9 @@ This endpoint returns the specified key. If no key exists at the given path, a
 
 For multi-key reads, please consider using [transaction](/api/txn.html).
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/kv/:key`                   | `application/json`         |
+| Method | Path       | Produces           |
+| ------ | ---------- | ------------------ |
+| `GET`  | `/kv/:key` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -43,25 +43,25 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `key` `(string: "")` - Specifies the path of the key to read.
+* `key` `(string: "")` - Specifies the path of the key to read.
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+* `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter.
 
-- `recurse` `(bool: false)` - Specifies if the lookup should be recursive and
+* `recurse` `(bool: false)` - Specifies if the lookup should be recursive and
   `key` treated as a prefix instead of a literal match. This is specified as
   part of the URL as a query parameter.
 
-- `raw` `(bool: false)` - Specifies the response is just the raw value of the
+* `raw` `(bool: false)` - Specifies the response is just the raw value of the
   key, without any encoding or metadata. This is specified as part of the URL as
   a query parameter.
 
-- `keys` `(bool: false)` - Specifies to return only keys (no values or
+* `keys` `(bool: false)` - Specifies to return only keys (no values or
   metadata). Specifying this implies `recurse`. This is specified as part of the
   URL as a query parameter.
 
-- `separator` `(string: '/')` - Specifies the character to use as a separator
+* `separator` `(string: '/')` - Specifies the character to use as a separator
   for recursive lookups. This is specified as part of the URL as a query
   parameter.
 
@@ -90,10 +90,10 @@ $ curl \
 ]
 ```
 
-- `CreateIndex` is the internal index value that represents when the entry was
+* `CreateIndex` is the internal index value that represents when the entry was
   created.
 
-- `ModifyIndex` is the last index that modified this key. This index corresponds
+* `ModifyIndex` is the last index that modified this key. This index corresponds
   to the `X-Consul-Index` header value that is returned in responses, and it can
   be used to establish blocking queries by setting the `?index` query parameter.
   You can even perform blocking queries against entire subtrees of the KV store:
@@ -101,16 +101,16 @@ $ curl \
   latest `ModifyIndex` within the prefix, and a blocking query using that
   `?index` will wait until any key within that prefix is updated.
 
-- `LockIndex` is the number of times this key has successfully been acquired in
+* `LockIndex` is the number of times this key has successfully been acquired in
   a lock. If the lock is held, the `Session` key provides the session that owns
   the lock.
 
-- `Key` is simply the full path of the entry.
+* `Key` is simply the full path of the entry.
 
-- `Flags` is an opaque unsigned integer that can be attached to each entry.
+* `Flags` is an opaque unsigned integer that can be attached to each entry.
   Clients can choose to use this however makes sense for their application.
 
-- `Value` is a base64-encoded blob of data.
+* `Value` is a base64-encoded blob of data.
 
 #### Keys Response
 
@@ -119,11 +119,7 @@ array of strings instead of an array of JSON objects. Listing `/web/` with a `/`
 separator may return:
 
 ```json
-[
-  "/web/bar",
-  "/web/foo",
-  "/web/subdir/"
-]
+["/web/bar", "/web/foo", "/web/subdir/"]
 ```
 
 Using the key listing method may be suitable when you do not need the values or
@@ -145,9 +141,9 @@ response)
 
 This endpoint
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `PUT`  | `/kv/:key`                   | `application/json`         |
+| Method | Path       | Produces           |
+| ------ | ---------- | ------------------ |
+| `PUT`  | `/kv/:key` | `application/json` |
 
 Even though the return type is `application/json`, the value is either `true` or
 `false`, indicating whether the create/update succeeded.
@@ -163,23 +159,23 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `key` `(string: "")` - Specifies the path of the key to read.
+* `key` `(string: "")` - Specifies the path of the key to read.
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+* `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter.
 
-- `flags` `(int: 0)` - Specifies an unsigned value between `0` and `(2^64)-1`.
+* `flags` `(int: 0)` - Specifies an unsigned value between `0` and `(2^64)-1`.
   Clients can choose to use this however makes sense for their application. This
   is specified as part of the URL as a query parameter.
 
-- `cas` `(int: 0)` - Specifies to use a Check-And-Set operation. This is very
+* `cas` `(int: 0)` - Specifies to use a Check-And-Set operation. This is very
   useful as a building block for more complex synchronization primitives. If the
   index is 0, Consul will only put the key if it does not already exist. If the
   index is non-zero, the key is only set if the index matches the `ModifyIndex`
   of that key.
 
-- `acquire` `(string: "")` - Specifies to use a lock acquisition operation. This
+* `acquire` `(string: "")` - Specifies to use a lock acquisition operation. This
   is useful as it allows leader election to be built on top of Consul. If the
   lock is not held and the session is valid, this increments the `LockIndex` and
   sets the `Session` value of the key in addition to updating the key contents.
@@ -190,10 +186,9 @@ The table below shows this endpoint's support for
   that does not include the acquire parameter will proceed normally even if another
   session has locked the key.**
 
-    For an example of how to use the lock feature, see the [Leader Election Guide]
-    (/docs/guides/leader-election.html).
+  For an example of how to use the lock feature, see the [Leader Election Guide](/docs/guides/leader-election.html).
 
-- `release` `(string: "")` - Specifies to use a lock release operation. This is
+* `release` `(string: "")` - Specifies to use a lock release operation. This is
   useful when paired with `?acquire=` as it allows clients to yield a lock. This
   will leave the `LockIndex` unmodified but will clear the associated `Session`
   of the key. The key must be held by this session to be unlocked.
@@ -228,9 +223,9 @@ true
 
 This endpoint deletes a single key or all keys sharing a prefix.
 
-| Method   | Path                         | Produces                   |
-| -------- | ---------------------------- | -------------------------- |
-| `DELETE` | `/kv/:key`                   | `application/json`         |
+| Method   | Path       | Produces           |
+| -------- | ---------- | ------------------ |
+| `DELETE` | `/kv/:key` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -243,11 +238,11 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `recurse` `(bool: false)` - Specifies to delete all keys which have the
+* `recurse` `(bool: false)` - Specifies to delete all keys which have the
   specified prefix. Without this, only a key with an exact match will be
   deleted.
 
-- `cas` `(int: 0)` - Specifies to use a Check-And-Set operation. This is very
+* `cas` `(int: 0)` - Specifies to use a Check-And-Set operation. This is very
   useful as a building block for more complex synchronization primitives. Unlike
   `PUT`, the index must be greater than 0 for Consul to take any action: a 0
   index will not delete the key. If the index is non-zero, the key is only

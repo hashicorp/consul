@@ -12,7 +12,7 @@ This guide demonstrates how to implement a distributed semaphore using the Consu
 KV store. This is useful when you want to coordinate many services while
 restricting access to certain resources.
 
-~>  If you only need mutual exclusion or leader election,
+~> If you only need mutual exclusion or leader election,
 [this guide](/docs/guides/leader-election.html)
 provides a simpler algorithm that can be used instead.
 
@@ -44,7 +44,7 @@ The first step is to create a session. This is done using the
 ```text
 curl  -X PUT -d '{"Name": "dbservice"}' \
   http://localhost:8500/v1/session/create
- ```
+```
 
 This will return a JSON object contain the session ID:
 
@@ -63,7 +63,7 @@ This is something like:
 
 ```text
 curl -X PUT -d <body> http://localhost:8500/v1/kv/<prefix>/<session>?acquire=<session>
- ```
+```
 
 The `<session>` value is the ID returned by the call to
 [`/v1/session/create`](/api/session.html#session_create).
@@ -83,7 +83,7 @@ The current state of the semaphore is read by doing a `GET` on the entire `<pref
 
 ```text
 curl http://localhost:8500/v1/kv/<prefix>?recurse
- ```
+```
 
 Within the list of the entries, we should find the `<lock>`. That entry should hold
 both the slot limit and the current holders. A simple JSON body like the following works:
@@ -114,7 +114,7 @@ This is done by:
 
 ```text
 curl -X PUT -d <Updated Lock> http://localhost:8500/v1/kv/<lock>?cas=<lock-modify-index>
- ```
+```
 
 If this succeeds with `true`, the contender now holds a slot in the semaphore. If this fails
 with `false`, then likely there was a race with another contender to acquire the slot.

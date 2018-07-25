@@ -37,7 +37,7 @@ The first step is to create a session using the
 ```text
 curl  -X PUT -d '{"Name": "dbservice"}' \
   http://localhost:8500/v1/session/create
- ```
+```
 
 This will return a JSON object containing the session ID:
 
@@ -61,7 +61,7 @@ Attempt to `acquire` the `<key>`. This will look something like (note that
 
 ```text
 curl -X PUT -d <body> http://localhost:8500/v1/kv/<key>?acquire=<session>
- ```
+```
 
 This will either return `true` or `false`. If `true`, the lock has been acquired and
 the local node is now the leader. If `false` is returned, some other node has acquired

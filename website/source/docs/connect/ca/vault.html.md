@@ -24,9 +24,9 @@ CA providers.
 Prior to using Vault as a CA provider for Consul, the following requirements
 must be met:
 
-  * **Vault 0.10.3 or later.** Consul uses URI SANs in the PKI engine which
-    were introduced in Vault 0.10.3. Prior versions of Vault are not
-    compatible with Connect.
+* **Vault 0.10.3 or later.** Consul uses URI SANs in the PKI engine which
+  were introduced in Vault 0.10.3. Prior versions of Vault are not
+  compatible with Connect.
 
 ## Configuration
 
@@ -51,22 +51,22 @@ The set of configuration options is listed below. The
 first key is the value used in API calls while the second key (after the `/`)
 is used if configuring in an agent configuration file.
 
-  * `Address` / `address` (`string: <required>`) - The address of the Vault
-    server.
+* `Address` / `address` (`string: <required>`) - The address of the Vault
+  server.
 
-  * `Token` / `token` (`string: <required>`) - A token for accessing Vault.
-    This is write-only and will not be exposed when reading the CA configuration.
-    This token must have proper privileges for the PKI paths configured.
+* `Token` / `token` (`string: <required>`) - A token for accessing Vault.
+  This is write-only and will not be exposed when reading the CA configuration.
+  This token must have proper privileges for the PKI paths configured.
 
-  * `RootPKIPath` / `root_pki_path` (`string: <required>`) - The path to
-    a PKI secrets engine for the root certificate. If the path doesn't
-    exist, Consul will attempt to mount and configure this automatically.
+* `RootPKIPath` / `root_pki_path` (`string: <required>`) - The path to
+  a PKI secrets engine for the root certificate. If the path doesn't
+  exist, Consul will attempt to mount and configure this automatically.
 
-  * `IntermediatePKIPath` / `intermediate_pki_path` (`string: <required>`) -
-    The path to a PKI secrets engine for the generated intermediate certificate.
-    This certificate will be signed by the configured root PKI path. If this
-    path doesn't exist, Consul will attempt to mount and configure this
-    automatically.
+* `IntermediatePKIPath` / `intermediate_pki_path` (`string: <required>`) -
+  The path to a PKI secrets engine for the generated intermediate certificate.
+  This certificate will be signed by the configured root PKI path. If this
+  path doesn't exist, Consul will attempt to mount and configure this
+  automatically.
 
 ## Root and Intermediate PKI Paths
 

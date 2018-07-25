@@ -12,8 +12,7 @@ description: >
 # Consul Cluster
 
 We've started our first agent and registered and queried a service on that
-agent. Additionally, we've configured Consul Connect to automatically authorize and encrypt connections between services. This showed how easy it is to use Consul but didn't show how this could be extended to a scalable, production-grade service mesh infrastructure.
-In this step, we'll create our first real cluster with multiple members.
+agent. Additionally, we've configured Consul Connect to automatically authorize and encrypt connections between services. This showed how easy it is to use Consul but didn't show how this could be extended to a scalable, production-grade service mesh infrastructure. This showed how easy it is to use Consul but didn't show how this could be extended to a scalable, production-grade service discovery infrastructure. In this step, we'll create our first real cluster with multiple members.
 
 When a Consul agent is started, it begins without knowledge of any other node:
 it is an isolated cluster of one. To learn about other cluster members, the
@@ -26,8 +25,7 @@ A Consul agent can join any other agent, not just agents in server mode.
 
 To simulate a more realistic cluster, we will start a two node cluster via
 [Vagrant](https://www.vagrantup.com/). The Vagrantfile we will be using can
-be found in the [demo section of the Consul repo]
-(https://github.com/hashicorp/consul/tree/master/demo/vagrant-cluster).
+be found in the [demo section of the Consul repo](https://github.com/hashicorp/consul/tree/master/demo/vagrant-cluster).
 
 We first boot our two nodes:
 
@@ -53,7 +51,7 @@ hostname of the machine, but we'll manually override it using the [`-node`
 command-line option](/docs/agent/options.html#_node).
 
 We will also specify a [`bind` address](/docs/agent/options.html#_bind):
-this is the address that Consul listens on, and it *must* be accessible by
+this is the address that Consul listens on, and it _must_ be accessible by
 all other nodes in the cluster. While a `bind` address is not strictly
 necessary, it's always best to provide one. Consul will by default attempt to
 listen on all IPv4 interfaces on a system, but will fail to start with an
@@ -146,6 +144,7 @@ learn about <em>one existing member</em>. After joining the cluster, the
 agents gossip with each other to propagate full membership information.
 
 ## Auto-joining a Cluster on Start
+
 Ideally, whenever a new node is brought up in your datacenter, it should automatically join the Consul cluster without human intervention. Consul facilitates auto-join by enabling the auto-discovery of instances in AWS, Google Cloud or Azure with a given tag key/value. To use the integration, add the [`retry_join_ec2`](/docs/agent/options.html?#retry_join_ec2), [`retry_join_gce`](/docs/agent/options.html?#retry_join_gce) or the [`retry_join_azure`](/docs/agent/options.html?#retry_join_azure) nested object to your Consul configuration file. This will allow a new node to join the cluster without any hardcoded configuration. Alternatively, you can join a cluster at startup using the [`-join` flag](/docs/agent/options.html#_join) or [`start_join` setting](/docs/agent/options.html#start_join) with hardcoded addresses of other known Consul agents.
 
 ## Querying Nodes

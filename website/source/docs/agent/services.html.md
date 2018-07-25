@@ -35,7 +35,7 @@ example shows all possible fields, but note that only a few are required.
     "address": "",
     "meta": {
       "meta": "for my service"
-    },
+    }
     "port": 8000,
     "enable_tag_override": false,
     "checks": [
@@ -118,7 +118,7 @@ sync cycle the service's port would revert to the original value but the
 tags would maintain the updated value. As a counter example: If an
 external agent modified both the tags and port for this service and
 `enable_tag_override` was set to `FALSE` then after the next sync cycle the
-service's port *and* the tags would revert to the original value and all
+service's port _and_ the tags would revert to the original value and all
 modifications would be lost.
 
 It's important to note that this applies only to the locally registered

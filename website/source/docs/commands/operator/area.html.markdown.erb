@@ -10,10 +10,11 @@ description: >
 
 Command: `consul operator area`
 
-[//]: # ( ~> The network area functionality described here is available only in )
-[//]: # (   [Consul Enterprise](https://www.hashicorp.com/products/consul/) version 0.8.0 and later. )
+[//]: # ' ~> The network area functionality described here is available only in '
 
-<%= enterprise_alert :consul %>
+[//]: # ( [Consul Enterprise](https://www.hashicorp.com/products/consul/) version 0.8.0 and later. )
+
+<hashi-button title='Enterprise Alert'></hashi-button>
 
 Consul Enterprise version supports network areas, which are operator-defined relationships
 between servers in two different Consul datacenters. The operator area command is used to
@@ -62,14 +63,14 @@ Usage: `consul operator area create [options]`
 #### Command Options
 
 * `-peer-datacenter=<value>` - Declares the peer Consul datacenter that will make up the other
-side of this network area. Network areas always involve a pair of datacenters: the datacenter
-where the area was created, and the peer datacenter. This is required.
+  side of this network area. Network areas always involve a pair of datacenters: the datacenter
+  where the area was created, and the peer datacenter. This is required.
 
 * `-retry-join=<value>` Specifies the address of a Consul server to join to, such as an IP
-or hostname with an optional port number. This is optional and can be specified multiple times.
+  or hostname with an optional port number. This is optional and can be specified multiple times.
 
 * `-use-tls=<value>` Specifies whether gossip over this area should be encrypted with
-TLS if possible. Must be either `true` or `false`.
+  TLS if possible. Must be either `true` or `false`.
 
 The output looks like this, displaying the ID of the newly-created network area:
 
@@ -93,10 +94,10 @@ Usage: `consul operator area delete [options]`
 #### Command Options
 
 * `-id=<value>` - Looks up the area to operate on by its ID. This can be given
-instead of a peer datacenter.
+  instead of a peer datacenter.
 
 * `-peer-datacenter=<value>` - Looks up the area to operate on by its peer
-datacenter. This can be given instead of an ID.
+  datacenter. This can be given instead of an ID.
 
 The output looks like this:
 
@@ -121,10 +122,10 @@ Usage: `consul operator area join [options] ADDRESSES`
 #### Command Options
 
 * `-id=<value>` - Looks up the area to operate on by its ID. This can be given
-instead of a peer datacenter.
+  instead of a peer datacenter.
 
 * `-peer-datacenter=<value>` - Looks up the area to operate on by its peer
-datacenter. This can be given instead of an ID.
+  datacenter. This can be given instead of an ID.
 
 The output looks like this:
 
@@ -182,10 +183,10 @@ Usage: `consul operator area members [options]`
 #### Command Options
 
 * `-id=<value>` - Looks up the area to operate on by its ID. This can be given
-instead of a peer datacenter.
+  instead of a peer datacenter.
 
 * `-peer-datacenter=<value>` - Looks up the area to operate on by its peer
-datacenter. This can be given instead of an ID.
+  datacenter. This can be given instead of an ID.
 
 The output looks like this:
 
@@ -235,14 +236,14 @@ Usage: `consul operator area update [options]`
 #### Command Options
 
 * `-id=<value>` - Looks up the area to operate on by its ID. This can be given
-instead of a peer datacenter.
+  instead of a peer datacenter.
 
 * `-peer-datacenter=<value>` - Declares the peer Consul datacenter that will make up the other
-side of this network area. Network areas always involve a pair of datacenters: the datacenter
-where the area was created, and the peer datacenter. This is required.
+  side of this network area. Network areas always involve a pair of datacenters: the datacenter
+  where the area was created, and the peer datacenter. This is required.
 
 * `-use-tls=<value>` Specifies whether gossip over this area should be encrypted with
-TLS if possible. Must be either `true` or `false`.
+  TLS if possible. Must be either `true` or `false`.
 
 The output looks like this:
 

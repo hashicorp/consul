@@ -28,13 +28,11 @@ There are several different kinds of checks:
   Consul will wait for any child processes spawned by the script to finish. For any
   other system, Consul will attempt to force-kill the script and any child processes
   it has spawned once the timeout has passed.
-  In Consul 0.9.0 and later, the agent must be configured with [`enable_script_checks`]
-  (/docs/agent/options.html#_enable_script_checks) set to `true` in order to enable script checks.
+  In Consul 0.9.0 and later, the agent must be configured with [`enable_script_checks`](/docs/agent/options.html#_enable_script_checks) set to `true` in order to enable script checks.
 
 * HTTP + Interval - These checks make an HTTP `GET` request every Interval (e.g.
   every 30 seconds) to the specified URL. The status of the service depends on
-  the HTTP response code: any `2xx` code is considered passing, a `429 Too Many
-  Requests` is a warning, and anything else is a failure. This type of check
+  the HTTP response code: any `2xx` code is considered passing, a `429 Too Many Requests` is a warning, and anything else is a failure. This type of check
   should be preferred over a script that uses `curl` or another external process
   to check a simple HTTP operation. By default, HTTP checks are `GET` requests
   unless the `method` field specifies a different method. Additional header
@@ -81,7 +79,7 @@ There are several different kinds of checks:
 * Docker + Interval - These checks depend on invoking an external application which
   is packaged within a Docker Container. The application is triggered within the running
   container via the Docker Exec API. We expect that the Consul agent user has access
-  to either the Docker HTTP API or the unix socket. Consul uses ```$DOCKER_HOST``` to
+  to either the Docker HTTP API or the unix socket. Consul uses `$DOCKER_HOST` to
   determine the Docker API endpoint. The application is expected to run, perform a health
   check of the service running inside the container, and exit with an appropriate exit code.
   The check should be paired with an invocation interval. The shell on which the check
@@ -233,6 +231,7 @@ to watch the state of the aliased node or service.
 Script, TCP, HTTP, Docker, and gRPC checks must include an `interval` field. This
 field is parsed by Go's `time` package, and has the following
 [formatting specification](https://golang.org/pkg/time/#ParseDuration):
+
 > A duration string is a possibly signed sequence of decimal numbers, each with
 > optional fraction and a unit suffix, such as "300ms", "-1.5h" or "2h45m".
 > Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
@@ -259,9 +258,9 @@ A check script is generally free to do anything to determine the status
 of the check. The only limitations placed are that the exit codes must obey
 this convention:
 
- * Exit code 0 - Check is passing
- * Exit code 1 - Check is warning
- * Any other code - Check is failing
+* Exit code 0 - Check is passing
+* Exit code 1 - Check is warning
+* Any other code - Check is failing
 
 This is the only convention that Consul depends on. Any output of the script
 will be captured and stored in the `notes` field so that it can be viewed

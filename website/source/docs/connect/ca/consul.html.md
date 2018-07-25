@@ -39,19 +39,19 @@ A number of optional configuration options are supported. The
 first key is the value used in API calls while the second key (after the `/`)
 is used if configuring in an agent configuration file.
 
-  * `PrivateKey` / `private_key` (`string: ""`) - A PEM-encoded private key
-    for signing operations. This must match the private key used for the root
-    certificate if it is manually specified. If this is blank, a private key
-    is automatically generated.
+* `PrivateKey` / `private_key` (`string: ""`) - A PEM-encoded private key
+  for signing operations. This must match the private key used for the root
+  certificate if it is manually specified. If this is blank, a private key
+  is automatically generated.
 
-  * `RootCert` / `root_cert` (`string: ""`) - A PEM-encoded root certificate
-    to use. If this is blank, a root certificate is automatically generated
-    using the private key specified. If this is specified, the certificate
-    must be a valid
-    [SPIFFE SVID signing certificate](https://github.com/spiffe/spiffe/blob/master/standards/X509-SVID.md)
-    and the URI in the SAN must match the cluster identifier created at
-    bootstrap with the ".consul" TLD. The cluster identifier can be found
-    using the [CA List Roots endpoint](/api/connect/ca.html#list-ca-root-certificates).
+* `RootCert` / `root_cert` (`string: ""`) - A PEM-encoded root certificate
+  to use. If this is blank, a root certificate is automatically generated
+  using the private key specified. If this is specified, the certificate
+  must be a valid
+  [SPIFFE SVID signing certificate](https://github.com/spiffe/spiffe/blob/master/standards/X509-SVID.md)
+  and the URI in the SAN must match the cluster identifier created at
+  bootstrap with the ".consul" TLD. The cluster identifier can be found
+  using the [CA List Roots endpoint](/api/connect/ca.html#list-ca-root-certificates).
 
 ## Specifying a Custom Private Key and Root Certificate
 
@@ -61,8 +61,7 @@ the Consul CA provider to use a specific private key and root certificate.
 This is particularly useful if you have an external PKI system that doesn't
 currently integrate with Consul directly.
 
-To view the current CA configuration, use the [Get CA Configuration endpoint]
-(/api/connect/ca.html#get-ca-configuration):
+To view the current CA configuration, use the [Get CA Configuration endpoint](/api/connect/ca.html#get-ca-configuration):
 
 ```bash
 $ curl localhost:8500/v1/connect/ca/configuration
@@ -81,13 +80,10 @@ Connect is enabled - the PrivateKey and RootCert fields have not been set, so th
 been generated (as seen above in the roots list).
 
 There are two ways to have the Consul CA use a custom private key and root certificate:
-either through the `ca_config` section of the [Agent configuration]
-(/docs/agent/options.html#connect_ca_config) (which can only be used during the cluster's
-initial bootstrap) or through the [Update CA Configuration endpoint]
-(/api/connect/ca.html#update-ca-configuration).
+either through the `ca_config` section of the [Agent configuration](/docs/agent/options.html#connect_ca_config) (which can only be used during the cluster's
+initial bootstrap) or through the [Update CA Configuration endpoint](/api/connect/ca.html#update-ca-configuration).
 
-Currently consul requires that root certificates are valid [SPIFFE SVID Signing certificates]
-(https://github.com/spiffe/spiffe/blob/master/standards/X509-SVID.md) and that the URI encoded
+Currently consul requires that root certificates are valid [SPIFFE SVID Signing certificates](https://github.com/spiffe/spiffe/blob/master/standards/X509-SVID.md) and that the URI encoded
 in the SAN is the cluster identifier created at bootstrap with the ".consul" TLD. In this
 example, we will set the URI SAN to `spiffe://36cb52cd-4058-f811-0432-6798a240c5d3.consul`.
 

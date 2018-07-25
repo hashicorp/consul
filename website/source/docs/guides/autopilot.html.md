@@ -85,17 +85,16 @@ with the `-cleanup-dead-servers=false` option.
 ## Server Health Checking
 
 An internal health check runs on the leader to track the stability of servers.
-</br>A server is considered healthy if all of the following conditions are true:
+<br>A server is considered healthy if all of the following conditions are true:
 
-- It has a SerfHealth status of 'Alive'
-- The time since its last contact with the current leader is below
-`LastContactThreshold`
-- Its latest Raft term matches the leader's term
-- The number of Raft log entries it trails the leader by does not exceed
-`MaxTrailingLogs`
+* It has a SerfHealth status of 'Alive'
+* The time since its last contact with the current leader is below
+  `LastContactThreshold`
+* Its latest Raft term matches the leader's term
+* The number of Raft log entries it trails the leader by does not exceed
+  `MaxTrailingLogs`
 
-The status of these health checks can be viewed through the [`/v1/operator/autopilot/health`]
-(/api/operator.html#autopilot-health) HTTP endpoint, with a top level
+The status of these health checks can be viewed through the [`/v1/operator/autopilot/health`](/api/operator.html#autopilot-health) HTTP endpoint, with a top level
 `Healthy` field indicating the overall status of the cluster:
 
 ```
@@ -146,7 +145,7 @@ setting.
 ---
 
 ~> The following Autopilot features are available only in
-   [Consul Enterprise](https://www.hashicorp.com/products/consul/) version 0.8.0 and later.
+[Consul Enterprise](https://www.hashicorp.com/products/consul/) version 0.8.0 and later.
 
 ## Server Read Scaling
 
@@ -191,8 +190,7 @@ equals or exceeds that of the old servers, Autopilot will begin promoting the ne
 to voters and demoting the old servers. After this is finished, the old servers can be
 safely removed from the cluster.
 
-To check the consul version of the servers, either the [autopilot health]
-(/api/operator.html#autopilot-health) endpoint or the `consul members`
+To check the consul version of the servers, either the [autopilot health](/api/operator.html#autopilot-health) endpoint or the `consul members`
 command can be used:
 
 ```

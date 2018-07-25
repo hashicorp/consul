@@ -31,17 +31,17 @@ won't be present if the transaction contains any write operations, and any
 consistency query parameters will be ignored, since writes are always managed by
 the leader via the Raft consensus protocol.
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `PUT`  | `/txn`                       | `application/json`         |
+| Method | Path   | Produces           |
+| ------ | ------ | ------------------ |
+| `PUT`  | `/txn` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
 [consistency modes](/api/index.html#consistency-modes), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required |
-| ---------------- | ----------------- | ------------ |
+| Blocking Queries | Consistency Modes | ACL Required                     |
+| ---------------- | ----------------- | -------------------------------- |
 | `NO`             | `all`<sup>1</sup> | `key:read,key:write`<sup>2</sup> |
 
 <sup>1</sup> For read-only transactions
@@ -50,28 +50,28 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default
+* `dc` `(string: "")` - Specifies the datacenter to query. This will default
   to the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter.
 
-- `KV` is the only available operation type, though other types may be added in the future.
+* `KV` is the only available operation type, though other types may be added in the future.
 
-  - `Verb` `(string: <required>)` - Specifies the type of operation to perform.
+  * `Verb` `(string: <required>)` - Specifies the type of operation to perform.
     Please see the table below for available verbs.
 
-  - `Key` `(string: <required>)` - Specifies the full path of the entry.
+  * `Key` `(string: <required>)` - Specifies the full path of the entry.
 
-  - `Value` `(string: "")` - Specifies a **base64-encoded** blob of data. Values
+  * `Value` `(string: "")` - Specifies a **base64-encoded** blob of data. Values
     cannot be larger than 512kB.
 
-  - `Flags` `(int: 0)` - Specifies an opaque unsigned integer that can be
+  * `Flags` `(int: 0)` - Specifies an opaque unsigned integer that can be
     attached to each entry. Clients can choose to use this however makes sense
     for their application.
 
-  - `Index` `(int: 0)` - Specifies an index. See the table below for more
+  * `Index` `(int: 0)` - Specifies an index. See the table below for more
     information.
 
-  - `Session` `(string: "")` - Specifies a session. See the table below for more
+  * `Session` `(string: "")` - Specifies a session. See the table below for more
     information.
 
 ### Sample Payload
@@ -133,13 +133,13 @@ look like this:
 }
 ```
 
-- `Results` has entries for some operations if the transaction was successful.
+* `Results` has entries for some operations if the transaction was successful.
   To save space, the `Value` will be `null` for any `Verb` other than "get" or
   "get-tree". Like the `/v1/kv/<key>` endpoint, `Value` will be Base64-encoded
-  if it is present. Also, no result entries  will be added for verbs that delete
+  if it is present. Also, no result entries will be added for verbs that delete
   keys.
 
-- `Errors` has entries describing which operations failed if the transaction was
+* `Errors` has entries describing which operations failed if the transaction was
   rolled back. The `OpIndex` gives the index of the failed operation in the
   transaction, and `What` is a string with an error message about why that
   operation failed.
@@ -149,17 +149,17 @@ look like this:
 The following table summarizes the available verbs and the fields that apply to
 that operation ("X" means a field is required and "O" means it is optional):
 
-| Verb               | Operation                                    | Key  | Value | Flags | Index | Session |
-| ------------------ | -------------------------------------------- | :--: | :---: | :---: | :---: | :-----: |
-| `set`              | Sets the `Key` to the given `Value`          | `x`  | `x`   | `o`   |       |         |  
-| `cas`              | Sets, but with CAS semantics                 | `x`  | `x`   | `o`   | `x`   |         |  
-| `lock`             | Lock with the given `Session`                | `x`  | `x`   | `o`   |       | `x`     |  
-| `unlock`           | Unlock with the given `Session`              | `x`  | `x`   | `o`   |       | `x`     |  
-| `get`              | Get the key, fails if it does not exist      | `x`  |       |       |       |         |  
-| `get-tree`         | Gets all keys with the prefix                | `x`  |       |       |       |         |  
-| `check-index`      | Fail if modify index != index                | `x`  |       |       | `x`   |         |  
-| `check-session`    | Fail if not locked by session                | `x`  |       |       |       | `x`     |  
-| `check-not-exists` | Fail if key exists                           | `x`  |       |       |       |         |  
-| `delete`           | Delete the key                               | `x`  |       |       |       |         |  
-| `delete-tree`      | Delete all keys with a prefix                | `x`  |       |       |       |         |  
-| `delete-cas`       | Delete, but with CAS semantics               | `x`  |       |       | `x`   |         |  
+| Verb               | Operation                               | Key | Value | Flags | Index | Session |
+| ------------------ | --------------------------------------- | :-: | :---: | :---: | :---: | :-----: |
+| `set`              | Sets the `Key` to the given `Value`     | `x` |  `x`  |  `o`  |       |         |
+| `cas`              | Sets, but with CAS semantics            | `x` |  `x`  |  `o`  |  `x`  |         |
+| `lock`             | Lock with the given `Session`           | `x` |  `x`  |  `o`  |       |   `x`   |
+| `unlock`           | Unlock with the given `Session`         | `x` |  `x`  |  `o`  |       |   `x`   |
+| `get`              | Get the key, fails if it does not exist | `x` |       |       |       |         |
+| `get-tree`         | Gets all keys with the prefix           | `x` |       |       |       |         |
+| `check-index`      | Fail if modify index != index           | `x` |       |       |  `x`  |         |
+| `check-session`    | Fail if not locked by session           | `x` |       |       |       |   `x`   |
+| `check-not-exists` | Fail if key exists                      | `x` |       |       |       |         |
+| `delete`           | Delete the key                          | `x` |       |       |       |         |
+| `delete-tree`      | Delete all keys with a prefix           | `x` |       |       |       |         |
+| `delete-cas`       | Delete, but with CAS semantics          | `x` |       |       |  `x`  |         |

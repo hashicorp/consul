@@ -21,40 +21,40 @@ The name and destination pair must be unique. If another intention matches
 the name and destination, the creation will fail. You must either update the
 existing intention or delete it prior to creating a new one.
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `POST` | `/connect/intentions`        | `application/json`         |
+| Method | Path                  | Produces           |
+| ------ | --------------------- | ------------------ |
+| `POST` | `/connect/intentions` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
 [consistency modes](/api/index.html#consistency-modes), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required     |
-| ---------------- | ----------------- | ---------------- |
+| Blocking Queries | Consistency Modes | ACL Required    |
+| ---------------- | ----------------- | --------------- |
 | `NO`             | `none`            | `service:write` |
 
 ### Parameters
 
-- `SourceName` `(string: <required>)` - The source of the intention.
+* `SourceName` `(string: <required>)` - The source of the intention.
   For a `SourceType` of `consul` this is the name of a Consul service. The
   service doesn't need to be registered.
 
-- `DestinationName` `(string: <required>)` - The destination of the intention.
+* `DestinationName` `(string: <required>)` - The destination of the intention.
   The intention destination is always a Consul service, unlike the source.
   The service doesn't need to be registered.
 
-- `SourceType` `(string: <required>)` - The type for the `SourceName` value.
+* `SourceType` `(string: <required>)` - The type for the `SourceName` value.
   This can be only "consul" today to represent a Consul service.
 
-- `Action` `(string: <required>)` - This is one of "allow" or "deny" for
+* `Action` `(string: <required>)` - This is one of "allow" or "deny" for
   the action that should be taken if this intention matches a request.
 
-- `Description` `(string: nil)` - Description for the intention. This is not
+* `Description` `(string: nil)` - Description for the intention. This is not
   used for anything by Consul, but is presented in API responses to assist
   tooling.
 
-- `Meta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata pairs.
+* `Meta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata pairs.
 
 ### Sample Payload
 
@@ -88,22 +88,22 @@ $ curl \
 
 This endpoint reads a specific intention.
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/connect/intentions/:uuid`  | `application/json`         |
+| Method | Path                        | Produces           |
+| ------ | --------------------------- | ------------------ |
+| `GET`  | `/connect/intentions/:uuid` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
 [consistency modes](/api/index.html#consistency-modes), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required    |
-| ---------------- | ----------------- | --------------- |
+| Blocking Queries | Consistency Modes | ACL Required   |
+| ---------------- | ----------------- | -------------- |
 | `YES`            | `all`             | `service:read` |
 
 ### Parameters
 
-- `uuid` `(string: <required>)` - Specifies the UUID of the intention to read. This
+* `uuid` `(string: <required>)` - Specifies the UUID of the intention to read. This
   is specified as part of the URL.
 
 ### Sample Request
@@ -140,17 +140,17 @@ $ curl \
 
 This endpoint lists all intentions.
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/connect/intentions`        | `application/json`         |
+| Method | Path                  | Produces           |
+| ------ | --------------------- | ------------------ |
+| `GET`  | `/connect/intentions` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
 [consistency modes](/api/index.html#consistency-modes), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required    |
-| ---------------- | ----------------- | --------------- |
+| Blocking Queries | Consistency Modes | ACL Required   |
+| ---------------- | ----------------- | -------------- |
 | `YES`            | `all`             | `service:read` |
 
 ### Sample Request
@@ -189,25 +189,25 @@ $ curl \
 
 This endpoint updates an intention with the given values.
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `PUT`  | `/connect/intentions/:uuid`  | `application/json`         |
+| Method | Path                        | Produces           |
+| ------ | --------------------------- | ------------------ |
+| `PUT`  | `/connect/intentions/:uuid` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
 [consistency modes](/api/index.html#consistency-modes), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required     |
-| ---------------- | ----------------- | ---------------- |
+| Blocking Queries | Consistency Modes | ACL Required    |
+| ---------------- | ----------------- | --------------- |
 | `NO`             | `none`            | `service:write` |
 
 ### Parameters
 
-- `uuid` `(string: <required>)` - Specifies the UUID of the intention to update. This
+* `uuid` `(string: <required>)` - Specifies the UUID of the intention to update. This
   is specified as part of the URL.
 
-- Other parameters are identical to creating an intention.
+* Other parameters are identical to creating an intention.
 
 ### Sample Payload
 
@@ -233,22 +233,22 @@ $ curl \
 
 This endpoint deletes a specific intention.
 
-| Method   | Path                         | Produces                   |
-| -------- | ---------------------------- | -------------------------- |
-| `DELETE` | `/connect/intentions/:uuid`  | `application/json`         |
+| Method   | Path                        | Produces           |
+| -------- | --------------------------- | ------------------ |
+| `DELETE` | `/connect/intentions/:uuid` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
 [consistency modes](/api/index.html#consistency-modes), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required     |
-| ---------------- | ----------------- | ---------------- |
+| Blocking Queries | Consistency Modes | ACL Required    |
+| ---------------- | ----------------- | --------------- |
 | `NO`             | `none`            | `service:write` |
 
 ### Parameters
 
-- `uuid` `(string: <required>)` - Specifies the UUID of the intention to delete. This
+* `uuid` `(string: <required>)` - Specifies the UUID of the intention to delete. This
   is specified as part of the URL.
 
 ### Sample Request
@@ -269,26 +269,25 @@ This endpoint will work even if the destination service has
 `intention = "deny"` specifically set, because the resulting API response
 does not contain any information about the intention itself.
 
-
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/connect/intentions/check`  | `application/json`         |
+| Method | Path                        | Produces           |
+| ------ | --------------------------- | ------------------ |
+| `GET`  | `/connect/intentions/check` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
 [consistency modes](/api/index.html#consistency-modes), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required     |
-| ---------------- | ----------------- | ---------------- |
+| Blocking Queries | Consistency Modes | ACL Required   |
+| ---------------- | ----------------- | -------------- |
 | `NO`             | `none`            | `service:read` |
 
 ### Parameters
 
-- `source` `(string: <required>)` - Specifies the source service. This
+* `source` `(string: <required>)` - Specifies the source service. This
   is specified as part of the URL.
 
-- `destination` `(string: <required>)` - Specifies the destination service. This
+* `destination` `(string: <required>)` - Specifies the destination service. This
   is specified as part of the URL.
 
 ### Sample Request
@@ -306,32 +305,32 @@ $ curl \
 }
 ```
 
-- `Allowed` is true if the connection would be allowed, false otherwise.
+* `Allowed` is true if the connection would be allowed, false otherwise.
 
 ## List Matching Intentions
 
 This endpoint lists the intentions that match a given source or destination.
 The intentions in the response are in evaluation order.
 
-| Method | Path                           | Produces                   |
-| ------ | ------------------------------ | -------------------------- |
-| `GET`  | `/connect/intentions/match`    | `application/json`         |
+| Method | Path                        | Produces           |
+| ------ | --------------------------- | ------------------ |
+| `GET`  | `/connect/intentions/match` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
 [consistency modes](/api/index.html#consistency-modes), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required    |
-| ---------------- | ----------------- | --------------- |
+| Blocking Queries | Consistency Modes | ACL Required   |
+| ---------------- | ----------------- | -------------- |
 | `NO`             | `none`            | `service:read` |
 
 ### Parameters
 
-- `by` `(string: <required>)` - Specifies whether to match the "name" value
+* `by` `(string: <required>)` - Specifies whether to match the "name" value
   by "source" or "destination".
 
-- `name` `(string: <required>)` - Specifies a name to match. This parameter
+* `name` `(string: <required>)` - Specifies a name to match. This parameter
   can be repeated for batching multiple matches.
 
 ### Sample Request

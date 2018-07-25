@@ -19,9 +19,9 @@ more information about Raft consensus protocol and its use.
 
 This endpoint reads the current raft configuration.
 
-| Method | Path                           | Produces                   |
-| ------ | ------------------------------ | -------------------------- |
-| `GET`  | `/operator/raft/configuration` | `application/json`         |
+| Method | Path                           | Produces           |
+| ------ | ------------------------------ | ------------------ |
+| `GET`  | `/operator/raft/configuration` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -34,11 +34,11 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+* `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query string.
 
-- `stale` `(bool: false)` - If the cluster does not currently have a leader an
+* `stale` `(bool: false)` - If the cluster does not currently have a leader an
   error will be returned. You can use the `?stale` query parameter to read the
   Raft configuration from any of the Consul servers. Not setting this will choose
   the default consistency mode which will forward the request to the leader for
@@ -83,24 +83,24 @@ $ curl \
 }
 ```
 
-- `Servers` is has information about the servers in the Raft peer configuration:
+* `Servers` is has information about the servers in the Raft peer configuration:
 
-  - `ID` is the ID of the server. This is the same as the `Address` in Consul
+  * `ID` is the ID of the server. This is the same as the `Address` in Consul
     0.7 but may be upgraded to a GUID in a future version of Consul.
 
-  - `Node` is the node name of the server, as known to Consul, or "(unknown)" if
+  * `Node` is the node name of the server, as known to Consul, or "(unknown)" if
     the node is stale and not known.
 
-  - `Address` is the IP:port for the server.
+  * `Address` is the IP:port for the server.
 
-  - `Leader` is either "true" or "false" depending on the server's role in the
+  * `Leader` is either "true" or "false" depending on the server's role in the
     Raft configuration.
 
-  - `Voter` is "true" or "false", indicating if the server has a vote in the
+  * `Voter` is "true" or "false", indicating if the server has a vote in the
     Raft configuration. Future versions of Consul may add support for non-voting
     servers.
 
-- `Index` is the Raft corresponding to this configuration. The latest
+* `Index` is the Raft corresponding to this configuration. The latest
   configuration may not yet be committed if changes are in flight.
 
 ## Delete Raft Peer
@@ -116,9 +116,9 @@ the Raft quorum.
 If ACLs are enabled, the client will need to supply an ACL Token with `operator`
 write privileges.
 
-| Method   | Path                         | Produces                   |
-| -------- | ---------------------------- | -------------------------- |
-| `DELETE` | `/operator/raft/peer`        | `application/json`         |
+| Method   | Path                  | Produces           |
+| -------- | --------------------- | ------------------ |
+| `DELETE` | `/operator/raft/peer` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -131,11 +131,11 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+* `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query string.
 
-- `id|address` `(string: <required>)` - Specifies the ID or address (IP:port) of the raft peer to remove.
+* `id|address` `(string: <required>)` - Specifies the ID or address (IP:port) of the raft peer to remove.
 
 ### Sample Request
 

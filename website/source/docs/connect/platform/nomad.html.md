@@ -27,15 +27,14 @@ assume the same [security checklist](/docs/connect/security.html#prevent-non-con
 To use Connect with Nomad, the following requirements must be first be
 satisfied:
 
+* **Nomad 0.8.3 or later.** - The server and clients of the Nomad cluster
+  must be running version 0.8.3 or later. This is the earliest version that
+  was verified to work with Connect. It is possible to work with earlier
+  versions but it is untested.
 
-  * **Nomad 0.8.3 or later.** - The server and clients of the Nomad cluster
-    must be running version 0.8.3 or later. This is the earliest version that
-	was verified to work with Connect. It is possible to work with earlier
-	versions but it is untested.
-
-  * **Consul 1.2.0 or later.** - A Consul cluster must be setup and running with
-    version 1.2.0 or later.
-    Nomad must be [configured to use this Consul cluster](https://www.nomadproject.io/docs/service-discovery/index.html).
+* **Consul 1.2.0 or later.** - A Consul cluster must be setup and running with
+  version 1.2.0 or later.
+  Nomad must be [configured to use this Consul cluster](https://www.nomadproject.io/docs/service-discovery/index.html).
 
 ## Accepting Connect for an Existing Service
 
@@ -98,19 +97,19 @@ such as the dynamic port it is running on.
 
 For the "db" task, there are a few important configurations:
 
-  * The `-bind` address for the database is loopback only and listening on
-    a dynamic port. This prevents non-Connect connections from outside of
-    the node that the database is running on.
+* The `-bind` address for the database is loopback only and listening on
+  a dynamic port. This prevents non-Connect connections from outside of
+  the node that the database is running on.
 
-  * The `tcp` port is dynamic. This removes any static constraints on the port,
-    allowing Nomad to allocate any available port for any allocation.
+* The `tcp` port is dynamic. This removes any static constraints on the port,
+  allowing Nomad to allocate any available port for any allocation.
 
-  * The database is _not_ registered with Consul using a `service` block.
-    This isn't strictly necessary, but since we won't be connecting directly
-    to this service, we also don't need to register it. We recommend registering
-    the source service as well since Consul can then know the health of the
-    target service, which is used in determining if the proxy should
-	receive requests.
+* The database is _not_ registered with Consul using a `service` block.
+  This isn't strictly necessary, but since we won't be connecting directly
+  to this service, we also don't need to register it. We recommend registering
+  the source service as well since Consul can then know the health of the
+  target service, which is used in determining if the proxy should
+  receive requests.
 
 Next, the "connect-proxy" task is colocated next to the "db" task. This is
 using "raw_exec" executing Consul directly. In the future this example will
@@ -118,18 +117,18 @@ be updated to use the official Consul Docker image.
 
 The important configuration for this proxy:
 
-  * The `-service` and `-service-addr` flag specify the name of the service
-    the proxy is representing. The address is set to the interpolation
-    `${NOMAD_ADDR_db_tcp}` which allows the database to listen on any
-    dynamic address and the proxy can still find it.
+* The `-service` and `-service-addr` flag specify the name of the service
+  the proxy is representing. The address is set to the interpolation
+  `${NOMAD_ADDR_db_tcp}` which allows the database to listen on any
+  dynamic address and the proxy can still find it.
 
-  * The `-listen` flag sets up a public listener (TLS) to accept connections
-    on behalf of the "db" service. The port this is listening on is dynamic,
-    since service discovery can be used to find the service ports.
+* The `-listen` flag sets up a public listener (TLS) to accept connections
+  on behalf of the "db" service. The port this is listening on is dynamic,
+  since service discovery can be used to find the service ports.
 
-  * The `-register` flag tells the proxy to self-register with Consul. Nomad
-    doesn't currently know how to register Connect proxies with the `service`
-    stanza, and this causes the proxy to register itself so it is discoverable.
+* The `-register` flag tells the proxy to self-register with Consul. Nomad
+  doesn't currently know how to register Connect proxies with the `service`
+  stanza, and this causes the proxy to register itself so it is discoverable.
 
 Following running this job specification, the DB will be started with a
 Connect proxy. The only public listener from the job is the proxy. This means

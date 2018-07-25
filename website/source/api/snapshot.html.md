@@ -26,9 +26,9 @@ the archive is internal to Consul and not intended to be used other than for
 restore operations. The archives are not designed to be modified before a
 restore.
 
-| Method | Path                         | Produces                   |
-| :----- | :--------------------------- | -------------------------- |
-| `GET`  | `/snapshot`                  | `200 application/x-gzip`   |
+| Method | Path        | Produces                 |
+| :----- | :---------- | ------------------------ |
+| `GET`  | `/snapshot` | `200 application/x-gzip` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -41,11 +41,11 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default
+* `dc` `(string: "")` - Specifies the datacenter to query. This will default
   to the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter.
 
-- `stale` `(bool: false)` - Specifies that any follower may reply. By default
+* `stale` `(bool: false)` - Specifies that any follower may reply. By default
   requests are forwarded to the leader. Followers may be faster to respond, but
   may have stale data. To support bounding the acceptable staleness of
   snapshots, responses provide the `X-Consul-LastContact` header containing the
@@ -80,9 +80,9 @@ cluster of Consul servers.
 The body of the request should be a snapshot archive returned from a previous
 call to the `GET` method.
 
-| Method | Path                         | Produces                      |
-| :----- | :--------------------------- | ----------------------------- |
-| `PUT`  | `/snapshot`                  | `200 text/plain (empty body)` |
+| Method | Path        | Produces                      |
+| :----- | :---------- | ----------------------------- |
+| `PUT`  | `/snapshot` | `200 text/plain (empty body)` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -92,9 +92,10 @@ The table below shows this endpoint's support for
 | Blocking Queries | Consistency Modes | ACL Required |
 | ---------------- | ----------------- | ------------ |
 | `NO`             | `none`            | `management` |
+
 ### Parameters
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default
+* `dc` `(string: "")` - Specifies the datacenter to query. This will default
   to the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter.
 

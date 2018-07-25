@@ -31,11 +31,11 @@ be to end up compliant with all the advice below.
 
 The steps we need to get to a secure Connect cluster are:
 
- 1. [Configure ACLs](#configure-acls)
- 1. [Configure Agent Transport Encryption](#configure-agent-transport-encryption)
- 1. [Bootstrap Certificate Authority](#bootstrap-certificate-authority)
- 1. [Setup Host Firewall](#setup-host-firewall)
- 1. [Configure Service Instances](#configure-service-instances)
+1.  [Configure ACLs](#configure-acls)
+1.  [Configure Agent Transport Encryption](#configure-agent-transport-encryption)
+1.  [Bootstrap Certificate Authority](#bootstrap-certificate-authority)
+1.  [Setup Host Firewall](#setup-host-firewall)
+1.  [Configure Service Instances](#configure-service-instances)
 
 ## Configure ACLs
 
@@ -54,7 +54,7 @@ service is allowed to access.
 
 A secure ACL setup must meet these criteria:
 
- 1. **[ACL default
+1.  **[ACL default
     policy](/docs/agent/options.html#acl_default_policy)
     must be `deny`.** It is technically sufficient to keep the default policy of
     `allow` but add an explicit ACL denying anonymous `service:write`. Note
@@ -63,7 +63,7 @@ A secure ACL setup must meet these criteria:
     access. Also note that explicit rules to limit who can manage intentions are
     necessary in this case. It is assumed for the remainder of this guide that
     ACL policy defaults to `deny`.
- 2. **Each service must have a distinct ACL token** that is restricted to
+2.  **Each service must have a distinct ACL token** that is restricted to
     `service:write` only for the named service. Current Consul ACLs only support
     prefix matching but in a near-future release we will allow exact name
     matching. It is possible for all instances of the service to share the same
@@ -104,10 +104,10 @@ Vault](https://www.vaultproject.io/docs/secrets/consul/index.html).
 
 Consul's gossip (UDP) and RPC (TCP) communications need to be encrypted
 otherwise attackers may be able to see ACL tokens while in flight
-between the server and client agents (RPC) or between client agent and 
-application (HTTP). Certificate private keys never leave the host they 
-are used on but are delivered to the application or proxy over local 
-HTTP so local agent traffic should be encrypted where potentially 
+between the server and client agents (RPC) or between client agent and
+application (HTTP). Certificate private keys never leave the host they
+are used on but are delivered to the application or proxy over local
+HTTP so local agent traffic should be encrypted where potentially
 untrusted parties might be able to observe localhost agent API traffic.
 
 Follow the [encryption documentation](/docs/agent/encryption.html) to ensure

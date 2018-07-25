@@ -40,11 +40,11 @@ Subcommands:
 For more information, examples, and usage about a subcommand, click on the name
 of the subcommand in the sidebar or one of the links below:
 
-- [delete](/docs/commands/kv/delete.html)
-- [export](/docs/commands/kv/export.html)
-- [get](/docs/commands/kv/get.html)
-- [import](/docs/commands/kv/import.html)
-- [put](/docs/commands/kv/put.html)
+* [delete](/docs/commands/kv/delete.html)
+* [export](/docs/commands/kv/export.html)
+* [get](/docs/commands/kv/get.html)
+* [import](/docs/commands/kv/import.html)
+* [put](/docs/commands/kv/put.html)
 
 ## Basic Examples
 

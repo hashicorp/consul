@@ -35,4 +35,3 @@ Returns 0 if the configuration is valid, or 1 if there are problems.
 $ consul validate /etc/consul.d
 Configuration is valid!
 ```
-

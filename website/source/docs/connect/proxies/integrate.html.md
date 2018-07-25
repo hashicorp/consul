@@ -57,8 +57,8 @@ If you want the proxy you're integrating to support this mode, then it should ac
 two environment variables that Consul populates on process startup. These
 are both required to make the necessary API requests for configuration.
 
-  * `CONSUL_PROXY_TOKEN` - The ACL token to use for all requests to proxy-related
-    API endpoints.
+* `CONSUL_PROXY_TOKEN` - The ACL token to use for all requests to proxy-related
+  API endpoints.
 
-  * `CONSUL_PROXY_ID` - The service ID for requesting configuration for the
-    proxy from [`/v1/agent/connect/proxy/`](/api/agent/connect.html).
+* `CONSUL_PROXY_ID` - The service ID for requesting configuration for the
+  proxy from [`/v1/agent/connect/proxy/`](/api/agent/connect.html).

@@ -10,4 +10,3 @@ description: |-
 
 ~> **Notice:** The hosted version of [Consul Enterprise](https://www.hashicorp.com/products/consul) was deprecated on
 March 7th, 2017.
-

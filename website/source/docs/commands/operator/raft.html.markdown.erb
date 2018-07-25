@@ -34,8 +34,8 @@ This command displays the current Raft peer configuration.
 Usage: `consul operator raft list-peers -stale=[true|false]`
 
 * `-stale` - Optional and defaults to "false" which means the leader provides
-the result. If the cluster is in an outage state without a leader, you may need
-to set this to "true" to get the configuration from a non-leader server.
+  the result. If the cluster is in an outage state without a leader, you may need
+  to set this to "true" to get the configuration from a non-leader server.
 
 The output looks like this:
 
@@ -50,7 +50,7 @@ carol    127.0.0.3:8300  127.0.0.3:8300  follower  true   2
 the node is stale and not known.
 
 `ID` is the ID of the server. This is the same as the `Address` in Consul 0.7
-but may  be upgraded to a GUID in a future version of Consul.
+but may be upgraded to a GUID in a future version of Consul.
 
 `Address` is the IP:port for the server.
 
@@ -76,7 +76,7 @@ instead of this command.
 Usage: `consul operator raft remove-peer -address="IP:port"`
 
 * `-address` - "IP:port" for the server to remove. The port number is usually
-8300, unless configured otherwise.
+  8300, unless configured otherwise.
 
 * `-id` - ID of the server to remove.
 

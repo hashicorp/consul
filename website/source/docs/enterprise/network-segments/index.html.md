@@ -28,7 +28,7 @@ collection of Consul clients, all set to the same
 [datacenter](/docs/agent/options.html#_datacenter), and joined together to form
 what we will call a "local cluster". Consul clients discover the Consul servers
 in their local cluster through the gossip mechanism and make RPC requests to
-them. LAN Gossip (OSS) is an open intra-cluster networking model, and  Network
+them. LAN Gossip (OSS) is an open intra-cluster networking model, and Network
 Segments (Enterprise) creates multiple segments within one cluster.
 
 **Federated Cluster:** A cluster of clusters with a Consul server group per

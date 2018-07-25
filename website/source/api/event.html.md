@@ -16,9 +16,9 @@ Consul.
 
 This endpoint triggers a new user event.
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `PUT`  | `/event/fire/:name`          | `application/json`         |
+| Method | Path                | Produces           |
+| ------ | ------------------- | ------------------ |
+| `PUT`  | `/event/fire/:name` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -31,21 +31,21 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `name` `(string: <required>)` - Specifies the name of the event to fire. This
+* `name` `(string: <required>)` - Specifies the name of the event to fire. This
   is specified as part of the URL. This name must not start with an underscore,
   since those are reserved for Consul internally.
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+* `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter.
 
-- `node` `(string: "")` - Specifies a regular expression to filter by node name.
+* `node` `(string: "")` - Specifies a regular expression to filter by node name.
   This is specified as part of the URL as a query parameter.
 
-- `service` `(string: "")` - Specifies a regular expression to filter by service
+* `service` `(string: "")` - Specifies a regular expression to filter by service
   name. This is specified as part of the URL as a query parameter.
 
-- `tag` `(string: "")` - Specifies a regular expression to filter by tag. This
+* `tag` `(string: "")` - Specifies a regular expression to filter by tag. This
   is specified as part of the URL as a query parameter.
 
 ### Sample Payload
@@ -81,7 +81,7 @@ $ curl \
 }
 ```
 
-- `ID` is a unique identifier the newly fired event
+* `ID` is a unique identifier the newly fired event
 
 ## List Events
 
@@ -91,9 +91,9 @@ agent may have a different view of the events. Events are broadcast using the
 [gossip protocol](/docs/internals/gossip.html), so they have no global ordering
 nor do they make a promise of delivery.
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/event/list`                | `application/json`         |
+| Method | Path          | Produces           |
+| ------ | ------------- | ------------------ |
+| `GET`  | `/event/list` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -106,16 +106,16 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `name` `(string: <required>)` - Specifies the name of the event to filter.
+* `name` `(string: <required>)` - Specifies the name of the event to filter.
   This is specified as part of the URL as a query parameter.
 
-- `node` `(string: "")` - Specifies a regular expression to filter by node name.
+* `node` `(string: "")` - Specifies a regular expression to filter by node name.
   This is specified as part of the URL as a query parameter.
 
-- `service` `(string: "")` - Specifies a regular expression to filter by service
+* `service` `(string: "")` - Specifies a regular expression to filter by service
   name. This is specified as part of the URL as a query parameter.
 
-- `tag` `(string: "")` - Specifies a regular expression to filter by tag. This
+* `tag` `(string: "")` - Specifies a regular expression to filter by tag. This
   is specified as part of the URL as a query parameter.
 
 ### Sample Request

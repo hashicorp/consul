@@ -1,4 +1,4 @@
-* `-datacenter=<name>` -  Name of the datacenter to query. If unspecified, the
+* `-datacenter=<name>` - Name of the datacenter to query. If unspecified, the
   query will default to the datacenter of the Consul agent at the HTTP address.
 
 * `-stale` - Permit any Consul server (non-leader) to respond to this request.

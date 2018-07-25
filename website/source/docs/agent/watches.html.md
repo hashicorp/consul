@@ -38,7 +38,7 @@ with invocation info, following a format that depends on the type of the watch.
 Each watch type documents the format type. Because they map directly to an HTTP
 API, handlers should expect the input to match the format of the API. A Consul
 index is also given, corresponding to the responses from the
-[HTTP API](/api/index.html). 
+[HTTP API](/api/index.html).
 
 ### Executable
 
@@ -110,10 +110,9 @@ The following types are supported. Detailed documentation on each is below:
 * [`keyprefix`](#keyprefix) - Watch a prefix in the KV store
 * [`services`](#services) - Watch the list of available services
 * [`nodes`](#nodes) - Watch the list of nodes
-* [`service`](#service)-  Watch the instances of a service
+* [`service`](#service)- Watch the instances of a service
 * [`checks`](#checks) - Watch the value of health checks
 * [`event`](#event) - Watch for custom user events
-
 
 ### <a name="key"></a>Type: key
 
@@ -154,7 +153,7 @@ An example of the output of this command:
 
 The "keyprefix" watch type is used to watch a prefix of keys in the KV store.
 It requires that the "prefix" parameter be specified. This watch
-returns *all* keys matching the prefix whenever *any* key matching the prefix
+returns _all_ keys matching the prefix whenever _any_ key matching the prefix
 changes.
 
 This maps to the `/v1/kv/` API internally.
@@ -176,33 +175,33 @@ Or, using the watch command:
 An example of the output of this command:
 
 ```javascript
-[
+;[
   {
-    "Key": "foo/bar",
-    "CreateIndex": 1796,
-    "ModifyIndex": 1796,
-    "LockIndex": 0,
-    "Flags": 0,
-    "Value": "TU9BUg==",
-    "Session": ""
+    Key: 'foo/bar',
+    CreateIndex: 1796,
+    ModifyIndex: 1796,
+    LockIndex: 0,
+    Flags: 0,
+    Value: 'TU9BUg==',
+    Session: ''
   },
   {
-    "Key": "foo/baz",
-    "CreateIndex": 1795,
-    "ModifyIndex": 1795,
-    "LockIndex": 0,
-    "Flags": 0,
-    "Value": "YXNkZg==",
-    "Session": ""
+    Key: 'foo/baz',
+    CreateIndex: 1795,
+    ModifyIndex: 1795,
+    LockIndex: 0,
+    Flags: 0,
+    Value: 'YXNkZg==',
+    Session: ''
   },
   {
-    "Key": "foo/test",
-    "CreateIndex": 1793,
-    "ModifyIndex": 1793,
-    "LockIndex": 0,
-    "Flags": 0,
-    "Value": "aGV5",
-    "Session": ""
+    Key: 'foo/test',
+    CreateIndex: 1793,
+    ModifyIndex: 1793,
+    LockIndex: 0,
+    Flags: 0,
+    Value: 'aGV5',
+    Session: ''
   }
 ]
 ```
@@ -234,30 +233,30 @@ This maps to the `/v1/catalog/nodes` API internally.
 An example of the output of this command:
 
 ```javascript
-[
+;[
   {
-    "Node": "nyc1-consul-1",
-    "Address": "192.241.159.115"
+    Node: 'nyc1-consul-1',
+    Address: '192.241.159.115'
   },
   {
-    "Node": "nyc1-consul-2",
-    "Address": "192.241.158.205"
+    Node: 'nyc1-consul-2',
+    Address: '192.241.158.205'
   },
   {
-    "Node": "nyc1-consul-3",
-    "Address": "198.199.77.133"
+    Node: 'nyc1-consul-3',
+    Address: '198.199.77.133'
   },
   {
-    "Node": "nyc1-worker-1",
-    "Address": "162.243.162.228"
+    Node: 'nyc1-worker-1',
+    Address: '162.243.162.228'
   },
   {
-    "Node": "nyc1-worker-2",
-    "Address": "162.243.162.226"
+    Node: 'nyc1-worker-2',
+    Address: '162.243.162.226'
   },
   {
-    "Node": "nyc1-worker-3",
-    "Address": "162.243.162.229"
+    Node: 'nyc1-worker-3',
+    Address: '162.243.162.229'
   }
 ]
 ```
@@ -290,38 +289,38 @@ Or, using the watch command:
 An example of the output of this command:
 
 ```javascript
-[
+;[
   {
-    "Node": {
-      "Node": "foobar",
-      "Address": "10.1.10.12"
+    Node: {
+      Node: 'foobar',
+      Address: '10.1.10.12'
     },
-    "Service": {
-      "ID": "redis",
-      "Service": "redis",
-      "Tags": null,
-      "Port": 8000
+    Service: {
+      ID: 'redis',
+      Service: 'redis',
+      Tags: null,
+      Port: 8000
     },
-    "Checks": [
+    Checks: [
       {
-        "Node": "foobar",
-        "CheckID": "service:redis",
-        "Name": "Service 'redis' check",
-        "Status": "passing",
-        "Notes": "",
-        "Output": "",
-        "ServiceID": "redis",
-        "ServiceName": "redis"
+        Node: 'foobar',
+        CheckID: 'service:redis',
+        Name: "Service 'redis' check",
+        Status: 'passing',
+        Notes: '',
+        Output: '',
+        ServiceID: 'redis',
+        ServiceName: 'redis'
       },
       {
-        "Node": "foobar",
-        "CheckID": "serfHealth",
-        "Name": "Serf Health Status",
-        "Status": "passing",
-        "Notes": "",
-        "Output": "",
-        "ServiceID": "",
-        "ServiceName": ""
+        Node: 'foobar',
+        CheckID: 'serfHealth',
+        Name: 'Serf Health Status',
+        Status: 'passing',
+        Notes: '',
+        Output: '',
+        ServiceID: '',
+        ServiceName: ''
       }
     ]
   }
@@ -341,16 +340,16 @@ or `/v1/health/checks/` if monitoring by service.
 An example of the output of this command:
 
 ```javascript
-[
+;[
   {
-    "Node": "foobar",
-    "CheckID": "service:redis",
-    "Name": "Service 'redis' check",
-    "Status": "passing",
-    "Notes": "",
-    "Output": "",
-    "ServiceID": "redis",
-    "ServiceName": "redis"
+    Node: 'foobar',
+    CheckID: 'service:redis',
+    Name: "Service 'redis' check",
+    Status: 'passing',
+    Notes: '',
+    Output: '',
+    ServiceID: 'redis',
+    ServiceName: 'redis'
   }
 ]
 ```

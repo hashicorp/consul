@@ -94,10 +94,12 @@ proxy configuration:
     "connect": {
       "proxy": {
         "config": {
-          "upstreams": [{
-            "destination_name": "redis",
-            "local_bind_port": 1234
-          }]
+          "upstreams": [
+            {
+              "destination_name": "redis",
+              "local_bind_port": 1234
+            }
+          ]
         }
       }
     }
@@ -140,11 +142,13 @@ service.
     "connect": {
       "proxy": {
         "config": {
-          "upstreams": [{
-            "destination_name": "redis",
-            "destination_type": "prepared_query",
-            "local_bind_port": 1234
-          }]
+          "upstreams": [
+            {
+              "destination_name": "redis",
+              "destination_type": "prepared_query",
+              "local_bind_port": 1234
+            }
+          ]
         }
       }
     }
@@ -183,7 +187,7 @@ an alternate command to execute for the proxy:
     "connect": {
       "proxy": {
         "exec_mode": "daemon",
-        "command":   ["/usr/bin/my-proxy", "-flag-example"]
+        "command": ["/usr/bin/my-proxy", "-flag-example"]
       }
     }
   }
@@ -222,15 +226,15 @@ as an operator or scheduler.
 To declare a service as a proxy, the service definition must contain
 at least two additional fields:
 
-  * `Kind` (string) must be set to `connect-proxy`. This declares that the
-    service is a proxy type.
+* `Kind` (string) must be set to `connect-proxy`. This declares that the
+  service is a proxy type.
 
-  * `ProxyDestination` (string) must be set to the service that this proxy
-    is representing.
+* `ProxyDestination` (string) must be set to the service that this proxy
+  is representing.
 
-  * `Port` must be set so that other Connect services can discover the exact
-    address for connections. `Address` is optional if the service is being
-    registered against an agent, since it'll inherit the node address.
+* `Port` must be set so that other Connect services can discover the exact
+  address for connections. `Address` is optional if the service is being
+  registered against an agent, since it'll inherit the node address.
 
 Example:
 

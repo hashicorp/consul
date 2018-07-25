@@ -57,10 +57,10 @@ Windows has no POSIX compatible notion for `SIGTERM`.
   child. The default value is false.
 
 * `-monitor-retry` - Retry up to this number of times if Consul returns a 500 error
-   while monitoring the lock. This allows riding out brief periods of unavailability
-   without causing leader elections, but increases the amount of time required
-   to detect a lost lock in some cases. Defaults to 3, with a 1s wait between retries.
-   Set to 0 to disable.
+  while monitoring the lock. This allows riding out brief periods of unavailability
+  without causing leader elections, but increases the amount of time required
+  to detect a lost lock in some cases. Defaults to 3, with a 1s wait between retries.
+  Set to 0 to disable.
 
 * `-n` - Optional, limit of lock holders. Defaults to 1. The underlying
   implementation switches from a lock to a semaphore when increased past
@@ -75,7 +75,7 @@ Windows has no POSIX compatible notion for `SIGTERM`.
 * `-pass-stdin` - Pass stdin to child process.
 
 * `-timeout` - Maximum amount of time to wait to acquire the lock, specified
-   as a duration like `1s` or `3h`. The default value is 0.
+  as a duration like `1s` or `3h`. The default value is 0.
 
 * `-try` - Attempt to acquire the lock up to the given timeout. The timeout is a
   positive decimal number, with unit suffix, such as "500ms". Valid time units
@@ -84,6 +84,7 @@ Windows has no POSIX compatible notion for `SIGTERM`.
 * `-verbose` - Enables verbose output.
 
 ## SHELL
+
 Consul lock launches its children in a shell. By default, Consul will use the shell
 defined in the environment variable `SHELL`. If `SHELL` is not defined, it will
 default to `/bin/sh`. It should be noted that not all shells terminate child

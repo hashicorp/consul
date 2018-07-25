@@ -14,7 +14,7 @@ with no centralized servers. It provides a number of features, including group
 membership, failure detection, event broadcasts, and a query mechanism. However,
 Serf does not provide any high-level features such as service discovery, health
 checking or key/value storage. Consul is a complete system providing all of those
-features. 
+features.
 
 The internal [gossip protocol](/docs/internals/gossip.html) used within Consul is in
 fact powered by the Serf library: Consul leverages the membership and failure detection

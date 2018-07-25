@@ -15,12 +15,11 @@ running on an unprivileged port, from another DNS server or port redirect.
 
 In this guide, we will demonstrate forwarding from
 [BIND](https://www.isc.org/downloads/bind/) as well as
-[dnsmasq](http://www.thekelleys.org.uk/dnsmasq/doc.html),
-[Unbound](https://www.unbound.net/),
+[dnsmasq](http://www.thekelleys.org.uk/dnsmasq/doc.html), [Unbound](https://www.unbound.net/),
 [systemd-resolved](https://www.freedesktop.org/wiki/Software/systemd/resolved/), and [iptables](http://www.netfilter.org/).
-For the sake of simplicity, BIND and Consul are running on the same machine in 
+For the sake of simplicity, BIND and Consul are running on the same machine in
 this example. For iptables the rules must be set on the same host as the Consul
-instance and relay hosts should not be on the same host or the redirects will 
+instance and relay hosts should not be on the same host or the redirects will
 intercept the traffic.
 
 It is worth mentioning that, by default, Consul does not resolve DNS
@@ -149,7 +148,7 @@ stub-zone:
   stub-addr: 127.0.0.1@8600
 ```
 
-You may have to add the following line to the bottom of your 
+You may have to add the following line to the bottom of your
 `/etc/unbound/unbound.conf` file for the new configuration to be included:
 
 ```text
@@ -158,7 +157,7 @@ include: "/etc/unbound/unbound.conf.d/*.conf"
 
 ### systemd-resolved Setup
 
-`systemd-resolved` is typically configured with `/etc/systemd/resolved.conf`. 
+`systemd-resolved` is typically configured with `/etc/systemd/resolved.conf`.
 To configure systemd-resolved to send queries for the consul domain to
 Consul, configure resolved.conf to contain the following:
 
@@ -170,7 +169,7 @@ Domains=~consul
 The main limitation with this configuration is that the DNS field
 cannot contain ports. So for this to work either Consul must be
 [configured to listen on port 53](https://www.consul.io/docs/agent/options.html#dns_port)
-instead of 8600 or you can use iptables to map port 53 to 8600. 
+instead of 8600 or you can use iptables to map port 53 to 8600.
 The following iptables commands are sufficient to do the port
 mapping.
 
@@ -180,7 +179,7 @@ mapping.
 ```
 
 Note: With this setup, PTR record queries will still be sent out
-to the other configured resolvers in addition to Consul. 
+to the other configured resolvers in addition to Consul.
 
 ### iptables Setup
 
@@ -209,9 +208,9 @@ but not need the overhead of a separate service on the Consul host.
 ### macOS Setup
 
 On macOS systems, you can use the macOS system resolver to point all .consul requests to consul.
-Just add a resolver entry in /etc/resolver/ to point at consul. 
-documentation for this feature is available via: ```man5 resolver```.
-To setup create a new file ```/etc/resolver/consul``` (you will need sudo/root access) and put in the file:
+Just add a resolver entry in /etc/resolver/ to point at consul.
+documentation for this feature is available via: `man5 resolver`.
+To setup create a new file `/etc/resolver/consul` (you will need sudo/root access) and put in the file:
 
 ```
 nameserver 127.0.0.1

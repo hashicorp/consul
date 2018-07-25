@@ -64,4 +64,3 @@ $ consul connect proxy \
   -service web \
   -upstream postgresql:8181
 ```
-

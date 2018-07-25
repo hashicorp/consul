@@ -118,4 +118,3 @@ Multi-datacenter support for Connect is under development and will be
 released as a feature of Consul Enterprise in late 2018. This feature will
 facilitate intention replication, datacenter constraints on intentions,
 CA state replication, multi-datacenter certificate rotations, and more.
-

@@ -20,9 +20,9 @@ entries in the catalog. It is usually preferable to instead use the
 [agent endpoints](/api/agent.html) for registration as they are simpler and
 perform [anti-entropy](/docs/internals/anti-entropy.html).
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `PUT`  | `/catalog/register`          | `application/json`         |
+| Method | Path                | Produces           |
+| ------ | ------------------- | ------------------ |
+| `PUT`  | `/catalog/register` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -35,47 +35,47 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `ID` `(string: "")` - An optional UUID to assign to the service. If not
+* `ID` `(string: "")` - An optional UUID to assign to the service. If not
   provided, one is generated. This must be a 36-character UUID.
 
-- `Node` `(string: <required>)` - Specifies the node ID to register.
+* `Node` `(string: <required>)` - Specifies the node ID to register.
 
-- `Address` `(string: <required>)` - Specifies the address to register.
+* `Address` `(string: <required>)` - Specifies the address to register.
 
-- `Datacenter` `(string: "")` - Specifies the datacenter, which defaults to the
+* `Datacenter` `(string: "")` - Specifies the datacenter, which defaults to the
   agent's datacenter if not provided.
 
-- `TaggedAddresses` `(map<string|string>: nil)` - Specifies the tagged
+* `TaggedAddresses` `(map<string|string>: nil)` - Specifies the tagged
   addresses.
 
-- `NodeMeta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata
+* `NodeMeta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata
   pairs for filtering purposes.
 
-- `Service` `(Service: nil)` - Specifies to register a service. If `ID` is not
+* `Service` `(Service: nil)` - Specifies to register a service. If `ID` is not
   provided, it will be defaulted to the value of the `Service.Service` property.
   Only one service with a given `ID` may be present per node. The service
-  `Tags`, `Address`, `Meta`, and `Port` fields are all optional.
+  `Tags`, `Address`, `ServiceMeta` and `Port` fields are all optional.
 
-- `Check` `(Check: nil)` - Specifies to register a check. The register API
+* `Check` `(Check: nil)` - Specifies to register a check. The register API
   manipulates the health check entry in the Catalog, but it does not setup the
   script, TTL, or HTTP check to monitor the node's health. To truly enable a new
   health check, the check must either be provided in agent configuration or set
   via the [agent endpoint](agent.html).
 
-    The `CheckID` can be omitted and will default to the value of `Name`. As
-    with `Service.ID`, the `CheckID` must be unique on this node. `Notes` is an
-    opaque field that is meant to hold human-readable text. If a `ServiceID` is
-    provided that matches the `ID` of a service on that node, the check is
-    treated as a service level health check, instead of a node level health
-    check. The `Status` must be one of `passing`, `warning`, or `critical`.
+  The `CheckID` can be omitted and will default to the value of `Name`. As
+  with `Service.ID`, the `CheckID` must be unique on this node. `Notes` is an
+  opaque field that is meant to hold human-readable text. If a `ServiceID` is
+  provided that matches the `ID` of a service on that node, the check is
+  treated as a service level health check, instead of a node level health
+  check. The `Status` must be one of `passing`, `warning`, or `critical`.
 
-    The `Definition` field can be provided with details for a TCP or HTTP health
-    check. For more information, see the [Health Checks](/docs/agent/checks.html) page.
+  The `Definition` field can be provided with details for a TCP or HTTP health
+  check. For more information, see the [Health Checks](/docs/agent/checks.html) page.
 
-    Multiple checks can be provided by replacing `Check` with `Checks` and
-    sending an array of `Check` objects.
+  Multiple checks can be provided by replacing `Check` with `Checks` and
+  sending an array of `Check` objects.
 
-- `SkipNodeUpdate` `(bool: false)` - Specifies whether to skip updating the
+* `SkipNodeUpdate` `(bool: false)` - Specifies whether to skip updating the
   node part of the registration. Useful in the case where only a health check
   or service entry on a node needs to be updated.
 
@@ -100,13 +100,10 @@ and vice versa. A catalog entry can have either, neither, or both.
   "Service": {
     "ID": "redis1",
     "Service": "redis",
-    "Tags": [
-      "primary",
-      "v1"
-    ],
+    "Tags": ["primary", "v1"],
     "Address": "127.0.0.1",
     "Meta": {
-        "redis_version": "4.0"
+      "redis_version": "4.0"
     },
     "Port": 8000
   },
@@ -144,9 +141,9 @@ entries from the Catalog. It is usually preferable to instead use the
 [agent endpoints](/api/agent.html) for deregistration as they are simpler and
 perform [anti-entropy](/docs/internals/anti-entropy.html).
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `PUT`  | `/catalog/deregister`        | `application/json`         |
+| Method | Path                  | Produces           |
+| ------ | --------------------- | ------------------ |
+| `PUT`  | `/catalog/deregister` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -161,16 +158,16 @@ The table below shows this endpoint's support for
 
 The behavior of the endpoint depends on what keys are provided.
 
-- `Node` `(string: <required>)` - Specifies the ID of the node. If no other
+* `Node` `(string: <required>)` - Specifies the ID of the node. If no other
   values are provided, this node, all its services, and all its checks are
   removed.
 
-- `Datacenter` `(string: "")` - Specifies the datacenter, which defaults to the
+* `Datacenter` `(string: "")` - Specifies the datacenter, which defaults to the
   agent's datacenter if not provided.
 
-- `CheckID` `(string: "")` - Specifies the ID of the check to remove.
+* `CheckID` `(string: "")` - Specifies the ID of the check to remove.
 
-- `ServiceID` `(string: "")` - Specifies the ID of the service to remove. The
+* `ServiceID` `(string: "")` - Specifies the ID of the service to remove. The
   service and all associated checks will be removed.
 
 ### Sample Payloads
@@ -217,9 +214,9 @@ This endpoint does not require a cluster leader and will succeed even during an
 availability outage. Therefore, it can be used as a simple check to see if any
 Consul servers are routable.
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/catalog/datacenters`       | `application/json`         |
+| Method | Path                   | Produces           |
+| ------ | ---------------------- | ------------------ |
+| `GET`  | `/catalog/datacenters` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -247,9 +244,9 @@ $ curl \
 
 This endpoint and returns the nodes registered in a given datacenter.
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/catalog/nodes`             | `application/json`         |
+| Method | Path             | Produces           |
+| ------ | ---------------- | ------------------ |
+| `GET`  | `/catalog/nodes` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -262,16 +259,16 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+* `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter.
 
-- `near` `(string: "")` - Specifies a node name to sort the node list in
+* `near` `(string: "")` - Specifies a node name to sort the node list in
   ascending order based on the estimated round trip time from that node. Passing
   `?near=_agent` will use the agent's node for the sort. This is specified as
   part of the URL as a query parameter.
 
-- `node-meta` `(string: "")` - Specifies a desired node metadata key/value pair
+* `node-meta` `(string: "")` - Specifies a desired node metadata key/value pair
   of the form `key:value`. This parameter can be specified multiple times, and
   will filter the results to nodes with the specified key/value pairs. This is
   specified as part of the URL as a query parameter.
@@ -320,9 +317,9 @@ $ curl \
 
 This endpoint returns the services registered in a given datacenter.
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/catalog/services`          | `application/json`         |
+| Method | Path                | Produces           |
+| ------ | ------------------- | ------------------ |
+| `GET`  | `/catalog/services` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -335,11 +332,11 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+* `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter.
 
-- `node-meta` `(string: "")` - Specifies a desired node metadata key/value pair
+* `node-meta` `(string: "")` - Specifies a desired node metadata key/value pair
   of the form `key:value`. This parameter can be specified multiple times, and
   will filter the results to nodes with the specified key/value pairs. This is
   specified as part of the URL as a query parameter.
@@ -357,10 +354,7 @@ $ curl \
 {
   "consul": [],
   "redis": [],
-  "postgresql": [
-    "primary",
-    "secondary"
-  ]
+  "postgresql": ["primary", "secondary"]
 }
 ```
 
@@ -371,9 +365,9 @@ a given service.
 
 This endpoint returns the nodes providing a service in a given datacenter.
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/catalog/service/:service`  | `application/json`         |
+| Method | Path                        | Produces           |
+| ------ | --------------------------- | ------------------ |
+| `GET`  | `/catalog/service/:service` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -386,21 +380,21 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `service` `(string: <required>)` - Specifies the name of the service for which
+* `service` `(string: <required>)` - Specifies the name of the service for which
   to list nodes. This is specified as part of the URL.
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+* `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter.
 
-- `tag` `(string: "")` - Specifies the tag to filter on.
+* `tag` `(string: "")` - Specifies the tag to filter on.
 
-- `near` `(string: "")` - Specifies a node name to sort the node list in
+* `near` `(string: "")` - Specifies a node name to sort the node list in
   ascending order based on the estimated round trip time from that node. Passing
   `?near=_agent` will use the agent's node for the sort. This is specified as
   part of the URL as a query parameter.
 
-- `node-meta` `(string: "")` - Specifies a desired node metadata key/value pair
+* `node-meta` `(string: "")` - Specifies a desired node metadata key/value pair
   of the form `key:value`. This parameter can be specified multiple times, and
   will filter the results to nodes with the specified key/value pairs. This is
   specified as part of the URL as a query parameter.
@@ -436,80 +430,54 @@ $ curl \
     "ServiceName": "foobar",
     "ServicePort": 5000,
     "ServiceMeta": {
-        "foobar_meta_value": "baz"
+      "foobar_meta_value": "baz"
     },
-    "ServiceTags": [
-      "tacos"
-    ]
+    "ServiceTags": ["tacos"]
   }
 ]
 ```
 
-- `Address` is the IP address of the Consul node on which the service is
+* `Address` is the IP address of the Consul node on which the service is
   registered.
 
-- `Datacenter` is the data center of the Consul node on which the service is
+* `Datacenter` is the data center of the Consul node on which the service is
   registered.
 
-- `TaggedAddresses` is the list of explicit LAN and WAN IP addresses for the
+* `TaggedAddresses` is the list of explicit LAN and WAN IP addresses for the
   agent
 
-- `NodeMeta` is a list of user-defined metadata key/value pairs for the node
+* `NodeMeta` is a list of user-defined metadata key/value pairs for the node
 
-- `CreateIndex` is an internal index value representing when the service was
+* `CreateIndex` is an internal index value representing when the service was
   created
 
-- `ModifyIndex` is the last index that modified the service
+* `ModifyIndex` is the last index that modified the service
 
-- `Node` is the name of the Consul node on which the service is registered
+* `Node` is the name of the Consul node on which the service is registered
 
-- `ServiceAddress` is the IP address of the service host — if empty, node
+* `ServiceAddress` is the IP address of the service host — if empty, node
   address should be used
 
-- `ServiceEnableTagOverride` indicates whether service tags can be overridden on
+* `ServiceEnableTagOverride` indicates whether service tags can be overridden on
   this service
 
-- `ServiceID` is a unique service instance identifier
+* `ServiceID` is a unique service instance identifier
 
-- `ServiceName` is the name of the service
+* `ServiceName` is the name of the service
 
-- `ServiceMeta` is a list of user-defined metadata key/value pairs for the service
+* `ServiceMeta` is a list of user-defined metadata key/value pairs for the service
 
-- `ServicePort` is the port number of the service
+* `ServicePort` is the port number of the service
 
-- `ServiceTags` is a list of tags for the service
-
-- `ServiceKind` is the kind of service, usually "". See the Agent
-  registration API for more information.
-
-- `ServiceProxyDestination` is the name of the service that is being proxied,
-  for "connect-proxy" type services.
-
-- `ServiceConnect` are the [Connect](/docs/connect/index.html) settings. The
-  value of this struct is equivalent to the `Connect` field for service registration.
-
-## List Nodes for Connect-capable Service
-
-This endpoint returns the nodes providing a
-[Connect-capable](/docs/connect/index.html) service in a given datacenter.
-This will include both proxies and native integrations. A service may
-register both Connect-capable and incapable services at the same time,
-so this endpoint may be used to filter only the Connect-capable endpoints.
-
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/catalog/connect/:service`  | `application/json`         |
-
-Parameters and response format are the same as
-[`/catalog/service/:service`](/api/catalog.html#list-nodes-for-service).
+* `ServiceTags` is a list of tags for the service
 
 ## List Services for Node
 
 This endpoint returns the node's registered services.
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/catalog/node/:node`        | `application/json`         |
+| Method | Path                  | Produces           |
+| ------ | --------------------- | ------------------ |
+| `GET`  | `/catalog/node/:node` | `application/json` |
 
 The table below shows this endpoint's support for blocking queries and
 consistency modes.
@@ -525,10 +493,10 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `node` `(string: <required>)` - Specifies the name of the node for which
+* `node` `(string: <required>)` - Specifies the name of the node for which
   to list services. This is specified as part of the URL.
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+* `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter.
 
@@ -567,9 +535,7 @@ $ curl \
     "redis": {
       "ID": "redis",
       "Service": "redis",
-      "Tags": [
-        "v1"
-      ],
+      "Tags": ["v1"],
       "Meta": {
         "redis_version": "4.0"
       },

@@ -51,4 +51,3 @@ Test whether a "web" is allowed to connect to "db":
 Find all intentions for communicating to the "db" service:
 
     $ consul intention match db
-

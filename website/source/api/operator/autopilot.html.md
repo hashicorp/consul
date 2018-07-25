@@ -20,8 +20,8 @@ Please see the [Autopilot Guide](/docs/guides/autopilot.html) for more details.
 
 This endpoint retrieves its latest Autopilot configuration.
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
+| Method | Path                                | Produces           |
+| ------ | ----------------------------------- | ------------------ |
 | `GET`  | `/operator/autopilot/configuration` | `application/json` |
 
 The table below shows this endpoint's support for
@@ -35,11 +35,11 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+* `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query string.
 
-- `stale` `(bool: false)` - If the cluster does not currently have a leader an
+* `stale` `(bool: false)` - If the cluster does not currently have a leader an
   error will be returned. You can use the `?stale` query parameter to read the
   Raft configuration from any of the Consul servers.
 
@@ -73,8 +73,8 @@ For more information about the Autopilot configuration options, see the
 
 This endpoint updates the Autopilot configuration of the cluster.
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
+| Method | Path                                | Produces           |
+| ------ | ----------------------------------- | ------------------ |
 | `PUT`  | `/operator/autopilot/configuration` | `application/json` |
 
 The table below shows this endpoint's support for
@@ -88,40 +88,40 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+* `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query string.
 
-- `cas` `(int: 0)` - Specifies to use a Check-And-Set operation. The update will
+* `cas` `(int: 0)` - Specifies to use a Check-And-Set operation. The update will
   only happen if the given index matches the `ModifyIndex` of the configuration
   at the time of writing.
 
-- `CleanupDeadServers` `(bool: true)` - Specifies automatic removal of dead
+* `CleanupDeadServers` `(bool: true)` - Specifies automatic removal of dead
   server nodes periodically and whenever a new server is added to the cluster.
 
-- `LastContactThreshold` `(string: "200ms")` - Specifies the maximum amount of
+* `LastContactThreshold` `(string: "200ms")` - Specifies the maximum amount of
   time a server can go without contact from the leader before being considered
   unhealthy. Must be a duration value such as `10s`.
 
-- `MaxTrailingLogs` `(int: 250)` specifies the maximum number of log entries
+* `MaxTrailingLogs` `(int: 250)` specifies the maximum number of log entries
   that a server can trail the leader by before being considered unhealthy.
 
-- `ServerStabilizationTime` `(string: "10s")` - Specifies the minimum amount of
+* `ServerStabilizationTime` `(string: "10s")` - Specifies the minimum amount of
   time a server must be stable in the 'healthy' state before being added to the
   cluster. Only takes effect if all servers are running Raft protocol version 3
   or higher. Must be a duration value such as `30s`.
 
-- `RedundancyZoneTag` `(string: "")` - Controls the node-meta key to use when
+* `RedundancyZoneTag` `(string: "")` - Controls the node-meta key to use when
   Autopilot is separating servers into zones for redundancy. Only one server in
   each zone can be a voting member at one time. If left blank, this feature will
   be disabled.
 
-- `DisableUpgradeMigration` `(bool: false)` - Disables Autopilot's upgrade
+* `DisableUpgradeMigration` `(bool: false)` - Disables Autopilot's upgrade
   migration strategy in Consul Enterprise of waiting until enough
   newer-versioned servers have been added to the cluster before promoting any of
   them to voters.
 
-- `UpgradeVersionTag` `(string: "")` - Controls the node-meta key to use for
+* `UpgradeVersionTag` `(string: "")` - Controls the node-meta key to use for
   version info when performing upgrade migrations. If left blank, the Consul
   version will be used.
 
@@ -145,9 +145,9 @@ The table below shows this endpoint's support for
 
 This endpoint queries the health of the autopilot status.
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/operator/autopilot/health` | `application/json`         |
+| Method | Path                         | Produces           |
+| ------ | ---------------------------- | ------------------ |
+| `GET`  | `/operator/autopilot/health` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -160,7 +160,7 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+* `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query string.
 
@@ -210,37 +210,37 @@ $ curl \
 }
 ```
 
-- `Healthy` is whether all the servers are currently healthy.
+* `Healthy` is whether all the servers are currently healthy.
 
-- `FailureTolerance` is the number of redundant healthy servers that could be
+* `FailureTolerance` is the number of redundant healthy servers that could be
   fail without causing an outage (this would be 2 in a healthy cluster of 5
   servers).
 
-- `Servers` holds detailed health information on each server:
+* `Servers` holds detailed health information on each server:
 
-  - `ID` is the Raft ID of the server.
+  * `ID` is the Raft ID of the server.
 
-  - `Name` is the node name of the server.
+  * `Name` is the node name of the server.
 
-  - `Address` is the address of the server.
+  * `Address` is the address of the server.
 
-  - `SerfStatus` is the SerfHealth check status for the server.
+  * `SerfStatus` is the SerfHealth check status for the server.
 
-  - `Version` is the Consul version of the server.
+  * `Version` is the Consul version of the server.
 
-  - `Leader` is whether this server is currently the leader.
+  * `Leader` is whether this server is currently the leader.
 
-  - `LastContact` is the time elapsed since this server's last contact with the leader.
+  * `LastContact` is the time elapsed since this server's last contact with the leader.
 
-  - `LastTerm` is the server's last known Raft leader term.
+  * `LastTerm` is the server's last known Raft leader term.
 
-  - `LastIndex` is the index of the server's last committed Raft log entry.
+  * `LastIndex` is the index of the server's last committed Raft log entry.
 
-  - `Healthy` is whether the server is healthy according to the current Autopilot configuration.
+  * `Healthy` is whether the server is healthy according to the current Autopilot configuration.
 
-  - `Voter` is whether the server is a voting member of the Raft cluster.
+  * `Voter` is whether the server is a voting member of the Raft cluster.
 
-  - `StableSince` is the time this server has been in its current `Healthy` state.
-  
+  * `StableSince` is the time this server has been in its current `Healthy` state.
+
   The HTTP status code will indicate the health of the cluster. If `Healthy` is true, then a
   status of 200 will be returned. If `Healthy` is false, then a status of 429 will be returned.

@@ -58,9 +58,9 @@ server, you have two methods available to remove it, depending on your version o
 * In Consul 0.7 and later, you can use the [`consul operator`](/docs/commands/operator.html#raft-remove-peer) command to remove the stale peer server on the fly with no downtime if the cluster has a leader.
 
 * In versions of Consul prior to 0.7, you can manually remove the stale peer
-server using the `raft/peers.json` recovery file on all remaining servers. See
-the [section below](#peers.json) for details on this procedure. This process
-requires a Consul downtime to complete.
+  server using the `raft/peers.json` recovery file on all remaining servers. See
+  the [section below](#peers.json) for details on this procedure. This process
+  requires a Consul downtime to complete.
 
 In Consul 0.7 and later, you can use the [`consul operator`](/docs/commands/operator.html#raft-list-peers)
 command to inspect the Raft configuration:
@@ -103,6 +103,7 @@ all Raft log entries, so should only be used to recover from an outage, but it
 should allow recovery from any situation where there's some cluster data available.
 
 <a name="peers.json"></a>
+
 ## Manual Recovery Using peers.json
 
 To begin, stop all remaining servers. You can attempt a graceful leave,
@@ -133,11 +134,7 @@ array containing the address and port of each Consul server in the cluster, like
 this:
 
 ```json
-[
-  "10.1.0.1:8300",
-  "10.1.0.2:8300",
-  "10.1.0.3:8300"
-]
+["10.1.0.1:8300", "10.1.0.2:8300", "10.1.0.3:8300"]
 ```
 
 For Raft protocol version 3 and later, this should be formatted as a JSON
@@ -164,14 +161,14 @@ Consul server in the cluster, like this:
 ]
 ```
 
-- `id` `(string: <required>)` - Specifies the [node ID](/docs/agent/options.html#_node_id)
+* `id` `(string: <required>)` - Specifies the [node ID](/docs/agent/options.html#_node_id)
   of the server. This can be found in the logs when the server starts up if it was auto-generated,
   and it can also be found inside the `node-id` file in the server's data directory.
 
-- `address` `(string: <required>)` - Specifies the IP and port of the server. The port is the
+* `address` `(string: <required>)` - Specifies the IP and port of the server. The port is the
   server's RPC port used for cluster communications.
 
-- `non_voter` `(bool: <false>)` - This controls whether the server is a non-voter, which is used
+* `non_voter` `(bool: <false>)` - This controls whether the server is a non-voter, which is used
   in some advanced [Autopilot](/docs/guides/autopilot.html) configurations. If omitted, it will
   default to false, which is typical for most clusters.
 

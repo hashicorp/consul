@@ -21,6 +21,7 @@ For this reason, Consul provides a number of tuning parameters that can
 customize how DNS queries are handled.
 
 <a name="stale"></a>
+
 ## Stale Reads
 
 Stale reads can be used to reduce latency and increase the throughput
@@ -47,7 +48,7 @@ stale reads or limit how stale they can be, you can set `allow_stale`
 to false or use a lower value for `max_stale`. Doing the first will ensure that
 all reads are serviced by a [single leader node](/docs/internals/consensus.html).
 The reads will then be strongly consistent but will be limited by the throughput
-of a single node. 
+of a single node.
 
 ## Negative Response Caching
 
@@ -66,6 +67,7 @@ client and Consul and set the cache values appropriately. In many cases
 recovery time when a service becomes available again.
 
 <a name="ttl"></a>
+
 ## TTL Values
 
 TTL values can be set to allow DNS results to be cached downstream of Consul. Higher
@@ -79,7 +81,7 @@ To enable caching of node lookups (e.g. "foo.node.consul"), we can set the
 
 Service TTLs can be specified in a more granular fashion. You can set TTLs
 per-service, with a wildcard TTL as the default. This is specified using the
-[`dns_config.service_ttl`](/docs/agent/options.html#service_ttl) map. The "*"
+[`dns_config.service_ttl`](/docs/agent/options.html#service_ttl) map. The "\*"
 service is the wildcard service.
 
 For example, a [`dns_config`](/docs/agent/options.html#dns_config) that provides

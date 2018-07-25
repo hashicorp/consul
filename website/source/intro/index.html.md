@@ -85,6 +85,6 @@ forward the request to the remote datacenter and return the result.
 ## Next Steps
 
 * See [how Consul compares to other software](/intro/vs/index.html) to assess how it fits into your
-existing infrastructure.
+  existing infrastructure.
 * Continue onwards with the [getting started guide](/intro/getting-started/install.html)
-to get Consul up and running.
+  to get Consul up and running.

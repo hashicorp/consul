@@ -4,7 +4,6 @@ page_title: "Commands: Version"
 sidebar_current: "docs-commands-version"
 description: |-
   The `version` command prints the version of Consul and the protocol versions it understands for speaking to other agents.
-
 ---
 
 # Consul Version

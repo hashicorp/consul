@@ -162,16 +162,15 @@ Here is an example Grafana dashboard:
 [![Grafana Consul Cluster](/assets/images/grafana-screenshot.png)](/assets/images/grafana-screenshot.png)
 </div>
 
-
 ## Metric Aggregates and Alerting from Telegraf
 
 ### Memory usage
 
-| Metric Name | Description |
-| :---------- | :---------- |
-| `mem.total`                  | Total amount of physical memory (RAM) available on the server.    |
-| `mem.used_percent`           | Percentage of physical memory in use. |
-| `swap.used_percent`          | Percentage of swap space in use. |
+| Metric Name         | Description                                                    |
+| :------------------ | :------------------------------------------------------------- |
+| `mem.total`         | Total amount of physical memory (RAM) available on the server. |
+| `mem.used_percent`  | Percentage of physical memory in use.                          |
+| `swap.used_percent` | Percentage of swap space in use.                               |
 
 **Why they're important:** Consul keeps all of its data in memory. If Consul consumes all available memory, it will crash. You should also monitor total available RAM to make sure some RAM is available for other processes, and swap usage should remain at 0% for best performance.
 
@@ -180,10 +179,10 @@ Here is an example Grafana dashboard:
 
 ### File descriptors
 
-| Metric Name | Description |
-| :---------- | :---------- |
-| `linux_sysctl_fs.file-nr` | Number of file handles being used across all processes on the host. |
-| `linux_sysctl_fs.file-max` | Total number of available file handles. |
+| Metric Name                | Description                                                         |
+| :------------------------- | :------------------------------------------------------------------ |
+| `linux_sysctl_fs.file-nr`  | Number of file handles being used across all processes on the host. |
+| `linux_sysctl_fs.file-max` | Total number of available file handles.                             |
 
 **Why it's important:** Practically anything Consul does -- receiving a connection from another host, sending data between servers, writing snapshots to disk -- requires a file descriptor handle. If Consul runs out of handles, it will stop accepting connections. See [the Consul FAQ][consul_faq_fds] for more details.
 
@@ -193,10 +192,10 @@ By default, process and kernel limits are fairly conservative. You will want to 
 
 ### CPU usage
 
-| Metric Name | Description |
-| :---------- | :---------- |
-| `cpu.user_cpu` | Percentage of CPU being used by user processes (such as Consul). |
-| `cpu.iowait_cpu` | Percentage of CPU time spent waiting for I/O tasks to complete. |
+| Metric Name      | Description                                                      |
+| :--------------- | :--------------------------------------------------------------- |
+| `cpu.user_cpu`   | Percentage of CPU being used by user processes (such as Consul). |
+| `cpu.iowait_cpu` | Percentage of CPU time spent waiting for I/O tasks to complete.  |
 
 **Why they're important:** Consul is not particularly demanding of CPU time, but a spike in CPU usage might
 indicate too many operations taking place at once, and `iowait_cpu` is critical -- it means Consul is waiting
@@ -206,9 +205,9 @@ for data to be written to disk, a sign that Raft might be writing snapshots to d
 
 ### Network activity - Bytes Recived
 
-| Metric Name | Description |
-| :---------- | :---------- |
-| `net.bytes_recv` | Bytes received on each network interface. |
+| Metric Name      | Description                                  |
+| :--------------- | :------------------------------------------- |
+| `net.bytes_recv` | Bytes received on each network interface.    |
 | `net.bytes_sent` | Bytes transmitted on each network interface. |
 
 **Why they're important:** A sudden spike in network traffic to Consul might be the result of a misconfigured
@@ -222,9 +221,9 @@ you will need to apply a function such as [non_negative_difference][].
 
 ### Disk activity
 
-| Metric Name | Description |
-| :---------- | :---------- |
-| `diskio.read_bytes` | Bytes read from each block device. |
+| Metric Name          | Description                         |
+| :------------------- | :---------------------------------- |
+| `diskio.read_bytes`  | Bytes read from each block device.  |
 | `diskio.write_bytes` | Bytes written to each block device. |
 
 **Why they're important:** If the Consul host is writing a lot of data to disk, such as under high volume workloads, there may be frequent major I/O spikes during leader elections. This is because under heavy load,
@@ -252,5 +251,5 @@ you will need to apply a function such as [non_negative_difference][].
 [consul-telemetry-config]: https://www.consul.io/docs/agent/options.html#telemetry
 [consul-telemetry-ref]: https://www.consul.io/docs/agent/telemetry.html
 [telegraf-input-plugins]: https://docs.influxdata.com/telegraf/v1.6/plugins/inputs/
-[Grafana]: https://www.influxdata.com/partners/grafana/
-[Chronograf]: https://www.influxdata.com/time-series-platform/chronograf/
+[grafana]: https://www.influxdata.com/partners/grafana/
+[chronograf]: https://www.influxdata.com/time-series-platform/chronograf/

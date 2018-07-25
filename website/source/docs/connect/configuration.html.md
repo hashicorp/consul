@@ -99,19 +99,19 @@ All fields are optional with a sane default.
   range is [20000, 20255] and the port is selected at random from that range.
 
 * <a name="tcp_check_address"></a><a
-  href="#tcp_check_address">`tcp_check_address`</a> - The address the agent will
+href="#tcp_check_address">`tcp_check_address`</a> - The address the agent will
   run a [TCP health check](/docs/agent/checks.html) against. By default this is
   the same as the proxy's [bind address](#bind_address) except if the
-  bind_address is `0.0.0.0` or `[::]` in which case this defaults to `127.0.0.1`
+  bind*address is `0.0.0.0` or `[::]` in which case this defaults to `127.0.0.1`
   and assumes the agent can dial the proxy over loopback. For more complex
   configurations where agent and proxy communicate over a bridge for example,
-  this configuration can be used to specify a different _address_ (but not port)
+  this configuration can be used to specify a different \_address* (but not port)
   for the agent to use for health checks if it can't talk to the proxy over
   localhost or it's publicly advertised port. The check always uses the same
   port that the proxy is bound to.
 
 * <a name="disable_tcp_check"></a><a
-  href="#disable_tcp_check">`disable_tcp_check`</a> - If true, this disables a
+href="#disable_tcp_check">`disable_tcp_check`</a> - If true, this disables a
   TCP check being setup for the proxy. Default is false.
 
 * <a name="local_service_address"></a><a href="#local_service_address">`local_service_address`</a> - The
@@ -128,28 +128,27 @@ All fields are optional with a sane default.
   application_ before giving up. Defaults to `1000` or 1 second.
 
 * <a name="handshake_timeout_ms"></a><a href="#handshake_timeout_ms">`handshake_timeout_ms`</a> - The
-  number of milliseconds the proxy will wait for _incoming_ mTLS connections to 
+  number of milliseconds the proxy will wait for _incoming_ mTLS connections to
   complete the TLS handshake. Defaults to `10000` or 10 seconds.
 
 * <a name="upstreams"></a><a href="#upstreams">`upstreams`</a> - An array of
   upstream definitions for remote services that the proxied
   application needs to make outgoing connections to. Each definition has the
   following fields:
-  * <a name="destination_name"></a><a href="#destination_name">`destination_name`</a> - 
+  * <a name="destination_name"></a><a href="#destination_name">`destination_name`</a> -
     [required] The name of the service or prepared query to route connect to.
-  * <a name="local_bind_port"></a><a href="#local_bind_port">`local_bind_port`</a> - 
+  * <a name="local_bind_port"></a><a href="#local_bind_port">`local_bind_port`</a> -
     [required] The port to bind a local listener to for the application to
     make outbound connections to this upstream.
-  * <a name="local_bind_address"></a><a href="#local_bind_address">`local_bind_address`</a> - 
+  * <a name="local_bind_address"></a><a href="#local_bind_address">`local_bind_address`</a> -
     The address to bind a local listener to for the application to make
     outbound connections to this upstream.
-  * <a name="destination_type"></a><a href="#destination_type">`destination_type`</a> - 
-    Either `service` or `upstream`. The type of discovery query to use to find 
+  * <a name="destination_type"></a><a href="#destination_type">`destination_type`</a> -
+    Either `service` or `upstream`. The type of discovery query to use to find
     an instance to connect to. Defaults to `service`.
-  * <a name="destination_datacenter"></a><a href="#destination_datacenter">`destination_datacenter`</a> - 
+  * <a name="destination_datacenter"></a><a href="#destination_datacenter">`destination_datacenter`</a> -
     The datacenter to issue the discovery query too. Defaults to the local datacenter.
-  * <a name="connect_timeout_ms"></a><a href="#connect_timeout_ms">`connect_timeout_ms`</a> - 
-    The number of milliseconds the proxy will wait to establish a connection to 
-    and complete TLS handshake with the _remote_ application or proxy. Defaults 
+  * <a name="connect_timeout_ms"></a><a href="#connect_timeout_ms">`connect_timeout_ms`</a> -
+    The number of milliseconds the proxy will wait to establish a connection to
+    and complete TLS handshake with the _remote_ application or proxy. Defaults
     to `10000` or 10 seconds.
-

@@ -52,10 +52,10 @@ There are several important messages that [`consul agent`](/docs/commands/agent.
   [`-node`](/docs/agent/options.html#_node) flag.
 
 * **Datacenter**: This is the datacenter in which the agent is configured to run.
- Consul has first-class support for multiple datacenters; however, to work efficiently,
- each node must be configured to report its datacenter. The [`-datacenter`](/docs/agent/options.html#_datacenter)
- flag can be used to set the datacenter. For single-DC configurations, the agent
- will default to "dc1".
+  Consul has first-class support for multiple datacenters; however, to work efficiently,
+  each node must be configured to report its datacenter. The [`-datacenter`](/docs/agent/options.html#_datacenter)
+  flag can be used to set the datacenter. For single-DC configurations, the agent
+  will default to "dc1".
 
 * **Server**: This indicates whether the agent is running in server or client mode.
   Server nodes have the extra burden of participating in the consensus quorum,
@@ -130,6 +130,6 @@ a server, replication to it will stop.
 To prevent an accumulation of dead nodes (nodes in either _failed_ or _left_
 states), Consul will automatically remove dead nodes out of the catalog. This
 process is called _reaping_. This is currently done on a configurable
-interval of 72 hours (changing the reap interval is *not* recommended due to
+interval of 72 hours (changing the reap interval is _not_ recommended due to
 its consequences during outage situations). Reaping is similar to leaving,
 causing all associated services to be deregistered.

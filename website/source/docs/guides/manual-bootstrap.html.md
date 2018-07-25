@@ -38,7 +38,7 @@ options, but it is recommended to have 3 or 5 total servers per datacenter. A
 single server deployment is _**highly**_ discouraged as data loss is inevitable
 in a failure scenario. We start the next servers **without** specifying
 `-bootstrap`. This is critical, since only one server should ever be running in
-bootstrap mode*. Once `Node B` and `Node C` are started, you should see a
+bootstrap mode. Once `Node B` and `Node C` are started, you should see a
 message to the effect of:
 
 ```text
@@ -95,7 +95,7 @@ and perform a `join` against any existing node. All nodes participate in a
 gossip protocol to perform basic discovery, so clients will automatically find
 the servers and register themselves.
 
-->  If you accidentally start another server with the flag set, do not fret.
+-> If you accidentally start another server with the flag set, do not fret.
 Shutdown the node, and remove the `raft/` folder from the data directory. This
 will remove the bad state caused by being in `-bootstrap` mode. Then restart the
 node and join the cluster normally.

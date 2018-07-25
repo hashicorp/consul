@@ -50,4 +50,3 @@ and envconsul try to minimize application changes required to integration, to av
 native integration via SDKs. Eureka is part of a larger Netflix OSS suite, which expects applications
 to be relatively homogeneous and tightly integrated. As a result, Eureka only solves a limited
 subset of problems, expecting other tools such as ZooKeeper to be used alongside.
-

@@ -55,7 +55,7 @@ The following are parts of the Consul threat model:
 
 * **State modification or corruption due to malicious messages.** Ill-formatted messages are discarded and well-formatted messages require authentication and authorization.
 
-* **Non-server members accessing raw data.**  All servers must join the cluster (with proper authentication and authorization) to begin participating in Raft. Raft data is transmitted over TLS.
+* **Non-server members accessing raw data.** All servers must join the cluster (with proper authentication and authorization) to begin participating in Raft. Raft data is transmitted over TLS.
 
 * **Denial of Service against a node.** DoS attacks against a node should not compromise the security stance of the software.
 

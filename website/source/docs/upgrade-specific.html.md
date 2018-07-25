@@ -67,7 +67,7 @@ As part of supporting the [HCL](https://github.com/hashicorp/hcl#syntax) format 
 
 #### Deprecated Options Have Been Removed
 
-All of Consul's previously deprecated command line flags and config options have been removed, so these will need to be mapped to their equivalents before upgrading. Here's the complete list of removed options and their equivalents:</summary>
+All of Consul's previously deprecated command line flags and config options have been removed, so these will need to be mapped to their equivalents before upgrading. Here's the complete list of removed options and their equivalents:
 
 | Removed Option | Equivalent |
 | -------------- | ---------- |
@@ -585,4 +585,3 @@ fails for some reason, it is not fatal. The older version of the server
 will simply panic and stop. At that point, you can upgrade to the new version
 and restart the agent. There will be no data loss and the cluster will
 resume operations.
-

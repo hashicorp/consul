@@ -26,9 +26,9 @@ Please see the [Network Segments Guide](/docs/guides/segments.html) for more det
 
 This endpoint lists all network areas.
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/operator/segment`     | `application/json`         |
+| Method | Path                | Produces           |
+| ------ | ------------------- | ------------------ |
+| `GET`  | `/operator/segment` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -41,7 +41,7 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+* `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as a URL query
   parameter.
 
@@ -55,5 +55,5 @@ $ curl \
 ### Sample Response
 
 ```json
-["","alpha","beta"]
+["", "alpha", "beta"]
 ```

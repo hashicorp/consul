@@ -14,10 +14,11 @@ description: |-
 
 ## Partial LAN Connectivity with Network Segments
 
-[//]: # ( ~> The network segment functionality described here is available only in )
-[//]: # (   [Consul Enterprise](https://www.hashicorp.com/products/consul/) version 0.9.3 and later. )
+[//]: # ' ~> The network segment functionality described here is available only in '
 
-<%= enterprise_alert :consul %>
+[//]: # ( [Consul Enterprise](https://www.hashicorp.com/products/consul/) version 0.9.3 and later. )
+
+<hashi-button title='Enterprise Alert'></hashi-button>
 
 Many advanced Consul users have the need to run clusters with segmented networks, meaning that
 not all agents can be in a full mesh. This is usually the result of business policies enforced
@@ -46,15 +47,11 @@ bind and advertise address for that segment's gossip listener to bind to on the 
 
 A few things to note:
 
-1. Servers will be a part of all segments they have been configured with. They are the common point
-linking the different segments together. The configured list of segments is specified by the
-[`segments`](/docs/agent/options.html#segments) option.
+1.  Servers will be a part of all segments they have been configured with. They are the common point linking the different segments together. The configured list of segments is specified by the [`segments`](/docs/agent/options.html#segments) option.
 
-2. Client agents can only be part of one segment at a given time, specified by the [`-segment`]
-(/docs/agent/options.html#_segment) option.
+2.  Client agents can only be part of one segment at a given time, specified by the [`-segment`](/docs/agent/options.html#_segment) option.
 
-3. Clients can only join agents in the same segment as them. If they attempt to join a client in
-another segment, or the listening port of another segment on a server, they will get a segment mismatch error.
+3.  Clients can only join agents in the same segment as them. If they attempt to join a client in another segment, or the listening port of another segment on a server, they will get a segment mismatch error.
 
 Once the servers have been configured with the correct segment info, the clients only need to specify
 their own segment in the [Agent Config](/docs/agent/options.html#_segment) and join by connecting to another
@@ -70,10 +67,20 @@ adjust the bind/advertise addresses for your setup):
 
 ```json
 {
-...
+  ...
   "segments": [
-    {"name": "alpha", "bind": "{{GetPrivateIP}}", "advertise": "{{GetPrivateIP}}", "port": 8303},
-    {"name": "beta", "bind": "{{GetPrivateIP}}", "advertise": "{{GetPrivateIP}}", "port": 8304}
+    {
+      "name": "alpha",
+      "bind": "{{GetPrivateIP}}",
+      "advertise": "{{GetPrivateIP}}",
+      "port": 8303
+    },
+    {
+      "name": "beta",
+      "bind": "{{GetPrivateIP}}",
+      "advertise": "{{GetPrivateIP}}",
+      "port": 8304
+    }
   ]
 }
 ```

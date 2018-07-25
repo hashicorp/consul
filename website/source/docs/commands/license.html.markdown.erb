@@ -10,7 +10,7 @@ description: >
 
 Command: `consul license`
 
-<%= enterprise_alert :consul %>
+<hashi-button title='Enterprise Alert'></hashi-button>
 
 The `license` command provides datacenter-level management of the Consul Enterprise license. This was added in Consul 1.1.0.
 
@@ -18,7 +18,6 @@ If ACLs are enabled then a token with operator privileges may be required in
 order to use this command. Requests are forwarded internally to the leader
 if required, so this can be run from any Consul node in a cluster. See the
 [ACL Guide](/docs/guides/acl.html#operator) for more information.
-
 
 ```text
 Usage: consul license <subcommand> [options] [args]

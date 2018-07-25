@@ -38,10 +38,10 @@ Subcommands:
 For more information, examples, and usage about a subcommand, click on the name
 of the subcommand in the sidebar or one of the links below:
 
-- [agent] (/docs/commands/snapshot/agent.html) (Consul Enterprise only)
-- [inspect] (/docs/commands/snapshot/inspect.html)
-- [restore](/docs/commands/snapshot/restore.html)
-- [save](/docs/commands/snapshot/save.html)
+* [agent](/docs/commands/snapshot/agent.html) (Consul Enterprise only)
+* [inspect](/docs/commands/snapshot/inspect.html)
+* [restore](/docs/commands/snapshot/restore.html)
+* [save](/docs/commands/snapshot/save.html)
 
 ## Basic Examples
 

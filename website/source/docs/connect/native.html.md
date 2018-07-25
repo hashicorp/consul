@@ -10,10 +10,10 @@ description: |-
 
 Applications can natively integrate with the Connect API to support
 accepting and establishing connections to other Connect services without
-the overhead of a [proxy sidecar](/docs/connect/proxies.html). This option 
-is especially useful for applications that may be experiencing performance issues 
-with the proxy sidecar deployment. This page will cover the high-level overview 
-of integration, registering the service, etc. For language-specific examples, 
+the overhead of a [proxy sidecar](/docs/connect/proxies.html). This option
+is especially useful for applications that may be experiencing performance issues
+with the proxy sidecar deployment. This page will cover the high-level overview
+of integration, registering the service, etc. For language-specific examples,
 see the sidebar navigation to the left.
 
 Connect is just basic mutual TLS. This means that almost any application
@@ -45,27 +45,27 @@ an API call to verify the incoming client certificate.
 
 Details on the steps are below:
 
-  * **Service discovery** - This is normal service discovery using Consul,
-    a static IP, or any other mechanism. If you're using Consul DNS, the
-    [`<service>.connect`](/docs/agent/dns.html#connect-capable-service-lookups)
-    syntax to find Connect-capable endpoints for a service. After service
-    discovery, choose one address from the list of **service addresses**.
+* **Service discovery** - This is normal service discovery using Consul,
+  a static IP, or any other mechanism. If you're using Consul DNS, the
+  [`<service>.connect`](/docs/agent/dns.html#connect-capable-service-lookups)
+  syntax to find Connect-capable endpoints for a service. After service
+  discovery, choose one address from the list of **service addresses**.
 
-  * **Mutual TLS** - As a client, connect to the discovered service address
-    over normal TLS. As part of the TLS connection, provide the
-    [service certificate](/api/agent/connect.html#service-leaf-certificate)
-    as the client certificate. Verify the remote certificate against the
-    [public CA roots](/api/agent/connect.html#certificate-authority-ca-roots).
-    As a client, if the connection is established then you've established
-    a Connect-based connection and there are no further steps!
+* **Mutual TLS** - As a client, connect to the discovered service address
+  over normal TLS. As part of the TLS connection, provide the
+  [service certificate](/api/agent/connect.html#service-leaf-certificate)
+  as the client certificate. Verify the remote certificate against the
+  [public CA roots](/api/agent/connect.html#certificate-authority-ca-roots).
+  As a client, if the connection is established then you've established
+  a Connect-based connection and there are no further steps!
 
-  * **Authorization** - As a server accepting connections, verify the client
-    certificate against the
-    [public CA roots](/api/agent/connect.html#certificate-authority-ca-roots).
-    After verifying the certificate, parse some basic fields from it and call
-    the [authorizing API](/api/agent/connect.html#authorize) against the local
-    agent. If this returns successfully, complete the TLS handshake and establish
-    the connection. If authorization fails, close the connection.
+* **Authorization** - As a server accepting connections, verify the client
+  certificate against the
+  [public CA roots](/api/agent/connect.html#certificate-authority-ca-roots).
+  After verifying the certificate, parse some basic fields from it and call
+  the [authorizing API](/api/agent/connect.html#authorize) against the local
+  agent. If this returns successfully, complete the TLS handshake and establish
+  the connection. If authorization fails, close the connection.
 
 -> **A note on performance:** The only API call in the connection path is
 the [authorization API](/api/agent/connect.html#authorize). The other API

@@ -20,14 +20,14 @@ Consul server agents are responsible for maintaining the cluster state, respondi
 
 The following instance configurations are recommended.
 
-|Size|CPU|Memory|Disk|Typical Cloud Instance Types|
-|----|---|------|----|----------------------------|
-|Small|2 core|8-16 GB RAM|50 GB|**AWS**: m5.large, m5.xlarge|
-|||||**Azure**: Standard\_A4\_v2, Standard\_A8\_v2|
-|||||**GCE**: n1-standard-8, n1-standard-16|
-|Large|4-8 core|32-64+ GB RAM|100 GB|**AWS**: m5.2xlarge, m5.4xlarge|
-|||||**Azure**: Standard\_D4\_v3, Standard\_D5\_v3|
-|||||**GCE**: n1-standard-32, n1-standard-64|
+| Size  | CPU      | Memory        | Disk   | Typical Cloud Instance Types              |
+| ----- | -------- | ------------- | ------ | ----------------------------------------- |
+| Small | 2 core   | 8-16 GB RAM   | 50 GB  | **AWS**: m5.large, m5.xlarge              |
+|       |          |               |        | **Azure**: Standard_A4_v2, Standard_A8_v2 |
+|       |          |               |        | **GCE**: n1-standard-8, n1-standard-16    |
+| Large | 4-8 core | 32-64+ GB RAM | 100 GB | **AWS**: m5.2xlarge, m5.4xlarge           |
+|       |          |               |        | **Azure**: Standard_D4_v3, Standard_D5_v3 |
+|       |          |               |        | **GCE**: n1-standard-32, n1-standard-64   |
 
 The **small size** instance configuration is appropriate for most initial production deployments, or for development/testing environments. The large size is for production environments where there is a consistently high workload.
 
@@ -81,13 +81,13 @@ Datacenter designs may opt for a layer 2 or a layer 3 network. Consul’s gossip
 
 Layer 3 restricts the ARP requests to a smaller segment of the network. Traffic between the segments typically traverses through a firewall and/or a router. ACL or firewall rules must be updated to allow the following ports:
 
-|Name|Port|Flag|Description|
-|----|----|----|-----------|
-|Server RPC|8300||Used by servers to handle incoming requests from other agents. TCP only.|
-|Serf LAN|8301||Used to handle gossip in the LAN. Required by all agents. TCP and UDP.|
-|Serf WAN|8302|`-1` to disable (available in Consul 1.0.7)|Used by servers to gossip over the LAN and WAN to other servers. TCP and UDP.|
-|HTTP API|8500|`-1` to disable|Used by clients to talk to the HTTP API. TCP only.|
-|DNS&nbsp;Interface|8600|`-1` to disable||
+| Name               | Port | Flag                                        | Description                                                                   |
+| ------------------ | ---- | ------------------------------------------- | ----------------------------------------------------------------------------- |
+| Server RPC         | 8300 |                                             | Used by servers to handle incoming requests from other agents. TCP only.      |
+| Serf LAN           | 8301 |                                             | Used to handle gossip in the LAN. Required by all agents. TCP and UDP.        |
+| Serf WAN           | 8302 | `-1` to disable (available in Consul 1.0.7) | Used by servers to gossip over the LAN and WAN to other servers. TCP and UDP. |
+| HTTP API           | 8500 | `-1` to disable                             | Used by clients to talk to the HTTP API. TCP only.                            |
+| DNS&nbsp;Interface | 8600 | `-1` to disable                             |                                                                               |
 
 -> **TIP** As mentioned in the [datacenter design section](#1-1-1-single-datacenter), network areas and network segments can be used to prevent opening up firewall ports between different subnets.
 
@@ -99,19 +99,19 @@ By default, the recommended value for production environments is `1`. This value
 
 The value of `raft_multiplier` is a scaling factor and directly affects the following parameters:
 
-|Param|Value||
-|-----|----:|-:|
-|HeartbeatTimeout|1000ms|default|
-|ElectionTimeout|1000ms|default|
-|LeaderLeaseTimeout|500ms|default|
+| Param              |  Value |         |
+| ------------------ | -----: | ------: |
+| HeartbeatTimeout   | 1000ms | default |
+| ElectionTimeout    | 1000ms | default |
+| LeaderLeaseTimeout |  500ms | default |
 
 So a scaling factor of `5` (i.e. `raft_multiplier: 5`) updates the following values:
 
-|Param|Value|Calculation|
-|-----|----:|-:|
-|HeartbeatTimeout|5000ms|5 x 1000ms|
-|ElectionTimeout|5000ms|5 x 1000ms|
-|LeaderLeaseTimeout|2500ms|5 x 500ms|
+| Param              |  Value | Calculation |
+| ------------------ | -----: | ----------: |
+| HeartbeatTimeout   | 5000ms |  5 x 1000ms |
+| ElectionTimeout    | 5000ms |  5 x 1000ms |
+| LeaderLeaseTimeout | 2500ms |   5 x 500ms |
 
 ~> **NOTE** Wide networks with more latency will perform better with larger values of `raft_multiplier`.
 
@@ -129,7 +129,7 @@ For **write-heavy** workloads, the total RAM available for overhead must approxi
 
     RAM NEEDED = number of keys * average key size * 2-3x
 
-Since writes must be synced to disk (persistent storage) on a quorum of servers before they are committed, deploying a disk with high write throughput (or an SSD) will enhance performance on the write side. ([Documentation](/docs/agent/options.html#\_data\_dir))
+Since writes must be synced to disk (persistent storage) on a quorum of servers before they are committed, deploying a disk with high write throughput (or an SSD) will enhance performance on the write side. ([Documentation](/docs/agent/options.html#_data_dir))
 
 For a **read-heavy** workload, configure all Consul server agents with the `allow_stale` DNS option, or query the API with the `stale` [consistency mode](/api/index.html#consistency-modes). By default, all queries made to the server are RPC forwarded to and serviced by the leader. By enabling stale reads, any server will respond to any query, thereby reducing overhead on the leader. Typically, the stale response is `100ms` or less from consistent mode but it drastically improves performance and reduces latency under high load.
 
@@ -139,7 +139,7 @@ It should be noted that `stale` is not appropriate for coordination where strong
 
 **Read-heavy** clusters may take advantage of the [enhanced reading](/docs/enterprise/read-scale/index.html) feature (Enterprise) for better scalability. This feature allows additional servers to be introduced as non-voters. Being a non-voter, the server will still participate in data replication, but it will not block the leader from committing log entries.
 
-Consul’s agents use network sockets for communicating with the other nodes (gossip) and with the server agent. In addition, file descriptors are also opened for watch handlers, health checks, and log files. For a **write heavy** cluster, the `ulimit` size must be increased from the default  value (`1024`) to prevent the leader from running out of file descriptors.
+Consul’s agents use network sockets for communicating with the other nodes (gossip) and with the server agent. In addition, file descriptors are also opened for watch handlers, health checks, and log files. For a **write heavy** cluster, the `ulimit` size must be increased from the default value (`1024`) to prevent the leader from running out of file descriptors.
 
 To prevent any CPU spikes from a misconfigured client, RPC requests to the server should be [rate limited](/docs/agent/options.html#limits)
 

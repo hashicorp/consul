@@ -13,8 +13,8 @@ range of deployment methodologies. This guide will provide you with a
 production ready TLS configuration.
 
 ~> Note that while Consul's TLS configuration will be production ready, key
-   management and rotation is a complex subject not covered by this guide.
-   [Vault][vault] is the suggested solution for key generation and management.
+management and rotation is a complex subject not covered by this guide.
+[Vault][vault] is the suggested solution for key generation and management.
 
 The first step to configuring TLS for Consul is generating certificates. In
 order to prevent unauthorized cluster access, Consul requires all certificates
@@ -23,12 +23,11 @@ and not a public one like [Let's Encrypt][letsencrypt] as any certificate
 signed by this CA will be allowed to communicate with the cluster.
 
 ~> Consul certificates may be signed by intermediate CAs as long as the root CA
-   is the same. Append all intermediate CAs to the `cert_file`.
-
+is the same. Append all intermediate CAs to the `cert_file`.
 
 ## Reference Material
 
-- [Encryption](/docs/agent/encryption.html)
+* [Encryption](/docs/agent/encryption.html)
 
 ## Estimated Time to Complete
 
@@ -52,26 +51,24 @@ use [cfssl][cfssl]. You can generate a private CA certificate and key with
 # Generate a default CSR
 $ cfssl print-defaults csr > ca-csr.json
 ```
+
 Change the `key` field to use RSA with a size of 2048
 
 ```json
 {
-    "CN": "example.net",
-    "hosts": [
-        "example.net",
-        "www.example.net"
-    ],
-    "key": {
-        "algo": "rsa",
-        "size": 2048
-    },
-    "names": [
-        {
-            "C": "US",
-            "ST": "CA",
-            "L": "San Francisco"
-        }
-    ]
+  "CN": "example.net",
+  "hosts": ["example.net", "www.example.net"],
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "US",
+      "ST": "CA",
+      "L": "San Francisco"
+    }
+  ]
 }
 ```
 
@@ -91,7 +88,7 @@ Once you have a CA certificate and key you can generate and sign the
 certificates Consul will use directly. TLS certificates commonly use the
 fully-qualified domain name of the system being identified as the certificate's
 Common Name (CN). However, hosts (and therefore hostnames and IPs) are often
-ephemeral in Consul clusters.  Not only would signing a new certificate per
+ephemeral in Consul clusters. Not only would signing a new certificate per
 Consul node be difficult, but using a hostname provides no security or
 functional benefits to Consul. To fulfill the desired security properties
 (above) Consul certificates are signed with their region and role such as:
@@ -107,12 +104,7 @@ To create certificates for the client and server in the cluster with
   "signing": {
     "default": {
       "expiry": "87600h",
-      "usages": [
-        "signing",
-        "key encipherment",
-        "server auth",
-        "client auth"
-      ]
+      "usages": ["signing", "key encipherment", "server auth", "client auth"]
     }
   }
 }
@@ -164,8 +156,9 @@ HTTPS. We can configure the local Consul client to connect using TLS and specify
 our custom keys and certificates using the command line:
 
 ```shell
-$ consul members -ca-file=consul-ca.pem -client-cert=cli.pem -client-key=cli-key.pem -http-addr="https://localhost:9090" 
+$ consul members -ca-file=consul-ca.pem -client-cert=cli.pem -client-key=cli-key.pem -http-addr="https://localhost:9090"
 ```
+
 (The command is assuming HTTPS is configured to use port 9090. To see how
 you can change this, visit the [Configuration](/docs/agent/options.html) page)
 

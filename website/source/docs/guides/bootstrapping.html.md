@@ -42,17 +42,17 @@ scenario, the servers will not elect themselves leader.
 
 To trigger leader election, we must join these machines together and create a cluster. There are multiple options for joining the machines:
 
-- Manually specified list of machines with
+* Manually specified list of machines with
   [-join](/docs/agent/options.html#_join) and
   [start_join](https://www.consul.io/docs/agent/options.html#start_join)
   options
-- Manually specified list of machines with [-retry-join](https://www.consul.io/docs/agent/options.html#_retry_join) option
-- Automatic joining by tag for supported cloud environments with the [-retry-join](https://www.consul.io/docs/agent/options.html#_retry_join) option
+* Manually specified list of machines with [-retry-join](https://www.consul.io/docs/agent/options.html#_retry_join) option
+* Automatic joining by tag for supported cloud environments with the [-retry-join](https://www.consul.io/docs/agent/options.html#_retry_join) option
 
 Choose the method which best suits your environment and specific use case.
 
 ~> **Notice:** The hosted version of Consul Enterprise was deprecated on
-  March 7th, 2017 and the Atlas `auto-join` feature is no longer available. 
+March 7th, 2017 and the Atlas `auto-join` feature is no longer available.
 
 ### Manually Creating a Cluster
 

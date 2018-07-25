@@ -19,9 +19,9 @@ raw entries.
 
 This endpoint returns the checks specific to the node provided on the path.
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/health/node/:node`         | `application/json`         |
+| Method | Path                 | Produces           |
+| ------ | -------------------- | ------------------ |
+| `GET`  | `/health/node/:node` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -34,10 +34,10 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `node` `(string: <required>)` - Specifies the name or ID of the node to query.
+* `node` `(string: <required>)` - Specifies the name or ID of the node to query.
   This is specified as part of the URL
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+* `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter.
 
@@ -74,7 +74,7 @@ $ curl \
     "Output": "",
     "ServiceID": "redis",
     "ServiceName": "redis",
-    "ServiceTags": ["primary"] 
+    "ServiceTags": ["primary"]
   }
 ]
 ```
@@ -84,9 +84,9 @@ $ curl \
 This endpoint returns the checks associated with the service provided on the
 path.
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/health/checks/:service`    | `application/json`         |
+| Method | Path                      | Produces           |
+| ------ | ------------------------- | ------------------ |
+| `GET`  | `/health/checks/:service` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -99,19 +99,19 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `service` `(string: <required>)` - Specifies the service to list checks for.
+* `service` `(string: <required>)` - Specifies the service to list checks for.
   This is provided as part of the URL.
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+* `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter.
 
-- `near` `(string: "")` - Specifies a node name to sort the node list in
+* `near` `(string: "")` - Specifies a node name to sort the node list in
   ascending order based on the estimated round trip time from that node. Passing
   `?near=_agent` will use the agent's node for the sort. This is specified as
   part of the URL as a query parameter.
 
-- `node-meta` `(string: "")` - Specifies a desired node metadata key/value pair
+* `node-meta` `(string: "")` - Specifies a desired node metadata key/value pair
   of the form `key:value`. This parameter can be specified multiple times, and
   will filter the results to nodes with the specified key/value pairs. This is
   specified as part of the URL as a query parameter.
@@ -136,7 +136,7 @@ $ curl \
     "Output": "",
     "ServiceID": "redis",
     "ServiceName": "redis",
-	"ServiceTags": ["primary"]
+    "ServiceTags": ["primary"]
   }
 ]
 ```
@@ -147,9 +147,9 @@ This endpoint returns the nodes providing the service indicated on the path.
 Users can also build in support for dynamic load balancing and other features by
 incorporating the use of health checks.
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/health/service/:service`   | `application/json`         |
+| Method | Path                       | Produces           |
+| ------ | -------------------------- | ------------------ |
+| `GET`  | `/health/service/:service` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -162,27 +162,27 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `service` `(string: <required>)` - Specifies the service to list services for.
+* `service` `(string: <required>)` - Specifies the service to list services for.
   This is provided as part of the URL.
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+* `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter.
 
-- `near` `(string: "")` - Specifies a node name to sort the node list in
+* `near` `(string: "")` - Specifies a node name to sort the node list in
   ascending order based on the estimated round trip time from that node. Passing
   `?near=_agent` will use the agent's node for the sort. This is specified as
   part of the URL as a query parameter.
 
-- `tag` `(string: "")` - Specifies the tag to filter the list. This is
+* `tag` `(string: "")` - Specifies the tag to filter the list. This is
   specifies as part of the URL as a query parameter.
 
-- `node-meta` `(string: "")` - Specifies a desired node metadata key/value pair
+* `node-meta` `(string: "")` - Specifies a desired node metadata key/value pair
   of the form `key:value`. This parameter can be specified multiple times, and
   will filter the results to nodes with the specified key/value pairs. This is
   specified as part of the URL as a query parameter.
 
-- `passing` `(bool: false)` - Specifies that the server should return only nodes
+* `passing` `(bool: false)` - Specifies that the server should return only nodes
   with all checks in the `passing` state. This can be used to avoid additional
   filtering on the client side.
 
@@ -231,7 +231,7 @@ $ curl \
         "Output": "",
         "ServiceID": "redis",
         "ServiceName": "redis",
-		"ServiceTags": ["primary"]
+        "ServiceTags": ["primary"]
       },
       {
         "Node": "foobar",
@@ -257,9 +257,9 @@ This will include both proxies and native integrations. A service may
 register both Connect-capable and incapable services at the same time,
 so this endpoint may be used to filter only the Connect-capable endpoints.
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/health/connect/:service`   | `application/json`         |
+| Method | Path                       | Produces           |
+| ------ | -------------------------- | ------------------ |
+| `GET`  | `/health/connect/:service` | `application/json` |
 
 Parameters and response format are the same as
 [`/health/service/:service`](/api/health.html#list-nodes-for-service).
@@ -268,9 +268,9 @@ Parameters and response format are the same as
 
 This endpoint returns the checks in the state provided on the path.
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/health/state/:state`       | `application/json`         |
+| Method | Path                   | Produces           |
+| ------ | ---------------------- | ------------------ |
+| `GET`  | `/health/state/:state` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -283,20 +283,20 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `state` `(string: <required>)` - Specifies the state to query. Supported states
+* `state` `(string: <required>)` - Specifies the state to query. Supported states
   are `any`, `passing`, `warning`, or `critical`. The `any` state is a wildcard
   that can be used to return all checks.
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+* `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter.
 
-- `near` `(string: "")` - Specifies a node name to sort the node list in
+* `near` `(string: "")` - Specifies a node name to sort the node list in
   ascending order based on the estimated round trip time from that node. Passing
   `?near=_agent` will use the agent's node for the sort. This is specified as
   part of the URL as a query parameter.
 
-- `node-meta` `(string: "")` - Specifies a desired node metadata key/value pair
+* `node-meta` `(string: "")` - Specifies a desired node metadata key/value pair
   of the form `key:value`. This parameter can be specified multiple times, and
   will filter the results to nodes with the specified key/value pairs. This is
   specified as part of the URL as a query parameter.
@@ -332,7 +332,7 @@ $ curl \
     "Output": "",
     "ServiceID": "redis",
     "ServiceName": "redis",
-	  "ServiceTags": ["primary"]
+    "ServiceTags": ["primary"]
   }
 ]
 ```

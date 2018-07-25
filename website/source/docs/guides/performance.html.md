@@ -16,6 +16,7 @@ to disk every time an entry is appended. Servers are generally CPU bound for rea
 reads work from a fully in-memory data store that is optimized for concurrent access.
 
 <a name="minimum"></a>
+
 ## Minimum Server Requirements
 
 In Consul 0.7, the default server [performance parameters](/docs/agent/options.html#performance)
@@ -41,6 +42,7 @@ The default performance configuration is equivalent to this:
 ```
 
 <a name="production"></a>
+
 ## Production Server Requirements
 
 When running Consul 0.7 and later in production, it is recommended to configure the server
@@ -65,35 +67,35 @@ Here are some general recommendations:
 * Consul will make use of multiple cores, and at least 2 cores are recommended.
 
 * For write-heavy workloads, disk speed on the servers is key for performance. Use SSDs or
-another fast disk technology for the best write throughput.
+  another fast disk technology for the best write throughput.
 
 * <a name="last-contact"></a>Spurious leader elections can be caused by networking issues between
-the servers or insufficient CPU resources. Users in cloud environments often bump their servers
-up to the next instance class with improved networking and CPU until leader elections stabilize,
-and in Consul 0.7 or later the [performance parameters](/docs/agent/options.html#performance)
-configuration now gives you tools to trade off performance instead of upsizing servers. You can
-use the [`consul.raft.leader.lastContact` telemetry](/docs/agent/telemetry.html#last-contact)
-to observe how the Raft timing is performing and guide the decision to de-tune Raft performance
-or add more powerful servers.
+  the servers or insufficient CPU resources. Users in cloud environments often bump their servers
+  up to the next instance class with improved networking and CPU until leader elections stabilize,
+  and in Consul 0.7 or later the [performance parameters](/docs/agent/options.html#performance)
+  configuration now gives you tools to trade off performance instead of upsizing servers. You can
+  use the [`consul.raft.leader.lastContact` telemetry](/docs/agent/telemetry.html#last-contact)
+  to observe how the Raft timing is performing and guide the decision to de-tune Raft performance
+  or add more powerful servers.
 
 * For DNS-heavy workloads, configuring all Consul agents in a cluster with the
-[`allow_stale`](/docs/agent/options.html#allow_stale) configuration option will allow reads to
-scale across all Consul servers, not just the leader. Consul 0.7 and later enables stale reads
-for DNS by default. See [Stale Reads](/docs/guides/dns-cache.html#stale) in the
-[DNS Caching](/docs/guides/dns-cache.html) guide for more details. It's also good to set
-reasonable, non-zero [DNS TTL values](/docs/guides/dns-cache.html#ttl) if your clients will
-respect them.
+  [`allow_stale`](/docs/agent/options.html#allow_stale) configuration option will allow reads to
+  scale across all Consul servers, not just the leader. Consul 0.7 and later enables stale reads
+  for DNS by default. See [Stale Reads](/docs/guides/dns-cache.html#stale) in the
+  [DNS Caching](/docs/guides/dns-cache.html) guide for more details. It's also good to set
+  reasonable, non-zero [DNS TTL values](/docs/guides/dns-cache.html#ttl) if your clients will
+  respect them.
 
 * In other applications that perform high volumes of reads against Consul, consider using the
-[stale consistency mode](/api/index.html#consistency) available to allow reads to scale
-across all the servers and not just be forwarded to the leader.
+  [stale consistency mode](/api/index.html#consistency) available to allow reads to scale
+  across all the servers and not just be forwarded to the leader.
 
 * In Consul 0.9.3 and later, a new [`limits`](/docs/agent/options.html#limits) configuration is
-available on Consul clients to limit the RPC request rate they are allowed to make against the
-Consul servers. After hitting the limit, requests will start to return rate limit errors until
-time has passed and more requests are allowed. Configuring this across the cluster can help with
-enforcing a max desired application load level on the servers, and can help mitigate abusive
-applications.
+  available on Consul clients to limit the RPC request rate they are allowed to make against the
+  Consul servers. After hitting the limit, requests will start to return rate limit errors until
+  time has passed and more requests are allowed. Configuring this across the cluster can help with
+  enforcing a max desired application load level on the servers, and can help mitigate abusive
+  applications.
 
 ## Memory Requirements
 

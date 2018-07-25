@@ -40,7 +40,6 @@ consul
 redis
 ```
 
-
 ## Usage
 
 Usage: `consul catalog services [options]`
@@ -52,12 +51,12 @@ Usage: `consul catalog services [options]`
 
 #### Catalog List Nodes Options
 
-- `-node=<id or name>` - Node `id or name` for which to list services.
+* `-node=<id or name>` - Node `id or name` for which to list services.
 
-- `-node-meta=<key=value>` - Metadata to filter nodes with the given
+* `-node-meta=<key=value>` - Metadata to filter nodes with the given
   `key=value` pairs. If specified, only services running on nodes matching the
   given metadata will be returned. This flag may be specified multiple times to
   filter on multiple sources of metadata.
 
-- `-tags` - Display each service's tags as a comma-separated list beside each
+* `-tags` - Display each service's tags as a comma-separated list beside each
   service entry.

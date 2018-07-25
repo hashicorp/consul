@@ -19,9 +19,9 @@ clients.
 This endpoint returns the Raft leader for the datacenter in which the agent is
 running.
 
-| Method | Path                         | Produces               |
-| :----- | :--------------------------- | ---------------------- |
-| `GET`  | `/status/leader`             | `application/json`         |
+| Method | Path             | Produces           |
+| :----- | :--------------- | ------------------ |
+| `GET`  | `/status/leader` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -50,9 +50,9 @@ This endpoint retrieves the Raft peers for the datacenter in which the the agent
 is running. This list of peers is strongly consistent and can be useful in
 determining when a given server has successfully joined the cluster.
 
-| Method | Path                         | Produces               |
-| :----- | :--------------------------- | ---------------------- |
-| `GET`  | `/status/peers`              | `application/json`         |
+| Method | Path            | Produces           |
+| :----- | :-------------- | ------------------ |
+| `GET`  | `/status/peers` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -72,9 +72,5 @@ $ curl https://consul.rocks/v1/status/peers
 ### Sample Response
 
 ```json
-[
-  "10.1.10.12:8300",
-  "10.1.10.11:8300",
-  "10.1.10.10:8300"
-]
+["10.1.10.12:8300", "10.1.10.11:8300", "10.1.10.10:8300"]
 ```

@@ -112,7 +112,7 @@ These environment variables and their purpose are described below:
 
 ## `CONSUL_HTTP_ADDR`
 
-This is the HTTP API address to the *local* Consul agent
+This is the HTTP API address to the _local_ Consul agent
 (not the remote server) specified as a URI:
 
 ```

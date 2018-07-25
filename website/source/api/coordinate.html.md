@@ -25,9 +25,9 @@ organized by datacenters. It serves data out of the server's local Serf data, so
 its results may vary as requests are handled by different servers in the
 cluster.
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/coordinate/datacenters`    | `application/json`         |
+| Method | Path                      | Produces           |
+| ------ | ------------------------- | ------------------ |
+| `GET`  | `/coordinate/datacenters` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -76,9 +76,9 @@ within the same area.
 This endpoint returns the LAN network coordinates for all nodes in a given
 datacenter.
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/coordinate/nodes`          | `application/json`         |
+| Method | Path                | Produces           |
+| ------ | ------------------- | ------------------ |
+| `GET`  | `/coordinate/nodes` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -91,10 +91,10 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+* `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter.
-- `segment` `(string: "")` - (Enterprise-only) Specifies the segment to list members for.
+* `segment` `(string: "")` - (Enterprise-only) Specifies the segment to list members for.
   If left blank, this will query for the default segment when connecting to a server and
   the agent's own segment when connecting to a client (clients can only be part of one
   network segment). When querying a server, setting this to the special string `_all`
@@ -132,9 +132,9 @@ segment.
 
 This endpoint returns the LAN network coordinates for the given node.
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/coordinate/node/:node`     | `application/json`         |
+| Method | Path                     | Produces           |
+| ------ | ------------------------ | ------------------ |
+| `GET`  | `/coordinate/node/:node` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -147,10 +147,10 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+* `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter.
-- `segment` `(string: "")` - (Enterprise-only) Specifies the segment to list members for.
+* `segment` `(string: "")` - (Enterprise-only) Specifies the segment to list members for.
   If left blank, this will query for the default segment when connecting to a server and
   the agent's own segment when connecting to a client (clients can only be part of one
   network segment). When querying a server, setting this to the special string `_all`
@@ -189,9 +189,9 @@ segment.
 This endpoint updates the LAN network coordinates for a node in a given
 datacenter.
 
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `PUT`  | `/coordinate/update`         | `application/json`         |
+| Method | Path                 | Produces           |
+| ------ | -------------------- | ------------------ |
+| `PUT`  | `/coordinate/update` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
@@ -204,7 +204,7 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+* `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter.
 

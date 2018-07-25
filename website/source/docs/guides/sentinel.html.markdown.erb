@@ -7,14 +7,14 @@ description: |-
 ---
 
 # Sentinel Overview
-[//]: # ( ~> The Sentinel functionality described here is available only in )
-[//]: # (   [Consul Enterprise](https://www.hashicorp.com/products/consul/) version 1.0.0 and later. )
 
-<%= enterprise_alert :consul %>
+[//]: # ' ~> The Sentinel functionality described here is available only in '
 
- Consul 1.0 adds integration with [Sentinel](https://hashicorp.com/sentinel) for policy enforcement.
- Sentinel policies help extend the ACL system in Consul beyond the static "read", "write", and "deny"
- policies to support full conditional logic, and integration with external systems.
+[//]: # ( [Consul Enterprise](https://www.hashicorp.com/products/consul/) version 1.0.0 and later. )
+
+<hashi-button title='Enterprise Alert'></hashi-button>
+
+Consul 1.0 adds integration with [Sentinel](https://hashicorp.com/sentinel) for policy enforcement. Sentinel policies help extend the ACL system in Consul beyond the static "read", "write", and "deny" policies to support full conditional logic, and integration with external systems.
 
 ## Sentinel in Consul
 
@@ -23,7 +23,6 @@ Sentinel policies are applied during writes to the KV Store.
 ACL policy definitions take a `sentinel` field specifying the code and the enforcement level.
 
 Here's an example:
-
 
 ```text
   sentinel {
@@ -48,14 +47,14 @@ Consul passes some context as variables into Sentinel, which are available to us
 
 #### Variables injected during KV store writes
 
-| Variable Name |  Type    | Description |
-| ------------- | -------- | ----------- |
-| `key`         | `string` | Key being written |
-| `value`       | `string` | Value being written |
+| Variable Name | Type     | Description                 |
+| ------------- | -------- | --------------------------- |
+| `key`         | `string` | Key being written           |
+| `value`       | `string` | Value being written         |
 | `flags`       | `uint64` | [Flags](/api/kv.html#flags) |
 
-
 ## Examples
+
 The following are some examples of ACL policies with Sentinel rules.
 
 ### Any values stored under the key prefix "foo" must end with "bar"

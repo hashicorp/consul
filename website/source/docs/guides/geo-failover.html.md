@@ -45,9 +45,9 @@ Using the techniques in this section we will develop prepared queries with failo
 
 Failover is just another policy choice for a prepared query, it works in the same manner as the previous example and is similarly transparent to applications. The failover policy is configured using the `Failover` structure, which contains two fields, both of which are optional, and determine what happens if no healthy nodes are available in the local datacenter when the query is executed.
 
-- `NearestN` `(int: 0)` - Specifies that the query will be forwarded to up to `NearestN` other datacenters based on their estimated network round trip time using [network coordinates](/docs/internals/coordinates.html).
+* `NearestN` `(int: 0)` - Specifies that the query will be forwarded to up to `NearestN` other datacenters based on their estimated network round trip time using [network coordinates](/docs/internals/coordinates.html).
 
-- `Datacenters` `(array<string>: nil)` - Specifies a fixed list of remote datacenters to forward the query to if there are no healthy nodes in the local datacenter. Datacenters are queried in the order given in the list.
+* `Datacenters` `(array<string>: nil)` - Specifies a fixed list of remote datacenters to forward the query to if there are no healthy nodes in the local datacenter. Datacenters are queried in the order given in the list.
 
 The following sections show examples using these fields to implement different geo failover policies.
 
@@ -77,10 +77,10 @@ $ curl \
 
 When this query is executed, such as with a DNS lookup to "api.query.consul", the following actions will occur:
 
-1. Consul servers in the local datacenter will attempt to find healthy instances of the "api" service with the required tag.
-2. If none are available locally, the Consul servers will make an RPC request to the Consul servers in "dc1" to perform the query there.
-3. If none are available in "dc1", then an RPC will be made to the Consul servers in "dc2" to perform the query there.
-4. Finally an error will be returned if none of these datacenters had any instances available.
+1.  Consul servers in the local datacenter will attempt to find healthy instances of the "api" service with the required tag.
+2.  If none are available locally, the Consul servers will make an RPC request to the Consul servers in "dc1" to perform the query there.
+3.  If none are available in "dc1", then an RPC will be made to the Consul servers in "dc2" to perform the query there.
+4.  Finally an error will be returned if none of these datacenters had any instances available.
 
 ### Dynamic Policy
 

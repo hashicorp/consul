@@ -48,88 +48,13 @@ Below is sample output of a telemetry dump:
 
 # Key Metrics
 
-These are some metrics emitted that can help you understand the health of your cluster at a glance. For a full list of metrics emitted by Consul, see [Metrics Reference](#metrics-reference)
-
-### Transaction timing
-
-| Metric Name              | Description |
-| :----------------------- | :---------- |
-| `consul.kvs.apply`       | This measures the time it takes to complete an update to the KV store. |
-| `consul.txn.apply`       | This measures the time spent applying a transaction operation. |
-| `consul.raft.apply`      | This counts the number of Raft transactions occurring over the interval. |
-| `consul.raft.commitTime` | This measures the time it takes to commit a new entry to the Raft log on the leader. |
-
-**Why they're important:** Taken together, these metrics indicate how long it takes to complete write operations in various parts of the Consul cluster. Generally these should all be fairly consistent and no more than a few milliseconds. Sudden changes in any of the timing values could be due to unexpected load on the Consul servers, or due to problems on the servers themselves.
-
-**What to look for:** Deviations (in any of these metrics) of more than 50% from baseline over the previous hour.
-
-### Leadership changes
-
-| Metric Name | Description |
-| :---------- | :---------- |
-| `consul.raft.leader.lastContact` | Measures the time since the leader was last able to contact the follower nodes when checking its leader lease. |
-| `consul.raft.state.candidate` | This increments whenever a Consul server starts an election. |
-| `consul.raft.state.leader` | This increments whenever a Consul server becomes a leader. |
-
-**Why they're important:** Normally, your Consul cluster should have a stable leader. If there are frequent elections or leadership changes, it would likely indicate network issues between the Consul servers, or that the Consul servers themselves are unable to keep up with the load.
-
-**What to look for:** For a healthy cluster, you're looking for a `lastContact` lower than 200ms, `leader` > 0 and `candidate` == 0. Deviations from this might indicate flapping leadership.
-
-### Autopilot
-
-| Metric Name | Description |
-| :---------- | :---------- |
-| `consul.autopilot.healthy` | This tracks the overall health of the local server cluster. If all servers are considered healthy by Autopilot, this will be set to 1. If any are unhealthy, this will be 0. |
-
-**Why it's important:** Obviously, you want your cluster to be healthy.
-
-**What to look for:** Alert if `healthy` is 0.
-
-### Memory usage
-
-| Metric Name | Description |
-| :---------- | :---------- |
-| `consul.runtime.alloc_bytes` | This measures the number of bytes allocated by the Consul process. |
-| `consul.runtime.sys_bytes`   | This is the total number of bytes of memory obtained from the OS.  |
-
-**Why they're important:** Consul keeps all of its data in memory. If Consul consumes all available memory, it will crash.
-
-**What to look for:** If `consul.runtime.sys_bytes` exceeds 90% of total avaliable system memory.
-
-### Garbage collection
-
-| Metric Name | Description |
-| :---------- | :---------- |
-| `consul.runtime.total_gc_pause_ns` | Number of nanoseconds consumed by stop-the-world garbage collection (GC) pauses since Consul started. |
-
-**Why it's important:** GC pause is a "stop-the-world" event, meaning that all runtime threads are blocked until GC completes. Normally these pauses last only a few nanoseconds. But if memory usage is high, the Go runtime may GC so frequently that it starts to slow down Consul.
-
-**What to look for:** Warning if `total_gc_pause_ns` exceeds 2 seconds/minute, critical if it exceeds 5 seconds/minute.
-
-**NOTE:** `total_gc_pause_ns` is a cumulative counter, so in order to calculate rates (such as GC/minute),
-you will need to apply a function such as InfluxDB's [`non_negative_difference()`](https://docs.influxdata.com/influxdb/v1.5/query_language/functions/#non-negative-difference).
-
-### Network activity - RPC Count
-
-| Metric Name | Description |
-| :---------- | :---------- |
-| `consul.client.rpc` | Increments whenever a Consul agent in client mode makes an RPC request to a Consul server |
-| `consul.client.rpc.exceeded` | Increments whenever a Consul agent in client mode makes an RPC request to a Consul server gets rate limited by that agent's [`limits`](/docs/agent/options.html#limits) configuration.  |
-| `consul.client.rpc.failed` | Increments whenever a Consul agent in client mode makes an RPC request to a Consul server and fails.  |
-
-**Why they're important:** These measurements indicate the current load created from a Consul agent, including when the load becomes high enough to be rate limited. A high RPC count, especially from `consul.client.rpcexceeded` meaning that the requests are being rate-limited, could imply a misconfigured Consul agent.
-
-**What to look for:**
-Sudden large changes to the `consul.client.rpc` metrics (greater than 50% deviation from baseline).
-`consul.client.rpc.exceeded` or `consul.client.rpc.failed` count > 0, as it implies that an agent is being rate-limited or fails to make an RPC request to a Consul server
-
 When telemetry is being streamed to an external metrics store, the interval is defined to
 be that store's flush interval. Otherwise, the interval can be assumed to be 10 seconds
 when retrieving metrics from the built-in store using the above described signals.
 
-## Metrics Reference
+## Agent Health
 
-This is a full list of metrics emitted by Consul.
+These metrics are used to monitor the health of specific Consul agents.
 
 <table class="table table-bordered table-striped">
   <tr>
@@ -137,18 +62,6 @@ This is a full list of metrics emitted by Consul.
     <th>Description</th>
     <th>Unit</th>
     <th>Type</th>
-  </tr>
-  <tr>
-    <td>`consul.acl.blocked.service.registration`</td>
-    <td>This increments whenever a deregistration fails for a service (blocked by an ACL)</td>
-    <td>requests</td>
-    <td>counter</td>
-  </tr>
-  <tr>
-    <td>`consul.acl.blocked.&lt;check|node|service&gt;.registration`</td>
-    <td>This increments whenever a registration fails for an entity (check, node or service) is blocked by an ACL</td>
-    <td>requests</td>
-    <td>counter</td>
   </tr>
   <tr>
     <td>`consul.client.rpc`</td>
@@ -160,12 +73,6 @@ This is a full list of metrics emitted by Consul.
     <td>`consul.client.rpc.exceeded`</td>
     <td>This increments whenever a Consul agent in client mode makes an RPC request to a Consul server gets rate limited by that agent's [`limits`](/docs/agent/options.html#limits) configuration. This gives an indication that there's an abusive application making too many requests on the agent, or that the rate limit needs to be increased. Currently, this only applies to agents in client mode, not Consul servers.</td>
     <td>rejected requests</td>
-    <td>counter</td>
-  </tr>
-  <tr>
-    <td>`consul.client.rpc.failed`</td>
-    <td>This increments whenever a Consul agent in client mode makes an RPC request to a Consul server and fails.</td>
-    <td>requests</td>
     <td>counter</td>
   </tr>
   <tr>
@@ -368,62 +275,6 @@ These metrics are used to monitor the health of the Consul servers.
     <th>Type</th>
   </tr>
   <tr>
-    <td>`consul.raft.fsm.snapshot`</td>
-    <td>This metric measures the time taken by the FSM to record the current state for the snapshot.</td>
-    <td>ms</td>
-    <td>timer</td>
-  </tr>
-  <tr>
-  <tr>
-    <td>`consul.raft.fsm.apply`</td>
-    <td>This metric gives the number of logs committed since the last interval. </td>
-    <td>commit logs / interval</td>
-    <td>counter</td>
-  </tr>
-  <tr>
-  <tr>
-    <td>`consul.raft.fsm.restore`</td>
-    <td>This metric measures the time taken by the FSM to restore its state from a snapshot.</td>
-    <td>ms</td>
-    <td>timer</td>
-  </tr>
-  <tr>
-    <td>`consul.raft.snapshot.create`</td>
-    <td>This metric measures the time taken to initialize the snapshot process.</td>
-    <td>ms</td>
-    <td>timer</td>
-  </tr>
-  <tr>
-    <td>`consul.raft.snapshot.persist`</td>
-    <td>This metric measures the time taken to dump the current snapshot taken by the Consul agent to the disk.</td>
-    <td>ms</td>
-    <td>timer</td>
-  </tr>
-  <tr>
-    <td>`consul.raft.snapshot.takeSnapshot`</td>
-    <td>This metric measures the total time involved in taking the current snapshot (creating one and persisting it) by the Consul agent.</td>
-    <td>ms</td>
-    <td>timer</td>
-  </tr>
-  <tr>
-    <td>`consul.raft.replication.heartbeat`</td>
-    <td>This metric measures the time taken to invoke appendEntries on a peer, so that it doesn’t timeout on a periodic basis.</td>
-    <td>ms</td>
-    <td>timer</td>
-  </tr>
-  <tr>
-    <td>`consul.serf.snapshot.appendLine`</td>
-    <td>This metric measures the time taken by the Consul agent to append an entry into the existing log.</td>
-    <td>ms</td>
-    <td>timer</td>
-  </tr>
-  <tr>
-    <td>`consul.serf.snapshot.compact`</td>
-    <td>This metric measures the time taken by the Consul agent to compact a log. This operation occurs only when the snapshot becomes large enough to justify the compaction .</td>
-    <td>ms</td>
-    <td>timer</td>
-  </tr>
-  <tr>
     <td>`consul.raft.state.leader`</td>
     <td>This increments whenever a Consul server becomes a leader. If there are frequent leadership changes this may be indication that the servers are overloaded and aren't meeting the soft real-time requirements for Raft, or that there are networking problems between the servers.</td>
     <td>leadership transitions / interval</td>
@@ -442,25 +293,6 @@ These metrics are used to monitor the health of the Consul servers.
     <td>counter</td>
   </tr>
   <tr>
-    <td>`consul.raft.barrier`</td>
-    <td>This metric counts the number of times the agent has started the barrier i.e the number of times it has
-    issued a blocking call, to ensure that the agent has all the pending operations that were queued, to be applied to the agent's FSM.</td>
-    <td>blocks / interval</td>
-    <td>counter</td>
-  </tr>
-  <tr>
-  <td>`consul.raft.verify_leader`</td>
-  <td>This metric counts the number of times an agent checks whether it is still the leader or not</td>
-  <td>checks / interval</td>
-  <td>Counter</td>
-  </tr>
-  <tr>
-  <td>`consul.raft.restore`</td>
-  <td>This metric counts the number of times the restore operation has been performed by the agent. Here, restore refers to the action of raft consuming an external snapshot to restore its state.</td>
-  <td>operation invoked / interval</td>
-  <td>counter</td>
-  </tr> 
-  <tr>
     <td>`consul.raft.commitTime`</td>
     <td>This measures the time it takes to commit a new entry to the Raft log on the leader.</td>
     <td>ms</td>
@@ -477,72 +309,6 @@ These metrics are used to monitor the health of the Consul servers.
     <td>This measures the time it takes to replicate log entries to followers. This is a general indicator of the load pressure on the Consul servers, as well as the performance of the communication between the servers.</td>
     <td>ms</td>
     <td>timer</td>
-  </tr>
-  <tr>
-  <td>`consul.raft.state.follower`</td>
-  <td>This metric counts the number of times an agent has entered the follower mode. This happens when a new agent joins the cluster or after the end of a leader election.</td>
-  <td> follower state entered / interval</td>
-  <td>counter</td>
-  </tr>
-  <tr>
-  <td>`consul.raft.transistion.heartbeat_timeout`</td>
-  <td>This metric gives the number of times an agent has transitioned to the Candidate state, after receive no heartbeat messages from the last known leader.</td>
-  <td>timeouts / interval</td>
-  <td>counter</td>
-  </tr>
-  <tr>
-  <td>`consul.raft.restoreUserSnapshot`</td>
-  <td>This metric measures the time taken by the agent to restore the FSM state from a user's snapshot</td>
-  <td>ms</td>
-  <td>timer</td>
-  </tr>
-  <tr>
-  <td>`consul.raft.rpc.processHeartBeat`</td>
-  <td>This metric measures the time taken to process a heartbeat request.</td>
-  <td>ms</td>
-  <td>timer</td>
-  </tr>
-  <tr>
-  <td>`consul.raft.rpc.appendEntries`</td>
-  <td>This metric measures the time taken to process an append entries RPC call from an agent.</td>
-  <td>ms</td>
-  <td>timer</td>
-  </tr>
-  <tr>
-  <td>`consul.raft.rpc.appendEntries.storeLogs`</td>
-  <td>This metric measures the time taken to add any outstanding logs for an agent, since the last appendEntries was invoked</td>  
-  <td>ms</td>
-  <td>timer</td>
-  </tr>
-  <tr>
-  <td>`consul.raft.rpc.appendEntries.processLogs`</td>
-  <td>This metric measures the time taken to process the outstanding log entries of an agent.</td>
-  <td>ms</td>
-  <td>timer</td>
-  </tr>
-  <tr>
-  <tr>
-  <td>`consul.raft.rpc.requestVote`</td>
-  <td>This metric measures the time taken to process the request vote RPC call.</td>
-  <td>ms</td>
-  <td>timer</td>
-  </tr>
-  <tr>
-  <td>`consul.raft.rpc.installSnapshot`</td>
-  <td>This metric measures the time taken to process the installSnapshot RPC call. This metric should only be seen on agents which are currently in the follower state.</td>
-  <td>ms</td>
-  <td>timer</td>
-  <tr>
-  <td>`consul.raft.replication.appendEntries.rpc`</td>
-  <td>This metric measures the time taken by the append entries RFC, to replicate the log entries of a leader agent onto its follower agent(s)</td>
-  <td>ms</td>
-  <td>timer</td>
-  </tr>
-  <tr>
-  <td>`consul.raft.replication.appendEntries.logs`</td>
-  <td>This metric measures the number of logs replicated to an agent, to bring it upto speed with the leader's logs.</td>
-  <td>logs appended/ interval</td>
-  <td>counter</td>
   </tr>
   <tr>
     <td><a name="last-contact"></a>`consul.raft.leader.lastContact`</td>
@@ -784,6 +550,7 @@ These metrics are used to monitor the health of the Consul servers.
     <td>ms</td>
     <td>timer</td>
   </tr>
+  <tr>
     <td>`consul.txn.read`</td>
     <td>This measures the time spent returning a read transaction.</td>
     <td>ms</td>
@@ -803,93 +570,9 @@ These metrics give insight into the health of the cluster as a whole.
     <th>Type</th>
   </tr>
   <tr>
-  <td>`consul.memberlist.degraded.probe`</td>
-  <td>This metric counts the number of times the agent has performed failure detection on an other agent at a slower probe rate. The agent uses its own health metric as an indicator to perform this action. (If its health score is low, means that the node is healthy, and vice versa.)</td>
-  <td>probes / interval</td>
-  <td>counter</td>
-  </tr>
-  <tr>
-  <td>`consul.memberlist.degraded.timeout`</td>
-  <td>This metric counts the number of times an agent was marked as a dead node, whilst not getting enough confirmations from a randomly selected list of agent nodes in an agent's membership.</td>
-  <td>occurrence / interval</td>
-  <td>counter</td>
-  </tr>
-  <tr>
-  <td>`consul.memberlist.msg.dead`</td>
-  <td>This metric counts the number of times an agent has marked another agent to be a dead node.</td>
-  <td>messages / interval</td>
-  <td>counter</td>
-  </tr>
-  <tr>
-  <td>`consul.memberlist.health.score`</td>
-  <td>This metric describes a node's perception of its own health based on how well it is meeting the soft real-time requirements of the protocol. This metric ranges from 0 to 8, where 0 indicates "totally healthy". This health score is used to scale the time between outgoing probes, and higher scores translate into longer probing intervals. For more details see section IV of the Lifeguard paper: https://arxiv.org/pdf/1707.00788.pdf</td>
-  <td>score</td>
-  <td>gauge</td>
-  </tr>  
-  <tr>
     <td>`consul.memberlist.msg.suspect`</td>
     <td>This increments when an agent suspects another as failed when executing random probes as part of the gossip protocol. These can be an indicator of overloaded agents, network problems, or configuration errors where agents can not connect to each other on the [required ports](/docs/agent/options.html#ports).</td>
     <td>suspect messages received / interval</td>
-    <td>counter</td>
-  </tr>
-  <tr>
-  <td>`consul.memberlist.tcp.accept`</td>
-  <td>This metric counts the number of times an agent has accepted an incoming TCP stream connection.</td>
-  <td>connections accepted / interval</td>
-  <td>counter</td>
-  </tr>
-  <tr>
-  <td>`consul.memberlist.udp.sent/received`</td>
-  <td>This metric measures the total number of bytes sent/received by an agent through the UDP protocol.</td>
-  <td>bytes sent or bytes received / interval</td>
-  <td>counter</td>
-  </tr>
-  <tr>
-  <td>`consul.memberlist.tcp.connect`</td>
-  <td>This metric counts the number of times an agent has initiated a push/pull sync with an other agent.</td>
-  <td>push/pull initiated / interval</td>
-  <td>counter</td>
-  </tr>
-  <tr>
-  <td>`consul.memberlist.tcp.sent`</td>
-  <td>This metric measures the total number of bytes sent by an agent through the TCP protocol</td>
-  <td>bytes sent / interval</td>
-  <td>counter</td>
-  </tr>
-  <tr>
-    <td>`consul.memberlist.gossip`</td>
-    <td>This metric gives the number of gossips (messages) broadcasted to a set of randomly selected nodes.</td>
-    <td>messages / Interval</td>
-    <td>counter</td>
-  </tr>
-  <tr>
-    <td>`consul.memberlist.msg_alive`</td>
-    <td>This metric counts the number of alive agents, that the agent has mapped out so far, based on the message information given by the network layer.</td>
-    <td>nodes / Interval</td>
-    <td>counter</td>
-  </tr>
-  <tr>
-    <td>`consul.memberlist.msg_dead`</td>
-    <td>This metric gives the number of dead agents, that the agent has mapped out so far, based on the message information given by the network layer.</td>
-    <td>nodes / Interval</td>
-    <td>counter</td>
-  </tr>
-  <tr>
-    <td>`consul.memberlist.msg_suspect`</td>
-    <td>This metric gives the number of suspect nodes, that the agent has mapped out so far, based on the message information given by the network layer.</td>
-    <td>nodes / Interval</td>
-    <td>counter</td>
-  </tr>
-  <tr>
-    <td>`consul.memberlist.probeNode`</td>
-    <td>This metric measures the time taken to perform a single round of failure detection on a select agent.</td>
-    <td>nodes / Interval</td>
-    <td>counter</td>
-  </tr>
-  <tr>
-    <td>`consul.memberlist.pushPullNode`</td>
-    <td>This metric measures the number of agents that have exchanged state with this agent.</td>
-    <td>nodes / Interval</td>
     <td>counter</td>
   </tr>
   <tr>
@@ -956,106 +639,6 @@ These metrics give insight into the health of the cluster as a whole.
     <td>`consul.health.service.not-found.<service>`</td>
     <td>This increments for each health query where the given service could not be found.</td>
     <td>queries</td>
-    <td>counter</td>
-  </tr>
-</table>
-
-
-## Connect Built-in Proxy Metrics
-
-Consul Connect's built-in proxy is by default configured to log metrics to the
-same sink as the agent that starts it when running as a [managed
-proxy](/docs/connect/proxies.html#managed-proxies).
-
-When running in this mode it emits some basic metrics. These will be expanded
-upon in the future.
-
-All metrics are prefixed with `consul.proxy.<proxied-service-id>` to distinguish
-between multiple proxies on a given host. The table below use `web` as an
-example service name for brevity.
-
-### Labels
-
-Most labels have a `dst` label and some have a `src` label. When using metrics
-sinks and timeseries stores that support labels or tags, these allow aggregating
-the connections by service name.
-
-Assuming all services are using a managed built-in proxy, you can get a complete
-overview of both number of open connections and bytes sent and recieved between
-all services by aggregating over these metrics.
-
-For example aggregating over all `upstream` (i.e. outbound) connections which
-have both `src` and `dst` labels, you can get a sum of all the bandwidth in and
-out of a given service or the total number of connections between two services.
-
-
-### Metrics Reference
-
-The standard go runtime metrics are exported by `go-metrics` as with Consul
-agent. The table below describes the additional metrics exported by the proxy.
-
-<table class="table table-bordered table-striped">
-  <tr>
-    <th>Metric</th>
-    <th>Description</th>
-    <th>Unit</th>
-    <th>Type</th>
-  </tr>
-  <tr>
-    <td>`consul.proxy.web.runtime.*`</td>
-    <td>The same go runtime metrics as documented for the agent above.</td>
-    <td>mixed</td>
-    <td>mixed</td>
-  </tr>
-  <tr>
-    <td>`consul.proxy.web.inbound.conns`</td>
-    <td>Shows the current number of connections open from inbound requests to
-    the proxy. Where supported a `dst` label is added indicating the
-    service name the proxy represents.</td>
-    <td>connections</td>
-    <td>gauge</td>
-  </tr>
-  <tr>
-    <td>`consul.proxy.web.inbound.rx_bytes`</td>
-    <td>This increments by the number of bytes received from an inbound client
-    connection. Where supported a `dst` label is added indicating the
-    service name the proxy represents.</td>
-    <td>bytes</td>
-    <td>counter</td>
-  </tr>
-  <tr>
-    <td>`consul.proxy.web.inbound.tx_bytes`</td>
-    <td>This increments by the number of bytes transfered to an inbound client
-    connection. Where supported a `dst` label is added indicating the
-    service name the proxy represents.</td>
-    <td>bytes</td>
-    <td>counter</td>
-  </tr>
-  <tr>
-    <td>`consul.proxy.web.upstream.conns`</td>
-    <td>Shows the current number of connections open from a proxy instance to an
-    upstream. Where supported a `src` label is added indicating the
-    service name the proxy represents, and a `dst` label is added indicating the
-    service name the upstream is connecting to.</td>
-    <td>connections</td>
-    <td>gauge</td>
-  </tr>
-  <tr>
-    <td>`consul.proxy.web.inbound.rx_bytes`</td>
-    <td>This increments by the number of bytes received from an upstream
-    connection. Where supported a `src` label is added indicating the
-    service name the proxy represents, and a `dst` label is added indicating the
-    service name the upstream is connecting to.</td>
-    <td>bytes</td>
-    <td>counter</td>
-  </tr>
-  <tr>
-    <td>`consul.proxy.web.inbound.tx_bytes`</td>
-    <td>This increments by the number of bytes transfered to an upstream
-    connection. Where supported a `src` label is added indicating the
-    service name the proxy represents, and a `dst` label is added indicating the
-    service name the upstream is connecting to.</td>
-    <td>bytes</td>
     <td>counter</td>
   </tr>
 </table>
