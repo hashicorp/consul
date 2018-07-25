@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -222,7 +223,9 @@ func (r *RegisterMonitor) heartbeat() {
 	// Trigger the health check passing. We don't need to retry this
 	// since we do a couple tries within the TTL period.
 	if err := r.Client.Agent().PassTTL(r.checkID(), ""); err != nil {
-		r.Logger.Printf("[WARN] proxy: heartbeat failed: %s", err)
+		if !strings.Contains(err.Error(), "does not have associated") {
+			r.Logger.Printf("[WARN] proxy: heartbeat failed: %s", err)
+		}
 	}
 }
 
