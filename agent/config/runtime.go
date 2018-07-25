@@ -968,14 +968,14 @@ type RuntimeConfig struct {
 	// hcl: gossip_lan { gossip_interval = duration}
 	GossipLANGossipInterval time.Duration
 
-	// GossipfLANGossipNodes is the number of random nodes to send gossip messages to
+	// GossipLANGossipNodes is the number of random nodes to send gossip messages to
 	// per GossipInterval. Increasing this number causes the gossip messages to
 	// propagate across the cluster more quickly at the expense of increased
 	// bandwidth. This configuration only applies to LAN gossip communications
 	//
 	// The default is: 3
 	//
-	// hcl: gossip_lan { gossip_nodes = int}
+	// hcl: gossip_lan { gossip_nodes = int }
 	GossipLANGossipNodes int
 
 	// GossipLANProbeInterval is the interval between random node probes. Setting
@@ -985,7 +985,7 @@ type RuntimeConfig struct {
 	//
 	// The default is: 1s
 	//
-	// hcl: gossip_lan { probe_interval = duration}
+	// hcl: gossip_lan { probe_interval = duration }
 	GossipLANProbeInterval time.Duration
 
 	// GossipLANProbeTimeout is the timeout to wait for an ack from a probed node
@@ -995,7 +995,7 @@ type RuntimeConfig struct {
 	//
 	// The default is: 500ms
 	//
-	// hcl: gossip_lan { probe_timeout = duration}
+	// hcl: gossip_lan { probe_timeout = duration }
 	GossipLANProbeTimeout time.Duration
 
 	// GossipLANSuspicionMult is the multiplier for determining the time an
@@ -1014,12 +1014,12 @@ type RuntimeConfig struct {
 	//
 	// The default is: 4
 	//
-	// hcl: gossip_lan { suspicion_mult = int}
+	// hcl: gossip_lan { suspicion_mult = int }
 	GossipLANSuspicionMult int
 
 	// GossipLANRetransmitMult is the multiplier for the number of retransmissions
 	// that are attempted for messages broadcasted over gossip. This
-	// configuration only applies to WAN gossip communications. The actual
+	// configuration only applies to LAN gossip communications. The actual
 	// count of retransmissions is calculated using the formula:
 	//
 	//   Retransmits = RetransmitMult * log(N+1)
@@ -1030,7 +1030,7 @@ type RuntimeConfig struct {
 	//
 	// The default is: 4
 	//
-	// hcl: gossip_lan { retransmit_mult = int}
+	// hcl: gossip_lan { retransmit_mult = int }
 	GossipLANRetransmitMult int
 
 	// GossipWANGossipInterval  is the interval between sending messages that need
@@ -1045,14 +1045,14 @@ type RuntimeConfig struct {
 	// hcl: gossip_wan { gossip_interval = duration}
 	GossipWANGossipInterval time.Duration
 
-	// GossipfWANGossipNodes is the number of random nodes to send gossip messages to
+	// GossipWANGossipNodes is the number of random nodes to send gossip messages to
 	// per GossipInterval. Increasing this number causes the gossip messages to
 	// propagate across the cluster more quickly at the expense of increased
 	// bandwidth. This configuration only applies to WAN gossip communications
 	//
 	// The default is: 3
 	//
-	// hcl: gossip_wan { gossip_nodes = int}
+	// hcl: gossip_wan { gossip_nodes = int }
 	GossipWANGossipNodes int
 
 	// GossipWANProbeInterval is the interval between random node probes. Setting
@@ -1062,7 +1062,7 @@ type RuntimeConfig struct {
 	//
 	// The default is: 1s
 	//
-	// hcl: gossip_wan { probe_interval = duration}
+	// hcl: gossip_wan { probe_interval = duration }
 	GossipWANProbeInterval time.Duration
 
 	// GossipWANProbeTimeout is the timeout to wait for an ack from a probed node
@@ -1072,7 +1072,7 @@ type RuntimeConfig struct {
 	//
 	// The default is: 500ms
 	//
-	// hcl: gossip_wan { probe_timeout = duration}
+	// hcl: gossip_wan { probe_timeout = duration }
 	GossipWANProbeTimeout time.Duration
 
 	// GossipWANSuspicionMult is the multiplier for determining the time an
@@ -1091,7 +1091,7 @@ type RuntimeConfig struct {
 	//
 	// The default is: 4
 	//
-	// hcl: gossip_wan { suspicion_mult = int}
+	// hcl: gossip_wan { suspicion_mult = int }
 	GossipWANSuspicionMult int
 
 	// GossipWANRetransmitMult is the multiplier for the number of retransmissions
@@ -1107,7 +1107,7 @@ type RuntimeConfig struct {
 	//
 	// The default is: 4
 	//
-	// hcl: gossip_wan { retransmit_mult = int}
+	// hcl: gossip_wan { retransmit_mult = int }
 	GossipWANRetransmitMult int
 
 	// ServerMode controls if this agent acts like a Consul server,
