@@ -2794,7 +2794,10 @@ func TestFullConfig(t *testing.T) {
 						"ttl": "1181s",
 						"deregister_critical_service_after": "4992s"
 					}
-				]
+				],
+				"connect": {
+					"native": true
+				}
 			},
 			"services": [
 				{
@@ -2888,6 +2891,13 @@ func TestFullConfig(t *testing.T) {
 							}
 						}
 					}
+				},
+				{
+					"id": "Kh81CPF6",
+					"name": "Kh81CPF6-proxy",
+					"port": 31471,
+					"kind": "connect-proxy",
+					"proxy_destination": "6L6BVfgH"
 				}
 			],
 			"session_ttl_min": "26627s",
@@ -3258,6 +3268,9 @@ func TestFullConfig(t *testing.T) {
 						deregister_critical_service_after = "4992s"
 					}
 				]
+				connect {
+					native = true
+				}
 			}
 			services = [
 				{
@@ -3351,6 +3364,13 @@ func TestFullConfig(t *testing.T) {
 							}
 						}
 					}
+				},
+				{
+					id = "Kh81CPF6"
+					name = "Kh81CPF6-proxy"
+					port = 31471
+					kind = "connect-proxy"
+					proxy_destination = "6L6BVfgH"
 				}
 			]
 			session_ttl_min = "26627s"
@@ -3862,6 +3882,13 @@ func TestFullConfig(t *testing.T) {
 				},
 			},
 			{
+				ID:               "Kh81CPF6",
+				Name:             "Kh81CPF6-proxy",
+				Port:             31471,
+				Kind:             "connect-proxy",
+				ProxyDestination: "6L6BVfgH",
+			},
+			{
 				ID:                "dLOXpSCI",
 				Name:              "o1ynPkp0",
 				Tags:              []string{"nkwshvM5", "NTDWn3ek"},
@@ -3870,6 +3897,9 @@ func TestFullConfig(t *testing.T) {
 				Meta:              map[string]string{"mymeta": "data"},
 				Port:              24237,
 				EnableTagOverride: true,
+				Connect: &structs.ServiceConnect{
+					Native: true,
+				},
 				Checks: structs.CheckTypes{
 					&structs.CheckType{
 						CheckID:    "Zv99e9Ka",
