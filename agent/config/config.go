@@ -317,6 +317,7 @@ type Autopilot struct {
 }
 
 type ServiceDefinition struct {
+	Kind              *string           `json:"kind,omitempty" hcl:"kind" mapstructure:"kind"`
 	ID                *string           `json:"id,omitempty" hcl:"id" mapstructure:"id"`
 	Name              *string           `json:"name,omitempty" hcl:"name" mapstructure:"name"`
 	Tags              []string          `json:"tags,omitempty" hcl:"tags" mapstructure:"tags"`
@@ -327,6 +328,7 @@ type ServiceDefinition struct {
 	Checks            []CheckDefinition `json:"checks,omitempty" hcl:"checks" mapstructure:"checks"`
 	Token             *string           `json:"token,omitempty" hcl:"token" mapstructure:"token"`
 	EnableTagOverride *bool             `json:"enable_tag_override,omitempty" hcl:"enable_tag_override" mapstructure:"enable_tag_override"`
+	ProxyDestination  *string           `json:"proxy_destination,omitempty" hcl:"proxy_destination" mapstructure:"proxy_destination"`
 	Connect           *ServiceConnect   `json:"connect,omitempty" hcl:"connect" mapstructure:"connect"`
 }
 
@@ -357,7 +359,9 @@ type CheckDefinition struct {
 
 // ServiceConnect is the connect block within a service registration
 type ServiceConnect struct {
-	// TODO(banks) add way to specify that the app is connect-native
+	// Native is true when this service can natively understand Connect.
+	Native *bool `json:"native,omitempty" hcl:"native" mapstructure:"native"`
+
 	// Proxy configures a connect proxy instance for the service
 	Proxy *ServiceConnectProxy `json:"proxy,omitempty" hcl:"proxy" mapstructure:"proxy"`
 }

@@ -1074,6 +1074,7 @@ func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		meta = v.Meta
 	}
 	return &structs.ServiceDefinition{
+		Kind:              b.serviceKindVal(v.Kind),
 		ID:                b.stringVal(v.ID),
 		Name:              b.stringVal(v.Name),
 		Tags:              v.Tags,
@@ -1083,7 +1084,20 @@ func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		Token:             b.stringVal(v.Token),
 		EnableTagOverride: b.boolVal(v.EnableTagOverride),
 		Checks:            checks,
+		ProxyDestination:  b.stringVal(v.ProxyDestination),
 		Connect:           b.serviceConnectVal(v.Connect),
+	}
+}
+
+func (b *Builder) serviceKindVal(v *string) structs.ServiceKind {
+	if v == nil {
+		return structs.ServiceKindTypical
+	}
+	switch *v {
+	case string(structs.ServiceKindConnectProxy):
+		return structs.ServiceKindConnectProxy
+	default:
+		return structs.ServiceKindTypical
 	}
 }
 
@@ -1102,7 +1116,8 @@ func (b *Builder) serviceConnectVal(v *ServiceConnect) *structs.ServiceConnect {
 	}
 
 	return &structs.ServiceConnect{
-		Proxy: proxy,
+		Native: b.boolVal(v.Native),
+		Proxy:  proxy,
 	}
 }
 

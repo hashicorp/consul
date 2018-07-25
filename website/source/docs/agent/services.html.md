@@ -44,6 +44,8 @@ example shows all possible fields, but note that only a few are required.
         "interval": "10s"
       }
     ],
+    "kind": "connect-proxy",
+    "proxy_destination": "redis",
     "connect": {
       "native": false,
       "proxy": {
@@ -132,14 +134,22 @@ For Consul 0.9.3 and earlier you need to use `enableTagOverride`. Consul 1.0
 supports both `enable_tag_override` and `enableTagOverride` but the latter is
 deprecated and has been removed as of Consul 1.1.
 
-The `connect` field can be specified to configure [Connect](/docs/connect/index.html)
-for a service. This field is available in Consul 1.2 and later. The `native`
-value can be set to true to advertise the service as
-[Connect-native](/docs/connect/native.html). If the `proxy` field is set
-(even to an empty object), then this will enable a
-[managed proxy](/docs/connect/proxies.html) for the service. The fields within
-`proxy` are used to configure the proxy and are specified in the
-[proxy docs](/docs/connect/proxies.html).
+The `kind` field is used to optionally identify the service as an [unmanaged
+Connect proxy](/docs/connect/proxies.html#unmanaged-proxies) instance with the
+value `connect-proxy`. For typical non-proxy instances the `kind` field must be
+omitted. The `proxy_destination` field is also required for unmanaged proxy
+registrations and is only valid if `kind` is `connect-proxy`. It's value must be
+the _name_ of the service that the proxy is handling traffic for.
+
+The `connect` field can be specified to configure
+[Connect](/docs/connect/index.html) for a service. This field is available in
+Consul 1.2 and later. The `native` value can be set to true to advertise the
+service as [Connect-native](/docs/connect/native.html). If the `proxy` field is
+set (even to an empty object), then this will enable a [managed
+proxy](/docs/connect/proxies.html) for the service. The fields within `proxy`
+are used to configure the proxy and are specified in the [proxy
+docs](/docs/connect/proxies.html). If `native` is true, it is an error to also
+specifiy a managed proxy instance.
 
 ## Multiple Service Definitions
 
