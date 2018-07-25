@@ -233,7 +233,7 @@ function build_consul_post {
    rm -r pkg.bin.new
       
    DEV_PLATFORM="./pkg/bin/${extra_dir}$(go env GOOS)_$(go env GOARCH)"
-   for F in $(find ${DEV_PLATFORM} -mindepth 1 -maxdepth 1 -type f )
+   for F in $(find ${DEV_PLATFORM} -mindepth 1 -maxdepth 1 -type f 2>/dev/null)
    do
       # recreate the bin dir
       rm -r bin/* 2> /dev/null
@@ -436,8 +436,14 @@ function build_consul_local {
             
             echo "--->   ${osarch}"
             
+            
             mkdir -p "${outdir}"
-            CGO_ENABLED=0 GOOS=${os} GOARCH=${arch} go install -ldflags "${GOLDFLAGS}" -tags "${GOTAGS}" && cp "${MAIN_GOPATH}/bin/consul" "${outdir}/consul"
+            GOBIN_EXTRA=""
+            if test "${os}" != "$(go env GOOS)" -o "${arch}" != "$(go env GOARCH)"
+            then
+               GOBIN_EXTRA="${os}_${arch}/"
+            fi
+            CGO_ENABLED=0 GOOS=${os} GOARCH=${arch} go install -ldflags "${GOLDFLAGS}" -tags "${GOTAGS}" && cp "${MAIN_GOPATH}/bin/${GOBIN_EXTRA}consul" "${outdir}/consul"
             if test $? -ne 0
             then
                err "ERROR: Failed to build Consul for ${osarch}"
