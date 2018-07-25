@@ -97,10 +97,22 @@ func assertTelemetryValue(t *testing.T, sink *MockSink,
 		}
 	}
 
-	assert.Equal(t, true, found, "metric not found in sink: %s", name)
+	dumpSink := func() {
+		t.Log("Sink contents:")
+		for i := 0; i < len(sink.keys); i++ {
+			k, _ := sink.flattenKeyLabels(sink.keys[i], sink.labels[i])
+			t.Logf("\t%s: %f", k, sink.vals[i])
+		}
+	}
 
-	assert.Equalf(t, value, sink.vals[idx],
-		"'%s'\n telemetry mismatch - expected: %v, got %v", name, value, sink.vals[idx])
+	if !assert.Equal(t, true, found, "metric not found in sink: %s", name) {
+		dumpSink()
+	}
+
+	if !assert.Equalf(t, value, sink.vals[idx],
+		"'%s'\n telemetry mismatch - expected: %v, got %v", name, value, sink.vals[idx]) {
+		dumpSink()
+	}
 }
 
 func TestPublicListener(t *testing.T) {
