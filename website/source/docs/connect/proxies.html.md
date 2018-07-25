@@ -64,6 +64,10 @@ Note that this behaviour while desirable in production might leave proxy
 processes running indefinitely if you manually stop the agent and clear it's
 data dir during testing.
 
+To terminate a managed proxy cleanly you need to deregister the service that
+requested it. If the agent is already stopped and will not be restarted again,
+you may choose to locate the proxy processes and kill them manually.
+
 While in `-dev` mode, unless a `-data-dir` is explicitly set, managed proxies
 switch to being killed when the agent exits since it can't store state in order
 to re-adopt them on restart.
@@ -240,8 +244,7 @@ level logs showing service discovery, certificate and authorization information.
 configured so logging is disabled. You can access logs by providing the
 [`-data-dir`](/docs/agent/options.html#_data_dir) CLI option. If a data dir is
 configured, this will also cause proxy processes to stay running when the agent
-terminates. These can be terminated by deregistering the services that requested
-them first, or by manually killing the processes.
+terminates as described in [Lifecycle](#lifecycle).
 
 ## Unmanaged Proxies
 
