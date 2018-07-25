@@ -463,17 +463,24 @@ func (s *Store) GetNode(id string) (uint64, *structs.Node, error) {
 }
 
 func getNodeIDTxn(tx *memdb.Txn, id types.NodeID) (*structs.Node, error) {
-	sanitized := strings.Replace(string(id), "-", "", -1)
+	strnode := string(id)
+	if len(strnode) != 36 {
+		return nil, fmt.Errorf("node lookup by ID failed: UUID must be 36 characters, was '%s'", strnode)
+	}
+	sanitized := strings.Replace(strnode, "-", "", -1)
 	sanitizedLength := len(sanitized)
-	if sanitizedLength%2 != 0 {
-		return nil, fmt.Errorf("Input (without hyphens) must be even length")
+	if sanitizedLength != 32 {
+		return nil, fmt.Errorf("node lookup by ID failed: wrong UUID format for '%s'", strnode)
 	}
 
 	dec, err := hex.DecodeString(sanitized)
+	if err != nil {
+		return nil, fmt.Errorf("node lookup by ID failed: %s for '%s'", err, strnode)
+	}
 
 	node, err := tx.First("nodes", "uuid", dec)
 	if err != nil {
-		return nil, fmt.Errorf("node lookup failed: %s", err)
+		return nil, fmt.Errorf("node lookup by ID failed: %s", err)
 	}
 	if node != nil {
 		return node.(*structs.Node), nil

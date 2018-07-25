@@ -64,8 +64,24 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("got err %s want nil", err)
 		}
+		if out2 == nil {
+			t.Fatalf("out2 should not be nil")
+		}
 		if got, want := out, out2; !verify.Values(t, "GetNodeID", got, want) {
 			t.FailNow()
+		}
+		_, out3, err := s.GetNodeID(types.NodeID("wrongId"))
+		if err == nil || out3 != nil || !strings.Contains(err.Error(), "node lookup by ID failed: UUID must be 36 characters") {
+			t.Fatalf("want an error, nil value, err:=%q ; out3:=%q", err.Error(), out3)
+		}
+		_, out3, err = s.GetNodeID(types.NodeID("0123456789abcdefghijklmnopqrstuvwxyz"))
+		if err == nil || out3 != nil || !strings.Contains(err.Error(), "node lookup by ID failed: wrong UUID format") {
+			t.Fatalf("want an error, nil value, err:=%q ; out3:=%q", err, out3)
+		}
+
+		_, out3, err = s.GetNodeID(types.NodeID("00a916bc-a357-4a19-b886-59419fcee50Z"))
+		if err == nil || out3 != nil || !strings.Contains(err.Error(), "node lookup by ID failed: encoding/hex: invalid byte") {
+			t.Fatalf("want an error, nil value, err:=%q ; out3:=%q", err, out3)
 		}
 	}
 	verifyNode()
