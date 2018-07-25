@@ -5,6 +5,10 @@ FEATURES:
 * **Alias Checks:** Alias checks allow a service or node to alias the health status of another service or node in the cluster. [[PR-4320](https://github.com/hashicorp/consul/pull/4320)]
 * cli: Added `-serf-wan-port`, `-serf-lan-port`, and `-server-port` flags to CLI for cases where these can't be specified in config files and `-hcl` is too cumbersome. [[GH-4353](https://github.com/hashicorp/consul/pull/4353#issuecomment-404408827)]
 
+IMPROVEMENTS:
+
+* proxy: With `-register` flag, heartbeat failures will only log once service registration succeeds. [[PR-4314](https://github.com/hashicorp/consul/pull/4314)]
+
 BUG FiXES:
 
 * watches, connect proxies: Fix issue with managed proxies and watches attempting to use a client addr that is 0.0.0.0 or :: [[PR-4403](https://github.com/hashicorp/consul/pull/4403)]
