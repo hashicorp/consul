@@ -1,5 +1,8 @@
 ## UNRELEASED
 
+SECURITY:
+* acl: Fixed an issue where writes operations on the Keyring and Operator were being allowed with a default allow policy even when explicitly denied in the policy. [[GH-4378](https://github.com/hashicorp/consul/issues/4378)]
+
 FEATURES:
 
 * **Alias Checks:** Alias checks allow a service or node to alias the health status of another service or node in the cluster. [[PR-4320](https://github.com/hashicorp/consul/pull/4320)]
@@ -18,9 +21,6 @@ BUG FIXES:
 * connect: Allow Native and Unmanaged proxy configurations via config file [[4443](https://github.com/hashicorp/consul/pull/4443)]
 * connect: Fix bug causing 100% CPU on agent when Connect is disabled but a proxy is still running [[GH-4421](https://github.com/hashicorp/consul/issues/4421)]
 * proxy: Don't restart proxies setup in a config file when Consul restarts [[PR-4407](https://github.com/hashicorp/consul/pull/4407)]
-
-SECURITY:
-* acl: Fixed an issue where writes operations on the Keyring and Operator were being allowed with a default allow policy even when explicitly denied in the policy. [[GH-4378](https://github.com/hashicorp/consul/issues/4378)]
 
 ## 1.2.1 (July 12, 2018)
 
