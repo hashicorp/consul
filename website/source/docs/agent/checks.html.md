@@ -63,20 +63,23 @@ There are several different kinds of checks:
   TCP check timeout value by specifying the `timeout` field in the check
   definition.
 
-* <a name="TTL"></a>Time to Live (TTL) - These checks retain their last known state for a given TTL.
-  The state of the check must be updated periodically over the HTTP interface. If an
-  external system fails to update the status within a given TTL, the check is
-  set to the failed state. This mechanism, conceptually similar to a dead man's switch,
-  relies on the application to directly report its health. For example, a healthy app
-  can periodically `PUT` a status update to the HTTP endpoint; if the app fails, the TTL will
-  expire and the health check enters a critical state. The endpoints used to
-  update health information for a given check are the
-  [pass endpoint](https://www.consul.io/api/agent.html#agent_check_pass)
-  and the [fail endpoint](https://www.consul.io/api/agent.html#agent_check_fail).
-  TTL checks also persist
-  their last known status to disk. This allows the Consul agent to restore the
-  last known status of the check across restarts. Persisted check status is
-  valid through the end of the TTL from the time of the last check.
+* <a name="TTL"></a>Time to Live (TTL) - These checks retain their last known
+  state for a given TTL.  The state of the check must be updated periodically
+  over the HTTP interface. If an external system fails to update the status
+  within a given TTL, the check is set to the failed state. This mechanism,
+  conceptually similar to a dead man's switch, relies on the application to
+  directly report its health. For example, a healthy app can periodically `PUT` a
+  status update to the HTTP endpoint; if the app fails, the TTL will expire and
+  the health check enters a critical state. The endpoints used to update health
+  information for a given check are:
+  [pass](/api/agent/check.html#ttl-check-pass),
+  [warn](/api/agent/check.html#ttl-check-warn),
+  [fail](/api/agent/check.html#ttl-check-fail), and
+  [update](/api/agent/check.html#ttl-check-update).  TTL
+  checks also persist their last known status to disk. This allows the Consul
+  agent to restore the last known status of the check across restarts.  Persisted
+  check status is valid through the end of the TTL from the time of the last
+  check.
 
 * Docker + Interval - These checks depend on invoking an external application which
   is packaged within a Docker Container. The application is triggered within the running
