@@ -918,10 +918,11 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="disable_keyring_file"></a><a href="#disable_keyring_file">`disable_keyring_file`</a> - Equivalent to the
   [`-disable-keyring-file` command-line flag](#_disable_keyring_file).
 
-* <a name="gossip_lan"></a><a href="#gossip_lan">`gossip_lan`</a> - (Advanced) This object contains a number of sub-keys
+* <a name="gossip_lan"></a><a href="#gossip_lan">`gossip_lan`</a> - **(Advanced)** This object contains a number of sub-keys
   which can be set to tune the LAN gossip communications. These are only provided for users running especially large 
   clusters that need fine tuning and are prepared to spend significant effort correctly tuning them for their
-  environment and workload. The default values are appropriate in almost all deployments.
+  environment and workload. **Tuning these improperly can cause Consul to fail in unexpected ways**.
+  The default values are appropriate in almost all deployments.
   
   * <a name="gossip_nodes"></a><a href="#gossip_nodes">`gossip_nodes`</a> - The number of random nodes to send
      gossip messages to per gossip_interval. Increasing this number causes the gossip messages to propagate 
@@ -952,10 +953,11 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
     cluster before declaring it dead, giving that suspect node more time to refute if it is indeed still alive. The
     default is 4.
   
-* <a name="gossip_wan"></a><a href="#gossip_wan">`gossip_wan`</a> - (Advanced) This object contains a number of sub-keys
+* <a name="gossip_wan"></a><a href="#gossip_wan">`gossip_wan`</a> - **(Advanced)** This object contains a number of sub-keys
   which can be set to tune the WAN gossip communications. These are only provided for users running especially large 
   clusters that need fine tuning and are prepared to spend significant effort correctly tuning them for their
-  environment and workload. The default values are appropriate in almost all deployments.
+  environment and workload. **Tuning these improperly can cause Consul to fail in unexpected ways**.
+  The default values are appropriate in almost all deployments.
   
     * <a name="gossip_nodes"></a><a href="#gossip_nodes">`gossip_nodes`</a> - The number of random nodes to send
      gossip messages to per gossip_interval. Increasing this number causes the gossip messages to propagate 
