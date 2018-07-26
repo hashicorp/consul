@@ -438,6 +438,7 @@ func DefaultConfig() *Config {
 			Provider: "consul",
 			Config: map[string]interface{}{
 				"RotationPeriod": "2160h",
+				"LeafCertTTL":    "72h",
 			},
 		},
 

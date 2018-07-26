@@ -32,10 +32,6 @@ var (
 	// caRootPruneInterval is how often we check for stale CARoots to remove.
 	caRootPruneInterval = time.Hour
 
-	// caRootExpireDuration is the duration after which an inactive root is considered
-	// "expired". Currently this is based on the default leaf cert TTL of 3 days.
-	caRootExpireDuration = 7 * 24 * time.Hour
-
 	// minAutopilotVersion is the minimum Consul version in which Autopilot features
 	// are supported.
 	minAutopilotVersion = version.Must(version.NewVersion("0.8.0"))
@@ -601,14 +597,25 @@ func (s *Server) pruneCARoots() error {
 		return nil
 	}
 
-	idx, roots, err := s.fsm.State().CARoots(nil)
+	state := s.fsm.State()
+	idx, roots, err := state.CARoots(nil)
+	if err != nil {
+		return err
+	}
+
+	_, caConf, err := state.CAConfig()
+	if err != nil {
+		return err
+	}
+
+	common, err := caConf.GetCommonConfig()
 	if err != nil {
 		return err
 	}
 
 	var newRoots structs.CARoots
 	for _, r := range roots {
-		if !r.Active && !r.RotatedOutAt.IsZero() && time.Now().Sub(r.RotatedOutAt) > caRootExpireDuration {
+		if !r.Active && !r.RotatedOutAt.IsZero() && time.Now().Sub(r.RotatedOutAt) > common.LeafCertTTL*2 {
 			s.logger.Printf("[INFO] connect: pruning old unused root CA (ID: %s)", r.ID)
 			continue
 		}

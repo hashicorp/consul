@@ -67,6 +67,7 @@ func TestConnectCAConfig(t *testing.T) {
 	expected := &structs.ConsulCAProviderConfig{
 		RotationPeriod: 90 * 24 * time.Hour,
 	}
+	expected.LeafCertTTL = 72 * time.Hour
 
 	// Get the initial config.
 	{
@@ -88,7 +89,8 @@ func TestConnectCAConfig(t *testing.T) {
 		{
 			"Provider": "consul",
 			"Config": {
-				"RotationPeriod": 3600000000000
+				"LeafCertTTL": "72h",
+				"RotationPeriod": "1h"
 			}
 		}`))
 		req, _ := http.NewRequest("PUT", "/v1/connect/ca/configuration", body)

@@ -10,10 +10,12 @@ import (
 )
 
 func ParseConsulCAConfig(raw map[string]interface{}) (*structs.ConsulCAProviderConfig, error) {
-	var config structs.ConsulCAProviderConfig
+	config := structs.ConsulCAProviderConfig{
+		CommonCAProviderConfig: defaultCommonConfig(),
+	}
+
 	decodeConf := &mapstructure.DecoderConfig{
 		DecodeHook:       ParseDurationFunc(),
-		ErrorUnused:      true,
 		Result:           &config,
 		WeaklyTypedInput: true,
 	}
@@ -29,6 +31,10 @@ func ParseConsulCAConfig(raw map[string]interface{}) (*structs.ConsulCAProviderC
 
 	if config.PrivateKey == "" && config.RootCert != "" {
 		return nil, fmt.Errorf("must provide a private key when providing a root cert")
+	}
+
+	if err := config.CommonCAProviderConfig.Validate(); err != nil {
+		return nil, err
 	}
 
 	return &config, nil
@@ -74,4 +80,10 @@ func Uint8ToString(bs []uint8) string {
 		b[i] = byte(v)
 	}
 	return string(b)
+}
+
+func defaultCommonConfig() structs.CommonCAProviderConfig {
+	return structs.CommonCAProviderConfig{
+		LeafCertTTL: 3 * 24 * time.Hour,
+	}
 }

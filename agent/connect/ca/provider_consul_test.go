@@ -117,12 +117,13 @@ func TestConsulCAProvider_Bootstrap_WithCert(t *testing.T) {
 func TestConsulCAProvider_SignLeaf(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
+	require := require.New(t)
 	conf := testConsulCAConfig()
+	conf.Config["LeafCertTTL"] = "1h"
 	delegate := newMockDelegate(t, conf)
 
 	provider, err := NewConsulProvider(conf.Config, delegate)
-	assert.NoError(err)
+	require.NoError(err)
 
 	spiffeService := &connect.SpiffeIDService{
 		Host:       "node1",
@@ -136,20 +137,21 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 		raw, _ := connect.TestCSR(t, spiffeService)
 
 		csr, err := connect.ParseCSR(raw)
-		assert.NoError(err)
+		require.NoError(err)
 
 		cert, err := provider.Sign(csr)
-		assert.NoError(err)
+		require.NoError(err)
 
 		parsed, err := connect.ParseCert(cert)
-		assert.NoError(err)
-		assert.Equal(parsed.URIs[0], spiffeService.URI())
-		assert.Equal(parsed.Subject.CommonName, "foo")
-		assert.Equal(uint64(2), parsed.SerialNumber.Uint64())
+		require.NoError(err)
+		require.Equal(parsed.URIs[0], spiffeService.URI())
+		require.Equal(parsed.Subject.CommonName, "foo")
+		require.Equal(uint64(2), parsed.SerialNumber.Uint64())
 
 		// Ensure the cert is valid now and expires within the correct limit.
-		assert.True(parsed.NotAfter.Sub(time.Now()) < 3*24*time.Hour)
-		assert.True(parsed.NotBefore.Before(time.Now()))
+		now := time.Now()
+		require.True(parsed.NotAfter.Sub(now) < time.Hour)
+		require.True(parsed.NotBefore.Before(now))
 	}
 
 	// Generate a new cert for another service and make sure
@@ -159,20 +161,20 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 		raw, _ := connect.TestCSR(t, spiffeService)
 
 		csr, err := connect.ParseCSR(raw)
-		assert.NoError(err)
+		require.NoError(err)
 
 		cert, err := provider.Sign(csr)
-		assert.NoError(err)
+		require.NoError(err)
 
 		parsed, err := connect.ParseCert(cert)
-		assert.NoError(err)
-		assert.Equal(parsed.URIs[0], spiffeService.URI())
-		assert.Equal(parsed.Subject.CommonName, "bar")
-		assert.Equal(parsed.SerialNumber.Uint64(), uint64(2))
+		require.NoError(err)
+		require.Equal(parsed.URIs[0], spiffeService.URI())
+		require.Equal(parsed.Subject.CommonName, "bar")
+		require.Equal(parsed.SerialNumber.Uint64(), uint64(2))
 
 		// Ensure the cert is valid now and expires within the correct limit.
-		assert.True(parsed.NotAfter.Sub(time.Now()) < 3*24*time.Hour)
-		assert.True(parsed.NotBefore.Before(time.Now()))
+		require.True(parsed.NotAfter.Sub(time.Now()) < 3*24*time.Hour)
+		require.True(parsed.NotBefore.Before(time.Now()))
 	}
 }
 
