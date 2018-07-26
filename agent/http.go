@@ -565,13 +565,26 @@ func (s *HTTPServer) parseDC(req *http.Request, dc *string) {
 
 // parseToken is used to parse the ?token query param or the X-Consul-Token header
 func (s *HTTPServer) parseToken(req *http.Request, token *string) {
+	s.parseTokenProxyResolve(req, token, true)
+}
+
+func (s *HTTPServer) parseTokenProxyResolve(req *http.Request, token *string, resolve bool) {
+	tok := ""
 	if other := req.URL.Query().Get("token"); other != "" {
-		*token = other
-		return
+		tok = other
+	} else if other := req.Header.Get("X-Consul-Token"); other != "" {
+		tok = other
 	}
 
-	if other := req.Header.Get("X-Consul-Token"); other != "" {
-		*token = other
+	if tok != "" {
+		if resolve {
+			p := s.agent.resolveProxyToken(tok)
+			if p != nil {
+				*token = s.agent.State.ServiceToken(p.Proxy.TargetServiceID)
+				return
+			}
+		}
+		*token = tok
 		return
 	}
 

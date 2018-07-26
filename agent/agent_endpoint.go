@@ -944,8 +944,11 @@ func (s *HTTPServer) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.
 		Service: serviceName, // Need name not ID
 	}
 	var qOpts structs.QueryOptions
+
 	// Store DC in the ConnectCALeafRequest but query opts separately
-	if done := s.parse(resp, req, &args.Datacenter, &qOpts); done {
+	s.parseDC(req, &args.Datacenter)
+	s.parseTokenProxyResolve(req, &qOpts.Token, false)
+	if s.parseConsistency(resp, req, &qOpts) || parseWait(resp, req, &qOpts) {
 		return nil, nil
 	}
 	args.MinQueryIndex = qOpts.MinQueryIndex
@@ -991,7 +994,7 @@ func (s *HTTPServer) AgentConnectProxyConfig(resp http.ResponseWriter, req *http
 
 	// Parse the token
 	var token string
-	s.parseToken(req, &token)
+	s.parseTokenProxyResolve(req, &token, false)
 
 	// Parse hash specially since it's only this endpoint that uses it currently.
 	// Eventually this should happen in parseWait and end up in QueryOptions but I
