@@ -184,6 +184,8 @@ type Config struct {
 	EncryptKey                       *string                  `json:"encrypt,omitempty" hcl:"encrypt" mapstructure:"encrypt"`
 	EncryptVerifyIncoming            *bool                    `json:"encrypt_verify_incoming,omitempty" hcl:"encrypt_verify_incoming" mapstructure:"encrypt_verify_incoming"`
 	EncryptVerifyOutgoing            *bool                    `json:"encrypt_verify_outgoing,omitempty" hcl:"encrypt_verify_outgoing" mapstructure:"encrypt_verify_outgoing"`
+	GossipLAN                        GossipLANConfig          `json:"gossip_lan,omitempty" hcl:"gossip_lan" mapstructure:"gossip_lan"`
+	GossipWAN                        GossipWANConfig          `json:"gossip_wan,omitempty" hcl:"gossip_wan" mapstructure:"gossip_wan"`
 	HTTPConfig                       HTTPConfig               `json:"http_config,omitempty" hcl:"http_config" mapstructure:"http_config"`
 	KeyFile                          *string                  `json:"key_file,omitempty" hcl:"key_file" mapstructure:"key_file"`
 	LeaveOnTerm                      *bool                    `json:"leave_on_terminate,omitempty" hcl:"leave_on_terminate" mapstructure:"leave_on_terminate"`
@@ -259,6 +261,24 @@ type Config struct {
 	VersionPrerelease          *string  `json:"version_prerelease,omitempty" hcl:"version_prerelease" mapstructure:"version_prerelease"`
 }
 
+type GossipLANConfig struct {
+	GossipNodes    *int    `json:"gossip_nodes,omitempty" hcl:"gossip_nodes" mapstructure:"gossip_nodes"`
+	GossipInterval *string `json:"gossip_interval,omitempty" hcl:"gossip_interval" mapstructure:"gossip_interval"`
+	ProbeInterval  *string `json:"probe_interval,omitempty" hcl:"probe_interval" mapstructure:"probe_interval"`
+	ProbeTimeout   *string `json:"probe_timeout,omitempty" hcl:"probe_timeout" mapstructure:"probe_timeout"`
+	SuspicionMult  *int    `json:"suspicion_mult,omitempty" hcl:"suspicion_mult" mapstructure:"suspicion_mult"`
+	RetransmitMult *int    `json:"retransmit_mult,omitempty" hcl:"retransmit_mult" mapstructure:"retransmit_mult"`
+}
+
+type GossipWANConfig struct {
+	GossipNodes    *int    `json:"gossip_nodes,omitempty" hcl:"gossip_nodes" mapstructure:"gossip_nodes"`
+	GossipInterval *string `json:"gossip_interval,omitempty" hcl:"gossip_interval" mapstructure:"gossip_interval"`
+	ProbeInterval  *string `json:"probe_interval,omitempty" hcl:"probe_interval" mapstructure:"probe_interval"`
+	ProbeTimeout   *string `json:"probe_timeout,omitempty" hcl:"probe_timeout" mapstructure:"probe_timeout"`
+	SuspicionMult  *int    `json:"suspicion_mult,omitempty" hcl:"suspicion_mult" mapstructure:"suspicion_mult"`
+	RetransmitMult *int    `json:"retransmit_mult,omitempty" hcl:"retransmit_mult" mapstructure:"retransmit_mult"`
+}
+
 type Consul struct {
 	Coordinate struct {
 		UpdateBatchSize  *int    `json:"update_batch_size,omitempty" hcl:"update_batch_size" mapstructure:"update_batch_size"`
@@ -271,24 +291,6 @@ type Consul struct {
 		HeartbeatTimeout   *string `json:"heartbeat_timeout,omitempty" hcl:"heartbeat_timeout" mapstructure:"heartbeat_timeout"`
 		LeaderLeaseTimeout *string `json:"leader_lease_timeout,omitempty" hcl:"leader_lease_timeout" mapstructure:"leader_lease_timeout"`
 	} `json:"raft,omitempty" hcl:"raft" mapstructure:"raft"`
-
-	SerfLAN struct {
-		Memberlist struct {
-			GossipInterval *string `json:"gossip_interval,omitempty" hcl:"gossip_interval" mapstructure:"gossip_interval"`
-			ProbeInterval  *string `json:"probe_interval,omitempty" hcl:"probe_interval" mapstructure:"probe_interval"`
-			ProbeTimeout   *string `json:"probe_timeout,omitempty" hcl:"probe_timeout" mapstructure:"probe_timeout"`
-			SuspicionMult  *int    `json:"suspicion_mult,omitempty" hcl:"suspicion_mult" mapstructure:"suspicion_mult"`
-		} `json:"memberlist,omitempty" hcl:"memberlist" mapstructure:"memberlist"`
-	} `json:"serf_lan,omitempty" hcl:"serf_lan" mapstructure:"serf_lan"`
-
-	SerfWAN struct {
-		Memberlist struct {
-			GossipInterval *string `json:"gossip_interval,omitempty" hcl:"gossip_interval" mapstructure:"gossip_interval"`
-			ProbeInterval  *string `json:"probe_interval,omitempty" hcl:"probe_interval" mapstructure:"probe_interval"`
-			ProbeTimeout   *string `json:"probe_timeout,omitempty" hcl:"probe_timeout" mapstructure:"probe_timeout"`
-			SuspicionMult  *int    `json:"suspicion_mult,omitempty" hcl:"suspicion_mult" mapstructure:"suspicion_mult"`
-		} `json:"memberlist,omitempty" hcl:"memberlist" mapstructure:"memberlist"`
-	} `json:"serf_wan,omitempty" hcl:"serf_wan" mapstructure:"serf_wan"`
 
 	Server struct {
 		HealthInterval *string `json:"health_interval,omitempty" hcl:"health_interval" mapstructure:"health_interval"`

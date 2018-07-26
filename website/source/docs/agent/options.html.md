@@ -918,6 +918,76 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="disable_keyring_file"></a><a href="#disable_keyring_file">`disable_keyring_file`</a> - Equivalent to the
   [`-disable-keyring-file` command-line flag](#_disable_keyring_file).
 
+* <a name="gossip_lan"></a><a href="#gossip_lan">`gossip_lan`</a> - **(Advanced)** This object contains a number of sub-keys
+  which can be set to tune the LAN gossip communications. These are only provided for users running especially large 
+  clusters that need fine tuning and are prepared to spend significant effort correctly tuning them for their
+  environment and workload. **Tuning these improperly can cause Consul to fail in unexpected ways**.
+  The default values are appropriate in almost all deployments.
+  
+  * <a name="gossip_nodes"></a><a href="#gossip_nodes">`gossip_nodes`</a> - The number of random nodes to send
+     gossip messages to per gossip_interval. Increasing this number causes the gossip messages to propagate 
+     across the cluster more quickly at the expense of increased bandwidth. The default is 3.
+  
+  * <a name="gossip_interval"></a><a href="#gossip_interval">`gossip_interval`</a> - The interval between sending
+    messages that need to be gossiped that haven't been able to piggyback on probing messages. If this is set to 
+    zero, non-piggyback gossip is disabled. By lowering this value (more frequent) gossip messages are propagated
+    across the cluster more quickly at the expense of increased bandwidth. The default is 200ms.
+  
+  * <a name="probe_interval"></a><a href="#probe_interval">`probe_interval`</a> - The interval between random node
+    probes. Setting this lower (more frequent) will cause the cluster to detect failed nodes more quickly 
+    at the expense of increased bandwidth usage. The default is 1s.
+  
+  * <a name="probe_timeout"></a><a href="#probe_timeout">`probe_timeout`</a> - The timeout to wait for an ack from
+    a probed node before assuming it is unhealthy. This should be at least the 99-percentile of RTT (round-trip time) on
+    your network. The default is 500ms and is a conservative value suitable for almost all realistic deployments.
+  
+  * <a name="retransmit_mult"></a><a href="#retransmit_mult">`retransmit_mult`</a> - The multiplier for the number 
+    of retransmissions that are attempted for messages broadcasted over gossip. The number of retransmits is scaled
+    using this multiplier and the cluster size. The higher the multiplier, the more likely a failed broadcast is to
+    converge at the expense of increased bandwidth. The default is 4.
+  
+  * <a name="suspicion_mult"></a><a href="#suspicion_mult">`suspicion_mult`</a> - The multiplier for determining the
+    time an inaccessible node is considered suspect before declaring it dead. The timeout is scaled with the cluster
+    size and the probe_interval. This allows the timeout to scale properly with expected propagation delay with a 
+    larger cluster size. The higher the multiplier, the longer an inaccessible node is considered part of the 
+    cluster before declaring it dead, giving that suspect node more time to refute if it is indeed still alive. The
+    default is 4.
+  
+* <a name="gossip_wan"></a><a href="#gossip_wan">`gossip_wan`</a> - **(Advanced)** This object contains a number of sub-keys
+  which can be set to tune the WAN gossip communications. These are only provided for users running especially large 
+  clusters that need fine tuning and are prepared to spend significant effort correctly tuning them for their
+  environment and workload. **Tuning these improperly can cause Consul to fail in unexpected ways**.
+  The default values are appropriate in almost all deployments.
+  
+    * <a name="gossip_nodes"></a><a href="#gossip_nodes">`gossip_nodes`</a> - The number of random nodes to send
+     gossip messages to per gossip_interval. Increasing this number causes the gossip messages to propagate 
+     across the cluster more quickly at the expense of increased bandwidth. The default is 3.
+  
+  * <a name="gossip_interval"></a><a href="#gossip_interval">`gossip_interval`</a> - The interval between sending
+    messages that need to be gossiped that haven't been able to piggyback on probing messages. If this is set to 
+    zero, non-piggyback gossip is disabled. By lowering this value (more frequent) gossip messages are propagated
+    across the cluster more quickly at the expense of increased bandwidth. The default is 200ms.
+  
+  * <a name="probe_interval"></a><a href="#probe_interval">`probe_interval`</a> - The interval between random node
+    probes. Setting this lower (more frequent) will cause the cluster to detect failed nodes more quickly 
+    at the expense of increased bandwidth usage. The default is 1s.
+  
+  * <a name="probe_timeout"></a><a href="#probe_timeout">`probe_timeout`</a> - The timeout to wait for an ack from
+    a probed node before assuming it is unhealthy. This should be at least the 99-percentile of RTT (round-trip time) on
+    your network. The default is 500ms and is a conservative value suitable for almost all realistic deployments.
+  
+  * <a name="retransmit_mult"></a><a href="#retransmit_mult">`retransmit_mult`</a> - The multiplier for the number 
+    of retransmissions that are attempted for messages broadcasted over gossip. The number of retransmits is scaled
+    using this multiplier and the cluster size. The higher the multiplier, the more likely a failed broadcast is to
+    converge at the expense of increased bandwidth. The default is 4.
+  
+  * <a name="suspicion_mult"></a><a href="#suspicion_mult">`suspicion_mult`</a> - The multiplier for determining the
+    time an inaccessible node is considered suspect before declaring it dead. The timeout is scaled with the cluster
+    size and the probe_interval. This allows the timeout to scale properly with expected propagation delay with a 
+    larger cluster size. The higher the multiplier, the longer an inaccessible node is considered part of the 
+    cluster before declaring it dead, giving that suspect node more time to refute if it is indeed still alive. The
+    default is 4.
+
 * <a name="key_file"></a><a href="#key_file">`key_file`</a> This provides a the file path to a
   PEM-encoded private key. The key is used with the certificate to verify the agent's authenticity.
   This must be provided along with [`cert_file`](#cert_file).

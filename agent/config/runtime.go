@@ -47,14 +47,6 @@ type RuntimeConfig struct {
 	ConsulRaftElectionTimeout        time.Duration
 	ConsulRaftHeartbeatTimeout       time.Duration
 	ConsulRaftLeaderLeaseTimeout     time.Duration
-	ConsulSerfLANGossipInterval      time.Duration
-	ConsulSerfLANProbeInterval       time.Duration
-	ConsulSerfLANProbeTimeout        time.Duration
-	ConsulSerfLANSuspicionMult       int
-	ConsulSerfWANGossipInterval      time.Duration
-	ConsulSerfWANProbeInterval       time.Duration
-	ConsulSerfWANProbeTimeout        time.Duration
-	ConsulSerfWANSuspicionMult       int
 	ConsulServerHealthInterval       time.Duration
 
 	// ACLAgentMasterToken is a special token that has full read and write
@@ -963,6 +955,160 @@ type RuntimeConfig struct {
 	//
 	// hcl: ports { serf_wan = int }
 	SerfPortWAN int
+
+	// GossipLANGossipInterval is the interval between sending messages that need
+	// to be gossiped that haven't been able to piggyback on probing messages.
+	// If this is set to zero, non-piggyback gossip is disabled. By lowering
+	// this value (more frequent) gossip messages are propagated across
+	// the cluster more quickly at the expense of increased bandwidth. This
+	// configuration only applies to LAN gossip communications
+	//
+	// The default is: 200ms
+	//
+	// hcl: gossip_lan { gossip_interval = duration}
+	GossipLANGossipInterval time.Duration
+
+	// GossipLANGossipNodes is the number of random nodes to send gossip messages to
+	// per GossipInterval. Increasing this number causes the gossip messages to
+	// propagate across the cluster more quickly at the expense of increased
+	// bandwidth. This configuration only applies to LAN gossip communications
+	//
+	// The default is: 3
+	//
+	// hcl: gossip_lan { gossip_nodes = int }
+	GossipLANGossipNodes int
+
+	// GossipLANProbeInterval is the interval between random node probes. Setting
+	// this lower (more frequent) will cause the memberlist cluster to detect
+	// failed nodes more quickly at the expense of increased bandwidth usage.
+	// This configuration only applies to LAN gossip communications
+	//
+	// The default is: 1s
+	//
+	// hcl: gossip_lan { probe_interval = duration }
+	GossipLANProbeInterval time.Duration
+
+	// GossipLANProbeTimeout is the timeout to wait for an ack from a probed node
+	// before assuming it is unhealthy. This should be set to 99-percentile
+	// of RTT (round-trip time) on your network. This configuration
+	// only applies to the LAN gossip communications
+	//
+	// The default is: 500ms
+	//
+	// hcl: gossip_lan { probe_timeout = duration }
+	GossipLANProbeTimeout time.Duration
+
+	// GossipLANSuspicionMult is the multiplier for determining the time an
+	// inaccessible node is considered suspect before declaring it dead. This
+	// configuration only applies to LAN gossip communications
+	//
+	// The actual timeout is calculated using the formula:
+	//
+	//   SuspicionTimeout = SuspicionMult * log(N+1) * ProbeInterval
+	//
+	// This allows the timeout to scale properly with expected propagation
+	// delay with a larger cluster size. The higher the multiplier, the longer
+	// an inaccessible node is considered part of the cluster before declaring
+	// it dead, giving that suspect node more time to refute if it is indeed
+	// still alive.
+	//
+	// The default is: 4
+	//
+	// hcl: gossip_lan { suspicion_mult = int }
+	GossipLANSuspicionMult int
+
+	// GossipLANRetransmitMult is the multiplier for the number of retransmissions
+	// that are attempted for messages broadcasted over gossip. This
+	// configuration only applies to LAN gossip communications. The actual
+	// count of retransmissions is calculated using the formula:
+	//
+	//   Retransmits = RetransmitMult * log(N+1)
+	//
+	// This allows the retransmits to scale properly with cluster size. The
+	// higher the multiplier, the more likely a failed broadcast is to converge
+	// at the expense of increased bandwidth.
+	//
+	// The default is: 4
+	//
+	// hcl: gossip_lan { retransmit_mult = int }
+	GossipLANRetransmitMult int
+
+	// GossipWANGossipInterval  is the interval between sending messages that need
+	// to be gossiped that haven't been able to piggyback on probing messages.
+	// If this is set to zero, non-piggyback gossip is disabled. By lowering
+	// this value (more frequent) gossip messages are propagated across
+	// the cluster more quickly at the expense of increased bandwidth. This
+	// configuration only applies to WAN gossip communications
+	//
+	// The default is: 200ms
+	//
+	// hcl: gossip_wan { gossip_interval = duration}
+	GossipWANGossipInterval time.Duration
+
+	// GossipWANGossipNodes is the number of random nodes to send gossip messages to
+	// per GossipInterval. Increasing this number causes the gossip messages to
+	// propagate across the cluster more quickly at the expense of increased
+	// bandwidth. This configuration only applies to WAN gossip communications
+	//
+	// The default is: 3
+	//
+	// hcl: gossip_wan { gossip_nodes = int }
+	GossipWANGossipNodes int
+
+	// GossipWANProbeInterval is the interval between random node probes. Setting
+	// this lower (more frequent) will cause the memberlist cluster to detect
+	// failed nodes more quickly at the expense of increased bandwidth usage.
+	// This configuration only applies to WAN gossip communications
+	//
+	// The default is: 1s
+	//
+	// hcl: gossip_wan { probe_interval = duration }
+	GossipWANProbeInterval time.Duration
+
+	// GossipWANProbeTimeout is the timeout to wait for an ack from a probed node
+	// before assuming it is unhealthy. This should be set to 99-percentile
+	// of RTT (round-trip time) on your network. This configuration
+	// only applies to the WAN gossip communications
+	//
+	// The default is: 500ms
+	//
+	// hcl: gossip_wan { probe_timeout = duration }
+	GossipWANProbeTimeout time.Duration
+
+	// GossipWANSuspicionMult is the multiplier for determining the time an
+	// inaccessible node is considered suspect before declaring it dead. This
+	// configuration only applies to WAN gossip communications
+	//
+	// The actual timeout is calculated using the formula:
+	//
+	//   SuspicionTimeout = SuspicionMult * log(N+1) * ProbeInterval
+	//
+	// This allows the timeout to scale properly with expected propagation
+	// delay with a larger cluster size. The higher the multiplier, the longer
+	// an inaccessible node is considered part of the cluster before declaring
+	// it dead, giving that suspect node more time to refute if it is indeed
+	// still alive.
+	//
+	// The default is: 4
+	//
+	// hcl: gossip_wan { suspicion_mult = int }
+	GossipWANSuspicionMult int
+
+	// GossipWANRetransmitMult is the multiplier for the number of retransmissions
+	// that are attempted for messages broadcasted over gossip. This
+	// configuration only applies to WAN gossip communications. The actual
+	// count of retransmissions is calculated using the formula:
+	//
+	//   Retransmits = RetransmitMult * log(N+1)
+	//
+	// This allows the retransmits to scale properly with cluster size. The
+	// higher the multiplier, the more likely a failed broadcast is to converge
+	// at the expense of increased bandwidth.
+	//
+	// The default is: 4
+	//
+	// hcl: gossip_wan { retransmit_mult = int }
+	GossipWANRetransmitMult int
 
 	// ServerMode controls if this agent acts like a Consul server,
 	// or merely as a client. Servers have more state, take part
