@@ -72,10 +72,10 @@ There are several different kinds of checks:
   status update to the HTTP endpoint; if the app fails, the TTL will expire and
   the health check enters a critical state. The endpoints used to update health
   information for a given check are:
-  [pass](https://www.consul.io/api/agent/check.html#ttl-check-pass),
-  [warn](https://www.consul.io/api/agent/check.html#ttl-check-warn),
-  [fail](https://www.consul.io/api/agent/check.html#ttl-check-fail), and
-  [update](https://www.consul.io/api/agent/check.html#ttl-check-update).  TTL
+  [pass](/api/agent/check.html#ttl-check-pass),
+  [warn](/api/agent/check.html#ttl-check-warn),
+  [fail](/api/agent/check.html#ttl-check-fail), and
+  [update](/api/agent/check.html#ttl-check-update).  TTL
   checks also persist their last known status to disk. This allows the Consul
   agent to restore the last known status of the check across restarts.  Persisted
   check status is valid through the end of the TTL from the time of the last
