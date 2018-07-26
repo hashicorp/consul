@@ -14,6 +14,7 @@ IMPROVEMENTS:
 
 * proxy: With `-register` flag, heartbeat failures will only log once service registration succeeds. [[PR-4314](https://github.com/hashicorp/consul/pull/4314)]
 * http: 1.0.3 introduced rejection of non-printable chars in HTTP URLs due to a security vulnerability. Some users who had keys written with an older version which are now dissallowed were unable to delete them. A new config option [disable_http_unprintable_char_filter](https://www.consul.io/docs/agent/options.html#disable_http_unprintable_char_filter) is added to allow those users to remove the offending keys. Leaving this new option set long term is strongly discouraged as it bypasses filtering necessary to prevent some known vulnerabilities. [[GH-4442](https://github.com/hashicorp/consul/pull/4442)]
+* agent: Allow for advanced configuration of some gossip related parameters. [[GH-4058](https://github.com/hashicorp/consul/issues/4058)]
 
 BUG FIXES:
 
