@@ -10,11 +10,14 @@ FEATURES:
 IMPROVEMENTS:
 
 * proxy: With `-register` flag, heartbeat failures will only log once service registration succeeds. [[PR-4314](https://github.com/hashicorp/consul/pull/4314)]
+* http: 1.0.3 introduced rejection of non-printable chars in HTTP URLs due to a security vulnerability. Some users who had keys written with an older version which are now dissallowed were unable to delete them. A new config option [disable_http_unprintable_char_filter](https://www.consul.io/docs/agent/options.html#disable_http_unprintable_char_filter) is added to allow those users to remove the offending keys. Leaving this new option set long term is strongly discouraged as it bypasses filtering necessary to prevent some known vulnerabilities. [[GH-4442](https://github.com/hashicorp/consul/pull/4442)]
 
-BUG FiXES:
+BUG FIXES:
 
-* watches, connect proxies: Fix issue with managed proxies and watches attempting to use a client addr that is 0.0.0.0 or :: [[PR-4403](https://github.com/hashicorp/consul/pull/4403)]
-* proxy: Dont restart proxies setup in a config file when Consul restarts [[PR-4407](https://github.com/hashicorp/consul/pull/4407)]
+* connect: Fix issue with managed proxies and watches attempting to use a client addr that is 0.0.0.0 or :: [[PR-4403](https://github.com/hashicorp/consul/pull/4403)]
+* connect: Allow Native and Unmanaged proxy configurations via config file [[4443](https://github.com/hashicorp/consul/pull/4443)]
+* connect: Fix bug causing 100% CPU on agent when Connect is disabled but a proxy is still running [[GH-4421](https://github.com/hashicorp/consul/issues/4421)]
+* proxy: Don't restart proxies setup in a config file when Consul restarts [[PR-4407](https://github.com/hashicorp/consul/pull/4407)]
 
 SECURITY:
 * acl: Fixed an issue where writes operations on the Keyring and Operator were being allowed with a default allow policy even when explicitly denied in the policy. [[GH-4378](https://github.com/hashicorp/consul/issues/4378)]
