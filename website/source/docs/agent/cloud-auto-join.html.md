@@ -67,7 +67,7 @@ $ consul agent -retry-join "provider=aws tag_key=... tag_value=..."
 - `access_key_id` (optional) - the AWS access key for authentication (see below for more information about authenticating).
 - `secret_access_key` (optional) - the AWS secret access key for authentication (see below for more information about authenticating).
 
-#### Authentication &amp; Precedence
+#### Authentication & Precedence
 
 - Static credentials `access_key_id=... secret_access_key=...`
 - Environment variables (`AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`)
@@ -134,7 +134,7 @@ $ consul agent -retry-join "provider=gce project_name=... tag_value=..."
 - `zone_pattern` (optional) - the list of zones can be restricted through an RE2 compatible regular expression. If omitted, servers in all zones are returned.
 - `credentials_file` (optional) - the credentials file for authentication. See below for more information.
 
-#### Authentication &amp; Precedence
+#### Authentication & Precedence
 
 - Use credentials from `credentials_file`, if provided.
 - Use JSON file from `GOOGLE_APPLICATION_CREDENTIALS` environment variable.
@@ -164,7 +164,7 @@ $ consul agent -retry-join "provider=softlayer datacenter=... tag_value=... user
 ```
 
 - `provider` (required) - the name of the provider ("softlayer" in this case).
-- <a name="sl_datacenter"></a><a href="#sl_datacenter"><code>datacenter</code></a></a> (required) - the name of the datacenter to auto-join in.
+- <a name="sl_datacenter"></a><a href="#sl_datacenter"><code>datacenter</code></a> (required) - the name of the datacenter to auto-join in.
 - `tag_value` (required) - the value of the tag to auto-join on.
 - `username` (required) - the username to use for auth.
 - `api_key` (required) - the api key to use for auth.
@@ -284,7 +284,7 @@ $ consul agent -retry-join "provider=triton account=testaccount url=https://us-s
 - `tag_value` (optional) - the tag value to use.
 
 
-### vSphere 
+### vSphere
 
 This returns the first private IP address of all servers for the given region with the given `tag_name` and `category_name`.
 

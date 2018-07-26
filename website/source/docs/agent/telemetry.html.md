@@ -374,13 +374,11 @@ These metrics are used to monitor the health of the Consul servers.
     <td>timer</td>
   </tr>
   <tr>
-  <tr>
     <td>`consul.raft.fsm.apply`</td>
     <td>This metric gives the number of logs committed since the last interval. </td>
     <td>commit logs / interval</td>
     <td>counter</td>
   </tr>
-  <tr>
   <tr>
     <td>`consul.raft.fsm.restore`</td>
     <td>This metric measures the time taken by the FSM to restore its state from a snapshot.</td>
@@ -449,17 +447,17 @@ These metrics are used to monitor the health of the Consul servers.
     <td>counter</td>
   </tr>
   <tr>
-  <td>`consul.raft.verify_leader`</td>
-  <td>This metric counts the number of times an agent checks whether it is still the leader or not</td>
-  <td>checks / interval</td>
-  <td>Counter</td>
+    <td>`consul.raft.verify_leader`</td>
+    <td>This metric counts the number of times an agent checks whether it is still the leader or not</td>
+    <td>checks / interval</td>
+    <td>Counter</td>
   </tr>
   <tr>
-  <td>`consul.raft.restore`</td>
-  <td>This metric counts the number of times the restore operation has been performed by the agent. Here, restore refers to the action of raft consuming an external snapshot to restore its state.</td>
-  <td>operation invoked / interval</td>
-  <td>counter</td>
-  </tr> 
+    <td>`consul.raft.restore`</td>
+    <td>This metric counts the number of times the restore operation has been performed by the agent. Here, restore refers to the action of raft consuming an external snapshot to restore its state.</td>
+    <td>operation invoked / interval</td>
+    <td>counter</td>
+  </tr>
   <tr>
     <td>`consul.raft.commitTime`</td>
     <td>This measures the time it takes to commit a new entry to the Raft log on the leader.</td>
@@ -479,70 +477,70 @@ These metrics are used to monitor the health of the Consul servers.
     <td>timer</td>
   </tr>
   <tr>
-  <td>`consul.raft.state.follower`</td>
-  <td>This metric counts the number of times an agent has entered the follower mode. This happens when a new agent joins the cluster or after the end of a leader election.</td>
-  <td> follower state entered / interval</td>
-  <td>counter</td>
+    <td>`consul.raft.state.follower`</td>
+    <td>This metric counts the number of times an agent has entered the follower mode. This happens when a new agent joins the cluster or after the end of a leader election.</td>
+    <td> follower state entered / interval</td>
+    <td>counter</td>
   </tr>
   <tr>
-  <td>`consul.raft.transistion.heartbeat_timeout`</td>
-  <td>This metric gives the number of times an agent has transitioned to the Candidate state, after receive no heartbeat messages from the last known leader.</td>
-  <td>timeouts / interval</td>
-  <td>counter</td>
+    <td>`consul.raft.transistion.heartbeat_timeout`</td>
+    <td>This metric gives the number of times an agent has transitioned to the Candidate state, after receive no heartbeat messages from the last known leader.</td>
+    <td>timeouts / interval</td>
+    <td>counter</td>
   </tr>
   <tr>
-  <td>`consul.raft.restoreUserSnapshot`</td>
-  <td>This metric measures the time taken by the agent to restore the FSM state from a user's snapshot</td>
-  <td>ms</td>
-  <td>timer</td>
+    <td>`consul.raft.restoreUserSnapshot`</td>
+    <td>This metric measures the time taken by the agent to restore the FSM state from a user's snapshot</td>
+    <td>ms</td>
+    <td>timer</td>
   </tr>
   <tr>
-  <td>`consul.raft.rpc.processHeartBeat`</td>
-  <td>This metric measures the time taken to process a heartbeat request.</td>
-  <td>ms</td>
-  <td>timer</td>
+    <td>`consul.raft.rpc.processHeartBeat`</td>
+    <td>This metric measures the time taken to process a heartbeat request.</td>
+    <td>ms</td>
+    <td>timer</td>
   </tr>
   <tr>
-  <td>`consul.raft.rpc.appendEntries`</td>
-  <td>This metric measures the time taken to process an append entries RPC call from an agent.</td>
-  <td>ms</td>
-  <td>timer</td>
+    <td>`consul.raft.rpc.appendEntries`</td>
+    <td>This metric measures the time taken to process an append entries RPC call from an agent.</td>
+    <td>ms</td>
+    <td>timer</td>
   </tr>
   <tr>
-  <td>`consul.raft.rpc.appendEntries.storeLogs`</td>
-  <td>This metric measures the time taken to add any outstanding logs for an agent, since the last appendEntries was invoked</td>  
-  <td>ms</td>
-  <td>timer</td>
+    <td>`consul.raft.rpc.appendEntries.storeLogs`</td>
+    <td>This metric measures the time taken to add any outstanding logs for an agent, since the last appendEntries was invoked</td>  
+    <td>ms</td>
+    <td>timer</td>
   </tr>
   <tr>
-  <td>`consul.raft.rpc.appendEntries.processLogs`</td>
-  <td>This metric measures the time taken to process the outstanding log entries of an agent.</td>
-  <td>ms</td>
-  <td>timer</td>
+    <td>`consul.raft.rpc.appendEntries.processLogs`</td>
+    <td>This metric measures the time taken to process the outstanding log entries of an agent.</td>
+    <td>ms</td>
+    <td>timer</td>
   </tr>
   <tr>
-  <tr>
-  <td>`consul.raft.rpc.requestVote`</td>
-  <td>This metric measures the time taken to process the request vote RPC call.</td>
-  <td>ms</td>
-  <td>timer</td>
+    <td>`consul.raft.rpc.requestVote`</td>
+    <td>This metric measures the time taken to process the request vote RPC call.</td>
+    <td>ms</td>
+    <td>timer</td>
   </tr>
   <tr>
-  <td>`consul.raft.rpc.installSnapshot`</td>
-  <td>This metric measures the time taken to process the installSnapshot RPC call. This metric should only be seen on agents which are currently in the follower state.</td>
-  <td>ms</td>
-  <td>timer</td>
-  <tr>
-  <td>`consul.raft.replication.appendEntries.rpc`</td>
-  <td>This metric measures the time taken by the append entries RFC, to replicate the log entries of a leader agent onto its follower agent(s)</td>
-  <td>ms</td>
-  <td>timer</td>
+    <td>`consul.raft.rpc.installSnapshot`</td>
+    <td>This metric measures the time taken to process the installSnapshot RPC call. This metric should only be seen on agents which are currently in the follower state.</td>
+    <td>ms</td>
+    <td>timer</td>
   </tr>
   <tr>
-  <td>`consul.raft.replication.appendEntries.logs`</td>
-  <td>This metric measures the number of logs replicated to an agent, to bring it upto speed with the leader's logs.</td>
-  <td>logs appended/ interval</td>
-  <td>counter</td>
+    <td>`consul.raft.replication.appendEntries.rpc`</td>
+    <td>This metric measures the time taken by the append entries RFC, to replicate the log entries of a leader agent onto its follower agent(s)</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
+  <tr>
+    <td>`consul.raft.replication.appendEntries.logs`</td>
+    <td>This metric measures the number of logs replicated to an agent, to bring it upto speed with the leader's logs.</td>
+    <td>logs appended/ interval</td>
+    <td>counter</td>
   </tr>
   <tr>
     <td><a name="last-contact"></a>`consul.raft.leader.lastContact`</td>
@@ -784,6 +782,7 @@ These metrics are used to monitor the health of the Consul servers.
     <td>ms</td>
     <td>timer</td>
   </tr>
+  <tr>
     <td>`consul.txn.read`</td>
     <td>This measures the time spent returning a read transaction.</td>
     <td>ms</td>
@@ -803,28 +802,28 @@ These metrics give insight into the health of the cluster as a whole.
     <th>Type</th>
   </tr>
   <tr>
-  <td>`consul.memberlist.degraded.probe`</td>
-  <td>This metric counts the number of times the agent has performed failure detection on an other agent at a slower probe rate. The agent uses its own health metric as an indicator to perform this action. (If its health score is low, means that the node is healthy, and vice versa.)</td>
-  <td>probes / interval</td>
-  <td>counter</td>
+    <td>`consul.memberlist.degraded.probe`</td>
+    <td>This metric counts the number of times the agent has performed failure detection on an other agent at a slower probe rate. The agent uses its own health metric as an indicator to perform this action. (If its health score is low, means that the node is healthy, and vice versa.)</td>
+    <td>probes / interval</td>
+    <td>counter</td>
   </tr>
   <tr>
-  <td>`consul.memberlist.degraded.timeout`</td>
-  <td>This metric counts the number of times an agent was marked as a dead node, whilst not getting enough confirmations from a randomly selected list of agent nodes in an agent's membership.</td>
-  <td>occurrence / interval</td>
-  <td>counter</td>
+    <td>`consul.memberlist.degraded.timeout`</td>
+    <td>This metric counts the number of times an agent was marked as a dead node, whilst not getting enough confirmations from a randomly selected list of agent nodes in an agent's membership.</td>
+    <td>occurrence / interval</td>
+    <td>counter</td>
   </tr>
   <tr>
-  <td>`consul.memberlist.msg.dead`</td>
-  <td>This metric counts the number of times an agent has marked another agent to be a dead node.</td>
-  <td>messages / interval</td>
-  <td>counter</td>
+    <td>`consul.memberlist.msg.dead`</td>
+    <td>This metric counts the number of times an agent has marked another agent to be a dead node.</td>
+    <td>messages / interval</td>
+    <td>counter</td>
   </tr>
   <tr>
-  <td>`consul.memberlist.health.score`</td>
-  <td>This metric describes a node's perception of its own health based on how well it is meeting the soft real-time requirements of the protocol. This metric ranges from 0 to 8, where 0 indicates "totally healthy". This health score is used to scale the time between outgoing probes, and higher scores translate into longer probing intervals. For more details see section IV of the Lifeguard paper: https://arxiv.org/pdf/1707.00788.pdf</td>
-  <td>score</td>
-  <td>gauge</td>
+    <td>`consul.memberlist.health.score`</td>
+    <td>This metric describes a node's perception of its own health based on how well it is meeting the soft real-time requirements of the protocol. This metric ranges from 0 to 8, where 0 indicates "totally healthy". This health score is used to scale the time between outgoing probes, and higher scores translate into longer probing intervals. For more details see section IV of the Lifeguard paper: https://arxiv.org/pdf/1707.00788.pdf</td>
+    <td>score</td>
+    <td>gauge</td>
   </tr>  
   <tr>
     <td>`consul.memberlist.msg.suspect`</td>
@@ -833,28 +832,28 @@ These metrics give insight into the health of the cluster as a whole.
     <td>counter</td>
   </tr>
   <tr>
-  <td>`consul.memberlist.tcp.accept`</td>
-  <td>This metric counts the number of times an agent has accepted an incoming TCP stream connection.</td>
-  <td>connections accepted / interval</td>
-  <td>counter</td>
+    <td>`consul.memberlist.tcp.accept`</td>
+    <td>This metric counts the number of times an agent has accepted an incoming TCP stream connection.</td>
+    <td>connections accepted / interval</td>
+    <td>counter</td>
   </tr>
   <tr>
-  <td>`consul.memberlist.udp.sent/received`</td>
-  <td>This metric measures the total number of bytes sent/received by an agent through the UDP protocol.</td>
-  <td>bytes sent or bytes received / interval</td>
-  <td>counter</td>
+    <td>`consul.memberlist.udp.sent/received`</td>
+    <td>This metric measures the total number of bytes sent/received by an agent through the UDP protocol.</td>
+    <td>bytes sent or bytes received / interval</td>
+    <td>counter</td>
   </tr>
   <tr>
-  <td>`consul.memberlist.tcp.connect`</td>
-  <td>This metric counts the number of times an agent has initiated a push/pull sync with an other agent.</td>
-  <td>push/pull initiated / interval</td>
-  <td>counter</td>
+    <td>`consul.memberlist.tcp.connect`</td>
+    <td>This metric counts the number of times an agent has initiated a push/pull sync with an other agent.</td>
+    <td>push/pull initiated / interval</td>
+    <td>counter</td>
   </tr>
   <tr>
-  <td>`consul.memberlist.tcp.sent`</td>
-  <td>This metric measures the total number of bytes sent by an agent through the TCP protocol</td>
-  <td>bytes sent / interval</td>
-  <td>counter</td>
+    <td>`consul.memberlist.tcp.sent`</td>
+    <td>This metric measures the total number of bytes sent by an agent through the TCP protocol</td>
+    <td>bytes sent / interval</td>
+    <td>counter</td>
   </tr>
   <tr>
     <td>`consul.memberlist.gossip`</td>

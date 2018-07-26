@@ -691,7 +691,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 
     * <a name="connect_ca_provider"></a><a href="#connect_ca_provider">`ca_provider`</a> Controls
       which CA provider to use for Connect's CA. Currently only the `consul` and `vault` providers
-      are supported. This is only used when initially bootstrapping the cluster. For an existing 
+      are supported. This is only used when initially bootstrapping the cluster. For an existing
       cluster, use the [Update CA Configuration Endpoint](/api/connect/ca.html#update-ca-configuration).
 
     * <a name="connect_ca_config"></a><a href="#connect_ca_config">`ca_config`</a> An object which
@@ -711,7 +711,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 
         #### Vault CA Provider (`ca_provider = "vault"`)
 
-        * <a name="vault_ca_address"></a><a href="#vault_ca_address">`address`</a> The address of the Vault 
+        * <a name="vault_ca_address"></a><a href="#vault_ca_address">`address`</a> The address of the Vault
         server to connect to.
 
         * <a name="vault_ca_token"></a><a href="#vault_ca_token">`token`</a> The Vault token to use.
@@ -722,10 +722,10 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
         The Vault token given above must have `sudo` access to this backend, as well as permission to mount
         the backend at this path if it is not already mounted.
 
-        * <a name="vault_ca_intermediate_pki"></a><a href="#vault_ca_intermediate_pki">`intermediate_pki_path`</a> 
+        * <a name="vault_ca_intermediate_pki"></a><a href="#vault_ca_intermediate_pki">`intermediate_pki_path`</a>
         The path to use for the temporary intermediate CA pki backend in Vault. *Connect will overwrite any data
-        at this path in order to generate a temporary intermediate CA*. The Vault token given above must have 
-        `write` access to this backend, as well as permission to mount the backend at this path if it is not 
+        at this path in order to generate a temporary intermediate CA*. The Vault token given above must have
+        `write` access to this backend, as well as permission to mount the backend at this path if it is not
         already mounted.
 
         #### Common CA Config Options
@@ -870,7 +870,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
       [RFC 6724](https://tools.ietf.org/html/rfc6724) and as a result it should
       be increasingly uncommon to need to change this value with modern
       resolvers).
-      
+
     * <a name="enable_additional_node_meta_txt"></a><a href="#enable_additional_node_meta_txt">`enable_additional_node_meta_txt`</a> -
       When set to true, Consul will add TXT records for Node metadata into the Additional section of the DNS responses for several
       query types such as SRV queries. When set to false those records are not emitted. This does not impact the behavior of those
@@ -1257,10 +1257,10 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
     * <a name="telemetry-circonus_check_search_tag"></a><a href="#telemetry-circonus_check_search_tag">`circonus_check_search_tag`</a>
       A special tag which, when coupled with the instance id, helps to narrow down the search results when neither a Submission URL or Check ID is provided. By default, this is set to service:application name (e.g. "service:consul").
 
-    * <a name="telemetry-circonus_check_display_name"</a><a href="#telemetry-circonus_check_display_name">`circonus_check_display_name`</a>
+    * <a name="telemetry-circonus_check_display_name"></a><a href="#telemetry-circonus_check_display_name">`circonus_check_display_name`</a>
       Specifies a name to give a check when it is created. This name is displayed in the Circonus UI Checks list. Available in Consul 0.7.2 and later.
 
-    * <a name="telemetry-circonus_check_tags"</a><a href="#telemetry-circonus_check_tags">`circonus_check_tags`</a>
+    * <a name="telemetry-circonus_check_tags"></a><a href="#telemetry-circonus_check_tags">`circonus_check_tags`</a>
       Comma separated list of additional tags to add to a check when it is created. Available in Consul 0.7.2 and later.
 
     * <a name="telemetry-circonus_broker_id"></a><a href="#telemetry-circonus_broker_id">`circonus_broker_id`</a>
@@ -1352,7 +1352,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   `tls_prefer_server_cipher_suites`</a> Added in Consul 0.8.2, this will cause Consul to prefer the
   server's ciphersuite over the client ciphersuites.
 
-*   <a name="translate_wan_addrs"</a><a href="#translate_wan_addrs">`translate_wan_addrs`</a> If
+*   <a name="translate_wan_addrs"></a><a href="#translate_wan_addrs">`translate_wan_addrs`</a> If
     set to true, Consul will prefer a node's configured <a href="#_advertise-wan">WAN address</a>
     when servicing DNS and HTTP requests for a node in a remote datacenter. This allows the node to
     be reached within its own datacenter using its local address, and reached from other datacenters
