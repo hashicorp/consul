@@ -563,12 +563,10 @@ func (s *HTTPServer) parseDC(req *http.Request, dc *string) {
 	}
 }
 
-// parseToken is used to parse the ?token query param or the X-Consul-Token header
-func (s *HTTPServer) parseToken(req *http.Request, token *string) {
-	s.parseTokenProxyResolve(req, token, true)
-}
-
-func (s *HTTPServer) parseTokenProxyResolve(req *http.Request, token *string, resolve bool) {
+// parseTokenResolveProxy is used to parse the ?token query param or the X-Consul-Token header and
+// optionally resolve proxy tokens to real ACL tokens. If no token is specified it will populate
+// the token with the agents UserToken (acl_token in the consul configuration)
+func (s *HTTPServer) parseTokenResolveProxy(req *http.Request, token *string, resolveProxyToken bool) {
 	tok := ""
 	if other := req.URL.Query().Get("token"); other != "" {
 		tok = other
@@ -577,19 +575,29 @@ func (s *HTTPServer) parseTokenProxyResolve(req *http.Request, token *string, re
 	}
 
 	if tok != "" {
-		if resolve {
-			p := s.agent.resolveProxyToken(tok)
-			if p != nil {
+		if resolveProxyToken {
+			if p := s.agent.resolveProxyToken(tok); p != nil {
 				*token = s.agent.State.ServiceToken(p.Proxy.TargetServiceID)
 				return
 			}
 		}
+
 		*token = tok
 		return
 	}
 
-	// Set the default ACLToken
 	*token = s.agent.tokens.UserToken()
+}
+
+// parseToken is used to parse the ?token query param or the X-Consul-Token header and
+// resolve proxy tokens to real ACL tokens
+func (s *HTTPServer) parseToken(req *http.Request, token *string) {
+	s.parseTokenResolveProxy(req, token, true)
+}
+
+// parseTokenWithoutResolvingProxyToken is used to parse the ?token query param or the X-Consul-Token header
+func (s *HTTPServer) parseTokenWithoutResolvingProxyToken(req *http.Request, token *string) {
+	s.parseTokenResolveProxy(req, token, false)
 }
 
 func sourceAddrFromRequest(req *http.Request) string {
@@ -644,13 +652,24 @@ func (s *HTTPServer) parseMetaFilter(req *http.Request) map[string]string {
 	return nil
 }
 
-// parse is a convenience method for endpoints that need
+// parseResolveProxy is a convenience method for endpoints that need
 // to use both parseWait and parseDC.
-func (s *HTTPServer) parse(resp http.ResponseWriter, req *http.Request, dc *string, b *structs.QueryOptions) bool {
+func (s *HTTPServer) parseResolveProxy(resp http.ResponseWriter, req *http.Request, dc *string, b *structs.QueryOptions, resolveProxyToken bool) bool {
 	s.parseDC(req, dc)
-	s.parseToken(req, &b.Token)
+	s.parseTokenResolveProxy(req, &b.Token, resolveProxyToken)
 	if s.parseConsistency(resp, req, b) {
 		return true
 	}
 	return parseWait(resp, req, b)
+}
+
+// parse is a convenience method for endpoints that need
+// to use both parseWait and parseDC.
+func (s *HTTPServer) parse(resp http.ResponseWriter, req *http.Request, dc *string, b *structs.QueryOptions) bool {
+	return s.parseResolveProxy(resp, req, dc, b, true)
+}
+
+// parseWithoutResolvingProxyToken is a convenience method similar to parse except that it disables resolving proxy tokens
+func (s *HTTPServer) parseWithoutResolvingProxyToken(resp http.ResponseWriter, req *http.Request, dc *string, b *structs.QueryOptions) bool {
+	return s.parseResolveProxy(resp, req, dc, b, false)
 }
