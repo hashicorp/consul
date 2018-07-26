@@ -55,20 +55,18 @@ skip('findBySlug returns the correct data for item endpoint', function(assert) {
       return service.findBySlug(id, dc);
     },
     function(actual, expected) {
-      // console.log(actual);
       assert.deepEqual(
         actual,
         expected(function(payload) {
           payload = { Nodes: payload };
           const nodes = payload.Nodes;
           const service = payload.Nodes[0];
-          // console.log(service);
-          service.Nodes = JSON.parse(JSON.stringify(nodes));
-          // service.Tags = payload.Nodes[0].Service.Tags;
+          service.Nodes = nodes;
+          service.Tags = payload.Nodes[0].Service.Tags;
 
           return Object.assign({}, service, {
             Datacenter: dc,
-            // uid: `["${dc}","${id}"]`,
+            uid: `["${dc}","${id}"]`,
           });
         })
       );
