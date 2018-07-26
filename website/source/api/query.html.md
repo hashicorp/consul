@@ -103,7 +103,7 @@ populate the query before it is executed. All of the string fields inside the
       }
     }
     ```
-  This will map all names of the form "&lt;service&gt;.query.consul" over DNS to a query
+  This will map all names of the form `<service>.query.consul` over DNS to a query
   that will select an instance of the service in the agent's own network segment.
 
 Using templates, it is possible to apply prepared query behaviors to many

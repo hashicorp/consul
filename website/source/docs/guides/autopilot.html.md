@@ -85,7 +85,7 @@ with the `-cleanup-dead-servers=false` option.
 ## Server Health Checking
 
 An internal health check runs on the leader to track the stability of servers.
-</br>A server is considered healthy if all of the following conditions are true:
+<br>A server is considered healthy if all of the following conditions are true:
 
 - It has a SerfHealth status of 'Alive'
 - The time since its last contact with the current leader is below

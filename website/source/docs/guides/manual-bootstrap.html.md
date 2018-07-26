@@ -38,7 +38,7 @@ options, but it is recommended to have 3 or 5 total servers per datacenter. A
 single server deployment is _**highly**_ discouraged as data loss is inevitable
 in a failure scenario. We start the next servers **without** specifying
 `-bootstrap`. This is critical, since only one server should ever be running in
-bootstrap mode*. Once `Node B` and `Node C` are started, you should see a
+bootstrap mode. Once `Node B` and `Node C` are started, you should see a
 message to the effect of:
 
 ```text
