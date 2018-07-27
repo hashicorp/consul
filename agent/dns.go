@@ -1300,19 +1300,13 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 	var r *dns.Msg
 	var rtt time.Duration
 	var err error
-	for index, recursor := range d.recursors {
+	for _, recursor := range d.recursors {
 		r, rtt, err = c.Exchange(req, recursor)
 		// Check if the response is valid and has the desired Response code
 		if r != nil && (r.Rcode != dns.RcodeSuccess && r.Rcode != dns.RcodeNameError) {
 			d.logger.Printf("[DEBUG] dns: recurse RTT for %v (%v) Recursor queried: %v Status returned: %v", q, rtt, recursor, dns.RcodeToString[r.Rcode])
-			// This is so that if the last known recursor also throws an error
-			// we should return a SERVFAIL instead of entertaining
-			// the request
-			if index == len(d.recursors)-1 {
-				break
-			}
-			// If we still have recursors to forward the query to
-			// we move forward onto the next one
+			// If we still have recursors to forward the query to,
+			// we move forward onto the next one else the loop ends
 			continue
 		} else {
 			if err == nil || err == dns.ErrTruncated {

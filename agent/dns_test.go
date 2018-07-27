@@ -411,6 +411,35 @@ func TestDNSCycleRecursorCheck(t *testing.T) {
 	}
 	verify.Values(t, "Answer", in.Answer, wantAnswer)
 }
+func TestDNSCycleRecursorCheckAllFail(t *testing.T) {
+	t.Parallel()
+	// Start 3 DNS recursors that returns a REFUSED status
+	server1 := makeRecursor(t, dns.Msg{
+		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeRefused},
+	})
+	defer server1.Shutdown()
+	server2 := makeRecursor(t, dns.Msg{
+		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeRefused},
+	})
+	defer server2.Shutdown()
+	server3 := makeRecursor(t, dns.Msg{
+		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeRefused},
+	})
+	defer server3.Shutdown()
+	//Mock the agent startup with the necessary configs
+	agent := NewTestAgent(t.Name(),
+		`recursors = ["`+server1.Addr+`", "`+server2.Addr+`","`+server3.Addr+`"]
+		`)
+	defer agent.Shutdown()
+	// DNS dummy message initialization
+	m := new(dns.Msg)
+	m.SetQuestion("google.com.", dns.TypeA)
+	// Agent request
+	client := new(dns.Client)
+	in, _, _ := client.Exchange(m, agent.DNSAddr())
+	//Verify if we hit SERVFAIL from Consul
+	verify.Values(t, "Answer", in.Rcode, dns.RcodeServerFailure)
+}
 func TestDNS_NodeLookup_CNAME(t *testing.T) {
 	t.Parallel()
 	recursor := makeRecursor(t, dns.Msg{
