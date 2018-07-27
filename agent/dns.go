@@ -1300,22 +1300,36 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 	var r *dns.Msg
 	var rtt time.Duration
 	var err error
-	for _, recursor := range d.recursors {
+	for index, recursor := range d.recursors {
 		r, rtt, err = c.Exchange(req, recursor)
-		if err == nil || err == dns.ErrTruncated {
-			// Compress the response; we don't know if the incoming
-			// response was compressed or not, so by not compressing
-			// we might generate an invalid packet on the way out.
-			r.Compress = !d.disableCompression.Load().(bool)
-
-			// Forward the response
-			d.logger.Printf("[DEBUG] dns: recurse RTT for %v (%v)", q, rtt)
-			if err := resp.WriteMsg(r); err != nil {
-				d.logger.Printf("[WARN] dns: failed to respond: %v", err)
+		// Check if the response is valid and has the desired Response code
+		if r != nil && (r.Rcode != dns.RcodeSuccess && r.Rcode != dns.RcodeNameError) {
+			d.logger.Printf("[DEBUG] dns: recurse RTT for %v (%v) Recursor queried: %v Status returned: %v", q, rtt, recursor, dns.RcodeToString[r.Rcode])
+			// This is so that if the last known recursor also throws an error
+			// we should return a SERVFAIL instead of entertaining
+			// the request
+			if index == len(d.recursors)-1 {
+				break
 			}
-			return
+			// If we still have recursors to forward the query to
+			// we move forward onto the next one
+			continue
+		} else {
+			if err == nil || err == dns.ErrTruncated {
+				// Compress the response; we don't know if the incoming
+				// response was compressed or not, so by not compressing
+				// we might generate an invalid packet on the way out.
+				r.Compress = !d.disableCompression.Load().(bool)
+
+				// Forward the response
+				d.logger.Printf("[DEBUG] dns: recurse RTT for %v (%v) Recursor queried: %v", q, rtt, recursor)
+				if err := resp.WriteMsg(r); err != nil {
+					d.logger.Printf("[WARN] dns: failed to respond: %v", err)
+				}
+				return
+			}
+			d.logger.Printf("[ERR] dns: recurse failed: %v", err)
 		}
-		d.logger.Printf("[ERR] dns: recurse failed: %v", err)
 	}
 
 	// If all resolvers fail, return a SERVFAIL message
