@@ -1,0 +1,10 @@
+---
+linters:
+    golint:
+        min_confidence: 0.85
+        fixer: true
+
+files:
+    ignore:
+        - 'vendor/*'
+        - 'pb/*'
