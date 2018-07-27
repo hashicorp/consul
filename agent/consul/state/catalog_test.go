@@ -73,6 +73,53 @@ func TestStateStore_GetNodeID(t *testing.T) {
 	}
 }
 
+func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
+	t.Parallel()
+	s := testStateStore(t)
+	nodeID := makeRandomNodeID(t)
+	req := &structs.RegisterRequest{
+		ID:              nodeID,
+		Node:            "node1",
+		Address:         "1.2.3.4",
+		TaggedAddresses: map[string]string{"hello": "world"},
+		NodeMeta:        map[string]string{"somekey": "somevalue"},
+	}
+	if err := s.EnsureRegistration(1, req); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	req = &structs.RegisterRequest{
+		ID:      types.NodeID(""),
+		Node:    "node2",
+		Address: "10.0.0.1",
+	}
+	if err := s.EnsureRegistration(2, req); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	tx := s.db.Txn(true)
+	defer tx.Abort()
+	node := &structs.Node{
+		ID:      makeRandomNodeID(t),
+		Node:    "NOdE1", // Name is similar but case is different
+		Address: "2.3.4.5",
+	}
+	// Lets conflict with node1 (has an ID)
+	if err := s.ensureNoNodeWithSimilarNameTxn(tx, node, false); err == nil {
+		t.Fatalf("Should return an error since another name with similar name exists")
+	}
+	if err := s.ensureNoNodeWithSimilarNameTxn(tx, node, true); err == nil {
+		t.Fatalf("Should return an error since another name with similar name exists")
+	}
+	// Lets conflict with node without ID
+	node.Node = "NoDe2"
+	if err := s.ensureNoNodeWithSimilarNameTxn(tx, node, false); err == nil {
+		t.Fatalf("Should return an error since another name with similar name exists")
+	}
+	if err := s.ensureNoNodeWithSimilarNameTxn(tx, node, true); err != nil {
+		t.Fatalf("Should return an error since another name with similar name exists")
+	}
+
+}
+
 func TestStateStore_EnsureRegistration(t *testing.T) {
 	t.Parallel()
 	s := testStateStore(t)

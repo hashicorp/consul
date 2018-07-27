@@ -351,6 +351,8 @@ func (s *Store) EnsureNode(idx uint64, node *structs.Node) error {
 	return nil
 }
 
+// ensureNoNodeWithSimilarNameTxn checks that no other node has conflict in its name
+// If allowClashWithoutID then, getting a conflict on another node without ID will be allowed
 func (s *Store) ensureNoNodeWithSimilarNameTxn(tx *memdb.Txn, node *structs.Node, allowClashWithoutID bool) error {
 	// Retrieve all of the nodes
 	enodes, err := tx.Get("nodes", "id")
@@ -396,16 +398,15 @@ func (s *Store) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) err
 				}
 			}
 		} else {
-			// We are adding a node with an ID, ensure name is not already taken by another node
+			// We allow to "steal" another node name that would have no ID
+			// It basically means that we allow upgrading a node without ID and add the ID
 			dupNameError := s.ensureNoNodeWithSimilarNameTxn(tx, node, true)
 			if dupNameError != nil {
 				return fmt.Errorf("Error while renaming Node ID: %q: %s", node.ID, dupNameError)
 			}
 		}
-		// TODO: a else statement is missing here to check we are not stealing
-		// a similar case-insensitive name
 	}
-	// TODO: else Node.ID == nil should be forbidden in future Consul releases
+	// TODO: else Node.ID == "" should be forbidden in future Consul releases
 	// See https://github.com/hashicorp/consul/pull/3983 for context
 
 	// Check for an existing node by name to support nodes with no IDs.
