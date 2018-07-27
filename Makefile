@@ -15,7 +15,7 @@ coredns: $(CHECKS)
 	CGO_ENABLED=0 $(SYSTEM) go build $(VERBOSE) -ldflags="-s -w -X github.com/coredns/coredns/coremain.GitCommit=$(GITCOMMIT)" -o $(BINARY)
 
 .PHONY: check
-check: presubmit goimports core/zplugin.go core/dnsserver/zdirectives.go godeps
+check: presubmit core/zplugin.go core/dnsserver/zdirectives.go godeps
 
 .PHONY: test
 test: check
@@ -77,12 +77,6 @@ gen:
 .PHONY: pb
 pb:
 	$(MAKE) -C pb
-
-.PHONY: goimports
-goimports:
-	go get -u github.com/alecthomas/gometalinter
-	gometalinter --install goimports > /dev/null
-	( gometalinter --deadline=2m --disable-all --enable=goimports --enable=golint --enable=vet --vendor --exclude=^pb/ ./... || true )
 
 # Presubmit runs all scripts in .presubmit; any non 0 exit code will fail the build.
 .PHONY: presubmit
