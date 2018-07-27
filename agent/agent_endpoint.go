@@ -946,6 +946,9 @@ func (s *HTTPServer) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.
 	var qOpts structs.QueryOptions
 
 	// Store DC in the ConnectCALeafRequest but query opts separately
+	// Don't resolve a proxy token to a real token that will be
+	// done with a call to verifyProxyToken later along with
+	// other security relevant checks.
 	if done := s.parseWithoutResolvingProxyToken(resp, req, &args.Datacenter, &qOpts); done {
 		return nil, nil
 	}

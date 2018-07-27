@@ -795,7 +795,7 @@ func TestParseToken_ProxyTokenResolve(t *testing.T) {
 		handler  func(s *HTTPServer, resp http.ResponseWriter, req *http.Request) (interface{}, error)
 	}
 
-	// This is no exhaustive list of all of our endpoints and is only testing GET endpoints
+	// This is not an exhaustive list of all of our endpoints and is only testing GET endpoints
 	// right now. However it provides decent coverage that the proxy token resolution
 	// is happening properly
 	tests := []endpointCheck{
