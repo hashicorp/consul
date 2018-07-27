@@ -204,7 +204,7 @@ func TestConnectCAConfig_TriggerRotation(t *testing.T) {
 				// The new root should have a valid cross-signed cert from the old
 				// root as an intermediate.
 				assert.True(r.Active)
-				assert.Len(r.IntermediateCerts, 1)
+				require.Len(r.IntermediateCerts, 1)
 
 				xc := testParseCert(t, r.IntermediateCerts[0])
 				oldRootCert := testParseCert(t, oldRoot.RootCert)
