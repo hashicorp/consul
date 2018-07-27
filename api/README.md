@@ -51,7 +51,7 @@ func main() {
 To run this example, start a Consul server:
 
 ```bash
-consul agent -dev -server -ui
+consul agent -dev
 ```
 
 Copy the code above into a file such as `main.go`.
