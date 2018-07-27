@@ -15,6 +15,8 @@ IMPROVEMENTS:
 * proxy: With `-register` flag, heartbeat failures will only log once service registration succeeds. [[PR-4314](https://github.com/hashicorp/consul/pull/4314)]
 * http: 1.0.3 introduced rejection of non-printable chars in HTTP URLs due to a security vulnerability. Some users who had keys written with an older version which are now dissallowed were unable to delete them. A new config option [disable_http_unprintable_char_filter](https://www.consul.io/docs/agent/options.html#disable_http_unprintable_char_filter) is added to allow those users to remove the offending keys. Leaving this new option set long term is strongly discouraged as it bypasses filtering necessary to prevent some known vulnerabilities. [[GH-4442](https://github.com/hashicorp/consul/pull/4442)]
 * agent: Allow for advanced configuration of some gossip related parameters. [[GH-4058](https://github.com/hashicorp/consul/issues/4058)]
+* ui: Included searching on `.Tags` when using the freetext search field. [[PR-4383](https://github.com/hashicorp/consul/pull/4383)]
+* ui: Service.ID's are now shown in the Service detail page and (only if it is different from the service name) the Node Detail > [Services] tab. [[PR-4387](https://github.com/hashicorp/consul/pull/4387)]
 
 BUG FIXES:
 
@@ -22,6 +24,8 @@ BUG FIXES:
 * connect: Allow Native and Unmanaged proxy configurations via config file [[4443](https://github.com/hashicorp/consul/pull/4443)]
 * connect: Fix bug causing 100% CPU on agent when Connect is disabled but a proxy is still running [[GH-4421](https://github.com/hashicorp/consul/issues/4421)]
 * proxy: Don't restart proxies setup in a config file when Consul restarts [[PR-4407](https://github.com/hashicorp/consul/pull/4407)]
+* ui: Display the Service.IP address instead of the Node.IP address in the Service detail view. [[PR-4410](https://github.com/hashicorp/consul/pull/4410)]
+* ui: Watch for trailing slash stripping 301 redirects and forward the user to the correct location. [[PR-4373](https://github.com/hashicorp/consul/pull/4373)]
 
 ## 1.2.1 (July 12, 2018)
 
