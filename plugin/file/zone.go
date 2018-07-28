@@ -203,7 +203,7 @@ func (z *Zone) nameFromRight(qname string, i int) (string, bool) {
 	}
 
 	k := 0
-	shot := false
+	var shot bool
 	for j := 1; j <= i; j++ {
 		k, shot = dns.PrevLabel(qname, j+z.origLen)
 		if shot {

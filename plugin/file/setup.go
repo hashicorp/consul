@@ -53,7 +53,6 @@ func setup(c *caddy.Controller) error {
 func fileParse(c *caddy.Controller) (Zones, error) {
 	z := make(map[string]*Zone)
 	names := []string{}
-	origins := []string{}
 
 	config := dnsserver.GetConfig(c)
 
@@ -64,7 +63,7 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 		}
 		fileName := c.Val()
 
-		origins = make([]string, len(c.ServerBlockKeys))
+		origins := make([]string, len(c.ServerBlockKeys))
 		copy(origins, c.ServerBlockKeys)
 		args := c.RemainingArgs()
 		if len(args) > 0 {

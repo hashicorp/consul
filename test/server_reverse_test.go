@@ -74,10 +74,8 @@ func TestReverse(t *testing.T) {
 
 	m := new(dns.Msg)
 	for i, tc := range tests {
-		inaddr := tc.addr
-		var err error
 		if !strings.HasSuffix(tc.addr, ".arpa.") {
-			inaddr, err = dns.ReverseAddr(tc.addr)
+			inaddr, err := dns.ReverseAddr(tc.addr)
 			if err != nil {
 				t.Fatalf("Test %d, failed to convert %s", i, tc.addr)
 			}
@@ -122,10 +120,8 @@ func TestReverseInAddr(t *testing.T) {
 
 	m := new(dns.Msg)
 	for i, tc := range tests {
-		inaddr := tc.addr
-		var err error
 		if !strings.HasSuffix(tc.addr, ".arpa.") {
-			inaddr, err = dns.ReverseAddr(tc.addr)
+			inaddr, err := dns.ReverseAddr(tc.addr)
 			if err != nil {
 				t.Fatalf("Test %d, failed to convert %s", i, tc.addr)
 			}

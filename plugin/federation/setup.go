@@ -50,7 +50,7 @@ func federationParse(c *caddy.Controller) (*Federation, error) {
 	for c.Next() {
 		// federation [zones..]
 		zones := c.RemainingArgs()
-		origins := []string{}
+		var origins []string
 		if len(zones) > 0 {
 			origins = make([]string, len(zones))
 			copy(origins, zones)

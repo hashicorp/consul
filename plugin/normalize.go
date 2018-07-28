@@ -125,7 +125,8 @@ func SplitHostPort(s string) (host, port string, ipnet *net.IPNet, err error) {
 			// Get the first lower octet boundary to see what encompassing zone we should be authoritative for.
 			mod := (bits - ones) % sizeDigit
 			nearest := (bits - ones) + mod
-			offset, end := 0, false
+			offset := 0
+			var end bool
 			for i := 0; i < nearest/sizeDigit; i++ {
 				offset, end = dns.NextLabel(rev, offset)
 				if end {

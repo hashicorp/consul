@@ -70,7 +70,7 @@ func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 
 	for {
 		start := time.Now()
-		reply := new(dns.Msg)
+		var reply *dns.Msg
 		var backendErr error
 
 		// Since Select() should give us "up" hosts, keep retrying
