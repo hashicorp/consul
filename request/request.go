@@ -263,12 +263,16 @@ func (r *Request) Scrub(reply *dns.Msg) (*dns.Msg, Result) {
 
 	// Account for the OPT record that gets added in SizeAndDo(), subtract that length.
 	sub := 0
-	if r.Do() {
+	if r.Req.IsEdns0() != nil {
 		sub = optLen
 	}
-	origExtra := reply.Extra
+
+	// substract to make spaces for re-added EDNS0 OPT RR.
 	re := len(reply.Extra) - sub
+	size -= sub
+
 	l, m := 0, 0
+	origExtra := reply.Extra
 	for l < re {
 		m = (l + re) / 2
 		reply.Extra = origExtra[:m]
@@ -297,9 +301,9 @@ func (r *Request) Scrub(reply *dns.Msg) (*dns.Msg, Result) {
 		return reply, ScrubExtra
 	}
 
-	origAnswer := reply.Answer
 	ra := len(reply.Answer)
 	l, m = 0, 0
+	origAnswer := reply.Answer
 	for l < ra {
 		m = (l + ra) / 2
 		reply.Answer = origAnswer[:m]
@@ -324,14 +328,12 @@ func (r *Request) Scrub(reply *dns.Msg) (*dns.Msg, Result) {
 		// this extra m-1 step does make it fit in the client's buffer however.
 	}
 
-	// It now fits, but Truncated. We can't call sizeAndDo() because that adds a new record (OPT)
-	// in the additional section.
+	r.SizeAndDo(reply)
 	reply.Truncated = true
 	return reply, ScrubAnswer
 }
 
-// Type returns the type of the question as a string. If the request is malformed
-// the empty string is returned.
+// Type returns the type of the question as a string. If the request is malformed the empty string is returned.
 func (r *Request) Type() string {
 	if r.Req == nil {
 		return ""
