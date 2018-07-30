@@ -20,6 +20,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* acl/connect: Fix an issue that was causing managed proxies not to work when ACLs were enabled. [[GH-4441](https://github.com/hashicorp/consul/issues/4441)]
 * connect: Fix issue with managed proxies and watches attempting to use a client addr that is 0.0.0.0 or :: [[PR-4403](https://github.com/hashicorp/consul/pull/4403)]
 * connect: Allow Native and Unmanaged proxy configurations via config file [[4443](https://github.com/hashicorp/consul/pull/4443)]
 * connect: Fix bug causing 100% CPU on agent when Connect is disabled but a proxy is still running [[GH-4421](https://github.com/hashicorp/consul/issues/4421)]
