@@ -41,7 +41,8 @@ test('findByDatacenter returns the correct data for list endpoint', function(ass
     }
   );
 });
-skip('findBySlug returns the correct data for item endpoint', function(assert) {
+skip('findBySlug returns a sane tree');
+test('findBySlug returns the correct data for item endpoint', function(assert) {
   return repo(
     'Service',
     'findBySlug',
@@ -58,16 +59,22 @@ skip('findBySlug returns the correct data for item endpoint', function(assert) {
       assert.deepEqual(
         actual,
         expected(function(payload) {
-          payload = { Nodes: payload };
+          // TODO: So this tree is all 'wrong', it's not having any major impact
+          // this this tree needs revisting to something that makes more sense
+          payload = Object.assign(
+            {},
+            { Nodes: payload },
+            {
+              Datacenter: dc,
+              uid: `["${dc}","${id}"]`,
+            }
+          );
           const nodes = payload.Nodes;
           const service = payload.Nodes[0];
           service.Nodes = nodes;
           service.Tags = payload.Nodes[0].Service.Tags;
 
-          return Object.assign({}, service, {
-            Datacenter: dc,
-            uid: `["${dc}","${id}"]`,
-          });
+          return service;
         })
       );
     }

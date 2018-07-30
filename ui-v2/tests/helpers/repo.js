@@ -2,7 +2,7 @@ import { get } from 'consul-ui/tests/helpers/api';
 import { get as _get } from '@ember/object';
 import measure from 'consul-ui/tests/helpers/measure';
 
-/* Stub an ember-data adapter response using the private method
+/** Stub an ember-data adapter response using the private method
  *
  * Allows you to easily specify a HTTP response for the Adapter. The stub only works
  * during the 'lifetime' of `cb` and is reset to normal unstubbed functionality afterwards.
@@ -15,9 +15,10 @@ import measure from 'consul-ui/tests/helpers/measure';
  * @param {DS.Adapter} adapter - An instance of an ember-data Adapter
  */
 const stubAdapterResponse = function(cb, payload, adapter) {
+  const payloadClone = JSON.parse(JSON.stringify(payload));
   const ajax = adapter._ajaxRequest;
   adapter._ajaxRequest = function(options) {
-    options.success(payload, '200', {
+    options.success(payloadClone, '200', {
       status: 200,
       textStatus: '200',
       getAllResponseHeaders: function() {
@@ -25,12 +26,12 @@ const stubAdapterResponse = function(cb, payload, adapter) {
       },
     });
   };
-  return cb().then(function(result) {
+  return cb(payload).then(function(result) {
     adapter._ajaxRequest = ajax;
     return result;
   });
 };
-/* `repo` a helper function to faciliate easy integration testing of ember-data Service 'repo' layers
+/** `repo` a helper function to faciliate easy integration testing of ember-data Service 'repo' layers
  *
  * Test performance is also measured using `consul-ui/tests/helpers/measure` and therefore results
  * can optionally be sent to a centralized metrics collection stack
@@ -63,7 +64,7 @@ export default function(name, method, service, stub, test, assert) {
     });
   }).then(function(payload) {
     return stubAdapterResponse(
-      function() {
+      function(payload) {
         return measure(
           function() {
             return test(service);
@@ -88,7 +89,7 @@ export default function(name, method, service, stub, test, assert) {
           });
         });
       },
-      JSON.parse(JSON.stringify(payload)),
+      payload,
       adapter
     );
   });
