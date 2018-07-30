@@ -81,7 +81,7 @@ pb:
 # Presubmit runs all scripts in .presubmit; any non 0 exit code will fail the build.
 .PHONY: presubmit
 presubmit:
-	@for pre in $(MAKEPWD)/.presubmit/* ; do "$$pre" $(PRESUBMIT); done
+	@for pre in $(MAKEPWD)/.presubmit/* ; do "$$pre" $(PRESUBMIT) || exit 1 ; done
 
 .PHONY: clean
 clean:
