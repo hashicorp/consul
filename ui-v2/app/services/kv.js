@@ -19,15 +19,10 @@ export default Service.extend({
       }
       return Promise.resolve(item);
     }
-    return get(this, 'store')
-      .queryRecord('kv', {
-        id: key,
-        dc: dc,
-      })
-      .then(function(item) {
-        set(item, 'Datacenter', dc);
-        return item;
-      });
+    return get(this, 'store').queryRecord('kv', {
+      id: key,
+      dc: dc,
+    });
   },
   // this one only gives you keys
   // https://www.consul.io/api/kv.html
@@ -42,14 +37,9 @@ export default Service.extend({
         separator: '/',
       })
       .then(function(items) {
-        return items
-          .filter(function(item) {
-            return key !== get(item, 'Key');
-          })
-          .map(function(item, i, arr) {
-            set(item, 'Datacenter', dc);
-            return item;
-          });
+        return items.filter(function(item) {
+          return key !== get(item, 'Key');
+        });
       })
       .catch(e => {
         if (e.errors && e.errors[0] && e.errors[0].status == '404') {
