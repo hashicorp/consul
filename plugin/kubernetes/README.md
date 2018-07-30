@@ -67,7 +67,7 @@ kubernetes [ZONES...] {
 
    * `disabled`: Default. Do not process pod requests, always returning `NXDOMAIN`
    * `insecure`: Always return an A record with IP from request (without checking k8s).  This option
-     is is vulnerable to abuse if used maliciously in conjunction with wildcard SSL certs.  This
+     is vulnerable to abuse if used maliciously in conjunction with wildcard SSL certs.  This
      option is provided for backward compatibility with kube-dns.
    * `verified`: Return an A record if there exists a pod in same namespace with matching IP.  This
      option requires substantially more memory than in insecure mode, since it will maintain a watch

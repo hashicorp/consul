@@ -73,7 +73,7 @@ kubernetes [ZONES\.\.\.] {
 \fBdisabled\fR: Default\. Do not process pod requests, always returning \fBNXDOMAIN\fR
 .
 .IP "\(bu" 4
-\fBinsecure\fR: Always return an A record with IP from request (without checking k8s)\. This option is is vulnerable to abuse if used maliciously in conjunction with wildcard SSL certs\. This option is provided for backward compatibility with kube\-dns\.
+\fBinsecure\fR: Always return an A record with IP from request (without checking k8s)\. This option is vulnerable to abuse if used maliciously in conjunction with wildcard SSL certs\. This option is provided for backward compatibility with kube\-dns\.
 .
 .IP "\(bu" 4
 \fBverified\fR: Return an A record if there exists a pod in same namespace with matching IP\. This option requires substantially more memory than in insecure mode, since it will maintain a watch on all pods\.
