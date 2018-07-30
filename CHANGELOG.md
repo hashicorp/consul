@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.2.2 (July 30, 2018)
 
 SECURITY:
 * acl: Fixed an issue where writes operations on the Keyring and Operator were being allowed with a default allow policy even when explicitly denied in the policy. [[GH-4378](https://github.com/hashicorp/consul/issues/4378)]
