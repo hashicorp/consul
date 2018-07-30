@@ -8,25 +8,27 @@ FEATURES:
 * **Alias Checks:** Alias checks allow a service or node to alias the health status of another service or node in the cluster. [[PR-4320](https://github.com/hashicorp/consul/pull/4320)]
 * agent: New Cloud Auto-join providers: vSphere and Packet.net. [GH-4412]
 * cli: Added `-serf-wan-port`, `-serf-lan-port`, and `-server-port` flags to CLI for cases where these can't be specified in config files and `-hcl` is too cumbersome. [[GH-4353](https://github.com/hashicorp/consul/pull/4353#issuecomment-404408827)]
-* connect: The TTL of leaf (service) certificates in Connect is now configurable. [[PR-4400](https://github.com/hashicorp/consul/pull/4400)]
+* connect: The TTL of leaf (service) certificates in Connect is now configurable. [[GH-4400](https://github.com/hashicorp/consul/pull/4400)]
 
 IMPROVEMENTS:
 
-* proxy: With `-register` flag, heartbeat failures will only log once service registration succeeds. [[PR-4314](https://github.com/hashicorp/consul/pull/4314)]
+* proxy: With `-register` flag, heartbeat failures will only log once service registration succeeds. [[GH-4314](https://github.com/hashicorp/consul/pull/4314)]
 * http: 1.0.3 introduced rejection of non-printable chars in HTTP URLs due to a security vulnerability. Some users who had keys written with an older version which are now dissallowed were unable to delete them. A new config option [disable_http_unprintable_char_filter](https://www.consul.io/docs/agent/options.html#disable_http_unprintable_char_filter) is added to allow those users to remove the offending keys. Leaving this new option set long term is strongly discouraged as it bypasses filtering necessary to prevent some known vulnerabilities. [[GH-4442](https://github.com/hashicorp/consul/pull/4442)]
 * agent: Allow for advanced configuration of some gossip related parameters. [[GH-4058](https://github.com/hashicorp/consul/issues/4058)]
-* ui: Included searching on `.Tags` when using the freetext search field. [[PR-4383](https://github.com/hashicorp/consul/pull/4383)]
-* ui: Service.ID's are now shown in the Service detail page and (only if it is different from the service name) the Node Detail > [Services] tab. [[PR-4387](https://github.com/hashicorp/consul/pull/4387)]
+* agent: Make some Gossip tuneables configurable via the config file [[GH-4444](https://github.com/hashicorp/consul/pull/4444)]
+* ui: Included searching on `.Tags` when using the freetext search field. [[GH-4383](https://github.com/hashicorp/consul/pull/4383)]
+* ui: Service.ID's are now shown in the Service detail page and (only if it is different from the service name) the Node Detail > [Services] tab. [[GH-4387](https://github.com/hashicorp/consul/pull/4387)]
 
 BUG FIXES:
 
 * acl/connect: Fix an issue that was causing managed proxies not to work when ACLs were enabled. [[GH-4441](https://github.com/hashicorp/consul/issues/4441)]
-* connect: Fix issue with managed proxies and watches attempting to use a client addr that is 0.0.0.0 or :: [[PR-4403](https://github.com/hashicorp/consul/pull/4403)]
-* connect: Allow Native and Unmanaged proxy configurations via config file [[4443](https://github.com/hashicorp/consul/pull/4443)]
+* connect: Fix issue with managed proxies and watches attempting to use a client addr that is 0.0.0.0 or :: [[GH-4403](https://github.com/hashicorp/consul/pull/4403)]
+* connect: Allow Native and Unmanaged proxy configurations via config file [[GH-4443](https://github.com/hashicorp/consul/pull/4443)]
 * connect: Fix bug causing 100% CPU on agent when Connect is disabled but a proxy is still running [[GH-4421](https://github.com/hashicorp/consul/issues/4421)]
-* proxy: Don't restart proxies setup in a config file when Consul restarts [[PR-4407](https://github.com/hashicorp/consul/pull/4407)]
-* ui: Display the Service.IP address instead of the Node.IP address in the Service detail view. [[PR-4410](https://github.com/hashicorp/consul/pull/4410)]
-* ui: Watch for trailing slash stripping 301 redirects and forward the user to the correct location. [[PR-4373](https://github.com/hashicorp/consul/pull/4373)]
+* proxy: Don't restart proxies setup in a config file when Consul restarts [[GH-4407](https://github.com/hashicorp/consul/pull/4407)]
+* ui: Display the Service.IP address instead of the Node.IP address in the Service detail view. [[GH-4410](https://github.com/hashicorp/consul/pull/4410)]
+* ui: Watch for trailing slash stripping 301 redirects and forward the user to the correct location. [[GH-4373](https://github.com/hashicorp/consul/pull/4373)]
+* connect: Fixed an issue in the connect native HTTP client where it failed to resolve service names. [[GH-4392](https://github.com/hashicorp/consul/pull/4392)]
 
 ## 1.2.1 (July 12, 2018)
 
