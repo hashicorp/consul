@@ -1308,22 +1308,20 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 			// If we still have recursors to forward the query to,
 			// we move forward onto the next one else the loop ends
 			continue
-		} else {
-			if err == nil || err == dns.ErrTruncated {
-				// Compress the response; we don't know if the incoming
-				// response was compressed or not, so by not compressing
-				// we might generate an invalid packet on the way out.
-				r.Compress = !d.disableCompression.Load().(bool)
+		} else if err == nil || err == dns.ErrTruncated {
+			// Compress the response; we don't know if the incoming
+			// response was compressed or not, so by not compressing
+			// we might generate an invalid packet on the way out.
+			r.Compress = !d.disableCompression.Load().(bool)
 
-				// Forward the response
-				d.logger.Printf("[DEBUG] dns: recurse RTT for %v (%v) Recursor queried: %v", q, rtt, recursor)
-				if err := resp.WriteMsg(r); err != nil {
-					d.logger.Printf("[WARN] dns: failed to respond: %v", err)
-				}
-				return
+			// Forward the response
+			d.logger.Printf("[DEBUG] dns: recurse RTT for %v (%v) Recursor queried: %v", q, rtt, recursor)
+			if err := resp.WriteMsg(r); err != nil {
+				d.logger.Printf("[WARN] dns: failed to respond: %v", err)
 			}
-			d.logger.Printf("[ERR] dns: recurse failed: %v", err)
+			return
 		}
+		d.logger.Printf("[ERR] dns: recurse failed: %v", err)
 	}
 
 	// If all resolvers fail, return a SERVFAIL message
