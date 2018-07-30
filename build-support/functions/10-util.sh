@@ -939,3 +939,30 @@ function shasum_directory {
    echo "$ui_version"
    return 0
  }
+ function ui_logo_type {
+   # Arguments:
+   #   $1 - path to index.html
+   #
+   # Returns:
+   #   0 - success
+   #   * -failure
+   #
+   # Notes: echoes the 'logo type' to stdout upon success
+   # the 'logo' can be one of 'enterprise' or 'oss'
+   # and doesn't necessarily correspond to the binary type of consul
+   # the logo is 'enterprise' if the binary type is anything but 'oss'
+   if ! test -f "$1"
+   then
+      err "ERROR: No such file: '$1'"
+      return 1
+   fi
+   grep -q "data-enterprise-logo" < "$1"
+
+   if test $? -eq 0
+   then
+     echo "enterprise"
+   else
+     echo "oss"
+   fi
+   return 0
+ }
