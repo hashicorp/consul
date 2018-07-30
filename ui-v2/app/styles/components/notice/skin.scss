@@ -27,7 +27,7 @@
 }
 %notice-warning {
   @extend %box-color-yellow-500, %with-warning;
-  border-bottom-width: 1px;
+  border-width: 1px;
 }
 %notice-error {
   @extend %with-critical;
