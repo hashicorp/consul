@@ -115,7 +115,7 @@ func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
 		t.Fatalf("Should return an error since another name with similar name exists")
 	}
 	if err := s.ensureNoNodeWithSimilarNameTxn(tx, node, true); err != nil {
-		t.Fatalf("Should return an error since another name with similar name exists")
+		t.Fatalf("Should not clash with another similar node name without ID, err:=%q", err)
 	}
 
 }
