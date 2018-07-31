@@ -180,7 +180,6 @@ func TestHealthChecksInState_DistanceSort(t *testing.T) {
 }
 
 func TestHealthNodeChecks(t *testing.T) {
-	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
@@ -265,7 +264,6 @@ func TestHealthServiceChecks(t *testing.T) {
 }
 
 func TestHealthServiceChecks_NodeMetaFilter(t *testing.T) {
-	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
