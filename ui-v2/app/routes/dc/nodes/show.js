@@ -49,18 +49,14 @@ export default Route.extend(WithFeedback, {
       const dc = this.modelFor('dc').dc.Name;
       const controller = this.controller;
       const repo = get(this, 'sessionRepo');
-      get(this, 'feedback').execute(
-        () => {
-          const node = get(item, 'Node');
-          return repo.remove(item).then(() => {
-            return repo.findByNode(node, dc).then(function(sessions) {
-              set(controller, 'sessions', sessions);
-            });
+      get(this, 'feedback').execute(() => {
+        const node = get(item, 'Node');
+        return repo.remove(item).then(() => {
+          return repo.findByNode(node, dc).then(function(sessions) {
+            set(controller, 'sessions', sessions);
           });
-        },
-        `The session was invalidated.`,
-        `There was an error invalidating the session.`
-      );
+        });
+      }, 'delete');
     },
   },
 });
