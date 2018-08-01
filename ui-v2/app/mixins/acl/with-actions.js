@@ -50,7 +50,7 @@ export default Mixin.create(WithFeedback, {
         return get(this, 'settings')
           .persist({ token: get(item, 'ID') })
           .then(() => {
-            this.transitionTo('dc.services');
+            return this.transitionTo('dc.services');
           });
       }, 'use');
     },

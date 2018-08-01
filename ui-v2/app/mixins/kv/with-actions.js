@@ -51,18 +51,14 @@ export default Mixin.create(WithFeedback, {
     invalidateSession: function(item) {
       const controller = this.controller;
       const repo = get(this, 'sessionRepo');
-      get(this, 'feedback').execute(
-        () => {
-          return repo.remove(item).then(() => {
-            const item = get(controller, 'item');
-            set(item, 'Session', null);
-            delete item.Session;
-            set(controller, 'session', null);
-          });
-        },
-        `The session was invalidated.`,
-        `There was an error invalidating the session.`
-      );
+      get(this, 'feedback').execute(() => {
+        return repo.remove(item).then(() => {
+          const item = get(controller, 'item');
+          set(item, 'Session', null);
+          delete item.Session;
+          set(controller, 'session', null);
+        });
+      }, 'delete');
     },
   },
 });

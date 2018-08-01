@@ -24,3 +24,4 @@ Feature: dc / nodes / sessions / invalidate: Invalidate Lock Sessions
     And I click delete on the sessions
     And I click confirmDelete on the sessions
     Then a PUT request is made to "/v1/session/destroy/7bbbd8bb-fff3-4292-b6e3-cfedd788546a?dc=dc1"
+    Then pause for 3000

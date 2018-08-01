@@ -1,0 +1,8 @@
+{{#if (eq type 'delete')}}
+  {{#if (eq status 'success') }}
+    The session was invalidated.
+  {{else}}
+    There was an error invalidating the session.
+  {{/if}}
+{{/if}}
+

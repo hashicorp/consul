@@ -9,8 +9,8 @@ export default Mixin.create({
     const feedback = get(this, '_feedback');
     const route = this;
     set(this, 'feedback', {
-      execute: function() {
-        feedback.execute(...[...arguments, route.controller]);
+      execute: function(cb, type, error) {
+        feedback.execute(cb, type, error, route.controller);
       },
     });
   },

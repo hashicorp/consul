@@ -45,6 +45,7 @@ Feature: dc / kvs / update: KV Update
     ---
     And I submit
     Then a PUT request is made to "/v1/kv/key?dc=datacenter" with the body "   "
+    Then the url should be /datacenter/kv
     And "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "success" class
   Scenario: Update to a key change value to ''
@@ -64,6 +65,7 @@ Feature: dc / kvs / update: KV Update
     ---
     And I submit
     Then a PUT request is made to "/v1/kv/key?dc=datacenter" with no body
+    Then the url should be /datacenter/kv
     And "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "success" class
   Scenario: Update to a key when the value is empty
@@ -80,6 +82,7 @@ Feature: dc / kvs / update: KV Update
     Then the url should be /datacenter/kv/key/edit
     And I submit
     Then a PUT request is made to "/v1/kv/key?dc=datacenter" with no body
+    Then the url should be /datacenter/kv
     And "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "success" class
   Scenario: There was an error saving the key
@@ -92,6 +95,7 @@ Feature: dc / kvs / update: KV Update
 
     Given the url "/v1/kv/key" responds with a 500 status
     And I submit
+    Then the url should be /datacenter/kv/key/edit
     Then "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "error" class
 @ignore

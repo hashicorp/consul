@@ -32,7 +32,7 @@ Feature: deleting: Deleting items with confirmations, success and error notifica
     | Model     | Method | URL                                                                       | Data                                                                 | Slug                                            |
     | acl       | PUT    | /v1/acl/destroy/something?dc=datacenter                                   | {"Name": "something", "ID": "something"}                             | acl: something                                  |
     | kv        | DELETE | /v1/kv/key-name?dc=datacenter                                             | ["key-name"]                                                         | kv: key-name                                    |
-    # | intention | DELETE | /v1/connect/intentions/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=datacenter | {"SourceName": "name", "ID": "ee52203d-989f-4f7a-ab5a-2bef004164ca"} | intention: ee52203d-989f-4f7a-ab5a-2bef004164ca |
+    | intention | DELETE | /v1/connect/intentions/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=datacenter | {"SourceName": "name", "ID": "ee52203d-989f-4f7a-ab5a-2bef004164ca"} | intention: ee52203d-989f-4f7a-ab5a-2bef004164ca |
     ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
   Scenario: Deleting a [Model] from the [Model] detail page
     When I visit the [Model] page for yaml
@@ -60,7 +60,7 @@ Feature: deleting: Deleting items with confirmations, success and error notifica
     | Model     | Method | URL                                                                       | Data                                                                 | Slug                                            |
     | acl       | PUT    | /v1/acl/destroy/something?dc=datacenter                                   | {"Name": "something", "ID": "something"}                             | acl: something                                  |
     | kv        | DELETE | /v1/kv/key-name?dc=datacenter                                             | ["key-name"]                                                         | kv: key-name                                    |
-    # | intention | DELETE | /v1/connect/intentions/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=datacenter | {"SourceName": "name", "ID": "ee52203d-989f-4f7a-ab5a-2bef004164ca"} | intention: ee52203d-989f-4f7a-ab5a-2bef004164ca |
+    | intention | DELETE | /v1/connect/intentions/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=datacenter | {"SourceName": "name", "ID": "ee52203d-989f-4f7a-ab5a-2bef004164ca"} | intention: ee52203d-989f-4f7a-ab5a-2bef004164ca |
     ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 @ignore
   Scenario: Sort out the wide tables ^

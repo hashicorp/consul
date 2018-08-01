@@ -6,13 +6,13 @@ Feature: dc / acls / update: ACL Update
     ---
       ID: key
     ---
-  Scenario: Update to [Name], [Type], [Rules]
     When I visit the acl page for yaml
     ---
       dc: datacenter
       acl: key
     ---
     Then the url should be /datacenter/acls/key
+  Scenario: Update to [Name], [Type], [Rules]
     Then I fill in with yaml
     ---
       name: [Name]
@@ -24,6 +24,7 @@ Feature: dc / acls / update: ACL Update
       Name: [Name]
       Type: [Type]
     ---
+    Then the url should be /datacenter/acls
     And "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "success" class
     Where:
@@ -35,15 +36,9 @@ Feature: dc / acls / update: ACL Update
       | utf8?      | management |  node "0" {policy = "write"} |
       ----------------------------------------------------------
   Scenario: There was an error saving the key
-    When I visit the acl page for yaml
-    ---
-      dc: datacenter
-      acl: key
-    ---
-    Then the url should be /datacenter/acls/key
-
     Given the url "/v1/acl/update" responds with a 500 status
     And I submit
+    Then the url should be /datacenter/acls/key
     Then "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "error" class
 # @ignore
