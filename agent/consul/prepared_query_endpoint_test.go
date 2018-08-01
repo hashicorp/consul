@@ -2864,7 +2864,6 @@ func TestPreparedQuery_tagFilter(t *testing.T) {
 }
 
 func TestPreparedQuery_Wrapper(t *testing.T) {
-	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
