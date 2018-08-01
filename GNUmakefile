@@ -182,7 +182,7 @@ test-race:
 
 # Run tests with config for CI so `make test` can still be local-dev friendly.
 test-ci: other-consul dev-build vet test-install-deps
-	@ if ! GOTEST_FLAGS="-timeout 7m -p 3 -parallel 1" make test-internal; then \
+	@ if ! GOTEST_FLAGS="-short -timeout 7m -p 3 -parallel 4" make test-internal; then \
 	    echo "    ============"; \
 	    echo "      Retrying 1/2"; \
 	    echo "    ============"; \
