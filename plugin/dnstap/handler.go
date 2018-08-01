@@ -51,7 +51,7 @@ func TapperFromContext(ctx context.Context) (t Tapper) {
 }
 
 // TapMessage implements Tapper.
-func (h *Dnstap) TapMessage(m *tap.Message) {
+func (h Dnstap) TapMessage(m *tap.Message) {
 	t := tap.Dnstap_MESSAGE
 	h.IO.Dnstap(tap.Dnstap{
 		Type:    &t,
