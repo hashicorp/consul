@@ -186,11 +186,11 @@ test-ci: other-consul dev-build vet test-install-deps
 	    echo "    ============"; \
 	    echo "      Retrying 1/2"; \
 	    echo "    ============"; \
-	    if ! GOTEST_FLAGS="-timeout 5m -p 5 -parallel 1" make test-internal; then \
+	    if ! GOTEST_FLAGS="-timeout 7m -p 1 -parallel 1" make test-internal; then \
 	       echo "    ============"; \
 	       echo "      Retrying 2/2"; \
 	       echo "    ============"; \
-	       GOTEST_FLAGS="-timeout 3m -p 5 -parallel 1" make test-internal; \
+	       GOTEST_FLAGS="-timeout 5m -p 5 -parallel 1" make test-internal; \
 	    fi \
 	fi
 
