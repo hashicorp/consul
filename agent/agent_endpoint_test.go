@@ -1016,7 +1016,6 @@ func TestAgent_PassCheck(t *testing.T) {
 }
 
 func TestAgent_PassCheck_ACLDeny(t *testing.T) {
-	t.Parallel()
 	a := NewTestAgent(t.Name(), TestACLConfig())
 	defer a.Shutdown()
 
@@ -3286,7 +3285,7 @@ func TestAgentConnectProxyConfig_ConfigHandling(t *testing.T) {
 			TTL: 15 * time.Second,
 		},
 		Connect: &structs.ServiceConnect{
-			// Proxy is populated with the definition in the table below.
+		// Proxy is populated with the definition in the table below.
 		},
 	}
 

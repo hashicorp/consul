@@ -1678,7 +1678,6 @@ func TestDNS_NSRecords(t *testing.T) {
 }
 
 func TestDNS_NSRecords_IPV6(t *testing.T) {
-	t.Parallel()
 	a := NewTestAgent(t.Name(), `
  		domain = "CONSUL."
  		node_name = "server1"

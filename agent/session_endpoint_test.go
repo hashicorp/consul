@@ -90,7 +90,6 @@ func TestSessionCreate(t *testing.T) {
 }
 
 func TestSessionCreate_Delete(t *testing.T) {
-	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
@@ -310,7 +309,6 @@ func TestSessionDestroy(t *testing.T) {
 }
 
 func TestSessionCustomTTL(t *testing.T) {
-	t.Parallel()
 	ttl := 250 * time.Millisecond
 	a := NewTestAgent(t.Name(), `
 		session_ttl_min = "250ms"
@@ -430,7 +428,6 @@ func TestSessionTTLRenew(t *testing.T) {
 }
 
 func TestSessionGet(t *testing.T) {
-	t.Parallel()
 	t.Run("", func(t *testing.T) {
 		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
@@ -518,7 +515,6 @@ func TestSessionList(t *testing.T) {
 }
 
 func TestSessionsForNode(t *testing.T) {
-	t.Parallel()
 	t.Run("", func(t *testing.T) {
 		a := NewTestAgent(t.Name(), "")
 		defer a.Shutdown()
