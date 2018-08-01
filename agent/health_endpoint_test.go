@@ -591,7 +591,6 @@ func TestHealthServiceNodes_DistanceSort(t *testing.T) {
 }
 
 func TestHealthServiceNodes_PassingFilter(t *testing.T) {
-	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 

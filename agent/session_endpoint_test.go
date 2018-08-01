@@ -291,7 +291,6 @@ func makeTestSessionTTL(t *testing.T, srv *HTTPServer, ttl string) string {
 }
 
 func TestSessionDestroy(t *testing.T) {
-	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 

@@ -14,7 +14,6 @@ import (
 )
 
 func TestACL_Disabled_Response(t *testing.T) {
-	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
@@ -71,7 +70,6 @@ func makeTestACL(t *testing.T, srv *HTTPServer) string {
 }
 
 func TestACL_Bootstrap(t *testing.T) {
-	t.Parallel()
 	a := NewTestAgent(t.Name(), TestACLConfig()+`
 		acl_master_token = ""
 	`)
@@ -115,7 +113,6 @@ func TestACL_Bootstrap(t *testing.T) {
 }
 
 func TestACL_Update(t *testing.T) {
-	t.Parallel()
 	a := NewTestAgent(t.Name(), TestACLConfig())
 	defer a.Shutdown()
 
@@ -144,7 +141,6 @@ func TestACL_Update(t *testing.T) {
 }
 
 func TestACL_UpdateUpsert(t *testing.T) {
-	t.Parallel()
 	a := NewTestAgent(t.Name(), TestACLConfig())
 	defer a.Shutdown()
 
@@ -171,7 +167,6 @@ func TestACL_UpdateUpsert(t *testing.T) {
 }
 
 func TestACL_Destroy(t *testing.T) {
-	t.Parallel()
 	a := NewTestAgent(t.Name(), TestACLConfig())
 	defer a.Shutdown()
 
@@ -202,7 +197,6 @@ func TestACL_Destroy(t *testing.T) {
 }
 
 func TestACL_Clone(t *testing.T) {
-	t.Parallel()
 	a := NewTestAgent(t.Name(), TestACLConfig())
 	defer a.Shutdown()
 
