@@ -1,0 +1,20 @@
+{{#if (eq type 'create')}}
+  {{#if (eq status 'success') }}
+    Your key has been added.
+  {{else}}
+    There was an error adding your key.
+  {{/if}}
+{{else if (eq type 'update') }}
+  {{#if (eq status 'success') }}
+    Your key has been saved.
+  {{else}}
+    There was an error saving your key.
+  {{/if}}
+{{ else if (eq type 'delete')}}
+  {{#if (eq status 'success') }}
+    Your key was deleted.
+  {{else}}
+    There was an error deleting your key.
+  {{/if}}
+{{/if}}
+

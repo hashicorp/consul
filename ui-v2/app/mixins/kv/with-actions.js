@@ -13,49 +13,37 @@ const transitionToList = function(key = '/', transitionTo) {
 export default Mixin.create(WithFeedback, {
   actions: {
     create: function(item, parent) {
-      get(this, 'feedback').execute(
-        () => {
-          return get(this, 'repo')
-            .persist(item)
-            .then(item => {
-              return transitionToList(get(parent, 'Key'), this.transitionTo.bind(this));
-            });
-        },
-        `Your key has been added.`,
-        `There was an error adding your key.`
-      );
+      get(this, 'feedback').execute(() => {
+        return get(this, 'repo')
+          .persist(item)
+          .then(item => {
+            return transitionToList(get(parent, 'Key'), this.transitionTo.bind(this));
+          });
+      }, 'create');
     },
     update: function(item, parent) {
-      get(this, 'feedback').execute(
-        () => {
-          return get(this, 'repo')
-            .persist(item)
-            .then(() => {
-              return transitionToList(get(parent, 'Key'), this.transitionTo.bind(this));
-            });
-        },
-        `Your key has been saved.`,
-        `There was an error saving your key.`
-      );
+      get(this, 'feedback').execute(() => {
+        return get(this, 'repo')
+          .persist(item)
+          .then(() => {
+            return transitionToList(get(parent, 'Key'), this.transitionTo.bind(this));
+          });
+      }, 'update');
     },
     delete: function(item, parent) {
-      get(this, 'feedback').execute(
-        () => {
-          return get(this, 'repo')
-            .remove(item)
-            .then(() => {
-              switch (this.routeName) {
-                case 'dc.kv.folder':
-                case 'dc.kv.index':
-                  return this.refresh();
-                default:
-                  return transitionToList(get(parent, 'Key'), this.transitionTo.bind(this));
-              }
-            });
-        },
-        `Your key was deleted.`,
-        `There was an error deleting your key.`
-      );
+      get(this, 'feedback').execute(() => {
+        return get(this, 'repo')
+          .remove(item)
+          .then(() => {
+            switch (this.routeName) {
+              case 'dc.kv.folder':
+              case 'dc.kv.index':
+                return this.refresh();
+              default:
+                return transitionToList(get(parent, 'Key'), this.transitionTo.bind(this));
+            }
+          });
+      }, 'delete');
     },
     cancel: function(item, parent) {
       return transitionToList(get(parent, 'Key'), this.transitionTo.bind(this));
