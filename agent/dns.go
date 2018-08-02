@@ -1207,8 +1207,11 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 }
 
 func findWeight(node structs.CheckServiceNode) int {
-	weightPassing := 0
-	weightWarning := 0
+	// By default, when only_passing is false, warning and passing nodes are returned
+	// Those values will be used if using a client with support while server has no
+	// support for weights
+	weightPassing := 1
+	weightWarning := 1
 	if node.Service.Weights != nil {
 		weightPassing = node.Service.Weights.Passing
 		weightWarning = node.Service.Weights.Warning
