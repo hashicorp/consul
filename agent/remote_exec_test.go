@@ -168,42 +168,50 @@ func testRemoteExecGetSpec(t *testing.T, hcl string, token string, shouldSucceed
 
 func TestRemoteExecWrites(t *testing.T) {
 	t.Parallel()
-	testRemoteExecWrites(t, "", "", true)
+	testRemoteExecWrites(t, "", "", true, "")
 }
 
 func TestRemoteExecWrites_ACLToken(t *testing.T) {
 	t.Parallel()
+	dc := "dc1"
 	testRemoteExecWrites(t, `
-		acl_datacenter = "dc1"
+		acl_datacenter = "`+dc+`"
 		acl_master_token = "root"
 		acl_token = "root"
 		acl_default_policy = "deny"
-	`, "root", true)
+	`, "root", true, dc)
 }
 
 func TestRemoteExecWrites_ACLAgentToken(t *testing.T) {
 	t.Parallel()
+	dc := "dc1"
 	testRemoteExecWrites(t, `
-		acl_datacenter = "dc1"
+		acl_datacenter = "`+dc+`"
 		acl_master_token = "root"
 		acl_agent_token = "root"
 		acl_default_policy = "deny"
-	`, "root", true)
+	`, "root", true, dc)
 }
 
 func TestRemoteExecWrites_ACLDeny(t *testing.T) {
 	t.Parallel()
+	dc := "dc1"
 	testRemoteExecWrites(t, `
-		acl_datacenter = "dc1"
+		acl_datacenter = "`+dc+`"
 		acl_master_token = "root"
 		acl_default_policy = "deny"
-	`, "root", false)
+	`, "root", false, dc)
 }
 
-func testRemoteExecWrites(t *testing.T, hcl string, token string, shouldSucceed bool) {
+func testRemoteExecWrites(t *testing.T, hcl string, token string, shouldSucceed bool, dc string) {
 	a := NewTestAgent(t.Name(), hcl)
 	defer a.Shutdown()
-
+	if dc != "" {
+		testrpc.WaitForLeader(t, a.RPC, dc)
+	} else {
+		// For slow machines, ensure we wait a bit
+		time.Sleep(1 * time.Millisecond)
+	}
 	event := &remoteExecEvent{
 		Prefix:  "_rexec",
 		Session: makeRexecSession(t, a.Agent, token),
