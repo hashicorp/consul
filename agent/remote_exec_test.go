@@ -160,10 +160,12 @@ func testRemoteExecGetSpec(t *testing.T, hcl string, token string, shouldSucceed
 }
 
 func TestRemoteExecWrites(t *testing.T) {
+	t.Parallel()
 	testRemoteExecWrites(t, "", "", true)
 }
 
 func TestRemoteExecWrites_ACLToken(t *testing.T) {
+	t.Parallel()
 	testRemoteExecWrites(t, `
 		acl_datacenter = "dc1"
 		acl_master_token = "root"
@@ -173,6 +175,7 @@ func TestRemoteExecWrites_ACLToken(t *testing.T) {
 }
 
 func TestRemoteExecWrites_ACLAgentToken(t *testing.T) {
+	t.Parallel()
 	testRemoteExecWrites(t, `
 		acl_datacenter = "dc1"
 		acl_master_token = "root"
@@ -182,6 +185,7 @@ func TestRemoteExecWrites_ACLAgentToken(t *testing.T) {
 }
 
 func TestRemoteExecWrites_ACLDeny(t *testing.T) {
+	t.Parallel()
 	testRemoteExecWrites(t, `
 		acl_datacenter = "dc1"
 		acl_master_token = "root"

@@ -26,6 +26,7 @@ func TestAutopilot_IdempotentShutdown(t *testing.T) {
 }
 
 func TestAutopilot_CleanupDeadServer(t *testing.T) {
+	t.Parallel()
 	for i := 1; i <= 3; i++ {
 		testCleanupDeadServer(t, i)
 	}

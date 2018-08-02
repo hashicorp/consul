@@ -863,13 +863,13 @@ func TestLeader_RollRaftServer(t *testing.T) {
 }
 
 func TestLeader_ChangeServerID(t *testing.T) {
+	t.Parallel()
 	conf := func(c *Config) {
 		c.Bootstrap = false
 		c.BootstrapExpect = 3
 		c.Datacenter = "dc1"
 		c.RaftConfig.ProtocolVersion = 3
 	}
-
 	dir1, s1 := testServerWithConfig(t, conf)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -890,6 +890,7 @@ func TestLeader_ChangeServerID(t *testing.T) {
 	for _, s := range servers {
 		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
 	}
+
 	// Shut down a server, freeing up its address/port
 	s3.Shutdown()
 
