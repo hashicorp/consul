@@ -26,22 +26,14 @@ export default Route.extend(WithFeedback, {
   },
   actions: {
     update: function(item) {
-      get(this, 'feedback').execute(
-        () => {
-          return get(this, 'repo').persist(item);
-        },
-        `Your settings were saved.`,
-        `There was an error saving your settings.`
-      );
+      get(this, 'feedback').execute(() => {
+        return get(this, 'repo').persist(item);
+      }, 'update');
     },
     delete: function(key) {
-      get(this, 'feedback').execute(
-        () => {
-          return get(this, 'repo').remove(key);
-        },
-        `You settings have been reset.`,
-        `There was an error resetting your settings.`
-      );
+      get(this, 'feedback').execute(() => {
+        return get(this, 'repo').remove(key);
+      }, 'delete');
     },
   },
 });
