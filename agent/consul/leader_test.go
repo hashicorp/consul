@@ -922,6 +922,7 @@ func TestLeader_ChangeServerID(t *testing.T) {
 	defer os.RemoveAll(dir4)
 	defer s4.Shutdown()
 	joinLAN(t, s4, s1)
+	testrpc.WaitForLeader(t, s4.RPC, "dc1")
 	servers[2] = s4
 
 	// While integrating #3327 it uncovered that this test was flaky. The
