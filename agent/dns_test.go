@@ -37,9 +37,15 @@ const (
 // the provided reply. This is useful for mocking a DNS recursor with
 // an expected result.
 func makeRecursor(t *testing.T, answer dns.Msg) *dns.Server {
+	a := answer
 	mux := dns.NewServeMux()
 	mux.HandleFunc(".", func(resp dns.ResponseWriter, msg *dns.Msg) {
+		// The SetReply function sets the return code of the DNS
+		// query to SUCCESS
+		// We need a way to copy the variables not addressed
+		// in SetReply
 		answer.SetReply(msg)
+		answer.Rcode = a.Rcode
 		if err := resp.WriteMsg(&answer); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -371,6 +377,69 @@ func TestDNS_NodeLookup_AAAA(t *testing.T) {
 	}
 }
 
+func TestDNSCycleRecursorCheck(t *testing.T) {
+	t.Parallel()
+	// Start a DNS recursor that returns a SERVFAIL
+	server1 := makeRecursor(t, dns.Msg{
+		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeServerFailure},
+	})
+	// Start a DNS recursor that returns the result
+	defer server1.Shutdown()
+	server2 := makeRecursor(t, dns.Msg{
+		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeSuccess},
+		Answer: []dns.RR{
+			dnsA("www.google.com", "172.21.45.67"),
+		},
+	})
+	defer server2.Shutdown()
+	//Mock the agent startup with the necessary configs
+	agent := NewTestAgent(t.Name(),
+		`recursors = ["`+server1.Addr+`", "`+server2.Addr+`"]
+		`)
+	defer agent.Shutdown()
+	// DNS Message init
+	m := new(dns.Msg)
+	m.SetQuestion("google.com.", dns.TypeA)
+	// Agent request
+	client := new(dns.Client)
+	in, _, _ := client.Exchange(m, agent.DNSAddr())
+	wantAnswer := []dns.RR{
+		&dns.A{
+			Hdr: dns.RR_Header{Name: "www.google.com.", Rrtype: dns.TypeA, Class: dns.ClassINET, Rdlength: 0x4},
+			A:   []byte{0xAC, 0x15, 0x2D, 0x43}, // 172 , 21, 45, 67
+		},
+	}
+	verify.Values(t, "Answer", in.Answer, wantAnswer)
+}
+func TestDNSCycleRecursorCheckAllFail(t *testing.T) {
+	t.Parallel()
+	// Start 3 DNS recursors that returns a REFUSED status
+	server1 := makeRecursor(t, dns.Msg{
+		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeRefused},
+	})
+	defer server1.Shutdown()
+	server2 := makeRecursor(t, dns.Msg{
+		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeRefused},
+	})
+	defer server2.Shutdown()
+	server3 := makeRecursor(t, dns.Msg{
+		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeRefused},
+	})
+	defer server3.Shutdown()
+	//Mock the agent startup with the necessary configs
+	agent := NewTestAgent(t.Name(),
+		`recursors = ["`+server1.Addr+`", "`+server2.Addr+`","`+server3.Addr+`"]
+		`)
+	defer agent.Shutdown()
+	// DNS dummy message initialization
+	m := new(dns.Msg)
+	m.SetQuestion("google.com.", dns.TypeA)
+	// Agent request
+	client := new(dns.Client)
+	in, _, _ := client.Exchange(m, agent.DNSAddr())
+	//Verify if we hit SERVFAIL from Consul
+	verify.Values(t, "Answer", in.Rcode, dns.RcodeServerFailure)
+}
 func TestDNS_NodeLookup_CNAME(t *testing.T) {
 	t.Parallel()
 	recursor := makeRecursor(t, dns.Msg{

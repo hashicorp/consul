@@ -1302,14 +1302,20 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 	var err error
 	for _, recursor := range d.recursors {
 		r, rtt, err = c.Exchange(req, recursor)
-		if err == nil || err == dns.ErrTruncated {
+		// Check if the response is valid and has the desired Response code
+		if r != nil && (r.Rcode != dns.RcodeSuccess && r.Rcode != dns.RcodeNameError) {
+			d.logger.Printf("[DEBUG] dns: recurse RTT for %v (%v) Recursor queried: %v Status returned: %v", q, rtt, recursor, dns.RcodeToString[r.Rcode])
+			// If we still have recursors to forward the query to,
+			// we move forward onto the next one else the loop ends
+			continue
+		} else if err == nil || err == dns.ErrTruncated {
 			// Compress the response; we don't know if the incoming
 			// response was compressed or not, so by not compressing
 			// we might generate an invalid packet on the way out.
 			r.Compress = !d.disableCompression.Load().(bool)
 
 			// Forward the response
-			d.logger.Printf("[DEBUG] dns: recurse RTT for %v (%v)", q, rtt)
+			d.logger.Printf("[DEBUG] dns: recurse RTT for %v (%v) Recursor queried: %v", q, rtt, recursor)
 			if err := resp.WriteMsg(r); err != nil {
 				d.logger.Printf("[WARN] dns: failed to respond: %v", err)
 			}
