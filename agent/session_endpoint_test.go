@@ -162,20 +162,22 @@ func TestSessionCreate_DefaultCheck(t *testing.T) {
 
 	req, _ := http.NewRequest("PUT", "/v1/session/create", body)
 	resp := httptest.NewRecorder()
-	obj, err := a.srv.SessionCreate(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	retry.Run(t, func(r *retry.R) {
+		obj, err := a.srv.SessionCreate(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
 
-	want := structs.Session{
-		ID:        obj.(sessionCreateResponse).ID,
-		Name:      "my-cool-session",
-		Node:      a.Config.NodeName,
-		Checks:    []types.CheckID{structs.SerfCheckID},
-		LockDelay: 20 * time.Second,
-		Behavior:  structs.SessionKeysRelease,
-	}
-	verifySession(t, a, want)
+		want := structs.Session{
+			ID:        obj.(sessionCreateResponse).ID,
+			Name:      "my-cool-session",
+			Node:      a.Config.NodeName,
+			Checks:    []types.CheckID{structs.SerfCheckID},
+			LockDelay: 20 * time.Second,
+			Behavior:  structs.SessionKeysRelease,
+		}
+		verifySession(t, a, want)
+	})
 }
 
 func TestSessionCreate_NoCheck(t *testing.T) {
@@ -196,20 +198,22 @@ func TestSessionCreate_NoCheck(t *testing.T) {
 
 	req, _ := http.NewRequest("PUT", "/v1/session/create", body)
 	resp := httptest.NewRecorder()
-	obj, err := a.srv.SessionCreate(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	retry.Run(t, func(r *retry.R) {
+		obj, err := a.srv.SessionCreate(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
 
-	want := structs.Session{
-		ID:        obj.(sessionCreateResponse).ID,
-		Name:      "my-cool-session",
-		Node:      a.Config.NodeName,
-		Checks:    []types.CheckID{},
-		LockDelay: 20 * time.Second,
-		Behavior:  structs.SessionKeysRelease,
-	}
-	verifySession(t, a, want)
+		want := structs.Session{
+			ID:        obj.(sessionCreateResponse).ID,
+			Name:      "my-cool-session",
+			Node:      a.Config.NodeName,
+			Checks:    []types.CheckID{},
+			LockDelay: 20 * time.Second,
+			Behavior:  structs.SessionKeysRelease,
+		}
+		verifySession(t, a, want)
+	})
 }
 
 func TestFixupLockDelay(t *testing.T) {
