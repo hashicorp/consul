@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/go-uuid"
 )
@@ -97,42 +98,47 @@ func TestRexecWriter(t *testing.T) {
 
 func TestRemoteExecGetSpec(t *testing.T) {
 	t.Parallel()
-	testRemoteExecGetSpec(t, "", "", true)
+	testRemoteExecGetSpec(t, "", "", true, "")
 }
 
 func TestRemoteExecGetSpec_ACLToken(t *testing.T) {
 	t.Parallel()
+	dc := "dc1"
 	testRemoteExecGetSpec(t, `
-		acl_datacenter = "dc1"
+		acl_datacenter = "`+dc+`"
 		acl_master_token = "root"
 		acl_token = "root"
 		acl_default_policy = "deny"
-	`, "root", true)
+	`, "root", true, dc)
 }
 
 func TestRemoteExecGetSpec_ACLAgentToken(t *testing.T) {
 	t.Parallel()
+	dc := "dc1"
 	testRemoteExecGetSpec(t, `
-		acl_datacenter = "dc1"
+		acl_datacenter = "`+dc+`"
 		acl_master_token = "root"
 		acl_agent_token = "root"
 		acl_default_policy = "deny"
-	`, "root", true)
+	`, "root", true, dc)
 }
 
 func TestRemoteExecGetSpec_ACLDeny(t *testing.T) {
 	t.Parallel()
+	dc := "dc1"
 	testRemoteExecGetSpec(t, `
-		acl_datacenter = "dc1"
+		acl_datacenter = "`+dc+`"
 		acl_master_token = "root"
 		acl_default_policy = "deny"
-	`, "root", false)
+	`, "root", false, dc)
 }
 
-func testRemoteExecGetSpec(t *testing.T, hcl string, token string, shouldSucceed bool) {
+func testRemoteExecGetSpec(t *testing.T, hcl string, token string, shouldSucceed bool, dc string) {
 	a := NewTestAgent(t.Name(), hcl)
 	defer a.Shutdown()
-
+	if dc != "" {
+		testrpc.WaitForLeader(t, a.RPC, dc)
+	}
 	event := &remoteExecEvent{
 		Prefix:  "_rexec",
 		Session: makeRexecSession(t, a.Agent, token),
