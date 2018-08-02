@@ -190,7 +190,7 @@ test-ci: other-consul dev-build vet test-install-deps
 	       echo "    ============"; \
 	       echo "      Retrying 2/2"; \
 	       echo "    ============"; \
-	       GOTEST_FLAGS="-timeout 7m -p 1 -parallel 1" make test-internal; \
+	       GOTEST_FLAGS="-timeout 8m -p 1 -parallel 1" make test-internal; \
 	    fi \
 	fi
 
