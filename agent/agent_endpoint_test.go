@@ -711,6 +711,13 @@ func TestAgent_ForceLeave(t *testing.T) {
 
 	// this test probably needs work
 	a2.Shutdown()
+	// Wait for agent being marked as failed, so we wait for full shutdown of Agent
+	retry.Run(t, func(r *retry.R) {
+		m := a1.LANMembers()
+		if got, want := m[1].Status, serf.StatusFailed; got != want {
+			r.Fatalf("got status %q want %q", got, want)
+		}
+	})
 
 	// Force leave now
 	req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/agent/force-leave/%s", a2.Config.NodeName), nil)
