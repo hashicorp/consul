@@ -1,12 +1,13 @@
 ---
 layout: "docs"
-page_title: "Production Deployment"
-sidebar_current: "docs-guides-deployment"
+page_title: "Consul Reference Architecture"
+sidebar_current: "docs-guides-reference-architecture"
 description: |-
-  Best practice approaches for Consul production deployments.
+  This document provides recommended practices and a reference architecture for
+  HashiCorp Consul implementations.
 ---
 
-# Consul Production Deployment Guide
+# Consul Reference Architecture
 
 As applications are migrated to dynamically provisioned infrastructure, scaling services and managing the communications between them becomes challenging. Consul’s service discovery capabilities provide the connectivity between dynamic applications. Consul also monitors the health of each node and its applications to ensure that only healthy service instances are discovered. Consul’s distributed runtime configuration store allows updates across global infrastructure.
 
@@ -182,3 +183,8 @@ To remove all agents that accidentally joined the wrong set of servers, clear ou
 The [Autopilot](/docs/guides/autopilot.html) (Enterprise) feature automatically cleans up dead servers instead of waiting 72 hours. Dead servers will periodically be cleaned up and removed from the Raft peer set, to prevent them from interfering with the quorum size and leader elections.
 
 Removing any server must be done carefully. For a cluster of `N` servers to function properly, `(N/2) + 1` must be available. Before removing an old server from the cluster, the new server must be added in order to make the cluster failure tolerant. The old server can then be removed.
+
+## Next steps
+
+- Read [Deployment Guide](/docs/guides/deployment-guide.html) to learn
+  the steps required to install and configure a single HashiCorp Consul cluster.
