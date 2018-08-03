@@ -52,6 +52,10 @@ example shows all possible fields, but note that only a few are required.
         "command": [],
         "config": {}
       }
+    },
+    "weights": {
+      "passing": 5,
+      "warning": 1
     }
   }
 }
@@ -150,6 +154,17 @@ proxy](/docs/connect/proxies.html) for the service. The fields within `proxy`
 are used to configure the proxy and are specified in the [proxy
 docs](/docs/connect/proxies.html). If `native` is true, it is an error to also
 specifiy a managed proxy instance.
+
+The `weights` field is an optional field to specify the weight of a service in
+DNS SRV responses. If this field is not specified, its default value is:
+`"weights": {"passing": 1, "warning": 1}`.
+When a service is `critical`, it is excluded from DNS responses, `warning` services
+will be in DNS responses as well unless the `only_passing = true` is set in the
+DNS configuration of the agent.
+When DNS SRV requests are issued, response will include the weight in the SRV
+response accordingly to the state of service. It allows to put more weights
+on services running on larger nodes and optionnally to put less pressure on
+services being in `warning` state.
 
 ## Multiple Service Definitions
 
