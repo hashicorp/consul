@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/stretchr/testify/assert"
@@ -597,9 +598,10 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
+	dc := "dc1"
 	// Create a failing service check
 	args := &structs.RegisterRequest{
-		Datacenter: "dc1",
+		Datacenter: dc,
 		Node:       a.Config.NodeName,
 		Address:    "127.0.0.1",
 		Check: &structs.HealthCheck{
@@ -610,6 +612,7 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 		},
 	}
 
+	testrpc.WaitForLeader(t, a.RPC, dc)
 	var out struct{}
 	if err := a.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
