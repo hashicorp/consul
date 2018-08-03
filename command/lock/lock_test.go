@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
 )
 
@@ -44,6 +45,8 @@ func TestLockCommand(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
 	ui := cli.NewMockUi()
 	c := New(ui)
 
@@ -67,6 +70,8 @@ func TestLockCommand_NoShell(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
 	ui := cli.NewMockUi()
 	c := New(ui)
 
@@ -89,6 +94,8 @@ func TestLockCommand_TryLock(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
+
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
 	c := New(ui)
@@ -122,6 +129,8 @@ func TestLockCommand_TrySemaphore(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
 	ui := cli.NewMockUi()
 	c := New(ui)
 
@@ -153,6 +162,8 @@ func TestLockCommand_MonitorRetry_Lock_Default(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
+
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
 	c := New(ui)
@@ -187,6 +198,8 @@ func TestLockCommand_MonitorRetry_Semaphore_Default(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
 	ui := cli.NewMockUi()
 	c := New(ui)
 
@@ -219,6 +232,8 @@ func TestLockCommand_MonitorRetry_Lock_Arg(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
+
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
 	c := New(ui)
@@ -253,6 +268,8 @@ func TestLockCommand_MonitorRetry_Semaphore_Arg(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
 	ui := cli.NewMockUi()
 	c := New(ui)
 
@@ -285,6 +302,8 @@ func TestLockCommand_ChildExitCode(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
+
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	t.Run("clean exit", func(t *testing.T) {
 		ui := cli.NewMockUi()
