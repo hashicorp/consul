@@ -90,7 +90,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 		Address: "1.1.1.1",
 		Port:    8080,
 		Tags:    []string{"master"},
-		Weights: &structs.Weights{Passing: 1, Warning: 0},
+		Weights: &structs.Weights{Passing: 1, Warning: 1},
 	}
 	if err := s.EnsureRegistration(2, req); err != nil {
 		t.Fatalf("err: %s", err)
@@ -105,7 +105,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 				Address:   "1.1.1.1",
 				Port:      8080,
 				Tags:      []string{"master"},
-				Weights:   &structs.Weights{Passing: 1, Warning: 0},
+				Weights:   &structs.Weights{Passing: 1, Warning: 1},
 				RaftIndex: structs.RaftIndex{CreateIndex: 2, ModifyIndex: 2},
 			},
 		}
@@ -296,7 +296,7 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 		Service: "redis",
 		Address: "1.1.1.1",
 		Port:    8080,
-		Weights: &structs.Weights{Passing: 1, Warning: 0},
+		Weights: &structs.Weights{Passing: 1, Warning: 1},
 	}
 	restore = s.Restore()
 	if err := restore.Registration(2, req); err != nil {
@@ -1000,7 +1000,7 @@ func TestStateStore_EnsureService_connectProxy(t *testing.T) {
 		ProxyDestination: "foo",
 		Weights: &structs.Weights{
 			Passing: 1,
-			Warning: 0,
+			Warning: 1,
 		},
 	}
 
@@ -1645,7 +1645,7 @@ func TestStateStore_Service_Snapshot(t *testing.T) {
 			Tags:    []string{"dev"},
 			Address: "1.1.1.2",
 			Port:    1112,
-			Weights: &structs.Weights{Passing: 1, Warning: 0},
+			Weights: &structs.Weights{Passing: 1, Warning: 1},
 		},
 	}
 	for i, svc := range ns {
@@ -2826,7 +2826,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 					Service: "service1",
 					Address: "1.1.1.1",
 					Port:    1111,
-					Weights: &structs.Weights{Passing: 1, Warning: 0},
+					Weights: &structs.Weights{Passing: 1, Warning: 1},
 					RaftIndex: structs.RaftIndex{
 						CreateIndex: 2,
 						ModifyIndex: 2,
@@ -2837,7 +2837,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 					Service: "service2",
 					Address: "1.1.1.1",
 					Port:    1111,
-					Weights: &structs.Weights{Passing: 1, Warning: 0},
+					Weights: &structs.Weights{Passing: 1, Warning: 1},
 					RaftIndex: structs.RaftIndex{
 						CreateIndex: 3,
 						ModifyIndex: 3,
@@ -2877,7 +2877,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 					Service: "service1",
 					Address: "1.1.1.1",
 					Port:    1111,
-					Weights: &structs.Weights{Passing: 1, Warning: 0},
+					Weights: &structs.Weights{Passing: 1, Warning: 1},
 					RaftIndex: structs.RaftIndex{
 						CreateIndex: 4,
 						ModifyIndex: 4,
@@ -2888,7 +2888,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 					Service: "service2",
 					Address: "1.1.1.1",
 					Port:    1111,
-					Weights: &structs.Weights{Passing: 1, Warning: 0},
+					Weights: &structs.Weights{Passing: 1, Warning: 1},
 					RaftIndex: structs.RaftIndex{
 						CreateIndex: 5,
 						ModifyIndex: 5,

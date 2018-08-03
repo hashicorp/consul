@@ -46,7 +46,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		Port:    5000,
 		Weights: &structs.Weights{
 			Passing: 1,
-			Warning: 0,
+			Warning: 1,
 		},
 	}
 	a.State.AddService(srv1, "")
@@ -84,7 +84,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		Port:    80,
 		Weights: &structs.Weights{
 			Passing: 1,
-			Warning: 0,
+			Warning: 1,
 		},
 	}
 	a.State.AddService(srv3, "")
@@ -114,7 +114,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		Port:    8000,
 		Weights: &structs.Weights{
 			Passing: 1,
-			Warning: 0,
+			Warning: 1,
 		},
 	}
 	a.State.AddService(srv5, "")
@@ -279,7 +279,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 		ProxyDestination: "db",
 		Weights: &structs.Weights{
 			Passing: 1,
-			Warning: 0,
+			Warning: 1,
 		},
 	}
 	a.State.AddService(srv1, "")
@@ -315,7 +315,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 		ProxyDestination: "web",
 		Weights: &structs.Weights{
 			Passing: 1,
-			Warning: 0,
+			Warning: 1,
 		},
 	}
 	a.State.AddService(srv3, "")
@@ -344,7 +344,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 		ProxyDestination: "cache-proxy",
 		Weights: &structs.Weights{
 			Passing: 1,
-			Warning: 0,
+			Warning: 1,
 		},
 	}
 	a.State.SetServiceState(&local.ServiceState{
@@ -435,7 +435,7 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 		EnableTagOverride: true,
 		Weights: &structs.Weights{
 			Passing: 1,
-			Warning: 0,
+			Warning: 1,
 		},
 	}
 	a.State.AddService(srv1, "")
@@ -449,7 +449,7 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 		EnableTagOverride: false,
 		Weights: &structs.Weights{
 			Passing: 1,
-			Warning: 0,
+			Warning: 1,
 		},
 	}
 	a.State.AddService(srv2, "")
@@ -470,7 +470,7 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 		EnableTagOverride: true,
 		Weights: &structs.Weights{
 			Passing: 1,
-			Warning: 0,
+			Warning: 1,
 		},
 	}
 	if err := a.RPC("Catalog.Register", args, &out); err != nil {
@@ -522,7 +522,7 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 				EnableTagOverride: true,
 				Weights: &structs.Weights{
 					Passing: 1,
-					Warning: 0,
+					Warning: 1,
 				},
 			}
 			if !verify.Values(t, "", got, want) {
@@ -710,7 +710,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 		Port:    5000,
 		Weights: &structs.Weights{
 			Passing: 1,
-			Warning: 0,
+			Warning: 1,
 		},
 	}
 	a.State.AddService(srv1, token)
@@ -1053,7 +1053,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 		Port:    5000,
 		Weights: &structs.Weights{
 			Passing: 1,
-			Warning: 0,
+			Warning: 1,
 		},
 	}
 	a.State.AddService(srv1, "root")
@@ -1064,7 +1064,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 		Port:    5001,
 		Weights: &structs.Weights{
 			Passing: 1,
-			Warning: 0,
+			Warning: 1,
 		},
 	}
 	a.State.AddService(srv2, "root")

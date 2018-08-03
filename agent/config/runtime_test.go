@@ -2015,11 +2015,11 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.Services = []*structs.ServiceDefinition{
 					&structs.ServiceDefinition{Name: "a", Port: 80, Weights: &structs.Weights{
 						Passing: 1,
-						Warning: 0,
+						Warning: 1,
 					}},
 					&structs.ServiceDefinition{Name: "b", Port: 90, Meta: map[string]string{"my": "value"}, Weights: &structs.Weights{
 						Passing: 13,
-						Warning: 0,
+						Warning: 1,
 					}},
 				}
 				rt.DataDir = dataDir
@@ -2116,7 +2116,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 						},
 						Weights: &structs.Weights{
 							Passing: 1,
-							Warning: 0,
+							Warning: 1,
 						},
 					},
 				}
@@ -2179,7 +2179,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 						},
 						Weights: &structs.Weights{
 							Passing: 1,
-							Warning: 0,
+							Warning: 1,
 						},
 					},
 				}
@@ -2227,7 +2227,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 						},
 						Weights: &structs.Weights{
 							Passing: 1,
-							Warning: 0,
+							Warning: 1,
 						},
 					},
 				}
@@ -2286,7 +2286,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 						},
 						Weights: &structs.Weights{
 							Passing: 1,
-							Warning: 0,
+							Warning: 1,
 						},
 					},
 					&structs.ServiceDefinition{
@@ -2294,7 +2294,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 						Port: 81,
 						Weights: &structs.Weights{
 							Passing: 1,
-							Warning: 0,
+							Warning: 1,
 						},
 					},
 				}
@@ -3848,7 +3848,7 @@ func TestFullConfig(t *testing.T) {
 				Port:    72219,
 				Weights: &structs.Weights{
 					Passing: 1,
-					Warning: 0,
+					Warning: 1,
 				},
 				EnableTagOverride: true,
 				Checks: []*structs.CheckType{
@@ -3949,7 +3949,7 @@ func TestFullConfig(t *testing.T) {
 				ProxyDestination: "6L6BVfgH",
 				Weights: &structs.Weights{
 					Passing: 1,
-					Warning: 0,
+					Warning: 1,
 				},
 			},
 			{

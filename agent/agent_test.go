@@ -628,7 +628,7 @@ func verifyIndexChurn(t *testing.T, tags []string) {
 
 	weights := &structs.Weights{
 		Passing: 1,
-		Warning: 0,
+		Warning: 1,
 	}
 	svc := &structs.NodeService{
 		ID:      "redis",

@@ -632,7 +632,7 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 	theWeights := Weights{
 		Passing: 1,
-		Warning: 0,
+		Warning: 1,
 	}
 	if s.Weights != nil {
 		if err := ValidateWeights(s.Weights); err == nil {

@@ -172,7 +172,7 @@ func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) 
 
 	// Use empty list instead of nil
 	for id, s := range services {
-		weights := api.AgentWeights{Passing: 1, Warning: 0}
+		weights := api.AgentWeights{Passing: 1, Warning: 1}
 		if s.Weights != nil {
 			if s.Weights.Passing > 0 {
 				weights.Passing = s.Weights.Passing
