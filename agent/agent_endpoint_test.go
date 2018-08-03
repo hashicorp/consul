@@ -605,14 +605,13 @@ func TestAgent_JoinLANNotify(t *testing.T) {
 	t.Parallel()
 	a1 := NewTestAgent(t.Name(), "")
 	defer a1.Shutdown()
+	testrpc.WaitForLeader(t, a1.RPC, "dc1")
 
 	a2 := NewTestAgent(t.Name(), `
 		server = false
 		bootstrap = false
 	`)
 	defer a2.Shutdown()
-	testrpc.WaitForLeader(t, a1.RPC, "dc1")
-	testrpc.WaitForLeader(t, a2.RPC, "dc1")
 
 	notif := &mockNotifier{}
 	a1.joinLANNotifier = notif
@@ -2615,6 +2614,7 @@ func TestAgentConnectCALeafCert_aclServiceWrite(t *testing.T) {
 	require := require.New(t)
 	a := NewTestAgent(t.Name(), TestACLConfig()+testAllowProxyConfig())
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	// Register a service with a managed proxy
 	{
