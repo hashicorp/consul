@@ -400,6 +400,7 @@ func TestHealthServiceNodes(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	req, _ := http.NewRequest("GET", "/v1/health/service/consul?dc=dc1", nil)
 	resp := httptest.NewRecorder()
@@ -466,6 +467,7 @@ func TestHealthServiceNodes_NodeMetaFilter(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	req, _ := http.NewRequest("GET", "/v1/health/service/consul?dc=dc1&node-meta=somekey:somevalue", nil)
 	resp := httptest.NewRecorder()
@@ -697,6 +699,7 @@ func TestHealthServiceNodes_WanTranslation(t *testing.T) {
 		acl_datacenter = ""
 	`)
 	defer a1.Shutdown()
+	testrpc.WaitForLeader(t, a1.RPC, "dc1")
 
 	a2 := NewTestAgent(t.Name(), `
 		datacenter = "dc2"
@@ -704,6 +707,7 @@ func TestHealthServiceNodes_WanTranslation(t *testing.T) {
 		acl_datacenter = ""
 	`)
 	defer a2.Shutdown()
+	testrpc.WaitForLeader(t, a2.RPC, "dc2")
 
 	// Wait for the WAN join.
 	addr := fmt.Sprintf("127.0.0.1:%d", a1.Config.SerfPortWAN)
