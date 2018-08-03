@@ -28,16 +28,16 @@ func makeRandomNodeID(t *testing.T) types.NodeID {
 func TestStateStore_GetNodeID(t *testing.T) {
 	s := testStateStore(t)
 	_, out, err := s.GetNodeID(types.NodeID("wrongId"))
-	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed: UUID must be 36 characters") {
+	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed, wrong UUID") {
 		t.Fatalf("want an error, nil value, err:=%q ; out:=%q", err.Error(), out)
 	}
 	_, out, err = s.GetNodeID(types.NodeID("0123456789abcdefghijklmnopqrstuvwxyz"))
-	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed: wrong UUID format") {
+	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed, wrong UUID") {
 		t.Fatalf("want an error, nil value, err:=%q ; out:=%q", err, out)
 	}
 
 	_, out, err = s.GetNodeID(types.NodeID("00a916bc-a357-4a19-b886-59419fcee50Z"))
-	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed: encoding/hex: invalid byte") {
+	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed, wrong UUID") {
 		t.Fatalf("want an error, nil value, err:=%q ; out:=%q", err, out)
 	}
 

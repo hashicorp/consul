@@ -1,7 +1,6 @@
 package state
 
 import (
-	"encoding/hex"
 	"fmt"
 	"strings"
 
@@ -9,6 +8,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-memdb"
+	uuid "github.com/hashicorp/go-uuid"
 )
 
 const (
@@ -465,21 +465,12 @@ func (s *Store) GetNode(id string) (uint64, *structs.Node, error) {
 
 func getNodeIDTxn(tx *memdb.Txn, id types.NodeID) (*structs.Node, error) {
 	strnode := string(id)
-	if len(strnode) != 36 {
-		return nil, fmt.Errorf("node lookup by ID failed: UUID must be 36 characters, was '%s'", strnode)
-	}
-	sanitized := strings.Replace(strnode, "-", "", -1)
-	sanitizedLength := len(sanitized)
-	if sanitizedLength != 32 {
-		return nil, fmt.Errorf("node lookup by ID failed: wrong UUID format for '%s'", strnode)
-	}
-
-	dec, err := hex.DecodeString(sanitized)
+	uuidValue, err := uuid.ParseUUID(strnode)
 	if err != nil {
-		return nil, fmt.Errorf("node lookup by ID failed: %s for '%s'", err, strnode)
+		return nil, fmt.Errorf("node lookup by ID failed, wrong UUID: %v for '%s'", err, strnode)
 	}
 
-	node, err := tx.First("nodes", "uuid", dec)
+	node, err := tx.First("nodes", "uuid", uuidValue)
 	if err != nil {
 		return nil, fmt.Errorf("node lookup by ID failed: %s", err)
 	}
