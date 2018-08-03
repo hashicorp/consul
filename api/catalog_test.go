@@ -36,8 +36,8 @@ func TestAPI_CatalogNodes(t *testing.T) {
 		if err != nil {
 			r.Fatal(err)
 		}
-		if meta.LastIndex == 0 {
-			r.Fatal("got last index 0 want > 0")
+		if meta.LastIndex < 2 {
+			r.Fatal("got last index %v want > 1", meta.LastIndex)
 		}
 		want := []*Node{
 			{
