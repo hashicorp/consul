@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/testrpc"
+
 	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/agent"
@@ -947,17 +949,20 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 
 func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 	t.Parallel()
+	dc := "dc1"
 	a := &agent.TestAgent{Name: t.Name(), HCL: `
-		acl_datacenter = "dc1"
+		acl_datacenter = "` + dc + `"
 		acl_master_token = "root"
 		acl_default_policy = "deny"
 		acl_enforce_version_8 = true`}
 	a.Start()
 	defer a.Shutdown()
 
+	testrpc.WaitForLeader(t, a.RPC, dc)
+
 	// Create the ACL
 	arg := structs.ACLRequest{
-		Datacenter: "dc1",
+		Datacenter: dc,
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name:  "User token",
@@ -996,7 +1001,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 	// Verify that we are in sync
 	{
 		req := structs.NodeSpecificRequest{
-			Datacenter: "dc1",
+			Datacenter: dc,
 			Node:       a.Config.NodeName,
 			QueryOptions: structs.QueryOptions{
 				Token: "root",
@@ -1066,7 +1071,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 
 	// Verify that we are in sync
 	req := structs.NodeSpecificRequest{
-		Datacenter: "dc1",
+		Datacenter: dc,
 		Node:       a.Config.NodeName,
 		QueryOptions: structs.QueryOptions{
 			Token: "root",
@@ -1112,7 +1117,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 	// Verify that we are in sync
 	{
 		req := structs.NodeSpecificRequest{
-			Datacenter: "dc1",
+			Datacenter: dc,
 			Node:       a.Config.NodeName,
 			QueryOptions: structs.QueryOptions{
 				Token: "root",

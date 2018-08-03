@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/agent"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
 )
 
@@ -34,6 +35,7 @@ func TestCatalogListNodesCommand(t *testing.T) {
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
 
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 	t.Run("simple", func(t *testing.T) {
 		ui := cli.NewMockUi()
 		c := New(ui)
