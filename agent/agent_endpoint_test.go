@@ -4136,6 +4136,7 @@ func TestAgentConnectAuthorize_defaultAllow(t *testing.T) {
 	respRaw, err := a.srv.AgentConnectAuthorize(resp, req)
 	assert.Nil(err)
 	assert.Equal(200, resp.Code)
+	assert.NotNil(respRaw)
 
 	obj := respRaw.(*connectAuthorizeResp)
 	assert.True(obj.Authorized)
