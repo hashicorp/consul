@@ -760,6 +760,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 	a.Start()
 	defer a.Shutdown()
 
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 	// Register info
 	args := &structs.RegisterRequest{
 		Datacenter: "dc1",
