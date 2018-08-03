@@ -31,6 +31,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	a := &agent.TestAgent{Name: t.Name()}
 	a.Start()
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	// Register info
 	args := &structs.RegisterRequest{
@@ -239,6 +240,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 	a := &agent.TestAgent{Name: t.Name()}
 	a.Start()
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	// Register node info
 	var out struct{}
@@ -376,6 +378,7 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 	a := &agent.TestAgent{Name: t.Name()}
 	a.Start()
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	args := &structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -487,6 +490,7 @@ func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	{
 		// Single check
@@ -621,6 +625,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 		acl_enforce_version_8 = true`}
 	a.Start()
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	// Create the ACL
 	arg := structs.ACLRequest{
@@ -1167,6 +1172,7 @@ func TestAgent_UpdateCheck_DiscardOutput(t *testing.T) {
 		check_update_interval = "0s" # set to "0s" since otherwise output checks are deferred
 	`)
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	inSync := func(id string) bool {
 		s := a.State.CheckState(types.CheckID(id))
@@ -1217,6 +1223,7 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	`}
 	a.Start()
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	// Create a check
 	check := &structs.HealthCheck{
@@ -1407,6 +1414,7 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 		}`}
 	a.Start()
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	// Register info
 	args := &structs.RegisterRequest{
@@ -1676,6 +1684,7 @@ func TestAgent_sendCoordinate(t *testing.T) {
 		}
 	`)
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	t.Logf("%d %d %s",
 		a.Config.ConsulCoordinateUpdateBatchSize,
