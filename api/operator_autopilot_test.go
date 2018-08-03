@@ -41,44 +41,46 @@ func TestAPI_OperatorAutopilotCASConfiguration(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
-	operator := c.Operator()
-	config, err := operator.AutopilotGetConfiguration(nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if !config.CleanupDeadServers {
-		t.Fatalf("bad: %v", config)
-	}
-
-	// Pass an invalid ModifyIndex
-	{
-		newConf := &AutopilotConfiguration{
-			CleanupDeadServers: false,
-			ModifyIndex:        config.ModifyIndex - 1,
-		}
-		resp, err := operator.AutopilotCASConfiguration(newConf, nil)
+	retry.Run(t, func(r *retry.R) {
+		operator := c.Operator()
+		config, err := operator.AutopilotGetConfiguration(nil)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		if resp {
-			t.Fatalf("bad: %v", resp)
+		if !config.CleanupDeadServers {
+			t.Fatalf("bad: %v", config)
 		}
-	}
 
-	// Pass a valid ModifyIndex
-	{
-		newConf := &AutopilotConfiguration{
-			CleanupDeadServers: false,
-			ModifyIndex:        config.ModifyIndex,
+		// Pass an invalid ModifyIndex
+		{
+			newConf := &AutopilotConfiguration{
+				CleanupDeadServers: false,
+				ModifyIndex:        config.ModifyIndex - 1,
+			}
+			resp, err := operator.AutopilotCASConfiguration(newConf, nil)
+			if err != nil {
+				t.Fatalf("err: %v", err)
+			}
+			if resp {
+				t.Fatalf("bad: %v", resp)
+			}
 		}
-		resp, err := operator.AutopilotCASConfiguration(newConf, nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
+
+		// Pass a valid ModifyIndex
+		{
+			newConf := &AutopilotConfiguration{
+				CleanupDeadServers: false,
+				ModifyIndex:        config.ModifyIndex,
+			}
+			resp, err := operator.AutopilotCASConfiguration(newConf, nil)
+			if err != nil {
+				t.Fatalf("err: %v", err)
+			}
+			if !resp {
+				t.Fatalf("bad: %v", resp)
+			}
 		}
-		if !resp {
-			t.Fatalf("bad: %v", resp)
-		}
-	}
+	})
 }
 
 func TestAPI_OperatorAutopilotServerHealth(t *testing.T) {
