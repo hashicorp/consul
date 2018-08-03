@@ -7,6 +7,18 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/coredns/coredns)](https://goreportcard.com/report/coredns/coredns)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/1250/badge)](https://bestpractices.coreinfrastructure.org/projects/1250)
 
+
+
+## Feedback wanted ...
+
+CoreDNS is now part of [Kubernetes](http://kubernetes.io), [delivering the DNS and Discovery Service for the cluster](https://kubernetes.io/blog/2018/07/10/coredns-ga-for-kubernetes-cluster-dns/).
+If you are currently using CoreDNS inside a Kubernetes cluster, please, [take 5 minutes to provide us some feedback by filling this survey](https://www.surveymonkey.com/r/SKZQSLK)
+
+Thank you, we appreciate your collaboration here.
+
+
+## CoreDNS
+
 CoreDNS (written in Go) chains [plugins](https://coredns.io/plugins). Each plugin performs a DNS
 function.
 
