@@ -1,0 +1,27 @@
+import Mixin from '@ember/object/mixin';
+import { get } from '@ember/object';
+export default Mixin.create({
+  win: window,
+  init: function() {
+    this._super(...arguments);
+    this.handler = e => {
+      const win = e.target;
+      this.resize({
+        detail: { width: win.innerWidth, height: win.innerHeight },
+      });
+    };
+  },
+  resize: function(e) {},
+  didInsertElement: function() {
+    this._super(...arguments);
+    get(this, 'win').addEventListener('resize', this.handler);
+    this.didAppear();
+  },
+  didAppear: function() {
+    this.handler({ target: get(this, 'win') });
+  },
+  willDestroyElement: function() {
+    get(this, 'win').removeEventListener('resize', this.handler);
+    this._super(...arguments);
+  },
+});
