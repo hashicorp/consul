@@ -539,8 +539,9 @@ func TestSession_ApplyTimers(t *testing.T) {
 }
 
 func TestSession_Renew(t *testing.T) {
-	t.Parallel()
-	ttl := 2 * time.Second
+	// This method is timing sensitive, disable Parallel
+	//t.Parallel()
+	ttl := 1 * time.Second
 	TTL := ttl.String()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
@@ -606,7 +607,7 @@ func TestSession_Renew(t *testing.T) {
 	}
 
 	// Sleep for time shorter than internal destroy ttl
-	time.Sleep(ttl * structs.SessionTTLMultiplier / 3)
+	time.Sleep(ttl * structs.SessionTTLMultiplier / 2)
 
 	// renew 3 out of 5 sessions
 	for i := 0; i < 3; i++ {
