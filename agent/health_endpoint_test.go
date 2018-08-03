@@ -518,10 +518,10 @@ func TestHealthServiceNodes_DistanceSort(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
-
+	dc := "dc1"
 	// Create a service check
 	args := &structs.RegisterRequest{
-		Datacenter: "dc1",
+		Datacenter: dc,
 		Node:       "bar",
 		Address:    "127.0.0.1",
 		Service: &structs.NodeService{
@@ -534,7 +534,7 @@ func TestHealthServiceNodes_DistanceSort(t *testing.T) {
 			ServiceID: "test",
 		},
 	}
-
+	testrpc.WaitForLeader(t, a.RPC, dc)
 	var out struct{}
 	if err := a.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
