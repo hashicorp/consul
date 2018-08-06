@@ -45,14 +45,9 @@ func NewConsulProvider(rawConfig map[string]interface{}, delegate ConsulProvider
 	// Check if this configuration of the provider has already been
 	// initialized in the state store.
 	state := delegate.State()
-	_, providerState, err := state.CAProviderState(provider.id)
+	idx, providerState, err := state.CAProviderState(provider.id)
 	if err != nil {
 		return nil, err
-	}
-
-	// Exit early if the state store has already been populated for this config.
-	if providerState != nil {
-		return provider, nil
 	}
 
 	newState := structs.CAConsulProviderState{
@@ -61,7 +56,7 @@ func NewConsulProvider(rawConfig map[string]interface{}, delegate ConsulProvider
 
 	// Write the initial provider state to get the index to use for the
 	// CA serial number.
-	{
+	if providerState == nil {
 		args := &structs.CARequest{
 			Op:            structs.CAOpSetProviderState,
 			ProviderState: &newState,
@@ -69,11 +64,11 @@ func NewConsulProvider(rawConfig map[string]interface{}, delegate ConsulProvider
 		if err := delegate.ApplyCARequest(args); err != nil {
 			return nil, err
 		}
-	}
 
-	idx, _, err := state.CAProviderState(provider.id)
-	if err != nil {
-		return nil, err
+		idx, _, err = state.CAProviderState(provider.id)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Generate a private key if needed
