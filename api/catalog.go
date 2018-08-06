@@ -55,16 +55,28 @@ type CatalogDeregistration struct {
 }
 
 // Catalog can be used to query the Catalog endpoints
-type Catalog struct {
+type Catalog interface {
+	Register(reg *CatalogRegistration, q *WriteOptions) (*WriteMeta, error)
+	Deregister(dereg *CatalogDeregistration, q *WriteOptions) (*WriteMeta, error)
+	Datacenters() ([]string, error)
+	Nodes(q *QueryOptions) ([]*Node, *QueryMeta, error)
+	Services(q *QueryOptions) (map[string][]string, *QueryMeta, error)
+	Service(service, tag string, q *QueryOptions) ([]*CatalogService, *QueryMeta, error)
+	Connect(service, tag string, q *QueryOptions) ([]*CatalogService, *QueryMeta, error)
+	Node(node string, q *QueryOptions) (*CatalogNode, *QueryMeta, error)
+}
+
+// catalog can be used to query the Catalog endpoints
+type catalog struct {
 	c *Client
 }
 
 // Catalog returns a handle to the catalog endpoints
-func (c *Client) Catalog() *Catalog {
-	return &Catalog{c}
+func (c *Client) Catalog() Catalog {
+	return &catalog{c}
 }
 
-func (c *Catalog) Register(reg *CatalogRegistration, q *WriteOptions) (*WriteMeta, error) {
+func (c *catalog) Register(reg *CatalogRegistration, q *WriteOptions) (*WriteMeta, error) {
 	r := c.c.newRequest("PUT", "/v1/catalog/register")
 	r.setWriteOptions(q)
 	r.obj = reg
@@ -80,7 +92,7 @@ func (c *Catalog) Register(reg *CatalogRegistration, q *WriteOptions) (*WriteMet
 	return wm, nil
 }
 
-func (c *Catalog) Deregister(dereg *CatalogDeregistration, q *WriteOptions) (*WriteMeta, error) {
+func (c *catalog) Deregister(dereg *CatalogDeregistration, q *WriteOptions) (*WriteMeta, error) {
 	r := c.c.newRequest("PUT", "/v1/catalog/deregister")
 	r.setWriteOptions(q)
 	r.obj = dereg
@@ -97,7 +109,7 @@ func (c *Catalog) Deregister(dereg *CatalogDeregistration, q *WriteOptions) (*Wr
 }
 
 // Datacenters is used to query for all the known datacenters
-func (c *Catalog) Datacenters() ([]string, error) {
+func (c *catalog) Datacenters() ([]string, error) {
 	r := c.c.newRequest("GET", "/v1/catalog/datacenters")
 	_, resp, err := requireOK(c.c.doRequest(r))
 	if err != nil {
@@ -113,7 +125,7 @@ func (c *Catalog) Datacenters() ([]string, error) {
 }
 
 // Nodes is used to query all the known nodes
-func (c *Catalog) Nodes(q *QueryOptions) ([]*Node, *QueryMeta, error) {
+func (c *catalog) Nodes(q *QueryOptions) ([]*Node, *QueryMeta, error) {
 	r := c.c.newRequest("GET", "/v1/catalog/nodes")
 	r.setQueryOptions(q)
 	rtt, resp, err := requireOK(c.c.doRequest(r))
@@ -134,7 +146,7 @@ func (c *Catalog) Nodes(q *QueryOptions) ([]*Node, *QueryMeta, error) {
 }
 
 // Services is used to query for all known services
-func (c *Catalog) Services(q *QueryOptions) (map[string][]string, *QueryMeta, error) {
+func (c *catalog) Services(q *QueryOptions) (map[string][]string, *QueryMeta, error) {
 	r := c.c.newRequest("GET", "/v1/catalog/services")
 	r.setQueryOptions(q)
 	rtt, resp, err := requireOK(c.c.doRequest(r))
@@ -155,16 +167,16 @@ func (c *Catalog) Services(q *QueryOptions) (map[string][]string, *QueryMeta, er
 }
 
 // Service is used to query catalog entries for a given service
-func (c *Catalog) Service(service, tag string, q *QueryOptions) ([]*CatalogService, *QueryMeta, error) {
+func (c *catalog) Service(service, tag string, q *QueryOptions) ([]*CatalogService, *QueryMeta, error) {
 	return c.service(service, tag, q, false)
 }
 
 // Connect is used to query catalog entries for a given Connect-enabled service
-func (c *Catalog) Connect(service, tag string, q *QueryOptions) ([]*CatalogService, *QueryMeta, error) {
+func (c *catalog) Connect(service, tag string, q *QueryOptions) ([]*CatalogService, *QueryMeta, error) {
 	return c.service(service, tag, q, true)
 }
 
-func (c *Catalog) service(service, tag string, q *QueryOptions, connect bool) ([]*CatalogService, *QueryMeta, error) {
+func (c *catalog) service(service, tag string, q *QueryOptions, connect bool) ([]*CatalogService, *QueryMeta, error) {
 	path := "/v1/catalog/service/" + service
 	if connect {
 		path = "/v1/catalog/connect/" + service
@@ -192,7 +204,7 @@ func (c *Catalog) service(service, tag string, q *QueryOptions, connect bool) ([
 }
 
 // Node is used to query for service information about a single node
-func (c *Catalog) Node(node string, q *QueryOptions) (*CatalogNode, *QueryMeta, error) {
+func (c *catalog) Node(node string, q *QueryOptions) (*CatalogNode, *QueryMeta, error) {
 	r := c.c.newRequest("GET", "/v1/catalog/node/"+node)
 	r.setQueryOptions(q)
 	rtt, resp, err := requireOK(c.c.doRequest(r))
