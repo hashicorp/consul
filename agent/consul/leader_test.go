@@ -887,9 +887,6 @@ func TestLeader_ChangeServerID(t *testing.T) {
 	// Try to join and wait for all servers to get promoted
 	joinLAN(t, s2, s1)
 	joinLAN(t, s3, s1)
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	testrpc.WaitForLeader(t, s2.RPC, "dc1")
-	testrpc.WaitForLeader(t, s3.RPC, "dc1")
 	for _, s := range servers {
 		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
 	}
@@ -922,7 +919,6 @@ func TestLeader_ChangeServerID(t *testing.T) {
 	defer os.RemoveAll(dir4)
 	defer s4.Shutdown()
 	joinLAN(t, s4, s1)
-	testrpc.WaitForLeader(t, s4.RPC, "dc1")
 	servers[2] = s4
 
 	// While integrating #3327 it uncovered that this test was flaky. The
