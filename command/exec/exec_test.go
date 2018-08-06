@@ -148,7 +148,6 @@ func TestExecCommand_Sessions(t *testing.T) {
 	ui := cli.NewMockUi()
 	c := New(ui, nil)
 	c.apiclient = a.Client()
-
 	id, err := c.createSession()
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -235,9 +234,9 @@ func TestExecCommand_UploadDestroy(t *testing.T) {
 	defer a.Shutdown()
 
 	ui := cli.NewMockUi()
+
 	c := New(ui, nil)
 	c.apiclient = a.Client()
-
 	id, err := c.createSession()
 	if err != nil {
 		t.Fatalf("err: %v", err)

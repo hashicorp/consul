@@ -33,8 +33,9 @@ func TestAutopilot_CleanupDeadServer(t *testing.T) {
 }
 
 func testCleanupDeadServer(t *testing.T, raftVersion int) {
+	dc := "dc1"
 	conf := func(c *Config) {
-		c.Datacenter = "dc1"
+		c.Datacenter = dc
 		c.Bootstrap = false
 		c.BootstrapExpect = 3
 		c.RaftConfig.ProtocolVersion = raft.ProtocolVersion(raftVersion)
@@ -58,6 +59,7 @@ func testCleanupDeadServer(t *testing.T, raftVersion int) {
 	joinLAN(t, s3, s1)
 
 	for _, s := range servers {
+		testrpc.WaitForLeader(t, s.RPC, dc)
 		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
 	}
 

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/stretchr/testify/assert"
@@ -92,6 +93,7 @@ func TestCatalogNodes(t *testing.T) {
 	if err := a.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	req, _ := http.NewRequest("GET", "/v1/catalog/nodes?dc=dc1", nil)
 	resp := httptest.NewRecorder()
@@ -105,7 +107,7 @@ func TestCatalogNodes(t *testing.T) {
 
 	nodes := obj.(structs.Nodes)
 	if len(nodes) != 2 {
-		t.Fatalf("bad: %v", obj)
+		t.Fatalf("bad: %v ; nodes:=%v", obj, nodes)
 	}
 }
 
@@ -170,6 +172,8 @@ func TestCatalogNodes_WanTranslation(t *testing.T) {
 	if _, err := a2.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	testrpc.WaitForLeader(t, a1.RPC, "dc1")
+	testrpc.WaitForLeader(t, a2.RPC, "dc2")
 	retry.Run(t, func(r *retry.R) {
 		if got, want := len(a1.WANMembers()), 2; got < want {
 			r.Fatalf("got %d WAN members want at least %d", got, want)
@@ -208,7 +212,7 @@ func TestCatalogNodes_WanTranslation(t *testing.T) {
 	// Expect that DC1 gives us a WAN address (since the node is in DC2).
 	nodes1 := obj1.(structs.Nodes)
 	if len(nodes1) != 2 {
-		t.Fatalf("bad: %v", obj1)
+		t.Fatalf("bad: %v, nodes:=%v", obj1, nodes1)
 	}
 	var address string
 	for _, node := range nodes1 {
@@ -264,6 +268,7 @@ func TestCatalogNodes_Blocking(t *testing.T) {
 	// an error channel instead.
 	errch := make(chan error, 2)
 	go func() {
+		testrpc.WaitForLeader(t, a.RPC, "dc1")
 		start := time.Now()
 
 		// register a service after the blocking call
@@ -326,6 +331,7 @@ func TestCatalogNodes_DistanceSort(t *testing.T) {
 	if err := a.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	args = &structs.RegisterRequest{
 		Datacenter: "dc1",
