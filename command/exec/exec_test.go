@@ -148,34 +148,32 @@ func TestExecCommand_Sessions(t *testing.T) {
 	ui := cli.NewMockUi()
 	c := New(ui, nil)
 	c.apiclient = a.Client()
-	retry.Run(t, func(r *retry.R) {
-		id, err := c.createSession()
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
+	id, err := c.createSession()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
-		se, _, err := a.Client().Session().Info(id, nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if se == nil || se.Name != "Remote Exec" {
-			t.Fatalf("bad: %v", se)
-		}
+	se, _, err := a.Client().Session().Info(id, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if se == nil || se.Name != "Remote Exec" {
+		t.Fatalf("bad: %v", se)
+	}
 
-		c.sessionID = id
-		err = c.destroySession()
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
+	c.sessionID = id
+	err = c.destroySession()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
-		se, _, err = a.Client().Session().Info(id, nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if se != nil {
-			t.Fatalf("bad: %v", se)
-		}
-	})
+	se, _, err = a.Client().Session().Info(id, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if se != nil {
+		t.Fatalf("bad: %v", se)
+	}
 }
 
 func TestExecCommand_Sessions_Foreign(t *testing.T) {
@@ -237,52 +235,50 @@ func TestExecCommand_UploadDestroy(t *testing.T) {
 
 	ui := cli.NewMockUi()
 
-	retry.Run(t, func(r *retry.R) {
-		c := New(ui, nil)
-		c.apiclient = a.Client()
-		id, err := c.createSession()
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		c.sessionID = id
+	c := New(ui, nil)
+	c.apiclient = a.Client()
+	id, err := c.createSession()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	c.sessionID = id
 
-		c.conf.prefix = "_rexec"
-		c.conf.cmd = "uptime"
-		c.conf.wait = time.Second
+	c.conf.prefix = "_rexec"
+	c.conf.cmd = "uptime"
+	c.conf.wait = time.Second
 
-		buf, err := c.makeRExecSpec()
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
+	buf, err := c.makeRExecSpec()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
-		err = c.uploadPayload(buf)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
+	err = c.uploadPayload(buf)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
-		pair, _, err := a.Client().KV().Get("_rexec/"+id+"/job", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
+	pair, _, err := a.Client().KV().Get("_rexec/"+id+"/job", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
-		if pair == nil || len(pair.Value) == 0 {
-			t.Fatalf("missing job spec")
-		}
+	if pair == nil || len(pair.Value) == 0 {
+		t.Fatalf("missing job spec")
+	}
 
-		err = c.destroyData()
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
+	err = c.destroyData()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
-		pair, _, err = a.Client().KV().Get("_rexec/"+id+"/job", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
+	pair, _, err = a.Client().KV().Get("_rexec/"+id+"/job", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
-		if pair != nil {
-			t.Fatalf("should be destroyed")
-		}
-	})
+	if pair != nil {
+		t.Fatalf("should be destroyed")
+	}
 }
 
 func TestExecCommand_StreamResults(t *testing.T) {
