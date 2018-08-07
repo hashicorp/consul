@@ -736,6 +736,19 @@ func TestACLResolution(t *testing.T) {
 	reqBothTokens, _ := http.NewRequest("GET", "/v1/catalog/nodes?token=baz", nil)
 	reqBothTokens.Header.Add("X-Consul-Token", "zap")
 
+	// Request with Authorization token
+	reqAuthToken, _ := http.NewRequest("GET", "/v1/catalog/nodes", nil)
+	reqAuthToken.Header.Add("Authorization", "Bearer topsecret")
+
+	// Request with Authorization and querystring token
+	reqAuthAndQsToken, _ := http.NewRequest("GET", "/v1/catalog/nodes?token=qstoken", nil)
+	reqAuthAndQsToken.Header.Add("Authorization", "Bearer bearertoken")
+
+	// Request with Authorization and X-Consul-Token header token
+	reqAuthAndXToken, _ := http.NewRequest("GET", "/v1/catalog/nodes", nil)
+	reqAuthAndXToken.Header.Add("X-Consul-Token", "xtoken")
+	reqAuthAndXToken.Header.Add("Authorization", "Bearer notparsed")
+
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
@@ -770,6 +783,29 @@ func TestACLResolution(t *testing.T) {
 	if token != "baz" {
 		t.Fatalf("bad: %s", token)
 	}
+
+	//
+	// Authorization Bearer token tests
+	//
+
+	// Check if Authorization bearer token header is parsed correctly
+	a.srv.parseToken(reqAuthToken, &token)
+	if token != "topsecret" {
+		t.Fatalf("bad: %s", token)
+	}
+
+	// Check if explicit token has precedence over Authorization bearer token
+	a.srv.parseToken(reqAuthAndQsToken, &token)
+	if token != "qstoken" {
+		t.Fatalf("bad: %s", token)
+	}
+
+	// Check if X-Consul-Token has precedence over Authorization bearer token
+	a.srv.parseToken(reqAuthAndXToken, &token)
+	if token != "xtoken" {
+		t.Fatalf("bad: %s", token)
+	}
+
 }
 
 func TestEnableWebUI(t *testing.T) {

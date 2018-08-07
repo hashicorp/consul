@@ -563,7 +563,8 @@ func (s *HTTPServer) parseDC(req *http.Request, dc *string) {
 	}
 }
 
-// parseTokenInternal is used to parse the ?token query param or the X-Consul-Token header and
+// parseTokenInternal is used to parse the ?token query param or the X-Consul-Token header or
+// Authorization Bearer token (RFC6750) and
 // optionally resolve proxy tokens to real ACL tokens. If no token is specified it will populate
 // the token with the agents UserToken (acl_token in the consul configuration)
 func (s *HTTPServer) parseTokenInternal(req *http.Request, token *string, resolveProxyToken bool) {
@@ -572,6 +573,8 @@ func (s *HTTPServer) parseTokenInternal(req *http.Request, token *string, resolv
 		tok = other
 	} else if other := req.Header.Get("X-Consul-Token"); other != "" {
 		tok = other
+	} else if other := req.Header.Get("Authorization"); other != "" {
+		tok = strings.Split(other, "Bearer ")[1]
 	}
 
 	if tok != "" {
@@ -589,13 +592,14 @@ func (s *HTTPServer) parseTokenInternal(req *http.Request, token *string, resolv
 	*token = s.agent.tokens.UserToken()
 }
 
-// parseToken is used to parse the ?token query param or the X-Consul-Token header and
-// resolve proxy tokens to real ACL tokens
+// parseToken is used to parse the ?token query param or the X-Consul-Token header or
+// Authorization Bearer token header (RFC6750) and resolve proxy tokens to real ACL tokens
 func (s *HTTPServer) parseToken(req *http.Request, token *string) {
 	s.parseTokenInternal(req, token, true)
 }
 
 // parseTokenWithoutResolvingProxyToken is used to parse the ?token query param or the X-Consul-Token header
+// or Authorization Bearer header token (RFC6750) and
 func (s *HTTPServer) parseTokenWithoutResolvingProxyToken(req *http.Request, token *string) {
 	s.parseTokenInternal(req, token, false)
 }
