@@ -37,10 +37,14 @@ func assertCurrentGaugeValue(t *testing.T, sink *metrics.InmemSink,
 
 	// Current interval is the last one
 	currentInterval := data[len(data)-1]
-	currentInterval.RLock()
-	defer currentInterval.RUnlock()
 
-	assert.Equalf(t, value, currentInterval.Gauges[name].Value,
+	// If the latest interval is empty, the prior one should contain the stored metrics
+	if len(currentInterval.Gauges) == 0 {
+		currentInterval = data[len(data)-2]
+	}
+
+	got := currentInterval.Gauges[name].Value
+	assert.Equalf(t, value, got,
 		"gauge value mismatch. Current Interval:\n%v", currentInterval)
 }
 
@@ -67,7 +71,7 @@ func assertAllTimeCounterValue(t *testing.T, sink *metrics.InmemSink,
 		buf := bytes.NewBuffer(nil)
 		for _, intv := range data {
 			intv.RLock()
-			for _, val := range intv.Gauges {
+			for name, val := range intv.Gauges {
 				fmt.Fprintf(buf, "[%v][G] '%s': %0.3f\n", intv.Interval, name, val.Value)
 			}
 			for name, vals := range intv.Points {
@@ -75,10 +79,10 @@ func assertAllTimeCounterValue(t *testing.T, sink *metrics.InmemSink,
 					fmt.Fprintf(buf, "[%v][P] '%s': %0.3f\n", intv.Interval, name, val)
 				}
 			}
-			for _, agg := range intv.Counters {
+			for name, agg := range intv.Counters {
 				fmt.Fprintf(buf, "[%v][C] '%s': %s\n", intv.Interval, name, agg.AggregateSample)
 			}
-			for _, agg := range intv.Samples {
+			for name, agg := range intv.Samples {
 				fmt.Fprintf(buf, "[%v][S] '%s': %s\n", intv.Interval, name, agg.AggregateSample)
 			}
 			intv.RUnlock()
@@ -131,8 +135,10 @@ func TestPublicListener(t *testing.T) {
 	// Check active conn is tracked in gauges
 	assertCurrentGaugeValue(t, sink, "consul.proxy.test.inbound.conns;dst=db", 1)
 
-	// Close listener to ensure all conns are closed and have reported their
-	// metrics
+	// Short sleep to allow for cw.written to increment for tx and rx before calling reportStats
+	time.Sleep(time.Millisecond)
+
+	// Close listener to ensure all conns are closed and have reported their metrics
 	l.Close()
 
 	// Check all the tx/rx counters got added
@@ -194,8 +200,10 @@ func TestUpstreamListener(t *testing.T) {
 	// Check active conn is tracked in gauges
 	assertCurrentGaugeValue(t, sink, "consul.proxy.test.upstream.conns;src=web;dst_type=service;dst=db", 1)
 
-	// Close listener to ensure all conns are closed and have reported their
-	// metrics
+	// Short sleep to allow for cw.written to increment for tx and rx before calling reportStats
+	time.Sleep(time.Millisecond)
+
+	// Close listener to ensure all conns are closed and have reported their metrics
 	l.Close()
 
 	// Check all the tx/rx counters got added
