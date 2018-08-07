@@ -864,16 +864,21 @@ func TestLeader_RollRaftServer(t *testing.T) {
 
 func TestLeader_ChangeServerID(t *testing.T) {
 	t.Parallel()
-
-	dir1, s1 := testServerDCBootstrap(t, "dc1", true)
+	conf := func(c *Config) {
+		c.Bootstrap = false
+		c.BootstrapExpect = 3
+		c.Datacenter = "dc1"
+		c.RaftConfig.ProtocolVersion = 3
+	}
+	dir1, s1 := testServerWithConfig(t, conf)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	dir2, s2 := testServerDCBootstrap(t, "dc1", false)
+	dir2, s2 := testServerWithConfig(t, conf)
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
 
-	dir3, s3 := testServerDCBootstrap(t, "dc1", false)
+	dir3, s3 := testServerWithConfig(t, conf)
 	defer os.RemoveAll(dir3)
 	defer s3.Shutdown()
 
@@ -886,12 +891,8 @@ func TestLeader_ChangeServerID(t *testing.T) {
 		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
 	}
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-
 	// Shut down a server, freeing up its address/port
-	if err := s3.Shutdown(); err != nil {
-		t.Fatal(err)
-	}
+	s3.Shutdown()
 
 	retry.Run(t, func(r *retry.R) {
 		alive := 0
@@ -908,6 +909,9 @@ func TestLeader_ChangeServerID(t *testing.T) {
 	// Bring up a new server with s3's address that will get a different ID
 	dir4, s4 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
+		c.BootstrapExpect = 3
+		c.Datacenter = "dc1"
+		c.RaftConfig.ProtocolVersion = 3
 		c.SerfLANConfig.MemberlistConfig = s3.config.SerfLANConfig.MemberlistConfig
 		c.RPCAddr = s3.config.RPCAddr
 		c.RPCAdvertise = s3.config.RPCAdvertise
