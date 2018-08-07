@@ -565,8 +565,9 @@ func (s *HTTPServer) parseDC(req *http.Request, dc *string) {
 
 // parseTokenInternal is used to parse the ?token query param or the X-Consul-Token header or
 // Authorization Bearer token (RFC6750) and
-// optionally resolve proxy tokens to real ACL tokens. If no token is specified it will populate
+// optionally resolve proxy tokens to real ACL tokens. If the token is invalid or not specified it will populate
 // the token with the agents UserToken (acl_token in the consul configuration)
+// Parsing has the following priority: ?token, X-Consul-Token and last "Authorization: Bearer "
 func (s *HTTPServer) parseTokenInternal(req *http.Request, token *string, resolveProxyToken bool) {
 	tok := ""
 	if other := req.URL.Query().Get("token"); other != "" {
@@ -574,7 +575,24 @@ func (s *HTTPServer) parseTokenInternal(req *http.Request, token *string, resolv
 	} else if other := req.Header.Get("X-Consul-Token"); other != "" {
 		tok = other
 	} else if other := req.Header.Get("Authorization"); other != "" {
-		tok = strings.Split(other, "Bearer ")[1]
+		// HTTP Authorization headers are in the format: <Scheme>[SPACE]<Value>
+		// Ref. https://tools.ietf.org/html/rfc7236#section-3
+		parts := strings.Split(other, " ")
+
+		// Authorization Header is invalid if containing 1 or 0 parts, e.g.:
+		// "" || "<Scheme><Value>" || "<Scheme>" || "<Value>"
+		if len(parts) > 1 {
+			scheme := parts[0]
+			// Everything after "<Scheme>" is "<Value>", trimmed
+			value := strings.TrimSpace(strings.Join(parts[1:], " "))
+
+			// <Scheme> must be "Bearer"
+			if scheme == "Bearer" {
+				// Since Bearer tokens shouldnt contain spaces (rfc6750#section-2.1)
+				// "value" is tokenized, only the first item is used
+				tok = strings.TrimSpace(strings.Split(value, " ")[0])
+			}
+		}
 	}
 
 	if tok != "" {
