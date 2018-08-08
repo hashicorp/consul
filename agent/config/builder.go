@@ -162,6 +162,11 @@ func (b *Builder) ReadPath(path string) ([]Source, error) {
 		return nil, fmt.Errorf("config: Readdir failed on %s. %s", path, err)
 	}
 
+	configFormat := b.stringVal(b.Flags.ConfigFormat)
+	if configFormat != "" && configFormat != "json" && configFormat != "hcl" {
+		return nil, fmt.Errorf("config: -config-format must be either 'hcl' or 'json'")
+	}
+
 	// sort files by name
 	sort.Sort(byName(fis))
 
@@ -185,11 +190,16 @@ func (b *Builder) ReadPath(path string) ([]Source, error) {
 			continue
 		}
 
-		src, err := b.ReadFile(fp)
-		if err != nil {
-			return nil, err
+		sourceFormat := FormatFrom(fp)
+		if configFormat != "" {
+			if sourceFormat == "json" || sourceFormat == "hcl" || sourceFormat == configFormat {
+				src, err := b.ReadFile(fp)
+				if err != nil {
+					return nil, err
+				}
+				sources = append(sources, src)
+			}
 		}
-		sources = append(sources, src)
 	}
 	return sources, nil
 }
@@ -274,7 +284,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		}
 		c2, err := Parse(s.Data, s.Format)
 		if err != nil {
-			return RuntimeConfig{}, fmt.Errorf("Error parsing %s: %s", s.Name, err)
+			return RuntimeConfig{}, fmt.Errorf("Error parsing %v %s: %s", c2, s.Name, err)
 		}
 
 		// if we have a single 'check' or 'service' we need to add them to the
