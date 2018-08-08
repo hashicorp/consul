@@ -35,17 +35,31 @@ func assertCurrentGaugeValue(t *testing.T, sink *metrics.InmemSink,
 
 	data := sink.Data()
 
-	// Current interval is the last one
-	currentInterval := data[len(data)-1]
+	// Loop backward through intervals until there is a non-empty one
+	// Addresses flakiness around recording to one interval but accessing during the next
+	var got float32
+	for i := len(data) - 1; i >= 0; i-- {
+		currentInterval := data[i]
 
-	// If the latest interval is empty, the prior one should contain the stored metrics
-	if len(currentInterval.Gauges) == 0 {
-		currentInterval = data[len(data)-2]
+		currentInterval.RLock()
+		if len(currentInterval.Gauges) > 0 {
+			got = currentInterval.Gauges[name].Value
+			break
+		}
+		currentInterval.RUnlock()
 	}
 
-	got := currentInterval.Gauges[name].Value
-	assert.Equalf(t, value, got,
-		"gauge value mismatch. Current Interval:\n%v", currentInterval)
+	if !assert.Equal(t, value, got) {
+		buf := bytes.NewBuffer(nil)
+		for _, intv := range data {
+			intv.RLock()
+			for name, val := range intv.Gauges {
+				fmt.Fprintf(buf, "[%v][G] '%s': %0.3f\n", intv.Interval, name, val.Value)
+			}
+			intv.RUnlock()
+		}
+		t.Log(buf.String())
+	}
 }
 
 func assertAllTimeCounterValue(t *testing.T, sink *metrics.InmemSink,
