@@ -149,9 +149,6 @@ func TestPublicListener(t *testing.T) {
 	// Check active conn is tracked in gauges
 	assertCurrentGaugeValue(t, sink, "consul.proxy.test.inbound.conns;dst=db", 1)
 
-	// Short sleep to allow for cw.written to increment for tx and rx before calling reportStats
-	time.Sleep(time.Millisecond)
-
 	// Close listener to ensure all conns are closed and have reported their metrics
 	l.Close()
 
@@ -213,9 +210,6 @@ func TestUpstreamListener(t *testing.T) {
 
 	// Check active conn is tracked in gauges
 	assertCurrentGaugeValue(t, sink, "consul.proxy.test.upstream.conns;src=web;dst_type=service;dst=db", 1)
-
-	// Short sleep to allow for cw.written to increment for tx and rx before calling reportStats
-	time.Sleep(time.Millisecond)
 
 	// Close listener to ensure all conns are closed and have reported their metrics
 	l.Close()
