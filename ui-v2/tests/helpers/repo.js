@@ -1,5 +1,5 @@
-import { get } from 'consul-ui/tests/helpers/api';
-import { get as _get } from '@ember/object';
+import { get as httpGet } from 'consul-ui/tests/helpers/api';
+import { get } from '@ember/object';
 import measure from 'consul-ui/tests/helpers/measure';
 
 /** Stub an ember-data adapter response using the private method
@@ -43,26 +43,42 @@ const stubAdapterResponse = function(cb, payload, adapter) {
  *                             an API endpoint with a set of cookies/env vars used by the double
  * @param {function} test    - Your test case. This function receives an instance of the Service provided
  *                             above as a first and only argument, it should return the result of your test
- * @param {function} assert  - Your assertion. This receives the result of the preious function as the first
+ * @param {function} assert  - Your assertion. This receives the result of the previous function as the first
  *                             argument and a function to that receives the stubbed payload giving you an
  *                             opportunity to mutate it before returning for use in your assertion
  */
 export default function(name, method, service, stub, test, assert) {
-  const adapter = _get(service, 'store').adapterFor(name.toLowerCase());
+  const adapter = get(service, 'store').adapterFor(name.toLowerCase());
   let tags = {};
-  return stub(function(url, cookies = {}) {
+  const requestHeaders = function(url, cookies = {}) {
     const key = Object.keys(cookies).filter(function(item) {
       return item.indexOf('COUNT') !== -1;
     });
     tags = {
       count: key.length > 0 ? parseInt(cookies[key[0]]) : 1,
     };
-    return get(url, {
+    return httpGet(url, {
       headers: {
         cookie: cookies,
       },
     });
-  }).then(function(payload) {
+  };
+  const parseResponse = function(response) {
+    let actual;
+    if (typeof response.toArray === 'function') {
+      actual = response.toArray().map(function(item) {
+        return get(item, 'data');
+      });
+    } else {
+      if (typeof response.get === 'function') {
+        actual = get(res, 'data');
+      } else {
+        actual = res;
+      }
+    }
+    return actual;
+  };
+  return stub(requestHeaders).then(function(payload) {
     return stubAdapterResponse(
       function(payload) {
         return measure(
@@ -71,20 +87,8 @@ export default function(name, method, service, stub, test, assert) {
           },
           `${name}Service.${method}`,
           tags
-        ).then(function(res) {
-          let actual;
-          if (typeof res.toArray === 'function') {
-            actual = res.toArray().map(function(item) {
-              return item.get('data');
-            });
-          } else {
-            if (typeof res.get === 'function') {
-              actual = res.get('data');
-            } else {
-              actual = res;
-            }
-          }
-          assert(actual, function(cb) {
+        ).then(function(response) {
+          assert(parseResponse(response), function(cb) {
             return cb(payload);
           });
         });
