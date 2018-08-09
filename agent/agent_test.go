@@ -15,6 +15,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/testrpc"
+
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
@@ -626,6 +628,9 @@ func verifyIndexChurn(t *testing.T, tags []string) {
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
 
+	// Ensure we have a leader before we start adding the services
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
 	svc := &structs.NodeService{
 		ID:      "redis",
 		Service: "redis",
@@ -670,8 +675,17 @@ func verifyIndexChurn(t *testing.T, tags []string) {
 		ServiceName: "redis",
 	}
 	var before structs.IndexedCheckServiceNodes
+
+	// This sleep is so that the serfHealth check is added to the agent
+	// A value of 375ms is sufficient enough time to ensure the serfHealth
+	// check is added to an agent. 500ms so that we don't see flakiness ever.
+	time.Sleep(500 * time.Millisecond)
+
 	if err := a.RPC("Health.ServiceNodes", args, &before); err != nil {
 		t.Fatalf("err: %v", err)
+	}
+	for _, name := range before.Nodes[0].Checks {
+		a.logger.Println("[DEBUG] Checks Registered: ", name.Name)
 	}
 	if got, want := len(before.Nodes), 1; got != want {
 		t.Fatalf("got %d want %d", got, want)
@@ -681,11 +695,14 @@ func verifyIndexChurn(t *testing.T, tags []string) {
 	}
 
 	for i := 0; i < 10; i++ {
+		a.logger.Println("[INFO] # ", i+1, "Sync in progress ")
 		if err := a.sync.State.SyncFull(); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
-
+	// If this test fails here this means that the Consul-X-Index
+	// has changed for the RPC, which means that idempotent ops
+	// are not working as intended.
 	var after structs.IndexedCheckServiceNodes
 	if err := a.RPC("Health.ServiceNodes", args, &after); err != nil {
 		t.Fatalf("err: %v", err)
