@@ -71,7 +71,7 @@ Prepared queries, by default, resolve the query in the local datacenter first. Q
 
 ## Network Connectivity
 
-LAN gossip occurs between all agents in a single datacenter with each agent sending a periodic probe to random agents from its member list. The initial probe is sent over UDP every second. If a node fails to acknowledge within `200ms`, the agent pings over TCP. If the TCP probe fails (10 second timeout), it asks configurable number of random nodes to probe the same node (also known as an indirect probe). If there is no response from the peers regarding the status of the node, that agent is marked as down.
+LAN gossip occurs between all agents in a single datacenter with each agent sending a periodic probe to random agents from its member list. Agents run in either client or server mode, both participate in the gossip. The initial probe is sent over UDP every second. If a node fails to acknowledge within `200ms`, the agent pings over TCP. If the TCP probe fails (10 second timeout), it asks configurable number of random nodes to probe the same node (also known as an indirect probe). If there is no response from the peers regarding the status of the node, that agent is marked as down.
 
 The agent's status directly affects the service discovery results. If an agent is down, the services it is monitoring will also be marked as down.
 
@@ -81,13 +81,15 @@ In a larger network that spans L2 segments, traffic typically traverses through 
 
 |Name|Port|Flag|Description|
 |----|----|----|-----------|
-|Server RPC|8300||Used by servers to handle incoming requests from other agents. TCP only.|
+|Server RPC|8300||Used by servers to handle incoming requests from other agents (clients and servers). TCP only.|
 |Serf LAN|8301||Used to handle gossip in the LAN. Required by all agents. TCP and UDP.|
 |Serf WAN|8302|`-1` to disable (available in Consul 1.0.7)|Used by servers to gossip over the LAN and WAN to other servers. TCP and UDP.|
 |HTTP API|8500|`-1` to disable|Used by clients to talk to the HTTP API. TCP only.|
 |DNS&nbsp;Interface|8600|`-1` to disable||
 
 -> As mentioned in the [datacenter design section](#1-1-1-single-datacenter), network areas and network segments can be used to prevent opening up firewall ports between different subnets.
+
+By default agents will only listen for HTTP and DNS traffic on the local interface.
 
 ### Raft Tuning
 
