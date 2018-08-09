@@ -676,8 +676,10 @@ func verifyIndexChurn(t *testing.T, tags []string) {
 	}
 	var before structs.IndexedCheckServiceNodes
 
-	//This sleep is so that the serfHealth check is added to the agent
-	time.Sleep(375 * time.Millisecond)
+	// This sleep is so that the serfHealth check is added to the agent
+	// A value of 375ms is sufficient enough time to ensure the serfHealth
+	// check is added to an agent. 500ms so that we don't see flakiness ever.
+	time.Sleep(500 * time.Millisecond)
 
 	if err := a.RPC("Health.ServiceNodes", args, &before); err != nil {
 		t.Fatalf("err: %v", err)
