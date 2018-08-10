@@ -10,7 +10,7 @@ import (
 type rpcFn func(string, interface{}, interface{}) error
 
 // WaitForLeader ensures we have a leader and a node registration.
-func WaitForLeader(t *testing.T, rpc rpcFn, dc, node string) {
+func WaitForLeader(t *testing.T, rpc rpcFn, dc string) {
 	var out structs.IndexedNodes
 	retry.Run(t, func(r *retry.R) {
 		args := &structs.DCSpecificRequest{Datacenter: dc}
