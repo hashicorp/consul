@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-memdb"
+	uuid "github.com/hashicorp/go-uuid"
 )
 
 const (
@@ -350,6 +351,25 @@ func (s *Store) EnsureNode(idx uint64, node *structs.Node) error {
 	return nil
 }
 
+// ensureNoNodeWithSimilarNameTxn checks that no other node has conflict in its name
+// If allowClashWithoutID then, getting a conflict on another node without ID will be allowed
+func (s *Store) ensureNoNodeWithSimilarNameTxn(tx *memdb.Txn, node *structs.Node, allowClashWithoutID bool) error {
+	// Retrieve all of the nodes
+	enodes, err := tx.Get("nodes", "id")
+	if err != nil {
+		return fmt.Errorf("Cannot lookup all nodes: %s", err)
+	}
+	for nodeIt := enodes.Next(); nodeIt != nil; nodeIt = enodes.Next() {
+		enode := nodeIt.(*structs.Node)
+		if strings.EqualFold(node.Node, enode.Node) && node.ID != enode.ID {
+			if !(enode.ID == "" && allowClashWithoutID) {
+				return fmt.Errorf("Node name %s is reserved by node %s with name %s", node.Node, enode.ID, enode.Node)
+			}
+		}
+	}
+	return nil
+}
+
 // ensureNodeTxn is the inner function called to actually create a node
 // registration or modify an existing one in the state store. It allows
 // passing in a memdb transaction so it may be part of a larger txn.
@@ -358,18 +378,36 @@ func (s *Store) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) err
 	// name is the same.
 	var n *structs.Node
 	if node.ID != "" {
-		existing, err := tx.First("nodes", "uuid", string(node.ID))
+		existing, err := getNodeIDTxn(tx, node.ID)
 		if err != nil {
 			return fmt.Errorf("node lookup failed: %s", err)
 		}
 		if existing != nil {
-			n = existing.(*structs.Node)
+			n = existing
 			if n.Node != node.Node {
-				return fmt.Errorf("node ID %q for node %q aliases existing node %q",
-					node.ID, node.Node, n.Node)
+				// Lets first get all nodes and check whether name do match, we do not allow clash on nodes without ID
+				dupNameError := s.ensureNoNodeWithSimilarNameTxn(tx, node, false)
+				if dupNameError != nil {
+					return fmt.Errorf("Error while renaming Node ID: %q: %s", node.ID, dupNameError)
+				}
+				// We are actually renaming a node, remove its reference first
+				err := s.deleteNodeTxn(tx, idx, n.Node)
+				if err != nil {
+					return fmt.Errorf("Error while renaming Node ID: %q from %s to %s",
+						node.ID, n.Node, node.Node)
+				}
+			}
+		} else {
+			// We allow to "steal" another node name that would have no ID
+			// It basically means that we allow upgrading a node without ID and add the ID
+			dupNameError := s.ensureNoNodeWithSimilarNameTxn(tx, node, true)
+			if dupNameError != nil {
+				return fmt.Errorf("Error while renaming Node ID: %q: %s", node.ID, dupNameError)
 			}
 		}
 	}
+	// TODO: else Node.ID == "" should be forbidden in future Consul releases
+	// See https://github.com/hashicorp/consul/pull/3983 for context
 
 	// Check for an existing node by name to support nodes with no IDs.
 	if n == nil {
@@ -377,9 +415,13 @@ func (s *Store) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) err
 		if err != nil {
 			return fmt.Errorf("node name lookup failed: %s", err)
 		}
+
 		if existing != nil {
 			n = existing.(*structs.Node)
 		}
+		// WARNING, for compatibility reasons with tests, we do not check
+		// for case insensitive matches, which may lead to DB corruption
+		// See https://github.com/hashicorp/consul/pull/3983 for context
 	}
 
 	// Get the indexes.
@@ -421,6 +463,23 @@ func (s *Store) GetNode(id string) (uint64, *structs.Node, error) {
 	return idx, nil, nil
 }
 
+func getNodeIDTxn(tx *memdb.Txn, id types.NodeID) (*structs.Node, error) {
+	strnode := string(id)
+	uuidValue, err := uuid.ParseUUID(strnode)
+	if err != nil {
+		return nil, fmt.Errorf("node lookup by ID failed, wrong UUID: %v for '%s'", err, strnode)
+	}
+
+	node, err := tx.First("nodes", "uuid", uuidValue)
+	if err != nil {
+		return nil, fmt.Errorf("node lookup by ID failed: %s", err)
+	}
+	if node != nil {
+		return node.(*structs.Node), nil
+	}
+	return nil, nil
+}
+
 // GetNodeID is used to retrieve a node registration by node ID.
 func (s *Store) GetNodeID(id types.NodeID) (uint64, *structs.Node, error) {
 	tx := s.db.Txn(false)
@@ -430,14 +489,8 @@ func (s *Store) GetNodeID(id types.NodeID) (uint64, *structs.Node, error) {
 	idx := maxIndexTxn(tx, "nodes")
 
 	// Retrieve the node from the state store
-	node, err := tx.First("nodes", "uuid", string(id))
-	if err != nil {
-		return 0, nil, fmt.Errorf("node lookup failed: %s", err)
-	}
-	if node != nil {
-		return idx, node.(*structs.Node), nil
-	}
-	return idx, nil, nil
+	node, err := getNodeIDTxn(tx, id)
+	return idx, node, err
 }
 
 // Nodes is used to return all of the known nodes.
