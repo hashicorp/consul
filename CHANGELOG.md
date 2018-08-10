@@ -2,6 +2,7 @@
 
 BUG FIXES:
 
+* catalog: Allow renaming nodes with IDs. [[GH-3974](https://github.com/hashicorp/consul/issues/3974)],[[GH-4413](https://github.com/hashicorp/consul/issues/4413)],[[GH-4415](https://github.com/hashicorp/consul/pull/4415)]
 * server: Fixed a memory leak in blocking queries against /event/list. [[GH-4482](https://github.com/hashicorp/consul/issues/4482)]
 
 ## 1.2.2 (July 30, 2018)
