@@ -29,6 +29,7 @@ type CheckType struct {
 	HTTP              string
 	Header            map[string][]string
 	Method            string
+	Body              string
 	TCP               string
 	Interval          time.Duration
 	AliasNode         string

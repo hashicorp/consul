@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	osexec "os/exec"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -299,6 +300,7 @@ type CheckHTTP struct {
 	HTTP            string
 	Header          map[string][]string
 	Method          string
+	Body            string
 	Interval        time.Duration
 	Timeout         time.Duration
 	Logger          *log.Logger
@@ -379,7 +381,9 @@ func (c *CheckHTTP) check() {
 		method = "GET"
 	}
 
-	req, err := http.NewRequest(method, c.HTTP, nil)
+	bodyReader := strings.NewReader(c.Body)
+
+	req, err := http.NewRequest(method, c.HTTP, bodyReader)
 	if err != nil {
 		c.Logger.Printf("[WARN] agent: Check %q HTTP request failed: %s", c.CheckID, err)
 		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
