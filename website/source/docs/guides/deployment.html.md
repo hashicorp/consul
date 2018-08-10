@@ -3,18 +3,16 @@ layout: "docs"
 page_title: "Production Deployment"
 sidebar_current: "docs-guides-deployment"
 description: |-
-  Best practice approaches for Consul production deployments.
+  Best practice approaches for Consul production architecture.
 ---
 
-# Consul Production Deployment Guide
+# Consul Production Deployment
 
-As applications are migrated to dynamically provisioned infrastructure, scaling services and managing the communications between them becomes challenging. Consul’s service discovery capabilities provide the connectivity between dynamic applications. Consul also monitors the health of each node and its applications to ensure that only healthy service instances are discovered. Consul’s distributed runtime configuration store allows updates across global infrastructure.
-
-The goal of this document is to recommend best practice approaches for Consul production deployments. The guide provides recommendations on system requirements, datacenter design, networking, and performance optimizations for Consul cluster based on the latest Consul (1.0.7) release.
+The goal of this document is to recommend best practice approaches for Consul production deployments. The guide provides recommendations on system requirements, datacenter design, networking, and performance optimizations for Consul cluster based on the latest Consul release.
 
 This document assumes a basic working knowledge of Consul.
 
-## 1.0 System Requirements
+## System Requirements
 
 Consul server agents are responsible for maintaining the cluster state, responding to RPC queries (read operations), and for processing all write operations. Given that Consul server agents do most of the heavy lifting, server sizing is critical for the overall performance efficiency and health of the Consul cluster.
 
@@ -29,33 +27,35 @@ The following instance configurations are recommended.
 |||||**Azure**: Standard\_D4\_v3, Standard\_D5\_v3|
 |||||**GCE**: n1-standard-32, n1-standard-64|
 
-The **small size** instance configuration is appropriate for most initial production deployments, or for development/testing environments. The large size is for production environments where there is a consistently high workload.
+The **small size** instance configuration is appropriate for most initial production deployments, or for development/testing environments. The large size is for production environments where there is a consistently high workload. Suggested instance types are provided for common platforms, but do refer to platform documentation for up-to-date instance types that align with the recommended resources.
 
-~> **NOTE** For high workloads, ensure that the disks support high IOPS to keep up with the high Raft log update rate.
+~> **NOTE** For large workloads, ensure that the disks support a high number of IOPS to keep up with the rapid Raft log update rate.
 
-## 1.1 Datacenter Design
+## Datacenter Design
 
-A Consul cluster (typically 3 or 5 servers plus client agents) may be deployed in a single physical datacenter or it may span multiple datacenters. For a large cluster with high runtime reads and writes, deploying servers in the same physical location improves performance. In cloud environments, a single datacenter may be deployed across multiple availability zones i.e. each server in a separate availability zone within a single EC2 instance. Consul also supports multi-datacenter deployments via two separate clusters joined by WAN links. In some cases, one may also deploy two or more Consul clusters in the same LAN environment.
+Consul may be deployed in a single physical datacenter or it may span multiple datacenters.
 
-### 1.1.1 Single Datacenter
+A single Consul datacenter includes a set of servers that maintain consensus. These are designed to be deployed in a single geographical location to ensure low latency for consensus operations otherwise performance and stability can be significantly compromised. In cloud environments, spreading the servers over multiple availability zones within the same region is recommended for fault tolerance while maintaining low-latency and high performance networking.
 
-A single Consul cluster is recommended for applications deployed in the same datacenter. Consul supports traditional three-tier applications as well as microservices.
+Consul supports multi-datacenter deployments via federation. The servers in each datacenter are joined by WAN gossip to enable forwarding service discovery and KV requests between datacenters. The separate datacenters do not replicate services or KV state between them to ensure they remain as isolated failure domains. Each set of servers must remain available (with at least a quorum online) for cross-datacenter requests to be made. If one datacenter has an outage of the servers, services within that datacenter will not be discoverable outside it until the servers recover.
+
+### Single Datacenter
+
+A single Consul cluster is recommended for applications deployed in the same datacenter.
 
 Typically, there must be three or five servers to balance between availability and performance. These servers together run the Raft-driven consistent state store for catalog, session, prepared query, ACL, and KV updates.
 
-The recommended maximum cluster size for a single datacenter is `5,000` nodes. For a write-heavy and/or a read-heavy cluster, the maximum number of nodes may need to be reduced further, considering the impact of the number and the size of KV pairs and the number of watches. The time taken for gossip to converge increases as more client machines are added. Similarly, the time taken by the new server to join an existing multi-thousand node cluster with a large KV store and update rate may increase as they are replicated to the new server’s log.
+Consul is proven to work well with up to `5,000` nodes in a single datacenter gossip pool. Some deployments have stretched this number much further but they require care and testing to ensure they remain reliable and can converge their cluster state quickly. It's highly recommended that clusters are increased in size gradually when approaching or exceeding `5,000` nodes.
 
--> **TIP** For write-heavy clusters, consider scaling vertically with larger machine instances and lower latency storage.
-
-One must take care to use service tags in a way that assists with the kinds of queries that will be run against the cluster. If two services (e.g. blue and green) are running on the same cluster, appropriate service tags must be used to identify between them. If a query is made without tags, nodes running both blue and green services may show up in the results of the query.
+~> For write-heavy clusters, consider scaling vertically with larger machine instances and lower latency storage.
 
 In cases where a full mesh among all agents cannot be established due to network segmentation, Consul’s own [network segments](/docs/enterprise/network-segments/index.html) can be used. Network segments is an Enterprise feature that allows the creation of multiple tenants which share Raft servers in the same cluster. Each tenant has its own gossip pool and doesn’t communicate with the agents outside this pool. The KV store, however, is shared between all tenants. If Consul network segments cannot be used, isolation between agents can be accomplished by creating discrete [Consul datacenters](/docs/guides/datacenters.html).
 
-### 1.1.2 Multiple Datacenters
+### Multiple Datacenters
 
 Consul clusters in different datacenters running the same service can be joined by WAN links. The clusters operate independently and only communicate over the WAN on port `8302`. Unless explicitly configured via CLI or API, the Consul server will only return results from the local datacenter. Consul does not replicate data between multiple datacenters. The [consul-replicate](https://github.com/hashicorp/consul-replicate) tool can be used to replicate the KV data periodically.
 
--> **TIP** A good practice is to enable TLS server name checking to avoid accidental cross-joining of agents.
+-> A good practice is to enable TLS server name checking to avoid accidental cross-joining of agents.
 
 Advanced federation can be achieved with [Network Areas](/api/operator/area.html) (Enterprise).
 
@@ -65,21 +65,19 @@ Network areas allows peering between datacenters to make the services discoverab
 
 Consul’s [prepared queries](/api/query.html) allow clients to do a datacenter failover for service discovery. For example, if a service `payment` in the local datacenter dc1 goes down, a prepared query lets users define a geographic fallback order to the nearest datacenter to check for healthy instances of the same service.
 
-~> **NOTE** Consul clusters must be WAN linked for a prepared query to take effect.
+~> **NOTE** Consul clusters must be WAN linked for a prepared query to work across datacenters.
 
 Prepared queries, by default, resolve the query in the local datacenter first. Querying KV store features is not supported by the prepared query. Prepared queries work with ACL. Prepared query config/templates are maintained consistently in Raft and are executed on the servers.
 
-## 1.2 Network Connectivity
+## Network Connectivity
 
 LAN gossip occurs between all agents in a single datacenter with each agent sending a periodic probe to random agents from its member list. The initial probe is sent over UDP every second. If a node fails to acknowledge within `200ms`, the agent pings over TCP. If the TCP probe fails (10 second timeout), it asks configurable number of random nodes to probe the same node (also known as an indirect probe). If there is no response from the peers regarding the status of the node, that agent is marked as down.
 
 The agent's status directly affects the service discovery results. If an agent is down, the services it is monitoring will also be marked as down.
 
-In addition, the agent also periodically performs a full state sync over TCP which gossips each agent’s understanding of the member list around it (node names, IP addresses, and health status). These operations are expensive relative to the standard gossip protocol mentioned above and are synced every 30 seconds. For more details, refer to [Serf Gossip docs](https://www.serf.io/docs/internals/gossip.html)
+In addition, the agent also periodically performs a full state sync over TCP which gossips each agent’s understanding of the member list around it (node names, IP addresses, and health status). These operations are expensive relative to the standard gossip protocol mentioned above and are synced at a rate determined by cluster size to keep overhead low. It's typically between 30 seconds and 5 minutes. For more details, refer to [Serf Gossip docs](https://www.serf.io/docs/internals/gossip.html)
 
-Datacenter designs may opt for a layer 2 or a layer 3 network. Consul’s gossip protocol uses UDP probes initially to detect the health of its peers. In layer 2 networks, the ARP request will be forwarded to all the devices. If you are running a fairly large cluster (i.e. multi-thousand node Consul cluster), this may create some congestion as the gossip probe request for the nodes is sent approximately once per second. This can be improved by increasing the host ARP table size and ARP cache expiration timer.
-
-Layer 3 restricts the ARP requests to a smaller segment of the network. Traffic between the segments typically traverses through a firewall and/or a router. ACL or firewall rules must be updated to allow the following ports:
+In a larger network that spans L2 segments, traffic typically traverses through a firewall and/or a router. ACL or firewall rules must be updated to allow the following ports:
 
 |Name|Port|Flag|Description|
 |----|----|----|-----------|
@@ -89,11 +87,11 @@ Layer 3 restricts the ARP requests to a smaller segment of the network. Traffic 
 |HTTP API|8500|`-1` to disable|Used by clients to talk to the HTTP API. TCP only.|
 |DNS&nbsp;Interface|8600|`-1` to disable||
 
--> **TIP** As mentioned in the [datacenter design section](#1-1-1-single-datacenter), network areas and network segments can be used to prevent opening up firewall ports between different subnets.
+-> As mentioned in the [datacenter design section](#1-1-1-single-datacenter), network areas and network segments can be used to prevent opening up firewall ports between different subnets.
 
-### 1.2.1 RAFT Tuning
+### Raft Tuning
 
-Leader elections can be affected by network communication issues between servers. If the cluster spans multiple zones, the network latency between them must be taken into consideration and the `raft_multiplier` must be adjusted accordingly.
+Leader elections can be affected by network communication issues between servers. If the cluster spans multiple zones, the network latency between them must be taken into consideration and the [`raft_multiplier`](/docs/agent/options.html#raft_multiplier) must be adjusted accordingly.
 
 By default, the recommended value for production environments is `1`. This value must take into account the network latency between the servers and the read/write load on the servers.
 
@@ -119,7 +117,7 @@ The trade off is between leader stability and time to recover from an actual lea
 
 Leadership instability can also be caused by under-provisioned CPU resources and is more likely in environments where CPU cycles are shared with other workloads. In order for a server to remain the leader, it must send frequent heartbeat messages to all other servers every few hundred milliseconds. If some number of these are missing or late due to the leader not having sufficient CPU to send them on time, the other servers will detect it as failed and hold a new election.
 
-## 1.3 Performance Tuning
+## Performance Tuning
 
 Consul is write limited by disk I/O and read limited by CPU. Memory requirements will be dependent on the total size of KV pairs stored and should be sized according to that data (as should the hard drive storage). The limit on a key’s value size is `512KB`.
 
@@ -127,19 +125,21 @@ Consul is write limited by disk I/O and read limited by CPU. Memory requirements
 
 For **write-heavy** workloads, the total RAM available for overhead must approximately be equal to
 
-    RAM NEEDED = number of keys * average key size * 2-3x
+    RAM NEEDED = number of keys * (average key + value size) * 2-3x
 
-Since writes must be synced to disk (persistent storage) on a quorum of servers before they are committed, deploying a disk with high write throughput (or an SSD) will enhance performance on the write side. ([Documentation](/docs/agent/options.html#\_data\_dir))
+Since writes must be synced to disk (persistent storage) on a quorum of servers before they are committed, deploying a disk with high write throughput (or an SSD) will enhance performance on the write side ([configuration reference](/docs/agent/options.html#\_data\_dir)).
 
 For a **read-heavy** workload, configure all Consul server agents with the `allow_stale` DNS option, or query the API with the `stale` [consistency mode](/api/index.html#consistency-modes). By default, all queries made to the server are RPC forwarded to and serviced by the leader. By enabling stale reads, any server will respond to any query, thereby reducing overhead on the leader. Typically, the stale response is `100ms` or less from consistent mode but it drastically improves performance and reduces latency under high load.
 
-If the leader server is out of memory or the disk is full, the server eventually stops responding, loses its election and cannot move past its last commit time. However, by configuring `max_stale` and setting it to a large value, Consul will continue to respond to queries during such outage scenarios. ([max_stale documentation](/docs/agent/options.html#max_stale)).
+If the leader server is out of memory or the disk is full, the server eventually stops responding, loses its election and cannot move past its last commit time. However, by configuring `max_stale` and setting it to a large value, Consul will continue to respond to queries during such outage scenarios ([max_stale documentation](/docs/agent/options.html#max_stale)).
 
-It should be noted that `stale` is not appropriate for coordination where strong consistency is important (i.e. locking or application leader election). For critical cases, the optional `consistent` API query mode is required for true linearizability; the trade off is that this turns a read into a full quorum write so requires more resources and takes longer.
+It should be noted that `stale` is not appropriate for coordination where strong consistency is important (i.e. locking or application leader election). For critical cases, the optional `consistent` API query mode is required for true linearizability; the trade off is that this turns a read into a full quorum operation so requires more resources and takes longer.
 
 **Read-heavy** clusters may take advantage of the [enhanced reading](/docs/enterprise/read-scale/index.html) feature (Enterprise) for better scalability. This feature allows additional servers to be introduced as non-voters. Being a non-voter, the server will still participate in data replication, but it will not block the leader from committing log entries.
 
 Consul’s agents use network sockets for communicating with the other nodes (gossip) and with the server agent. In addition, file descriptors are also opened for watch handlers, health checks, and log files. For a **write heavy** cluster, the `ulimit` size must be increased from the default  value (`1024`) to prevent the leader from running out of file descriptors.
+
+A safe limit to set for `ulimit` will depend heavily on cluster size and workload but there is usually no downside to being liberal and allowing tens of thousands of descriptors for large servers (or even more).
 
 To prevent any CPU spikes from a misconfigured client, RPC requests to the server should be [rate limited](/docs/agent/options.html#limits)
 
@@ -147,11 +147,13 @@ To prevent any CPU spikes from a misconfigured client, RPC requests to the serve
 
 In addition, two [performance indicators](/docs/agent/telemetry.html) &mdash; `consul.runtime.alloc_bytes` and `consul.runtime.heap_objects` &mdash; can help diagnose if the current sizing is not adequately meeting the load.
 
-## 1.4 Backups
+## Backups
 
 Creating server backups is an important step in production deployments. Backups provide a mechanism for the server to recover from an outage (network loss, operator error, or a corrupted data directory). All agents write to the `-data-dir` before commit. This directory persists the local agent’s state and &mdash; in the case of servers &mdash; it also holds the Raft information.
 
-Consul provides the [snapshot](/docs/commands/snapshot.html) command which can be run using the CLI command or the API. The `snapshot` command saves the point-in-time snapshot of the state of the Consul servers which includes KV entries, the service catalog, prepared queries, sessions, and ACL.
+The local agent state on client agents is largely an optimization and does not typically need backing up. If this data is lost, any API registrations will need to be replayed and if Connect managed proxy instances were running, they will need to be manually stopped as they will no longer be managed by the agent, other than that a new agent can rejoin the cluster with no issues.
+
+Consul provides the [snapshot](/docs/commands/snapshot.html) command which can be run using the CLI command or the API. The `snapshot` command saves the point-in-time snapshot of the state of the Consul servers which includes all cluster state including but not limited to KV entries, the service catalog, prepared queries, sessions, ACL, Connect CA state, and the Connect intention graph.
 
 With [Consul Enterprise](/docs/commands/snapshot/agent.html), the `snapshot agent` command runs periodically and writes to local or remote storage (such as Amazon S3).
 
@@ -161,19 +163,19 @@ By default, all snapshots are taken using `consistent` mode where requests are f
 
 This spreads the load across nodes at the possible expense of losing full consistency guarantees. Typically this means that a very small number of recent writes may not be included. The omitted writes are typically limited to data written in the last `100ms` or less from the recovery point. This is usually suitable for disaster recovery. However, the system can’t guarantee how stale this may be if executed against a partitioned server.
 
-## 1.5 Node Removal
+## Node Removal
 
 Failed nodes will be automatically removed after 72 hours. This can happen if a node does not shutdown cleanly or if the process supervisor does not give the agent long enough to gracefully leave the cluster. Until then, Consul periodically tries to reconnect to the failed node. After 72 hours, Consul will reap failed nodes and stop trying to reconnect.
 
-This sequence can be accelerated with the [`force-leave`](https://www.consul.io/docs/commands/force-leave.html) command. Nodes running as servers will be removed from the Raft quorum. Force-leave may also be used to remove nodes that have accidentally joined the datacenter. Force-leave can only be applied to the nodes in its respective datacenter and cannot be executed on the nodes outside the datacenter.
+This sequence can be accelerated with the [`force-leave`](/docs/commands/force-leave.html) command. Nodes running as servers will be removed from the Raft quorum. Force-leave may also be used to remove nodes that have accidentally joined the datacenter. Force-leave can only be applied to the nodes in its respective datacenter and cannot be executed on the nodes outside the datacenter.
 
-Alternately, server nodes can also be removed using `remove-peer` if `force-leave` is not effective in removing the nodes.
+Alternately, servers can be removed using [`remove-peer`](/docs/commands/operator/raft.html#remove-peer) if `force-leave` is not effective in removing the nodes.
 
     $ consul operator raft remove-peer -address=x.x.x.x:8300
 
 ~> **NOTE** `remove-peer` only works on clusters that still have a leader.
 
-If the leader is affected by an outage, then [manual recovery](/docs/guides/outage.html#manual-recovery-using-peers-json) needs to be done.
+If the leader is affected by an outage, then read the [outage recovery](/docs/guides/outage.html) guide. Depending on your scenario, several options for recovery may be possible.
 
 To remove all agents that accidentally joined the wrong set of servers, clear out the contents of the data directory (`-data-dir`) on both client and server nodes.
 
