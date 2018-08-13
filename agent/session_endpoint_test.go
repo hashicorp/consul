@@ -16,10 +16,6 @@ import (
 	"github.com/pascaldekloe/goe/verify"
 )
 
-type Errorer interface {
-	Fatalf(format string, args ...interface{})
-}
-
 func verifySession(t *testing.T, r *retry.R, a *TestAgent, want structs.Session) {
 	t.Helper()
 
