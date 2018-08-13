@@ -58,11 +58,12 @@ type dnsConfig struct {
 // service discovery endpoints using a DNS interface.
 type DNSServer struct {
 	*dns.Server
-	agent     *Agent
-	config    *dnsConfig
-	domain    string
-	recursors []string
-	logger    *log.Logger
+	agent      *Agent
+	config     *dnsConfig
+	domain     string
+	altDomains []string
+	recursors  []string
+	logger     *log.Logger
 
 	// disableCompression is the config.DisableCompression flag that can
 	// be safely changed at runtime. It always contains a bool and is
@@ -80,16 +81,23 @@ func NewDNSServer(a *Agent) (*DNSServer, error) {
 		recursors = append(recursors, ra)
 	}
 
-	// Make sure domain is FQDN, make it case insensitive for ServeMux
+	// Make sure domains are FQDN, make them case insensitive for ServeMux
 	domain := dns.Fqdn(strings.ToLower(a.config.DNSDomain))
+
+	var altDomains []string
+	for _, d := range a.config.DNSAltDomains {
+		ad := dns.Fqdn(strings.ToLower(d))
+		altDomains = append(altDomains, ad)
+	}
 
 	dnscfg := GetDNSConfig(a.config)
 	srv := &DNSServer{
-		agent:     a,
-		config:    dnscfg,
-		domain:    domain,
-		logger:    a.logger,
-		recursors: recursors,
+		agent:      a,
+		config:     dnscfg,
+		domain:     domain,
+		altDomains: altDomains,
+		logger:     a.logger,
+		recursors:  recursors,
 	}
 	srv.disableCompression.Store(a.config.DNSDisableCompression)
 
@@ -118,6 +126,9 @@ func (d *DNSServer) ListenAndServe(network, addr string, notif func()) error {
 	mux := dns.NewServeMux()
 	mux.HandleFunc("arpa.", d.handlePtr)
 	mux.HandleFunc(d.domain, d.handleQuery)
+	for _, ad := range d.altDomains {
+		mux.HandleFunc(ad, d.handleQuery)
+	}
 	if len(d.recursors) > 0 {
 		mux.HandleFunc(".", d.handleRecurse)
 	}
@@ -391,161 +402,184 @@ func (d *DNSServer) nameservers(edns bool) (ns []dns.RR, extra []dns.RR) {
 	return
 }
 
+func (d *DNSServer) domains() []string {
+	ds := make([]string, 1+len(d.altDomains))
+	ds[0] = d.domain
+	ds = append(ds, d.altDomains...)
+	return ds
+}
+
 // dispatch is used to parse a request and invoke the correct handler
 func (d *DNSServer) dispatch(network string, remoteAddr net.Addr, req, resp *dns.Msg) {
-	// By default the query is in the default datacenter
-	datacenter := d.agent.config.Datacenter
-
 	// Get the QName without the domain suffix
 	qName := strings.ToLower(dns.Fqdn(req.Question[0].Name))
-	qName = strings.TrimSuffix(qName, d.domain)
 
-	// Split into the label parts
-	labels := dns.SplitDomainName(qName)
+	for _, domain := range d.domains() {
+		// By default the query is in the default datacenter
+		datacenter := d.agent.config.Datacenter
 
-	// Provide a flag for remembering whether the datacenter name was parsed already.
-	var dcParsed bool
+		qName := strings.TrimSuffix(qName, domain)
 
-	// The last label is either "node", "service", "query", "_<protocol>", or a datacenter name
-PARSE:
-	n := len(labels)
-	if n == 0 {
-		goto INVALID
+		// Split into the label parts
+		labels := dns.SplitDomainName(qName)
+
+		// Provide a flag for remembering whether the datacenter name was parsed already.
+		dcParsed := false
+
+		// The last label is either "node", "service", "query", "_<protocol>", or a datacenter name
+	PARSE:
+		n := len(labels)
+		if n == 0 {
+			// invalid
+			continue
+		}
+
+		// If this is a SRV query the "service" label is optional, we add it back to use the
+		// existing code-path.
+		if req.Question[0].Qtype == dns.TypeSRV && strings.HasPrefix(labels[n-1], "_") {
+			labels = append(labels, "service")
+			n = n + 1
+		}
+
+		switch kind := labels[n-1]; kind {
+		case "service":
+			if n == 1 {
+				// invalid
+				continue
+			}
+
+			// Support RFC 2782 style syntax
+			if n == 3 && strings.HasPrefix(labels[n-2], "_") && strings.HasPrefix(labels[n-3], "_") {
+
+				// Grab the tag since we make nuke it if it's tcp
+				tag := labels[n-2][1:]
+
+				// Treat _name._tcp.service.consul as a default, no need to filter on that tag
+				if tag == "tcp" {
+					tag = ""
+				}
+
+				// _name._tag.service.consul
+				d.serviceLookup(network, datacenter, labels[n-3][1:], tag, false, req, resp)
+
+				// Consul 0.3 and prior format for SRV queries
+			} else {
+
+				// Support "." in the label, re-join all the parts
+				tag := ""
+				if n >= 3 {
+					tag = strings.Join(labels[:n-2], ".")
+				}
+
+				// tag[.tag].name.service.consul
+				d.serviceLookup(network, datacenter, labels[n-2], tag, false, req, resp)
+			}
+
+		case "connect":
+			if n == 1 {
+				// invalid
+				continue
+			}
+
+			// name.connect.consul
+			d.serviceLookup(network, datacenter, labels[n-2], "", true, req, resp)
+
+		case "node":
+			if n == 1 {
+				// invalid
+				continue
+			}
+
+			// Allow a "." in the node name, just join all the parts
+			node := strings.Join(labels[:n-1], ".")
+			d.nodeLookup(network, datacenter, node, req, resp)
+
+		case "query":
+			if n == 1 {
+				// invalid
+				continue
+			}
+
+			// Allow a "." in the query name, just join all the parts.
+			query := strings.Join(labels[:n-1], ".")
+			d.preparedQueryLookup(network, datacenter, query, remoteAddr, req, resp)
+
+		case "addr":
+			if n != 2 {
+				// invalid
+				continue
+			}
+
+			switch len(labels[0]) / 2 {
+			// IPv4
+			case 4:
+				ip, err := hex.DecodeString(labels[0])
+				if err != nil {
+					// invalid
+					continue
+				}
+
+				resp.Answer = append(resp.Answer, &dns.A{
+					Hdr: dns.RR_Header{
+						Name:   qName + d.domain,
+						Rrtype: dns.TypeA,
+						Class:  dns.ClassINET,
+						Ttl:    uint32(d.config.NodeTTL / time.Second),
+					},
+					A: ip,
+				})
+			// IPv6
+			case 16:
+				ip, err := hex.DecodeString(labels[0])
+				if err != nil {
+					// invalid
+					continue
+				}
+
+				resp.Answer = append(resp.Answer, &dns.AAAA{
+					Hdr: dns.RR_Header{
+						Name:   qName + d.domain,
+						Rrtype: dns.TypeAAAA,
+						Class:  dns.ClassINET,
+						Ttl:    uint32(d.config.NodeTTL / time.Second),
+					},
+					AAAA: ip,
+				})
+			}
+
+		default:
+			// https://github.com/hashicorp/consul/issues/3200
+			//
+			// Since datacenter names cannot contain dots we can only allow one
+			// label between the query type and the domain to be the datacenter name.
+			// Since the datacenter name is optional and the parser strips off labels at the end until it finds a suitable
+			// query type label we return NXDOMAIN when we encounter another label
+			// which could be the datacenter name.
+			//
+			// If '.consul' is the domain then
+			//  * foo.service.dc.consul is OK
+			//  * foo.service.dc.stuff.consul is not OK
+			if dcParsed {
+				// invalid
+				continue
+			}
+			dcParsed = true
+
+			// Store the DC, and re-parse
+			datacenter = labels[n-1]
+			labels = labels[:n-1]
+			goto PARSE
+		}
 	}
 
-	// If this is a SRV query the "service" label is optional, we add it back to use the
-	// existing code-path.
-	if req.Question[0].Qtype == dns.TypeSRV && strings.HasPrefix(labels[n-1], "_") {
-		labels = append(labels, "service")
-		n = n + 1
+	// If answers were produced, reset the status since it was likely clobbered.
+	if len(resp.Answer) > 0 {
+		resp.SetRcode(req, dns.RcodeSuccess)
+	} else if len(resp.Ns) == 0 {
+		// No response generated, so flag NXDOMAIN and provide SOA.
+		d.addSOA(resp)
+		resp.SetRcode(req, dns.RcodeNameError)
 	}
-
-	switch kind := labels[n-1]; kind {
-	case "service":
-		if n == 1 {
-			goto INVALID
-		}
-
-		// Support RFC 2782 style syntax
-		if n == 3 && strings.HasPrefix(labels[n-2], "_") && strings.HasPrefix(labels[n-3], "_") {
-
-			// Grab the tag since we make nuke it if it's tcp
-			tag := labels[n-2][1:]
-
-			// Treat _name._tcp.service.consul as a default, no need to filter on that tag
-			if tag == "tcp" {
-				tag = ""
-			}
-
-			// _name._tag.service.consul
-			d.serviceLookup(network, datacenter, labels[n-3][1:], tag, false, req, resp)
-
-			// Consul 0.3 and prior format for SRV queries
-		} else {
-
-			// Support "." in the label, re-join all the parts
-			tag := ""
-			if n >= 3 {
-				tag = strings.Join(labels[:n-2], ".")
-			}
-
-			// tag[.tag].name.service.consul
-			d.serviceLookup(network, datacenter, labels[n-2], tag, false, req, resp)
-		}
-
-	case "connect":
-		if n == 1 {
-			goto INVALID
-		}
-
-		// name.connect.consul
-		d.serviceLookup(network, datacenter, labels[n-2], "", true, req, resp)
-
-	case "node":
-		if n == 1 {
-			goto INVALID
-		}
-
-		// Allow a "." in the node name, just join all the parts
-		node := strings.Join(labels[:n-1], ".")
-		d.nodeLookup(network, datacenter, node, req, resp)
-
-	case "query":
-		if n == 1 {
-			goto INVALID
-		}
-
-		// Allow a "." in the query name, just join all the parts.
-		query := strings.Join(labels[:n-1], ".")
-		d.preparedQueryLookup(network, datacenter, query, remoteAddr, req, resp)
-
-	case "addr":
-		if n != 2 {
-			goto INVALID
-		}
-
-		switch len(labels[0]) / 2 {
-		// IPv4
-		case 4:
-			ip, err := hex.DecodeString(labels[0])
-			if err != nil {
-				goto INVALID
-			}
-
-			resp.Answer = append(resp.Answer, &dns.A{
-				Hdr: dns.RR_Header{
-					Name:   qName + d.domain,
-					Rrtype: dns.TypeA,
-					Class:  dns.ClassINET,
-					Ttl:    uint32(d.config.NodeTTL / time.Second),
-				},
-				A: ip,
-			})
-		// IPv6
-		case 16:
-			ip, err := hex.DecodeString(labels[0])
-			if err != nil {
-				goto INVALID
-			}
-
-			resp.Answer = append(resp.Answer, &dns.AAAA{
-				Hdr: dns.RR_Header{
-					Name:   qName + d.domain,
-					Rrtype: dns.TypeAAAA,
-					Class:  dns.ClassINET,
-					Ttl:    uint32(d.config.NodeTTL / time.Second),
-				},
-				AAAA: ip,
-			})
-		}
-
-	default:
-		// https://github.com/hashicorp/consul/issues/3200
-		//
-		// Since datacenter names cannot contain dots we can only allow one
-		// label between the query type and the domain to be the datacenter name.
-		// Since the datacenter name is optional and the parser strips off labels at the end until it finds a suitable
-		// query type label we return NXDOMAIN when we encounter another label
-		// which could be the datacenter name.
-		//
-		// If '.consul' is the domain then
-		//  * foo.service.dc.consul is OK
-		//  * foo.service.dc.stuff.consul is not OK
-		if dcParsed {
-			goto INVALID
-		}
-		dcParsed = true
-
-		// Store the DC, and re-parse
-		datacenter = labels[n-1]
-		labels = labels[:n-1]
-		goto PARSE
-	}
-	return
-INVALID:
-	d.logger.Printf("[WARN] dns: QName invalid: %s", qName)
-	d.addSOA(resp)
-	resp.SetRcode(req, dns.RcodeNameError)
 }
 
 // nodeLookup is used to handle a node query
@@ -1341,16 +1375,23 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 // resolveCNAME is used to recursively resolve CNAME records
 func (d *DNSServer) resolveCNAME(name string) []dns.RR {
 	// If the CNAME record points to a Consul address, resolve it internally
-	// Convert query to lowercase because DNS is case insensitive; d.domain is
-	// already converted
-	if strings.HasSuffix(strings.ToLower(name), "."+d.domain) {
+	{
+		// Convert query to lowercase because DNS is case insensitive; d.domain and
+		// d.altDomains are already converted
+		ln := strings.ToLower(name)
+
 		req := &dns.Msg{}
 		resp := &dns.Msg{}
-
 		req.SetQuestion(name, dns.TypeANY)
-		d.dispatch("udp", nil, req, resp)
 
-		return resp.Answer
+		// As long as any domain matches, we can dispatch it and return the result
+		for _, domain := range d.domains() {
+			if strings.HasSuffix(ln, "."+domain) {
+				d.dispatch("udp", nil, req, resp)
+				return resp.Answer
+			}
+		}
+		// No domains match, so cannot resolve internally
 	}
 
 	// Do nothing if we don't have a recursor
