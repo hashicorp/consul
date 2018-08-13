@@ -305,30 +305,36 @@ func TestLockCommand_ChildExitCode(t *testing.T) {
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-	t.Run("clean exit", func(t *testing.T) {
-		ui := cli.NewMockUi()
-		c := New(ui)
-		args := []string{"-http-addr=" + a.HTTPAddr(), "-child-exit-code", "test/prefix", "sh", "-c", "exit", "0"}
-		if got, want := c.Run(args), 0; got != want {
-			t.Fatalf("got %d want %d", got, want)
-		}
-	})
+	tt := []struct {
+		name string
+		args []string
+		want int
+	}{
+		{
+			name: "clean exit",
+			args: []string{"-http-addr=" + a.HTTPAddr(), "-child-exit-code", "test/prefix", "sh", "-c", "exit", "0"},
+			want: 0,
+		},
+		{
+			name: "error exit",
+			args: []string{"-http-addr=" + a.HTTPAddr(), "-child-exit-code", "test/prefix", "exit", "1"},
+			want: 2,
+		},
+		{
+			name: "not propagated",
+			args: []string{"-http-addr=" + a.HTTPAddr(), "test/prefix", "sh", "-c", "exit", "1"},
+			want: 0,
+		},
+	}
 
-	t.Run("error exit", func(t *testing.T) {
-		ui := cli.NewMockUi()
-		c := New(ui)
-		args := []string{"-http-addr=" + a.HTTPAddr(), "-child-exit-code", "test/prefix", "exit", "1"}
-		if got, want := c.Run(args), 2; got != want {
-			t.Fatalf("got %d want %d", got, want)
-		}
-	})
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			ui := cli.NewMockUi()
+			c := New(ui)
 
-	t.Run("not propagated", func(t *testing.T) {
-		ui := cli.NewMockUi()
-		c := New(ui)
-		args := []string{"-http-addr=" + a.HTTPAddr(), "test/prefix", "sh", "-c", "exit", "1"}
-		if got, want := c.Run(args), 0; got != want {
-			t.Fatalf("got %d want %d", got, want)
-		}
-	})
+			if got := c.Run(tc.args); got != tc.want {
+				t.Fatalf("got %d want %d", got, tc.want)
+			}
+		})
+	}
 }
