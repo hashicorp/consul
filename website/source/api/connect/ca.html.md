@@ -34,7 +34,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/connect/ca/roots
+    http://127.0.0.1:8500/v1/connect/ca/roots
 ```
 
 ### Sample Response
@@ -82,7 +82,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/connect/ca/configuration
+    http://127.0.0.1:8500/v1/connect/ca/configuration
 ```
 
 ### Sample Response
@@ -146,5 +146,5 @@ providers, see [Provider Config](/docs/connect/ca.html).
 $ curl \
     --request PUT \
     --data @payload.json \
-    https://consul.rocks/v1/connect/ca/configuration
+    http://127.0.0.1:8500/v1/connect/ca/configuration
 ```

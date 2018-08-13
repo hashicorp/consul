@@ -73,7 +73,7 @@ The table below shows this endpoint's support for
 $ curl \
     --request POST \
     --data @payload.json \
-    https://consul.rocks/v1/connect/intentions
+    http://127.0.0.1:8500/v1/connect/intentions
 ```
 
 ### Sample Response
@@ -110,7 +110,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/connect/intentions/e9ebc19f-d481-42b1-4871-4d298d3acd5c
+    http://127.0.0.1:8500/v1/connect/intentions/e9ebc19f-d481-42b1-4871-4d298d3acd5c
 ```
 
 ### Sample Response
@@ -157,7 +157,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/connect/intentions
+    http://127.0.0.1:8500/v1/connect/intentions
 ```
 
 ### Sample Response
@@ -226,7 +226,7 @@ The table below shows this endpoint's support for
 $ curl \
     --request PUT \
     --data @payload.json \
-    https://consul.rocks/v1/connect/intentions/e9ebc19f-d481-42b1-4871-4d298d3acd5c
+    http://127.0.0.1:8500/v1/connect/intentions/e9ebc19f-d481-42b1-4871-4d298d3acd5c
 ```
 
 ## Delete Intention
@@ -256,7 +256,7 @@ The table below shows this endpoint's support for
 ```text
 $ curl \
     --request DELETE \
-    https://consul.rocks/v1/connect/intentions/e9ebc19f-d481-42b1-4871-4d298d3acd5c
+    http://127.0.0.1:8500/v1/connect/intentions/e9ebc19f-d481-42b1-4871-4d298d3acd5c
 ```
 
 ## Check Intention Result
@@ -295,7 +295,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/connect/intentions/check?source=web&destination=db
+    http://127.0.0.1:8500/v1/connect/intentions/check?source=web&destination=db
 ```
 
 ### Sample Response
@@ -338,7 +338,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/connect/intentions/match?by=source&name=web
+    http://127.0.0.1:8500/v1/connect/intentions/match?by=source&name=web
 ```
 
 ### Sample Response

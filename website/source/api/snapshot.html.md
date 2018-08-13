@@ -60,7 +60,7 @@ The table below shows this endpoint's support for
 With a custom datacenter:
 
 ```text
-$ curl https://consul.rocks/v1/snapshot?dc=my-datacenter -o snapshot.tgz
+$ curl http://127.0.0.1:8500/v1/snapshot?dc=my-datacenter -o snapshot.tgz
 ```
 
 The above example results in a tarball named `snapshot.tgz` in the current working directory.
@@ -104,7 +104,7 @@ The table below shows this endpoint's support for
 $ curl \
     --request PUT \
     --data-binary @snapshot \
-    https://consul.rocks/v1/snapshot
+    http://127.0.0.1:8500/v1/snapshot
 ```
 
 ~> Some tools default to www/encoded uploads. Consul expects the snapshot to be
