@@ -158,13 +158,15 @@ specifiy a managed proxy instance.
 The `weights` field is an optional field to specify the weight of a service in
 DNS SRV responses. If this field is not specified, its default value is:
 `"weights": {"passing": 1, "warning": 1}`.
-When a service is `critical`, it is excluded from DNS responses, `warning` services
-will be in DNS responses as well unless the `only_passing = true` is set in the
-DNS configuration of the agent.
-When DNS SRV requests are issued, response will include the weight in the SRV
-response accordingly to the state of service. It allows to put more weights
-on services running on larger nodes and optionnally to put less pressure on
-services being in `warning` state.
+When a service is `critical`, it is excluded from DNS responses.
+Services with warning checks are in included in responses by default,
+but excluded if the optional param `only_passing = true` is present in
+agent DNS configuration or `?passing` is used via the API.
+When DNS SRV requests are made, the response will include the weights
+specified given the state of the service.
+This allows some instances to be given hight weight if they have more capacity,
+and optionally allows reducing load on services with checks in `warning` status
+by giving passing instances a higher weight.
 
 ## Multiple Service Definitions
 
