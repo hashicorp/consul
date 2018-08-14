@@ -3202,6 +3202,29 @@ func (a *Agent) registerCache() {
 		RefreshTimer:   0 * time.Second,
 		RefreshTimeout: 10 * time.Minute,
 	})
+
+	a.cache.RegisterType(cachetype.CatalogServicesName, &cachetype.CatalogServices{
+		RPC: a.delegate,
+	}, &cache.RegisterOptions{
+		// Maintain a blocking query, retry dropped connections quickly
+		Refresh:        true,
+		RefreshTimer:   0 * time.Second,
+		RefreshTimeout: 10 * time.Minute,
+		// Clean up cache and background blocking quickly since traffic might be
+		// transient.
+		LastGetTTL: 3 * time.Hour,
+	})
+	a.cache.RegisterType(cachetype.HealthServicesName, &cachetype.HealthServices{
+		RPC: a.delegate,
+	}, &cache.RegisterOptions{
+		// Maintain a blocking query, retry dropped connections quickly
+		Refresh:        true,
+		RefreshTimer:   0 * time.Second,
+		RefreshTimeout: 10 * time.Minute,
+		// Clean up cache and background blocking quickly since traffic might be
+		// transient.
+		LastGetTTL: 3 * time.Hour,
+	})
 }
 
 // defaultProxyCommand returns the default Connect managed proxy command.
