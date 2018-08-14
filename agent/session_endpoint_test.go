@@ -16,9 +16,7 @@ import (
 	"github.com/pascaldekloe/goe/verify"
 )
 
-func verifySession(t *testing.T, r *retry.R, a *TestAgent, want structs.Session) {
-	t.Helper()
-
+func verifySession(r *retry.R, a *TestAgent, want structs.Session) {
 	args := &structs.SessionSpecificRequest{
 		Datacenter: "dc1",
 		Session:    want.ID,
@@ -92,7 +90,7 @@ func TestSessionCreate(t *testing.T) {
 			LockDelay: 20 * time.Second,
 			Behavior:  structs.SessionKeysRelease,
 		}
-		verifySession(t, r, a, want)
+		verifySession(r, a, want)
 	})
 }
 
@@ -148,7 +146,7 @@ func TestSessionCreate_Delete(t *testing.T) {
 			LockDelay: 20 * time.Second,
 			Behavior:  structs.SessionKeysDelete,
 		}
-		verifySession(t, r, a, want)
+		verifySession(r, a, want)
 	})
 }
 
@@ -184,7 +182,7 @@ func TestSessionCreate_DefaultCheck(t *testing.T) {
 			LockDelay: 20 * time.Second,
 			Behavior:  structs.SessionKeysRelease,
 		}
-		verifySession(t, r, a, want)
+		verifySession(r, a, want)
 	})
 }
 
@@ -221,7 +219,7 @@ func TestSessionCreate_NoCheck(t *testing.T) {
 			LockDelay: 20 * time.Second,
 			Behavior:  structs.SessionKeysRelease,
 		}
-		verifySession(t, r, a, want)
+		verifySession(r, a, want)
 	})
 }
 
