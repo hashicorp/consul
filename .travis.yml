@@ -17,4 +17,4 @@ matrix:
 script:
   - make test-ci
 
-sudo: true
+sudo: false

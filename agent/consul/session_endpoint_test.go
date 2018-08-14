@@ -539,8 +539,9 @@ func TestSession_ApplyTimers(t *testing.T) {
 }
 
 func TestSession_Renew(t *testing.T) {
-	t.Parallel()
-	ttl := time.Second
+	// This method is timing sensitive, disable Parallel
+	//t.Parallel()
+	ttl := 1 * time.Second
 	TTL := ttl.String()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {

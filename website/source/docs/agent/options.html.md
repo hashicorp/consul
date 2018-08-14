@@ -1451,11 +1451,10 @@ port.
 * Serf LAN (Default 8301). This is used to handle gossip in the LAN.
   Required by all agents. TCP and UDP.
 
-* Serf WAN (Default 8302). This is used by servers to gossip over the
-  WAN to other servers. TCP and UDP. As of Consul 0.8, it is recommended to
-  enable connection between servers through port 8302 for both TCP and UDP on
-  the LAN interface as well for the WAN Join Flooding feature. See also:
-  [Consul 0.8.0 CHANGELOG](https://github.com/hashicorp/consul/blob/master/CHANGELOG.md#080-april-5-2017) and [GH-3058](https://github.com/hashicorp/consul/issues/3058)
+* Serf WAN (Default 8302). This is used by servers to gossip over the WAN, to
+  other servers. TCP and UDP. As of Consul 0.8 the WAN join flooding feature requires
+  the Serf WAN port (TCP/UDP) to be listening on both WAN and LAN interfaces. See also:
+   [Consul 0.8.0 CHANGELOG](https://github.com/hashicorp/consul/blob/master/CHANGELOG.md#080-april-5-2017) and [GH-3058](https://github.com/hashicorp/consul/issues/3058)
 
 * HTTP API (Default 8500). This is used by clients to talk to the HTTP
   API. TCP only.

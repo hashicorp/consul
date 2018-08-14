@@ -292,6 +292,9 @@ func TestACLReplication_IsACLReplicationEnabled(t *testing.T) {
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s2.RPC, "dc2")
+
 	if s2.IsACLReplicationEnabled() {
 		t.Fatalf("should not be enabled")
 	}
@@ -304,6 +307,7 @@ func TestACLReplication_IsACLReplicationEnabled(t *testing.T) {
 	})
 	defer os.RemoveAll(dir3)
 	defer s3.Shutdown()
+	testrpc.WaitForLeader(t, s3.RPC, "dc2")
 	if !s3.IsACLReplicationEnabled() {
 		t.Fatalf("should be enabled")
 	}
@@ -317,6 +321,7 @@ func TestACLReplication_IsACLReplicationEnabled(t *testing.T) {
 	})
 	defer os.RemoveAll(dir4)
 	defer s4.Shutdown()
+	testrpc.WaitForLeader(t, s4.RPC, "dc1")
 	if s4.IsACLReplicationEnabled() {
 		t.Fatalf("should not be enabled")
 	}
@@ -330,6 +335,7 @@ func TestACLReplication(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	client := rpcClient(t, s1)
 	defer client.Close()
 
@@ -340,6 +346,7 @@ func TestACLReplication(t *testing.T) {
 		c.ACLReplicationInterval = 10 * time.Millisecond
 		c.ACLReplicationApplyLimit = 1000000
 	})
+	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 	s2.tokens.UpdateACLReplicationToken("root")
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()

@@ -49,6 +49,7 @@ func TestACL_ResolveRootACL(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	rule, err := s1.resolveToken("allow")
 	if !acl.IsErrRootDenied(err) {
@@ -74,6 +75,7 @@ func TestACL_Authority_NotFound(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	client := rpcClient(t, s1)
 	defer client.Close()
 
@@ -96,6 +98,7 @@ func TestACL_Authority_Found(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	client := rpcClient(t, s1)
 	defer client.Close()
 

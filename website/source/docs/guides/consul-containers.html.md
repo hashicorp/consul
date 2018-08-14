@@ -1,7 +1,7 @@
 ---
 layout: "docs"
 page_title: "Using Consul with Containers"
-sidebar_current: "docs-guides-consul-on-containers"
+sidebar_current: "docs-guides-consul-containers"
 description: |-
   This guide describes how to run Consul on containers, with Docker as the primary focus. It also describes best practices when running a Consul cluster in production on Docker.
 ---
@@ -49,7 +49,7 @@ Configuration can also be added by passing the configuration JSON via environmen
 ## Networking
 When running inside a container, Consul must be configured with an appropriate _cluster address_ and _client address_. In some cases, it may also require configuring an _advertise address_.
 
- * **Cluster Address** -  The address at which other Consul agents may contact a given agent. This is also referred to as the bind address. 
+ * **Cluster Address** -  The address at which other Consul agents may contact a given agent. This is also referred to as the bind address.
 
  * **Client Address** -  The address where other processes on the host contact Consul in order to make HTTP or DNS requests. Consider setting this to localhost or `127.0.0.1` to only allow processes on the same container to make HTTP/DNS requests.
 
@@ -98,16 +98,15 @@ $ docker kill --signal=HUP <container_id>
 
 As long as there are enough servers in the cluster to maintain [quorum](/docs/internals/consensus.html#deployment-table), Consul's [Autopilot](/docs/guides/autopilot.html) feature will handle removing servers whose containers were stopped. Autopilot's default settings are already configured correctly. If you override them, make sure that the following [settings](/docs/agent/options.html#autopilot) are appropriate.
 
-* `cleanup_dead_servers` must be set to true to make sure that a stopped container is removed from the cluster. 
-* `last_contact_threshold` should be reasonably small, so that dead servers are removed quickly. 
+* `cleanup_dead_servers` must be set to true to make sure that a stopped container is removed from the cluster.
+* `last_contact_threshold` should be reasonably small, so that dead servers are removed quickly.
 * `server_stabilization_time` should be sufficiently large (on the order of several seconds) so that unstable servers are not added to the cluster until they stabilize.
 
 If the container running the currently-elected Consul server leader is stopped, a leader election will trigger. This event will cause a new Consul server in the cluster to assume leadership.
 
-When a previously stopped server container is restarted using `docker start <container_id>`,  and it is configured to obtain a new IP, Autopilot will add it back to the set of Raft peers with the same node-id and the new IP address, after which it can participate as a server again. 
+When a previously stopped server container is restarted using `docker start <container_id>`,  and it is configured to obtain a new IP, Autopilot will add it back to the set of Raft peers with the same node-id and the new IP address, after which it can participate as a server again.
 
 ## Known Issues
 **All nodes changing IP addresses** Prior to Consul 0.9.3, Consul did not gracefully handle the situation where all nodes in the cluster running inside a container are restarted at the same time, and they all obtain new IP addresses. This has been [fixed](https://github.com/hashicorp/consul/issues/1580) since Consul 0.9.3, and requires `"raft_protocol"` to be set to `"3"` in the configs in Consul 0.9.3. Consul 1.0 makes raft protocol 3 the default.
 
 **Snapshot close error** Due to a [known issue](https://github.com/docker/libnetwork/issues/1204) with half close support in Docker, you will see an error message `[ERR] consul: Failed to close snapshot: write tcp <source>-><destination>: write: broken pipe` when saving snapshots. This does not affect saving and restoring snapshots when running in Docker.
-
