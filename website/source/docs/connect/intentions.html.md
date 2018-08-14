@@ -138,7 +138,7 @@ intentions:
 
 ```hcl
 service "web" {
-  policy = "read"
+  policy = "write"
   intention = "deny"
 }
 ```
