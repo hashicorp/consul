@@ -74,7 +74,7 @@ func (h *hostsMap) Len() int {
 type Hostsfile struct {
 	sync.RWMutex
 
-	// list of zones we are authoritive for
+	// list of zones we are authoritative for
 	Origins []string
 
 	// hosts maps for lookups

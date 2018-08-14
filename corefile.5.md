@@ -36,7 +36,7 @@ properties than can have arguments, see the documentation for each plugin.
 Comments are allowed and begin with an unquoted hash `#` and continue to the end of the line.
 Comments may be started anywhere on a line.
 
-Enviroment variables are supported and either the Unix or Windows form may be used: `{$ENV_VAR_1}`
+Environment variables are supported and either the Unix or Windows form may be used: `{$ENV_VAR_1}`
 or `{%ENV_VAR_2%}`.
 
 You can use the `import` "plugin" to include parts of other files, see <https://coredns.io/explugins/import>.

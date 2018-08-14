@@ -197,7 +197,7 @@ func (rule *substringNameRule) GetResponseRule() ResponseRule { return ResponseR
 // GetResponseRule return a rule to rewrite the response with.
 func (rule *regexNameRule) GetResponseRule() ResponseRule { return rule.ResponseRule }
 
-// validName returns true if s is valid domain name and shortern than 256 characters.
+// validName returns true if s is valid domain name and shorter than 256 characters.
 func validName(s string) bool {
 	_, ok := dns.IsDomainName(s)
 	if !ok {

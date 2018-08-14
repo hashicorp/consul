@@ -35,7 +35,7 @@ func (k *Kubernetes) AutoPath(state request.Request) []string {
 	}
 
 	search = append(search, k.autoPathSearch...)
-	search = append(search, "") // sentinal
+	search = append(search, "") // sentinel
 	return search
 }
 

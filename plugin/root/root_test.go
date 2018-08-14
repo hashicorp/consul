@@ -89,7 +89,7 @@ func TestRoot(t *testing.T) {
 	}
 }
 
-// getTempDirPath returnes the path to the system temp directory. If it does not exists - an error is returned.
+// getTempDirPath returns the path to the system temp directory. If it does not exist - an error is returned.
 func getTempDirPath() (string, error) {
 	tempDir := os.TempDir()
 	_, err := os.Stat(tempDir)

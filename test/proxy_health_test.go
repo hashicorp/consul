@@ -97,7 +97,7 @@ func TestProxyThreeWay(t *testing.T) {
 			continue
 		}
 		// We would previously get SERVFAIL, so just getting answers here
-		// is a good sign. The actuall timeouts are handled in the err != nil case
+		// is a good sign. The actual timeouts are handled in the err != nil case
 		// above.
 		if r.Rcode != dns.RcodeSuccess {
 			t.Fatalf("Expected success rcode, got %d", r.Rcode)

@@ -53,7 +53,7 @@ func NewRequest(method, url string, m *dns.Msg) (*http.Request, error) {
 
 }
 
-// ResponseToMsg converts a http.Repsonse to a dns message.
+// ResponseToMsg converts a http.Response to a dns message.
 func ResponseToMsg(resp *http.Response) (*dns.Msg, error) {
 	defer resp.Body.Close()
 

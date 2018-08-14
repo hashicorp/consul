@@ -18,7 +18,7 @@ type Probe struct {
 // Func is used to determine if a target is alive. If so this function must return nil.
 type Func func() error
 
-// New returns a pointer to an intialized Probe.
+// New returns a pointer to an initialized Probe.
 func New() *Probe { return &Probe{} }
 
 // Do will probe target, if a probe is already in progress this is a noop.

@@ -44,7 +44,7 @@ Currently CoreDNS is able to:
 * Use k8s (kubernetes) as a backend (*kubernetes*).
 * Serve as a proxy to forward queries to some other (recursive) nameserver (*proxy*, and *forward*).
 * Provide metrics (by using Prometheus) (*metrics*).
-* Provide query (*log*) and error (*error*) logging.
+* Provide query (*log*) and error (*errors*) logging.
 * Support the CH class: `version.bind` and friends (*chaos*).
 * Support the RFC 5001 DNS name server identifier (NSID) option (*nsid*).
 * Profiling support (*pprof*).

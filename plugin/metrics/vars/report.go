@@ -10,7 +10,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-// Report reports the metrics data associcated with request.
+// Report reports the metrics data associated with request.
 func Report(ctx context.Context, req request.Request, zone, rcode string, size int, start time.Time) {
 	// Proto and Family.
 	net := req.Proto()

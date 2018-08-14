@@ -15,7 +15,7 @@ import (
 func TestKubernetesParse(t *testing.T) {
 	tests := []struct {
 		input                 string        // Corefile data as string
-		shouldErr             bool          // true if test case is exected to produce an error.
+		shouldErr             bool          // true if test case is expected to produce an error.
 		expectedErrContent    string        // substring from the expected error. Empty for positive cases.
 		expectedZoneCount     int           // expected count of defined zones.
 		expectedNSCount       int           // expected count of namespaces.
@@ -494,7 +494,7 @@ kubernetes cluster.local`,
 func TestKubernetesParseEndpointPodNames(t *testing.T) {
 	tests := []struct {
 		input                string // Corefile data as string
-		shouldErr            bool   // true if test case is exected to produce an error.
+		shouldErr            bool   // true if test case is expected to produce an error.
 		expectedErrContent   string // substring from the expected error. Empty for positive cases.
 		expectedEndpointMode bool
 	}{
@@ -557,7 +557,7 @@ func TestKubernetesParseEndpointPodNames(t *testing.T) {
 func TestKubernetesParseNoEndpoints(t *testing.T) {
 	tests := []struct {
 		input                 string // Corefile data as string
-		shouldErr             bool   // true if test case is exected to produce an error.
+		shouldErr             bool   // true if test case is expected to produce an error.
 		expectedErrContent    string // substring from the expected error. Empty for positive cases.
 		expectedEndpointsInit bool
 	}{
@@ -619,7 +619,7 @@ func TestKubernetesParseNoEndpoints(t *testing.T) {
 func TestKubernetesParseIgnoreEmptyService(t *testing.T) {
 	tests := []struct {
 		input                 string // Corefile data as string
-		shouldErr             bool   // true if test case is exected to produce an error.
+		shouldErr             bool   // true if test case is expected to produce an error.
 		expectedErrContent    string // substring from the expected error. Empty for positive cases.
 		expectedEndpointsInit bool
 	}{

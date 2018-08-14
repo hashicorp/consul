@@ -187,7 +187,7 @@ func TestHandler(t *testing.T) {
 					return fmt.Errorf("expected 1 answer, got %v", len(r.Answer))
 				}
 				if r.Answer[0].Header().Rrtype != dns.TypeA {
-					return fmt.Errorf("expected an A record anwser, got %v", dns.TypeToString[r.Answer[0].Header().Rrtype])
+					return fmt.Errorf("expected an A record answer, got %v", dns.TypeToString[r.Answer[0].Header().Rrtype])
 				}
 				if r.Answer[0].(*dns.A).A.String() != "10.95.12.8" {
 					return fmt.Errorf("expected an A record for 10.95.12.8, got %v", r.Answer[0].String())
@@ -206,7 +206,7 @@ func TestHandler(t *testing.T) {
 					return fmt.Errorf("expected 1 answer, got %v", len(r.Answer))
 				}
 				if r.Answer[0].Header().Rrtype != dns.TypeMX {
-					return fmt.Errorf("expected an A record anwser, got %v", dns.TypeToString[r.Answer[0].Header().Rrtype])
+					return fmt.Errorf("expected an A record answer, got %v", dns.TypeToString[r.Answer[0].Header().Rrtype])
 				}
 				if len(r.Extra) != 1 {
 					return fmt.Errorf("expected 1 extra record, got %v", len(r.Extra))
@@ -228,7 +228,7 @@ func TestHandler(t *testing.T) {
 					return fmt.Errorf("expected 1 answer, got %v", len(r.Answer))
 				}
 				if r.Answer[0].Header().Rrtype != dns.TypeA {
-					return fmt.Errorf("expected an A record anwser, got %v", dns.TypeToString[r.Answer[0].Header().Rrtype])
+					return fmt.Errorf("expected an A record answer, got %v", dns.TypeToString[r.Answer[0].Header().Rrtype])
 				}
 				if len(r.Extra) != 1 {
 					return fmt.Errorf("expected 1 extra record, got %v", len(r.Extra))
@@ -257,7 +257,7 @@ func TestHandler(t *testing.T) {
 					return fmt.Errorf("expected 1 answer, got %v", len(r.Answer))
 				}
 				if r.Answer[0].Header().Rrtype != dns.TypeSOA {
-					return fmt.Errorf("expected an SOA record anwser, got %v", dns.TypeToString[r.Answer[0].Header().Rrtype])
+					return fmt.Errorf("expected an SOA record answer, got %v", dns.TypeToString[r.Answer[0].Header().Rrtype])
 				}
 				return nil
 			},
@@ -338,7 +338,7 @@ func TestMultiSection(t *testing.T) {
 		template CH TXT coredns.invalid {
 			answer "{{ .Name }} 60 CH TXT \"test\""
 		}
-		# Anwser example. ip templates and fallthrough otherwise
+		# Answer example. ip templates and fallthrough otherwise
 		template IN A example {
 			match ^ip-10-(?P<b>[0-9]*)-(?P<c>[0-9]*)-(?P<d>[0-9]*)[.]example[.]$
 			answer "{{ .Name }} 60 IN A 10.{{ .Group.b }}.{{ .Group.c }}.{{ .Group.d }}"

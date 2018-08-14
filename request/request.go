@@ -267,7 +267,7 @@ func (r *Request) Scrub(reply *dns.Msg) (*dns.Msg, Result) {
 		sub = optLen
 	}
 
-	// substract to make spaces for re-added EDNS0 OPT RR.
+	// subtract to make spaces for re-added EDNS0 OPT RR.
 	re := len(reply.Extra) - sub
 	size -= sub
 

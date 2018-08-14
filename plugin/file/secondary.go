@@ -103,7 +103,7 @@ func less(a, b uint32) bool {
 
 // Update updates the secondary zone according to its SOA. It will run for the life time of the server
 // and uses the SOA parameters. Every refresh it will check for a new SOA number. If that fails (for all
-// server) it wil retry every retry interval. If the zone failed to transfer before the expire, the zone
+// server) it will retry every retry interval. If the zone failed to transfer before the expire, the zone
 // will be marked expired.
 func (z *Zone) Update() error {
 	// If we don't have a SOA, we don't have a zone, wait for it to appear.

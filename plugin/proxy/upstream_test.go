@@ -269,7 +269,7 @@ junky resolv.conf
 
 		path, rm, err := test.TempFile(".", tc.filedata)
 		if err != nil {
-			t.Fatalf("Test %d could not creat temp file %v", i, err)
+			t.Fatalf("Test %d could not create temp file %v", i, err)
 		}
 		defer rm()
 

@@ -6,7 +6,7 @@
 //
 // Basic example:
 //
-// Implement the Provder interface for a plugin:
+// Implement the Provider interface for a plugin:
 //
 //    func (p P) Metadata(ctx context.Context, state request.Request) context.Context {
 //       cached := ""

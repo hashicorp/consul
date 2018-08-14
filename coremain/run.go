@@ -42,7 +42,7 @@ func Run() {
 	caddy.TrapSignals()
 
 	// Reset flag.CommandLine to get rid of unwanted flags for instance from glog (used in kubernetes).
-	// And readd the once we want to keep.
+	// And read the ones we want to keep.
 	flag.VisitAll(func(f *flag.Flag) {
 		if _, ok := flagsBlacklist[f.Name]; ok {
 			return

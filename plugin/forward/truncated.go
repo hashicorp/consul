@@ -6,7 +6,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-// truncated looks at the error and if truncated return a nil errror
+// truncated looks at the error and if truncated return a nil error
 // and a possible reconstructed dns message if that was nil.
 func truncated(state request.Request, ret *dns.Msg, err error) (*dns.Msg, error) {
 	// If you query for instance ANY isc.org; you get a truncated query back which miekg/dns fails to unpack

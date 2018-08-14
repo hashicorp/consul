@@ -169,7 +169,7 @@ func (w *Manager) Stop() {
 			wr := pb.WatchResponse{WatchId: id, Canceled: true}
 			err := stream.Send(&wr)
 			if err != nil {
-				log.Warningf("Error notifiying client of cancellation: %s\n", err)
+				log.Warningf("Error notifying client of cancellation: %s\n", err)
 			}
 		}
 		delete(w.watches, wn)

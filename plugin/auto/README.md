@@ -24,7 +24,7 @@ auto [ZONES...] {
 **ZONES** zones it should be authoritative for. If empty, the zones from the configuration block
 are used.
 
-* `directory` loads zones from the speficied **DIR**. If a file name matches **REGEXP** it will be
+* `directory` loads zones from the specified **DIR**. If a file name matches **REGEXP** it will be
   used to extract the origin. **ORIGIN_TEMPLATE** will be used as a template for the origin. Strings
   like `{<number>}` are replaced with the respective matches in the file name, e.g. `{1}` is the
   first match, `{2}` is the second. The default is: `db\.(.*)  {1}` i.e. from a file with the

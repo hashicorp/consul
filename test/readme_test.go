@@ -108,7 +108,7 @@ func corefileFromReadme(readme string) ([]*Input, error) {
 		}
 
 		if corefile {
-			temp += line + "\n" // readd newline stripped by s.Text()
+			temp += line + "\n" // read newline stripped by s.Text()
 		}
 	}
 

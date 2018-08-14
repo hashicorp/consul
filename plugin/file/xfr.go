@@ -55,7 +55,7 @@ func (x Xfr) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (in
 	return dns.RcodeSuccess, nil
 }
 
-// Name implements the plugin.Hander interface.
+// Name implements the plugin.Handler interface.
 func (x Xfr) Name() string { return "xfr" }
 
 const transferLength = 1000 // Start a new envelop after message reaches this size in bytes. Intentionally small to test multi envelope parsing.

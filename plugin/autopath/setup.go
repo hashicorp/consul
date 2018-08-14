@@ -72,7 +72,7 @@ func autoPathParse(c *caddy.Controller) (*AutoPath, string, error) {
 			}
 			ap.search = rc.Search
 			plugin.Zones(ap.search).Normalize()
-			ap.search = append(ap.search, "") // sentinal value as demanded.
+			ap.search = append(ap.search, "") // sentinel value as demanded.
 		}
 		ap.Zones = zoneAndresolv[:len(zoneAndresolv)-1]
 		if len(ap.Zones) == 0 {

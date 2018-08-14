@@ -99,7 +99,7 @@ If monitoring is enabled (via the *prometheus* directive) then the following met
 Where `proxy_proto` is the protocol used (`dns` or `grpc`) and `to` is **TO**
 specified in the config, `proto` is the protocol used by the incoming query ("tcp" or "udp"), family
 the transport family ("1" for IPv4, and "2" for IPv6). `Server` is the server responsible for the
-request (and metric). See the documention in the metrics plugin.
+request (and metric). See the documentation in the metrics plugin.
 
 ## Examples
 

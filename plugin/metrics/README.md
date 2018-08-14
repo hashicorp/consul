@@ -60,7 +60,7 @@ Use an alternative address:
 }
 ~~~
 
-Or via an enviroment variable (this is supported throughout the Corefile): `export PORT=9253`, and
+Or via an environment variable (this is supported throughout the Corefile): `export PORT=9253`, and
 then:
 
 ~~~ corefile
