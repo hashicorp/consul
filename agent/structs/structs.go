@@ -119,6 +119,15 @@ type QueryOptions struct {
 	// servicing the request. Prevents a stale read.
 	RequireConsistent bool
 
+	// If set, the local agent may respond with an arbitrarily stale locally
+	// cached response. The semantics differ from AllowStale since the agent may
+	// be entirely partitioned from the servers and still considered "healthy" by
+	// operators. Stale responses from Servers are also arbitrarily stale, but can
+	// provide additional bounds on the last contact time from the leader. It's
+	// expected that servers that are partitioned are noticed and replaced in a
+	// timely way by operators while the same may not be true for client agents.
+	UseCache bool
+
 	// If set and AllowStale is true, will try first a stale
 	// read, and then will perform a consistent read if stale
 	// read is older than value
@@ -325,6 +334,39 @@ type ServiceSpecificRequest struct {
 
 func (r *ServiceSpecificRequest) RequestDatacenter() string {
 	return r.Datacenter
+}
+
+func (r *ServiceSpecificRequest) CacheInfo() cache.RequestInfo {
+	info := cache.RequestInfo{
+		Token:      r.Token,
+		Datacenter: r.Datacenter,
+		MinIndex:   r.MinQueryIndex,
+		Timeout:    r.MaxQueryTime,
+	}
+
+	// To calculate the cache key we hash over all the fields that affect the
+	// output other than Datacenter and Token which are dealt with in the cache
+	// framework already.
+	v, err := hashstructure.Hash([]interface{}{
+		r.NodeMetaFilters,
+		r.ServiceName,
+		r.ServiceTag,
+		r.ServiceAddress,
+		r.TagFilter,
+		r.Connect,
+	}, nil)
+	if err == nil {
+		// If there is an error, we don't set the key. A blank key forces
+		// no cache for this request so the request is forwarded directly
+		// to the server.
+		info.Key = strconv.FormatUint(v, 10)
+	}
+
+	return info
+}
+
+func (r *ServiceSpecificRequest) CacheMinIndex() uint64 {
+	return r.QueryOptions.MinQueryIndex
 }
 
 // NodeSpecificRequest is used to request the information about a single node

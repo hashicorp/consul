@@ -523,6 +523,10 @@ func (s *HTTPServer) parseConsistency(resp http.ResponseWriter, req *http.Reques
 	if _, ok := query["leader"]; ok {
 		defaults = false
 	}
+	if _, ok := query["cached"]; ok {
+		b.UseCache = true
+		defaults = false
+	}
 	if maxStale := query.Get("max_stale"); maxStale != "" {
 		dur, err := time.ParseDuration(maxStale)
 		if err != nil {
@@ -549,6 +553,11 @@ func (s *HTTPServer) parseConsistency(resp http.ResponseWriter, req *http.Reques
 	if b.AllowStale && b.RequireConsistent {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Cannot specify ?stale with ?consistent, conflicting semantics.")
+		return true
+	}
+	if b.UseCache && b.RequireConsistent {
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(resp, "Cannot specify ?cached with ?consistent, conflicting semantics.")
 		return true
 	}
 	return false
