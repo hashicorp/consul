@@ -267,7 +267,7 @@ func (s *Store) EnsureRegistration(idx uint64, req *structs.RegisterRequest) err
 	return nil
 }
 
-func (s *Store) ensureCheckIsCorrect(tx *memdb.Txn, idx uint64, node string, check *structs.HealthCheck) error {
+func (s *Store) ensureCheckIfNodeMatches(tx *memdb.Txn, idx uint64, node string, check *structs.HealthCheck) error {
 	if check.Node != node {
 		return fmt.Errorf("check node %q does not match node %q",
 			check.Node, node)
@@ -327,12 +327,12 @@ func (s *Store) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, req *structs.Re
 
 	// Add the checks, if any.
 	if req.Check != nil {
-		if err := s.ensureCheckIsCorrect(tx, idx, req.Node, req.Check); err != nil {
+		if err := s.ensureCheckIfNodeMatches(tx, idx, req.Node, req.Check); err != nil {
 			return err
 		}
 	}
 	for _, check := range req.Checks {
-		if err := s.ensureCheckIsCorrect(tx, idx, req.Node, check); err != nil {
+		if err := s.ensureCheckIfNodeMatches(tx, idx, req.Node, check); err != nil {
 			return err
 		}
 	}
