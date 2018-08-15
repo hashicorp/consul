@@ -10,4 +10,15 @@
 * [Serpro/estaleiro](estaleiro.serpro.gov.br) uses CoreDNS as Kubernetes' DNS Server, in production with tuned Kubernetes plugin options
 * [Lumo](https://thinklumo.com) uses CoreDNS as Kubernetes' DNS Server, in production and lab with default configuration
 * [Booming Games](https://booming-games.com) uses CoreDNS in multiple Kubernetes clusters, with Federation plugin. expect going to production soon.
-
+* [Sodimac](http://www.sodimac.cl) uses CoreDNS with Kubernetes in production with default configuration.
+* [Bose](https://www.bose.com/) uses CoreDNS with Kubernetes in production on very large cluster (over 250 nodes)
+* [farmotive](https://farmotive.io) uses CoreDNS in Kubernetes using default configuration, in its Lab. Expect to be in production soon.
+* [Zalando SE](https://www.zalando.de) uses CoreDNS as Kubernetes' DNS Server, in production.
+* [Trainline](https://trainline.com) uses CoreDNS along with Kubernetes in production, with a tuned configuration.
+* [AnchorFree](https://www.anchorfree.com) uses CoreDNS within Kubernetes in production, with standard configuration.
+* [Datacom](https://datacom.co.nz) uses CoreDNS with a tuned configuration for Kubernetes, as production.
+* [Takealot.com](https://www.takealot.com) uses CoreDNS as Kubernetes' DNS Server, in production.
+* [scalable minds](https://scalableminds.com) uses CoreDNS with default configuration for Kubernetes in its production environment.
+* [ObjectRocket](https://www.objectrocket.com) uses CoreDNS on its numerous Kubernetes' clusters, using refined configurations. Address both Lab and Production environment
+* [Devino Telecom](https://devinotele.com) uses CoreDNS with default configuration for Kubernetes for its Lab and its Production.
+* [Yandex Money](https://money.yandex.ru) uses CoreDNS in Lab and Production, using default configuration for Kubernetes.
