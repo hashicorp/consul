@@ -278,7 +278,7 @@ func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, e
 
 	// Wait for the server to be ready
 	if cfg.Bootstrap {
-		err = server.waitForLeader()
+		err = server.waitForAgent()
 	} else {
 		err = server.waitForAPI()
 	}
@@ -338,12 +338,12 @@ func (s *TestServer) waitForAPI() error {
 	return nil
 }
 
-// waitForLeader waits for:
+// waitForAgent waits for:
 // 1. Consul server's HTTP API to become available
 // 2. A known leader and an index of 1 or more to be observed to confirm leader election
 // 3. Anti-entropy sync
 // 4. serfHealth check registration
-func (s *TestServer) waitForLeader() error {
+func (s *TestServer) waitForAgent() error {
 	f := &failer{}
 	var index int64
 	retry.Run(f, func(r *retry.R) {
