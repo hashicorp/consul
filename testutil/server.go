@@ -338,18 +338,15 @@ func (s *TestServer) waitForAPI() error {
 	return nil
 }
 
-// waitForLeader waits for the Consul server's HTTP API to become
-// available, and then waits for a known leader and an index of
-// 1 or more to be observed to confirm leader election is done.
-// It then waits to ensure the anti-entropy sync has completed.
+// waitForLeader waits for:
+// 1. Consul server's HTTP API to become available
+// 2. A known leader and an index of 1 or more to be observed to confirm leader election
+// 3. Anti-entropy sync
+// 4. serfHealth check registration
 func (s *TestServer) waitForLeader() error {
 	f := &failer{}
-	timer := &retry.Timer{
-		Timeout: s.Config.ReadyTimeout,
-		Wait:    250 * time.Millisecond,
-	}
 	var index int64
-	retry.RunWith(timer, f, func(r *retry.R) {
+	retry.Run(f, func(r *retry.R) {
 		// Query the API and check the status code.
 		url := s.url(fmt.Sprintf("/v1/catalog/nodes?index=%d", index))
 		resp, err := s.HTTPClient.Get(url)
@@ -374,20 +371,46 @@ func (s *TestServer) waitForLeader() error {
 		}
 
 		// Watch for the anti-entropy sync to finish.
-		var v []map[string]interface{}
+		var payload []map[string]interface{}
 		dec := json.NewDecoder(resp.Body)
-		if err := dec.Decode(&v); err != nil {
+		if err := dec.Decode(&payload); err != nil {
 			r.Fatal(err)
 		}
-		if len(v) < 1 {
+		if len(payload) < 1 {
 			r.Fatal("No nodes")
 		}
-		taggedAddresses, ok := v[0]["TaggedAddresses"].(map[string]interface{})
+		taggedAddresses, ok := payload[0]["TaggedAddresses"].(map[string]interface{})
 		if !ok {
 			r.Fatal("Missing tagged addresses")
 		}
 		if _, ok := taggedAddresses["lan"]; !ok {
 			r.Fatal("No lan tagged addresses")
+		}
+
+		// Ensure the serfHealth check is registered
+		url = s.url(fmt.Sprintf("/v1/health/node/%s", payload[0]["Node"]))
+		resp, err = s.HTTPClient.Get(url)
+		if err != nil {
+			r.Fatal("failed http get", err)
+		}
+		defer resp.Body.Close()
+		if err := s.requireOK(resp); err != nil {
+			r.Fatal("failed OK response", err)
+		}
+		dec = json.NewDecoder(resp.Body)
+		if err = dec.Decode(&payload); err != nil {
+			r.Fatal(err)
+		}
+
+		var found bool
+		for _, check := range payload {
+			if check["CheckID"].(string) == "serfHealth" {
+				found = true
+				break
+			}
+		}
+		if !found {
+			r.Fatal("missing serfHealth registration")
 		}
 	})
 	if f.failed {
