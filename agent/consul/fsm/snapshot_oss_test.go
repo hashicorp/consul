@@ -29,7 +29,27 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	// Add some state
 	fsm.state.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
 	fsm.state.EnsureNode(2, &structs.Node{Node: "baz", Address: "127.0.0.2", TaggedAddresses: map[string]string{"hello": "1.2.3.4"}})
-	fsm.state.EnsureService(3, "foo", &structs.NodeService{ID: "web", Service: "web", Tags: nil, Address: "127.0.0.1", Port: 80})
+
+	// Add a service instance with Connect config.
+	connectConf := structs.ServiceConnect{
+		Native: true,
+		Proxy: &structs.ServiceDefinitionConnectProxy{
+			Command:  []string{"foo", "bar"},
+			ExecMode: "a",
+			Config: map[string]interface{}{
+				"a": "qwer",
+				"b": 4.3,
+			},
+		},
+	}
+	fsm.state.EnsureService(3, "foo", &structs.NodeService{
+		ID:      "web",
+		Service: "web",
+		Tags:    nil,
+		Address: "127.0.0.1",
+		Port:    80,
+		Connect: connectConf,
+	})
 	fsm.state.EnsureService(4, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"primary"}, Address: "127.0.0.1", Port: 5000})
 	fsm.state.EnsureService(5, "baz", &structs.NodeService{ID: "web", Service: "web", Tags: nil, Address: "127.0.0.2", Port: 80})
 	fsm.state.EnsureService(6, "baz", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"secondary"}, Address: "127.0.0.2", Port: 5000})
@@ -200,6 +220,10 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	}
 	if fooSrv.Services["db"].Port != 5000 {
 		t.Fatalf("Bad: %v", fooSrv)
+	}
+	connectSrv := fooSrv.Services["web"]
+	if !reflect.DeepEqual(connectSrv.Connect, connectConf) {
+		t.Fatalf("got: %v, want: %v", connectSrv.Connect, connectConf)
 	}
 
 	_, checks, err := fsm2.state.NodeChecks(nil, "foo")
