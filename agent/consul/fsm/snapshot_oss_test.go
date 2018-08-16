@@ -131,6 +131,18 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	assert.Nil(err)
 	assert.True(ok)
 
+	// CA Config
+	caConfig := &structs.CAConfiguration{
+		ClusterID: "foo",
+		Provider:  "consul",
+		Config: map[string]interface{}{
+			"foo": "asdf",
+			"bar": 6.5,
+		},
+	}
+	err = fsm.state.CASetConfig(17, caConfig)
+	assert.Nil(err)
+
 	// Snapshot
 	snap, err := fsm.Snapshot()
 	if err != nil {
@@ -309,6 +321,11 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal("foo", state.PrivateKey)
 	assert.Equal("bar", state.RootCert)
+
+	// Verify CA configuration is restored.
+	_, caConf, err := fsm2.state.CAConfig()
+	assert.Nil(err)
+	assert.Equal(caConfig, caConf)
 
 	// Snapshot
 	snap, err = fsm2.Snapshot()
