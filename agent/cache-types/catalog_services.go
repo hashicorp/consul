@@ -40,3 +40,7 @@ func (c *CatalogServices) Fetch(opts cache.FetchOptions, req cache.Request) (cac
 	result.Index = reply.QueryMeta.Index
 	return result, nil
 }
+
+func (c *CatalogServices) SupportsBlocking() bool {
+	return true
+}

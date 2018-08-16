@@ -558,6 +558,7 @@ func TestCatalogServiceNodes(t *testing.T) {
 
 		// Should be a cache HIT now!
 		assert.Equal("HIT", resp.Header().Get("X-Cache"))
+		assert.Equal("0", resp.Header().Get("Age"))
 	}
 
 	// Ensure background refresh works

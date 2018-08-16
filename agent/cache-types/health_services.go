@@ -40,3 +40,7 @@ func (c *HealthServices) Fetch(opts cache.FetchOptions, req cache.Request) (cach
 	result.Index = reply.QueryMeta.Index
 	return result, nil
 }
+
+func (c *HealthServices) SupportsBlocking() bool {
+	return true
+}

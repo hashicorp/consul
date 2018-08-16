@@ -48,4 +48,17 @@ type RequestInfo struct {
 	// if there was no prior value). This "last known value" behavior matches
 	// normal Consul blocking queries.
 	Timeout time.Duration
+
+	// MaxAge if set limits how stale a cache entry can be. If it is non-zero and
+	// there is an entry in cache that is older than specified, it is treated as a
+	// cache miss and re-fetched. It only really makes sense for cache types that
+	// have Refresh: false.
+	MaxAge time.Duration
+
+	// MustRevalidate forces a new lookup of the cache even if there is an
+	// existing one that has not expired. It is implied by max-age=0 but we can't
+	// distinguish that case from the unset case for MaxAge. Later we may support
+	// revalidating the index without a full re-fetch but for now the only option
+	// is to refetch.
+	MustRevalidate bool
 }

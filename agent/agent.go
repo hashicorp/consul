@@ -3174,8 +3174,12 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 // care should be taken to call this exactly once after the cache
 // field has been initialized.
 func (a *Agent) registerCache() {
+	// Note that you should register the _agent_ as the RPC implementation and not
+	// the a.delegate directly, otherwise tests that rely on overriding RPC
+	// routing via a.registerEndpoint will not work.
+
 	a.cache.RegisterType(cachetype.ConnectCARootName, &cachetype.ConnectCARoot{
-		RPC: a.delegate,
+		RPC: a,
 	}, &cache.RegisterOptions{
 		// Maintain a blocking query, retry dropped connections quickly
 		Refresh:        true,
@@ -3184,7 +3188,7 @@ func (a *Agent) registerCache() {
 	})
 
 	a.cache.RegisterType(cachetype.ConnectCALeafName, &cachetype.ConnectCALeaf{
-		RPC:   a.delegate,
+		RPC:   a,
 		Cache: a.cache,
 	}, &cache.RegisterOptions{
 		// Maintain a blocking query, retry dropped connections quickly
@@ -3194,7 +3198,7 @@ func (a *Agent) registerCache() {
 	})
 
 	a.cache.RegisterType(cachetype.IntentionMatchName, &cachetype.IntentionMatch{
-		RPC: a.delegate,
+		RPC: a,
 	}, &cache.RegisterOptions{
 		// Maintain a blocking query, retry dropped connections quickly
 		Refresh:        true,
@@ -3203,26 +3207,28 @@ func (a *Agent) registerCache() {
 	})
 
 	a.cache.RegisterType(cachetype.CatalogServicesName, &cachetype.CatalogServices{
-		RPC: a.delegate,
+		RPC: a,
 	}, &cache.RegisterOptions{
 		// Maintain a blocking query, retry dropped connections quickly
 		Refresh:        true,
 		RefreshTimer:   0 * time.Second,
 		RefreshTimeout: 10 * time.Minute,
-		// Clean up cache and background blocking quickly since traffic might be
-		// transient.
-		LastGetTTL: 3 * time.Hour,
 	})
+
 	a.cache.RegisterType(cachetype.HealthServicesName, &cachetype.HealthServices{
-		RPC: a.delegate,
+		RPC: a,
 	}, &cache.RegisterOptions{
 		// Maintain a blocking query, retry dropped connections quickly
 		Refresh:        true,
 		RefreshTimer:   0 * time.Second,
 		RefreshTimeout: 10 * time.Minute,
-		// Clean up cache and background blocking quickly since traffic might be
-		// transient.
-		LastGetTTL: 3 * time.Hour,
+	})
+
+	a.cache.RegisterType(cachetype.PreparedQueryName, &cachetype.PreparedQuery{
+		RPC: a,
+	}, &cache.RegisterOptions{
+		// Prepared queries don't support blocking
+		Refresh: false,
 	})
 }
 

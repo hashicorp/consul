@@ -219,6 +219,10 @@ func (c *ConnectCALeaf) waitNewRootCA(datacenter string, ch chan<- error,
 	ch <- nil
 }
 
+func (c *ConnectCALeaf) SupportsBlocking() bool {
+	return true
+}
+
 // ConnectCALeafRequest is the cache.Request implementation for the
 // ConnectCALeaf cache type. This is implemented here and not in structs
 // since this is only used for cache-related requests and not forwarded
