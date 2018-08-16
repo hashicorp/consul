@@ -28,7 +28,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 
 	// Add some state
 	fsm.state.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
-	fsm.state.EnsureNode(2, &structs.Node{Node: "baz", Address: "127.0.0.2", TaggedAddresses: map[string]string{"hello": "1.2.3.4"}})
+	fsm.state.EnsureNode(2, &structs.Node{Node: "baz", Address: "127.0.0.2", TaggedAddresses: map[string]string{"hello": "1.2.3.4"}, Meta: map[string]string{"testMeta": "testing123"}})
 	fsm.state.EnsureService(3, "foo", &structs.NodeService{ID: "web", Service: "web", Tags: nil, Address: "127.0.0.1", Port: 80})
 	fsm.state.EnsureService(4, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"primary"}, Address: "127.0.0.1", Port: 5000})
 	fsm.state.EnsureService(5, "baz", &structs.NodeService{ID: "web", Service: "web", Tags: nil, Address: "127.0.0.2", Port: 80})
@@ -166,6 +166,8 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	}
 	if nodes[0].Node != "baz" ||
 		nodes[0].Address != "127.0.0.2" ||
+		len(nodes[0].Meta) != 1 ||
+		nodes[0].Meta["testMeta"] != "testing123" ||
 		len(nodes[0].TaggedAddresses) != 1 ||
 		nodes[0].TaggedAddresses["hello"] != "1.2.3.4" {
 		t.Fatalf("bad: %v", nodes[0])
