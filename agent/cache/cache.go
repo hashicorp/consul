@@ -84,6 +84,7 @@ type typeEntry struct {
 type ResultMeta struct {
 	// Return whether or not the request was a cache hit
 	Hit bool
+	Age time.Duration
 }
 
 // Options are options for the Cache.
@@ -204,30 +205,76 @@ RETRY_GET:
 	entry, ok := c.entries[key]
 	c.entriesLock.RUnlock()
 
-	// If we have a current value and the index is greater than the
-	// currently stored index then we return that right away. If the
-	// index is zero and we have something in the cache we accept whatever
-	// we have.
-	if ok && entry.Valid {
-		if info.MinIndex == 0 || info.MinIndex < entry.Index {
-			meta := ResultMeta{}
-			if first {
-				metrics.IncrCounter([]string{"consul", "cache", t, "hit"}, 1)
-				meta.Hit = true
-			}
+	// Get the type that we're fetching
+	c.typesLock.RLock()
+	tEntry, ok := c.types[t]
+	c.typesLock.RUnlock()
+	if !ok {
+		// Shouldn't happen given that we successfully fetched this at least
+		// once. But be robust against panics.
+		return nil, ResultMeta{}, fmt.Errorf("unknown type in cache: %s", t)
+	}
 
-			// Touch the expiration and fix the heap.
-			c.entriesLock.Lock()
-			entry.Expiry.Reset()
-			c.entriesExpiryHeap.Fix(entry.Expiry)
-			c.entriesLock.Unlock()
+	// Check if we have a hit
+	cacheHit := ok && entry.Valid
 
-			// We purposely do not return an error here since the cache
-			// only works with fetching values that either have a value
-			// or have an error, but not both. The Error may be non-nil
-			// in the entry because of this to note future fetch errors.
-			return entry.Value, meta, nil
+	supportsBlocking := tEntry.Type.SupportsBlocking()
+
+	// Check index is not specified or lower than value, or the type doesn't
+	// support blocking.
+	if cacheHit && supportsBlocking &&
+		info.MinIndex > 0 && info.MinIndex >= entry.Index {
+		// MinIndex was given and matches or is higher than current value so we
+		// ignore the cache and fallthrough to blocking on a new value below.
+		cacheHit = false
+	}
+
+	// Check MaxAge is not exceeded if this is not a background refreshing type
+	// and MaxAge was specified.
+	if cacheHit && !tEntry.Opts.Refresh && info.MaxAge > 0 &&
+		!entry.FetchedAt.IsZero() && info.MaxAge < time.Since(entry.FetchedAt) {
+		cacheHit = false
+	}
+
+	// Check if we are requested to revalidate. If so the first time round the
+	// loop is not a hit but subsequent ones should be treated normally.
+	if cacheHit && !tEntry.Opts.Refresh && info.MustRevalidate && first {
+		cacheHit = false
+	}
+
+	if cacheHit {
+		meta := ResultMeta{}
+		if first {
+			metrics.IncrCounter([]string{"consul", "cache", t, "hit"}, 1)
+			meta.Hit = true
 		}
+
+		// If refresh is enabled, calculate age based on whether the background
+		// routine is still connected.
+		if tEntry.Opts.Refresh {
+			meta.Age = time.Duration(0)
+			if !entry.RefreshLostContact.IsZero() {
+				meta.Age = time.Since(entry.RefreshLostContact)
+			}
+		} else {
+			// For non-background refresh types, the age is just how long since we
+			// fetched it last.
+			if !entry.FetchedAt.IsZero() {
+				meta.Age = time.Since(entry.FetchedAt)
+			}
+		}
+
+		// Touch the expiration and fix the heap.
+		c.entriesLock.Lock()
+		entry.Expiry.Reset()
+		c.entriesExpiryHeap.Fix(entry.Expiry)
+		c.entriesLock.Unlock()
+
+		// We purposely do not return an error here since the cache
+		// only works with fetching values that either have a value
+		// or have an error, but not both. The Error may be non-nil
+		// in the entry because of this to note future fetch errors.
+		return entry.Value, meta, nil
 	}
 
 	// If this isn't our first time through and our last value has an error,
@@ -334,11 +381,39 @@ func (c *Cache) fetch(t, key string, r Request, allowNew bool, attempt uint) (<-
 
 	// The actual Fetch must be performed in a goroutine.
 	go func() {
+		// If we have background refresh and currently are in "disconnected" state,
+		// waiting for a response might mean we mark our results as stale for up to
+		// 10 minutes (max blocking timeout) after connection is restored. To reduce
+		// that window, we assume that if the fetch takes more than 31 seconds then
+		// they are correctly blocking. We choose 31 seconds because yamux
+		// keepalives are every 30 seconds so the RPC should fail if the packets are
+		// being blackholed for more than 30 seconds.
+		var connectedTimer *time.Timer
+		if tEntry.Opts.Refresh && entry.Index > 0 &&
+			tEntry.Opts.RefreshTimeout > (31*time.Second) {
+			connectedTimer = time.AfterFunc(31*time.Second, func() {
+				c.entriesLock.Lock()
+				defer c.entriesLock.Unlock()
+				entry, ok := c.entries[key]
+				if !ok || entry.RefreshLostContact.IsZero() {
+					return
+				}
+				entry.RefreshLostContact = time.Time{}
+				c.entries[key] = entry
+			})
+		}
+
+		fOpts := FetchOptions{}
+		if tEntry.Type.SupportsBlocking() {
+			fOpts.MinIndex = entry.Index
+			fOpts.Timeout = tEntry.Opts.RefreshTimeout
+		}
+
 		// Start building the new entry by blocking on the fetch.
-		result, err := tEntry.Type.Fetch(FetchOptions{
-			MinIndex: entry.Index,
-			Timeout:  tEntry.Opts.RefreshTimeout,
-		}, r)
+		result, err := tEntry.Type.Fetch(fOpts, r)
+		if connectedTimer != nil {
+			connectedTimer.Stop()
+		}
 
 		// Copy the existing entry to start.
 		newEntry := entry
@@ -347,6 +422,7 @@ func (c *Cache) fetch(t, key string, r Request, allowNew bool, attempt uint) (<-
 			// A new value was given, so we create a brand new entry.
 			newEntry.Value = result.Value
 			newEntry.Index = result.Index
+			newEntry.FetchedAt = time.Now()
 			if newEntry.Index < 1 {
 				// Less than one is invalid unless there was an error and in this case
 				// there wasn't since a value was returned. If a badly behaved RPC
@@ -387,6 +463,12 @@ func (c *Cache) fetch(t, key string, r Request, allowNew bool, attempt uint) (<-
 				// for the future.
 				attempt++
 			}
+
+			// If we have refresh active, this successful response means cache is now
+			// "connected" and should not be stale. Reset the lost contact timer.
+			if tEntry.Opts.Refresh {
+				newEntry.RefreshLostContact = time.Time{}
+			}
 		} else {
 			metrics.IncrCounter([]string{"consul", "cache", "fetch_error"}, 1)
 			metrics.IncrCounter([]string{"consul", "cache", t, "fetch_error"}, 1)
@@ -400,6 +482,14 @@ func (c *Cache) fetch(t, key string, r Request, allowNew bool, attempt uint) (<-
 			// we want Error to be set so that we can return early with the
 			// error.
 			newEntry.Error = err
+
+			// If we are refreshing and just failed, updated the lost contact time as
+			// our cache will be stale until we get successfully reconnected. We only
+			// set this on the first failure (if it's zero) so we can track how long
+			// it's been since we had a valid connection/up-to-date view of the state.
+			if tEntry.Opts.Refresh && newEntry.RefreshLostContact.IsZero() {
+				newEntry.RefreshLostContact = time.Now()
+			}
 		}
 
 		// Create a new waiter that will be used for the next fetch.
@@ -470,7 +560,11 @@ func (c *Cache) refresh(opts *RegisterOptions, attempt uint, t string, key strin
 
 	// If we're over the attempt minimum, start an exponential backoff.
 	if attempt > CacheRefreshBackoffMin {
-		waitTime := (1 << (attempt - CacheRefreshBackoffMin)) * time.Second
+		shift := attempt - CacheRefreshBackoffMin
+		waitTime := CacheRefreshMaxWait
+		if shift < 31 {
+			waitTime = (1 << shift) * time.Second
+		}
 		if waitTime > CacheRefreshMaxWait {
 			waitTime = CacheRefreshMaxWait
 		}

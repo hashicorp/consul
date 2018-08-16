@@ -567,6 +567,146 @@ func TestParseSource(t *testing.T) {
 	}
 }
 
+func TestParseCacheControl(t *testing.T) {
+
+	tests := []struct {
+		name      string
+		headerVal string
+		want      structs.QueryOptions
+		wantErr   bool
+	}{
+		{
+			name:      "empty header",
+			headerVal: "",
+			want:      structs.QueryOptions{},
+			wantErr:   false,
+		},
+		{
+			name:      "simple max-age",
+			headerVal: "max-age=30",
+			want: structs.QueryOptions{
+				MaxAge: 30 * time.Second,
+			},
+			wantErr: false,
+		},
+		{
+			name:      "zero max-age",
+			headerVal: "max-age=0",
+			want: structs.QueryOptions{
+				MustRevalidate: true,
+			},
+			wantErr: false,
+		},
+		{
+			name:      "must-revalidate",
+			headerVal: "must-revalidate",
+			want: structs.QueryOptions{
+				MustRevalidate: true,
+			},
+			wantErr: false,
+		},
+		{
+			name:      "mixes age, must-revalidate",
+			headerVal: "max-age=123, must-revalidate",
+			want: structs.QueryOptions{
+				MaxAge:         123 * time.Second,
+				MustRevalidate: true,
+			},
+			wantErr: false,
+		},
+		{
+			name:      "quoted max-age",
+			headerVal: "max-age=\"30\"",
+			want:      structs.QueryOptions{},
+			wantErr:   true,
+		},
+		{
+			name:      "mixed case max-age",
+			headerVal: "Max-Age=30",
+			want: structs.QueryOptions{
+				MaxAge: 30 * time.Second,
+			},
+			wantErr: false,
+		},
+		{
+			name:      "simple stale-if-error",
+			headerVal: "stale-if-error=300",
+			want: structs.QueryOptions{
+				StaleIfError: 300 * time.Second,
+			},
+			wantErr: false,
+		},
+		{
+			name:      "combined with space",
+			headerVal: "max-age=30, stale-if-error=300",
+			want: structs.QueryOptions{
+				MaxAge:       30 * time.Second,
+				StaleIfError: 300 * time.Second,
+			},
+			wantErr: false,
+		},
+		{
+			name:      "combined no space",
+			headerVal: "stale-IF-error=300,max-age=30",
+			want: structs.QueryOptions{
+				MaxAge:       30 * time.Second,
+				StaleIfError: 300 * time.Second,
+			},
+			wantErr: false,
+		},
+		{
+			name:      "unsupported directive",
+			headerVal: "no-cache",
+			want:      structs.QueryOptions{},
+			wantErr:   false,
+		},
+		{
+			name:      "mixed unsupported directive",
+			headerVal: "no-cache, max-age=120",
+			want: structs.QueryOptions{
+				MaxAge: 120 * time.Second,
+			},
+			wantErr: false,
+		},
+		{
+			name:      "garbage value",
+			headerVal: "max-age=\"I'm not, an int\"",
+			want:      structs.QueryOptions{},
+			wantErr:   true,
+		},
+		{
+			name:      "garbage value with quotes",
+			headerVal: "max-age=\"I'm \\\"not an int\"",
+			want:      structs.QueryOptions{},
+			wantErr:   true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require := require.New(t)
+
+			r, _ := http.NewRequest("GET", "/foo/bar", nil)
+			if tt.headerVal != "" {
+				r.Header.Set("Cache-Control", tt.headerVal)
+			}
+
+			rr := httptest.NewRecorder()
+			var got structs.QueryOptions
+
+			failed := parseCacheControl(rr, r, &got)
+			if tt.wantErr {
+				require.True(failed)
+				require.Equal(http.StatusBadRequest, rr.Code)
+			} else {
+				require.False(failed)
+			}
+
+			require.Equal(tt.want, got)
+		})
+	}
+}
+
 func TestParseWait(t *testing.T) {
 	t.Parallel()
 	resp := httptest.NewRecorder()
