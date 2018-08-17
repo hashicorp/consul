@@ -37,12 +37,13 @@ the leader via the Raft consensus protocol.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required |
-| ---------------- | ----------------- | ------------ |
-| `NO`             | `all`<sup>1</sup> | `key:read,key:write`<sup>2</sup> |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `NO`             | `all`<sup>1</sup> | `none`        | `key:read,key:write`<sup>2</sup> |
 
 <sup>1</sup> For read-only transactions
 <br>

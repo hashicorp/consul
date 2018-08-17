@@ -25,12 +25,13 @@ This endpoint reads the current raft configuration.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes     | ACL Required    |
-| ---------------- | --------------------- | --------------- |
-| `NO`             | `default` and `stale` | `operator:read` |
+| Blocking Queries | Consistency Modes     | Agent Caching | ACL Required    |
+| ---------------- | --------------------- | ------------- | --------------- |
+| `NO`             | `default` and `stale` | `none`        | `operator:read` |
 
 ### Parameters
 
@@ -122,12 +123,13 @@ write privileges.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required     |
-| ---------------- | ----------------- | ---------------- |
-| `NO`             | `none`            | `operator:write` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
+| ---------------- | ----------------- | ------------- | ---------------- |
+| `NO`             | `none`            | `none`        | `operator:write` |
 
 ### Parameters
 
