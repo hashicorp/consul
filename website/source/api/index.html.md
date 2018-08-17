@@ -122,9 +122,10 @@ staleness of a result and take appropriate action.
 ## Agent Caching
 
 Some read endpoints support agent caching. They are clearly marked in the
-documentation. Agent caching can take two forms depending on the endpoint's
-semantics. The docs for each endpoint clearly identify which if any form of
-caching is supported.
+documentation. Agent caching can take two forms, [`simple`](#simple-caching) or 
+[`background refresh`](#blocking-refresh-caching) depending on the endpoint's 
+semantics. The documentation for each endpoint clearly identify which if any 
+form of caching is supported. The details for each are described below.
 
 Where supported, caching can be enabled though the `?cached` parameter.
 Combining `?cached` with `?consistent` is an error.
@@ -154,6 +155,12 @@ For example, assuming there is a cached response that is 65 seconds old, and
 that the servers are currently unavailable, `Cache-Control: max-age=30` will
 result in a 500 error, while `Cache-Control: max-age=30 stale-if-error=259200`
 will result in the cached response being returned.
+
+A request setting either `max-age=0` or `must-revalidate` directives will cause
+the agent to re-fetch the response from servers always. Either can be combined
+with `stale-if-error=<seconds>` to ensure fresh results when the servers are
+available, but falling back to cached results if the request to the servers
+fails.
 
 In all cases the HTTP `X-Cache` header is always set in the response to either
 `HIT` or `MISS` indicating whether the response was served from cache or not.

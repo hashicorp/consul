@@ -27,12 +27,13 @@ existing intention or delete it prior to creating a new one.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required                   |
-| ---------------- | ----------------- | ------------------------------ |
-| `NO`             | `none`            | `intentions:write`<sup>1</sup> |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required                    |
+| ---------------- | ----------------- | ------------- | ------------------------------- |
+| `NO`             | `none`            | `none`        | `intentions:write`<sup>1</sup>  |
 
 <sup>1</sup> Intention ACL rules are specified as part of a `service` rule.
 See [Intention Management Permissions](/docs/connect/intentions.html#intention-management-permissions) for more details.
@@ -97,12 +98,13 @@ This endpoint reads a specific intention.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required    |
-| ---------------- | ----------------- | --------------- |
-| `YES`            | `all`             | `intentions:read`<sup>1</sup> |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
+| ---------------- | ----------------- | ------------- | --------------- |
+| `YES`            | `all`             | `none`        | `intentions:read`<sup>1</sup> |
 
 <sup>1</sup> Intention ACL rules are specified as part of a `service` rule.
 See [Intention Management Permissions](/docs/connect/intentions.html#intention-management-permissions) for more details.
@@ -152,12 +154,13 @@ This endpoint lists all intentions.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required    |
-| ---------------- | ----------------- | --------------- |
-| `YES`            | `all`             | `intentions:read`<sup>1</sup> |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
+| ---------------- | ----------------- | ------------- | --------------- |
+| `YES`            | `all`             | `none`        | `intentions:read`<sup>1</sup> |
 
 <sup>1</sup> Intention ACL rules are specified as part of a `service` rule.
 See [Intention Management Permissions](/docs/connect/intentions.html#intention-management-permissions) for more details.
@@ -204,12 +207,13 @@ This endpoint updates an intention with the given values.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required     |
-| ---------------- | ----------------- | ---------------- |
-| `NO`             | `none`            | `intentions:write`<sup>1</sup> |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
+| ---------------- | ----------------- | ------------- | ---------------- |
+| `NO`             | `none`            | `none`        | `intentions:write`<sup>1</sup> |
 
 
 <sup>1</sup> Intention ACL rules are specified as part of a `service` rule.
@@ -252,12 +256,13 @@ This endpoint deletes a specific intention.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required     |
-| ---------------- | ----------------- | ---------------- |
-| `NO`             | `none`            | `intentions:write`<sup>1</sup> |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
+| ---------------- | ----------------- | ------------- | --------------- |
+| `NO`             | `none`            | `none`        | `intentions:write`<sup>1</sup> |
 
 
 <sup>1</sup> Intention ACL rules are specified as part of a `service` rule.
@@ -293,12 +298,13 @@ does not contain any information about the intention itself.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required     |
-| ---------------- | ----------------- | ---------------- |
-| `NO`             | `none`            | `intentions:read`<sup>1</sup> |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
+| ---------------- | ----------------- | ------------- | -------------- |
+| `NO`             | `none`            | `none`        | `intentions:read`<sup>1</sup> |
 
 <sup>1</sup> Intention ACL rules are specified as part of a `service` rule.
 See [Intention Management Permissions](/docs/connect/intentions.html#intention-management-permissions) for more details.
@@ -339,12 +345,13 @@ The intentions in the response are in evaluation order.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required    |
-| ---------------- | ----------------- | --------------- |
-| `NO`             | `none`            | `intentions:read`<sup>1</sup> |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
+| ---------------- | ----------------- | ------------- | -------------- |
+| `NO`             | `none`            | `none`        | `intentions:read`<sup>1</sup> |
 
 <sup>1</sup> Intention ACL rules are specified as part of a `service` rule.
 See [Intention Management Permissions](/docs/connect/intentions.html#intention-management-permissions) for more details.
