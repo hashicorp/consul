@@ -788,6 +788,9 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	base.SerfLANConfig.MemberlistConfig.ProbeTimeout = a.config.GossipLANProbeTimeout
 	base.SerfLANConfig.MemberlistConfig.SuspicionMult = a.config.GossipLANSuspicionMult
 	base.SerfLANConfig.MemberlistConfig.RetransmitMult = a.config.GossipLANRetransmitMult
+	if a.config.ReconnectTimeoutLAN != 0 {
+		base.SerfLANConfig.ReconnectTimeout = a.config.ReconnectTimeoutLAN
+	}
 
 	if a.config.SerfBindAddrWAN != nil {
 		base.SerfWANConfig.MemberlistConfig.BindAddr = a.config.SerfBindAddrWAN.IP.String()
@@ -802,6 +805,9 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 		base.SerfWANConfig.MemberlistConfig.ProbeTimeout = a.config.GossipWANProbeTimeout
 		base.SerfWANConfig.MemberlistConfig.SuspicionMult = a.config.GossipWANSuspicionMult
 		base.SerfWANConfig.MemberlistConfig.RetransmitMult = a.config.GossipWANRetransmitMult
+		if a.config.ReconnectTimeoutWAN != 0 {
+			base.SerfWANConfig.ReconnectTimeout = a.config.ReconnectTimeoutWAN
+		}
 	} else {
 		// Disable serf WAN federation
 		base.SerfWANConfig = nil
@@ -809,13 +815,6 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 
 	base.RPCAddr = a.config.RPCBindAddr
 	base.RPCAdvertise = a.config.RPCAdvertiseAddr
-
-	if a.config.ReconnectTimeoutLAN != 0 {
-		base.SerfLANConfig.ReconnectTimeout = a.config.ReconnectTimeoutLAN
-	}
-	if a.config.ReconnectTimeoutWAN != 0 {
-		base.SerfWANConfig.ReconnectTimeout = a.config.ReconnectTimeoutWAN
-	}
 
 	base.Segment = a.config.SegmentName
 	if len(a.config.Segments) > 0 {

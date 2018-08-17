@@ -196,6 +196,19 @@ func TestAgent_ReconnectConfigSettings(t *testing.T) {
 	}()
 }
 
+func TestAgent_ReconnectConfigWanDisabled(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t.Name(), `
+		ports { serf_wan = -1 }
+		reconnect_timeout_wan = "36h"
+	`)
+	defer a.Shutdown()
+
+	// This is also testing that we dont panic like before #4515
+	require.Nil(t, a.consulConfig().SerfWANConfig)
+}
+
 func TestAgent_setupNodeID(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), `
