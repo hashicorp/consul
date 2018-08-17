@@ -1,6 +1,6 @@
 REQ=262144
 CLIENTS=64
-ADDR=http://127.0.0.1:8500/v1/kv/bench
+ADDR=http://localhost:8500/v1/kv/bench
 DATA="74a31e96-1d0f-4fa7-aa14-7212a326986e"
 MAXPROCS=4
 

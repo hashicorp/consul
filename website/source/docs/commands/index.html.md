@@ -67,7 +67,7 @@ HTTP API Options
      The `address` and port of the Consul HTTP agent. The value can be
      an IP address or DNS address, but it must also include the port.
      This can also be specified via the CONSUL_HTTP_ADDR environment
-     variable. The default value is http://127.0.0.1:8500. The scheme
+     variable. The default value is http://localhost:8500. The scheme
      can also be set to HTTPS by setting the environment variable
      CONSUL_HTTP_SSL=true.
 
@@ -116,7 +116,7 @@ This is the HTTP API address to the *local* Consul agent
 (not the remote server) specified as a URI:
 
 ```
-CONSUL_HTTP_ADDR=127.0.0.1:8500
+CONSUL_HTTP_ADDR=localhost:8500
 ```
 
 or as a Unix socket path:

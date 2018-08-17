@@ -23,7 +23,7 @@ increased the number of requests to try to get a better sample.
 
 ```
 ===== PUT test =====
-GOMAXPROCS=4 boom -m PUT -d "74a31e96-1d0f-4fa7-aa14-7212a326986e" -n 262144 -c 64 http://127.0.0.1:8500/v1/kv/bench
+GOMAXPROCS=4 boom -m PUT -d "74a31e96-1d0f-4fa7-aa14-7212a326986e" -n 262144 -c 64 http://localhost:8500/v1/kv/bench
 262144 / 262144 Booooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo! 100.00 %
 
 Summary:
@@ -61,7 +61,7 @@ Latency distribution:
   99% in 0.0489 secs.
 
 ===== GET default test =====
-GOMAXPROCS=4 boom -n 262144 -c 64 http://127.0.0.1:8500/v1/kv/bench
+GOMAXPROCS=4 boom -n 262144 -c 64 http://localhost:8500/v1/kv/bench
 262144 / 262144 Booooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo! 100.00 %
 
 Summary:
@@ -99,7 +99,7 @@ Latency distribution:
   99% in 0.0228 secs.
 
 ===== GET stale test =====
-GOMAXPROCS=4 boom -n 262144 -c 64 http://127.0.0.1:8500/v1/kv/bench?stale
+GOMAXPROCS=4 boom -n 262144 -c 64 http://localhost:8500/v1/kv/bench?stale
 262144 / 262144 Booooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo! 100.00 %
 
 Summary:
@@ -137,7 +137,7 @@ Latency distribution:
   99% in 0.0203 secs.
 
 ===== GET consistent test =====
-GOMAXPROCS=4 boom -n 262144 -c 64 http://127.0.0.1:8500/v1/kv/bench?consistent
+GOMAXPROCS=4 boom -n 262144 -c 64 http://localhost:8500/v1/kv/bench?consistent
 262144 / 262144 Booooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo! 100.00 %
 
 Summary:
@@ -182,7 +182,7 @@ leader itself and collected pprof data. Here's the output of the benchmark:
 
 ```
 ===== GET stale test =====
-GOMAXPROCS=4 boom -n 262144 -c 64 http://127.0.0.1:8500/v1/kv/bench?stale
+GOMAXPROCS=4 boom -n 262144 -c 64 http://localhost:8500/v1/kv/bench?stale
 262144 / 262144 Booooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo! 100.00 %
 
 Summary:

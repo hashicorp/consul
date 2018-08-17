@@ -225,7 +225,7 @@ file. To use this approach, omit `acl_master_token` from the above config and th
 ```text
 $ curl \
     --request PUT \
-    http://127.0.0.1:8500/v1/acl/bootstrap
+    http://localhost:8500/v1/acl/bootstrap
 
 {"ID":"fe3b8d40-0ee0-8783-6cc2-ab1aa9bb16c1"}
 ```
@@ -262,7 +262,7 @@ $ curl \
   "Name": "Agent Token",
   "Type": "client",
   "Rules": "node \"\" { policy = \"write\" } service \"\" { policy = \"read\" }"
-}' http://127.0.0.1:8500/v1/acl/create
+}' http://localhost:8500/v1/acl/create
 
 {"ID":"fe3b8d40-0ee0-8783-6cc2-ab1aa9bb16c1"}
 ```
@@ -290,7 +290,7 @@ $ curl \
     --data \
 '{
   "Token": "fe3b8d40-0ee0-8783-6cc2-ab1aa9bb16c1"
-}' http://127.0.0.1:8500/v1/agent/token/acl_agent_token
+}' http://localhost:8500/v1/agent/token/acl_agent_token
 ```
 
 With that ACL agent token set, the servers will be able to sync themselves with the
@@ -325,7 +325,7 @@ $ curl \
     --data \
 '{
   "Token": "fe3b8d40-0ee0-8783-6cc2-ab1aa9bb16c1"
-}' http://127.0.0.1:8500/v1/agent/token/acl_agent_token
+}' http://localhost:8500/v1/agent/token/acl_agent_token
 ```
 
 We used the same ACL agent token that we created for the servers, which will work since
@@ -379,7 +379,7 @@ $ curl \
   "ID": "anonymous",
   "Type": "client",
   "Rules": "node \"\" { policy = \"read\" }"
-}' http://127.0.0.1:8500/v1/acl/update
+}' http://localhost:8500/v1/acl/update
 
 {"ID":"anonymous"}
 ```
@@ -432,7 +432,7 @@ $ curl \
   "ID": "anonymous",
   "Type": "client",
   "Rules": "node \"\" { policy = \"read\" } service \"consul\" { policy = \"read\" }"
-}' http://127.0.0.1:8500/v1/acl/update
+}' http://localhost:8500/v1/acl/update
 
 {"ID":"anonymous"}
 ```
@@ -498,7 +498,7 @@ $ curl \
   "Name": "UI Token",
   "Type": "client",
   "Rules": "key \"\" { policy = \"write\" } node \"\" { policy = \"read\" } service \"\" { policy = \"read\" }"
-}' http://127.0.0.1:8500/v1/acl/create
+}' http://localhost:8500/v1/acl/create
 {"ID":"d0a9f330-2f9d-0a8c-d2af-1e9ceda354e6"}
 ```
 
