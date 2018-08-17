@@ -379,6 +379,17 @@ func TestDynamicTLSConfig_Ready(t *testing.T) {
 	require.NoError(err)
 	assertNotBlocked(t, readyCh)
 	require.True(c.Ready(), "should be ready")
+
+	ca2 := connect.TestCA(t, nil)
+	ca2cfg := TestTLSConfig(t, "web", ca2)
+
+	require.NoError(c.SetRoots(ca2cfg.RootCAs))
+	assertNotBlocked(t, readyCh)
+	require.False(c.Ready(), "invalid leaf, should not be ready")
+
+	require.NoError(c.SetRoots(baseCfg.RootCAs))
+	assertNotBlocked(t, readyCh)
+	require.True(c.Ready(), "should be ready")
 }
 
 func assertBlocked(t *testing.T, ch <-chan struct{}) {
