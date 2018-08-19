@@ -486,7 +486,7 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `node` `(string: <required>)` - Specifies the ID of the node to be forced into `left` state. This is specified as part of the URL.
+- `node` `(string: <required>)` - Specifies the name of the node to be forced into `left` state. This is specified as part of the URL.
 
 ### Sample Request
 
