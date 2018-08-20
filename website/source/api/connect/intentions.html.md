@@ -32,7 +32,7 @@ The table below shows this endpoint's support for
 
 | Blocking Queries | Consistency Modes | ACL Required     |
 | ---------------- | ----------------- | ---------------- |
-| `NO`             | `none`            | `service:write` |
+| `NO`             | `none`            | `service {intentions:write}` |
 
 ### Parameters
 
