@@ -21,9 +21,10 @@ All API routes are prefixed with `/v1/`. This documentation is only for the v1 A
 Several endpoints in Consul use or require ACL tokens to operate. An agent
 can be configured to use a default token in requests using the `acl_token`
 configuration option. However, the token can also be specified per-request
-by using the `X-Consul-Token` request header or the `token` query string
-parameter. The request header takes precedence over the default token, and
-the query string parameter takes precedence over everything.
+by using the `X-Consul-Token` request header or Bearer header in Authorization
+header or the `token` query string parameter. The request header takes
+precedence over the default token, and the query string parameter takes
+precedence over everything.
 
 For more details about ACLs, please see the [ACL Guide](/docs/guides/acl.html).
 

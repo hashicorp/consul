@@ -32,7 +32,8 @@ The type is either "client" (meaning the token cannot modify ACL rules) or "mana
 
 The token ID is passed along with each RPC request to the servers. Consul's
 [HTTP endpoints](/api/index.html) can accept tokens via the `token`
-query string parameter, or the `X-Consul-Token` request header. Consul's
+query string parameter, or the `X-Consul-Token` request header, or Authorization Bearer
+token [RFC6750](https://tools.ietf.org/html/rfc6750). Consul's
 [CLI commands](/docs/commands/index.html) can accept tokens via the
 `token` argument, or the `CONSUL_HTTP_TOKEN` environment variable.
 
@@ -612,9 +613,9 @@ On success, the token ID is returned:
 ```
 
 This token ID can then be passed into Consul's HTTP APIs via the `token`
-query string parameter, or the `X-Consul-Token` request header, or Consul's
-CLI commands via the `token` argument, or the `CONSUL_HTTP_TOKEN` environment
-variable.
+query string parameter, or the `X-Consul-Token` request header, or Authorization
+Bearer token header, or Consul's CLI commands via the `token` argument,
+or the `CONSUL_HTTP_TOKEN` environment variable.
 
 #### Agent Rules
 

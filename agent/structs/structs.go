@@ -46,6 +46,7 @@ const (
 	IntentionRequestType                   = 12
 	ConnectCARequestType                   = 13
 	ConnectCAProviderStateType             = 14
+	ConnectCAConfigType                    = 15 // FSM snapshots only.
 )
 
 const (

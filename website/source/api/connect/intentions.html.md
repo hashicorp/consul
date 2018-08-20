@@ -31,9 +31,13 @@ The table below shows this endpoint's support for
 [agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
-| ---------------- | ----------------- | ------------- | ---------------- |
-| `NO`             | `none`            | `none`        | `service:write`  |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required                   |
+| ---------------- | ----------------- | ------------- | ------------------------------ |
+| `NO`             | `none`            | `none`        | `intentions:write`<sup>1</sup  |
+
+<sup>1</sup> Intention ACL rules are specified as part of a `service` rule.
+See [Intention Management Permissions](/docs/connect/intentions.html#intention-management-permissions) for more details.
+
 
 ### Parameters
 
@@ -101,7 +105,10 @@ The table below shows this endpoint's support for
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |
-| `YES`            | `all`             | `none`        | `service:read`  |
+| `YES`            | `all`             | `none`        | `intentions:read`<sup>1</sup>  |
+
+<sup>1</sup> Intention ACL rules are specified as part of a `service` rule.
+See [Intention Management Permissions](/docs/connect/intentions.html#intention-management-permissions) for more details.
 
 ### Parameters
 
@@ -154,7 +161,11 @@ The table below shows this endpoint's support for
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |
-| `YES`            | `all`             | `none`        | `service:read`  |
+| `YES`            | `all`             | `none`        | `intentions:read`<sup>1</sup>  |
+
+<sup>1</sup> Intention ACL rules are specified as part of a `service` rule.
+See [Intention Management Permissions](/docs/connect/intentions.html#intention-management-permissions) for more details.
+
 
 ### Sample Request
 
@@ -204,7 +215,10 @@ The table below shows this endpoint's support for
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
 | ---------------- | ----------------- | ------------- | ---------------- |
-| `NO`             | `none`            | `none`        | `service:write`  |
+| `NO`             | `none`            | `none`        | `intentions:write`<sup>1</sup> |
+
+<sup>1</sup> Intention ACL rules are specified as part of a `service` rule.
+See [Intention Management Permissions](/docs/connect/intentions.html#intention-management-permissions) for more details.
 
 ### Parameters
 
@@ -249,7 +263,10 @@ The table below shows this endpoint's support for
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |
-| `NO`             | `none`            | `none`        | `service:write` |
+| `NO`             | `none`            | `none`        | `intentions:write`<sup>1</sup> |
+
+<sup>1</sup> Intention ACL rules are specified as part of a `service` rule.
+See [Intention Management Permissions](/docs/connect/intentions.html#intention-management-permissions) for more details.
 
 ### Parameters
 
@@ -287,7 +304,10 @@ The table below shows this endpoint's support for
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
 | ---------------- | ----------------- | ------------- | -------------- |
-| `NO`             | `none`            | `none`        | `service:read` |
+| `NO`             | `none`            | `none`        | `intentions:read`<sup>1</sup> |
+
+<sup>1</sup> Intention ACL rules are specified as part of a `service` rule.
+See [Intention Management Permissions](/docs/connect/intentions.html#intention-management-permissions) for more details.
 
 ### Parameters
 
@@ -331,7 +351,10 @@ The table below shows this endpoint's support for
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
 | ---------------- | ----------------- | ------------- | -------------- |
-| `NO`             | `none`            | `none`        | `service:read` |
+| `NO`             | `none`            | `none`        | `intentions:read`<sup>1</sup> |
+
+<sup>1</sup> Intention ACL rules are specified as part of a `service` rule.
+See [Intention Management Permissions](/docs/connect/intentions.html#intention-management-permissions) for more details.
 
 ### Parameters
 

@@ -267,6 +267,17 @@ func (s *Store) EnsureRegistration(idx uint64, req *structs.RegisterRequest) err
 	return nil
 }
 
+func (s *Store) ensureCheckIfNodeMatches(tx *memdb.Txn, idx uint64, node string, check *structs.HealthCheck) error {
+	if check.Node != node {
+		return fmt.Errorf("check node %q does not match node %q",
+			check.Node, node)
+	}
+	if err := s.ensureCheckTxn(tx, idx, check); err != nil {
+		return fmt.Errorf("failed inserting check: %s on node %q", err, check.Node)
+	}
+	return nil
+}
+
 // ensureRegistrationTxn is used to make sure a node, service, and check
 // registration is performed within a single transaction to avoid race
 // conditions on state updates.
@@ -316,21 +327,13 @@ func (s *Store) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, req *structs.Re
 
 	// Add the checks, if any.
 	if req.Check != nil {
-		if req.Check.Node != req.Node {
-			return fmt.Errorf("check node %q does not match node %q",
-				req.Check.Node, req.Node)
-		}
-		if err := s.ensureCheckTxn(tx, idx, req.Check); err != nil {
-			return fmt.Errorf("failed inserting check: %s", err)
+		if err := s.ensureCheckIfNodeMatches(tx, idx, req.Node, req.Check); err != nil {
+			return err
 		}
 	}
 	for _, check := range req.Checks {
-		if check.Node != req.Node {
-			return fmt.Errorf("check node %q does not match node %q",
-				check.Node, req.Node)
-		}
-		if err := s.ensureCheckTxn(tx, idx, check); err != nil {
-			return fmt.Errorf("failed inserting check: %s", err)
+		if err := s.ensureCheckIfNodeMatches(tx, idx, req.Node, check); err != nil {
+			return err
 		}
 	}
 
