@@ -632,6 +632,10 @@ func TestCacheGet_expire(t *testing.T) {
 	require.Equal(42, result)
 	require.False(meta.Hit)
 
+	// Wait for a non-trivial amount of time to sanity check the age increases at
+	// least this amount. Note that this is not a fudge for some timing-dependent
+	// background work it's just ensuring a non-trivial time elapses between the
+	// request above and below serilaly in this thread so short time is OK.
 	time.Sleep(5 * time.Millisecond)
 
 	// Get, should not fetch, verified via the mock assertions above
@@ -990,7 +994,10 @@ func TestCacheGet_nonRefreshAge(t *testing.T) {
 	}
 
 	{
-		// Wait a few milliseconds after fetch
+		// Wait for a non-trivial amount of time to sanity check the age increases at
+		// least this amount. Note that this is not a fudge for some timing-dependent
+		// background work it's just ensuring a non-trivial time elapses between the
+		// request above and below serilaly in this thread so short time is OK.
 		time.Sleep(5 * time.Millisecond)
 
 		// Fetch again, non-blocking

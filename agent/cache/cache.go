@@ -82,8 +82,23 @@ type typeEntry struct {
 // ResultMeta is returned from Get calls along with the value and can be used
 // to expose information about the cache status for debugging or testing.
 type ResultMeta struct {
-	// Return whether or not the request was a cache hit
+	// Hit indicates whether or not the request was a cache hit
 	Hit bool
+
+	// Age identifies how "stale" the result is. It's semantics differ based on
+	// whether or not the cache type performs background refresh or not as defined
+	// in https://www.consul.io/api/index.html#agent-caching.
+	//
+	// For background refresh types, Age is 0 unless the background blocking query
+	// is currently in a failed state and so not keeping up with the server's
+	// values. If it is non-zero it represents the time since the first failure to
+	// connect during background refresh, and is reset after a background request
+	// does manage to reconnect and either return successfully, or block for at
+	// least the yamux keepalive timeout of 30 seconds (which indicates the
+	// connection is OK but blocked as expected).
+	//
+	// For simple cache types, Age is the time since the result being returned was
+	// fetched from the servers.
 	Age time.Duration
 }
 
