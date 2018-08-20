@@ -372,7 +372,11 @@ func (r *ServiceSpecificRequest) CacheInfo() cache.RequestInfo {
 
 	// To calculate the cache key we hash over all the fields that affect the
 	// output other than Datacenter and Token which are dealt with in the cache
-	// framework already.
+	// framework already. Note the order here is important for the outcome - if we
+	// ever care about cache-invalidation on updates e.g. because we persist
+	// cached results, we need to be careful we maintain the same order of fields
+	// here. We could alternatively use `hash:set` struct tag on an anonymous
+	// struct to make it more robust if it becomes significant.
 	v, err := hashstructure.Hash([]interface{}{
 		r.NodeMetaFilters,
 		r.ServiceName,
