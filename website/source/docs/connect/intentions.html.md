@@ -124,10 +124,10 @@ of the intention, not the source.
 
 Intention permissions are by default implicitly granted at `read` level
 when granting `service:read` or `service:write`. This is because a
-service registered that want's to use Connect needs `intentions:read`
-for it's own service name in order to know whether or not to authorize
-connections. The following ACL policy will implicitly grant `intentions:read`
-for service web.
+service registered that wants to use Connect needs `intentions:read`
+for its own service name in order to know whether or not to authorize
+connections. The following ACL policy will implicitly grant `intentions:read` 
+(note _read_) for service `web`.
 
 ```hcl
 service "web" {
@@ -141,7 +141,7 @@ access to read intentions for it.
 
 ```hcl
 service "web" {
-  policy = "write"
+  policy = "read"
   intentions = "deny"
 }
 ```
@@ -151,14 +151,15 @@ service uses to register itself or it's proxy. If the token used does not
 have `intentions:read` then the agent will be unable to resolve intentions
 for the service and so will not be able to authorize any incoming connections.
 
-**Security Note:** Explicitly allowing `intentions:write` on the token you
+~> **Security Note:** Explicitly allowing `intentions:write` on the token you
 provide to a service instance at registration time opens up a significant
-additional vulnerability. Although you may trust the service team to define
-which inbound connections they accept, using a combined token allows a
-compromised instance to to redefine the intentions which allows many additional
-attack vectors. We strongly recommend only delegating `intentions:write` using
-tokens that are used by operations teams or orchestrators rather than spread via
-application config, or only manage intentions with management tokens.
+additional vulnerability. Although you may trust the service _team_ to define
+which inbound connections they accept, using a combined token for registration 
+allows a compromised instance to to redefine the intentions which allows many 
+additional attack vectors and may be hard to detect. We strongly recommend only 
+delegating `intentions:write` using tokens that are used by operations teams or
+orchestrators rather than spread via application config, or only manage 
+intentions with management tokens.
 
 ## Performance and Intention Updates
 
