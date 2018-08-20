@@ -122,13 +122,13 @@ Permissions for intentions are _destination-oriented_, meaning the ACLs
 for managing intentions are looked up based on the destination value
 of the intention, not the source.
 
-Intention permissions are first inherited from `service` management permissions.
-For example, the ACL below would allow _read_ access to intentions with a
-destination starting with "web":
+Intention permissions are first inherited from `service` management permissions, but
+only as readable. For example, the ACL below would allow _read_ access to intentions
+with a destination starting with "web":
 
 ```hcl
 service "web" {
-  policy = "read"
+  policy = "write"
 }
 ```
 
@@ -139,7 +139,7 @@ intentions:
 ```hcl
 service "web" {
   policy = "write"
-  intention = "deny"
+  intentions = "deny"
 }
 ```
 
