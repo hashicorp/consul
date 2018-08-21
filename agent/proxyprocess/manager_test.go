@@ -1,4 +1,4 @@
-package proxy
+package proxyprocess
 
 import (
 	"io/ioutil"
