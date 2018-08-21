@@ -205,7 +205,7 @@ func (s *Server) forward(method string, info structs.RPCInfo, args interface{}, 
 	}
 
 	// Check if we can allow a stale read, ensure our local DB is initialized
-	if info.IsRead() && info.AllowStaleRead() && s.raft.AppliedIndex() > 2 {
+	if info.IsRead() && info.AllowStaleRead() && !s.raft.LastContact().IsZero() {
 		return false, nil
 	}
 
