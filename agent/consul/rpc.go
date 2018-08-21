@@ -319,7 +319,7 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 			s.logger.Printf("[WARN] consul.rpc: RPC request to DC %q is currently failing as no server can be reached", dc)
 			return structs.ErrDCNotAvailable
 		}
-		s.logger.Printf("[WARN] consul.rpc: RPC request for unknown DC %q", dc)
+		s.logger.Printf("[WARN] consul.rpc: RPC request for DC %q, no path found (method: %s)", dc, method)
 		return structs.ErrNoDCPath
 	}
 
@@ -327,7 +327,7 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 		[]metrics.Label{{Name: "datacenter", Value: dc}})
 	if err := s.connPool.RPC(dc, server.Addr, server.Version, method, server.UseTLS, args, reply); err != nil {
 		manager.NotifyFailedServer(server)
-		s.logger.Printf("[ERR] consul: RPC failed to server %s in DC %q: %v", server.Addr, dc, err)
+		s.logger.Printf("[ERR] consul: RPC failed to server %s in DC %q: %v (method: %s)", server.Addr, dc, err, method)
 		return err
 	}
 
