@@ -72,8 +72,7 @@ func TestRPC_NoLeader_Fail_on_stale_read(t *testing.T) {
 		t.Fatalf("bad: %v", err)
 	}
 
-	// Now make sure it goes through.
-	//testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	// Until leader has never been known, stale should fail
 	getKeysReq := structs.KeyListRequest{
 		Datacenter:   "dc1",
 		Prefix:       "",
