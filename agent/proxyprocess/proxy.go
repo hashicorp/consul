@@ -5,7 +5,7 @@
 //
 // This package does not contain the built-in proxy for Connect. The source
 // for that is available in the "connect/proxy" package.
-package proxy
+package proxyprocess
 
 import (
 	"github.com/hashicorp/consul/agent/structs"
