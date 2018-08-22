@@ -8,9 +8,13 @@ export default Route.extend(WithKvActions, {
   repo: service('kv'),
   beforeModel: function(transition) {
     const url = get(transition, 'intent.url');
-    const search = '/create/';
+    let search = '/create/';
     if (url && url.endsWith(search)) {
-      return this.replaceWith('dc.kv.folder', this.paramsFor(this.routeName).key + search);
+      const key = this.paramsFor(this.routeName).key || '';
+      if (key === '') {
+        search = 'create/';
+      }
+      return this.replaceWith('dc.kv.folder', key + search);
     }
     get(this, 'repo').invalidate();
   },
@@ -28,7 +32,7 @@ export default Route.extend(WithKvActions, {
         if (e.errors && e.errors[0] && e.errors[0].status == '404') {
           const url = get(transition, 'intent.url');
           if (url.endsWith('/create')) {
-            return this.transitionTo('dc.kv.folder', key + '/create/');
+            this.replaceWith('dc.kv.folder', key + '/create/');
           }
         }
       }),

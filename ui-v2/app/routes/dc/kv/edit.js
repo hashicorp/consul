@@ -27,7 +27,7 @@ export default Route.extend(WithKvActions, {
         if (e.errors && e.errors[0] && e.errors[0].status == '404') {
           const url = get(transition, 'intent.url');
           if (url.endsWith('/edit')) {
-            return this.replaceWith('dc.kv.folder', key + '/edit/');
+            this.replaceWith('dc.kv.folder', key + '/edit/');
           }
         }
       }),

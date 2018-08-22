@@ -34,7 +34,7 @@ export default Route.extend(WithKvActions, {
         ...model,
         ...{
           items: repo.findAllBySlug(get(model.parent, 'Key'), dc).catch(e => {
-            return this.transitionTo('dc.kv.index');
+            this.replaceWith('dc.kv.index');
           }),
         },
       });

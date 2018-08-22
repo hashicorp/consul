@@ -7,7 +7,7 @@ export default Route.extend({
     this._super(...arguments);
     const params = this.paramsFor('dc.kv.folder');
     if (params.key === '/' || params.key == null) {
-      return this.transitionTo('dc.kv.index');
+      return this.replaceWith('dc.kv.index');
     }
   },
 });

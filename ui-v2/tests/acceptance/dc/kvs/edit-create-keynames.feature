@@ -17,7 +17,7 @@ Feature: dc / kvs / edit create keynames
     ---
     Then the url should be /datacenter/kv/foo/bar/[Action]/
     And I see 1 kv model
-    # And the last GET request was made to "/v1/kv/foo/bar/[Action]/?keys&dc=datacenter&separator=%2F"
+    And the last GET request was made to "/v1/kv/foo/bar/[Action]/?keys&dc=datacenter&separator=%2F"
   Where:
     ----------
     | Action |
@@ -25,7 +25,6 @@ Feature: dc / kvs / edit create keynames
     | create |
     ----------
 
-@ignore
   Scenario: I have 1 key in the foo/bar/[Action]/ folder and I visit without a trailing slash
     Given 1 kv model from yaml
     ---
@@ -39,7 +38,7 @@ Feature: dc / kvs / edit create keynames
     ---
     Then the url should be /datacenter/kv/foo/bar/[Action]/
     And I see 1 kv model
-    # And the last GET request was made to "/v1/kv/foo/bar/[Action]/?keys&dc=datacenter&separator=%2F"
+    And the last GET request was made to "/v1/kv/foo/bar/[Action]/?keys&dc=datacenter&separator=%2F"
   Where:
     ----------
     | Action |
