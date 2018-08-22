@@ -4,7 +4,23 @@ import { hash } from 'rsvp';
 import { get } from '@ember/object';
 import isFolder from 'consul-ui/utils/isFolder';
 import WithKvActions from 'consul-ui/mixins/kv/with-actions';
-
+/**
+ * Certain KV routes container extra `beforeModel` hooks to hedge for the
+ * fact that the `consul` binary has some 301 redirects to remove
+ * trailing slashes, whereas when testing/developing in ember this isn't replicated.
+ * There are various 'problems' related to this, including potential problems related
+ * to `create` and `edit` endpoints which could cause issues if someone has KV's
+ * called `create` or `edit`.
+ *
+ * Extra `modelFor` hooks are added in the create, edit Routes, plus one below here for
+ * more general issues with the binary 301 redirects.
+ *
+ * Lastly, documentation has been added here only to refer to all routes in KV, as
+ * `index` seemed to be the best place to do it without repeating.
+ *
+ * See https://github.com/hashicorp/consul/pull/4411, https://github.com/hashicorp/consul/pull/4373
+ *
+ */
 export default Route.extend(WithKvActions, {
   queryParams: {
     s: {
