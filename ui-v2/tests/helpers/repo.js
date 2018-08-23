@@ -71,9 +71,9 @@ export default function(name, method, service, stub, test, assert) {
       });
     } else {
       if (typeof response.get === 'function') {
-        actual = get(res, 'data');
+        actual = get(response, 'data');
       } else {
-        actual = res;
+        actual = response;
       }
     }
     return actual;
