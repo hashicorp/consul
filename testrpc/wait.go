@@ -26,6 +26,20 @@ func WaitForLeader(t *testing.T, rpc rpcFn, dc string) {
 	})
 }
 
+// WaitUntilNoLeader ensures no leader is present, useful for testing lost leadership.
+func WaitUntilNoLeader(t *testing.T, rpc rpcFn, dc string) {
+	var out structs.IndexedNodes
+	retry.Run(t, func(r *retry.R) {
+		args := &structs.DCSpecificRequest{Datacenter: dc}
+		if err := rpc("Catalog.ListNodes", args, &out); err == nil {
+			r.Fatalf("It still has a leader: %#q", out)
+		}
+		if out.QueryMeta.KnownLeader {
+			r.Fatalf("Has still a leader")
+		}
+	})
+}
+
 // WaitForTestAgent ensures we have a node with serfHealth check registered
 func WaitForTestAgent(t *testing.T, rpc rpcFn, dc string) {
 	var nodes structs.IndexedNodes
