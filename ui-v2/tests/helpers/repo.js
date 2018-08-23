@@ -51,11 +51,11 @@ export default function(name, method, service, stub, test, assert) {
   const adapter = get(service, 'store').adapterFor(name.toLowerCase());
   let tags = {};
   const requestHeaders = function(url, cookies = {}) {
-    const key = Object.keys(cookies).filter(function(item) {
+    const key = Object.keys(cookies).find(function(item) {
       return item.indexOf('COUNT') !== -1;
     });
     tags = {
-      count: key.length > 0 ? parseInt(cookies[key[0]]) : 1,
+      count: typeof key !== 'undefined' ? parseInt(cookies[key]) : 1,
     };
     return httpGet(url, {
       headers: {
