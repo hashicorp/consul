@@ -7,3 +7,5 @@
 //= require analytics
 //= require gsap-custom
 //= require animations
+//= require os-detect
+//= require downloads
