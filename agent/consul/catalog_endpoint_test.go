@@ -1514,20 +1514,17 @@ func TestCatalog_ListServices_Stale(t *testing.T) {
 		t.Fatalf("bad: %#v", out.Services)
 	}
 
-	if out.Services["consul"] == nil {
-		t.Fatalf("expected consul service.ID, had: %#v", out)
-	}
-
 	if !out.KnownLeader {
 		t.Fatalf("should have a leader: %v", out)
 	}
 
 	s1.Leave()
 	s1.Shutdown()
-	os.RemoveAll(dir1)
+
+	testrpc.WaitUntilNoLeader(t, s2.RPC, "dc1")
 
 	args.AllowStale = false
-	// Run the query, do not wait for leader, never any contact with leader, should fail
+	// Since the leader is now down, non-stale query should fail now
 	if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out); err == nil || err.Error() != structs.ErrNoLeader.Error() {
 		t.Fatalf("expected %v but got err: %v and %v", structs.ErrNoLeader, err, out)
 	}
@@ -1543,8 +1540,8 @@ func TestCatalog_ListServices_Stale(t *testing.T) {
 		t.Fatalf("bad: %#v", out)
 	}
 
-	if out.Services["consul"] == nil {
-		t.Fatalf("expected consul service.ID, had: %#v", out)
+	if out.KnownLeader {
+		t.Fatalf("should not have a leader anymore: %#v", out)
 	}
 }
 
