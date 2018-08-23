@@ -221,6 +221,12 @@ Examples:
 rewrite edns0 local set 0xffee {client_ip}
 ~~~
 
+The following example rewrites the `schmoogle.com` suffix to `google.com`.
+
+~~~
+rewrite name suffix .schmoogle.com. .google.com.
+~~~
+
 The following example uses metadata and an imaginary "some-plugin" that would provide "some-label" as metadata information.
 
 ~~~
