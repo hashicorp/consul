@@ -27,7 +27,7 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/local"
-	"github.com/hashicorp/consul/agent/proxyprocess"
+	"github.com/hashicorp/consul/agent/proxy"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/systemd"
 	"github.com/hashicorp/consul/agent/token"
@@ -210,7 +210,7 @@ type Agent struct {
 	tokens *token.Store
 
 	// proxyManager is the proxy process manager for managed Connect proxies.
-	proxyManager *proxyprocess.Manager
+	proxyManager *proxy.Manager
 
 	// proxyLock protects proxy information in the local state from concurrent modification
 	proxyLock sync.Mutex
@@ -372,7 +372,7 @@ func (a *Agent) Start() error {
 	// done here after the local state above is loaded in so we can have
 	// a more accurate initial state view.
 	if !c.ConnectTestDisableManagedProxies {
-		a.proxyManager = proxyprocess.NewManager()
+		a.proxyManager = proxy.NewManager()
 		a.proxyManager.AllowRoot = a.config.ConnectProxyAllowManagedRoot
 		a.proxyManager.State = a.State
 		a.proxyManager.Logger = a.logger

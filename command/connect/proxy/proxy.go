@@ -12,7 +12,7 @@ import (
 	"sort"
 	"strconv"
 
-	proxyAgent "github.com/hashicorp/consul/agent/proxyprocess"
+	proxyAgent "github.com/hashicorp/consul/agent/proxy"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	proxyImpl "github.com/hashicorp/consul/connect/proxy"

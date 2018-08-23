@@ -1,4 +1,4 @@
-package proxyprocess
+package proxy
 
 // defaultTestProxy is the test proxy that is instantiated for proxies with
 // an execution mode of ProxyExecModeTest.

@@ -1,4 +1,4 @@
-package proxyprocess
+package proxy
 
 // Noop implements Proxy and does nothing.
 type Noop struct{}
