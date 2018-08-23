@@ -19,15 +19,15 @@ test('findAllBySlug returns the correct data for list endpoint', function(assert
     'Kv',
     'findAllBySlug',
     this.subject(),
-    function(stub) {
+    function retrieveTest(stub) {
       return stub(`/v1/kv/${id}?keys&dc=${dc}`, {
         CONSUL_KV_COUNT: '1',
       });
     },
-    function(service) {
+    function performTest(service) {
       return service.findAllBySlug(id, dc);
     },
-    function(actual, expected) {
+    function performAssertion(actual, expected) {
       assert.deepEqual(
         actual,
         expected(function(payload) {

@@ -18,15 +18,15 @@ test('findByDatacenter returns the correct data for list endpoint', function(ass
     'Service',
     'findAllByDatacenter',
     this.subject(),
-    function(stub) {
+    function retrieveStub(stub) {
       return stub(`/v1/internal/ui/services?dc=${dc}`, {
         CONSUL_SERVICE_COUNT: '100',
       });
     },
-    function(service) {
+    function performTest(service) {
       return service.findAllByDatacenter(dc);
     },
-    function(actual, expected) {
+    function performAssertion(actual, expected) {
       assert.deepEqual(
         actual,
         expected(function(payload) {

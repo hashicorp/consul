@@ -21,15 +21,15 @@ test('findAll returns the correct data for list endpoint', function(assert) {
     'Dc',
     'findAll',
     this.subject(),
-    function(stub) {
+    function retrieveStub(stub) {
       return stub(`/v1/catalog/datacenters`, {
         CONSUL_DATACENTER_COUNT: '100',
       });
     },
-    function(service) {
+    function performTest(service) {
       return service.findAll();
     },
-    function(actual, expected) {
+    function performAssertion(actual, expected) {
       assert.deepEqual(
         actual,
         expected(function(payload) {

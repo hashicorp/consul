@@ -19,15 +19,15 @@ test('findByNode returns the correct data for list endpoint', function(assert) {
     'Session',
     'findByNode',
     this.subject(),
-    function(stub) {
+    function retrieveStub(stub) {
       return stub(`/v1/session/node/${id}?dc=${dc}`, {
         CONSUL_SESSION_COUNT: '100',
       });
     },
-    function(service) {
+    function performTest(service) {
       return service.findByNode(id, dc);
     },
-    function(actual, expected) {
+    function performAssertion(actual, expected) {
       assert.deepEqual(
         actual,
         expected(function(payload) {

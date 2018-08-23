@@ -19,15 +19,15 @@ test('findAllByDatacenter returns the correct data for list endpoint', function(
     'Intention',
     'findAllByDatacenter',
     this.subject(),
-    function(stub) {
+    function retrieveStub(stub) {
       return stub(`/v1/connect/intentions?dc=${dc}`, {
         CONSUL_INTENTION_COUNT: '100',
       });
     },
-    function(service) {
+    function performTest(service) {
       return service.findAllByDatacenter(dc);
     },
-    function(actual, expected) {
+    function performAssertion(actual, expected) {
       assert.deepEqual(
         actual,
         expected(function(payload) {
