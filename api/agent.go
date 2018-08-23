@@ -38,6 +38,18 @@ const (
 	ProxyExecModeScript ProxyExecMode = "script"
 )
 
+// UpstreamDestType is the type of upstream discovery mechanism.
+type UpstreamDestType string
+
+const (
+	// UpstreamDestTypeService discovers instances via healthy service lookup.
+	UpstreamDestTypeService UpstreamDestType = "service"
+
+	// UpstreamDestTypePreparedQuery discovers instances via prepared query
+	// execution.
+	UpstreamDestTypePreparedQuery UpstreamDestType = "prepared_query"
+)
+
 // AgentCheck represents a check known to the agent
 type AgentCheck struct {
 	Node        string
@@ -63,8 +75,10 @@ type AgentService struct {
 	EnableTagOverride bool
 	CreateIndex       uint64
 	ModifyIndex       uint64
-	ProxyDestination  string
-	Connect           *AgentServiceConnect
+	// ProxyDestination is DEPRECATED
+	ProxyDestination string
+	Proxy            *AgentServiceConnectProxyConfig
+	Connect          *AgentServiceConnect
 }
 
 // AgentServiceConnect represents the Connect configuration of a service.
@@ -76,9 +90,21 @@ type AgentServiceConnect struct {
 // AgentServiceConnectProxy represents the Connect Proxy configuration of a
 // service.
 type AgentServiceConnectProxy struct {
-	ExecMode ProxyExecMode
-	Command  []string
-	Config   map[string]interface{}
+	ExecMode  ProxyExecMode
+	Command   []string
+	Config    map[string]interface{}
+	Upstreams []Upstream
+}
+
+// AgentServiceConnectProxyConfig is the proxy configuration in a connect-proxy
+// ServiceDefinition or response.
+type AgentServiceConnectProxyConfig struct {
+	DestinationServiceName string
+	DestinationServiceID   string `json:",omitempty"`
+	LocalServiceAddress    string `json:",omitempty"`
+	LocalServicePort       int    `json:",omitempty"`
+	Config                 map[string]interface{}
+	Upstreams              []Upstream
 }
 
 // AgentMember represents a cluster member known to the agent
@@ -121,8 +147,10 @@ type AgentServiceRegistration struct {
 	Meta              map[string]string `json:",omitempty"`
 	Check             *AgentServiceCheck
 	Checks            AgentServiceChecks
-	ProxyDestination  string               `json:",omitempty"`
-	Connect           *AgentServiceConnect `json:",omitempty"`
+	// ProxyDestination is DEPRECATED
+	ProxyDestination string                          `json:",omitempty"`
+	Proxy            *AgentServiceConnectProxyConfig `json:",omitempty"`
+	Connect          *AgentServiceConnect            `json:",omitempty"`
 }
 
 // AgentCheckRegistration is used to register a new check
@@ -228,6 +256,16 @@ type ConnectProxyConfig struct {
 	ExecMode          ProxyExecMode
 	Command           []string
 	Config            map[string]interface{}
+}
+
+// Upstream is the response structure for a proxy upstream configuration.
+type Upstream struct {
+	DestinationType      UpstreamDestType `json:",omitempty"`
+	DestinationNamespace string           `json:",omitempty"`
+	DestinationName      string
+	Datacenter           string `json:",omitempty"`
+	LocalBindAddress     string `json:",omitempty"`
+	LocalBindPort        int    `json:",omitempty"`
 }
 
 // Agent can be used to query the Agent endpoints

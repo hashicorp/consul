@@ -488,7 +488,7 @@ $ curl \
 - `ServiceKind` is the kind of service, usually "". See the Agent
   registration API for more information.
 
-- `ServiceProxyDestination` is the name of the service that is being proxied,
+- `ServiceProxy.DestinationServiceName` is the name of the service that is being proxied,
   for "connect-proxy" type services.
 
 - `ServiceConnect` are the [Connect](/docs/connect/index.html) settings. The

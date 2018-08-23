@@ -144,7 +144,6 @@ func testServiceNode() *ServiceNode {
 			"service": "metadata",
 		},
 		ServiceEnableTagOverride: true,
-		ServiceProxyDestination:  "cats",
 		RaftIndex: RaftIndex{
 			CreateIndex: 1,
 			ModifyIndex: 2,
@@ -225,19 +224,19 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 
 		{
 			"connect-proxy: no ProxyDestination",
-			func(x *NodeService) { x.ProxyDestination = "" },
+			func(x *NodeService) { x.Proxy.DestinationServiceName = "" },
 			"ProxyDestination must be",
 		},
 
 		{
 			"connect-proxy: whitespace ProxyDestination",
-			func(x *NodeService) { x.ProxyDestination = "  " },
+			func(x *NodeService) { x.Proxy.DestinationServiceName = "  " },
 			"ProxyDestination must be",
 		},
 
 		{
 			"connect-proxy: valid ProxyDestination",
-			func(x *NodeService) { x.ProxyDestination = "hello" },
+			func(x *NodeService) { x.Proxy.DestinationServiceName = "hello" },
 			"",
 		},
 
@@ -283,7 +282,12 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 		},
 		Port:              1234,
 		EnableTagOverride: true,
-		ProxyDestination:  "db",
+		Proxy: ConnectProxyConfig{
+			DestinationServiceName: "db",
+			Config: map[string]interface{}{
+				"foo": "bar",
+			},
+		},
 	}
 	if !ns.IsSame(ns) {
 		t.Fatalf("should be equal to itself")
@@ -301,7 +305,12 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 			"meta2": "value2",
 			"meta1": "value1",
 		},
-		ProxyDestination: "db",
+		Proxy: ConnectProxyConfig{
+			DestinationServiceName: "db",
+			Config: map[string]interface{}{
+				"foo": "bar",
+			},
+		},
 		RaftIndex: RaftIndex{
 			CreateIndex: 1,
 			ModifyIndex: 2,
@@ -336,7 +345,11 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 	check(func() { other.Meta["meta2"] = "wrongValue" }, func() { other.Meta["meta2"] = "value2" })
 	check(func() { other.EnableTagOverride = false }, func() { other.EnableTagOverride = true })
 	check(func() { other.Kind = ServiceKindConnectProxy }, func() { other.Kind = "" })
-	check(func() { other.ProxyDestination = "" }, func() { other.ProxyDestination = "db" })
+	check(func() { other.Proxy.DestinationServiceName = "" }, func() { other.Proxy.DestinationServiceName = "db" })
+	check(func() { other.Proxy.DestinationServiceID = "XXX" }, func() { other.Proxy.DestinationServiceName = "" })
+	check(func() { other.Proxy.LocalServiceAddress = "XXX" }, func() { other.Proxy.LocalServiceAddress = "" })
+	check(func() { other.Proxy.LocalServicePort = 9999 }, func() { other.Proxy.LocalServicePort = 0 })
+	check(func() { other.Proxy.Config["baz"] = "XXX" }, func() { delete(other.Proxy.Config, "baz") })
 	check(func() { other.Connect.Native = true }, func() { other.Connect.Native = false })
 }
 

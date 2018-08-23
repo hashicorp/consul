@@ -62,7 +62,7 @@ func TestConsulResolver_Resolve(t *testing.T) {
 		Kind:             "connect-proxy",
 		Name:             "web-proxy",
 		Port:             9090,
-		ProxyDestination: "web",
+			Proxy: structs.ConnectProxyConfig{ 			DestinationServiceName: "web", 		},
 	}
 	err = client.Agent().ServiceRegister(regProxy)
 	require.Nil(t, err)
