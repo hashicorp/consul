@@ -720,6 +720,11 @@ type RuntimeConfig struct {
 	// hcl: log_level = string
 	LogLevel string
 
+	// LogFile is the path to the file where the logs get written to. Defaults to nil.
+	//
+	// hcl: log_file = string
+	LogFile string
+
 	// Node ID is a unique ID for this node across space and time. Defaults
 	// to a randomly-generated ID that persists in the data-dir.
 	//

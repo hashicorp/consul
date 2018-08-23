@@ -3,6 +3,7 @@ package logger
 import (
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"time"
 
@@ -21,6 +22,9 @@ type Config struct {
 
 	// SyslogFacility is the destination for syslog forwarding.
 	SyslogFacility string
+
+	//LogFilePath is the path to write the logs to the user specified file.
+	LogFilePath string
 }
 
 // Setup is used to perform setup of several logging objects:
@@ -84,6 +88,29 @@ func Setup(config *Config, ui cli.Ui) (*logutils.LevelFilter, *GatedWriter, *Log
 		logOutput = io.MultiWriter(logFilter, logWriter, syslog)
 	} else {
 		logOutput = io.MultiWriter(logFilter, logWriter)
+	}
+
+	var logFile io.Writer
+	// Create a file logger if the user has specified the path to the log file
+	// Where do I find a way to include you?
+	if config.LogFilePath != "" {
+		// Check if the file already exists
+		_, err := os.Stat(config.LogFilePath)
+		fileNotExists := os.IsNotExist(err)
+		if fileNotExists {
+			logFile, err = os.Create(config.LogFilePath)
+			if err != nil {
+				ui.Error(fmt.Sprintf("Creating the logfile falied with %s", err))
+			}
+		}
+		// Is this necessary?
+		if logFile == nil {
+			logFile, err = os.OpenFile(config.LogFilePath, os.O_WRONLY|os.O_TRUNC, os.ModePerm)
+			if err != nil {
+				ui.Error(fmt.Sprintf("Opening the logfile falied with %s", err))
+			}
+		}
+		logOutput = io.MultiWriter(logOutput, logFile)
 	}
 	return logFilter, logGate, logWriter, logOutput, true
 }

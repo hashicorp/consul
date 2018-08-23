@@ -190,6 +190,7 @@ func (c *cmd) run(args []string) int {
 		LogLevel:       config.LogLevel,
 		EnableSyslog:   config.EnableSyslog,
 		SyslogFacility: config.SyslogFacility,
+		LogFilePath:    config.LogFile,
 	}
 	logFilter, logGate, logWriter, logOutput, ok := logger.Setup(logConfig, c.UI)
 	if !ok {
