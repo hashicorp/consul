@@ -17,3 +17,6 @@ main,
 #wrapper > footer {
   @extend %content-container;
 }
+html.template-edit main {
+  @extend %content-container-restricted;
+}

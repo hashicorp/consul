@@ -16,12 +16,11 @@ $ideal-content-padding: 33px;
 %viewport-container {
   margin-left: auto;
   margin-right: auto;
-  max-width: $ideal-viewport-width;
 }
 %content-container > * {
   box-sizing: border-box;
 }
-%content-container {
+%content-container-restricted {
   max-width: $ideal-content-width;
 }
 %viewport-container {
