@@ -1,6 +1,6 @@
 // +build darwin linux windows
 
-package proxyprocess
+package proxy
 
 import (
 	"os"

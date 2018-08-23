@@ -1,6 +1,6 @@
 // +build !windows
 
-package proxyprocess
+package proxy
 
 import (
 	"fmt"
