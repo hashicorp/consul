@@ -49,7 +49,7 @@ func TestIndexConnectService_FromObject(t *testing.T) {
 			&structs.ServiceNode{
 				ServiceKind:             structs.ServiceKindConnectProxy,
 				ServiceName:             "db",
-				ServiceProxyDestination: "fOo",
+				Service	Proxy: structs.ConnectProxyConfig{ 			DestinationServiceName: "fOo", 		},
 			},
 			true,
 			[]byte("foo\x00"),

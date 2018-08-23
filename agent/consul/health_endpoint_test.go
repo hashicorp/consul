@@ -865,7 +865,7 @@ service "foo" {
 		args.WriteRequest.Token = "root"
 		args.Service.ID = "foo-proxy-0"
 		args.Service.Service = "foo-proxy"
-		args.Service.ProxyDestination = "bar"
+		args.Service.Proxy.DestinationServiceName = "bar"
 		args.Check = &structs.HealthCheck{
 			Name:      "proxy",
 			Status:    api.HealthPassing,
@@ -877,7 +877,7 @@ service "foo" {
 		args = structs.TestRegisterRequestProxy(t)
 		args.WriteRequest.Token = "root"
 		args.Service.Service = "foo-proxy"
-		args.Service.ProxyDestination = "foo"
+		args.Service.Proxy.DestinationServiceName = "foo"
 		args.Check = &structs.HealthCheck{
 			Name:      "proxy",
 			Status:    api.HealthPassing,
@@ -889,7 +889,7 @@ service "foo" {
 		args = structs.TestRegisterRequestProxy(t)
 		args.WriteRequest.Token = "root"
 		args.Service.Service = "another-proxy"
-		args.Service.ProxyDestination = "foo"
+		args.Service.Proxy.DestinationServiceName = "foo"
 		args.Check = &structs.HealthCheck{
 			Name:      "proxy",
 			Status:    api.HealthPassing,

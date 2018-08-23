@@ -360,7 +360,38 @@ func TestCatalog_Register_ConnectProxy(t *testing.T) {
 	assert.Len(resp.ServiceNodes, 1)
 	v := resp.ServiceNodes[0]
 	assert.Equal(structs.ServiceKindConnectProxy, v.ServiceKind)
-	assert.Equal(args.Service.ProxyDestination, v.ServiceProxyDestination)
+	assert.Equal(args.Service.Proxy.DestinationServiceName, v.ServiceProxy.DestinationServiceName)
+}
+
+func TestCatalog_Register_DeprecatedConnectProxy(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	args := structs.TestRegisterRequestProxy(t)
+	args.Service.ProxyDestination = "legacy"
+	args.Service.Proxy = structs.ConnectProxyConfig{}
+
+	// Register
+	var out struct{}
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+	// List
+	req := structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: args.Service.Service,
+	}
+	var resp structs.IndexedServiceNodes
+	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	assert.Len(resp.ServiceNodes, 1)
+	v := resp.ServiceNodes[0]
+	assert.Equal(structs.ServiceKindConnectProxy, v.ServiceKind)
+	assert.Equal(args.Service.ProxyDestination, v.ServiceProxy.DestinationServiceName)
 }
 
 // Test an invalid ConnectProxy. We don't need to exhaustively test because
@@ -376,13 +407,13 @@ func TestCatalog_Register_ConnectProxy_invalid(t *testing.T) {
 	defer codec.Close()
 
 	args := structs.TestRegisterRequestProxy(t)
-	args.Service.ProxyDestination = ""
+	args.Service.Proxy.DestinationServiceName = ""
 
 	// Register
 	var out struct{}
 	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out)
 	assert.NotNil(err)
-	assert.Contains(err.Error(), "ProxyDestination")
+	assert.Contains(err.Error(), "DestinationServiceName")
 }
 
 // Test that write is required for the proxy destination to register a proxy.
@@ -423,7 +454,7 @@ service "foo" {
 	// Register should fail because we don't have permission on the destination
 	args := structs.TestRegisterRequestProxy(t)
 	args.Service.Service = "foo"
-	args.Service.ProxyDestination = "bar"
+	args.Service.Proxy.DestinationServiceName = "bar"
 	args.WriteRequest.Token = token
 	var out struct{}
 	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out)
@@ -432,7 +463,7 @@ service "foo" {
 	// Register should fail with the right destination but wrong name
 	args = structs.TestRegisterRequestProxy(t)
 	args.Service.Service = "bar"
-	args.Service.ProxyDestination = "foo"
+	args.Service.Proxy.DestinationServiceName = "foo"
 	args.WriteRequest.Token = token
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out)
 	assert.True(acl.IsErrPermissionDenied(err))
@@ -440,7 +471,7 @@ service "foo" {
 	// Register should work with the right destination
 	args = structs.TestRegisterRequestProxy(t)
 	args.Service.Service = "foo"
-	args.Service.ProxyDestination = "foo"
+	args.Service.Proxy.DestinationServiceName = "foo"
 	args.WriteRequest.Token = token
 	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 }
@@ -1770,7 +1801,7 @@ func TestCatalog_ListServiceNodes_ConnectProxy(t *testing.T) {
 	assert.Len(resp.ServiceNodes, 1)
 	v := resp.ServiceNodes[0]
 	assert.Equal(structs.ServiceKindConnectProxy, v.ServiceKind)
-	assert.Equal(args.Service.ProxyDestination, v.ServiceProxyDestination)
+	assert.Equal(args.Service.Proxy.DestinationServiceName, v.ServiceProxy.DestinationServiceName)
 }
 
 func TestCatalog_ListServiceNodes_ConnectDestination(t *testing.T) {
@@ -1792,7 +1823,7 @@ func TestCatalog_ListServiceNodes_ConnectDestination(t *testing.T) {
 
 	// Register the service
 	{
-		dst := args.Service.ProxyDestination
+		dst := args.Service.Proxy.DestinationServiceName
 		args := structs.TestRegisterRequest(t)
 		args.Service.Service = dst
 		var out struct{}
@@ -1803,25 +1834,25 @@ func TestCatalog_ListServiceNodes_ConnectDestination(t *testing.T) {
 	req := structs.ServiceSpecificRequest{
 		Connect:     true,
 		Datacenter:  "dc1",
-		ServiceName: args.Service.ProxyDestination,
+		ServiceName: args.Service.Proxy.DestinationServiceName,
 	}
 	var resp structs.IndexedServiceNodes
 	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
 	assert.Len(resp.ServiceNodes, 1)
 	v := resp.ServiceNodes[0]
 	assert.Equal(structs.ServiceKindConnectProxy, v.ServiceKind)
-	assert.Equal(args.Service.ProxyDestination, v.ServiceProxyDestination)
+	assert.Equal(args.Service.Proxy.DestinationServiceName, v.ServiceProxy.DestinationServiceName)
 
 	// List by non-Connect
 	req = structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
-		ServiceName: args.Service.ProxyDestination,
+		ServiceName: args.Service.Proxy.DestinationServiceName,
 	}
 	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
 	assert.Len(resp.ServiceNodes, 1)
 	v = resp.ServiceNodes[0]
-	assert.Equal(args.Service.ProxyDestination, v.ServiceName)
-	assert.Equal("", v.ServiceProxyDestination)
+	assert.Equal(args.Service.Proxy.DestinationServiceName, v.ServiceName)
+	assert.Equal("", v.ServiceProxy.DestinationServiceName)
 }
 
 // Test that calling ServiceNodes with Connect: true will return
@@ -1905,7 +1936,7 @@ service "foo" {
 		// Register a proxy
 		args := structs.TestRegisterRequestProxy(t)
 		args.Service.Service = "foo-proxy"
-		args.Service.ProxyDestination = "bar"
+		args.Service.Proxy.DestinationServiceName = "bar"
 		args.WriteRequest.Token = "root"
 		var out struct{}
 		assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
@@ -1913,14 +1944,14 @@ service "foo" {
 		// Register a proxy
 		args = structs.TestRegisterRequestProxy(t)
 		args.Service.Service = "foo-proxy"
-		args.Service.ProxyDestination = "foo"
+		args.Service.Proxy.DestinationServiceName = "foo"
 		args.WriteRequest.Token = "root"
 		assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 		// Register a proxy
 		args = structs.TestRegisterRequestProxy(t)
 		args.Service.Service = "another-proxy"
-		args.Service.ProxyDestination = "foo"
+		args.Service.Proxy.DestinationServiceName = "foo"
 		args.WriteRequest.Token = "root"
 		assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 	}
@@ -2060,7 +2091,7 @@ func TestCatalog_NodeServices_ConnectProxy(t *testing.T) {
 	assert.Len(resp.NodeServices.Services, 1)
 	v := resp.NodeServices.Services[args.Service.Service]
 	assert.Equal(structs.ServiceKindConnectProxy, v.Kind)
-	assert.Equal(args.Service.ProxyDestination, v.ProxyDestination)
+	assert.Equal(args.Service.Proxy.DestinationServiceName, v.Proxy.DestinationServiceName)
 }
 
 func TestCatalog_NodeServices_ConnectNative(t *testing.T) {

@@ -183,22 +183,38 @@ func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) 
 			EnableTagOverride: s.EnableTagOverride,
 			CreateIndex:       s.CreateIndex,
 			ModifyIndex:       s.ModifyIndex,
-			ProxyDestination:  s.ProxyDestination,
+			// We no longer set ProxyDestination in response which is a backward
+			// incompatible change from original Connect release. I think it's OK
+			// since that was "beta" and I doubt anyone has built managed proxy
+			// automation against it yet. If they have it's an easy fix.
 		}
+
 		if as.Tags == nil {
 			as.Tags = []string{}
 		}
 		if as.Meta == nil {
 			as.Meta = map[string]string{}
 		}
-		// Attach Connect configs if the exist
+		// Attach Unmanaged Proxy config if exists
+		if s.Kind == structs.ServiceKindConnectProxy {
+			as.Proxy = s.Proxy.ToAPI()
+		}
+
+		// Attach Connect configs if the exist. We use the actual proxy state since
+		// that may have had defaults filled in compared to the config that was
+		// provided with the service as stored in the NodeService here.
 		if proxy, ok := proxies[id+"-proxy"]; ok {
 			as.Connect = &api.AgentServiceConnect{
 				Proxy: &api.AgentServiceConnectProxy{
-					ExecMode: api.ProxyExecMode(proxy.Proxy.ExecMode.String()),
-					Command:  proxy.Proxy.Command,
-					Config:   proxy.Proxy.Config,
+					ExecMode:  api.ProxyExecMode(proxy.Proxy.ExecMode.String()),
+					Command:   proxy.Proxy.Command,
+					Config:    proxy.Proxy.Config,
+					Upstreams: proxy.Proxy.Upstreams.ToAPI(),
 				},
+			}
+		} else if s.Connect.Native {
+			as.Connect = &api.AgentServiceConnect{
+				Native: true,
 			}
 		}
 		agentSvcs[id] = as

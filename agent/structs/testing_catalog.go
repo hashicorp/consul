@@ -41,10 +41,30 @@ func TestNodeService(t testing.T) *NodeService {
 // Connect proxy.
 func TestNodeServiceProxy(t testing.T) *NodeService {
 	return &NodeService{
-		Kind:             ServiceKindConnectProxy,
-		Service:          "connect-proxy",
-		Address:          "127.0.0.2",
-		Port:             2222,
-		ProxyDestination: "web",
+		Kind:    ServiceKindConnectProxy,
+		Service: "web-proxy",
+		Address: "127.0.0.2",
+		Port:    2222,
+		Proxy:   TestConnectProxyConfig(t),
+	}
+}
+
+// TestConnectProxyConfig returns a ConnectProxyConfig representing a valid
+// Connect proxy.
+func TestConnectProxyConfig(t testing.T) ConnectProxyConfig {
+	return ConnectProxyConfig{
+		DestinationServiceName: "web",
+		Upstreams: Upstreams{
+			{
+				DestinationType: UpstreamDestTypeService,
+				DestinationName: "db",
+				LocalBindPort:   9191,
+			},
+			{
+				DestinationType: UpstreamDestTypePreparedQuery,
+				DestinationName: "geo-cache",
+				LocalBindPort:   8181,
+			},
+		},
 	}
 }

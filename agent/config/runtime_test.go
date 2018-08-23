@@ -3896,7 +3896,7 @@ func TestFullConfig(t *testing.T) {
 				Name:             "Kh81CPF6-proxy",
 				Port:             31471,
 				Kind:             "connect-proxy",
-				ProxyDestination: "6L6BVfgH",
+					Proxy: structs.ConnectProxyConfig{ 			DestinationServiceName: "6L6BVfgH", 		},
 			},
 			{
 				ID:                "dLOXpSCI",
