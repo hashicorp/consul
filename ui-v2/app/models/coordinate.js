@@ -9,4 +9,5 @@ export default Model.extend({
   [SLUG_KEY]: attr('string'),
   Coord: attr(),
   Segment: attr('string'),
+  Datacenter: attr('string'),
 });
