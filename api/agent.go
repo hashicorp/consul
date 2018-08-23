@@ -256,6 +256,7 @@ type ConnectProxyConfig struct {
 	ExecMode          ProxyExecMode
 	Command           []string
 	Config            map[string]interface{}
+	Upstreams         []Upstream
 }
 
 // Upstream is the response structure for a proxy upstream configuration.

@@ -1536,8 +1536,8 @@ func TestAgent_RegisterService_ManagedConnectProxy(t *testing.T) {
 	assert.Equal(structs.ProxyExecModeScript, proxy.Proxy.ExecMode)
 	assert.Equal([]string{"proxy.sh"}, proxy.Proxy.Command)
 	assert.Equal(args.Connect.Proxy.Config, proxy.Proxy.Config)
-	assert.Equal(convertAPIToInternalUpstreams(args.Connect.Proxy.Upstreams),
-		proxy.Proxy.Upstreams)
+	assert.Equal(args.Connect.Proxy.Upstreams,
+		proxy.Proxy.Upstreams.ToAPI())
 
 	// Ensure the token was configured
 	assert.Equal("abc123", a.State.ServiceToken("web"))
@@ -1634,24 +1634,6 @@ func TestAgent_RegisterService_ManagedConnectProxyDeprecated(t *testing.T) {
 	// Ensure the token was configured
 	assert.Equal("abc123", a.State.ServiceToken("web"))
 	assert.Equal("abc123", a.State.ServiceToken("web-proxy"))
-}
-
-func convertAPIToInternalUpstreams(upstreams []api.Upstream) []structs.Upstream {
-	if upstreams == nil {
-		return nil
-	}
-	us := make([]structs.Upstream, len(upstreams))
-	for i, u := range upstreams {
-		us[i] = structs.Upstream{
-			DestinationType:      u.DestinationType,
-			DestinationNamespace: u.DestinationNamespace,
-			DestinationName:      u.DestinationName,
-			Datacenter:           u.Datacenter,
-			LocalBindPort:        u.LocalBindPort,
-			LocalBindAddress:     u.LocalBindAddress,
-		}
-	}
-	return us
 }
 
 // This tests local agent service registration with a managed proxy with
@@ -3116,10 +3098,12 @@ func TestAgentConnectProxyConfig_Blocking(t *testing.T) {
 				Config: map[string]interface{}{
 					"bind_port":          1234,
 					"connect_timeout_ms": 500,
+					// Specify upstreams in deprecated nested config way here. We test the
+					// new way in the update case below.
 					"upstreams": []map[string]interface{}{
 						{
 							"destination_name": "db",
-							"local_port":       3131,
+							"local_bind_port":  3131,
 						},
 					},
 				},
@@ -3131,34 +3115,32 @@ func TestAgentConnectProxyConfig_Blocking(t *testing.T) {
 		ProxyServiceID:    "test-proxy",
 		TargetServiceID:   "test",
 		TargetServiceName: "test",
-		ContentHash:       "4662e51e78609569",
+		ContentHash:       "3b493e9e6ca89ddf",
 		ExecMode:          "daemon",
 		Command:           []string{"tubes.sh"},
 		Config: map[string]interface{}{
-			"upstreams": []interface{}{
-				map[string]interface{}{
-					"destination_name": "db",
-					"local_port":       float64(3131),
-				},
-			},
 			"bind_address":          "127.0.0.1",
 			"local_service_address": "127.0.0.1:8000",
 			"bind_port":             int(1234),
 			"connect_timeout_ms":    float64(500),
+		},
+		Upstreams: []api.Upstream{
+			{
+				DestinationType: "service",
+				DestinationName: "db",
+				LocalBindPort:   3131,
+			},
 		},
 	}
 
 	ur, err := copystructure.Copy(expectedResponse)
 	require.NoError(t, err)
 	updatedResponse := ur.(*api.ConnectProxyConfig)
-	updatedResponse.ContentHash = "23b5b6b3767601e1"
-	upstreams := updatedResponse.Config["upstreams"].([]interface{})
-	upstreams = append(upstreams,
-		map[string]interface{}{
-			"destination_name": "cache",
-			"local_port":       float64(4242),
-		})
-	updatedResponse.Config["upstreams"] = upstreams
+	updatedResponse.ContentHash = "54279f999378544"
+	updatedResponse.Upstreams = append(updatedResponse.Upstreams, api.Upstream{
+		DestinationName: "cache",
+		LocalBindPort:   4242,
+	})
 
 	tests := []struct {
 		name       string
@@ -3200,7 +3182,7 @@ func TestAgentConnectProxyConfig_Blocking(t *testing.T) {
 				r2, err := copystructure.Copy(reg)
 				require.NoError(t, err)
 				reg2 := r2.(*structs.ServiceDefinition)
-				reg2.Connect.Proxy.Config = updatedResponse.Config
+				reg2.Connect.Proxy.Upstreams = structs.UpstreamsFromAPI(updatedResponse.Upstreams)
 				req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(r2))
 				resp := httptest.NewRecorder()
 				_, err = a.srv.AgentRegisterService(resp, req)

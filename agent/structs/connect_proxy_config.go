@@ -80,6 +80,15 @@ func (us Upstreams) ToAPI() []api.Upstream {
 	return a
 }
 
+// UpstreamsFromAPI is a helper for converting api.Upstream to Upstream.
+func UpstreamsFromAPI(us []api.Upstream) Upstreams {
+	a := make([]Upstream, len(us))
+	for i, u := range us {
+		a[i] = UpstreamFromAPI(u)
+	}
+	return a
+}
+
 // Upstream represents a singel upstream dependency for a service or proxy. It
 // describes the mechanism used to discover instances to communicate with (the
 // Target) as well as any potential client configuration that may be useful such
@@ -134,6 +143,18 @@ func (u *Upstream) Validate() error {
 func (u *Upstream) ToAPI() api.Upstream {
 	return api.Upstream{
 		DestinationType:      api.UpstreamDestType(u.DestinationType),
+		DestinationNamespace: u.DestinationNamespace,
+		DestinationName:      u.DestinationName,
+		Datacenter:           u.Datacenter,
+		LocalBindAddress:     u.LocalBindAddress,
+		LocalBindPort:        u.LocalBindPort,
+	}
+}
+
+// UpstreamFromAPI is a helper for converting api.Upstream to Upstream.
+func UpstreamFromAPI(u api.Upstream) Upstream {
+	return Upstream{
+		DestinationType:      string(u.DestinationType),
 		DestinationNamespace: u.DestinationNamespace,
 		DestinationName:      u.DestinationName,
 		Datacenter:           u.Datacenter,

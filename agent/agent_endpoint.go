@@ -1119,6 +1119,7 @@ func (s *HTTPServer) AgentConnectProxyConfig(resp http.ResponseWriter, req *http
 				ExecMode:          api.ProxyExecMode(proxy.Proxy.ExecMode.String()),
 				Command:           proxy.Proxy.Command,
 				Config:            config,
+				Upstreams:         proxy.Proxy.Upstreams.ToAPI(),
 			}
 			return contentHash, reply, nil
 		})
