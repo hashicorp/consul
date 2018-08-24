@@ -89,7 +89,7 @@ func UpstreamsFromAPI(us []api.Upstream) Upstreams {
 	return a
 }
 
-// Upstream represents a singel upstream dependency for a service or proxy. It
+// Upstream represents a single upstream dependency for a service or proxy. It
 // describes the mechanism used to discover instances to communicate with (the
 // Target) as well as any potential client configuration that may be useful such
 // as load balancer options, timeouts etc.

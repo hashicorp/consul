@@ -2912,10 +2912,31 @@ func TestFullConfig(t *testing.T) {
 				},
 				{
 					"id": "Kh81CPF6",
+					"kind": "connect-proxy",
 					"name": "Kh81CPF6-proxy",
 					"port": 31471,
-					"kind": "connect-proxy",
-					"proxy_destination": "6L6BVfgH"
+					"proxy": {
+						"config": {
+								"cedGGtZf": "pWrUNiWw"
+						},
+						"destination_service_id": "6L6BVfgH-id",
+						"destination_service_name": "6L6BVfgH",
+						"local_service_address": "127.0.0.2",
+						"local_service_port": 23759,
+						"upstreams": [
+							{
+								"destination_name": "KPtAj2cb",
+								"local_bind_port": 4051
+							},
+							{
+								"destination_name": "KSd8HsRl",
+								"destination_namespace": "9nakw0td",
+								"destination_type": "prepared_query",
+								"local_bind_address": "127.24.88.0",
+								"local_bind_port": 11884
+							}
+						]
+					}
 				}
 			],
 			"session_ttl_min": "26627s",
@@ -3406,7 +3427,28 @@ func TestFullConfig(t *testing.T) {
 					name = "Kh81CPF6-proxy"
 					port = 31471
 					kind = "connect-proxy"
-					proxy_destination = "6L6BVfgH"
+					proxy {
+						destination_service_name = "6L6BVfgH"
+						destination_service_id = "6L6BVfgH-id"
+						local_service_address = "127.0.0.2"
+						local_service_port = 23759
+						config {
+							cedGGtZf = "pWrUNiWw"
+						}
+						upstreams = [
+							{
+								destination_name = "KPtAj2cb"
+								local_bind_port = 4051
+							},
+							{
+								destination_type = "prepared_query"
+								destination_namespace = "9nakw0td"
+								destination_name = "KSd8HsRl"
+								local_bind_port = 11884
+								local_bind_address = "127.24.88.0"
+							},
+						]
+					}
 				}
 			]
 			session_ttl_min = "26627s"
@@ -3892,11 +3934,32 @@ func TestFullConfig(t *testing.T) {
 				},
 			},
 			{
-				ID:               "Kh81CPF6",
-				Name:             "Kh81CPF6-proxy",
-				Port:             31471,
-				Kind:             "connect-proxy",
-					Proxy: structs.ConnectProxyConfig{ 			DestinationServiceName: "6L6BVfgH", 		},
+				ID:   "Kh81CPF6",
+				Name: "Kh81CPF6-proxy",
+				Port: 31471,
+				Kind: "connect-proxy",
+				Proxy: &structs.ConnectProxyConfig{
+					DestinationServiceName: "6L6BVfgH",
+					DestinationServiceID:   "6L6BVfgH-id",
+					LocalServiceAddress:    "127.0.0.2",
+					LocalServicePort:       23759,
+					Config: map[string]interface{}{
+						"cedGGtZf": "pWrUNiWw",
+					},
+					Upstreams: structs.Upstreams{
+						{
+							DestinationName: "KPtAj2cb",
+							LocalBindPort:   4051,
+						},
+						{
+							DestinationType:      "prepared_query",
+							DestinationNamespace: "9nakw0td",
+							DestinationName:      "KSd8HsRl",
+							LocalBindPort:        11884,
+							LocalBindAddress:     "127.24.88.0",
+						},
+					},
+				},
 			},
 			{
 				ID:                "dLOXpSCI",
