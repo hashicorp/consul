@@ -58,6 +58,7 @@ type HealthCheckDefinition struct {
 	// DEPRECATED in Consul 1.4.1. Use the above time.Duration fields instead.
 	Interval                       ReadableDuration
 	Timeout                        ReadableDuration
+	WarningThreshold               ReadableDuration
 	DeregisterCriticalServiceAfter ReadableDuration
 }
 

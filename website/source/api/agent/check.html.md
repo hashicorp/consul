@@ -202,6 +202,10 @@ The table below shows this endpoint's support for
 
 - `Status` `(string: "")` - Specifies the initial status of the health check.
 
+- `WarningThreshold` `(string: "")` - An optional duration for HTTP/TCP HealthChecks.
+  If the check is `passing` but this duration exceeds this value, the check will
+  be considered as having a `warning` state.
+
 ### Sample Payload
 
 ```json
@@ -219,7 +223,8 @@ The table below shows this endpoint's support for
   "TCP": "example.com:22",
   "Interval": "10s",
   "TTL": "15s",
-  "TLSSkipVerify": true
+  "TLSSkipVerify": true,
+  "WarningThreshold": "250ms",
 }
 ```
 

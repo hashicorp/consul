@@ -28,6 +28,7 @@ func FixupCheckType(raw interface{}) error {
 		"docker_container_id":               "DockerContainerID",
 		"tls_skip_verify":                   "TLSSkipVerify",
 		"service_id":                        "ServiceID",
+		"warningthreshold":                  "WarningThreshold",
 	})
 
 	parseDuration := func(v interface{}) (time.Duration, error) {
@@ -80,7 +81,7 @@ func FixupCheckType(raw interface{}) error {
 			}
 			rawMap[k] = h
 
-		case "ttl", "interval", "timeout", "deregistercriticalserviceafter":
+		case "ttl", "interval", "timeout", "deregistercriticalserviceafter", "warningthreshold":
 			d, err := parseDuration(v)
 			if err != nil {
 				return fmt.Errorf("invalid %q: %v", k, err)

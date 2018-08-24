@@ -68,6 +68,9 @@ func (c *CheckType) Validate() error {
 	if !intervalCheck && !c.IsAlias() && c.TTL <= 0 {
 		return fmt.Errorf("TTL must be > 0 for TTL checks")
 	}
+	if c.WarningThreshold < 0 {
+		return fmt.Errorf("WarningThreshold must be 0 or positive")
+	}
 	return nil
 }
 
