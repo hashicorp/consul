@@ -1,6 +1,10 @@
 import Mixin from '@ember/object/mixin';
 import { get } from '@ember/object';
+import { assert } from '@ember/debug';
 export default Mixin.create({
+  resize: function(e) {
+   assert('with-resizing.resize needs to be overridden', false);
+  },
   win: window,
   init: function() {
     this._super(...arguments);
@@ -11,7 +15,6 @@ export default Mixin.create({
       });
     };
   },
-  resize: function(e) {},
   didInsertElement: function() {
     this._super(...arguments);
     get(this, 'win').addEventListener('resize', this.handler);
