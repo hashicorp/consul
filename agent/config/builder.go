@@ -1097,8 +1097,9 @@ func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		Token:             b.stringVal(v.Token),
 		EnableTagOverride: b.boolVal(v.EnableTagOverride),
 		Checks:            checks,
-		ProxyDestination:  b.stringVal(v.ProxyDestination),
-		Connect:           b.serviceConnectVal(v.Connect),
+		//ProxyDestination:  b.stringVal(v.ProxyDestination), // Deprecated!
+		Proxy:   b.serviceProxyVal(v.Proxy, v.ProxyDestination),
+		Connect: b.serviceConnectVal(v.Connect),
 	}
 }
 
@@ -1112,6 +1113,41 @@ func (b *Builder) serviceKindVal(v *string) structs.ServiceKind {
 	default:
 		return structs.ServiceKindTypical
 	}
+}
+
+func (b *Builder) serviceProxyVal(v *ServiceProxy, deprecatedDest *string) *structs.ConnectProxyConfig {
+	if v == nil {
+		if deprecatedDest != nil {
+			return &structs.ConnectProxyConfig{
+				DestinationServiceName: b.stringVal(deprecatedDest),
+			}
+		}
+		return nil
+	}
+
+	return &structs.ConnectProxyConfig{
+		DestinationServiceName: b.stringVal(v.DestinationServiceName),
+		DestinationServiceID:   b.stringVal(v.DestinationServiceID),
+		LocalServiceAddress:    b.stringVal(v.LocalServiceAddress),
+		LocalServicePort:       b.intVal(v.LocalServicePort),
+		Config:                 v.Config,
+		Upstreams:              b.upstreamsVal(v.Upstreams),
+	}
+}
+
+func (b *Builder) upstreamsVal(v []Upstream) structs.Upstreams {
+	ups := make(structs.Upstreams, len(v))
+	for i, u := range v {
+		ups[i] = structs.Upstream{
+			DestinationType:      b.stringVal(u.DestinationType),
+			DestinationNamespace: b.stringVal(u.DestinationNamespace),
+			DestinationName:      b.stringVal(u.DestinationName),
+			Datacenter:           b.stringVal(u.Datacenter),
+			LocalBindAddress:     b.stringVal(u.LocalBindAddress),
+			LocalBindPort:        b.intVal(u.LocalBindPort),
+		}
+	}
+	return ups
 }
 
 func (b *Builder) serviceConnectVal(v *ServiceConnect) *structs.ServiceConnect {
