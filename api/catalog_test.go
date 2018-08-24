@@ -321,6 +321,9 @@ func testUpstreams(t *testing.T) []Upstream {
 		{
 			DestinationName: "db",
 			LocalBindPort:   9191,
+			Config: map[string]interface{}{
+				"connect_timeout_ms": float64(1000),
+			},
 		},
 		{
 			DestinationType: UpstreamDestTypePreparedQuery,

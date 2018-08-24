@@ -77,33 +77,33 @@ type AgentService struct {
 	ModifyIndex       uint64
 	// ProxyDestination is DEPRECATED
 	ProxyDestination string
-	Proxy            *AgentServiceConnectProxyConfig
-	Connect          *AgentServiceConnect
+	Proxy            *AgentServiceConnectProxyConfig `json:",omitempty"`
+	Connect          *AgentServiceConnect            `json:",omitempty"`
 }
 
 // AgentServiceConnect represents the Connect configuration of a service.
 type AgentServiceConnect struct {
-	Native bool
-	Proxy  *AgentServiceConnectProxy
+	Native bool                      `json:",omitempty"`
+	Proxy  *AgentServiceConnectProxy `json:",omitempty"`
 }
 
 // AgentServiceConnectProxy represents the Connect Proxy configuration of a
 // service.
 type AgentServiceConnectProxy struct {
-	ExecMode  ProxyExecMode
-	Command   []string
-	Config    map[string]interface{}
-	Upstreams []Upstream
+	ExecMode  ProxyExecMode          `json:",omitempty"`
+	Command   []string               `json:",omitempty"`
+	Config    map[string]interface{} `json:",omitempty"`
+	Upstreams []Upstream             `json:",omitempty"`
 }
 
 // AgentServiceConnectProxyConfig is the proxy configuration in a connect-proxy
 // ServiceDefinition or response.
 type AgentServiceConnectProxyConfig struct {
 	DestinationServiceName string
-	DestinationServiceID   string `json:",omitempty"`
-	LocalServiceAddress    string `json:",omitempty"`
-	LocalServicePort       int    `json:",omitempty"`
-	Config                 map[string]interface{}
+	DestinationServiceID   string                 `json:",omitempty"`
+	LocalServiceAddress    string                 `json:",omitempty"`
+	LocalServicePort       int                    `json:",omitempty"`
+	Config                 map[string]interface{} `json:",omitempty"`
 	Upstreams              []Upstream
 }
 
@@ -264,9 +264,10 @@ type Upstream struct {
 	DestinationType      UpstreamDestType `json:",omitempty"`
 	DestinationNamespace string           `json:",omitempty"`
 	DestinationName      string
-	Datacenter           string `json:",omitempty"`
-	LocalBindAddress     string `json:",omitempty"`
-	LocalBindPort        int    `json:",omitempty"`
+	Datacenter           string                 `json:",omitempty"`
+	LocalBindAddress     string                 `json:",omitempty"`
+	LocalBindPort        int                    `json:",omitempty"`
+	Config               map[string]interface{} `json:",omitempty"`
 }
 
 // Agent can be used to query the Agent endpoints

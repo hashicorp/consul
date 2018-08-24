@@ -98,13 +98,23 @@ func (s *ServiceDefinition) ConnectManagedProxy() (*ConnectManagedProxy, error) 
 			if slice, ok := deprecatedUpstreams.([]interface{}); ok {
 				for _, raw := range slice {
 					var oldU deprecatedBuiltInProxyUpstreamConfig
-					err := mapstructure.Decode(raw, &oldU)
+					var decMeta mapstructure.Metadata
+					decCfg := &mapstructure.DecoderConfig{
+						Metadata: &decMeta,
+						Result:   &oldU,
+					}
+					dec, err := mapstructure.NewDecoder(decCfg)
 					if err != nil {
 						// Just skip it - we never used to parse this so never failed
 						// invalid stuff till it hit the proxy. This is a best-effort
 						// attempt to not break existing service definitions so it's not the
 						// end of the world if we don't have exactly the same failure mode
 						// for invalid input.
+						continue
+					}
+					err = dec.Decode(raw)
+					if err != nil {
+						// same logic as above
 						continue
 					}
 
@@ -119,6 +129,17 @@ func (s *ServiceDefinition) ConnectManagedProxy() (*ConnectManagedProxy, error) 
 						Datacenter:           oldU.DestinationDatacenter,
 						LocalBindAddress:     oldU.LocalBindAddress,
 						LocalBindPort:        oldU.LocalBindPort,
+					}
+					// Any unrecognized keys should be copied into the config map
+					if len(decMeta.Unused) > 0 {
+						u.Config = make(map[string]interface{})
+						// Paranoid type assertion - mapstructure would have errored if this
+						// wasn't safe but panics are bad...
+						if rawMap, ok := raw.(map[string]interface{}); ok {
+							for _, k := range decMeta.Unused {
+								u.Config[k] = rawMap[k]
+							}
+						}
 					}
 					s.Connect.Proxy.Upstreams = append(s.Connect.Proxy.Upstreams, u)
 				}
@@ -151,7 +172,9 @@ type deprecatedBuiltInProxyUpstreamConfig struct {
 	DestinationNamespace  string `json:"destination_namespace" hcl:"destination_namespace,attr" mapstructure:"destination_namespace"`
 	DestinationType       string `json:"destination_type" hcl:"destination_type,attr" mapstructure:"destination_type"`
 	DestinationDatacenter string `json:"destination_datacenter" hcl:"destination_datacenter,attr" mapstructure:"destination_datacenter"`
-	ConnectTimeoutMs      int    `json:"connect_timeout_ms" hcl:"connect_timeout_ms,attr" mapstructure:"connect_timeout_ms"`
+	// ConnectTimeoutMs is removed explicitly because any additional config we
+	// find including this field should be put into the opaque Config map in
+	// Upstream.
 }
 
 // Validate validates the service definition. This also calls the underlying

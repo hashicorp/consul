@@ -270,9 +270,10 @@ func TestAPI_AgentServices_ManagedConnectProxyDeprecatedUpstreams(t *testing.T) 
 					"foo": "bar",
 					"upstreams": []interface{}{
 						map[string]interface{}{
-							"destination_type": "prepared_query",
-							"destination_name": "bar",
-							"local_bind_port":  9191,
+							"destination_type":   "prepared_query",
+							"destination_name":   "bar",
+							"local_bind_port":    9191,
+							"connect_timeout_ms": 1000,
 						},
 					},
 				},
@@ -311,6 +312,9 @@ func TestAPI_AgentServices_ManagedConnectProxyDeprecatedUpstreams(t *testing.T) 
 		DestinationType: "prepared_query",
 		DestinationName: "bar",
 		LocalBindPort:   9191,
+		Config: map[string]interface{}{
+			"connect_timeout_ms": float64(1000),
+		},
 	}}
 	require.Equal(t, reg.Connect, services["foo"].Connect)
 
@@ -1231,7 +1235,7 @@ func TestAPI_AgentConnectProxyConfig(t *testing.T) {
 		ProxyServiceID:    "foo-proxy",
 		TargetServiceID:   "foo",
 		TargetServiceName: "foo",
-		ContentHash:       "82f11500fd6572da",
+		ContentHash:       "d66a329b2a642990",
 		ExecMode:          "daemon",
 		Command:           []string{"consul", "connect", "proxy"},
 		Config: map[string]interface{}{

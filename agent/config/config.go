@@ -446,6 +446,11 @@ type Upstream struct {
 	// LocalBindPort is the ip address a side-car proxy should listen on for traffic
 	// destined for this upstream service. Required.
 	LocalBindPort *int `json:"local_bind_port,omitempty" hcl:"local_bind_port" mapstructure:"local_bind_port"`
+
+	// Config is an opaque config that is specific to the proxy process being run.
+	// It can be used to pass abritrary configuration for this specific upstream
+	// to the proxy.
+	Config map[string]interface{} `json:"config,omitempty" hcl:"config" mapstructure:"config"`
 }
 
 // Connect is the agent-global connect configuration.

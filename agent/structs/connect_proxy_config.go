@@ -117,6 +117,11 @@ type Upstream struct {
 	// LocalBindPort is the ip address a side-car proxy should listen on for traffic
 	// destined for this upstream service. Required.
 	LocalBindPort int
+
+	// Config is an opaque config that is specific to the proxy process being run.
+	// It can be used to pass abritrary configuration for this specific upstream
+	// to the proxy.
+	Config map[string]interface{}
 }
 
 // Validate sanity checks the struct is valid
@@ -148,6 +153,7 @@ func (u *Upstream) ToAPI() api.Upstream {
 		Datacenter:           u.Datacenter,
 		LocalBindAddress:     u.LocalBindAddress,
 		LocalBindPort:        u.LocalBindPort,
+		Config:               u.Config,
 	}
 }
 
@@ -160,5 +166,6 @@ func UpstreamFromAPI(u api.Upstream) Upstream {
 		Datacenter:           u.Datacenter,
 		LocalBindAddress:     u.LocalBindAddress,
 		LocalBindPort:        u.LocalBindPort,
+		Config:               u.Config,
 	}
 }
