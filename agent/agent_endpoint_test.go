@@ -28,7 +28,6 @@ import (
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/serf/serf"
 	"github.com/mitchellh/copystructure"
-	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -112,7 +111,10 @@ func TestAgent_Services_ExternalConnectProxy(t *testing.T) {
 		ID:      "db-proxy",
 		Service: "db-proxy",
 		Port:    5000,
-		Proxy:   structs.ConnectProxyConfig{DestinationServiceName: "db"},
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "db",
+			Upstreams:              structs.TestUpstreams(t),
+		},
 	}
 	a.State.AddService(srv1, "")
 
@@ -123,7 +125,7 @@ func TestAgent_Services_ExternalConnectProxy(t *testing.T) {
 	assert.Len(val, 1)
 	actual := val["db-proxy"]
 	assert.Equal(api.ServiceKindConnectProxy, actual.Kind)
-	assert.Equal("db", actual.Proxy.DestinationServiceName)
+	assert.Equal(srv1.Proxy.ToAPI(), actual.Proxy)
 }
 
 func TestAgent_Services_ACLFilter(t *testing.T) {
@@ -1372,27 +1374,65 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-	json := `{"name":"test", "port":8000, "enable_tag_override": true, "meta": {"some": "meta"}}`
+	json := `
+	{
+		"name":"test", 
+		"port":8000, 
+		"enable_tag_override": true, 
+		"meta": {
+			"some": "meta"
+		},
+		"kind": "connect-proxy",
+		"proxy": {
+			"destination_service_name": "web",
+			"destination_service_id": "web",
+			"local_service_port": 1234,
+			"local_service_address": "127.0.0.1",
+			"upstreams": [
+				{
+					"destination_type": "service",
+					"destination_namespace": "default",
+					"destination_name": "db",
+		      "local_bind_address": "127.0.0.1",
+		      "local_bind_port": 1234
+				}
+			]
+		}
+	}`
 	req, _ := http.NewRequest("PUT", "/v1/agent/service/register", strings.NewReader(json))
 
-	obj, err := a.srv.AgentRegisterService(nil, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if obj != nil {
-		t.Fatalf("bad: %v", obj)
-	}
+	rr := httptest.NewRecorder()
+	obj, err := a.srv.AgentRegisterService(rr, req)
+	require.NoError(t, err)
+	require.Nil(t, obj)
+	require.Equal(t, 200, rr.Code, "body: %s", rr.Body)
+
 	svc := &structs.NodeService{
 		ID:                "test",
 		Service:           "test",
 		Meta:              map[string]string{"some": "meta"},
 		Port:              8000,
 		EnableTagOverride: true,
+		Kind:              structs.ServiceKindConnectProxy,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "web",
+			DestinationServiceID:   "web",
+			LocalServiceAddress:    "127.0.0.1",
+			LocalServicePort:       1234,
+			Upstreams: structs.Upstreams{
+				{
+					DestinationType:      structs.UpstreamDestTypeService,
+					DestinationName:      "db",
+					DestinationNamespace: "default",
+					LocalBindAddress:     "127.0.0.1",
+					LocalBindPort:        1234,
+				},
+			},
+		},
 	}
 
-	if got, want := a.State.Service("test"), svc; !verify.Values(t, "", got, want) {
-		t.Fail()
-	}
+	got := a.State.Service("test")
+	require.Equal(t, svc, got)
 }
 
 func TestAgent_RegisterService_ACLDeny(t *testing.T) {
@@ -1491,6 +1531,7 @@ func TestAgent_RegisterService_ManagedConnectProxy(t *testing.T) {
 				Config: map[string]interface{}{
 					"foo": "bar",
 				},
+				// Includes an upstream with missing defaulted type
 				Upstreams: structs.TestUpstreams(t).ToAPI(),
 			},
 		},
@@ -1521,6 +1562,8 @@ func TestAgent_RegisterService_ManagedConnectProxy(t *testing.T) {
 	assert.Equal(structs.ProxyExecModeScript, proxy.Proxy.ExecMode)
 	assert.Equal([]string{"proxy.sh"}, proxy.Proxy.Command)
 	assert.Equal(args.Connect.Proxy.Config, proxy.Proxy.Config)
+	// Unsure the defaulted type is explicitly filled
+	args.Connect.Proxy.Upstreams[0].DestinationType = api.UpstreamDestTypeService
 	assert.Equal(args.Connect.Proxy.Upstreams,
 		proxy.Proxy.Upstreams.ToAPI())
 
@@ -1676,18 +1719,18 @@ func TestAgent_RegisterService_UnmanagedConnectProxy(t *testing.T) {
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-	// Register a proxy. Note that the destination doesn't exist here on
-	// this agent or in the catalog at all. This is intended and part
-	// of the design.
-	args := &structs.ServiceDefinition{
-		Kind:             structs.ServiceKindConnectProxy,
+	// Register a proxy. Note that the destination doesn't exist here on this
+	// agent or in the catalog at all. This is intended and part of the design.
+	args := &api.AgentServiceRegistration{
+		Kind:             api.ServiceKindConnectProxy,
 		Name:             "connect-proxy",
 		Port:             8000,
 		ProxyDestination: "bad_destination", // Deprecated, check it's overridden
-		Proxy: &structs.ConnectProxyConfig{
+		Proxy: &api.AgentServiceConnectProxyConfig{
 			DestinationServiceName: "web",
-			Upstreams: []structs.Upstream{
+			Upstreams: []api.Upstream{
 				{
+					// No type to force default
 					DestinationName: "db",
 					LocalBindPort:   1234,
 				},
@@ -1698,22 +1741,21 @@ func TestAgent_RegisterService_UnmanagedConnectProxy(t *testing.T) {
 				},
 			},
 		},
-		Check: structs.CheckType{
-			TTL: 15 * time.Second,
-		},
 	}
 
 	req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=abc123", jsonReader(args))
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.AgentRegisterService(resp, req)
-	assert.Nil(err)
+	require.NoError(t, err)
 	assert.Nil(obj)
 
 	// Ensure the service
 	svc, ok := a.State.Services()["connect-proxy"]
 	assert.True(ok, "has service")
 	assert.Equal(structs.ServiceKindConnectProxy, svc.Kind)
-	assert.Equal(args.Proxy, &svc.Proxy)
+	// Registration must set that default type
+	args.Proxy.Upstreams[0].DestinationType = api.UpstreamDestTypeService
+	assert.Equal(args.Proxy, svc.Proxy.ToAPI())
 
 	// Ensure the token was configured
 	assert.Equal("abc123", a.State.ServiceToken("connect-proxy"))
