@@ -294,15 +294,16 @@ func (c *CheckTTL) SetStatus(status, output string) {
 // The check is critical if the response code is anything else
 // or if the request returns an error
 type CheckHTTP struct {
-	Notify          CheckNotifier
-	CheckID         types.CheckID
-	HTTP            string
-	Header          map[string][]string
-	Method          string
-	Interval        time.Duration
-	Timeout         time.Duration
-	Logger          *log.Logger
-	TLSClientConfig *tls.Config
+	Notify           CheckNotifier
+	CheckID          types.CheckID
+	HTTP             string
+	Header           map[string][]string
+	Method           string
+	Interval         time.Duration
+	Timeout          time.Duration
+	Logger           *log.Logger
+	TLSClientConfig  *tls.Config
+	WarningThreshold time.Duration
 
 	httpClient *http.Client
 	stop       bool
@@ -379,6 +380,7 @@ func (c *CheckHTTP) check() {
 		method = "GET"
 	}
 
+	start := time.Now()
 	req, err := http.NewRequest(method, c.HTTP, nil)
 	if err != nil {
 		c.Logger.Printf("[WARN] agent: Check %q HTTP request failed: %s", c.CheckID, err)
@@ -423,6 +425,14 @@ func (c *CheckHTTP) check() {
 
 	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
 		// PASSING (2xx)
+		if c.WarningThreshold > 0 {
+			elapsed := time.Since(start)
+			if elapsed > c.WarningThreshold {
+				c.Logger.Printf("[WARN] agent: Check %q is now warning because too slow (%q > %q)", c.CheckID, elapsed, c.WarningThreshold)
+				c.Notify.UpdateCheck(c.CheckID, api.HealthWarning, result)
+				return
+			}
+		}
 		c.Logger.Printf("[DEBUG] agent: Check %q is passing", c.CheckID)
 		c.Notify.UpdateCheck(c.CheckID, api.HealthPassing, result)
 
@@ -445,12 +455,13 @@ func (c *CheckHTTP) check() {
 // The check is passing if the connection succeeds
 // The check is critical if the connection returns an error
 type CheckTCP struct {
-	Notify   CheckNotifier
-	CheckID  types.CheckID
-	TCP      string
-	Interval time.Duration
-	Timeout  time.Duration
-	Logger   *log.Logger
+	Notify           CheckNotifier
+	CheckID          types.CheckID
+	TCP              string
+	Interval         time.Duration
+	Timeout          time.Duration
+	Logger           *log.Logger
+	WarningThreshold time.Duration
 
 	dialer   *net.Dialer
 	stop     bool
@@ -511,13 +522,22 @@ func (c *CheckTCP) run() {
 
 // check is invoked periodically to perform the TCP check
 func (c *CheckTCP) check() {
+	start := time.Now()
 	conn, err := c.dialer.Dial(`tcp`, c.TCP)
 	if err != nil {
 		c.Logger.Printf("[WARN] agent: Check %q socket connection failed: %s", c.CheckID, err)
 		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
 		return
 	}
-	conn.Close()
+	defer conn.Close()
+	if c.WarningThreshold > 0 {
+		elapsed := time.Since(start)
+		if elapsed > c.WarningThreshold {
+			c.Logger.Printf("[WARN] agent: Check %q was too slow (took %q > %q) state is warning", c.CheckID, elapsed, c.WarningThreshold)
+			c.Notify.UpdateCheck(c.CheckID, api.HealthWarning, fmt.Sprintf("TCP connect %s: Success, but too slow: %q", c.TCP, elapsed))
+			return
+		}
+	}
 	c.Logger.Printf("[DEBUG] agent: Check %q is passing", c.CheckID)
 	c.Notify.UpdateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("TCP connect %s: Success", c.TCP))
 }

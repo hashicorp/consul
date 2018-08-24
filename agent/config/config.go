@@ -402,6 +402,7 @@ type CheckDefinition struct {
 	Timeout                        *string             `json:"timeout,omitempty" hcl:"timeout" mapstructure:"timeout"`
 	TTL                            *string             `json:"ttl,omitempty" hcl:"ttl" mapstructure:"ttl"`
 	DeregisterCriticalServiceAfter *string             `json:"deregister_critical_service_after,omitempty" hcl:"deregister_critical_service_after" mapstructure:"deregister_critical_service_after"`
+	WarningThreshold               *string             `json:"warning_threshold,omitempty" hcl:"warning_threshold" mapstructure:"warning_threshold"`
 }
 
 // ServiceConnect is the connect block within a service registration

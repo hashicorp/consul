@@ -37,6 +37,7 @@ type CheckDefinition struct {
 	Timeout                        time.Duration
 	TTL                            time.Duration
 	DeregisterCriticalServiceAfter time.Duration
+	WarningThreshold               time.Duration
 }
 
 func (c *CheckDefinition) HealthCheck(node string) *HealthCheck {
@@ -80,5 +81,6 @@ func (c *CheckDefinition) CheckType() *CheckType {
 		Timeout:                        c.Timeout,
 		TTL:                            c.TTL,
 		DeregisterCriticalServiceAfter: c.DeregisterCriticalServiceAfter,
+		WarningThreshold:               c.WarningThreshold,
 	}
 }

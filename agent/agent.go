@@ -2268,6 +2268,11 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				existing.Stop()
 				delete(a.checkHTTPs, check.CheckID)
 			}
+			if chkType.WarningThreshold >= chkType.Interval {
+				a.logger.Println(fmt.Sprintf("[WARN] agent: check HTTP '%s' has WarningThreshold=%v invalid (must be > 0 and < %v), ignoring",
+					check.CheckID, chkType.WarningThreshold, chkType.Interval))
+				chkType.WarningThreshold = time.Duration(0 * time.Second)
+			}
 			if chkType.Interval < checks.MinInterval {
 				a.logger.Println(fmt.Sprintf("[WARN] agent: check '%s' has interval below minimum of %v",
 					check.CheckID, checks.MinInterval))
@@ -2277,15 +2282,16 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			tlsClientConfig := a.tlsConfigurator.OutgoingTLSConfigForCheck(chkType.TLSSkipVerify)
 
 			http := &checks.CheckHTTP{
-				Notify:          a.State,
-				CheckID:         check.CheckID,
-				HTTP:            chkType.HTTP,
-				Header:          chkType.Header,
-				Method:          chkType.Method,
-				Interval:        chkType.Interval,
-				Timeout:         chkType.Timeout,
-				Logger:          a.logger,
-				TLSClientConfig: tlsClientConfig,
+				Notify:           a.State,
+				CheckID:          check.CheckID,
+				HTTP:             chkType.HTTP,
+				Header:           chkType.Header,
+				Method:           chkType.Method,
+				Interval:         chkType.Interval,
+				Timeout:          chkType.Timeout,
+				Logger:           a.logger,
+				TLSClientConfig:  tlsClientConfig,
+				WarningThreshold: chkType.WarningThreshold,
 			}
 			http.Start()
 			a.checkHTTPs[check.CheckID] = http
@@ -2295,6 +2301,11 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				existing.Stop()
 				delete(a.checkTCPs, check.CheckID)
 			}
+			if chkType.WarningThreshold >= chkType.Interval {
+				a.logger.Println(fmt.Sprintf("[WARN] agent: check TCP '%s' has WarningThreshold=%v invalid (must be > 0 and < %v), ignoring",
+					check.CheckID, chkType.WarningThreshold, chkType.Interval))
+				chkType.WarningThreshold = time.Duration(0 * time.Second)
+			}
 			if chkType.Interval < checks.MinInterval {
 				a.logger.Println(fmt.Sprintf("[WARN] agent: check '%s' has interval below minimum of %v",
 					check.CheckID, checks.MinInterval))
@@ -2302,12 +2313,13 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 
 			tcp := &checks.CheckTCP{
-				Notify:   a.State,
-				CheckID:  check.CheckID,
-				TCP:      chkType.TCP,
-				Interval: chkType.Interval,
-				Timeout:  chkType.Timeout,
-				Logger:   a.logger,
+				Notify:           a.State,
+				CheckID:          check.CheckID,
+				TCP:              chkType.TCP,
+				Interval:         chkType.Interval,
+				Timeout:          chkType.Timeout,
+				Logger:           a.logger,
+				WarningThreshold: chkType.WarningThreshold,
 			}
 			tcp.Start()
 			a.checkTCPs[check.CheckID] = tcp

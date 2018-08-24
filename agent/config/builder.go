@@ -1173,6 +1173,7 @@ func (b *Builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		AliasService:                   b.stringVal(v.AliasService),
 		Timeout:                        b.durationVal(fmt.Sprintf("check[%s].timeout", id), v.Timeout),
 		TTL:                            b.durationVal(fmt.Sprintf("check[%s].ttl", id), v.TTL),
+		WarningThreshold:               b.durationVal(fmt.Sprintf("check[%s].warning_threshold", id), v.WarningThreshold),
 		DeregisterCriticalServiceAfter: b.durationVal(fmt.Sprintf("check[%s].deregister_critical_service_after", id), v.DeregisterCriticalServiceAfter),
 	}
 }

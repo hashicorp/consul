@@ -40,6 +40,7 @@ type CheckType struct {
 	TLSSkipVerify     bool
 	Timeout           time.Duration
 	TTL               time.Duration
+	WarningThreshold  time.Duration
 
 	// DeregisterCriticalServiceAfter, if >0, will cause the associated
 	// service, if any, to be deregistered if this check is critical for

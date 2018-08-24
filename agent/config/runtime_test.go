@@ -3055,6 +3055,7 @@ func TestFullConfig(t *testing.T) {
 					"shell": "qAeOYy0M",
 					"tls_skip_verify": true,
 					"timeout": "1813s",
+					"warning_threshold": "1524s",
 					"ttl": "21743s",
 					"deregister_critical_service_after": "14232s"
 				},
@@ -3079,6 +3080,7 @@ func TestFullConfig(t *testing.T) {
 					"tls_skip_verify": true,
 					"timeout": "18506s",
 					"ttl": "31006s",
+					"warning_threshold": "14506s",
 					"deregister_critical_service_after": "2366s"
 				}
 			],
@@ -3621,6 +3623,7 @@ func TestFullConfig(t *testing.T) {
 					shell = "qAeOYy0M"
 					tls_skip_verify = true
 					timeout = "1813s"
+					warning_threshold = "1524s"
 					ttl = "21743s"
 					deregister_critical_service_after = "14232s"
 				},
@@ -3645,6 +3648,7 @@ func TestFullConfig(t *testing.T) {
 					tls_skip_verify = true
 					timeout = "18506s"
 					ttl = "31006s"
+					warning_threshold = "14506s"
 					deregister_critical_service_after = "2366s"
 				}
 			]
@@ -4270,6 +4274,10 @@ func TestFullConfig(t *testing.T) {
 				TLSSkipVerify:                  true,
 				Timeout:                        1813 * time.Second,
 				TTL:                            21743 * time.Second,
+<<<<<<< HEAD
+=======
+				WarningThreshold:               1524 * time.Second,
+>>>>>>> Implement WarningThreshold for TCP/HTTP HealthChecks
 				DeregisterCriticalServiceAfter: 14232 * time.Second,
 			},
 			&structs.CheckDefinition{
@@ -4293,6 +4301,10 @@ func TestFullConfig(t *testing.T) {
 				TLSSkipVerify:                  true,
 				Timeout:                        18506 * time.Second,
 				TTL:                            31006 * time.Second,
+<<<<<<< HEAD
+=======
+				WarningThreshold:               14506 * time.Second,
+>>>>>>> Implement WarningThreshold for TCP/HTTP HealthChecks
 				DeregisterCriticalServiceAfter: 2366 * time.Second,
 			},
 			&structs.CheckDefinition{
@@ -4316,6 +4328,7 @@ func TestFullConfig(t *testing.T) {
 				TLSSkipVerify:                  true,
 				Timeout:                        5954 * time.Second,
 				TTL:                            30044 * time.Second,
+				WarningThreshold:               0 * time.Second,
 				DeregisterCriticalServiceAfter: 13209 * time.Second,
 			},
 		},
@@ -4484,6 +4497,7 @@ func TestFullConfig(t *testing.T) {
 						TLSSkipVerify:                  true,
 						Timeout:                        38333 * time.Second,
 						TTL:                            57201 * time.Second,
+						WarningThreshold:               0 * time.Second,
 						DeregisterCriticalServiceAfter: 44214 * time.Second,
 					},
 				},
@@ -4532,6 +4546,7 @@ func TestFullConfig(t *testing.T) {
 						TLSSkipVerify:                  true,
 						Timeout:                        34738 * time.Second,
 						TTL:                            22773 * time.Second,
+						WarningThreshold:               0 * time.Second,
 						DeregisterCriticalServiceAfter: 84282 * time.Second,
 					},
 					&structs.CheckType{
@@ -4553,6 +4568,7 @@ func TestFullConfig(t *testing.T) {
 						TLSSkipVerify:                  true,
 						Timeout:                        4868 * time.Second,
 						TTL:                            11222 * time.Second,
+						WarningThreshold:               0 * time.Second,
 						DeregisterCriticalServiceAfter: 68482 * time.Second,
 					},
 				},
@@ -4638,6 +4654,7 @@ func TestFullConfig(t *testing.T) {
 						TLSSkipVerify:                  true,
 						Timeout:                        18913 * time.Second,
 						TTL:                            44743 * time.Second,
+						WarningThreshold:               0 * time.Second,
 						DeregisterCriticalServiceAfter: 8482 * time.Second,
 					},
 					&structs.CheckType{
@@ -4659,6 +4676,7 @@ func TestFullConfig(t *testing.T) {
 						TLSSkipVerify:                  true,
 						Timeout:                        38282 * time.Second,
 						TTL:                            1181 * time.Second,
+						WarningThreshold:               0 * time.Second,
 						DeregisterCriticalServiceAfter: 4992 * time.Second,
 					},
 					&structs.CheckType{
@@ -4680,6 +4698,7 @@ func TestFullConfig(t *testing.T) {
 						TLSSkipVerify:                  true,
 						Timeout:                        38483 * time.Second,
 						TTL:                            10943 * time.Second,
+						WarningThreshold:               0 * time.Second,
 						DeregisterCriticalServiceAfter: 68787 * time.Second,
 					},
 				},
@@ -5107,7 +5126,8 @@ func TestSanitize(t *testing.T) {
 			"TLSSkipVerify": false,
 			"TTL": "0s",
 			"Timeout": "0s",
-			"Token": "hidden"
+			"Token": "hidden",
+			"WarningThreshold": "0s"
 		}],
 		"ClientAddrs": [],
 		"ConfigEntryBootstrap": [],
@@ -5275,7 +5295,8 @@ func TestSanitize(t *testing.T) {
 				"TCP": "",
 				"TLSSkipVerify": false,
 				"TTL": "0s",
-				"Timeout": "0s"
+				"Timeout": "0s",
+				"WarningThreshold": "0s"
 			},
 			"Checks": [],
 			"Connect": null,

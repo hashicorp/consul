@@ -1336,6 +1336,91 @@ func TestAgent_HTTPCheck_TLSSkipVerify(t *testing.T) {
 
 }
 
+func TestAgent_HTTPCheck_WarningThreshold(t *testing.T) {
+	t.Parallel()
+	durationMs := 1 * time.Nanosecond
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(durationMs * 2)
+		fmt.Fprintln(w, "GOOD")
+	})
+	server := httptest.NewServer(handler)
+	defer server.Close()
+
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	health := &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "WarningThreshold",
+		Name:    "WarningThreshold check",
+		Status:  api.HealthCritical,
+	}
+	interval := 1 * time.Second
+	chk := &structs.CheckType{
+		HTTP:             server.URL,
+		Interval:         interval,
+		WarningThreshold: durationMs,
+	}
+
+	err := a.AddCheck(health, chk, false, "")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		status := a.State.Checks()["WarningThreshold"]
+		if status.Status != api.HealthWarning {
+			r.Fatalf("bad: %v", status.Status)
+		}
+		if !strings.Contains(status.Output, "GOOD") {
+			r.Fatalf("bad: %v", status.Output)
+		}
+	})
+}
+
+func TestAgent_TCPCheck_WarningThreshold(t *testing.T) {
+	t.Parallel()
+	durationMs := 1 * time.Nanosecond
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(durationMs * 2)
+		fmt.Fprintln(w, "GOOD")
+	})
+	server := httptest.NewServer(handler)
+	defer server.Close()
+
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	health := &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "WarningThreshold",
+		Name:    "WarningThreshold check",
+		Status:  api.HealthCritical,
+	}
+	host := server.URL[7:] // We remove leading http://
+	interval := 1 * time.Second
+	chk := &structs.CheckType{
+		TCP:              host,
+		Interval:         interval,
+		WarningThreshold: durationMs,
+	}
+
+	err := a.AddCheck(health, chk, false, "")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		status := a.State.Checks()["WarningThreshold"]
+		if status.Status != api.HealthWarning {
+			r.Fatalf("bad: %v", status.Status)
+		}
+		if !strings.Contains(status.Output, "slow") {
+			r.Fatalf("bad: %v", status.Output)
+		}
+	})
+}
+
 func TestAgent_HTTPCheck_EnableAgentTLSForChecks(t *testing.T) {
 	t.Parallel()
 

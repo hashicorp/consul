@@ -960,6 +960,7 @@ type HealthCheckDefinition struct {
 	Interval                       time.Duration       `json:",omitempty"`
 	Timeout                        time.Duration       `json:",omitempty"`
 	DeregisterCriticalServiceAfter time.Duration       `json:",omitempty"`
+	WarningThreshold               time.Duration       `json:",omitempty"`
 }
 
 func (d *HealthCheckDefinition) MarshalJSON() ([]byte, error) {
@@ -968,11 +969,13 @@ func (d *HealthCheckDefinition) MarshalJSON() ([]byte, error) {
 		Interval                       string `json:",omitempty"`
 		Timeout                        string `json:",omitempty"`
 		DeregisterCriticalServiceAfter string `json:",omitempty"`
+		WarningThreshold               string `json:",omitempty"`
 		*Alias
 	}{
 		Interval:                       d.Interval.String(),
 		Timeout:                        d.Timeout.String(),
 		DeregisterCriticalServiceAfter: d.DeregisterCriticalServiceAfter.String(),
+		WarningThreshold:               d.WarningThreshold.String(),
 		Alias:                          (*Alias)(d),
 	}
 	if d.Interval == 0 {
@@ -984,6 +987,9 @@ func (d *HealthCheckDefinition) MarshalJSON() ([]byte, error) {
 	if d.DeregisterCriticalServiceAfter == 0 {
 		exported.DeregisterCriticalServiceAfter = ""
 	}
+	if d.WarningThreshold == 0 {
+		exported.WarningThreshold = ""
+	}
 
 	return json.Marshal(exported)
 }
@@ -994,6 +1000,7 @@ func (d *HealthCheckDefinition) UnmarshalJSON(data []byte) error {
 		Interval                       string
 		Timeout                        string
 		DeregisterCriticalServiceAfter string
+		WarningThreshold               string
 		*Alias
 	}{
 		Alias: (*Alias)(d),
@@ -1014,6 +1021,11 @@ func (d *HealthCheckDefinition) UnmarshalJSON(data []byte) error {
 	}
 	if aux.DeregisterCriticalServiceAfter != "" {
 		if d.DeregisterCriticalServiceAfter, err = time.ParseDuration(aux.DeregisterCriticalServiceAfter); err != nil {
+			return err
+		}
+	}
+	if aux.WarningThreshold != "" {
+		if d.WarningThreshold, err = time.ParseDuration(aux.WarningThreshold); err != nil {
 			return err
 		}
 	}
