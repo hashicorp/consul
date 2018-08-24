@@ -718,6 +718,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		LeaveOnTerm:                             leaveOnTerm,
 		LogLevel:                                b.stringVal(c.LogLevel),
 		LogFile:                                 b.stringVal(c.LogFile),
+		LogRotateBytes:                          b.intVal(c.LogRotateBytes),
+		LogRotateDuration:                       b.durationVal("log.rotate.duration", c.LogRotateDuration),
 		NodeID:                                  types.NodeID(b.stringVal(c.NodeID)),
 		NodeMeta:                                c.NodeMeta,
 		NodeName:                                b.nodeName(c.NodeName),

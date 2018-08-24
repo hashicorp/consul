@@ -3,7 +3,7 @@ package logger
 import (
 	"fmt"
 	"io"
-	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -25,7 +25,23 @@ type Config struct {
 
 	//LogFilePath is the path to write the logs to the user specified file.
 	LogFilePath string
+
+	//LogRotateDuration is the user specified time to rotate logs
+	LogRotateDuration time.Duration
+
+	//LogRotateBytes is the user specified byte limit to rotate logs
+	LogRotateBytes int
 }
+
+const (
+	// DefaultRotateDuration is the default time taken by the agent to rotate logs
+	DefaultRotateDuration = 24 * time.Hour
+)
+
+var (
+	logRotateDuration time.Duration
+	logRotateBytes    int
+)
 
 // Setup is used to perform setup of several logging objects:
 //
@@ -92,10 +108,19 @@ func Setup(config *Config, ui cli.Ui) (*logutils.LevelFilter, *GatedWriter, *Log
 
 	// Create a file logger if the user has specified the path to the log file
 	if config.LogFilePath != "" {
-		logFile, err := os.OpenFile(config.LogFilePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 644)
-		if err != nil {
-			ui.Error(fmt.Sprintf("Log-File falied with %s", err))
+		dir, fileName := filepath.Split(config.LogFilePath)
+		// Try to enter the user specified log rotation duration first
+		if config.LogRotateDuration != 0 {
+			logRotateDuration = config.LogRotateDuration
+		} else {
+			// Default to 24 hrs if no rotation period is specified
+			logRotateDuration = DefaultRotateDuration
 		}
+		// User specified byte limit for log rotation if one is provided
+		if config.LogRotateBytes != 0 {
+			logRotateBytes = config.LogRotateBytes
+		}
+		logFile := &LogFile{fileName: fileName, logPath: dir, duration: logRotateDuration, MaxBytes: logRotateBytes}
 		logOutput = io.MultiWriter(logOutput, logFile)
 	}
 	return logFilter, logGate, logWriter, logOutput, true
