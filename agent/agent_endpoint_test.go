@@ -75,12 +75,7 @@ func TestAgent_Services(t *testing.T) {
 			"foo":       "bar",
 		},
 		TargetServiceID: "mysql",
-		Upstreams: structs.Upstreams{
-			{
-				DestinationName: "web",
-				LocalBindPort:   1234,
-			},
-		},
+		Upstreams:       structs.TestUpstreams(t),
 	}
 	_, err := a.State.AddProxy(prxy1, "", "")
 	require.NoError(t, err)
@@ -1496,17 +1491,7 @@ func TestAgent_RegisterService_ManagedConnectProxy(t *testing.T) {
 				Config: map[string]interface{}{
 					"foo": "bar",
 				},
-				Upstreams: []api.Upstream{
-					{
-						DestinationName: "db",
-						LocalBindPort:   1234,
-					},
-					{
-						DestinationType: "prepared_query",
-						DestinationName: "geo-cache",
-						LocalBindPort:   1235,
-					},
-				},
+				Upstreams: structs.TestUpstreams(t).ToAPI(),
 			},
 		},
 	}
@@ -1577,6 +1562,9 @@ func TestAgent_RegisterService_ManagedConnectProxyDeprecated(t *testing.T) {
 						map[string]interface{}{
 							"destination_name": "db",
 							"local_bind_port":  1234,
+							// this was a field for old upstreams we don't support any more.
+							// It should be copied into Upstreams' Config.
+							"connect_timeout_ms": 1000,
 						},
 						map[string]interface{}{
 							"destination_name": "geo-cache",
@@ -1622,6 +1610,9 @@ func TestAgent_RegisterService_ManagedConnectProxyDeprecated(t *testing.T) {
 			DestinationType: structs.UpstreamDestTypeService,
 			DestinationName: "db",
 			LocalBindPort:   1234,
+			Config: map[string]interface{}{
+				"connect_timeout_ms": float64(1000),
+			},
 		},
 		{
 			DestinationType: structs.UpstreamDestTypePreparedQuery,
@@ -3115,7 +3106,7 @@ func TestAgentConnectProxyConfig_Blocking(t *testing.T) {
 		ProxyServiceID:    "test-proxy",
 		TargetServiceID:   "test",
 		TargetServiceName: "test",
-		ContentHash:       "3b493e9e6ca89ddf",
+		ContentHash:       "a7c93585b6d70445",
 		ExecMode:          "daemon",
 		Command:           []string{"tubes.sh"},
 		Config: map[string]interface{}{
@@ -3136,10 +3127,13 @@ func TestAgentConnectProxyConfig_Blocking(t *testing.T) {
 	ur, err := copystructure.Copy(expectedResponse)
 	require.NoError(t, err)
 	updatedResponse := ur.(*api.ConnectProxyConfig)
-	updatedResponse.ContentHash = "54279f999378544"
+	updatedResponse.ContentHash = "c672a0f60df8d307"
 	updatedResponse.Upstreams = append(updatedResponse.Upstreams, api.Upstream{
 		DestinationName: "cache",
 		LocalBindPort:   4242,
+		Config: map[string]interface{}{
+			"connect_timeout_ms": float64(1000),
+		},
 	})
 
 	tests := []struct {
