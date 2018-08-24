@@ -16,7 +16,7 @@ func TestConnectProxyConfig(t testing.T) ConnectProxyConfig {
 func TestUpstreams(t testing.T) Upstreams {
 	return Upstreams{
 		{
-			DestinationType: UpstreamDestTypeService,
+			// We rely on this one having default type in a few tests...
 			DestinationName: "db",
 			LocalBindPort:   9191,
 			Config: map[string]interface{}{

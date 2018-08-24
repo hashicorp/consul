@@ -1144,6 +1144,9 @@ func (b *Builder) upstreamsVal(v []Upstream) structs.Upstreams {
 			LocalBindPort:        b.intVal(u.LocalBindPort),
 			Config:               u.Config,
 		}
+		if ups[i].DestinationType == "" {
+			ups[i].DestinationType = structs.UpstreamDestTypeService
+		}
 	}
 	return ups
 }

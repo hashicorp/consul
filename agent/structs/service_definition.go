@@ -60,6 +60,12 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 	}
 	if s.Proxy != nil {
 		ns.Proxy = *s.Proxy
+		// Ensure the Upstream type is defaulted
+		for i := range ns.Proxy.Upstreams {
+			if ns.Proxy.Upstreams[i].DestinationType == "" {
+				ns.Proxy.Upstreams[i].DestinationType = UpstreamDestTypeService
+			}
+		}
 	} else {
 		// Legacy convert ProxyDestination into a Proxy config
 		ns.Proxy.DestinationServiceName = s.ProxyDestination
@@ -157,6 +163,13 @@ func (s *ServiceDefinition) ConnectManagedProxy() (*ConnectManagedProxy, error) 
 		// ProxyService will be setup when the agent registers the configured
 		// proxies and starts them etc.
 		TargetServiceID: ns.ID,
+	}
+
+	// Ensure the Upstream type is defaulted
+	for i := range p.Upstreams {
+		if p.Upstreams[i].DestinationType == "" {
+			p.Upstreams[i].DestinationType = UpstreamDestTypeService
+		}
 	}
 
 	return p, nil
