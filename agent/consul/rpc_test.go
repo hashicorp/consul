@@ -48,6 +48,48 @@ func TestRPC_NoLeader_Fail(t *testing.T) {
 	}
 }
 
+func TestRPC_NoLeader_Fail_on_stale_read(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.RPCHoldTimeout = 1 * time.Millisecond
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	arg := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+	}
+	var out struct{}
+
+	// Make sure we eventually fail with a no leader error, which we should
+	// see given the short timeout.
+	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out)
+	if err == nil || err.Error() != structs.ErrNoLeader.Error() {
+		t.Fatalf("bad: %v", err)
+	}
+
+	// Until leader has never been known, stale should fail
+	getKeysReq := structs.KeyListRequest{
+		Datacenter:   "dc1",
+		Prefix:       "",
+		Seperator:    "/",
+		QueryOptions: structs.QueryOptions{AllowStale: true},
+	}
+	var keyList structs.IndexedKeyList
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.ListKeys", &getKeysReq, &keyList); err.Error() != structs.ErrNoLeader.Error() {
+		t.Fatalf("expected %v but got err: %v", structs.ErrNoLeader, err)
+	}
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.ListKeys", &getKeysReq, &keyList); err != nil {
+		t.Fatalf("Did not expect any error but got err: %v", err)
+	}
+}
+
 func TestRPC_NoLeader_Retry(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {

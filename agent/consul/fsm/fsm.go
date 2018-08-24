@@ -14,7 +14,9 @@ import (
 )
 
 // msgpackHandle is a shared handle for encoding/decoding msgpack payloads
-var msgpackHandle = &codec.MsgpackHandle{}
+var msgpackHandle = &codec.MsgpackHandle{
+	RawToString: true,
+}
 
 // command is a command method on the FSM.
 type command func(buf []byte, index uint64) interface{}

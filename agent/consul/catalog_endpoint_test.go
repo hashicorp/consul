@@ -1467,11 +1467,18 @@ func TestCatalog_ListServices_Timeout(t *testing.T) {
 
 func TestCatalog_ListServices_Stale(t *testing.T) {
 	t.Parallel()
-	dir1, s1 := testServer(t)
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	codec := rpcClient(t, s1)
-	defer codec.Close()
+
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1" // Enable ACLs!
+		c.Bootstrap = false     // Disable bootstrap
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
 
 	args := structs.DCSpecificRequest{
 		Datacenter: "dc1",
@@ -1479,27 +1486,62 @@ func TestCatalog_ListServices_Stale(t *testing.T) {
 	args.AllowStale = true
 	var out structs.IndexedServices
 
-	// Inject a fake service
-	if err := s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if err := s1.fsm.State().EnsureService(2, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"primary"}, Address: "127.0.0.1", Port: 5000}); err != nil {
+	// Inject a node
+	if err := s1.fsm.State().EnsureNode(3, &structs.Node{Node: "foo", Address: "127.0.0.1"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Run the query, do not wait for leader!
+	codec := rpcClient(t, s2)
+	defer codec.Close()
+
+	// Run the query, do not wait for leader, never any contact with leader, should fail
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out); err == nil || err.Error() != structs.ErrNoLeader.Error() {
+		t.Fatalf("expected %v but got err: %v and %v", structs.ErrNoLeader, err, out)
+	}
+
+	// Try to join
+	joinLAN(t, s2, s1)
+	retry.Run(t, func(r *retry.R) { r.Check(wantRaft([]*Server{s1, s2})) })
+	waitForLeader(s1, s2)
+
+	testrpc.WaitForLeader(t, s2.RPC, "dc1")
 	if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Should find the service
+	// Should find the services
 	if len(out.Services) != 1 {
-		t.Fatalf("bad: %v", out)
+		t.Fatalf("bad: %#v", out.Services)
 	}
 
-	// Should not have a leader! Stale read
+	if !out.KnownLeader {
+		t.Fatalf("should have a leader: %v", out)
+	}
+
+	s1.Leave()
+	s1.Shutdown()
+
+	testrpc.WaitUntilNoLeader(t, s2.RPC, "dc1")
+
+	args.AllowStale = false
+	// Since the leader is now down, non-stale query should fail now
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out); err == nil || err.Error() != structs.ErrNoLeader.Error() {
+		t.Fatalf("expected %v but got err: %v and %v", structs.ErrNoLeader, err, out)
+	}
+
+	// With stale, request should still work
+	args.AllowStale = true
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should find old service
+	if len(out.Services) != 1 {
+		t.Fatalf("bad: %#v", out)
+	}
+
 	if out.KnownLeader {
-		t.Fatalf("bad: %v", out)
+		t.Fatalf("should not have a leader anymore: %#v", out)
 	}
 }
 
