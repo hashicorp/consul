@@ -1239,8 +1239,15 @@ func findWeight(node structs.CheckServiceNode) int {
 		return weightWarning
 	case api.HealthPassing:
 		return weightPassing
-	default:
+	case api.HealthMaint:
+		// Not used in theory
 		return 0
+	case api.HealthCritical:
+		// Should not happen since already filtered
+		return 0
+	default:
+		// When non-standard status, return 1
+		return 1
 	}
 }
 
