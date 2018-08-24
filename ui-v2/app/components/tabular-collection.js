@@ -155,7 +155,7 @@ export default Component.extend(SlotsMixin, WithResizing, {
       const rect = $tbody.getBoundingClientRect();
       const $footer = [...$$('footer[role="contentinfo"]')][0];
       const space = rect.top + $footer.clientHeight;
-      const height = new Number(e.detail.height - space);
+      const height = e.detail.height - space;
       this.set('height', Math.max(0, height));
       // TODO: The row height should auto calculate properly from the CSS
       this['cell-layout'] = new ZIndexedGrid($appContent.clientWidth, 50);

@@ -23,7 +23,7 @@ export default Component.extend(WithResizing, {
       const rect = $self.getBoundingClientRect();
       const $footer = [...$$('footer[role="contentinfo"]')][0];
       const space = rect.top + $footer.clientHeight;
-      const height = new Number(e.detail.height - space);
+      const height = e.detail.height - space;
       this.set('height', Math.max(0, height));
       this.updateItems();
       this.updateScrollPosition();
