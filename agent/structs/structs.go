@@ -388,7 +388,7 @@ func ValidateWeights(weights *Weights) error {
 		return fmt.Errorf("Passing must be greater than 0")
 	}
 	if weights.Warning < 0 {
-		return fmt.Errorf("Warning must be greater of equal to 0")
+		return fmt.Errorf("Warning must be greater or equal than 0")
 	}
 	if weights.Passing > 65535 || weights.Warning > 65535 {
 		return fmt.Errorf("DNS Weight must be between 0 and 65535")
