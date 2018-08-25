@@ -40,24 +40,22 @@ func A(b ServiceBackend, zone string, state request.Request, previousRecords []d
 			if dnsutil.DuplicateCNAME(newRecord, previousRecords) {
 				continue
 			}
+			if dns.IsSubDomain(zone, dns.Fqdn(serv.Host)) {
+				state1 := state.NewWithQuestion(serv.Host, state.QType())
+				state1.Zone = zone
+				nextRecords, err := A(b, zone, state1, append(previousRecords, newRecord), opt)
 
-			state1 := state.NewWithQuestion(serv.Host, state.QType())
-			nextRecords, err := A(b, zone, state1, append(previousRecords, newRecord), opt)
-
-			if err == nil {
-				// Not only have we found something we should add the CNAME and the IP addresses.
-				if len(nextRecords) > 0 {
-					records = append(records, newRecord)
-					records = append(records, nextRecords...)
+				if err == nil {
+					// Not only have we found something we should add the CNAME and the IP addresses.
+					if len(nextRecords) > 0 {
+						records = append(records, newRecord)
+						records = append(records, nextRecords...)
+					}
 				}
 				continue
 			}
 			// This means we can not complete the CNAME, try to look else where.
 			target := newRecord.Target
-			if dns.IsSubDomain(zone, target) {
-				// We should already have found it
-				continue
-			}
 			// Lookup
 			m1, e1 := b.Lookup(state, target, state.QType())
 			if e1 != nil {
@@ -110,19 +108,20 @@ func AAAA(b ServiceBackend, zone string, state request.Request, previousRecords 
 			if dnsutil.DuplicateCNAME(newRecord, previousRecords) {
 				continue
 			}
+			if dns.IsSubDomain(zone, dns.Fqdn(serv.Host)) {
+				state1 := state.NewWithQuestion(serv.Host, state.QType())
+				state1.Zone = zone
+				nextRecords, err := AAAA(b, zone, state1, append(previousRecords, newRecord), opt)
 
-			state1 := state.NewWithQuestion(serv.Host, state.QType())
-			nextRecords, err := AAAA(b, zone, state1, append(previousRecords, newRecord), opt)
-
-			if err == nil {
-				// Not only have we found something we should add the CNAME and the IP addresses.
-				if len(nextRecords) > 0 {
-					records = append(records, newRecord)
-					records = append(records, nextRecords...)
+				if err == nil {
+					// Not only have we found something we should add the CNAME and the IP addresses.
+					if len(nextRecords) > 0 {
+						records = append(records, newRecord)
+						records = append(records, nextRecords...)
+					}
 				}
 				continue
 			}
-
 			// This means we can not complete the CNAME, try to look else where.
 			target := newRecord.Target
 			m1, e1 := b.Lookup(state, target, state.QType())

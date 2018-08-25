@@ -183,6 +183,15 @@ var dnsTestCases = []test.Case{
 			test.CNAME("external.testns.svc.cluster.local.	5	IN	CNAME	ext.interwebs.test."),
 		},
 	},
+	// CNAME External To Internal Service
+	{
+		Qname: "external-to-service.testns.svc.cluster.local", Qtype: dns.TypeA,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.CNAME("external-to-service.testns.svc.cluster.local.	5	IN	CNAME	svc1.testns.svc.cluster.local."),
+			test.A("svc1.testns.svc.cluster.local.	5	IN	A	10.0.0.1"),
+		},
+	},
 	// AAAA Service (with an existing A record, but no AAAA record)
 	{
 		Qname: "svc1.testns.svc.cluster.local.", Qtype: dns.TypeAAAA,
@@ -412,6 +421,21 @@ var svcIndex = map[string][]*api.Service{
 		},
 		Spec: api.ServiceSpec{
 			ExternalName: "ext.interwebs.test",
+			Ports: []api.ServicePort{{
+				Name:     "http",
+				Protocol: "tcp",
+				Port:     80,
+			}},
+			Type: api.ServiceTypeExternalName,
+		},
+	}},
+	"external-to-service.testns": {{
+		ObjectMeta: meta.ObjectMeta{
+			Name:      "external-to-service",
+			Namespace: "testns",
+		},
+		Spec: api.ServiceSpec{
+			ExternalName: "svc1.testns.svc.cluster.local.",
 			Ports: []api.ServicePort{{
 				Name:     "http",
 				Protocol: "tcp",

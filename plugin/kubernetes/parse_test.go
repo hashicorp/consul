@@ -14,17 +14,17 @@ func TestParseRequest(t *testing.T) {
 		expected string // output from r.String()
 	}{
 		// valid SRV request
-		{"_http._tcp.webs.mynamespace.svc.inter.webs.test.", "http.tcp..webs.mynamespace.svc"},
+		{"_http._tcp.webs.mynamespace.svc.inter.webs.tests.", "http.tcp..webs.mynamespace.svc"},
 		// wildcard acceptance
-		{"*.any.*.any.svc.inter.webs.test.", "*.any..*.any.svc"},
+		{"*.any.*.any.svc.inter.webs.tests.", "*.any..*.any.svc"},
 		// A request of endpoint
-		{"1-2-3-4.webs.mynamespace.svc.inter.webs.test.", "*.*.1-2-3-4.webs.mynamespace.svc"},
+		{"1-2-3-4.webs.mynamespace.svc.inter.webs.tests.", "*.*.1-2-3-4.webs.mynamespace.svc"},
 		// bare zone
-		{"inter.webs.test.", "....."},
+		{"inter.webs.tests.", "....."},
 		// bare svc type
-		{"svc.inter.webs.test.", "....."},
+		{"svc.inter.webs.tests.", "....."},
 		// bare pod type
-		{"pod.inter.webs.test.", "....."},
+		{"pod.inter.webs.tests.", "....."},
 	}
 	for i, tc := range tests {
 		m := new(dns.Msg)
