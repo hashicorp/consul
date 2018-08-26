@@ -218,6 +218,7 @@ func TestHealthServiceChecks(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	req, _ := http.NewRequest("GET", "/v1/health/checks/consul?dc=dc1", nil)
 	resp := httptest.NewRecorder()
@@ -322,6 +323,7 @@ func TestHealthServiceChecks_DistanceSort(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	// Create a service check
 	args := &structs.RegisterRequest{
