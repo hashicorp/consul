@@ -158,6 +158,14 @@ $ curl \
     https://consul.rocks/v1/acl/update
 ```
 
+### Sample Response
+
+```json
+{
+  "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
+}
+```
+
 ## Delete ACL Token
 
 This endpoint deletes an ACL token with the given ID.
@@ -186,6 +194,14 @@ The table below shows this endpoint's support for
 $ curl \
     --request PUT \
     https://consul.rocks/v1/acl/destroy/8f246b77-f3e1-ff88-5b48-8ec93abf3e05
+```
+
+### Sample Response
+
+- The response is not JSON. It is raw text.
+
+```json
+true
 ```
 
 ## Read ACL Token
