@@ -93,6 +93,7 @@ func TestCheckDefinitionToCheckType(t *testing.T) {
 		Timeout:                        2 * time.Second,
 		TTL:                            3 * time.Second,
 		DeregisterCriticalServiceAfter: 4 * time.Second,
+		WarningThreshold:               1 * time.Second,
 	}
 	want := &CheckType{
 		CheckID: "id",
@@ -110,6 +111,7 @@ func TestCheckDefinitionToCheckType(t *testing.T) {
 		Timeout:                        2 * time.Second,
 		TTL:                            3 * time.Second,
 		DeregisterCriticalServiceAfter: 4 * time.Second,
+		WarningThreshold:               1 * time.Second,
 	}
 	verify.Values(t, "", got.CheckType(), want)
 }

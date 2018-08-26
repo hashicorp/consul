@@ -59,6 +59,12 @@ func (c *CheckType) Validate() error {
 	if intervalCheck && c.Interval <= 0 {
 		return fmt.Errorf("Interval must be > 0 for Script, HTTP, or TCP checks")
 	}
+	if intervalCheck && (c.Interval < c.WarningThreshold) {
+		return fmt.Errorf("WarningThreshold must be ≤ Interval")
+	}
+	if intervalCheck && c.Timeout > 0 && c.Timeout < c.WarningThreshold {
+		return fmt.Errorf("WarningThreshold must be ≤ Timeout")
+	}
 	if intervalCheck && c.IsAlias() {
 		return fmt.Errorf("Interval cannot be set for Alias checks")
 	}

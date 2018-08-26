@@ -204,7 +204,6 @@ type AgentServiceCheck struct {
 	GRPCUseTLS        bool                `json:",omitempty"`
 	AliasNode         string              `json:",omitempty"`
 	AliasService      string              `json:",omitempty"`
-	WarningThreshold  string              `json:",omitempty"`
 
 	// In Consul 0.7 and later, checks that are associated with a service
 	// may also contain this optional DeregisterCriticalServiceAfter field,
@@ -213,6 +212,7 @@ type AgentServiceCheck struct {
 	// then its associated service (and all of its associated checks) will
 	// automatically be deregistered.
 	DeregisterCriticalServiceAfter string `json:",omitempty"`
+	WarningThreshold               string `json:",omitempty"`
 }
 type AgentServiceChecks []*AgentServiceCheck
 
