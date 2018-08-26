@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/testrpc"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testutil/retry"
@@ -52,6 +54,7 @@ func TestRTTCommand_LAN(t *testing.T) {
 		}
 	`)
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	// Inject some known coordinates.
 	c1 := coordinate.NewCoordinate(coordinate.DefaultConfig())
@@ -154,6 +157,7 @@ func TestRTTCommand_WAN(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	node := fmt.Sprintf("%s.%s", a.Config.NodeName, a.Config.Datacenter)
 
