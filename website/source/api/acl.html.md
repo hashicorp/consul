@@ -174,6 +174,8 @@ This endpoint deletes an ACL token with the given ID.
 | ------ | ---------------------------- | -------------------------- |
 | `PUT`  | `/acl/destroy/:uuid`         | `application/json`         |
 
+Even though the return type is application/json, the value is either true or false, indicating whether the delete succeeded.
+
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
 [consistency modes](/api/index.html#consistency-modes), and
@@ -198,11 +200,10 @@ $ curl \
 
 ### Sample Response
 
-- The response is not JSON. It is raw text.
-
 ```json
 true
 ```
+
 
 ## Read ACL Token
 
