@@ -1724,12 +1724,14 @@ func TestAgent_CheckCriticalTime(t *testing.T) {
 
 	// Set it to warning and make sure that doesn't show up as critical.
 	l.UpdateCheck(checkID, api.HealthWarning, "")
+	warningTime := time.Now()
 	if checks := l.CriticalCheckStates(); len(checks) > 0 {
 		t.Fatalf("should not have any critical checks")
 	}
 
 	// Fail the check and make sure the time looks reasonable.
 	l.UpdateCheck(checkID, api.HealthCritical, "")
+	start := time.Now()
 	if c, ok := l.CriticalCheckStates()[checkID]; !ok {
 		t.Fatalf("should have a critical check")
 	} else if c.CriticalFor() > time.Millisecond {
@@ -1743,8 +1745,15 @@ func TestAgent_CheckCriticalTime(t *testing.T) {
 	l.UpdateCheck(chk.CheckID, api.HealthCritical, "")
 	if c, ok := l.CriticalCheckStates()[checkID]; !ok {
 		t.Fatalf("should have a critical check")
-	} else if c.CriticalFor() < 50*time.Millisecond {
-		t.Fatalf("bad: %#v, check was critical for %v", c, c.CriticalFor())
+	} else {
+		elapsed := time.Since(start)
+		critFor := c.CriticalFor()
+		critForReal := time.Since(warningTime)
+		if critFor < 25*time.Millisecond {
+			t.Fatalf("Check is critical for a too short time: %v", c.CriticalFor())
+		} else if critFor < elapsed || critFor > critForReal {
+			t.Fatalf("bad: %v should be between %q and %q", critFor, elapsed, critForReal)
+		}
 	}
 
 	// Set it passing again.
