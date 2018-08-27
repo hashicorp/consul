@@ -330,6 +330,7 @@ func TestServeDNS(t *testing.T) {
 	k := New([]string{"cluster.local."})
 	k.APIConn = &APIConnServeTest{}
 	k.Next = test.NextHandler(dns.RcodeSuccess, nil)
+	k.Namespaces = map[string]bool{"testns": true}
 	ctx := context.TODO()
 
 	for i, tc := range dnsTestCases {
@@ -476,6 +477,21 @@ var svcIndex = map[string][]*api.Service{
 		Spec: api.ServiceSpec{
 			Type:      api.ServiceTypeClusterIP,
 			ClusterIP: api.ClusterIPNone,
+		},
+	}},
+	"svc1.unexposedns": {{
+		ObjectMeta: meta.ObjectMeta{
+			Name:      "svc1",
+			Namespace: "unexposedns",
+		},
+		Spec: api.ServiceSpec{
+			Type:      api.ServiceTypeClusterIP,
+			ClusterIP: "10.0.0.2",
+			Ports: []api.ServicePort{{
+				Name:     "http",
+				Protocol: "tcp",
+				Port:     80,
+			}},
 		},
 	}},
 }

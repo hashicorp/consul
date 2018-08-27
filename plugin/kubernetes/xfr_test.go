@@ -17,6 +17,7 @@ func TestKubernetesXFR(t *testing.T) {
 	k := New([]string{"cluster.local."})
 	k.APIConn = &APIConnServeTest{}
 	k.TransferTo = []string{"127.0.0.1"}
+	k.Namespaces = map[string]bool{"testns": true}
 
 	ctx := context.TODO()
 	w := dnstest.NewMultiRecorder(&test.ResponseWriter{})
