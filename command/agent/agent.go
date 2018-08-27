@@ -184,13 +184,24 @@ func (c *cmd) run(args []string) int {
 	if config == nil {
 		return 1
 	}
+	// Check if we have a log file path or a data-dir path
+	// If we have a log path, we expect the file name to be present
+	// In case we have the data-dir, a default name is used.
+	var logFilePath string
+	if config.LogFile == "" && config.DataDir == "" {
+		logFilePath = ""
+	} else if config.LogFile != "" {
+		logFilePath = config.LogFile
+	} else {
+		logFilePath = config.DataDir
+	}
 
 	// Setup the log outputs
 	logConfig := &logger.Config{
 		LogLevel:          config.LogLevel,
 		EnableSyslog:      config.EnableSyslog,
 		SyslogFacility:    config.SyslogFacility,
-		LogFilePath:       config.LogFile,
+		LogFilePath:       logFilePath,
 		LogRotateDuration: config.LogRotateDuration,
 		LogRotateBytes:    config.LogRotateBytes,
 	}

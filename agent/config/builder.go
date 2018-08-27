@@ -719,7 +719,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		LogLevel:                                b.stringVal(c.LogLevel),
 		LogFile:                                 b.stringVal(c.LogFile),
 		LogRotateBytes:                          b.intVal(c.LogRotateBytes),
-		LogRotateDuration:                       b.durationVal("log.rotate.duration", c.LogRotateDuration),
+		LogRotateDuration:                       b.durationVal("log_rotate_duration", c.LogRotateDuration),
 		NodeID:                                  types.NodeID(b.stringVal(c.NodeID)),
 		NodeMeta:                                c.NodeMeta,
 		NodeName:                                b.nodeName(c.NodeName),
@@ -1182,6 +1182,14 @@ func (b *Builder) stringVal(v *string) string {
 }
 
 func (b *Builder) float64Val(v *float64) float64 {
+	if v == nil {
+		return 0
+	}
+
+	return *v
+}
+
+func (b *Builder) int64Val(v *int64) int64 {
 	if v == nil {
 		return 0
 	}
