@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/testrpc"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -50,6 +52,7 @@ func TestShouldProcessUserEvent(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	srv1 := &structs.NodeService{
 		ID:      "mysql",
@@ -119,6 +122,7 @@ func TestIngestUserEvent(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	for i := 0; i < 512; i++ {
 		msg := &UserEvent{LTime: uint64(i), Name: "test"}
@@ -150,6 +154,7 @@ func TestFireReceiveEvent(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	srv1 := &structs.NodeService{
 		ID:      "mysql",
@@ -188,6 +193,7 @@ func TestUserEventToken(t *testing.T) {
 		acl_default_policy = "deny"
 	`)
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	// Create an ACL token
 	args := structs.ACLRequest{
