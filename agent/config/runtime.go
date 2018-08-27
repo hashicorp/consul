@@ -1537,6 +1537,9 @@ type RuntimeConfig struct {
 	//
 	Watches []map[string]interface{}
 
+	// RaftApplyTimeout is used to specify a timeout value of Raft command apply
+	RaftApplyTimeout time.Duration
+
 	EnterpriseRuntimeConfig
 }
 

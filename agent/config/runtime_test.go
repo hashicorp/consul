@@ -4283,7 +4283,8 @@ func TestFullConfig(t *testing.T) {
 					"key": "sl3Dffu7",
 					"args": ["dltjDJ2a", "flEa7C2d"]
 				}
-			]
+			],
+			"raft_apply_timeout": "20m44s"
 		}`,
 		"hcl": `
 			acl_agent_master_token = "furuQD0b"
@@ -4903,6 +4904,7 @@ func TestFullConfig(t *testing.T) {
 				key = "sl3Dffu7"
 				args = ["dltjDJ2a", "flEa7C2d"]
 			}]
+			raft_apply_timeout = "20m44s"
 		`}
 
 	tail := map[string][]Source{
@@ -5621,6 +5623,7 @@ func TestFullConfig(t *testing.T) {
 				"args":       []interface{}{"dltjDJ2a", "flEa7C2d"},
 			},
 		},
+		RaftApplyTimeout:        20*time.Minute + 44*time.Second,
 		EnterpriseRuntimeConfig: entFullRuntimeConfig,
 	}
 
@@ -6086,6 +6089,7 @@ func TestSanitize(t *testing.T) {
 		"EnterpriseRuntimeConfig": ` + entRuntimeConfigSanitize + `,
 		"ExposeMaxPort": 0,
 		"ExposeMinPort": 0,
+		"RaftApplyTimeout": "0s",
 		"GRPCAddrs": [],
 		"GRPCPort": 0,
 		"HTTPAddrs": [

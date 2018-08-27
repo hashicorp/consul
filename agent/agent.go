@@ -1396,6 +1396,8 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 
 	base.ConfigEntryBootstrap = a.config.ConfigEntryBootstrap
 
+	base.RaftApplyTimeout = a.config.RaftApplyTimeout
+
 	return base, nil
 }
 

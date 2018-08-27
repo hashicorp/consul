@@ -450,6 +450,9 @@ type Config struct {
 
 	// Embedded Consul Enterprise specific configuration
 	*EnterpriseConfig
+
+	// RaftApplyTimeout is used to specify a timeout value of Raft command apply
+	RaftApplyTimeout time.Duration
 }
 
 // ToTLSUtilConfig is only used by tests, usually the config is being passed

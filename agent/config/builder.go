@@ -979,6 +979,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		VerifyOutgoing:                   verifyOutgoing,
 		VerifyServerHostname:             verifyServerName,
 		Watches:                          c.Watches,
+		RaftApplyTimeout:                 b.durationVal("raft_apply_timeout", c.RaftApplyTimeout),
 	}
 
 	if entCfg, err := b.BuildEnterpriseRuntimeConfig(&c); err != nil {
