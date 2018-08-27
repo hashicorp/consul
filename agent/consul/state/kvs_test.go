@@ -97,7 +97,7 @@ func TestStateStore_GC(t *testing.T) {
 		if idx != 12 {
 			t.Fatalf("bad index: %d", idx)
 		}
-	case <-time.After(2 * ttl):
+	case <-time.After(2*ttl + (50 * time.Millisecond)):
 		t.Fatalf("GC never fired")
 	}
 }
