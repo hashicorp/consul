@@ -88,6 +88,8 @@ func TestExecCommand_CrossDC(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	testrpc.WaitForTestAgent(t, a1.RPC, "dc2")
+	testrpc.WaitForTestAgent(t, a2.RPC, "dc1")
 
 	if got, want := len(a1.WANMembers()), 2; got != want {
 		t.Fatalf("got %d WAN members on a1 want %d", got, want)
