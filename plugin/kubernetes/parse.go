@@ -43,10 +43,10 @@ func parseRequest(state request.Request) (r recordRequest, err error) {
 
 	r.port = "*"
 	r.protocol = "*"
-	r.service = "*"
-	r.namespace = "*"
-	// r.endpoint is the odd one out, we need to know if it has been set or not. If it is
-	// empty we should skip the endpoint check in k.get(). Hence we cannot set if to "*".
+	// for r.name, r.namespace and r.endpoint, we need to know if they have been set or not...
+	// For endpoint: if empty we should skip the endpoint check in k.get(). Hence we cannot set if to "*".
+	// For name: myns.svc.cluster.local != *.myns.svc.cluster.local
+	// For namespace: svc.cluster.local != *.svc.cluster.local
 
 	// start at the right and fill out recordRequest with the bits we find, so we look for
 	// pod|svc.namespace.service and then either

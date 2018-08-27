@@ -55,7 +55,7 @@ var podModeInsecureCases = []test.Case{
 	},
 	{
 		Qname: "podns.pod.cluster.local.", Qtype: dns.TypeA,
-		Rcode: dns.RcodeNameError,
+		Rcode: dns.RcodeSuccess,
 		Ns: []dns.RR{
 			test.SOA("cluster.local.	300	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1515173576 7200 1800 86400 30"),
 		},
