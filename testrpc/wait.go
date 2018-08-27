@@ -32,7 +32,7 @@ func WaitUntilNoLeader(t *testing.T, rpc rpcFn, dc string) {
 	retry.Run(t, func(r *retry.R) {
 		args := &structs.DCSpecificRequest{Datacenter: dc}
 		if err := rpc("Catalog.ListNodes", args, &out); err == nil {
-			r.Fatalf("It still has a leader: %#q", out)
+			r.Fatalf("It still has a leader: %#v", out)
 		}
 		if out.QueryMeta.KnownLeader {
 			r.Fatalf("Has still a leader")
