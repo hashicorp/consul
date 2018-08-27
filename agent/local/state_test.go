@@ -1172,7 +1172,7 @@ func TestAgent_UpdateCheck_DiscardOutput(t *testing.T) {
 		check_update_interval = "0s" # set to "0s" since otherwise output checks are deferred
 	`)
 	defer a.Shutdown()
-	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	inSync := func(id string) bool {
 		s := a.State.CheckState(types.CheckID(id))
@@ -1414,7 +1414,7 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 		}`}
 	a.Start()
 	defer a.Shutdown()
-	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	// Register info
 	args := &structs.RegisterRequest{
@@ -1684,7 +1684,7 @@ func TestAgent_sendCoordinate(t *testing.T) {
 		}
 	`)
 	defer a.Shutdown()
-	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	t.Logf("%d %d %s",
 		a.Config.ConsulCoordinateUpdateBatchSize,
