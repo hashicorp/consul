@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/testrpc"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/hashicorp/consul/agent"
@@ -192,6 +194,7 @@ func TestServicesWatch(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"services"}`)
