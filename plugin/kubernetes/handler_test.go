@@ -124,6 +124,22 @@ var dnsTestCases = []test.Case{
 			test.A("hdls1.testns.svc.cluster.local.	5	IN	A	172.0.0.5"),
 		},
 	},
+	// A Service (Headless and Portless)
+	{
+		Qname: "hdlsprtls.testns.svc.cluster.local.", Qtype: dns.TypeA,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.A("hdlsprtls.testns.svc.cluster.local.	5	IN	A	172.0.0.20"),
+		},
+	},
+	// An Endpoint with no port
+	{
+		Qname: "172-0-0-20.hdlsprtls.testns.svc.cluster.local.", Qtype: dns.TypeA,
+		Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.A("172-0-0-20.hdlsprtls.testns.svc.cluster.local.	5	IN	A	172.0.0.20"),
+		},
+	},
 	// An Endpoint ip
 	{
 		Qname: "172-0-0-2.hdls1.testns.svc.cluster.local.", Qtype: dns.TypeA,
@@ -167,6 +183,14 @@ var dnsTestCases = []test.Case{
 			test.AAAA("5678-abcd--2.hdls1.testns.svc.cluster.local.	5	IN	AAAA	5678:abcd::2"),
 			test.A("dup-name.hdls1.testns.svc.cluster.local.	5	IN	A	172.0.0.4"),
 			test.A("dup-name.hdls1.testns.svc.cluster.local.	5	IN	A	172.0.0.5"),
+		},
+	},
+	// SRV Service (Headless and portless)
+	{
+		Qname: "*.*.hdlsprtls.testns.svc.cluster.local.", Qtype: dns.TypeSRV,
+		Rcode: dns.RcodeSuccess,
+		Ns: []dns.RR{
+			test.SOA("cluster.local.	300	IN	SOA	ns.dns.cluster.local. hostmaster.cluster.local. 1499347823 7200 1800 86400 60"),
 		},
 	},
 	// AAAA
@@ -444,6 +468,16 @@ var svcIndex = map[string][]*api.Service{
 			Type: api.ServiceTypeExternalName,
 		},
 	}},
+	"hdlsprtls.testns": {{
+		ObjectMeta: meta.ObjectMeta{
+			Name:      "hdlsprtls",
+			Namespace: "testns",
+		},
+		Spec: api.ServiceSpec{
+			Type:      api.ServiceTypeClusterIP,
+			ClusterIP: api.ClusterIPNone,
+		},
+	}},
 }
 
 func (APIConnServeTest) SvcIndex(s string) []*api.Service {
@@ -536,6 +570,22 @@ var epsIndex = map[string][]*api.Endpoints{
 		},
 		ObjectMeta: meta.ObjectMeta{
 			Name:      "hdls1",
+			Namespace: "testns",
+		},
+	}},
+	"hdlsprtls.testns": {{
+		Subsets: []api.EndpointSubset{
+			{
+				Addresses: []api.EndpointAddress{
+					{
+						IP: "172.0.0.20",
+					},
+				},
+				Ports: []api.EndpointPort{},
+			},
+		},
+		ObjectMeta: meta.ObjectMeta{
+			Name:      "hdlsprtls",
 			Namespace: "testns",
 		},
 	}},
