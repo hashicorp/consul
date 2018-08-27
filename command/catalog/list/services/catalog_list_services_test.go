@@ -36,7 +36,7 @@ func TestCatalogListServicesCommand(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Add another service with tags for testing
 	if err := a.Client().Agent().ServiceRegister(&api.AgentServiceRegistration{
