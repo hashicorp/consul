@@ -38,6 +38,9 @@ type LogFile struct {
 
 	//acquire is the mutex utilized to ensure we have no concurrency issues
 	acquire sync.Mutex
+
+	//logRotated is the number of times the logs have been rotated so far
+	logRotated int64
 }
 
 func (l *LogFile) openNew() error {
@@ -46,7 +49,9 @@ func (l *LogFile) openNew() error {
 	// Remove the file extention from the filename
 	fileName := strings.TrimSuffix(l.fileName, fileExt)
 	// New file name has the format : filename-timestamp.extension
-	newfileName := fileName + "-" + strconv.FormatInt(now().Unix(), 10) + fileExt
+	createTime := now()
+	l.logRotated++
+	newfileName := fileName + "-" + strconv.FormatInt(l.logRotated, 10) + fileExt
 	newfilePath := filepath.Join(l.logPath, newfileName)
 	// Try creating a file. We truncate the file because we are the only authority to write the logs
 	filePointer, err := os.OpenFile(newfilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 640)
@@ -55,7 +60,7 @@ func (l *LogFile) openNew() error {
 	}
 	l.FileInfo = filePointer
 	// New file, new bytes tracker, new creation time :)
-	l.LastCreated = now()
+	l.LastCreated = createTime
 	l.BytesWritten = 0
 	return nil
 }
@@ -64,7 +69,7 @@ func (l *LogFile) rotate() error {
 	// Get the time from the last point of contact
 	timeElapsed := time.Since(l.LastCreated)
 	// Rotate if we hit the byte file limit or the time limit
-	if (l.BytesWritten > int64(l.MaxBytes) && (l.MaxBytes > 0)) || timeElapsed >= l.duration {
+	if (l.BytesWritten >= int64(l.MaxBytes) && (l.MaxBytes > 0)) || timeElapsed >= l.duration {
 		l.FileInfo.Close()
 		return l.openNew()
 	}
