@@ -1,0 +1,65 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "COREDNS\-LOOP" "7" "August 2018" "CoreDNS" "CoreDNS plugins"
+.
+.SH "NAME"
+\fIloop\fR \- detect simple forwarding loops and halt the server\.
+.
+.SH "DESCRIPTION"
+The \fIloop\fR plugin will send a random query to ourselves and will then keep track of how many times we see it\. If we see it more than twice, we assume CoreDNS is looping and we halt the process\.
+.
+.P
+The plugin will try to send the query for up to 30 seconds\. This is done to give CoreDNS enough time to start up\. Once a query has been successfully sent \fIloop\fR disables itself to prevent a query of death\.
+.
+.P
+The query sent is \fB<random number>\.<random number>\.zone\fR with type set to HINFO\.
+.
+.SH "SYNTAX"
+.
+.nf
+
+loop
+.
+.fi
+.
+.SH "EXAMPLES"
+Start a server on the default port and load the \fIloop\fR and \fIforward\fR plugins\. The \fIforward\fR plugin forwards to it self\.
+.
+.IP "" 4
+.
+.nf
+
+\&\. {
+    loop
+    forward \. 127\.0\.0\.1
+}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+After CoreDNS has started it stops the process while logging:
+.
+.IP "" 4
+.
+.nf
+
+plugin/loop: Seen "HINFO IN 5577006791947779410\.8674665223082153551\." more than twice, loop detected
+.
+.fi
+.
+.IP "" 0
+.
+.SH "LIMITATIONS"
+This plugin only attempts to find simple static forwarding loops at start up time\. To detect a loop, all of the following must be true
+.
+.IP "\(bu" 4
+the loop must be present at start up time\.
+.
+.IP "\(bu" 4
+the loop must occur for at least the \fBHINFO\fR query type\.
+.
+.IP "" 0
+

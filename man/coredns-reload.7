@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-RELOAD" "7" "July 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-RELOAD" "7" "August 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIreload\fR \- allows automatic reload of a changed Corefile\.
@@ -115,7 +115,7 @@ fail loading the new Corefile, abort and keep using the old process
 .IP "" 0
 .
 .P
-After the aborted attempt to reload we are left with the old proceses running, but the listener is closed in step 1; so the health endpoint is broken\. The same can hopen in the prometheus metrics plugin\.
+After the aborted attempt to reload we are left with the old processes running, but the listener is closed in step 1; so the health endpoint is broken\. The same can hopen in the prometheus metrics plugin\.
 .
 .P
 In general be careful with assigning new port and expecting reload to work fully\.

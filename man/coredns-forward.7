@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-FORWARD" "7" "June 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-FORWARD" "7" "August 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIforward\fR \- facilitates proxying DNS messages to upstream resolvers\.
@@ -55,6 +55,7 @@ Extra knobs are available with an expanded syntax:
 forward FROM TO\.\.\. {
     except IGNORED_NAMES\.\.\.
     force_tcp
+    prefer_udp
     expire DURATION
     max_fails INTEGER
     tls CERT KEY CA
@@ -75,6 +76,9 @@ forward FROM TO\.\.\. {
 .
 .IP "\(bu" 4
 \fBforce_tcp\fR, use TCP even when the request comes in over UDP\.
+.
+.IP "\(bu" 4
+\fBprefer_udp\fR, try first using UDP even when the request comes in over TCP\. If response is truncated (TC flag set in response) then do another attempt over TCP\. In case if both \fBforce_tcp\fR and \fBprefer_udp\fR options specified the \fBforce_tcp\fR takes precedence\.
 .
 .IP "\(bu" 4
 \fBmax_fails\fR is the number of subsequent failed health checks that are needed before considering an upstream to be down\. If 0, the upstream will never be marked as down (nor health checked)\. Default is 2\.

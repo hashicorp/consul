@@ -1,13 +1,13 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-LOADBALANCE" "7" "July 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-LOADBALANCE" "7" "August 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
-\fIloadbalance\fR \- randomize the order of A and AAAA records\.
+\fIloadbalance\fR \- randomize the order of A, AAAA and MX records\.
 .
 .SH "DESCRIPTION"
-The \fIloadbalance\fR will act as a round\-robin DNS loadbalancer by randomizing the order of A and AAAA records in the answer\.
+The \fIloadbalance\fR will act as a round\-robin DNS loadbalancer by randomizing the order of A, AAAA, and MX records in the answer\.
 .
 .P
 See Wikipedia \fIhttps://en\.wikipedia\.org/wiki/Round\-robin_DNS\fR about the pros and cons on this setup\. It will take care to sort any CNAMEs before any address records, because some stub resolver implementations (like glibc) are particular about that\.

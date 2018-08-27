@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-REWRITE" "7" "July 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-REWRITE" "7" "August 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIrewrite\fR \- performs internal message rewriting\.
@@ -22,7 +22,7 @@ A simplified/easy to digest syntax for \fIrewrite\fR is\.\.\. ~~~ rewrite [conti
 \fBclass\fR \- the class of the message will be rewritten\. FROM/TO must be a DNS class type (\fBIN\fR, \fBCH\fR, or \fBHS\fR) e\.g\., to rewrite CH queries to IN use \fBrewrite class CH IN\fR\.
 .
 .IP "\(bu" 4
-\fBname\fR \- the query name in the \fIrequest\fR is rewritten; by default this is a full match of the name, e\.g\., \fBrewrite name miek\.nl example\.org\fR\. Other match types are supported, see the \fBName Field Rewrites\fR section below\.
+\fBname\fR \- the query name in the \fIrequest\fR is rewritten; by default this is a full match of the name, e\.g\., \fBrewrite name example\.net example\.org\fR\. Other match types are supported, see the \fBName Field Rewrites\fR section below\.
 .
 .IP "\(bu" 4
 \fBanswer name\fR \- the query name in the \fIresponse\fR is rewritten\. This option has special restrictions and requirements, in particular it must always combined with a \fBname\fR rewrite\. See below in the \fBResponse Rewrites\fR section\.
@@ -45,7 +45,7 @@ A simplified/easy to digest syntax for \fIrewrite\fR is\.\.\. ~~~ rewrite [conti
 If you specify multiple rules and an incoming query matches on multiple rules, the rewrite will behave as following * \fBcontinue\fR will continue apply the next rule in the rule list\. * \fBstop\fR will consider the current rule is the last rule and will not continue\. Default behaviour for not specifying this rule processing mode is \fBstop\fR
 .
 .SS "NAME FIELD REWRITES"
-The \fBrewrite\fR plugin offers the ability to match on the name in the question section of a DNS request\. The match could be exact, substring, or based on a prefix, suffix, or regular expression\.
+The \fBrewrite\fR plugin offers the ability to match on the name in the question section of a DNS request\. The match could be exact, substring, or based on a prefix, suffix, or regular expression\. If the newly used name is not a legal domain name the plugin returns an error to the client\.
 .
 .P
 The syntax for the name re\-writing is as follows:
@@ -322,6 +322,19 @@ Examples:
 .nf
 
 rewrite edns0 local set 0xffee {client_ip}
+.
+.fi
+.
+.IP "" 0
+.
+.P
+The following example rewrites the \fBschmoogle\.com\fR suffix to \fBgoogle\.com\fR\.
+.
+.IP "" 4
+.
+.nf
+
+rewrite name suffix \.schmoogle\.com\. \.google\.com\.
 .
 .fi
 .
