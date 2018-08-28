@@ -742,13 +742,13 @@ These metrics are used to monitor the health of the Consul servers.
   </tr>
   <tr>
     <td>`consul.rpc.query`</td>
-    <td>This increments when a server receives a (potentially blocking) RPC query.</td>
+    <td>This increments when a server sends a (potentially blocking) RPC query.</td>
     <td>queries</td>
     <td>counter</td>
   </tr>
   <tr>
     <td>`consul.rpc.cross-dc`</td>
-    <td>This increments when a server receives a (potentially blocking) cross datacenter RPC query.</td>
+    <td>This increments when a server sends a (potentially blocking) cross datacenter RPC query.</td>
     <td>queries</td>
     <td>counter</td>
   </tr>
