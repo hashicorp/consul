@@ -20,6 +20,7 @@ func TestCatalogRegister_Service_InvalidAddress(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	for _, addr := range []string{"0.0.0.0", "::", "[::]"} {
 		t.Run("addr "+addr, func(t *testing.T) {
@@ -45,6 +46,7 @@ func TestCatalogDeregister(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Register node
 	args := &structs.DeregisterRequest{Node: "foo"}
@@ -64,6 +66,7 @@ func TestCatalogDatacenters(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	retry.Run(t, func(r *retry.R) {
 		req, _ := http.NewRequest("GET", "/v1/catalog/datacenters", nil)
@@ -483,6 +486,7 @@ func TestCatalogServices_NodeMetaFilter(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
