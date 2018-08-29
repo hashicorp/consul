@@ -11,6 +11,7 @@ const model = Model.extend({
   SourceNS: attr('string'),
   SourceName: attr('string'),
   DestinationName: attr('string'),
+  DestinationNS: attr('string'),
   Precedence: attr('number'),
   SourceType: attr('string', { defaultValue: 'consul' }),
   Action: attr('string', { defaultValue: 'deny' }),

@@ -70,8 +70,8 @@
     "@glimmer/di" "^0.2.0"
 
 "@hashicorp/api-double@^1.3.0":
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/@hashicorp/api-double/-/api-double-1.4.0.tgz#17ddad8e55370de0d24151a38c5f029bc207cafe"
+  version "1.4.1"
+  resolved "https://registry.yarnpkg.com/@hashicorp/api-double/-/api-double-1.4.1.tgz#4f4be42f0e2fec07450415cfe19294654bc7ad00"
   dependencies:
     "@gardenhq/o" "^8.0.1"
     "@gardenhq/tick-control" "^2.0.0"
@@ -82,12 +82,12 @@
     js-yaml "^3.10.0"
 
 "@hashicorp/consul-api-double@^1.4.0":
-  version "1.4.1"
-  resolved "https://registry.yarnpkg.com/@hashicorp/consul-api-double/-/consul-api-double-1.4.1.tgz#547643b98c3a26a1fe1584189bd05e4d9f383966"
+  version "1.4.3"
+  resolved "https://registry.yarnpkg.com/@hashicorp/consul-api-double/-/consul-api-double-1.4.3.tgz#0d08e167b1163200885636e6d368585004db1c98"
 
 "@hashicorp/ember-cli-api-double@^1.3.0":
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/@hashicorp/ember-cli-api-double/-/ember-cli-api-double-1.4.0.tgz#4190b30f8b6a51ec33a707c45effede6e93e6b38"
+  version "1.5.1"
+  resolved "https://registry.yarnpkg.com/@hashicorp/ember-cli-api-double/-/ember-cli-api-double-1.5.1.tgz#92789eaf2073b5871d859700bc696e9552bb835b"
   dependencies:
     "@hashicorp/api-double" "^1.3.0"
     array-range "^1.0.1"
@@ -110,6 +110,10 @@
 "@types/node@*":
   version "10.0.8"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-10.0.8.tgz#37b4d91d4e958e4c2ba0be2b86e7ed4ff19b0858"
+
+"@xg-wang/whatwg-fetch@^3.0.0":
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/@xg-wang/whatwg-fetch/-/whatwg-fetch-3.0.0.tgz#f7b222c012a238e7d6e89ed3d72a1e0edb58453d"
 
 JSONStream@^1.0.3:
   version "1.3.2"
@@ -6689,11 +6693,21 @@ miller-rabin@^4.0.0:
   version "1.33.0"
   resolved "https://registry.yarnpkg.com/mime-db/-/mime-db-1.33.0.tgz#a3492050a5cb9b63450541e39d9788d2272783db"
 
-mime-types@^2.1.12, mime-types@^2.1.18, mime-types@~2.1.17, mime-types@~2.1.18, mime-types@~2.1.7:
+mime-db@~1.35.0:
+  version "1.35.0"
+  resolved "https://registry.yarnpkg.com/mime-db/-/mime-db-1.35.0.tgz#0569d657466491283709663ad379a99b90d9ab47"
+
+mime-types@^2.1.12, mime-types@^2.1.18, mime-types@~2.1.17, mime-types@~2.1.7:
   version "2.1.18"
   resolved "https://registry.yarnpkg.com/mime-types/-/mime-types-2.1.18.tgz#6f323f60a83d11146f831ff11fd66e2fe5503bb8"
   dependencies:
     mime-db "~1.33.0"
+
+mime-types@~2.1.18:
+  version "2.1.19"
+  resolved "https://registry.yarnpkg.com/mime-types/-/mime-types-2.1.19.tgz#71e464537a7ef81c15f2db9d97e913fc0ff606f0"
+  dependencies:
+    mime-db "~1.35.0"
 
 mime@1.4.1:
   version "1.4.1"
@@ -7468,9 +7482,10 @@ preserve@^0.2.0:
   resolved "https://registry.yarnpkg.com/preserve/-/preserve-0.2.0.tgz#815ed1f6ebc65926f865b310c0713bcb3315ce4b"
 
 pretender@^2.0.0:
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/pretender/-/pretender-2.0.0.tgz#5adae189f1d5b25f86113f9225df25bed54f4072"
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/pretender/-/pretender-2.1.1.tgz#5085f0a1272c31d5b57c488386f69e6ca207cb35"
   dependencies:
+    "@xg-wang/whatwg-fetch" "^3.0.0"
     fake-xml-http-request "^2.0.0"
     route-recognizer "^0.3.3"
 
