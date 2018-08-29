@@ -1189,14 +1189,6 @@ func (b *Builder) float64Val(v *float64) float64 {
 	return *v
 }
 
-func (b *Builder) int64Val(v *int64) int64 {
-	if v == nil {
-		return 0
-	}
-
-	return *v
-}
-
 func (b *Builder) tlsCipherSuites(name string, v *string) []uint16 {
 	if v == nil {
 		return nil
