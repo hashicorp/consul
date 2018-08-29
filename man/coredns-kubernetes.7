@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "COREDNS\-KUBERNETES" "7" "June 2018" "CoreDNS" "CoreDNS plugins"
+.TH "COREDNS\-KUBERNETES" "7" "August 2018" "CoreDNS" "CoreDNS plugins"
 .
 .SH "NAME"
 \fIkubernetes\fR \- enables the reading zone data from a Kubernetes cluster\.
@@ -94,7 +94,7 @@ kubernetes [ZONES\.\.\.] {
 \fBnoendpoints\fR will turn off the serving of endpoint records by disabling the watch on endpoints\. All endpoint queries and headless service queries will result in an NXDOMAIN\.
 .
 .IP "\(bu" 4
-\fBtransfer\fR enables zone transfers\. It may be specified multiples times\. \fBTo\fR signals the direction (only \fBto\fR is alllow)\. \fBADDRESS\fR must be denoted in CIDR notation (127\.0\.0\.1/32 etc\.) or just as plain addresses\. The special wildcard \fB*\fR means: the entire internet\. Sending DNS notifies is not supported\.
+\fBtransfer\fR enables zone transfers\. It may be specified multiples times\. \fBTo\fR signals the direction (only \fBto\fR is allow)\. \fBADDRESS\fR must be denoted in CIDR notation (127\.0\.0\.1/32 etc\.) or just as plain addresses\. The special wildcard \fB*\fR means: the entire internet\. Sending DNS notifies is not supported\. Deprecated \fIhttps://github\.com/kubernetes/dns/blob/master/docs/specification\.md#26\-\-\-deprecated\-records\fR pod records in the sub domain \fBpod\.cluster\.local\fR are not transferred\.
 .
 .IP "\(bu" 4
 \fBfallthrough\fR \fB[ZONES\.\.\.]\fR If a query for a record in the zones for which the plugin is authoritative results in NXDOMAIN, normally that is what the response will be\. However, if you specify this option, the query will instead be passed on down the plugin chain, which can include another plugin to handle the query\. If \fB[ZONES\.\.\.]\fR is omitted, then fallthrough happens for all zones for which the plugin is authoritative\. If specific zones are listed (for example \fBin\-addr\.arpa\fR and \fBip6\.arpa\fR), then only queries for those zones will be subject to fallthrough\.

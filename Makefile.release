@@ -101,14 +101,14 @@ github-push:
 	    echo $$asset; \
 	    curl -o /dev/null -X POST \
 	      -H "Content-Type: application/gzip" \
-	      --data-binary "@release/$$asset" \
+	      --data-binary "@$$asset" \
 	      "https://uploads.github.com/repos/$(GITHUB)/$(NAME)/releases/$(RELEASE)/assets?name=$${asset}&access_token=${GITHUB_ACCESS_TOKEN}" ; \
 	done
 	@for asset in `ls -A release/*sha256`; do \
 	    echo $$asset; \
 	    curl -o /dev/null -X POST \
 	      -H "Content-Type: text/plain" \
-	      --data-binary "@release/$$asset" \
+	      --data-binary "@$$asset" \
 	      "https://uploads.github.com/repos/$(GITHUB)/$(NAME)/releases/$(RELEASE)/assets?name=$${asset}&access_token=${GITHUB_ACCESS_TOKEN}" ; \
 	done
 
