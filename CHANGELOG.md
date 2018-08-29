@@ -4,6 +4,10 @@ FEATURES:
 
 * http: Added support for "Authorization: Bearer" head in addition to the X-Consul-Token header. [[GH-4483](https://github.com/hashicorp/consul/issues/4483)]
 
+IMPROVEMENTS:
+
+* ui: Switch to fullscreen layout for lists and detail, left aligned forms [[GH-4435]](https://github.com/hashicorp/consul/pull/4435)
+
 BUG FIXES:
 * agent: Avoid returning empty data on startup of a non-leader server [[GH-4554](https://github.com/hashicorp/consul/pull/4554)]
 * agent: Fixed a panic when serf_wan port was -1 but a reconnect_timeout_wan value was set. [[GH-4515](https://github.com/hashicorp/consul/issues/4515)]
