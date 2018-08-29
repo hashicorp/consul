@@ -63,8 +63,6 @@ func (rr Route53) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 	m.Authoritative, m.RecursionAvailable = true, true
 	m.Answer = answers
 
-	state.SizeAndDo(m)
-	m, _ = state.Scrub(m)
 	w.WriteMsg(m)
 	return dns.RcodeSuccess, nil
 }

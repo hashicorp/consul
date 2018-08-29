@@ -11,8 +11,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-// another personal zone (helps in testing as my secondary is NSD
-// atoom = atom in English.
+// another personal zone (helps in testing as my secondary is NSD, atoom = atom in English.
 var atoomTestCases = []test.Case{
 	{
 		Qname: atoom, Qtype: dns.TypeNS, Do: true,
@@ -23,7 +22,7 @@ var atoomTestCases = []test.Case{
 			test.RRSIG("atoom.net.		1800	IN	RRSIG	NS 8 2 1800 20170112031301 20161213031301 53289 atoom.net. DLe+G1 jlw="),
 		},
 		Extra: []dns.RR{
-			test.OPT(4096, true),
+			// test.OPT(4096, true), // added by server, not test in this unit test.
 			test.A("linode.atoom.net.	1800	IN	A	176.58.119.54"),
 			test.AAAA("linode.atoom.net.	1800	IN	AAAA	2a01:7e00::f03c:91ff:fe79:234c"),
 			test.RRSIG("linode.atoom.net.	1800	IN	RRSIG	A 8 3 1800 20170112031301 20161213031301 53289 atoom.net. Z4Ka4OLDoyxj72CL vkI="),

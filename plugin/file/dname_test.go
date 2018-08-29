@@ -122,23 +122,19 @@ var dnameDnssecTestCases = []test.Case{
 		},
 	},
 	{
-		Qname: "dname.example.org.", Qtype: dns.TypeDNAME,
-		Do: true,
+		Qname: "dname.example.org.", Qtype: dns.TypeDNAME, Do: true,
 		Answer: []dns.RR{
 			test.DNAME("dname.example.org.	1800	IN	DNAME	test.example.org."),
 			test.RRSIG("dname.example.org.	1800	IN	RRSIG	DNAME 5 3 1800 20170702091734 20170602091734 54282 example.org. HvXtiBM="),
 		},
-		Extra: []dns.RR{test.OPT(4096, true)},
 	},
 	{
-		Qname: "a.dname.example.org.", Qtype: dns.TypeA,
-		Do: true,
+		Qname: "a.dname.example.org.", Qtype: dns.TypeA, Do: true,
 		Answer: []dns.RR{
 			test.CNAME("a.dname.example.org.	1800	IN	CNAME	a.test.example.org."),
 			test.DNAME("dname.example.org.	1800	IN	DNAME	test.example.org."),
 			test.RRSIG("dname.example.org.	1800	IN	RRSIG	DNAME 5 3 1800 20170702091734 20170602091734 54282 example.org. HvXtiBM="),
 		},
-		Extra: []dns.RR{test.OPT(4096, true)},
 	},
 }
 

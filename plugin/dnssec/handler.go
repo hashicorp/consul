@@ -41,8 +41,12 @@ func (d Dnssec) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 		}
 	}
 
-	drr := &ResponseWriter{w, d, server}
-	return plugin.NextOrFailure(d.Name(), d.Next, ctx, drr, r)
+	if do {
+		drr := &ResponseWriter{w, d, server}
+		return plugin.NextOrFailure(d.Name(), d.Next, ctx, drr, r)
+	}
+
+	return plugin.NextOrFailure(d.Name(), d.Next, ctx, w, r)
 }
 
 var (

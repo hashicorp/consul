@@ -85,8 +85,6 @@ func (f *Federation) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.
 			a.Header().Name = qname
 		}
 
-		state.SizeAndDo(m)
-		m, _ = state.Scrub(m)
 		w.WriteMsg(m)
 
 		return dns.RcodeSuccess, nil
@@ -107,10 +105,7 @@ func (f *Federation) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.
 
 	m.Answer = []dns.RR{service.NewCNAME(state.QName(), service.Host)}
 
-	state.SizeAndDo(m)
-	m, _ = state.Scrub(m)
 	w.WriteMsg(m)
-
 	return dns.RcodeSuccess, nil
 }
 

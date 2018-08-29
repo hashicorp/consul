@@ -56,7 +56,6 @@ var dnsTestCases = []test.Case{
 			test.NS("miek.nl.	1800	IN	NS	linode.atoom.net."),
 			test.RRSIG("miek.nl.	1800	IN	RRSIG	NS 13 2 3600 20161217114912 20161209084912 18512 miek.nl. ad9gA8VWgF1H8ze9/0Rk2Q=="),
 		},
-		Extra: []dns.RR{test.OPT(4096, true)},
 	},
 	{
 		Qname: "www.miek.nl.", Qtype: dns.TypeAAAA, Do: true,
@@ -70,7 +69,6 @@ var dnsTestCases = []test.Case{
 			test.NS("miek.nl.	1800	IN	NS	linode.atoom.net."),
 			test.RRSIG("miek.nl.	1800	IN	RRSIG	NS 13 2 3600 20161217114912 20161209084912 18512 miek.nl. ad9gA8VWgF1H8ze9/0Rk2Q=="),
 		},
-		Extra: []dns.RR{test.OPT(4096, true)},
 	},
 	{
 		Qname: "wwwww.miek.nl.", Qtype: dns.TypeAAAA, Do: true,
@@ -80,7 +78,6 @@ var dnsTestCases = []test.Case{
 			test.NSEC("wwwww.miek.nl.	1800	IN	NSEC	\\000.wwwww.miek.nl. A HINFO TXT LOC SRV CERT SSHFP RRSIG NSEC TLSA HIP OPENPGPKEY SPF"),
 			test.RRSIG("wwwww.miek.nl.	1800	IN	RRSIG	NSEC 13 3 3600 20171220135446 20171212105446 18512 miek.nl. cVUQWs8xw=="),
 		},
-		Extra: []dns.RR{test.OPT(4096, true)},
 	},
 	{
 		Qname: "miek.nl.", Qtype: dns.TypeHINFO, Do: true,
@@ -90,12 +87,10 @@ var dnsTestCases = []test.Case{
 			test.RRSIG("miek.nl.	1800	IN	RRSIG	SOA 13 2 3600 20171220141741 20171212111741 18512 miek.nl. 8bLTReqmuQtw=="),
 			test.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
 		},
-		Extra: []dns.RR{test.OPT(4096, true)},
 	},
 	{
 		Qname: "www.example.org.", Qtype: dns.TypeAAAA, Do: true,
 		Rcode: dns.RcodeServerFailure,
-		// Extra: []dns.RR{test.OPT(4096, true)}, // test.ErrorHandler is a simple handler that does not do EDNS on ServerFailure
 	},
 }
 
@@ -110,20 +105,18 @@ func TestLookupZone(t *testing.T) {
 	defer rm2()
 	c := cache.New(defaultCap)
 	dh := New([]string{"miek.nl."}, []*DNSKEY{dnskey}, fm, c)
-	ctx := context.TODO()
 
 	for _, tc := range dnsTestCases {
 		m := tc.Msg()
 
 		rec := dnstest.NewRecorder(&test.ResponseWriter{})
-		_, err := dh.ServeDNS(ctx, rec, m)
+		_, err := dh.ServeDNS(context.TODO(), rec, m)
 		if err != nil {
 			t.Errorf("Expected no error, got %v\n", err)
 			return
 		}
 
-		resp := rec.Msg
-		test.SortAndCheck(t, resp, tc)
+		test.SortAndCheck(t, rec.Msg, tc)
 	}
 }
 
@@ -133,13 +126,12 @@ func TestLookupDNSKEY(t *testing.T) {
 	defer rm2()
 	c := cache.New(defaultCap)
 	dh := New([]string{"miek.nl."}, []*DNSKEY{dnskey}, test.ErrorHandler(), c)
-	ctx := context.TODO()
 
 	for _, tc := range dnssecTestCases {
 		m := tc.Msg()
 
 		rec := dnstest.NewRecorder(&test.ResponseWriter{})
-		_, err := dh.ServeDNS(ctx, rec, m)
+		_, err := dh.ServeDNS(context.TODO(), rec, m)
 		if err != nil {
 			t.Errorf("Expected no error, got %v\n", err)
 			return

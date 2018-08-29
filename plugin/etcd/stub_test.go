@@ -83,6 +83,5 @@ var dnsTestCasesStub = []test.Case{
 	{
 		Qname: "example.net.", Qtype: dns.TypeA,
 		Answer: []dns.RR{test.A("example.net.	86400	IN	A	93.184.216.34")},
-		Extra: []dns.RR{test.OPT(4096, false)}, // This will have an EDNS0 section, because *we* added our local stub forward to detect loops.
 	},
 }

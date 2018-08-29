@@ -46,21 +46,6 @@ func (d Dnssec) Sign(state request.Request, now time.Time, server string) *dns.M
 
 	mt, _ := response.Typify(req, time.Now().UTC()) // TODO(miek): need opt record here?
 	if mt == response.Delegation {
-		// This reverts 11203e44. Reverting with git revert leads to conflicts in dnskey.go, and I'm
-		// not sure yet if we just should fiddle with inserting DSs or not.
-		// Easy way to, see #1211 for discussion.
-		/*
-			ttl := req.Ns[0].Header().Ttl
-
-			ds := []dns.RR{}
-			for i := range d.keys {
-				ds = append(ds, d.keys[i].D)
-			}
-			if sigs, err := d.sign(ds, zone, ttl, incep, expir); err == nil {
-				req.Ns = append(req.Ns, ds...)
-				req.Ns = append(req.Ns, sigs...)
-			}
-		*/
 		return req
 	}
 
@@ -98,7 +83,7 @@ func (d Dnssec) Sign(state request.Request, now time.Time, server string) *dns.M
 	for _, r := range rrSets(req.Extra) {
 		ttl := r[0].Header().Ttl
 		if sigs, err := d.sign(r, state.Zone, ttl, incep, expir, server); err == nil {
-			req.Extra = append(sigs, req.Extra...) // prepend to leave OPT alone
+			req.Extra = append(req.Extra, sigs...)
 		}
 	}
 	return req
@@ -125,9 +110,7 @@ func (d Dnssec) sign(rrs []dns.RR, signerName string, ttl, incep, expir uint32, 
 	return sigs.([]dns.RR), err
 }
 
-func (d Dnssec) set(key uint32, sigs []dns.RR) {
-	d.cache.Add(key, sigs)
-}
+func (d Dnssec) set(key uint32, sigs []dns.RR) { d.cache.Add(key, sigs) }
 
 func (d Dnssec) get(key uint32, server string) ([]dns.RR, bool) {
 	if s, ok := d.cache.Get(key); ok {

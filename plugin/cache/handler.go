@@ -31,8 +31,6 @@ func (c *Cache) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 	if i != nil && found {
 		resp := i.toMsg(r, now)
 
-		state.SizeAndDo(resp)
-		resp, _ = state.Scrub(resp)
 		w.WriteMsg(resp)
 
 		if c.prefetch > 0 {

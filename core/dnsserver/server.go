@@ -237,6 +237,9 @@ func (s *Server) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 
 	var dshandler *Config
 
+	// Wrap the response writer in a ScrubWriter so we automatically make the reply fit in the client's buffer.
+	w = request.NewScrubWriter(r, w)
+
 	for {
 		l := len(q[off:])
 		for i := 0; i < l; i++ {

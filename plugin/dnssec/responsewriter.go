@@ -28,12 +28,9 @@ func (d *ResponseWriter) WriteMsg(res *dns.Msg) error {
 	}
 	state.Zone = zone
 
-	if state.Do() {
-		res = d.d.Sign(state, time.Now().UTC(), d.server)
-
-		cacheSize.WithLabelValues(d.server, "signature").Set(float64(d.d.cache.Len()))
-	}
-	state.SizeAndDo(res)
+	res = d.d.Sign(state, time.Now().UTC(), d.server)
+	cacheSize.WithLabelValues(d.server, "signature").Set(float64(d.d.cache.Len()))
+	// No need for EDNS0 trickery, as that is handled by the server.
 
 	return d.ResponseWriter.WriteMsg(res)
 }
@@ -44,6 +41,3 @@ func (d *ResponseWriter) Write(buf []byte) (int, error) {
 	n, err := d.ResponseWriter.Write(buf)
 	return n, err
 }
-
-// Hijack implements the dns.ResponseWriter interface.
-func (d *ResponseWriter) Hijack() { d.ResponseWriter.Hijack() }

@@ -73,8 +73,7 @@ var delegationTestCases = []test.Case{
 
 var secureDelegationTestCases = []test.Case{
 	{
-		Qname: "a.delegated.example.org.", Qtype: dns.TypeTXT,
-		Do: true,
+		Qname: "a.delegated.example.org.", Qtype: dns.TypeTXT, Do: true,
 		Ns: []dns.RR{
 			test.DS("delegated.example.org.	1800	IN	DS	10056 5 1 EE72CABD1927759CDDA92A10DBF431504B9E1F13"),
 			test.DS("delegated.example.org.	1800	IN	DS	10056 5 2 E4B05F87725FA86D9A64F1E53C3D0E6250946599DFE639C45955B0ED416CDDFA"),
@@ -83,14 +82,12 @@ var secureDelegationTestCases = []test.Case{
 			test.RRSIG("delegated.example.org.	1800	IN	RRSIG	DS 13 3 1800 20161129153240 20161030153240 49035 example.org. rlNNzcUmtbjLSl02ZzQGUbWX75yCUx0Mug1jHtKVqRq1hpPE2S3863tIWSlz+W9wz4o19OI4jbznKKqk+DGKog=="),
 		},
 		Extra: []dns.RR{
-			test.OPT(4096, true),
 			test.A("a.delegated.example.org. 1800 IN A 139.162.196.78"),
 			test.AAAA("a.delegated.example.org. 1800 IN AAAA 2a01:7e00::f03c:91ff:fef1:6735"),
 		},
 	},
 	{
-		Qname: "delegated.example.org.", Qtype: dns.TypeNS,
-		Do: true,
+		Qname: "delegated.example.org.", Qtype: dns.TypeNS, Do: true,
 		Ns: []dns.RR{
 			test.DS("delegated.example.org.	1800	IN	DS	10056 5 1 EE72CABD1927759CDDA92A10DBF431504B9E1F13"),
 			test.DS("delegated.example.org.	1800	IN	DS	10056 5 2 E4B05F87725FA86D9A64F1E53C3D0E6250946599DFE639C45955B0ED416CDDFA"),
@@ -99,14 +96,12 @@ var secureDelegationTestCases = []test.Case{
 			test.RRSIG("delegated.example.org.	1800	IN	RRSIG	DS 13 3 1800 20161129153240 20161030153240 49035 example.org. rlNNzcUmtbjLSl02ZzQGUbWX75yCUx0Mug1jHtKVqRq1hpPE2S3863tIWSlz+W9wz4o19OI4jbznKKqk+DGKog=="),
 		},
 		Extra: []dns.RR{
-			test.OPT(4096, true),
 			test.A("a.delegated.example.org. 1800 IN A 139.162.196.78"),
 			test.AAAA("a.delegated.example.org. 1800 IN AAAA 2a01:7e00::f03c:91ff:fef1:6735"),
 		},
 	},
 	{
-		Qname: "foo.delegated.example.org.", Qtype: dns.TypeA,
-		Do: true,
+		Qname: "foo.delegated.example.org.", Qtype: dns.TypeA, Do: true,
 		Ns: []dns.RR{
 			test.DS("delegated.example.org.	1800	IN	DS	10056 5 1 EE72CABD1927759CDDA92A10DBF431504B9E1F13"),
 			test.DS("delegated.example.org.	1800	IN	DS	10056 5 2 E4B05F87725FA86D9A64F1E53C3D0E6250946599DFE639C45955B0ED416CDDFA"),
@@ -115,14 +110,12 @@ var secureDelegationTestCases = []test.Case{
 			test.RRSIG("delegated.example.org.	1800	IN	RRSIG	DS 13 3 1800 20161129153240 20161030153240 49035 example.org. rlNNzcUmtbjLSl02ZzQGUbWX75yCUx0Mug1jHtKVqRq1hpPE2S3863tIWSlz+W9wz4o19OI4jbznKKqk+DGKog=="),
 		},
 		Extra: []dns.RR{
-			test.OPT(4096, true),
 			test.A("a.delegated.example.org. 1800 IN A 139.162.196.78"),
 			test.AAAA("a.delegated.example.org. 1800 IN AAAA 2a01:7e00::f03c:91ff:fef1:6735"),
 		},
 	},
 	{
-		Qname: "foo.delegated.example.org.", Qtype: dns.TypeDS,
-		Do: true,
+		Qname: "foo.delegated.example.org.", Qtype: dns.TypeDS, Do: true,
 		Ns: []dns.RR{
 			test.DS("delegated.example.org.	1800	IN	DS	10056 5 1 EE72CABD1927759CDDA92A10DBF431504B9E1F13"),
 			test.DS("delegated.example.org.	1800	IN	DS	10056 5 2 E4B05F87725FA86D9A64F1E53C3D0E6250946599DFE639C45955B0ED416CDDFA"),
@@ -131,14 +124,12 @@ var secureDelegationTestCases = []test.Case{
 			test.RRSIG("delegated.example.org.	1800	IN	RRSIG	DS 13 3 1800 20161129153240 20161030153240 49035 example.org. rlNNzcUmtbjLSl02ZzQGUbWX75yCUx0Mug1jHtKVqRq1hpPE2S3863tIWSlz+W9wz4o19OI4jbznKKqk+DGKog=="),
 		},
 		Extra: []dns.RR{
-			test.OPT(4096, true),
 			test.A("a.delegated.example.org. 1800 IN A 139.162.196.78"),
 			test.AAAA("a.delegated.example.org. 1800 IN AAAA 2a01:7e00::f03c:91ff:fef1:6735"),
 		},
 	},
 	{
-		Qname: "delegated.example.org.", Qtype: dns.TypeDS,
-		Do: true,
+		Qname: "delegated.example.org.", Qtype: dns.TypeDS, Do: true,
 		Answer: []dns.RR{
 			test.DS("delegated.example.org.	1800	IN	DS	10056 5 1 EE72CABD1927759CDDA92A10DBF431504B9E1F13"),
 			test.DS("delegated.example.org.	1800	IN	DS	10056 5 2 E4B05F87725FA86D9A64F1E53C3D0E6250946599DFE639C45955B0ED416CDDFA"),
@@ -148,9 +139,6 @@ var secureDelegationTestCases = []test.Case{
 			test.NS("example.org.	1800	IN	NS	a.iana-servers.net."),
 			test.NS("example.org.	1800	IN	NS	b.iana-servers.net."),
 			test.RRSIG("example.org.	1800	IN	RRSIG	NS 13 2 1800 20161129153240 20161030153240 49035 example.org. llrHoIuw="),
-		},
-		Extra: []dns.RR{
-			test.OPT(4096, true),
 		},
 	},
 }

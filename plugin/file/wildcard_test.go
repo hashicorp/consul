@@ -11,6 +11,7 @@ import (
 	"github.com/miekg/dns"
 )
 
+// these examples don't have an additional opt RR set, because that's gets added by the server.
 var wildcardTestCases = []test.Case{
 	{
 		Qname: "wild.dnssex.nl.", Qtype: dns.TypeTXT,
@@ -36,7 +37,6 @@ var wildcardTestCases = []test.Case{
 			test.NSEC("a.dnssex.nl.	14400	IN	NSEC	www.dnssex.nl. A AAAA RRSIG NSEC"),
 			test.RRSIG("a.dnssex.nl.	14400	IN	RRSIG	NSEC 8 3 14400 20160428190224 20160329190224 14460 dnssex.nl. S+UMs2ySgRaaRY"),
 		}, dnssexAuth...),
-		Extra: []dns.RR{test.OPT(4096, true)},
 	},
 	{
 		Qname: "a.wild.dnssex.nl.", Qtype: dns.TypeTXT, Do: true,
@@ -48,7 +48,6 @@ var wildcardTestCases = []test.Case{
 			test.NSEC("a.dnssex.nl.	14400	IN	NSEC	www.dnssex.nl. A AAAA RRSIG NSEC"),
 			test.RRSIG("a.dnssex.nl.	14400	IN	RRSIG	NSEC 8 3 14400 20160428190224 20160329190224 14460 dnssex.nl. S+UMs2ySgRaaRY"),
 		}, dnssexAuth...),
-		Extra: []dns.RR{test.OPT(4096, true)},
 	},
 	// nodata responses
 	{
@@ -66,7 +65,6 @@ var wildcardTestCases = []test.Case{
 			test.RRSIG(`dnssex.nl.	1800	IN	RRSIG	SOA 8 2 1800 20160428190224 20160329190224 14460 dnssex.nl. CA/Y3m9hCOiKC/8ieSOv8SeP964Bq++lyH8BZJcTaabAsERs4xj5PRtcxicwQXZiF8fYUCpROlUS0YR8Cdw=`),
 			test.SOA(`dnssex.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1459281744 14400 3600 604800 14400`),
 		},
-		Extra: []dns.RR{test.OPT(4096, true)},
 	},
 }
 
