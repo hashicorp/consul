@@ -55,7 +55,7 @@ endif
 all:
 	@echo Use the 'release' target to build a release, 'docker' for docker build.
 
-release: pre build tar sum
+release: pre build tar
 
 docker: docker-build
 
@@ -86,12 +86,6 @@ tar:
 	    tar -zcf release/$(NAME)_$(VERSION)_linux_$$arch.tgz -C build/linux/$$arch $(NAME) ;\
 	done
 
-.PHONY: sum
-sum:
-	for asset in `ls -A release/*tgz`; do \
-	    sha256sum $$asset > $$asset.sha256; \
-	done
-
 .PHONY: github-push
 github-push:
 	@echo Releasing: $(VERSION)
@@ -103,6 +97,9 @@ github-push:
 	      -H "Content-Type: application/gzip" \
 	      --data-binary "@$$asset" \
 	      "https://uploads.github.com/repos/$(GITHUB)/$(NAME)/releases/$(RELEASE)/assets?name=$${asset}&access_token=${GITHUB_ACCESS_TOKEN}" ; \
+	done
+	for asset in `ls -A release/*tgz`; do \
+	    sha256sum $$asset > $$asset.sha256; \
 	done
 	@for asset in `ls -A release/*sha256`; do \
 	    echo $$asset; \
@@ -135,6 +132,10 @@ docker-push:
 	done
 	manifest-tool push from-args --platforms $(PLATFORMS) --template $(DOCKER_IMAGE_NAME):coredns-ARCH --target $(DOCKER_IMAGE_NAME):$(VERSION)
 	manifest-tool push from-args --platforms $(PLATFORMS) --template $(DOCKER_IMAGE_NAME):coredns-ARCH --target $(DOCKER_IMAGE_NAME):latest
+
+.PHONY: version
+version:
+	@echo $(VERSION)
 
 .PHONY: clean
 clean:
