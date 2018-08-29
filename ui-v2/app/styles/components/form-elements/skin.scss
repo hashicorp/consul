@@ -59,6 +59,7 @@
 %form-element [type='text'],
 %form-element [type='password'],
 %form-element textarea {
+  border: $decor-border-100;
   background-color: $ui-gray-050;
 }
 %form-element [type='text'],
