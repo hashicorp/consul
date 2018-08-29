@@ -23,6 +23,8 @@ $syntax-yellow: $ui-yellow-500;
   max-width: 1150px;
   min-height: 300px;
   height: auto;
+  /* adds some space at the bottom of the editor for when a horizonal-scroll has appeared */
+  padding-bottom: 20px;
 }
 .CodeMirror-scroll {
   overflow-x: hidden !important;
