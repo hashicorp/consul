@@ -22,8 +22,8 @@ func TestLogFile_timeRotation(t *testing.T) {
 	logFile.Write([]byte("Hello World"))
 	time.Sleep(2 * time.Second)
 	logFile.Write([]byte("Second File"))
-	want := logFile.logRotated
-	if got, _ := ioutil.ReadDir(tempDir); int64(len(got)) != want {
+	want := 2
+	if got, _ := ioutil.ReadDir(tempDir); len(got) != want {
 		t.Errorf("Expected %d files, got %v file(s)", want, len(got))
 	}
 }
@@ -34,9 +34,9 @@ func TestLogFile_byteRotation(t *testing.T) {
 	logFile := LogFile{fileName: testFileName, logPath: tempDir, MaxBytes: testBytes, duration: 24 * time.Hour}
 	logFile.Write([]byte("Hello World Peace"))
 	logFile.Write([]byte("Second File"))
-	want := logFile.logRotated
+	want := 2
 	tempFiles, _ := ioutil.ReadDir(tempDir)
-	if got := tempFiles; int64(len(got)) != want {
+	if got := tempFiles; len(got) != want {
 		t.Errorf("Expected %d files, got %v file(s)", want, len(got))
 	}
 }

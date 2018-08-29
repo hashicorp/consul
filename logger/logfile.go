@@ -38,9 +38,6 @@ type LogFile struct {
 
 	//acquire is the mutex utilized to ensure we have no concurrency issues
 	acquire sync.Mutex
-
-	//logRotated is the number of times the logs have been rotated so far
-	logRotated int64
 }
 
 func (l *LogFile) openNew() error {
@@ -50,8 +47,7 @@ func (l *LogFile) openNew() error {
 	fileName := strings.TrimSuffix(l.fileName, fileExt)
 	// New file name has the format : filename-timestamp.extension
 	createTime := now()
-	l.logRotated++
-	newfileName := fileName + "-" + strconv.FormatInt(l.logRotated, 10) + fileExt
+	newfileName := fileName + "-" + strconv.FormatInt(createTime.UnixNano(), 10) + fileExt
 	newfilePath := filepath.Join(l.logPath, newfileName)
 	// Try creating a file. We truncate the file because we are the only authority to write the logs
 	filePointer, err := os.OpenFile(newfilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 640)
