@@ -133,8 +133,10 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 		wrapper := func(resp http.ResponseWriter, req *http.Request) {
 			start := time.Now()
 			handler(resp, req)
-			key := append([]string{"http", req.Method}, parts...)
-			metrics.MeasureSince(key, start)
+			metrics.MeasureSinceWithLabels([]string{"http", "endpoint"}, start, []metrics.Label{
+				{Name: "method", Value: req.Method},
+				{Name: "endpoint", Value: pattern},
+			})
 		}
 
 		gzipWrapper, _ := gziphandler.GzipHandlerWithOpts(gziphandler.MinSize(0))
