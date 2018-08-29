@@ -1,24 +1,43 @@
-@import './icons';
-@import './tag';
-td strong {
-  @extend %tag;
-  background-color: $gray;
+@import './icons/index';
+td.folder {
+  @extend %with-folder;
 }
-th {
-  color: $text-light !important;
+td dt.passing {
+  @extend %with-passing;
+}
+td dt.warning {
+  @extend %with-warning;
+}
+td dt.critical {
+  @extend %with-critical;
+}
+table:not(.sessions) tr {
+  cursor: pointer;
 }
 th,
 td {
-  border-bottom: 1px solid;
+  border-bottom: $decor-border-100;
+}
+td dt.passing,
+td dt.passing + dd {
+  color: $ui-color-success;
+}
+td dt.warning,
+td dt.warning + dd {
+  color: $ui-color-alert;
+}
+td dt.critical,
+td dt.critical + dd {
+  color: $ui-color-failure;
+}
+th {
+  color: $ui-gray-400 !important;
 }
 th {
   border-color: $keyline-dark;
 }
 td {
   border-color: $keyline-mid;
-}
-td.folder {
-  @extend %with-folder;
 }
 table {
   width: 100%;
@@ -84,24 +103,8 @@ td dd.zero {
 td dt {
   text-indent: -9000px;
 }
-td dt.passing,
-td dt.passing + dd {
-  color: $green;
-}
-td dt.warning,
-td dt.warning + dd {
-  color: $orange;
-}
-td dt.critical,
-td dt.critical + dd {
-  color: $red;
-}
-td dt.passing {
-  @extend %with-passing;
-}
 td dt.warning {
   overflow: visible;
-  @extend %with-warning;
 }
 td dt.warning::before {
   top: 7px;
@@ -109,9 +112,6 @@ td dt.warning::before {
 td dt.warning::after {
   left: -2px;
   top: -1px;
-}
-td dt.critical {
-  @extend %with-critical;
 }
 td dd {
   box-sizing: content-box;

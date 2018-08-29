@@ -1,0 +1,43 @@
+%filter-bar {
+  padding: 14px;
+  display: block;
+  margin-top: 0 !important;
+}
+@media #{$--horizontal-filters} {
+  %filter-bar {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: space-between;
+  }
+  %filter-bar > *:first-child {
+    margin-left: 12px;
+  }
+  %filter-bar fieldset {
+    min-width: 210px;
+    width: auto;
+  }
+}
+@media #{$--lt-horizontal-filters} {
+  %filter-bar > *:first-child {
+    margin-bottom: 12px;
+  }
+}
+// icons
+%filter-bar [role='radiogroup'] label span::before {
+  left: 11px;
+  top: 50%;
+  margin-top: -0.5em;
+}
+%filter-bar .value-allow span,
+%filter-bar .value-deny span,
+%filter-bar .value-passing span,
+%filter-bar .value-warning span,
+%filter-bar .value-critical span {
+  position: relative;
+  text-indent: 23px;
+}
+%filter-bar .value-warning span::after {
+  left: 0.7em;
+  top: 50%;
+  margin-top: -8px;
+}

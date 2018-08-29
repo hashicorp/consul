@@ -1,6 +1,3 @@
-table:not(.sessions) tr {
-  cursor: pointer;
-}
 table {
   position: relative;
 }
@@ -16,6 +13,9 @@ table tr > * {
   flex: 1 0 auto;
 }
 
+tr > * dl {
+  float: left;
+}
 html.template-service.template-list main table tr {
   @extend %services-row;
 }
@@ -64,9 +64,6 @@ html.template-node.template-show main table.sessions tr {
   %node-sessions-row > *:nth-child(6) {
     display: none;
   }
-}
-tr > * dl {
-  float: left;
 }
 %intentions-row > * {
   width: calc(25% - 60px);
