@@ -214,8 +214,7 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 			x509.ExtKeyUsageClientAuth,
 			x509.ExtKeyUsageServerAuth,
 		},
-		// todo(kyhavlov): add a way to set the cert lifetime here from the CA config
-		NotAfter:       effectiveNow.Add(3 * 24 * time.Hour),
+		NotAfter:       effectiveNow.Add(c.config.LeafCertTTL),
 		NotBefore:      effectiveNow,
 		AuthorityKeyId: keyId,
 		SubjectKeyId:   keyId,

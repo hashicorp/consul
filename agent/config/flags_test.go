@@ -49,6 +49,18 @@ func TestParseFlags(t *testing.T) {
 			flags: Flags{Config: Config{Ports: Ports{DNS: pInt(1)}}},
 		},
 		{
+			args:  []string{`-serf-lan-port`, `1`},
+			flags: Flags{Config: Config{Ports: Ports{SerfLAN: pInt(1)}}},
+		},
+		{
+			args:  []string{`-serf-wan-port`, `1`},
+			flags: Flags{Config: Config{Ports: Ports{SerfWAN: pInt(1)}}},
+		},
+		{
+			args:  []string{`-server-port`, `1`},
+			flags: Flags{Config: Config{Ports: Ports{Server: pInt(1)}}},
+		},
+		{
 			args:  []string{`-join`, `a`, `-join`, `b`},
 			flags: Flags{Config: Config{StartJoinAddrsLAN: []string{"a", "b"}}},
 		},

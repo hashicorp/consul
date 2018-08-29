@@ -16,6 +16,10 @@ import (
 )
 
 func testVaultCluster(t *testing.T) (*VaultProvider, *vault.Core, net.Listener) {
+	return testVaultClusterWithConfig(t, nil)
+}
+
+func testVaultClusterWithConfig(t *testing.T, rawConf map[string]interface{}) (*VaultProvider, *vault.Core, net.Listener) {
 	if err := vault.AddTestLogicalBackend("pki", pki.Factory); err != nil {
 		t.Fatal(err)
 	}
@@ -23,12 +27,17 @@ func testVaultCluster(t *testing.T) (*VaultProvider, *vault.Core, net.Listener) 
 
 	ln, addr := vaulthttp.TestServer(t, core)
 
-	provider, err := NewVaultProvider(map[string]interface{}{
+	conf := map[string]interface{}{
 		"Address":             addr,
 		"Token":               token,
 		"RootPKIPath":         "pki-root/",
 		"IntermediatePKIPath": "pki-intermediate/",
-	}, "asdf")
+	}
+	for k, v := range rawConf {
+		conf[k] = v
+	}
+
+	provider, err := NewVaultProvider(conf, "asdf")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +96,9 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	provider, core, listener := testVaultCluster(t)
+	provider, core, listener := testVaultClusterWithConfig(t, map[string]interface{}{
+		"LeafCertTTL": "1h",
+	})
 	defer core.Shutdown()
 	defer listener.Close()
 	client, err := vaultapi.NewClient(&vaultapi.Config{
@@ -120,8 +131,9 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 		firstSerial = parsed.SerialNumber.Uint64()
 
 		// Ensure the cert is valid now and expires within the correct limit.
-		require.True(parsed.NotAfter.Sub(time.Now()) < 3*24*time.Hour)
-		require.True(parsed.NotBefore.Before(time.Now()))
+		now := time.Now()
+		require.True(parsed.NotAfter.Sub(now) < time.Hour)
+		require.True(parsed.NotBefore.Before(now))
 	}
 
 	// Generate a new cert for another service and make sure
@@ -142,7 +154,7 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 		require.NotEqual(firstSerial, parsed.SerialNumber.Uint64())
 
 		// Ensure the cert is valid now and expires within the correct limit.
-		require.True(parsed.NotAfter.Sub(time.Now()) < 3*24*time.Hour)
+		require.True(parsed.NotAfter.Sub(time.Now()) < time.Hour)
 		require.True(parsed.NotBefore.Before(time.Now()))
 	}
 }

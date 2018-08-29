@@ -67,14 +67,10 @@ As part of supporting the [HCL](https://github.com/hashicorp/hcl#syntax) format 
 
 #### Deprecated Options Have Been Removed
 
-All of Consul's previously deprecated command line flags and config options have been removed, so these will need to be mapped to their equivalents before upgrading. Here's the complete list of removed options and their equivalents:</summary>
+All of Consul's previously deprecated command line flags and config options have been removed, so these will need to be mapped to their equivalents before upgrading. Here's the complete list of removed options and their equivalents:
 
 | Removed Option | Equivalent |
 | -------------- | ---------- |
-| `-atlas` | None, Atlas is no longer supported. |
-| `-atlas-token`| None, Atlas is no longer supported. |
-| `-atlas-join` | None, Atlas is no longer supported. |
-| `-atlas-endpoint` | None, Atlas is no longer supported. |
 | `-dc` | [`-datacenter`](/docs/agent/options.html#_datacenter) |
 | `-retry-join-azure-tag-name` | [`-retry-join`](/docs/agent/options.html#microsoft-azure) |
 | `-retry-join-azure-tag-value` | [`-retry-join`](/docs/agent/options.html#microsoft-azure) |
@@ -87,11 +83,6 @@ All of Consul's previously deprecated command line flags and config options have
 | `-retry-join-gce-zone-pattern` | [`-retry-join`](/docs/agent/options.html#google-compute-engine) |
 | `addresses.rpc` | None, the RPC server for CLI commands is no longer supported. |
 | `advertise_addrs` | [`ports`](/docs/agent/options.html#ports) with [`advertise_addr`](https://www.consul/io/docs/agent/options.html#advertise_addr) and/or [`advertise_addr_wan`](/docs/agent/options.html#advertise_addr_wan) |
-| `atlas_infrastructure` | None, Atlas is no longer supported. |
-| `atlas_token` | None, Atlas is no longer supported. |
-| `atlas_acl_token` | None, Atlas is no longer supported. |
-| `atlas_join` | None, Atlas is no longer supported. |
-| `atlas_endpoint` | None, Atlas is no longer supported. |
 | `dogstatsd_addr` | [`telemetry.dogstatsd_addr`](/docs/agent/options.html#telemetry-dogstatsd_addr) |
 | `dogstatsd_tags` | [`telemetry.dogstatsd_tags`](/docs/agent/options.html#telemetry-dogstatsd_tags) |
 | `http_api_response_headers` | [`http_config.response_headers`](/docs/agent/options.html#response_headers) |
@@ -585,4 +576,3 @@ fails for some reason, it is not fatal. The older version of the server
 will simply panic and stop. At that point, you can upgrade to the new version
 and restart the agent. There will be no data loss and the cluster will
 resume operations.
-

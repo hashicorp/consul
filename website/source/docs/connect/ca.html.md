@@ -88,6 +88,7 @@ $ curl http://localhost:8500/v1/connect/ca/configuration
 {
     "Provider": "consul",
     "Config": {
+        "LeafCertTTL": "72h",
         "RotationPeriod": "2160h"
     },
     "CreateIndex": 5,

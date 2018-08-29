@@ -190,7 +190,7 @@ func (c *Cache) Get(t string, r Request) (interface{}, ResultMeta, error) {
 	}
 
 	// Get the actual key for our entry
-	key := c.entryKey(&info)
+	key := c.entryKey(t, &info)
 
 	// First time through
 	first := true
@@ -278,8 +278,8 @@ RETRY_GET:
 
 // entryKey returns the key for the entry in the cache. See the note
 // about the entry key format in the structure docs for Cache.
-func (c *Cache) entryKey(r *RequestInfo) string {
-	return fmt.Sprintf("%s/%s/%s", r.Datacenter, r.Token, r.Key)
+func (c *Cache) entryKey(t string, r *RequestInfo) string {
+	return fmt.Sprintf("%s/%s/%s/%s", t, r.Datacenter, r.Token, r.Key)
 }
 
 // fetch triggers a new background fetch for the given Request. If a

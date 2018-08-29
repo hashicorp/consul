@@ -1,28 +1,17 @@
 import Service, { inject as service } from '@ember/service';
-import { get, set } from '@ember/object';
+import { get } from '@ember/object';
 import { typeOf } from '@ember/utils';
 import { PRIMARY_KEY } from 'consul-ui/models/intention';
 export default Service.extend({
   store: service('store'),
   findAllByDatacenter: function(dc) {
-    return get(this, 'store')
-      .query('intention', { dc: dc })
-      .then(function(items) {
-        return items.forEach(function(item, i, arr) {
-          set(item, 'Datacenter', dc);
-        });
-      });
+    return get(this, 'store').query('intention', { dc: dc });
   },
   findBySlug: function(slug, dc) {
-    return get(this, 'store')
-      .queryRecord('intention', {
-        id: slug,
-        dc: dc,
-      })
-      .then(function(item) {
-        set(item, 'Datacenter', dc);
-        return item;
-      });
+    return get(this, 'store').queryRecord('intention', {
+      id: slug,
+      dc: dc,
+    });
   },
   create: function() {
     return get(this, 'store').createRecord('intention');

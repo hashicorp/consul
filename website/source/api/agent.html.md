@@ -54,7 +54,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/agent/members
+    http://127.0.0.1:8500/v1/agent/members
 ```
 
 ### Sample Response
@@ -107,7 +107,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/agent/self
+    http://127.0.0.1:8500/v1/agent/self
 ```
 
 ### Sample Response
@@ -187,7 +187,7 @@ The table below shows this endpoint's support for
 ```text
 $ curl \
     --request PUT \
-    https://consul.rocks/v1/agent/reload
+    http://127.0.0.1:8500/v1/agent/reload
 ```
 
 ## Enable Maintenance Mode
@@ -229,7 +229,7 @@ The table below shows this endpoint's support for
 ```text
 $ curl \
     --request PUT \
-    https://consul.rocks/v1/agent/maintenance?enable=true&reason=For+API+docs
+    http://127.0.0.1:8500/v1/agent/maintenance?enable=true&reason=For+API+docs
 ```
 
 ## View Metrics
@@ -258,7 +258,7 @@ configuration directive
 
 ```text
 $ curl \
-    https://consul.rocks/v1/agent/metrics
+    http://127.0.0.1:8500/v1/agent/metrics
 ```
 
 ### Sample Response
@@ -384,7 +384,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/agent/monitor
+    http://127.0.0.1:8500/v1/agent/monitor
 ```
 
 ### Sample Response
@@ -429,7 +429,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/agent/join/1.2.3.4
+    http://127.0.0.1:8500/v1/agent/join/1.2.3.4
 ```
 
 ## Graceful Leave and Shutdown
@@ -460,7 +460,7 @@ The table below shows this endpoint's support for
 ```text
 $ curl \
     --request PUT \
-    https://consul.rocks/v1/agent/leave
+    http://127.0.0.1:8500/v1/agent/leave
 ```
 
 ## Force Leave and Shutdown
@@ -489,7 +489,7 @@ The table below shows this endpoint's support for
 ```text
 $ curl \
     --request PUT \
-    https://consul.rocks/v1/agent/force-leave
+    http://127.0.0.1:8500/v1/agent/force-leave
 ```
 
 ## Update ACL Tokens
@@ -538,5 +538,5 @@ The table below shows this endpoint's support for
 $ curl \
     --request PUT \
     --data @payload.json \
-    https://consul.rocks/v1/agent/token/acl_token
+    http://127.0.0.1:8500/v1/agent/token/acl_token
 ```

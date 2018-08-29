@@ -4,13 +4,7 @@ import { get, set } from '@ember/object';
 export default Service.extend({
   store: service('store'),
   findAllByDatacenter: function(dc) {
-    return get(this, 'store')
-      .query('service', { dc: dc })
-      .then(function(items) {
-        return items.forEach(function(item) {
-          set(item, 'Datacenter', dc);
-        });
-      });
+    return get(this, 'store').query('service', { dc: dc });
   },
   findBySlug: function(slug, dc) {
     return get(this, 'store')

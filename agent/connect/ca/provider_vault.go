@@ -172,7 +172,7 @@ func (v *VaultProvider) GenerateIntermediate() (string, error) {
 			"allow_any_name":   true,
 			"allowed_uri_sans": "spiffe://*",
 			"key_type":         "any",
-			"max_ttl":          "72h",
+			"max_ttl":          v.config.LeafCertTTL.String(),
 			"require_cn":       false,
 		})
 		if err != nil {
@@ -227,6 +227,7 @@ func (v *VaultProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	// Use the leaf cert role to sign a new cert for this CSR.
 	response, err := v.client.Logical().Write(v.config.IntermediatePKIPath+"sign/"+VaultCALeafCertRole, map[string]interface{}{
 		"csr": pemBuf.String(),
+		"ttl": v.config.LeafCertTTL.String(),
 	})
 	if err != nil {
 		return "", fmt.Errorf("error issuing cert: %v", err)
@@ -283,10 +284,12 @@ func (v *VaultProvider) Cleanup() error {
 }
 
 func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderConfig, error) {
-	var config structs.VaultCAProviderConfig
+	config := structs.VaultCAProviderConfig{
+		CommonCAProviderConfig: defaultCommonConfig(),
+	}
 
 	decodeConf := &mapstructure.DecoderConfig{
-		ErrorUnused:      true,
+		DecodeHook:       mapstructure.StringToTimeDurationHookFunc(),
 		Result:           &config,
 		WeaklyTypedInput: true,
 	}
@@ -316,6 +319,10 @@ func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderCon
 	}
 	if !strings.HasSuffix(config.IntermediatePKIPath, "/") {
 		config.IntermediatePKIPath += "/"
+	}
+
+	if err := config.CommonCAProviderConfig.Validate(); err != nil {
+		return nil, err
 	}
 
 	return &config, nil

@@ -1,7 +1,7 @@
 ---
 layout: "docs"
 page_title: "Consul Enterprise Advanced Federation"
-sidebar_current: "docs-enterprise-advanced-federation"
+sidebar_current: "docs-enterprise-federation"
 description: |-
   Consul Enterprise enables you to federate Consul datacenters together on a pairwise basis, enabling partially-connected network topologies like hub-and-spoke.
 ---

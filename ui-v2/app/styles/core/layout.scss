@@ -20,3 +20,8 @@ main,
 html.template-edit main {
   @extend %content-container-restricted;
 }
+/* TODO: keep margin below forms, move elsewhere */
+main form,
+main form + div .with-confirmation {
+  margin-bottom: 2em;
+}

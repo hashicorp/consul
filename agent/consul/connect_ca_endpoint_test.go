@@ -14,6 +14,7 @@ import (
 	ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"
 )
@@ -114,8 +115,9 @@ func TestConnectCAConfig_GetSet(t *testing.T) {
 			Config:     newConfig,
 		}
 		var reply interface{}
-
-		assert.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply))
+		retry.Run(t, func(r *retry.R) {
+			r.Check(msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply))
+		})
 	}
 
 	// Verify the new config was set

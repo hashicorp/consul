@@ -1,7 +1,10 @@
 package structs
 
 import (
+	"fmt"
 	"time"
+
+	"github.com/mitchellh/mapstructure"
 )
 
 // IndexedCARoots is the list of currently trusted CA Roots.
@@ -192,7 +195,54 @@ type CAConfiguration struct {
 	RaftIndex
 }
 
+func (c *CAConfiguration) GetCommonConfig() (*CommonCAProviderConfig, error) {
+	if c == nil {
+		return nil, fmt.Errorf("config map was nil")
+	}
+
+	var config CommonCAProviderConfig
+	decodeConf := &mapstructure.DecoderConfig{
+		DecodeHook: mapstructure.StringToTimeDurationHookFunc(),
+		Result:     &config,
+	}
+
+	decoder, err := mapstructure.NewDecoder(decodeConf)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := decoder.Decode(c.Config); err != nil {
+		return nil, fmt.Errorf("error decoding config: %s", err)
+	}
+
+	return &config, nil
+}
+
+type CommonCAProviderConfig struct {
+	LeafCertTTL time.Duration
+
+	SkipValidate bool
+}
+
+func (c CommonCAProviderConfig) Validate() error {
+	if c.SkipValidate {
+		return nil
+	}
+
+	if c.LeafCertTTL < time.Hour {
+		return fmt.Errorf("leaf cert TTL must be greater than 1h")
+	}
+
+	if c.LeafCertTTL > 365*24*time.Hour {
+		return fmt.Errorf("leaf cert TTL must be less than 1 year")
+	}
+
+	return nil
+}
+
 type ConsulCAProviderConfig struct {
+	CommonCAProviderConfig `mapstructure:",squash"`
+
 	PrivateKey     string
 	RootCert       string
 	RotationPeriod time.Duration
@@ -208,6 +258,8 @@ type CAConsulProviderState struct {
 }
 
 type VaultCAProviderConfig struct {
+	CommonCAProviderConfig `mapstructure:",squash"`
+
 	Address             string
 	Token               string
 	RootPKIPath         string

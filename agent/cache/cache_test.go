@@ -708,6 +708,54 @@ func TestCacheGet_expireResetGet(t *testing.T) {
 	typ.AssertExpectations(t)
 }
 
+// Test a Get with a request that returns the same cache key across
+// two different "types" returns two separate results.
+func TestCacheGet_duplicateKeyDifferentType(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	typ := TestType(t)
+	defer typ.AssertExpectations(t)
+	typ2 := TestType(t)
+	defer typ2.AssertExpectations(t)
+
+	c := TestCache(t)
+	c.RegisterType("t", typ, nil)
+	c.RegisterType("t2", typ2, nil)
+
+	// Configure the types
+	typ.Static(FetchResult{Value: 100}, nil)
+	typ2.Static(FetchResult{Value: 200}, nil)
+
+	// Get, should fetch
+	req := TestRequest(t, RequestInfo{Key: "foo"})
+	result, meta, err := c.Get("t", req)
+	require.NoError(err)
+	require.Equal(100, result)
+	require.False(meta.Hit)
+
+	// Get from t2 with same key, should fetch
+	req = TestRequest(t, RequestInfo{Key: "foo"})
+	result, meta, err = c.Get("t2", req)
+	require.NoError(err)
+	require.Equal(200, result)
+	require.False(meta.Hit)
+
+	// Get from t again with same key, should cache
+	req = TestRequest(t, RequestInfo{Key: "foo"})
+	result, meta, err = c.Get("t", req)
+	require.NoError(err)
+	require.Equal(100, result)
+	require.True(meta.Hit)
+
+	// Sleep a tiny bit just to let maybe some background calls happen
+	// then verify that we still only got the one call
+	time.Sleep(20 * time.Millisecond)
+	typ.AssertExpectations(t)
+	typ2.AssertExpectations(t)
+}
+
 // Test that Get partitions the caches based on DC so two equivalent requests
 // to different datacenters are automatically cached even if their keys are
 // the same.

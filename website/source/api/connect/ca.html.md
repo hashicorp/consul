@@ -34,7 +34,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/connect/ca/roots
+    http://127.0.0.1:8500/v1/connect/ca/roots
 ```
 
 ### Sample Response
@@ -82,7 +82,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/connect/ca/configuration
+    http://127.0.0.1:8500/v1/connect/ca/configuration
 ```
 
 ### Sample Response
@@ -91,8 +91,7 @@ $ curl \
 {
     "Provider": "consul",
     "Config": {
-        "PrivateKey": null,
-        "RootCert": null,
+        "LeafCertTTL": "72h",
         "RotationPeriod": "2160h"
     },
     "CreateIndex": 5,
@@ -133,8 +132,10 @@ providers, see [Provider Config](/docs/connect/ca.html).
 {
     "Provider": "consul",
     "Config": {
+        "LeafCertTTL": "72h",
         "PrivateKey": "-----BEGIN RSA PRIVATE KEY-----...",
         "RootCert": "-----BEGIN CERTIFICATE-----...",
+        "RotationPeriod": "2160h"
     }
 }
 ```
@@ -145,5 +146,5 @@ providers, see [Provider Config](/docs/connect/ca.html).
 $ curl \
     --request PUT \
     --data @payload.json \
-    https://consul.rocks/v1/connect/ca/configuration
+    http://127.0.0.1:8500/v1/connect/ca/configuration
 ```

@@ -1050,10 +1050,9 @@ func TestAPI_AgentConnectCARoots_empty(t *testing.T) {
 	defer s.Stop()
 
 	agent := c.Agent()
-	list, meta, err := agent.ConnectCARoots(nil)
-	require.NoError(err)
-	require.Equal(uint64(1), meta.LastIndex)
-	require.Len(list.Roots, 0)
+	_, _, err := agent.ConnectCARoots(nil)
+	require.Error(err)
+	require.Contains(err.Error(), "Connect must be enabled")
 }
 
 func TestAPI_AgentConnectCARoots_list(t *testing.T) {

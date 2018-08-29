@@ -69,7 +69,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/kv/my-key
+    http://127.0.0.1:8500/v1/kv/my-key
 ```
 
 ### Sample Response
@@ -208,14 +208,14 @@ The payload is arbitrary, and is loaded directly into Consul as supplied.
 $ curl \
     --request PUT \
     --data @contents \
-    https://consul.rocks/v1/kv/my-key
+    http://127.0.0.1:8500/v1/kv/my-key
 
 # or
 
 $ curl \
     --request PUT \
     --data-binary @contents \
-    https://consul.rocks/v1/kv/my-key
+    http://127.0.0.1:8500/v1/kv/my-key
 ```
 
 ### Sample Response
@@ -258,7 +258,7 @@ The table below shows this endpoint's support for
 ```text
 $ curl \
     --request DELETE \
-    https://consul.rocks/v1/kv/my-key
+    http://127.0.0.1:8500/v1/kv/my-key
 ```
 
 ### Sample Response

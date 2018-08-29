@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/stretchr/testify/require"
 )
@@ -42,6 +43,7 @@ func TestRegisterMonitor_heartbeat(t *testing.T) {
 	defer a.Shutdown()
 	client := a.Client()
 
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 	m, _ := testMonitor(t, client)
 	defer m.Close()
 

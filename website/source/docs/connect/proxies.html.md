@@ -42,10 +42,9 @@ benchmarks, the service-to-service communication over the built-in proxy
 could sustain 5 Gbps with sub-millisecond latency. Therefore,
 the performance impact of even the basic built-in proxy is minimal.
 
-Consul will be
-integrating with advanced proxies in the near future to support more complex
-configurations and higher performance. The configuration below is all for
-the built-in proxy.
+Consul will be integrating with advanced proxies in the near future to support
+more complex configurations and higher performance. The configuration below is
+all for the built-in proxy.
 
 -> **Security note:** 1.) Managed proxies can only be configured
 via agent configuration files. They _cannot_ be registered via the HTTP API.
@@ -53,6 +52,25 @@ And 2.) Managed proxies are not started at all if Consul is running as root.
 Both of these default configurations help prevent arbitrary process
 execution or privilege escalation. This behavior can be configured
 [per-agent](/docs/agent/options.html#connect_proxy).
+
+### Lifecycle
+
+The Consul agent starts managed proxies on demand and supervises them,
+restarting them if they crash. The lifecycle of the proxy process is decoupled
+from the agent so if the agent crashes or is restarted for an upgrade, the
+managed proxy instances will _not_ be stopped.
+
+Note that this behaviour while desirable in production might leave proxy
+processes running indefinitely if you manually stop the agent and clear it's
+data dir during testing.
+
+To terminate a managed proxy cleanly you need to deregister the service that
+requested it. If the agent is already stopped and will not be restarted again,
+you may choose to locate the proxy processes and kill them manually.
+
+While in `-dev` mode, unless a `-data-dir` is explicitly set, managed proxies
+switch to being killed when the agent exits since it can't store state in order
+to re-adopt them on restart.
 
 ### Minimal Configuration
 
@@ -211,6 +229,22 @@ connect {
 
 With this configuration, all services registered without an explicit
 proxy command will use `my-proxy` instead of the default built-in proxy.
+
+### Managed Proxy Logs
+
+Managed proxies have both stdout and stderr captured in log files in the agent's
+`data_dir`. They can be found in
+`<data_dir>/proxy/logs/<proxy_service_id>-std{err,out}.log`.
+
+The built-in proxy will inherit it's log level from the agent so if the agent is
+configured with `log_level = DEBUG`, a proxy it starts will also output `DEBUG`
+level logs showing service discovery, certificate and authorization information.
+
+~> **Note:** In `-dev` mode there is no `data_dir` unless one is explicitly
+configured so logging is disabled. You can access logs by providing the
+[`-data-dir`](/docs/agent/options.html#_data_dir) CLI option. If a data dir is
+configured, this will also cause proxy processes to stay running when the agent
+terminates as described in [Lifecycle](#lifecycle).
 
 ## Unmanaged Proxies
 

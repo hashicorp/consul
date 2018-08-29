@@ -431,7 +431,7 @@ func TestDaemonRestart_pidFile(t *testing.T) {
 	defer d.Stop()
 
 	// Wait for the file to exist. We save the func so we can reuse the test.
-	waitFile := func() {
+	waitFile := func(path string) {
 		retry.Run(t, func(r *retry.R) {
 			_, err := os.Stat(path)
 			if err == nil {
@@ -440,7 +440,8 @@ func TestDaemonRestart_pidFile(t *testing.T) {
 			r.Fatalf("error waiting for path: %s", err)
 		})
 	}
-	waitFile()
+	waitFile(path)
+	waitFile(pidPath)
 
 	// Check the pid file
 	pidRaw, err := ioutil.ReadFile(pidPath)
@@ -448,10 +449,12 @@ func TestDaemonRestart_pidFile(t *testing.T) {
 	require.NotEmpty(pidRaw)
 
 	// Delete the file
+	require.NoError(os.Remove(pidPath))
 	require.NoError(os.Remove(path))
 
 	// File should re-appear because the process is restart
-	waitFile()
+	waitFile(path)
+	waitFile(pidPath)
 
 	// Check the pid file and it should not equal
 	pidRaw2, err := ioutil.ReadFile(pidPath)

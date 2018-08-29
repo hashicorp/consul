@@ -2,7 +2,7 @@ import Adapter, {
   REQUEST_CREATE,
   REQUEST_UPDATE,
   REQUEST_DELETE,
-  DATACENTER_KEY as API_DATACENTER_KEY,
+  DATACENTER_QUERY_PARAM as API_DATACENTER_KEY,
 } from './application';
 import isFolder from 'consul-ui/utils/isFolder';
 import injectableRequestToJQueryAjaxHash from 'consul-ui/utils/injectableRequestToJQueryAjaxHash';
@@ -45,6 +45,9 @@ export default Adapter.extend({
   }),
   decoder: service('atob'),
   urlForQuery: function(query, modelName) {
+    if (typeof query.id === 'undefined') {
+      throw new Error('You must specify an id');
+    }
     // append keys here otherwise query.keys will add an '='
     return this.appendURL('kv', keyToArray(query.id), {
       ...{
@@ -54,6 +57,9 @@ export default Adapter.extend({
     });
   },
   urlForQueryRecord: function(query, modelName) {
+    if (typeof query.id === 'undefined') {
+      throw new Error('You must specify an id');
+    }
     return this.appendURL('kv', keyToArray(query.id), this.cleanQuery(query));
   },
   urlForCreateRecord: function(modelName, snapshot) {
@@ -84,35 +90,36 @@ export default Adapter.extend({
         .join('/')
     );
   },
-  isQueryRecord: function(url) {
+  isQueryRecord: function(url, method) {
     return !url.searchParams.has(API_KEYS_KEY);
   },
+  handleBatchResponse: function(url, response, primary, slug) {
+    const dc = url.searchParams.get(API_DATACENTER_KEY) || '';
+    return response.map((item, i, arr) => {
+      return {
+        [DATACENTER_KEY]: dc,
+        [PRIMARY_KEY]: this.uidForURL(url, item),
+        [SLUG_KEY]: item,
+      };
+    });
+  },
+  // handleSingleResponse: function(url, response, primary, slug) {
+  //   return this._super(url, removeNull(response[0]), PRIMARY_KEY, SLUG_KEY);
+  // },
   handleResponse: function(status, headers, payload, requestData) {
     let response = payload;
+    const method = requestData.method;
     if (status === HTTP_OK) {
       const url = this.parseURL(requestData.url);
       switch (true) {
         case response === true:
-          response = {
-            [PRIMARY_KEY]: this.uidForURL(url),
-          };
+          response = this.handleBooleanResponse(url, response, PRIMARY_KEY, SLUG_KEY);
           break;
-        case this.isQueryRecord(url):
-          response = {
-            ...removeNull(response[0]),
-            ...{
-              [PRIMARY_KEY]: this.uidForURL(url),
-            },
-          };
+        case this.isQueryRecord(url, method):
+          response = this.handleSingleResponse(url, removeNull(response[0]), PRIMARY_KEY, SLUG_KEY);
           break;
         default:
-          // isQuery
-          response = response.map((item, i, arr) => {
-            return {
-              [PRIMARY_KEY]: this.uidForURL(url, item),
-              [SLUG_KEY]: item,
-            };
-          });
+          response = this.handleBatchResponse(url, response, PRIMARY_KEY, SLUG_KEY);
       }
     }
     return this._super(status, headers, response, requestData);
