@@ -12,10 +12,11 @@ import (
 const (
 	testFileName = "Consul.log"
 	testDuration = 2 * time.Second
-	testBytes    = 15
+	testBytes    = 10
 )
 
 func TestLogFile_timeRotation(t *testing.T) {
+	t.Parallel()
 	tempDir := testutil.TempDir(t, "LogWriterTime")
 	defer os.Remove(tempDir)
 	logFile := LogFile{fileName: testFileName, logPath: tempDir, duration: testDuration}
@@ -29,10 +30,11 @@ func TestLogFile_timeRotation(t *testing.T) {
 }
 
 func TestLogFile_byteRotation(t *testing.T) {
+	t.Parallel()
 	tempDir := testutil.TempDir(t, "LogWriterBytes")
 	defer os.Remove(tempDir)
 	logFile := LogFile{fileName: testFileName, logPath: tempDir, MaxBytes: testBytes, duration: 24 * time.Hour}
-	logFile.Write([]byte("Hello World Peace"))
+	logFile.Write([]byte("Hello World"))
 	logFile.Write([]byte("Second File"))
 	want := 2
 	tempFiles, _ := ioutil.ReadDir(tempDir)
