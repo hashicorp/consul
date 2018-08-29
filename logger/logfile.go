@@ -43,6 +43,10 @@ type LogFile struct {
 func (l *LogFile) openNew() error {
 	// Extract the file extention
 	fileExt := filepath.Ext(l.fileName)
+	// If we have no file extension we append .log
+	if fileExt == "" {
+		fileExt = ".log"
+	}
 	// Remove the file extention from the filename
 	fileName := strings.TrimSuffix(l.fileName, fileExt)
 	// New file name has the format : filename-timestamp.extension
