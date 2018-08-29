@@ -174,13 +174,17 @@ $ curl \
 ```json
 [
   {
-    "LockDelay": 1.5e+10,
+    "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
+    "Name": "test-session",
+    "Node": "raja-laptop-02",    
     "Checks": [
       "serfHealth"
     ],
-    "Node": "foobar",
-    "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
-    "CreateIndex": 1086449
+    "LockDelay": 1.5e+10,
+    "Behavior": "release",
+    "TTL": "30s",
+    "CreateIndex": 1086449,
+    "ModifyIndex": 1086449
   }
 ]
 ```
@@ -225,14 +229,18 @@ $ curl \
 ```json
 [
   {
-    "LockDelay": 1.5e+10,
+    "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
+    "Name": "test-session",
+    "Node": "raja-laptop-02",    
     "Checks": [
       "serfHealth"
     ],
-    "Node": "foobar",
-    "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
-    "CreateIndex": 1086449
-  },
+    "LockDelay": 1.5e+10,
+    "Behavior": "release",
+    "TTL": "30s",
+    "CreateIndex": 1086449,
+    "ModifyIndex": 1086449
+  }
 ]
 ```
 
@@ -271,14 +279,18 @@ $ curl \
 ```json
 [
   {
-    "LockDelay": 1.5e+10,
+    "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
+    "Name": "test-session",
+    "Node": "raja-laptop-02",    
     "Checks": [
       "serfHealth"
     ],
-    "Node": "foobar",
-    "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
-    "CreateIndex": 1086449
-  },
+    "LockDelay": 1.5e+10,
+    "Behavior": "release",
+    "TTL": "30s",
+    "CreateIndex": 1086449,
+    "ModifyIndex": 1086449
+  }
 ]
 ```
 
@@ -322,15 +334,17 @@ $ curl \
 ```json
 [
   {
-    "LockDelay": 1.5e+10,
+    "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
+    "Name": "test-session",
+    "Node": "raja-laptop-02",    
     "Checks": [
       "serfHealth"
     ],
-    "Node": "foobar",
-    "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
-    "CreateIndex": 1086449,
+    "LockDelay": 1.5e+10,
     "Behavior": "release",
-    "TTL": "15s"
+    "TTL": "15s",
+    "CreateIndex": 1086449,
+    "ModifyIndex": 1086449
   }
 ]
 ```
