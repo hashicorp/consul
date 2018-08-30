@@ -15,9 +15,7 @@
 %secondary-button,
 %dangerous-button {
   @extend %button;
-  /* important here just makes things easier for the moment */
-  /* overwise you have to add the width on all states */
-  border-width: 1px !important;
+  border-width: 1px;
   border-radius: $radius-small;
   box-shadow: 0 3px 1px 0 rgba($ui-black, 0.12);
 }

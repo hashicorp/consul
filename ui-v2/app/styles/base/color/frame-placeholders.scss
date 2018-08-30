@@ -1,12 +1,22 @@
+/*TODO: Move this to the reset */
+* {
+  border-width: 0;
+}
 %frame-border-000 {
   /* same as decor-border-000 - but need to think about being able to import color on its own*/
   border-style: solid;
-  border-width: 0;
+  // border-width: 0;
 }
 %frame-yellow-500 {
   @extend %frame-border-000;
   background-color: $ui-yellow-050;
   border-color: $ui-color-warning;
+}
+%frame-green-500 {
+  @extend %frame-border-000;
+  background-color: $ui-green-050;
+  border-color: $ui-green-500;
+  color: $ui-green-500;
 }
 %frame-gray-500 {
   @extend %frame-border-000;
@@ -67,4 +77,9 @@
   background-color: $ui-red-700;
   border-color: $ui-red-800;
   color: $ui-white;
+}
+%frame-magenta-300 {
+  background-color: $ui-white;
+  border-color: $brand-magenta-600;
+  color: $brand-magenta-600;
 }

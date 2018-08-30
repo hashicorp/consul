@@ -1,27 +1,16 @@
+%flash-message p {
+  border-width: 1px;
+  border-radius: $decor-radius-100;
+}
 %flash-message p.success strong {
   @extend %with-passing;
 }
 %flash-message p.error strong {
   @extend %with-critical;
 }
-%flash-message p {
-  border: $decor-border-100;
-  border-radius: $radius-small;
-}
 %flash-message p.success {
-  border-color: $ui-color-success;
-  background-color: $ui-green-050;
-}
-%flash-message p {
-  color: $ui-color-success;
+  @extend %frame-green-500;
 }
 %flash-message p.error {
-  border-color: $ui-color-failure;
-  background-color: $ui-red-050;
-}
-%flash-message p.error {
-  color: $ui-color-failure;
-}
-%flash-message p strong {
-  color: inherit;
+  @extend %frame-red-500;
 }

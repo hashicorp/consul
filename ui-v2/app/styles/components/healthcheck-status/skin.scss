@@ -1,9 +1,9 @@
 %healthcheck-status {
-  border: $decor-border-100;
+  border-width: 1px;
 }
 %healthcheck-status,
 %healthcheck-status pre {
-  border-radius: $radius-small;
+  border-radius: $decor-radius-100;
 }
 %healthcheck-status dd:first-of-type {
   color: $ui-gray-400;
@@ -13,19 +13,23 @@
   color: $ui-white;
 }
 %healthcheck-status.passing {
+  /* TODO: this should be a gray frame */
+  // @extend %frame-green-500;
+  color: $ui-gray-900;
   border-color: $ui-gray-200;
+  border-style: solid;
+}
+%healthcheck-status.warning {
+  @extend %frame-yellow-500;
+  color: $ui-gray-900;
+}
+%healthcheck-status.critical {
+  @extend %frame-red-500;
+  color: $ui-gray-900;
 }
 %healthcheck-status.passing::before {
   background-color: $ui-color-success !important;
 }
-%healthcheck-status.critical {
-  border-color: $ui-color-danger;
-  background-color: rgba($ui-color-danger, 0.1);
-}
 %healthcheck-status.critical::before {
   background-color: $ui-color-danger !important;
-}
-%healthcheck-status.warning {
-  border-color: $ui-color-alert;
-  background-color: rgba($ui-color-alert, 0.1);
 }
