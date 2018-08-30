@@ -44,6 +44,12 @@
   border-color: $ui-red-500;
   color: $ui-red-500;
 }
+%frame-red-500 {
+  @extend %frame-border-000;
+  background-color: $ui-red-050;
+  border-color: $ui-red-500;
+  color: $ui-red-800;
+}
 %frame-red-600 {
   @extend %frame-border-000;
   background-color: $ui-red-200;
