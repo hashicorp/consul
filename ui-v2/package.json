@@ -38,7 +38,6 @@
     "ember-ajax": "^3.0.0",
     "ember-block-slots": "^1.1.11",
     "ember-browserify": "^1.2.2",
-    "ember-bulma-css": "^0.2.1",
     "ember-changeset-validations": "^1.2.11",
     "ember-cli": "~2.18.2",
     "ember-cli-app-version": "^3.0.0",
