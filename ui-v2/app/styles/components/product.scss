@@ -1,6 +1,5 @@
 @import './product/index';
 @import './filter-bar';
-@import './form-elements/index';
 html body > svg {
   display: none;
 }
@@ -18,13 +17,6 @@ main {
 }
 %app-view header form {
   @extend %filter-bar;
-}
-%app-content .type-text,
-%app-content .type-toggle {
-  @extend %form-element;
-}
-%app-content [role='radiogroup'] {
-  @extend %radio-group;
 }
 %loader circle {
   fill: $brand-magenta-100;

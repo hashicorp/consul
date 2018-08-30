@@ -79,6 +79,7 @@
   color: $ui-white;
 }
 %frame-magenta-300 {
+  @extend %frame-border-000;
   background-color: $ui-white;
   border-color: $brand-magenta-600;
   color: $brand-magenta-600;
