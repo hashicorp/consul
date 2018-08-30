@@ -99,7 +99,9 @@ func NewDNSServer(a *Agent) (*DNSServer, error) {
 	}
 	if dnscfg.ServiceTTL != nil {
 		for key, ttl := range dnscfg.ServiceTTL {
-			if strings.HasSuffix(key, "*") && len(key) > 1 {
+			// All suffix with '*' are put in radix
+			// This include '*' that will match anything
+			if strings.HasSuffix(key, "*") {
 				srv.ttlRadix.Insert(key[:len(key)-1], ttl)
 			} else {
 				srv.ttlStrict[key] = ttl
@@ -137,16 +139,11 @@ func (d *DNSServer) GetTTLForService(service string) (time.Duration, bool) {
 		ttl, ok := d.ttlStrict[service]
 		if ok {
 			return ttl, true
-		} else {
-			_, ttlRaw, ok := d.ttlRadix.LongestPrefix(service)
-			if ok {
-				return ttlRaw.(time.Duration), true
-			}
 		}
-	}
-	ttl, ok := d.ttlStrict["*"]
-	if ok {
-		return ttl, true
+		_, ttlRaw, ok := d.ttlRadix.LongestPrefix(service)
+		if ok {
+			return ttlRaw.(time.Duration), true
+		}
 	}
 	return time.Duration(0), false
 }
