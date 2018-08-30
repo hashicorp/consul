@@ -82,7 +82,6 @@ td {
   font-size: $typo-size-600;
 }
 th,
-%form-element > em,
 %form-element > span,
 %healthchecked-resource strong,
 %footer {
@@ -96,6 +95,7 @@ th,
 %app-view > div.disabled > div,
 .template-error > div,
 %button,
+%form-element > em,
 .with-confirmation p,
 %feedback-dialog-inline p {
   font-size: $typo-size-800;

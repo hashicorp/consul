@@ -1,30 +1,40 @@
-%form-element > span {
+%form-element,
+%form-element > em,
+%form-element > span,
+%form-element textarea {
   display: block;
+}
+%form-element > em > code {
+  display: inline-block;
+}
+%form-element [type='text'],
+%form-element [type='password'] {
+  display: inline-flex;
+  justify-content: flex-start;
+}
+%form-element textarea {
+  resize: vertical;
+}
+%form-element > span {
   margin-bottom: 0.5em;
 }
 %form-element textarea {
-  display: block;
   max-width: 100%;
   min-width: 100%;
   min-height: 70px;
   padding: 0.625em 15px;
-  resize: vertical;
 }
 %form-element [type='text'],
 %form-element [type='password'] {
   max-width: 100%;
   width: 100%;
-  display: inline-flex;
-  justify-content: flex-start;
   height: 2.25em;
 }
-%form-element,
 %form-element > em {
-  display: block;
+  margin-top: 2px;
 }
-%form-element > em {
-  margin-left: 8px;
-  margin-top: 10px;
+%form-element > em > code {
+  padding: 0 4px;
 }
 %form-element [type='text'],
 %form-element [type='password'],
@@ -43,10 +53,15 @@
 }
 %radio-group {
   overflow: hidden;
-  padding-left: 1px;
 }
 %radio-group label {
   float: left;
+}
+%radio-group label > span {
+  float: right;
+}
+%radio-group {
+  padding-left: 1px;
 }
 %radio-group label:not(:last-child) {
   margin-right: 25px;
@@ -54,7 +69,6 @@
 %radio-group label > span {
   margin-left: 1em;
   margin-top: 0.2em;
-  float: right;
 }
 %radio-group label,
 %radio-group label > span {
