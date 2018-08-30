@@ -24,7 +24,7 @@
   color: $ui-color-action;
   background-color: $ui-color-transparent;
 }
-%copy-button:hover:not(:disabled),
+%copy-button:hover:not(:disabled):not(:active),
 %copy-button:focus {
   color: $ui-color-action;
   background-color: $ui-gray-050;
@@ -37,7 +37,7 @@
 %primary-button {
   @extend %frame-blue-800;
 }
-%primary-button:hover:not(:disabled),
+%primary-button:hover:not(:disabled):not(:active),
 %primary-button:focus {
   @extend %frame-blue-700;
 }
@@ -49,24 +49,32 @@
 }
 /**/
 %secondary-button {
-  color: $ui-gray-400;
-  background-color: $ui-white;
+  /* %frame-gray-something */
+  color: $ui-gray-800;
+  background-color: $ui-gray-050;
+  border-color: $ui-gray-300;
 }
-%secondary-button:hover:not(:disabled),
+%secondary-button:hover:not(:disabled):not(:active),
 %secondary-button:focus {
-  color: $ui-gray-600;
+  /* %frame-gray-something */
+  background-color: $ui-white;
+  color: $ui-gray-800;
+  border-color: $ui-gray-700;
 }
 %secondary-button:disabled {
   color: $ui-gray-600;
 }
 %secondary-button:active {
-  color: $ui-gray-600;
+  /* %frame-gray-something */
+  background-color: $ui-gray-200;
+  color: $ui-gray-800;
+  border-color: $ui-gray-700;
 }
 /**/
 %dangerous-button {
   @extend %frame-red-300;
 }
-%dangerous-button:hover:not(:disabled),
+%dangerous-button:hover:not(:disabled):not(:active),
 %dangerous-button:focus {
   @extend %frame-red-700;
 }
