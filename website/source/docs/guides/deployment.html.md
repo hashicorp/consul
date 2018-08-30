@@ -34,9 +34,9 @@ The **small size** instance configuration is appropriate for most initial produc
 
 ~> **NOTE** For large workloads, ensure that the disks support a high number of IOPS to keep up with the rapid Raft log update rate.
 
-The recommended size with the default configuration for a single datacenter is 5,000 nodes. Consul can support larger single datacenter cluster sizes by tuning the [gossip parameters](/docs/agent/options.html#gossip_lan) and ensuring Consul agents -- particularly servers -- are running on sufficient hardware. There are real production users of Consul running with greater than 25,000 nodes in a single datacenter today by tuning these parameters.
+The recommended size with the default configuration for a single datacenter is 5,000 nodes. Consul can support larger single datacenter cluster sizes by tuning the [gossip parameters](/docs/agent/options.html#gossip_lan) and ensuring Consul agents -- particularly servers -- are running on sufficient hardware. There are real production users of Consul running with greater than 25,000 nodes in a single datacenter today by tuning these parameters. [XL server instances](#system-requirements) or better are required to achieve this scale.
 
-For a write-heavy and/or a read-heavy cluster, the number of clients may need to be reduced further with considerations for the impact of the number of services and/or watches registered and the number and size of KV pairs. Alternately, large scale read requests can be achieved by increasing the number of non-voting servers ([Enterprise feature](/docs/enterprise/read-scale/index.html)) while maintaining the recommended number of servers (3 or 5) in the quorum. See [Performance Tuning](#1-3-performance-tuning) for more details.
+For a write-heavy and/or a read-heavy cluster, the number of clients may need to be reduced further with considerations for the impact of the number of services and/or watches registered and the number and size of KV pairs. Alternately, large scale read requests can be achieved by increasing the number of non-voting servers ([Enterprise feature](/docs/enterprise/read-scale/index.html)) while maintaining the recommended number of servers (3 or 5) in the quorum. See [Performance Tuning](#performance-tuning) for more recommendations for read-heavy clusters.
 
 ## Datacenter Design
 
@@ -94,7 +94,7 @@ In a larger network that spans L2 segments, traffic typically traverses through 
 |HTTP API|8500|`-1` to disable|Used by clients to talk to the HTTP API. TCP only.|
 |DNS&nbsp;Interface|8600|`-1` to disable||
 
--> As mentioned in the [datacenter design section](#1-1-1-single-datacenter), network areas and network segments can be used to prevent opening up firewall ports between different subnets.
+-> As mentioned in the [datacenter design section](#single-datacenter), network areas and network segments can be used to prevent opening up firewall ports between different subnets.
 
 By default agents will only listen for HTTP and DNS traffic on the local interface.
 
