@@ -26,10 +26,17 @@ The following instance configurations are recommended.
 |Large|4-8 core|32-64+ GB RAM|100 GB|**AWS**: m5.2xlarge, m5.4xlarge|
 |||||**Azure**: Standard\_D4\_v3, Standard\_D5\_v3|
 |||||**GCE**: n1-standard-32, n1-standard-64|
+|XL|12-24 core|64+ GB RAM|SSD|**AWS**: m5d.4xlarge|
+|||||**Azure**: Standard\_D16\_v3, Standard\_D32\_v3|
+|||||**GCE**: n1-standard-32, n1-standard-64|
 
 The **small size** instance configuration is appropriate for most initial production deployments, or for development/testing environments. The large size is for production environments where there is a consistently high workload. Suggested instance types are provided for common platforms, but do refer to platform documentation for up-to-date instance types that align with the recommended resources.
 
 ~> **NOTE** For large workloads, ensure that the disks support a high number of IOPS to keep up with the rapid Raft log update rate.
+
+The recommended size with the default configuration for a single datacenter is 5,000 nodes. Consul can support larger single datacenter cluster sizes by tuning the [gossip parameters](/docs/agent/options.html#gossip_lan) and ensuring Consul agents -- particularly servers -- are running on sufficient hardware. There are real production users of Consul running with greater than 25,000 nodes in a single datacenter today by tuning these parameters.
+
+For a write-heavy and/or a read-heavy cluster, the number of clients may need to be reduced further with considerations for the impact of the number of services and/or watches registered and the number and size of KV pairs. Alternately, large scale read requests can be achieved by increasing the number of non-voting servers ([Enterprise feature](/docs/enterprise/read-scale/index.html)) while maintaining the recommended number of servers (3 or 5) in the quorum. See [Performance Tuning](#1-3-performance-tuning) for more details.
 
 ## Datacenter Design
 
