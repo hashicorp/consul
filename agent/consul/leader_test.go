@@ -290,6 +290,8 @@ func TestLeader_ReapServer(t *testing.T) {
 	joinLAN(t, s1, s3)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s2.RPC, "dc1")
+	testrpc.WaitForLeader(t, s3.RPC, "dc1")
 	state := s1.fsm.State()
 
 	// s3 should be registered
