@@ -18,18 +18,19 @@
 # * Send PR to get this merged.
 #
 # * Open an issue for this release
-# * In an issue give the command: /release: master
-# * (to test as release /release: -t master can be used.
+# * In an issue give the command: /release: master VERSION
+#   Where VERSION is the version of the release - the release script double checks this with the
+#   actual CoreDNS version in coremain/version.go
+# * (to test as release /release: -t master VERSION can be used.
 #
-# See github.com/coredns/release for documentation README on what needs to be setup for this to be
+# See https://github.com/coredns/release for documentation README on what needs to be setup for this to be
 # automated (can still be done by hand if needed). Especially what environment variables need to be
 # set!
 #
-# To release we run, where 'release' and 'docker' only locally build assets; these are the same
-# targets that get executed in case of testing.
+# To release we run, these target from the this Makefile:
 # * make release
-# * make github-push
 # * make docker
+# * make github-push
 # * make docker-push
 
 EMPTY:=
