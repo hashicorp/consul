@@ -7,7 +7,7 @@
         <div role="radiogroup" class={{if item.error.Type ' has-error'}}>
             {{#each types as |type|}}
                 <label>
-                    <span>{{type}}</span>
+                    <span>{{capitalize type}}</span>
                     <input type="radio" name="Type" value="{{type}}" checked={{if (eq item.Type type) 'checked'}} onchange={{ action 'change' }}/>
                 </label>
             {{/each}}
