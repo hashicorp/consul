@@ -53,6 +53,7 @@
   color: $ui-gray-800;
   background-color: $ui-gray-050;
   border-color: $ui-gray-300;
+  border-style: solid;
 }
 %secondary-button:hover:not(:disabled):not(:active),
 %secondary-button:focus {
