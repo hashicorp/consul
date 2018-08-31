@@ -31,17 +31,17 @@ type call struct {
 // units of work can be executed with duplicate suppression.
 type Group struct {
 	mu sync.Mutex       // protects m
-	m  map[uint32]*call // lazily initialized
+	m  map[uint64]*call // lazily initialized
 }
 
 // Do executes and returns the results of the given function, making
 // sure that only one execution is in-flight for a given key at a
 // time. If a duplicate comes in, the duplicate caller waits for the
 // original to complete and receives the same results.
-func (g *Group) Do(key uint32, fn func() (interface{}, error)) (interface{}, error) {
+func (g *Group) Do(key uint64, fn func() (interface{}, error)) (interface{}, error) {
 	g.mu.Lock()
 	if g.m == nil {
-		g.m = make(map[uint32]*call)
+		g.m = make(map[uint64]*call)
 	}
 	if c, ok := g.m[key]; ok {
 		g.mu.Unlock()

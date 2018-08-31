@@ -110,9 +110,9 @@ func (d Dnssec) sign(rrs []dns.RR, signerName string, ttl, incep, expir uint32, 
 	return sigs.([]dns.RR), err
 }
 
-func (d Dnssec) set(key uint32, sigs []dns.RR) { d.cache.Add(key, sigs) }
+func (d Dnssec) set(key uint64, sigs []dns.RR) { d.cache.Add(key, sigs) }
 
-func (d Dnssec) get(key uint32, server string) ([]dns.RR, bool) {
+func (d Dnssec) get(key uint64, server string) ([]dns.RR, bool) {
 	if s, ok := d.cache.Get(key); ok {
 		// we sign for 8 days, check if a signature in the cache reached 3/4 of that
 		is75 := time.Now().UTC().Add(sixDays)

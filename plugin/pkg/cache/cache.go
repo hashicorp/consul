@@ -9,10 +9,10 @@ import (
 )
 
 // Hash returns the FNV hash of what.
-func Hash(what []byte) uint32 {
-	h := fnv.New32()
+func Hash(what []byte) uint64 {
+	h := fnv.New64()
 	h.Write(what)
-	return h.Sum32()
+	return h.Sum64()
 }
 
 // Cache is cache.
@@ -22,7 +22,7 @@ type Cache struct {
 
 // shard is a cache with random eviction.
 type shard struct {
-	items map[uint32]interface{}
+	items map[uint64]interface{}
 	size  int
 
 	sync.RWMutex
@@ -45,19 +45,19 @@ func New(size int) *Cache {
 }
 
 // Add adds a new element to the cache. If the element already exists it is overwritten.
-func (c *Cache) Add(key uint32, el interface{}) {
+func (c *Cache) Add(key uint64, el interface{}) {
 	shard := key & (shardSize - 1)
 	c.shards[shard].Add(key, el)
 }
 
 // Get looks up element index under key.
-func (c *Cache) Get(key uint32) (interface{}, bool) {
+func (c *Cache) Get(key uint64) (interface{}, bool) {
 	shard := key & (shardSize - 1)
 	return c.shards[shard].Get(key)
 }
 
 // Remove removes the element indexed with key.
-func (c *Cache) Remove(key uint32) {
+func (c *Cache) Remove(key uint64) {
 	shard := key & (shardSize - 1)
 	c.shards[shard].Remove(key)
 }
@@ -72,10 +72,10 @@ func (c *Cache) Len() int {
 }
 
 // newShard returns a new shard with size.
-func newShard(size int) *shard { return &shard{items: make(map[uint32]interface{}), size: size} }
+func newShard(size int) *shard { return &shard{items: make(map[uint64]interface{}), size: size} }
 
 // Add adds element indexed by key into the cache. Any existing element is overwritten
-func (s *shard) Add(key uint32, el interface{}) {
+func (s *shard) Add(key uint64, el interface{}) {
 	l := s.Len()
 	if l+1 > s.size {
 		s.Evict()
@@ -87,7 +87,7 @@ func (s *shard) Add(key uint32, el interface{}) {
 }
 
 // Remove removes the element indexed by key from the cache.
-func (s *shard) Remove(key uint32) {
+func (s *shard) Remove(key uint64) {
 	s.Lock()
 	delete(s.items, key)
 	s.Unlock()
@@ -95,26 +95,28 @@ func (s *shard) Remove(key uint32) {
 
 // Evict removes a random element from the cache.
 func (s *shard) Evict() {
-	key := -1
+	hasKey := false
+	var key uint64
 
 	s.RLock()
 	for k := range s.items {
-		key = int(k)
+		key = k
+		hasKey = true
 		break
 	}
 	s.RUnlock()
 
-	if key == -1 {
+	if !hasKey {
 		// empty cache
 		return
 	}
 
 	// If this item is gone between the RUnlock and Lock race we don't care.
-	s.Remove(uint32(key))
+	s.Remove(key)
 }
 
 // Get looks up the element indexed under key.
-func (s *shard) Get(key uint32) (interface{}, bool) {
+func (s *shard) Get(key uint64) (interface{}, bool) {
 	s.RLock()
 	el, found := s.items[key]
 	s.RUnlock()
