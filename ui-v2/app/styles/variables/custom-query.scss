@@ -16,3 +16,24 @@ $--lt-horizontal-session-list: '(max-width: 899px)';
 
 $--min-padding: '(max-width: 600px)';
 $--max-padding: '(min-width: 1260px)';
+
+$--tall-footer: '(min-height: 815px)';
+$--lt-tall-footer: '(max-height: 814px)';
+
+$--wide-footer: '(min-width: 421px)';
+$--lt-wide-footer: '(max-width: 420px)';
+
+$--expanded-filters: '(min-width: 421px) (min-height: 815px)';
+$--lt-expanded-filters: '(max-width: 420px) (max-height: 814px)';
+
+$--spacious-page-header: '(min-width: 421px) (min-height: 815px)';
+$--lt-spacious-page-header: '(max-width: 420px) (max-height: 814px)';
+
+$--spacious-healthcheck-status: '(min-width: 421px)';
+$--lt-spacious-healthcheck-status: '(max-width: 420px)';
+
+$--wide-form: '(min-width: 421px)';
+$--lt-wide-form: '(max-width: 420px)';
+
+$--wide-table: '(min-width: 421px)';
+$--lt-wide-table: '(max-width: 420px)';

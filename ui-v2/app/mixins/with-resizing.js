@@ -17,14 +17,22 @@ export default Mixin.create({
   },
   didInsertElement: function() {
     this._super(...arguments);
-    get(this, 'win').addEventListener('resize', this.handler);
+    ['resize', 'orientationchange'].forEach(
+      (item) => {
+        get(this, 'win').addEventListener(item, this.handler, false);
+      }
+    );
     this.didAppear();
   },
   didAppear: function() {
     this.handler({ target: get(this, 'win') });
   },
   willDestroyElement: function() {
-    get(this, 'win').removeEventListener('resize', this.handler);
+    ['resize', 'orientationchange'].forEach(
+      (item) => {
+        get(this, 'win').removeEventListener(item, this.handler, false);
+      }
+    );
     this._super(...arguments);
   },
 });

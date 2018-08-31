@@ -1,0 +1,15 @@
+@media #{$--lt-wide-form} {
+  html.template-acl.template-edit main header .actions {
+    float: none;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1em;
+  }
+  html.template-acl.template-edit main header .actions .with-feedback {
+    position: absolute;
+    right: 0;
+  }
+  html.template-acl.template-edit main header .actions .with-confirmation {
+    margin-top: 0;
+  }
+}

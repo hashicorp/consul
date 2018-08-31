@@ -5,7 +5,7 @@
   border-top: $decor-border-100;
 }
 %footer {
-  border-color: $keyline-mid;
+  border-color: $ui-gray-200;
   background-color: $ui-white;
 }
 %footer > * {
@@ -16,9 +16,31 @@
   justify-content: center;
   position: relative;
   z-index: 1;
-  padding: 25px;
 }
 %footer > * {
   display: block;
-  padding: 11px;
+}
+@media #{$--tall-footer} {
+  %footer {
+    padding-top: 25px;
+    padding-bottom: 25px;
+  }
+}
+@media #{$--wide-footer} {
+  %footer {
+    padding-left: 25px;
+    padding-right: 25px;
+  }
+  %footer > * {
+    padding: 11px;
+  }
+}
+@media #{$--lt-wide-footer} {
+  %footer > :first-child {
+    padding: 5px;
+    margin-left: 20px;
+  }
+  %footer > :not(:first-child) {
+    display: none;
+  }
 }
