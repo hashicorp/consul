@@ -588,7 +588,7 @@ $ curl \
   "Name": "my-app-token",
   "Type": "client",
   "Rules": "key \"\" { policy = \"read\" } key \"foo/\" { policy = \"write\" } key \"foo/private/\" { policy = \"deny\" } operator = \"read\""
-}' https://consul.rocks/v1/acl/create?token=<management token>
+}' http://127.0.0.1:8500/v1/acl/create?token=<management token>
 ```
 
 Here's an equivalent request using the JSON form:
@@ -601,7 +601,7 @@ $ curl \
   "Name": "my-app-token",
   "Type": "client",
   "Rules": "{\"key\":{\"\":{\"policy\":\"read\"},\"foo/\":{\"policy\":\"write\"},\"foo/private\":{\"policy\":\"deny\"}},\"operator\":\"read\"}"
-}' https://consul.rocks/v1/acl/create?token=<management token>
+}' http://127.0.0.1:8500/v1/acl/create?token=<management token>
 ```
 
 On success, the token ID is returned:

@@ -1,14 +1,20 @@
 %button {
-  font-family: $body-family;
+  font-family: $typo-family-sans;
 }
-%button {
+main p {
+  margin-bottom: 1em;
+}
+%button,
+%form-element textarea,
+%form-element [type='text'],
+%form-element [type='password'] {
   line-height: 1.5;
 }
 %radio-group label {
   line-height: 1.25;
 }
-h1 {
-  letter-spacing: 1px;
+%filter-bar [role='radiogroup'] label {
+  line-height: 1.7;
 }
 %header-nav,
 %tab-nav {
@@ -17,9 +23,14 @@ h1 {
 %footer {
   letter-spacing: -0.05em;
 }
+th,
+button,
+td strong,
+td:first-child,
 h1,
+%app-content div > dt,
 %header-drop-nav .is-active {
-  font-weight: $weight-bold;
+  font-weight: $typo-weight-bold;
 }
 h2,
 %header-nav,
@@ -29,21 +40,22 @@ h2,
 %form-element > span,
 %app-content div > dl > dt,
 td a {
-  font-weight: $weight-semibold;
+  font-weight: $typo-weight-semibold;
 }
 %button {
-  font-weight: $weight-semibold !important;
+  font-weight: $typo-weight-semibold !important;
 }
 th,
 %breadcrumbs a,
 %action-group a,
 %tab-nav {
-  font-weight: $weight-medium;
+  font-weight: $typo-weight-medium;
 }
 main label a[rel*='help'],
 td:first-child em,
+%pill,
 %healthchecked-resource strong {
-  font-weight: $weight-normal;
+  font-weight: $typo-weight-normal;
 }
 %form-element > em,
 td:first-child em,
@@ -56,40 +68,39 @@ td:first-child em,
 %form-element > span > * {
   text-transform: none;
 }
+%footer > * {
+  font-size: inherit;
+}
 h1 {
-  font-size: $size-4;
+  font-size: $typo-size-400;
 }
 h2,
 %header-drop-nav .is-active {
-  font-size: $size-5;
+  font-size: $typo-size-500;
 }
 body,
 pre code,
 input,
 textarea,
 td {
-  font-size: $size-6;
+  font-size: $typo-size-600;
 }
 th,
 %healthchecked-resource strong,
 %footer {
-  font-size: $size-7;
+  font-size: $typo-size-700;
 }
 %toggle span {
-  font-size: $size-7 !important;
+  font-size: $typo-size-700 !important;
 }
+%app-content > p:only-child,
+[role='tabpanel'] > p:only-child,
+%app-view > div.disabled > div,
+.template-error > div,
 %button,
 .with-confirmation p,
 %form-element > em,
 %form-element > span,
 %feedback-dialog-inline p {
-  font-size: $size-8;
-}
-th,
-button,
-td strong {
-  font-weight: normal;
-}
-td:first-child {
-  font-weight: bold;
+  font-size: $typo-size-800;
 }

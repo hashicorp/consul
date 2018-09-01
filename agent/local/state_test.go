@@ -31,7 +31,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	a := &agent.TestAgent{Name: t.Name()}
 	a.Start()
 	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Register info
 	args := &structs.RegisterRequest{
@@ -264,7 +264,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 	a := &agent.TestAgent{Name: t.Name()}
 	a.Start()
 	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Register node info
 	var out struct{}
@@ -422,7 +422,7 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 	a := &agent.TestAgent{Name: t.Name()}
 	a.Start()
 	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	args := &structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -554,7 +554,7 @@ func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	{
 		// Single check
@@ -837,7 +837,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 	a.Start()
 	defer a.Shutdown()
 
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	// Register info
 	args := &structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -1303,7 +1303,7 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	`}
 	a.Start()
 	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Create a check
 	check := &structs.HealthCheck{

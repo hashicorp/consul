@@ -1,10 +1,10 @@
-.list-collection {
-  height: 500px;
-  position: relative;
-}
 .unhealthy > div,
 .healthy > div {
   @extend %card-grid;
+}
+.list-collection {
+  height: 500px;
+  position: relative;
 }
 .healthy > div {
   width: calc(100% + 23px);

@@ -4,7 +4,8 @@
 {{#each flashMessages.queue as |flash|}}
     {{#flash-message flash=flash as |component flash|}}
         {{! flashes automatically ucfirst the type }}
-        <p class={{if (eq component.flashType 'Success') 'success' 'error'}}><strong>{{if (eq component.flashType 'Success') 'Success!' 'Error!'}}</strong> {{flash.message}}</p>
+
+        <p data-notification class="{{if (eq component.flashType 'Success') 'success' 'error'}} notification-{{lowercase flash.action}}"><strong>{{if (eq component.flashType 'Success') 'Success!' 'Error!'}}</strong> {{#yield-slot 'notification' (block-params (lowercase component.flashType) (lowercase flash.action) )}}{{yield}}{{/yield-slot}}</p>
     {{/flash-message}}
 {{/each}}
     <div>

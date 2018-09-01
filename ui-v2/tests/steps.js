@@ -60,7 +60,7 @@ export default function(assert) {
       )
       // TODO: Abstract this away from HTTP
       .given(['the url "$url" responds with a $status status'], function(url, status) {
-        return api.server.respondWithStatus(url, parseInt(status));
+        return api.server.respondWithStatus(url.split('?')[0], parseInt(status));
       })
       // interactions
       .when('I visit the $name page', function(name) {
@@ -390,10 +390,16 @@ export default function(assert) {
       // TODO: These should be mergeable
       .then(['"$selector" has the "$class" class'], function(selector, cls) {
         // because `find` doesn't work, guessing its sandboxed to ember's container
-        assert.ok(document.querySelector(selector).classList.contains(cls));
+        assert.ok(
+          document.querySelector(selector).classList.contains(cls),
+          `Expected [class] to contain ${cls} on ${selector}`
+        );
       })
       .then(['"$selector" doesn\'t have the "$class" class'], function(selector, cls) {
-        assert.ok(!document.querySelector(selector).classList.contains(cls));
+        assert.ok(
+          !document.querySelector(selector).classList.contains(cls),
+          `Expected [class] not to contain ${cls} on ${selector}`
+        );
       })
       .then('ok', function() {
         assert.ok(true);

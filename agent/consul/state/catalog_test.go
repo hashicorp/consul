@@ -61,7 +61,7 @@ func TestStateStore_GetNodeID(t *testing.T) {
 		t.Fatalf("got err %s want nil", err)
 	}
 	if out == nil || out.ID != nodeID {
-		t.Fatalf("out should not be nil and contain nodeId, but was:=%#q", out)
+		t.Fatalf("out should not be nil and contain nodeId, but was:=%#v", out)
 	}
 	// Case insensitive lookup should work as well
 	_, out, err = s.GetNodeID(types.NodeID("00a916bC-a357-4a19-b886-59419fceeAAA"))
@@ -69,7 +69,7 @@ func TestStateStore_GetNodeID(t *testing.T) {
 		t.Fatalf("got err %s want nil", err)
 	}
 	if out == nil || out.ID != nodeID {
-		t.Fatalf("out should not be nil and contain nodeId, but was:=%#q", out)
+		t.Fatalf("out should not be nil and contain nodeId, but was:=%#v", out)
 	}
 }
 

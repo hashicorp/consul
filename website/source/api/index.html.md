@@ -40,7 +40,7 @@ Here is an example using `curl`:
 ```text
 $ curl \
     --header "X-Consul-Token: abcd1234" \
-    https://consul.rocks/v1/agent/members
+    http://127.0.0.1:8500/v1/agent/members
 ```
 
 Previously this was provided via a `?token=` query parameter. This functionality
@@ -141,7 +141,7 @@ Here is the same example using `curl`:
 $ curl \
     --request PUT \
     --data 'hello consul' \
-    https://consul.rocks/v1/kv/foo
+    http://127.0.0.1:8500/v1/kv/foo
 ```
 
 ## Translated Addresses

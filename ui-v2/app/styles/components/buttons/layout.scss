@@ -1,0 +1,11 @@
+%button {
+  display: inline-flex;
+  text-align: center;
+  justify-content: center;
+  align-items: center;
+  padding: calc(0.375em - 1px) calc(2.2em - 1px);
+  height: 2.5em;
+}
+%button:not(:last-child) {
+  margin-right: 7px;
+}
