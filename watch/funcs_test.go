@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/testrpc"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/hashicorp/consul/agent"
@@ -532,6 +534,7 @@ func TestConnectRootsWatch(t *testing.T) {
 	// NewTestAgent will bootstrap a new CA
 	a := agent.NewTestAgent(t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	var originalCAID string
 	invoke := makeInvokeCh()

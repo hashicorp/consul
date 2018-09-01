@@ -2179,6 +2179,7 @@ func TestAgent_Service_Reap(t *testing.T) {
 		check_deregister_interval_min = "0s"
 	`)
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	svc := &structs.NodeService{
 		ID:      "redis",
