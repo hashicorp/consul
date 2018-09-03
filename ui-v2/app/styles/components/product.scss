@@ -47,14 +47,15 @@ main {
   @extend %footer;
 }
 /*TODO: This should go in reset, and probably needs select etc adding  */
-@media (max-width: 420px) and (-webkit-min-device-pixel-ratio:0) {
+@media (max-width: 420px) and (-webkit-min-device-pixel-ratio: 0) {
   input {
     font-size: 16px !important;
   }
 }
 /* toggleable toolbar for short screens */
-[for="toolbar-toggle"] {
+[for='toolbar-toggle'] {
   @extend %with-magnifier;
+  color: $ui-blue-500;
   width: 20px;
   height: 20px;
   margin-left: 15px;
@@ -64,7 +65,7 @@ main {
   display: none;
 }
 @media #{$--expanded-filters} {
-  [for="toolbar-toggle"] {
+  [for='toolbar-toggle'] {
     display: none;
   }
 }
