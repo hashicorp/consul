@@ -22,13 +22,15 @@ type Cache struct {
 	Next  plugin.Handler
 	Zones []string
 
-	ncache *cache.Cache
-	ncap   int
-	nttl   time.Duration
+	ncache  *cache.Cache
+	ncap    int
+	nttl    time.Duration
+	minnttl time.Duration
 
-	pcache *cache.Cache
-	pcap   int
-	pttl   time.Duration
+	pcache  *cache.Cache
+	pcap    int
+	pttl    time.Duration
+	minpttl time.Duration
 
 	// Prefetch.
 	prefetch   int
@@ -47,9 +49,11 @@ func New() *Cache {
 		pcap:       defaultCap,
 		pcache:     cache.New(defaultCap),
 		pttl:       maxTTL,
+		minpttl:    minTTL,
 		ncap:       defaultCap,
 		ncache:     cache.New(defaultCap),
 		nttl:       maxNTTL,
+		minnttl:    minNTTL,
 		prefetch:   0,
 		duration:   1 * time.Minute,
 		percentage: 10,
@@ -98,6 +102,17 @@ func hash(qname string, qtype uint16, do bool) uint64 {
 	}
 
 	return h.Sum64()
+}
+
+func computeTTL(msgTTL, minTTL, maxTTL time.Duration) time.Duration {
+	ttl := msgTTL
+	if ttl < minTTL {
+		ttl = minTTL
+	}
+	if ttl > maxTTL {
+		ttl = maxTTL
+	}
+	return ttl
 }
 
 // ResponseWriter is a response writer that caches the reply message.
@@ -154,14 +169,12 @@ func (w *ResponseWriter) WriteMsg(res *dns.Msg) error {
 	// key returns empty string for anything we don't want to cache.
 	hasKey, key := key(res, mt, do)
 
-	duration := w.pttl
-	if mt == response.NameError || mt == response.NoData {
-		duration = w.nttl
-	}
-
 	msgTTL := dnsutil.MinimalTTL(res, mt)
-	if msgTTL < duration {
-		duration = msgTTL
+	var duration time.Duration
+	if mt == response.NameError || mt == response.NoData {
+		duration = computeTTL(msgTTL, w.minnttl, w.nttl)
+	} else {
+		duration = computeTTL(msgTTL, w.minpttl, w.pttl)
 	}
 
 	if hasKey && duration > 0 {
@@ -226,7 +239,9 @@ func (w *ResponseWriter) Write(buf []byte) (int, error) {
 
 const (
 	maxTTL  = dnsutil.MaximumDefaulTTL
+	minTTL  = dnsutil.MinimalDefaultTTL
 	maxNTTL = dnsutil.MaximumDefaulTTL / 2
+	minNTTL = dnsutil.MinimalDefaultTTL
 
 	defaultCap = 10000 // default capacity of the cache.
 
