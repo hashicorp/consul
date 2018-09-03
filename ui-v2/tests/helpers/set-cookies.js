@@ -23,6 +23,12 @@ export default function(type, count, obj) {
     case 'intention':
       key = 'CONSUL_INTENTION_COUNT';
       break;
+    case 'policy':
+      key = 'CONSUL_POLICY_COUNT';
+      break;
+    case 'token':
+      key = 'CONSUL_TOKEN_COUNT';
+      break;
   }
   if (key) {
     obj[key] = count;
