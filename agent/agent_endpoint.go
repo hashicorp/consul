@@ -554,6 +554,29 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 			"enable_tag_override": "EnableTagOverride",
 		})
 
+		// Translate upstream keys - we have the same upstream format in two
+		// possible places.
+		translateUpstreams := func(rawMap map[string]interface{}) {
+			var upstreams []interface{}
+			if us, ok := rawMap["upstreams"].([]interface{}); ok {
+				upstreams = us
+			}
+			if us, ok := rawMap["Upstreams"].([]interface{}); ok {
+				upstreams = us
+			}
+			for _, u := range upstreams {
+				if uMap, ok := u.(map[string]interface{}); ok {
+					config.TranslateKeys(uMap, map[string]string{
+						"destination_name":      "DestinationName",
+						"destination_type":      "DestinationType",
+						"destination_namespace": "DestinationNamespace",
+						"local_bind_port":       "LocalBindPort",
+						"local_bind_address":    "LocalBindAddress",
+					})
+				}
+			}
+		}
+
 		for k, v := range rawMap {
 			switch strings.ToLower(k) {
 			case "check":
@@ -571,34 +594,31 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 					}
 				}
 			case "proxy":
-				config.TranslateKeys(rawMap, map[string]string{
-					"destination_service_name": "DestinationServiceName",
-					"destination_service_id":   "DestinationServiceID",
-					"local_service_port":       "LocalServicePort",
-					"local_service_address":    "LocalServiceAddress",
-				})
-				// Translate Upstream keys too :(
-				if proxyMap, ok := v.(map[string]interface{}); ok {
-					var upstreams []interface{}
-					if us, ok := proxyMap["upstreams"].([]interface{}); ok {
-						upstreams = us
+				if valMap, ok := v.(map[string]interface{}); ok {
+					config.TranslateKeys(valMap, map[string]string{
+						"destination_service_name": "DestinationServiceName",
+						"destination_service_id":   "DestinationServiceID",
+						"local_service_port":       "LocalServicePort",
+						"local_service_address":    "LocalServiceAddress",
+					})
+					translateUpstreams(valMap)
+				}
+			case "connect":
+				if connectMap, ok := v.(map[string]interface{}); ok {
+					var proxyMap map[string]interface{}
+					if pMap, ok := connectMap["Proxy"].(map[string]interface{}); ok {
+						proxyMap = pMap
 					}
-					if us, ok := proxyMap["Upstreams"].([]interface{}); ok {
-						upstreams = us
+					if pMap, ok := connectMap["proxy"].(map[string]interface{}); ok {
+						proxyMap = pMap
 					}
-					for _, u := range upstreams {
-						if uMap, ok := u.(map[string]interface{}); ok {
-							config.TranslateKeys(uMap, map[string]string{
-								"destination_name":      "DestinationName",
-								"destination_type":      "DestinationType",
-								"destination_namespace": "DestinationNamespace",
-								"local_bind_port":       "LocalBindPort",
-								"local_bind_address":    "LocalBindAddress",
-							})
-						}
+					if proxyMap != nil {
+						config.TranslateKeys(proxyMap, map[string]string{
+							"exec_mode": "ExecMode",
+						})
+						translateUpstreams(proxyMap)
 					}
 				}
-
 			}
 		}
 		return nil
