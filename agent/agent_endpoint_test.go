@@ -1370,7 +1370,13 @@ func TestAgent_RegisterService(t *testing.T) {
 
 func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t.Name(), `
+	connect {
+		proxy {
+			allow_managed_api_registration = true
+		}
+	}
+`)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -1397,6 +1403,20 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 		      "local_bind_port": 1234
 				}
 			]
+		},
+		"connect": {
+			"proxy": {
+				"exec_mode": "script",
+				"upstreams": [
+					{
+						"destination_type": "service",
+						"destination_namespace": "default",
+						"destination_name": "db",
+						"local_bind_address": "127.0.0.1",
+						"local_bind_port": 1234
+					}
+				]
+			}
 		}
 	}`
 	req, _ := http.NewRequest("PUT", "/v1/agent/service/register", strings.NewReader(json))
@@ -1426,6 +1446,20 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 					DestinationNamespace: "default",
 					LocalBindAddress:     "127.0.0.1",
 					LocalBindPort:        1234,
+				},
+			},
+		},
+		Connect: structs.ServiceConnect{
+			Proxy: &structs.ServiceDefinitionConnectProxy{
+				ExecMode: "script",
+				Upstreams: structs.Upstreams{
+					{
+						DestinationType:      structs.UpstreamDestTypeService,
+						DestinationName:      "db",
+						DestinationNamespace: "default",
+						LocalBindAddress:     "127.0.0.1",
+						LocalBindPort:        1234,
+					},
 				},
 			},
 		},
