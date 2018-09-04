@@ -33,6 +33,7 @@ func TestKeyWatch(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"key", "key":"foo/bar/baz"}`)
@@ -87,6 +88,7 @@ func TestKeyWatch_With_PrefixDelete(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"key", "key":"foo/bar/baz"}`)
@@ -141,6 +143,7 @@ func TestKeyPrefixWatch(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"keyprefix", "prefix":"foo/"}`)
@@ -194,6 +197,7 @@ func TestServicesWatch(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"services"}`)
@@ -248,6 +252,7 @@ func TestNodesWatch(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"nodes"}`)
@@ -299,6 +304,7 @@ func TestServiceWatch(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"service", "service":"foo", "tag":"bar", "passingonly":true}`)
@@ -355,6 +361,7 @@ func TestChecksWatch_State(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"checks", "state":"warning"}`)
@@ -416,6 +423,7 @@ func TestChecksWatch_Service(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"checks", "service":"foobar"}`)
@@ -482,6 +490,7 @@ func TestEventWatch(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"event", "name": "foo"}`)
@@ -588,6 +597,7 @@ func TestConnectLeafWatch(t *testing.T) {
 	// NewTestAgent will bootstrap a new CA
 	a := agent.NewTestAgent(t.Name(), ``)
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Register a web service to get certs for
 	{
@@ -665,6 +675,7 @@ func TestConnectProxyConfigWatch(t *testing.T) {
 	}
 	`)
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Register a local agent service with a managed proxy
 	reg := &consulapi.AgentServiceRegistration{
