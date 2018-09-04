@@ -201,6 +201,7 @@ type RegisterRequest struct {
 	Service         *NodeService
 	Check           *HealthCheck
 	Checks          HealthChecks
+	NodeLastRead    uint64
 
 	// SkipNodeUpdate can be used when a register request is intended for
 	// updating a service and/or checks, but doesn't want to overwrite any
