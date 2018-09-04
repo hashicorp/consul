@@ -311,11 +311,11 @@ func TestSnapshot_Forward_Leader(t *testing.T) {
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	// Try to join.
 	joinLAN(t, s2, s1)
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	testrpc.WaitForLeader(t, s2.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s2.RPC, "dc1")
 
 	// Run against the leader and the follower to ensure we forward. When
 	// we changed to Raft protocol version 3, since we only have two servers,
