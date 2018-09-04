@@ -1,0 +1,38 @@
+<form>
+    <fieldset>
+        <label class="type-text{{if item.error.Name ' has-error'}}">
+            <span>Name</span>
+            {{input value=item.Name name='name' autofocus='autofocus'}}
+        </label>
+        <label class="type-text">
+            <span>Rules <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
+            {{code-editor class=(if item.error.Rules 'error') name='Rules' value=item.Rules onkeyup=(action 'change')}}
+        </label>
+        <div role="radiogroup" class="">
+          DC's remember the class ^
+        </div>
+        <label class="type-text">
+          <span>Description (should this be a text area?)</span>
+            {{input value=item.Description name='description'}}
+        </label>
+    </fieldset>
+    <div>
+{{#if create }}
+        {{! we only need to check for an empty name here as ember munges autofocus, once we have autofocus back revisit this}}
+        <button type="submit" {{ action "create" item}} disabled={{if (or item.isPristine item.isInvalid (eq item.Name '')) 'disabled'}}>Save</button>
+{{ else }}
+        <button type="submit" {{ action "update" item}} disabled={{if item.isInvalid 'disabled'}}>Save</button>
+{{/if}}
+        <button type="reset" {{ action "cancel" item}}>Cancel</button>
+{{# if (not create) }}
+        {{#confirmation-dialog message='Are you sure you want to delete this Policy?'}}
+            {{#block-slot 'action' as |confirm|}}
+                <button type="button" data-test-delete class="type-delete" {{action confirm 'delete' item}}>Delete</button>
+            {{/block-slot}}
+            {{#block-slot 'dialog' as |execute cancel message|}}
+              {{delete-confirmation message=message execute=execute cancel=cancel}}
+            {{/block-slot}}
+        {{/confirmation-dialog}}
+{{/if}}
+    </div>
+</form>

@@ -5,7 +5,7 @@ module.exports = function(defaults) {
   const env = EmberApp.env();
   const prodlike = ['production', 'staging'];
   const isProd = env === 'production';
-  const isProdLike = prodlike.indexOf(env) > -1;
+  // const isProdLike = prodlike.indexOf(env) > -1;
   const sourcemaps = !isProd;
   let app = new EmberApp(
     Object.assign(

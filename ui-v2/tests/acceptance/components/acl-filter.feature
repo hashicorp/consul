@@ -1,4 +1,5 @@
 @setupApplicationTest
+@ignore
 Feature: components / acl filter: Acl Filter
   In order to find the acl token I'm looking for easier
   As a user

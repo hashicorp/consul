@@ -1,0 +1,67 @@
+{{#app-view class="token list" loading=isLoading}}
+    {{#block-slot 'notification' as |status type|}}
+      {{!partial 'dc/acls/notifications'}}
+    {{/block-slot}}
+    {{#block-slot 'header'}}
+      {{partial 'dc/acls/nav'}}
+    {{/block-slot}}
+    {{#block-slot 'actions'}}
+        <a data-test-create href="{{href-to 'dc.acls.tokens.create'}}" class="type-create">Create</a>
+    {{/block-slot}}
+    {{#block-slot 'content'}}
+{{#if (gt items.length 0) }}
+        <form class="filter-bar">
+            {{freetext-filter onchange=(action 'filter') value=filter.s placeholder="Search"}}
+        </form>
+{{/if}}
+{{#if (gt filtered.length 0)}}
+        {{#tabular-collection
+            items=(sort-by 'AccessorID:asc' filtered) as |item index|
+        }}
+            {{#block-slot 'header'}}
+                <th>Accessor ID</th>
+                <th>Scope</th>
+                <th>Description</th>
+                <th>Policies</th>
+            {{/block-slot}}
+            {{#block-slot 'row'}}
+                <td data-test-token="{{item.AccessorID}}">
+                    <a href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>{{item.AccessorID}}</a>
+                </td>
+                <td>
+                  Scope in here
+                </td>
+                <td>
+                  {{item.Description}}
+                </td>
+                <td>
+                  Policies in here
+                </td>
+            {{/block-slot}}
+            {{#block-slot 'actions' as |index change checked|}}
+                {{#confirmation-dialog confirming=false index=index message="Are you sure you want to delete this Token?"}}
+                    {{#block-slot 'action' as |confirm|}}
+                        {{#action-group index=index onchange=(action change) checked=(if (eq checked index) 'checked')}}
+                            <ul>
+                                <li>
+                                    <a data-test-edit href={{href-to 'dc.acls.edit' item.AccessorID}}>Edit</a>
+                                </li>
+                                <li>
+                                    <a data-test-delete onclick={{action confirm 'delete' item}}>Delete</a>
+                                </li>
+                            </ul>
+                        {{/action-group}}
+                    {{/block-slot}}
+                    {{#block-slot 'dialog' as |execute cancel message name|}}
+                      {{delete-confirmation message=message execute=execute cancel=cancel}}
+                    {{/block-slot}}
+                {{/confirmation-dialog}}
+            {{/block-slot}}
+        {{/tabular-collection}}
+{{else}}
+        <p>
+            There are no Tokens.
+        </p>
+{{/if}}
+    {{/block-slot}}
+{{/app-view}}

@@ -13,6 +13,9 @@ export default Route.extend(WithAclActions, {
       replace: true,
     },
   },
+  beforeModel: function(transition) {
+    this.replaceWith('dc.acls.tokens');
+  },
   model: function(params) {
     return hash({
       isLoading: false,

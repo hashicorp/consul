@@ -1,12 +1,14 @@
 /* eslint no-console: "off" */
+import Inflector from 'ember-inflector';
 import yadda from './helpers/yadda';
 import { currentURL, click, triggerKeyEvent, fillIn, find } from '@ember/test-helpers';
 import getDictionary from '@hashicorp/ember-cli-api-double/dictionary';
 import pages from 'consul-ui/tests/pages';
 import api from 'consul-ui/tests/helpers/api';
-
 // const dont = `( don't| shouldn't| can't)?`;
-
+const pluralize = function(str) {
+  return Inflector.inflector.pluralize(str);
+};
 const create = function(number, name, value) {
   // don't return a promise here as
   // I don't need it to wait
@@ -274,11 +276,11 @@ export default function(assert) {
         num,
         model
       ) {
-        const len = currentPage[`${model}s`].filter(function(item) {
+        const len = currentPage[pluralize(model)].filter(function(item) {
           return item.isVisible;
         }).length;
 
-        assert.equal(len, num, `Expected ${num} ${model}s, saw ${len}`);
+        assert.equal(len, num, `Expected ${num} ${pluralize(model)}, saw ${len}`);
       })
       // TODO: I${ dont } see
       .then([`I see $num $model model[s]? with the $property "$value"`], function(
@@ -288,13 +290,13 @@ export default function(assert) {
         property,
         value
       ) {
-        const len = currentPage[`${model}s`].filter(function(item) {
+        const len = currentPage[pluralize(model)].filter(function(item) {
           return item.isVisible && item[property] == value;
         }).length;
         assert.equal(
           len,
           num,
-          `Expected ${num} ${model}s with ${property} set to "${value}", saw ${len}`
+          `Expected ${num} ${pluralize(model)} with ${property} set to "${value}", saw ${len}`
         );
       })
       // TODO: Make this accept a 'contains' word so you can search for text containing also

@@ -39,6 +39,12 @@ html.template-kv.template-list main table tr {
 html.template-acl.template-list main table tr {
   @extend %acls-row;
 }
+html.template-policy.template-list main table tr {
+  @extend %policies-row;
+}
+html.template-token.template-list main table tr {
+  @extend %tokens-row;
+}
 html.template-node.template-show main table tr {
   @extend %node-services-row;
 }
@@ -76,9 +82,21 @@ html.template-node.template-show main table.sessions tr {
   }
 }
 %intentions-row > * {
-  width: calc(25% - 60px);
+  width: calc(25% - 15px);
 }
 %intentions-row > *:last-child {
+  width: 60px;
+}
+%acls-row > * {
+  width: calc(50% - 30px);
+}
+%acls-row > *:last-child {
+  width: 60px;
+}
+%tokens-row > * {
+  width: calc(25% - 15px);
+}
+%tokens-row > *:last-child {
   width: 60px;
 }
 %kvs-row > *:first-child {
@@ -90,10 +108,10 @@ html.template-node.template-show main table.sessions tr {
 %node-services-row > * {
   width: 33%;
 }
-%acls-row > * {
-  width: calc(50% - 30px);
+%policies-row > * {
+  width: calc(33% - 20px);
 }
-%acls-row > *:last-child {
+%policies-row > *:last-child {
   width: 60px;
 }
 // this will get auto calculated later in tabular-collection.js

@@ -1,0 +1,26 @@
+<form>
+    <fieldset>
+        <label class="type-text">
+          <span>Description (should this be a text area?)</span>
+            {{input value=item.Description name='description'}}
+        </label>
+    </fieldset>
+    <div>
+{{#if create }}
+        <button type="submit" {{ action "create" item}} disabled={{if (or item.isPristine item.isInvalid) 'disabled'}}>Save</button>
+{{ else }}
+        <button type="submit" {{ action "update" item}} disabled={{if item.isInvalid 'disabled'}}>Save</button>
+{{/if}}
+        <button type="reset" {{ action "cancel" item}}>Cancel</button>
+{{# if (not create) }}
+        {{#confirmation-dialog message='Are you sure you want to delete this Token?'}}
+            {{#block-slot 'action' as |confirm|}}
+                <button type="button" data-test-delete class="type-delete" {{action confirm 'delete' item}}>Delete</button>
+            {{/block-slot}}
+            {{#block-slot 'dialog' as |execute cancel message|}}
+              {{delete-confirmation message=message execute=execute cancel=cancel}}
+            {{/block-slot}}
+        {{/confirmation-dialog}}
+{{/if}}
+    </div>
+</form>
