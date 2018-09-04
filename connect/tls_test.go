@@ -6,6 +6,8 @@ import (
 	"encoding/pem"
 	"testing"
 
+	"github.com/hashicorp/consul/testrpc"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/api"
@@ -143,6 +145,7 @@ func TestServerSideVerifier(t *testing.T) {
 	// Setup a local test agent to query
 	agent := agent.NewTestAgent("test-consul", "")
 	defer agent.Shutdown()
+	testrpc.WaitForTestAgent(t, agent.RPC, "dc1")
 
 	cfg := api.DefaultConfig()
 	cfg.Address = agent.HTTPAddr()

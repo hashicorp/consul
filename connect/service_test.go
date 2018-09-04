@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/stretchr/testify/require"
 )
@@ -128,6 +129,7 @@ func TestService_ServerTLSConfig(t *testing.T) {
 
 	a := agent.NewTestAgent("007", "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	client := a.Client()
 	agent := client.Agent()
 
