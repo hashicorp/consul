@@ -120,7 +120,7 @@ func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
 
 }
 
-func TestStateStore_ensureNodeNoStaleOverwriteTxn(t *testing.T) {
+func TestStateStore_EnsureNoWriteFromAOldReadForNodes(t *testing.T) {
 	t.Parallel()
 	s := testStateStore(t)
 	nodeID := makeRandomNodeID(t)
@@ -153,14 +153,54 @@ func TestStateStore_ensureNodeNoStaleOverwriteTxn(t *testing.T) {
 		Address:         "1.2.3.4",
 		TaggedAddresses: map[string]string{"hello": "world"},
 		NodeMeta:        map[string]string{"somekey": "fvsdv"},
-		NodeLastRead: 1,
+		NodeLastRead:    1,
 	}
 	// Lets conflict with node1 (has an ID)
-	err := s.EnsureRegistration(3, req);
+	err := s.EnsureRegistration(3, req)
 	assert.Error(t, err, "This is a stale read")
 }
 
-func TestStateStore_ensureNodeOkOverwriteTxn(t *testing.T) {
+func TestStateStore_EnsureNoWriteFromAFutureReadForNodes(t *testing.T) {
+	t.Parallel()
+	s := testStateStore(t)
+	nodeID := makeRandomNodeID(t)
+	req := &structs.RegisterRequest{
+		ID:              nodeID,
+		Node:            "node2",
+		Address:         "2.3.4.5",
+		TaggedAddresses: map[string]string{"hello": "world"},
+		NodeMeta:        map[string]string{"somekey": "somevalue"},
+	}
+	if err := s.EnsureRegistration(1, req); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	req = &structs.RegisterRequest{
+		ID:              nodeID,
+		Node:            "node1",
+		Address:         "1.2.3.4",
+		TaggedAddresses: map[string]string{"hello": "world"},
+		NodeMeta:        map[string]string{"somekey": "somevalue"},
+	}
+	if err := s.EnsureRegistration(2, req); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// changed the IP but stale reade NodeLastRead = 1
+	req = &structs.RegisterRequest{
+		ID:              nodeID,
+		Node:            "node1",
+		Address:         "1.2.3.4",
+		TaggedAddresses: map[string]string{"hello": "world"},
+		NodeMeta:        map[string]string{"somekey": "fvsdv"},
+		NodeLastRead:    100,
+	}
+	// Lets conflict with node1 (has an ID)
+	err := s.EnsureRegistration(3, req)
+	assert.Error(t, err, "This is a read from the future")
+}
+
+func TestStateStore_EnsureReadFromPresentDoesNotFailForNodes(t *testing.T) {
 	t.Parallel()
 	s := testStateStore(t)
 	nodeID := makeRandomNodeID(t)
@@ -182,15 +222,14 @@ func TestStateStore_ensureNodeOkOverwriteTxn(t *testing.T) {
 		Address:         "1.2.3.4",
 		TaggedAddresses: map[string]string{"hello": "world"},
 		NodeMeta:        map[string]string{"somekey": "svvd"},
-		NodeLastRead: 1,
+		NodeLastRead:    1,
 	}
 	// Lets conflict with node1 (has an ID)
 	err := s.EnsureRegistration(2, req)
 	assert.NoError(t, err, "This is not a stale read")
 }
 
-
-func TestStateStore_EnsureNoStaleCheckRegistrations(t *testing.T) {
+func TestStateStore_EnsureNoWriteFromAOldReadForChecks(t *testing.T) {
 	t.Parallel()
 	s := testStateStore(t)
 
@@ -219,9 +258,9 @@ func TestStateStore_EnsureNoStaleCheckRegistrations(t *testing.T) {
 
 	// Add in a top-level check.
 	req.Check = &structs.HealthCheck{
-		Node:    "node1",
-		CheckID: "check1",
-		Name:    "check",
+		Node:      "node1",
+		CheckID:   "check1",
+		Name:      "check",
 		RaftIndex: structs.RaftIndex{ModifyIndex: 1},
 	}
 	if err := s.EnsureRegistration(5, req); err == nil {
@@ -229,7 +268,85 @@ func TestStateStore_EnsureNoStaleCheckRegistrations(t *testing.T) {
 	}
 }
 
-func TestStateStore_EnsureNoStaleServiceRegistrations(t *testing.T) {
+func TestStateStore_EnsureWriteFromPresentReadForChecks(t *testing.T) {
+	t.Parallel()
+	s := testStateStore(t)
+
+	// Start with just a node.
+	nodeID := makeRandomNodeID(t)
+	req := &structs.RegisterRequest{
+		ID:              nodeID,
+		Node:            "node1",
+		Address:         "1.2.3.4",
+		TaggedAddresses: map[string]string{"hello": "world"},
+		NodeMeta:        map[string]string{"somekey": "somevalue"},
+	}
+	if err := s.EnsureRegistration(1, req); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Add in a top-level check.
+	req.Check = &structs.HealthCheck{
+		Node:    "node1",
+		CheckID: "check1",
+		Name:    "check",
+	}
+	if err := s.EnsureRegistration(2, req); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Add in a top-level check.
+	req.Check = &structs.HealthCheck{
+		Node:      "node1",
+		CheckID:   "check1",
+		Name:      "check",
+		RaftIndex: structs.RaftIndex{ModifyIndex: 2},
+	}
+	if err := s.EnsureRegistration(5, req); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
+func TestStateStore_EnsureNoWriteFromAFutureReadForChecks(t *testing.T) {
+	t.Parallel()
+	s := testStateStore(t)
+
+	// Start with just a node.
+	nodeID := makeRandomNodeID(t)
+	req := &structs.RegisterRequest{
+		ID:              nodeID,
+		Node:            "node1",
+		Address:         "1.2.3.4",
+		TaggedAddresses: map[string]string{"hello": "world"},
+		NodeMeta:        map[string]string{"somekey": "somevalue"},
+	}
+	if err := s.EnsureRegistration(1, req); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Add in a top-level check.
+	req.Check = &structs.HealthCheck{
+		Node:    "node1",
+		CheckID: "check1",
+		Name:    "check",
+	}
+	if err := s.EnsureRegistration(4, req); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Add in a top-level check.
+	req.Check = &structs.HealthCheck{
+		Node:      "node1",
+		CheckID:   "check1",
+		Name:      "check",
+		RaftIndex: structs.RaftIndex{ModifyIndex: 100},
+	}
+	if err := s.EnsureRegistration(5, req); err == nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
+func TestStateStore_EnsureNoWriteFromAFutureReadForServices(t *testing.T) {
 	t.Parallel()
 	s := testStateStore(t)
 
@@ -257,22 +374,65 @@ func TestStateStore_EnsureNoStaleServiceRegistrations(t *testing.T) {
 	if err := s.EnsureRegistration(2, req); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	
+
+	// Add in a service definition.
+	req.Service = &structs.NodeService{
+		ID:        "redis1",
+		Service:   "redis",
+		Address:   "1.1.1.2",
+		Port:      8080,
+		Tags:      []string{"master"},
+		RaftIndex: structs.RaftIndex{ModifyIndex: 100},
+	}
+	if err := s.EnsureRegistration(3, req); err == nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
+func TestStateStore_EnsureNoWriteFromOldReadForServices(t *testing.T) {
+	t.Parallel()
+	s := testStateStore(t)
+
+	// Start with just a node.
+	nodeID := makeRandomNodeID(t)
+	req := &structs.RegisterRequest{
+		ID:              nodeID,
+		Node:            "node1",
+		Address:         "1.2.3.4",
+		TaggedAddresses: map[string]string{"hello": "world"},
+		NodeMeta:        map[string]string{"somekey": "somevalue"},
+	}
+	if err := s.EnsureRegistration(1, req); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
 	// Add in a service definition.
 	req.Service = &structs.NodeService{
 		ID:      "redis1",
 		Service: "redis",
-		Address: "1.1.1.2",
+		Address: "1.1.1.1",
 		Port:    8080,
 		Tags:    []string{"master"},
+	}
+	if err := s.EnsureRegistration(2, req); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Add in a service definition.
+	req.Service = &structs.NodeService{
+		ID:        "redis1",
+		Service:   "redis",
+		Address:   "1.1.1.2",
+		Port:      8080,
+		Tags:      []string{"master"},
 		RaftIndex: structs.RaftIndex{ModifyIndex: 1},
 	}
 	if err := s.EnsureRegistration(3, req); err == nil {
 		t.Fatalf("err: %s", err)
-	}	
+	}
 }
 
-func TestStateStore_EnsureOkIndexRegistrations(t *testing.T) {
+func TestStateStore_EnsureWriteFromPresentReadForServices(t *testing.T) {
 	t.Parallel()
 	s := testStateStore(t)
 
@@ -300,14 +460,14 @@ func TestStateStore_EnsureOkIndexRegistrations(t *testing.T) {
 	if err := s.EnsureRegistration(2, req); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	
+
 	// Add in a service definition.
 	req.Service = &structs.NodeService{
-		ID:      "redis1",
-		Service: "redis",
-		Address: "1.1.1.1",
-		Port:    8080,
-		Tags:    []string{"master"},
+		ID:        "redis1",
+		Service:   "redis",
+		Address:   "1.1.1.1",
+		Port:      8080,
+		Tags:      []string{"master"},
 		RaftIndex: structs.RaftIndex{ModifyIndex: 2},
 	}
 	if err := s.EnsureRegistration(3, req); err != nil {
@@ -326,9 +486,9 @@ func TestStateStore_EnsureOkIndexRegistrations(t *testing.T) {
 
 	// Add in a top-level check.
 	req.Check = &structs.HealthCheck{
-		Node:    "node1",
-		CheckID: "check1",
-		Name:    "check",
+		Node:      "node1",
+		CheckID:   "check1",
+		Name:      "check",
 		RaftIndex: structs.RaftIndex{ModifyIndex: 4},
 	}
 	if err := s.EnsureRegistration(5, req); err != nil {

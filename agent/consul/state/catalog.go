@@ -304,7 +304,7 @@ func (s *Store) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, req *structs.Re
 		}
 		if existing == nil || req.ChangesNode(existing.(*structs.Node)) {
 			nodeLastRead := req.NodeLastRead
-			if nodeLastRead != 0 && existing != nil && nodeLastRead < existing.(*structs.Node).RaftIndex.ModifyIndex {
+			if nodeLastRead != 0 && existing != nil && nodeLastRead != existing.(*structs.Node).RaftIndex.ModifyIndex {
 				return fmt.Errorf("Last Node read is obsolete. It has happened at %d, we are now at %d", nodeLastRead, existing.(*structs.Node).RaftIndex.ModifyIndex)
 			}
 			if err := s.ensureNodeTxn(tx, idx, node); err != nil {
@@ -323,8 +323,8 @@ func (s *Store) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, req *structs.Re
 		}
 		if existing == nil || !(existing.(*structs.ServiceNode).ToNodeService()).IsSame(req.Service) {
 			svcLastRead := req.Service.RaftIndex.ModifyIndex
-			if svcLastRead != 0 && existing != nil && svcLastRead < existing.(*structs.ServiceNode).RaftIndex.ModifyIndex {
-				return fmt.Errorf("Last Service read is obsolete. It has happened at %d, we are now at %d", svcLastRead,  existing.(*structs.ServiceNode).RaftIndex.ModifyIndex)
+			if svcLastRead != 0 && existing != nil && svcLastRead != existing.(*structs.ServiceNode).RaftIndex.ModifyIndex {
+				return fmt.Errorf("Last Service read is obsolete. It has happened at %d, we are now at %d", svcLastRead, existing.(*structs.ServiceNode).RaftIndex.ModifyIndex)
 			}
 			if err := s.ensureServiceTxn(tx, idx, req.Node, req.Service); err != nil {
 				return fmt.Errorf("failed inserting service: %s", err)
@@ -1245,7 +1245,7 @@ func (s *Store) ensureCheckTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthChec
 	// Set the indexes
 	if existing != nil {
 		lastRead := hc.RaftIndex.ModifyIndex
-		if lastRead != 0 && lastRead < existing.(*structs.HealthCheck).ModifyIndex {
+		if lastRead != 0 && lastRead != existing.(*structs.HealthCheck).ModifyIndex {
 			return fmt.Errorf("Last Check read is obsolete. It has happened at %d, we are not at %d", lastRead, existing.(*structs.HealthCheck).ModifyIndex)
 		}
 		hc.CreateIndex = existing.(*structs.HealthCheck).CreateIndex
