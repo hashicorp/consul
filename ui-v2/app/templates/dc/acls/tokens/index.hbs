@@ -1,6 +1,6 @@
 {{#app-view class="token list" loading=isLoading}}
     {{#block-slot 'notification' as |status type|}}
-      {{!partial 'dc/acls/notifications'}}
+      {{partial 'dc/acls/tokens/notifications'}}
     {{/block-slot}}
     {{#block-slot 'header'}}
       {{partial 'dc/acls/nav'}}

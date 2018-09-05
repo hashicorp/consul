@@ -1,6 +1,6 @@
 {{#app-view class="token edit" loading=isLoading}}
     {{#block-slot 'notification' as |status type|}}
-      {{!partial 'dc/tokens/notifications'}}
+      {{partial 'dc/acls/tokens/notifications'}}
     {{/block-slot}}
     {{#block-slot 'breadcrumbs'}}
         <ol>

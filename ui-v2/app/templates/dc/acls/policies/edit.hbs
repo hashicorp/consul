@@ -1,6 +1,6 @@
 {{#app-view class="policy edit" loading=isLoading}}
     {{#block-slot 'notification' as |status type|}}
-      {{!partial 'dc/policies/notifications'}}
+      {{partial 'dc/acls/policies/notifications'}}
     {{/block-slot}}
     {{#block-slot 'breadcrumbs'}}
         <ol>

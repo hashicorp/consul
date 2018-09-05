@@ -1,6 +1,6 @@
 {{#app-view class="policy list" loading=isLoading}}
     {{#block-slot 'notification' as |status type|}}
-      {{!partial 'dc/acls/notifications'}}
+      {{partial 'dc/acls/policies/notifications'}}
     {{/block-slot}}
     {{#block-slot 'header'}}
       {{partial 'dc/acls/nav'}}
