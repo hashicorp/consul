@@ -23,6 +23,7 @@ func TestPreparedQuery(t *testing.T) {
 			req := args.Get(1).(*structs.PreparedQueryExecuteRequest)
 			require.Equal("geo-db", req.QueryIDOrName)
 			require.Equal(10, req.Limit)
+			require.True(req.AllowStale)
 
 			reply := args.Get(2).(*structs.PreparedQueryExecuteResponse)
 			reply.QueryMeta.Index = 48

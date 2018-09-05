@@ -26,6 +26,7 @@ func TestHealthServices(t *testing.T) {
 			require.Equal(1*time.Second, req.QueryOptions.MaxQueryTime)
 			require.Equal("web", req.ServiceName)
 			require.Equal("canary", req.ServiceTag)
+			require.True(req.AllowStale)
 
 			reply := args.Get(2).(*structs.IndexedCheckServiceNodes)
 			reply.QueryMeta.Index = 48

@@ -134,22 +134,25 @@ Combining `?cached` with `?consistent` is an error.
 
 Endpoints supporting simple caching may return a result directly from the local
 agent's cache without a round trip to the servers. By default the agent caches
-results for a relatively long time (days) such that it can still return a result
-even if the servers are unavailable for an extended period to enable "fail
-static" semantics.
+results for a relatively long time (3 days) such that it can still return a
+result even if the servers are unavailable for an extended period to enable
+"fail static" semantics.
 
-That means that with no other arguments, cached queries might receive a response
-which is days old. To request better freshness, the HTTP `Cache-Control` header
-may be set with a directive like `max-age=<seconds>`. In this case the agent
-will attempt to re-fetch the result from the servers if the cached value is
-older than the given `max-age`. If the servers can't be reached a 500 is
-returned as normal.
+That means that with no other arguments, `?cached` queries might receive a
+response which is days old. To request better freshness, the HTTP
+`Cache-Control` header may be set with a directive like `max-age=<seconds>`. In
+this case the agent will attempt to re-fetch the result from the servers if the
+cached value is older than the given `max-age`. If the servers can't be reached
+a 500 is returned as normal.
 
 To allow clients to maintain fresh results in normal operation but allow stale
 ones if the servers are unavailable, the `stale-if-error=<seconds>` directive
-may be additionally provided in the `Cache-Control` header. It is meaningless to
-provide this without a `max-age`. The `Age` response header can be used to
-determine if this has occurred.
+may be additionally provided in the `Cache-Control` header. This will return the
+cached value anyway even it it's older than `max-age` (provided it's not older
+than `stale-if-error`) rather than a 500. It must be provided along with a
+`max-age` or `must-revalidate`. The `Age` response header, if larger than
+`max-age` can be used to determine if the server was unreachable and a cached
+version returned instead.
 
 For example, assuming there is a cached response that is 65 seconds old, and
 that the servers are currently unavailable, `Cache-Control: max-age=30` will
@@ -157,10 +160,17 @@ result in a 500 error, while `Cache-Control: max-age=30 stale-if-error=259200`
 will result in the cached response being returned.
 
 A request setting either `max-age=0` or `must-revalidate` directives will cause
-the agent to re-fetch the response from servers always. Either can be combined
+the agent to always re-fetch the response from servers. Either can be combined
 with `stale-if-error=<seconds>` to ensure fresh results when the servers are
 available, but falling back to cached results if the request to the servers
 fails.
+
+Requests that do not use `?cached` currently bypass the cache entirely so the
+cached response returned might be more stale than the last uncached response
+returned on the same agent. If this causes problems, it is possible to make
+requests using `?cached` and setting `Cache-Control: must-revalidate` to have
+always-fresh results yet keeping the cache populated with the most recent
+result.
 
 In all cases the HTTP `X-Cache` header is always set in the response to either
 `HIT` or `MISS` indicating whether the response was served from cache or not.
