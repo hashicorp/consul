@@ -65,7 +65,7 @@ type AgentCheck struct {
 
 // AgentService represents a service known to the agent
 type AgentService struct {
-	Kind              ServiceKind
+	Kind              ServiceKind `json:",omitempty"`
 	ID                string
 	Service           string
 	Tags              []string
@@ -73,10 +73,10 @@ type AgentService struct {
 	Port              int
 	Address           string
 	EnableTagOverride bool
-	CreateIndex       uint64
-	ModifyIndex       uint64
+	CreateIndex       uint64 `json:",omitempty"`
+	ModifyIndex       uint64 `json:",omitempty"`
 	// ProxyDestination is DEPRECATED
-	ProxyDestination string
+	ProxyDestination string                          `json:",omitempty"`
 	Proxy            *AgentServiceConnectProxyConfig `json:",omitempty"`
 	Connect          *AgentServiceConnect            `json:",omitempty"`
 }

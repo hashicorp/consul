@@ -126,6 +126,10 @@ func TestAgent_Services_ExternalConnectProxy(t *testing.T) {
 	actual := val["db-proxy"]
 	assert.Equal(api.ServiceKindConnectProxy, actual.Kind)
 	assert.Equal(srv1.Proxy.ToAPI(), actual.Proxy)
+
+	// Should still have deprecated ProxyDestination filled in until we remove it
+	// completely at a major version bump.
+	assert.Equal(srv1.Proxy.DestinationServiceName, actual.ProxyDestination)
 }
 
 func TestAgent_Services_ACLFilter(t *testing.T) {

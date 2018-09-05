@@ -198,6 +198,8 @@ func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) 
 		// Attach Unmanaged Proxy config if exists
 		if s.Kind == structs.ServiceKindConnectProxy {
 			as.Proxy = s.Proxy.ToAPI()
+			// Also set the deprecated ProxyDestination
+			as.ProxyDestination = as.Proxy.DestinationServiceName
 		}
 
 		// Attach Connect configs if the exist. We use the actual proxy state since
