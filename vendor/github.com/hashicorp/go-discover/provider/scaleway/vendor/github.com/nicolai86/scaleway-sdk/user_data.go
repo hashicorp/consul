@@ -10,16 +10,16 @@ import (
 	"strings"
 )
 
-// ScalewayUserdatas represents the response of a GET /user_data
-type ScalewayUserdatas struct {
+// Userdatas represents the response of a GET /user_data
+type Userdatas struct {
 	UserData []string `json:"user_data"`
 }
 
-// ScalewayUserdata represents []byte
-type ScalewayUserdata []byte
+// Userdata represents []byte
+type Userdata []byte
 
 // GetUserdatas gets list of userdata for a server
-func (s *ScalewayAPI) GetUserdatas(serverID string, metadata bool) (*ScalewayUserdatas, error) {
+func (s *API) GetUserdatas(serverID string, metadata bool) (*Userdatas, error) {
 	var uri, endpoint string
 
 	endpoint = s.computeAPI
@@ -40,7 +40,7 @@ func (s *ScalewayAPI) GetUserdatas(serverID string, metadata bool) (*ScalewayUse
 	if err != nil {
 		return nil, err
 	}
-	var userdatas ScalewayUserdatas
+	var userdatas Userdatas
 
 	if err = json.Unmarshal(body, &userdatas); err != nil {
 		return nil, err
@@ -48,12 +48,12 @@ func (s *ScalewayAPI) GetUserdatas(serverID string, metadata bool) (*ScalewayUse
 	return &userdatas, nil
 }
 
-func (s *ScalewayUserdata) String() string {
+func (s *Userdata) String() string {
 	return string(*s)
 }
 
 // GetUserdata gets a specific userdata for a server
-func (s *ScalewayAPI) GetUserdata(serverID, key string, metadata bool) (*ScalewayUserdata, error) {
+func (s *API) GetUserdata(serverID, key string, metadata bool) (*Userdata, error) {
 	var uri, endpoint string
 
 	endpoint = s.computeAPI
@@ -74,13 +74,13 @@ func (s *ScalewayAPI) GetUserdata(serverID, key string, metadata bool) (*Scalewa
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("no such user_data %q (%d)", key, resp.StatusCode)
 	}
-	var data ScalewayUserdata
+	var data Userdata
 	data, err = ioutil.ReadAll(resp.Body)
 	return &data, err
 }
 
 // PatchUserdata sets a user data
-func (s *ScalewayAPI) PatchUserdata(serverID, key string, value []byte, metadata bool) error {
+func (s *API) PatchUserdata(serverID, key string, value []byte, metadata bool) error {
 	var resource, endpoint string
 
 	endpoint = s.computeAPI
@@ -104,7 +104,7 @@ func (s *ScalewayAPI) PatchUserdata(serverID, key string, value []byte, metadata
 	req.Header.Set("Content-Type", "text/plain")
 	req.Header.Set("User-Agent", s.userAgent)
 
-	resp, err := s.client.Do(req)
+	resp, err := s.Client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -118,7 +118,7 @@ func (s *ScalewayAPI) PatchUserdata(serverID, key string, value []byte, metadata
 }
 
 // DeleteUserdata deletes a server user_data
-func (s *ScalewayAPI) DeleteUserdata(serverID, key string, metadata bool) error {
+func (s *API) DeleteUserdata(serverID, key string, metadata bool) error {
 	var url, endpoint string
 
 	endpoint = s.computeAPI

@@ -6,8 +6,8 @@ import (
 	"net/url"
 )
 
-// ScalewayBootscript represents a Scaleway Bootscript
-type ScalewayBootscript struct {
+// Bootscript represents a  Bootscript
+type Bootscript struct {
 	Bootcmdargs string `json:"bootcmdargs,omitempty"`
 	Dtb         string `json:"dtb,omitempty"`
 	Initrd      string `json:"initrd,omitempty"`
@@ -31,19 +31,16 @@ type ScalewayBootscript struct {
 	Default bool `json:"default,omitempty"`
 }
 
-// ScalewayOneBootscript represents the response of a GET /bootscripts/UUID API call
-type ScalewayOneBootscript struct {
-	Bootscript ScalewayBootscript `json:"bootscript,omitempty"`
+type getBootscriptResponse struct {
+	Bootscript Bootscript `json:"bootscript,omitempty"`
 }
 
-// ScalewayBootscripts represents a group of Scaleway bootscripts
-type ScalewayBootscripts struct {
-	// Bootscripts holds Scaleway bootscripts of the response
-	Bootscripts []ScalewayBootscript `json:"bootscripts,omitempty"`
+type getBootscriptsResponse struct {
+	Bootscripts []Bootscript `json:"bootscripts,omitempty"`
 }
 
-// GetBootscripts gets the list of bootscripts from the ScalewayAPI
-func (s *ScalewayAPI) GetBootscripts() (*[]ScalewayBootscript, error) {
+// GetBootscripts gets the list of bootscripts from the API
+func (s *API) GetBootscripts() ([]Bootscript, error) {
 	query := url.Values{}
 
 	resp, err := s.GetResponsePaginate(s.computeAPI, "bootscripts", query)
@@ -56,16 +53,16 @@ func (s *ScalewayAPI) GetBootscripts() (*[]ScalewayBootscript, error) {
 	if err != nil {
 		return nil, err
 	}
-	var bootscripts ScalewayBootscripts
+	var bootscripts getBootscriptsResponse
 
 	if err = json.Unmarshal(body, &bootscripts); err != nil {
 		return nil, err
 	}
-	return &bootscripts.Bootscripts, nil
+	return bootscripts.Bootscripts, nil
 }
 
-// GetBootscript gets a bootscript from the ScalewayAPI
-func (s *ScalewayAPI) GetBootscript(bootscriptID string) (*ScalewayBootscript, error) {
+// GetBootscript gets a bootscript from the API
+func (s *API) GetBootscript(bootscriptID string) (*Bootscript, error) {
 	resp, err := s.GetResponsePaginate(s.computeAPI, "bootscripts/"+bootscriptID, url.Values{})
 	if err != nil {
 		return nil, err
@@ -76,7 +73,7 @@ func (s *ScalewayAPI) GetBootscript(bootscriptID string) (*ScalewayBootscript, e
 	if err != nil {
 		return nil, err
 	}
-	var oneBootscript ScalewayOneBootscript
+	var oneBootscript getBootscriptResponse
 
 	if err = json.Unmarshal(body, &oneBootscript); err != nil {
 		return nil, err

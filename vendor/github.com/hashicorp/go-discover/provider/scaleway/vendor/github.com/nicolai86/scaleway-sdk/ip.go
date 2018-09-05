@@ -7,15 +7,15 @@ import (
 	"net/url"
 )
 
-// ScalewayIPV6Definition represents a Scaleway ipv6
-type ScalewayIPV6Definition struct {
+// IPV6 represents a ipv6
+type IPV6 struct {
 	Netmask string `json:"netmask"`
 	Gateway string `json:"gateway"`
 	Address string `json:"address"`
 }
 
-// ScalewayIPDefinition represents the IP's fields
-type ScalewayIPDefinition struct {
+// IPV4 represents the IPs fields
+type IPV4 struct {
 	Organization string  `json:"organization"`
 	Reverse      *string `json:"reverse"`
 	ID           string  `json:"id"`
@@ -26,8 +26,8 @@ type ScalewayIPDefinition struct {
 	Address string `json:"address"`
 }
 
-// ScalewayIPAddress represents a Scaleway IP address
-type ScalewayIPAddress struct {
+// IPAddress represents a  IP address
+type IPAddress struct {
 	// Identifier is a unique identifier for the IP address
 	Identifier string `json:"id,omitempty"`
 
@@ -38,18 +38,18 @@ type ScalewayIPAddress struct {
 	Dynamic *bool `json:"dynamic,omitempty"`
 }
 
-// ScalewayGetIPS represents the response of a GET /ips/
-type ScalewayGetIPS struct {
-	IPS []ScalewayIPDefinition `json:"ips"`
+// GetIPS represents the response of a GET /ips/
+type GetIPS struct {
+	IPS []IPV4 `json:"ips"`
 }
 
-// ScalewayGetIP represents the response of a GET /ips/{id_ip}
-type ScalewayGetIP struct {
-	IP ScalewayIPDefinition `json:"ip"`
+// GetIP represents the response of a GET /ips/{id_ip}
+type GetIP struct {
+	IP IPV4 `json:"ip"`
 }
 
-// GetIP returns a ScalewayGetIP
-func (s *ScalewayAPI) GetIP(ipID string) (*ScalewayGetIP, error) {
+// GetIP returns a GetIP
+func (s *API) GetIP(ipID string) (*IPV4, error) {
 	resp, err := s.GetResponsePaginate(s.computeAPI, fmt.Sprintf("ips/%s", ipID), url.Values{})
 	if err != nil {
 		return nil, err
@@ -60,16 +60,59 @@ func (s *ScalewayAPI) GetIP(ipID string) (*ScalewayGetIP, error) {
 	if err != nil {
 		return nil, err
 	}
-	var ip ScalewayGetIP
+	var ip GetIP
 
 	if err = json.Unmarshal(body, &ip); err != nil {
 		return nil, err
 	}
-	return &ip, nil
+	return &ip.IP, nil
 }
 
-// GetIPS returns a ScalewayGetIPS
-func (s *ScalewayAPI) GetIPS() (*ScalewayGetIPS, error) {
+type UpdateIPRequest struct {
+	ID      string
+	Reverse string
+}
+
+func (s *API) UpdateIP(req UpdateIPRequest) (*IPV4, error) {
+	var update struct {
+		Address      string  `json:"address"`
+		ID           string  `json:"id"`
+		Reverse      *string `json:"reverse"`
+		Organization string  `json:"organization"`
+		Server       *string `json:"server"`
+	}
+
+	ip, err := s.GetIP(req.ID)
+	if err != nil {
+		return nil, err
+	}
+	update.Address = ip.Address
+	update.ID = ip.ID
+	update.Organization = ip.Organization
+	update.Server = nil
+	if ip.Server != nil {
+		update.Server = &ip.Server.Identifier
+	}
+	update.Reverse = nil
+	if req.Reverse != "" {
+		update.Reverse = &req.Reverse
+	}
+	resp, err := s.PutResponse(s.computeAPI, fmt.Sprintf("ips/%s", req.ID), update)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := s.handleHTTPError([]int{http.StatusOK}, resp)
+	var data GetIP
+
+	if err = json.Unmarshal(body, &data); err != nil {
+		return nil, err
+	}
+	return &data.IP, nil
+}
+
+// GetIPS returns a GetIPS
+func (s *API) GetIPS() ([]IPV4, error) {
 	resp, err := s.GetResponsePaginate(s.computeAPI, "ips", url.Values{})
 	if err != nil {
 		return nil, err
@@ -80,16 +123,16 @@ func (s *ScalewayAPI) GetIPS() (*ScalewayGetIPS, error) {
 	if err != nil {
 		return nil, err
 	}
-	var ips ScalewayGetIPS
+	var ips GetIPS
 
 	if err = json.Unmarshal(body, &ips); err != nil {
 		return nil, err
 	}
-	return &ips, nil
+	return ips.IPS, nil
 }
 
-// NewIP returns a new IP
-func (s *ScalewayAPI) NewIP() (*ScalewayGetIP, error) {
+// CreateIP returns a new IP
+func (s *API) CreateIP() (*IPV4, error) {
 	var orga struct {
 		Organization string `json:"organization"`
 	}
@@ -104,16 +147,16 @@ func (s *ScalewayAPI) NewIP() (*ScalewayGetIP, error) {
 	if err != nil {
 		return nil, err
 	}
-	var ip ScalewayGetIP
+	var ip GetIP
 
 	if err = json.Unmarshal(body, &ip); err != nil {
 		return nil, err
 	}
-	return &ip, nil
+	return &ip.IP, nil
 }
 
 // AttachIP attachs an IP to a server
-func (s *ScalewayAPI) AttachIP(ipID, serverID string) error {
+func (s *API) AttachIP(ipID, serverID string) error {
 	var update struct {
 		Address      string  `json:"address"`
 		ID           string  `json:"id"`
@@ -126,9 +169,9 @@ func (s *ScalewayAPI) AttachIP(ipID, serverID string) error {
 	if err != nil {
 		return err
 	}
-	update.Address = ip.IP.Address
-	update.ID = ip.IP.ID
-	update.Organization = ip.IP.Organization
+	update.Address = ip.Address
+	update.ID = ip.ID
+	update.Organization = ip.Organization
 	update.Server = serverID
 	resp, err := s.PutResponse(s.computeAPI, fmt.Sprintf("ips/%s", ipID), update)
 	if err != nil {
@@ -139,13 +182,13 @@ func (s *ScalewayAPI) AttachIP(ipID, serverID string) error {
 }
 
 // DetachIP detaches an IP from a server
-func (s *ScalewayAPI) DetachIP(ipID string) error {
+func (s *API) DetachIP(ipID string) error {
 	ip, err := s.GetIP(ipID)
 	if err != nil {
 		return err
 	}
-	ip.IP.Server = nil
-	resp, err := s.PutResponse(s.computeAPI, fmt.Sprintf("ips/%s", ipID), ip.IP)
+	ip.Server = nil
+	resp, err := s.PutResponse(s.computeAPI, fmt.Sprintf("ips/%s", ipID), ip)
 	if err != nil {
 		return err
 	}
@@ -155,7 +198,7 @@ func (s *ScalewayAPI) DetachIP(ipID string) error {
 }
 
 // DeleteIP deletes an IP
-func (s *ScalewayAPI) DeleteIP(ipID string) error {
+func (s *API) DeleteIP(ipID string) error {
 	resp, err := s.DeleteResponse(s.computeAPI, fmt.Sprintf("ips/%s", ipID))
 	if err != nil {
 		return err

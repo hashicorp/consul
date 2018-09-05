@@ -6,13 +6,13 @@ import (
 	"net/url"
 )
 
-// ScalewayDashboardResp represents a dashboard received from the API
-type ScalewayDashboardResp struct {
-	Dashboard ScalewayDashboard
+// DashboardResp represents a dashboard received from the API
+type DashboardResp struct {
+	Dashboard Dashboard
 }
 
-// ScalewayDashboard represents a dashboard
-type ScalewayDashboard struct {
+// Dashboard represents a dashboard
+type Dashboard struct {
 	VolumesCount        int `json:"volumes_count"`
 	RunningServersCount int `json:"running_servers_count"`
 	ImagesCount         int `json:"images_count"`
@@ -22,7 +22,7 @@ type ScalewayDashboard struct {
 }
 
 // GetDashboard returns the dashboard
-func (s *ScalewayAPI) GetDashboard() (*ScalewayDashboard, error) {
+func (s *API) GetDashboard() (*Dashboard, error) {
 	resp, err := s.GetResponsePaginate(s.computeAPI, "dashboard", url.Values{})
 	if err != nil {
 		return nil, err
@@ -33,7 +33,7 @@ func (s *ScalewayAPI) GetDashboard() (*ScalewayDashboard, error) {
 	if err != nil {
 		return nil, err
 	}
-	var dashboard ScalewayDashboardResp
+	var dashboard DashboardResp
 
 	if err = json.Unmarshal(body, &dashboard); err != nil {
 		return nil, err

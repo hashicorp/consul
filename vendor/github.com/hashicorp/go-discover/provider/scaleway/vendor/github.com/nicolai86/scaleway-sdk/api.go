@@ -1,10 +1,10 @@
-// Copyright (C) 2015 Scaleway. All rights reserved.
+// Copyright (C) 2015 . All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE.md file.
 
-// Interact with Scaleway API
+// Interact with  API
 
-// Package api contains client and functions to interact with Scaleway API
+// Package api contains client and functions to interact with  API
 package api
 
 import (
@@ -23,17 +23,15 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// https://cp-par1.scaleway.com/products/servers
-// https://cp-ams1.scaleway.com/products/servers
+// https://cp-par1..com/products/servers
+// https://cp-ams1..com/products/servers
 // Default values
 var (
-	AccountAPI          = "https://account.scaleway.com/"
-	MetadataAPI         = "http://169.254.42.42/"
-	MarketplaceAPI      = "https://api-marketplace.scaleway.com"
-	ComputeAPIPar1      = "https://cp-par1.scaleway.com/"
-	ComputeAPIAms1      = "https://cp-ams1.scaleway.com/"
-	AvailabilityAPIPar1 = "https://availability.scaleway.com/"
-	AvailabilityAPIAms1 = "https://availability-ams1.scaleway.com/"
+	AccountAPI     = "https://account.scaleway.com/"
+	MetadataAPI    = "http://169.254.42.42/"
+	MarketplaceAPI = "https://api-marketplace.scaleway.com"
+	ComputeAPIPar1 = "https://cp-par1.scaleway.com/"
+	ComputeAPIAms1 = "https://cp-ams1.scaleway.com/"
 
 	URLPublicDNS  = ".pub.cloud.scaleway.com"
 	URLPrivateDNS = ".priv.cloud.scaleway.com"
@@ -60,28 +58,21 @@ type HTTPClient interface {
 	Do(*http.Request) (*http.Response, error)
 }
 
-// ScalewayAPI is the interface used to communicate with the Scaleway API
-type ScalewayAPI struct {
-	// Organization is the identifier of the Scaleway organization
-	Organization string
+// API is the interface used to communicate with the  API
+type API struct {
+	Organization string     // Organization is the identifier of the  organization
+	Token        string     // Token is the authentication token for the  organization
+	Client       HTTPClient // Client is used for all HTTP interactions
 
-	// Token is the authentication token for the Scaleway organization
-	Token string
-
-	// Password is the authentication password
-	password string
-
-	userAgent string
-
-	client          HTTPClient
-	computeAPI      string
-	availabilityAPI string
+	password   string // Password is the authentication password
+	userAgent  string
+	computeAPI string
 
 	Region string
 }
 
-// ScalewayAPIError represents a Scaleway API Error
-type ScalewayAPIError struct {
+// APIError represents a  API Error
+type APIError struct {
 	// Message is a human-friendly error message
 	APIMessage string `json:"message,omitempty"`
 
@@ -99,7 +90,7 @@ type ScalewayAPIError struct {
 }
 
 // Error returns a string representing the error
-func (e ScalewayAPIError) Error() string {
+func (e APIError) Error() string {
 	var b bytes.Buffer
 
 	fmt.Fprintf(&b, "StatusCode: %v, ", e.StatusCode)
@@ -111,17 +102,17 @@ func (e ScalewayAPIError) Error() string {
 	return b.String()
 }
 
-// New creates a ready-to-use Scaleway SDK client
-func New(organization, token, region string, options ...func(*ScalewayAPI)) (*ScalewayAPI, error) {
-	s := &ScalewayAPI{
+// New creates a ready-to-use  SDK client
+func New(organization, token, region string, options ...func(*API)) (*API, error) {
+	s := &API{
 		// exposed
 		Organization: organization,
 		Token:        token,
+		Client:       &http.Client{},
 
 		// internal
-		client:    &http.Client{},
 		password:  "",
-		userAgent: "scaleway-sdk",
+		userAgent: "-sdk",
 	}
 	for _, option := range options {
 		option(s)
@@ -129,10 +120,8 @@ func New(organization, token, region string, options ...func(*ScalewayAPI)) (*Sc
 	switch region {
 	case "par1", "":
 		s.computeAPI = ComputeAPIPar1
-		s.availabilityAPI = AvailabilityAPIPar1
 	case "ams1":
 		s.computeAPI = ComputeAPIAms1
-		s.availabilityAPI = AvailabilityAPIAms1
 	default:
 		return nil, fmt.Errorf("%s isn't a valid region", region)
 	}
@@ -140,13 +129,10 @@ func New(organization, token, region string, options ...func(*ScalewayAPI)) (*Sc
 	if url := os.Getenv("SCW_COMPUTE_API"); url != "" {
 		s.computeAPI = url
 	}
-	if url := os.Getenv("SCW_AVAILABILITY_API"); url != "" {
-		s.availabilityAPI = url
-	}
 	return s, nil
 }
 
-func (s *ScalewayAPI) response(method, uri string, content io.Reader) (resp *http.Response, err error) {
+func (s *API) response(method, uri string, content io.Reader) (resp *http.Response, err error) {
 	var (
 		req *http.Request
 	)
@@ -159,12 +145,12 @@ func (s *ScalewayAPI) response(method, uri string, content io.Reader) (resp *htt
 	req.Header.Set("X-Auth-Token", s.Token)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", s.userAgent)
-	resp, err = s.client.Do(req)
+	resp, err = s.Client.Do(req)
 	return
 }
 
 // GetResponsePaginate fetchs all resources and returns an http.Response object for the requested resource
-func (s *ScalewayAPI) GetResponsePaginate(apiURL, resource string, values url.Values) (*http.Response, error) {
+func (s *API) GetResponsePaginate(apiURL, resource string, values url.Values) (*http.Response, error) {
 	resp, err := s.response("HEAD", fmt.Sprintf("%s/%s?%s", strings.TrimRight(apiURL, "/"), resource, values.Encode()), nil)
 	if err != nil {
 		return nil, err
@@ -252,7 +238,7 @@ func (s *ScalewayAPI) GetResponsePaginate(apiURL, resource string, values url.Va
 }
 
 // PostResponse returns an http.Response object for the updated resource
-func (s *ScalewayAPI) PostResponse(apiURL, resource string, data interface{}) (*http.Response, error) {
+func (s *API) PostResponse(apiURL, resource string, data interface{}) (*http.Response, error) {
 	payload := new(bytes.Buffer)
 	if err := json.NewEncoder(payload).Encode(data); err != nil {
 		return nil, err
@@ -261,7 +247,7 @@ func (s *ScalewayAPI) PostResponse(apiURL, resource string, data interface{}) (*
 }
 
 // PatchResponse returns an http.Response object for the updated resource
-func (s *ScalewayAPI) PatchResponse(apiURL, resource string, data interface{}) (*http.Response, error) {
+func (s *API) PatchResponse(apiURL, resource string, data interface{}) (*http.Response, error) {
 	payload := new(bytes.Buffer)
 	if err := json.NewEncoder(payload).Encode(data); err != nil {
 		return nil, err
@@ -270,7 +256,7 @@ func (s *ScalewayAPI) PatchResponse(apiURL, resource string, data interface{}) (
 }
 
 // PutResponse returns an http.Response object for the updated resource
-func (s *ScalewayAPI) PutResponse(apiURL, resource string, data interface{}) (*http.Response, error) {
+func (s *API) PutResponse(apiURL, resource string, data interface{}) (*http.Response, error) {
 	payload := new(bytes.Buffer)
 	if err := json.NewEncoder(payload).Encode(data); err != nil {
 		return nil, err
@@ -279,12 +265,12 @@ func (s *ScalewayAPI) PutResponse(apiURL, resource string, data interface{}) (*h
 }
 
 // DeleteResponse returns an http.Response object for the deleted resource
-func (s *ScalewayAPI) DeleteResponse(apiURL, resource string) (*http.Response, error) {
+func (s *API) DeleteResponse(apiURL, resource string) (*http.Response, error) {
 	return s.response("DELETE", fmt.Sprintf("%s/%s", strings.TrimRight(apiURL, "/"), resource), nil)
 }
 
 // handleHTTPError checks the statusCode and displays the error
-func (s *ScalewayAPI) handleHTTPError(goodStatusCode []int, resp *http.Response) ([]byte, error) {
+func (s *API) handleHTTPError(goodStatusCode []int, resp *http.Response) ([]byte, error) {
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
@@ -293,25 +279,24 @@ func (s *ScalewayAPI) handleHTTPError(goodStatusCode []int, resp *http.Response)
 	if resp.StatusCode >= http.StatusInternalServerError {
 		return nil, errors.New(string(body))
 	}
-	good := false
+
 	for _, code := range goodStatusCode {
 		if code == resp.StatusCode {
-			good = true
+			return body, nil
 		}
 	}
-	if !good {
-		var scwError ScalewayAPIError
 
+	var scwError APIError
+	scwError.StatusCode = resp.StatusCode
+	if len(body) > 0 {
 		if err := json.Unmarshal(body, &scwError); err != nil {
 			return nil, err
 		}
-		scwError.StatusCode = resp.StatusCode
-		return nil, scwError
 	}
-	return body, nil
+	return nil, scwError
 }
 
 // SetPassword register the password
-func (s *ScalewayAPI) SetPassword(password string) {
+func (s *API) SetPassword(password string) {
 	s.password = password
 }
