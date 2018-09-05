@@ -194,6 +194,12 @@ test-ci: other-consul dev-build vet test-install-deps
 	    fi \
 	fi
 
+test-flake: other-consul vet test-install-deps
+	@ cd build-support/flake-repro; \
+	go build -o flake-repro; \
+	./flake-repro $(ARGS); \
+	rm flake-repro
+
 other-consul:
 	@echo "--> Checking for other consul instances"
 	@if ps -ef | grep 'consul agent' | grep -v grep ; then \
