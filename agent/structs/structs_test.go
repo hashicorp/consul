@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestEncodeDecode(t *testing.T) {
@@ -122,7 +123,7 @@ func TestStructs_RegisterRequest_ChangesNode(t *testing.T) {
 }
 
 // testServiceNode gives a fully filled out ServiceNode instance.
-func testServiceNode() *ServiceNode {
+func testServiceNode(t *testing.T) *ServiceNode {
 	return &ServiceNode{
 		ID:         types.NodeID("40e4a748-2192-161a-0510-9bf59fe950b5"),
 		Node:       "node1",
@@ -148,11 +149,16 @@ func testServiceNode() *ServiceNode {
 			CreateIndex: 1,
 			ModifyIndex: 2,
 		},
+		ServiceProxy:            TestConnectProxyConfig(t),
+		ServiceProxyDestination: "deprecated",
+		ServiceConnect: ServiceConnect{
+			Native: true,
+		},
 	}
 }
 
 func TestStructs_ServiceNode_PartialClone(t *testing.T) {
-	sn := testServiceNode()
+	sn := testServiceNode(t)
 
 	clone := sn.PartialClone()
 
@@ -172,9 +178,7 @@ func TestStructs_ServiceNode_PartialClone(t *testing.T) {
 	sn.Datacenter = ""
 	sn.TaggedAddresses = nil
 	sn.NodeMeta = nil
-	if !reflect.DeepEqual(sn, clone) {
-		t.Fatalf("bad: %v", clone)
-	}
+	require.Equal(t, sn, clone)
 
 	sn.ServiceTags = append(sn.ServiceTags, "hello")
 	if reflect.DeepEqual(sn, clone) {
@@ -194,7 +198,7 @@ func TestStructs_ServiceNode_PartialClone(t *testing.T) {
 }
 
 func TestStructs_ServiceNode_Conversions(t *testing.T) {
-	sn := testServiceNode()
+	sn := testServiceNode(t)
 
 	sn2 := sn.ToNodeService().ToServiceNode("node1")
 

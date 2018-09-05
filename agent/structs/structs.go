@@ -505,6 +505,7 @@ type ServiceNode struct {
 	ServiceMeta              map[string]string
 	ServicePort              int
 	ServiceEnableTagOverride bool
+	ServiceProxyDestination  string // Deprecated
 	ServiceProxy             ConnectProxyConfig
 	ServiceConnect           ServiceConnect
 
@@ -534,6 +535,7 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 		ServicePort:              s.ServicePort,
 		ServiceMeta:              nsmeta,
 		ServiceEnableTagOverride: s.ServiceEnableTagOverride,
+		ServiceProxyDestination:  s.ServiceProxyDestination,
 		ServiceProxy:             s.ServiceProxy,
 		ServiceConnect:           s.ServiceConnect,
 		RaftIndex: RaftIndex{
@@ -670,7 +672,7 @@ func (s *NodeService) Validate() error {
 
 		if s.Connect.Native {
 			result = multierror.Append(result, fmt.Errorf(
-				"A Proxy cannot also be ConnectNative, only typical services"))
+				"A Proxy cannot also be Connect Native, only typical services"))
 		}
 	}
 
@@ -700,6 +702,10 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 
 // ToServiceNode converts the given node service to a service node.
 func (s *NodeService) ToServiceNode(node string) *ServiceNode {
+	legacyProxyDest := s.Proxy.DestinationServiceName
+	if legacyProxyDest == "" {
+		legacyProxyDest = s.ProxyDestination
+	}
 	return &ServiceNode{
 		// Skip ID, see ServiceNode definition.
 		Node: node,
@@ -714,6 +720,7 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 		ServiceMeta:              s.Meta,
 		ServiceEnableTagOverride: s.EnableTagOverride,
 		ServiceProxy:             s.Proxy,
+		ServiceProxyDestination:  legacyProxyDest,
 		ServiceConnect:           s.Connect,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
