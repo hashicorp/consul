@@ -200,7 +200,7 @@ func TestStateStore_EnsureNoWriteFromAFutureReadForNodes(t *testing.T) {
 	assert.Error(t, err, "This is a read from the future")
 }
 
-func TestStateStore_EnsureReadFromPresentDoesNotFailForNodes(t *testing.T) {
+func TestStateStore_EnsureWriteFromPresentReadForNodes(t *testing.T) {
 	t.Parallel()
 	s := testStateStore(t)
 	nodeID := makeRandomNodeID(t)
