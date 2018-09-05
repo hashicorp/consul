@@ -50,14 +50,15 @@ $ curl \
 ```json
 {
   "redis": {
-    "ID": "redis",
-    "Service": "redis",
-    "Tags": [],
-    "Address": "",
-    "Meta": {
-      "redis_version": "4.0"
-    },
-    "Port": 8000
+      "ID": "redis",
+      "Service": "redis",
+      "Tags": [],
+      "Meta": {
+          "redis_version": "4.0"
+      },
+      "Port": 8000,
+      "Address": "",
+      "EnableTagOverride": false
   }
 }
 ```
@@ -72,7 +73,7 @@ sending updates about its local services to the servers to keep the global
 catalog in sync.
 
 For "connect-proxy" kind services, the `service:write` ACL for the
-`ProxyDestination` value is also required to register the service.
+`Proxy.DestinationServiceName` value is also required to register the service.
 
 | Method | Path                         | Produces                   |
 | ------ | ---------------------------- | -------------------------- |
@@ -89,6 +90,9 @@ The table below shows this endpoint's support for
 | `NO`             | `none`            | `none`        | `service:write` |
 
 ### Parameters
+
+Note that this endpoint, unlike most also [supports `snake_case`](/docs/agent/services.html#service-definition-parameter-case)
+service definition keys for compatibility with the config file format.
 
 - `Name` `(string: <required>)` - Specifies the logical name of the service.
   Many service instances may share the same logical service name.
@@ -114,14 +118,20 @@ The table below shows this endpoint's support for
   services that are [Connect-capable](/docs/connect/index.html)
   proxies representing another service.
 
-- `ProxyDestination` `(string: "")` - For "connect-proxy" `Kind` services,
-  this must be set to the name of the service that the proxy represents. This
-  service doesn't need to be registered, but the caller must have an ACL token
-  with permissions for this service.
+- `ProxyDestination` `(string: "")` - **Deprecated** From 1.2.0 to 1.2.3 this
+  was used for "connect-proxy" `Kind` services however the equivalent field is
+  now in `Proxy.DestinationServiceName`. Registrations using this field will
+  continue to work until some later major version where this will be removed
+  entirely. It's strongly recommended to switch to using the new field.
 
-- `Connect` `(Connect: nil)` - Specifies the configuration for
-  [Connect](/docs/connect/index.html). See the [Connect structure](#connect-structure)
-  section for supported fields.
+- `Proxy` `(Proxy: nil)` - From 1.2.3 on, specifies the configuration for a
+  Connect proxy instance. This is only valid if `Kind == "connect-proxy"`. See
+  the [Unmanaged Proxy](/docs/connect/proxies.html#unmanaged-proxies)
+  documentation for full details.
+
+- `Connect` `(Connect: nil)` - Specifies the 
+  [configuration for Connect](/docs/connect/configuration.html). See the 
+  [Connect Structure](#connect-structure) section below for supported fields.
 
 - `Check` `(Check: nil)` - Specifies a check. Please see the
   [check documentation](/api/agent/check.html) for more information about the
@@ -168,6 +178,10 @@ For the `Connect` field, the parameters are:
   the [Connect](/docs/connect/index.html) protocol [natively](/docs/connect/native.html).
   If this is true, then Connect proxies, DNS queries, etc. will be able to
   service discover this service.
+- `Proxy` `(Proxy: nil)` - Specifies that a managed Connect proxy should be
+  started for this service instance, and optionally provides configuration for
+  the proxy. The format is as documented in 
+  [Managed Proxies](/docs/connect/proxies.html#managed-proxies) .
 
 ### Sample Payload
 
