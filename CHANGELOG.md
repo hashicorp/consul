@@ -2,6 +2,7 @@
 
 FEATURES:
 
+* agent: New Cloud Auto-join provider: Kubernetes (K8S) [[GH-4635](https://github.com/hashicorp/consul/issues/4635)]
 * http: Added support for "Authorization: Bearer" head in addition to the X-Consul-Token header. [[GH-4483](https://github.com/hashicorp/consul/issues/4483)]
 
 IMPROVEMENTS:
