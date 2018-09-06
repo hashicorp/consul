@@ -14,6 +14,7 @@ export default Model.extend({
     },
   }),
   Kind: attr('string'),
+  Meta: attr(),
   Address: attr('string'),
   Port: attr('number'),
   EnableTagOverride: attr('boolean'),

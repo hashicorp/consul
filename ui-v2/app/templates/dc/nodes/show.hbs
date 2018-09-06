@@ -10,13 +10,18 @@
     {{/block-slot}}
     {{#block-slot 'header'}}
         <h1>
-            {{ item.Node }}
+          {{ item.Node }}
         </h1>
         {{tab-nav
             items=(compact
-                (array 'Health Checks' 'Services' (if tomography 'Round Trip Time' '') 'Lock Sessions')
+              (array
+              (if (gt item.Checks.length 0) 'Health Checks' '')
+                                            'Services'
+              (if tomography                'Round Trip Time' '')
+                                            'Lock Sessions'
+              )
             )
-            selected=(if selectedTab selectedTab 'health-checks')
+            selected=selectedTab
         }}
     {{/block-slot}}
     {{#block-slot 'actions'}}
@@ -42,14 +47,14 @@
         {{#each
             (compact
                 (array
-                    (hash id=(slugify 'Health Checks') partial='dc/nodes/healthchecks')
-                    (hash id=(slugify 'Services') partial='dc/nodes/services')
-     (if tomography (hash id=(slugify 'Round Trip Time') partial='dc/nodes/rtt') '')
-                    (hash id=(slugify 'Lock Sessions') partial='dc/nodes/sessions')
+     (if (gt item.Checks.length 0)  (hash id=(slugify 'Health Checks') partial='dc/nodes/healthchecks') '')
+                                    (hash id=(slugify 'Services') partial='dc/nodes/services')
+     (if tomography                 (hash id=(slugify 'Round Trip Time') partial='dc/nodes/rtt') '')
+                                    (hash id=(slugify 'Lock Sessions') partial='dc/nodes/sessions')
                 )
             ) as |panel|
         }}
-            {{#tab-section id=panel.id selected=(eq (if selectedTab selectedTab 'health-checks') panel.id) onchange=(action "change")}}
+            {{#tab-section id=panel.id selected=(eq (if selectedTab selectedTab '') panel.id) onchange=(action "change")}}
                 {{partial panel.partial}}
             {{/tab-section}}
         {{/each}}

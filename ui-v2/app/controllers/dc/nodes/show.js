@@ -15,7 +15,7 @@ export default Controller.extend(WithFiltering, {
   },
   setProperties: function() {
     this._super(...arguments);
-    set(this, 'selectedTab', 'health-checks');
+    set(this, 'selectedTab', get(this.item, 'Checks.length') > 0 ? 'health-checks' : 'services');
   },
   filter: function(item, { s = '' }) {
     const term = s.toLowerCase();

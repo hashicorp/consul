@@ -30,6 +30,9 @@
   display: flex;
   align-items: flex-start;
 }
+%app-view h1 span {
+  @extend %with-external-source-icon;
+}
 %app-view {
   margin-top: 50px;
 }

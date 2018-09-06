@@ -1,15 +1,35 @@
-%pseudo-icon {
-  width: 1em;
-  height: 1em;
-  position: absolute;
-  top: 50%;
-  margin-top: -0.6em;
+/*TODO: The old pseudo-icon was to specific */
+/* make a temporary one with the -- prefix */
+/* to make it more reusable temporarily */
+%--pseudo-icon {
   display: block;
   content: '';
+  visibility: visible;
+  position: absolute;
+  top: 50%;
   background-repeat: no-repeat;
   background-position: center center;
+}
+%pseudo-icon-bg-img {
+  @extend %--pseudo-icon;
+  background-size: contain;
+  background-color: transparent;
+}
+%pseudo-icon-css {
+  @extend %--pseudo-icon;
+  width: 1em;
+  height: 1em;
+  margin-top: -0.6em;
   background-color: currentColor;
-  visibility: visible;
+}
+%pseudo-icon {
+  @extend %pseudo-icon-css;
+}
+%with-external-source-icon {
+  background-repeat: no-repeat;
+  background-size: contain;
+  width: 18px;
+  height: 18px;
 }
 %with-dot {
   content: '';
@@ -135,6 +155,10 @@
   @extend %pseudo-icon;
   background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="8" height="8" xmlns="http://www.w3.org/2000/svg"><path d="M4 5.064L1.064 8 0 6.936 2.936 4 0 1.064 1.064 0 4 2.936 6.936 0 8 1.064 5.064 4 8 6.936 6.936 8 4 5.064z" fill="%23FFF"/></svg>');
 }
+%with-minus {
+  @extend %pseudo-icon;
+  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="9" height="2" viewBox="0 0 9 2" xmlns="http://www.w3.org/2000/svg"><path fill="%23FFF" fill-rule="nonzero" d="M0 0h8v2H0z"/></svg>');
+}
 %with-warning-icon-orange {
   @extend %pseudo-icon;
   background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="14" height="14" xmlns="http://www.w3.org/2000/svg"><path d="M13.645 10.092c.24.409.365.88.365 1.37 0 1.392-1.027 2.527-2.294 2.538H2.322c-.824 0-1.592-.487-2.004-1.27a2.761 2.761 0 0 1 0-2.538l4.686-8.904C5.416.505 6.184.018 7.008.018c.824 0 1.592.487 2.004 1.27l4.633 8.804zm-5.989 1.264V9.607H6.344v1.749h1.312zm0-3.048v-4.37H6.344v4.37h1.312z" fill="%23fa8f37"/></svg>');
@@ -181,5 +205,9 @@
 }
 %with-critical::before {
   @extend %with-cross;
+  border-radius: 20%;
+}
+%with-no-healthchecks::before {
+  @extend %with-minus;
   border-radius: 20%;
 }

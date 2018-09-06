@@ -1,0 +1,25 @@
+%with-tooltip {
+  position: relative;
+  display: inline-flex;
+  justify-content: center;
+}
+%with-tooltip::before,
+%with-tooltip::after {
+  position: absolute;
+}
+%with-tooltip::before {
+  padding: 10px;
+  bottom: calc(100% + 5px);
+  text-align: center;
+  white-space: nowrap; //temp
+  content: attr(data-tooltip);
+}
+%with-tooltip::after {
+  content: '';
+  left: 50%;
+  margin-left: -5px;
+  top: -10px;
+  width: 10px;
+  height: 10px;
+  transform: rotate(45deg);
+}
