@@ -27,7 +27,7 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/local"
-	"github.com/hashicorp/consul/agent/proxy"
+	"github.com/hashicorp/consul/agent/proxyprocess"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/systemd"
 	"github.com/hashicorp/consul/agent/token"
@@ -211,7 +211,7 @@ type Agent struct {
 	tokens *token.Store
 
 	// proxyManager is the proxy process manager for managed Connect proxies.
-	proxyManager *proxy.Manager
+	proxyManager *proxyprocess.Manager
 
 	// proxyLock protects proxy information in the local state from concurrent modification
 	proxyLock sync.Mutex
@@ -282,7 +282,7 @@ func (a *Agent) setupProxyManager() error {
 	if err != nil {
 		return fmt.Errorf("[INFO] agent: Connect managed proxies are disabled due to providing an invalid HTTP configuration")
 	}
-	a.proxyManager = proxy.NewManager()
+	a.proxyManager = proxyprocess.NewManager()
 	a.proxyManager.AllowRoot = a.config.ConnectProxyAllowManagedRoot
 	a.proxyManager.State = a.State
 	a.proxyManager.Logger = a.logger
