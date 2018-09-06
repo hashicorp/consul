@@ -156,8 +156,9 @@ func TestStateStore_EnsureNoWriteFromAOldReadForNodes(t *testing.T) {
 		NodeLastRead:    1,
 	}
 	// Lets conflict with node1 (has an ID)
-	err := s.EnsureRegistration(3, req)
-	assert.Error(t, err, "This is a stale read")
+	if err := s.EnsureRegistration(3, req); err == nil {
+		t.Fatalf("A write with a read from the past should not be allowed.")
+	}
 }
 
 func TestStateStore_EnsureNoWriteFromAFutureReadForNodes(t *testing.T) {
@@ -196,8 +197,9 @@ func TestStateStore_EnsureNoWriteFromAFutureReadForNodes(t *testing.T) {
 		NodeLastRead:    100,
 	}
 	// Lets conflict with node1 (has an ID)
-	err := s.EnsureRegistration(3, req)
-	assert.Error(t, err, "This is a read from the future")
+	if err := s.EnsureRegistration(3, req); err == nil {
+		t.Fatalf("A write with a read from the future should not be allowed.")
+	}
 }
 
 func TestStateStore_EnsureWriteFromPresentReadForNodes(t *testing.T) {
@@ -224,9 +226,9 @@ func TestStateStore_EnsureWriteFromPresentReadForNodes(t *testing.T) {
 		NodeMeta:        map[string]string{"somekey": "svvd"},
 		NodeLastRead:    1,
 	}
-	// Lets conflict with node1 (has an ID)
-	err := s.EnsureRegistration(2, req)
-	assert.NoError(t, err, "This is not a stale read")
+	if err := s.EnsureRegistration(2, req); err != nil {
+		t.Fatalf("err: %s", err)
+	}
 }
 
 func TestStateStore_EnsureNoWriteFromAOldReadForChecks(t *testing.T) {
