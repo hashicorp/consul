@@ -2142,6 +2142,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 							"connect": {
 								"proxy": {
 									"upstreams": [{
+										"destination_name": "db",
 										"local_bind_port": 1234
 									}]
 								}
@@ -2156,6 +2157,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					connect {
 						proxy {
 							upstreams {
+								destination_name = "db"
 								local_bind_port = 1234
 							}
 						}
@@ -2172,7 +2174,9 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 							Proxy: &structs.ServiceDefinitionConnectProxy{
 								Upstreams: structs.Upstreams{
 									{
-										LocalBindPort: 1234,
+										DestinationName: "db",
+										DestinationType: structs.UpstreamDestTypeService,
+										LocalBindPort:   1234,
 									},
 								},
 							},
@@ -2189,24 +2193,21 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			json: []string{
 				`{
-						"services": [{
+						"service": {
 							"name": "web",
 							"port": 8080,
 							"connect": {
 								"proxy": {
 									"upstreams": [{
+										"destination_name": "db",
 										"local_bind_port": 1234
 									}, {
+										"destination_name": "cache",
 										"local_bind_port": 2345
 									}]
 								}
 							}
-						},{
-							"name": "service-A2",
-							"port": 81,
-							"tags": [],
-							"checks": []
-						}]
+						}
 					}`,
 			},
 			hcl: []string{
@@ -2217,9 +2218,11 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 						proxy {
 							upstreams = [
 								{
+									destination_name = "db"
 									local_bind_port = 1234
 								},
 							  {
+									destination_name = "cache"
 									local_bind_port = 2345
 								}
 							]
@@ -2237,18 +2240,18 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 							Proxy: &structs.ServiceDefinitionConnectProxy{
 								Upstreams: structs.Upstreams{
 									{
-										LocalBindPort: 1234,
+										DestinationName: "db",
+										DestinationType: structs.UpstreamDestTypeService,
+										LocalBindPort:   1234,
 									},
 									{
-										LocalBindPort: 2345,
+										DestinationName: "cache",
+										DestinationType: structs.UpstreamDestTypeService,
+										LocalBindPort:   2345,
 									},
 								},
 							},
 						},
-					},
-					&structs.ServiceDefinition{
-						Name: "service-A2",
-						Port: 81,
 					},
 				}
 			},
@@ -3657,14 +3660,14 @@ func TestFullConfig(t *testing.T) {
 					"ZBfTin3L": []string{"1sDbEqYG", "lJGASsWK"},
 					"Ui0nU99X": []string{"LMccm3Qe", "k5H5RggQ"},
 				},
-				Method:            "aldrIQ4l",
-				TCP:               "RJQND605",
-				Interval:          22164 * time.Second,
-				DockerContainerID: "ipgdFtjd",
-				Shell:             "qAeOYy0M",
-				TLSSkipVerify:     true,
-				Timeout:           1813 * time.Second,
-				TTL:               21743 * time.Second,
+				Method:                         "aldrIQ4l",
+				TCP:                            "RJQND605",
+				Interval:                       22164 * time.Second,
+				DockerContainerID:              "ipgdFtjd",
+				Shell:                          "qAeOYy0M",
+				TLSSkipVerify:                  true,
+				Timeout:                        1813 * time.Second,
+				TTL:                            21743 * time.Second,
 				DeregisterCriticalServiceAfter: 14232 * time.Second,
 			},
 			&structs.CheckDefinition{
@@ -3680,14 +3683,14 @@ func TestFullConfig(t *testing.T) {
 					"zcqwA8dO": []string{"qb1zx0DL", "sXCxPFsD"},
 					"qxvdnSE9": []string{"6wBPUYdF", "YYh8wtSZ"},
 				},
-				Method:            "gLrztrNw",
-				TCP:               "4jG5casb",
-				Interval:          28767 * time.Second,
-				DockerContainerID: "THW6u7rL",
-				Shell:             "C1Zt3Zwh",
-				TLSSkipVerify:     true,
-				Timeout:           18506 * time.Second,
-				TTL:               31006 * time.Second,
+				Method:                         "gLrztrNw",
+				TCP:                            "4jG5casb",
+				Interval:                       28767 * time.Second,
+				DockerContainerID:              "THW6u7rL",
+				Shell:                          "C1Zt3Zwh",
+				TLSSkipVerify:                  true,
+				Timeout:                        18506 * time.Second,
+				TTL:                            31006 * time.Second,
 				DeregisterCriticalServiceAfter: 2366 * time.Second,
 			},
 			&structs.CheckDefinition{
@@ -3703,14 +3706,14 @@ func TestFullConfig(t *testing.T) {
 					"hBq0zn1q": {"2a9o9ZKP", "vKwA5lR6"},
 					"f3r6xFtM": {"RyuIdDWv", "QbxEcIUM"},
 				},
-				Method:            "Dou0nGT5",
-				TCP:               "JY6fTTcw",
-				Interval:          18714 * time.Second,
-				DockerContainerID: "qF66POS9",
-				Shell:             "sOnDy228",
-				TLSSkipVerify:     true,
-				Timeout:           5954 * time.Second,
-				TTL:               30044 * time.Second,
+				Method:                         "Dou0nGT5",
+				TCP:                            "JY6fTTcw",
+				Interval:                       18714 * time.Second,
+				DockerContainerID:              "qF66POS9",
+				Shell:                          "sOnDy228",
+				TLSSkipVerify:                  true,
+				Timeout:                        5954 * time.Second,
+				TTL:                            30044 * time.Second,
 				DeregisterCriticalServiceAfter: 13209 * time.Second,
 			},
 		},
@@ -3844,14 +3847,14 @@ func TestFullConfig(t *testing.T) {
 							"UkpmZ3a3": {"2dfzXuxZ"},
 							"cVFpko4u": {"gGqdEB6k", "9LsRo22u"},
 						},
-						Method:            "X5DrovFc",
-						TCP:               "ICbxkpSF",
-						Interval:          24392 * time.Second,
-						DockerContainerID: "ZKXr68Yb",
-						Shell:             "CEfzx0Fo",
-						TLSSkipVerify:     true,
-						Timeout:           38333 * time.Second,
-						TTL:               57201 * time.Second,
+						Method:                         "X5DrovFc",
+						TCP:                            "ICbxkpSF",
+						Interval:                       24392 * time.Second,
+						DockerContainerID:              "ZKXr68Yb",
+						Shell:                          "CEfzx0Fo",
+						TLSSkipVerify:                  true,
+						Timeout:                        38333 * time.Second,
+						TTL:                            57201 * time.Second,
 						DeregisterCriticalServiceAfter: 44214 * time.Second,
 					},
 				},
@@ -3876,14 +3879,14 @@ func TestFullConfig(t *testing.T) {
 							"MUlReo8L": {"AUZG7wHG", "gsN0Dc2N"},
 							"1UJXjVrT": {"OJgxzTfk", "xZZrFsq7"},
 						},
-						Method:            "5wkAxCUE",
-						TCP:               "MN3oA9D2",
-						Interval:          32718 * time.Second,
-						DockerContainerID: "cU15LMet",
-						Shell:             "nEz9qz2l",
-						TLSSkipVerify:     true,
-						Timeout:           34738 * time.Second,
-						TTL:               22773 * time.Second,
+						Method:                         "5wkAxCUE",
+						TCP:                            "MN3oA9D2",
+						Interval:                       32718 * time.Second,
+						DockerContainerID:              "cU15LMet",
+						Shell:                          "nEz9qz2l",
+						TLSSkipVerify:                  true,
+						Timeout:                        34738 * time.Second,
+						TTL:                            22773 * time.Second,
 						DeregisterCriticalServiceAfter: 84282 * time.Second,
 					},
 					&structs.CheckType{
@@ -3897,14 +3900,14 @@ func TestFullConfig(t *testing.T) {
 							"cXPmnv1M": {"imDqfaBx", "NFxZ1bQe"},
 							"vr7wY7CS": {"EtCoNPPL", "9vAarJ5s"},
 						},
-						Method:            "wzByP903",
-						TCP:               "2exjZIGE",
-						Interval:          5656 * time.Second,
-						DockerContainerID: "5tDBWpfA",
-						Shell:             "rlTpLM8s",
-						TLSSkipVerify:     true,
-						Timeout:           4868 * time.Second,
-						TTL:               11222 * time.Second,
+						Method:                         "wzByP903",
+						TCP:                            "2exjZIGE",
+						Interval:                       5656 * time.Second,
+						DockerContainerID:              "5tDBWpfA",
+						Shell:                          "rlTpLM8s",
+						TLSSkipVerify:                  true,
+						Timeout:                        4868 * time.Second,
+						TTL:                            11222 * time.Second,
 						DeregisterCriticalServiceAfter: 68482 * time.Second,
 					},
 				},
@@ -3974,14 +3977,14 @@ func TestFullConfig(t *testing.T) {
 							"gv5qefTz": {"5Olo2pMG", "PvvKWQU5"},
 							"SHOVq1Vv": {"jntFhyym", "GYJh32pp"},
 						},
-						Method:            "T66MFBfR",
-						TCP:               "bNnNfx2A",
-						Interval:          22224 * time.Second,
-						DockerContainerID: "ipgdFtjd",
-						Shell:             "omVZq7Sz",
-						TLSSkipVerify:     true,
-						Timeout:           18913 * time.Second,
-						TTL:               44743 * time.Second,
+						Method:                         "T66MFBfR",
+						TCP:                            "bNnNfx2A",
+						Interval:                       22224 * time.Second,
+						DockerContainerID:              "ipgdFtjd",
+						Shell:                          "omVZq7Sz",
+						TLSSkipVerify:                  true,
+						Timeout:                        18913 * time.Second,
+						TTL:                            44743 * time.Second,
 						DeregisterCriticalServiceAfter: 8482 * time.Second,
 					},
 					&structs.CheckType{
@@ -3995,14 +3998,14 @@ func TestFullConfig(t *testing.T) {
 							"4ebP5vL4": {"G20SrL5Q", "DwPKlMbo"},
 							"p2UI34Qz": {"UsG1D0Qh", "NHhRiB6s"},
 						},
-						Method:            "ciYHWors",
-						TCP:               "FfvCwlqH",
-						Interval:          12356 * time.Second,
-						DockerContainerID: "HBndBU6R",
-						Shell:             "hVI33JjA",
-						TLSSkipVerify:     true,
-						Timeout:           38282 * time.Second,
-						TTL:               1181 * time.Second,
+						Method:                         "ciYHWors",
+						TCP:                            "FfvCwlqH",
+						Interval:                       12356 * time.Second,
+						DockerContainerID:              "HBndBU6R",
+						Shell:                          "hVI33JjA",
+						TLSSkipVerify:                  true,
+						Timeout:                        38282 * time.Second,
+						TTL:                            1181 * time.Second,
 						DeregisterCriticalServiceAfter: 4992 * time.Second,
 					},
 					&structs.CheckType{
@@ -4016,14 +4019,14 @@ func TestFullConfig(t *testing.T) {
 							"rjm4DEd3": {"2m3m2Fls"},
 							"l4HwQ112": {"fk56MNlo", "dhLK56aZ"},
 						},
-						Method:            "9afLm3Mj",
-						TCP:               "fjiLFqVd",
-						Interval:          23926 * time.Second,
-						DockerContainerID: "dO5TtRHk",
-						Shell:             "e6q2ttES",
-						TLSSkipVerify:     true,
-						Timeout:           38483 * time.Second,
-						TTL:               10943 * time.Second,
+						Method:                         "9afLm3Mj",
+						TCP:                            "fjiLFqVd",
+						Interval:                       23926 * time.Second,
+						DockerContainerID:              "dO5TtRHk",
+						Shell:                          "e6q2ttES",
+						TLSSkipVerify:                  true,
+						Timeout:                        38483 * time.Second,
+						TTL:                            10943 * time.Second,
 						DeregisterCriticalServiceAfter: 68787 * time.Second,
 					},
 				},
@@ -4602,6 +4605,7 @@ func TestSanitize(t *testing.T) {
 			"Meta": {},
 			"Name": "foo",
 			"Port": 0,
+			"Proxy": null,
 			"ProxyDestination": "",
 			"Tags": [],
 			"Token": "hidden"

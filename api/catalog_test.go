@@ -341,6 +341,18 @@ func testUpstreams(t *testing.T) []Upstream {
 	}
 }
 
+func testExpectUpstreamsWithDefaults(t *testing.T, upstreams []Upstream) []Upstream {
+	ups := make([]Upstream, len(upstreams))
+	for i := range upstreams {
+		ups[i] = upstreams[i]
+		// Fill in default fields we expect to have back explicitly in a response
+		if ups[i].DestinationType == "" {
+			ups[i].DestinationType = UpstreamDestTypeService
+		}
+	}
+	return ups
+}
+
 // testUnmanagedProxy returns a fully configured external proxy service suitable
 // for checking that all the config fields make it back in a response intact.
 func testUnmanagedProxy(t *testing.T) *AgentService {
@@ -378,18 +390,26 @@ func TestAPI_CatalogConnect(t *testing.T) {
 	catalog := c.Catalog()
 
 	// Register service and proxy instances to test against.
+	proxyReg := testUnmanagedProxyRegistration(t)
+
+	proxy := proxyReg.Service
+
+	deprecatedProxyReg := testUnmanagedProxyRegistration(t)
+	deprecatedProxyReg.Service.ProxyDestination = deprecatedProxyReg.Service.Proxy.DestinationServiceName
+	deprecatedProxyReg.Service.Proxy = nil
+
 	service := &AgentService{
-		ID:      "redis1",
-		Service: "redis",
+		ID:      proxyReg.Service.Proxy.DestinationServiceID,
+		Service: proxyReg.Service.Proxy.DestinationServiceName,
 		Port:    8000,
 	}
 	check := &AgentCheck{
 		Node:      "foobar",
-		CheckID:   "service:redis1",
+		CheckID:   "service:" + service.ID,
 		Name:      "Redis health check",
 		Notes:     "Script based health check",
 		Status:    HealthPassing,
-		ServiceID: "redis1",
+		ServiceID: service.ID,
 	}
 
 	reg := &CatalogRegistration{
@@ -399,14 +419,6 @@ func TestAPI_CatalogConnect(t *testing.T) {
 		Service:    service,
 		Check:      check,
 	}
-	proxyReg := testUnmanagedProxyRegistration(t)
-	proxyReg.Check = check
-
-	proxy := proxyReg.Service
-
-	deprecatedProxyReg := testUnmanagedProxyRegistration(t)
-	deprecatedProxyReg.Service.ProxyDestination = deprecatedProxyReg.Service.Proxy.DestinationServiceName
-	deprecatedProxyReg.Service.Proxy = nil
 
 	retry.Run(t, func(r *retry.R) {
 		if _, err := catalog.Register(reg, nil); err != nil {
@@ -420,7 +432,7 @@ func TestAPI_CatalogConnect(t *testing.T) {
 			r.Fatal(err)
 		}
 
-		services, meta, err := catalog.Connect("redis", "", nil)
+		services, meta, err := catalog.Connect(proxyReg.Service.Proxy.DestinationServiceName, "", nil)
 		if err != nil {
 			r.Fatal(err)
 		}
@@ -441,8 +453,9 @@ func TestAPI_CatalogConnect(t *testing.T) {
 			r.Fatalf("Returned port should be for proxy: %v", services[0])
 		}
 
-		if services[0].ServiceProxy != proxy.Proxy {
-			r.Fatalf("Returned proxy confing should match: %v", services[0])
+		if !reflect.DeepEqual(services[0].ServiceProxy, proxy.Proxy) {
+			r.Fatalf("Returned proxy config should match:\nWant: %v\n Got: %v",
+				proxy.Proxy, services[0].ServiceProxy)
 		}
 	})
 }

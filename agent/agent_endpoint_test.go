@@ -3207,8 +3207,9 @@ func TestAgentConnectProxyConfig_Blocking(t *testing.T) {
 	ur, err := copystructure.Copy(expectedResponse)
 	require.NoError(t, err)
 	updatedResponse := ur.(*api.ConnectProxyConfig)
-	updatedResponse.ContentHash = "c672a0f60df8d307"
+	updatedResponse.ContentHash = "aedc0ca0f3f7794e"
 	updatedResponse.Upstreams = append(updatedResponse.Upstreams, api.Upstream{
+		DestinationType: "service",
 		DestinationName: "cache",
 		LocalBindPort:   4242,
 		Config: map[string]interface{}{

@@ -269,7 +269,7 @@ func TestCatalogNodes_Blocking(t *testing.T) {
 	// an error channel instead.
 	errch := make(chan error, 2)
 	go func() {
-		testrpc.WaitForLeader(t, a.RPC, "dc1")
+		testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 		start := time.Now()
 
 		// register a service after the blocking call

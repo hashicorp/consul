@@ -1235,16 +1235,16 @@ func TestAPI_AgentConnectProxyConfig(t *testing.T) {
 		ProxyServiceID:    "foo-proxy",
 		TargetServiceID:   "foo",
 		TargetServiceName: "foo",
-		ContentHash:       "d66a329b2a642990",
+		ContentHash:       "acdf5eb6f5794a14",
 		ExecMode:          "daemon",
 		Command:           []string{"consul", "connect", "proxy"},
 		Config: map[string]interface{}{
-			"bind_address": "127.0.0.1",
-			"bind_port":    float64(20000),
-			"foo":          "bar",
+			"bind_address":          "127.0.0.1",
+			"bind_port":             float64(20000),
+			"foo":                   "bar",
 			"local_service_address": "127.0.0.1:8000",
 		},
-		Upstreams: reg.Connect.Proxy.Upstreams,
+		Upstreams: testExpectUpstreamsWithDefaults(t, reg.Connect.Proxy.Upstreams),
 	}
 	require.Equal(t, expectConfig, config)
 	require.Equal(t, expectConfig.ContentHash, qm.LastContentHash)

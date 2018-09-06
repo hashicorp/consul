@@ -149,8 +149,12 @@ func testServiceNode(t *testing.T) *ServiceNode {
 			CreateIndex: 1,
 			ModifyIndex: 2,
 		},
-		ServiceProxy:            TestConnectProxyConfig(t),
-		ServiceProxyDestination: "deprecated",
+		ServiceProxy: TestConnectProxyConfig(t),
+		// ServiceProxyDestination is deprecated bit must be set consistently with
+		// the value of ServiceProxy.DestinationServiceName otherwise a round-trip
+		// through ServiceNode -> NodeService and back will not match and fail
+		// tests.
+		ServiceProxyDestination: "web",
 		ServiceConnect: ServiceConnect{
 			Native: true,
 		},
@@ -209,9 +213,7 @@ func TestStructs_ServiceNode_Conversions(t *testing.T) {
 	sn.Datacenter = ""
 	sn.TaggedAddresses = nil
 	sn.NodeMeta = nil
-	if !reflect.DeepEqual(sn, sn2) {
-		t.Fatalf("bad: %v", sn2)
-	}
+	require.Equal(t, sn, sn2)
 }
 
 func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
@@ -229,13 +231,13 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 		{
 			"connect-proxy: no ProxyDestination",
 			func(x *NodeService) { x.Proxy.DestinationServiceName = "" },
-			"ProxyDestination must be",
+			"Proxy.DestinationServiceName must be",
 		},
 
 		{
 			"connect-proxy: whitespace ProxyDestination",
 			func(x *NodeService) { x.Proxy.DestinationServiceName = "  " },
-			"ProxyDestination must be",
+			"Proxy.DestinationServiceName must be",
 		},
 
 		{
@@ -325,6 +327,7 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 	}
 
 	check := func(twiddle, restore func()) {
+		t.Helper()
 		if !ns.IsSame(other) || !other.IsSame(ns) {
 			t.Fatalf("should be the same")
 		}
@@ -336,7 +339,7 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 
 		restore()
 		if !ns.IsSame(other) || !other.IsSame(ns) {
-			t.Fatalf("should be the same")
+			t.Fatalf("should be the same again")
 		}
 	}
 
@@ -350,7 +353,7 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 	check(func() { other.EnableTagOverride = false }, func() { other.EnableTagOverride = true })
 	check(func() { other.Kind = ServiceKindConnectProxy }, func() { other.Kind = "" })
 	check(func() { other.Proxy.DestinationServiceName = "" }, func() { other.Proxy.DestinationServiceName = "db" })
-	check(func() { other.Proxy.DestinationServiceID = "XXX" }, func() { other.Proxy.DestinationServiceName = "" })
+	check(func() { other.Proxy.DestinationServiceID = "XXX" }, func() { other.Proxy.DestinationServiceID = "" })
 	check(func() { other.Proxy.LocalServiceAddress = "XXX" }, func() { other.Proxy.LocalServiceAddress = "" })
 	check(func() { other.Proxy.LocalServicePort = 9999 }, func() { other.Proxy.LocalServicePort = 0 })
 	check(func() { other.Proxy.Config["baz"] = "XXX" }, func() { delete(other.Proxy.Config, "baz") })

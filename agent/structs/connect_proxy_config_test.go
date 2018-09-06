@@ -92,7 +92,8 @@ func TestUpstream_MarshalJSON(t *testing.T) {
 				"DestinationType": "service",
 				"DestinationName": "foo",
 				"Datacenter": "dc1",
-				"LocalBindPort": 1234
+				"LocalBindPort": 1234,
+				"Config": null
 			}`,
 			wantErr: false,
 		},
@@ -108,7 +109,8 @@ func TestUpstream_MarshalJSON(t *testing.T) {
 				"DestinationType": "prepared_query",
 				"DestinationName": "foo",
 				"Datacenter": "dc1",
-				"LocalBindPort": 1234
+				"LocalBindPort": 1234,
+				"Config": null
 			}`,
 			wantErr: false,
 		},
